@@ -126,7 +126,7 @@ class Markers:
         color = hex_color_name(m.rgba[:3])
         c = QColor(color)
         b.setColor(c)
-        b.setStyle(Qt.SolidPattern)
+        b.setStyle(Qt.BrushStyle.SolidPattern)
         if self.marker_type == 'line':
           m.graphics_item = gi = s.addRect(x-bs, y0+bs, 2*bs, y1-y0-bs, pen = p, brush = b)
           gi.setZValue(1.0)	# Show on top of histogram
@@ -351,13 +351,14 @@ class Markers:
       return
 
     range = 3
-    i = self.closest_marker_index(event.x(), event.y(), range)
+    ep = event.pos()
+    i = self.closest_marker_index(ep.x(), ep.y(), range)
     self.drag_marker_index = i
 
     if i == None:
       return
 
-    p = self.canvas.mapToScene(event.x(), event.y())
+    p = self.canvas.mapToScene(ep.x(), ep.y())
     self.last_mouse_xy = self.canvas_xy_to_user_xy((p.x(), p.y()))
 
     cb = self.selected_marker_callback
@@ -386,14 +387,15 @@ class Markers:
         self.drag_marker_index >= len(self.markers)):
       return
 
-    p = self.canvas.mapToScene(event.x(), event.y())
+    ep = event.pos()
+    p = self.canvas.mapToScene(ep.x(), ep.y())
     mouse_xy = self.canvas_xy_to_user_xy((p.x(),p.y()))
     dx = mouse_xy[0] - self.last_mouse_xy[0]
     dy = mouse_xy[1] - self.last_mouse_xy[1]
     self.last_mouse_xy = mouse_xy
 
     from Qt.QtCore import Qt
-    if event.modifiers() & Qt.ShiftModifier:
+    if event.modifiers() & Qt.KeyboardModifier.ShiftModifier:
       dx = .1 * dx
       dy = .1 * dy
 

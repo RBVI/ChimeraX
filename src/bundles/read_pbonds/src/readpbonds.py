@@ -26,6 +26,7 @@ def read_pseudobond_file(session, stream, file_name, *args,
         g.clear()
 
     from chimerax.atomic import AtomsArg
+    num_preexisting = g.num_pseudobonds
     for i, line in enumerate(lines):
         if len(line.strip()) == 0:
             continue
@@ -61,7 +62,7 @@ def read_pseudobond_file(session, stream, file_name, *args,
     if dashes is not None:
         g.dashes = dashes
         
-    return ret_models, 'Opened Pseudobonds %s, %d bonds' % (file_name, len(lines))
+    return ret_models, 'Opened Pseudobonds %s, %d bonds' % (file_name, g.num_pseudobonds - num_preexisting)
 
 def _global_options(line, session):
     line = line.lstrip()

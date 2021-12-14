@@ -34,8 +34,9 @@ from .changes import check_for_changes
 from .pdbmatrices import biological_unit_matrices
 from .triggers import get_triggers
 from .shapedrawing import AtomicShapeDrawing, AtomicShapeInfo
-from .args import SymmetryArg, AtomArg, AtomsArg, ResiduesArg, UniqueChainsArg, AtomicStructuresArg
-from .args import StructureArg, StructuresArg, ElementArg, OrderedAtomsArg
+from .args import SymmetryArg, AtomArg, AtomsArg, ResiduesArg
+from .args import UniqueChainsArg, ChainArg, SequencesArg, SequenceArg
+from .args import AtomicStructuresArg, StructureArg, StructuresArg, ElementArg, OrderedAtomsArg
 from .args import BondArg, BondsArg, PseudobondsArg, PseudobondGroupsArg, concise_residue_spec
 from .cytmpl import TmplResidue
 
@@ -88,8 +89,11 @@ class _AtomicBundleAPI(BundleAPI):
             if class_name == "_NoDefault":
                 from chimerax.core.attributes import _NoDefault
                 return _NoDefault
-            from chimerax.core.session import State
-            class Fake(State):
+            from chimerax.core.session import State, StateManager
+            base_class = StateManager if class_name.endswith("Manager") else State
+            class Fake(base_class):
+                def clear(self):
+                    pass
                 def reset_state(self, session):
                     pass
                 def take_snapshot(self, session, flags):

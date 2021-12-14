@@ -17,7 +17,8 @@ ChimeraX-specific schemes.  It is built on top of :py:class:`HtmlView`,
 which provides scheme support.
 """
 
-from Qt.QtWebEngineWidgets import QWebEngineView, QWebEnginePage, QWebEngineProfile
+from Qt.QtWebEngineCore import QWebEnginePage, QWebEngineProfile
+from Qt.QtWebEngineWidgets import QWebEngineView
 from Qt.QtWebEngineCore import QWebEngineUrlRequestInterceptor
 from Qt.QtWebEngineCore import QWebEngineUrlSchemeHandler
 
@@ -29,7 +30,8 @@ def set_user_agent(profile):
     profile.setHttpUserAgent('%s %s' % (profile.httpUserAgent(), html_user_agent(app_dirs)))
 
 
-def create_profile(parent, schemes=None, interceptor=None, download=None, handlers=None):
+def create_profile(parent, schemes=None, interceptor=None, download=None, handlers=None,
+                   storage_name=None):
     """
     Create a QWebEngineProfile.  The profile provides shared access to the
     files in the html directory in the chimerax.ui package by rewriting links
@@ -47,8 +49,14 @@ def create_profile(parent, schemes=None, interceptor=None, download=None, handle
                   of QWebEngineDownloadItem, invoked when download is
                   requested.  Default None.
     handlers :    a dictionary of scheme handlers.  Default None.
+    storage_name : a string giving a unique name for persistent cookie storage.
+                   if this is None then cookies are only stored in memory.
     """
-    profile = QWebEngineProfile(parent)
+    if storage_name is None:
+        profile = QWebEngineProfile(parent)
+    else:
+        profile = QWebEngineProfile(storage_name, parent)
+
     set_user_agent(profile)
 
     def _intercept(request_info, *args, interceptor=interceptor):
@@ -105,7 +113,9 @@ def create_profile(parent, schemes=None, interceptor=None, download=None, handle
 
 def delete_profile(profile):
     """Cleanup profiles created by create_profile"""
-    profile.downloadRequested.disconnect()
+    # Trying to disconnect gives an error Qt 5.15.3,
+    # "TypeError: disconnect() failed between 'downloadRequested' and all its connections"
+    #profile.downloadRequested.disconnect()
     if hasattr(profile, '_schemes'):
         profile.removeAllUrlSchemeHandlers()
         del profile._handlers
@@ -174,18 +184,17 @@ class HtmlView(QWebEngineView):
         page = _LoggingPage(self._profile, self, log_errors=log_errors)
         self.setPage(page)
         s = page.settings()
-        s.setAttribute(s.LocalStorageEnabled, True)
+        s.setAttribute(s.WebAttribute.LocalStorageEnabled, True)
         self.setAcceptDrops(False)
         # as of Qt 5.6.0, the keyboard shortcut for copying text
         # from the QWebEngineView did nothing on Mac, the below
         # gets it to work
         import sys
         if sys.platform == "darwin":
-            from Qt.QtGui import QKeySequence
-            from Qt.QtWidgets import QShortcut
+            from Qt.QtGui import QKeySequence, QShortcut
             from Qt.QtCore import Qt
-            self.copy_sc = QShortcut(QKeySequence.Copy, self)
-            self.copy_sc.setContext(Qt.WidgetWithChildrenShortcut)
+            self.copy_sc = QShortcut(QKeySequence.StandardKey.Copy, self)
+            self.copy_sc.setContext(Qt.ShortcutContext.WidgetWithChildrenShortcut)
             if self._tool_window:
                 self.copy_sc.activated.connect(
                     lambda app=self._tool_window.session.ui:
@@ -200,9 +209,9 @@ class HtmlView(QWebEngineView):
 
     def deleteLater(self):  # noqa
         """Supported API.  Schedule HtmlView instance for deletion at a safe time."""
-        if self._private_profile:
+        if self._private_profile and self._profile:
             profile = self._profile
-            del self._profile
+            self._profile = None
             delete_profile(profile)
         super().deleteLater()
 
@@ -359,21 +368,27 @@ class ChimeraXHtmlView(HtmlView):
         profile_is_private = create_profile or (kw.get('profile_is_profile', None) == True)
         super().__init__(parent, *args, profile=profile, profile_is_private=profile_is_private, **kw)
 
+        # Delete widget on exit to avoid QWebEngineProfile warnings. ChimeraX bug #3761
+        session.triggers.add_handler('app quit', self._app_quit)
 
-def create_chimerax_profile(parent, schemes=None, interceptor=None, download=None, handlers=None):
+    def _app_quit(self, *args):
+        import Qt
+        if not Qt.qt_object_is_deleted(self):
+            self.deleteLater()
+
+def create_chimerax_profile(parent, schemes=None, interceptor=None, download=None, handlers=None,
+                            storage_name=None):
     """
     Create QWebEngineProfile with ChimeraX-specific scheme support
 
     See :py:func:`create_profile` for argument types.  The interceptor should
     incorporate the :py:func:`chimerax_intercept` functionality.
     """
-    if interceptor is None:
-        raise ValueError("Excepted interceptor")
     if schemes is None:
         schemes = ('cxcmd', 'help')
     else:
         schemes += type(schemes)(('cxcmd', 'help'))
-    return create_profile(parent, schemes, interceptor, download, handlers)
+    return create_profile(parent, schemes, interceptor, download, handlers, storage_name)
 
 
 def chimerax_intercept(request_info, *args, session=None, view=None):
@@ -449,7 +464,7 @@ def chimerax_intercept(request_info, *args, session=None, view=None):
                 if prev_dir:
                     os.chdir(prev_dir)
         from Qt.QtCore import QUrl
-        no_formatting = QUrl.FormattingOptions(QUrl.None_)
+        no_formatting = QUrl.UrlFormattingOption.None_
         session.ui.thread_safe(defer, session, qurl.url(no_formatting), from_dir)
         return
 

@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-BlastProtein" version="1.1.1"
+<BundleInfo name="ChimeraX-BlastProtein" version="2.0"
 	    package="chimerax.blastprotein"
   	    minSessionVersion="1" maxSessionVersion="1">
 
@@ -6,14 +6,10 @@
   <Email>chimerax@cgl.ucsf.edu</Email>
   <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
 
-  <Synopsis>Search PDB/NR using BLAST</Synopsis>
-  <Description>Use RBVI web service to search the PDB or NR database
-using BLAST.  Results are shown in a tool when a graphical
+  <Synopsis>Search PDB/NR/AlphaFold using BLAST</Synopsis>
+  <Description>Interface to the RBVI web service to search the PDB, NR, or AlphaFold
+databases using BLAST.  Results are shown in a tool when a graphical
 interface is available; otherwise, the results are logged.</Description>
-
-  <DataFiles>
-    <DataFile>gui.html</DataFile>
-  </DataFiles>
 
   <Categories>
     <Category name="Sequence"/>
@@ -24,19 +20,16 @@ interface is available; otherwise, the results are logged.</Description>
     <Dependency name="ChimeraX-UI" version="~=1.0"/>
     <Dependency name="ChimeraX-WebServices" version="~=1.0"/>
     <Dependency name="ChimeraX-Alignments" version="~=2.0"/>
+    <Dependency name="ChimeraX-AlphaFold" version="~=1.0"/>
   </Dependencies>
-
-  <Providers>
-    <Provider name="blastprotein" manager="url_schemes"/>
-  </Providers>
 
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>Tool :: Blast Protein :: Sequence :: Search PDB/NR using BLAST</ChimeraXClassifier>
-    <ChimeraXClassifier>Command :: blastprotein :: Sequence :: Search PDB/NR using BLAST</ChimeraXClassifier>
-    <ChimeraXClassifier>Command :: blastprotein mav :: Sequence :: Display BLAST results in MultAlign Viewer</ChimeraXClassifier>
-    <ChimeraXClassifier>Command :: blastpdb :: Sequence :: Search PDB/NR using BLAST</ChimeraXClassifier>
+    <ChimeraXClassifier>Tool :: Blast Protein :: Sequence :: Search PDB/NR/AlphaFold using BLAST</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: blastprotein :: Sequence :: Search PDB/NR/AlphaFold using BLAST</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: blastprotein pull :: Sequence :: Get results for a finished BlastProtein job</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: blastpdb :: Sequence :: Search PDB/NR/AlphaFold using BLAST</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

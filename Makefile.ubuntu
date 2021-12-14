@@ -7,8 +7,12 @@ TOP = .
 TOP := $(shell (cd "$(TOP)"; pwd))
 include $(TOP)/mk/config.make
 
+ifeq (,$(UBUNTU))
+UBUNTU = $(shell . /etc/os-release && echo $$VERSION_ID)
+endif
+
 install:
-	env HOME=`pwd` $(MAKE) install UBUNTU_DIST=1
+	env HOME=`pwd` $(MAKE) install UBUNTU_DIST=$(UBUNTU)
 
 package: ubuntu
 	$(PYTHON_EXE) mkubuntu.py $(UBUNTU)

@@ -11,7 +11,8 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from Qt.QtWidgets import QWidget, QAction, QCheckBox, QTableView, QMenu, QAbstractItemView
+from Qt.QtWidgets import QWidget, QCheckBox, QTableView, QMenu, QAbstractItemView
+from Qt.QtGui import QAction
 from Qt.QtCore import QAbstractTableModel, Qt, QModelIndex, Signal, QSortFilterProxyModel
 # Qt has no QVariant; None can be used in place of an invalid QVariant
 # from Qt.QtCore import QVariant
@@ -66,7 +67,10 @@ class QCxTableModel(QAbstractTableModel):
 
     def headerData(self, section, orientation, role=None):
         if orientation == Qt.Vertical:
-            return None
+            if role != Qt.DisplayRole:
+                return None
+            else:
+                return (section + 1) 
 
         col = self._item_table._columns[section]
         if role is None or role == Qt.DisplayRole:
@@ -156,35 +160,49 @@ class ItemTable(QTableView):
     COL_FORMAT_TRANSPARENT_COLOR = "alpha"
     COL_FORMAT_OPAQUE_COLOR = "no alpha"
 
-    def __init__(self, *, auto_multiline_headers=True, column_control_info=None, allow_user_sorting=True,
-            settings_attr=None):
-        """ 'auto_multiline_headers' controls whether header titles can be split into multiple
-            lines on word boundaries.
-
-            'allow_user_sorting' controls whether mouse clicks on column headers will sort the
-            columns.
-
-            'column_control_info', if provided, is used to populate either a menu or widget with
+    def __init__(self, *, auto_multiline_headers: bool = True
+                 # TODO: Should this be a NamedTuple?
+                 , column_control_info = None
+                 , allow_user_sorting: bool = True
+                 , settings_attr=None
+                 , parent=None):
+        """
+        Parameters:
+            auto_multiline_headers: controls whether header titles can be split into multiple
+                                    lines on word boundaries.
+            allow_user_sorting: controls whether mouse clicks on column headers will sort the
+                                columns.
+            column_control_info: If provided, used to populate either a menu or widget with
             check box entries or check boxes (respectively) to control which columns are displayed.
-            For a menu the value should be:
+
+        Notes:
+           For a menu the value of column_control_info should be:
                 (QMenu instance, chimerax.core.settings.Settings instance, defaults dictionary,
                   fallback default [, optional display callback])
             For a widget the value is:
                 (QWidget instance, chimerax.core.settings.Settings instance, defaults dictionary,
                   fallback default, display callback, number of check box columns, show global buttons)
-            The Settings instance will be used to remember the displayed column preferences (as
-            an attribute given by 'settings_attr', which defaults to DEFAULT_SETTINGS_ATTR and which
-            should be declared as 'EXPLICIT_SAVE').  The defaults dictionary controls whether the
-            column is shown by default, with column titles as keys and booleans as values (True =
-            displayed).  The fallback default (a boolean) is for columns missing from the defaults
-            dictionary.  The display callback, if not None, is called when a column is configured
-            in/out of the table.  It is called with a single argument: the ItemColumn instance (whose
-            'display' attribute corresponds to the state _after_ the change).  Widget-style control
-            areas have an additional field, which is the number of check box columns.  If None,
-            the number will be determined automatically (approx. square root of number of check buttons,
-            'show global buttons' determines whether the "Show All", etc.. buttons are added.  Typically
-            should be set to True for tables with a fixed set of columns and False for variable sets.
+
+            The parameters for column_control_info are:
+
+                Settings instance: used to remember the displayed column preferences (as an attribute
+                                   given by 'settings_attr', which defaults to DEFAULT_SETTINGS_ATTR
+                                   and which should be declared as 'EXPLICIT_SAVE').
+                defaults dictionary: controls whether the column is shown by default, with column
+                                     titles as keys and booleans as values (True = displayed).
+                fallback default: A boolean used for columns missing from the defaults dictionary.
+                display callback: if not None, called when a column is configured in/out of the table.
+                                  It is called with a single argument: the ItemColumn instance (whose
+                                  'display' attribute corresponds to the state _after_ the change).
+                show global buttons: determines whether the "Show All", etc... buttons are added. Should
+                                     typically be set to True for tables with a fixed set of columns and
+                                     False for variable sets.
+
+            Widget-style control areas have an additional field, which is the number of check box columns.
+            If None, the number will be determined automatically (approx. square root of number of check
+            buttons). This field comes before 'show global buttons'.
         """
+        super().__init__(parent)
         self._table_model = None
         self._columns = []
         self._data = []
@@ -198,21 +216,28 @@ class ItemTable(QTableView):
             from Qt.QtWidgets import QVBoxLayout, QGridLayout, QHBoxLayout, QWidget, QLabel
             # QMenu is also a QWidget, so can't test isinstance(QWidget)...
             if not isinstance(column_control_info[0], QMenu):
+                widget, settings, defaults, fallback = self._column_control_info[:4]
                 from Qt.QtCore import Qt
                 main_layout = QVBoxLayout()
+                main_layout.setContentsMargins(0,0,0,0)
+                main_layout.setSpacing(0)
                 column_control_info[0].setLayout(main_layout)
+                self._col_checkbox_container = QWidget(parent=widget)
                 self._col_checkbox_layout = QGridLayout()
                 self._col_checkbox_layout.setContentsMargins(0,0,0,0)
-                self._col_checkbox_layout.setSpacing(0)
-                main_layout.addLayout(self._col_checkbox_layout)
+                self._col_checkbox_layout.setSpacing(5)
+                self._col_checkbox_container.setLayout(self._col_checkbox_layout)
+                main_layout.addWidget(self._col_checkbox_container)
                 self._col_checkboxes = []
                 if column_control_info[-1]:
                     from Qt.QtWidgets import QDialogButtonBox as qbbox
-                    buttons_widget = QWidget()
-                    main_layout.addWidget(buttons_widget, alignment=Qt.AlignLeft)
+                    self._col_button_container = QWidget(parent=widget)
+                    toggle_vis = lambda x: x.setVisible(not x.isVisible())
+                    toggle_callback = toggle_vis(self._col_button_container)
+                    main_layout.addWidget(self._col_button_container, alignment=Qt.AlignLeft)
                     buttons_layout = QHBoxLayout()
                     buttons_layout.setContentsMargins(0,0,0,0)
-                    buttons_widget.setLayout(buttons_layout)
+                    self._col_button_container.setLayout(buttons_layout)
                     buttons_layout.addWidget(QLabel("Show columns"))
                     bbox = qbbox()
                     buttons_layout.addWidget(bbox)
@@ -220,8 +245,13 @@ class ItemTable(QTableView):
                     bbox.addButton("Default", qbbox.ActionRole).clicked.connect(self._show_default)
                     bbox.addButton("Standard", qbbox.ActionRole).clicked.connect(self._show_standard)
                     bbox.addButton("Set Default", qbbox.ActionRole).clicked.connect(self._set_default)
+                    bbox.addButton("Toggle Controls", qbbox.ActionRole).clicked.connect(
+                        self._toggle_columns_checkboxes)
         self._highlighted = set()
-        super().__init__()
+
+
+    def _toggle_columns_checkboxes(self):
+        self._col_checkbox_container.setVisible(not self._col_checkbox_container.isVisible())
 
     def add_column(self, title, data_fetch, *, format="%s", display=None, title_display=True,
             justification="center", balloon=None, font=None, refresh=True, color=None,
@@ -278,7 +308,12 @@ class ItemTable(QTableView):
         if display is None:
             if self._column_control_info:
                 widget, settings, defaults, fallback = self._column_control_info[:4]
-                display = getattr(settings, self._settings_attr).get(title, fallback)
+                settings_valid = hasattr(settings, self._settings_attr) \
+                    and getattr(settings, self._settings_attr)
+                if settings_valid:
+                    display = getattr(settings, self._settings_attr).get(title, fallback)
+                else:
+                    display = defaults.get(title, fallback)
             else:
                 display = True
         if header_justification is None:
@@ -317,8 +352,10 @@ class ItemTable(QTableView):
 
     @data.setter
     def data(self, data):
-        """ Should just be a sequence of instances (rows) from which the table data can be retrieved by
-            applying the 'data_fetch' function from each column.
+        """
+        Parameters:
+            data: A sequence of objects that act as the model for a row. Information will be
+                  retrieved from the object using the data_fetch function supplied to add_column.
         """
         if not self._table_model:
             self._data = data[:]
@@ -372,7 +409,7 @@ class ItemTable(QTableView):
         bottom_right = self._table_model.index(len(self._data)-1, len(self.columns)-1)
         self._table_model.dataChanged(top_left, bottom_right, [Qt.FontRole]).emit()
 
-    def launch(self, *, select_mode=QAbstractItemView.ExtendedSelection, session_info=None):
+    def launch(self, *, select_mode=QAbstractItemView.SelectionMode.ExtendedSelection, session_info=None, suppress_resize=False):
         self._table_model = QCxTableModel(self)
         if self._allow_user_sorting:
             sort_model = NumSortingProxyModel()
@@ -398,7 +435,12 @@ class ItemTable(QTableView):
             for c in self._columns:
                 self.update_column(c, display=column_display.get(c.title, True))
         self.selectionModel().selectionChanged.connect(self._relay_selection_change)
-        self.resizeColumnsToContents()
+        for col in self._columns:
+            if not col.display:
+                self.hideColumn(self._columns.index(col))
+        self.verticalHeader().setVisible(False)
+        if not suppress_resize:
+            self.resizeColumnsToContents()
 
     def scroll_to(self, datum):
         """ Scroll the table to ensure that the given data item is visible """
@@ -425,6 +467,8 @@ class ItemTable(QTableView):
     def update_column(self, column, **kw):
         display_change = 'display' in kw and column.display != kw['display']
         changes = column._update(**kw)
+        if display_change and self._column_control_info:
+            self._checkables[column.title].setChecked(kw['display'])
         if not self._table_model:
             return
         if display_change:
@@ -432,8 +476,6 @@ class ItemTable(QTableView):
                 self.showColumn(self._columns.index(column))
             else:
                 self.hideColumn(self._columns.index(column))
-            if self._column_control_info:
-                self._checkables[column.title].setChecked(kw['display'])
         if not changes:
             return
         top_left = self._table_model.index(0, self._columns.index(column))
@@ -501,6 +543,10 @@ class ItemTable(QTableView):
         setattr(settings, self._settings_attr, shown)
         settings.save(setting=self._settings_attr)
 
+    def _hide_all_columns(self):
+        for col in self._columns:
+            self.update_column(col, display=False)
+
     def _show_all_columns(self):
         for col in self._columns:
             self.update_column(col, display=True)
@@ -508,7 +554,7 @@ class ItemTable(QTableView):
     def _show_default(self):
         widget, settings, display_defaults, fallback = self._column_control_info[:4]
         for col in self._columns:
-            display = display_defaults.get(col.title, fallback)
+            display = getattr(settings, self._settings_attr, display_defaults).get(col.title, fallback)
             self.update_column(col, display=display)
 
     def _show_standard(self):
@@ -528,7 +574,6 @@ class _ItemColumn:
                 continue
             setattr(self, name, locals[name])
         self.display = True
-        #TODO: font is None and justification is "decimal" -- fixed-width font
 
     def display_value(self, instance):
         val = self.value(instance)

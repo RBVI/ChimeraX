@@ -70,14 +70,15 @@ class BugReporter(ToolInstance):
         row += 1
         
         cnl = QLabel('Contact Name:')
-        cnl.setAlignment(Qt.AlignRight|Qt.AlignVCenter)
+        align_right = Qt.AlignRight|Qt.AlignVCenter
+        cnl.setAlignment(align_right)
         layout.addWidget(cnl, row, 1)
         self.contact_name = cn = QLineEdit(self.settings.contact_name)
         layout.addWidget(cn, row, 2)
         row += 1
 
         eml = QLabel('Email Address:')
-        eml.setAlignment(Qt.AlignRight|Qt.AlignVCenter)
+        eml.setAlignment(align_right)
         layout.addWidget(eml, row, 1)
         self.email_address = em = QLineEdit(self.settings.email_address)
         layout.addWidget(em, row, 2)
@@ -98,7 +99,7 @@ class BugReporter(ToolInstance):
                 return QSize(1,1)
 
         dl = QLabel('Description:')
-        dl.setAlignment(Qt.AlignRight|Qt.AlignVCenter)
+        dl.setAlignment(align_right)
         layout.addWidget(dl, row, 1)
         self.description = d = TextEdit('', 3)
         d.setText('<font color=blue>(Describe the actions that caused this problem to occur here)</font>')
@@ -106,7 +107,7 @@ class BugReporter(ToolInstance):
         row += 1
 
         gil = QLabel('Gathered Information:')
-        gil.setAlignment(Qt.AlignRight|Qt.AlignVCenter)
+        gil.setAlignment(align_right)
         layout.addWidget(gil, row, 1)
         self.gathered_info = gi = TextEdit('', 3)
         import sys
@@ -125,7 +126,7 @@ class BugReporter(ToolInstance):
         row += 1
 
         fal = QLabel('File Attachment:')
-        fal.setAlignment(Qt.AlignRight|Qt.AlignVCenter)
+        fal.setAlignment(align_right)
         layout.addWidget(fal, row, 1)
         fb = QWidget()
         layout.addWidget(fb, row, 2)
@@ -141,7 +142,7 @@ class BugReporter(ToolInstance):
         row += 1
         
         pl = QLabel('Platform:')
-        pl.setAlignment(Qt.AlignRight|Qt.AlignVCenter)
+        pl.setAlignment(align_right)
         layout.addWidget(pl, row, 1)
         from platform import platform
         self.platform = p = QLineEdit(platform())
@@ -150,7 +151,7 @@ class BugReporter(ToolInstance):
         row += 1
         
         vl = QLabel('ChimeraX Version:')
-        vl.setAlignment(Qt.AlignRight|Qt.AlignVCenter)
+        vl.setAlignment(align_right)
         layout.addWidget(vl, row, 1)
         self.version = v = QLineEdit(self.chimerax_version())
         v.setReadOnly(True)
@@ -165,7 +166,8 @@ class BugReporter(ToolInstance):
         ilc.setChecked(True)
         ilayout.addWidget(ilc)
         ill = QLabel('Include log contents in bug report')
-        ill.setAlignment(Qt.AlignLeft|Qt.AlignVCenter)
+        align_left = Qt.AlignLeft|Qt.AlignVCenter
+        ill.setAlignment(align_left)
         ilayout.addWidget(ill)
         ilayout.addStretch(1)
         row += 1

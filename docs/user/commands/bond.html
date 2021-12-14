@@ -33,9 +33,18 @@ class="clRight" title="User Guide Index"/></a>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>~bond</b> &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
 </h3>
+<a name="length"></a>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>bond length</b>
+&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
+[&nbsp;<i>length</i>&nbsp;]
+[&nbsp;<b>move</b>&nbsp;&nbsp;large&nbsp;|&nbsp;<b>small</b>&nbsp;]
+</h3>
 <p>
-The command <b>bond</b> adds covalent bonds
-and the command <b>~bond</b> deletes them, corresponding to the
+The command <b>bond</b> adds covalent bonds,
+<b>~bond</b> deletes them, 
+and <b>bond length</b> reports or modifies the length of a bond,
+corresponding to the
 <a href="../tools/buildstructure.html#bonds"><b>Adjust Bonds</b></a> section 
 of the <a href="../tools/buildstructure.html"><b>Build Structure</b></a> tool.
 A bond can also be deleted using its
@@ -43,8 +52,10 @@ A bond can also be deleted using its
 or the command <a href="delete.html"><b>delete</b></a>.
 See also: <a href="build.html"><b>build</b></a>,
 <a href="angle.html"><b>angle</b></a>,
+<a href="torsion.html"><b>torsion</b></a>,
 <a href="combine.html"><b>combine</b></a>,
-<a href="../pseudobonds.html">pseudobonds</a>
+<a href="../pseudobonds.html">pseudobonds</a>,
+<a href="../measurements.html">measurements</a>
 </p><p>
 For bond addition, all pairwise combinations of the specified atoms 
 that are within reasonable bonding distance can be bonded 
@@ -53,8 +64,17 @@ bonded regardless of distance (<b>reasonable false</b>).
 Deletion will include all bonds between the specified atoms, or the bonds 
 themselves may be <a href="../selection.html">selected</a> and specified 
 for deletion with the word <b>sel</b>.
+</p><p>
+The <b>bond length</b> command sets the length of a bond between the two 
+specified atoms to <i>length</i> in &Aring;, or if <i>length</i> is omitted,
+reports the current value in the <a href="../tools/log.html"><b>Log</b></a>.
+The two atoms must already be bonded. Alternatively, a
+<a href="../selection.html">selected</a> bond can be specified directly 
+with the word <b>sel</b>. The <b>move</b> option specifies whether to move the
+<b>large</b> or <b>small</b>
+side of the bond (default <b>small</b>, the side with fewer atoms).
 </p>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-July 2021</address>
+September 2021</address>
 </body></html>

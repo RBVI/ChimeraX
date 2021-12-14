@@ -16,9 +16,9 @@ chimerax.core: collection of base ChimeraX functionality
 ========================================================
 
 """
-BUNDLE_NAME = 'ChimeraX-Core'
 from .buildinfo import version
 from .toolshed import BundleAPI
+BUNDLE_NAME = 'ChimeraX-Core'
 
 _class_cache = {}
 # list modules classes are found in used by session restore to recreate objects.
@@ -104,12 +104,15 @@ class _MyAPI(BundleAPI):
         _class_cache[class_name] = cls
         return cls
 
+
 bundle_api = _MyAPI()
 
 
 def profile(func):
     def wrapper(*args, **kw):
-        import cProfile, pstats, sys
+        import sys
+        import cProfile
+        import pstats
         prof = cProfile.Profile()
         v = prof.runcall(func, *args, **kw)
         print(func.__name__, file=sys.__stderr__)
@@ -127,13 +130,14 @@ def copy_distinfo_file(cmd, basename, filename, binary=''):
 
     File is copied as text if binary is '', and as binary if 'b'.
     """
+    encoding = None if binary else 'utf-8'
     try:
-        with open(basename, 'r' + binary) as fi:
+        with open(basename, 'r' + binary, encoding=encoding) as fi:
             value = fi.read()
             from distutils import log
-            log.info("copying %s", basename)
+            log.info("copying %s" % basename)
             if not cmd.dry_run:
-                with open(filename, 'w' + binary) as fo:
+                with open(filename, 'w' + binary, encoding=encoding) as fo:
                     fo.write(value)
     except IOError:
         # Missing file is okay

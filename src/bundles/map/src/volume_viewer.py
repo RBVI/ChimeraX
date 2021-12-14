@@ -1423,13 +1423,13 @@ class Thresholds_Panel(PopupPanel):
     hf.resizeEvent = lambda e, self=self: self.resize_panel()
 
     self.histograms_layout = hl = QVBoxLayout(hf)
-    hl.setSizeConstraint(QVBoxLayout.SetMinAndMaxSize)
+    hl.setSizeConstraint(QVBoxLayout.SizeConstraint.SetMinAndMaxSize)
     right_margin = left_margin = 5
     hl.setContentsMargins(left_margin,0,right_margin,0)
     hl.setSpacing(0)
     hl.addStretch(1)
     frame.setWidget(hf)	# Set scrollable child.
-    hf.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
+    hf.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Expanding)
     
 #    b = self.make_close_button(frame)
 #    b.grid(row = row, column = 1, sticky = 'e')
@@ -1687,7 +1687,7 @@ class Histogram_Pane:
     from Qt.QtCore import Qt, QSize
 
     self.frame = f = QFrame(parent)
-    f.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
+    f.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
     self._layout = flayout = QVBoxLayout(f)
     flayout.setContentsMargins(0,0,0,0)
     flayout.setSpacing(0)
@@ -1699,8 +1699,8 @@ class Histogram_Pane:
     
     # Create frame for step, color, level controls.
     df = QFrame(f)
-    df.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
-#    df.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Minimum)
+    df.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+#    df.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Minimum)
     flayout.addWidget(df)
     layout = QHBoxLayout(df)
     layout.setContentsMargins(0,0,0,0)
@@ -1814,7 +1814,7 @@ class Histogram_Pane:
       if v is None:
           return
       
-      from Qt.QtWidgets import QMenu, QAction
+      from Qt.QtWidgets import QMenu
       menu = QMenu(self.frame)
       ro = v.rendering_options
       add = self.add_menu_entry
@@ -1823,13 +1823,16 @@ class Histogram_Pane:
       add(menu, 'New Threshold', lambda checked, e=event, self=self: self.add_threshold(e.x(), e.y()))
       add(menu, 'Delete Threshold', lambda checked, e=event, self=self: self.delete_threshold(e.x(), e.y()))
 
-      menu.exec_(event.globalPos())
+      if hasattr(menu, 'exec'):
+          menu.exec(event.globalPos())	# PyQt6
+      else:
+          menu.exec_(event.globalPos())	# PyQt5
 
   # ---------------------------------------------------------------------------
   #
   def add_menu_entry(self, menu, text, callback, *args, checked = None):
       '''Add menu item to context menu'''
-      from Qt.QtWidgets import QAction
+      from Qt.QtGui import QAction
       a = QAction(text, self.frame)
       if checked is not None:
           a.setCheckable(True)
@@ -2155,9 +2158,9 @@ class Histogram_Pane:
             self._drag(event)
 
     self.canvas = gv = Canvas(frame)
-    gv.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-    gv.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-    gv.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+    gv.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+    gv.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+    gv.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
 
     self.scene = gs = QGraphicsScene(gv)
     gs.setSceneRect(0, 0, 500, 50)

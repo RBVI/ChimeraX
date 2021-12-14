@@ -44,6 +44,8 @@ class ColorKeyModel(Model):
     NLS_PROPORTIONAL = "proportional to value"
     numeric_label_spacings = (NLS_EQUAL, NLS_PROPORTIONAL)
 
+    LC_FRACT = 4/5
+
 
     def __init__(self, session):
         super().__init__("Color key", session)
@@ -224,7 +226,6 @@ class ColorKeyModel(Model):
 
     @property
     def label_offset(self):
-        # None means contrast with background
         return self._label_offset
 
     @label_offset.setter
@@ -522,8 +523,8 @@ class ColorKeyModel(Model):
             bounds = fm.boundingRect(labels[0])
             xywh = bounds.getRect()
             # Qt seemingly will not return the actual height of a text string; estimate all lower case
-            # to be 2/3 height
-            label_height = (font_height * 2/3) if labels[0].islower() else font_height
+            # to be LC_FRACT height
+            label_height = (font_height * self.LC_FRACT) if labels[0].islower() else font_height
             label_size = label_height if layout == "vertical" else xywh[long_index+2]
             extra = max(label_size / 2 - label_positions[0] - border, 0)
             (end_offset if layout == "vertical" else start_offset)[long_index] += extra
@@ -554,13 +555,13 @@ class ColorKeyModel(Model):
                 extra = max([fm.boundingRect(lab).getRect()[3-long_index] for lab in labels]) + label_offset
             else:
                 # Qt seemingly will not return the actual height of a text string; estimate all lower case
-                # to be 2/3 height
+                # to be LC_FRACT height
                 for label in labels:
                     if label and not label.islower():
                         label_height = font_height
                         break
                 else:
-                    label_height = top_label_y_offset = font_height * 2/3
+                    label_height = top_label_y_offset = font_height * self.LC_FRACT
                 extra = label_height + label_offset
             decimal_widths = [(None, None)] * len(labels)
         if self._label_side == self.LS_LEFT_TOP:
@@ -577,8 +578,8 @@ class ColorKeyModel(Model):
             bounds = fm.boundingRect(labels[-1])
             xywh = bounds.getRect()
             # Qt seemingly will not return the actual height of a text string; estimate all lower case
-            # to be 2/3 height
-            label_height = (font_height * 2/3) if labels[-1].islower() else font_height
+            # to be LC_FRACT height
+            label_height = (font_height * self.LC_FRACT) if labels[-1].islower() else font_height
             label_size = label_height if layout == "vertical" else xywh[long_index+2]
             extra = max(label_size / 2 - (rect_pixels[long_index] - label_positions[-1]) - border, 0)
             (start_offset if layout == "vertical" else end_offset)[long_index] += extra
@@ -683,8 +684,8 @@ class ColorKeyModel(Model):
                         else:
                             x = pixels[0] - (rect.width() - rect.x())
                     # Qt seemingly will not return the actual height of a text string; estimate all
-                    # lower case to be 2/3 height
-                    label_height = (font_height * 2/3) if label.islower() else font_height
+                    # lower case to be LC_FRACT height
+                    label_height = (font_height * self.LC_FRACT) if label.islower() else font_height
                     y = pixels[1] - end_offset[1] - pos + label_height / 2
                 else:
                     if self._label_side == self.LS_LEFT_TOP:

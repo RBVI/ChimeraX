@@ -98,7 +98,10 @@ class Movie:
         self.recording = False
 #        self.task.finished()
         self.task = None
-
+        v = self.session.main_view
+        if hasattr(v, 'movie_image_rgba'):
+            delattr(v, 'movie_image_rgba')
+        
     def reset(self):
         self.frame_number = -1
         self.img_dir = None
@@ -162,8 +165,12 @@ class Movie:
         width, height = (None,None) if self.size is None else self.size
 
         v = self.session.main_view
-        i = v.image(width, height, supersample = self.supersample)
+        rgba = v.image_rgba(width, height, supersample = self.supersample)
+        from PIL import Image
+        # Flip y-axis since PIL image has row 0 at top, opengl has row 0 at bottom.
+        i = Image.fromarray(rgba[::-1, :, :3])
         i.save(save_path, self.img_fmt)
+        v.movie_image_rgba = rgba	# Used by crossfade command
 
         if self.postprocess_frames > 0:
             if self.postprocess_action == 'crossfade':

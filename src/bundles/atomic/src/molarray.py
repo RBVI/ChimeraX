@@ -47,7 +47,8 @@ can be altered is if C++ objects they hold are deleted in which case those objec
 are automatically removed from the collection.  Because they are mutable they
 cannot be used as keys in dictionary or added to sets.
 '''
-from numpy import uint8, int32, uint32, float64, float32, uintp, byte, bool as npy_bool, integer, empty, array
+from numpy import uint8, int32, uint32, float64, float32, uintp, byte, integer, empty, array
+npy_bool = bool
 from .molc import string, cptr, pyobject, set_cvec_pointer, pointer, size_t
 from . import molobject
 from .molobject import c_function, c_array_function, cvec_property, Atom
@@ -474,6 +475,10 @@ class AtomicStructures(StructureDatas):
     def displays(self, d):
         for s in self:
             s.display = d
+
+    @property
+    def visibles(self):
+        return array([s.visible for s in self])
 
     @classmethod
     def session_restore_pointers(cls, session, data):
@@ -1172,11 +1177,11 @@ class Residues(Collection):
     '''Returns a numpy array of residue names.''')
     num_atoms = cvec_property('residue_num_atoms', size_t, read_only = True, doc =
     '''Returns a numpy integer array of the number of atoms in each residue. Read only.''')
-    numbers = cvec_property('residue_number', int32, read_only = True, doc =
+    numbers = cvec_property('residue_number', int32, doc =
     '''
     Returns a :mod:`numpy` array of residue sequence numbers, as provided by
     whatever data source the structure came from, so not necessarily consecutive,
-    or starting from 1, *etc.* Read only.
+    or starting from 1, *etc.*.
     ''')
     polymer_types = cvec_property('residue_polymer_type', uint8, read_only = True, doc =
     '''Returns a numpy int array of residue types. Read only.''')
@@ -1399,15 +1404,10 @@ class Rings(Collection):
             # Extract C pointers from list of Python Ring objects.
             ring_pointers = array([r._c_pointer.value for r in rings], cptr)
         Collection.__init__(self, ring_pointers, molobject.Ring, Rings)
-
-    aromatics = cvec_property('ring_aromatic', npy_bool, read_only = True, doc =
-    '''A numpy bool array whether corresponding ring is aromatic.''')
-    atoms = cvec_property('ring_atoms', cptr, 'size', astype = _atoms, read_only = True, per_object = False, doc =
-    '''Return :class:`.Atoms` belonging to each ring all as a single collection. Read only.''')
-    bonds = cvec_property('ring_bonds', cptr, 'size', astype = _bonds, read_only = True, per_object = False, doc =
-    '''Return :class:`.Bonds` belonging to each ring all as a single collection. Read only.''')
-    sizes = cvec_property('ring_size', size_t, read_only = True, doc =
-    '''Returns a numpy integer array of the size of each ring. Read only.''')
+        # Create the list of Rings immediately, so that their info gets cached before they
+        # possibly get destroyed by other calls
+        c = self._object_class
+        self._object_list = [c.c_ptr_to_py_inst(p) for p in self._pointers]
 
 
 # -----------------------------------------------------------------------------
@@ -1554,6 +1554,9 @@ class Structures(StructureDatas):
         for s in self:
             s.display = d
 
+    @property
+    def visibles(self):
+        return array([s.visible for s in self])
 
     @classmethod
     def session_restore_pointers(cls, session, data):

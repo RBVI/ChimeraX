@@ -1,7 +1,7 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
+# Copyright 2021 Regents of the University of California.
 # All rights reserved.  This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
 # duplication and use.  For details see:
@@ -12,8 +12,14 @@
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.core.toolshed import BundleAPI
-from .job import BlastProteinJob
 
+# Expose all of our important modules so they can be imported
+# from chimerax.blastprotein instead of chimerax.blastprotein.X
+from .cmd import *
+from .data_model import *
+from .job import *
+from .ui import *
+from .utils import *
 
 class _MyAPI(BundleAPI):
 
@@ -21,23 +27,26 @@ class _MyAPI(BundleAPI):
 
     @staticmethod
     def get_class(class_name):
-        if class_name == 'ToolUI':
-            from . import tool
-            return tool.ToolUI
-        return None
+        class_names = {
+            'BlastProteinTool': BlastProteinTool
+            , 'BlastProteinResults': BlastProteinResults
+            , 'ToolUI': BlastProteinResults
+        }
+        return class_names.get(class_name, None)
 
     @staticmethod
     def start_tool(session, bi, ti):
-        from .tool import ToolUI
-        return ToolUI(session, ti.name)
+        return BlastProteinTool(session, ti.name)
 
     @staticmethod
     def register_command(bi, ci, logger):
         command_name = ci.name
         if command_name == "blastpdb":
             from chimerax.core.commands import create_alias
-            create_alias(command_name, "blastprotein $*", logger=logger,
-                    url="help:user/commands/blastprotein.html")
+            create_alias(
+                command_name, "blastprotein $*", logger=logger,
+                url="help:user/commands/blastprotein.html"
+            )
             return
         from . import cmd
         function_name = command_name.replace(' ', '_')

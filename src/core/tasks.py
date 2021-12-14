@@ -259,7 +259,8 @@ class Job(Task):
     to 'Job' instances, not :py:meth:`run`.
 
     """
-    CHECK_INTERVALS = [5, 5, 10, 15, 25, 40, 65, 105, 170, 275]
+    # TODO: Replace with server-side solution
+    CHECK_INTERVALS = [5, 5, 10, 15, 25, 40, 65, 105, 170, 275, 300, 350, 400, 450, 500, 550, 600, 650, 700, 750, 800]
 
     def __init__(self, *args, **kw):
         super().__init__(*args, **kw)

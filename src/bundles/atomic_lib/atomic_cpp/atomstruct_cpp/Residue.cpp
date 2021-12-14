@@ -157,6 +157,34 @@ Residue::bonds_between(const Residue* other_res, bool just_first) const
     return tweeners;
 }
 
+bool
+Residue::connects_to(const Residue* other_res, bool check_pseudobonds) const
+{
+        if (!bonds_between(other_res, true).empty())
+            return true;
+        if (!check_pseudobonds)
+            return false;
+        auto pbg = structure()->pb_mgr().get_group(Structure::PBG_MISSING_STRUCTURE, AS_PBManager::GRP_NONE);
+        if (pbg == nullptr)
+            return false;
+        for (auto pb: pbg->pseudobonds()) {
+            int count = 0;
+            for (auto a: pb->atoms()) {
+                if (a->residue() == this) {
+                    count += 1;
+                    continue;
+                }
+                if (a->residue() == other_res)
+                    count += 2;
+                else
+                    break;
+            }
+            if (count == 3)
+                return true;
+        }
+        return false;
+}
+
 int
 Residue::count_atom(const AtomName& name) const
 {
@@ -473,7 +501,7 @@ std::vector<Atom*>
 Residue::template_assign(void (Atom::*assign_func)(const char*),
     const char* app, const char* template_dir, const char* extension) const
 {
-    // Returns atoms that received assignments.  Can throw these exceptions:
+    // Returns atoms that did not receive assignments.  Can throw these exceptions:
     //   TA_TemplateSyntax:  template syntax error
     //   TA_NoTemplate:  no template found
     //   std::logic_error:  internal logic error
@@ -482,11 +510,13 @@ Residue::template_assign(void (Atom::*assign_func)(const char*),
     TemplateCache::AtomMap* am = tc->res_template(name(),
             app, template_dir, extension);
 
-    std::vector<Atom*> assigned;
+    std::vector<Atom*> unassigned;
     for (auto a: _atoms) {
         auto ami = am->find(a->name());
-        if (ami == am->end())
+        if (ami == am->end()) {
+            unassigned.push_back(a);
             continue;
+        }
 
         auto& norm_type = ami->second.first;
         auto ct = ami->second.second;
@@ -510,7 +540,6 @@ Residue::template_assign(void (Atom::*assign_func)(const char*),
                         cond_assigned = true;
                         if (ci.result != "-") {
                             (a->*assign_func)(ci.result);
-                            assigned.push_back(a);
                         }
                     }
                 } else if (ci.op == "?") {
@@ -519,7 +548,6 @@ Residue::template_assign(void (Atom::*assign_func)(const char*),
                         cond_assigned = true;
                         if (ci.result != "-") {
                             (a->*assign_func)(ci.result);
-                            assigned.push_back(a);
                         }
                     }
                 } else {
@@ -536,10 +564,11 @@ Residue::template_assign(void (Atom::*assign_func)(const char*),
         // assign normal type
         if (norm_type != "-") {
             (a->*assign_func)(norm_type);
-            assigned.push_back(a);
+        } else {
+            unassigned.push_back(a);
         }
     }
-    return assigned;
+    return unassigned;
 }
 
 }  // namespace atomstruct

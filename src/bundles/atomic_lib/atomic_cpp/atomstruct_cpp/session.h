@@ -17,6 +17,7 @@
 #define atomstruct_session
 
 // DON'T FORGET TO UPDATE Structure::copy() AS WELL!!
+// ALSO: bump maxSessionVersion in atomic's bundle_info.xml
 //
 // Each class's SESSION_NUM... methods yield the number of those types that don't vary on
 // a per-instance basis and are directly saved/restored by that class and not by a contained

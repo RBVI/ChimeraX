@@ -27,7 +27,7 @@ REST_SUBDIRS = add_charge addh align_algs alignment_hdrs \
 	  cellpack centroids chem_group clashes cmd_line color_actions \
 	  color_globe color_key connect_structure core_formats \
 	  coulombic crosslinks crystal crystal_contacts data_formats \
-	  dicom dist_monitor dist_ui dssp \
+	  dicom dist_monitor dssp \
 	  exp_cmd file_history function_key \
 	  geometry gltf graphics \
 	  hbonds help_viewer hkcage ihm image_formats imod \
@@ -40,12 +40,12 @@ REST_SUBDIRS = add_charge addh align_algs alignment_hdrs \
 	  pdb pdb_bio pdb_lib pdb_matrices pick_blobs positions preset_mgr pubchem \
 	  read_pbonds registration remote_control render_by_attr rest_server \
 	  residue_fit rna_layout rotamer_lib_mgr rotamer_libs save_command scheme_mgr \
-	  sdf sel_inspector segger segment seq_view sequences shape \
-	  shell shortcuts show_attr sideview sim_matrices smiles \
+	  sdf sel_inspector segger segment seq_view shape \
+	  shell shortcuts show_attr show_sequences sideview sim_matrices smiles \
 	  smooth_lines spacenavigator std_commands \
-	  stl storm struts surface swapaa swap_res \
+	  stl storm struct_measure struts surface swapaa swap_res \
 	  tape_measure test toolbar tug ui uniprot unit_cell \
-	  viewdockx vive volume_menu vtk wavefront_obj \
+	  viewdockx viperdb vive volume_menu vtk wavefront_obj \
 	  webcam webservices zone
 
 ifneq ($(OSARCH),DarwinArm64)

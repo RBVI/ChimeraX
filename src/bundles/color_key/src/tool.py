@@ -149,7 +149,7 @@ class ColorKeyTool(ToolInstance):
         self.mouse_on_button.setChecked(True)
         self.mouse_on_button.clicked.connect(self._mouse_on_changed)
         mouse_layout.addWidget(self.mouse_on_button, alignment=Qt.AlignRight)
-        self.mouse_button_button = QPushButton("left")
+        self.mouse_button_button = QPushButton("right")
         menu = QMenu()
         for but in ["left", "middle", "right"]:
             menu.addAction(but)

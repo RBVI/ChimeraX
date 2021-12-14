@@ -59,6 +59,8 @@ of ``mac``.
 
     - Name of bundle author
 
+.. _BundleInfo:
+
 - **BundleInfo**:
 
   - Root element containing all information needed to build the bundle.
@@ -83,8 +85,12 @@ of ``mac``.
       to declare that they *can't* work with older Python versions.
       In either case, the value is the oldest version that the bundle works with,
       and is of the form "3.x" (e.g. 3.7).
-    - **minSessionVersion**: version number of oldest supported Chimera session
-    - **maxSessionVersion**: version number of newest supported Chimera session
+    - **minSessionVersion**: for session data saved from this bundle, the oldest version that the
+      bundle currently supports (an integer).  
+    - **maxSessionVersion**: the newest version of this bundle's session data.  Presumably the bundle
+      currently writes this version.  The version number should only be increased if the change is not
+      backwards compatible with old readers, because the session-restore code checks these version numbers
+      in order to decide if a session will be able to be restored by the currently installed bundles.
     - **package**: Python package name corresponding to bundle
     - **purePython**: set to ``false`` if bundle should be treated as
       binary, *i.e.*, includes a compiled module; omit otherwise
@@ -803,6 +809,17 @@ The other possible `Provider`_ attributes are:
         *is_default* defaults to "true", so therefore typically lesser known/used formats supply this
         attribute with a value of "false".
 
+    *pregrouped_structures*
+        If a provider returns multiple models, the open command will automatically group them
+        so that the entire set of models can be referenced with one model number (the individual
+        models can be referenced with submodel numbers).  The provider *could* pre-group them in
+        order to give the group a name other the default (which is based on the file name; the user can
+        still override that with the ``name`` keyword of the open command).  In the specific case
+        where the provider is pre-grouping atomic structures, it should specify *pregrouped_structures*
+        as "true" so the the open command's return value can be the actual list of structures rather
+        than a grouping model.  This greatly simplifies scripts trying to handle return values
+        from various kinds of structure-opening commands.
+
     *type*
         If you are providing information about opening a file rather than fetching from a
         database, *type* should be "open", and otherwise "fetch".  Since the default value
@@ -977,6 +994,17 @@ The other possible `Provider`_ attributes are:
         should be used when the user omits the ``format`` keyword should have *is_default*
         as "true", and the others should have it as "false".  *is_default* defaults to "true",
         so since most databases only have one format this attribute is in most cases omitted.
+
+    *pregrouped_structures*
+        If a provider returns multiple models, the open command will automatically group them
+        so that the entire set of models can be referenced with one model number (the individual
+        models can be referenced with submodel numbers).  The provider *could* pre-group them in
+        order to give the group a name other the default (which is based on the database entry ID;
+        the user can still override that with the ``name`` keyword of the open command).
+        In the specific case where the provider is pre-grouping atomic structures, it should specify
+        *pregrouped_structures* as "true" so the the open command's return value can be the actual list
+        of structures rather than a grouping model.  This greatly simplifies scripts trying to handle
+        return values from various kinds of structure-opening commands.
 
 For example::
 

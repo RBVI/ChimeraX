@@ -53,6 +53,6 @@ def run_user_startup_scripts(session, directory = None):
                     session.logger.warning('Error calling start() method for module %s:\n%s' % (p, str(e)))
 
 def execfile(path, session):
-    with open(path) as f:
+    with open(path, 'rb') as f:
         code = compile(f.read(), path, 'exec')
         exec(code, {'session':session})

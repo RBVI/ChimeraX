@@ -27,14 +27,15 @@ class="clRight" title="User Guide Index"/></a>
 <p>
 The <b>Modeller Comparative</b> modeling tool is an interface to the
 <a href="https://www.salilab.org/modeller/" target="_blank">Modeller</a>
-program running on a web service hosted by the
+program, either installed locally or run on a web service hosted by the
 <a href="https://www.cgl.ucsf.edu/Overview/index.html" target="_blank">UCSF
 RBVI</a>. The command-line implementation is
 <a href="../commands/modeller.html#comparative"><b>modeller comparative</b></a>.
 See also:
+<a href="modelloops.html"><b>Model Loops</b></a>,
 <a href="rotamers.html"><b>Rotamers</b></a>,
 <a href="buildstructure.html"><b>Build Structure</b></a>,
-<a href="../commands/alphafold.html"><b>alphafold</b></a>
+<a href="alphafold.html"><b>AlphaFold</b></a>
 </p><p>
 Comparative modeling (sometimes called &ldquo;homology modeling&rdquo;)
 generates theoretical models of a protein using one or more known related 
@@ -58,27 +59,25 @@ Modeller comparative modeling requires the following for each target chain:
 <ol>
 <li>At least one template structure.
 <!-- apparently they do not need to be superimposed -->
-<br><br>
-  <ul>
-  <li>Modeling a multimer requires a multimeric template structure
+<blockquote>
+<table cellpadding="10px"><tr>
+<td class="shaded">
+Modeling a multimer requires a multimeric template structure
 with the same stoichiometry and expected spatial relationship.
 Modeller uses this stoichiometry and spatial relationship rather
 than trying to calculate it.
-  </ul>
+</td></tr></table>
+</blockquote>
 <br>
 <li>A sequence alignment that includes the sequence of the target;
 other sequences may also be included. 
 The sequence alignment and template structure(s) should be open in ChimeraX
 and the template(s) <a href="sequenceviewer.html#association">associated</a>
 with sequence(s) in the alignment.
-<br><br>
-  <ul>
-<!--
 <blockquote>
 <table cellpadding="10px"><tr>
 <td class="shaded">
--->
-  <li>The target sequence can be 
+The target sequence can be 
 <a href="../commands/open.html#fetch">fetched</a>
 from <a href="https://www.uniprot.org" target="_blank">UniProt</a> or
 opened from a <a href="../commands/open.html#sequence">file</a>.
@@ -93,12 +92,12 @@ can be opened from a <a href="../commands/open.html#sequence">file</a>,
 if available, or obtained by using the
 <a href="../commands/blastprotein.html"><b>blastprotein</b></a>
 command to search for templates with the target sequence as a query.
-<!--
 </td></tr></table>
 </blockquote>
--->
-<br><br>
-  <li>Modeling a heteromultimer requires a separate sequence alignment
+<blockquote>
+<table cellpadding="10px"><tr>
+<td class="shaded">
+Modeling a heteromultimer requires a separate sequence alignment
 for each unique chain. For example, modeling  an
 &alpha;<sub>2</sub>&beta;<sub>2</sub> tetramer requires a
 template structure that is also a &alpha;<sub>2</sub>&beta;<sub>2</sub>
@@ -108,8 +107,8 @@ with one alignment containing the target &alpha; sequence,
 and its two &beta; subunits 
 <a href="sequenceviewer.html#association">associated</a>
 with another alignment containing the target &beta; sequence.
-  </ul>
-<br>
+</td></tr></table>
+</blockquote>
 <li><a name="key"></a>
 <!-- 
 Use of Modeller, whether a previously
@@ -131,8 +130,8 @@ target="_blank">Modeller licensing</a>.
 <h3>Startup and Input</h3>
 <p>
 The <b>Modeller Comparative</b> tool
-can be opened from the <b>Sequence</b> section of the
-<b>Tools</b> menu and manipulated like other panels
+can be opened from the <b>Sequence</b> or <b>Structure Prediction</b>
+section of the <b>Tools</b> menu and manipulated like other panels
 (<a href="../window.html#panels">more...</a>).
 It is also implemented as the 
 <a href="../commands/modeller.html#comparative"><b>modeller comparative</b></a>
@@ -156,6 +155,23 @@ one template is dimer and the other is monomer -->
 &ndash; see <a href="#key">above</a>
 <li><b>Number of models</b> (initial default <b>5</b>, maximum 1000)
 &ndash; number of models to create
+<li><b>Computation location</b>
+  <ul>
+  <li><b>web service</b> (initial default)
+&ndash; run the Modeller web service hosted by the
+<a href="https://rbvi.cgl.ucsf.edu/Overview/index.html"
+target="_blank">UCSF RBVI</a>; the user must provide:
+    <ul>
+    <li><b>Modeller license key</b> &ndash; see <a href="#key">above</a>
+    </ul>
+  <li><b>local machine</b>
+&ndash; run a local installation of Modeller;
+the user must install Modeller version 10 or newer, then provide:
+    <ul>
+    <li><b>Executable location</b></a>
+&ndash; the pathname of the Modeller executable
+    </ul>
+  </ul>
 </ul>
 <p>
 <b>Advanced</b> settings:
@@ -207,9 +223,10 @@ sends information to the web service and initiates the calculation.
 When results are returned, the new models are opened, listed in the 
 <a href="modelpanel.html"><b>Model Panel</b></a> along with any other
 models present in ChimeraX,
-and automatically superimposed on the lowest-model-ID template structure with
-<a href="../commands/matchmaker.html"><b>matchmaker</b></a>.
-Scores for the comparative models are shown in a <b>Modeller Results</b> panel:
+and automatically superimposed on the lowest-model-ID template structure 
+(for comparative modeling) or the original structure (for loop modeling and
+refinement) with <a href="../commands/matchmaker.html"><b>matchmaker</b></a>.
+Scores for the models are shown in a <b>Modeller Results</b> panel:
 </p>
 <ul>
 <li><b>Model</b> - model ID number
@@ -240,9 +257,8 @@ Lower values signify better models, with those &lt; 0 generally indicating a
 target="_blank">reliable model</a>.
 </ul>
 <p>
-Clicking a row in the panel shows the corresponding comparative
-model and hides the others. Clicking elsewhere in the panel shows all
-of the comparative models at once. 
+Clicking a row in the panel shows the corresponding model and hides the others.
+Clicking elsewhere in the panel shows all of the models at once. 
 Clicking a column header sorts on the values in that column.
 </p><p>
 The panel's <a href="../window.html#context-menu">context menu</a>
@@ -275,7 +291,7 @@ named <b>modeller_predicted_RMSD</b>.
 </ul>
 <p>
 The same <a href="#key">Modeller license key</a> as needed for 
-comparative modeling is also required by the evaluation server, 
+comparative or loop modeling is also required by the evaluation server, 
 but it does not need to be specified again.
 Fetching additional scores is also implemented as the command
 <a href="../commands/modeller.html#scores"><b>modeller scores</b></a>.
@@ -291,5 +307,5 @@ after making modifications that are expected to improve the scores.
 </p>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-July 2021</address>
+November 2021</address>
 </body></html>

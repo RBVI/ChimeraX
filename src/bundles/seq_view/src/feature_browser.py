@@ -70,9 +70,6 @@ class FeatureBrowser:
 
         layout.addWidget(QLabel("Features"), 0, 1, alignment=Qt.AlignHCenter|Qt.AlignBottom)
         self.feature_chooser = feature_chooser = FeatureList(feature_browser=self)
-        if state is not None:
-            feature_chooser.set_state(state['feature_chooser'])
-        feature_chooser.itemSelectionChanged.connect(self._feature_selection_changed)
         layout.addWidget(feature_chooser, 1, 1)
         layout.setColumnStretch(1, 1)
         layout.setRowStretch(1, 1)
@@ -130,9 +127,15 @@ class FeatureBrowser:
         self.sel_check_box.setChecked(True)
         self.sel_check_box.clicked.connect(self._sel_check_box_changed)
         sel_layout.addWidget(self.sel_check_box, alignment=Qt.AlignRight)
-        sel_layout.addWidget(QLabel("Automatically select on associated chains (if any)"),
-            alignment=Qt.AlignLeft)
+        sel_label = QLabel("Select on associated chains")
+        sel_label.setToolTip("Automatically select the associated structure\n"
+            " residues (if any) as features are chosen")
+        sel_layout.addWidget(sel_label, alignment=Qt.AlignLeft)
         region_layout.addWidget(sel_widget, alignment=Qt.AlignCenter)
+        # the below needs to be after self.sel_check_box is created
+        if state is not None:
+            feature_chooser.set_state(state['feature_chooser'])
+        feature_chooser.itemSelectionChanged.connect(self._feature_selection_changed)
 
     @property
     def selected_regions(self):

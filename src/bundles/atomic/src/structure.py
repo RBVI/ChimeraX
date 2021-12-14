@@ -96,7 +96,16 @@ class Structure(Model, StructureData):
             from .settings import settings
             style = settings.atomspec_contents
 
-        id = '#' + self.id_string
+        # may need '#!' if there are Structure submodels
+        for cm in self.all_models(): # child_models() is only direct children
+            if cm is self:
+                continue
+            if isinstance(cm, Structure):
+                prefix = "#!"
+                break
+        else:
+            prefix = "#"
+        id = prefix + self.id_string
         if style.startswith("command") or not self.name:
             return id
         return '%s %s' % (self.name, id)
@@ -115,7 +124,9 @@ class Structure(Model, StructureData):
             StructureData.delete(self)
             delattr(self, 'session')
 
-    deleted = Model.deleted
+    @property
+    def deleted(self):
+        return StructureData.deleted.fget(self) or Model.deleted.fget(self)
 
     def combine(self, s, chain_id_mapping, ref_xform):
         '''
@@ -1275,10 +1286,18 @@ class AtomicStructure(Structure):
             lighting = {'preset': 'full'}
             if self.num_atoms >= MULTI_SHADOW_THRESHOLD:
                 lighting['multi_shadow'] = MULTI_SHADOW
-            from .colors import chain_colors, element_colors
+            from .colors import chain_colors, element_colors, polymer_colors
             residues = self.residues
-            residues.ribbon_colors = residues.ring_colors = chain_colors(residues.chain_ids)
-            atoms.colors = chain_colors(atoms.residues.chain_ids)
+            nseq = len(residues.unique_sequences[0])
+            if nseq <= 2:
+                # Only one polymer sequence.  Sequence 0 is for non-polymers.
+                rcolors = chain_colors(residues.chain_ids)
+                acolors = chain_colors(atoms.residues.chain_ids)
+            else:
+                rcolors = polymer_colors(residues)[0]
+                acolors = polymer_colors(atoms.residues)[0]
+            residues.ribbon_colors = residues.ring_colors = rcolors
+            atoms.colors = acolors
             from .molobject import Atom
             ligand_atoms = atoms.filter(atoms.structure_categories == "ligand")
             ligand_atoms.draw_modes = Atom.STICK_STYLE
@@ -1532,6 +1551,7 @@ class AtomicStructure(Structure):
         if html:
             session.logger.info(html, is_html=True)
 
+# also used by model panel to determine if its "Info" button should issue a "sym" command...
 def assembly_html_table(mol):
     '''HTML table listing assemblies using info from metadata instead of reparsing mmCIF file.'''
     from chimerax import mmcif
@@ -2325,12 +2345,18 @@ def _residue_mouse_hover(pick, log):
     if res is None:
         return
     from .molobject import Residue
-    if isinstance(res, Residue):
-        chain = res.chain
-        if chain and chain.description:
-            log.status("chain %s: %s" % (chain.chain_id, chain.description))
-        elif res.name in getattr(res.structure, "_hetnam_descriptions", {}):
-            log.status(res.structure._hetnam_descriptions[res.name])
+    if not isinstance(res, Residue):
+        return
+    if not getattr(log, '_next_hover_chain_info', True):
+        # Supress status message if another mouse mode such
+        # as surface color value reporting is issuing status messages.
+        log._next_hover_chain_info = True
+        return
+    chain = res.chain
+    if chain and chain.description:
+        log.status("chain %s: %s" % (chain.chain_id, chain.description))
+    elif res.name in getattr(res.structure, "_hetnam_descriptions", {}):
+        log.status(res.structure._hetnam_descriptions[res.name])
             
 def _register_hover_trigger(session):
     if not hasattr(session, '_residue_hover_handler') and session.ui.is_gui:

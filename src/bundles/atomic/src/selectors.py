@@ -207,7 +207,7 @@ def add_select_menu_items(session):
     parent_menus = ["Che&mistry", "&IDATM Type"]
     idatm_menu = mw.add_select_submenu(parent_menus[:-1], parent_menus[-1])
     idatm_menu.triggered.connect(lambda act, mw=mw: mw.select_by_mode(act.text()))
-    from Qt.QtWidgets import QAction
+    from Qt.QtGui import QAction
     from . import Atom
     for idatm in Atom.idatm_info_map.keys():
         idatm_menu.addAction(QAction(idatm, mw))
@@ -261,7 +261,7 @@ def _update_select_chains_menu(session):
         if len(description) < 110:
             return False, description
         return True, description[:50] + "..." + description[-50:]
-    from Qt.QtWidgets import QAction
+    from Qt.QtGui import QAction
     for chain_key in chain_keys:
         chains = chain_info[chain_key]
         if len(chains) > 1:

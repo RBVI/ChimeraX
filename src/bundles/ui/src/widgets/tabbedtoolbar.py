@@ -22,9 +22,9 @@ TODO: documnentation!
 from Qt.QtCore import Qt
 from Qt.QtWidgets import (
     QWidget, QTabWidget, QToolBar, QWidgetAction,
-    QGridLayout, QLabel, QToolButton, QAction
+    QGridLayout, QLabel, QToolButton
 )
-from Qt.QtGui import QPainter, QIcon, QColor, QPixmap
+from Qt.QtGui import QPainter, QIcon, QColor, QPixmap, QAction
 
 _debug = False   # DEBUG
 
@@ -126,14 +126,14 @@ class _Section(QWidgetAction):
                 b.vr_mode = button_info.vr_mode
             b.setAutoRaise(True)
             if icon is None:
-                style = Qt.ToolButtonTextOnly
+                style = Qt.ToolButtonStyle.ToolButtonTextOnly
             else:
                 if not self.show_button_titles:
-                    style = Qt.ToolButtonIconOnly
+                    style = Qt.ToolButtonStyle.ToolButtonIconOnly
                 elif self.compact:
-                    style = Qt.ToolButtonTextBesideIcon
+                    style = Qt.ToolButtonStyle.ToolButtonTextBesideIcon
                 else:
-                    style = Qt.ToolButtonTextUnderIcon
+                    style = Qt.ToolButtonStyle.ToolButtonTextUnderIcon
             b.setToolButtonStyle(style)
         if icon is None:
             action = QAction(title)
@@ -154,7 +154,7 @@ class _Section(QWidgetAction):
             if not group_first:
                 b.setDefaultAction(action)
             else:
-                b.setPopupMode(b.MenuButtonPopup)
+                b.setPopupMode(b.ToolButtonPopupMode.MenuButtonPopup)
                 b.triggered.connect(lambda action, b=b: self._update_button_action(b, action))
                 self._groups[parent][button_info.group] = b
                 b.addAction(action)
@@ -200,9 +200,11 @@ class _Section(QWidgetAction):
         size = len(self._buttons)
         if self.compact:
             span = (size + self.compact_height - 1) // self.compact_height
-            w._layout.addWidget(w._title, self.compact_height, 0, 1, span, Qt.AlignHCenter | Qt.AlignBottom)
+            w._layout.addWidget(w._title, self.compact_height, 0, 1, span,
+                                Qt.AlignHCenter | Qt.AlignBottom)
         else:
-            w._layout.addWidget(w._title, 1, 0, 1, size, Qt.AlignHCenter | Qt.AlignBottom)
+            w._layout.addWidget(w._title, 1, 0, 1, size,
+                                Qt.AlignHCenter | Qt.AlignBottom)
 
     def createWidget(self, parent):
         w = QWidget(parent)
@@ -290,7 +292,7 @@ class _Section(QWidgetAction):
             p = None
             try:
                 p = QPainter(pm)
-                p.setCompositionMode(QPainter.CompositionMode_DestinationOver)
+                p.setCompositionMode(QPainter.CompositionMode.CompositionMode_DestinationOver)
                 if 1:
                     # draw filled
                     p.fillRect(pm.rect(), self.highlight_color)

@@ -1,5 +1,7 @@
 ..  vim: set expandtab shiftwidth=4 softtabstop=4:
 
+:orphan:
+
 .. 
     === UCSF ChimeraX Copyright ===
     Copyright 2016 Regents of the University of California.
@@ -187,6 +189,7 @@ For each class, here are the changes that are tracked:
 |                 | ribbon_mode          |
 |                 | scene_coord          |
 +-----------------+----------------------+
+
 .. _python_attributes:
 
 Python-Level Atomic Attributes
@@ -206,11 +209,6 @@ To get your attribute saved in sessions you will have to "register" it by callin
 is some string identifying the source of the registration (used in registration-conflict
 error messages) -- frequently your bundle name.  :code:`register_attr()` has a few optional
 keyword arguments:
-
-default_value
-    The value returned for the attribute in objects where the attribute hasn't been
-    explicitly set (instead of raising :code:`AttributeError`).  Only specify this if there
-    really is a reasonable default value.
 
 attr_type
     If the attribute is always either a particular type (*e.g.* float) or :code:`None`, then specify this.

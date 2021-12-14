@@ -31,7 +31,7 @@ class="clRight" title="User Guide Index"/></a>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>angle</b>
 &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
-&nbsp;<i>angle</i>&nbsp;
+[&nbsp;<i>angle</i>&nbsp;]
 [&nbsp;<b>move</b>&nbsp;&nbsp;large&nbsp;|&nbsp;<b>small</b>&nbsp;]
 </h3>
 <p>
@@ -39,8 +39,9 @@ The <b>angle</b> command reports or modifies the angle
 defined by three atoms, where a
 <a href="define.html#centroid">centroid</a> or 
 <a href="../markers.html">marker</a> is equivalent to an atom.
-It can also report (but not modify) the angle between two previously defined
-<a href="define.html#plane">planes</a>.
+It can also report but not modify the angle between two previously defined
+geometric objects (<a href="define.html#axis">axes</a> and/or
+<a href="define.html#plane">planes</a>) specified by their model numbers. 
 If no <i>angle</i> value is given, the current measurement is reported
 in the <a href="../tools/log.html"><b>Log</b></a>.
 </p><p>
@@ -59,12 +60,14 @@ the valence angle at the middle atom will be changed.
 For measuring or changing torsion angles defined by four atoms, see
 the <a href="torsion.html"><b>torsion</b></a> command.
 See also: 
+<a href="distance.html"><b>distance</b></a>,
 <a href="bond.html"><b>bond</b></a>,
 <a href="build.html"><b>build</b></a>,
+<a href="../tools/angles.html"><b>Angles/Torsions</b></a>,
 <a href="../measurements.html">measurements</a>
 </p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-September 2020</address>
+November 2021</address>
 </body></html>

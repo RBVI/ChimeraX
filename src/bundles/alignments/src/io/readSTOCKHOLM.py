@@ -45,7 +45,7 @@ def read(session, f):
         if line_num == 1:
             if line.startswith("# STOCKHOLM"):
                 continue
-            raise FormatSymtaxError("File does not start with '# STOCKHOLM'")
+            raise FormatSyntaxError("File does not start with '# STOCKHOLM'")
         if not line:
             continue
         if line.startswith('#='):

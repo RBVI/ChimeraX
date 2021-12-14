@@ -46,7 +46,8 @@ class AltlocExplorerTool(ToolInstance):
         tw.manage(placement='side')
 
     def delete(self):
-        self._changes_handler.remove()
+        if self._changes_handler:
+            self._changes_handler.remove()
         super().delete()
 
     def _atomic_changes(self, trig_name, trig_data):

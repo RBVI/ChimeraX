@@ -179,6 +179,7 @@ def standard_shortcuts(session):
 
 #        ('c1', color_one_color, 'Color molecule one color', molcat, molarg, mlmenu),
         ('cc', run_on_atoms('color %s bychain'), 'Color chains', molcat, sesarg, mlmenu, sep),
+        ('cp', run_on_atoms('color %s bypolymer'), 'Color polymers', molcat, sesarg, mlmenu, sep),
         ('ce', run_on_atoms('color %s byhet'), 'Color non-carbon atoms by element', molcat, sesarg, mlmenu),
         ('rc', run_on_atoms('color %s random'), 'Random color atoms and residues', molcat, sesarg, mlmenu),
         ('bf', run_on_atoms('color bfactor %s'), 'Color by bfactor', molcat, sesarg, mlmenu),

@@ -446,6 +446,10 @@ class SequenceViewer(ToolInstance):
         """
         self.tool_window.manage('side')
 
+    @property
+    def active_region(self):
+        return self.region_browser.cur_region()
+
     def alignment_notification(self, note_name, note_data):
         alignment = self.alignment
         if note_name == alignment.NOTE_MOD_ASSOC:
@@ -512,7 +516,7 @@ class SequenceViewer(ToolInstance):
         ToolInstance.delete(self)
 
     def fill_context_menu(self, menu, x, y):
-        from Qt.QtWidgets import QAction
+        from Qt.QtGui import QAction
         file_menu = menu.addMenu("File")
         save_as_menu = file_menu.addMenu("Save As")
         from chimerax.core.commands import run, StringArg
@@ -571,6 +575,12 @@ class SequenceViewer(ToolInstance):
         if not self.alignment.associations:
             comp_model_action.setEnabled(False)
         tools_menu.addAction(comp_model_action)
+        loops_model_action = QAction("Model Loops...", tools_menu)
+        loops_model_action.triggered.connect(lambda: run(self.session,
+            "ui tool show 'Model Loops'"))
+        if not self.alignment.associations:
+            loops_model_action.setEnabled(False)
+        tools_menu.addAction(loops_model_action)
         if len(self.alignment.seqs) == 1:
             blast_action = QAction("Blast Protein...", tools_menu)
             blast_action.triggered.connect(lambda: run(self.session,
@@ -583,6 +593,23 @@ class SequenceViewer(ToolInstance):
                 blast_action.triggered.connect(lambda: run(self.session,
                     "blastprotein %s" % (StringArg.unparse("%s:%d" % (self.alignment.ident, i+1)))))
                 blast_menu.addAction(blast_action)
+
+        """
+        #TODO: instead of completely launching from menu, just a top-level item that brings up
+        # a non-modal dialog for choosing structure and modeling areas (all missing; non-terminal;
+        # selection region; current region)
+        loop_menu = menu.addMenu("Loop Modeling")
+        if self.alignment.associations:
+            structs = set([chain.structure for chain in self.associations])
+            if len(structs) > 1:
+                for s in structs:
+                    struct_menu = loop_menu.addMenu(str(s))
+                    self._add_loop_action_menu(struct_menu, s)
+            else:
+                self._add_loop_action_menu(loop_menu, structs[0])
+        else:
+            loop_menu.setEnabled(False)
+        """
 
         # Whenever Region Browser and UniProt Annotations happen, the thought is to
         # put them in an "Annotations" menu (rather than "Info"); for now with only

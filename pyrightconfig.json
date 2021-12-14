@@ -1,0 +1,11 @@
+{
+    "include": [
+        "src"
+    ],
+    "exclude": [
+        "ChimeraX.app/**"
+    ],
+    "ignore": [
+        "src/bundles/**/build"
+    ]
+}

@@ -79,8 +79,8 @@ def _set_standard_residues():
 
 
 def _same_chains(chain0, chain1):
-    c0 = {c.name: c.characters for c in chain0}
-    c1 = {c.name: c.characters for c in chain1}
+    c0 = {c.chain_id: c.characters for c in chain0}
+    c1 = {c.chain_id: c.characters for c in chain1}
     return c0 == c1
 
 

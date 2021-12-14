@@ -34,6 +34,8 @@ different sets of items:
 <img class="icon" border=1 src="../tools/shortcut-icons/colorbyelement.png"></a>
 <a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/colorbychain.png"></a>
+<a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/polymer.png"></a>
 <a href="../tools/nucdisplay.html" title="Nucleotides Toolbar...">
 <img class="icon" border=1 src="../tools/nuc-icons/nuc-color.png"></a>
 &ndash; atomic models,
@@ -130,29 +132,30 @@ The <a name="colorname"><i>colorname</i></a> can be:
 <li>a <a href="colornames.html">color specification</a> by name,
 hexadecimal color code, or component values
 <li><a name="byelement"><b>byelement</b> or <b>byatom</b></a>
+<a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/colorbyelement.png"></a>
 &ndash; a <a href="colortables.html#element">color-by-element scheme</a>;
 only applies to atomic representations and per-atom patches of 
 molecular surfaces
 <li><a name="byhet"><b>byhet</b> or <b>byhetero</b></a>
 &ndash; same as <b>byelement</b>, except leaving carbon atoms unchanged
-<a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
-<img class="icon" border=1 src="../tools/shortcut-icons/colorbyelement.png"></a>
 <li><b>fromatoms</b>
 &ndash; color other <a href="#target">targets</a> in atomic models
 (molecular surface patches, <i>etc.</i>) to match the corresponding atoms
-<li><a name="bynucleotide"><b>bynucleotide</b></a> &ndash; a built-in scheme 
-<a href="colortables.html#residue">by nucleotide base type</a>
+<li><a name="bynucleotide"><b>bynucleotide</b></a> 
 <a href="../tools/nucdisplay.html" title="Nucleotides Toolbar...">
 <img class="icon" border=1 src="../tools/nuc-icons/nuc-color.png"></a>
+&ndash; a built-in scheme 
+<a href="colortables.html#residue">by nucleotide base type</a>
 <li><a name="bychain"><b>bychain</b></a>
+<a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/colorbychain.png"></a>
 &ndash; a built-in scheme <a href="colortables.html#autocolors">by chain ID</a>,
 also used for the initial colors of per-chain
 <a href="surface.html">molecular surfaces</a>
+<li><a name="bypolymer"></a><b>byidentity</b> or <b>bypolymer</b>
 <a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
-<img class="icon" border=1 src="../tools/shortcut-icons/colorbychain.png"></a>
-<li><a name="bymodel"><b>bymodel</b></a>
-&ndash; the <a href="colortables.html#autocolors">initial colors</a> of atomic models
-<li><a name="bypolymer"><b>bypolymer</b></a> or <b>byidentity</b>
+<img class="icon" border=1 src="../tools/shortcut-icons/polymer.png"></a>
 &ndash; a random color per unique biopolymer chain (macromolecular entity);
 the chain sequence is used to initialize the random number
 generator for choosing red, green, and blue color components,
@@ -160,6 +163,9 @@ so the same sequence will always give the same color
 <!-- 
 using sequence 1-letter codes, rgb values chosen in range 128-255, opacity 255
 -->
+<li><a name="bymodel"><b>bymodel</b></a>
+&ndash; the <a href="colortables.html#autocolors">initial colors</a> 
+of atomic models
 <li><a name="random"><b>random</b></a>
 &ndash; random color per atom and residue
 </ul>
@@ -618,7 +624,13 @@ class="icon" border=1 src="../tools/shortcut-icons/hydrophobicity.png"></a>,
 <a href="surface.html#cap"><b>surface cap</b></a>,
 <a href="clip.html#model">per-model clipping</a>,
 the <a href="../tutorials/binding-sites.html">Protein-Ligand Binding Sites
-tutorial</a>
+tutorial</a>,
+<a href="https://www.rbvi.ucsf.edu/chimerax/docs/videos/"
+target="_blank">ChimeraX videos</a>:
+<a href="https://youtu.be/FEIJ0lmybXo" target="_blank">coloring by 
+electrostatic potential</a>,
+<a href="https://youtu.be/2EDZQs7lGNs" target="_blank">coloring a map by local
+resolution</a>
 </p>
 <ul>
 <li><b>color sample</b> colors by map value.
@@ -802,6 +814,11 @@ A map that has been colored by zone can be split accordingly with
 <a href="volume.html#splitbyzone"><b>volume splitbyzone</b></a>.
 For coloring by segmentation region, 
 see <a href="segmentation.html"><b>segmentation</b></a>.
+See also: 
+<a href="https://www.rbvi.ucsf.edu/chimerax/docs/videos/"
+target="_blank">ChimeraX video</a>:
+<a href="https://youtu.be/zU3Xb6LRFco" target="_blank">coloring each protein
+in an EM map</a>
 </p>
 
 <a name="single"></a>
@@ -973,7 +990,25 @@ style="display:inline-block; vertical-align:middle"><tr>
 </tr></table>
   (default for the <a href="mlp.html"><b>mlp</b></a> command,
   along with <a href="#range"><b>range</b></a> -20,20)
-  <li><a href="palettes.html#colorbrewer">ColorBrewer palettes</a> -
+<li><b>alphafold</b>
+<table border cellpadding="0" cellspacing="0"
+style="display:inline-block; vertical-align:top"><tr>
+<td bgcolor=red width="30px" title="red"
+align="center"><font size="-1" color="white">0</font></td>
+<td bgcolor=orange width="30px" title="orange"
+align="center"><font size="-1">50</font></td>
+<td bgcolor=yellow width="30px" title="yellow"
+align="center"><font size="-1">70</font></td>
+<td bgcolor=cornflowerblue width="30px" title="cornflowerblue"
+align="center"><font size="-1" color="white">90</font></td>
+<td bgcolor=blue width="30px" title="blue"
+align="center"><font size="-1" color="white">100</font></td>
+</tr></table>
+(used to show the
+<a href="https://alphafold.ebi.ac.uk/faq#faq-5" target="_blank">pLDDT
+confidence measure</a> in the B-factor field of
+<a href="../tools/alphafold.html">AlphaFold predictions</a>)
+  <li><a href="palettes.html#colorbrewer">ColorBrewer palettes</a> &ndash;
 a default number of colors will be used if the number is omitted from the name.
 Examples:
 <blockquote>
@@ -1160,5 +1195,5 @@ See also: <a href="palette.html#list"><b>palette list</b></a>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-June 2021</address>
+September 2021</address>
 </body></html>

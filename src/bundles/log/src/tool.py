@@ -149,7 +149,7 @@ class Log(ToolInstance, HtmlLog):
                     self.session.ui.clipboard().setText(log_window.selectedText()))
                 menu.addAction("Select All", lambda:
                     log_window.page().triggerAction(log_window.page().SelectAll))
-                from Qt.QtWidgets import QAction
+                from Qt.QtGui import QAction
                 link_action = QAction("Executable Command Links", menu)
                 link_action.setCheckable(True)
                 link_action.setChecked(self.tool_instance.settings.exec_cmd_links)
@@ -160,7 +160,7 @@ class Log(ToolInstance, HtmlLog):
         parent = self.tool_window.ui_area
         from chimerax.ui.widgets import ChimeraXHtmlView
 
-        from Qt.QtWebEngineWidgets import QWebEnginePage
+        from Qt.QtWebEngineCore import QWebEnginePage
         class MyPage(QWebEnginePage):
 
             def acceptNavigationRequest(self, qurl, nav_type, is_main_frame):
@@ -182,7 +182,7 @@ class Log(ToolInstance, HtmlLog):
                 page = MyPage(self._profile, self)
                 self.setPage(page)
                 s = page.settings()
-                s.setAttribute(s.LocalStorageEnabled, True)
+                s.setAttribute(s.WebAttribute.LocalStorageEnabled, True)
                 self.log = log
                 ## The below three lines shoule be sufficent to allow the ui_area
                 ## to Handle the context menu, but apparently not for QWebView widgets,
@@ -197,7 +197,7 @@ class Log(ToolInstance, HtmlLog):
                 scheme = qurl.scheme()
                 if scheme == 'cxcmd':
                     from Qt.QtCore import QUrl
-                    no_formatting = QUrl.FormattingOptions(QUrl.None_)
+                    no_formatting = QUrl.UrlFormattingOption.None_
                     cmd = qurl.toString(no_formatting)[6:].lstrip()  # skip cxcmd:
                     self.log.suppress_scroll = cmd and (
                             cmd.split(maxsplit=1)[0] not in ('log', 'echo'))
@@ -400,6 +400,9 @@ class Log(ToolInstance, HtmlLog):
 
     def _show(self):
         # start() is documented to stop the timer if it is running
+        from Qt import qt_object_is_deleted
+        if qt_object_is_deleted(self.regulating_timer):
+            return
         self.regulating_timer.start(100)
 
     def _actually_show(self):
@@ -495,7 +498,9 @@ class Log(ToolInstance, HtmlLog):
             for e in reversed(script_elements):
                 e.getparent().remove(e)
             contents = html.tostring(tmp)
-        prev_ses_html = '<details style="background-color: #ebf5fb"><summary>Log from %s</summary>%s<p>&mdash;&mdash;&mdash; End of log from %s &mdash;&mdash;&mdash;</p></details>' % (date, contents, date)
+        from chimerax.ui.html import disclosure
+        prev_ses_html = disclosure('%s<p>&mdash;&mdash;&mdash; End of log from %s &mdash;&mdash;&mdash;</p>'
+            % (contents, date), summary= 'Log from %s' % date, background_color="#ebf5fb")
         if self.settings.session_restore_clears and session.restore_options['clear log']:
             def clear_log_unless_error(trig_name, session, *, self=self, prev_ses_html=prev_ses_html):
                 if session.restore_options['error encountered']:

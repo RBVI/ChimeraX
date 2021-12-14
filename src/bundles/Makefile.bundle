@@ -38,6 +38,11 @@ PYMOD_EXT = so
 endif
 RUN = $(CHIMERAX_EXE) --nogui --safemode --exit --cmd
 
+
+ifdef INSTALL_TO_VENV
+WHEEL = $(wildcard dist/*.whl)
+endif
+
 PYSRCS = $(wildcard src/*.py)
 # Some bundles (e.g. chem_group) need to add to PYSRCS
 .SECONDEXPANSION:
@@ -45,8 +50,30 @@ PYSRCS = $(wildcard src/*.py)
 wheel:	bundle_info.xml $$(PYSRCS)
 	$(RUN) "devel build . exit true $(DEBUG_ARG) $(BUILD_ARGS)"
 
+# The space means install and app-install are the same
 install app-install:	bundle_info.xml $$(PYSRCS)
 	$(RUN) "devel install . user false exit true $(DEBUG_ARG) $(INSTALL_ARGS)"
+ifdef INSTALL_TO_VENV
+ifndef VIRTUAL_ENV
+	@echo "No virtual env to install to! Skipping venv install."
+	@echo "This warning does not indicate success or failure of bundle installs to ChimeraX's internal environment."
+else
+ifdef IGNORE_DEPS
+	pip install $(WHEEL) --no-deps
+else
+	pip install $(WHEEL)
+endif # IGNORE_DEPS
+endif # VIRTUAL_ENV
+endif # INSTALL_TO_VENV
+
+test-changes: install
+ifeq ($(OS),Darwin)
+# -n flag means open a new instance even if another already exists
+	open -n $(CHIMERAX_APP)
+endif
+ifeq ($(OS),Linux)
+	nohup ./$(CHIMERAX_EXE) & 2>&1 >> /dev/null
+endif
 
 sync:
 ifneq (,$(wildcard dist/*-py*-none-any.whl))

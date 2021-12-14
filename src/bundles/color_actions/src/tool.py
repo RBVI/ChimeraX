@@ -18,6 +18,8 @@ class ColorActions(ToolInstance):
 
     SESSION_ENDURING = True
 
+    help = "help:user/tools/coloractions.html"
+
     def __init__(self, *args, **kw):
         super().__init__(*args, **kw)
 

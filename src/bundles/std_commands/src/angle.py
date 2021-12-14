@@ -70,7 +70,7 @@ def angle(session, objects, degrees=None, *, move="small"):
     all_simples = simples + list(atoms)
     if degrees is None:
         # report value
-        arg_error_msg = "Must specify exactly 3 atoms/centroids or two measureable objects" \
+        arg_error_msg = "Must specify exactly 3 atoms/centroids or two measurable objects" \
             " (e.g. axes/planes)"
         if complexes:
             if len(complexes) != 2:

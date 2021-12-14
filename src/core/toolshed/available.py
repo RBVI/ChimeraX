@@ -25,6 +25,7 @@ class AvailableBundleCache(list):
         self.uninstallable = []
         self.toolshed_url = None
         self.format_version = 1
+        self._index = {}  # provide access by bundle name
 
     def load(self, logger, toolshed_url):
         #
@@ -34,8 +35,9 @@ class AvailableBundleCache(list):
         _debug("AvailableBundleCache.load: toolshed_url", toolshed_url)
         from chimerax import app_dirs
         from urllib.parse import urljoin, urlencode
+        from . import chimerax_uuid
         params = [
-            ("uuid", self.uuid()),
+            ("uuid", chimerax_uuid()),
             ("format_version", FORMAT_VERSION),
         ]
         url = urljoin(toolshed_url, "bundle/") + '?' + urlencode(params)
@@ -43,14 +45,14 @@ class AvailableBundleCache(list):
         from urllib.request import urlopen, Request
         from ..fetch import html_user_agent
         headers = {"User-Agent": html_user_agent(app_dirs)}
-        request = Request(url, headers=headers)
+        request = Request(url, unverifiable=True, headers=headers)
         with urlopen(request) as f:
             import json
             data = json.loads(f.read())
         data.insert(0, ['toolshed_url', toolshed_url])
         import os
         if self.cache_dir is not None:
-            with open(os.path.join(self.cache_dir, _CACHE_FILE), 'w') as f:
+            with open(os.path.join(self.cache_dir, _CACHE_FILE), 'w', encoding='utf-8') as f:
                 import json
                 json.dump(data, f, indent=0)
         try:
@@ -66,7 +68,7 @@ class AvailableBundleCache(list):
         if self.cache_dir is None:
             raise FileNotFoundError("no bundle cache")
         import os
-        with open(os.path.join(self.cache_dir, _CACHE_FILE)) as f:
+        with open(os.path.join(self.cache_dir, _CACHE_FILE), encoding='utf-8') as f:
             import json
             data = json.load(f)
         self._build_bundles(data)
@@ -89,6 +91,7 @@ class AvailableBundleCache(list):
                     self.append(b)
                 else:
                     self.uninstallable.append(b)
+                self._index[b.name] = b
 
     def _installable(self, b, my_version):
         installable = False
@@ -103,15 +106,11 @@ class AvailableBundleCache(list):
             break
         return installable
 
-    def uuid(self):
-        # Return a mostly unrecognizable string representing
-        # current user for accessing ChimeraX toolshed
-        from getpass import getuser
-        import uuid
-        node = uuid.getnode()   # Locality
-        name = getuser()
-        dn = "CN=%s, L=%s" % (name, node)
-        return uuid.uuid5(uuid.NAMESPACE_X500, dn)
+    def find_by_name(self, name):
+        try:
+            return self._index[name]
+        except KeyError:
+            return None
 
 
 def has_cache_file(cache_dir):
@@ -233,7 +232,6 @@ def _build_bundle(d, format_version=1):
         # No managers defined
         pass
     else:
-        from .info import FormatInfo
         for manager_name, md in manager_d.items():
             # _debug("processing manager: %s" % manager_name)
             bi.managers[manager_name] = md

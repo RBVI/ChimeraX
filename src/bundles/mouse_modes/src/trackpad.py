@@ -32,7 +32,7 @@ class MultitouchTrackpad:
         self._full_rotation_distance = 6 * cm_tpu		# trackpad units
         self._full_width_translation_distance = 6 * cm_tpu      # trackpad units
         self._zoom_scaling = 3		# zoom (z translation) faster than xy translation.
-        self._twist_scaling = 6		# twist faster than finger rotation
+        self._twist_scaling = settings.trackpad_twist_speed	# twist faster than finger rotation
         self._wheel_click_pixels = 5	# number of pixels drag that equals one scroll wheel click
         self._touch_handler = None
         self._received_touch_event = False
@@ -105,17 +105,21 @@ class MultitouchTrackpad:
 
         from .mousemodes import decode_modifier_bits
         # session.ui.keyboardModifiers() does *not* work here (always returns 0)
-        mb = int(self._session.ui.queryKeyboardModifiers())
+        mb = self._session.ui.queryKeyboardModifiers()
         self._modifier_keys = decode_modifier_bits(mb)
 
 
-        if t == QEvent.TouchUpdate:
+        if t == QEvent.Type.TouchUpdate:
             # On Mac touch events get backlogged in queue when the events cause
             # time consuming computatation.  It appears Qt does not collapse the events.
             # So event processing can get tens of seconds behind.  To reduce this problem
             # we only handle the most recent touch update per redraw.
-            self._recent_touches = [Touch(t) for t in event.touchPoints()]
-        elif t == QEvent.TouchEnd or t == QEvent.TouchCancel or t == QEvent.TouchBegin:
+            from Qt import using_qt5, using_qt6
+            if using_qt5:
+                self._recent_touches = [Touch(t) for t in event.touchPoints()]
+            elif using_qt6:
+                self._recent_touches = [Touch(t) for t in event.points()]
+        elif t == QEvent.Type.TouchEnd or t == QEvent.Type.TouchCancel or t == QEvent.Type.TouchBegin:
             # Sometimes we don't get a TouchEnd macOS gesture like 3-finger swipe up
             # for mission control took over half-way through a gesture.  So also
             # remove old touches when we get a begin.
@@ -218,12 +222,23 @@ class MultitouchTrackpad:
         if self._touch_handler is None:
             return False	# Multi-touch disabled
 
-        from Qt.QtCore import Qt
-        if event.source() == Qt.MouseEventNotSynthesized:
+        from Qt import using_qt5, using_qt6
+        if using_qt5:
+            from Qt.QtCore import Qt
+            using_mouse = (event.source() == Qt.MouseEventNotSynthesized)
+        elif using_qt6:
+            from Qt.QtGui import QPointingDevice
+            using_mouse = (event.pointingDevice() == QPointingDevice.PointerType.Generic)
+        if using_mouse:
             return False	# Event is from a real mouse.
 
-        from Qt.QtGui import QTouchDevice
-        if len(QTouchDevice.devices()) == 0:
+        if using_qt5:
+            from Qt.QtGui import QTouchDevice
+            touch_devices = QTouchDevice.devices()
+        elif using_qt6:
+            from Qt.QtGui import QInputDevice
+            touch_devices = [d for d in QInputDevice.devices() if d.type() == d.DeviceType.TouchPad]
+        if len(touch_devices) == 0:
             return False	# No trackpad devices
 
         return self._received_touch_event
@@ -234,8 +249,13 @@ class Touch:
         self.id = t.id()
         # Touch positions in macOS correspond to physical trackpad distances in points (= 1/72 inch).
         # There is an offset in Qt 5.9 which is the current pointer window position x,y (in pixels).
-        self.x = t.pos().x()
-        self.y = t.pos().y()
+        from Qt import using_qt5, using_qt6        
+        if using_qt5:
+            p = t.pos()
+        elif using_qt6:
+            p = t.position()
+        self.x = p.x()
+        self.y = p.y()
 
     def move(self, last_touch_locations):
         id = self.id
@@ -268,7 +288,7 @@ class MultitouchBinding:
         if action not in self.valid_actions:
             from chimerax.core.errors import UserError
             raise UserError('Unrecognised touchpad action! Must be one of: {}'.format(
-                ', '.join(valid_actions)
+                ', '.join(self.valid_actions)
             ))
         self.action = action
         self.modifiers = modifiers

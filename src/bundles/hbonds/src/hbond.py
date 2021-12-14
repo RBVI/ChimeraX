@@ -475,13 +475,6 @@ def find_hbonds(session, structures, *, inter_model=True, intra_model=True, dono
         for structure in structures:
             if status:
                 session.logger.status("Finding acceptors in model '%s'" % structure.name, blank_after=0)
-            if structure.PBG_METAL_COORDINATION in structure.pbg_map:
-                for pb in structure.pbg_map[structure.PBG_METAL_COORDINATION].pseudobonds:
-                    a1, a2 = pb.atoms
-                    if a1.element.is_metal:
-                        metal_coord.setdefault(a2, []).append(a1)
-                    if a2.element.is_metal:
-                        metal_coord.setdefault(a1, []).append(a2)
             if cache_da and structure in _a_cache and (dist_slop,
                     angle_slop) in _a_cache[structure]:
                 acc_atoms = []
@@ -509,8 +502,12 @@ def find_hbonds(session, structures, *, inter_model=True, intra_model=True, dono
                     has_sulfur[structure] = True
             if status:
                 session.logger.status("Building search tree of acceptor atoms", blank_after=0)
-            acc_trees[structure] = AtomSearchTree(acc_atoms, data=acc_data, sep_val=3.0,
+            acc_tree = acc_trees[structure] = AtomSearchTree(acc_atoms, data=acc_data, sep_val=3.0,
                 scene_coords=(Atom._hb_coord == Atom.scene_coord))
+            metals = structure.atoms.filter(structure.atoms.elements.is_metal)
+            for metal in metals:
+                for acc_atom, geom_func, args in acc_tree.search(metal._hb_coord, 4.0):
+                    metal_coord.setdefault(acc_atom, []).append(metal)
 
         if process_key not in processed_donor_params:
             # find max donor distances before they get squared..
@@ -664,11 +661,10 @@ def find_hbonds(session, structures, *, inter_model=True, intra_model=True, dono
                             from chimerax.geometry import angle
                             conflict = False
                             for metal in metal_coord[acc_atom]:
-                                if angle(donor_atom._hb_coord, acc_atom._hb_coord,
-                                        metal._hb_coord) < 90.0:
+                                if angle(donor_atom._hb_coord, acc_atom._hb_coord, metal._hb_coord) < 45.0:
                                     if verbose:
-                                        session.logger.info("\tH-bond conflicts with"
-                                            " metal coordination to %s" % metal)
+                                        session.logger.info("\tH-bond between %s and %s conflicts with"
+                                            " metal coordination to %s" % (donor_atom, acc_atom, metal))
                                     conflict = True
                                     break
                             if conflict:

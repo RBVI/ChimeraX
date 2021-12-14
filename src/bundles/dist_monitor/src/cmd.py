@@ -117,6 +117,7 @@ def distance(session, objects, *, color=None, dashes=None,
 
     session.logger.info(("Distance between %s and %s: " + session.pb_dist_monitor.distance_format)
         % (a1, a2.string(relative_to=a1), pb.length))
+    return pb.length
 
 def distance_save(session, save_file_name):
     from chimerax.io import open_output

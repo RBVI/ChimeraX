@@ -26,7 +26,11 @@ def assign_charges(session, uncharged_residues, his_scheme, charge_method, *, st
     for struct, residue_list in list(by_structure.items()):
         from chimerax.atomic import Residues
         by_structure[struct] = residues = Residues(residue_list)
-        missing, extra = check_residues(residues)
+        try:
+            missing, extra = check_residues(residues)
+        except NoHydError:
+            copy_needed[struct] = True
+            continue
         heavies = [info for info in missing if not info[1].startswith('H')]
         missing_heavies.extend(heavies)
         copy_needed[struct] = len(heavies) < len(missing)
@@ -56,31 +60,36 @@ def assign_charges(session, uncharged_residues, his_scheme, charge_method, *, st
         if copy_needed[struct]:
             session.logger.status("Copying %s" % struct, secondary=True)
             charged_struct = struct.copy(name="copy of " + struct.name)
-            orig_a_to_copy = {}
-            copy_a_to_orig = {}
-            for o_a, c_a in zip(struct.atoms, charged_struct.atoms):
-                orig_a_to_copy[o_a] = c_a
-                copy_a_to_orig[c_a] = o_a
-            orig_r_to_copy = {}
-            copy_r_to_orig = {}
-            for o_r, c_r in zip(struct.residues, charged_struct.residues):
-                orig_r_to_copy[o_r] = c_r
-                copy_r_to_orig[c_r] = o_r
-            from chimerax.addh.cmd import cmd_addh
-            hbond = False
-            if his_scheme is None:
-                if len(struct_residues[struct_residues.names == "HIS"]) > 0:
-                    hbond = True
-            from chimerax.atomic import AtomicStructures
-            addh_structures = AtomicStructures([charged_struct])
-            session.logger.status("Adding hydrogens to copy of %s" % struct, secondary=True)
-            session.silent = True
             try:
-                cmd_addh(session, addh_structures, hbond=hbond)
-            finally:
-                session.silent = False
-            charged_residues = [orig_r_to_copy[r] for r in struct_residues]
-            session.logger.status("Assigning charges to copy of %s" % struct, secondary=True)
+                orig_a_to_copy = {}
+                copy_a_to_orig = {}
+                for o_a, c_a in zip(struct.atoms, charged_struct.atoms):
+                    orig_a_to_copy[o_a] = c_a
+                    copy_a_to_orig[c_a] = o_a
+                orig_r_to_copy = {}
+                copy_r_to_orig = {}
+                for o_r, c_r in zip(struct.residues, charged_struct.residues):
+                    orig_r_to_copy[o_r] = c_r
+                    copy_r_to_orig[c_r] = o_r
+                from chimerax.addh.cmd import cmd_addh
+                hbond = False
+                if his_scheme is None:
+                    if len(struct_residues[struct_residues.names == "HIS"]) > 0:
+                        hbond = True
+                from chimerax.atomic import AtomicStructures
+                addh_structures = AtomicStructures([charged_struct])
+                session.logger.status("Adding hydrogens to copy of %s" % struct, secondary=True)
+                session.silent = True
+                try:
+                    cmd_addh(session, addh_structures, hbond=hbond)
+                finally:
+                    session.silent = False
+                charged_residues = [orig_r_to_copy[r] for r in struct_residues]
+                session.logger.status("Assigning charges to copy of %s" % struct, secondary=True)
+            except BaseException:
+                charged_struct.delete()
+                session.logger.status("", secondary=True)
+                raise
         else:
             charged_struct = struct
             charged_residues = struct_residues
@@ -95,23 +104,28 @@ def assign_charges(session, uncharged_residues, his_scheme, charge_method, *, st
             raise
 
         if copy_needed[struct]:
-            session.logger.status("Copying charges back to %s" % struct, secondary=True)
-            need_deletion = []
-            for o_r in struct_residues:
-                for o_a in o_r.atoms:
-                    c_a = orig_a_to_copy[o_a]
-                    if c_a.deleted:
-                        # add_charge can delete atoms (e.g. 5' phosphates)
-                        need_deletion.append(o_a)
-                        continue
-                    for nb in c_a.neighbors:
-                        if nb.residue == c_a.residue and nb not in copy_a_to_orig:
-                            c_a.charge += nb.charge
-                    o_a.charge = c_a.charge
-            for del_a in need_deletion:
-                struct.delete_atom(del_a)
-            session.logger.status("Destroying copy of %s" % struct, secondary=True)
-            charged_struct.delete()
+            try:
+                session.logger.status("Copying charges back to %s" % struct, secondary=True)
+                need_deletion = []
+                for o_r in struct_residues:
+                    for o_a in o_r.atoms:
+                        c_a = orig_a_to_copy[o_a]
+                        if c_a.deleted:
+                            # add_charge can delete atoms (e.g. 5' phosphates)
+                            need_deletion.append(o_a)
+                            continue
+                        for nb in c_a.neighbors:
+                            if nb.residue == c_a.residue and nb not in copy_a_to_orig:
+                                c_a.charge += nb.charge
+                        o_a.charge = c_a.charge
+                for del_a in need_deletion:
+                    struct.delete_atom(del_a)
+                session.logger.status("Destroying copy of %s" % struct, secondary=True)
+            finally:
+                charged_struct.delete()
+
+class NoHydError(ValueError):
+    pass
 
 def check_residues(residues):
     from .data import starting_residues, ending_residues, other_residues
@@ -135,7 +149,12 @@ def check_residues(residues):
         try:
             res_data = reference[rname]
         except KeyError:
-            # Hope add_charge can handle it!
+            # Check if any hydrogens.  If not, raise error to alert caller to add hydrogens
+            for a in r.atoms:
+                if a.element.number == 1:
+                    break
+            else:
+                raise NoHydError(r.name)
             continue
         name_to_atom = {}
         for a in r.atoms:

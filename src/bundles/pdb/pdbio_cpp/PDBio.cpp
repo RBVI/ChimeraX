@@ -115,7 +115,7 @@ void set_res_name_and_chain_id(Residue* res, PDB::ResidueName& out_rn, char* out
 {
     if (res->chain_id().size() == 2) {
         std::string adjusted_name;
-        int num_spaces = res->name().size() - 3;
+        int num_spaces = 3 - res->name().size();
         if (num_spaces > 0)
             adjusted_name.insert(0, num_spaces, ' ');
         adjusted_name.append(res->name());
@@ -187,7 +187,7 @@ compile_helices_sheets(const Structure* s, std::vector<std::string>& helices, st
     int helix_num = 1, sheet_num = 1;
     std::vector<Residue*> cur_helix, cur_sheet;
     for (auto r: s->residues()) {
-        if (prev_res && prev_res->connects_to(r)) {
+        if (prev_res && prev_res->connects_to(r, true)) {
             if (cur_helix.size() > 0 && (!r->is_helix() || prev_res->ss_id() != r->ss_id()))
                 push_helix(cur_helix, helices, helix_num++);
             if (cur_sheet.size() > 0 && (!r->is_strand() || prev_res->ss_id() != r->ss_id()))
@@ -362,7 +362,16 @@ push_seqres(Chain *chain, size_t start_index, int record_num, std::vector<std::s
 {
     PDB sr_rec(PDB::SEQRES);
     sr_rec.seqres.ser_num = record_num;
-    sr_rec.seqres.chain_id = chain->chain_id()[0];
+    std::string chain_id(chain->chain_id());
+    if (chain_id.size() > 1) {
+        sr_rec.seqres.chain_id[0] = chain_id[0];
+        sr_rec.seqres.chain_id[1] = chain_id[1];
+        sr_rec.seqres.chain_id[2] = '\0';
+    } else {
+        sr_rec.seqres.chain_id[0] = ' ';
+        sr_rec.seqres.chain_id[1] = chain_id[0];
+        sr_rec.seqres.chain_id[2] = '\0';
+    }
     sr_rec.seqres.num_res = chain->residues().size();
     int is_rna = -1;
     for (size_t i = 0; i < 13; ++i) {
@@ -1048,7 +1057,7 @@ start_t = end_t;
         }
 
         case PDB::SEQRES: {
-            auto chain_id = ChainID({record.seqres.chain_id});
+            auto chain_id = ChainID(record.seqres.chain_id);
             if (chain_id != seqres_cur_chain) {
                 seqres_cur_chain = chain_id;
                 seqres_cur_count = 0;
@@ -1439,6 +1448,11 @@ link_up(PDB& link_ssbond, Structure *as, PyObject *py_logger)
     if (a2 == nullptr) {
         logger::warning(py_logger, "Cannot find LINK/SSBOND atom ", pdb_atom2,
             " in residue ", res2->str());
+        return;
+    }
+    if (a1 == a2) {
+        logger::warning(py_logger, "LINK or SSBOND record from atom to itself: ", pdb_atom1,
+            " in residue ", res1->str());
         return;
     }
     if (!a1->connects_to(a2)) {

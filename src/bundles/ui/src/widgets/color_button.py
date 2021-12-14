@@ -71,7 +71,6 @@ class ColorButton(QPushButton):
         self.setAttribute(Qt.WA_LayoutUsesWidgetRect)
         self._has_alpha_channel = has_alpha_channel
         self.clicked.connect(self.show_color_chooser)
-        self.destroyed.connect(lambda *args, ident=id(self): _check_color_chooser(ident))
         self._color = None
         self._pause_timer = None
         self._pause_delay = pause_delay 	# Seconds before color_pause signal is issued.
@@ -95,7 +94,7 @@ class ColorButton(QPushButton):
         if _color_dialog is None:
             from Qt.QtWidgets import QColorDialog
             _color_dialog = cd = QColorDialog(self.window())
-            cd.setOption(cd.NoButtons, True)
+            cd.setOption(cd.ColorDialogOption.NoButtons, True)
             cd.currentColorChanged.connect(_make_color_callback)
             cd.destroyed.connect(_color_dialog_destroyed)
         else:
@@ -108,14 +107,14 @@ class ColorButton(QPushButton):
             import sys
             if sys.platform == 'darwin':
                 cd.hide()
-        cd.setOption(cd.ShowAlphaChannel, self._has_alpha_channel)
+        cd.setOption(cd.ColorDialogOption.ShowAlphaChannel, self._has_alpha_channel)
         if self._color is not None:
             cd.setCurrentColor(QColor(*tuple(self._color)))
         _color_callback = self._color_changed_cb
         cd.show()
 
     def changeEvent(self, event):
-        if event.type() == event.EnabledChange:
+        if event.type() == event.Type.EnabledChange:
             if self._color is None:
                 color = [127, 127, 127]
             elif self.isEnabled():
@@ -125,9 +124,15 @@ class ColorButton(QPushButton):
             self.setStyleSheet('background-color: %s' % hex_color_name(color))
 
     def _color_changed_cb(self, color):
-        self.set_color(color)
-        self.color_changed.emit(self._color)
-        self._set_pause_timer()
+        try:
+            self.set_color(color)
+        except RuntimeError:
+            # C++ has been destroyed (don't seem to get a destroyed() signal)
+            global _color_callback
+            _color_callback = None
+        else:
+            self.color_changed.emit(self._color)
+            self._set_pause_timer()
 
     def _set_pause_timer(self):
         delay = self._pause_delay

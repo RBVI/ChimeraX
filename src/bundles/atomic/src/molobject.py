@@ -12,7 +12,8 @@
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.core.state import State, StateManager
-from numpy import uint8, int32, uint32, float64, float32, byte, bool as npy_bool
+from numpy import uint8, int32, uint32, float64, float32, byte
+npy_bool = bool
 from .molc import CFunctions, string, cptr, pyobject, set_c_pointer, pointer, size_t
 import ctypes
 from . import ctypes_support as convert
@@ -28,9 +29,24 @@ cvec_property = _atomic_c_functions.cvec_property
 c_function = _atomic_c_functions.c_function
 c_array_function = _atomic_c_functions.c_array_function
 
-def python_instances_of_class(inst_class):
+def python_instances_of_class(inst_class, *, open_only=True):
     f = c_function('python_instances_of_class', args = (ctypes.py_object,), ret = ctypes.py_object)
-    return f(inst_class)
+    instances = f(inst_class)
+    if not open_only:
+        return instances
+    if issubclass(inst_class, PseudobondGroupData):
+        filt = lambda x: (not x.structure) or x.structure.id
+    elif hasattr(inst_class, 'structure'):
+        filt = lambda x: x.structure.id
+    elif issubclass(inst_class, StructureData):
+        filt = lambda x: x.id
+    elif issubclass(inst_class, Pseudobond):
+        filt = lambda x: (not x.group.structure) or x.group.structure.id
+    elif issubclass(inst_class, (PseudobondManager, Sequence)):
+        filt = lambda x: True
+    else:
+        raise ValueError("Don't know how to determine open instances of class %s" % inst_class.__name__)
+    return [x for x in instances if filt(x)]
 
 # delay .cymol import until 'CFunctions' call above establishes lib path
 from .cymol import CyAtom
@@ -523,6 +539,9 @@ class PseudobondManager(StateManager):
             obj_map[cat] = obj
         return obj_map
 
+    def include_state(self):
+        return bool(self.group_map)
+
     def take_snapshot(self, session, flags):
         '''Gather session info; return version number'''
         f = c_function('pseudobond_global_manager_session_info',
@@ -650,6 +669,19 @@ class Ring:
 
     def __init__(self, ring_pointer):
         set_c_pointer(self, ring_pointer)
+        # Rings in the C++ are "ephemeral"; they get destroyed whenever a new set of rings is computed
+        # using different criteria, therefore for better reliability pre-fetch all the ring properties
+        # when the ring is constructed
+        self.__size = c_property('ring_size', size_t, read_only=True).fget(self)
+        self.__aromatic = c_property('ring_aromatic', npy_bool, read_only=True).fget(self)
+        self.__atoms = c_property('ring_atoms', cptr, 'size', astype = convert.atoms, read_only = True
+            ).fget(self)
+        self.__bonds = c_property('ring_bonds', cptr, 'size', astype = convert.bonds, read_only = True
+            ).fget(self)
+        self.__ordered_atoms = c_property('ring_ordered_atoms', cptr, 'size', astype = convert.atoms,
+            read_only=True).fget(self)
+        self.__ordered_bonds = c_property('ring_ordered_bonds', cptr, 'size', astype = convert.bonds,
+            read_only=True).fget(self)
 
     # cpp_pointer and deleted are "base class" methods, though for performance reasons
     # we are placing them directly in each class rather than using a base class,
@@ -664,20 +696,37 @@ class Ring:
         '''Has the C++ side been deleted?'''
         return not hasattr(self, '_c_pointer')
 
-    aromatic = c_property('ring_aromatic', npy_bool, read_only=True,
-        doc="Supported API. Whether the ring is aromatic. Boolean value.")
-    atoms = c_property('ring_atoms', cptr, 'size', astype = convert.atoms, read_only = True,
-        doc="Supported API. :class:`.Atoms` collection containing the atoms of the ring, "
-        "in no particular order (see :meth:`.Ring.ordered_atoms`).")
-    bonds = c_property('ring_bonds', cptr, 'size', astype = convert.bonds, read_only = True,
-        doc="Supported API. :class:`.Bonds` collection containing the bonds of the ring, "
-        "in no particular order (see :meth:`.Ring.ordered_bonds`).")
-    ordered_atoms = c_property('ring_ordered_atoms', cptr, 'size', astype = convert.atoms, read_only=True,
-        doc=":class:`.Atoms` collection containing the atoms of the ring, in ring order.")
-    ordered_bonds = c_property('ring_ordered_bonds', cptr, 'size', astype = convert.bonds, read_only=True,
-        doc=":class:`.Bonds` collection containing the bonds of the ring, in ring order.")
-    size = c_property('ring_size', size_t, read_only=True,
-        doc="Supported API. Number of atoms (and bonds) in the ring. Read only.")
+    @property
+    def aromatic(self):
+        "Supported API. Whether the ring is aromatic. Boolean value. Read only"
+        return self.__aromatic
+
+    @property
+    def atoms(self):
+        "Supported API. :class:`.Atoms` collection containing the atoms of the ring, in no particular order"
+        " (see :meth:`.Ring.ordered_atoms`)"
+        return self.__atoms
+
+    @property
+    def bonds(self):
+        "Supported API. :class:`.Bonds` collection containing the bonds of the ring, "
+        "in no particular order (see :meth:`.Ring.ordered_bonds`)"
+        return self.__bonds
+
+    @property
+    def ordered_atoms(self):
+        ":class:`.Atoms` collection containing the atoms of the ring, in ring order."
+        return self.__ordered_atoms
+
+    @property
+    def ordered_bonds(self):
+        ":class:`.Bonds` collection containing the bonds of the ring, in ring order."
+        return self.__ordered_bonds
+
+    @property
+    def size(self):
+        "Supported API. Number of atoms (and bonds) in the ring"
+        return self.__size
 
     def __eq__(self, r):
         if not isinstance(r, Ring):

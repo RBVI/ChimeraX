@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-PDBLibrary" version="1.0.1"
+<BundleInfo name="ChimeraX-PDBLibrary" version="1.0.2"
 	    package="chimerax.pdb_lib" purePython="false"
 		installedIncludeDir="include" installedLibraryDir="lib"
   	    minSessionVersion="1" maxSessionVersion="1">
@@ -37,7 +37,7 @@
   <Dependencies>
     <Dependency name="ChimeraX-Core" version="~=1.0"/>
     <Dependency name="ChimeraX-Atomic" version="~=1.0"/>
-    <Dependency name="ChimeraX-AtomicLibrary" build="true" version="~=4.0"/>
+    <Dependency name="ChimeraX-AtomicLibrary" build="true" version="~=5.0"/>
   </Dependencies>
 
   <Classifiers>

@@ -502,6 +502,7 @@ class ChainListsWidget(QWidget):
             next_mapping[chain] = (label, chain_list)
         for widgets in self.__chain_list_mapping.values():
             for widget in widgets:
+                widget.hide()
                 widget.destroy()
         self.__chain_list_mapping = next_mapping
         self.__container_layout.takeAt(0)

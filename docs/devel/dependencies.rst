@@ -1,5 +1,7 @@
 ..  vim: set expandtab shiftwidth=4 softtabstop=4:
 
+:orphan:
+
 .. 
     === UCSF ChimeraX Copyright ===
     Copyright 2017 Regents of the University of California.
@@ -107,7 +109,6 @@ such as compilers, rsync, cygwin on Windows.  The needed build tools are listed 
 * chrpath - used for setting RPATH in linux ChimeraX executable
 * imex - boilerplate for exporting symbols from C/C++ libraries
 * libtool - used when building Qt from source (only done for debugging)
-* p7zip - used to unpack *.xz source distributions Python, libtheora, libogg, libvpx, x264 on Mac
 
 Packages from PyPi used to do builds
 ------------------------------------

@@ -686,6 +686,12 @@ cdef class CyAtom:
         if self._deleted: raise RuntimeError("Atom already deleted")
         self.cpp_atom.set_hide_bits(bit_mask)
 
+    def set_implicit_idatm_type(self, idatm_type):
+        if self._deleted: raise RuntimeError("Atom already deleted")
+        if idatm_type is None:
+            raise ValueError("Cannot set implicit IDATM type to None")
+        self.cpp_atom.set_implicit_idatm_type(idatm_type.encode())
+
     def side_atoms(self, CyAtom skip_atom=None, CyAtom cycle_atom=None):
         '''All the atoms connected to this atom on this side of 'skip_atom' (if given).
            Missing-structure pseudobonds are treated as connecting their atoms for the purpose of
@@ -913,6 +919,8 @@ cdef class Element:
         " corresponding Element instance."
         cdef const cydecl.cyelem.Element* ele_ptr
         if isinstance(ident, int):
+            if ident < 0 or ident > cydecl.cyelem.Element.AS.NUM_SUPPORTED_ELEMENTS:
+                raise ValueError("Cannot create element with atomic number %d" % ident)
             ele_ptr = Element._int_to_cpp_element(ident)
         else:
             ele_ptr = Element._string_to_cpp_element(ident.encode())
@@ -1226,9 +1234,14 @@ cdef class CyResidue:
 
     @property
     def number(self):
-        "Supported API. Integer sequence position number from input data file. Read only."
+        "Supported API. Integer sequence position number from input data file."
         if self._deleted: raise RuntimeError("Residue already deleted")
         return self.cpp_res.number()
+
+    @number.setter
+    def number(self, num):
+        if self._deleted: raise RuntimeError("Residue already deleted")
+        self.cpp_res.set_number(num)
 
     @property
     def omega(self):

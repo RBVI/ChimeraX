@@ -83,6 +83,7 @@ StructureSeq::copy() const
 {
     StructureSeq* ss = new StructureSeq(_chain_id, _structure);
     ss->bulk_set(_residues, &_contents);
+    ss->_polymer_type = _polymer_type;
     return ss;
 }
 
@@ -271,8 +272,8 @@ StructureSeq::remove_residues(std::set<Residue*>& residues) {
         if (ischain) {
             if (DestructionCoordinator::destruction_parent() != _structure)
                 _structure->remove_chain(dynamic_cast<Chain*>(this));
-            demote_to_sequence();
         }
+        demote_to_sequence();
     } else {
         _res_map.clear();
         int i = 0;
@@ -392,6 +393,13 @@ void
 StructureSeq::set_chain_id(ChainID chain_id)
 {
     if (chain_id != _chain_id) {
+        std::string std_name("chain ");
+        std_name += _chain_id;
+        if (name() == std_name) {
+            std::string new_name("chain ");
+            new_name += chain_id;
+            set_name(new_name);
+        }
         _chain_id = chain_id;
         if (is_chain()) {
             _structure->change_tracker()->add_modified(_structure, dynamic_cast<Chain*>(this),

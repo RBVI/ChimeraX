@@ -195,7 +195,7 @@ def create_marker_sets(session, marker_set_tuples):
     ms.markerset_extra_attributes = leftover_keys(set_attributes, ('name',))
 
     id_to_marker = {}
-    have_frame_attr = False
+    have_frame_attr = have_extra_attr = False
     for mdict in marker_attributes:
       id = int(mdict.get('id', '0'))
       x = float(mdict.get('x', '0'))
@@ -221,10 +221,14 @@ def create_marker_sets(session, marker_set_tuples):
       e = leftover_keys(mdict, ('id','x','y','z','r','g','b', 'radius','note',
 				'nr','ng','nb','frame'))
       m.marker_extra_attributes = e
+      if e:
+          have_extra_attr = True
       id_to_marker[id] = m
 
     if have_frame_attr:
         ms.save_marker_attribute_in_sessions('frame', int)
+    if have_extra_attr:
+        ms.save_marker_attribute_in_sessions('marker_extra_attributes')
         
     for ldict in link_attributes:
       if 'id1' not in ldict or 'id2' not in ldict:

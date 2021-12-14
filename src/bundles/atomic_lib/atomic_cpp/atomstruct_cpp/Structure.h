@@ -128,6 +128,7 @@ protected:
     bool  _active_coord_set_change_notify = true;
     CoordSet *  _active_coord_set;
     mutable bool  _alt_loc_change_notify = true;
+    bool  _atom_types_notify = true;
     Atoms  _atoms;
     float  _ball_scale = 0.25;
     Bonds  _bonds;

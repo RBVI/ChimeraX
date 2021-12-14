@@ -23,10 +23,6 @@ or derivations thereof.
 <img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
 class="clRight" title="User Guide Index"/></a>
 
-<font color="brown">
-* experimental feature, with deficiencies we hope to address in the future *
-</font>
-
 <h3><a href="../index.html#commands">Command</a>: interfaces</h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>interfaces</b>
@@ -35,8 +31,19 @@ class="clRight" title="User Guide Index"/></a>
 [&nbsp;<b>areaCutoff</b>&nbsp;&nbsp;<i>interface-area</i>&nbsp;] 
 [&nbsp;<b>interfaceResidueAreaCutoff</b>&nbsp;&nbsp;<i>res-area</i>&nbsp;] 
 </h3>
+<a name="select"></a>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>interfaces select</b>
+&nbsp;<a href="atomspec.html"><i>atom-spec1</i></a>&nbsp;
+<b>contacting</b>
+&nbsp;<a href="atomspec.html"><i>atom-spec2</i></a>&nbsp;
+[&nbsp;<b>bothSides</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>probeRadius</b>&nbsp;&nbsp;<i>rad</i>&nbsp;]
+[&nbsp;<b>areaCutoff</b>&nbsp;&nbsp;<i>interface-area</i>&nbsp;] 
+[&nbsp;<b>interfaceResidueAreaCutoff</b>&nbsp;&nbsp;<i>res-area</i>&nbsp;] 
+</h3>
 <p>
-The <b>interfaces</b> command calculates the buried 
+The <b>interfaces</b> command calculates the buried
 <a href="surface.html#surfdefs">solvent-accessible surface</a>
 area (SASA) for each pair of chains in the
 specified set of atoms, based on chain IDs,
@@ -44,18 +51,18 @@ and generates a <a href="#diagram">network diagram</a>
 of the interchain interfaces. 
 <a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/interfaces.png"></a>
-</p><p>
 Unspecified atoms are ignored, but
 solvent, ions, and ligand residues are NOT excluded automatically.
 The buried SASA is calculated as described for
-<a href="measure.html#buriedArea"><b>measure buriedArea</b></a>,
+<a href="measure.html#buriedarea"><b>measure buriedarea</b></a>,
 and results are reported in the <a href="../tools/log.html"><b>Log</b></a>.
+</p><p>
 See also:
 <a href="clashes.html"><b>clashes</b>/<b>contacts</b></a>,
 <a href="crystalcontacts.html"><b>crystalcontacts</b></a>,
+<a href="measure.html#buriedarea"><b>measure buriedarea</b></a>,
 <a href="crosslinks.html"><b>crosslinks</b></a>,
 <a href="hbonds.html"><b>hbonds</b></a>,
-<a href="measure.html#buriedArea"><b>measure buriedArea</b></a>,
 <a href="../radii.html">VDW radii</a>,
 <a href="../measurements.html">measurements</a>,
 the <a href="https://www.rbvi.ucsf.edu/chimerax/features.html#chain-network"
@@ -71,6 +78,21 @@ Residues with at least <i>res-area</i> buried
 (default <b>15</b> &Aring;<sup>2</sup>, can be changed with the
 <b>interfaceResidueAreaCutoff</b> option) are considered to be
 <a name="interface-residues"><b><i>interface residues</i></b></a>.
+</p><p>
+The <b>interfaces select</b> command <a href="../selection.html">selects</a>
+interface residues based on the buried area between chains in
+<a href="atomspec.html"><i>atom-spec1</i></a> and
+<a href="atomspec.html"><i>atom-spec2</i></a>.
+Only chain-chain contacts that bury at least
+the <b>areaCutoff</b> value are counted as interfaces, and only
+residues with at least the <b>interfaceResidueAreaCutoff</b> value
+buried are considered to be interface residues (same defaults as above).
+The <b>bothSides</b> option indicates whether to select interface residues
+from both <a href="atomspec.html"><i>atom-spec1</i></a> and
+<a href="atomspec.html"><i>atom-spec2</i></a> (if true) or from
+<a href="atomspec.html"><i>atom-spec1</i></a> only (if <b>false</b>, default). 
+For a similar calculation but without grouping residues by chain, see
+<a href="measure.html#buriedarea"><b>measure buriedarea</b></a>.
 </p>
 
 <a name="diagram"></a>
@@ -127,26 +149,26 @@ The <b>background</b> <a href="#context">context menu</a> includes:
 </p>
 <ul>
 <li><b>Show All</b>
-- display all chains used in the calculation 
+&ndash; display all chains used in the calculation 
 <li><b>Select All Contact Residues</b>
-- <a href="../selection.html">select</a>
+&ndash; <a href="../selection.html">select</a>
 only the <a href="#interface-residues">interface residues</a> from all chains
 <li><b>Select All</b>
-- <a href="../selection.html">select</a> all atoms used in the calculation
+&ndash; <a href="../selection.html">select</a> all atoms used in the calculation
 <li><b>Clear Selection</b>
-- clear the current <a href="../selection.html">selection</a> 
+&ndash; clear the current <a href="../selection.html">selection</a> 
 <li><b>Explode All</b>
-- move chains apart to separate the interfaces; exploding an interface
+&ndash; move chains apart to separate the interfaces; exploding an interface
 moves two chains in opposite directions along the line connecting the 
 geometric centers of the two sets of 
 <a href="#interface-residues">interface residues</a>
 <li><b>Unexplode All</b>
-- move chains back together to restore the original structure
+&ndash; move chains back together to restore the original structure
 <li><b>Lay Out to Match Structure</b>
-- redraw diagram with orientation similar to the current 3D structure
+&ndash; redraw diagram with orientation similar to the current 3D structure
 (including repulsion to prevent node overlaps in the diagram)
 <li><b>Orient Structure to Match Layout</b>
-- rotate the structure to an orientation similar to the 2D diagram
+&ndash; rotate the structure to an orientation similar to the 2D diagram
 </ul>
 <p>
 <a name="nodemenu"></a>
@@ -154,11 +176,11 @@ The <b>node</b> <a href="#context">context menu</a> includes:
 </p>
 <ul>
 <li><b>Show Only [<i>chain</i>]</b>
-- show the corresponding chain; hide others
+&ndash; show the corresponding chain; hide others
 <li><b>Show [<i>chain</i>] and Neighbors</b> 
-- show only the corresponding chain and its contacting chains
+&ndash; show only the corresponding chain and its contacting chains
 <li><b>Show Contact Residues of Neighbors with [<i>chain</i>]</b>
-- show the corresponding chain with its 
+&ndash; show the corresponding chain with its 
 <a href="#interface-residues">interface residues</a>
 in light gray, plus only the relevant
 <a href="#interface-residues">interface residues</a>
@@ -166,20 +188,20 @@ from its contacting chains
 (not their <a href="#interface-residues">interface residues</a>
 with other chains)
 <li><b>Select [<i>chain</i>]</b>
-- <a href="../selection.html">select</a> the corresponding chain
+&ndash; <a href="../selection.html">select</a> the corresponding chain
 (same as Alt-clicking the node)
 <li><b>Select Neighbors of [<i>chain</i>]</b>
-- <a href="../selection.html">select</a> 
+&ndash; <a href="../selection.html">select</a> 
 chains contacting the corresponding chain
 <li><b>Select Contact Residues of [<i>chain</i>] and Neighbors</b>
-- <a href="../selection.html">select</a> the
+&ndash; <a href="../selection.html">select</a> the
 <a href="#interface-residues">interface residues</a>
 on both sides of all interfaces 
 of the corresponding chain
 <li><b>Explode Neighbors of [<i>chain</i>]</b>
-- move chains apart to separate the interfaces
+&ndash; move chains apart to separate the interfaces
 <li><b>Unexplode Neighbors of [<i>chain</i>]</b>
-- move chains back together
+&ndash; move chains back together
 </ul>
 <p>
 <a name="edgemenu"></a>
@@ -187,14 +209,14 @@ The <b>edge</b> <a href="#context">context menu</a> includes:
 </p>
 <ul>
 <li><b>Show Only [<i>chain1</i>] and [<i>chain2</i>]</b>
-- show the corresponding chains; hide others
+&ndash; show the corresponding chains; hide others
 <li><b>Show Contact Residues of [<i>chain1</i>] with [<i>chain2</i>]</b> 
-- show only the 
+&ndash; show only the 
 <i>chain1-chain2</i> <a href="#interface-residues">interface residues</a>
 of <i>chain1</i>, plus all of <i>chain2</i> as spheres 
 with its non-interface residues in light gray; orient view to face <i>chain2</i>
 <li><b>Show Contact Residues of [<i>chain2</i>] with [<i>chain1</i>]</b> 
-- show only the
+&ndash; show only the
 <i>chain1-chain2</i> <a href="#interface-residues">interface residues</a>
 of <i>chain2</i>, plus all of <i>chain1</i> as spheres 
 with its non-interface residues in light gray; orient view to face <i>chain1</i>
@@ -204,38 +226,38 @@ alt="1i50 C-J residue plot"
 title="1i50 C-J residue plot"></td></tr>
 </table>
 <li><b>Residue Plot [<i>chain1</i>] with [<i>chain2</i>]</b> 
-- adjust the 3D view in the same way as 
+&ndash; adjust the 3D view in the same way as 
 <b>Show Contact Residues of [<i>chain1</i>] with [<i>chain2</i>]</b> (above)
 and create an <a href="#residue-plot">interface residue plot</a>, essentially
 a 2D representation of the 3D view: colored circles for individual
 <i>chain1-chain2</i> <a href="#interface-residues">interface residues</a>
 superimposed on a gray silhouette of the remaining residues of <i>chain2</i>
 <li><b>Residue Plot [<i>chain2</i>] with [<i>chain1</i>]</b> 
-- adjust the 3D view in the same way as 
+&ndash; adjust the 3D view in the same way as 
 <b>Show Contact Residues of [<i>chain2</i>] with [<i>chain1</i>]</b> (above)
 and create an <a href="#residue-plot">interface residue plot</a>, essentially
 a 2D representation of the 3D view: colored circles for individual
 <i>chain1-chain2</i> <a href="#interface-residues">interface residues</a>
 superimposed on a gray silhouette of the remaining residues of <i>chain1</i>
 <li><b>Select [<i>chain1</i>] and [<i>chain2</i>]</b>
-- <a href="../selection.html">select</a> the corresponding chains
+&ndash; <a href="../selection.html">select</a> the corresponding chains
 (same as Alt-clicking the edge)
 <li><b>Select Contact Residues of [<i>chain1</i>] and [<i>chain2</i>]</b>
-- <a href="../selection.html">select</a> the
+&ndash; <a href="../selection.html">select</a> the
 <i>chain1-chain2</i> <a href="#interface-residues">interface residues</a>
 of both chains
 <li><b>Select Contact Residues of [<i>chain1</i>] with [<i>chain2</i>]</b> 
-- <a href="../selection.html">select</a> the
+&ndash; <a href="../selection.html">select</a> the
 <i>chain1-chain2</i> <a href="#interface-residues">interface residues</a>
 of <i>chain1</i>
 <li><b>Select Contact Residues of [<i>chain2</i>] with [<i>chain1</i>]</b> 
-- <a href="../selection.html">select</a> the
+&ndash; <a href="../selection.html">select</a> the
 <i>chain1-chain2</i> <a href="#interface-residues">interface residues</a>
 of <i>chain2</i>
 <li><b>Explode [<i>chain1</i>] and [<i>chain2</i>]</b>
-- move chains apart to separate the interfaces
+&ndash; move chains apart to separate the interfaces
 <li><b>Unexplode [<i>chain1</i>] and [<i>chain2</i>]</b>
-- move chains back together
+&ndash; move chains back together
 </ul>
 
 <a name="residue-plot"></a>
@@ -268,15 +290,15 @@ The residue plot has its own <a href="#context">context menus</a>, with:
 </p>
 <ul>
 <li><b>Show Interface</b>
-- in 3D, show the <a href="#interface-residues">interface residues</a> 
+&ndash; in 3D, show the <a href="#interface-residues">interface residues</a> 
 from the two chains plus the remaining residues of the second chain in 
 light gray; orient view to face the second chain, shown as spheres
 <li><b>Select Residue</b> (in residue context menu)
-- <a href="../selection.html">select</a> 
+&ndash; <a href="../selection.html">select</a> 
 the corresponding residue in the structure
 </ul>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-March 2021</address>
+September 2021</address>
 </body></html>

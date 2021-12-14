@@ -32,13 +32,16 @@ def button_row(parent, name_and_callback_list,
 #    l.setStyleSheet('QLabel { background-color: pink;}')
     
 #    from Qt.QtCore import Qt
+    from Qt import using_pyqt6
     buttons = []
     for name, callback in name_and_callback_list:
         b = QPushButton(name, f)
 #        b.setMaximumSize(100,25)
 #        b.setStyleSheet('QPushButton { background-color: pink;}')
 #        b.setAttribute(Qt.WA_LayoutUsesWidgetRect) # Avoid extra padding on Mac
-        b.setStyleSheet('QPushButton { padding-left: 15px; padding-right: 15px; padding-top: 5px; padding-bottom: 2px;}')
+        if not using_pyqt6:
+            # This creates very poor looking buttons on macOS with PyQt6.
+            b.setStyleSheet('QPushButton { padding-left: 15px; padding-right: 15px; padding-top: 5px; padding-bottom: 2px;}')
         if callback is None:
             b.setEnabled(False)
         else:
@@ -69,7 +72,7 @@ class EntriesRow:
         self.frame = f
 
         from .color_button import ColorButton
-        from Qt.QtWidgets import QLabel, QPushButton
+        from Qt.QtWidgets import QLabel, QPushButton, QWidget
         self.values = values = []
         self.labels = labels = []
         for a in args:
@@ -132,6 +135,8 @@ class EntriesRow:
                 cb = ColorButton(f, max_size = (20,20))
                 layout.addWidget(cb)
                 values.append(cb)
+            elif isinstance(a, QWidget):
+                layout.addWidget(a)
 
         layout.addStretch(1)    # Extra space at end
 
@@ -224,7 +229,10 @@ class MenuEntry:
         b.setText(values[0])
         m = QMenu(b)
         for value in values:
-            m.addAction(value)
+            if value == '-':
+                m.addSeparator()
+            else:
+                m.addAction(value)
         b.setMenu(m)
         m.triggered.connect(self._menu_selection_cb)
     def _menu_selection_cb(self, action):
@@ -366,7 +374,7 @@ class ModelMenu:
                              special_items = special_items, parent = f)
         self._menu = sm
         
-        mlist = session.models.list(type = class_filter)
+        mlist = [m for m in session.models.list(type = class_filter) if filter_func(m)]
         mdisp = [m for m in mlist if m.visible]
         if mdisp:
             sm.value = mdisp[0]

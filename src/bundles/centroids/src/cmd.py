@@ -44,7 +44,7 @@ def cmd_centroid(session, atoms=None, *, mass_weighting=False, name="centroid", 
     s = Structure(session, name=name)
     r = s.new_residue('centroid', 'centroid', 1)
     from chimerax.atomic.struct_edit import add_atom
-    a = add_atom('cent', 'C', r, xyz)
+    a = add_atom(name, 'C', r, xyz)
     if color:
         a.color = color.uint8x4()
     else:
