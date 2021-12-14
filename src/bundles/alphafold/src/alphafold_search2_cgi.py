@@ -4,7 +4,8 @@
 # database using blat.
 
 # On plato.cgl.ucsf.edu:
-database_path = '/databases/mol/AlphaFold/v1/alphafold.fasta'
+database_version = '2'
+database_path = f'/databases/mol/AlphaFold/v{database_version}/alphafold.fasta'
 blat_exe = '/usr/local/bin/blat'
 
 def parse_request_sequences():
@@ -58,7 +59,7 @@ def search_sequences(sequences, database_path=database_path, blat_exe=blat_exe):
     matches = [seq_uids.get(sequence, {}) for sequence in sequences]
     return matches
 
-def parse_blat_output(blat_output, sequences):
+def parse_blat_output(blat_output, sequences, database_version=database_version):
 
     f = open(blat_output, 'r')
     out_lines = f.readlines()
@@ -77,6 +78,7 @@ def parse_blat_output(blat_output, sequences):
                              'dbseq end': mend,
                              'query start': qstart,
                              'query end': qend,
+                             'db version': database_version,
             }
 
     return seq_uids

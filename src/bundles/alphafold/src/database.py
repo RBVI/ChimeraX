@@ -1,0 +1,75 @@
+# vim: set expandtab ts=4 sw=4:
+
+# === UCSF ChimeraX Copyright ===
+# Copyright 2016 Regents of the University of California.
+# All rights reserved.  This software provided pursuant to a
+# license agreement containing restrictions on its disclosure,
+# duplication and use.  For details see:
+# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# This notice must be embedded in or attached to all copies,
+# including partial copies, of the software or any revisions
+# or derivations thereof.
+# === UCSF ChimeraX Copyright ===
+
+# -----------------------------------------------------------------------------
+#
+from chimerax.core.settings import Settings
+
+class _AlphaFoldDatabaseSettings(Settings):
+    EXPLICIT_SAVE = {
+        'database_url': 'https://alphafold.ebi.ac.uk/files/AF-{uniprot_id}-F1-model_v{version}.cif',
+        'database_version': '2',
+        'last_update_time': 0.0,	# seconds since 1970 epoch
+        'update_interval': 86400.0,	# seconds
+        'update_url': 'https://www.rbvi.ucsf.edu/chimerax/data/status/alphafold_database.json',
+    }
+
+# -----------------------------------------------------------------------------
+#
+def alphafold_model_url(session, uniprot_id, database_version = None):
+    settings = _alphafold_database_settings(session)
+    url_template = settings.database_url
+    if database_version is None:
+        database_version = settings.database_version
+    url = url_template.format(uniprot_id = uniprot_id, version = database_version)
+    return url
+
+# -----------------------------------------------------------------------------
+#
+def _alphafold_database_settings(session):
+    settings = getattr(session, '_alphafold_database_settings', None)
+    if settings is None:
+        settings = _AlphaFoldDatabaseSettings(session, "alphafold_database")
+        session._alphafold_database_settings = settings
+    _check_for_database_update(session, settings)
+    return settings
+
+# -----------------------------------------------------------------------------
+#
+def _check_for_database_update(session, settings):
+    from time import time
+    t = time()
+    if t < settings.last_update_time + settings.update_interval:
+        return
+    
+    url = settings.update_url
+    if not url:
+        return
+    
+    settings.last_update_time = t
+    try:
+        from chimerax.core.fetch import fetch_file
+        filename = fetch_file(session, url, 'AlphaFold database settings',
+                              'alphafold_database.json', 'AlphaFold',
+                              ignore_cache=True, error_status = False)
+        with open(filename, 'r') as f:
+            import json
+            db_settings = json.load(f)
+            for key, value in db_settings.items():
+                setattr(settings, key, value)
+
+    except Exception:
+        pass		# Could not reach update site
+
+    settings.save()
+

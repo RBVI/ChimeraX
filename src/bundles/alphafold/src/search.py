@@ -88,12 +88,15 @@ def _parse_blat_output(blat_output, sequences):
 
 class UniprotSequence:
     def __init__(self, uniprot_id, uniprot_name,
-                 database_sequence_range, query_sequence_range):
+                 database_sequence_range, query_sequence_range,
+                 alphafold_database_version = '2'):
         self.uniprot_id = uniprot_id
         self.uniprot_name = uniprot_name
         self.database_sequence_range = database_sequence_range
         self.query_sequence_range = query_sequence_range
         self.range_from_sequence_match = True
+        self.alphafold_database_version = alphafold_database_version
+
     def copy(self):
         return UniprotSequence(self.uniprot_id, self.uniprot_name,
                                self.database_sequence_range, self.query_sequence_range)
@@ -107,7 +110,7 @@ def _fasta(sequence_strings, LINELEN=60):
         lines.append('')
     return '\n'.join(lines)
 
-sequence_search_url = 'https://www.rbvi.ucsf.edu/chimerax/cgi-bin/alphafold_search_cgi.py'
+sequence_search_url = 'https://www.rbvi.ucsf.edu/chimerax/cgi-bin/alphafold_search2_cgi.py'
 def _search_sequences_web(sequences, url = sequence_search_url):
     import json
     request = json.dumps({'sequences': sequences})
@@ -127,7 +130,8 @@ def _search_sequences_web(sequences, url = sequence_search_url):
                           % (url, results['error']))
     seq_uids = {seq : UniprotSequence(u['uniprot id'], u['uniprot name'],
                                       (u['dbseq start'], u['dbseq end']),
-                                      (u['query start'], u['query end']))
+                                      (u['query start'], u['query end']),
+                                      u['db version'])
                 for seq, u in zip(sequences, results['sequences']) if u}
     return seq_uids
 
