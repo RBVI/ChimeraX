@@ -62,13 +62,14 @@ UPDATE_TASK = 'update task'
 END_TASK = 'end task'
 
 # Possible task state
-PENDING = "pending"           # Initialized but not running
-RUNNING = "running"           # Running
-TERMINATING = "terminating"   # Termination requested
+PENDING = "pending"         # Initialized but not running
+RUNNING = "running"         # Running
+TERMINATING = "terminating" # Termination requested
 TERMINATED = "terminated"   # Termination requested
 FINISHED = "finished"       # Finished
 
 
+# TODO: Possibly subclass from threading.Thread?
 class Task(State):
     """Base class for instances of tasks.
 
@@ -260,7 +261,8 @@ class Job(Task):
 
     """
     # TODO: Replace with server-side solution
-    CHECK_INTERVALS = [5, 5, 10, 15, 25, 40, 65, 105, 170, 275, 300, 350, 400, 450, 500, 550, 600, 650, 700, 750, 800]
+    CHECK_INTERVALS = [5, 5, 10, 15, 25, 40, 65, 105, 170, 275, 300,
+                       350, 400, 450, 500, 550, 600, 650, 700, 750, 800]
 
     def __init__(self, *args, **kw):
         super().__init__(*args, **kw)
