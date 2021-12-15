@@ -88,9 +88,15 @@ public:
     std::size_t  size() const { return length(); }
 
     void  operator=(const char* s) {
-        if (std::strlen(s) >= len)
-            _report_error(std::string(s));
-        std::strcpy(_data, s);
+        auto end = _data + len;
+        auto s_ptr = s;
+        auto d_ptr = _data;
+        for (; d_ptr < end; ++d_ptr, ++s_ptr) {
+            *d_ptr = *s_ptr;
+            if (*s_ptr == '\0')
+                return;
+        }
+        _report_error(std::string(s));
     }
     operator const char*() const { return _data; }
     bool  operator==(const char* s) const { return strcmp(_data, s) == 0; }

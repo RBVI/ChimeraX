@@ -445,7 +445,6 @@ aromatic_geometry(const Ring& r)
 #ifdef REPORT_TIME
 #include <ctime>
 #endif
-#define TRACK_UNTYPED 1
 void
 AtomicStructure::_compute_atom_types()
 {
@@ -489,6 +488,9 @@ clock_t start_t = clock();
     const Real p7nn2nh = 1.3337;
     const Real p7on2nh = 1.3485;
 
+#ifdef TIME_PASSES
+clock_t t0 = clock();
+#endif
     // algorithm based on E.C. Meng / R.A. Lewis paper 
     // "Determination of Molecular Topology and Atomic Hybridization
     // States from Heavy Atom Coordinates", J. Comp. Chem., v12#7, 891-898
@@ -500,12 +502,32 @@ clock_t start_t = clock();
     //   Negatively charged oxygens are O2- (planar) and O3- (tetrahedral)
     //   instead of O-.  Sp nitrogens bonded to two atoms are N1+.
     
+    // Suspend atom-type change notifications, since they all change, and
+    // ensure the suspension ends when this routine exits
+    class SuspendNotification {
+        AtomicStructure *as;
+        public:
+            SuspendNotification(AtomicStructure *s) { as = s; s->_atom_types_notify = false; }
+            ~SuspendNotification() { as->_atom_types_notify = true; }
+    };
+    SuspendNotification suspender(this);
+
     const Atom::IdatmInfoMap& info_map = Atom::get_idatm_info_map();
+#ifdef TIME_PASSES
+clock_t t1 = clock();
+std::cerr << "setup (fetch IDATM info map) took " << (t1 - t0) / (float)CLOCKS_PER_SEC << " seconds\n";
+t0 = t1;
+#endif
 
     // initialize idatm type in Atoms
     for (auto& a: atoms()) {
         a->set_computed_idatm_type(a->element().name());
     }
+#ifdef TIME_PASSES
+t1 = clock();
+std::cerr << "setup (setting initial types) took " << (t1 - t0) / (float)CLOCKS_PER_SEC << " seconds\n";
+t0 = t1;
+#endif
 
     // if molecule is diamond/nanotube, skip atom typing since the
     // ring finding will take forever
@@ -513,22 +535,23 @@ clock_t start_t = clock();
     size_t num_atoms = this->num_atoms();
     if (num_bonds - num_atoms > 100 && num_bonds / (float) num_atoms > 1.25)
         return;
+#ifdef TIME_PASSES
+t1 = clock();
+std::cerr << "setup (check nanotube) took " << (t1 - t0) / (float)CLOCKS_PER_SEC << " seconds\n";
+t0 = t1;
+#endif
 
 
     // "pass 0.5": use templates for "infallible" typing of standard
     // residue types
-#ifdef TRACK_UNTYPED
     std::vector<Atom*> untyped_atoms;
     bool all_unassigned_are_H = true;
     std::vector<const Residue*> templated_residues;
-#else
-    std::vector<const Atom*> mapped_queue;
-#endif
     for (auto& r: residues()) {
         try {
-#ifdef TRACK_UNTYPED
             // Don't template-type residues with unexpected cross-residue 
             // bonds (e.g. residues bonded to PTD in 3kch)
+
             if (r->polymer_type() != PT_NONE) {
                 for (auto ra: r->atoms()) {
                     if (ra->is_backbone(BBE_MIN))
@@ -545,56 +568,51 @@ clock_t start_t = clock();
                     }
                 }
             }
-            auto templated_atoms = r->template_assign(
+            auto untemplated_atoms = r->template_assign(
                 &Atom::set_computed_idatm_type,
                 "idatm", "templates", "idatmres");
             templated_residues.push_back(r);
-            if (templated_atoms.size() == r->atoms().size())
+            if (untemplated_atoms.empty())
                 continue;
-            std::set<Atom*> rta_set(templated_atoms.begin(),
-                templated_atoms.end());
-            for (auto ra: r->atoms()) {
-                if (rta_set.find(ra) == rta_set.end()) {
+            for (auto ra: untemplated_atoms) {
+                if (ra->element().number() == 1) {
+                    // type now so that we needn't (relatively slowly) loop through
+                    // a large number of hydrogens later
+                    bool bonded_to_carbon = false;
+                    for (auto bondee: ra->neighbors()) {
+                        if (bondee->element() == Element::C) {
+                            bonded_to_carbon = true;
+                            break;
+                        }
+                    }
+                    ra->set_computed_idatm_type(bonded_to_carbon ?  "HC" : "H");
+                } else {
                     untyped_atoms.push_back(ra);
-                    if (ra->element().number() != 1)
-                        all_unassigned_are_H = false;
+                    all_unassigned_are_H = false;
                 }
             }
-#else
-            for (auto a: r->template_assign(&Atom::set_computed_idatm_type,
-            "idatm", "templates", "idatmres"))
-                mapped_queue.push_back(a);
-#endif
         } catch (tmpl::TA_NoTemplate&) {
-#ifdef TRACK_UNTYPED
             for (auto ra: r->atoms()) {
                 untyped_atoms.push_back(ra);
                 if (ra->element().number() != 1)
                     all_unassigned_are_H = false;
             }
-#else
-            // don't care
-#endif
         } catch (...) {
             throw;
         }
     }
-#ifdef TRACK_UNTYPED
-    if (untyped_atoms.empty())
-#else
-    if (mapped_queue.size() == num_atoms)
+#ifdef TIME_PASSES
+t1 = clock();
+std::cerr << "pass 0.5 took " << (t1 - t0) / (float)CLOCKS_PER_SEC << " seconds\n";
+t0 = t1;
 #endif
+    if (untyped_atoms.empty())
         return;     // All atoms assigned.
 
     // "pass 1":  type hydrogens / deuteriums and compute number of
     // heavy atoms connected to each atom
     std::map<Atom*, int> heavys; // number of heavy atoms bonded
-#ifdef TRACK_UNTYPED
     for (auto a: untyped_atoms) {
-#else
-    size_t h_assigned = 0;
-    for (auto& a: atoms()) {
-#endif
         const Element &element = a->element();
 
         if (element.number() == 1) {
@@ -620,48 +638,36 @@ clock_t start_t = clock();
             
             a->set_computed_idatm_type(bonded_to_carbon ? (is_hyd ?
               "HC" : "DC") : (is_hyd ? "H" : "D"));
-#ifndef TRACK_UNTYPED
-            h_assigned += 1;
-#endif
-        }
-
-        int heavy_count = 0;
-        for (auto bondee: a->neighbors()) {
-            if (bondee->element().number() > 1) {
-                heavy_count++;
+        } else {
+            int heavy_count = 0;
+            for (auto bondee: a->neighbors()) {
+                if (bondee->element().number() > 1) {
+                    heavy_count++;
+                }
             }
+            heavys[a] = heavy_count;
         }
-        heavys[a] = heavy_count;
     }
 
-#ifdef TRACK_UNTYPED
     if (all_unassigned_are_H)
         return;
-#else
-    if (h_assigned + mapped_queue.size() == num_atoms)
-        return;     // All atoms assigned.
-#endif
 
-#ifdef TRACK_UNTYPED
+    untyped_atoms.clear();
+    for (auto h_n: heavys)
+        untyped_atoms.push_back(h_n.first);
     std::set<const Atom*>
         untyped_set(untyped_atoms.begin(), untyped_atoms.end());
-#else
-    std::map<const Atom*, bool> mapped;
-    for (auto a: mapped_queue)
-            mapped[a] = true;
+#ifdef TIME_PASSES
+t1 = clock();
+std::cerr << "pass 1 took " << (t1 - t0) / (float)CLOCKS_PER_SEC << " seconds\n";
+t0 = t1;
 #endif
 
     // "pass 2": elements that are typed only by element type
     // and valences > 1
     std::map<Atom*, int> redo;
     std::set<Atom*> ambiguous_val2Cs;
-#ifdef TRACK_UNTYPED
     for (auto a: untyped_atoms) {
-#else
-    for (auto& a: atoms()) {
-        if (mapped[a])
-            continue;
-#endif
         const Element &element = a->element();
 
         // undifferentiated types
@@ -820,16 +826,17 @@ clock_t start_t = clock();
             }
         }
     }
+#ifdef TIME_PASSES
+t1 = clock();
+std::cerr << "pass 2 took " << (t1 - t0) / (float)CLOCKS_PER_SEC << " seconds\n";
+t0 = t1;
+#endif
 
     // "pass 3": determine types of valence 1 atoms.  These were typed
     // by element only in previous pass, but can be typed more accurately
     // now that the atoms they are bonded to have been typed.  Bond
     // lengths are used in this pass.  
-#ifdef TRACK_UNTYPED
     for (auto a: untyped_atoms) {
-#else
-    for (auto& a: atoms()) {
-#endif
 
         auto neighbors = a->neighbors();
         if (neighbors.size() != 1)
@@ -841,10 +848,6 @@ clock_t start_t = clock();
 
         
         if (a->idatm_type() == "C") {
-#ifndef TRACK_UNTYPED
-            if (mapped[a])
-                continue;
-#endif
             if ((sqlen <= p3c1c1 && bondee_type == "C1")
             || (sqlen <= p3n1c1 && bondee->element() == Element::N)) {
                 a->set_computed_idatm_type("C1");
@@ -862,10 +865,6 @@ clock_t start_t = clock();
                 a->set_computed_idatm_type("C3");
             }
         } else if (a->idatm_type() == "N") {
-#ifndef TRACK_UNTYPED
-            if (mapped[a])
-                continue;
-#endif
             if (((sqlen <= p3n1c1 && (bondee_type == "C1" || bondee->element() == Element::N)) ||
               bondee_type == "N1+") || (sqlen < p3n1o1 &&
               bondee->element() == Element::O)) {
@@ -885,17 +884,10 @@ clock_t start_t = clock();
         } else if (a->idatm_type() == "O") {
             if (bondee_type == "Cac" || bondee_type == "Ntr" ||
               bondee_type == "N1+") {
-#ifndef TRACK_UNTYPED
-                if (!mapped[a])
-#endif
                     a->set_computed_idatm_type("O2-");
             } else if (bondee_type == "Pac" || bondee_type == "Sac"
               || bondee_type == "N3+" || bondee_type == "Pox"
               || bondee_type == "Son" || bondee_type == "Sxd") {
-#ifndef TRACK_UNTYPED
-                if (mapped[a])
-                    continue;
-#endif
                 a->set_computed_idatm_type("O3-");
 
                 // pKa of 3rd phosphate oxygen is 7...
@@ -927,100 +919,57 @@ clock_t start_t = clock();
             } else if (sqlen <= p3c1o1 &&
               bondee->element() == Element::C &&
               bondee->neighbors().size() == 1) {
-#ifndef TRACK_UNTYPED
-                if (!mapped[a])
-#endif
                     a->set_computed_idatm_type("O1+");
             } else if (sqlen <= p3o2c2 &&
               bondee->element() == Element::C) {
-#ifndef TRACK_UNTYPED
-                if (!mapped[a])
-#endif
                     a->set_computed_idatm_type("O2");
-#ifdef TRACK_UNTYPED
                 if (untyped_set.find(bondee) != untyped_set.end())
-#else
-                if (!mapped[bondee])
-#endif
                     bondee->set_computed_idatm_type("C2");
                 redo[bondee] = 0;
             } else if (sqlen <= p3o2as &&
               bondee->element() == Element::As) {
-#ifndef TRACK_UNTYPED
-                if (!mapped[a])
-#endif
                     a->set_computed_idatm_type("O2");
             } else if (sqlen <= p3o2o3 &&
               bondee->element() == Element::O &&
               bondee->neighbors().size() == 1) {
                 // distinguish oxygen molecule from
                 // hydrogen peroxide
-#ifndef TRACK_UNTYPED
-                if (!mapped[a])
-#endif
                     a->set_computed_idatm_type("O2");
             } else if (sqlen <= p3n1o1 &&
               bondee->element() == Element::N &&
               bondee->neighbors().size() == 1) {
-#ifndef TRACK_UNTYPED
-                if (!mapped[a])
-#endif
                     a->set_computed_idatm_type("O1");
             } else {
-#ifndef TRACK_UNTYPED
-                if (!mapped[a])
-#endif
                     a->set_computed_idatm_type("O3");
             }
         } else if (a->idatm_type() == "S") {
             if (bondee->element() == Element::P) {
-#ifndef TRACK_UNTYPED
-                if (!mapped[a])
-#endif
                     a->set_computed_idatm_type("S3-");
             } else if (bondee_type == "N1+") {
-#ifndef TRACK_UNTYPED
-                if (!mapped[a])
-#endif
                     a->set_computed_idatm_type("S2");
             } else if (sqlen <= p3s2c2 &&
               bondee->element() == Element::C) {
-#ifndef TRACK_UNTYPED
-                if (!mapped[a])
-#endif
                     a->set_computed_idatm_type("S2");
-#ifdef TRACK_UNTYPED
                 if (untyped_set.find(bondee) != untyped_set.end())
-#else
-                if (!mapped[bondee])
-#endif
                     bondee->set_computed_idatm_type("C2");
                 redo[bondee] = 0;
             } else if (sqlen <= p3s2as &&
               bondee->element() == Element::As) {
-#ifndef TRACK_UNTYPED
-                if (!mapped[a])
-#endif
                     a->set_computed_idatm_type("S2");
             } else {
-#ifndef TRACK_UNTYPED
-                if (!mapped[a])
-#endif
                     a->set_computed_idatm_type("S3");
             }
         }
     }
+#ifdef TIME_PASSES
+t1 = clock();
+std::cerr << "pass 3 took " << (t1 - t0) / (float)CLOCKS_PER_SEC << " seconds\n";
+t0 = t1;
+#endif
 
     // "pass 4": re-examine all atoms with non-zero 'redo' values and
     //   retype them if necessary
-#ifdef TRACK_UNTYPED
     for (auto a: untyped_atoms) {
-#else
-    for (auto& a: atoms()) {
-
-        if (mapped[a])
-            redo[a] = 0;
-#endif
 
         if (redo[a] == 0)
             continue;
@@ -1071,6 +1020,11 @@ clock_t start_t = clock();
         if (c3able)
             a->set_computed_idatm_type("C3");
     }
+#ifdef TIME_PASSES
+t1 = clock();
+std::cerr << "pass 4 took " << (t1 - t0) / (float)CLOCKS_PER_SEC << " seconds\n";
+t0 = t1;
+#endif
 
     // "pass 4.5":  this pass is not in the IDATM paper but is a suggested
     //    improvement mentioned on page 897 of the paper:  find aromatic
@@ -1080,16 +1034,8 @@ clock_t start_t = clock();
     //  2) Check that all the atoms of the ring are planar types
     //  3) Check bond lengths around the ring; see if they are
     //      consistent with aromatic bond lengths
-#ifdef TRACK_UNTYPED
     std::set<const Residue*>
         mapped_residues(templated_residues.begin(), templated_residues.end());
-#else
-    std::set<const Residue*> mapped_residues;
-    for (auto a_tf: mapped) {
-        if (a_tf.second)
-            mapped_residues.insert(a_tf.first->residue());
-    }
-#endif
     size_t too_many_rings = (residues().size() - mapped_residues.size()) * 20;
     int ring_limit = 3;
     Rings try_rings;
@@ -1116,9 +1062,6 @@ clock_t start_t = clock();
             continue;
         }
         bool planar_types = true;
-#ifndef TRACK_UNTYPED
-        bool all_mapped = true;
-#endif
         bool all_planar = true;
         int num_oxygens = 0;
         for (auto a: r.atoms()) {
@@ -1146,26 +1089,11 @@ clock_t start_t = clock();
                 all_planar = false;
             }
 
-#ifndef TRACK_UNTYPED
-            if (mapped[a]) {
-                if (idatm_type == "C3" || idatm_type == "O3"
-                || idatm_type == "S3" || idatm_type == "N3") {
-                    all_planar = planar_types = false;
-                    break;
-                }
-            } else {
-                all_mapped = false;
-            }
-#endif
         }
 
         if (!planar_types)
             continue;
         
-#ifndef TRACK_UNTYPED
-        if (all_mapped)
-            continue;
-#endif
         if (r.atoms().size() == 5 && num_oxygens > 1 && num_oxygens < 5)
             continue;
         if (all_planar || aromatic_geometry(r))
@@ -1230,13 +1158,6 @@ clock_t start_t = clock();
             continue;
         }
 
-#ifndef TRACK_UNTYPED
-        // skip mapped rings
-        if (mapped[*atoms.begin()])
-            // since rings shouldn't span residues,
-            // one atom mapped => all mapped
-            continue;
-#endif
 
         // find bonds directly connected to rings
         // and try to judge their order
@@ -1657,6 +1578,11 @@ clock_t start_t = clock();
             }
         }
     }
+#ifdef TIME_PASSES
+t1 = clock();
+std::cerr << "pass 4.5 took " << (t1 - t0) / (float)CLOCKS_PER_SEC << " seconds\n";
+t0 = t1;
+#endif
 
     // "pass 5": change isolated sp2 carbons to sp3 since it is 
     //   impossible for an atom to be sp2 hybrizided if all its 
@@ -1669,20 +1595,11 @@ clock_t start_t = clock();
     //   atom other than carboxylate carbon. Also, if the sp2 carbon
     //   is valence 3 and a neighbor is valence 1, then "trust" the sp2
     //   assignment and instead change the neighbor to sp2.
-#ifdef TRACK_UNTYPED
     for (auto a: untyped_atoms) {
-#else
-    for (auto& a: atoms()) {
-#endif
 
         if (a->idatm_type() != "C2")
             continue;
 
-#ifndef TRACK_UNTYPED
-        if (mapped[a])
-            continue;
-#endif
-        
         bool c2_possible = false;
         std::vector<Atom *> nb_valence1;
         int num_bonded_Npls = 0;
@@ -1748,6 +1665,11 @@ clock_t start_t = clock();
                 a->set_computed_idatm_type("C3");
         }
     }
+#ifdef TIME_PASSES
+t1 = clock();
+std::cerr << "pass 5 took " << (t1 - t0) / (float)CLOCKS_PER_SEC << " seconds\n";
+t0 = t1;
+#endif
 
     // "pass 6": 
     //   1) make decisions about the charge states of nitrogens.  If a
@@ -1762,30 +1684,18 @@ clock_t start_t = clock();
     //   2) make carboxyl oxygens negatively charged even if the proton is
     //      present (the pKa of the carboxyl group is probably low enough
     //      that the unprotonated form predominates at physiological pH).
-#ifdef TRACK_UNTYPED
     for (auto a: untyped_atoms) {
-#else
-    for (auto& a: atoms()) {
-#endif
         
         const Element &element = a->element();
         if (element == Element::N && a->idatm_type() != "N3+") {
-#ifndef TRACK_UNTYPED
-            if (mapped[a])
-                continue;
-#endif
             if (is_N3plus_okay(a->neighbors()))
                 a->set_computed_idatm_type("N3+");
             
         } else if (a->idatm_type() == "C2") {
             int num_Npls = 0;
             for (auto bondee: a->neighbors()) {
-#ifdef TRACK_UNTYPED
                 if ((bondee->idatm_type() == "Npl"
                 && untyped_set.find(bondee) != untyped_set.end())
-#else
-                if ((bondee->idatm_type() == "Npl" && !mapped[bondee])
-#endif
                 || bondee->idatm_type() == "Ng+")
                     // Ng+ possible through template
                     // typing
@@ -1797,11 +1707,7 @@ clock_t start_t = clock();
                 for (auto bondee: a->neighbors()) {
                     if (bondee->idatm_type() != "Npl")
                         continue;
-#ifdef TRACK_UNTYPED
                     if (untyped_set.find(bondee) == untyped_set.end())
-#else
-                    if (mapped[bondee])
-#endif
                         continue;
                     
                     if (bondee->rings(false,
@@ -1814,11 +1720,7 @@ clock_t start_t = clock();
             }
             if (noplus) {
                 for (auto bondee: a->neighbors()) {
-#ifdef TRACK_UNTYPED
                     if (untyped_set.find(bondee) == untyped_set.end())
-#else
-                    if (mapped[bondee])
-#endif
                         continue;
                     if (bondee->idatm_type() == "Ng+")
                         bondee->set_computed_idatm_type("Npl");
@@ -1826,11 +1728,7 @@ clock_t start_t = clock();
             }
         } else if (a->idatm_type() == "Cac") {
             for (auto bondee: a->neighbors()) {
-#ifdef TRACK_UNTYPED
                 if (untyped_set.find(bondee) == untyped_set.end())
-#else
-                if (mapped[bondee])
-#endif
                     continue;
                 if (bondee->element() == Element::O && heavys[bondee] == 1) {
                     bondee->set_computed_idatm_type("O2-");
@@ -1838,20 +1736,18 @@ clock_t start_t = clock();
             }
         }
     }
+#ifdef TIME_PASSES
+t1 = clock();
+std::cerr << "pass 6 took " << (t1 - t0) / (float)CLOCKS_PER_SEC << " seconds\n";
+t0 = t1;
+#endif
 
     // "pass 7":  a non-IDATM pass:  split off heavy-atom-valence-2
     //  Npls that have no hydrogens as type N2.
     //  Discrimination criteria is the average bond length of the two 
     //  heavy-atom bonds (shorter implies more double-bond character,
     //  thereby no hydrogen).
-#ifdef TRACK_UNTYPED
     for (auto a: untyped_atoms) {
-#else
-    for (auto& a: atoms()) {
-
-        if (mapped[a])
-            continue;
-#endif
 
         if (a->idatm_type() != "Npl")
             continue;
@@ -1927,20 +1823,18 @@ clock_t start_t = clock();
             }
         }
     }
+#ifdef TIME_PASSES
+t1 = clock();
+std::cerr << "pass 7 took " << (t1 - t0) / (float)CLOCKS_PER_SEC << " seconds\n";
+t0 = t1;
+#endif
 
     // "pass 8":  another non-IDATM: change planar nitrogens bonded only
     //  SP3 atoms to N3 or N3+.  Change Npls/N3s bonded to sp2 atoms that
     //  are not in turn bonded to sp2 atoms (implying Npl doubled bonded)
     //  to N2, otherwise to Npl.  
     std::map<Atom *, std::vector<Atom *> > bonded_sp2s;
-#ifdef TRACK_UNTYPED
     for (auto a: untyped_atoms) {
-#else
-    for (auto& a: atoms()) {
-
-        if (mapped[a])
-            continue;
-#endif
 
         if (ring_assigned_Ns.find(a) != ring_assigned_Ns.end())
             continue;
@@ -2048,18 +1942,16 @@ clock_t start_t = clock();
             }
         }
     }
+#ifdef TIME_PASSES
+t1 = clock();
+std::cerr << "pass 8 took " << (t1 - t0) / (float)CLOCKS_PER_SEC << " seconds\n";
+t0 = t1;
+#endif
 
     // "pass 9":  another non-IDATM pass and analogous to pass 8:
     //  change O3 bonded only to non-Npl sp2 atom not in turn bonded
     //  to non-Npl sp2 to O2.
-#ifdef TRACK_UNTYPED
     for (auto a: untyped_atoms) {
-#else
-    for (auto& a: atoms()) {
-
-        if (mapped[a])
-            continue;
-#endif
 
         auto idatm_type = a->idatm_type();
         if (idatm_type != "O3")
@@ -2104,16 +1996,14 @@ clock_t start_t = clock();
         if (!remote_sp2)
             a->set_computed_idatm_type("O2");
     }
+#ifdef TIME_PASSES
+t1 = clock();
+std::cerr << "pass 9 took " << (t1 - t0) / (float)CLOCKS_PER_SEC << " seconds\n";
+t0 = t1;
+#endif
 
     // "pass 10":  another non-IDATM pass. Ensure nitrate ions are N2/O2-
-#ifdef TRACK_UNTYPED
     for (auto a: untyped_atoms) {
-#else
-    for (auto& a: atoms()) {
-
-        if (mapped[a])
-            continue;
-#endif
 
         if (a->element() != Element::N)
             continue;
@@ -2137,6 +2027,11 @@ clock_t start_t = clock();
             }
         }
     }
+#ifdef TIME_PASSES
+t1 = clock();
+std::cerr << "pass 10 took " << (t1 - t0) / (float)CLOCKS_PER_SEC << " seconds\n";
+t0 = t1;
+#endif
 
     // "pass 11":  another non-IDATM pass. Change S3 sulfurs with < 2 bonds and
     // coordinating 3+ metal ions to S3-, regardless of templating
@@ -2154,17 +2049,18 @@ clock_t start_t = clock();
             }
         }
     }
+#ifdef TIME_PASSES
+t1 = clock();
+std::cerr << "pass 11 took " << (t1 - t0) / (float)CLOCKS_PER_SEC << " seconds\n";
+t0 = t1;
+#endif
 
     // since the rings() "ignore" arg pointed to a local variable, the
     // rings cannot be reused...
     _recompute_rings = true;
 #ifdef REPORT_TIME
 clock_t end_t = clock();
-std::cerr << "Tracking "
-#ifdef TRACK_UNTYPED
-"non-"
-#endif
-"templated took " << (end_t - start_t) / (float)CLOCKS_PER_SEC << " seconds\n";
+std::cerr << "Tracking non-templated took " << (end_t - start_t) / (float)CLOCKS_PER_SEC << " seconds\n";
 #endif
 }
 

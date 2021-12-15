@@ -19,13 +19,14 @@
 #
 def alphafold_fetch(session, uniprot_id, color_confidence=True,
                     align_to=None, trim=True, ignore_cache=False,
-                    add_to_session=True, **kw):
+                    add_to_session=True, version=None, **kw):
 
     uniprot_name = uniprot_id if '_' in uniprot_id else None
     uniprot_id = _parse_uniprot_id(uniprot_id)
-    file_name = 'AF-%s-F1-model_v1.cif' % uniprot_id
-    url = 'https://alphafold.ebi.ac.uk/files/' + file_name
-
+    from . import database
+    url = database.alphafold_model_url(session, uniprot_id, version)
+    file_name = url.split('/')[-1]
+    
     from chimerax.core.fetch import fetch_file
     filename = fetch_file(session, url, 'AlphaFold %s' % uniprot_id, file_name, 'AlphaFold',
                           ignore_cache=ignore_cache, error_status = False)
@@ -94,14 +95,15 @@ def _log_chain_info(models, align_to_name):
         m._log_info = False   # Don't show standard chain table
 
 def register_alphafold_fetch_command(logger):
-    from chimerax.core.commands import CmdDesc, register, BoolArg, StringArg
+    from chimerax.core.commands import CmdDesc, register, BoolArg, StringArg, IntArg
     from chimerax.atomic import ChainArg
     desc = CmdDesc(
         required = [('uniprot_id', StringArg)],
         keyword = [('color_confidence', BoolArg),
                    ('align_to', ChainArg),
                    ('trim', BoolArg),
-                   ('ignore_cache', BoolArg)],
+                   ('ignore_cache', BoolArg),
+                   ('version', IntArg)],
         synopsis = 'Fetch AlphaFold database models for a UniProt identifier'
     )
     

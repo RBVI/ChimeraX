@@ -1,0 +1,84 @@
+How do I load the Google Colab notebook for the AlphaFold run, inject the protein sequence into it,
+and get the resulting structure without the user needing to do steps in the Colab user interface?
+
+Load notebook
+-------------
+A colab notebook file .ipynb can be loaded directly from Github with a URL like
+
+  https://colab.research.google.com/github/sokrypton/ColabFold/blob/main/AlphaFold2.ipynb
+
+Set protein sequence
+--------------------
+If I wrote the notebook with the correct sequence to the user's Google Drive and then wrote
+the calculated structure to google drive, that might be pretty clean.
+
+Alternatively to inject a new sequence running some Javascript like this might work
+
+   document.querySelector("paper-input").setAttribute("value", "QVQLVESGGGGGADSF")
+
+It is subject to breaking when the Google's Colab implementation changes.
+
+Run notebook
+------------
+To run the notebook can call some Javascript
+
+   QWebEnginePage.runJavaScript('document.querySelector("colab-run-button").click()')
+
+This comes from
+
+     https://towardsdatascience.com/automate-and-supercharge-google-colab-with-javascript-9f494d98489d
+
+Could instead give instructions at the top of the notebook saying
+"Press the Play button to start the structure prediction".
+
+Detect when run completes
+-------------------------
+To detect when the run completes I could look for output that says "Prediction completed".
+How would I determine that an error happened?  Could have notebook Python report "Prediction failed."
+for all errors.
+
+Instead of polling output using another document.querySelector() javascript call I could
+have my notebook Python invoke a javascript routine using google.colab.output.eval_js()
+that perhaps creates and clicks an <a href="cxcmd: alphafold runfinished success"></a>.
+
+
+Read structure file
+-------------------
+For downloading result google.colab.files.download(filename) worked in ChimeraX help viewer but brought up a file browser to choose where to download to.  Code google.colab.file.download()
+
+    https://github.com/googlecolab/colabtools/blob/main/google/colab/files.py
+
+is just executing javascript containing a download link.  The ChimeraX Help viewer is setting a download
+requested callback when creating its QWebEngineProfile that is showing the file dialog.  So making
+a standard ChimeraXHtmlView won't ask I think.  Better yet I could set the download path in the
+download request method to write the result to a temp directory.  But maybe the use wants the
+result saved in a predictable location so they can keep it for future use.
+
+Another approach would be to write the file to the users's Google Drive and fetch it from
+their using the Python requests module.
+
+It might be nice to put the results in ~/Downloads/ChimeraX/AlphaFold/predictionsN/ and increment
+N for each run.
+
+Strategy
+--------
+The approach of programmatically setting the sequence and running and polling the page for
+completion is fragile since it would use implementation details of the Colab web site.
+If the site implementation changes it could all break.
+
+Alternatively I could write a notebook with correct sequence to the user's google drive
+and open it, instruct the user to press the Play button, and write the result to google drive,
+and poll google drive for completion.  Could also write to google drive an error log if
+and error occurs.  This would not rely on the Colab web site implementation details.
+It has the drawback that the user needs to figure out how to press the Play button.
+Also writing the google notebook will require authentication and I am not sure how to
+use that same authentication in the Colab interface -- requiring two user authentications
+would be hideous.
+
+End of life
+-----------
+If the google colab calculation at some point breaks where fixing the notebook is not
+sufficient it would be nice if ChimeraX provides a clear explanation and could suggest
+upgrading ChimeraX to get a working version.  To achieve that the start of a prediction
+might query RBVI servers for a status/AlphaFoldv1.html page and if found show it
+instead of running the prediction.

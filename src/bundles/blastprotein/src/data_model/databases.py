@@ -10,23 +10,16 @@
 # including partial copies, of the software or any revisions
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
+# import re
 
-# Python/All
-import re
-
-# Python/Specific
 from typing import Callable
 from dataclasses import dataclass, field
 from abc import ABC, abstractmethod
-from itertools import filterfalse
 
-# ChimeraX/Core
 from chimerax.core.commands import run
 
-# ChimeraX/Bundles
 from chimerax.atomic import AtomicStructure
 
-# Local Imports
 from . import dbparsers
 from .pdbinfo import fetch_pdb_info
 
@@ -102,13 +95,13 @@ class NCBIDB(Database):
             models = [models]
         return models, chain_id
 
-    @staticmethod 
+    @staticmethod
     def format_desc(desc):
         title = species = ""
         try:
-            species_range = slice(desc.rindex('['),desc.rindex(']'))
+            species_range = slice(desc.rindex('['), desc.rindex(']'))
             title = desc[:species_range.start]
-            species = desc[species_range.start+1:species_range.stop]
+            species = desc[species_range.start + 1:species_range.stop]
         except ValueError:
             # There is no species information in this description field
             title = desc
@@ -121,11 +114,12 @@ class NCBIDB(Database):
         temp_formulas = formulas.split(',')
         postprocessed_formulas = []
         for formula in temp_formulas:
-            postprocessed_formulas.append(formula.replace(' ',''))
+            postprocessed_formulas.append(formula.replace(' ', ''))
             # TODO: Activate when Trac#5407 is complete
             # Wrap the numbers in the formulas in <sub></sub> HTML tags
-            #postprocessed_formulas.append(re.sub(r"([1-9]+)", lambda x: "<sub>{}</sub>".format(x.group(0)), formula).rep    lace(' ', ''))
+            # postprocessed_formulas.append(re.sub(r"([1-9]+)", lambda x: "<sub>{}</sub>".format(x.group(0)), formula).rep    lace(' ', ''))
         return ", ".join(postprocessed_formulas)
+
     @staticmethod
     def add_info(session, matches, sequences):
         chain_ids = list(matches.keys())
@@ -172,8 +166,8 @@ class AlphaFoldDB(Database):
     excluded_cols: tuple = ("id", "url", "sequence_id")
 
     @staticmethod
-    def load_model(chimerax_session, match_code, ref_atomspec):
-        cmd = "alphafold fetch %s" % match_code
+    def load_model(chimerax_session, match_code, ref_atomspec, version):
+        cmd = "alphafold fetch %s version %s" % (match_code, version)
         if ref_atomspec:
             cmd += ' alignTo %s' % ref_atomspec
         models, _ = run(chimerax_session, cmd)
@@ -216,15 +210,16 @@ class AlphaFoldDB(Database):
             # No such attr
             return ""
         else:
-            if attr_loc+2 == raw_desc.rindex('='):
+            if attr_loc + 2 == raw_desc.rindex('='):
                 # We are at the last attribute
                 try:
-                    return raw_desc[attr_loc+3:]
+                    return raw_desc[attr_loc + 3:]
                 except:
                     # There's not even anything noted
                     return ""
-            next_attr_start = raw_desc[attr_loc+3:].index('=')
-            return raw_desc[attr_loc+3:][:next_attr_start-3]
+            next_attr_start = raw_desc[attr_loc + 3:].index('=')
+            return raw_desc[attr_loc + 3:][:next_attr_start - 3]
+
 
 AvailableDBsDict = {
     'pdb': PDB,

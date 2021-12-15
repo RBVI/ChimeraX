@@ -1404,15 +1404,10 @@ class Rings(Collection):
             # Extract C pointers from list of Python Ring objects.
             ring_pointers = array([r._c_pointer.value for r in rings], cptr)
         Collection.__init__(self, ring_pointers, molobject.Ring, Rings)
-
-    aromatics = cvec_property('ring_aromatic', npy_bool, read_only = True, doc =
-    '''A numpy bool array whether corresponding ring is aromatic.''')
-    atoms = cvec_property('ring_atoms', cptr, 'size', astype = _atoms, read_only = True, per_object = False, doc =
-    '''Return :class:`.Atoms` belonging to each ring all as a single collection. Read only.''')
-    bonds = cvec_property('ring_bonds', cptr, 'size', astype = _bonds, read_only = True, per_object = False, doc =
-    '''Return :class:`.Bonds` belonging to each ring all as a single collection. Read only.''')
-    sizes = cvec_property('ring_size', size_t, read_only = True, doc =
-    '''Returns a numpy integer array of the size of each ring. Read only.''')
+        # Create the list of Rings immediately, so that their info gets cached before they
+        # possibly get destroyed by other calls
+        c = self._object_class
+        self._object_list = [c.c_ptr_to_py_inst(p) for p in self._pointers]
 
 
 # -----------------------------------------------------------------------------

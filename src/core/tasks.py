@@ -62,13 +62,14 @@ UPDATE_TASK = 'update task'
 END_TASK = 'end task'
 
 # Possible task state
-PENDING = "pending"           # Initialized but not running
-RUNNING = "running"           # Running
-TERMINATING = "terminating"   # Termination requested
+PENDING = "pending"         # Initialized but not running
+RUNNING = "running"         # Running
+TERMINATING = "terminating" # Termination requested
 TERMINATED = "terminated"   # Termination requested
 FINISHED = "finished"       # Finished
 
 
+# TODO: Possibly subclass from threading.Thread?
 class Task(State):
     """Base class for instances of tasks.
 
@@ -231,6 +232,9 @@ class Task(State):
         """
         pass
 
+    def __str__(self):
+        return ("ChimeraX Task, ID %s" % self.id)
+
 
 class Job(Task):
     """
@@ -260,7 +264,8 @@ class Job(Task):
 
     """
     # TODO: Replace with server-side solution
-    CHECK_INTERVALS = [5, 5, 10, 15, 25, 40, 65, 105, 170, 275, 300, 350, 400, 450, 500, 550, 600, 650, 700, 750, 800]
+    CHECK_INTERVALS = [5, 5, 10, 15, 25, 40, 65, 105, 170, 275, 300,
+                       350, 400, 450, 500, 550, 600, 650, 700, 750, 800]
 
     def __init__(self, *args, **kw):
         super().__init__(*args, **kw)
@@ -456,6 +461,20 @@ class Tasks(StateManager):
             except KeyError:
                 # In case terminating the task removed it from task list
                 pass
+
+    def __len__(self) -> int:
+        "Return the number of registered tasks."
+        return len(self._tasks)
+
+    def __contains__(self) -> bool:
+        "Return"
+        pass
+
+    def __iter__(self):
+        pass
+
+    def __next__(self):
+        pass
 
     def list(self):
         """Return list of tasks.

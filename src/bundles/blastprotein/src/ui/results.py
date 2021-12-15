@@ -24,7 +24,6 @@ from chimerax.atomic import Sequence
 from chimerax.alphafold.match import _log_alphafold_sequence_info
 from chimerax.core.commands import run
 from chimerax.core.errors import UserError
-from chimerax.core.settings import Settings
 from chimerax.core.tools import ToolInstance
 from chimerax.ui.gui import MainToolWindow
 
@@ -150,9 +149,9 @@ class BlastProteinResults(ToolInstance):
             , 'tool_name': self._instance_name
             , 'results': self._hits
             , 'sequences': [(key
-                           , self._sequences[key][0]
-                           , vars(self._sequences[key][1])
-                           ) for key in self._sequences.keys()]
+                             , self._sequences[key][0]
+                             , vars(self._sequences[key][1])
+                             ) for key in self._sequences.keys()]
         }
         return data
 
@@ -182,7 +181,7 @@ class BlastProteinResults(ToolInstance):
         except AttributeError: # AlphaFold can be run without a model
             model_no = None
         try:
-            chain = ''.join(['/',values[0].split('/')[1]])
+            chain = ''.join(['/', values[0].split('/')[1]])
         except AttributeError: # There won't be a selected chain either
             chain = None
         if model_no:
@@ -194,6 +193,7 @@ class BlastProteinResults(ToolInstance):
             [": ".join([str(label), str(value)]) for label, value in zip(labels, values)]
         )
         return param_str
+
     #
     # UI
     #
@@ -358,9 +358,9 @@ class BlastProteinResults(ToolInstance):
                 self.control_widget.setVisible(True)
                 self._unload_progress_bar()
         except RuntimeError:
-            # The user closed the window before the results came back. 
+            # The user closed the window before the results came back.
             # TODO: Remove the unnecessarly layer of abstraction in ui/src/gui.py that makes
-            # QWidget a member variable of a tool rather than the tool itself, so that 
+            # QWidget a member variable of a tool rather than the tool itself, so that
             # QWidget.closeEvent() can be used to do this cleanly.
             pass
 
@@ -373,9 +373,14 @@ class BlastProteinResults(ToolInstance):
         db = AvailableDBsDict[self.params.database]
         for row in selections:
             code = row[db.fetchable_col]
-            models, chain_id = db.load_model(
-                self.session, code, self.params.chain
-            )
+            if self.params.database == "alphafold":
+                models, chain_id = db.load_model(
+                    self.session, code, self.params.chain, self.params._asdict().get("version", "1")
+                )
+            else:
+                models, chain_id = db.load_model(
+                    self.session, code, self.params.chain
+                )
             if not models:
                 return
             if not self.params.chain:
@@ -403,7 +408,7 @@ class BlastProteinResults(ToolInstance):
         the BLAST alignment.
         """
         ids = [hit['id'] for hit in selections]
-        ids.insert(0,0)
+        ids.insert(0, 0)
         names = []
         seqs = []
         for sid in ids:
@@ -439,7 +444,7 @@ class BlastProteinResults(ToolInstance):
 
 
 class BlastResultsWorker(QThread):
-    standard_output = Signal()
+    standard_output = Signal(object)
     job_failed = Signal(str)
     parse_failed = Signal(str)
     waiting_for_info = Signal(str)
@@ -512,8 +517,8 @@ class BlastResultsWorker(QThread):
             self.set_progress_maxval.emit(len(blast_results.parser.matches))
             for n, m in enumerate(blast_results.parser.matches[1:]):
                 sid = n + 1
-                hit = {"id":sid, "e-value":m.evalue, "score":m.score,
-                       "description":m.description}
+                hit = {"id": sid, "e-value": m.evalue, "score": m.score,
+                       "description": m.description}
                 if m.match:
                     hit["name"] = m.match
                     match_chains[m.match] = hit
