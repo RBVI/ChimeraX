@@ -1476,7 +1476,7 @@ class NewerVersionQuery(Task):
             system = distro.id()
             like = distro.like()
             if like:
-                system = "{system} {like}"
+                system = f"{system} {like}"
             version = distro.version(best=True)
         params = {
             # use cxservices API names for keys
