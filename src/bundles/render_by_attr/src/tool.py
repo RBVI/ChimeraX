@@ -97,28 +97,56 @@ class RenderByAttrTool(ToolInstance):
     def render(self):
         pass
 
+    def _attr_names_of_type(self, *types):
+        attr_info = self._cur_attr_info()
+        from chimerax.core.attributes import MANAGER_NAME
+        attr_mgr = self.session.get_state_manager(MANAGER_NAME)
+        return [attr_name for attr_name in attr_mgr.attributes_returning(
+            attr_info.class_object, types, none_okay=True) if not attr_info.hide_attr(
+            attr_name, self.mode_widget.tabText(self.mode_widget.currentIndex()) == "Render")]
+
+    def _cur_attr_info(self):
+        target = self.target_menu_button.text()
+        return self._ui_to_info[target]
+
     def _filter_model(self, model):
         try:
             return self._ui_to_info[self.target_menu_button.text()].model_filter(model)
         except (AttributeError, KeyError):
             return False
 
-    def _new_render_attr(self, attr_info=None):
-        if attr_info is None:
+    def _new_render_attr(self, attr_name_info=None):
+        if attr_name_info is None:
             attr_name = "choose attr"
         else:
-            if isinstance(attr_info, str):
-                attr_name = attr_info
+            if isinstance(attr_name_info, str):
+                attr_name = attr_name_info
             else:
-                attr_name = attr_info.text()
+                attr_name = attr_name_info.text()
         if attr_name != self.attr_menu_button.text():
             self.attr_menu_button.setText(attr_name)
-            if attr_info is None:
+            if attr_name_info is None:
                 self.render_histogram.data_source = "Choose attribute to show histogram"
                 #TODO: clear attr widgets
             else:
                 #TODO: update attr widgets
-                pass
+                attr_info = self._cur_attr_info()
+                values, any_None = attr_info.values(attr_name, self.model_list.value)
+                if len(values) == 0:
+                    self.render_histogram.data_source = "No '%s' values for histogram" % attr_name
+                else:
+                    min_val, max_val = min(values), max(values)
+                    if min_val == max_val:
+                        self.render_histogram.data_source = "All '%s' values are %g" % (attr_name, min_val)
+                    elif attr_name in self._attr_names_of_type(int):
+                        # just histogram the values directly
+                        print("integer")
+                    else:
+                        # number of bins based on histogram pixel width...
+                        print("float")
+                        import numpy
+                        self.render_histogram.data_source = (min_val, max_val, lambda num_bins:
+                            numpy.histogram(values, bins=num_bins, range=(min_val, max_val), density=False)[0])
 
 
     def _new_classes(self):
@@ -134,11 +162,7 @@ class RenderByAttrTool(ToolInstance):
     def _update_render_attr_menu(self, call_new_attr=True):
         menu = self.attr_menu_button.menu()
         menu.clear()
-        target = self.target_menu_button.text()
-        attr_info = self._ui_to_info[target]
-        from chimerax.core.attributes import MANAGER_NAME
-        attr_mgr = self.session.get_state_manager(MANAGER_NAME)
-        attr_names = attr_mgr.attributes_returning(attr_info.class_object, (int, float), none_okay=True)
+        attr_names = self._attr_names_of_type(int, float)
         attr_names.sort()
         for attr_name in attr_names:
             menu.addAction(attr_name)

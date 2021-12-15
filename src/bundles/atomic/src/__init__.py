@@ -140,6 +140,20 @@ class _AtomicBundleAPI(BundleAPI):
                     return self._class_obj
                 def model_filter(self, model):
                     return isinstance(model, Structure)
+                def values(self, attr_name, models):
+                    if self._class_obj == Atom:
+                        collections = [m.atoms for m in models]
+                    elif self._class_obj == Residue:
+                        collections = [m.residues for m in models]
+                    else:
+                        collections = [Structures(models)]
+                    from chimerax.core.commands import plural_of
+                    all_vals = getattr(concatenate(collections), plural_of(attr_name))
+                    import numpy
+                    if not isinstance(all_vals, numpy.ndarray):
+                        all_vals = numpy.array(all_vals)
+                    non_none_vals = all_vals[all_vals != None]
+                    return non_none_vals, len(non_none_vals) < len(all_vals)
             return Info(session)
 
     @staticmethod

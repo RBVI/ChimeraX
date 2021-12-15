@@ -23,9 +23,35 @@ class RenderAttrInfo(metaclass=abc.ABCMeta):
         """Return the class object (which must offer the core attribute-registration API)"""
         pass
 
+    def hide_attr(self, attr_name, rendering):
+        """Return True if attr_name should not be shown by the Render/Select tab of the tool
+          (respectively rendering True/False).
+        """
+        return attr_name.startswith("num_") and rendering
+
     @abc.abstractmethod
     def model_filter(self, model):
         """When this class is selected, should the given model be shown in the model list?"""
+        pass
+
+    #@abc.abstractmethod
+    def render(self, attr_name, models, method, parameters):
+        """Render the given models based on attr_name as requested.
+
+        The only current method is 'color', for which 'parameters' is a sequence of value-RGBA
+        pairs for the color to use at that value.  One of the values may be None, in which case
+        None values should receive that color.
+
+        This method should carry out the rendering using a command if possible.
+        """
+        pass
+
+    @abc.abstractmethod
+    def values(self, attr_name, models):
+        """Get the values of the given attribute in the given models.  Returns a two-tuple,
+        the first component of which is a sequence of the non-None values, and the second is
+        a boolean indicating if there were any None values.
+        """
         pass
 
 from chimerax.core.toolshed import ProviderManager
