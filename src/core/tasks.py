@@ -232,6 +232,9 @@ class Task(State):
         """
         pass
 
+    def __str__(self):
+        return ("ChimeraX Task, ID %s" % self.id)
+
 
 class Job(Task):
     """
@@ -458,6 +461,20 @@ class Tasks(StateManager):
             except KeyError:
                 # In case terminating the task removed it from task list
                 pass
+
+    def __len__(self) -> int:
+        "Return the number of registered tasks."
+        return len(self._tasks)
+
+    def __contains__(self) -> bool:
+        "Return"
+        pass
+
+    def __iter__(self):
+        pass
+
+    def __next__(self):
+        pass
 
     def list(self):
         """Return list of tasks.
