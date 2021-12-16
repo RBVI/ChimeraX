@@ -43,7 +43,7 @@ class BundleNameArg(StringArg):
     def parse(text, session):
         import re
         token, text, rest = next_token(text, convert=True)
-        canonical = re.sub("[^\w\d.]+", "_", token, re.UNICODE)
+        canonical = re.sub(r"[^\w\d.]+", "_", token, re.UNICODE)
         simple = token.replace('-', '_')
         if simple != canonical:
             raise AnnotationError("Invalid bundle name")
@@ -54,7 +54,7 @@ def _reSt_to_html(source):
     # from https://wiki.python.org/moin/reStructuredText
     from docutils import core
     parts = core.publish_parts(source=source, writer_name='html')
-    return parts['body_pre_docinfo']+parts['fragment']
+    return parts['body_pre_docinfo'] + parts['fragment']
 
 
 def _display_bundles(bi_list, toolshed, logger, use_html=False, full=True):
