@@ -8,3 +8,4 @@
 42839823b7dadba4653e08a18bfce4ef989d7fed # Trailing Whitespace Corrections
 1b4ecf0f4bd69f05d2b7cc48ee23cce482432e13 # Lint the blastprotein bundle
 a6bdf15e0a54a4b128f295f44b5fd23b895b161b # Lint the modeller bundle
+006f09c99bfe0e77179164552d5e6a1b06807f9e # Lint src/commands

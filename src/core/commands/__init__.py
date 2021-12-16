@@ -23,6 +23,7 @@ from .cli import quote_if_necessary, quote_path_if_necessary, unescape, make_con
 from .cli import NoArg, NoneArg, BoolArg, StringArg, EmptyArg, EnumOf, DynamicEnum
 from .cli import IntArg, Int2Arg, Int3Arg, NonNegativeIntArg, PositiveIntArg
 from .cli import FloatArg, Float2Arg, Float3Arg, FloatsArg, NonNegativeFloatArg, PositiveFloatArg
+from .cli import FloatOrDeltaArg
 from .cli import AxisArg, Axis, CenterArg, Center, CoordSysArg, PlaceArg, Bounded
 from .cli import SurfacesArg, SurfaceArg
 from .cli import ModelIdArg, ModelArg, ModelsArg, TopModelsArg, ObjectsArg, RestOfLine, WholeRestOfLine

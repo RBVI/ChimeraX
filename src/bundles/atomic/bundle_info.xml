@@ -1,5 +1,5 @@
 <!-- Edit bundle_info.xml.in, not bundle_info.xml; then run make_selectors.py  -->
-<BundleInfo name="ChimeraX-Atomic" version="1.31.5"
+<BundleInfo name="ChimeraX-Atomic" version="1.32"
             package="chimerax.atomic"
             purePython="false"
             customInit="true"
@@ -249,6 +249,7 @@
 
     <ChimeraXClassifier>Selector :: backbone :: backbone atoms</ChimeraXClassifier>
     <ChimeraXClassifier>Selector :: mainchain :: backbone atoms</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: min-backbone :: minimal backbone atoms</ChimeraXClassifier>
     <ChimeraXClassifier>Selector :: ions :: ions</ChimeraXClassifier>
     <ChimeraXClassifier>Selector :: ligand :: ligands</ChimeraXClassifier>
     <ChimeraXClassifier>Selector :: main :: main structure</ChimeraXClassifier>

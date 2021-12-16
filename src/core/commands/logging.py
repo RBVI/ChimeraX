@@ -52,7 +52,7 @@ def motion_commands_enabled(session):
     frame_skip = session._motion_command_skip
     if frame_skip == 0:
         return True
-    return session.main_view.frame_number % (frame_skip+1) == 0
+    return session.main_view.frame_number % (frame_skip + 1) == 0
 
 def motion_command(session, command_text):
     '''
@@ -61,7 +61,7 @@ def motion_command(session, command_text):
     '''
     if motion_commands_enabled(session):
         session.triggers.activate_trigger('motion command', command_text)
-        
+
 def residues_specifier(objects):
     res = objects.atoms.unique_residues
     specs = []
@@ -105,5 +105,3 @@ def _option_value(value):
     else:
         raise ValueError('Unknown value type %s' % str(type(value)))
     return v
-
-        
