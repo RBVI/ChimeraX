@@ -209,12 +209,12 @@ class AtomSpecArg(Annotation):
                 # No whitespace found
                 from .cli import AnnotationError
                 raise AnnotationError('only initial part "%s" of atom specifier valid'
-                    % text[:end+text_offset])
+                                      % text[:end + text_offset])
             else:
-                ast, used, rem = AtomSpecArg._parse_unquoted(text[:blank+text_offset], session)
-                return ast, used, rem + text[blank+text_offset:]
+                ast, used, rem = AtomSpecArg._parse_unquoted(text[:blank + text_offset], session)
+                return ast, used, rem + text[blank + text_offset:]
         # Consume what we used and return the remainder
-        return ast, text[:end+text_offset], text[end+text_offset:]
+        return ast, text[:end + text_offset], text[end + text_offset:]
 
 
 #
@@ -391,8 +391,7 @@ class _AtomSpecSemantics:
             # Convert string to value for comparison
             av = ast.value
             quoted = False
-            if (isinstance(av, list) and len(av) == 3
-                     and av[0] in ('"', "'") and av[2] in ('"', "'")):
+            if (isinstance(av, list) and len(av) == 3 and av[0] in ('"', "'") and av[2] in ('"', "'")):
                 # Quoted value stay as string
                 av = av[1]
                 quoted = True
@@ -600,7 +599,7 @@ class _Model(_SubPart):
                 model_list = [model for model in model_list
                               if len(model.id) == len(self.my_parts)]
             self.my_parts.find_matches(session, model_list, self.sub_parts, results, ordered,
-                add_implied=add_implied)
+                                       add_implied=add_implied)
         else:
             # No model spec given, everything matches
             for model in model_list:
