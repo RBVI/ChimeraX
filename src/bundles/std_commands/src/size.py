@@ -37,38 +37,75 @@ def size(session, objects=None, atom_radius=None,
     undo_state = UndoState("size")
     what = []
 
+    from chimerax.core.errors import UserError
     if atom_radius is not None:
         atoms = objects.atoms
         if atom_radius == 'default':
             undo_state.add(atoms, "radii", atoms.radii, atoms.default_radii)
             atoms.radii = atoms.default_radii
         else:
-            undo_state.add(atoms, "radii", atoms.radii, atom_radius)
-            atoms.radii = atom_radius
+            is_delta, amount = atom_radius
+            if is_delta:
+                old_radii = atoms.radii
+                if amount < 0 and len(old_radii) > 0 and min(old_radii) < abs(amount):
+                    raise UserError("Cannot reduce atom radius to < 0")
+                atoms.radii += amount
+                undo_state.add(atoms, "radii", old_radii, atoms.radii)
+            else:
+                undo_state.add(atoms, "radii", atoms.radii, amount)
+                atoms.radii = amount
         what.append('%d atom radii' % len(atoms))
 
     if stick_radius is not None:
         b = objects.bonds
-        undo_state.add(b, "radii", b.radii, stick_radius)
-        b.radii = stick_radius
-        # If singleton atom specified then set the single-atom stick radius.
-        for s, atoms in objects.atoms.by_structure:
-            if (atoms.num_bonds == 0).any():
-                s.bond_radius = stick_radius
+        is_delta, amount = stick_radius
+        if is_delta:
+            old_radii = b.radii
+            if amount < 0 and len(old_radii) > 0 and min(old_radii) < abs(amount):
+                raise UserError("Cannot reduce stick radius to < 0")
+            b.radii += amount
+            undo_state.add(b, "radii", old_radii, b.radii)
+            # If singleton atom specified then set the single-atom stick radius.
+            for s, atoms in objects.atoms.by_structure:
+                if (atoms.num_bonds == 0).any():
+                    if amount < 0 and s.bond_radius < amount:
+                        raise UserError("Cannot reduce bond radius to < 0")
+                    s.bond_radius += amount
+        else:
+            undo_state.add(b, "radii", b.radii, amount)
+            b.radii = amount
+            # If singleton atom specified then set the single-atom stick radius.
+            for s, atoms in objects.atoms.by_structure:
+                if (atoms.num_bonds == 0).any():
+                    s.bond_radius = amount
         what.append('%d bond radii' % len(b))
 
     if pseudobond_radius is not None:
+        is_delta, amount = pseudobond_radius
         pb = objects.pseudobonds
-        undo_state.add(pb, "radii", pb.radii, pseudobond_radius)
-        pb.radii = pseudobond_radius
-        from chimerax.atomic import concatenate
+        if is_delta:
+            old_radii = pb.radii
+            if amount < 0 and len(old_radii) > 0 and min(old_radii) < abs(amount):
+                raise UserError("Cannot reduce pseudobond radius to < 0")
+            pb.radii += amount
+            undo_state.add(pb, "radii", old_radii, pb.radii)
+        else:
+            undo_state.add(pb, "radii", pb.radii, amount)
+            pb.radii = amount
+            from chimerax.atomic import concatenate
         what.append('%d pseudobond radii' % len(pb))
 
     if ball_scale is not None:
+        is_delta, amount = ball_scale
         mols = objects.residues.unique_structures
-        for s in mols:
-            undo_state.add(s, "ball_scale", s.ball_scale, ball_scale)
-            s.ball_scale = ball_scale
+        if is_delta:
+            for s in mols:
+                undo_state.add(s, "ball_scale", s.ball_scale, s.ball_scale + amount)
+                s.ball_scale += amount
+        else:
+            for s in mols:
+                undo_state.add(s, "ball_scale", s.ball_scale, amount)
+                s.ball_scale = amount
         what.append('%d ball scales' % len(mols))
 
     if what:
@@ -82,11 +119,11 @@ def size(session, objects=None, atom_radius=None,
 # -----------------------------------------------------------------------------
 #
 def register_command(logger):
-    from chimerax.core.commands import register, CmdDesc, ObjectsArg, EmptyArg, EnumOf, Or, FloatArg
+    from chimerax.core.commands import register, CmdDesc, ObjectsArg, EmptyArg, EnumOf, Or, FloatOrDeltaArg
     desc = CmdDesc(required = [('objects', Or(ObjectsArg, EmptyArg))],
-                   keyword = [('atom_radius', Or(EnumOf(['default']), FloatArg)),
-                              ('stick_radius', FloatArg),
-                              ('pseudobond_radius', FloatArg),
-                              ('ball_scale', FloatArg)],
+                   keyword = [('atom_radius', Or(EnumOf(['default']), FloatOrDeltaArg)),
+                              ('stick_radius', FloatOrDeltaArg),
+                              ('pseudobond_radius', FloatOrDeltaArg),
+                              ('ball_scale', FloatOrDeltaArg)],
                    synopsis='change atom and bond sizes')
     register('size', desc, size, logger=logger)

@@ -98,6 +98,9 @@ class BlastProteinJob(CxServicesJob):
                 results = self.get_file(self.RESULTS_FILENAME)
                 parse_blast_results_nogui(self.session, self._params(), self.seq, results, self.log)
 
+    def __str__(self):
+        return "BlastProtein Job, ID %s" % self.id
+
 
 def manually_pull_blast_job(session, job_id, log=None):
     # TODO: Fetch the protein on which the BLAST was run from the server and open it

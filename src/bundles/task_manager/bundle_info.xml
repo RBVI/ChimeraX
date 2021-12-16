@@ -1,0 +1,27 @@
+<BundleInfo name="ChimeraX-TaskManager" version="1.0"
+            package="chimerax.taskmanager"
+            minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>Visualize tasks in ChimeraX</Synopsis>
+  <Description></Description>
+
+  <Categories>
+    <Category name="User Interface"/>
+  </Categories>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version="~=1.0"/>
+    <Dependency name="ChimeraX-UI" version="~=1.0"/>
+  </Dependencies>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    <ChimeraXClassifier>Tool :: Task Manager :: Utilities :: Visualize open tasks</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: taskman :: Utilities :: Visualize open tasks</ChimeraXClassifier>
+  </Classifiers>
+</BundleInfo>
