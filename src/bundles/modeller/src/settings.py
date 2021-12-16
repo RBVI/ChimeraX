@@ -12,6 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.core.settings import Settings
+from .loops import ALL_MISSING
 
 class _ModellerComparativeSettings(Settings):
 
@@ -28,7 +29,7 @@ class _ModellerComparativeSettings(Settings):
         'water_preserve': False
     }
 
-from .loops import ALL_MISSING
+
 class _ModellerLoopsSettings(Settings):
 
     AUTO_SAVE = {
@@ -39,6 +40,7 @@ class _ModellerLoopsSettings(Settings):
         'region': ALL_MISSING,
         'temp_path': "",
     }
+
 
 _comparative_settings = _loops_settings = None
 def get_settings(session, settings_type):
