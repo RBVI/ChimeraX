@@ -396,7 +396,7 @@ def _colourlovers_fetch_by_id(session, palette_id):
         from ..errors import UserError
         raise UserError('No palette %d at COLOURlovers.com' % palette_id)
     hex_colors = j[0]['colors']
-    rgba = [tuple(int(r, base=16)/255 for r in (c[0:2], c[2:4], c[4:6])) + (1.0,)
+    rgba = [tuple(int(r, base=16) / 255 for r in (c[0:2], c[2:4], c[4:6])) + (1.0,)
             for c in hex_colors]
     from ..colors import Colormap
     cmap = Colormap(None, rgba)
@@ -406,7 +406,7 @@ def _colourlovers_fetch_by_id(session, palette_id):
 def _colourlovers_fetch_by_name(session, palette_name):
     bi = palette_name.find(' by ')
     if bi > 0:
-        name, author = palette_name[:bi], palette_name[bi+4:]
+        name, author = palette_name[:bi], palette_name[bi + 4:]
     else:
         name, author = palette_name, None
     from urllib.parse import quote
@@ -434,7 +434,7 @@ def _colourlovers_fetch_by_name(session, palette_name):
                             % (len(pals), name, pals[0]['id'], pals[0]['userName'], pals[0]['numViews']))
     p = pals[0]
     hex_colors = p['colors']
-    rgba = [tuple(int(r, base=16)/255 for r in (c[0:2], c[2:4], c[4:6])) + (1.0,)
+    rgba = [tuple(int(r, base=16) / 255 for r in (c[0:2], c[2:4], c[4:6])) + (1.0,)
             for c in hex_colors]
     from ..colors import Colormap
     cmap = Colormap(None, rgba)
