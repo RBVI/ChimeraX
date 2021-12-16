@@ -24,25 +24,32 @@ base_setup = [
     "color name struts_grey 48,48,48",
     "color name carbon_grey 22.2,22.2,22.2"
 ]
+
 base_macro_model = [
     "delete solvent",
     "delete H"
 ]
 
+base_ribbon = [
+    # 'struts' doesn't work right until ribbon data structures get updated, so wait 1 frame
+    "preset 'initial styles' cartoon; wait 1",
+    "nucleotides ladder radius 1.2",
+    "color white",
+    "color helix marine; color strand firebrick; color coil goldenrod; color nucleic-acid forest",
+    "color :A:C:G:U grape",
+    "color byatom",
+    "select (C & ligand) | (C & ligand :< 5 & ~nucleic-acid) | (C & protein) | (C & disulfide)",
+    "color sel carbon_grey atoms",
+    "color ligand | protein & sideonly byhet atoms",
+    "~select"
+]
+
 def run_preset(session, name, mgr):
     if name == "ribbon":
-        cmd = base_setup + base_macro_model + [
-            # 'struts' doesn't work right until ribbon data structures get updated, so wait 1 frame
-            "preset 'initial styles' cartoon; wait 1",
-            "nucleotides ladder radius 1.2",
-            "color white",
-            "color helix marine; color strand firebrick; color coil goldenrod; color nucleic-acid forest",
-            "color :A:C:G:U grape",
-            "color byatom",
-            "select (C & ligand) | (C & ligand :< 5 & ~nucleic-acid) | (C & protein) | (C & disulfide)",
-            "color sel carbon_grey atoms",
-            "color ligand | protein & sideonly byhet atoms",
-            "~select"
+        cmd = base_setup + base_macro_model + base_ribbon
+    elif name == "ribbon (printable)":
+        cmd = base_setup + base_macro_model + base_ribbon + [
+            "select backbone & protein | nucleic-acid & min-backbone..." #TODO
         ]
     else:
         from chimerax.core.errors import UserError
