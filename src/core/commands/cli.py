@@ -1009,6 +1009,28 @@ class FloatArg(Annotation):
         return str(value)
 
 
+class FloatOrDeltaArg(Annotation):
+    """Annotation for non-negative floating point literals, but if preceded by explicit +/- then interpreted as a delta"""
+    name = "a number >= 0 or a +/- delta"
+
+    @staticmethod
+    def parse(text, session):
+        if not text:
+            raise AnnotationError("Expected %s" % FloatOrDeltaArg.name)
+        is_delta = text[0] in "+-"
+        token, text, rest = next_token(text)
+        try:
+            return (is_delta, float(token)), text, rest
+        except ValueError:
+            raise AnnotationError("Expected %s" % FloatOrDeltaArg.name)
+
+    @staticmethod
+    def unparse(value, session=None):
+        is_delta, num = value
+        assert isinstance(num, (float, int))
+        return ('+' if is_delta and num > 0 else '') + str(num)
+
+
 class StringArg(Annotation):
     """Annotation for text (a word or quoted)"""
     name = "a text string"
