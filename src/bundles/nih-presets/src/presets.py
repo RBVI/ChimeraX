@@ -44,13 +44,42 @@ base_ribbon = [
     "~select"
 ]
 
+undo_printable = [
+    "~struts",
+    "~hbonds",
+    "size atomRadius default stickRadius 0.2 pseudobondRadius 0.2",
+    "style dashes 7"
+]
+
+def print_prep(*, pb_radius=0.4, ion_size_increase=0.0):
+    cmds = [
+        "size stickRadius 0.8",
+        "style dashes 0"
+    ]
+    if pb_radius is not None:
+        cmds += [ "size pseudobondRadius %g" % pb_radius ]
+    if ion_size_increase:
+        cmds += ["size ions atomRadius %+g" % ion_size_increase]
+    return cmds
+
 def run_preset(session, name, mgr):
     if name == "ribbon":
-        cmd = base_setup + base_macro_model + base_ribbon
+        cmd = undo_printable + base_setup + base_macro_model + base_ribbon
     elif name == "ribbon (printable)":
         cmd = base_setup + base_macro_model + base_ribbon + [
-            "select backbone & protein | nucleic-acid & min-backbone..." #TODO
-        ]
+            # make missing-structure pseudobonds bigger relative to upcoming hbonds
+            "size min-backbone pseudobondRadius 1.1",
+            "select backbone & protein | nucleic-acid & min-backbone | ions | ligand"
+                " | ligand :< 5 & ~nucleic-acid",
+            "hbonds sel color white restrict both",
+            "size hbonds pseudobondRadius 0.6",
+            "struts @ca|ligand|P|##num_atoms<500 length 8 loop 60 rad 0.75 color struts_grey",
+            "~struts @PB,PG",
+            "~struts adenine|cytosine|guanine|thymine|uracil",
+            "color struts_grey pseudobonds",
+            "color hbonds white pseudobonds",
+            "~select"
+        ] + print_prep(pb_radius=None)
     else:
         from chimerax.core.errors import UserError
         raise UserError("Unknown NIH3D preset '%s'" % name)
