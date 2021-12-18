@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-Struts" version="1.0"
+<BundleInfo name="ChimeraX-Struts" version="1.0.1"
 	    package="chimerax.struts"
   	    minSessionVersion="1" maxSessionVersion="1">
 
