@@ -1,0 +1,13 @@
+diff --git a/prereqs/cxservices/Makefile b/prereqs/cxservices/Makefile
+index 3822ff8f4..f798dd8f1 100644
+--- a/prereqs/cxservices/Makefile
++++ b/prereqs/cxservices/Makefile
+@@ -3,7 +3,7 @@ TOP	= ../..
+ include $(TOP)/mk/config.make
+ 
+ CXSERVICES_VER = 1.1
+-CXSERVICES_DEPLOYMENT_VER = production
++CXSERVICES_DEPLOYMENT_VER = test
+ 
+ # Binary wheels not available for Mac and Windows for PyTables 3.6.1.
+ # So use versions we built with Makefile.macos and Makefile.win
