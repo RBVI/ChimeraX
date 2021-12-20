@@ -20,14 +20,15 @@ def size(session, objects=None, atom_radius=None,
     objects : Objects
         Change the size of these atoms, bonds and pseudobonds.
         If not specified then all are changed.
-    atom_radius : float or "default"
-      New radius value for atoms.
-    stick_radius : float
-      New radius value for bonds shown in stick style.
-    pseudobond_radius : float
-      New radius value for pseudobonds.
-    ball_scale : float
+    atom_radius : float, (bool, float) or "default"
+      New radius value for atoms.  The optional boolean is whether the float is a delta.
+    stick_radius : float or (bool, float)
+      New radius value for bonds shown in stick style. The optional boolean is whether the float is a delta.
+    pseudobond_radius : float or (bool, float)
+      New radius value for pseudobonds. The optional boolean is whether the float is a delta.
+    ball_scale : float or (bool, float)
       Multiplier times atom radius for determining atom size in ball style (default 0.3).
+      The optional boolean is whether the float is a delta.
     '''
     if objects is None:
         from chimerax.core.objects import all_objects
@@ -44,7 +45,10 @@ def size(session, objects=None, atom_radius=None,
             undo_state.add(atoms, "radii", atoms.radii, atoms.default_radii)
             atoms.radii = atoms.default_radii
         else:
-            is_delta, amount = atom_radius
+            if isinstance(atom_radius, tuple):
+                is_delta, amount = atom_radius
+            else:
+                is_delta, amount = False, atom_radius
             if is_delta:
                 old_radii = atoms.radii
                 if amount < 0 and len(old_radii) > 0 and min(old_radii) < abs(amount):
@@ -58,7 +62,10 @@ def size(session, objects=None, atom_radius=None,
 
     if stick_radius is not None:
         b = objects.bonds
-        is_delta, amount = stick_radius
+        if isinstance(stick_radius, tuple):
+            is_delta, amount = stick_radius
+        else:
+            is_delta, amount = False, stick_radius
         if is_delta:
             old_radii = b.radii
             if amount < 0 and len(old_radii) > 0 and min(old_radii) < abs(amount):
@@ -81,7 +88,10 @@ def size(session, objects=None, atom_radius=None,
         what.append('%d bond radii' % len(b))
 
     if pseudobond_radius is not None:
-        is_delta, amount = pseudobond_radius
+        if isinstance(pseudobond_radius, tuple):
+            is_delta, amount = pseudobond_radius
+        else:
+            is_delta, amount = False, pseudobond_radius
         pb = objects.pseudobonds
         if is_delta:
             old_radii = pb.radii
@@ -96,7 +106,10 @@ def size(session, objects=None, atom_radius=None,
         what.append('%d pseudobond radii' % len(pb))
 
     if ball_scale is not None:
-        is_delta, amount = ball_scale
+        if isinstance(ball_scale, tuple):
+            is_delta, amount = ball_scale
+        else:
+            is_delta, amount = False, ball_scale
         mols = objects.residues.unique_structures
         if is_delta:
             for s in mols:
