@@ -311,6 +311,24 @@ class AtomicStructuresArg(AtomSpecArg):
         return AtomicStructures(mols), text, rest
 
 
+class AtomicStructureArg(AtomSpecArg):
+    """Parse command atomic structure specifier"""
+    name = "an atomic structure specifier"
+
+    @classmethod
+    def parse(cls, text, session):
+        aspec, text, rest = super().parse(text, session)
+        models = aspec.evaluate(session).models
+        from . import AtomicStructure
+        mols = [m for m in models if isinstance(m, AtomicStructure)]
+        if aspec.outermost_inversion:
+            mols = fully_selected(session, aspec, mols)
+        if len(mols) != 1:
+            raise AnnotationError('must specify 1 atomic structure, got %d for "%s"'
+                                  % (len(mols), text))
+        return mols[0], text, rest
+
+
 class PseudobondGroupsArg(AtomSpecArg):
     """Parse command atom specifier for pseudobond groups"""
     name = 'a pseudobond groups specifier'

@@ -26,13 +26,22 @@ class="clRight" title="User Guide Index"/></a>
 <h3><a href="../index.html#commands">Command</a>: size</h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>size</b> &nbsp;<a href="atomspec.html"><i>spec</i></a>&nbsp;
-[&nbsp;<b>atomRadius</b>&nbsp;&nbsp;<i>r<sub><font size=-1>a</font></sub></i>&nbsp;|&nbsp;default&nbsp;]
-[&nbsp;<b>ballScale</b>&nbsp;&nbsp;<i>b</i>&nbsp;]
-[&nbsp;<b>stickRadius</b>&nbsp;&nbsp;<i>r<sub><font size=-1>b</font></sub></i>&nbsp;]
-[&nbsp;<b>pseudobondRadius</b>&nbsp;&nbsp;<i>r<sub><font size=-1>pb</font></sub></i>&nbsp;]
+[&nbsp;<b>atomRadius</b>&nbsp;&nbsp;[+|-]<i>r<sub><font size=-1>a</font></sub></i>&nbsp;|&nbsp;default&nbsp;]
+[&nbsp;<b>ballScale</b>&nbsp;&nbsp;[+|-]<i>b</i>&nbsp;]
+[&nbsp;<b>stickRadius</b>&nbsp;&nbsp;[+|-]<i>r<sub><font size=-1>b</font></sub></i>&nbsp;]
+[&nbsp;<b>pseudobondRadius</b>&nbsp;&nbsp;[+|-]<i>r<sub><font size=-1>pb</font></sub></i>&nbsp;]
 </h3>
 <p>
-The <b>size</b> command sets the following:
+The <b>size</b> command sets radius parameters. Each parameter can be
+set to a specific value or adjusted relative to the current value(s) 
+by adding or subtracting a constant amount. Relative changes are indicated
+with a plus or minus sign, for example:
+</p>
+<blockquote><b>
+<b>size ligand atomRadius +.5</b>
+</b></blockquote>
+<p>
+Parameters:
 </p>
 <ul>
 <li>
@@ -45,15 +54,16 @@ by giving <b>default</b> as the value. Since VDW radii are also used to
 find interatomic <a href="clashes.html">clashes and contacts</a>,
 generate <a href="surface.html">molecular surfaces</a>,
 <a href="measure.html">measure surface areas</a>, and identify chain-chain
-<a href="interfaces.html">interfaces</a> based on buried surface areas,
-it may be appropriate to restore the <b>default</b> values
-before such calculations.
+<a href="interfaces.html">interfaces</a> based on buried surface areas, it
+may be appropriate to restore <b>default</b> values before such calculations.
+<br><br>
 <li>
 <b>ballScale</b> <i>factor</i> (initial default <b>0.3</b>)
 &ndash; scale factor to multiply by <a href="../radii.html">VDW radius</a>
 for <a href="style.html">ball style</a>.
 The <b>ballScale</b> parameter applies to an entire atomic model even
 if only part of the model is specified.
+<br><br>
 <li>
 <b>stickRadius</b>&nbsp;<i>r<sub><font size=-1>b</font></sub></i>
 (initial default <b>0.2</b> &Aring;)
@@ -63,6 +73,7 @@ Within a single atomic model,
 different bonds can have different stick radii, but a single 
 &ldquo;stick&rdquo; radius is used for all singletons and will be adjusted
 if any singleton in that model is specified.
+<br><br>
 <li>
 <b>pseudobondRadius</b>&nbsp;<i>r<sub><font size=-1>pb</font></sub></i>
 &ndash; <a href="../pseudobonds.html">pseudobond</a> stick radius
@@ -96,5 +107,5 @@ See also:
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-April 2021</address>
+December 2021</address>
 </body></html>
