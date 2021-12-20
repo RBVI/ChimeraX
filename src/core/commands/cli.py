@@ -3023,8 +3023,9 @@ def command_url(name, no_aliases=False, *, registry=None):
         raise ValueError('"%s" is not a command name' % name)
     if cmd._ci:
         return cmd._ci.url
-    else:
-        return _get_help_url(cmd.command_name.split())
+    if cmd._error:
+        raise ValueError(cmd._error)
+    return _get_help_url(cmd.command_name.split())
 
 
 def usage(session, name, no_aliases=False, show_subcommands=5, expand_alias=True, show_hidden=False, *,
