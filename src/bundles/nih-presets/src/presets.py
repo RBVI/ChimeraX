@@ -11,8 +11,12 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+ADDH_CUTOFF = COULOMBIC_CUTOFF = 25000
+HUGE_CUTOFF = 250000
+
+from chimerax.atomic import all_atomic_structures
+
 base_setup = [
-    "windowsize 512 512",
     "graphics bgcolor white",
     "color name marine 0,50,100",
     "color name forest 13.3,54.5,13.3",
@@ -44,12 +48,45 @@ base_ribbon = [
     "~select"
 ]
 
+base_surface = [
+    "delete H|ligand|~(protein|nucleic-acid)",
+    "~nuc",
+    "~ribbon",
+    "~display"
+]
+
+print_ribbon = [
+    # make missing-structure pseudobonds bigger relative to upcoming hbonds
+    "size min-backbone pseudobondRadius 1.1",
+    "select backbone & protein | nucleic-acid & min-backbone | ions | ligand"
+        " | ligand :< 5 & ~nucleic-acid",
+    "hbonds sel color white restrict both",
+    "size hbonds pseudobondRadius 0.6",
+    "struts @ca|ligand|P|##num_atoms<500 length 8 loop 60 rad 0.75 color struts_grey",
+    "~struts @PB,PG",
+    "~struts adenine|cytosine|guanine|thymine|uracil",
+    "color struts_grey pseudobonds",
+    "color hbonds white pseudobonds",
+    "~select"
+]
+
 undo_printable = [
     "~struts",
     "~hbonds",
     "size atomRadius default stickRadius 0.2 pseudobondRadius 0.2",
     "style dashes 7"
 ]
+
+def addh_cmds(session):
+    return [ "addh %s" % s.atomspec for s in all_atomic_structures(session) if s.num_atoms < 25000 ]
+
+def surface_cmds(session):
+    import math
+    cmds = []
+    for s in all_atomic_structures(session):
+        grid_size = min(2.5, max(0.5, math.log10(s.num_atoms)))
+        cmds.append("surface %s enclose %s grid %g sharp true" % (s.atomspec, s.atomspec, grid_size))
+    return cmds
 
 def print_prep(*, pb_radius=0.4, ion_size_increase=0.0):
     cmds = [
@@ -63,23 +100,36 @@ def print_prep(*, pb_radius=0.4, ion_size_increase=0.0):
     return cmds
 
 def run_preset(session, name, mgr):
-    if name == "ribbon":
+    if name == "ribbon rainbow":
         cmd = undo_printable + base_setup + base_macro_model + base_ribbon
-    elif name == "ribbon (printable)":
-        cmd = base_setup + base_macro_model + base_ribbon + [
-            # make missing-structure pseudobonds bigger relative to upcoming hbonds
-            "size min-backbone pseudobondRadius 1.1",
-            "select backbone & protein | nucleic-acid & min-backbone | ions | ligand"
-                " | ligand :< 5 & ~nucleic-acid",
-            "hbonds sel color white restrict both",
-            "size hbonds pseudobondRadius 0.6",
-            "struts @ca|ligand|P|##num_atoms<500 length 8 loop 60 rad 0.75 color struts_grey",
-            "~struts @PB,PG",
-            "~struts adenine|cytosine|guanine|thymine|uracil",
-            "color struts_grey pseudobonds",
-            "color hbonds white pseudobonds",
-            "~select"
+    elif name == "ribbon rainbow (printable)":
+        cmd = base_setup + base_macro_model + base_ribbon + print_ribbon + print_prep(pb_radius=None)
+    elif name == "ribbon by polymer (printable)":
+        cmd = base_setup + base_macro_model + base_ribbon + print_ribbon + [
+            "color bypolymer"
         ] + print_prep(pb_radius=None)
+    elif name == "ribbon monochrome (printable)":
+        cmd = base_setup + base_macro_model + base_ribbon + print_ribbon + [
+            "color nih_blue",
+            "setattr p color nih_blue"
+        ] + print_prep(pb_radius=None)
+    elif name == "surface monochrome":
+        cmd = undo_printable + base_setup + base_surface + addh_cmds(session) + surface_cmds(session) \
+            + [ "color nih_blue" ]
+    elif name == "surface coulombic":
+        #TODO: coulombic needs to not make new surfaces
+        cmd = undo_printable + base_setup + base_surface + addh_cmds(session) + surface_cmds(session) \
+            + [ "color white", "coulombic" ]
+        from chimerax.atomic import AtomicStructures
+        structures = AtomicStructures(all_atomic_structures(session))
+        main_atoms = structures.atoms.filter(structures.atoms.structure_categories == "main")
+        main_residues = main_atoms.unique_residues
+        incomplete_residues = main_residues.filter(main_residues.is_missing_heavy_template_atoms)
+        if len(incomplete_residues) > len(main_residues) / 10:
+            session.logger.warning("More than 10% or residues are incomplete;"
+                " electrostatics probably inaccurate")
+        elif "HIS" in incomplete_residues.names:
+            session.logger.warning("Incomplete HIS residue; coulombic will likely fail")
     else:
         from chimerax.core.errors import UserError
         raise UserError("Unknown NIH3D preset '%s'" % name)
