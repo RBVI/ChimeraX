@@ -673,7 +673,6 @@ class Ring:
         # using different criteria, therefore for better reliability pre-fetch all the ring properties
         # when the ring is constructed
         self.__size = c_property('ring_size', size_t, read_only=True).fget(self)
-        self.__aromatic = c_property('ring_aromatic', npy_bool, read_only=True).fget(self)
         self.__atoms = c_property('ring_atoms', cptr, 'size', astype = convert.atoms, read_only = True
             ).fget(self)
         self.__bonds = c_property('ring_bonds', cptr, 'size', astype = convert.bonds, read_only = True
@@ -699,7 +698,12 @@ class Ring:
     @property
     def aromatic(self):
         "Supported API. Whether the ring is aromatic. Boolean value. Read only"
-        return self.__aromatic
+        # Unlike the other attrs, don't prefetch since the call may then call idatm_type(), which
+        # could cause the Ring to be destroyed!
+        for a in self.__atoms:
+            if a.element.name == "C" and a.idatm_type != "Car":
+                return False
+        return True
 
     @property
     def atoms(self):
