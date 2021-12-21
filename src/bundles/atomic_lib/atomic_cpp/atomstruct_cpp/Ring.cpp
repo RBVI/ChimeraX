@@ -205,6 +205,8 @@ Ring::ordered_bonds() const
 
 bool
 Ring::aromatic() const {
+    // Python layer performs this function on its own, since idatm_type() may cause the Ring to
+    // get deleted!
     for (auto a: atoms()) {
         if (a->element() == Element::C && a->idatm_type() != "Car")
             return false;
