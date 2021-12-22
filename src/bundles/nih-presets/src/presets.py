@@ -14,7 +14,7 @@
 ADDH_CUTOFF = COULOMBIC_CUTOFF = 25000
 HUGE_CUTOFF = 250000
 
-from chimerax.atomic import all_atomic_structures
+from chimerax.atomic import all_atomic_structures, Residue
 
 base_setup = [
     "graphics bgcolor white",
@@ -26,7 +26,8 @@ base_setup = [
     "color name jmol_carbon 56.5,56.5,56.5",
     "color name bond_purple 57.6,43.9,85.9",
     "color name struts_grey 48,48,48",
-    "color name carbon_grey 22.2,22.2,22.2"
+    "color name carbon_grey 22.2,22.2,22.2",
+    "surface close"
 ]
 
 base_macro_model = [
@@ -52,7 +53,7 @@ base_surface = [
     "delete H|ligand|~(protein|nucleic-acid)",
     "~nuc",
     "~ribbon",
-    "~display"
+    "~display",
 ]
 
 print_ribbon = [
@@ -80,13 +81,58 @@ undo_printable = [
 def addh_cmds(session):
     return [ "addh %s" % s.atomspec for s in all_atomic_structures(session) if s.num_atoms < 25000 ]
 
-def surface_cmds(session):
-    import math
+def by_chain_cmds(session, rainbow=False):
     cmds = []
     for s in all_atomic_structures(session):
-        grid_size = min(2.5, max(0.5, math.log10(s.num_atoms)))
-        cmds.append("surface %s enclose %s grid %g sharp true" % (s.atomspec, s.atomspec, grid_size))
+        if rainbow:
+            cmds.append(rainbow_cmd(s))
+        cmds.append("color zone %s near %s distance 20" % (s.atomspec, s.atomspec))
     return cmds
+
+def color_by_hydrophobicity_cmds(session, target="rs"):
+    kdh_info = {
+        "asp": -3.5,
+        "glu": -3.5,
+        "asn": -3.5,
+        "gln": -3.5,
+        "lys": -3.9,
+        "arg": -4.5,
+        "his": -3.2,
+        "gly": -0.4,
+        "pro": -1.6,
+        "ser": -0.8,
+        "thr": -0.7,
+        "cys": 2.5,
+        "met": 1.9,
+        "mse": 1.9,
+        "ala": 1.8,
+        "val": 4.2,
+        "ile": 4.5,
+        "leu": 3.8,
+        "phe": 2.8,
+        "trp": -0.9,
+        "tyr": -1.3,
+    }
+    for s in all_atomic_structures(session):
+        for r in s.residues:
+            if r.name.lower() in kdh_info:
+                r.kd_hydrophobicity = kdh_info[r.name.lower()]
+    # need to register the attribute to make it known to 'color byattribute'
+    Residue.register_attr(session, "kd_hydrophobicity", "NIH3D preset", attr_type=float)
+    return [
+        "color magenta",
+        "color byattribute kd_hydrophobicity protein target %s palette 16,67,87:white:100,45,0"
+            " novalue magenta" % target
+    ]
+
+base_palette = ["marine", "goldenrod", "firebrick", "forest", "tangerine", "grape"]
+def palette(num_chains):
+    palette = base_palette[:]
+    if num_chains < 2:
+        return palette[0] + ':' + palette[0]
+    while num_chains > len(palette):
+        palette += base_palette
+    return ':'.join(palette[:num_chains])
 
 def print_prep(*, pb_radius=0.4, ion_size_increase=0.0):
     cmds = [
@@ -98,6 +144,10 @@ def print_prep(*, pb_radius=0.4, ion_size_increase=0.0):
     if ion_size_increase:
         cmds += ["size ions atomRadius %+g" % ion_size_increase]
     return cmds
+
+def rainbow_cmd(structure):
+    color_arg = " chains palette " + palette(structure.num_chains)
+    return "rainbow %s@ca,c4'%s" % (structure.atomspec, color_arg)
 
 def run_preset(session, name, mgr):
     if name == "ribbon rainbow":
@@ -117,9 +167,8 @@ def run_preset(session, name, mgr):
         cmd = undo_printable + base_setup + base_surface + addh_cmds(session) + surface_cmds(session) \
             + [ "color nih_blue" ]
     elif name == "surface coulombic":
-        #TODO: coulombic needs to not make new surfaces
         cmd = undo_printable + base_setup + base_surface + addh_cmds(session) + surface_cmds(session) \
-            + [ "color white", "coulombic" ]
+            + [ "color white", "coulombic surfaces #*" ]
         from chimerax.atomic import AtomicStructures
         structures = AtomicStructures(all_atomic_structures(session))
         main_atoms = structures.atoms.filter(structures.atoms.structure_categories == "main")
@@ -130,8 +179,32 @@ def run_preset(session, name, mgr):
                 " electrostatics probably inaccurate")
         elif "HIS" in incomplete_residues.names:
             session.logger.warning("Incomplete HIS residue; coulombic will likely fail")
+    elif name == "surface hydrophobicity":
+        cmd = undo_printable + base_setup + base_surface + addh_cmds(session) + surface_cmds(session) \
+            + color_by_hydrophobicity_cmds(session)
+    elif name == "surface by chain":
+        cmd = undo_printable + base_setup + base_surface + addh_cmds(session) + surface_cmds(session) \
+            + by_chain_cmds(session, rainbow=True)
+    elif name == "surface blob by chain":
+        cmd = undo_printable + base_setup + base_surface + addh_cmds(session) + [
+                "surf %s resolution 18 grid 6; %s" % (s.atomspec, rainbow_cmd(s))
+                    for s in all_atomic_structures(session)
+            ]
+    elif name == "surface blob by polymer":
+        cmd = undo_printable + base_setup + base_surface + addh_cmds(session) + [
+                "surf %s resolution 18 grid 6; %s" % (s.atomspec, rainbow_cmd(s))
+                    for s in all_atomic_structures(session)
+            ] + [ "color bypolymer target ar" ] + by_chain_cmds(session)
     else:
         from chimerax.core.errors import UserError
         raise UserError("Unknown NIH3D preset '%s'" % name)
     cmd = "; ".join(cmd)
     mgr.execute(cmd)
+
+def surface_cmds(session):
+    import math
+    cmds = []
+    for s in all_atomic_structures(session):
+        grid_size = min(2.5, max(0.5, math.log10(s.num_atoms) - 2.5))
+        cmds.append("surface %s enclose %s grid %g sharp true" % (s.atomspec, s.atomspec, grid_size))
+    return cmds
