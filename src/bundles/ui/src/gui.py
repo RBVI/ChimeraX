@@ -1141,7 +1141,7 @@ class MainWindow(QMainWindow, PlainTextLog):
 
         if len(preset_info) == 1:
             self._uncategorized_preset_menu(session, preset_info)
-        elif len(preset_info) + sum([len(v) for v in preset_info.values()]) < 20:
+        elif len(preset_info) + sum([len(v) for v in preset_info.values()]) < 40:
             self._inline_categorized_preset_menu(session, preset_info)
         else:
             self._rollover_categorized_preset_menu(session, preset_info)
