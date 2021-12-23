@@ -11,10 +11,16 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-ADDH_CUTOFF = COULOMBIC_CUTOFF = 25000
-HUGE_CUTOFF = 250000
-
 from chimerax.atomic import all_atomic_structures, Residue
+
+ball_and_stick = [
+    "style ball",
+    "size H atomRadius 1.2",
+    "size stickRadius 0.24",
+    "size ballScale 0.3",
+    "size pseudobondRadius 0.3",
+    "size ions atomRadius +0.35"
+]
 
 base_setup = [
     "graphics bgcolor white",
@@ -54,6 +60,11 @@ base_surface = [
     "~nuc",
     "~ribbon",
     "~display",
+]
+
+color_by_het = [
+    "color jmol_carbon",
+    "color byhet"
 ]
 
 print_ribbon = [
@@ -195,10 +206,38 @@ def run_preset(session, name, mgr):
                 "surf %s resolution 18 grid 6; %s" % (s.atomspec, rainbow_cmd(s))
                     for s in all_atomic_structures(session)
             ] + [ "color bypolymer target ar" ] + by_chain_cmds(session)
+    elif name == "sticks":
+        cmd = undo_printable + base_setup + color_by_het + [ "style stick" ]
+    elif name == "sticks (printable)":
+        cmd = undo_printable + base_setup + color_by_het + [ "style stick" ] \
+            + print_prep(ion_size_increase=0.35)
+    elif name == "sticks monochrome (printable)":
+        cmd = undo_printable + base_setup + [
+            "style stick",
+            "color nih_blue",
+        ] + print_prep(ion_size_increase=0.35)
+    elif name == "CPK":
+        cmd = undo_printable + base_setup + color_by_het + [
+            "style sphere",
+            "size H atomRadius 1.1"  # rescale H atoms to get better-looking balls
+        ] + print_prep(ion_size_increase=0.35)
+    elif name == "CPK monochrome":
+        cmd = undo_printable + base_setup + [
+            "style sphere",
+            "color nih_blue",
+            "size H atomRadius 1.1"  # rescale H atoms to get better-looking balls
+        ] + print_prep(ion_size_increase=0.35)
+    elif name == "ball and stick":
+        cmd = undo_printable + base_setup + color_by_het + ball_and_stick + [ "color pbonds bond_purple" ]
+    elif name == "ball and stick monochrome":
+        cmd = undo_printable + base_setup + color_by_het + ball_and_stick + [ "color nih_blue" ]
+    elif name.startswith("volume "):
+        cmd = volume_preset_cmds(session, name[7:])
     else:
         from chimerax.core.errors import UserError
         raise UserError("Unknown NIH3D preset '%s'" % name)
-    cmd = "; ".join(cmd)
+    # need the leading space in case the previous command arg end with a quote
+    cmd = " ; ".join(cmd)
     mgr.execute(cmd)
 
 def surface_cmds(session):
@@ -207,4 +246,106 @@ def surface_cmds(session):
     for s in all_atomic_structures(session):
         grid_size = min(2.5, max(0.5, math.log10(s.num_atoms) - 2.5))
         cmds.append("surface %s enclose %s grid %g sharp true" % (s.atomspec, s.atomspec, grid_size))
+    return cmds
+
+def volume_cleanup_cmds(session, contour_cmds=None):
+    from chimerax.map import VolumeSurface
+    from chimerax.surface.area import measure_volume
+    from chimerax.core.commands import run
+    if contour_cmds:
+        for contour_cmd in contour_cmds:
+            run(session, contour_cmd, log=False)
+        run(session, "wait 1", log=False)
+    cmds = []
+    for surface in session.models.list(type=VolumeSurface):
+        orig_enclosed = measure_volume(session, [surface])
+
+        # MESH CLEANING
+        run(session, "surface dust %s size 1 metric 'size rank' ; wait 1" % surface.atomspec, log=False)
+        enclosed = measure_volume(session, [surface], include_masked=False)
+        working_surface = surface
+        if enclosed < 0.5 * orig_enclosed:
+            session.logger.info("Contour level does not connect pieces; trying other levels")
+            volume = surface.volume
+            mtx = volume.matrix()
+            vmin, vmax = mtx.min(), mtx.max()
+            contour_step = (vmax - vmin) * 0.05
+            contour = orig_contour = surface.level
+            connecting_contour = None
+            while contour - contour_step > vmin:
+                contour -= contour_step
+                session.models.close([working_surface])
+                contour_cmd = "volume %s region all style surface level %g limitVoxelCount true" \
+                    " voxelLimit 8; wait 1" % (volume.atomspec, contour)
+                run(session, contour_cmd, log=False)
+                working_surface = session.models[-1]
+                run(session, "surface dust %s size 1 metric 'size rank' ; wait 1" % working_surface.atomspec,
+                    log=False)
+                enclosed = measure_volume(session, [working_surface], include_masked=False)
+                if enclosed >= 0.5 * orig_enclosed:
+                    contour_level = connecting_contour = contour
+                    session.logger.info("Contour level %g connects pieces; using that" % connecting_contour)
+                    cmds.append(contour_cmd)
+                    break
+            if connecting_contour is None:
+                session.logger.info(
+                    "No contour level found that connects pieces; reverting to original level")
+                contour_level = orig_contour
+                session.models.close([working_surface])
+                run(session, "volume %s region all style surface level %g limitVoxelCount true voxelLimit 8"
+                    % (volume.atomspec, contour_level), log=False)
+                working_surface = session.models[-1]
+        cmds.append("wait 1")
+        cmds.append("surface dust %s size 1 metric 'size rank'" % working_surface.atomspec)
+    return cmds
+
+def volume_contour_cmds(session, requested_contour_level=None):
+    from chimerax.map import Volume
+    cmds = []
+    for v in session.models.list(type=Volume):
+        contour_level = requested_contour_level
+        if contour_level is None and v.name.startswith("emdb ") and v.name[5:].isdigit():
+            import requests
+            emdb_id = v.name[5:]
+            data_key = "EMD-" + emdb_id
+            response = requests.get("https://www.ebi.ac.uk/pdbe/api/emdb/entry/map/%s" % data_key)
+            if response.status_code == requests.codes.ok:
+                data = response.json()
+                try:
+                    info = data[data_key]
+                except KeyError:
+                    session.logger.warning("Key %s not found in metadata for EMDB %s" % (data_key, emdb_id))
+                else:
+                    try:
+                        contour_level = info[0]["map"]["contour_level"]["value"]
+                    except:
+                        session.logger.info("No suggested contour level found in metadata for %s" % emdb_id)
+                    else:
+                        session.logger.info("Using EMDB-recommended contour level of %g" % contour_level)
+            else:
+                session.logger.warning("Could not access metadata for EMDB entry %s" % emdb_id)
+        if contour_level is None:
+            cmds.append("volume %s region all style surface step 1 limitVoxelCount false" % v.atomspec)
+        else:
+            cmds.append("volume %s region all style surface level %g limitVoxelCount true voxelLimit 8"
+                % (v.atomspec, contour_level))
+
+    return cmds
+
+def volume_preset_cmds(session, preset, contour_level=None):
+    cmds = undo_printable + base_setup
+    contour_cmds = volume_contour_cmds(session, requested_contour_level=contour_level)
+    cmds += contour_cmds
+    cmds += volume_cleanup_cmds(session, contour_cmds=contour_cmds)
+    if preset == "white":
+        cmds += [ "color white" ]
+    elif preset == "radial":
+        from chimerax.map import Volume
+        for v in session.models.list(type=Volume):
+            cmds += [ "color radial %s palette red:yellow:green:cyan:blue" % v.atomspec ]
+    elif preset == "monochrome":
+        cmds += [ "color nih_blue" ]
+    else:
+        from chimerax.core.errors import UserError
+        raise UserError("Unknown NIH3D preset 'volume %s'" % name)
     return cmds
