@@ -15,6 +15,9 @@ from chimerax.atomic import all_atomic_structures, Residue
 
 ball_and_stick = [
     "style ball",
+    "~nuc",
+    "~ribbon",
+    "disp",
     "size H atomRadius 1.2",
     "size stickRadius 0.24",
     "size ballScale 0.3",
@@ -33,7 +36,9 @@ base_setup = [
     "color name bond_purple 57.6,43.9,85.9",
     "color name struts_grey 48,48,48",
     "color name carbon_grey 22.2,22.2,22.2",
-    "surface close"
+    # remaining for undoing monkeyshines from previous presets
+    "surface close",
+    "preset 'initial styles' 'original look'",
 ]
 
 base_macro_model = [
@@ -42,8 +47,7 @@ base_macro_model = [
 ]
 
 base_ribbon = [
-    # 'struts' doesn't work right until ribbon data structures get updated, so wait 1 frame
-    "preset 'initial styles' cartoon; wait 1",
+    "preset 'initial styles' cartoon",
     "nucleotides ladder radius 1.2",
     "color white",
     "color helix marine; color strand firebrick; color coil goldenrod; color nucleic-acid forest",
@@ -74,9 +78,10 @@ print_ribbon = [
         " | ligand :< 5 & ~nucleic-acid",
     "hbonds sel color white restrict both",
     "size hbonds pseudobondRadius 0.6",
-    "struts @ca|ligand|P|##num_atoms<500 length 8 loop 60 rad 0.75 color struts_grey",
-    "~struts @PB,PG",
-    "~struts adenine|cytosine|guanine|thymine|uracil",
+    # ribbons need to be up to date for struts to work right
+    "wait 1; struts @ca|ligand|P|##num_atoms<500 length 8 loop 60 rad 0.75 color struts_grey",
+    "~struts @PB,PG resetRibbon false",
+    "~struts adenine|cytosine|guanine|thymine|uracil resetRibbon false",
     "color struts_grey pseudobonds",
     "color hbonds white pseudobonds",
     "~select"
@@ -203,27 +208,45 @@ def run_preset(session, name, mgr):
             ]
     elif name == "surface blob by polymer":
         cmd = undo_printable + base_setup + base_surface + addh_cmds(session) + [
-                "surf %s resolution 18 grid 6; %s" % (s.atomspec, rainbow_cmd(s))
+                "surf %s resolution 18 grid 6" % s.atomspec
                     for s in all_atomic_structures(session)
             ] + [ "color bypolymer target ar" ] + by_chain_cmds(session)
     elif name == "sticks":
-        cmd = undo_printable + base_setup + color_by_het + [ "style stick" ]
+        cmd = undo_printable + base_setup + color_by_het + [
+            "style stick",
+            "~nuc",
+            "~ribbon",
+            "disp"
+        ]
     elif name == "sticks (printable)":
-        cmd = undo_printable + base_setup + color_by_het + [ "style stick" ] \
-            + print_prep(ion_size_increase=0.35)
+        cmd = undo_printable + base_setup + color_by_het + [
+            "style stick",
+            "~nuc",
+            "~ribbon",
+            "disp"
+        ] + print_prep(ion_size_increase=0.35)
     elif name == "sticks monochrome (printable)":
         cmd = undo_printable + base_setup + [
             "style stick",
+            "~nuc",
+            "~ribbon",
+            "disp",
             "color nih_blue",
         ] + print_prep(ion_size_increase=0.35)
     elif name == "CPK":
         cmd = undo_printable + base_setup + color_by_het + [
             "style sphere",
+            "~nuc",
+            "~ribbon",
+            "disp",
             "size H atomRadius 1.1"  # rescale H atoms to get better-looking balls
         ] + print_prep(ion_size_increase=0.35)
     elif name == "CPK monochrome":
         cmd = undo_printable + base_setup + [
             "style sphere",
+            "~nuc",
+            "~ribbon",
+            "disp",
             "color nih_blue",
             "size H atomRadius 1.1"  # rescale H atoms to get better-looking balls
         ] + print_prep(ion_size_increase=0.35)
