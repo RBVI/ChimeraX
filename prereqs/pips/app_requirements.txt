@@ -49,7 +49,7 @@ suds-jurko==0.6
 # No binary wheels for Windows and Mac for PyTables in Python 3.9.
 #tables==3.6.1
 tifffile==2021.4.8
-tinyarray==1.2.3
+tinyarray==1.2.4
 webcolors==1.11.1
 wheel-filename==1.3.0
 #
