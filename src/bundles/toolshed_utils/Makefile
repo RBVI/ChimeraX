@@ -51,7 +51,7 @@ install app-install: $(WHEEL)
 	$(PYTHON_EXE) -m pip install $(WHEEL)
 
 sync:
-	rsync -av dist/*.whl $(TOP)/build/sync/python-only
+	rsync -av dist/*.whl $(TOP)/build/sync
 
 build: install
 	# unlike normal bundles, install as well

@@ -84,7 +84,7 @@ wheel: setup.py
 
 sync:
 ifneq (,$(wildcard dist/*-py3-none-any.whl))
-	rsync -av dist/*.whl $(build_prefix)/sync/python-only
+	rsync -av dist/*.whl $(build_prefix)/sync
 else
 	rsync -av dist/*.whl $(build_prefix)/sync/binary
 endif

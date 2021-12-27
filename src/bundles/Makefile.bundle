@@ -88,11 +88,7 @@ ifeq ($(OS),Linux)
 endif
 
 sync:
-ifneq (,$(wildcard dist/*-py*-none-any.whl))
-	rsync -av dist/*.whl $(SYNC_DIR)/python-only
-else
-	rsync -av dist/*.whl $(SYNC_DIR)/binary
-endif
+	rsync -av dist/*.whl $(SYNC_DIR)
 
 ifdef BUILD_AND_INSTALL
 INSTALL_ARGS = noDeps true

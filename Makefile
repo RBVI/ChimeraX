@@ -60,7 +60,7 @@ testimports:
 	$(APP_EXE) --exit --nogui --silent cxtestimports.py
 
 sync:
-	mkdir -p $(build_prefix)/sync/{python-only,binary}
+	mkdir -p $(build_prefix)/sync
 	$(MAKE) -C src/bundles sync
 
 ifdef WIN32
@@ -80,7 +80,7 @@ vdocs.install:
 
 build-dirs:
 	-mkdir -p $(build_prefix) $(bindir) $(libdir) $(includedir) $(datadir) \
-		$(build_prefix)/sync/{python-only,binary}
+		$(build_prefix)/sync
 ifndef WIN32
 	-cd $(build_prefix) && ln -nfs lib lib64
 endif
