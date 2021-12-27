@@ -35,6 +35,7 @@ class="clRight" title="User Guide Index"/></a>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br>(<b>~struts</b>&nbsp;|&nbsp;<b>struts&nbsp;delete</b>&nbsp;)
 &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>
+[&nbsp;<b>resetRibbon</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 </h3>
 <p>
 The <b>struts</b> command adds <a href="../pseudobonds.html">pseudobonds</a>
@@ -56,10 +57,9 @@ are considered in order of increasing distance.
 A strut is added if the shortest through-bond distance between the two atoms,
 including any existing struts, is greater than the maximum &ldquo;loop&rdquo;
 length (default <b>30.0</b> &Aring;).
-By default, ribbons (cartoons) are also thickened to make them more robust.
-The <b>~struts</b> or <b>struts delete</b> command 
-removes struts connected to the specified atoms,
-or all struts if the <a href="atomspec.html"><i>atom-spec</i></a> is blank.
+By default, ribbons (cartoons) are also thickened to make them more robust
+(<a href="#fattenRibbon">details...</a>).
+</p>
 </p><p>
 Protein example:
 <blockquote>
@@ -69,7 +69,15 @@ Nucleic acid example:
 <blockquote>
 <b>struts @C5' length 15 loop 80 radius 1</b>
 </blockquote>
+<p>
+The <b>~struts</b> or <b>struts delete</b> command:
 </p>
+  <ul>
+  <li>removes struts connected to the specified atoms,
+  or all struts if the <a href="atomspec.html"><i>atom-spec</i></a> is blank
+  <li>if <b>resetRibbon</b> is <b>true</b> (default), reverts ribbon 
+  thickening from <b>struts</b> (<a href="#fattenRibbon">details...</a>)
+  </ul>
 
 <a name="options"></a>
 <p class="nav">
@@ -100,6 +108,7 @@ Path calculations include the currently displayed bonds and
 (hydrogen bonds, existing struts, <i>etc.</i>).
 </blockquote>
 <blockquote>
+<a name="fattenRibbon"></a>
   <b>fattenRibbon</b> &nbsp;<b>true</b>&nbsp;|&nbsp;false
 <br>
 Whether to change the dimensions of any displayed ribbon (cartoon) to:
@@ -109,8 +118,12 @@ Whether to change the dimensions of any displayed ribbon (cartoon) to:
   <li>width 5.0 &Aring; for nucleic acid
   <li>thickness 3.0 &Aring; for nucleic acid
   </ul>
-Cartoon width and thickness can be fine-tuned with the command
-<a href="cartoon.html#style"><b>cartoon style</b></a>.
+These settings can also be changed with
+<a href="cartoon.html#style"><b>cartoon style</b></a>
+and related <a href="../menu.html#presets">presets</a>.
+Using <b>~struts</b> or <b>struts delete</b> with <b>resetRibbon</b>
+(default <b>true</b>) restores the cartoon defaults of width 2.0 &Aring; and
+thickness 0.4 &Aring;.
 </blockquote>
 <blockquote>
   <b>radius</b> &nbsp;<i>strut-radius</i>
@@ -149,5 +162,5 @@ different set of atoms will not be replaced.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-May 2019</address>
+December 2021</address>
 </body></html>

@@ -10,6 +10,8 @@
 # including partial copies, of the software or any revisions
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
+import json
+from chimerax.core.errors import UserError
 
 def run(session, text, *, log=True, downgrade_errors=False, return_json=False, return_list=False):
     """execute a textual command
@@ -44,6 +46,7 @@ def run(session, text, *, log=True, downgrade_errors=False, return_json=False, r
         return results
     return results[0] if len(results) == 1 else results
 
+
 class JSONResult:
     """Class that should be returned by commands that support returning JSON (i.e. the command's
        function has a 'return_json' keyword, and has been called with that keyword set to True).
@@ -54,7 +57,7 @@ class JSONResult:
         self.json_value = json_value
         self.python_value = python_value
 
-import json
+
 class ArrayJSONEncoder(json.JSONEncoder):
     """A version of json.JSONEncoder that can also encode numpy and tinyarray arrays"""
 
@@ -90,7 +93,7 @@ def concise_model_spec(session, models, relevant_types=None, allow_empty_spec=Tr
        is False then a non-empty spec will always be returned.
     """
     universe = set(session.models if relevant_types is None else [x for x in session.models
-        if isinstance(x, relevant_types)])
+                   if isinstance(x, relevant_types)])
     if relevant_types:
         models = [m for m in models if isinstance(m, relevant_types)]
     models = [m for m in models if m.id is not None]
@@ -144,9 +147,10 @@ def concise_model_spec(session, models, relevant_types=None, allow_empty_spec=Tr
         full_spec += spec
     return full_spec if full_spec else '#'
 
-from chimerax.core.errors import UserError
+
 class NoneSelectedError(UserError):
     pass
+
 
 def sel_or_all(session, sel_type_info, *, sel="sel", restriction=None, **concise_kw):
     # sel_type_info is either a list of strings each of which is appropriate as an arg for
@@ -218,7 +222,7 @@ def _make_id_tree(models):
     for m in models:
         subtree = tree
         for i, ident in enumerate(m.id):
-            subtree = subtree.setdefault(ident, { 0: i == len(m.id)-1 })
+            subtree = subtree.setdefault(ident, {0: i == len(m.id) - 1})
     return tree
 
 def _traverse_tree(prefix, m_tree, u_tree):
@@ -236,7 +240,7 @@ def _traverse_tree(prefix, m_tree, u_tree):
         elif m_subtree == u_subtree:
             idents.append(prefix + [ident])
         else:
-            idents.extend(_traverse_tree(prefix +[ident], m_subtree, u_subtree))
+            idents.extend(_traverse_tree(prefix + [ident], m_subtree, u_subtree))
     return idents
 
 def _make_spec(ident1, ident2, show_full):

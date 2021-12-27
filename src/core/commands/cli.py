@@ -202,6 +202,7 @@ from keyword import iskeyword as is_python_keyword
 import re
 import sys
 from collections import OrderedDict
+from typing import Callable, Any
 from contextlib import contextmanager
 from ..errors import UserError
 
@@ -1009,6 +1010,28 @@ class FloatArg(Annotation):
         return str(value)
 
 
+class FloatOrDeltaArg(Annotation):
+    """Annotation for non-negative floating point literals, but if preceded by explicit +/- then interpreted as a delta"""
+    name = "a number >= 0 or a +/- delta"
+
+    @staticmethod
+    def parse(text, session):
+        if not text:
+            raise AnnotationError("Expected %s" % FloatOrDeltaArg.name)
+        is_delta = text[0] in "+-"
+        token, text, rest = next_token(text)
+        try:
+            return (is_delta, float(token)), text, rest
+        except ValueError:
+            raise AnnotationError("Expected %s" % FloatOrDeltaArg.name)
+
+    @staticmethod
+    def unparse(value, session=None):
+        is_delta, num = value
+        assert isinstance(num, (float, int))
+        return ('+' if is_delta and num > 0 else '') + str(num)
+
+
 class StringArg(Annotation):
     """Annotation for text (a word or quoted)"""
     name = "a text string"
@@ -1105,7 +1128,7 @@ _BROWSE_STRING = "browse"
 
 
 def _browse_parse(text, session, item_kind, name_filter, accept_mode, dialog_mode, check_existence,
-        *, return_list=False):
+                  *, return_list=False):
     path, text, rest = FileNameArg.parse(text, session)
     if path == _BROWSE_STRING:
         if not session.ui.is_gui:
@@ -1149,7 +1172,7 @@ class OpenFileNameArg(FileNameArg):
         else:
             accept_mode = dialog_mode = None
         return _browse_parse(text, session, "file", cls.name_filter, accept_mode, dialog_mode,
-            cls.check_existence)
+                             cls.check_existence)
 
 
 class OpenFileNamesArg(Annotation):
@@ -1170,7 +1193,7 @@ class OpenFileNamesArg(Annotation):
         else:
             accept_mode = dialog_mode = None
         return _browse_parse(text, session, "file", cls.name_filter, accept_mode, dialog_mode,
-            cls.check_existence, return_list=True)
+                             cls.check_existence, return_list=True)
 
     @staticmethod
     def unparse(value, session=None):
@@ -1192,7 +1215,7 @@ class SaveFileNameArg(FileNameArg):
         else:
             accept_mode = dialog_mode = None
         return _browse_parse(text, session, "file", cls.name_filter, accept_mode, dialog_mode,
-            cls.check_existence)
+                             cls.check_existence)
 
 
 class OpenFolderNameArg(FileNameArg):
@@ -1208,7 +1231,7 @@ class OpenFolderNameArg(FileNameArg):
         else:
             accept_mode = dialog_mode = None
         return _browse_parse(text, session, "folder", cls.name_filter, accept_mode, dialog_mode,
-            cls.check_existence)
+                             cls.check_existence)
 
 
 class SaveFolderNameArg(FileNameArg):
@@ -1224,7 +1247,7 @@ class SaveFolderNameArg(FileNameArg):
         else:
             accept_mode = dialog_mode = None
         return _browse_parse(text, session, "folder", cls.name_filter, accept_mode, dialog_mode,
-            cls.check_existence)
+                             cls.check_existence)
 
 
 # Atom Specifiers are used in lots of places
@@ -2254,8 +2277,7 @@ _command_info = RegisteredCommandInfo()
 # keep track of available commands
 _available_commands = None
 
-
-def register(name, cmd_desc=(), function=None, *, logger=None, registry=None):
+def register(name: str, cmd_desc: CmdDesc = (), function: Callable[..., Any] = None, *, logger=None, registry=None) -> Callable[..., Any]:
     """register function that implements command
 
     :param name: the name of the command and may include spaces.
@@ -2894,7 +2916,7 @@ class Command:
                     if not log_only:
                         try:
                             result = ci.function(session, *args, optional=optional,
-                                             _used_aliases=used_aliases, log=log)
+                                                 _used_aliases=used_aliases, log=log)
                         except CancelOperation:
                             if not self._ci.self_logging:
                                 session.logger.info("Command cancelled by user")
@@ -3001,11 +3023,12 @@ def command_url(name, no_aliases=False, *, registry=None):
         raise ValueError('"%s" is not a command name' % name)
     if cmd._ci:
         return cmd._ci.url
-    else:
-        return _get_help_url(cmd.command_name.split())
+    if cmd._error:
+        raise ValueError(cmd._error)
+    return _get_help_url(cmd.command_name.split())
 
 
-def usage(session, name, no_aliases=False, show_subcommands=5, expand_alias=True, show_hidden=False,  *,
+def usage(session, name, no_aliases=False, show_subcommands=5, expand_alias=True, show_hidden=False, *,
           registry=None):
     try:
         text = _usage(name, no_aliases, show_subcommands, expand_alias, show_hidden, registry=registry)

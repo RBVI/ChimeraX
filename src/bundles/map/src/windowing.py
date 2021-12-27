@@ -189,7 +189,7 @@ def _window_range(v, center):
 
 def _windows(v):
     levels = list(v.image_levels)
-    levels.sort()
+    levels.sort(key = lambda k: tuple(k))
     n = len(levels)
     wins = []
     for i in range(n):
@@ -207,7 +207,7 @@ def _windows(v):
     
 def log_volume_levels_command(v):
     if v.image_shown:
-        levels = ' '.join('level %.4g,%.4g' % sl for sl in v.image_levels)
+        levels = ' '.join('level %.4g,%.4g' % tuple(sl) for sl in v.image_levels)
         command = 'volume #%s %s' % (v.id_string, levels)
         from chimerax.core.commands import log_equivalent_command
         log_equivalent_command(v.session, command)

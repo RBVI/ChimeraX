@@ -122,8 +122,10 @@ def _alphafold_models(session, sequences, seq_uids, color_confidence=True, trim=
         if uid.uniprot_id in missing:
             missing[uid.uniprot_id].append(seq)
             continue
+        db_version = getattr(uid, 'alphafold_database_version', None)
         try:
             models, status = alphafold_fetch(session, uid.uniprot_id,
+                                             version = db_version,
                                              color_confidence=color_confidence,
                                              add_to_session=False,
                                              ignore_cache=ignore_cache)

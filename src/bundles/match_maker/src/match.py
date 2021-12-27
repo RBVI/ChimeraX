@@ -652,7 +652,7 @@ def cmd_match(session, match_atoms, to=None, pairing=defaults["chain_pairing"],
     # the .subtract() method of Collections does not preserve order (as of 10/28/16),
     # so "subtract" by hand...
     refs = [r for r in refs if r not in matches]
-    if not matches:
+    if not refs:
         raise UserError("Must use different reference and match structures")
     if bring is not None:
         bring = set(bring)

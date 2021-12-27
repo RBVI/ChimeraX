@@ -3,12 +3,8 @@
 # CGI script to read list of sequences and search an AlphaFold sequence
 # database using blat.
 
-# Testing on mac laptop
-#database_path = '/Users/goddard/ucsf/chimerax/src/bundles/alphafold/src/sequences/ref_proteomes/alphafold.fasta'
-#blat_exe = '/Users/goddard/ucsf/blat/bin/blat'
-
 # On plato.cgl.ucsf.edu:
-database_path = '/databases/mol/AlphaFold/alphafold.fasta'
+database_path = '/databases/mol/AlphaFold/v1/alphafold.fasta'
 blat_exe = '/usr/local/bin/blat'
 
 def parse_request_sequences():

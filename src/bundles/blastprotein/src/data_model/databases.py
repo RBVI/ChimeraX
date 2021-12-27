@@ -167,7 +167,7 @@ class AlphaFoldDB(Database):
 
     @staticmethod
     def load_model(chimerax_session, match_code, ref_atomspec, version):
-        cmd = "alphafold fetch %s version %s" % match_code
+        cmd = "alphafold fetch %s version %s" % (match_code, version)
         if ref_atomspec:
             cmd += ' alignTo %s' % ref_atomspec
         models, _ = run(chimerax_session, cmd)
