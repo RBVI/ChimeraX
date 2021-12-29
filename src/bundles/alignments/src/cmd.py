@@ -102,7 +102,10 @@ class AlignSeqPairArg(Annotation):
     def parse(text, session, empty_okay=False):
         from chimerax.core.commands import AnnotationError, next_token
         if not text:
-            raise AnnotationError("Expected %s" % AlignSeqPairArg.name)
+            if empty_okay:
+                text = ':'
+            else:
+                raise AnnotationError("Expected %s" % AlignSeqPairArg.name)
         token, text, rest = next_token(text)
         if ':' not in token:
             align_id, seq_id = "", token
@@ -292,8 +295,17 @@ MUSCLE = "MUSCLE"
 CLUSTAL_OMEGA = "Clustal Omega"
 alignment_program_name_args = { 'muscle': MUSCLE, 'omega': CLUSTAL_OMEGA, 'clustal': CLUSTAL_OMEGA,
     'clustalOmega': CLUSTAL_OMEGA }
-def seqalign_align(session, sequences, *, program=CLUSTAL_OMEGA):
-    print("align %d sequences using" % len(sequences), program)
+def seqalign_align(session, seq_source, *, program=CLUSTAL_OMEGA):
+    from .alignment import Alignment
+    if isinstance(seq_source, Alignment):
+        input_sequences = seq_source.seqs
+        title = "%s realignment of %s" % (program, seq_source.description)
+    else:
+        input_sequences = seq_source
+        title = "%s alignment" % program
+    from .align import realign_sequences
+    realigned = realign_sequences(session, input_sequences, program=program)
+    session.alignments.new_alignment(realigned, None, name=title)
 
 def register_seqalign_command(logger):
     # REMINDER: update manager._builtin_subcommands as additional subcommands are added
@@ -331,7 +343,7 @@ def register_seqalign_command(logger):
 
     apns = list(alignment_program_name_args.keys())
     desc = CmdDesc(
-        required = [('sequences', SequencesArg)],
+        required = [('seq_source', Or(AlignmentArg, SequencesArg))],
         keyword = [('program', EnumOf([alignment_program_name_args[apn] for apn in apns], ids=apns))],
         synopsis = "align sequences"
     )

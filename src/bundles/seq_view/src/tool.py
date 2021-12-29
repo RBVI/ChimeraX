@@ -148,8 +148,9 @@ class SequenceViewer(ToolInstance):
         """
         words = self.alignment.description.split()
         capped_words = []
-        for word in words:
-            if word.islower() and word.isalpha():
+        short_words = set(['and', 'or', 'of', 'is', 'from', 'the'])
+        for i, word in enumerate(words):
+            if word.islower() and word.isalpha() and not (word in short_words and i > 0):
                 capped_words.append(word.capitalize())
             else:
                 capped_words.append(word)
