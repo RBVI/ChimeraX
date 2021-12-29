@@ -146,15 +146,8 @@ class SequenceViewer(ToolInstance):
         self._blastAnnotationServices = {}
         ModelessDialog.__init__(self)
         """
-        words = self.alignment.description.split()
-        capped_words = []
-        short_words = set(['and', 'or', 'of', 'is', 'from', 'the'])
-        for i, word in enumerate(words):
-            if word.islower() and word.isalpha() and not (word in short_words and i > 0):
-                capped_words.append(word.capitalize())
-            else:
-                capped_words.append(word)
-        self.display_name = " ".join(capped_words) + " [ID: %s]" % self.alignment.ident
+        from chimerax.core.utils import titleize
+        self.display_name = titleize(self.alignment.description) + " [ID: %s]" % self.alignment.ident
         from chimerax.ui import MainToolWindow
         self.tool_window = MainToolWindow(self, close_destroys=True, statusbar=True)
         self.tool_window._dock_widget.setMouseTracking(True)
@@ -532,6 +525,17 @@ class SequenceViewer(ToolInstance):
         scf_action = QAction("Load Sequence Coloring File...", file_menu)
         scf_action.triggered.connect(lambda: self.load_scf_file(None))
         file_menu.addAction(scf_action)
+
+        edit_menu = menu.addMenu("Edit")
+        from chimerax.seqalign.cmd import alignment_program_name_args
+        prog_to_arg = {}
+        for arg, prog in alignment_program_name_args.items():
+            prog_to_arg[prog] = arg
+        for prog in sorted(prog_to_arg.keys()):
+            realign_action = QAction("Realign Sequences with %s" % prog, edit_menu)
+            realign_action.triggered.connect(lambda *args, arg=prog_to_arg[prog], unparse=StringArg.unparse:
+                run(self.session, "seq align %s program %s" % (unparse(self.alignment.ident), unparse(arg))))
+            edit_menu.addAction(realign_action)
 
         structure_menu = menu.addMenu("Structure")
         assoc_action = QAction("Associations...", structure_menu)
