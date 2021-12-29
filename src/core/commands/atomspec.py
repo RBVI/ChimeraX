@@ -1071,6 +1071,8 @@ class AtomSpec:
                 session, models, top=False, ordered=order_implicit_atoms, add_implied=add_implied)
             if self.outermost_inversion is None:
                 self.outermost_inversion = isinstance(self._left_spec, _Invert)
+                if self.outermost_inversion:
+                    only_fully_selected_bonds(results)
         elif self._operator == '|':
             left_results = self._left_spec.evaluate(
                 session, models, top=False, ordered=order_implicit_atoms, add_implied=add_implied)
@@ -1111,6 +1113,15 @@ def add_implied_bonds(objects):
     atoms = objects.atoms
     objects.add_bonds(atoms.intra_bonds)
     objects.add_pseudobonds(atoms.intra_pseudobonds)
+
+
+def only_fully_selected_bonds(objects):
+    from chimerax.atomic import Bonds, Pseudobonds
+    from numpy import array
+    intra_bond_ptrs = set(objects.atoms.intra_bonds.pointers)
+    objects.set_bonds(Bonds(array(list(set(objects.bonds.pointers) & intra_bond_ptrs))))
+    intra_pbond_ptrs = set(objects.atoms.intra_pseudobonds.pointers)
+    objects.set_pseudobonds(Pseudobonds(array(list(set(objects.pseudobonds.pointers) & intra_pbond_ptrs))))
 
 
 #

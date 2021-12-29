@@ -36,7 +36,7 @@ class BlastProteinTool(ToolInstance):
     SESSION_SAVE = True
     help = "help:/user/tools/blastprotein.html"
 
-    def __init__(self, session: Session, str, *
+    def __init__(self, session: Session, *
                  , chain: Optional[str] = None, db: str = AvailableDBs[0]
                  , seqs: Optional[int] = 100
                  # Guards against changes in list order

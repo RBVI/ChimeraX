@@ -193,12 +193,12 @@ class AlignmentsManager(StateManager, ProviderManager):
                 viewer_text = getattr(settings, attr).lower()
             if viewer_text:
                 viewer_text = viewer_text.lower()
-                for name, syms in self.viewer_info[type_text].items():
-                    if name == viewer_text:
-                        viewer_name = name
+                for vname, syms in self.viewer_info[type_text].items():
+                    if vname == viewer_text:
+                        viewer_name = vname
                         break
                     if viewer_text in syms:
-                        viewer_name = name
+                        viewer_name = vname
                         break
                 else:
                     self.session.logger.warning("No registered %s viewer corresponds to '%s'"

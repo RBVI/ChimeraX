@@ -183,6 +183,15 @@ def report_selection(session):
 def modify_selection(objects, mode, undo_state, full_residues = False):
     select = (mode == 'add')
     atoms, bonds, pbonds, models = _atoms_bonds_models(objects, full_residues = full_residues)
+    if mode == 'subtract' and atoms:
+        # don't leave partially selected bonds/pseudobonds
+        from chimerax.atomic import concatenate, all_pseudobonds
+        bonds = concatenate([bonds, atoms.bonds], remove_duplicates=True)
+        session = atoms.structures[0].session
+        all_pbs = all_pseudobonds(session)
+        a1, a2 = all_pbs.atoms
+        pbonds = concatenate([pbonds, all_pbs.filter(a1.mask(atoms) | a2.mask(atoms))],
+            remove_duplicates=True)
     undo_state.add(atoms, "selected", atoms.selected, select)
     undo_state.add(bonds, "selected", bonds.selected, select)
     undo_state.add(pbonds, "selected", pbonds.selected, select)

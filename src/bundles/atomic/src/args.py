@@ -171,7 +171,8 @@ class SequencesArg(Annotation):
         return seqs, used, rest
 
 def _parse_sequence(seq_text, session):
-    for arg_type in (UniProtSequenceArg, AlignmentSequenceArg, RawSequenceArg):
+    from chimerax.seqalign import SeqArg
+    for arg_type in (UniProtSequenceArg, SeqArg, RawSequenceArg):
         try:
             seq, sused, srest = arg_type.parse(seq_text, session)
             if len(srest) == 0:
@@ -198,15 +199,6 @@ def is_atom_spec(text, session):
         return False
     return True
                 
-class AlignmentSequenceArg(Annotation):
-    name = 'alignment sequences'
-    
-    @classmethod
-    def parse(cls, text, session):
-        from chimerax.seqalign import AlignSeqPairArg
-        (alignment, seq), used, rest = AlignSeqPairArg.parse(text, session)
-        return seq, used, rest
-
 class UniProtSequenceArg(Annotation):
     name = 'UniProt sequence'
     

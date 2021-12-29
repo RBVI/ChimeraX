@@ -1141,7 +1141,7 @@ class MainWindow(QMainWindow, PlainTextLog):
 
         if len(preset_info) == 1:
             self._uncategorized_preset_menu(session, preset_info)
-        elif len(preset_info) + sum([len(v) for v in preset_info.values()]) < 20:
+        elif len(preset_info) + sum([len(v) for v in preset_info.values()]) < 40:
             self._inline_categorized_preset_menu(session, preset_info)
         else:
             self._rollover_categorized_preset_menu(session, preset_info)
@@ -2786,10 +2786,10 @@ class LabelHeightDialog(QDialog):
         self.height_entry.setText(str(settings.label_height))
         height_layout.addWidget(self.height_entry)
         self.unit_button = QPushButton("\N{ANGSTROM SIGN}")
-        menu = QMenu()
+        menu = QMenu(self.unit_button)
         menu.triggered.connect(lambda action: self.unit_button.setText(action.text()))
-        menu.addAction(QAction("\N{ANGSTROM SIGN}"))
-        menu.addAction(QAction("pixels"))
+        menu.addAction(QAction("\N{ANGSTROM SIGN}", self.unit_button))
+        menu.addAction(QAction("pixels", self.unit_button))
         self.unit_button.setMenu(menu)
         height_layout.addWidget(self.unit_button)
 
@@ -2815,7 +2815,7 @@ class LabelHeightDialog(QDialog):
                 raise UserError("Pixels must be an integer")
         else:
             try:
-                height = int(self.height_entry.text())
+                height = float(self.height_entry.text())
             except ValueError:
                 raise UserError("Height must be a number")
         if height <= 0:
@@ -2827,23 +2827,9 @@ class LabelHeightDialog(QDialog):
         from chimerax.core.commands import run
         run(self.session, command)
 
-prepositions = set(["a", "and", "as", "at", "by", "for", "from", "in", "into", "of", "on", "or", "the", "to"])
 def menu_capitalize(text):
-    capped_words = []
-    for word in text.split():
-        if word[0] == '(':
-            capped_words.append('(' + menu_capitalize(word[1:]))
-        else:
-            if word.lower() != word or (capped_words and word in prepositions):
-                capped_words.append(word)
-            else:
-                capped_word = ""
-                for frag in [x for part in word.split('/') for x in part.split('-')]:
-                    capped_word += frag.capitalize()
-                    if len(capped_word) < len(word):
-                        capped_word += word[len(capped_word)]
-                capped_words.append(capped_word)
-    return " ".join(capped_words)
+    from chimerax.core.utils import titleize
+    return titleize(text)
 
 from .options import Option, EnumOption
 class ToolSideOption(EnumOption):
