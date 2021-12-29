@@ -155,6 +155,8 @@ class SequencesArg(Annotation):
         if is_atom_spec(text, session):
             return UniqueChainsArg.parse(text, session)
 
+        if not text:
+            raise AnnotationError("Expected %s" % cls.name)
         from chimerax.core.commands import next_token
         token, used, rest = next_token(text)
         if len(text) == 0:
