@@ -298,11 +298,16 @@ alignment_program_name_args = { 'muscle': MUSCLE, 'omega': CLUSTAL_OMEGA, 'clust
 def seqalign_align(session, seq_source, *, program=CLUSTAL_OMEGA):
     from .alignment import Alignment
     if isinstance(seq_source, Alignment):
-        input_sequences = seq_source.seqs
+        raw_input_sequences = seq_source.seqs
         title = "%s realignment of %s" % (program, seq_source.description)
     else:
-        input_sequences = seq_source
+        raw_input_sequences = seq_source
         title = "%s alignment" % program
+    from chimerax.atomic import Residue
+    input_sequences = [s for s in raw_input_sequences
+        if getattr(s, 'polymer_type', Residue.PT_PROTEIN) == Residue.PT_PROTEIN]
+    if len(input_sequences) < 2:
+        raise UserError("Must specify 2 or more protein sequences")
     from .align import realign_sequences
     realigned = realign_sequences(session, input_sequences, program=program)
     session.alignments.new_alignment(realigned, None, name=title)
