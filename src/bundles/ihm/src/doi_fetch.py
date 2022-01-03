@@ -62,6 +62,7 @@ def fetch_doi(session, doi, url, ignore_cache = False):
 # HTML scraping to find zip file URL used with Zenodo file sharing site.
 #
 def find_doi_zip_archive_url(session, doi):
+    from chimerax.core.fetch import fetch_file
     doi_url = 'http://doi.org/%s' % doi
     filename = fetch_file(session, doi_url, 'doi %s' % doi,
                           save_name = 'temp.html', save_dir = None,
