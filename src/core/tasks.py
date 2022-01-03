@@ -466,15 +466,23 @@ class Tasks(StateManager):
         "Return the number of registered tasks."
         return len(self._tasks)
 
-    def __contains__(self) -> bool:
-        "Return"
-        pass
+    def __contains__(self, item) -> bool:
+        return item in self._tasks
 
     def __iter__(self):
-        pass
+        return iter(self._tasks)
 
-    def __next__(self):
-        pass
+    def __getitem__(self, key):
+        return self._tasks[key]
+
+    def keys(self):
+        return self._tasks.keys()
+
+    def items(self):
+        return self._tasks.items()
+
+    def values(self):
+        return self._tasks.values()
 
     def list(self):
         """Return list of tasks.
@@ -486,6 +494,12 @@ class Tasks(StateManager):
 
         """
         return list(self._tasks.values())
+
+    def __setitem__(self, task):
+        self.add(task)
+
+    def __delitem__(self, task):
+        self.remove(task)
 
     def add(self, task):
         """Register task with state manager.
