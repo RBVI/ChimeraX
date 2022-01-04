@@ -1,0 +1,123 @@
+*** qtconsole/console_widget.py~	Fri Dec 31 18:26:46 2021
+--- qtconsole/console_widget.py	Sun Jan  2 19:02:22 2022
+***************
+*** 432,438 ****
+          # Make middle-click paste safe.
+          elif getattr(event, 'button', False) and \
+                  etype == QtCore.QEvent.MouseButtonRelease and \
+!                 event.button() == QtCore.Qt.MidButton and \
+                  obj == self._control.viewport():
+              cursor = self._control.cursorForPosition(event.pos())
+              self._control.setTextCursor(cursor)
+--- 432,438 ----
+          # Make middle-click paste safe.
+          elif getattr(event, 'button', False) and \
+                  etype == QtCore.QEvent.MouseButtonRelease and \
+!                 event.button() == QtCore.Qt.MiddleButton and \
+                  obj == self._control.viewport():
+              cursor = self._control.cursorForPosition(event.pos())
+              self._control.setTextCursor(cursor)
+***************
+*** 465,471 ****
+  
+          elif etype == QtCore.QEvent.MouseMove:
+              anchor = self._control.anchorAt(event.pos())
+!             QtWidgets.QToolTip.showText(event.globalPos(), anchor)
+  
+          return super().eventFilter(obj, event)
+  
+--- 465,472 ----
+  
+          elif etype == QtCore.QEvent.MouseMove:
+              anchor = self._control.anchorAt(event.pos())
+! #            QtWidgets.QToolTip.showText(event.globalPos(), anchor)
+!             QtWidgets.QToolTip.showText(event.globalPosition().toPoint(), anchor)
+  
+          return super().eventFilter(obj, event)
+  
+***************
+*** 764,770 ****
+      def _set_font(self, font):
+          """ Sets the base font for the ConsoleWidget to the specified QFont.
+          """
+!         self._control.setTabStopWidth(
+              self.tab_width * self._get_font_width(font)
+          )
+  
+--- 765,772 ----
+      def _set_font(self, font):
+          """ Sets the base font for the ConsoleWidget to the specified QFont.
+          """
+!         #self._control.setTabStopWidth(
+!         self._control.setTabStopDistance(
+              self.tab_width * self._get_font_width(font)
+          )
+  
+***************
+*** 865,871 ****
+              font.setPointSize(self.font_size)
+          else:
+              font.setPointSize(QtWidgets.QApplication.instance().font().pointSize())
+!         font.setStyleHint(QtGui.QFont.TypeWriter)
+          self._set_font(font)
+  
+      def change_font_size(self, delta):
+--- 867,874 ----
+              font.setPointSize(self.font_size)
+          else:
+              font.setPointSize(QtWidgets.QApplication.instance().font().pointSize())
+! #        font.setStyleHint(QtGui.QFont.TypeWriter)
+!         font.setStyleHint(QtGui.QFont.Courier)
+          self._set_font(font)
+  
+      def change_font_size(self, delta):
+***************
+*** 913,919 ****
+      def _set_tab_width(self, tab_width):
+          """ Sets the width (in terms of space characters) for tab characters.
+          """
+!         self._control.setTabStopWidth(tab_width * self._get_font_width())
+  
+          self._tab_width = tab_width
+  
+--- 916,923 ----
+      def _set_tab_width(self, tab_width):
+          """ Sets the width (in terms of space characters) for tab characters.
+          """
+!         #self._control.setTabStopWidth(tab_width * self._get_font_width())
+!         self._control.setTabStopDistance(tab_width * self._get_font_width())
+  
+          self._tab_width = tab_width
+  
+***************
+*** 2549,2552 ****
+          """ Shows a context menu at the given QPoint (in widget coordinates).
+          """
+          menu = self._context_menu_make(pos)
+!         menu.exec_(self._control.mapToGlobal(pos))
+--- 2553,2557 ----
+          """ Shows a context menu at the given QPoint (in widget coordinates).
+          """
+          menu = self._context_menu_make(pos)
+! #        menu.exec_(self._control.mapToGlobal(pos))
+!         menu.exec(self._control.mapToGlobal(pos))
+*** qtconsole/call_tip_widget.py~	Fri Dec 31 18:26:46 2021
+--- qtconsole/call_tip_widget.py	Sun Jan  2 18:57:52 2022
+***************
+*** 171,177 ****
+          # location based trying to minimize the  area that goes off-screen.
+          padding = 3  # Distance in pixels between cursor bounds and tip box.
+          cursor_rect = text_edit.cursorRect(cursor)
+!         screen_rect = QtWidgets.QApplication.instance().desktop().screenGeometry(text_edit)
+          point = text_edit.mapToGlobal(cursor_rect.bottomRight())
+          point.setY(point.y() + padding)
+          tip_height = self.size().height()
+--- 171,178 ----
+          # location based trying to minimize the  area that goes off-screen.
+          padding = 3  # Distance in pixels between cursor bounds and tip box.
+          cursor_rect = text_edit.cursorRect(cursor)
+! #        screen_rect = QtWidgets.QApplication.instance().desktop().screenGeometry(text_edit)
+!         screen_rect = QtCore.QRect(text_edit.mapToGlobal(QtCore.QPoint(0,0)), text_edit.size())
+          point = text_edit.mapToGlobal(cursor_rect.bottomRight())
+          point.setY(point.y() + padding)
+          tip_height = self.size().height()
