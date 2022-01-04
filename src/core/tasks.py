@@ -495,8 +495,14 @@ class Tasks(StateManager):
         """
         return list(self._tasks.values())
 
-    def __setitem__(self, task):
-        self.add(task)
+    # session.tasks.add(self) should == session.tasks[None] = self
+    def __setitem__(self, key, task):
+        if key is None:
+            self.add(task)
+        else:
+            # TODO: A robust solution that will not collide with the
+            # internal counter.
+            self._tasks[key] = task
 
     def __delitem__(self, task):
         self.remove(task)
