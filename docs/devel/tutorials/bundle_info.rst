@@ -1032,3 +1032,115 @@ The doc strings of that class discuss its methods in detail, but briefly:
   an "open command" `Provider`_ with *type*\="open"), then 
   :py:meth:`~chimerax.open_command.FetcherInfo.fetch_args` should only return keywords applicable
   just to fetching.  The "opening" keywords will be automatically combined with those.
+
+
+.. _Defining Presets:
+
+Defining Presets
+----------------
+
+For a bundle to define new presets,
+it must have a `Providers`_ section in its **bundle_info.xml**
+to provide the relevant information to the "presets" manager via one or more `Provider`_ tags.
+The `Provider`_ tags are nested within the `Providers`_ section.
+If your bundle only offers `Provider`_ tags for the "presets" manager, then you can put
+the ``manager="presets"`` attribute in your `Providers`_ tag and that will apply to all the `Provider`_ tags
+within the `Providers`_ section.  If your bundle offers `Provider`_ tags for multiple managers,
+then you can either specify the manager within each `Provider`_ tag, or you can have
+multiple `Providers`_ sections, each with their own ``manager`` attribute.
+
+As per normal XML, `Provider`_ and `Providers`_ attributes are strings
+(*e.g.* ``name="sticks"``).
+
+..
+    TODO
+  
+.. _preset attrs:
+
+Opening Files
+^^^^^^^^^^^^^
+
+For your bundle to open a file, it needs to provide information to the "open command" manager
+about what data format it can open, what arguments it needs, what function to call, *etc.*.
+Some of that info is provided as attributes in the `Provider`_ tag, but the lion's share is
+provided when the open-command manager calls your bundle's
+:py:meth:`~chimerax.core.toolshed.BundleAPI.run_provider` method.
+That call will only occur when ChimeraX tries to open the kind of data that your `Provider`_
+tag says you can open.
+
+To specify that your bundle can open a data format, you supply a `Provider`_ tag in the
+`Providers`_ section of your **bundle_info.xml** file.  The value of
+the ``manager`` attribute in the tag or section should be "open command".
+The other possible `Provider`_ attributes are:
+
+- **Mandatory** Attributes
+
+    *name*
+        The `name`_ of the `data format`_ you can open.  Can also be one of the format's
+        `nicknames`_ instead.
+
+- **Infrequently-Used** Attributes
+
+    *batch*
+        If your provider can open multiple files of its format as one combined model, then
+        it should specify *batch* as "true" and it will be called with a list of path names
+        instead of an open file stream.
+
+    *check_path*
+        If the user can type something other than an existing file name, and your provider
+        will expand that into a real file name or names (*e.g.* there is some kind of substitution
+        the provider does with the text), then specify *check_path* as "false" (which implies
+        *want_path*\="true", you don't have to explicitly specify that).
+
+    *is_default*
+        If your data format has suffixes that are the same as another format's suffixes, *is_default*
+        will determine which format will be used when the open command's ``format`` keyword is omitted.
+        *is_default* defaults to "true", so therefore typically lesser known/used formats supply this
+        attribute with a value of "false".
+
+    *pregrouped_structures*
+        If a provider returns multiple models, the open command will automatically group them
+        so that the entire set of models can be referenced with one model number (the individual
+        models can be referenced with submodel numbers).  The provider *could* pre-group them in
+        order to give the group a name other the default (which is based on the file name; the user can
+        still override that with the ``name`` keyword of the open command).  In the specific case
+        where the provider is pre-grouping atomic structures, it should specify *pregrouped_structures*
+        as "true" so the the open command's return value can be the actual list of structures rather
+        than a grouping model.  This greatly simplifies scripts trying to handle return values
+        from various kinds of structure-opening commands.
+
+    *type*
+        If you are providing information about opening a file rather than fetching from a
+        database, *type* should be "open", and otherwise "fetch".  Since the default value
+        for *type* is "open", providers that open files typically skip specifying *type*.
+
+    *want_path*
+        The provider is normally called with an open file stream rather than a file name,
+        which allows ChimeraX to handle compressed files automatically for you.  If your
+        file reader must be able to open/read the file itself instead, then specify *want_path*
+        as "true" and you will receive a file path instead of a stream, and attempting
+        to open a compressed version of your file type will result in an error before your
+        provider is even called.
+  
+For example::
+
+  <Providers manager="open command">
+    <Provider name="AutoDock PDBQT" want_path="true" />
+    <Provider name="Sybyl Mol2" want_path="true" />
+  </Providers>
+
+The remainder of the information the bundle provides about how to open a file comes from the
+return value of the bundle's
+:py:meth:`~chimerax.core.toolshed.BundleAPI.run_provider` method, which must return
+an instance of the
+:py:class:`chimerax.open_command.OpenerInfo` class.
+The doc strings of that class discuss its methods in detail, but briefly:
+
+* You must override the :py:meth:`~chimerax.open_command.OpenerInfo.open` method to take
+  the input provided and return a (models, status message) tuple.
+
+* If your format has format-specific keywords that the ``open`` command should accept,
+  you must override the :py:meth:`~chimerax.open_command.OpenerInfo.open_args` property
+  to return a dictionary that maps **Python** keywords of your opener-function to corresponding
+  :ref:`Annotation <Type Annotations>` subclasses (such classes convert user-typed text into
+  corresponding Python values).
