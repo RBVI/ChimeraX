@@ -730,6 +730,7 @@ def _linux_info():
     newline = "\n"
     displays = [f"{k}={v}" for k, v in os.environ.items() if k.endswith("DISPLAY")]
     info = f"""
+XDG_SESSION_TYPE={os.environ.get("XDG_SESSION_TYPE", "")}
 DESKTOP_SESSION={os.environ.get("DESKTOP_SESSION", "")}
 XDG_SESSION_DESKTOP={os.environ.get("XDG_SESSION_DESKTOP", "")}
 XDG_CURRENT_DESKTOP={os.environ.get("XDG_CURRENT_DESKTOP", "")}
