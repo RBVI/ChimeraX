@@ -106,30 +106,8 @@ def set_file_icon(path, image):
     from . import _mac_util
     _mac_util.set_file_icon(path, s)
 
-def string_to_attr(string, *, prefix="", collapse=True):
-    """Convert an arbitrary string into a legal Python identifier
-
-       'string' is the string to convert
-
-       'prefix' is a string to prepend to the result
-
-       'collapse' controls whether consecutive underscores are collapsed into one
-
-       If there is no prefix and the string begins with a digit, an underscore will be prepended
-    """
-    if not string:
-        raise ValueError("Empty string to convert to attr name")
-    attr_name = prefix
-    for c in string:
-        if not c.isalnum():
-            if attr_name.endswith('_') and collapse:
-                continue
-            attr_name += '_'
-        else:
-            attr_name += c
-    if attr_name[0].isdigit():
-        attr_name = "_" + attr_name
-    return attr_name
+# for backwards compatibility, make string_to_attr importable from this module
+from .attributes import string_to_attr
 
 short_words = set(["a", "an", "and", "as", "at", "but", "by", "for", "from", "in", "into", "is", "of",
     "on", "or", "the", "to", "with", "within"])
