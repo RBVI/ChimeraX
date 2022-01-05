@@ -49,12 +49,13 @@ are registered and deregistered.  To add and remove
 and ``session.trigger.remove_handler``.
 """
 
-import itertools
 import abc
+import itertools
+import sys
 import threading
 import time
-import sys
 import weakref
+
 from .state import State, StateManager
 
 # If any of the *STATE_VERSIONs change, then increase the (maximum) core session
@@ -65,6 +66,8 @@ ADD_TASK = 'add task'
 REMOVE_TASK = 'remove task'
 UPDATE_TASK = 'update task'
 END_TASK = 'end task'
+
+task_triggers = [ADD_TASK, REMOVE_TASK, UPDATE_TASK, END_TASK]
 
 # Possible task state
 PENDING = "pending"         # Initialized but not running
@@ -337,11 +340,6 @@ class Tasks(StateManager):
 
         """
         self._session = weakref.ref(session)
-        if first:
-            session.triggers.add_trigger(ADD_TASK)
-            session.triggers.add_trigger(REMOVE_TASK)
-            session.triggers.add_trigger(UPDATE_TASK)
-            session.triggers.add_trigger(END_TASK)
         self._tasks = {}
         self._id_counter = itertools.count(1)
 

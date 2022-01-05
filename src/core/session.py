@@ -30,7 +30,7 @@ or for comparing two sessions.
 Session data, ie., data that is archived, uses the :py:class:`State` and
 :py:class:`StateManager` API.
 """
-
+from .tasks import Tasks, task_triggers, END_TASK, UPDATE_TASK, ADD_TASK, REMOVE_TASK
 from .state import RestoreError, State, StateManager, copy_state, dereference_state
 from .errors import UserError
 
@@ -466,8 +466,10 @@ class Session:
         from .triggerset import set_exception_reporter
         set_exception_reporter(lambda preface, logger=self.logger:
                                logger.report_exception(preface=preface))
-        from .import tasks
-        self.tasks = tasks.Tasks(self, first=True)
+
+        self.tasks = Tasks(self)
+        for trigger in task_triggers:
+            self.triggers.add_trigger(trigger)
 
         if minimal:
             # During build process ChimeraX is run before graphics module is installed.
