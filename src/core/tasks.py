@@ -329,6 +329,7 @@ class Tasks(StateManager):
     tasks in the session, as well as managing saving and restoring
     task states for scenes and sessions.
     """
+    _id_counter = itertools.count(1)
 
     def __init__(self, session, first=False):
         """Initialize per-session state manager for tasks.
@@ -341,7 +342,6 @@ class Tasks(StateManager):
         """
         self._session = weakref.ref(session)
         self._tasks = {}
-        self._id_counter = itertools.count(1)
 
     @property
     def session(self):
