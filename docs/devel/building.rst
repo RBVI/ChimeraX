@@ -66,12 +66,21 @@ Cygwin is use to provide a unix-like environment (bash shell, make, ...) to buil
 
 Steps for compiling ChimeraX on Windows 10:
 
-#. Install Microsoft Visual Studio 2017 or 2019 Community Edition::
+#. Install Microsoft Visual Studio 2019 Community Edition::
 
-    Select Programming Languages / Visual C++ (not done by default).
-    Select "Windows and Web Development / Universal Windows App Development Tools".
-    Make sure that Windows SDK 10.0.18362 is installed (matching vsvars.sh).
-    Then start Visual Studio and login, then quit.
+    Select components
+      "Desktop Development with C++".
+      "Universal Windows Platform development".
+
+    The ChimeraX setup script vsvars.sh uses old versions of some components
+    that you will need to choose from the installer "Individual Components"
+    section
+      Windows 10 SDK version 10.0.18362.0
+      MSVC v142 - VS 2019 C++ x64/x86 build tools (v14.24)
+    Alternatively you can edit the vsvars.sh script to use the current
+    Visual Studio 2019 versions of these components.
+    
+    Then start Visual Studio and login, then quit, to complete setup.
     
 #. Install ​Cygwin, 64-bit version. In addition to the default packages, you'll need::
 
@@ -86,7 +95,7 @@ Steps for compiling ChimeraX on Windows 10:
   
 #. Clone the `ChimeraX repository <https://github.com/RBVI/ChimeraX>`_ from GitHub.
 
-#. Run ". vsvars.sh" in chimerax root directory to set path to Visual Studio compiler.
+#. Run ". ./vsvars.sh" in chimerax root directory to set path to Visual Studio compiler.
 
 #. "make install" in the repository root.
 
