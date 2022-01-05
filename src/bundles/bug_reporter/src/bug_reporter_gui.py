@@ -112,14 +112,14 @@ class BugReporter(ToolInstance):
         self.gathered_info = gi = TextEdit('', 3)
         import sys
         info = self.opengl_info()
+        info += f"\n\nLocale: {'.'.join(locale.getdefaultlocale())}\n"
+        info += _qt_info(session)
         if sys.platform == 'win32':
             info += _win32_info()
         elif sys.platform == 'linux':
             info += _linux_info()
         elif sys.platform == 'darwin':
             info += _darwin_info()
-        info += f"Locale: {locale.getdefaultlocale()}\n"
-        info += _qt_info(session)
         info += _package_info()
         gi.setText(info)
         layout.addWidget(gi, row, 2)
@@ -631,6 +631,7 @@ OSLanguage: {lang}
 
 
 def _linux_info():
+    import os
     import distro
     import platform
     import subprocess
@@ -726,7 +727,14 @@ def _linux_info():
     except Exception:
         product = "unknown"
 
+    newline = "\n"
+    displays = [f"{k}={v}" for k, v in os.environ.items() if k.endswith("DISPLAY")]
     info = f"""
+XDG_SESSION_TYPE={os.environ.get("XDG_SESSION_TYPE", "")}
+DESKTOP_SESSION={os.environ.get("DESKTOP_SESSION", "")}
+XDG_SESSION_DESKTOP={os.environ.get("XDG_SESSION_DESKTOP", "")}
+XDG_CURRENT_DESKTOP={os.environ.get("XDG_CURRENT_DESKTOP", "")}
+{newline.join(displays)}
 Manufacturer: {vendor}
 Model: {product}
 OS: {' '.join(distro.linux_distribution())}
@@ -768,7 +776,10 @@ def _qt_info(session):
     if not session.ui.is_gui:
         return ""
     import Qt
-    return Qt.version + '\n'
+    return (
+        f"Qt version: {Qt.version}\n"
+        f"Qt platform: {session.ui.platformName()}\n"
+    )
 
 
 def _package_info():
@@ -776,7 +787,7 @@ def _package_info():
     dists = list(pkg_resources.WorkingSet())
     dists.sort(key=lambda d: d.project_name.casefold())
 
-    info = "Installed Packages:"
+    info = "\nInstalled Packages:"
     for d in dists:
         name = d.project_name
         if d.has_version():

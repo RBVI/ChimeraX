@@ -76,6 +76,8 @@ def initialize_qt_high_dpi_display_support():
     win = (sys.platform == 'win32')
     if win:
         from Qt.QtCore import QCoreApplication, Qt
+        if not hasattr(Qt, 'AA_EnableHighDpiScaling'):
+            return  # Qt6 does not have this setting
         QCoreApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
 
 def initialize_desktop_opengl():

@@ -111,7 +111,7 @@ class Alignment(State):
             self._headers = [hdr_class(self) for hdr_class in session.alignments.headers()]
             if file_markups is not None:
                 for name, markup in file_markups.items():
-                    from chimerax.core.utils import string_to_attr
+                    from chimerax.core.attributes import string_to_attr
                     from chimerax.alignment_headers import FixedHeaderSequence
                     class MarkupHeaderSequence(FixedHeaderSequence):
                         ident = string_to_attr(name, prefix="file_markup_")
