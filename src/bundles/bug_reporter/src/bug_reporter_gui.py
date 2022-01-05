@@ -112,7 +112,7 @@ class BugReporter(ToolInstance):
         self.gathered_info = gi = TextEdit('', 3)
         import sys
         info = self.opengl_info()
-        info += f"\n\nLocale: {locale.getdefaultlocale()}\n"
+        info += f"\n\nLocale: {'.'.join(locale.getdefaultlocale())}\n"
         info += _qt_info(session)
         if sys.platform == 'win32':
             info += _win32_info()
