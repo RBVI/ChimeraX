@@ -7,7 +7,8 @@ include Makefile.pip
 # Force LANG to UTF-8 so that grako will install successfully
 LANG	= en_US.UTF-8
 
-PATCHES = pyopengl_macos11.patch suds_jurko.patch webcolors.patch filelock.patch
+# qtconsole_pyqt6.patch: make the Python shell to work with Qt6 need to patch qtconsole 5.2.2.
+PATCHES = pyopengl_macos11.patch suds_jurko.patch webcolors.patch filelock.patch qtconsole_pyqt6.patch
 
 # Notarized macOS application will not launch first time if it contains
 # libraries or executables with references to non-system libraries outside the application.
