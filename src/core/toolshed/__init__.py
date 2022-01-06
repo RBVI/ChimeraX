@@ -1442,7 +1442,7 @@ def chimerax_uuid():
     from getpass import getuser
     import uuid
     node = uuid.getnode()   # Locality
-    name = _getuser()
+    name = _get_user()
     dn = "CN=%s, L=%s" % (name, node)
     # and now make it anonymous
     # (uuid is based on the first 16 bytes of a 20 byte SHA1 hash)
