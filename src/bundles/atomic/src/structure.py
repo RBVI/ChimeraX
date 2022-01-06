@@ -1335,17 +1335,10 @@ class AtomicStructure(Structure):
             from chimerax.std_commands.lighting import lighting as light_cmd
             light_cmd(self.session, **lighting)
 
-    # used by custom-attr registration code
-    @property
-    def has_custom_attrs(self):
-        from .molobject import has_custom_attrs
-        return has_custom_attrs(Structure, self) or has_custom_attrs(AtomicStructure, self)
-
     def take_snapshot(self, session, flags):
         data = {
-            'AtomicStructure version': 2,
+            'AtomicStructure version': 3,
             'structure state': Structure.take_snapshot(self, session, flags),
-            'custom attrs': self.custom_attrs
         }
         return data
 
@@ -1356,11 +1349,13 @@ class AtomicStructure(Structure):
         return s
 
     def set_state_from_snapshot(self, session, data):
-        if data.get('AtomicStructure version', 1) == 1:
+        version = data.get('AtomicStructure version', 1)
+        if version == 1:
             Structure.set_state_from_snapshot(self, session, data)
         else:
             Structure.set_state_from_snapshot(self, session, data['structure state'])
-            self.set_custom_attrs(data)
+            if version < 3:
+                self.set_custom_attrs(data)
 
     def _determine_het_res_descriptions(self, session):
         # Don't actually set the description in the residue in order to avoid having
@@ -2369,12 +2364,7 @@ from chimerax.core.attributes import register_class
 from .molobject import python_instances_of_class, Atom, Bond, CoordSet, Pseudobond, PseudobondManager, \
     Residue, Sequence, StructureSeq
 from .pbgroup import PseudobondGroup
-for reg_class in [ Atom, AtomicStructure, Bond, CoordSet, Pseudobond, PseudobondGroup, PseudobondManager,
+for reg_class in [ Atom, Structure, Bond, CoordSet, Pseudobond, PseudobondGroup, PseudobondManager,
         Residue, Sequence, StructureSeq ]:
     register_class(reg_class, lambda *args, cls=reg_class: python_instances_of_class(cls),
         {attr_name: types for attr_name, types in getattr(reg_class, '_attr_reg_info', [])})
-# Structure needs a slightly different 'instances' function to screen out AtomicStructures (not strictly
-# necessary really due to the way instance attributes actually get restored)
-register_class(Structure, lambda *args: [ inst for inst in python_instances_of_class(Structure)
-    if not isinstance(inst, AtomicStructure)],
-    {attr_name: types for attr_name, types in getattr(Structure, '_attr_reg_info', [])})

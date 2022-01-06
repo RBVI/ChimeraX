@@ -46,8 +46,7 @@ scipy==1.7.1 ; platform_machine != 'arm64'
 six==1.16.0
 sortedcontainers==2.4.0
 suds-jurko==0.6
-# No binary wheels for Windows and Mac for PyTables in Python 3.9.
-#tables==3.6.1
+tables==3.7.0
 tifffile==2021.4.8
 tinyarray==1.2.4
 webcolors==1.11.1

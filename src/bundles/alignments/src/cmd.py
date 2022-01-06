@@ -310,7 +310,7 @@ def seqalign_align(session, seq_source, *, program=CLUSTAL_OMEGA):
         raise UserError("Must specify 2 or more protein sequences")
     from .align import realign_sequences
     realigned = realign_sequences(session, input_sequences, program=program)
-    session.alignments.new_alignment(realigned, None, name=title)
+    return session.alignments.new_alignment(realigned, None, name=title)
 
 def register_seqalign_command(logger):
     # REMINDER: update manager._builtin_subcommands as additional subcommands are added

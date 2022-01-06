@@ -351,7 +351,7 @@ class RunModeller(State):
         for i, hdr in enumerate(headers):
             if hdr.endswith(" score"):
                 headers[i] = hdr[:-6]
-        from chimerax.core.utils import string_to_attr
+        from chimerax.core.attributes import string_to_attr
         attr_names = [string_to_attr(hdr, prefix="modeller_") for hdr in headers]
         from chimerax.atomic import AtomicStructure
         for attr_name in attr_names:

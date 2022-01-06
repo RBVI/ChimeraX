@@ -36,5 +36,6 @@ def taskman(session: Session, action: str, job: str = None) -> None:
 
 taskman_desc: CmdDesc = CmdDesc(
     required = [("action", StringArg)],
-    optional = [("job", StringArg)]
+    optional = [("job", StringArg)],
+    synopsis = "Manage tasks on the ChimeraX command line"
 )
