@@ -473,6 +473,7 @@ class ChainListsWidget(QWidget):
                 for widget in widgets:
                     self.__work_layout.removeWidget(widget)
                     widget.destroy()
+            self.__chain_list_mapping.clear()
             self.__show_widget(self.__empty_label)
             self.value_changed.emit()
             return
