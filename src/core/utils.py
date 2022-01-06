@@ -106,30 +106,44 @@ def set_file_icon(path, image):
     from . import _mac_util
     _mac_util.set_file_icon(path, s)
 
-def string_to_attr(string, *, prefix="", collapse=True):
-    """Convert an arbitrary string into a legal Python identifier
+# for backwards compatibility, make string_to_attr importable from this module
+from .attributes import string_to_attr
 
-       'string' is the string to convert
-
-       'prefix' is a string to prepend to the result
-
-       'collapse' controls whether consecutive underscores are collapsed into one
-
-       If there is no prefix and the string begins with a digit, an underscore will be prepended
-    """
-    if not string:
-        raise ValueError("Empty string to convert to attr name")
-    attr_name = prefix
-    for c in string:
-        if not c.isalnum():
-            if attr_name.endswith('_') and collapse:
-                continue
-            attr_name += '_'
+short_words = set(["a", "an", "and", "as", "at", "but", "by", "for", "from", "in", "into", "is", "of",
+    "on", "or", "the", "to", "with", "within"])
+def titleize(text):
+    capped_words = []
+    words = text.split()
+    while words:
+        word = words[0]
+        if word[0] in '([{':
+            match_char = ')]}'['([{'.index(word[0])]
+            if word[-1] == match_char:
+                capped_words.append(word[0] + titleize(word[1:-1]) + match_char)
+                words = words[1:]
+            else:
+                for i, matching_word in enumerate(words[1:]):
+                    if matching_word[-1] == match_char:
+                        capped_words.append(word[0] + titleize(" ".join([word[1:]] + words[1:i+1]
+                            + [matching_word[:-1]])) + match_char)
+                        words = words[i+2:]
+                        break
+                else:
+                    # no matching closing paren/bracket/brace
+                    capped_words.append(word)
+                    words = words[1:]
+            continue
+        if word.lower() != word or (capped_words and word in short_words and len(words) > 1):
+            capped_words.append(word)
         else:
-            attr_name += c
-    if attr_name[0].isdigit():
-        attr_name = "_" + attr_name
-    return attr_name
+            capped_word = ""
+            for frag in [x for part in word.split('/') for x in part.split('-')]:
+                capped_word += frag.capitalize()
+                if len(capped_word) < len(word):
+                    capped_word += word[len(capped_word)]
+            capped_words.append(capped_word)
+        words = words[1:]
+    return " ".join(capped_words)
 
 class CustomSortString(str):
 

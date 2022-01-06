@@ -23,39 +23,75 @@ or derivations thereof.
 <img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
 class="clRight" title="User Guide Index"/></a>
 
-<a name="chain"></a>
 <h3><a href="../index.html#commands">Command</a>: sequence</h3>
-<h3 class="usage"><a href="usageconventions.html">Usage</a>:
-<br><b>sequence &nbsp;chain</b>
+<p>
+The <b>sequence</b> command can:
+</p>
+<ul>
+<li><a href="#chain">show the sequence</a> of a structure chain
+in the <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>
+<li><a href="#associate">control sequence-structure associations</a>
+<li><a href="#header">show, hide, save alignment headers</a>
+<li><a href="#align">calculate a new sequence alignment</a>
+using a web service
+</ul>
+<p>
+Associations, headers, and sequence alignment can also be managed using the
+<a href="../tools/sequenceviewer.html#context"><b>Sequence Viewer</b>
+context menu</a>.
+</p>
+
+<a name="chain"></a>
+<p class="nav">
+[<a href="#top">back to top: sequence</a>]
+</p>
+<h3>Show Sequence from Structure</h3>
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>sequence &nbsp;chain</b>
 &nbsp;<a href="atomspec.html#hierarchy"><i>chain-spec</i></a>
-</h3>
-<a name="associate"></a>
-<a name="disassociate"></a>
-<a name="dissociate"></a>
-<h3 class="usage"><a href="usageconventions.html">Usage</a>:
-<br><b>sequence &nbsp;associate</b>
-&nbsp;<a href="atomspec.html#hierarchy"><i>chain-spec</i></a>
-<span class="nowrap">[&nbsp;<i>alignment-ID</i>:<i>sequence-ID</i>&nbsp;]</span>
-</h3>
-<h3 class="usage"><a href="usageconventions.html">Usage</a>:
-<br><b>sequence</b> 
-(&nbsp;<b>dissociate</b>&nbsp;|&nbsp;<b>disassociate</b>&nbsp;)
-&nbsp;<a href="atomspec.html#hierarchy"><i>chain-spec</i></a>
-&nbsp;<i>alignment-ID</i>
-</h3>
+</blockquote>
 <p>
 The command <b>sequence chain</b> shows the sequence of the specified 
 biopolymer chain in the 
 <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>.
-Only one structure chain should be specified.
-See also:
-<a href="open.html#sequence">sequence file formats</a>,
-<a href="blastprotein.html"><b>blastprotein</b></a>,
-<a href="modeller.html"><b>modeller</b></a>,
+Only one structure chain should be specified per command.
+See also: 
 <a href="../tools/moldisplay.html"><b>Molecule Display</b></a> icon
 <a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
 <img class="iconbar" src="../tools/shortcut-icons/sequence.png"></a>
 </p><p>
+Independent of structure, sequence alignments and individual sequences
+can also be <a href="open.html#local">opened</a>
+from <a href="open.html#sequence">files</a>
+or <a href="open.html#fetch">fetched</a>
+from <a href="https://www.uniprot.org/" target="_blank">UniProt</a>.
+Other tools or commands may generate new sequence alignments
+(<i>e.g.</i>, <a href="../tools/blastprotein.html#results"><b>Blast Protein</b>
+results</a>, <a href="../tools/matchmaker.html"><b>Matchmaker</b></a>,
+<a href="#align">sequence realignment</a>).
+</p>
+
+<a name="associate"></a>
+<a name="disassociate"></a>
+<a name="dissociate"></a>
+<p class="nav">
+[<a href="#top">back to top: sequence</a>]
+</p>
+<h3>Sequence-Structure Association</h3>
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>sequence &nbsp;associate</b>
+&nbsp;<a href="atomspec.html#hierarchy"><i>chain-spec</i></a>
+<span class="nowrap">[&nbsp;<i>alignment-ID</i>:<i>sequence-ID</i>&nbsp;]</span>
+<br>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>sequence</b> 
+(&nbsp;<b>dissociate</b>&nbsp;|&nbsp;<b>disassociate</b>&nbsp;)
+&nbsp;<a href="atomspec.html#hierarchy"><i>chain-spec</i></a>
+&nbsp;<i>alignment-ID</i>
+</blockquote>
+<p>
 <a href="../tools/sequenceviewer.html#association">Sequence-structure
 association</a> 
 (such as for synchronized <a href="../selection.html">selection</a>)
@@ -128,7 +164,108 @@ showing/hiding affects all applicable alignments.
 However, saving only works for a single header at a time, so an
 <i>alignment-ID</i> must be given when more than one alignment is open.
 </p>
+
+<a name="align"></a>
+<p class="nav">
+[<a href="#top">back to top: sequence</a>]
+</p>
+<h3>Align Sequences using Clustal Omega or MUSCLE</h3>
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>sequence &nbsp;align</b> &nbsp;<i>alignment-ID</i>
+[&nbsp;<b>program</b>&nbsp;&nbsp;<b>clustalOmega</b>&nbsp;|&nbsp;muscle&nbsp;]
+<br>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>sequence &nbsp;align</b> 
+&nbsp;<a href="atomspec.html#hierarchy"><i>chain-spec</i></a>
+[&nbsp;<b>program</b>&nbsp;&nbsp;<b>clustalOmega</b>&nbsp;|&nbsp;muscle&nbsp;]
+<br>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>sequence &nbsp;align</b> 
+&nbsp;<i>sequence1</i>,<i>sequence2</i>[,<i>sequence3</i>...,<i>sequenceN</i>]
+[&nbsp;<b>program</b>&nbsp;&nbsp;<b>clustalOmega</b>&nbsp;|&nbsp;muscle&nbsp;]
+</blockquote>
+<p>
+The <b>sequence align</b> command calculates a new alignment of the
+specified protein sequences using a web service hosted by the
+<a href="https://www.rbvi.ucsf.edu/Overview/index.html" target="_blank">UCSF
+RBVI</a>. The result is opened in a new
+<a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a> window.
+</p><p>
+The sequences to align can be specified collectively by:
+</p>
+<ul>
+<li>alignment ID, as shown in the title bar of an existing
+<a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a> window
+<li>a <a href="atomspec.html#hierarchy"><i>chain-spec</i></a>
+(for atomic-structure protein chains already open in ChimeraX)
+</ul>
+...or individually as a comma-separated list (without spaces) 
+of any combination of:
+<ul>
+<li>the <a href="seqspec.html"><i>sequence-spec</i></a> of a sequence
+in the <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>,
+in the form: 
+&nbsp;<span class="nowrap"><i>alignment-ID</i>:<i>sequence-ID</i></span>&nbsp;
+(<a href="seqspec.html">details...</a>)
+<li><a href="https://www.uniprot.org" target="_blank">UniProt</a>
+name or accession number
+<li>plain text of the entire amino acid sequence pasted directly 
+into the command line
+</ul>
+<p>
+The <b>program</b> can be either of two choices:
+</p>
+<ul>
+<li><a name="clustal"></a> 
+<b>clustalOmega</b> (default, same as <b>clustal</b> or <b>omega</b>) 
+&ndash; <a href="http://www.clustal.org/omega/" 
+target="_blank">Clustal Omega</a> v1.1.0 with parameters: 
+</p>
+  <ul>
+  <li>Number of guide-tree/HMM iterations: <b>1</b>
+  <li>Full distance matrix during initial alignment: <b>true</b>
+  <li>Full distance matrix during alignment iteration: <b>true</b>
+  </ul>
+<p>
+See the <a href="http://www.clustal.org/omega/README"
+target="_blank">README file</a> at the Clustal Omega website for details.
+Users should cite:
+</p>
+<blockquote>
+<a href="https://www.ncbi.nlm.nih.gov/pubmed/21988835" target="_blank">
+Fast, scalable generation of high-quality protein multiple sequence alignments
+using Clustal Omega.</a>
+Sievers F, Wilm A, Dineen D, Gibson TJ, Karplus K, Li W, Lopez R, McWilliam H,
+Remmert M, S&ouml;ding J, Thompson JD, Higgins DG.
+<i>Mol Syst Biol.</i> 2011 Oct 11;7:539.
+</blockquote>
+<li><a name="muscle"></a>
+<b>muscle</b> &ndash; <a href="https://drive5.com/muscle/" 
+target="_blank">MUSCLE</a> v3.8.31 with parameters:
+</p>
+  <ul>
+  <li>Maximum number of iterations: <b>16</b>
+  <li>Maximum time to iterate: <b>unlimited</b>
+  <li>Find diagonals (faster execution if sequences are similar,
+  with possible decrease in accuracy): <b>false</b>
+  </ul>
+<p>
+See the <a href="https://www.drive5.com/muscle/manual/options.html"
+target="_blank">command-line reference</a> at the MUSCLE website
+and <a href="https://www.biomedcentral.com/1471-2105/5/113"
+target="_blank"><i>BMC Bioinformatics</i> <b>5</b>:113 (2004)</a> for details.
+Users should cite:
+</p>
+<blockquote>
+<a href="https://www.ncbi.nlm.nih.gov/pubmed/15034147" target="_blank">
+MUSCLE: multiple sequence alignment with high accuracy and high throughput.</a>
+Edgar RC.
+<i>Nucleic Acids Res.</i> 2004 Mar 19;32(5):1792-7.
+</blockquote>
+</ul>
+
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-August 2020</address>
+December 2021</address>
 </body></html>

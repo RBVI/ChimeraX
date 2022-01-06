@@ -102,7 +102,10 @@ class AlignSeqPairArg(Annotation):
     def parse(text, session, empty_okay=False):
         from chimerax.core.commands import AnnotationError, next_token
         if not text:
-            raise AnnotationError("Expected %s" % AlignSeqPairArg.name)
+            if empty_okay:
+                text = ':'
+            else:
+                raise AnnotationError("Expected %s" % AlignSeqPairArg.name)
         token, text, rest = next_token(text)
         if ':' not in token:
             align_id, seq_id = "", token
@@ -288,10 +291,32 @@ def seqalign_header(session, alignments, subcommand_text):
     for alignment in alignments:
         alignment._dispatch_header_command(subcommand_text)
 
+MUSCLE = "MUSCLE"
+CLUSTAL_OMEGA = "Clustal Omega"
+alignment_program_name_args = { 'muscle': MUSCLE, 'omega': CLUSTAL_OMEGA, 'clustal': CLUSTAL_OMEGA,
+    'clustalOmega': CLUSTAL_OMEGA }
+def seqalign_align(session, seq_source, *, program=CLUSTAL_OMEGA):
+    from .alignment import Alignment
+    if isinstance(seq_source, Alignment):
+        raw_input_sequences = seq_source.seqs
+        title = "%s realignment of %s" % (program, seq_source.description)
+    else:
+        raw_input_sequences = seq_source
+        title = "%s alignment" % program
+    from chimerax.atomic import Residue
+    input_sequences = [s for s in raw_input_sequences
+        if getattr(s, 'polymer_type', Residue.PT_PROTEIN) == Residue.PT_PROTEIN]
+    if len(input_sequences) < 2:
+        raise UserError("Must specify 2 or more protein sequences")
+    from .align import realign_sequences
+    realigned = realign_sequences(session, input_sequences, program=program)
+    return session.alignments.new_alignment(realigned, None, name=title)
+
 def register_seqalign_command(logger):
     # REMINDER: update manager._builtin_subcommands as additional subcommands are added
-    from chimerax.core.commands import CmdDesc, register, create_alias, Or, EmptyArg, RestOfLine, ListOf
-    from chimerax.atomic import UniqueChainsArg
+    from chimerax.core.commands import CmdDesc, register, create_alias, Or, EmptyArg, RestOfLine, ListOf, \
+        EnumOf
+    from chimerax.atomic import UniqueChainsArg, SequencesArg
     desc = CmdDesc(
         required = [('chains', UniqueChainsArg)],
         synopsis = 'show structure chain sequence'
@@ -320,6 +345,14 @@ def register_seqalign_command(logger):
         synopsis = "send subcommand to header"
     )
     register('sequence header', desc, seqalign_header, logger=logger)
+
+    apns = list(alignment_program_name_args.keys())
+    desc = CmdDesc(
+        required = [('seq_source', Or(AlignmentArg, SequencesArg))],
+        keyword = [('program', EnumOf([alignment_program_name_args[apn] for apn in apns], ids=apns))],
+        synopsis = "align sequences"
+    )
+    register('sequence align', desc, seqalign_align, logger=logger)
 
     from . import manager
     manager._register_viewer_subcommands(logger)

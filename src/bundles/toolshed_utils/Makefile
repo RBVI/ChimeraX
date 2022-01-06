@@ -31,7 +31,7 @@ PYTHON_EXE = $(PYTHON_BIN) -I
 PYLINT = $(PYTHON_EXE) -m flake8
 
 BUNDLE_NAME = ChimeraX-ToolshedUtils
-BUNDLE_VERSION = 1.2
+BUNDLE_VERSION = 1.2.1
 PKG_NAME = chimerax.toolshed_utils
 
 BASE_BNDL_NAME = $(subst ChimeraX-,,$(BUNDLE_NAME))
