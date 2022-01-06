@@ -21,6 +21,31 @@ where the attribute value has not been explicitly set will return the default va
 AttributeError.
 """
 
+def string_to_attr(string, *, prefix="", collapse=True):
+    """Convert an arbitrary string into a legal Python identifier
+
+       'string' is the string to convert
+
+       'prefix' is a string to prepend to the result
+
+       'collapse' controls whether consecutive underscores are collapsed into one
+
+       If there is no prefix and the string begins with a digit, an underscore will be prepended
+    """
+    if not string:
+        raise ValueError("Empty string to convert to attr name")
+    attr_name = prefix
+    for c in string:
+        if not c.isalnum():
+            if attr_name.endswith('_') and collapse:
+                continue
+            attr_name += '_'
+        else:
+            attr_name += c
+    if attr_name[0].isdigit():
+        attr_name = "_" + attr_name
+    return attr_name
+
 # Custom attrs:
 # At class definition, need to call a method of the manager to add in the registration machinery.
 
@@ -208,13 +233,15 @@ class RegAttrManager(StateManager):
         return matching_attr_names
 
     def has_attribute(self, class_obj, attr_name):
-        """Does the class have a builtin or registered attribute with the given name?"""
+        "Does the class or its parent classes have a builtin or registered attribute with the given name?"
         try:
-            instances_func, builtin_attr_info = self.class_info[class_obj]
+            registered_class, instances_func, builtin_attr_info = self._recursive_has_attribute(
+                class_obj, attr_name)
         except KeyError:
             raise ValueError("Class '%s' has not registered attribute information" % class_obj.__name__)
 
-        return attr_name in builtin_attr_info or attr_name in class_obj._attr_registration.reg_attr_info
+        return attr_name in builtin_attr_info \
+            or attr_name in registered_class._attr_registration.reg_attr_info
 
     def include_state(self):
         self._python_instances = [[inst for  inst in inst_func(self.session)
@@ -263,6 +290,22 @@ class RegAttrManager(StateManager):
     def restore_snapshot(session, data):
         _mgr._restore_session_data(session, data)
         return _mgr
+
+    def _recursive_has_attribute(self, class_obj, attr_name):
+        try:
+            instances_func, builtin_attr_info = self.class_info[class_obj]
+            registered_class = class_obj
+        except KeyError:
+            for base_class in class_obj.__bases__:
+                try:
+                    registered_class, instances_func, builtin_attr_info = self._recursive_has_attribute(
+                        base_class, attr_name)
+                except KeyError:
+                    continue
+                break
+            else:
+                raise KeyError("Base classes also not registered")
+        return registered_class, instances_func, builtin_attr_info
 
     def _restore_session_data(self, session, data):
         # Version 1 is from when the atomic bundle handled this, and lack the 'instances' key,

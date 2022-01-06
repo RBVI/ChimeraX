@@ -32,6 +32,8 @@ class LimitationError(NotABug):
 class NonChimeraError(NotABug):
     """Error whose cause is outside ChimeraX, for example a temporary network error"""
     pass
+# allow NonChimeraXError as well...
+NonChimeraXError = NonChimeraError
 
 class UserError(NotABug):
     """User provided wrong input, or took a wrong action"""
