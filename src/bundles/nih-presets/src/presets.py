@@ -166,10 +166,18 @@ def rainbow_cmd(structure):
     return "rainbow %s@ca,c4'%s" % (structure.atomspec, color_arg)
 
 def run_preset(session, name, mgr):
-    if name == "ribbon rainbow":
+    if name == "ribbon by secondary structure":
         cmd = undo_printable + base_setup + base_macro_model + base_ribbon
-    elif name == "ribbon rainbow (printable)":
+    elif name == "ribbon by secondary structure (printable)":
         cmd = base_setup + base_macro_model + base_ribbon + print_ribbon + print_prep(pb_radius=None)
+    elif name == "ribbon by chain (printable)":
+        cmd = base_setup + base_macro_model + base_ribbon + [
+            rainbow_cmd(s) for s in all_atomic_structures(session)
+        ] + print_ribbon + print_prep(pb_radius=None)
+    elif name == "ribbon rainbow (printable)":
+        cmd = base_setup + base_macro_model + base_ribbon + [
+            "rainbow @CA"
+        ] + print_ribbon + print_prep(pb_radius=None)
     elif name == "ribbon by polymer (printable)":
         cmd = base_setup + base_macro_model + base_ribbon + print_ribbon + [
             "color bypolymer"
