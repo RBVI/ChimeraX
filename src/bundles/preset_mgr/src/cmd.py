@@ -47,7 +47,7 @@ def preset_cmd(session, text1, text2=None):
             if len(matches) > 1:
                 raise UserError("Multiple preset names in category '%s' match '%s': %s"
                     % (cat, preset_text, '; '.join(matches)))
-            session.presets.preset_function(cat, matches[0])()
+            run_preset(session, cat, matches[0])
         else:
             match_all_presets(session, cat_text + " " + preset_text, preset_map)
 
@@ -60,10 +60,15 @@ def match_all_presets(session, preset_text, preset_map):
         raise UserError("Multiple preset names match '%s': %s" % (preset_text, '; '.join(matches)))
     for cat, presets in preset_map.items():
         if matches[0] in presets:
-            session.presets.preset_function(cat, matches[0])()
+            run_preset(session, cat, matches[0])
             break
     else:
         raise AssertionError("Previously found preset '%s' no longer found" % matches[0])
+
+def run_preset(session, category, preset):
+    from chimerax.core.utils import titleize
+    session.logger.info("Using preset: %s / %s" % (titleize(category), titleize(preset)))
+    session.presets.preset_function(category, preset)()
 
 def text_match(query, targets):
     # priority:  exact match;  begins with query text;  contains query text
