@@ -766,6 +766,8 @@ For example::
             category="Molecular structure" synopsis="Mol2" encoding="utf-8" />
     </Providers>
   
+A detailed example of defining a data format can be found in :ref:`Bundle Example: Read a New File Format`.
+
 .. _open command:
 
 Opening Files
@@ -855,6 +857,8 @@ The doc strings of that class discuss its methods in detail, but briefly:
   to return a dictionary that maps **Python** keywords of your opener-function to corresponding
   :ref:`Annotation <Type Annotations>` subclasses (such classes convert user-typed text into
   corresponding Python values).
+  
+A detailed example for opening a file type can be found in :ref:`Bundle Example: Read a New File Format`.
 
 .. _save command:
 
@@ -938,6 +942,8 @@ The doc strings of that class discuss its methods in detail, but briefly:
   that takes your widget and returns a string containing the corresponding options and
   values that could be added to a ``save`` command.
   
+A detailed example for saving a file type can be found in :ref:`Bundle Example: Save a New File Format`.
+
 .. _fetch command:
 
 Fetching Files
@@ -1033,6 +1039,8 @@ The doc strings of that class discuss its methods in detail, but briefly:
   :py:meth:`~chimerax.open_command.FetcherInfo.fetch_args` should only return keywords applicable
   just to fetching.  The "opening" keywords will be automatically combined with those.
 
+A detailed example for saving a file type can be found in :ref:`Bundle Example: Fetch from Network Database`.
+
 
 .. _Defining Presets:
 
@@ -1050,97 +1058,35 @@ then you can either specify the manager within each `Provider`_ tag, or you can 
 multiple `Providers`_ sections, each with their own ``manager`` attribute.
 
 As per normal XML, `Provider`_ and `Providers`_ attributes are strings
-(*e.g.* ``name="sticks"``).
-
-..
-    TODO
-  
-.. _preset attrs:
-
-Opening Files
-^^^^^^^^^^^^^
-
-For your bundle to open a file, it needs to provide information to the "open command" manager
-about what data format it can open, what arguments it needs, what function to call, *etc.*.
-Some of that info is provided as attributes in the `Provider`_ tag, but the lion's share is
-provided when the open-command manager calls your bundle's
-:py:meth:`~chimerax.core.toolshed.BundleAPI.run_provider` method.
-That call will only occur when ChimeraX tries to open the kind of data that your `Provider`_
-tag says you can open.
-
-To specify that your bundle can open a data format, you supply a `Provider`_ tag in the
-`Providers`_ section of your **bundle_info.xml** file.  The value of
-the ``manager`` attribute in the tag or section should be "open command".
-The other possible `Provider`_ attributes are:
+(*e.g.* ``name="sticks"``).  Aside from "manager", the other possible `Provider`_ tags are:
 
 - **Mandatory** Attributes
 
     *name*
-        The `name`_ of the `data format`_ you can open.  Can also be one of the format's
-        `nicknames`_ instead.
+        The name of the preset as shown in the Presets menu and as used by the ``preset`` command.
+        Case does not matter.
 
-- **Infrequently-Used** Attributes
+- **Frequently-Used** Attributes
 
-    *batch*
-        If your provider can open multiple files of its format as one combined model, then
-        it should specify *batch* as "true" and it will be called with a list of path names
-        instead of an open file stream.
+    *category*
+        The category that the preset should be grouped into, as shown in the Presets menu
+        and as used in the ``preset`` command.  Case does not matter.  Default is "General".
 
-    *check_path*
-        If the user can type something other than an existing file name, and your provider
-        will expand that into a real file name or names (*e.g.* there is some kind of substitution
-        the provider does with the text), then specify *check_path* as "false" (which implies
-        *want_path*\="true", you don't have to explicitly specify that).
+    *order*
+        Controls the placement of the preset within its category in the Presets menu.
+        Must be an integer (*e.g.* ``order="1"``).
+        Default is to arrange presets in alphabetical order.
 
-    *is_default*
-        If your data format has suffixes that are the same as another format's suffixes, *is_default*
-        will determine which format will be used when the open command's ``format`` keyword is omitted.
-        *is_default* defaults to "true", so therefore typically lesser known/used formats supply this
-        attribute with a value of "false".
-
-    *pregrouped_structures*
-        If a provider returns multiple models, the open command will automatically group them
-        so that the entire set of models can be referenced with one model number (the individual
-        models can be referenced with submodel numbers).  The provider *could* pre-group them in
-        order to give the group a name other the default (which is based on the file name; the user can
-        still override that with the ``name`` keyword of the open command).  In the specific case
-        where the provider is pre-grouping atomic structures, it should specify *pregrouped_structures*
-        as "true" so the the open command's return value can be the actual list of structures rather
-        than a grouping model.  This greatly simplifies scripts trying to handle return values
-        from various kinds of structure-opening commands.
-
-    *type*
-        If you are providing information about opening a file rather than fetching from a
-        database, *type* should be "open", and otherwise "fetch".  Since the default value
-        for *type* is "open", providers that open files typically skip specifying *type*.
-
-    *want_path*
-        The provider is normally called with an open file stream rather than a file name,
-        which allows ChimeraX to handle compressed files automatically for you.  If your
-        file reader must be able to open/read the file itself instead, then specify *want_path*
-        as "true" and you will receive a file path instead of a stream, and attempting
-        to open a compressed version of your file type will result in an error before your
-        provider is even called.
-  
 For example::
 
-  <Providers manager="open command">
-    <Provider name="AutoDock PDBQT" want_path="true" />
-    <Provider name="Sybyl Mol2" want_path="true" />
+  <Providers manager="presets">
+    <Provider category="fun looks" name="shiny balls" />
+    <Provider category="fun looks" name="thin sticks" />
   </Providers>
 
-The remainder of the information the bundle provides about how to open a file comes from the
-return value of the bundle's
-:py:meth:`~chimerax.core.toolshed.BundleAPI.run_provider` method, which must return
-an instance of the
-:py:class:`chimerax.open_command.OpenerInfo` class.
-The doc strings of that class discuss its methods in detail, but briefly:
-
-* You must override the :py:meth:`~chimerax.open_command.OpenerInfo.open` method to take
-  the input provided and return a (models, status message) tuple.
-
-* If your format has format-specific keywords that the ``open`` command should accept,
-  you must override the :py:meth:`~chimerax.open_command.OpenerInfo.open_args` property
-  to return a dictionary that maps **Python** keywords of your opener-function to corresponding
-  :ref:`Annotation <Type Annotations>` subclasses (such classes convert user-typed text into
-  corresponding Python values).
+When the execution of a preset from your bundle is requested, the preset manager will run the
+:py:meth:`~chimerax.core.toolshed.BundleAPI.run_provider` method (with ``name`` and ``mgr`` arguments),
+which should in turn execute the named preset.
+So that the appropriate information about the preset gets logged,
+your code implementing the preset should call ``mgr.execute(info)`` where ``info`` is
+either a function that takes no arguments (if your preset is implemented in Python) or a list of commands.

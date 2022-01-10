@@ -36,7 +36,7 @@ Building bundles as part of a batch process is straightforward,
 as these ChimeraX commands may be invoked directly
 by using commands such as:
 
-``ChimeraX --nogui --exit --cmd 'devel install PATH_TO_SOURCE_CODE_FOLDER exit true``
+``ChimeraX --nogui --exit --cmd 'devel install PATH_TO_SOURCE_CODE_FOLDER exit true'``
 
 This example executes the ``devel install`` command without
 displaying a graphics window (``--nogui``) and exits immediately

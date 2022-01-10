@@ -1154,7 +1154,9 @@ class BundleAPI:
         mgr : str.
             Name of manager for this provider.
         kw : keyword arguments.
-            Keyword arguments listed in the bundle_info.xml.
+            Keyword arguments, if any, provided by the calling manager.
+            Such keywords are specific to the manager and would be documented
+            by the manager.
         """
         raise NotImplementedError("BundleAPI.run_provider")
 
