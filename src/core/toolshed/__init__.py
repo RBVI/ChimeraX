@@ -1441,10 +1441,9 @@ def _get_user():
 def chimerax_uuid():
     # Return anonymous unique string that represents
     # the current user for accessing ChimeraX toolshed
-    from getpass import getuser
     import uuid
     node = uuid.getnode()   # Locality
-    name = _getuser()
+    name = _get_user()
     dn = "CN=%s, L=%s" % (name, node)
     # and now make it anonymous
     # (uuid is based on the first 16 bytes of a 20 byte SHA1 hash)
@@ -1518,7 +1517,12 @@ class NewerVersionQuery(Task):
 
     def on_finish(self):
         # If async_req is True, then need to call self.result.get()
-        versions = self.result.get()
+        try:
+            versions = self.result.get()
+        except Exception:
+            # Ignore problems getting results.  Might be a network error or
+            # a server error.  It doesn't matter, just let ChimeraX run.
+            return
         if not versions:
             return
 
