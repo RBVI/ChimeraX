@@ -19,9 +19,9 @@ CxServicesJob is a class that runs a web service via
 the ChimeraX REST server and monitors its status.
 """
 import time
-from chimerax.core.tasks import Job
+from chimerax.core.tasks import Job, JobError, JobLaunchError, JobMonitorError
 from cxservices.rest import ApiException
-
+from cxservices.api import default_api
 
 class CxServicesJob(Job):
     """Launch a ChimeraX REST web service request and monitor its status.
@@ -57,7 +57,6 @@ class CxServicesJob(Job):
     def start(self, *args, input_file_map=None, **kw):
         # override Job.start so that we can process the input_file_map
         # before start returns, since the files may be temporary
-        from cxservices.api import default_api
         self.api = default_api.DefaultApi()
         self.job_id = self.api.job_id().job_id
         if input_file_map is not None:
@@ -89,7 +88,6 @@ class CxServicesJob(Job):
 
         """
         if self.launch_time is not None:
-            from chimerax.core.tasks import JobError
             raise JobError("REST job has already been launched")
         self.launch_time = time.time()
 
@@ -97,7 +95,6 @@ class CxServicesJob(Job):
         try:
             result = self.api.submit(params, self.job_id, service_name)
         except ApiException as e:
-            from chimerax.core.tasks import JobLaunchError
             raise JobLaunchError(str(e))
         else:
             def _notify(logger=self.session.logger, job_id=self.job_id):
@@ -116,12 +113,10 @@ class CxServicesJob(Job):
 
         The task should be marked as terminated in the background
         process is done
-
         """
         try:
             status = self.api.status(self.job_id).status
         except ApiException as e:
-            from chimerax.core.tasks import JobMonitorError
             raise JobMonitorError(str(e))
         self._status = status
         if status in ["complete","failed","deleted"] and self.end_time is None:

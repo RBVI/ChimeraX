@@ -49,7 +49,12 @@ are registered and deregistered.  To add and remove
 and ``session.trigger.remove_handler``.
 """
 
+import itertools
 import abc
+import threading
+import time
+import sys
+import weakref
 from .state import State, StateManager
 
 # If any of the *STATE_VERSIONs change, then increase the (maximum) core session
@@ -69,7 +74,6 @@ TERMINATED = "terminated"   # Termination requested
 FINISHED = "finished"       # Finished
 
 
-# TODO: Possibly subclass from threading.Thread?
 class Task(State):
     """Base class for instances of tasks.
 
@@ -107,7 +111,6 @@ class Task(State):
 
         """
         self.id = id
-        import weakref
         self._session = weakref.ref(session)
         self._thread = None
         self._terminate = None
@@ -175,7 +178,6 @@ class Task(State):
             self._update_state(FINISHED)
             self.session.ui.thread_safe(self.on_finish)
         else:
-            import threading
             self._terminate = threading.Event()
             self._thread = threading.Thread(target=self._run_thread,
                                             daemon=True, args=args, kwargs=kw)
@@ -196,7 +198,6 @@ class Task(State):
         try:
             self.run(*args, **kw)
         except Exception:
-            import sys
             preface = "Exception in thread"
             if self.id:
                 preface += ' ' + str(self.id)
@@ -285,7 +286,6 @@ class Job(Task):
         is received as a keyword argument.
 
         """
-        import time
         self.launch(*args, **kw)
         while self.running():
             if self.terminating():
@@ -379,7 +379,6 @@ class Tasks(StateManager):
             Session for which this state manager was created.
 
         """
-        import weakref
         self._session = weakref.ref(session)
         if first:
             session.triggers.add_trigger(ADD_TASK)
@@ -387,7 +386,6 @@ class Tasks(StateManager):
             session.triggers.add_trigger(UPDATE_TASK)
             session.triggers.add_trigger(END_TASK)
         self._tasks = {}
-        import itertools
         self._id_counter = itertools.count(1)
 
     def take_snapshot(self, session, flags):
