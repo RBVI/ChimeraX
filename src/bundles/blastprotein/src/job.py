@@ -13,6 +13,7 @@
 import json
 
 from urllib3.exceptions import MaxRetryError
+
 from chimerax.core.tasks import JobError
 from chimerax.webservices.cxservices_job import CxServicesJob
 from chimerax.webservices.cxservices_utils import (
@@ -25,9 +26,6 @@ from .ui import BlastProteinResults
 from .utils import BlastParams, make_instance_name
 
 class BlastProteinJob(CxServicesJob):
-    QUERY_FILENAME = "query.json"
-    RESULTS_FILENAME = "results.json"
-
     inet_error = "Could not start BLAST job. Please check your internet connection and try again."
 
     def __init__(self, session, seq, atomspec, **kw):
@@ -43,7 +41,6 @@ class BlastProteinJob(CxServicesJob):
             "matrix": self.matrix,
             "blimit": str(self.max_seqs),
             "input_seq": self.seq,
-            "output_file": self.RESULTS_FILENAME,
             "version": self.version
         }
         try:
@@ -73,7 +70,10 @@ class BlastProteinJob(CxServicesJob):
         return ''.join(data)
 
     def _params(self):
-        return BlastParams(self.atomspec, self.database, self.cutoff, self.max_seqs, self.matrix, self.version)
+        return BlastParams(
+            self.atomspec, self.database, self.cutoff
+            , self.max_seqs, self.matrix, self.version
+        )
 
     def on_finish(self):
         logger = self.session.logger
