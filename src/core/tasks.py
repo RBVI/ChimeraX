@@ -130,8 +130,13 @@ class Task(State):
         """
         return self.__class__.__name__
 
-    def _update_state(self, state):
-        self.session.tasks.update_state(self, state)
+    def update_state(self, state):
+        self.state = state
+        if self.terminated():
+            self._cleanup()
+            self.session.triggers.activate_trigger(END_TASK, self)
+        else:
+            self.session.triggers.activate_trigger(UPDATE_TASK, self)
 
     def terminate(self):
         """Terminate this task.
@@ -144,7 +149,7 @@ class Task(State):
         self.session.tasks.remove(self)
         if self._terminate is not None:
             self._terminate.set()
-        self._update_state(TERMINATING)
+        self.update_state(TERMINATING)
 
     def terminating(self):
         """Return whether user has requested termination of this task.
@@ -176,11 +181,11 @@ class Task(State):
         self._thread = threading.Thread(target=self._run_thread,
                                         daemon=True, args=args, kwargs=kw)
         self._thread.start()
-        self._update_state(RUNNING)
+        self.update_state(RUNNING)
         self._terminate = threading.Event()
         if kw.get("blocking", False):
             self._thread.join()
-            self._update_state(FINISHED)
+            self.update_state(FINISHED)
             self.session.ui.thread_safe(self.on_finish)
 
     def _cleanup(self):
@@ -204,9 +209,9 @@ class Task(State):
                                                  exc_info=sys.exc_info())
         finally:
             if self.terminating():
-                self._update_state(TERMINATED)
+                self.update_state(TERMINATED)
             else:
-                self._update_state(FINISHED)
+                self.update_state(FINISHED)
         self.session.ui.thread_safe(self.on_finish)
 
     @abc.abstractmethod
@@ -507,27 +512,7 @@ class Tasks(StateManager):
             # Maybe we had reset and there were still old
             # tasks finishing up
             pass
-        session.triggers.activate_trigger(REMOVE_TASK, task)
-
-    def update_state(self, task, new_state):
-        """Update the state for the given task.
-
-        Parameters
-        ----------
-        task : :py:class:`Task` instance
-            Task whose state just changed
-        new_state : str
-            New state of the task (one of ``PENDING``, ``RUNNING``,
-            ``TERMINATING`` or ``FINISHED``).
-
-        """
-        task.state = new_state
-        session = self._session()   # resolve back reference
-        if task.terminated():
-            task._cleanup()
-            session.triggers.activate_trigger(END_TASK, task)
-        else:
-            session.triggers.activate_trigger(UPDATE_TASK, task)
+        self.session.triggers.activate_trigger(REMOVE_TASK, task)
 
     def find_by_id(self, tid):
         """Return a :py:class:`Task` instance with the matching identifier.
