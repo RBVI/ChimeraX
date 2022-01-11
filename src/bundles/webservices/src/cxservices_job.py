@@ -39,6 +39,12 @@ class CxServicesJob(Job):
         Time when job terminated
     """
     chimerax_api = default_api.DefaultApi()
+
+    def reset_state(self):
+        """Reset state to data-less state"""
+        for a in self.save_attrs:
+            setattr(self, a, None)
+
     def __init__(self, *args, **kw):
         """Initialize CxServicesJob instance.
 
@@ -147,13 +153,6 @@ class CxServicesJob(Job):
             from cxservices.api import default_api
             j.api = default_api.DefaultApi()
         return j
-
-    def reset_state(self):
-        """Reset state to data-less state"""
-        for a in self.save_attrs:
-            setattr(self, a, None)
-        self.api = None
-
     #
     # Other helper methods
     #
