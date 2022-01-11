@@ -67,7 +67,7 @@ class CxServicesJob(Job):
         # before start returns, since the files may be temporary
         if input_file_map is not None:
             for name, value_type, value in input_file_map:
-                self._post_file(name, value_type, value)
+                self.post_file(name, value_type, value)
         super().start(*args, **kw)
 
     @property
@@ -204,7 +204,7 @@ class CxServicesJob(Job):
         self._outputs = {fn:fn for fn in filenames}
         return self._outputs
 
-    def _post_file(self, name, value_type, value):
+    def post_file(self, name, value_type, value):
         # text files are opened normally, with contents encoded as UTF-8.
         # binary files are opened in binary mode and untouched.
         # bytes are used as is.
