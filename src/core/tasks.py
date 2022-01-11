@@ -173,16 +173,15 @@ class Task(State):
         """
         if self.state != PENDING:
             raise RuntimeError("starting task multiple times")
+        self._thread = threading.Thread(target=self._run_thread,
+                                        daemon=True, args=args, kwargs=kw)
+        self._thread.start()
+        self._update_state(RUNNING)
+        self._terminate = threading.Event()
         if kw.get("blocking", False):
-            self.run(*args, **kw)
+            self._thread.join()
             self._update_state(FINISHED)
             self.session.ui.thread_safe(self.on_finish)
-        else:
-            self._terminate = threading.Event()
-            self._thread = threading.Thread(target=self._run_thread,
-                                            daemon=True, args=args, kwargs=kw)
-            self._thread.start()
-            self._update_state(RUNNING)
 
     def _cleanup(self):
         """Clean up after thread has ended.
