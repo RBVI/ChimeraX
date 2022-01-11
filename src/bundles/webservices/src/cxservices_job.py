@@ -31,16 +31,14 @@ class CxServicesJob(Job):
 
     Attributes
     ----------
-    api : instance of cxservices.api.default_api.DefaultApi
-        REST API instance for contacting server
     job_id : str
         ChimeraX REST job id assigned by server
     launch_time : int (seconds since epoch)
         Time when job was launched
     end_time : int (seconds since epoch)
         Time when job terminated
-
     """
+    chimerax_api = default_api.DefaultApi()
     def __init__(self, *args, **kw):
         """Initialize CxServicesJob instance.
 
@@ -57,7 +55,6 @@ class CxServicesJob(Job):
     def start(self, *args, input_file_map=None, **kw):
         # override Job.start so that we can process the input_file_map
         # before start returns, since the files may be temporary
-        self.api = default_api.DefaultApi()
         self.job_id = self.api.job_id().job_id
         if input_file_map is not None:
             for name, value_type, value in input_file_map:
@@ -93,7 +90,7 @@ class CxServicesJob(Job):
 
         # Launch job
         try:
-            result = self.api.submit(params, self.job_id, service_name)
+            result = self.chimerax_api.submit_job(body=params, job_type=service_name)
         except ApiException as e:
             raise JobLaunchError(str(e))
         else:
@@ -115,7 +112,7 @@ class CxServicesJob(Job):
         process is done
         """
         try:
-            status = self.api.status(self.job_id).status
+            result = self.chimerax_api.status(self.job_id)
         except ApiException as e:
             raise JobMonitorError(str(e))
         self._status = status
@@ -186,7 +183,7 @@ class CxServicesJob(Job):
 
         """
         try:
-            content = self.api.file_get(self.job_id, filename)
+            content = self.chimerax_api.get_file(self.job_id, filename)
         except ApiException as e:
             raise KeyError("%s: %s" % (filename, str(e)))
         if encoding is None:
@@ -217,7 +214,7 @@ class CxServicesJob(Job):
         if not refresh and self._outputs is not None:
             return self._outputs
         try:
-            filenames = self.api.files_list(self.job_id)
+            filenames = self.chimerax_api.files_list(self.job_id)
         except ApiException as e:
             raise IOError("job %s: cannot get file list" % self.job_id)
         self._outputs = {fn:fn for fn in filenames}
@@ -235,4 +232,4 @@ class CxServicesJob(Job):
                 value = f.read()
         elif value_type != "bytes":
             raise ValueError("unsupported content type: \"%s\"" % value_type)
-        self.api.file_post(value, self.job_id, name)
+        self.chimerax_api.file_post(value, self.job_id, name)
