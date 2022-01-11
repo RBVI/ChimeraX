@@ -119,29 +119,24 @@ ChimeraX expects ``bundle_api`` class to be derived from
 :py:class:`chimerax.core.toolshed.BundleAPI` with methods
 overridden for registering commands, tools, etc.
 
-..
-    TODO
-
 .. literalinclude:: ../../../src/examples/tutorials/tut_preset/src/__init__.py
     :language: python
     :linenos:
 
-The :py:meth:`register_selector` method is called by ChimeraX,
-once for each selector listed in ``bundle_info.xml``,
-before the first time a command target specification is parsed.
-In this example, the method is called a single time
-with selector name ``endres``.
+The :py:meth:`run_provider` method is called by the presets manager (``session.presets``)
+whenever one of the presets your bundle provides is requested, typically via the Presets
+menu or the `preset command <../../user/commands/preset.html>`_.
 
-The arguments to :py:meth:`register_selector`, in bundle API version 1,
-are ``bi``, a :py:class:`chimerax.core.toolshed.BundleInfo` instance,
-``si``, a :py:class:`chimerax.core.toolshed.SelectorInfo` instance, and
-``logger``, a :py:class:`chimerax.core.logger.Logger` instance.
-The method is expected to call
-:py:meth:`chimerax.core.commands.atomspec.register_selector` to define
-a selector whose name is given by ``si.name``.
-Note that there is no ``session`` argument because, like commands,
-selectors are session-independent; that is, once registered, a selector
-may be used in any session.
+The arguments to :py:meth:`run_provider`
+are ``session``, the current :py:class:`chimerax.core.session.Session` instance,
+``name``, the name of the preset to execute,
+``mgr``, a :py:class:`~chimerax.preset_mgr.manager.PresetsManager` instance (*a.k.a.* ``session.presets``),
+and ``kw``, a keyword dictionary which is always empty in the case of presets.
+Since all managers that your bundle offers ``Providers`` for call this method,
+other calls to this method may have different ``mgr`` and ``kw`` argument values
+(and the run_provider code would have to be more complex).
+Since this example bundle only provides presets, it simply calls its ``run_preset``
+function to execute the requested preset, which is discussed below.
 
 
 ``src/selector.py``

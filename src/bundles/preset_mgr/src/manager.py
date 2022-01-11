@@ -67,6 +67,10 @@ class PresetsManager(ProviderManager):
         self.triggers.activate_trigger("presets changed", self)
 
     def execute(self, preset):
+        """Presets should call this method to execute their preset so that appropriate information
+        about the preset can be logged.  The 'preset' argument is either a list of command strings,
+        or a callable Python function that takes no arguments.
+        """
         if callable(preset):
             preset()
             self.session.logger.info("Preset implemented in Python; no expansion to individual ChimeraX"

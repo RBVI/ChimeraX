@@ -8,21 +8,22 @@ from chimerax.core.toolshed import BundleAPI
 # inheriting all other methods from the base class.
 class _MyAPI(BundleAPI):
 
-    api_version = 1
-
     # Override method for defining presets
-    #TODO
     @staticmethod
-    def register_selector(bi, si, logger):
-        # bi is an instance of chimerax.core.toolshed.BundleInfo
-        # si is an instance of chimerax.core.toolshed.SelectorInfo
-        # logger is an instance of chimerax.core.logger.Logger
+    def run_provider(session, name, mgr, **kw):
+        # 'session' is the current chimerax.core.session.Session object
+        # 'name' is the name of the preset to execute
+        # 'mgr' is the preset manager (a.k.a. session.presets)
+        # 'kw', the keyword dictionary, is empty
+        #
+        # Note that this method is called by all managers that your
+        # bundle declares providers for, so if your bundle has providers
+        # for multiple different managers the the 'mgr' argument will
+        # not always be the session.presets instance, and some managers
+        # may provide non-empty keyword dictionaries to providers.
 
-        # This method is called once for each selector listed
-        # in bundle_info.xml.  Since we list only one selector,
-        # we expect a single call to this method.
-        from .selector import register
-        return register(si.name, logger)
+        from .presets import run_preset
+        run_preset(session, name, mgr)
 
 
 # Create the ``bundle_api`` object that ChimeraX expects.
