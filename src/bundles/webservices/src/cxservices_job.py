@@ -19,6 +19,7 @@ CxServicesJob is a class that runs a web service via
 the ChimeraX REST server and monitors its status.
 """
 import time
+from datetime import datetime, timedelta
 from chimerax.core.tasks import Job, JobError, JobLaunchError, JobMonitorError
 from cxservices.rest import ApiException
 from cxservices.api import default_api
@@ -109,10 +110,18 @@ class CxServicesJob(Job):
             raise JobLaunchError(str(e))
         else:
             self.job_id = result.job_id
+            self.next_poll = self._poll_to_seconds(result.next_poll)
             def _notify(logger=self.session.logger, job_id=self.job_id):
                 logger.info("ChimeraX REST job id: %s" % job_id)
             self.session.ui.thread_safe(_notify)
+        while self.running():
+            if self.terminating():
+                break
+            time.sleep(self.next_poll)
             self.monitor()
+
+    def _poll_to_seconds(self, poll):
+        return (datetime.fromisoformat(poll) - datetime.now()).total_seconds()
 
     def running(self):
         """Return whether background process is still running.
@@ -129,9 +138,11 @@ class CxServicesJob(Job):
         try:
             result = self.chimerax_api.status(self.job_id)
             status = result.status
+            next_poll = result.next_poll
         except ApiException as e:
             raise JobMonitorError(str(e))
         self.status = status
+        self.next_poll = self._poll_to_seconds(next_poll)
         if status in ["complete","failed","deleted"] and self.end_time is None:
             self.end_time = time.time()
 
