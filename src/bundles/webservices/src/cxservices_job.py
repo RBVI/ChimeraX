@@ -71,6 +71,14 @@ class CxServicesJob(Job):
                 self._post_file(name, value_type, value)
         super().start(*args, **kw)
 
+    @property
+    def status(self):
+        return self._status
+
+    @status.setter
+    def status(self, value):
+        self._status = value
+
     def run(self, service_name, params):
         """Launch the background process.
 
@@ -120,9 +128,10 @@ class CxServicesJob(Job):
         """
         try:
             result = self.chimerax_api.status(self.job_id)
+            status = result.status
         except ApiException as e:
             raise JobMonitorError(str(e))
-        self._status = status
+        self.status = status
         if status in ["complete","failed","deleted"] and self.end_time is None:
             self.end_time = time.time()
 
