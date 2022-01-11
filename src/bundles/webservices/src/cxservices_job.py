@@ -65,7 +65,6 @@ class CxServicesJob(Job):
     def start(self, *args, input_file_map=None, **kw):
         # override Job.start so that we can process the input_file_map
         # before start returns, since the files may be temporary
-        self.job_id = self.api.job_id().job_id
         if input_file_map is not None:
             for name, value_type, value in input_file_map:
                 self._post_file(name, value_type, value)
@@ -109,6 +108,7 @@ class CxServicesJob(Job):
         except ApiException as e:
             raise JobLaunchError(str(e))
         else:
+            self.job_id = result.job_id
             def _notify(logger=self.session.logger, job_id=self.job_id):
                 logger.info("ChimeraX REST job id: %s" % job_id)
             self.session.ui.thread_safe(_notify)
