@@ -157,7 +157,7 @@ class Task(State):
         """
         if self._terminate is None:
             return False
-        return self._terminate.isSet()
+        return self._terminate.is_set()
 
     def terminated(self):
         """Return whether task has finished.
