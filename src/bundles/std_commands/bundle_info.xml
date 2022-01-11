@@ -92,6 +92,7 @@
     <ChimeraXClassifier>Command :: measure buriedarea :: Surface/Binding Analysis :: measure surface area buried by contacting structures</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: measure center :: Volume :: measure center of mass of maps or atoms</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: measure convexity :: Surface/Binding Analysis :: color surface based on local convexity</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: measure correlation :: Volume :: measure correlation coefficient between two maps</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: measure inertia :: General Controls :: measure moments of inertia</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: measure length :: Volume :: measure path length of connected markers</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: measure rotation :: Volume :: measure rotation of one model relative to another</ChimeraXClassifier>
