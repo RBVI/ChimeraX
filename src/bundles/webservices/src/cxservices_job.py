@@ -228,6 +228,10 @@ class CxServicesJob(Job):
         elif value_type != "bytes":
             raise ValueError("unsupported content type: \"%s\"" % value_type)
         self.chimerax_api.file_post(value, self.job_id, name)
+
+    def __str__(self):
+        return "CxServicesJob (ID: %s)" % self.id
+
     @classmethod
     def from_snapshot(cls, session, data):
         tmp = cls()
