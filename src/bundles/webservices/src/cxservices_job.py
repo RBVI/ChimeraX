@@ -112,7 +112,7 @@ class CxServicesJob(Job):
             self.job_id = result.job_id
             self.next_poll = self._poll_to_seconds(result.next_poll)
             def _notify(logger=self.session.logger, job_id=self.job_id):
-                logger.info("ChimeraX REST job id: %s" % job_id)
+                logger.info("Webservices job id: %s" % job_id)
             self.session.ui.thread_safe(_notify)
         while self.running():
             if self.terminating():
