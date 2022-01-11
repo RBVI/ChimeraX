@@ -37,7 +37,11 @@ class CxServicesJob(Job):
         Time when job was launched
     end_time : int (seconds since epoch)
         Time when job terminated
+    status : str
+    outputs : List[str]
+    next_poll : time
     """
+    save_attrs = ('job_id', 'launch_time', 'end_time', 'status', 'outputs', 'next_poll')
     chimerax_api = default_api.DefaultApi()
 
     def reset_state(self):
@@ -129,31 +133,6 @@ class CxServicesJob(Job):
         return self._status == "complete"
 
     #
-    # Define chimerax.core.session.State ABC methods
-    #
-    save_attrs = ('job_id', 'launch_time', 'end_time', '_status', '_outputs')
-
-    def take_snapshot(self, session, flags):
-        """Return snapshot of current state of instance.
-
-        The semantics of the data is unknown to the caller.
-        Returns None if should be skipped."""
-        data = {a:getattr(self,a) for a in self.save_attrs}
-        data['version'] = 1
-        return data
-
-    @staticmethod
-    def restore_snapshot(session, data):
-        """Restore data snapshot creating instance."""
-        j = OpalJob.__new__(OpalJob)
-        for a in self.save_attrs:
-            if a in data:
-                setattr(j, a, data[a])
-        if j.end_time is None:
-            from cxservices.api import default_api
-            j.api = default_api.DefaultApi()
-        return j
-    #
     # Other helper methods
     #
     def get_file(self, filename, *, encoding='utf-8'):
@@ -229,3 +208,36 @@ class CxServicesJob(Job):
         elif value_type != "bytes":
             raise ValueError("unsupported content type: \"%s\"" % value_type)
         self.chimerax_api.file_post(value, self.job_id, name)
+    @classmethod
+    def from_snapshot(cls, session, data):
+        tmp = cls()
+        if data.version == 1:
+            for a in self.save_attrs:
+                if a in data:
+                    setattr(tmp, a, data[a])
+            if tmp.end_time is None:
+                tmp.chimerax_api = default_api.DefaultApi()
+        else:
+            for a in self.save_attrs:
+                if a in data:
+                    setattr(tmp, a, data[a])
+            if tmp.end_time is None:
+                tmp.chimerax_api = default_api.DefaultApi()
+        return tmp
+
+    #
+    # Define chimerax.core.session.State ABC methods
+    #
+    def take_snapshot(self, session, flags):
+        """Return snapshot of current state of instance.
+
+        The semantics of the data is unknown to the caller.
+        Returns None if should be skipped."""
+        data = {a:getattr(self,a) for a in self.save_attrs}
+        data['version'] = 2
+        return data
+
+    @staticmethod
+    def restore_snapshot(session, data):
+        """Restore data snapshot creating instance."""
+        return CxServicesJob.from_snapshot(session, data)
