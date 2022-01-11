@@ -60,7 +60,7 @@ Jinja2==3.0.3
 Pygments==2.11.2
 Sphinx==4.3.2
 sphinxcontrib-blockdiag==3.0.0
-sphinx_autodoc_typehints==1.15.1
+sphinx_autodoc_typehints==1.15.2
 #
 # Windows
 #
