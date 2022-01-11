@@ -359,6 +359,11 @@ class Tasks(StateManager):
         self._tasks = {}
         self._id_counter = itertools.count(1)
 
+    @property
+    def session(self):
+        """Read-only property for session that contains this task."""
+        return self._session()
+
     def take_snapshot(self, session, flags):
         """Save state of running tasks.
 
@@ -485,11 +490,10 @@ class Tasks(StateManager):
             A newly created task.
 
         """
-        session = self._session()   # resolve back reference
         if task.id is None:
             task.id = next(self._id_counter)
         self._tasks[task.id] = task
-        session.triggers.activate_trigger(ADD_TASK, task)
+        self.session.triggers.activate_trigger(ADD_TASK, task)
 
     def remove(self, task):
         """Deregister task with state manager.
@@ -500,7 +504,6 @@ class Tasks(StateManager):
             List of registered tasks.
 
         """
-        session = self._session()   # resolve back reference
         tid = task.id
         if tid is None:
             # Not registered in a session
