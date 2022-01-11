@@ -61,10 +61,7 @@ class CxServicesJob(Job):
                 self._post_file(name, value_type, value)
         super().start(*args, **kw)
 
-    #
-    # Define chimerax.core.tasks.Job ABC methods
-    #
-    def launch(self, service_name, params):
+    def run(self, service_name, params):
         """Launch the background process.
 
         Arguments

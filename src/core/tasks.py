@@ -264,14 +264,10 @@ class Job(Task):
     to 'Job' instances, not :py:meth:`run`.
 
     """
-    # TODO: Replace with server-side solution
-    CHECK_INTERVALS = [5, 5, 10, 15, 25, 40, 65, 105, 170, 275, 300,
-                       350, 400, 450, 500, 550, 600, 650, 700, 750, 800]
-
     def __init__(self, *args, **kw):
         super().__init__(*args, **kw)
-        self._timing_step = 0
 
+    @abc.abstractmethod
     def run(self, *args, **kw):
         """Launch and monitor a background process.
 
@@ -286,36 +282,7 @@ class Job(Task):
         is received as a keyword argument.
 
         """
-        self.launch(*args, **kw)
-        while self.running():
-            if self.terminating():
-                break
-            time.sleep(self.next_check())
-            self.monitor()
-
-    def next_check(self):
-        t = self._timing_step
-        self._timing_step += 1
-        try:
-            # Some predetermined intervals
-            return self.CHECK_INTERVALS[t]
-        except IndexError:
-            # Or five minutes
-            return 300
-
-    @abc.abstractmethod
-    def launch(self, *args, **kw):
-        """Launch the process.
-
-        NB: The 'blocking' argument passed to the 'start' method
-        is received as a keyword argument.  If 'blocking' is false,
-        'launch' should return immediately and let 'monitor'
-        detect when the process is complete; if 'blocking' is true,
-        'launch' should wait for the process to complete before
-        returning.  The default value for 'blocking' depends on
-        the type of process being run.
-        """
-        raise RuntimeError("base class \"launch\" method called.")
+        raise RuntimeError("base class \"run\" method called.")
 
     @abc.abstractmethod
     def running(self):
