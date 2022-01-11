@@ -81,18 +81,18 @@ see :doc:`tutorial_hello`, :doc:`tutorial_command` and
 .. literalinclude:: ../../../src/examples/tutorials/tut_preset/bundle_info.xml
     :language: xml
     :linenos:
-    :emphasize-lines: 8-10,19-23,26-28,31-35,37-39
+    :emphasize-lines: 8-10,19-23,26-28,31-35,37-40
 
 The ``BundleInfo``, ``Synopsis``, ``Description`` and ``Category`` tags are
 changed to reflect the new bundle name and documentation
 (lines 8-10, 19-23, and 26-28).
 
-Since the preset uses functionality from the PresetMgr and Atomic bundles, the ``Dependencies``
+Since the presets use functionality from the PresetMgr and Atomic bundles, the ``Dependencies``
 section has been changed to reflect that (lines 31-35).
 
-The ``Providers`` section on lines 37-39 informs ChimeraX that
-this bundle defines one preset named "thin sticks" and that the
-preset's category is "small molcule" for organizing it in the Presets
+The ``Providers`` section on lines 37-40 informs ChimeraX that
+this bundle defines two presets, named "thin sticks"  and "ball and stick",
+and that their category is "small molcule" for organizing them in the Presets
 menu and for the ``category`` argument of the
 `preset command <../../user/commands/preset.html>`_.
 More details about the ``Providers`` section for presets can be found
@@ -139,7 +139,7 @@ Since this example bundle only provides presets, it simply calls its ``run_prese
 function to execute the requested preset, which is discussed below.
 
 
-``src/selector.py``
+``src/presets.py``
 -------------------
 
 ``selector.py`` defines both the callback function, ``_select_endres``,

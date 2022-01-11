@@ -36,6 +36,7 @@ Implements new preset "thin sticks", possibly useful for depicting small molecul
 
   <Providers manager="presets">
     <Provider category="small molecule" name="thin sticks" />
+    <Provider category="small molecule" name="ball and stick" />
   </Providers>
 
   <Classifiers>
