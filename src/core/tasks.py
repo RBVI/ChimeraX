@@ -272,23 +272,6 @@ class Job(Task):
         super().__init__(*args, **kw)
 
     @abc.abstractmethod
-    def run(self, *args, **kw):
-        """Launch and monitor a background process.
-
-        This method is run in the task thread (not the UI
-        thread.  ``run`` calls the abstract methods :py:meth:`launch`,
-        :py:meth:`running` and :py:meth:`monitor` to initiate and check status
-        of the background process.  Timing of the checks
-        are handled by the :py:meth:`next_check` method, which may
-        be overridden to provide custom timing.
-
-        NB: The 'blocking' argument passed to the 'start' method
-        is received as a keyword argument.
-
-        """
-        raise RuntimeError("base class \"run\" method called.")
-
-    @abc.abstractmethod
     def running(self):
         """Check if job is running.
 
