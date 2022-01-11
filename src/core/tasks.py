@@ -317,6 +317,9 @@ class Job(Task):
         """
         raise RuntimeError("base class \"exited_normally\" method called.")
 
+    def __str__(self):
+        return ("ChimeraX Job, ID %s" % self.id)
+
 
 class JobError(RuntimeError):
     """Generic job error."""
