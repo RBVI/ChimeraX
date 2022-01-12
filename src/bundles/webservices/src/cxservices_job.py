@@ -159,6 +159,16 @@ class CxServicesJob(Job):
         """
         return self._status == "complete"
 
+    def get_results(self, *, encoding: str = 'utf-8') -> Optional[Union[bytes,str]]:
+        try:
+            content = self.chimerax_api.get_results(self.job_id)
+        except ApiException as e:
+            return None
+        if encoding is None:
+            return content
+        else:
+            return content.decode(encoding)
+
     #
     # Other helper methods
     #
