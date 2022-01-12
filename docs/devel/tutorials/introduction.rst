@@ -26,8 +26,8 @@ Cytoscape_ and `Mozilla Firefox`_.  In ChimeraX, the
 units of extension are called **bundles**, which may
 be installed at run-time to add **commands**, graphical
 interfaces (**tools**), chemical subgroup **selectors**,
-support for fetching from network databases, and
-reading and writing data files in new formats.
+**presets**, support for fetching from network databases,
+and reading and writing data files in new formats.
 
 Most bundles can be built using ChimeraX itself.
 Once built, a bundle is stored as a single file and

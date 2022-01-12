@@ -48,7 +48,7 @@ fails for some reason.
 Distributing Bundles
 ====================
 
-With ChimeraX bundles being packages as standard Python
+With ChimeraX bundles being packaged as standard Python
 wheel-format files, they can be distributed as plain files
 and installed using the ChimeraX ``toolshed install``
 command.  Thus, electronic mail, web sites and file
@@ -62,7 +62,7 @@ published on the `ChimeraX Toolshed`_, which is designed
 to help developers by eliminating the need for custom
 distribution channels, and to aid users by providing
 a central repository where bundles with a variety of
-functionality may be found.
+different functionality may be found.
 
 Customizable information for each bundle on the toolshed
 includes its description, screen captures, authors,

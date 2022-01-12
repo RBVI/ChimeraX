@@ -31,7 +31,6 @@ Implements new preset "thin sticks", possibly useful for depicting small molecul
   <Dependencies>
     <Dependency name="ChimeraX-Core" version="~=1.3"/>
     <Dependency name="ChimeraX-PresetMgr" version="~=1.1"/>
-    <Dependency name="ChimeraX-Atomic" version="~=1.32"/>
   </Dependencies>
 
   <Providers manager="presets">

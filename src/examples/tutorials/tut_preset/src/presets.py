@@ -1,20 +1,29 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 def run_preset(session, name, mgr):
-    """Run requested preset.
-    """
-    # Registration is simply telling ChimeraX which function
-    # to call when the selector is used.  If an unexpected
-    # selector_name is given, the dictionary lookup will fail,
-    # and the resulting exception will be caught by ChimeraX.
-    cmds = [ "size stickRadius 0.07 ballScale 0.18" ]
-    from chimerax.atomic import all_atomic_structures
-    structures = all_atomic_structures(session)
+    """Run requested preset."""
+
+    # A preset needs to call mgr.execute(preset_info) to
+    # execute the preset, so that information about the
+    # preset's contents can be properly logged.  The
+    # 'preset_info' argument can either be an executable
+    # Python function (that takes no arguments) or a
+    # string containing one or more ChimeraX commands.
+    # If there are multiple commands, the commands are typically
+    # separated with '; ', though in unusual cases (perhaps
+    # a very long series of commands) the commands could be
+    # newline separated -- in the latter case the newline-
+    # separated command string will be executed in individual
+    # calls to chimerax.core.commands.run() whereas '; '-
+    # separated commands will use only one call.
+    #
+    # Here we form a command string and use it with mgr.execute()
+    base_cmd = "size stickRadius 0.07 ballScale 0.18"
     if name == "thin sticks":
-        cmds.append("style stick")
+        style_cmd = "style stick"
     elif name == "ball and stick":
-        cmds.append("style ball")
+        style_cmd = "style ball"
     else:
         raise ValueError("No preset named '%s'" % name)
-    mgr.execute('; '.join(cmds))
+    mgr.execute(base_cmd + '; ' + style_cmd)
 

@@ -18,4 +18,4 @@ Presets manager: track presets used in Presets menu and preset command
 .. module:: chimerax.preset_mgr
 
 .. autoclass:: chimerax.preset_mgr.manager.PresetsManager
-    :members: execute
+    :members: add_presets, execute

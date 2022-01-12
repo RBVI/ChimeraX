@@ -60,7 +60,7 @@ The files in the ``tut_preset`` folder are:
     - ``bundle_info.xml`` - bundle information read by ChimeraX
     - ``src`` - source code to Python package for bundle
         - ``__init__.py`` - package initializer and interface to ChimeraX
-        - ``preset.py`` - source code to define/execute presets
+        - ``presets.py`` - source code to define/execute presets
 
 The file contents are shown below.
 
@@ -81,16 +81,16 @@ see :doc:`tutorial_hello`, :doc:`tutorial_command` and
 .. literalinclude:: ../../../src/examples/tutorials/tut_preset/bundle_info.xml
     :language: xml
     :linenos:
-    :emphasize-lines: 8-10,19-23,26-28,31-35,37-40
+    :emphasize-lines: 8-10,19-23,26-28,31-34,36-39
 
 The ``BundleInfo``, ``Synopsis``, ``Description`` and ``Category`` tags are
 changed to reflect the new bundle name and documentation
 (lines 8-10, 19-23, and 26-28).
 
-Since the presets use functionality from the PresetMgr and Atomic bundles, the ``Dependencies``
-section has been changed to reflect that (lines 31-35).
+Since the presets use functionality from the PresetMgr bundle, the ``Dependencies``
+section has been changed to reflect that (lines 31-34).
 
-The ``Providers`` section on lines 37-40 informs ChimeraX that
+The ``Providers`` section on lines 36-39 informs ChimeraX that
 this bundle defines two presets, named "thin sticks"  and "ball and stick",
 and that their category is "small molcule" for organizing them in the Presets
 menu and for the ``category`` argument of the
@@ -142,37 +142,30 @@ function to execute the requested preset, which is discussed below.
 ``src/presets.py``
 -------------------
 
-``selector.py`` defines both the callback function, ``_select_endres``,
-that is invoked when ``endres`` is encountered in a target specification,
-as well as the function for registering ``select_endres`` with ChimeraX.
+``presets.py`` defines the function :py:func:`run_preset`
+that is invoked (from :py:meth:`run_provider`, above) when either of our presets are requested.
 
-.. literalinclude:: ../../../src/examples/tutorials/tut_sel/src/selector.py
+.. literalinclude:: ../../../src/examples/tutorials/tut_preset/src/presets.py
     :language: python
     :linenos:
 
-The code in ``selector.py`` is designed to register multiple
-selector callback functions using the same registration function.
-When :py:func:`register` is called from
-:py:meth:`__init__.bundle_api.register_selector`,
-it looks up the callback function associated
-with the given selector name using the ``_selector_func`` dictionary,
-and registers it using
-:py:class:`chimerax.core.commands.atomspec.register_selector`.
-
-A selector callback function is invoked with three arguments:
-``session``, a :py:class:`chimerax.core.session.Session` instance,
-``models``, a list of :py:class:`chimerax.core.models.Model` instances, and
-``results``, a :py:class:`chimerax.core.objects.Objects` instance.
-The callback function is expected to process all the given ``models``
-and add items of interest to ``results``.  Currently, the only items
-that can be added are instances of :py:class:`chimerax.core.models.Model`,
-:py:class:`chimerax.atomic.Atom` and
-:py:class:`chimerax.atomic.Bond`.
-Typically, :py:class:`~chimerax.core.models.Model` instances
-are only added explicitly for non-atomic models.
-More commonly, atoms (and bonds) are added
-using the :py:meth:`~chimerax.core.objects.Objects.add_atoms` method.
-
+The :py:func:`run_preset` function needs to in turn call
+the preset manager's
+:py:meth:`~chimerax.preset_mgr.manager.PresetsManager.execute`
+method to actually execute the preset, so that the proper information
+about the preset can be logged.
+The single argument to 
+:py:meth:`~chimerax.preset_mgr.manager.PresetsManager.execute`
+is either a Python function taking no arguments,
+or a string containing a ChimeraX command.
+The string is typically not just a single command, but multiple
+commands separated by semi-colon (';') characters,
+which is the approach our :py:func:`run_presets` function uses to
+execute both a 
+`size command <../../user/commands/size.html>`_
+(to make the sticks/balls thin/small) and a
+`style command <../../user/commands/style.html>`_
+to switch to stick or ball-and-stick style.
 
 .. include:: build_test_distribute.rst
 
@@ -184,5 +177,6 @@ What's Next
 - :doc:`tutorial_tool`
 - :doc:`tutorial_read_format`
 - :doc:`tutorial_save_format`
-- :doc:`tutorial_fetch` (previous topic)
-- :doc:`tutorial_selector` (current topic)
+- :doc:`tutorial_fetch`
+- :doc:`tutorial_selector` (previous topic)
+- :doc:`tutorial_presets` (current topic)
