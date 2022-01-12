@@ -20,6 +20,7 @@ the ChimeraX REST server and monitors its status.
 """
 import time
 from datetime import datetime, timedelta
+from typing import Dict, Optional, Union
 from chimerax.core.tasks import Job, JobError, JobLaunchError, JobMonitorError
 from cxservices.rest import ApiException
 from cxservices.api import default_api
@@ -45,12 +46,12 @@ class CxServicesJob(Job):
     save_attrs = ('job_id', 'launch_time', 'end_time', 'status', 'outputs', 'next_poll')
     chimerax_api = default_api.DefaultApi()
 
-    def reset_state(self):
+    def reset_state(self) -> None:
         """Reset state to data-less state"""
         for a in self.save_attrs:
             setattr(self, a, None)
 
-    def __init__(self, *args, **kw):
+    def __init__(self, *args, **kw) -> None:
         """Initialize CxServicesJob instance.
 
         Argument
@@ -63,7 +64,7 @@ class CxServicesJob(Job):
         # Initialize ChimeraX REST request state
         self.reset_state()
 
-    def start(self, *args, input_file_map=None, **kw):
+    def start(self, *args, input_file_map=None, **kw) -> None:
         # override Job.start so that we can process the input_file_map
         # before start returns, since the files may be temporary
         if input_file_map is not None:
@@ -72,14 +73,14 @@ class CxServicesJob(Job):
         super().start(*args, **kw)
 
     @property
-    def status(self):
+    def status(self) -> str:
         return self._status
 
     @status.setter
-    def status(self, value):
+    def status(self, value) -> None:
         self._status = value
 
-    def run(self, service_name, params):
+    def run(self, service_name, params) -> None:
         """Launch the background process.
 
         Arguments
@@ -126,16 +127,16 @@ class CxServicesJob(Job):
             time.sleep(self.next_poll)
             self.monitor()
 
-    def _poll_to_seconds(self, poll):
-        return (datetime.fromisoformat(poll) - datetime.now()).total_seconds()
+    def _poll_to_seconds(self, poll: int) -> int:
+        return 60 * poll
 
-    def running(self):
+    def running(self) -> bool:
         """Return whether background process is still running.
 
         """
         return self.launch_time is not None and self.end_time is None
 
-    def monitor(self):
+    def monitor(self) -> None:
         """Check the status of the background process.
 
         The task should be marked as terminated in the background
@@ -152,7 +153,7 @@ class CxServicesJob(Job):
         if status in ["complete","failed","deleted"] and self.end_time is None:
             self.end_time = time.time()
 
-    def exited_normally(self):
+    def exited_normally(self) -> bool:
         """Return whether background process terminated normally.
 
         """
@@ -221,7 +222,7 @@ class CxServicesJob(Job):
         self._outputs = {fn:fn for fn in filenames}
         return self._outputs
 
-    def post_file(self, name, value_type, value):
+    def post_file(self, name, value_type, value) -> None:
         # text files are opened normally, with contents encoded as UTF-8.
         # binary files are opened in binary mode and untouched.
         # bytes are used as is.
@@ -235,7 +236,7 @@ class CxServicesJob(Job):
             raise ValueError("unsupported content type: \"%s\"" % value_type)
         self.chimerax_api.file_post(value, self.job_id, name)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "CxServicesJob (ID: %s)" % self.id
 
     @classmethod
@@ -258,7 +259,7 @@ class CxServicesJob(Job):
     #
     # Define chimerax.core.session.State ABC methods
     #
-    def take_snapshot(self, session, flags):
+    def take_snapshot(self, session, flags) -> Dict:
         """Return snapshot of current state of instance.
 
         The semantics of the data is unknown to the caller.
@@ -268,6 +269,6 @@ class CxServicesJob(Job):
         return data
 
     @staticmethod
-    def restore_snapshot(session, data):
+    def restore_snapshot(session, data) -> 'CxServicesJob':
         """Restore data snapshot creating instance."""
         return CxServicesJob.from_snapshot(session, data)
