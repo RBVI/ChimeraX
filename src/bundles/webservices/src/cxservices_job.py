@@ -117,7 +117,7 @@ class CxServicesJob(Job):
                 "cancel": result.cancel_url,
                 "upload": result.upload_url
             }
-            self.next_poll = self._poll_to_seconds(result.next_poll)
+            self.next_poll = self._poll_to_seconds(int(result.next_poll))
             def _notify(logger=self.session.logger, job_id=self.job_id):
                 logger.info("Webservices job id: %s" % job_id)
             self.session.ui.thread_safe(_notify)
@@ -143,14 +143,15 @@ class CxServicesJob(Job):
         process is done
         """
         try:
-            result = self.chimerax_api.status(self.job_id)
+            result = self.chimerax_api.get_status(self.job_id)
             status = result.status
             next_poll = result.next_poll
         except ApiException as e:
             raise JobMonitorError(str(e))
         self.status = status
-        self.next_poll = self._poll_to_seconds(next_poll)
-        if status in ["complete","failed","deleted"] and self.end_time is None:
+        if next_poll is not None:
+            self.next_poll = self._poll_to_seconds(next_poll)
+        if status in ["finished","failed","deleted","canceled"] and self.end_time is None:
             self.end_time = time.time()
 
     def exited_normally(self) -> bool:
