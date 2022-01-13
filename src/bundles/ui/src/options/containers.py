@@ -364,6 +364,8 @@ class _MultiColumnFormLayout(QHBoxLayout):
     def finish_init(self, num_columns):
         self._layouts = []
         for i in range(num_columns):
+            if i > 0:
+                self.addSpacing(5)
             col_layout = QFormLayout()
             self.addLayout(col_layout)
             self._layouts.append(col_layout)
@@ -398,6 +400,7 @@ class _MultiColumnFormLayout(QHBoxLayout):
             elif layout.rowCount() > target_number:
                 self._xfer_to_next(col)
             widget_sum += target_number
+        self.update()
 
     def itemAt(self, row, item_role=None):
         for layout in self._layouts:
@@ -417,7 +420,7 @@ class _MultiColumnFormLayout(QHBoxLayout):
                 pass
 
     def minimumSize(self):
-        overall_min = QSize()
+        overall_min = QSize(20*(len(self._layouts)-1), 0) # allow for inter-form spacing
         for layout in self._layouts:
             min_size = layout.minimumSize()
             if min_size.height() > overall_min.height():

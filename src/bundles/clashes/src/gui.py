@@ -258,7 +258,7 @@ class AtomProximityGUI(QWidget):
 
             if show_bool_params:
                 bool_param_options = OptionsPanel(sorting=False, scrolled=False,
-                    contents_margins=(10,0,10,0))
+                    contents_margins=(10,0,10,0), columns=2)
                 group_layout.addWidget(bool_param_options, alignment=Qt.AlignCenter)
                 if show_inter_model:
                     self.inter_model_option = BooleanOption("Include intermodel",
@@ -385,7 +385,8 @@ class AtomProximityGUI(QWidget):
                 info_layout.setContentsMargins(0,0,0,0)
                 info_layout.setSpacing(0)
                 group.setLayout(info_layout)
-                info_options = OptionsPanel(sorting=False, scrolled=False, contents_margins=(0,0,0,0))
+                info_options = OptionsPanel(sorting=False, scrolled=False, contents_margins=(0,0,0,0),
+                    columns=2 if show_log and show_save_file else 1)
                 info_layout.addWidget(info_options)
 
                 if show_log:
