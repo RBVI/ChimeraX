@@ -21,13 +21,13 @@ switch between.
 """
 
 from Qt.QtWidgets import QWidget, QFormLayout, QTabWidget, QVBoxLayout, QGridLayout, \
-    QPushButton, QCheckBox, QScrollArea, QGroupBox
-from Qt.QtCore import Qt
+    QPushButton, QCheckBox, QScrollArea, QGroupBox, QHBoxLayout
+from Qt.QtCore import Qt, QSize
 
 class OptionsPanel(QWidget):
     """Supported API. OptionsPanel is a container for single-use (not savable) Options"""
 
-    def __init__(self, parent=None, *, sorting=True, scrolled=True, contents_margins=None):
+    def __init__(self, parent=None, *, sorting=True, scrolled=True, contents_margins=None, columns=1):
         """sorting:
             False; options shown in order added
             True: options sorted alphabetically by name
@@ -53,16 +53,26 @@ class OptionsPanel(QWidget):
         self._options = []
         self._option_groups = []
         self._layout.setSizeConstraint(self._layout.SizeConstraint.SetMinAndMaxSize)
-        self._form = QFormLayout()
-        self._form.setSizeConstraint(self._form.SizeConstraint.SetMinAndMaxSize)
-        self._form.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.ExpandingFieldsGrow)
-        self._form.setVerticalSpacing(1)
+        if columns > 1:
+            self._form = _MultiColumnFormLayout()
+        else:
+            self._form = QFormLayout()
+            self._form.setSizeConstraint(QFormLayout.SizeConstraint.SetMinAndMaxSize)
+            self._form.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.ExpandingFieldsGrow)
+            self._form.setVerticalSpacing(1)
         # None of the below seem to have an effect on the Mac...
         #self._form.setLabelAlignment(Qt.AlignRight | Qt.AlignVCenter)
         #self._form.setFormAlignment(Qt.AlignLeft | Qt.AlignVCenter)
         # if we wanted to force the form contents to upper left...
         #self._form.setFormAlignment(Qt.AlignLeft | Qt.AlignTop)
         self._layout.addLayout(self._form)
+        if columns > 1:
+            # Qt coughs up a hairball if the sublayouts used by _MultiColumnFormLayout are
+            # added before the parent layout is added, so therefore this awkward finish_init()
+            self._form.finish_init(columns)
+            self._form.setSizeConstraint(QFormLayout.SizeConstraint.SetMinAndMaxSize)
+            self._form.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.ExpandingFieldsGrow)
+            self._form.setVerticalSpacing(1)
 
     def add_option(self, option):
         """Supported API. Add an option (instance of chimerax.ui.options.Option)."""
@@ -349,3 +359,81 @@ class CategorizedSettingsPanel(SettingsPanelBase):
     def add_tab(self, category, panel):
         """Supported API. Same as CategorizedOptionsPanel.add_tab(...)"""
         self.options_panel.add_tab(category, panel)
+
+class _MultiColumnFormLayout(QHBoxLayout):
+    def finish_init(self, num_columns):
+        self._layouts = []
+        for i in range(num_columns):
+            col_layout = QFormLayout()
+            self.addLayout(col_layout)
+            self._layouts.append(col_layout)
+
+        def call_subattr(attr_name, *args, **kw):
+            for qform in self._layouts:
+                getattr(qform, attr_name)(*args, **kw)
+        for qform_attr in ["setSizeConstraint", "setFieldGrowthPolicy", "setVerticalSpacing"]:
+            setattr(self, qform_attr,
+                lambda *args, qf_attr=qform_attr, **kw: call_subattr(qf_attr, *args, **kw))
+
+    def insertRow(self, insert_row, name, widget):
+        num_widgets = sum([layout.rowCount() for layout in self._layouts]) + 1
+        min_per_col = int(num_widgets / len(self._layouts))
+        extras = num_widgets - (min_per_col * len(self._layouts))
+        widget_sum = 0
+        inserted = False
+        for col, layout in enumerate(self._layouts):
+            target_number = min_per_col
+            if extras:
+                target_number += 1
+                extras -= 1
+            # Does new widget belong in this column?
+            if not inserted and (widget_sum <= insert_row < widget_sum + target_number
+            or col == len(self._layouts)-1):
+                insertion_point = insert_row - widget_sum
+                layout.insertRow(insertion_point, name, widget)
+                inserted = True
+            # transfer widgets between columns as needed for balance
+            if layout.rowCount() < target_number:
+                self._xfer_from_next(col)
+            elif layout.rowCount() > target_number:
+                self._xfer_to_next(col)
+            widget_sum += target_number
+
+    def itemAt(self, row, item_role=None):
+        for layout in self._layouts:
+            if row < layout.rowCount():
+                if item_role is None:
+                    return layout.itemAt(row)
+                else:
+                    return layout.itemAt(row, item_role)
+            row -= layout.rowCount()
+        return super().itemAt(row)
+
+    def labelForField(self, widget):
+        for layout in self._layouts:
+            try:
+                return layout.labelForField(widget)
+            except Exception:
+                pass
+
+    def minimumSize(self):
+        overall_min = QSize()
+        for layout in self._layouts:
+            min_size = layout.minimumSize()
+            if min_size.height() > overall_min.height():
+                overall_min.setHeight(min_size.height())
+            overall_min.setWidth(overall_min.width() + min_size.width())
+        return overall_min
+
+    def _xfer_from_next(self, col):
+        col_layout, next_layout = self._layouts[col:col+2]
+        row_contents = next_layout.takeRow(0)
+        xfer_label, xfer_widget = row_contents.labelItem.widget(), row_contents.fieldItem.widget()
+        col_layout.addRow(xfer_label, xfer_widget)
+
+    def _xfer_to_next(self, col):
+        col_layout, next_layout = self._layouts[col:col+2]
+        row_contents = col_layout.takeRow(col_layout.rowCount()-1)
+        xfer_label, xfer_widget = row_contents.labelItem.widget(), row_contents.fieldItem.widget()
+        next_layout.insertRow(0, xfer_label, xfer_widget)
+

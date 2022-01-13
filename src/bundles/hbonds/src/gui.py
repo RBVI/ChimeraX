@@ -229,7 +229,8 @@ class HBondsGUI(QWidget):
             info_layout.setContentsMargins(0,0,0,0)
             info_layout.setSpacing(0)
             group.setLayout(info_layout)
-            info_options = OptionsPanel(sorting=False, scrolled=False, contents_margins=(0,0,0,0))
+            info_options = OptionsPanel(sorting=False, scrolled=False, contents_margins=(0,0,0,0),
+                columns=(2 if show_log and show_save_file else 1))
             info_layout.addWidget(info_options)
 
             if show_log:
