@@ -160,15 +160,14 @@ class CxServicesJob(Job):
         """
         return self._status == "complete"
 
-    def get_results(self, *, encoding: str = 'utf-8') -> Optional[Union[bytes,str]]:
+    def get_results(self) -> Optional[Union[bytes,str]]:
+        """Expects JSON."""
         try:
             content = self.chimerax_api.get_results(self.job_id)
-        except ApiException as e:
+        except ApiException:
             return None
-        if encoding is None:
-            return content
         else:
-            return content.decode(encoding)
+            return content
 
     #
     # Other helper methods
