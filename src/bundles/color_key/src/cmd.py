@@ -40,6 +40,11 @@ def key_cmd(session, colors_and_labels=None, *, pos=None, size=None, font_size=N
         key.pos = pos
     if size is not None:
         key.size = size
+    else:
+        # prevent "key" command from apparently doing nothing [#4902]
+        x, y = key.size
+        if x == 0 or y == 0:
+            key.size = key.DEFAULT_SIZE
     if font_size is not None:
         key.font_size = font_size
     if bold is not None:

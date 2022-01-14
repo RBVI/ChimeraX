@@ -1169,6 +1169,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         categories = self._order_preset_categories(preset_info.keys())
         for cat in categories:
             cat_menu = self.presets_menu.addMenu(menu_capitalize(cat))
+            cat_menu.setTearOffEnabled(True)
             self._add_preset_entries(session, cat_menu, preset_info[cat], cat)
 
     def _order_preset_categories(self, categories):
