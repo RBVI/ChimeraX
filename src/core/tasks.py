@@ -456,30 +456,17 @@ class Tasks(StateManager):
     # session.tasks.add(self) should == session.tasks[None] = self
     def __setitem__(self, key, task):
         if key is None:
-            self.add(task)
+            dict.__setitem__(self._tasks, next(self._id_counter), task)
+            if self.session:
+                self.session.triggers.activate_trigger(ADD_TASK, task)
+        elif key in self:
+            raise ValueError("Attempted to record task ID already in task list")
         else:
-            # TODO: A robust solution that will not collide with the
-            # internal counter.
-            self._tasks[key] = task
+            dict.__setitem__(self._tasks, key, task)
+            if self.session:
+                self.session.triggers.activate_trigger(ADD_TASK, task)
 
     def __delitem__(self, task):
-        self.remove(task)
-
-    def add(self, task):
-        """Register task with state manager.
-
-        Parameters
-        ----------
-        task : :py:class:`Task` instances
-            A newly created task.
-
-        """
-        if task.id is None:
-            task.id = next(self._id_counter)
-        self._tasks[task.id] = task
-        self.session.triggers.activate_trigger(ADD_TASK, task)
-
-    def remove(self, task):
         """Deregister task with state manager.
 
         Parameters
