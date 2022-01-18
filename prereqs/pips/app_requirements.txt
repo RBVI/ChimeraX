@@ -73,4 +73,5 @@ comtypes==1.1.10; sys_platform == 'win32'
 distro==1.6.0; sys_platform == 'linux'
 # There are only line_profiler binaries for Linux,
 # and it is hard to compile elsewhere
-line_profiler==3.3.0; sys_platform == 'linux'
+#line_profiler==3.2.6; sys_platform == 'linux'
+line_profiler==3.4.0
