@@ -9,7 +9,7 @@ Cython==0.29.26
 filelock==3.4.2
 grako==3.16.5
 html2text==2020.1.16
-ihm==0.25
+ihm==0.26
 imagecodecs==2021.11.20 ; platform_machine != 'arm64'
 ipykernel==6.6.1
 # if ipython updated, make sure autocompletion still works (e.g. "mi<tab>" becomes min) and if not then
@@ -24,7 +24,7 @@ matplotlib==3.5.1 ; platform_machine != 'arm64'
 msgpack==1.0.3
 netCDF4==1.5.8 ; platform_machine != 'arm64'
 networkx==2.6.3
-numpy==1.22.0
+numpy==1.22.1
 openvr==1.16.802
 # as per Tristan's request in ticket #3055
 ParmEd==3.4.3
