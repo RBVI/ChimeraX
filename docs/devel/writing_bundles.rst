@@ -21,7 +21,7 @@ file formats, web databases and selection specifiers.
 This document describes the details of how to create a bundle
 and publish it in the ChimeraX toolshed.
 There is also a step-by-step example of writing a bundle
-available :ref:`here <Seven Steps>`.
+available :ref:`here <A Few Steps>`.
 
 Bundle Format
 -------------

@@ -38,18 +38,18 @@ def zoom(session, factor=None, frames=None, pixel_size=None):
         log.status(msg)
         log.info(msg)
         return
-    c = v.camera
     if frames is None or frames <= 0:
-        zoom_camera(c, cofr, factor)
+        _zoom_camera(v, cofr, factor)
     else:
         import math
         ff = math.pow(factor, 1/frames)
-        def zoom_cb(session, frame, c=c, p=cofr, f=ff):
-            zoom_camera(c,p,f)
+        def zoom_cb(session, frame, v=v, p=cofr, f=ff):
+            _zoom_camera(v,p,f)
         from chimerax.core.commands import motion
         motion.CallForNFrames(zoom_cb, frames, session)
 
-def zoom_camera(c, point, factor):
+def _zoom_camera(view, point, factor):
+    c = view.camera
     if hasattr(c, 'field_width'):
         # Orthographic camera
         c.field_width /= factor
@@ -59,10 +59,19 @@ def zoom_camera(c, point, factor):
         p = c.position
         from chimerax.geometry import inner_product, translation
         delta_z = inner_product(p.origin() - point, v)
-        zmove = (delta_z*(1-factor)/factor) * v
+        zdist = (delta_z*(1-factor)/factor)
+        zmove = zdist * v
         c.position = translation(zmove) * p
+        _move_near_far_clip_planes(view, zdist)
     c.redraw_needed = True
 
+def _move_near_far_clip_planes(view, zdist):
+    for pname in ('near', 'far'):
+        plane = view.clip_planes.find_plane(pname)
+        if plane:
+            print ('moved plane', pname, zdist, view.camera.view_direction())
+            plane.plane_point -= zdist * view.camera.view_direction()
+    
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register, FloatArg, PositiveIntArg
     desc = CmdDesc(

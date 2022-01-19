@@ -29,7 +29,7 @@ The steps in implementing the bundle are:
 #. Create a ``bundle_info.xml`` containing information
    about the bundle,
 #. Create a Python package that interfaces with ChimeraX
-   and implements the file-reading functionality, and
+   and implements the atom-selection functionality, and
 #. Install and test the bundle in ChimeraX.
 
 The final step builds a Python wheel that ChimeraX uses
@@ -182,3 +182,4 @@ What's Next
 - :doc:`tutorial_save_format`
 - :doc:`tutorial_fetch` (previous topic)
 - :doc:`tutorial_selector` (current topic)
+- :doc:`tutorial_presets` (next topic)
