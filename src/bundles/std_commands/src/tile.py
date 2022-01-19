@@ -42,6 +42,9 @@ def tile(session, models=None, columns=None, spacing_factor=1.3,
         from chimerax.core.commands import run
         run(session, "; ".join(commands), log=False)
     undo.finish(session, models)
+    if independent_rotation:
+        undo = UndoMouseMode(session, 'tile', 'left', 'rotate', 'rotate independent',
+                             extra_undo = undo)
     session.undo.register(undo)
 
     session.logger.info("%d model%s tiled" %
@@ -64,6 +67,28 @@ def _tiling_models(session, models):
         raise UserError("No models found for tiling.")
 
     return models
+
+from chimerax.core.undo import UndoAction
+class UndoMouseMode(UndoAction):
+    def __init__(self, session, name, button, undo_mode, redo_mode, extra_undo = None):
+        self._session = session
+        self._button = button
+        self._undo_mode = undo_mode
+        self._redo_mode = redo_mode
+        self._extra_undo = extra_undo
+        UndoAction.__init__(self, name)
+
+    def undo(self):
+        from chimerax.core.commands import run
+        run(self._session, 'mouse %s "%s"' % (self._button, self._undo_mode), log = False)
+        if self._extra_undo:
+            self._extra_undo.undo()
+
+    def redo(self):
+        from chimerax.core.commands import run
+        run(self._session, 'mouse %s "%s"' % (self._button, self._redo_mode), log = False)
+        if self._extra_undo:
+            self._extra_undo.redo()
 
 def untile(session, models=None, view_all=True):
     """Untile models."""
