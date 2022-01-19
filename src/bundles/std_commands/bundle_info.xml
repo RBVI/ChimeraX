@@ -121,6 +121,7 @@
     <ChimeraXClassifier>Command :: style :: Depiction :: change style of depiction for strcutural elements</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: sym :: Higher-Order Structure :: generate symmetry mates</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: tile :: General Controls :: tile models onto grid</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: ~tile :: General Controls :: untile models</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: time :: Utilities :: time execution and redisplay of commands</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: transparency :: Depiction :: change transparency of (parts of) models</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: turn :: General Controls :: rotate a model about an axis</ChimeraXClassifier>
