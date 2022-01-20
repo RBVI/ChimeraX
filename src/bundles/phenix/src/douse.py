@@ -20,15 +20,32 @@ def phenix_douse(session, map, near_model, phenix_location = None, verbose = Fal
     from .locate import _find_phenix_command
     exe_path = _find_phenix_command(session, 'phenix.douse', phenix_location)
 
-    # Save map and model to files for running phenix.douse
+    # Setup temporary directory to run phenix.douse.
     from tempfile import TemporaryDirectory
     d = TemporaryDirectory(prefix = 'phenix_douse_')  # Will be cleaned up when object deleted.
     temp_dir = d.name
+
+    # Save map to file
     from os import path
     from chimerax.map_data import save_grid_data
     save_grid_data([map.data], path.join(temp_dir,'map.mrc'), session)
-    from chimerax.pdb import save_pdb, open_pdb
-    save_pdb(session, path.join(temp_dir,'model.pdb'), models = [near_model], rel_model = map)
+
+    # Douse ignores the MRC file origin so if it is non-zero
+    # shift the atom coordinates so they align with the origin 0 map.
+    if tuple(map.data.origin) != (0,0,0):
+        from chimerax.geometry import translation
+        shift = map.data.origin
+        from chimerax.core.models import Model
+        map_0 = Model('douse shift coords', session)
+        map_0.position = map.scene_position * translation(shift)
+    else:
+        shift = None
+        map_0 = map
+
+    # Save model to file.
+    from chimerax.pdb import save_pdb
+    save_pdb(session, path.join(temp_dir,'model.pdb'),
+             models = [near_model], rel_model = map_0)
 
     # Run phenix.douse
     args = [exe_path, 'map.mrc', 'model.pdb']
@@ -45,7 +62,7 @@ def phenix_douse(session, map, near_model, phenix_location = None, verbose = Fal
         from chimerax.core.errors import UserError
         raise UserError(msg)
 
-    # Log command output
+    # Log phenix douse command output
     if verbose:
         cmd = " ".join(args)
         out, err = p.stdout.decode("utf-8"), p.stderr.decode("utf-8")
@@ -60,20 +77,30 @@ def phenix_douse(session, map, near_model, phenix_location = None, verbose = Fal
     models, info = open_pdb(session, path.join(temp_dir,'douse_000.pdb'), log_info = False)
     m = models[0]
     m.name = near_model.name + ' douse'
+    m.position = map.scene_position
+    if shift is not None:
+        m.atoms.coords += shift
     session.models.add(models)
     
     # Report number of waters added
     res = m.residues
     waters = res[res.names == 'HOH']
-    session.logger.info(f'Found {len(waters)} waters in map {map.name} near model {near_model.name}')
+    nwat = len(waters)
+    session.logger.info(f'Found {nwat} waters in map {map.name} near model {near_model.name}')
     
-    # Show waters as spheres
-    watoms = waters.atoms
-    watoms.displays = True
-    watoms.draw_modes = watoms.SPHERE_STYLE
-
-    # Hide original model
-    near_model.display = False
+    # Show only waters and nearby residues and transparent map near waters.
+    if nwat > 0:
+        m_id = m.id_string
+        res_range = 5
+        map_range = 8
+        commands = [f'hide #{m_id} atoms,ribbons',
+                    f'show #{m_id}:HOH :< {res_range}',
+                    f'volume zone #{map.id_string} near #{m_id}:HOH range {map_range}',
+                    f'transparency #{map.id_string} 50',
+                    f'hide #{near_model.id_string} model']
+        cmd = ' ; '.join(commands)
+        from chimerax.core.commands import run
+        run(session, cmd, log = False)
     
     return m
     
