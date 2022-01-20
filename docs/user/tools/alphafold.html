@@ -33,22 +33,17 @@ The ChimeraX <b>AlphaFold</b> tool:
 <li><a href="#search">finds and retrieves existing models</a>
 from the <a href="https://alphafold.ebi.ac.uk/"
 target="_blank">AlphaFold Database</a>
-<br>&ndash; freely available for academic and commercial use under 
-<a href="https://creativecommons.org/licenses/by/4.0/" 
-target="_blank">CC BY 4.0</a>
 <br><br>
-<li><a href="#predict">runs new predictions</a> with
-<a href="https://alphafold.ebi.ac.uk/"
-target="_blank">AlphaFold</a> using
-<a href="https://colab.research.google.com/signup" 
-target="_blank">Google Colab</a>
-<br>&ndash; for noncommercial use only, as the
+<li><a href="#predict">runs new AlphaFold predictions</a>
+using <a href="https://colab.research.google.com/signup" 
+target="_blank">Google Colab</a> and
 <a href="https://github.com/deepmind/alphafold/#model-parameters-license"
-target="_blank">AlphaFold-learned parameters</a> 
-needed to run the calculation are licensed under 
-<a href="https://creativecommons.org/licenses/by-nc/4.0/legalcode"
-target="_blank">CC BY NC 4.0</a>
+target="_blank">learned parameters</a> 
 </ul>
+<p>
+Both are freely available for academic and commercial use under
+<a href="https://creativecommons.org/licenses/by/4.0/"
+target="_blank">CC BY 4.0</a>.
 Users should cite:
 </p>
 <blockquote>
@@ -292,21 +287,6 @@ for further analysis
 Please note the following caveats:
 </p>
 <ul>
-<li>Regardless of a user's 
-<a href="https://colab.research.google.com/signup" 
-target="_blank">Colab plan</a>, <b>Predict</b> is for 
-<b>noncommercial use only</b>. Paid 
-<a href="https://colab.research.google.com/signup" 
-target="_blank">Colab plans</a> provide more computational resources,
-but they do not cover access to the 
-<a href="https://github.com/deepmind/alphafold/#model-parameters-license"
-target="_blank">AlphaFold-learned parameters</a>
-needed to run the calculation. The parameters are licensed under 
-<a href="https://creativecommons.org/licenses/by-nc/4.0/legalcode"
-target="_blank">CC BY NC 4.0</a>; the Colab itself is provided under the 
-<a href="https://www.apache.org/licenses/LICENSE-2.0" target="_blank">Apache 
-2.0</a> license.
-<br><br>
 <li>Prediction calculations run a <b>simplified implementation</b> of AlphaFold 
 that does not use structural templates and that
 searches a smaller set of protein sequences 
@@ -325,6 +305,11 @@ AlphaFold runs out of graphics memory for long sequences (~800 amino acids
 on old Google Colab GPUs with 16 GB memory). 
 Multimer predictions face the same limit on the total number of residues,
 so <b>only smaller complexes can be predicted</b>. 
+Paid <a href="https://colab.research.google.com/signup"
+target="_blank">Colab plans</a> provide more computational resources.
+The Colab itself is provided under the
+<a href="https://www.apache.org/licenses/LICENSE-2.0" target="_blank">Apache
+2.0</a> license.
 </ul>
 <br>
 <li><a name="coloring"></a>
@@ -499,5 +484,5 @@ B-factor field of the PDB file) and
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-December 2021</address>
+January 2022</address>
 </body></html>
