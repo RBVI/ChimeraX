@@ -14,7 +14,8 @@
 # ---------------------------------------------------------------------------------------
 # Command and tool to place waters in cryoEM maps using Phenix douse.
 #
-def phenix_douse(session, map, near_model, phenix_location = None, verbose = False):
+def phenix_douse(session, map, near_model, phenix_location = None,
+                 residue_range = 5, map_range = 8, verbose = False):
 
     # Find the phenix.douse executable
     from .locate import _find_phenix_command
@@ -91,13 +92,14 @@ def phenix_douse(session, map, near_model, phenix_location = None, verbose = Fal
     # Show only waters and nearby residues and transparent map near waters.
     if nwat > 0:
         m_id = m.id_string
-        res_range = 5
-        map_range = 8
         commands = [f'hide #{m_id} atoms,ribbons',
-                    f'show #{m_id}:HOH :< {res_range}',
-                    f'volume zone #{map.id_string} near #{m_id}:HOH range {map_range}',
+                    f'show #{m_id}:HOH',
                     f'transparency #{map.id_string} 50',
                     f'hide #{near_model.id_string} model']
+        if residue_range > 0:
+            commands.append(f'show #{m_id}:HOH :< {residue_range}')
+        if map_range > 0:
+            commands.append(f'volume zone #{map.id_string} near #{m_id}:HOH range {map_range}')
         cmd = ' ; '.join(commands)
         from chimerax.core.commands import run
         run(session, cmd, log = False)
@@ -107,13 +109,15 @@ def phenix_douse(session, map, near_model, phenix_location = None, verbose = Fal
 # ---------------------------------------------------------------------------------------
 #
 def register_phenix_douse_command(logger):
-    from chimerax.core.commands import CmdDesc, register, OpenFolderNameArg, BoolArg
+    from chimerax.core.commands import CmdDesc, register, OpenFolderNameArg, BoolArg, FloatArg
     from chimerax.map import MapArg
     from chimerax.atomic import AtomicStructureArg
     desc = CmdDesc(
         required = [('map', MapArg)],
         keyword = [('near_model', AtomicStructureArg),
                    ('phenix_location', OpenFolderNameArg),
+                   ('residue_range', FloatArg),
+                   ('map_range', FloatArg),
                    ('verbose', BoolArg),
         ],
         required_arguments = ['near_model'],
