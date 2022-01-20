@@ -1216,6 +1216,7 @@ class AtomicStructure(Structure):
                 self._report_chain_descriptions(session)
                 self._report_res_info(session)
             self._report_assemblies(session)
+            self._report_model_info(session)
 
     def apply_auto_styling(self, set_lighting = False, style=None):
         if style is None:
@@ -1485,6 +1486,51 @@ class AtomicStructure(Structure):
             return '<a title="Select chain" href="cxcmd:select %s">%s/%s</a>' % (chain_res_range(chain),
                 chain.structure.id_string, (chain.chain_id if not chain.chain_id.isspace() else '?'))
         self._report_chain_summary(session, descripts, chain_text, True)
+
+    def _report_model_info(self, session):
+        try:
+            headers = self.metadata['ma_alignment']
+            align_data = self.metadata['ma_alignment data']
+        except KeyError:
+            return
+        if len(headers) != 5:
+            session.warning("Don't know how to parse model-alignment data")
+            return
+        #template_names = {}
+        template_name = "template"
+        try:
+            #template_headers = self.metadata['ma_template_ref_db_details']
+            template_info = self.metadata['ma_template_ref_db_details data']
+        except KeyError:
+            pass
+        else:
+            #if len(template_headers) != 4:
+            if len(template_info) != 3:
+                session.warning("Don't know how to parse model template information")
+            else:
+                #for i in range(0, len(template_info), 3):
+                #    template_id, db_name, db_accession_code = template_info[i:i+3]
+                #    template_names[template_id] = "%s %s" % (db_name, db_accession_code)
+                template_id, db_name, db_accession_code = template_info
+                template_name = "%s %s" % (db_name, db_accession_code)
+        try:
+            template_range = self.metadata['ma_template_poly_segment data']
+        except KeyError:
+            pass
+        else:
+            if len(template_range) != 4:
+                session.warning("Don't know how to parse model template residue-range information")
+            else:
+                segment_id, template_id, begin, end = template_range
+                template_name += ":%s-%s" % (begin, end)
+        cur_align = None
+        seqs =[]
+        from . import Sequence
+        for i in range(0, len(align_data), 4):
+            ordinal, alignment_id, target_template, seq = align_data[i:i+4]
+            seqs.append(
+                Sequence(name=("target" if target_template == '1' else template_name), characters=seq))
+        session.alignments.new_alignment(seqs, None, name="target-template alignment")
 
     def _report_res_info(self, session):
         if hasattr(self, 'get_formatted_res_info'):
