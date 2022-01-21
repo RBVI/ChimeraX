@@ -1547,6 +1547,9 @@ class AtomicStructure(Structure):
             seqs.append(Sequence(name=seq_name, characters=seq))
         if cur_align is not None:
             session.alignments.new_alignment(seqs, None, name="target-template alignment")
+        # have to hold a reference to the timer
+        self._timer = session.ui.timer(500, session.logger.status,
+            'Use "more info..." link in log to see overall model scores [if any]', color="forest green")
 
     def _report_res_info(self, session):
         if hasattr(self, 'get_formatted_res_info'):

@@ -225,6 +225,28 @@ def _get_formatted_metadata(model, session, *, verbose=False):
         html += '   <td>%s\N{ANGSTROM SIGN}</td>\n' % res
         html += '  </tr>\n'
 
+    # modeled structure scores
+    metrics, scores = get_mmcif_tables_from_metadata(model,
+        ["ma_qa_metric", "ma_qa_metric_global"], metadata=metadata)
+    if metrics and scores:
+        metric_names = metrics.mapping('id', 'name')
+        if metrics.has_field('description'):
+            metric_descriptions = metrics.mapping('id', 'description')
+        else:
+            metric_descriptions = None
+        metric_values = scores.mapping('metric_id', 'metric_value')
+        metric_ids = list(metric_values.keys())
+        metric_ids.sort(key=lambda m: metric_names[m].lower())
+        for metric_id in metric_ids:
+            if metric_descriptions:
+                description = ' title="%s"' % metric_descriptions[metric_id]
+            else:
+                description = ''
+            html += '  <tr>\n'
+            html += '   <th%s>%s</th>\n' % (description, metric_names[metric_id])
+            html += '   <td>%s</td>\n' % metric_values[metric_id]
+            html += '  </tr>\n'
+
     html += ' </tbody>\n'
     html += "</table>"
 
