@@ -846,7 +846,6 @@ class MainWindow(QMainWindow, PlainTextLog):
         self.rapid_access_shown = len(self.session.models) == 0
 
     def showEvent(self, event):
-        """"""
         QMainWindow.showEvent(self, event)
         if not hasattr(self, '_already_shown'):
             self._already_shown = True
@@ -2258,6 +2257,7 @@ class _Qt:
         self.title = title
         self.hide_title_bar = hide_title_bar
         self.main_window = mw = main_window
+        self._destroyed = False
 
         if not mw:
             raise RuntimeError("No main window or main window dead")
@@ -2291,9 +2291,9 @@ class _Qt:
         self._docked_window_flags = self.dock_widget.windowFlags()
 
     def destroy(self):
-        if not self.tool_window:
-            # already destroyed
-            return
+        if self._destroyed:
+            return  # already destroyed
+        self._destroyed = True
         from Qt.QtCore import Qt
         auto_delete = self.dock_widget.testAttribute(Qt.WA_DeleteOnClose)
         is_floating = self.dock_widget.isFloating()

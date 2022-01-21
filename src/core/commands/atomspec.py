@@ -1205,11 +1205,11 @@ def register_selector(name, value, logger, *,
         Non-atomic selectors will not appear in Basic Actions tool.
     """
     if not name[0].isalpha():
-        logger.warning("registering illegal selector name \"%s\"" % name)
+        logger.warning("Not registering illegal selector name \"%s\"" % name)
         return
     for c in name[1:]:
-        if not c.isalnum() and c not in "-+":
-            logger.warning("registering illegal selector name \"%s\"" % name)
+        if not c.isalnum() and c not in "-+_":
+            logger.warning("Not registering illegal selector name \"%s\"" % name)
             return
     _selectors[name] = _Selector(name, value, user, desc, atomic)
     from ..toolshed import get_toolshed

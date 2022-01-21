@@ -50,6 +50,9 @@ _additional_categories = (
     "exptl",
     "struct_ref",	# Uniprot data base id
     "struct_ref_seq",	# Sequence range for uniprot id
+    "ma_alignment",	# 'Model Archive' alignment [#5601]
+    "ma_template_ref_db_details",
+    "ma_template_poly_segment",
 )
 # _reserved_words = {
 #     'loop_', 'stop_', 'global_', "data_", "save_"
