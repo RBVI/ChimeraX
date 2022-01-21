@@ -1387,7 +1387,6 @@ class AtomicStructure(Structure):
         chain_to_desc = {}
         struct_asym, entity = mmcif.get_mmcif_tables_from_metadata(self, ['struct_asym', 'entity'])
         if struct_asym:
-            entity, = mmcif.get_mmcif_tables_from_metadata(self, ['entity'])
             if not entity:
                 # bad mmCIF file
                 return
@@ -1489,28 +1488,16 @@ class AtomicStructure(Structure):
 
     def _report_model_info(self, session):
         # report Model Archive info [#5601]
-        try:
-            headers = self.metadata['ma_alignment']
-            align_data = self.metadata['ma_alignment data']
-        except KeyError:
-            return
-        if len(headers) != 5:
-            session.warning("Don't know how to parse model-alignment data")
+        from chimerax.mmcif import get_mmcif_tables_from_metadata
+        align_data, template_deets, template_segment = get_mmcif_tables_from_metadata(self,
+            ['ma_alignment', 'ma_template_ref_db_details', 'ma_template_poly_segment'])
+        if not align_data:
             return
         template_names = {}
-        template_name = "template"
-        try:
-            template_headers = self.metadata['ma_template_ref_db_details']
-            template_info = self.metadata['ma_template_ref_db_details data']
-        except KeyError:
-            pass
-        else:
-            if len(template_headers) != 4:
-                session.warning("Don't know how to parse model overall template information")
-            else:
-                for i in range(0, len(template_info), 3):
-                    template_id, db_name, db_accession_code = template_info[i:i+3]
-                    template_names[template_id] = "%s %s" % (db_name, db_accession_code)
+        if template_deets:
+            for template_id, db_name, db_accession_code in template_deets.fields(
+                    ['template_id', 'db_name', 'db_accession_code']):
+                template_names[template_id] = "%s %s" % (db_name, db_accession_code)
         # since the chain IDs provided are not the author IDs, don't add them into the template sequence
         # name since it will just be confusing to the user unless we use some kind of web lookup to
         # resolve them to author IDs
@@ -1531,26 +1518,18 @@ class AtomicStructure(Structure):
                     except KeyError:
                         session.warning("Unknown template ID in detail information: %s" % template_id)
         """
-        try:
-            template_segment_headers = self.metadata['ma_template_poly_segment']
-            template_segment = self.metadata['ma_template_poly_segment data']
-        except KeyError:
-            pass
-        else:
-            if len(template_segment_headers) != 5:
-                session.warning("Don't know how to parse model template residue-range information")
-            else:
-                for i in range(0, len(template_segment), 4):
-                    segment_id, template_id, begin, end = template_segment[i:i+4]
-                    try:
-                        template_names[template_id] += ":%s-%s" % (begin, end)
-                    except KeyError:
-                        session.warning("Unknown template ID in residue-range information: %s" % template_id)
+        if template_segment:
+            for template_id, begin, end in template_segment.fields(
+                    ['template_id', 'residue_number_begin', 'residue_number_end']):
+                try:
+                    template_names[template_id] += ":%s-%s" % (begin, end)
+                except KeyError:
+                    session.warning("Unknown template ID in residue-range information: %s" % template_id)
         cur_align = None
         seqs =[]
         from . import Sequence
-        for i in range(0, len(align_data), 4):
-            ordinal, alignment_id, target_template, seq = align_data[i:i+4]
+        for alignment_id, target_template, seq in align_data.fields(
+                ['alignment_id', 'target_template_flag', 'sequence']):
             if cur_align != alignment_id:
                 if cur_align is not None:
                     session.alignments.new_alignment(seqs, None, name="target-template alignment")

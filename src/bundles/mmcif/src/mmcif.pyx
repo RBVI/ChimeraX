@@ -54,6 +54,8 @@ _additional_categories = (
     "ma_template_details",
     "ma_template_ref_db_details",
     "ma_template_poly_segment",
+    "ma_qa_metric",
+    "ma_qa_metric_global",
 )
 # _reserved_words = {
 #     'loop_', 'stop_', 'global_', "data_", "save_"
