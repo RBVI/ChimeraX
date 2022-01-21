@@ -408,6 +408,8 @@ class UI(QApplication):
         self.postEvent(self.main_window, ThreadSafeGuiFuncEvent(func, args, kw))
 
     def timer(self, millisec, callback, *args, **kw):
+        # Caller needs to hold a reference to the returned timer so it doesn't get
+        # garbage collected immediately
         from Qt.QtCore import QTimer
         t = QTimer()
         def cb(*, callback=callback, args=args, kw=kw):
