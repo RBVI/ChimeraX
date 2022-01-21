@@ -33,7 +33,6 @@ The ChimeraX <b>AlphaFold</b> tool:
 <li><a href="#search">finds and retrieves existing models</a>
 from the <a href="https://alphafold.ebi.ac.uk/"
 target="_blank">AlphaFold Database</a>
-<br><br>
 <li><a href="#predict">runs new AlphaFold predictions</a>
 using <a href="https://colab.research.google.com/signup" 
 target="_blank">Google Colab</a> and
@@ -253,8 +252,9 @@ to retrieve the model.
 <b>Predict</b>
 runs an <a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold</a>
 calculation using <a href="https://colab.research.google.com/signup" 
-target="_blank">Google Colab</a>. 
-The corresponding command is
+target="_blank">Google Colab</a>, which is provided under the
+<a href="https://www.apache.org/licenses/LICENSE-2.0" target="_blank">Apache
+2.0</a> license. The corresponding command is
 <a href="../commands/alphafold.html#predict"><b>alphafold predict</b></a>.
 A warning will appear saying that this Colab notebook is from github 
 (was not authored by Google), with a button to click to run anyway.
@@ -263,19 +263,15 @@ a browser. Once that is done, the sign-in may be remembered depending
 on the user's browser settings; it is not kept in the 
 <a href="../preferences.html">ChimeraX preferences</a>.
 </p><p>
-A single prediction run generally takes on the order of an hour or more.
-The process includes installing various software packages on a virtual machine,
-searching sequence databases, generating a multiple sequence alignment,
-predicting atomic coordinates, and energy-minimizing the best structure.
-Predicting a multimer (complex) structure may take longer than predicting
-the structure of a monomer with the same total number of residues.
-The free version of Google Colab
-limits jobs to 12 hours and may terminate them at shorter times at Google's 
-discretion (see the <a href="https://colab.research.google.com/signup" 
+A single calculation may take hours to complete
+(see the <a href="#caveats">caveats</a> below).
+The free version of Colab
+limits jobs to 12 hours and may terminate them at shorter times at Google's
+discretion (see the <a href="https://colab.research.google.com/signup"
 target="_blank">FAQ</a>).
-Those who want to run longer and/or more frequent calculations 
-may wish to sign up for one of the paid
-<a href="https://colab.research.google.com/signup" 
+Those who want to run longer and/or more frequent calculations
+may need to sign up for one of the paid
+<a href="https://colab.research.google.com/signup"
 target="_blank">Colab plans</a>.
 </p><p>
 The model for a sequence that was specified by structure chain will
@@ -300,16 +296,27 @@ open-source AlphaFold</a> or the <a href="https://alphafold.ebi.ac.uk/"
 target="_blank">AlphaFold Database</a> (<i>e.g.</i>, with 
 <a href="#search"><b>alphafold search</b></a>) instead.
 <br><br>
+<li>A single prediction <b>may take hours to complete</b> (see
+<a href="https://www.rbvi.ucsf.edu/chimerax/data/alphafold-jan2022/afspeed.html"
+target="_blank">performance statistics</a>).
+The process includes installing various software packages on a virtual machine,
+searching sequence databases, generating a multiple sequence alignment,
+predicting atomic coordinates, and energy-minimizing the best structure.
+Predicting a multimer (complex) structure may take longer than predicting
+the structure of a monomer with the same total number of residues.
+Those who want to run longer and/or more frequent calculations
+may need to sign up for one of the paid
+<a href="https://colab.research.google.com/signup"
+target="_blank">Colab plans</a> for greater computational resources.
+<br><br>
 <li>Total <b>sequence length cannot be very large</b>.
 AlphaFold runs out of graphics memory for long sequences (~800 amino acids
 on old Google Colab GPUs with 16 GB memory). 
 Multimer predictions face the same limit on the total number of residues,
 so <b>only smaller complexes can be predicted</b>. 
-Paid <a href="https://colab.research.google.com/signup"
-target="_blank">Colab plans</a> provide more computational resources.
-The Colab itself is provided under the
-<a href="https://www.apache.org/licenses/LICENSE-2.0" target="_blank">Apache
-2.0</a> license.
+As mentioned above, paid <a href="https://colab.research.google.com/signup"
+target="_blank">Colab plans</a> provide more computational resources
+than the free plan.
 </ul>
 <br>
 <li><a name="coloring"></a>
