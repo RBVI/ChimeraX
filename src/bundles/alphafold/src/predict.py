@@ -111,7 +111,8 @@ class AlphaFoldRun(ToolInstance):
         return self._running
     
     def _download_requested(self, item):
-        # "item" is an instance of QWebEngineDownloadItem
+        # "item" is an instance of QWebEngineDownloadItem in Qt 5,
+        # or QWebEngineDownloadRequest in Qt 6.
         filename = item.suggestedFileName()
         if filename == 'best_model.pdb':
             item.cancel()  # Historical.  Used to just download pdb file.
@@ -121,7 +122,10 @@ class AlphaFoldRun(ToolInstance):
             self._download_directory = dir = self._unique_download_directory()
         item.setDownloadDirectory(dir)
         if  filename == 'results.zip':
-            item.finished.connect(self._unzip_results)
+            if hasattr(item, 'finished'):
+                item.finished.connect(self._unzip_results)		# Qt 5
+            else:
+                item.isFinishedChanged.connect(self._unzip_results)	# Qt 6
         item.accept()
 
     def _unique_download_directory(self):
