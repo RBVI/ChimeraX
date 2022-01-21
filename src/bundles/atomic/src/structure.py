@@ -1488,6 +1488,7 @@ class AtomicStructure(Structure):
         self._report_chain_summary(session, descripts, chain_text, True)
 
     def _report_model_info(self, session):
+        # report Model Archive info [#5601]
         try:
             headers = self.metadata['ma_alignment']
             align_data = self.metadata['ma_alignment data']
@@ -1496,41 +1497,77 @@ class AtomicStructure(Structure):
         if len(headers) != 5:
             session.warning("Don't know how to parse model-alignment data")
             return
-        #template_names = {}
+        template_names = {}
         template_name = "template"
         try:
-            #template_headers = self.metadata['ma_template_ref_db_details']
+            template_headers = self.metadata['ma_template_ref_db_details']
             template_info = self.metadata['ma_template_ref_db_details data']
         except KeyError:
             pass
         else:
-            #if len(template_headers) != 4:
-            if len(template_info) != 3:
-                session.warning("Don't know how to parse model template information")
+            if len(template_headers) != 4:
+                session.warning("Don't know how to parse model overall template information")
             else:
-                #for i in range(0, len(template_info), 3):
-                #    template_id, db_name, db_accession_code = template_info[i:i+3]
-                #    template_names[template_id] = "%s %s" % (db_name, db_accession_code)
-                template_id, db_name, db_accession_code = template_info
-                template_name = "%s %s" % (db_name, db_accession_code)
+                for i in range(0, len(template_info), 3):
+                    template_id, db_name, db_accession_code = template_info[i:i+3]
+                    template_names[template_id] = "%s %s" % (db_name, db_accession_code)
+        # since the chain IDs provided are not the author IDs, don't add them into the template sequence
+        # name since it will just be confusing to the user unless we use some kind of web lookup to
+        # resolve them to author IDs
+        """
         try:
-            template_range = self.metadata['ma_template_poly_segment data']
+            template_details_headers = self.metadata['ma_template_details']
+            template_details = self.metadata['ma_template_details data']
         except KeyError:
             pass
         else:
-            if len(template_range) != 4:
+            if len(template_details_headers) != 11:
+                session.warning("Don't know how to parse model template detail information")
+            else:
+                for i in range(0, len(template_details), 10):
+                    template_id, template_cid = template_details[i+1], template_details[i+7]
+                    try:
+                        template_names[template_id] += " /%s" % template_cid
+                    except KeyError:
+                        session.warning("Unknown template ID in detail information: %s" % template_id)
+        """
+        try:
+            template_segment_headers = self.metadata['ma_template_poly_segment']
+            template_segment = self.metadata['ma_template_poly_segment data']
+        except KeyError:
+            pass
+        else:
+            if len(template_segment_headers) != 5:
                 session.warning("Don't know how to parse model template residue-range information")
             else:
-                segment_id, template_id, begin, end = template_range
-                template_name += ":%s-%s" % (begin, end)
+                for i in range(0, len(template_segment), 4):
+                    segment_id, template_id, begin, end = template_segment[i:i+4]
+                    try:
+                        template_names[template_id] += ":%s-%s" % (begin, end)
+                    except KeyError:
+                        session.warning("Unknown template ID in residue-range information: %s" % template_id)
         cur_align = None
         seqs =[]
         from . import Sequence
         for i in range(0, len(align_data), 4):
             ordinal, alignment_id, target_template, seq = align_data[i:i+4]
-            seqs.append(
-                Sequence(name=("target" if target_template == '1' else template_name), characters=seq))
-        session.alignments.new_alignment(seqs, None, name="target-template alignment")
+            if cur_align != alignment_id:
+                if cur_align is not None:
+                    session.alignments.new_alignment(seqs, None, name="target-template alignment")
+                    seqs = []
+                cur_align = alignment_id
+            # Since the alignment data does not include a template_id, if only one template is given
+            # then base the name on that, otherwise just use "template".  See issue:
+            # https://github.com/ihmwg/MA-dictionary/issues/4
+            if target_template == '1':
+                seq_name = "target"
+            elif len(template_names) == 1:
+                seq_name = list(template_names.values())[0]
+            else:
+                seq_name = "template"
+            seqs.append(Sequence(name=seq_name, characters=seq))
+        if cur_align is not None:
+            session.alignments.new_alignment(seqs, None, name="target-template alignment")
 
     def _report_res_info(self, session):
         if hasattr(self, 'get_formatted_res_info'):

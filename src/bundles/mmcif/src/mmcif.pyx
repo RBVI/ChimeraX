@@ -51,6 +51,7 @@ _additional_categories = (
     "struct_ref",	# Uniprot data base id
     "struct_ref_seq",	# Sequence range for uniprot id
     "ma_alignment",	# 'Model Archive' alignment [#5601]
+    "ma_template_details",
     "ma_template_ref_db_details",
     "ma_template_poly_segment",
 )
