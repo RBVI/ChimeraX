@@ -453,7 +453,7 @@ sequences, which could be longer.
 </p>
 <h3>Running an AlphaFold Prediction</h3>
 <p>
-For monomer prediction:
+For <b>monomer</b> prediction:
 </p>
 <blockquote>
 <a href="usageconventions.html"><b>Usage</b></a>:
@@ -475,9 +475,14 @@ in the form:
 <li>plain text pasted directly into the command line
 </ol>
 <p>
-For multimer (protein complex) prediction:
+For <b>multimer</b> (protein complex) prediction:
 </p>
 <blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>alphafold predict</b> 
+&nbsp;<a href="atomspec.html#hierarchy"><i>chain-spec</i></a>
+[&nbsp;<a href="#prokaryote"><b>prokaryote</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+<br>&ndash; or &ndash;</br>
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>alphafold predict</b> &nbsp;<i>sequence1</i>,<i>sequence2</i>[,<i>sequence3</i>...,<i>sequenceN</i>]
 [&nbsp;<a href="#prokaryote"><b>prokaryote</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
@@ -488,7 +493,7 @@ either collectively as a <a href="atomspec.html#hierarchy"><i>chain-spec</i></a>
 (for atomic-structure chains already open in ChimeraX), or
 individually within a comma-separated list using any combination of
 specifier types #2-4 listed <a href="#sequence-spec">above</a>.
-The list should not contain any spaces.
+The comma-separated list should not contain any spaces.
 If the same protein chain occurs multiple times in the complex, its sequence
 should be repeated that number of times. For example, to predict a
 homodimer, the same sequence (or its specifier) would need to be given twice.
