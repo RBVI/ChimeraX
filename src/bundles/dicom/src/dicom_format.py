@@ -277,7 +277,7 @@ class Series:
   def _sort_by_z_position(self, series_files):
     z_axis = self.plane_normal()
     from chimerax.geometry import inner_product
-    series_files.sort(key = lambda sf: (sf._time, inner_product(sf._position, z_axis)))
+    series_files.sort(key = lambda sf: (sf._time, (0 if sf._position is None else inner_product(sf._position, z_axis))))
     
   def pixel_spacing(self):
     pspacing = self.attributes.get('PixelSpacing')
