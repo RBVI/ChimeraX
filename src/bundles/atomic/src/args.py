@@ -174,7 +174,7 @@ class SequencesArg(Annotation):
 
 def _parse_sequence(seq_text, session):
     from chimerax.seqalign import SeqArg
-    for arg_type in (UniProtSequenceArg, SeqArg, RawSequenceArg):
+    for arg_type in (ChainArg, UniProtSequenceArg, SeqArg, RawSequenceArg):
         try:
             seq, sused, srest = arg_type.parse(seq_text, session)
             if len(srest) == 0:
