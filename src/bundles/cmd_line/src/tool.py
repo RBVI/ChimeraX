@@ -182,14 +182,17 @@ class CommandLine(ToolInstance):
         session.ui.register_for_keystrokes(self.text)
         self.history_dialog.populate()
         self._just_typed_command = None
-        self._command_started_handler = session.triggers.add_handler("command started",
-            self._command_started_cb)
+        self._in_open_command = 0
+        self._handlers = []
+        self._handlers.append(session.triggers.add_handler("command started", self._command_started_cb))
+        self._handlers.append(session.triggers.add_handler("command failed", self._command_ended_cb))
+        self._handlers.append(session.triggers.add_handler("command finished", self._command_ended_cb))
         self.tool_window.manage(placement="bottom")
         self._in_init = False
         self._processing_command = False
         if self.settings.startup_commands:
             # prevent the startup command output from being summarized into 'startup messages' table
-            session.ui.triggers.add_handler('ready', self._run_startup_commands)
+            self._handlers.append(session.ui.triggers.add_handler('ready', self._run_startup_commands))
 
     def cmd_clear(self):
         self.text.lineEdit().clear()
@@ -206,7 +209,8 @@ class CommandLine(ToolInstance):
 
     def delete(self):
         self.session.ui.deregister_for_keystrokes(self.text)
-        self.session.triggers.remove_handler(self._command_started_handler)
+        for handler in self._handlers:
+            handler.remove()
         super().delete()
 
     def fill_context_menu(self, menu, x, y):
@@ -321,11 +325,18 @@ class CommandLine(ToolInstance):
         # separated by semicolons are typed in order to prevent putting the 
         # second and later commands into the command history, since we will get 
         # triggers for each command in the line
-        if self._just_typed_command or not self._processing_command:
+        if cmd_text.startswith("open ") and ".cxc" in cmd_text:
+            # Kludge to try to just put commands from .cxc scripts into the command history.
+            self._in_open_command += 1
+        if self._just_typed_command or not self._processing_command or self._in_open_command:
             self.history_dialog.add(self._just_typed_command or cmd_text,
                 typed=self._just_typed_command is not None)
             self.text.lineEdit().selectAll()
             self._just_typed_command = None
+
+    def _command_ended_cb(self, trig_name, cmd_text):
+        if cmd_text.startswith("open ") and ".cxc" in cmd_text:
+            self._in_open_command -= 1
 
     def _run_startup_commands(self, *args):
         # log the commands; but prevent them from going into command history...
