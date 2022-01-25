@@ -288,7 +288,8 @@ class Graph(Plot):
         self._labels = labels	# Dictionary mapping node to matplotlib Text objects.
             
     def _mouse_press(self, event):
-        self._last_mouse_xy = (event.x(), event.y())
+        pos = event.pos()
+        self._last_mouse_xy = (pos.x(), pos.y())
         self._dragged = False
         b = event.button()
         from Qt.QtCore import Qt
@@ -317,7 +318,8 @@ class Graph(Plot):
             self._mouse_press(event)
             return 	# Did not get mouse down
 
-        x, y = event.x(), event.y()
+        pos = event.pos()
+        x, y = pos.x(), pos.y()
         lx, ly = self._last_mouse_xy
         dx, dy = x-lx, y-ly
         if abs(dx) < self._min_drag and abs(dy) < self._min_drag:
@@ -338,7 +340,8 @@ class Graph(Plot):
     
     def _mouse_release(self, event):
         if not self._dragged and self._drag_mode == 'select':
-            item = self._clicked_item(event.x(), event.y())
+            pos = event.pos()
+            item = self._clicked_item(pos.x(), pos.y())
             self.mouse_click(item, event)
 
         self._last_mouse_xy = None

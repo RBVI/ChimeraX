@@ -164,7 +164,7 @@ def swap_aa(session, residues, res_type, *, bfactor=None, clash_hbond_allowance=
         # Nth-most-probable rotamer(s)
         for res, by_alt_loc in list(rotamers.items()):
             if len(by_alt_loc) > 1:
-                if len(critera) > 1:
+                if len(criteria) > 1:
                     raise LimitationError("Cannot assign multiple rotamers to multiple alt locs")
                 for alt_loc, rots in list(by_alt_loc.items()):
                     try:

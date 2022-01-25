@@ -265,6 +265,7 @@ class MoveMouseMode(MouseMode):
         MouseMode.__init__(self, session)
         self.speed = 1
         self._z_rotate = False
+        self._independent_model_rotation = False  # Rotate each model about its center
         self._moved = False
 
         # Restrict rotation to this axis using coordinate system of first model.
@@ -370,6 +371,12 @@ class MoveMouseMode(MouseMode):
         if self._moving_atoms:
             from chimerax.geometry import rotation
             self._move_atoms(rotation(saxis, angle, center = self._atoms_center()))
+        elif self._independent_model_rotation:
+            for model in self.models():
+                self.view.rotate(saxis, angle, [model])
+            # Make sure rotation shown before another mouse event causes another rotation.
+            # Otherwise dozens of mouse events can be handled with no redrawing.
+            self.session.update_loop.update_graphics_now()
         else:
             self.view.rotate(saxis, angle, self.models())
 
@@ -491,7 +498,7 @@ class MoveMouseMode(MouseMode):
 
     def _move_command(self):
         models = self.models()
-        if models:
+        if models and not self._independent_model_rotation:
             from chimerax.std_commands.view import model_positions_string
             cmd = 'view matrix models %s' % model_positions_string(models)
         else:
@@ -572,6 +579,27 @@ class RotateZSelectedModelsMouseMode(RotateSelectedModelsMouseMode):
         RotateSelectedModelsMouseMode.__init__(self, session)
         self._restrict_to_axis = (0,0,1)
         self._restrict_to_plane = (0,0,1)
+
+class RotateIndependentMouseMode(MoveMouseMode):
+    '''
+    Mouse mode to rotate each displayed model about its own center.
+    '''
+    name = 'rotate independent'
+    icon_file = None  # TODO: Make icon
+    mouse_action = 'rotate'
+    def __init__(self, session):
+        MoveMouseMode.__init__(self, session)
+        self._independent_model_rotation = True
+    def models(self):
+        models = [m for m in self.session.models.list()
+                  if m.visible and len(m.id) == 1]
+        if len(models) == 1:
+            # If we have one grouping model then tile the child models.
+            m = models[0]
+            from chimerax.core.models import Model
+            if m.empty_drawing() and type(m) is Model and len(m.child_models()) > 1:
+                models = m.child_models()
+        return models
 
 def top_selected(session):
     # Don't include parents of selected models.
@@ -1053,15 +1081,16 @@ def standard_mouse_mode_classes():
         SelectToggleMouseMode,
         RotateMouseMode,
         RotateAndSelectMouseMode,
+        RotateSelectedModelsMouseMode,
+        RotateZSelectedModelsMouseMode,
+        RotateSelectedAtomsMouseMode,
+        RotateIndependentMouseMode,
         TranslateMouseMode,
-        ZoomMouseMode,
         TranslateSelectedModelsMouseMode,
         TranslateXYSelectedModelsMouseMode,
         MovePickedModelsMouseMode,
         TranslateSelectedAtomsMouseMode,
-        RotateSelectedModelsMouseMode,
-        RotateZSelectedModelsMouseMode,
-        RotateSelectedAtomsMouseMode,
+        ZoomMouseMode,
         ClipMouseMode,
         ClipRotateMouseMode,
         ObjectIdMouseMode,

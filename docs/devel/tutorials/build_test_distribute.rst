@@ -36,7 +36,7 @@ Building bundles as part of a batch process is straightforward,
 as these ChimeraX commands may be invoked directly
 by using commands such as:
 
-``ChimeraX --nogui --exit --cmd 'devel install PATH_TO_SOURCE_CODE_FOLDER exit true``
+``ChimeraX --nogui --exit --cmd 'devel install PATH_TO_SOURCE_CODE_FOLDER exit true'``
 
 This example executes the ``devel install`` command without
 displaying a graphics window (``--nogui``) and exits immediately
@@ -48,7 +48,7 @@ fails for some reason.
 Distributing Bundles
 ====================
 
-With ChimeraX bundles being packages as standard Python
+With ChimeraX bundles being packaged as standard Python
 wheel-format files, they can be distributed as plain files
 and installed using the ChimeraX ``toolshed install``
 command.  Thus, electronic mail, web sites and file
@@ -62,7 +62,7 @@ published on the `ChimeraX Toolshed`_, which is designed
 to help developers by eliminating the need for custom
 distribution channels, and to aid users by providing
 a central repository where bundles with a variety of
-functionality may be found.
+different functionality may be found.
 
 Customizable information for each bundle on the toolshed
 includes its description, screen captures, authors,

@@ -24,7 +24,7 @@ def read_positions(session, stream, name, models=None, match_names=False, child_
         models = _exclude_child_models(models)
     
     lines = stream.readlines()
-    places = _parse_places(lines)
+    places = _parse_places(lines, stream.name)
     if len(places) == 0:
         raise UserError('No positions specified in positions file %s.' % stream.name)
 
@@ -55,16 +55,18 @@ def read_positions(session, stream, name, models=None, match_names=False, child_
     
 # ----------------------------------------------------------------------------------
 #
-def _parse_places(lines):  
+def _parse_places(lines, filename):
     places = []
     from chimerax.core.errors import UserError
     for line_num, line in enumerate(lines):
         if line.startswith('#'):
-            continue
+            continue	# Comment line
         fields = line.split(',')
+        if len(fields) == 1 and line.strip() == '':
+            continue	# Allow blank lines
         if len(fields) < 13:
             raise UserError('Expected 13 fields in line %d of file %s, got %d:\n"%s"'
-                            % (line_num+1, stream.name, len(fields), line))
+                            % (line_num+1, filename, len(fields), line))
         name = fields[0].strip()
         try:
             mvalues = [float(x) for x in fields[1:]]

@@ -33,22 +33,16 @@ The <b>alphafold</b> command:
 <li><a href="#fetch">finds and retrieves existing models</a>
 from the <a href="https://alphafold.ebi.ac.uk/"
 target="_blank">AlphaFold Database</a>
-<br>&ndash; freely available for academic and commercial use under 
-<a href="https://creativecommons.org/licenses/by/4.0/" 
-target="_blank">CC BY 4.0</a>
-<br><br>
-<li><a href="#predict">runs new predictions</a> with
-<a href="https://alphafold.ebi.ac.uk/"
-target="_blank">AlphaFold</a> using
-<a href="https://colab.research.google.com/signup" 
-target="_blank">Google Colab</a>
-<br>&ndash; for noncommercial use only, as the
+<li><a href="#predict">runs new AlphaFold predictions</a>
+using <a href="https://colab.research.google.com/signup" 
+target="_blank">Google Colab</a> and
 <a href="https://github.com/deepmind/alphafold/#model-parameters-license"
-target="_blank">AlphaFold-learned parameters</a> 
-needed to run the calculation are licensed under 
-<a href="https://creativecommons.org/licenses/by-nc/4.0/legalcode"
-target="_blank">CC BY NC 4.0</a>
+target="_blank">learned parameters</a> 
 </ul>
+<p>
+Both are freely available for academic and commercial use under 
+<a href="https://creativecommons.org/licenses/by/4.0/" 
+target="_blank">CC BY 4.0</a>.
 Users should cite:
 </p>
 <blockquote>
@@ -459,7 +453,7 @@ sequences, which could be longer.
 </p>
 <h3>Running an AlphaFold Prediction</h3>
 <p>
-For monomer prediction:
+For <b>monomer</b> prediction:
 </p>
 <blockquote>
 <a href="usageconventions.html"><b>Usage</b></a>:
@@ -481,9 +475,14 @@ in the form:
 <li>plain text pasted directly into the command line
 </ol>
 <p>
-For multimer (protein complex) prediction:
+For <b>multimer</b> (protein complex) prediction:
 </p>
 <blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>alphafold predict</b> 
+&nbsp;<a href="atomspec.html#hierarchy"><i>chain-spec</i></a>
+[&nbsp;<a href="#prokaryote"><b>prokaryote</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+<br>&ndash; or &ndash;</br>
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>alphafold predict</b> &nbsp;<i>sequence1</i>,<i>sequence2</i>[,<i>sequence3</i>...,<i>sequenceN</i>]
 [&nbsp;<a href="#prokaryote"><b>prokaryote</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
@@ -494,7 +493,7 @@ either collectively as a <a href="atomspec.html#hierarchy"><i>chain-spec</i></a>
 (for atomic-structure chains already open in ChimeraX), or
 individually within a comma-separated list using any combination of
 specifier types #2-4 listed <a href="#sequence-spec">above</a>.
-The list should not contain any spaces.
+The comma-separated list should not contain any spaces.
 If the same protein chain occurs multiple times in the complex, its sequence
 should be repeated that number of times. For example, to predict a
 homodimer, the same sequence (or its specifier) would need to be given twice.
@@ -503,7 +502,9 @@ Prediction may only be feasible for smaller complexes
 </p><p>
 <a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold</a>
 calculations are run using <a href="https://colab.research.google.com/signup" 
-target="_blank">Google Colab</a>. 
+target="_blank">Google Colab</a>, which is provided under the 
+<a href="https://www.apache.org/licenses/LICENSE-2.0" target="_blank">Apache 
+2.0</a> license.
 A warning will appear saying that this Colab notebook is from github 
 (was not authored by Google), with a button to click to run anyway.
 Users will need to have a Google account and to sign into it via
@@ -511,18 +512,14 @@ a browser. Once that is done, the sign-in may be remembered depending
 on the user's browser settings; it is not kept in the 
 <a href="../preferences.html">ChimeraX preferences</a>.
 </p><p>
-A single prediction run generally takes on the order of an hour or more.
-The process includes installing various software packages on a virtual machine,
-searching sequence databases, generating a multiple sequence alignment,
-predicting atomic coordinates, and energy-minimizing the best structure.
-Predicting a multimer (complex) structure may take longer than predicting
-the structure of a monomer with the same total number of residues.
+A single calculation may take hours to complete
+(see the <a href="#caveats">caveats</a> below).
 The free version of Colab
 limits jobs to 12 hours and may terminate them at shorter times at Google's
 discretion (see the <a href="https://colab.research.google.com/signup"
 target="_blank">FAQ</a>).
 Those who want to run longer and/or more frequent calculations 
-may wish to sign up for one of the paid
+may need to sign up for one of the paid
 <a href="https://colab.research.google.com/signup" 
 target="_blank">Colab plans</a>.
 </p><p>
@@ -536,21 +533,6 @@ for further analysis (<a href="#structmatch">details...</a>).
 <a name="caveats"></a>
 <h4>Caveats</h4>
 <ul>
-<li>Regardless of a user's 
-<a href="https://colab.research.google.com/signup" 
-target="_blank">Colab plan</a>, <b>alphafold predict</b> is for 
-<b>noncommercial use only</b>. Paid 
-<a href="https://colab.research.google.com/signup" 
-target="_blank">Colab plans</a> provide more computational resources,
-but they do not cover access to the 
-<a href="https://github.com/deepmind/alphafold/#model-parameters-license"
-target="_blank">AlphaFold-learned parameters</a>
-needed to run the calculation. The parameters are licensed under 
-<a href="https://creativecommons.org/licenses/by-nc/4.0/legalcode"
-target="_blank">CC BY NC 4.0</a>; the Colab itself is provided under the 
-<a href="https://www.apache.org/licenses/LICENSE-2.0" target="_blank">Apache 
-2.0</a> license.
-<br><br>
 <li>Prediction calculations run a <b>simplified implementation</b> of AlphaFold 
 that does not use structural templates and that
 searches a smaller set of protein sequences 
@@ -564,14 +546,30 @@ open-source AlphaFold</a> or the <a href="https://alphafold.ebi.ac.uk/"
 target="_blank">AlphaFold Database</a> (<i>e.g.</i>, with 
 <a href="#search"><b>alphafold search</b></a>) instead.
 <br><br>
+<li>A single prediction <b>may take hours to complete</b> (see 
+<a href="https://www.rbvi.ucsf.edu/chimerax/data/alphafold-jan2022/afspeed.html"
+target="_blank">performance statistics</a>).
+The process includes installing various software packages on a virtual machine,
+searching sequence databases, generating a multiple sequence alignment,
+predicting atomic coordinates, and energy-minimizing the best structure.
+Predicting a multimer (complex) structure may take longer than predicting
+the structure of a monomer with the same total number of residues.
+Those who want to run longer and/or more frequent calculations 
+may need to sign up for one of the paid
+<a href="https://colab.research.google.com/signup" 
+target="_blank">Colab plans</a> for greater computational resources.
+<br><br>
 <li>Total <b>sequence length cannot be very large</b>.
 AlphaFold runs out of graphics memory for long sequences (~800 amino acids 
 on old Google Colab GPUs with 16 GB memory).
 Multimer predictions face the same limit on the total number of residues,
 so <b>only smaller complexes can be predicted</b>.
+As mentioned above, paid <a href="https://colab.research.google.com/signup" 
+target="_blank">Colab plans</a> provide more computational resources
+than the free plan. 
 </ul>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-December 2021</address>
+January 2022</address>
 </body></html>

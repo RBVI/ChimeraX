@@ -408,6 +408,8 @@ class UI(QApplication):
         self.postEvent(self.main_window, ThreadSafeGuiFuncEvent(func, args, kw))
 
     def timer(self, millisec, callback, *args, **kw):
+        # Caller needs to hold a reference to the returned timer so it doesn't get
+        # garbage collected immediately
         from Qt.QtCore import QTimer
         t = QTimer()
         def cb(*, callback=callback, args=args, kw=kw):
@@ -846,7 +848,6 @@ class MainWindow(QMainWindow, PlainTextLog):
         self.rapid_access_shown = len(self.session.models) == 0
 
     def showEvent(self, event):
-        """"""
         QMainWindow.showEvent(self, event)
         if not hasattr(self, '_already_shown'):
             self._already_shown = True
@@ -1169,6 +1170,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         categories = self._order_preset_categories(preset_info.keys())
         for cat in categories:
             cat_menu = self.presets_menu.addMenu(menu_capitalize(cat))
+            cat_menu.setTearOffEnabled(True)
             self._add_preset_entries(session, cat_menu, preset_info[cat], cat)
 
     def _order_preset_categories(self, categories):
@@ -2257,6 +2259,7 @@ class _Qt:
         self.title = title
         self.hide_title_bar = hide_title_bar
         self.main_window = mw = main_window
+        self._destroyed = False
 
         if not mw:
             raise RuntimeError("No main window or main window dead")
@@ -2290,9 +2293,9 @@ class _Qt:
         self._docked_window_flags = self.dock_widget.windowFlags()
 
     def destroy(self):
-        if not self.tool_window:
-            # already destroyed
-            return
+        if self._destroyed:
+            return  # already destroyed
+        self._destroyed = True
         from Qt.QtCore import Qt
         auto_delete = self.dock_widget.testAttribute(Qt.WA_DeleteOnClose)
         is_floating = self.dock_widget.isFloating()
@@ -2467,7 +2470,8 @@ def _show_context_menu(event, tool_instance, tool_window, fill_cb, autostartable
     menu = QMenu()
 
     if fill_cb:
-        fill_cb(menu, event.x(), event.y())
+        pos = event.pos()
+        fill_cb(menu, pos.x(), pos.y())
     if not menu.isEmpty():
         menu.addSeparator()
     ti = tool_instance
@@ -2528,10 +2532,11 @@ def _show_context_menu(event, tool_instance, tool_window, fill_cb, autostartable
         position_action.triggered.connect(lambda *, ui=session.ui, widget=memorable, ti=ti:
             _remember_tool_pos(ui, ti, widget))
         menu.addAction(position_action)
+    p = event.globalPos()  if hasattr(event, 'globalPos') else event.globalPosition().toPoint()
     if hasattr(menu, 'exec'):
-        menu.exec(event.globalPos())	# PyQt6
+        menu.exec(p)	# PyQt6
     else:
-        menu.exec_(event.globalPos())	# PyQt5
+        menu.exec_(p)	# PyQt5
 
 def _remember_tool_pos(ui, tool_instance, widget):
     mw = ui.main_window

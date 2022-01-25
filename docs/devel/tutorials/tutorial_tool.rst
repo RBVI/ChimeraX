@@ -73,3 +73,4 @@ What's Next
 - :doc:`tutorial_save_format`
 - :doc:`tutorial_fetch`
 - :doc:`tutorial_selector`
+- :doc:`tutorial_presets`
