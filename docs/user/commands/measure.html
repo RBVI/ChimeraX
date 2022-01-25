@@ -48,6 +48,8 @@ area buried between two sets of atoms
 <li><a href="#convexity"><b>convexity</b></a>
 &ndash; calculate convexity at each surface vertex,
 color the surface accordingly
+<li><a href="#correlation"><b>correlation</b></a>
+&ndash; report map-map correlation
 <li><a href="#inertia"><b>inertia</b></a>
 &ndash; calculate inertia ellipsoid
 <li><a href="#length"><b>length</b></a>
@@ -281,6 +283,62 @@ See also:
 <a href="mlp.html"><b>mlp</b></a>, 
 <a href="color.html"><b>color</b></a>,
 <a href="bumps.html"><b>bumps</b></a>
+</p>
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="correlation"><b>measure correlation</b></a>
+&nbsp;<a href="atomspec.html#hierarchy"><i>volume-spec1</i></a>&nbsp; 
+<b>inMap</b> 
+&nbsp;<a href="atomspec.html#hierarchy"><i>volume-spec2</i></a>&nbsp;
+[&nbsp;<b>envelope</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+<blockquote>
+Calculate the correlation between two 
+<a href="../tools/volumeviewer.html">volume data</a> sets (maps) in two ways:
+  <blockquote>
+<a name="corrzero"></a>
+<table cellspacing="0" cellpadding="0">
+<tr><td></td><td valign="bottom">
+&lt;<b>u</b>,<b>v</b>&gt;
+</td></tr>
+<tr><td><i>correlation</i> =&nbsp;&nbsp;</td>
+<td height="1"><hr></td></tr>
+<tr><td></td><td valign="top">
+&nbsp;|<b>u</b>||<b>v</b>|
+</td></tr>
+</table>
+  </blockquote>
+  <blockquote>
+<table cellspacing="0" cellpadding="0">
+<tr><td></td><td valign="bottom">
+&lt;<b>u</b>&ndash;<b>u</b><sub>ave</sub>,<b>v</b>&ndash;<b>v</b><sub>ave</sub>&gt;
+</td></tr>
+<tr><td><i>correlation about mean</i> =&nbsp;&nbsp;</td>
+<td height="1"><hr></td></tr>
+<tr><td></td><td valign="top">
+&nbsp;|<b>u</b>&ndash;<b>u</b><sub>ave</sub>||<b>v</b>&ndash;<b>v</b><sub>ave</sub>|
+</td></tr>
+</table>
+  </blockquote>
+where vector <b>u</b> contains the values of the first map
+(<a href="atomspec.html#hierarchy"><i>volume-spec1</i></a>)
+and <b>u</b><sub>ave</sub> is a vector with all components equal to the
+average of the components of <b>u</b>. Vectors <b>v</b> and
+<b>v</b><sub>ave</sub> are defined analogously for the second map
+(<a href="atomspec.html#hierarchy"><i>volume-spec2</i></a>),
+except that the values are sampled at the grid point 
+locations of the first map using trilinear interpolation.
+If <b>envelope</b> is <b>true</b> (default),
+the calculation will include only the grid points in the first map
+with values above its lowest contour level in
+<a href="../tools/volumeviewer.html"><b>Volume Viewer</b></a>.
+Otherwise, all nonzero-valued grid points will be included.
+<p>
+See also:
+<a href="volume.html"><b>volume</b></a>,
+<a href="molmap.html"><b>molmap</b></a>,
+<a href="fitmap.html"><b>fitmap</b></a>,
+<a href="../tools/fitsegments.html"><b>Fit to Segments</b></a>
 </p>
 </blockquote>
 
@@ -683,5 +741,5 @@ has the same axes and moments as the measured surface.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-September 2021</address>
+January 2022</address>
 </body></html>

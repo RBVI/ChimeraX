@@ -1154,7 +1154,9 @@ class BundleAPI:
         mgr : str.
             Name of manager for this provider.
         kw : keyword arguments.
-            Keyword arguments listed in the bundle_info.xml.
+            Keyword arguments, if any, provided by the calling manager.
+            Such keywords are specific to the manager and would be documented
+            by the manager.
         """
         raise NotImplementedError("BundleAPI.run_provider")
 
@@ -1419,13 +1421,29 @@ def restart_action_info():
     return inst_dir, restart_file
 
 
+def _get_user():
+    # robust version of getpass.getuser
+    import os
+    user = os.getenv("LOGNAME") or os.getenv("USER") or os.getenv("USERNAME")
+    if user:
+        return user
+    import sys
+    if sys.platform.startswith("win"):
+        import win32api
+        return win32api.GetUserName()
+    try:
+        import pwd
+        return pwd.getpwuid(os.getuid())[0]
+    except Exception:
+        return f"uid-{os.getuid()}"
+
+
 def chimerax_uuid():
     # Return anonymous unique string that represents
     # the current user for accessing ChimeraX toolshed
-    from getpass import getuser
     import uuid
     node = uuid.getnode()   # Locality
-    name = getuser()
+    name = _get_user()
     dn = "CN=%s, L=%s" % (name, node)
     # and now make it anonymous
     # (uuid is based on the first 16 bytes of a 20 byte SHA1 hash)
@@ -1476,7 +1494,7 @@ class NewerVersionQuery(Task):
             system = distro.id()
             like = distro.like()
             if like:
-                system = "{system} {like}"
+                system = f"{system} {like}"
             version = distro.version(best=True)
         params = {
             # use cxservices API names for keys
@@ -1495,11 +1513,16 @@ class NewerVersionQuery(Task):
         self.start(self.SERVICE_NAME, params, blocking=False)
 
     def run(self, service_name, params, blocking=False):
-        self.result = self.api.newer_versions(**params, async_req=not blocking)
+        self.result = self.api.check_for_updates(**params, async_req=not blocking)
 
     def on_finish(self):
         # If async_req is True, then need to call self.result.get()
-        versions = self.result.get()
+        try:
+            versions = self.result.get()
+        except Exception:
+            # Ignore problems getting results.  Might be a network error or
+            # a server error.  It doesn't matter, just let ChimeraX run.
+            return
         if not versions:
             return
 

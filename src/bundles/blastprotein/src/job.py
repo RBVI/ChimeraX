@@ -15,11 +15,12 @@ import json
 from urllib3.exceptions import MaxRetryError
 from chimerax.core.tasks import JobError
 from chimerax.webservices.cxservices_job import CxServicesJob
-from chimerax.webservices.cxservices_utils import *
-from cxservices.api import default_api
+from chimerax.webservices.cxservices_utils import (
+    get_status, get_stdout, get_stderr, get_file
+)
 from cxservices.rest import ApiException
 
-from .data_model import Database, get_database
+from .data_model import get_database
 from .ui import BlastProteinResults
 from .utils import BlastParams, make_instance_name
 
@@ -36,20 +37,23 @@ class BlastProteinJob(CxServicesJob):
         if kw['tool_inst_name'] is None:
             kw['tool_inst_name'] = make_instance_name()
         self.setup(seq, atomspec, **kw)
-        self.params = {"db": self.database,
-                  "evalue": str(self.cutoff),
-                  "matrix": self.matrix,
-                  "blimit": str(self.max_seqs),
-                  "input_seq": self.seq,
-                  "output_file": self.RESULTS_FILENAME}
+        self.params = {
+            "db": self.database,
+            "evalue": str(self.cutoff),
+            "matrix": self.matrix,
+            "blimit": str(self.max_seqs),
+            "input_seq": self.seq,
+            "output_file": self.RESULTS_FILENAME,
+            "version": self.version
+        }
         try:
             self.start("blast", self.params)
         except MaxRetryError:
             session.logger.warning(self.inet_error)
 
-    def setup(self, seq, atomspec, database: str ="pdb", cutoff: float = 1.0e-3,
-              matrix: str="BLOSUM62", max_seqs: int=100, log=None, tool_inst_name=None,
-              sequence_name=None):
+    def setup(self, seq, atomspec, database: str = "pdb", cutoff: float = 1.0e-3,
+              matrix: str = "BLOSUM62", max_seqs: int = 100, log = None, tool_inst_name = None,
+              sequence_name = None):
         self.seq = seq.replace('?', 'X')                  # string
         self.sequence_name = sequence_name                # string
         self.atomspec = atomspec                          # string (atom specifier)
@@ -57,6 +61,7 @@ class BlastProteinJob(CxServicesJob):
         self.cutoff = cutoff                              # float
         self.matrix = matrix                              # string
         self.max_seqs = max_seqs                          # int
+        self.version = "2"                                # AlphaFold DB Version
         self.log = log
         self.tool_inst_name = tool_inst_name
 
@@ -64,11 +69,11 @@ class BlastProteinJob(CxServicesJob):
         data = ["> %s\n" % title]
         block_size = 60
         for i in range(0, len(seq), block_size):
-            data.append("%s\n" % seq[i:i+block_size])
+            data.append("%s\n" % seq[i:i + block_size])
         return ''.join(data)
 
     def _params(self):
-        return BlastParams(self.atomspec, self.database, self.cutoff, self.max_seqs, self.matrix)
+        return BlastParams(self.atomspec, self.database, self.cutoff, self.max_seqs, self.matrix, self.version)
 
     def on_finish(self):
         logger = self.session.logger
@@ -93,6 +98,9 @@ class BlastProteinJob(CxServicesJob):
                 results = self.get_file(self.RESULTS_FILENAME)
                 parse_blast_results_nogui(self.session, self._params(), self.seq, results, self.log)
 
+    def __str__(self):
+        return "BlastProtein Job, ID %s" % self.id
+
 
 def manually_pull_blast_job(session, job_id, log=None):
     # TODO: Fetch the protein on which the BLAST was run from the server and open it
@@ -106,7 +114,7 @@ def manually_pull_blast_job(session, job_id, log=None):
     """
     try:
         status = get_status(job_id)
-    except ApiException as e:
+    except ApiException:
         session.logger.warning("Could not fetch job status; please double-check job ID and try again.")
         return
     else:
@@ -133,7 +141,7 @@ def manually_pull_blast_job(session, job_id, log=None):
     except JobError as e:
         session.logger.bug("Job reported an output stream:\n" + str(e))
         return
-    except ApiException as e:
+    except ApiException:
         session.logger.bug("Job found but could not fetch stdout or stdin.")
         return
     raw_results = get_file(job_id, BlastProteinJob.RESULTS_FILENAME)
@@ -159,7 +167,7 @@ def parse_blast_results_nogui(session, params, sequence, results, log=None):
         session.logger.info("Parsing BLAST results.")
         blast_results.parse("query", sequence, results)
     except Exception as e:
-            session.logger.bug("BLAST output parsing error: %s" % str(e))
+        session.logger.bug("BLAST output parsing error: %s" % str(e))
     else:
         if log or (log is None and not session.ui.is_gui):
             msgs = ["BLAST results for:"]

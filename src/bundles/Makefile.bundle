@@ -66,6 +66,18 @@ endif # IGNORE_DEPS
 endif # VIRTUAL_ENV
 endif # INSTALL_TO_VENV
 
+
+pure_venv_install:
+ifndef VIRTUAL_ENV
+	@echo "No virtual env to install to! Skipping venv install."
+else
+ifdef IGNORE_DEPS
+	pip install $(WHEEL) --no-deps
+else
+	pip install $(WHEEL)
+endif
+endif
+
 test-changes: install
 ifeq ($(OS),Darwin)
 # -n flag means open a new instance even if another already exists

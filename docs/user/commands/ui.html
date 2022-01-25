@@ -263,7 +263,9 @@ Summary of mouse and trackpad default assignments:
 </p>
 <table border cellpadding="4" cellspacing="0"><tr>
 <td align="center" rowspan="2"><b>rotate</b>
-<br><img src="../tools/mouse-icons/rotate.png" class="icon3"></td>
+<br><img src="../tools/mouse-icons/rotate.png" class="icon3">
+<br><font size="-1">XY-rotate, except Z-rotate
+<br>with cursor near edge of window</font></td>
 <td>left mouse button</td>
 </tr><tr>
 <td class="text">trackpad click-drag
@@ -354,7 +356,7 @@ see also <a href="select.html"><b>select</b></a></td>
 with cursor in central part of window,
 Z-rotate with cursor in periphery, except if wheel, Y-rotate only;
 see also <a href="turn.html"><b>turn</b></a>,
-<a href="roll.html"><b>roll</b></a>;
+<a href="roll.html"><b>roll</b></a>, <a href="tile.html"><b>tile</b></a>;
 <br>assigned button + <b>Shift</b> switches to <b>translate</b> instead</td>
 <td align="center"><img src="../tools/mouse-icons/rotate.png" width="35px"></td>
 </tr><tr>
@@ -434,6 +436,15 @@ or if no selection, rotate all models around the
 <a href="view.html#scenecoords">scene</a> Z axis;
 <br>assigned button + <b>Shift</b> switches to 
 <b>translate xy selected models</b> instead</td>
+<td align="center"></td>
+</tr><tr>
+<td align="center"><a name="independent"><b>rotate independent</b></a></td>
+<td align="center" class="text">rotate each model about its own
+individual center instead of using a single collective center of rotation;
+XY-rotate (<a href="view.html#screencoords">screen coordinates</a>)
+with cursor in central part of window,
+Z-rotate with cursor in periphery, except if wheel, Y-rotate only;
+assigned to left mouse by the <a href="tile.html"><b>tile</b></a> command</td>
 <td align="center"></td>
 </tr><tr>
 <td align="center"><b>pivot</b></td>
@@ -752,5 +763,5 @@ interpreted as right-click, but a two-finger drag still performs scrolling.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-November 2021</address>
+January 2022</address>
 </body></html>

@@ -155,6 +155,8 @@ class SequencesArg(Annotation):
         if is_atom_spec(text, session):
             return UniqueChainsArg.parse(text, session)
 
+        if not text:
+            raise AnnotationError("Expected %s" % cls.name)
         from chimerax.core.commands import next_token
         token, used, rest = next_token(text)
         if len(text) == 0:
@@ -171,10 +173,10 @@ class SequencesArg(Annotation):
         return seqs, used, rest
 
 def _parse_sequence(seq_text, session):
-    for arg_type in (UniProtSequenceArg, AlignmentSequenceArg, RawSequenceArg):
+    from chimerax.seqalign import SeqArg
+    for arg_type in (ChainArg, UniProtSequenceArg, SeqArg, RawSequenceArg):
         try:
             seq, sused, srest = arg_type.parse(seq_text, session)
-            print (arg_type, srest)
             if len(srest) == 0:
                 return seq
         except Exception:
@@ -199,15 +201,6 @@ def is_atom_spec(text, session):
         return False
     return True
                 
-class AlignmentSequenceArg(Annotation):
-    name = 'alignment sequences'
-    
-    @classmethod
-    def parse(cls, text, session):
-        from chimerax.seqalign import AlignSeqPairArg
-        (alignment, seq), used, rest = AlignSeqPairArg.parse(text, session)
-        return seq, used, rest
-
 class UniProtSequenceArg(Annotation):
     name = 'UniProt sequence'
     
@@ -310,6 +303,24 @@ class AtomicStructuresArg(AtomSpecArg):
         if aspec.outermost_inversion:
             mols = fully_selected(session, aspec, mols)
         return AtomicStructures(mols), text, rest
+
+
+class AtomicStructureArg(AtomSpecArg):
+    """Parse command atomic structure specifier"""
+    name = "an atomic structure specifier"
+
+    @classmethod
+    def parse(cls, text, session):
+        aspec, text, rest = super().parse(text, session)
+        models = aspec.evaluate(session).models
+        from . import AtomicStructure
+        mols = [m for m in models if isinstance(m, AtomicStructure)]
+        if aspec.outermost_inversion:
+            mols = fully_selected(session, aspec, mols)
+        if len(mols) != 1:
+            raise AnnotationError('must specify 1 atomic structure, got %d for "%s"'
+                                  % (len(mols), text))
+        return mols[0], text, rest
 
 
 class PseudobondGroupsArg(AtomSpecArg):

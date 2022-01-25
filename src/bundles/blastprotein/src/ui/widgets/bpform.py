@@ -24,7 +24,7 @@ class BlastProteinFormWidget(QWidget):
         layout.setWidget(0, QFormLayout.FieldRole, self._input_widget)
         layout.setLabelAlignment(Qt.AlignLeft)
         layout.setFormAlignment(Qt.AlignLeft)
-        layout.setContentsMargins(0,0,0,0)
+        layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
         self.setLayout(layout)
 

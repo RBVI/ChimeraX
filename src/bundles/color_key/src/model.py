@@ -45,7 +45,7 @@ class ColorKeyModel(Model):
     numeric_label_spacings = (NLS_EQUAL, NLS_PROPORTIONAL)
 
     LC_FRACT = 4/5
-
+    DEFAULT_SIZE = (0.25, 0.05)
 
     def __init__(self, session):
         super().__init__("Color key", session)
@@ -62,7 +62,7 @@ class ColorKeyModel(Model):
         self.triggers.add_trigger("key closed")
 
         self._position = (0.7, 0.08)
-        self._size = (0.25, 0.05)
+        self._size = self.DEFAULT_SIZE
         self._rgbas_and_labels = [((0,0,1,1), "min"), ((1,1,1,1), ""), ((1,0,0,1), "max")]
         self._numeric_label_spacing = self.NLS_PROPORTIONAL
         self._color_treatment = self.CT_BLENDED
@@ -226,7 +226,6 @@ class ColorKeyModel(Model):
 
     @property
     def label_offset(self):
-        # None means contrast with background
         return self._label_offset
 
     @label_offset.setter

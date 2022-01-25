@@ -39,7 +39,7 @@ class Match:
 
     def print_sequence(self, f, prefix, per_line=60):
         for i in range(0, len(self.sequence), per_line):
-            f.write("%s%s\n" % (prefix, self.sequence[i:i+per_line]))
+            f.write("%s%s\n" % (prefix, self.sequence[i:i + per_line]))
 
     def match_sequence_gaps(self, gap_count):
         seq = []

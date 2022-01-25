@@ -39,9 +39,11 @@ def run_preset(session, name, mgr):
         cmd = nospheres + ["surface; color fromatoms targ s trans 70"]
     elif name == "chain ID coloring (opaque)":
         cmd = nospheres + ["surface; color bychain targ s trans 0"]
-    elif name == "publication":
-        cmd = ["set bg white; graphics silhouettes t"]
+    elif name == "publication 1 (silhouettes)":
+        cmd = ["set bg white; graphics silhouettes t; lighting depthCue f"]
+    elif name == "publication 2 (depth-cued)":
+        cmd = ["set bg white; graphics silhouettes f; lighting depthCue t"]
     elif name == "interactive":
-        cmd = ["~set bg; graphics silhouettes f"]
+        cmd = ["~set bg; graphics silhouettes f; lighting depthCue t"]
     cmd = "; ".join(cmd)
     mgr.execute(cmd)

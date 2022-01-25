@@ -53,10 +53,10 @@ class BlastResultsTable(ItemTable):
     def doubleclicked(self, _) -> list:
         self.get_selection.emit(self.selected)
 
-    def resizeColumns(self, max_size:int = 0):
+    def resizeColumns(self, max_size: int = 0):
         for col in self._columns:
             if self.columnWidth(self._columns.index(col)) > max_size:
                 self.setColumnWidth(self._columns.index(col), max_size)
 
 class BlastProteinResultsSettings(Settings):
-    EXPLICIT_SAVE = { BlastResultsTable.DEFAULT_SETTINGS_ATTR: {} }
+    EXPLICIT_SAVE = {BlastResultsTable.DEFAULT_SETTINGS_ATTR: {}}

@@ -209,12 +209,12 @@ class AtomSpecArg(Annotation):
                 # No whitespace found
                 from .cli import AnnotationError
                 raise AnnotationError('only initial part "%s" of atom specifier valid'
-                    % text[:end+text_offset])
+                                      % text[:end + text_offset])
             else:
-                ast, used, rem = AtomSpecArg._parse_unquoted(text[:blank+text_offset], session)
-                return ast, used, rem + text[blank+text_offset:]
+                ast, used, rem = AtomSpecArg._parse_unquoted(text[:blank + text_offset], session)
+                return ast, used, rem + text[blank + text_offset:]
         # Consume what we used and return the remainder
-        return ast, text[:end+text_offset], text[end+text_offset:]
+        return ast, text[:end + text_offset], text[end + text_offset:]
 
 
 #
@@ -391,8 +391,7 @@ class _AtomSpecSemantics:
             # Convert string to value for comparison
             av = ast.value
             quoted = False
-            if (isinstance(av, list) and len(av) == 3
-                     and av[0] in ('"', "'") and av[2] in ('"', "'")):
+            if (isinstance(av, list) and len(av) == 3 and av[0] in ('"', "'") and av[2] in ('"', "'")):
                 # Quoted value stay as string
                 av = av[1]
                 quoted = True
@@ -600,7 +599,7 @@ class _Model(_SubPart):
                 model_list = [model for model in model_list
                               if len(model.id) == len(self.my_parts)]
             self.my_parts.find_matches(session, model_list, self.sub_parts, results, ordered,
-                add_implied=add_implied)
+                                       add_implied=add_implied)
         else:
             # No model spec given, everything matches
             for model in model_list:
@@ -1072,6 +1071,8 @@ class AtomSpec:
                 session, models, top=False, ordered=order_implicit_atoms, add_implied=add_implied)
             if self.outermost_inversion is None:
                 self.outermost_inversion = isinstance(self._left_spec, _Invert)
+                if self.outermost_inversion:
+                    only_fully_selected_bonds(results)
         elif self._operator == '|':
             left_results = self._left_spec.evaluate(
                 session, models, top=False, ordered=order_implicit_atoms, add_implied=add_implied)
@@ -1112,6 +1113,15 @@ def add_implied_bonds(objects):
     atoms = objects.atoms
     objects.add_bonds(atoms.intra_bonds)
     objects.add_pseudobonds(atoms.intra_pseudobonds)
+
+
+def only_fully_selected_bonds(objects):
+    from chimerax.atomic import Bonds, Pseudobonds
+    from numpy import array
+    intra_bond_ptrs = set(objects.atoms.intra_bonds.pointers)
+    objects.set_bonds(Bonds(array(list(set(objects.bonds.pointers) & intra_bond_ptrs))))
+    intra_pbond_ptrs = set(objects.atoms.intra_pseudobonds.pointers)
+    objects.set_pseudobonds(Pseudobonds(array(list(set(objects.pseudobonds.pointers) & intra_pbond_ptrs))))
 
 
 #
@@ -1195,11 +1205,11 @@ def register_selector(name, value, logger, *,
         Non-atomic selectors will not appear in Basic Actions tool.
     """
     if not name[0].isalpha():
-        logger.warning("registering illegal selector name \"%s\"" % name)
+        logger.warning("Not registering illegal selector name \"%s\"" % name)
         return
     for c in name[1:]:
-        if not c.isalnum() and c not in "-+":
-            logger.warning("registering illegal selector name \"%s\"" % name)
+        if not c.isalnum() and c not in "-+_":
+            logger.warning("Not registering illegal selector name \"%s\"" % name)
             return
     _selectors[name] = _Selector(name, value, user, desc, atomic)
     from ..toolshed import get_toolshed

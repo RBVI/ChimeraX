@@ -103,6 +103,14 @@ class Objects:
         """Add pseudobonds to collection."""
         self._pseudobonds.append(pbonds)
 
+    def set_bonds(self, bonds):
+        """Set the bonds to just the given bonds"""
+        self._bonds = [bonds]
+
+    def set_pseudobonds(self, pbonds):
+        """Set the pseudobonds to just the given pseudobonds"""
+        self._pseudobonds = [pbonds]
+
     def combine(self, other):
         for m in other.models:
             self.add_model(m)

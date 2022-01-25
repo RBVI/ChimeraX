@@ -90,7 +90,7 @@ def set_attr(session, objects, target, attr_name, attr_value, create=False, type
         else:
             parsers = [IntArg, FloatArg, None]
     else:
-        if parser == StringArg:
+        if type_ == StringArg:
             parsers = [None]
         else:
             parsers = [type_]

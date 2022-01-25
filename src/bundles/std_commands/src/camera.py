@@ -95,7 +95,7 @@ def camera(session, type=None, field_of_view=None,
         cam.eye_separation_scene = eye_separation
         cam.redraw_needed = True
     if pixel_eye_separation is not None:
-        if camera.name != 'stereo':
+        if cam.name != 'stereo':
             from chimerax.core.errors import UserError
             raise UserError('camera pixelEyeSeparation option only applies to stereo camera mode.')
         has_arg = True

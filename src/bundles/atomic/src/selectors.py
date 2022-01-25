@@ -26,6 +26,7 @@ def register_selectors(logger):
         reg(e.name, lambda ses, models, results, sym=e.name: _element_selector(sym, models, results), logger, desc="%s (element)" % e.name)
     reg("backbone", _backbone_selector, logger, desc="backbone atoms")
     reg("mainchain", _backbone_selector, logger, desc="backbone atoms")
+    reg("min-backbone", _min_backbone_selector, logger, desc="minimal backbone atoms")
     reg("protein", lambda s, m, r: _polymer_selector(m, r, True), logger, desc="proteins")
     reg("nucleic", lambda s, m, r: _polymer_selector(m, r, False), logger, desc="nucleic acids")
     reg("nucleic-acid", lambda s, m, r: _polymer_selector(m, r, False), logger, desc="nuecleic acids")
@@ -64,6 +65,18 @@ def _backbone_selector(session, models, results):
     from chimerax.atomic import Structure, structure_atoms
     atoms = structure_atoms([m for m in models if isinstance(m, Structure)])
     backbone = atoms.filter(atoms.is_backbones())
+    if backbone:
+        for s, struct_backbone in backbone.by_structure:
+            results.add_model(s)
+            pbs, pbg = _get_missing_structure(s, struct_backbone)
+            if pbs:
+                _add_missing_structure(results, pbs, pbg)
+        results.add_atoms(backbone, bonds=True)
+
+def _min_backbone_selector(session, models, results):
+    from chimerax.atomic import Structure, structure_atoms, Atom
+    atoms = structure_atoms([m for m in models if isinstance(m, Structure)])
+    backbone = atoms.filter(atoms.is_backbones(Atom.BBE_MIN))
     if backbone:
         for s, struct_backbone in backbone.by_structure:
             results.add_model(s)

@@ -67,6 +67,15 @@ class PresetsManager(ProviderManager):
         self.triggers.activate_trigger("presets changed", self)
 
     def execute(self, preset):
+        """Presets should call this method to execute their preset so that appropriate information
+        about the preset can be logged.  The 'preset' argument is either a command string or a
+        callable Python function that takes no arguments.
+
+        A command string can have embedded ';' characters to separate commands.  It can also
+        have embedded newlines to separate commands, in which case the newline-separated commands
+        will be executed with separate calls to chimera.core.commands.run(), whereas ';' separated
+        commands will use a single run() call.
+        """
         if callable(preset):
             preset()
             self.session.logger.info("Preset implemented in Python; no expansion to individual ChimeraX"

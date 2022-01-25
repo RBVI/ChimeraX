@@ -47,7 +47,8 @@ To <a href="../findseq.html">find and select</a>
 a specified sequence or sequence pattern, use
 <a href="../menu.html#selectseq"><b>Select... Sequence</b></a> in the menu
 or the <a href="../commands/select.html#new"><b>select</b></a> command.
-See also: <a href="../commands/matchmaker.html"><b>matchmaker</b></a>,
+See also:
+<a href="../commands/modeller.html"><b>modeller</b></a>,
 <a href="https://www.rbvi.ucsf.edu/chimerax/data/conservation-coloring/conservation-coloring.html"
 target="_blank">Coloring by Sequence Conservation</a>
 </p><p>
@@ -72,6 +73,10 @@ can also be <a href="../commands/open.html#local">opened</a>
 from <a href="../commands/open.html#sequence">files</a>
 or <a href="../commands/open.html#fetch">fetched</a>
 from <a href="https://www.uniprot.org/" target="_blank">UniProt</a>.
+Other tools or commands may generate new sequence alignments
+(<i>e.g.</i>, <a href="blastprotein.html#results"><b>Blast Protein</b> 
+results</a>, <a href="matchmaker.html"><b>Matchmaker</b></a>,
+<a href="../commands/sequence.html#align">sequence realignment</a>).
 </p><p>
 Multiple <b>Sequence Viewer</b> windows can be shown at the same time, 
 and they can be manipulated like other panels in ChimeraX 
@@ -108,6 +113,13 @@ with choices including:
   <a href="../formats/scf.html">sequence coloring file</a>
   to create <a href="#regions">regions</a> and color 
   <a href="#association">associated</a> structure to match
+  </ul>
+<li><b>Edit</b>
+  <ul>
+  <li><b>Realign Sequences with Clustal Omega</b>
+(<a href="../commands/sequence.html#clustal">details...</a>)
+  <li><b>Realign Sequences with MUSCLE</b>
+(<a href="../commands/sequence.html#muscle">details...</a>)
   </ul>
 <li><b>Structure</b>
   <ul>
@@ -300,7 +312,7 @@ Associations can be controlled manually (forced or removed):
 </p>
 <ul>
 <li>with the
-<a href="../commands/sequence.html"><b>sequence</b></a> command
+<a href="../commands/sequence.html#associate"><b>sequence</b></a> command
 <li>by choosing <b>Associations...</b> from the 
 <a href="#context">context menu</a>.
 The resulting dialog lists structure chains and allows changing 
@@ -632,5 +644,5 @@ style="display:inline-block; vertical-align:middle"><tr>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-August 2021</address>
+December 2021</address>
 </body></html>

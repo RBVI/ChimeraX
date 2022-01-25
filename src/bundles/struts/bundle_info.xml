@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-Struts" version="1.0"
+<BundleInfo name="ChimeraX-Struts" version="1.0.1"
 	    package="chimerax.struts"
   	    minSessionVersion="1" maxSessionVersion="1">
 
@@ -22,6 +22,7 @@
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
     <ChimeraXClassifier>Command :: struts :: Molecular structure :: provide struts for 3D printing</ChimeraXClassifier>
+	<ChimeraXClassifier>Command :: ~struts :: Molecular structure :: remove 3D printing struts </ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

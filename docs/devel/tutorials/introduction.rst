@@ -26,8 +26,8 @@ Cytoscape_ and `Mozilla Firefox`_.  In ChimeraX, the
 units of extension are called **bundles**, which may
 be installed at run-time to add **commands**, graphical
 interfaces (**tools**), chemical subgroup **selectors**,
-support for fetching from network databases, and
-reading and writing data files in new formats.
+**presets**, support for fetching from network databases,
+and reading and writing data files in new formats.
 
 Most bundles can be built using ChimeraX itself.
 Once built, a bundle is stored as a single file and
@@ -180,7 +180,7 @@ for inclusion in the bundle.
 
 Examples of ``bundle_info.xml`` files are provided
 in tutorials for building example bundles
-(see `Writing Bundles in Seven Easy Steps`_).
+(see `Writing Bundles in a Few Easy Steps`_).
 The complete set of supported tags are described in
 :doc:`bundle_info`.
 
@@ -231,9 +231,9 @@ ChimeraX bundles.  Bundles containing code that
 compile against ChimeraX C++ APIs are only guaranteed
 to work with the exact version used in development.)
 
-.. _Seven Steps:
+.. _A Few Steps:
 
-Writing Bundles in Seven Easy Steps
+Writing Bundles in a Few Easy Steps
 -----------------------------------
 
 The easiest way to start developing ChimeraX
@@ -268,6 +268,10 @@ for building example bundles:
    :maxdepth: 1
 
    tutorial_selector
+.. toctree::
+   :maxdepth: 1
+
+   tutorial_presets
 
 Each tutorial builds on the previous but may also
 be used as reference for adding a specific type of

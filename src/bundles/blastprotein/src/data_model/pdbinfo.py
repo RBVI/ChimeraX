@@ -108,16 +108,15 @@ chain_attr_name_mapping = [
     ('#_polymers', False, [len]),
     ('chain_residues', True, ["entity_poly", "rcsb_sample_sequence_length"]),
     ('species', True, [(["entity_src_gen", "pdbx_gene_src_scientific_name"],
-        ["entity_src_nat", (["pdbx_organism_scientific"], ["species"])])]),
+                       ["entity_src_nat", (["pdbx_organism_scientific"], ["species"])])]),
     ('uniprot_id', True, ["rcsb_polymer_entity_container_identifiers",
-        "reference_sequence_identifiers", {("database_name", "UniProt"): ["database_accession"]}]),
-    ('chain_weight',  True, ['rcsb_polymer_entity', 'formula_weight'])
+                          "reference_sequence_identifiers", {("database_name", "UniProt"): ["database_accession"]}]),
+    ('chain_weight', True, ['rcsb_polymer_entity', 'formula_weight'])
 ]
 
 def fetch_pdb_info(session, entry_chain_list):
     # Can't just sub in a list, since Python uses single quotes around strings by default
-    query = query_template % ",".join(['"%s"' % entry_chain.split('_')[0]
-        for entry_chain in entry_chain_list])
+    query = query_template % ",".join(['"%s"' % entry_chain.split('_')[0] for entry_chain in entry_chain_list])
     try:
         req = Request("https://data.rcsb.org/graphql", data=query.encode('utf-8'), headers={
              "Content-Type": "application/graphql"

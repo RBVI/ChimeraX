@@ -115,6 +115,7 @@ class ItemListWidget(ItemsGenerator, ItemsUpdater, QListWidget):
     def destroy(self):
         ItemsGenerator.destroy(self)
         ItemsUpdater.destroy(self)
+        self.itemSelectionChanged.disconnect(self.value_changed.emit)
         QListWidget.destroy(self)
 
     @property
@@ -145,7 +146,7 @@ class ItemListWidget(ItemsGenerator, ItemsUpdater, QListWidget):
             self.blockSignals(False)
         if delayed:
             # allow all widgets to get to correct values before emitting signal
-            _when_all_updated(self.itemSelectionChanged.emit)
+            _when_all_updated(self, self.itemSelectionChanged.emit)
         else:
             self.itemSelectionChanged.emit()
 
@@ -212,7 +213,7 @@ class ItemListWidget(ItemsGenerator, ItemsUpdater, QListWidget):
             # one was not, but the test in the value setter will think the value is unchanged
             # and not emit the changed signal, so check for that here
             if len(sel) > 0 and not next_value:
-                _when_all_updated(self.itemSelectionChanged.emit)
+                _when_all_updated(self, self.itemSelectionChanged.emit)
         if del_recursion:
             delattr(self, '_recursion')
 
@@ -364,7 +365,7 @@ class ItemMenuButton(ItemsGenerator, ItemsUpdater, MenuButton):
         if not self.signalsBlocked():
             if delayed:
                 # allow all widgets to get to correct values before emitting signal...
-                _when_all_updated(self.value_changed.emit)
+                _when_all_updated(self, self.value_changed.emit)
             else:
                 self.value_changed.emit()
 
@@ -476,6 +477,9 @@ class ModelMenuButton(ItemMenuButton):
         kw['no_value_button_text'] = no_value_button_text
         super().__init__(**_process_model_kw(session, **kw))
 
-def _when_all_updated(func):
+def _when_all_updated(widget, func):
+    def check_and_execute(*, widget=widget, func=func):
+        if not widget.__dict__.get("_destroyed", False):
+            func()
     from Qt.QtCore import QTimer
-    QTimer.singleShot(0, func)
+    QTimer.singleShot(0, check_and_execute)
