@@ -83,7 +83,7 @@ class AlphaFoldRun(ToolInstance):
 
     def _set_colab_sequence(self):
         p = self._browser.page()
-        seqs = ','.join(seq.characters for seq in self._sequences)
+        seqs = ','.join(seq.ungapped() for seq in self._sequences)
         if self._prokaryote:
             seqs = 'prokaryote,' + seqs
         set_seqs_javascript = ('document.querySelector("paper-input").setAttribute("value", "%s")'
