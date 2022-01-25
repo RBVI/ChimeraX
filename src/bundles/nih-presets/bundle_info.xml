@@ -25,7 +25,9 @@
   <Providers manager="presets">
     <Provider category="NIH3D" name="ribbon by secondary structure"/>
     <Provider category="NIH3D" name="ribbon by secondary structure (printable)"/>
+    <Provider category="NIH3D" name="ribbon rainbow"/>
     <Provider category="NIH3D" name="ribbon rainbow (printable)"/>
+    <Provider category="NIH3D" name="ribbon by chain"/>
     <Provider category="NIH3D" name="ribbon by chain (printable)"/>
     <Provider category="NIH3D" name="ribbon by polymer (printable)"/>
     <Provider category="NIH3D" name="ribbon monochrome (printable)"/>

@@ -49,7 +49,7 @@ base_macro_model = [
 base_ribbon = [
     "preset 'initial styles' cartoon",
     "nucleotides ladder radius 1.2",
-    "color white",
+    "color white target abc", # in particular, not (metal-coordination) pseudobonds
     "color helix marine; color strand firebrick; color coil goldenrod; color nucleic-acid forest",
     "color :A:C:G:U grape",
     "color byatom",
@@ -60,7 +60,7 @@ base_ribbon = [
 ]
 
 base_surface = [
-    "delete H|ligand|~(protein|nucleic-acid)",
+    "hide H|ligand|~(protein|nucleic-acid)",
     "~nuc",
     "~ribbon",
     "~display",
@@ -74,15 +74,17 @@ color_by_het = [
 print_ribbon = [
     # make missing-structure pseudobonds bigger relative to upcoming hbonds
     "size min-backbone pseudobondRadius 1.1",
+    "size ions atomRadius +0.8",
     "select backbone & protein | nucleic-acid & min-backbone | ions | ligand"
         " | ligand :< 5 & ~nucleic-acid",
     "hbonds sel color white restrict both",
-    "size hbonds pseudobondRadius 0.6",
+    #"size hbonds pseudobondRadius 0.6",
+    "size pseudobondRadius 0.6",
     # ribbons need to be up to date for struts to work right
     "wait 1; struts @ca|ligand|P|##num_atoms<500 length 8 loop 60 rad 0.75 color struts_grey",
     "~struts @PB,PG resetRibbon false",
     "~struts adenine|cytosine|guanine|thymine|uracil resetRibbon false",
-    "color struts_grey pseudobonds",
+    #"color struts_grey pseudobonds",
     "color hbonds white pseudobonds",
     "~select"
 ]
@@ -163,17 +165,23 @@ def print_prep(*, pb_radius=0.4, ion_size_increase=0.0):
 
 def rainbow_cmd(structure):
     color_arg = " chains palette " + palette(structure.num_chains)
-    return "rainbow %s@ca,c4'%s" % (structure.atomspec, color_arg)
+    return "rainbow %s@ca,c4'%s target rs" % (structure.atomspec, color_arg)
 
 def run_preset(session, name, mgr):
     if name == "ribbon by secondary structure":
         cmd = undo_printable + base_setup + base_macro_model + base_ribbon
     elif name == "ribbon by secondary structure (printable)":
         cmd = base_setup + base_macro_model + base_ribbon + print_ribbon + print_prep(pb_radius=None)
+    elif name == "ribbon by chain":
+        cmd = undo_printable + base_setup + base_macro_model + base_ribbon + [
+            rainbow_cmd(s) for s in all_atomic_structures(session)
+        ]
     elif name == "ribbon by chain (printable)":
         cmd = base_setup + base_macro_model + base_ribbon + [
             rainbow_cmd(s) for s in all_atomic_structures(session)
         ] + print_ribbon + print_prep(pb_radius=None)
+    elif name == "ribbon rainbow":
+        cmd = undo_printable + base_setup + base_macro_model + base_ribbon + [ "rainbow @CA target r" ]
     elif name == "ribbon rainbow (printable)":
         cmd = base_setup + base_macro_model + base_ribbon + [
             "rainbow @CA"
@@ -248,6 +256,7 @@ def run_preset(session, name, mgr):
             "~ribbon",
             "disp",
             "size H atomRadius 1.1"  # rescale H atoms to get better-looking balls
+            "size ions atomRadius +0.35"
         ] + print_prep(ion_size_increase=0.35)
     elif name == "CPK monochrome":
         cmd = undo_printable + base_setup + [
@@ -257,6 +266,7 @@ def run_preset(session, name, mgr):
             "disp",
             "color nih_blue",
             "size H atomRadius 1.1"  # rescale H atoms to get better-looking balls
+            "size ions atomRadius +0.35"
         ] + print_prep(ion_size_increase=0.35)
     elif name == "ball and stick":
         cmd = undo_printable + base_setup + color_by_het + ball_and_stick + [ "color pbonds bond_purple" ]
