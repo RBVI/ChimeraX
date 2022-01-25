@@ -255,7 +255,7 @@ def run_preset(session, name, mgr):
             "~nuc",
             "~ribbon",
             "disp",
-            "size H atomRadius 1.1"  # rescale H atoms to get better-looking balls
+            "size H atomRadius 1.1",  # rescale H atoms to get better-looking balls
             "size ions atomRadius +0.35"
         ] + print_prep(ion_size_increase=0.35)
     elif name == "CPK monochrome":
@@ -265,7 +265,7 @@ def run_preset(session, name, mgr):
             "~ribbon",
             "disp",
             "color nih_blue",
-            "size H atomRadius 1.1"  # rescale H atoms to get better-looking balls
+            "size H atomRadius 1.1",  # rescale H atoms to get better-looking balls
             "size ions atomRadius +0.35"
         ] + print_prep(ion_size_increase=0.35)
     elif name == "ball and stick":
