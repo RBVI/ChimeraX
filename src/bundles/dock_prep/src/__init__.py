@@ -14,6 +14,16 @@
 #--- public API ---
 #TODO
 
+# all modules involved in DockPrep provide these variables/functions
+from chimerax.core.commands import BoolArg
+dock_prep_arg_info = {
+    'del_solvent': BoolArg,
+}
+
+def run_for_dock_prep(*args, **kw):
+    from .prep import prep
+    prep(*args, **kw)
+
 #--- toolshed/session-init funcs ---
 
 from chimerax.core.toolshed import BundleAPI
