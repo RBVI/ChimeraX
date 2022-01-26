@@ -1513,7 +1513,7 @@ class NewerVersionQuery(Task):
         self.start(self.SERVICE_NAME, params, blocking=False)
 
     def run(self, service_name, params, blocking=False):
-        self.result = self.api.newer_versions(**params, async_req=not blocking)
+        self.result = self.api.check_for_updates(**params, async_req=not blocking)
 
     def on_finish(self):
         # If async_req is True, then need to call self.result.get()

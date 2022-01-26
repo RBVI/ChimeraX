@@ -1219,6 +1219,7 @@ class AtomicStructure(Structure):
             self._report_model_info(session)
 
     def apply_auto_styling(self, set_lighting = False, style=None):
+        explicit_style = style is not None
         if style is None:
             if self.num_chains == 0:
                 style = "non-polymer"
@@ -1249,7 +1250,7 @@ class AtomicStructure(Structure):
             het_atoms.colors = element_colors(het_atoms.element_numbers)
             ribbonable = self.chains.existing_residues
             # 10 residues or less is basically a trivial depiction if ribboned
-            if MIN_RIBBON_THRESHOLD < len(ribbonable) < MAX_RIBBON_THRESHOLD:
+            if explicit_style or MIN_RIBBON_THRESHOLD < len(ribbonable) < MAX_RIBBON_THRESHOLD:
                 atoms.displays = False
                 ligand = atoms.filter(atoms.structure_categories == "ligand").residues
                 ribbonable -= ligand
