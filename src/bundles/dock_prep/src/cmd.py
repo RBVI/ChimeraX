@@ -18,13 +18,24 @@ MEMORIZE_USE = "use"
 MEMORIZE_SAVE = "save"
 MEMORIZE_NONE = "none"
 
-#NOTES: An iterator is used to go through the requested Dock Prep steps, yielding the next step.
-#  The step info provides a function to call, that should receive the session, iterator, callback,
-#  memorization info, and step-associated keywords.  The callback should be invoked, with session
-#  and iterator, and will call the next step, or the dock_prep_caller callback if finished.
+# the args directly provided by DockPrep
+dock_prep_arg_info = {
+    'del_solvent': BoolArg,
+    'del_ions': BoolArg,
+}
+
+#NOTES: dock_prep_caller() is the public API and also called via the command.  It assembles a series
+#  of steps to execute (by calling dock_prep_steps())
 #
-#  Bundles need to provide a function that can be called to get keyword info (so that the dockprep
-#  command can register (prefixed) keywords.
+#  The step info provides a function to call, that should receive the session, iterator, callback,
+#  memorization info, and a dictionary of step-associated keywords.  The callback should be invoked,
+#  with session and iterator, and will call the next step, or the dock_prep_caller callback if finished.
+#
+#  Bundles need to provide a public run_for_dock_prep function that can be called to execute the step
+#  and a dock_prep_arg_info dictionary (arg-name: annotation) for arguments to be added to the dockprep
+#  command and that will be provided to the run_for_dock_prep function.  These arguments will be given
+#  a prefix before being added to the dockprep command keywords, but will not have that prefix when
+#  given to the run_for_dock_prep function.
 #
 #  Bundles are in charge of their own memorization
 
@@ -41,11 +52,15 @@ def get_param_info():
 def dock_prep_steps(del_solvent=True, del_ions=False, del_alt_locs=True, change_MSE=True, change_UMP=True,
         change_UMS=True, change_CSL=True, complete_side_chains=True, add_hydrogens=True, add_charges=True):
     steps = []
-    if del_solvent: # ... or del_ions.. etc.
+    if del_solvent or del_ions or del_alt_locs:
         kw_dict = {}
         steps.append(("dock_prep", kw_dict))
         if del_solvent:
             kw_dict['del_solvent'] = True
+        if del_ions:
+            kw_dict['del_ions'] = True
+        if del_alt_locs:
+            kw_dict['del_alt_locs'] = True
     #TODO
     return steps
 
@@ -75,7 +90,7 @@ def run_steps(session, state):
         import importlib
         step_mod = importlib.import_module("chimerax." + mod_name)
         step_mod.run_for_dock_prep(session, state, run_steps, state['memorization'], step_memorize_name,
-            state['structures'], **kw_dict)
+            state['structures'], kw_dict)
 
 def dock_prep_cmd(session, structures,  *, memorize=MEMORIZE_NONE, mol2=None, **kw):
     if structures is None:
