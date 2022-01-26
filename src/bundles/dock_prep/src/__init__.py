@@ -12,17 +12,11 @@
 # === UCSF ChimeraX Copyright ===
 
 #--- public API ---
-#TODO
+from .cmd import dock_prep_caller
 
-# all modules involved in DockPrep provide these variables/functions
-from chimerax.core.commands import BoolArg
-dock_prep_arg_info = {
-    'del_solvent': BoolArg,
-}
-
-def run_for_dock_prep(*args, **kw):
-    from .prep import prep
-    prep(*args, **kw)
+# all modules involved in the DockPrep piepline provide these variables/functions
+from .cmd import dock_prep_arg_info
+from .prep import prep as run_for_dock_prep
 
 #--- toolshed/session-init funcs ---
 
