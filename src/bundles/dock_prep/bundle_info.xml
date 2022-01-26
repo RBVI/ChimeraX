@@ -25,7 +25,9 @@
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
     <ChimeraXClassifier>Command :: dockprep :: Structure Editing :: prepare structures for docking</ChimeraXClassifier>
+	<!--
     <ChimeraXClassifier>Tool :: Dock Prep :: Structure Editing :: prepare structures for docking</ChimeraXClassifier>
+	-->
   </Classifiers>
 
 </BundleInfo>

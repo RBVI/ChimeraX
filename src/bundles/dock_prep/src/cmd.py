@@ -12,33 +12,11 @@
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.core.errors import UserError
-from chimerax.core.commands import CmdDesc, register, BoolArg, Or, NoneArg, EnumArg, SaveFileNameArg
+from chimerax.core.commands import CmdDesc, register, BoolArg, Or, EmptyArg, EnumOf, SaveFileNameArg
 
 MEMORIZE_USE = "use"
 MEMORIZE_SAVE = "save"
 MEMORIZE_NONE = "none"
-
-prep_cmd_param_info = {
-    'del_solvent': (BoolArg, True),
-}
-
-complete_cmd_param_info = {}
-# use a function to avoid importing modules of subsidiary commands until needed
-_cmd_sources = None
-def cmd_sources():
-    global _cmd_sources
-    if _cmd_sources is None:
-        from .prep import prep
-        _cmd_sources = [(None, prep, prep_cmd_param_info)]
-    return _cmd_sources
-
-def get_param_info():
-    if not complete_cmd_param_info:
-        for prefix, func, param_dict in cmd_sources():
-            for arg_name, arg_info in param_dict.items():
-                complete_cmd_param_info[arg_name
-                    if prefix is None else (prefix + '_' + arg_name)] = arg_info
-    return complete_cmd_param_info
 
 #NOTES: An iterator is used to go through the requested Dock Prep steps, yielding the next step.
 #  The step info provides a function to call, that should receive the session, iterator, callback,
@@ -49,38 +27,55 @@ def get_param_info():
 #  command can register (prefixed) keywords.
 #
 #  Bundles are in charge of their own memorization
+
+def get_param_info():
+    param_info = {}
+    import importlib
+    for mod_name, arg_prefix in [("dock_prep", "")]:
+        full_mod_name = "chimerax." + mod_name
+        mod = importlib.import_module(full_mod_name)
+        for arg_name, arg_annotation in mod.dock_prep_arg_info.items():
+            param_info[arg_prefix + arg_name] = arg_annotation
+    return param_info
+
 def dock_prep_steps(del_solvent=True, del_ions=False, del_alt_locs=True, change_MSE=True, change_UMP=True,
         change_UMS=True, change_CSL=True, complete_side_chains=True, add_hydrogens=True, add_charges=True):
     steps = []
-    if del_solvent:
-        steps.append([])
-    #TOD
+    if del_solvent: # ... or del_ions.. etc.
+        kw_dict = {}
+        steps.append(("dock_prep", kw_dict))
+        if del_solvent:
+            kw_dict['del_solvent'] = True
+    #TODO
     return steps
-    
-def dock_prep_caller(session, structures, memorization, *, callback=None, **kw):
-    if steps is None:
-        steps = dock_prep_steps()
-    for prefix, func, param_dict in cmd_sources():
-        func_kw = {}
-        if memorization == MEMORIZE_NONE:
-            settings = None
-        else:
-            settings = get_settings(session, prefix) #TODO
-        #TODO: the scheme below just isn't right -- later interfaces need to be able to
-        # show GUIs and have the chosen settings memorized.  Maybe somehow use 'yield'?
-        for arg_name, arg_info in param_dict.items():
-            arg_type, default = arg_info
-            attr_name = arg_name if prefix is None else prefix + '_' _ arg_name
-            if memorization == MEMORIZE_NONE:
-                arg_val = kw.get(attr_name, default)
-            elif memorization == MEMORIZE_USE:
-                arg_val = kw.get(attr_name, getattr(settings, arg_name))
-            else:
-                arg_val = kw.get(attr_name, default)
-                setattr(settings, arg_name, arg_val)
-            func_kw[arg_name] = arg_val
-        func(session, structures, **func_kw)
-    #TODO: log command equivalents; handle memorization; call workhorse function; make callback
+
+def dock_prep_caller(session, structures, *, memorization=MEMORIZE_NONE, memorize_name=None,
+        callback=None, **kw):
+    state = {
+        'steps': dock_prep_steps(**kw),
+        'memorization': memorization,
+        'memorize_name': memorize_name,
+        'callback': callback,
+        'structures': structures,
+    }
+    run_steps(session, state)
+
+def run_steps(session, state):
+    steps = state['steps']
+    if not steps:
+        callback = state['callback']
+        if callback:
+            callback()
+    else:
+        step_memorize_name = "dock_prep"
+        memorize_name = state['memorize_name']
+        if memorize_name:
+            step_memorize_name += '_' + memorize_name
+        mod_name, kw_dict = steps.pop(0)
+        import importlib
+        step_mod = importlib.import_module("chimerax." + mod_name)
+        step_mod.run_for_dock_prep(session, state, run_steps, state['memorization'], step_memorize_name,
+            state['structures'], **kw_dict)
 
 def dock_prep_cmd(session, structures,  *, memorize=MEMORIZE_NONE, mol2=None, **kw):
     if structures is None:
@@ -88,20 +83,13 @@ def dock_prep_cmd(session, structures,  *, memorize=MEMORIZE_NONE, mol2=None, **
         structures = all_atomic_structures(session)
     if not structures:
         raise UserError("No atomic structures open/specified")
-    dock_prep_caller(session, structures, memorize, **kw)
-    if mol2:
-        #TODO: nope -- need to provide a callback to the above function (and a memorization name) because the
-        # above will return immediately
-        pass
-
-class MemorizationArg(EnumArg):
-    values = (MEMORIZE_USE, MEMORIZE_SAVE, MEMORIZE_NONE)
+    dock_prep_caller(session, structures, memorization=memorize, **kw)
 
 def register_command(logger):
     from chimerax.atomic import AtomicStructuresArg
     cmd_desc = CmdDesc(
-        required=[('structures', Or(AtomicStructuresArg, NoneArg))],
-        keyword=[('memorize', MemorizationArg), ('mol2', SaveFileNameArg)] + [(arg_name, arg_info[0])
-            for arg_name, arg_info in get_param_info()],
+        required=[('structures', Or(AtomicStructuresArg, EmptyArg))],
+        keyword=[('memorize', EnumOf((MEMORIZE_USE, MEMORIZE_SAVE, MEMORIZE_NONE)))]
+            + list(get_param_info().items()),
         synopsis='Prepare structures for computations')
     register('dockprep', cmd_desc, dock_prep_cmd, logger=logger)
