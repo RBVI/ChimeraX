@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-mmCIF" version="2.5"
+<BundleInfo name="ChimeraX-mmCIF" version="2.6"
 	    package="chimerax.mmcif" purePython="false"
   	    minSessionVersion="1" maxSessionVersion="1">
 
@@ -78,6 +78,10 @@
 
   <Providers manager="save command">
     <Provider name="mmCIF" compression_okay="false" />
+  </Providers>
+
+  <Providers manager="start structure">
+    <Provider name="ccd" ui_name="CCD ID" new_model_only="true"/>
   </Providers>
 
   <Classifiers>
