@@ -20,6 +20,7 @@
   <ExtraFiles>
     <ExtraFile source="atomic_cpp/cymol.pyx">cymol.pyx</ExtraFile>
     <ExtraFile source="atomic_cpp/cytmpl.pyx">cytmpl.pyx</ExtraFile>
+    <ExtraFile source="atomic_cpp/connect.pyx">connect.pyx</ExtraFile>
   </ExtraFiles>
 
   <CLibrary name="molc" usesNumpy="true">
@@ -42,6 +43,12 @@
     <Library>element</Library>
   </CModule>
 
+  <CModule name="connect">
+    <SourceFile>atomic_cpp/connect.pyx</SourceFile>
+    <Library>atomstruct</Library>
+    <Library>pdbconnect</Library>
+  </CModule>
+
   <CModule name="_ribbons" usesNumpy="true">
     <SourceFile>ribbon_cpp/normals.cpp</SourceFile>
     <SourceFile>ribbon_cpp/parse.cpp</SourceFile>
@@ -62,6 +69,7 @@
     <Dependency name="ChimeraX-mmCIF" version="~=2.0"/>
     <Dependency name="ChimeraX-Nucleotides" version="~=2.0"/>
     <Dependency name="ChimeraX-PDB" version="~=2.0"/>
+    <Dependency name="ChimeraX-PDBLibrary" build="true" version="~=1.0"/>
     <Dependency name="ChimeraX-Arrays" build="true" version="~=1.0"/>
   </Dependencies>
 
