@@ -173,7 +173,7 @@ def main():
         error = True
     if len(sys.argv) >= 3:
         build = sys.argv[2]
-        if build not in ['release', 'candidate', 'daily']:
+        if build not in ['release', 'candidate', 'daily', 'techpreview']:
             error = True
     if error or len(sys.argv) > 3 or os_version not in CENTOS_DEPENDENCIES:
         print(f'Usage: {sys.argv[0]} CentOS-version [build-type]', file=sys.stderr)
@@ -202,6 +202,14 @@ def main():
         APP_DIR += "-daily"
         pkg_name += "-daily"
         bin_name += "-daily"
+        rpm_release = 1
+    elif build == 'techpreview':
+        # like daily build, version is date
+        version = version_date
+        global APP_DIR
+        APP_DIR += "-techpreview"
+        pkg_name += "-techpreview"
+        bin_name += "-techpreview"
         rpm_release = 1
     elif build == 'release':
         # release build
