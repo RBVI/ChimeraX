@@ -223,7 +223,7 @@ def main():
         error = True
     if len(sys.argv) >= 3:
         build = sys.argv[2]
-        if build not in ['release', 'candidate', 'daily']:
+        if build not in ['release', 'candidate', 'daily', 'techpreview']:
             error = True
     if error or len(sys.argv) > 3 or os_version not in UBUNTU_DEPENDENCIES:
         print(f'Usage: {sys.argv[0]} ubuntu-version [build-type]', file=sys.stderr)
@@ -250,6 +250,11 @@ def main():
         version = version_date
         pkg_name += "-daily"
         bin_name += "-daily"
+    elif build == 'techpreview':
+        # like daily build, version is date
+        version = version_date
+        pkg_name += "-techpreview"
+        bin_name += "-techpreview"
     elif build == 'release':
         # release build
         version = version.base_version
