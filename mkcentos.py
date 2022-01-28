@@ -195,10 +195,10 @@ def main():
     version_date = version_date[1:-1].replace('-', '.')
     pkg_name = f"{app_author.lower()}-{app_name.lower()}"
     bin_name = f"{app_name.lower()}"
+    global APP_DIR
     if build == 'daily':
         # daily build, version is date
         version = version_date
-        global APP_DIR
         APP_DIR += "-daily"
         pkg_name += "-daily"
         bin_name += "-daily"
@@ -206,7 +206,6 @@ def main():
     elif build == 'techpreview':
         # like daily build, version is date
         version = version_date
-        global APP_DIR
         APP_DIR += "-techpreview"
         pkg_name += "-techpreview"
         bin_name += "-techpreview"
