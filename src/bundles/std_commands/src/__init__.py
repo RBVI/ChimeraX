@@ -78,7 +78,11 @@ class StdCommandsAPI(BundleAPI):
                     from .defattr import defattr
                     if 'models' in kw:
                         kw['restriction'] = kw.pop('models')
-                    defattr(session, data, file_name=file_name, **kw)
+                    try:
+                        defattr(session, data, file_name=file_name, **kw)
+                    except SyntaxError as e:
+                        from chimerax.core.errors import UserError
+                        raise UserError(str(e))
                     return [], ""
 
                 @property
