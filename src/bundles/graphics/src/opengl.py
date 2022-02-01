@@ -1128,8 +1128,10 @@ class Render:
             offscreen_outline = True
         elif sys.platform.startswith('darwin'):
             rname = self.opengl_renderer()
+            # Bugs in Apple AMD graphics drivers
             if (rname.startswith('AMD Radeon Pro Vega') or
-                rname.startswith('AMD Radeon Pro 5500M')):  # Ticket # 4238
+                rname.startswith('AMD Radeon Pro 5500M') or # ChimeraX bug 4238
+                rname.startswith('AMD Radeon Pro 5300M')):  # ChimeraX bug 6014
                 offscreen_outline = True
         self.outline.offscreen_outline_needed = offscreen_outline
         

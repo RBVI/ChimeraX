@@ -45,7 +45,7 @@ def initialize_atomic(session):
     from . import settings
     settings.settings = settings._AtomicSettings(session, "atomic")
 
-    from chimerax import atomic_lib
+    from chimerax import atomic_lib, pdb_lib # ensure libs we need are linked
     import os.path
     res_templates_dir = os.path.join(atomic_lib.__path__[0], 'data')
     Residue.set_templates_dir(res_templates_dir)

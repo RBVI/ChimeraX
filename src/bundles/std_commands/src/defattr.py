@@ -83,7 +83,9 @@ def defattr(session, data, *, log=False, restriction=None, file_name=None, summa
     with open_input(data, encoding="utf-8") as f:
         data = []
         attrs = {}
+        empty_file = True
         for lnum, raw_line in enumerate(f):
+            empty_file = False
             # spaces in values could be significant, so instead of stripping just drop the '\n'
             # (which all line endings are translated to if newline=None [default] for open())
             line = raw_line[:-1]
@@ -127,7 +129,10 @@ def defattr(session, data, *, log=False, restriction=None, file_name=None, summa
             else:
                 final_value = value
             attrs[name] = final_value
-        append_all_info(attrs, data, lnum+1)
+        if empty_file:
+            raise SyntaxError("%s is empty" % file_name)
+        else:
+            append_all_info(attrs, data, lnum+1)
 
     for attr_info, data_info in all_info:
         num_assignments = 0
