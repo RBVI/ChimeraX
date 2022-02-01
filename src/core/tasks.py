@@ -133,6 +133,7 @@ class Task(State):
         """
         return self.__class__.__name__
 
+    # TODO: @session_trigger(UPDATE_TASK, self)
     def update_state(self, state):
         self.state = state
         if self.terminated():
@@ -141,6 +142,7 @@ class Task(State):
         else:
             self.session.triggers.activate_trigger(UPDATE_TASK, self)
 
+    # TODO: @session_trigger(END_TASK, self)
     def terminate(self):
         """Terminate this task.
 
@@ -343,6 +345,91 @@ class Tasks(StateManager):
         self._session = weakref.ref(session)
         self._tasks = {}
 
+    def __len__(self) -> int:
+        "Return the number of registered tasks."
+        return len(self._tasks)
+
+    def __contains__(self, item) -> bool:
+        return item in self._tasks
+
+    def __iter__(self):
+        return iter(self._tasks)
+
+    def __getitem__(self, key):
+        return self._tasks[key]
+
+    def keys(self):
+        return self._tasks.keys()
+
+    def items(self):
+        return self._tasks.items()
+
+    def values(self):
+        return self._tasks.values()
+
+    def list(self):
+        """Return list of tasks.
+
+        Returns
+        -------
+        list
+            List of :py:class:`Task` instances.
+
+        """
+        return list(self._tasks.values())
+
+    # session.tasks.add(self) should == session.tasks[None] = self
+    def add(self, task):
+        self.__setitem__(None, task)
+
+    # TODO: @session_trigger(ADD_TASK, task)
+    def __setitem__(self, key, task):
+        if key in self:
+            raise ValueError("Attempted to record task ID already in task list")
+        if key is None:
+            dict.__setitem__(self._tasks, next(self._id_counter), task)
+        else:
+            dict.__setitem__(self._tasks, key, task)
+        if self.session:
+            self.session.triggers.activate_trigger(ADD_TASK, task)
+
+    # TODO: @session_trigger(REMOVE_TASK, task)
+    def __delitem__(self, task):
+        """Deregister task with state manager.
+
+        Parameters
+        ----------
+        task_list : list of :py:class:`Task` instances
+            List of registered tasks.
+
+        """
+        tid = task.id
+        if tid is None:
+            # Not registered in a session
+            return
+        task.id = None
+        try:
+            del self._tasks[tid]
+        except KeyError:
+            # Maybe we had reset and there were still old
+            # tasks finishing up
+            pass
+        self.session.triggers.activate_trigger(REMOVE_TASK, task)
+
+    def find_by_class(self, cls):
+        """Return a list of tasks of the given class.
+
+        All tasks that match ``cls`` as defined by :py:func:`isinstance`
+        are returned.
+
+        Parameters
+        ----------
+        cls : class object
+            Class object used to match task instances.
+
+        """
+        return [task for task in self._tasks.values() if isinstance(task, cls)]
+
     @property
     def session(self):
         """Read-only property for session that contains this task."""
@@ -419,85 +506,3 @@ class Tasks(StateManager):
             except KeyError:
                 # In case terminating the task removed it from task list
                 pass
-
-    def __len__(self) -> int:
-        "Return the number of registered tasks."
-        return len(self._tasks)
-
-    def __contains__(self, item) -> bool:
-        return item in self._tasks
-
-    def __iter__(self):
-        return iter(self._tasks)
-
-    def __getitem__(self, key):
-        return self._tasks[key]
-
-    def keys(self):
-        return self._tasks.keys()
-
-    def items(self):
-        return self._tasks.items()
-
-    def values(self):
-        return self._tasks.values()
-
-    def list(self):
-        """Return list of tasks.
-
-        Returns
-        -------
-        list
-            List of :py:class:`Task` instances.
-
-        """
-        return list(self._tasks.values())
-
-    # session.tasks.add(self) should == session.tasks[None] = self
-    def __setitem__(self, key, task):
-        if key is None:
-            dict.__setitem__(self._tasks, next(self._id_counter), task)
-            if self.session:
-                self.session.triggers.activate_trigger(ADD_TASK, task)
-        elif key in self:
-            raise ValueError("Attempted to record task ID already in task list")
-        else:
-            dict.__setitem__(self._tasks, key, task)
-            if self.session:
-                self.session.triggers.activate_trigger(ADD_TASK, task)
-
-    def __delitem__(self, task):
-        """Deregister task with state manager.
-
-        Parameters
-        ----------
-        task_list : list of :py:class:`Task` instances
-            List of registered tasks.
-
-        """
-        tid = task.id
-        if tid is None:
-            # Not registered in a session
-            return
-        task.id = None
-        try:
-            del self._tasks[tid]
-        except KeyError:
-            # Maybe we had reset and there were still old
-            # tasks finishing up
-            pass
-        self.session.triggers.activate_trigger(REMOVE_TASK, task)
-
-    def find_by_class(self, cls):
-        """Return a list of tasks of the given class.
-
-        All tasks that match ``cls`` as defined by :py:func:`isinstance`
-        are returned.
-
-        Parameters
-        ----------
-        cls : class object
-            Class object used to match task instances.
-
-        """
-        return [task for task in self._tasks.values() if isinstance(task, cls)]
