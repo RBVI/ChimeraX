@@ -333,7 +333,7 @@ class Tasks(StateManager):
     """
     _id_counter = itertools.count(1)
 
-    def __init__(self, session, first=False):
+    def __init__(self, session):
         """Initialize per-session state manager for tasks.
 
         Parameters
