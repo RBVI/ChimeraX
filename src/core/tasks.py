@@ -488,17 +488,6 @@ class Tasks(StateManager):
             pass
         self.session.triggers.activate_trigger(REMOVE_TASK, task)
 
-    def find_by_id(self, tid):
-        """Return a :py:class:`Task` instance with the matching identifier.
-
-        Parameters
-        ----------
-        tid : int
-            Unique per-session identifier for a registered task.
-
-        """
-        return self._tasks.get(tid, None)
-
     def find_by_class(self, cls):
         """Return a list of tasks of the given class.
 
