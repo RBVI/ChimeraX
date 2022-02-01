@@ -30,7 +30,7 @@ or for comparing two sessions.
 Session data, ie., data that is archived, uses the :py:class:`State` and
 :py:class:`StateManager` API.
 """
-from .tasks import Tasks, task_triggers, END_TASK, UPDATE_TASK, ADD_TASK, REMOVE_TASK
+from .tasks import Tasks, task_triggers
 from .state import RestoreError, State, StateManager, copy_state, dereference_state
 from .errors import UserError
 
