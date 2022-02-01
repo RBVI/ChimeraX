@@ -53,7 +53,6 @@ import abc
 import itertools
 import sys
 import threading
-import time
 import weakref
 
 from .state import State, StateManager
