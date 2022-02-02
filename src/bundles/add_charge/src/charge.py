@@ -117,6 +117,7 @@ def add_standard_charges(session, residues=None, *, status=None, phosphorylation
     uncharged_res_types = {}
     uncharged_residues = set()
     modified_atoms = []
+    warn_UNK = False
     for r in residues:
         if not hasattr(r, "amber_name"):
             uncharged_residues.add(r)
@@ -136,6 +137,14 @@ def add_standard_charges(session, residues=None, *, status=None, phosphorylation
                 a.charge, a.gaff_type = heavy_charge_type_data[(a.residue.amber_name, a.name.lower())]
             except KeyError:
                 raise ChargeError("Nonstandard name for heavy atom %s" % a)
+        if r.name == 'UNK' and r.amber_name == "ALA":
+            # we treat actual polymeric UNK residues as ALA, so that chains of
+            # them aren't collated into a huge mega-residue; change the CB (which is missing
+            # hydrogens) to neutral
+            warn_UNK = True
+            cb = r.find_atom('CB')
+            if cb and cb.num_bonds == 1:
+                cb.charge = 0.0
         for h, heavy in hydrogen_data:
             if h.residue != heavy.residue:
                 raise ChargeError("Hydrogen %s bonded to atom in diffent residue (%s)" % (h, heavy))
@@ -149,6 +158,9 @@ def add_standard_charges(session, residues=None, *, status=None, phosphorylation
     if modified_atoms:
         session.change_tracker.add_modified(modified_atoms, "charge changed")
         session.change_tracker.add_modified(modified_atoms, "gaff_type changed")
+    if warn_UNK:
+        session.logger.warning("There are UNK residues in the structure.  Charges in those regions will"
+            " be inaccurate.")
 
     # merge connected non-standard residues into a "mega" residue.
     # also any standard residues directly connected
