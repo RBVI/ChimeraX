@@ -96,7 +96,7 @@ index 144bedbba..a72820c63 100644
  # unlicensed wheels where built and presumably matches the gpl wheel in PyPI.
 -SIP_VERSION = 12.8.1
 -BUILDER_VERSION = 1.5.0
-+SIP_VERSION = 13.2.0
++SIP_VERSION = 13.2.1
 +BUILDER_VERSION = 1.12.2
  
 -QT_WHEEL = PyQt5_$(PYQT_LICENSE)-$(PYQT_VERSION)-$(BUILD_TAGS).whl

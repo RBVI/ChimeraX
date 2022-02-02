@@ -409,3 +409,35 @@ def _value(s):
         return float(s)
     except ValueError:
         return s
+
+def open_zdock(session, stream, file_name, auto_style, atomic):
+    from chimerax.atomic import next_chain_id
+    import tempfile
+    out_f = tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', suffix=".pdb", delete=False)
+    used_chains = set()
+    cur_in_chain = cur_out_chain = cur_res_num = None
+    for line in stream:
+        line = line[:55]
+        if line.startswith("ATOM  ") or line.startswith("HETATM"):
+            chain_id = line[21]
+            res_num = int(line[22:26].strip())
+            if cur_res_num is None or cur_in_chain != chain_id or res_num < cur_res_num:
+                # new chain, we think
+                cur_out_chain = chain_id
+                while cur_out_chain in used_chains:
+                    cur_out_chain = next_chain_id(cur_out_chain)
+                    if len(cur_out_chain) > 1:
+                        raise IOError("Ran out of unique chain IDs")
+                used_chains.add(cur_out_chain)
+                cur_in_chain = chain_id
+            cur_res_num = res_num
+            if cur_out_chain != cur_in_chain:
+                line = line[:21] + cur_out_chain + line[22:]
+        print(line, file=out_f)
+    out_f.close()
+    from chimerax.pdb import open_pdb
+    try:
+        return open_pdb(session, out_f.name, file_name=file_name, auto_style=auto_style, atomic=atomic)
+    finally:
+        import os
+        os.unlink(out_f.name)
