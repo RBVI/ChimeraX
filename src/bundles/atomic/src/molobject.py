@@ -1582,9 +1582,18 @@ class StructureData:
         '''Add coordinate sets.  If 'replace' is True, clear out existing coordinate sets first'''
         if len(xyzs.shape) != 3:
             raise ValueError('add_coordsets(): array must be (frames)x(atoms)x3-dimensional')
-        if self.num_atoms and xyzs.shape[1] != self.num_atoms:
+        cs_size = self.coordset_size
+        if cs_size > 0:
+            dim_check = cs_size
+            check_text = "previous coordinate sets"
+            do_check = True
+        else:
+            dim_check = self.num_atoms
+            check_text = "number of atoms"
+            do_check = dim_check > 0
+        if do_check and xyzs.shape[1] != dim_check:
             raise ValueError('add_coordsets(): second dimension of coordinate array'
-                ' must be same as number of atoms')
+                ' must be same as %s' % check_text)
         if xyzs.shape[2] != 3:
             raise ValueError('add_coordsets(): third dimension of coordinate array'
                 ' must be 3 (xyz)')
@@ -1648,6 +1657,13 @@ class StructureData:
                args = (ctypes.c_void_p, ctypes.c_char_p, ctypes.c_int, ctypes.c_char),
                ret = ctypes.py_object)
         return f(self._c_pointer, chain_id.encode('utf-8'), pos, insert.encode('utf-8'))
+
+    @property
+    def frag_sel(self):
+        # special purpose function for the "connected fragment" selection level;
+        # returns a mask of connected fragment atoms involving currently selected atoms
+        f = c_function('structure_frag_sel', args = (ctypes.c_void_p,), ret = ctypes.py_object)
+        return f(self._c_pointer)
 
     @property
     def molecules(self):

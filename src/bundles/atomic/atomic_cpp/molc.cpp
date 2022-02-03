@@ -1470,6 +1470,46 @@ extern "C" EXPORT PyObject *atom_intra_bonds(void *atoms, size_t n)
     }
 }
 
+extern "C" EXPORT PyObject *structure_frag_sel(void *mol)
+{
+    Structure *m = static_cast<Structure *>(mol);
+    PyObject *o = NULL;
+    std::set<Atom *> current_sel;
+    std::set<Atom *> next_layer, prev_layer;
+    try {
+        for (auto a: m->atoms()) {
+            if (a->selected()) {
+                current_sel.insert(a);
+                prev_layer.insert(a);
+            }
+        }
+        do {
+            // lacks the Chimera 1 logic where selected chain-trace pseudobonds
+            // select their residues; not sure it's necessary (and can be added if so)
+            next_layer.clear();
+            for (auto la: prev_layer) {
+                for (auto nb: la->neighbors()) {
+                    if (la->residue()->chain_id() != nb->residue()->chain_id())
+                        continue;
+                    if (current_sel.find(nb) != current_sel.end())
+                        continue;
+                    next_layer.insert(nb);
+                }
+            }
+            current_sel.insert(next_layer.begin(), next_layer.end());
+            prev_layer = next_layer;
+        } while (!next_layer.empty());
+
+        unsigned char *sels;
+        o = python_bool_array(m->atoms().size(), &sels);
+        for (auto a: m->atoms())
+            *sels++ = current_sel.find(a) != current_sel.end();
+    } catch (...) {
+        molc_error();
+    }
+    return o;
+}
+
 // -------------------------------------------------------------------------
 // bond functions
 //

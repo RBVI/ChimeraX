@@ -202,6 +202,18 @@ coordinate system; capsid built automatically using
 <a href="sym.html#symmetry"><b>sym</b></a>
 with <b>i222</b> symmetry</td>
 </tr><tr>
+<td align="center">
+<a href="https://zdock.umassmed.edu/" target="_blank">ZDOCK</a>
+quasi-PDB format</td>
+<td align="center"><b>zdock</b>
+<br>(required)</td>
+<td align="center">.pdb
+<br>(insufficient to specify format)</td>
+<td align="center">
+atomic coordinates
+<br>(use <b>format zdock</b> to disambiguate from standard PDB)
+</td>
+</tr><tr>
 <td align="center"><a href="../pseudobonds.html#pbfiles">Pseudobond
 file</a></td>
 <td align="center" class="text"><b>pseudobonds</b></td>
@@ -480,8 +492,8 @@ and specifying a corresponding atomic model
 </td>
 </tr><tr>
 <td align="center">NetCDF map</td>
-<td align="center"><b>netcdfmap</b></td>
-<td align="center">.nc</td>
+<td align="center"><b>netcdfmap</b><br>(required)</td>
+<td align="center">.nc<br>(insufficient to specify format)</td>
 <td align="center">electron density map
 <br>(use <b>format netcdfmap</b> to disambiguate from 
 <a href="#trajectory">Amber NetCDF trajectories</a>)</td>
@@ -1913,5 +1925,5 @@ only arrays with the specified <i>name</i>. Example:
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-November 2021</address>
+February 2022</address>
 </body></html>
