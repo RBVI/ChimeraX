@@ -14,7 +14,7 @@
 # ---------------------------------------------------------------------------------------
 # Command and tool to place waters in cryoEM maps using Phenix douse.
 #
-def phenix_douse(session, map, near_model, phenix_location = None,
+def phenix_douse(session, map, near_model, keep_input_water = True, phenix_location = None,
                  residue_range = 5, map_range = 8, verbose = False):
 
     # Find the phenix.douse executable
@@ -42,7 +42,7 @@ def phenix_douse(session, map, near_model, phenix_location = None,
 
     # Run phenix.douse
     output_model = _run_douse(session, exe_path, 'map.mrc', 'model.pdb', temp_dir,
-                              verbose = verbose)
+                              keep_input_water = keep_input_water, verbose = verbose)
     output_model.name = near_model.name + ' douse'
     output_model.position = map.scene_position
     if shift is not None:
@@ -50,7 +50,7 @@ def phenix_douse(session, map, near_model, phenix_location = None,
     session.models.add([output_model])
 
     # Report predicted waters and input waters
-    msg, nwaters = _describe_new_waters(near_model, output_model, map.name)
+    msg, nwaters = _describe_new_waters(near_model, output_model, keep_input_water, map.name)
     session.logger.info(msg, is_html=True)
 
     # Show only waters and nearby residues and transparent map near waters.
@@ -80,11 +80,13 @@ def _fix_map_origin(map):
 # ---------------------------------------------------------------------------------------
 #
 def _run_douse(session, exe_path, map_path, model_path, temp_dir,
-               shift_coords = None, verbose = False):
+               keep_input_water = True, verbose = False):
     '''
     Run douse in a subprocess and return the model with predicted waters.
     '''
     args = [exe_path, map_path, model_path]
+    if keep_input_water:
+        args.append('keep_input_water=true')
     session.logger.status(f'Running {exe_path} in directory {temp_dir}')
     import subprocess
     p = subprocess.run(args, capture_output = True, cwd = temp_dir)
@@ -118,9 +120,10 @@ def _run_douse(session, exe_path, map_path, model_path, temp_dir,
 
 # ---------------------------------------------------------------------------------------
 #
-def _describe_new_waters(input_model, output_model, map_name):
+def _describe_new_waters(input_model, output_model, keep_input_water, map_name):
     input_wat_res, new_wat_res, dup_wat_res, dup_input_wat_res = \
         _compare_waters(input_model, output_model)
+      
     ninput = len(input_wat_res)
     nindup = len(dup_input_wat_res)
     noutput = len(new_wat_res) + len(dup_wat_res)
@@ -134,13 +137,20 @@ def _describe_new_waters(input_model, output_model, map_name):
     sel_dup = f'select {dup_res_spec} & {water_spec}'
     xtra_res_spec = _residue_specifier(input_model, (input_wat_res - dup_input_wat_res))
     sel_xtra = f'select {xtra_res_spec}'
-    msg = (
-        f'Placed <a href="cxcmd:{sel_out}">{noutput} waters</a>'
-        f' in map "{map_name}" near model "{input_model.name}"<br>'
-        f' <a href="cxcmd:{sel_new}">{nnew} new</a> waters,'
-        f' <a href="cxcmd:{sel_dup}">{ndup} matching</a> input waters,'
-        f' <a href="cxcmd:{sel_xtra}">{ninput-nindup} input waters not found</a>')
-    return msg, noutput
+
+    if keep_input_water:
+        msg = (
+            f'Placed <a href="cxcmd:{sel_new}">{nnew} new</a> waters'
+            f' in map "{map_name}" near model "{input_model.name}"')
+    else:
+        msg = (
+            f'Placed <a href="cxcmd:{sel_out}">{noutput} waters</a>'
+            f' in map "{map_name}" near model "{input_model.name}"<br>'
+            f' <a href="cxcmd:{sel_new}">{nnew} new</a> waters,'
+            f' <a href="cxcmd:{sel_dup}">{ndup} matching</a> input waters,'
+            f' <a href="cxcmd:{sel_xtra}">{ninput-nindup} input waters not found</a>')
+
+    return msg, nnew
 
 # ---------------------------------------------------------------------------------------
 #
@@ -201,6 +211,7 @@ def register_phenix_douse_command(logger):
     desc = CmdDesc(
         required = [('map', MapArg)],
         keyword = [('near_model', AtomicStructureArg),
+                   ('keep_input_water', BoolArg),
                    ('phenix_location', OpenFolderNameArg),
                    ('residue_range', FloatArg),
                    ('map_range', FloatArg),
