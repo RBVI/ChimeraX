@@ -55,6 +55,11 @@ def combine_cmd(session, structures, *, close=False, model_id=None, name=None):
             else:
                 seen_ids.add(chain_id)
         combination.combine(s, chain_id_mapping, structures[0].scene_position)
+    if not combination.lower_case_chains:
+        for cid in seen_ids:
+            if not cid.isupper():
+                combination.lower_case_chains = True
+                break
     combination.position = structures[0].scene_position
     if close:
         session.models.close(structures)
