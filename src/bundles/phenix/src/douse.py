@@ -14,7 +14,9 @@
 # ---------------------------------------------------------------------------------------
 # Command and tool to place waters in cryoEM maps using Phenix douse.
 #
-def phenix_douse(session, map, near_model, keep_input_water = True, phenix_location = None,
+def phenix_douse(session, map, near_model,
+                 keep_input_water = True, far_water = False,
+                 phenix_location = None,
                  residue_range = 5, map_range = 8, verbose = False):
 
     # Find the phenix.douse executable
@@ -41,23 +43,26 @@ def phenix_douse(session, map, near_model, keep_input_water = True, phenix_locat
              models = [near_model], rel_model = map_0)
 
     # Run phenix.douse
-    output_model = _run_douse(session, exe_path, 'map.mrc', 'model.pdb', temp_dir,
-                              keep_input_water = keep_input_water, verbose = verbose)
-    output_model.name = near_model.name + ' douse'
-    output_model.position = map.scene_position
+    douse_model = _run_douse(session, exe_path, 'map.mrc', 'model.pdb', temp_dir,
+                             keep_input_water = keep_input_water, far_water = far_water,
+                             verbose = verbose)
+    douse_model.position = map.scene_position
     if shift is not None:
-        output_model.atoms.coords += shift
-    session.models.add([output_model])
+        douse_model.atoms.coords += shift
+
+    # Copy new waters
+    model, msg, nwaters = _copy_new_waters(douse_model, near_model,
+                                           keep_input_water, far_water, map.name)
+    douse_model.delete()
 
     # Report predicted waters and input waters
-    msg, nwaters = _describe_new_waters(near_model, output_model, keep_input_water, map.name)
     session.logger.info(msg, is_html=True)
 
     # Show only waters and nearby residues and transparent map near waters.
     if nwaters > 0:
-        _show_waters(near_model, output_model, residue_range, map, map_range)
+        _show_waters(near_model, model, residue_range, map, map_range)
     
-    return output_model
+    return model
 
 # ---------------------------------------------------------------------------------------
 #
@@ -80,12 +85,12 @@ def _fix_map_origin(map):
 # ---------------------------------------------------------------------------------------
 #
 def _run_douse(session, exe_path, map_path, model_path, temp_dir,
-               keep_input_water = True, verbose = False):
+               keep_input_water = True, far_water = False, verbose = False):
     '''
     Run douse in a subprocess and return the model with predicted waters.
     '''
     args = [exe_path, map_path, model_path]
-    if keep_input_water:
+    if keep_input_water and far_water:
         args.append('keep_input_water=true')
     session.logger.status(f'Running {exe_path} in directory {temp_dir}')
     import subprocess
@@ -120,37 +125,42 @@ def _run_douse(session, exe_path, map_path, model_path, temp_dir,
 
 # ---------------------------------------------------------------------------------------
 #
-def _describe_new_waters(input_model, output_model, keep_input_water, map_name):
-    input_wat_res, new_wat_res, dup_wat_res, dup_input_wat_res = \
-        _compare_waters(input_model, output_model)
-      
-    ninput = len(input_wat_res)
-    nindup = len(dup_input_wat_res)
-    noutput = len(new_wat_res) + len(dup_wat_res)
-    nnew = len(new_wat_res)
-    ndup = len(dup_wat_res)
-    sel_out = f'select #{output_model.id_string}:HOH'
-    new_res_spec = _residue_specifier(output_model, new_wat_res)
-    water_spec = f'#{output_model.id_string}:HOH'
-    sel_new = f'select {new_res_spec} & {water_spec}'
-    dup_res_spec = _residue_specifier(output_model, dup_wat_res)
-    sel_dup = f'select {dup_res_spec} & {water_spec}'
-    xtra_res_spec = _residue_specifier(input_model, (input_wat_res - dup_input_wat_res))
-    sel_xtra = f'select {xtra_res_spec}'
+def _copy_new_waters(douse_model, near_model, keep_input_water, far_water, map_name):
+    model = near_model.copy()
+    model.position = douse_model.position
+    model.name = near_model.name + ' douse'
 
+    # Add found water molecules to copy of input molecule.
     if keep_input_water:
-        msg = (
-            f'Placed <a href="cxcmd:{sel_new}">{nnew} new</a> waters'
-            f' in map "{map_name}" near model "{input_model.name}"')
+        input_wat_res, new_wat_res, dup_wat_res, dup_input_wat_res = \
+            _compare_waters(near_model, douse_model)
     else:
-        msg = (
-            f'Placed <a href="cxcmd:{sel_out}">{noutput} waters</a>'
-            f' in map "{map_name}" near model "{input_model.name}"<br>'
-            f' <a href="cxcmd:{sel_new}">{nnew} new</a> waters,'
-            f' <a href="cxcmd:{sel_dup}">{ndup} matching</a> input waters,'
-            f' <a href="cxcmd:{sel_xtra}">{ninput-nindup} input waters not found</a>')
+        new_wat_res = _water_residues(douse_model)
+        _water_residues(model).delete()
+    added_wat_res = _add_waters(model, new_wat_res)
 
-    return msg, nnew
+    model.session.models.add([model])	# Need to assign id number for use in log message
+
+    # Create log message describing found waters with links
+    # to select them.
+    sel_new, nnew = _select_command(model, added_wat_res)
+    msg = (f'Placed <a href="cxcmd:{sel_new}">{nnew} waters</a>'
+           f' in map "{map_name}" near model "{near_model.name}"')
+    if keep_input_water and len(input_wat_res) > 0 and not far_water:
+        sel_dup, ndup = _select_command(model, dup_wat_res)
+        sel_xtra, nxtra = _select_command(model, input_wat_res - dup_input_wat_res)
+        msg += (
+            f'<br>Among input waters <a href="cxcmd:{sel_dup}">found {ndup}</a>'
+            f' and <a href="cxcmd:{sel_xtra}">did not find {nxtra}</a>')
+        
+    return model, msg, nnew
+
+# ---------------------------------------------------------------------------------------
+#
+def _water_residues(model):
+    res = model.residues
+    water_res = res[res.names == 'HOH']
+    return water_res
 
 # ---------------------------------------------------------------------------------------
 #
@@ -159,12 +169,8 @@ def _compare_waters(input_model, output_model, overlap_distance = 2):
     Find how many output waters overlap input waters.
     '''
     # Get water residues in input and output models
-    ires = input_model.residues
-    input_waters = ires[ires.names == 'HOH']
-    ninput = len(input_waters)
-    ores = output_model.residues
-    output_waters = ores[ores.names == 'HOH']
-    noutput = len(output_waters)
+    input_waters = _water_residues(input_model)
+    output_waters = _water_residues(output_model)
 
     # Get water oxygen coodinates and see which overlap.
     from chimerax.atomic import Atoms
@@ -182,14 +188,33 @@ def _compare_waters(input_model, output_model, overlap_distance = 2):
 
 # ---------------------------------------------------------------------------------------
 #
-def _residue_specifier(model, residues):
+def _select_command(model, residues):
     res_ids = ','.join('%d' % r.number for r in residues)
-    return f'#{model.id_string}:{res_ids}'
+    cmd = f'select #{model.id_string}:{res_ids}' if len(residues) > 0 else 'select clear'
+    return cmd, len(residues)
 
 # ---------------------------------------------------------------------------------------
 #
-def _show_waters(input_model, output_model, residue_range, map, map_range):
-    m_id = output_model.id_string
+def _add_waters(model, new_wat_res):
+    rnum = model.residues.numbers.max(initial = 0) + 1
+    res = []
+    for r in new_wat_res:
+        rc = model.new_residue(r.name, r.chain_id, rnum)
+        for a in r.atoms:
+            ac = model.new_atom(a.name, a.element)
+            ac.coord = a.coord
+            ac.draw_mode = ac.STICK_STYLE
+            ac.color = (255,0,0,255)
+            rc.add_atom(ac)
+        res.append(rc)
+        rnum += 1
+    from chimerax.atomic import Residues
+    return Residues(res)
+
+# ---------------------------------------------------------------------------------------
+#
+def _show_waters(input_model, douse_model, residue_range, map, map_range):
+    m_id = douse_model.id_string
     commands = [f'hide #{m_id} atoms,ribbons',
                 f'show #{m_id}:HOH',
                 f'transparency #{map.id_string} 50',
@@ -200,7 +225,7 @@ def _show_waters(input_model, output_model, residue_range, map, map_range):
         commands.append(f'volume zone #{map.id_string} near #{m_id}:HOH range {map_range}')
     cmd = ' ; '.join(commands)
     from chimerax.core.commands import run
-    run(output_model.session, cmd, log = False)
+    run(douse_model.session, cmd, log = False)
 
 # ---------------------------------------------------------------------------------------
 #
@@ -212,6 +237,7 @@ def register_phenix_douse_command(logger):
         required = [('map', MapArg)],
         keyword = [('near_model', AtomicStructureArg),
                    ('keep_input_water', BoolArg),
+                   ('far_water', BoolArg),
                    ('phenix_location', OpenFolderNameArg),
                    ('residue_range', FloatArg),
                    ('map_range', FloatArg),
