@@ -1659,6 +1659,13 @@ class StructureData:
         return f(self._c_pointer, chain_id.encode('utf-8'), pos, insert.encode('utf-8'))
 
     @property
+    def frag_sel(self):
+        # special purpose function for the "connected fragment" selection level;
+        # returns a mask of connected fragment atoms involving currently selected atoms
+        f = c_function('structure_frag_sel', args = (ctypes.c_void_p,), ret = ctypes.py_object)
+        return f(self._c_pointer)
+
+    @property
     def molecules(self):
         '''Return a tuple of :class:`.Atoms` objects each containing atoms for one molecule.
            Missing-structure pseudobonds are consider to connect parts of a molecule.
