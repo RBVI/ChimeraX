@@ -14,6 +14,7 @@
  */
 
 #include <algorithm>
+#include <cctype>  // for islower
 #include <set>
 #include <sstream>
 #include <utility>  // for pair
@@ -68,6 +69,14 @@ Residue::Residue(Structure *as, const ResName& name, const ChainID& chain, int n
     _ribbon_rgba({160,160,0,255}), _ss_id(-1), _ss_type(SS_COIL), _structure(as),
     _ring_display(false), _rings_are_thin(false)
 {
+    if (!as->lower_case_chains) {
+        for (auto c: _chain_id) {
+            if (std::islower(c)) {
+                as->lower_case_chains = true;
+                break;
+            }
+        }
+    }
     change_tracker()->add_created(_structure, this);
 }
 
@@ -460,6 +469,14 @@ Residue::set_chain_id(ChainID chain_id)
         if (_chain != nullptr)
             throw std::logic_error("Cannot set polymeric chain ID directly from Residue; must use Chain");
         _chain_id = chain_id;
+        if (!structure()->lower_case_chains) {
+            for (auto c: chain_id) {
+                if (std::islower(c)) {
+                    structure()->lower_case_chains = true;
+                    break;
+                }
+            }
+        }
         change_tracker()->add_modified(_structure, this, ChangeTracker::REASON_CHAIN_ID);
     }
 }
