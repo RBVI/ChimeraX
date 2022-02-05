@@ -4431,6 +4431,16 @@ extern "C" EXPORT void structure_change_tracker(void *mols, size_t n, pyobject_t
     }
 }
 
+extern "C" EXPORT void set_structure_res_numbering_valid(void *mol, int res_numbering, bool valid)
+{
+    Structure *m = static_cast<Structure *>(mol);
+    try {
+        m->set_res_numbering_valid(static_cast<atomstruct::ResNumbering>(res_numbering), valid);
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" EXPORT void structure_ribbon_tether_scale(void *mols, size_t n, float32_t *ribbon_tether_scale)
 {
     Structure **m = static_cast<Structure **>(mols);

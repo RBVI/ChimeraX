@@ -23,7 +23,7 @@
 
   <Dependencies>
     <Dependency name="ChimeraX-Core" version="~=1.0"/>
-    <Dependency name="ChimeraX-AtomicLibrary" build="true" version="~=5.0"/>
+    <Dependency name="ChimeraX-AtomicLibrary" build="true" version="~=6.0"/>
     <Dependency name="ChimeraX-AtomSearchLibrary" build="true" version="~=1.0"/>
   </Dependencies>
 

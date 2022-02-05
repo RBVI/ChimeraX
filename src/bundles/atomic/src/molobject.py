@@ -1920,6 +1920,12 @@ class StructureData:
                     args = (ctypes.c_void_p, ctypes.c_void_p))
         return f(self._c_pointer, pointer(rgba))
 
+    def set_res_numbering_valid(self, res_numbering, valid=True):
+        '''Indicate whether a particular residue-numbering scheme (author, UniProt) is valid for this structure'''
+        f = c_function('set_structure_res_numbering_valid',
+                    args = (ctypes.c_void_p, ctypes.c_int, ctypes.c_bool))
+        f(self._c_pointer, res_numbering, valid)
+
     def use_default_atom_radii(self):
         '''If some atoms' radii has previously been explicitly set, this call will
         revert to using the default radii'''

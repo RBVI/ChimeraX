@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-AtomicLibrary" version="5.0.1"
+<BundleInfo name="ChimeraX-AtomicLibrary" version="6.0"
             package="chimerax.atomic_lib"
             purePython="false"
             installedDataDir="data"
@@ -120,6 +120,7 @@
     <ExtraFile source="atomic_cpp/atomstruct_cpp/backbone.h">include/atomstruct/backbone.h</ExtraFile>
     <ExtraFile source="atomic_cpp/atomstruct_cpp/destruct.h">include/atomstruct/destruct.h</ExtraFile>
     <ExtraFile source="atomic_cpp/atomstruct_cpp/polymer.h">include/atomstruct/polymer.h</ExtraFile>
+    <ExtraFile source="atomic_cpp/atomstruct_cpp/res_numbering.h">include/atomstruct/res_numbering.h</ExtraFile>
     <ExtraFile source="atomic_cpp/atomstruct_cpp/seq_assoc.h">include/atomstruct/seq_assoc.h</ExtraFile>
     <ExtraFile source="atomic_cpp/atomstruct_cpp/session.h">include/atomstruct/session.h</ExtraFile>
     <ExtraFile source="atomic_cpp/atomstruct_cpp/string_types.h">include/atomstruct/string_types.h</ExtraFile>
