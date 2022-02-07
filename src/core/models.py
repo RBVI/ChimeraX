@@ -417,7 +417,7 @@ class Model(State, Drawing):
         if not html_title:
             return
         if getattr(self, 'prefix_html_title', True):
-            fmt = '<i>%s</i> title:<br><b>%%s</b>' % self.name
+            fmt = '<i>%s</i> title:<br><b>%%s</b>' % self.name.replace('%', '%%')
         else:
             fmt = '<b>%s</b>'
         if self.has_formatted_metadata(session):
