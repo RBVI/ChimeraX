@@ -157,7 +157,8 @@ class CxServicesJob(Job):
         process is done
         """
         try:
-            result = self.chimerax_api.get_status(self.job_id)
+            # Not sure why, but we have to specify job_id by name here
+            result = self.chimerax_api.get_status(job_id = self.job_id)
             status = result.status
             next_poll = result.next_poll
         except ApiException as e:
