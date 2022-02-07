@@ -103,7 +103,7 @@ class Task(State):
     SESSION_ENDURING = False
     SESSION_SAVE = False
 
-    def __init__(self, session, id=None, **kw):
+    def __init__(self, session, id=None):
         """Initialize a Task.
 
         Parameters
@@ -273,8 +273,8 @@ class Job(Task):
     to 'Job' instances, not :py:meth:`run`.
 
     """
-    def __init__(self, *args, **kw):
-        super().__init__(*args, **kw)
+    def __init__(self, session):
+        super().__init__(session)
 
     @abc.abstractmethod
     def running(self):
