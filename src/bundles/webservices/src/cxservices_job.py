@@ -18,10 +18,13 @@ CxServicesJob - Run ChimeraX REST job and monitor status
 CxServicesJob is a class that runs a web service via
 the ChimeraX REST server and monitors its status.
 """
+import json
 import time
 from datetime import datetime, timedelta
-from typing import Dict, Optional, Union
+from typing import Any, Dict, List, Optional, Union
+
 from chimerax.core.tasks import Job, JobError, JobLaunchError, JobMonitorError
+
 from cxservices.rest import ApiException
 from cxservices.api import default_api
 
@@ -64,12 +67,9 @@ class CxServicesJob(Job):
         # Initialize ChimeraX REST request state
         self.reset_state()
 
-    def start(self, *args, input_file_map=None, **kw) -> None:
+    def start(self, *args, **kw) -> None:
         # override Job.start so that we can process the input_file_map
         # before start returns, since the files may be temporary
-        if input_file_map is not None:
-            for name, value_type, value in input_file_map:
-                self.post_file(name, value_type, value)
         super().start(*args, **kw)
 
     @property
@@ -80,15 +80,16 @@ class CxServicesJob(Job):
     def status(self, value) -> None:
         self._status = value
 
-    def run(self, service_name, params) -> None:
+    def run(self, service_name: str
+            , params: Dict[str, Any] = None
+            , files_to_upload: Optional[List[str]] = None) -> None:
         """Launch the background process.
 
         Arguments
         ---------
-        service_name : str
-            Name of REST service
-        params : dictionary
-            Dictionary of parameters to send to REST server
+        service_name: Name of REST service
+        params: Dictionary of parameters to send to REST server
+        files_to_upload: Dictionary of files to upload to REST server
 
         Raises
         ------
@@ -100,13 +101,26 @@ class CxServicesJob(Job):
             If status check failed
 
         """
+        # We have to do this so that urrllib3, which swagger's generated
+        # API calls, can serialize the params dict.
+        def _notify2(logger=self.session.logger, job_id=self.job_id):
+            logger.info("About to call API")
+        processed_params = json.dumps(params)
+        processed_files_to_upload = None
+        if files_to_upload is not None:
+            processed_files_to_upload = {"job_files": files_to_upload}
         if self.launch_time is not None:
             raise JobError("REST job has already been launched")
         self.launch_time = time.time()
 
         # Launch job
+        self.session.ui.thread_safe(_notify2)
         try:
-            result = self.chimerax_api.submit_job(body=params, job_type=service_name)
+            result = self.chimerax_api.submit_job(
+                job_type = service_name
+                , params = processed_params
+                , filepaths = processed_files_to_upload
+            )
         except ApiException as e:
             raise JobLaunchError(str(e))
         else:
