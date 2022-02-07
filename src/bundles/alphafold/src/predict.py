@@ -184,9 +184,9 @@ class AlphaFoldRun(ToolInstance):
             import zipfile
             with zipfile.ZipFile(path, 'r') as z:
                 z.extractall(self._download_directory)
-        self._open_prediction()
         self.session.logger.info('AlphaFold prediction finished\n' +
                                  'Results in %s' % self._download_directory)
+        self._open_prediction()
         self._download_directory = None  # Make next run go in a new directory
 
 # ------------------------------------------------------------------------------
