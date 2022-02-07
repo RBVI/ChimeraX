@@ -27,14 +27,18 @@ from .utils import BlastParams, make_instance_name
 
 class BlastProteinJob(CxServicesJob):
     inet_error = "Could not start BLAST job. Please check your internet connection and try again."
+    service_name = "blast"
 
     def __init__(self, session, seq, atomspec, **kw):
         super().__init__(session)
+
         if 'tool_inst_name' not in kw:
             kw['tool_inst_name'] = make_instance_name()
         if kw['tool_inst_name'] is None:
             kw['tool_inst_name'] = make_instance_name()
+
         self.setup(seq, atomspec, **kw)
+
         self.params = {
             "db": self.database,
             "evalue": str(self.cutoff),
@@ -43,8 +47,9 @@ class BlastProteinJob(CxServicesJob):
             "input_seq": self.seq,
             "version": self.version
         }
+
         try:
-            self.start("blast", self.params)
+            self.start(self.service_name, self.params)
         except MaxRetryError:
             session.logger.warning(self.inet_error)
 
