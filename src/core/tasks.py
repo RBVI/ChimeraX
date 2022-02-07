@@ -117,7 +117,8 @@ class Task(State):
         self._thread = None
         self._terminate = None
         self.state = PENDING
-        session.tasks.add(self)
+        if session:
+            session.tasks.add(self)
 
     @property
     def session(self):
