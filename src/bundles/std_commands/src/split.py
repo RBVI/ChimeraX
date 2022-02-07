@@ -189,7 +189,6 @@ def molecule_from_atoms(m, atoms, name = None):
 #        cm.mmCIFHeaders = m.mmCIFHeaders
 
     rmap = {}
-    have_lowercase_cid = False
     rlist = atom_residues(atoms)
     rorder = dict((r,i) for i,r in enumerate(m.residues))
     rlist.sort(key = lambda r: rorder[r])
@@ -203,12 +202,7 @@ def molecule_from_atoms(m, atoms, name = None):
 #        cr.ribbonDrawMode = r.ribbonDrawMode
         cr.ribbon_display = r.ribbon_display
         rmap[r] = cr
-        if [char for char in cid if char.islower()]:
-            have_lowercase_cid = True
 
-    # Convert lowercase chain id atom specs to uppercase only if no lowercase exist
-    cm.lower_case_chains = have_lowercase_cid
-    
     amap = {}
     for a in atoms:
         ca = cm.new_atom(a.name, a.element.name)

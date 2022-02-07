@@ -1421,14 +1421,6 @@ ExtractMolecule::parse_atom_site()
                 cid = auth_chain_id;
             else
                 cid = chain_id;
-            if (!mol->lower_case_chains) {
-                for (const char *cp = cid.c_str(); *cp != '\0'; ++cp) {
-                    if (islower(*cp)) {
-                        mol->lower_case_chains = true;
-                        break;
-                    }
-                }
-            }
             bool make_new_residue = true;
             if (coordsets) {
                 auto& res_map = all_residues[first_model_num][chain_id];

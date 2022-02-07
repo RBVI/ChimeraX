@@ -1,5 +1,5 @@
 diff --git a/prereqs/PyQt/Makefile b/prereqs/PyQt/Makefile
-index 183b38a01..7b8981d50 100644
+index 183b38a01..d0f2350ca 100644
 --- a/prereqs/PyQt/Makefile
 +++ b/prereqs/PyQt/Makefile
 @@ -12,11 +12,12 @@ endif
@@ -7,10 +7,11 @@ index 183b38a01..7b8981d50 100644
  PYQT_LICENSE = gpl
  
 -VERSION = 5.15
-+VERSION = 6.2
- PYQT_MINOR_VERSION = 2
+-PYQT_MINOR_VERSION = 2
 -QT_MINOR_VERSION = 2
++VERSION = 6.2
 +QT_MINOR_VERSION = 3
++PYQT_MINOR_VERSION = 3
 +PYQTWE_MINOR_VERSION = 1
  
 -MAKE_ARGS = -f Makefile.$(METHOD) VERSION=$(VERSION) PYQT_MINOR_VERSION=$(PYQT_MINOR_VERSION) QT_MINOR_VERSION=$(QT_MINOR_VERSION) PYQT_LICENSE=$(PYQT_LICENSE)
@@ -19,7 +20,7 @@ index 183b38a01..7b8981d50 100644
  all:
  
 diff --git a/prereqs/PyQt/Makefile.fromsrc b/prereqs/PyQt/Makefile.fromsrc
-index b6dcb96cf..92919d061 100644
+index b6dcb96cf..db5a82884 100644
 --- a/prereqs/PyQt/Makefile.fromsrc
 +++ b/prereqs/PyQt/Makefile.fromsrc
 @@ -9,12 +9,12 @@ SUBDIRS = qt sip
@@ -35,7 +36,7 @@ index b6dcb96cf..92919d061 100644
 -PYQT_MINOR_VERSION = 1
 +VERSION = 6.2
 +QT_MINOR_VERSION = 3
-+PYQT_MINOR_VERSION = 2
++PYQT_MINOR_VERSION = 3
  PYQTWE_MINOR_VERSION = 1
  QT_VERSION = $(VERSION).$(QT_MINOR_VERSION)
  ifeq (,$(PYQT_MINOR_VERSION))
@@ -60,7 +61,7 @@ index b6dcb96cf..92919d061 100644
  
  distribution: $(PYQT_DISTRIBUTION) $(PYQTWE_DISTRIBUTION)
 diff --git a/prereqs/PyQt/Makefile.wheel b/prereqs/PyQt/Makefile.wheel
-index 144bedbba..a72820c63 100644
+index 144bedbba..b129fa7de 100644
 --- a/prereqs/PyQt/Makefile.wheel
 +++ b/prereqs/PyQt/Makefile.wheel
 @@ -5,6 +5,8 @@ include ../pips/Makefile.pip
@@ -82,10 +83,11 @@ index 144bedbba..a72820c63 100644
  # VERSION is overriden by Makefile
 -VERSION = 5.15
 -QT_MINOR_VERSION = 2
+-PYQT_MINOR_VERSION = 2
+-PYQTWE_MINOR_VERSION = 2
 +VERSION = 6.2
 +QT_MINOR_VERSION = 3
- PYQT_MINOR_VERSION = 2
--PYQTWE_MINOR_VERSION = 2
++PYQT_MINOR_VERSION = 3
 +PYQTWE_MINOR_VERSION = 1
  QT_VERSION = $(VERSION).$(QT_MINOR_VERSION)
  ifeq (,$(PYQT_MINOR_VERSION))
@@ -96,7 +98,7 @@ index 144bedbba..a72820c63 100644
  # unlicensed wheels where built and presumably matches the gpl wheel in PyPI.
 -SIP_VERSION = 12.8.1
 -BUILDER_VERSION = 1.5.0
-+SIP_VERSION = 13.2.1
++SIP_VERSION = 13.2.0
 +BUILDER_VERSION = 1.12.2
  
 -QT_WHEEL = PyQt5_$(PYQT_LICENSE)-$(PYQT_VERSION)-$(BUILD_TAGS).whl

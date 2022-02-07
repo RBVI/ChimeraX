@@ -211,5 +211,9 @@ def probably_chimera1_session(evalue):
         return True
     return False
 
-chimera1_session_message = """ChimeraX cannot open a regular Chimera session.
-An exporter from Chimera to ChimeraX is being worked on but is not ready at this time."""
+chimera1_session_message = """\
+ChimeraX cannot open a regular Chimera session.  An exporter from Chimera
+to ChimeraX is being worked on but only handles molecules and molecular surfaces
+(not volumes) at this time.  If that is sufficient, use the latest Chimera
+daily build and its File->Export Scene menu item, and change the resulting
+dialog's "File Type" to ChimeraX."""

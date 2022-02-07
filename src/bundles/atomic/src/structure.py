@@ -791,7 +791,7 @@ class Structure(Model, StructureData):
 
         if nb > 0 and not bonds[bsel].ends_selected.all():
             # Promote to include selected bond atoms
-            level = 1005
+            level = 1006
             psel = asel | atoms.has_selected_bonds
         else:
             r = atoms.residues
@@ -801,7 +801,7 @@ class Structure(Model, StructureData):
             ares = in1d(rids, sel_rids)
             if ares.sum() > na:
                 # Promote to entire residues
-                level = 1004
+                level = 1005
                 psel = ares
             else:
                 ssids = r.secondary_structure_ids
@@ -809,22 +809,27 @@ class Structure(Model, StructureData):
                 ass = in1d(ssids, sel_ssids)
                 if ass.sum() > na:
                     # Promote to secondary structure
-                    level = 1003
+                    level = 1004
                     psel = ass
                 else:
-                    from numpy import array
-                    cids = array(r.chain_ids)
-                    sel_cids = unique(cids[asel])
-                    ac = in1d(cids, sel_cids)
-                    if ac.sum() > na:
-                        # Promote to entire chains
-                        level = 1002
-                        psel = ac
+                    frag_sel = self.frag_sel
+                    if frag_sel.sum() > na:
+                        level = 1003
+                        psel = frag_sel
                     else:
-                        # Promote to entire molecule
-                        level = 1001
-                        ac[:] = True
-                        psel = ac
+                        from numpy import array
+                        cids = array(r.chain_ids)
+                        sel_cids = unique(cids[asel])
+                        ac = in1d(cids, sel_cids)
+                        if ac.sum() > na:
+                            # Promote to entire chains
+                            level = 1002
+                            psel = ac
+                        else:
+                            # Promote to entire molecule
+                            level = 1001
+                            ac[:] = True
+                            psel = ac
 
         return PromoteAtomSelection(self, level, psel, asel, bsel)
 

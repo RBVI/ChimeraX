@@ -373,10 +373,10 @@ void Structure::_copy(Structure* s, PositionMatrix coord_adjust,
                 cid = r->chain_id();
             else
                 cid = cid_i->second;
-            if (s->lower_case_chains) {
+            if (!s->lower_case_chains) {
                 for (auto c: cid) {
-                    if (isupper(c)) {
-                        s->lower_case_chains = false;
+                    if (islower(c)) {
+                        s->lower_case_chains = true;
                         break;
                     }
                 }

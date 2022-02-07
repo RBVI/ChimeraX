@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-mmCIF" version="2.6"
+<BundleInfo name="ChimeraX-mmCIF" version="2.6.1"
 	    package="chimerax.mmcif" purePython="false"
   	    minSessionVersion="1" maxSessionVersion="1">
 
