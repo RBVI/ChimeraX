@@ -35,7 +35,7 @@ def set_angle(a1, a2, a3, degrees, *, move_smaller=True, prev_axis=None, undo_st
     mv = normalize_vector(mv)
     fv = normalize_vector(fv)
     if distance_squared(mv, fv) < 0.0001 or distance_squared(mv, -fv) < 0.0001:
-        if axis is None:
+        if prev_axis is None:
             cross_axis = array([1.0, 0.0, 0.0], float32)
             # Use a different arbitrary axis if the vectors lie on the X axis
             if distance_squared(cross_axis, mv) < 0.0001 or distance_squared(cross_axis, -mv) < 0.0001:

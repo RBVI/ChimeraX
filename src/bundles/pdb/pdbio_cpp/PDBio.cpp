@@ -761,8 +761,6 @@ start_t = end_t;
             AtomName aname;
             ResName rname;
             auto cid = segid_chains ? ChainID(record.atom.seg_id) : ChainID({record.atom.res.chain_id});
-            if (islower(record.atom.res.chain_id))
-                as->lower_case_chains = true;
             if (islower(record.atom.res.i_code))
                 record.atom.res.i_code = toupper(record.atom.res.i_code);
             int seq_num = record.atom.res.seq_num;
