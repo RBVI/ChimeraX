@@ -165,7 +165,7 @@ class CxServicesJob(Job):
             raise JobMonitorError(str(e))
         self.status = status
         if next_poll is not None:
-            self.next_poll = self._poll_to_seconds(next_poll)
+            self.next_poll = self._poll_to_seconds(int(next_poll))
         if status in ["finished","failed","deleted","canceled"] and self.end_time is None:
             self.end_time = time.time()
 
