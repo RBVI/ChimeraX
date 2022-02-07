@@ -128,8 +128,6 @@ class CxServicesJob(Job):
             self.urls = {
                 "status": result.status_url,
                 "results": result.results_url,
-                "cancel": result.cancel_url,
-                "upload": result.upload_url
             }
             self.next_poll = self._poll_to_seconds(int(result.next_poll))
             def _notify(logger=self.session.logger, job_id=self.job_id):
