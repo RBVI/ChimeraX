@@ -205,11 +205,21 @@ def model(session, targets, *, block=True, multichain=True, custom_script=None,
             templates_strings[i] = [template_string]
 
     from .common import write_modeller_scripts, get_license_key
-    script_path, config_path, temp_dir = write_modeller_scripts(get_license_key(session, license_key),
+    _license_key = get_license_key(session, license_key)
+    script_path, config_path, temp_dir = write_modeller_scripts(_license_key,
                                                                 num_models, het_preserve, water_preserve,
                                                                 hydrogens, fast, None, custom_script, temp_path,
                                                                 thorough_opt, dist_restraints)
-
+    config_as_json = {
+            "key": _license_key
+            , "version": 2
+            , "numModels": num_models
+            , "hetAtom": het_preserve
+            , "water": water_preserve
+            , "allHydrogen": hydrogens
+            , "veryFast": fast
+            , "loopInfo": ("", [])
+    }
     input_file_map = []
 
     # form the sequences to be written out as a PIR
@@ -294,7 +304,7 @@ def model(session, targets, *, block=True, multichain=True, custom_script=None,
             session.logger.warning("Thorough optimization only supported when executing locally")
         from .common import ModellerWebService
         job_runner = ModellerWebService(session, match_chains, num_models,
-                                        pir_target.name, input_file_map, config_name, targets)
+                                        pir_target.name, input_file_map, config_as_json, temp_dir, targets)
     else:
         # a custom script [only used when executing locally] needs to be copied into the tmp dir...
         if(
