@@ -29,7 +29,8 @@ class="clRight" title="User Guide Index"/></a>
 Attribute assignment files are simple user- or program-generated text files
 that can be read using the 
 <a href="../commands/open.html#defattr"><b>open</b></a> command to
-create <a href="../attributes.html">attributes</a> and assign their values.
+create <a href="../attributes.html">attributes</a> and assign their values
+to atomic structures in ChimeraX.
 The format can be indicated with filename suffix <b>.defattr</b>
 or the <a href="../commands/open.html#defattr"><b>open</b></a> command
 option <b>format defattr</b>.
@@ -38,7 +39,22 @@ It is the same format as used by Chimera, although the
 within may differ. Existing attributes can be 
 <a href="../commands/save.html#attributes">saved</a> in this format.
 Several <a href="#examples">example files</a> are provided.
-</p><p>
+Example commands showing how such a file could be used:
+</p>
+<blockquote><b>
+<a href="../commands/open.html#fetch">open</a> 1pho
+<br>
+<a href="../commands/open.html#defattr">open</a>
+&nbsp;<a href="kdHydrophobicity.defattr">kdHydrophobicity.defattr</a>
+<br>
+<a href="../commands/color.html#byattribute">color byattribute</a> kdHydrophobicity palette ^RdYlBu
+<br>
+<a href="../commands/select.html#new">select</a> ::kdHydrophobicity>2.0
+</b></blockquote>
+
+<a name="format"></a>
+<h3>File Format</h3>
+<p>
 <a name="comment"></a>
 A hash symbol # at the beginning of a line indicates a <b><i>comment</i></b>.
 <a name="controlline"></a>
@@ -119,7 +135,7 @@ assign the corresponding attributes.
 Existing attributes can be <a href="../commands/save.html#attributes">saved</a>
 to this file format.
 <ul>
-<li><a href="percentExposed.txt">percentExposed.txt</a>
+<li><a href="percentExposed.defattr">percentExposed.defattr</a>
 creates a new residue attribute, <b>percentExposed</b>, and assigns
 values previously calculated by
 <a href="http://curie.utmb.edu/getarea.html"
@@ -127,7 +143,7 @@ target="_blank">Getarea</a> for the protein structure 121p
 (see <a href="getarea-121p.txt">raw results</a>).
 See also: <a href="../commands/measure.html#sasa"><b>measure sasa</b></a>
 <br><br>
-<li><a href="midasrad.txt">midasrad.txt</a>
+<li><a href="midasrad.defattr">midasrad.defattr</a>
 assigns atomic radii, <i>i.e.</i>, sets values for the existing
 <a href="../attributes.html#atom">atom attribute</a> <b>radius</b>.
 The first assignment line applies to all atoms.
@@ -137,29 +153,30 @@ will have the <a href="../radii.html">default radii</a>
 instead of those in the assignment file.
 See also: <a href="../commands/size.html"><b>size</b></a>
 <br><br>
-<li>Several files with different amino acid hydrophobicity scales are provided;
-see comments in files for literature citations and other details:
+<li>Several files of
+<a href="../hydrophobicity.html">amino acid hydrophobicity scales</a>
+are provided;
   <ul>
   <li>
-  <a href="kdHydrophobicity.txt">kdHydrophobicity.txt</a>
+  <a href="kdHydrophobicity.defattr">kdHydrophobicity.defattr</a>
 &ndash; Kyte-Doolittle
 (see also <a href="../preferences.html#startup">custom presets</a>)
   <li>
-  <a href="wwHydrophobicity.txt">wwHydrophobicity.txt</a>
+  <a href="wwHydrophobicity.defattr">wwHydrophobicity.defattr</a>
 &ndash; Wimley-White
   <li>
-  <a href="hhHydrophobicity.txt">hhHydrophobicity.txt</a>
+  <a href="hhHydrophobicity.defattr">hhHydrophobicity.defattr</a>
 &ndash; Hessa <i>et al.</i>
   <li>
-  <a href="mfHydrophobicity.txt">mfHydrophobicity.txt</a>
+  <a href="mfHydrophobicity.defattr">mfHydrophobicity.defattr</a>
 &ndash; Moon-Fleming
   <li>
-  <a href="ttHydrophobicity.txt">ttHydrophobicity.txt</a>
+  <a href="ttHydrophobicity.defattr">ttHydrophobicity.defattr</a>
 &ndash; transmembrane tendency (contributed by Shyam M. Saladi)
   </ul>
 </ul>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-November 2020</address>
+February 2022</address>
 </body></html>
