@@ -10,6 +10,7 @@
 # including partial copies, of the software or any revisions
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
+import os
 
 def model(session, targets, *, block=True, multichain=True, custom_script=None,
           dist_restraints=None, executable_location=None, fast=False, het_preserve=False,
@@ -258,7 +259,6 @@ def model(session, targets, *, block=True, multichain=True, custom_script=None,
             structures_to_save.add(chain.structure)
         pir_template.characters = '/'.join(strings)
         pir_seqs.append(pir_template)
-    import os.path
     pir_file = os.path.join(temp_dir.name, "alignment.ali")
     aln = session.alignments.new_alignment(pir_seqs, False, auto_associate=False, create_headers=False)
     aln.save(pir_file, format_name="pir")
@@ -276,7 +276,6 @@ def model(session, targets, *, block=True, multichain=True, custom_script=None,
     input_file_map.append((config_name, "text_file", config_path))
 
     # save structure files
-    import os
     struct_dir = os.path.join(temp_dir.name, "template_struc")
     if not os.path.exists(struct_dir):
         try:
