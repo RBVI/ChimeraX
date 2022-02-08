@@ -103,8 +103,6 @@ class CxServicesJob(Job):
         """
         # We have to do this so that urrllib3, which swagger's generated
         # API calls, can serialize the params dict.
-        def _notify2(logger=self.session.logger, job_id=self.job_id):
-            logger.info("About to call API")
         processed_params = json.dumps(params)
         processed_files_to_upload = None
         if files_to_upload is not None:
@@ -114,7 +112,6 @@ class CxServicesJob(Job):
         self.launch_time = time.time()
 
         # Launch job
-        self.session.ui.thread_safe(_notify2)
         try:
             result = self.chimerax_api.submit_job(
                 job_type = service_name
