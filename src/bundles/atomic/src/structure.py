@@ -558,6 +558,31 @@ class Structure(Model, StructureData):
             self._ring_drawing.add_shapes(rings)
             self._graphics_changed |= self._SHAPE_CHANGE
 
+    def _res_numbering(self, rn):
+        rn_lookup = { 'author': Residue.RN_AUTHOR, 'canonical': Residue.RN_CANONICAL,
+            'uniprot': Residue.RN_UNIPROT }
+        if isinstance(rn, int):
+            if not (0 <= rn < len(rn_lookup)):
+                raise ValueError("Residue numbering value must be between 0 and %d inclusive"
+                    % len(rn_lookup))
+        else:
+            try:
+                rn = rn_lookup[rn.lower()]
+            except KeyError:
+                from chimerax.core.commands import commas
+                raise ValueError("Residue numbering value must be %s"
+                    % commas([repr(k) for k in rn_lookup.values()]))
+        if rn == self.res_numbering:
+            return
+        if not self.res_numbering_valid(rn):
+            reverse_lookup = { Residue.RN_AUTHOR: "author", Residue.RN_CANONICAL: "canonical",
+                Residue.RN_UNIPROT: "UniProt" }
+            raise ValueError("%s residue numbering has not been assigned; maintaining %s numbering"
+                % (reverse_lookup[rn].capitalize(), reverse_lookup[self.res_numbering]))
+        StructureData.res_numbering.fset(self, rn)
+    res_numbering = property(StructureData.res_numbering.fget, _res_numbering)
+
+
     def fill_small_ring(self, atoms, offset, color):
         # 3-, 4-, and 5- membered rings
         from chimerax.geometry import fill_small_ring

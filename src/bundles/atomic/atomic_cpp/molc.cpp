@@ -4431,6 +4431,17 @@ extern "C" EXPORT void structure_change_tracker(void *mols, size_t n, pyobject_t
     }
 }
 
+extern "C" EXPORT bool structure_res_numbering_valid(void *mol, int res_numbering)
+{
+    Structure *m = static_cast<Structure *>(mol);
+    try {
+        return m->res_numbering_valid(static_cast<atomstruct::ResNumbering>(res_numbering));
+    } catch (...) {
+        molc_error();
+        return false;
+    }
+}
+
 extern "C" EXPORT void set_structure_res_numbering_valid(void *mol, int res_numbering, bool valid)
 {
     Structure *m = static_cast<Structure *>(mol);
@@ -4656,6 +4667,23 @@ extern "C" EXPORT void structure_ring_display_count(void *mols, size_t n, int32_
 {
     Structure **m = static_cast<Structure **>(mols);
     error_wrap_array_get(m, n, &Structure::ring_display_count, ring_display_count);
+}
+
+extern "C" EXPORT void structure_res_numbering(void *mols, size_t n, int32_t *res_numbering)
+{
+    Structure **m = static_cast<Structure **>(mols);
+    error_wrap_array_get(m, n, &Structure::res_numbering, res_numbering);
+}
+
+extern "C" EXPORT void set_structure_res_numbering(void *mols, size_t n, int32_t *res_numbering)
+{
+    Structure **m = static_cast<Structure **>(mols);
+    try {
+        for (size_t i = 0; i < n; ++i)
+            m[i]->set_res_numbering(static_cast<atomstruct::ResNumbering>(res_numbering[i]));
+    } catch (...) {
+        molc_error();
+    }
 }
 
 extern "C" EXPORT void structure_pbg_map(void *mols, size_t n, pyobject_t *pbgs)
