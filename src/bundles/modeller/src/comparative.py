@@ -218,7 +218,7 @@ def model(session, targets, *, block=True, multichain=True, custom_script=None,
             , "water": water_preserve
             , "allHydrogen": hydrogens
             , "veryFast": fast
-            , "loopInfo": ("", [])
+            , "loopInfo": None
     }
     input_file_map = []
 
