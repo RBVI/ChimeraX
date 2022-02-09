@@ -57,8 +57,24 @@ def combine_cmd(session, structures, *, close=False, model_id=None, name=None):
         combination.combine(s, chain_id_mapping, structures[0].scene_position)
     combination.position = structures[0].scene_position
     if close:
-        session.models.close(structures)
-        pass
+        # also close empty parent models
+        closures = set(structures)
+        parents = set([m.parent for m in closures if m.parent is not None])
+        while True:
+            new_parents = set()
+            for parent in parents:
+                children = set(parent.child_models())
+                if children <= closures:
+                    if parent.parent is not None: # don't try to close root model!
+                        new_parents.add(parent.parent)
+                        closures -= children
+                        closures.add(parent)
+            if new_parents:
+                parents = new_parents
+                new_parents.clear()
+            else:
+                break
+        session.models.close(list(closures))
     if model_id is not None:
         combination.id = model_id
     session.models.add([combination])
