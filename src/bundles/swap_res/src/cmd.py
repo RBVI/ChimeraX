@@ -89,7 +89,6 @@ class _RotamerStateManager(StateManager):
     def _changes_cb(self, trigger_name, changes):
         if changes.num_deleted_residues() == 0:
             return
-        remaining = [rot for rot in self.rotamers if not rot.deleted]
         if self.base_residue.deleted:
             self.triggers.activate_trigger('self destroyed', self)
             self.destroy()
