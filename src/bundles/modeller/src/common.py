@@ -495,7 +495,7 @@ class ModellerCxServicesJob(CxServicesJob):
         for entry in input_file_map:
             # Take the full path to the file, except ModellerScriptConfig.xml
             if os.path.basename(entry[2]) == "ModellerScriptConfig.xml":
-                pass
+                continue
             self.processed_input_file_map.append(entry[2])
         self.start(self.service_name, self.params, self.processed_input_file_map)
 
