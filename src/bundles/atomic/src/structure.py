@@ -558,6 +558,47 @@ class Structure(Model, StructureData):
             self._ring_drawing.add_shapes(rings)
             self._graphics_changed |= self._SHAPE_CHANGE
 
+    def _res_numbering(self, rn):
+        rn_lookup = { 'author': Residue.RN_AUTHOR, 'canonical': Residue.RN_CANONICAL,
+            'uniprot': Residue.RN_UNIPROT }
+        if isinstance(rn, int):
+            if not (0 <= rn < len(rn_lookup)):
+                raise ValueError("Residue numbering value must be between 0 and %d inclusive"
+                    % len(rn_lookup))
+        else:
+            try:
+                rn = rn_lookup[rn.lower()]
+            except KeyError:
+                from chimerax.core.commands import commas
+                raise ValueError("Residue numbering value must be %s"
+                    % commas([repr(k) for k in rn_lookup.values()]))
+        if rn == self.res_numbering:
+            return
+        if not self.res_numbering_valid(rn) and rn == Residue.RN_UNIPROT:
+            # see if we can set it
+            u_info = uniprot_ids(self)
+            if u_info:
+                self.res_numbering = Residue.RN_AUTHOR
+                by_chain = { u.chain_id:(u.chain_sequence_range,u.database_sequence_range) for u in u_info }
+                for chain in self.chains:
+                    try:
+                        struct_range, db_range = by_chain[chain.chain_id]
+                    except KeyError:
+                        continue
+                    offset = db_range[0] - struct_range[0]
+                    # can't use self.renumber_residues() because of possible missing structure
+                    for r in chain.existing_residues:
+                        r.set_number(rn, r.number + offset)
+                self.set_res_numbering_valid(rn, True)
+        if not self.res_numbering_valid(rn):
+            reverse_lookup = { Residue.RN_AUTHOR: "author", Residue.RN_CANONICAL: "canonical",
+                Residue.RN_UNIPROT: "UniProt" }
+            raise ValueError("%s residue numbering has not been assigned; maintaining %s numbering"
+                % (reverse_lookup[rn].capitalize(), reverse_lookup[self.res_numbering]))
+        StructureData.res_numbering.fset(self, rn)
+    res_numbering = property(StructureData.res_numbering.fget, _res_numbering)
+
+
     def fill_small_ring(self, atoms, offset, color):
         # 3-, 4-, and 5- membered rings
         from chimerax.geometry import fill_small_ring

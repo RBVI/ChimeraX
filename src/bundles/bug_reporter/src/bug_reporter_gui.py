@@ -740,7 +740,7 @@ Manufacturer: {vendor}
 Model: {product}
 OS: {' '.join(distro.linux_distribution())}
 Architecture: {' '.join(platform.architecture())}
-Virutal Machine: {virtual_machine}
+Virtual Machine: {virtual_machine}
 CPU: {count} {model_name}
 Cache Size: {cache_size}
 Memory:

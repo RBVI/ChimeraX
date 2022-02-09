@@ -2166,6 +2166,21 @@ Structure::set_position_matrix(double* pos)
 }
 
 void
+Structure::set_res_numbering(ResNumbering rn)
+{
+    if (rn == _res_numbering)
+        return;
+    _res_numbering = rn;
+    for (auto r: residues()) {
+        auto new_number = r->_numberings[rn];
+        if (new_number != r->number()) {
+            r->_number = new_number;
+            change_tracker()->add_modified(this, r, ChangeTracker::REASON_NUMBER);
+        }
+    }
+}
+
+void
 Structure::use_best_alt_locs()
 {
     std::map<Residue *, char> alt_loc_map = best_alt_locs();
