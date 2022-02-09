@@ -535,65 +535,6 @@ class ModellerCxServicesJob(CxServicesJob):
         self.caller.process_ok_models(model_info, get_pdb_model)
         self.caller = None
 
-class ModellerWebJob(OpalJob):
-
-    OPAL_SERVICE = "Modeller9v8Service"
-    SESSION_SAVE = True
-
-    def __init__(self, session, caller, command, input_file_map, block):
-        super().__init__(session)
-        self.caller = caller
-        self.start(self.OPAL_SERVICE, command, input_file_map=input_file_map, blocking=block)
-
-    def monitor(self):
-        super().monitor()
-        stdout = self.get_file("stdout.txt")
-        num_done = stdout.count('# Heavy relative violation of each residue is written to:')
-        num_done = max(stdout.count('>> Normalized DOPE z score') - 1, 0)
-        status = self.session.logger.status
-        tsafe = self.session.ui.thread_safe
-        if not num_done:
-            tsafe(status, "No models generated yet")
-        else:
-            tsafe(status, "%d of %d models generated" % (num_done, self.caller.num_models))
-
-    def next_check(self):
-        return 15
-
-    def on_finish(self):
-        logger = self.session.logger
-        logger.info("Modeller job ID %s finished" % self.job_id)
-        if not self.exited_normally():
-            err = self.get_file("stderr.txt")
-            if err:
-                raise RuntimeError("Modeller failure; standard error:\n" + err)
-            else:
-                raise RuntimeError("Modeller failure with no error output")
-        try:
-            model_info = self.get_file("ok_models.dat")
-        except KeyError:
-            try:
-                stdout = self.get_file("stdout.txt")
-                stderr = self.get_file("stderr.txt")
-            except KeyError:
-                raise RuntimeError("No output from Modeller")
-            logger.info("<br><b>Modeller error output</b>", is_html=True)
-            logger.info(stderr)
-            logger.info("<br><b>Modeller run output</b>", is_html=True)
-            logger.info(stdout)
-            from chimerax.core.errors import NonChimeraError
-            raise NonChimeraError("No output models from Modeller; see log for Modeller text output.")
-        def get_pdb_model(fname):
-            from io import StringIO
-            try:
-                pdb_text = self.get_file(fname)
-            except KeyError:
-                raise RuntimeError("Could not find Modeller out PDB %s on server" % fname)
-            from chimerax.pdb import open_pdb
-            return open_pdb(self.session, StringIO(pdb_text), fname)[0][0]
-        self.caller.process_ok_models(model_info, get_pdb_model)
-        self.caller = None
-
 class ModellerLocal(RunModeller):
 
     def __init__(self, session, match_chains, num_models, target_seq_name, executable_location,
