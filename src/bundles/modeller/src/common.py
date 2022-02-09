@@ -12,6 +12,8 @@
 # === UCSF ChimeraX Copyright ===
 import os
 
+from xml.dom.minidom import parse
+
 from chimerax.core.tasks import Job
 from chimerax.core.session import State
 from chimerax.webservices.cxservices_job import CxServicesJob
@@ -336,6 +338,35 @@ def _process_dist_restraints(filename):
     # concatenate and return output code:
     return headcode + maincode
 
+class ModellerXMLConfig:
+    def __init__(self, xmlFilename):
+        self.__doc = parse(xmlFilename)
+
+    def __getitem__(self, key):
+        el = self.__doc.getElementsByTagName(key)
+        values = []
+        if len(el) == 0:
+            # make it downgrade compatiable
+            if key == "loopRefin":
+                return "0"
+            else:
+                raise KeyError(key)
+            values = [ self.extractText(e) for e in el ]
+        if len(values) == 1:
+            return values[0]
+        else:
+            return values
+
+    def extractText(self, node):
+        from xml.dom.minidom import Node
+        textTypes = (Node.TEXT_NODE, Node.CDATA_SECTION_NODE)
+        text = []
+        for n in node.childNodes:
+            if n.nodeType in textTypes:
+                text.append(n.data)
+            else:
+                text.append(self.extractText(n))
+        return ''.join(text)
 
 class RunModeller(State):
 
@@ -469,12 +500,24 @@ class ModellerWebService(RunModeller):
 
     @staticmethod
     def restore_snapshot(session, data):
-        # TODO: Test old session, see if we need an
-        # if data.get('version', 1) == 2
-        # section
-
-        inst = ModellerWebService(session, None, None, None, data['input_file_map'], data['config_name'], None,
-                                  None)
+        version = data.get('version', 1)
+        if version == 1:
+            # Load the data from the version 1 XML file into the new format
+            config_name = data['config_name']
+            config = ModellerXMLConfig(config_name)
+            params = {
+                "key": config["key"]
+                , "version": config["version"]
+                , "numModels": config["numModel"]
+                , "hetAtom": bool(config["hetAtom"])
+                , "water": bool(config["water"])
+                , "allHydrogen": bool(config["allHydrogen"])
+                , "veryFast": bool(config["veryFast"])
+                , "loopInfo": eval(config["loopInfo"])
+            }
+            data['params'] = params
+        inst = ModellerWebService(session, None, None, None, data['input_file_map']
+                                  , data['params'], None, None)
         inst.set_state_from_snapshot(data['base data'])
 
 class ModellerWebJob(CxServicesJob):
