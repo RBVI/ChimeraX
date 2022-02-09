@@ -574,6 +574,22 @@ class Structure(Model, StructureData):
                     % commas([repr(k) for k in rn_lookup.values()]))
         if rn == self.res_numbering:
             return
+        if not self.res_numbering_valid(rn) and rn == Residue.RN_UNIPROT:
+            # see if we can set it
+            u_info = uniprot_ids(self)
+            if u_info:
+                self.res_numbering = Residue.RN_AUTHOR
+                by_chain = { u.chain_id:(u.chain_sequence_range,u.database_sequence_range) for u in u_info }
+                for chain in self.chains:
+                    try:
+                        struct_range, db_range = by_chain[chain.chain_id]
+                    except KeyError:
+                        continue
+                    offset = db_range[0] - struct_range[0]
+                    # can't use self.renumber_residues() because of possible missing structure
+                    for r in chain.existing_residues:
+                        r.set_number(rn, r.number + offset)
+                self.set_res_numbering_valid(rn, True)
         if not self.res_numbering_valid(rn):
             reverse_lookup = { Residue.RN_AUTHOR: "author", Residue.RN_CANONICAL: "canonical",
                 Residue.RN_UNIPROT: "UniProt" }
