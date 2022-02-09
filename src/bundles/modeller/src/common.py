@@ -456,7 +456,6 @@ class ModellerWebService(RunModeller):
         self.job = None
 
     def run(self, *, block=False):
-
         self.job = ModellerCxServicesJob(self.session, self, self.params, self.input_file_map, self.temp_dir, block)
 
     def take_snapshot(self, session, flags):
