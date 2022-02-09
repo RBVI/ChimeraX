@@ -179,6 +179,12 @@ class CxServicesJob(Job):
         else:
             return content
 
+    def thread_safe_log(self, message):
+        if self.session:
+            status = self.session.logger.status
+            tsafe = self.session.ui.thread_safe
+            tsafe(status, message)
+
     #
     # Other helper methods
     #
