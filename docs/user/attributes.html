@@ -86,6 +86,7 @@ Additional attributes can be created (<a href="#top">more...</a>).
 <tr><td colspan="2" align="center" style="background-color:#eaeaea">
 <a href="#attrnames" class="nounder">&larr;</a>
 <b>Selected Atom Attributes</b> (see also 
+<a href="commands/info.html#atoms"><b>info atoms</b></a>,
 <a href="commands/info.html#atomattr"><b>info atomattr</b></a>)</td></tr>
 <tr>
 <td align=center><b>alt_loc=</b><i>ID</i></td>
@@ -160,6 +161,7 @@ of the atom in &Aring;</td>
 <tr><td colspan="2" align="center" style="background-color:#eaeaea">
 <a href="#attrnames" class="nounder">&larr;</a>
 <b>Selected Residue Attributes</b> (see also
+<a href="commands/info.html#residues"><b>info residues</b></a>,
 <a href="commands/info.html#resattr"><b>info resattr</b></a>)</td></tr>
 <tr>
 <td align=center><b>area=</b><i>sasa</i></td>
@@ -275,7 +277,9 @@ and reported in the <a href="tools/log.html"><b>Log</b></a></td>
 <table border width="95%" cellpadding="4" cellspacing="0">
 <tr><td colspan="2" align="center" style="background-color:#eaeaea">
 <a href="#attrnames" class="nounder">&larr;</a>
-<b>Selected Chain Attributes</b></td>
+<b>Selected Chain Attributes</b> (see also 
+<a href="commands/info.html#chains"><b>info chains</b></a>,
+<a href="modelinfo.html">model information</a>)</td></tr>
 </tr><tr>
 <td width="150px" align=center><b>chain_id=</b><i>ID</i></td>
 <td class="text"><i>ID</i> is the chain identifier of the polymer
@@ -304,7 +308,9 @@ if available, otherwise from the atomic coordinates. See also
 <table border width="95%" cellpadding="4" cellspacing="0">
 <tr><td colspan="2" align="center" style="background-color:#eaeaea">
 <a href="#attrnames" class="nounder">&larr;</a>
-<b>Selected Atomic-Model Attributes</b></td></tr>
+<b>Selected Atomic-Model Attributes</b> (see also 
+<a href="commands/info.html#models"><b>info models</b></a>,
+<a href="modelinfo.html">model information</a>)</td></tr>
 <tr>
 <td align=center><b>autochain</b></td>
 <td class="text">whether &ldquo;chain trace&rdquo; 
@@ -332,10 +338,18 @@ see <a href="hierarchy.html">display hierarchy</a></td>
 </tr><tr>
 <td align=center><b>num_residues=</b><i>M</i></td>
 <td class="text"><i>M</i> is the total number of residues in the model</td>
+</tr><tr>
+<td align=center class="text"><b>res_numbering=</b><i>scheme</i></td>
+<td class="text">
+<i>scheme</i> can be <b>author</b> (initial default), 
+<b>canonical</b>, or <b>uniprot</b>;
+available for biopolymer structures with the relevant metadata, typically
+from the <a href="https://www.wwpdb.org" target="_blank">wwPDB</a>
+</td>
 </tr>
 </table>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-August 2021</address>
+February 2022</address>
 </body></html>
