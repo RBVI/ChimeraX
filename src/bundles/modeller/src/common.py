@@ -448,7 +448,7 @@ class ModellerWebService(RunModeller):
 
         super().__init__(session, match_chains, num_models, target_seq_name, targets, **kw)
         # pass temp_dir down to
-        # ModellerCxServicesJob, where it will be deleted after
+        # ModellerWebJob, where it will be deleted after
         # the job finishes
         self.temp_dir = temp_dir
         self.input_file_map = input_file_map
@@ -456,7 +456,7 @@ class ModellerWebService(RunModeller):
         self.job = None
 
     def run(self, *, block=False):
-        self.job = ModellerCxServicesJob(self.session, self, self.params, self.input_file_map, self.temp_dir, block)
+        self.job = ModellerWebJob(self.session, self, self.params, self.input_file_map, self.temp_dir, block)
 
     def take_snapshot(self, session, flags):
         """For session/scene saving"""
@@ -477,7 +477,7 @@ class ModellerWebService(RunModeller):
                                   None)
         inst.set_state_from_snapshot(data['base data'])
 
-class ModellerCxServicesJob(CxServicesJob):
+class ModellerWebJob(CxServicesJob):
     SESSION_SAVE = True
     service_name = "modeller"
 
