@@ -486,9 +486,11 @@ class ModellerCxServicesJob(CxServicesJob):
         super().__init__(session)
         self.caller = caller
         self.params = params
-        # Save the tempdir from src/loops or src/comparative, since we need it to
-        # stay alive long enough to upload the files to the backend.
-        self.temp_dir = temp_dir
+        if temp_dir:
+            # Save the tempdir from src/loops or src/comparative, since we need it to
+            # stay alive long enough to upload the files to the backend. The superclass
+            # will delete it after uploading files.
+            self.temp_dir = temp_dir
         # Coerce the existing input_file_map into the format that CxServicesJob
         # expects. In the future, perhaps only list the filenames.
         self.processed_input_file_map = []
