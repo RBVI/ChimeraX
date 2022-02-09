@@ -444,7 +444,7 @@ class RunModeller(State):
 class ModellerWebService(RunModeller):
 
     def __init__(self, session, match_chains, num_models, target_seq_name, input_file_map, parameters,
-                 targets, temp_dir, **kw):
+                 temp_dir, targets, **kw):
 
         super().__init__(session, match_chains, num_models, target_seq_name, targets, **kw)
         # pass temp_dir down to

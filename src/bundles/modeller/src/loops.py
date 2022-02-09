@@ -243,8 +243,7 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
             from .common import ModellerWebService
             job_runner = ModellerWebService(session, match_chains, num_models,
                                             pir_target.name, input_file_map,
-                                            config_as_json, [t[:2] for t in targets],
-                                            temp_dir,
+                                            config_as_json, temp_dir, [t[:2] for t in targets],
                                             res_numberings=renumberings)
         else:
             from .common import ModellerLocal
