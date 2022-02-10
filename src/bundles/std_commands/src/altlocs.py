@@ -11,6 +11,8 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+from chimerax.core.errors import UserError
+
 def altlocs_change(session, alt_loc, residues=None):
     '''List altocs for residues
 
@@ -131,6 +133,143 @@ def altlocs_list(session, residues=None):
         used.discard(' ')
         session.logger.info("%s has alternate locations %s (using %s)" % (r,
             commas(sorted(r_locs), conjunction="and"), commas(used, conjunction="and")))
+
+from chimerax.core.state import StateManager
+class _AltlocStateManager(StateManager):
+    def __init__(self, session, base_residue):
+        self.init_state_manager(session, "residue altlocs")
+        self.session = session
+        self.base_residue = base_residue
+        self.alt_locs = { l: self._build_alt_loc(l) for l in base_residue.alt_locs } #TODO
+        self.group = session.models.add_group(self.alt_locs.values(), name="%s alternate locations"
+            % base_residue.string(omit_structure=True), parent=base_residue.structure)
+        #TODO
+        self.rotamers = list(rotamers) # don't want auto-shrinking of a Collection
+        self.group = session.models.add_group(rotamers, name="%s rotamers"
+            % base_residue.string(omit_structure=True), parent=base_residue.structure)
+        from chimerax.atomic import get_triggers
+        self.handler = get_triggers().add_handler('changes', self._changes_cb)
+        from chimerax.core.triggerset import TriggerSet
+        self.triggers = TriggerSet()
+        self.triggers.add_trigger('fewer rotamers') # but not zero
+        self.triggers.add_trigger('self destroyed')
+        # below salvaged from swapaa interactive command...
+        ret_val = []
+        from . import swap_res
+        from chimerax.atomic import AtomicStructures
+        from chimerax.core.objects import Objects
+        for r in residues:
+            if res_type == "same":
+                r_type = r.name
+            else:
+                r_type = res_type.upper()
+            rotamers = swap_res.get_rotamers(session, r, res_type=r_type, rot_lib=rot_lib, log=log)
+            mgr = _RotamerStateManager(session, r, rotamers)
+            if session.ui.is_gui:
+                from .tool import RotamerDialog
+                RotamerDialog(session, "%s Side-Chain Rotamers" % r, mgr, res_type, rot_lib)
+            ret_val.append(mgr)
+            rot_structs = AtomicStructures(rotamers)
+            rot_objects = Objects(atoms=rot_structs.atoms, bonds=rot_structs.bonds)
+            from chimerax.std_commands.color import color
+            color(session, rot_objects, color="byelement")
+            from chimerax.std_commands.size import size
+            size(session, rot_objects, stick_radius=0.1)
+
+    def destroy(self):
+        self.handler.remove()
+        if self.group.id is not None:
+            self.session.models.close([self.group])
+        self.group = self.base_residue = self.rotamers = self.session = None
+        super().destroy()
+
+    def reset_state(self, session):
+        self.triggers.activate_trigger('self destroyed', self)
+        self.destroy()
+
+    @classmethod
+    def restore_snapshot(cls, session, data):
+        return cls(session, data['base residue'], data['rotamers'])
+
+    def take_snapshot(self, session, flags):
+        data = {
+            'base residue': self.base_residue,
+            'rotamers': self.rotamers
+        }
+        return data
+
+    def _changes_cb(self, trigger_name, changes):
+        if changes.num_deleted_residues() == 0:
+            return
+        if self.base_residue.deleted:
+            self.triggers.activate_trigger('self destroyed', self)
+            self.destroy()
+            return
+        remaining = [rot for rot in self.rotamers if not rot.deleted]
+        if len(remaining) < len(self.rotamers):
+            if remaining:
+                self.rotamers = remaining
+                self.triggers.activate_trigger('fewer rotamers', self)
+            else:
+                self.triggers.activate_trigger('self destroyed', self)
+                self.destroy()
+
+def _get_alt_loc_residues(session, residues, locs):
+    residues = [r for r in residues if r.alt_locs]
+    if isinstance(locs, list):
+        r_info = []
+        locs = set(locs)
+        rem_residues = []
+        for r in residues:
+            r_locs = set(r.alt_locs)
+            not_found = locs - r_locs
+            if not_found:
+                from chimerax.core.command import commas
+                session.logger.warning("%s does not have alt loc %s" % (r, commas(not_found)))
+            found = locs & r_locs
+            if found:
+                r_info.append((r, found))
+    else:
+        r_info = [(r, r.alt_locs) for r in residues
+    return r_info
+
+def _gather_existing_mgrs(session, residues):
+    mgr_info = {}
+    residues = set(residues)
+    for mgr in session.state_managers(_AltlocStateManager):
+        if mgr.base_residue in residues:
+            mgr_info[mgr.base_residue] = mgr
+    return mgr_info
+
+def altlocs_show(session, residues, *, locs=None):
+    ''' Command to display non-current altlocs '''
+
+    r_info = _get_alt_loc_residues(session, residues, locs)
+    if not r_info:
+        raise UserError("None of the specified residues have %salternate locations"
+            % ("the specified " if isinstance(locs, list) else ""))
+
+    mgr_info = _gather_existing_mgrs(session, [r for r, r_locs in r_info])
+
+    # if locs is False, we can just nuke the existing managers
+    if locs is False:
+        for mgr in mgr_info.values():
+            mgr.destroy()
+        return []
+
+    # create needed managers:
+    for r, r_locs in r_info:
+        if r in mgr_info:
+            if locs is None:
+                mgr_info[r].show()
+            continue
+        mgr_info[r] = _AltlocStateManager(session, r)
+
+    if locs is not None:
+        for mgr in mgr_info.values():
+            mgr.show(locs)
+
+    return list(mgr_info.values())
 
 def register_command(logger):
     from chimerax.core.commands import register, CmdDesc, AnnotationError, StringArg, Or, CharacterArg
