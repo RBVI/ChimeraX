@@ -16,12 +16,16 @@
 #
 def phenix_douse(session, map, near_model,
                  keep_input_water = True, far_water = False,
-                 phenix_location = None,
+                 phenix_location = None, server = False,
                  residue_range = 5, map_range = 8, verbose = False):
 
     # Find the phenix.douse executable
-    from .locate import _find_phenix_command
-    exe_path = _find_phenix_command(session, 'phenix.douse', phenix_location)
+    if server:
+        from .rest import phenix_rest_server
+        rest_server = phenix_rest_server(session, phenix_location)
+    else:
+        from .locate import find_phenix_command
+        exe_path = find_phenix_command(session, 'phenix.douse', phenix_location)
 
     # Setup temporary directory to run phenix.douse.
     from tempfile import TemporaryDirectory
@@ -43,9 +47,15 @@ def phenix_douse(session, map, near_model,
              models = [near_model], rel_model = map_0)
 
     # Run phenix.douse
-    douse_model = _run_douse(session, exe_path, 'map.mrc', 'model.pdb', temp_dir,
-                             keep_input_water = keep_input_water, far_water = far_water,
-                             verbose = verbose)
+    douse_keep_input_water = (keep_input_water and far_water)
+    if server:
+        douse_model = _run_douse_rest_server(session, rest_server, 'map.mrc', 'model.pdb', temp_dir,
+                                        keep_input_water = douse_keep_input_water,
+                                        verbose = verbose)
+    else:
+        douse_model = _run_douse_subprocess(session, exe_path, 'map.mrc', 'model.pdb', temp_dir,
+                                            keep_input_water = douse_keep_input_water,
+                                            verbose = verbose)
     douse_model.position = map.scene_position
     if shift is not None:
         douse_model.atoms.coords += shift
@@ -84,13 +94,13 @@ def _fix_map_origin(map):
 
 # ---------------------------------------------------------------------------------------
 #
-def _run_douse(session, exe_path, map_path, model_path, temp_dir,
-               keep_input_water = True, far_water = False, verbose = False):
+def _run_douse_subprocess(session, exe_path, map_filename, model_filename, temp_dir,
+                          keep_input_water = True, verbose = False):
     '''
     Run douse in a subprocess and return the model with predicted waters.
     '''
-    args = [exe_path, map_path, model_path]
-    if keep_input_water and far_water:
+    args = [exe_path, map_filename, model_filename]
+    if keep_input_water:
         args.append('keep_input_water=true')
     session.logger.status(f'Running {exe_path} in directory {temp_dir}')
     import subprocess
@@ -120,6 +130,52 @@ def _run_douse(session, exe_path, map_path, model_path, temp_dir,
     output_path = path.join(temp_dir,'douse_000.pdb')
     from chimerax.pdb import open_pdb
     models, info = open_pdb(session, output_path, log_info = False)
+
+    return models[0]
+
+# ---------------------------------------------------------------------------------------
+#
+def _run_douse_rest_server(session, rest_server, map_filename, model_filename, temp_dir,
+                           keep_input_water = True, verbose = False):
+    '''
+    Run douse using the Phenix REST server and return the model with predicted waters.
+    '''
+    from os import path
+    model_path = path.join(temp_dir, model_filename)
+    map_path = path.join(temp_dir, map_filename)
+    args = [model_path, map_path]
+    if keep_input_water:
+        args.append('keep_input_water=true')
+
+    # Run job
+    session.logger.status(f'Running douse in directory {temp_dir}')
+    job = rest_server.start_job('douse', args)
+    job.wait()
+    result = job.result
+
+    # Check for error.
+    if result is None:
+        cmd = ' '.join(args)
+        msg = (f'phenix.douse exited with an error\n\n' +
+               f'Command: {cmd}\n\n' +
+               f'stdout:\n{job.stdout}\n\n' +
+               f'stderr:\n{job.stderr}')
+        from chimerax.core.errors import UserError
+        raise UserError(msg)
+
+    # Log phenix douse command output
+    if verbose:
+        cmd = ' '.join(args)
+        msg = f'<pre><b>Command</b>:\n\n{cmd}\n\n<b>stdout</b>:\n\n{job.stdout}'
+        if job.stderr:
+            msg += f'\n\n<b>stderr</b>:\n\n{job.stderr}'
+        msg += '</pre>'
+        session.logger.info(msg, is_html = True)
+
+    # Open new model with added waters
+    douse_pdb = result['output_file']
+    from chimerax.pdb import open_pdb
+    models, info = open_pdb(session, douse_pdb, log_info = False)
 
     return models[0]
 
@@ -239,6 +295,7 @@ def register_phenix_douse_command(logger):
                    ('keep_input_water', BoolArg),
                    ('far_water', BoolArg),
                    ('phenix_location', OpenFolderNameArg),
+                   ('server', BoolArg),
                    ('residue_range', FloatArg),
                    ('map_range', FloatArg),
                    ('verbose', BoolArg),
