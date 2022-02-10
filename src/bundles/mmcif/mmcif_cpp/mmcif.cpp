@@ -1392,6 +1392,7 @@ ExtractMolecule::parse_atom_site()
                     mol->set_active_coord_set(cs);
                 }
             }
+            mol->set_res_numbering_valid(RN_CANONICAL, true);
         }
 
         bool missing_entity_id = entity_id.empty();
@@ -1435,6 +1436,7 @@ ExtractMolecule::parse_atom_site()
             if (make_new_residue) {
                 cur_residue = mol->new_residue(rname, cid, user_position, ins_code);
                 cur_residue->set_mmcif_chain_id(chain_id);
+                cur_residue->set_number(RN_CANONICAL, position);
             }
             cur_entity_id = entity_id;
             cur_seq_id = position;

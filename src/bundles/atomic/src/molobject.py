@@ -1467,6 +1467,8 @@ class StructureData:
         f(s_ref, 1, key, values)
     pdb_version = c_property('pdb_version', int32, doc = "If this structure came from a PDB file,"
         " the major PDB version number of that file (2 or 3). Read only.")
+    res_numbering = c_property('structure_res_numbering', int32,
+        doc = "Numbering scheme for residues.  One of Residue.RN_AUTHOR/RN_CANONICAL/RN_UNIPROT")
     ribbon_tether_scale = c_property('structure_ribbon_tether_scale', float32,
         doc = "Ribbon tether thickness scale factor"
         " (1.0 = match displayed atom radius, 0=invisible).")
@@ -1811,6 +1813,12 @@ class StructureData:
         f = c_function('structure_reorder_residues', args = (ctypes.c_void_p, ctypes.py_object))
         f(self._c_pointer, [r._c_pointer.value for r in new_order])
 
+    def res_numbering_valid(self, res_numbering):
+        '''Is a particular residue-numbering scheme (author, UniProt) valid for this structure?'''
+        f = c_function('structure_res_numbering_valid', args = (ctypes.c_void_p, ctypes.c_int),
+            ret = ctypes.c_bool)
+        return f(self._c_pointer, res_numbering)
+
     @classmethod
     def restore_snapshot(cls, session, data):
         g = StructureData(logger=session.logger)
@@ -1919,6 +1927,12 @@ class StructureData:
         f = c_function('set_structure_color',
                     args = (ctypes.c_void_p, ctypes.c_void_p))
         return f(self._c_pointer, pointer(rgba))
+
+    def set_res_numbering_valid(self, res_numbering, valid=True):
+        '''Indicate whether a particular residue-numbering scheme (author, UniProt) is valid for this structure'''
+        f = c_function('set_structure_res_numbering_valid',
+                    args = (ctypes.c_void_p, ctypes.c_int, ctypes.c_bool))
+        f(self._c_pointer, res_numbering, valid)
 
     def use_default_atom_radii(self):
         '''If some atoms' radii has previously been explicitly set, this call will

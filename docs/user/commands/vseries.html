@@ -144,7 +144,12 @@ when <a href="#loop">looping</a> is on
 <b>loop</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>
 <br>
 Whether to loop playback continuously until it is halted with
-<b>vseries stop</b>.
+<b>vseries stop</b>. By default, the surface (or other rendering)
+for each <a href="#time">time</a> is deleted immediately when it is
+no longer shown, and recomputed later as needed. 
+To avoid losing any custom coloring of the initial displays,
+increase <a href="#cacheFrames"><b>cacheFrames</b></a>
+to at least as many frames as there are volumes in the series.
 </blockquote>
 <blockquote>
 <b>normalize</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>
@@ -218,9 +223,9 @@ Ignore <a href="#maxFrameRate"><b>maxFrameRate</b></a> if also given.
 Whether to store volume rendering (<b>surface/mesh</b> triangle 
 or <b>solid</b> voxel)
 information for the <i>K</i> most recent displays (default <b>1</b>).
-This can speed playback because less time is
-spent recalculating display information.
-There is no hard limit to the memory used to cache rendering information.
+Increasing the number of cached frames can speed playback because less time is
+spent recalculating display information, but it uses more memory.
+There is no hard limit to the amount of memory used.
 Surface renderings use memory proportional to the number of triangles
 composing the surface. Solid renderings use memory proportional to the
 number of data voxels displayed, and it is generally
@@ -425,5 +430,5 @@ Compress the output file (<a href="save.html#chimap">Chimera map format</a>).
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-October 2020</address>
+February 2022</address>
 </body></html>

@@ -33,6 +33,7 @@
 #include "PBManager.h"
 #include "polymer.h"
 #include "Real.h"
+#include "res_numbering.h"
 #include "Rgba.h"
 #include "Ring.h"
 #include "session.h"
@@ -145,6 +146,8 @@ protected:
     PositionMatrix  _position;
     mutable bool  _recompute_rings;
     Residues  _residues;
+    ResNumbering  _res_numbering = RN_AUTHOR;
+    std::vector<bool>  _res_numbering_valid = { true, false, false };
     int _ribbon_display_count = 0;
     RibbonOrientation _ribbon_orientation = RIBBON_ORIENT_PEPTIDE;
     RibbonMode  _ribbon_mode_helix = RIBBON_MODE_DEFAULT;
@@ -292,6 +295,8 @@ public:
     void  ready_idatm_types() { if (!_idatm_valid) _compute_idatm_types(); }
     void  renumber_residues(const std::vector<Residue*>& res_list, int start);
     void  reorder_residues(const Residues&); 
+    ResNumbering  res_numbering() const { return _res_numbering; }
+    bool  res_numbering_valid(ResNumbering rn) const { return _res_numbering_valid[rn]; }
     const Residues&  residues() const { return _residues; }
     const Rings&  rings(bool cross_residues = false,
         unsigned int all_size_threshold = 0,
@@ -326,6 +331,8 @@ public:
         const std::vector<Residue*>* correspondences = nullptr, PolymerType pt = PT_NONE,
         bool one_letter_names = false);
     void  set_position_matrix(double* pos);
+    void  set_res_numbering(ResNumbering rn);
+    void  set_res_numbering_valid(ResNumbering rn, bool valid) { _res_numbering_valid[rn] = valid; }
     void  set_ss_assigned(bool sa) { _ss_assigned = sa; }
     bool  ss_assigned() const { return _ss_assigned; }
     bool  ss_ids_normalized;

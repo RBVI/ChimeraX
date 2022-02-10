@@ -94,7 +94,7 @@ class GraphicsWindow(QWindow):
                 # GUI becomes blank with some 2019 Intel graphics drivers.
 
                 # TODO: This fix may fail if HtmlView widgets are created
-                #       before the graphisc is checked.  Worked in tests on one machine.
+                #       before the graphics is checked.  Worked in tests on one machine.
                 HtmlView.require_native_window = True
                 msg = ('Your computer has Intel graphics driver %d with a known bug '
                        'that causes all Qt user interface panels to be blank. '
