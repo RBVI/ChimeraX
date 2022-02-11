@@ -410,8 +410,6 @@ class StructureDatas(Collection):
     group categories (strings) and whose values are
     :class:`.Pseudobonds`. Read only.
     '''
-    res_numberings = cvec_property('structure_res_numbering', int32,
-        doc = "Numbering scheme for residues.  One of Residue.RN_AUTHOR/RN_CANONICAL/RN_UNIPROT")
     ribbon_tether_scales = cvec_property('structure_ribbon_tether_scale', float32)
     '''Returns an array of scale factors for ribbon tethers.'''
     ribbon_tether_sides = cvec_property('structure_ribbon_tether_sides', int32)
@@ -457,6 +455,16 @@ class StructureDatas(Collection):
     def names(self, nm):
         for s in self:
             s.name = nm
+
+    # res_numbering can be int or string, so go through Python layer
+    @property
+    def res_numberings(self):
+        return array([s.res_numbering for s in self])
+
+    @res_numberings.setter
+    def res_numberings(self, rn):
+        for s in self:
+            s.res_numbering = rn
 
 # -----------------------------------------------------------------------------
 #
