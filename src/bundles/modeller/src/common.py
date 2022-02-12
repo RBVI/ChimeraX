@@ -17,7 +17,6 @@ from xml.dom.minidom import parse
 from chimerax.core.tasks import Job
 from chimerax.core.session import State
 from chimerax.webservices.cxservices_job import CxServicesJob
-from chimerax.webservices.opal_job import OpalJob
 
 class ModelingError(ValueError):
     pass
