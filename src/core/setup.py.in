@@ -55,6 +55,7 @@ setup(
         # "scipy == 0.18",  # TODO: breaks on Windows
         # "setuptools == 34.4.1",	# in prereqs/setuptools
         # "sortedcontainers == 1.5.7",	# in prereqs/pips
+        # "suds_jurko == 0.6",          # in prereqs/pips
         # "msgpack >= 0.5",
     ],
     packages=[
