@@ -15,6 +15,7 @@ import io
 import tempfile
 
 from chimerax.core.errors import NonChimeraXError
+from chimerax.webservices import CxServicesJob
 from chimerax.webservices.opal_job import OpalJob
 from .cmd import MUSCLE, CLUSTAL_OMEGA
 
@@ -29,29 +30,29 @@ def realign_sequences(session, sequences, *, program=CLUSTAL_OMEGA):
     mod = importlib.import_module(".io.saveFASTA", "chimerax.seqalign")
     mod.save(session, FakeAlignment(), input_file)
     input_file.close()
-    class RealignJob(OpalJob):
-        def __init__(self):
+
+    class RealignCxServicesJob(CxServicesJob):
+        def __init__(self, program, input_file):
             super().__init__(session)
-            service_name, options, self.reorders_seqs, in_flag, out_flag = {
-                MUSCLE: (
-                    "MuscleService",
-                    "-maxiters 1",
-                    True,
-                    "-in",
-                    "-out",
-                ),
-                CLUSTAL_OMEGA: (
-                    "ClustalOmegaService",
-                    "--iterations 1 --full --full-iter",
-                    False,
-                    "-i",
-                    "-o",
-                ),
-            }[program]
-            command = "%s input.fa %s output.fa %s" % (in_flag, out_flag, options)
+            self.service_name = program.lower().replace(' ','_')
+            self.params = None
+            self.reorder_seqs = None
+            if self.service_name == 'muscle':
+                self.params = {
+                    "maxiters": 1,
+
+                }
+                self.reorder_seqs = True
+            elif self.service_name == 'clustal_omega':
+                self.params = {
+                    "iters": 1,
+                    "full": True,
+                    "full_iter": True,
+                }
+                self.reorder_seqs = False
             session.logger.status("Starting %s alignment" % program)
-            input_file_map = [ ("input.fa", "text_file", input_file.name) ]
-            self.start(service_name, command, input_file_map=input_file_map, blocking=True)
+            self.input_file = [input_file]
+            self.start(self.service_name, self.params, self.input_file)
 
         def on_finish(self):
             logger = session.logger
@@ -96,5 +97,6 @@ def realign_sequences(session, sequences, *, program=CLUSTAL_OMEGA):
                         key_func = lambda s: order[(s.name, s.ungapped())]
                     out_seqs.sort(key=key_func)
             realigned_sequences.extend(out_seqs)
-    job = RealignJob()
+
+    job = RealignCxServicesJob(program, input_file.name)
     return realigned_sequences
