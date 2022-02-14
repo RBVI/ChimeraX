@@ -50,7 +50,7 @@ class Parser(ABC):
         self.db_size_letters = None
 
         # Extract information from results
-        self.res = json.loads(self.output)
+        self.res = self.output
 
         if 'BlastOutput2' not in self.res.keys():
             raise ValueError("Text is not BLAST JSON output")

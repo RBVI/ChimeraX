@@ -10,7 +10,12 @@
 # including partial copies, of the software or any revisions
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
+import importlib
+import io
+import tempfile
 
+from chimerax.core.errors import NonChimeraXError
+from chimerax.webservices.opal_job import OpalJob
 from .cmd import MUSCLE, CLUSTAL_OMEGA
 
 # Implement only as blocking for now; can add non-blocking later if any need for it.
@@ -18,15 +23,12 @@ from .cmd import MUSCLE, CLUSTAL_OMEGA
 def realign_sequences(session, sequences, *, program=CLUSTAL_OMEGA):
     realigned_sequences = []
     # create temp file in main line of function, so that it is not closed/garbage collected prematurely
-    import tempfile
     input_file = tempfile.NamedTemporaryFile(mode='w', suffix='.fa', delete=False)
     class FakeAlignment:
         seqs = sequences
-    import importlib
     mod = importlib.import_module(".io.saveFASTA", "chimerax.seqalign")
     mod.save(session, FakeAlignment(), input_file)
     input_file.close()
-    from chimerax.webservices.opal_job import OpalJob
     class RealignJob(OpalJob):
         def __init__(self):
             super().__init__(session)
@@ -72,11 +74,9 @@ def realign_sequences(session, sequences, *, program=CLUSTAL_OMEGA):
                 logger.info(stderr)
                 logger.info("<br><b>%s run output</b>" % program, is_html=True)
                 logger.info(stdout)
-                from chimerax.core.errors import NonChimeraXError
                 raise NonChimeraXError("No output alignment from %s; see log for %s text output"
                     % (program, program))
             mod = importlib.import_module(".io.readFASTA", "chimerax.seqalign")
-            import io
             out_seqs, *args = mod.read(session, io.StringIO(fasta_output))
             if self.reorders_seqs:
                 # put result in the same order as the original sequences

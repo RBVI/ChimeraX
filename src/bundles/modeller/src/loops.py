@@ -173,10 +173,21 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
         loop_mod_prefix = {"standard": "", "DOPE": "dope_", "DOPE-HR": "dopehr_", None: ""}[protocol]
 
         from .common import write_modeller_scripts, get_license_key
-        script_path, config_path, temp_dir = write_modeller_scripts(get_license_key(session, license_key),
+        _license_key = get_license_key(session, license_key)
+        script_path, config_path, temp_dir = write_modeller_scripts(_license_key,
                                                                     num_models, True, True, False, fast,
                                                                     (loop_mod_prefix, loop_data), None,
                                                                     temp_path, False, None)
+        config_as_json = {
+            "key": _license_key
+            , "version": 2
+            , "numModels": num_models
+            , "hetAtom": True
+            , "water": True
+            , "allHydrogen": False
+            , "veryFast": fast
+            , "loopInfo": (loop_mod_prefix, loop_data)
+        }
         input_file_map = []
 
         # form the sequences to be written out as a PIR
@@ -232,7 +243,7 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
             from .common import ModellerWebService
             job_runner = ModellerWebService(session, match_chains, num_models,
                                             pir_target.name, input_file_map,
-                                            config_name, [t[:2] for t in targets],
+                                            config_as_json, temp_dir, [t[:2] for t in targets],
                                             res_numberings=renumberings)
         else:
             from .common import ModellerLocal
