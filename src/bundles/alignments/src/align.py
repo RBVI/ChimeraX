@@ -16,7 +16,6 @@ import tempfile
 
 from chimerax.core.errors import NonChimeraXError
 from chimerax.webservices import CxServicesJob
-from chimerax.webservices.opal_job import OpalJob
 from .cmd import MUSCLE, CLUSTAL_OMEGA
 
 # Implement only as blocking for now; can add non-blocking later if any need for it.
