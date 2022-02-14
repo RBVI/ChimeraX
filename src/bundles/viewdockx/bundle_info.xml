@@ -57,13 +57,13 @@ UCSF DOCK output in PDB and mol2 formats are supported.
     <Provider name="AutoDock PDBQT" nicknames="pdbqt" category="Molecular structure"
 		suffixes=".pdbqt" encoding="utf-8" />
     <Provider name="ZDOCK" nicknames="zdock" category="Molecular structure"
-		suffixes=".pdb" is_default="false" encoding="utf-8" reference_url="https://zdock.umassmed.edu" />
+		suffixes=".pdb" encoding="utf-8" reference_url="https://zdock.umassmed.edu" />
   </Providers>
 
   <Providers manager="open command">
     <Provider name="AutoDock PDBQT" want_path="true" />
     <Provider name="Sybyl Mol2" want_path="true" />
-    <Provider name="ZDOCK" />
+    <Provider name="ZDOCK" is_default="false" />
   </Providers>
 
   <Classifiers>
