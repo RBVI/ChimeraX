@@ -24,7 +24,7 @@ The plan is to support all of the existing bild format.
 """
 
 from chimerax.core.errors import UserError
-from numpy import array, empty, float32, int32, uint8
+from numpy import array, empty, float32, int32, uint8, array_equal
 from chimerax.geometry import identity, translation, rotation, scale, distance, z_align
 from chimerax.atomic import AtomicShapeDrawing, AtomicShapeInfo
 from chimerax import surface
@@ -157,10 +157,13 @@ class _BildFile:
             (vertices, normals, triangles),
             (vertices2, normals2, triangles2)
         ))
-        shape = AtomicShapeInfo(
-            vertices, normals, triangles,
-            _cvt_color(self.cur_color), self.cur_atoms, description)
-        self.shapes.append(shape)
+        if vertices is None:
+            raise ValueError("degenerate arrow")
+        else:
+            shape = AtomicShapeInfo(
+                vertices, normals, triangles,
+                _cvt_color(self.cur_color), self.cur_atoms, description)
+            self.shapes.append(shape)
 
     def associate_command(self, tokens):
         atomspec = ' '.join(tokens[1:])
@@ -183,10 +186,13 @@ class _BildFile:
         else:
             description = 'object %d: box' % self.num_objects
         vertices, normals, triangles = get_box(llb, urf, self.transforms[-1], pure=self.pure[-1])
-        shape = AtomicShapeInfo(
-            vertices, normals, triangles,
-            _cvt_color(self.cur_color), self.cur_atoms, description)
-        self.shapes.append(shape)
+        if vertices is None:
+            raise ValueError("degenerate box")
+        else:
+            shape = AtomicShapeInfo(
+                vertices, normals, triangles,
+                _cvt_color(self.cur_color), self.cur_atoms, description)
+            self.shapes.append(shape)
 
     def cmov_command(self, tokens):
         if len(tokens) != 4:
@@ -234,10 +240,13 @@ class _BildFile:
             description = 'object %d: cone' % self.num_objects
         vertices, normals, triangles = get_cone(
             radius, p0, p1, bottom=bottom, xform=self.transforms[-1], pure=self.pure[-1])
-        shape = AtomicShapeInfo(
-            vertices, normals, triangles,
-            _cvt_color(self.cur_color), self.cur_atoms, description)
-        self.shapes.append(shape)
+        if vertices is None:
+            raise ValueError("degenerate cone")
+        else:
+            shape = AtomicShapeInfo(
+                vertices, normals, triangles,
+                _cvt_color(self.cur_color), self.cur_atoms, description)
+            self.shapes.append(shape)
 
     def cylinder_command(self, tokens):
         if len(tokens) not in (8, 9) or (
@@ -258,10 +267,13 @@ class _BildFile:
             description = 'object %d: cylinder' % self.num_objects
         vertices, normals, triangles = get_cylinder(
             radius, p0, p1, closed=closed, xform=self.transforms[-1], pure=self.pure[-1])
-        shape = AtomicShapeInfo(
-            vertices, normals, triangles,
-            _cvt_color(self.cur_color), self.cur_atoms, description)
-        self.shapes.append(shape)
+        if vertices is None:
+            raise ValueError("degenerate cylinder")
+        else:
+            shape = AtomicShapeInfo(
+                vertices, normals, triangles,
+                _cvt_color(self.cur_color), self.cur_atoms, description)
+            self.shapes.append(shape)
 
     def dashed_cylinder_command(self, tokens):
         if len(tokens) not in (9, 10) or (
@@ -283,10 +295,13 @@ class _BildFile:
             description = 'object %d: dashed cylinder' % self.num_objects
         vertices, normals, triangles = get_dashed_cylinder(
             count, radius, p0, p1, closed=closed, xform=self.transforms[-1], pure=self.pure[-1])
-        shape = AtomicShapeInfo(
-            vertices, normals, triangles,
-            _cvt_color(self.cur_color), self.cur_atoms, description)
-        self.shapes.append(shape)
+        if vertices is None:
+            raise ValueError("degenerate dashed cylinder")
+        else:
+            shape = AtomicShapeInfo(
+                vertices, normals, triangles,
+                _cvt_color(self.cur_color), self.cur_atoms, description)
+            self.shapes.append(shape)
 
     def dot_command(self, tokens):
         if len(tokens) != 4:
@@ -491,10 +506,13 @@ class _BildFile:
             description = 'object %d: sphere' % self.num_objects
         vertices, normals, triangles = get_sphere(
             radius, center, self.transforms[-1], pure=self.pure[-1])
-        shape = AtomicShapeInfo(
-            vertices, normals, triangles,
-            _cvt_color(self.cur_color), self.cur_atoms, description)
-        self.shapes.append(shape)
+        if vertices is None:
+            raise ValueError("degenerate sphere")
+        else:
+            shape = AtomicShapeInfo(
+                vertices, normals, triangles,
+                _cvt_color(self.cur_color), self.cur_atoms, description)
+            self.shapes.append(shape)
 
     def translate_command(self, tokens):
         if len(tokens) != 4:
@@ -596,6 +614,8 @@ def _cvt_color(color):
 
 def get_sphere(radius, center, xform=None, pure=False):
     # TODO: vary number of triangles with radius
+    if radius == 0:
+        return None, None, None
     vertices, normals, triangles = surface.sphere_geometry2(200)
     vertices = vertices * radius + center
     if xform is not None:
@@ -606,6 +626,8 @@ def get_sphere(radius, center, xform=None, pure=False):
 
 def get_cylinder(radius, p0, p1, closed=True, xform=None, pure=False):
     h = distance(p0, p1)
+    if h == 0:
+        return None, None, None
     vertices, normals, triangles = surface.cylinder_geometry(radius, height=h, caps=closed)
     # rotate so z-axis matches p0->p1
     xf = z_align(p0, p1)
@@ -620,6 +642,8 @@ def get_cylinder(radius, p0, p1, closed=True, xform=None, pure=False):
 
 def get_dashed_cylinder(count, radius, p0, p1, closed=True, xform=None, pure=False):
     h = distance(p0, p1)
+    if h == 0:
+        return None, None, None
     vertices, normals, triangles = surface.dashed_cylinder_geometry(count, radius, height=h, caps=closed)
     # rotate so z-axis matches p0->p1
     from chimerax.geometry import z_align
@@ -634,6 +658,8 @@ def get_dashed_cylinder(count, radius, p0, p1, closed=True, xform=None, pure=Fal
 
 
 def get_box(llb, urf, xform=None, pure=False):
+    if array_equal(llb, urf):
+        return None, None, None
     vertices, normals, triangles = surface.box_geometry(llb, urf)
     if xform is not None:
         xform.transform_points(vertices, in_place=True)
@@ -643,6 +669,8 @@ def get_box(llb, urf, xform=None, pure=False):
 
 def get_cone(radius, p0, p1, bottom=False, xform=None, pure=False):
     h = distance(p0, p1)
+    if h == 0:
+        return None, None, None
     vertices, normals, triangles = surface.cone_geometry(radius, height=h, caps=bottom)
     from chimerax.geometry import z_align
     xf = z_align(p0, p1)
@@ -664,15 +692,20 @@ def combine_triangles(triangle_info):
     num_triangles = 0
     for i, info in enumerate(triangle_info):
         vertices, normals, triangles = info
+        if vertices is None:
+            continue
         all_vertices.append(vertices)
         all_normals.append(normals)
         all_triangles.append(triangles + num_vertices)
         num_vertices += len(vertices)
         num_triangles += len(triangles)
+    if len(all_vertices) == 0:
+        return None, None, None
     vertices = empty((num_vertices, 3), dtype=float32)
     normals = empty((num_vertices, 3), dtype=float32)
     triangles = empty((num_triangles, 3), dtype=int32)
     return (
         concat(all_vertices, out=vertices),
         concat(all_normals, out=normals),
-        concat(all_triangles, out=triangles))
+        concat(all_triangles, out=triangles)
+    )
