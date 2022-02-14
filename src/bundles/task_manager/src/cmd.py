@@ -20,7 +20,7 @@ def taskman(session: Session, action: str, job: str = None) -> None:
         if len(session.tasks.list()) == 0:
             session.logger.info("No tasks running")
         else:
-            session.logger.info("\n".join([str(task) for task in session.tasks.list()]))
+            session.logger.info("\n".join([str(task) for task in session.tasks.values()]))
     elif action == 'kill':
         if not job:
             raise UserError("Job keyword required for command 'kill'")

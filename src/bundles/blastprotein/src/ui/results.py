@@ -469,32 +469,27 @@ class BlastResultsWorker(QThread):
     @Slot()
     def run(self):
         if self.job:
-            self._check_job()
             self.waiting_for_info.emit("Downloading BLAST Results")
+            if self.job.status == 'failed':
+                self.job_failed.emit('failed')
+                self.exit(1)
+            if self.job.status == 'deleted':
+                self.job_failed.emit('deleted')
+                self.exit(1)
+            if self.job.status == 'canceled':
+                self.job_failed.emit('canceled')
+                self.exit(1)
             try:
-                self.results = self.job.get_file(self.job.RESULTS_FILENAME)
+                self.results = self.job.get_results()
             except Exception as e:
-                err = self.job.get_stderr()
-                self.job_failed.emit(err + str(e))
+                # TODO: Get info from backend as to why
+                self.job_failed.emit(str(e))
                 self.exit(1)
         self._parse_results(self.database, self.results, self.sequence, self.atomspec)
 
     @Slot()
     def stop(self):
         pass
-
-    def _check_job(self):
-        """Ensure that the BLAST job completed successfully."""
-        out = self.job.get_stdout()
-        if out:
-            # Originally sent to logger.error
-            self.standard_output.emit("Standard output:\n" + out)
-            self.exit(1)
-
-        if not self.job.exited_normally():
-            err = self.job.get_stderr()
-            self.job_failed.emit(err)
-            self.exit(1)
 
     def _parse_results(self, db, results, sequence, atomspec):
         try:
