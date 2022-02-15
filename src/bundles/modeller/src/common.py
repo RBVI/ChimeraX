@@ -10,9 +10,13 @@
 # including partial copies, of the software or any revisions
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
+import os
+
+from xml.dom.minidom import parse
+
 from chimerax.core.tasks import Job
 from chimerax.core.session import State
-from chimerax.webservices.opal_job import OpalJob
+from chimerax.webservices.cxservices_job import CxServicesJob
 
 class ModelingError(ValueError):
     pass
@@ -333,6 +337,35 @@ def _process_dist_restraints(filename):
     # concatenate and return output code:
     return headcode + maincode
 
+class ModellerXMLConfig:
+    def __init__(self, xmlFilename):
+        self.__doc = parse(xmlFilename)
+
+    def __getitem__(self, key):
+        el = self.__doc.getElementsByTagName(key)
+        values = []
+        if len(el) == 0:
+            # make it downgrade compatiable
+            if key == "loopRefin":
+                return "0"
+            else:
+                raise KeyError(key)
+            values = [ self.extractText(e) for e in el ]
+        if len(values) == 1:
+            return values[0]
+        else:
+            return values
+
+    def extractText(self, node):
+        from xml.dom.minidom import Node
+        textTypes = (Node.TEXT_NODE, Node.CDATA_SECTION_NODE)
+        text = []
+        for n in node.childNodes:
+            if n.nodeType in textTypes:
+                text.append(n.data)
+            else:
+                text.append(self.extractText(n))
+        return ''.join(text)
 
 class RunModeller(State):
 
@@ -440,59 +473,88 @@ class RunModeller(State):
 
 class ModellerWebService(RunModeller):
 
-    def __init__(self, session, match_chains, num_models, target_seq_name, input_file_map, config_name,
-                 targets, **kw):
+    def __init__(self, session, match_chains, num_models, target_seq_name, input_file_map, parameters,
+                 temp_dir, targets, **kw):
 
         super().__init__(session, match_chains, num_models, target_seq_name, targets, **kw)
+        # pass temp_dir down to
+        # ModellerWebJob, where it will be deleted after
+        # the job finishes
+        self.temp_dir = temp_dir
         self.input_file_map = input_file_map
-        self.config_name = config_name
-
+        self.params = parameters
         self.job = None
 
     def run(self, *, block=False):
-        self.job = ModellerWebJob(self.session, self, self.config_name, self.input_file_map, block)
+        self.job = ModellerWebJob(self.session, self, self.params, self.input_file_map, self.temp_dir, block)
 
     def take_snapshot(self, session, flags):
         """For session/scene saving"""
         return {
+            'version': '2',
             'base data': super().take_snapshot(session, flags),
             'input_file_map': self.input_file_map,
-            'config_name': self.config_name,
+            'params': self.params
         }
 
     @staticmethod
     def restore_snapshot(session, data):
-        inst = ModellerWebService(session, None, None, None, data['input_file_map'], data['config_name'],
-                                  None, None)
+        version = data.get('version', 1)
+        if version == 1:
+            # Load the data from the version 1 XML file into the new format
+            config_name = data['config_name']
+            config = ModellerXMLConfig(config_name)
+            params = {
+                "key": config["key"]
+                , "version": config["version"]
+                , "numModels": config["numModel"]
+                , "hetAtom": bool(config["hetAtom"])
+                , "water": bool(config["water"])
+                , "allHydrogen": bool(config["allHydrogen"])
+                , "veryFast": bool(config["veryFast"])
+                , "loopInfo": eval(config["loopInfo"])
+            }
+            data['params'] = params
+        inst = ModellerWebService(session, None, None, None, data['input_file_map']
+                                  , data['params'], None, None)
         inst.set_state_from_snapshot(data['base data'])
 
-
-class ModellerWebJob(OpalJob):
-
-    OPAL_SERVICE = "Modeller9v8Service"
+class ModellerWebJob(CxServicesJob):
     SESSION_SAVE = True
+    service_name = "modeller"
 
-    def __init__(self, session, caller, command, input_file_map, block):
+    def __init__(self, session, caller, params, input_file_map, temp_dir, block):
         super().__init__(session)
         self.caller = caller
-        self.start(self.OPAL_SERVICE, command, input_file_map=input_file_map, blocking=block)
+        self.params = params
+        if temp_dir:
+            # Save the tempdir from src/loops or src/comparative, since we need it to
+            # stay alive long enough to upload the files to the backend. The superclass
+            # will delete it after uploading files.
+            self.temp_dir = temp_dir
+        # Coerce the existing input_file_map into the format that CxServicesJob
+        # expects. In the future, perhaps only list the filenames.
+        self.processed_input_file_map = []
+        for entry in input_file_map:
+            # Take the full path to the file, except ModellerScriptConfig.xml
+            if os.path.basename(entry[2]) == "ModellerScriptConfig.xml":
+                continue
+            self.processed_input_file_map.append(entry[2])
+        self.start(self.service_name, self.params, self.processed_input_file_map)
 
-    def monitor(self):
-        super().monitor()
-        stdout = self.get_file("stdout.txt")
-        num_done = stdout.count('# Heavy relative violation of each residue is written to:')
-        num_done = max(stdout.count('>> Normalized DOPE z score') - 1, 0)
-        status = self.session.logger.status
-        tsafe = self.session.ui.thread_safe
-        if not num_done:
-            tsafe(status, "No models generated yet")
-        else:
-            tsafe(status, "%d of %d models generated" % (num_done, self.caller.num_models))
-
-    def next_check(self):
-        return 15
+    #def monitor(self):
+    #    super().monitor()
+    #    stdout = self.get_file("stdout.txt")
+    #    num_done = stdout.count('# Heavy relative violation of each residue is written to:')
+    #    num_done = max(stdout.count('>> Normalized DOPE z score') - 1, 0)
+    #    if not num_done:
+    #        self.thread_safe_log("No models generated yet")
+    #    else:
+    #        self.thread_safe_log("%d of %d models generated" % (num_done, self.caller.num_models))
 
     def on_finish(self):
+        # Clean up the temporary directory
+        del self.temp_dir
         logger = self.session.logger
         logger.info("Modeller job ID %s finished" % self.job_id)
         if not self.exited_normally():
