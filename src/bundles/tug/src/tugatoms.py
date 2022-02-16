@@ -119,9 +119,12 @@ class TugAtomsMode(MouseMode):
         a = self._tugger.atom
         atom_xyz, offset = self._puller.pull_direction(a)
 
+        # Convert offset to model coords needed by tugger.
+        moffset = a.structure.scene_position.inverse().transform_vector(offset)
+
         from time import time
         t0 = time()
-        self._tugger.tug_displacement(offset)
+        self._tugger.tug_displacement(moffset)
         t1 = time()
         atom_xyz, offset = self._puller.pull_direction(a)
         self._draw_arrow(atom_xyz+offset, atom_xyz)
