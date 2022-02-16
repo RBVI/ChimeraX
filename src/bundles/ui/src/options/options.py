@@ -48,7 +48,7 @@ class Option(metaclass=ABCMeta):
             self.settings_handler = self.settings.triggers.add_handler('setting changed',
                 lambda trig_name, data, *, pself=proxy(self):
                 data[0] == pself.attr_name and (setattr(pself, "value", pself.get_attribute())
-                or (self._callback and self._callback(self))))
+                or (pself._callback and pself._callback(pself))))
         self.auto_set_attr = auto_set_attr
 
         if default is None and attr_name and settings:
