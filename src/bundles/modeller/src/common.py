@@ -548,9 +548,9 @@ class ModellerWebJob(CxServicesJob):
         num_done = stdout.count('# Heavy relative violation of each residue is written to:')
         num_done = max(stdout.count('>> Normalized DOPE z score') - 1, 0)
         if not num_done:
-            self.thread_safe_log("No models generated yet")
+            self.thread_safe_status("Modeller Webservice: No models generated yet")
         else:
-            self.thread_safe_log("%d of %d models generated" % (num_done, self.caller.num_models))
+            self.thread_safe_status("Modeller Webservice: %d of %d models generated" % (num_done, self.caller.num_models))
 
     def on_finish(self):
         # Clean up the temporary directory
