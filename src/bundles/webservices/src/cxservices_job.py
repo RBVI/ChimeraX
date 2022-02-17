@@ -20,6 +20,7 @@ the ChimeraX REST server and monitors its status.
 """
 import json
 import time
+import logging
 from urllib3.exceptions import MaxRetryError, NewConnectionError
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Union
@@ -50,6 +51,8 @@ class CxServicesJob(Job):
     """
     save_attrs = ('job_id', 'launch_time', 'end_time', 'status', 'outputs', 'next_poll')
     chimerax_api = default_api.DefaultApi()
+    # Ticket #6187, set urllib3 not to log messages to the general ChimeraX log
+    logging.getLogger("urllib3").setLevel(100)
 
     def reset_state(self) -> None:
         """Reset state to data-less state"""
