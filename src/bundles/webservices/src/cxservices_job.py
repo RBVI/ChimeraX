@@ -20,8 +20,11 @@ the ChimeraX REST server and monitors its status.
 """
 import json
 import time
+import logging
+from urllib3.exceptions import MaxRetryError, NewConnectionError
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Union
+from urllib.error import URLError
 
 from chimerax.core.tasks import Job, JobError, JobLaunchError, JobMonitorError
 
@@ -48,6 +51,8 @@ class CxServicesJob(Job):
     """
     save_attrs = ('job_id', 'launch_time', 'end_time', 'status', 'outputs', 'next_poll')
     chimerax_api = default_api.DefaultApi()
+    # Ticket #6187, set urllib3 not to log messages to the general ChimeraX log
+    logging.getLogger("urllib3").setLevel(100)
 
     def reset_state(self) -> None:
         """Reset state to data-less state"""
@@ -110,7 +115,6 @@ class CxServicesJob(Job):
         if self.launch_time is not None:
             raise JobError("REST job has already been launched")
         self.launch_time = time.time()
-
         # Launch job
         try:
             result = self.chimerax_api.submit_job(
@@ -119,7 +123,15 @@ class CxServicesJob(Job):
                 , filepaths = processed_files_to_upload
             )
         except ApiException as e:
+            self.status = "failed"
+            self.end_time = time.time()
             raise JobLaunchError(str(e))
+        except (URLError, MaxRetryError) as e:
+            self.status = "failed"
+            self.end_time = time.time()
+            self.thread_safe_log(
+                "Error launching job: ChimeraX Web Services unavailable. Please try again soon."
+            )
         else:
             self.job_id = result.job_id
             self.urls = {
@@ -127,14 +139,12 @@ class CxServicesJob(Job):
                 "results": result.results_url,
             }
             self.next_poll = self._poll_to_seconds(int(result.next_poll))
-            def _notify(logger=self.session.logger, job_id=self.job_id):
-                logger.info("Webservices job id: %s" % job_id)
-            self.session.ui.thread_safe(_notify)
-        while self.running():
-            if self.terminating():
-                break
-            time.sleep(self.next_poll)
-            self.monitor()
+            self.thread_safe_log("Webservices job id: %s" % self.job_id)
+            while self.running():
+                if self.terminating():
+                    break
+                time.sleep(self.next_poll)
+                self.monitor()
 
     def _poll_to_seconds(self, poll: int) -> int:
         return 60 * poll
@@ -179,9 +189,21 @@ class CxServicesJob(Job):
         else:
             return content
 
-    def thread_safe_log(self, message):
+    def thread_safe_status(self, message):
         if self.session:
             status = self.session.logger.status
+            tsafe = self.session.ui.thread_safe
+            tsafe(status, message)
+
+    def thread_safe_log(self, message):
+        if self.session:
+            status = self.session.logger.info
+            tsafe = self.session.ui.thread_safe
+            tsafe(status, message)
+
+    def thread_safe_warning(self, message):
+        if self.session:
+            status = self.session.logger.warning
             tsafe = self.session.ui.thread_safe
             tsafe(status, message)
 
