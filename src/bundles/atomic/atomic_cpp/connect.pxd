@@ -1,3 +1,7 @@
+# distutils: language=c++
+#cython: language_level=3, boundscheck=False, auto_pickle=False 
+# vim: set expandtab shiftwidth=4 softtabstop=4:
+
 # === UCSF ChimeraX Copyright ===
 # Copyright 2016 Regents of the University of California.
 # All rights reserved.  This software provided pursuant to a
@@ -9,10 +13,9 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from chimerax.core.toolshed import BundleAPI
-from .cxservices_job import CxServicesJob
+cdef extern from "atomstruct/Structure.h" namespace "atomstruct":
+    cdef cppclass Structure:
+        pass
 
-class _MyAPI(BundleAPI):
-	pass
-
-bundle_api = _MyAPI()
+cdef extern from "<pdb/connect.h>" namespace "pdb_connect":
+    void find_and_add_metal_coordination_bonds(Structure*)

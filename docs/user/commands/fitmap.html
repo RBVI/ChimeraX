@@ -25,8 +25,8 @@ class="clRight" title="User Guide Index"/></a>
 
 <h3><a href="../index.html#commands">Command</a>: fitmap</h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
-<br><b>fitmap</b> &nbsp;<a href="atomspec.html"><i>fit-structure</i></a>&nbsp;
-<b>inMap</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>ref-map</i></a>&nbsp;
+<br><b>fitmap</b> &nbsp;<a href="atomspec.html"><i>fit-model</i></a>&nbsp;
+<b>inMap</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>ref-model</i></a>&nbsp;
 &nbsp;<a href="#options"><i>options</i></a>&nbsp;
 &nbsp;<a href="#global"><i>global-search-options</i></a></h3>
 <p>
@@ -58,8 +58,8 @@ symmetry</a>,
 AlphaFold prediction</a>
 
 </p><p>
-The <i>fit-structure</i>, a <a href="atomspec.html">specified</a> 
-set of atoms or map model, will be fit to <i>ref-map</i> (a map model).
+The <i>fit-model</i>, a <a href="atomspec.html">specified</a> 
+set of atoms or map model, will be fit to <i>ref-model</i> (a map model).
 If atoms are specified, 
 only those atoms will be used in the fitting calculation, 
 but the entire model(s) containing them will be repositioned unless
@@ -77,6 +77,16 @@ only the <a href="../selection.html">selected</a> model(s).
 <img class="icon" border=1 src="../tools/mouse-icons/move_h2o.png"></a>
 <a href="../tools/mousemodes.html" title="Mouse Modes for Right Button...">
 <img class="icon" border=1 src="../tools/mouse-icons/rotate_h2o.png"></a>
+</p><p>
+Only the current <a href="../tools/volumeviewer.html#region">display region</a>
+(which may be a cropped rectangular box) of the <i>ref-model</i> map is used.
+All of the grid points in the region are used at full resolution,
+regardless of what <a href="../tools/volumeviewer.html#step">step level</a> and
+<a href="../tools/volumeviewer.html#threshold">threshold</a> (contour level)
+are used to display the <i>ref-model</i> map.
+However, for <a href="#fitmaps">map-in-map</a> fitting, the <i>fit-model</i>
+map data are restricted by its step level, display region,
+and <a href="#envelope">optionally</a> its lowest threshold level.
 </p><p>
 The calculation will stop and the fit structure will be repositioned after
 <a href="#gridStepMin">convergence</a>
@@ -112,7 +122,7 @@ The following advanced modes are mutually exclusive:
 &nbsp;<a href="atomspec.html"><i>spec</i></a>
 <br>
 Subtract the specified map (or a map generated from the specified atoms)
-from <i>ref-map</i> before fitting. If atoms are specified,
+from <i>ref-model</i> before fitting. If atoms are specified,
 the <a href="#resolution"><b>resolution</b></a> for generating the map
 must also be specified.
 </blockquote>
@@ -538,5 +548,5 @@ whichever comes first.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-January 2022</address>
+February 2022</address>
 </body></html>

@@ -104,6 +104,8 @@ recipient: residues
 
 	:HOH	HOH
 	:DOD	HOH
+# prevent chains of UNK from forming huge mega-residue
+	:UNK & backbone	ALA
 
 # highly negatively charged residues cause sqm failures
 # use templates for commonplace ones

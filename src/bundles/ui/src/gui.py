@@ -2172,6 +2172,8 @@ class ToolWindow(StatusLogger):
             self.clear()
         self.__toolkit.destroy()
         self.__toolkit = None
+        self.ui_area = None
+        self.tool_instance = None
 
     @property
     def _dock_widget(self):

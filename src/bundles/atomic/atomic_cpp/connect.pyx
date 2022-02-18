@@ -1,3 +1,7 @@
+# distutils: language=c++
+#cython: language_level=3, boundscheck=False, auto_pickle=False 
+# vim: set expandtab shiftwidth=4 softtabstop=4:
+
 # === UCSF ChimeraX Copyright ===
 # Copyright 2016 Regents of the University of California.
 # All rights reserved.  This software provided pursuant to a
@@ -9,10 +13,12 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from chimerax.core.toolshed import BundleAPI
-from .cxservices_job import CxServicesJob
+cimport connect
+from ctypes import c_void_p
+IF UNAME_SYSNAME == "Windows":
+    ctypedef long long ptr_type
+ELSE:
+    ctypedef long ptr_type
 
-class _MyAPI(BundleAPI):
-	pass
-
-bundle_api = _MyAPI()
+def find_and_add_metal_coordination_bonds(structure):
+    connect.find_and_add_metal_coordination_bonds(<connect.Structure*><ptr_type>structure.cpp_pointer)

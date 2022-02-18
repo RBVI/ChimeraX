@@ -27,6 +27,7 @@
 #include "imex.h"
 #include "polymer.h"
 #include "Real.h"
+#include "res_numbering.h"
 #include "Rgba.h"
 #include "session.h"
 #include "string_types.h"
@@ -73,6 +74,7 @@ private:
     ChainID  _mmcif_chain_id;
     ResName  _name;
     int  _number;
+    int  _numberings[NUM_RES_NUMBERINGS];
     float  _ribbon_adjust;
     bool  _ribbon_display;
     bool  _ribbon_hide_backbone;
@@ -132,12 +134,8 @@ public:
     void  set_ss_id(int ssid);
     void  set_ss_type(SSType sst);
     void  set_mmcif_chain_id(const ChainID &cid) { _mmcif_chain_id = cid; }
-    void  set_number(int number) {
-        if (number != _number) {
-            _number = number;
-            change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_NUMBER);
-        }
-    }
+    void  set_number(int number);
+    void  set_number(ResNumbering rn, int number) { _numberings[rn] = number; }
     static void  set_templates_dir(const std::string&);
     static void  set_user_templates_dir(const std::string&);
     int  ss_id() const;

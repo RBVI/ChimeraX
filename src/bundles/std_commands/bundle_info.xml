@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-StdCommands" version="1.7.4"
+<BundleInfo name="ChimeraX-StdCommands" version="1.7.7"
 	    package="chimerax.std_commands" customInit="true"
   	    minSessionVersion="1" maxSessionVersion="1">
 

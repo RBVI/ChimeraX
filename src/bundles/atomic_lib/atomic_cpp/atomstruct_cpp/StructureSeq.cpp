@@ -14,6 +14,7 @@
  */
 
 #include <algorithm>
+#include <cctype>  // for islower
 #include <exception>
 #include <Python.h>
 #include <sstream>
@@ -32,7 +33,16 @@ namespace atomstruct {
 StructureSeq::StructureSeq(const ChainID& chain_id, Structure* s, PolymerType pt):
     Sequence(std::string("chain ") + (chain_id == " " ? "(blank)" : chain_id.c_str())),
     _chain_id(chain_id), _from_seqres(false), _polymer_type(pt), _structure(s)
-{ }
+{
+    if (!s->lower_case_chains) {
+        for (auto c: chain_id) {
+            if (std::islower(c)) {
+                s->lower_case_chains = true;
+                break;
+            }
+        }
+    }
+}
 
 void
 StructureSeq::bulk_set(const StructureSeq::Residues& residues,
@@ -401,6 +411,14 @@ StructureSeq::set_chain_id(ChainID chain_id)
             set_name(new_name);
         }
         _chain_id = chain_id;
+        if (!structure()->lower_case_chains) {
+            for (auto c: chain_id) {
+                if (std::islower(c)) {
+                    structure()->lower_case_chains = true;
+                    break;
+                }
+            }
+        }
         if (is_chain()) {
             _structure->change_tracker()->add_modified(_structure, dynamic_cast<Chain*>(this),
                 ChangeTracker::REASON_CHAIN_ID);

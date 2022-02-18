@@ -21,6 +21,9 @@ package: centos
 daily-package: centos
 	env HOME=`pwd` $(PYTHON_EXE) mkcentos.py $(CENTOS) daily
 
+techpreview-package: centos
+	env HOME=`pwd` $(PYTHON_EXE) mkcentos.py $(CENTOS) techpreview
+
 candidate-package: centos
 	env HOME=`pwd` $(PYTHON_EXE) mkcentos.py $(CENTOS) candidate
 

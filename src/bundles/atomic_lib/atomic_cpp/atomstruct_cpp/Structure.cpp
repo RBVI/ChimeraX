@@ -373,10 +373,10 @@ void Structure::_copy(Structure* s, PositionMatrix coord_adjust,
                 cid = r->chain_id();
             else
                 cid = cid_i->second;
-            if (s->lower_case_chains) {
+            if (!s->lower_case_chains) {
                 for (auto c: cid) {
-                    if (isupper(c)) {
-                        s->lower_case_chains = false;
+                    if (islower(c)) {
+                        s->lower_case_chains = true;
                         break;
                     }
                 }
@@ -2163,6 +2163,21 @@ Structure::set_position_matrix(double* pos)
     for (int i=0; i<12; ++i)
         *_pos++ = *pos++;
     change_tracker()->add_modified(this, this, ChangeTracker::REASON_SCENE_COORD);
+}
+
+void
+Structure::set_res_numbering(ResNumbering rn)
+{
+    if (rn == _res_numbering)
+        return;
+    _res_numbering = rn;
+    for (auto r: residues()) {
+        auto new_number = r->_numberings[rn];
+        if (new_number != r->number()) {
+            r->_number = new_number;
+            change_tracker()->add_modified(this, r, ChangeTracker::REASON_NUMBER);
+        }
+    }
 }
 
 void

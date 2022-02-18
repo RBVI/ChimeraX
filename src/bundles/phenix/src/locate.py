@@ -13,12 +13,14 @@
 
 # ---------------------------------------------------------------------------------------
 #
-def _find_phenix_command(session, program_name, phenix_location = None):
+def find_phenix_command(session, program_name, phenix_location = None):
+    bin_dir = 'build/bin'	# For Python 2 Phenix
+    bin_dir = 'bin'		# For Python 3 Phenix
     settings = _phenix_settings(session)
     from os.path import isfile, isdir, join
     if phenix_location is None:
         if settings.phenix_location:
-            cmd = join(settings.phenix_location, 'build', 'bin', program_name)
+            cmd = join(settings.phenix_location, bin_dir, program_name)
             if isfile(cmd):
                 return cmd
             
@@ -37,11 +39,11 @@ def _find_phenix_command(session, program_name, phenix_location = None):
             from chimerax.core.errors import UserError
             raise UserError('Could not find phenix installation in ' + ', '.join(search_dirs))
         for pdir in phenix_dirs:
-            cmd = join(pdir, 'build', 'bin', program_name)
+            cmd = join(pdir, bin_dir, program_name)
             if isfile(cmd):
                 return cmd
     else:
-        cmd = join(phenix_location, 'build', 'bin', program_name)
+        cmd = join(phenix_location, bin_dir, program_name)
         if not isfile(cmd):
             from chimerax.core.errors import UserError
             raise UserError('Could not find phenix program ' + cmd)

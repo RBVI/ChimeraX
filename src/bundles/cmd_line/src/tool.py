@@ -64,7 +64,8 @@ class CommandLine(ToolInstance):
                     self.editTextChanged.disconnect(self._drop_hack_cb)
 
             def dropEvent(self, event):
-                text = event.mimeData().text()
+                from urllib.parse import unquote
+                text = unquote(event.mimeData().text())
                 if text.startswith("file://"):
                     text = text[7:]
                     if sys.platform.startswith("win") and text.startswith('/'):

@@ -81,7 +81,7 @@ class _mmCIFioAPI(BundleAPI):
                             'over_sampling': FloatArg,
                             'structure_factors': BoolArg,
                         }
-        else:
+        elif mgr == session.save_command:
             from chimerax.save_command import SaverInfo
 
             class Info(SaverInfo):
@@ -107,6 +107,9 @@ class _mmCIFioAPI(BundleAPI):
 
                 def save_args_string_from_widget(self, widget):
                     return widget.options_string()
+        else:
+            from .build_ui import CCDProvider
+            return CCDProvider(session)
 
         return Info()
 

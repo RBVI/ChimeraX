@@ -1472,6 +1472,11 @@ cdef class CyResidue:
         if self._deleted: raise RuntimeError("Residue already deleted")
         return self.cpp_res.selected()
 
+    RN_AUTHOR, RN_CANONICAL, RN_UNIPROT = range(3)
+    def set_number(self, numbering, num):
+        if self._deleted: raise RuntimeError("Residue already deleted")
+        self.cpp_res.set_number(numbering, num)
+
     @property
     def standard_aa_name(self):
         '''If this is a standard amino acid or modified amino acid, return the 3-letter

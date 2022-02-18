@@ -14,6 +14,7 @@
  */
 
 #include <algorithm>
+#include <cctype>  // for islower
 #include <set>
 #include <sstream>
 #include <utility>  // for pair
@@ -62,12 +63,21 @@ std::set<ResName> Residue::std_solvent_names = std_water_names;
 std::map<ResName, std::map<AtomName, char>>  Residue::ideal_chirality;
 
 Residue::Residue(Structure *as, const ResName& name, const ChainID& chain, int num, char insert):
-    _alt_loc(' '), _chain(nullptr), _chain_id(chain), _insertion_code(insert),
-    _mmcif_chain_id(chain), _name(name), _number(num),
-    _ribbon_adjust(-1.0), _ribbon_display(false), _ribbon_hide_backbone(true),
-    _ribbon_rgba({160,160,0,255}), _ss_id(-1), _ss_type(SS_COIL), _structure(as),
-    _ring_display(false), _rings_are_thin(false)
+    _alt_loc(' '), _chain(nullptr), _chain_id(chain), _insertion_code(insert), _mmcif_chain_id(chain),
+    _name(name), _number(num), _ribbon_adjust(-1.0), _ribbon_display(false), _ribbon_hide_backbone(true),
+    _ribbon_rgba({160,160,0,255}), _ss_id(-1), _ss_type(SS_COIL), _structure(as), _ring_display(false),
+    _rings_are_thin(false)
 {
+    if (!as->lower_case_chains) {
+        for (auto c: _chain_id) {
+            if (std::islower(c)) {
+                as->lower_case_chains = true;
+                break;
+            }
+        }
+    }
+    for (int i = 0; i < NUM_RES_NUMBERINGS; ++i)
+        _numberings[i] = num;
     change_tracker()->add_created(_structure, this);
 }
 
@@ -460,7 +470,24 @@ Residue::set_chain_id(ChainID chain_id)
         if (_chain != nullptr)
             throw std::logic_error("Cannot set polymeric chain ID directly from Residue; must use Chain");
         _chain_id = chain_id;
+        if (!structure()->lower_case_chains) {
+            for (auto c: chain_id) {
+                if (std::islower(c)) {
+                    structure()->lower_case_chains = true;
+                    break;
+                }
+            }
+        }
         change_tracker()->add_modified(_structure, this, ChangeTracker::REASON_CHAIN_ID);
+    }
+}
+
+void
+Residue::set_number(int number) {
+    if (number != _number) {
+        _number = number;
+        _numberings[structure()->res_numbering()] = number;
+        change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_NUMBER);
     }
 }
 
