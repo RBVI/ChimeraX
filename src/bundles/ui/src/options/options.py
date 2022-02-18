@@ -1025,6 +1025,9 @@ def _make_float_widget(min, max, step, decimal_places, *, as_slider=False, conti
             return self.specialValueText() != ""
 
         def stepBy(self, *args, **kw):
+            if self.special_value_shown():
+                from chimerax.core.errors import LimitationError
+                raise LimitationError("Cannot increment value")
             super().stepBy(*args, **kw)
             self.editingFinished.emit()
 
@@ -1057,6 +1060,9 @@ def _make_int_spinbox(min, max, **kw):
             return super().eventFilter(source, event)
 
         def stepBy(self, *args, **kw):
+            if self.specialValueText() != "":
+                from chimerax.core.errors import LimitationError
+                raise LimitationError("Cannot increment value")
             super().stepBy(*args, **kw)
             self.editingFinished.emit()
 
