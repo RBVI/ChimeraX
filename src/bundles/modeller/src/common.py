@@ -542,15 +542,15 @@ class ModellerWebJob(CxServicesJob):
             self.processed_input_file_map.append(entry[2])
         self.start(self.service_name, self.params, self.processed_input_file_map)
 
-    #def monitor(self):
-    #    super().monitor()
-    #    stdout = self.get_file("stdout.txt")
-    #    num_done = stdout.count('# Heavy relative violation of each residue is written to:')
-    #    num_done = max(stdout.count('>> Normalized DOPE z score') - 1, 0)
-    #    if not num_done:
-    #        self.thread_safe_log("No models generated yet")
-    #    else:
-    #        self.thread_safe_log("%d of %d models generated" % (num_done, self.caller.num_models))
+    def monitor(self):
+        super().monitor()
+        stdout = self.get_file("stdout.txt")
+        num_done = stdout.count('# Heavy relative violation of each residue is written to:')
+        num_done = max(stdout.count('>> Normalized DOPE z score') - 1, 0)
+        if not num_done:
+            self.thread_safe_status("Modeller Webservice: No models generated yet")
+        else:
+            self.thread_safe_status("Modeller Webservice: %d of %d models generated" % (num_done, self.caller.num_models))
 
     def on_finish(self):
         # Clean up the temporary directory

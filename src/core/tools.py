@@ -304,6 +304,21 @@ class Tools(StateManager):
         """
         return list(self._tool_instances)
 
+    def __getitem__(self, i):
+        '''index into tools using square brackets (e.g. session.models[i])'''
+        return list(self._tool_instances)[i]
+
+    def __iter__(self):
+        '''iterator over tools'''
+        return iter(self._tool_instances)
+
+    def __len__(self):
+        '''number of tools'''
+        return len(self._tool_instances)
+
+    def __bool__(self):
+        return len(self._tool_instances) != 0
+
     def add(self, ti_list):
         """Register running tools with state manager.
 

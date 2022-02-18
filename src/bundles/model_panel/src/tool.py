@@ -351,8 +351,8 @@ class ModelPanel(ToolInstance):
                 "!" if len(model.all_models()) > 1 else "", model.id_string))
         elif column == self.SELECT_COLUMN:
             self.self_initiated = True
-            prefix = "" if item.checkState(self.SELECT_COLUMN) == Qt.CheckState.Checked else "~"
-            run(self.session, prefix + "select #" + model.id_string)
+            mode = "add" if item.checkState(self.SELECT_COLUMN) == Qt.CheckState.Checked else "subtract"
+            run(self.session, "select " + mode +  " #" + model.id_string)
         elif column == self.ID_COLUMN:
             id_text = item.text(self.ID_COLUMN)
             try:

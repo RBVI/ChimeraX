@@ -68,7 +68,7 @@ END_TASK = 'end task'
 
 task_triggers = [ADD_TASK, REMOVE_TASK, UPDATE_TASK, END_TASK]
 
-# Possible task state
+# Possible task states
 PENDING = "pending"         # Initialized but not running
 RUNNING = "running"         # Running
 TERMINATING = "terminating" # Termination requested
@@ -191,7 +191,8 @@ class Task(State):
         if kw.get("blocking", False):
             self._thread.join()
             self.update_state(FINISHED)
-            self.session.ui.thread_safe(self.on_finish)
+            if self.exited_normally():
+                self.session.ui.thread_safe(self.on_finish)
 
     def _cleanup(self):
         """Clean up after thread has ended.
@@ -217,7 +218,11 @@ class Task(State):
                 self.update_state(TERMINATED)
             else:
                 self.update_state(FINISHED)
-        self.session.ui.thread_safe(self.on_finish)
+        if self.exited_normally():
+            self.session.ui.thread_safe(self.on_finish)
+
+    def exited_normally(self) -> bool:
+        return True
 
     @abc.abstractmethod
     def run(self, *args, **kw):
@@ -292,18 +297,6 @@ class Job(Task):
 
         """
         raise RuntimeError("base class \"monitor\" method called.")
-
-    @abc.abstractmethod
-    def exited_normally(self):
-        """Return whether job terminated normally.
-
-        Returns
-        -------
-        status : bool
-            True if normal termination, False otherwise.
-
-        """
-        raise RuntimeError("base class \"exited_normally\" method called.")
 
     def __str__(self):
         return ("ChimeraX Job, ID %s" % self.id)

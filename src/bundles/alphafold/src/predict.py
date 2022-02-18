@@ -19,6 +19,7 @@ def alphafold_predict(session, sequences, prokaryote = False):
         from chimerax.core.errors import UserError
         raise UserError('AlphaFold prediction currently running.  Can only run one at a time.')
     ar.start(sequences, prokaryote)
+    return ar
 
 # ------------------------------------------------------------------------------
 #

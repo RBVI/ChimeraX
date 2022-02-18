@@ -27,6 +27,7 @@ class ItemsGenerator:
         super().__init__(**kw)
 
     def destroy(self):
+        self.list_func = self.filter_func = self.key_func = self.item_text_func = None
         try:
             self.item_map.clear()
             self.value_map.clear()
@@ -115,7 +116,7 @@ class ItemListWidget(ItemsGenerator, ItemsUpdater, QListWidget):
     def destroy(self):
         ItemsGenerator.destroy(self)
         ItemsUpdater.destroy(self)
-        self.itemSelectionChanged.disconnect(self.value_changed.emit)
+        self.itemSelectionChanged.disconnect()
         QListWidget.destroy(self)
 
     @property
