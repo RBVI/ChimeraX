@@ -373,11 +373,15 @@ def volume_contour_cmds(session, requested_contour_level=None):
 
     return cmds
 
-def volume_preset_cmds(session, preset, contour_level=None):
+def volume_setup_cmds(session, contour_level=None):
     cmds = undo_printable + base_setup
     contour_cmds = volume_contour_cmds(session, requested_contour_level=contour_level)
     cmds += contour_cmds
     cmds += volume_cleanup_cmds(session, contour_cmds=contour_cmds)
+    return cmds
+
+def volume_finishing_cmds(session, preset):
+    cmds = []
     if preset == "white":
         cmds += [ "color white" ]
     elif preset == "radial":
@@ -389,4 +393,10 @@ def volume_preset_cmds(session, preset, contour_level=None):
     else:
         from chimerax.core.errors import UserError
         raise UserError("Unknown NIH3D preset 'volume %s'" % name)
+    return cmds
+
+def volume_preset_cmds(session, preset, contour_level=None):
+    # split into two calls so that the NIH 3D print exchange can call them directly
+    cmds = volume_setup_cmds(session, contour_level)
+    cmds += volume_finishing_cmds(session, preset)
     return cmds
