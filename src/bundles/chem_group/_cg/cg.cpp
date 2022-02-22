@@ -85,9 +85,9 @@ public:
 class AtomElementCondition: public AtomCondition
 // Python equivalent:  int
 {
-	int  _element_num;
+	unsigned int  _element_num;
 public:
-	AtomElementCondition(int element_num): _element_num(element_num) {}
+	AtomElementCondition(unsigned int element_num): _element_num(element_num) {}
 	virtual  ~AtomElementCondition() {}
 	bool  atom_matches(const Atom* a) const {
 		return a != nullptr && a->element().number() == _element_num;
@@ -610,7 +610,7 @@ make_simple_atom_condition(PyObject* atom_rep)
 	if (PyUnicode_Check(atom_rep))
 		return new AtomIdatmCondition(PyUnicode_AsUTF8(atom_rep));
 	if (PyLong_Check(atom_rep)) 
-		return new AtomElementCondition((int)PyLong_AsLong(atom_rep));
+		return new AtomElementCondition((unsigned int)PyLong_AsLong(atom_rep));
 	if (PyTuple_Check(atom_rep)) {
 		auto cond = new AtomAlternativesCondition;
 		auto num_conds = PyTuple_GET_SIZE(atom_rep);
@@ -1434,6 +1434,7 @@ find_aromatics(PyObject *, PyObject *args)
 	auto s = static_cast<AtomicStructure*>(PyLong_AsVoidPtr(py_struct_ptr));
 
 	std::vector<Group> groups;
+	s->ready_idatm_types(); // ring.aromatic() can cause IDATM check, which can recompute rings...
 	for (auto& ring: s->rings()) {
 		if (ring.aromatic())
 			groups.emplace_back(ring.atoms().begin(), ring.atoms().end());
