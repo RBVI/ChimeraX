@@ -20,7 +20,7 @@ jedi==0.18.1
 jupyter-client==7.1.0
 lxml==4.7.1
 lz4==3.1.10
-matplotlib==3.5.1 ; platform_machine != 'arm64'
+matplotlib==3.5.1
 msgpack==1.0.3
 netCDF4==1.5.8 ; platform_machine != 'arm64'
 networkx==2.6.3
@@ -42,7 +42,7 @@ python-dateutil==2.8.2
 #PySide2==5.15.2
 qtconsole==5.2.2
 requests==2.27.1
-scipy==1.7.3 ; platform_machine != 'arm64'
+scipy==1.7.3
 six==1.16.0
 sortedcontainers==2.4.0
 suds-community==1.0.0
