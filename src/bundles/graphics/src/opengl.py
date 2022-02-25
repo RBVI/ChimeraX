@@ -2467,7 +2467,8 @@ class Bindings:
             self._opengl_context._bindings.add(self)
             GL.glBindVertexArray(self._vao_id)
             for buffer in tuple(self._bound_attr_buffers.values()):
-                self.bind_shader_variable(buffer)
+                if buffer is not None:
+                    self.bind_shader_variable(buffer)
             eb = self._bound_element_buffer
             if eb:
                 self.bind_shader_variable(eb)
