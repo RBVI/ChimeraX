@@ -2595,8 +2595,8 @@ class Command:
                 return
             # word might be part of multiword command name
             if parent_info.cmd_desc is None:
-                self._error = ("Incomplete command: %s"
-                               % self.current_text[self.start:self.amount_parsed])
+                self.command_name = self.current_text[self.start:self.amount_parsed]
+                self._error = "Incomplete command: %s" % self.command_name
 
     def _process_positional_arguments(self):
         # side effects:
@@ -3023,8 +3023,6 @@ def command_url(name, no_aliases=False, *, registry=None):
         raise ValueError('"%s" is not a command name' % name)
     if cmd._ci:
         return cmd._ci.url
-    if cmd._error:
-        raise ValueError(cmd._error)
     return _get_help_url(cmd.command_name.split())
 
 
