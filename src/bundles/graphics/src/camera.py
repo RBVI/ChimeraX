@@ -441,6 +441,11 @@ class StereoCamera(Camera):
         '''Set the OpenGL drawing buffer and viewport to render the scene.'''
         render.set_stereo_buffer(view_num)
 
+    def combine_rendered_camera_views(self, render):
+        # When user switches back to mono camera make sure draw buffer is set to GL_BACK
+        render.set_stereo_buffer(None)
+
+
 class SplitStereoCamera(Camera):
     '''Side-by-side and top-bottom stereo.'''
 
