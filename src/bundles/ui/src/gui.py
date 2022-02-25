@@ -573,6 +573,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         gw.destroy()
 
         self.graphics_window = g
+        g.keyPressEvent = self.session.ui.forward_keystroke
         self._stack.addWidget(g.widget)
         self._stack.setCurrentWidget(g.widget)
 
