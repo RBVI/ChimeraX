@@ -14,10 +14,13 @@
 def sequence_model(session, targets, *, block=None, multichain=True, custom_script=None,
                    dist_restraints=None, executable_location=None, fast=False, het_preserve=False,
                    hydrogens=False, license_key=None, num_models=5, temp_path=None, thorough_opt=False,
-                   water_preserve=False):
+                   water_preserve=False, directory=None):
     '''
     Command to generate a comparative model of one or more chains
     '''
+    # Command keyword was tempPath, now directory...
+    if temp_path is None and directory is not None:
+        temp_path = directory
     from chimerax.core.errors import UserError
     seen = set()
     for alignment, seq in targets:
@@ -40,10 +43,13 @@ def sequence_model(session, targets, *, block=None, multichain=True, custom_scri
         raise UserError(e)
 
 def model_loops(session, targets, *, adjacent_flexible=1, block=None, chains=None, executable_location=None,
-                fast=False, license_key=None, num_models=5, protocol=None, temp_path=None):
+                fast=False, license_key=None, num_models=5, protocol=None, temp_path=None, directory=None):
     '''
     Command to model loops or refine structure regions
     '''
+    # Command keyword was tempPath, now directory...
+    if temp_path is None and directory is not None:
+        temp_path = directory
     from chimerax.core.errors import UserError
     if block is None:
         block = session.in_script or not session.ui.is_gui
@@ -148,6 +154,7 @@ def register_command(logger):
             ('fast', BoolArg), ('het_preserve', BoolArg), ('hydrogens', BoolArg),
             ('license_key', PasswordArg), ('num_models', IntArg),
             ('temp_path', OpenFolderNameArg),
+            ('directory', OpenFolderNameArg),
             # ('thorough_opt', BoolArg),
             ('water_preserve', BoolArg)
         ],
@@ -168,6 +175,7 @@ def register_command(logger):
             ('fast', BoolArg), ('license_key', PasswordArg), ('num_models', IntArg),
             ('protocol', EnumOf(protocols)),
             ('temp_path', OpenFolderNameArg),
+            ('directory', OpenFolderNameArg),
         ],
         synopsis = 'Use Modeller to model loops or refine structure'
     )
