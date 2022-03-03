@@ -13,8 +13,8 @@
  * === UCSF ChimeraX Copyright ===
  */
 
-#ifndef atomsearch_search
-#define atomsearch_search
+#ifndef atomstruct_search
+#define atomstruct_search
 
 #include "imex.h"
 
@@ -25,9 +25,7 @@
 #include "atomstruct/Atom.h"
 #include "atomstruct/destruct.h"
 
-using atomstruct::Atom;
-using atomstruct::Coord;
-using atomstruct::Real;
+namespace atomstruct {
 
 class _Node {
 private:
@@ -48,7 +46,7 @@ public:
     NodeType  type;
 };
 
-class ATOM_SEARCH_IMEX AtomSearchTree: public atomstruct::DestructionObserver {
+class ATOMSTRUCT_IMEX AtomSearchTree: public DestructionObserver {
     // AtomSearchTree is a specialization of an 'adaptive k-d tree'
     // as per "The Design and Analysis of Spatial Data Structures" pp. 70-71.
     // Basically, given a set of k-dimensional points (each dimension referred
@@ -80,4 +78,6 @@ public:
     _Node  *root;
 };
 
-#endif  // atomsearch_search
+}  // namespace atomstruct
+
+#endif  // atomstruct_search
