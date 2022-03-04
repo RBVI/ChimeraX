@@ -62,13 +62,14 @@ def volume_center_of_mass(v, level = None):
     m = v.data.full_matrix()
 
     # Find indices of map values above displayed threshold.
-    kji = (m >= level).nonzero()
+    kji = m.nonzero() if level is None else (m >= level).nonzero()
 
     # Compute total mass above threshold.
-    msum = m[kji].sum()
+    values = m[kji]
+    msum = values.sum()
 
     # Compute mass-weighted center
-    center = [(i*m[kji]).sum()/msum for i in kji]
+    center = [(i*values).sum()/msum for i in kji]
     center.reverse()        # k,j,i -> i,j,k index order
 
     return center
