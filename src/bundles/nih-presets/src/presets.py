@@ -387,7 +387,8 @@ def volume_finishing_cmds(session, preset):
     elif preset == "radial":
         from chimerax.map import Volume
         for v in session.models.list(type=Volume):
-            cmds += [ "color radial %s palette red:yellow:green:cyan:blue" % v.atomspec ]
+            cmds += [ "color radial %s palette red:yellow:green:cyan:blue center %s"
+                % (v.atomspec, v.atomspec) ]
     elif preset == "monochrome":
         cmds += [ "color nih_blue" ]
     else:
