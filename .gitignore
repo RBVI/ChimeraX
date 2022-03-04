@@ -87,7 +87,7 @@ src/bundles/rest_server/src/server.pem
 src/bundles/rest_server/server.key
 src/bundles/ui/src/about.html
 src/bundles/segger/seggerx/
-src/bundles/segger/seggerx_2021_06_11.tar.gz
+src/bundles/segger/seggerx*.tar.gz
 src/bundles/std_commands/bundle_info.xml
 src/bundles/viewdockx/src/lib/flot
 src/bundles/viewdockx/src/lib/rateyo

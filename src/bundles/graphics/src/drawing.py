@@ -902,7 +902,11 @@ class Drawing:
             tm = self._triangle_mask
             tmsel = self.highlighted_displayed_triangles_mask
             ds.update_element_buffer(ta, style, tm, em)
-            dss.update_element_buffer(ta, style, tmsel, em)
+            if tmsel is tm:
+                # Avoid slow recomputation of mesh edges. Ticket #6243
+                dss.copy_elements(ds)
+            else:
+                dss.update_element_buffer(ta, style, tmsel, em)
 
         # Update instancing buffers
         p = self.positions
@@ -1670,7 +1674,7 @@ class _DrawShape:
         self.instance_matrices = None	    # matrices for displayed instances
         self.instance_colors = None
         self.elements = None                # Triangles after mask applied
-        self.masked_edges = None
+        self._masked_edges = None
         self._edge_mask = None
         self._tri_mask = None
 
@@ -1692,7 +1696,7 @@ class _DrawShape:
             
     def delete(self):
 
-        self.masked_edges = None
+        self._masked_edges = None
         self.instance_shift_and_scale = None
         self.instance_matrices = None
         self.instance_colors = None
@@ -1750,10 +1754,22 @@ class _DrawShape:
 
     def update_element_buffer(self, triangles, style, triangle_mask, edge_mask):
 
-        self.elements = e = self.masked_elements(triangles, style, triangle_mask, edge_mask)
+        e = self.masked_elements(triangles, style, triangle_mask, edge_mask)
+        self.set_elements(e)
+
+    def copy_elements(self, draw_shape):
+
+        self._masked_edges = draw_shape._masked_edges
+        self._edge_mask = draw_shape._edge_mask
+        self._tri_mask = draw_shape._tri_mask
+        self.set_elements(draw_shape.elements)
+
+    def set_elements(self, elements):
+
+        self.elements = elements
 
         eb = self.element_buffer
-        if eb is None and len(e) > 0:
+        if eb is None and len(elements) > 0:
             self.element_buffer = eb = self.create_element_buffer()
 
         if eb:
@@ -1776,7 +1792,7 @@ class _DrawShape:
                 ta = masked_edges(ta, **kw)
             else:
                 # TODO: Need to reset masked_edges if edge_mask changed.
-                me = self.masked_edges
+                me = self._masked_edges
                 if (me is None or edge_mask is not self._edge_mask or
                     tmask is not self._tri_mask):
                     kw = {}
@@ -1784,7 +1800,7 @@ class _DrawShape:
                         kw['edge_mask'] = edge_mask
                     if tmask is not None:
                         kw['triangle_mask'] = tmask
-                    self.masked_edges = me = masked_edges(ta, **kw)
+                    self._masked_edges = me = masked_edges(ta, **kw)
                     self._edge_mask, self._tri_mask = edge_mask, tmask
                 ta = me
         elif style == Drawing.Dot:

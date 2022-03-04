@@ -573,6 +573,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         gw.destroy()
 
         self.graphics_window = g
+        g.keyPressEvent = self.session.ui.forward_keystroke
         self._stack.addWidget(g.widget)
         self._stack.setCurrentWidget(g.widget)
 
@@ -2017,12 +2018,15 @@ class ToolWindow(StatusLogger):
     def hides_title_bar(self):
         return self.__toolkit.hide_title_bar
 
+
+    # PyQt6 uses Python enums instead of ints
+    dock_area_value = lambda x: x if isinstance(x, int) else x.value
     from Qt.QtCore import Qt
     window_placement_to_text = {
-        Qt.DockWidgetArea.RightDockWidgetArea: "right",
-        Qt.DockWidgetArea.LeftDockWidgetArea: "left",
-        Qt.DockWidgetArea.TopDockWidgetArea: "top",
-        Qt.DockWidgetArea.BottomDockWidgetArea: "bottom"
+        dock_area_value(Qt.DockWidgetArea.RightDockWidgetArea): "right",
+        dock_area_value(Qt.DockWidgetArea.LeftDockWidgetArea): "left",
+        dock_area_value(Qt.DockWidgetArea.TopDockWidgetArea): "top",
+        dock_area_value(Qt.DockWidgetArea.BottomDockWidgetArea): "bottom"
     }
     def manage(self, placement, fixed_size=False, allowed_areas=Qt.DockWidgetArea.AllDockWidgetAreas,
             initially_hidden=False):
@@ -2078,7 +2082,7 @@ class ToolWindow(StatusLogger):
                         continue
                     break
                 else:
-                    placement = self.window_placement_to_text[placement]
+                    placement = self.window_placement_to_text[self.__class__.dock_area_value(placement)]
             if geom_info is not None:
                 from Qt.QtCore import QRect
                 geometry = QRect(*geom_info)

@@ -21,7 +21,7 @@ TOOLSHED_UTILS_SUBDIR = toolshed_utils
 
 REST_SUBDIRS = add_charge addh align_algs alignment_hdrs \
 	  alignments alphafold altloc_explorer amber_info arrays atom_search \
-	  atom_search_lib atomic atomic_lib axes_planes basic_actions bild \
+	  atomic atomic_lib axes_planes basic_actions bild \
 	  blastprotein bond_rot bug_reporter build_structure \
 	  bumps buttons cage_builder \
 	  cellpack centroids chem_group clashes cmd_line color_actions \

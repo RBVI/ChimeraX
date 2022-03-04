@@ -2297,8 +2297,10 @@ class Panel:
             et = QEvent.MouseMove
             button =  Qt.NoButton
             buttons = Qt.LeftButton
+        from Qt.QtCore import QPoint, QPointF
+        screen_pos = QPointF(w.mapToGlobal(QPoint(int(pos.x()), int(pos.y()))))
         from Qt.QtGui import QMouseEvent
-        me = QMouseEvent(et, pos, button, buttons, Qt.NoModifier)
+        me = QMouseEvent(et, pos, screen_pos, button, buttons, Qt.NoModifier)
         self._ui._session.ui.postEvent(w, me)
         return w
 
@@ -2313,7 +2315,7 @@ class Panel:
         pwp = QPoint(int(x), int(y))
         w = pw.childAt(pwp)	# Works even if widget is covered.
         if w is None:
-            return pw, pwp
+            return pw, QPointF(x,y)
         gp = pw.mapToGlobal(pwp)
         # Using w = ui.widgetAt(gp) does not work if the widget is covered by another app.
         wpos = QPointF(w.mapFromGlobal(gp)) if w else None
@@ -2359,8 +2361,11 @@ class Panel:
             return window_xy[1] < 0
         w, pos = self.clicked_widget(window_xy)
         from Qt.QtWidgets import QMenuBar, QDockWidget
-        if isinstance(w, QMenuBar) and w.actionAt(pos) is None:
-            return True
+        if isinstance(w, QMenuBar):
+            from Qt.QtCore import QPoint
+            ipos = QPoint(int(pos.x()),int(pos.y()))
+            if w.actionAt(ipos) is None:
+                return True
         from chimerax.ui.widgets.tabbedtoolbar import TabbedToolbar
         return isinstance(w, (QDockWidget, TabbedToolbar))
                            
