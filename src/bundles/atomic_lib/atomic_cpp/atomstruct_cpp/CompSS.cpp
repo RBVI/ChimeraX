@@ -205,6 +205,7 @@ hbonded_to(KsdsspCoords *c1, KsdsspCoords *other_crds, float hbond_cutoff)
 static void
 find_hbonds(KsdsspParams& params)
 {
+	// it's okay for loop vars to be unsigned here, since we don't subtract from them
     auto num_res = params.residues.size();
     std::vector<bool> is_pro;
     // mark prolines
@@ -438,7 +439,8 @@ find_beta_bulge(KsdsspParams& params)
 static void
 find_bridges(KsdsspParams& params)
 {
-    auto max = params.residues.size();
+	// these loop-related variable need to be int, so that that var-1 can be negative, not a large positive
+    int max = params.residues.size();
 
     // First we construct a matrix and mark the bridges
     typedef std::vector<std::vector<char> > Bridge;
@@ -451,7 +453,7 @@ find_bridges(KsdsspParams& params)
     for (i = 0; i < max-1; ++i) {
 		// we're looking for hbonds involving adjacent residues, so loosen search criteria
 		for (auto near: params.search_tree->search(*(params.coords[i]->n), 20.0)) {
-			auto near_index = params.search_lookup[near];
+			int near_index = params.search_lookup[near];
 			if (near_index <= i)
 				continue;
             if ((i > 0 && params.hbonds[i-1][near_index] && params.hbonds[near_index][i+1])
