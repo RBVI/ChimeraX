@@ -1267,11 +1267,20 @@ class Render:
         return rgba
 
     def set_stereo_buffer(self, eye_num):
-        '''Set the draw read buffer for the left eye (0) or right eye (1).'''
+        '''
+        Set the draw buffer to GL_BACK_LEFT for eye_num = 0
+        or GL_BACK_RIGHT for eye_num = 1 or GL_BACK for eye_num = None.
+        '''
         self.full_viewport()
         if self.rendering_to_screen():
-            b = GL.GL_BACK_LEFT if eye_num == 0 else GL.GL_BACK_RIGHT
+            if eye_num == 0:
+                b = GL.GL_BACK_LEFT
+            elif eye_num == 1:
+                b = GL.GL_BACK_RIGHT
+            elif eye_num is None:
+                b = GL.GL_BACK
             GL.glDrawBuffer(b)
+            self.current_framebuffer().set_draw_buffer(b)
 
     def start_depth_render(self, framebuffer, texture_unit, center, radius, size):
 
@@ -2282,6 +2291,10 @@ class Framebuffer:
         # Restore draw buffer
         GL.glBindFramebuffer(GL.GL_DRAW_FRAMEBUFFER, from_id)
 
+    def set_draw_buffer(self, buffer_name):
+        # When framebuffer is activated, glDrawBuffer() is set using this value.
+        self._draw_buffer = buffer_name
+        
 class Lighting:
     '''
     Lighting parameters specifying colors and directions of two lights:
@@ -2454,7 +2467,8 @@ class Bindings:
             self._opengl_context._bindings.add(self)
             GL.glBindVertexArray(self._vao_id)
             for buffer in tuple(self._bound_attr_buffers.values()):
-                self.bind_shader_variable(buffer)
+                if buffer is not None:
+                    self.bind_shader_variable(buffer)
             eb = self._bound_element_buffer
             if eb:
                 self.bind_shader_variable(eb)

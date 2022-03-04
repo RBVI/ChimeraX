@@ -16,8 +16,10 @@
 #include <algorithm>  // std::sort, mix/max_element
 #include <utility>  // std::make_pair
 
-#define ATOM_SEARCH_EXPORT
+#define ATOMSTRUCT_EXPORT
 #include "search.h"
+
+namespace atomstruct {
 
 AtomSearchTree::AtomSearchTree(const std::vector<Atom*>& atoms, bool transformed, double sep_val):
     _atoms(atoms), _sep_val(sep_val), _transformed(transformed)
@@ -282,3 +284,5 @@ _Node::search(const Coord& target, double window_sq, double* diffs_sq)
     }
     return leaves;
 }
+
+}  // namespace atomstruct

@@ -276,8 +276,9 @@ class Chimera_HDF_Image:
         if 'rotation_axis' in va and 'rotation_angle' in va:
             axis = va.rotation_axis
             angle = va.rotation_angle
-            from chimerax.geometry import matrix
-            r = matrix.rotation_from_axis_angle(axis, angle)
+            from chimerax.geometry import rotation
+            rot = rotation(axis, angle)
+            r = tuple(tuple(row) for row in rot.matrix[:,:3])
         else:
             r = ((1,0,0),(0,1,0),(0,0,1))
         return r

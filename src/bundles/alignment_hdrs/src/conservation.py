@@ -167,6 +167,12 @@ class Conservation(DynamicHeaderSequence):
         evaluation_func = self._reeval_al2co if self.style == self.STYLE_AL2CO else evaluation_func
         return super().reevaluate(pos1, pos2, evaluation_func=evaluation_func)
 
+    @property
+    def residue_attr_name(self):
+        if self.style == self.STYLE_CLUSTAL_CHARS:
+            return self.ATTR_PREFIX + "clustal_" + self.ident
+        return self.ATTR_PREFIX + self.ident
+
     def set_state(self, state):
         super().set_state(state['base state'])
         for param, val in state['al2co params'].items():
@@ -200,6 +206,12 @@ class Conservation(DynamicHeaderSequence):
             return
         self._set_update_vars(style)
         self.settings.style = style
+
+    @property
+    def value_type(self):
+        if self.style == self.STYLE_CLUSTAL_CHARS:
+            return str
+        return float
 
     def clustal_type(self, pos):
         conserve = None

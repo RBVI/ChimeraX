@@ -1,6 +1,7 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 from io import StringIO
 from chimerax.ui import HtmlToolInstance
+from chimerax.core.errors import UserError
 
 
 class _BaseTool(HtmlToolInstance):
@@ -51,7 +52,6 @@ class _BaseTool(HtmlToolInstance):
                           if hasattr(s, "viewdockx_data") and s.viewdockx_data]
 
         if not structures:
-            from chimerax.core.errors import UserError
             raise UserError("No suitable models found for ViewDockX")
         self.structures = structures
         t = session.triggers
@@ -483,6 +483,8 @@ class TableTool(_BaseTool):
                 print("\n\n", end='', file=outf)
 
     def _cb_prune(self, query):
+        if 'stars' not in query:
+            raise UserError("Must select a number of stars next to the 'Close' button")
         stars = int(query["stars"][0])
         structures = [s for s in self.structures
                       if int(s.viewdockx_data[self.category_rating]) <= stars]

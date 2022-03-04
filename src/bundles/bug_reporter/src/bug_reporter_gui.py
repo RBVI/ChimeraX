@@ -236,6 +236,8 @@ class BugReporter(ToolInstance):
 
         # Add attachment to form data.
         file_list = self.read_attachment(entry_values['filename'])
+        if file_list is None:
+            return	# Attachment file not found.
         fields = [(k, None, v) for k,v in my_attrs.items()]
         fields.extend(file_list)
 

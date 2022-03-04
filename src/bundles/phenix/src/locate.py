@@ -17,17 +17,19 @@ def find_phenix_command(session, program_name, phenix_location = None):
     bin_dir = 'build/bin'	# For Python 2 Phenix
     bin_dir = 'bin'		# For Python 3 Phenix
     settings = _phenix_settings(session)
-    from os.path import isfile, isdir, join
+    from os.path import isfile, isdir, join, expanduser
+    from chimerax.core.errors import UserError
     if phenix_location is None:
         if settings.phenix_location:
             cmd = join(settings.phenix_location, bin_dir, program_name)
             if isfile(cmd):
                 return cmd
-            
+
         phenix_dirs = []
+        search_dirs = [expanduser("~")]
         import sys
         if sys.platform == 'darwin':
-            search_dirs = ['/Applications']
+            search_dirs.append('/Applications')
         for search_dir in search_dirs:
             if isdir(search_dir):
                 from os import listdir
@@ -36,16 +38,17 @@ def find_phenix_command(session, program_name, phenix_location = None):
                 pdirs.sort(reverse = True)
                 phenix_dirs.extend(pdirs)
         if len(phenix_dirs) == 0:
-            from chimerax.core.errors import UserError
             raise UserError('Could not find phenix installation in ' + ', '.join(search_dirs))
         for pdir in phenix_dirs:
             cmd = join(pdir, bin_dir, program_name)
             if isfile(cmd):
                 return cmd
+        from chimerax.core.commands import commas
+        raise UserError('Could not find phenix program %s in %s folder of %s' % (program_name, bin_dir,
+            commas(phenix_dirs)))
     else:
         cmd = join(phenix_location, bin_dir, program_name)
         if not isfile(cmd):
-            from chimerax.core.errors import UserError
             raise UserError('Could not find phenix program ' + cmd)
         settings.phenix_location = phenix_location
         settings.save()
