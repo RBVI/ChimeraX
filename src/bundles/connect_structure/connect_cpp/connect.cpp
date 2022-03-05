@@ -18,13 +18,13 @@
 #include <list>
 #include <set>
 
-#include <atomsearch/search.h>
 #include <atomstruct/Atom.h>
 #include <atomstruct/AtomicStructure.h>
 #include <atomstruct/Coord.h>
 #include <atomstruct/PBGroup.h>
 #include <atomstruct/polymer.h>
 #include <atomstruct/Residue.h>
+#include <atomstruct/search.h>
 #include <atomstruct/Sequence.h>
 #include <atomstruct/string_types.h>
 
@@ -48,7 +48,7 @@ connect_structure(AtomicStructure* s, float bond_len_tolerance, float metal_coor
 	// correct in multiple coordinate sets
 	const float search_dist = std::max((float)(3.0 + bond_len_tolerance), metal_coord_dist);
 	float search_val = search_dist + bond_len_tolerance;
-	atomsearch_search::AtomSearchTree  tree(s->atoms(), false, search_val);
+	AtomSearchTree  tree(s->atoms(), false, search_val);
 	std::list<std::pair<float,std::pair<Atom*,Atom*>>> possible_bonds;
 	std::set<Atom*> processed;
 	bool check_prebonded = s->bonds().size() > 0;

@@ -1,4 +1,4 @@
-# vim: set expandtab ts=4 sw=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
 # Copyright 2016 Regents of the University of California.
@@ -13,15 +13,12 @@
 
 from chimerax.core.toolshed import BundleAPI
 
-class _AtomSearchAPI(BundleAPI):
-    pass
+class _NIH3DPresetsBundleAPI(BundleAPI):
 
-bundle_api = _AtomSearchAPI()
+    @staticmethod
+    def run_provider(session, name, mgr, **kw):
+        """Invoke preset"""
+        from .presets import run_preset
+        run_preset(session, name, mgr, **kw)
 
-# make our shared libs linkable by other bundles
-import sys
-if sys.platform.startswith('win'):
-    from os import path, add_dll_directory
-    libdir = path.join(path.dirname(__file__), 'lib')
-    add_dll_directory(libdir)
-from . import _load_libs
+bundle_api = _NIH3DPresetsBundleAPI()

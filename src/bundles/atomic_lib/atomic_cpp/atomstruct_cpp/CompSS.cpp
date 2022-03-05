@@ -28,6 +28,7 @@
 #include "CompSS.h"
 #include "Coord.h"
 #include "Residue.h"
+#include "search.h"
 
 class bad_coords_error: public std::exception {
 public:
@@ -108,6 +109,8 @@ struct KsdsspParams {
     std::vector<Residue *>  residues;
     bool  report;
 	CompSSInfo*	ss_info;
+	AtomSearchTree* search_tree;
+	std::map<Atom*, std::vector<Residue*>::size_type> search_lookup;
 };
 
 //
@@ -202,7 +205,8 @@ hbonded_to(KsdsspCoords *c1, KsdsspCoords *other_crds, float hbond_cutoff)
 static void
 find_hbonds(KsdsspParams& params)
 {
-    int num_res = params.residues.size();
+	// it's okay for loop vars to be unsigned here, since we don't subtract from them
+    auto num_res = params.residues.size();
     std::vector<bool> is_pro;
     // mark prolines
     for (auto r: params.residues) {
@@ -215,19 +219,22 @@ find_hbonds(KsdsspParams& params)
         Atom *cd = r->find_atom("CD");
         is_pro.push_back(cd && std::find(nnb.begin(), nnb.end(), cd) != nnb.end());
     }
-    for (int i = 0; i < num_res; ++i) {
+    for (decltype(num_res) i = 0; i < num_res; ++i) {
         KsdsspCoords *crds1 = params.coords[i];
-        for (int j = i + 2; j < num_res; ++j) {
-            KsdsspCoords *crds2 = params.coords[j];
+		for (auto near: params.search_tree->search(*(crds1->n), 10.0)) {
+			auto near_index = params.search_lookup[near];
+			if (near_index <= i+1)
+				continue;
+            KsdsspCoords *crds2 = params.coords[near_index];
             // proline backbone nitrogen cannot donate
-            if (is_pro[j])
-                params.hbonds[i][j] = false;
+            if (is_pro[near_index])
+                params.hbonds[i][near_index] = false;
             else
-                params.hbonds[i][j] = hbonded_to(crds1, crds2, params.hbond_cutoff);
+                params.hbonds[i][near_index] = hbonded_to(crds1, crds2, params.hbond_cutoff);
             if (is_pro[i])
-                params.hbonds[j][i] = false;
+                params.hbonds[near_index][i] = false;
             else
-                params.hbonds[j][i] = hbonded_to(crds2, crds1, params.hbond_cutoff);
+                params.hbonds[near_index][i] = hbonded_to(crds2, crds1, params.hbond_cutoff);
         }
     }
 }
@@ -432,6 +439,7 @@ find_beta_bulge(KsdsspParams& params)
 static void
 find_bridges(KsdsspParams& params)
 {
+	// these loop-related variable need to be int, so that that var-1 can be negative, not a large positive
     int max = params.residues.size();
 
     // First we construct a matrix and mark the bridges
@@ -441,29 +449,33 @@ find_bridges(KsdsspParams& params)
     for (auto& br: bridge)
         br.resize(max);
 
-    int i;
+    decltype(max) i;
     for (i = 0; i < max-1; ++i) {
-        for (int j = i + 1; j < max; ++j) {
-            if ((i > 0 && params.hbonds[i-1][j] && params.hbonds[j][i+1])
-            || (j < max-1 && params.hbonds[j-1][i] && params.hbonds[i][j+1])) {
-                bridge[i][j] = 'P';
+		// we're looking for hbonds involving adjacent residues, so loosen search criteria
+		for (auto near: params.search_tree->search(*(params.coords[i]->n), 20.0)) {
+			int near_index = params.search_lookup[near];
+			if (near_index <= i)
+				continue;
+            if ((i > 0 && params.hbonds[i-1][near_index] && params.hbonds[near_index][i+1])
+            || (near_index < max-1 && params.hbonds[near_index-1][i] && params.hbonds[i][near_index+1])) {
+                bridge[i][near_index] = 'P';
                 params.rflags[params.residues[i]] |= DSSP_PBRIDGE;
-                params.rflags[params.residues[j]] |= DSSP_PBRIDGE;
+                params.rflags[params.residues[near_index]] |= DSSP_PBRIDGE;
             }
-            else if ((params.hbonds[i][j] && params.hbonds[j][i])
-            || (i > 0 && j < max-1 && params.hbonds[i-1][j+1] && params.hbonds[j-1][i+1]))
+            else if ((params.hbonds[i][near_index] && params.hbonds[near_index][i])
+            || (i > 0 && near_index < max-1 && params.hbonds[i-1][near_index+1] && params.hbonds[near_index-1][i+1]))
             {
-                bridge[i][j] = 'A';
+                bridge[i][near_index] = 'A';
                 params.rflags[params.residues[i]] |= DSSP_ABRIDGE;
-                params.rflags[params.residues[j]] |= DSSP_ABRIDGE;
+                params.rflags[params.residues[near_index]] |= DSSP_ABRIDGE;
             }
         }
     }
 
     // Now we loop through and find the ladders
-    int k;
+    decltype(i) k;
     for (i = 0; i < max; ++i) {
-        for (int j = i + 1; j < max; ++j) {
+        for (decltype(i) j = i + 1; j < max; ++j) {
             switch (bridge[i][j]) {
               case 'P':
                 for (k = 0; i+k < max && j+k < max && bridge[i+k][j+k] == 'P'; ++k)
@@ -870,6 +882,7 @@ AtomicStructure::compute_secondary_structure(float energy_cutoff,
         // commented out lines that restricted
         // sheets to be intra-chain
         //Residue *prev_res = nullptr;
+		std::vector<Atom*> ns;
         for (auto r: residues()) {
             r->set_is_helix(false);
             r->set_is_strand(false);
@@ -887,6 +900,9 @@ AtomicStructure::compute_secondary_structure(float energy_cutoff,
             if (!n || !ca || !o)
                 continue;
             
+
+			ns.push_back(n);
+			params.search_lookup[n] = params.residues.size();
             params.residues.push_back(r);
             KsdsspCoords *crds = new KsdsspCoords;
             params.coords.push_back(crds);
@@ -902,6 +918,8 @@ AtomicStructure::compute_secondary_structure(float energy_cutoff,
             else
                 crds->h = nullptr;
         }
+		AtomSearchTree ast(ns, false, 10.0);
+		params.search_tree = &ast;
         compute_chain(params);
         set_ss_assigned(true);
         ss_ids_normalized = false;

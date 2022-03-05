@@ -240,7 +240,10 @@ class ClipCap(Surface):
 
     @staticmethod
     def restore_snapshot(session, data):
-        c = ClipCap(data['clip_plane_name'], data['clip_cap_owner'])
+        drawing = data['clip_cap_owner']
+        if drawing is None:
+            return None	# Volume surface was not restored, so cannot restore cap.
+        c = ClipCap(data['clip_plane_name'], drawing)
         Surface.set_state_from_snapshot(c, session, data['model state'])
         return c
 
