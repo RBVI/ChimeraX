@@ -11,8 +11,26 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-# -----------------------------------------------------------------------------
-#
+from os.path import basename, commonprefix, dirname
+
+from chimerax.core.models import Model
+
+from chimerax.map import add_map_format
+from chimerax.map.volume import open_grids, Volume
+from chimerax.map_data import MapFileFormat
+
+from .dicom_contours import DicomContours
+from .dicom_format import find_dicom_series
+from .dicom_grid import dicom_grids, dicom_grids_from_series
+
+# https://stackoverflow.com/a/27361558/12208118
+try:
+    import gdcm
+except Exception:
+    _has_gdcm = False
+else:
+    _has_gdcm = True
+
 def open_dicom(session, path, name = None, format = 'dicom', **kw):
     if isinstance(path, (str, list)):
         map_path = path         # Batched paths
@@ -20,7 +38,6 @@ def open_dicom(session, path, name = None, format = 'dicom', **kw):
         raise ValueError('open_dicom() requires path argument, got "%s"' % repr(path))
 
     # Locate all series in subdirectories
-    from .dicom_format import find_dicom_series
     series = find_dicom_series(map_path, log = session.logger, verbose = kw.get('verbose'))
     series = omit_16bit_lossless_jpeg(series, log = session.logger)
 
@@ -55,10 +72,8 @@ def open_dicom(session, path, name = None, format = 'dicom', **kw):
 
     return gmodels, msg
 
-# -----------------------------------------------------------------------------
-#
 def omit_16bit_lossless_jpeg(series, log):
-    if gdcm_library_available():
+    if _has_gdcm:
         return series    # PyDicom will use gdcm to read 16-bit lossless jpeg
 
     # Python Image Library cannot read 16-bit lossless jpeg.
@@ -70,25 +85,13 @@ def omit_16bit_lossless_jpeg(series, log):
         else:
             keep.append(s)
     return keep
-
-# -----------------------------------------------------------------------------
-#
-def gdcm_library_available():
-    try:
-        import gdcm
-    except Exception:
-        return False
-    return True
-
 # -----------------------------------------------------------------------------
 # Group into a four level hierarchy: directory, patient id, date, series.
-#
+# requires chimerax.core.models
 def group_models(session, paths, models):
     if len(models) == 0:
         return []
-    from os.path import basename, dirname
     dname = basename(paths[0]) if len(paths) == 1 else basename(dirname(paths[0]))
-    from chimerax.core.models import Model
     top = Model(dname, session)
     locations = []
     for m in models:
@@ -127,16 +130,13 @@ def model_series(m):
 # -----------------------------------------------------------------------------
 #
 def dicom_volumes(session, series, **kw):
-    from .dicom_grid import dicom_grids_from_series
     grids = dicom_grids_from_series(series)
     models = []
     msg_lines = []
     sgrids = []
-    from chimerax.map.volume import open_grids, Volume
     for grid_group in grids:
         if isinstance(grid_group, (tuple, list)):
             # Handle multiple channels or time series
-            from os.path import commonprefix
             gname = commonprefix([g.name for g in grid_group])
             if len(gname) == 0:
                 gname = grid_group[0].name
@@ -165,14 +165,12 @@ def dicom_volumes(session, series, **kw):
 # -----------------------------------------------------------------------------
 #
 def dicom_contours(session, contour_series):
-    from .dicom_contours import DicomContours
     models = [DicomContours(session, s) for s in contour_series]
     msg = 'Opened %d contour models' % len(models)
     return models, msg
 
 # -----------------------------------------------------------------------------
 #
-from chimerax.map_data import MapFileFormat
 class DICOMMapFormat(MapFileFormat):
     def __init__(self):
         MapFileFormat.__init__(self, 'DICOM image', 'dicom', ['dicom'], ['dcm'],
@@ -186,7 +184,6 @@ class DICOMMapFormat(MapFileFormat):
 
         if isinstance(paths, str):
             paths = [paths]
-        from .dicom_grid import dicom_grids
         grids = dicom_grids(paths, log = log, verbose = verbose)
         return grids
 
@@ -195,5 +192,4 @@ class DICOMMapFormat(MapFileFormat):
 def register_dicom_format(session):
     fmt = DICOMMapFormat()
     # Add map grid format reader
-    from chimerax.map import add_map_format
     add_map_format(session, fmt)
