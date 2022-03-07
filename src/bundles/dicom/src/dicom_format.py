@@ -75,6 +75,7 @@ class Series:
                         'RescaleIntercept', 'RescaleSlope', 'Rows',
                         'SamplesPerPixel', 'SeriesDescription', 'SeriesInstanceUID', 'SeriesNumber',
                         'SOPClassUID', 'StudyDate']
+
     def __init__(self, log = None):
         self.paths = []
         self.attributes = {}
@@ -131,7 +132,7 @@ class Series:
     @property
     def sort_key(self):
         attrs = self.attributes
-        return (attrs.get('PatientID',''), attrs.get('StudyDate',''), self.name, self.paths[0])
+        return (attrs.get('PatientID', ''), attrs.get('StudyDate', ''), self.name, self.paths[0])
 
     @property
     def plane_uids(self):
@@ -193,11 +194,11 @@ class Series:
                        % (self.num_times, len(tset), files[0].path, len(files)))
                 self._log.warning(msg)
                 self._num_times = len(tset)
-                tcount = {t:0 for t in tset}
+                tcount = {t: 0 for t in tset}
         for fi in files:
             tcount[fi._time] += 1
             nz = len(files) / self.num_times
-        for t,c in tcount.items():
+        for t, c in tcount.items():
             if c != nz:
                 raise ValueError('DICOM time series time %d has %d images, expected %d'
                                  % (t, c, nz))
@@ -211,8 +212,10 @@ class Series:
                 zsize = self._file_info[0]._num_frames
             else:
                 maxf = max(fi._num_frames for fi in files)
-                raise ValueError('DICOM multiple paths (%d), with multiple frames (%d) not supported, %s'
-                                 % (npaths, maxf, files[0].path))
+                raise ValueError(
+                    'DICOM multiple paths (%d), with multiple frames (%d) not supported, %s'
+                    % (npaths, maxf, files[0].path) # noqa TODO: npaths undefined?
+                )
         else:
             zsize = len(files) // self.num_times
         return (xsize, ysize, zsize)
@@ -227,12 +230,12 @@ class Series:
         if self.multiframe and self._reverse_frames:
             zoffset = files[0]._num_frames * -self.z_plane_spacing()
             zaxis = self.plane_normal()
-            pos = tuple(a+zoffset*b for a,b in zip(pos, zaxis))
+            pos = tuple(a + zoffset * b for a, b in zip(pos, zaxis))
         return pos
 
     def rotation(self):
-        (x0,y0,z0),(x1,y1,z1),(x2,y2,z2) = self._patient_axes()
-        return ((x0,x1,x2),(y0,y1,y2),(z0,z1,z2))
+        (x0, y0, z0), (x1, y1, z1), (x2, y2, z2) = self._patient_axes()
+        return ((x0, x1, x2), (y0, y1, y2), (z0, z1, z2))
 
     def _patient_axes(self):
         files = self._file_info
@@ -246,7 +249,7 @@ class Series:
                 from chimerax.geometry import cross_product
                 z_axis = cross_product(x_axis, y_axis)
                 return (x_axis, y_axis, z_axis)
-        return ((1,0,0),(0,1,0),(0,0,1))
+        return ((1, 0, 0), (0, 1, 0), (0, 0, 1))
 
     def plane_normal(self):
         return self._patient_axes()[2]
@@ -278,7 +281,7 @@ class Series:
             if self._log:
                 self._log.warning('Error. Image planes are at same z-position.  Setting spacing to 1.')
                 zs = 1
-        return (xs,ys,zs)
+        return (xs, ys, zs)
 
     def z_plane_spacing(self):
         dz = self._z_spacing
@@ -314,10 +317,10 @@ class Series:
         return dz
 
     def _spacing(self, z):
-        spacings = [(z1-z0) for z0,z1 in zip(z[:-1],z[1:])]
+        spacings = [(z1 - z0) for z0, z1 in zip(z[:-1], z[1:])]
         dzmin, dzmax = min(spacings), max(spacings)
         tolerance = 1e-3 * max(abs(dzmax), abs(dzmin))
-        if dzmax-dzmin > tolerance:
+        if (dzmax - dzmin) > tolerance:
             if self._log:
                 from os.path import basename, dirname
                 msg = ('Plane z spacings are unequal, min = %.6g, max = %.6g, using max.\n' % (dzmin, dzmax) +
@@ -393,7 +396,7 @@ class SeriesFile:
                                                               'ReferencedSOPInstanceUID')
 
     def __lt__(self, im):
-        if  self._time == im._time:
+        if self._time == im._time:
             # Use z position instead of image number to assure right-handed coordinates.
             return self._position[2] < im._position[2]
         else:
@@ -438,7 +441,7 @@ def files_by_directory(paths, search_directories = True, search_subdirectories =
             else:
                 dfiles[d] = set([p])
         elif search_directories and isdir(p):
-            ppaths = [join(p,fname) for fname in listdir(p)]
+            ppaths = [join(p, fname) for fname in listdir(p)]
             files_by_directory(ppaths, search_directories=search_subdirectories,
                                search_subdirectories=search_subdirectories, _dfiles=dfiles)
     return dfiles
@@ -450,7 +453,7 @@ class DicomData:
         self.dicom_series = series
 
         self.paths = tuple(series.paths)
-        npaths = len(series.paths)
+        npaths = len(series.paths) # noqa TODO: assigned but never used?
 
         self.name = series.name
 
@@ -492,7 +495,7 @@ class DicomData:
         self.data_origin = origin = series.origin()
         if origin is None:
             self.origin_specified = False
-            self.data_origin = (0,0,0)
+            self.data_origin = (0, 0, 0)
         else:
             self.origin_specified = True
             self.data_rotation = series.rotation()
@@ -502,16 +505,16 @@ class DicomData:
         i0, j0, k0 = ijk_origin
         isz, jsz, ksz = ijk_size
         istep, jstep, kstep = ijk_step
-        dsize = self.data_size
+        dsize = self.data_size # noqa TODO: assigned but never used?
         if self.files_are_3d:
             a = self.read_frames(time, channel)
-            array[:] = a[k0:k0+ksz:kstep,j0:j0+jsz:jstep,i0:i0+isz:istep]
+            array[:] = a[k0:k0 + ksz:kstep, j0:j0 + jsz:jstep, i0:i0 + isz:istep]
         else:
-            for k in range(k0, k0+ksz, kstep):
+            for k in range(k0, k0 + ksz, kstep):
                 if progress:
-                    progress.plane((k-k0)//kstep)
+                    progress.plane((k - k0) // kstep)
                     p = self.read_plane(k, time, channel, rescale = False)
-                    array[(k-k0)//kstep,:,:] = p[j0:j0+jsz:jstep,i0:i0+isz:istep]
+                    array[(k - k0) // kstep, :, :] = p[j0:j0 + jsz:jstep, i0:i0 + isz:istep]
 
         if self.rescale_slope != 1:
             array *= self.rescale_slope
@@ -521,18 +524,18 @@ class DicomData:
 
     def read_plane(self, k, time = None, channel = None, rescale = True):
         if self._reverse_planes:
-            klast = self.data_size[2]-1
-            k = klast-k
+            klast = self.data_size[2] - 1
+            k = klast - k
             from pydicom import dcmread
         if self.files_are_3d:
             d = dcmread(self.paths[0])
             data = d.pixel_array[k]
         else:
-            p = k if time is None else (k + self.data_size[2]*time)
+            p = k if time is None else (k + self.data_size[2] * time)
             d = dcmread(self.paths[p])
             data = d.pixel_array
         if channel is not None:
-            data = data[:,:,channel]
+            data = data[:, :, channel]
 
         a = data.astype(self.value_type) if data.dtype != self.value_type else data
         if rescale:
@@ -547,16 +550,18 @@ class DicomData:
         d = pydicom.dcmread(self.paths[0])
         data = d.pixel_array
         if channel is not None:
-            data = data[:,:,:,channel]
+            data = data[:, :, :, channel]
         return data
 
 
 # PixelRepresentation 0 = unsigned, 1 = signed
 def numpy_value_type(bits_allocated, pixel_representation, rescale_slope, rescale_intercept):
     from numpy import int8, uint8, int16, uint16, float32
-    if (rescale_slope != 1 or
+    if (
+        rescale_slope != 1 or
         int(rescale_intercept) != rescale_intercept or
-        rescale_intercept < 0 and pixel_representation == 0):  # unsigned with negative offset
+        rescale_intercept < 0 and pixel_representation == 0
+    ):  # unsigned with negative offset
         return float32
 
     types = {(1, 0): uint8,
@@ -579,7 +584,7 @@ def unique_prefix_length(strings):
     return maxlen
 
 def find_reference_series(series):
-    plane_ids = {s.plane_uids:s for s in series}
+    plane_ids = {s.plane_uids: s for s in series}
     for s in series:
         ref = s.ref_plane_uids
         if ref and ref in plane_ids:
