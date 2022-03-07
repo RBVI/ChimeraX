@@ -740,24 +740,24 @@ when the shape of the surface changes.
 </p>
 <ul>
 <li><b>color radial</b> colors by distance from a 
-<a href="pointspec.html#point">point</a> given with the <b>center</b> option.
+<a href="pointspec.html#point">point</a> given with the <b>center</b> option
+(default <b>0,0,0</b>).
 <li><b>color cylindrical</b> colors by distance from an axis.
 The axis is defined by a <a href="pointspec.html#point">point</a> 
 on the axis (given with <b>center</b>) 
 and its direction (a <a href="pointspec.html#vector">vector</a> 
-given with <b>axis</b>).
+given with <b>axis</b>, default <b>z</b>).
 <li><b>color height</b> colors by topographic height, or distance from a plane.
 The plane is defined by a <a href="pointspec.html#point">point</a>
 on the plane (given with <b>center</b>)
 and a <a href="pointspec.html#vector">vector</a> 
 normal to the plane (given with <b>axis</b>).
 </ul>
-The <b>coordinateSystem</b> for interpreting center and axis coordinates
-can be specified by reference model number. If no reference model is given,
-the <a href="view.html#scenecoords">scene coordinate system</a>
-will be used for the center 
-and the <a href="view.html#screencoords">screen coordinate system</a>
-(X horizontal, Y vertical, Z in/out) for the axis.
+The <b>coordinateSystem</b> for interpreting <b>center</b> and <b>axis</b>
+coordinates can be specified by reference model number. 
+The default coordinate system is that of the model being colored, generally
+the same as the <a href="view.html#scenecoords">scene coordinate system</a> 
+unless the model has been moved separately.
 </p>
 
 <a name="zone"></a>
@@ -1195,5 +1195,5 @@ See also: <a href="palette.html#list"><b>palette list</b></a>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-September 2021</address>
+March 2022</address>
 </body></html>

@@ -998,6 +998,8 @@ class SeqCanvas:
         self.sv.region_browser.redraw_regions(cull_empty=cull_empty)
         self.main_scene.update()
         self.label_scene.update()
+        self.main_scene.setSceneRect(self.main_scene.itemsBoundingRect())
+        self.label_scene.setSceneRect(self.label_scene.itemsBoundingRect())
         """TODO
         if len(self.alignment.seqs) != len(self._checkPoints[0]):
             self._checkPoint(fromScratch=True)

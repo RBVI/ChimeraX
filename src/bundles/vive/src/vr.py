@@ -1344,6 +1344,9 @@ class RoomCameraModel(Model):
         # Avoid camera disappearing when far from models
         self.allow_depth_cue = False
 
+        # Avoid clip planes hiding the camera screen.
+        self.allow_clipping = False
+
         self.color = (255,255,255,255)	# Don't modulate texture colors.
         self.use_lighting = False
         self.texture = texture
@@ -2428,6 +2431,7 @@ class PanelDrawing(Drawing):
         self.casts_shadows = False
         self.skip_bounds = True		# Panels should not effect view all command.
         self.allow_depth_cue = False	# Avoid panels fading out far from models.
+        self.allow_clipping = False	# Avoid clip planes hiding panels
 
     def draw(self, renderer, draw_pass):
         if not self._hide_panel():
@@ -2844,6 +2848,9 @@ class HandModel(Model):
         
         # Avoid hand disappearing when behind models, especially in multiperson VR.
         self.allow_depth_cue = False
+
+        # Don't let clip planes hide hand models.
+        self.allow_clipping = False
         
         # Draw controller as a cone.
         self._create_model_geometry(length, radius, color)

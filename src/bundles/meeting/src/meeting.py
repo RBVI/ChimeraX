@@ -1974,6 +1974,9 @@ class VRHeadModel(Model):
 
         # Avoid head disappearing when models are zoomed small.
         self.allow_depth_cue = False
+
+        # Don't allow clip planes to hide head models.
+        self.allow_clipping = False
         
         r = size / 2
         from chimerax.surface import box_geometry
@@ -2027,6 +2030,7 @@ class VRGUIModel(Model):
         self.pickable = False
         self.skip_bounds = True		# Panels should not effect view all command.
         self.allow_depth_cue = False	# Avoid panels fading out far from models.
+        self.allow_clipping = False	# Don't let panels get clipped
 
     def update_panel(self, panel_changes):
         name = panel_changes['name']
