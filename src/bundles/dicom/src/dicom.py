@@ -25,7 +25,7 @@ from .dicom_grid import dicom_grids, dicom_grids_from_series
 
 # https://stackoverflow.com/a/27361558/12208118
 try:
-    import gdcm
+    import gdcm # noqa
 except Exception:
     _has_gdcm = False
 else:
@@ -103,12 +103,12 @@ def group_models(session, paths, models):
             date = s.attributes.get('StudyDate', 'date unknown')
             locations.append((m, ('Patient %s' % pid, date)))
 
-    leaf = {():top}
+    leaf = {(): top}
     for m, gnames in locations:
         if gnames not in leaf:
             for i in range(len(gnames)):
-                if gnames[:i+1] not in leaf:
-                    leaf[gnames[:i+1]] = gm = Model(gnames[i], session)
+                if gnames[:i + 1] not in leaf:
+                    leaf[gnames[:i + 1]] = gm = Model(gnames[i], session)
                     leaf[gnames[:i]].add([gm])
         leaf[gnames].add([m])
     return [top]
@@ -147,7 +147,7 @@ def dicom_volumes(session, series, **kw):
             sgrids.append(grid_group)
 
     if sgrids:
-        smodels, smsg = open_grids(session, sgrids, name, **kw)
+        smodels, smsg = open_grids(session, sgrids, name, **kw) # noqa TODO: name undefined
         models.extend(smodels)
         msg_lines.append(smsg)
 
