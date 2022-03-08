@@ -358,8 +358,8 @@ def _numpy_rgba_array_from_qt_video_frame(frame, rgba_image = None):
     f = frame
     pixel_format = f.pixelFormat()
     if pixel_format not in VideoCapture.supported_formats:
-        raise ValueError('Cannot convert QVideoFrame with pixel format %d to numpy array'
-                         % pixel_format)
+        raise ValueError('Cannot convert QVideoFrame with pixel format %s to numpy array'
+                         % _qt_pixel_format_name(pixel_format))
 
     # Check video frame size
     w, h = f.width(), f.height()
