@@ -33,8 +33,9 @@ def measure_center(session, objects, level = None, mark = False, color = None,
         msg = ('Center of mass grid index for %s = (%.2f, %.2f, %.2f)'
                % (v.name, ijk[0], ijk[1], ijk[2]))
         log.status(msg, log = True)
+        txyz = v.position * xyz
         msg = ('Center of mass xyz coordinates for %s = (%.2f, %.2f, %.2f)'
-               % (v.name, xyz[0], xyz[1], xyz[2]))
+               % (v.name, txyz[0], txyz[1], txyz[2]))
         log.status(msg, log = True)
         if mark:
             r = max(v.data.step) if radius is None else radius

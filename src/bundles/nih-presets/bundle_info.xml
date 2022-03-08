@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-NIHPresets" version="1.0.4" package="chimerax.nih_presets"
+<BundleInfo name="ChimeraX-NIHPresets" version="1.0.5" package="chimerax.nih_presets"
             minSessionVersion="1" maxSessionVersion="1">
 
   <!-- Additional information about bundle source -->
@@ -35,6 +35,7 @@
     <Provider category="NIH3D" name="surface coulombic"/>
     <Provider category="NIH3D" name="surface hydrophobicity"/>
     <Provider category="NIH3D" name="surface by chain"/>
+    <Provider category="NIH3D" name="surface by polymer"/>
     <Provider category="NIH3D" name="surface blob by chain"/>
     <Provider category="NIH3D" name="surface blob by polymer"/>
     <Provider category="NIH3D" name="sticks"/>
