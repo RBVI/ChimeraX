@@ -26,7 +26,8 @@ class WebCam (Model):
 
         self._camera = None		# QCamera
         self.camera_name = camera_name
-        self._capture = None		# VideoCapture instance
+        self._capture_session = None		# QMediaCaptureSession instance
+        self._video_capture = None		# VideoCapture instance
         self._capture_started = False
         self.size = None		# Width, height in pixels
         self._requested_size = size
@@ -336,12 +337,9 @@ from Qt.QtMultimedia import QVideoSink, QVideoFrameFormat
 class VideoCapture(QVideoSink):
     
     supported_formats = (QVideoFrameFormat.PixelFormat.Format_ARGB8888,
+                         QVideoFrameFormat.PixelFormat.Format_NV12,
                          QVideoFrameFormat.PixelFormat.Format_YUYV,
                          QVideoFrameFormat.PixelFormat.Format_UYVY)
-
-    bytes_per_pixel = {QVideoFrameFormat.PixelFormat.Format_ARGB8888:4,
-                       QVideoFrameFormat.PixelFormat.Format_YUYV:2,
-                       QVideoFrameFormat.PixelFormat.Format_UYVY:2}
 
     def __init__(self, new_frame_cb):
         self._rgba_image = None		# Numpy uint8 array of size (h, w, 4)
@@ -356,17 +354,12 @@ class VideoCapture(QVideoSink):
 
 # -----------------------------------------------------------------------------
 #
-_wrong_frame_size = False
 def _numpy_rgba_array_from_qt_video_frame(frame, rgba_image = None):
     f = frame
     pixel_format = f.pixelFormat()
     if pixel_format not in VideoCapture.supported_formats:
         raise ValueError('Cannot convert QVideoFrame with pixel format %d to numpy array'
                          % pixel_format)
-
-    # Map video frame into memory.
-    from Qt.QtMultimedia import QVideoFrame
-    f.map(QVideoFrame.MapMode.ReadOnly)
 
     # Check video frame size
     w, h = f.width(), f.height()
@@ -375,43 +368,101 @@ def _numpy_rgba_array_from_qt_video_frame(frame, rgba_image = None):
         if ih != h or iw != w:
             # Video frame does not match array size so make new array.
             rgba_image = None
-    bytes_per_pixel = VideoCapture.bytes_per_pixel[pixel_format]
-    nbytes = h * w * bytes_per_pixel
-    plane = 0
-    if f.mappedBytes(plane) != nbytes:
-        global _wrong_frame_size
-        if not _wrong_frame_size:
-            # On 2012 MacBookPro, 1280x720 gives 3686432 mapped bytes instead of 3686400.
-            # Dropping last 32 bytes gives correct image.
-            _wrong_frame_size = True
-            print ('QVideoFrame (%d by %d, pixel format %d) has wrong number of bytes %d, expected %d' 
-                   % (f.width(), f.height(), f.pixelFormat(), f.mappedBytes(plane), nbytes))
 
     # Create rgba image array
     if rgba_image is None:
         from numpy import empty, uint8
         rgba_image = empty((h,w,4), uint8)
 
-    # Convert video frame data to rgba
-    if f.planeCount() != 1:
-        raise ValueError('Expected video plane count to be 1, got %d' % pixel_format)
-    data = f.bits(plane)	# sip.voidptr
-    pointer = int(data)		# Convert sip.voidptr to integer to pass to C++ code.
-    from .webcam_cpp import bgra_to_rgba, yuyv_to_rgba, uyvy_to_rgba
-    from Qt.QtMultimedia import QVideoFrameFormat
+    # Map video frame into memory.
+    from Qt.QtMultimedia import QVideoFrame
+    f.map(QVideoFrame.MapMode.ReadOnly)
+
     if pixel_format == QVideoFrameFormat.PixelFormat.Format_ARGB8888:
-        bgra_to_rgba(pointer, rgba_image)
-#        _bgra_to_rgba(data, rgba_image)
+        argb8888_frame_to_rgba(f, rgba_image)
+    elif pixel_format == QVideoFrameFormat.PixelFormat.Format_NV12:
+        nv12_frame_to_rgba(f, rgba_image)
     elif pixel_format == QVideoFrameFormat.PixelFormat.Format_YUYV:
-        yuyv_to_rgba(pointer, rgba_image)
-#        _yuyv_to_rgba(data, rgba_image)
+        yuyv_frame_to_rgba(f, rgba_image)
     elif pixel_format == QVideoFrameFormat.PixelFormat.Format_UYVY:
-        uyvy_to_rgba(pointer, rgba_image)
+        uyvy_frame_to_rgba(f, rgba_image)
 
     # Release mapped video frame data.
     f.unmap()
 
     return rgba_image
+
+# -----------------------------------------------------------------------------
+#
+def argb8888_frame_to_rgba(frame, rgba_image):
+    '''Convert video frame data to rgba.'''
+#    _check_frame_size(frame, pixel_bits = [32])
+    plane = 0
+    data = f.bits(plane)	# sip.voidptr
+    pointer = int(data)		# Convert sip.voidptr to integer to pass to C++ code.
+    padded_width = frame.bytesPerLine(plane)//4
+    from .webcam_cpp import bgra_to_rgba
+    bgra_to_rgba(pointer, rgba_image, padded_width)
+#    _bgra_to_rgba(data, rgba_image)
+
+# -----------------------------------------------------------------------------
+#
+def nv12_frame_to_rgba(frame, rgba_image):
+    '''Convert video frame data to rgba.'''
+#    _check_frame_size(frame, pixel_bits = [8,4])
+    plane0_data = frame.bits(0)		# sip.voidptr
+    plane0_pointer = int(plane0_data)	# Convert sip.voidptr to integer to pass to C++ code.
+    padded_width = frame.bytesPerLine(0)
+    plane1_data = frame.bits(1)
+    plane1_pointer = int(plane1_data)
+    from .webcam_cpp import nv12_to_rgba
+    nv12_to_rgba(plane0_pointer, plane1_pointer, rgba_image, padded_width)
+
+# -----------------------------------------------------------------------------
+#
+def yuyv_frame_to_rgba(frame, rgba_image):
+    '''Convert video frame data to rgba.'''
+#    _check_frame_size(frame, pixel_bits = [16])
+    plane = 0
+    data = f.bits(plane)	# sip.voidptr
+    pointer = int(data)		# Convert sip.voidptr to integer to pass to C++ code.
+    padded_width = frame.bytesPerLine(plane)//2
+    from .webcam_cpp import yuyv_to_rgba
+    yuyv_to_rgba(pointer, rgba_image, padded_width)
+#    _yuyv_data_to_rgba(data, rgba_image)
+
+# -----------------------------------------------------------------------------
+#
+def uyvy_frame_to_rgba(frame, rgba_image):
+    '''Convert video frame data to rgba.'''
+#    _check_frame_size(frame, pixel_bits = [16])
+    plane = 0
+    data = f.bits(plane)	# sip.voidptr
+    pointer = int(data)		# Convert sip.voidptr to integer to pass to C++ code.
+    padded_width = frame.bytesPerLine(plane)//2
+    from .webcam_cpp import uyvy_to_rgba
+    uyvy_to_rgba(pointer, rgba_image, padded_width)
+
+# -----------------------------------------------------------------------------
+#
+_wrong_frame_size = False
+def _check_frame_size(frame, pixel_bits):
+    plane_count = len(pixel_bits)
+    if frame.planeCount() != plane_count:
+        raise ValueError('Expected video plane count to be %d, got %d'
+                         % (plane_count, pixel_format))
+    global _wrong_frame_size
+    if _wrong_frame_size:
+        return  # Warn only one time
+    w, h = frame.width(), frame.height()
+    for plane, bits in enumerate(pixel_bits):
+        nbytes = (h * w * bits) // 8
+        if frame.mappedBytes(plane) != nbytes:
+            # On 2012 MacBookPro, 1280x720 gives 3686432 mapped bytes instead of 3686400.
+            # Dropping last 32 bytes gives correct image.
+            _wrong_frame_size = True
+            print ('QVideoFrame (%d by %d, pixel format %s) plane %d has wrong number of bytes %d, expected %d' 
+                   % (w, h, frame.pixelFormat(), plane, frame.mappedBytes(plane), nbytes))
 
 # -----------------------------------------------------------------------------
 #
@@ -430,7 +481,7 @@ def _bgra_to_rgba(data, rgba_image):
 
 # -----------------------------------------------------------------------------
 #
-def _yuyv_to_rgba(data, rgba_image):
+def _yuyv_data_to_rgba(data, rgba_image):
     h,w = rgba_image.shape[:2]
     buf = data.asstring(h*w*2)
     from numpy import uint8, frombuffer

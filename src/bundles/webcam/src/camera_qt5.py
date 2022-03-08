@@ -448,10 +448,12 @@ def _numpy_rgba_array_from_qt_video_frame(frame, rgba_image = None):
     pointer = int(data)		# Convert sip.voidptr to integer to pass to C++ code.
     from .webcam_cpp import bgra_to_rgba, yuyv_to_rgba
     if pixel_format == f.Format_ARGB32:
-        a = bgra_to_rgba(pointer, rgba_image)
+        padded_width = f.bytesPerLine()//4
+        a = bgra_to_rgba(pointer, rgba_image, padded_width)
 #        a = _bgra_to_rgba(data, rgba_image)
     elif pixel_format == f.Format_YUYV:
-        a = yuyv_to_rgba(pointer, rgba_image)
+        padded_width = f.bytesPerLine()//2
+        a = yuyv_to_rgba(pointer, rgba_image, padded_width)
 #        a = _yuyv_to_rgba(data, rgba_image)
 
     # Release mapped video frame data.
