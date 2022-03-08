@@ -398,7 +398,7 @@ def argb8888_frame_to_rgba(frame, rgba_image):
     '''Convert video frame data to rgba.'''
 #    _check_frame_size(frame, pixel_bits = [32])
     plane = 0
-    data = f.bits(plane)	# sip.voidptr
+    data = frame.bits(plane)	# sip.voidptr
     pointer = int(data)		# Convert sip.voidptr to integer to pass to C++ code.
     padded_width = frame.bytesPerLine(plane)//4
     from .webcam_cpp import bgra_to_rgba
@@ -424,7 +424,7 @@ def yuyv_frame_to_rgba(frame, rgba_image):
     '''Convert video frame data to rgba.'''
 #    _check_frame_size(frame, pixel_bits = [16])
     plane = 0
-    data = f.bits(plane)	# sip.voidptr
+    data = frame.bits(plane)	# sip.voidptr
     pointer = int(data)		# Convert sip.voidptr to integer to pass to C++ code.
     padded_width = frame.bytesPerLine(plane)//2
     from .webcam_cpp import yuyv_to_rgba
@@ -437,7 +437,7 @@ def uyvy_frame_to_rgba(frame, rgba_image):
     '''Convert video frame data to rgba.'''
 #    _check_frame_size(frame, pixel_bits = [16])
     plane = 0
-    data = f.bits(plane)	# sip.voidptr
+    data = frame.bits(plane)	# sip.voidptr
     pointer = int(data)		# Convert sip.voidptr to integer to pass to C++ code.
     padded_width = frame.bytesPerLine(plane)//2
     from .webcam_cpp import uyvy_to_rgba
