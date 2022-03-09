@@ -543,7 +543,7 @@ class ModellerWebJob(CxServicesJob):
         self.start(self.service_name, self.params, self.processed_input_file_map)
 
     def monitor(self):
-        super().monitor()
+        super().monitor(poll_freq_override=10)
         stdout = self.get_file("stdout.txt")
         num_done = stdout.count('# Heavy relative violation of each residue is written to:')
         num_done = max(stdout.count('>> Normalized DOPE z score') - 1, 0)
