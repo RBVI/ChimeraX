@@ -155,7 +155,7 @@ class CxServicesJob(Job):
         """
         return self.launch_time is not None and self.end_time is None
 
-    def monitor(self) -> None:
+    def monitor(self, poll_freq_override: Optional[int] = None) -> None:
         """Check the status of the background process.
 
         The task should be marked as terminated in the background
@@ -169,8 +169,10 @@ class CxServicesJob(Job):
         except ApiException as e:
             raise JobMonitorError(str(e))
         self.status = status
-        if next_poll is not None:
+        if poll_freq_override is None and next_poll is not None:
             self.next_poll = self._poll_to_seconds(int(next_poll))
+        else:
+            self.next_poll = poll_freq_override
         if status in ["finished","failed","deleted","canceled"] and self.end_time is None:
             self.end_time = time.time()
 
