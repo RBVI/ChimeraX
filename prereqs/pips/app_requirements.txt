@@ -36,7 +36,6 @@ python-dateutil==2.8.2
 # PyOpenGL handled in app_pyopengl_requirements.txt
 # PyQt handled in prereqs/PyQt
 # sip handled in prereqs/PyQt
-#PySide2==5.15.2
 qtconsole==5.2.2
 requests==2.27.1
 scipy==1.7.3
