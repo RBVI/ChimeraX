@@ -26,6 +26,11 @@ from Qt.QtWebEngineCore import QWebEngineUrlSchemeHandler
 from Qt.QtWebEngineCore import QWebEngineDownloadRequest
 from Qt import using_qt5, using_qt6
 
+if using_qt5:
+    from Qt.QtWebEngineWidgets import QWebEnginePage
+elif using_qt6:
+    from Qt.QtWebEngineCore import QWebEnginePage
+
 _singleton = None
 _sys_tags = None
 _sys_info = None
@@ -56,7 +61,6 @@ class _HelpWebView(ChimeraXHtmlView):
 
     def createWindow(self, win_type):  # noqa
         # win_type is window, tab, dialog, backgroundtab
-        from Qt.QtWebEngineWidgets import QWebEnginePage
         background = win_type == QWebEnginePage.WebBrowserBackgroundTab
         return self.help_tool.create_tab(background=background)
 
@@ -66,7 +70,6 @@ class _HelpWebView(ChimeraXHtmlView):
 
     def contextMenuEvent(self, event):
         # inpsired by qwebengine simplebrowser example
-        from Qt.QtWebEngineWidgets import QWebEnginePage
         from Qt.QtCore import Qt
         page = self.page()
         # keep reference to menu, so it doesn't get deleted before being shown
