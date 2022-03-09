@@ -73,7 +73,10 @@ class _HelpWebView(ChimeraXHtmlView):
         from Qt.QtCore import Qt
         page = self.page()
         # keep reference to menu, so it doesn't get deleted before being shown
-        self._context_menu = menu = page.createStandardContextMenu()
+        if using_qt5:
+            self._context_menu = menu = page.createStandardContextMenu()
+        elif using_qt6:
+            self._context_menu = menu = self.createStandardContextMenu()
         menu.setAttribute(Qt.WA_DeleteOnClose, True)
         action = page.action(QWebEnginePage.OpenLinkInThisWindow)
         actions = iter(menu.actions())
