@@ -85,10 +85,10 @@ def omit_16bit_lossless_jpeg(series, log):
         else:
             keep.append(s)
     return keep
-# -----------------------------------------------------------------------------
-# Group into a four level hierarchy: directory, patient id, date, series.
+
 # requires chimerax.core.models
 def group_models(session, paths, models):
+    """Group models into a four-level hierarchy: directory, patient id, data, series."""
     if len(models) == 0:
         return []
     dname = basename(paths[0]) if len(paths) == 1 else basename(dirname(paths[0]))

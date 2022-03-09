@@ -428,10 +428,10 @@ class SeriesFile:
             return values
 
 
-# Find all dicom files (suffix .dcm) in directories and subdirectories and
-# group them by directory.
 def files_by_directory(paths, search_directories = True, search_subdirectories = True,
                        suffix = '.dcm', _dfiles = None):
+    """Find all dicom files (suffix .dcm) in directories and subdirectories and group
+    them by directory."""
     dfiles = {} if _dfiles is None else _dfiles
     for p in paths:
         if isfile(p) and p.endswith(suffix):
