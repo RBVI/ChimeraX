@@ -133,7 +133,7 @@ class Series:
             #     fields.append(attrs['StudyDate'])
         if len(fields) == 0:
             fields.append('unknown')
-            name = ' '.join(fields)
+        name = ' '.join(fields)
         return name
 
     @property
@@ -194,17 +194,17 @@ class Series:
         for fi in files:
             if fi._time is None:
                 raise ValueError('Missing dicom TemporalPositionIdentifier for image %s' % fi.path)
-            tset = set(fi._time for fi in files)
+        tset = set(fi._time for fi in files)
         if len(tset) != self.num_times:
             if self._log:
                 msg = ('DICOM series header says it has %d times but %d found, %s... %d files.'
                        % (self.num_times, len(tset), files[0].path, len(files)))
                 self._log.warning(msg)
-                self._num_times = len(tset)
-                tcount = {t: 0 for t in tset}
+            self._num_times = len(tset)
+        tcount = {t: 0 for t in tset}
         for fi in files:
             tcount[fi._time] += 1
-            nz = len(files) / self.num_times
+        nz = len(files) / self.num_times
         for t, c in tcount.items():
             if c != nz:
                 raise ValueError('DICOM time series time %d has %d images, expected %d'
@@ -330,7 +330,7 @@ class Series:
                        'Directory %s\n' % dirname(self._file_info[0].path) +
                        '\n'.join(['%s %s' % (basename(f.path), f._position) for f in self._file_info]))
                 self._log.warning(msg)
-                dz = dzmax if abs(dzmax) > abs(dzmin) else dzmin
+        dz = dzmax if abs(dzmax) > abs(dzmin) else dzmin
         return dz
 
     @property
