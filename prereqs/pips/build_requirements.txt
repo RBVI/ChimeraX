@@ -1,11 +1,10 @@
-
-# used to manage package versions
-packaging==21.0
-
 #
 # Packages needed during the build process.
 # These are not installed in the ChimeraX app.
 #
+
+# used to manage package versions
+packaging==21.0
 
 # Cython used by compile core/_serialize.pyx
 Cython==0.29.26
