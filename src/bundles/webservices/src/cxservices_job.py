@@ -138,16 +138,13 @@ class CxServicesJob(Job):
                 "status": result.status_url,
                 "results": result.results_url,
             }
-            self.next_poll = self._poll_to_seconds(int(result.next_poll))
+            self.next_poll = int(result.next_poll)
             self.thread_safe_log("Webservices job id: %s" % self.job_id)
             while self.running():
                 if self.terminating():
                     break
                 time.sleep(self.next_poll)
                 self.monitor()
-
-    def _poll_to_seconds(self, poll: int) -> int:
-        return 60 * poll
 
     def running(self) -> bool:
         """Return whether background process is still running.
@@ -170,7 +167,7 @@ class CxServicesJob(Job):
             raise JobMonitorError(str(e))
         self.status = status
         if poll_freq_override is None and next_poll is not None:
-            self.next_poll = self._poll_to_seconds(int(next_poll))
+            self.next_poll = int(next_poll)
         else:
             self.next_poll = poll_freq_override
         if status in ["finished","failed","deleted","canceled"] and self.end_time is None:
