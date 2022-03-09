@@ -23,6 +23,8 @@ from chimerax.ui.widgets.htmlview import (
     create_chimerax_profile
 )
 from Qt.QtWebEngineCore import QWebEngineUrlSchemeHandler
+from Qt.QtWebEngineCore import QWebEngineDownloadRequest
+from Qt import using_qt5, using_qt6
 
 _singleton = None
 _sys_tags = None
@@ -356,33 +358,63 @@ class HelpUI(ToolInstance):
             item.setDownloadDirectory(dirname)
             item.setDownloadFileName(filename)
         # print("HelpUI.download_requested accept", file_path)
-        item.downloadProgress.connect(self.download_progress)
-        item.finished.connect(lambda *args, **kw: self.download_finished(*args, **kw, item=item, is_wheel=is_wheel))
+        if using_qt5:
+            item.downloadProgress.connect(self.download_progress)
+            item.finished.connect(lambda *args, **kw: self.download_finished(*args, **kw, item=item, is_wheel=is_wheel))
+        elif using_qt6:
+            item.totalBytesChanged.connect(lambda: self.change_total_bytes(item=item))
+            item.receivedBytesChanged.connect(lambda: self.change_received_bytes(item=item))
+            item.isFinishedChanged.connect(lambda *args, **kw: self.download_finished(*args, **kw, item=item, is_wheel=is_wheel))
         item.accept()
 
-    def download_progress(self, bytes_received, bytes_total):
+    def download_progress(self, bytes_received = None, bytes_total = None):
         self.progress_bar.setVisible(True)
-        self.progress_bar.setMaximum(bytes_total)
-        self.progress_bar.setValue(bytes_received)
+        if bytes_total is not None:
+            self.progress_bar.setMaximum(bytes_total)
+        if bytes_received is not None:
+            self.progress_bar.setValue(bytes_received)
         self.progress_bar.update()
 
+    def change_total_bytes(self, item):
+        self.download_progress(bytes_total = item.totalBytes())
+
+    def change_received_bytes(self, item):
+        self.download_progress(bytes_received = item.receivedBytes())
+
     def download_finished(self, *args, item=None, is_wheel=False, **kw):
-        # print("HelpUI.download_finished", args, kw)
-        item.finished.disconnect()
-        item.downloadProgress.disconnect()
+        if using_qt5:
+            item.downloadProgress.disconnect()
+            item.finished.disconnect()
+        elif using_qt6:
+            item.totalBytesChanged.disconnect()
+            item.receivedBytesChanged.disconnect()
+            item.isFinishedChanged.disconnect()
         self.progress_bar.setVisible(False)
         state = item.state()
-        if state == item.DownloadCompleted:
-            self.status("Download finished")
-        elif state == item.DownloadCancelled:
-            self.status("Download cancelled")
-            return
-        elif state == item.DownloadInterrupted:
-            self.status(f"Download interrupted: {item.interrupteReasonString()}")
-            return
-        else:
-            self.status(f"Odd download state: {state}")
-            return
+        if using_qt5:
+            if state == item.DownloadCompleted:
+                self.status("Download finished")
+            elif state == item.DownloadCancelled:
+                self.status("Download cancelled")
+                return
+            elif state == item.DownloadInterrupted:
+                self.status(f"Download interrupted: {item.interrupteReasonString()}")
+                return
+            else:
+                self.status(f"Odd download state: {state}")
+                return
+        elif using_qt6:
+            if state == QWebEngineDownloadRequest.DownloadCompleted:
+                self.status("Download finished")
+            elif state == QWebEngineDownloadRequest.DownloadCancelled:
+                self.status("Download cancelled")
+                return
+            elif state == QWebEngineDownloadRequest.DownloadInterrupted:
+                self.status(f"Download interrupted: {item.interrupteReasonString()}")
+                return
+            else:
+                self.status(f"Odd download state: {state}")
+                return
         if not is_wheel:
             return
         import os
