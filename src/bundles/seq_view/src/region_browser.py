@@ -472,7 +472,7 @@ class RegionBrowser:
     def clear_regions(self, do_single_seq_regions=True):
         if do_single_seq_regions:
             for region in self.regions[:]:
-                region.destroy()
+                region._destroy()
             self.associated_regions.clear()
             self.sequence_regions = { None: set() }
         else:
@@ -1768,7 +1768,7 @@ class RegionBrowser:
             self._sel_change_handler = None
             sel_region = self.get_region("ChimeraX selection")
             if sel_region:
-                sel_region.destroy()
+                sel_region._destroy()
 
     def _toggle_active(self, region, select_on_structures=True, destroyed=False):
         if self._cur_region is not None and self._cur_region == region:
