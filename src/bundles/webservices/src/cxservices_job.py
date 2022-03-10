@@ -72,11 +72,6 @@ class CxServicesJob(Job):
         # Initialize ChimeraX REST request state
         self.reset_state()
 
-    def start(self, *args, **kw) -> None:
-        # override Job.start so that we can process the input_file_map
-        # before start returns, since the files may be temporary
-        super().start(*args, **kw)
-
     @property
     def status(self) -> str:
         return self._status
