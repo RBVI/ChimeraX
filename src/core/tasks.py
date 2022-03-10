@@ -251,6 +251,25 @@ class Task(State):
         return ("ChimeraX Task, ID %s" % self.id)
 
 
+    def thread_safe_status(self, message):
+        if self.session:
+            status = self.session.logger.status
+            tsafe = self.session.ui.thread_safe
+            tsafe(status, message)
+
+    def thread_safe_log(self, message):
+        if self.session:
+            status = self.session.logger.info
+            tsafe = self.session.ui.thread_safe
+            tsafe(status, message)
+
+    def thread_safe_warning(self, message):
+        if self.session:
+            status = self.session.logger.warning
+            tsafe = self.session.ui.thread_safe
+            tsafe(status, message)
+
+
 class Job(Task):
     """
     'Job' is a long-running task.
