@@ -140,11 +140,7 @@ class CxServicesJob(Job):
             }
             self.next_poll = int(result.next_poll)
             self.thread_safe_log("Webservices job id: %s" % self.job_id)
-            while self.running():
-                if self.terminating():
-                    break
-                time.sleep(self.next_poll)
-                self.monitor()
+            super().run()
 
     def running(self) -> bool:
         """Return whether background process is still running.
