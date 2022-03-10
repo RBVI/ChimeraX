@@ -298,16 +298,29 @@ class Job(Task):
     to 'Job' instances, not :py:meth:`run`.
 
     """
+    local_timing_intervals = [
+        5, 5, 10, 15, 25, 40, 65, 105, 170, 275, 300, 350, 400, 450, 500
+        , 550, 600, 650, 700, 750, 800
+    ]
     def __init__(self, session):
         super().__init__(session)
-
+        self._local_timing_step = 0
 
     def run(self):
         while self.running():
             if self.terminating():
                 break
-            time.sleep(self.next_poll)
+            time.sleep(self.next_check())
             self.monitor()
+
+    def next_check(self):
+        t = self._local_timing_step
+        t += 1
+        try:
+            return self.local_timing_intervals[t]
+        except IndexError:
+            # 5 minutes
+            return 300
 
     @abc.abstractmethod
     def running(self):
