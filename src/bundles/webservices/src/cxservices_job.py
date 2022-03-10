@@ -99,7 +99,6 @@ class CxServicesJob(Job):
             If job failed to launch
         chimerax.core.tasks.JobMonitorError
             If status check failed
-
         """
         # We have to do this so that urrllib3, which swagger's generated
         # API calls, can serialize the params dict.
@@ -142,6 +141,9 @@ class CxServicesJob(Job):
 
         """
         return self.launch_time is not None and self.end_time is None
+
+    def next_check(self) -> Optional[int]:
+        return self.next_poll
 
     def monitor(self, poll_freq_override: Optional[int] = None) -> None:
         """Check the status of the background process.
