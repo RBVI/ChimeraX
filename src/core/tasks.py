@@ -316,7 +316,6 @@ class Job(Task):
         """
         raise RuntimeError("base class \"running\" method called.")
 
-    @abc.abstractmethod
     def monitor(self):
         """Check the status of the background process.
 
@@ -324,7 +323,7 @@ class Job(Task):
         'update_state') when the background process is done
 
         """
-        raise RuntimeError("base class \"monitor\" method called.")
+        pass
 
     def __str__(self):
         return ("ChimeraX Job, ID %s" % self.id)
