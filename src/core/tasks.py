@@ -53,6 +53,7 @@ import abc
 import itertools
 import sys
 import threading
+import time
 import weakref
 
 from .state import State, StateManager
@@ -299,6 +300,14 @@ class Job(Task):
     """
     def __init__(self, session):
         super().__init__(session)
+
+
+    def run(self):
+        while self.running():
+            if self.terminating():
+                break
+            time.sleep(self.next_poll)
+            self.monitor()
 
     @abc.abstractmethod
     def running(self):
