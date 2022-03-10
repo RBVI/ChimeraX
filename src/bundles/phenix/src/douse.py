@@ -11,21 +11,48 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-# ---------------------------------------------------------------------------------------
-# Command and tool to place waters in cryoEM maps using Phenix douse.
 #
-def phenix_douse(session, map, near_model,
-                 keep_input_water = True, far_water = False,
-                 phenix_location = None, server = False,
-                 residue_range = 5, map_range = 8, verbose = False):
+# Command to place waters in cryoEM maps using Phenix douse.
+#
+from chimerax.core.tasks import Job
+class DouseJob(Job):
+
+    SESSION_SAVE = False
+
+    def __init__(self, session, executable_location, map_file_name, model_file_name, temp_dir,
+            keep_input_water, verbose, callback, block):
+        super().__init__(session)
+        self._running = False
+        self.start(session, executable_location, map_file_name, model_file_name, temp_dir, keep_input_water,
+            verbose, callback, blocking=block)
+
+    def run(self, session, executable_location, map_file_name, model_file_name, temp_dir, keep_input_water,
+            verbose, callback, **kw):
+        self._running = True
+        try:
+            callback(_run_douse_subprocess(session, executable_location, map_file_name, model_file_name,
+                temp_dir, keep_input_water, verbose))
+        finally:
+            self._running = False
+
+    def monitor(self):
+        import sys
+        print("monitor called", file=sys.__stderr__)
+
+    def running(self):
+        return self._running
+
+
+def phenix_douse(session, map, near_model, *, block=None, far_water=False, keep_input_water=True,
+        map_range=8, phenix_location=None, residue_range=5, verbose=False):
 
     # Find the phenix.douse executable
-    if server:
-        from .rest import phenix_rest_server
-        rest_server = phenix_rest_server(session, phenix_location)
-    else:
-        from .locate import find_phenix_command
-        exe_path = find_phenix_command(session, 'phenix.douse', phenix_location)
+    from .locate import find_phenix_command
+    exe_path = find_phenix_command(session, 'phenix.douse', phenix_location)
+
+    # if blocking not explicitly specified, block if in a script or in nogui mode
+    if block is None:
+        block = session.in_script or not session.ui.is_gui
 
     # Setup temporary directory to run phenix.douse.
     from tempfile import TemporaryDirectory
@@ -48,21 +75,24 @@ def phenix_douse(session, map, near_model,
 
     # Run phenix.douse
     douse_keep_input_water = (keep_input_water and far_water)
-    if server:
-        douse_model = _run_douse_rest_server(session, rest_server, 'map.mrc', 'model.pdb', temp_dir,
-                                        keep_input_water = douse_keep_input_water,
-                                        verbose = verbose)
-    else:
-        douse_model = _run_douse_subprocess(session, exe_path, 'map.mrc', 'model.pdb', temp_dir,
-                                            keep_input_water = douse_keep_input_water,
-                                            verbose = verbose)
+    # keep a reference to 'd' in the callback so that the temporary directory isn't removed before
+    # douse runs
+    callback = lambda douse_model, *args, session=session, shift=shift, near_model=near_model, \
+        keep_input_water=keep_input_water, far_water=far_water, map=map, residue_range=residue_range, \
+        map_range=map_range, tsafe=session.ui.thread_safe, d_ref=d: tsafe(_process_results, session,
+        douse_model, shift, near_model, keep_input_water, far_water, map, residue_range, map_range)
+    DouseJob(session, exe_path, "map.mrc", "model.pdb", temp_dir, douse_keep_input_water, verbose,
+        callback, block)
+
+
+def _process_results(session, douse_model, shift, near_model, keep_input_water, far_water, map,
+        residue_range, map_range):
     douse_model.position = map.scene_position
     if shift is not None:
         douse_model.atoms.coords += shift
 
     # Copy new waters
-    model, msg, nwaters = _copy_new_waters(douse_model, near_model,
-                                           keep_input_water, far_water, map.name)
+    model, msg, nwaters = _copy_new_waters(douse_model, near_model, keep_input_water, far_water, map.name)
     douse_model.delete()
 
     # Report predicted waters and input waters
@@ -71,11 +101,8 @@ def phenix_douse(session, map, near_model,
     # Show only waters and nearby residues and transparent map near waters.
     if nwaters > 0:
         _show_waters(near_model, model, residue_range, map, map_range)
-    
-    return model
 
-# ---------------------------------------------------------------------------------------
-#
+
 def _fix_map_origin(map):
     '''
     Douse ignores the MRC file origin so if it is non-zero take the
@@ -92,17 +119,18 @@ def _fix_map_origin(map):
         map_0 = map
     return map_0, shift
 
-# ---------------------------------------------------------------------------------------
-#
-def _run_douse_subprocess(session, exe_path, map_filename, model_filename, temp_dir,
-                          keep_input_water = True, verbose = False):
+
+def _run_douse_subprocess(session, exe_path, map_filename, model_filename, temp_dir, keep_input_water,
+        verbose):
     '''
     Run douse in a subprocess and return the model with predicted waters.
     '''
     args = [exe_path, map_filename, model_filename]
     if keep_input_water:
         args.append('keep_input_water=true')
-    session.logger.status(f'Running {exe_path} in directory {temp_dir}')
+    tsafe=session.ui.thread_safe
+    logger = session.logger
+    tsafe(logger.status, f'Running {exe_path} in directory {temp_dir}')
     import subprocess
     p = subprocess.run(args, capture_output = True, cwd = temp_dir)
     if p.returncode != 0:
@@ -123,7 +151,7 @@ def _run_douse_subprocess(session, exe_path, map_filename, model_filename, temp_
         if err:
             msg += f'\n\n<b>stderr</b>:\n\n{err}'
         msg += '</pre>'
-        session.logger.info(msg, is_html = True)
+        tsafe(logger.info, msg, is_html=True)
 
     # Open new model with added waters
     from os import path
@@ -133,8 +161,9 @@ def _run_douse_subprocess(session, exe_path, map_filename, model_filename, temp_
 
     return models[0]
 
-# ---------------------------------------------------------------------------------------
-#
+
+#NOTE: We don't use a REST server; code retained for reference
+"""
 def _run_douse_rest_server(session, rest_server, map_filename, model_filename, temp_dir,
                            keep_input_water = True, verbose = False):
     '''
@@ -178,9 +207,9 @@ def _run_douse_rest_server(session, rest_server, map_filename, model_filename, t
     models, info = open_pdb(session, douse_pdb, log_info = False)
 
     return models[0]
+"""
 
-# ---------------------------------------------------------------------------------------
-#
+
 def _copy_new_waters(douse_model, near_model, keep_input_water, far_water, map_name):
     model = near_model.copy()
     model.position = douse_model.position
@@ -208,19 +237,17 @@ def _copy_new_waters(douse_model, near_model, keep_input_water, far_water, map_n
         msg += (
             f'<br>Among input waters <a href="cxcmd:{sel_dup}">found {ndup}</a>'
             f' and <a href="cxcmd:{sel_xtra}">did not find {nxtra}</a>')
-        
+
     return model, msg, nnew
 
-# ---------------------------------------------------------------------------------------
-#
+
 def _water_residues(model):
     res = model.residues
     water_res = res[res.names == 'HOH']
     return water_res
 
-# ---------------------------------------------------------------------------------------
-#
-def _compare_waters(input_model, output_model, overlap_distance = 2):
+
+def _compare_waters(input_model, output_model, overlap_distance=2):
     '''
     Find how many output waters overlap input waters.
     '''
@@ -242,15 +269,13 @@ def _compare_waters(input_model, output_model, overlap_distance = 2):
 
     return input_waters, new_wat_res, dup_wat_res, dup_input_wat_res
 
-# ---------------------------------------------------------------------------------------
-#
+
 def _select_command(model, residues):
     res_ids = ','.join('%d' % r.number for r in residues)
     cmd = f'select #{model.id_string}:{res_ids}' if len(residues) > 0 else 'select clear'
     return cmd, len(residues)
 
-# ---------------------------------------------------------------------------------------
-#
+
 def _add_waters(model, new_wat_res):
     rnum = model.residues.numbers.max(initial = 0) + 1
     res = []
@@ -267,8 +292,7 @@ def _add_waters(model, new_wat_res):
     from chimerax.atomic import Residues
     return Residues(res)
 
-# ---------------------------------------------------------------------------------------
-#
+
 def _show_waters(input_model, douse_model, residue_range, map, map_range):
     m_id = douse_model.id_string
     commands = [f'hide #{m_id} atoms,ribbons',
@@ -281,26 +305,4 @@ def _show_waters(input_model, douse_model, residue_range, map, map_range):
         commands.append(f'volume zone #{map.id_string} near #{m_id}:HOH range {map_range}')
     cmd = ' ; '.join(commands)
     from chimerax.core.commands import run
-    run(douse_model.session, cmd, log = False)
-
-# ---------------------------------------------------------------------------------------
-#
-def register_phenix_douse_command(logger):
-    from chimerax.core.commands import CmdDesc, register, OpenFolderNameArg, BoolArg, FloatArg
-    from chimerax.map import MapArg
-    from chimerax.atomic import AtomicStructureArg
-    desc = CmdDesc(
-        required = [('map', MapArg)],
-        keyword = [('near_model', AtomicStructureArg),
-                   ('keep_input_water', BoolArg),
-                   ('far_water', BoolArg),
-                   ('phenix_location', OpenFolderNameArg),
-                   ('server', BoolArg),
-                   ('residue_range', FloatArg),
-                   ('map_range', FloatArg),
-                   ('verbose', BoolArg),
-        ],
-        required_arguments = ['near_model'],
-        synopsis = 'Place water molecules in map'
-    )
-    register('phenix douse', desc, phenix_douse, logger=logger)
+    run(douse_model.session, cmd, log=False)
