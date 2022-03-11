@@ -8,8 +8,13 @@ VERSION = 20
 
 # to upload new binary versions, set USE_PREBUILT to false and UPLOAD_PREBUILT to true;
 # once all platforms have been successfully built, set USE_PREBUILT to true and UPLOAD_PREBUILT to false
+ifeq ($(OS),Windows)
+USE_PREBUILT=false
+UPLOAD_PREBUILT=true
+else
 USE_PREBUILT=true
 UPLOAD_PREBUILT=false
+endif
 ifeq ($(OS),Linux)
 SUPPORTED_DISTROS := Ubuntu CentOS Debian
 # CentOS uses "CentOS Linux", hence the second awk in the following line
@@ -70,6 +75,10 @@ install:
 
 app-install: $(AMBERTOOLS_PREBUILT)
 	-mkdir -p $(AMBERBIN_DST_HOME)
+ifeq ($(OS),Windows)
+	# Antechamber complains bitterly about a missing tmp directory otherwise
+	-mkdir -p $(AMBERBIN_DST_HOME)/tmp
+endif
 	 tar xf $(AMBERTOOLS_PREBUILT) -C $(AMBERBIN_DST_HOME)
 ifeq ($(OS),Darwin)
 	tar xf $(AMBERTOOLS_FLIBS_PREBUILT) -C $(app_libdir)
