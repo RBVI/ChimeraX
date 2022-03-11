@@ -23,13 +23,13 @@ from chimerax.ui.widgets.htmlview import (
     create_chimerax_profile
 )
 from Qt.QtWebEngineCore import QWebEngineUrlSchemeHandler
-from Qt.QtWebEngineCore import QWebEngineDownloadRequest
 from Qt import using_qt5, using_qt6
 
 if using_qt5:
     from Qt.QtWebEngineWidgets import QWebEnginePage
 elif using_qt6:
     from Qt.QtWebEngineCore import QWebEnginePage
+    from Qt.QtWebEngineCore import QWebEngineDownloadRequest
 
 _singleton = None
 _sys_tags = None

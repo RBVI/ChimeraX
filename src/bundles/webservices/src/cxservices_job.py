@@ -72,11 +72,6 @@ class CxServicesJob(Job):
         # Initialize ChimeraX REST request state
         self.reset_state()
 
-    def start(self, *args, **kw) -> None:
-        # override Job.start so that we can process the input_file_map
-        # before start returns, since the files may be temporary
-        super().start(*args, **kw)
-
     @property
     def status(self) -> str:
         return self._status
@@ -104,7 +99,6 @@ class CxServicesJob(Job):
             If job failed to launch
         chimerax.core.tasks.JobMonitorError
             If status check failed
-
         """
         # We have to do this so that urrllib3, which swagger's generated
         # API calls, can serialize the params dict.
@@ -140,17 +134,16 @@ class CxServicesJob(Job):
             }
             self.next_poll = int(result.next_poll)
             self.thread_safe_log("Webservices job id: %s" % self.job_id)
-            while self.running():
-                if self.terminating():
-                    break
-                time.sleep(self.next_poll)
-                self.monitor()
+            super().run()
 
     def running(self) -> bool:
         """Return whether background process is still running.
 
         """
         return self.launch_time is not None and self.end_time is None
+
+    def next_check(self) -> Optional[int]:
+        return self.next_poll
 
     def monitor(self, poll_freq_override: Optional[int] = None) -> None:
         """Check the status of the background process.
@@ -187,24 +180,6 @@ class CxServicesJob(Job):
             return None
         else:
             return content
-
-    def thread_safe_status(self, message):
-        if self.session:
-            status = self.session.logger.status
-            tsafe = self.session.ui.thread_safe
-            tsafe(status, message)
-
-    def thread_safe_log(self, message):
-        if self.session:
-            status = self.session.logger.info
-            tsafe = self.session.ui.thread_safe
-            tsafe(status, message)
-
-    def thread_safe_warning(self, message):
-        if self.session:
-            status = self.session.logger.warning
-            tsafe = self.session.ui.thread_safe
-            tsafe(status, message)
 
     #
     # Other helper methods
