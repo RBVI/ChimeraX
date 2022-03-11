@@ -2,8 +2,8 @@ PREREQ_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-# Methods are "wheel", "pypi_qt6" and "fromsrc"
-METHOD=wheel
+# Methods are "wheel.*" and "fromsrc"
+METHOD=wheel.qt6
 
 ifeq ($(OSARCH),DarwinArm64)
 METHOD=pypi_qt6
@@ -12,11 +12,33 @@ endif
 # PYQT_LICENSE can be "commercial" for commercial version
 PYQT_LICENSE = gpl
 
-VERSION = 5.15
+USE_QT6 = true
+ifdef UBUNTU_DIST
+ifeq ($(shell expr $(UBUNTU_DIST) '<' 20.04),1)
+USE_QT6 = false
+endif
+endif
+ifdef CENTOS_DIST
+ifeq ($(shell expr $(CENTOS_DIST) '<' 8),1)
+USE_QT6 = false
+endif
+endif
+
+ifeq ($(USE_QT6),true)
+VERSION = 6.2
+PYQT_MINOR_VERSION = 3
+QT_MINOR_VERSION = 3
+PYQTWE_MINOR_VERSION = 1
+METHOD=wheel.qt6
+else
+VERSION = 5.13
 PYQT_MINOR_VERSION = 2
 QT_MINOR_VERSION = 2
+PYQTWE_MINOR_VERSION = 2
+METHOD=wheel.qt5
+endif
 
-MAKE_ARGS = -f Makefile.$(METHOD) VERSION=$(VERSION) PYQT_MINOR_VERSION=$(PYQT_MINOR_VERSION) QT_MINOR_VERSION=$(QT_MINOR_VERSION) PYQT_LICENSE=$(PYQT_LICENSE)
+MAKE_ARGS = -f Makefile.$(METHOD) VERSION=$(VERSION) PYQT_MINOR_VERSION=$(PYQT_MINOR_VERSION) QT_MINOR_VERSION=$(QT_MINOR_VERSION) PYQTWE_MINOR_VERSION=$(PYQTWE_MINOR_VERSION) PYQT_LICENSE=$(PYQT_LICENSE)
 
 all:
 
