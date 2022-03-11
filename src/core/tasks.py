@@ -178,8 +178,8 @@ class Task(State):
         this method calls the instance 'run' method in the
         current thread; otherwise, it calls the instance
         'run' method in a separate thread.  The 'blocking'
-        keyword is passed through, so the 'run' and 'launch'
-        methods in derived classes will see it.
+        keyword is passed through, so the 'run' methods in
+        derived classes will see it.
 
         """
         if self.state != PENDING:
@@ -280,12 +280,20 @@ class Job(Task):
     is modeled as process launch followed by multiple checks
     for process termination.
 
-    'Job' is implemented by overriding the :py:meth:`run` method to
-    launch and monitor the background process.  Subclasses
-    should override the 'launch' and 'monitor' methods to
-    implement actual functionality.
+    'Job' implements a minimal run function which checks for
+    termination, waits for a time step, and then calls a
+    monitor method. To implement functionality, the 'run'
+    method must be overriden. At the end of the run method,
+    subclasses can call `super().run()` to hook into this
+    functionality.
 
-    Classes deriving from 'Job' indirectly inherits from
+    Any status updating logic should be implemented by overriding
+    the 'monitor' method.
+
+    Finally, next_check can be overridden to provide alternative
+    timetables for updating the status of tasks.
+
+    Classes deriving from 'Job' indirectly inherit from
     :py:class:`Task` and should override methods to implement
     task-specific functionality.  In particularly, methods
     from session :py:class:`~chimerax.core.session.State`
