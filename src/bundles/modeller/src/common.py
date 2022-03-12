@@ -635,7 +635,7 @@ class ModellerLocalJob(Job):
             raise ValueError("%s does not exist" % file_name)
         return open(path).read()
 
-    def launch(self, executable_location, script_name, **kw):
+    def run(self, executable_location, script_name, **kw):
         from chimerax.core.errors import UserError
         import os, sys
         cmd = [executable_location, os.path.join(self.caller.temp_dir, script_name)]
@@ -706,6 +706,7 @@ class ModellerLocalJob(Job):
         import threading
         thread = threading.Thread(target=threaded_run, daemon=True)
         thread.start()
+        super().run()
 
     def monitor(self):
         import os
