@@ -8,13 +8,8 @@ VERSION = 20
 
 # to upload new binary versions, set USE_PREBUILT to false and UPLOAD_PREBUILT to true;
 # once all platforms have been successfully built, set USE_PREBUILT to true and UPLOAD_PREBUILT to false
-ifeq ($(OS),Windows)
-USE_PREBUILT=false
-UPLOAD_PREBUILT=true
-else
 USE_PREBUILT=true
 UPLOAD_PREBUILT=false
-endif
 ifeq ($(OS),Linux)
 SUPPORTED_DISTROS := Ubuntu CentOS Debian
 # CentOS uses "CentOS Linux", hence the second awk in the following line
