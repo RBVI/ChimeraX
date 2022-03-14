@@ -2272,7 +2272,9 @@ class SeqBlock:
     """
 
     def _left_seqs_edge(self):
-        return self.label_width + self.letter_gaps[0] + self.numbering_widths[0]
+        if self.label_scene == self.main_scene:
+            return self.label_width + self.letter_gaps[0] + self.numbering_widths[0]
+        return 0
 
     def make_item(self, line, offset, x, y, half_x, left_rect_off, right_rect_off, color_func):
         if hasattr(line, 'depiction_val'):
