@@ -63,6 +63,13 @@ sync:
 	mkdir -p $(build_prefix)/sync/{python-only,binary}
 	$(MAKE) -C src/bundles sync
 
+sync-venv:
+ifndef VIRTUAL_ENV
+	@echo "No virtual env to install to! Doing nothing."
+else
+	pip install --force-reinstall $(build_prefix)/sync/binary $(build_prefix)/sync/python-only
+endif
+
 ifdef WIN32
 vsdefined:
 	@if [ -z $${VSINSTALLDIR+x} ]; then \
