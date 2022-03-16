@@ -39,19 +39,19 @@ flake8-ignore = [
     # Modeller script boilerplate
     "src/bundles/modeller/src/script_head.py ALL",
     "src/bundles/modeller/src/script_tail.py ALL",
-	# Imported but unused, star import, entity referenced after star
-	"**/__init__.py F401 F403 F405",
+    # Imported but unused, star import, entity referenced after star
+    "**/__init__.py F401 F403 F405",
     # Overhangig indent
     "E121",
     # Underhanging indent
     "E126",
     # Mandates no whitespace before comma, which is sensible, but
     # just as it's better to have all operators aligned, it's better
-    # to have all commas aligned. 
+    # to have all commas aligned.
     "E203",
-    # Mandates no spaces around keyword/parameter = 
+    # Mandates no spaces around keyword/parameter =
     "E251",
-    # Mandates two spaces before inline comment 
+    # Mandates two spaces before inline comment
     "E261",
     # Mandates two blank lines between functions
     "E302",
@@ -62,7 +62,7 @@ flake8-ignore = [
     # Disallows bare except statement
     "E722",
     # Disallows breaking before binary operators as in Haskell
-    # This can be removed when flake8 is updated to consider 
+    # This can be removed when flake8 is updated to consider
     # breaking before a binary operator as the best practice
     # (coming soon)
     "W503",

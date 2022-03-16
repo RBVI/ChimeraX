@@ -70,6 +70,10 @@ install:
 
 app-install: $(AMBERTOOLS_PREBUILT)
 	-mkdir -p $(AMBERBIN_DST_HOME)
+ifeq ($(OS),Windows)
+	# Antechamber complains bitterly about a missing tmp directory otherwise
+	-mkdir -p $(AMBERBIN_DST_HOME)/tmp
+endif
 	 tar xf $(AMBERTOOLS_PREBUILT) -C $(AMBERBIN_DST_HOME)
 ifeq ($(OS),Darwin)
 	tar xf $(AMBERTOOLS_FLIBS_PREBUILT) -C $(app_libdir)
