@@ -9,7 +9,7 @@ Cython==0.29.26
 filelock==3.4.2
 grako==3.16.5
 html2text==2020.1.16
-ihm==0.26
+ihm==0.27
 imagecodecs==2021.11.20 ; platform_machine != 'arm64'
 ipykernel==6.6.1
 # if ipython updated, make sure autocompletion still works (e.g. "mi<tab>" becomes min) and if not then
