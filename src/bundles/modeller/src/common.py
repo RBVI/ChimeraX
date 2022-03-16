@@ -703,6 +703,7 @@ class ModellerLocalJob(Job):
                 self._running = False
                 os.chdir(old_dir)
                 tsafe(logger.status, "MODELLER finished")
+            tsafe(self.process_results)
         import threading
         thread = threading.Thread(target=threaded_run, daemon=True)
         thread.start()
@@ -737,6 +738,9 @@ class ModellerLocalJob(Job):
         return 15
 
     def on_finish(self):
+        pass
+
+    def process_results(self):
         logger = self.session.logger
         try:
             model_info = self.get_file("ok_models.dat")
