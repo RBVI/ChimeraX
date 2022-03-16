@@ -127,8 +127,8 @@ endif
 
 # keep in alphabetical order, dependencies go below
 ifeq ($(OSARCH),DarwinArm64)
-# Have not ported ambertools, openmm to Mac arm64, July 2021
-SUBDIRS	+= cxservices imex pips PyQt Python qtshim
+# Have not ported ambertools to Mac arm64, July 2021
+SUBDIRS	+= cxservices imex openmm pips PyQt Python qtshim
 else
 SUBDIRS	+= ambertools cxservices imex openmm pips PyQt Python qtshim
 endif
