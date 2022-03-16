@@ -17,6 +17,7 @@ from Qt.QtCore import QAbstractTableModel, Qt, QModelIndex, Signal, QSortFilterP
 # Qt has no QVariant; None can be used in place of an invalid QVariant
 # from Qt.QtCore import QVariant
 from Qt.QtGui import QFontDatabase, QBrush, QColor
+from Qt import qt_enum_as_int, qt_enum_from_int
 
 class QCxTableModel(QAbstractTableModel):
     def __init__(self, item_table, **kw):
@@ -426,7 +427,7 @@ class ItemTable(QTableView):
             version, selected, column_display, highlighted, sort_info = session_info
             if self._allow_user_sorting and sort_info is not None:
                 col_num, order = sort_info
-                self.sortByColumn(col_num, order)
+                self.sortByColumn(col_num, qt_enum_from_int(Qt.SortOrder, order))
             sel_model = self.selectionModel()
             for i in selected:
                 index = self._table_model.index(i,0)
@@ -459,7 +460,7 @@ class ItemTable(QTableView):
         column_display = { c.title: c.display for c in self._columns }
         highlighted = [i for i, d in enumerate(self.data) if d in self._highlighted]
         if self._allow_user_sorting:
-            sort_info = (self.model().sortColumn(), int(self.model().sortOrder()))
+            sort_info = (self.model().sortColumn(), qt_enum_as_int(self.model().sortOrder()))
         else:
             sort_info = None
         return (version, selected, column_display, highlighted, sort_info)
