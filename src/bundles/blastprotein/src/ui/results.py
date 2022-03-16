@@ -494,13 +494,10 @@ class BlastResultsWorker(QThread):
     def _parse_results(self, db, results, sequence, atomspec):
         try:
             self.parsing_results.emit()
-            blast_results = get_database(db)
-            blast_results.parse("query", sequence, results)
-        except Exception as e:
-            self.parse_failed.emit(str(e))
-        else:
             self._ref_atomspec = atomspec
             self._sequences = {}
+            blast_results = get_database(db)
+            blast_results.parse("query", sequence, results)
             query_match = blast_results.parser.matches[0]
             if self._ref_atomspec:
                 name = self._ref_atomspec
@@ -527,7 +524,9 @@ class BlastResultsWorker(QThread):
             # TODO: Make what this function does more explicit. It works on the
             # hits that are in match_chain's hit dictionary, but that's not
             # immediately clear.
-            blast_results.add_info(self.session, match_chains, sequence_only_hits)
+            blast_results.add_info(match_chains, sequence_only_hits)
             self._hits = list(match_chains.values()) + list(sequence_only_hits.values())
             self.report_hits.emit(self._hits)
             self.report_sequences.emit(self._sequences)
+        except Exception as e:
+            self.parse_failed.emit(str(e))

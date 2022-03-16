@@ -114,24 +114,19 @@ chain_attr_name_mapping = [
     ('chain_weight', True, ['rcsb_polymer_entity', 'formula_weight'])
 ]
 
-def fetch_pdb_info(session, entry_chain_list):
+def fetch_pdb_info(entry_chain_list):
     # Can't just sub in a list, since Python uses single quotes around strings by default
     query = query_template % ",".join(['"%s"' % entry_chain.split('_')[0] for entry_chain in entry_chain_list])
-    try:
-        req = Request("https://data.rcsb.org/graphql", data=query.encode('utf-8'), headers={
-             "Content-Type": "application/graphql"
-        })
-        f = urlopen(req)
-        data = f.read()
-        f.close()
-    except (URLError, HTTPError) as e:
-        session.logger.warning("Fetching BLAST PDB info failed: %s" % str(e))
-        return {}
-    else:
-        data = data.decode('utf-8')
-        info = json.loads(data)
+    req = Request("https://data.rcsb.org/graphql", data=query.encode('utf-8'), headers={
+         "Content-Type": "application/graphql"
+    })
+    f = urlopen(req)
+    data = f.read()
+    f.close()
+    data = data.decode('utf-8')
+    info = json.loads(data)
     if 'errors' in info:
-        session.logger.warning("Fetching BLAST PDB info had errors: %s" % info['errors'])
+        raise ValueError("Fetching BLAST PDB info had errors: %s" % info['errors'])
     by_entry = {}
     for entry_data in info['data']['entries']:
         by_entry[entry_data['rcsb_id']] = entry_data
