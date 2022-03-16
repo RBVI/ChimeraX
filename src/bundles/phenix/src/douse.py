@@ -15,6 +15,8 @@
 # Command to place waters in cryoEM maps using Phenix douse.
 #
 from chimerax.core.tasks import Job
+from time import time
+
 class DouseJob(Job):
 
     SESSION_SAVE = False
@@ -23,21 +25,46 @@ class DouseJob(Job):
             keep_input_water, verbose, callback, block):
         super().__init__(session)
         self._running = False
+        self._monitor_time = 0
+        self._monitor_interval = 10
         self.start(session, executable_location, map_file_name, model_file_name, temp_dir, keep_input_water,
             verbose, callback, blocking=block)
 
     def run(self, session, executable_location, map_file_name, model_file_name, temp_dir, keep_input_water,
             verbose, callback, **kw):
         self._running = True
-        try:
-            callback(_run_douse_subprocess(session, executable_location, map_file_name, model_file_name,
-                temp_dir, keep_input_water, verbose))
-        finally:
-            self._running = False
+        self.start_t = time()
+        def threaded_run(self=self):
+            try:
+                results = _run_douse_subprocess(session, executable_location, map_file_name, model_file_name,
+                    temp_dir, keep_input_water, verbose)
+            finally:
+                self._running = False
+            self.session.ui.thread_safe(callback, results)
+        import threading
+        thread = threading.Thread(target=threaded_run, daemon=True)
+        thread.start()
+        super().run()
 
     def monitor(self):
-        import sys
-        print("monitor called", file=sys.__stderr__)
+        delta = int(time() - self.start_t + 0.5)
+        if delta < 60:
+            time_info = "%d seconds" % delta
+        elif delta < 3600:
+            minutes = delta // 60
+            seconds = delta % 60
+            time_info = "%d minutes and %d seconds" % (minutes, seconds)
+        else:
+            hours = delta // 3600
+            minutes = (delta % 3600) // 60
+            seconds = delta % 60
+            time_info = "%d:%02d:%02d" % (hours, minutes, seconds)
+        ses = self.session
+        ses.ui.thread_safe(ses.logger.status, "Douse job still running (%s)" % time_info)
+
+    def next_check(self):
+        self._monitor_time += self._monitor_interval
+        return self._monitor_time
 
     def running(self):
         return self._running
@@ -79,8 +106,8 @@ def phenix_douse(session, map, near_model, *, block=None, far_water=False, keep_
     # douse runs
     callback = lambda douse_model, *args, session=session, shift=shift, near_model=near_model, \
         keep_input_water=keep_input_water, far_water=far_water, map=map, residue_range=residue_range, \
-        map_range=map_range, tsafe=session.ui.thread_safe, d_ref=d: tsafe(_process_results, session,
-        douse_model, shift, near_model, keep_input_water, far_water, map, residue_range, map_range)
+        map_range=map_range, d_ref=d: _process_results(session, douse_model, shift, near_model,
+        keep_input_water, far_water, map, residue_range, map_range)
     DouseJob(session, exe_path, "map.mrc", "model.pdb", temp_dir, douse_keep_input_water, verbose,
         callback, block)
 
