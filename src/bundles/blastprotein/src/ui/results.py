@@ -288,7 +288,7 @@ class BlastProteinResults(ToolInstance):
         self.progress_bar.text = text
 
     def parsing_results(self):
-        self.session.logger.info("Parsing BLAST results.")
+        self.session.logger.status("Parsing BLAST results.")
 
     def _increment_progress_bar_results(self):
         self._increment_progress_bar("Results")
