@@ -280,9 +280,11 @@ class BlastProteinResults(ToolInstance):
 
     def job_failed(self, error):
         self.session.logger.warning("BlastProtein failed: %s" % error)
+        self._unload_progress_bar()
 
     def parse_failed(self, error):
         self.session.logger.warning("Parsing BlastProtein results failed: %s" % error)
+        self._unload_progress_bar()
 
     def _update_progress_bar_text(self, text):
         self.progress_bar.text = text
