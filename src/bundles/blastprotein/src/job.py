@@ -90,7 +90,7 @@ class BlastProteinJob(CxServicesJob):
 
     def on_finish(self):
         logger = self.session.logger
-        logger.info("BlastProtein finished.")
+        logger.status("BlastProtein finished.")
         if self.session.ui.is_gui:
             BlastProteinResults.from_job(
                     session = self.session
