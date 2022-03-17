@@ -264,7 +264,6 @@ class BlastProteinResults(ToolInstance):
     # Worker Callbacks
     #
     def connect_worker_callbacks(self, worker):
-        worker.standard_output.connect(self.stdout_to_report)
         worker.job_failed.connect(self.job_failed)
         worker.parse_failed.connect(self.parse_failed)
         worker.waiting_for_info.connect(self._update_progress_bar_text)
@@ -274,9 +273,6 @@ class BlastProteinResults(ToolInstance):
         worker.finished_processing_hits.connect(self._on_finished_processing_hits)
         worker.report_hits.connect(self._on_report_hits_signal)
         worker.report_sequences.connect(self._on_report_sequences_signal)
-
-    def stdout_to_report(self, output):
-        self.session.logger.error(output)
 
     def job_failed(self, error):
         self.session.logger.warning("BlastProtein failed: %s" % error)
@@ -446,7 +442,6 @@ class BlastProteinResults(ToolInstance):
 
 
 class BlastResultsWorker(QThread):
-    standard_output = Signal(object)
     job_failed = Signal(str)
     parse_failed = Signal(str)
     waiting_for_info = Signal(str)
