@@ -62,6 +62,7 @@ class TugAtomsMode(MouseMode):
         self._tugger = None
         self._tugging = False
         self._tug_handler = None
+        self._tug_atom = None
         self._last_frame_number = None
         self._puller = None
         self._arrow_model = None
@@ -86,7 +87,9 @@ class TugAtomsMode(MouseMode):
                 except ForceFieldError as e:
                     self.session.logger.warning(str(e))
                     return
-            st.tug_atom(a)
+            self._tug_atom = a
+            from chimerax.atomic import Atoms
+            st.tug_atoms(Atoms([a]))
             self._tugging = True
 
     def mouse_drag(self, event):
@@ -116,18 +119,13 @@ class TugAtomsMode(MouseMode):
             return	# Make sure we draw a frame before doing another MD calculation
         self._last_frame_number = v.frame_number
 
-        a = self._tugger.atom
-        atom_xyz, offset = self._puller.pull_direction(a)
+        a = self._tug_atom
+        atom_xyz, target_xyz = self._puller.pull_to_point(a)
 
-        # Convert offset to model coords needed by tugger.
-        moffset = a.structure.scene_position.inverse().transform_vector(offset)
+        self._tugger.tug_to_positions(target_xyz.reshape((1,3)))
 
-        from time import time
-        t0 = time()
-        self._tugger.tug_displacement(moffset)
-        t1 = time()
-        atom_xyz, offset = self._puller.pull_direction(a)
-        self._draw_arrow(atom_xyz+offset, atom_xyz)
+        atom_xyz, target_xyz = self._puller.pull_to_point(a)
+        self._draw_arrow(target_xyz, atom_xyz)
 
     def _continue_tugging(self, *_):
         self._log('In continue_tugging')
@@ -176,26 +174,29 @@ class Puller2D:
         self.x = x
         self.y = y
         
-    def pull_direction(self, atom):
+    def pull_to_point(self, atom):
         v = atom.structure.session.main_view
         x0,x1 = v.clip_plane_points(self.x, self.y)
         axyz = atom.scene_coord
         # Project atom onto view ray to get displacement.
         dir = x1 - x0
-        da = axyz - x0
         from chimerax.geometry import inner_product
-        offset = da - (inner_product(da, dir)/inner_product(dir,dir)) * dir
-        return axyz, -offset
+        pxyz = x0 + (inner_product(axyz - x0, dir)/inner_product(dir,dir)) * dir
+        return axyz, pxyz
 
 class Puller3D:
     def __init__(self, xyz):
         self.xyz = xyz
         
-    def pull_direction(self, atom):
+    def pull_to_point(self, atom):
         axyz = atom.scene_coord
-        return axyz, self.xyz - axyz
+        return axyz, self.xyz
 
 class StructureTugger:
+    '''
+    Run a molecular dynamics simulation or minimization with OpenMM
+    on a structure while pulling on some atoms.
+    '''
     def __init__(self, structure):
         self._log = Logger('structuretugger.log' if write_logs else None)
         self.structure = structure
@@ -207,9 +208,6 @@ class StructureTugger:
         satoms.sort(key = lambda a: (a.residue.chain_id, a.residue.number))
         from chimerax.atomic import Atoms
         self.atoms = Atoms(satoms)
-
-        # Atom being tugged
-        self.atom = None
 
         initialize_openmm()
         
@@ -242,9 +240,9 @@ class StructureTugger:
         
         
         # OpenMM particle data
-        self._particle_number = None		# Integer index of tugged atom
-        self._particle_positions = None		# Numpy array, Angstroms
-        self._particle_force_index = {}
+        self._tugged_particle_numbers = None	# Integer indices of tugged atoms, numpy array
+        self._particle_positions = None		# Positions for all atoms, numpy array, Angstroms
+        self._particle_force_index = {}		# Maps particle number to force index for tugged atoms
         self._particle_masses = None		# Original particle masses
 
         self._create_openmm_system()
@@ -253,26 +251,34 @@ class StructureTugger:
         return (structure is self.structure and
                 structure.atoms == self._structure_atoms)
     
-    def tug_atom(self, atom):
-        self._log('In tug_atom')
+    def tug_atoms(self, atoms):
+        self._log('In tug_atoms')
 
         # OpenMM does not allow removing a force from a system.
         # So when the atom changes we either have to make a new system or add
         # the new atom to the existing force and set the force constant to zero
         # for the previous atom. Use the latter approach.
-        self.atom = atom
-        p = self.atoms.index(atom)
-        pp = self._particle_number
+        new_p = self.atoms.indices(atoms)
+        last_p = self._tugged_particle_numbers
+        self._tugged_particle_numbers = new_p
         f = self._force
         pfi = self._particle_force_index
-        if pp is not None and pp != p and pp in pfi:
-            f.setParticleParameters(pfi[pp], pp, (0,))	# Reset force to 0 for previous particle
-        self._particle_number = p
         k = self._force_constant
-        if p in pfi:
-            f.setParticleParameters(pfi[p], p, (k,))
-        else:
-            pfi[p] = f.addParticle(p, (k,))
+        x0 = y0 = z0 = 0
+
+        # Reset force to 0 for last tugged particles that are no longer tugged.
+        if last_p is not None:
+            np = set(new_p)
+            for lp in last_p:
+                if lp not in np and lp in pfi:
+                    f.setParticleParameters(pfi[lp], lp, (0,x0,y0,z0))
+
+        # Set force parameters or add force term for this particle
+        for p in new_p:
+            if p in pfi:
+                f.setParticleParameters(pfi[p], p, (k,x0,y0,z0))
+            else:
+                pfi[p] = f.addParticle(p, (k,x0,y0,z0))
 
         # If a particle is added to a force an existing simulation using
         # that force does not get updated. So we create a new simulation each
@@ -301,20 +307,27 @@ class StructureTugger:
         magnitudes =numpy.sqrt(forcesx*forcesx + forcesy*forcesy + forcesz*forcesz)
         return max(magnitudes)
 
-        
-    def tug_displacement(self, d):
-        self._log('In tug_displacement')
-        self._set_tug_position(d)
+    def tug_to_positions(self, xyz):
+        '''xyz is in scene coordinates, one position for each tugged particle.'''
+        self._log('In tug_to_positions')
+        if len(xyz) != len(self._tugged_particle_numbers):
+            raise ValueError('tug_to_positions: wrong number of tug points %d, expected %d'
+                             % (len(xyz), len(self._tugged_particle_numbers)))
+        self._set_tug_positions(xyz)
         if not self._minimized:
             self._minimize()
         self._simulate()
 
-    def _set_tug_position(self, d):
-        pxyz = 0.1*self._particle_positions[self._particle_number]	# Nanometers
-        txyz = pxyz + 0.1*d		# displacement d is in Angstroms, convert to nanometers
-        c = self._simulation.context
-        for p,v in zip(('x0','y0','z0'), txyz):
-            c.setParameter(p,v)
+    def _set_tug_positions(self, xyz):
+        '''xyz is in scene coordinates, one position for each tugged particle.'''
+        txyz = self.structure.scene_position.inverse() * xyz        
+        txyz *= 0.1	# convert position in Angstroms to nanometers
+        f = self._force
+        k = self._force_constant
+        for (x0,y0,z0), p in zip(txyz, self._tugged_particle_numbers):
+            fi = self._particle_force_index[p]
+            f.setParticleParameters(fi, p, (k,x0,y0,z0))
+        f.updateParametersInContext(self._simulation.context)
 
     def _simulate(self, steps = None):
 # Minimization generates "Exception. Particle coordinate is nan" errors rather frequently, 1 in 10 minimizations.
@@ -425,9 +438,8 @@ class StructureTugger:
         # Setup pulling force
         e = 'k*((x-x0)^2+(y-y0)^2+(z-z0)^2)'
         self._force = force = mm.CustomExternalForce(e)
-        force.addPerParticleParameter('k')
-        for p in ('x0', 'y0', 'z0'):
-            force.addGlobalParameter(p, 0.0)
+        for name in ('k', 'x0', 'y0', 'z0'):
+            force.addPerParticleParameter(name)
         system.addForce(force)
 
     def _system_from_prmtop(self, prmtop_path, impcrd_path):
