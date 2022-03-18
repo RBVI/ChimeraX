@@ -256,13 +256,14 @@ def _copy_new_waters(douse_model, near_model, keep_input_water, far_water, map_n
     # Create log message describing found waters with links
     # to select them.
     sel_new, nnew = _select_command(model, added_wat_res)
-    msg = (f'Placed <a href="cxcmd:{sel_new}">{nnew} waters</a>'
-           f' in map "{map_name}" near model "{near_model.name}"')
-    if keep_input_water and len(input_wat_res) > 0 and not far_water:
-        sel_dup, ndup = _select_command(model, dup_wat_res)
-        sel_xtra, nxtra = _select_command(model, input_wat_res - dup_input_wat_res)
+    long_message = keep_input_water and len(input_wat_res) > 0 and not far_water
+    msg = (f'Placed <a href="cxcmd:{sel_new}">{nnew}%s waters</a>'
+           f' in map "{map_name}" near model "{near_model.name}"') % (" new" if long_message else "")
+    if long_message:
+        sel_dup, ndup = _select_command(model, dup_input_wat_res)
+        sel_xtra, nxtra = _select_command(near_model, input_wat_res - dup_input_wat_res)
         msg += (
-            f'<br>Among input waters <a href="cxcmd:{sel_dup}">found {ndup}</a>'
+            f'<br>Also, of the waters existing in the input, douse <a href="cxcmd:{sel_dup}">found {ndup}</a>'
             f' and <a href="cxcmd:{sel_xtra}">did not find {nxtra}</a>')
 
     return model, msg, nnew
@@ -298,8 +299,15 @@ def _compare_waters(input_model, output_model, overlap_distance=2):
 
 
 def _select_command(model, residues):
-    res_ids = ','.join('%d' % r.number for r in residues)
-    cmd = f'select #{model.id_string}:{res_ids}' if len(residues) > 0 else 'select clear'
+    from chimerax.atomic import concise_residue_spec
+    spec = concise_residue_spec(model.session, residues)
+    # need to sub in the model ID from 'model', which is not necessarily the residues' model
+    if len(residues) > 0:
+        for i, c in enumerate(spec):
+            if c not in '#.' and not c.isdigit():
+                break
+        spec = model.string(style="command") + spec[i:]
+    cmd = f'select {spec}' if len(residues) > 0 else 'select clear'
     return cmd, len(residues)
 
 
