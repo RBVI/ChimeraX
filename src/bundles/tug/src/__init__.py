@@ -28,4 +28,10 @@ class _TugAPI(BundleAPI):
         # TODO: remove mouse mode
         pass
 
+    @staticmethod
+    def register_command(command_name, logger):
+        # 'register_command' is lazily called when the command is referenced
+        from . import tugcommand
+        tugcommand.register_tug_command(logger)
+
 bundle_api = _TugAPI()
