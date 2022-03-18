@@ -464,10 +464,11 @@ def encode_gltf(nodes, buffers, meshes, materials, filename):
         'nodes': nodes,
         'meshes': meshes.mesh_specs,
         'accessors': buffers.accessors,
-        'materials': materials.material_specs,
         'bufferViews': buffers.buffer_views,
         'buffers':[{'byteLength': buffers.nbytes}],
     }
+    if len(materials.material_specs) > 0:
+        h['materials'] = materials.material_specs
 
     if len(materials.textures) > 0:
         h.update(materials.textures.texture_specs)	# adds 'textures', 'images', 'samplers'
