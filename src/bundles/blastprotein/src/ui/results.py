@@ -264,7 +264,6 @@ class BlastProteinResults(ToolInstance):
     # Worker Callbacks
     #
     def connect_worker_callbacks(self, worker):
-        worker.standard_output.connect(self.stdout_to_report)
         worker.job_failed.connect(self.job_failed)
         worker.parse_failed.connect(self.parse_failed)
         worker.waiting_for_info.connect(self._update_progress_bar_text)
@@ -275,20 +274,19 @@ class BlastProteinResults(ToolInstance):
         worker.report_hits.connect(self._on_report_hits_signal)
         worker.report_sequences.connect(self._on_report_sequences_signal)
 
-    def stdout_to_report(self, output):
-        self.session.logger.error(output)
-
     def job_failed(self, error):
-        raise UserError("BlastProtein failed: %s" % error)
+        self.session.logger.warning("BlastProtein failed: %s" % error)
+        self._unload_progress_bar()
 
     def parse_failed(self, error):
-        raise UserError("Parsing BlastProtein results failed: %s" % error)
+        self.session.logger.warning("Parsing BlastProtein results failed: %s" % error)
+        self._unload_progress_bar()
 
     def _update_progress_bar_text(self, text):
         self.progress_bar.text = text
 
     def parsing_results(self):
-        self.session.logger.info("Parsing BLAST results.")
+        self.session.logger.status("Parsing BLAST results.")
 
     def _increment_progress_bar_results(self):
         self._increment_progress_bar("Results")
@@ -444,7 +442,6 @@ class BlastProteinResults(ToolInstance):
 
 
 class BlastResultsWorker(QThread):
-    standard_output = Signal(object)
     job_failed = Signal(str)
     parse_failed = Signal(str)
     waiting_for_info = Signal(str)
@@ -494,13 +491,10 @@ class BlastResultsWorker(QThread):
     def _parse_results(self, db, results, sequence, atomspec):
         try:
             self.parsing_results.emit()
-            blast_results = get_database(db)
-            blast_results.parse("query", sequence, results)
-        except Exception as e:
-            self.parse_failed.emit(str(e))
-        else:
             self._ref_atomspec = atomspec
             self._sequences = {}
+            blast_results = get_database(db)
+            blast_results.parse("query", sequence, results)
             query_match = blast_results.parser.matches[0]
             if self._ref_atomspec:
                 name = self._ref_atomspec
@@ -527,7 +521,9 @@ class BlastResultsWorker(QThread):
             # TODO: Make what this function does more explicit. It works on the
             # hits that are in match_chain's hit dictionary, but that's not
             # immediately clear.
-            blast_results.add_info(self.session, match_chains, sequence_only_hits)
+            blast_results.add_info(match_chains, sequence_only_hits)
             self._hits = list(match_chains.values()) + list(sequence_only_hits.values())
             self.report_hits.emit(self._hits)
             self.report_sequences.emit(self._sequences)
+        except Exception as e:
+            self.parse_failed.emit(str(e))

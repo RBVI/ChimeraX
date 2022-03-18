@@ -319,7 +319,8 @@ class Job(Task):
             if self.terminating():
                 break
             time.sleep(self.next_check())
-            self.monitor()
+            if self.running():
+                self.monitor()
 
     def next_check(self):
         t = self._local_timing_step
