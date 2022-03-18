@@ -84,13 +84,3 @@ def phenix_location(session, phenix_location = None):
         msg = f'Using Phenix installation {phenix_location}'
 
     session.logger.status(msg, log = True)
-    
-# ---------------------------------------------------------------------------------------
-#
-def register_phenix_location_command(logger):
-    from chimerax.core.commands import CmdDesc, register, OpenFolderNameArg
-    desc = CmdDesc(
-        optional = [('phenix_location', OpenFolderNameArg)],
-        synopsis = 'Set the Phenix installation location'
-    )
-    register('phenix location', desc, phenix_location, logger=logger)
