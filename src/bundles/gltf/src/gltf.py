@@ -419,7 +419,7 @@ def write_gltf(session, filename, models = None,
     
     if center is not None or size is not None:
         from chimerax.geometry import union_bounds
-        bounds = union_bounds(m.bounds() for m in models if m.is_visible)
+        bounds = union_bounds(m.bounds() for m in models if m.visible)
         if bounds is not None:
             # Place positioning node above top-level nodes.
             cs_node = center_and_size(top_nodes(nodes), bounds, center, size)
