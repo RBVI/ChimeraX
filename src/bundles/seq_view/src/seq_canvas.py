@@ -52,7 +52,7 @@ class SeqCanvas:
     viewMargin = 2
     """
     def __init__(self, parent, sv, alignment):
-        from Qt.QtWidgets import QGraphicsView, QGraphicsScene, QHBoxLayout
+        from Qt.QtWidgets import QGraphicsView, QGraphicsScene, QHBoxLayout, QShortcut
         from Qt.QtCore import Qt
         self.label_scene = QGraphicsScene()
         """
@@ -85,6 +85,10 @@ class SeqCanvas:
         label_vsb = self.label_view.verticalScrollBar()
         main_vsb.valueChanged.connect(label_vsb.setValue)
         label_vsb.valueChanged.connect(main_vsb.setValue)
+        from Qt.QtGui import QKeySequence
+        self._copy_shortcut = QShortcut(QKeySequence.StandardKey.Copy, parent)
+        import sys
+        self._copy_shortcut.activated.connect(lambda *args: self.sv.show_copy_sequence_dialog())
         """TODO
         self.labelCanvas = Tkinter.Canvas(parent, bg="#E4E4E4")
         self._vdivider = Tkinter.Frame(parent, bd=2, relief='raised')

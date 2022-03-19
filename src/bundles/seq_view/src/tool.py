@@ -527,6 +527,9 @@ class SequenceViewer(ToolInstance):
         file_menu.addAction(scf_action)
 
         edit_menu = menu.addMenu("Edit")
+        copy_action = QAction("Copy Sequence...", edit_menu)
+        copy_action.triggered.connect(self.show_copy_sequence_dialog)
+        edit_menu.addAction(copy_action)
         from chimerax.seqalign.cmd import alignment_program_name_args
         prog_to_arg = {}
         for arg, prog in alignment_program_name_args.items():
@@ -677,6 +680,14 @@ class SequenceViewer(ToolInstance):
                 self.tool_window.create_child_window("Chain-Sequence Associations", close_destroys=False))
             self.associations_tool.tool_window.manage(None)
         self.associations_tool.tool_window.shown = True
+
+    def show_copy_sequence_dialog(self):
+        if not hasattr(self, "copy_sequence_dialog"):
+            from .copy_seq import CopySeqDialog
+            self.copy_sequence_dialog = CopySeqDialog(self,
+                self.tool_window.create_child_window("Copy Sequence", close_destroys=False))
+            self.copy_sequence_dialog.tool_window.manage(None)
+        self.copy_sequence_dialog.tool_window.shown = True
 
     def show_feature_browser(self, seq, *, state=None):
         if seq not in self._feature_browsers:
