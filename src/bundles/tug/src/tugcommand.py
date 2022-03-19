@@ -11,34 +11,42 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def tug(session, atom, to_point, force_constant=10000, steps=50, frames=50):
+def tug(session, atoms, to_atoms, force_constant=1000, steps=50, frames=50):
     '''
-    Run molecular dynamics on a structure tugging an atom.
+    Run molecular dynamics on a structure tugging some atoms.
     This is a command version of the tug atom mouse mode.
 
     Parameters
     ----------
-    atom : Atom
-        Which atom to tug.
-    to_point : Center
-        Point atom should be tugged toward
+    atoms : Atoms
+        Which atoms to tug.
+    to_atoms : Atoms
+        Tug atoms toward current location of these atoms.
     force_constant : float
-    	Strength of tugging force, Joules per meter.
+    	Strength of tugging force, Newtons per meter.
     steps : integer
         How many time steps to take each graphics frame.
     frames : integer
         How many graphics frames to tug for.
     '''
+    us = atoms.unique_structures
+    if len(us) > 1:
+        from chimerax.core.errors import UserError
+        raise UserError('Can only run tug command on a single structure, got %d' % len(us))
+    if len(to_atoms) != len(atoms):
+        from chimerax.core.errors import UserError
+        raise UserError('For %d tugged atoms expected %d destination atoms, got %d'
+                        % (len(atoms), len(atoms), len(to_atoms)))
+
     from .tugatoms import StructureTugger
-    tugger = StructureTugger(atom.structure)
+    tugger = StructureTugger(us[0])
     tugger._force_constant = force_constant
     tugger._sim_steps = steps
-    tugger.tug_atom(atom)
-    target = to_point.scene_coordinates()
+    tugger.tug_atoms(atoms)
+    points = to_atoms.scene_coords
     
-    def simulation_frame(session, frame, tugger=tugger, point=target):
-        delta = point - tugger.atom.scene_coord
-        tugger.tug_displacement(delta)
+    def simulation_frame(session, frame, tugger=tugger, points=points):
+        tugger.tug_to_positions(points)
         
     from chimerax.core.commands.motion import CallForNFrames
     CallForNFrames(simulation_frame, frames, session)
@@ -47,12 +55,12 @@ def tug(session, atom, to_point, force_constant=10000, steps=50, frames=50):
     
 def register_tug_command(logger):
     from chimerax.core.commands import register, CmdDesc, CenterArg, FloatArg, IntArg
-    from chimerax.atomic import AtomArg
-    desc = CmdDesc(required = [('atom', AtomArg)],
-                   keyword = [('to_point', CenterArg),
+    from chimerax.atomic import AtomsArg
+    desc = CmdDesc(required = [('atoms', AtomsArg)],
+                   keyword = [('to_atoms', AtomsArg),
                               ('force_constant', FloatArg),
                               ('steps', IntArg),
                               ('frames', IntArg)],
-                   required_arguments = ['to_point'],
+                   required_arguments = ['to_atoms'],
                    synopsis='Tug an atom while running molecular dynamics')
     register('tug', desc, tug, logger=logger)
