@@ -15,7 +15,6 @@
 from typing import Callable
 from dataclasses import dataclass, field
 from abc import ABC, abstractmethod
-from urllib.error import HTTPError, URLError
 
 from chimerax.core.commands import run
 

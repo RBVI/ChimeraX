@@ -10,8 +10,6 @@
 # including partial copies, of the software or any revisions
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
-import json
-
 from abc import ABC, abstractmethod
 
 from ..utils import SeqGapChars

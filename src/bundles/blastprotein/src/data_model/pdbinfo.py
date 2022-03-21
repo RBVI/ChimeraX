@@ -19,7 +19,6 @@
 
 import json
 from urllib.request import urlopen, Request
-from urllib.error import URLError, HTTPError
 
 query_template = """{
   entries(entry_ids: [%s]) {
