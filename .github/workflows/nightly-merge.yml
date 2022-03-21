@@ -1,0 +1,24 @@
+name: Merge Develop into Nightly
+on:
+  schedule:
+    - cron: '30 10 * * *' # 2:30AM PT/10:30AM UTC
+
+jobs:
+  merge-dev-into-nightly:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Merge develop into nightly
+        uses: robotology/gh-action-nightly-merge@v1.3.2
+        with:
+          # by convention, stable gets merged into develop.
+          # we know our development branch is 'develop', it's
+          # just what we have to call the branches in this
+          # workflow to get it to work
+          stable_branch: 'develop'
+          development_branch: 'nightly'
+          allow_ff: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

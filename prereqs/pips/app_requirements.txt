@@ -9,7 +9,7 @@ Cython==0.29.26
 filelock==3.4.2
 grako==3.16.5
 html2text==2020.1.16
-ihm==0.26
+ihm==0.27
 imagecodecs==2021.11.20 ; platform_machine != 'arm64'
 ipykernel==6.6.1
 # if ipython updated, make sure autocompletion still works (e.g. "mi<tab>" becomes min) and if not then
@@ -28,7 +28,7 @@ numpy==1.22.1
 openvr==1.16.802
 # as per Tristan's request in ticket #3055
 ParmEd==3.4.3
-Pillow==9.0.0
+Pillow==9.0.1
 pkginfo==1.8.2
 psutil==5.9.0
 pycollada==0.7.2
@@ -46,7 +46,7 @@ scipy==1.7.3
 six==1.16.0
 sortedcontainers==2.4.0
 suds-community==1.0.0
-tables==3.7.0
+tables==3.7.0 ; platform_machine != 'arm64'
 tifffile==2021.11.2
 tinyarray==1.2.4
 webcolors==1.11.1

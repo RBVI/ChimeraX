@@ -132,7 +132,6 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
                     seq_chars = seq.characters
                     modeled = set()
                     # 'chain_indices' are into the *sequence*
-                    mmap = seq.match_maps[chain]
                     for start, end in chain_indices[r.chain]:
                         modeled.update(range(start, end + 1))
                     for seq_i in range(len(seq_chars)):

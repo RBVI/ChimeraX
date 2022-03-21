@@ -36,7 +36,8 @@ blacklist = set([
     "chimerax.segger.segloop_dialog",
     "chimerax.structcomp",  # ChimeraX command script
     "chimerax.surface.geodesic", # development script
-    "chimerax.webcam.webcam",	# Needs to fix for Qt 6 missing QAbstractVideoSurface
+    "chimerax.webcam.camera",		# Uses QVideoSink only in Qt6
+    "chimerax.webcam.camera_qt5",	# Uses QAbstractVideoSurface only in Qt5
 ])
 
 failed = 0

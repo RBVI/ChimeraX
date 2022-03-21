@@ -72,11 +72,6 @@ class CxServicesJob(Job):
         # Initialize ChimeraX REST request state
         self.reset_state()
 
-    def start(self, *args, **kw) -> None:
-        # override Job.start so that we can process the input_file_map
-        # before start returns, since the files may be temporary
-        super().start(*args, **kw)
-
     @property
     def status(self) -> str:
         return self._status
@@ -104,7 +99,6 @@ class CxServicesJob(Job):
             If job failed to launch
         chimerax.core.tasks.JobMonitorError
             If status check failed
-
         """
         # We have to do this so that urrllib3, which swagger's generated
         # API calls, can serialize the params dict.
@@ -138,16 +132,9 @@ class CxServicesJob(Job):
                 "status": result.status_url,
                 "results": result.results_url,
             }
-            self.next_poll = self._poll_to_seconds(int(result.next_poll))
+            self.next_poll = int(result.next_poll)
             self.thread_safe_log("Webservices job id: %s" % self.job_id)
-            while self.running():
-                if self.terminating():
-                    break
-                time.sleep(self.next_poll)
-                self.monitor()
-
-    def _poll_to_seconds(self, poll: int) -> int:
-        return 60 * poll
+            super().run()
 
     def running(self) -> bool:
         """Return whether background process is still running.
@@ -155,7 +142,10 @@ class CxServicesJob(Job):
         """
         return self.launch_time is not None and self.end_time is None
 
-    def monitor(self) -> None:
+    def next_check(self) -> Optional[int]:
+        return self.next_poll
+
+    def monitor(self, poll_freq_override: Optional[int] = None) -> None:
         """Check the status of the background process.
 
         The task should be marked as terminated in the background
@@ -169,8 +159,10 @@ class CxServicesJob(Job):
         except ApiException as e:
             raise JobMonitorError(str(e))
         self.status = status
-        if next_poll is not None:
-            self.next_poll = self._poll_to_seconds(int(next_poll))
+        if poll_freq_override is None and next_poll is not None:
+            self.next_poll = int(next_poll)
+        else:
+            self.next_poll = poll_freq_override
         if status in ["finished","failed","deleted","canceled"] and self.end_time is None:
             self.end_time = time.time()
 
@@ -188,24 +180,6 @@ class CxServicesJob(Job):
             return None
         else:
             return content
-
-    def thread_safe_status(self, message):
-        if self.session:
-            status = self.session.logger.status
-            tsafe = self.session.ui.thread_safe
-            tsafe(status, message)
-
-    def thread_safe_log(self, message):
-        if self.session:
-            status = self.session.logger.info
-            tsafe = self.session.ui.thread_safe
-            tsafe(status, message)
-
-    def thread_safe_warning(self, message):
-        if self.session:
-            status = self.session.logger.warning
-            tsafe = self.session.ui.thread_safe
-            tsafe(status, message)
 
     #
     # Other helper methods

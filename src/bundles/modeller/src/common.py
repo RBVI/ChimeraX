@@ -543,7 +543,7 @@ class ModellerWebJob(CxServicesJob):
         self.start(self.service_name, self.params, self.processed_input_file_map)
 
     def monitor(self):
-        super().monitor()
+        super().monitor(poll_freq_override=10)
         stdout = self.get_file("stdout.txt")
         num_done = stdout.count('# Heavy relative violation of each residue is written to:')
         num_done = max(stdout.count('>> Normalized DOPE z score') - 1, 0)
@@ -635,7 +635,7 @@ class ModellerLocalJob(Job):
             raise ValueError("%s does not exist" % file_name)
         return open(path).read()
 
-    def launch(self, executable_location, script_name, **kw):
+    def run(self, executable_location, script_name, **kw):
         from chimerax.core.errors import UserError
         import os, sys
         cmd = [executable_location, os.path.join(self.caller.temp_dir, script_name)]
@@ -703,9 +703,11 @@ class ModellerLocalJob(Job):
                 self._running = False
                 os.chdir(old_dir)
                 tsafe(logger.status, "MODELLER finished")
+            tsafe(self.process_results)
         import threading
         thread = threading.Thread(target=threaded_run, daemon=True)
         thread.start()
+        super().run()
 
     def monitor(self):
         import os
@@ -736,6 +738,9 @@ class ModellerLocalJob(Job):
         return 15
 
     def on_finish(self):
+        pass
+
+    def process_results(self):
         logger = self.session.logger
         try:
             model_info = self.get_file("ok_models.dat")

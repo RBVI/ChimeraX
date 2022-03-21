@@ -920,12 +920,13 @@ class SteamVRCamera(Camera, StateManager):
     def projection_matrix(self, near_far_clip, view_num, window_size):
         '''The 4 by 4 OpenGL projection matrix for rendering the scene.'''
         if view_num == 2:
-            # TODO: Want to use near_far_clip in meters in room
-            #  rather than actual scene bounds because scene bounds
-            #  don't include hand controllers, vr user interface panels
-            #  and multi-person head models so those get clipped in
-            #  the room camera view if the data model bounds are too small.
-            p = self._room_camera.projection_matrix(near_far_clip, view_num, window_size)
+            # Use near_far_clip in meters in room rather than actual scene bounds
+            # because scene bounds don't include hand controllers, vr user interface panels
+            # and multi-person head models so those get clipped in the room camera view
+            # if the data model bounds are too small.
+            ss = self.scene_scale
+            nf = (self._z_near/ss, self._z_far/ss) if ss > 0 else near_far_clip
+            p = self._room_camera.projection_matrix(nf, view_num, window_size)
             return p
         elif view_num == 0:
             p = self._projection_left

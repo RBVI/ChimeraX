@@ -52,7 +52,7 @@ class SeqCanvas:
     viewMargin = 2
     """
     def __init__(self, parent, sv, alignment):
-        from Qt.QtWidgets import QGraphicsView, QGraphicsScene, QHBoxLayout
+        from Qt.QtWidgets import QGraphicsView, QGraphicsScene, QHBoxLayout, QShortcut
         from Qt.QtCore import Qt
         self.label_scene = QGraphicsScene()
         """
@@ -85,6 +85,10 @@ class SeqCanvas:
         label_vsb = self.label_view.verticalScrollBar()
         main_vsb.valueChanged.connect(label_vsb.setValue)
         label_vsb.valueChanged.connect(main_vsb.setValue)
+        from Qt.QtGui import QKeySequence
+        self._copy_shortcut = QShortcut(QKeySequence.StandardKey.Copy, parent)
+        import sys
+        self._copy_shortcut.activated.connect(lambda *args: self.sv.show_copy_sequence_dialog())
         """TODO
         self.labelCanvas = Tkinter.Canvas(parent, bg="#E4E4E4")
         self._vdivider = Tkinter.Frame(parent, bd=2, relief='raised')
@@ -230,7 +234,7 @@ class SeqCanvas:
     def _actually_resize(self):
         self._resize_timer.stop()
         self._reformat()
-        self.main_scene.setSceneRect(self.main_scene.itemsBoundingRect())
+        self._update_scene_rects()
 
 
     """TODO
@@ -655,7 +659,7 @@ class SeqCanvas:
     def hide_header(self, header):
         self.lead_block.hide_header(header)
         self.sv.region_browser.redraw_regions()
-        self.main_scene.setSceneRect(self.main_scene.itemsBoundingRect())
+        self._update_scene_rects()
         
     def layout_alignment(self):
         """
@@ -744,6 +748,7 @@ class SeqCanvas:
             lambda *args, **kw: self.sv.status(secondary=True, *args, **kw),
             self.show_ruler, None, self.show_numberings, self.sv.settings,
             self.label_width, self.font_pixels, self.numbering_widths, self.letter_gaps())
+        self._update_scene_rects()
 
     def letter_gaps(self):
         column_sep_attr_name = "column_separation"
@@ -987,6 +992,7 @@ class SeqCanvas:
             lambda *args, **kw: self.sv.status(secondary=True, *args, **kw),
             self.show_ruler, None, self.show_numberings, self.sv.settings,
             self.label_width, self.font_pixels, self.numbering_widths, self.letter_gaps())
+        self._update_scene_rects()
         """TODO
         if self.tree:
             if self.treeShown:
@@ -998,8 +1004,7 @@ class SeqCanvas:
         self.sv.region_browser.redraw_regions(cull_empty=cull_empty)
         self.main_scene.update()
         self.label_scene.update()
-        self.main_scene.setSceneRect(self.main_scene.itemsBoundingRect())
-        self.label_scene.setSceneRect(self.label_scene.itemsBoundingRect())
+        self._update_scene_rects()
         """TODO
         if len(self.alignment.seqs) != len(self._checkPoints[0]):
             self._checkPoint(fromScratch=True)
@@ -1352,7 +1357,7 @@ class SeqCanvas:
     def show_header(self, header):
         self.lead_block.show_header(header)
         self.sv.region_browser.redraw_regions()
-        self.main_scene.setSceneRect(self.main_scene.itemsBoundingRect())
+        self._update_scene_rects()
 
     """TODO
     def showNodes(self, show):
@@ -1448,6 +1453,14 @@ class SeqCanvas:
         self._editRefresh(self.alignment.seqs, left, right)
         """
 
+    def _update_scene_rects(self):
+        self.main_scene.setSceneRect(self.main_scene.itemsBoundingRect())
+        if self.label_scene != self.main_scene:
+            # For scrolling to work right, ensure that vertical
+            # size of label_scene is the same as main_scene
+            lbr = self.label_scene.itemsBoundingRect()
+            mr = self.main_scene.sceneRect()
+            self.label_scene.setSceneRect(lbr.x(), mr.y(), lbr.width(), mr.height())
 
 class SeqBlock:
     from Qt.QtCore import Qt
@@ -1559,12 +1572,6 @@ class SeqBlock:
 
         if seq_offset + line_width >= len(alignment.seqs[0]):
             self.next_block = None
-            if not prev_block and label_scene != main_scene:
-                # For scrolling to work right, ensure that vertical
-                # size of label_scene is the same as main_scene
-                mr = main_scene.sceneRect()
-                lr = label_scene.sceneRect()
-                label_scene.setSceneRect(lr.x(), mr.y(), lr.width(), mr.height())
         else:
             self.next_block = SeqBlock(label_scene, main_scene, self, self.font,
                 self.emphasis_font, self.font_metrics, self.emphasis_font_metrics, seq_offset + line_width,
@@ -2272,7 +2279,9 @@ class SeqBlock:
     """
 
     def _left_seqs_edge(self):
-        return self.label_width + self.letter_gaps[0] + self.numbering_widths[0]
+        if self.label_scene == self.main_scene:
+            return self.label_width + self.letter_gaps[0] + self.numbering_widths[0]
+        return 0
 
     def make_item(self, line, offset, x, y, half_x, left_rect_off, right_rect_off, color_func):
         if hasattr(line, 'depiction_val'):

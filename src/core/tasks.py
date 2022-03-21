@@ -53,6 +53,7 @@ import abc
 import itertools
 import sys
 import threading
+import time
 import weakref
 
 from .state import State, StateManager
@@ -177,8 +178,8 @@ class Task(State):
         this method calls the instance 'run' method in the
         current thread; otherwise, it calls the instance
         'run' method in a separate thread.  The 'blocking'
-        keyword is passed through, so the 'run' and 'launch'
-        methods in derived classes will see it.
+        keyword is passed through, so the 'run' methods in
+        derived classes will see it.
 
         """
         if self.state != PENDING:
@@ -251,6 +252,25 @@ class Task(State):
         return ("ChimeraX Task, ID %s" % self.id)
 
 
+    def thread_safe_status(self, message):
+        if self.session:
+            status = self.session.logger.status
+            tsafe = self.session.ui.thread_safe
+            tsafe(status, message)
+
+    def thread_safe_log(self, message):
+        if self.session:
+            status = self.session.logger.info
+            tsafe = self.session.ui.thread_safe
+            tsafe(status, message)
+
+    def thread_safe_warning(self, message):
+        if self.session:
+            status = self.session.logger.warning
+            tsafe = self.session.ui.thread_safe
+            tsafe(status, message)
+
+
 class Job(Task):
     """
     'Job' is a long-running task.
@@ -260,12 +280,20 @@ class Job(Task):
     is modeled as process launch followed by multiple checks
     for process termination.
 
-    'Job' is implemented by overriding the :py:meth:`run` method to
-    launch and monitor the background process.  Subclasses
-    should override the 'launch' and 'monitor' methods to
-    implement actual functionality.
+    'Job' implements a minimal run function which checks for
+    termination, waits for a time step, and then calls a
+    monitor method. To implement functionality, the 'run'
+    method must be overriden. At the end of the run method,
+    subclasses can call `super().run()` to hook into this
+    functionality.
 
-    Classes deriving from 'Job' indirectly inherits from
+    Any status updating logic should be implemented by overriding
+    the 'monitor' method.
+
+    Finally, next_check can be overridden to provide alternative
+    timetables for updating the status of tasks.
+
+    Classes deriving from 'Job' indirectly inherit from
     :py:class:`Task` and should override methods to implement
     task-specific functionality.  In particularly, methods
     from session :py:class:`~chimerax.core.session.State`
@@ -278,8 +306,30 @@ class Job(Task):
     to 'Job' instances, not :py:meth:`run`.
 
     """
+    local_timing_intervals = [
+        5, 5, 10, 15, 25, 40, 65, 105, 170, 275, 300, 350, 400, 450, 500
+        , 550, 600, 650, 700, 750, 800
+    ]
     def __init__(self, session):
         super().__init__(session)
+        self._local_timing_step = 0
+
+    def run(self):
+        while self.running():
+            if self.terminating():
+                break
+            time.sleep(self.next_check())
+            if self.running():
+                self.monitor()
+
+    def next_check(self):
+        t = self._local_timing_step
+        t += 1
+        try:
+            return self.local_timing_intervals[t]
+        except IndexError:
+            # 5 minutes
+            return 300
 
     @abc.abstractmethod
     def running(self):
@@ -288,7 +338,6 @@ class Job(Task):
         """
         raise RuntimeError("base class \"running\" method called.")
 
-    @abc.abstractmethod
     def monitor(self):
         """Check the status of the background process.
 
@@ -296,7 +345,7 @@ class Job(Task):
         'update_state') when the background process is done
 
         """
-        raise RuntimeError("base class \"monitor\" method called.")
+        pass
 
     def __str__(self):
         return ("ChimeraX Job, ID %s" % self.id)

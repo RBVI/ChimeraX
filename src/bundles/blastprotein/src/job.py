@@ -37,7 +37,11 @@ class BlastProteinJob(CxServicesJob):
         if kw['tool_inst_name'] is None:
             kw['tool_inst_name'] = make_instance_name()
 
-        self.setup(seq, atomspec, **kw)
+        try:
+            self.setup(seq, atomspec, **kw)
+        except JobError as e:
+            session.logger.warning(" ".join(["Cannot submit job:", str(e)]))
+            return
 
         self.params = {
             "db": self.database,
@@ -57,6 +61,10 @@ class BlastProteinJob(CxServicesJob):
               matrix: str = "BLOSUM62", max_seqs: int = 100, log = None, tool_inst_name = None,
               sequence_name = None):
         self.seq = seq.replace('?', 'X')                  # string
+        if self.seq.count('X') == len(self.seq):
+            raise JobError("Sequence consists entirely of unknown amino acids.")
+        # if self.seq.count('X') > len(self.seq) // 2:
+        #     self.thread_safe_warn("Attempting to run BLAST job with a high occurrence of unknown sequences.")
         self.sequence_name = sequence_name                # string
         self.atomspec = atomspec                          # string (atom specifier)
         self.database = database                          # string
@@ -82,7 +90,7 @@ class BlastProteinJob(CxServicesJob):
 
     def on_finish(self):
         logger = self.session.logger
-        logger.info("BlastProtein finished.")
+        logger.status("BlastProtein finished.")
         if self.session.ui.is_gui:
             BlastProteinResults.from_job(
                     session = self.session

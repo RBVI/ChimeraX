@@ -15,6 +15,7 @@
 from typing import Callable
 from dataclasses import dataclass, field
 from abc import ABC, abstractmethod
+from urllib.error import HTTPError, URLError
 
 from chimerax.core.commands import run
 
@@ -47,6 +48,10 @@ class Database(ABC):
 
     @abstractmethod
     def load_model(chimerax_session, match_code, ref_atomspec):
+        pass
+
+    @abstractmethod
+    def add_info(matches, sequences):
         pass
 
     @staticmethod
@@ -121,19 +126,24 @@ class NCBIDB(Database):
         return ", ".join(postprocessed_formulas)
 
     @staticmethod
-    def add_info(session, matches, sequences):
+    def add_info(matches, sequences):
         chain_ids = list(matches.keys())
-        data = fetch_pdb_info(session, chain_ids)
+        data = fetch_pdb_info(chain_ids)
         for chain_id, hit in matches.items():
-            for k, v in data[chain_id].items():
-                if isinstance(v, list):
-                    v = ", ".join([str(s) for s in v])
-                hit[k] = v
-            hit["title"], hit["species"] = NCBIDB.format_desc(hit["description"])
-            ligand_formulas = hit.get("ligand_formulas", None)
-            if ligand_formulas:
-                hit["ligand_formulas"] = NCBIDB.format_formulas(ligand_formulas)
-            del hit["description"]
+            try:
+                for k, v in data[chain_id].items():
+                    if isinstance(v, list):
+                        v = ", ".join([str(s) for s in v])
+                    hit[k] = v
+                hit["title"], hit["species"] = NCBIDB.format_desc(hit["description"])
+                ligand_formulas = hit.get("ligand_formulas", None)
+                if ligand_formulas:
+                    hit["ligand_formulas"] = NCBIDB.format_formulas(ligand_formulas)
+                del hit["description"]
+            except:
+                raise ValueError(
+                    "tried to format data for chain not found in results. Likely couldn't contact RCSB for info."
+                )
         for hit in sequences.values():
             hit["url"] = NCBIDB.NCBI_ID_URL % hit["name"]
             hit["title"], hit["species"] = NCBIDB.format_desc(hit["description"])
@@ -175,7 +185,7 @@ class AlphaFoldDB(Database):
         return models, None
 
     @staticmethod
-    def add_info(session, matches, sequences):
+    def add_info(matches, _):
         # We do not ever expect to receive sequence only hits
         for match in matches:
             raw_desc = matches[match]["description"]

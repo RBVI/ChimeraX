@@ -60,6 +60,7 @@ base_ribbon = [
 ]
 
 base_surface = [
+    "delete solvent",
     "hide H|ligand|~(protein|nucleic-acid)",
     "~nuc",
     "~ribbon",
@@ -99,11 +100,11 @@ undo_printable = [
 def addh_cmds(session):
     return [ "addh %s" % s.atomspec for s in all_atomic_structures(session) if s.num_atoms < 25000 ]
 
-def by_chain_cmds(session, rainbow=False):
+def by_chain_cmds(session, rainbow=False, target_atoms=False):
     cmds = []
     for s in all_atomic_structures(session):
         if rainbow:
-            cmds.append(rainbow_cmd(s))
+            cmds.append(rainbow_cmd(s, target_atoms=target_atoms))
         cmds.append("color zone %s near %s distance 20" % (s.atomspec, s.atomspec))
     return cmds
 
@@ -163,9 +164,9 @@ def print_prep(*, pb_radius=0.4, ion_size_increase=0.0):
         cmds += ["size ions atomRadius %+g" % ion_size_increase]
     return cmds
 
-def rainbow_cmd(structure):
+def rainbow_cmd(structure, target_atoms=False):
     color_arg = " chains palette " + palette(structure.num_chains)
-    return "rainbow %s@ca,c4'%s target rs" % (structure.atomspec, color_arg)
+    return "rainbow %s@ca,c4'%s target rs%s" % (structure.atomspec, color_arg, ("a" if target_atoms else ""))
 
 def run_preset(session, name, mgr):
     if name == "ribbon by secondary structure":
@@ -216,10 +217,13 @@ def run_preset(session, name, mgr):
             + color_by_hydrophobicity_cmds(session)
     elif name == "surface by chain":
         cmd = undo_printable + base_setup + base_surface + addh_cmds(session) + surface_cmds(session) \
-            + by_chain_cmds(session, rainbow=True)
+            + by_chain_cmds(session, rainbow=True, target_atoms=True)
+    elif name == "surface by polymer":
+        cmd = undo_printable + base_setup + base_surface + addh_cmds(session) + surface_cmds(session) \
+            + [ "color bypolymer target ar" ] + by_chain_cmds(session)
     elif name == "surface blob by chain":
         cmd = undo_printable + base_setup + base_surface + addh_cmds(session) + [
-                "surf %s resolution 18 grid 6; %s" % (s.atomspec, rainbow_cmd(s))
+                "surf %s resolution 18 grid 6; %s" % (s.atomspec, rainbow_cmd(s, target_atoms=True))
                     for s in all_atomic_structures(session)
             ]
     elif name == "surface blob by polymer":
