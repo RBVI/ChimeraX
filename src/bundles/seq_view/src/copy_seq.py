@@ -16,7 +16,7 @@ class CopySeqDialog:
     def __init__(self, sv, tool_window):
         self.sv = sv
         self.tool_window = tool_window
-        #tool_window.help = "help:user/tools/sequenceviewer.html#association"
+        tool_window.help = "help:user/tools/sequenceviewer.html#copy"
 
         from Qt.QtWidgets import QHBoxLayout, QVBoxLayout, QLabel
         layout = QVBoxLayout()
@@ -47,9 +47,9 @@ class CopySeqDialog:
         bbox.accepted.connect(self.copy_seq)
         hide_self = lambda *args, tw=tool_window: setattr(tool_window, 'shown', False)
         bbox.rejected.connect(hide_self)
-        #from chimerax.core.commands import run
-        #bbox.helpRequested.connect(lambda *, run=run, ses=session: run(ses, "help " + self.help))
-        bbox.button(qbbox.Help).setEnabled(False)
+        from chimerax.core.commands import run
+        bbox.helpRequested.connect(lambda *, run=run, ses=self.sv.session, help=tool_window.help:
+            run(ses, "help " + help))
         layout.addWidget(bbox)
 
         tool_window.ui_area.setLayout(layout)

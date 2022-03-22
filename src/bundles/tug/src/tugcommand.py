@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def tug(session, atoms, to_atoms, force_constant=1000, steps=50, frames=50):
+def tug(session, atoms, to_atoms, force_constant=1000, steps=50, frames=50, finish=False):
     '''
     Run molecular dynamics on a structure tugging some atoms.
     This is a command version of the tug atom mouse mode.
@@ -51,16 +51,21 @@ def tug(session, atoms, to_atoms, force_constant=1000, steps=50, frames=50):
     from chimerax.core.commands.motion import CallForNFrames
     CallForNFrames(simulation_frame, frames, session)
 
+    if finish:
+        from chimerax.std_commands.wait import wait
+        wait(session, frames)
+
     return tugger
     
 def register_tug_command(logger):
-    from chimerax.core.commands import register, CmdDesc, CenterArg, FloatArg, IntArg
+    from chimerax.core.commands import register, CmdDesc, CenterArg, FloatArg, IntArg, BoolArg
     from chimerax.atomic import AtomsArg
     desc = CmdDesc(required = [('atoms', AtomsArg)],
                    keyword = [('to_atoms', AtomsArg),
                               ('force_constant', FloatArg),
                               ('steps', IntArg),
-                              ('frames', IntArg)],
+                              ('frames', IntArg),
+                              ('finish', BoolArg)],
                    required_arguments = ['to_atoms'],
-                   synopsis='Tug an atom while running molecular dynamics')
+                   synopsis='Tug atoms while running molecular dynamics')
     register('tug', desc, tug, logger=logger)
