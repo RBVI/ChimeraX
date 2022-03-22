@@ -49,6 +49,7 @@ suds-community==1.0.0
 tables==3.7.0 ; platform_machine != 'arm64'
 tifffile==2021.11.2
 tinyarray==1.2.4
+tomli==2.0.1 # remove when we upgrade to Python 3.11
 webcolors==1.11.1
 wheel-filename==1.3.0
 #
