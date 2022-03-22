@@ -1,3 +1,4 @@
+# -*- mode: makefile -*-
 # === UCSF ChimeraX Copyright ===
 # Copyright 2016 Regents of the University of California.
 # All rights reserved.  This software provided pursuant to a
@@ -34,14 +35,14 @@ PYTHON_PATCH_VERSION = 6
 
 ifndef DEBUG
 # Starting with Python 3.8 the ABI "m" has been dropped.
-PYTHON_ABI = 
+PYTHON_ABI =
 else
 ifneq (,$(wildcard $(includedir)/python$(PYTHON_VERSION)d))
 PYTHON_ABI = d
 else
 # didn't find debug include files, Python not compiled with debugging,
 # so revert to regular Python ABI
-PYTHON_ABI = 
+PYTHON_ABI =
 endif
 endif
 # Windows uses python22.dll instead of libpython2.2.so

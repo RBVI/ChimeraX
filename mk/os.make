@@ -1,3 +1,4 @@
+# -*- mode: makefile -*-
 # === UCSF ChimeraX Copyright ===
 # Copyright 2016 Regents of the University of California.
 # All rights reserved.  This software provided pursuant to a
@@ -216,4 +217,3 @@ __pycache__/%.cpython-$(PYVER_NODOT).pyc : %.py
 	@rm -f $@
 	python3 -t -OO -m py_compile '$(shell cygpath -m $<)'
 endif
-

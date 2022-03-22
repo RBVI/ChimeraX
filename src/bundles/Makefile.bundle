@@ -1,3 +1,4 @@
+# -*- mode: makefile -*-
 # The "make" targets are:
 # 	wheel: build a Python wheel in "dist" directory.
 # 	install: build wheel (if needed) and install in ChimeraX.

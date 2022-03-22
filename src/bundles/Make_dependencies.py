@@ -39,6 +39,8 @@ def make_dependencies(dir_path, output_name):
     missing = set()
     clean = {}
     with open(os.path.join(dir_path, output_name), "w") as f:
+        # Tell Emacs to open the file in the right mode
+        print("# -*- mode: makefile -*-", file=f)
         for dir_name in sorted(dependencies.keys()):
             dep_dirs = []
             for dep in dependencies[dir_name]:
