@@ -67,5 +67,5 @@ def register_tug_command(logger):
                               ('frames', IntArg),
                               ('finish', BoolArg)],
                    required_arguments = ['to_atoms'],
-                   synopsis='Tug an atom while running molecular dynamics')
+                   synopsis='Tug atoms while running molecular dynamics')
     register('tug', desc, tug, logger=logger)
