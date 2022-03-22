@@ -1349,13 +1349,14 @@ _cid_index = { c:i for i,c in enumerate(chain_id_characters) }
 def next_chain_id(cid):
     if not cid or cid.isspace():
         return chain_id_characters[0]
-    try:
-        next_index = _cid_index[cid[-1]] + 1
-    except KeyError:
-        raise ValueError("Illegal chain ID character: %s" % repr(cid[-1]))
-    if next_index == len(chain_id_characters):
-        return cid + chain_id_characters[0]
-    return cid[:-1] + chain_id_characters[next_index]
+    for col in range(len(cid)-1, -1, -1):
+        try:
+            next_index = _cid_index[cid[col]] + 1
+        except KeyError:
+            raise ValueError("Illegal chain ID character: %s" % repr(cid[col]))
+        if next_index < len(chain_id_characters):
+            return cid[:col] + chain_id_characters[next_index] + (chain_id_characters[0] * (len(cid)-col-1))
+    return chain_id_characters[0] * (len(cid)+1)
 
 # -----------------------------------------------------------------------------
 #
