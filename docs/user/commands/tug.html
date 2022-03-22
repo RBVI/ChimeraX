@@ -1,0 +1,78 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: tug</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#commands">Command</a>: tug</h3>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>tug</b>
+&nbsp;<a href="atomspec.html"><i>tugatoms</i></a>&nbsp; <b>toAtoms</b> 
+&nbsp;<a href="atomspec.html"><i>refatoms</i></a>&nbsp;
+[&nbsp;<b>forceConstant</b>&nbsp;&nbsp;<i>f</i>&nbsp;]
+[&nbsp;<b>steps</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
+[&nbsp;<b>frames</b>&nbsp;&nbsp;<i>M</i>&nbsp;]
+[&nbsp;<b>finish</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]</h3>
+<p>
+The <b>tug</b> command pulls the
+<a href="atomspec.html"><i>tugatoms</i></a>
+onto the <a href="atomspec.html"><i>refatoms</i></a>
+using a force constant (default <b>1000</b> N/m)
+while running molecular dynamics (MD) on the entire structure.
+Only equal numbers of <i>tugatoms</i> and <i>refatoms</i> can be used,
+and they will be paired in the order specified.
+</p><p>
+For <b>tug</b> to work, the entire atomic model must be parametrized in OpenMM.
+Currently, this requires a fully protonated structure
+containing only standard residues and/or water.
+Protons can be added beforehand with the command
+<a href="addh.html"><b>addh</b></a>.
+<i>N</i> steps of dynamics (default <b>50</b>) are calculated
+for each of <i>M</i> graphics update frames (default <b>50</b>)
+using a variable time step Langevin integrator with tolerance 0.001
+and temperature 100K. No nonbonded cutoff is used.
+</p><p>
+If <b>finish</b> is <b>true</b>, the command does not return until 
+all <i>M</i> frames are drawn; this is for use in scripts that require 
+the MD to be finished before continuing. By default (<b>finish false</b>),
+subsequent commands are allowed to execute immediately.
+</p><p>
+Saving a <a href="save.html#session">session</a> before using <b>tug</b> is
+advised, since the resulting changes in atomic positions cannot be reversed 
+with <a href="undo.html"><b>undo</b></a> or or by restoring a previously saved
+<a href="view.html#name"><b>view</a></b>.
+</p><p>
+See also:
+<a href="../tools/mousemodes.html#openmm">OpenMM dynamics</a>, 
+<a href="ui.html#mousemode">mouse modes</a>
+<a href="../tools/mousemodes.html" title="Right Mouse Toolbar...">
+<img class="icon" border=1 src="../tools/mouse-icons/tug.png"></a>
+<b>tug</b> and
+<a href="../tools/mousemodes.html" title="Right Mouse Toolbar...">
+<img class="icon" border=1 src="../tools/mouse-icons/tug.png"></a>
+<b>minimize</b>
+</p>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+March 2022</address>
+</body></html>
