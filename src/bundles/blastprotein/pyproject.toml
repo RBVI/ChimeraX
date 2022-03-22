@@ -1,0 +1,72 @@
+# vim: set expandtab ts=4 sw=4:
+# === UCSF ChimeraX Copyright ===
+# Copyright 2021 Regents of the University of California.
+# All rights reserved.  This software provided pursuant to a
+# license agreement containing restrictions on its disclosure,
+# duplication and use.  For details see:
+# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# This notice must be embedded in or attached to all copies,
+# including partial copies, of the software or any revisions
+# or derivations thereof.
+# === UCSF ChimeraX Copyright ===
+[build-system]
+requires = ["setuptools"]
+build-backend = ["setuptools.build_meta"]
+
+[project]
+name="chimerax.blastprotein"
+version="2.0"
+authors = [{ name = "UCSF RBVI", email = "chimerax@cgl.ucsf.edu" }]
+synopsis = "Search PDB/NR/AlphaFold using BLAST"
+description = """
+Interface to the RBVI web service to search the PDB, NR, or AlphaFold
+databases using BLAST.  Results are shown in a tool when a graphical
+interface is available; otherwise, the results are logged.
+"""
+classifiers = [
+    "Development Status :: 5 - Stable",
+    "Environment :: MacOS X :: Aqua",
+    "Environment :: Win32 (MS Windows)",
+    "Environment :: X11 Applications",
+    "Framework :: ChimeraX",
+    "Intended Audience :: Science/Research",
+    "License :: Free for non-commercial use",
+    "Operating System :: MacOS :: MacOS X",
+    "Operating System :: Microsoft :: Windows :: Windows 10",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Visualization",
+    "Topic :: Scientific/Engineering :: Chemistry",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+]
+requires-python = ">= 3.8"
+dependencies = [
+     "chimerax.core ~= 1.0"
+]
+
+[project.optional-dependencies]
+gui = [ 'ChimeraX-UI >= 1.0' ]
+webservices = [ 'ChimeraX-WebServices >= 1.0' ]
+alignments = [ 'ChimeraX-UI >= 1.0', 'ChimeraX-Alignments >= 2.0' ]
+alphafold = [ 'ChimeraX-AlphaFold >= 1.0' ]
+
+[project.dependency-links]
+dependency-links = "https://cxtoolshed.rbvi.ucsf.edu"
+
+[project.urls]
+Home = "https://www.rbvi.ucsf.edu/chimerax/"
+Documentation = "https://www.cgl.ucsf.edu/chimerax/docs/user/index.html"
+Source = "https://www.github.com/RBVI/ChimeraX"
+
+[tool.chimerax]
+bundle-name="ChimeraX-BlastProtein"
+min-session-version="1"
+max-session-version="2"
+categories = ["Sequence"]
+chimerax-classifiers = [
+    "Category :: Sequence",
+    "Tool :: Blast Protein :: Sequence :: Search PDB/NR/AlphaFold using BLAST",
+    "Command :: blastprotein :: Sequence :: Search PDB/NR/AlphaFold using BLAST",
+    "Command :: blastprotein pull :: Sequence :: Get results for a finished BlastProtein job",
+    "Command :: blastpdb :: Sequence :: Search PDB/NR/AlphaFold using BLAST"
+]
