@@ -46,10 +46,16 @@ def tug(session, atoms, to_atoms, force_constant=1000, cutoff=10,
         raise UserError('For %d tugged atoms expected %d destination atoms, got %d'
                         % (len(atoms), len(atoms), len(to_atoms)))
 
-    from .tugatoms import StructureTugger
-    tugger = StructureTugger(us[0], force_constant = force_constant,
-                             cutoff = cutoff, temperature = temperature,
-                             tolerance = error_tolerance, steps = steps)
+    from .tugatoms import StructureTugger, ForceFieldError
+    try:
+        tugger = StructureTugger(us[0], force_constant = force_constant,
+                                 cutoff = cutoff, temperature = temperature,
+                                 tolerance = error_tolerance, steps = steps)
+    except ForceFieldError as e:
+        # Structure could not be parameterized.
+        from chimerax.core.errors import UserError
+        raise UserError(str(e))
+    
     tugger.tug_atoms(atoms)
     points = to_atoms.scene_coords
     
