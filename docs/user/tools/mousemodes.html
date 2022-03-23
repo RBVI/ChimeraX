@@ -396,17 +396,23 @@ containing only standard residues and/or water.
 Protons can be added beforehand with the command
 <a href="../commands/addh.html"><b>addh</b></a>.
 </p><p>
-The <b>tug</b> mode runs dynamics on the entire structure.
+The <b>tug</b> mode runs dynamics on the entire atomic model.
 A model named <b>Tug arrow</b> is added to show the location and direction
 of tugging.
 The <b>minimize</b> mode jiggles the residue under the mouseclick
 along with other residues within 3 &Aring; of the first.
-It uses a variable time step Langevin integrator with tolerance 0.001, 
-temperature 100K, and 10 time steps between coordinate updates, 
-with energy minimization if a maximum force is exceeded due to bad geometry. 
+These mousemodes use a variable time step Langevin integrator 
+with tolerance 0.001, temperature 100K, nonbonded cutoff 10 &Aring;, 
+and 10 time steps between coordinate updates, with energy minimization 
+occurring automatically if a maximum force is exceeded due to bad geometry. 
 Different models do not &ldquo;feel&rdquo; the effects of each other;
-that is, only intra-model forces apply. No nonbonded cutoff is used.
+that is, only intra-model forces apply.
 </p><p>
+Users may wish to save a <a href="../commands/save.html#session">session</a> 
+before using either of these mouse modes, since the resulting changes
+in structure cannot be reversed with 
+<a href="../commands/undo.html"><b>undo</b></a> or by restoring a
+previously saved <a href="../commands/view.html#name"><b>view</a></b>.
 See also the <a href="../commands/tug.html"><b>tug</b></a> command.
 </p>
 

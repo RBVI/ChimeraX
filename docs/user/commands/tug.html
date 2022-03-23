@@ -33,23 +33,31 @@ class="clRight" title="User Guide Index"/></a>
 [&nbsp;<b>frames</b>&nbsp;&nbsp;<i>M</i>&nbsp;]
 [&nbsp;<b>finish</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]</h3>
 <p>
-The <b>tug</b> command pulls the
-<a href="atomspec.html"><i>tugatoms</i></a>
-onto the <a href="atomspec.html"><i>refatoms</i></a>
-using a force constant (default <b>1000</b> N/m)
-while running molecular dynamics (MD) on the entire structure.
-Only equal numbers of <i>tugatoms</i> and <i>refatoms</i> can be used,
-and they will be paired in the order specified.
+The <b>tug</b> command pulls the <a href="atomspec.html"><i>tugatoms</i></a>
+to the positions of the <a href="atomspec.html"><i>refatoms</i></a>
+while running molecular dynamics (MD) on the entire atomic model(s)
+containing the <i>tugatoms</i>.
+Atoms in any other models do not exert forces during the calculation;
+the positions of the <i>refatoms</i> 
+are simply used as points toward which the <i>tugatoms</i> are pulled.
+The default force constant for pulling is <b>1000</b> N/m.
+If any <i>refatoms</i> are in the same model as any <i>tugatoms</i>,
+they will exert a force during MD, but only their initial positions 
+will be used as target locations.
+The two specifications must contain equal numbers of atoms,
+which will be paired in the order given.
 </p><p>
-For <b>tug</b> to work, the entire atomic model must be parametrized in OpenMM.
+Atomic models containing any <i>tugatoms</i> must be parametrized 
+in OpenMM (<a href="../tools/mousemodes.html#openmm">details...</a>).
 Currently, this requires a fully protonated structure
 containing only standard residues and/or water.
 Protons can be added beforehand with the command
 <a href="addh.html"><b>addh</b></a>.
 <i>N</i> steps of dynamics (default <b>50</b>) are calculated
 for each of <i>M</i> graphics update frames (default <b>50</b>)
-using a variable time step Langevin integrator with tolerance 0.001
-and temperature 100K. No nonbonded cutoff is used.
+using a variable time step Langevin integrator with tolerance 0.001,
+temperature 100K, and nonbonded cutoff 10 &Aring;, with energy minimization 
+occurring automatically if a maximum force is exceeded due to bad geometry. 
 </p><p>
 If <b>finish</b> is <b>true</b>, the command does not return until 
 all <i>M</i> frames are drawn; this is for use in scripts that require 
@@ -58,17 +66,16 @@ subsequent commands are allowed to execute immediately.
 </p><p>
 Saving a <a href="save.html#session">session</a> before using <b>tug</b> is
 advised, since the resulting changes in atomic positions cannot be reversed 
-with <a href="undo.html"><b>undo</b></a> or or by restoring a previously saved
+with <a href="undo.html"><b>undo</b></a> or by restoring a previously saved
 <a href="view.html#name"><b>view</a></b>.
 </p><p>
 See also:
-<a href="../tools/mousemodes.html#openmm">OpenMM dynamics</a>, 
 <a href="ui.html#mousemode">mouse modes</a>
 <a href="../tools/mousemodes.html" title="Right Mouse Toolbar...">
 <img class="icon" border=1 src="../tools/mouse-icons/tug.png"></a>
 <b>tug</b> and
 <a href="../tools/mousemodes.html" title="Right Mouse Toolbar...">
-<img class="icon" border=1 src="../tools/mouse-icons/tug.png"></a>
+<img class="icon" border=1 src="../tools/mouse-icons/minimize.png"></a>
 <b>minimize</b>
 </p>
 
