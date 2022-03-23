@@ -1,0 +1,85 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: tug</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#commands">Command</a>: tug</h3>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>tug</b>
+&nbsp;<a href="atomspec.html"><i>tugatoms</i></a>&nbsp; <b>toAtoms</b> 
+&nbsp;<a href="atomspec.html"><i>refatoms</i></a>&nbsp;
+[&nbsp;<b>forceConstant</b>&nbsp;&nbsp;<i>f</i>&nbsp;]
+[&nbsp;<b>steps</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
+[&nbsp;<b>frames</b>&nbsp;&nbsp;<i>M</i>&nbsp;]
+[&nbsp;<b>finish</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]</h3>
+<p>
+The <b>tug</b> command pulls the <a href="atomspec.html"><i>tugatoms</i></a>
+to the positions of the <a href="atomspec.html"><i>refatoms</i></a>
+while running molecular dynamics (MD) on the entire atomic model(s)
+containing the <i>tugatoms</i>.
+Atoms in any other models do not exert forces during the calculation;
+the positions of the <i>refatoms</i> 
+are simply used as points toward which the <i>tugatoms</i> are pulled.
+The default force constant for pulling is <b>1000</b> N/m.
+If any <i>refatoms</i> are in the same model as any <i>tugatoms</i>,
+they will exert a force during MD, but only their initial positions 
+will be used as target locations.
+The two specifications must contain equal numbers of atoms,
+which will be paired in the order given.
+</p><p>
+Atomic models containing any <i>tugatoms</i> must be parametrized 
+in OpenMM (<a href="../tools/mousemodes.html#openmm">details...</a>).
+Currently, this requires a fully protonated structure
+containing only standard residues and/or water.
+Protons can be added beforehand with the command
+<a href="addh.html"><b>addh</b></a>.
+<i>N</i> steps of dynamics (default <b>50</b>) are calculated
+for each of <i>M</i> graphics update frames (default <b>50</b>)
+using a variable time step Langevin integrator with tolerance 0.001,
+temperature 100K, and nonbonded cutoff 10 &Aring;, with energy minimization 
+occurring automatically if a maximum force is exceeded due to bad geometry. 
+</p><p>
+If <b>finish</b> is <b>true</b>, the command does not return until 
+all <i>M</i> frames are drawn; this is for use in scripts that require 
+the MD to be finished before continuing. By default (<b>finish false</b>),
+subsequent commands are allowed to execute immediately.
+</p><p>
+Saving a <a href="save.html#session">session</a> before using <b>tug</b> is
+advised, since the resulting changes in atomic positions cannot be reversed 
+with <a href="undo.html"><b>undo</b></a> or by restoring a previously saved
+<a href="view.html#name"><b>view</a></b>.
+</p><p>
+See also:
+<a href="ui.html#mousemode">mouse modes</a>
+<a href="../tools/mousemodes.html" title="Right Mouse Toolbar...">
+<img class="icon" border=1 src="../tools/mouse-icons/tug.png"></a>
+<b>tug</b> and
+<a href="../tools/mousemodes.html" title="Right Mouse Toolbar...">
+<img class="icon" border=1 src="../tools/mouse-icons/minimize.png"></a>
+<b>minimize</b>
+</p>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+March 2022</address>
+</body></html>
