@@ -11,7 +11,9 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def tug(session, atoms, to_atoms, force_constant=1000, steps=50, frames=50, finish=False):
+def tug(session, atoms, to_atoms, force_constant=1000, cutoff=10,
+        temperature=100, error_tolerance = 0.001,
+        steps=50, frames=50, finish=False):
     '''
     Run molecular dynamics on a structure tugging some atoms.
     This is a command version of the tug atom mouse mode.
@@ -23,7 +25,13 @@ def tug(session, atoms, to_atoms, force_constant=1000, steps=50, frames=50, fini
     to_atoms : Atoms
         Tug atoms toward current location of these atoms.
     force_constant : float
-    	Strength of tugging force, Newtons per meter.
+    	Strength of tugging force, Newtons per meter, default 1000.
+    cutoff : float
+        Non-bonded force distance cutoff in Angstroms, default 10.
+    temperature : float
+        Simulation temperature in Kelvin, default 100.
+    error_tolerance : float
+        Langevin integrator tolerance for OpenMM, default 0.001.
     steps : integer
         How many time steps to take each graphics frame.
     frames : integer
@@ -38,10 +46,16 @@ def tug(session, atoms, to_atoms, force_constant=1000, steps=50, frames=50, fini
         raise UserError('For %d tugged atoms expected %d destination atoms, got %d'
                         % (len(atoms), len(atoms), len(to_atoms)))
 
-    from .tugatoms import StructureTugger
-    tugger = StructureTugger(us[0])
-    tugger._force_constant = force_constant
-    tugger._sim_steps = steps
+    from .tugatoms import StructureTugger, ForceFieldError
+    try:
+        tugger = StructureTugger(us[0], force_constant = force_constant,
+                                 cutoff = cutoff, temperature = temperature,
+                                 tolerance = error_tolerance, steps = steps)
+    except ForceFieldError as e:
+        # Structure could not be parameterized.
+        from chimerax.core.errors import UserError
+        raise UserError(str(e))
+    
     tugger.tug_atoms(atoms)
     points = to_atoms.scene_coords
     
@@ -63,6 +77,9 @@ def register_tug_command(logger):
     desc = CmdDesc(required = [('atoms', AtomsArg)],
                    keyword = [('to_atoms', AtomsArg),
                               ('force_constant', FloatArg),
+                              ('cutoff', FloatArg),
+                              ('temperature', FloatArg),
+                              ('error_tolerance', FloatArg),
                               ('steps', IntArg),
                               ('frames', IntArg),
                               ('finish', BoolArg)],

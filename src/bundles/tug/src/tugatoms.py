@@ -197,7 +197,9 @@ class StructureTugger:
     Run a molecular dynamics simulation or minimization with OpenMM
     on a structure while pulling on some atoms.
     '''
-    def __init__(self, structure):
+    def __init__(self, structure, force_constant = 10000.0,
+                 cutoff = 10.0, temperature = 100.0,
+                 steps = 50, tolerance = 0.001):
         self._log = Logger('structuretugger.log' if write_logs else None)
         self.structure = structure
         self._minimized = False
@@ -223,15 +225,13 @@ class StructureTugger:
         # OpenMM simulation parameters
         global openmm_forcefield_parameters
         self._forcefields = openmm_forcefield_parameters
-        self._sim_steps = 50		# Simulation steps between mouse position updates
-        self._force_constant = 10000
+        self._sim_steps = steps		# Simulation steps between mouse position updates
+        self._force_constant = force_constant
+        self._nonbonded_cutoff = cutoff
         from openmm import unit
-        #self._temperature = 300*unit.kelvin
-        self._temperature = 100*unit.kelvin
-        #self._constraint_tolerance = 0.00001
-        #self._time_step = 2.0*unit.femtoseconds
-        self._integrator_tolerance = 0.001
-        self._constraint_tolerance = 0.001
+        self._temperature = temperature * unit.kelvin
+        self._integrator_tolerance = tolerance
+        self._constraint_tolerance = tolerance
         self._friction = 1.0/unit.picoseconds	# Coupling to heat bath
         self._platform_name = 'CPU'
         #self._platform_name = 'OpenCL' # Works on Mac
@@ -471,7 +471,7 @@ class StructureTugger:
         
         # prepare system and integrator
         system = prmtop.createSystem(nonbondedMethod=app.CutoffNonPeriodic,
-                                     nonbondedCutoff=1.0*unit.nanometers,
+                                     nonbondedCutoff=self._nonbonded_cutoff*unit.angstrom,
                                      constraints=app.HBonds,
                                      rigidWater=True,
                                      ewaldErrorTolerance=0.0005
@@ -497,7 +497,7 @@ class StructureTugger:
         try:
             system = forcefield.createSystem(self._topology, 
                                              nonbondedMethod=app.CutoffNonPeriodic,
-                                             nonbondedCutoff=1.0*unit.nanometers,
+                                             nonbondedCutoff=self._nonbonded_cutoff*unit.angstrom,
                                              constraints=app.HBonds,
                                              rigidWater=True,
                                              ignoreExternalBonds=False)
@@ -511,7 +511,7 @@ class StructureTugger:
         try:
             system = forcefield.createSystem(self._topology, 
                                              nonbondedMethod=app.CutoffNonPeriodic,
-                                             nonbondedCutoff=1.0*unit.nanometers,
+                                             nonbondedCutoff=self._nonbonded_cutoff*unit.angstrom,
                                              constraints=app.HBonds,
                                              rigidWater=True,
                                              ignoreExternalBonds=True)
