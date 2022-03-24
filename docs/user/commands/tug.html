@@ -28,9 +28,12 @@ class="clRight" title="User Guide Index"/></a>
 <br><b>tug</b>
 &nbsp;<a href="atomspec.html"><i>tugatoms</i></a>&nbsp; <b>toAtoms</b> 
 &nbsp;<a href="atomspec.html"><i>refatoms</i></a>&nbsp;
-[&nbsp;<b>forceConstant</b>&nbsp;&nbsp;<i>f</i>&nbsp;]
 [&nbsp;<b>steps</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
 [&nbsp;<b>frames</b>&nbsp;&nbsp;<i>M</i>&nbsp;]
+[&nbsp;<b>errorTolerance</b>&nbsp;&nbsp;<i>f</i>&nbsp;]
+[&nbsp;<b>forceConstant</b>&nbsp;&nbsp;<i>c</i>&nbsp;]
+[&nbsp;<b>temperature</b>&nbsp;&nbsp;<i>T</i>&nbsp;]
+[&nbsp;<b>cutoff</b>&nbsp;&nbsp;<i>d</i>&nbsp;]
 [&nbsp;<b>finish</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]</h3>
 <p>
 The <b>tug</b> command pulls the <a href="atomspec.html"><i>tugatoms</i></a>
@@ -40,7 +43,6 @@ containing the <i>tugatoms</i>.
 Atoms in any other models do not exert forces during the calculation;
 the positions of the <i>refatoms</i> 
 are simply used as points toward which the <i>tugatoms</i> are pulled.
-The default force constant for pulling is <b>1000</b> N/m.
 If any <i>refatoms</i> are in the same model as any <i>tugatoms</i>,
 they will exert a force during MD, but only their initial positions 
 will be used as target locations.
@@ -53,11 +55,14 @@ Currently, this requires a fully protonated structure
 containing only standard residues and/or water.
 Protons can be added beforehand with the command
 <a href="addh.html"><b>addh</b></a>.
-<i>N</i> steps of dynamics (default <b>50</b>) are calculated
-for each of <i>M</i> graphics update frames (default <b>50</b>)
-using a variable time step Langevin integrator with tolerance 0.001,
-temperature 100K, and nonbonded cutoff 10 &Aring;, with energy minimization 
-occurring automatically if a maximum force is exceeded due to bad geometry. 
+<i>N</i> <b>steps</b> of dynamics (default <b>50</b>) are calculated
+for each of <i>M</i> graphics update <b>frames</b> (default <b>50</b>)
+using a variable time-step Langevin integrator, with energy minimization 
+occurring automatically if a maximum force is exceeded due to bad geometry.
+Default settings are an <b>errorTolerance</b> of <b>0.001</b>,
+a <b>forceConstant</b> of <b>1000</b> N/m for pulling atoms
+to their target locations, <b>temperature</b> <b>100</b> K, and a
+nonbonded-interaction <b>cutoff</b> distance of <b>10.0</b> &Aring;.
 </p><p>
 If <b>finish</b> is <b>true</b>, the command does not return until 
 all <i>M</i> frames are drawn; this is for use in scripts that require 
