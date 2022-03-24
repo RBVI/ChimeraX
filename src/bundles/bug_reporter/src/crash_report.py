@@ -65,6 +65,19 @@ def register_signal_handler(session):
     import faulthandler
     faulthandler.enable(traceback_file)
 
+    global _fault_handler_file
+    _fault_handler_file = traceback_file
+    
+# -----------------------------------------------------------------------------
+#
+_fault_handler_file = None
+def clear_fault_handler_file(session):
+    if _fault_handler_file is not None:
+        try:
+            _fault_handler_file.truncate(0)
+        except Exception:
+            pass
+    
 # -----------------------------------------------------------------------------
 #
 def _python_fault_handler_traceback(traceback_path = None, remove_file = True):
