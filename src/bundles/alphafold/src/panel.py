@@ -13,7 +13,7 @@
 
 
 # -----------------------------------------------------------------------------
-# Panel for hiding surface dust
+# Panel for searching AlphaFold database or predicting structure from sequence.
 #
 from chimerax.core.tools import ToolInstance
 class AlphaFoldGUI(ToolInstance):
