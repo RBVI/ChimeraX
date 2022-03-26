@@ -754,8 +754,10 @@ def _builtin_colors():
         ctable[name] = color
     return ctable
 
-def random_colors(n, opacity=255):
+def random_colors(n, opacity=255, seed=None):
     from numpy import random, uint8
+    if seed is not None:
+        random.seed(seed)
     c = random.randint(0, 255, (n,4), dtype = uint8)
     c[:,3] = opacity
     return c
