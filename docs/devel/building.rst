@@ -196,3 +196,9 @@ Homebrew provides a native PyQt5 without QtWebEngine which we have tried.  The m
 QtWebEngine disables some ChimeraX tools like the Log panel.  Progress on a native
 Mac ARM distribution is described in ChimeraX ticket
 `#4663 <https://www.rbvi.ucsf.edu/trac/ChimeraX/ticket/4663>`_.
+
+Known Issues
+------------
+- On macOS Monterey with anaconda first in the PATH the anaconda lxml library may halt
+  the build when trying to use the missing symbol _xmlFree. A workaround is to temporarily
+  remove anaconda from PATH. 
