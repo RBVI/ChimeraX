@@ -36,6 +36,13 @@ def alphafold_model_url(session, uniprot_id, database_version = None):
 
 # -----------------------------------------------------------------------------
 #
+def alphafold_pae_url(session, uniprot_id, database_version = None):
+    model_url = alphafold_model_url(session, uniprot_id, database_version)
+    url = model_url.replace('model', 'predicted_aligned_error').replace('.cif', '.json')
+    return url
+
+# -----------------------------------------------------------------------------
+#
 def _alphafold_database_settings(session):
     settings = getattr(session, '_alphafold_database_settings', None)
     if settings is None:

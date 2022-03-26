@@ -18,7 +18,7 @@
 #	https://alphafold.ebi.ac.uk/files/AF-P29474-F1-model_v1.cif
 #
 def alphafold_fetch(session, uniprot_id, color_confidence=True,
-                    align_to=None, trim=True, ignore_cache=False,
+                    align_to=None, trim=True, pae=False, ignore_cache=False,
                     add_to_session=True, version=None, **kw):
 
     uniprot_name = uniprot_id if '_' in uniprot_id else None
@@ -50,6 +50,16 @@ def alphafold_fetch(session, uniprot_id, color_confidence=True,
         
     if add_to_session:
         session.models.add(models)
+
+    if pae:
+        pae_url = database.alphafold_pae_url(session, uniprot_id, version)
+        file_name = pae_url.split('/')[-1]
+        pae_path = fetch_file(session, pae_url, 'AlphaFold PAE %s' % uniprot_id,
+                              file_name, 'AlphaFold', ignore_cache=ignore_cache,
+                              error_status = False)
+        from .heatmap_gui import AlphaFoldHeatmap
+        hm = AlphaFoldHeatmap(session, 'AlphaFold Heatmap')
+        hm.set_heatmap(pae_path, models[0])
         
     return models, status
 
@@ -102,6 +112,7 @@ def register_alphafold_fetch_command(logger):
         keyword = [('color_confidence', BoolArg),
                    ('align_to', ChainArg),
                    ('trim', BoolArg),
+                   ('pae', BoolArg),
                    ('ignore_cache', BoolArg),
                    ('version', IntArg)],
         synopsis = 'Fetch AlphaFold database models for a UniProt identifier'
