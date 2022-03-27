@@ -39,8 +39,8 @@ class _AlphaFoldBundle(BundleAPI):
             from . import predict
             predict.register_alphafold_predict_command(logger)
         elif command_name == 'alphafold pae':
-            from . import heatmap
-            heatmap.register_alphafold_pae_command(logger)
+            from . import pae
+            pae.register_alphafold_pae_command(logger)
 
     @staticmethod
     def run_provider(session, name, mgr):

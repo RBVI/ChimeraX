@@ -14,8 +14,9 @@
 # -----------------------------------------------------------------------------
 #
 from chimerax.core.tools import ToolInstance
-class AlphaFoldHeatmap(ToolInstance):
+class AlphaFoldPAE(ToolInstance):
 
+    name = 'AlphaFold Predicted Aligned Error'
     help = 'help:user/tools/alphafold.html'
 
     def __init__(self, session, tool_name):
@@ -38,7 +39,7 @@ class AlphaFoldHeatmap(ToolInstance):
         self._heading = hl = QLabel(heading)
         layout.addWidget(hl)
 
-        self._heatmap = gv = Heatmap(parent, self._rectangle_select, self._rectangle_clear)
+        self._pae_view = gv = PAEView(parent, self._rectangle_select, self._rectangle_clear)
         from Qt.QtWidgets import QSizePolicy
         from Qt.QtCore import Qt
         gv.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
@@ -50,8 +51,6 @@ class AlphaFoldHeatmap(ToolInstance):
         self._scene = gs = QGraphicsScene(gv)
         gs.setSceneRect(0, 0, 500, 500)
         gv.setScene(gs)
-
-        self._pixmap_item = None	# Heatmap image
 
         # Color Domains button
         bf = self._create_action_buttons(parent)
@@ -78,7 +77,6 @@ class AlphaFoldHeatmap(ToolInstance):
         m = self._alphafold_model
         if m is None:
             return
-        from .heatmap import pae_domains, color_by_pae_domain
         if self._clusters is None:
             self._clusters = pae_domains(self._pae_matrix)
             from chimerax.core.colors import random_colors
@@ -104,21 +102,13 @@ class AlphaFoldHeatmap(ToolInstance):
 
     # ---------------------------------------------------------------------------
     #
-    def set_heatmap(self, pae_path, model = None):
+    def set_pae_matrix(self, pae_path, model = None):
         title = (f'<html>Predicted residue-residue distance errors (PAE) for {model.name}'
                  '<br>Drag a box to color model residues.</html>')
         self._heading.setText(title)
-        pi = self._pixmap_item
-        if pi is not None:
-            self._scene.removeItem(pi)
-        from .heatmap import read_pae_matrix, pae_rgb, pae_pixmap
-        self._pae_matrix = matrix = read_pae_matrix(pae_path)
+        self._pae_matrix = read_pae_matrix(pae_path)
+        self._pae_view._make_image(self._pae_matrix)
         self._clusters = None
-        rgb = pae_rgb(matrix)
-        pixmap = pae_pixmap(rgb)
-        self._pixmap_item = self._scene.addPixmap(pixmap)
-        self._scene.setSceneRect(0, 0, pixmap.width(), pixmap.height())
-        self._heatmap._pixmap = self._pixmap_item
         self._alphafold_model = model
 
     # ---------------------------------------------------------------------------
@@ -153,16 +143,9 @@ class AlphaFoldHeatmap(ToolInstance):
     #
     def _rectangle_clear(self):
         self._color_plddt()
-        
-    # ---------------------------------------------------------------------------
-    #
-    @classmethod
-    def get_singleton(self, session, create=True):
-        from chimerax.core import tools
-        return tools.get_singleton(session, AlphaFoldHeatmap, 'AlphaFoldHeatmap', create=create)
 
 from Qt.QtWidgets import QGraphicsView
-class Heatmap(QGraphicsView):
+class PAEView(QGraphicsView):
     def __init__(self, parent, rectangle_select_cb=None, rectangle_clear_cb=None):
         QGraphicsView.__init__(self, parent)
         self.click_callbacks = []
@@ -172,13 +155,17 @@ class Heatmap(QGraphicsView):
         self._down_xy = None
         self._rectangle_select_callback = rectangle_select_cb
         self._rectangle_clear_callback = rectangle_clear_cb
+        self._pixmap_item = None
+
     def sizeHint(self):
         from Qt.QtCore import QSize
         return QSize(500,500)
+
     def resizeEvent(self, event):
         # Rescale histogram when window resizes
         self.fitInView(self.sceneRect())
         QGraphicsView.resizeEvent(self, event)
+
     def mousePressEvent(self, event):
         self.mouse_down = True
         for cb in self.click_callbacks:
@@ -187,21 +174,26 @@ class Heatmap(QGraphicsView):
         self._clear_drag_box()
         if self._rectangle_clear_callback:
             self._rectangle_clear_callback()
+
     def mouseMoveEvent(self, event):
         self._drag(event)
+
     def _drag(self, event):
         # Only process mouse move once per graphics frame.
         for cb in self.drag_callbacks:
             cb(event)
         self._draw_drag_box(event)
+
     def mouseReleaseEvent(self, event):
         self.mouse_down = False
         self._drag(event)
         if self._rectangle_select_callback and self._down_xy:
             self._rectangle_select_callback(self._down_xy, self._scene_position(event))
+
     def _scene_position(self, event):
         p = self.mapToScene(event.pos())
         return p.x(), p.y()
+
     def _draw_drag_box(self, event):
         x1,y1 = self._down_xy
         x2,y2 = self._scene_position(event)
@@ -212,18 +204,174 @@ class Heatmap(QGraphicsView):
             self._drag_box = scene.addRect(x,y,w,h)
         else:
             box.setRect(x,y,w,h)
+
     def _clear_drag_box(self):
         box = self._drag_box
         if box:
             self.scene().removeItem(box)
             self._drag_box = None
-            
+
+    def _make_image(self, pae_matrix):
+        scene = self.scene()
+        pi = self._pixmap_item
+        if pi is not None:
+            scene.removeItem(pi)
+
+        rgb = pae_rgb(pae_matrix)
+        pixmap = pae_pixmap(rgb)
+        self._pixmap_item = scene.addPixmap(pixmap)
+        scene.setSceneRect(0, 0, pixmap.width(), pixmap.height())
+
 # -----------------------------------------------------------------------------
 #
-def heatmap_panel(session, create = False):
-    return AlphaFoldHeatmap.get_singleton(session, create=create)
-  
+def read_pae_matrix(path):
+    if path.endswith('.json'):
+        return read_json_pae_matrix(path)
+    elif path.endswith('.pkl'):
+        return read_pickle_pae_matrix(path)
+    else:
+        from chimerax.core.errors import UserError
+        raise UserError(f'AlphaFold predicted aligned error (PAE) files must be in JSON (*.json) or pickle (*.pkl) format, {path} unrecognized format')
+
 # -----------------------------------------------------------------------------
 #
-def show_heatmap_panel(session):
-    return heatmap_panel(session, create = True)
+def read_json_pae_matrix(path):
+    '''Open AlphaFold database distance error PAE JSON file returning a numpy matrix.'''
+    f = open(path, 'r')
+    import json
+    j = json.load(f)
+    f.close()
+    d = j[0]
+
+    # Read distance errors into numpy array
+    from numpy import array, zeros, float32, int32
+    r1 = array(d['residue1'], dtype=int32)
+    r2 = array(d['residue2'], dtype=int32)
+    ea = array(d['distance'], dtype=float32)
+    me = d['max_predicted_aligned_error']
+    n = r1.max()
+    pae = zeros((n,n), float32)
+    pae[r1-1,r2-1] = ea
+
+    return pae
+
+# -----------------------------------------------------------------------------
+#
+def read_pickle_pae_matrix(path):
+    f = open(path, 'rb')
+    import pickle
+    p = pickle.load(f)
+    f.close()
+    if isinstance(p, dict) and 'predicted_aligned_error' in p:
+        return p['predicted_aligned_error']
+
+    from chimerax.core.errors import UserError
+    raise UserError(f'File {path} does not contain AlphaFold predicted aligned error (PAE) data')
+
+# -----------------------------------------------------------------------------
+#
+def pae_rgb(pae_matrix):
+
+    # Create an rgba image showing values.
+    me = pae_matrix.max()
+    dmin,dmax = 0,me
+    ec = pae_matrix - dmin
+    ec /= (dmax-dmin)
+    from numpy import empty, uint8, clip, sqrt
+    clip(ec, 0, 1, ec)
+
+    # Match AlphaFold DB PAE colors
+    n = pae_matrix.shape[0]
+    rgb = empty((n,n,3), uint8)
+    rgb[:,:,0] = 30 + 225*(ec*ec)
+    rgb[:,:,1] = 70 + 185*sqrt(ec)
+    rgb[:,:,2] = rgb[:,:,0]
+
+    return rgb
+
+# -----------------------------------------------------------------------------
+#
+def pae_pixmap(rgb):
+    # Save image to a PNG file
+    from Qt.QtGui import QImage, QPixmap
+    h, w = rgb.shape[:2]
+    im = QImage(rgb.data, w, h, 3*w, QImage.Format_RGB888)
+    pixmap = QPixmap.fromImage(im)
+    return pixmap
+
+# -----------------------------------------------------------------------------
+#
+def pae_image(rgb):
+    from PIL import Image
+    pi = Image.fromarray(rgb)
+    #pi.save('test.png')      # Save image to a PNG file
+    return pi
+
+# -----------------------------------------------------------------------------
+# Code take from Tristan Croll, ChimeraX ticket #4966.
+#
+# https://github.com/tristanic/isolde/blob/master/isolde/src/reference_model/alphafold/find_domains.py
+#
+def pae_domains(pae_matrix, pae_power=1, pae_cutoff=5, graph_resolution=0.5):
+    # PAE matrix is not strictly symmetric.
+    # Prediction for error in residue i when aligned on residue j may be different from 
+    # error in j when aligned on i. Take the smallest error estimate for each pair.
+    import numpy
+    pae_matrix = numpy.minimum(pae_matrix, pae_matrix.T)
+    weights = 1/pae_matrix**pae_power if pae_power != 1 else 1/pae_matrix
+
+    import networkx as nx
+    g = nx.Graph()
+    size = weights.shape[0]
+    g.add_nodes_from(range(size))
+    edges = numpy.argwhere(pae_matrix < pae_cutoff)
+    # Limit to bottom triangle of matrix
+    edges = edges[edges[:,0]<edges[:,1]]
+    sel_weights = weights[edges.T[0], edges.T[1]]
+    wedges = [(i,j,w) for (i,j),w in zip(edges,sel_weights)]
+    g.add_weighted_edges_from(wedges)
+
+    from networkx.algorithms.community import greedy_modularity_communities
+    clusters = greedy_modularity_communities(g, weight='weight', resolution=graph_resolution)
+    return clusters
+
+# -----------------------------------------------------------------------------
+#
+def color_by_pae_domain(residues, clusters, colors = None, min_cluster_size=10):
+    if colors is None:
+        from chimerax.core.colors import random_colors
+        colors = random_colors(len(clusters), seed=0)
+
+    from numpy import array, int32
+    for c, color in zip(clusters, colors):
+        if len(c) >= min_cluster_size:
+            cresidues = residues[array(list(c),int32)]
+            cresidues.ribbon_colors = color
+            cresidues.atoms.colors = color
+
+# -----------------------------------------------------------------------------
+#
+def alphafold_pae(session, path, model = None):
+    '''Load AlphaFold predicted aligned error file and show image.'''
+    if model is None:
+        from chimerax.atomic import all_atomic_structures
+        models = all_atomic_structures(session)
+        if len(models) != 1:
+            from chimerax.core.errors import UserError
+            raise UserError('Must specify which AlphaFold structure to associate with PAE data using "model" option.')
+        model = models[0]
+    p = AlphaFoldPAE(session, 'AlphaFold Predicted Aligned Error')
+    p.set_pae_matrix(path, model)
+
+# -----------------------------------------------------------------------------
+#
+def register_alphafold_pae_command(logger):
+    from chimerax.core.commands import CmdDesc, register, OpenFileNameArg
+    from chimerax.atomic import AtomicStructureArg
+    desc = CmdDesc(
+        required = [('path', OpenFileNameArg)],
+        keyword = [('model', AtomicStructureArg)],
+        synopsis = 'Show AlphaFold predicted aligned error'
+    )
+    
+    register('alphafold pae', desc, alphafold_pae, logger=logger)
