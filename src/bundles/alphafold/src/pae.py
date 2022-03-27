@@ -14,14 +14,14 @@
 # -----------------------------------------------------------------------------
 #
 from chimerax.core.tools import ToolInstance
-class AlphaFoldPAE(ToolInstance):
+class AlphaFoldPAEPlot(ToolInstance):
 
     name = 'AlphaFold Predicted Aligned Error'
     help = 'help:user/tools/alphafold.html'
 
-    def __init__(self, session, tool_name):
+    def __init__(self, session, tool_name, pae, colormap = None):
 
-        self._alphafold_model = None
+        self._pae = pae		# AlphaFoldPAE instance
         
         ToolInstance.__init__(self, session, tool_name)
 
@@ -33,10 +33,11 @@ class AlphaFoldPAE(ToolInstance):
         from chimerax.ui.widgets import vertical_layout
         layout = vertical_layout(parent, margins = (5,0,0,0))
 
-        heading = ('<html>Show AlphaFold predicted residue-residue alignment errors (PAE).'
-                   '<br>Drag a box to color model residues.</html>')
+        sname = f'for {pae.structure}' if pae.structure else ''
+        title = (f'<html>Predicted aligned errors (PAE) {sname}'
+                 '<br>Drag a box to color structure residues.</html>')
         from Qt.QtWidgets import QLabel
-        self._heading = hl = QLabel(heading)
+        self._heading = hl = QLabel(title)
         layout.addWidget(hl)
 
         self._pae_view = gv = PAEView(parent, self._rectangle_select, self._rectangle_clear)
@@ -58,8 +59,23 @@ class AlphaFoldPAE(ToolInstance):
         
         layout.addStretch(1)    # Extra space at end
 
+        self.set_colormap(colormap)
+
         tw.manage(placement=None)	# Start floating
-        
+
+    # ---------------------------------------------------------------------------
+    #
+    def closed(self):
+        return self.tool_window.tool_instance is None
+
+    # ---------------------------------------------------------------------------
+    #
+    def set_colormap(self, colormap):
+        if colormap is None:
+            from chimerax.core.colors import BuiltinColormaps
+            colormap = BuiltinColormaps['pae']
+        self._pae_view._make_image(self._pae._pae_matrix, colormap)
+   
     # ---------------------------------------------------------------------------
     #
     def _create_action_buttons(self, parent):
@@ -74,45 +90,18 @@ class AlphaFoldPAE(ToolInstance):
     # ---------------------------------------------------------------------------
     #
     def _color_domains(self):
-        m = self._alphafold_model
-        if m is None:
-            return
-        if self._clusters is None:
-            self._clusters = pae_domains(self._pae_matrix)
-            from chimerax.core.colors import random_colors
-            self._cluster_colors = random_colors(len(self._clusters), seed=0)
-        color_by_pae_domain(m.residues, self._clusters, colors=self._cluster_colors)
-        
+        self._pae.color_domains()
+         
     # ---------------------------------------------------------------------------
     #
     def _color_plddt(self):
-        m = self._alphafold_model
-        if m is None:
-            return
-
-        cmd = 'color bfactor #%s palette alphafold log false' % m.id_string
-        from chimerax.core.commands import run
-        run(self.session, cmd, log = False)
+        self._pae.color_plddt()
 
     # ---------------------------------------------------------------------------
     #
     def _show_help(self):
         from chimerax.core.commands import run
         run(self.session, 'help %s' % self.help)
-
-    # ---------------------------------------------------------------------------
-    #
-    def set_pae_matrix(self, pae_path, model = None, colormap = None):
-        title = (f'<html>Predicted residue-residue distance errors (PAE) for {model.name}'
-                 '<br>Drag a box to color model residues.</html>')
-        self._heading.setText(title)
-        self._pae_matrix = read_pae_matrix(pae_path)
-        if colormap is None:
-            from chimerax.core.colors import BuiltinColormaps
-            colormap = BuiltinColormaps['pae']
-        self._pae_view._make_image(self._pae_matrix, colormap)
-        self._clusters = None
-        self._alphafold_model = model
 
     # ---------------------------------------------------------------------------
     #
@@ -123,20 +112,26 @@ class AlphaFoldPAE(ToolInstance):
         r3, r4 = int(min(y1,y2)), int(max(y1,y2))
         if r2 < r3 or r4 < r1:
             # Use two colors
-            self._color_residues(r1, r2, 'lime')
+            self._color_residues(r1, r2, 'lime', 'gray')
             self._color_residues(r3, r4, 'magenta')
         else:
             # Use single color
-            self._color_residues(min(r1,r3), max(r2,r4), 'lime')
+            self._color_residues(min(r1,r3), max(r2,r4), 'lime', 'gray')
 
     # ---------------------------------------------------------------------------
     #
-    def _color_residues(self, r1, r2, colorname):
-        m = self._alphafold_model
+    def _color_residues(self, r1, r2, colorname, other_colorname = None):
+        m = self._pae.structure
         if m is None:
             return
 
         from chimerax.core.colors import BuiltinColors
+        if other_colorname:
+            other_color = BuiltinColors[other_colorname].uint8x4()
+            all_res = m.residues
+            all_res.ribbon_colors = other_color
+            all_res.atoms.colors = other_color
+            
         color = BuiltinColors[colorname].uint8x4()
         residues = m.residues[r1:r2+1]
         residues.ribbon_colors = color
@@ -145,7 +140,7 @@ class AlphaFoldPAE(ToolInstance):
     # ---------------------------------------------------------------------------
     #
     def _rectangle_clear(self):
-        self._color_plddt()
+        pass
 
 from Qt.QtWidgets import QGraphicsView
 class PAEView(QGraphicsView):
@@ -224,6 +219,60 @@ class PAEView(QGraphicsView):
         pixmap = pae_pixmap(rgb)
         self._pixmap_item = scene.addPixmap(pixmap)
         scene.setSceneRect(0, 0, pixmap.width(), pixmap.height())
+
+# -----------------------------------------------------------------------------
+#
+class AlphaFoldPAE:
+    def __init__(self, pae_path, structure):
+        self._pae_matrix = read_pae_matrix(pae_path)
+        self.structure = structure
+        self._cluster_max_pae = 5
+        self._cluster_clumping = 0.5
+        self._clusters = None		# Cache computed clusters
+        self._cluster_colors = None
+
+    # ---------------------------------------------------------------------------
+    #
+    def color_domains(self, cluster_max_pae = None, cluster_clumping = None):
+        m = self.structure
+        if m is None:
+            return
+
+        self.set_default_domain_clustering(cluster_max_pae, cluster_clumping)
+
+        if self._clusters is None:
+            self._clusters = pae_domains(self._pae_matrix,
+                                         pae_cutoff = self._cluster_max_pae,
+                                         graph_resolution = self._cluster_clumping)
+            from chimerax.core.colors import random_colors
+            self._cluster_colors = random_colors(len(self._clusters), seed=0)
+
+        color_by_pae_domain(m.residues, self._clusters, colors=self._cluster_colors)
+
+    # ---------------------------------------------------------------------------
+    #
+    def set_default_domain_clustering(self, cluster_max_pae = None, cluster_clumping = None):
+        changed = False
+        if cluster_max_pae is not None and cluster_max_pae != self._cluster_max_pae:
+            self._cluster_max_pae = cluster_max_pae
+            changed = True
+        if cluster_clumping is not None and cluster_clumping != self._cluster_clumping:
+            self._cluster_clumping = cluster_clumping
+            changed = True
+        if changed:
+            self._clusters = None
+        return changed
+
+    # ---------------------------------------------------------------------------
+    #
+    def color_plddt(self):
+        m = self.structure
+        if m is None:
+            return
+
+        cmd = 'color bfactor #%s palette alphafold log false' % m.id_string
+        from chimerax.core.commands import run
+        run(m.session, cmd, log = False)
 
 # -----------------------------------------------------------------------------
 #
@@ -358,32 +407,63 @@ def color_by_pae_domain(residues, clusters, colors = None, min_cluster_size=10):
 
 # -----------------------------------------------------------------------------
 #
-def alphafold_pae(session, path, model = None, palette = None, range = None):
-    '''Load AlphaFold predicted aligned error file and show image.'''
-    if model is None:
-        from chimerax.atomic import all_atomic_structures
-        models = all_atomic_structures(session)
-        if len(models) != 1:
+def alphafold_pae(session, structure = None, file = None, palette = None, range = None,
+                  plot = None, color_domains = False, connect_max_pae = 5, cluster = 0.5):
+    '''Load AlphaFold predicted aligned error file and show plot or color domains.'''
+        
+    if file:
+        pae = AlphaFoldPAE(file, structure)
+        if structure:
+            structure._alphafold_pae = pae
+    elif structure is None:
+        from chimerax.core.errors import UserError
+        raise UserError('No structure or PAE file specified.')
+    else:
+        pae = getattr(structure, '_alphafold_pae', None)
+        if pae is None:
             from chimerax.core.errors import UserError
-            raise UserError('Must specify which AlphaFold structure to associate with PAE data using "model" option.')
-        model = models[0]
+            raise UserError('No predicted aligned error (PAE) data opened for structure #%s'
+                            % structure.id_string)
 
-    from chimerax.core.colors import colormap_with_range
-    colormap = colormap_with_range(palette, range, 'pae', (0,30))
+    if plot is None:
+        plot = not color_domains	# Plot by default if not coloring domains.
+        
+    if plot:
+        from chimerax.core.colors import colormap_with_range
+        colormap = colormap_with_range(palette, range, default_colormap_name = 'pae',
+                                       full_range = (0,30))
+        p = getattr(structure, '_alphafold_pae_plot', None)
+        if p is None or p.closed():
+            p = AlphaFoldPAEPlot(session, 'AlphaFold Predicted Aligned Error', pae,
+                                 colormap=colormap)
+            if structure:
+                structure._alphafold_pae_plot = p
+        else:
+            p.display(True)
+            if palette is not None or range is not None:
+                p.set_colormap(colormap)
 
-    p = AlphaFoldPAE(session, 'AlphaFold Predicted Aligned Error')
-    p.set_pae_matrix(path, model, colormap)
+    pae.set_default_domain_clustering(connect_max_pae, cluster)
+    if color_domains:
+        if structure is None:
+            from chimerax.core.errors import UserError
+            raise UserError('Must specify structure to color domains.')
+        pae.color_domains(connect_max_pae, cluster)
 
 # -----------------------------------------------------------------------------
 #
 def register_alphafold_pae_command(logger):
-    from chimerax.core.commands import CmdDesc, register, OpenFileNameArg, ColormapArg, ColormapRangeArg
+    from chimerax.core.commands import CmdDesc, register, OpenFileNameArg, ColormapArg, ColormapRangeArg, BoolArg, FloatArg
     from chimerax.atomic import AtomicStructureArg
     desc = CmdDesc(
-        required = [('path', OpenFileNameArg)],
-        keyword = [('model', AtomicStructureArg),
+        optional = [('structure', AtomicStructureArg)],
+        keyword = [('file', OpenFileNameArg),
                    ('palette', ColormapArg),
-                   ('range', ColormapRangeArg)],
+                   ('range', ColormapRangeArg),
+                   ('plot', BoolArg),
+                   ('color_domains', BoolArg),
+                   ('connect_max_pae', FloatArg),
+                   ('cluster', FloatArg)],
         synopsis = 'Show AlphaFold predicted aligned error'
     )
     
