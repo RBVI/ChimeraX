@@ -338,11 +338,20 @@ class Colormap(State):
                         self.color_no_value)
         return cmap
 
-    def rescale_range(self, value0, value1):
-        '''Return new colormap with [0,1] range becoming [value0,value1].'''
+    def rescale_range(self, value0, value1, full = False):
+        '''
+        Return new colormap with [0,1] range becoming [value0,value1].
+        Or if full is true rescale current range to new range.
+        '''
         v = self.data_values.copy()
-        v *= (value1 - value0)
-        v += value0
+        if full:
+            cur0, cur1 = self.value_range()
+            v -= cur0
+            v *= (value1 - value0) / (cur1 - cur0)
+            v += value0
+        else:
+            v *= (value1 - value0)
+            v += value0
         cmap = Colormap(v, self.colors,
                         self.color_above_value_range,
                         self.color_below_value_range,
@@ -390,6 +399,20 @@ class Colormap(State):
         c.values_specified = data['values_specified']
         return c
 
+def colormap_with_range(colormap, range, default_colormap_name = 'red-blue', full_range = (0,1)):
+    if colormap is None:
+        colormap = BuiltinColormaps[default_colormap_name]
+    if range == 'full':
+        range = full_range
+    if range is None:
+        cmap = colormap if colormap.values_specified else colormap.rescale_range(*full_range)
+        return cmap
+    vmin, vmax = range
+    if colormap.values_specified:
+        cmap = colormap.rescale_range(vmin, vmax, full = True)
+    else:
+        cmap = colormap.linear_range(vmin, vmax)
+    return cmap
 
 def _builtin_colormaps():
     '''Define built-in colormaps'''
@@ -407,6 +430,8 @@ def _builtin_colormaps():
     _alphafold_colors = [BuiltinColors[name] for name in
                          ('red', 'orange', 'yellow', 'cornflowerblue', 'blue')]
     cmaps['alphafold'] = Colormap((0, 50, 70, 90, 100), _alphafold_colors)
+    _pae_colors = ((0.118,0.275,0.118,1), (0.142,0.571,0.142,1), (0.216,0.693,0.216,1), (0.338,0.788,0.338,1), (0.510,0.867,0.510,1), (0.730,0.937,0.730,1), (1.000,1.000,1.000,1))
+    cmaps['pae'] = Colormap((0, 5, 10, 15, 20, 25, 30), _pae_colors)
 
     # Add some aliases
     cmaps['redblue'] = cmaps['red-white-blue']
