@@ -102,12 +102,15 @@ class AlphaFoldPAE(ToolInstance):
 
     # ---------------------------------------------------------------------------
     #
-    def set_pae_matrix(self, pae_path, model = None):
+    def set_pae_matrix(self, pae_path, model = None, colormap = None):
         title = (f'<html>Predicted residue-residue distance errors (PAE) for {model.name}'
                  '<br>Drag a box to color model residues.</html>')
         self._heading.setText(title)
         self._pae_matrix = read_pae_matrix(pae_path)
-        self._pae_view._make_image(self._pae_matrix)
+        if colormap is None:
+            from chimerax.core.colors import BuiltinColormaps
+            colormap = BuiltinColormaps['pae']
+        self._pae_view._make_image(self._pae_matrix, colormap)
         self._clusters = None
         self._alphafold_model = model
 
@@ -211,13 +214,13 @@ class PAEView(QGraphicsView):
             self.scene().removeItem(box)
             self._drag_box = None
 
-    def _make_image(self, pae_matrix):
+    def _make_image(self, pae_matrix, colormap):
         scene = self.scene()
         pi = self._pixmap_item
         if pi is not None:
             scene.removeItem(pi)
 
-        rgb = pae_rgb(pae_matrix)
+        rgb = pae_rgb(pae_matrix, colormap)
         pixmap = pae_pixmap(rgb)
         self._pixmap_item = scene.addPixmap(pixmap)
         scene.setSceneRect(0, 0, pixmap.width(), pixmap.height())
@@ -270,24 +273,28 @@ def read_pickle_pae_matrix(path):
 
 # -----------------------------------------------------------------------------
 #
-def pae_rgb(pae_matrix):
+def pae_rgb(pae_matrix, colormap):
 
-    # Create an rgba image showing values.
-    me = pae_matrix.max()
-    dmin,dmax = 0,me
-    ec = pae_matrix - dmin
-    ec /= (dmax-dmin)
-    from numpy import empty, uint8, clip, sqrt
-    clip(ec, 0, 1, ec)
-
-    # Match AlphaFold DB PAE colors
+    rgb_flat = colormap.interpolated_rgba8(pae_matrix.flat)[:,:3]
     n = pae_matrix.shape[0]
-    rgb = empty((n,n,3), uint8)
-    rgb[:,:,0] = 30 + 225*(ec*ec)
-    rgb[:,:,1] = 70 + 185*sqrt(ec)
-    rgb[:,:,2] = rgb[:,:,0]
-
+    rgb = rgb_flat.reshape((n,n,3)).copy()
     return rgb
+
+# -----------------------------------------------------------------------------
+#
+def _pae_colormap(max = 30, step = 5):
+    colors = []
+    values = []
+    from math import sqrt
+    for p in range(0,max+1,step):
+        f = p/max
+        r = b = (30 + 225*f*f)/255
+        g = (70 + 185*sqrt(f))/255
+        a = 1
+        values.append(p)
+        colors.append((r,g,b,a))
+    print(tuple(values))
+    print('(' + ', '.join('(%.3f,%.3f,%.3f,%.0f)'%c for c in colors) + ')')
 
 # -----------------------------------------------------------------------------
 #
@@ -351,7 +358,7 @@ def color_by_pae_domain(residues, clusters, colors = None, min_cluster_size=10):
 
 # -----------------------------------------------------------------------------
 #
-def alphafold_pae(session, path, model = None):
+def alphafold_pae(session, path, model = None, palette = None, range = None):
     '''Load AlphaFold predicted aligned error file and show image.'''
     if model is None:
         from chimerax.atomic import all_atomic_structures
@@ -360,17 +367,23 @@ def alphafold_pae(session, path, model = None):
             from chimerax.core.errors import UserError
             raise UserError('Must specify which AlphaFold structure to associate with PAE data using "model" option.')
         model = models[0]
+
+    from chimerax.core.colors import colormap_with_range
+    colormap = colormap_with_range(palette, range, 'pae', (0,30))
+
     p = AlphaFoldPAE(session, 'AlphaFold Predicted Aligned Error')
-    p.set_pae_matrix(path, model)
+    p.set_pae_matrix(path, model, colormap)
 
 # -----------------------------------------------------------------------------
 #
 def register_alphafold_pae_command(logger):
-    from chimerax.core.commands import CmdDesc, register, OpenFileNameArg
+    from chimerax.core.commands import CmdDesc, register, OpenFileNameArg, ColormapArg, ColormapRangeArg
     from chimerax.atomic import AtomicStructureArg
     desc = CmdDesc(
         required = [('path', OpenFileNameArg)],
-        keyword = [('model', AtomicStructureArg)],
+        keyword = [('model', AtomicStructureArg),
+                   ('palette', ColormapArg),
+                   ('range', ColormapRangeArg)],
         synopsis = 'Show AlphaFold predicted aligned error'
     )
     
