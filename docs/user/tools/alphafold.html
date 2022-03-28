@@ -43,6 +43,9 @@ target="_blank">learned parameters</a>
 Both are freely available for academic and commercial use under
 <a href="https://creativecommons.org/licenses/by/4.0/"
 target="_blank">CC BY 4.0</a>.
+The related tool <a href="#pae"><b>AlphaFold Error Plot</b></a>
+plots residue-residue distance errors for AlphaFold structures.
+</p><p>
 Users should cite:
 </p>
 <blockquote>
@@ -489,7 +492,69 @@ B-factor field of the PDB file) and
 </p>
 </ul>
 
+<a name="pae"></a>
+<p class="nav">
+[<a href="#top">back to top: AlphaFold</a>]
+</p>
+<h3>AlphaFold Error Plot</h3>
+<p>
+Besides the per-residue
+<a href="https://alphafold.ebi.ac.uk/faq#faq-5" target="_blank">pLDDT
+confidence measure</a>,
+AlphaFold estimates the error in each pairwise residue-residue distance.
+These &ldquo;predicted aligned error&rdquo; or PAE values
+can be shown with <b>AlphaFold Error Plot</b>, which can be
+opened from the <b>Structure Prediction</b>
+section of the <b>Tools</b> menu and manipulated like other panels
+(<a href="../window.html#panels">more...</a>).
+It is also implemented as the command
+<a href="../commands/alphafold.html#pae"><b>alphafold pae</b></a>.
+</p><p>
+Choosing the corresponding AlphaFold structure from the menu of open 
+atomic models associates it with the plot. This association allows
+coloring by domain as described below, and for selections
+on the plot to highlight the corresponding parts of the structure.
+</p><p>
+The PAE values can be either:
+</p>
+<ul>
+<li>fetched from the <a href="https://alphafold.ebi.ac.uk/"
+target="_blank">AlphaFold Database</a>
+by giving the UniProt name or accession number of an entry in that database
+<br>&ndash; or &ndash;
+<li>read from a json or pkl file previously output by AlphaFold
+</ul>
+<p>
+The PAE plot is colored as follows:
+</p>
+<table border cellpadding="0" cellspacing="0"
+style="display:inline-block; vertical-align:top"><tr>
+<td bgcolor="#1e3546661e35" width="30px" title="#1e3546661e35"
+align="center"><font size="-1" color="white">0</font></td>
+<td bgcolor="#245a922c245a" width="30px" title="#245a922c245a"
+align="center"><font size="-1" color="white">5</font></td>
+<td bgcolor="#374cb168374c" width="30px" title="#374cb168374c"
+align="center"><font size="-1" color="white">10</font></td>
+<td bgcolor="#5687c9ba5687" width="30px" title="#5687c9ba5687"
+align="center"><font size="-1">15</font></td>
+<td bgcolor="#828fddf3828f" width="30px" title="#828fddf3828f"
+align="center"><font size="-1">20</font></td>
+<td bgcolor="#bae1efdebae1" width="30px" title="#bae1efdebae1"
+align="center"><font size="-1">25</font></td>
+<td bgcolor=white width="30px" title="white"
+align="center"><font size="-1">30</font></td>
+</tr></table>
+<p>
+Clicking <b>Color PAE Domains</b> clusters the residues into
+coherent domains (sets of residues with relatively low expected
+interresidue distance errors) and uses randomly chosen colors to color these 
+domains in the structure 
+(<a href="../commands/alphafold.html#colorDomains">details...</a>).
+Clicking <b>Color pLDDT</b> returns the structure to
+the default <a href="#confidence">confidence coloring</a>.
+</p>
+
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-January 2022</address>
+March 2022</address>
 </body></html>
