@@ -96,8 +96,9 @@ assembling the individual structures into a complex may give
 unphysical results where parts of the chains intersect or 
 interact poorly with one another.
 </p><p>
-The <b>alphafold</b> command is also implemented as the
-<a href="../tools/alphafold.html"><b>AlphaFold</b></a> tool.
+The <b>alphafold</b> command is also implemented as the tools
+<a href="../tools/alphafold.html"><b>AlphaFold</b></a>
+and <a href="../tools/alphafold.html#pae"><b>AlphaFold Error Plot</b></a>.
 See also:
 <a href="../tools/blastprotein.html"><b>Blast Protein</b></a>,
 <a href="../tools/modeller.html"><b>Modeller Comparative</b></a>,
@@ -592,7 +593,7 @@ with <b>pae true</b>, or the separate command <b>alphafold pae</b>:
 <blockquote>
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>alphafold pae</b>
-(&nbsp;<b>uniprotId</b></a>&nbsp;&nbsp;<i>uniprot</i>&nbsp;|&nbsp;<i>pae-filename</i>&nbsp;)
+(&nbsp;<b>uniprotId</b></a>&nbsp;&nbsp;<i>uniprot</i>&nbsp;|&nbsp;<b>file</b>&nbsp;&nbsp;<i>filename</i>&nbsp;)
 [&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
 [&nbsp;<a href="color.html#palette-options"><b>palette</b></a>&nbsp;&nbsp;<i>palette</i>&nbsp;]
 [&nbsp;<a href="color.html#palette-options"><b>range</b></a>&nbsp;&nbsp;<i>low,high</i>&nbsp;|&nbsp;full&nbsp;]
@@ -609,12 +610,12 @@ target="_blank">AlphaFold Database</a> with the <b>uniprotId</b> option,
 where <i>uniprot</i> is the the UniProt name or accession number of an entry 
 in the database
 <br>&ndash; or &ndash;
-<li>specified as <i>pae-filename</i>, a json or pkl file from AlphaFold.
-This is generally a pathname to a local file, either absolute or relative 
-to the current working directory as reported by 
+<li>a json or pkl file from AlphaFold specified with the <b>file</b> option.
+The <i>filename</i> is generally a pathname to a local file, 
+either absolute or relative to the current working directory as reported by 
 <a href="pwd.html"><b>pwd</b></a>. Substituting the word 
 <a href="usageconventions.html#browse"><b>browse</b></a>
-for <i>pae-filename</i> brings up a file browser window for choosing the
+for <i>filename</i> brings up a file browser window for choosing the
 name and location interactively.
 </ul>
 <a name="association"></a>
@@ -653,27 +654,24 @@ align="center"><font size="-1">30</font></td>
 Setting <b>colorDomains</b> to <b>true</b> clusters the residues into
 coherent domains (sets of residues with relatively low expected
 interresidue distance errors) and uses randomly chosen colors to
-color these domains in the structure. The clustering uses the
+distinguish these domains in the structure. The clustering uses the
 NetworkX greedy_modularity_communities algorithm with parameters:
 </p>
 <ul>
 <li><b>connectMaxPae</b> (default <b>5.0</b> &Aring;)
 &ndash; the maximum PAE value allowed between residues for them to be 
-clustered into in the same domain. Larger values give larger domains
+clustered into the same domain. Larger values give larger domains
 and generally increase the time to compute the clustering, 
-~5 seconds for 1000 residues when the default of 5.0 is used.
+which is ~5 seconds for 1000 residues when the default of 5.0 is used.
 <li><b>cluster</b> (default <b>0.5</b>, typical range 0.5&ndash;5.0) 
 &ndash; graph resolution; larger values give smaller domains
 </ul>
 <p>
 The plot window has buttons for coloring the 
 <a href="#association">associated</a> structure.
-Clicking <b>Color PAE Domains</b> clusters the residues into
-coherent domains (sets of residues with relatively low expected
-interresidue distance errors) and uses randomly chosen colors to color these
-domains in the structure
-(<a href="#colorDomains">details...</a>).
-Clicking <b>Color pLDDT</b> returns the structure to
+<b>Color PAE Domains</b> applies coloring by PAE cluster as
+described <a href="#colorDomains">above</a>.
+<b>Color pLDDT</b> returns the structure to
 the default <a href="#colorConfidence">confidence coloring</a>.
 </p>
 
