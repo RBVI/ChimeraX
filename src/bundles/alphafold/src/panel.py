@@ -174,6 +174,7 @@ class AlphaFoldGUI(ToolInstance):
                         ('Search', self._search),
                         ('Predict', self._predict),
                         ('Coloring', self._coloring),
+                        ('Error plot', self._error_plot),
                         ('Help', self._show_help)],
                        spacing = 10)
         return f
@@ -196,6 +197,9 @@ class AlphaFoldGUI(ToolInstance):
     def _coloring(self):
         from . import colorgui
         colorgui.show_alphafold_coloring_panel(self.session)
+    def _error_plot(self):
+        from . import pae
+        pae.show_alphafold_error_plot_panel(self.session)
         
     # ---------------------------------------------------------------------------
     #

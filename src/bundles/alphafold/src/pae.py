@@ -14,9 +14,247 @@
 # -----------------------------------------------------------------------------
 #
 from chimerax.core.tools import ToolInstance
+class AlphaFoldPAEOpen(ToolInstance):
+
+    name = 'AlphaFold Error Plot'
+    help = 'help:user/tools/alphafold.html'
+
+    def __init__(self, session, tool_name):
+        
+        ToolInstance.__init__(self, session, tool_name)
+
+        from chimerax.ui import MainToolWindow
+        tw = MainToolWindow(self)
+        self.tool_window = tw
+        parent = tw.ui_area
+
+        from chimerax.ui.widgets import vertical_layout
+        layout = vertical_layout(parent, margins = (5,0,5,0))
+
+        from chimerax.atomic import AtomicStructure
+        from chimerax.ui.widgets import ModelMenu
+        m = ModelMenu(self.session, parent, label = 'AlphaFold structure',
+                      model_types = [AtomicStructure],
+                      model_chosen_cb = self._structure_chosen)
+        self._structure_menu = m
+        layout.addWidget(m.frame)
+
+        self._source_file = 'file (.json or .pkl)'
+        self._source_alphafold_db = 'AlphaFold database (UniProt id)'
+        from chimerax.ui.widgets import EntriesRow
+        ft = EntriesRow(parent, 'Predicted aligned error (PAE) from',
+                        (self._source_file, self._source_alphafold_db))
+        self._source = sf = ft.values[0]
+        sf.widget.menu().triggered.connect(lambda action, self=self: self._guess_for_source())
+        layout.addWidget(ft.frame)
+        
+        from Qt.QtWidgets import QLineEdit
+        fp = QLineEdit(parent)
+        layout.addWidget(fp)
+        self._pae_file = fp
+
+        # Color Domains button
+        from chimerax.ui.widgets import button_row
+        bf = button_row(parent,
+                        [('Open', self._open_pae),
+                         ('Browse', self._choose_pae_file),
+                         ('Help', self._show_help)],
+                        spacing = 10)
+        bf.setContentsMargins(0,5,0,0)
+        layout.addWidget(bf)
+        
+        layout.addStretch(1)    # Extra space at end
+
+        tw.manage(placement=None)	# Start floating
+
+    # ---------------------------------------------------------------------------
+    #
+    @classmethod
+    def get_singleton(self, session, create=True):
+        from chimerax.core import tools
+        return tools.get_singleton(session, AlphaFoldPAEOpen, 'AlphaFold Error Plot',
+                                   create=create)
+
+    # ---------------------------------------------------------------------------
+    #
+    def _structure_chosen(self):
+        self._guess_pae_file_or_uniprot_id()
+
+    # ---------------------------------------------------------------------------
+    #
+    def _guess_pae_file_or_uniprot_id(self):
+        structure_path = self._structure_path
+        if structure_path is None:
+            return
+
+        uniprot_id = _guess_uniprot_id(structure_path)
+        if uniprot_id:
+            self._pae_file.setText(uniprot_id)
+            self._source.value = self._source_alphafold_db
+            return
+
+        pae_path = _matching_pae_file(structure_path)
+        if pae_path:
+            self._pae_file.setText(pae_path)
+            self._source.value = self._source_file
+
+    # ---------------------------------------------------------------------------
+    #
+    def _guess_for_source(self):
+        structure_path = self._structure_path
+        if structure_path is None:
+            return
+
+        source = self._source.value
+        if source == self._source_file:
+            pae_path = _matching_pae_file(structure_path)
+            if pae_path:
+                self._pae_file.setText(pae_path)
+        elif source == self._source_alphafold_db:
+            uniprot_id = _guess_uniprot_id(structure_path)
+            if uniprot_id:
+                self._pae_file.setText(uniprot_id)
+                
+    # ---------------------------------------------------------------------------
+    #
+    @property
+    def _structure_path(self):
+        s = self._structure_menu.value
+        structure_path = getattr(s, 'filename', None)
+        return structure_path
+    
+    # ---------------------------------------------------------------------------
+    #
+    def _choose_pae_file(self):
+        s = self._structure_menu.value
+        if s and hasattr(s, 'filename'):
+            from os import path
+            dir = path.split(s.filename)[0]
+        elif self._pae_file.text():
+            dir = path.split(self._pae_file.text())[0]
+        else:
+            dir = None
+            
+        parent = self.tool_window.ui_area
+        from Qt.QtWidgets import QFileDialog
+        path, ftype  = QFileDialog.getOpenFileName(parent, caption = 'Predicted aligned error',
+                                                   directory = dir,
+                                                   filter = 'PAE file (*.json *.pkl)')
+        if path:
+            self._pae_file.setText(path)
+            self._open_pae()
+
+    # ---------------------------------------------------------------------------
+    #
+    def _open_pae(self):
+
+        s = self._structure_menu.value
+        if s is None:
+            from chimerax.core.errors import UserError
+            raise UserError('Must choose structure to associate with predicted aligned error')
+
+        source = self._source.value
+        if source == self._source_file:
+            self._open_pae_from_file(s)
+        elif source == self._source_alphafold_db:
+            self._open_pae_from_alphafold_db(s)
+
+        self.display(False)
+
+    # ---------------------------------------------------------------------------
+    #
+    def _open_pae_from_file(self, structure):
+        from chimerax.core.errors import UserError
+
+        path = self._pae_file.text()
+        if not path:
+            raise UserError('Must choose path to predicted aligned file')
+
+        from os.path import isfile
+        if not isfile(path):
+            raise UserError(f'File "{path}" does not exist.')
+
+        if not path.endswith('.json') and not path.endswith('.pkl'):
+            raise UserError(f'PAE file suffix must be ".json" or ".pkl".')
+
+        from chimerax.core.commands import run, quote_if_necessary
+        cmd = 'alphafold pae #%s file %s' % (structure.id_string, quote_if_necessary(path))
+        run(self.session, cmd)
+
+    # ---------------------------------------------------------------------------
+    #
+    def _open_pae_from_alphafold_db(self, structure):
+        uniprot_id = self._pae_file.text()
+        from chimerax.core.commands import run, quote_if_necessary
+        cmd = 'alphafold pae #%s uniprot %s' % (structure.id_string, uniprot_id)
+        run(self.session, cmd)
+
+    # ---------------------------------------------------------------------------
+    #
+    def _show_help(self):
+        from chimerax.core.commands import run
+        run(self.session, 'help %s' % self.help)
+
+# -----------------------------------------------------------------------------
+#
+def _matching_pae_file(structure_path):
+    from os.path import split, isdir, join
+    dir, filename = split(structure_path)
+    if not isdir(dir):
+        return None
+
+    from os import listdir
+    dfiles = listdir(dir)
+    pfiles = [f for f in dfiles if f.endswith('.json') or f.endswith('.pkl')]
+    if len(pfiles) == 1:
+        path = join(dir, pfiles[0])
+        return path
+    elif len(pfiles) > 1:
+        # Find longest matching prefix
+        m = [(len(matching_prefix(pf,filename)),pf) for pf in pfiles]
+        m.sort(reverse = True)
+        min_match_length = 6
+        if m[0][0] > min_match_length and m[0][0] > m[1][0]:
+            path = join(dir, m[0][1])
+            return path
+
+    return None
+
+# ---------------------------------------------------------------------------
+#
+def _guess_uniprot_id(structure_path):
+    from os.path import split
+    filename = split(structure_path)[1]
+    from .database import uniprot_id_from_filename
+    uniprot_id = uniprot_id_from_filename(filename)
+    return uniprot_id
+
+# -----------------------------------------------------------------------------
+#
+def matching_prefix(s1, s2):
+    for i in range(len(s1)):
+        if s2[i] != s1[i]:
+            break
+    return s1[:i]
+
+# -----------------------------------------------------------------------------
+#
+def alphafold_error_plot_panel(session, create = False):
+    return AlphaFoldPAEOpen.get_singleton(session, create=create)
+  
+# -----------------------------------------------------------------------------
+#
+def show_alphafold_error_plot_panel(session):
+    p = alphafold_error_plot_panel(session, create = True)
+    p.display(True)
+    return p
+    
+# -----------------------------------------------------------------------------
+#
+from chimerax.core.tools import ToolInstance
 class AlphaFoldPAEPlot(ToolInstance):
 
-    name = 'AlphaFold Predicted Aligned Error'
+    name = 'AlphaFold Predicted Aligned Error Plot'
     help = 'help:user/tools/alphafold.html'
 
     def __init__(self, session, tool_name, pae, colormap = None):
@@ -90,6 +328,7 @@ class AlphaFoldPAEPlot(ToolInstance):
     # ---------------------------------------------------------------------------
     #
     def _color_domains(self):
+        # TODO: Log the command to do the coloring.
         self._pae.color_domains()
          
     # ---------------------------------------------------------------------------
@@ -407,9 +646,18 @@ def color_by_pae_domain(residues, clusters, colors = None, min_cluster_size=10):
 
 # -----------------------------------------------------------------------------
 #
-def alphafold_pae(session, structure = None, file = None, palette = None, range = None,
-                  plot = None, color_domains = False, connect_max_pae = 5, cluster = 0.5):
+def alphafold_pae(session, structure = None, file = None, uniprot_id = None,
+                  palette = None, range = None, plot = None,
+                  color_domains = False, connect_max_pae = 5, cluster = 0.5):
     '''Load AlphaFold predicted aligned error file and show plot or color domains.'''
+
+    if uniprot_id:
+        from .database import alphafold_pae_url
+        pae_url = alphafold_pae_url(session, uniprot_id)
+        file_name = pae_url.split('/')[-1]
+        from chimerax.core.fetch import fetch_file
+        file = fetch_file(session, pae_url, 'AlphaFold PAE %s' % uniprot_id,
+                          file_name, 'AlphaFold', error_status = False)
         
     if file:
         pae = AlphaFoldPAE(file, structure)
@@ -454,10 +702,11 @@ def alphafold_pae(session, structure = None, file = None, palette = None, range 
 #
 def register_alphafold_pae_command(logger):
     from chimerax.core.commands import CmdDesc, register, OpenFileNameArg, ColormapArg, ColormapRangeArg, BoolArg, FloatArg
-    from chimerax.atomic import AtomicStructureArg
+    from chimerax.atomic import AtomicStructureArg, UniProtIdArg
     desc = CmdDesc(
         optional = [('structure', AtomicStructureArg)],
         keyword = [('file', OpenFileNameArg),
+                   ('uniprot_id', UniProtIdArg),
                    ('palette', ColormapArg),
                    ('range', ColormapRangeArg),
                    ('plot', BoolArg),

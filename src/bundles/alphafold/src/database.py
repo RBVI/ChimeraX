@@ -43,6 +43,14 @@ def alphafold_pae_url(session, uniprot_id, database_version = None):
 
 # -----------------------------------------------------------------------------
 #
+def uniprot_id_from_filename(filename):
+    fields = filename.split('-')
+    if len(fields) >= 4 and fields[0] == 'AF' and fields[2] == 'F1' and fields[3].startswith('model'):
+        return fields[1]
+    return None
+
+# -----------------------------------------------------------------------------
+#
 def _alphafold_database_settings(session):
     settings = getattr(session, '_alphafold_database_settings', None)
     if settings is None:
