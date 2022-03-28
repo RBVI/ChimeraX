@@ -4,12 +4,12 @@
 
 # Make sure virtual machine has a GPU
 def check_for_gpu():
-    import jax
-    devtype = jax.local_devices()[0].platform
-    if devtype == 'gpu':
+    import os
+    have_gpu = (int(os.environ.get('COLAB_GPU',1)) > 0)
+    if have_gpu:
         print ('Have Colab GPU runtime')
     else:
-        raise RuntimeError('Require Colab GPU runtime, got %s.\n' % devtype +
+        raise RuntimeError('Require Colab GPU runtime.\n' +
                            'Change GPU with Colab menu\n' +
                            'Runtime -> Change Runtime Type -> Hardware accelerator -> GPU.')
 
