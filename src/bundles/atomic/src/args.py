@@ -231,6 +231,24 @@ class UniProtSequenceArg(Annotation):
         if uname is not None:
             seq.uniprot_name = uname
         return seq, used, rest
+                
+class UniProtIdArg(Annotation):
+    name = 'UniProt id'
+    
+    @classmethod
+    def parse(cls, text, session):
+        uid, used, rest = StringArg.parse(text, session)
+        if not is_uniprot_id(uid):
+            raise AnnotationError('Invalid UniProt identifier "%s"' % uid)
+        if '_' in uid:
+            from chimerax.uniprot import map_uniprot_ident
+            try:
+                uid = map_uniprot_ident(uid, return_value = 'entry')
+            except Exception:
+                raise AnnotationError('UniProt name "%s" must be 1-5 characters followed by an underscore followed by 1-5 characters' % uid)
+        if len(uid) not in (6, 10):
+            raise AnnotationError('UniProt id "%s" must be 6 or 10 characters' % uid)
+        return uid, used, rest
 
 def is_uniprot_id(text):
     # Name and accession format described here.
