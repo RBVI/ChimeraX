@@ -602,23 +602,6 @@ class SequenceViewer(ToolInstance):
                     "blastprotein %s" % (StringArg.unparse("%s:%d" % (self.alignment.ident, i+1)))))
                 blast_menu.addAction(blast_action)
 
-        """
-        #TODO: instead of completely launching from menu, just a top-level item that brings up
-        # a non-modal dialog for choosing structure and modeling areas (all missing; non-terminal;
-        # selection region; current region)
-        loop_menu = menu.addMenu("Loop Modeling")
-        if self.alignment.associations:
-            structs = set([chain.structure for chain in self.associations])
-            if len(structs) > 1:
-                for s in structs:
-                    struct_menu = loop_menu.addMenu(str(s))
-                    self._add_loop_action_menu(struct_menu, s)
-            else:
-                self._add_loop_action_menu(loop_menu, structs[0])
-        else:
-            loop_menu.setEnabled(False)
-        """
-
         # Whenever Region Browser and UniProt Annotations happen, the thought is to
         # put them in an "Annotations" menu (rather than "Info"); for now with only
         # sequence features available, use "Features"
@@ -637,6 +620,10 @@ class SequenceViewer(ToolInstance):
                     action.triggered.connect(lambda *args, seq=seq, show=self.show_feature_browser:
                         show(seq))
                     features_menu.addAction(action)
+
+        identity_action = QAction("Percent Identity...", menu)
+        identity_action.triggered.connect(self.show_percent_identity_dialog)
+        menu.addAction(identity_action)
 
         settings_action = QAction("Settings...", menu)
         settings_action.triggered.connect(self.show_settings)
@@ -696,6 +683,14 @@ class SequenceViewer(ToolInstance):
                 self.tool_window.create_child_window("%s Features" % seq.name, close_destroys=False))
             self._feature_browsers[seq].tool_window.manage(None)
         self._feature_browsers[seq].tool_window.shown = True
+
+    def show_percent_identity_dialog(self):
+        if not hasattr(self, "percent_identity_dialog"):
+            from .identity import PercentIdentityDialog
+            self.percent_identity_dialog = PercentIdentityDialog(self,
+                self.tool_window.create_child_window("Percent Identity", close_destroys=False))
+            self.percent_identity_dialog.tool_window.manage(None)
+        self.percent_identity_dialog.tool_window.shown = True
 
     def show_settings(self):
         if not hasattr(self, "settings_tool"):

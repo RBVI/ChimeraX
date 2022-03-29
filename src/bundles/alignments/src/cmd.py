@@ -292,10 +292,10 @@ def seqalign_header(session, alignments, subcommand_text):
         alignment._dispatch_header_command(subcommand_text)
 
 from chimerax.atomic.seq_support import IdentityDenominator, percent_identity
-def seqalign_identity(session, src1, src2=None, *, denominator=IdentityDenominator.SHORTER):
+def seqalign_identity(session, src1, src2=None, *, denominator=IdentityDenominator.default):
     "Either src1 is an alignment and src2 is None (report all vs. all), or src1 and src2 are sequences"
     from .alignment import Alignment
-    usage = "Must either provide an alignment argument or two sequence arguments"
+    usage = "Must either provide an alignment, an alignment and a sequence, or two sequence arguments"
     if src2 is None:
         if not isinstance(src1, Alignment):
             raise UserError(usage)
@@ -305,12 +305,15 @@ def seqalign_identity(session, src1, src2=None, *, denominator=IdentityDenominat
                 session.logger.info("%s vs. %s: %.2f%% identity" % (seq1.name, seq2.name, identity))
         return
     if isinstance(src1, Alignment):
-        raise UserError(usage)
-    try:
-        identity = percent_identity(src1, src2, denominator=denominator)
-    except ValueError as e:
-        raise UserError(str(e))
-    session.logger.info("%.2f%% identity" % identity)
+        seqs1 = src1.seqs
+    else:
+        seqs1 = [src1]
+    for seq1 in seqs1:
+        try:
+            identity = percent_identity(seq1, src2, denominator=denominator)
+        except ValueError as e:
+            raise UserError(str(e))
+        session.logger.info("%s vs. %s: %.2f%% identity" % (seq1.name, src2.name, identity))
     return identity
 
 MUSCLE = "MUSCLE"

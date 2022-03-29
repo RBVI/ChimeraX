@@ -122,8 +122,12 @@ class IdentityDenominator(Enum):
     SHORTER = "shorter"
     LONGER = "longer"
     IN_COMMON = "in-common"
+IdentityDenominator.SHORTER.description = "shorter sequence length"
+IdentityDenominator.LONGER.description = "longer sequence length"
+IdentityDenominator.IN_COMMON.description = "non-gap columns in common"
+IdentityDenominator.default = IdentityDenominator.SHORTER
 
-def percent_identity(seq1, seq2, *, denominator=IdentityDenominator.SHORTER):
+def percent_identity(seq1, seq2, *, denominator=IdentityDenominator.default):
     if len(seq1) != len(seq2):
         raise ValueError("Sequence %s is not the same length as sequence %s (%d vs. %d)" % (seq1.name,
             seq2.name, len(seq1), len(seq2)))
