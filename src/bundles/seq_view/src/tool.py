@@ -621,9 +621,10 @@ class SequenceViewer(ToolInstance):
                         show(seq))
                     features_menu.addAction(action)
 
-        identity_action = QAction("Percent Identity...", menu)
-        identity_action.triggered.connect(self.show_percent_identity_dialog)
-        menu.addAction(identity_action)
+        if len(self.alignment.seqs) > 1:
+            identity_action = QAction("Percent Identity...", menu)
+            identity_action.triggered.connect(self.show_percent_identity_dialog)
+            menu.addAction(identity_action)
 
         settings_action = QAction("Settings...", menu)
         settings_action.triggered.connect(self.show_settings)
