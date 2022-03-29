@@ -44,7 +44,7 @@ Both are freely available for academic and commercial use under
 <a href="https://creativecommons.org/licenses/by/4.0/"
 target="_blank">CC BY 4.0</a>.
 The related tool <a href="#pae"><b>AlphaFold Error Plot</b></a>
-plots residue-residue distance errors for AlphaFold structures.
+plots residue-residue alignment errors for AlphaFold structures.
 </p><p>
 Users should cite:
 </p>
@@ -501,7 +501,7 @@ B-factor field of the PDB file) and
 Besides the per-residue
 <a href="https://alphafold.ebi.ac.uk/faq#faq-5" target="_blank">pLDDT
 confidence measure</a>,
-AlphaFold estimates the error in each pairwise residue-residue distance.
+AlphaFold estimates the alignment error for each pair of residues.
 These &ldquo;predicted aligned error&rdquo; or PAE values
 can be shown with <b>AlphaFold Error Plot</b>, which can be
 opened from the <b>Structure Prediction</b>
@@ -547,7 +547,7 @@ align="center"><font size="-1">30</font></td>
 <p>
 Clicking <b>Color PAE Domains</b> clusters the residues into
 coherent domains (sets of residues with relatively low expected
-interresidue distance errors) and uses randomly chosen colors to 
+interresidue alignment errors) and uses randomly chosen colors to 
 distinguish these domains in the structure 
 (<a href="../commands/alphafold.html#colorDomains">details...</a>).
 Clicking <b>Color pLDDT</b> returns the structure to

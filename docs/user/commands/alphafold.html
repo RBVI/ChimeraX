@@ -38,7 +38,7 @@ using <a href="https://colab.research.google.com/signup"
 target="_blank">Google Colab</a> and
 <a href="https://github.com/deepmind/alphafold/#model-parameters-license"
 target="_blank">learned parameters</a> 
-<li><a href="#pae">plots residue-residue distance errors</a>
+<li><a href="#pae">plots residue-residue alignment errors</a>
 for AlphaFold structures
 </ul>
 <p>
@@ -585,7 +585,7 @@ than the free plan.
 Besides the per-residue
 <a href="https://alphafold.ebi.ac.uk/faq#faq-5" target="_blank">pLDDT
 confidence measure</a>,
-AlphaFold estimates the error in each pairwise residue-residue distance.
+AlphaFold estimates the alignment error between every pair of residues.
 These &ldquo;predicted aligned error&rdquo; or PAE values 
 can be shown as a 2D plot using <a href="#fetch"><b>alphafold fetch</b></a> 
 with <b>pae true</b>, or the separate command <b>alphafold pae</b>:
@@ -653,7 +653,7 @@ align="center"><font size="-1">30</font></td>
 <p>
 Setting <b>colorDomains</b> to <b>true</b> clusters the residues into
 coherent domains (sets of residues with relatively low expected
-interresidue distance errors) and uses randomly chosen colors to
+interresidue alignment errors) and uses randomly chosen colors to
 distinguish these domains in the structure. The clustering uses the
 NetworkX greedy_modularity_communities algorithm with parameters:
 </p>
