@@ -291,6 +291,28 @@ def seqalign_header(session, alignments, subcommand_text):
     for alignment in alignments:
         alignment._dispatch_header_command(subcommand_text)
 
+from chimerax.atomic.seq_support import IdentityDenominator, percent_identity
+def seqalign_identity(session, src1, src2=None, *, denominator=IdentityDenominator.SHORTER):
+    "Either src1 is an alignment and src2 is None (report all vs. all), or src1 and src2 are sequences"
+    from .alignment import Alignment
+    usage = "Must either provide an alignment argument or two sequence arguments"
+    if src2 is None:
+        if not isinstance(src1, Alignment):
+            raise UserError(usage)
+        for i, seq1 in enumerate(src1.seqs):
+            for seq2 in src1.seqs[i+1:]:
+                identity = percent_identity(seq1, seq2, denominator=denominator)
+                session.logger.info("%s vs. %s: %.2f%% identity" % (seq1.name, seq2.name, identity))
+        return
+    if isinstance(src1, Alignment):
+        raise UserError(usage)
+    try:
+        identity = percent_identity(src1, src2, denominator=denominator)
+    except ValueError as e:
+        raise UserError(str(e))
+    session.logger.info("%.2f%% identity" % identity)
+    return identity
+
 MUSCLE = "MUSCLE"
 CLUSTAL_OMEGA = "Clustal Omega"
 alignment_program_name_args = { 'muscle': MUSCLE, 'omega': CLUSTAL_OMEGA, 'clustal': CLUSTAL_OMEGA,
@@ -317,11 +339,14 @@ def register_seqalign_command(logger):
     from chimerax.core.commands import CmdDesc, register, create_alias, Or, EmptyArg, RestOfLine, ListOf, \
         EnumOf
     from chimerax.atomic import UniqueChainsArg, SequencesArg
+
+    apns = list(alignment_program_name_args.keys())
     desc = CmdDesc(
-        required = [('chains', UniqueChainsArg)],
-        synopsis = 'show structure chain sequence'
+        required = [('seq_source', Or(AlignmentArg, SequencesArg))],
+        keyword = [('program', EnumOf([alignment_program_name_args[apn] for apn in apns], ids=apns))],
+        synopsis = "align sequences"
     )
-    register('sequence chain', desc, seqalign_chain, logger=logger)
+    register('sequence align', desc, seqalign_align, logger=logger)
 
     desc = CmdDesc(
         required = [('chains', UniqueChainsArg)],
@@ -329,6 +354,12 @@ def register_seqalign_command(logger):
         synopsis = 'associate chain(s) with sequence'
     )
     register('sequence associate', desc, seqalign_associate, logger=logger)
+
+    desc = CmdDesc(
+        required = [('chains', UniqueChainsArg)],
+        synopsis = 'show structure chain sequence'
+    )
+    register('sequence chain', desc, seqalign_chain, logger=logger)
 
     desc = CmdDesc(
         required = [('chains', UniqueChainsArg)],
@@ -346,13 +377,14 @@ def register_seqalign_command(logger):
     )
     register('sequence header', desc, seqalign_header, logger=logger)
 
-    apns = list(alignment_program_name_args.keys())
+    enum_members = [denom for denom in IdentityDenominator]
     desc = CmdDesc(
-        required = [('seq_source', Or(AlignmentArg, SequencesArg))],
-        keyword = [('program', EnumOf([alignment_program_name_args[apn] for apn in apns], ids=apns))],
-        synopsis = "align sequences"
+        required = [('src1', Or(AlignmentArg, SeqArg))],
+        optional = [('src2', SeqArg)],
+        keyword = [('denominator', EnumOf(enum_members, ids=[mem.value for mem in enum_members]))],
+        synopsis = "report percent identity"
     )
-    register('sequence align', desc, seqalign_align, logger=logger)
+    register('sequence identity', desc, seqalign_identity, logger=logger)
 
     from . import manager
     manager._register_viewer_subcommands(logger)
