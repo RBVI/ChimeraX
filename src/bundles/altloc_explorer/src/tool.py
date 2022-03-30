@@ -48,6 +48,7 @@ class AltlocExplorerTool(ToolInstance):
     def delete(self):
         if self._changes_handler:
             self._changes_handler.remove()
+        self._structure_button.destroy()
         super().delete()
 
     def _atomic_changes(self, trig_name, trig_data):
