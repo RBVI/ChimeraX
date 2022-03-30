@@ -11,6 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 import os
+import re
 
 from xml.dom.minidom import parse
 
@@ -543,10 +544,10 @@ class ModellerWebJob(CxServicesJob):
         self.start(self.service_name, self.params, self.processed_input_file_map)
 
     def monitor(self):
-        super().monitor(poll_freq_override=10)
-        stdout = self.get_file("stdout.txt")
-        num_done = stdout.count('# Heavy relative violation of each residue is written to:')
-        num_done = max(stdout.count('>> Normalized DOPE z score') - 1, 0)
+        super().monitor(poll_freq_override=5)
+        files = self.get_all_filenames(refresh=True).keys()
+        generated_model_pattern = re.compile('.*\.B.*\.pdb') # aka *.B*.pdb
+        num_done = len([name for name in files if generated_model_pattern.match(name)])
         if not num_done:
             self.thread_safe_status("Modeller Webservice: No models generated yet")
         else:

@@ -221,7 +221,7 @@ class CxServicesJob(Job):
     def get_stderr(self):
         return self.get_file("_stdout")
 
-    def get_outputs(self, refresh=False):
+    def get_all_filenames(self, refresh=False):
         """Return dictionary of output files and their URLs.
 
         This method need not be called explicitly if the
@@ -238,7 +238,7 @@ class CxServicesJob(Job):
         if not refresh and self._outputs is not None:
             return self._outputs
         try:
-            filenames = self.chimerax_api.files_list(self.job_id)
+            filenames = self.chimerax_api.get_job_filenames(self.job_id).files
         except ApiException as e:
             raise IOError("job %s: cannot get file list" % self.job_id)
         self._outputs = {fn:fn for fn in filenames}
