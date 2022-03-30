@@ -192,12 +192,17 @@ class AlphaFoldDB(Database):
             # Splitting by = then spaces lets us cut out the X=VAL attributes
             # and the longform Uniprot ID,
             hit_title = ' '.join(raw_desc.split('=')[0].split(' ')[1:-1])
+            if hit_title == 'deleted':
+                hit_title = "" 
             matches[match]["title"] = hit_title
             matches[match]["species"] = AlphaFoldDB._get_attr(raw_desc, 'OS')
             matches[match]["taxonomic_id"] = AlphaFoldDB._get_attr(raw_desc, 'OX')
             matches[match]["gene"] = AlphaFoldDB._get_attr(raw_desc, 'GN')
             protein_existence = AlphaFoldDB._get_attr(raw_desc, 'PE')
-            matches[match]["protein_existence"] = experimental_evidence[int(protein_existence)]
+            try:
+                matches[match]["protein_existence"] = experimental_evidence[int(protein_existence)]
+            except ValueError: 
+                matches[match]["protein_existence"] = ""
             matches[match]["sequence_version"] = AlphaFoldDB._get_attr(raw_desc, 'SV')
             # At this point all useful information has been extracted from the description
             # column and formatted elsewhere.
@@ -223,12 +228,20 @@ class AlphaFoldDB(Database):
             if attr_loc + 2 == raw_desc.rindex('='):
                 # We are at the last attribute
                 try:
-                    return raw_desc[attr_loc + 3:]
+                    attr_value = raw_desc[attr_loc + 3:]
+                    if attr_value.strip() == "deleted":
+                        return ""
+                    else:
+                        return attr_value
                 except:
                     # There's not even anything noted
                     return ""
             next_attr_start = raw_desc[attr_loc + 3:].index('=')
-            return raw_desc[attr_loc + 3:][:next_attr_start - 3]
+            attr_value = raw_desc[attr_loc + 3:][:next_attr_start - 3]
+            if attr_value.strip() == "deleted":
+                return ""
+            else:
+                return attr_value
 
 
 AvailableDBsDict = {

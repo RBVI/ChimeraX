@@ -160,7 +160,7 @@ StructureSeq::operator+=(StructureSeq& addition)
     }
     if (ischain) {
         _structure->remove_chain(dynamic_cast<Chain*>(&addition));
-        addition.demote_to_sequence();
+        //addition.demote_to_sequence();
         _structure->change_tracker()->add_modified(_structure, dynamic_cast<Chain*>(this),
             ChangeTracker::REASON_SEQUENCE, ChangeTracker::REASON_RESIDUES);
     }

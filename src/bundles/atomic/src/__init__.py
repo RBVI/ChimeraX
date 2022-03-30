@@ -36,7 +36,7 @@ from .triggers import get_triggers
 from .shapedrawing import AtomicShapeDrawing, AtomicShapeInfo
 from .args import ElementArg, AtomArg, AtomsArg, OrderedAtomsArg, ResiduesArg
 from .args import BondArg, BondsArg, PseudobondsArg, PseudobondGroupsArg
-from .args import UniqueChainsArg, ChainArg, SequencesArg, SequenceArg
+from .args import UniqueChainsArg, ChainArg, SequencesArg, SequenceArg, UniProtIdArg
 from .args import AtomicStructureArg, AtomicStructuresArg, StructureArg, StructuresArg
 from .args import SymmetryArg, concise_residue_spec
 from .cytmpl import TmplResidue

@@ -23,6 +23,9 @@ class _AlphaFoldBundle(BundleAPI):
         elif tool_name == 'AlphaFold Coloring':
             from . import colorgui
             return colorgui.show_alphafold_coloring_panel(session)
+        elif tool_name == 'AlphaFold Error Plot':
+            from . import pae
+            return pae.show_alphafold_error_plot_panel(session)
 
     @staticmethod
     def register_command(command_name, logger):
@@ -38,6 +41,9 @@ class _AlphaFoldBundle(BundleAPI):
         elif command_name == 'alphafold predict':
             from . import predict
             predict.register_alphafold_predict_command(logger)
+        elif command_name == 'alphafold pae':
+            from . import pae
+            pae.register_alphafold_pae_command(logger)
 
     @staticmethod
     def run_provider(session, name, mgr):

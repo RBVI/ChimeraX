@@ -116,3 +116,36 @@ def get_manager():
     if _manager is None:
         _manager = SeqFeatureManager()
     return _manager
+
+from enum import Enum
+class IdentityDenominator(Enum):
+    SHORTER = "shorter"
+    LONGER = "longer"
+    IN_COMMON = "in-common"
+IdentityDenominator.SHORTER.description = "shorter sequence length"
+IdentityDenominator.LONGER.description = "longer sequence length"
+IdentityDenominator.IN_COMMON.description = "non-gap columns in common"
+IdentityDenominator.default = IdentityDenominator.SHORTER
+
+def percent_identity(seq1, seq2, *, denominator=IdentityDenominator.default):
+    if len(seq1) != len(seq2):
+        raise ValueError("Sequence %s is not the same length as sequence %s (%d vs. %d)" % (seq1.name,
+            seq2.name, len(seq1), len(seq2)))
+
+    matches = in_common = 0
+
+    for c1, c2 in zip(seq1.characters, seq2.characters):
+        if not (c1.isalnum() and c2.isalnum()):
+            continue
+        in_common += 1
+        if c1.lower() == c2.lower():
+            matches += 1
+    try:
+        if denominator == IdentityDenominator.SHORTER:
+            return matches * 100.0 / min(len(seq1.ungapped()), len(seq2.ungapped()))
+        if denominator == IdentityDenominator.LONGER:
+            return matches * 100.0 / max(len(seq1.ungapped()), len(seq2.ungapped()))
+        return matches * 100.0 / in_common
+    except ZeroDivisionError:
+        return 0.0
+

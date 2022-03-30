@@ -12,6 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.ui.widgets import ItemListWidget, ItemMenuButton
+from chimerax.ui.options import Option
 from chimerax.core.triggerset import TriggerSet
 from Qt.QtCore import Signal
 
@@ -95,4 +96,28 @@ class AlignSeqMenuButton(ItemMenuButton):
     def alignment_notification(self, note_name, note_data):
         if note_name == "add or remove seqs":
             self.triggers.activate_trigger("seqs changed", note_data)
+
+class AlignSeqMenuOption(Option):
+    def __init__(self, alignment, *args, **kw):
+        self.alignment = alignment
+        super().__init__(*args, **kw)
+
+    def __del__(self):
+        self.widget.destroy()
+        super().__del__()
+
+    def set_multiple(self):
+        self.widget.setText(self.multiple_value)
+
+    def get_value(self):
+        return self.widget.value
+
+    def set_value(self, val):
+        self.widget.value = val
+
+    value = property(get_value, set_value)
+
+    def _make_widget(self, **kw):
+        self.widget = AlignSeqMenuButton(self.alignment, **kw)
+        return self.widget
 
