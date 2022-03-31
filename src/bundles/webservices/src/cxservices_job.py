@@ -120,7 +120,7 @@ class CxServicesJob(Job):
             self.status = "failed"
             self.end_time = time.time()
             raise JobLaunchError(str(e))
-        except (URLError, MaxRetryError) as e:
+        except (URLError, MaxRetryError, NewConnectionError) as e:
             self.status = "failed"
             self.end_time = time.time()
             self.thread_safe_log(
