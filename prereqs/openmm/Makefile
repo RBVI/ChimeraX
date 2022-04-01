@@ -18,12 +18,13 @@ ifeq ($(OS),Linux)
 PLATFORM = linux
 # The Linux distribution comes from Tristan Croll
 # compiled with the same compiler as ChimeraX.
+# Using CUDA 11.2
 DISTRIBUTION = openmm-7.7.0-linux-py39_cuda112_1.tar.bz2
 endif
 ifeq ($(OS),Windows)
 PLATFORM = windows
-VERSION = 7.6.0
-DISTRIBUTION = openmm-7.6.0-win-cuda11.2-py39h6dc0912_0.tar.bz2
+# Using CUDA 11.2
+DISTRIBUTION = openmm-7.7.0-win-py39h6dc0912_1.tar.bz2
 endif
 
 SOURCE = $(tmpdir)/OpenMM-$(VERSION)-$(PLATFORM)
