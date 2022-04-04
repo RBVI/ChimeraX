@@ -299,6 +299,10 @@ class AlphaFoldPAEPlot(ToolInstance):
 
         self.set_colormap(colormap)
 
+        if pae.structure is not None:
+            h = pae.structure.triggers.add_handler('deleted', self._structure_deleted)
+            self._structure_delete_handler = h
+
         tw.manage(placement=None)	# Start floating
 
     # ---------------------------------------------------------------------------
@@ -306,6 +310,13 @@ class AlphaFoldPAEPlot(ToolInstance):
     def closed(self):
         return self.tool_window.tool_instance is None
 
+    # ---------------------------------------------------------------------------
+    #
+    def _structure_deleted(self, *args):
+        '''Remove plot if associated structure closed.'''
+        if not self.closed():
+            self.delete()
+        
     # ---------------------------------------------------------------------------
     #
     def set_colormap(self, colormap):
@@ -662,12 +673,12 @@ def alphafold_pae(session, structure = None, file = None, uniprot_id = None,
     if file:
         pae = AlphaFoldPAE(file, structure)
         if structure:
-            structure._alphafold_pae = pae
+            structure.alphafold_pae = pae
     elif structure is None:
         from chimerax.core.errors import UserError
         raise UserError('No structure or PAE file specified.')
     else:
-        pae = getattr(structure, '_alphafold_pae', None)
+        pae = getattr(structure, 'alphafold_pae', None)
         if pae is None:
             from chimerax.core.errors import UserError
             raise UserError('No predicted aligned error (PAE) data opened for structure #%s'
