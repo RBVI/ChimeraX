@@ -9,6 +9,13 @@
 # including partial copies, of the software or any revisions
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
+from os import listdir
+from os.path import basename, dirname, isfile, isdir, join
+
+from numpy import int8, uint8, int16, uint16, float32
+from pydicom import dcmread
+
+from chimerax.geometry import cross_product, inner_product
 
 def find_dicom_series(paths, search_directories = True, search_subdirectories = True,
                       log = None, verbose = False):
@@ -42,7 +49,6 @@ def find_dicom_series(paths, search_directories = True, search_subdirectories = 
 def dicom_file_series(paths, log = None, verbose = False):
     """Group DICOM files into series"""
     series = {}
-    from pydicom import dcmread
     for path in paths:
         d = dcmread(path)
         if hasattr(d, 'SeriesInstanceUID'):
@@ -256,7 +262,6 @@ class Series:
             orient = files[0]._orientation
             if orient is not None:
                 x_axis, y_axis = orient[0:3], orient[3:6]
-                from chimerax.geometry import cross_product
                 z_axis = cross_product(x_axis, y_axis)
                 return (x_axis, y_axis, z_axis)
         return ((1,0,0),(0,1,0),(0,0,1))
@@ -266,7 +271,6 @@ class Series:
 
     def _sort_by_z_position(self, series_files):
         z_axis = self.plane_normal()
-        from chimerax.geometry import inner_product
         series_files.sort(key = lambda sf: (sf._time, (0 if sf._position is None else inner_product(sf._position, z_axis))))
 
     def pixel_spacing(self):
@@ -310,7 +314,6 @@ class Series:
                 else:
                     # TODO: Need to reverse order if z decrease as frame number increases
                     z_axis = self.plane_normal()
-                    from chimerax.geometry import inner_product
                     z = [inner_product(fp, z_axis) for fp in fpos]
                     dz = self._spacing(z)
                 if dz is not None and dz < 0:
@@ -321,7 +324,6 @@ class Series:
             else:
                 nz = self.grid_size()[2]  # For time series just look at first time point.
                 z_axis = self.plane_normal()
-                from chimerax.geometry import inner_product
                 z = [inner_product(f._position, z_axis) for f in files[:nz]]
                 dz = self._spacing(z)
             self._z_spacing = dz
@@ -333,7 +335,6 @@ class Series:
         tolerance = 1e-3 * max(abs(dzmax), abs(dzmin))
         if dzmax-dzmin > tolerance:
             if self._log:
-                from os.path import basename, dirname
                 msg = ('Plane z spacings are unequal, min = %.6g, max = %.6g, using max.\n' % (dzmin, dzmax) +
                        'Perpendicular axis (%.3f, %.3f, %.3f)\n' % tuple(self.plane_normal()) +
                        'Directory %s\n' % dirname(self._file_info[0].path) +
@@ -436,8 +437,6 @@ def files_by_directory(paths, search_directories = True, search_subdirectories =
     """Find all dicom files (suffix .dcm) in directories and subdirectories
     and group them by directory"""
     dfiles = {} if _dfiles is None else _dfiles
-    from os.path import isfile, isdir, dirname, join
-    from os import listdir
     for p in paths:
         if isfile(p) and p.endswith(suffix):
             d = dirname(p)
@@ -523,7 +522,6 @@ class DicomData:
         if self._reverse_planes:
             klast = self.data_size[2] - 1
             k = klast - k
-        from pydicom import dcmread
         if self.files_are_3d:
             d = dcmread(self.paths[0])
             data = d.pixel_array[k]
@@ -542,8 +540,7 @@ class DicomData:
         return a
 
     def read_frames(self, time = None, channel = None):
-        import pydicom
-        d = pydicom.dcmread(self.paths[0])
+        d = dcmread(self.paths[0])
         data = d.pixel_array
         if channel is not None:
             data = data[:, :, :, channel]
@@ -552,7 +549,6 @@ class DicomData:
 
 def numpy_value_type(bits_allocated, pixel_representation, rescale_slope, rescale_intercept):
     # PixelRepresentation 0 = unsigned, 1 = signed
-    from numpy import int8, uint8, int16, uint16, float32
     if (
         rescale_slope != 1 or
         int(rescale_intercept) != rescale_intercept or
