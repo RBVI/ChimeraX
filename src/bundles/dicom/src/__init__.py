@@ -14,7 +14,6 @@
 from chimerax.core.toolshed import BundleAPI
 
 class _DICOMBundle(BundleAPI):
-
     @staticmethod
     def initialize(session, bundle_info):
         """Register file formats, commands, and database fetch."""
@@ -29,5 +28,6 @@ class _DICOMBundle(BundleAPI):
                 from . import dicom
                 return dicom.open_dicom(session, data)
         return DicomOpenerInfo()
+
 
 bundle_api = _DICOMBundle()
