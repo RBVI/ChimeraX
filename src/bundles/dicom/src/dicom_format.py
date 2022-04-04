@@ -83,6 +83,7 @@ class Series:
                         'RescaleIntercept', 'RescaleSlope', 'Rows',
                         'SamplesPerPixel', 'SeriesDescription', 'SeriesInstanceUID', 'SeriesNumber',
                         'SOPClassUID', 'StudyDate']
+
     def __init__(self, log = None):
         self.paths = []
         self.attributes = {}
@@ -139,7 +140,7 @@ class Series:
     @property
     def sort_key(self):
         attrs = self.attributes
-        return (attrs.get('PatientID',''), attrs.get('StudyDate',''), self.name, self.paths[0])
+        return (attrs.get('PatientID', ''), attrs.get('StudyDate', ''), self.name, self.paths[0])
 
     @property
     def plane_uids(self):
@@ -164,15 +165,15 @@ class Series:
 
     @property
     def multiframe(self):
-       mf = self._multiframe
-       if mf is None:
-           mf = False
-           for fi in self._file_info:
-               if fi.multiframe:
-                   self._multiframe = mf = True
-                   break
-           self._multiframe = mf
-       return mf
+        mf = self._multiframe
+        if mf is None:
+            mf = False
+            for fi in self._file_info:
+                if fi.multiframe:
+                    self._multiframe = mf = True
+                    break
+            self._multiframe = mf
+        return mf
 
     def order_slices(self):
         paths = self.paths
@@ -193,7 +194,7 @@ class Series:
 
     def _validate_time_series(self):
         if self.num_times == 1:
-          return
+            return
 
         files = self._file_info
         for fi in files:
@@ -208,11 +209,11 @@ class Series:
                 self._log.warning(msg)
             self._num_times = len(tset)
 
-        tcount = {t:0 for t in tset}
+        tcount = {t: 0 for t in tset}
         for fi in files:
             tcount[fi._time] += 1
         nz = len(files) / self.num_times
-        for t,c in tcount.items():
+        for t, c in tcount.items():
             if c != nz:
                 raise ValueError('DICOM time series time %d has %d images, expected %d'
                                  % (t, c, nz))
@@ -227,7 +228,7 @@ class Series:
             else:
                 maxf = max(fi._num_frames for fi in files)
                 raise ValueError('DICOM multiple paths (%d), with multiple frames (%d) not supported, %s'
-                                 % (npaths, maxf, files[0].path))
+                                 % (npaths, maxf, files[0].path)) # noqa npaths not defined
         else:
             zsize = len(files) // self.num_times
 
@@ -245,13 +246,13 @@ class Series:
         if self.multiframe and self._reverse_frames:
             zoffset = files[0]._num_frames * -self.z_plane_spacing()
             zaxis = self.plane_normal()
-            pos = tuple(a+zoffset*b for a,b in zip(pos, zaxis))
+            pos = tuple(a + zoffset * b for a, b in zip(pos, zaxis))
 
         return pos
 
     def rotation(self):
-        (x0,y0,z0),(x1,y1,z1),(x2,y2,z2) = self._patient_axes()
-        return ((x0,x1,x2),(y0,y1,y2),(z0,z1,z2))
+        (x0, y0, z0), (x1, y1, z1), (x2, y2, z2) = self._patient_axes()
+        return ((x0, x1, x2), (y0, y1, y2), (z0, z1, z2))
 
     def _patient_axes(self):
         files = self._file_info
@@ -264,7 +265,7 @@ class Series:
                 x_axis, y_axis = orient[0:3], orient[3:6]
                 z_axis = cross_product(x_axis, y_axis)
                 return (x_axis, y_axis, z_axis)
-        return ((1,0,0),(0,1,0),(0,0,1))
+        return ((1, 0, 0), (0, 1, 0), (0, 0, 1))
 
     def plane_normal(self):
         return self._patient_axes()[2]
@@ -296,7 +297,7 @@ class Series:
                 self._log.warning('Error. Image planes are at same z-position.  Setting spacing to 1.')
             zs = 1
 
-        return (xs,ys,zs)
+        return (xs, ys, zs)
 
     def z_plane_spacing(self):
         dz = self._z_spacing
@@ -330,10 +331,10 @@ class Series:
         return dz
 
     def _spacing(self, z):
-        spacings = [(z1-z0) for z0,z1 in zip(z[:-1],z[1:])]
+        spacings = [(z1 - z0) for z0, z1 in zip(z[:-1], z[1:])]
         dzmin, dzmax = min(spacings), max(spacings)
         tolerance = 1e-3 * max(abs(dzmax), abs(dzmin))
-        if dzmax-dzmin > tolerance:
+        if dzmax - dzmin > tolerance:
             if self._log:
                 msg = ('Plane z spacings are unequal, min = %.6g, max = %.6g, using max.\n' % (dzmin, dzmax) +
                        'Perpendicular axis (%.3f, %.3f, %.3f)\n' % tuple(self.plane_normal()) +
