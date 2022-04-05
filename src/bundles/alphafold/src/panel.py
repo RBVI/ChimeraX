@@ -54,16 +54,14 @@ class AlphaFoldGUI(ToolInstance):
         from Qt.QtWidgets import QTextEdit
         self._sequence_entry = se = QTextEdit(parent)
         layout.addWidget(se)
-
-        # Prokaryote option for prediction
-        from chimerax.ui.widgets import EntriesRow
-        pr = EntriesRow(parent, False, 'Is prokaryote? Used for predicting complexes.')
-        self._prokaryote = pr.values[0]
-        layout.addWidget(pr.frame)
         
         # Search, Fetch, and Predict buttons
         bf = self._create_action_buttons(parent)
         layout.addWidget(bf)
+
+        # Options panel
+        options = self._create_options_gui(parent)
+        layout.addWidget(options)
 
         layout.addStretch(1)    # Extra space at end
 
@@ -173,10 +171,11 @@ class AlphaFoldGUI(ToolInstance):
                        [('Fetch', self._fetch),
                         ('Search', self._search),
                         ('Predict', self._predict),
+                        ('Options', self._show_or_hide_options),
                         ('Coloring', self._coloring),
                         ('Error plot', self._error_plot),
                         ('Help', self._show_help)],
-                       spacing = 10)
+                       spacing = 5)
         return f
 
     # ---------------------------------------------------------------------------
@@ -192,7 +191,7 @@ class AlphaFoldGUI(ToolInstance):
     def _fetch(self):
         self._run_command('match')
     def _predict(self):
-        options = 'prokaryote true' if self._prokaryote.enabled else ''
+        options = 'minimize false' if not self._energy_minimize.enabled else ''
         self._run_command('predict', options = options)
     def _coloring(self):
         from . import colorgui
@@ -200,6 +199,24 @@ class AlphaFoldGUI(ToolInstance):
     def _error_plot(self):
         from . import pae
         pae.show_alphafold_error_plot_panel(self.session)
+
+    # ---------------------------------------------------------------------------
+    #
+    def _create_options_gui(self, parent):
+        from chimerax.ui.widgets import CollapsiblePanel
+        self._options_panel = p = CollapsiblePanel(parent, title = None)
+        f = p.content_area
+
+        # Energy minimization option for prediction
+        from chimerax.ui.widgets import EntriesRow
+        em = EntriesRow(f, True, 'Energy-minimize predicted structures')
+        self._energy_minimize = em.values[0]
+        return p
+
+    # ---------------------------------------------------------------------------
+    #
+    def _show_or_hide_options(self):
+        self._options_panel.toggle_panel_display()
         
     # ---------------------------------------------------------------------------
     #
