@@ -1202,12 +1202,16 @@ class StructureSeq(Sequence):
         }
         return data
 
-    def _cpp_demotion(self):
+    def _cpp_seq_demotion(self):
         # called from C++ layer when this should be demoted to Sequence
         numbering_start = self.numbering_start
         self._fire_trigger('delete', self)
         self.__class__ = Sequence
         self.numbering_start = numbering_start
+
+    def _cpp_structure_seq_demotion(self):
+        # called from C++ layer when a Chain should be demoted to a StructureSeq
+        self.__class__ = StructureSeq
 
     def _cpp_modified(self):
         # called from C++ layer when the residue list changes

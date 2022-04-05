@@ -25,6 +25,7 @@ namespace atomstruct {
 Chain::Chain(const ChainID& chain_id, Structure* s, PolymerType pt): StructureSeq(chain_id, s, pt)
 {
     _structure->change_tracker()->add_created(_structure, this);
+    _is_chain = true;
 }
 
 Chain::~Chain()
