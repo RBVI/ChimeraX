@@ -2,7 +2,12 @@
 # Scan subdirectories finding all *.dcm files and compile information about each series
 # such as the number of images, rows, columns, modality, bits, z-spacing, date, image type...
 #
+import pydicom
 import sys
+
+from pydicom.multival import MultiValue
+from os import listdir
+from os.path import dirname, isdir, isfile, join
 
 dicom_attrs = ['AccessionNumber', 'BitsAllocated', 'BitsStored', 'Columns', 'HighBit', 'ImageOrientationPatient', 'ImagePositionPatient', 'ImageType', 'InstanceCreationDate', 'InstanceCreationTime', 'InstanceNumber', 'Modality', 'PatientBirthDate', 'PatientID', 'PatientName', 'PatientSex', 'PhotometricInterpretation', 'PixelRepresentation', 'PixelSpacing', 'ReferringPhysicianName', 'RescaleIntercept', 'RescaleSlope', 'RescaleType', 'Rows', 'SOPClassUID', 'SOPInstanceUID', 'SamplesPerPixel', 'SeriesDate', 'SeriesDescription', 'SeriesInstanceUID', 'SeriesNumber', 'SeriesTime', 'StudyDate', 'StudyID', 'StudyInstanceUID', 'StudyTime']
 
@@ -13,13 +18,10 @@ def find_dicom_attributes(path, file_attributes = None):
     else:
         return_attributes = False
 
-    from os.path import isdir, isfile, join
-    from os import listdir
     if isdir(path):
         for p in listdir(path):
             find_dicom_attributes(join(path, p), file_attributes)
     elif isfile(path) and path.endswith('.dcm'):
-        import pydicom
         d = pydicom.dcmread(path)
         attr_values = {a: getattr(d, a) for a in dicom_attrs if hasattr(d, a)}
         attr_values['path'] = path
@@ -30,8 +32,6 @@ def find_dicom_attributes(path, file_attributes = None):
         return series_attributes
 
 def collate_series_files(file_attributes):
-    from pydicom.multival import MultiValue
-    from os.path import dirname
     aggregate_attrs = ['BitsStored', 'Columns', 'ImagePositionPatient',
                        'ImageType', 'Modality', 'PixelSpacing', 'PhotometricInterpretation', 'Rows',
                        'SamplesPerPixel', 'SeriesDescription', 'SeriesInstanceUID',
