@@ -48,6 +48,7 @@ a specified sequence or sequence pattern, use
 <a href="../menu.html#selectseq"><b>Select... Sequence</b></a> in the menu
 or the <a href="../commands/select.html#new"><b>select</b></a> command.
 See also:
+<a href="../commands/sequence.html"><b>sequence</b></a>,
 <a href="../commands/modeller.html"><b>modeller</b></a>,
 <a href="https://www.rbvi.ucsf.edu/chimerax/data/conservation-coloring/conservation-coloring.html"
 target="_blank">Coloring by Sequence Conservation</a>
@@ -163,6 +164,14 @@ with any sequence in the alignment, for use as a template in modeling)
   <li><b>Blast Protein...</b> 
 run <a href="blastprotein.html"><b>Blast Protein</b></a>
 with default parameters on the specified sequence
+<li><b>Percent Identity...</b> 
+calculate pairwise percent identities,
+the number of identical columns between two sequences as a percentage 
+of the specified denominator: length of the shorter sequence
+(default), or the length of the longer sequence, or the number of columns 
+where neither sequence has a gap.
+Results are given in the <a href="log.html"><b>Log</b></a>. See also:
+<a href="../commands/sequence.html#identity"><b>sequence identity</b></a>
   </ul>
 <li><b>Sequence Features...</b> for sequences
 <a href="../commands/open.html#fetch">fetched</a> from
@@ -662,5 +671,5 @@ style="display:inline-block; vertical-align:middle"><tr>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-March 2022</address>
+April 2022</address>
 </body></html>
