@@ -67,7 +67,7 @@ sync-venv:
 ifndef VIRTUAL_ENV
 	@echo "No virtual env to install to! Doing nothing."
 else
-	pip install --force-reinstall $(build_prefix)/sync/binary $(build_prefix)/sync/python-only
+	pip install --force-reinstall $(build_prefix)/sync/binary/* $(build_prefix)/sync/python-only/*
 endif
 
 ifdef WIN32
