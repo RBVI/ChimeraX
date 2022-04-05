@@ -199,6 +199,8 @@ Mac ARM distribution is described in ChimeraX ticket
 
 Known Issues
 ------------
-- On macOS Monterey with anaconda first in the PATH the anaconda lxml library may halt
-  the build when trying to use the missing symbol _xmlFree. A workaround is to temporarily
-  remove anaconda from PATH. 
+- On macOS Monterey with Anaconda bin directory /opt/anaconda3/bin in the PATH the
+  the ChimeraX lxml compilation can find the incorrect Anaconda lxml header files
+  resulting in broken lxml the missing symbol _xmlFree. Lxml is used by bundle builder
+  and will fail building ChimeraX bundles.  A workaround is to temporarily
+  remove Anaconda from PATH. 

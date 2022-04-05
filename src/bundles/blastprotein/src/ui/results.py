@@ -30,8 +30,8 @@ from chimerax.ui.gui import MainToolWindow
 from ..data_model import AvailableDBsDict, get_database, Match
 from ..utils import BlastParams, SeqId
 from .widgets import (
-    LabelledProgressBar, BlastResultsTable,
-    BlastResultsRow, BlastProteinResultsSettings
+    BlastResultsTable, BlastResultsRow
+    , BlastProteinResultsSettings
 )
 
 _settings = None
@@ -216,12 +216,9 @@ class BlastProteinResults(ToolInstance):
         self.table.get_selection.connect(self.load)
         self.tool_window.fill_context_menu = self.fill_context_menu
 
-        self.progress_bar = LabelledProgressBar(parent)
-
         self.main_layout.addWidget(self.param_report)
         self.main_layout.addWidget(self.table)
         self.main_layout.addWidget(self.control_widget)
-        self.main_layout.addWidget(self.progress_bar)
 
         if self._from_restore:
             self._on_report_hits_signal(self._hits)
@@ -244,7 +241,6 @@ class BlastProteinResults(ToolInstance):
 
         self.tool_window.ui_area.closeEvent = self.closeEvent
         self.tool_window.ui_area.setLayout(self.main_layout)
-        self.tool_window.manage('side')
 
     def closeEvent(self, event):
         if self.worker is not None:
@@ -266,101 +262,66 @@ class BlastProteinResults(ToolInstance):
     def connect_worker_callbacks(self, worker):
         worker.job_failed.connect(self.job_failed)
         worker.parse_failed.connect(self.parse_failed)
-        worker.waiting_for_info.connect(self._update_progress_bar_text)
         worker.parsing_results.connect(self.parsing_results)
-        worker.set_progress_maxval.connect(self._set_progress_bar_maxval)
-        worker.processed_result.connect(self._increment_progress_bar_results)
-        worker.finished_processing_hits.connect(self._on_finished_processing_hits)
         worker.report_hits.connect(self._on_report_hits_signal)
         worker.report_sequences.connect(self._on_report_sequences_signal)
 
     def job_failed(self, error):
         self.session.logger.warning("BlastProtein failed: %s" % error)
-        self._unload_progress_bar()
 
     def parse_failed(self, error):
         self.session.logger.warning("Parsing BlastProtein results failed: %s" % error)
-        self._unload_progress_bar()
-
-    def _update_progress_bar_text(self, text):
-        self.progress_bar.text = text
 
     def parsing_results(self):
         self.session.logger.status("Parsing BLAST results.")
-
-    def _increment_progress_bar_results(self):
-        self._increment_progress_bar("Results")
-
-    def _increment_progress_bar(self, itype):
-        self._progress_bar_step = self.progress_bar.value + 1
-        self.progress_bar.setValue(self._progress_bar_step)
-        self._set_progress_bar_progress_text(itype, self._progress_bar_step)
-
-    def _set_progress_bar_maxval(self, val):
-        # We subtract one to account for the fact that the list contains the query
-        # in position 0.
-        self.progress_bar.setMaximum(val - 1)
-        self.places = len(str(val))
-        self.max_val = val - 1
-        self._set_progress_bar_progress_text("Results", 0)
-
-    def _on_finished_processing_hits(self):
-        self.progress_bar.setValue(0)
-        self._set_progress_bar_progress_text("Hits", 0)
-
-    def _set_progress_bar_progress_text(self, itype, curr_value):
-        prog_text = '{0:>{width}}/{1:>{width}}'.format(curr_value, self.max_val, width=self.places)
-        self._update_progress_bar_text(" ".join(["Processing", itype, prog_text]))
-
-    def _unload_progress_bar(self):
-        self.main_layout.removeWidget(self.progress_bar)
-        self.progress_bar.deleteLater()
-        self.progress_bar = None
 
     def _on_report_sequences_signal(self, sequences):
         self._sequences = sequences
 
     def _on_report_hits_signal(self, items):
-        try:
-            items = sorted(items, key = lambda i: i['e-value'])
-            for index, item in enumerate(items):
-                item['hit_#'] = index + 1
-            self._hits = items
-            db = AvailableDBsDict[self.params.database]
+        if items:
+            self.tool_window.manage('side')
             try:
-                # Compute the set of unique column names
-                columns = set()
-                for item in items:
-                    columns.update(list(item.keys()))
-                # Sort the columns so that defaults come first
-                columns = list(filter(lambda x: x not in db.excluded_cols, columns))
-                nondefault_cols = list(filter(lambda x: x not in db.default_cols, columns))
-                columns = list(db.default_cols)
-                columns.extend(nondefault_cols)
-            except IndexError:
-                if not self._from_restore:
-                    self.session.logger.warning("BlastProtein returned no results")
-                self._unload_progress_bar()
-            else:
-                # Convert dicts to objects (they're hashable)
-                self.table.data = [BlastResultsRow(item) for item in items]
-                for string in columns:
-                    title = self._format_column_title(string)
-                    self.table.add_column(title, data_fetch=lambda x, i=string: x[i])
-                self.table.sortByColumn(columns.index('e-value'), Qt.AscendingOrder)
-                if self._from_restore:
-                    self.table.launch(session_info=self._table_session_data, suppress_resize=True)
+                items = sorted(items, key = lambda i: i['e-value'])
+                for index, item in enumerate(items):
+                    item['hit_#'] = index + 1
+                self._hits = items
+                db = AvailableDBsDict[self.params.database]
+                try:
+                    # Compute the set of unique column names
+                    columns = set()
+                    for item in items:
+                        columns.update(list(item.keys()))
+                    # Sort the columns so that defaults come first
+                    columns = list(filter(lambda x: x not in db.excluded_cols, columns))
+                    nondefault_cols = list(filter(lambda x: x not in db.default_cols, columns))
+                    columns = list(db.default_cols)
+                    columns.extend(nondefault_cols)
+                except IndexError:
+                    if not self._from_restore:
+                        self.session.logger.warning("BlastProtein returned no results")
                 else:
-                    self.table.launch(suppress_resize=True)
-                self.table.resizeColumns(max_size = 100) # pixels
-                self.control_widget.setVisible(True)
-                self._unload_progress_bar()
-        except RuntimeError:
-            # The user closed the window before the results came back.
-            # TODO: Remove the unnecessarly layer of abstraction in ui/src/gui.py that makes
-            # QWidget a member variable of a tool rather than the tool itself, so that
-            # QWidget.closeEvent() can be used to do this cleanly.
-            pass
+                    # Convert dicts to objects (they're hashable)
+                    self.table.data = [BlastResultsRow(item) for item in items]
+                    for string in columns:
+                        title = self._format_column_title(string)
+                        self.table.add_column(title, data_fetch=lambda x, i=string: x[i])
+                    self.table.sortByColumn(columns.index('e-value'), Qt.AscendingOrder)
+                    if self._from_restore:
+                        self.table.launch(session_info=self._table_session_data, suppress_resize=True)
+                    else:
+                        self.table.launch(suppress_resize=True)
+                    self.table.resizeColumns(max_size = 100) # pixels
+                    self.control_widget.setVisible(True)
+            except RuntimeError:
+                # The user closed the window before the results came back.
+                # TODO: Investigate the layer of abstraction in ui/src/gui.py that makes
+                # QWidget a member variable of a tool rather than the tool itself, so that
+                # QWidget.closeEvent() can be used to do this cleanly.
+                pass
+        else:
+            self.session.logger.warning("BLAST search returned no results.")
+            self.tool_window.destroy()
 
     #
     # Code for loading (and spatially matching) a match entry
@@ -444,12 +405,7 @@ class BlastProteinResults(ToolInstance):
 class BlastResultsWorker(QThread):
     job_failed = Signal(str)
     parse_failed = Signal(str)
-    waiting_for_info = Signal(str)
     parsing_results = Signal()
-
-    set_progress_maxval = Signal(object)
-    processed_result = Signal()
-    finished_processing_hits = Signal()
 
     report_hits = Signal(list)
     report_sequences = Signal(dict)
@@ -466,7 +422,6 @@ class BlastResultsWorker(QThread):
     @Slot()
     def run(self):
         if self.job:
-            self.waiting_for_info.emit("Downloading BLAST Results")
             if self.job.status == 'failed':
                 self.job_failed.emit('failed')
                 self.exit(1)
@@ -503,7 +458,6 @@ class BlastResultsWorker(QThread):
             self._sequences[0] = (name, query_match)
             match_chains = {}
             sequence_only_hits = {}
-            self.set_progress_maxval.emit(len(blast_results.parser.matches))
             for n, m in enumerate(blast_results.parser.matches[1:]):
                 sid = n + 1
                 hit = {"id": sid, "e-value": m.evalue, "score": m.score,
@@ -515,9 +469,6 @@ class BlastResultsWorker(QThread):
                     hit["name"] = m.name
                     sequence_only_hits[m.name] = hit
                 self._sequences[sid] = (hit["name"], m)
-                self.processed_result.emit()
-            self.finished_processing_hits.emit()
-            self.waiting_for_info.emit("Downloading Hit Info")
             # TODO: Make what this function does more explicit. It works on the
             # hits that are in match_chain's hit dictionary, but that's not
             # immediately clear.

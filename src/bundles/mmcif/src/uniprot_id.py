@@ -28,7 +28,8 @@ def uniprot_ids(structure):
 
     chains = database_ref_seq.fields(('ref_id', 'pdbx_strand_id',
                                       'db_align_beg', 'db_align_end',
-                                      'pdbx_auth_seq_align_beg', 'pdbx_auth_seq_align_end'))
+                                      'pdbx_auth_seq_align_beg', 'pdbx_auth_seq_align_end'),
+                                     allow_missing_fields = True)
     useqs = []
     for ref_id, chain_id, db_seq_start, db_seq_end, chain_seq_start, chain_seq_end in chains:
         if ref_id not in db_codes:
