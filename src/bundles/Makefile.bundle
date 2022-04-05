@@ -8,6 +8,7 @@
 # 	clean: remove files used in building wheel
 
 TOP ?= ../../..
+-include $(TOP)/.makerc
 CHIMERAX_APP = $(wildcard $(TOP)/ChimeraX*.app)
 SYNC_DIR = $(wildcard $(TOP)/build/sync)
 
@@ -53,21 +54,8 @@ wheel:	bundle_info.xml $$(PYSRCS)
 # The space means install and app-install are the same
 install app-install:	bundle_info.xml $$(PYSRCS)
 	$(RUN) "devel install . user false exit true $(DEBUG_ARG) $(INSTALL_ARGS)"
-ifdef INSTALL_TO_VENV
-ifndef VIRTUAL_ENV
-	@echo "No virtual env to install to! Skipping venv install."
-	@echo "This warning does not indicate success or failure of bundle installs to ChimeraX's internal environment."
-else
-ifdef IGNORE_DEPS
-	pip install $(WHEEL) --no-deps
-else
-	pip install $(WHEEL)
-endif # IGNORE_DEPS
-endif # VIRTUAL_ENV
-endif # INSTALL_TO_VENV
 
-
-pure_venv_install:
+venv-install:
 ifndef VIRTUAL_ENV
 	@echo "No virtual env to install to! Skipping venv install."
 else
