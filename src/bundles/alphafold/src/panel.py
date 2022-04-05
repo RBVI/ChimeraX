@@ -209,7 +209,7 @@ class AlphaFoldGUI(ToolInstance):
 
         # Energy minimization option for prediction
         from chimerax.ui.widgets import EntriesRow
-        em = EntriesRow(f, True, 'Energy minimize predicted structures.')
+        em = EntriesRow(f, True, 'Energy-minimize predicted structures')
         self._energy_minimize = em.values[0]
         return p
 
