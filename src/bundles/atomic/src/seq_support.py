@@ -121,7 +121,7 @@ from enum import Enum
 class IdentityDenominator(Enum):
     SHORTER = "shorter"
     LONGER = "longer"
-    IN_COMMON = "in-common"
+    IN_COMMON = "nongap"
 IdentityDenominator.SHORTER.description = "shorter sequence length"
 IdentityDenominator.LONGER.description = "longer sequence length"
 IdentityDenominator.IN_COMMON.description = "non-gap columns in common"

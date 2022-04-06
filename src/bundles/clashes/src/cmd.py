@@ -232,7 +232,12 @@ def _file_output(file_name, info, naming_style):
                         clashes, output_grouping, test_type, res_separation = info
     from chimerax.io import open_output
     out_file = open_output(file_name, 'utf-8')
-    if test_type != "distances":
+    if test_type == "distances":
+        overlap_title = ""
+        data_fmt = "%*s  %*s    %5.3f"
+    else:
+        overlap_title = "  overlap"
+        data_fmt = "%*s  %*s   %5.3f    %5.3f"
         print("Allowed overlap: %g" % overlap_cutoff, file=out_file)
         print("H-bond overlap reduction: %g" % hbond_allowance, file=out_file)
     print("Ignore %s between atoms separated by %d bonds or less" % (test_type, bond_separation),
@@ -262,11 +267,14 @@ def _file_output(file_name, info, naming_style):
     field_width1 = max([len(l1) for v, l1, l2, d in data] + [5])
     field_width2 = max([len(l2) for v, l1, l2, d in data] + [5])
     #print("%*s  %*s  overlap  distance" % (0-field_width1, "atom1", 0-field_width2, "atom2"),
-    print(f"{'atom1':^{field_width1}}  {'atom2':^{field_width2}}  overlap  distance",
+    print(f"{'atom1':^{field_width1}}  {'atom2':^{field_width2}}{overlap_title}  distance",
         file=out_file)
     for v, l1, l2, d in data:
-        print(f"%*s  %*s   %5.3f    %5.3f" % (0-field_width1, l1, 0-field_width2, l2, v, d),
-            file=out_file)
+        if overlap_title:
+            data = (0-field_width1, l1, 0-field_width2, l2, v, d)
+        else:
+            data = (0-field_width1, l1, 0-field_width2, l2, d)
+        print(data_fmt % data, file=out_file)
     if file_name != out_file:
         # only close file if we opened it...
         out_file.close()
