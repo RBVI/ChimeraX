@@ -158,19 +158,13 @@ Prediction may only be feasible for smaller complexes
 (<a href="#caveats">details...</a>).
 </p>
 <ul>
-<li>
-<a name="prokaryote"></a>
-<b>Is prokaryote? Used for predicting complexes.</b>
+<!--
 When <a href="#alphafold-multimer">AlphaFold-Multimer</a> is predicting a
 complex and finds multiple similar sequences from the same organism, it
 needs to decide which sequences are orthologous to which chain of the target.
-Since interacting genes tend to be colocalized into operons in prokaryotes, 
-this option uses smallest genomic distance (approximated by the lexicographic
-difference between UniProt identifiers) to identify interacting pairs
-of sequences within species.
-When this option is not used, sequences from the same organism
-are instead paired in order of their rank similarity to the target sequences.
-<br><br>
+Sequences from the same organism are paired in order of their rank similarity 
+to the target sequences.
+-->
 <li>
 <a name="match"></a>
 <b>Fetch</b> gets the most sequence-similar model available from the
@@ -262,6 +256,7 @@ to retrieve the model.
 <a name="predict"></a>
 <b>Predict</b>
 runs an <a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold</a>
+version 2.2.0
 calculation using <a href="https://colab.research.google.com/signup" 
 target="_blank">Google Colab</a>, which is provided under the
 <a href="https://www.apache.org/licenses/LICENSE-2.0" target="_blank">Apache
@@ -274,6 +269,17 @@ a browser. Once that is done, the sign-in may be remembered depending
 on the user's browser settings; it is not kept in the 
 <a href="../preferences.html">ChimeraX preferences</a>.
 </p><p>
+<a name="options"></a>
+Clicking <b>Options</b> shows/hides an additional option for <b>Predict</b>:
+</p>
+<ul>
+<a name="minimize"></a>
+<li><b>Energy-minimize predicted structures</b>
+&ndash; when running a new prediction, whether to minimize the result;
+turning this off allows for faster job completion and/or
+avoidance of failures during minimization.
+</ul>
+<p>
 A single calculation may take hours to complete
 (see the <a href="#caveats">caveats</a> below).
 The free version of Colab
@@ -312,7 +318,8 @@ target="_blank">AlphaFold Database</a> (<i>e.g.</i>, with
 target="_blank">performance statistics</a>).
 The process includes installing various software packages on a virtual machine,
 searching sequence databases, generating a multiple sequence alignment,
-predicting atomic coordinates, and energy-minimizing the best structure.
+predicting atomic coordinates, and by <a href="#minimize">default</a>,
+energy-minimizing the best structure.
 Predicting a multimer (complex) structure may take longer than predicting
 the structure of a monomer with the same total number of residues.
 Those who want to run longer and/or more frequent calculations
@@ -585,5 +592,5 @@ with <b>pae true</b>.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-March 2022</address>
+April 2022</address>
 </body></html>

@@ -11,9 +11,11 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 from chimerax.map_data import GridData
+from chimerax.map_data.readarray import allocate_array
+
+from .dicom_format import DicomData, find_dicom_series
 
 def dicom_grids(paths, log = None, verbose = False):
-    from .dicom_format import find_dicom_series
     series = find_dicom_series(paths, log = log, verbose = verbose)
     grids = dicom_grids_from_series(series)
     return grids
@@ -22,7 +24,6 @@ def dicom_grids_from_series(series):
     grids = []
     derived = []	# For grouping derived series with original series
     sgrids = {}
-    from .dicom_format import DicomData
     for s in series:
         if not s.has_image_data:
             continue
@@ -122,7 +123,6 @@ class DicomGrid(GridData):
     # In a 512 x 512 x 235 test with 3d dicom segmentations this is 50x faster
     # than reading xy planes one at a time.
     def dicom_read_matrix(self, ijk_origin, ijk_size, ijk_step, progress):
-        from chimerax.map_data.readarray import allocate_array
         m = allocate_array(ijk_size, self.value_type, ijk_step, progress)
         c = self.channel if self.multichannel else None
         self.dicom_data.read_matrix(ijk_origin, ijk_size, ijk_step,
