@@ -568,7 +568,7 @@ def read_pickle_pae_matrix(path):
         return p['predicted_aligned_error']
 
     from chimerax.core.errors import UserError
-    raise UserError(f'File {path} does not contain AlphaFold predicted aligned error (PAE) data')
+    raise UserError(f'File {path} does not contain AlphaFold predicted aligned error (PAE) data. The AlphaFold "monomer" preset does not compute PAE.  Run AlphaFold with the "monomer_ptm" or "multimer" presets to get PAE values.')
 
 # -----------------------------------------------------------------------------
 #
