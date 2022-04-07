@@ -21,12 +21,13 @@ def get_tool(session, tool_name):
 
 from chimerax.core.tools import ToolInstance
 from Qt.QtWidgets import QTableWidget, QHBoxLayout, QVBoxLayout, QAbstractItemView, QWidget, QPushButton, \
-    QTabWidget, QTableWidgetItem, QFileDialog
+    QTabWidget, QTableWidgetItem, QFileDialog, QDialogButtonBox as qbbox, QLabel, QButtonGroup, QRadioButton
+from Qt.QtCore import Qt
 
 class StructMeasureTool(ToolInstance):
 
-    tab_names = ["Distances", "Angles/Torsions"]
-    help_info = ["distances", "angles"]
+    tab_names = ["Distances", "Angles/Torsions", "Axes/Planes/Centroids"]
+    help_info = ["distances", "angles", None]
 
     def __init__(self, session):
         ToolInstance.__init__(self, session, "Structure Measurements")
@@ -63,6 +64,8 @@ class StructMeasureTool(ToolInstance):
             self._fill_distance_tab(tab_area)
         elif tab_name == "Angles/Torsions":
             self._fill_angle_tab(tab_area)
+        elif tab_name == "Axes/Planes/Centroids":
+            self._fill_axis_tab(tab_area)
         else:
             raise AssertionError("Don't know how to create structure-measurement tab '%s'" % tab_name)
         self.tab_widget.addTab(tab_area, tab_name)
@@ -188,6 +191,72 @@ class StructMeasureTool(ToolInstance):
         from chimerax.atomic import get_triggers
         self.handlers.append(get_triggers().add_handler('changes', self. _angle_changes_handler))
 
+    def _fill_axis_tab(self, tab_area):
+        layout = QVBoxLayout()
+        layout.setContentsMargins(0,0,0,0)
+        layout.setSpacing(0)
+        tab_area.setLayout(layout)
+
+        button_layout = QHBoxLayout()
+        layout.addLayout(button_layout)
+        axis_button = QPushButton("Define axes...")
+        axis_button.clicked.connect(lambda *args, cb=self._show_define_axis_dialog: cb())
+        button_layout.addWidget(axis_button, alignment=Qt.AlignHCenter)
+        plane_button = QPushButton("Define planes...")
+        plane_button.clicked.connect(lambda *args, cb=self._show_define_plane_dialog: cb())
+        button_layout.addWidget(plane_button, alignment=Qt.AlignHCenter)
+        centroid_button = QPushButton("Define centroids...")
+        centroid_button.clicked.connect(lambda *args, cb=self._show_define_centroid_dialog: cb())
+        button_layout.addWidget(centroid_button, alignment=Qt.AlignHCenter)
+        self._define_axis_dialog = self._define_plane_dialog = self._define_centroid_dialog = None
+
+        """
+        self.angle_table = QTableWidget()
+        self.angle_table.setColumnCount(5)
+        self.angle_table.keyPressEvent = self.session.ui.forward_keystroke
+        self.angle_table.setHorizontalHeaderLabels(["Atom 1", "Atom 2", "Atom 3", "Atom 4", "Angle/Torsion"])
+        self.angle_table.setSelectionBehavior(QAbstractItemView.SelectRows)
+        self.angle_table.setSelectionMode(QAbstractItemView.ExtendedSelection)
+        self.angle_table.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        table_layout = QVBoxLayout()
+        table_layout.setContentsMargins(0,0,0,0)
+        table_layout.setSpacing(0)
+        table_layout.addWidget(self.angle_table)
+        table_layout.setStretchFactor(self.angle_table, 1)
+        layout.addLayout(table_layout)
+        layout.setStretchFactor(table_layout, 1)
+        button_layout = QHBoxLayout()
+        create_button = QPushButton("Create")
+        create_button.clicked.connect(self._create_angle)
+        create_button.setToolTip("Show angle/torsion value between three/four (currently selected) atoms")
+        button_layout.addWidget(create_button)
+        delete_button = QPushButton("Delete")
+        delete_button.clicked.connect(self._delete_angle)
+        delete_button.setToolTip("Delete angles/torsions selected in table (or all if none selected)")
+        button_layout.addWidget(delete_button)
+        save_info_button = QPushButton("Save Info...")
+        save_info_button.clicked.connect(self._save_angle_info)
+        save_info_button.setToolTip("Save angle/torsion information into a file")
+        button_layout.addWidget(save_info_button)
+        table_layout.addLayout(button_layout)
+        self._angle_info = []
+
+        from .settings import get_settings
+        settings = get_settings(self.session, "angles")
+        from chimerax.ui.options import SettingsPanel, IntOption
+        panel = SettingsPanel()
+        for opt_name, attr_name, opt_class, opt_class_kw in [
+                ("Decimal places", 'decimal_places', IntOption, {'min': 0})]:
+            panel.add_option(opt_class(opt_name, None,
+                lambda opt, settings=settings: self._set_angle_decimal_places(settings.decimal_places),
+                attr_name=attr_name, settings=settings, auto_set_attr=True))
+        layout.addWidget(panel)
+        self._set_angle_decimal_places(settings.decimal_places)
+
+        from chimerax.atomic import get_triggers
+        self.handlers.append(get_triggers().add_handler('changes', self. _angle_changes_handler))
+        """
+
     def _fill_dist_table(self, *args):
         dist_grp = self.session.pb_manager.get_group("distances", create=False)
         if not dist_grp:
@@ -309,6 +378,17 @@ class StructMeasureTool(ToolInstance):
         else:
             self.help = None
 
+    def _show_define_axis_dialog(self):
+        if not self._define_axis_dialog:
+            self._define_axis_dialog = DefineAxisDialog(self)
+        self._define_axis_dialog.tool_window.shown = True
+
+    def _show_define_centroid_dialog(self):
+        pass
+
+    def _show_define_plane_dialog(self):
+        pass
+
     def _update_angles(self):
         next_angle_info = []
         death_row = []
@@ -322,3 +402,48 @@ class StructMeasureTool(ToolInstance):
         self._angle_info = next_angle_info
         for row in reversed(death_row):
             self.angle_table.removeRow(row)
+
+class DefineAxisDialog:
+    def __init__(self, sm_tool):
+        self.tool_window = tw = sm_tool.tool_window.create_child_window("Define Axes", close_destroys=False)
+        layout = QVBoxLayout()
+        layout.setContentsMargins(0,0,0,0)
+        layout.setSpacing(0)
+        tw.ui_area.setLayout(layout)
+
+        controls_layout = QHBoxLayout()
+        layout.addLayout(controls_layout)
+
+        type_layout = QVBoxLayout()
+        controls_layout.addLayout(type_layout)
+        type_layout.addWidget(QLabel("Create axis for..."), alignment=Qt.AlignLeft)
+        self.button_group = QButtonGroup()
+
+        helix_layout = QHBoxLayout()
+        type_layout.addLayout(helix_layout)
+        self.helix_button = QRadioButton("Each helix in:")
+        self.helix_button.setChecked(True)
+        self.button_group.addButton(self.helix_button)
+        helix_layout.addWidget(self.helix_button)
+        from chimerax.atomic.widgets import StructureListWidget
+        class ShorterStructureListWidget(StructureListWidget):
+            def sizeHint(self):
+                size = super().sizeHint()
+                size.setHeight(size.height()//2)
+                return size
+        self.helix_structure_list = ShorterStructureListWidget(sm_tool.session)
+        helix_layout.addWidget(self.helix_structure_list)
+        type_layout.setStretch(type_layout.count()-1, 1)
+        helix_layout.setStretch(helix_layout.count()-1, 1)
+
+        bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
+        bbox.accepted.connect(self.define_axis)
+        bbox.rejected.connect(lambda tw=tw: setattr(tw, 'shown', False))
+        bbox.button(qbbox.Apply).clicked.connect(self.define_axis)
+        bbox.button(qbbox.Help).setEnabled(False)
+        layout.addWidget(bbox)
+
+        tw.manage(None)
+
+    def define_axis(self):
+        self.tool_window.shown = False

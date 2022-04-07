@@ -34,6 +34,7 @@
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
     <ChimeraXClassifier>Tool :: Distances :: Structure Analysis :: inter-atomic distances</ChimeraXClassifier>
     <ChimeraXClassifier>Tool :: Angles/Torsions :: Structure Analysis :: report angle/torsion values</ChimeraXClassifier>
+    <ChimeraXClassifier>Tool :: Axes/Planes/Centroids :: Structure Analysis :: create/analyze axes/planes/centroids</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>
