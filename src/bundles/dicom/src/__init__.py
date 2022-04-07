@@ -14,8 +14,7 @@ from chimerax.core.toolshed import BundleAPI
 
 from chimerax.open_command import OpenerInfo
 
-from .dicom import register_dicom_format
-from .dicom import open_dicom
+from .dicom import register_dicom_format, open_dicom
 
 class _DICOMBundle(BundleAPI):
     @staticmethod

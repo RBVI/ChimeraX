@@ -17,8 +17,8 @@ from pydicom import dcmread
 
 from chimerax.geometry import cross_product, inner_product
 
-def find_dicom_series(paths, search_directories = True, search_subdirectories = True,
-                      log = None, verbose = False):
+def find_dicom_series(paths, search_directories: bool = True, search_subdirectories: bool = True,
+                      log = None, verbose: bool = False):
     """Look through directories to find dicom files (.dcm) and group the ones
     that belong to the same study and image series.  Also determine the order
     of the 2D images (one per file) in the 3D stack.  A series must be in a single
@@ -33,7 +33,8 @@ def find_dicom_series(paths, search_directories = True, search_subdirectories = 
     series = []
     for dpaths in dfiles.values():
         nsfiles += len(dpaths)
-        log.status('Reading DICOM series %d of %d files in %d series' % (nsfiles, nfiles, nseries))
+        if log:
+            log.status('Reading DICOM series %d of %d files in %d series' % (nsfiles, nfiles, nseries))
         series.extend(dicom_file_series(dpaths, log = log, verbose = verbose))
 
     # Include patient id in model name only if multiple patients found
@@ -158,10 +159,22 @@ class Series:
     @property
     def num_times(self):
         if self._num_times is None:
-            nt = int(self.attributes.get('NumberOfTemporalPositions', 1))
-        else:
-            nt = self._num_times
-        return nt
+            nt = self.attributes.get('NumberOfTemporalPositions', None)
+            if nt is None:
+                times = sorted(set(data.trigger_time for data in self._file_info))
+                nt = len(times)
+                for data in self._file_info:
+                    data._time = times.index(data.trigger_time) + 1
+                    data.inferred_properties += "TemporalPositionIdentifier"
+                if nt > 1:
+                    self._log.warning(
+                        "Inferring time series from TriggerTime metadata \
+                        field in series missing NumberOfTemporalPositions"
+                    )
+            else:
+                nt = int(nt)
+            self._num_times = nt
+        return self._num_times
 
     @property
     def multiframe(self):
@@ -360,6 +373,7 @@ class Series:
 
 class SeriesFile:
     def __init__(self, path, data):
+        self.inferred_properties = []
         self.path = path
         pos = getattr(data, 'ImagePositionPatient', None)
         self._position = tuple(float(p) for p in pos) if pos else None
@@ -367,21 +381,20 @@ class SeriesFile:
         self._orientation = tuple(float(p) for p in orient) if orient else None
         num = getattr(data, 'InstanceNumber', None)
         self._num = int(num) if num else None
+        # TODO: Should this just be order and not time?
         t = getattr(data, 'TemporalPositionIdentifier', None)
         self._time = int(t) if t else None
         nf = getattr(data, 'NumberOfFrames', None)
         self._num_frames = int(nf) if nf is not None else None
         gfov = getattr(data, 'GridFrameOffsetVector', None)
         self._grid_frame_offset_vector = [float(o) for o in gfov] if gfov is not None else None
-        cuid = getattr(data, 'SOPClassUID', None)
-        self._class_uid = cuid
-        inst = getattr(data, 'SOPInstanceUID', None)
-        self._instance_uid = inst
-        ref = getattr(data, 'ReferencedSOPInstanceUID', None)
-        self._ref_instance_uid = ref
+        self._class_uid = getattr(data, 'SOPClassUID', None)
+        self._instance_uid = getattr(data, 'SOPInstanceUID', None)
+        self._ref_instance_uid = getattr(data, 'ReferencedSOPInstanceUID', None)
+        self._trigger_time = getattr(data, 'TriggerTime', None)
         self._pixel_spacing = None
         self._frame_positions = None
-        if nf is not None:
+        if self._num_frames is not None:
             def floats(s):
                 return [float(x) for x in s]
             self._pixel_spacing = self._sequence_elements(
@@ -408,6 +421,10 @@ class SeriesFile:
             return self._position[2] < im._position[2]
         else:
             return self._time < im._time
+
+    @property
+    def trigger_time(self):
+        return self._trigger_time
 
     @property
     def multiframe(self):

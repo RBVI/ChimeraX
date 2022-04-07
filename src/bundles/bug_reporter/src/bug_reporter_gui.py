@@ -783,6 +783,7 @@ def _qt_info(session):
     import Qt
     return (
         f"Qt version: {Qt.version}\n"
+        f"Qt runtime version: {Qt.QtCore.qVersion()}\n"
         f"Qt platform: {session.ui.platformName()}\n"
     )
 

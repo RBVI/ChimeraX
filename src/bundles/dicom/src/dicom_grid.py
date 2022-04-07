@@ -22,7 +22,7 @@ def dicom_grids(paths, log = None, verbose = False):
 
 def dicom_grids_from_series(series):
     grids = []
-    derived = []	# For grouping derived series with original series
+    derived = [] # For grouping derived series with original series
     sgrids = {}
     for s in series:
         if not s.has_image_data:
