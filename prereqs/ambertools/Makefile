@@ -4,11 +4,11 @@ include $(TOP)/mk/config.make
 
 # Using AmberTools distribution from https://ambermd.org
 
-VERSION = 20
+VERSION = 22
 
 # to upload new binary versions, set USE_PREBUILT to false and UPLOAD_PREBUILT to true;
 # once all platforms have been successfully built, set USE_PREBUILT to true and UPLOAD_PREBUILT to false
-USE_PREBUILT=true
+USE_PREBUILT=false
 UPLOAD_PREBUILT=false
 ifeq ($(OS),Linux)
 SUPPORTED_DISTROS := Ubuntu CentOS Debian
@@ -31,7 +31,8 @@ endif
 DISTRIBUTION = AmberTools$(VERSION).tar.bz2
 SOURCE = $(tmpdir)/AmberTools$(VERSION)
 AMBERHOME = $(SOURCE)/amber$(VERSION)_src
-TOOL_SRC = $(AMBERHOME)/AmberTools/src
+AMBERBUILD = $(AMBERHOME)/build
+TOOL_SRC = $(AMBERBUILD)/AmberTools/src
 AMBERBIN_SRC = $(AMBERHOME)/bin
 AMBERBIN_DST_HOME = $(app_bindir)/amber$(VERSION)
 AMBERBIN_DST = $(AMBERBIN_DST_HOME)/bin
@@ -43,19 +44,23 @@ AMBERDAT_PARM_SRC = $(AMBERDAT_SRC)/leap/parm
 AMBERDAT_PARM_DST = $(AMBERDAT_DST)/leap/parm
 
 PATCHES	= $(wildcard AmberTools-*.patch)
+PATCHES = 
 
 test: $(SOURCE)
 
 ENV_OPTS =
 ifeq ($(OS),Windows)
-CONFIG_ARGS = -cygwin gnu
+#CONFIG_ARGS = -cygwin gnu
+CMAKE_COMPILER_ARG = GNU
 ENV_OPTS = -u CC -u CXX FFLAGS=-fallow-argument-mismatch
 PATCHES += flex-cygwin.patch
 else
 ifeq ($(OS),Darwin)
-CONFIG_ARGS = clang
+#CONFIG_ARGS = clang
+CMAKE_COMPILER_ARG = CLANG
 else
-CONFIG_ARGS = gnu
+#CONFIG_ARGS = gnu
+CMAKE_COMPILER_ARG = GNU
 endif
 endif
 
@@ -87,19 +92,29 @@ endif
 
 else
 install: $(SOURCE)
-	cd $(AMBERHOME) && env $(ENV_OPTS) AMBERHOME='$(AMBERHOME)' ./configure --no-updates -noX11 -nofftw3 --skip-python $(CONFIG_ARGS)
-	cd $(TOOL_SRC)/c9x-complex && env AMBERHOME='$(AMBERHOME)' $(MAKE) all
-	cd $(TOOL_SRC)/cifparse && env AMBERHOME='$(AMBERHOME)' $(MAKE) install
-	cd $(TOOL_SRC)/sqm && env AMBERHOME='$(AMBERHOME)' $(MAKE) FREEFORMAT_FLAG= install
-	cd $(TOOL_SRC)/antechamber && env AMBERHOME='$(AMBERHOME)' $(MAKE) install
+	#cd $(AMBERHOME) && env $(ENV_OPTS) AMBERHOME='$(AMBERHOME)' ./configure --no-updates -noX11 -nofftw3 --skip-python $(CONFIG_ARGS)
+	#cd $(AMBERHOME)/build && env $(ENV_OPTS) AMBERHOME='$(AMBERHOME)' cmake $(AMBERHOME) -DCMAKE_INSTALL_PREFIX=$(AMBERBIN_DST_HOME) -DCOMPILER=$(CMAKE_COMPILER_ARG) -DBUILD_GUI=FALSE -DUSER_FFT=FALSE -DBUILD_PYTHON=FALSE -DDOWNLOAD_MINICONDA=FALSE $(CMAKE_ARGS)
+	#cd $(TOOL_SRC)/c9x-complex && env AMBERHOME='$(AMBERHOME)' $(MAKE) all
+	#cd $(TOOL_SRC)/cifparse && env AMBERHOME='$(AMBERHOME)' $(MAKE) install
+	#cd $(TOOL_SRC)/sqm && env AMBERHOME='$(AMBERHOME)' $(MAKE) FREEFORMAT_FLAG= install
+	#cd $(TOOL_SRC)/antechamber && env AMBERHOME='$(AMBERHOME)' $(MAKE) install
 
 app-install: install
 	-mkdir -p $(AMBERBIN_DST) $(AMBERDAT_ANTECHAMBER_DST) $(AMBERDAT_PARM_DST)
+	cd $(AMBERHOME)/build && env $(ENV_OPTS) AMBERHOME='$(AMBERHOME)' cmake $(AMBERHOME) -DCMAKE_INSTALL_PREFIX=$(AMBERBIN_DST_HOME) -DCOMPILER=$(CMAKE_COMPILER_ARG) -DBUILD_GUI=FALSE -DUSER_FFT=FALSE -DBUILD_PYTHON=FALSE -DDOWNLOAD_MINICONDA=FALSE $(CMAKE_ARGS)
+	#cd $(TOOL_SRC)/c9x-complex && env AMBERHOME='$(AMBERHOME)' $(MAKE) all
+	cd $(TOOL_SRC)/cifparse && env AMBERHOME='$(AMBERHOME)' $(MAKE) install
+	cd $(TOOL_SRC)/sqm && env AMBERHOME='$(AMBERHOME)' $(MAKE) FREEFORMAT_FLAG= install
+	cd $(TOOL_SRC)/antechamber && env AMBERHOME='$(AMBERHOME)' $(MAKE) install
 	# Excluded files are because they reference netcdf and we do not need them
-	$(RSYNC) $(AMBERBIN_SRC)/* --exclude nccopy --exclude ncdump --exclude ncgen --exclude ncgen3 --exclude to_be_dispatched $(AMBERBIN_DST)
+	#$(RSYNC) $(AMBERBIN_SRC)/* --exclude nccopy --exclude ncdump --exclude ncgen --exclude ncgen3 --exclude to_be_dispatched $(AMBERBIN_DST)
 	# Some executables live directly in bin, but many are shell scripts whose
 	# executables are in the "to_be_dispatched" subdir; overwrite those...
-	$(RSYNC) $(AMBERBIN_SRC)/to_be_dispatched/* --exclude nccopy --exclude ncdump --exclude ncgen --exclude ncgen3 $(AMBERBIN_DST)
+	#$(RSYNC) $(AMBERBIN_SRC)/to_be_dispatched/* --exclude nccopy --exclude ncdump --exclude ncgen --exclude ncgen3 $(AMBERBIN_DST)
+	for i in $(AMBERBIN_DST)/wrapped_progs/* ; do \
+		mv $$i $(AMBERBIN_DST) ; \
+	done
+	rmdir $(AMBERBIN_DST)/wrapped_progs
 ifeq ($(OS),Windows)
 	$(RSYNC) /usr/bin/cygwin1.dll /usr/bin/cyggcc_s-seh*.dll /usr/bin/cyggfortran*.dll /usr/bin/cygquadmath*.dll /usr/bin/cygreadline*.dll /usr/bin/cygintl*.dll /usr/bin/cygncursesw*.dll /usr/bin/cygiconv*.dll /bin/sh.exe $(AMBERBIN_DST)
 endif
