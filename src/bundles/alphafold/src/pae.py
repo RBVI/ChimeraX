@@ -340,12 +340,12 @@ class AlphaFoldPAEPlot(ToolInstance):
     #
     def _color_domains(self):
         # TODO: Log the command to do the coloring.
-        self._pae.color_domains()
+        self._pae.color_domains(log_command = True)
          
     # ---------------------------------------------------------------------------
     #
     def _color_plddt(self):
-        self._pae.color_plddt()
+        self._pae.color_plddt(log_command = True)
 
     # ---------------------------------------------------------------------------
     #
@@ -483,7 +483,8 @@ class AlphaFoldPAE:
 
     # ---------------------------------------------------------------------------
     #
-    def color_domains(self, cluster_max_pae = None, cluster_clumping = None):
+    def color_domains(self, cluster_max_pae = None, cluster_clumping = None,
+                      log_command = False):
         m = self.structure
         if m is None:
             return
@@ -497,8 +498,13 @@ class AlphaFoldPAE:
             from chimerax.core.colors import random_colors
             self._cluster_colors = random_colors(len(self._clusters), seed=0)
 
-        color_by_pae_domain(m.residues, self._clusters, colors=self._cluster_colors)
+        if log_command:
+            cmd = f'alphafold pae #{m.id_string} colorDomains true'
+            from chimerax.core.commands import log_equivalent_command
+            log_equivalent_command(m.session, cmd)
 
+        color_by_pae_domain(m.residues, self._clusters, colors=self._cluster_colors)
+        
     # ---------------------------------------------------------------------------
     #
     def set_default_domain_clustering(self, cluster_max_pae = None, cluster_clumping = None):
@@ -515,14 +521,16 @@ class AlphaFoldPAE:
 
     # ---------------------------------------------------------------------------
     #
-    def color_plddt(self):
+    def color_plddt(self, log_command = False):
         m = self.structure
         if m is None:
             return
 
-        cmd = 'color bfactor #%s palette alphafold log false' % m.id_string
+        cmd = f'color bfactor #{m.id_string} palette alphafold'
+        if not log_command:
+            cmd += ' log false'
         from chimerax.core.commands import run
-        run(m.session, cmd, log = False)
+        run(m.session, cmd, log = log_command)
 
 # -----------------------------------------------------------------------------
 #
