@@ -61,11 +61,13 @@ class Alignment(State):
 
     def __init__(self, session, seqs, ident, file_attrs, file_markups, auto_destroy, auto_associate,
             description, intrinsic, *, create_headers=True, session_restore=False):
+        if not seqs:
+            raise ValueError("Cannot create alignment of zero sequences")
         self.session = session
         self._session_restore = session_restore
         if isinstance(seqs, tuple):
             seqs = list(seqs)
-        self._seqs = seqs
+        self._seqs = seqs[:] # prevent later accidental modification
         self.ident = ident
         self.file_attrs = file_attrs
         self.file_markups = file_markups
