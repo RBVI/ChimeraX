@@ -21,7 +21,8 @@ def get_tool(session, tool_name):
 
 from chimerax.core.tools import ToolInstance
 from Qt.QtWidgets import QTableWidget, QHBoxLayout, QVBoxLayout, QAbstractItemView, QWidget, QPushButton, \
-    QTabWidget, QTableWidgetItem, QFileDialog, QDialogButtonBox as qbbox, QLabel, QButtonGroup, QRadioButton
+    QTabWidget, QTableWidgetItem, QFileDialog, QDialogButtonBox as qbbox, QLabel, QButtonGroup, \
+    QRadioButton, QLineEdit
 from Qt.QtCore import Qt
 
 class StructMeasureTool(ToolInstance):
@@ -435,6 +436,22 @@ class DefineAxisDialog:
         helix_layout.addWidget(self.helix_structure_list)
         type_layout.setStretch(type_layout.count()-1, 1)
         helix_layout.setStretch(helix_layout.count()-1, 1)
+
+        atoms_layout = QHBoxLayout()
+        type_layout.addLayout(atoms_layout)
+        self.atoms_button = QRadioButton("Selected atoms/centroids (axis name: ")
+        self.atoms_button.setChecked(False)
+        self.button_group.addButton(self.atoms_button)
+        atoms_layout.addWidget(self.atoms_button)
+        self.atoms_name_edit = QLineEdit()
+        self.atoms_name_edit.setText("axis")
+        atoms_layout.addWidget(self.atoms_name_edit)
+        atoms_layout.setStretch(atoms_layout.count()-1, 1)
+        atoms_layout.addWidget(QLabel(")"))
+
+        self.plane_button = QRadioButton("Plane normals:")
+        self.plane_button.setChecked(False)
+        type_layout.addWidget(self.plane_button, alignment=Qt.AlignLeft)
 
         bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
         bbox.accepted.connect(self.define_axis)
