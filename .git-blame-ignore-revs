@@ -11,3 +11,4 @@ a6bdf15e0a54a4b128f295f44b5fd23b895b161b # Lint the modeller bundle
 006f09c99bfe0e77179164552d5e6a1b06807f9e # Lint src/commands
 f2c53ce407384e608cb5ac0daa56fd78d7e30784 # Lint the DICOM bundle
 5aa6330236602361c22004fc81c895867b892893 # Lint bundles/dicom/src/dicom_format.py
+4786ad5813a72389d796d13f7fb16cfa418fa1d6 # Remove whitespace in opengl/opengl.py

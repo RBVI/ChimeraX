@@ -26,6 +26,7 @@ from chimerax.core.commands import run
 from chimerax.core.errors import UserError
 from chimerax.core.tools import ToolInstance
 from chimerax.ui.gui import MainToolWindow
+from chimerax.help_viewer import show_url
 
 from ..data_model import AvailableDBsDict, get_database, Match
 from ..utils import BlastParams, SeqId
@@ -251,10 +252,13 @@ class BlastProteinResults(ToolInstance):
     def fill_context_menu(self, menu, x, y):
         seq_action = QAction("Load Structures", menu)
         seq_view_action = QAction("Show Sequence Alignment", menu)
+        load_from_db_action = QAction("Open %s webpage" % AvailableDBsDict[self.params.database].pretty_name, menu)
         seq_action.triggered.connect(lambda: self.load(self.table.selected))
         seq_view_action.triggered.connect(lambda: self._show_mav(self.table.selected))
+        load_from_db_action.triggered.connect(lambda: self.load_sequence(self.table.selected))
         menu.addAction(seq_action)
         menu.addAction(seq_view_action)
+        menu.addAction(load_from_db_action)
 
     #
     # Worker Callbacks
@@ -323,9 +327,20 @@ class BlastProteinResults(ToolInstance):
             self.session.logger.warning("BLAST search returned no results.")
             self.tool_window.destroy()
 
-    #
-    # Code for loading (and spatially matching) a match entry
-    #
+    # Show a sequence-only hit's webpage
+    def load_sequence(self, selections: list['BlastResultsRow']) -> None:
+        db = AvailableDBsDict[self.params.database]
+        db_url = db.database_url
+        urls = []
+        for row in selections:
+            code = row[db.fetchable_col]
+            urls.append(db_url % code)
+        show_url(self.session, urls[0])
+        for url in urls[1:]:
+            show_url(self.session, url, new_tab=True)
+
+
+    # Loading (and spatially matching) a match entry
     def load(self, selections: list['BlastResultsRow']) -> None:
         """Load the model from the results database.
         """
@@ -357,9 +372,7 @@ class BlastProteinResults(ToolInstance):
         for m in models:
             _log_alphafold_sequence_info(m, query_seq)
 
-    #
     # Code for displaying matches as multiple sequence alignment
-    #
     def _show_mav(self, selections) -> None:
         """
         Collect the names and sequences of selected matches. All sequences
