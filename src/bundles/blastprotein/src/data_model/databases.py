@@ -124,7 +124,7 @@ class NCBIDB(Database):
     name: str = ""
     parser_factory: object = dbparsers.PDBParser
     fetchable_col: str = "name"
-    NCBI_ID_URL: str = "https://ncbi.nlm.nih.gov/protein/%s"
+    database_url: str = "https://ncbi.nlm.nih.gov/protein/%s"
     default_cols: tuple = ("hit_#", "name", "e-value", "score", "title", "resolution", "ligand_symbols")
 
     @staticmethod
@@ -191,7 +191,7 @@ class NCBIDB(Database):
                     "tried to format data for chain not found in results. Likely couldn't contact RCSB for info."
                 )
         for hit in sequences.values():
-            hit["url"] = NCBIDB.NCBI_ID_URL % hit["name"]
+            hit["url"] = NCBIDB.database_url % hit["name"]
             hit["title"], hit["species"] = NCBIDB.format_desc(hit["description"])
             ligand_formulas = hit.get("ligand_formulas", None)
             if ligand_formulas:
@@ -202,7 +202,7 @@ class NCBIDB(Database):
 @dataclass
 class PDB(NCBIDB):
     name: str = "pdb"
-    pretty_name: str = "Protein Data Bank"
+    pretty_name: str = "PDB"
 
 
 @dataclass
@@ -214,6 +214,8 @@ class NRDB(NCBIDB):
 class UniRefDB(NCBIDB):
     name: str = "uniref"
     pretty_name: str = "UniRef"
+    database_url: str = "https://www.uniprot.org/uniprot/%s"
+    fetchable_col: str = "uniprot_id"
     parser_factory: object = dbparsers.PDBParser
 
     @staticmethod
@@ -238,9 +240,13 @@ class UniRefDB(NCBIDB):
                     "tried to format data for chain not found in results. Likely couldn't contact RCSB for info."
                 )
         for hit in sequences.values():
-            hit["url"] = NCBIDB.NCBI_ID_URL % hit["name"]
+            hit["url"] = NCBIDB.database_url % hit["name"]
             raw_desc = hit["description"]
             hit["title"] = Database._get_title_from_desc(raw_desc)
+            try:
+                hit["uniprot_id"] = raw_desc.split(' ')[0].split('_')[1]
+            except:
+                pass
             hit["cluster_members"] = Database._get_equal_sep_attr(raw_desc, 'n')
             hit["taxonomic_name"] = Database._get_equal_sep_attr(raw_desc, 'Tax')
             hit["taxonomic_id"] = Database._get_equal_sep_attr(raw_desc, 'TaxID')
@@ -255,11 +261,11 @@ class UniRefDB(NCBIDB):
 @dataclass
 class AlphaFoldDB(Database):
     name: str = "alphafold"
-    pretty_name: str = "AlphaFold Database"
+    pretty_name: str = "AlphaFold"
     # The title of the data column that can be used to fetch the model
-    fetchable_col: str = "name"
+    fetchable_col: str = "uniprot_id"
     parser_factory: object = dbparsers.AlphaFoldParser
-    AlphaFold_URL: str = "https://alphafold.ebi.ac.uk/files/AF-%s-F1-model_v1.pdb"
+    database_url: str = "https://alphafold.ebi.ac.uk/entry/%s"
     default_cols: tuple = ("hit_#", "name", "e-value", "score", "title", "species")
     excluded_cols: tuple = ("id", "url", "sequence_id")
 
@@ -277,6 +283,11 @@ class AlphaFoldDB(Database):
         # We do not ever expect to receive sequence only hits
         for match in matches:
             raw_desc = matches[match]["description"]
+            matches[match]["uniprot_id"] = matches[match]["name"]
+            name = raw_desc.split('=')[0].split(' ')[0].split('|')[-1]
+            if name == "deleted":
+                name = ""
+            matches[match]["name"] = name
             matches[match]["title"] = Database._get_title_from_desc(raw_desc)
             matches[match]["species"] = Database._get_equal_sep_attr(raw_desc, 'OS')
             matches[match]["taxonomic_id"] = Database._get_equal_sep_attr(raw_desc, 'OX')

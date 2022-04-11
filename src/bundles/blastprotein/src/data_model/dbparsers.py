@@ -25,6 +25,7 @@ class Parser(ABC):
         self.query_seq = query_seq
         self.output = output
         self._parse()
+        self._clean_nonunique_matches()
 
     def _parse(self) -> None:
         """
@@ -119,8 +120,8 @@ class Parser(ABC):
         self.match_dict[name] = m
         return m
 
-    def _copy_match(self, m, name, pdb, desc):
-        nm = Match(name, pdb, desc, m.score, m.evalue,
+    def _copy_match(self, m, name, match_id, desc):
+        nm = Match(name, match_id, desc, m.score, m.evalue,
                    m.q_start + 1, m.q_end + 1, # switch back to 1-base indexing
                    m.q_seq, m.h_seq)
         self.matches.append(nm)
@@ -141,6 +142,12 @@ class Parser(ABC):
     def _align_sequences(self):
         for m in self.matches:
             m.match_sequence_gaps(self._gap_count)
+
+    def _clean_nonunique_matches(self):
+        unique_values = set(self.match_dict.values())
+        self.match_dict = {}
+        for match in unique_values:
+            self.match_dict[match.name] = match
 
     def dump(self, f=None):
         if f is None:
@@ -217,9 +224,4 @@ class AlphaFoldParser(Parser):
             match_list.append(self._extract_hsp(hsp, uniprot_id, uniprot_id, desc))
         for uniprot_id, desc in id_list:
             for m in match_list:
-                uniprot_name = desc.split('=')[0].split(' ')[0].split('|')[-1]
-                if uniprot_name == 'deleted':
-                    # Take the next best description, which won't have the species
-                    # annotation
-                    uniprot_name = uniprot_id
-                self._copy_match(m, uniprot_name, uniprot_name, desc)
+                self._copy_match(m, uniprot_id, uniprot_id, desc)
