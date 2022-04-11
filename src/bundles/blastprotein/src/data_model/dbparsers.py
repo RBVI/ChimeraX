@@ -25,6 +25,7 @@ class Parser(ABC):
         self.query_seq = query_seq
         self.output = output
         self._parse()
+        self._clean_nonunique_matches()
 
     def _parse(self) -> None:
         """
@@ -141,6 +142,12 @@ class Parser(ABC):
     def _align_sequences(self):
         for m in self.matches:
             m.match_sequence_gaps(self._gap_count)
+
+    def _clean_nonunique_matches(self):
+        unique_values = set(self.match_dict.values())
+        self.match_dict = {}
+        for match in unique_values:
+            self.match_dict[match.name] = match
 
     def dump(self, f=None):
         if f is None:
