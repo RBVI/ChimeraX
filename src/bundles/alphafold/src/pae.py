@@ -507,6 +507,7 @@ class AlphaFoldPAE:
             log_equivalent_command(m.session, cmd)
 
         color_by_pae_domain(m.residues, self._clusters, colors=self._cluster_colors)
+        set_pae_domain_residue_attribute(m.residues, self._clusters)
         
     # ---------------------------------------------------------------------------
     #
@@ -671,7 +672,23 @@ def color_by_pae_domain(residues, clusters, colors = None):
         cresidues = residues[array(list(c),int32)]
         cresidues.ribbon_colors = color
         cresidues.atoms.colors = color
+    
+# -----------------------------------------------------------------------------
+#
+def set_pae_domain_residue_attribute(residues, clusters):
+    if len(residues) > 0:
+        # Register attribute so it is saved in sessions.
+        session = residues[0].structure.session
+        from chimerax.atomic import Residue
+        Residue.register_attr(session, 'pae_domain', "AlphaFold", attr_type = int)
 
+    cnum = {}
+    for i, cluster in enumerate(clusters):
+        for ri in cluster:
+            cnum[ri] = i+1
+    for ri,r in enumerate(residues):
+        r.pae_domain = cnum.get(ri)
+    
 # -----------------------------------------------------------------------------
 #
 def alphafold_pae(session, structure = None, file = None, uniprot_id = None,
