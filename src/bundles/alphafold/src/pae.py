@@ -478,23 +478,26 @@ class AlphaFoldPAE:
         self.structure = structure
         self._cluster_max_pae = 5
         self._cluster_clumping = 0.5
+        self._cluster_min_size = 10
         self._clusters = None		# Cache computed clusters
         self._cluster_colors = None
 
     # ---------------------------------------------------------------------------
     #
     def color_domains(self, cluster_max_pae = None, cluster_clumping = None,
-                      log_command = False):
+                      cluster_min_size = None, log_command = False):
         m = self.structure
         if m is None:
             return
 
-        self.set_default_domain_clustering(cluster_max_pae, cluster_clumping)
+        self.set_default_domain_clustering(cluster_max_pae, cluster_clumping,
+                                           cluster_min_size)
 
         if self._clusters is None:
             self._clusters = pae_domains(self._pae_matrix,
                                          pae_cutoff = self._cluster_max_pae,
-                                         graph_resolution = self._cluster_clumping)
+                                         graph_resolution = self._cluster_clumping,
+                                         min_size = self._cluster_min_size)
             from chimerax.core.colors import random_colors
             self._cluster_colors = random_colors(len(self._clusters), seed=0)
 
@@ -507,13 +510,17 @@ class AlphaFoldPAE:
         
     # ---------------------------------------------------------------------------
     #
-    def set_default_domain_clustering(self, cluster_max_pae = None, cluster_clumping = None):
+    def set_default_domain_clustering(self, cluster_max_pae = None, cluster_clumping = None,
+                                      cluster_min_size = None):
         changed = False
         if cluster_max_pae is not None and cluster_max_pae != self._cluster_max_pae:
             self._cluster_max_pae = cluster_max_pae
             changed = True
         if cluster_clumping is not None and cluster_clumping != self._cluster_clumping:
             self._cluster_clumping = cluster_clumping
+            changed = True
+        if cluster_min_size is not None and cluster_min_size != self._cluster_min_size:
+            self._cluster_min_size = cluster_min_size
             changed = True
         if changed:
             self._clusters = None
@@ -626,7 +633,8 @@ def pae_image(rgb):
 #
 # https://github.com/tristanic/isolde/blob/master/isolde/src/reference_model/alphafold/find_domains.py
 #
-def pae_domains(pae_matrix, pae_power=1, pae_cutoff=5, graph_resolution=0.5):
+def pae_domains(pae_matrix, pae_power=1, pae_cutoff=5, graph_resolution=0.5,
+                min_size = None):
     # PAE matrix is not strictly symmetric.
     # Prediction for error in residue i when aligned on residue j may be different from 
     # error in j when aligned on i. Take the smallest error estimate for each pair.
@@ -647,27 +655,28 @@ def pae_domains(pae_matrix, pae_power=1, pae_cutoff=5, graph_resolution=0.5):
 
     from networkx.algorithms.community import greedy_modularity_communities
     clusters = greedy_modularity_communities(g, weight='weight', resolution=graph_resolution)
+    if min_size:
+        clusters = [c for c in clusters if len(c) >= min_size]
     return clusters
 
 # -----------------------------------------------------------------------------
 #
-def color_by_pae_domain(residues, clusters, colors = None, min_cluster_size=10):
+def color_by_pae_domain(residues, clusters, colors = None):
     if colors is None:
         from chimerax.core.colors import random_colors
         colors = random_colors(len(clusters), seed=0)
 
     from numpy import array, int32
     for c, color in zip(clusters, colors):
-        if len(c) >= min_cluster_size:
-            cresidues = residues[array(list(c),int32)]
-            cresidues.ribbon_colors = color
-            cresidues.atoms.colors = color
+        cresidues = residues[array(list(c),int32)]
+        cresidues.ribbon_colors = color
+        cresidues.atoms.colors = color
 
 # -----------------------------------------------------------------------------
 #
 def alphafold_pae(session, structure = None, file = None, uniprot_id = None,
                   palette = None, range = None, plot = None,
-                  color_domains = False, connect_max_pae = 5, cluster = 0.5):
+                  color_domains = False, connect_max_pae = 5, cluster = 0.5, min_size = 10):
     '''Load AlphaFold predicted aligned error file and show plot or color domains.'''
 
     if uniprot_id:
@@ -715,12 +724,12 @@ def alphafold_pae(session, structure = None, file = None, uniprot_id = None,
         if structure is None:
             from chimerax.core.errors import UserError
             raise UserError('Must specify structure to color domains.')
-        pae.color_domains(connect_max_pae, cluster)
+        pae.color_domains(connect_max_pae, cluster, min_size)
 
 # -----------------------------------------------------------------------------
 #
 def register_alphafold_pae_command(logger):
-    from chimerax.core.commands import CmdDesc, register, OpenFileNameArg, ColormapArg, ColormapRangeArg, BoolArg, FloatArg
+    from chimerax.core.commands import CmdDesc, register, OpenFileNameArg, ColormapArg, ColormapRangeArg, BoolArg, FloatArg, IntArg
     from chimerax.atomic import AtomicStructureArg, UniProtIdArg
     desc = CmdDesc(
         optional = [('structure', AtomicStructureArg)],
@@ -731,7 +740,8 @@ def register_alphafold_pae_command(logger):
                    ('plot', BoolArg),
                    ('color_domains', BoolArg),
                    ('connect_max_pae', FloatArg),
-                   ('cluster', FloatArg)],
+                   ('cluster', FloatArg),
+                   ('min_size', IntArg)],
         synopsis = 'Show AlphaFold predicted aligned error'
     )
     
