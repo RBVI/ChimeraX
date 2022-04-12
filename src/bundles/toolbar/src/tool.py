@@ -425,6 +425,7 @@ class _HomeTab(QTreeWidget):
         return super().dragEnterEvent(event)
 
     def dropEvent(self, event):
+        from Qt import using_qt5
         source = event.source()
         # from dragEnterEvent, we know there is at least one selected item
         original = source.selectedItems()[0]
@@ -436,7 +437,10 @@ class _HomeTab(QTreeWidget):
         result = super().dropEvent(event)
         if copy_subtree:
             # find where it was copied to
-            new_section = self.itemAt(event.pos())
+            if using_qt5:
+                new_section = self.itemAt(event.pos())
+            else:
+                new_section = self.itemAt(event.position().toPoint())
             if new_section is None:
                 # assume dropped below bottom
                 new_section = self.topLevelItem(self.topLevelItemCount() - 1)
@@ -472,7 +476,10 @@ class _HomeTab(QTreeWidget):
             if original_type == SECTION_TYPE:
                 self.expandItem(original)
         else:
-            new_button = self.itemAt(event.pos())
+            if using_qt5:
+                new_button = self.itemAt(event.pos())
+            else:
+                new_button = self.itemAt(event.position().toPoint())
             new_button.setFlags(BUTTON_FLAGS)
         self.childDraggedAndDropped.emit()
         return result

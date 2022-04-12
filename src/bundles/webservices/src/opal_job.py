@@ -75,7 +75,7 @@ class OpalJob(Job):
     #
     # Define chimerax.core.tasks.Job ABC methods
     #
-    def launch(self, service_name, cmd, opal_url=None, blocking=False, **kw):
+    def run(self, service_name, cmd, opal_url=None, blocking=False, **kw):
         """Launch the background process.
 
         Arguments
@@ -161,6 +161,7 @@ class OpalJob(Job):
                 self.end_time = time.time()
                 self._save_status(r.status)
                 self._save_outputs(r.jobOut)
+        super().run()
 
     def _save_status(self, status):
         self._status_code = int(status[0])

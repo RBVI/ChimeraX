@@ -19,7 +19,7 @@
 #
 def alphafold_fetch(session, uniprot_id, color_confidence=True,
                     align_to=None, trim=True, pae=False, ignore_cache=False,
-                    add_to_session=True, version=None, **kw):
+                    add_to_session=True, version=None, in_file_history=True, **kw):
 
     uniprot_name = uniprot_id if '_' in uniprot_id else None
     uniprot_id = _parse_uniprot_id(uniprot_id)
@@ -33,7 +33,9 @@ def alphafold_fetch(session, uniprot_id, color_confidence=True,
 
     model_name = 'AlphaFold %s' % (uniprot_name or uniprot_id)
     models, status = session.open_command.open_data(filename, format = 'mmCIF',
-                                                    name = model_name, **kw)
+                                                    name = model_name,
+                                                    in_file_history = in_file_history,
+                                                    **kw)
     from .match import _set_alphafold_model_attributes
     _set_alphafold_model_attributes(models, uniprot_id, uniprot_name)
 

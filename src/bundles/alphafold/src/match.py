@@ -128,6 +128,7 @@ def _alphafold_models(session, sequences, seq_uids, color_confidence=True, trim=
                                              version = db_version,
                                              color_confidence=color_confidence,
                                              add_to_session=False,
+                                             in_file_history=(len(seq_uids)==1),
                                              ignore_cache=ignore_cache)
         except UserError as e:
             if not str(e).endswith('Not Found'):
