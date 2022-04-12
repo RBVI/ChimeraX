@@ -21,5 +21,5 @@ app-reinstall: $(DISTRIBUTION)
 $(DISTRIBUTION):
 	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/cxservices/$(DISTRIBUTION)
 
-clean:
+distclean clean:
 	rm -rf $(DISTRIBUTION) $(REAL_DISTRIBUTION)

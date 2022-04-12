@@ -601,6 +601,11 @@ class SequenceViewer(ToolInstance):
                 blast_action.triggered.connect(lambda: run(self.session,
                     "blastprotein %s" % (StringArg.unparse("%s:%d" % (self.alignment.ident, i+1)))))
                 blast_menu.addAction(blast_action)
+        if len(self.alignment.seqs) > 1:
+            identity_action = QAction("Percent Identity...", menu)
+            identity_action.triggered.connect(self.show_percent_identity_dialog)
+            tools_menu.addAction(identity_action)
+
 
         # Whenever Region Browser and UniProt Annotations happen, the thought is to
         # put them in an "Annotations" menu (rather than "Info"); for now with only
@@ -620,11 +625,6 @@ class SequenceViewer(ToolInstance):
                     action.triggered.connect(lambda *args, seq=seq, show=self.show_feature_browser:
                         show(seq))
                     features_menu.addAction(action)
-
-        if len(self.alignment.seqs) > 1:
-            identity_action = QAction("Percent Identity...", menu)
-            identity_action.triggered.connect(self.show_percent_identity_dialog)
-            menu.addAction(identity_action)
 
         settings_action = QAction("Settings...", menu)
         settings_action.triggered.connect(self.show_settings)

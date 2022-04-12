@@ -10,23 +10,23 @@
 # including partial copies, of the software or any revisions
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
-
 from chimerax.core.toolshed import BundleAPI
+
+from chimerax.open_command import OpenerInfo
+
+from .dicom import register_dicom_format, open_dicom
 
 class _DICOMBundle(BundleAPI):
     @staticmethod
     def initialize(session, bundle_info):
         """Register file formats, commands, and database fetch."""
-        from .dicom import register_dicom_format
         register_dicom_format(session)
 
     @staticmethod
     def run_provider(session, name, mgr, **kw):
-        from chimerax.open_command import OpenerInfo
         class DicomOpenerInfo(OpenerInfo):
             def open(self, session, data, file_name, **kw):
-                from . import dicom
-                return dicom.open_dicom(session, data)
+                return open_dicom(session, data)
         return DicomOpenerInfo()
 
 

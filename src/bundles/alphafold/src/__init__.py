@@ -53,7 +53,8 @@ class _AlphaFoldBundle(BundleAPI):
                 def fetch(self, session, ident, format_name, ignore_cache, **kw):
                     from .fetch import alphafold_fetch
                     return alphafold_fetch(session, ident, ignore_cache=ignore_cache,
-                                           add_to_session=False, **kw)
+                                           add_to_session=False, in_file_history=False,
+                                           **kw)
                 @property
                 def fetch_args(self):
                     from chimerax.core.commands import BoolArg, Or, EnumOf

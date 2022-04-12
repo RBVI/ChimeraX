@@ -550,9 +550,11 @@ def level_and_color_settings(v, options):
 
     kw = {}
 
-    levels = options.get('level', [])
-    rms_levels = options.get('rms_level', [])
-    sd_levels = options.get('sd_level', [])
+    # Code below modifies levels, avoid modifying options argument
+    from copy import deepcopy
+    levels = deepcopy(options.get('level', []))
+    rms_levels = deepcopy(options.get('rms_level', []))
+    sd_levels = deepcopy(options.get('sd_level', []))
     if rms_levels or sd_levels:
         mean, sd, rms = v.mean_sd_rms()
         if rms_levels:

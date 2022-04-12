@@ -193,6 +193,7 @@ class Task(State):
             self._thread.join()
             self.update_state(FINISHED)
             if self.exited_normally():
+                # the non-blocking code path also has an on_finish() call that executes asynchronously
                 self.session.ui.thread_safe(self.on_finish)
 
     def _cleanup(self):
@@ -219,7 +220,8 @@ class Task(State):
                 self.update_state(TERMINATED)
             else:
                 self.update_state(FINISHED)
-        if self.exited_normally():
+        if not kw.get('blocking', False) and self.exited_normally():
+            # the blocking code path also has an on_finish() call that executes immediately
             self.session.ui.thread_safe(self.on_finish)
 
     def exited_normally(self) -> bool:

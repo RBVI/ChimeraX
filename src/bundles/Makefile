@@ -10,6 +10,7 @@
 # === UCSF ChimeraX Copyright ===
 
 TOP = ../..
+-include $(TOP)/.makerc
 SUBDIR_SYNC = 1
 SUBDIR_BUILD = 1
 include $(TOP)/mk/config.make

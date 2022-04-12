@@ -10,6 +10,9 @@
 # including partial copies, of the software or any revisions
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
+from numpy import array, concatenate, empty, float32, int32
+
+from pydicom import dcmread
 
 from chimerax.core.models import Model, Surface
 
@@ -25,7 +28,6 @@ class DicomContours(Model):
         if len(series.paths) > 1:
             raise ValueError('DICOM series has %d files, can only handle one file for "RT Structure Set Storage", file %s' % (len(series.paths), path))
 
-        from pydicom import dcmread
         d = dcmread(path)
 
         desc = d.get('SeriesDescription', '')
@@ -50,7 +52,6 @@ def rgb_255(cs):
 
 def xyz_list(xs):
     a = tuple(float(x) for x in xs)
-    from numpy import array, float32
     xyz = array(a, float32).reshape(len(a) // 3, 3)
     return xyz
 
@@ -69,7 +70,6 @@ class ROIContourModel(Surface):
         points = []
         triangles = []
         nv = 0
-        from numpy import empty, int32, concatenate
         for ci in contour_info:
             ctype = ci['ContourGeometricType']
             if ctype != 'CLOSED_PLANAR':

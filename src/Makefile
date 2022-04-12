@@ -14,7 +14,7 @@
 
 TOP = ..
 NO_SUBDIR_ALL = 1
-
+-include $(TOP)/.makerc
 include $(TOP)/mk/config.make
 
 SUBDIRS	+= core bundles apps examples

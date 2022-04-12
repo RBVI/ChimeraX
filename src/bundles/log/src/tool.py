@@ -165,7 +165,7 @@ class Log(ToolInstance, HtmlLog):
 
             def acceptNavigationRequest(self, qurl, nav_type, is_main_frame):
                 if qurl.scheme() in ('http', 'https'):
-                    session = self.view().session
+                    session = self.session
                     def show_url(url):
                         from chimerax.help_viewer import show_url
                         show_url(session, url)
@@ -180,6 +180,7 @@ class Log(ToolInstance, HtmlLog):
                 profile = create_chimerax_profile(parent, interceptor=self.link_intercept)
                 super().__init__(session, parent, size_hint=(575, 500), tool_window=log.tool_window, profile=profile)
                 page = MyPage(self._profile, self)
+                page.session = self.session
                 self.setPage(page)
                 s = page.settings()
                 s.setAttribute(s.WebAttribute.LocalStorageEnabled, True)
