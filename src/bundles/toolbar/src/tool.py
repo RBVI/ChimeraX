@@ -681,7 +681,7 @@ class ToolbarSettingsTool:
             elif item_type == SECTION_TYPE:
                 name = item.text(0)
                 cur_section = []
-                if item.checkState(0):
+                if item.checkState(0) != Qt.Unchecked:
                     home_tab.append(((name, True), cur_section))
                 else:
                     home_tab.append((name, cur_section))
