@@ -597,6 +597,7 @@ with <b>pae true</b>, or the separate command <b>alphafold pae</b>:
 [&nbsp;<a href="color.html#palette-options"><b>range</b></a>&nbsp;&nbsp;<i>low,high</i>&nbsp;|&nbsp;full&nbsp;]
 [&nbsp;<b>plot</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>colorDomains</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>minSize</b>&nbsp;&nbsp;<i>M</i>&nbsp;]
 [&nbsp;<b>connectMaxPae</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
 [&nbsp;<b>cluster</b>&nbsp;&nbsp;<i>resolution</i>&nbsp;]
 </blockquote>
@@ -650,12 +651,19 @@ align="center"><font size="-1">30</font></td>
 <a name="colorDomains"></a>
 <p>
 Setting <b>colorDomains</b> to <b>true</b> clusters the residues into
-coherent domains (sets of residues with relatively low PAE values)
+coherent domains (sets of residues with relatively low pairwise PAE values)
 and uses randomly chosen colors to distinguish these domains in the structure.
-The clustering uses the
+The residues are assigned an integer domain identifier (starting with 1) as an
+<a href="../attributes.html">attribute</a> named <b>pae_domain</b>
+that can be used to <a href="atomspec.html#attributes">specify</a> 
+them in commands (for example, to recolor or select specific domains).
+Residues not grouped into any domain are assigned a <b>pae_domain</b> 
+value of <b>None</b>. The clustering uses the
 NetworkX greedy_modularity_communities algorithm with parameters:
 </p>
 <ul>
+<li><b>minSize</b> (default <b>10</b> residues)
+&ndash; minimum number of residues allowed in a domain
 <li><b>connectMaxPae</b> (default <b>5.0</b> &Aring;)
 &ndash; the maximum PAE value allowed between residues for them to be 
 clustered into the same domain. Larger values give larger domains

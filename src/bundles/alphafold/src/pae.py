@@ -17,7 +17,7 @@ from chimerax.core.tools import ToolInstance
 class AlphaFoldPAEOpen(ToolInstance):
 
     name = 'AlphaFold Error Plot'
-    help = 'help:user/tools/alphafold.html'
+    help = 'help:user/tools/alphafold.html#pae'
 
     def __init__(self, session, tool_name):
         
@@ -255,7 +255,7 @@ from chimerax.core.tools import ToolInstance
 class AlphaFoldPAEPlot(ToolInstance):
 
     name = 'AlphaFold Predicted Aligned Error Plot'
-    help = 'help:user/tools/alphafold.html'
+    help = 'help:user/tools/alphafold.html#pae'
 
     def __init__(self, session, tool_name, pae, colormap = None):
 
