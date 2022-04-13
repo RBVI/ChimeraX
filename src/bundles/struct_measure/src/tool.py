@@ -22,8 +22,10 @@ def get_tool(session, tool_name):
 from chimerax.core.tools import ToolInstance
 from Qt.QtWidgets import QTableWidget, QHBoxLayout, QVBoxLayout, QAbstractItemView, QWidget, QPushButton, \
     QTabWidget, QTableWidgetItem, QFileDialog, QDialogButtonBox as qbbox, QLabel, QButtonGroup, \
-    QRadioButton, QLineEdit
+    QRadioButton, QLineEdit, QGroupBox, QGridLayout
+from Qt.QtGui import QDoubleValidator
 from Qt.QtCore import Qt
+from chimerax.ui.widgets import ColorButton
 
 class StructMeasureTool(ToolInstance):
 
@@ -417,26 +419,22 @@ class DefineAxisDialog:
 
         type_layout = QVBoxLayout()
         controls_layout.addLayout(type_layout)
-        type_layout.addWidget(QLabel("Create axis for..."), alignment=Qt.AlignLeft)
+        type_layout.addWidget(QLabel("Create axis for..."), alignment=Qt.AlignLeft | Qt.AlignTop)
         self.button_group = QButtonGroup()
+        self.button_group.buttonClicked.connect(self.show_applicable_params)
+        self.shown_for_button = {} # widgets that are always shown don't go into this
+        self.button_dispatch = {}
+        self.axis_name_for_button = {}
 
-        helix_layout = QHBoxLayout()
-        type_layout.addLayout(helix_layout)
-        self.helix_button = QRadioButton("Each helix in:")
-        self.helix_button.setChecked(True)
-        self.button_group.addButton(self.helix_button)
-        helix_layout.addWidget(self.helix_button)
-        from chimerax.atomic.widgets import StructureListWidget
-        class ShorterStructureListWidget(StructureListWidget):
-            def sizeHint(self):
-                size = super().sizeHint()
-                size.setHeight(size.height()//2)
-                return size
-        self.helix_structure_list = ShorterStructureListWidget(sm_tool.session)
-        helix_layout.addWidget(self.helix_structure_list)
-        type_layout.setStretch(type_layout.count()-1, 1)
-        helix_layout.setStretch(helix_layout.count()-1, 1)
+        helix_button = QRadioButton("Each helix in structure(s)")
+        helix_button.setChecked(True)
+        self.button_group.addButton(helix_button)
+        type_layout.addWidget(helix_button, alignment=Qt.AlignLeft | Qt.AlignTop)
+        self.shown_for_button[helix_button] = set()
+        self.axis_name_for_button[helix_button] = "helix axes"
+        self.button_dispatch[helix_button] = self.create_helix_axis
 
+        """
         atoms_layout = QHBoxLayout()
         type_layout.addLayout(atoms_layout)
         self.atoms_button = QRadioButton("Selected atoms/centroids (axis name: ")
@@ -448,10 +446,126 @@ class DefineAxisDialog:
         atoms_layout.addWidget(self.atoms_name_edit)
         atoms_layout.setStretch(atoms_layout.count()-1, 1)
         atoms_layout.addWidget(QLabel(")"))
+        """
+        atoms_button = QRadioButton("Selected atoms/centroids")
+        atoms_button.setChecked(False)
+        self.button_group.addButton(atoms_button)
+        type_layout.addWidget(atoms_button, alignment=Qt.AlignLeft | Qt.AlignTop)
+        self.shown_for_button[atoms_button] = set()
+        self.axis_name_for_button[atoms_button] = "axis"
+        self.button_dispatch[atoms_button] = self.create_atoms_axis
 
-        self.plane_button = QRadioButton("Plane normals:")
-        self.plane_button.setChecked(False)
-        type_layout.addWidget(self.plane_button, alignment=Qt.AlignLeft)
+        plane_button = QRadioButton("Plane normal(s)")
+        plane_button.setChecked(False)
+        self.button_group.addButton(plane_button)
+        type_layout.addWidget(plane_button, alignment=Qt.AlignLeft | Qt.AlignTop)
+        self.shown_for_button[plane_button] = set()
+        self.axis_name_for_button[plane_button] = "normal"
+        self.button_dispatch[plane_button] = self.create_plane_axis
+
+        points_button = QRadioButton("Two points")
+        points_button.setChecked(False)
+        self.button_group.addButton(points_button)
+        type_layout.addWidget(points_button, alignment=Qt.AlignLeft | Qt.AlignTop)
+        self.shown_for_button[points_button] = set()
+        self.axis_name_for_button[points_button] = "axis"
+        self.button_dispatch[points_button] = self.create_points_axis
+
+        params_layout = QVBoxLayout()
+        controls_layout.addLayout(params_layout)
+        self.all_params_widgets = []
+
+        structure_label = QLabel("Structure(s)")
+        params_layout.addWidget(structure_label)
+        self.shown_for_button[helix_button].add(structure_label)
+        self.all_params_widgets.append(structure_label)
+        from chimerax.atomic.widgets import StructureListWidget
+        class ShorterStructureListWidget(StructureListWidget):
+            def sizeHint(self):
+                size = super().sizeHint()
+                size.setHeight(size.height()//2)
+                return size
+        self.helix_structure_list = ShorterStructureListWidget(sm_tool.session)
+        params_layout.addWidget(self.helix_structure_list)
+        params_layout.setStretch(params_layout.count()-1, 1)
+        self.shown_for_button[helix_button].add(self.helix_structure_list)
+        self.all_params_widgets.append(self.helix_structure_list)
+
+        params_group = QGroupBox("Axis Parameters")
+        params_layout.addWidget(params_group)
+        pg_layout = QGridLayout()
+        pg_layout.setColumnMinimumWidth(1, 9)
+        pg_layout.setColumnStretch(2, 1)
+        pg_layout.setSpacing(0)
+        pg_layout.setContentsMargins(1,1,1,1)
+        params_group.setLayout(pg_layout)
+
+        from itertools import count
+        row_count = count(0)
+        row = next(row_count)
+        pg_layout.setRowStretch(row, 1)
+
+        row = next(row_count)
+        color_label = QLabel("Color")
+        pg_layout.addWidget(color_label, row, 0, alignment=Qt.AlignRight)
+        color_layout = QHBoxLayout()
+        color_layout.setSpacing(0)
+        pg_layout.addLayout(color_layout, row, 2, alignment=Qt.AlignLeft)
+
+        row = next(row_count)
+        pg_layout.setRowStretch(row, 1)
+
+        self.color_group = QButtonGroup()
+        self.default_color_button = QRadioButton("default")
+        self.color_group.addButton(self.default_color_button)
+        color_layout.addWidget(self.default_color_button)
+        color_layout.addSpacing(9)
+        explicit_color_button = QRadioButton()
+        self.color_group.addButton(explicit_color_button)
+        color_layout.addWidget(explicit_color_button, alignment=Qt.AlignRight)
+        self.color_widget = ColorButton(max_size=(16,16))
+        from chimerax.core.colors import Color
+        # button doesn't start off the right size unless explicitly given a color
+        self.color_widget.color = Color("#909090")
+        color_layout.addWidget(self.color_widget, alignment=Qt.AlignLeft)
+        self.default_color_button.setChecked(True)
+
+        row = next(row_count)
+        name_label = QLabel("Name")
+        pg_layout.addWidget(name_label, row, 0, alignment=Qt.AlignRight)
+        self.name_entry = QLineEdit()
+        pg_layout.addWidget(self.name_entry, row, 2)
+
+        row = next(row_count)
+        pg_layout.setRowStretch(row, 1)
+
+        row = next(row_count)
+        radius_label = QLabel("Radius")
+        pg_layout.addWidget(radius_label, row, 0, alignment=Qt.AlignRight)
+        radius_layout = QHBoxLayout()
+        radius_layout.setSpacing(0)
+        pg_layout.addLayout(radius_layout, row, 2, alignment=Qt.AlignLeft)
+
+        row = next(row_count)
+        pg_layout.setRowStretch(row, 1)
+
+        self.radius_group = QButtonGroup()
+        self.default_radius_button = QRadioButton("default")
+        self.radius_group.addButton(self.default_radius_button)
+        radius_layout.addWidget(self.default_radius_button)
+        radius_layout.addSpacing(9)
+        explicit_radius_button = QRadioButton()
+        self.radius_group.addButton(explicit_radius_button)
+        radius_layout.addWidget(explicit_radius_button, alignment=Qt.AlignRight)
+        explicit_radius_layout = QHBoxLayout()
+        radius_layout.addLayout(explicit_radius_layout, stretch=1)
+        self.radius_entry = QLineEdit()
+        self.radius_entry.setValidator(QDoubleValidator())
+        radius_layout.addWidget(self.radius_entry, alignment=Qt.AlignLeft, stretch=1)
+        radius_layout.addWidget(QLabel(" \N{ANGSTROM SIGN}"))
+        self.default_radius_button.setChecked(True)
+
+        self.show_applicable_params(self.button_group.checkedButton())
 
         bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
         bbox.accepted.connect(self.define_axis)
@@ -462,5 +576,16 @@ class DefineAxisDialog:
 
         tw.manage(None)
 
+    create_helix_axis = create_atoms_axis = create_plane_axis = create_points_axis = None
+
     def define_axis(self):
+        # gather parameters here
         self.tool_window.shown = False
+        # run command here
+
+    def show_applicable_params(self, button):
+        # widgets that are _always_ shown aren't in "shown_widgets"
+        shown_widgets = self.shown_for_button[button]
+        for widget in self.all_params_widgets:
+            widget.setHidden(widget not in shown_widgets)
+        self.name_entry.setText(self.axis_name_for_button[button])
