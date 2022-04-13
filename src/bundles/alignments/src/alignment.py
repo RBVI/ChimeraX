@@ -86,11 +86,11 @@ class Alignment(State):
         from chimerax.atomic import Chain
         self.intrinsic = intrinsic
         self._in_destroy = False
-        for i, seq in enumerate(seqs):
+        for i, seq in enumerate(self._seqs):
             if isinstance(seq, Chain):
                 from copy import copy
-                seqs[i] = copy(seq)
-            seqs[i].match_maps = {}
+                self._seqs[i] = copy(seq)
+            self._seqs[i].match_maps = {}
         # need an _headers placeholder before associate() gets called...
         self._headers = []
         self._assoc_handler = None
