@@ -420,6 +420,9 @@ class Logger(StatusLogger):
 
         exception_value = ei[1]
 
+        if isinstance(exception_value, KeyboardInterrupt):
+            self.session.ui.quit()
+
         if isinstance(exception_value, NotABug):
             self.error("%s%s" % (preface, exception_value))
         elif isinstance(exception_value, CancelOperation):
