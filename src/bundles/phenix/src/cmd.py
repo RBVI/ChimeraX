@@ -24,7 +24,6 @@ def register_command(logger):
                    ('near_model', AtomicStructureArg),
                    ('phenix_location', OpenFolderNameArg),
                    ('residue_range', FloatArg),
-                   ('server', BoolArg),
                    ('verbose', BoolArg),
         ],
         required_arguments = ['near_model'],

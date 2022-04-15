@@ -261,7 +261,7 @@ def _copy_new_waters(douse_model, near_model, keep_input_water, far_water, map_n
            f' in map "{map_name}" near model "{near_model.name}"') % (" new" if long_message else "")
     if long_message:
         sel_dup, ndup = _select_command(model, dup_input_wat_res)
-        sel_xtra, nxtra = _select_command(near_model, input_wat_res - dup_input_wat_res)
+        sel_xtra, nxtra = _select_command(model, input_wat_res - dup_input_wat_res)
         msg += (
             f'<br>Also, of the waters existing in the input, douse <a href="cxcmd:{sel_dup}">found {ndup}</a>'
             f' and <a href="cxcmd:{sel_xtra}">did not find {nxtra}</a>')
@@ -299,10 +299,10 @@ def _compare_waters(input_model, output_model, overlap_distance=2):
 
 
 def _select_command(model, residues):
-    from chimerax.atomic import concise_residue_spec
-    spec = concise_residue_spec(model.session, residues)
-    # need to sub in the model ID from 'model', which is not necessarily the residues' model
+    # model to select in is not necessarily the same as the residues
     if len(residues) > 0:
+        from chimerax.atomic import concise_residue_spec
+        spec = concise_residue_spec(model.session, residues)
         for i, c in enumerate(spec):
             if c not in '#.' and not c.isdigit():
                 break
