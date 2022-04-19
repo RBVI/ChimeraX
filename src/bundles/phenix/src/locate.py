@@ -14,16 +14,16 @@
 # ---------------------------------------------------------------------------------------
 #
 def find_phenix_command(session, program_name, phenix_location = None):
-    bin_dir = 'build/bin'	# For Python 2 Phenix
-    bin_dir = 'bin'		# For Python 3 Phenix
+    bin_dirs = ['bin', 'build/bin'] # for Python 3 / Python 2 Phenix respectively
     settings = _phenix_settings(session)
     from os.path import isfile, isdir, join, expanduser
     from chimerax.core.errors import UserError
     if phenix_location is None:
         if settings.phenix_location:
-            cmd = join(settings.phenix_location, bin_dir, program_name)
-            if isfile(cmd):
-                return cmd
+            for bin_dir in bin_dirs:
+                cmd = join(settings.phenix_location, bin_dir, program_name)
+                if isfile(cmd):
+                    return cmd
 
         phenix_dirs = []
         search_dirs = [expanduser("~")]
@@ -40,16 +40,20 @@ def find_phenix_command(session, program_name, phenix_location = None):
         if len(phenix_dirs) == 0:
             raise UserError('Could not find phenix installation in ' + ', '.join(search_dirs))
         for pdir in phenix_dirs:
-            cmd = join(pdir, bin_dir, program_name)
-            if isfile(cmd):
-                return cmd
+            for bin_dir in bin_dirs:
+                cmd = join(pdir, bin_dir, program_name)
+                if isfile(cmd):
+                    return cmd
         from chimerax.core.commands import commas
-        raise UserError('Could not find phenix program %s in %s folder of %s' % (program_name, bin_dir,
-            commas(phenix_dirs)))
+        raise UserError('Could not find phenix program %s in %s folder of %s' % (program_name,
+            commaa(bin_dirs), commas(phenix_dirs)))
     else:
-        cmd = join(phenix_location, bin_dir, program_name)
-        if not isfile(cmd):
-            raise UserError('Could not find phenix program ' + cmd)
+        for bin_dir in bin_dirs:
+            cmd = join(phenix_location, bin_dir, program_name)
+            if isfile(cmd):
+                break
+        else:
+            raise UserError('Could not find phenix program ' + program_name)
         settings.phenix_location = phenix_location
         settings.save()
         return cmd
