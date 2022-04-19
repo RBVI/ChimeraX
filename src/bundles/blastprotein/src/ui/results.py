@@ -122,8 +122,10 @@ class BlastProteinResults(ToolInstance):
             sequences = data['sequences']
             for (key, hit_name, saved_seq_dict) in sequences:
                 keys = list(saved_seq_dict.keys())
+                # Fix up keys that don't match current initializer
                 keys[1] = 'match_id'
                 keys[2] = 'desc'
+                keys[3] = 'score'
                 values = list(saved_seq_dict.values())
                 sequences_dict[key] = (hit_name, Match(**dict(zip(keys, values))))
             data['params'] = BlastParams(*list(data['params'].values()))
