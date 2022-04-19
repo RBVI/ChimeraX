@@ -191,8 +191,14 @@ class PDBParser(Parser):
             if entry["id"].startswith("pdb"):
                 _, name, chain = entry["id"].split("|")
             else:
-                name, chain = entry["accession"], ""
-            desc = entry["title"]
+                if "accession" in entry:
+                    name, chain = entry["accession"], ""
+                else:
+                    _, name, chain = entry["id"].split('|')
+            if "title" in entry:
+                desc = entry["title"]
+            else:
+                desc = ""
             if desc.startswith("Chain"):
                 # Strip the chain information up to the first comma, but since
                 # the description can have many commas splice the description
