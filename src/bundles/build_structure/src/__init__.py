@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from .mod import modify_atom
+from .mod import modify_atom, cn_peptide_bond
 from .start import place_fragment, place_helium, place_peptide, PeptideError
 from .providers import StartStructureProvider
 

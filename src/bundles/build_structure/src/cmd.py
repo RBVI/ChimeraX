@@ -12,6 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.core.errors import UserError
+from chimerax.core.commands import commas, plural_form
 
 def cmd_bond(session, *args, **kw):
     from .bond import create_bonds, CreateBondError
@@ -19,7 +20,6 @@ def cmd_bond(session, *args, **kw):
         created = create_bonds(*args, **kw)
     except CreateBondError as e:
         raise UserError(str(e))
-    from chimerax.core.commands import plural_form
     session.logger.info("Created %d %s" % (len(created), plural_form(created, "bond")))
 
 def cmd_bond_length(session, bond, length=None, *, move="small"):
@@ -29,6 +29,80 @@ def cmd_bond_length(session, bond, length=None, *, move="small"):
     else:
         from chimerax.atomic.struct_edit import set_bond_length
         set_bond_length(bond, length, move_smaller_side=(move=="small"))
+
+def cmd_join_peptide(session, atoms, *, length=1.33, omega=180.0, phi=None, move="smaller"):
+    # identify C-terminal carbon
+    cs = atoms.filter(atoms.elements.names == "C")
+    if not cs:
+        raise UserError("No carbons in specified atoms")
+    cs = cs.filter(cs.names == "C")
+    if not cs:
+        raise UserError("No carbons named 'C' in specified atoms")
+    ctcs = []
+    for c in cs:
+        if not c.residue.chain or c.residue == c.residue.chain.existing_residues[-1]:
+            ctcs.append(c)
+    if not ctcs:
+        raise UserError("No chain-terminal carbons in atoms")
+    cts = []
+    for ctc in ctcs:
+        for nb in ctc.neighbors:
+            if nb.name == "CA":
+                cts.append(ctc)
+
+    # identify N-terminal nitogen
+    ns = atoms.filter(atoms.elements.names == "N")
+    if not ns:
+        raise UserError("No nitrogens in specified atoms")
+    ns = ns.filter(ns.names == "N")
+    if not ns:
+        raise UserError("No nitrogens named 'N' in specified atoms")
+    ntns = []
+    for n in ns:
+        if not n.residue.chain or n.residue == n.residue.chain.existing_residues[0]:
+            ntns.append(n)
+    if not ntns:
+        raise UserError("No chain-initial nitrogens in atoms")
+    nts = []
+    for ntn in ntns:
+        for nb in ntn.neighbors:
+            if nb.name == "CA":
+                nts.append(ntn)
+    if not nts:
+        raise UserError("Chain-initial %s %s not bonded to a CA atom"
+            % (plural_form(ntns, 'nitrogen'), commas([str(ntn) for ntn in ntns])))
+
+    if len(cts) > 1:
+        if len(nts) > 1:
+            raise UserError("Multiple N- and C-terminii in atoms")
+        else:
+            ntn = nts[0]
+            ctcs = [ctc for ctc in cts if ctc.structure != ntn.structure]
+            if len(ctcs) > 1:
+                raise UserError("Multiple C-terminii in atoms")
+            if len(ctcs) == 0:
+                raise UserError("All C-termimii in atoms in same model as %s" % ntn)
+            ctc = ctcs[0]
+    else:
+        ctc = ctcs[0]
+        if len(nts) > 1:
+            ntns = [ntn for ntn in nts if ntn.structure != ctc.structure]
+            if len(ntns) > 1:
+                raise UserError("Multiple N-terminii in atoms")
+            if len(ntns) == 0:
+                raise UserError("All N-termimii in atoms in same model as %s" % ctc)
+        ntn = ntns[0]
+
+    if move == "N":
+        moving = ntn
+    elif move == "C":
+        moving = ctc
+    else:
+        smaller, larger = (ntn, ctc) if ctc.structure.num_atoms >= ntn.structure.num_atoms else (ctc, ntn)
+        moving = smaller if move == "smaller" else larger
+
+    from .mod import cn_peptide_bond
+    return cn_peptide_bond(ctc, ntn, moving, length, omega, phi, log_chain_remapping=True)
 
 def cmd_modify_atom(session, *args, **kw):
     from .mod import modify_atom, ParamError
@@ -61,9 +135,18 @@ def cmd_start_structure(session, method, model_info, subargs):
 
 def register_command(command_name, logger):
     from chimerax.core.commands import CmdDesc, register, BoolArg, Or, IntArg, EnumOf, StringArg
-    from chimerax.core.commands import DynamicEnum, RestOfLine, create_alias, PositiveFloatArg
+    from chimerax.core.commands import DynamicEnum, RestOfLine, create_alias, PositiveFloatArg, FloatArg
     from chimerax.atomic import AtomArg, ElementArg, StructureArg, AtomsArg, BondArg
     from chimerax.atomic.bond_geom import geometry_name
+    desc = CmdDesc(
+        required=[('atoms', AtomsArg)],
+        keyword = [('length', PositiveFloatArg),
+            ('omega', FloatArg), ('phi', FloatArg),
+            ('move', EnumOf(("large", "small", "N", "C")))],
+        synopsis = 'join models through peptide bond'
+    )
+    register('build join peptide', desc, cmd_join_peptide, logger=logger)
+
     desc = CmdDesc(
         required=[('atom', AtomArg), ('element', ElementArg), ('num_bonds', IntArg)],
         keyword = [('geometry', EnumOf(range(len(geometry_name)), ids=geometry_name)),
