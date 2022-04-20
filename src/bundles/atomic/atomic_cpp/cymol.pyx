@@ -1,5 +1,5 @@
 # distutils: language=c++
-#cython: language_level=3, boundscheck=False, auto_pickle=False 
+# cython: language_level=3, boundscheck=False, auto_pickle=False
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
@@ -1269,6 +1269,10 @@ cdef class CyResidue:
 
     @omega.setter
     def omega(self, val):
+        self.set_omega(val)
+
+    # Cython doesn't seem to allow **kw in a property setter despite always_allow_keywords=True, so...
+    def set_omega(self, val, **kw):
         cur_omega = self.omega
         if cur_omega is None:
             return
@@ -1285,7 +1289,7 @@ cdef class CyResidue:
             i = prev_c.neighbors.index(n)
         except IndexError:
             return
-        _set_angle(self.session, prev_c, prev_c.bonds[i], val, cur_omega, "omega")
+        _set_angle(self.session, prev_c, prev_c.bonds[i], val, cur_omega, "omega", **kw)
 
     @property
     def one_letter_code(self):
@@ -1317,6 +1321,10 @@ cdef class CyResidue:
 
     @phi.setter
     def phi(self, val):
+        self.set_phi(val)
+
+    # Cython doesn't seem to allow **kw in a property setter despite always_allow_keywords=True, so...
+    def set_phi(self, val, **kw):
         cur_phi = self.phi
         if cur_phi is None:
             return
@@ -1326,7 +1334,7 @@ cdef class CyResidue:
             i = n.neighbors.index(ca)
         except IndexError:
             return
-        _set_angle(self.session, n, n.bonds[i], val, cur_phi, "phi")
+        _set_angle(self.session, n, n.bonds[i], val, cur_phi, "phi", **kw)
 
     @property
     def psi(self):
@@ -1354,6 +1362,10 @@ cdef class CyResidue:
 
     @psi.setter
     def psi(self, val):
+        self.set_psi(val)
+
+    # Cython doesn't seem to allow **kw in a property setter despite always_allow_keywords=True, so...
+    def set_psi(self, val, **kw):
         cur_psi = self.psi
         if cur_psi is None:
             return
@@ -1363,7 +1375,7 @@ cdef class CyResidue:
             i = ca.neighbors.index(c)
         except IndexError:
             return
-        _set_angle(self.session, ca, ca.bonds[i], val, cur_psi, "psi")
+        _set_angle(self.session, ca, ca.bonds[i], val, cur_psi, "psi", **kw)
 
     PT_NONE, PT_AMINO, PT_NUCLEIC = range(3)
     PT_PROTEIN = PT_AMINO
@@ -1733,8 +1745,9 @@ cdef class CyResidue:
         except KeyError:
             return None
 
-def _set_angle(session, torsion_atom2, bond, new_angle, cur_angle, attr_name):
-    br = session.bond_rotations.new_rotation(bond)
+def _set_angle(session, torsion_atom2, bond, new_angle, cur_angle, attr_name, **kw):
+    br = session.bond_rotations.new_rotation(bond, **kw)
     br.angle += new_angle - cur_angle
     res = bond.atoms[0].residue
     res.structure.change_tracker.add_modified(res, attr_name + " changed")
+    session.bond_rotations.delete_rotation(br)
