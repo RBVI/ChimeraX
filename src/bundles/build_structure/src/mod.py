@@ -352,7 +352,7 @@ def cn_peptide_bond(c, n, moving, length, dihedral, phi=None, *, log_chain_remap
         a1, a2 = ac, an
     dihed_info = ([cca, c, n, nca], dihedral)
 
-    b = bind(a1, a2, length, dihed_info, log_chain_remapping=log_chain_remapping)
+    b = bind(a1, a2, length, dihed_info, renumber=an, log_chain_remapping=log_chain_remapping)
     b1, b2 = b.atoms
     if b1.element.name == "C":
         c, n = b1, b2
@@ -378,7 +378,7 @@ def cn_peptide_bond(c, n, moving, length, dihedral, phi=None, *, log_chain_remap
             res.set_phi(phi, move_smaller_side=False)
     return (c,n)
 
-def bind(a1, a2, length, dihed_info, *, log_chain_remapping=False):
+def bind(a1, a2, length, dihed_info, *, renumber=None, log_chain_remapping=False):
     """Make bond between two models.
 
        The models will be combined and the 'a2' model closed.  If the new bond forms a chain,
@@ -390,6 +390,9 @@ def bind(a1, a2, length, dihed_info, *, log_chain_remapping=False):
        a2 and atoms in its model will be moved to form the bond.  'length' is the bond length.
        'dihed_info' is a two-tuple of a sequence of four atoms and a dihedral angle that the
        four atoms should form.  dihed_info can be None if insufficent atoms.
+
+       If renumbering of the combined chain should be done, then 'renumber' should be a1 or a2 to
+       indicate which side gets renumbered.
     """
 
     s1, s2 = a1.structure, a2.structure
@@ -401,25 +404,28 @@ def bind(a1, a2, length, dihed_info, *, log_chain_remapping=False):
     except ValueError:
         raise AssertionError("Atoms must be bonded to exactly one atom apiece")
 
+    if renumber:
+        renumber_side, static_side = (b1, b2) if renumber == a1 else (b2, b1)
+
     # move b2 to a1's position
     from chimerax.geometry import translation, angle, cross_product, rotation, distance, dihedral, \
         length as vector_length
     mv = a1.scene_coord - b2.scene_coord
-    b2.structure.position = b2.structure.position * translation(mv)
+    b2.structure.position = translation(mv) * b2.structure.position
 
     # rotate to get b1-a1 colinear with b2-a2
     cur_ang = angle(b1.scene_coord, a1.scene_coord, a2.scene_coord)
     rot_axis = cross_product(b1.scene_coord - b2.scene_coord, a2.scene_coord - a1.scene_coord)
     if sum([v * v for v in rot_axis]):
-        b2.structure.position = b2.structure.position * rotation(rot_axis, -cur_ang, center=b2.scene_coord)
+        #b2.structure.position = b2.structure.position * rotation(rot_axis, -cur_ang, center=b2.coord)
+        b2.structure.position = rotation(rot_axis, -cur_ang, center=b2.scene_coord) * b2.structure.position
 
     # then get the distance correct
-    dv = b1.scene_coord - b2.scene_coord
-    from math import sqrt
-    dv *= sqrt(length/vector_length(dv))
-    b2.structure.position = b2.structure.position * translation(dv)
+    cur_vec = b2.scene_coord - b1.scene_coord
+    dv = (length/vector_length(cur_vec) - 1) * cur_vec
+    b2.structure.position = translation(dv) * b2.structure.position
 
-    # then dihedral
+    # then dihedral (omega for peptide)
     if dihed_info:
         atoms, dihed_val = dihed_info
         p1, p2, p3, p4 = [a.scene_coord for a in atoms]
@@ -429,7 +435,11 @@ def bind(a1, a2, length, dihed_info, *, log_chain_remapping=False):
         if sum([v * v for v in axis]):
             cur_dihed = dihedral(p1, p2, p3, p4)
             delta = dihed_val - cur_dihed
-            b2.structure.position = b2.structure.position * rotation(axis, delta, center=p3)
+            b2.structure.position = rotation(axis, delta, center=p3) * b2.structure.position
+            if atoms[2].structure == s2:
+                p1, p2, p3, p4 = [a.scene_coord for a in atoms]
+            else:
+                p4, p3, p2, p1 = [a.scene_coord for a in atoms]
 
     # delete a1/a2
     s1.delete_atom(a1)
@@ -453,35 +463,38 @@ def bind(a1, a2, length, dihed_info, *, log_chain_remapping=False):
             chain_id_mapping[chain_id] = new_id
             seen_ids.add(new_id)
 
-    # combine
     # remember where b2 is
     b2_index = s2.atoms.index(b2)
-    s1.combine(s2, chain_id_mapping, s1.scene_position)
 
-    # renumber b2 residue and others in its chain (if any) as needed
-    new_b2 = s1.atoms[s1.num_atoms - s2.num_atoms + b2_index]
-    if new_b2.residue.chain:
-        b2_residues = b2.residue.chain.existing_residues
-    else:
-        b2_residues = [b2.residue]
-    b2_numbers = set([r.number for r in b2_residues])
-    if b1.residue.chain:
-        b1_numbers = set(b1.residue.chain.existing_residues.numbers)
-    else:
-        b1_numbers = set([b1.residue.number])
-    if not b1_numbers.isdisjoint(b2_numbers):
-        # renumbering necessary
-        #
-        # if lowest b2 number is at least one, just add highest b1 number,
-        # otherwise add an additional offset to make the lowest number at least 1 more than highest b1
-        low_b2 = min(b2_numbers)
-        high_b1 = max(b1_numbers)
-        offset = 1 - low_b2 if low_b2 < 1 else 0
-        for r in b2_residues:
-            r.number += high_b1 + offset
+    # renumber part of the new chain if appropriate
+    if renumber:
+        if renumber_side.residue.chain:
+            renumber_side_residues = renumber_side.residue.chain.existing_residues
+        else:
+            renumber_side_residues = [renumber_side.residue]
+        renumber_side_numbers = set([r.number for r in renumber_side_residues])
+        if static_side.residue.chain:
+            static_side_numbers = set(static_side.residue.chain.existing_residues.numbers)
+        else:
+            static_side_numbers = set([static_side.residue.number])
+        if not static_side_numbers.isdisjoint(renumber_side_numbers):
+            # renumbering necessary
+            #
+            # if lowest renumber_side number is at least one, just add highest static_side number, otherwise
+            # add an additional offset to make the lowest number at least 1 more than highest static_side
+            low_renumber_side = min(renumber_side_numbers)
+            high_static_side = max(static_side_numbers)
+            offset = 1 - low_renumber_side if low_renumber_side < 1 else 0
+            for r in renumber_side_residues:
+                r.number += high_static_side + offset
+
+    # combine
+    s1.combine(s2, chain_id_mapping, s1.scene_position)
 
     # make bond; close s2; return new bond
     from chimerax.atomic.struct_edit import add_bond
+    new_b2 = s1.atoms[s1.num_atoms - s2.num_atoms + b2_index]
     b = add_bond(b1, new_b2)
     s1.session.models.close([s2])
+    print([str(a) for a in b.atoms])
     return b
