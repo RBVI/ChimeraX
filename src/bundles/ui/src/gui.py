@@ -844,6 +844,9 @@ class MainWindow(QMainWindow, PlainTextLog):
         but.setChecked(show)
         but.defaultAction().setChecked(show)
         but.setIcon(icon)
+        if self.session.in_script:
+            # get the graphics to actually hide/show
+            self.session.ui.processEvents()
 
     def _check_rapid_access(self, *args):
         self.rapid_access_shown = len(self.session.models) == 0

@@ -402,7 +402,7 @@ def colors_to_uint8(vc):
 # -----------------------------------------------------------------------------
 #
 def write_gltf(session, filename, models = None,
-               center = None, size = None, short_vertex_indices = False,
+               center = True, size = None, short_vertex_indices = False,
                float_colors = False, preserve_transparency = True,
                texture_colors = False, instancing = False):
     if models is None:
@@ -416,7 +416,12 @@ def write_gltf(session, filename, models = None,
     nodes, meshes = nodes_and_meshes(drawings, buffers, materials,
                                      short_vertex_indices,
                                      instancing)
-    
+
+    if center is True:
+        center = (0,0,0)
+    elif center is False:
+        center = None
+        
     if center is not None or size is not None:
         from chimerax.geometry import union_bounds
         bounds = union_bounds(m.bounds() for m in models if m.visible)

@@ -122,8 +122,10 @@ class BlastProteinResults(ToolInstance):
             sequences = data['sequences']
             for (key, hit_name, saved_seq_dict) in sequences:
                 keys = list(saved_seq_dict.keys())
+                # Fix up keys that don't match current initializer
                 keys[1] = 'match_id'
                 keys[2] = 'desc'
+                keys[3] = 'score'
                 values = list(saved_seq_dict.values())
                 sequences_dict[key] = (hit_name, Match(**dict(zip(keys, values))))
             data['params'] = BlastParams(*list(data['params'].values()))
@@ -252,7 +254,7 @@ class BlastProteinResults(ToolInstance):
     def fill_context_menu(self, menu, x, y):
         seq_action = QAction("Load Structures", menu)
         seq_view_action = QAction("Show Sequence Alignment", menu)
-        load_from_db_action = QAction("Open %s webpage" % AvailableDBsDict[self.params.database].pretty_name, menu)
+        load_from_db_action = QAction("Open %s Webpage" % AvailableDBsDict[self.params.database].pretty_name, menu)
         seq_action.triggered.connect(lambda: self.load(self.table.selected))
         seq_view_action.triggered.connect(lambda: self._show_mav(self.table.selected))
         load_from_db_action.triggered.connect(lambda: self.load_sequence(self.table.selected))

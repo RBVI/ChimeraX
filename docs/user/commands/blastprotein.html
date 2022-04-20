@@ -27,7 +27,7 @@ class="clRight" title="User Guide Index"/></a>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>blastprotein</b> 
 (&nbsp;<a href="atomspec.html#hierarchy"><i>chain-spec</i></a>&nbsp;|&nbsp;<a href="seqspec.html"><i>sequence-spec</i></a>&nbsp;)
-[&nbsp;<b>database</b>&nbsp;&nbsp;<b>pdb</b>&nbsp;|&nbsp;nr&nbsp;]
+[&nbsp;<b>database</b>&nbsp;&nbsp;<i>sequence-database</i>&nbsp;]
 [&nbsp;<b>matrix</b>&nbsp;&nbsp;<i>similarity-matrix</i>&nbsp;]
 [&nbsp;<b>cutoff</b>&nbsp;&nbsp;<i>evalue</i>&nbsp;]
 [&nbsp;<b>maxSeqs</b>&nbsp;&nbsp;<i>M</i>&nbsp;]
@@ -54,7 +54,7 @@ alignment open in ChimeraX:
 <li>&nbsp;<a href="seqspec.html"><i>sequence-spec</i></a>
 </ul>
 <p>
-The protein sequence <b>database</b> to search can be:
+The protein <i>sequence-database</i> to search can be:
 </p>
 <ul>
 <li><b>pdb</b> (default) 
@@ -73,6 +73,14 @@ is much larger than <b>pdb</b> alone and takes much longer to search
 &ndash; artificial-intelligence-predicted structures in the
 <a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold Database</a>
 (<a href="alphafold.html">more...</a>)
+<li><b>uniref100</b> &ndash;
+<a href="https://www.uniprot.org/help/uniref"
+target="_blank">UniProt Reference Cluster</a> at 100% identity
+(identical sequences and subfragments collapsed into a single entry)
+   <li><b>uniref90</b> &ndash; based on <b>uniref100</b>, but omitting
+sequences shorter than 11 residues and clustering at 90% identity
+   <li><b>uniref50</b> &ndash; based on <b>uniref100</b>, but omitting
+sequences shorter than 11 residues and clustering at 50% identity
 </ul>
 <p>
 The <b>matrix</b> option indicates which amino acid <i>similarity-matrix</i> 
@@ -135,5 +143,5 @@ If only one set of results is shown at a time, this option is not needed.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-September 2021</address>
+April 2022</address>
 </body></html>

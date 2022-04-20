@@ -213,7 +213,7 @@ class NRDB(NCBIDB):
 @dataclass
 class UniRefDB(NCBIDB):
     name: str = "uniref"
-    pretty_name: str = "UniRef"
+    pretty_name: str = "UniProt"
     database_url: str = "https://www.uniprot.org/uniprot/%s"
     fetchable_col: str = "uniprot_id"
     parser_factory: object = dbparsers.PDBParser
