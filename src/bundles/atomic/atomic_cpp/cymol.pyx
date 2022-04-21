@@ -1691,7 +1691,8 @@ cdef class CyResidue:
             res_str = ":" + str(self.number) + ic
         if residue_only:
             return res_str
-        chain_str = '/' + (self.chain_id if self.chain_id and not self.chain_id.isspace() else "?")
+        from chimerax.atomic import Chain
+        chain_str = Chain.chain_id_to_atom_spec(self.chain_id)
         if omit_structure is None:
             from .structure import Structure
             omit_structure = len([s for s in self.structure.session.models.list()
