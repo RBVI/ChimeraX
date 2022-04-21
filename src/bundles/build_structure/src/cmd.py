@@ -30,7 +30,7 @@ def cmd_bond_length(session, bond, length=None, *, move="small"):
         from chimerax.atomic.struct_edit import set_bond_length
         set_bond_length(bond, length, move_smaller_side=(move=="small"))
 
-def cmd_join_peptide(session, atoms, *, length=1.33, omega=180.0, phi=None, move="smaller"):
+def cmd_join_peptide(session, atoms, *, length=1.33, omega=180.0, phi=None, move="small"):
     # identify C-terminal carbon
     cs = atoms.filter(atoms.elements.names == "C")
     if not cs:
@@ -99,7 +99,7 @@ def cmd_join_peptide(session, atoms, *, length=1.33, omega=180.0, phi=None, move
         moving = ctc
     else:
         smaller, larger = (ntn, ctc) if ctc.structure.num_atoms >= ntn.structure.num_atoms else (ctc, ntn)
-        moving = smaller if move == "smaller" else larger
+        moving = smaller if move == "small" else larger
 
     from .mod import cn_peptide_bond
     return cn_peptide_bond(ctc, ntn, moving, length, omega, phi, log_chain_remapping=True)
