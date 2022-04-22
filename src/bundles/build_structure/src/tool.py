@@ -17,6 +17,7 @@ from chimerax.core.commands import run
 from Qt.QtWidgets import QVBoxLayout, QPushButton, QMenu, QStackedWidget, QWidget, QLabel, QFrame
 from Qt.QtWidgets import QGridLayout, QRadioButton, QHBoxLayout, QLineEdit, QCheckBox, QGroupBox
 from Qt.QtWidgets import QButtonGroup, QAbstractButton
+from Qt.QtGui import QAction
 from Qt.QtCore import Qt
 
 class BuildStructureTool(ToolInstance):
@@ -102,6 +103,23 @@ class BuildStructureTool(ToolInstance):
     def _cat_menu_cb(self, action):
         self.category_areas.setCurrentWidget(self.category_widgets[action.text()])
         self.category_button.setText(action.text())
+
+    def _jm_apply_cb(self):
+        from chimerax.atomic import selected_atoms
+        if not selected_atoms(self.session):
+            raise UserError("No atoms selected")
+        length = self.jp_bond_len_opt.value
+        omega = self.jp_omega_opt.value
+        phi = self.jp_phi_opt.value
+        side = self.jp_side_button.text()
+        if side.endswith("er"):
+            side = side[:-2]
+        from .mod import BindError
+        try:
+            run(self.session, "build join peptide sel length %g omega %g phi %g move %s"
+                % (length, omega, phi, side))
+        except BindError as e:
+            raise UserError(e)
 
     def _layout_adjust_bonds(self, parent):
         layout = QVBoxLayout()
@@ -227,11 +245,26 @@ class BuildStructureTool(ToolInstance):
         self.jp_phi_opt = FloatOption("C-N-C\N{GREEK SMALL LETTER ALPHA}-C"
             " dihedral (\N{GREEK SMALL LETTER PHI} angle):", -120.0, None, decimal_places=1)
         panel.add_option(self.jp_phi_opt)
+        side_layout = QHBoxLayout()
+        group_layout.addLayout(side_layout)
+        side_layout.addWidget(QLabel("Move atoms in ", alignment=Qt.AlignRight|Qt.AlignVCenter))
+        self.jp_side_button = QPushButton("smaller")
+        side_layout.addWidget(self.jp_side_button)
+        side_menu = QMenu(self.jp_side_button)
+        for side_text in ["N", "C", "smaller", "larger"]:
+            side_menu.addAction(QAction(side_text, side_menu))
+        side_menu.triggered.connect(lambda act, but=self.jp_side_button: but.setText(act.text()))
+        self.jp_side_button.setMenu(side_menu)
+        side_layout.addWidget(QLabel(" model", alignment=Qt.AlignLeft|Qt.AlignVCenter))
         peptide_disclaimer = QLabel("Selected N- and C-terminus must be in different models",
             alignment=Qt.AlignCenter)
         from chimerax.ui import shrink_font
         shrink_font(peptide_disclaimer)
         group_layout.addWidget(peptide_disclaimer)
+
+        apply_button = QPushButton("Apply")
+        apply_button.clicked.connect(lambda checked: self._jm_apply_cb())
+        layout.addWidget(apply_button, alignment=Qt.AlignHCenter|Qt.AlignTop)
 
     def _layout_modify_structure(self, parent):
         layout = QVBoxLayout()

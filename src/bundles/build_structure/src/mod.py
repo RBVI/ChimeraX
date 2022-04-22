@@ -16,6 +16,9 @@ from chimerax.atomic import Element
 class ParamError(ValueError):
     pass
 
+class BindError(ValueError):
+    pass
+
 def modify_atom(atom, element, num_bonds, *, geometry=None, name=None, connect_back=True,
         color_by_element=True, res_name=None, new_res=False):
 
@@ -262,21 +265,21 @@ def cn_peptide_bond(c, n, moving, length, dihedral, phi=None, *, log_chain_remap
 
     # process C terminus
     if c.element.name != "C":
-        raise AssertionError('C-terminal "carbon" is a %s!' % c.element.name)
+        raise BindError('C-terminal "carbon" is a %s!' % c.element.name)
     # C-term: find CA
     nbs = c.neighbors
     if len(nbs) > 3:
-        raise AssertionError("More than 3 atoms connected to C-terminal carbon [%s]" % c)
+        raise BindError("More than 3 atoms connected to C-terminal carbon [%s]" % c)
     nb_elements = [a.element.name for a in nbs]
     if nb_elements.count("C") != 1:
-        raise AssertionError("C-terminal carbon not bonded to exactly one carbon")
+        raise BindError("C-terminal carbon not bonded to exactly one carbon")
     cca = nbs[nb_elements.index("C")]
     # C-term: find OXT or equivalent
     added = False
     oxys = [a for a in nbs if a.element.name == "O"]
     if len(oxys) == 0:
         if len(nbs) > 1:
-            raise AssertionError("C-terminal carbon bonded to no oxygens yet bonded to %d other atoms"
+            raise BindError("C-terminal carbon bonded to no oxygens yet bonded to %d other atoms"
                 % len(nbs))
         pos = bond_positions(c.coord, planar, 1.0, [cca.coord])[0]
         ac = add_atom("TMP", c.element, c.residue, pos, serial_number=0, bonded_to=c)
@@ -292,7 +295,7 @@ def cn_peptide_bond(c, n, moving, length, dihedral, phi=None, *, log_chain_remap
             elif len(nbs) == 3:
                 ac = [a for a in nbs if a not in (c, oxys[0])][0]
                 if ac.num_bonds > 1:
-                    raise AssertionError("Unexpected branching atom (%s) connected to C-terminal carbon"
+                    raise BindError("Unexpected branching atom (%s) connected to C-terminal carbon"
                         %ac )
     else:
         oxts = [o for o in oxys if o.name == "OXT"]
@@ -304,7 +307,7 @@ def cn_peptide_bond(c, n, moving, length, dihedral, phi=None, *, log_chain_remap
     # process N terminus
     try:
         if n.element.name != "N":
-            raise AssertionError('N-terminal "nitrogen" is a $s!' % n.element.nme)
+            raise BindError('N-terminal "nitrogen" is a $s!' % n.element.nme)
         # N-term: find CA
         nbs = n.neighbors
         nb_elements = [a.element.name for a in nbs]
@@ -314,18 +317,18 @@ def cn_peptide_bond(c, n, moving, length, dihedral, phi=None, *, log_chain_remap
         else:
             if n.residue.name in ["PRO", "HYP"]:
                 if nb_elements.count("C") != 2:
-                    raise AssertionError("Proline N-terminal nitrogen not bonded to exactly two carbons")
+                    raise BindError("Proline N-terminal nitrogen not bonded to exactly two carbons")
                 ncas = [nc for nc in ncs if nc.name == "CA"]
                 if len(ncas) == 1:
                     nca = ncas[0]
                 else:
-                    raise AssertionError("Not exactly one CA bonded to N-terminal nitrogen")
+                    raise BindError("Not exactly one CA bonded to N-terminal nitrogen")
             else:
-                raise AssertionError("Non-proline N-terminal nitrogen not bonded to exactly one carbon")
+                raise BindError("Non-proline N-terminal nitrogen not bonded to exactly one carbon")
         # N-term: clean the N
         for nb in nbs:
             if nb not in ncs and nb.num_bonds > 1:
-                raise AssertionError("Unexpected branching atom [%s] attached to N terminus" % nb)
+                raise BindError("Unexpected branching atom [%s] attached to N terminus" % nb)
         hyds = [a for a in nbs if a.element.number == 1]
         hs = [h for h in hyds if h.name == "H"]
         if hs:
@@ -397,12 +400,12 @@ def bind(a1, a2, length, dihed_info, *, renumber=None, log_chain_remapping=False
 
     s1, s2 = a1.structure, a2.structure
     if s1 == s2:
-        raise ValueError("Atoms must be in different models")
+        raise BindError("Atoms must be in different models")
 
     try:
         b1, b2 = a1.neighbors + a2.neighbors
     except ValueError:
-        raise AssertionError("Atoms must be bonded to exactly one atom apiece")
+        raise BindError("Atoms must be bonded to exactly one atom apiece")
 
     if renumber:
         renumber_side, static_side = (b1, b2) if renumber == a1 else (b2, b1)
@@ -417,7 +420,6 @@ def bind(a1, a2, length, dihed_info, *, renumber=None, log_chain_remapping=False
     cur_ang = angle(b1.scene_coord, a1.scene_coord, a2.scene_coord)
     rot_axis = cross_product(b1.scene_coord - b2.scene_coord, a2.scene_coord - a1.scene_coord)
     if sum([v * v for v in rot_axis]):
-        #b2.structure.position = b2.structure.position * rotation(rot_axis, -cur_ang, center=b2.coord)
         b2.structure.position = rotation(rot_axis, -cur_ang, center=b2.scene_coord) * b2.structure.position
 
     # then get the distance correct
@@ -496,5 +498,4 @@ def bind(a1, a2, length, dihed_info, *, renumber=None, log_chain_remapping=False
     new_b2 = s1.atoms[s1.num_atoms - s2.num_atoms + b2_index]
     b = add_bond(b1, new_b2)
     s1.session.models.close([s2])
-    print([str(a) for a in b.atoms])
     return b
