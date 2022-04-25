@@ -26,6 +26,13 @@ class="clRight" title="User Guide Index"/></a>
 <h3><a href="../index.html#commands">Command</a>: build</h3>
 <!--
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>build start</b>
+&nbsp;<a href="atomspec.html"><i>atom</i></a>&nbsp;
+[&nbsp;<a href="atomspec.html"><i>model</i></a>&nbsp;|&nbsp;<i>new-model-name</i>&nbsp;]
+[&nbsp;<b>resName</b>&nbsp;&nbsp;<i>resname</i>&nbsp;]
+[&nbsp;<b>select</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+</h3>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>build modify</b>
 &nbsp;<a href="atomspec.html"><i>atom</i></a>&nbsp;
 &nbsp;<i>element</i>&nbsp;
@@ -38,11 +45,12 @@ class="clRight" title="User Guide Index"/></a>
 [&nbsp;<b>resName</b>&nbsp;&nbsp;<i>resname</i>&nbsp;]
 </h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
-<br><b>build start</b>
-&nbsp;<a href="atomspec.html"><i>atom</i></a>&nbsp;
-[&nbsp;<a href="atomspec.html"><i>model</i></a>&nbsp;|&nbsp;<i>new-model-name</i>&nbsp;]
-[&nbsp;<b>resName</b>&nbsp;&nbsp;<i>resname</i>&nbsp;]
-[&nbsp;<b>select</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+<br><b>build join peptide</b>
+&nbsp;<a href="atomspec.html"><i>atoms</i></a>&nbsp;
+[&nbsp;<b>length</b>&nbsp;&nbsp;<i>bond-length</i>&nbsp;]
+[&nbsp;<b>omega</b>&nbsp;&nbsp;<i>&omega;</i>&nbsp;]
+[&nbsp;<b>phi</b>&nbsp;&nbsp;<i>&phi;</i>&nbsp;]
+[&nbsp;<b>move</b>&nbsp;&nbsp;large&nbsp;|&nbsp;<b>small</b>&nbsp;|&nbsp;C&nbsp;|&nbsp;N&nbsp;]
 </h3>
 -->
 <p>
@@ -54,6 +62,9 @@ the <a href="../tools/buildstructure.html"><b>Build Structure</b></a> tool:
 &ndash; generate a new molecule not bonded to existing atoms
 <li><a href="#modify"><b>build modify</b></a>
 &ndash; change an existing atomic structure
+<li><a href="#join"><b>build join</b></a>
+&ndash; add a covalent bond (currently <b>peptide</b> only)
+between two atomic models to form a single model
 </ul>
 <p>
 See also: 
@@ -257,7 +268,49 @@ If <b>newRes</b> is <b>true</b>:
   </ul>
 </blockquote>
 
+<a href="#top" class="nounder">&bull;</a>
+<a name="join"></a>
+<b>build join</b> <b>peptide</b>
+&nbsp;<a href="atomspec.html"><i>atoms</i></a>&nbsp;
+[&nbsp;<b>length</b>&nbsp;&nbsp;<i>bond-length</i>&nbsp;]
+[&nbsp;<b>phi</b>&nbsp;&nbsp;<i>&phi;</i>&nbsp;]
+[&nbsp;<b>omega</b>&nbsp;&nbsp;<i>&omega;</i>&nbsp;]
+[&nbsp;<b>move</b>&nbsp;&nbsp;large&nbsp;|&nbsp;<b>small</b>&nbsp;|&nbsp;C&nbsp;|&nbsp;N&nbsp;]
+<blockquote>
+The <b>build join</b> command forms a covalent bond of the specified
+geometry between two atomic models, combining the two models into one.
+The atoms of one model are repositioned and incorporated into the other model; 
+the original model will no longer exist. Thus, it may be a good idea
+to <a href="save.html#session">save a session</a> beforehand, since
+the join (along with other building actions) cannot be undone.
+The related command <a href="combine.html"><b>combine</b></a> also combines
+atomic models, but without forming a bond or changing the relative positions 
+of the atoms.
+</p><p>
+Currently, only a <b>peptide</b> bond
+can be formed, where <a href="atomspec.html"><i>atoms</i></a> must include
+exactly one peptide C-terminal carbon atom C <b>&ndash;<i>OR</i>&ndash;</b>
+N-terminal nitrogen atom N (not both) from one model, and from a second 
+model, exactly one of whichever of those two atoms is not in the first.
+The default <b>length</b> for the new C-N bond is <b>1.33</b> &Aring; 
+and the default <b>omega</b> angle (C&alpha;-C-N-C&alpha; dihedral) 
+is <b>180.0</b>&deg;. There is no default for the <b>phi</b> angle
+(C-N-C&alpha;-C dihedral). The model to <b>move</b> is repositioned 
+and its atoms placed in the other model, using the chain ID from the 
+other model.  Options for which model to <b>move</b>:
+<ul>
+<li><b>large</b>
+&ndash; the one with the greater number of  atoms
+<li><b>small</b> (default)
+&ndash; the one with fewer atoms
+<li><b>C</b>
+&ndash; the one containing the C atom to be bonded
+<li><b>N</b> (default if the two models have equal numbers of atoms)
+&ndash; the one containing the N atom to be bonded
+</ul>
+</blockquote>
+
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-July 2021</address>
+April 2022</address>
 </body></html>
