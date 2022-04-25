@@ -325,6 +325,14 @@ def cn_peptide_bond(c, n, moving, length, dihedral, phi=None, *, log_chain_remap
                     raise BindError("Not exactly one CA bonded to N-terminal nitrogen")
             else:
                 raise BindError("Non-proline N-terminal nitrogen not bonded to exactly one carbon")
+        if phi is not None:
+            # alse need to know the backbone C bonded to nca
+            for nca_nb in nca.neighbors:
+                if nca_nb.element.name == "C" and nca_nb.is_backbone():
+                    n_c = nca_nb
+                    break
+            else:
+                raise BindError("Could not find second C atom for phi angle")
         # N-term: clean the N
         for nb in nbs:
             if nb not in ncs and nb.num_bonds > 1:
@@ -353,7 +361,11 @@ def cn_peptide_bond(c, n, moving, length, dihedral, phi=None, *, log_chain_remap
         a1, a2 = an, ac
     else:
         a1, a2 = ac, an
-    dihed_info = ([cca, c, n, nca], dihedral)
+    dihed_info = [((cca, c, n, nca), dihedral)]
+    # though it might seem simpler to adjust the phi angle after establishing the bond,
+    # that may move a chain relative to the other chains in its original model
+    if phi is not None:
+        dihed_info.append(((c, n, nca, n_c), phi))
 
     b = bind(a1, a2, length, dihed_info, renumber=an, log_chain_remapping=log_chain_remapping)
     b1, b2 = b.atoms
@@ -371,14 +383,6 @@ def cn_peptide_bond(c, n, moving, length, dihedral, phi=None, *, log_chain_remap
     if hyds and len(nbs) < 3:
         pos = bond_positions(n.coord, planar, 1.01, [a.coord for a in nbs])[0]
         add_atom("H", "H", n.residue, pos, bonded_to=n)
-    if phi is not None:
-        # may need to do some special footwork to ensure the correct side moves as the
-        # phi angle is set (can't always just res.phi = val)
-        res = n.residue
-        if b.smaller_side == moving:
-            res.phi = phi
-        else:
-            res.set_phi(phi, move_smaller_side=False)
     return (c,n)
 
 def bind(a1, a2, length, dihed_info, *, renumber=None, log_chain_remapping=False):
@@ -427,11 +431,10 @@ def bind(a1, a2, length, dihed_info, *, renumber=None, log_chain_remapping=False
     dv = (length/vector_length(cur_vec) - 1) * cur_vec
     b2.structure.position = translation(dv) * b2.structure.position
 
-    # then dihedral (omega for peptide)
-    if dihed_info:
-        atoms, dihed_val = dihed_info
+    # then dihedral (omega/phi for peptide)
+    for atoms, dihed_val in dihed_info:
         p1, p2, p3, p4 = [a.scene_coord for a in atoms]
-        if atoms[2].structure != s2:
+        if atoms[3].structure != s2:
             p1, p2, p3, p4 = p4, p3, p2, p1
         axis = p3 - p2
         if sum([v * v for v in axis]):
