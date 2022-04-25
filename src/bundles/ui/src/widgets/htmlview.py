@@ -184,7 +184,9 @@ class HtmlView(QWebEngineView):
         page = _LoggingPage(self._profile, self, log_errors=log_errors)
         self.setPage(page)
         s = page.settings()
-        s.setAttribute(s.WebAttribute.LocalStorageEnabled, True)
+        # s.setAttribute(s.WebAttribute.LocalStorageEnabled, True)  # now the default
+        s.setAttribute(s.WebAttribute.LocalContentCanAccessRemoteUrls, True)  # get help viewer to work
+        s.setDefaultTextEncoding("UTF-8")
         self.setAcceptDrops(False)
         # as of Qt 5.6.0, the keyboard shortcut for copying text
         # from the QWebEngineView did nothing on Mac, the below

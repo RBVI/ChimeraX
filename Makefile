@@ -120,7 +120,11 @@ clean:
 
 build-from-scratch:
 	$(MAKE) distclean
+ifdef INSTALL_RBVI
+	$(MAKE) install-rbvi
+else
 	$(MAKE) install
+endif
 
 # Linux debugging:
 
