@@ -484,6 +484,12 @@ class AlphaFoldPAE:
 
     # ---------------------------------------------------------------------------
     #
+    @property
+    def matrix_size(self):
+        return self._pae_matrix.shape[0]
+    
+    # ---------------------------------------------------------------------------
+    #
     def color_domains(self, cluster_max_pae = None, cluster_clumping = None,
                       cluster_min_size = None, log_command = False):
         m = self.structure
@@ -707,6 +713,11 @@ def alphafold_pae(session, structure = None, file = None, uniprot_id = None,
     if file:
         pae = AlphaFoldPAE(file, structure)
         if structure:
+            if structure.num_residues != pae.matrix_size:
+                from chimerax.core.errors import UserError
+                raise UserError('Number of residues in structure "%s" is %d which does not match PAE matrix size %d.'
+                                % (str(structure), structure.num_residues, pae.matrix_size) +
+                                '\n\nThis can happen if the AlphaFold model has been trimmed to match an experimental structure, or if residues have been deleted.  The full-length AlphaFold model must be used to show predicted aligned error.')
             structure.alphafold_pae = pae
     elif structure is None:
         from chimerax.core.errors import UserError
