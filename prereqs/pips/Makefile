@@ -21,7 +21,7 @@ PYSIDE2_MACOS_REMOVE = PySide2/pyside2-lupdate \
 all:
 
 install:
-	LANG=$(LANG) $(PIP_INSTALL) -r build_requirements.txt	
+	LANG=$(LANG) $(PIP_INSTALL) -r build_requirements.txt
 ifeq ($(OS),Darwin)
 	# Link cython in Python framework to build/bin, used compiling core/serialize.pyx.
 	ln -s ../Library/Frameworks/Python.Framework/Versions/$(PYTHON_VERSION)/bin/cython $(bindir)
@@ -38,6 +38,26 @@ upgrade:
 
 app-install:
 	$(APP_PIP_INSTALL) -r app_requirements.txt
+ifeq ($(OSARCH),DarwinArm64)
+	# Install the Conda versions of Python wheels for arm64 Mac
+	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/imagecodecs/imagecodecs-2022.2.22-cp39-cp39-macosx_12_0_arm64.whl
+	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/netcdf4/netCDF4-1.5.8-cp39-cp39-macosx_12_0_arm64.whl
+	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/netcdf4/libnetcdf.19.dylib.arm64
+	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/pytables/tables-3.7.0-cp39-cp39-macosx_12_0_arm64.whl
+	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/pytables/libhdf5.200.dylib.arm64
+	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/pytables/libblosc.1.dylib.arm64
+	mv libblosc.1.dylib.arm64 libblosc.1.dylib
+	mv libhdf5.200.dylib.arm64 libhdf5.200.dylib
+	mv libnetcdf.19.dylib.arm64 libnetcdf.19.dylib
+	$(APP_PIP_INSTALL) tables-3.7.0-cp39-cp39-macosx_12_0_arm64.whl \
+		netCDF4-1.5.8-cp39-cp39-macosx_12_0_arm64.whl \
+		imagecodecs-2022.2.22-cp39-cp39-macosx_12_0_arm64.whl
+ifdef USE_MAC_FRAMEWORKS
+	$(RSYNC) *.dylib $(APP_PYTHON_FRAMEWORK_LIBDIR)
+else
+	$(RSYNC) *.dylib $(app_shlibdir)
+endif
+endif
 	$(APP_PIP_INSTALL) -r app_pyopengl_requirements.txt
 	-for p in $(PATCHES); do \
 		patch -d $(APP_PYSITEDIR) -N -p0 < $$p ; \
@@ -46,6 +66,7 @@ app-install:
 
 app-upgrade:
 	$(APP_PIP_INSTALL) -U -r app_requirements.txt
+	$(APP_PIP_INSTALL) -U -r app_pyopengl_requirements.txt
 
 # Example targets for patching a pip package. These targets would
 # be dependencies of the install and app-install targets.

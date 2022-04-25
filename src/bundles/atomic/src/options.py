@@ -24,6 +24,8 @@ class AtomPairRestrictOption(Option):
             "with exactly one %s selected" % atom_word,
             "with both %s selected" % plural_of(atom_word)
         )
+        if args[-1] != None:
+            raise AssertionError(self.__class__.__name + " does not support callbacks")
         super().__init__(*args, **kw)
 
     def get_value(self):
@@ -80,7 +82,7 @@ class AtomPairRestrictOption(Option):
             self.value = self.restrict_kw_vals[self.fixed_kw_menu_texts.index(label)]
         else:
             self.value = self.__line_edit.text()
-        self.make_callback()
+        # No callback, because user may need to fill in atom spec field first
 
 class StructureOption(Option):
     def __init__(self, session, *args, **kw):
