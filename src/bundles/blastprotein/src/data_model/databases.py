@@ -1,16 +1,15 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
-# === UCSF ChimeraX Copyright ===
-# Copyright 2021 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
-# === UCSF ChimeraX Copyright ===
-# import re
+#  === UCSF ChimeraX Copyright ===
+#  Copyright 2022 Regents of the University of California.
+#  All rights reserved.  This software provided pursuant to a
+#  license agreement containing restrictions on its disclosure,
+#  duplication and use.  For details see:
+#  https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+#  This notice must be embedded in or attached to all copies,
+#  including partial copies, of the software or any revisions
+#  or derivations thereof.
+#  === UCSF ChimeraX Copyright ===
 
 from typing import Callable
 from dataclasses import dataclass, field
@@ -202,18 +201,15 @@ class NCBIDB(Database):
 @dataclass
 class PDB(NCBIDB):
     name: str = "pdb"
-    pretty_name: str = "PDB"
 
 
 @dataclass
 class NRDB(NCBIDB):
     name: str = "nrdb"
-    pretty_name: str = "NRDB"
 
 @dataclass
 class UniRefDB(NCBIDB):
     name: str = "uniref"
-    pretty_name: str = "UniProt"
     database_url: str = "https://www.uniprot.org/uniprot/%s"
     fetchable_col: str = "uniprot_id"
     parser_factory: object = dbparsers.PDBParser
@@ -261,7 +257,6 @@ class UniRefDB(NCBIDB):
 @dataclass
 class AlphaFoldDB(Database):
     name: str = "alphafold"
-    pretty_name: str = "AlphaFold"
     # The title of the data column that can be used to fetch the model
     fetchable_col: str = "uniprot_id"
     parser_factory: object = dbparsers.AlphaFoldParser
