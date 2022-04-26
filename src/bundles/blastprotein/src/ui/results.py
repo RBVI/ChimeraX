@@ -1,15 +1,15 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
-# === UCSF ChimeraX Copyright ===
-# Copyright 2021 Regents of the University of California.
-# All rights reserved. This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use. For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
-# === UCSF ChimeraX Copyright ===
+#  === UCSF ChimeraX Copyright ===
+#  Copyright 2022 Regents of the University of California.
+#  All rights reserved.  This software provided pursuant to a
+#  license agreement containing restrictions on its disclosure,
+#  duplication and use.  For details see:
+#  https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+#  This notice must be embedded in or attached to all copies,
+#  including partial copies, of the software or any revisions
+#  or derivations thereof.
+#  === UCSF ChimeraX Copyright ===
 from string import capwords
 from typing import Dict
 
@@ -122,8 +122,10 @@ class BlastProteinResults(ToolInstance):
             sequences = data['sequences']
             for (key, hit_name, saved_seq_dict) in sequences:
                 keys = list(saved_seq_dict.keys())
+                # Fix up keys that don't match current initializer
                 keys[1] = 'match_id'
                 keys[2] = 'desc'
+                keys[3] = 'score'
                 values = list(saved_seq_dict.values())
                 sequences_dict[key] = (hit_name, Match(**dict(zip(keys, values))))
             data['params'] = BlastParams(*list(data['params'].values()))
@@ -252,7 +254,7 @@ class BlastProteinResults(ToolInstance):
     def fill_context_menu(self, menu, x, y):
         seq_action = QAction("Load Structures", menu)
         seq_view_action = QAction("Show Sequence Alignment", menu)
-        load_from_db_action = QAction("Open %s webpage" % AvailableDBsDict[self.params.database].pretty_name, menu)
+        load_from_db_action = QAction("Open Database Webpage", menu)
         seq_action.triggered.connect(lambda: self.load(self.table.selected))
         seq_view_action.triggered.connect(lambda: self._show_mav(self.table.selected))
         load_from_db_action.triggered.connect(lambda: self.load_sequence(self.table.selected))

@@ -188,11 +188,14 @@ class PDBParser(Parser):
         id_list = []
         # Unlike XML output, JSON output doesn't separate out the first PDBID.
         for entry in hit["description"]:
-            if entry["id"].startswith("pdb"):
+            if entry["id"].startswith("pdb") or "accession" not in entry:
                 _, name, chain = entry["id"].split("|")
             else:
                 name, chain = entry["accession"], ""
-            desc = entry["title"]
+            if "title" in entry:
+                desc = entry["title"]
+            else:
+                desc = ""
             if desc.startswith("Chain"):
                 # Strip the chain information up to the first comma, but since
                 # the description can have many commas splice the description

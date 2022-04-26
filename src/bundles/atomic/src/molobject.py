@@ -1280,6 +1280,22 @@ class Chain(StructureSeq):
     def atomspec(self):
         return self.string(style="command")
 
+    # also used by Residue
+    @staticmethod
+    def chain_id_to_atom_spec(chain_id):
+        if chain_id:
+            if chain_id.isspace():
+                id_text = "?"
+            elif chain_id.isalnum():
+                id_text = chain_id
+            else:
+                # use single quotes on the inside so that they can be used in 
+                # cxcmd HTML contexts
+                id_text = "/chain_id='%s'" % chain_id
+        else:
+            id_text = "?"
+        return '/' + id_text
+
     @property
     def identity(self):
         """'Fake' attribute to allow for //identity="/A" tests"""
@@ -1327,7 +1343,7 @@ class Chain(StructureSeq):
         return chain
 
     def string(self, style=None, include_structure=None):
-        chain_str = '/' + (self.chain_id if self.chain_id and not self.chain_id.isspace() else "?")
+        chain_str = self.chain_id_to_atom_spec(self.chain_id)
         from .structure import Structure
         if include_structure is not False and (
         include_structure is True

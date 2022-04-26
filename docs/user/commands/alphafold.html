@@ -100,29 +100,37 @@ The <b>alphafold</b> command is also implemented as the tools
 <a href="../tools/alphafold.html"><b>AlphaFold</b></a>
 and <a href="../tools/alphafold.html#pae"><b>AlphaFold Error Plot</b></a>.
 See also:
-<a href="../tools/blastprotein.html"><b>Blast Protein</b></a>,
-<a href="../tools/modeller.html"><b>Modeller Comparative</b></a>,
-<a href="https://www.rbvi.ucsf.edu/chimerax/data/alphafold-aug2021/alphafold.html"
-target="_blank">AlphaFold vs. experiment</a>,
-<a href="https://www.rbvi.ucsf.edu/chimerax/data/sbgrid-mar2022/alphafold_pae.html"
-target="_blank">AlphaFold for cryoEM modeling (2022)</a>
+<a href="blastprotein.html"><b>blastprotein</b></a>,
+<a href="modeller.html"><b>modeller</b></a>,
+<a href="swapaa.html"><b>swapaa</b></a>
+</p>
+Presentations:
+<ul>
+<li><a href="https://www.rbvi.ucsf.edu/chimerax/data/alphafold-aug2021/alphafold.html"
+target="_blank">AlphaFold vs. experiment</a>
+<li><a href="https://www.rbvi.ucsf.edu/chimerax/data/alphafold-dec2021/af_multimer.html"
+target="_blank">AlphaFold for complexes</a>
+<li><a href="https://www.rbvi.ucsf.edu/chimerax/data/sbgrid-mar2022/alphafold_pae.html"
+target="_blank">AlphaFold for cryoEM modeling &ndash; 2022a</a>
+(<a href="https://www.rbvi.ucsf.edu/chimerax/data/stanford-apr2022/cryoem_intro.html"
+target="_blank">2022b</a>)
 (<a href="https://www.rbvi.ucsf.edu/chimerax/data/alphafold-nov2021/af_sbgrid.html"
-target="_blank">2021</a>),
-<a href="https://www.rbvi.ucsf.edu/chimerax/data/alphafold-dec2021/af_multimer.html"
-target="_blank">AlphaFold for complexes</a>, and
+target="_blank">2021</a>)
+</ul>
 <a href="https://www.rbvi.ucsf.edu/chimerax/docs/videos/"
 target="_blank">ChimeraX videos</a>:
-<a href="https://youtu.be/x-9urTQ1rJY" target="_blank">searching by sequence</a>
-for AlphaFold models (first 5 minutes),
-<a href="https://youtu.be/W6KsBfNwDgs" target="_blank">fetching</a> an
-AlphaFold model,
-<a href="https://youtu.be/vj3sQfvWfDU" target="_blank">matching</a>
-a known assembly structure,
-<a href="https://youtu.be/le7NatFo8vI" target="_blank">predicting</a>
-a structure,
-<a href="https://youtu.be/6lXeCPuTePs" target="_blank">predicting
+<ul>
+<li><a href="https://youtu.be/x-9urTQ1rJY" target="_blank">searching 
+by sequence</a> for AlphaFold models (first 5 minutes)
+<li><a href="https://youtu.be/W6KsBfNwDgs" target="_blank">fetching</a> an
+AlphaFold model
+<li><a href="https://youtu.be/vj3sQfvWfDU" target="_blank">matching</a>
+a known assembly structure
+<li><a href="https://youtu.be/le7NatFo8vI" target="_blank">predicting</a>
+a structure
+<li><a href="https://youtu.be/6lXeCPuTePs" target="_blank">predicting
 a complex</a>
-</p>
+</ul>
 
 <a name="fetch"></a>
 <a name="match"></a>
@@ -597,6 +605,7 @@ with <b>pae true</b>, or the separate command <b>alphafold pae</b>:
 [&nbsp;<a href="color.html#palette-options"><b>range</b></a>&nbsp;&nbsp;<i>low,high</i>&nbsp;|&nbsp;full&nbsp;]
 [&nbsp;<b>plot</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>colorDomains</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>minSize</b>&nbsp;&nbsp;<i>M</i>&nbsp;]
 [&nbsp;<b>connectMaxPae</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
 [&nbsp;<b>cluster</b>&nbsp;&nbsp;<i>resolution</i>&nbsp;]
 </blockquote>
@@ -650,12 +659,19 @@ align="center"><font size="-1">30</font></td>
 <a name="colorDomains"></a>
 <p>
 Setting <b>colorDomains</b> to <b>true</b> clusters the residues into
-coherent domains (sets of residues with relatively low PAE values)
+coherent domains (sets of residues with relatively low pairwise PAE values)
 and uses randomly chosen colors to distinguish these domains in the structure.
-The clustering uses the
+The residues are assigned an integer domain identifier (starting with 1) as an
+<a href="../attributes.html">attribute</a> named <b>pae_domain</b>
+that can be used to <a href="atomspec.html#attributes">specify</a> 
+them in commands (for example, to recolor or select specific domains).
+Residues not grouped into any domain are assigned a <b>pae_domain</b> 
+value of <b>None</b>. The clustering uses the
 NetworkX greedy_modularity_communities algorithm with parameters:
 </p>
 <ul>
+<li><b>minSize</b> (default <b>10</b> residues)
+&ndash; minimum number of residues allowed in a domain
 <li><b>connectMaxPae</b> (default <b>5.0</b> &Aring;)
 &ndash; the maximum PAE value allowed between residues for them to be 
 clustered into the same domain. Larger values give larger domains

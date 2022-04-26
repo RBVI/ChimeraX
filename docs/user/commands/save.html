@@ -976,7 +976,7 @@ Example:
 <b>save</b>&nbsp;&nbsp;<i>filename</i>
 [&nbsp;<b>format</b>&nbsp;&nbsp;gltf&nbsp;]
 [&nbsp;<a href="#models"><b>models</b></a>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
-[&nbsp;<b>center</b>&nbsp;&nbsp;<i>x,y,z</i>&nbsp;]
+[&nbsp;<b>center</b>&nbsp;&nbsp;<i>x,y,z</i>&nbsp;|&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>size</b>&nbsp;&nbsp;<i>s</i>&nbsp;]
 [&nbsp;<b>shortVertexIndices</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>floatColors</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
@@ -991,9 +991,14 @@ target="_blank">GL Transmission Format</a> (.glb). See also:
 target="_blank">Exporting atomic models with colors to GLTF or OBJ</a>
 </p>
 <blockquote>
-<b>center</b>&nbsp;&nbsp;<i>x,y,z</i>
+<b>center</b>&nbsp;&nbsp;<i>x,y,z</i>&nbsp;|&nbsp;<b>true</b>&nbsp;|&nbsp;false
 <br>
-Origin coordinates for the exported objects.
+The <b>center</b> option allows placing the center of the scene bounding box
+at a specific position in the GLTF file coordinates:
+<ul>
+<li><b>center <i>x,y,z</i></b> &ndash; at <i>x,y,z</i>
+<li><b>center true</b> (default) &ndash; at 0,0,0 (same as <b>center 0,0,0</b>)
+<li><b>center false</b> &ndash; unchanged from the current scene
 </blockquote>
 <blockquote>
 <b>size</b>&nbsp;&nbsp;<i>s</i>
@@ -1049,5 +1054,5 @@ created with <a href="sym.html"><b>sym</b></a> regardless of this option.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-October 2021</address>
+April 2022</address>
 </body></html>

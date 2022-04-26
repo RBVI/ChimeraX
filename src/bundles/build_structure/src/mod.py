@@ -16,6 +16,9 @@ from chimerax.atomic import Element
 class ParamError(ValueError):
     pass
 
+class BindError(ValueError):
+    pass
+
 def modify_atom(atom, element, num_bonds, *, geometry=None, name=None, connect_back=True,
         color_by_element=True, res_name=None, new_res=False):
 
@@ -247,3 +250,255 @@ def unknown_res_name(res):
         Residue.PT_NUCLEIC: "N"
     }[res.polymer_type]
 
+def cn_peptide_bond(c, n, moving, length, dihedral, phi=None, *, log_chain_remapping=False):
+    """Make bond between C-terminal carbon in one model and N-terminal nitrogen in another.
+
+       'c' is the carbon and 'n' is the nitrogen.  'moving' should either be the c or the n again,
+       depending on which model you want moved.
+
+       If you want a particular value for the newly-established phi angle, provide the 'phi' parameter.
+
+       Returns (c,n) of combined model
+    """
+    from chimerax.atomic.bond_geom import bond_positions, planar
+    from chimerax.atomic.struct_edit import add_atom
+
+    # process C terminus
+    if c.element.name != "C":
+        raise BindError('C-terminal "carbon" is a %s!' % c.element.name)
+    # C-term: find CA
+    nbs = c.neighbors
+    if len(nbs) > 3:
+        raise BindError("More than 3 atoms connected to C-terminal carbon [%s]" % c)
+    nb_elements = [a.element.name for a in nbs]
+    if nb_elements.count("C") != 1:
+        raise BindError("C-terminal carbon not bonded to exactly one carbon")
+    cca = nbs[nb_elements.index("C")]
+    # C-term: find OXT or equivalent
+    added = False
+    oxys = [a for a in nbs if a.element.name == "O"]
+    if len(oxys) == 0:
+        if len(nbs) > 1:
+            raise BindError("C-terminal carbon bonded to no oxygens yet bonded to %d other atoms"
+                % len(nbs))
+        pos = bond_positions(c.coord, planar, 1.0, [cca.coord])[0]
+        ac = add_atom("TMP", c.element, c.residue, pos, serial_number=0, bonded_to=c)
+        added = True
+    elif len(oxys) == 1:
+        if len([o for o in oxys if o.name == "OXT"]) == 1:
+            ac = oxys[0]
+        else:
+            if len(nbs) == 2:
+                pos = bond_positions(c.coord, planar, 1.0, [cca.coord, oxys[0].coord])[0]
+                ac = add_atom("TMP", c.element, c.residue, pos, serial_number=0, bonded_to=c)
+                added = True
+            elif len(nbs) == 3:
+                ac = [a for a in nbs if a not in (c, oxys[0])][0]
+                if ac.num_bonds > 1:
+                    raise BindError("Unexpected branching atom (%s) connected to C-terminal carbon"
+                        %ac )
+    else:
+        oxts = [o for o in oxys if o.name == "OXT"]
+        if len(oxts) == 1:
+            ac = oxts[0]
+        else:
+            ac = oxys[0]
+
+    # process N terminus
+    try:
+        if n.element.name != "N":
+            raise BindError('N-terminal "nitrogen" is a $s!' % n.element.nme)
+        # N-term: find CA
+        nbs = n.neighbors
+        nb_elements = [a.element.name for a in nbs]
+        ncs = [nb for i, nb in enumerate(nbs) if nb_elements[i] == "C"]
+        if len(ncs) == 1:
+            nca = ncs[0]
+        else:
+            if n.residue.name in ["PRO", "HYP"]:
+                if nb_elements.count("C") != 2:
+                    raise BindError("Proline N-terminal nitrogen not bonded to exactly two carbons")
+                ncas = [nc for nc in ncs if nc.name == "CA"]
+                if len(ncas) == 1:
+                    nca = ncas[0]
+                else:
+                    raise BindError("Not exactly one CA bonded to N-terminal nitrogen")
+            else:
+                raise BindError("Non-proline N-terminal nitrogen not bonded to exactly one carbon")
+        if phi is not None:
+            # alse need to know the backbone C bonded to nca
+            for nca_nb in nca.neighbors:
+                if nca_nb.element.name == "C" and nca_nb.is_backbone():
+                    n_c = nca_nb
+                    break
+            else:
+                raise BindError("Could not find second C atom for phi angle")
+        # N-term: clean the N
+        for nb in nbs:
+            if nb not in ncs and nb.num_bonds > 1:
+                raise BindError("Unexpected branching atom [%s] attached to N terminus" % nb)
+        hyds = [a for a in nbs if a.element.number == 1]
+        hs = [h for h in hyds if h.name == "H"]
+        if hs:
+            h = hs[0]
+        else:
+            h = None
+        for nb in nbs:
+            if nb not in [n, h] + ncs:
+                nb.structure.delete_atom(nb)
+        coords = [nc.coord for nc in ncs]
+        if h:
+            coords.append(h.coord)
+        pos = bond_positions(n.coord, planar, 1.0, coords)[0]
+        an = add_atom("TMP", n.element, n.residue, pos, serial_number=0, bonded_to=n)
+    except Exception:
+        if added:
+            ac.structure.delete_atom(ac)
+        raise
+
+    # call bind
+    if moving == c:
+        a1, a2 = an, ac
+    else:
+        a1, a2 = ac, an
+    dihed_info = [((cca, c, n, nca), dihedral)]
+    # though it might seem simpler to adjust the phi angle after establishing the bond,
+    # that may move a chain relative to the other chains in its original model
+    if phi is not None:
+        dihed_info.append(((c, n, nca, n_c), phi))
+
+    b = bind(a1, a2, length, dihed_info, renumber=an, log_chain_remapping=log_chain_remapping)
+    b1, b2 = b.atoms
+    if b1.element.name == "C":
+        c, n = b1, b2
+    else:
+        c, n = b2, b1
+    c.idatm_type = "Cac"
+    n.idatm_type = "Npl"
+    nbs = c.neighbors
+    if len(nbs) < 3:
+        pos = bond_positions(c.coord, planar, 1.23, [a.coord for a in nbs])[0]
+        add_atom("O", "O", c.residue, pos, bonded_to=c)
+    nbs = n.neighbors
+    if hyds and len(nbs) < 3:
+        pos = bond_positions(n.coord, planar, 1.01, [a.coord for a in nbs])[0]
+        add_atom("H", "H", n.residue, pos, bonded_to=n)
+    return (c,n)
+
+def bind(a1, a2, length, dihed_info, *, renumber=None, log_chain_remapping=False):
+    """Make bond between two models.
+
+       The models will be combined and the 'a2' model closed.  If the new bond forms a chain,
+       the chain ID will be the same as a1's chain ID.
+
+       a1/a2 are atoms in different models, each bonded to exactly one other atom.  In the
+       final structure, a1/a2 will be eliminated and their bond partners will be bonded together.
+
+       a2 and atoms in its model will be moved to form the bond.  'length' is the bond length.
+       'dihed_info' is a two-tuple of a sequence of four atoms and a dihedral angle that the
+       four atoms should form.  dihed_info can be None if insufficent atoms.
+
+       If renumbering of the combined chain should be done, then 'renumber' should be a1 or a2 to
+       indicate which side gets renumbered.
+    """
+
+    s1, s2 = a1.structure, a2.structure
+    if s1 == s2:
+        raise BindError("Atoms must be in different models")
+
+    try:
+        b1, b2 = a1.neighbors + a2.neighbors
+    except ValueError:
+        raise BindError("Atoms must be bonded to exactly one atom apiece")
+
+    if renumber:
+        renumber_side, static_side = (b1, b2) if renumber == a1 else (b2, b1)
+
+    # move b2 to a1's position
+    from chimerax.geometry import translation, angle, cross_product, rotation, distance, dihedral, \
+        length as vector_length
+    mv = a1.scene_coord - b2.scene_coord
+    b2.structure.position = translation(mv) * b2.structure.position
+
+    # rotate to get b1-a1 colinear with b2-a2
+    cur_ang = angle(b1.scene_coord, a1.scene_coord, a2.scene_coord)
+    rot_axis = cross_product(b1.scene_coord - b2.scene_coord, a2.scene_coord - a1.scene_coord)
+    if sum([v * v for v in rot_axis]):
+        b2.structure.position = rotation(rot_axis, -cur_ang, center=b2.scene_coord) * b2.structure.position
+
+    # then get the distance correct
+    cur_vec = b2.scene_coord - b1.scene_coord
+    dv = (length/vector_length(cur_vec) - 1) * cur_vec
+    b2.structure.position = translation(dv) * b2.structure.position
+
+    # then dihedral (omega/phi for peptide)
+    for atoms, dihed_val in dihed_info:
+        p1, p2, p3, p4 = [a.scene_coord for a in atoms]
+        if atoms[3].structure != s2:
+            p1, p2, p3, p4 = p4, p3, p2, p1
+        axis = p3 - p2
+        if sum([v * v for v in axis]):
+            cur_dihed = dihedral(p1, p2, p3, p4)
+            delta = dihed_val - cur_dihed
+            b2.structure.position = rotation(axis, delta, center=p3) * b2.structure.position
+            if atoms[2].structure == s2:
+                p1, p2, p3, p4 = [a.scene_coord for a in atoms]
+            else:
+                p4, p3, p2, p1 = [a.scene_coord for a in atoms]
+
+    # delete a1/a2
+    s1.delete_atom(a1)
+    s2.delete_atom(a2)
+
+    # compute needed remapping of chain IDs
+    seen_ids = set(s1.residues.unique_chain_ids)
+    chain_id_mapping = {}
+    chain_ids = sorted(s2.residues.unique_chain_ids)
+    for chain_id in chain_ids:
+        if chain_id == b2.residue.chain_id:
+            # get b1's chain ID
+            chain_id_mapping[chain_id] = b1.residue.chain_id
+        elif chain_id in seen_ids:
+            from chimerax.atomic import next_chain_id
+            new_id = next_chain_id(chain_id)
+            while new_id in seen_ids or new_id in chain_ids:
+                new_id = next_chain_id(new_id)
+            if log_chain_remapping:
+                s1.session.logger.info("Remapping chain ID '%s' in %s to '%s'" % (chain_id, s2, new_id))
+            chain_id_mapping[chain_id] = new_id
+            seen_ids.add(new_id)
+
+    # remember where b2 is
+    b2_index = s2.atoms.index(b2)
+
+    # renumber part of the new chain if appropriate
+    if renumber:
+        if renumber_side.residue.chain:
+            renumber_side_residues = renumber_side.residue.chain.existing_residues
+        else:
+            renumber_side_residues = [renumber_side.residue]
+        renumber_side_numbers = set([r.number for r in renumber_side_residues])
+        if static_side.residue.chain:
+            static_side_numbers = set(static_side.residue.chain.existing_residues.numbers)
+        else:
+            static_side_numbers = set([static_side.residue.number])
+        if not static_side_numbers.isdisjoint(renumber_side_numbers):
+            # renumbering necessary
+            #
+            # if lowest renumber_side number is at least one, just add highest static_side number, otherwise
+            # add an additional offset to make the lowest number at least 1 more than highest static_side
+            low_renumber_side = min(renumber_side_numbers)
+            high_static_side = max(static_side_numbers)
+            offset = 1 - low_renumber_side if low_renumber_side < 1 else 0
+            for r in renumber_side_residues:
+                r.number += high_static_side + offset
+
+    # combine
+    s1.combine(s2, chain_id_mapping, s1.scene_position)
+
+    # make bond; close s2; return new bond
+    from chimerax.atomic.struct_edit import add_bond
+    new_b2 = s1.atoms[s1.num_atoms - s2.num_atoms + b2_index]
+    b = add_bond(b1, new_b2)
+    s1.session.models.close([s2])
+    return b

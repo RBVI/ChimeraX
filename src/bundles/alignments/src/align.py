@@ -24,8 +24,9 @@ def realign_sequences(session, sequences, *, program=CLUSTAL_OMEGA):
     realigned_sequences = []
     # create temp file in main line of function, so that it is not closed/garbage collected prematurely
     input_file = tempfile.NamedTemporaryFile(mode='w', suffix='.fa', delete=False)
+    from chimerax.atomic import Sequence
     class FakeAlignment:
-        seqs = sequences
+        seqs = [Sequence(name=s.name, characters=s.ungapped()) for s in sequences]
     mod = importlib.import_module(".io.saveFASTA", "chimerax.seqalign")
     mod.save(session, FakeAlignment(), input_file)
     input_file.close()
