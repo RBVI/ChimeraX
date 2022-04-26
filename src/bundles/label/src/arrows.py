@@ -204,10 +204,12 @@ def arrow_under_window_position(session, win_x, win_y):
     w,h = session.main_view.window_size
     fx,fy = (win_x+.5)/w, 1-(win_y+.5)/h    # win_y is 0 at top
     lm = session_arrows(session)
-    if lm is None:
+    if lm is None or not lm.display:
         return None, None
     best = None
     for arr in lm.all_arrows:
+        if not arr.drawing.display:
+            continue
         for x, y, part in [(arr.start[0], arr.start[1], "start"), (arr.end[0], arr.end[1], "end")]:
             dist2 = (x-fx)*(x-fx) + (y-fy)*(y-fy)
             if dist2 > 0.0025:  # 0.05 squared
@@ -322,7 +324,7 @@ class Arrows(Model):
 
     def _models_removed(self, trig_name, models):
         for m in models:
-            if isinstance(m, ArrowModel) and m in self._arrows:
+            if isinstance(m, ArrowModel) and m.arrow in self._arrows:
                 self.delete_arrow(m.arrow)
 
     SESSION_SAVE = True
