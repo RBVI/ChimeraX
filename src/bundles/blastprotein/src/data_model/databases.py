@@ -213,6 +213,7 @@ class UniRefDB(NCBIDB):
     database_url: str = "https://www.uniprot.org/uniprot/%s"
     fetchable_col: str = "uniprot_id"
     parser_factory: object = dbparsers.PDBParser
+    default_cols: tuple = ("hit_#", "name", "cluster_id", "e-value", "score", "species")
 
     @staticmethod
     def add_info(matches, sequences):
@@ -243,13 +244,16 @@ class UniRefDB(NCBIDB):
                 hit["uniprot_id"] = raw_desc.split(' ')[0].split('_')[1]
             except:
                 pass
-            hit["cluster_members"] = Database._get_equal_sep_attr(raw_desc, 'n')
-            hit["taxonomic_name"] = Database._get_equal_sep_attr(raw_desc, 'Tax')
-            hit["taxonomic_id"] = Database._get_equal_sep_attr(raw_desc, 'TaxID')
+            hit["cluster_size"] = Database._get_equal_sep_attr(raw_desc, 'n')
+            hit["species"] = Database._get_equal_sep_attr(raw_desc, 'Tax')
             hit["representative_id"] = Database._get_equal_sep_attr(raw_desc, 'RepID')
             ligand_formulas = hit.get("ligand_formulas", None)
             if ligand_formulas:
                 hit["ligand_formulas"] = NCBIDB.format_formulas(ligand_formulas)
+            hit["cluster_id"] = hit["name"]
+            hit["name"] = hit.get("representative_id", None)
+            if 'representative_id' in hit:
+                del hit["representative_id"]
             del hit["description"]
 
 
