@@ -19,6 +19,7 @@ def get_tool(session, tool_name):
     _tool.show_tab(tool_name)
     return _tool
 
+from chimerax.core.errors import UserError
 from chimerax.core.tools import ToolInstance
 from Qt.QtWidgets import QTableWidget, QHBoxLayout, QVBoxLayout, QAbstractItemView, QWidget, QPushButton, \
     QTabWidget, QTableWidgetItem, QFileDialog, QDialogButtonBox as qbbox, QLabel, QButtonGroup, \
@@ -91,7 +92,6 @@ class StructMeasureTool(ToolInstance):
         from chimerax.atomic import selected_atoms
         sel_atoms = selected_atoms(self.session)
         if len(sel_atoms) not in (3, 4):
-            from chimerax.core.errors import UserError
             raise UserError("Either three or four atoms must be selected!")
         num_rows = self.angle_table.rowCount()
         self.angle_table.insertRow(num_rows)
@@ -111,13 +111,11 @@ class StructMeasureTool(ToolInstance):
         from chimerax.atomic import selected_atoms
         sel_atoms = selected_atoms(self.session)
         if len(sel_atoms) != 2:
-            from chimerax.core.errors import UserError
             raise UserError("Exactly two atoms must be selected!")
         from chimerax.core.commands import run
         run(self.session, "distance %s %s" % tuple(a.string(style="command") for a in sel_atoms))
 
     def _delete_angle(self):
-        from chimerax.core.errors import UserError
         rows = set([index.row() for index in self.angle_table.selectedIndexes()])
         if not rows:
             raise UserError("Must select one or more angles/torsions in the table")
@@ -126,8 +124,6 @@ class StructMeasureTool(ToolInstance):
             del self._angle_info[row]
 
     def _delete_distance(self):
-        from chimerax.core.errors import UserError
-        from chimerax.core.commands import run
         dist_grp = self.session.pb_manager.get_group("distances", create=False)
         if not dist_grp:
             raise UserError("No distances to delete!")
@@ -141,6 +137,7 @@ class StructMeasureTool(ToolInstance):
         for i, pb in enumerate(pbs):
             if i in rows:
                 del_pbs.append(pb)
+        from chimerax.core.commands import run
         for pb in del_pbs:
             run(self.session, "~distance %s %s" % tuple([a.string(style="command") for a in pb.atoms]))
 
@@ -346,7 +343,6 @@ class StructMeasureTool(ToolInstance):
         self._fill_dist_table()
 
     def _save_angle_info(self):
-        from chimerax.core.errors import UserError
         if not self._angle_info:
             raise UserError("No angles/torsions to save!")
         path = QFileDialog.getSaveFileName(self.angle_table, "Save Angles/Torsions File")[0]
@@ -360,14 +356,13 @@ class StructMeasureTool(ToolInstance):
                 print("%s: %s" % (', '.join(atom_strings), self._angle_text(atoms)), file=f)
 
     def _save_dist_info(self):
-        from chimerax.core.errors import UserError
-        from chimerax.core.commands import run
         dist_grp = self.session.pb_manager.get_group("distances", create=False)
         if not dist_grp:
             raise UserError("No distances to save!")
         pbs = dist_grp.pseudobonds
         if not pbs:
             raise UserError("No distances to save!")
+        from chimerax.core.commands import run
         run(self.session, "distance save browse")
 
     def _set_angle_decimal_places(self, decimal_places):
@@ -409,6 +404,7 @@ class StructMeasureTool(ToolInstance):
 class DefineAxisDialog:
     def __init__(self, sm_tool):
         self.tool_window = tw = sm_tool.tool_window.create_child_window("Define Axes", close_destroys=False)
+        self.session = sm_tool.session
         layout = QVBoxLayout()
         layout.setContentsMargins(0,0,0,0)
         layout.setSpacing(0)
@@ -432,7 +428,7 @@ class DefineAxisDialog:
         type_layout.addWidget(helix_button, alignment=Qt.AlignLeft | Qt.AlignTop)
         self.shown_for_button[helix_button] = set()
         self.axis_name_for_button[helix_button] = "helix axes"
-        self.button_dispatch[helix_button] = self.create_helix_axis
+        self.button_dispatch[helix_button] = self.cmd_params_helix_axis
 
         """
         atoms_layout = QHBoxLayout()
@@ -453,7 +449,7 @@ class DefineAxisDialog:
         type_layout.addWidget(atoms_button, alignment=Qt.AlignLeft | Qt.AlignTop)
         self.shown_for_button[atoms_button] = set()
         self.axis_name_for_button[atoms_button] = "axis"
-        self.button_dispatch[atoms_button] = self.create_atoms_axis
+        self.button_dispatch[atoms_button] = self.cmd_params_atoms_axis
 
         plane_button = QRadioButton("Plane normal(s)")
         plane_button.setChecked(False)
@@ -461,7 +457,7 @@ class DefineAxisDialog:
         type_layout.addWidget(plane_button, alignment=Qt.AlignLeft | Qt.AlignTop)
         self.shown_for_button[plane_button] = set()
         self.axis_name_for_button[plane_button] = "normal"
-        self.button_dispatch[plane_button] = self.create_plane_axis
+        self.button_dispatch[plane_button] = self.cmd_params_plane_axis
 
         points_button = QRadioButton("Two points")
         points_button.setChecked(False)
@@ -469,7 +465,7 @@ class DefineAxisDialog:
         type_layout.addWidget(points_button, alignment=Qt.AlignLeft | Qt.AlignTop)
         self.shown_for_button[points_button] = set()
         self.axis_name_for_button[points_button] = "axis"
-        self.button_dispatch[points_button] = self.create_points_axis
+        self.button_dispatch[points_button] = self.cmd_params_points_axis
 
         params_layout = QVBoxLayout()
         controls_layout.addLayout(params_layout)
@@ -485,7 +481,7 @@ class DefineAxisDialog:
                 size = super().sizeHint()
                 size.setHeight(size.height()//2)
                 return size
-        self.helix_structure_list = ShorterStructureListWidget(sm_tool.session)
+        self.helix_structure_list = ShorterStructureListWidget(self.session)
         params_layout.addWidget(self.helix_structure_list)
         params_layout.setStretch(params_layout.count()-1, 1)
         self.shown_for_button[helix_button].add(self.helix_structure_list)
@@ -524,6 +520,8 @@ class DefineAxisDialog:
         self.color_group.addButton(explicit_color_button)
         color_layout.addWidget(explicit_color_button, alignment=Qt.AlignRight)
         self.color_widget = ColorButton(max_size=(16,16))
+        self.color_widget.color_changed.connect(
+            lambda *args, but=explicit_color_button: but.setChecked(True))
         from chimerax.core.colors import Color
         # button doesn't start off the right size unless explicitly given a color
         self.color_widget.color = Color("#909090")
@@ -561,6 +559,8 @@ class DefineAxisDialog:
         radius_layout.addLayout(explicit_radius_layout, stretch=1)
         self.radius_entry = QLineEdit()
         self.radius_entry.setValidator(QDoubleValidator())
+        self.radius_entry.textChanged.connect(
+            lambda *args, but=explicit_radius_button: but.setChecked(True))
         radius_layout.addWidget(self.radius_entry, alignment=Qt.AlignLeft, stretch=1)
         radius_layout.addWidget(QLabel(" \N{ANGSTROM SIGN}"))
         self.default_radius_button.setChecked(True)
@@ -570,18 +570,63 @@ class DefineAxisDialog:
         bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
         bbox.accepted.connect(self.define_axis)
         bbox.rejected.connect(lambda tw=tw: setattr(tw, 'shown', False))
-        bbox.button(qbbox.Apply).clicked.connect(self.define_axis)
+        bbox.button(qbbox.Apply).clicked.connect(lambda *args: self.define_axis(hide=False))
         bbox.button(qbbox.Help).setEnabled(False)
         layout.addWidget(bbox)
 
         tw.manage(None)
 
-    create_helix_axis = create_atoms_axis = create_plane_axis = create_points_axis = None
+    cmd_params_plane_axis = cmd_params_points_axis = None
 
-    def define_axis(self):
-        # gather parameters here
-        self.tool_window.shown = False
+    def cmd_params_atoms_axis(self):
+        from chimerax.atomic import selected_atoms
+        if not selected_atoms(self.session):
+            raise UserError("No atoms/centroids selected")
+        return "sel " + self.generic_params()
+
+    def cmd_params_helix_axis(self):
+        structures = self.helix_structure_list.value
+        if not structures:
+            raise UserError("No structures chosen")
+        from chimerax.core.commands import concise_model_spec
+        from chimerax.atomic import Structure
+        params = concise_model_spec(self.session, structures, relevant_types=Structure)
+        if params:
+            params += " "
+
+        return params + "perHelix true " + self.generic_params()
+
+    def generic_params(self):
+        from chimerax.core.commands import StringArg
+        color_button = self.color_group.checkedButton()
+        if color_button == self.default_color_button:
+            params = ""
+        else:
+            from chimerax.core.colors import color_name
+            params = "color " + StringArg.unparse(color_name(self.color_widget.color)) + " "
+
+        name = self.name_entry.text().strip()
+        if name:
+            params += "name %s " % StringArg.unparse(name)
+
+        radius_button = self.radius_group.checkedButton()
+        if radius_button != self.default_radius_button:
+            if not self.radius_entry.hasAcceptableInput():
+                raise UserError("Radius must be a number")
+            radius = float(self.radius_entry.text())
+            if radius <= 0.0:
+                raise UserError("Radius must be a positive number")
+            params += "radius %g" % radius
+        return params
+
+    def define_axis(self, hide=True):
+        # gather parameters here, so that dialog stays up if there's an error in parameters
+        cmd_params = self.button_dispatch[self.button_group.checkedButton()]()
+        if hide:
+            self.tool_window.shown = False
         # run command here
+        from chimerax.core.commands import run
+        run(self.session, "define axis " + cmd_params)
 
     def show_applicable_params(self, button):
         # widgets that are _always_ shown aren't in "shown_widgets"
