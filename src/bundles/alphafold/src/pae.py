@@ -565,14 +565,23 @@ def read_json_pae_matrix(path):
     import json
     j = json.load(f)
     f.close()
+
+    if not isinstance(j, list):
+        from chimerax.core.errors import UserError
+        raise UserError(f'JSON file "{path}" is not AlphaFold predicted aligned error data, expected a top level list')
     d = j[0]
+
+    valid = (isinstance(d, dict) and 'residue1' in d and 'residue2' in d and 'distance' in d)
+    if not valid:
+        from chimerax.core.errors import UserError
+        raise UserError(f'JSON file "{path}" is not AlphaFold predicted aligned error data, expected a dictionary with keys "residue1", "residue2" and "distance"')
 
     # Read distance errors into numpy array
     from numpy import array, zeros, float32, int32
     r1 = array(d['residue1'], dtype=int32)
     r2 = array(d['residue2'], dtype=int32)
     ea = array(d['distance'], dtype=float32)
-    me = d['max_predicted_aligned_error']
+    # me = d['max_predicted_aligned_error']
     n = r1.max()
     pae = zeros((n,n), float32)
     pae[r1-1,r2-1] = ea
