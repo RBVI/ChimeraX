@@ -487,6 +487,45 @@ class DefineAxisDialog:
         self.shown_for_button[helix_button].add(self.helix_structure_list)
         self.all_params_widgets.append(self.helix_structure_list)
 
+        plane_label = QLabel("Planes(s)")
+        params_layout.addWidget(plane_label)
+        self.shown_for_button[plane_button].add(plane_label)
+        self.all_params_widgets.append(plane_label)
+        from chimerax.ui.widgets import ModelListWidget
+        class ShorterModelListWidget(ModelListWidget):
+            def sizeHint(self):
+                size = super().sizeHint()
+                size.setHeight(size.height()//2)
+                return size
+        from chimerax.axes_planes import PlaneModel
+        self.plane_list = ShorterModelListWidget(self.session, class_filter=PlaneModel)
+        params_layout.addWidget(self.plane_list)
+        params_layout.setStretch(params_layout.count()-1, 1)
+        self.shown_for_button[plane_button].add(self.plane_list)
+        self.all_params_widgets.append(self.plane_list)
+
+        xyz_widget = QWidget()
+        params_layout.addWidget(xyz_widget, alignment=Qt.AlignCenter)
+        self.shown_for_button[points_button].add(xyz_widget)
+        self.all_params_widgets.append(xyz_widget)
+        points_layout = QGridLayout()
+        points_layout.setSpacing(1)
+        xyz_widget.setLayout(points_layout)
+        for i, lab in enumerate(["X", "Y", "Z"]):
+            points_layout.addWidget(QLabel(lab), 0, i+1, alignment=Qt.AlignBottom | Qt.AlignHCenter)
+        self.xyz_widgets = []
+        for xyz_row in range(2):
+            points_layout.addWidget(QLabel(["from", "to"][xyz_row]), xyz_row+1, 0, alignment=Qt.AlignRight)
+            row_widgets = []
+            for col in range(3):
+                widget = QLineEdit()
+                widget.setValidator(QDoubleValidator())
+                widget.setAlignment(Qt.AlignCenter)
+                widget.setMaximumWidth(50)
+                points_layout.addWidget(widget, xyz_row+1, col+1)
+                row_widgets.append(widget)
+            self.xyz_widgets.append(row_widgets)
+
         params_group = QGroupBox("Axis Parameters")
         params_layout.addWidget(params_group)
         pg_layout = QGridLayout()
@@ -498,12 +537,12 @@ class DefineAxisDialog:
 
         from itertools import count
         row_count = count(0)
+        # blank "spacer" rows above, below, and between
         row = next(row_count)
         pg_layout.setRowStretch(row, 1)
 
         row = next(row_count)
-        color_label = QLabel("Color")
-        pg_layout.addWidget(color_label, row, 0, alignment=Qt.AlignRight)
+        pg_layout.addWidget(QLabel("Color"), row, 0, alignment=Qt.AlignRight)
         color_layout = QHBoxLayout()
         color_layout.setSpacing(0)
         pg_layout.addLayout(color_layout, row, 2, alignment=Qt.AlignLeft)
@@ -529,8 +568,7 @@ class DefineAxisDialog:
         self.default_color_button.setChecked(True)
 
         row = next(row_count)
-        name_label = QLabel("Name")
-        pg_layout.addWidget(name_label, row, 0, alignment=Qt.AlignRight)
+        pg_layout.addWidget(QLabel("Name"), row, 0, alignment=Qt.AlignRight)
         self.name_entry = QLineEdit()
         pg_layout.addWidget(self.name_entry, row, 2)
 
@@ -538,14 +576,10 @@ class DefineAxisDialog:
         pg_layout.setRowStretch(row, 1)
 
         row = next(row_count)
-        radius_label = QLabel("Radius")
-        pg_layout.addWidget(radius_label, row, 0, alignment=Qt.AlignRight)
+        pg_layout.addWidget(QLabel("Radius"), row, 0, alignment=Qt.AlignRight)
         radius_layout = QHBoxLayout()
         radius_layout.setSpacing(0)
         pg_layout.addLayout(radius_layout, row, 2, alignment=Qt.AlignLeft)
-
-        row = next(row_count)
-        pg_layout.setRowStretch(row, 1)
 
         self.radius_group = QButtonGroup()
         self.default_radius_button = QRadioButton("default")
@@ -559,11 +593,64 @@ class DefineAxisDialog:
         radius_layout.addLayout(explicit_radius_layout, stretch=1)
         self.radius_entry = QLineEdit()
         self.radius_entry.setValidator(QDoubleValidator())
+        self.radius_entry.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
         self.radius_entry.textChanged.connect(
             lambda *args, but=explicit_radius_button: but.setChecked(True))
         radius_layout.addWidget(self.radius_entry, alignment=Qt.AlignLeft, stretch=1)
         radius_layout.addWidget(QLabel(" \N{ANGSTROM SIGN}"))
         self.default_radius_button.setChecked(True)
+
+        row = next(row_count)
+        pg_layout.setRowStretch(row, 1)
+
+        row = next(row_count)
+        pg_layout.addWidget(QLabel("Length"), row, 0, alignment=Qt.AlignRight)
+        length_layout = QHBoxLayout()
+        length_layout.setSpacing(0)
+        pg_layout.addLayout(length_layout, row, 2, alignment=Qt.AlignLeft)
+
+        self.length_group = QButtonGroup()
+        self.default_length_button = QRadioButton("default")
+        self.length_group.addButton(self.default_length_button)
+        length_layout.addWidget(self.default_length_button)
+        length_layout.addSpacing(9)
+        explicit_length_button = QRadioButton()
+        self.length_group.addButton(explicit_length_button)
+        length_layout.addWidget(explicit_length_button, alignment=Qt.AlignRight)
+        explicit_length_layout = QHBoxLayout()
+        length_layout.addLayout(explicit_length_layout, stretch=1)
+        self.length_entry = QLineEdit()
+        self.length_entry.setValidator(QDoubleValidator())
+        self.length_entry.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        length_layout.addWidget(self.length_entry, alignment=Qt.AlignLeft, stretch=1)
+        length_layout.addWidget(QLabel(" \N{ANGSTROM SIGN}"))
+        row = next(row_count)
+        padding_layout = QHBoxLayout()
+        pg_layout.addLayout(padding_layout, row, 2, alignment=Qt.AlignLeft)
+        padding_widgets = []
+        padding_label = QLabel("padding:")
+        padding_layout.addWidget(padding_label)
+        padding_widgets.append(padding_label)
+        self.padding_entry = QLineEdit()
+        self.padding_entry.setValidator(QDoubleValidator())
+        self.padding_entry.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        self.padding_entry.setText("0")
+        self.padding_entry.setMaximumWidth(30)
+        padding_layout.addWidget(self.padding_entry, alignment=Qt.AlignLeft)
+        padding_widgets.append(self.padding_entry)
+        padding_angstroms = QLabel(" \N{ANGSTROM SIGN}")
+        padding_layout.addWidget(padding_angstroms, alignment=Qt.AlignLeft)
+        padding_widgets.append(padding_angstroms)
+        self.length_entry.textChanged.connect(lambda *args, but=explicit_length_button,
+            widgets=padding_widgets: (but.setChecked(True), [w.setHidden(True) for w in widgets]))
+        explicit_length_button.clicked.connect(lambda *args, widgets=padding_widgets:
+            [w.setHidden(True) for w in widgets])
+        self.default_length_button.clicked.connect(lambda *args, widgets=padding_widgets:
+            [w.setHidden(False) for w in widgets])
+        self.default_length_button.setChecked(True)
+
+        row = next(row_count)
+        pg_layout.setRowStretch(row, 1)
 
         self.show_applicable_params(self.button_group.checkedButton())
 
@@ -575,8 +662,6 @@ class DefineAxisDialog:
         layout.addWidget(bbox)
 
         tw.manage(None)
-
-    cmd_params_plane_axis = cmd_params_points_axis = None
 
     def cmd_params_atoms_axis(self):
         from chimerax.atomic import selected_atoms
@@ -595,6 +680,31 @@ class DefineAxisDialog:
             params += " "
 
         return params + "perHelix true " + self.generic_params()
+
+    def cmd_params_plane_axis(self):
+        planes = self.plane_list.value
+        if not planes:
+            raise UserError("No planes chosen")
+        from chimerax.core.commands import concise_model_spec
+        params = concise_model_spec(self.session, planes)
+        if params:
+            params += " "
+
+        return params + self.generic_params()
+
+    def cmd_params_points_axis(self):
+        processed_data = []
+        for row_widgets in self.xyz_widgets:
+            processed_row = []
+            for entry in row_widgets:
+                if not entry.text():
+                    raise UserError("All XYZ fields must have numbers!")
+                if not entry.hasAcceptableInput():
+                    raise UserError("All XYZ fields must contain numbers")
+                processed_row.append(float(entry.text()))
+            processed_data.append(processed_row)
+        from_pt, to_pt = processed_data
+        return ("fromPoint %g,%g,%g toPoint %g,%g,%g " % (*from_pt, *to_pt))+ self.generic_params()
 
     def generic_params(self):
         from chimerax.core.commands import StringArg
@@ -616,7 +726,24 @@ class DefineAxisDialog:
             radius = float(self.radius_entry.text())
             if radius <= 0.0:
                 raise UserError("Radius must be a positive number")
-            params += "radius %g" % radius
+            params += "radius %g " % radius
+
+        length_button = self.length_group.checkedButton()
+        if length_button == self.default_length_button:
+            text = self.padding_entry.text()
+            if text:
+                if not self.padding_entry.hasAcceptableInput():
+                    raise UserError("Padding must be a number")
+                padding = float(self.padding_entry.text())
+                if padding != 0.0:
+                    params += "padding %g " % padding
+        else:
+            if not self.length_entry.hasAcceptableInput():
+                raise UserError("Length must be a number")
+            length = float(self.length_entry.text())
+            if length <= 0.0:
+                raise UserError("Length must be a positive number")
+            params += "length %g " % length
         return params
 
     def define_axis(self, hide=True):
