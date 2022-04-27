@@ -1279,8 +1279,12 @@ class MessageStream:
         self._last_status_time = None
         self._message_bytes_read = 0
         self.status_message_size = 0
-        
-        socket.error.connect(self._socket_error)
+
+        from Qt import using_qt6
+        if using_qt6:
+            socket.errorOccurred.connect(self._socket_error)
+        else:
+            socket.error.connect(self._socket_error)
         socket.disconnected.connect(self._socket_disconnected)
 
         # Register callback called when data available to read on socket.
