@@ -40,7 +40,7 @@ class AtomProximityGUI(QWidget):
             # the command yourself.
             #
             # Your tool needs to call the GUI's destroy() method when it's deleted
-            attr_name=defaults["attr_name"], bond_separation=defaults["bond_separation"],
+            action_word="find", attr_name=defaults["attr_name"], bond_separation=defaults["bond_separation"],
             continuous=False, dashes=None, distance_only=None, ignore_hidden_models=None, inter_model=True,
             inter_submodel=False, intra_model=True, intra_mol=defaults["intra_mol"],
             intra_res=defaults["intra_res"], log=defaults["action_log"],
@@ -154,8 +154,8 @@ class AtomProximityGUI(QWidget):
                 overlap_layout.setContentsMargins(0,0,0,0)
                 overlap_layout.setSpacing(0)
                 test_type_layout.addLayout(overlap_layout, *cutoff_args)
-                lab = QLabel("Find pairs of atoms with VDW overlap \N{GREATER-THAN OR EQUAL TO}")
-                overlap_widgets.append(lab)
+                lab = QLabel("%s pairs of atoms with VDW overlap \N{GREATER-THAN OR EQUAL TO}"
+                    % action_word.capitalize())
                 overlap_layout.addWidget(lab)
                 self.overlap_spinbox = QDoubleSpinBox()
                 self.overlap_spinbox.setDecimals(2)
@@ -163,17 +163,16 @@ class AtomProximityGUI(QWidget):
                 self.overlap_spinbox.setRange(-99, 99)
                 self.overlap_spinbox.setValue(final_val['overlap_cutoff'])
                 #self.overlap_spinbox.setSuffix('\N{ANGSTROM SIGN}')
-                overlap_widgets.append(self.overlap_spinbox)
                 overlap_layout.addWidget(self.overlap_spinbox)
                 lab2 = QLabel("\N{ANGSTROM SIGN}")
-                overlap_widgets.append(lab2)
                 overlap_layout.addWidget(lab2, stretch=1, alignment=Qt.AlignLeft)
             if show_hbond_allowance:
                 hbond_layout = QHBoxLayout()
                 hbond_layout.setContentsMargins(0,0,0,0)
                 hbond_layout.setSpacing(0)
                 test_type_layout.addLayout(hbond_layout, *allowance_args)
-                lab = QLabel("Subtract")
+                hbond_layout.addStretch(1)
+                lab = QLabel("subtract")
                 overlap_widgets.append(lab)
                 hbond_layout.addWidget(lab)
                 self.hbond_spinbox = QDoubleSpinBox()
@@ -184,16 +183,17 @@ class AtomProximityGUI(QWidget):
                 #self.hbond_spinbox.setSuffix('\N{ANGSTROM SIGN}')
                 overlap_widgets.append(self.hbond_spinbox)
                 hbond_layout.addWidget(self.hbond_spinbox)
-                lab = QLabel("from overlap for potentially H-bonding pairs")
+                lab = QLabel("for H-bonding pairs")
                 overlap_widgets.append(lab)
                 hbond_layout.addWidget(lab, stretch=1, alignment=Qt.AlignLeft)
+                hbond_layout.addStretch(1)
             if show_distance_only:
                 distance_layout = QHBoxLayout()
                 distance_layout.setContentsMargins(0,0,0,0)
                 distance_layout.setSpacing(0)
                 test_type_layout.addLayout(distance_layout, *distance_args)
-                lab = QLabel("Find pairs of atoms with center-center distance \N{LESS-THAN OR EQUAL TO}")
-                distance_only_widgets.append(lab)
+                lab = QLabel("%s pairs of atoms with center-center distance \N{LESS-THAN OR EQUAL TO}"
+                    % action_word.capitalize())
                 distance_layout.addWidget(lab)
                 self.dist_only_spinbox = QDoubleSpinBox()
                 self.dist_only_spinbox.setDecimals(2)
@@ -202,12 +202,10 @@ class AtomProximityGUI(QWidget):
                 val = 4.0 if final_val['distance_only'] is None else final_val['distance_only']
                 self.dist_only_spinbox.setValue(val)
                 #self.dist_only_spinbox.setSuffix('\N{ANGSTROM SIGN}')
-                distance_only_widgets.append(self.dist_only_spinbox)
                 distance_layout.addWidget(self.dist_only_spinbox, alignment=Qt.AlignLeft)
                 lab2 = QLabel("\N{ANGSTROM SIGN}")
-                distance_only_widgets.append(lab2)
                 distance_layout.addWidget(lab2, stretch=1, alignment=Qt.AlignLeft)
-            if overlap_widgets and distance_only_widgets:
+            if show_overlap_cutoff and show_distance_only:
                 if distance_only is None:
                     self.overlap_radio.setChecked(True)
                     enable_widgets(False, distance_only_widgets, overlap_widgets)
