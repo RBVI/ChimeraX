@@ -127,9 +127,9 @@ else
 	cd $(SOURCE) && $(MAKE) && $(MAKE) install
 ifeq ($(OS),Linux)
 	-for lib in $(PYTHON_LIBRARY_DIR)/lib-dynload/*.so; do \
-		chrpath -d $$lib; \
+		$(bindir)/chrpath -d $$lib; \
 	done
-	chmod 755  $(libdir)/libpython*.so; chrpath -d $(libdir)/libpython*.so
+	chmod 755  $(libdir)/libpython*.so; $(bindir)/chrpath -d $(libdir)/libpython*.so
 	# convert to RPATH
 	if objdump -p $(PYTHON_BIN) | grep RUNPATH > /dev/null; then \
 	       $(bindir)/chrpath -C $(PYTHON_BIN); \
