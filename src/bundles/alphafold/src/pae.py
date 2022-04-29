@@ -566,6 +566,12 @@ def read_json_pae_matrix(path):
     j = json.load(f)
     f.close()
 
+    if isinstance(j, dict) and 'pae' in j:
+        # ColabFold 1.3 produces a JSON file different from AlphaFold database.
+        from numpy import array, float32
+        pae = array(j['pae'], float32)
+        return pae
+    
     if not isinstance(j, list):
         from chimerax.core.errors import UserError
         raise UserError(f'JSON file "{path}" is not AlphaFold predicted aligned error data, expected a top level list')
