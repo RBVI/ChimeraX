@@ -110,3 +110,6 @@ clean:
 
 pylint:
 	$(CHIMERAX_EXE) -m flake8 $(filter %.py, $(PYSRCS))
+
+test-pyproject-converter:
+	$(MAKE) -C $(TOP) $@

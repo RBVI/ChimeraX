@@ -1537,7 +1537,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         sel_seq_action = QAction("Sequence...", self)
         select_menu.addAction(sel_seq_action)
         sel_seq_action.triggered.connect(self.show_select_seq_dialog)
-        sel_zone_action = QAction("&Zone...", self)
+        sel_zone_action = QAction("&Zone/Contacts...", self)
         select_menu.addAction(sel_zone_action)
         sel_zone_action.triggered.connect(self.show_select_zone_dialog)
         from chimerax.core.commands import run
@@ -2704,12 +2704,22 @@ class SelZoneDialog(QDialog):
     def __init__(self, session, *args, **kw):
         super().__init__(*args, **kw)
         self.session = session
-        self.setWindowTitle("Select Zone")
+        self.setWindowTitle("Select Zone/Contacts")
         self.setSizeGripEnabled(True)
         from Qt.QtWidgets import QVBoxLayout, QDialogButtonBox as qbbox, QLineEdit, QHBoxLayout, QLabel, \
-            QCheckBox, QDoubleSpinBox, QPushButton, QMenu, QWidget
+            QCheckBox, QDoubleSpinBox, QPushButton, QMenu, QWidget, QTabWidget
         from Qt.QtCore import Qt
         layout = QVBoxLayout()
+        self.tabs = QTabWidget()
+        layout.addWidget(self.tabs)
+
+        # Zone tab
+        zone_widget = QWidget()
+        zone_layout = QVBoxLayout()
+        zone_layout.setContentsMargins(0,0,0,0)
+        zone_layout.setSpacing(3)
+        zone_widget.setLayout(zone_layout)
+        zone_layout.addStretch(1)
         target_area = QWidget()
         target_layout = QHBoxLayout()
         target_layout.setContentsMargins(0,0,0,0)
@@ -2724,32 +2734,58 @@ class SelZoneDialog(QDialog):
         self.target_button.setMenu(menu)
         target_layout.addWidget(self.target_button)
         target_layout.addWidget(QLabel(":"))
-        layout.addWidget(target_area, alignment=Qt.AlignLeft)
+        zone_layout.addWidget(target_area, alignment=Qt.AlignCenter)
         less_layout = QHBoxLayout()
+        less_layout.addStretch(1)
         self.less_checkbox = QCheckBox("<")
         self.less_checkbox.setChecked(True)
         self.less_checkbox.stateChanged.connect(self._update_button_states)
-        less_layout.addWidget(self.less_checkbox)
+        less_layout.addWidget(self.less_checkbox, alignment=Qt.AlignRight)
         self.less_spinbox = QDoubleSpinBox()
         self.less_spinbox.setValue(5.0)
         self.less_spinbox.setDecimals(3)
         self.less_spinbox.setSuffix("\N{ANGSTROM SIGN}")
         self.less_spinbox.setMaximum(9999.999)
-        less_layout.addWidget(self.less_spinbox)
-        less_layout.addWidget(QLabel("from the currently selected atoms"))
-        layout.addLayout(less_layout)
+        less_layout.addWidget(self.less_spinbox, alignment=Qt.AlignLeft)
+        less_layout.addWidget(QLabel("from the currently selected atoms"), alignment=Qt.AlignLeft)
+        less_layout.addStretch(1)
+        zone_layout.addLayout(less_layout)
         more_layout = QHBoxLayout()
+        more_layout.addStretch(1)
         self.more_checkbox = QCheckBox(">")
         self.more_checkbox.stateChanged.connect(self._update_button_states)
-        more_layout.addWidget(self.more_checkbox)
+        more_layout.addWidget(self.more_checkbox, alignment=Qt.AlignRight)
         self.more_spinbox = QDoubleSpinBox()
         self.more_spinbox.setValue(5.0)
         self.more_spinbox.setDecimals(3)
         self.more_spinbox.setSuffix("\N{ANGSTROM SIGN}")
         self.more_spinbox.setMaximum(9999.999)
-        more_layout.addWidget(self.more_spinbox)
-        more_layout.addWidget(QLabel("from the currently selected atoms"))
-        layout.addLayout(more_layout)
+        more_layout.addWidget(self.more_spinbox, alignment=Qt.AlignLeft)
+        more_layout.addWidget(QLabel("from the currently selected atoms"), alignment=Qt.AlignLeft)
+        more_layout.addStretch(1)
+        zone_layout.addLayout(more_layout)
+        zone_layout.addStretch(1)
+        self.tabs.addTab(zone_widget, "Zone")
+
+        # Contacts tab
+        contacts_widget = QWidget()
+        contacts_layout = QVBoxLayout()
+        contacts_layout.setContentsMargins(0,0,0,0)
+        contacts_layout.setSpacing(3)
+        contacts_widget.setLayout(contacts_layout)
+        from chimerax.clashes.gui import ContactsGUI
+        self.contacts_gui = ContactsGUI(self.session, True, settings_name="select zone",
+            action_word="select", show_attr_name=False, show_checking_frequency=False, show_color=False,
+            show_dashes=False, show_log=False, show_make_pseudobonds=False, show_name=False,
+            show_radius=False, show_reveal=False, show_save_file=False, show_select=False,
+            show_set_attrs=False, show_show_dist=False)
+        contacts_layout.addWidget(self.contacts_gui)
+        full_gui_but = QPushButton("Show full contacts interface")
+        from chimerax.core.commands import run
+        full_gui_but.clicked.connect(lambda *args, run=run, ses=self.session:
+            run(ses, "ui tool show Contacts"))
+        contacts_layout.addWidget(full_gui_but, alignment=Qt.AlignCenter)
+        self.tabs.addTab(contacts_widget, "Contacts")
 
         self.bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
         self.bbox.accepted.connect(self.zone)
@@ -2764,15 +2800,19 @@ class SelZoneDialog(QDialog):
         self.setLayout(layout)
 
     def zone(self, *args):
-        cmd = ""
-        char = ':' if self.target_button.text() == "residues" else '@'
-        if self.less_checkbox.isChecked():
-            cmd += "sel %s< %g" % (char, self.less_spinbox.value())
+        if self.tabs.tabText(self.tabs.currentIndex()) == "Zone":
+            cmd = ""
+            char = ':' if self.target_button.text() == "residues" else '@'
+            if self.less_checkbox.isChecked():
+                cmd += "sel %s< %g" % (char, self.less_spinbox.value())
+                if self.more_checkbox.isChecked():
+                    cmd += ' & '
             if self.more_checkbox.isChecked():
-                cmd += ' & '
-        if self.more_checkbox.isChecked():
-            cmd += "sel %s> %g" % (char, self.more_spinbox.value())
-        self.session.ui.main_window.select_by_mode(cmd)
+                cmd += "sel %s> %g" % (char, self.more_spinbox.value())
+            self.session.ui.main_window.select_by_mode(cmd)
+        else:
+            from chimerax.core.commands import run
+            run(self.session, "%s %s %s sel true make false" % self.contacts_gui.get_command())
 
     def _update_button_states(self, *args):
         self.bbox.button(self.bbox.Ok).setEnabled(

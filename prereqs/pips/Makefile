@@ -7,8 +7,11 @@ include Makefile.pip
 # Force LANG to UTF-8 so that grako will install successfully
 LANG	= en_US.UTF-8
 
-# qtconsole_pyqt6.patch: make the Python shell to work with Qt6 need to patch qtconsole 5.2.2.
-PATCHES = pyopengl_macos11.patch webcolors.patch qtconsole_pyqt6.patch
+# qtconsole.patch: Fix crash in completion widget, see Trac#6363
+PATCHES = pyopengl_macos11.patch webcolors.patch qtconsole.patch
+NETCDF_DYLIBS = libnetcdf.19.dylib
+PYTABLES_DYLIBS = libblosc.1.dylib libhdf5.200.dylib libsnappy.1.dylib \
+				  libc++.1.dylib
 
 # Notarized macOS application will not launch first time if it contains
 # libraries or executables with references to non-system libraries outside the application.
@@ -42,13 +45,16 @@ ifeq ($(OSARCH),DarwinArm64)
 	# Install the Conda versions of Python wheels for arm64 Mac
 	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/imagecodecs/imagecodecs-2022.2.22-cp39-cp39-macosx_12_0_arm64.whl
 	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/netcdf4/netCDF4-1.5.8-cp39-cp39-macosx_12_0_arm64.whl
-	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/netcdf4/libnetcdf.19.dylib.arm64
 	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/pytables/tables-3.7.0-cp39-cp39-macosx_12_0_arm64.whl
-	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/pytables/libhdf5.200.dylib.arm64
-	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/pytables/libblosc.1.dylib.arm64
-	mv libblosc.1.dylib.arm64 libblosc.1.dylib
-	mv libhdf5.200.dylib.arm64 libhdf5.200.dylib
-	mv libnetcdf.19.dylib.arm64 libnetcdf.19.dylib
+	for l in $(NETCDF_DYLIBS); do \
+		$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/netcdf4/$$l.arm64 ; \
+	done
+	for l in $(PYTABLES_DYLIBS); do \
+		$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/pytables/$$l.arm64 ; \
+	done
+	for l in $(NETCDF_DYLIBS) $(PYTABLES_DYLIBS); do \
+		mv $$l.arm64 $$l ; \
+	done
 	$(APP_PIP_INSTALL) tables-3.7.0-cp39-cp39-macosx_12_0_arm64.whl \
 		netCDF4-1.5.8-cp39-cp39-macosx_12_0_arm64.whl \
 		imagecodecs-2022.2.22-cp39-cp39-macosx_12_0_arm64.whl
