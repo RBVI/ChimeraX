@@ -174,7 +174,7 @@ package_toolshed_name_map: dict[str, str] = {
     , 'cxwebservices': 'ChimeraX-WebServices'
 }
 
-def main(bundle_toml: dict):
+def main(bundle_toml: dict, write: bool = True) -> Optional[str]:
     project_info = bundle_toml['project']
     authors = project_info['authors']
     bundle_name = package_toolshed_name_map[project_info['name']]
@@ -206,18 +206,23 @@ def main(bundle_toml: dict):
         b_info += '\t\t<ChimeraXClassifier>%s</ChimeraXClassifier>\n' % classifier
     b_info += '\t</Classifiers>\n'
     b_info += '</BundleInfo>\n'
-    with open('bundle_info.xml', 'w') as f:
-        f.write(b_info)
+    if write:
+        with open('bundle_info.xml', 'w') as bundle_info:
+            bundle_info.write(b_info)
+    else:
+        return b_info
 
-
-if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        ... # print help and exit
-    info: Optional[dict] = None
+def toml_to_dict(toml_file):
+    info = None
     try:
-        with open(sys.argv[1]) as f:
+        with open(toml_file) as f:
             info = toml.loads(f.read())
     except toml.TomlDecodeError as e:
         print(str(e))
         sys.exit(1)
-    main(info)
+    return info
+
+if __name__ == "__main__":
+    if len(sys.argv) < 2:
+        ... # print help and exit
+    main(toml_to_dict(sys.argv[1]))
