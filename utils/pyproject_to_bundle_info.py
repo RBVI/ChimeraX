@@ -179,9 +179,10 @@ def main(bundle_toml: dict, write: bool = True) -> Optional[str]:
     authors = project_info['authors']
     bundle_name = package_toolshed_name_map[project_info['name']]
     chimerax_info = bundle_toml['tool']['chimerax']
-    b_info = '<BundleInfo name="%s" version="%s" package="%s" minSessionVersion="%s" maxSessionVersion="%s">\n' \
-             % (bundle_name, project_info['version'], project_info['name']
-                , chimerax_info['min-session-version'], chimerax_info['max-session-version'])
+    b_info = '<BundleInfo name="%s" version="%s" package="%s" ' % (bundle_name, project_info['version'], project_info['name'])
+    if chimerax_info.get("custom-init", False):
+        b_info += 'customInit="true" '
+    b_info += 'minSessionVersion="%s" maxSessionVersion="%s">\n' % (chimerax_info['min-session-version'], chimerax_info['max-session-version'])
     # Take only the first author name and email for now
     b_info += '\t<Author>%s</Author>\n' % authors[0]['name']
     b_info += '\t<Email>%s</Email>\n' % authors[0]['email']
