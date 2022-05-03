@@ -1422,9 +1422,14 @@ class MainWindow(QMainWindow, PlainTextLog):
 
         label_residues_menu = label_menu.addMenu("Residues")
         main_residue_label_info = [("Name", "name"), ("Specifier", "label_specifier"),
-                ("Name Combo", '"/{0.chain_id} {0.name} {0.number}{0.insertion_code}"'),
-                ("1-Letter Code", "label_one_letter_code"), ("1-Letter Code Combo",
-                '"/{0.chain_id} {0.label_one_letter_code} {0.number}{0.insertion_code}"')]
+                ("Name Combo (chain)", '"/{0.chain_id} {0.name} {0.number}{0.insertion_code}"'),
+                ("Name Combo (no chain)", '"{0.name} {0.number}{0.insertion_code}"'),
+                ("1-Letter Code", "label_one_letter_code"),
+                ("1-Letter Code Combo (chain)",
+                    '"/{0.chain_id} {0.label_one_letter_code} {0.number}{0.insertion_code}"'),
+                ("1-Letter Code Combo (no chain)",
+                    '"{0.label_one_letter_code} {0.number}{0.insertion_code}"'),
+                 ]
         for menu_entry, cmd_arg in main_residue_label_info:
             action = QAction(menu_entry, self)
             label_residues_menu.addAction(action)
@@ -2775,12 +2780,13 @@ class SelZoneDialog(QDialog):
         contacts_widget.setLayout(contacts_layout)
         from chimerax.clashes.gui import ContactsGUI
         self.contacts_gui = ContactsGUI(self.session, True, settings_name="select zone",
-            action_word="select", show_attr_name=False, show_checking_frequency=False, show_color=False,
-            show_dashes=False, show_log=False, show_make_pseudobonds=False, show_name=False,
-            show_radius=False, show_reveal=False, show_save_file=False, show_select=False,
-            show_set_attrs=False, show_show_dist=False)
+            action_phrase="select contacts", restrict="any", show_attr_name=False,
+            show_checking_frequency=False, show_color=False, show_dashes=False, show_log=False,
+            show_make_pseudobonds=False, show_name=False, show_radius=False, show_reveal=False,
+            show_save_file=False, show_section_titles=False, show_select=False, show_set_attrs=False,
+            show_show_dist=False)
         contacts_layout.addWidget(self.contacts_gui)
-        full_gui_but = QPushButton("Show full contacts interface")
+        full_gui_but = QPushButton("Show Contacts tool")
         from chimerax.core.commands import run
         full_gui_but.clicked.connect(lambda *args, run=run, ses=self.session:
             run(ses, "ui tool show Contacts"))

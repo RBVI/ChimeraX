@@ -40,10 +40,10 @@ class AtomProximityGUI(QWidget):
             # the command yourself.
             #
             # Your tool needs to call the GUI's destroy() method when it's deleted
-            action_word="find", attr_name=defaults["attr_name"], bond_separation=defaults["bond_separation"],
-            continuous=False, dashes=None, distance_only=None, ignore_hidden_models=None, inter_model=True,
-            inter_submodel=False, intra_model=True, intra_mol=defaults["intra_mol"],
-            intra_res=defaults["intra_res"], log=defaults["action_log"],
+            action_phrase="Find pairs of atoms", attr_name=defaults["attr_name"],
+            bond_separation=defaults["bond_separation"], continuous=False, dashes=None, distance_only=None,
+            ignore_hidden_models=None, inter_model=True, inter_submodel=False, intra_model=True,
+            intra_mol=defaults["intra_mol"], intra_res=defaults["intra_res"], log=defaults["action_log"],
             make_pseudobonds=defaults["action_pseudobonds"], res_separation=None, restrict=None,
             reveal=False, save_file=None, select=defaults["action_select"],
             set_attrs=defaults["action_attr"], show_dist=False, summary=True, test_atoms=None,
@@ -62,7 +62,8 @@ class AtomProximityGUI(QWidget):
             show_intra_model=True, show_intra_mol=True, show_intra_res=True, show_log=True,
             show_make_pseudobonds=True, show_name=True, show_overlap_cutoff=True, show_radius=True,
             show_res_separation=True, show_restrict=True, show_reveal=True, show_save_file=True,
-            show_select=True, show_set_attrs=True, show_show_dist=True, show_summary=False):
+            show_section_titles=True, show_select=True, show_set_attrs=True, show_show_dist=True,
+            show_summary=False):
 
         self.session = session
         self.cmd_name = cmd_name
@@ -110,7 +111,7 @@ class AtomProximityGUI(QWidget):
             or show_inter_submodel or show_ignore_hidden_models
         if show_overlap_cutoff or show_hbond_allowance or show_restrict or show_bond_separation \
         or show_bool_params:
-            group = QGroupBox("Interaction parameters")
+            group = QGroupBox("Interaction parameters" if show_section_titles else "")
             layout.addWidget(group)
             group_layout = QVBoxLayout()
             group_layout.setContentsMargins(0,0,0,0)
@@ -118,45 +119,32 @@ class AtomProximityGUI(QWidget):
             group.setLayout(group_layout)
             overlap_widgets = []
             distance_only_widgets = []
-            if (show_overlap_cutoff or show_hbond_allowance) and show_distance_only:
+            if show_overlap_cutoff and show_distance_only:
+                group_layout.addWidget(QLabel("%s with:" % action_phrase.capitalize()),
+                    alignment=Qt.AlignLeft)
                 test_type_layout = QGridLayout()
                 test_type_layout.setContentsMargins(0,0,0,0)
                 test_type_layout.setSpacing(0)
-                test_type_layout.setColumnStretch(1, 1)
+                test_type_layout.setColumnStretch(2, 1)
+                test_type_layout.setColumnMinimumWidth(0, 15)
                 group_layout.addLayout(test_type_layout)
-                overlap_rows = show_overlap_cutoff + show_hbond_allowance
                 self.overlap_radio = QRadioButton("")
-                test_type_layout.addWidget(self.overlap_radio, 0, 0, overlap_rows, 1)
+                test_type_layout.addWidget(self.overlap_radio, 0, 1)
                 self.distance_radio = QRadioButton("")
-                test_type_layout.addWidget(self.distance_radio, overlap_rows, 0)
-                def enable_widgets(enabled, enabled_widgets, disabled_widgets):
-                    for ew in enabled_widgets:
-                        ew.setEnabled(enabled)
-                    for dw in disabled_widgets:
-                        dw.setEnabled(not enabled)
-                self.overlap_radio.toggled.connect(lambda chk, *, ew=overlap_widgets,
-                    dw=distance_only_widgets, f=enable_widgets: f(chk, ew, dw))
-                self.distance_radio.toggled.connect(lambda chk, *, ew=distance_only_widgets,
-                    dw=overlap_widgets, f=enable_widgets: f(chk, ew, dw))
-                row = 0
-                if show_overlap_cutoff:
-                    cutoff_args = (row, 1)
-                    row += 1
-                if show_hbond_allowance:
-                    allowance_args = (row, 1)
-                    row += 1
-                distance_args = (row, 1)
+                test_type_layout.addWidget(self.distance_radio, 1, 1)
+                cutoff_args = (0, 2)
+                distance_args = (1, 2)
             else:
-                test_type_layout = group_layout
-                cutoff_args = allowance_args = distance_args = ()
+                test_type_layout = QHBoxLayout()
+                group_layout.addLayout(test_type_layout)
+                test_type_layout.addWidget(QLabel("%s with" % action_phrase.capitalize()))
+                cutoff_args = distance_args = ()
             if show_overlap_cutoff:
                 overlap_layout = QHBoxLayout()
                 overlap_layout.setContentsMargins(0,0,0,0)
                 overlap_layout.setSpacing(0)
                 test_type_layout.addLayout(overlap_layout, *cutoff_args)
-                lab = QLabel("%s pairs of atoms with VDW overlap \N{GREATER-THAN OR EQUAL TO}"
-                    % action_word.capitalize())
-                overlap_layout.addWidget(lab)
+                overlap_layout.addWidget(QLabel("VDW overlap \N{GREATER-THAN OR EQUAL TO}"))
                 self.overlap_spinbox = QDoubleSpinBox()
                 self.overlap_spinbox.setDecimals(2)
                 self.overlap_spinbox.setSingleStep(0.1)
@@ -164,37 +152,23 @@ class AtomProximityGUI(QWidget):
                 self.overlap_spinbox.setValue(final_val['overlap_cutoff'])
                 #self.overlap_spinbox.setSuffix('\N{ANGSTROM SIGN}')
                 overlap_layout.addWidget(self.overlap_spinbox)
-                lab2 = QLabel("\N{ANGSTROM SIGN}")
-                overlap_layout.addWidget(lab2, stretch=1, alignment=Qt.AlignLeft)
-            if show_hbond_allowance:
-                hbond_layout = QHBoxLayout()
-                hbond_layout.setContentsMargins(0,0,0,0)
-                hbond_layout.setSpacing(0)
-                test_type_layout.addLayout(hbond_layout, *allowance_args)
-                hbond_layout.addStretch(1)
-                lab = QLabel("subtract")
-                overlap_widgets.append(lab)
-                hbond_layout.addWidget(lab)
-                self.hbond_spinbox = QDoubleSpinBox()
-                self.hbond_spinbox.setDecimals(2)
-                self.hbond_spinbox.setSingleStep(0.1)
-                self.hbond_spinbox.setRange(-99, 99)
-                self.hbond_spinbox.setValue(final_val['hbond_allowance'])
-                #self.hbond_spinbox.setSuffix('\N{ANGSTROM SIGN}')
-                overlap_widgets.append(self.hbond_spinbox)
-                hbond_layout.addWidget(self.hbond_spinbox)
-                lab = QLabel("for H-bonding pairs")
-                overlap_widgets.append(lab)
-                hbond_layout.addWidget(lab, stretch=1, alignment=Qt.AlignLeft)
-                hbond_layout.addStretch(1)
+                overlap_layout.addWidget(QLabel("\N{ANGSTROM SIGN}"), stretch=1, alignment=Qt.AlignLeft)
+                if show_hbond_allowance:
+                    overlap_layout.addWidget(QLabel(" after subtracting"))
+                    self.hbond_spinbox = QDoubleSpinBox()
+                    self.hbond_spinbox.setDecimals(2)
+                    self.hbond_spinbox.setSingleStep(0.1)
+                    self.hbond_spinbox.setRange(-99, 99)
+                    self.hbond_spinbox.setValue(final_val['hbond_allowance'])
+                    #self.hbond_spinbox.setSuffix('\N{ANGSTROM SIGN}')
+                    overlap_layout.addWidget(self.hbond_spinbox)
+                    overlap_layout.addWidget(QLabel("for H-bonding"), stretch=1, alignment=Qt.AlignLeft)
             if show_distance_only:
                 distance_layout = QHBoxLayout()
                 distance_layout.setContentsMargins(0,0,0,0)
                 distance_layout.setSpacing(0)
                 test_type_layout.addLayout(distance_layout, *distance_args)
-                lab = QLabel("%s pairs of atoms with center-center distance \N{LESS-THAN OR EQUAL TO}"
-                    % action_word.capitalize())
-                distance_layout.addWidget(lab)
+                distance_layout.addWidget(QLabel("center-center distance \N{LESS-THAN OR EQUAL TO}"))
                 self.dist_only_spinbox = QDoubleSpinBox()
                 self.dist_only_spinbox.setDecimals(2)
                 self.dist_only_spinbox.setSingleStep(0.1)
@@ -202,16 +176,13 @@ class AtomProximityGUI(QWidget):
                 val = 4.0 if final_val['distance_only'] is None else final_val['distance_only']
                 self.dist_only_spinbox.setValue(val)
                 #self.dist_only_spinbox.setSuffix('\N{ANGSTROM SIGN}')
-                distance_layout.addWidget(self.dist_only_spinbox, alignment=Qt.AlignLeft)
-                lab2 = QLabel("\N{ANGSTROM SIGN}")
-                distance_layout.addWidget(lab2, stretch=1, alignment=Qt.AlignLeft)
+                distance_layout.addWidget(self.dist_only_spinbox)
+                distance_layout.addWidget(QLabel("\N{ANGSTROM SIGN}"), stretch=1, alignment=Qt.AlignLeft)
             if show_overlap_cutoff and show_distance_only:
                 if distance_only is None:
                     self.overlap_radio.setChecked(True)
-                    enable_widgets(False, distance_only_widgets, overlap_widgets)
                 else:
                     self.distance_radio.setChecked(True)
-                    enable_widgets(True, distance_only_widgets, overlap_widgets)
             if show_restrict:
                 restrict_options = OptionsPanel(sorting=False, scrolled=False,
                     contents_margins=(0,0,0,0))
@@ -288,7 +259,7 @@ class AtomProximityGUI(QWidget):
         if show_select or show_make_pseudobonds or show_color or show_dashes or show_radius \
         or show_show_dist or show_name or show_reveal or show_attr_name or show_set_attrs or show_log \
         or show_save_file:
-            group = QGroupBox("Treatment of results")
+            group = QGroupBox("Treatment of results" if show_section_titles else "")
             layout.addWidget(group)
             group_layout = QVBoxLayout()
             group_layout.setContentsMargins(0,0,0,0)
@@ -377,7 +348,7 @@ class AtomProximityGUI(QWidget):
                 self.attr_name_option = StringOption("Attribute name", final_val['attr_name'], None)
                 treatment_options.add_option(self.attr_name_option)
             if show_log or show_save_file:
-                group = QGroupBox("Write information to:")
+                group = QGroupBox("Write information to:" if show_section_titles else "")
                 layout.addWidget(group)
                 info_layout = QVBoxLayout()
                 info_layout.setContentsMargins(0,0,0,0)
@@ -401,7 +372,7 @@ class AtomProximityGUI(QWidget):
                 treatment_options.add_option(self.summary_option)
 
         if show_checking_frequency:
-            group = QGroupBox("Frequency of checking")
+            group = QGroupBox("Frequency of checking" if show_section_titles else "")
             layout.addWidget(group)
             group_layout = QGridLayout()
             group_layout.setContentsMargins(0,0,0,0)
@@ -473,8 +444,7 @@ class AtomProximityGUI(QWidget):
         else:
             save_restrict = False
 
-        if (self.show_values['overlap_cutoff'] or self.show_values['hbond_allowance']) \
-        and self.show_values['distance_only']:
+        if self.show_values['overlap_cutoff'] and self.show_values['distance_only']:
             overlap_active = self.overlap_radio.isChecked()
             distance_active = not overlap_active
         else:
