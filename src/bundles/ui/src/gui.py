@@ -2775,12 +2775,13 @@ class SelZoneDialog(QDialog):
         contacts_widget.setLayout(contacts_layout)
         from chimerax.clashes.gui import ContactsGUI
         self.contacts_gui = ContactsGUI(self.session, True, settings_name="select zone",
-            action_word="select", show_attr_name=False, show_checking_frequency=False, show_color=False,
-            show_dashes=False, show_log=False, show_make_pseudobonds=False, show_name=False,
-            show_radius=False, show_reveal=False, show_save_file=False, show_select=False,
-            show_set_attrs=False, show_show_dist=False)
+            action_phrase="select contacts", restrict="any", show_attr_name=False,
+            show_checking_frequency=False, show_color=False, show_dashes=False, show_log=False,
+            show_make_pseudobonds=False, show_name=False, show_radius=False, show_reveal=False,
+            show_save_file=False, show_section_titles=False, show_select=False, show_set_attrs=False,
+            show_show_dist=False)
         contacts_layout.addWidget(self.contacts_gui)
-        full_gui_but = QPushButton("Show full contacts interface")
+        full_gui_but = QPushButton("Show Contacts tool")
         from chimerax.core.commands import run
         full_gui_but.clicked.connect(lambda *args, run=run, ses=self.session:
             run(ses, "ui tool show Contacts"))
