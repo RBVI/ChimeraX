@@ -42,6 +42,8 @@ The corresponding commands are
 <a href="../commands/clashes.html"><b>clashes</b></a>
 and <a href="../commands/clashes.html"><b>contacts</b></a>.
 See also:
+<a href="../commands/atomspec.html#zones">zone atom specification</a>,
+menu: <a href="../menu.html#selectzone"><b>Select... Zone/Contacts</b></a>,
 <a href="rotamers.html"><b>Rotamers</b></a>,
 <a href="hbonds.html"><b>H-Bonds</b></a>,
 <a href="distances.html"><b>Distances</b></a>,
@@ -63,23 +65,26 @@ Clicking <b>Reset</b> restores the dialog to factory default settings.
 </p><p>
 <b>Interaction parameters</b>:
 <ul>
-<a name="overlap-def"></a>
-<li><b>Find pairs of atoms with VDW overlap &ge; [ <i>cutoff</i> ] &Aring;</b>
+<li><b>Find pairs of atoms with</b>
+ <ul>
+ <a name="overlap-def"></a>
+ <li><b>VDW overlap &ge; [ <i>cutoff</i> ] &Aring;</b> 
+(initial default <b>on</b>)
 &ndash; identify pairs of atoms with VDW overlap &ge; <i>cutoff</i>.
 The <b><i>VDW overlap</i></b> between two atoms is defined as the sum of their
 <a href="../radii.html">VDW radii</a> minus the distance between their centers.
 An overlap of 0 means the VDW surfaces are just touching.
-A positive overlap is the distance of interpenetration,
-whereas a negative overlap is the distance of separation.
+A positive overlap is how far the VDW surfaces interpenetrate, whereas a 
+negative overlap is the distance of separation between the VDW surfaces.
 A larger positive <i>cutoff</i> restricts the results to more severe
 clashes, whereas a negative <i>cutoff</i> can also identify
 pairs of atoms that are farther apart.
-<li>for <b>Clashes</b> only: <b>Subtract [ <i>allowance</i> ]
-from overlap for potentially H-bonding pairs</b>
-&ndash; an <i>allowance</i> &gt; 0
-reflects the observation that atoms sharing a hydrogen bond can come
-closer to each other than would be expected from their
-<a href="../radii.html">VDW radii</a>.
+<br>
+...for <b>Clashes</b> only:
+<b>after subtracting [ <i>allowance</i> ] for H-bonding</b>
+&ndash; an <i>allowance</i> &gt; 0 reflects the observation that 
+atoms sharing a hydrogen bond can come closer to each other 
+than would be expected from their <a href="../radii.html">VDW radii</a>.
 The <i>allowance</i> is only subtracted for pairs
 comprised of a donor (or donor-borne hydrogen) and an acceptor.
 This is equivalent to using smaller radii to characterize hydrogen-bonding
@@ -117,11 +122,12 @@ lone pair.
 </tr>
 </table>
 </blockquote>
-<li>
-<b>Find pairs of atoms with center-center distance &le; [ <i>d</i> ] &Aring;</b> 
+<b><i>&ndash; OR &ndash;</i></b>
+  <li><b>center-center distance &le; [ <i>d</i> ] &Aring;</b> 
 (initial default <b>off</b>, with <i>d</i>=<b>4.0</b>)
 &ndash; instead of <a href="#overlap-def">VDW overlap</a>,
 use a simple distance cutoff to identify interactions
+  </ul>
 <li><b>Limit by selection</b> (initial default <b>off</b>) 
 &ndash; whether to limit the results by the current
 <a href="../selection.html">selection</a> according to one of the following
@@ -257,5 +263,5 @@ disallowed with <a href="#continuous">continuous monitoring</a>.
 </ul>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-March 2021</address>
+May 2022</address>
 </body></html>
