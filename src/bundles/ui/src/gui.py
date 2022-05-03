@@ -1422,9 +1422,14 @@ class MainWindow(QMainWindow, PlainTextLog):
 
         label_residues_menu = label_menu.addMenu("Residues")
         main_residue_label_info = [("Name", "name"), ("Specifier", "label_specifier"),
-                ("Name Combo", '"/{0.chain_id} {0.name} {0.number}{0.insertion_code}"'),
-                ("1-Letter Code", "label_one_letter_code"), ("1-Letter Code Combo",
-                '"/{0.chain_id} {0.label_one_letter_code} {0.number}{0.insertion_code}"')]
+                ("Name Combo (chain)", '"/{0.chain_id} {0.name} {0.number}{0.insertion_code}"'),
+                ("Name Combo (no chain)", '"{0.name} {0.number}{0.insertion_code}"'),
+                ("1-Letter Code", "label_one_letter_code"),
+                ("1-Letter Code Combo (chain)",
+                    '"/{0.chain_id} {0.label_one_letter_code} {0.number}{0.insertion_code}"'),
+                ("1-Letter Code Combo (no chain)",
+                    '"{0.label_one_letter_code} {0.number}{0.insertion_code}"'),
+                 ]
         for menu_entry, cmd_arg in main_residue_label_info:
             action = QAction(menu_entry, self)
             label_residues_menu.addAction(action)
