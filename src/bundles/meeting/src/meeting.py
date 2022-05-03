@@ -158,21 +158,6 @@ def meeting_start(session, meeting_name = None,
     # Log meeting info
     addresses, cport = ([tunnel.host], tunnel.remote_port) if tunnel else hub.listening_addresses_and_port()
     _report_start(addresses, cport, meeting_name, session.logger)
-    _report_protocol(session.logger)
-
-# -----------------------------------------------------------------------------
-#
-def _report_protocol(log):
-    msg = '''
-<p style="color:blue">
-The ChimeraX meeting command message protocol was changed December 9, 2020
-in order to reduce the network bandwidth (4 - 10 times reduction), and to
-block participants that do not provide the meeting name for better security.
-All participants must use ChimeraX newer than December 9, 2020, or all must
-use an older version because the old protocol is not compatible with the new one.
-</p>
-'''
-    log.info(msg, is_html = True)
 
 # -----------------------------------------------------------------------------
 #
@@ -1279,8 +1264,12 @@ class MessageStream:
         self._last_status_time = None
         self._message_bytes_read = 0
         self.status_message_size = 0
-        
-        socket.error.connect(self._socket_error)
+
+        from Qt import using_qt6
+        if using_qt6:
+            socket.errorOccurred.connect(self._socket_error)
+        else:
+            socket.error.connect(self._socket_error)
         socket.disconnected.connect(self._socket_disconnected)
 
         # Register callback called when data available to read on socket.

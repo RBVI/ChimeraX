@@ -1806,16 +1806,22 @@ class SeqBlock:
         reasons = changes.atom_reasons()
         if "color changed" not in reasons:
             return
-        # for performance reasons, changes.modified_atoms() returns nothing for color changes,
-        # so just redo all label colors
-        for aseq in self.alignment.seqs:
-            assoc_structures = set([chain.structure for chain in aseq.match_maps.keys()])
-            if not assoc_structures or len(assoc_structures) > 1:
-                continue
-            block = self
-            while block is not None:
-                block._colorize_label(aseq)
-                block = block.next_block
+        # allow alignment to update itself, so check on 'changes done' trigger
+        def update_swatches(*args, self=self):
+            # for performance reasons, changes.modified_atoms() returns nothing for color changes,
+            # so just redo all label colors
+            for aseq in self.alignment.seqs:
+                assoc_structures = set([chain.structure for chain in aseq.match_maps.keys()])
+                if not assoc_structures or len(assoc_structures) > 1:
+                    continue
+                block = self
+                while block is not None:
+                    block._colorize_label(aseq)
+                    block = block.next_block
+            from chimerax.core.triggerset import DEREGISTER
+            return DEREGISTER
+        from chimerax.atomic import get_triggers
+        get_triggers().add_handler('changes done', update_swatches)
 
     def _color_func(self, line):
             if hasattr(line, 'position_color'):

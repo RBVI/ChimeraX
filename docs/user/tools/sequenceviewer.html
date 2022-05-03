@@ -48,6 +48,7 @@ a specified sequence or sequence pattern, use
 <a href="../menu.html#selectseq"><b>Select... Sequence</b></a> in the menu
 or the <a href="../commands/select.html#new"><b>select</b></a> command.
 See also:
+<a href="../commands/sequence.html"><b>sequence</b></a>,
 <a href="../commands/modeller.html"><b>modeller</b></a>,
 <a href="https://www.rbvi.ucsf.edu/chimerax/data/conservation-coloring/conservation-coloring.html"
 target="_blank">Coloring by Sequence Conservation</a>
@@ -116,6 +117,23 @@ with choices including:
   </ul>
 <li><b>Edit</b>
   <ul>
+  <li><a name="copy"></a><b>Copy Sequence...</b>
+copy a sequence into the system text buffer so that it
+can be pasted into another application window.
+When mouse focus is in the sequence window, the system 
+&ldquo;copy&rdquo; shortcut (Ctrl-C on Windows/Linux,
+<img src="../icon-clover.png" width="12px">-C on Mac)
+will also bring up this copying dialog:
+  <ul>
+  <li><b>Copy</b> [<i>sequence name</i>] <b>to system paste buffer</b>
+  <li><b>Remove gaps from copy</b> (default <b>on</b>) 
+&ndash; exclude gap characters
+(typically present when the sequence is part of a multiple alignment)
+<li><b>Restrict copy to <a href="#active">active region</a></b>
+(default <b>off</b>) &ndash; only include residues that are within the
+<a href="#active">active region</a></b>,
+even if they form disjoint segments
+  </ul>
   <li><b>Realign Sequences with Clustal Omega</b>
 (<a href="../commands/sequence.html#clustal">details...</a>)
   <li><b>Realign Sequences with MUSCLE</b>
@@ -146,6 +164,14 @@ with any sequence in the alignment, for use as a template in modeling)
   <li><b>Blast Protein...</b> 
 run <a href="blastprotein.html"><b>Blast Protein</b></a>
 with default parameters on the specified sequence
+<li><b>Percent Identity...</b> 
+calculate pairwise percent identities,
+the number of identical columns between two sequences as a percentage 
+of the specified denominator: length of the shorter sequence
+(default), or the length of the longer sequence, or the number of columns 
+where neither sequence has a gap.
+Results are given in the <a href="log.html"><b>Log</b></a>. See also:
+<a href="../commands/sequence.html#identity"><b>sequence identity</b></a>
   </ul>
 <li><b>Sequence Features...</b> for sequences
 <a href="../commands/open.html#fetch">fetched</a> from
@@ -544,7 +570,8 @@ PAM-150, PAM-250, SDM] &ndash; which residue similarity matrix to use
   <li><b>Atoms used for RMSD</b>
     <ul>
     <li><b>C&alpha;</b> (initial default)
-    <li><b>backbone</b>
+    <li><b>backbone</b> &ndash; peptide N, CA, C, O 
+    or nucleic acid phosphoribosyl backbone, not including any hydrogens
     </ul>
   </ul>
 <p>
@@ -645,5 +672,5 @@ style="display:inline-block; vertical-align:middle"><tr>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-February 2022</address>
+May 2022</address>
 </body></html>

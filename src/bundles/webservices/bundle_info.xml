@@ -1,6 +1,6 @@
-<BundleInfo name="ChimeraX-WebServices" version="1.0"
-	    package="chimerax.webservices"
-  	    minSessionVersion="1" maxSessionVersion="1">
+<BundleInfo name="ChimeraX-WebServices" version="1.1.0"
+            package="chimerax.webservices"
+            minSessionVersion="1" maxSessionVersion="1">
 
   <Author>UCSF RBVI</Author>
   <Email>chimerax@cgl.ucsf.edu</Email>

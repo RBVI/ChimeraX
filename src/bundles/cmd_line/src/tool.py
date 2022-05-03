@@ -205,6 +205,12 @@ class CommandLine(ToolInstance):
         if self.settings.startup_commands:
             # prevent the startup command output from being summarized into 'startup messages' table
             self._handlers.append(session.ui.triggers.add_handler('ready', self._run_startup_commands))
+        # on Windows Qt6, the descender of 'g' is cut off unless we make
+        # the line edit slightly taller
+        if sys.platform.startswith("win"):
+            from Qt.QtCore import QTimer
+            QTimer.singleShot(0, lambda *args, le=self.text.lineEdit():
+                    le.setMinimumHeight(le.height()+1))
 
     def cmd_clear(self):
         self.text.lineEdit().clear()

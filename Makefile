@@ -15,7 +15,7 @@ NO_SUBDIR_ALL=1
 NO_SUBDIR_INSTALL=1
 NO_SUBDIR_TEST=1
 SUBDIRS = prereqs src
-
+-include .makerc
 include $(TOP)/mk/config.make
 include $(TOP)/mk/subdir.make
 
@@ -67,7 +67,7 @@ sync-venv:
 ifndef VIRTUAL_ENV
 	@echo "No virtual env to install to! Doing nothing."
 else
-	pip install --force-reinstall $(build_prefix)/sync/binary $(build_prefix)/sync/python-only
+	pip install --force-reinstall $(build_prefix)/sync/binary/* $(build_prefix)/sync/python-only/*
 endif
 
 ifdef WIN32
@@ -120,7 +120,11 @@ clean:
 
 build-from-scratch:
 	$(MAKE) distclean
+ifdef INSTALL_RBVI
+	$(MAKE) install-rbvi
+else
 	$(MAKE) install
+endif
 
 # Linux debugging:
 
@@ -142,3 +146,5 @@ endif
 	echo "branch: $(SNAPSHOT_TAG)" > $(SNAPSHOT_DIR)/last-commit
 	git show --summary --date=iso $(SNAPSHOT_TAG) >> $(SNAPSHOT_DIR)/last-commit
 	git archive $(SNAPSHOT_TAG) | tar -C $(SNAPSHOT_DIR) -xf -
+
+include $(TOP)/Makefile.tests

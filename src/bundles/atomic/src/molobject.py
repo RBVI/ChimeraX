@@ -1202,12 +1202,16 @@ class StructureSeq(Sequence):
         }
         return data
 
-    def _cpp_demotion(self):
+    def _cpp_seq_demotion(self):
         # called from C++ layer when this should be demoted to Sequence
         numbering_start = self.numbering_start
         self._fire_trigger('delete', self)
         self.__class__ = Sequence
         self.numbering_start = numbering_start
+
+    def _cpp_structure_seq_demotion(self):
+        # called from C++ layer when a Chain should be demoted to a StructureSeq
+        self.__class__ = StructureSeq
 
     def _cpp_modified(self):
         # called from C++ layer when the residue list changes
@@ -1276,6 +1280,22 @@ class Chain(StructureSeq):
     def atomspec(self):
         return self.string(style="command")
 
+    # also used by Residue
+    @staticmethod
+    def chain_id_to_atom_spec(chain_id):
+        if chain_id:
+            if chain_id.isspace():
+                id_text = "?"
+            elif chain_id.isalnum():
+                id_text = chain_id
+            else:
+                # use single quotes on the inside so that they can be used in 
+                # cxcmd HTML contexts
+                id_text = "/chain_id='%s'" % chain_id
+        else:
+            id_text = "?"
+        return '/' + id_text
+
     @property
     def identity(self):
         """'Fake' attribute to allow for //identity="/A" tests"""
@@ -1323,7 +1343,7 @@ class Chain(StructureSeq):
         return chain
 
     def string(self, style=None, include_structure=None):
-        chain_str = '/' + (self.chain_id if self.chain_id and not self.chain_id.isspace() else "?")
+        chain_str = self.chain_id_to_atom_spec(self.chain_id)
         from .structure import Structure
         if include_structure is not False and (
         include_structure is True
@@ -1349,13 +1369,14 @@ _cid_index = { c:i for i,c in enumerate(chain_id_characters) }
 def next_chain_id(cid):
     if not cid or cid.isspace():
         return chain_id_characters[0]
-    try:
-        next_index = _cid_index[cid[-1]] + 1
-    except KeyError:
-        raise ValueError("Illegal chain ID character: %s" % repr(cid[-1]))
-    if next_index == len(chain_id_characters):
-        return cid + chain_id_characters[0]
-    return cid[:-1] + chain_id_characters[next_index]
+    for col in range(len(cid)-1, -1, -1):
+        try:
+            next_index = _cid_index[cid[col]] + 1
+        except KeyError:
+            raise ValueError("Illegal chain ID character: %s" % repr(cid[col]))
+        if next_index < len(chain_id_characters):
+            return cid[:col] + chain_id_characters[next_index] + (chain_id_characters[0] * (len(cid)-col-1))
+    return chain_id_characters[0] * (len(cid)+1)
 
 # -----------------------------------------------------------------------------
 #

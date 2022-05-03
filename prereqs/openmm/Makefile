@@ -4,26 +4,27 @@ include $(TOP)/mk/config.make
 
 # Using OpenMM builds from https://anaconda.org/conda-forge/openmm/files
 
-VERSION = 7.6.0
+VERSION = 7.7.0
 
 ifeq ($(OS),Darwin)
 PLATFORM = mac
 ifeq ($(MACOS_ARCH),arm64)
-VERSION = 7.7.0
 DISTRIBUTION = openmm-7.7.0-mac-py39hbfad222_1_apple.tar.bz2
 else
-DISTRIBUTION = openmm-7.6.0-mac-py39h17f8b25_0_apple.tar.bz2
+DISTRIBUTION = openmm-7.7.0-mac-py39h8a2e0eb_1_apple.tar.bz2
 endif
 endif
 ifeq ($(OS),Linux)
 PLATFORM = linux
 # The Linux distribution comes from Tristan Croll
 # compiled with the same compiler as ChimeraX.
-DISTRIBUTION = openmm-7.6.0-linux-py39_cuda112_1.tar.bz2
+# Using CUDA 11.2
+DISTRIBUTION = openmm-7.7.0-linux-py39_cuda112_1.tar.bz2
 endif
 ifeq ($(OS),Windows)
 PLATFORM = windows
-DISTRIBUTION = openmm-7.6.0-win-cuda11.2-py39h6dc0912_0.tar.bz2
+# Using CUDA 11.2
+DISTRIBUTION = openmm-7.7.0-win-py39h6dc0912_1.tar.bz2
 endif
 
 SOURCE = $(tmpdir)/OpenMM-$(VERSION)-$(PLATFORM)

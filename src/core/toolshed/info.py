@@ -11,12 +11,13 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-#data_dir:1: WARNING: duplicate object description of chimerax.core.toolshed.BundleInfo.data_dir, other instance in core/toolshed, use :noindex: for one of them
-#executable_dir:1: WARNING: duplicate object description of chimerax.core.toolshed.BundleInfo.executable_dir, other instance in core/toolshed, use :noindex: for one of them
-#include_dir:1: WARNING: duplicate object description of chimerax.core.toolshed.BundleInfo.include_dir, other instance in core/toolshed, use :noindex: for one of them
-#library_dir:1: WARNING: duplicate object description of chimerax.core.toolshed.BundleInfo.library_dir, other instance in core/toolshed, use :noindex: for one of them
+# data_dir:1: WARNING: duplicate object description of chimerax.core.toolshed.BundleInfo.data_dir, other instance in core/toolshed, use :noindex: for one of them
+# executable_dir:1: WARNING: duplicate object description of chimerax.core.toolshed.BundleInfo.executable_dir, other instance in core/toolshed, use :noindex: for one of them
+# include_dir:1: WARNING: duplicate object description of chimerax.core.toolshed.BundleInfo.include_dir, other instance in core/toolshed, use :noindex: for one of them
+# library_dir:1: WARNING: duplicate object description of chimerax.core.toolshed.BundleInfo.library_dir, other instance in core/toolshed, use :noindex: for one of them
 from . import ToolshedError, BundleAPI
 from . import _debug
+
 
 class BundleInfo:
     """Supported API. Metadata about a bundle, whether installed or available.
@@ -32,14 +33,13 @@ class BundleInfo:
         installed: boolean
             True if this bundle is installed locally; False otherwise.
         session_versions: range
-            Given as the minimum and maximum session versions 
+            Given as the minimum and maximum session versions
             that this bundle can read.
         session_write_version: integer
-            The session version that bundle data is written in. 
+            The session version that bundle data is written in.
             Defaults to maximum of 'session_versions'.
         custom_init: boolean
             Whether bundle has custom initialization code
-    
     """
 
     def __init__(self, name, installed,
@@ -57,7 +57,7 @@ class BundleInfo:
                  managers=None,
                  providers=None,
                  inits=None,
-                 packages=[], supersedes=[]):
+                 packages=None, supersedes=None):
         """Initialize instance.
 
         Parameters:
@@ -100,6 +100,8 @@ class BundleInfo:
         self.session_write_version = session_versions.stop - 1
         self.custom_init = custom_init
         self.categories = categories
+        if packages is None:
+            packages = []
         self.packages = packages
         self.tools = []
         self.commands = []
@@ -107,6 +109,8 @@ class BundleInfo:
         self.selectors = []
         self.fetches = []
         self.description = description
+        if supersedes is None:
+            supersedes = []
         self.supersedes = supersedes
         self.package_name = api_package_name
         self.installed_data_dir = data_dir
@@ -129,15 +133,16 @@ class BundleInfo:
 
     @property
     def name(self):
-        """Supported API. 
-        
+        """Supported API.
+
         Returns: Internal name of the bundle.
         """
         return self._name
+
     @property
     def short_name(self):
-        """Supported API. 
-         
+        """Supported API.
+
            Returns:
                A short name for the bundle.  Typically the same as 'name' with 'ChimeraX-' omitted.
         """
@@ -148,7 +153,7 @@ class BundleInfo:
 
     @property
     def version(self):
-        """Supported API. 
+        """Supported API.
 
            Returns:
                Bundle version (which is actually the same as the distribution version,
@@ -158,9 +163,9 @@ class BundleInfo:
 
     @property
     def synopsis(self):
-        """Supported API. 
-           
-           Returns: 
+        """Supported API.
+
+           Returns:
                Bundle synopsis; a short description of this bundle.
         """
         return self._synopsis or "no synopsis available"
@@ -294,14 +299,14 @@ class BundleInfo:
             Where to log error messages.
         """
         self._deregister_selectors(logger)
-        #self._deregister_file_types(logger)
+        # self._deregister_file_types(logger)
         self._deregister_commands(logger)
 
     def _register_commands(self, logger):
         from chimerax.core.commands import cli
         for ci in self.commands:
-            def cb(s=self, ci=ci, l=logger):
-                s._register_cmd(ci, l)
+            def cb(s=self, ci=ci, logger=logger):
+                s._register_cmd(ci, logger)
             _debug("delay_registration", ci.name)
             try:
                 cli.delay_registration(ci.name, cb, logger=logger)
@@ -382,7 +387,7 @@ class BundleInfo:
 
     def finish(self, session):
         """Supported API. Deinitialize bundle by calling custom finish code if needed.
-        
+
         This method is only called when a bundle is explicitly unloaded.
         In particular, it is *not* called when ChimeraX exits normally."""
         if self.get_module(force_import=False):
@@ -390,33 +395,34 @@ class BundleInfo:
                 api = self._get_api(session.logger)
                 api._api_caller.finish(api, session, self)
             except Exception as e:
-                import traceback, sys
+                import sys
+                import traceback
                 traceback.print_exc(file=sys.stdout)
                 raise ToolshedError(
                     "finish() failed in bundle %s:\n%s" % (self.name, str(e)))
 
     def include_dir(self):
-        """Supported API. 
-       
+        """Supported API.
+
            Returns: Path (relative to bundle root) of the bundle's directory of compilation include files.
         """
         return self._bundle_path(self.installed_include_dir)
 
     def library_dir(self):
-        """Supported API. 
-           
+        """Supported API.
+
            Returns: Path (relative to bundle root) of the bundle's directory of link libraries.
         """
         return self._bundle_path(self.installed_library_dir)
 
     def executable_dir(self):
-        """Supported API. 
-           Returns: Path (relative to bundle root) of the bundle's directory of executables. 
+        """Supported API.
+           Returns: Path (relative to bundle root) of the bundle's directory of executables.
         """
         return self._bundle_path(self.installed_executable_dir)
 
     def data_dir(self):
-        """Supported API. 
+        """Supported API.
 
            Returns:
                Path (relative to the bundle root) of the bundle's data directory.
@@ -539,8 +545,7 @@ class BundleInfo:
             If the tool is not installed or cannot be started.
         """
         if not self.installed:
-            raise ToolshedError("bundle \"%s\" is not installed"
-                                           % self.name)
+            raise ToolshedError("bundle \"%s\" is not installed" % self.name)
         if not session.ui.is_gui:
             raise ToolshedError("tool \"%s\" is not supported without a GUI"
                                 % tool_name)
@@ -768,9 +773,6 @@ class FormatInfo:
 #
 # Class-independent utility functions
 #
-
-
-from ..commands import Annotation
 
 
 def _convert_keyword_types(kwds, bi, logger):

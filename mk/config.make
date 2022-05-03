@@ -1,3 +1,4 @@
+# -*- mode: makefile -*- vim: set syntax=make:
 # === UCSF ChimeraX Copyright ===
 # Copyright 2016 Regents of the University of California.
 # All rights reserved.  This software provided pursuant to a
@@ -30,7 +31,7 @@ all:
 # version numbers that leak out of prerequisites
 
 PYTHON_VERSION = 3.9
-PYTHON_PATCH_VERSION = 6
+PYTHON_PATCH_VERSION = 11
 
 ifndef DEBUG
 # Starting with Python 3.8 the ABI "m" has been dropped.
@@ -123,6 +124,7 @@ else ifdef USE_MAC_FRAMEWORKS
 PYTHON_INCLUDE_DIRS = $(shell $(bindir)/python$(PYTHON_VERSION)$(PYTHON_ABI)-config --includes)
 PYTHON_FRAMEWORK = $(frameworkdir)/Python.framework/Versions/$(PYTHON_VERSION)
 APP_PYTHON_FRAMEWORK = $(app_frameworkdir)/Python.framework/Versions/$(PYTHON_VERSION)
+APP_PYTHON_FRAMEWORK_LIBDIR = $(app_frameworkdir)/Python.framework/Versions/$(PYTHON_VERSION)/lib
 PYTHON_LIBRARY_DIR = $(libdir)/python$(PYTHON_VERSION)
 APP_PYTHON_LIBRARY_DIR = $(app_libdir)/python$(PYTHON_VERSION)
 PYTHON_BIN = $(bindir)/python$(PYTHON_VERSION)

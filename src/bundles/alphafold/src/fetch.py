@@ -18,8 +18,8 @@
 #	https://alphafold.ebi.ac.uk/files/AF-P29474-F1-model_v1.cif
 #
 def alphafold_fetch(session, uniprot_id, color_confidence=True,
-                    align_to=None, trim=True, ignore_cache=False,
-                    add_to_session=True, version=None, **kw):
+                    align_to=None, trim=True, pae=False, ignore_cache=False,
+                    add_to_session=True, version=None, in_file_history=True, **kw):
 
     uniprot_name = uniprot_id if '_' in uniprot_id else None
     uniprot_id = _parse_uniprot_id(uniprot_id)
@@ -33,7 +33,9 @@ def alphafold_fetch(session, uniprot_id, color_confidence=True,
 
     model_name = 'AlphaFold %s' % (uniprot_name or uniprot_id)
     models, status = session.open_command.open_data(filename, format = 'mmCIF',
-                                                    name = model_name, **kw)
+                                                    name = model_name,
+                                                    in_file_history = in_file_history,
+                                                    **kw)
     from .match import _set_alphafold_model_attributes
     _set_alphafold_model_attributes(models, uniprot_id, uniprot_name)
 
@@ -50,6 +52,10 @@ def alphafold_fetch(session, uniprot_id, color_confidence=True,
         
     if add_to_session:
         session.models.add(models)
+
+    if pae:
+        from .pae import alphafold_pae
+        alphafold_pae(session, structure = models[0], uniprot_id = uniprot_id)
         
     return models, status
 
@@ -102,6 +108,7 @@ def register_alphafold_fetch_command(logger):
         keyword = [('color_confidence', BoolArg),
                    ('align_to', ChainArg),
                    ('trim', BoolArg),
+                   ('pae', BoolArg),
                    ('ignore_cache', BoolArg),
                    ('version', IntArg)],
         synopsis = 'Fetch AlphaFold database models for a UniProt identifier'

@@ -1,7 +1,10 @@
 #
 # Application runtime
 #
-# Some packages are not available on macOS arm64 cpu, marked below with platform_machine != 'arm64'.
+# Some PIP packages are not available on macOS arm64 cpu
+# We install them from the prereqs archive using wheels from Conda
+# They are marked below with platform_machine != 'arm64'.
+# TODO: Deprecate conda version when pip gets arm64 ports
 #
 appdirs==1.4.4
 colorama==0.4.4
@@ -40,7 +43,7 @@ python-dateutil==2.8.2
 # PyQt handled in prereqs/PyQt
 # sip handled in prereqs/PyQt
 #PySide2==5.15.2
-qtconsole==5.2.2
+qtconsole==5.3.0
 requests==2.27.1
 scipy==1.7.3
 six==1.16.0

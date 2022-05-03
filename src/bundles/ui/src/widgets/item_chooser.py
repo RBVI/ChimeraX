@@ -480,7 +480,11 @@ class ModelMenuButton(ItemMenuButton):
 
 def _when_all_updated(widget, func):
     def check_and_execute(*, widget=widget, func=func):
-        if not widget.__dict__.get("_destroyed", False):
+        try:
+            alive = hasattr(widget, 'value_changed')
+        except RuntimeError:
+            pass
+        else:
             func()
     from Qt.QtCore import QTimer
     QTimer.singleShot(0, check_and_execute)

@@ -134,6 +134,13 @@ def show_open_file_dialog(session, initial_directory=None, format_name=None):
         from Qt.QtWidgets import QFileDialog
         paths, file_filter = QFileDialog.getOpenFileNames(filter=qt_filter,
                                                        directory=initial_directory)
+        from sys import platform
+        if platform == 'win32':
+            # On Windows 10 the native open dialog puts "fatal errors" into the
+            # faulthandler crash monitoring file that are in fact not fatal.
+            # These make Windows crash reports hard to understand.  So clear them.
+            from chimerax.bug_reporter import crash_report
+            crash_report.clear_fault_handler_file(session)
     else:
         dlg = OpenDialog(parent=session.ui.main_window, starting_directory=initial_directory,
                        filter=qt_filter)

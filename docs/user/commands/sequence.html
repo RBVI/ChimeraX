@@ -32,11 +32,12 @@ The <b>sequence</b> command can:
 in the <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>
 <li><a href="#associate">control sequence-structure associations</a>
 <li><a href="#header">show, hide, save alignment headers</a>
+<li><a href="#identity">calculate pairwise percent identities</a>
 <li><a href="#align">calculate a new sequence alignment</a>
 using a web service
 </ul>
 <p>
-Associations, headers, and sequence alignment can also be managed using the
+Except for showing a sequence, these actions can also be accessed from the
 <a href="../tools/sequenceviewer.html#context"><b>Sequence Viewer</b>
 context menu</a>.
 </p>
@@ -165,6 +166,53 @@ However, saving only works for a single header at a time, so an
 <i>alignment-ID</i> must be given when more than one alignment is open.
 </p>
 
+<a name="identity"></a>
+<p class="nav">
+[<a href="#top">back to top: sequence</a>]
+</p>
+<h3>Calculate Percent Identities</h3>
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>sequence &nbsp;identity</b> &nbsp;<i>alignment-ID</i>&nbsp;
+[&nbsp;<b>denominator</b>&nbsp;&nbsp;<b>shorter</b>&nbsp;|&nbsp;longer&nbsp;|&nbsp;nongap&nbsp;]
+<br>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>sequence &nbsp;identity</b> &nbsp;<i>alignment-ID</i>&nbsp;
+<span class="nowrap">&nbsp;<i>alignment-ID</i>:<i>sequence-ID</i>&nbsp;</span>
+[&nbsp;<b>denominator</b>&nbsp;&nbsp;<b>shorter</b>&nbsp;|&nbsp;longer&nbsp;|&nbsp;nongap&nbsp;]
+<br>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>sequence &nbsp;identity</b> 
+<span class="nowrap">&nbsp;<i>alignment-ID</i>:<i>sequence-ID</i>&nbsp;</span>
+<span class="nowrap">&nbsp;<i>alignment-ID</i>:<i>sequence-ID</i>&nbsp;</span>
+[&nbsp;<b>denominator</b>&nbsp;&nbsp;<b>shorter</b>&nbsp;|&nbsp;longer&nbsp;|&nbsp;nongap&nbsp;]
+</blockquote>
+<p>
+The <b>sequence identity</b> command calculates the pairwise percent identity
+between sequences of the same length (including gaps, as shown in
+the <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a> window).
+The calculation is always pairwise, but can be performed for all-by-all pairs
+within a single alignment, or all-by-one, or between two specific sequences.
+An entire alignment is specified by its ID, shown in the title bar of the 
+<a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a> window,
+and an individual sequence by the alignment ID plus the sequence's
+name or index number in the alignment, in the form: 
+&nbsp;<span class="nowrap"><i>alignment-ID</i>:<i>sequence-ID</i></span>&nbsp;
+(<a href="seqspec.html">details...</a>).
+</p><p>
+Results are listed in the <a href="../tools/log.html"><b>Log</b></a>. 
+For each pair, the number of columns with identical residues is given 
+as a percentage of the specified <b>denominator</b>:
+</p>
+<ul>
+<li><b>shorter</b> (default) 
+&ndash; the number of residues in the shorter of the two sequences
+<li><b>longer</b>
+&ndash; the number of residues in the longer of the two sequences
+<li><b>nongap</b>
+&ndash; the number of columns where neither sequence has a gap
+</ul> 
+
 <a name="align"></a>
 <p class="nav">
 [<a href="#top">back to top: sequence</a>]
@@ -267,5 +315,5 @@ Edgar RC.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-December 2021</address>
+April 2022</address>
 </body></html>

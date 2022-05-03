@@ -13,6 +13,7 @@
 
 from chimerax.core.toolshed import BundleAPI
 
+
 class _SchemesBundleAPI(BundleAPI):
 
     @staticmethod
@@ -32,5 +33,6 @@ class _SchemesBundleAPI(BundleAPI):
     def run_provider(session, name, mgr, **kw):
         """Run scheme provider (which does nothing)"""
         return
+
 
 bundle_api = _SchemesBundleAPI()
