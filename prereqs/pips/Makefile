@@ -56,6 +56,7 @@ ifeq ($(OSARCH),DarwinArm64)
 	done
 	for l in $(NETCDF_DYLIBS) $(PYTABLES_DYLIBS); do \
 		mv $$l.arm64 $$l ; \
+		chmod +x $$l ; \
 	done
 	$(APP_PIP_INSTALL) tables-3.7.0-cp39-cp39-macosx_12_0_arm64.whl \
 		netCDF4-1.5.8-cp39-cp39-macosx_12_0_arm64.whl \
