@@ -43,7 +43,7 @@ class DouseResultsViewer(ToolInstance):
             # we kept the input waters
             self.radio_group = QButtonGroup(parent)
             self.radio_group.buttonClicked.connect(self._update_residues)
-            but_layout = QVBoxLayout()
+            self.button_layout = but_layout = QVBoxLayout()
             layout.addLayout(but_layout)
             self.douse_only_button = QRadioButton(parent)
             self.radio_group.addButton(self.douse_only_button)
@@ -56,12 +56,13 @@ class DouseResultsViewer(ToolInstance):
             but_layout.addWidget(self.original_only_button)
             self._update_button_texts()
             self.douse_only_button.setChecked(True)
+            self.filter_residues = compared_waters[1]
         else:
             # didn't keep the input waters
-            #TODO
             self.radio_group = None
+            from .douse import _water_residues
+            self.filter_residues = _water_residues(self.douse_model)
         self.filter_model = self.douse_model
-        self.filter_residues = compared_waters[1]
         from chimerax.atomic.widgets import ResidueListWidget
         self.res_list = ResidueListWidget(self.session, filter_func=self._filter_residues)
         self.res_list.value_changed.connect(self._res_sel_cb)
@@ -78,9 +79,13 @@ class DouseResultsViewer(ToolInstance):
     def _filter_residues(self, r):
         return r.structure == self.filter_model and r in self.filter_residues
 
-    def _models_removed_cb(self, *args):
-        if self.orig_model.id is None or self.douse_model.id is None:
+    def _models_removed_cb(self, trig_name, trig_data):
+        if self.douse_model in trig_data:
             self.delete()
+        elif self.orig_model in trig_data:
+            self.douse_only_button.setChecked(True)
+            self._update_residues()
+            self.tool_window.ui_area.layout().removeItem(self.button_layout)
 
     def _res_sel_cb(self):
         selected = self.res_list.value

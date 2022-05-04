@@ -121,11 +121,14 @@ def _process_results(session, douse_model, shift, near_model, keep_input_water, 
     # Copy new waters
     model, msg, nwaters, raw_compared_waters = _copy_new_waters(douse_model, near_model, keep_input_water,
         far_water, map.name)
-    compared_waters = []
-    for waters in raw_compared_waters:
-        if waters and waters[0].structure == douse_model:
-            waters = model.residues[douse_model.residues.indices(waters)]
-        compared_waters.append(waters)
+    if raw_compared_waters is None:
+        compared_waters = None
+    else:
+        compared_waters = []
+        for waters in raw_compared_waters:
+            if waters and waters[0].structure == douse_model:
+                waters = model.residues[douse_model.residues.indices(waters)]
+            compared_waters.append(waters)
     douse_model.delete()
 
     # Report predicted waters and input waters
@@ -279,6 +282,7 @@ def _copy_new_waters(douse_model, near_model, keep_input_water, far_water, map_n
     return model, msg, nnew, compared_waters
 
 
+# also used in tool.py
 def _water_residues(model):
     res = model.residues
     water_res = res[res.names == 'HOH']
