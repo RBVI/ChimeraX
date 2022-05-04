@@ -30,21 +30,6 @@ class AtomicStructureMenuButton(ModelMenuButton):
     def __init__(self, session, **kw):
         super().__init__(session, class_filter=AtomicStructure, **kw)
 
-def _process_chain_kw(session, list_func=None, trigger_info=None, **kw):
-    if list_func is None:
-        def chain_list(ses=session):
-            chains = []
-            for m in ses.models:
-                if isinstance(m, Structure):
-                    chains.extend(m.chains)
-            return chains
-        kw['list_func'] = chain_list
-    if trigger_info is None:
-        from .triggers import get_triggers
-        from chimerax.core.models import ADD_MODELS
-        kw['trigger_info'] = [ (get_triggers(), 'changes'), (session.triggers, ADD_MODELS) ]
-    return kw
-
 class ChainListWidget(ItemListWidget):
     def __init__(self, session, *, group_identical=False, **kw):
         self._session = session
@@ -142,6 +127,39 @@ class ChainListWidget(ItemListWidget):
 class ChainMenuButton(ItemMenuButton):
     def __init__(self, session, **kw):
         super().__init__(**_process_chain_kw(session, **kw))
+
+def _process_chain_kw(session, list_func=None, trigger_info=None, **kw):
+    if list_func is None:
+        def chain_list(ses=session):
+            chains = []
+            for m in ses.models:
+                if isinstance(m, Structure):
+                    chains.extend(m.chains)
+            return chains
+        kw['list_func'] = chain_list
+    if trigger_info is None:
+        from .triggers import get_triggers
+        from chimerax.core.models import ADD_MODELS
+        kw['trigger_info'] = [ (get_triggers(), 'changes'), (session.triggers, ADD_MODELS) ]
+    return kw
+
+class ResidueListWidget(ItemListWidget):
+    def __init__(self, session, **kw):
+        super().__init__(**_process_residue_kw(session, **kw))
+
+class ResidueMenuButton(ItemMenuButton):
+    def __init__(self, session, **kw):
+        super().__init__(**_process_residue_kw(session, **kw))
+
+def _process_residue_kw(session, list_func=None, trigger_info=None, **kw):
+    if list_func is None:
+        from . import all_residues
+        kw['list_func'] = lambda ses=session, f=all_residues: f(ses)
+    if trigger_info is None:
+        from .triggers import get_triggers
+        from chimerax.core.models import ADD_MODELS
+        kw['trigger_info'] = [ (get_triggers(), 'changes'), (session.triggers, ADD_MODELS) ]
+    return kw
 
 def make_elements_menu(parent, *, _session=None, _parent_menus=None):
     '''keyword args for internal use only (adding Elements menu under main Select menu)'''
