@@ -382,7 +382,7 @@ class AlphaFoldPAEPlot(ToolInstance):
     #
     def _fill_context_menu(self, menu, x, y):
         from Qt.QtGui import QAction
-        a = QAction('Drag box to color', menu)
+        a = QAction('Dragging box colors structure', menu)
         a.setCheckable(True)
         a.setChecked(self._drag_colors)
         def _set_drag_colors(checked, self=self):
@@ -406,8 +406,7 @@ class AlphaFoldPAEPlot(ToolInstance):
     def _color_from_structure(self, colormap = None):
         '''colormap is used for plot points where residues have different colors.'''
         if colormap is None:
-            from chimerax.core.colors import BuiltinColormaps
-            colormap = BuiltinColormaps['pae']
+            colormap = self._pae_view._block_colormap((0,0,0,255))
         color_blocks = self._residue_color_blocks()
         self._pae_view._make_image(self._pae._pae_matrix, colormap, color_blocks)
 
@@ -623,18 +622,23 @@ class PAEView(QGraphicsView):
         scene.setSceneRect(0, 0, pixmap.width(), pixmap.height())
 
     def _color_blocks(self, rgb, pae_matrix, color_blocks):
-        from numpy import array, float32, linspace, sqrt, ix_
-        pae_range = (0, 5, 10, 15, 20, 25, 30)
-        fracs = sqrt(linspace(0, 1, len(pae_range)))
-        bgcolor = array((1.0,1.0,1.0,1.0), float32)
-        from chimerax.core.colors import Colormap
+        from numpy import ix_
         for color, indices in color_blocks:
-            fcolor = array([c/255 for c in color], float32)
-            colors = [((1-f)*fcolor + f*bgcolor) for f in fracs]
-            colormap = Colormap(pae_range, colors)
+            colormap = self._block_colormap(color)
             subsquare = ix_(indices, indices)
             rgb[subsquare] = pae_rgb(pae_matrix[subsquare], colormap)
-            
+
+    def _block_colormap(self, color, bg_color = (255,255,255,255)):
+        from numpy import array, float32, linspace, sqrt
+        pae_range = (0, 5, 10, 15, 20, 25, 30)
+        fracs = sqrt(linspace(0, 1, len(pae_range)))
+        bgcolor = array([c/255 for c in bg_color], float32)
+        from chimerax.core.colors import Colormap
+        fcolor = array([c/255 for c in color], float32)
+        colors = [((1-f)*fcolor + f*bgcolor) for f in fracs]
+        colormap = Colormap(pae_range, colors)
+        return colormap
+        
 # -----------------------------------------------------------------------------
 #
 class AlphaFoldPAE:
