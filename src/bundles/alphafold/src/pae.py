@@ -87,6 +87,8 @@ class AlphaFoldPAEOpen(ToolInstance):
         if structure_path is None:
             return
 
+        self._pae_file.setText('')
+        
         uniprot_id = _guess_uniprot_id(structure_path)
         if uniprot_id:
             self._pae_file.setText(uniprot_id)
@@ -196,6 +198,32 @@ class AlphaFoldPAEOpen(ToolInstance):
         run(self.session, 'help %s' % self.help)
 
 # -----------------------------------------------------------------------------
+# ChimeraX Google colab predictions names files
+#
+#	best_model.pdb
+#	best_model_pae.json
+#	model_3_unrelaxed.pdb
+#	model_3_pae.json
+#
+# Full AlphaFold 2.2.0 runs name files
+#
+#	unrelaxed_model_1_multimer_v2_pred_0.pdb
+#	relaxed_model_1_multimer_v2_pred_0.pdb
+#	result_model_1_multimer_v2_pred_0.pkl
+#
+# ColabFold 1.3.0 runs name files where 7qfc was user assigned name and efb9b was
+# server assigned id.
+#
+#	7qfc_efb9b_unrelaxed_rank_1_model_4.pdb
+#	7qfc_efb9b_unrelaxed_rank_1_model_4_scores.json
+#
+# AlphaFold database files
+#
+#	AF-P01445-F1-model_v2.cif
+#	AF-P01445-F1-predicted_aligned_error_v2.json
+#
+# Finding json/pkl with matching prefix works except for full alphafold which
+# wants matching suffix.
 #
 def _matching_pae_file(structure_path):
     from os.path import split, isdir, join
@@ -206,19 +234,55 @@ def _matching_pae_file(structure_path):
     from os import listdir
     dfiles = listdir(dir)
     pfiles = [f for f in dfiles if f.endswith('.json') or f.endswith('.pkl')]
-    if len(pfiles) == 1:
-        path = join(dir, pfiles[0])
-        return path
-    elif len(pfiles) > 1:
-        # Find longest matching prefix
-        m = [(len(matching_prefix(pf,filename)),pf) for pf in pfiles]
-        m.sort(reverse = True)
-        min_match_length = 6
-        if m[0][0] > min_match_length and m[0][0] > m[1][0]:
-            path = join(dir, m[0][1])
-            return path
 
+    if len(pfiles) == 0:
+        return None
+    if len(pfiles) == 1:
+        return join(dir, pfiles[0])
+    
+    mfile = _longest_matching_prefix(filename, pfiles, min_length = 6)
+    if mfile is None:
+        mfile = _longest_matching_suffix(filename, pfiles, min_length = 6)
+    if mfile is None:
+        return None
+    return join(dir, mfile)
+
+# -----------------------------------------------------------------------------
+#
+def _longest_matching_prefix(filename, filenames, min_length = 1):
+    m = [(len(_matching_prefix(pf,filename)),pf) for pf in filenames]
+    m.sort(reverse = True)
+    if m[0][0] >= min_length and m[0][0] > m[1][0]:
+        return m[0][1]
     return None
+
+# -----------------------------------------------------------------------------
+#
+def _matching_prefix(s1, s2):
+    for i in range(min(len(s1), len(s2))):
+        if s2[i] != s1[i]:
+            break
+    return s1[:i]
+
+# -----------------------------------------------------------------------------
+#
+def _longest_matching_suffix(filename, filenames, min_length = 1):
+    m = [(len(_matching_suffix(pf,filename)),pf) for pf in filenames]
+    m.sort(reverse = True)
+    if m[0][0] >= min_length and m[0][0] > m[1][0]:
+        return m[0][1]
+    return None
+
+# -----------------------------------------------------------------------------
+#
+def _matching_suffix(s1, s2):
+    # Ignore last "." and beyond
+    from os.path import splitext
+    s1,s2 = splitext(s1)[0], splitext(s2)[0]
+    for i in range(min(len(s1), len(s2))):
+        if s2[-i] != s1[-i]:
+            break
+    return s1[-i:]
 
 # ---------------------------------------------------------------------------
 #
@@ -228,14 +292,6 @@ def _guess_uniprot_id(structure_path):
     from .database import uniprot_id_from_filename
     uniprot_id = uniprot_id_from_filename(filename)
     return uniprot_id
-
-# -----------------------------------------------------------------------------
-#
-def matching_prefix(s1, s2):
-    for i in range(len(s1)):
-        if s2[i] != s1[i]:
-            break
-    return s1[:i]
 
 # -----------------------------------------------------------------------------
 #
@@ -260,11 +316,14 @@ class AlphaFoldPAEPlot(ToolInstance):
     def __init__(self, session, tool_name, pae, colormap = None):
 
         self._pae = pae		# AlphaFoldPAE instance
+
+        self._drag_colors = True
         
         ToolInstance.__init__(self, session, tool_name)
 
         from chimerax.ui import MainToolWindow
         tw = MainToolWindow(self)
+        tw.fill_context_menu = self._fill_context_menu
         self.tool_window = tw
         parent = tw.ui_area
 
@@ -278,7 +337,8 @@ class AlphaFoldPAEPlot(ToolInstance):
         self._heading = hl = QLabel(title)
         layout.addWidget(hl)
 
-        self._pae_view = gv = PAEView(parent, self._rectangle_select, self._rectangle_clear)
+        self._pae_view = gv = PAEView(parent, self._rectangle_select, self._rectangle_clear,
+                                      self._report_residues)
         from Qt.QtWidgets import QSizePolicy
         from Qt.QtCore import Qt
         gv.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
@@ -294,9 +354,10 @@ class AlphaFoldPAEPlot(ToolInstance):
         # Color Domains button
         bf = self._create_action_buttons(parent)
         layout.addWidget(bf)
-        
-        layout.addStretch(1)    # Extra space at end
 
+        self._info_label = QLabel(bf)
+        bf.layout().insertWidget(3, self._info_label)
+        
         self.set_colormap(colormap)
 
         if pae.structure is not None:
@@ -316,15 +377,52 @@ class AlphaFoldPAEPlot(ToolInstance):
         '''Remove plot if associated structure closed.'''
         if not self.closed():
             self.delete()
+
+    # ---------------------------------------------------------------------------
+    #
+    def _fill_context_menu(self, menu, x, y):
+        from Qt.QtGui import QAction
+        a = QAction('Dragging box colors structure', menu)
+        a.setCheckable(True)
+        a.setChecked(self._drag_colors)
+        def _set_drag_colors(checked, self=self):
+            self._drag_colors = checked
+        a.triggered.connect(_set_drag_colors)
+        menu.addAction(a)
+
+        menu.addAction('Color plot from structure', self._color_from_structure)
+        menu.addAction('Color plot default', self.set_colormap)
         
     # ---------------------------------------------------------------------------
     #
-    def set_colormap(self, colormap):
+    def set_colormap(self, colormap = None):
         if colormap is None:
             from chimerax.core.colors import BuiltinColormaps
             colormap = BuiltinColormaps['pae']
         self._pae_view._make_image(self._pae._pae_matrix, colormap)
-   
+
+    # ---------------------------------------------------------------------------
+    #
+    def _color_from_structure(self, colormap = None):
+        '''colormap is used for plot points where residues have different colors.'''
+        if colormap is None:
+            colormap = self._pae_view._block_colormap((0,0,0,255))
+        color_blocks = self._residue_color_blocks()
+        self._pae_view._make_image(self._pae._pae_matrix, colormap, color_blocks)
+
+    # ---------------------------------------------------------------------------
+    #
+    def _residue_color_blocks(self):
+        colors = self._pae.structure.residues.ribbon_colors
+        color_indices = {}
+        for i,color in enumerate(colors):
+            c = tuple(color)
+            if c in color_indices:
+                color_indices[c].append(i)
+            else:
+                color_indices[c] = [i]
+        return tuple(color_indices.items())
+        
     # ---------------------------------------------------------------------------
     #
     def _create_action_buttons(self, parent):
@@ -355,18 +453,44 @@ class AlphaFoldPAEPlot(ToolInstance):
 
     # ---------------------------------------------------------------------------
     #
+    def _report_residues(self, index1, index2):
+        m = self._pae._pae_matrix
+        size = m.shape[0]
+        s = self._pae.structure
+        res = s.residues
+        if index1 < 0 or index2 < 0 or index1 >= size or index2 >= size or len(res) < size:
+            msg = ''
+        else:
+            d = m[index1,index2]
+            dstr = '%.1f' % d
+            r1,r2 = res[index1], res[index2]
+            if s.num_chains == 1:
+                msg = f'{r1.label_one_letter_code}{r1.number} {r2.label_one_letter_code}{r2.number} = {dstr}'
+            else:
+                msg = f'/{r1.chain_id} {r1.label_one_letter_code}{r1.number} /{r2.chain_id} {r2.label_one_letter_code}{r2.number} = {dstr}'
+        self._info_label.setText(msg)
+        
+    # ---------------------------------------------------------------------------
+    #
     def _rectangle_select(self, xy1, xy2):
         x1,y1 = xy1
         x2,y2 = xy2
         r1, r2 = int(min(x1,x2)), int(max(x1,x2))
         r3, r4 = int(min(y1,y2)), int(max(y1,y2))
-        if r2 < r3 or r4 < r1:
-            # Use two colors
-            self._color_residues(r1, r2, 'lime', 'gray')
-            self._color_residues(r3, r4, 'magenta')
+        off_diagonal_drag = (r2 < r3 or r4 < r1)
+        if self._drag_colors:
+            # Color residues
+            if off_diagonal_drag:
+                # Use two colors
+                self._color_residues(r1, r2, 'lime', 'gray')
+                self._color_residues(r3, r4, 'magenta')
+            else:
+                # Use single color
+                self._color_residues(min(r1,r3), max(r2,r4), 'lime', 'gray')
         else:
-            # Use single color
-            self._color_residues(min(r1,r3), max(r2,r4), 'lime', 'gray')
+            # Select residues
+            ranges = [(r1,r2), (r3,r4)] if off_diagonal_drag else [(min(r1,r3), max(r2,r4))]
+            self._select_residue_ranges(ranges)
 
     # ---------------------------------------------------------------------------
     #
@@ -386,6 +510,20 @@ class AlphaFoldPAEPlot(ToolInstance):
         residues = m.residues[r1:r2+1]
         residues.ribbon_colors = color
         residues.atoms._colors = color
+
+    # ---------------------------------------------------------------------------
+    #
+    def _select_residue_ranges(self, ranges):
+        m = self._pae.structure
+        if m is None:
+            return
+
+        self.session.selection.clear()
+
+        res = m.residues
+        for r1,r2 in ranges:
+            atoms = res[r1:r2+1].atoms
+            atoms.selected = True
         
     # ---------------------------------------------------------------------------
     #
@@ -394,16 +532,20 @@ class AlphaFoldPAEPlot(ToolInstance):
 
 from Qt.QtWidgets import QGraphicsView
 class PAEView(QGraphicsView):
-    def __init__(self, parent, rectangle_select_cb=None, rectangle_clear_cb=None):
+    def __init__(self, parent, rectangle_select_cb=None, rectangle_clear_cb=None,
+                 report_residues_cb=None):
         QGraphicsView.__init__(self, parent)
         self.click_callbacks = []
         self.drag_callbacks = []
-        self.mouse_down = False
+        self._mouse_down = False
         self._drag_box = None
         self._down_xy = None
         self._rectangle_select_callback = rectangle_select_cb
         self._rectangle_clear_callback = rectangle_clear_cb
+        self._report_residues_callback = report_residues_cb
         self._pixmap_item = None
+        # Report residues as mouse hovers over plot.
+        self.setMouseTracking(True)
 
     def sizeHint(self):
         from Qt.QtCore import QSize
@@ -415,7 +557,10 @@ class PAEView(QGraphicsView):
         QGraphicsView.resizeEvent(self, event)
 
     def mousePressEvent(self, event):
-        self.mouse_down = True
+        from Qt.QtCore import Qt
+        if event.modifiers() != Qt.KeyboardModifier.NoModifier:
+            return	# Ignore ctrl-click that shows context menu
+        self._mouse_down = True
         for cb in self.click_callbacks:
             cb(event)
         self._down_xy = self._scene_position(event)
@@ -424,7 +569,11 @@ class PAEView(QGraphicsView):
             self._rectangle_clear_callback()
 
     def mouseMoveEvent(self, event):
-        self._drag(event)
+        if self._report_residues_callback:
+            x,y = self._scene_position(event)
+            self._report_residues_callback(int(x),int(y))
+        if self._mouse_down:
+            self._drag(event)
 
     def _drag(self, event):
         # Only process mouse move once per graphics frame.
@@ -433,7 +582,7 @@ class PAEView(QGraphicsView):
         self._draw_drag_box(event)
 
     def mouseReleaseEvent(self, event):
-        self.mouse_down = False
+        self._mouse_down = False
         self._drag(event)
         if self._rectangle_select_callback and self._down_xy:
             self._rectangle_select_callback(self._down_xy, self._scene_position(event))
@@ -459,17 +608,37 @@ class PAEView(QGraphicsView):
             self.scene().removeItem(box)
             self._drag_box = None
 
-    def _make_image(self, pae_matrix, colormap):
+    def _make_image(self, pae_matrix, colormap, color_blocks = None):
         scene = self.scene()
         pi = self._pixmap_item
         if pi is not None:
             scene.removeItem(pi)
 
         rgb = pae_rgb(pae_matrix, colormap)
+        if color_blocks is not None:
+            self._color_blocks(rgb, pae_matrix, color_blocks)
         pixmap = pae_pixmap(rgb)
         self._pixmap_item = scene.addPixmap(pixmap)
         scene.setSceneRect(0, 0, pixmap.width(), pixmap.height())
 
+    def _color_blocks(self, rgb, pae_matrix, color_blocks):
+        from numpy import ix_
+        for color, indices in color_blocks:
+            colormap = self._block_colormap(color)
+            subsquare = ix_(indices, indices)
+            rgb[subsquare] = pae_rgb(pae_matrix[subsquare], colormap)
+
+    def _block_colormap(self, color, bg_color = (255,255,255,255)):
+        from numpy import array, float32, linspace, sqrt
+        pae_range = (0, 5, 10, 15, 20, 25, 30)
+        fracs = sqrt(linspace(0, 1, len(pae_range)))
+        bgcolor = array([c/255 for c in bg_color], float32)
+        from chimerax.core.colors import Colormap
+        fcolor = array([c/255 for c in color], float32)
+        colors = [((1-f)*fcolor + f*bgcolor) for f in fracs]
+        colormap = Colormap(pae_range, colors)
+        return colormap
+        
 # -----------------------------------------------------------------------------
 #
 class AlphaFoldPAE:
@@ -610,8 +779,7 @@ def read_pickle_pae_matrix(path):
 # -----------------------------------------------------------------------------
 #
 def pae_rgb(pae_matrix, colormap):
-
-    rgb_flat = colormap.interpolated_rgba8(pae_matrix.flat)[:,:3]
+    rgb_flat = colormap.interpolated_rgba8(pae_matrix.ravel())[:,:3]
     n = pae_matrix.shape[0]
     rgb = rgb_flat.reshape((n,n,3)).copy()
     return rgb

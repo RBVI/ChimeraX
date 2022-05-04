@@ -566,7 +566,8 @@ by giving the UniProt name or accession number of an entry in that database
 <li>read from a json or pkl file previously output by AlphaFold
 </ul>
 <p>
-The PAE plot is colored as follows:
+<a name="pae-greens"></a>
+By default, the PAE plot is colored as follows:
 </p>
 <table border cellpadding="0" cellspacing="0"
 style="display:inline-block; vertical-align:top"><tr>
@@ -586,6 +587,9 @@ align="center"><font size="-1">25</font></td>
 align="center"><font size="-1">30</font></td>
 </tr></table>
 <p>
+When the mouse cursor is over the plot, the residue pair and PAE value at 
+its current position are reported in the bottom right corner of the window.
+</p><p>
 Clicking <b>Color PAE Domains</b> clusters the residues into
 coherent domains (sets of residues with relatively low PAE values)
 and uses randomly chosen colors to distinguish these domains in the structure 
@@ -593,7 +597,25 @@ and uses randomly chosen colors to distinguish these domains in the structure
 Clicking <b>Color pLDDT</b> returns the structure to
 the default <a href="#confidence">confidence coloring</a>.
 </p><p>
-The plot can also be shown by clicking the <b>Error plot</b> button
+<a name="context"></a>
+The plot's <a href="../window.html#context-menu">context menu</a> includes:
+</p>
+<ul>
+<li><b>Dragging box colors structure</b> (initial default checked <b>on</b>) 
+&ndash; whether dragging a box on the plot highlights the corresponding parts
+of the 3D structure with bright colors and makes everything else gray; 
+if this option is unchecked, highlighting will be done with
+<a href="../selection.html">selection</a> instead of coloring
+<li><b>Color plot from structure</b>
+&ndash; color the plot to match the 3D structure where the pair of residues
+represented by an X,Y point have the same ribbon color; show the rest of the
+plot in shades of gray
+<li><b>Color plot default</b>
+&ndash; use the <a href="#pae-greens">shades-of-green</a> coloring scheme
+for the plot
+</ul>
+<p>
+The PAE plot can also be shown by clicking the <b>Error plot</b> button
 on the <a href="#dialog"><b>AlphaFold</b> dialog</a> or by using 
 <a href="../commands/alphafold.html#fetch"><b>alphafold fetch</b></a>
 with <b>pae true</b>.
@@ -601,5 +623,5 @@ with <b>pae true</b>.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-April 2022</address>
+May 2022</address>
 </body></html>
