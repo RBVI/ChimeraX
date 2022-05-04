@@ -9,7 +9,9 @@ LANG	= en_US.UTF-8
 
 # qtconsole.patch: Fix crash in completion widget, see Trac#6363
 PATCHES = pyopengl_macos11.patch webcolors.patch qtconsole.patch
-NETCDF_DYLIBS = libnetcdf.19.dylib
+NETCDF_DYLIBS = libnetcdf.19.dylib libdf.0.dylib libhdf5_hl.200.dylib \
+				libhdf5_hl.dylib libjpeg.9.dylib libmfhdf.0.dylib \
+				libzip.5.dylib
 PYTABLES_DYLIBS = libblosc.1.dylib libhdf5.200.dylib libsnappy.1.dylib \
 				  libc++.1.dylib
 
