@@ -316,11 +316,14 @@ class AlphaFoldPAEPlot(ToolInstance):
     def __init__(self, session, tool_name, pae, colormap = None):
 
         self._pae = pae		# AlphaFoldPAE instance
+
+        self._drag_colors = True
         
         ToolInstance.__init__(self, session, tool_name)
 
         from chimerax.ui import MainToolWindow
         tw = MainToolWindow(self)
+        tw.fill_context_menu = self._fill_context_menu
         self.tool_window = tw
         parent = tw.ui_area
 
@@ -374,7 +377,19 @@ class AlphaFoldPAEPlot(ToolInstance):
         '''Remove plot if associated structure closed.'''
         if not self.closed():
             self.delete()
-        
+
+    # ---------------------------------------------------------------------------
+    #
+    def _fill_context_menu(self, menu, x, y):
+        from Qt.QtGui import QAction
+        a = QAction('Drag colors', menu)
+        a.setCheckable(True)
+        a.setChecked(self._drag_colors)
+        def _set_drag_colors(checked, self=self):
+            self._drag_colors = checked
+        a.triggered.connect(_set_drag_colors)
+        menu.addAction(a)
+
     # ---------------------------------------------------------------------------
     #
     def set_colormap(self, colormap):
@@ -437,13 +452,20 @@ class AlphaFoldPAEPlot(ToolInstance):
         x2,y2 = xy2
         r1, r2 = int(min(x1,x2)), int(max(x1,x2))
         r3, r4 = int(min(y1,y2)), int(max(y1,y2))
-        if r2 < r3 or r4 < r1:
-            # Use two colors
-            self._color_residues(r1, r2, 'lime', 'gray')
-            self._color_residues(r3, r4, 'magenta')
+        off_diagonal_drag = (r2 < r3 or r4 < r1)
+        if self._drag_colors:
+            # Color residues
+            if off_diagonal_drag:
+                # Use two colors
+                self._color_residues(r1, r2, 'lime', 'gray')
+                self._color_residues(r3, r4, 'magenta')
+            else:
+                # Use single color
+                self._color_residues(min(r1,r3), max(r2,r4), 'lime', 'gray')
         else:
-            # Use single color
-            self._color_residues(min(r1,r3), max(r2,r4), 'lime', 'gray')
+            # Select residues
+            ranges = [(r1,r2), (r3,r4)] if off_diagonal_drag else [(min(r1,r3), max(r2,r4))]
+            self._select_residue_ranges(ranges)
 
     # ---------------------------------------------------------------------------
     #
@@ -463,6 +485,20 @@ class AlphaFoldPAEPlot(ToolInstance):
         residues = m.residues[r1:r2+1]
         residues.ribbon_colors = color
         residues.atoms._colors = color
+
+    # ---------------------------------------------------------------------------
+    #
+    def _select_residue_ranges(self, ranges):
+        m = self._pae.structure
+        if m is None:
+            return
+
+        self.session.selection.clear()
+
+        res = m.residues
+        for r1,r2 in ranges:
+            atoms = res[r1:r2+1].atoms
+            atoms.selected = True
         
     # ---------------------------------------------------------------------------
     #
@@ -496,6 +532,9 @@ class PAEView(QGraphicsView):
         QGraphicsView.resizeEvent(self, event)
 
     def mousePressEvent(self, event):
+        from Qt.QtCore import Qt
+        if event.modifiers() != Qt.KeyboardModifier.NoModifier:
+            return	# Ignore ctrl-click that shows context menu
         self._mouse_down = True
         for cb in self.click_callbacks:
             cb(event)
