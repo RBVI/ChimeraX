@@ -13,7 +13,7 @@ NETCDF_DYLIBS = libnetcdf.19.dylib libdf.0.dylib libhdf5_hl.200.dylib \
 				libhdf5_hl.dylib libjpeg.9.dylib libmfhdf.0.dylib \
 				libzip.5.dylib
 PYTABLES_DYLIBS = libblosc.1.dylib libhdf5.200.dylib libsnappy.1.dylib \
-				  libc++.1.dylib
+				  libc++.1.dylib libcrypto.3.dylib libssl.3.dylib
 
 # Notarized macOS application will not launch first time if it contains
 # libraries or executables with references to non-system libraries outside the application.
