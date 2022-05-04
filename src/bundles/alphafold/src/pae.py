@@ -351,8 +351,6 @@ class AlphaFoldPAEPlot(ToolInstance):
         bf = self._create_action_buttons(parent)
         layout.addWidget(bf)
         
-        layout.addStretch(1)    # Extra space at end
-
         self.set_colormap(colormap)
 
         if pae.structure is not None:
