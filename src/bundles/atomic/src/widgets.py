@@ -137,10 +137,14 @@ def _process_chain_kw(session, list_func=None, trigger_info=None, **kw):
                     chains.extend(m.chains)
             return chains
         kw['list_func'] = chain_list
+    else:
+        kw['list_func'] = list_func
     if trigger_info is None:
         from .triggers import get_triggers
         from chimerax.core.models import ADD_MODELS
         kw['trigger_info'] = [ (get_triggers(), 'changes'), (session.triggers, ADD_MODELS) ]
+    else:
+        kw['trigger_info'] = trigger_info
     return kw
 
 class ResidueListWidget(ItemListWidget):
@@ -155,10 +159,14 @@ def _process_residue_kw(session, list_func=None, trigger_info=None, **kw):
     if list_func is None:
         from . import all_residues
         kw['list_func'] = lambda ses=session, f=all_residues: f(ses)
+    else:
+        kw['list_func'] = list_func
     if trigger_info is None:
         from .triggers import get_triggers
         from chimerax.core.models import ADD_MODELS
         kw['trigger_info'] = [ (get_triggers(), 'changes'), (session.triggers, ADD_MODELS) ]
+    else:
+        kw['trigger_info'] = trigger_info
     return kw
 
 def make_elements_menu(parent, *, _session=None, _parent_menus=None):

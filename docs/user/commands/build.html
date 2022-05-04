@@ -292,12 +292,16 @@ can be formed, where <a href="atomspec.html"><i>atoms</i></a> must include
 exactly one peptide C-terminal carbon atom C <b>&ndash;<i>OR</i>&ndash;</b>
 N-terminal nitrogen atom N (not both) from one model, and from a second 
 model, exactly one of whichever of those two atoms is not in the first.
+These C and N atoms each must be bonded to only one carbon
+(except N in proline or hydroxyproline can be bonded to two carbons);
+however, it may also be bonded to hydrogen and/or OXT, and if so,
+these atoms will be replaced as appropriate by the new peptide bond.
 The default <b>length</b> for the new C-N bond is <b>1.33</b> &Aring; 
 and the default <b>omega</b> angle (C&alpha;-C-N-C&alpha; dihedral) 
 is <b>180.0</b>&deg;. There is no default for the <b>phi</b> angle
 (C-N-C&alpha;-C dihedral). The model to <b>move</b> is repositioned 
 and its atoms placed in the other model, using the chain ID from the 
-other model.  Options for which model to <b>move</b>:
+other model. Options for which model to <b>move</b>:
 <ul>
 <li><b>large</b>
 &ndash; the one with the greater number of  atoms
@@ -312,5 +316,5 @@ other model.  Options for which model to <b>move</b>:
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-April 2022</address>
+May 2022</address>
 </body></html>

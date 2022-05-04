@@ -46,6 +46,7 @@ Sections:
 <li><a href="#start"><b>Start Structure</b></a>
 <li><a href="#modify"><b>Modify Structure</b></a>
 <li><a href="#bonds"><b>Adjust Bonds</b></a>
+<li><a href="#join"><b>Join Models</b></a>
 </ul>
 
 <p class="nav">
@@ -356,6 +357,51 @@ to the value specified in the entry field or with the slider
 were selected (not necessarily their original lengths)
 </ul>
 
+<a name="join"></a>
+<p class="nav">
+[<a href="#top">back to top: Build Structure</a>]
+</p>
+<h3>Join Models</h3>
+<p>
+The <b>Join Models</b> section of <a href="#top"><b>Build Structure</b></a>
+allows forming a covalent bond between two atomic models to combine them into 
+one. The atoms of one model are repositioned and incorporated into the 
+other model; the original model will no longer exist. 
+Thus, it may be a good idea to 
+<a href="../commands/save.html#session">save a session</a> beforehand, since
+the join (along with other building actions) cannot be undone.
+The related command <a href="../commands/combine.html"><b>combine</b></a> 
+also combines atomic models, but without forming a bond 
+or changing the relative positions of the atoms.
+</p><p>
+The atoms to be bonded must first be <a href="../selection.html">selected</a>.
+</p><p>
+Currently only a peptide bond can be formed. The selection must include
+exactly one peptide C-terminal carbon atom C <b>&ndash;<i>OR</i>&ndash;</b>
+N-terminal nitrogen atom N (not both) from one model, and from a second
+model, exactly one of whichever of those two atoms is not in the first.
+These C and N atoms each must be bonded to only one carbon
+(except N in proline or hydroxyproline can be bonded to two carbons);
+however, it may also be bonded to hydrogen and/or OXT, and if so,
+these atoms will be replaced as appropriate by the new peptide bond.
+The peptide bond will be added with the specified parameters:
+</p>
+  <ul>
+  <li><b>C-N length</b> (default <b>1.33</b> &Aring;)
+  <li><b>C&alpha;-C-N-C&alpha; dihedral (&omega; angle)</b>
+  (default <b>180.0</b>&deg;)
+  <li><b>C-N-C&alpha;-C dihedral (&phi; angle)</b>
+  (default <b>&ndash;120.0</b>&deg;)
+  <li><b>Move atoms in [&nbsp;selected N atom / selected C atom / smaller / 
+   larger&nbsp;] model</b>
+   &ndash; which of the two models to reposition when forming the bond
+   (default <b>smaller</b>, falling back to <b>selected N atom</b>
+   if the two models contain the same numbers of atoms)
+  </ul>
+<p>
+Clicking <b>Apply</b> performs the join.
+</p>
+
 <a name="covrad"></a>
 <p class="nav">
 [<a href="#top">back to top: Build Structure</a>]
@@ -398,5 +444,5 @@ states from heavy atom coordinates.</a> Meng EC, Lewis RA.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-September 2021</address>
+May 2022</address>
 </body></html>
