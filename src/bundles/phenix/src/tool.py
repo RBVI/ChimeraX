@@ -42,6 +42,7 @@ class DouseResultsViewer(ToolInstance):
         if compared_waters:
             # we kept the input waters
             self.radio_group = QButtonGroup(parent)
+            self.radio_group.buttonClicked.connect(self._update_residues)
             but_layout = QVBoxLayout()
             layout.addLayout(but_layout)
             self.douse_only_button = QRadioButton(parent)
@@ -59,6 +60,11 @@ class DouseResultsViewer(ToolInstance):
             # didn't keep the input waters
             #TODO
             self.radio_group = None
+        self.filter_model = self.douse_model
+        self.filter_residues = compared_waters[1]
+        from chimerax.atomic.widgets import ResidueListWidget
+        self.res_list = ResidueListWidget(self.session, filter_func=self._filter_residues)
+        layout.addWidget(self.res_list)
 
         self.tool_window.manage('side')
 
@@ -67,6 +73,9 @@ class DouseResultsViewer(ToolInstance):
             handler.remove()
         self.orig_model = self.douse_model = None
         super().delete()
+
+    def _filter_residues(self, r):
+        return r.structure == self.filter_model and r in self.filter_residues
 
     def _models_removed_cb(self, *args):
         if self.orig_model.id is None or self.douse_model.id is None:
@@ -77,3 +86,17 @@ class DouseResultsViewer(ToolInstance):
         self.douse_only_button.setText("Douse only (%d)" % len(douse_only))
         self.in_common_button.setText("In common (%d)" % len(douse_in_common))
         self.original_only_button.setText("Input only (%d)" % len(all_input - input_in_common))
+
+    def _update_residues(self):
+        all_input, douse_only, douse_in_common, input_in_common = self.compared_waters
+        checked = self.radio_group.checkedButton()
+        if checked == self.douse_only_button:
+            self.filter_model = self.douse_model
+            self.filter_residues = douse_only
+        elif checked == self.original_only_button:
+            self.filter_model = self.orig_model
+            self.filter_residues = all_input - input_in_common
+        else:
+            self.filter_model = self.douse_model
+            self.filter_residues = douse_in_common
+        self.res_list.refresh()
