@@ -87,6 +87,8 @@ class AlphaFoldPAEOpen(ToolInstance):
         if structure_path is None:
             return
 
+        self._pae_file.setText('')
+        
         uniprot_id = _guess_uniprot_id(structure_path)
         if uniprot_id:
             self._pae_file.setText(uniprot_id)
@@ -196,6 +198,32 @@ class AlphaFoldPAEOpen(ToolInstance):
         run(self.session, 'help %s' % self.help)
 
 # -----------------------------------------------------------------------------
+# ChimeraX Google colab predictions names files
+#
+#	best_model.pdb
+#	best_model_pae.json
+#	model_3_unrelaxed.pdb
+#	model_3_pae.json
+#
+# Full AlphaFold 2.2.0 runs name files
+#
+#	unrelaxed_model_1_multimer_v2_pred_0.pdb
+#	relaxed_model_1_multimer_v2_pred_0.pdb
+#	result_model_1_multimer_v2_pred_0.pkl
+#
+# ColabFold 1.3.0 runs name files where 7qfc was user assigned name and efb9b was
+# server assigned id.
+#
+#	7qfc_efb9b_unrelaxed_rank_1_model_4.pdb
+#	7qfc_efb9b_unrelaxed_rank_1_model_4_scores.json
+#
+# AlphaFold database files
+#
+#	AF-P01445-F1-model_v2.cif
+#	AF-P01445-F1-predicted_aligned_error_v2.json
+#
+# Finding json/pkl with matching prefix works except for full alphafold which
+# wants matching suffix.
 #
 def _matching_pae_file(structure_path):
     from os.path import split, isdir, join
@@ -206,19 +234,55 @@ def _matching_pae_file(structure_path):
     from os import listdir
     dfiles = listdir(dir)
     pfiles = [f for f in dfiles if f.endswith('.json') or f.endswith('.pkl')]
-    if len(pfiles) == 1:
-        path = join(dir, pfiles[0])
-        return path
-    elif len(pfiles) > 1:
-        # Find longest matching prefix
-        m = [(len(matching_prefix(pf,filename)),pf) for pf in pfiles]
-        m.sort(reverse = True)
-        min_match_length = 6
-        if m[0][0] > min_match_length and m[0][0] > m[1][0]:
-            path = join(dir, m[0][1])
-            return path
 
+    if len(pfiles) == 0:
+        return None
+    if len(pfiles) == 1:
+        return join(dir, pfiles[0])
+    
+    mfile = _longest_matching_prefix(filename, pfiles, min_length = 6)
+    if mfile is None:
+        mfile = _longest_matching_suffix(filename, pfiles, min_length = 6)
+    if mfile is None:
+        return None
+    return join(dir, mfile)
+
+# -----------------------------------------------------------------------------
+#
+def _longest_matching_prefix(filename, filenames, min_length = 1):
+    m = [(len(_matching_prefix(pf,filename)),pf) for pf in filenames]
+    m.sort(reverse = True)
+    if m[0][0] >= min_length and m[0][0] > m[1][0]:
+        return m[0][1]
     return None
+
+# -----------------------------------------------------------------------------
+#
+def _matching_prefix(s1, s2):
+    for i in range(min(len(s1), len(s2))):
+        if s2[i] != s1[i]:
+            break
+    return s1[:i]
+
+# -----------------------------------------------------------------------------
+#
+def _longest_matching_suffix(filename, filenames, min_length = 1):
+    m = [(len(_matching_suffix(pf,filename)),pf) for pf in filenames]
+    m.sort(reverse = True)
+    if m[0][0] >= min_length and m[0][0] > m[1][0]:
+        return m[0][1]
+    return None
+
+# -----------------------------------------------------------------------------
+#
+def _matching_suffix(s1, s2):
+    # Ignore last "." and beyond
+    from os.path import splitext
+    s1,s2 = splitext(s1)[0], splitext(s2)[0]
+    for i in range(min(len(s1), len(s2))):
+        if s2[-i] != s1[-i]:
+            break
+    return s1[-i:]
 
 # ---------------------------------------------------------------------------
 #
@@ -228,14 +292,6 @@ def _guess_uniprot_id(structure_path):
     from .database import uniprot_id_from_filename
     uniprot_id = uniprot_id_from_filename(filename)
     return uniprot_id
-
-# -----------------------------------------------------------------------------
-#
-def matching_prefix(s1, s2):
-    for i in range(len(s1)):
-        if s2[i] != s1[i]:
-            break
-    return s1[:i]
 
 # -----------------------------------------------------------------------------
 #
