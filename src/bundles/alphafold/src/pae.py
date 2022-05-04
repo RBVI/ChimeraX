@@ -334,7 +334,8 @@ class AlphaFoldPAEPlot(ToolInstance):
         self._heading = hl = QLabel(title)
         layout.addWidget(hl)
 
-        self._pae_view = gv = PAEView(parent, self._rectangle_select, self._rectangle_clear)
+        self._pae_view = gv = PAEView(parent, self._rectangle_select, self._rectangle_clear,
+                                      self._report_residues)
         from Qt.QtWidgets import QSizePolicy
         from Qt.QtCore import Qt
         gv.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
@@ -350,6 +351,9 @@ class AlphaFoldPAEPlot(ToolInstance):
         # Color Domains button
         bf = self._create_action_buttons(parent)
         layout.addWidget(bf)
+
+        self._info_label = QLabel(bf)
+        bf.layout().insertWidget(3, self._info_label)
         
         self.set_colormap(colormap)
 
@@ -409,6 +413,25 @@ class AlphaFoldPAEPlot(ToolInstance):
 
     # ---------------------------------------------------------------------------
     #
+    def _report_residues(self, index1, index2):
+        m = self._pae._pae_matrix
+        size = m.shape[0]
+        s = self._pae.structure
+        res = s.residues
+        if index1 < 0 or index2 < 0 or index1 >= size or index2 >= size or len(res) < size:
+            msg = ''
+        else:
+            d = m[index1,index2]
+            dstr = '%.1f' % d
+            r1,r2 = res[index1], res[index2]
+            if s.num_chains == 1:
+                msg = f'{r1.label_one_letter_code}{r1.number} {r2.label_one_letter_code}{r2.number} = {dstr}'
+            else:
+                msg = f'/{r1.chain_id} {r1.label_one_letter_code}{r1.number} /{r2.chain_id} {r2.label_one_letter_code}{r2.number} = {dstr}'
+        self._info_label.setText(msg)
+        
+    # ---------------------------------------------------------------------------
+    #
     def _rectangle_select(self, xy1, xy2):
         x1,y1 = xy1
         x2,y2 = xy2
@@ -448,16 +471,20 @@ class AlphaFoldPAEPlot(ToolInstance):
 
 from Qt.QtWidgets import QGraphicsView
 class PAEView(QGraphicsView):
-    def __init__(self, parent, rectangle_select_cb=None, rectangle_clear_cb=None):
+    def __init__(self, parent, rectangle_select_cb=None, rectangle_clear_cb=None,
+                 report_residues_cb=None):
         QGraphicsView.__init__(self, parent)
         self.click_callbacks = []
         self.drag_callbacks = []
-        self.mouse_down = False
+        self._mouse_down = False
         self._drag_box = None
         self._down_xy = None
         self._rectangle_select_callback = rectangle_select_cb
         self._rectangle_clear_callback = rectangle_clear_cb
+        self._report_residues_callback = report_residues_cb
         self._pixmap_item = None
+        # Report residues as mouse hovers over plot.
+        self.setMouseTracking(True)
 
     def sizeHint(self):
         from Qt.QtCore import QSize
@@ -469,7 +496,7 @@ class PAEView(QGraphicsView):
         QGraphicsView.resizeEvent(self, event)
 
     def mousePressEvent(self, event):
-        self.mouse_down = True
+        self._mouse_down = True
         for cb in self.click_callbacks:
             cb(event)
         self._down_xy = self._scene_position(event)
@@ -478,7 +505,11 @@ class PAEView(QGraphicsView):
             self._rectangle_clear_callback()
 
     def mouseMoveEvent(self, event):
-        self._drag(event)
+        if self._report_residues_callback:
+            x,y = self._scene_position(event)
+            self._report_residues_callback(int(x),int(y))
+        if self._mouse_down:
+            self._drag(event)
 
     def _drag(self, event):
         # Only process mouse move once per graphics frame.
@@ -487,7 +518,7 @@ class PAEView(QGraphicsView):
         self._draw_drag_box(event)
 
     def mouseReleaseEvent(self, event):
-        self.mouse_down = False
+        self._mouse_down = False
         self._drag(event)
         if self._rectangle_select_callback and self._down_xy:
             self._rectangle_select_callback(self._down_xy, self._scene_position(event))
