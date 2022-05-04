@@ -382,7 +382,7 @@ class AlphaFoldPAEPlot(ToolInstance):
     #
     def _fill_context_menu(self, menu, x, y):
         from Qt.QtGui import QAction
-        a = QAction('Drag colors', menu)
+        a = QAction('Drag box to color', menu)
         a.setCheckable(True)
         a.setChecked(self._drag_colors)
         def _set_drag_colors(checked, self=self):
@@ -390,14 +390,40 @@ class AlphaFoldPAEPlot(ToolInstance):
         a.triggered.connect(_set_drag_colors)
         menu.addAction(a)
 
+        menu.addAction('Color plot from structure', self._color_from_structure)
+        menu.addAction('Color plot default', self.set_colormap)
+        
     # ---------------------------------------------------------------------------
     #
-    def set_colormap(self, colormap):
+    def set_colormap(self, colormap = None):
         if colormap is None:
             from chimerax.core.colors import BuiltinColormaps
             colormap = BuiltinColormaps['pae']
         self._pae_view._make_image(self._pae._pae_matrix, colormap)
-   
+
+    # ---------------------------------------------------------------------------
+    #
+    def _color_from_structure(self, colormap = None):
+        '''colormap is used for plot points where residues have different colors.'''
+        if colormap is None:
+            from chimerax.core.colors import BuiltinColormaps
+            colormap = BuiltinColormaps['pae']
+        color_blocks = self._residue_color_blocks()
+        self._pae_view._make_image(self._pae._pae_matrix, colormap, color_blocks)
+
+    # ---------------------------------------------------------------------------
+    #
+    def _residue_color_blocks(self):
+        colors = self._pae.structure.residues.ribbon_colors
+        color_indices = {}
+        for i,color in enumerate(colors):
+            c = tuple(color)
+            if c in color_indices:
+                color_indices[c].append(i)
+            else:
+                color_indices[c] = [i]
+        return tuple(color_indices.items())
+        
     # ---------------------------------------------------------------------------
     #
     def _create_action_buttons(self, parent):
@@ -583,17 +609,32 @@ class PAEView(QGraphicsView):
             self.scene().removeItem(box)
             self._drag_box = None
 
-    def _make_image(self, pae_matrix, colormap):
+    def _make_image(self, pae_matrix, colormap, color_blocks = None):
         scene = self.scene()
         pi = self._pixmap_item
         if pi is not None:
             scene.removeItem(pi)
 
         rgb = pae_rgb(pae_matrix, colormap)
+        if color_blocks is not None:
+            self._color_blocks(rgb, pae_matrix, color_blocks)
         pixmap = pae_pixmap(rgb)
         self._pixmap_item = scene.addPixmap(pixmap)
         scene.setSceneRect(0, 0, pixmap.width(), pixmap.height())
 
+    def _color_blocks(self, rgb, pae_matrix, color_blocks):
+        from numpy import array, float32, linspace, sqrt, ix_
+        pae_range = (0, 5, 10, 15, 20, 25, 30)
+        fracs = sqrt(linspace(0, 1, len(pae_range)))
+        bgcolor = array((1.0,1.0,1.0,1.0), float32)
+        from chimerax.core.colors import Colormap
+        for color, indices in color_blocks:
+            fcolor = array([c/255 for c in color], float32)
+            colors = [((1-f)*fcolor + f*bgcolor) for f in fracs]
+            colormap = Colormap(pae_range, colors)
+            subsquare = ix_(indices, indices)
+            rgb[subsquare] = pae_rgb(pae_matrix[subsquare], colormap)
+            
 # -----------------------------------------------------------------------------
 #
 class AlphaFoldPAE:
@@ -734,8 +775,7 @@ def read_pickle_pae_matrix(path):
 # -----------------------------------------------------------------------------
 #
 def pae_rgb(pae_matrix, colormap):
-
-    rgb_flat = colormap.interpolated_rgba8(pae_matrix.flat)[:,:3]
+    rgb_flat = colormap.interpolated_rgba8(pae_matrix.ravel())[:,:3]
     n = pae_matrix.shape[0]
     rgb = rgb_flat.reshape((n,n,3)).copy()
     return rgb
