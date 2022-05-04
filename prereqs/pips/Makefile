@@ -9,9 +9,11 @@ LANG	= en_US.UTF-8
 
 # qtconsole.patch: Fix crash in completion widget, see Trac#6363
 PATCHES = pyopengl_macos11.patch webcolors.patch qtconsole.patch
-NETCDF_DYLIBS = libnetcdf.19.dylib
+NETCDF_DYLIBS = libnetcdf.19.dylib libdf.0.dylib libhdf5_hl.200.dylib \
+				libhdf5_hl.dylib libjpeg.9.dylib libmfhdf.0.dylib \
+				libzip.5.dylib
 PYTABLES_DYLIBS = libblosc.1.dylib libhdf5.200.dylib libsnappy.1.dylib \
-				  libc++.1.dylib
+				  libc++.1.dylib libcrypto.3.dylib libssl.3.dylib
 
 # Notarized macOS application will not launch first time if it contains
 # libraries or executables with references to non-system libraries outside the application.
@@ -54,6 +56,7 @@ ifeq ($(OSARCH),DarwinArm64)
 	done
 	for l in $(NETCDF_DYLIBS) $(PYTABLES_DYLIBS); do \
 		mv $$l.arm64 $$l ; \
+		chmod +x $$l ; \
 	done
 	$(APP_PIP_INSTALL) tables-3.7.0-cp39-cp39-macosx_12_0_arm64.whl \
 		netCDF4-1.5.8-cp39-cp39-macosx_12_0_arm64.whl \
