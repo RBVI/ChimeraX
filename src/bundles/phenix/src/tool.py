@@ -64,6 +64,7 @@ class DouseResultsViewer(ToolInstance):
         self.filter_residues = compared_waters[1]
         from chimerax.atomic.widgets import ResidueListWidget
         self.res_list = ResidueListWidget(self.session, filter_func=self._filter_residues)
+        self.res_list.value_changed.connect(self._res_sel_cb)
         layout.addWidget(self.res_list)
 
         self.tool_window.manage('side')
@@ -80,6 +81,21 @@ class DouseResultsViewer(ToolInstance):
     def _models_removed_cb(self, *args):
         if self.orig_model.id is None or self.douse_model.id is None:
             self.delete()
+
+    def _res_sel_cb(self):
+        selected = self.res_list.value
+        if not selected:
+            cmd = "~select; view %s" % self.douse_model.atomspec
+        else:
+            if selected[0].structure.display:
+                base_cmd = ""
+            else:
+                base_cmd = "show %s models; " % selected[0].structure.atomspec
+            from chimerax.atomic import concise_residue_spec
+            spec = concise_residue_spec(self.session, selected)
+            cmd = base_cmd + f"select {spec}; view {spec}"
+        from chimerax.core.commands import run
+        run(self.session, cmd)
 
     def _update_button_texts(self):
         all_input, douse_only, douse_in_common, input_in_common = self.compared_waters
