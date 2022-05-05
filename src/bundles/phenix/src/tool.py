@@ -14,16 +14,14 @@
 from chimerax.core.tools import ToolInstance
 
 class DouseResultsViewer(ToolInstance):
-    def __init__(self, session, tool_name, orig_model=None, douse_model=None, map=None, map_range=None,
-            compared_waters=None):
-        # if 'model' is None, we are being restored from a session
-        # and set_state_from_snapshot will be called later
+    def __init__(self, session, tool_name, orig_model=None, douse_model=None, compared_waters=None):
+        # if 'model' is None, we are being restored from a session and _finalize_init() will be called later
         super().__init__(session, tool_name)
         if douse_model is None:
             return
-        self._finalize_init(orig_model, douse_model, map, map_range, compared_waters)
+        self._finalize_init(orig_model, douse_model, compared_waters)
 
-    def _finalize_init(self, orig_model, douse_model, map, map_range, compared_waters):
+    def _finalize_init(self, orig_model, douse_model, compared_waters, *, from_session=False):
         self.orig_model = orig_model
         self.douse_model = douse_model
         self.compared_waters = compared_waters
@@ -65,7 +63,34 @@ class DouseResultsViewer(ToolInstance):
         self.filter_model = self.douse_model
         from chimerax.atomic.widgets import ResidueListWidget
         self.res_list = ResidueListWidget(self.session, filter_func=self._filter_residues)
-        self.res_list.value_changed.connect(self._res_sel_cb)
+        if from_session:
+            # Complicated code to avoid having the residue list callback change
+            # the restored session state:  after one frame drawn look for a new
+            # frame where there aren't changes pending, then hook up callback.
+            # Three handlers are involved because "frame drawn" is not called
+            # if "new frame" has nothing to draw.
+            cb_info = []
+            def new_frame_handler(*args, ses=self.session, cb_info=cb_info,
+                    signal=self.res_list.value_changed, handler=self._res_sel_cb):
+                if ses.change_tracker.changed:
+                    from chimerax.atomic import get_triggers
+                    get_triggers().add_handler("changes done", cb_info[0])
+                else:
+                    signal.connect(handler)
+                from chimerax.core.triggerset import DEREGISTER
+                return DEREGISTER
+            def changes_done_handler(*args, ses=self.session):
+                ses.triggers.add_handler("new frame", new_frame_handler)
+                from chimerax.core.triggerset import DEREGISTER
+                return DEREGISTER
+            cb_info.append(changes_done_handler)
+            def frame_drawn_handler(*args, ses=self.session):
+                ses.triggers.add_handler("new frame", new_frame_handler)
+                from chimerax.core.triggerset import DEREGISTER
+                return DEREGISTER
+            self.session.triggers.add_handler("frame drawn", frame_drawn_handler)
+        else:
+            self.res_list.value_changed.connect(self._res_sel_cb)
         layout.addWidget(self.res_list)
 
         self.tool_window.manage('side')
@@ -75,6 +100,25 @@ class DouseResultsViewer(ToolInstance):
             handler.remove()
         self.orig_model = self.douse_model = None
         super().delete()
+
+    @classmethod
+    def restore_snapshot(cls, session, data):
+        inst = super().restore_snapshot(session, data['ToolInstance'])
+        inst._finalize_init(data['orig_model'], data['douse_model'], data['compared_waters'],
+            from_session=True)
+        return inst
+
+    SESSION_SAVE = True
+
+    def take_snapshot(self, session, flags):
+        data = {
+            'ToolInstance': ToolInstance.take_snapshot(self, session, flags),
+            'compared_waters': self.compared_waters,
+            'douse_model': self.douse_model,
+            'orig_model': self.orig_model,
+            'version': 1,
+        }
+        return data
 
     def _filter_residues(self, r):
         return r.structure == self.filter_model and r in self.filter_residues
