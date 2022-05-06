@@ -163,6 +163,12 @@ class ToolbarManager(ProviderManager):
         if tb:
             tb.set_enabled(enabled, tab_title, section_title, button_title)
 
+    def show_group_button(self, tab_title, section_title, button_title):
+        from . import tool
+        tb = tool.get_toolbar_singleton(self.session, create=False)
+        if tb:
+            tb.show_group_button(tab_title, section_title, button_title)
+
 
 class FakeMouseModeBundleInfo:
     # dummy to support mouse modes

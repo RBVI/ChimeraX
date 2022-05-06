@@ -245,6 +245,9 @@ class ToolbarTool(ToolInstance):
     def set_enabled(self, enabled, tab_title, section_title, button_title):
         self.ttb.set_enabled(enabled, tab_title, section_title, button_title)
 
+    def show_group_button(self, tab_title, section_title, button_title):
+        self.ttb.show_group_button(tab_title, section_title, button_title)
+
 
 def _home_layout(session, home_tab):
     # interact through buttons in home tab
