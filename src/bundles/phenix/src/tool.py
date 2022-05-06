@@ -106,6 +106,16 @@ class DouseResultsViewer(ToolInstance):
         inst = super().restore_snapshot(session, data['ToolInstance'])
         inst._finalize_init(data['orig_model'], data['douse_model'], data['compared_waters'],
             from_session=True)
+        if data['radio info']:
+            for but in inst.radio_group.buttons():
+                if but.text() == data['radio info']:
+                    but.setChecked(True)
+                    inst._update_residues()
+                    break
+        if data['water']:
+            inst.res_list.blockSignals(True)
+            inst.res_list.value = data['water']
+            inst.res_list.blockSignals(False)
         return inst
 
     SESSION_SAVE = True
@@ -116,7 +126,9 @@ class DouseResultsViewer(ToolInstance):
             'compared_waters': self.compared_waters,
             'douse_model': self.douse_model,
             'orig_model': self.orig_model,
+            'radio info': self.radio_group.checkedButton().text() if self.radio_group else None,
             'version': 1,
+            'water': self.res_list.value,
         }
         return data
 
