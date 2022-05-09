@@ -511,7 +511,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         self.tool_instance_to_windows = {}
         self._fill_tb_context_menu_cbs = {}
         self._select_seq_dialog = self._select_zone_dialog = self._define_selector_dialog = None
-        self._set_label_height_dialog = None
+        self._select_contacts_dialog = self._set_label_height_dialog = None
         self._presets_menu_needs_update = True
         session.presets.triggers.add_handler("presets changed",
             lambda *args, s=self: setattr(s, '_presets_menu_needs_update', True))
@@ -881,6 +881,12 @@ class MainWindow(QMainWindow, PlainTextLog):
             self._define_selector_dialog = DefineSelectorDialog(self.session)
         self._define_selector_dialog.show()
         self._define_selector_dialog.raise_()
+
+    def show_select_contacts_dialog(self, *args):
+        if self._select_contacts_dialog is None:
+            self._select_contacts_dialog = SelContactsDialog(self.session)
+        self._select_contacts_dialog.show()
+        self._select_contacts_dialog.raise_()
 
     def show_select_seq_dialog(self, *args):
         if self._select_seq_dialog is None:
@@ -1422,9 +1428,14 @@ class MainWindow(QMainWindow, PlainTextLog):
 
         label_residues_menu = label_menu.addMenu("Residues")
         main_residue_label_info = [("Name", "name"), ("Specifier", "label_specifier"),
-                ("Name Combo", '"/{0.chain_id} {0.name} {0.number}{0.insertion_code}"'),
-                ("1-Letter Code", "label_one_letter_code"), ("1-Letter Code Combo",
-                '"/{0.chain_id} {0.label_one_letter_code} {0.number}{0.insertion_code}"')]
+                ("Name and Number", '"{0.name} {0.number}{0.insertion_code}"'),
+                ("Chain, Name, Number", '"/{0.chain_id} {0.name} {0.number}{0.insertion_code}"'),
+                ("1-Letter Code", "label_one_letter_code"),
+                ("Code and Number",
+                    '"{0.label_one_letter_code} {0.number}{0.insertion_code}"'),
+                ("Chain, Code, Number",
+                    '"/{0.chain_id} {0.label_one_letter_code} {0.number}{0.insertion_code}"'),
+                 ]
         for menu_entry, cmd_arg in main_residue_label_info:
             action = QAction(menu_entry, self)
             label_residues_menu.addAction(action)
@@ -1540,6 +1551,9 @@ class MainWindow(QMainWindow, PlainTextLog):
         sel_zone_action = QAction("&Zone...", self)
         select_menu.addAction(sel_zone_action)
         sel_zone_action.triggered.connect(self.show_select_zone_dialog)
+        sel_contacts_action = QAction("Con&tacts...", self)
+        select_menu.addAction(sel_contacts_action)
+        sel_contacts_action.triggered.connect(self.show_select_contacts_dialog)
         from chimerax.core.commands import run
         for menu_label, cmd_args in [("&Clear", "clear"), ("&Invert", "~sel"), ("&All", ""),
                 ("&Broaden", "up"), ("&Narrow", "down")]:
@@ -2707,7 +2721,7 @@ class SelZoneDialog(QDialog):
         self.setWindowTitle("Select Zone")
         self.setSizeGripEnabled(True)
         from Qt.QtWidgets import QVBoxLayout, QDialogButtonBox as qbbox, QLineEdit, QHBoxLayout, QLabel, \
-            QCheckBox, QDoubleSpinBox, QPushButton, QMenu, QWidget
+            QCheckBox, QDoubleSpinBox, QPushButton, QMenu, QWidget, QTabWidget
         from Qt.QtCore import Qt
         layout = QVBoxLayout()
         target_area = QWidget()
@@ -2741,7 +2755,7 @@ class SelZoneDialog(QDialog):
         more_layout = QHBoxLayout()
         self.more_checkbox = QCheckBox(">")
         self.more_checkbox.stateChanged.connect(self._update_button_states)
-        more_layout.addWidget(self.more_checkbox)
+        more_layout.addWidget(self.more_checkbox, alignment=Qt.AlignRight)
         self.more_spinbox = QDoubleSpinBox()
         self.more_spinbox.setValue(5.0)
         self.more_spinbox.setDecimals(3)
@@ -2777,6 +2791,172 @@ class SelZoneDialog(QDialog):
     def _update_button_states(self, *args):
         self.bbox.button(self.bbox.Ok).setEnabled(
             self.less_checkbox.isChecked() or self.more_checkbox.isChecked())
+
+class SelContactsDialog(QDialog):
+    def __init__(self, session, *args, **kw):
+        super().__init__(*args, **kw)
+        self.session = session
+        self.setWindowTitle("Select Contacts")
+        self.setSizeGripEnabled(True)
+        from Qt.QtWidgets import QVBoxLayout, QDialogButtonBox as qbbox, QRadioButton, QHBoxLayout, QLabel, \
+            QButtonGroup, QDoubleSpinBox, QPushButton, QMenu, QWidget, QTabWidget, QGridLayout, QGroupBox
+        from Qt.QtCore import Qt
+        layout = QVBoxLayout()
+        self.tabs = QTabWidget()
+        layout.addWidget(self.tabs)
+
+        # Chains tab
+        chains_widget = QWidget()
+        chains_layout = QVBoxLayout()
+        chains_layout.setContentsMargins(0,0,0,0)
+        chains_layout.setSpacing(3)
+        chains_widget.setLayout(chains_layout)
+        lists_layout = QGridLayout()
+        for col in (0,2,4):
+            lists_layout.setColumnStretch(col, 1)
+        lists_layout.addWidget(QLabel("Select contacts of:"), 0, 1, alignment=Qt.AlignCenter)
+        from chimerax.atomic.widgets import ChainListWidget
+        self.chains1 = ChainListWidget(self.session, autoselect=ChainListWidget.AUTOSELECT_FIRST)
+        lists_layout.addWidget(self.chains1, 1, 1)
+        lists_layout.addWidget(QLabel("with:"), 0, 3, alignment=Qt.AlignCenter)
+        self.chains2 = ChainListWidget(self.session, autoselect=ChainListWidget.AUTOSELECT_FIRST,
+            filter_func=lambda x, cl=self.chains1: x not in cl.value)
+        lists_layout.addWidget(self.chains2, 1, 3)
+        self.chains1.value_changed.connect(self.chains2.refresh)
+        chains_layout.addLayout(lists_layout)
+        select_layout = QHBoxLayout()
+        select_layout.addStretch(1)
+        select_layout.addWidget(QLabel("Select contacts in "))
+        from Qt.QtWidgets import QPushButton, QMenu
+        self.what_sel_button = QPushButton("both")
+        select_layout.addWidget(self.what_sel_button)
+        menu = QMenu(self.what_sel_button)
+        from Qt.QtGui import QAction
+        menu.addAction("both")
+        menu.addAction("left")
+        menu.triggered.connect(lambda action, but=self.what_sel_button: but.setText(action.text()))
+        self.what_sel_button.setMenu(menu)
+        select_layout.addWidget(QLabel(" chain(s)"))
+        select_layout.addStretch(1)
+        chains_layout.addLayout(select_layout)
+        criteria_group = QGroupBox("Contact criteria")
+        chains_layout.addWidget(criteria_group, alignment=Qt.AlignCenter)
+        criteria_layout = QGridLayout()
+        criteria_layout.setContentsMargins(0,0,0,0)
+        criteria_layout.setSpacing(0)
+        criteria_group.setLayout(criteria_layout)
+        self.criteria_button_group = QButtonGroup()
+        self.buried_button = QRadioButton("")
+        self.buried_button.setChecked(True)
+        self.criteria_button_group.addButton(self.buried_button)
+        criteria_layout.addWidget(self.buried_button, 0, 0, alignment=Qt.AlignRight)
+        buried_area_group = QGroupBox("Buried surface area")
+        criteria_layout.addWidget(buried_area_group, 0, 1, alignment=Qt.AlignLeft)
+        buried_area_layout = QVBoxLayout()
+        from chimerax.interfaces import chain_area_default, residue_area_default
+        chain_area_layout = QHBoxLayout()
+        chain_area_layout.addWidget(QLabel("Contacting chains bury at least"))
+        self.chain_spinbox = QDoubleSpinBox()
+        self.chain_spinbox.setValue(chain_area_default)
+        self.chain_spinbox.setDecimals(1)
+        self.chain_spinbox.setSuffix("\N{ANGSTROM SIGN}\N{SUPERSCRIPT TWO}")
+        self.chain_spinbox.setMinimum(0.0)
+        self.chain_spinbox.setMaximum(9999.9)
+        chain_area_layout.addWidget(self.chain_spinbox)
+        buried_area_layout.addLayout(chain_area_layout)
+        residue_area_layout = QHBoxLayout()
+        residue_area_layout.addWidget(QLabel("Contacting residues bury at least"))
+        self.residue_spinbox = QDoubleSpinBox()
+        self.residue_spinbox.setValue(residue_area_default)
+        self.residue_spinbox.setDecimals(1)
+        self.residue_spinbox.setSuffix("\N{ANGSTROM SIGN}\N{SUPERSCRIPT TWO}")
+        self.residue_spinbox.setMinimum(0.0)
+        self.residue_spinbox.setMaximum(9999.9)
+        residue_area_layout.addWidget(self.residue_spinbox)
+        buried_area_layout.addLayout(residue_area_layout)
+        buried_area_group.setLayout(buried_area_layout)
+        self.distance_button = QRadioButton("")
+        self.criteria_button_group.addButton(self.distance_button)
+        criteria_layout.addWidget(self.distance_button, 1, 0, alignment=Qt.AlignRight)
+        distance_group = QGroupBox("Distance")
+        criteria_layout.addWidget(distance_group, 1, 1, alignment=Qt.AlignLeft)
+        distance_layout = QHBoxLayout()
+        distance_layout.addWidget(QLabel("Residues with atoms within"))
+        self.distance_spinbox = QDoubleSpinBox()
+        self.distance_spinbox.setValue(3.5)
+        self.distance_spinbox.setDecimals(1)
+        self.distance_spinbox.setSuffix("\N{ANGSTROM SIGN}")
+        self.distance_spinbox.setMinimum(0.0)
+        self.distance_spinbox.setMaximum(9999.9)
+        distance_layout.addWidget(self.distance_spinbox)
+        distance_group.setLayout(distance_layout)
+        self.tabs.addTab(chains_widget, "Chains")
+
+        # Atomic tab
+        contacts_widget = QWidget()
+        contacts_layout = QVBoxLayout()
+        contacts_layout.setContentsMargins(0,0,0,0)
+        contacts_layout.setSpacing(3)
+        contacts_widget.setLayout(contacts_layout)
+        from chimerax.clashes.gui import ContactsGUI
+        self.contacts_gui = ContactsGUI(self.session, True, settings_name="select zone",
+            action_phrase="select contacts", restrict="any", show_attr_name=False,
+            show_checking_frequency=False, show_color=False, show_dashes=False, show_log=False,
+            show_make_pseudobonds=False, show_name=False, show_radius=False, show_reveal=False,
+            show_save_file=False, show_section_titles=False, show_select=False, show_set_attrs=False,
+            show_show_dist=False)
+        contacts_layout.addWidget(self.contacts_gui, alignment=Qt.AlignCenter)
+        full_gui_but = QPushButton("Show Contacts tool")
+        from chimerax.core.commands import run
+        full_gui_but.clicked.connect(lambda *args, run=run, ses=self.session:
+            run(ses, "ui tool show Contacts"))
+        contacts_layout.addWidget(full_gui_but, alignment=Qt.AlignCenter)
+        self.tabs.addTab(contacts_widget, "Atomic")
+
+        self.bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
+        self.bbox.accepted.connect(self.contacts)
+        self.bbox.button(qbbox.Apply).clicked.connect(self.contacts)
+        self.bbox.accepted.connect(self.accept)
+        self.bbox.rejected.connect(self.reject)
+        from chimerax.core.commands import run
+        self.bbox.helpRequested.connect(lambda *, run=run, ses=session:
+            run(ses, "help help:user/menu.html#selectzone"))
+        layout.addWidget(self.bbox)
+        self.setLayout(layout)
+
+    def contacts(self, *args):
+        from chimerax.core.commands import run
+        if self.tabs.tabText(self.tabs.currentIndex()) == "Chains":
+            chains1 = self.chains1.value
+            chains2 = self.chains2.value
+            if not chains1 or not chains2:
+                from chimerax.core.errors import UserError
+                raise UserError("Must select at least one chain from each list")
+            chain_spec1 = "".join([c.atomspec for c in chains1])
+            chain_spec2 = "".join([c.atomspec for c in chains2])
+            if self.criteria_button_group.checkedButton() == self.buried_button:
+                cmd = "interfaces select %s & ::polymer_type>0 contacting %s & ::polymer_type>0" % (
+                    chain_spec1, chain_spec2)
+                if self.what_sel_button.text() == "both":
+                    cmd += " bothSides true"
+                from chimerax.interfaces import chain_area_default, residue_area_default
+                buried_chain_area = self.chain_spinbox.value()
+                if buried_chain_area != chain_area_default:
+                    cmd += " areaCutoff %g" % buried_chain_area
+                buried_residue_area = self.residue_spinbox.value()
+                if buried_residue_area != residue_area_default:
+                    cmd += " interfaceResidueAreaCutoff %g" % buried_residue_area
+            else:
+                d = self.distance_spinbox.value()
+                spec = "(%s & ::polymer_type>0 ) & ((%s & ::polymer_type>0 ) :<%g)" % (
+                    chain_spec1, chain_spec2, d)
+                if self.what_sel_button.text() == "both":
+                    spec = "(%s) | ((%s & ::polymer_type>0 ) & ((%s & ::polymer_type>0 ) :<%g))" % (
+                        spec, chain_spec2, chain_spec1, d)
+                cmd = "sel " + spec
+        else:
+            cmd = "%s %s %s sel true make false" % self.contacts_gui.get_command()
+        run(self.session, cmd)
 
 
 class LabelHeightDialog(QDialog):

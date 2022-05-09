@@ -119,7 +119,16 @@ def _process_results(session, douse_model, shift, near_model, keep_input_water, 
         douse_model.atoms.coords += shift
 
     # Copy new waters
-    model, msg, nwaters = _copy_new_waters(douse_model, near_model, keep_input_water, far_water, map.name)
+    model, msg, nwaters, raw_compared_waters = _copy_new_waters(douse_model, near_model, keep_input_water,
+        far_water, map.name)
+    if raw_compared_waters is None:
+        compared_waters = None
+    else:
+        compared_waters = []
+        for waters in raw_compared_waters:
+            if waters and waters[0].structure == douse_model:
+                waters = model.residues[douse_model.residues.indices(waters)]
+            compared_waters.append(waters)
     douse_model.delete()
 
     # Report predicted waters and input waters
@@ -128,6 +137,9 @@ def _process_results(session, douse_model, shift, near_model, keep_input_water, 
     # Show only waters and nearby residues and transparent map near waters.
     if nwaters > 0:
         _show_waters(near_model, model, residue_range, map, map_range)
+        if session.ui.is_gui:
+            from .tool import DouseResultsViewer
+            DouseResultsViewer(session, "Douse Results", near_model, model, compared_waters)
 
 
 def _fix_map_origin(map):
@@ -244,11 +256,12 @@ def _copy_new_waters(douse_model, near_model, keep_input_water, far_water, map_n
 
     # Add found water molecules to copy of input molecule.
     if keep_input_water:
-        input_wat_res, new_wat_res, dup_wat_res, dup_input_wat_res = \
+        input_wat_res, new_wat_res, dup_wat_res, dup_input_wat_res = compared_waters = \
             _compare_waters(near_model, douse_model)
     else:
         new_wat_res = _water_residues(douse_model)
         _water_residues(model).delete()
+        compared_waters = None
     added_wat_res = _add_waters(model, new_wat_res)
 
     model.session.models.add([model])	# Need to assign id number for use in log message
@@ -266,9 +279,10 @@ def _copy_new_waters(douse_model, near_model, keep_input_water, far_water, map_n
             f'<br>Also, of the waters existing in the input, douse <a href="cxcmd:{sel_dup}">found {ndup}</a>'
             f' and <a href="cxcmd:{sel_xtra}">did not find {nxtra}</a>')
 
-    return model, msg, nnew
+    return model, msg, nnew, compared_waters
 
 
+# also used in tool.py
 def _water_residues(model):
     res = model.residues
     water_res = res[res.names == 'HOH']
