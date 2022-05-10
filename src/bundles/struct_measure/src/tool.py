@@ -23,7 +23,7 @@ from chimerax.core.errors import UserError
 from chimerax.core.tools import ToolInstance
 from Qt.QtWidgets import QTableWidget, QHBoxLayout, QVBoxLayout, QAbstractItemView, QWidget, QPushButton, \
     QTabWidget, QTableWidgetItem, QFileDialog, QDialogButtonBox as qbbox, QLabel, QButtonGroup, \
-    QRadioButton, QLineEdit, QGroupBox, QGridLayout
+    QRadioButton, QLineEdit, QGroupBox, QGridLayout, QCheckBox
 from Qt.QtGui import QDoubleValidator
 from Qt.QtCore import Qt
 from chimerax.ui.widgets import ColorButton
@@ -430,19 +430,6 @@ class DefineAxisDialog:
         self.axis_name_for_button[helix_button] = "helix axes"
         self.button_dispatch[helix_button] = self.cmd_params_helix_axis
 
-        """
-        atoms_layout = QHBoxLayout()
-        type_layout.addLayout(atoms_layout)
-        self.atoms_button = QRadioButton("Selected atoms/centroids (axis name: ")
-        self.atoms_button.setChecked(False)
-        self.button_group.addButton(self.atoms_button)
-        atoms_layout.addWidget(self.atoms_button)
-        self.atoms_name_edit = QLineEdit()
-        self.atoms_name_edit.setText("axis")
-        atoms_layout.addWidget(self.atoms_name_edit)
-        atoms_layout.setStretch(atoms_layout.count()-1, 1)
-        atoms_layout.addWidget(QLabel(")"))
-        """
         atoms_button = QRadioButton("Selected atoms/centroids")
         atoms_button.setChecked(False)
         self.button_group.addButton(atoms_button)
@@ -528,7 +515,7 @@ class DefineAxisDialog:
 
         params_group = QGroupBox("Axis Parameters")
         params_layout.addWidget(params_group)
-        pg_layout = QGridLayout()
+        self.params_group_layout = pg_layout = QGridLayout()
         pg_layout.setColumnMinimumWidth(1, 9)
         pg_layout.setColumnStretch(2, 1)
         pg_layout.setSpacing(0)
@@ -652,6 +639,16 @@ class DefineAxisDialog:
         row = next(row_count)
         pg_layout.setRowStretch(row, 1)
 
+        row = next(row_count)
+        self.mass_weighting = QCheckBox("Mass weighting")
+        self.mass_weighting.setChecked(False)
+        pg_layout.addWidget(self.mass_weighting, row, 0, 1, 3, alignment=Qt.AlignCenter)
+        self.shown_for_button[atoms_button].add((self.mass_weighting, row+1))
+        self.all_params_widgets.append((self.mass_weighting, row+1))
+
+        row = next(row_count)
+        pg_layout.setRowStretch(row, 1)
+
         self.show_applicable_params(self.button_group.checkedButton())
 
         bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
@@ -667,7 +664,10 @@ class DefineAxisDialog:
         from chimerax.atomic import selected_atoms
         if not selected_atoms(self.session):
             raise UserError("No atoms/centroids selected")
-        return "sel " + self.generic_params()
+        base_params = "sel " + self.generic_params()
+        if self.mass_weighting.isChecked():
+            return base_params + " mass true"
+        return base_params
 
     def cmd_params_helix_axis(self):
         structures = self.helix_structure_list.value
@@ -759,5 +759,9 @@ class DefineAxisDialog:
         # widgets that are _always_ shown aren't in "shown_widgets"
         shown_widgets = self.shown_for_button[button]
         for widget in self.all_params_widgets:
-            widget.setHidden(widget not in shown_widgets)
+            hidden = widget not in shown_widgets
+            if isinstance(widget, tuple):
+                widget, padding_row = widget
+                self.params_group_layout.setRowStretch(padding_row, 0 if hidden else 1)
+            widget.setHidden(hidden)
         self.name_entry.setText(self.axis_name_for_button[button])
