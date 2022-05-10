@@ -15,6 +15,16 @@ from chimerax.core.toolshed import BundleAPI
 
 class _PhenixBundle(BundleAPI):
 
+    @staticmethod
+    def get_class(class_name):
+        from . import tool
+        return getattr(tool, class_name)
+
+    @staticmethod
+    def register_command(command_name, logger):
+        from . import cmd
+        cmd.register_command(logger)
+
     """
     @staticmethod
     def start_tool(session, tool_name):
@@ -22,10 +32,5 @@ class _PhenixBundle(BundleAPI):
             from . import douse
             return douse.show_water_placement_tool(session)
     """
-
-    @staticmethod
-    def register_command(command_name, logger):
-        from . import cmd
-        cmd.register_command(logger)
 
 bundle_api = _PhenixBundle()

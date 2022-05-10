@@ -112,8 +112,12 @@ class BuildStructureTool(ToolInstance):
         omega = self.jp_omega_opt.value
         phi = self.jp_phi_opt.value
         side = self.jp_side_button.text()
-        if side.endswith("er"):
+        if side.endswith("smaller"):
             side = side[:-2]
+        elif side.endswith("larger"):
+            side = side[:-1]
+        elif side.startswith("selected"):
+            side = side[9]
         from .mod import BindError
         try:
             run(self.session, "build join peptide sel length %g omega %g phi %g move %s"
@@ -251,7 +255,7 @@ class BuildStructureTool(ToolInstance):
         self.jp_side_button = QPushButton("smaller")
         side_layout.addWidget(self.jp_side_button)
         side_menu = QMenu(self.jp_side_button)
-        for side_text in ["N", "C", "smaller", "larger"]:
+        for side_text in ["selected N atom", "selected C atom", "smaller", "larger"]:
             side_menu.addAction(QAction(side_text, side_menu))
         side_menu.triggered.connect(lambda act, but=self.jp_side_button: but.setText(act.text()))
         self.jp_side_button.setMenu(side_menu)
