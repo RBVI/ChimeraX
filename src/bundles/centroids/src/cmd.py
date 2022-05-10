@@ -11,6 +11,11 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+from chimerax.atomic import Structure
+# to make it easy to identify centroid models...
+class CentroidModel(Structure):
+    pass
+
 from . import centroid
 
 def cmd_centroid(session, atoms=None, *, mass_weighting=False, name="centroid", color=None, radius=2.0):
@@ -20,7 +25,7 @@ def cmd_centroid(session, atoms=None, *, mass_weighting=False, name="centroid", 
     """
     from chimerax.core.errors import UserError
 
-    from chimerax.atomic import AtomicStructure, concatenate, Structure
+    from chimerax.atomic import AtomicStructure, concatenate
     if atoms is None:
         structures_atoms = [m.atoms for m in session.models if isinstance(m, AtomicStructure)]
         if structures_atoms:
@@ -41,7 +46,7 @@ def cmd_centroid(session, atoms=None, *, mass_weighting=False, name="centroid", 
     else:
         weights = None
     xyz = centroid(crds, weights=weights)
-    s = Structure(session, name=name)
+    s = CentroidModel(session, name=name)
     r = s.new_residue('centroid', 'centroid', 1)
     from chimerax.atomic.struct_edit import add_atom
     a = add_atom(name, 'C', r, xyz)

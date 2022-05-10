@@ -12,10 +12,17 @@
 # === UCSF ChimeraX Copyright ===
 
 from .centroid import centroid
+from .cmd import CentroidModel
 
 from chimerax.core.toolshed import BundleAPI
 
 class CentroidsAPI(BundleAPI):
+
+    @staticmethod
+    def get_class(class_name):
+        if class_name == "Centroid":
+            return Centroid
+        raise ValueError("Don't know about class %s" % class_name)
 
     @staticmethod
     def register_command(command_name, logger):

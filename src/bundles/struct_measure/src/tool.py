@@ -19,7 +19,7 @@ def get_tool(session, tool_name):
     _tool.show_tab(tool_name)
     return _tool
 
-from chimerax.core.errors import UserError
+from chimerax.core.errors import UserError, LimitationError
 from chimerax.core.tools import ToolInstance
 from Qt.QtWidgets import QTableWidget, QHBoxLayout, QVBoxLayout, QAbstractItemView, QWidget, QPushButton, \
     QTabWidget, QTableWidgetItem, QFileDialog, QDialogButtonBox as qbbox, QLabel, QButtonGroup, \
@@ -210,6 +210,15 @@ class StructMeasureTool(ToolInstance):
         button_layout.addWidget(centroid_button, alignment=Qt.AlignHCenter)
         self._define_axis_dialog = self._define_plane_dialog = self._define_centroid_dialog = None
 
+        from chimerax.ui.widgets import ItemTable
+        self.apc_table = ItemTable()
+        self.apc_table.add_column("Name", "name")
+        self.apc_table.launch()
+        self.apc_table.data = self._filter_apc_models(self.session.models)
+        from chimerax.core.models import ADD_MODELS, REMOVE_MODELS
+        self.handlers.append(self.session.triggers.add_handler(ADD_MODELS, self._refresh_apc_table))
+        self.handlers.append(self.session.triggers.add_handler(REMOVE_MODELS, self._refresh_apc_table))
+        layout.addWidget(self.apc_table, alignment=Qt.AlignCenter)
         """
         self.angle_table = QTableWidget()
         self.angle_table.setColumnCount(5)
@@ -342,6 +351,15 @@ class StructMeasureTool(ToolInstance):
         ])
         self._fill_dist_table()
 
+    def _filter_apc_models(self, models):
+        from chimerax.centroids import CentroidModel
+        from chimerax.axes_planes import AxisModel, PlaneModel
+        return [m for m in models if isinstance(m, (CentroidModel, AxisModel, PlaneModel))]
+
+    def _refresh_apc_table(self, trig_name, models):
+        if self._filter_apc_models(models):
+            self.apc_table.data = self._filter_apc_models(self.session.models)
+
     def _save_angle_info(self):
         if not self._angle_info:
             raise UserError("No angles/torsions to save!")
@@ -382,10 +400,10 @@ class StructMeasureTool(ToolInstance):
         self._define_axis_dialog.tool_window.shown = True
 
     def _show_define_centroid_dialog(self):
-        pass
+        raise LimitationError("Define Centroids dialog not implemented yet")
 
     def _show_define_plane_dialog(self):
-        pass
+        raise LimitationError("Define Planes dialog not implemented yet")
 
     def _update_angles(self):
         next_angle_info = []
