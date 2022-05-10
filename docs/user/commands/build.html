@@ -296,7 +296,7 @@ These C and N atoms each must be bonded to only one carbon
 (except N in proline or hydroxyproline can be bonded to two carbons);
 however, it may also be bonded to hydrogen and/or OXT, and if so,
 these atoms will be replaced as appropriate by the new peptide bond.
-The default <b>length</b> for the new C-N bond is <b>1.33</b> &Aring; 
+The default <b>length</b> for the new C-N bond is <b>1.330</b> &Aring; 
 and the default <b>omega</b> angle (C&alpha;-C-N-C&alpha; dihedral) 
 is <b>180.0</b>&deg;. There is no default for the <b>phi</b> angle
 (C-N-C&alpha;-C dihedral). The model to <b>move</b> is repositioned 
@@ -313,7 +313,11 @@ other model. Options for which model to <b>move</b>:
 &ndash; the one containing the N atom to be bonded
 </ul>
 </blockquote>
-
+<p>
+The values of <b>omega</b> and <b>phi</b> (along with other peptide
+torsion angles) are <a href="../attributes.html">attributes</a> 
+of the amino acid residue containing the newly bonded N.
+</p>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
 May 2022</address>
