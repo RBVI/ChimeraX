@@ -213,6 +213,8 @@ class StructMeasureTool(ToolInstance):
         from chimerax.ui.widgets import ItemTable
         self.apc_table = ItemTable()
         self.apc_table.add_column("Name", "name")
+        self.apc_table.add_column("", "model_color", format=ItemTable.COL_FORMAT_TRANSPARENT_COLOR)
+        self.apc_table.add_column("Shown", "display", format=ItemTable.COL_FORMAT_BOOLEAN)
         self.apc_table.launch()
         self.apc_table.data = self._filter_apc_models(self.session.models)
         from chimerax.core.models import ADD_MODELS, REMOVE_MODELS
