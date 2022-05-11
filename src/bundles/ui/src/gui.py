@@ -2914,7 +2914,7 @@ class SelContactsDialog(QDialog):
         self.bbox.rejected.connect(self.reject)
         from chimerax.core.commands import run
         self.bbox.helpRequested.connect(lambda *, run=run, ses=session:
-            run(ses, "help help:user/menu.html#selectzone"))
+            run(ses, "help help:user/selectcontacts.html"))
         layout.addWidget(self.bbox)
         self.setLayout(layout)
 
