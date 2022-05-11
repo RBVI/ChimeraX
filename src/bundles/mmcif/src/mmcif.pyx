@@ -393,10 +393,15 @@ def fetch_mmcif_pdbj(session, pdb_id, **kw):
 
 def _get_template(session, name):
     """Get Chemical Component Dictionary (CCD) entry"""
+    print("GET_TEMPLATE", name)
     from chimerax.core.fetch import fetch_file
+    from urllib.parse import quote as url_quote
+    if not name.isprintable():
+        session.logger.warning("Non-printable residue name.  Corrupt mmCIF file?")
+        return None
     filename = '%s.cif' % name
-    url = "http://ligand-expo.rcsb.org/reports/%s/%s/%s.cif" % (name[0], name,
-                                                                name)
+    url_path = url_quote(f"reports/{name[0]}/{name}/{name}.cif")
+    url = f"https://ligand-expo.rcsb.org/{url_path}"
     try:
         return fetch_file(session, url, 'CCD %s' % name, filename, 'CCD')
     except (UserError, OSError):

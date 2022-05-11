@@ -11,11 +11,12 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from Qt.QtWidgets import QVBoxLayout, QLabel, QGridLayout, QRadioButton, QLineEdit, QWidget, QHBoxLayout
-from Qt.QtWidgets import QCheckBox, QSizePolicy
+from Qt.QtWidgets import QLabel, QGridLayout, QLineEdit
+from Qt.QtWidgets import QSizePolicy
 from Qt.QtCore import Qt
 from chimerax.core.errors import UserError
 from chimerax.build_structure import StartStructureProvider
+
 
 class CCDProvider(StartStructureProvider):
     def command_string(self, widget):
@@ -28,7 +29,7 @@ class CCDProvider(StartStructureProvider):
 
     def fill_parameters_widget(self, widget):
         layout = QGridLayout()
-        layout.setContentsMargins(0,0,0,5)
+        layout.setContentsMargins(0, 0, 0, 5)
         layout.setSpacing(0)
         widget.setLayout(layout)
         layout.setRowStretch(0, 1)
