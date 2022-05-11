@@ -1,0 +1,100 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<title>Select Contacts</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="userdocs.css" />
+</head><body>
+
+<a name="top"></a>
+<a href="index.html">
+<img width="60px" src="ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h2>Select Contacts</h2>
+<p>
+Choosing <a href="menu.html#selectcontacts"><b>Select... Contacts</b></a>
+from the ChimeraX menu opens the <b>Select Contacts</b> dialog,
+with sections:
+</p>
+<blockquote><b>
+<a href="#chains">Chains</a>
+<br><a href="#atomic">Atomic</a>
+</b></blockquote>
+<p>
+Depending on the options used, the corresponding command is
+<a href="commands/clashes.html"><b>contacts</b></a>,
+<a href="commands/interfaces.html"><b>interfaces</b></a>, or
+<a href="commands/select.html"><b>select</b></a>.
+See also: 
+<a href="tools/clashes.html"><b>Contacts</b></a>,
+menu <a href="menu.html#selectzone"><b>Select... Zone</b></a>,
+<a href="commands/atomspec.html#zones">zone atom specification</a>
+</p><p>
+<b>OK</b> performs the selection and closes the dialog, whereas
+<b>Apply</b> performs the selection without closing the dialog.
+<b>Close</b> closes the dialog without doing anything.
+<b>Help</b> shows this page in the <a href="tools/helpviewer.html">ChimeraX
+browser</a>.
+</p>
+
+<a name="chains"></a>
+<p class="nav">
+[<a href="#top">back to top: Select Contacts</a>]
+</p>
+<h3>Chains</h3>
+<p>
+Select chain-chain contacts by choosing two chains, indicating whether 
+to select the contacting residues in <b>both</b> chains or only the 
+<b>first</b> chain, and specifying how the contacts should be identified.
+Either of the following measures can be used:
+</p>
+<ul>
+<li><b>Buried surface area</b> (default)
+  <ul>
+  <li><b>Contacting chains bury at least [<i>SASA<sub>c</sub></i>]</b>
+(default <b>100.0</b> &Aring;<sup>2</sup>)
+  <li><b>Contacting residues bury at least [<i>SASA<sub>r</sub></i>]</b>
+(default <b>15.0</b> &Aring;<sup>2</sup>)
+  </ul>
+&ndash; <i>or</i> &ndash;
+<br>
+<li><b>Residues with atoms within [<i>dist</i>]</b> (default <b>3.5</b> &Aring;)
+</ul>
+<p>
+Only protein and nucleic acid chains are considered, not ligands, ions, 
+or solvent. To identify contacts of those other types of residues, use
+the <a href="#atomic"><b>Atomic</b></a> section.
+</p>
+
+<a name="atomic"></a>
+<p class="nav">
+[<a href="#top">back to top: Select Contacts</a>]
+</p>
+<h3>Atomic</h3>
+<p>
+Select atomic contacts of the current <a href="selection.html">selection</a>
+based on either the 
+<a href="tools/clashes.html#overlap-def">VDW overlap</a> or the
+distance between atomic centers, with additional options to limit the scope
+of selection (<a href="tools/clashes.html#overlap-def">details...</a>)
+and to show the full <a href="tools/clashes.html"><b>Contacts</b></a> tool.
+</p>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics /
+May 2022</address>
+</body></html> 

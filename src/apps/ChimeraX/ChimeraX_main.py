@@ -567,6 +567,9 @@ def init(argv, event_loop=True):
 
     # initialize qt
     if opts.gui:
+        if os.environ.get("XDG_SESSION_TYPE", None) == "wayland":
+            # ChimeraX 1.4 needs to use XWayland for now
+            os.environ["QT_QPA_PLATFORM"] = "xcb"
         from chimerax.ui import initialize_qt
         initialize_qt()
 
@@ -872,7 +875,7 @@ def init(argv, event_loop=True):
             traceback.print_exc()
             return os.EX_SOFTWARE
     elif opts.gui:
-        sess.ui.quit()	# Clean up gui to avoid errors at exit.
+        sess.ui.quit()  # Clean up gui to avoid errors at exit.
     return os.EX_OK
 
 
