@@ -32,21 +32,25 @@ class QCxTableModel(QAbstractTableModel):
         item = self._item_table._data[index.row()]
         if role is None or role == Qt.DisplayRole:
             val = col.display_value(item)
+            from numpy import ndarray
             from chimerax.core.colors import Color
             if isinstance(val, bool):
-                cell = self._item_table.item(index.row(), index.column())
-                if not cell.isCheckable():
-                    cell.toggled.connect(lambda chk, c=col, i=item: c.set_value(i, chk))
-                cell.setCheckState(Qt.Checked if val else Qt.Unchecked)
-            elif isinstance(val, Color) or isinstance(val, tuple) and 3 <= len(val) <= 4:
+                return None
+            elif isinstance(val, Color) or isinstance(val, (tuple, ndarray)) and 3 <= len(val) <= 4:
                 widget = self._item_table.indexWidget(index)
                 if not widget:
                     has_alpha = len(val.rgba) == 4 if isinstance(val, Color) else len(val) == 4
-                    from .color_button import ColorButton
-                    widget = ColorButton(has_alpha=has_alpha)
-                    widget.color_changed.connect(lambda clr, c=col, i=item: c.set_value(i, clr))
+                    #from .color_button import ColorButton
+                    #widget = ColorButton(self._item_table, has_alpha=has_alpha)
+                    #widget.color_changed.connect(lambda clr, c=col, i=item: c.set_value(i, clr))
+                    from Qt.QtWidgets import QPushButton
+                    if not hasattr(self, 'widgets'):
+                        self.widgets = []
+                    widget = QPushButton("Color!")
+                    self.widgets.append(widget)
                     self._item_table.setIndexWidget(index, widget)
                 widget.color = val
+                return None
             return str(val)
         if role == Qt.FontRole and (item in self._item_table._highlighted or col.justification == "decimal"
                 or col.font is not None):
@@ -64,7 +68,20 @@ class QCxTableModel(QAbstractTableModel):
             return font
         if role == Qt.TextAlignmentRole:
             return self._convert_justification(col.justification)
+        if role == Qt.CheckStateRole:
+            if col.display_format == self._item_table.COL_FORMAT_BOOLEAN:
+                val = col.display_value(item)
+                return Qt.Checked if val else Qt.Unchecked
+            return None
         return None
+
+    def flags(self, index):
+        super_flags = super().flags(index)
+        col = self._item_table._columns[index.column()]
+        if col.display_format == self._item_table.COL_FORMAT_BOOLEAN:
+            from Qt.QtCore import Qt
+            return super_flags | Qt.ItemIsUserCheckable | Qt.ItemIsEnabled | Qt.ItemIsSelectable
+        return super_flags
 
     def headerData(self, section, orientation, role=None):
         if orientation == Qt.Vertical:
@@ -100,6 +117,16 @@ class QCxTableModel(QAbstractTableModel):
 
     def rowCount(self, parent=None):
         return len(self._item_table._data)
+
+    def setData(self, index, value, role):
+        if role == Qt.CheckStateRole:
+            col = self._item_table._columns[index.column()]
+            item = self._item_table._data[index.row()]
+            col.set_value(item, True if value == qt_enum_as_int(Qt.Checked) else False)
+            self.dataChanged.emit(index, index, [role])
+            return True
+        else:
+            return super().setData(index, value, *args, **kw)
 
     def _convert_justification(self, justification):
         if justification == "left":
