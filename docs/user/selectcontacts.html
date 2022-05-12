@@ -40,8 +40,10 @@ Depending on the options used, the corresponding command is
 <a href="commands/interfaces.html"><b>interfaces</b></a>, or
 <a href="commands/select.html"><b>select</b></a>.
 See also: 
-<a href="tools/clashes.html"><b>Contacts</b></a>,
 menu <a href="menu.html#selectzone"><b>Select... Zone</b></a>,
+<a href="tools/clashes.html"><b>Contacts</b></a>,
+<a href="tools/crystalcontacts.html"><b>Crystal Contacts</b></a>,
+<a href="commands/interfaces.html#diagram">chain-chain network diagram</a>,
 <a href="commands/atomspec.html#zones">zone atom specification</a>
 </p><p>
 <b>OK</b> performs the selection and closes the dialog, whereas
@@ -57,27 +59,39 @@ browser</a>.
 </p>
 <h3>Chains</h3>
 <p>
-Select chain-chain contacts by choosing two chains, indicating whether 
-to select the contacting residues in <b>both</b> chains or only the 
-<b>first</b> chain, and specifying how the contacts should be identified.
-Either of the following measures can be used:
+<a href="selection.html">Select</a> residues in chain-chain contact interfaces. 
+The chains of interest should be chosen from the respective lists:
+one or more reference chains from the list on the left, and from the right,
+one or more chains that may be in contact with the reference chain(s).
+Options:
 </p>
 <ul>
-<li><b>Buried surface area</b> (default)
-  <ul>
-  <li><b>Contacting chains bury at least [<i>SASA<sub>c</sub></i>]</b>
-(default <b>100.0</b> &Aring;<sup>2</sup>)
-  <li><b>Contacting residues bury at least [<i>SASA<sub>r</sub></i>]</b>
-(default <b>15.0</b> &Aring;<sup>2</sup>)
+<li><b>Select contacts in [<i>which set</i>] of chains</b>
+&ndash; whether to select the identified residues
+in only the <b>lefthand set</b> of chosen chains or in <b>both sets</b> 
+of chosen chains (default)
+<li><b>Select residues with</b>:
+ <ul>
+  <li><b>buried solvent-accessible surface area &ge; [<i>area</i>]</b>
+&Aring;<sup>2</sup> 
+&ndash; residues found to bury at least <i>area</i> 
+of <a href="commands/surface.html#surfdefs">solvent-accessible surface</a>
+(default <b>15.0</b> &Aring<sup>2</sup>)
+in the interface between a chain chosen on the left and a chain chosen on
+the right, with no restriction on the size of the chain-chain interface 
+(the <a href="commands/interfaces.html"><b>interfaces</b></a>
+<b>interfaceResidueAreaCutoff</b> criterion is set to 0.0 &Aring<sup>2</sup>)
+<br>&ndash; <i>OR</i> &ndash;
+  <li><b>atomic distance &le; [<i>dist</i>]</b> &Aring; 
+&ndash; select residues with at least one atom within <i>dist</i>
+(default <b>3.5</b> &Aring;) of an atom in the other chain
   </ul>
-&ndash; <i>or</i> &ndash;
-<br>
-<li><b>Residues with atoms within [<i>dist</i>]</b> (default <b>3.5</b> &Aring;)
 </ul>
 <p>
-Only protein and nucleic acid chains are considered, not ligands, ions, 
-or solvent. To identify contacts of those other types of residues, use
-the <a href="#atomic"><b>Atomic</b></a> section.
+For either type of calculation (buried surface areas or distances),
+only atoms in protein and nucleic acid chains are considered, not ligands, 
+ions, or solvent. To identify contacts of those other types of residues, use
+the <a href="#atomic"><b>Atomic</b></a> section instead.
 </p>
 
 <a name="atomic"></a>
@@ -86,7 +100,8 @@ the <a href="#atomic"><b>Atomic</b></a> section.
 </p>
 <h3>Atomic</h3>
 <p>
-Select atomic contacts of the current <a href="selection.html">selection</a>
+<a href="selection.html">Select</a>
+atomic contacts of the current <a href="selection.html">selection</a>
 based on either the 
 <a href="tools/clashes.html#overlap-def">VDW overlap</a> or the
 distance between atomic centers, with additional options to limit the scope
