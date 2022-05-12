@@ -213,60 +213,19 @@ class StructMeasureTool(ToolInstance):
         from chimerax.ui.widgets import ItemTable
         self.apc_table = ItemTable()
         self.apc_table.add_column("Name", "name")
-        self.apc_table.add_column("", "model_color", format=ItemTable.COL_FORMAT_TRANSPARENT_COLOR)
+        self.apc_table.add_column("ID", "id_string")
+        self.apc_table.add_column("Color", "model_color", format=ItemTable.COL_FORMAT_TRANSPARENT_COLOR,
+            title_display=False)
         self.apc_table.add_column("Shown", "display", format=ItemTable.COL_FORMAT_BOOLEAN)
         self.apc_table.launch()
         self.apc_table.data = self._filter_apc_models(self.session.models)
         from chimerax.core.models import ADD_MODELS, REMOVE_MODELS
         self.handlers.append(self.session.triggers.add_handler(ADD_MODELS, self._refresh_apc_table))
         self.handlers.append(self.session.triggers.add_handler(REMOVE_MODELS, self._refresh_apc_table))
+        from chimerax.core.models import MODEL_DISPLAY_CHANGED, MODEL_ID_CHANGED, MODEL_NAME_CHANGED
+        for trig_name in  (MODEL_DISPLAY_CHANGED, MODEL_ID_CHANGED, MODEL_NAME_CHANGED):
+            self.handlers.append(self.session.triggers.add_handler(trig_name, self._refresh_apc_cell))
         layout.addWidget(self.apc_table, alignment=Qt.AlignCenter)
-        """
-        self.angle_table = QTableWidget()
-        self.angle_table.setColumnCount(5)
-        self.angle_table.keyPressEvent = self.session.ui.forward_keystroke
-        self.angle_table.setHorizontalHeaderLabels(["Atom 1", "Atom 2", "Atom 3", "Atom 4", "Angle/Torsion"])
-        self.angle_table.setSelectionBehavior(QAbstractItemView.SelectRows)
-        self.angle_table.setSelectionMode(QAbstractItemView.ExtendedSelection)
-        self.angle_table.setEditTriggers(QAbstractItemView.NoEditTriggers)
-        table_layout = QVBoxLayout()
-        table_layout.setContentsMargins(0,0,0,0)
-        table_layout.setSpacing(0)
-        table_layout.addWidget(self.angle_table)
-        table_layout.setStretchFactor(self.angle_table, 1)
-        layout.addLayout(table_layout)
-        layout.setStretchFactor(table_layout, 1)
-        button_layout = QHBoxLayout()
-        create_button = QPushButton("Create")
-        create_button.clicked.connect(self._create_angle)
-        create_button.setToolTip("Show angle/torsion value between three/four (currently selected) atoms")
-        button_layout.addWidget(create_button)
-        delete_button = QPushButton("Delete")
-        delete_button.clicked.connect(self._delete_angle)
-        delete_button.setToolTip("Delete angles/torsions selected in table (or all if none selected)")
-        button_layout.addWidget(delete_button)
-        save_info_button = QPushButton("Save Info...")
-        save_info_button.clicked.connect(self._save_angle_info)
-        save_info_button.setToolTip("Save angle/torsion information into a file")
-        button_layout.addWidget(save_info_button)
-        table_layout.addLayout(button_layout)
-        self._angle_info = []
-
-        from .settings import get_settings
-        settings = get_settings(self.session, "angles")
-        from chimerax.ui.options import SettingsPanel, IntOption
-        panel = SettingsPanel()
-        for opt_name, attr_name, opt_class, opt_class_kw in [
-                ("Decimal places", 'decimal_places', IntOption, {'min': 0})]:
-            panel.add_option(opt_class(opt_name, None,
-                lambda opt, settings=settings: self._set_angle_decimal_places(settings.decimal_places),
-                attr_name=attr_name, settings=settings, auto_set_attr=True))
-        layout.addWidget(panel)
-        self._set_angle_decimal_places(settings.decimal_places)
-
-        from chimerax.atomic import get_triggers
-        self.handlers.append(get_triggers().add_handler('changes', self. _angle_changes_handler))
-        """
 
     def _fill_dist_table(self, *args):
         dist_grp = self.session.pb_manager.get_group("distances", create=False)
@@ -357,6 +316,19 @@ class StructMeasureTool(ToolInstance):
         from chimerax.centroids import CentroidModel
         from chimerax.axes_planes import AxisModel, PlaneModel
         return [m for m in models if isinstance(m, (CentroidModel, AxisModel, PlaneModel))]
+
+    def _refresh_apc_cell(self, trig_name, model):
+        if not self._filter_apc_models([model]):
+            return
+        from chimerax.core.models import MODEL_DISPLAY_CHANGED, MODEL_ID_CHANGED, MODEL_NAME_CHANGED
+        if trig_name == MODEL_DISPLAY_CHANGED:
+            title = "Shown"
+        elif trig_name == MODEL_ID_CHANGED:
+            title = "ID"
+        else:
+            title = "Name"
+        self.apc_table.update_cell(title, model)
+
 
     def _refresh_apc_table(self, trig_name, models):
         if self._filter_apc_models(models):
