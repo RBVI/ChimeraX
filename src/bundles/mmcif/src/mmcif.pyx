@@ -393,7 +393,6 @@ def fetch_mmcif_pdbj(session, pdb_id, **kw):
 
 def _get_template(session, name):
     """Get Chemical Component Dictionary (CCD) entry"""
-    print("GET_TEMPLATE", name)
     from chimerax.core.fetch import fetch_file
     from urllib.parse import quote as url_quote
     if not name.isprintable():
