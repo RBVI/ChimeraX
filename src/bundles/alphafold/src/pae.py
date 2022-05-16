@@ -457,6 +457,8 @@ class AlphaFoldPAEPlot(ToolInstance):
         m = self._pae._pae_matrix
         size = m.shape[0]
         s = self._pae.structure
+        if s is None:
+            return
         res = s.residues
         if index1 < 0 or index2 < 0 or index1 >= size or index2 >= size or len(res) < size:
             msg = ''
