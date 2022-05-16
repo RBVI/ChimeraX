@@ -334,7 +334,7 @@ def vector_rotation_transform(n0, n1):
         if n0[0] == 0 and n0[1] == 0:
             ax, ay, az = (1, 0, 0)
         else:
-            ax, ay, az = normalize_vector(-n0[1], n0[0], 0)
+            ax, ay, az = normalize_vector((-n0[1], n0[0], 0))
         return ((2 * ax * ax - 1, 2 * ax * ay, 2 * ax * az, 0),
                 (2 * ax * ay, 2 * ay * ay - 1, 2 * ay * az, 0),
                 (2 * ax * az, 2 * ay * az, 2 * az * az - 1, 0))
