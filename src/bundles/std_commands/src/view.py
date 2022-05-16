@@ -530,18 +530,18 @@ def view_position(session, models, same_as_models):
     '''
     if len(same_as_models) == 1:
         tm = same_as_models[0]
-        p = tm.position
+        p = tm.positions
         for m in models:
             if m is not tm:
-                m.position = p
+                m.positions = p
     elif len(models) != len(same_as_models):
         from chimerax.core.errors import UserError
         raise UserError('Must specify equal numbers of models to align, got %d and %d'
                         % (len(models), len(same_as_models)))
     else:
-        tp = [tm.position for tm in same_as_models]
+        tp = [tm.positions for tm in same_as_models]
         for m,p in zip(models, tp):
-                m.position = p
+                m.positions = p
 
 from chimerax.core.commands import Annotation, AnnotationError
 class ModelPlacesArg(Annotation):
