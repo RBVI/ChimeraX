@@ -2182,6 +2182,16 @@ def text_image_rgba(text, color, size, font, background_color = None, xpad = 0, 
     and the font is chosen to fit within this image height minus ypad pixels at top
     and bottom.
     '''
+    from Qt.QtCore import QCoreApplication
+    if QCoreApplication.instance() is None:
+        # In no gui mode with no QGuiApplication, QFontMetrics.boundingRect() crashes in Qt 6.3.0.
+        # ChimeraX ticket #6876.
+        # Return an all white image.
+        from numpy import empty, uint8
+        rgba = empty((10,10,4), uint8)
+        rgba[:] = 255
+        return rgba
+    
     from Qt.QtGui import QImage, QPainter, QFont, QFontMetrics, QColor, QBrush, QPen
 
     p = QPainter()
