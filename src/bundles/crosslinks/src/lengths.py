@@ -67,7 +67,8 @@ class LengthsPlot(Plot):
         self._bin_pbonds = {i:Pseudobonds(pbs) for i,pbs in ipb.items()}
             
     def _mouse_move(self, event):
-        e = self.matplotlib_mouse_event(event.x(), event.y())
+        pos = event.pos()
+        e = self.matplotlib_mouse_event(pos.x(), pos.y())
         for i,p in enumerate(self._patches):
             c,details = p.contains(e)
             if c:
@@ -188,7 +189,8 @@ class EnsemblePlot(Plot):
 
         
     def _mouse_move(self, event):
-        e = self.matplotlib_mouse_event(event.x(), event.y())
+        pos = event.pos()
+        e = self.matplotlib_mouse_event(pos.x(), pos.y())
         for i,p in enumerate(self._patches):
             c,details = p.contains(e)
             if c:
