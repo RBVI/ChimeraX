@@ -12,6 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.core.tools import ToolInstance
+from chimerax.core.errors import UserError
 
 class DouseResultsViewer(ToolInstance):
     def __init__(self, session, tool_name, orig_model=None, douse_model=None, compared_waters=None):
@@ -33,6 +34,8 @@ class DouseResultsViewer(ToolInstance):
         parent = self.tool_window.ui_area
 
         from Qt.QtWidgets import QHBoxLayout, QButtonGroup, QVBoxLayout, QRadioButton
+        from Qt.QtWidgets import QPushButton, QLabel
+        from Qt.QtCore import Qt
         layout = QHBoxLayout()
         layout.setContentsMargins(0,0,0,0)
         layout.setSpacing(0)
@@ -93,6 +96,15 @@ class DouseResultsViewer(ToolInstance):
             self.res_list.value_changed.connect(self._res_sel_cb)
         layout.addWidget(self.res_list)
 
+        controls_layout = QVBoxLayout()
+        delete_layout = QHBoxLayout()
+        but = QPushButton("Delete")
+        but.clicked.connect(self._delete_waters)
+        delete_layout.addWidget(but, alignment=Qt.AlignRight)
+        delete_layout.addWidget(QLabel("chosen water(s)"), alignment=Qt.AlignLeft)
+        controls_layout.addLayout(delete_layout)
+        layout.addLayout(controls_layout)
+
         self.tool_window.manage('side')
 
     def delete(self):
@@ -131,6 +143,18 @@ class DouseResultsViewer(ToolInstance):
             'water': self.res_list.value,
         }
         return data
+
+    def _delete_waters(self):
+        waters = self.res_list.value
+        if not waters:
+            raise UserError("No waters chosen")
+        if len(waters) > 1:
+            from chimerax.ui.ask import ask
+            if ask(self.session, "Really delete %d waters?" % len(waters),
+                    default="no", title="Delete waters") == "no":
+                return
+        from chimerax.atomic import Residues
+        Residues(waters).atoms.delete()
 
     def _filter_residues(self, r):
         return r.structure == self.filter_model and r in self.filter_residues
