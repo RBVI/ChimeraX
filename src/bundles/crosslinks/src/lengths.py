@@ -19,7 +19,8 @@ class LengthsPlot(Plot):
 
     help = 'help:user/commands/crosslinks.html#histogram'
     
-    def __init__(self, session, pbonds):
+    def __init__(self, session, pbonds,
+                 bins = 50, max_length = None, min_length = None, height = None):
 
         # Create matplotlib panel
         title = '%d Crosslink Lengths' % len(pbonds)
@@ -27,7 +28,11 @@ class LengthsPlot(Plot):
         self.tool_window.fill_context_menu = self._fill_context_menu
 
         self.pbonds = pbonds
-
+        self._bins = bins
+        self._max_length = max_length
+        self._min_length = min_length
+        self._height = height
+        
         self._bin_edges = None
         self._patches = []
         self._last_picked_bin = None
@@ -42,14 +47,24 @@ class LengthsPlot(Plot):
         
         self.show()
 
-    def _make_histogram(self, bins=50):
+    def _make_histogram(self):
         a = self.axes
         a.set_title('Crosslink lengths')
         a.set_xlabel(r'length ($\AA$)')
         a.set_ylabel('crosslink count')
+        if self._height is not None:
+            a.set_ylim([0, self._height])
 
         d = self.pbonds.lengths
-        n, be, self._patches = a.hist(d, bins=bins)
+        bins = self._bins
+        
+        range = [self._min_length, self._max_length]
+        if range[0] is None:
+            range[0] = d.min()
+        if range[1] is None:
+            range[1] = d.max()
+
+        n, be, self._patches = a.hist(d, bins=bins, range=range)
         self._bin_edges = be
         
         if bins > 0:
@@ -110,8 +125,9 @@ class LengthsPlot(Plot):
 from chimerax.interfaces.graph import Plot
 class EnsemblePlot(Plot):
     
-    def __init__(self, session, pbond, ensemble_model):
-
+    def __init__(self, session, pbond, ensemble_model,
+                 bins = 50, max_length = None, min_length = None, height = None):
+        
         # Create matplotlib panel
         e = ensemble_model
         title = 'Crosslink length for %d models %s' % (e.num_coordsets, e.name)
@@ -120,6 +136,10 @@ class EnsemblePlot(Plot):
 
         self.pbond = pbond
         self.ensemble_model = e
+        self._bins = bins
+        self._max_length = max_length
+        self._min_length = min_length
+        self._height = height
 
         self._bin_edges = None
         self._patches = []
@@ -135,11 +155,13 @@ class EnsemblePlot(Plot):
         
         self.show()
 
-    def _make_histogram(self, bins=50):
+    def _make_histogram(self):
         a = self.axes
         a.set_title('Crosslink lengths')
         a.set_xlabel(r'length ($\AA$)')
         a.set_ylabel('model count')
+        if self._height is not None:
+            a.set_ylim([0, self._height])
 
         a1, a2 = self._crosslink_atoms()
         e = self.ensemble_model
@@ -155,7 +177,15 @@ class EnsemblePlot(Plot):
             d[i] = distance(a1.scene_coord, a2.scene_coord)
         e.active_coordset_id = acid
         
-        n, be, self._patches = a.hist(d, bins=bins)
+        bins = self._bins
+
+        range = [self._min_length, self._max_length]
+        if range[0] is None:
+            range[0] = d.min()
+        if range[1] is None:
+            range[1] = d.max()
+
+        n, be, self._patches = a.hist(d, bins=bins, range=range)
         self._bin_edges = be
         
         if bins > 0:
