@@ -2828,68 +2828,62 @@ class SelContactsDialog(QDialog):
         select_layout.addStretch(1)
         select_layout.addWidget(QLabel("Select contacts in "))
         from Qt.QtWidgets import QPushButton, QMenu
-        self.what_sel_button = QPushButton("both")
+        self.what_sel_button = QPushButton("both sets")
         select_layout.addWidget(self.what_sel_button)
         menu = QMenu(self.what_sel_button)
         from Qt.QtGui import QAction
-        menu.addAction("both")
-        menu.addAction("left")
+        menu.addAction("both sets")
+        menu.addAction("lefthand set")
         menu.triggered.connect(lambda action, but=self.what_sel_button: but.setText(action.text()))
         self.what_sel_button.setMenu(menu)
-        select_layout.addWidget(QLabel(" chain(s)"))
+        select_layout.addWidget(QLabel(" of chains"))
         select_layout.addStretch(1)
         chains_layout.addLayout(select_layout)
-        criteria_group = QGroupBox("Contact criteria")
+        criteria_group = QGroupBox("")
         chains_layout.addWidget(criteria_group, alignment=Qt.AlignCenter)
-        criteria_layout = QGridLayout()
+        criteria_layout = QVBoxLayout()
         criteria_layout.setContentsMargins(0,0,0,0)
         criteria_layout.setSpacing(0)
         criteria_group.setLayout(criteria_layout)
+        criteria_layout.addWidget(QLabel("Select residues with:"), alignment=Qt.AlignLeft)
+        test_type_layout = QGridLayout()
+        test_type_layout.setContentsMargins(0,0,0,0)
+        test_type_layout.setSpacing(0)
+        test_type_layout.setColumnStretch(2, 1)
+        test_type_layout.setColumnMinimumWidth(0, 15)
+        criteria_layout.addLayout(test_type_layout)
         self.criteria_button_group = QButtonGroup()
         self.buried_button = QRadioButton("")
         self.buried_button.setChecked(True)
         self.criteria_button_group.addButton(self.buried_button)
-        criteria_layout.addWidget(self.buried_button, 0, 0, alignment=Qt.AlignRight)
-        buried_area_group = QGroupBox("Buried surface area")
-        criteria_layout.addWidget(buried_area_group, 0, 1, alignment=Qt.AlignLeft)
-        buried_area_layout = QVBoxLayout()
-        from chimerax.interfaces import chain_area_default, residue_area_default
-        chain_area_layout = QHBoxLayout()
-        chain_area_layout.addWidget(QLabel("Contacting chains bury at least"))
-        self.chain_spinbox = QDoubleSpinBox()
-        self.chain_spinbox.setValue(chain_area_default)
-        self.chain_spinbox.setDecimals(1)
-        self.chain_spinbox.setSuffix("\N{ANGSTROM SIGN}\N{SUPERSCRIPT TWO}")
-        self.chain_spinbox.setMinimum(0.0)
-        self.chain_spinbox.setMaximum(9999.9)
-        chain_area_layout.addWidget(self.chain_spinbox)
-        buried_area_layout.addLayout(chain_area_layout)
+        test_type_layout.addWidget(self.buried_button, 0, 1)
         residue_area_layout = QHBoxLayout()
-        residue_area_layout.addWidget(QLabel("Contacting residues bury at least"))
+        residue_area_layout.addWidget(QLabel("buried solvent-accessible surface area >="))
         self.residue_spinbox = QDoubleSpinBox()
+        from chimerax.interfaces import residue_area_default
         self.residue_spinbox.setValue(residue_area_default)
         self.residue_spinbox.setDecimals(1)
-        self.residue_spinbox.setSuffix("\N{ANGSTROM SIGN}\N{SUPERSCRIPT TWO}")
         self.residue_spinbox.setMinimum(0.0)
         self.residue_spinbox.setMaximum(9999.9)
+        self.residue_spinbox.setAlignment(Qt.AlignHCenter)
         residue_area_layout.addWidget(self.residue_spinbox)
-        buried_area_layout.addLayout(residue_area_layout)
-        buried_area_group.setLayout(buried_area_layout)
+        residue_area_layout.addWidget(QLabel("\N{ANGSTROM SIGN}\N{SUPERSCRIPT TWO}"))
+        test_type_layout.addLayout(residue_area_layout, 0, 2)
         self.distance_button = QRadioButton("")
         self.criteria_button_group.addButton(self.distance_button)
-        criteria_layout.addWidget(self.distance_button, 1, 0, alignment=Qt.AlignRight)
-        distance_group = QGroupBox("Distance")
-        criteria_layout.addWidget(distance_group, 1, 1, alignment=Qt.AlignLeft)
+        test_type_layout.addWidget(self.distance_button, 1, 1)
         distance_layout = QHBoxLayout()
-        distance_layout.addWidget(QLabel("Residues with atoms within"))
+        distance_layout.addWidget(QLabel("atomic distance <="))
         self.distance_spinbox = QDoubleSpinBox()
         self.distance_spinbox.setValue(3.5)
         self.distance_spinbox.setDecimals(1)
-        self.distance_spinbox.setSuffix("\N{ANGSTROM SIGN}")
         self.distance_spinbox.setMinimum(0.0)
         self.distance_spinbox.setMaximum(9999.9)
+        self.distance_spinbox.setAlignment(Qt.AlignHCenter)
         distance_layout.addWidget(self.distance_spinbox)
-        distance_group.setLayout(distance_layout)
+        distance_layout.addWidget(QLabel("\N{ANGSTROM SIGN}"))
+        test_type_layout.addLayout(distance_layout, 1, 2)
+
         self.tabs.addTab(chains_widget, "Chains")
 
         # Atomic tab
@@ -2920,7 +2914,7 @@ class SelContactsDialog(QDialog):
         self.bbox.rejected.connect(self.reject)
         from chimerax.core.commands import run
         self.bbox.helpRequested.connect(lambda *, run=run, ses=session:
-            run(ses, "help help:user/menu.html#selectzone"))
+            run(ses, "help help:user/selectcontacts.html"))
         layout.addWidget(self.bbox)
         self.setLayout(layout)
 
@@ -2935,14 +2929,11 @@ class SelContactsDialog(QDialog):
             chain_spec1 = "".join([c.atomspec for c in chains1])
             chain_spec2 = "".join([c.atomspec for c in chains2])
             if self.criteria_button_group.checkedButton() == self.buried_button:
-                cmd = "interfaces select %s & ::polymer_type>0 contacting %s & ::polymer_type>0" % (
-                    chain_spec1, chain_spec2)
+                cmd = "interfaces select %s & ::polymer_type>0 " \
+                    "contacting %s & ::polymer_type>0 areaCutoff 0" % (chain_spec1, chain_spec2)
                 if self.what_sel_button.text() == "both":
                     cmd += " bothSides true"
-                from chimerax.interfaces import chain_area_default, residue_area_default
-                buried_chain_area = self.chain_spinbox.value()
-                if buried_chain_area != chain_area_default:
-                    cmd += " areaCutoff %g" % buried_chain_area
+                from chimerax.interfaces import residue_area_default
                 buried_residue_area = self.residue_spinbox.value()
                 if buried_residue_area != residue_area_default:
                     cmd += " interfaceResidueAreaCutoff %g" % buried_residue_area

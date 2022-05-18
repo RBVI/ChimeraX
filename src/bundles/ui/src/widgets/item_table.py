@@ -92,6 +92,8 @@ class QCxTableModel(QAbstractTableModel):
 
         col = self._item_table._columns[section]
         if role is None or role == Qt.DisplayRole:
+            if not col.title_display:
+                return None
             if self._item_table._auto_multiline_headers:
                 title = self._make_multiline(col.title)
             else:
@@ -491,6 +493,24 @@ class ItemTable(QTableView):
         else:
             sort_info = None
         return (version, selected, column_display, highlighted, sort_info)
+
+    def update_cell(self, col_info, datum):
+        if isinstance(col_info, str):
+            for col in self._columns:
+                if col.title == col_info:
+                    break
+            else:
+                raise ValueError("No column with title '%s'" % col_info)
+        else:
+            col = col_info
+        col_index = self._columns.index(col)
+        row_index = self._data.index(datum)
+        cell_index = self._table_model.index(row_index, col_index)
+        if col.display_format == self.COL_FORMAT_BOOLEAN:
+            roles = [Qt.CheckStateRole]
+        else:
+            roles = [Qt.DisplayRole]
+        self._table_model.dataChanged.emit(cell_index, cell_index, roles)
 
     def update_column(self, column, **kw):
         display_change = 'display' in kw and column.display != kw['display']
