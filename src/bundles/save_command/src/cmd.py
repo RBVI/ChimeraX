@@ -83,7 +83,8 @@ def provider_save(session, file_name, format=None, **provider_kw):
     # TODO: The following line does a graphics update so that if the save command is
     # exporting data in a script (e.g. scene export) the graphics is up to date.  Does
     # not seem like the ideal solution to put this update here.
-    session.update_loop.update_graphics_now()
+    if data_format.category == "Generic 3D objects":
+        session.update_loop.update_graphics_now()
     try:
         saver_info = provider_info.bundle_info.run_provider(session, provider_info.format_name, mgr)
         saver_info.save(session, path, **provider_kw)

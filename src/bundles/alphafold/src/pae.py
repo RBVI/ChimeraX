@@ -457,6 +457,8 @@ class AlphaFoldPAEPlot(ToolInstance):
         m = self._pae._pae_matrix
         size = m.shape[0]
         s = self._pae.structure
+        if s is None:
+            return
         res = s.residues
         if index1 < 0 or index2 < 0 or index1 >= size or index2 >= size or len(res) < size:
             msg = ''
@@ -511,6 +513,11 @@ class AlphaFoldPAEPlot(ToolInstance):
         residues.ribbon_colors = color
         residues.atoms._colors = color
 
+        if len(residues) > 0:
+            cmd = 'color %s %s' % (_residue_range_spec(residues), colorname)
+            from chimerax.core.commands import log_equivalent_command
+            log_equivalent_command(self.session, cmd)
+
     # ---------------------------------------------------------------------------
     #
     def _select_residue_ranges(self, ranges):
@@ -521,15 +528,40 @@ class AlphaFoldPAEPlot(ToolInstance):
         self.session.selection.clear()
 
         res = m.residues
+        specs = []
         for r1,r2 in ranges:
-            atoms = res[r1:r2+1].atoms
+            rres = res[r1:r2+1]
+            atoms = rres.atoms
             atoms.selected = True
-        
+            if len(rres) > 0:
+                specs.append(_residue_range_spec(rres))
+
+        if specs:
+            cmd = 'select %s' % ' '.join(specs)
+            from chimerax.core.commands import log_equivalent_command
+            log_equivalent_command(self.session, cmd)
+
     # ---------------------------------------------------------------------------
     #
     def _rectangle_clear(self):
         pass
 
+# ---------------------------------------------------------------------------
+#
+def _residue_range_spec(residues):
+    s = residues[0].structure
+    if s.num_chains == 1:
+        nums = residues.numbers
+        rspec = ':%d-%d' % (nums.min(), nums.max())
+    else:
+        specs = []
+        for s, cid, cres in residues.by_chain:
+            nums = cres.numbers
+            specs.append('/%s:%d-%d' % (cid, nums.min(), nums.max()))
+        rspec = ''.join(specs)
+    spec = '#%s%s' % (s.id_string, rspec)
+    return spec
+    
 from Qt.QtWidgets import QGraphicsView
 class PAEView(QGraphicsView):
     def __init__(self, parent, rectangle_select_cb=None, rectangle_clear_cb=None,

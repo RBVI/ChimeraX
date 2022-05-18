@@ -3466,7 +3466,7 @@ def list_aliases(all=False, logger=None):
     """
     def find_aliases(partial_name, parent_info):
         for word, word_info in list(parent_info.subcommands.items()):
-            if word_info.is_deferred():
+            if all and word_info.is_deferred():
                 try:
                     if partial_name:
                         word_info.lazy_register('%s %s' % (partial_name, word))
