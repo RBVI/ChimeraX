@@ -24,6 +24,7 @@ class LengthsPlot(Plot):
         # Create matplotlib panel
         title = '%d Crosslink Lengths' % len(pbonds)
         Plot.__init__(self, session, tool_name = "Crosslinks", title = title)
+        self.tool_window.fill_context_menu = self._fill_context_menu
 
         self.pbonds = pbonds
 
@@ -100,6 +101,9 @@ class LengthsPlot(Plot):
             bpb.radii *= 3.0
             pb.displays = False
             bpb.displays = True
+
+    def _fill_context_menu(self, menu, x, y):
+        self.add_menu_entry(menu, 'Save Plot As...', self.save_plot_as)
     
 # ------------------------------------------------------------------------------
 #
@@ -112,6 +116,7 @@ class EnsemblePlot(Plot):
         e = ensemble_model
         title = 'Crosslink length for %d models %s' % (e.num_coordsets, e.name)
         Plot.__init__(self, session, tool_name = "Crosslinks", title = title)
+        self.tool_window.fill_context_menu = self._fill_context_menu
 
         self.pbond = pbond
         self.ensemble_model = e
@@ -208,3 +213,6 @@ class EnsemblePlot(Plot):
         if cset_ids:
             e = self.ensemble_model
             e.active_coordset_id = cset_ids[0]
+
+    def _fill_context_menu(self, menu, x, y):
+        self.add_menu_entry(menu, 'Save Plot As...', self.save_plot_as)
