@@ -146,6 +146,9 @@ class ContactPlot(Graph):
         if item is None:
             add('Lay Out to Match Structure', self.draw_graph)
             add('Orient Structure to Match Layout', self._orient)
+
+        menu.addSeparator()
+        add('Save Plot As...', self.save_plot_as)
                     
     def _select_nodes(self, nodes):
         self._clear_selection()
