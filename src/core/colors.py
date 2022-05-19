@@ -430,8 +430,11 @@ def _builtin_colormaps():
     _alphafold_colors = [BuiltinColors[name] for name in
                          ('red', 'orange', 'yellow', 'cornflowerblue', 'blue')]
     cmaps['alphafold'] = Colormap((0, 50, 70, 90, 100), _alphafold_colors)
-    _pae_colors = ((0.118,0.275,0.118,1), (0.142,0.571,0.142,1), (0.216,0.693,0.216,1), (0.338,0.788,0.338,1), (0.510,0.867,0.510,1), (0.730,0.937,0.730,1), (1.000,1.000,1.000,1))
+    _pae_colors = [BuiltinColors[name] for name in
+                         ('blue', 'cornflowerblue', 'yellow', 'orange', 'gray', 'lightgray', 'white')]
     cmaps['pae'] = Colormap((0, 5, 10, 15, 20, 25, 30), _pae_colors)
+    _pae_green_colors = ((0.118,0.275,0.118,1), (0.142,0.571,0.142,1), (0.216,0.693,0.216,1), (0.338,0.788,0.338,1), (0.510,0.867,0.510,1), (0.730,0.937,0.730,1), (1.000,1.000,1.000,1))
+    cmaps['paegreen'] = Colormap((0, 5, 10, 15, 20, 25, 30), _pae_green_colors)
 
     # Add some aliases
     cmaps['redblue'] = cmaps['red-white-blue']
