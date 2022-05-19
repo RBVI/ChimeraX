@@ -216,9 +216,10 @@ class StructMeasureTool(ToolInstance):
         self.apc_table.add_column("ID", "id_string")
         self.apc_table.add_column("Color", "model_color", format=ItemTable.COL_FORMAT_TRANSPARENT_COLOR,
             title_display=False)
-        self.apc_table.add_column("Shown", "display", format=ItemTable.COL_FORMAT_BOOLEAN)
+        self.apc_table.add_column("Shown", "display", format=ItemTable.COL_FORMAT_BOOLEAN, icon="shown")
         self.apc_table.launch()
         self.apc_table.data = self._filter_apc_models(self.session.models)
+        self.apc_table.sortByColumn(1, Qt.AscendingOrder)
         from chimerax.core.models import ADD_MODELS, REMOVE_MODELS
         self.handlers.append(self.session.triggers.add_handler(ADD_MODELS, self._refresh_apc_table))
         self.handlers.append(self.session.triggers.add_handler(REMOVE_MODELS, self._refresh_apc_table))
