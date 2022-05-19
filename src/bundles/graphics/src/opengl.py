@@ -2895,8 +2895,6 @@ class Texture:
         self.size = None
         self._array_shape = None
         self._numpy_dtype = None
-        self.gl_target = (GL.GL_TEXTURE_CUBE_MAP if cube_map else
-                          (GL.GL_TEXTURE_1D, GL.GL_TEXTURE_2D, GL.GL_TEXTURE_3D)[dimension - 1])
         self.linear_interpolation = linear_interpolation
         self.is_cubemap = cube_map
         self.clamp_to_edge = clamp_to_edge
@@ -2990,6 +2988,13 @@ class Texture:
         if ncomp == 2:
             GL.glTexParameteri(gl_target, GL.GL_TEXTURE_SWIZZLE_A, GL.GL_GREEN)
         GL.glBindTexture(gl_target, 0)
+
+    @property
+    def gl_target(self):
+        if self.is_cubemap:
+            return GL.GL_TEXTURE_CUBE_MAP
+        else:
+            return (GL.GL_TEXTURE_1D, GL.GL_TEXTURE_2D, GL.GL_TEXTURE_3D)[self.dimension - 1]
 
     def set_linear_interpolation(self, linear):
         '''Has side effect of binding texture.'''
