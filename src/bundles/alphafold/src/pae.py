@@ -313,12 +313,12 @@ class AlphaFoldPAEPlot(ToolInstance):
     name = 'AlphaFold Predicted Aligned Error Plot'
     help = 'help:user/tools/alphafold.html#pae'
 
-    def __init__(self, session, tool_name, pae, colormap = None):
+    def __init__(self, session, tool_name, pae, colormap = None, divider_lines = True):
 
         self._pae = pae		# AlphaFoldPAE instance
 
         self._drag_colors_structure = True
-        self._showing_chain_dividers = True
+        self._showing_chain_dividers = divider_lines
         
         ToolInstance.__init__(self, session, tool_name)
 
@@ -973,7 +973,7 @@ def set_pae_domain_residue_attribute(residues, clusters):
 # -----------------------------------------------------------------------------
 #
 def alphafold_pae(session, structure = None, file = None, uniprot_id = None,
-                  palette = None, range = None, plot = None,
+                  palette = None, range = None, plot = None, divider_lines = None,
                   color_domains = False, connect_max_pae = 5, cluster = 0.5, min_size = 10):
     '''Load AlphaFold predicted aligned error file and show plot or color domains.'''
 
@@ -1013,14 +1013,17 @@ def alphafold_pae(session, structure = None, file = None, uniprot_id = None,
                                        full_range = (0,30))
         p = getattr(structure, '_alphafold_pae_plot', None)
         if p is None or p.closed():
+            dividers = True if divider_lines is None else divider_lines
             p = AlphaFoldPAEPlot(session, 'AlphaFold Predicted Aligned Error', pae,
-                                 colormap=colormap)
+                                 colormap=colormap, divider_lines=dividers)
             if structure:
                 structure._alphafold_pae_plot = p
         else:
             p.display(True)
             if palette is not None or range is not None:
                 p.set_colormap(colormap)
+            if divider_lines is not None:
+                p.show_chain_dividers(divider_lines)
 
     pae.set_default_domain_clustering(connect_max_pae, cluster)
     if color_domains:
@@ -1041,6 +1044,7 @@ def register_alphafold_pae_command(logger):
                    ('palette', ColormapArg),
                    ('range', ColormapRangeArg),
                    ('plot', BoolArg),
+                   ('divider_lines', BoolArg),
                    ('color_domains', BoolArg),
                    ('connect_max_pae', FloatArg),
                    ('cluster', FloatArg),
