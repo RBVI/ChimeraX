@@ -317,7 +317,8 @@ class AlphaFoldPAEPlot(ToolInstance):
 
         self._pae = pae		# AlphaFoldPAE instance
 
-        self._drag_colors = True
+        self._drag_colors_structure = True
+        self._showing_chain_dividers = True
         
         ToolInstance.__init__(self, session, tool_name)
 
@@ -359,6 +360,7 @@ class AlphaFoldPAEPlot(ToolInstance):
         bf.layout().insertWidget(3, self._info_label)
         
         self.set_colormap(colormap)
+        self.show_chain_dividers(self._showing_chain_dividers)
 
         if pae.structure is not None:
             h = pae.structure.triggers.add_handler('deleted', self._structure_deleted)
@@ -381,18 +383,28 @@ class AlphaFoldPAEPlot(ToolInstance):
     # ---------------------------------------------------------------------------
     #
     def _fill_context_menu(self, menu, x, y):
-        from Qt.QtGui import QAction
-        a = QAction('Dragging box colors structure', menu)
-        a.setCheckable(True)
-        a.setChecked(self._drag_colors)
-        def _set_drag_colors(checked, self=self):
-            self._drag_colors = checked
-        a.triggered.connect(_set_drag_colors)
-        menu.addAction(a)
+        def _set_drag_colors_structure(checked, self=self):
+            self._drag_colors_structure = checked
+        self._add_menu_toggle(menu, 'Dragging box colors structure',
+                              self._drag_colors_structure,
+                              _set_drag_colors_structure)
 
         menu.addAction('Color plot from structure', self._color_from_structure)
         menu.addAction('Color plot rainbow', self.set_colormap_rainbow)
         menu.addAction('Color plot green', self.set_colormap_green)
+
+        self._add_menu_toggle(menu, 'Show chain divider lines',
+                              self._showing_chain_dividers, self.show_chain_dividers)
+
+    # ---------------------------------------------------------------------------
+    #
+    def _add_menu_toggle(self, menu, text, checked, callback):
+        from Qt.QtGui import QAction
+        a = QAction(text, menu)
+        a.setCheckable(True)
+        a.setChecked(checked)
+        a.triggered.connect(callback)
+        menu.addAction(a)
         
     # ---------------------------------------------------------------------------
     #
@@ -423,6 +435,18 @@ class AlphaFoldPAEPlot(ToolInstance):
         color_blocks = self._residue_color_blocks()
         self._pae_view._make_image(self._pae._pae_matrix, colormap, color_blocks)
 
+    # ---------------------------------------------------------------------------
+    #
+    def show_chain_dividers(self, show = True, thickness = 4):
+        self._showing_chain_dividers = show
+        if show:
+            chain_ids = self._pae.structure.residues.chain_ids
+            # Residue indices for start of each chain excluding the first.
+            dividers = tuple((chain_ids[:-1] != chain_ids[1:]).nonzero()[0]+1)
+        else:
+            dividers = []
+        self._pae_view._show_chain_dividers(dividers, thickness)
+        
     # ---------------------------------------------------------------------------
     #
     def _residue_color_blocks(self):
@@ -493,7 +517,7 @@ class AlphaFoldPAEPlot(ToolInstance):
         r1, r2 = int(min(x1,x2)), int(max(x1,x2))
         r3, r4 = int(min(y1,y2)), int(max(y1,y2))
         off_diagonal_drag = (r2 < r3 or r4 < r1)
-        if self._drag_colors:
+        if self._drag_colors_structure:
             # Color residues
             if off_diagonal_drag:
                 # Use two colors
@@ -589,6 +613,7 @@ class PAEView(QGraphicsView):
         self._rectangle_clear_callback = rectangle_clear_cb
         self._report_residues_callback = report_residues_cb
         self._pixmap_item = None
+        self._divider_items = []
         # Report residues as mouse hovers over plot.
         self.setMouseTracking(True)
 
@@ -665,6 +690,28 @@ class PAEView(QGraphicsView):
         pixmap = pae_pixmap(rgb)
         self._pixmap_item = scene.addPixmap(pixmap)
         scene.setSceneRect(0, 0, pixmap.width(), pixmap.height())
+
+    def _show_chain_dividers(self, chain_dividers = [], thickness = 4):
+        scene = self.scene()
+        di = self._divider_items
+        if di:
+            for i in di:
+                scene.removeItem(i)
+            di.clear()
+
+        if len(chain_dividers) == 0:
+            return
+
+        r = scene.sceneRect()
+        w, h = r.width(), r.height()
+        for i in chain_dividers:
+            x = y = i
+            from Qt.QtGui import QBrush, QColor
+            brush = QBrush(QColor(0,0,0))
+            t = thickness-1  # Rectangle is one pixel thicker than this value due to outline
+            di.extend([scene.addRect(0,y-t/2,w,t,brush=brush), scene.addRect(x-t/2,0,t,h,brush=brush)])
+        for d in di:
+            d.setZValue(1)  # Make sure lines are drawn above pixmap
 
     def _color_blocks(self, rgb, pae_matrix, color_blocks):
         from numpy import ix_
