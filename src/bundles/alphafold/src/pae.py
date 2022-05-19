@@ -391,15 +391,28 @@ class AlphaFoldPAEPlot(ToolInstance):
         menu.addAction(a)
 
         menu.addAction('Color plot from structure', self._color_from_structure)
-        menu.addAction('Color plot default', self.set_colormap)
+        menu.addAction('Color plot rainbow', self.set_colormap_rainbow)
+        menu.addAction('Color plot green', self.set_colormap_green)
         
     # ---------------------------------------------------------------------------
     #
     def set_colormap(self, colormap = None):
         if colormap is None:
             from chimerax.core.colors import BuiltinColormaps
-            colormap = BuiltinColormaps['pae']
+            colormap = BuiltinColormaps[self._default_colormap_name]
         self._pae_view._make_image(self._pae._pae_matrix, colormap)
+        
+    # ---------------------------------------------------------------------------
+    #
+    def set_colormap_rainbow(self):
+        from chimerax.core.colors import BuiltinColormaps
+        self.set_colormap(BuiltinColormaps['pae'])
+        
+    # ---------------------------------------------------------------------------
+    #
+    def set_colormap_green(self):
+        from chimerax.core.colors import BuiltinColormaps
+        self.set_colormap(BuiltinColormaps['paegreen'])
 
     # ---------------------------------------------------------------------------
     #
