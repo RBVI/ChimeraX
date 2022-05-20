@@ -88,11 +88,11 @@ class QCxTableModel(QAbstractTableModel):
             if role != Qt.DisplayRole:
                 return None
             else:
-                return (section + 1) 
+                return (section + 1)
 
         col = self._item_table._columns[section]
         if role is None or role == Qt.DisplayRole:
-            if not col.title_display:
+            if not col.title_display or col.icon is not None:
                 return None
             if self._item_table._auto_multiline_headers:
                 title = self._make_multiline(col.title)
@@ -112,8 +112,20 @@ class QCxTableModel(QAbstractTableModel):
                     color = Color(col.color)
                 return QBrush(QColor(*color.uint8x4()))
 
-        elif role == Qt.ToolTipRole and col.balloon:
-            return col.balloon
+        elif role == Qt.ToolTipRole:
+            if col.balloon:
+                return col.balloon
+            elif col.icon is not None or not col.title_display:
+                return col.title
+
+        elif role == Qt.DecorationRole:
+            if col.icon is not None:
+                if isinstance(col.icon, str):
+                    from chimerax.ui.icons import get_qt_icon
+                    icon = get_qt_icon(col.icon)
+                else:
+                    icon = col.icon
+                return icon
 
         return None
 
@@ -285,7 +297,7 @@ class ItemTable(QTableView):
 
     def add_column(self, title, data_fetch, *, format="%s", display=None, title_display=True,
             justification="center", balloon=None, font=None, refresh=True, color=None,
-            header_justification=None):
+            header_justification=None, icon=None):
         """ Add a column who's header text is 'title'.  It is allowable to add a column with the
             same title multiple times.  The duplicative additions will be ignored.
 
@@ -330,6 +342,10 @@ class ItemTable(QTableView):
             'header_justification' is the text justification of the header text.  Same values as
             'justification' except no "decimal". Default to the same justification as 'justification'
             (but "right" if 'justification' is "decimal").
+
+            If 'icon' is specified, it will be shown in place of the column's title.  If should be either
+            a QIcon or QPixmap instance, or a string that can be used as the argument of a
+            chimerax.ui.icons.get_qt_icon() call.
         """
         titles = [c.title for c in self._columns]
         if title in titles:
@@ -350,7 +366,7 @@ class ItemTable(QTableView):
             header_justification = justification if justification != "decimal" else "right"
 
         c = _ItemColumn(title, data_fetch, format, title_display, justification, font, color,
-            header_justification, balloon)
+            header_justification, balloon, icon)
 
         if self._column_control_info:
             self._add_column_control_entry(c)
@@ -613,7 +629,7 @@ class ItemTable(QTableView):
 
 class _ItemColumn:
     def __init__(self, title, data_fetch, display_format, title_display, justification, font, color,
-            header_justification, balloon):
+            header_justification, balloon, icon):
         # set all args to corresponding 'self' attributes...
         import inspect
         args, varargs, keywords, locals = inspect.getargvalues(inspect.currentframe())
@@ -653,7 +669,8 @@ class _ItemColumn:
             instance = getattr(instance, fetch)
         setattr(instance, fields[-1], val)
 
-    def _update(self, data=False, data_fetch=None, format=None, display=None, justification=None, font=None):
+    def _update(self, data=False, data_fetch=None, format=None, display=None, justification=None, font=None,
+            icon=None):
         changed = []
         if data:
             changed.append(Qt.DisplayRole)
@@ -671,4 +688,7 @@ class _ItemColumn:
         if font is not None and font != self.font:
             self.font = font
             changed.append(Qt.FontRole)
+        if icon is not None and icon != self.icon:
+            self.icon = icon
+            changed.append(Qt.DecorationRole)
         return changed

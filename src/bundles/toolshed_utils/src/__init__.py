@@ -38,7 +38,7 @@ class _BootstrapAPI(BundleAPI):
 
         def show_updates(trigger_name, data, *, session=session):
             from . import tool
-            session.ui.thread_safe(tool.show, session, tool.DialogType.UPDATES_ONLY)
+            session.ui.thread_safe(tool.show, session, tool.OUT_OF_DATE)
         session.toolshed.triggers.add_handler(toolshed.TOOLSHED_OUT_OF_DATE_BUNDLES, show_updates)
 
     @staticmethod
