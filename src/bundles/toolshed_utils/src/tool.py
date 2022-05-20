@@ -14,6 +14,8 @@
 from enum import Enum
 from chimerax.core.tools import ToolInstance
 
+OUT_OF_DATE = "possible out of date bundles"
+
 
 class DialogType(Enum):
     ALL_AVAILABLE = 0
@@ -69,7 +71,10 @@ class UpdateTool(ToolInstance):
         choice_layout.addWidget(self.choice)
         for dt in DialogType:
             self.choice.addItem(dt.name.replace('_', ' ').title(), dt)
-        self.choice.setCurrentIndex(self.choice.findData(dialog_type))
+        if dialog_type == OUT_OF_DATE:
+            self.choice.setCurrentIndex(self.choice.findData(DialogType.UPDATES_ONLY))
+        else:
+            self.choice.setCurrentIndex(self.choice.findData(dialog_type))
         self.choice.currentIndexChanged.connect(self.new_choice)
         choice_layout.addStretch()
         from chimerax.ui.core_settings_ui import UpdateIntervalOption
@@ -118,6 +123,9 @@ class UpdateTool(ToolInstance):
         buttons_layout.addWidget(button)
 
         self._fill_updates()
+        if dialog_type == OUT_OF_DATE and self.updates.topLevelItemCount() == 0:
+            del self
+            return
         self.tool_window.fill_context_menu = self.fill_context_menu
         self.tool_window.manage(placement=None)
 
