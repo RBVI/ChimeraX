@@ -331,21 +331,25 @@ class _Section(QWidgetAction):
         for button_info in self._buttons:
             if button_info.highlight_icon is None:
                 continue
-            print("REDO:", button_info.title)
             self.add_button_highlight(button_info.title, redo=False)
         self._redo_layout()
 
-    def set_enabled(self, enabled, title, redo=True):
+    def set_enabled(self, enabled, button_title, redo=True):
         for button_info in self._buttons:
-            if button_info.title == title:
+            if button_info.title == button_title:
                 break
         else:
-            raise ValueError(f"Didn't find button '{title}'")
+            raise ValueError(f"Didn't find button '{button_title}'")
         if button_info.enabled == enabled:
             return
         button_info.enabled = enabled
         if redo:
-            self._redo_layout()
+            existing_widgets = self.createdWidgets()
+            for parent in existing_widgets:
+                action = self.get_qt_button_action(parent, button_title)
+                if action is None:
+                    continue
+                action.setEnabled(enabled)
 
     def show_group_button(self, button_title):
         for button_info in self._buttons:
