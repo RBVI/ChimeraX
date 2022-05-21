@@ -28,6 +28,9 @@ setup(
     author_email="chimerax@cgl.ucsf.edu",
     url="https://www.rbvi.ucsf.edu/chimerax/",
     python_requires=">=3.7",
+    install_requires=[
+        "tomli"
+    ],
     package_dir={
         "PKG_NAME": "src",    # directory package's source files are in
     },
