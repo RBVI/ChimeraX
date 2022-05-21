@@ -548,7 +548,12 @@ def _make_bundle_info(d, installed, logger):
         bi.description = description
     except (KeyError, OSError):
         pass
-
+    # If new style wheels don't have a description, then they get made 
+    # without one; they don't have UNKNOWN inserted when one doesn't
+    # and this causes an AttributeError
+    except AttributeError:
+        bi.description = "Missing bundle description"
+    
     return bi
 
 

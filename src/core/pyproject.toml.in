@@ -1,0 +1,48 @@
+[build-system]
+requires = ["setuptools", "cython", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name="ChimeraX_Core"
+description="ChimeraX Core Package"
+version="BUNDLE_VERSION"
+authors= [{name = "UCSF RBVI", email="chimerax@cgl.ucsf.edu"}]
+dependencies = []
+classifiers=[
+    "Development Status :: 2 - Pre-Alpha",
+    "Environment :: MacOS X :: Aqua",
+    "Environment :: Win32 (MS Windows)",
+    "Environment :: X11 Applications",
+    "Framework :: ChimeraX",
+    "Intended Audience :: Science/Research",
+    "License :: Free for non-commercial use",
+    "Operating System :: MacOS :: MacOS X",
+    "Operating System :: Microsoft :: Windows :: Windows 10",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Visualization",
+    "Topic :: Scientific/Engineering :: Chemistry",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+# Include Core's only chimerax classifier here so it doesn't 
+# depend on bundle builder 
+    "ChimeraX :: Bundle :: Core :: 1,2 :: chimerax.core :: :: ",
+]
+
+[project.urls]
+Home="https://www.rbvi.ucsf.edu/chimerax/"
+
+[tool.setuptools]
+packages=[
+    "chimerax.core",
+    "chimerax.core.commands",
+    "chimerax.core.toolshed",
+]
+
+[tool.setuptools.package-dir]
+"chimerax.core" = "src" 
+"chimerax.core.commands" = "src/commands"
+"chimerax.core.toolshed" = "src/toolshed"
+
+[tool.setuptools.package-data]
+# *.pdb files are Windows debugging files
+"chimerax.core" = ["*.json", "*.so", "*.pdb", "_serialize.pyx"]

@@ -9,25 +9,34 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-TOP= ../../..
+TOP = ../../../..
 include $(TOP)/mk/config.make
 
-PYSRCS= $(wildcard *.py)
-PKG_DIR= $(PYSITEDIR)/chimerax/core/toolshed
-APP_PKG_DIR = $(APP_PYSITEDIR)/chimerax/core/toolshed
+PKG_DIR = $(PYSITEDIR)/chimerax/core/commands
+APP_PKG_DIR = $(APP_PYSITEDIR)/chimerax/core/commands
+
+GENSRCS = _atomspec.py
+PYSRCS = $(wildcard *.py) $(GENSRCS)
 
 all: $(PYOBJS)
 
 install: all dir
-	$(RSYNC) $(PYSRCS) $(DATA) $(PKG_DIR)
-	#if [ -d "$(APP_PKG_DIR)" ]; then $(RSYNC) $(PYSRCS) $(APP_PKG_DIR); fi
+	$(RSYNC) $(PYSRCS) $(PKG_DIR)
 
 dir:
-	if [ ! -d "$(PKG_DIR)" ]; then mkdir -p $(PKG_DIR); fi
-	#if [ -d "$(app_prefix)" ]; then mkdir -p $(APP_PKG_DIR); fi
+	if [ ! -d "$(PKG_DIR)" ]; then mkdir $(PKG_DIR); fi
+	if [ -d "$(app_prefix)" ]; then mkdir -p $(APP_PKG_DIR); fi
+
+.SUFFIXES: .peg
+
+.peg.py:
+	$(PYTHON_EXE) -m grako --name $* -o $@ $^
+
+test_peg:	_atomspec.py
+	$(PYTHON_EXE) _atomspec.py --trace atomspec_test.in atom_specifier
 
 clean:
-	rm -rf __pycache__
+	rm -rf __pycache__ $(GENSRCS)
 
 pylint:
 	$(PYLINT) $(PYSRCS)

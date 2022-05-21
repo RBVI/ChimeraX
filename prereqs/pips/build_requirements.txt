@@ -1,11 +1,17 @@
-
-# used to manage package versions
-packaging==21.0
-
 #
 # Packages needed during the build process.
 # These are not installed in the ChimeraX app.
 #
+
+# used to manage package versions
+packaging==21.0
+
+# used to parse TOML files
+tomli==2.0.1 ; python_version < "3.11"
+
+# Used to build python wheels
+build==0.7.0
+pep517==0.12.0
 
 # Cython used by compile core/_serialize.pyx
 Cython==0.29.26

@@ -9,27 +9,18 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-TOP	= ../../..
+# Note: any software used should be mentioned in docs/embedded.html
+# with the appropriate license.
+
+TOP = ../..
+NO_SUBDIR_TEST=1
+-include $(TOP)/.makerc
 include $(TOP)/mk/config.make
 
-PKG_DIR = $(PYSITEDIR)/chimerax/core
-APP_PKG_DIR = $(APP_PYSITEDIR)/chimerax/core
+SUBDIRS	+= chutil_cpp ioutil_cpp \
+		   logger_cpp pysupport_cpp
 
-PYMOD_NAME = _mac_util
-SRCS	= module.cpp setfileicon.cpp enablemultitouch.cpp
-OBJS	= $(SRCS:.cpp=.$(OBJ_EXT)) setfileicon_mac.o enablemultitouch_mac.o
-DEFS	+= $(PYDEF)
-INCS	+= $(PYTHON_INCLUDE_DIRS)
-LIBS	+= $(PYTHON_LIB)
-LIBS	+= -framework AppKit
+# All needed subdirectories must be set by now.
+include $(TOP)/mk/subdir.make
 
-all: $(PYMOD)
-
-install: all
-	$(RSYNC) $(PYMOD) $(PKG_DIR)
-
-$(PYMOD): $(OBJS)
-	$(PYMOD_LINK)
-
-clean:
-	rm -f $(PYMOD) $(OBJS)
+all:

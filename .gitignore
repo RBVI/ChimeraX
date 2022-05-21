@@ -100,10 +100,11 @@ src/bundles/std_commands/bundle_info.xml
 src/bundles/viewdockx/src/lib/flot
 src/bundles/viewdockx/src/lib/rateyo
 src/bundles/viewdockx/src/lib/jquery.multiselect.*
-src/core/buildinfo.py
-src/core/_serialize.cpp
-src/core/_serialize.cpp-e
-src/core/commands/_atomspec.py
+src/core/src/buildinfo.py
+src/core/src/_serialize.cpp
+src/core/src/_serialize.cpp-e
+src/core/src/commands/_atomspec.py
+src/core/pyproject.toml
 src/examples/sample/license.txt
 src/examples/sample/vc140.pdb
 src/wheelhouse/Makefile.wheelhouse
