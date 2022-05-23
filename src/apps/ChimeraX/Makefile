@@ -5,7 +5,7 @@ ifeq ($(OS),Linux)
 LDFLAGS	+= -Wl,-rpath,'$$ORIGIN/../lib'
 endif
 ifeq ($(OS),Darwin)
-LDFLAGS	+= -Wl,-rpath,'@executable_path/../lib'
+LDFLAGS	+= -arch arm64 -arch x86_64 -Wl,-rpath,'@executable_path/../lib'
 endif
 
 ifdef WIN32
