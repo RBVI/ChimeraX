@@ -1,5 +1,5 @@
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
+# Copyright 2022 Regents of the University of California.
 # All rights reserved.  This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
 # duplication and use.  For details see:
@@ -14,7 +14,6 @@ include $(TOP)/mk/config.make
 
 CHIMERAX_APP = $(wildcard $(TOP)/ChimeraX*.app)
 
-OS = $(patsubst CYGWIN_NT%,CYGWIN_NT,$(shell uname -s))
 ifeq ($(OS),CYGWIN_NT)
 PYTHON_BIN = $(CHIMERAX_APP)/bin/python.exe
 CHIMERAX_EXE = $(CHIMERAX_APP)/bin/ChimeraX.exe
@@ -30,24 +29,15 @@ endif
 PYTHON_EXE = $(PYTHON_BIN) -I
 PYLINT = $(PYTHON_EXE) -m flake8
 
-BUNDLE_NAME = ChimeraX-ToolshedUtils
-BUNDLE_VERSION = 1.2.1
-PKG_NAME = chimerax.toolshed_utils
-
-BASE_BNDL_NAME = $(subst ChimeraX-,,$(BUNDLE_NAME))
-WHL_BNDL_NAME = $(subst -,_,$(BUNDLE_NAME))
-
 PYSRCS = $(wildcard src/*.py)
-WHEEL = dist/$(WHL_BNDL_NAME)-$(BUNDLE_VERSION)-py$(PYVER_NODOT)-none-any.whl
+WHEEL = $(wildcard dist/*.whl) 
 
-wheel $(WHEEL): setup.py $(PYSRCS)
-	$(PYTHON_EXE) setup.py --no-user-cfg build
-	# $(PYTHON_EXE) setup.py --no-user-cfg test
-	$(PYTHON_EXE) setup.py --no-user-cfg bdist_wheel --python-tag py$(PYVER_NODOT)
-	rm -rf $(WHL_BNDL_NAME).egg-info
+wheel: $(PYSRCS)
+	$(PYTHON_EXE) -m build
+	rm -rf *.egg-info
 
 install app-install: $(WHEEL)
-	$(PYTHON_EXE) -m pip uninstall --yes $(BUNDLE_NAME)
+	$(PYTHON_EXE) -m pip uninstall --yes ChimeraX-ToolshedUtils
 	$(PYTHON_EXE) -m pip install $(WHEEL)
 
 sync:
@@ -66,14 +56,7 @@ debug:
 	$(CHIMERAX_EXE) --debug
 
 clean:
-	rm -rf src/__pycache__ build dist $(WHL_BNDL_NAME).egg-info setup.py
+	rm -rf src/__pycache__ build dist *.egg-info
 
 pylint:
 	$(PYLINT) $(PYSRCS)
-
-setup.py: setup.py.in Makefile
-	sed \
-		-e 's,BUNDLE_NAME,$(BUNDLE_NAME),' \
-		-e 's,BUNDLE_VERSION,$(BUNDLE_VERSION),' \
-		-e 's,PKG_NAME,$(PKG_NAME),' \
-		< setup.py.in > setup.py

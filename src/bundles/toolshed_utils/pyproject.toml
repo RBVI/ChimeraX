@@ -1,0 +1,54 @@
+# === UCSF ChimeraX Copyright ===
+# Copyright 2022 Regents of the University of California.
+# All rights reserved.  This software provided pursuant to a
+# license agreement containing restrictions on its disclosure,
+# duplication and use.  For details see:
+# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# This notice must be embedded in or attached to all copies,
+# including partial copies, of the software or any revisions
+# or derivations thereof.
+# === UCSF ChimeraX Copyright ===
+[project]
+name="ChimeraX-ToolshedUtils"
+version="1.2.1"  # PEP 440, should match Development Status below
+description="Toolshed bundle utilities"  # one line synopsis
+readme="README.txt" # maps to long_description
+authors = [{name = "UCSF RBVI", email = "chimerax@cgl.ucsf.edu"}]
+requires-python = ">=3.7"
+dependencies = [
+    "wheel_filename~=1.2"
+]
+classifiers=[
+    # From https://pypi.python.org/pypi?%3Aaction=list_classifiers
+    # and our own ChimeraX classifiers.
+    "Development Status :: 5 - Stable",
+    "Environment :: MacOS X :: Aqua",
+    "Environment :: Win32 (MS Windows)",
+    "Environment :: X11 Applications",
+    "Framework :: ChimeraX",
+    "Intended Audience :: Science/Research",
+    "License :: Free for non-commercial use",
+    "Operating System :: MacOS :: MacOS X",
+    "Operating System :: Microsoft :: Windows :: Windows 10",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Visualization",
+    "Topic :: Scientific/Engineering :: Chemistry",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+    "ChimeraX :: Bundle :: Utilities :: 1,1 :: chimerax.toolshed_utils ::  :: true",
+    "ChimeraX :: Tool :: Updates :: Utilities :: synopsis",
+]
+
+[project.urls]
+Home = "https://www.rbvi.ucsf.edu/chimerax/"
+
+[tool.setuptools]
+packages = [
+    "chimerax.toolshed_utils"
+]
+
+[tool.setuptools.package-dir]
+"chimerax.toolshed_utils" = "src" # directory package's source files are in
+
+[tool.setuptools.package-data]
+"chimerax.toolshed_utils" = ["docs/user/tools/*"]
