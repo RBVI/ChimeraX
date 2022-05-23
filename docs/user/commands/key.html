@@ -125,7 +125,10 @@ followed by labels entered as:
 :<i>label1</i> :<i>label2</i> [...] :<i>labelN</i>
 </blockquote>
 <p>
-...where the number of labels must equal the number of colors in the palette.
+...where the number of labels must equal the number of colors in the palette,
+although one or more of the labels may be blank.
+If the palette is defined with color-value pairs, the values will be ignored
+(they will not be converted into labels automatically).
 The command <a href="palette.html#list"><b>palette list</b></a>
 lists the available palettes in the <a href="../tools/log.html"><b>Log</b></a>.
 Examples:
@@ -134,6 +137,8 @@ Examples:
 <b>key ^piyg-5 :-2 :-1 :0 :1 :2</b>
 <br>
 <b>key lipophilicity :-20 :0 :20 size .05,.25 pos .85,.05</b>
+<br>
+<b>key&nbsp;pae&nbsp;:0&nbsp;:&nbsp;:&nbsp;:15&nbsp;:&nbsp;:&nbsp;:30</b>
 </blockquote>
 <p>
 Example of a mixture of the two types of specification:
@@ -332,5 +337,5 @@ Tick mark thickness in pixels (initial default <b>4.0</b>).
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-September 2021</address>
+May 2022</address>
 </body></html>
