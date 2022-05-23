@@ -36,19 +36,16 @@ class QCxTableModel(QAbstractTableModel):
             from chimerax.core.colors import Color
             if isinstance(val, bool):
                 return None
-            elif isinstance(val, Color) or isinstance(val, (tuple, ndarray)) and 3 <= len(val) <= 4:
-                widget = self._item_table.indexWidget(index)
+            elif col.display_format in ItemTable.color_formats:
+                sorted_index = self._item_table.model().mapFromSource(index)
+                widget = self._item_table.indexWidget(sorted_index)
                 if not widget:
-                    has_alpha = len(val.rgba) == 4 if isinstance(val, Color) else len(val) == 4
-                    #from .color_button import ColorButton
-                    #widget = ColorButton(self._item_table, has_alpha=has_alpha)
-                    #widget.color_changed.connect(lambda clr, c=col, i=item: c.set_value(i, clr))
-                    from Qt.QtWidgets import QPushButton
-                    if not hasattr(self, 'widgets'):
-                        self.widgets = []
-                    widget = QPushButton("Color!")
-                    self.widgets.append(widget)
-                    self._item_table.setIndexWidget(index, widget)
+                    has_alpha = col.display_format == ItemTable.COL_FORMAT_TRANSPARENT_COLOR
+                    from .color_button import ColorButton
+                    widget = ColorButton(self._item_table, has_alpha=has_alpha)
+                    self.widget_mapping[item] = widget
+                    widget.color_changed.connect(lambda clr, c=col, i=item: c.set_value(i, clr))
+                    self._item_table.setIndexWidget(sorted_index, widget)
                 widget.color = val
                 return None
             return str(val)
@@ -178,6 +175,14 @@ class NumSortingProxyModel(QSortFilterProxyModel):
         try:
             left_num = float(left_data)
             right_num = float(right_data)
+        except TypeError:
+            if left_data == right_data == None:
+                table = self.sourceModel()._item_table
+                left_item = table.data[left_index.row()]
+                right_item = table.data[right_index.row()]
+                col = table._columns[left_index.column()]
+                return list(col.value(left_item)) < list(col.value(right_item))
+            return left_index.row() < right_index.row()
         except ValueError:
             return left_data.casefold() < right_data.casefold()
         return left_num < right_num
@@ -201,6 +206,7 @@ class ItemTable(QTableView):
     COL_FORMAT_BOOLEAN = "boolean"
     COL_FORMAT_TRANSPARENT_COLOR = "alpha"
     COL_FORMAT_OPAQUE_COLOR = "no alpha"
+    color_formats = [COL_FORMAT_TRANSPARENT_COLOR, COL_FORMAT_OPAQUE_COLOR]
 
     def __init__(self, *, auto_multiline_headers: bool = True
                  # TODO: Should this be a NamedTuple?
