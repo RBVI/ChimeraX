@@ -8,13 +8,12 @@ Basic Usage
 -----------
 
 *python* -m chimerax.wheel_tag
-    Print tag for pure Python packages, *e.g.*, **cp36-cp36m-win_amd64**
+    Print tag for Python packages with compiled code, *e.g.*, **cp36-cp36m-win_amd64**
 *python* -m chimerax.wheel_tag -p
-    Print tag for Python packages with compiled code, *e.g.*, **py3-none-any**
+    Print tag for pure Python packages, *e.g.*, **py3-none-any**
 """
 
-
-def tag(pure, limited=None):
+def tag(pure: bool, limited: str = None) -> "tags.Tag":
     """Return the tag part of a wheel filename for this version of Python.
 
     https://www.python.org/dev/peps/pep-0491/#file-name-convention
@@ -32,12 +31,13 @@ def tag(pure, limited=None):
 
     Returns:
     --------
-    str
-        Dash-separated tag string, *e.g.*, **cp36-cp36m-win_amd64**
+    tag
+        tags.Tag object
     """
     import sys
     from packaging import tags
     vi = sys.version_info
+    tag = None
     if pure:
         if limited:
             version = ''.join(str(v) for v in limited.release[:2])
@@ -47,11 +47,19 @@ def tag(pure, limited=None):
             tag = tags.Tag(f"py{vi.major}", "none", "any")
     else:
         target = None
+        platform = None
         if sys.platform == "darwin":
             import os
-            target = os.environ.get("MACOSX_DEPLOYMENT_TARGET", None)
+            target = os.getenv("MACOSX_DEPLOYMENT_TARGET", None)
             if target:
-                target = f"_{target.replace('.', '_')}_"
+                target = f"macosx_{target.replace('.', '_')}_0"
+            else:
+                import platform
+                # "12.2.1" -> ["12", "2", "1"] -> "12" -> "macosx_12_0"
+                target = "".join(["macosx_", platform.mac_ver()[0].split('.')[0], "_0"])
+            tag = tags.Tag(f"cp{vi.major}{vi.minor}-cp{vi.major}{vi.minor}",target,"universal2")
+            print(tag)
+            return tag
         # use most specific tag, e.g., manylinux2014_x86_64 instead of linux_x86_64
         if limited:
             abi = f"abi{limited.major}"
