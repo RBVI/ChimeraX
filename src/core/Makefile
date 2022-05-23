@@ -46,10 +46,6 @@ PYSRCS = $(filter-out setup.py,$(wildcard *.py)) $(GENSRCS)
 WHEEL = dist/$(WHL_BNDL_NAME)-$(BUNDLE_VERSION)-cp$(PYVER_NODOT)-cp$(PYVER_NODOT)$(PYTHON_ABI)-$(BIN_PLATFORM).whl
 DATA = colorbrewer.json
 
-ifdef INSTALL_TO_VENV
-WHEEL = $(wildcard dist/*.whl)
-endif
-
 all: $(PYOBJS)
 
 install reinstall: dir all
@@ -62,7 +58,11 @@ app-install: wheel
 	# newer versions of pip won't install over the same version number (which depends on the last commit
 	# number), so to install something that hasn't been committed, uninstall first.
 	$(APP_BOOTSTRAP_PIP) uninstall --yes $(WHL_BNDL_NAME)
+ifeq ($(OS),Darwin)
+	$(APP_BOOTSTRAP_PIP) install dist/*.whl
+else
 	$(APP_BOOTSTRAP_PIP) install $(WHEEL)
+endif
 ifdef INSTALL_TO_VENV
 ifndef VIRTUAL_ENV
 	@echo "No virtual env to install to! Skipping venv install."
@@ -78,9 +78,13 @@ endif # INSTALL_TO_VENV
 
 .PHONY: wheel
 wheel: setup.py
-	rm -f $(WHEEL)
+	rm -rf dist
+ifeq ($(OS),Darwin)
+	$(PYTHON_EXE) setup.py --no-user-cfg bdist_wheel
+else
 	$(PYTHON_EXE) setup.py --no-user-cfg bdist_wheel --plat-name $(BIN_PLATFORM)
-	rm -rf $(WHL_BNDL_NAME).egg-info
+endif
+	rm -rf *.egg-info
 
 sync:
 ifneq (,$(wildcard dist/*-py3-none-any.whl))
