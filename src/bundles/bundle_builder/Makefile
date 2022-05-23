@@ -8,13 +8,11 @@
 # including partial copies, of the software or any revisions
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
-
 TOP = ../../..
 include $(TOP)/mk/config.make
 
 CHIMERAX_APP = $(wildcard $(TOP)/ChimeraX*.app)
 
-OS = $(patsubst CYGWIN_NT%,CYGWIN_NT,$(shell uname -s))
 ifeq ($(OS),CYGWIN_NT)
 PYTHON_BIN = $(CHIMERAX_APP)/bin/python.exe
 CHIMERAX_EXE = $(CHIMERAX_APP)/bin/ChimeraX.exe
@@ -27,31 +25,22 @@ ifeq ($(OS),Linux)
 PYTHON_BIN = $(CHIMERAX_APP)/bin/python$(PYTHON_VERSION)
 CHIMERAX_EXE = $(CHIMERAX_APP)/bin/ChimeraX
 endif
+
 PYTHON_EXE = $(PYTHON_BIN) -I
 PYLINT = $(PYTHON_EXE) -m flake8
 
-BUNDLE_NAME = ChimeraX-BundleBuilder
-BUNDLE_VERSION = 1.2
-PKG_NAME = chimerax.bundle_builder
-
-BASE_BNDL_NAME = $(subst ChimeraX-,,$(BUNDLE_NAME))
-WHL_BNDL_NAME = $(subst -,_,$(BUNDLE_NAME))
-
 PYSRCS = $(wildcard src/*.py)
-WHEEL = dist/$(WHL_BNDL_NAME)-$(BUNDLE_VERSION)-py${PYVER_NODOT}-none-any.whl
+WHEEL = $(wildcard dist/*.whl)
 
-wheel $(WHEEL): setup.py $(PYSRCS)
-	$(PYTHON_EXE) setup.py --no-user-cfg build
-	# $(PYTHON_EXE) setup.py --no-user-cfg test
-	$(PYTHON_EXE) setup.py --no-user-cfg bdist_wheel --python-tag py$(PYVER_NODOT)
-	rm -rf $(WHL_BNDL_NAME).egg-info
+wheel: $(PYSRCS)
+	$(PYTHON_EXE) -m build
 
 install app-install: $(WHEEL)
-	$(PYTHON_EXE) -m pip uninstall --yes $(BUNDLE_NAME)
+	$(PYTHON_EXE) -m pip uninstall --yes ChimeraX-BundleBuilder
 	$(PYTHON_EXE) -m pip install $(WHEEL)
 
 sync:
-	rsync -av dist/*.whl $(TOP)/build/sync/python-only
+	rsync -av $(WHEEL) $(TOP)/build/sync/python-only
 
 build: install
 	# unlike normal bundles, install as well
@@ -66,14 +55,7 @@ debug:
 	$(CHIMERAX_EXE) --debug
 
 clean:
-	rm -rf src/__pycache__ build dist $(WHL_BNDL_NAME).egg-info setup.py
+	rm -rf src/__pycache__ build dist *.egg-info setup.py
 
 pylint:
 	$(PYLINT) $(PYSRCS)
-
-setup.py: setup.py.in Makefile
-	sed \
-		-e 's,BUNDLE_NAME,$(BUNDLE_NAME),' \
-		-e 's,BUNDLE_VERSION,$(BUNDLE_VERSION),' \
-		-e 's,PKG_NAME,$(PKG_NAME),' \
-		< setup.py.in > setup.py
