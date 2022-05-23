@@ -67,6 +67,9 @@ class BundleBuilder:
         # times which can remove/create the same directories.
         # So we need to flush the cache before each run.
         import distutils.dir_util
+        import os
+        from glob import glob
+        import sys
         try:
             distutils.dir_util._path_created.clear()
         except AttributeError:
@@ -74,7 +77,6 @@ class BundleBuilder:
         # Copy additional files into package source tree
         self._copy_extrafiles(self.extrafiles)
         # Build C libraries and executables
-        import os
         for lib in self.c_libraries:
             lib.compile(self.logger, self.dependencies, debug=debug)
         for executable in self.c_executables:
@@ -86,15 +88,23 @@ class BundleBuilder:
         if self._is_pure_python():
             setup_args.extend(["--python-tag", self.tag.interpreter])
         else:
-            setup_args.extend(["--plat-name", self.tag.platform])
+            if not sys.platform == "darwin":
+                setup_args.extend(["--plat-name", self.tag.platform])
             if self.limited_api:
                 setup_args.extend(["--py-limited-api", self.tag.interpreter])
         built = self._run_setup(setup_args)
-        if not built or not os.path.exists(self.wheel_path):
-            wheel = os.path.basename(self.wheel_path)
-            raise RuntimeError(f"Building wheel failed: {wheel}")
+        if not sys.platform == "darwin":
+            if not built or not os.path.exists(self.wheel_path):
+                wheel = os.path.basename(self.wheel_path)
+                raise RuntimeError(f"Building wheel failed: {wheel}")
+            else:
+                print("Distribution is in %s" % self.wheel_path)
         else:
-            print("Distribution is in %s" % self.wheel_path)
+            wheel = glob("dist/*.whl")
+            if not built:
+                raise RuntimeError("Building wheel failed.")
+            else:
+                print("Distribution is in %s" % wheel[0])
 
     def make_install(self, session, debug=False, user=None, no_deps=None):
         self.make_wheel(debug=debug)
@@ -649,12 +659,17 @@ class BundleBuilder:
 
     def _make_paths(self):
         import os
+        import sys
         from .wheel_tag import tag
         self.tag = tag(self._is_pure_python(), limited=self.limited_api)
         self.bundle_base_name = self.name.replace("ChimeraX-", "")
         bundle_wheel_name = self.name.replace('-', '_')
         wheel = f"{bundle_wheel_name}-{self.version}-{self.tag}.whl"
         self.wheel_path = os.path.join(self.path, "dist", wheel)
+        # Wheels come out with an underscore, so fix the wheel name on Darwin
+        if sys.platform == "darwin" and self.tag.platform == "universal2":
+            last_dash_loc = self.wheel_path.rindex('-')
+            self.wheel_path = "".join([self.wheel_path[:last_dash_loc],"_",self.wheel_path[last_dash_loc+1:]])
         self.egg_info = os.path.join(self.path, bundle_wheel_name + ".egg-info")
 
     def _run_setup(self, cmd):
