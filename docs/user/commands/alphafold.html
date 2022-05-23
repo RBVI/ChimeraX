@@ -608,6 +608,7 @@ with <b>pae true</b>, or the separate command <b>alphafold pae</b>:
 [&nbsp;<b>minSize</b>&nbsp;&nbsp;<i>M</i>&nbsp;]
 [&nbsp;<b>connectMaxPae</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
 [&nbsp;<b>cluster</b>&nbsp;&nbsp;<i>resolution</i>&nbsp;]
+[&nbsp;<b>dividerLines</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 </blockquote>
 <p>
 With <b>alphafold pae</b>, the matrix of PAE values can be either:
@@ -636,28 +637,8 @@ on the plot to highlight the corresponding parts of the structure.
 By default, the PAE plot is drawn when domain coloring is not done 
 (<b>plot</b> is default <b>true</b> when <b>colorDomains</b> is <b>false</b>)
 and <i>vice versa</i>.
-The default <a href="color.html#palette-options"><b>palette</b></a> 
-for coloring the plot is <b>pae</b>, which also specifies the value range:
-</p>
-<table border cellpadding="0" cellspacing="0"
-style="display:inline-block; vertical-align:top"><tr>
-<td bgcolor="#1e3546661e35" width="30px" title="#1e3546661e35"
-align="center"><font size="-1" color="white">0</font></td>
-<td bgcolor="#245a922c245a" width="30px" title="#245a922c245a"
-align="center"><font size="-1" color="white">5</font></td>
-<td bgcolor="#374cb168374c" width="30px" title="#374cb168374c"
-align="center"><font size="-1" color="white">10</font></td>
-<td bgcolor="#5687c9ba5687" width="30px" title="#5687c9ba5687"
-align="center"><font size="-1">15</font></td>
-<td bgcolor="#828fddf3828f" width="30px" title="#828fddf3828f"
-align="center"><font size="-1">20</font></td>
-<td bgcolor="#bae1efdebae1" width="30px" title="#bae1efdebae1"
-align="center"><font size="-1">25</font></td>
-<td bgcolor=white width="30px" title="white"
-align="center"><font size="-1">30</font></td>
-</tr></table>
+</p><p>
 <a name="colorDomains"></a>
-<p>
 Setting <b>colorDomains</b> to <b>true</b> clusters the residues into
 coherent domains (sets of residues with relatively low pairwise PAE values)
 and uses randomly chosen colors to distinguish these domains in the structure.
@@ -681,15 +662,81 @@ which is ~5 seconds for 1000 residues when the default of 5.0 is used.
 &ndash; graph resolution; larger values give smaller domains
 </ul>
 <p>
+The <b>dividerLines</b> option (default <b>true</b>) indicates whether,
+for multimer predictions, to draw lines on the plot demarcating the
+end of one chain and the start of another. The lines may obscure a few
+chain-terminal residues in the plot, and <b>dividerLines false</b>
+can be used if this is problematic.
+</p><p>
 The plot window has buttons for coloring the 
 <a href="#association">associated</a> structure.
 <b>Color PAE Domains</b> applies coloring by PAE cluster as
 described <a href="#colorDomains">above</a>.
 <b>Color pLDDT</b> returns the structure to
 the default <a href="#colorConfidence">confidence coloring</a>.
+</p><p>
+The default <a href="color.html#palette-options"><b>palette</b></a> 
+for coloring the PAE plot is <b>pae</b>, with colors assigned to values
+as follows:
+</p>
+<table border cellpadding="0" cellspacing="0"
+style="display:inline-block; vertical-align:top"><tr>
+<td bgcolor="blue" width="30px" title="blue"
+align="center"><font size="-1" color="white">0</font></td>
+<td bgcolor="cornflowerblue" width="30px" title="cornflowerblue"
+align="center"><font size="-1" color="white">5</font></td>
+<td bgcolor="yellow" width="30px" title="yellow"
+align="center"><font size="-1">10</font></td>
+<td bgcolor="orange" width="30px" title="orange"
+align="center"><font size="-1">15</font></td>
+<td bgcolor="gray" width="30px" title="gray"
+align="center"><font size="-1" color="white">20</font></td>
+<td bgcolor="lightgray" width="30px" title="lightgray"
+align="center"><font size="-1">25</font></td>
+<td bgcolor="white" width="30px" title="white"
+align="center"><font size="-1">30</font></td>
+</tr></table>
+<p>
+Another <a href="color.html#palette-options"><b>palette</b></a> 
+with value range suitable for PAE plots is <b>paegreen</b>:
+</p>
+<table border cellpadding="0" cellspacing="0"
+style="display:inline-block; vertical-align:top"><tr>
+<td bgcolor="#1e3546661e35" width="30px" title="#1e3546661e35"
+align="center"><font size="-1" color="white">0</font></td>
+<td bgcolor="#245a922c245a" width="30px" title="#245a922c245a"
+align="center"><font size="-1" color="white">5</font></td>
+<td bgcolor="#374cb168374c" width="30px" title="#374cb168374c"
+align="center"><font size="-1" color="white">10</font></td>
+<td bgcolor="#5687c9ba5687" width="30px" title="#5687c9ba5687"
+align="center"><font size="-1">15</font></td>
+<td bgcolor="#828fddf3828f" width="30px" title="#828fddf3828f"
+align="center"><font size="-1">20</font></td>
+<td bgcolor="#bae1efdebae1" width="30px" title="#bae1efdebae1"
+align="center"><font size="-1">25</font></td>
+<td bgcolor=white width="30px" title="white"
+align="center"><font size="-1">30</font></td>
+</tr></table>
+<p>
+The <a href="../tools/colorkey.html"><b>Color Key</b></a> graphical interface
+or a command can be used to draw (in the main graphics window)
+a color key for the PAE plot. For example, to make a color key that
+matches the <b>pae</b> or <b>paegreen</b> scheme, respectively:
+</p>
+  <blockquote>
+  <a href="key.html"><b>key</b></a>&nbsp;<b>blue:0&nbsp;cornflowerblue:&nbsp;yellow:&nbsp;orange:15&nbsp;gray:&nbsp;lightgray:&nbsp;white:30</b>
+  &nbsp;<a href="key.html#options"><b>showTool true</b></a>
+<br>
+  <a href="key.html"><b>key</b></a>&nbsp;<b>#1e3546661e35:0&nbsp;#245a922c245a:&nbsp;#374cb168374c:&nbsp;#5687c9ba5687:15&nbsp;#828fddf3828f:&nbsp;#bae1efdebae1:&nbsp;white:30</b>
+  &nbsp;<a href="key.html#options"><b>showTool true</b></a>
+  </blockquote>
+<p>
+A title for the color key (<i>e.g.</i>, &ldquo;<b>AlphaFold Predicted Aligned
+Error (&Aring;)</b>&rdquo;) would need to be created separately with
+<a href="2dlabels.html"><b>2dlabels</b></a>.
 </p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-April 2022</address>
+May 2022</address>
 </body></html>

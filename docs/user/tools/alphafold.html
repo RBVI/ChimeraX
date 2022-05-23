@@ -566,27 +566,11 @@ by giving the UniProt name or accession number of an entry in that database
 <li>read from a json or pkl file previously output by AlphaFold
 </ul>
 <p>
-<a name="paegreen"></a>
-By default, the PAE plot is colored as follows:
-</p>
-<table border cellpadding="0" cellspacing="0"
-style="display:inline-block; vertical-align:top"><tr>
-<td bgcolor="#1e3546661e35" width="30px" title="#1e3546661e35"
-align="center"><font size="-1" color="white">0</font></td>
-<td bgcolor="#245a922c245a" width="30px" title="#245a922c245a"
-align="center"><font size="-1" color="white">5</font></td>
-<td bgcolor="#374cb168374c" width="30px" title="#374cb168374c"
-align="center"><font size="-1" color="white">10</font></td>
-<td bgcolor="#5687c9ba5687" width="30px" title="#5687c9ba5687"
-align="center"><font size="-1">15</font></td>
-<td bgcolor="#828fddf3828f" width="30px" title="#828fddf3828f"
-align="center"><font size="-1">20</font></td>
-<td bgcolor="#bae1efdebae1" width="30px" title="#bae1efdebae1"
-align="center"><font size="-1">25</font></td>
-<td bgcolor=white width="30px" title="white"
-align="center"><font size="-1">30</font></td>
-</tr></table>
-<p>
+The PAE plot can also be shown by clicking the <b>Error plot</b> button
+on the <a href="#dialog"><b>AlphaFold</b> dialog</a> or by using 
+<a href="../commands/alphafold.html#fetch"><b>alphafold fetch</b></a>
+with <b>pae true</b>.
+</p><p>
 When the mouse cursor is over the plot, the residue pair and PAE value at 
 its current position are reported in the bottom right corner of the window.
 </p><p>
@@ -610,15 +594,69 @@ if this option is unchecked, highlighting will be done with
 &ndash; color the plot to match the 3D structure where the pair of residues
 represented by an X,Y point have the same ribbon color; show the rest of the
 plot in shades of gray
-<li><b>Color plot default</b>
-&ndash; use the <a href="#paegreen">shades-of-green</a> coloring scheme
-for the plot
+<li><b>Color plot rainbow</b>
+&ndash; use the <b>pae</b>
+<a href="../commands/color.html#palette-options">palette</a> (default)
+to color the plot, with colors assigned to values as follows:
+<table border cellpadding="0" cellspacing="0"
+style="display:inline-block; vertical-align:top"><tr>
+<td bgcolor="blue" width="30px" title="blue"
+align="center"><font size="-1" color="white">0</font></td>
+<td bgcolor="cornflowerblue" width="30px" title="cornflowerblue"
+align="center"><font size="-1" color="white">5</font></td>
+<td bgcolor="yellow" width="30px" title="yellow"
+align="center"><font size="-1">10</font></td>
+<td bgcolor="orange" width="30px" title="orange"
+align="center"><font size="-1">15</font></td>
+<td bgcolor="gray" width="30px" title="gray"
+align="center"><font size="-1" color="white">20</font></td>
+<td bgcolor="lightgray" width="30px" title="lightgray"
+align="center"><font size="-1">25</font></td>
+<td bgcolor="white" width="30px" title="white"
+align="center"><font size="-1">30</font></td>
+</tr></table>
+<li><b>Color plot green</b>
+&ndash; use the <b>paegreen</b>
+<a href="../commands/color.html#palette-options">palette</a> to color the plot:
+<table border cellpadding="0" cellspacing="0"
+style="display:inline-block; vertical-align:top"><tr>
+<td bgcolor="#1e3546661e35" width="30px" title="#1e3546661e35"
+align="center"><font size="-1" color="white">0</font></td>
+<td bgcolor="#245a922c245a" width="30px" title="#245a922c245a"
+align="center"><font size="-1" color="white">5</font></td>
+<td bgcolor="#374cb168374c" width="30px" title="#374cb168374c"
+align="center"><font size="-1" color="white">10</font></td>
+<td bgcolor="#5687c9ba5687" width="30px" title="#5687c9ba5687"
+align="center"><font size="-1">15</font></td>
+<td bgcolor="#828fddf3828f" width="30px" title="#828fddf3828f"
+align="center"><font size="-1">20</font></td>
+<td bgcolor="#bae1efdebae1" width="30px" title="#bae1efdebae1"
+align="center"><font size="-1">25</font></td>
+<td bgcolor=white width="30px" title="white"
+align="center"><font size="-1">30</font></td>
+</tr></table>
+<li><b>Show chain divider lines</b> (initial default checked <b>on</b>)
+&ndash; for multimer predictions, draw lines on the plot demarcating the
+end of one chain and the start of another; the lines may obscure a few 
+chain-terminal residues in the plot, and can be hidden if this is problematic
 </ul>
 <p>
-The PAE plot can also be shown by clicking the <b>Error plot</b> button
-on the <a href="#dialog"><b>AlphaFold</b> dialog</a> or by using 
-<a href="../commands/alphafold.html#fetch"><b>alphafold fetch</b></a>
-with <b>pae true</b>.
+The <a href="colorkey.html"><b>Color Key</b></a> graphical interface
+or a command can be used to draw (in the main graphics window)
+a color key for the PAE plot. For example, to make a color key that
+matches the <b>pae</b> or <b>paegreen</b> scheme, respectively:
+</p>
+  <blockquote>
+  <a href="../commands/key.html"><b>key</b></a>&nbsp;<b>blue:0&nbsp;cornflowerblue:&nbsp;yellow:&nbsp;orange:15&nbsp;gray:&nbsp;lightgray:&nbsp;white:30</b>
+  &nbsp;<a href="../commands/key.html#options"><b>showTool true</b></a>
+<br>
+  <a href="../commands/key.html"><b>key</b></a>&nbsp;<b>#1e3546661e35:0&nbsp;#245a922c245a:&nbsp;#374cb168374c:&nbsp;#5687c9ba5687:15&nbsp;#828fddf3828f:&nbsp;#bae1efdebae1:&nbsp;white:30</b>
+  &nbsp;<a href="../commands/key.html#options"><b>showTool true</b></a>
+  </blockquote>
+<p>
+A title for the color key (<i>e.g.</i>, &ldquo;<b>AlphaFold Predicted Aligned
+Error (&Aring;)</b>&rdquo;) would need to be created separately with
+<a href="../commands/2dlabels.html"><b>2dlabels</b></a>.
 </p>
 
 <hr>
