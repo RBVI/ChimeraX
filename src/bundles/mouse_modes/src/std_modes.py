@@ -463,7 +463,7 @@ class MoveMouseMode(MouseMode):
             self._starting_atom_scene_coords = self._atoms.scene_coords
         else:
             models = self.models()
-            self._starting_model_positions = None if models is None else [m.position for m in models]
+            self._starting_model_positions = None if models is None else [(m,m.position) for m in models]
         self._moved = False
 
     def _undo_save(self):
@@ -478,9 +478,11 @@ class MoveMouseMode(MouseMode):
             elif self._starting_model_positions is not None:
                 from chimerax.core.undo import UndoState
                 undo_state = UndoState('move models')
-                models = self.models()
+                smp = self._starting_model_positions
+                models = [m for m, pos in smp]
+                start_model_positions = [pos for m, pos in smp]
                 new_model_positions = [m.position for m in models]
-                undo_state.add(models, "position", self._starting_model_positions, new_model_positions,
+                undo_state.add(models, "position", start_model_positions, new_model_positions,
                                option='S')
                 self.session.undo.register(undo_state)
 
