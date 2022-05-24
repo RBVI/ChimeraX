@@ -2215,8 +2215,9 @@ class ToolWindow(StatusLogger):
         # Since forwarding keystrokes can shift the keyboard focus, don't forward keys that
         # are "unhandled" if those keys only change keyboard state (e.g. CapsLock).  Important
         # for the Python Shell retaining focus.
-        from Qt.QtWidgets import QLineEdit, QComboBox
-        if not self.floating and not isinstance(self.ui_area.focusWidget(), (QLineEdit, QComboBox)) \
+        from Qt.QtWidgets import QLineEdit, QComboBox, QAbstractSpinBox
+        if not self.floating \
+        and not isinstance(self.ui_area.focusWidget(), (QLineEdit, QComboBox, QAbstractSpinBox)) \
         and event.key() not in keyboard_state_keys:
             self.tool_instance.session.ui.forward_keystroke(event)
 
