@@ -652,10 +652,11 @@ class PAEView(QGraphicsView):
         self._draw_drag_box(event)
 
     def mouseReleaseEvent(self, event):
-        self._mouse_down = False
-        self._drag(event)
-        if self._rectangle_select_callback and self._down_xy:
-            self._rectangle_select_callback(self._down_xy, self._scene_position(event))
+        if self._mouse_down:
+            self._mouse_down = False
+            self._drag(event)
+            if self._rectangle_select_callback and self._down_xy:
+                self._rectangle_select_callback(self._down_xy, self._scene_position(event))
 
     def _scene_position(self, event):
         p = self.mapToScene(event.pos())
