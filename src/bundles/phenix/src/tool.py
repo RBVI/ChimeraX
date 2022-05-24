@@ -178,7 +178,7 @@ class DouseResultsViewer(ToolInstance):
                 base_cmd = "show %s models; " % selected[0].structure.atomspec
             from chimerax.atomic import concise_residue_spec
             spec = concise_residue_spec(self.session, selected)
-            cmd = base_cmd + f"select {spec}; view {spec}"
+            cmd = base_cmd + f"select {spec}; disp {spec} :<4; view {spec} @<4"
         from chimerax.core.commands import run
         run(self.session, cmd)
 
