@@ -59,11 +59,15 @@ def coordset(session, structures, index_range, hold_steady = None,
 
   if index_range is None:
     index_range = (1,None,None)
+  immediate = (index_range[1] == index_range[0] and index_range[2] is None)
   for m in structures:
     s,e,step = absolute_index_range(index_range, m)
     hold = hold_steady.intersect(m.atoms) if hold_steady else None
     csp = CoordinateSetPlayer(m, s, e, step, hold, pause_frames, loop, bounce, compute_ss)
     csp.start()
+    if immediate:
+      # For just one frame execute immediately so scripts don't need wait command.
+      csp.next_frame()
 
 # -----------------------------------------------------------------------------
 #
@@ -248,6 +252,10 @@ class CoordinateSetPlayer:
     self.inext = None
 
   def frame_cb(self, tname, tdata):
+
+    self.next_frame()
+
+  def next_frame(self):
 
     m = self.structure
     if m.deleted:
