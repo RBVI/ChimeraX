@@ -1804,7 +1804,7 @@ class StructureData:
             create_arg = 0
         elif create_type == "normal":
             create_arg = 1
-        else:  # per-coordset
+        else:  # per coordset
             create_arg = 2
         f = c_function('structure_pseudobond_group',
                        args = (ctypes.c_void_p, ctypes.c_char_p, ctypes.c_int),
