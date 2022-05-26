@@ -20,7 +20,7 @@ from chimerax.ui.options import Option, OptionsPanel, ColorOption, FloatOption, 
     OptionalRGBAOption, make_optional
 
 class HBondsGUI(QWidget):
-    def __init__(self, session, *, settings_name="",
+    def __init__(self, session, *, settings_name="", compact=False,
             # settings_name values:
             #   empty string: remembered across sessions and the same as for the main H-bond GUI
             #   custom string (e.g. "rotamers"):  remembered across sessions and specific to your
@@ -36,6 +36,9 @@ class HBondsGUI(QWidget):
             # keyword/value added to the command returned by get_command, nor will they have their
             # settings value changed/saved.  If needed, you will have to add the keyword/value to
             # the command yourself.
+            #
+            # If 'compact' is True then various changes will be made (like splitting long labels
+            # into multiple lines) to make the overall interface area smaller.
             angle_slop=rec_angle_slop, color=AtomicStructure.default_hbond_color,
             dashes=AtomicStructure.default_hbond_dashes, dist_slop=rec_dist_slop, inter_model=True,
             inter_submodel=False, intra_model=True, intra_mol=True, intra_res=True, log=False,
@@ -55,13 +58,15 @@ class HBondsGUI(QWidget):
 
         from inspect import getargvalues, currentframe
         arg_names, var_args, var_kw, frame_dict = getargvalues(currentframe())
+        self.__initial_values = {}
         settings_defaults = {}
         self.__show_values = {}
         from chimerax.core.colors import ColorValue
         for arg_name in arg_names:
-            if arg_name in ['self', 'session', 'settings_name']:
+            if arg_name in ['self', 'session', 'settings_name', 'compact']:
                 continue
             if not arg_name.startswith('show_') or 'show_' + arg_name in arg_names:
+                self.__initial_values[arg_name] = frame_dict[arg_name]
                 if arg_name.endswith('color'):
                     value = ColorValue(frame_dict[arg_name])
                 else:
@@ -143,8 +148,8 @@ class HBondsGUI(QWidget):
                 else:
                     default_value = None
                     kw = { 'initial_color': final_val['slop_color'] }
-                self.__slop_color_option = OptionalRGBAOption("Color H-bonds not meeting precise criteria"
-                    " differently", default_value, None, **kw)
+                self.__slop_color_option = OptionalRGBAOption("Color H-bonds not meeting%sprecise criteria"
+                    " differently" % ('\n' if compact else ' '), default_value, None, **kw)
                 relax_options.add_option(self.__slop_color_option)
 
         if show_model_restrict or show_inter_model or show_intra_model or show_bond_restrict \
@@ -412,7 +417,11 @@ class HBondsGUI(QWidget):
         kw_values = ""
         for kw, val in command_values.items():
             if val is None:
-                continue
+                # value passed to GUI for undisplayed option 
+                # may differ from default for command (e.g. 'reveal')
+                val = self.__initial_values[kw]
+                if val is None:
+                    continue
             if is_default(cmd_hbonds, kw, val):
                 continue
             # 'dashes' default checking requires special handling
