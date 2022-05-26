@@ -25,8 +25,13 @@ def alphafold_predict(session, sequences, minimize = True):
 #
 from chimerax.core.tools import ToolInstance
 class AlphaFoldRun(ToolInstance):
-#    _ipython_notebook_url = 'https://colab.research.google.com/github/RBVI/ChimeraX/blob/develop/src/bundles/alphafold/src/alphafold21_predict_colab.ipynb'
-    _ipython_notebook_url = 'https://colab.research.google.com/github/RBVI/ChimeraX/blob/develop/src/bundles/alphafold/src/alphafold_test_colab.ipynb'
+    # Even though the notebook name alphafold21_predict_colab.ipynb suggests it is AlphaFold 2.1
+    # it has been updated to AlphaFold 2.2.0.  I am using the same file for the update so older
+    # ChimeraX versions make use of the latest AlphaFold version.
+    _ipython_notebook_url = 'https://colab.research.google.com/github/RBVI/ChimeraX/blob/develop/src/bundles/alphafold/src/alphafold21_predict_colab.ipynb'
+    # Do not use alphafold_test_colab.ipynb since that was accidentally used by ChimeraX distributions
+    # from April 4, 2022 to May 25, 2022.  Bug #6958.  So use a new alphafold_test2_colab.ipynb instead.
+    # _ipython_notebook_url = 'https://colab.research.google.com/github/RBVI/ChimeraX/blob/develop/src/bundles/alphafold/src/alphafold_test2_colab.ipynb'
     def __init__(self, session, tool_name):
         ToolInstance.__init__(self, session, tool_name)
 
