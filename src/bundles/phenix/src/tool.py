@@ -33,7 +33,7 @@ class DouseResultsViewer(ToolInstance):
     def _finalize_init(self, orig_model, douse_model, compared_waters, *, from_session=False):
         self.orig_model = orig_model
         self.douse_model = douse_model
-        self.compared_waters = compared_waters
+        self.compared_waters = [x.__class__(sorted(x)) for x in compared_waters] if compared_waters else None
         from chimerax.core.models import REMOVE_MODELS
         self.handlers = [self.session.triggers.add_handler(REMOVE_MODELS, self._models_removed_cb)]
 
@@ -47,7 +47,7 @@ class DouseResultsViewer(ToolInstance):
         layout.setContentsMargins(0,0,0,0)
         layout.setSpacing(0)
         parent.setLayout(layout)
-        if compared_waters:
+        if self.compared_waters:
             # we kept the input waters
             self.radio_group = QButtonGroup(parent)
             self.radio_group.buttonClicked.connect(self._update_residues)
@@ -64,12 +64,12 @@ class DouseResultsViewer(ToolInstance):
             but_layout.addWidget(self.original_only_button)
             self._update_button_texts()
             self.douse_only_button.setChecked(True)
-            self.filter_residues = compared_waters[1]
+            self.filter_residues = self.compared_waters[1]
         else:
             # didn't keep the input waters
             self.radio_group = None
             from .douse import _water_residues
-            self.filter_residues = _water_residues(self.douse_model)
+            self.filter_residues = sorted(_water_residues(self.douse_model))
         self.filter_model = self.douse_model
         from chimerax.atomic.widgets import ResidueListWidget
         self.res_list = ResidueListWidget(self.session, filter_func=self._filter_residues)
@@ -173,6 +173,8 @@ class DouseResultsViewer(ToolInstance):
             inst.res_list.blockSignals(True)
             inst.res_list.value = data['water']
             inst.res_list.blockSignals(False)
+        inst.settings.show_hbonds = data['show hbonds']
+        inst.show_hbonds.setChecked(data['show hbonds'])
         return inst
 
     SESSION_SAVE = True
@@ -184,6 +186,7 @@ class DouseResultsViewer(ToolInstance):
             'douse_model': self.douse_model,
             'orig_model': self.orig_model,
             'radio info': self.radio_group.checkedButton().text() if self.radio_group else None,
+            'show hbonds': self.settings.show_hbonds,
             'version': 1,
             'water': self.res_list.value,
         }
