@@ -116,7 +116,7 @@ wget -q -P /tmp {conda_install_sh} \
 
 # Install Python, OpenMM and pdbfixer in Conda
 /opt/conda/bin/conda update -qy conda && \
-    /opt/conda/bin/conda install -qy -c conda-forge python=3.7 openmm=7.5.1 pdbfixer
+    /opt/conda/bin/conda install -qy -c conda-forge python=3.7 openmm=7.5.1 cudatoolkit=11.2.2 pdbfixer
 
 # Patch OpenMM
 (cd /opt/conda/lib/python3.7/site-packages/ && \
