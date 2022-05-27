@@ -1804,7 +1804,7 @@ class StructureData:
             create_arg = 0
         elif create_type == "normal":
             create_arg = 1
-        else:  # per-coordset
+        else:  # per coordset
             create_arg = 2
         f = c_function('structure_pseudobond_group',
                        args = (ctypes.c_void_p, ctypes.c_char_p, ctypes.c_int),
@@ -1875,7 +1875,14 @@ class StructureData:
         f = c_function('structure_session_restore',
                 args = (ctypes.c_void_p, ctypes.c_int,
                         ctypes.py_object, ctypes.py_object, ctypes.py_object))
-        f(self._c_pointer, data['version'], tuple(data['ints']), tuple(data['floats']), tuple(data['misc']))
+        try:
+            f(self._c_pointer, data['version'], tuple(data['ints']), tuple(data['floats']),
+                tuple(data['misc']))
+        except TypeError as e:
+            if "Don't know how to restore new session data" in str(e):
+                from chimerax.core.session import RestoreError
+                raise RestoreError(str(e))
+            raise
         self._ses_end_handler = session.triggers.add_handler("end restore session",
             self._ses_restore_teardown)
 

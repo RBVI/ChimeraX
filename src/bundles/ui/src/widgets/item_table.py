@@ -36,19 +36,16 @@ class QCxTableModel(QAbstractTableModel):
             from chimerax.core.colors import Color
             if isinstance(val, bool):
                 return None
-            elif isinstance(val, Color) or isinstance(val, (tuple, ndarray)) and 3 <= len(val) <= 4:
-                widget = self._item_table.indexWidget(index)
+            elif col.display_format in ItemTable.color_formats:
+                sorted_index = self._item_table.model().mapFromSource(index)
+                widget = self._item_table.indexWidget(sorted_index)
                 if not widget:
-                    has_alpha = len(val.rgba) == 4 if isinstance(val, Color) else len(val) == 4
-                    #from .color_button import ColorButton
-                    #widget = ColorButton(self._item_table, has_alpha=has_alpha)
-                    #widget.color_changed.connect(lambda clr, c=col, i=item: c.set_value(i, clr))
-                    from Qt.QtWidgets import QPushButton
-                    if not hasattr(self, 'widgets'):
-                        self.widgets = []
-                    widget = QPushButton("Color!")
-                    self.widgets.append(widget)
-                    self._item_table.setIndexWidget(index, widget)
+                    has_alpha = col.display_format == ItemTable.COL_FORMAT_TRANSPARENT_COLOR
+                    from .color_button import ColorButton
+                    widget = ColorButton(self._item_table, has_alpha=has_alpha)
+                    self.widget_mapping[item] = widget
+                    widget.color_changed.connect(lambda clr, c=col, i=item: c.set_value(i, clr))
+                    self._item_table.setIndexWidget(sorted_index, widget)
                 widget.color = val
                 return None
             return str(val)
@@ -88,11 +85,11 @@ class QCxTableModel(QAbstractTableModel):
             if role != Qt.DisplayRole:
                 return None
             else:
-                return (section + 1) 
+                return (section + 1)
 
         col = self._item_table._columns[section]
         if role is None or role == Qt.DisplayRole:
-            if not col.title_display:
+            if not col.title_display or col.icon is not None:
                 return None
             if self._item_table._auto_multiline_headers:
                 title = self._make_multiline(col.title)
@@ -112,8 +109,20 @@ class QCxTableModel(QAbstractTableModel):
                     color = Color(col.color)
                 return QBrush(QColor(*color.uint8x4()))
 
-        elif role == Qt.ToolTipRole and col.balloon:
-            return col.balloon
+        elif role == Qt.ToolTipRole:
+            if col.balloon:
+                return col.balloon
+            elif col.icon is not None or not col.title_display:
+                return col.title
+
+        elif role == Qt.DecorationRole:
+            if col.icon is not None:
+                if isinstance(col.icon, str):
+                    from chimerax.ui.icons import get_qt_icon
+                    icon = get_qt_icon(col.icon)
+                else:
+                    icon = col.icon
+                return icon
 
         return None
 
@@ -166,6 +175,14 @@ class NumSortingProxyModel(QSortFilterProxyModel):
         try:
             left_num = float(left_data)
             right_num = float(right_data)
+        except TypeError:
+            if left_data == right_data == None:
+                table = self.sourceModel()._item_table
+                left_item = table.data[left_index.row()]
+                right_item = table.data[right_index.row()]
+                col = table._columns[left_index.column()]
+                return list(col.value(left_item)) < list(col.value(right_item))
+            return left_index.row() < right_index.row()
         except ValueError:
             return left_data.casefold() < right_data.casefold()
         return left_num < right_num
@@ -189,6 +206,7 @@ class ItemTable(QTableView):
     COL_FORMAT_BOOLEAN = "boolean"
     COL_FORMAT_TRANSPARENT_COLOR = "alpha"
     COL_FORMAT_OPAQUE_COLOR = "no alpha"
+    color_formats = [COL_FORMAT_TRANSPARENT_COLOR, COL_FORMAT_OPAQUE_COLOR]
 
     def __init__(self, *, auto_multiline_headers: bool = True
                  # TODO: Should this be a NamedTuple?
@@ -285,7 +303,7 @@ class ItemTable(QTableView):
 
     def add_column(self, title, data_fetch, *, format="%s", display=None, title_display=True,
             justification="center", balloon=None, font=None, refresh=True, color=None,
-            header_justification=None):
+            header_justification=None, icon=None):
         """ Add a column who's header text is 'title'.  It is allowable to add a column with the
             same title multiple times.  The duplicative additions will be ignored.
 
@@ -330,6 +348,10 @@ class ItemTable(QTableView):
             'header_justification' is the text justification of the header text.  Same values as
             'justification' except no "decimal". Default to the same justification as 'justification'
             (but "right" if 'justification' is "decimal").
+
+            If 'icon' is specified, it will be shown in place of the column's title.  If should be either
+            a QIcon or QPixmap instance, or a string that can be used as the argument of a
+            chimerax.ui.icons.get_qt_icon() call.
         """
         titles = [c.title for c in self._columns]
         if title in titles:
@@ -350,7 +372,7 @@ class ItemTable(QTableView):
             header_justification = justification if justification != "decimal" else "right"
 
         c = _ItemColumn(title, data_fetch, format, title_display, justification, font, color,
-            header_justification, balloon)
+            header_justification, balloon, icon)
 
         if self._column_control_info:
             self._add_column_control_entry(c)
@@ -613,7 +635,7 @@ class ItemTable(QTableView):
 
 class _ItemColumn:
     def __init__(self, title, data_fetch, display_format, title_display, justification, font, color,
-            header_justification, balloon):
+            header_justification, balloon, icon):
         # set all args to corresponding 'self' attributes...
         import inspect
         args, varargs, keywords, locals = inspect.getargvalues(inspect.currentframe())
@@ -653,7 +675,8 @@ class _ItemColumn:
             instance = getattr(instance, fetch)
         setattr(instance, fields[-1], val)
 
-    def _update(self, data=False, data_fetch=None, format=None, display=None, justification=None, font=None):
+    def _update(self, data=False, data_fetch=None, format=None, display=None, justification=None, font=None,
+            icon=None):
         changed = []
         if data:
             changed.append(Qt.DisplayRole)
@@ -671,4 +694,7 @@ class _ItemColumn:
         if font is not None and font != self.font:
             self.font = font
             changed.append(Qt.FontRole)
+        if icon is not None and icon != self.icon:
+            self.icon = icon
+            changed.append(Qt.DecorationRole)
         return changed

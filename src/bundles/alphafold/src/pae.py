@@ -313,11 +313,12 @@ class AlphaFoldPAEPlot(ToolInstance):
     name = 'AlphaFold Predicted Aligned Error Plot'
     help = 'help:user/tools/alphafold.html#pae'
 
-    def __init__(self, session, tool_name, pae, colormap = None):
+    def __init__(self, session, tool_name, pae, colormap = None, divider_lines = True):
 
         self._pae = pae		# AlphaFoldPAE instance
 
-        self._drag_colors = True
+        self._drag_colors_structure = True
+        self._showing_chain_dividers = divider_lines
         
         ToolInstance.__init__(self, session, tool_name)
 
@@ -359,6 +360,7 @@ class AlphaFoldPAEPlot(ToolInstance):
         bf.layout().insertWidget(3, self._info_label)
         
         self.set_colormap(colormap)
+        self.show_chain_dividers(self._showing_chain_dividers)
 
         if pae.structure is not None:
             h = pae.structure.triggers.add_handler('deleted', self._structure_deleted)
@@ -381,25 +383,48 @@ class AlphaFoldPAEPlot(ToolInstance):
     # ---------------------------------------------------------------------------
     #
     def _fill_context_menu(self, menu, x, y):
-        from Qt.QtGui import QAction
-        a = QAction('Dragging box colors structure', menu)
-        a.setCheckable(True)
-        a.setChecked(self._drag_colors)
-        def _set_drag_colors(checked, self=self):
-            self._drag_colors = checked
-        a.triggered.connect(_set_drag_colors)
-        menu.addAction(a)
+        def _set_drag_colors_structure(checked, self=self):
+            self._drag_colors_structure = checked
+        self._add_menu_toggle(menu, 'Dragging box colors structure',
+                              self._drag_colors_structure,
+                              _set_drag_colors_structure)
 
         menu.addAction('Color plot from structure', self._color_from_structure)
-        menu.addAction('Color plot default', self.set_colormap)
+        menu.addAction('Color plot rainbow', self.set_colormap_rainbow)
+        menu.addAction('Color plot green', self.set_colormap_green)
+
+        self._add_menu_toggle(menu, 'Show chain divider lines',
+                              self._showing_chain_dividers, self.show_chain_dividers)
+
+    # ---------------------------------------------------------------------------
+    #
+    def _add_menu_toggle(self, menu, text, checked, callback):
+        from Qt.QtGui import QAction
+        a = QAction(text, menu)
+        a.setCheckable(True)
+        a.setChecked(checked)
+        a.triggered.connect(callback)
+        menu.addAction(a)
         
     # ---------------------------------------------------------------------------
     #
     def set_colormap(self, colormap = None):
         if colormap is None:
             from chimerax.core.colors import BuiltinColormaps
-            colormap = BuiltinColormaps['pae']
+            colormap = BuiltinColormaps[self._default_colormap_name]
         self._pae_view._make_image(self._pae._pae_matrix, colormap)
+        
+    # ---------------------------------------------------------------------------
+    #
+    def set_colormap_rainbow(self):
+        from chimerax.core.colors import BuiltinColormaps
+        self.set_colormap(BuiltinColormaps['pae'])
+        
+    # ---------------------------------------------------------------------------
+    #
+    def set_colormap_green(self):
+        from chimerax.core.colors import BuiltinColormaps
+        self.set_colormap(BuiltinColormaps['paegreen'])
 
     # ---------------------------------------------------------------------------
     #
@@ -410,6 +435,18 @@ class AlphaFoldPAEPlot(ToolInstance):
         color_blocks = self._residue_color_blocks()
         self._pae_view._make_image(self._pae._pae_matrix, colormap, color_blocks)
 
+    # ---------------------------------------------------------------------------
+    #
+    def show_chain_dividers(self, show = True, thickness = 4):
+        self._showing_chain_dividers = show
+        if show:
+            chain_ids = self._pae.structure.residues.chain_ids
+            # Residue indices for start of each chain excluding the first.
+            dividers = tuple((chain_ids[:-1] != chain_ids[1:]).nonzero()[0]+1)
+        else:
+            dividers = []
+        self._pae_view._show_chain_dividers(dividers, thickness)
+        
     # ---------------------------------------------------------------------------
     #
     def _residue_color_blocks(self):
@@ -480,7 +517,7 @@ class AlphaFoldPAEPlot(ToolInstance):
         r1, r2 = int(min(x1,x2)), int(max(x1,x2))
         r3, r4 = int(min(y1,y2)), int(max(y1,y2))
         off_diagonal_drag = (r2 < r3 or r4 < r1)
-        if self._drag_colors:
+        if self._drag_colors_structure:
             # Color residues
             if off_diagonal_drag:
                 # Use two colors
@@ -513,6 +550,11 @@ class AlphaFoldPAEPlot(ToolInstance):
         residues.ribbon_colors = color
         residues.atoms._colors = color
 
+        if len(residues) > 0:
+            cmd = 'color %s %s' % (_residue_range_spec(residues), colorname)
+            from chimerax.core.commands import log_equivalent_command
+            log_equivalent_command(self.session, cmd)
+
     # ---------------------------------------------------------------------------
     #
     def _select_residue_ranges(self, ranges):
@@ -523,15 +565,40 @@ class AlphaFoldPAEPlot(ToolInstance):
         self.session.selection.clear()
 
         res = m.residues
+        specs = []
         for r1,r2 in ranges:
-            atoms = res[r1:r2+1].atoms
+            rres = res[r1:r2+1]
+            atoms = rres.atoms
             atoms.selected = True
-        
+            if len(rres) > 0:
+                specs.append(_residue_range_spec(rres))
+
+        if specs:
+            cmd = 'select %s' % ' '.join(specs)
+            from chimerax.core.commands import log_equivalent_command
+            log_equivalent_command(self.session, cmd)
+
     # ---------------------------------------------------------------------------
     #
     def _rectangle_clear(self):
         pass
 
+# ---------------------------------------------------------------------------
+#
+def _residue_range_spec(residues):
+    s = residues[0].structure
+    if s.num_chains == 1:
+        nums = residues.numbers
+        rspec = ':%d-%d' % (nums.min(), nums.max())
+    else:
+        specs = []
+        for s, cid, cres in residues.by_chain:
+            nums = cres.numbers
+            specs.append('/%s:%d-%d' % (cid, nums.min(), nums.max()))
+        rspec = ''.join(specs)
+    spec = '#%s%s' % (s.id_string, rspec)
+    return spec
+    
 from Qt.QtWidgets import QGraphicsView
 class PAEView(QGraphicsView):
     def __init__(self, parent, rectangle_select_cb=None, rectangle_clear_cb=None,
@@ -546,6 +613,7 @@ class PAEView(QGraphicsView):
         self._rectangle_clear_callback = rectangle_clear_cb
         self._report_residues_callback = report_residues_cb
         self._pixmap_item = None
+        self._divider_items = []
         # Report residues as mouse hovers over plot.
         self.setMouseTracking(True)
 
@@ -584,10 +652,11 @@ class PAEView(QGraphicsView):
         self._draw_drag_box(event)
 
     def mouseReleaseEvent(self, event):
-        self._mouse_down = False
-        self._drag(event)
-        if self._rectangle_select_callback and self._down_xy:
-            self._rectangle_select_callback(self._down_xy, self._scene_position(event))
+        if self._mouse_down:
+            self._mouse_down = False
+            self._drag(event)
+            if self._rectangle_select_callback and self._down_xy:
+                self._rectangle_select_callback(self._down_xy, self._scene_position(event))
 
     def _scene_position(self, event):
         p = self.mapToScene(event.pos())
@@ -622,6 +691,28 @@ class PAEView(QGraphicsView):
         pixmap = pae_pixmap(rgb)
         self._pixmap_item = scene.addPixmap(pixmap)
         scene.setSceneRect(0, 0, pixmap.width(), pixmap.height())
+
+    def _show_chain_dividers(self, chain_dividers = [], thickness = 4):
+        scene = self.scene()
+        di = self._divider_items
+        if di:
+            for i in di:
+                scene.removeItem(i)
+            di.clear()
+
+        if len(chain_dividers) == 0:
+            return
+
+        r = scene.sceneRect()
+        w, h = r.width(), r.height()
+        for i in chain_dividers:
+            x = y = i
+            from Qt.QtGui import QBrush, QColor
+            brush = QBrush(QColor(0,0,0))
+            t = thickness-1  # Rectangle is one pixel thicker than this value due to outline
+            di.extend([scene.addRect(0,y-t/2,w,t,brush=brush), scene.addRect(x-t/2,0,t,h,brush=brush)])
+        for d in di:
+            d.setZValue(1)  # Make sure lines are drawn above pixmap
 
     def _color_blocks(self, rgb, pae_matrix, color_blocks):
         from numpy import ix_
@@ -883,7 +974,7 @@ def set_pae_domain_residue_attribute(residues, clusters):
 # -----------------------------------------------------------------------------
 #
 def alphafold_pae(session, structure = None, file = None, uniprot_id = None,
-                  palette = None, range = None, plot = None,
+                  palette = None, range = None, plot = None, divider_lines = None,
                   color_domains = False, connect_max_pae = 5, cluster = 0.5, min_size = 10):
     '''Load AlphaFold predicted aligned error file and show plot or color domains.'''
 
@@ -923,14 +1014,17 @@ def alphafold_pae(session, structure = None, file = None, uniprot_id = None,
                                        full_range = (0,30))
         p = getattr(structure, '_alphafold_pae_plot', None)
         if p is None or p.closed():
+            dividers = True if divider_lines is None else divider_lines
             p = AlphaFoldPAEPlot(session, 'AlphaFold Predicted Aligned Error', pae,
-                                 colormap=colormap)
+                                 colormap=colormap, divider_lines=dividers)
             if structure:
                 structure._alphafold_pae_plot = p
         else:
             p.display(True)
             if palette is not None or range is not None:
                 p.set_colormap(colormap)
+            if divider_lines is not None:
+                p.show_chain_dividers(divider_lines)
 
     pae.set_default_domain_clustering(connect_max_pae, cluster)
     if color_domains:
@@ -951,6 +1045,7 @@ def register_alphafold_pae_command(logger):
                    ('palette', ColormapArg),
                    ('range', ColormapRangeArg),
                    ('plot', BoolArg),
+                   ('divider_lines', BoolArg),
                    ('color_domains', BoolArg),
                    ('connect_max_pae', FloatArg),
                    ('cluster', FloatArg),
