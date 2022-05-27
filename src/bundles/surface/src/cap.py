@@ -179,7 +179,6 @@ def set_cap_drawing_geometry(drawing, plane_name, varray, narray, tarray):
         if np == 1:
             cm = _new_cap(d, plane_name)
         else:
-            
             cm = _new_cap(d, plane_name, parent = _parent_above_instances(d))
             cm.pickable = False	  # Don't want pick of one cap to pick all instance caps.
 
@@ -201,7 +200,7 @@ def _new_cap(drawing, plane_name, parent = None):
         parent.add([c])
     else:
         # Cap is on a Drawing that is not a Model
-        c = ClipCapDrawing(cap_name)
+        c = ClipCapDrawing(cap_name, drawing)
         c.name = cap_name
         parent.add_drawing(c)
     
