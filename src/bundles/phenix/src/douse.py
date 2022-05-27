@@ -302,28 +302,7 @@ def _compare_waters(input_model, output_model, overlap_distance=2):
     dup_wat_res = output_waters[io]	# Output water residues near input water residues
     new_wat_res = output_waters - dup_wat_res	# Output waters not near input waters
     dup_input_wat_res = input_waters[ii]	# Input waters near output waters
-    """
-    for r1, r2 in zip(dup_input_wat_res, dup_wat_res):
-        print("input", r1,  " output", r2)
-    from chimerax.atom_search import AtomSearchTree
-    from chimerax.geometry import distance_squared
-    tree = AtomSearchTree(input_waters.atoms, scene_coords=True, sep_val=3.0)
-    for a in output_waters.atoms:
-        for hit in tree.search(a, 0.1):
-            if distance_squared(hit.scene_coord, a.scene_coord) < 0.1:
-                print(a.structure.name, a, a.scene_coord, "is near", hit.structure.name, hit, hit.scene_coord)
 
-    print("%d input waters" % len(input_waters))
-    print("%d output waters" % len(output_waters))
-    print("%d output near input" % len(dup_wat_res), [str(r) for r in dup_wat_res])
-    print("%d input near output" % len(dup_input_wat_res), [str(r) for r in dup_input_wat_res])
-    print("%d output not near input" % len(new_wat_res))
-    print("%d overlap" % len(set(dup_wat_res) & set(new_wat_res)))
-    print("Unexpected residue numbers in common:", set([r.number for r in new_wat_res]) & set([r.number for r in (input_waters - dup_input_wat_res)]))
-    input_numbers = set([r.number for r in dup_input_wat_res])
-    output_numbers = set([r.number for r in dup_wat_res])
-    print("In-common residues with differing numbers", [str(r) for r in dup_input_wat_res if r.number not in output_numbers], [str(r) for r in dup_wat_res if r.number not in input_numbers])
-    """
     return input_waters, new_wat_res, dup_wat_res, dup_input_wat_res
 
 
