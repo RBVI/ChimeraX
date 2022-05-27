@@ -15,7 +15,6 @@ import io
 import tempfile
 
 from chimerax.core.errors import NonChimeraXError
-from chimerax.webservices.opal_job import OpalJob
 from .cmd import MUSCLE, CLUSTAL_OMEGA
 
 # Implement only as blocking for now; can add non-blocking later if any need for it.
@@ -30,6 +29,8 @@ def realign_sequences(session, sequences, *, program=CLUSTAL_OMEGA):
     mod = importlib.import_module(".io.saveFASTA", "chimerax.seqalign")
     mod.save(session, FakeAlignment(), input_file)
     input_file.close()
+    """
+    from chimerax.webservices.opal_job import OpalJob
     class RealignJob(OpalJob):
         def __init__(self):
             super().__init__(session)
@@ -53,6 +54,36 @@ def realign_sequences(session, sequences, *, program=CLUSTAL_OMEGA):
             session.logger.status("Starting %s alignment" % program)
             input_file_map = [ ("input.fa", "text_file", input_file.name) ]
             self.start(service_name, command, input_file_map=input_file_map, blocking=True)
+    """
+    from chimerax.webservices.cxservices_job import CxServicesJob
+    class RealignJob(CxServicesJob):
+        def __init__(self):
+            super().__init__(session)
+            service_name, options, self.reorders_seqs, in_flag, out_flag = {
+                MUSCLE: (
+                    "MuscleService",
+                    "-maxiters 1",
+                    True,
+                    "-in",
+                    "-out",
+                ),
+                CLUSTAL_OMEGA: (
+                    "ClustalOmegaService",
+                    "--iterations 1 --full --full-iter",
+                    False,
+                    "-i",
+                    "-o",
+                ),
+            }[program]
+            #command = "%s input.fa %s output.fa %s" % (in_flag, out_flag, options)
+            params = {
+                'options': options,
+                'in_flag': in_flag,
+                'out_flag': out_flag
+            }
+            session.logger.status("Starting %s alignment" % program)
+            #input_file_map = [ ("input.fa", "text_file", input_file.name) ]
+            self.start(service_name, params, [input_file.name], blocking=True)
 
         def on_finish(self):
             logger = session.logger
