@@ -146,6 +146,7 @@ class UI(QApplication):
         self.has_graphics = True
         self.main_window = None
         self.already_quit = False
+        self._fatal_error_log_file = None
         self.session = session
 
         from .settings import UI_Settings
@@ -203,15 +204,15 @@ class UI(QApplication):
             QtMsgType.QtFatalMsg: Log.LEVEL_BUG,
         }
         from Qt.QtCore import qInstallMessageHandler
-        def cx_qt_msg_handler(msg_type, msg_log_context, msg_string):
+        def cx_qt_msg_handler(msg_type, msg_log_context, msg_string,
+                              log_fatal_error = self._log_qt_fatal_error):
             from Qt import using_qt6
             if (using_qt6 and
                 (msg_string.startswith('delivering touch release to same window') or
                  msg_string.startswith('skipping QEventPoint'))):
                 return	# Supress Qt 6.2 warnings
             if msg_type == QtMsgType.QtFatalMsg:
-                import sys
-                sys.__stderr__.write('Qt fatal error: %s\n' % msg_string)
+                log_fatal_error('Qt fatal error: %s\n' % msg_string)
             log_level = qt_to_cx_log_level_map[msg_type]
             if log_level is None:
                 return
@@ -220,6 +221,19 @@ class UI(QApplication):
                 log_level = Log.LEVEL_INFO
             self.session.logger.method_map[log_level](msg_string)
         qInstallMessageHandler(cx_qt_msg_handler)
+
+    def _log_qt_fatal_error(self, message):
+        '''Write fatal Qt errors to a log file so they can be included in crash reports.'''
+        import sys
+        sys.__stderr__.write(message)
+        f = self._fatal_error_log_file
+        if f is not None:
+            f.write(message)
+            f.flush()
+
+    def set_fatal_error_log_file(self, file):
+        '''Profile open file object for writing fatal error messages.'''
+        self._fatal_error_log_file = file
 
     def window_image(self):
         '''

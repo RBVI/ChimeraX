@@ -67,7 +67,11 @@ def register_signal_handler(session):
 
     global _fault_handler_file
     _fault_handler_file = traceback_file
-    
+
+    # Allow Qt fatal errors to also be written to the faulthandler log file.
+    if hasattr(session, 'ui'):
+        session.ui.set_fatal_error_log_file(_fault_handler_file)
+        
 # -----------------------------------------------------------------------------
 #
 _fault_handler_file = None
