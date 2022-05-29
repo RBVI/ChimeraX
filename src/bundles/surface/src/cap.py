@@ -201,7 +201,7 @@ def _new_cap(drawing, plane_name, parent = None):
         parent.add([c])
     else:
         # Cap is on a Drawing that is not a Model
-        c = ClipCapDrawing(cap_name)
+        c = ClipCapDrawing(cap_name, drawing)
         c.name = cap_name
         parent.add_drawing(c)
     
