@@ -119,16 +119,8 @@ def _process_results(session, douse_model, shift, near_model, keep_input_water, 
         douse_model.atoms.coords += shift
 
     # Copy new waters
-    model, msg, nwaters, raw_compared_waters = _copy_new_waters(douse_model, near_model, keep_input_water,
+    model, msg, nwaters, compared_waters = _copy_new_waters(douse_model, near_model, keep_input_water,
         far_water, map.name)
-    if raw_compared_waters is None:
-        compared_waters = None
-    else:
-        compared_waters = []
-        for waters in raw_compared_waters:
-            if waters and waters[0].structure == douse_model:
-                waters = model.residues[douse_model.residues.indices(waters)]
-            compared_waters.append(waters)
     douse_model.delete()
 
     # Report predicted waters and input waters
@@ -256,25 +248,27 @@ def _copy_new_waters(douse_model, near_model, keep_input_water, far_water, map_n
 
     # Add found water molecules to copy of input molecule.
     if keep_input_water:
-        input_wat_res, new_wat_res, dup_wat_res, dup_input_wat_res = compared_waters = \
-            _compare_waters(near_model, douse_model)
+        input_waters, douse_only_waters, douse_both_waters, input_both_waters = \
+            compared_waters = _compare_waters(near_model, douse_model)
     else:
-        new_wat_res = _water_residues(douse_model)
+        douse_waters = _water_residues(douse_model)
         _water_residues(model).delete()
         compared_waters = None
-    added_wat_res = _add_waters(model, new_wat_res)
+    added_wat_res = _add_waters(model, douse_only_waters)
+    if compared_waters:
+        compared_waters = compared_waters[:1] + (added_wat_res,) + compared_waters[2:]
 
     model.session.models.add([model])	# Need to assign id number for use in log message
 
     # Create log message describing found waters with links
     # to select them.
     sel_new, nnew = _select_command(model, added_wat_res)
-    long_message = keep_input_water and len(input_wat_res) > 0 and not far_water
+    long_message = keep_input_water and len(input_waters) > 0 and not far_water
     msg = (f'Placed <a href="cxcmd:{sel_new}">{nnew}%s waters</a>'
            f' in map "{map_name}" near model "{near_model.name}"') % (" new" if long_message else "")
     if long_message:
-        sel_dup, ndup = _select_command(model, dup_input_wat_res)
-        sel_xtra, nxtra = _select_command(model, input_wat_res - dup_input_wat_res)
+        sel_dup, ndup = _select_command(model, input_both_waters)
+        sel_xtra, nxtra = _select_command(model, input_waters - input_both_waters)
         msg += (
             f'<br>Also, of the waters existing in the input, douse <a href="cxcmd:{sel_dup}">found {ndup}</a>'
             f' and <a href="cxcmd:{sel_xtra}">did not find {nxtra}</a>')

@@ -684,6 +684,11 @@ class MovePickedModelsMouseMode(TranslateMouseMode):
         self._pick_model(pick)
         TranslateMouseMode.vr_press(self, event)
 
+    def vr_release(self, event):
+        # Virtual reality hand controller button release.
+        TranslateMouseMode.vr_release(self, event)
+        self._picked_models = None
+        
 class TranslateSelectedAtomsMouseMode(TranslateMouseMode):
     '''
     Mouse mode to translate selected atoms.
