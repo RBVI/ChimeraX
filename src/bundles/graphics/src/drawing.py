@@ -332,6 +332,18 @@ class Drawing:
 
     def remove_drawings(self, drawings, delete=True):
         '''Remove specified child drawings.'''
+
+        # Verify that drawings really are children.
+        cset = set(self._child_drawings)
+        for d in drawings:
+            if d not in cset:
+                raise ValueError('Drawing.remove_drawings() called on Drawing "%s" which is not a child of "%s"'
+                                 % (d.name, self.name))
+            if d.parent is not self:
+                pname = d.parent.name if d.parent else 'None'
+                raise ValueError('Drawing.remove_drawings() called on Drawing "%s" whose parent "%s" is not "%s"'
+                                 % (d.name, pname, self.name))
+                
         dset = set(drawings)
         self._child_drawings = [d for d in self._child_drawings
                                 if d not in dset]
