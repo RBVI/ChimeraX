@@ -79,6 +79,7 @@
     <ChimeraXClassifier>Command :: surface cap :: Surfaces :: control surface caps when clipping</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: surface dust :: Surfaces :: hide small pieces of surfaces</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: surface undust :: Surfaces :: show small pieces of surfaces</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: surface transform :: Surfaces :: Scale, rotate or move surfaces</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: surface zone :: Surfaces :: show surface near atoms</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: surface unzone :: Surfaces :: show all of surface</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: surface check :: Surfaces :: check surface topology</ChimeraXClassifier>
