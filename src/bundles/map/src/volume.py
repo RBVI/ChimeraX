@@ -227,10 +227,8 @@ class Volume(Model):
     If surfaces is None then all current surfaces are removed.
     '''
     surfs = tuple(self._surfaces if surfaces is None else surfaces)
-    if self.id is None:
-      self.remove_drawings(surfs)
-    else:
-      self.session.models.close(surfs)
+    for surf in surfs:
+      surf.delete()
 
   # ---------------------------------------------------------------------------
   #
