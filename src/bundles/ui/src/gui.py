@@ -2607,7 +2607,8 @@ def _remember_tool_pos(ui, tool_instance, widget):
         geom_info = (geom.x(), geom.y(), geom.width(), geom.height())
     else:
         # unlike PyQt, PySide needs cast to int
-        side = int(get_side(widget))
+        from Qt import qt_enum_as_int
+        side = qt_enum_as_int(get_side(widget))
         geom_info = None
     version = 3
     mem_location[tool_instance.tool_name] = {
