@@ -82,7 +82,7 @@ usually &Aring;, for all stereo modes
 </p><p>
 The <b>pixelEyeSeparation</b> option specifies the distance between
 left- and right-eye viewpoints in screen pixels (default <b>200</b>)
-for sequential stereo.
+for sequential stereo only.
 This is usually determined adequately by the display, but adjustments 
 may be needed for comfortable viewing when sequential stereo is projected.
 </p><p>
@@ -92,7 +92,26 @@ The <b>cubePixels</b> option sets cube map size for the
 Powers of 2 are recommended.
 </p>
 
+<a name="stereozoom"></a>
+<p class="nav">
+[<a href="#top">back to top: camera</a>]
+</p>
+<h3>Zooming in Stereo</h3>
+<p>
+In stereo modes (those with separate views for left and right eyes),
+the <a href="ui.html#zoom"><b>zoom</b> mousemode</a>
+<a href="../tools/mousemodes.html#zoom" title="Right Mouse Toolbar...">
+<img class="icon" border=1 src="../tools/mouse-icons/zoom.png"></a>
+adjusts the eye separation proportionally to
+moving the camera closer or farther away so that the apparent distance
+to a model stays the same while its apparent size changes.
+Holding the <b>alt</b> key (<b>option</b> key on Mac) in addition to the
+zoom-assigned button, however, moves the camera without changing the 
+eye separation, allowing the apparent distance to be adjusted.
+See also: <a href="../tools/mousemodes.html#vr">zooming in VR</a>
+</p>
+
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-July 2021</address>
+June 2022</address>
 </body></html> 
