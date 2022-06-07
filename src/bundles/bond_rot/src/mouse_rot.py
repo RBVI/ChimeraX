@@ -135,14 +135,17 @@ def log_torsion_command(bond_rotator):
     from chimerax.geometry import dihedral
     torsion = dihedral(fs_atom2.scene_coord, fs_atom.scene_coord,
                        ms_atom.scene_coord, ms_atom2.scene_coord)
+
+    atom_specs = '%s %s %s %s' % (fs_atom2.string(style='command'), fs_atom.string(style='command'),
+                                  ms_atom.string(style='command'), ms_atom2.string(style='command'))
+
+    # Use simpler atom spec for the common case of rotating a side chain.
     res = ms_atom.residue
     if ms_atom2.residue is res and fs_atom.residue is res and fs_atom2.residue is res:
-        # Use simpler atom spec for the common case of rotating a side chain.
-        atom_specs = '%s@%s,%s,%s,%s' % (res.string(style = 'command'),
-                                         ms_atom2.name, ms_atom.name, fs_atom.name, fs_atom2.name)
-    else:
-        atom_specs = '%s %s %s %s' % (fs_atom2.string(style='command'), fs_atom.string(style='command'),
-                                      ms_atom.string(style='command'), ms_atom2.string(style='command'))
+        if 'serial_number' not in atom_specs:  # serial_number indicates a duplicate atom name.
+            atom_specs = '%s@%s,%s,%s,%s' % (res.string(style = 'command'),
+                                             ms_atom2.name, ms_atom.name, fs_atom.name, fs_atom2.name)
+
     cmd = 'torsion %s %.2f %s' % (atom_specs, torsion, side)
     ses = ms_atom.structure.session
     from chimerax.core.commands import run
