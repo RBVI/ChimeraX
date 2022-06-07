@@ -146,6 +146,7 @@ Surface display style (solid, mesh, or dot) can be adjusted with
   <li><a href="#dust"><b>surface dust</b></a>
 <a href="../tools/densitymaps.html" title="Map Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/dust.png"></a>
+  <li><a href="#invertShown"><b>surface invertShown</b></a>
   <li><a href="#showall"><b>surface showall</b></a>
   <li><a href="#squaremesh"><b>surface squaremesh</b></a>
   <li><a href="#transform"><b>surface transform</b></a>
@@ -388,6 +389,8 @@ See also: <a href="volume.html#vop"><b>volume</b> operations</a>
 <a href="../tools/densitymaps.html" title="Map Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/dust.png"></a>
 &ndash; hide small blobs (disconnected parts)
+<li><a href="#invertShown"><b>surface invertShown</b></a>
+&ndash; show hidden blobs, hide blobs that were shown
 <li><a href="#showall"><b>surface showall</b></a>
 &ndash; show all mesh lines and surface triangles
 except as hidden by <a href="clip.html">clipping</a>
@@ -475,8 +478,24 @@ whether to update automatically when the shape of the surface changes.
 The <b>surface undust</b> command turns off hiding smaller blobs,
 as does using <a href="#showall"><b>surface showall</b></a> or
 <a href="#zone"><b>surface zone</b></a>.
+To show <i>only</i> the dust for
+<a href="volume.html#mask">masking</a> purposes,
+first hide the dust, then use
+<a href="#invertShown"><b>surface invertShown</b></a>.
 See also: <a href="marker.html#connected"><b>marker connected</b></a>
 </p>
+</blockquote>
+
+<a name="invertShown"></a>
+<a href="#sop" class="nounder">&bull;</a>
+<b>surface invertShown</b>
+&nbsp;<a href="atomspec.html#othermodels"><i>surface-spec</i></a>&nbsp;
+<blockquote>
+For the specified surfaces,
+hide blobs (disconnected parts) that are shown and show those that are hidden.
+This is useful after <a href="#dust">hiding dust</a> to show <i>only</i>
+the dust, allowing the density within to be 
+<a href="volume.html#mask">masked</a>.
 </blockquote>
 
 <a name="showall"></a>
