@@ -1803,6 +1803,19 @@ class SeqBlock:
             return brush
 
     def _changes_cb(self, trigger_name, changes):
+        reasons = changes.residue_reasons()
+        if 'number changed' in reasons or 'insertion_code changed' in reasons:
+            modified = changes.modified_residues()
+            for aseq in self.alignment.seqs:
+                block = self
+                while block is not None:
+                    line_items = block.line_items[aseq]
+                    for i in range(len(line_items)):
+                        item = line_items[i]
+                        if not item:
+                            continue
+                        block._assoc_res_bind(item, aseq, block.seq_offset+i)
+                    block = block.next_block
         reasons = changes.atom_reasons()
         if "color changed" not in reasons:
             return
