@@ -27,8 +27,9 @@ class="clRight" title="User Guide Index"/></a>
 
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>camera</b> [&nbsp;<i>mode</i>&nbsp;]
-[&nbsp;<b>fieldOfView</b>&nbsp;&nbsp;<i>angle</i>&nbsp;]
 [&nbsp;<b>eyeSeparation</b>&nbsp;&nbsp;<i>distance</i>&nbsp;]
+[&nbsp;<b>fieldOfView</b>&nbsp;&nbsp;<i>field-angle</i>&nbsp;]
+[&nbsp;<b>convergence</b>&nbsp;&nbsp;<i>angle</i>&nbsp;]
 [&nbsp;<b>pixelEyeSeparation</b>&nbsp;&nbsp;<i>pixels</i>&nbsp;]
 [&nbsp;<b>cubePixels</b>&nbsp;&nbsp;<i>cpixels</i>&nbsp;]
 </h3>
@@ -52,9 +53,13 @@ The camera <i>mode</i> can be:
 <li><b>mono</b> (default) &ndash; monoscopic with perspective 
 (apparent size decreasing with distance from the viewer)
 <li><b>ortho</b> &ndash; orthographic, monoscopic without perspective
+<li><b>crosseye</b> &ndash; side-by-side left- and right-eye views
+for visualization with crossed eyes 
+<li><b>walleye</b> &ndash; side-by-side left- and right-eye views
+for visualization with diverged eyes
 <li><b>stereo</b> &ndash; sequential stereoscopic; see also the
 <a href="../options.html#stereo"><b>--stereo</b> startup option</a>
-<li><b>sbs</b> &ndash; stereoscopic side-by-side layout (walleye)
+<li><b>sbs</b> &ndash; stereoscopic side-by-side layout (similar to walleye)
 <li><b>tb</b> &ndash; stereoscopic top-bottom layout
 <li><b>360</b> &ndash; 360&deg; equirectangular projection
 with longitude 0-360&deg; along the X axis and latitude &minus;90-90&deg;
@@ -68,17 +73,18 @@ rendered from a cube map;
 see also <a href="../window.html#fullscreen">using ChimeraX fullscreen</a>
 </ul>
 <p>
-The <b>fieldOfView</b> option specifies the horizontal
-angular field of view (default <b>30</b>&deg;) for all modes
-except 360&deg; and orthographic.
-The previous field-of-view angle is not remembered through uses of 
-orthographic or any 360&deg; mode and the value will revert to 30&deg;
-upon switching from one of those modes to a relevant mode.
-</p><p>
 The <b>eyeSeparation</b> option specifies the distance between
 left- and right-eye viewpoints in scene distance units, 
 usually &Aring;, for all stereo modes
 (default <b>0.2</b> for 360&deg; modes, otherwise <b>5.0</b>).
+</p><p>
+The <b>fieldOfView</b> option specifies the horizontal
+angular field of view (default <b>30</b>&deg;) for all modes
+except 360&deg; and orthographic.
+</p><p>
+The <b>convergence</b> option sets the angle of convergence between
+the eyes and applies only to the <b>crosseye</b> (default <b>10</b>&deg;)
+and <b>walleye</b> (default <b>&ndash;5</b>&deg;) modes.
 </p><p>
 The <b>pixelEyeSeparation</b> option specifies the distance between
 left- and right-eye viewpoints in screen pixels (default <b>200</b>)
@@ -87,9 +93,12 @@ This is usually determined adequately by the display, but adjustments
 may be needed for comfortable viewing when sequential stereo is projected.
 </p><p>
 The <b>cubePixels</b> option sets cube map size for the 
-<b>360</b>, <b>360sbs</b>, <b>360tb</b>, and <b>dome</b> camera modes
+<b>360</b>, <b>360sbs</b>, <b>360tb</b>, and <b>dome</b> modes
 (default <b>1024</b>, meaning 1024 x 1024 pixels per cube face).
 Powers of 2 are recommended.
+</p><p>
+Restoring a mode will set parameters to the default values for that mode,
+except as specified in the command; previous settings are not retained.
 </p>
 
 <a name="stereozoom"></a>
