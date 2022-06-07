@@ -25,10 +25,10 @@ class BondRotationMouseMode(MouseMode):
     def mouse_down(self, event):
         MouseMode.mouse_down(self, event)
         pick = self._picked_bond(event)
-        self._bond_rot = self._bond_rotation(pick)
+        self._bond_rot = self._picked_bond_rotation(pick)
     
     def mouse_drag(self, event):
-        br = self._bond_rot
+        br = self._bond_rotation
         if br:
             dx, dy = self.mouse_motion(event)
             br.angle += dy
@@ -39,13 +39,13 @@ class BondRotationMouseMode(MouseMode):
         self._delete_bond_rotation()
 
     def _log_command(self):
-        br = self._bond_rot
+        br = self._bond_rotation
         if br:
             log_torsion_command(br)
     
     def wheel(self, event):
         pick = self._picked_bond(event)
-        br = self._bond_rotation(pick)
+        br = self._picked_bond_rotation(pick)
         if br:
             d = event.wheel_value()
             br.angle += d
@@ -56,7 +56,7 @@ class BondRotationMouseMode(MouseMode):
         pick = self.session.main_view.picked_object(x, y)
         return pick
 
-    def _bond_rotation(self, pick):
+    def _picked_bond_rotation(self, pick):
         from chimerax.atomic import PickedBond
         if isinstance(pick, PickedBond):
             from .manager import BondRotationError
@@ -70,8 +70,15 @@ class BondRotationMouseMode(MouseMode):
             br = None
         return br
 
-    def _delete_bond_rotation(self):
+    @property
+    def _bond_rotation(self):
         br = self._bond_rot
+        if br and br.bond.deleted:
+            self._bond_rot = br = None
+        return br
+    
+    def _delete_bond_rotation(self):
+        br = self._bond_rotation
         if br is not None:
             self.session.bond_rotations.delete_rotation(br)
             self._bond_rot = None
@@ -79,7 +86,7 @@ class BondRotationMouseMode(MouseMode):
     def vr_press(self, event):
         # Virtual reality hand controller button press.
         pick = event.picked_object(self.view)
-        self._bond_rot = br = self._bond_rotation(pick)
+        self._bond_rot = br = self._picked_bond_rotation(pick)
         if br:
             br.bond.selected = True
         
@@ -87,8 +94,7 @@ class BondRotationMouseMode(MouseMode):
         # Would like to have a command to enable this mode for rotating bonds
         # with small ligands
         move_closer_side = False
-        if move_closer_side and self._bond_rot is not None:
-            br = self._bond_rot
+        if move_closer_side and br is not None:
             atom1 = br.moving_side
             atom2 = br.bond.other_atom(atom1)
             p = event.tip_position
@@ -98,7 +104,7 @@ class BondRotationMouseMode(MouseMode):
         
     def vr_motion(self, event):
         # Virtual reality hand controller motion.
-        br = self._bond_rot
+        br = self._bond_rotation
         if br:
             axis, angle = event.motion.rotation_axis_and_angle()
             from chimerax.geometry import inner_product
@@ -111,7 +117,7 @@ class BondRotationMouseMode(MouseMode):
 
     def vr_release(self, event):
         # Virtual reality hand controller button release.
-        br = self._bond_rot
+        br = self._bond_rotation
         if br:
             br.bond.selected = False
             self._log_command()
@@ -129,14 +135,17 @@ def log_torsion_command(bond_rotator):
     from chimerax.geometry import dihedral
     torsion = dihedral(fs_atom2.scene_coord, fs_atom.scene_coord,
                        ms_atom.scene_coord, ms_atom2.scene_coord)
+
+    atom_specs = '%s %s %s %s' % (fs_atom2.string(style='command'), fs_atom.string(style='command'),
+                                  ms_atom.string(style='command'), ms_atom2.string(style='command'))
+
+    # Use simpler atom spec for the common case of rotating a side chain.
     res = ms_atom.residue
     if ms_atom2.residue is res and fs_atom.residue is res and fs_atom2.residue is res:
-        # Use simpler atom spec for the common case of rotating a side chain.
-        atom_specs = '%s@%s,%s,%s,%s' % (res.string(style = 'command'),
-                                         ms_atom2.name, ms_atom.name, fs_atom.name, fs_atom2.name)
-    else:
-        atom_specs = '%s %s %s %s' % (fs_atom2.string(style='command'), fs_atom.string(style='command'),
-                                      ms_atom.string(style='command'), ms_atom2.string(style='command'))
+        if 'serial_number' not in atom_specs:  # serial_number indicates a duplicate atom name.
+            atom_specs = '%s@%s,%s,%s,%s' % (res.string(style = 'command'),
+                                             ms_atom2.name, ms_atom.name, fs_atom.name, fs_atom2.name)
+
     cmd = 'torsion %s %.2f %s' % (atom_specs, torsion, side)
     ses = ms_atom.structure.session
     from chimerax.core.commands import run

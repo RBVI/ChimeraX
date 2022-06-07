@@ -56,8 +56,6 @@ def register_surface_subcommands(logger):
                        ('modelId', model_id_arg))),
         'hidePieces': (hide_pieces_op,
                        (('pieces', surface_pieces_arg),), (), ()),
-        'invertShown': (invert_shown_op,
-                        (('pieces', surface_pieces_arg),), (), ()),
         'showPieces': (show_pieces_op,
                        (('pieces', surface_pieces_arg),), (), ()),
         'smooth': (smooth_op,
@@ -90,6 +88,10 @@ def register_surface_subcommands(logger):
     undust_desc = CmdDesc(required = [('surfaces', SurfacesArg)],
                           synopsis = 'reshow surface dust')
     register('surface undust', undust_desc, surface_undust, logger=logger)
+
+    invert_desc = CmdDesc(required = [('surfaces', SurfacesArg)],
+                          synopsis = 'show hidden part of surface and hide shown part')
+    register('surface invertShown', invert_desc, surface_invert_shown, logger=logger)
 
     transform_desc = CmdDesc(required = [('surfaces', SurfacesArg)],
                              keyword = [('scale', FloatArg),
@@ -319,16 +321,15 @@ def hide_pieces_op(pieces):
 
 # -----------------------------------------------------------------------------
 #
-def invert_shown_op(pieces):
+def surface_invert_shown(session, surfaces):
 
-    from Surface import set_visibility_method
-    for p in pieces:
-        m = p.triangleAndEdgeMask
-        if m is not None:
-            minv = m^8
-            p.triangleAndEdgeMask = minv
-            # Suppress surface mask auto updates
-            set_visibility_method('invert', p.model)
+    for surface in surfaces:
+        m = surface.triangle_mask
+        if m is None:
+            from numpy import ones, bool
+            m = ones((len(surface.triangles),), bool)
+        from numpy import logical_not
+        surface.triangle_mask = logical_not(m)
 
 # -----------------------------------------------------------------------------
 #
