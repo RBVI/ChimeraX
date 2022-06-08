@@ -11,13 +11,25 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def cmd_renumber(session, residues, *, relative=True, start=1):
+def cmd_renumber(session, residues, *, relative=True, start=None, seq_start=None):
+    from chimerax.core.errors import UserError
     if residues is None:
         from chimerax.atomic import all_residues
         residues = all_residues(session)
     if not residues:
-        from chimerax.core.errors import UserError
         raise UserError("No residues specified")
+
+    if start is None and seq_start is None:
+        seq_numbering = False
+        start_number = 1
+    elif start is None:
+        seq_numbering = True
+        start_number = seq_start
+    elif seq_start is None:
+        seq_numbering = False
+        start_number = start
+    else:
+        raise UserError("Cannot specify both 'start' and seqStart' keywords")
 
     # verify no conflicts before making actual changes
     s_proposed_changes = {}
@@ -29,11 +41,20 @@ def cmd_renumber(session, residues, *, relative=True, start=1):
         chain_ids = s_residues.unique_chain_ids
         for cid in chain_ids:
             chain_residues = sorted(s_residues[s_residues.chain_ids == cid])
+            if seq_numbering:
+                for r in chain_residues:
+                    if r.chain:
+                        seq_offset = r.chain.residues.index(r)
+                        break
+                else:
+                    seq_offset = 0
+            else:
+                seq_offset = 0
             if relative:
-                offset = start - chain_residues[0].number
+                offset = (start_number + seq_offset) - chain_residues[0].number
             else:
                 from itertools import count
-                counter = count(start)
+                counter = count(start_number + seq_offset)
             for r in chain_residues:
                 if relative:
                     new_number = r.number + offset
@@ -63,7 +84,7 @@ def register_command(command_name, logger):
     from chimerax.atomic import ResiduesArg
     desc = CmdDesc(
         required=[('residues', Or(ResiduesArg,EmptyArg))],
-        keyword = [('relative', BoolArg), ('start', IntArg)],
+        keyword = [('relative', BoolArg), ('start', IntArg), ('seq_start', IntArg)],
         synopsis = 'Renumber residues'
     )
-    register('renumber residues', desc, cmd_renumber, logger=logger)
+    register('renumber', desc, cmd_renumber, logger=logger)
