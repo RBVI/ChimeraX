@@ -2009,6 +2009,9 @@ class ToolWindow(StatusLogger):
         mw = ui.main_window
         self.__toolkit = _Qt(self, title, statusbar, hide_title_bar, mw, close_destroys)
         self.ui_area = self.__toolkit.ui_area
+        # Setting ClickFocus allows key forwarding to the command line for floating tools
+        # that otherwise don't accept keyboard focus
+        self.ui_area.setFocusPolicy(Qt.ClickFocus)
         # forward unused keystrokes (to the command line by default)
         self.ui_area.keyPressEvent = self._forward_keystroke
         mw._new_tool_window(self)
