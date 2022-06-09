@@ -753,10 +753,10 @@ class AlphaFoldPAE:
 
     # ---------------------------------------------------------------------------
     #
-    def value(self, residue1, residue2):
-        i1 = self._residue_index(residue1)
-        i2 = self._residue_index(residue2)
-        return self._pae_matrix[i1,i2]
+    def value(self, aligned_residue, scored_residue):
+        ai = self._residue_index(aligned_residue)
+        si = self._residue_index(scored_residue)
+        return self._pae_matrix[ai,si]
 
     # ---------------------------------------------------------------------------
     #
