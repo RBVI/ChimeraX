@@ -225,6 +225,8 @@ class SeqCanvas:
         self._seqRenamedHandler = self.sv.triggers.addHandler(
                 SEQ_RENAMED, lambda *args: self._reformat(), None)
         """
+        from chimerax.atomic import get_triggers
+        self._handlers = [get_triggers().add_handler('changes', self._changes_cb)]
 
     """TODO
     def activeNode(self):
@@ -471,6 +473,23 @@ class SeqCanvas:
         self._recomputeScrollers(e.width, e.height)
 
     """
+    def _changes_cb(self, trig_name, changes):
+        reasons = changes.residue_reasons()
+        if 'number changed' in reasons or 'insertion_code changed' in reasons:
+            modified = changes.modified_residues()
+            structures = set(modified.unique_structures)
+            for aseq in self.alignment.seqs:
+                needs_update = False
+                for chain in aseq.match_maps.keys():
+                    if chain.structure in structures:
+                        needs_update = True
+                        break
+                if needs_update:
+                    starts = set([chain.numbering_start for chain in aseq.match_maps.keys()])
+                    starts.discard(None)
+                    if len(starts) == 1:
+                        aseq.numbering_start = starts.pop()
+                        self.refresh(aseq, update_attrs=False)
 
     @property
     def consensus_capitalize_threshold(self):
@@ -555,6 +574,9 @@ class SeqCanvas:
 
     def destroy(self):
         self._resize_timer.stop()
+        for handler in self._handlers:
+            handler.remove()
+        self._handlers.clear()
     """
         chimera.triggers.deleteHandler('Molecule', self._trigID)
         from MAViewer import ADDDEL_SEQS, SEQ_RENAMED
@@ -1803,19 +1825,6 @@ class SeqBlock:
             return brush
 
     def _changes_cb(self, trigger_name, changes):
-        reasons = changes.residue_reasons()
-        if 'number changed' in reasons or 'insertion_code changed' in reasons:
-            modified = changes.modified_residues()
-            for aseq in self.alignment.seqs:
-                block = self
-                while block is not None:
-                    line_items = block.line_items[aseq]
-                    for i in range(len(line_items)):
-                        item = line_items[i]
-                        if not item:
-                            continue
-                        block._assoc_res_bind(item, aseq, block.seq_offset+i)
-                    block = block.next_block
         reasons = changes.atom_reasons()
         if "color changed" not in reasons:
             return
