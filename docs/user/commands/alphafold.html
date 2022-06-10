@@ -39,7 +39,8 @@ target="_blank">Google Colab</a> and
 <a href="https://github.com/deepmind/alphafold/#model-parameters-license"
 target="_blank">learned parameters</a> 
 <li><a href="#pae">plots residue-residue alignment errors</a>
-for AlphaFold structures
+for AlphaFold structures and 
+<a href="#contacts">shows them with colored pseudobonds</a>
 </ul>
 <p>
 Both are freely available for academic and commercial use under 
@@ -735,8 +736,86 @@ A title for the color key (<i>e.g.</i>, &ldquo;<b>AlphaFold Predicted Aligned
 Error (&Aring;)</b>&rdquo;) would need to be created separately with
 <a href="2dlabels.html"><b>2dlabels</b></a>.
 </p>
+<a name="contacts"></a>
+<p class="nav">
+[<a href="#top">back to top: alphafold</a>]
+</p>
+<h3>Pseudobonds Colored by PAE</h3>
+<p>
+Residue-residue <a href="#pae">PAE values</a> can also be shown with colored 
+<a href="../pseudobonds.html">pseudobonds</a> in the predicted structure:
+</p>
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>alphafold contacts</b>
+&nbsp;<a href="atomspec.html"><i>res-spec1</i></a>&nbsp;
+[&nbsp;<b>toResidues</b>&nbsp;&nbsp;<a href="atomspec.html"><i>res-spec2</i></a>&nbsp;
+[&nbsp;<b>flip</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>distance</b>&nbsp;&nbsp;<i>d</i>&nbsp;]
+[&nbsp;<a href="color.html#palette-options"><b>palette</b></a>&nbsp;&nbsp;<i>palette</i>&nbsp;]
+[&nbsp;<a href="color.html#range"><b>range</b></a>&nbsp;&nbsp;<i>low</i>,<i>high</i>&nbsp;]
+[&nbsp;<b>radius</b>&nbsp;&nbsp;<i>r</i>&nbsp;]
+[&nbsp;<b>dashes</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
+</blockquote>
+<p>
+See the
+<a href="https://www.rbvi.ucsf.edu/chimerax/data/alphafold-contacts-jun2022/afcontacts.html" target="_blank">AlphaFold Contacts example</a>
+and <a href="https://www.youtube.com/watch?v=TMcjEecFHaI" 
+target="_blank">video</a>.
+See also:
+<a href="size.html"><b>size</b></a>,
+<a href="style.html"><b>style</b></a>,
+<a href="crosslinks.html"><b>crosslinks</b></a>
+</p><p>
+A <a href="#pae">PAE plot</a> 
+containing the specified residues must already be shown.
+The PAE matrix is not symmetrical. The first specification
+<a href="atomspec.html"><i>res-spec1</i></a> gives the aligned residues,
+whereas <b>toResidues</b> <a href="atomspec.html"><i>res-spec2</i></a> 
+gives the residues whose error values are reported, except that using
+<b>flip true</b> swaps the meaning of 
+<a href="atomspec.html"><i>res-spec1</i></a> and
+<a href="atomspec.html"><i>res-spec2</i></a>.
+Omitting the <b>toResidues</b> option defines 
+<a href="atomspec.html"><i>res-spec2</i></a>
+as all residues covered by the PAE plot except for those in
+<a href="atomspec.html"><i>res-spec1</i></a>.
+</p><p>
+The <b>distance</b> option allows limiting the number of 
+<a href="../pseudobonds.html">pseudobonds</a> by 
+only drawing them between pairs of residues with any interresidue distance
+&le; <i>d</i> &Aring; (default <b>3.0</b>). These pseudobonds are drawn between
+&alpha;-carbons regardless of which atoms were within the distance cutoff.
+</p><p>
+The default <a href="color.html#palette-options"><b>palette</b></a> for
+coloring the pseudobonds by <a href="#pae">PAE value</a> is <b>paecontacts</b>,
+with colors assigned to values as follows:
+</p>
+<table border cellpadding="0" cellspacing="0"
+style="display:inline-block; vertical-align:top"><tr>
+<td bgcolor="blue" width="30px" title="blue"
+align="center"><font size="-1" color="white">0</font></td>
+<td bgcolor="cornflowerblue" width="30px" title="cornflowerblue"
+align="center"><font size="-1" color="white">5</font></td>
+<td bgcolor="yellow" width="30px" title="yellow"
+align="center"><font size="-1">10</font></td>
+<td bgcolor="orange" width="30px" title="orange"
+align="center"><font size="-1">15</font></td>
+<td bgcolor="red" width="30px" title="red"
+align="center"><font size="-1">20</font></td>
+</tr></table>
+<p>
+Although this palette includes value-color pairs, it may be helpful
+to give a value <a href="color.html#range"><b>range</b></a>
+(default <b>0,20</b>) if a color-only
+<a href="color.html#palette-options">palette</a> is used instead.
+</p><p>
+The <a href="../pseudobonds.html">pseudobond</a> stick <b>radius</b>
+(default <b>0.2</b> &Aring;) and number of <b>dashes</b> (default <b>1</b>,
+for a solid line) can also be specified. 
+</p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-May 2022</address>
+June 2022</address>
 </body></html>
