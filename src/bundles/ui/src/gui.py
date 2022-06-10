@@ -2009,6 +2009,9 @@ class ToolWindow(StatusLogger):
         mw = ui.main_window
         self.__toolkit = _Qt(self, title, statusbar, hide_title_bar, mw, close_destroys)
         self.ui_area = self.__toolkit.ui_area
+        # Setting ClickFocus allows key forwarding to the command line for floating tools
+        # that otherwise don't accept keyboard focus
+        self.ui_area.setFocusPolicy(Qt.ClickFocus)
         # forward unused keystrokes (to the command line by default)
         self.ui_area.keyPressEvent = self._forward_keystroke
         mw._new_tool_window(self)
@@ -2219,9 +2222,11 @@ class ToolWindow(StatusLogger):
         return self.__toolkit.dock_widget
 
     def _forward_keystroke(self, event):
-        # Exclude floating windows because they don't forward all keystrokes (e.g. Delete)
+        # In Qt5 we excluded floating windows because they don't forward all keystrokes (e.g. Delete)
         # and because the Google sign-on (via the typically floating Help Viewer) forwards
-        # _just_ the Return key (well, and shift/control/other non-printable)
+        # _just_ the Return key (well, and shift/control/other non-printable).  In Qt6, floating
+        # windows properly forward keystrokes but the Google sign-on behavior is the same, so just
+        # exclude forwarding from the Help Viewer
         #
         # QLineEdits don't eat Return keys, so they may propagate to the
         # top widget; don't forward keys if the focus widget is a QLineEdit
@@ -2230,7 +2235,7 @@ class ToolWindow(StatusLogger):
         # are "unhandled" if those keys only change keyboard state (e.g. CapsLock).  Important
         # for the Python Shell retaining focus.
         from Qt.QtWidgets import QLineEdit, QComboBox, QAbstractSpinBox
-        if not self.floating \
+        if self.tool_instance.tool_name != "Help Viewer" \
         and not isinstance(self.ui_area.focusWidget(), (QLineEdit, QComboBox, QAbstractSpinBox)) \
         and event.key() not in keyboard_state_keys:
             self.tool_instance.session.ui.forward_keystroke(event)

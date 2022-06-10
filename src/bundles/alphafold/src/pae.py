@@ -738,6 +738,7 @@ class AlphaFoldPAE:
     def __init__(self, pae_path, structure):
         self._pae_matrix = read_pae_matrix(pae_path)
         self.structure = structure
+        self._residue_indices = None	# Map residue to index
         self._cluster_max_pae = 5
         self._cluster_clumping = 0.5
         self._cluster_min_size = 10
@@ -749,6 +750,21 @@ class AlphaFoldPAE:
     @property
     def matrix_size(self):
         return self._pae_matrix.shape[0]
+
+    # ---------------------------------------------------------------------------
+    #
+    def value(self, aligned_residue, scored_residue):
+        ai = self._residue_index(aligned_residue)
+        si = self._residue_index(scored_residue)
+        return self._pae_matrix[ai,si]
+
+    # ---------------------------------------------------------------------------
+    #
+    def _residue_index(self, residue):
+        ri = self._residue_indices
+        if ri is None:
+            self._residue_indices = ri = {r:i for i,r in enumerate(self.structure.residues)}
+        return ri[residue]
     
     # ---------------------------------------------------------------------------
     #

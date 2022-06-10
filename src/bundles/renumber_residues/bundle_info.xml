@@ -26,7 +26,7 @@
     <!-- Development Status should be compatible with bundle version number -->
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>Command :: renumber residues :: Structure Editing :: renumber residues</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: renumber :: Structure Editing :: renumber residues</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>
