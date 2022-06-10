@@ -753,7 +753,7 @@ Residue-residue <a href="#pae">PAE values</a> can also be shown with colored
 [&nbsp;<b>flip</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>distance</b>&nbsp;&nbsp;<i>d</i>&nbsp;]
 [&nbsp;<a href="color.html#palette-options"><b>palette</b></a>&nbsp;&nbsp;<i>palette</i>&nbsp;]
-[&nbsp;<a href="color.html#range"><b>range</b></a>&nbsp;&nbsp;<i>low</i>,<i>high</i>&nbsp;]
+[&nbsp;<a href="color.html#palette-options"><b>range</b></a>&nbsp;&nbsp;<i>low,high</i>&nbsp;|&nbsp;full&nbsp;]
 [&nbsp;<b>radius</b>&nbsp;&nbsp;<i>r</i>&nbsp;]
 [&nbsp;<b>dashes</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
 </blockquote>
@@ -765,6 +765,7 @@ target="_blank">video</a>.
 See also:
 <a href="size.html"><b>size</b></a>,
 <a href="style.html"><b>style</b></a>,
+<a href="clashes.html"><b>contacts</b></a>,
 <a href="crosslinks.html"><b>crosslinks</b></a>
 </p><p>
 A <a href="#pae">PAE plot</a> 
@@ -816,8 +817,9 @@ align="center"><font size="-1">20</font></td>
 <p>
 Although this palette includes value-color pairs, it may be helpful
 to give a value <a href="color.html#range"><b>range</b></a>
-(default <b>0,20</b>) if a color-only
-<a href="color.html#palette-options">palette</a> is used instead.
+if a colors-only palette is used instead.
+A range can also be used to override the values in a value-color palette,
+instead spacing the colors evenly across the specified range.
 </p><p>
 The <a href="../pseudobonds.html">pseudobond</a> stick <b>radius</b>
 (default <b>0.2</b> &Aring;) and number of <b>dashes</b> (default <b>1</b>,
