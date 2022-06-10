@@ -776,10 +776,19 @@ gives the residues whose error values are reported, except that using
 <b>flip true</b> swaps the meaning of 
 <a href="atomspec.html"><i>res-spec1</i></a> and
 <a href="atomspec.html"><i>res-spec2</i></a>.
+If one set of residues is higher-confidence (lower in 
+<a href="https://alphafold.ebi.ac.uk/faq#faq-5" target="_blank">pLDDT</a>)
+than the other, it is usually best to specify them as the aligned residues
+so that the coloring will show the error values of the lower-confidence set.
+</p><p>
 Omitting the <b>toResidues</b> option defines 
 <a href="atomspec.html"><i>res-spec2</i></a>
 as all residues covered by the PAE plot except for those in
-<a href="atomspec.html"><i>res-spec1</i></a>.
+<a href="atomspec.html"><i>res-spec1</i></a>; however, if <b>toResidues</b> 
+is omitted and <a href="atomspec.html"><i>res-spec1</i></a>
+includes all residues in the plot, 
+<a href="atomspec.html"><i>res-spec2</i></a>
+will also be defined as all residues in the plot.
 </p><p>
 The <b>distance</b> option allows limiting the number of 
 <a href="../pseudobonds.html">pseudobonds</a> by 
@@ -812,7 +821,16 @@ to give a value <a href="color.html#range"><b>range</b></a>
 </p><p>
 The <a href="../pseudobonds.html">pseudobond</a> stick <b>radius</b>
 (default <b>0.2</b> &Aring;) and number of <b>dashes</b> (default <b>1</b>,
-for a solid line) can also be specified. 
+meaning a solid stick) can also be specified. 
+</p><p>
+<a name="examples">Examples</a>:
+<blockquote><b>
+alphafold contacts #1 
+<br>
+alphafold contacts /A to /B distance 8
+<br>
+alphafold contacts sel palette blue:red range 1,5
+</b></blockquote>
 </p>
 
 <hr>
