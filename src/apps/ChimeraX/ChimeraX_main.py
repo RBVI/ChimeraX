@@ -567,8 +567,8 @@ def init(argv, event_loop=True):
 
     # initialize qt
     if opts.gui:
-        if os.environ.get("XDG_SESSION_TYPE", None) == "wayland":
-            # ChimeraX 1.4 needs to use XWayland for now
+        if os.environ.get("WAYLAND_DISPLAY", ""):
+            # ChimeraX needs to use XWayland for now
             os.environ["QT_QPA_PLATFORM"] = "xcb"
         from chimerax.ui import initialize_qt
         initialize_qt()
