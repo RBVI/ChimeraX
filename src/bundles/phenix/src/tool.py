@@ -201,6 +201,13 @@ class DouseResultsViewer(ToolInstance):
             if ask(self.session, "Really delete %d waters?" % len(waters),
                     default="no", title="Delete waters") == "no":
                 return
+        else:
+            # go to the next water in the list
+            all_values = self.res_list.all_values
+            if len(all_values) > 1:
+                next_row = (all_values.index(waters[0]) + 1) % len(all_values)
+                self.res_list.value = [all_values[next_row]]
+                self.res_list.scrollToItem(self.res_list.item(next_row))
         from chimerax.atomic import Residues
         Residues(waters).atoms.delete()
 
