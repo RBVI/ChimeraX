@@ -26,6 +26,12 @@ class ItemsGenerator:
 
         super().__init__(**kw)
 
+    @property
+    def all_values(self):
+        values = list(self.value_map.keys())
+        values.sort(key=self.key_func)
+        return values
+
     def destroy(self):
         self.list_func = self.filter_func = self.key_func = self.item_text_func = None
         try:
