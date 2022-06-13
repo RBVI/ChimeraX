@@ -32,7 +32,14 @@ class="clRight" title="User Guide Index"/></a>
 [&nbsp;<b>relative</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 </h3>
 <p>
-The command <b>renumber</b> renumbers residues. See also: 
+The command <b>renumber</b> renumbers residues
+starting from 1 or another integer given by the user. 
+To switch between numbering schemes already defined for biopolymer
+structures from the <a href="https://www.wwpdb.org" target="_blank">wwPDB</a>,
+instead use <a href="setattr.html"><b>setattr</b></a> to change the
+<a href="../attributes.html#model">atomic-model attribute</a>
+<b>res_numbering</b>.
+See also: 
 <a href="rename.html"><b>rename</b></a>,
 <a href="build.html"><b>build</b></a>,
 <a href="combine.html"><b>combine</b></a>,
