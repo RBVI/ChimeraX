@@ -243,10 +243,8 @@ class ModelPanel(ToolInstance):
                             target_string = " models"
                         from chimerax.core.commands import run
                         from chimerax.core.colors import color_name
-                        c_name = color_name(rgba)
-                        need_transparency = (not c_name[0] == '#') or len(c_name) == 7
-                        cmd = "color #%s %s%s%s" % (m.id_string, color_name(rgba), target_string,
-                            " transparency 0" if need_transparency else "")
+                        cmd = "color #%s %s%s" % (m.id_string,
+                            color_name(rgba, always_include_hex_alpha=True), target_string)
                         run(ses, cmd, log=False)
                         but.delayed_cmd_text = cmd
                     but.color_changed.connect(set_model_color)
