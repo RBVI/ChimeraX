@@ -92,10 +92,12 @@ class ModelPanel(ToolInstance):
         self.countdown = 1
         self.self_initiated = False
         from chimerax.core.models import ADD_MODELS, REMOVE_MODELS, \
-            MODEL_DISPLAY_CHANGED, MODEL_ID_CHANGED, MODEL_NAME_CHANGED
+            MODEL_COLOR_CHANGED, MODEL_DISPLAY_CHANGED, MODEL_ID_CHANGED, MODEL_NAME_CHANGED
         from chimerax.core.selection import SELECTION_CHANGED
         session.triggers.add_handler(SELECTION_CHANGED,
             lambda *args: self._initiate_fill_tree(*args, countdown=3))
+        session.triggers.add_handler(MODEL_COLOR_CHANGED,
+            lambda *args: self._initiate_fill_tree(*args, simple_change=True, countdown=(0,3)))
         session.triggers.add_handler(MODEL_DISPLAY_CHANGED,
             lambda *args: self._initiate_fill_tree(*args, simple_change=True, countdown=(0,3)))
         session.triggers.add_handler(ADD_MODELS,
