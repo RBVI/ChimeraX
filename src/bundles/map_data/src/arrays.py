@@ -63,15 +63,15 @@ class MatrixValueStatistics:
     # TODO: Should use 64 bit integer to avoid wrapping when counting
     #  values in density maps larger than 2 Gvoxels.  Currently C++ array
     #  parsing does not support 64-bit int.
-    from numpy import zeros, int32
-    counts = zeros((bins,), int32)
+    from numpy import zeros, float64
+    counts = zeros((bins,), float64)
     if ignore_pad_value is None:
       for m in matrices:
-        _map.bin_counts(m, bins_start, bins_end, counts)
+        _map.bin_counts_float64(m, bins_start, bins_end, counts)
     else:
       for m in matrices:
-        _map.bin_counts(m, bins_start, bins_end, counts,
-                        ignore_pad_value=ignore_pad_value)
+        _map.bin_counts_float64(m, bins_start, bins_end, counts,
+                                ignore_pad_value=ignore_pad_value)
     self.counts = counts
     self.bins = bins
     self.ccounts = None         # Cumulative counts

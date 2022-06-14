@@ -313,12 +313,12 @@ class AlphaFoldPAEPlot(ToolInstance):
     name = 'AlphaFold Predicted Aligned Error Plot'
     help = 'help:user/tools/alphafold.html#pae'
 
-    def __init__(self, session, tool_name, pae, colormap = None):
+    def __init__(self, session, tool_name, pae, colormap = None, divider_lines = True):
 
         self._pae = pae		# AlphaFoldPAE instance
 
         self._drag_colors_structure = True
-        self._showing_chain_dividers = True
+        self._showing_chain_dividers = divider_lines
         
         ToolInstance.__init__(self, session, tool_name)
 
@@ -652,10 +652,11 @@ class PAEView(QGraphicsView):
         self._draw_drag_box(event)
 
     def mouseReleaseEvent(self, event):
-        self._mouse_down = False
-        self._drag(event)
-        if self._rectangle_select_callback and self._down_xy:
-            self._rectangle_select_callback(self._down_xy, self._scene_position(event))
+        if self._mouse_down:
+            self._mouse_down = False
+            self._drag(event)
+            if self._rectangle_select_callback and self._down_xy:
+                self._rectangle_select_callback(self._down_xy, self._scene_position(event))
 
     def _scene_position(self, event):
         p = self.mapToScene(event.pos())
@@ -737,6 +738,7 @@ class AlphaFoldPAE:
     def __init__(self, pae_path, structure):
         self._pae_matrix = read_pae_matrix(pae_path)
         self.structure = structure
+        self._residue_indices = None	# Map residue to index
         self._cluster_max_pae = 5
         self._cluster_clumping = 0.5
         self._cluster_min_size = 10
@@ -748,6 +750,21 @@ class AlphaFoldPAE:
     @property
     def matrix_size(self):
         return self._pae_matrix.shape[0]
+
+    # ---------------------------------------------------------------------------
+    #
+    def value(self, aligned_residue, scored_residue):
+        ai = self._residue_index(aligned_residue)
+        si = self._residue_index(scored_residue)
+        return self._pae_matrix[ai,si]
+
+    # ---------------------------------------------------------------------------
+    #
+    def _residue_index(self, residue):
+        ri = self._residue_indices
+        if ri is None:
+            self._residue_indices = ri = {r:i for i,r in enumerate(self.structure.residues)}
+        return ri[residue]
     
     # ---------------------------------------------------------------------------
     #
@@ -973,7 +990,7 @@ def set_pae_domain_residue_attribute(residues, clusters):
 # -----------------------------------------------------------------------------
 #
 def alphafold_pae(session, structure = None, file = None, uniprot_id = None,
-                  palette = None, range = None, plot = None,
+                  palette = None, range = None, plot = None, divider_lines = None,
                   color_domains = False, connect_max_pae = 5, cluster = 0.5, min_size = 10):
     '''Load AlphaFold predicted aligned error file and show plot or color domains.'''
 
@@ -1013,14 +1030,17 @@ def alphafold_pae(session, structure = None, file = None, uniprot_id = None,
                                        full_range = (0,30))
         p = getattr(structure, '_alphafold_pae_plot', None)
         if p is None or p.closed():
+            dividers = True if divider_lines is None else divider_lines
             p = AlphaFoldPAEPlot(session, 'AlphaFold Predicted Aligned Error', pae,
-                                 colormap=colormap)
+                                 colormap=colormap, divider_lines=dividers)
             if structure:
                 structure._alphafold_pae_plot = p
         else:
             p.display(True)
             if palette is not None or range is not None:
                 p.set_colormap(colormap)
+            if divider_lines is not None:
+                p.show_chain_dividers(divider_lines)
 
     pae.set_default_domain_clustering(connect_max_pae, cluster)
     if color_domains:
@@ -1041,6 +1061,7 @@ def register_alphafold_pae_command(logger):
                    ('palette', ColormapArg),
                    ('range', ColormapRangeArg),
                    ('plot', BoolArg),
+                   ('divider_lines', BoolArg),
                    ('color_domains', BoolArg),
                    ('connect_max_pae', FloatArg),
                    ('cluster', FloatArg),

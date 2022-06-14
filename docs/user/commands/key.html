@@ -125,7 +125,12 @@ followed by labels entered as:
 :<i>label1</i> :<i>label2</i> [...] :<i>labelN</i>
 </blockquote>
 <p>
-...where the number of labels must equal the number of colors in the palette.
+...where the number of colon-label pairs must equal the number of 
+colors in the palette. A colon must be included even for a blank label
+(as in the third example below),
+except that all of the colons can be omitted to leave all of the labels blank.
+If the palette is defined with color-value pairs, the values will be ignored,
+<i>i.e.</i>, they will not be converted into labels automatically.
 The command <a href="palette.html#list"><b>palette list</b></a>
 lists the available palettes in the <a href="../tools/log.html"><b>Log</b></a>.
 Examples:
@@ -134,6 +139,10 @@ Examples:
 <b>key ^piyg-5 :-2 :-1 :0 :1 :2</b>
 <br>
 <b>key lipophilicity :-20 :0 :20 size .05,.25 pos .85,.05</b>
+<br>
+<b>key&nbsp;pae&nbsp;:0&nbsp;:&nbsp;:&nbsp;:15&nbsp;:&nbsp;:&nbsp;:30</b>
+<br>
+<b>key pae <a href="#options">showTool true</a></b>
 </blockquote>
 <p>
 Example of a mixture of the two types of specification:
@@ -187,8 +196,9 @@ and <a href="#ticks">tick marks</a>.
 <b>showTool</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
 <br>
 Whether to raise the <a href="../tools/colorkey.html"><b>Color Key</b></a>
-dialog to enable moving/redrawing the key with the mouse and adjusting
-other settings interactively. It can also be started by clicking
+dialog to enable moving/redrawing the key with the mouse, adding or
+changing labels, and adjusting other settings interactively. 
+It can also be started by clicking
 the <a href="../tools/mousemodes.html"><b>Right Mouse</b></a> toolbar icon:
 <img class="icon" src="../tools/mouse-icons/ckiconvertical.png">
 </blockquote>
@@ -332,5 +342,5 @@ Tick mark thickness in pixels (initial default <b>4.0</b>).
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-September 2021</address>
+May 2022</address>
 </body></html>

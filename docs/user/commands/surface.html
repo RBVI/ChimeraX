@@ -146,8 +146,10 @@ Surface display style (solid, mesh, or dot) can be adjusted with
   <li><a href="#dust"><b>surface dust</b></a>
 <a href="../tools/densitymaps.html" title="Map Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/dust.png"></a>
+  <li><a href="#invertShown"><b>surface invertShown</b></a>
   <li><a href="#showall"><b>surface showall</b></a>
   <li><a href="#squaremesh"><b>surface squaremesh</b></a>
+  <li><a href="#transform"><b>surface transform</b></a>
   <li><a href="#zone"><b>surface zone</b></a>
   </ul>
 <li><a href="#notes"><b>Technical Notes</b></a>
@@ -387,6 +389,8 @@ See also: <a href="volume.html#vop"><b>volume</b> operations</a>
 <a href="../tools/densitymaps.html" title="Map Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/dust.png"></a>
 &ndash; hide small blobs (disconnected parts)
+<li><a href="#invertShown"><b>surface invertShown</b></a>
+&ndash; show hidden surface triangles, hide triangles that were shown
 <li><a href="#showall"><b>surface showall</b></a>
 &ndash; show all mesh lines and surface triangles
 except as hidden by <a href="clip.html">clipping</a>
@@ -395,6 +399,8 @@ except as hidden by <a href="clip.html">clipping</a>
 original surface
 <li><a href="#squaremesh"><b>surface squaremesh</b></a>
 &ndash; hide diagonal mesh lines
+<li><a href="#transform"><b>surface transform</b></a>
+&ndash; scale, rotate, and/or shift surfaces
 <li><a href="#zone"><b>surface zone</b></a>
 &ndash; show only surface parts within a cutoff distance of specified atoms
 </ul>
@@ -472,8 +478,24 @@ whether to update automatically when the shape of the surface changes.
 The <b>surface undust</b> command turns off hiding smaller blobs,
 as does using <a href="#showall"><b>surface showall</b></a> or
 <a href="#zone"><b>surface zone</b></a>.
+To show <i>only</i> the dust for
+<a href="volume.html#mask">masking</a> purposes,
+first hide the dust, then use
+<a href="#invertShown"><b>surface invertShown</b></a>.
 See also: <a href="marker.html#connected"><b>marker connected</b></a>
 </p>
+</blockquote>
+
+<a name="invertShown"></a>
+<a href="#sop" class="nounder">&bull;</a>
+<b>surface invertShown</b>
+&nbsp;<a href="atomspec.html#othermodels"><i>surface-spec</i></a>&nbsp;
+<blockquote>
+For the specified surfaces,
+hide triangles that are shown and show those that are hidden.
+This is useful after <a href="#dust">hiding dust</a> to show <i>only</i>
+the dust, allowing the density within to be 
+<a href="volume.html#mask">masked</a>.
 </blockquote>
 
 <a name="showall"></a>
@@ -512,6 +534,33 @@ show only the mesh lines parallel to the X, Y, or Z axis.
 Return to showing all mesh lines with 
 <a href="#showall"><b>surface showall</b></a>.
 See also: <a href="#style"><b>surface style</b></a>
+</blockquote>
+
+<a name="transform"></a>
+<a href="#sop" class="nounder">&bull;</a>
+<b>surface transform</b>
+&nbsp;<a href="atomspec.html#othermodels"><i>surface-spec</i></a>&nbsp;
+[&nbsp;<b>scale</b>&nbsp;<i>s</i>&nbsp;]
+[&nbsp;<b>rotate</b>&nbsp;<i>angle</i>&nbsp;]
+[&nbsp;<b>move</b>&nbsp;<a href="pointspec.html#vector"><i>vector-spec</i></a>&nbsp;]
+[&nbsp;<b>center</b>&nbsp;<a href="pointspec.html"><i>point-spec</i></a>&nbsp;]
+[&nbsp;<b>axis</b>&nbsp;<a href="pointspec.html#vector"><i>vector-spec</i></a>&nbsp;]
+[&nbsp;<b>coordinateSystem</b>&nbsp;<i>N</i></a>&nbsp;]
+<blockquote>
+Scale, rotate, and/or shift surface models.
+Scaling about the center is applied first, then rotation about the center
+and axis, and then translation (shifting).
+Scaling can be done with a multiplicative <b>scale</b> factor <i>s</i>.
+The <b>rotate</b> option indicates a rotation of <i>angle</i> degrees
+about the specified center and axis, and
+<b>move</b> indicates a shift along the specified vector (by <b>1.0</b>
+distance unit if the vector specification does not include length).
+The <b>center</b> for scaling and rotation defaults to the
+center of the bounding box of the displayed part of the 
+first specified surface, and the <b>axis</b> defaults to Z. 
+The coordinate system for interpreting center, axis, and shift
+coordinates is indicated by reference model number.
+By default, the coordinate system of the first specified surface is used.
 </blockquote>
 
 <a name="zone"></a>
@@ -591,5 +640,5 @@ atomic center.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-May 2021</address>
+June 2022</address>
 </body></html>

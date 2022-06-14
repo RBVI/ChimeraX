@@ -224,13 +224,7 @@ def seqalign_chain(session, chains):
             name = "chains %s" % ",".join(sorted(list(chain_ids)))
         from chimerax.atomic import Sequence
         seq = Sequence(name=name, characters=chars)
-        def get_numbering_start(chain):
-            for i, r in enumerate(chain.residues):
-                if r is None or r.deleted:
-                    continue
-                return r.number - i
-            return None
-        starts = set([get_numbering_start(chain) for chain in chains])
+        starts = set([chain.numbering_start for chain in chains])
         starts.discard(None)
         if len(starts) == 1:
             seq.numbering_start = starts.pop()

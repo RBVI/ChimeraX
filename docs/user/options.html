@@ -27,7 +27,9 @@ The following options are available when ChimeraX is invoked
 from the system command line.
 Arguments containing spaces should be enclosed in quotation marks, and
 <a href="startup.html#inputfiles">input files</a> can be given after the 
-options. Not all options are listed here; see the 
+options. 
+</p><p>
+Not all options are listed here; see the 
 <a href="../devel/index.html">ChimeraX Programming Manual</a> for the
 <a href="../devel/apps/ChimeraX/ChimeraX.html">full list of options</a>,
 including several that may be relevant to developers.
@@ -122,13 +124,16 @@ because OpenGL does not support rendering without a window.
 </blockquote>
 <blockquote>
 <a name="script"></a>
-<b>--script &nbsp;<i>python-script</i> [&nbsp;arguments&nbsp;]</b>
+<b>--script &nbsp;"<i>python-script</i> [&nbsp;arguments&nbsp;]"</b>
 <br>
 Run the specified python script with any associated arguments
-after starting tools.
+after starting tools. 
 Do not check the Toolshed website for updates,
 regardless of the frequency of checking specified in the
 <a href="preferences.html#toolshed"><b>Toolshed</b> preferences</a>.
+The script name and its arguments should be enclosed in a set of
+(plain-text) quotation marks, as shown above; this works by calling the
+<a href="commands/runscript.html"><b>runscript</b></a> command.
 See also: <a href="#cmd"><b>--cmd</b></a>
 </blockquote>
 <blockquote>
@@ -167,5 +172,5 @@ Ignore user settings and use factory defaults.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-June 2021</address>
+June 2022</address>
 </body></html>

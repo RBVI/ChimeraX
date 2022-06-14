@@ -56,8 +56,6 @@ def register_surface_subcommands(logger):
                        ('modelId', model_id_arg))),
         'hidePieces': (hide_pieces_op,
                        (('pieces', surface_pieces_arg),), (), ()),
-        'invertShown': (invert_shown_op,
-                        (('pieces', surface_pieces_arg),), (), ()),
         'showPieces': (show_pieces_op,
                        (('pieces', surface_pieces_arg),), (), ()),
         'smooth': (smooth_op,
@@ -72,21 +70,11 @@ def register_surface_subcommands(logger):
                       (),
                       (('inPlace', bool_arg),
                        ('modelId', model_id_arg))),
-        'transform': (transform_op,
-                 (('surfaces', surface_pieces_arg),),
-                 (),
-                 (('scale', float_arg),
-                  ('radius', float_arg, {'min':0}),
-                  ('move', float3_arg),
-                  ('rotate', float_arg),
-                  ('axis', string_arg),
-                  ('center', string_arg),
-                  ('coordinateSystem', openstate_arg),)),
         }
     """
 
     from chimerax.core.commands import CmdDesc, register, SurfacesArg, FloatArg, \
-        IntArg, BoolArg, EnumOf
+        IntArg, BoolArg, EnumOf, AxisArg, CenterArg, CoordSysArg
     from chimerax.atomic import AtomsArg
 
     from .dust import metrics
@@ -100,6 +88,20 @@ def register_surface_subcommands(logger):
     undust_desc = CmdDesc(required = [('surfaces', SurfacesArg)],
                           synopsis = 'reshow surface dust')
     register('surface undust', undust_desc, surface_undust, logger=logger)
+
+    invert_desc = CmdDesc(required = [('surfaces', SurfacesArg)],
+                          synopsis = 'show hidden part of surface and hide shown part')
+    register('surface invertShown', invert_desc, surface_invert_shown, logger=logger)
+
+    transform_desc = CmdDesc(required = [('surfaces', SurfacesArg)],
+                             keyword = [('scale', FloatArg),
+                                        ('rotate', FloatArg),
+                                        ('axis', AxisArg),
+                                        ('center', CenterArg),
+                                        ('move', AxisArg),
+                                        ('coordinate_system', CoordSysArg)],
+                            synopsis = 'scale, rotate or move surface')
+    register('surface transform', transform_desc, surface_transform, logger=logger)
 
     zone_desc = CmdDesc(required = [('surfaces', SurfacesArg)],
                         keyword = [('near_atoms', AtomsArg),
@@ -319,16 +321,15 @@ def hide_pieces_op(pieces):
 
 # -----------------------------------------------------------------------------
 #
-def invert_shown_op(pieces):
+def surface_invert_shown(session, surfaces):
 
-    from Surface import set_visibility_method
-    for p in pieces:
-        m = p.triangleAndEdgeMask
-        if m is not None:
-            minv = m^8
-            p.triangleAndEdgeMask = minv
-            # Suppress surface mask auto updates
-            set_visibility_method('invert', p.model)
+    for surface in surfaces:
+        m = surface.triangle_mask
+        if m is None:
+            from numpy import ones, bool
+            m = ones((len(surface.triangles),), bool)
+        from numpy import logical_not
+        surface.triangle_mask = logical_not(m)
 
 # -----------------------------------------------------------------------------
 #
@@ -344,43 +345,75 @@ def split_op(surfaces, inPlace = False, modelId = None):
 
 # -----------------------------------------------------------------------------
 #
-def transform_op(surfaces, scale = None, radius = None, move = None,
-                 rotate = 0, axis = (0,0,1), center = None,
-                 coordinateSystem = None):
+def surface_transform(session, surfaces, scale = None,
+                      rotate = 0, axis = (0,0,1), center = None, move = None,
+                      coordinate_system = None):
 
     if len(surfaces) == 0:
         return
 
-    import Matrix as M
-
-    csys = coordinateSystem
+    csys = coordinate_system
     if csys is None:
-        csys = surfaces[0].model.openState
-    c = a = None
-    need_center = not (scale is None and radius is None and rotate == 0)
+        csys = surfaces[0].scene_position
+
+    a = None
+    need_axis = (rotate != 0)
+    if need_axis:
+        from chimerax.core.commands import Axis
+        if isinstance(axis, Axis):
+            a = axis.scene_coordinates(csys)
+        else:
+            a = csys.transform_vector(axis)
+
+    c = None
+    need_center = not (scale is None and rotate == 0)
     if need_center:
-        if not center is None or not axis is None:
-            import Commands as C
-            c, a = C.parse_center_axis(center, axis, csys, 'surface transform')[:2]
-            if not c is None:
-                ctf = M.xform_matrix(csys.xform)
-                c = M.apply_matrix(ctf, c)
-            if not a is None:
-                ctf = M.xform_matrix(csys.xform)
-                a = M.apply_matrix_without_translation(ctf, a)
-        if c is None:
-            from Measure import inertia
-            axes, d2, c = inertia.surface_inertia(surfaces) # global coords
-            if c is None:
-                ctf = M.xform_matrix(csys.xform)
-                M.apply_matrix_without_translation(ctf, (0,0,0))
+        from chimerax.core.commands import Center
+        if isinstance(center, Center):
+            c = center.scene_coordinates(csys)
+        elif center is not None:
+            c = csys.transform_point(center)
 
-    import transform
-    if scale is None and not radius is None:
-        rmax = max(transform.surface_radius(p,c) for p in surfaces)
-        scale = radius / rmax if rmax > 0 else 1
+    if move is not None:
+        from chimerax.core.commands import Axis
+        if isinstance(move, Axis):
+            move = move.scene_coordinates(csys)
+        else:
+            move = csys.transform_vector(move)
+            
+    for surf in surfaces:
+        if need_center and c is None:
+            b = surf.bounds()
+            if b is not None:
+                c = b.center()
+            else:
+                from chimerax.core.errors import UserError
+                raise UserError('surface transform: Center of displayed part of surface "%s" is not defined since none of it is displayed' % surf)
 
-    transform.transform_surface_pieces(surfaces, scale, rotate, a, c, move)
+        tf = _transform_matrix(scale, rotate, a, c, move)
+        sp = surf.scene_position
+        stf = sp.inverse() * tf * sp
+        surf.set_geometry(stf.transform_points(surf.vertices),
+                          stf.transform_vectors(surf.normals),
+                          surf.triangles)
+
+# -----------------------------------------------------------------------------
+#
+def _transform_matrix(scale, rotate, axis, center, move):
+    
+    from chimerax.geometry import identity, translation, scale as scale_transform, rotation
+    tf = identity()
+    if center is not None:
+        tf = translation([-x for x in center]) * tf
+    if scale is not None:
+        tf = scale_transform(scale) * tf
+    if rotate != 0:
+        tf = rotation(axis, rotate) * tf
+    if center is not None:
+        tf = translation(center) * tf
+    if move is not None:
+        tf = translation(move) * tf
+    return tf
     
 # -----------------------------------------------------------------------------
 #
