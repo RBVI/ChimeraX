@@ -27,6 +27,7 @@
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
     <ChimeraXClassifier>Command :: renumber :: Structure Editing :: renumber residues</ChimeraXClassifier>
+    <ChimeraXClassifier>Tool :: Renumber Residues :: Structure Editing :: renumber residues</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>
