@@ -19,6 +19,7 @@ models: Displayed data
 
 ADD_MODELS = 'add models'
 REMOVE_MODELS = 'remove models'
+MODEL_COLOR_CHANGED = 'model color changed'
 MODEL_DISPLAY_CHANGED = 'model display changed'
 MODEL_ID_CHANGED = 'model id changed'
 MODEL_NAME_CHANGED = 'model name changed'
@@ -239,6 +240,7 @@ class Model(State, Drawing):
     def _set_model_color(self, color):
         self.color = color
         self.vertex_colors = None
+        self.session.triggers.activate_trigger(MODEL_COLOR_CHANGED, self)
     model_color = property(_get_model_color, _set_model_color)
     '''
     Getting the model color may give the dominant color.
@@ -524,6 +526,7 @@ class Models(StateManager):
         t = session.triggers
         t.add_trigger(ADD_MODELS)
         t.add_trigger(REMOVE_MODELS)
+        t.add_trigger(MODEL_COLOR_CHANGED)
         t.add_trigger(MODEL_DISPLAY_CHANGED)
         t.add_trigger(MODEL_ID_CHANGED)
         t.add_trigger(MODEL_NAME_CHANGED)
