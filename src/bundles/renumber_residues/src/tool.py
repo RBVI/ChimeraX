@@ -76,12 +76,13 @@ class RenumberResiduesDialog(ToolInstance):
 
         from Qt.QtWidgets import QDialogButtonBox as qbbox
         self.bbox = bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
-        #bbox.accepted.connect(self.launch_rotamers)
-        #bbox.button(qbbox.Apply).clicked.connect(self.launch_rotamers)
+        bbox.accepted.connect(self.renumber_residues)
+        bbox.button(qbbox.Apply).clicked.connect(self.renumber_residues)
         bbox.accepted.connect(self.delete) # slots executed in the order they are connected
         bbox.rejected.connect(self.delete)
         from chimerax.core.commands import run
         #bbox.helpRequested.connect(lambda *, run=run, ses=session: run(ses, "help " + self.help))
+        bbox.button(qbbox.Help).setEnabled(False)
         layout.addWidget(bbox)
 
         tw.manage(placement=None)
@@ -90,6 +91,31 @@ class RenumberResiduesDialog(ToolInstance):
         global _rrd
         _rrd = None
         super().delete()
+
+    def renumber_residues(self):
+        if self.button_group.checkedButton() == self.selected_residues_button:
+            from chimerax.atomic import selected_residues
+            residues = selected_residues(self.session)
+            if not residues:
+                raise UserError("No residues selected!")
+            num_keyword = "start"
+        else:
+            from chimerax.atomic import Chains
+            chains = Chains(self.chain_list.value)
+            if not chains:
+                raise UserError("No chains chosen!")
+            residues = chains.existing_residues
+            if not residues:
+                raise UserError("Chains contain no residues!")
+            num_keyword = "seqStart" if self.seq_numbering.isChecked() else "start"
+
+        from chimerax.atomic import concise_residue_spec
+        cmd = "renumber %s %s %d" % (concise_residue_spec(self.session, residues), num_keyword,
+            self.numbering_start.value)
+        if not self.relative.isChecked():
+            cmd += " relative false"
+        from chimerax.core.commands import run
+        run(self.session, cmd)
 
     def _type_changed(self, button):
         self.seq_numbering.setEnabled(button != self.selected_residues_button)
