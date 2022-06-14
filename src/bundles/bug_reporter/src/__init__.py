@@ -17,11 +17,17 @@ class _BugReporterAPI(BundleAPI):
 
     @staticmethod
     def initialize(session, bundle_info):
-        '''Check Mac crash logs after startup.'''
-        from . import crash_report
-        crash_report.check_for_crash(session)
-        crash_report.register_signal_handler(session)
-        crash_report.register_log_recorder(session)
+        '''
+        Check crash logs at startup and register faulthandler
+        and the log recording temporary file to record if the
+        current session crashes.
+        '''
+        from sys import platform
+        if platform != 'win32':
+            from . import crash_report
+            crash_report.check_for_crash(session)
+            crash_report.register_signal_handler(session)
+            crash_report.register_log_recorder(session)
 
         # Add Report a Bug to Help menu
         from . import bug_reporter_gui

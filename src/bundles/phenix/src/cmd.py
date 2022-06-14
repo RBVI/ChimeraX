@@ -12,7 +12,8 @@
 # === UCSF ChimeraX Copyright ===
 
 def register_command(logger):
-    from chimerax.core.commands import CmdDesc, register, OpenFolderNameArg, BoolArg, FloatArg
+    from chimerax.core.commands import CmdDesc, register
+    from chimerax.core.commands import OpenFolderNameArg, BoolArg, FloatArg, RepeatOf, StringArg
     from chimerax.map import MapArg
     from chimerax.atomic import AtomicStructureArg
     desc = CmdDesc(
@@ -25,6 +26,8 @@ def register_command(logger):
                    ('phenix_location', OpenFolderNameArg),
                    ('residue_range', FloatArg),
                    ('verbose', BoolArg),
+                   ('option_arg', RepeatOf(StringArg)),
+                   ('position_arg', RepeatOf(StringArg)),
         ],
         required_arguments = ['near_model'],
         synopsis = 'Place water molecules in map'

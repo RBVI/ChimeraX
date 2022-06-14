@@ -440,7 +440,7 @@ of ``mac``.
     - **name**: name of manager.  If **autostart** is true (see below), the bundle
       must implement the ``init_manager`` method.  The two positional arguments to
       ``init_manager`` are the session instance and the manager name.
-    - **uiOnly**: set to ``true`` if manager should only be created
+    - **guiOnly**: set to ``true`` if manager should only be created
       when the graphical user interface is being used; omit otherwise
     - **autostart**: If true, the manager is started during Chimera startup.
       Defaults to true.

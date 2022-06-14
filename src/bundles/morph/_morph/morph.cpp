@@ -81,9 +81,10 @@ static double angle(double *p0, double *p1, double *p2)
   double acc = inner_product(v0, v1);
   double d0 = norm(v0);
   double d1 = norm(v1);
-  if (d0 <= 0 || d1 <= 0)
+  double d01 = d0 * d1;
+  if (d0 <= 0 || d1 <= 0 || d01 <= 0)
     return 0;
-  acc /= (d0 * d1);
+  acc /= d01;
   if (acc > 1)
     acc = 1;
   else if (acc < -1)
@@ -96,9 +97,10 @@ static double angle(double *v0, double *v1)
   double acc = inner_product(v0, v1);
   double d0 = norm(v0);
   double d1 = norm(v1);
-  if (d0 <= 0 || d1 <= 0)
+  double d01 = d0 * d1;
+  if (d0 <= 0 || d1 <= 0 || d01 <= 0)
     return 0;
-  acc /= (d0 * d1);
+  acc /= d01;
   if (acc > 1)
     acc = 1;
   else if (acc < -1)

@@ -1243,7 +1243,7 @@ class SaveFolderNameArg(FileNameArg):
     def parse(cls, text, session):
         if session.ui.is_gui:
             from Qt.QtWidgets import QFileDialog
-            accept_mode, dialog_mode = QFileDialog.AcceptMode.AcceptSave, QFileDialog.FileMode.DirectoryOnly
+            accept_mode, dialog_mode = QFileDialog.AcceptMode.AcceptSave, QFileDialog.FileMode.Directory
         else:
             accept_mode = dialog_mode = None
         return _browse_parse(text, session, "folder", cls.name_filter, accept_mode, dialog_mode,

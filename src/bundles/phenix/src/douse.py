@@ -21,23 +21,23 @@ class DouseJob(Job):
 
     SESSION_SAVE = False
 
-    def __init__(self, session, executable_location, map_file_name, model_file_name, temp_dir,
-            keep_input_water, verbose, callback, block):
+    def __init__(self, session, executable_location, optional_args, map_file_name, model_file_name,
+            positional_args, temp_dir, keep_input_water, verbose, callback, block):
         super().__init__(session)
         self._running = False
         self._monitor_time = 0
         self._monitor_interval = 10
-        self.start(session, executable_location, map_file_name, model_file_name, temp_dir, keep_input_water,
-            verbose, callback, blocking=block)
+        self.start(session, executable_location, optional_args, map_file_name, model_file_name,
+            positional_args, temp_dir, keep_input_water, verbose, callback, blocking=block)
 
-    def run(self, session, executable_location, map_file_name, model_file_name, temp_dir, keep_input_water,
-            verbose, callback, **kw):
+    def run(self, session, executable_location, optional_args, map_file_name, model_file_name,
+            positional_args, temp_dir, keep_input_water, verbose, callback, **kw):
         self._running = True
         self.start_t = time()
         def threaded_run(self=self):
             try:
-                results = _run_douse_subprocess(session, executable_location, map_file_name, model_file_name,
-                    temp_dir, keep_input_water, verbose)
+                results = _run_douse_subprocess(session, executable_location, optional_args, map_file_name,
+                    model_file_name, positional_args, temp_dir, keep_input_water, verbose)
             finally:
                 self._running = False
             self.session.ui.thread_safe(callback, results)
@@ -71,7 +71,7 @@ class DouseJob(Job):
 
 
 def phenix_douse(session, map, near_model, *, block=None, far_water=False, keep_input_water=True,
-        map_range=8, phenix_location=None, residue_range=5, verbose=False):
+        map_range=8, phenix_location=None, residue_range=5, verbose=False, option_arg=[], position_arg=[]):
 
     # Find the phenix.douse executable
     from .locate import find_phenix_command
@@ -108,8 +108,8 @@ def phenix_douse(session, map, near_model, *, block=None, far_water=False, keep_
         keep_input_water=keep_input_water, far_water=far_water, map=map, residue_range=residue_range, \
         map_range=map_range, d_ref=d: _process_results(session, douse_model, shift, near_model,
         keep_input_water, far_water, map, residue_range, map_range)
-    DouseJob(session, exe_path, "map.mrc", "model.pdb", temp_dir, douse_keep_input_water, verbose,
-        callback, block)
+    DouseJob(session, exe_path, option_arg, "map.mrc", "model.pdb", position_arg, temp_dir,
+        douse_keep_input_water, verbose, callback, block)
 
 
 def _process_results(session, douse_model, shift, near_model, keep_input_water, far_water, map,
@@ -119,16 +119,8 @@ def _process_results(session, douse_model, shift, near_model, keep_input_water, 
         douse_model.atoms.coords += shift
 
     # Copy new waters
-    model, msg, nwaters, raw_compared_waters = _copy_new_waters(douse_model, near_model, keep_input_water,
+    model, msg, nwaters, compared_waters = _copy_new_waters(douse_model, near_model, keep_input_water,
         far_water, map.name)
-    if raw_compared_waters is None:
-        compared_waters = None
-    else:
-        compared_waters = []
-        for waters in raw_compared_waters:
-            if waters and waters[0].structure == douse_model:
-                waters = model.residues[douse_model.residues.indices(waters)]
-            compared_waters.append(waters)
     douse_model.delete()
 
     # Report predicted waters and input waters
@@ -159,12 +151,12 @@ def _fix_map_origin(map):
     return map_0, shift
 
 
-def _run_douse_subprocess(session, exe_path, map_filename, model_filename, temp_dir, keep_input_water,
-        verbose):
+def _run_douse_subprocess(session, exe_path, optional_args, map_filename, model_filename, positional_args,
+        temp_dir, keep_input_water, verbose):
     '''
     Run douse in a subprocess and return the model with predicted waters.
     '''
-    args = [exe_path, map_filename, model_filename]
+    args = [exe_path] + optional_args + [map_filename, model_filename] + positional_args
     if keep_input_water:
         args.append('keep_input_water=true')
     tsafe=session.ui.thread_safe
@@ -256,25 +248,27 @@ def _copy_new_waters(douse_model, near_model, keep_input_water, far_water, map_n
 
     # Add found water molecules to copy of input molecule.
     if keep_input_water:
-        input_wat_res, new_wat_res, dup_wat_res, dup_input_wat_res = compared_waters = \
-            _compare_waters(near_model, douse_model)
+        input_waters, douse_only_waters, douse_both_waters, input_both_waters = \
+            compared_waters = _compare_waters(near_model, douse_model)
     else:
-        new_wat_res = _water_residues(douse_model)
+        douse_waters = _water_residues(douse_model)
         _water_residues(model).delete()
         compared_waters = None
-    added_wat_res = _add_waters(model, new_wat_res)
+    added_wat_res = _add_waters(model, douse_only_waters)
+    if compared_waters:
+        compared_waters = compared_waters[:1] + (added_wat_res,) + compared_waters[2:]
 
     model.session.models.add([model])	# Need to assign id number for use in log message
 
     # Create log message describing found waters with links
     # to select them.
     sel_new, nnew = _select_command(model, added_wat_res)
-    long_message = keep_input_water and len(input_wat_res) > 0 and not far_water
+    long_message = keep_input_water and len(input_waters) > 0 and not far_water
     msg = (f'Placed <a href="cxcmd:{sel_new}">{nnew}%s waters</a>'
            f' in map "{map_name}" near model "{near_model.name}"') % (" new" if long_message else "")
     if long_message:
-        sel_dup, ndup = _select_command(model, dup_input_wat_res)
-        sel_xtra, nxtra = _select_command(model, input_wat_res - dup_input_wat_res)
+        sel_dup, ndup = _select_command(model, input_both_waters)
+        sel_xtra, nxtra = _select_command(model, input_waters - input_both_waters)
         msg += (
             f'<br>Also, of the waters existing in the input, douse <a href="cxcmd:{sel_dup}">found {ndup}</a>'
             f' and <a href="cxcmd:{sel_xtra}">did not find {nxtra}</a>')

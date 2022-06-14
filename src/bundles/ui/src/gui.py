@@ -146,6 +146,7 @@ class UI(QApplication):
         self.has_graphics = True
         self.main_window = None
         self.already_quit = False
+        self._fatal_error_log_file = None
         self.session = session
 
         from .settings import UI_Settings
@@ -203,15 +204,15 @@ class UI(QApplication):
             QtMsgType.QtFatalMsg: Log.LEVEL_BUG,
         }
         from Qt.QtCore import qInstallMessageHandler
-        def cx_qt_msg_handler(msg_type, msg_log_context, msg_string):
+        def cx_qt_msg_handler(msg_type, msg_log_context, msg_string,
+                              log_fatal_error = self._log_qt_fatal_error):
             from Qt import using_qt6
             if (using_qt6 and
                 (msg_string.startswith('delivering touch release to same window') or
                  msg_string.startswith('skipping QEventPoint'))):
                 return	# Supress Qt 6.2 warnings
             if msg_type == QtMsgType.QtFatalMsg:
-                import sys
-                sys.__stderr__.write('Qt fatal error: %s\n' % msg_string)
+                log_fatal_error('Qt fatal error: %s\n' % msg_string)
             log_level = qt_to_cx_log_level_map[msg_type]
             if log_level is None:
                 return
@@ -220,6 +221,19 @@ class UI(QApplication):
                 log_level = Log.LEVEL_INFO
             self.session.logger.method_map[log_level](msg_string)
         qInstallMessageHandler(cx_qt_msg_handler)
+
+    def _log_qt_fatal_error(self, message):
+        '''Write fatal Qt errors to a log file so they can be included in crash reports.'''
+        import sys
+        sys.__stderr__.write(message)
+        f = self._fatal_error_log_file
+        if f is not None:
+            f.write(message)
+            f.flush()
+
+    def set_fatal_error_log_file(self, file):
+        '''Profile open file object for writing fatal error messages.'''
+        self._fatal_error_log_file = file
 
     def window_image(self):
         '''
@@ -1995,6 +2009,9 @@ class ToolWindow(StatusLogger):
         mw = ui.main_window
         self.__toolkit = _Qt(self, title, statusbar, hide_title_bar, mw, close_destroys)
         self.ui_area = self.__toolkit.ui_area
+        # Setting ClickFocus allows key forwarding to the command line for floating tools
+        # that otherwise don't accept keyboard focus
+        self.ui_area.setFocusPolicy(Qt.ClickFocus)
         # forward unused keystrokes (to the command line by default)
         self.ui_area.keyPressEvent = self._forward_keystroke
         mw._new_tool_window(self)
@@ -2205,9 +2222,11 @@ class ToolWindow(StatusLogger):
         return self.__toolkit.dock_widget
 
     def _forward_keystroke(self, event):
-        # Exclude floating windows because they don't forward all keystrokes (e.g. Delete)
+        # In Qt5 we excluded floating windows because they don't forward all keystrokes (e.g. Delete)
         # and because the Google sign-on (via the typically floating Help Viewer) forwards
-        # _just_ the Return key (well, and shift/control/other non-printable)
+        # _just_ the Return key (well, and shift/control/other non-printable).  In Qt6, floating
+        # windows properly forward keystrokes but the Google sign-on behavior is the same, so just
+        # exclude forwarding from the Help Viewer
         #
         # QLineEdits don't eat Return keys, so they may propagate to the
         # top widget; don't forward keys if the focus widget is a QLineEdit
@@ -2215,8 +2234,9 @@ class ToolWindow(StatusLogger):
         # Since forwarding keystrokes can shift the keyboard focus, don't forward keys that
         # are "unhandled" if those keys only change keyboard state (e.g. CapsLock).  Important
         # for the Python Shell retaining focus.
-        from Qt.QtWidgets import QLineEdit, QComboBox
-        if not self.floating and not isinstance(self.ui_area.focusWidget(), (QLineEdit, QComboBox)) \
+        from Qt.QtWidgets import QLineEdit, QComboBox, QAbstractSpinBox
+        if self.tool_instance.tool_name != "Help Viewer" \
+        and not isinstance(self.ui_area.focusWidget(), (QLineEdit, QComboBox, QAbstractSpinBox)) \
         and event.key() not in keyboard_state_keys:
             self.tool_instance.session.ui.forward_keystroke(event)
 
@@ -2592,7 +2612,8 @@ def _remember_tool_pos(ui, tool_instance, widget):
         geom_info = (geom.x(), geom.y(), geom.width(), geom.height())
     else:
         # unlike PyQt, PySide needs cast to int
-        side = int(get_side(widget))
+        from Qt import qt_enum_as_int
+        side = qt_enum_as_int(get_side(widget))
         geom_info = None
     version = 3
     mem_location[tool_instance.tool_name] = {
