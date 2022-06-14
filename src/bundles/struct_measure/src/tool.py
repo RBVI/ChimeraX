@@ -211,11 +211,11 @@ class StructMeasureTool(ToolInstance):
         self._define_axis_dialog = self._define_plane_dialog = self._define_centroid_dialog = None
 
         from chimerax.ui.widgets import ItemTable
-        self.apc_table = ItemTable()
-        self.apc_table.add_column("Name", "name")
-        self.apc_table.add_column("ID", "id_string")
+        self.apc_table = ItemTable(session=self.session)
+        self.apc_table.add_column("Name", "name", data_set="rename {item.atomspec} {value}")
+        self.apc_table.add_column("ID", "id_string", data_set="rename {item.atomspec} id #{value}")
         self.apc_table.add_column("Color", "model_color", format=ItemTable.COL_FORMAT_TRANSPARENT_COLOR,
-            title_display=False)
+            data_set="color {item.atomspec} {value}", title_display=False)
         self.apc_table.add_column("Shown", "display", format=ItemTable.COL_FORMAT_BOOLEAN, icon="shown")
         self.apc_table.launch()
         self.apc_table.data = self._filter_apc_models(self.session.models)

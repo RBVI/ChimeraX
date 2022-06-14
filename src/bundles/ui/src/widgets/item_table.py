@@ -43,7 +43,6 @@ class QCxTableModel(QAbstractTableModel):
                     has_alpha = col.display_format == ItemTable.COL_FORMAT_TRANSPARENT_COLOR
                     from .color_button import ColorButton
                     widget = ColorButton(self._item_table, has_alpha=has_alpha)
-                    self.widget_mapping[item] = widget
                     widget.color_changed.connect(lambda clr, c=col, i=item: c.set_value(i, clr))
                     self._item_table.setIndexWidget(sorted_index, widget)
                 widget.color = val
@@ -208,20 +207,18 @@ class ItemTable(QTableView):
     COL_FORMAT_OPAQUE_COLOR = "no alpha"
     color_formats = [COL_FORMAT_TRANSPARENT_COLOR, COL_FORMAT_OPAQUE_COLOR]
 
-    def __init__(self, *, auto_multiline_headers: bool = True
-                 # TODO: Should this be a NamedTuple?
-                 , column_control_info = None
-                 , allow_user_sorting: bool = True
-                 , settings_attr=None
-                 , parent=None):
+    def __init__(self, *, auto_multiline_headers: bool=True, column_control_info=None,
+             allow_user_sorting=True, settings_attr=None, parent=None, session=None):
         """
         Parameters:
             auto_multiline_headers: controls whether header titles can be split into multiple
                                     lines on word boundaries.
             allow_user_sorting: controls whether mouse clicks on column headers will sort the
                                 columns.
-            column_control_info: If provided, used to populate either a menu or widget with
-            check box entries or check boxes (respectively) to control which columns are displayed.
+            column_control_info: If provided, used to populate either a menu or widget with check box
+                entries or check boxes (respectively) to control which columns are displayed.
+            session: for backwards compatibility, this parameter is optional, but is in fact required if the
+                table adds columns whose 'data_set' attribute is a string (since it will be run as command).
 
         Notes:
            For a menu the value of column_control_info should be:
@@ -258,6 +255,7 @@ class ItemTable(QTableView):
         self._auto_multiline_headers = auto_multiline_headers
         self._column_control_info = column_control_info
         self._settings_attr = self.DEFAULT_SETTINGS_ATTR if settings_attr is None else settings_attr
+        self._session = session
         self._pending_columns = []
         if column_control_info:
             self._checkables = {}
@@ -301,7 +299,7 @@ class ItemTable(QTableView):
     def _toggle_columns_checkboxes(self):
         self._col_checkbox_container.setVisible(not self._col_checkbox_container.isVisible())
 
-    def add_column(self, title, data_fetch, *, format="%s", display=None, title_display=True,
+    def add_column(self, title, data_fetch, *, format="%s", data_set=None, display=None, title_display=True,
             justification="center", balloon=None, font=None, refresh=True, color=None,
             header_justification=None, icon=None):
         """ Add a column who's header text is 'title'.  It is allowable to add a column with the
@@ -311,6 +309,17 @@ class ItemTable(QTableView):
             then it is assumed to be an attribute (or subattribute, e.g. "color.rgba") of the data
             item (see set_data()).  Otherwise it is a function which, when applied to a data item,
             returns the value that should be displayed in the corresponding cell (but see 'format').
+
+            If 'data_set' is None, then changing a table value (e.g. checkbutton, color button) will
+            attempt to set the attribute specified by 'data_fetch' (if it is an attribute that is,
+            otherwise an error).  But you often want to issue a command equivalent instead or need
+            some fancier behavior.  For such cases, 'data_set' can be specified and can either be
+            a string or a callable.  If it's a string, then that string will have its .format() method
+            called with keyword 'item' being the data item and 'value' being the value it is being set
+            to, and the result should be a ChimeraX command string. Hint: to get the item's atom spec
+            into the command string, use the format "{item.atomspec}".  If 'data_set' is a callable, it
+            will be called with (item. value) arguments.  Note that if 'data_set' is a string, then
+            the 'session' keyword parameter must be given during table construction.
 
             'format' describes how to show that data item's value.  If 'format' is COL_FORMAT_BOOLEAN,
             use a check box.  If it is COL_FORMAT_TRANSPARENT_COLOR or COL_FORMAT_OPAQUE_COLOR then
@@ -357,6 +366,10 @@ class ItemTable(QTableView):
         if title in titles:
             return self._columns[titles.index(title)]
 
+        if type(data_set) == str and self._session is None:
+            raise ValueError("Table must have 'session' constructor keyword specified if columns have"
+                " string-valued 'data_set' attributes")
+
         if display is None:
             if self._column_control_info:
                 widget, settings, defaults, fallback = self._column_control_info[:4]
@@ -371,8 +384,8 @@ class ItemTable(QTableView):
         if header_justification is None:
             header_justification = justification if justification != "decimal" else "right"
 
-        c = _ItemColumn(title, data_fetch, format, title_display, justification, font, color,
-            header_justification, balloon, icon)
+        c = _ItemColumn(title, data_fetch, format, data_set, title_display, justification, font, color,
+            header_justification, balloon, icon, self._session)
 
         if self._column_control_info:
             self._add_column_control_entry(c)
@@ -461,7 +474,8 @@ class ItemTable(QTableView):
         bottom_right = self._table_model.index(len(self._data)-1, len(self.columns)-1)
         self._table_model.dataChanged(top_left, bottom_right, [Qt.FontRole]).emit()
 
-    def launch(self, *, select_mode=QAbstractItemView.SelectionMode.ExtendedSelection, session_info=None, suppress_resize=False):
+    def launch(self, *, select_mode=QAbstractItemView.SelectionMode.ExtendedSelection, session_info=None,
+            suppress_resize=False):
         self._table_model = QCxTableModel(self)
         if self._allow_user_sorting:
             sort_model = NumSortingProxyModel()
@@ -634,8 +648,8 @@ class ItemTable(QTableView):
             self.update_column(col, display=display)
 
 class _ItemColumn:
-    def __init__(self, title, data_fetch, display_format, title_display, justification, font, color,
-            header_justification, balloon, icon):
+    def __init__(self, title, data_fetch, display_format, data_set, title_display, justification, font,
+            color, header_justification, balloon, icon, session):
         # set all args to corresponding 'self' attributes...
         import inspect
         args, varargs, keywords, locals = inspect.getargvalues(inspect.currentframe())
@@ -668,12 +682,25 @@ class _ItemColumn:
         return fetched
 
     def set_value(self, instance, val):
-        if callable(self.data_fetch):
-            raise ValueError("Don't know how to set values for column %s" % self.title)
-        fields = self.data_fetch.split('.')
-        for fetch in fields[:-1]:
-            instance = getattr(instance, fetch)
-        setattr(instance, fields[-1], val)
+        if self.data_set is None:
+            if callable(self.data_fetch):
+                raise ValueError("Don't know how to set values for column %s" % self.title)
+            fields = self.data_fetch.split('.')
+            for fetch in fields[:-1]:
+                instance = getattr(instance, fetch)
+            setattr(instance, fields[-1], val)
+        elif callable(self.data_set):
+            self.data_set(instance, val)
+        else:
+            from chimerax.core.commands import run, StringArg
+            if self.display_format in [ItemTable.COL_FORMAT_OPAQUE_COLOR,
+                    ItemTable.COL_FORMAT_TRANSPARENT_COLOR]:
+                from chimerax.core.colors import hex_color
+                val = hex_color(val)
+            if type(val) == str:
+                val = StringArg.unparse(val)
+            cmd = self.data_set.format(item=instance, value=val)
+            run(self.session, cmd)
 
     def _update(self, data=False, data_fetch=None, format=None, display=None, justification=None, font=None,
             icon=None):
