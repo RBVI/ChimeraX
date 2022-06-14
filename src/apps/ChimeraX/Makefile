@@ -20,8 +20,6 @@ endif
 STRIP	=
 BINMODE	= 755
 
-PY_MAIN = $(APP_NAME)_main.py
-
 ICONS	= ChimeraX-icon.svg ChimeraX-icon512.png
 ifeq ($(OS),Linux)
 LINUX_ICONS = ChimeraX-icon128.png ChimeraX-icon64.png ChimeraX-icon32.png ChimeraX-icon16.png
@@ -70,21 +68,17 @@ ifdef DEBUG
 	fi
 endif
 
-install-others: $(PY_MAIN) $(ICONS)
-	$(RSYNC) $(PY_MAIN) $(PYSITEDIR)
+install-others: $(ICONS)
 	$(RSYNC) $(ICONS) $(datadir)
 	if [ -d "$(app_prefix)" ]; then \
-		$(RSYNC) $(PY_MAIN) $(APP_PYSITEDIR); \
 		$(RSYNC) $(ICONS) $(app_datadir); \
 	fi
 else
-install: $(PROG) $(PY_MAIN) $(ICONS) $(APP_NAME).1
+install: $(PROG) $(ICONS) $(APP_NAME).1
 	$(RSYNC) $(PROG) $(bindir)
-	$(RSYNC) $(PY_MAIN) $(PYSITEDIR)
 	$(RSYNC) $(ICONS) $(datadir)
 	if [ -d "$(app_prefix)" ]; then \
 		$(RSYNC) $(PROG) $(app_bindir); \
-		$(RSYNC) $(PY_MAIN) $(APP_PYSITEDIR); \
 		$(RSYNC) $(ICONS) $(app_datadir); \
 	fi
 	mkdir -p $(datadir)/man/man1
@@ -97,16 +91,13 @@ ifeq ($(OS),Darwin)
 	# Must use hard link for code signing to work
 	-if [ -d "$(app_prefix)" ]; then \
 		ln -nf $(app_bindir)/$(PROG) $(app_prefix)/MacOS/$(APP_NAME); \
-		$(RSYNC) Info.plist $(app_prefix)/Info.plist; \
-		$(RSYNC) chimerax-icon.icns $(app_prefix)/Resources/chimerax-icon.icns; \
 	fi
 
-reinstall-plist:
-	rm Info.plist
-# use Chimera executable in this pass so that we pick up registered formats (and 'session' is available)
-#	$(MAKE) Info.plist
+install-plist: mkinfo.py chimerax-icon.icns
+	# use Chimera executable in this pass so that we pick up registered formats (and 'session' is available)
 	$(wildcard $(TOP)/ChimeraX*.app)/Contents/bin/ChimeraX --nogui --script "mkinfo.py $(APP_NAME)" --exit || (rm Info.plist ; exit 1)
 	$(RSYNC) Info.plist $(app_prefix)/Info.plist
+	$(RSYNC) chimerax-icon.icns $(app_prefix)/Resources/chimerax-icon.icns
 endif
 endif
 
@@ -122,12 +113,6 @@ endif
 
 pylint:
 	$(PYLINT) *.py
-
-run:
-	$(PYTHON_EXE) $(PY_MAIN)
-
-run-nogui:
-	$(PYTHON_EXE) $(PY_MAIN) --nogui
 
 # 64-bit Linux dies in exception handling if we don't link with the C++ compiler
 $(PROG): $(OBJS)
@@ -146,16 +131,6 @@ endif
 
 ChimeraX-icon512.png: ChimeraX-icon.svg
 	inkscape --export-png=ChimeraX-icon512.png --export-width=512 --export-background-opacity=0 --without-gui ChimeraX-icon.svg
-
-
-ifeq ($(OS),Darwin)
-install: Info.plist
-Info.plist: chimerax-icon.icns
-endif
-
-Info.plist: mkinfo.py
-#	$(bindir)/$(PROG) --nogui mkinfo.py $(APP_NAME) || (rm Info.plist ; exit 1)
-	$(APP_PYTHON_EXE) mkinfo.py $(APP_NAME) || (rm Info.plist ; exit 1)
 
 chimerax-icon.icns:	ChimeraX-icon512.png
 	-mkdir chimerax-icon.iconset
