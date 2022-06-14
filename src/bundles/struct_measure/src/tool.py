@@ -223,8 +223,9 @@ class StructMeasureTool(ToolInstance):
         from chimerax.core.models import ADD_MODELS, REMOVE_MODELS
         self.handlers.append(self.session.triggers.add_handler(ADD_MODELS, self._refresh_apc_table))
         self.handlers.append(self.session.triggers.add_handler(REMOVE_MODELS, self._refresh_apc_table))
-        from chimerax.core.models import MODEL_DISPLAY_CHANGED, MODEL_ID_CHANGED, MODEL_NAME_CHANGED
-        for trig_name in  (MODEL_DISPLAY_CHANGED, MODEL_ID_CHANGED, MODEL_NAME_CHANGED):
+        from chimerax.core.models import MODEL_COLOR_CHANGED, MODEL_DISPLAY_CHANGED, MODEL_ID_CHANGED, \
+            MODEL_NAME_CHANGED
+        for trig_name in  (MODEL_COLOR_CHANGED, MODEL_DISPLAY_CHANGED, MODEL_ID_CHANGED, MODEL_NAME_CHANGED):
             self.handlers.append(self.session.triggers.add_handler(trig_name, self._refresh_apc_cell))
         layout.addWidget(self.apc_table, alignment=Qt.AlignCenter)
 
@@ -321,8 +322,11 @@ class StructMeasureTool(ToolInstance):
     def _refresh_apc_cell(self, trig_name, model):
         if not self._filter_apc_models([model]):
             return
-        from chimerax.core.models import MODEL_DISPLAY_CHANGED, MODEL_ID_CHANGED, MODEL_NAME_CHANGED
-        if trig_name == MODEL_DISPLAY_CHANGED:
+        from chimerax.core.models import MODEL_COLOR_CHANGED, MODEL_DISPLAY_CHANGED, MODEL_ID_CHANGED, \
+            MODEL_NAME_CHANGED
+        if trig_name == MODEL_COLOR_CHANGED:
+            title = "Color"
+        elif trig_name == MODEL_DISPLAY_CHANGED:
             title = "Shown"
         elif trig_name == MODEL_ID_CHANGED:
             title = "ID"

@@ -42,7 +42,7 @@ class QCxTableModel(QAbstractTableModel):
                 if not widget:
                     has_alpha = col.display_format == ItemTable.COL_FORMAT_TRANSPARENT_COLOR
                     from .color_button import ColorButton
-                    widget = ColorButton(self._item_table, has_alpha=has_alpha)
+                    widget = ColorButton(self._item_table, has_alpha_channel=has_alpha)
                     widget.color_changed.connect(lambda clr, c=col, i=item: c.set_value(i, clr))
                     self._item_table.setIndexWidget(sorted_index, widget)
                 widget.color = val
