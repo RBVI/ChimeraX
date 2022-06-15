@@ -92,10 +92,12 @@ class ModelPanel(ToolInstance):
         self.countdown = 1
         self.self_initiated = False
         from chimerax.core.models import ADD_MODELS, REMOVE_MODELS, \
-            MODEL_DISPLAY_CHANGED, MODEL_ID_CHANGED, MODEL_NAME_CHANGED
+            MODEL_COLOR_CHANGED, MODEL_DISPLAY_CHANGED, MODEL_ID_CHANGED, MODEL_NAME_CHANGED
         from chimerax.core.selection import SELECTION_CHANGED
         session.triggers.add_handler(SELECTION_CHANGED,
             lambda *args: self._initiate_fill_tree(*args, countdown=3))
+        session.triggers.add_handler(MODEL_COLOR_CHANGED,
+            lambda *args: self._initiate_fill_tree(*args, simple_change=True, countdown=(0,3)))
         session.triggers.add_handler(MODEL_DISPLAY_CHANGED,
             lambda *args: self._initiate_fill_tree(*args, simple_change=True, countdown=(0,3)))
         session.triggers.add_handler(ADD_MODELS,
@@ -241,10 +243,8 @@ class ModelPanel(ToolInstance):
                             target_string = " models"
                         from chimerax.core.commands import run
                         from chimerax.core.colors import color_name
-                        c_name = color_name(rgba)
-                        need_transparency = (not c_name[0] == '#') or len(c_name) == 7
-                        cmd = "color #%s %s%s%s" % (m.id_string, color_name(rgba), target_string,
-                            " transparency 0" if need_transparency else "")
+                        cmd = "color #%s %s%s" % (m.id_string,
+                            color_name(rgba, always_include_hex_alpha=True), target_string)
                         run(ses, cmd, log=False)
                         but.delayed_cmd_text = cmd
                     but.color_changed.connect(set_model_color)
