@@ -184,7 +184,7 @@ class Task(State):
         """
         if self.state != PENDING:
             raise RuntimeError("starting task multiple times")
-        blocking = kw.pop("blocking", False)
+        blocking = kw.get("blocking", False) # since _run_thread will pop() it
         self._thread = threading.Thread(target=self._run_thread,
                                         daemon=True, args=args, kwargs=kw)
         self._thread.start()
@@ -237,9 +237,6 @@ class Task(State):
         This method must be overridden to implement actual functionality.
         :py:meth:`terminating` should be checked regularly to see whether
         user has requested termination.
-
-        NB: The 'blocking' argument passed to the 'start' method
-        is received as a keyword argument.
 
         """
         raise RuntimeError("base class \"run\" method called.")

@@ -555,7 +555,8 @@ class ModellerWebJob(CxServicesJob):
 
     def on_finish(self):
         # Clean up the temporary directory
-        del self.temp_dir
+        if hasattr(self, 'temp_dir'):
+            delattr(self, 'temp_dir')
         logger = self.session.logger
         logger.info("Modeller job ID %s finished" % self.job_id)
         if not self.exited_normally():
