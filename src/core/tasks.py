@@ -209,6 +209,7 @@ class Task(State):
         self._terminate = None
 
     def _run_thread(self, *args, **kw):
+        blocking = kw.pop("blocking", False)
         try:
             self.run(*args, **kw)
         except Exception:
@@ -222,7 +223,7 @@ class Task(State):
                 self.update_state(TERMINATED)
             else:
                 self.update_state(FINISHED)
-        if not kw.get('blocking', False) and self.exited_normally():
+        if not blocking and self.exited_normally():
             # the blocking code path also has an on_finish() call that executes immediately
             self.session.ui.thread_safe(self.on_finish)
 
