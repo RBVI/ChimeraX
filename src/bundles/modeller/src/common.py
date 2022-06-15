@@ -541,7 +541,7 @@ class ModellerWebJob(CxServicesJob):
             if os.path.basename(entry[2]) == "ModellerScriptConfig.xml":
                 continue
             self.processed_input_file_map.append(entry[2])
-        self.start(self.service_name, self.params, self.processed_input_file_map)
+        self.start(self.service_name, self.params, self.processed_input_file_map, blocking=block)
 
     def monitor(self):
         super().monitor(poll_freq_override=5)
