@@ -217,6 +217,12 @@ class StructMeasureTool(ToolInstance):
         self.apc_table.add_column("Color", "model_color", format=ItemTable.COL_FORMAT_TRANSPARENT_COLOR,
             data_set="color {item.atomspec} {value}", title_display=False)
         self.apc_table.add_column("Shown", "display", format=ItemTable.COL_FORMAT_BOOLEAN, icon="shown")
+        def run_sel_cmd(item, value, ses=self.session):
+            cmd = "select" if value else "~select"
+            from chimerax.core.commands import run
+            run(ses, cmd + " " + item.atomspec)
+        self.apc_table.add_column("Selected", "selected", format=ItemTable.COL_FORMAT_BOOLEAN, icon="select",
+            data_set=run_sel_cmd, title_display=False)
         self.apc_table.launch()
         self.apc_table.data = self._filter_apc_models(self.session.models)
         self.apc_table.sortByColumn(1, Qt.AscendingOrder)
@@ -224,8 +230,9 @@ class StructMeasureTool(ToolInstance):
         self.handlers.append(self.session.triggers.add_handler(ADD_MODELS, self._refresh_apc_table))
         self.handlers.append(self.session.triggers.add_handler(REMOVE_MODELS, self._refresh_apc_table))
         from chimerax.core.models import MODEL_COLOR_CHANGED, MODEL_DISPLAY_CHANGED, MODEL_ID_CHANGED, \
-            MODEL_NAME_CHANGED
-        for trig_name in  (MODEL_COLOR_CHANGED, MODEL_DISPLAY_CHANGED, MODEL_ID_CHANGED, MODEL_NAME_CHANGED):
+            MODEL_NAME_CHANGED, MODEL_SELECTION_CHANGED
+        for trig_name in  (MODEL_COLOR_CHANGED, MODEL_DISPLAY_CHANGED, MODEL_ID_CHANGED, MODEL_NAME_CHANGED,
+                MODEL_SELECTION_CHANGED):
             self.handlers.append(self.session.triggers.add_handler(trig_name, self._refresh_apc_cell))
         layout.addWidget(self.apc_table, alignment=Qt.AlignCenter)
 
@@ -330,8 +337,10 @@ class StructMeasureTool(ToolInstance):
             title = "Shown"
         elif trig_name == MODEL_ID_CHANGED:
             title = "ID"
-        else:
+        elif trig_name == MODEL_NAME_CHANGED:
             title = "Name"
+        else:
+            title = "Selected"
         self.apc_table.update_cell(title, model)
 
 

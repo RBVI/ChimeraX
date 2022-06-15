@@ -13,7 +13,7 @@
 
 from Qt.QtWidgets import QWidget, QCheckBox, QTableView, QMenu, QAbstractItemView
 from Qt.QtGui import QAction
-from Qt.QtCore import QAbstractTableModel, Qt, QModelIndex, Signal, QSortFilterProxyModel
+from Qt.QtCore import QAbstractTableModel, Qt, QModelIndex, Signal, QSortFilterProxyModel, QSize
 # Qt has no QVariant; None can be used in place of an invalid QVariant
 # from Qt.QtCore import QVariant
 from Qt.QtGui import QFontDatabase, QBrush, QColor
@@ -122,6 +122,9 @@ class QCxTableModel(QAbstractTableModel):
                 else:
                     icon = col.icon
                 return icon
+        elif role == Qt.SizeHintRole:
+            if col.display_format == self._item_table.COL_FORMAT_BOOLEAN:
+                return QSize(25, 25)
 
         return None
 
@@ -294,7 +297,6 @@ class ItemTable(QTableView):
                     bbox.addButton("Toggle Controls", qbbox.ActionRole).clicked.connect(
                         self._toggle_columns_checkboxes)
         self._highlighted = set()
-
 
     def _toggle_columns_checkboxes(self):
         self._col_checkbox_container.setVisible(not self._col_checkbox_container.isVisible())
@@ -693,8 +695,7 @@ class _ItemColumn:
             self.data_set(instance, val)
         else:
             from chimerax.core.commands import run, StringArg
-            if self.display_format in [ItemTable.COL_FORMAT_OPAQUE_COLOR,
-                    ItemTable.COL_FORMAT_TRANSPARENT_COLOR]:
+            if self.display_format in ItemTable.color_formats:
                 from chimerax.core.colors import hex_color
                 val = hex_color(val)
             if type(val) == str:

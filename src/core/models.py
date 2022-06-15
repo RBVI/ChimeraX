@@ -24,6 +24,7 @@ MODEL_DISPLAY_CHANGED = 'model display changed'
 MODEL_ID_CHANGED = 'model id changed'
 MODEL_NAME_CHANGED = 'model name changed'
 MODEL_POSITION_CHANGED = 'model position changed'
+MODEL_SELECTION_CHANGED = 'model selection changed'
 RESTORED_MODELS = 'restored models'
 RESTORED_MODEL_TABLE = 'restored model table'
 # TODO: register Model as data event type
@@ -206,6 +207,7 @@ class Model(State, Drawing):
 
     def _selection_changed(self):
         self.session.selection.trigger_fire_needed = True
+        self.session.triggers.activate_trigger(MODEL_SELECTION_CHANGED, self)
 
     # Provide a direct way to set only the model selection status
     # without subclass interference
@@ -531,6 +533,7 @@ class Models(StateManager):
         t.add_trigger(MODEL_ID_CHANGED)
         t.add_trigger(MODEL_NAME_CHANGED)
         t.add_trigger(MODEL_POSITION_CHANGED)
+        t.add_trigger(MODEL_SELECTION_CHANGED)
         t.add_trigger(RESTORED_MODELS)
         t.add_trigger(RESTORED_MODEL_TABLE)
         self._models = {}				# Map id to Model
