@@ -676,10 +676,15 @@ def concise_residue_spec(session, residues):
             chain_id_index_map[cid] = i
         specs = {}
         for struct, chain_id, chain_residues in struct_residues.by_chain:
-            sort_residues = list(chain_residues)
-            sort_residues.sort(key=lambda res: (res.number, res.insertion_code))
-            specs.setdefault(':' + _form_range(sort_residues, res_index_map, lambda r:
-                r.string(omit_structure=True, style="command", residue_only=True)[1:]), []).append(chain_id)
+            # if chain_residues is all the residues with that chain ID, don't need a residue spec
+            if len(struct.residues[struct.residues.chain_ids == chain_id]) == len(chain_residues):
+                spec = ""
+            else:
+                sort_residues = list(chain_residues)
+                sort_residues.sort(key=lambda res: (res.number, res.insertion_code))
+                spec = ':' + _form_range(sort_residues, res_index_map, lambda r:
+                    r.string(omit_structure=True, style="command", residue_only=True)[1:])
+            specs.setdefault(spec, []).append(chain_id)
 
         if full_spec:
             full_spec += ' '
