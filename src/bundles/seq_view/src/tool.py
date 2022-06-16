@@ -576,6 +576,13 @@ class SequenceViewer(ToolInstance):
                 self.session, "seq header %s%s save browse" % (align_arg, hdr.ident)))
             hdr_save_menu.addAction(action)
 
+        numberings_menu = menu.addMenu("Numberings")
+        action = QAction.("Overall")
+        action.setCheckable(True)
+        action.setChecked(self.seq_canvas.show_ruler)
+        action.triggered.connect(lambda*, sc=self.seq_canvas, action=action: setattr(sc, "show_ruler",
+            action.isChecked()))
+
         tools_menu = menu.addMenu("Tools")
         comp_model_action = QAction("Modeller Comparative Modeling...", tools_menu)
         comp_model_action.triggered.connect(lambda: run(self.session,

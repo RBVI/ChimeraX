@@ -745,7 +745,7 @@ class SeqCanvas:
         self.label_width = _find_label_width(self.alignment.seqs + initial_headers,
             self.sv.settings, self.font_metrics, self.emphasis_font_metrics, SeqBlock.label_pad)
 
-        self.show_ruler = self.sv.settings.alignment_show_ruler_at_startup and len(self.alignment.seqs) > 1
+        self._show_ruler = self.sv.settings.alignment_show_ruler_at_startup and len(self.alignment.seqs) > 1
         self.line_width = self.line_width_from_settings()
         self.numbering_widths = self.find_numbering_widths(self.line_width)
         """TODO
@@ -1037,6 +1037,8 @@ class SeqCanvas:
 
     def alignment_notification(self, note_name, note_data):
         if hasattr(self, 'lead_block'):
+            if note_name == self.alignment.NOTE_REF_SEQ:
+                self.lead_block.rerule()
             if note_name not in (self.alignment.NOTE_HDR_SHOWN, self.alignment.NOTE_HDR_VALUES,
                     self.alignment.NOTE_HDR_NAME):
                 return
@@ -1167,6 +1169,16 @@ class SeqCanvas:
             self.showNodes(savedNodeDisplay)
         self.sv.status(msg)
     """
+
+    @property
+    def show_ruler(self):
+        return self._show_ruler
+
+    @show_ruler.setter
+    def show_ruler(self, val):
+        if val == self._show_ruler:
+            return
+        self._show_ruler = val
 
     def state(self):
         '''Used to save header state, now done by alignment'''
@@ -1595,9 +1607,9 @@ class SeqBlock:
         if seq_offset + line_width >= len(alignment.seqs[0]):
             self.next_block = None
         else:
-            self.next_block = SeqBlock(label_scene, main_scene, self, self.font,
-                self.emphasis_font, self.font_metrics, self.emphasis_font_metrics, seq_offset + line_width,
-                headers, alignment, line_width, label_bindings, status_func, show_ruler, tree_balloon,
+            self.next_block = SeqBlock(label_scene, main_scene, self, self.font, self.emphasis_font,
+                self.font_metrics, self.emphasis_font_metrics, seq_offset + line_width, headers, alignment,
+                line_width, label_bindings, status_func, show_ruler, tree_balloon,
                 show_numberings, settings, label_width, font_pixels, numbering_widths, letter_gaps)
 
     """TODO
@@ -2178,8 +2190,40 @@ class SeqBlock:
         y = self.top_y + self.font_pixels[1] + self.letter_gaps[1]
 
         end = min(self.seq_offset + self.line_width, len(self.alignment.seqs[0]))
+        ref_seq = self.alignment.reference_seq
         for chunk_start in range(self.seq_offset, end, 10):
-            text = self.main_scene.addSimpleText("%d" % (chunk_start+1), font=self.font)
+            if ref_seq is None:
+                ruler_text = "%d" % (chunk_start+1)
+            else:
+                index = ref_seq.gapped_to_ungapped(chunk_start)
+                if index is None:
+                    # in a gap in the reference sequence
+                    for i in range(chunk_start-1, -1, -1):
+                        left_index = ref_seq.gapped_to_ungapped(i)
+                        if left_index is not None:
+                            break
+                    else:
+                        left_index = None
+
+                    for i in range(chunk_start+1, len(ref_seq.ungapped())):
+                        right_index = ref_seq.gapped_to_ungapped(i)
+                        if right_index is not None:
+                            break
+                    else:
+                        right_index = None
+
+                    if left_index is None:
+                        if right_index is None:
+                            ruler_text = "N/A"
+                        else:
+                            ruler_text = ("(<%d)" % (right_index+1))
+                    elif right_index is None:
+                        ruler_text = "(>%d)" % (left_index+1)
+                    else:
+                        ruler_text = "(%d/%d)" % (left_index+1, right_index+1)
+                else:
+                    ruler_text = "%d" % (index+1)
+            text = self.main_scene.addSimpleText(ruler_text, font=self.font)
             # anchor='s': subtract the height and half the width
             rect = text.sceneBoundingRect()
             text.setPos(x - rect.width()/2, y - rect.height())
@@ -2632,6 +2676,11 @@ class SeqBlock:
         self.label_texts[line].setText(line.name)
         if self.next_block:
             self.next_block.replace_label(line)
+
+    def rerule(self):
+        self.layout_ruler(rerule=True)
+        if self.next_block:
+            self.next_block.rerule()
 
     def row_index(self, y, bound=None):
         '''Given a relative y, return the row index'''

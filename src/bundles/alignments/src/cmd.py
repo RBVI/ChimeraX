@@ -310,6 +310,10 @@ def seqalign_identity(session, src1, src2=None, *, denominator=IdentityDenominat
         session.logger.info("%s vs. %s: %.2f%% identity" % (seq1.name, src2.name, identity))
     return identity
 
+def seqalign_refseq(session, ref_seq_info):
+    aln, ref_seq = ref_seq_info
+    aln.reference_seq = ref_seq
+
 MUSCLE = "MUSCLE"
 CLUSTAL_OMEGA = "Clustal Omega"
 alignment_program_name_args = { 'muscle': MUSCLE, 'omega': CLUSTAL_OMEGA, 'clustal': CLUSTAL_OMEGA,
@@ -382,6 +386,12 @@ def register_seqalign_command(logger):
         synopsis = "report percent identity"
     )
     register('sequence identity', desc, seqalign_identity, logger=logger)
+
+    desc = CmdDesc(
+        required = [('ref_seq_info', AlignSeqPairArg)],
+        synopsis = "set alignment reference sequence"
+    )
+    register('sequence refseq', desc, seqalign_refseq, logger=logger)
 
     from . import manager
     manager._register_viewer_subcommands(logger)
