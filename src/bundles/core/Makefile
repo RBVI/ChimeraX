@@ -9,10 +9,11 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-TOP = ../..
+TOP = ../../..
 include $(TOP)/mk/config.make
 
 NO_SUBDIR_TEST=1
+SUBDIR_BUILD=1
 SUBDIRS	+= chutil_cpp commands \
 	   ioutil_cpp logger_cpp \
 	   pysupport_cpp toolshed
@@ -39,7 +40,7 @@ endif
 WHL_BNDL_NAME = $(subst -,_,$(BUNDLE_NAME))
 
 BUNDLE_VERSION = 1.5
-BUNDLE_VERSION := $(shell $(PYTHON_EXE) mkbuildinfo -v $(BUILD_TOP) $(BUNDLE_VERSION) $(BUILD_TYPE))
+BUNDLE_VERSION := $(shell $(APP_PYTHON_EXE) mkbuildinfo -v $(BUILD_TOP) $(BUNDLE_VERSION) $(BUILD_TYPE))
 
 GENSRCS = buildinfo.py
 PYSRCS = $(filter-out setup.py,$(wildcard *.py)) $(GENSRCS)
@@ -52,7 +53,7 @@ endif
 
 all: $(PYOBJS)
 
-install reinstall: dir all
+build install reinstall: dir all
 	$(RSYNC) $(PYSRCS) $(DATA) $(PKG_DIR)
 	if [ -d "$(app_prefix)" ]; then \
 		$(MAKE) app-install ;\
