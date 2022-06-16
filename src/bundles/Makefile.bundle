@@ -26,19 +26,18 @@ endif
 # For Windows, we assume Cygwin is being used.
 OS = $(patsubst CYGWIN_NT%,CYGWIN_NT,$(shell uname -s))
 ifeq ($(OS),CYGWIN_NT)
-CHIMERAX_EXE = $(CHIMERAX_APP)/bin/ChimeraX-console.exe
+CHIMERAX_EXE = $(CHIMERAX_APP)/bin/python.exe -I -m chimerax.core
 PYMOD_EXT = pyd
 endif
 ifeq ($(OS),Darwin)
-CHIMERAX_EXE = $(CHIMERAX_APP)/Contents/bin/ChimeraX
+CHIMERAX_EXE = $(CHIMERAX_APP)/Contents/bin/python3.9 -I -m chimerax.core
 PYMOD_EXT = so
 endif
 ifeq ($(OS),Linux)
-CHIMERAX_EXE = $(CHIMERAX_APP)/bin/ChimeraX
+CHIMERAX_EXE = $(CHIMERAX_APP)/bin/python3.9 -I -m chimerax.core
 PYMOD_EXT = so
 endif
 RUN = $(CHIMERAX_EXE) --nogui --safemode --exit --cmd
-
 
 ifdef INSTALL_TO_VENV
 WHEEL = $(wildcard dist/*.whl)
