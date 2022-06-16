@@ -46,7 +46,7 @@ endif
 	$(APP_PYTHON_EXE) -m pip check
 ifeq ($(OS),Darwin)
 	# update Info.plist with data formats provided by bundles
-	$(MAKE) -C src/apps/ChimeraX reinstall-plist
+	$(MAKE) -C src/apps/ChimeraX install-plist
 endif
 	@echo 'Finished install at' `date`
 
