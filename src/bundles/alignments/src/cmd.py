@@ -141,8 +141,9 @@ class AlignmentArg(Annotation):
     def parse(text, session):
         from chimerax.core.commands import AnnotationError, next_token
         if not text:
-            raise AnnotationError("Expected %s" % SeqArg.name)
-        token, text, rest = next_token(text)
+            token = rest = ""
+        else:
+            token, text, rest = next_token(text)
         alignment = get_alignment_by_id(session, token)
         return alignment, text, rest
 
@@ -224,13 +225,7 @@ def seqalign_chain(session, chains):
             name = "chains %s" % ",".join(sorted(list(chain_ids)))
         from chimerax.atomic import Sequence
         seq = Sequence(name=name, characters=chars)
-        def get_numbering_start(chain):
-            for i, r in enumerate(chain.residues):
-                if r is None or r.deleted:
-                    continue
-                return r.number - i
-            return None
-        starts = set([get_numbering_start(chain) for chain in chains])
+        starts = set([chain.numbering_start for chain in chains])
         starts.discard(None)
         if len(starts) == 1:
             seq.numbering_start = starts.pop()
@@ -316,6 +311,13 @@ def seqalign_identity(session, src1, src2=None, *, denominator=IdentityDenominat
         session.logger.info("%s vs. %s: %.2f%% identity" % (seq1.name, src2.name, identity))
     return identity
 
+def seqalign_refseq(session, ref_seq_info):
+    if isinstance(ref_seq_info, tuple):
+        aln, ref_seq = ref_seq_info
+    else:
+        aln, ref_seq = ref_seq_info, None
+    aln.reference_seq = ref_seq
+
 MUSCLE = "MUSCLE"
 CLUSTAL_OMEGA = "Clustal Omega"
 alignment_program_name_args = { 'muscle': MUSCLE, 'omega': CLUSTAL_OMEGA, 'clustal': CLUSTAL_OMEGA,
@@ -388,6 +390,12 @@ def register_seqalign_command(logger):
         synopsis = "report percent identity"
     )
     register('sequence identity', desc, seqalign_identity, logger=logger)
+
+    desc = CmdDesc(
+        required = [('ref_seq_info', Or(AlignSeqPairArg, AlignmentArg))],
+        synopsis = "set alignment reference sequence"
+    )
+    register('sequence refseq', desc, seqalign_refseq, logger=logger)
 
     from . import manager
     manager._register_viewer_subcommands(logger)

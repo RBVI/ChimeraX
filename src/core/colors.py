@@ -435,6 +435,9 @@ def _builtin_colormaps():
     cmaps['pae'] = Colormap((0, 5, 10, 15, 20, 25, 30), _pae_colors)
     _pae_green_colors = ((0.118,0.275,0.118,1), (0.142,0.571,0.142,1), (0.216,0.693,0.216,1), (0.338,0.788,0.338,1), (0.510,0.867,0.510,1), (0.730,0.937,0.730,1), (1.000,1.000,1.000,1))
     cmaps['paegreen'] = Colormap((0, 5, 10, 15, 20, 25, 30), _pae_green_colors)
+    _pae_contacts_colors = [BuiltinColors[name] for name in
+                            ('blue', 'cornflowerblue', 'yellow', 'orange', 'red')]
+    cmaps['paecontacts'] = Colormap((0, 5, 10, 15, 20), _pae_contacts_colors)
 
     # Add some aliases
     cmaps['redblue'] = cmaps['red-white-blue']
@@ -802,7 +805,7 @@ def most_common_color(colors):
     return colors[indices[max_index]]
 
 _color_names = None
-def color_name(color_or_rgba8):
+def color_name(color_or_rgba8, *, always_include_hex_alpha=False):
     '''Return english color name or hex color string.'''
     global _color_names
     if _color_names is None:
@@ -816,11 +819,12 @@ def color_name(color_or_rgba8):
     if c in _color_names:
         name = _color_names[c]
     else:
-        name = hex_color(c)
+        name = hex_color(c, always_include_alpha=always_include_hex_alpha)
     return name
 
-def hex_color(rgba8):
-    return ('#%02x%02x%02x' % tuple(rgba8[:3])) if rgba8[3] == 255 else ('#%02x%02x%02x%02x' % tuple(rgba8))
+def hex_color(rgba8, *, always_include_alpha=False):
+    return ('#%02x%02x%02x' % tuple(rgba8[:3])) if rgba8[3] == 255 and not always_include_alpha else (
+        '#%02x%02x%02x%02x' % tuple(rgba8))
 
 def rgba_to_rgba8(rgba):
     return tuple(int(255 * r + 0.5) for r in rgba)

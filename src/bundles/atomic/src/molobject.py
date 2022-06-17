@@ -533,7 +533,7 @@ class PseudobondManager(StateManager):
             if not obj:
                 from .pbgroup import PseudobondGroup
                 obj = PseudobondGroup(pbg_ptr, session=self.session)
-                f = c_function('set_pbgroup_py_instance',
+                f = c_function('set_pseudobondgroup_py_instance',
                     args = (ctypes.c_void_p, ctypes.py_object))
                 f(pbg_ptr, obj)
             obj_map[cat] = obj

@@ -1,0 +1,103 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: renumber</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#commands">Command</a>: renumber</h3>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>renumber</b>
+&nbsp;<a href="atomspec.html#hierarchy"><i>residue-spec</i></a>&nbsp;
+[&nbsp;<b>start</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
+[&nbsp;<b>seqstart</b>&nbsp;&nbsp;<i>M</i>&nbsp;]
+[&nbsp;<b>relative</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+</h3>
+<p>
+The command <b>renumber</b> renumbers residues
+starting from 1 or another integer given by the user. 
+The corresponding tool is <a href="../tools/renumber.html"><b>Renumber
+Residues</b></a>.
+</p><p>
+To switch between numbering schemes already defined for biopolymer
+structures from the <a href="https://www.wwpdb.org" target="_blank">wwPDB</a>,
+instead use <a href="setattr.html"><b>setattr</b></a> to change the
+<a href="../attributes.html#model">atomic-model attribute</a>
+<b>res_numbering</b>, with possible values <b>author</b>, <b>canonical</b>, or
+<b>uniprot</b>.
+See also: 
+<a href="rename.html"><b>rename</b></a>,
+<a href="build.html"><b>build</b></a>,
+<a href="combine.html"><b>combine</b></a>,
+<a href="save.html#pdb"><b>save</b></a>
+</p><p>
+Within each atomic model, the specified residues are grouped by chain ID, and 
+of these, the lowest-numbered residue per chain is assigned a new number 
+with <b>start</b> or <b>seqstart</b>:
+</p>
+<ul>
+<li><b>start</b> specifies the starting number directly
+<li><b>seqstart</b> specifies the starting number directly for 
+chains without any biopolymer residues specified, and indirectly 
+for chains with any biopolymer residues specified. If any biopolymer
+residues were specified for that chain, the specified number is mapped to
+the first residue in the PDB SEQRES records (or mmCIF equivalent) 
+for that chain.
+This may be different from the first residue in the chain's atomic coordinates
+(one or more N-terminal residues may be missing from the coordinates
+due to disorder). Using <b>seqstart</b> allows consistent numbering 
+of multiple copies of the same protein despite their having 
+N-terminal disordered regions of different lengths.
+</ul>
+<p>
+The specified number can be zero or a positive or negative integer 
+(default <b>start 1</b>).
+</p><p>
+The remaining residues specified from each chain are then numbered either
+consecutively from the start (<b>relative false</b>),
+or to maintain a constant offset from their current numbering 
+(<b>relative true</b>, default). The default <b>relative true</b>
+maintains any existing insertion codes and gaps in numbering.
+</p><p>
+If the requested renumbering would result in multiple residues in the 
+same chain having the same number, an error message will appear and the 
+renumbering will not occur.
+</p><p>
+<a name="examples"></a>Examples:
+</p>
+<blockquote>
+<b>renumber /A:10-50 start 310</b>
+</blockquote>
+&ndash; renumber chain A residues 10-50 as 310-350
+<blockquote>
+<b>renumber #1/A start 1 relative false</b>
+</blockquote>
+&ndash; in model #1, renumber all chain A residues that have 3D coordinates 
+consecutively starting with 1
+<blockquote>
+<b>renumber /B,D,F seqstart -3</b>
+</blockquote>
+&ndash; renumber chains B, D, and F, using -3 as the number for the first
+residue in the SEQRES records of each
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+June 2022</address>
+</body></html>

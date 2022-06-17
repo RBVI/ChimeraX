@@ -44,6 +44,9 @@ class _AlphaFoldBundle(BundleAPI):
         elif command_name == 'alphafold pae':
             from . import pae
             pae.register_alphafold_pae_command(logger)
+        elif command_name == 'alphafold contacts':
+            from . import contacts
+            contacts.register_alphafold_contacts_command(logger)
 
     @staticmethod
     def run_provider(session, name, mgr):

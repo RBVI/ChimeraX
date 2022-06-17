@@ -98,7 +98,6 @@ class SaverInfo:
 
 from .manager import NoSaverError
 from .dialog import show_save_file_dialog
-from .options import SaveModelOptionWidget
 
 from chimerax.core.toolshed import BundleAPI
 class _OpenBundleAPI(BundleAPI):

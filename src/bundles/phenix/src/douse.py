@@ -21,23 +21,23 @@ class DouseJob(Job):
 
     SESSION_SAVE = False
 
-    def __init__(self, session, executable_location, map_file_name, model_file_name, temp_dir,
-            keep_input_water, verbose, callback, block):
+    def __init__(self, session, executable_location, optional_args, map_file_name, model_file_name,
+            positional_args, temp_dir, keep_input_water, verbose, callback, block):
         super().__init__(session)
         self._running = False
         self._monitor_time = 0
         self._monitor_interval = 10
-        self.start(session, executable_location, map_file_name, model_file_name, temp_dir, keep_input_water,
-            verbose, callback, blocking=block)
+        self.start(session, executable_location, optional_args, map_file_name, model_file_name,
+            positional_args, temp_dir, keep_input_water, verbose, callback, blocking=block)
 
-    def run(self, session, executable_location, map_file_name, model_file_name, temp_dir, keep_input_water,
-            verbose, callback, **kw):
+    def run(self, session, executable_location, optional_args, map_file_name, model_file_name,
+            positional_args, temp_dir, keep_input_water, verbose, callback, **kw):
         self._running = True
         self.start_t = time()
         def threaded_run(self=self):
             try:
-                results = _run_douse_subprocess(session, executable_location, map_file_name, model_file_name,
-                    temp_dir, keep_input_water, verbose)
+                results = _run_douse_subprocess(session, executable_location, optional_args, map_file_name,
+                    model_file_name, positional_args, temp_dir, keep_input_water, verbose)
             finally:
                 self._running = False
             self.session.ui.thread_safe(callback, results)
@@ -71,7 +71,7 @@ class DouseJob(Job):
 
 
 def phenix_douse(session, map, near_model, *, block=None, far_water=False, keep_input_water=True,
-        map_range=8, phenix_location=None, residue_range=5, verbose=False):
+        map_range=8, phenix_location=None, residue_range=5, verbose=False, option_arg=[], position_arg=[]):
 
     # Find the phenix.douse executable
     from .locate import find_phenix_command
@@ -108,8 +108,8 @@ def phenix_douse(session, map, near_model, *, block=None, far_water=False, keep_
         keep_input_water=keep_input_water, far_water=far_water, map=map, residue_range=residue_range, \
         map_range=map_range, d_ref=d: _process_results(session, douse_model, shift, near_model,
         keep_input_water, far_water, map, residue_range, map_range)
-    DouseJob(session, exe_path, "map.mrc", "model.pdb", temp_dir, douse_keep_input_water, verbose,
-        callback, block)
+    DouseJob(session, exe_path, option_arg, "map.mrc", "model.pdb", position_arg, temp_dir,
+        douse_keep_input_water, verbose, callback, block)
 
 
 def _process_results(session, douse_model, shift, near_model, keep_input_water, far_water, map,
@@ -151,12 +151,12 @@ def _fix_map_origin(map):
     return map_0, shift
 
 
-def _run_douse_subprocess(session, exe_path, map_filename, model_filename, temp_dir, keep_input_water,
-        verbose):
+def _run_douse_subprocess(session, exe_path, optional_args, map_filename, model_filename, positional_args,
+        temp_dir, keep_input_water, verbose):
     '''
     Run douse in a subprocess and return the model with predicted waters.
     '''
-    args = [exe_path, map_filename, model_filename]
+    args = [exe_path] + optional_args + [map_filename, model_filename] + positional_args
     if keep_input_water:
         args.append('keep_input_water=true')
     tsafe=session.ui.thread_safe
