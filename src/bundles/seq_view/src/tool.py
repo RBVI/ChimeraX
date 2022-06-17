@@ -514,6 +514,7 @@ class SequenceViewer(ToolInstance):
         file_menu = menu.addMenu("File")
         save_as_menu = file_menu.addMenu("Save As")
         from chimerax.core.commands import run, StringArg
+        align_arg = "%s " % self.alignment if len(self.session.alignments.alignments) > 1 else ""
         fmts = [fmt for fmt in self.session.save_command.save_data_formats if fmt.category == "Sequence"]
         fmts.sort(key=lambda fmt: fmt.synopsis.casefold())
         for fmt in fmts:
@@ -561,7 +562,6 @@ class SequenceViewer(ToolInstance):
             action.setChecked(hdr.shown)
             if not hdr.relevant:
                 action.setEnabled(False)
-            align_arg = "%s " % self.alignment if len(self.session.alignments.alignments) > 1 else ""
             action.triggered.connect(lambda *, action=action, hdr=hdr, align_arg=align_arg, self=self: run(
                 self.session, "seq header %s%s %s" % (align_arg, hdr.ident, "show" if action.isChecked() else "hide")))
             headers_menu.addAction(action)
@@ -571,17 +571,44 @@ class SequenceViewer(ToolInstance):
             if not hdr.relevant:
                 continue
             action = QAction(hdr.name, hdr_save_menu)
-            align_arg = "%s " % self.alignment if len(self.session.alignments.alignments) > 1 else ""
             action.triggered.connect(lambda *, hdr=hdr, align_arg=align_arg, self=self: run(
                 self.session, "seq header %s%s save browse" % (align_arg, hdr.ident)))
             hdr_save_menu.addAction(action)
 
         numberings_menu = menu.addMenu("Numberings")
-        action = QAction.("Overall")
+        action = QAction("Overall", numberings_menu)
         action.setCheckable(True)
         action.setChecked(self.seq_canvas.show_ruler)
-        action.triggered.connect(lambda*, sc=self.seq_canvas, action=action: setattr(sc, "show_ruler",
-            action.isChecked()))
+        action.triggered.connect(lambda*, sc=self.seq_canvas, action=action:
+            setattr(sc, "show_ruler", action.isChecked()))
+        numberings_menu.addAction(action)
+        refseq_menu = numberings_menu.addMenu("Reference Sequence")
+        action = QAction("No Reference Sequence")
+        action.setCheckable(True)
+        action.setChecked(self.alignment.reference_seq is None)
+        action.triggered.connect(lambda*, align_arg=align_arg, action=action, self=self:
+            run(self.session, "seq ref " + align_arg) if action.isChecked() else None)
+        refseq_menu.addAction(action)
+        for seq in self.alignment.seqs:
+            action = QAction(seq.name)
+            action.setCheckable(True)
+            action.setChecked(self.alignment.reference_seq is seq)
+            action.triggered.connect(lambda*, seq_arg=StringArg.unparse(align_arg + ':' + seq.name),
+                action=action: run(self.session, "seq ref " + seq_arg) if action.isChecked() else None)
+            refseq_menu.addAction(action)
+        numberings_menu.addSeparator()
+        action = QAction("Left Sequence", numberings_menu)
+        action.setCheckable(True)
+        action.setChecked(self.seq_canvas.show_left_numbering)
+        action.triggered.connect(lambda*, sc=self.seq_canvas, action=action:
+            setattr(sc, "show_left_numbering", action.isChecked()))
+        numberings_menu.addAction(action)
+        action = QAction("Right Sequence", numberings_menu)
+        action.setCheckable(True)
+        action.setChecked(self.seq_canvas.show_right_numbering)
+        action.triggered.connect(lambda*, sc=self.seq_canvas, action=action:
+            setattr(sc, "show_right_numbering", action.isChecked()))
+        numberings_menu.addAction(action)
 
         tools_menu = menu.addMenu("Tools")
         comp_model_action = QAction("Modeller Comparative Modeling...", tools_menu)

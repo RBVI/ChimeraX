@@ -141,8 +141,9 @@ class AlignmentArg(Annotation):
     def parse(text, session):
         from chimerax.core.commands import AnnotationError, next_token
         if not text:
-            raise AnnotationError("Expected %s" % SeqArg.name)
-        token, text, rest = next_token(text)
+            token = rest = ""
+        else:
+            token, text, rest = next_token(text)
         alignment = get_alignment_by_id(session, token)
         return alignment, text, rest
 
@@ -311,7 +312,10 @@ def seqalign_identity(session, src1, src2=None, *, denominator=IdentityDenominat
     return identity
 
 def seqalign_refseq(session, ref_seq_info):
-    aln, ref_seq = ref_seq_info
+    if isinstance(ref_seq_info, tuple):
+        aln, ref_seq = ref_seq_info
+    else:
+        aln, ref_seq = ref_seq_info, None
     aln.reference_seq = ref_seq
 
 MUSCLE = "MUSCLE"
@@ -388,7 +392,7 @@ def register_seqalign_command(logger):
     register('sequence identity', desc, seqalign_identity, logger=logger)
 
     desc = CmdDesc(
-        required = [('ref_seq_info', AlignSeqPairArg)],
+        required = [('ref_seq_info', Or(AlignSeqPairArg, AlignmentArg))],
         synopsis = "set alignment reference sequence"
     )
     register('sequence refseq', desc, seqalign_refseq, logger=logger)
