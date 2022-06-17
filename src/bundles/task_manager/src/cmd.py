@@ -27,12 +27,7 @@ def taskman(session: Session, action: str, job: str = None) -> None:
     elif action == 'pause':
         pass
     else:
-        raise UserError("Unsupported action.")
-#    match action:
-#        case 'list':
-#            pass
-#        case _:
-#            raise UserError("Unsupported action.")
+        raise UserError("Unsupported action. Please use one of [list, kill, pause].")
 
 taskman_desc: CmdDesc = CmdDesc(
     required = [("action", StringArg)],

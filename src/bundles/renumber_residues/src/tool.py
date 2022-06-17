@@ -23,7 +23,7 @@ def renumber_residues_dialog(session, tool_name):
 
 class RenumberResiduesDialog(ToolInstance):
 
-    #help = "help:user/tools/rotamers.html"
+    help = "help:user/tools/renumber.html"
     SESSION_SAVE = False
 
     def __init__(self, session, tool_name):
@@ -36,7 +36,7 @@ class RenumberResiduesDialog(ToolInstance):
         from Qt.QtCore import Qt
         self.layout = layout = QVBoxLayout()
         parent.setLayout(layout)
-        layout.setContentsMargins(0,0,0,0)
+        layout.setContentsMargins(10,0,10,0)
         type_box = QGroupBox("Renumber")
         layout.addWidget(type_box)
         box_layout = QVBoxLayout()
@@ -64,15 +64,15 @@ class RenumberResiduesDialog(ToolInstance):
         box_layout.addWidget(self.seq_numbering, alignment=Qt.AlignHCenter|Qt.AlignTop)
         self.seq_numbering.setChecked(True)
 
-        self.relative = QCheckBox("Maintain relative numbering within renumbered residues")
-        layout.addWidget(self.relative, alignment=Qt.AlignCenter)
-        self.relative.setChecked(True)
-
         from chimerax.ui.options import IntOption, OptionsPanel
         opts = OptionsPanel(scrolled=False, contents_margins=(0,0,3,3))
         layout.addWidget(opts, alignment=Qt.AlignCenter)
-        self.numbering_start = IntOption("Starting from:", 1, None)
+        self.numbering_start = IntOption("Start from:", 1, None)
         opts.add_option(self.numbering_start)
+
+        self.relative = QCheckBox("Maintain relative numbering within renumbered residues")
+        layout.addWidget(self.relative, alignment=Qt.AlignCenter)
+        self.relative.setChecked(True)
 
         from Qt.QtWidgets import QDialogButtonBox as qbbox
         self.bbox = bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
@@ -81,8 +81,7 @@ class RenumberResiduesDialog(ToolInstance):
         bbox.accepted.connect(self.delete) # slots executed in the order they are connected
         bbox.rejected.connect(self.delete)
         from chimerax.core.commands import run
-        #bbox.helpRequested.connect(lambda *, run=run, ses=session: run(ses, "help " + self.help))
-        bbox.button(qbbox.Help).setEnabled(False)
+        bbox.helpRequested.connect(lambda *, run=run, ses=session: run(ses, "help " + self.help))
         layout.addWidget(bbox)
 
         tw.manage(placement=None)

@@ -109,6 +109,7 @@ def dump_format(f):
 if 'session' in locals() or 'session' in globals():
     formats = session.open_command.open_data_formats  # NOQA
     chimera_types = [f.name for f in formats if f.name.startswith('Chimera')]
+# TODO: Dead code?
 else:
     sys.path.insert(0, '')
     from ChimeraX_main import init
