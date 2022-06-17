@@ -61,14 +61,14 @@ def realign_sequences(session, sequences, *, program=CLUSTAL_OMEGA):
             super().__init__(session)
             service_name, options, self.reorders_seqs, in_flag, out_flag = {
                 MUSCLE: (
-                    "MuscleService",
+                    "muscle",
                     "-maxiters 1",
                     True,
                     "-in",
                     "-out",
                 ),
                 CLUSTAL_OMEGA: (
-                    "ClustalOmegaService",
+                    "clustal_omega",
                     "--iterations 1 --full --full-iter",
                     False,
                     "-i",
