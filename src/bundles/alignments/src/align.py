@@ -62,14 +62,14 @@ def realign_sequences(session, sequences, *, program=CLUSTAL_OMEGA):
             service_name, options, self.reorders_seqs, in_flag, out_flag = {
                 MUSCLE: (
                     "muscle",
-                    "1", # -maxiters
+                    {'maxiters': "1"},
                     True,
                     "-in",
                     "-out",
                 ),
                 CLUSTAL_OMEGA: (
                     "clustal_omega",
-                    ["--iterations", "1",  "--full", "--full-iter"],
+                    {"iterations": "1"}, #  "--full", "--full-iter",
                     False,
                     "-i",
                     "-o",
@@ -77,10 +77,10 @@ def realign_sequences(session, sequences, *, program=CLUSTAL_OMEGA):
             }[program]
             #command = "%s input.fa %s output.fa %s" % (in_flag, out_flag, options)
             params = {
-                'maxiters': options,
                 'in_flag': in_flag,
                 'out_flag': out_flag
             }
+            params.update(options)
             session.logger.status("Starting %s alignment" % program)
             #input_file_map = [ ("input.fa", "text_file", input_file.name) ]
             self.start(service_name, params, [input_file.name], blocking=True)
