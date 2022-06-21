@@ -744,6 +744,8 @@ cdef class CyAtom:
             atoms = self.residue.atoms
             if len(atoms.filter(atoms.names == self.name)) > 1:
                 atom_str = '@@serial_number=' + str(self.serial_number)
+            elif self.name.endswith('-'):
+                atom_str = '@@name="' + self.name + '"'
             else:
                 atom_str = '@' + self.name
         else:

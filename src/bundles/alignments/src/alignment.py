@@ -33,6 +33,7 @@ class Alignment(State):
     NOTE_EDIT_END      = "editing finished"
     NOTE_DESTROYED     = "destroyed"
     NOTE_COMMAND       = "command"
+    NOTE_REF_SEQ       = "reference seq changed"
 
     # associated note_data for the above is None except for:
     #   NOTE_ADD_ASSOC: list of new matchmaps
@@ -48,6 +49,7 @@ class Alignment(State):
     #       data normally provided with that notification, or NOTE_MOD_ASSOC, for which the second value
     #       is a list of modified matchmaps.
     #   NOTE_COMMAND: the observer subcommand text
+    #   NOTE_REF_SEQ: the new reference sequence (which could be None)
     #   not yet implemented:  NOTE_ADD_SEQS, NOTE_PRE_DEL_SEQS, NOTE_DEL_SEQS, NOTE_ADD_DEL_SEQS,
 
     NOTE_HDR_VALUES    = "header values changed"
@@ -80,6 +82,7 @@ class Alignment(State):
         self._observer_notification_suspended = 0
         self._ob_note_suspended_data = []
         self._modified_mmaps = []
+        self._reference_seq = None
         self.associations = {}
         # need to be able to look up chain obj even after demotion to Sequence
         self._sseq_to_chain = {}
@@ -579,6 +582,18 @@ class Alignment(State):
         # set up callbacks for structure changes
         match_map.mod_handler = match_map.triggers.add_handler('modified', self._mmap_mod_cb)
         self._set_residue_attributes(match_maps=[match_map])
+
+    @property
+    def reference_seq(self):
+        return self._reference_seq
+
+    @reference_seq.setter
+    def reference_seq(self, ref_seq):
+        # can be None
+        if ref_seq == self._reference_seq:
+            return
+        self._reference_seq = ref_seq
+        self._notify_observers(self.NOTE_REF_SEQ, ref_seq)
 
     def remove_observer(self, observer):
         """Called when an observer is done with the alignment (see add_observer)"""

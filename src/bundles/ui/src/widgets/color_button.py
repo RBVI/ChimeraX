@@ -63,7 +63,7 @@ class ColorButton(QPushButton):
     color_changed = Signal(ndarray)
     color_pause = Signal(ndarray)
 
-    def __init__(self, *args, max_size=None, has_alpha_channel=False, pause_delay=None, **kw):
+    def __init__(self, *args, max_size=None, has_alpha_channel=False, pause_delay=None):
         super().__init__(*args)
         if max_size is not None:
             self.setMaximumSize(*max_size)

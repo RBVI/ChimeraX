@@ -32,7 +32,18 @@ class="clRight" title="User Guide Index"/></a>
 [&nbsp;<b>relative</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 </h3>
 <p>
-The command <b>renumber</b> renumbers residues. See also: 
+The command <b>renumber</b> renumbers residues
+starting from 1 or another integer given by the user. 
+The corresponding tool is <a href="../tools/renumber.html"><b>Renumber
+Residues</b></a>.
+</p><p>
+To switch between numbering schemes already defined for biopolymer
+structures from the <a href="https://www.wwpdb.org" target="_blank">wwPDB</a>,
+instead use <a href="setattr.html"><b>setattr</b></a> to change the
+<a href="../attributes.html#model">atomic-model attribute</a>
+<b>res_numbering</b>, with possible values <b>author</b>, <b>canonical</b>, or
+<b>uniprot</b>.
+See also: 
 <a href="rename.html"><b>rename</b></a>,
 <a href="build.html"><b>build</b></a>,
 <a href="combine.html"><b>combine</b></a>,
@@ -65,6 +76,10 @@ consecutively from the start (<b>relative false</b>),
 or to maintain a constant offset from their current numbering 
 (<b>relative true</b>, default). The default <b>relative true</b>
 maintains any existing insertion codes and gaps in numbering.
+</p><p>
+If the requested renumbering would result in multiple residues in the 
+same chain having the same number, an error message will appear and the 
+renumbering will not occur.
 </p><p>
 <a name="examples"></a>Examples:
 </p>

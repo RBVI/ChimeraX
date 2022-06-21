@@ -184,16 +184,18 @@ class Task(State):
         """
         if self.state != PENDING:
             raise RuntimeError("starting task multiple times")
+        blocking = kw.get("blocking", False) # since _run_thread will pop() it
         self._thread = threading.Thread(target=self._run_thread,
                                         daemon=True, args=args, kwargs=kw)
         self._thread.start()
         self.update_state(RUNNING)
         self._terminate = threading.Event()
-        if kw.get("blocking", False):
+        if blocking:
             self._thread.join()
             self.update_state(FINISHED)
             if self.exited_normally():
-                # the non-blocking code path also has an on_finish() call that executes asynchronously
+                # the non-blocking code path also has an on_finish() 
+                # call that executes asynchronously
                 self.session.ui.thread_safe(self.on_finish)
 
     def _cleanup(self):
@@ -207,6 +209,7 @@ class Task(State):
         self._terminate = None
 
     def _run_thread(self, *args, **kw):
+        blocking = kw.pop("blocking", False)
         try:
             self.run(*args, **kw)
         except Exception:
@@ -220,7 +223,7 @@ class Task(State):
                 self.update_state(TERMINATED)
             else:
                 self.update_state(FINISHED)
-        if not kw.get('blocking', False) and self.exited_normally():
+        if not blocking and self.exited_normally():
             # the blocking code path also has an on_finish() call that executes immediately
             self.session.ui.thread_safe(self.on_finish)
 
@@ -234,9 +237,6 @@ class Task(State):
         This method must be overridden to implement actual functionality.
         :py:meth:`terminating` should be checked regularly to see whether
         user has requested termination.
-
-        NB: The 'blocking' argument passed to the 'start' method
-        is received as a keyword argument.
 
         """
         raise RuntimeError("base class \"run\" method called.")
