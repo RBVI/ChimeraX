@@ -1,3 +1,4 @@
+import sys
 from . import init
 
 if __name__ == '__main__':
