@@ -13,6 +13,7 @@
 from chimerax.core.commands import register
 from chimerax.core.toolshed import BundleAPI
 from .cmd import *
+from .ui import *
 
 
 class _MyAPI(BundleAPI):
@@ -24,9 +25,8 @@ class _MyAPI(BundleAPI):
         pass
 
     @staticmethod
-    def start_tool(session):
-        #return TaskManager(session)
-        pass
+    def start_tool(session, bi, ti):
+        return TaskManagerTool(session)
 
     @staticmethod
     def register_command(bi, ci, logger):
