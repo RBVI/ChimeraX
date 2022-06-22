@@ -50,7 +50,6 @@ requests==2.27.1
 scipy==1.7.3
 six==1.16.0
 sortedcontainers==2.4.0
-suds-community==1.0.0
 tables==3.7.0 ; platform_machine != 'arm64'
 tifffile==2021.11.2
 tinyarray==1.2.4
