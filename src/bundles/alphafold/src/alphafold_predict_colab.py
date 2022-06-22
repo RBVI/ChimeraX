@@ -45,7 +45,7 @@ git clone --branch {alphafold_version} {alphafold_git_repo} alphafold
 # Also need to get jaxlib from google rather than pypi to have cuda support.
 pip3 install -r ./alphafold/requirements.txt
 # Update jax
-pip3 install --upgrade jaxlib==0.1.70+cuda111 -f https://storage.googleapis.com/jax-releases/jax_releases.html
+pip3 install --upgrade jaxlib==0.1.70+cuda111 -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
 pip3 install jax==0.2.19
 pip3 install --no-dependencies ./alphafold
 #pip3 install ./alphafold
