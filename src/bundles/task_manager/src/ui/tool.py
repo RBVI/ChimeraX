@@ -41,10 +41,11 @@ class TaskManagerTool(ToolInstance):
     SESSION_SAVE = True
     help = "help:/user/tools/task_manager.html"
 
-    def __init__(self, session: Session):
+    def __init__(self, session: Session, restore_data = None):
         super().__init__(session, "Task Manager")
-        self.default_cols = {x: True for x in ["Task", "Status", "Start Time", "Run Time", "State"]}
+        self.default_cols = {x: True for x in ["Task ID", "Status", "Start Time", "Run Time", "State"]}
         self.menu_widgets = {}
+        self.restore_data = restore_data
         for trigger in task_triggers:
             self.session.triggers.add_handler(trigger, self.task_trigger_handler)
         self._build_ui()
@@ -101,7 +102,10 @@ class TaskManagerTool(ToolInstance):
         self.table.data = list(self.session.tasks.values())
         for string in columns:
             self.table.add_column(self.format_col_title(string), data_fetch=lambda x, i = string: self.task_fetch_helper(x, i))
-        self.table.launch(suppress_resize=True)
+        if self.restore_data:
+            self.table.launch(session_info = self.restore_data['table_session'], suppress_resize=True)
+        else:
+            self.table.launch(suppress_resize=True)
         self.table.resizeColumns(max_size = 100) # pixels
         self.control_widget.setVisible(True)
 
@@ -150,7 +154,7 @@ class TaskManagerTool(ToolInstance):
     @classmethod
     def from_snapshot(cls, session, data):
         """Initializer to be used when restoring ChimeraX sessions."""
-        pass
+        return cls(session, data)
 
     @classmethod
     def restore_snapshot(cls, session, data):
@@ -158,15 +162,8 @@ class TaskManagerTool(ToolInstance):
 
     def take_snapshot(self, session, flags):
         data = {
-            'version': 3
+            'version': 1
             , 'ToolUI': ToolInstance.take_snapshot(self, session, flags)
             , 'table_session': self.table.session_info()
-            , 'params': self.params._asdict()
-            , 'tool_name': self._instance_name
-            , 'results': self._hits
-            , 'sequences': [(key
-                             , self._sequences[key][0]
-                             , vars(self._sequences[key][1])
-                             ) for key in self._sequences.keys()]
         }
         return data

@@ -22,7 +22,10 @@ class _MyAPI(BundleAPI):
 
     @staticmethod
     def get_class(class_name):
-        pass
+        class_dict = {
+            'TaskManagerTool': TaskManagerTool
+        }
+        return class_dict[class_name]
 
     @staticmethod
     def start_tool(session, bi, ti):
