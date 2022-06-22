@@ -418,7 +418,7 @@ def uninstall_mime_file(mimetypes, system, verbose=False):
 def generate(session, info=None, system=False, verbose=False):
     if not info:
         info = get_info(session, system, verbose=verbose)
-    from ChimeraX_main import localized_app_name
+    from chimerax.core import localized_app_name
     make_desktop(session, info, localized_app_name, verbose=verbose)
     make_mime_file(session, info.mime_file, verbose)
 
