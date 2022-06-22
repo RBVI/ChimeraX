@@ -131,6 +131,7 @@ prereqs/pytables/tables-*.tar.gz
 prereqs/Python/Python-*/
 prereqs/Python/python-*.tar.bz2
 prereqs/Python/*.xz
+prereqs/Python/relocatable-python
 prereqs/PyQt/*commercial*
 prereqs/PyQt/qt/*.xz
 prereqs/zlib/*.gz
