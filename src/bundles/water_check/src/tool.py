@@ -16,23 +16,61 @@ from chimerax.core.errors import UserError
 from chimerax.core.settings import Settings
 from Qt.QtCore import Qt
 
-class DouseSettings(Settings):
+class CheckWaterSettings(Settings):
     AUTO_SAVE = {
         "show_hbonds": True,
     }
 
-class DouseResultsViewer(ToolInstance):
-    def __init__(self, session, tool_name, orig_model=None, douse_model=None, compared_waters=None):
-        # if 'model' is None, we are being restored from a session and _finalize_init() will be called later
-        super().__init__(session, tool_name)
-        self.settings = DouseSettings(session, tool_name)
-        if douse_model is None:
-            return
-        self._finalize_init(orig_model, douse_model, compared_waters)
+class CheckWatersInputTool(ToolInstance):
+    SESSION_ENDURING = True
+    def __init__(self, session, tool_name):
+        super().__init__(self, session, tool_name)
+        from chimerax.ui import MainToolWindow
+        self.tool_window = tw = MainToolWindow(self, close_destroys=False, statusbar=False)
+        tw.title = "Choose Structure for Water Checking"
+        parent = self.tool_window.ui_area
+        parent = tw.ui_area
+        from Qt.QtWidgets import QVBoxLayout
+        from Qt.QtCore import Qt
+        self.layout = layout = QVBoxLayout()
+        parent.setLayout(layout)
+        layout.setContentsMargins(0,0,0,0)
+        from chimerax.atomic.widgets import AtomicStructureMenuButton
+        self.structure_menu = AtomicStructureMenuButton(session)
 
-    def _finalize_init(self, orig_model, douse_model, compared_waters, *, from_session=False):
-        self.orig_model = orig_model
-        self.douse_model = douse_model
+        from Qt.QtWidgets import QDialogButtonBox as qbbox
+        self.bbox = bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
+        bbox.accepted.connect(self.launch_cw_tool)
+        bbox.button(qbbox.Apply).clicked.connect(self.launch_cw_tool)
+        bbox.accepted.connect(self.delete) # slots executed in the order they are connected
+        bbox.rejected.connect(self.delete)
+        from chimerax.core.commands import run
+        bbox.helpRequested.connect(lambda *, run=run, ses=session: run(ses, "help " + self.help))
+        layout.addWidget(bbox)
+
+        tw.manage(placement=None)
+
+    def launch_cw_tool(self):
+        s = self.structure_menu.value
+        if not s:
+            raise UserError("No structure chosen for checking")
+        CheckWaterViewer(self.session, self.tool_name, s)
+
+class CheckWaterViewer(ToolInstance):
+    def __init__(self, session, tool_name, check_model=None, *, compare_model=None, compared_waters=None):
+        # if 'check_model' is None, we are being restored from a session 
+        # and _finalize_init() will be called later
+        super().__init__(session, tool_name)
+        self.settings = CheckWaterSettings(session, tool_name)
+        if check_model is None:
+            return
+        self._finalize_init(check_model, compare_model, compared_waters)
+
+    def _finalize_init(self, check_model, compare_model, compared_waters, *, from_session=False):
+        self.compare_model = compare_model
+        self.check_model = check_model
+        if compared_waters is None and self.compare_model:
+            
         self.compared_waters = [x.__class__(sorted(x)) for x in compared_waters] if compared_waters else None
         from chimerax.core.models import REMOVE_MODELS
         self.handlers = [self.session.triggers.add_handler(REMOVE_MODELS, self._models_removed_cb)]
@@ -53,24 +91,24 @@ class DouseResultsViewer(ToolInstance):
             self.radio_group.buttonClicked.connect(self._update_residues)
             self.button_layout = but_layout = QVBoxLayout()
             layout.addLayout(but_layout)
-            self.douse_only_button = QRadioButton(parent)
-            self.radio_group.addButton(self.douse_only_button)
-            but_layout.addWidget(self.douse_only_button)
+            self.after_only_button = QRadioButton(parent)
+            self.radio_group.addButton(self.after_only_button)
+            but_layout.addWidget(self.after_only_button)
             self.in_common_button = QRadioButton(parent)
             self.radio_group.addButton(self.in_common_button)
             but_layout.addWidget(self.in_common_button)
-            self.original_only_button = QRadioButton(parent)
-            self.radio_group.addButton(self.original_only_button)
-            but_layout.addWidget(self.original_only_button)
+            self.before_only_button = QRadioButton(parent)
+            self.radio_group.addButton(self.before_only_button)
+            but_layout.addWidget(self.before_only_button)
             self._update_button_texts()
-            self.douse_only_button.setChecked(True)
+            self.after_only_button.setChecked(True)
             self.filter_residues = self.compared_waters[1]
         else:
             # didn't keep the input waters
             self.radio_group = None
             from .douse import _water_residues
-            self.filter_residues = sorted(_water_residues(self.douse_model))
-        self.filter_model = self.douse_model
+            self.filter_residues = sorted(_water_residues(self.check_model))
+        self.filter_model = self.check_model
         from chimerax.atomic.widgets import ResidueListWidget
         self.res_list = ResidueListWidget(self.session, filter_func=self._filter_residues)
         if from_session:
@@ -121,7 +159,7 @@ class DouseResultsViewer(ToolInstance):
         disclosure_layout.addStretch(1)
         hbonds_layout.addLayout(disclosure_layout)
         from chimerax.hbonds.gui import HBondsGUI
-        self.hb_gui = HBondsGUI(self.session, settings_name="Douse H-bonds", compact=True, inter_model=False,
+        self.hb_gui = HBondsGUI(self.session, settings_name="CheckWater H-bonds", compact=True, inter_model=False,
             show_bond_restrict=False, show_inter_model=False, show_intra_model=False, show_intra_mol=False,
             show_intra_res=False, show_log=False, show_model_restrict=False, show_retain_current=False,
             show_reveal=False, show_salt_only=False, show_save_file=False, show_select=False)
@@ -155,13 +193,13 @@ class DouseResultsViewer(ToolInstance):
     def delete(self):
         for handler in self.handlers:
             handler.remove()
-        self.orig_model = self.douse_model = None
+        self.compare_model = self.check_model = None
         super().delete()
 
     @classmethod
     def restore_snapshot(cls, session, data):
         inst = super().restore_snapshot(session, data['ToolInstance'])
-        inst._finalize_init(data['orig_model'], data['douse_model'], data['compared_waters'],
+        inst._finalize_init(data['check_model'], data['compare_model'], data['compared_waters'],
             from_session=True)
         if data['radio info']:
             for but in inst.radio_group.buttons():
@@ -183,8 +221,8 @@ class DouseResultsViewer(ToolInstance):
         data = {
             'ToolInstance': ToolInstance.take_snapshot(self, session, flags),
             'compared_waters': self.compared_waters,
-            'douse_model': self.douse_model,
-            'orig_model': self.orig_model,
+            'check_model': self.check_model,
+            'compare_model': self.compare_model,
             'radio info': self.radio_group.checkedButton().text() if self.radio_group else None,
             'show hbonds': self.settings.show_hbonds,
             'version': 1,
@@ -223,20 +261,20 @@ class DouseResultsViewer(ToolInstance):
 
     def _make_hb_group(self):
         model = self.filter_model
-        all_input, douse_only, douse_in_common, input_in_common = self.compared_waters
+        all_input, after_only, douse_in_common, input_in_common = self.compared_waters
         if self.radio_group:
             checked_button = self.radio_group.checkedButton()
             text = checked_button.text()
             left_paren = text.index('(')
             name = text[:left_paren] + " H-bonds"
-            if checked_button == self.douse_only_button:
-                waters = douse_only
-            elif checked_button == self.original_only_button:
+            if checked_button == self.after_only_button:
+                waters = after_only
+            elif checked_button == self.before_only_button:
                 waters = all_input - input_in_common
             else:
                 waters = douse_in_common
         else:
-            waters = douse_only
+            waters = after_only
             name = "Douse H-bonds"
         cmd_name, spec, args = self.hb_gui.get_command()
         from chimerax.atomic import concise_residue_spec
@@ -246,17 +284,17 @@ class DouseResultsViewer(ToolInstance):
         return model.pseudobond_group(name, create_type="per coordset")
 
     def _models_removed_cb(self, trig_name, trig_data):
-        if self.douse_model in trig_data:
+        if self.check_model in trig_data:
             self.delete()
-        elif self.orig_model in trig_data:
-            self.douse_only_button.setChecked(True)
+        elif self.compare_model in trig_data:
+            self.after_only_button.setChecked(True)
             self._update_residues()
             self.tool_window.ui_area.layout().removeItem(self.button_layout)
 
     def _res_sel_cb(self):
         selected = self.res_list.value
         if not selected:
-            cmd = "~select; view %s" % self.douse_model.atomspec
+            cmd = "~select; view %s" % self.check_model.atomspec
         else:
             if selected[0].structure.display:
                 base_cmd = ""
@@ -281,10 +319,10 @@ class DouseResultsViewer(ToolInstance):
             group.display = True
 
     def _update_button_texts(self):
-        all_input, douse_only, douse_in_common, input_in_common = self.compared_waters
-        self.douse_only_button.setText("Douse only (%d)" % len(douse_only))
+        all_input, after_only, douse_in_common, input_in_common = self.compared_waters
+        self.after_only_button.setText("Douse only (%d)" % len(after_only))
         self.in_common_button.setText("In common (%d)" % len(input_in_common))
-        self.original_only_button.setText("Input only (%d)" % len(all_input - input_in_common))
+        self.before_only_button.setText("Input only (%d)" % len(all_input - input_in_common))
 
     def _update_hbonds(self):
         group_key = self.radio_group.checkedButton() \
@@ -294,16 +332,16 @@ class DouseResultsViewer(ToolInstance):
             self.hbond_groups[group_key] = self._make_hb_group()
 
     def _update_residues(self):
-        all_input, douse_only, douse_in_common, input_in_common = self.compared_waters
+        all_input, after_only, douse_in_common, input_in_common = self.compared_waters
         checked = self.radio_group.checkedButton()
-        if checked == self.douse_only_button:
-            self.filter_model = self.douse_model
-            self.filter_residues = douse_only
-        elif checked == self.original_only_button:
-            self.filter_model = self.orig_model
+        if checked == self.after_only_button:
+            self.filter_model = self.check_model
+            self.filter_residues = after_only
+        elif checked == self.before_only_button:
+            self.filter_model = self.compare_model
             self.filter_residues = all_input - input_in_common
         else:
-            self.filter_model = self.orig_model
+            self.filter_model = self.compare_model
             self.filter_residues = input_in_common
         if self.show_hbonds.isChecked():
             self._show_hbonds_cb(True)
