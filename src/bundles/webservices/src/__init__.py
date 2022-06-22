@@ -13,6 +13,13 @@ from chimerax.core.toolshed import BundleAPI
 from .cxservices_job import CxServicesJob
 
 class _MyAPI(BundleAPI):
-    pass
+    api_version = 1
+
+    @staticmethod
+    def get_class(class_name):
+        class_names = {
+            'CxServicesJob': CxServicesJob
+        }
+        return class_names.get(class_name, None)
 
 bundle_api = _MyAPI()
