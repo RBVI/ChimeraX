@@ -28,6 +28,7 @@ from chimerax.core.commands import run
 from chimerax.core.errors import UserError
 from chimerax.core.session import Session
 from chimerax.core.tools import ToolInstance
+from chimerax.core.tasks import task_triggers
 from chimerax.ui import MainToolWindow
 
 _settings = None
@@ -44,6 +45,8 @@ class TaskManagerTool(ToolInstance):
         super().__init__(session, "Task Manager")
         self.default_cols = {x: True for x in ["Task", "Status", "Start Time", "Run Time", "State"]}
         self.menu_widgets = {}
+        for trigger in task_triggers:
+            self.session.triggers.add_handler(trigger, self.task_trigger_handler)
         self._build_ui()
 
     def _build_ui(self):
@@ -52,7 +55,7 @@ class TaskManagerTool(ToolInstance):
         """
         self.tool_window = MainToolWindow(self)
         parent = self.tool_window.ui_area
-        # TODO: This is 100% cargo culted from seeing it elsewhere. 
+        # TODO: This is 100% cargo culted from seeing it elsewhere.
         # Ask then document why we do this.
         global _settings
         if _settings is None:
@@ -70,12 +73,7 @@ class TaskManagerTool(ToolInstance):
         self.main_layout.addWidget(self.control_widget)
 
         self.tool_window.ui_area.closeEvent = self.closeEvent
-        self.tool_window.ui_area.setLayout(self.main_layout)
 
-        self.tool_window = MainToolWindow(self)
-        parent = self.tool_window.ui_area
-
-        main_layout = QVBoxLayout()
         menu_layout_row1 = QHBoxLayout()
         input_container_row1 = QWidget(parent)
 
@@ -91,40 +89,63 @@ class TaskManagerTool(ToolInstance):
         self.menu_widgets['help'].clicked.connect(lambda *, run=run, ses=self.session: run(ses, " ".join(["open", self.help])))
 
         input_container_row1.setLayout(menu_layout_row1)
-        main_layout.addWidget(input_container_row1)
+        self.main_layout.addWidget(input_container_row1)
 
-        for layout in [main_layout, menu_layout_row1]:
+        for layout in [self.main_layout, menu_layout_row1]:
             layout.setContentsMargins(0, 0, 0, 0)
             layout.setSpacing(0)
-        
-        self.tool_window.ui_area.setLayout(main_layout)
 
-        columns = ["task", "status", "start_time", "run_time", "state"]
+        self.tool_window.ui_area.setLayout(self.main_layout)
+
+        columns = ["id", "job_id", "status", "start_time", "state"]
         self.table.data = list(self.session.tasks.values())
         for string in columns:
-            self.table.add_column(capwords(string.replace('_', ' ')), data_fetch=lambda x, i=string: x)
+            self.table.add_column(self.format_col_title(string), data_fetch=lambda x, i = string: self.task_fetch_helper(x, i))
         self.table.launch(suppress_resize=True)
         self.table.resizeColumns(max_size = 100) # pixels
         self.control_widget.setVisible(True)
-    
+
         self.tool_window.manage('side')
 
+    def task_fetch_helper(self, task, attr) -> str:
+        val = None
+        try:
+            val = task.__getattribute__(attr)
+        except AttributeError:
+            val = ""
+        return val
+
+    def format_col_title(self, string) -> str:
+        if string == "id":
+            return "Task ID"
+        if string == "job_id":
+            return "Webservices ID"
+        return capwords(string.replace('_', ' '))
+
     def closeEvent(self, event):
-        if self.worker is not None:
-            self.worker.terminate()
         self.tool_window.ui_area.close()
         self.tool_window = None
 
     def fill_context_menu(self, menu, x, y):
         kill_action = QAction("Kill", menu)
         pause_action = QAction("Pause", menu)
+        clear_finished_action = QAction("Clear Finished", menu)
         kill_action.triggered.connect(lambda: self._run_command("kill", self.table.selected))
         pause_action.triggered.connect(lambda: self._run_command("pause", self.table.selected))
+        clear_finished_action.triggered.connect(lambda: self._clear_finished())
         menu.addAction(kill_action)
         menu.addAction(pause_action)
+        menu.addAction(clear_finished_action)
 
     def _run_command(self, command, job_id) -> None:
-        run(self.session, "taskman %s %s" (command, job_id))
+        run(self.session, "taskman %s %s" % (command, job_id))
+
+    def task_trigger_handler(self, trigger, data) -> None:
+        """Update the task table with a new snapshot of session.tasks"""
+        self.table.data = list(self.session.tasks.values())
+
+    def _clear_finished(self) -> None:
+        pass
 
     @classmethod
     def from_snapshot(cls, session, data):
