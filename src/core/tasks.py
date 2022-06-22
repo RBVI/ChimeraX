@@ -196,7 +196,7 @@ class Task(State):
             self._thread.join()
             self.update_state(FINISHED)
             if self.exited_normally():
-                # the non-blocking code path also has an on_finish() 
+                # the non-blocking code path also has an on_finish()
                 # call that executes asynchronously
                 self.session.ui.thread_safe(self.on_finish)
 
