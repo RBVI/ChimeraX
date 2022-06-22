@@ -72,7 +72,7 @@ ifeq ($(OS),Darwin)
 	open -n $(CHIMERAX_APP)
 endif
 ifeq ($(OS),Linux)
-	nohup ./$(CHIMERAX_EXE) & 2>&1 >> /dev/null
+	nohup ./$(CHIMERAX_EXE) >> /dev/null & 2>&1
 endif
 
 sync:

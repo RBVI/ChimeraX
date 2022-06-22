@@ -1526,8 +1526,12 @@ class Thresholds_Panel(PopupPanel):
     f.setMinimumHeight(h)
 
     # Allow resizing panel smaller with mouse
+    def set_min_height(f=f):
+        import Qt
+        if not Qt.qt_object_is_deleted(f):
+            f.setMinimumHeight(50)
     from Qt.QtCore import QTimer
-    QTimer.singleShot(200, lambda f=f: f.setMinimumHeight(50))
+    QTimer.singleShot(200, set_min_height)
 
   # ---------------------------------------------------------------------------
   # Switch histogram threshold markers between vertical

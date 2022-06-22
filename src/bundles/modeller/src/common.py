@@ -541,7 +541,7 @@ class ModellerWebJob(CxServicesJob):
             if os.path.basename(entry[2]) == "ModellerScriptConfig.xml":
                 continue
             self.processed_input_file_map.append(entry[2])
-        self.start(self.service_name, self.params, self.processed_input_file_map)
+        self.start(self.service_name, self.params, self.processed_input_file_map, blocking=block)
 
     def monitor(self):
         super().monitor(poll_freq_override=5)
@@ -555,7 +555,8 @@ class ModellerWebJob(CxServicesJob):
 
     def on_finish(self):
         # Clean up the temporary directory
-        del self.temp_dir
+        if hasattr(self, 'temp_dir'):
+            delattr(self, 'temp_dir')
         logger = self.session.logger
         logger.info("Modeller job ID %s finished" % self.job_id)
         if not self.exited_normally():

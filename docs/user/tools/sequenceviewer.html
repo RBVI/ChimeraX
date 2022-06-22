@@ -155,6 +155,30 @@ even if they form disjoint segments
   [choice of available headers]
   &ndash; save header information to file
   </ul>
+<li><b>Numberings</b>
+&ndash; which sequence numberings to display, if any
+  <ul>
+  <li><b>Overall</b> 
+&ndash; whether to show alignment numbering across the top 
+at positions 1, 11, 21, <i>etc.</i>;
+starts at 1 and includes gaps unless a reference sequence has been designated
+  <li><b>Reference Sequence</b> 
+&ndash; use the individual numbering of one of the sequences:
+    <ul>
+    <li>[<i>list of sequences in alignment</i>]
+    </ul>
+...as the overall numbering instead of the default; 
+when the reference sequence has a gap character at a position 
+where a number is to be shown (1, 11, 21, <i>etc.</i>), 
+how that position falls relative to the reference is shown in parentheses.
+For example, &ldquo;(<1)&rdquo; would be shown for alignment positions 
+before the reference's first residue, and &ldquo;(43/44)&rdquo; 
+for positions that fall between residues 43 and 44 of the reference.
+  <li><b>Left Sequence</b> 
+&ndash; whether to show individual sequence numberings on the left
+  <li><b>Right Sequence</b> 
+&ndash; whether to show individual sequence numberings on the right
+  </ul>
 <li><b>Tools</b>
   <ul>
   <li><b>Modeller Comparative Modeling...</b> 
@@ -197,6 +221,8 @@ can be controlled in the
 Headers for a specific window can be shown, hidden, or saved to a file 
 with the <a href="#context"><b>Sequence Viewer</b> context menu</a> or the
 <a href="../commands/sequence.html#header"><b>sequence header</b></a> command.
+Numbering can also be controlled using the
+<a href="#context"><b>Sequence Viewer</b> context menu</a>.
 </p><p>
 Per-column header values are assigned as 
 <a href="../attributes.html">attributes</a> of the structure residues
@@ -672,5 +698,5 @@ style="display:inline-block; vertical-align:middle"><tr>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-May 2022</address>
+June 2022</address>
 </body></html>
