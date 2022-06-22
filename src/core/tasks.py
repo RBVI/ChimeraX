@@ -118,6 +118,8 @@ class Task(State):
         self._thread = None
         self._terminate = None
         self.state = PENDING
+        self.start_time = None
+        self.status = None
         if session:
             session.tasks.add(self)
 
