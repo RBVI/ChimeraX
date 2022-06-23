@@ -212,8 +212,17 @@ class StructMeasureTool(ToolInstance):
 
         from chimerax.ui.widgets import ItemTable
         self.apc_table = ItemTable(session=self.session)
-        self.apc_table.add_column("Name", "name", data_set="rename {item.atomspec} {value}")
-        self.apc_table.add_column("ID", "id_string", data_set="rename {item.atomspec} id #{value}")
+        def verify_id(id_text, *, ses=self.session):
+            try:
+                ids = [int(x) for x in id_text.split('.')]
+            except Exception:
+                ses.logger.error("ID must be one or more integers separated by '.' characters")
+                return False
+            return True
+        self.apc_table.add_column("Name", "name", data_set="rename {item.atomspec} {value}",
+            validator=lambda name: not name.isspace())
+        self.apc_table.add_column("ID", "id_string", data_set="rename {item.atomspec} id #{value}",
+            validator=verify_id)
         self.apc_table.add_column("Color", "model_color", format=ItemTable.COL_FORMAT_TRANSPARENT_COLOR,
             data_set="color {item.atomspec} {value}", title_display=False)
         self.apc_table.add_column("Shown", "display", format=ItemTable.COL_FORMAT_BOOLEAN, icon="shown")
@@ -223,6 +232,8 @@ class StructMeasureTool(ToolInstance):
             run(ses, cmd + " " + item.atomspec)
         self.apc_table.add_column("Selected", "selected", format=ItemTable.COL_FORMAT_BOOLEAN, icon="select",
             data_set=run_sel_cmd, title_display=False)
+        self.apc_table.add_column("Length", "length", format="%4.1f")
+        self.apc_table.add_column("Radius", "radius", format="%4.1f")
         self.apc_table.launch()
         self.apc_table.data = self._filter_apc_models(self.session.models)
         self.apc_table.sortByColumn(1, Qt.AscendingOrder)
@@ -234,7 +245,12 @@ class StructMeasureTool(ToolInstance):
         for trig_name in  (MODEL_COLOR_CHANGED, MODEL_DISPLAY_CHANGED, MODEL_ID_CHANGED, MODEL_NAME_CHANGED,
                 MODEL_SELECTION_CHANGED):
             self.handlers.append(self.session.triggers.add_handler(trig_name, self._refresh_apc_cell))
-        layout.addWidget(self.apc_table, alignment=Qt.AlignCenter)
+        layout.addWidget(self.apc_table, alignment=Qt.AlignCenter, stretch=1)
+        self.status_label = QLabel("Choose two items in table to report angle/distance (also logged);"
+            " double click Name/ID to edit")
+        self.status_label.setWordWrap(True)
+        self.status_label.setAlignment(Qt.AlignCenter)
+        layout.addWidget(self.status_label)
 
     def _fill_dist_table(self, *args):
         dist_grp = self.session.pb_manager.get_group("distances", create=False)

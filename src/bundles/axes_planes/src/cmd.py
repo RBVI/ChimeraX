@@ -236,6 +236,10 @@ class AxisModel(Surface, ComplexMeasurable):
     def extent(self):
         return self._extent
 
+    @property
+    def length(self):
+        return 2 * self._extent
+
     def _point_distance(self, pt):
         # pt should already be in our transformed coord sys
         xf_center = self.xform_center

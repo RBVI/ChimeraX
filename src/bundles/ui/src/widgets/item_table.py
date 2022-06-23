@@ -72,12 +72,14 @@ class QCxTableModel(QAbstractTableModel):
         return None
 
     def flags(self, index):
-        super_flags = super().flags(index)
+        flags = super().flags(index)
         col = self._item_table._columns[index.column()]
+        from Qt.QtCore import Qt
         if col.display_format == self._item_table.COL_FORMAT_BOOLEAN:
-            from Qt.QtCore import Qt
-            return super_flags | Qt.ItemIsUserCheckable | Qt.ItemIsEnabled | Qt.ItemIsSelectable
-        return super_flags
+            flags |= Qt.ItemIsUserCheckable
+        if col.editable:
+            flags |= Qt.ItemIsEditable | Qt.ItemIsEnabled | Qt.ItemIsSelectable
+        return flags
 
     def headerData(self, section, orientation, role=None):
         if orientation == Qt.Vertical:
@@ -132,14 +134,18 @@ class QCxTableModel(QAbstractTableModel):
         return len(self._item_table._data)
 
     def setData(self, index, value, role):
+        col = self._item_table._columns[index.column()]
+        item = self._item_table._data[index.row()]
         if role == Qt.CheckStateRole:
-            col = self._item_table._columns[index.column()]
-            item = self._item_table._data[index.row()]
             col.set_value(item, True if value == qt_enum_as_int(Qt.Checked) else False)
             self.dataChanged.emit(index, index, [role])
             return True
         else:
-            return super().setData(index, value, *args, **kw)
+            if col.validate_value(value):
+                col.set_value(item, value)
+                self.dataChanged.emit(index, index, [role])
+                return True
+        return False
 
     def _convert_justification(self, justification):
         if justification == "left":
@@ -251,6 +257,7 @@ class ItemTable(QTableView):
             buttons). This field comes before 'show global buttons'.
         """
         super().__init__(parent)
+        self.setSizeAdjustPolicy(self.AdjustToContents)
         self._table_model = None
         self._columns = []
         self._data = []
@@ -303,7 +310,7 @@ class ItemTable(QTableView):
 
     def add_column(self, title, data_fetch, *, format="%s", data_set=None, display=None, title_display=True,
             justification="center", balloon=None, font=None, refresh=True, color=None,
-            header_justification=None, icon=None):
+            header_justification=None, icon=None, editable=False, validator=None):
         """ Add a column who's header text is 'title'.  It is allowable to add a column with the
             same title multiple times.  The duplicative additions will be ignored.
 
@@ -363,6 +370,12 @@ class ItemTable(QTableView):
             If 'icon' is specified, it will be shown in place of the column's title.  If should be either
             a QIcon or QPixmap instance, or a string that can be used as the argument of a
             chimerax.ui.icons.get_qt_icon() call.
+
+            For text cell values to be editable by the user, set 'editable' to True.  If the text value
+            needs verfication before it is used, supply a function as 'validator' that takes the new
+            text value as an argument and returns True if it is valid and False otherwise.  Supplying a
+            'validator' value implies that 'editable' is True (and therefore 'editable' does not need to
+            be specified separately).
         """
         titles = [c.title for c in self._columns]
         if title in titles:
@@ -387,7 +400,7 @@ class ItemTable(QTableView):
             header_justification = justification if justification != "decimal" else "right"
 
         c = _ItemColumn(title, data_fetch, format, data_set, title_display, justification, font, color,
-            header_justification, balloon, icon, self._session)
+            header_justification, balloon, icon, self._session, editable, validator)
 
         if self._column_control_info:
             self._add_column_control_entry(c)
@@ -651,7 +664,7 @@ class ItemTable(QTableView):
 
 class _ItemColumn:
     def __init__(self, title, data_fetch, display_format, data_set, title_display, justification, font,
-            color, header_justification, balloon, icon, session):
+            color, header_justification, balloon, icon, session, editable, validator):
         # set all args to corresponding 'self' attributes...
         import inspect
         args, varargs, keywords, locals = inspect.getargvalues(inspect.currentframe())
@@ -660,6 +673,8 @@ class _ItemColumn:
                 continue
             setattr(self, name, locals[name])
         self.display = True
+        if validator:
+            self.editable = True
 
     def display_value(self, instance):
         val = self.value(instance)
@@ -671,6 +686,11 @@ class _ItemColumn:
         if val is None:
             return ""
         return self.display_format % val
+
+    def validate_value(self, value):
+        if self.validator:
+            return self.validator(value)
+        return True
 
     def value(self, instance):
         if callable(self.data_fetch):
