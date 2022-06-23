@@ -14,7 +14,8 @@
 # -----------------------------------------------------------------------------
 #
 def alphafold_contacts(session, residues, to_residues = None, distance = 3,
-                       flip = False, palette = None, range = None, radius = 0.2, dashes = 1):
+                       flip = False, palette = None, range = None, radius = 0.2, dashes = 1,
+                       output_file = None):
     '''
     Create pseudobonds between close residues of an AlphaFold structure
     colored by the predicted aligned error value.  The paecontacts colormap
@@ -83,6 +84,12 @@ def alphafold_contacts(session, residues, to_residues = None, distance = 3,
         pae_values = [pae.value(r1,r2) for r1, r2 in rpairs]
     pbonds.colors = palette.interpolated_rgba8(pae_values)
 
+    if output_file is not None:
+        lines = [f'/{r1.chain_id}:{r1.number} /{r2.chain_id}:{r2.number} %.2f' % pae_value
+                 for (r1,r2),pae_value in zip (rpairs, pae_values)]
+        with open(output_file, 'w') as f:
+            f.write('\n'.join(lines))
+            
     return pbonds
 
 # -----------------------------------------------------------------------------
@@ -106,7 +113,7 @@ def _close_residue_pairs(residues1, residues2, distance):
 #
 def register_alphafold_contacts_command(logger):
     from chimerax.core.commands import CmdDesc, register, FloatArg, IntArg, BoolArg
-    from chimerax.core.commands import ColormapArg, ColormapRangeArg
+    from chimerax.core.commands import ColormapArg, ColormapRangeArg, SaveFileNameArg
     from chimerax.atomic import ResiduesArg
     desc = CmdDesc(
         required = [('residues', ResiduesArg)],
@@ -116,7 +123,8 @@ def register_alphafold_contacts_command(logger):
                    ('palette', ColormapArg),
                    ('range', ColormapRangeArg),
                    ('radius', FloatArg),
-                   ('dashes', IntArg)],
+                   ('dashes', IntArg),
+                   ('output_file', SaveFileNameArg)],
         synopsis = 'Make pseudobonds colored by PAE for close residues'
     )
     
