@@ -580,7 +580,7 @@ def init(argv, event_loop=True):
         from chimerax.core import version
     except ImportError:
         print("error: unable to figure out %s's version" % app_name)
-        return os.EX_SOFTWARE
+        raise SystemExit(os.EX_SOFTWARE)
 
     if opts.use_defaults:
         from chimerax.core import configinfo
@@ -655,7 +655,7 @@ def init(argv, event_loop=True):
             except OSError as e:
                 print("Unable to make %s directory: %s: %s" % (
                     name, e.strerror, e.filename), file=sys.stderr)
-                return os.EX_CANTCREAT
+                raise SystemExit(os.EX_CANTCREAT)
 
     # app_dirs_unversioned is primarily for caching data files that will
     # open in any version
@@ -698,7 +698,7 @@ def init(argv, event_loop=True):
             else:
                 why = "not supported on this platform"
             print("Offscreen rendering is", why, file=sys.stderr)
-            return os.EX_UNAVAILABLE
+            raise SystemExit(os.EX_UNAVAILABLE)
         raise
 
     from chimerax.core import core_settings
@@ -711,7 +711,7 @@ def init(argv, event_loop=True):
     attributes.RegAttrManager(sess)
 
     if opts.uninstall:
-        return uninstall(sess)
+        raise SystemExit(uninstall(sess))
 
     # initialize qt
     if opts.gui:
@@ -801,7 +801,7 @@ def init(argv, event_loop=True):
         from chimerax.core.commands import command_function
         version_cmd = command_function("version")
         version_cmd(sess, format)
-        return os.EX_OK
+        raise SystemExit(os.EX_OK)
 
     if opts.list_io_formats:
         sess.silent = False
@@ -829,7 +829,7 @@ def init(argv, event_loop=True):
         # TODO: show database formats
         # TODO: show mime types?
         # TODO: show compression suffixes?
-        return os.EX_OK
+        raise SystemExit(os.EX_OK)
 
     if opts.gui:
         # build out the UI, populate menus, create graphics, etc.
@@ -866,7 +866,7 @@ def init(argv, event_loop=True):
                 if not sess.ui.is_gui:
                     import traceback
                     traceback.print_exc()
-                    return os.EX_SOFTWARE
+                    raise SystemExit(os.EX_SOFTWARE)
                 # Allow GUI to start up despite errors;
                 if sess.debug:
                     import traceback
@@ -887,7 +887,7 @@ def init(argv, event_loop=True):
                 if not sess.ui.is_gui:
                     import traceback
                     traceback.print_exc()
-                    return os.EX_SOFTWARE
+                    raise SystemExit(os.EX_SOFTWARE)
                 # Allow GUI to start up despite errors;
                 if sess.debug:
                     import traceback
@@ -895,7 +895,7 @@ def init(argv, event_loop=True):
                 else:
                     sess.ui.thread_safe(sess.logger.report_exception, exc_info=sys.exc_info())
             except SystemExit as e:
-                return e.code
+                raise SystemExit(e.code)
 
     if not opts.silent:
         if sess.ui.is_gui and opts.debug:
@@ -953,7 +953,7 @@ def init(argv, event_loop=True):
             # generated files.
             # if has_install:
             #     remove_python_scripts(chimerax.app_bin_dir)
-        return exit.code
+        raise SystemExit(exit.code)
 
     from chimerax.core import startup
     startup.run_user_startup_scripts(sess)
@@ -967,7 +967,7 @@ def init(argv, event_loop=True):
             '__name__': '__main__',
         }
         exec(opts.cmd, global_dict)
-        return os.EX_OK
+        raise SystemExit(os.EX_OK)
 
     # the rest of the arguments are data files
     from chimerax.core import commands
@@ -976,7 +976,7 @@ def init(argv, event_loop=True):
             # 'open' command unavailable; only open Python files
             if not arg.endswith('.py'):
                 sess.logger.error("Can only open Python scripts in safe mode, not '%s'" % arg)
-                return os.EX_SOFTWARE
+                raise SystemExit(os.EX_SOFTWARE)
             from chimerax.core.scripting import open_python_script
             try:
                 open_python_script(sess, open(arg, 'rb'), arg)
@@ -984,7 +984,7 @@ def init(argv, event_loop=True):
                 if not sess.ui.is_gui:
                     import traceback
                     traceback.print_exc()
-                    return os.EX_SOFTWARE
+                    raise SystemExit(os.EX_SOFTWARE)
                 # Allow GUI to start up despite errors;
                 if sess.debug:
                     import traceback
@@ -999,7 +999,7 @@ def init(argv, event_loop=True):
                 if not sess.ui.is_gui:
                     import traceback
                     traceback.print_exc()
-                    return os.EX_SOFTWARE
+                    raise SystemExit(os.EX_SOFTWARE)
                 # Allow GUI to start up despite errors;
                 if sess.debug:
                     import traceback
@@ -1012,20 +1012,15 @@ def init(argv, event_loop=True):
         sess.ui.open_pending_files(ignore_files=(args if bad_drop_events else []))
 
     # Allow the event_loop to be disabled, so we can be embedded in
-    # another application
+    # another application. There used to be a clause here which would
+    # launch the GUI's event loop directly; however, we now return a 
+    # session object and its GUI is launched in __main__.py instead
+    # See Trac#3761
     if event_loop and opts.event_loop:
-        try:
-            sess.ui.event_loop()
-        except SystemExit as e:
-            return e.code
-        except Exception:
-            import traceback
-            traceback.print_exc()
-            return os.EX_SOFTWARE
+        return sess
     elif opts.gui:
         sess.ui.quit()  # Clean up gui to avoid errors at exit.
-    return os.EX_OK
-
+    raise SystemExit(os.EX_OK)
 
 def rm_rf_path(path, sess):
     # analogous to "rm -rf path"

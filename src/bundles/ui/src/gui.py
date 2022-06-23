@@ -329,8 +329,9 @@ class UI(QApplication):
         if self.already_quit:
             return
         redirect_stdio_to_logger(self.session.logger)
-        self.exec()
+        rcode = self.exec()
         self.session.logger.clear()
+        return rcode
 
     def forward_keystroke(self, event):
         """forward keystroke from graphics window to most recent
