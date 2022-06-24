@@ -133,6 +133,7 @@ class AlphaFoldPAEOpen(ToolInstance):
             from os import path
             dir = path.split(s.filename)[0]
         elif self._pae_file.text():
+            from os import path
             dir = path.split(self._pae_file.text())[0]
         else:
             dir = None
