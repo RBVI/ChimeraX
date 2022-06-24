@@ -738,6 +738,7 @@ Residue-residue <a href="#pae">PAE values</a> can also be shown with colored
 [&nbsp;<a href="color.html#palette-options"><b>range</b></a>&nbsp;&nbsp;<i>low,high</i>&nbsp;|&nbsp;full&nbsp;]
 [&nbsp;<b>radius</b>&nbsp;&nbsp;<i>r</i>&nbsp;]
 [&nbsp;<b>dashes</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
+[&nbsp;<b>outputFile</b>&nbsp;&nbsp;<i>file</i>&nbsp;]
 </blockquote>
 <p>
 See the
@@ -806,6 +807,14 @@ instead spacing the colors evenly across the specified range.
 The <a href="../pseudobonds.html">pseudobond</a> stick <b>radius</b>
 (default <b>0.2</b> &Aring;) and number of <b>dashes</b> (default <b>1</b>,
 meaning a solid stick) can also be specified. 
+</p><p>
+The <b>outputFile</b> option allows saving a list
+of the residue pairs (those meeting the distance criterion) and
+their PAE values to a plain text file. 
+The <i>file</i> argument is the output file pathname,
+enclosed in quotation marks if it includes spaces,
+or the word <a href="usageconventions.html#browse"><b>browse</b></a>
+to specify it interactively in a file browser window.
 </p><p>
 <a name="examples">Examples</a>:
 <blockquote><b>

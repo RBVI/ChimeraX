@@ -22,10 +22,5 @@ SUBDIRS	+= core bundles apps examples
 # All needed subdirectories must be set by now.
 include $(TOP)/mk/subdir.make
 
-all:
-
-mainapp-install: core.install
-	$(MAKE) -C apps/$(APP_NAME) install
-
-bundles.install: core.install mainapp-install
+bundles.install: core.install
 apps.install: bundles.install core.install
