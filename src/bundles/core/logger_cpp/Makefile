@@ -9,20 +9,39 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-TOP= ../../..
+TOP= ../../../..
 include $(TOP)/mk/config.make
 
+LIBNAME = logger
 DIRNAME = $(shell basename `pwd`)
 DIRNAME := $(DIRNAME:_cpp=)
 
 SRCS	= $(wildcard *.cpp)
 OBJS	= $(SRCS:.cpp=.$(OBJ_EXT))
+INCS	+= $(PYTHON_INCLUDE_DIRS)
+ifneq ($(OS),Windows)
+CXX	+= -Wno-logical-op-parentheses
+endif
+LIBS	+= $(PYTHON_LIB)
 
-install:
-	$(RSYNC) $(wildcard *.h) $(includedir)/$(DIRNAME)/
+$(SHLIB): imex.h $(OBJS)
+	$(SHLIB_LINK)
+
+$(LIBRARY): imex.h $(OBJS)
+	$(LIB_LINK)
+
+build install: $(LIBRARY)
+	$(RSYNC) $(LIBRARY) $(libdir)
+	$(RSYNC) imex.h $(wildcard *.h) $(includedir)/$(DIRNAME)/
 	if [ -d "$(app_includedir)" ]; then \
-		$(RSYNC) $(wildcard *.h) $(app_includedir)/$(DIRNAME)/; \
+		$(RSYNC) imex.h $(wildcard *.h) $(app_includedir)/$(DIRNAME)/; \
+	fi
+	if [ -d "$(app_libdir)" ]; then \
+		$(RSYNC) $(LIBRARY) $(app_libdir); \
 	fi
 
 clean:
-	rm -f $(OBJS)
+	rm -f $(OBJS) $(LIBRARY) imex.h
+ifdef WIN32
+	rm -f lib$(LIBNAME).{lib,pdb,exp} vc*.pdb
+endif

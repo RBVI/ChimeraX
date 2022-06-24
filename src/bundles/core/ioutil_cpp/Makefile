@@ -9,20 +9,25 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-TOP= ../../..
+TOP= ../../../..
 include $(TOP)/mk/config.make
 
-LIBNAME = chutil
+LIBNAME = ioutil
 DIRNAME = $(shell basename `pwd`)
 DIRNAME := $(DIRNAME:_cpp=)
 
 SRCS	= $(wildcard *.cpp)
 OBJS	= $(SRCS:.cpp=.$(OBJ_EXT))
 
+ifdef WIN32
+CSRCS	= win32_dirent.c
+OBJS	+= $(CSRCS:.c=.$(OBJ_EXT))
+endif
+
 $(LIBRARY): $(OBJS)
 	$(LIB_LINK)
 
-install: $(LIBRARY)
+build install: $(LIBRARY)
 	$(RSYNC) $(LIBRARY) $(libdir)
 	$(RSYNC) $(wildcard *.h) $(includedir)/$(DIRNAME)/
 	if [ -d "$(app_includedir)" ]; then \
@@ -35,5 +40,5 @@ install: $(LIBRARY)
 clean:
 	rm -f $(OBJS) $(LIBRARY)
 ifdef WIN32
-	rm -f lib$(LIBNAME).pdb vc*.pdb
+	rm -f lib$(LIBNAME).{exp,pdb} vc*.pdb
 endif

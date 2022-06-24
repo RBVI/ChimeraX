@@ -12,7 +12,7 @@ def make_dependencies(dir_path, output_name):
     # Construct mappings from directory name to bundle dependencies
     # and bundle name to directory name
     dependencies = {}
-    bundle2dirname = {}
+    bundle2dirname = {'ChimeraX-Core': 'core'}
     for dir_name in os.listdir(dir_path):
         p = os.path.join(dir_path, dir_name, "bundle_info.xml")
         if not os.path.exists(p):
@@ -27,7 +27,7 @@ def make_dependencies(dir_path, output_name):
             continue
         bundle_name = bundle_tags[0].getAttribute("name")
         bundle2dirname[bundle_name] = dir_name
-        dependencies[dir_name] = deps = []
+        dependencies[dir_name] = deps = ["ChimeraX-Core"]
         for e in doc.getElementsByTagName("Dependency"):
             build_dep = e.getAttribute("build")
             if not build_dep or build_dep.lower() == "false":
@@ -57,7 +57,6 @@ def make_dependencies(dir_path, output_name):
             print(f"{dir_name}.clean: {' '.join(clean_dirs)}", file=f)
 
     # Report any bundle dependencies that is not found
-    missing.discard("ChimeraX-Core")
     missing.discard("qtconsole")
     missing.discard("PyAudio")
     missing.discard("SpeechRecognition")
