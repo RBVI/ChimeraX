@@ -12,7 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 def runscript(session, script_file, *, args=None):
-    """Execute a Python script with arguments
+    """Execute a Python or ChimeraX command script with arguments
 
     Parameters
     ----------
@@ -22,11 +22,39 @@ def runscript(session, script_file, *, args=None):
         Optional string containing the arguments to pass to the script
     """
 
+    is_python = script_file.endswith('.py')
+    is_commands = script_file.endswith('.cxc')
+    if not is_python and not is_commands:
+        from chimerax.core.errors import UserError
+        raise UserError(f'Script "{script_file}" must have suffix .py or .cxc')
+    
     import shlex
     from ..scripting import open_python_script
     argv = [script_file]
     if args is not None:
         argv += shlex.split(args)
     with session.in_script:
-        open_python_script(session, open(script_file, 'rb'), script_file, argv=argv)
+        if is_python:
+            open_python_script(session, open(script_file, 'rb'), script_file, argv=argv)
+        elif is_commands:
+            run_command_script(session, script_file, argv[1:])
     return []
+
+def run_command_script(session, path, args):
+    with open(path, 'rb') as f:
+        lines = [cmd.strip().decode('utf-8', errors='replace') for cmd in f.readlines()]
+
+    commands = _replace_arguments(lines, args)
+
+    from chimerax.core.scripting import _run_commands
+    _run_commands(session, commands)
+
+def _replace_arguments(lines, args):
+    repl = [(f'${i+1}',arg) for i, arg in enumerate(args)]
+    repl.reverse()  # Handle arg $10 before arg $1
+    cmds = []
+    for cmd in lines:
+        for var,value in repl:
+            cmd = cmd.replace(var,value)
+        cmds.append(cmd)
+    return cmds
