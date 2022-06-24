@@ -9,39 +9,31 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-TOP= ../../..
+TOP= ../../../..
 include $(TOP)/mk/config.make
 
-LIBNAME = logger
+LIBNAME = chutil
 DIRNAME = $(shell basename `pwd`)
 DIRNAME := $(DIRNAME:_cpp=)
 
 SRCS	= $(wildcard *.cpp)
 OBJS	= $(SRCS:.cpp=.$(OBJ_EXT))
-INCS	+= $(PYTHON_INCLUDE_DIRS)
-ifneq ($(OS),Windows)
-CXX	+= -Wno-logical-op-parentheses
-endif
-LIBS	+= $(PYTHON_LIB)
 
-$(SHLIB): imex.h $(OBJS)
-	$(SHLIB_LINK)
-
-$(LIBRARY): imex.h $(OBJS)
+$(LIBRARY): $(OBJS)
 	$(LIB_LINK)
 
-install: $(LIBRARY)
+build install: $(LIBRARY)
 	$(RSYNC) $(LIBRARY) $(libdir)
-	$(RSYNC) imex.h $(wildcard *.h) $(includedir)/$(DIRNAME)/
+	$(RSYNC) $(wildcard *.h) $(includedir)/$(DIRNAME)/
 	if [ -d "$(app_includedir)" ]; then \
-		$(RSYNC) imex.h $(wildcard *.h) $(app_includedir)/$(DIRNAME)/; \
+		$(RSYNC) $(wildcard *.h) $(app_includedir)/$(DIRNAME)/; \
 	fi
 	if [ -d "$(app_libdir)" ]; then \
 		$(RSYNC) $(LIBRARY) $(app_libdir); \
 	fi
 
 clean:
-	rm -f $(OBJS) $(LIBRARY) imex.h
+	rm -f $(OBJS) $(LIBRARY)
 ifdef WIN32
-	rm -f lib$(LIBNAME).{lib,pdb,exp} vc*.pdb
+	rm -f lib$(LIBNAME).pdb vc*.pdb
 endif

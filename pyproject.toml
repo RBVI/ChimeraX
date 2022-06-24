@@ -6,6 +6,12 @@ exclude = [
 ignore = [
     "src/bundles/**/build"
 ]
+[tool.yapf]
+# All changes must be PEP8 compatible
+blank_line_before_nested_class_or_def=true
+column_limit=95
+dedent_closing_brackets=true
+space_between_ending_comma_and_closing_bracket=false
 [tool.yapfignore]
 ignore_patterns = [
     ".venv",
@@ -59,6 +65,8 @@ flake8-ignore = [
     "E306",
     # Disallows Multiple imports on one line
     "E401",
+	# Disallows long lines
+	"E501",
     # Disallows bare except statement
     "E722",
     # Disallows breaking before binary operators as in Haskell
