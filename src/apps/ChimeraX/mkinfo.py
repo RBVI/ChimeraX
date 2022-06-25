@@ -122,7 +122,7 @@ else:
 year = datetime.datetime.now().year
 
 # extract chimerax.core version
-f = open('../../core/Makefile')
+f = open('../../bundles/core/Makefile')
 for line in f.readlines():
     if line.startswith('BUNDLE_VERSION'):
         break
