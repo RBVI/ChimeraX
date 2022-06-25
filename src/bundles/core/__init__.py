@@ -1163,8 +1163,3 @@ def restart_action(line, inst_dir, msgs):
         msgs.append(("stderr", cp.stderr.decode("utf-8", "backslashreplace")))
     if bundle.endswith(".whl"):
         os.remove(os.path.join(inst_dir, bundle))
-
-
-if __name__ == '__main__':
-    exit_code = init(sys.argv)
-    raise SystemExit(exit_code)

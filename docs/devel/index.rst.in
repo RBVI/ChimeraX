@@ -54,7 +54,7 @@ API Reference
 
    supported_api.rst	      
    modules.rst
-   core/commands/user_commands.rst
+   bundles/core/commands/user_commands.rst
    classes.rst
    cpplibs.rst
    prereqs.rst

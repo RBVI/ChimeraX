@@ -20,6 +20,8 @@ SYNC_DIR = $(wildcard $(TOP)/build/sync)
 BUNDLE_BUILDER_SUBDIR = bundle_builder
 TOOLSHED_UTILS_SUBDIR = toolshed_utils
 
+CORE_SUBDIR = core
+
 REST_SUBDIRS = add_charge addh align_algs alignment_hdrs \
 	  alignments alphafold altloc_explorer amber_info arrays atom_search \
 	  atomic atomic_lib axes_planes basic_actions bild \
@@ -58,7 +60,7 @@ ifeq ($(OS),Linux)
 REST_SUBDIRS += linux_support
 endif
 
-SUBDIRS = $(BUNDLE_BUILDER_SUBDIR) $(TOOLSHED_UTILS_SUBDIR) $(REST_SUBDIRS)
+SUBDIRS = $(CORE_SUBDIR) $(BUNDLE_BUILDER_SUBDIR) $(TOOLSHED_UTILS_SUBDIR) $(REST_SUBDIRS)
 
 NO_SUBDIR_INSTALL = 1
 
@@ -74,7 +76,7 @@ $(SUBDIR_BUILD): dir
 install:
 	$(MAKE) build
 	cd $(SYNC_DIR) && $(APP_BOOTSTRAP_PIP) install --upgrade --upgrade-strategy only-if-needed */*.whl
-	$(APP_EXE) --exit --nogui --silent --cmd "toolshed reload installed"
+	$(APP_PYTHON_EXE) -m chimerax.core --exit --nogui --silent --cmd "toolshed reload installed"
 
 lint:
 ifneq (,$(PYSRCS))

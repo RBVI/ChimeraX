@@ -9,27 +9,25 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-TOP	= ../../..
+TOP= ../../../..
 include $(TOP)/mk/config.make
 
-PKG_DIR = $(PYSITEDIR)/chimerax/core
-APP_PKG_DIR = $(APP_PYSITEDIR)/chimerax/core
+PYSRCS= $(wildcard *.py)
+PKG_DIR= $(PYSITEDIR)/chimerax/core/toolshed
+APP_PKG_DIR = $(APP_PYSITEDIR)/chimerax/core/toolshed
 
-PYMOD_NAME = _mac_util
-SRCS	= module.cpp setfileicon.cpp enablemultitouch.cpp
-OBJS	= $(SRCS:.cpp=.$(OBJ_EXT)) setfileicon_mac.o enablemultitouch_mac.o
-DEFS	+= $(PYDEF)
-INCS	+= $(PYTHON_INCLUDE_DIRS)
-LIBS	+= $(PYTHON_LIB)
-LIBS	+= -framework AppKit
+all: $(PYOBJS)
 
-all: $(PYMOD)
+build install: all dir
+	$(RSYNC) $(PYSRCS) $(DATA) $(PKG_DIR)
+	#if [ -d "$(APP_PKG_DIR)" ]; then $(RSYNC) $(PYSRCS) $(APP_PKG_DIR); fi
 
-install: all
-	$(RSYNC) $(PYMOD) $(PKG_DIR)
-
-$(PYMOD): $(OBJS)
-	$(PYMOD_LINK)
+dir:
+	if [ ! -d "$(PKG_DIR)" ]; then mkdir -p $(PKG_DIR); fi
+	#if [ -d "$(app_prefix)" ]; then mkdir -p $(APP_PKG_DIR); fi
 
 clean:
-	rm -f $(PYMOD) $(OBJS)
+	rm -rf __pycache__
+
+pylint:
+	$(PYLINT) $(PYSRCS)

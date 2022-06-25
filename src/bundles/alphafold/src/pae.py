@@ -133,6 +133,7 @@ class AlphaFoldPAEOpen(ToolInstance):
             from os import path
             dir = path.split(s.filename)[0]
         elif self._pae_file.text():
+            from os import path
             dir = path.split(self._pae_file.text())[0]
         else:
             dir = None
@@ -412,7 +413,7 @@ class AlphaFoldPAEPlot(ToolInstance):
         if colormap is None:
             from chimerax.core.colors import BuiltinColormaps
             colormap = BuiltinColormaps[self._default_colormap_name]
-        self._pae_view._make_image(self._pae._pae_matrix, colormap)
+        self._pae_view._make_image(self._pae.pae_matrix, colormap)
         
     # ---------------------------------------------------------------------------
     #
@@ -433,7 +434,7 @@ class AlphaFoldPAEPlot(ToolInstance):
         if colormap is None:
             colormap = self._pae_view._block_colormap((0,0,0,255))
         color_blocks = self._residue_color_blocks()
-        self._pae_view._make_image(self._pae._pae_matrix, colormap, color_blocks)
+        self._pae_view._make_image(self._pae.pae_matrix, colormap, color_blocks)
 
     # ---------------------------------------------------------------------------
     #
@@ -491,7 +492,7 @@ class AlphaFoldPAEPlot(ToolInstance):
     # ---------------------------------------------------------------------------
     #
     def _report_residues(self, index1, index2):
-        m = self._pae._pae_matrix
+        m = self._pae.pae_matrix
         size = m.shape[0]
         s = self._pae.structure
         if s is None:
@@ -744,6 +745,12 @@ class AlphaFoldPAE:
         self._cluster_min_size = 10
         self._clusters = None		# Cache computed clusters
         self._cluster_colors = None
+
+    # ---------------------------------------------------------------------------
+    #
+    @property
+    def pae_matrix(self):
+        return self._pae_matrix
 
     # ---------------------------------------------------------------------------
     #
