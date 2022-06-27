@@ -49,8 +49,9 @@ def read_pseudobond_file(session, stream, file_name, *args,
         a2, used, rest = AtomsArg.parse(aspec2, session)
         for a, aspec in ((a1,aspec1), (a2,aspec2)):
             if len(a) != 1:
-                raise SyntaxError('Line %d, got %d atoms for spec "%s", require exactly 1'
-                                  % (i, len(a), aspec))
+                from chimerax.core.errors import UserError
+                raise UserError('Line %d "%s", got %d atoms for spec "%s", require exactly 1'
+                                % (i, line, len(a), aspec))
         b = g.new_pseudobond(a1[0], a2[0])
         if len(fields) >= 3:
             b.color = _parse_color(fields[2], session)

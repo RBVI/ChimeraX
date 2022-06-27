@@ -536,11 +536,17 @@ def shim_place_fragment(session, fragment_name, position=None, res_name="UNL"):
 def shim_place_nucleic_acid(session, sequence, **kw):
     from .start import place_nucleic_acid, NucleicError
     try:
-        chains = place_nucleic_acid(_structure, sequence, **kw)
+        ret_val = place_nucleic_acid(_structure, sequence, **kw)
     except NucleicError as e:
         raise UserError(str(e))
-    show_sticks_and_elements(chains.existing_residues.atoms)
-    return chains
+    if len(sequence) > 1:
+        # Chains returned
+        atoms = ret_val.existing_residues.atoms
+    else:
+        # Residues returned
+        atoms = ret_val.atoms
+    show_sticks_and_elements(atoms)
+    return ret_val
 
 def shim_place_peptide(session, sequence, phi_psis, **kw):
     set_styles = _structure.num_atoms != 0

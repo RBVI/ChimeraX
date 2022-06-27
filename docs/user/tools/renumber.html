@@ -1,0 +1,89 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Tool: Renumber Residues</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#tools">Tool</a>: Renumber Residues</h3>
+<p>
+<b>Renumber Residues</b> changes the residue numbering in atomic models
+starting from 1 or another integer given by the user. The corresponding 
+command is <a href="../commands/renumber.html"><b>renumber</b></a>.
+</p><p>
+To switch between numbering schemes already defined for biopolymer
+structures from the <a href="https://www.wwpdb.org" target="_blank">wwPDB</a>,
+instead use <a href="../commands/setattr.html"><b>setattr</b></a> to change the
+<a href="../attributes.html#model">atomic-model attribute</a>
+<b>res_numbering</b>, with possible values <b>author</b>, <b>canonical</b>, or
+<b>uniprot</b>. See also:
+<a href="buildstructure.html"><b>Build Structure</b></a>,
+<a href="altlocexplorer.html"><b>Altloc Explorer</b></a>,
+<a href="../commands/rename.html"><b>rename</b></a>,
+<a href="../commands/save.html"><b>save</b></a>
+</p><p>
+<b>Renumber Residues</b> can be opened from the 
+<b>Structure Editing</b> section of the <b>Tools</b> menu and 
+manipulated like other panels (<a href="../window.html#panels">more...</a>).
+</p><p>
+Either the currently <b><a href="../selection.html">selected</a> residues</b>
+or one or more <b>chains</b> chosen from the list in the dialog 
+can be designated for renumbering. For <b>chains</b>, the following
+option is available:
+</p>
+<ul>
+<li><b>Chain renumbering starts at beginning of sequence (if known) even if
+initial residues are missing</b> (default <b>on</b>)
+&ndash; whether to map the specified <a href="#start">starting number</a>
+to the first residue in the PDB SEQRES records (or mmCIF equivalent)
+for the chain instead of the first residue in the chain's atomic coordinates;
+these could differ if N-terminal residues are missing due to disorder.
+Using this option allows consistent numbering
+of multiple copies of the same protein despite their having
+N-terminal disordered regions of different lengths.
+</ul>
+<p>
+Other settings:
+</p>
+<ul>
+<li><a name="start"></a><b>Start from: [<i>N</i>]</b> (default <b>1</b>)
+&ndash; zero or a positive or negative integer
+<li><b>Maintain relative numbering within renumbered residues</b>
+(default <b>on</b>)
+&ndash; whether to renumber the remaining designated residues per chain 
+to maintain a constant offset from their current numbering 
+(which keeps any existing insertion codes and gaps in numbering).
+Turning this option off means to renumber consecutively in increments 
+of 1 regardless of current numbering.
+</ul>
+<p>
+Clicking <b>Apply</b> (or <b>OK</b>, which also dismisses the dialog)
+renumbers the residues. If the requested renumbering would result in 
+multiple residues in the same chain having the same number,
+an error message will appear and the renumbering will not occur.
+<b>Close</b> simply closes the dialog, while <b>Help</b> opens
+this page in the <a href="helpviewer.html"><b>Help Viewer</b></a>.
+</p>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+June 2022</address>
+</body></html>

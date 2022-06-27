@@ -38,7 +38,7 @@ class _BootstrapAPI(BundleAPI):
 
         def show_updates(trigger_name, data, *, session=session):
             from . import tool
-            session.ui.thread_safe(tool.show, session, tool.DialogType.UPDATES_ONLY)
+            session.ui.thread_safe(tool.show, session, tool.OUT_OF_DATE)
         session.toolshed.triggers.add_handler(toolshed.TOOLSHED_OUT_OF_DATE_BUNDLES, show_updates)
 
     @staticmethod
@@ -278,6 +278,7 @@ def _install_bundle(toolshed, bundles, logger, *, per_user=True, reinstall=False
                 logger.warning("%s: manager initialization failed" % name)
 
             # providers
+            ends_needed = set()
             for name, version in new_bundles.items():
                 bi = toolshed.find_bundle(name, logger, version=version)
                 if bi:
@@ -286,6 +287,9 @@ def _install_bundle(toolshed, bundles, logger, *, per_user=True, reinstall=False
                         mgr = toolshed._manager_instances.get(mgr_name, None)
                         if mgr:
                             mgr.add_provider(bi, pvdr_name, **kw)
+                            ends_needed.add(mgr)
+            for mgr in ends_needed:
+                mgr.end_providers()
 
             # custom inits
             failed = []

@@ -245,6 +245,9 @@ class ToolbarTool(ToolInstance):
     def set_enabled(self, enabled, tab_title, section_title, button_title):
         self.ttb.set_enabled(enabled, tab_title, section_title, button_title)
 
+    def show_group_button(self, tab_title, section_title, button_title):
+        self.ttb.show_group_button(tab_title, section_title, button_title)
+
 
 def _home_layout(session, home_tab):
     # interact through buttons in home tab
@@ -425,6 +428,7 @@ class _HomeTab(QTreeWidget):
         return super().dragEnterEvent(event)
 
     def dropEvent(self, event):
+        from Qt import using_qt5
         source = event.source()
         # from dragEnterEvent, we know there is at least one selected item
         original = source.selectedItems()[0]
@@ -436,7 +440,10 @@ class _HomeTab(QTreeWidget):
         result = super().dropEvent(event)
         if copy_subtree:
             # find where it was copied to
-            new_section = self.itemAt(event.pos())
+            if using_qt5:
+                new_section = self.itemAt(event.pos())
+            else:
+                new_section = self.itemAt(event.position().toPoint())
             if new_section is None:
                 # assume dropped below bottom
                 new_section = self.topLevelItem(self.topLevelItemCount() - 1)
@@ -472,7 +479,10 @@ class _HomeTab(QTreeWidget):
             if original_type == SECTION_TYPE:
                 self.expandItem(original)
         else:
-            new_button = self.itemAt(event.pos())
+            if using_qt5:
+                new_button = self.itemAt(event.pos())
+            else:
+                new_button = self.itemAt(event.position().toPoint())
             new_button.setFlags(BUTTON_FLAGS)
         self.childDraggedAndDropped.emit()
         return result
@@ -674,7 +684,7 @@ class ToolbarSettingsTool:
             elif item_type == SECTION_TYPE:
                 name = item.text(0)
                 cur_section = []
-                if item.checkState(0):
+                if item.checkState(0) != Qt.Unchecked:
                     home_tab.append(((name, True), cur_section))
                 else:
                     home_tab.append((name, cur_section))

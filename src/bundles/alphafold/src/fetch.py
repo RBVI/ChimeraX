@@ -18,21 +18,24 @@
 #	https://alphafold.ebi.ac.uk/files/AF-P29474-F1-model_v1.cif
 #
 def alphafold_fetch(session, uniprot_id, color_confidence=True,
-                    align_to=None, trim=True, ignore_cache=False,
-                    add_to_session=True, version=1, **kw):
+                    align_to=None, trim=True, pae=False, ignore_cache=False,
+                    add_to_session=True, version=None, in_file_history=True, **kw):
 
     uniprot_name = uniprot_id if '_' in uniprot_id else None
     uniprot_id = _parse_uniprot_id(uniprot_id)
-    file_name = 'AF-%s-F1-model_v%s.cif' % (uniprot_id, str(version))
-    url = 'https://alphafold.ebi.ac.uk/files/' + file_name
-
+    from . import database
+    url = database.alphafold_model_url(session, uniprot_id, version)
+    file_name = url.split('/')[-1]
+    
     from chimerax.core.fetch import fetch_file
     filename = fetch_file(session, url, 'AlphaFold %s' % uniprot_id, file_name, 'AlphaFold',
                           ignore_cache=ignore_cache, error_status = False)
 
     model_name = 'AlphaFold %s' % (uniprot_name or uniprot_id)
     models, status = session.open_command.open_data(filename, format = 'mmCIF',
-                                                    name = model_name, **kw)
+                                                    name = model_name,
+                                                    in_file_history = in_file_history,
+                                                    **kw)
     from .match import _set_alphafold_model_attributes
     _set_alphafold_model_attributes(models, uniprot_id, uniprot_name)
 
@@ -43,12 +46,19 @@ def alphafold_fetch(session, uniprot_id, color_confidence=True,
             s._auto_style = False
             _color_by_confidence(s)
 
+    if pae:
+        trim = False	# Cannot associate PAE if structure is trimmed
+        
     if align_to is not None:
         _align_and_trim(models, align_to, trim)
         _log_chain_info(models, align_to.name)
         
     if add_to_session:
         session.models.add(models)
+
+    if pae:
+        from .pae import alphafold_pae
+        alphafold_pae(session, structure = models[0], uniprot_id = uniprot_id)
         
     return models, status
 
@@ -101,6 +111,7 @@ def register_alphafold_fetch_command(logger):
         keyword = [('color_confidence', BoolArg),
                    ('align_to', ChainArg),
                    ('trim', BoolArg),
+                   ('pae', BoolArg),
                    ('ignore_cache', BoolArg),
                    ('version', IntArg)],
         synopsis = 'Fetch AlphaFold database models for a UniProt identifier'

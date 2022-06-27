@@ -920,12 +920,13 @@ class SteamVRCamera(Camera, StateManager):
     def projection_matrix(self, near_far_clip, view_num, window_size):
         '''The 4 by 4 OpenGL projection matrix for rendering the scene.'''
         if view_num == 2:
-            # TODO: Want to use near_far_clip in meters in room
-            #  rather than actual scene bounds because scene bounds
-            #  don't include hand controllers, vr user interface panels
-            #  and multi-person head models so those get clipped in
-            #  the room camera view if the data model bounds are too small.
-            p = self._room_camera.projection_matrix(near_far_clip, view_num, window_size)
+            # Use near_far_clip in meters in room rather than actual scene bounds
+            # because scene bounds don't include hand controllers, vr user interface panels
+            # and multi-person head models so those get clipped in the room camera view
+            # if the data model bounds are too small.
+            ss = self.scene_scale
+            nf = (self._z_near/ss, self._z_far/ss) if ss > 0 else near_far_clip
+            p = self._room_camera.projection_matrix(nf, view_num, window_size)
             return p
         elif view_num == 0:
             p = self._projection_left
@@ -1343,6 +1344,9 @@ class RoomCameraModel(Model):
 
         # Avoid camera disappearing when far from models
         self.allow_depth_cue = False
+
+        # Avoid clip planes hiding the camera screen.
+        self.allow_clipping = False
 
         self.color = (255,255,255,255)	# Don't modulate texture colors.
         self.use_lighting = False
@@ -2297,8 +2301,10 @@ class Panel:
             et = QEvent.MouseMove
             button =  Qt.NoButton
             buttons = Qt.LeftButton
+        from Qt.QtCore import QPoint, QPointF
+        screen_pos = QPointF(w.mapToGlobal(QPoint(int(pos.x()), int(pos.y()))))
         from Qt.QtGui import QMouseEvent
-        me = QMouseEvent(et, pos, button, buttons, Qt.NoModifier)
+        me = QMouseEvent(et, pos, screen_pos, button, buttons, Qt.NoModifier)
         self._ui._session.ui.postEvent(w, me)
         return w
 
@@ -2313,7 +2319,7 @@ class Panel:
         pwp = QPoint(int(x), int(y))
         w = pw.childAt(pwp)	# Works even if widget is covered.
         if w is None:
-            return pw, pwp
+            return pw, QPointF(x,y)
         gp = pw.mapToGlobal(pwp)
         # Using w = ui.widgetAt(gp) does not work if the widget is covered by another app.
         wpos = QPointF(w.mapFromGlobal(gp)) if w else None
@@ -2359,8 +2365,11 @@ class Panel:
             return window_xy[1] < 0
         w, pos = self.clicked_widget(window_xy)
         from Qt.QtWidgets import QMenuBar, QDockWidget
-        if isinstance(w, QMenuBar) and w.actionAt(pos) is None:
-            return True
+        if isinstance(w, QMenuBar):
+            from Qt.QtCore import QPoint
+            ipos = QPoint(int(pos.x()),int(pos.y()))
+            if w.actionAt(ipos) is None:
+                return True
         from chimerax.ui.widgets.tabbedtoolbar import TabbedToolbar
         return isinstance(w, (QDockWidget, TabbedToolbar))
                            
@@ -2423,6 +2432,7 @@ class PanelDrawing(Drawing):
         self.casts_shadows = False
         self.skip_bounds = True		# Panels should not effect view all command.
         self.allow_depth_cue = False	# Avoid panels fading out far from models.
+        self.allow_clipping = False	# Avoid clip planes hiding panels
 
     def draw(self, renderer, draw_pass):
         if not self._hide_panel():
@@ -2839,6 +2849,9 @@ class HandModel(Model):
         
         # Avoid hand disappearing when behind models, especially in multiperson VR.
         self.allow_depth_cue = False
+
+        # Don't let clip planes hide hand models.
+        self.allow_clipping = False
         
         # Draw controller as a cone.
         self._create_model_geometry(length, radius, color)

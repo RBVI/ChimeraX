@@ -178,7 +178,8 @@ class Region:
                     break
             self.blocks.append((new_line1, new_line2, pos1, pos2))
 
-    def destroy(self, rebuild_table=True):
+    def _destroy(self, rebuild_table=True):
+        # In most circumstances, use region_browser.delete_region() instead
         for item in self._items:
             self.scene.removeItem(item)
         self.blocks = []
@@ -296,7 +297,7 @@ class Region:
                 self.scene.removeItem(item)
             self._items = self._items[:0-len(prev_bboxes)]
         if destroy_if_empty and not self.blocks:
-            self.destroy()
+            self.region_browser.delete_region(self)
         elif make_cb:
             self.region_browser._region_size_changed_cb(self)
 
@@ -471,7 +472,7 @@ class RegionBrowser:
     def clear_regions(self, do_single_seq_regions=True):
         if do_single_seq_regions:
             for region in self.regions[:]:
-                region.destroy()
+                region._destroy()
             self.associated_regions.clear()
             self.sequence_regions = { None: set() }
         else:
@@ -481,7 +482,7 @@ class RegionBrowser:
                     single_seq_regions.update(regions)
             for region in self.regions[:]:
                 if region not in single_seq_regions:
-                    region.destroy()
+                    self.delete_regions(region)
 
     def copyRegion(self, region, name=None, **kw):
         if not region:
@@ -529,7 +530,7 @@ class RegionBrowser:
             seq = region.sequence
             regions = self.sequence_regions[seq]
             regions.remove(region)
-            region.destroy(rebuild_table=rebuild_table)
+            region._destroy(rebuild_table=rebuild_table)
             if seq and not regions:
                 del self.sequence_regions[seq]
                 """
@@ -1032,7 +1033,7 @@ class RegionBrowser:
             region.redraw()
             if cull_empty and not region.blocks \
             and region != self.get_region("ChimeraX selection"):
-                region.destroy()
+                self.delete_region(region)
 
     def region_residues(self, region=None):
         if not region:
@@ -1767,7 +1768,7 @@ class RegionBrowser:
             self._sel_change_handler = None
             sel_region = self.get_region("ChimeraX selection")
             if sel_region:
-                sel_region.destroy()
+                sel_region._destroy()
 
     def _toggle_active(self, region, select_on_structures=True, destroyed=False):
         if self._cur_region is not None and self._cur_region == region:

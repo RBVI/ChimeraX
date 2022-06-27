@@ -79,6 +79,10 @@ crosslinks or other restraints.
 <b>crosslinks</b> <b>histogram</b>
 &nbsp;<a href="atomspec.html"><i>pseudobond-spec</i></a>&nbsp;
 [&nbsp;<b>coordsets</b>&nbsp;&nbsp;<a href="atomspec.html"><i>model-spec</i></a>&nbsp;]
+[&nbsp;<b>bins</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
+[&nbsp;<b>minLength</b>&nbsp;&nbsp;<i>X-start</i>&nbsp;]
+[&nbsp;<b>maxLength</b>&nbsp;&nbsp;<i>X-end</i>&nbsp;]
+[&nbsp;<b>height</b>&nbsp;&nbsp;<i>Y-max</i>&nbsp;]
 </blockquote>
 <p>
 A histogram of lengths can be shown for either a collection of 
@@ -91,13 +95,33 @@ See also: <a href="coordset.html"><b>coordset</b></a>,
 <a href="select.html#new"><b>select</b> by pseudobond length</a>,
 <a href="../measurements.html">measurements</a>
 </p><p>
+Crosslinks with lengths ranging from <b>minLength</b> <i>X-min</i>
+to <b>maxLength</b> <i>X-max</i> (set by default to include all
+observed lengths) are tabulated into the specified number of histogram
+<b>bins</b> <i>N</i> (default <b>50</b>).
+The <b>height</b> setting allows truncating tall bars to prevent them
+from overwhelming the histogram, or conversely, to leave extra space
+above the tallest bar to give the same vertical scaling between multiple
+histograms for purposes of comparison
+(the default is to accommodate the counts observed, without truncation).
+</p><p>
 Passing the cursor over bars in a multiple-pseudobond histogram shows just the 
 pseudobonds of the corresponding length, temporarily enlarged (thickened)
 by a factor of three.
 In a histogram for a single pseudobond across a trajectory,
 passing the cursor over a bar shows just the trajectory frame (coordinate set)
 in which the pseudobond has the corresponding length.
+</p><p>
+The histogram <a href="../window.html#context-menu">context menu</a> includes:
 </p>
+<ul>
+<li><a name="saveplot"></a><b>Save Plot As...</b>
+save the histogram window contents as PNG, PDF, or SVG,
+using parameters of the matplotlib
+<a href="https://matplotlib.org/stable/api/figure_api.html#matplotlib.figure.Figure.savefig" target="_blank">Figure.save_fig() method</a>:
+resolution 300 dpi (if PNG or PDF) and border padding 0.1 inch. Currently,
+there is no command for saving the plot and no way to change these parameters.
+</ul>
 
 <a name="network"></a>
 <p class="nav">
@@ -177,5 +201,5 @@ Intra-model crosslinks are not affected.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-May 2019</address>
+May 2022</address>
 </body></html>

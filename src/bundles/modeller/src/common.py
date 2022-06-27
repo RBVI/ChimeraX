@@ -10,16 +10,24 @@
 # including partial copies, of the software or any revisions
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
+import os
+import re
+
+from xml.dom.minidom import parse
+
+from chimerax.core.tasks import Job
+from chimerax.core.session import State
+from chimerax.webservices.cxservices_job import CxServicesJob
 
 class ModelingError(ValueError):
     pass
 
 def modeller_copy(seq):
-	from copy import copy
-	mseq = copy(seq)
-	mseq.name = mseq.name[:16].replace(' ', '_')
-	mseq.characters = "".join([c.upper() if c.isalpha() else '-' for c in mseq.characters])
-	return mseq
+    from copy import copy
+    mseq = copy(seq)
+    mseq.name = mseq.name[:16].replace(' ', '_')
+    mseq.characters = "".join([c.upper() if c.isalpha() else '-' for c in mseq.characters])
+    return mseq
 
 def opal_safe_file_name(fn):
     return fn.replace(':', '_').replace(' ', '_').replace('|', '_').replace('[', '(').replace(']', ')')
@@ -70,11 +78,11 @@ def get_license_key(session, license_key):
     if license_key is None:
         from chimerax.core.errors import UserError
         raise UserError("No Modeller license key provided."
-            " Get a license key by registering at the Modeller web site.")
+                        " Get a license key by registering at the Modeller web site.")
     return license_key
 
 def write_modeller_scripts(license_key, num_models, het_preserve, water_preserve, hydrogens, fast,
-        loop_info, custom_script, temp_path, thorough_opt, dist_restraints_path, *, version=2):
+                           loop_info, custom_script, temp_path, thorough_opt, dist_restraints_path, *, version=2):
     """Function to prepare the Modeller scripts.
 
     Returns (path-to-Modeller-script, path-to-Modeller-XML-config-file,
@@ -114,7 +122,7 @@ def write_modeller_scripts(license_key, num_models, het_preserve, water_preserve
             '\t<veryFast>%s</veryFast>\n'
             '\t<loopInfo>%s</loopInfo>\n'
             '</modeller9v8>' % (license_key, version, num_models, int(het_preserve),
-                int(water_preserve), int(hydrogens), int(fast), repr(loop_info)), file=config_file)
+                                int(water_preserve), int(hydrogens), int(fast), repr(loop_info)), file=config_file)
 
     if custom_script:
         return custom_script, config_file.name, temp_dir
@@ -167,8 +175,8 @@ def write_modeller_scripts(license_key, num_models, het_preserve, water_preserve
     #code overrides the special_patches method.
     # e.g. to include the addtional disulfides.
     #def special_patches(self, aln):
-    """	% _process_dist_restraints(dist_restraints_path)
-        else:	# put in a commented-out line for special restraints
+    """ % _process_dist_restraints(dist_restraints_path)
+        else: # put in a commented-out line for special restraints
             body += """
     def customised_function(self): pass
     #code overrides the special_restraints method
@@ -235,7 +243,7 @@ a.md_level = refine.slow
 
     return script_file.name, config_file.name, temp_dir
 
-#TODO: handle chain IDs?  Does Modeller support that for this purpose?
+# TODO: handle chain IDs?  Does Modeller support that for this purpose?
 def _process_dist_restraints(filename):
     """
     Parses the distance restraints file specified by user and returns code that needs
@@ -253,17 +261,17 @@ def _process_dist_restraints(filename):
             res = int(value)
         except ValueError:
             raise UserError('The residue nr. %s specified in the additional distance restraints file'
-                ' is not an integer.' % value)
+                            ' is not an integer.' % value)
         if res <= 0:
             raise UserError('The residue nr. %d specified in the additional distance restraints file'
-                ' needs to be greater than 0.' % res)
+                            ' needs to be greater than 0.' % res)
         return res
 
     # check whether the specified path is a file:
     from os.path import isfile
     if not isfile(filename):
         raise UserError('The user-specified additional distance restraints file "%s" does not exist'
-            " (or isn't a file)." % filename)
+                        " (or isn't a file)." % filename)
 
     # initialize code that will be returned:
     headcode = """
@@ -282,18 +290,18 @@ def _process_dist_restraints(filename):
                 residues1, residues2, dist, stdev = line.strip().split()
             except TypeError:
                 raise UserError('The line "%s" specified in the additional distance restraints file'
-                    ' is not exactly four space-seperated values.' % line)
+                                ' is not exactly four space-seperated values.' % line)
 
-            # check whether dist and stdev are ok:    
+            # check whether dist and stdev are ok:
             try:
                 dist = float(dist)
                 stdev = float(stdev)
             except ValueError:
                 raise UserError('The distance %s or standard deviation %s specified in the additional'
-                    ' distance restraints file is not a real number.' % (dist, stdev))
+                                ' distance restraints file is not a real number.' % (dist, stdev))
             if stdev <= 0:
                 raise UserError('The standard deviation %f specified in the additional distance restraints'
-                    ' file needs to be greater than 0.' % stdev)
+                                ' file needs to be greater than 0.' % stdev)
 
             # check whether residue ranges or single residues where specified:
             atoms = []
@@ -303,7 +311,7 @@ def _process_dist_restraints(filename):
                         res1, res2 = residues.split('-')
                     except TypeError:
                         raise UserError('The residue range %s specified in the additional distance'
-                            ' restraints file is not valid.' % residues)
+                                        ' restraints file is not valid.' % residues)
                     resA = verify_residue(res1)
                     resB = verify_residue(res2)
                     if (resA, resB) not in pseudodict:
@@ -312,27 +320,54 @@ def _process_dist_restraints(filename):
                         # add to dict:
                         pseudodict[(resA, resB)] = atom
                         # add pseudoatoms to output code:
-                        headcode +=    """
-                        %s = pseudo_atom.gravity_center(self.residue_range('%d:','%d:'))
-                        rsr.pseudo_atoms.append(%s)
-        """ % (atom, resA, resB, atom)
+                        headcode += """
+                            %s = pseudo_atom.gravity_center(self.residue_range('%d:','%d:'))
+                            rsr.pseudo_atoms.append(%s)
+                            """ % (atom, resA, resB, atom)
                     else:
                         atom = pseudodict[(resA, resB)]
-                else: # hopefully, a single residue was specified -> verify    
+                else: # hopefully, a single residue was specified -> verify
                     res = verify_residue(residues)
-                    atom = "atm['CA:" + str(res) +"']"
+                    atom = "atm['CA:" + str(res) + "']"
                 atoms.append(atom)
 
             # add restraints line to output
             maincode += """
-                    rsr.add(forms.gaussian(group=physical.xy_distance, feature=features.distance(%s,%s), mean=%f, stdev=%f))
-""" % (atoms[0], atoms[1], dist, stdev)
-
-
+                rsr.add(forms.gaussian(group=physical.xy_distance, feature=features.distance(%s,%s), mean=%f, stdev=%f))
+                """ % (atoms[0], atoms[1], dist, stdev)
     # concatenate and return output code:
     return headcode + maincode
 
-from chimerax.core.session import State
+class ModellerXMLConfig:
+    def __init__(self, xmlFilename):
+        self.__doc = parse(xmlFilename)
+
+    def __getitem__(self, key):
+        el = self.__doc.getElementsByTagName(key)
+        values = []
+        if len(el) == 0:
+            # make it downgrade compatiable
+            if key == "loopRefin":
+                return "0"
+            else:
+                raise KeyError(key)
+            values = [ self.extractText(e) for e in el ]
+        if len(values) == 1:
+            return values[0]
+        else:
+            return values
+
+    def extractText(self, node):
+        from xml.dom.minidom import Node
+        textTypes = (Node.TEXT_NODE, Node.CDATA_SECTION_NODE)
+        text = []
+        for n in node.childNodes:
+            if n.nodeType in textTypes:
+                text.append(n.data)
+            else:
+                text.append(self.extractText(n))
+        return ''.join(text)
+
 class RunModeller(State):
 
     def __init__(self, session, match_chains, num_models, target_seq_name, targets, *, res_numberings=None):
@@ -350,7 +385,7 @@ class RunModeller(State):
         for i, hdr in enumerate(headers):
             if hdr.endswith(" score"):
                 headers[i] = hdr[:-6]
-        from chimerax.core.utils import string_to_attr
+        from chimerax.core.attributes import string_to_attr
         attr_names = [string_to_attr(hdr, prefix="modeller_") for hdr in headers]
         from chimerax.atomic import AtomicStructure
         for attr_name in attr_names:
@@ -377,13 +412,13 @@ class RunModeller(State):
             if model.num_chains == len(self.match_chains):
                 pairings = list(zip(self.match_chains, model.chains))
                 mm.match(self.session, mm.CP_SPECIFIC_SPECIFIC, pairings, mm.defaults['matrix'],
-                    mm.defaults['alignment_algorithm'], mm.defaults['gap_open'], mm.defaults['gap_extend'],
-                    cutoff_distance=mm.defaults['iter_cutoff'])
+                         mm.defaults['alignment_algorithm'], mm.defaults['gap_open'], mm.defaults['gap_extend'],
+                         cutoff_distance=mm.defaults['iter_cutoff'])
             else:
                 match_okay = False
             # since the residue numbering was initially consecutive, no long bonds got converted to
             # missing-structure pseudobonds, so we have to convert them by hand (simply by deleting them)
-            res_map = { r: i for i, r in enumerate(model.residues) }
+            res_map = {r: i for i, r in enumerate(model.residues)}
             for b in model.bonds[:]:
                 a1, a2 = b.atoms
                 r1, r2 = a1.residue, a2.residue
@@ -397,10 +432,12 @@ class RunModeller(State):
                     b.structure.delete_bond(b)
             models.append(model)
         if not match_okay:
-            self.session.logger.warning("The number of model chains does not match the number used from"
+            self.session.logger.warning(
+                "The number of model chains does not match the number used from"
                 " the template structure(s) [which can be okay if you closed or modified template"
                 " structures while the job was running], so no superposition of the models onto the"
-                " templates was performed.")
+                " templates was performed."
+            )
 
         reset_alignments = []
         for alignment, target_seq in self.targets:
@@ -437,59 +474,89 @@ class RunModeller(State):
 
 class ModellerWebService(RunModeller):
 
-    def __init__(self, session, match_chains, num_models, target_seq_name, input_file_map, config_name,
-            targets, **kw):
+    def __init__(self, session, match_chains, num_models, target_seq_name, input_file_map, parameters,
+                 temp_dir, targets, **kw):
 
         super().__init__(session, match_chains, num_models, target_seq_name, targets, **kw)
+        # pass temp_dir down to
+        # ModellerWebJob, where it will be deleted after
+        # the job finishes
+        self.temp_dir = temp_dir
         self.input_file_map = input_file_map
-        self.config_name = config_name
-
+        self.params = parameters
         self.job = None
 
     def run(self, *, block=False):
-        self.job = ModellerWebJob(self.session, self, self.config_name, self.input_file_map, block)
+        self.job = ModellerWebJob(self.session, self, self.params, self.input_file_map, self.temp_dir, block)
 
     def take_snapshot(self, session, flags):
         """For session/scene saving"""
         return {
+            'version': '2',
             'base data': super().take_snapshot(session, flags),
             'input_file_map': self.input_file_map,
-            'config_name': self.config_name,
+            'params': self.params
         }
 
     @staticmethod
     def restore_snapshot(session, data):
-        inst = ModellerWebService(session, None, None, None, data['input_file_map'], data['config_name'],
-            None, None)
+        version = data.get('version', 1)
+        if version == 1:
+            # Load the data from the version 1 XML file into the new format
+            config_name = data['config_name']
+            config = ModellerXMLConfig(config_name)
+            params = {
+                "key": config["key"]
+                , "version": config["version"]
+                , "numModels": config["numModel"]
+                , "hetAtom": bool(config["hetAtom"])
+                , "water": bool(config["water"])
+                , "allHydrogen": bool(config["allHydrogen"])
+                , "veryFast": bool(config["veryFast"])
+                , "loopInfo": eval(config["loopInfo"])
+            }
+            data['params'] = params
+        inst = ModellerWebService(session, None, None, None, data['input_file_map']
+                                  , data['params'], None, None)
         inst.set_state_from_snapshot(data['base data'])
 
-from chimerax.webservices.opal_job import OpalJob
-class ModellerWebJob(OpalJob):
-
-    OPAL_SERVICE = "Modeller9v8Service"
+class ModellerWebJob(CxServicesJob):
     SESSION_SAVE = True
+    service_name = "modeller"
 
-    def __init__(self, session, caller, command, input_file_map, block):
+    def __init__(self, session, caller, params, input_file_map, temp_dir, block):
         super().__init__(session)
         self.caller = caller
-        self.start(self.OPAL_SERVICE, command, input_file_map=input_file_map, blocking=block)
+        self.params = params
+        if temp_dir:
+            # Save the tempdir from src/loops or src/comparative, since we need it to
+            # stay alive long enough to upload the files to the backend. The superclass
+            # will delete it after uploading files.
+            self.temp_dir = temp_dir
+        # Coerce the existing input_file_map into the format that CxServicesJob
+        # expects. In the future, perhaps only list the filenames.
+        self.processed_input_file_map = []
+        for entry in input_file_map:
+            # Take the full path to the file, except ModellerScriptConfig.xml
+            if os.path.basename(entry[2]) == "ModellerScriptConfig.xml":
+                continue
+            self.processed_input_file_map.append(entry[2])
+        self.start(self.service_name, self.params, self.processed_input_file_map, blocking=block)
 
     def monitor(self):
-        super().monitor()
-        stdout = self.get_file("stdout.txt")
-        num_done = stdout.count('# Heavy relative violation of each residue is written to:')
-        num_done = max(stdout.count('>> Normalized DOPE z score') - 1, 0)
-        status = self.session.logger.status
-        tsafe = self.session.ui.thread_safe
+        super().monitor(poll_freq_override=5)
+        files = self.get_all_filenames(refresh=True).keys()
+        generated_model_pattern = re.compile('.*\.B.*\.pdb') # aka *.B*.pdb
+        num_done = len([name for name in files if generated_model_pattern.match(name)])
         if not num_done:
-            tsafe(status, "No models generated yet")
+            self.thread_safe_status("Modeller Webservice: No models generated yet")
         else:
-            tsafe(status, "%d of %d models generated" % (num_done, self.caller.num_models))
-
-    def next_check(self):
-        return 15
+            self.thread_safe_status("Modeller Webservice: %d of %d models generated" % (num_done, self.caller.num_models))
 
     def on_finish(self):
+        # Clean up the temporary directory
+        if hasattr(self, 'temp_dir'):
+            delattr(self, 'temp_dir')
         logger = self.session.logger
         logger.info("Modeller job ID %s finished" % self.job_id)
         if not self.exited_normally():
@@ -526,7 +593,7 @@ class ModellerWebJob(OpalJob):
 class ModellerLocal(RunModeller):
 
     def __init__(self, session, match_chains, num_models, target_seq_name, executable_location,
-            script_name, targets, temp_dir, *, loop_job=False, **kw):
+                 script_name, targets, temp_dir, *, loop_job=False, **kw):
 
         super().__init__(session, match_chains, num_models, target_seq_name, targets, **kw)
         self.executable_location = executable_location
@@ -552,7 +619,6 @@ class ModellerLocal(RunModeller):
     def restore_snapshot(session, data):
         pass # The job's SESSION_SAVE attribute is False
 
-from chimerax.core.tasks import Job
 class ModellerLocalJob(Job):
 
     SESSION_SAVE = False
@@ -571,7 +637,7 @@ class ModellerLocalJob(Job):
             raise ValueError("%s does not exist" % file_name)
         return open(path).read()
 
-    def launch(self, executable_location, script_name, **kw):
+    def run(self, executable_location, script_name, **kw):
         from chimerax.core.errors import UserError
         import os, sys
         cmd = [executable_location, os.path.join(self.caller.temp_dir, script_name)]
@@ -583,18 +649,22 @@ class ModellerLocalJob(Job):
             while True:
                 head, tail = os.path.split(bin_dir)
                 if not head:
-                    raise UserError("Expected MODELLER executable to be located under a folder whose name"
+                    raise UserError(
+                        "Expected MODELLER executable to be located under a folder whose name"
                         " begins with 'Modeller' or 'modeller' (the MODELLER home folder).  The executable"
                         " specified (%s) does not.  If you feel this requirment is a bug, use 'Report a Bug'"
-                        " in the Help menu to report it." % executable_location)
+                        " in the Help menu to report it." % executable_location
+                    )
                 elif tail.startswith("Modeller") or tail.startswith("modeller"):
                     home = bin_dir
                     break
                 bin_dir = head
             if not exe.startswith("mod") or not exe.endswith(".exe"):
-                raise UserError("Expected MODELLER executable name to start with 'mod' and end with '.exe'."
+                raise UserError(
+                    "Expected MODELLER executable name to start with 'mod' and end with '.exe'."
                     "  The executable specified (%s) does not.  If you feel this requirement is a bug, use"
-                    " 'Report a Bug' in the Help menu to report it." % executable_location)
+                    " 'Report a Bug' in the Help menu to report it." % executable_location
+                )
             version = exe[3:-4]
             if 'v' not in version and version.count('.') == 1:
                 version = version.replace('.', 'v')
@@ -617,8 +687,9 @@ class ModellerLocalJob(Job):
             logger = self.session.logger
             tsafe(logger.status, "Running MODELLER locally")
             try:
-                result = subprocess.run(cmd, capture_output=True, text=True, check=True,
-                        env=environ)
+                # was previously 'result'
+                _ = subprocess.run(cmd, capture_output=True, text=True, check=True,
+                                   env=environ)
             except subprocess.CalledProcessError as e:
                 from chimerax.ui.html import disclosure
                 try:
@@ -626,17 +697,19 @@ class ModellerLocalJob(Job):
                 except ValueError:
                     output = e.output
                 tsafe(logger.info, disclosure('<pre>' + output + '</pre>', summary="Modeller output"),
-                    is_html=True)
+                      is_html=True)
                 tsafe(logger.info, disclosure('<pre>' + e.stderr + '</pre>', summary="Modeller errors",
-                    open=True), is_html=True)
+                      open=True), is_html=True)
                 raise UserError("Modeller execution failed; output and errors in log")
             finally:
                 self._running = False
                 os.chdir(old_dir)
                 tsafe(logger.status, "MODELLER finished")
+            tsafe(self.process_results)
         import threading
         thread = threading.Thread(target=threaded_run, daemon=True)
         thread.start()
+        super().run()
 
     def monitor(self):
         import os
@@ -667,6 +740,9 @@ class ModellerLocalJob(Job):
         return 15
 
     def on_finish(self):
+        pass
+
+    def process_results(self):
         logger = self.session.logger
         try:
             model_info = self.get_file("ok_models.dat")
@@ -680,7 +756,8 @@ class ModellerLocalJob(Job):
             from chimerax.core.errors import NonChimeraError
             raise NonChimeraError("No output models from Modeller; see log for Modeller text output/errors.")
         try:
-            stdout = self.get_file(self.stdout_file)
+            # was previously 'stdout'
+            _ = self.get_file(self.stdout_file)
         except KeyError:
             raise RuntimeError("No standard output from Modeller job")
         def get_pdb_model(fname):

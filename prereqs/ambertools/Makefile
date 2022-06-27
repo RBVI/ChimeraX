@@ -11,10 +11,15 @@ VERSION = 20
 USE_PREBUILT=true
 UPLOAD_PREBUILT=false
 ifeq ($(OS),Linux)
+SUPPORTED_DISTROS := Ubuntu CentOS Debian
 # CentOS uses "CentOS Linux", hence the second awk in the following line
 LINUX_FLAVOR = $(shell egrep '^NAME=' /etc/os-release | awk -F= '{ print $$2 }' | awk '{ print $$1 }' | tr -d '"')
 LINUX_RELEASE = $(shell egrep '^VERSION_ID=' /etc/os-release | awk -F= '{ print $$2 }' | tr -d '"')
 AMBERTOOLS_PREBUILT = ambertools-$(VERSION)-$(OS)-$(LINUX_FLAVOR)-$(LINUX_RELEASE).tar.bz2
+ifneq ($(filter $(LINUX_FLAVOR),$(SUPPORTED_DISTROS)),)
+else
+USE_PREBUILT=false
+endif
 else
 AMBERTOOLS_PREBUILT = ambertools-$(VERSION)-$(OS).tar.bz2
 ifeq ($(OS),Darwin)
@@ -46,12 +51,15 @@ ifeq ($(OS),Windows)
 CONFIG_ARGS = -cygwin gnu
 ENV_OPTS = -u CC -u CXX FFLAGS=-fallow-argument-mismatch
 PATCHES += flex-cygwin.patch
-else
-ifeq ($(OS),Darwin)
-CONFIG_ARGS = clang
-else
+else ifeq ($(OS),Linux)
 CONFIG_ARGS = gnu
+ifdef UBUNTU_DIST
+ifeq ($(shell expr $(UBUNTU_DIST) '>' 18.04),1)
+ENV_OPTS = CC=gcc-9 FC=gfortran-9
 endif
+endif
+else ifeq ($(OS),Darwin)
+CONFIG_ARGS = clang
 endif
 
 ifeq ($(wildcard /usr/local/gfortran/*),)
@@ -65,6 +73,10 @@ install:
 
 app-install: $(AMBERTOOLS_PREBUILT)
 	-mkdir -p $(AMBERBIN_DST_HOME)
+ifeq ($(OS),Windows)
+	# Antechamber complains bitterly about a missing tmp directory otherwise
+	-mkdir -p $(AMBERBIN_DST_HOME)/tmp
+endif
 	 tar xf $(AMBERTOOLS_PREBUILT) -C $(AMBERBIN_DST_HOME)
 ifeq ($(OS),Darwin)
 	tar xf $(AMBERTOOLS_FLIBS_PREBUILT) -C $(app_libdir)

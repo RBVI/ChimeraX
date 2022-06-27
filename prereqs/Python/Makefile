@@ -5,9 +5,9 @@ include $(TOP)/mk/config.make
 # PYTHON_VERSION is in config.make
 PYTHON_PATCH_LEVEL = $(PYTHON_VERSION).$(PYTHON_PATCH_VERSION)
 
-PIP_VERSION = 21.2.4
-WHEEL_VERSION = 0.37.0
-SETUPTOOLS_VERSION = 57.5.0
+PIP_VERSION = 21.3.1
+WHEEL_VERSION = 0.37.1
+SETUPTOOLS_VERSION = 59.8.0
 
 ifeq ($(OS),Windows)
 DISTRIBUTION = python-$(PYTHON_PATCH_LEVEL)-win-amd64.tar.bz2
@@ -127,9 +127,9 @@ else
 	cd $(SOURCE) && $(MAKE) && $(MAKE) install
 ifeq ($(OS),Linux)
 	-for lib in $(PYTHON_LIBRARY_DIR)/lib-dynload/*.so; do \
-		chrpath -d $$lib; \
+		$(bindir)/chrpath -d $$lib; \
 	done
-	chmod 755  $(libdir)/libpython*.so; chrpath -d $(libdir)/libpython*.so
+	chmod 755  $(libdir)/libpython*.so; $(bindir)/chrpath -d $(libdir)/libpython*.so
 	# convert to RPATH
 	if objdump -p $(PYTHON_BIN) | grep RUNPATH > /dev/null; then \
 	       $(bindir)/chrpath -C $(PYTHON_BIN); \

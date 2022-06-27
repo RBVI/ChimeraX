@@ -18,11 +18,14 @@ def compute_morph(mols, log, method = 'corkscrew', rate = 'linear', frames = 20,
                                  match_same = match_same, core_fraction = core_fraction,
                                  min_hinge_spacing = min_hinge_spacing, log = log)
         traj = motion.trajectory()
-        from .interpolate import ResidueInterpolator
-        res_interp = ResidueInterpolator(traj.residues, cartesian, log)
+        res_interp = None
         for i, mol in enumerate(mols[1:]):
                 log.status("Computing interpolation %d\n" % (i+1))
-                res_groups = motion.interpolate(mol, res_interp)
+                res_groups, atom_map, trimmed = motion.segment_and_pair_atoms(mol)
+                if res_interp is None or trimmed:
+                        from .interpolate import ResidueInterpolator
+                        res_interp = ResidueInterpolator(traj.residues, cartesian, log)
+                motion.interpolate(res_groups, atom_map, res_interp)
                 if color_segments and i == 0:
                         from random import seed, randint
                         seed(1)
@@ -41,7 +44,6 @@ def compute_morph(mols, log, method = 'corkscrew', rate = 'linear', frames = 20,
         log.status('Computed morph %d frames in %.3g seconds' % (traj.num_coordsets, t1-t0))
         return traj
 
-ht = it = 0
 class MolecularMotion:
 
         def __init__(self, m, method = "corkscrew", rate = "linear", frames = 20,
@@ -88,41 +90,37 @@ class MolecularMotion:
                 self.min_hinge_spacing = min_hinge_spacing
                 self.log = log
 
-        def interpolate(self, m, res_interp, color_segments = False):
-                """Interpolate to new conformation 'm'."""
+        def segment_and_pair_atoms(self, m):
+                """Divide into residue segments and pair atoms."""
 
                 #
                 # Find matching set of residues.  First try for
                 # one-to-one residue match, and, if that fails,
                 # then finding a common set of residues.
                 #
-                from . import segment
                 sm = self.mol
-                from time import time
-                t0 = time()
                 cf = self.core_fraction
                 mhs = self.min_hinge_spacing
                 log = self.log
+                from .segment import segmentHingeSame, segmentHingeExact, segmentHingeApproximate
                 if self.match_same:
-                        results = segment.segmentHingeSame(sm, m, cf, mhs, log=log)
+                        results = segmentHingeSame(sm, m, cf, mhs, log=log)
                 else:
                         from .segment import AtomPairingError
                         try:
-                                results = segment.segmentHingeExact(sm, m, cf, mhs, log=log)
+                                results = segmentHingeExact(sm, m, cf, mhs, log=log)
                         except AtomPairingError:
                                 try:
-                                        results = segment.segmentHingeApproximate(sm, m, cf, mhs, log=log)
+                                        results = segmentHingeApproximate(sm, m, cf, mhs, log=log)
                                 except AtomPairingError as e:
                                         from chimerax.core.errors import UserError
                                         raise UserError(str(e))
-                t1 = time()
-                global ht
-                ht += t1-t0
-                segments, atomMap = results
-                from chimerax.atomic import Residues, Atoms
-                res_groups = [Residues(r0) for r0,r1 in segments]
-                if len(atomMap) < sm.num_atoms:
-                        paired_atoms = Atoms(tuple(atomMap.keys()))
+
+                segments, atom_map = results
+                trimmed = (len(atom_map) < sm.num_atoms)
+                if trimmed:
+                        from chimerax.atomic import Atoms
+                        paired_atoms = Atoms(tuple(atom_map.keys()))
                         unpaired_atoms = sm.atoms.subtract(paired_atoms)
                         unpaired_atoms.delete()
 
@@ -130,22 +128,31 @@ class MolecularMotion:
                         from chimerax.core.errors import UserError
                         raise UserError('No atoms matched')
 
-                #
-                # Interpolate between current conformation in trajectory
-                # and new conformation
-                #
-                t0 = time()
+                from chimerax.atomic import Residues
+                res_groups = [Residues(r0) for r0,r1 in segments]
+                return res_groups, atom_map, trimmed
+
+        def interpolate(self, res_groups, atom_map, res_interp):
+                '''
+                Interpolate between current conformation in trajectory
+                and new conformation using atom map for atom pairing.
+                '''
+
                 # Make coordinate set arrays for starting and final coordinates
+                sm = self.mol
                 nc = sm.coordset_size
                 matoms = sm.atoms
                 maindices = matoms.coord_indices
                 from numpy import float64, empty
                 coords0 = empty((nc,3), float64)
+                coords0[:] = -10000
                 coords0[maindices] = matoms.coords
                 coords1 = empty((nc,3), float64)
+                coords1[:] = -10000
                 # Convert to trajectory local coordinates.
-                xform = sm.scene_position.inverse() * m.scene_position
-                coords1[maindices] = xform * Atoms([atomMap[a] for a in matoms]).coords
+                xform = sm.scene_position.inverse()
+                from chimerax.atomic import Atoms
+                coords1[maindices] = xform * Atoms([atom_map[a] for a in matoms]).scene_coords
                 from .interpolate import SegmentInterpolator
                 seg_interp = SegmentInterpolator(res_groups, self.method, coords0, coords1)
 
@@ -156,11 +163,6 @@ class MolecularMotion:
                 for i, cs in enumerate(coordsets):
                         sm.add_coordset(base_id + i, cs)
                 sm.active_coordset_id = base_id + i
-                t1 = time()
-                global it
-                it += t1-t0
-
-                return res_groups
 
         def trajectory(self):
                 return self.mol

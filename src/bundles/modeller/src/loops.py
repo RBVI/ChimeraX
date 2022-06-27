@@ -18,7 +18,7 @@ special_region_values = [ALL_MISSING, INTERNAL_MISSING]
 protocols = ['standard', 'DOPE', 'DOPE-HR']
 
 def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, executable_location=None,
-    fast=False, license_key=None, num_models=5, protocol=None, temp_path=None):
+          fast=False, license_key=None, num_models=5, protocol=None, temp_path=None):
     """
     Model or remodel parts of structure, typically missing structure regions.
 
@@ -56,7 +56,7 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
         If provided, folder to use for temporary files
     """
 
-    from chimerax.core.errors import LimitationError, UserError
+    from chimerax.core.errors import UserError # , LimitationError
 
     by_structure = {}
     chain_indices = {}
@@ -78,11 +78,11 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
                 chain_indices[chain] = find_missing(chain, seq, True)
             else:
                 chain_indices[chain] = region_info
-    #MAV: loop_data = (protocol, chain_indices[chain], seq, template_models)
+    # MAV: loop_data = (protocol, chain_indices[chain], seq, template_models)
 
     from .common import regularized_seq
     for s, s_chain_info in by_structure.items():
-        chain_map = { chain: seq for chain, seq in s_chain_info }
+        chain_map = {chain: seq for chain, seq in s_chain_info}
         # Go through the residues of the structure: preserve het/water; for chains being modeled
         # append the complete sequence; for others append the appropriate number of '-' characters
         template_chars = []
@@ -124,7 +124,7 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
                     target_chars.append('-' * len(existing))
                     offset_i += len(existing)
                 else:
-                    prefix, suffix = [ret[0] for ret in find_affixes([r.chain], { r.chain: (seq, None) })]
+                    prefix, suffix = [ret[0] for ret in find_affixes([r.chain], {r.chain: (seq, None)})]
                     chain_template_chars = prefix + regularized_seq(seq, r.chain).characters + suffix
                     template_chars.append(chain_template_chars)
                     # prevent Modeller from filling in unmodelled missing structure by using '-'
@@ -132,9 +132,8 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
                     seq_chars = seq.characters
                     modeled = set()
                     # 'chain_indices' are into the *sequence*
-                    mmap = seq.match_maps[chain]
                     for start, end in chain_indices[r.chain]:
-                        modeled.update(range(start, end+1))
+                        modeled.update(range(start, end + 1))
                     for seq_i in range(len(seq_chars)):
                         if chain_template_chars[seq_i] == '-' and seq_i not in modeled:
                             target_char = '-'
@@ -142,7 +141,7 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
                             target_char = seq_chars[seq_i]
                         chain_target_chars.append(target_char)
                     renumberings.append(make_renumbering("".join(chain_target_chars), chain_template_chars,
-                        r.chain))
+                                        r.chain))
                     target_chars.extend(chain_target_chars)
                     target_offsets[r.chain] = offset_i
                     offset_i += len(chain_target_chars)
@@ -161,22 +160,33 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
                 while start > 0 and start not in mmap:
                     start -= 1
                 seq_len = len(seq)
-                end = min(end + adjacent_flexible, seq_len-1)
-                while end < seq_len-1 and end not in mmap:
+                end = min(end + adjacent_flexible, seq_len - 1)
+                while end < seq_len - 1 and end not in mmap:
                     end += 1
                 offset = target_offsets[chain]
                 # for residue indexing, unmodeled residues (target == '-') don't count...
-                unmodeled = compact_target_chars[:start+offset].count('-')
+                unmodeled = compact_target_chars[:start + offset].count('-')
 
                 # Modeller residue_range()'s end index is the actual index, not index+1
-                loop_data.append((start+offset-unmodeled, end+offset-unmodeled))
+                loop_data.append((start + offset - unmodeled, end + offset - unmodeled))
         loop_mod_prefix = {"standard": "", "DOPE": "dope_", "DOPE-HR": "dopehr_", None: ""}[protocol]
 
         from .common import write_modeller_scripts, get_license_key
-        script_path, config_path, temp_dir = write_modeller_scripts(get_license_key(session, license_key),
-            num_models, True, True, False, fast, (loop_mod_prefix, loop_data), None, temp_path, False,
-            None)
-
+        _license_key = get_license_key(session, license_key)
+        script_path, config_path, temp_dir = write_modeller_scripts(_license_key,
+                                                                    num_models, True, True, False, fast,
+                                                                    (loop_mod_prefix, loop_data), None,
+                                                                    temp_path, False, None)
+        config_as_json = {
+            "key": _license_key
+            , "version": 2
+            , "numModels": num_models
+            , "hetAtom": True
+            , "water": True
+            , "allHydrogen": False
+            , "veryFast": fast
+            , "loopInfo": (loop_mod_prefix, loop_data)
+        }
         input_file_map = []
 
         # form the sequences to be written out as a PIR
@@ -193,7 +203,7 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
         pir_template.characters = ''.join(template_chars)
         pir_seqs.append(pir_template)
 
-        import os.path
+        import os
         pir_file = os.path.join(temp_dir.name, "alignment.ali")
         aln = session.alignments.new_alignment(pir_seqs, False, auto_associate=False, create_headers=False)
         aln.save(pir_file, format_name="pir")
@@ -211,7 +221,6 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
         input_file_map.append((config_name, "text_file", config_path))
 
         # save structure file
-        import os
         struct_dir = os.path.join(temp_dir.name, "template_struc")
         if not os.path.exists(struct_dir):
             try:
@@ -221,7 +230,7 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
         from chimerax.pdb import save_pdb, standard_polymeric_res_names as std_res_names
         base_name = structure_save_name(s) + '.pdb'
         pdb_file_name = os.path.join(struct_dir, base_name)
-        input_file_map.append((base_name, "text_file",  pdb_file_name))
+        input_file_map.append((base_name, "text_file", pdb_file_name))
         ATOM_res_names = s.in_seq_hets
         ATOM_res_names.update(std_res_names)
         save_pdb(session, pdb_file_name, models=[s], polymeric_res_names=ATOM_res_names)
@@ -232,12 +241,14 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
         if executable_location is None:
             from .common import ModellerWebService
             job_runner = ModellerWebService(session, match_chains, num_models,
-                pir_target.name, input_file_map, config_name, [t[:2] for t in targets],
-                res_numberings=renumberings)
+                                            pir_target.name, input_file_map,
+                                            config_as_json, temp_dir, [t[:2] for t in targets],
+                                            res_numberings=renumberings)
         else:
             from .common import ModellerLocal
             job_runner = ModellerLocal(session, match_chains, num_models, pir_target.name,
-                executable_location, script_path, [t[:2] for t in targets], temp_dir, loop_job=True)
+                                       executable_location, script_path,
+                                       [t[:2] for t in targets], temp_dir, loop_job=True)
 
         job_runner.run(block=block)
     return
@@ -250,13 +261,13 @@ def find_missing(chain, seq, internal_only):
         if i in match_map:
             if start_missing is not None:
                 if not internal_only or start_missing > 0:
-                    missing.append((start_missing, i-1))
+                    missing.append((start_missing, i - 1))
                 start_missing = None
         else:
             if start_missing is None:
                 start_missing = i
     if start_missing is not None and not internal_only:
-        missing.append((start_missing, len(seq)-1))
+        missing.append((start_missing, len(seq) - 1))
     return missing
 
 def find_affixes(chains, chain_info):
@@ -323,5 +334,3 @@ def make_renumbering(target_chars, template_chars, chain):
             new_nums.append(template_res_num)
             new_inserts.append(template_insert)
     return (new_nums, new_inserts)
-
-

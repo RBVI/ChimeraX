@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-LinuxSupport" version="1.0"
+<BundleInfo name="ChimeraX-LinuxSupport" version="1.0.1"
 	    package="chimerax.linux" purePython="false"
   	    minSessionVersion="1" maxSessionVersion="1">
   <!-- this is actually pure Python, but platform-specific.

@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-ViewDockX" version="1.0.1"
+<BundleInfo name="ChimeraX-ViewDockX" version="1.1.2"
 	    package="chimerax.viewdockx"
   	    customInit="true" minSessionVersion="1" maxSessionVersion="1">
 
@@ -56,11 +56,14 @@ UCSF DOCK output in PDB and mol2 formats are supported.
   <Providers manager="data formats">
     <Provider name="AutoDock PDBQT" nicknames="pdbqt" category="Molecular structure"
 		suffixes=".pdbqt" encoding="utf-8" />
+    <Provider name="ZDOCK" nicknames="zdock" category="Molecular structure"
+		suffixes=".pdb" encoding="utf-8" reference_url="https://zdock.umassmed.edu" />
   </Providers>
 
   <Providers manager="open command">
     <Provider name="AutoDock PDBQT" want_path="true" />
     <Provider name="Sybyl Mol2" want_path="true" />
+    <Provider name="ZDOCK" is_default="false" />
   </Providers>
 
   <Classifiers>

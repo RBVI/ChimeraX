@@ -111,31 +111,58 @@ with different coloring options:
   </ul>
 <li><b>Overall Look</b>
   <ul>
+  <li><b>Publication 1 (silhouettes)</b> &ndash;
+<a href="graphics.html#silhouettes">silhouettes</a> on,
+<a href="lighting.html#depthCue">depth-cueing</a> off,
+<a href="set.html#bgColor">background color</a> white
+  <li><b>Publication 2 (depth-cued)</b> &ndash;
+<a href="lighting.html#depthCue">depth-cueing</a> on,
+<a href="graphics.html#silhouettes">silhouettes</a> off,
+<a href="set.html#bgColor">background color</a> white
   <li><b>Interactive</b> &ndash;
+<a href="lighting.html#depthCue">depth-cueing</a> on,
 <a href="graphics.html#silhouettes">silhouettes</a> off,
 <a href="set.html#bgColor">background color</a> default
 (user <a href="../preferences.html#background">preference</a>)
-  <li><b>Publication</b> &ndash;
-<a href="graphics.html#silhouettes">silhouettes</a> on,
-<a href="set.html#bgColor">background color</a> white
   </ul>
 </ul>
 <p>
 The <i>preset-name</i> (and optional <i>category</i> before it)
-can be truncated, but should be enclosed in quotation marks
-if the part that is entered includes spaces. Capitalization is ignored.
-Example commands:
+can be truncated, and capitalization is ignored. 
+Each can be specified as a unique string occurring anywhere in the full name,
+but should be enclosed in quotation marks 
+if the part that is entered includes spaces.
+If the string given occurs at the beginning of one name and in the middle
+of another, the name beginning with the string will take precedence.
+Examples:
 </p>
 <blockquote>
-<b>preset orig
+<b>preset sil</b> 
+&nbsp;&nbsp;&nbsp;&rarr; publication 1 (silhouettes)
 <br>
-preset pub
+<b>preset depth</b> 
+&nbsp;&nbsp;&nbsp;&rarr; publication 2 (depth-cued)
 <br>
-preset inter
+<b>preset 1</b>
+&nbsp;&nbsp;&nbsp;&rarr; publication 1 (silhouettes)
 <br>
-preset surf atom
+<b>preset cylinders</b>
+&nbsp;&nbsp;&nbsp;&rarr; cylinders/stubs
 <br>
-preset cylinders</b>
+<b>preset ribbons</b>
+&nbsp;&nbsp;&nbsp;&rarr; ribbons/slabs
+<br>
+<b>preset inter</b>
+&nbsp;&nbsp;&nbsp;&rarr; interactive
+<br>
+<b>preset orig</b>
+&nbsp;&nbsp;&nbsp;&rarr; original look
+<br>
+<b>preset surf atom</b>
+&nbsp;&nbsp;&nbsp;&rarr; molecular surfaces / atomic coloring (transparent)
+<br>
+<b>preset ghost</b>
+&nbsp;&nbsp;&nbsp;&rarr; ghostly white
 </blockquote>
 <p>
 Matching is prioritized as follows:
@@ -154,5 +181,5 @@ the entire set of arguments is matched to preset name, any category.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-June 2019</address>
+January 2022</address>
 </body></html>

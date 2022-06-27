@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-Clashes" version="2.2.2" package="chimerax.clashes"
+<BundleInfo name="ChimeraX-Clashes" version="2.2.4" package="chimerax.clashes"
   	    minSessionVersion="1" maxSessionVersion="1">
 
   <!-- Additional information about bundle source -->
@@ -26,7 +26,7 @@
     <Dependency name="ChimeraX-Atomic" version="~=1.31"/>
     <Dependency name="ChimeraX-AtomSearch" version="~=2.0"/>
     <Dependency name="ChimeraX-Geometry" version="~=1.0"/>
-    <Dependency name="ChimeraX-UI" version="~=1.0"/>
+    <Dependency name="ChimeraX-UI" version="~=1.16"/>
   </Dependencies>
 
   <Classifiers>

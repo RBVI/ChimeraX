@@ -29,7 +29,7 @@ class CoordinateSetSlider(Slider):
         self._player = CoordinateSetPlayer(structure, id_start, id_end, istep = 1,
                                            pause_frames = pause_frames, loop = 1,
                                            compute_ss = compute_ss, steady_atoms = steady_atoms)
-        self.update_value(structure.active_coordset_id)
+        self.set_slider(structure.active_coordset_id)
 
         from chimerax import atomic
         t = atomic.get_triggers(session)

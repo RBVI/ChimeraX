@@ -364,10 +364,10 @@ chunk_formats = {
     b'IMAT': imat_format,
     b'SIZE': size_format,
 #    b'VIEW': view_format,       # record fields vary with imod version
-    b'MOST': most_format,
-    b'OBST': obst_format,
-    b'COST': cost_format,
-    b'MEST': mest_format,
+#    b'MOST': most_format,     # variable size record not supported
+#    b'OBST': obst_format,     # variable size record not supported
+#    b'COST': cost_format,     # variable size record not supported
+#    b'MEST': mest_format,     # variable size record not supported
     b'SLAN': slan_format,
 }
 eof_id = b'IEOF'

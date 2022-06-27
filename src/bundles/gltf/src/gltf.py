@@ -402,7 +402,7 @@ def colors_to_uint8(vc):
 # -----------------------------------------------------------------------------
 #
 def write_gltf(session, filename, models = None,
-               center = None, size = None, short_vertex_indices = False,
+               center = True, size = None, short_vertex_indices = False,
                float_colors = False, preserve_transparency = True,
                texture_colors = False, instancing = False):
     if models is None:
@@ -416,10 +416,15 @@ def write_gltf(session, filename, models = None,
     nodes, meshes = nodes_and_meshes(drawings, buffers, materials,
                                      short_vertex_indices,
                                      instancing)
-    
+
+    if center is True:
+        center = (0,0,0)
+    elif center is False:
+        center = None
+        
     if center is not None or size is not None:
         from chimerax.geometry import union_bounds
-        bounds = union_bounds(m.bounds() for m in models if m.is_visible)
+        bounds = union_bounds(m.bounds() for m in models if m.visible)
         if bounds is not None:
             # Place positioning node above top-level nodes.
             cs_node = center_and_size(top_nodes(nodes), bounds, center, size)
@@ -464,10 +469,11 @@ def encode_gltf(nodes, buffers, meshes, materials, filename):
         'nodes': nodes,
         'meshes': meshes.mesh_specs,
         'accessors': buffers.accessors,
-        'materials': materials.material_specs,
         'bufferViews': buffers.buffer_views,
         'buffers':[{'byteLength': buffers.nbytes}],
     }
+    if len(materials.material_specs) > 0:
+        h['materials'] = materials.material_specs
 
     if len(materials.textures) > 0:
         h.update(materials.textures.texture_specs)	# adds 'textures', 'images', 'samplers'

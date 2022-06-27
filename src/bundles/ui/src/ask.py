@@ -64,7 +64,7 @@ def _ask_gui(session, question, buttons, default, info, title, help_url):
         b = msg.addButton("Help", QMessageBox.HelpRole)
         from chimerax.core.commands import run
         b.clicked.connect(lambda *, run=run, ses=session: run(ses, "help " + help_url))
-    answer_index = msg.exec_()
+    answer_index = msg.exec() if hasattr(msg, 'exec') else msg.exec_()
     return buttons[-1 - answer_index]
 
 

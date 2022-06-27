@@ -243,7 +243,7 @@ class MapSeries(Model):
   def take_snapshot(self, session, flags):
     data = {'model state': Model.take_snapshot(self, session, flags),
             # Can't reference maps directly because it creates cyclic dependency.
-            'map ids': [m.id for m in self.maps],
+            'map ids': [m.id for m in self.maps if m is not None],
             'version': MAPSERIES_STATE_VERSION}
     return data
 

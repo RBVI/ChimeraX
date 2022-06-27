@@ -558,6 +558,47 @@ class Structure(Model, StructureData):
             self._ring_drawing.add_shapes(rings)
             self._graphics_changed |= self._SHAPE_CHANGE
 
+    def _res_numbering(self, rn):
+        rn_lookup = { 'author': Residue.RN_AUTHOR, 'canonical': Residue.RN_CANONICAL,
+            'uniprot': Residue.RN_UNIPROT }
+        if isinstance(rn, int):
+            if not (0 <= rn < len(rn_lookup)):
+                raise ValueError("Residue numbering value must be between 0 and %d inclusive"
+                    % len(rn_lookup))
+        else:
+            try:
+                rn = rn_lookup[rn.lower()]
+            except KeyError:
+                from chimerax.core.commands import commas
+                raise ValueError("Residue numbering value must be %s"
+                    % commas([repr(k) for k in rn_lookup.values()]))
+        if rn == self.res_numbering:
+            return
+        if not self.res_numbering_valid(rn) and rn == Residue.RN_UNIPROT:
+            # see if we can set it
+            u_info = uniprot_ids(self)
+            if u_info:
+                self.res_numbering = Residue.RN_AUTHOR
+                by_chain = { u.chain_id:(u.chain_sequence_range,u.database_sequence_range) for u in u_info }
+                for chain in self.chains:
+                    try:
+                        struct_range, db_range = by_chain[chain.chain_id]
+                    except KeyError:
+                        continue
+                    offset = db_range[0] - struct_range[0]
+                    # can't use self.renumber_residues() because of possible missing structure
+                    for r in chain.existing_residues:
+                        r.set_number(rn, r.number + offset)
+                self.set_res_numbering_valid(rn, True)
+        if not self.res_numbering_valid(rn):
+            reverse_lookup = { Residue.RN_AUTHOR: "author", Residue.RN_CANONICAL: "canonical",
+                Residue.RN_UNIPROT: "UniProt" }
+            raise ValueError("%s residue numbering has not been assigned; maintaining %s numbering"
+                % (reverse_lookup[rn].capitalize(), reverse_lookup[self.res_numbering]))
+        StructureData.res_numbering.fset(self, rn)
+    res_numbering = property(StructureData.res_numbering.fget, _res_numbering)
+
+
     def fill_small_ring(self, atoms, offset, color):
         # 3-, 4-, and 5- membered rings
         from chimerax.geometry import fill_small_ring
@@ -791,7 +832,7 @@ class Structure(Model, StructureData):
 
         if nb > 0 and not bonds[bsel].ends_selected.all():
             # Promote to include selected bond atoms
-            level = 1005
+            level = 1006
             psel = asel | atoms.has_selected_bonds
         else:
             r = atoms.residues
@@ -801,7 +842,7 @@ class Structure(Model, StructureData):
             ares = in1d(rids, sel_rids)
             if ares.sum() > na:
                 # Promote to entire residues
-                level = 1004
+                level = 1005
                 psel = ares
             else:
                 ssids = r.secondary_structure_ids
@@ -809,22 +850,27 @@ class Structure(Model, StructureData):
                 ass = in1d(ssids, sel_ssids)
                 if ass.sum() > na:
                     # Promote to secondary structure
-                    level = 1003
+                    level = 1004
                     psel = ass
                 else:
-                    from numpy import array
-                    cids = array(r.chain_ids)
-                    sel_cids = unique(cids[asel])
-                    ac = in1d(cids, sel_cids)
-                    if ac.sum() > na:
-                        # Promote to entire chains
-                        level = 1002
-                        psel = ac
+                    frag_sel = self.frag_sel
+                    if frag_sel.sum() > na:
+                        level = 1003
+                        psel = frag_sel
                     else:
-                        # Promote to entire molecule
-                        level = 1001
-                        ac[:] = True
-                        psel = ac
+                        from numpy import array
+                        cids = array(r.chain_ids)
+                        sel_cids = unique(cids[asel])
+                        ac = in1d(cids, sel_cids)
+                        if ac.sum() > na:
+                            # Promote to entire chains
+                            level = 1002
+                            psel = ac
+                        else:
+                            # Promote to entire molecule
+                            level = 1001
+                            ac[:] = True
+                            psel = ac
 
         return PromoteAtomSelection(self, level, psel, asel, bsel)
 
@@ -1216,8 +1262,10 @@ class AtomicStructure(Structure):
                 self._report_chain_descriptions(session)
                 self._report_res_info(session)
             self._report_assemblies(session)
+            self._report_model_info(session)
 
     def apply_auto_styling(self, set_lighting = False, style=None):
+        explicit_style = style is not None
         if style is None:
             if self.num_chains == 0:
                 style = "non-polymer"
@@ -1248,7 +1296,7 @@ class AtomicStructure(Structure):
             het_atoms.colors = element_colors(het_atoms.element_numbers)
             ribbonable = self.chains.existing_residues
             # 10 residues or less is basically a trivial depiction if ribboned
-            if MIN_RIBBON_THRESHOLD < len(ribbonable) < MAX_RIBBON_THRESHOLD:
+            if explicit_style or MIN_RIBBON_THRESHOLD < len(ribbonable) < MAX_RIBBON_THRESHOLD:
                 atoms.displays = False
                 ligand = atoms.filter(atoms.structure_categories == "ligand").residues
                 ribbonable -= ligand
@@ -1335,17 +1383,10 @@ class AtomicStructure(Structure):
             from chimerax.std_commands.lighting import lighting as light_cmd
             light_cmd(self.session, **lighting)
 
-    # used by custom-attr registration code
-    @property
-    def has_custom_attrs(self):
-        from .molobject import has_custom_attrs
-        return has_custom_attrs(Structure, self) or has_custom_attrs(AtomicStructure, self)
-
     def take_snapshot(self, session, flags):
         data = {
-            'AtomicStructure version': 2,
+            'AtomicStructure version': 3,
             'structure state': Structure.take_snapshot(self, session, flags),
-            'custom attrs': self.custom_attrs
         }
         return data
 
@@ -1356,11 +1397,13 @@ class AtomicStructure(Structure):
         return s
 
     def set_state_from_snapshot(self, session, data):
-        if data.get('AtomicStructure version', 1) == 1:
+        version = data.get('AtomicStructure version', 1)
+        if version == 1:
             Structure.set_state_from_snapshot(self, session, data)
         else:
             Structure.set_state_from_snapshot(self, session, data['structure state'])
-            self.set_custom_attrs(data)
+            if version < 3:
+                self.set_custom_attrs(data)
 
     def _determine_het_res_descriptions(self, session):
         # Don't actually set the description in the residue in order to avoid having
@@ -1391,7 +1434,6 @@ class AtomicStructure(Structure):
         chain_to_desc = {}
         struct_asym, entity = mmcif.get_mmcif_tables_from_metadata(self, ['struct_asym', 'entity'])
         if struct_asym:
-            entity, = mmcif.get_mmcif_tables_from_metadata(self, ['entity'])
             if not entity:
                 # bad mmCIF file
                 return
@@ -1490,6 +1532,71 @@ class AtomicStructure(Structure):
             return '<a title="Select chain" href="cxcmd:select %s">%s/%s</a>' % (chain_res_range(chain),
                 chain.structure.id_string, (chain.chain_id if not chain.chain_id.isspace() else '?'))
         self._report_chain_summary(session, descripts, chain_text, True)
+
+    def _report_model_info(self, session):
+        # report Model Archive info [#5601]
+        from chimerax.mmcif import get_mmcif_tables_from_metadata
+        align_data, template_deets, template_segment = get_mmcif_tables_from_metadata(self,
+            ['ma_alignment', 'ma_template_ref_db_details', 'ma_template_poly_segment'])
+        if not align_data:
+            return
+        template_names = {}
+        if template_deets:
+            for template_id, db_name, db_accession_code in template_deets.fields(
+                    ['template_id', 'db_name', 'db_accession_code']):
+                template_names[template_id] = "%s %s" % (db_name, db_accession_code)
+        # since the chain IDs provided are not the author IDs, don't add them into the template sequence
+        # name since it will just be confusing to the user unless we use some kind of web lookup to
+        # resolve them to author IDs
+        """
+        try:
+            template_details_headers = self.metadata['ma_template_details']
+            template_details = self.metadata['ma_template_details data']
+        except KeyError:
+            pass
+        else:
+            if len(template_details_headers) != 11:
+                session.warning("Don't know how to parse model template detail information")
+            else:
+                for i in range(0, len(template_details), 10):
+                    template_id, template_cid = template_details[i+1], template_details[i+7]
+                    try:
+                        template_names[template_id] += " /%s" % template_cid
+                    except KeyError:
+                        session.warning("Unknown template ID in detail information: %s" % template_id)
+        """
+        if template_segment:
+            for template_id, begin, end in template_segment.fields(
+                    ['template_id', 'residue_number_begin', 'residue_number_end']):
+                try:
+                    template_names[template_id] += ":%s-%s" % (begin, end)
+                except KeyError:
+                    session.warning("Unknown template ID in residue-range information: %s" % template_id)
+        cur_align = None
+        seqs =[]
+        from . import Sequence
+        for alignment_id, target_template, seq in align_data.fields(
+                ['alignment_id', 'target_template_flag', 'sequence']):
+            if cur_align != alignment_id:
+                if cur_align is not None:
+                    session.alignments.new_alignment(seqs, None, name="target-template alignment")
+                    seqs = []
+                cur_align = alignment_id
+            # Since the alignment data does not include a template_id, if only one template is given
+            # then base the name on that, otherwise just use "template".  See issue:
+            # https://github.com/ihmwg/MA-dictionary/issues/4
+            if target_template == '1':
+                seq_name = "target"
+            elif len(template_names) == 1:
+                seq_name = list(template_names.values())[0]
+            else:
+                seq_name = "template"
+            seqs.append(Sequence(name=seq_name, characters=seq))
+        if cur_align is not None:
+            session.alignments.new_alignment(seqs, None, name="target-template alignment")
+        # have to hold a reference to the timer
+        self._timer = session.ui.timer(500, session.logger.status,
+            'Use "more info..." link in log to see overall model scores [if any]', color="forest green")
 
     def _report_res_info(self, session):
         if hasattr(self, 'get_formatted_res_info'):
@@ -2369,12 +2476,7 @@ from chimerax.core.attributes import register_class
 from .molobject import python_instances_of_class, Atom, Bond, CoordSet, Pseudobond, PseudobondManager, \
     Residue, Sequence, StructureSeq
 from .pbgroup import PseudobondGroup
-for reg_class in [ Atom, AtomicStructure, Bond, CoordSet, Pseudobond, PseudobondGroup, PseudobondManager,
+for reg_class in [ Atom, Structure, Bond, CoordSet, Pseudobond, PseudobondGroup, PseudobondManager,
         Residue, Sequence, StructureSeq ]:
     register_class(reg_class, lambda *args, cls=reg_class: python_instances_of_class(cls),
         {attr_name: types for attr_name, types in getattr(reg_class, '_attr_reg_info', [])})
-# Structure needs a slightly different 'instances' function to screen out AtomicStructures (not strictly
-# necessary really due to the way instance attributes actually get restored)
-register_class(Structure, lambda *args: [ inst for inst in python_instances_of_class(Structure)
-    if not isinstance(inst, AtomicStructure)],
-    {attr_name: types for attr_name, types in getattr(Structure, '_attr_reg_info', [])})

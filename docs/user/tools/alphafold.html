@@ -33,29 +33,26 @@ The ChimeraX <b>AlphaFold</b> tool:
 <li><a href="#search">finds and retrieves existing models</a>
 from the <a href="https://alphafold.ebi.ac.uk/"
 target="_blank">AlphaFold Database</a>
-<br>&ndash; freely available for academic and commercial use under 
-<a href="https://creativecommons.org/licenses/by/4.0/" 
-target="_blank">CC BY 4.0</a>
-<br><br>
-<li><a href="#predict">runs new predictions</a> with
-<a href="https://alphafold.ebi.ac.uk/"
-target="_blank">AlphaFold</a> using
-<a href="https://colab.research.google.com/signup" 
-target="_blank">Google Colab</a>
-<br>&ndash; for noncommercial use only, as the
+<li><a href="#predict">runs new AlphaFold predictions</a>
+using <a href="https://colab.research.google.com/signup" 
+target="_blank">Google Colab</a> and
 <a href="https://github.com/deepmind/alphafold/#model-parameters-license"
-target="_blank">AlphaFold-learned parameters</a> 
-needed to run the calculation are licensed under 
-<a href="https://creativecommons.org/licenses/by-nc/4.0/legalcode"
-target="_blank">CC BY NC 4.0</a>
+target="_blank">learned parameters</a> 
 </ul>
+<p>
+Both are freely available for academic and commercial use under
+<a href="https://creativecommons.org/licenses/by/4.0/"
+target="_blank">CC BY 4.0</a>.
+The related tool <a href="#pae"><b>AlphaFold Error Plot</b></a>
+plots residue-residue alignment errors for AlphaFold structures.
+</p><p>
 Users should cite:
 </p>
 <blockquote>
 <a href="https://www.nature.com/articles/s41586-021-03819-2" target="_blank">
 Highly accurate protein structure prediction with AlphaFold.</a>
 Jumper J, Evans R, Pritzel A, <i>et al.</i>
-<i>Nature.</i> 2021 Jul 15. doi: 10.1038/s41586-021-03819-2.
+<i>Nature.</i> 2021 Aug;596(7873):583-589.
 </blockquote>
 <a name="alphafold-multimer"></a>
 <p>
@@ -70,34 +67,66 @@ doi: https://doi.org/10.1101/2021.10.04.463034.
 <p>
 The
 <a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold Database</a>
-contains modeled structures of protein chains from
-<a href="https://alphafold.ebi.ac.uk/download" target="_blank">21 species</a>,
-including humans. It does not cover all of 
-<a href="https://www.uniprot.org" target="_blank">UniProt</a>.
+contains modeled structures for protein sequences in
+<a href="https://www.uniprot.org" target="_blank">UniProt</a>:
+</p>
+<blockquote>
+<a href="https://academic.oup.com/nar/advance-article/doi/10.1093/nar/gkab1061/6430488" target="_blank">
+AlphaFold Protein Structure Database: massively expanding the structural coverage of protein-sequence space with high-accuracy models.</a>
+Varadi M, Anyango S, Deshpande M, <i>et al.</i>
+<i>Nucleic Acids Res.</i> 2022 Jan 7;50(D1):D439-D444.
+</blockquote>
+<ul>
+<li>version 1 &ndash; predictions for ~360,000 sequences,
+the full reference proteomes of
+<a href="https://alphafold.ebi.ac.uk/download" target="_blank">21 species</a>
+including <i>Homo sapiens</i>; used by ChimeraX 1.3
+<li>version 2 &ndash; predictions for ~800,000 sequences,
+augmented from version 1 to include most of the manually curated entries in
+<a href="https://www.uniprot.org" target="_blank">UniProt</a>
+<li>version 3 &ndash; predictions for ~1 million sequences,
+augmented from version 2 to include organisms relevant to 
+neglected tropical disease or antimicrobial resistance;
+used by ChimeraX 1.4 and newer
+</ul>
+<p>
 The predicted structures vary in
 confidence levels and should be interpreted with caution.
-The database contains structures for single chains, not complexes; 
-assembling the individual structures into a complex may give 
-unphysical results where parts of the chains intersect or 
-interact poorly with one another.
+The database contains structures for single chains, not complexes;
+assembling individually predicted structures into a complex may give
+unphysical results where parts of the chains interact poorly with one another.
 </p><p>
 The <b>AlphaFold</b> tool is also implemented as the
 <a href="../commands/alphafold.html"><b>alphafold</b></a> command.
+Several ChimeraX
+<a href="https://www.rbvi.ucsf.edu/chimerax/docs/presentations.html"
+target="_blank">presentations</a> and
+<a href="https://www.rbvi.ucsf.edu/chimerax/docs/videos/"
+target="_blank">videos</a> show modeling with AlphaFold and related analyses.
 See also: <a href="blastprotein.html"><b>Blast Protein</b></a>,
 <a href="modeller.html"><b>Modeller Comparative</b></a>,
 <a href="modelloops.html"><b>Model Loops</b></a>,
-<a href="https://www.rbvi.ucsf.edu/chimerax/data/alphafold-aug2021/alphafold.html"
-target="_blank">AlphaFold vs. experiment</a>,
-<a href="https://www.rbvi.ucsf.edu/chimerax/data/alphafold-nov2021/af_sbgrid.html"
-target="_blank">AlphaFold for cryoEM</a>,
-<a href="https://www.rbvi.ucsf.edu/chimerax/data/alphafold-dec2021/af_multimer.html"
-target="_blank">AlphaFold for complexes</a>, and
+<a href="rotamers.html"><b>Rotamers</b></a>
+</p>
+<!--
+Presentations:
+<ul>
+<li><a href="https://www.rbvi.ucsf.edu/chimerax/data/alphafold-aug2021/alphafold.html"
+target="_blank">AlphaFold vs. experiment</a>
+<li><a href="https://www.rbvi.ucsf.edu/chimerax/data/alphafold-dec2021/af_multimer.html"
+target="_blank">AlphaFold for complexes</a>
+<li><a href="https://www.rbvi.ucsf.edu/chimerax/data/sbgrid-mar2022/alphafold_pae.html"
+target="_blank">AlphaFold for cryoEM modeling &ndash; 2022a</a>
+(<a href="https://www.rbvi.ucsf.edu/chimerax/data/stanford-apr2022/cryoem_intro.html"
+target="_blank">2022b</a>)
+(<a href="https://www.rbvi.ucsf.edu/chimerax/data/alphafold-nov2021/af_sbgrid.html"
+target="_blank">2021</a>)
+</ul>
 <a href="https://www.rbvi.ucsf.edu/chimerax/docs/videos/"
 target="_blank">ChimeraX videos</a>:
-</p>
 <ul>
-<li><a href="https://youtu.be/x-9urTQ1rJY" target="_blank">searching by sequence</a>
-for AlphaFold models (first 5 minutes)
+<li><a href="https://youtu.be/x-9urTQ1rJY" target="_blank">searching
+by sequence</a> for AlphaFold models (first 5 minutes)
 <li><a href="https://youtu.be/W6KsBfNwDgs" target="_blank">fetching</a> an
 AlphaFold model
 <li><a href="https://youtu.be/vj3sQfvWfDU" target="_blank">matching</a>
@@ -107,11 +136,21 @@ a structure
 <li><a href="https://youtu.be/6lXeCPuTePs" target="_blank">predicting
 a complex</a>
 </ul>
+-->
 
+<blockquote>
+<a href="#dialog"><b>AlphaFold Dialog</b></a>
+<br>
+<a href="#coloring"><b>AlphaFold Coloring Dialog</b></a>
+<br>
+<a href="#pae"><b>AlphaFold Error Plot</b></a>
+</blockquote>
+
+<a name="dialog"></a>
 <p class="nav">
 [<a href="#top">back to top: AlphaFold</a>]
 </p>
-<h3>Dialog and Buttons</h3>
+<h3>AlphaFold Dialog</h3>
 <p>
 The <b>AlphaFold</b> tool can be opened from the <b>Structure Prediction</b>
 section of the <b>Tools</b> menu and manipulated like other panels
@@ -134,19 +173,13 @@ Prediction may only be feasible for smaller complexes
 (<a href="#caveats">details...</a>).
 </p>
 <ul>
-<li>
-<a name="prokaryote"></a>
-<b>Is prokaryote? Used for predicting complexes.</b>
+<!--
 When <a href="#alphafold-multimer">AlphaFold-Multimer</a> is predicting a
 complex and finds multiple similar sequences from the same organism, it
 needs to decide which sequences are orthologous to which chain of the target.
-Since interacting genes tend to be colocalized into operons in prokaryotes, 
-this option uses smallest genomic distance (approximated by the lexicographic
-difference between UniProt identifiers) to identify interacting pairs
-of sequences within species.
-When this option is not used, sequences from the same organism
-are instead paired in order of their rank similarity to the target sequences.
-<br><br>
+Sequences from the same organism are paired in order of their rank similarity 
+to the target sequences.
+-->
 <li>
 <a name="match"></a>
 <b>Fetch</b> gets the most sequence-similar model available from the
@@ -238,9 +271,11 @@ to retrieve the model.
 <a name="predict"></a>
 <b>Predict</b>
 runs an <a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold</a>
+version 2.2.0
 calculation using <a href="https://colab.research.google.com/signup" 
-target="_blank">Google Colab</a>. 
-The corresponding command is
+target="_blank">Google Colab</a>, which is provided under the
+<a href="https://www.apache.org/licenses/LICENSE-2.0" target="_blank">Apache
+2.0</a> license. The corresponding command is
 <a href="../commands/alphafold.html#predict"><b>alphafold predict</b></a>.
 A warning will appear saying that this Colab notebook is from github 
 (was not authored by Google), with a button to click to run anyway.
@@ -249,19 +284,26 @@ a browser. Once that is done, the sign-in may be remembered depending
 on the user's browser settings; it is not kept in the 
 <a href="../preferences.html">ChimeraX preferences</a>.
 </p><p>
-A single prediction run generally takes on the order of an hour or more.
-The process includes installing various software packages on a virtual machine,
-searching sequence databases, generating a multiple sequence alignment,
-predicting atomic coordinates, and energy-minimizing the best structure.
-Predicting a multimer (complex) structure may take longer than predicting
-the structure of a monomer with the same total number of residues.
-The free version of Google Colab
-limits jobs to 12 hours and may terminate them at shorter times at Google's 
-discretion (see the <a href="https://colab.research.google.com/signup" 
+<a name="options"></a>
+Clicking <b>Options</b> shows/hides an additional option for <b>Predict</b>:
+</p>
+<ul>
+<a name="minimize"></a>
+<li><b>Energy-minimize predicted structures</b>
+&ndash; when running a new prediction, whether to minimize the result;
+turning this off allows for faster job completion and/or
+avoidance of failures during minimization.
+</ul>
+<p>
+A single calculation may take hours to complete
+(see the <a href="#caveats">caveats</a> below).
+The free version of Colab
+limits jobs to 12 hours and may terminate them at shorter times at Google's
+discretion (see the <a href="https://colab.research.google.com/signup"
 target="_blank">FAQ</a>).
-Those who want to run longer and/or more frequent calculations 
-may wish to sign up for one of the paid
-<a href="https://colab.research.google.com/signup" 
+Those who want to run longer and/or more frequent calculations
+may need to sign up for one of the paid
+<a href="https://colab.research.google.com/signup"
 target="_blank">Colab plans</a>.
 </p><p>
 The model for a sequence that was specified by structure chain will
@@ -273,21 +315,6 @@ for further analysis
 Please note the following caveats:
 </p>
 <ul>
-<li>Regardless of a user's 
-<a href="https://colab.research.google.com/signup" 
-target="_blank">Colab plan</a>, <b>Predict</b> is for 
-<b>noncommercial use only</b>. Paid 
-<a href="https://colab.research.google.com/signup" 
-target="_blank">Colab plans</a> provide more computational resources,
-but they do not cover access to the 
-<a href="https://github.com/deepmind/alphafold/#model-parameters-license"
-target="_blank">AlphaFold-learned parameters</a>
-needed to run the calculation. The parameters are licensed under 
-<a href="https://creativecommons.org/licenses/by-nc/4.0/legalcode"
-target="_blank">CC BY NC 4.0</a>; the Colab itself is provided under the 
-<a href="https://www.apache.org/licenses/LICENSE-2.0" target="_blank">Apache 
-2.0</a> license.
-<br><br>
 <li>Prediction calculations run a <b>simplified implementation</b> of AlphaFold 
 that does not use structural templates and that
 searches a smaller set of protein sequences 
@@ -301,22 +328,56 @@ open-source AlphaFold</a> or the <a href="https://alphafold.ebi.ac.uk/"
 target="_blank">AlphaFold Database</a> (<i>e.g.</i>, with 
 <a href="#search"><b>alphafold search</b></a>) instead.
 <br><br>
+<li>A single prediction <b>may take hours to complete</b> (see
+<a href="https://www.rbvi.ucsf.edu/chimerax/data/alphafold-jan2022/afspeed.html"
+target="_blank">performance statistics</a>).
+The process includes installing various software packages on a virtual machine,
+searching sequence databases, generating a multiple sequence alignment,
+predicting atomic coordinates, and by <a href="#minimize">default</a>,
+energy-minimizing the best structure.
+Predicting a multimer (complex) structure may take longer than predicting
+the structure of a monomer with the same total number of residues.
+Those who want to run longer and/or more frequent calculations
+may need to sign up for one of the paid
+<a href="https://colab.research.google.com/signup"
+target="_blank">Colab plans</a> for greater computational resources.
+<br><br>
 <li>Total <b>sequence length cannot be very large</b>.
 AlphaFold runs out of graphics memory for long sequences (~800 amino acids
 on old Google Colab GPUs with 16 GB memory). 
 Multimer predictions face the same limit on the total number of residues,
 so <b>only smaller complexes can be predicted</b>. 
+As mentioned above, paid <a href="https://colab.research.google.com/signup"
+target="_blank">Colab plans</a> provide more computational resources
+than the free plan.
 </ul>
-<br>
-<li><a name="coloring"></a>
-Clicking the <b>Coloring</b> button 
-on the <a href="#top"><b>AlphaFold</b></a> tool 
-shows the <b>Alphafold Coloring</b> dialog 
+<br><br>
+<li><b>Coloring</b> 
+shows the <a href="#coloring"><b>Alphafold Coloring</b> dialog</a>
 for applying different color schemes to the predicted structures,
 as well as hiding, showing, and 
 <a href="../selection.html">selecting</b></a> their residues based on 
 <a href="../attributes.html">attribute</a> value.
+<br><br>
+<li><b>Error plot</b> draws the <a href="#pae">AlphaFold Error Plot</a>,
+in which color gradations show (for each pairwise combination of residues)
+the expected error in position of one residue when the
+true and predicted structures are aligned based on the other residue.
+</ul>
+
+<a name="coloring"></a>
+<p class="nav">
+[<a href="#top">back to top: AlphaFold</a>]
+</p>
+<h3>AlphaFold Coloring Dialog</h3>
 <p>
+Clicking the <b>Coloring</b> button on the main
+<a href="#dialog"><b>AlphaFold</b> tool</a> shows the
+<b>AlphaFold Coloring</b> dialog for applying different color schemes
+to the predicted structures, as well as hiding, showing, and 
+<a href="../selection.html">selecting</b></a> their residues based on 
+<a href="../attributes.html">attribute</a> value.
+</p><p>
 <a name="confidence"></a>
 When first opened, AlphaFold-predicted structures are automatically colored by 
 the <a href="https://alphafold.ebi.ac.uk/faq#faq-5" target="_blank">pLDDT
@@ -476,9 +537,141 @@ B-factor field of the PDB file) and
 <a href="../commands/color.html#byattribute"><b>color byattribute</b></a>
 (for other numerical <a href="../attributes.html">attributes</a>).
 </p>
+
+<a name="pae"></a>
+<p class="nav">
+[<a href="#top">back to top: AlphaFold</a>]
+</p>
+<h3>AlphaFold Error Plot</h3>
+<p>
+Besides the per-residue
+<a href="https://alphafold.ebi.ac.uk/faq#faq-5" target="_blank">pLDDT
+confidence measure</a>, AlphaFold gives
+for each pair of residues (X,Y) the expected position error
+at residue X if the predicted and true structures were aligned on residue Y.
+These residue-residue &ldquo;predicted aligned error&rdquo; or PAE values
+can be shown with <b>AlphaFold Error Plot</b>, which can be
+opened from the <b>Structure Prediction</b>
+section of the <b>Tools</b> menu and manipulated like other panels
+(<a href="../window.html#panels">more...</a>).
+See also:
+the <a href="https://www.rbvi.ucsf.edu/chimerax/data/pae-apr2022/pae.html"
+target="_blank">AlphaFold Error Estimates example</a> and
+<a href="https://www.youtube.com/watch?v=oxblwn0_PMM" target="_blank">video</a>,
+<a href="../commands/alphafold.html#contacts"><b>alphafold contacts</b></a>
+</p><p>
+Choosing the corresponding AlphaFold structure from the menu of open 
+atomic models associates it with the plot. This association allows
+coloring the structure as described below, and for selections
+on the plot to highlight the corresponding parts of the structure.
+</p><p>
+The PAE values can be either:
+</p>
+<ul>
+<li>fetched from the <a href="https://alphafold.ebi.ac.uk/"
+target="_blank">AlphaFold Database</a>
+by giving the UniProt name or accession number of an entry in that database
+<br>&ndash; or &ndash;
+<li>read from a json or pkl file previously output by AlphaFold
 </ul>
+<p>
+The PAE plot can also be shown by clicking the <b>Error plot</b> button
+on the <a href="#dialog"><b>AlphaFold</b> dialog</a> or by using 
+the command <a href="../commands/alphafold.html#pae"><b>alphafold pae</b></a>, 
+or the command 
+<a href="../commands/alphafold.html#fetch"><b>alphafold fetch</b></a>
+or <a href="../commands/alphafold.html#fetch"><b>alphafold match</b></a> 
+with the option <b>pae true</b>.
+</p><p>
+When the mouse cursor is over the plot, the residue pair and PAE value at 
+its current position are reported in the bottom right corner of the window.
+</p><p>
+Clicking <b>Color PAE Domains</b> clusters the residues into
+coherent domains (sets of residues with relatively low PAE values)
+and uses randomly chosen colors to distinguish these domains in the structure 
+(<a href="../commands/alphafold.html#colorDomains">details...</a>).
+Clicking <b>Color pLDDT</b> returns the structure to
+the default <a href="#confidence">confidence coloring</a>.
+</p><p>
+<a name="context"></a>
+The plot's <a href="../window.html#context-menu">context menu</a> includes:
+</p>
+<ul>
+<li><b>Dragging box colors structure</b> (initial default checked <b>on</b>) 
+&ndash; whether dragging a box on the plot highlights the corresponding parts
+of the 3D structure with bright colors and makes everything else gray; 
+if this option is unchecked, highlighting will be done with
+<a href="../selection.html">selection</a> instead of coloring
+<li><b>Color plot from structure</b>
+&ndash; color the plot to match the 3D structure where the pair of residues
+represented by an X,Y point have the same ribbon color; show the rest of the
+plot in shades of gray
+<li><b>Color plot rainbow</b>
+&ndash; use the <b>pae</b>
+<a href="../commands/color.html#palette-options">palette</a> (default)
+to color the plot, with colors assigned to values as follows:
+<table border cellpadding="0" cellspacing="0"
+style="display:inline-block; vertical-align:top"><tr>
+<td bgcolor="blue" width="30px" title="blue"
+align="center"><font size="-1" color="white">0</font></td>
+<td bgcolor="cornflowerblue" width="30px" title="cornflowerblue"
+align="center"><font size="-1" color="white">5</font></td>
+<td bgcolor="yellow" width="30px" title="yellow"
+align="center"><font size="-1">10</font></td>
+<td bgcolor="orange" width="30px" title="orange"
+align="center"><font size="-1">15</font></td>
+<td bgcolor="gray" width="30px" title="gray"
+align="center"><font size="-1" color="white">20</font></td>
+<td bgcolor="lightgray" width="30px" title="lightgray"
+align="center"><font size="-1">25</font></td>
+<td bgcolor="white" width="30px" title="white"
+align="center"><font size="-1">30</font></td>
+</tr></table>
+<li><b>Color plot green</b>
+&ndash; use the <b>paegreen</b>
+<a href="../commands/color.html#palette-options">palette</a> to color the plot:
+<table border cellpadding="0" cellspacing="0"
+style="display:inline-block; vertical-align:top"><tr>
+<td bgcolor="#1e3546661e35" width="30px" title="#1e3546661e35"
+align="center"><font size="-1" color="white">0</font></td>
+<td bgcolor="#245a922c245a" width="30px" title="#245a922c245a"
+align="center"><font size="-1" color="white">5</font></td>
+<td bgcolor="#374cb168374c" width="30px" title="#374cb168374c"
+align="center"><font size="-1" color="white">10</font></td>
+<td bgcolor="#5687c9ba5687" width="30px" title="#5687c9ba5687"
+align="center"><font size="-1">15</font></td>
+<td bgcolor="#828fddf3828f" width="30px" title="#828fddf3828f"
+align="center"><font size="-1">20</font></td>
+<td bgcolor="#bae1efdebae1" width="30px" title="#bae1efdebae1"
+align="center"><font size="-1">25</font></td>
+<td bgcolor=white width="30px" title="white"
+align="center"><font size="-1">30</font></td>
+</tr></table>
+<li><b>Show chain divider lines</b> (initial default checked <b>on</b>)
+&ndash; for multimer predictions, draw lines on the plot demarcating the
+end of one chain and the start of another; the lines may obscure a few 
+chain-terminal residues in the plot, and can be hidden if this is problematic
+</ul>
+<p>
+The <a href="colorkey.html"><b>Color Key</b></a> graphical interface
+or a command can be used to draw (in the main graphics window)
+a color key for the PAE plot. For example, to make a color key that
+matches the <b>pae</b> or <b>paegreen</b> scheme, respectively:
+</p>
+  <blockquote>
+  <a href="../commands/key.html"><b>key</b></a>&nbsp;<b>pae&nbsp;:0&nbsp;:&nbsp;:&nbsp;:15&nbsp;:&nbsp;:&nbsp;:30</b>
+  &nbsp;<a href="../commands/key.html#options"><b>showTool true</b></a>
+<br>
+  <a href="../commands/key.html"><b>key</b></a>&nbsp;<b>paegreen&nbsp;:0&nbsp;:&nbsp;:&nbsp;:15&nbsp;:&nbsp;:&nbsp;:30</b>
+  &nbsp;<a href="../commands/key.html#options"><b>showTool true</b></a>
+  </blockquote>
+<p>
+A title for the color key (<i>e.g.</i>, &ldquo;<b>AlphaFold Predicted Aligned
+Error (&Aring;)</b>&rdquo;) would need to be created separately with
+<a href="../commands/2dlabels.html"><b>2dlabels</b></a>.
+</p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-December 2021</address>
+June 2022</address>
 </body></html>

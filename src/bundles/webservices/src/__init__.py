@@ -10,6 +10,7 @@
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.core.toolshed import BundleAPI
+from .cxservices_job import CxServicesJob
 
 class _MyAPI(BundleAPI):
 	pass

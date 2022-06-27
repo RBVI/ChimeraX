@@ -33,6 +33,7 @@ class Alignment(State):
     NOTE_EDIT_END      = "editing finished"
     NOTE_DESTROYED     = "destroyed"
     NOTE_COMMAND       = "command"
+    NOTE_REF_SEQ       = "reference seq changed"
 
     # associated note_data for the above is None except for:
     #   NOTE_ADD_ASSOC: list of new matchmaps
@@ -48,6 +49,7 @@ class Alignment(State):
     #       data normally provided with that notification, or NOTE_MOD_ASSOC, for which the second value
     #       is a list of modified matchmaps.
     #   NOTE_COMMAND: the observer subcommand text
+    #   NOTE_REF_SEQ: the new reference sequence (which could be None)
     #   not yet implemented:  NOTE_ADD_SEQS, NOTE_PRE_DEL_SEQS, NOTE_DEL_SEQS, NOTE_ADD_DEL_SEQS,
 
     NOTE_HDR_VALUES    = "header values changed"
@@ -61,11 +63,13 @@ class Alignment(State):
 
     def __init__(self, session, seqs, ident, file_attrs, file_markups, auto_destroy, auto_associate,
             description, intrinsic, *, create_headers=True, session_restore=False):
+        if not seqs:
+            raise ValueError("Cannot create alignment of zero sequences")
         self.session = session
         self._session_restore = session_restore
         if isinstance(seqs, tuple):
             seqs = list(seqs)
-        self._seqs = seqs
+        self._seqs = seqs[:] # prevent later accidental modification
         self.ident = ident
         self.file_attrs = file_attrs
         self.file_markups = file_markups
@@ -78,17 +82,18 @@ class Alignment(State):
         self._observer_notification_suspended = 0
         self._ob_note_suspended_data = []
         self._modified_mmaps = []
+        self._reference_seq = None
         self.associations = {}
         # need to be able to look up chain obj even after demotion to Sequence
         self._sseq_to_chain = {}
         from chimerax.atomic import Chain
         self.intrinsic = intrinsic
         self._in_destroy = False
-        for i, seq in enumerate(seqs):
+        for i, seq in enumerate(self._seqs):
             if isinstance(seq, Chain):
                 from copy import copy
-                seqs[i] = copy(seq)
-            seqs[i].match_maps = {}
+                self._seqs[i] = copy(seq)
+            self._seqs[i].match_maps = {}
         # need an _headers placeholder before associate() gets called...
         self._headers = []
         self._assoc_handler = None
@@ -111,7 +116,7 @@ class Alignment(State):
             self._headers = [hdr_class(self) for hdr_class in session.alignments.headers()]
             if file_markups is not None:
                 for name, markup in file_markups.items():
-                    from chimerax.core.utils import string_to_attr
+                    from chimerax.core.attributes import string_to_attr
                     from chimerax.alignment_headers import FixedHeaderSequence
                     class MarkupHeaderSequence(FixedHeaderSequence):
                         ident = string_to_attr(name, prefix="file_markup_")
@@ -126,6 +131,25 @@ class Alignment(State):
             for header in self._headers:
                 header.shown = header.settings.initially_shown and header.relevant
             self._set_residue_attributes()
+
+    def add_fixed_header(self, name, contents, *, shown=True, identifier=None):
+        if len(contents) != len(self._seqs[0]):
+            raise ValueError(f"Fixed header '{name}' is not the same length as alignment")
+        from chimerax.alignment_headers import FixedHeaderSequence
+        if identifier is None:
+            from chimerax.core.attributes import string_to_attr
+            identifier = string_to_attr(name, prefix=FixedHeaderSequence.ATTR_PREFIX)
+        class FixedHeaderWithIdent(FixedHeaderSequence):
+            ident = identifier
+        header = FixedHeaderWithIdent(self, name, contents)
+        self._headers.append(header)
+        self._headers.sort(key=lambda hdr: hdr.name.casefold())
+        header.shown = shown
+
+    def add_observer(self, observer):
+        """Called by objects that care about alignment changes that are not themselves viewer
+           (e.g. alignment headers).  Most of the documentation for attach_viewer() applies."""
+        self.observers.append(observer)
 
     def associate(self, models, seq=None, force=True, min_length=10, reassoc=False,
             keep_intrinsic=False):
@@ -340,11 +364,6 @@ class Alignment(State):
                     break
             else:
                 self._notify_observers(note_name, note_data)
-
-    def add_observer(self, observer):
-        """Called by objects that care about alignment changes that are not themselves viewer
-           (e.g. alignment headers).  Most of the documentation for attach_viewer() applies."""
-        self.observers.append(observer)
 
     def attach_viewer(self, viewer, *, subcommand_name=None):
         """Called by the viewer (with the viewer instance as the arg) to receive notifications
@@ -563,6 +582,18 @@ class Alignment(State):
         # set up callbacks for structure changes
         match_map.mod_handler = match_map.triggers.add_handler('modified', self._mmap_mod_cb)
         self._set_residue_attributes(match_maps=[match_map])
+
+    @property
+    def reference_seq(self):
+        return self._reference_seq
+
+    @reference_seq.setter
+    def reference_seq(self, ref_seq):
+        # can be None
+        if ref_seq == self._reference_seq:
+            return
+        self._reference_seq = ref_seq
+        self._notify_observers(self.NOTE_REF_SEQ, ref_seq)
 
     def remove_observer(self, observer):
         """Called when an observer is done with the alignment (see add_observer)"""

@@ -35,10 +35,19 @@ class="clRight" title="User Guide Index"/></a>
 [&nbsp;label&nbsp;true|false&nbsp;]
 -->
 </h3>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>tile off</b>
+<br>&ndash; or &ndash;</br>
+<b>~tile</b></h3>
 <p>
 The <b>tile</b> command spreads models out into a plane (XY grid arrangement), 
-keeping their current orientations. 
-This action can be reverted with <a href="undo.html"><b>undo</b></a>.
+keeping their current orientations, and assigns the left mouse button
+to <a href="ui.html#independent">independent rotation</a>.
+The command <b>tile off</b> or <b>~tile</b> puts the models back together
+and assigns the left mouse button to standard (collective)
+<a href="ui.html#functions">rotation</a>.
+Tiling can also be reverted with <a href="undo.html"><b>undo</b></a>.
+<!-- ~tile and tile off do not support undo -->
 See also: 
 <a href="view.html"><b>view</b></a>,
 <a href="matchmaker.html"><b>matchmaker</b></a>,
@@ -51,9 +60,9 @@ into <i>N</i> columns in the viewing plane.
 If not specified, a square layout (rows = columns) will be used.
 </p><p>
 The <b>spacingFactor</b> <i>f</i> indicates how far apart the structures
-should be spaced, with larger values giving greater separations. The default
-of <b>1.0</b> spaces the models so that their bounding spheres abut, while
-0.0 superimposes the bounding sphere centers.
+should be spaced, with larger values giving greater separations
+(default <b>1.3</b>). The factor is multiplied by the center-to-corner 
+distance of the largest per-model bounding box to give the spacing.
 </p><p>
 The <b>viewAll</b> option (default <b>true</b>) adjusts the view
 to enclose all displayed models regardless of whether they were specified,
@@ -62,5 +71,5 @@ like using the <a href="view.html"><b>view</b></a> command without arguments.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-June 2020</address>
+January 2022</address>
 </body></html>

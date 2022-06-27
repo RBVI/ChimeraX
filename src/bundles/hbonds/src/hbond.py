@@ -808,6 +808,9 @@ def _find_acceptors(structure, a_params, limited_acceptors, generic_acc_info):
                     bonded_geom = type_info[atom.neighbors[0].idatm_type].geometry
                 except KeyError:
                     bonded_geom = single
+                except IndexError:
+                    # no neighbors
+                    continue
                 acc_func, args = acc_info[bonded_geom]
             elif isinstance(acc_info, list):
                 try:

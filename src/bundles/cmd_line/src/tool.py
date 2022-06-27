@@ -53,18 +53,25 @@ class CommandLine(ToolInstance):
             def dragEnterEvent(self, event):
                 if event.mimeData().text():
                     event.acceptProposedAction()
-                    if sys.platform == "linux":
+                    if sys.platform == "linux" and not self._drop_hack:
                         if "file://" not in self.lineEdit().text():
                             self._drop_hack = True
                             self.editTextChanged.connect(self._drop_hack_cb)
 
+            # On Linux, not only do you not get the drop event, but
+            # dragLeaveEvent is called immediately after dragEnterEvent,
+            # before the release for the drop has even happened, so can't
+            # depend on dragLeaveEvent to make the hack more reliable
+            """
             def dragLeaveEvent(self, event):
                 if self._drop_hack:
                     self._drop_hack = False
                     self.editTextChanged.disconnect(self._drop_hack_cb)
+            """
 
             def dropEvent(self, event):
-                text = event.mimeData().text()
+                from urllib.parse import unquote
+                text = unquote(event.mimeData().text())
                 if text.startswith("file://"):
                     text = text[7:]
                     if sys.platform.startswith("win") and text.startswith('/'):
@@ -78,7 +85,12 @@ class CommandLine(ToolInstance):
                 self._drop_hack = False
                 self.editTextChanged.disconnect(self._drop_hack_cb)
                 if "file://" in new_text:
-                    self.lineEdit().setText(new_text.replace("file://", ""))
+                    # Since we are getting the text of the entire line
+                    # rather than just the dropped text, we have no
+                    # ability to quotes spaces properly if needed
+                    fixed_up = "".join([c for c in new_text.replace(
+                        "file://", "") if c.isprintable()])
+                    self.lineEdit().setText(fixed_up)
 
             def focusInEvent(self, event):
                 self._out_selection = None
@@ -182,14 +194,23 @@ class CommandLine(ToolInstance):
         session.ui.register_for_keystrokes(self.text)
         self.history_dialog.populate()
         self._just_typed_command = None
-        self._command_started_handler = session.triggers.add_handler("command started",
-            self._command_started_cb)
+        self._in_open_command = 0
+        self._handlers = []
+        self._handlers.append(session.triggers.add_handler("command started", self._command_started_cb))
+        self._handlers.append(session.triggers.add_handler("command failed", self._command_ended_cb))
+        self._handlers.append(session.triggers.add_handler("command finished", self._command_ended_cb))
         self.tool_window.manage(placement="bottom")
         self._in_init = False
         self._processing_command = False
         if self.settings.startup_commands:
             # prevent the startup command output from being summarized into 'startup messages' table
-            session.ui.triggers.add_handler('ready', self._run_startup_commands)
+            self._handlers.append(session.ui.triggers.add_handler('ready', self._run_startup_commands))
+        # on Windows Qt6, the descender of 'g' is cut off unless we make
+        # the line edit slightly taller
+        if sys.platform.startswith("win"):
+            from Qt.QtCore import QTimer
+            QTimer.singleShot(0, lambda *args, le=self.text.lineEdit():
+                    le.setMinimumHeight(le.height()+1))
 
     def cmd_clear(self):
         self.text.lineEdit().clear()
@@ -206,7 +227,8 @@ class CommandLine(ToolInstance):
 
     def delete(self):
         self.session.ui.deregister_for_keystrokes(self.text)
-        self.session.triggers.remove_handler(self._command_started_handler)
+        for handler in self._handlers:
+            handler.remove()
         super().delete()
 
     def fill_context_menu(self, menu, x, y):
@@ -321,11 +343,18 @@ class CommandLine(ToolInstance):
         # separated by semicolons are typed in order to prevent putting the 
         # second and later commands into the command history, since we will get 
         # triggers for each command in the line
-        if self._just_typed_command or not self._processing_command:
+        if cmd_text.startswith("open ") and ".cxc" in cmd_text:
+            # Kludge to try to just put commands from .cxc scripts into the command history.
+            self._in_open_command += 1
+        if self._just_typed_command or not self._processing_command or self._in_open_command:
             self.history_dialog.add(self._just_typed_command or cmd_text,
                 typed=self._just_typed_command is not None)
             self.text.lineEdit().selectAll()
             self._just_typed_command = None
+
+    def _command_ended_cb(self, trig_name, cmd_text):
+        if cmd_text.startswith("open ") and ".cxc" in cmd_text:
+            self._in_open_command -= 1
 
     def _run_startup_commands(self, *args):
         # log the commands; but prevent them from going into command history...

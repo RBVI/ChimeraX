@@ -1,5 +1,5 @@
 <!-- Edit bundle_info.xml.in, not bundle_info.xml; then run make_selectors.py  -->
-<BundleInfo name="ChimeraX-Atomic" version="1.31.6"
+<BundleInfo name="ChimeraX-Atomic" version="1.39.5"
             package="chimerax.atomic"
             purePython="false"
             customInit="true"
@@ -20,6 +20,7 @@
   <ExtraFiles>
     <ExtraFile source="atomic_cpp/cymol.pyx">cymol.pyx</ExtraFile>
     <ExtraFile source="atomic_cpp/cytmpl.pyx">cytmpl.pyx</ExtraFile>
+    <ExtraFile source="atomic_cpp/connect.pyx">connect.pyx</ExtraFile>
   </ExtraFiles>
 
   <CLibrary name="molc" usesNumpy="true">
@@ -42,6 +43,12 @@
     <Library>element</Library>
   </CModule>
 
+  <CModule name="connect">
+    <SourceFile>atomic_cpp/connect.pyx</SourceFile>
+    <Library>atomstruct</Library>
+    <Library>pdbconnect</Library>
+  </CModule>
+
   <CModule name="_ribbons" usesNumpy="true">
     <SourceFile>ribbon_cpp/normals.cpp</SourceFile>
     <SourceFile>ribbon_cpp/parse.cpp</SourceFile>
@@ -55,13 +62,14 @@
   <!-- Edit bundle_info.xml.in, not bundle_info.xml; then run make_selectors.py  -->
   <Dependencies>
     <Dependency name="ChimeraX-Core" version="~=1.0"/>
-    <Dependency name="ChimeraX-AtomicLibrary" build="true" version="~=5.0"/>
+    <Dependency name="ChimeraX-AtomicLibrary" build="true" version="~=7.0"/>
     <Dependency name="ChimeraX-ConnectStructure" version="~=2.0"/>
     <Dependency name="ChimeraX-Geometry" build="true" version="~=1.0"/>
     <Dependency name="ChimeraX-Graphics" build="true" version="~=1.0"/>
     <Dependency name="ChimeraX-mmCIF" version="~=2.0"/>
     <Dependency name="ChimeraX-Nucleotides" version="~=2.0"/>
     <Dependency name="ChimeraX-PDB" version="~=2.0"/>
+    <Dependency name="ChimeraX-PDBLibrary" build="true" version="~=1.0"/>
     <Dependency name="ChimeraX-Arrays" build="true" version="~=1.0"/>
   </Dependencies>
 
@@ -94,6 +102,7 @@
     ELEMENT_AND_IDATM_SELECTOR_CLASSIFIERS
     <ChimeraXClassifier>Selector :: backbone :: backbone atoms</ChimeraXClassifier>
     <ChimeraXClassifier>Selector :: mainchain :: backbone atoms</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: min-backbone :: minimal backbone atoms</ChimeraXClassifier>
     <ChimeraXClassifier>Selector :: ions :: ions</ChimeraXClassifier>
     <ChimeraXClassifier>Selector :: ligand :: ligands</ChimeraXClassifier>
     <ChimeraXClassifier>Selector :: main :: main structure</ChimeraXClassifier>

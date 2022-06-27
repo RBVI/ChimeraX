@@ -1,3 +1,63 @@
+AlphaFold Sequence Databases on Plato used by BLAST and BLAT
+------------------------------------------------------------
+/databases/mol/AlphaFold/v1
+/databases/mol/AlphaFold/v2
+
+The ChimeraX AlphaFold module checks for new version of AlphaFold database
+when fetching if last check was more than a day ago. Checks this JSON file
+for new URL template to database files.
+
+/usr/local/projects/chimerax/www/data/status/alphafold_database.json
+
+The BLAST rest service and BLAT cgi script (alphafold_search2_cgi.py) also
+return in their results the AlphaFold database version.
+
+Plato ChimeraX cgi-bin Location for BLAT search
+-----------------------------------------------
+Under svn: /usr/local/projects/chimerax/www/preview/cgi-bin/alphafold_search2_cgi.py
+Url: https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/alphafold_search2_cgi.py
+
+Copied to production server nightly
+/usr/local/projects/chimerax/www/production/cgi-bin/alphafold_search2_cgi.py
+Url: https://www.rbvi.ucsf.edu/chimerax/cgi-bin/alphafold_search2_cgi.py
+
+Source for AlphaFold sequences FASTA file
+-----------------------------------------
+https://alphafold.ebi.ac.uk/files/sequences.fasta
+
+The Uniprot ids for all AlphaFold database entries are in a file at the ftp site
+
+http://ftp.ebi.ac.uk/pub/databases/alphafold/accession_ids.txt
+
+This FASTA file (currently for version 2 database, 800000 sequences) does
+not have Uniprot name and species name in sequence titles.  ChimeraX BLAST search
+wants to show those in the results.  I converted the title lines by fetching the
+Uniprot sequences using the Uniprot web site giving it a file of uniprot ids
+(maximum size allowed 2 Mbytes, 270,000 ids, Dec 2021, had to fetch in 3 batches
+to get 800,000 sequences).
+
+https://www.uniprot.org/uploadlists/
+
+I used a Python script fix_seq_titles.py to replace the titles, matching uniprot ids.
+
+Building BLAST Database from AlphaFold FASTA file
+-------------------------------------------------
+To build a blast database from a fasta file for testing blastp I used
+
+~/ucsf/ncbi-blast-2.12.0+/bin/makeblastdb -in alphafold.fasta -dbtype prot
+
+which produces several files
+
+alphafold.fasta.pdb
+alphafold.fasta.phr
+alphafold.fasta.pin
+alphafold.fasta.pot
+alphafold.fasta.psq
+alphafold.fasta.ptf
+alphafold.fasta.pto
+
+Server Test macOS Apache
+------------------------
 To test cgi script on macOS 10.15 I enabled the apache server by editing
 
    /etc/apache2/httpd.conf
@@ -21,20 +81,8 @@ I put alphafold_search_cgi.py in the macOS cgi-bin directory
 Then ChimeraX successfully used this blat sequence search using the Python requests
 module.
 
-To build a blast database from a fasta file for testing blastp I used
-
-~/ucsf/ncbi-blast-2.12.0+/bin/makeblastdb -in alphafold.fasta -dbtype prot
-
-which produces several files
-
-alphafold.fasta.pdb
-alphafold.fasta.phr
-alphafold.fasta.pin
-alphafold.fasta.pot
-alphafold.fasta.psq
-alphafold.fasta.ptf
-alphafold.fasta.pto
-
+Speed Comparison BLAST vs BLAT
+------------------------------
 Timing showed fasta and blastp were slower than blat searching for 7 sequences of PDB 3o81.
 The blat time was only slightly different for 1 sequence, suggesting almost all time was loading
 database and then .1 second per sequence to search.  While fasta and blastp time seemed to scale
@@ -71,7 +119,3 @@ real	0m4.770s
 user	0m4.586s
 sys	0m0.156s
 
-
-Plato ChimeraX cgi location
-
-https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/hello_cgi.py

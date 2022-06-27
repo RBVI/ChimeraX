@@ -456,6 +456,16 @@ class StructureDatas(Collection):
         for s in self:
             s.name = nm
 
+    # res_numbering can be int or string, so go through Python layer
+    @property
+    def res_numberings(self):
+        return array([s.res_numbering for s in self])
+
+    @res_numberings.setter
+    def res_numberings(self, rn):
+        for s in self:
+            s.res_numbering = rn
+
 # -----------------------------------------------------------------------------
 #
 class AtomicStructures(StructureDatas):

@@ -1168,7 +1168,7 @@ def color_by_attr(session, attr_name, atoms=None, what=None, target=None, averag
                                 if val is not None:
                                     vals.append(val)
                             res_average[r] = sum(vals)/len(vals) if vals else None
-                    res_attr_vals = [res_average[r] for r in atoms.residues]
+                    res_attr_vals = [res_average[r] for r in residues]
                 else:
                     residues = atoms.unique_residues
                     if class_obj == Residue:
@@ -1437,7 +1437,8 @@ def register_command(logger):
                             ('range', ColormapRangeArg),
                             ('no_value_color', ColorArg),
                             ('transparency', FloatArg),
-                            ('key', BoolArg)],
+                            ('key', BoolArg),
+                            ('log_info', BoolArg)],
                    synopsis="color atoms by bfactor")
     register('color byattribute', desc, color_by_attr, logger=logger)
     create_alias('color bfactor', 'color byattribute bfactor $*', logger=logger,

@@ -8,6 +8,7 @@
 # 	clean: remove files used in building wheel
 
 TOP ?= ../../..
+-include $(TOP)/.makerc
 CHIMERAX_APP = $(wildcard $(TOP)/ChimeraX*.app)
 SYNC_DIR = $(wildcard $(TOP)/build/sync)
 
@@ -25,19 +26,18 @@ endif
 # For Windows, we assume Cygwin is being used.
 OS = $(patsubst CYGWIN_NT%,CYGWIN_NT,$(shell uname -s))
 ifeq ($(OS),CYGWIN_NT)
-CHIMERAX_EXE = $(CHIMERAX_APP)/bin/ChimeraX-console.exe
+CHIMERAX_EXE = $(CHIMERAX_APP)/bin/python.exe -I -m chimerax.core
 PYMOD_EXT = pyd
 endif
 ifeq ($(OS),Darwin)
-CHIMERAX_EXE = $(CHIMERAX_APP)/Contents/bin/ChimeraX
+CHIMERAX_EXE = $(CHIMERAX_APP)/Contents/bin/python3.9 -I -m chimerax.core
 PYMOD_EXT = so
 endif
 ifeq ($(OS),Linux)
-CHIMERAX_EXE = $(CHIMERAX_APP)/bin/ChimeraX
+CHIMERAX_EXE = $(CHIMERAX_APP)/bin/python3.9 -I -m chimerax.core
 PYMOD_EXT = so
 endif
 RUN = $(CHIMERAX_EXE) --nogui --safemode --exit --cmd
-
 
 ifdef INSTALL_TO_VENV
 WHEEL = $(wildcard dist/*.whl)
@@ -51,20 +51,19 @@ wheel:	bundle_info.xml $$(PYSRCS)
 	$(RUN) "devel build . exit true $(DEBUG_ARG) $(BUILD_ARGS)"
 
 # The space means install and app-install are the same
-install app-install:	bundle_info.xml $$(PYSRCS)
+install app-install: bundle_info.xml $$(PYSRCS)
 	$(RUN) "devel install . user false exit true $(DEBUG_ARG) $(INSTALL_ARGS)"
-ifdef INSTALL_TO_VENV
+
+venv-install:
 ifndef VIRTUAL_ENV
 	@echo "No virtual env to install to! Skipping venv install."
-	@echo "This warning does not indicate success or failure of bundle installs to ChimeraX's internal environment."
 else
 ifdef IGNORE_DEPS
 	pip install $(WHEEL) --no-deps
 else
 	pip install $(WHEEL)
-endif # IGNORE_DEPS
-endif # VIRTUAL_ENV
-endif # INSTALL_TO_VENV
+endif
+endif
 
 test-changes: install
 ifeq ($(OS),Darwin)
@@ -72,7 +71,7 @@ ifeq ($(OS),Darwin)
 	open -n $(CHIMERAX_APP)
 endif
 ifeq ($(OS),Linux)
-	nohup ./$(CHIMERAX_EXE) & 2>&1 >> /dev/null
+	nohup ./$(CHIMERAX_EXE) >> /dev/null & 2>&1
 endif
 
 sync:
@@ -110,3 +109,6 @@ clean:
 
 pylint:
 	$(CHIMERAX_EXE) -m flake8 $(filter %.py, $(PYSRCS))
+
+test-pyproject-converter:
+	$(MAKE) -C $(TOP) $@

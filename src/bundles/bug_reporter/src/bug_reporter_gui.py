@@ -5,7 +5,7 @@
 # All rights reserved.  This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
 # duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
 # This notice must be embedded in or attached to all copies,
 # including partial copies, of the software or any revisions
 # or derivations thereof.
@@ -13,7 +13,7 @@
 
 BUG_HOST = "www.rbvi.ucsf.edu"
 BUG_SELECTOR = "/chimerax/cgi-bin/chimerax_bug_report.py"
-BUG_URL = "http://" + BUG_HOST + BUG_SELECTOR
+BUG_URL = "https://" + BUG_HOST + BUG_SELECTOR
 
 # -----------------------------------------------------------------------------
 # User interface for bug reporter.
@@ -112,14 +112,17 @@ class BugReporter(ToolInstance):
         self.gathered_info = gi = TextEdit('', 3)
         import sys
         info = self.opengl_info()
+        import platform
+        info += f"\n\nPython: {platform.python_version()}\n"
+        my_locale = [x for x in locale.getdefaultlocale() if x is not None]
+        info += f"Locale: {'.'.join(my_locale)}\n"
+        info += _qt_info(session)
         if sys.platform == 'win32':
             info += _win32_info()
         elif sys.platform == 'linux':
             info += _linux_info()
         elif sys.platform == 'darwin':
             info += _darwin_info()
-        info += f"Locale: {locale.getdefaultlocale()}\n"
-        info += _qt_info(session)
         info += _package_info()
         gi.setText(info)
         layout.addWidget(gi, row, 2)
@@ -235,6 +238,8 @@ class BugReporter(ToolInstance):
 
         # Add attachment to form data.
         file_list = self.read_attachment(entry_values['filename'])
+        if file_list is None:
+            return	# Attachment file not found.
         fields = [(k, None, v) for k,v in my_attrs.items()]
         fields.extend(file_list)
 
@@ -631,6 +636,7 @@ OSLanguage: {lang}
 
 
 def _linux_info():
+    import os
     import distro
     import platform
     import subprocess
@@ -726,12 +732,19 @@ def _linux_info():
     except Exception:
         product = "unknown"
 
+    newline = "\n"
+    displays = [f"{k}={v}" for k, v in os.environ.items() if k.endswith("DISPLAY")]
     info = f"""
+XDG_SESSION_TYPE={os.environ.get("XDG_SESSION_TYPE", "")}
+DESKTOP_SESSION={os.environ.get("DESKTOP_SESSION", "")}
+XDG_SESSION_DESKTOP={os.environ.get("XDG_SESSION_DESKTOP", "")}
+XDG_CURRENT_DESKTOP={os.environ.get("XDG_CURRENT_DESKTOP", "")}
+{newline.join(displays)}
 Manufacturer: {vendor}
 Model: {product}
 OS: {' '.join(distro.linux_distribution())}
 Architecture: {' '.join(platform.architecture())}
-Virutal Machine: {virtual_machine}
+Virtual Machine: {virtual_machine}
 CPU: {count} {model_name}
 Cache Size: {cache_size}
 Memory:
@@ -768,7 +781,11 @@ def _qt_info(session):
     if not session.ui.is_gui:
         return ""
     import Qt
-    return Qt.version + '\n'
+    return (
+        f"Qt version: {Qt.version}\n"
+        f"Qt runtime version: {Qt.QtCore.qVersion()}\n"
+        f"Qt platform: {session.ui.platformName()}\n"
+    )
 
 
 def _package_info():
@@ -776,7 +793,7 @@ def _package_info():
     dists = list(pkg_resources.WorkingSet())
     dists.sort(key=lambda d: d.project_name.casefold())
 
-    info = "Installed Packages:"
+    info = "\nInstalled Packages:"
     for d in dists:
         name = d.project_name
         if d.has_version():

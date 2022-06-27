@@ -34,10 +34,12 @@ class ContourLevelMouseMode(MouseMode):
         closest = None
         dist = None
         shown_maps = mouse_maps(self.session.models)
+        from . import Volume, VolumeSurface
+        is_not_volume_surface = lambda s: not isinstance(s,(Volume,VolumeSurface))
         for m in shown_maps:
             ppos = (m.scene_position * m.position.inverse()).inverse() # Map scene to parent coordinates
             mxyz1, mxyz2 =  ppos * xyz1, ppos * xyz2
-            p = m.first_intercept(mxyz1, mxyz2)
+            p = m.first_intercept(mxyz1, mxyz2, exclude = is_not_volume_surface)
             if p and (dist is None or p.distance < dist):
                 if hasattr(p, 'triangle_pick'):
                     closest = (m, p.triangle_pick.drawing())	# Remember which surface

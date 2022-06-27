@@ -12,7 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 def alphafold_match(session, sequences, color_confidence=True, trim = True,
-                    search = True, ignore_cache=False):
+                    search = True, pae = False, ignore_cache=False):
     '''
     Find the most similar sequence in the AlphaFold database to each specified
     sequence and load them.  The specified sequences can be Sequence instances
@@ -26,13 +26,16 @@ def alphafold_match(session, sequences, color_confidence=True, trim = True,
         from chimerax.core.errors import UserError
         raise UserError('No protein sequences specified')
 
+    if pae:
+        trim = False  # Can only associate PAE matrix with full AlphaFold models
+        
     log = session.logger
 
     # Use UniProt identifiers in file metadata to get AlphaFold models.
     seq_models = _fetch_by_uniprot_id(session, sequences, color_confidence=color_confidence,
                                       trim=trim, local=(search == 'local'), log=log,
                                       ignore_cache=ignore_cache)
-        
+
     # Try sequence search if some sequences were not found by UniProt identifier.
     if search:
         search_seqs = [seq for seq in sequences if seq not in seq_models]
@@ -54,6 +57,13 @@ def alphafold_match(session, sequences, color_confidence=True, trim = True,
 
     msg = 'Opened %d AlphaFold model%s' % (nmodels, _plural(nmodels))
     log.info(msg)
+
+    if pae:
+        for seq,models in seq_models.items():
+            for m in models:
+                if hasattr(m, 'uniprot_id'):
+                    from .pae import alphafold_pae
+                    alphafold_pae(session, structure = m, uniprot_id = m.uniprot_id)
 
     return mlist
 
@@ -79,7 +89,7 @@ def _fetch_by_uniprot_id(session, sequences, color_confidence = True, trim = Tru
 
 def _fetch_by_sequence(session, sequences, color_confidence = True, trim = True,
                        local = False, ignore_cache = False, log = None):
-    
+
     from .search import alphafold_sequence_search, SearchError
     seq_strings = [seq.characters for seq in sequences]
     try:
@@ -93,7 +103,7 @@ def _fetch_by_sequence(session, sequences, color_confidence = True, trim = True,
     for seq, uid in seq_uids:
         if isinstance(seq, Chain):
             uid.chain_id = seq.chain_id
-    
+
     seq_models, missing_uids = \
         _alphafold_models(session, sequences, seq_uids,
                           color_confidence=color_confidence, trim=trim,
@@ -122,10 +132,13 @@ def _alphafold_models(session, sequences, seq_uids, color_confidence=True, trim=
         if uid.uniprot_id in missing:
             missing[uid.uniprot_id].append(seq)
             continue
+        db_version = getattr(uid, 'alphafold_database_version', None)
         try:
             models, status = alphafold_fetch(session, uid.uniprot_id,
+                                             version = db_version,
                                              color_confidence=color_confidence,
                                              add_to_session=False,
+                                             in_file_history=(len(seq_uids)==1),
                                              ignore_cache=ignore_cache)
         except UserError as e:
             if not str(e).endswith('Not Found'):
@@ -186,7 +199,7 @@ def _trim_sequence(structure, sequence_range):
         from chimerax.atomic import concatenate
         rdel = concatenate(rdelete)
         rdel.delete()
-        
+
 def _rename_chains(structure, chain_ids):
     schains = structure.chains
     if len(schains) != len(chain_ids):
@@ -197,9 +210,9 @@ def _rename_chains(structure, chain_ids):
 
     for schain, chain_id in zip(schains, chain_ids):
         schain.chain_id = chain_id
-        
+
 def _align_to_chain(structure, chain, use_dssp = True):
-        
+
     from chimerax.match_maker.match import cmd_match
     results = cmd_match(structure.session, structure.atoms, to = chain.existing_residues.atoms,
                         compute_s_s = use_dssp, verbose=None)
@@ -241,7 +254,7 @@ def _sequence_identity(seq1, seq2, range2 = None):
             len1 += 1
         if aa2 != '.':
             len2 += 1
-        
+
     d = min(len1, len2)
     return m/d if d > 0 else 0.0
 
@@ -388,7 +401,7 @@ def _plural(seq):
     return 's' if n > 1 else ''
 
 def _group_chains_by_structure(seq_models):
-    
+
     # Group models by structure
     struct_models = {}
     seq_only_models = []
@@ -416,7 +429,7 @@ def _group_chains_by_structure(seq_models):
 
     mlist.extend(seq_only_models)
     nmodels += len(seq_only_models)
-    
+
     return mlist, nmodels
 
 def _log_alphafold_chain_info(alphafold_group_model):
@@ -461,7 +474,7 @@ def _log_alphafold_chain_table(chain_models, match_to_name):
     lines.extend(['  </tbody>',
                   '</table>'])
     msg = '\n'.join(lines)
-    
+
     m.session.logger.info(msg, is_html = True)
 
 def _sel_chain_cmd(structure, chain_id):
@@ -521,7 +534,7 @@ def _sequence_name(seq):
     if len(ug) <= 10:
         return ug
     return ug[:5] + '...' + ug[-5:]
-    
+
 def register_alphafold_match_command(logger):
     from chimerax.core.commands import CmdDesc, register, BoolArg
     from chimerax.atomic import SequencesArg
@@ -530,6 +543,7 @@ def register_alphafold_match_command(logger):
         keyword = [('color_confidence', BoolArg),
                    ('trim', BoolArg),
                    ('search', BoolArg),
+                   ('pae', BoolArg),
                    ('ignore_cache', BoolArg)],
         synopsis = 'Fetch AlphaFold database models matching an open structure'
     )

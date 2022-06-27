@@ -21,7 +21,7 @@ file formats, web databases and selection specifiers.
 This document describes the details of how to create a bundle
 and publish it in the ChimeraX toolshed.
 There is also a step-by-step example of writing a bundle
-available :ref:`here <Seven Steps>`.
+available :ref:`here <A Few Steps>`.
 
 Bundle Format
 -------------
@@ -152,11 +152,13 @@ All other contents of the bundle should be in ``src``.
     under a ``src/docs`` folder.  Inside that folder
     documentation intended for developers should be in
     a ``devel`` subfolder and documentation for users
-    in a ``users`` subfolder.  Specifically, documentation
-    for commands should be under ``users/commands`` as
+    in a ``user`` subfolder.  Specifically, documentation
+    for commands should be under ``user/commands`` as
     described :ref:`here <command help>`,
-    and documentation for tools under ``users/tools`` as
-    described :ref:`here <help>`.
+    and documentation for tools under ``user/tools`` as
+    described :ref:`here <help>`.  The ``docs`` directory
+    also needs to be added to the list of data files in
+    **bundle_info.xml**.
 
 
 *Building and testing the Sample Bundle using ``ChimeraX``*

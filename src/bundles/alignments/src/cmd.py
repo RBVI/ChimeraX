@@ -102,7 +102,10 @@ class AlignSeqPairArg(Annotation):
     def parse(text, session, empty_okay=False):
         from chimerax.core.commands import AnnotationError, next_token
         if not text:
-            raise AnnotationError("Expected %s" % AlignSeqPairArg.name)
+            if empty_okay:
+                text = ':'
+            else:
+                raise AnnotationError("Expected %s" % AlignSeqPairArg.name)
         token, text, rest = next_token(text)
         if ':' not in token:
             align_id, seq_id = "", token
@@ -138,8 +141,9 @@ class AlignmentArg(Annotation):
     def parse(text, session):
         from chimerax.core.commands import AnnotationError, next_token
         if not text:
-            raise AnnotationError("Expected %s" % SeqArg.name)
-        token, text, rest = next_token(text)
+            token = rest = ""
+        else:
+            token, text, rest = next_token(text)
         alignment = get_alignment_by_id(session, token)
         return alignment, text, rest
 
@@ -221,13 +225,7 @@ def seqalign_chain(session, chains):
             name = "chains %s" % ",".join(sorted(list(chain_ids)))
         from chimerax.atomic import Sequence
         seq = Sequence(name=name, characters=chars)
-        def get_numbering_start(chain):
-            for i, r in enumerate(chain.residues):
-                if r is None or r.deleted:
-                    continue
-                return r.number - i
-            return None
-        starts = set([get_numbering_start(chain) for chain in chains])
+        starts = set([chain.numbering_start for chain in chains])
         starts.discard(None)
         if len(starts) == 1:
             seq.numbering_start = starts.pop()
@@ -288,15 +286,72 @@ def seqalign_header(session, alignments, subcommand_text):
     for alignment in alignments:
         alignment._dispatch_header_command(subcommand_text)
 
+from chimerax.atomic.seq_support import IdentityDenominator, percent_identity
+def seqalign_identity(session, src1, src2=None, *, denominator=IdentityDenominator.default):
+    "Either src1 is an alignment and src2 is None (report all vs. all), or src1 and src2 are sequences"
+    from .alignment import Alignment
+    usage = "Must either provide an alignment, an alignment and a sequence, or two sequence arguments"
+    if src2 is None:
+        if not isinstance(src1, Alignment):
+            raise UserError(usage)
+        for i, seq1 in enumerate(src1.seqs):
+            for seq2 in src1.seqs[i+1:]:
+                identity = percent_identity(seq1, seq2, denominator=denominator)
+                session.logger.info("%s vs. %s: %.2f%% identity" % (seq1.name, seq2.name, identity))
+        return
+    if isinstance(src1, Alignment):
+        seqs1 = src1.seqs
+    else:
+        seqs1 = [src1]
+    for seq1 in seqs1:
+        try:
+            identity = percent_identity(seq1, src2, denominator=denominator)
+        except ValueError as e:
+            raise UserError(str(e))
+        session.logger.info("%s vs. %s: %.2f%% identity" % (seq1.name, src2.name, identity))
+    return identity
+
+def seqalign_refseq(session, ref_seq_info):
+    if isinstance(ref_seq_info, tuple):
+        aln, ref_seq = ref_seq_info
+    else:
+        aln, ref_seq = ref_seq_info, None
+    aln.reference_seq = ref_seq
+
+MUSCLE = "MUSCLE"
+CLUSTAL_OMEGA = "Clustal Omega"
+alignment_program_name_args = { 'muscle': MUSCLE, 'omega': CLUSTAL_OMEGA, 'clustal': CLUSTAL_OMEGA,
+    'clustalOmega': CLUSTAL_OMEGA }
+def seqalign_align(session, seq_source, *, program=CLUSTAL_OMEGA):
+    from .alignment import Alignment
+    if isinstance(seq_source, Alignment):
+        raw_input_sequences = seq_source.seqs
+        title = "%s realignment of %s" % (program, seq_source.description)
+    else:
+        raw_input_sequences = seq_source
+        title = "%s alignment" % program
+    from chimerax.atomic import Residue
+    input_sequences = [s for s in raw_input_sequences
+        if getattr(s, 'polymer_type', Residue.PT_PROTEIN) == Residue.PT_PROTEIN]
+    if len(input_sequences) < 2:
+        raise UserError("Must specify 2 or more protein sequences")
+    from .align import realign_sequences
+    realigned = realign_sequences(session, input_sequences, program=program)
+    return session.alignments.new_alignment(realigned, None, name=title)
+
 def register_seqalign_command(logger):
     # REMINDER: update manager._builtin_subcommands as additional subcommands are added
-    from chimerax.core.commands import CmdDesc, register, create_alias, Or, EmptyArg, RestOfLine, ListOf
-    from chimerax.atomic import UniqueChainsArg
+    from chimerax.core.commands import CmdDesc, register, create_alias, Or, EmptyArg, RestOfLine, ListOf, \
+        EnumOf
+    from chimerax.atomic import UniqueChainsArg, SequencesArg
+
+    apns = list(alignment_program_name_args.keys())
     desc = CmdDesc(
-        required = [('chains', UniqueChainsArg)],
-        synopsis = 'show structure chain sequence'
+        required = [('seq_source', Or(AlignmentArg, SequencesArg))],
+        keyword = [('program', EnumOf([alignment_program_name_args[apn] for apn in apns], ids=apns))],
+        synopsis = "align sequences"
     )
-    register('sequence chain', desc, seqalign_chain, logger=logger)
+    register('sequence align', desc, seqalign_align, logger=logger)
 
     desc = CmdDesc(
         required = [('chains', UniqueChainsArg)],
@@ -304,6 +359,12 @@ def register_seqalign_command(logger):
         synopsis = 'associate chain(s) with sequence'
     )
     register('sequence associate', desc, seqalign_associate, logger=logger)
+
+    desc = CmdDesc(
+        required = [('chains', UniqueChainsArg)],
+        synopsis = 'show structure chain sequence'
+    )
+    register('sequence chain', desc, seqalign_chain, logger=logger)
 
     desc = CmdDesc(
         required = [('chains', UniqueChainsArg)],
@@ -320,6 +381,21 @@ def register_seqalign_command(logger):
         synopsis = "send subcommand to header"
     )
     register('sequence header', desc, seqalign_header, logger=logger)
+
+    enum_members = [denom for denom in IdentityDenominator]
+    desc = CmdDesc(
+        required = [('src1', Or(AlignmentArg, SeqArg))],
+        optional = [('src2', SeqArg)],
+        keyword = [('denominator', EnumOf(enum_members, ids=[mem.value for mem in enum_members]))],
+        synopsis = "report percent identity"
+    )
+    register('sequence identity', desc, seqalign_identity, logger=logger)
+
+    desc = CmdDesc(
+        required = [('ref_seq_info', Or(AlignSeqPairArg, AlignmentArg))],
+        synopsis = "set alignment reference sequence"
+    )
+    register('sequence refseq', desc, seqalign_refseq, logger=logger)
 
     from . import manager
     manager._register_viewer_subcommands(logger)

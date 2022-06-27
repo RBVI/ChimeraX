@@ -48,6 +48,7 @@ See also:
 <a href="volumeviewer.html"><b>Volume Viewer</b></a>,
 <a href="mapcoords.html"><b>Map Coordinates</b></a>,
 <a href="fitsegments.html"><b>Fit to Segments</b></a>,
+<a href="../commands/measure.html#correlation"><b>measure correlation</b></a>,
 <a href="../commands/measure.html#rotation"><b>measure rotation</b></a>,
 <a href="https://www.rbvi.ucsf.edu/chimerax/docs/videos/"
 target="_blank">ChimeraX videos</a>:
@@ -94,6 +95,16 @@ only the <a href="../selection.html">selected</a> model(s).
 <img class="icon" border=1 src="mouse-icons/move_h2o.png"></a>
 <a href="mousemodes.html" title="Mouse Modes for Right Button...">
 <img class="icon" border=1 src="mouse-icons/rotate_h2o.png"></a>
+</p><p>
+Only the current <a href="volumeviewer.html#region">display region</a>
+(which may be a cropped rectangular box) of the <i>ref-model</i> map is used.
+All of the grid points in the region are used at full resolution, 
+regardless of what <a href="volumeviewer.html#step">step level</a> 
+and <a href="volumeviewer.html#threshold">threshold</a> (contour level)
+are used to display the <i>ref-model</i> map. 
+However, for <a href="#fitmaps">map-in-map</a> fitting, the <i>fit-model</i>
+map data are restricted by its step level, display region, 
+and <a href="#options">optionally</a> its lowest threshold level.
 </p><p>
 Clicking <b>Fit</b> performs
 <a href="#optimization">local optimization</a> of the fit
@@ -312,5 +323,5 @@ and partly in Python.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-September 2021</address>
+February 2022</address>
 </body></html>

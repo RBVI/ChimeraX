@@ -332,6 +332,18 @@ class Drawing:
 
     def remove_drawings(self, drawings, delete=True):
         '''Remove specified child drawings.'''
+
+        # Verify that drawings really are children.
+        cset = set(self._child_drawings)
+        for d in drawings:
+            if d not in cset:
+                raise ValueError('Drawing.remove_drawings() called on Drawing "%s" which is not a child of "%s"'
+                                 % (d.name, self.name))
+            if d.parent is not self:
+                pname = d.parent.name if d.parent else 'None'
+                raise ValueError('Drawing.remove_drawings() called on Drawing "%s" whose parent "%s" is not "%s"'
+                                 % (d.name, pname, self.name))
+                
         dset = set(drawings)
         self._child_drawings = [d for d in self._child_drawings
                                 if d not in dset]
@@ -902,7 +914,11 @@ class Drawing:
             tm = self._triangle_mask
             tmsel = self.highlighted_displayed_triangles_mask
             ds.update_element_buffer(ta, style, tm, em)
-            dss.update_element_buffer(ta, style, tmsel, em)
+            if tmsel is tm:
+                # Avoid slow recomputation of mesh edges. Ticket #6243
+                dss.copy_elements(ds)
+            else:
+                dss.update_element_buffer(ta, style, tmsel, em)
 
         # Update instancing buffers
         p = self.positions
@@ -1670,7 +1686,7 @@ class _DrawShape:
         self.instance_matrices = None	    # matrices for displayed instances
         self.instance_colors = None
         self.elements = None                # Triangles after mask applied
-        self.masked_edges = None
+        self._masked_edges = None
         self._edge_mask = None
         self._tri_mask = None
 
@@ -1692,7 +1708,7 @@ class _DrawShape:
             
     def delete(self):
 
-        self.masked_edges = None
+        self._masked_edges = None
         self.instance_shift_and_scale = None
         self.instance_matrices = None
         self.instance_colors = None
@@ -1750,10 +1766,22 @@ class _DrawShape:
 
     def update_element_buffer(self, triangles, style, triangle_mask, edge_mask):
 
-        self.elements = e = self.masked_elements(triangles, style, triangle_mask, edge_mask)
+        e = self.masked_elements(triangles, style, triangle_mask, edge_mask)
+        self.set_elements(e)
+
+    def copy_elements(self, draw_shape):
+
+        self._masked_edges = draw_shape._masked_edges
+        self._edge_mask = draw_shape._edge_mask
+        self._tri_mask = draw_shape._tri_mask
+        self.set_elements(draw_shape.elements)
+
+    def set_elements(self, elements):
+
+        self.elements = elements
 
         eb = self.element_buffer
-        if eb is None and len(e) > 0:
+        if eb is None and len(elements) > 0:
             self.element_buffer = eb = self.create_element_buffer()
 
         if eb:
@@ -1776,7 +1804,7 @@ class _DrawShape:
                 ta = masked_edges(ta, **kw)
             else:
                 # TODO: Need to reset masked_edges if edge_mask changed.
-                me = self.masked_edges
+                me = self._masked_edges
                 if (me is None or edge_mask is not self._edge_mask or
                     tmask is not self._tri_mask):
                     kw = {}
@@ -1784,7 +1812,7 @@ class _DrawShape:
                         kw['edge_mask'] = edge_mask
                     if tmask is not None:
                         kw['triangle_mask'] = tmask
-                    self.masked_edges = me = masked_edges(ta, **kw)
+                    self._masked_edges = me = masked_edges(ta, **kw)
                     self._edge_mask, self._tri_mask = edge_mask, tmask
                 ta = me
         elif style == Drawing.Dot:
@@ -2166,6 +2194,16 @@ def text_image_rgba(text, color, size, font, background_color = None, xpad = 0, 
     and the font is chosen to fit within this image height minus ypad pixels at top
     and bottom.
     '''
+    from Qt.QtCore import QCoreApplication
+    if QCoreApplication.instance() is None:
+        # In no gui mode with no QGuiApplication, QFontMetrics.boundingRect() crashes in Qt 6.3.0.
+        # ChimeraX ticket #6876.
+        # Return an all white image.
+        from numpy import empty, uint8
+        rgba = empty((10,10,4), uint8)
+        rgba[:] = 255
+        return rgba
+    
     from Qt.QtGui import QImage, QPainter, QFont, QFontMetrics, QColor, QBrush, QPen
 
     p = QPainter()

@@ -36,7 +36,7 @@ class _MyAPI(BundleAPI):
 
     @staticmethod
     def start_tool(session, bi, ti):
-        return BlastProteinTool(session, ti.name)
+        return BlastProteinTool(session)
 
     @staticmethod
     def register_command(bi, ci, logger):

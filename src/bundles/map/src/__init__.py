@@ -212,7 +212,7 @@ class _MapBundle(BundleAPI):
                     return args
 
                 def save_args_widget(self, session):
-                    from chimerax.save_command import SaveModelOptionWidget
+                    from chimerax.save_command.widgets import SaveModelOptionWidget
                     return SaveModelOptionWidget(session, 'Map', Volume)
 
                 def save_args_string_from_widget(self, widget):

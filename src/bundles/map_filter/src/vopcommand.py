@@ -37,7 +37,7 @@
 #               [play_range <fmin,fmax>]
 #               [add_mode true|false]
 #               [constant_volume true|false]
-#               [scale_factors <f1,f2,...>]
+#               [scale_factors "fromlevels"|<f1,f2,...>]
 #
 # where op is one of octant, ~octant, resample, add, zFlip, subtract, fourier,
 # laplacian, gaussian, permuteAxes, bin, median, scale, boxes, morph, cover,
@@ -50,9 +50,12 @@ def register_volume_filtering_subcommands(logger):
     from chimerax.core.commands import CmdDesc, register, BoolArg, StringArg, EnumOf, IntArg, Int3Arg
     from chimerax.core.commands import FloatArg, Float3Arg, FloatsArg, ModelIdArg
     from chimerax.core.commands import AxisArg, CenterArg, CoordSysArg
+    from chimerax.core.commands import Or, EnumOf
     from chimerax.atomic import AtomsArg
     from chimerax.map.mapargs import MapsArg, MapStepArg, MapRegionArg, Int1or3Arg, Float1or3Arg, ValueTypeArg
     from chimerax.map.mapargs import BoxArg, Float2Arg
+
+    ScaleFactorsArg = Or(EnumOf(['fromlevels']), FloatsArg)
 
     varg = [('volumes', MapsArg)]
     ssm_kw = [
@@ -71,7 +74,7 @@ def register_volume_filtering_subcommands(logger):
     ] + ssm_kw
     add_kw = resample_kw + [
         ('in_place', BoolArg),
-        ('scale_factors', FloatsArg),
+        ('scale_factors', ScaleFactorsArg),
     ]
     add_desc = CmdDesc(required = varg, keyword = add_kw,
                        synopsis = 'Add two or more maps')
@@ -177,7 +180,7 @@ def register_volume_filtering_subcommands(logger):
                                     ('slider', BoolArg),
                                     ('add_mode', BoolArg),
                                     ('constant_volume', BoolArg),
-                                    ('scale_factors', FloatsArg),
+                                    ('scale_factors', ScaleFactorsArg),
                                     ('hide_original_maps', BoolArg),
                                     ('interpolate_colors', BoolArg)] + ssm_kw,
                          synopsis = 'Linearly interpolate maps')
@@ -380,8 +383,7 @@ def combine_op(volumes, operation = 'add', on_grid = None, bounding_grid = None,
                 raise CommandError("Can't modify volume in place: %s" % gv.name)
             if not gv in volumes:
                 raise CommandError("Can't change grid in place")
-    if not scale_factors is None and len(scale_factors) != len(volumes):
-        raise CommandError('Number of scale factors does not match number of volumes')
+    scale_factors = _check_scale_factors(scale_factors, volumes)
 
     cv = [combine_operation(volumes, operation, subregion, step,
                             gv, grid_subregion, grid_step, spacing, value_type,
@@ -456,6 +458,27 @@ def combine_operation(volumes, operation, subregion, step,
                 v.display = False
 
     return rv
+
+# -----------------------------------------------------------------------------
+#
+def _check_scale_factors(scale_factors, volumes):
+    if scale_factors is None:
+        return scale_factors
+
+    if scale_factors == 'fromlevels':
+        for v in volumes:
+            lev = v.maximum_surface_level
+            if lev is None:
+                raise CommandError('Scale factors "fromlevels" requires all maps have a surface level.  Map "%s" has no surface.' % v.name_with_id())
+            if lev == 0:
+                raise CommandError('Scale factors "fromlevels" requires all maps have a non-zero surface level.  Map "%s" has surface level 0.' % v.name_with_id())
+        sf = tuple(1/v.maximum_surface_level for v in volumes)
+        return sf
+        
+    if len(scale_factors) != len(volumes):
+        raise CommandError('Number of scale factors does not match number of volumes')
+
+    return scale_factors
 
 # -----------------------------------------------------------------------------
 #
@@ -687,9 +710,7 @@ def volume_morph(session, volumes, frames = 25, start = 0, play_step = 0.04,
     else:
         prange = play_range
 
-    if not scale_factors is None and len(volumes) != len(scale_factors):
-        raise CommandError('Number of scale factors (%d) doesn not match number of volumes (%d)'
-                           % (len(scale_factors), len(volumes)))
+    scale_factors = _check_scale_factors(scale_factors, volumes)
     vs = [tuple(v.matrix_size(step = step, subregion = subregion))
           for v in volumes]
     if len(set(vs)) > 1:

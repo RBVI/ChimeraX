@@ -10,6 +10,7 @@
 # including partial copies, of the software or any revisions
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
+from chimerax.core.tasks import Job
 
 def fetch_scores(session, structures, *, block=True, license_key=None, refresh=False):
     """
@@ -40,11 +41,12 @@ def fetch_scores(session, structures, *, block=True, license_key=None, refresh=F
     httpq = HTTPQueue(session, thread_max=None)
 
     session.logger.status("Initiating %d scoring requests to Modeller evaluation"
-        " server" % len(structures))
+                          " server" % len(structures))
 
     modeller_host = "modbase.compbio.ucsf.edu"
     from threading import Lock
-    results_lock = Lock()
+    # Was previously results_lock
+    _ = Lock()
     for s in structures:
         slot = httpq.new_slot(modeller_host)
         slot.request(ModellerScoringJob, session, modeller_host, license_key, refresh, s)
@@ -58,7 +60,7 @@ def fetch_scores(session, structures, *, block=True, license_key=None, refresh=F
         if session.ui.is_gui:
             session.ui.processEvents()
 
-from chimerax.core.tasks import Job
+
 class ModellerScoringJob(Job):
 
     def __init__(self, session, modeller_host, license_key, refresh, structure):
@@ -83,7 +85,7 @@ class ModellerScoringJob(Job):
         ]
         from chimerax.webservices.post_form import post_multipart
         submission = post_multipart(modeller_host, "/modeval/job", fields, ssl=True,
-            accept_type="application/xml")
+                                    accept_type="application/xml")
         from xml.dom.minidom import parseString
         sub_dom = parseString(submission)
         top = sub_dom.getElementsByTagName('saliweb')[0]
@@ -109,7 +111,7 @@ class ModellerScoringJob(Job):
                     time.sleep(5)
                 else:
                     thread_safe(session.logger.error, "Cannot fetch scoring results for %s: %s"
-                        % (structure.name, e))
+                                % (structure.name, e))
                     return
 
         # parse output
@@ -120,10 +122,10 @@ class ModellerScoringJob(Job):
             if "evaluation.xml" in results_url:
                 eval_out = urlopen(results_url)
                 eval_dom = parseString(eval_out.read())
-                from chimerax.core.utils import string_to_attr
+                from chimerax.core.attributes import string_to_attr
                 for name in ["zDOPE", "predicted_RMSD", "predicted_NO35"]:
                     structure.__class__.register_attr(session, string_to_attr(name, prefix="modeller_"),
-                        "Modeller", attr_type=float)
+                                                      "Modeller", attr_type=float)
                     val = float(eval_dom.getElementsByTagName(name.lower())[0].firstChild.nodeValue.strip())
                     self.results[name] = val
 
