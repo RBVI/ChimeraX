@@ -99,6 +99,14 @@ class CheckWaterViewer(ToolInstance):
         from chimerax.core.models import REMOVE_MODELS
         self.handlers = [self.session.triggers.add_handler(REMOVE_MODELS, self._models_removed_cb)]
 
+        # change any sphere representations into stick
+        check_atoms = self.check_model.atoms
+        check_spheres = check_atoms.filter(check_atoms.draw_modes == check_atoms.SPHERE_STYLE)
+        check_spheres.draw_modes = check_atoms.STICK_STYLE
+        if self.compare_model:
+            compare_atoms = self.compare_model.atoms
+            compare_spheres = compare_atoms.filter(compare_atoms.draw_modes == compare_atoms.SPHERE_STYLE)
+            compare_spheres.draw_modes = compare_atoms.STICK_STYLE
         from chimerax.ui import MainToolWindow
         self.tool_window = MainToolWindow(self, close_destroys=False, statusbar=False)
         parent = self.tool_window.ui_area
