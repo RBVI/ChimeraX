@@ -1,5 +1,5 @@
-<BundleInfo name="ChimeraX-WaterCheck" version="1.0"
-	    package="chimerax.water_check"
+<BundleInfo name="ChimeraX-CheckWaters" version="1.0"
+	    package="chimerax.check_waters"
   	    minSessionVersion="1" maxSessionVersion="1">
 
   <Author>UCSF RBVI</Author>

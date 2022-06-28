@@ -11,6 +11,8 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+from .compare import compare_waters
+
 from chimerax.core.toolshed import BundleAPI
 
 class _CheckWatersBundle(BundleAPI):

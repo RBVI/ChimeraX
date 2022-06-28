@@ -23,20 +23,25 @@ class CheckWaterSettings(Settings):
 
 class CheckWatersInputTool(ToolInstance):
     SESSION_ENDURING = True
-    def __init__(self, session, tool_name):
-        super().__init__(self, session, tool_name)
+
+    def __init__(self, session):
+        super().__init__(session, "Check Waters Input")
         from chimerax.ui import MainToolWindow
         self.tool_window = tw = MainToolWindow(self, close_destroys=False, statusbar=False)
         tw.title = "Choose Structure for Water Checking"
         parent = self.tool_window.ui_area
         parent = tw.ui_area
-        from Qt.QtWidgets import QVBoxLayout
+        from Qt.QtWidgets import QHBoxLayout, QVBoxLayout, QLabel
         from Qt.QtCore import Qt
-        self.layout = layout = QVBoxLayout()
+        layout = QVBoxLayout()
         parent.setLayout(layout)
         layout.setContentsMargins(0,0,0,0)
+        check_layout = QHBoxLayout()
+        layout.addLayout(check_layout)
+        check_layout.addWidget(QLabel("Check waters in:"), alignment=Qt.AlignRight)
         from chimerax.atomic.widgets import AtomicStructureMenuButton
         self.structure_menu = AtomicStructureMenuButton(session)
+        check_layout.addWidget(self.structure_menu, alignment=Qt.AlignLeft)
 
         from Qt.QtWidgets import QDialogButtonBox as qbbox
         self.bbox = bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
@@ -54,24 +59,43 @@ class CheckWatersInputTool(ToolInstance):
         s = self.structure_menu.value
         if not s:
             raise UserError("No structure chosen for checking")
-        CheckWaterViewer(self.session, self.tool_name, s)
+        CheckWaterViewer(self.session, "Check Waters", s)
 
 class CheckWaterViewer(ToolInstance):
-    def __init__(self, session, tool_name, check_model=None, *, compare_model=None, compared_waters=None):
+    def __init__(self, session, tool_name, check_model=None, *, compare_info=None, model_labels=None):
         # if 'check_model' is None, we are being restored from a session 
         # and _finalize_init() will be called later
         super().__init__(session, tool_name)
         self.settings = CheckWaterSettings(session, tool_name)
         if check_model is None:
             return
-        self._finalize_init(check_model, compare_model, compared_waters)
+        self._finalize_init(check_model, compare_info, model_labels)
 
-    def _finalize_init(self, check_model, compare_model, compared_waters, *, from_session=False):
-        self.compare_model = compare_model
+    def _finalize_init(self, check_model, compare_info, model_labels, *, from_session=False):
         self.check_model = check_model
-        if compared_waters is None and self.compare_model:
-            
-        self.compared_waters = [x.__class__(sorted(x)) for x in compared_waters] if compared_waters else None
+        self.compare_info = compare_info
+        self.model_labels = model_labels
+        if compare_info is None:
+            self.compare_model = self.compared_waters = None
+        else:
+            self.compare_model, self.compared_waters = compare_info
+        if self.compared_waters is None and self.compare_model:
+            from . import compare_waters
+            self.compared_waters = compare_waters(compare_model, check_model)
+        self.compared_waters = [x.__class__(sorted(x)) for x in self.compared_waters
+            ] if self.compared_waters else None
+        if model_labels is None:
+            if self.compare_model:
+                if self.compare_model.name == self.check_model.name:
+                    self.compare_label = str(self.compare_model)
+                    self.check_label = str(self.check_model)
+                else:
+                    self.compare_label = self.compare_model.name.capitalize()
+                    self.check_label = self.check_model.name.capitalize()
+            else:
+                self.check_label = self.check_model.name.capitalize()
+        else:
+            self.compare_label, self.check_label = [x.capitalize() for x in model_labels]
         from chimerax.core.models import REMOVE_MODELS
         self.handlers = [self.session.triggers.add_handler(REMOVE_MODELS, self._models_removed_cb)]
 
@@ -106,7 +130,7 @@ class CheckWaterViewer(ToolInstance):
         else:
             # didn't keep the input waters
             self.radio_group = None
-            from .douse import _water_residues
+            from .compare import _water_residues
             self.filter_residues = sorted(_water_residues(self.check_model))
         self.filter_model = self.check_model
         from chimerax.atomic.widgets import ResidueListWidget
@@ -199,7 +223,7 @@ class CheckWaterViewer(ToolInstance):
     @classmethod
     def restore_snapshot(cls, session, data):
         inst = super().restore_snapshot(session, data['ToolInstance'])
-        inst._finalize_init(data['check_model'], data['compare_model'], data['compared_waters'],
+        inst._finalize_init(data['check_model'], data['compare_info'], data['model_labels'],
             from_session=True)
         if data['radio info']:
             for but in inst.radio_group.buttons():
@@ -222,7 +246,8 @@ class CheckWaterViewer(ToolInstance):
             'ToolInstance': ToolInstance.take_snapshot(self, session, flags),
             'compared_waters': self.compared_waters,
             'check_model': self.check_model,
-            'compare_model': self.compare_model,
+            'compare_info': self.compare_info,
+            'model_labels': self.model_labels,
             'radio info': self.radio_group.checkedButton().text() if self.radio_group else None,
             'show hbonds': self.settings.show_hbonds,
             'version': 1,
@@ -261,12 +286,12 @@ class CheckWaterViewer(ToolInstance):
 
     def _make_hb_group(self):
         model = self.filter_model
-        all_input, after_only, douse_in_common, input_in_common = self.compared_waters
         if self.radio_group:
+            all_input, after_only, douse_in_common, input_in_common = self.compared_waters
             checked_button = self.radio_group.checkedButton()
             text = checked_button.text()
             left_paren = text.index('(')
-            name = text[:left_paren] + " H-bonds"
+            name = text[:left_paren] + "water H-bonds"
             if checked_button == self.after_only_button:
                 waters = after_only
             elif checked_button == self.before_only_button:
@@ -274,8 +299,8 @@ class CheckWaterViewer(ToolInstance):
             else:
                 waters = douse_in_common
         else:
-            waters = after_only
-            name = "Douse H-bonds"
+            waters = self.filter_residues
+            name = "water H-bonds"
         cmd_name, spec, args = self.hb_gui.get_command()
         from chimerax.atomic import concise_residue_spec
         spec = concise_residue_spec(self.session, waters)
@@ -320,9 +345,10 @@ class CheckWaterViewer(ToolInstance):
 
     def _update_button_texts(self):
         all_input, after_only, douse_in_common, input_in_common = self.compared_waters
-        self.after_only_button.setText("Douse only (%d)" % len(after_only))
+        self.after_only_button.setText("%s only (%d)" % (self.check_label, len(after_only)))
         self.in_common_button.setText("In common (%d)" % len(input_in_common))
-        self.before_only_button.setText("Input only (%d)" % len(all_input - input_in_common))
+        self.before_only_button.setText("%s only (%d)" % (self.compare_label,
+            len(all_input - input_in_common)))
 
     def _update_hbonds(self):
         group_key = self.radio_group.checkedButton() \
