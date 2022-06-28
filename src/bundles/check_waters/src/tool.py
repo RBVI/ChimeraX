@@ -314,6 +314,9 @@ class CheckWaterViewer(ToolInstance):
         spec = concise_residue_spec(self.session, waters)
         from chimerax.core.commands import run, StringArg
         run(self.session, '%s %s %s restrict any name %s' % (cmd_name, spec, args, StringArg.unparse(name)))
+        if "showDist true" in args:
+            run(self.session, 'label size 16')
+            run(self.session, 'distance style decimalPlaces 2')
         return model.pseudobond_group(name, create_type="per coordset")
 
     def _models_removed_cb(self, trig_name, trig_data):
