@@ -191,10 +191,11 @@ class CheckWaterViewer(ToolInstance):
         disclosure_layout.addStretch(1)
         hbonds_layout.addLayout(disclosure_layout)
         from chimerax.hbonds.gui import HBondsGUI
-        self.hb_gui = HBondsGUI(self.session, settings_name="CheckWater H-bonds", compact=True, inter_model=False,
-            show_bond_restrict=False, show_inter_model=False, show_intra_model=False, show_intra_mol=False,
-            show_intra_res=False, show_log=False, show_model_restrict=False, show_retain_current=False,
-            show_reveal=False, show_salt_only=False, show_save_file=False, show_select=False)
+        self.hb_gui = HBondsGUI(self.session, settings_name="CheckWater H-bonds", compact=True,
+            inter_model=False, show_bond_restrict=False, show_display_pseudobonds=False,
+            show_inter_model=False, show_intra_model=False, show_intra_mol=False, show_intra_res=False,
+            show_log=False, show_model_restrict=False, show_retain_current=False, show_reveal=False,
+            show_salt_only=False, show_save_file=False, show_select=False)
         self.hb_gui.layout().setContentsMargins(0,0,0,0)
         self.hb_gui.setHidden(True)
         hbonds_layout.addWidget(self.hb_gui)

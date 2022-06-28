@@ -40,19 +40,19 @@ class HBondsGUI(QWidget):
             # If 'compact' is True then various changes will be made (like splitting long labels
             # into multiple lines) to make the overall interface area smaller.
             angle_slop=rec_angle_slop, color=AtomicStructure.default_hbond_color,
-            dashes=AtomicStructure.default_hbond_dashes, dist_slop=rec_dist_slop, inter_model=True,
-            inter_submodel=False, intra_model=True, intra_mol=True, intra_res=True, log=False,
-            make_pseudobonds=True, radius=AtomicStructure.default_hbond_radius, relax=True, restrict=None,
-            retain_current=False, reveal=True, salt_only=False, save_file=None, select=False,
+            dashes=AtomicStructure.default_hbond_dashes, display_pseudobonds=True, dist_slop=rec_dist_slop,
+            inter_model=True, inter_submodel=False, intra_model=True, intra_mol=True, intra_res=True,
+            log=False, make_pseudobonds=True, radius=AtomicStructure.default_hbond_radius, relax=True,
+            restrict=None, retain_current=False, reveal=True, salt_only=False, save_file=None, select=False,
             show_dist=False, slop_color=BuiltinColors["dark orange"], two_colors=False,
 
             # what controls to show in the interface
-            show_bond_restrict=True, show_color=True, show_dashes=True, show_inter_model=True,
-            show_intra_model=True, show_intra_mol=True, show_intra_res=True, show_inter_submodel=False,
-            show_log=True, show_make_pseudobonds=True, show_model_restrict=True, show_radius=True,
-            show_relax=True, show_retain_current=True, show_reveal=True, show_salt_only=True,
-            show_save_file=True, show_select=True, show_show_dist=True, show_slop=True, show_slop_color=True,
-            show_two_colors=True):
+            show_bond_restrict=True, show_color=True, show_dashes=True, show_display_pseudobonds=True,
+            show_inter_model=True, show_intra_model=True, show_intra_mol=True, show_intra_res=True,
+            show_inter_submodel=False, show_log=True, show_make_pseudobonds=True, show_model_restrict=True,
+            show_radius=True, show_relax=True, show_retain_current=True, show_reveal=True,
+            show_salt_only=True, show_save_file=True, show_select=True, show_show_dist=True, show_slop=True,
+            show_slop_color=True, show_two_colors=True):
 
         self.session = session
 
@@ -88,9 +88,12 @@ class HBondsGUI(QWidget):
         self.setLayout(layout)
 
         if show_make_pseudobonds:
-            self.__make_pb_option = BooleanOption("Display as pseudobonds", None if settings
-                else make_pseudobonds, None, attr_name="make_pseudobonds", settings=settings, as_group=True)
-            group = self.__make_pb_option.widget
+            if show_display_pseudobonds:
+                self.__make_pb_option = BooleanOption("Display as pseudobonds", None if settings else
+                    make_pseudobonds, None, attr_name="make_pseudobonds", settings=settings, as_group=True)
+                group = self.__make_pb_option.widget
+            else:
+                group = QGroupBox("Pseudobond options")
             layout.addWidget(group)
             make_pb_layout = QVBoxLayout()
             make_pb_layout.setContentsMargins(0,0,0,0)
@@ -289,7 +292,10 @@ class HBondsGUI(QWidget):
 
         # may be saved in settings
         if self.__show_values['make_pseudobonds']:
-            settings['make_pseudobonds'] = self.__make_pb_option.value
+            if self.__show_values['display_pseudobonds']:
+                settings['make_pseudobonds'] = self.__make_pb_option.value
+            else:
+                settings['make_pseudobonds'] = self.__initial_values['display_pseudobonds']
             if self.__show_values['color']:
                 settings['color'] = self.__color_option.value
             if self.__show_values['radius']:
