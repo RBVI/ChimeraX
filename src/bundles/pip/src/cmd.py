@@ -30,7 +30,7 @@ def pip(session: Session, action: str = None, package: str = None, upgrade: bool
             except InvalidRequirement:
                 raise UserError("Can't install package: invalid requirement specified.")
             else:
-                pip_cmd.extend(["install"])
+                pip_cmd.extend(["install", "--user"])
                 if upgrade:
                     pip_cmd.extend(["--upgrade"])
                 pip_cmd.extend(["%s" % package])
@@ -42,7 +42,7 @@ def pip(session: Session, action: str = None, package: str = None, upgrade: bool
             if package.lower().startswith("chimerax"):
                 raise UserError("Uninstalling this package could compromise ChimeraX; refusing to execute.")
             else:
-                pip_cmd.extend(["uninstall", "%s" % package])
+                pip_cmd.extend(["uninstall", "-y", "%s" % package])
     elif action == 'list':
         pip_cmd.extend(["list"])
     elif action == 'check':
