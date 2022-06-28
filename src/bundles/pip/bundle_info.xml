@@ -16,5 +16,6 @@ A programmatic way to install packages from PyPi in ChimeraX.
 		<PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
 		<PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
 		<ChimeraXClassifier>Command :: pip :: Utilities :: Install packages from PyPi into ChimeraX</ChimeraXClassifier>
+		<ChimeraXClassifier>Command :: devel pip :: Utilities :: Install packages from PyPi into ChimeraX</ChimeraXClassifier>
 	</Classifiers>
 </BundleInfo>

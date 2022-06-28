@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from chimerax.core.commands import register
+from chimerax.core.commands import create_alias, register
 from chimerax.core.toolshed import BundleAPI
 
 # Expose all of our important modules so they can be imported
@@ -25,6 +25,9 @@ class _MyAPI(BundleAPI):
     @staticmethod
     def register_command(bi, ci, logger):
         command_name = ci.name
+        if command_name == "devel pip":
+            create_alias(command_name, "devel pip $*", logger=logger)
+            return
         function_name = command_name.replace(' ', '_')
         func = getattr(cmd, function_name)
         desc = getattr(cmd, function_name + "_desc")
