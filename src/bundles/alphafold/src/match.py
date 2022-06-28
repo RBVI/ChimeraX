@@ -12,7 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 def alphafold_match(session, sequences, color_confidence=True, trim = True,
-                    search = True, ignore_cache=False):
+                    search = True, pae = False, ignore_cache=False):
     '''
     Find the most similar sequence in the AlphaFold database to each specified
     sequence and load them.  The specified sequences can be Sequence instances
@@ -26,6 +26,9 @@ def alphafold_match(session, sequences, color_confidence=True, trim = True,
         from chimerax.core.errors import UserError
         raise UserError('No protein sequences specified')
 
+    if pae:
+        trim = False  # Can only associate PAE matrix with full AlphaFold models
+        
     log = session.logger
 
     # Use UniProt identifiers in file metadata to get AlphaFold models.
@@ -54,6 +57,13 @@ def alphafold_match(session, sequences, color_confidence=True, trim = True,
 
     msg = 'Opened %d AlphaFold model%s' % (nmodels, _plural(nmodels))
     log.info(msg)
+
+    if pae:
+        for seq,models in seq_models.items():
+            for m in models:
+                if hasattr(m, 'uniprot_id'):
+                    from .pae import alphafold_pae
+                    alphafold_pae(session, structure = m, uniprot_id = m.uniprot_id)
 
     return mlist
 
@@ -533,6 +543,7 @@ def register_alphafold_match_command(logger):
         keyword = [('color_confidence', BoolArg),
                    ('trim', BoolArg),
                    ('search', BoolArg),
+                   ('pae', BoolArg),
                    ('ignore_cache', BoolArg)],
         synopsis = 'Fetch AlphaFold database models matching an open structure'
     )

@@ -9,18 +9,20 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-# Note: any software used should be mentioned in docs/embedded.html
-# with the appropriate license.
-
-TOP = ..
-NO_SUBDIR_ALL = 1
--include $(TOP)/.makerc
+TOP= ../../../..
 include $(TOP)/mk/config.make
 
-SUBDIRS	+= bundles apps examples
+DIRNAME = $(shell basename `pwd`)
+DIRNAME := $(DIRNAME:_cpp=)
 
-# All needed subdirectories must be set by now.
-include $(TOP)/mk/subdir.make
+SRCS	= $(wildcard *.cpp)
+OBJS	= $(SRCS:.cpp=.$(OBJ_EXT))
 
-# Ensure bundles installs first even on parallel builds
-apps.install: bundles.install
+build install:
+	$(RSYNC) $(wildcard *.h) $(includedir)/$(DIRNAME)/
+	if [ -d "$(app_includedir)" ]; then \
+		$(RSYNC) $(wildcard *.h) $(app_includedir)/$(DIRNAME)/; \
+	fi
+
+clean:
+	rm -f $(OBJS)

@@ -123,8 +123,6 @@ sortedcontainers
 	provides SortedDict
 sphinxcontrib-blockdiag
 	Block diagrams for sphinx, needed for documentation ???
-suds-jurko
-	SOAP library, needed for web services
 webcolors
 	used by blockdiag
 wheel

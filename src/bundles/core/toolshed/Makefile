@@ -9,18 +9,25 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-# Note: any software used should be mentioned in docs/embedded.html
-# with the appropriate license.
-
-TOP = ..
-NO_SUBDIR_ALL = 1
--include $(TOP)/.makerc
+TOP= ../../../..
 include $(TOP)/mk/config.make
 
-SUBDIRS	+= bundles apps examples
+PYSRCS= $(wildcard *.py)
+PKG_DIR= $(PYSITEDIR)/chimerax/core/toolshed
+APP_PKG_DIR = $(APP_PYSITEDIR)/chimerax/core/toolshed
 
-# All needed subdirectories must be set by now.
-include $(TOP)/mk/subdir.make
+all: $(PYOBJS)
 
-# Ensure bundles installs first even on parallel builds
-apps.install: bundles.install
+build install: all dir
+	$(RSYNC) $(PYSRCS) $(DATA) $(PKG_DIR)
+	#if [ -d "$(APP_PKG_DIR)" ]; then $(RSYNC) $(PYSRCS) $(APP_PKG_DIR); fi
+
+dir:
+	if [ ! -d "$(PKG_DIR)" ]; then mkdir -p $(PKG_DIR); fi
+	#if [ -d "$(app_prefix)" ]; then mkdir -p $(APP_PKG_DIR); fi
+
+clean:
+	rm -rf __pycache__
+
+pylint:
+	$(PYLINT) $(PYSRCS)
