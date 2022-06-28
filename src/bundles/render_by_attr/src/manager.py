@@ -27,7 +27,7 @@ class RenderAttrInfo(metaclass=abc.ABCMeta):
         """Return True if attr_name should not be shown by the Render/Select tab of the tool
           (respectively rendering True/False).
         """
-        return attr_name.startswith("num_") and rendering
+        return (attr_name.startswith("num_") or attr_name == "number") and rendering
 
     @abc.abstractmethod
     def model_filter(self, model):

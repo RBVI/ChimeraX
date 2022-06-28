@@ -150,7 +150,7 @@ class MarkedHistogram(QWidget):
 
         # Create the add/delete marker help
         if show_marker_help and layout != 'below':
-            self._marker_help = QLabel("Ctrl-click on histogram to add or delete thresholds")
+            self._marker_help = QLabel("Shift-click on histogram to add or delete thresholds")
             self._marker_help.setAlignment(Qt.AlignCenter)
             overall_layout.addWidget(self._marker_help)
         else:
@@ -176,7 +176,7 @@ class MarkedHistogram(QWidget):
         self._hist_view = QGraphicsView(self._hist_scene)
         self._hist_view.resizeEvent = self._redraw
         self._hist_scene.mousePressEvent = lambda event: self._add_or_delete_marker_cb(event) \
-            if event.modifiers() & mod_key_info("control")[0] else self._select_marker_cb(event)
+            if event.modifiers() & mod_key_info("shift")[0] else self._select_marker_cb(event)
         self._hist_scene.mouseMoveEvent = lambda event: self._move_marker_cb(event) \
             if self._drag_marker else super().mouseMoveEvent(event)
         self._hist_scene.mouseReleaseEvent = self._button_up_cb
@@ -419,7 +419,7 @@ class MarkedHistogram(QWidget):
         fm = ve.fontMetrics()
         tm = ve.textMargins()
         cm = ve.contentsMargins()
-        w = vw*fm.width('w') + tm.left() + tm.right() + cm.left() + cm.right() + 8
+        w = vw*fm.averageCharWidth() + tm.left() + tm.right() + cm.left() + cm.right() + 8
         ve.setMaximumWidth(w)
 
     def _abs2rel(self, abs_xy):

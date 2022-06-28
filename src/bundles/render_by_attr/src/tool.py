@@ -52,6 +52,7 @@ class RenderByAttrTool(ToolInstance):
                 sh.setHeight(sh.height() // 2)
                 return sh
         self.model_list = ShortModelListWidget(session, filter_func=self._filter_model)
+        self.model_list.value_changed.connect(self._models_changed)
         model_list_layout.addWidget(self.model_list, alignment=Qt.AlignTop)
 
         self.mode_widget = QTabWidget()
@@ -68,8 +69,13 @@ class RenderByAttrTool(ToolInstance):
         menu.triggered.connect(self._new_render_attr)
         self.attr_menu_button.setMenu(menu)
         attr_menu_layout.addWidget(self.attr_menu_button, alignment=Qt.AlignLeft)
-        self.render_histogram = MarkedHistogram(min_label=True, max_label=True, status_line=tw.status)
-        render_tab_layout.addWidget(self.render_histogram)
+        self.render_histogram = rh = MarkedHistogram(min_label=True, max_label=True, status_line=tw.status)
+        render_tab_layout.addWidget(rh)
+        self.render_color_markers = rh.add_markers(activate=True, coord_type='relative')
+        self.render_color_markers.extend([((0.0, 0.0), "red"), ((0.5, 0.0), "white"), ((1.0, 0.0), "blue")])
+        self.render_radii_markers = rh.add_markers(new_color='slate gray', activate=False,
+            coord_type='relative')
+        self.render_radii_markers.extend([((0.0, 0.0), None), ((1.0, 0.0), None)])
         self.mode_widget.addTab(render_tab, "Render")
 
         sel_tab = QWidget()
@@ -115,9 +121,22 @@ class RenderByAttrTool(ToolInstance):
         except (AttributeError, KeyError):
             return False
 
+    def _models_changed(self):
+        if self.model_list.value and self.attr_menu_button.isEnabled():
+            attr_info = self.attr_menu_button.text()
+            if attr_info != "choose attr":
+                self._update_histogram(attr_info)
+        else:
+            self._new_render_attr()
+
     def _new_render_attr(self, attr_name_info=None):
+        enabled = True
         if attr_name_info is None:
-            attr_name = "choose attr"
+            if not self.model_list.value:
+                attr_name = "no model chosen"
+                enabled = False
+            else:
+                attr_name = "choose attr"
         else:
             if isinstance(attr_name_info, str):
                 attr_name = attr_name_info
@@ -127,26 +146,9 @@ class RenderByAttrTool(ToolInstance):
             self.attr_menu_button.setText(attr_name)
             if attr_name_info is None:
                 self.render_histogram.data_source = "Choose attribute to show histogram"
-                #TODO: clear attr widgets
             else:
-                #TODO: update attr widgets
-                attr_info = self._cur_attr_info()
-                values, any_None = attr_info.values(attr_name, self.model_list.value)
-                if len(values) == 0:
-                    self.render_histogram.data_source = "No '%s' values for histogram" % attr_name
-                else:
-                    min_val, max_val = min(values), max(values)
-                    if min_val == max_val:
-                        self.render_histogram.data_source = "All '%s' values are %g" % (attr_name, min_val)
-                    elif attr_name in self._attr_names_of_type(int):
-                        # just histogram the values directly
-                        print("integer")
-                    else:
-                        # number of bins based on histogram pixel width...
-                        print("float")
-                        import numpy
-                        self.render_histogram.data_source = (min_val, max_val, lambda num_bins:
-                            numpy.histogram(values, bins=num_bins, range=(min_val, max_val), density=False)[0])
+                self._update_histogram(attr_name)
+        self.attr_menu_button.setEnabled(enabled)
 
 
     def _new_classes(self):
@@ -158,6 +160,25 @@ class RenderByAttrTool(ToolInstance):
         self.target_menu_button.setText(target)
         self.model_list.refresh()
         self._update_render_attr_menu()
+
+    def _update_histogram(self, attr_name):
+        attr_info = self._cur_attr_info()
+        values, any_None = attr_info.values(attr_name, self.model_list.value)
+        if len(values) == 0:
+            self.render_histogram.data_source = "No '%s' values for histogram" % attr_name
+        else:
+            min_val, max_val = min(values), max(values)
+            import numpy
+            if min_val == max_val:
+                self.render_histogram.data_source = "All '%s' values are %g" % (attr_name, min_val)
+            elif attr_name in self._attr_names_of_type(int):
+                # just histogram the values directly
+                self.render_histogram.data_source = (min_val, max_val, numpy.histogram(
+                    values, bins=max_val-min_val+1, range=(min_val, max_val), density=False)[0])
+            else:
+                # number of bins based on histogram pixel width...
+                self.render_histogram.data_source = (min_val, max_val, lambda num_bins:
+                    numpy.histogram(values, bins=num_bins, range=(min_val, max_val), density=False)[0])
 
     def _update_render_attr_menu(self, call_new_attr=True):
         menu = self.attr_menu_button.menu()

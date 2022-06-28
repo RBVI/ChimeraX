@@ -45,7 +45,7 @@ REST_SUBDIRS = add_charge addh align_algs alignment_hdrs \
 	  residue_fit rna_layout rotamer_lib_mgr rotamer_libs \
 	  save_command scheme_mgr \
 	  sdf sel_inspector segger segment seq_view shape \
-	  shell shortcuts show_attr show_sequences sideview sim_matrices smiles \
+	  shell shortcuts show_sequences sideview sim_matrices smiles \
 	  smooth_lines spacenavigator std_commands \
 	  stl storm struct_measure struts surface swapaa swap_res \
 	  tape_measure test toolbar tug ui uniprot unit_cell \
