@@ -487,8 +487,14 @@ def parse_arguments(argv):
         "--nousedefaults",
     ]
 
-    import pip
-    if argv[1].startswith(pip.__path__[0]):
+    # This used to simply import pip, but this breaks new versions of setuptools. 
+    # See Trac#7159
+    import site
+    import os
+    recursive_pip = any(
+        [argv[1].startswith(os.path.join(path, "pip")) for path in site.getsitepackages()]
+    )
+    if recursive_pip:
         # treat like recursive invokation of pip
         opts = Opts()
         opts.gui = False

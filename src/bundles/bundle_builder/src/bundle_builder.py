@@ -2,8 +2,10 @@
 
 # Force import in a particular order since the latter two mess
 # with the contents of distutils, and we want Cython to win
-import distutils  # noqa
 import setuptools
+# In newer versions of setuptools, we have to import distutils second
+# since setuptools attempts to monkey patch distutils otherwise
+import distutils  # noqa
 from Cython.Build import cythonize
 from packaging.version import Version
 
