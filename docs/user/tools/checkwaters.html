@@ -1,0 +1,74 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Tool: Check Waters</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#tools">Tool</a>: Check Waters</h3>
+<p>
+<b>Check Waters</b> lists the waters in an atomic structure and allows
+inspecting them individually for H-bonds and visual agreement with 
+a corresponding density map (if any) opened separately and shown with 
+<a href="volumeviewer.html"><b>Volume Viewer</b></a>.
+See also: 
+<a href="rotamers.html"><b>Rotamers</b></a>,
+<a href="altlocexplorer.html"><b>Altloc Explorer</b></a>,
+<a href="renumber.html"><b>Renumber Residues</b></a>,
+<a href="hbonds.html"><b>H-Bonds</b></a>,
+<a href="../commands/view.html"><b>view</b></a>,
+<a href="../commands/clip.html"><b>clip</b></a>
+</p><p>
+<b>Check Waters</b> can be started 
+from the <b>Volume</b> section of the 
+<!-- from the <b>Structure Analysis</b> section of the -->
+<b>Tools</b> menu and manipulated like other panels
+(<a href="../window.html#panels">more...</a>).
+</p><p>
+The initial dialog contains a menu of the current atomic models.
+Designating the model of interest and
+clicking <b>Apply</b> (to keep that dialog up) or <b>OK</b> (to dismiss it) 
+will open another panel with a list of the waters in the structure.
+</p><p>
+<a name="chosen"></a>
+In the list, one or more waters can be <b><i>chosen</i></b>
+by clicking and dragging with the left mouse button;
+<b>Ctrl</b>-click (or <b>command</b>-click if using a Mac)
+toggles whether a water is chosen.  
+Choosing waters in the list automatically
+<a href="../selection.html">selects</a> them and focuses the view
+on their near vicinities (atoms within 4&Aring;). 
+</p><p>
+H-bonds involving waters are calculated automatically and displayed as
+<a href="../pseudobonds.html">pseudobonds</a> unless 
+<b>Show hydrogen bonds</b> is turned off (initial default <b>on</b>).
+Expanding the <b>H-Bond Parameters</b> section allows changing certain
+<a href="hbonds.html"><b>H-Bonds</b></a> parameters; clicking <b>Apply</b>
+recalculates the H-bonds accordingly.
+</p><p>
+Clicking <b>Delete</b> deletes the chosen waters. 
+Caution: deletion cannot be undone except by reopening the original structure.
+</p>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+June 2022</address>
+</body></html>

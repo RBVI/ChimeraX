@@ -124,16 +124,21 @@ because OpenGL does not support rendering without a window.
 </blockquote>
 <blockquote>
 <a name="script"></a>
-<b>--script &nbsp;"<i>python-script</i> [&nbsp;arguments&nbsp;]"</b>
+<b>--script &nbsp;"<i>script</i> [&nbsp;arguments&nbsp;]"</b>
 <br>
-Run the specified python script with any associated arguments
-after starting tools. 
+After starting tools, run the Python script (.py) or 
+<a href="commands/usageconventions.html#cxc-files">ChimeraX command script</a>
+(.cxc) specified by file pathname <i>script</i>,
+with command-line arguments as needed.
 Do not check the Toolshed website for updates,
 regardless of the frequency of checking specified in the
 <a href="preferences.html#toolshed"><b>Toolshed</b> preferences</a>.
 The script name and its arguments should be enclosed in a set of
 (plain-text) quotation marks, as shown above; this works by calling the
 <a href="commands/runscript.html"><b>runscript</b></a> command.
+The arguments are passed to the Python script as sys.argv[1], sys.argv[2],
+<i>etc.</i>,
+or substituted into the ChimeraX command script for $1, $2, <i>etc.</i>
 See also: <a href="#cmd"><b>--cmd</b></a>
 </blockquote>
 <blockquote>

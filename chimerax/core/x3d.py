@@ -1,1 +1,0 @@
-../../src/core/x3d.py

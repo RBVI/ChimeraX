@@ -59,6 +59,7 @@ src/apps/ChimeraX/ChimeraX.ico
 src/apps/ChimeraX/icon.rc
 src/bundles/Makefile.dependencies
 src/bundles/arrays/src/include/
+src/bundles/atomic/atomic_cpp/connect.cpp
 src/bundles/atomic/atomic_cpp/cymol.cpp
 src/bundles/atomic/atomic_cpp/cytmpl.cpp
 src/bundles/atomic/atomic_cpp/data/
@@ -66,6 +67,7 @@ src/bundles/atomic/atomic_cpp/include/
 src/bundles/atomic/atomic_cpp/pyinstance_cpp/imex.map.h
 src/bundles/atomic/src/include/
 src/bundles/atomic/src/data/
+src/bundles/atomic/src/connect.pyx
 src/bundles/atomic/src/cymol.pyx
 src/bundles/atomic/src/cytmpl.pyx
 src/bundles/atom_search/search_cpp/ast.cpp
@@ -100,10 +102,10 @@ src/bundles/std_commands/bundle_info.xml
 src/bundles/viewdockx/src/lib/flot
 src/bundles/viewdockx/src/lib/rateyo
 src/bundles/viewdockx/src/lib/jquery.multiselect.*
-src/core/buildinfo.py
-src/core/_serialize.cpp
-src/core/_serialize.cpp-e
-src/core/commands/_atomspec.py
+src/bundles/core/buildinfo.py
+src/bundles/core/_serialize.cpp
+src/bundles/core/_serialize.cpp-e
+src/bundles/core/commands/_atomspec.py
 src/examples/sample/license.txt
 src/examples/sample/vc140.pdb
 src/wheelhouse/Makefile.wheelhouse
@@ -131,6 +133,7 @@ prereqs/pytables/tables-*.tar.gz
 prereqs/Python/Python-*/
 prereqs/Python/python-*.tar.bz2
 prereqs/Python/*.xz
+prereqs/Python/relocatable-python
 prereqs/PyQt/*commercial*
 prereqs/PyQt/qt/*.xz
 prereqs/zlib/*.gz

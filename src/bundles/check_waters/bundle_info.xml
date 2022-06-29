@@ -1,0 +1,30 @@
+<BundleInfo name="ChimeraX-CheckWaters" version="1.0"
+	    package="chimerax.check_waters"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>Check water placement in maps</Synopsis>
+  <Description>Investigate water placement in volumetric maps</Description>
+
+  <Categories>
+    <Category name="Volume Data"/>
+  </Categories>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version="~=1.0"/>
+    <Dependency name="ChimeraX-Atomic" version="~=1.32"/>
+    <Dependency name="ChimeraX-MapData" version="~=2.0"/>
+    <Dependency name="ChimeraX-UI" version="~=1.21"/>
+  </Dependencies>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    <ChimeraXClassifier>Command :: checkwaters :: Volume Data :: Check water placement in a map</ChimeraXClassifier>
+    <ChimeraXClassifier>Tool :: Check Waters :: Volume Data :: Check water placement in a map</ChimeraXClassifier> -->
+  </Classifiers>
+
+</BundleInfo>

@@ -248,8 +248,9 @@ def _copy_new_waters(douse_model, near_model, keep_input_water, far_water, map_n
 
     # Add found water molecules to copy of input molecule.
     if keep_input_water:
+        from chimerax.check_waters import compare_waters
         input_waters, douse_only_waters, douse_both_waters, input_both_waters = \
-            compared_waters = _compare_waters(near_model, douse_model)
+            compared_waters = compare_waters(near_model, douse_model)
     else:
         douse_waters = _water_residues(douse_model)
         _water_residues(model).delete()
@@ -281,29 +282,6 @@ def _water_residues(model):
     res = model.residues
     water_res = res[res.names == 'HOH']
     return water_res
-
-
-def _compare_waters(input_model, output_model, overlap_distance=2):
-    '''
-    Find how many output waters overlap input waters.
-    '''
-    # Get water residues in input and output models
-    input_waters = _water_residues(input_model)
-    output_waters = _water_residues(output_model)
-
-    # Get water oxygen coodinates and see which overlap.
-    from chimerax.atomic import Atoms
-    ia = Atoms([r.find_atom('O') for r in input_waters])
-    ixyz = ia.scene_coords
-    oa = Atoms([r.find_atom('O') for r in output_waters])
-    oxyz = oa.scene_coords
-    from chimerax.geometry import find_close_points
-    ii,io = find_close_points(ixyz, oxyz, overlap_distance)
-    dup_wat_res = output_waters[io]	# Output water residues near input water residues
-    new_wat_res = output_waters - dup_wat_res	# Output waters not near input waters
-    dup_input_wat_res = input_waters[ii]	# Input waters near output waters
-
-    return input_waters, new_wat_res, dup_wat_res, dup_input_wat_res
 
 
 def _select_command(model, residues):
