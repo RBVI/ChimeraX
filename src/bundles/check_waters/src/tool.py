@@ -27,7 +27,7 @@ class CheckWatersInputTool(ToolInstance):
     def __init__(self, session):
         super().__init__(session, "Check Waters Input")
         from chimerax.ui import MainToolWindow
-        self.tool_window = tw = MainToolWindow(self, close_destroys=False, statusbar=False)
+        self.tool_window = tw = MainToolWindow(self)
         tw.title = "Choose Structure for Water Checking"
         parent = self.tool_window.ui_area
         parent = tw.ui_area
@@ -108,7 +108,7 @@ class CheckWaterViewer(ToolInstance):
             compare_spheres = compare_atoms.filter(compare_atoms.draw_modes == compare_atoms.SPHERE_STYLE)
             compare_spheres.draw_modes = compare_atoms.STICK_STYLE
         from chimerax.ui import MainToolWindow
-        self.tool_window = MainToolWindow(self, close_destroys=False, statusbar=False)
+        self.tool_window = MainToolWindow(self)
         parent = self.tool_window.ui_area
 
         from Qt.QtWidgets import QHBoxLayout, QButtonGroup, QVBoxLayout, QRadioButton, QCheckBox

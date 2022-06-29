@@ -70,8 +70,20 @@ class DouseJob(Job):
         return self._running
 
 
-def phenix_douse(session, map, near_model, *, block=None, far_water=False, keep_input_water=True,
-        map_range=8, phenix_location=None, residue_range=5, verbose=False, option_arg=[], position_arg=[]):
+command_defaults = {
+    'far_water': False,
+    'keep_input_water': True,
+    'map_range': 8,
+    'residue_range': 5,
+    'verbose': False
+}
+def phenix_douse(session, map, near_model, *, block=None, phenix_location=None,
+        far_water=command_defaults['far_water'],
+        keep_input_water=command_defaults['keep_input_water'],
+        map_range=command_defaults['map_range'],
+        residue_range=command_defaults['residue_range'],
+        verbose=command_defaults['verbose'],
+        option_arg=[], position_arg=[]):
 
     # Find the phenix.douse executable
     from .locate import find_phenix_command

@@ -25,12 +25,10 @@ class _PhenixBundle(BundleAPI):
         from . import cmd
         cmd.register_command(logger)
 
-    """
     @staticmethod
     def start_tool(session, tool_name):
         if tool_name == 'Water Placement':
-            from . import douse
-            return douse.show_water_placement_tool(session)
-    """
+            from .tool import LaunchDouseTool
+            return LaunchDouseTool(session, tool_name)
 
 bundle_api = _PhenixBundle()
