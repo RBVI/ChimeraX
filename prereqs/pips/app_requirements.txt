@@ -38,7 +38,6 @@ pkginfo==1.8.2
 psutil==5.9.0
 pycollada==0.7.2
 pydicom==2.2.2
-python-gdcm==3.0.12
 # PyOpenGL handled in app_pyopengl_requirements.txt
 #PyOpenGL==3.1.5
 #PyOpenGL-accelerate==3.1.5

@@ -20,14 +20,13 @@ SYNC_DIR = $(wildcard $(TOP)/build/sync)
 BUNDLE_BUILDER_SUBDIR = bundle_builder
 TOOLSHED_UTILS_SUBDIR = toolshed_utils
 
-CORE_SUBDIR = core
-
 REST_SUBDIRS = add_charge addh align_algs alignment_hdrs \
 	  alignments alphafold altloc_explorer amber_info arrays atom_search \
 	  atomic atomic_lib axes_planes basic_actions bild \
 	  blastprotein bond_rot bug_reporter build_structure \
 	  bumps buttons cage_builder \
-	  cellpack centroids chem_group clashes cmd_line color_actions \
+	  cellpack centroids check_waters chem_group \
+	  clashes cmd_line color_actions \
 	  color_globe color_key connect_structure core_formats \
 	  coulombic crosslinks crystal crystal_contacts data_formats \
 	  dicom dist_monitor dssp \
@@ -39,7 +38,7 @@ REST_SUBDIRS = add_charge addh align_algs alignment_hdrs \
 	  markers mask match_maker md_crds \
 	  medical_toolbar meeting mlp model_series \
 	  mmcif mmtf model_panel modeller mol2 morph mouse_modes movie \
-	  neuron nucleotides open_command \
+	  neuron nucleotides open_command pip \
 	  pdb pdb_bio pdb_lib pdb_matrices pick_blobs positions preset_mgr pubchem \
 	  read_pbonds registration remote_control renumber_residues rest_server \
 	  residue_fit rna_layout rotamer_lib_mgr rotamer_libs save_command scheme_mgr \
@@ -60,7 +59,7 @@ ifeq ($(OS),Linux)
 REST_SUBDIRS += linux_support
 endif
 
-SUBDIRS = $(CORE_SUBDIR) $(BUNDLE_BUILDER_SUBDIR) $(TOOLSHED_UTILS_SUBDIR) $(REST_SUBDIRS)
+SUBDIRS = $(BUNDLE_BUILDER_SUBDIR) $(TOOLSHED_UTILS_SUBDIR) $(REST_SUBDIRS)
 
 NO_SUBDIR_INSTALL = 1
 
@@ -73,9 +72,12 @@ dir:	Makefile.dependencies
 
 $(SUBDIR_BUILD): dir
 
-install: core.build
+install-core:
+	$(MAKE) -C core install
+
+install: install-core
 	$(MAKE) build
-	cd $(SYNC_DIR) && $(APP_BOOTSTRAP_PIP) install --upgrade --upgrade-strategy only-if-needed */*.whl
+	cd $(SYNC_DIR) && $(APP_BOOTSTRAP_PIP) install --upgrade --upgrade-strategy only-if-needed *.whl
 	$(APP_PYTHON_EXE) -m chimerax.core --exit --nogui --silent --cmd "toolshed reload installed"
 
 lint:

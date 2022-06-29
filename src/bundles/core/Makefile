@@ -84,11 +84,7 @@ wheel: setup.py
 	rm -rf $(WHL_BNDL_NAME).egg-info
 
 sync:
-ifneq (,$(wildcard dist/*-py3-none-any.whl))
-	rsync -av dist/*.whl $(build_prefix)/sync/python-only
-else
-	rsync -av dist/*.whl $(build_prefix)/sync/binary
-endif
+	rsync -av dist/*.whl $(build_prefix)/sync/
 
 SETUP_SED_ARGS = -e 's,PKG_DIR,$(PKG_DIR),' \
 		-e 's,SHLIB_DIR,$(shlibdir),' \
