@@ -137,11 +137,11 @@ class HBondsGUI(QWidget):
             relax_layout.addWidget(relax_options)
             if show_slop:
                 self.__dist_slop_option = FloatOption("Distance tolerance", None if settings else dist_slop,
-                    None, attr_name="dist_slop", settings=settings)
+                    None, attr_name="dist_slop", settings=settings, step=0.1)
                 self.__dist_slop_option.widget.setSuffix("\N{ANGSTROM SIGN}")
                 relax_options.add_option(self.__dist_slop_option)
                 self.__angle_slop_option = FloatOption("Angle tolerance", None if settings else angle_slop,
-                    None, attr_name="angle_slop", settings=settings)
+                    None, attr_name="angle_slop", settings=settings, step=1)
                 self.__angle_slop_option.widget.setSuffix("\N{DEGREE SIGN}")
                 relax_options.add_option(self.__angle_slop_option)
             if show_slop_color:
