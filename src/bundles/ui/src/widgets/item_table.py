@@ -203,8 +203,9 @@ class ItemTable(QTableView):
         Do not do anything Qt related with the ItemTable until launch() has been called, because
         that's when the underlying QTableView gets initialized.
 
-        ItemTable provides a selection_changed signal that delivers a list of the selected data
-        items to the connected function.
+        ItemTable provides a selection_changed signal that delivers two lists to the connected function:
+        newly selected items and newly deselected items.  To find all currently selected items, use the
+        tables 'selected' property.
     """
 
     selection_changed = Signal(list, list)
@@ -448,7 +449,7 @@ class ItemTable(QTableView):
             self._data = data[:]
             self._table_model.endResetModel()
             if emit_signal:
-                self.selection_changed.emit([])
+                self.selection_changed.emit([], emit_signal)
             return
         while True:
             for i, datum in enumerate(self._data):
@@ -627,10 +628,10 @@ class ItemTable(QTableView):
 
     def _relay_selection_change(self, selected, deselected):
         if self._allow_user_sorting:
-            sel_data, desel_data = [[self._data[self.model().mapToSource(i).row()] for i in x.indexes()]
-                for x in (selected, deselected)]
+            sel_data, desel_data = [list(set(self._data[self.model().mapToSource(i).row()]
+                for i in x.indexes())) for x in (selected, deselected)]
         else:
-            sel_data, desel_data = [[self._data[i.row()] for i in x.indexes()]
+            sel_data, desel_data = [list(set(self._data[i.row()] for i in x.indexes()))
                 for x in (selected, deselected)]
         self.selection_changed.emit(sel_data, desel_data)
 

@@ -88,6 +88,50 @@ class StructMeasureTool(ToolInstance):
         func = angle if len(atoms) == 3 else dihedral
         return self._angle_fmt % func(*[a.scene_coord for a in atoms])
 
+    def _apc_selection_changed(self, newly_selected, newly_deselected):
+        sel = self.apc_table.selected
+        if len(sel) == 2:
+            sel1, sel2 = sel
+            from chimerax.dist_monitor import ComplexMeasurable
+            comp1, comp2 = [isinstance(x, ComplexMeasurable) for x in sel]
+            if comp1 or comp2:
+                dist = angle = None
+                if comp1:
+                    d = sel1.distance(sel2)
+                    if d is not NotImplemented:
+                        dist = d
+                    a = sel1.angle(sel2)
+                    if a is not NotImplemented:
+                        angle = a
+                if comp2:
+                    if dist is None:
+                        d = sel2.distance(sel1)
+                        if d is not NotImplemented:
+                            dist = d
+                    if angle is None:
+                        a = sel2.angle(sel1)
+                        if a is not notImplemented:
+                            angle = a
+            else:
+                from chimerax.geometry import distance
+                dist = distance(sel1.scene_coord, sel2.scene_coord)
+                angle = None
+            if dist is None and angle is None:
+                info = ["no distance/angle"]
+            else:
+                info = []
+                if dist is not None:
+                    dist_fmt = self.session.pb_dist_monitor.distance_format
+                    info.append("distance: " + dist_fmt % dist)
+                if angle is not None:
+                    info.append("angle: %.3f" % angle)
+            info_text = "; ".join(info)
+            self.apc_status_label.setText(info_text)
+            self.session.logger.info("<b>%s</b> <i>to</i> <b>%s</b>: %s" % (sel1, sel2, info_text),
+                is_html=True)
+        elif newly_selected or newly_deselected:
+            self.apc_status_label.setText("")
+
     def _create_angle(self):
         from chimerax.atomic import selected_atoms
         sel_atoms = selected_atoms(self.session)
@@ -237,6 +281,7 @@ class StructMeasureTool(ToolInstance):
         self.apc_table.launch()
         self.apc_table.data = self._filter_apc_models(self.session.models)
         self.apc_table.sortByColumn(1, Qt.AscendingOrder)
+        self.apc_table.selection_changed.connect(self._apc_selection_changed)
         from chimerax.core.models import ADD_MODELS, REMOVE_MODELS
         self.handlers.append(self.session.triggers.add_handler(ADD_MODELS, self._refresh_apc_table))
         self.handlers.append(self.session.triggers.add_handler(REMOVE_MODELS, self._refresh_apc_table))
@@ -246,11 +291,11 @@ class StructMeasureTool(ToolInstance):
                 MODEL_SELECTION_CHANGED):
             self.handlers.append(self.session.triggers.add_handler(trig_name, self._refresh_apc_cell))
         layout.addWidget(self.apc_table, alignment=Qt.AlignCenter, stretch=1)
-        self.status_label = QLabel("Choose two items in table to report angle/distance (also logged);"
+        self.apc_status_label = QLabel("Choose two items in table to report angle/distance (also logged);"
             " double click Name/ID to edit")
-        self.status_label.setWordWrap(True)
-        self.status_label.setAlignment(Qt.AlignCenter)
-        layout.addWidget(self.status_label)
+        self.apc_status_label.setWordWrap(True)
+        self.apc_status_label.setAlignment(Qt.AlignCenter)
+        layout.addWidget(self.apc_status_label)
 
     def _fill_dist_table(self, *args):
         dist_grp = self.session.pb_manager.get_group("distances", create=False)
@@ -428,7 +473,6 @@ class DefineAxisDialog:
         self.tool_window = tw = sm_tool.tool_window.create_child_window("Define Axes", close_destroys=False)
         self.session = sm_tool.session
         layout = QVBoxLayout()
-        layout.setContentsMargins(0,0,0,0)
         layout.setSpacing(0)
         tw.ui_area.setLayout(layout)
 
