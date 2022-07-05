@@ -76,6 +76,7 @@ else
 endif # IGNORE_DEPS
 endif # VIRTUAL_ENV
 endif # INSTALL_TO_VENV
+	$(MAKE) sync
 
 .PHONY: wheel
 wheel: setup.py
