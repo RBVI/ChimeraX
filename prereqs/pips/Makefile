@@ -1,7 +1,7 @@
 PREREQ_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
-
+-include $(TOP)/.makerc
 include Makefile.pip
 
 # Force LANG to UTF-8 so that grako will install successfully
@@ -40,6 +40,9 @@ upgrade:
 
 app-install:
 	$(APP_PIP_INSTALL) -r app_requirements.txt
+ifdef DEV_DEPENDENCIES
+	$(APP_PIP_INSTALL) -r dev_requirements.txt
+endif
 ifeq ($(OSARCH),DarwinArm64)
 	# Install the Conda versions of Python wheels for arm64 Mac
 	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/imagecodecs/imagecodecs-2022.2.22-cp39-cp39-macosx_12_0_arm64.whl
