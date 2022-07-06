@@ -86,10 +86,8 @@ ifneq (,$(PYSRCS))
 endif
 
 clean:
+	$(MAKE) -C core clean
 	rm -rf __pycache__ Makefile.dependencies
-ifneq (,$(wildcard $(SYNC_DIR)))
-	cd $(SYNC_DIR) && rm -f */*.whl
-endif
 
 #
 # Build Time Dependencies
