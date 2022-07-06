@@ -14,7 +14,7 @@ filelock==3.4.2
 grako==3.16.5
 html2text==2020.1.16
 ihm==0.27
-imagecodecs==2021.11.20 ; platform_machine != 'arm64'
+imagecodecs==2022.2.22 ; platform_machine != 'arm64'
 ipykernel==6.15.0
 # if ipython updated, make sure autocompletion still works (e.g. "mi<tab>" becomes min) and if not then
 # try a newer version of jedi

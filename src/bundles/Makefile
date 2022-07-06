@@ -30,7 +30,7 @@ REST_SUBDIRS = add_charge addh align_algs alignment_hdrs \
 	  color_globe color_key connect_structure core_formats \
 	  coulombic crosslinks crystal crystal_contacts data_formats \
 	  dicom dist_monitor dssp \
-	  exp_cmd file_history function_key \
+	  emdb_sff exp_cmd file_history function_key \
 	  geometry gltf graphics \
 	  hbonds help_viewer hkcage ihm image_formats imod \
 	  interfaces items_inspection io label list_info log looking_glass maestro \
@@ -49,11 +49,6 @@ REST_SUBDIRS = add_charge addh align_algs alignment_hdrs \
 	  tape_measure test toolbar tug ui uniprot unit_cell \
 	  viewdockx viperdb vive volume_menu vtk wavefront_obj \
 	  webcam webservices zone
-
-ifneq ($(OSARCH),DarwinArm64)
-# emdb_sff depends on h5py which is not available for Mac arm64 (July 2021)
-REST_SUBDIRS += emdb_sff
-endif
 
 ifeq ($(OS),Linux)
 REST_SUBDIRS += linux_support
@@ -86,10 +81,8 @@ ifneq (,$(PYSRCS))
 endif
 
 clean:
+	$(MAKE) -C core clean
 	rm -rf __pycache__ Makefile.dependencies
-ifneq (,$(wildcard $(SYNC_DIR)))
-	cd $(SYNC_DIR) && rm -f */*.whl
-endif
 
 #
 # Build Time Dependencies
