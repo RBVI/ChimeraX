@@ -500,8 +500,8 @@ class PickedModel(Pick):
     def description(self):
         return str(self.model)
 
-    def specifier(self):
-        return self.model.atomspec
+    def drawing(self):
+        return self.model
 
     def select(self, mode='add'):
         from chimerax.core.commands import run
@@ -510,6 +510,9 @@ class PickedModel(Pick):
             run(m.session, f"select add {m.atomspec}")
         else:
             run(m.session, f"select subtract {m.atomspec}")
+
+    def specifier(self):
+        return self.model.atomspec
 
 class Surface(Model):
     '''

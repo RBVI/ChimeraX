@@ -392,7 +392,7 @@ class PickedAtomicShape(Pick):
                 drawing._add_selected_shape(self.shape)
 
 
-class PickedAtomicShapes:
+class PickedAtomicShapes(Pick):
 
     def __init__(self, shapes, drawing):
         Pick.__init__(self)
