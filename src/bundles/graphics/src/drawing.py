@@ -1920,6 +1920,8 @@ class Pick:
         '''Text description of the picked object.'''
         return None
 
+    # objects that contain a single drawing should return that in a drawing() method
+
     def specifier(self):
         '''Command specifier for the picked object.'''
         return None
