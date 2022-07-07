@@ -895,7 +895,7 @@ class _CompiledCode:
                 raise RuntimeError("Unsupported language for %s" % f)
         if cpp_files:
             compiler.compile(cpp_files,
-                             extra_preargs=cpp_flags+self.compile_arguments,
+                             extra_preargs=cpp_flags + self.compile_arguments,
                              macros=macros, debug=debug)
             self.target_lang = "c++"
         if c_files:
@@ -942,7 +942,7 @@ class _CModule(_CompiledCode):
             extra_link_args.append("-Wl,-rpath,@loader_path%s" % install_dir)
         return Extension(package + '.' + self.name,
                          define_macros=macros,
-                         extra_compile_args=cpp_flags+self.compile_arguments,
+                         extra_compile_args=cpp_flags + self.compile_arguments,
                          include_dirs=inc_dirs,
                          library_dirs=lib_dirs,
                          libraries=libraries,

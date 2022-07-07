@@ -76,6 +76,7 @@ else
 endif # IGNORE_DEPS
 endif # VIRTUAL_ENV
 endif # INSTALL_TO_VENV
+	$(MAKE) sync
 
 .PHONY: wheel
 wheel: setup.py
@@ -103,7 +104,7 @@ endif
 endif
 
 .PHONY: setup.py
-setup.py: setup.py.in _serialize.cpp Makefile
+setup.py: setup.py.in Makefile
 	sed $(SETUP_SED_ARGS) < setup.py.in > setup.py
 
 $(SUBDIR_INSTALL): dir
@@ -121,8 +122,3 @@ pylint:
 buildinfo.py: buildinfo.py.in mkbuildinfo
 	rm -f buildinfo.py
 	$(PYTHON_EXE) mkbuildinfo -b $(BUILD_TOP) $(BUNDLE_VERSION) || (rm buildinfo.py ; exit 1)
-
-_serialize.cpp: _serialize.pyx
-	$(CYTHON_EXE) --cplus _serialize.pyx
-	# fix package name to be consistent with how it is imported
-	sed -i -e 's/core\._serialize/chimerax.core._serialize/g' _serialize.cpp

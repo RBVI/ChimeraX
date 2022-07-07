@@ -34,6 +34,10 @@ def pip(session: Session, action: str = None, package: str = None, upgrade: bool
                 if upgrade:
                     pip_cmd.extend(["--upgrade"])
                 pip_cmd.extend(["%s" % package])
+                # If we don't add this flag then pip complains that distutils and sysconfig
+                # don't report the same location for the user's site packages directory. The
+                # error tells programmers to report the error to 
+                # https://github.com/pypa/pip/issues/10151
                 pip_cmd.extend(["--no-warn-script-location"])
     elif action == 'uninstall':
         if not package:

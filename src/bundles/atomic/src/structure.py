@@ -2180,6 +2180,8 @@ class PickedPseudobond(Pick):
     def description(self):
         dist_fmt = self.pbond.session.pb_dist_monitor.distance_format
         return str(self.pbond) + " " + dist_fmt % self.pbond.length
+    def drawing(self):
+        return self.group
     @property
     def residue(self):
         a1, a2 = self.pbond.atoms

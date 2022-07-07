@@ -110,16 +110,17 @@ else
 endif
 
 distclean: clean
+	-$(MAKE) -C src clean
+	-$(MAKE) -C docs clean
 	-$(MAKE) -C vdocs clean
-	rm -rf $(build_prefix) $(app_prefix) prereqs/prebuilt-*.tar.bz2
-	$(MAKE) -C docs clean
-	-$(MAKE) -C prereqs/cxservices distclean
+	-rm -rf prereqs/prebuilt-*.tar.bz2
+	-$(MAKE) -C prereqs/cxservices clean
 
 clean:
-	rm -rf $(build_prefix)/sync
+	-rm -rf $(APP_FILENAME)
+	-rm -rf $(build_prefix)
 
-build-from-scratch:
-	$(MAKE) distclean
+build-from-scratch: distclean
 ifdef INSTALL_RBVI
 	$(MAKE) install-rbvi
 else
