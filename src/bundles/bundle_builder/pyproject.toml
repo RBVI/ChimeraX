@@ -1,0 +1,51 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name="ChimeraX-BundleBuilder"
+description="Bundle building utilities"  # one line synopsis
+authors= [{name = "UCSF RBVI", email="chimerax@cgl.ucsf.edu"}]
+dependencies = [
+	"tomli"
+]
+classifiers=[
+    # From https://pypi.python.org/pypi?%3Aaction=list_classifiers
+    # and our own ChimeraX classifiers.
+    "Development Status :: 5 - Stable",
+    "Environment :: MacOS X :: Aqua",
+    "Environment :: Win32 (MS Windows)",
+    "Environment :: X11 Applications",
+    "Framework :: ChimeraX",
+    "Intended Audience :: Science/Research",
+    "License :: Free for non-commercial use",
+    "Operating System :: MacOS :: MacOS X",
+    "Operating System :: Microsoft :: Windows :: Windows 10",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Visualization",
+    "Topic :: Scientific/Engineering :: Chemistry",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+]
+requires-python = ">=3.7"
+dynamic = ["version"]
+
+[project.readme]
+content-type = "text"
+text = "Utilities for building ChimeraX bundles."
+
+[project.entry-points."egg_info.writers"]
+"RELNOTES.html" = "chimerax.core:copy_distinfo_file"
+"screenshot.png" = "chimerax.core:copy_distinfo_binary_file"
+
+[project.urls]
+Home="https://www.rbvi.ucsf.edu/chimerax/"
+
+[tool.setuptools]
+packages=["chimerax.bundle_builder"]
+
+[tool.setuptools.package-dir]
+"chimerax.bundle_builder" = "src" 
+
+[tool.setuptools.dynamic]
+version = { attr = "src.__version__" }

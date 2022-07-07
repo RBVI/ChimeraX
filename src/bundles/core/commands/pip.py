@@ -13,11 +13,13 @@ import subprocess
 import sys
 
 from packaging.requirements import Requirement, InvalidRequirement
-from chimerax.core.session import Session
-from chimerax.core.commands import BoolArg, StringArg, CmdDesc
-from chimerax.core.errors import UserError
 
-__all__ = ['pip', 'pip_desc']
+from .cli import BoolArg, EnumOf, StringArg, CmdDesc
+
+from ..session import Session
+from ..errors import UserError
+
+__all__ = ['pip', 'pip_desc', 'register_pip_commands']
 
 def pip(session: Session, action: str = None, package: str = None, upgrade: bool = False, verbose: bool = False):
     pip_cmd = [sys.executable, "-m", "pip"]
@@ -71,7 +73,7 @@ def pip(session: Session, action: str = None, package: str = None, upgrade: bool
 
 pip_desc = CmdDesc(
     required=[
-        ("action", StringArg)
+        ("action", EnumOf(["install", "uninstall", "list", "check", "show", "search", "debug"]))
     ],
     optional=[
         ("package", StringArg)
@@ -82,3 +84,8 @@ pip_desc = CmdDesc(
     ],
     synopsis="Call pip from within ChimeraX"
 )
+
+def register_command(logger):
+    from chimerax.core.commands import register, create_alias
+    register("pip", pip_desc, pip, logger=logger)
+    create_alias("devel pip", "pip $*", logger=logger)
