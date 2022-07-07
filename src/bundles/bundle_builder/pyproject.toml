@@ -5,7 +5,6 @@ build-backend = "setuptools.build_meta"
 [project]
 name="ChimeraX-BundleBuilder"
 description="Bundle building utilities"  # one line synopsis
-version="1.2"
 authors= [{name = "UCSF RBVI", email="chimerax@cgl.ucsf.edu"}]
 dependencies = [
 	"tomli"
@@ -29,6 +28,7 @@ classifiers=[
     "Topic :: Scientific/Engineering :: Bio-Informatics",
 ]
 requires-python = ">=3.7"
+dynamic = ["version"]
 
 [project.readme]
 content-type = "text"
@@ -46,3 +46,6 @@ packages=["chimerax.bundle_builder"]
 
 [tool.setuptools.package-dir]
 "chimerax.bundle_builder" = "src" 
+
+[tool.setuptools.dynamic]
+version = { attr = "src.__version__" }
