@@ -61,10 +61,4 @@ setup(
         "ChimeraX :: Bundle :: Utilities :: 1,1 :: chimerax.toolshed_utils ::  :: true",
         "ChimeraX :: Tool :: Updates :: Utilities :: synopsis",
     ],
-    # entry_points={
-    #     "egg_info.writers": [
-    #         "RELNOTES.html = chimerax.core:copy_distinfo_file",
-    #         "screenshot.png = chimerax.core:copy_distinfo_binary_file",
-    #     ],
-    # },
 )

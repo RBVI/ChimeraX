@@ -59,6 +59,10 @@ class BundleBuilder:
             raise ValueError("%s: %s" % (info_file, err))
         self._make_paths()
         self._make_setup_arguments()
+   
+    @classmethod
+    def from_path(cls, logger, bundle_path):
+        return cls(logger, bundle_path)
 
     def make_wheel(self, debug=False):
         # HACK: distutils uses a cache to track created directories
@@ -95,7 +99,7 @@ class BundleBuilder:
         else:
             print("Distribution is in %s" % self.wheel_path)
 
-    def make_install(self, session, debug=False, user=None, no_deps=None):
+    def make_install(self, session, debug=False, user=None, no_deps=None, editable=False):
         self.make_wheel(debug=debug)
         from chimerax.core.commands import run, FileNameArg
         cmd = "toolshed install %s" % FileNameArg.unparse(self.wheel_path)
