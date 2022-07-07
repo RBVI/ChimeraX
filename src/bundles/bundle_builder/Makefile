@@ -30,25 +30,16 @@ endif
 PYTHON_EXE = $(PYTHON_BIN) -I
 PYLINT = $(PYTHON_EXE) -m flake8
 
-BUNDLE_NAME = ChimeraX-BundleBuilder
-BUNDLE_VERSION = 1.2
-PKG_NAME = chimerax.bundle_builder
-
-BASE_BNDL_NAME = $(subst ChimeraX-,,$(BUNDLE_NAME))
-WHL_BNDL_NAME = $(subst -,_,$(BUNDLE_NAME))
-
 PYSRCS = $(wildcard src/*.py)
-WHEEL = dist/$(WHL_BNDL_NAME)-$(BUNDLE_VERSION)-py${PYVER_NODOT}-none-any.whl
 
-wheel $(WHEEL): setup.py $(PYSRCS)
+wheel: $(PYSRCS)
 	$(PYTHON_EXE) setup.py --no-user-cfg build
-	# $(PYTHON_EXE) setup.py --no-user-cfg test
 	$(PYTHON_EXE) setup.py --no-user-cfg bdist_wheel --python-tag py$(PYVER_NODOT)
-	rm -rf $(WHL_BNDL_NAME).egg-info
+	rm -rf *.egg-info
 
-install app-install: $(WHEEL)
-	$(PYTHON_EXE) -m pip uninstall --yes $(BUNDLE_NAME)
-	$(PYTHON_EXE) -m pip install $(WHEEL)
+install app-install: wheel
+	$(PYTHON_EXE) -m pip uninstall --yes ChimeraX-BundleBuilder
+	$(PYTHON_EXE) -m pip install dist/*.whl
 
 sync:
 	rsync -av dist/*.whl $(TOP)/build/sync/
@@ -66,14 +57,7 @@ debug:
 	$(CHIMERAX_EXE) --debug
 
 clean:
-	rm -rf src/__pycache__ build dist $(WHL_BNDL_NAME).egg-info setup.py
+	rm -rf src/__pycache__ build dist *.egg-info
 
 pylint:
 	$(PYLINT) $(PYSRCS)
-
-setup.py: setup.py.in Makefile
-	sed \
-		-e 's,BUNDLE_NAME,$(BUNDLE_NAME),' \
-		-e 's,BUNDLE_VERSION,$(BUNDLE_VERSION),' \
-		-e 's,PKG_NAME,$(PKG_NAME),' \
-		< setup.py.in > setup.py

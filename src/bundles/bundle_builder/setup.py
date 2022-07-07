@@ -20,8 +20,8 @@ Utilties for building bundles using only installed ChimeraX.app.
 """
 
 setup(
-    name="BUNDLE_NAME",
-    version="BUNDLE_VERSION",  # PEP 440, should match Development Status below
+    name="ChimeraX-BundleBuilder",
+    version="1.2",  # PEP 440, should match Development Status below
     description="Bundle building utilities",  # one line synopsis
     long_description=description,  # see above
     author="UCSF RBVI",
@@ -32,10 +32,10 @@ setup(
         "tomli"
     ],
     package_dir={
-        "PKG_NAME": "src",    # directory package's source files are in
+        "chimerax.bundle_builder": "src", # directory package's source files are in
     },
     packages=[
-        "PKG_NAME",
+        "chimerax.bundle_builder",
     ],
     classifiers=[
         # From https://pypi.python.org/pypi?%3Aaction=list_classifiers

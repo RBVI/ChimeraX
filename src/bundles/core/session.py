@@ -1082,7 +1082,9 @@ def register_misc_commands(session):
     from .commands.toolshed import register_command
     register_command(session.logger)
     from .commands import devel as devel_cmd
+    from .commands import pip as pip_cmd
     devel_cmd.register_command(session.logger)
+    pip_cmd.register_command(session.logger)
 
     from .commands import CmdDesc, OpenFileNameArg, SaveFileNameArg, register
     register(
