@@ -8,7 +8,7 @@ from Cython.Build import cythonize
 from packaging.version import Version
 
 # Always import this because it changes the behavior of setuptools
-from numpy.distutils.misc_util import get_numpy_include_dirs
+from numpy import get_include as get_numpy_include_dirs
 
 # The compile process is initiated by setuptools and handled
 # by numpy.distutils, which eventually calls subprocess.
@@ -790,7 +790,7 @@ class _CompiledCode:
         inc_dirs = [os.path.join(root, "include")]
         lib_dirs = [os.path.join(root, "lib")]
         if self.uses_numpy:
-            inc_dirs.extend(get_numpy_include_dirs())
+            inc_dirs.extend([get_numpy_include_dirs()])
         if sys.platform == "darwin":
             libraries = self.libraries
             # Unfortunately, clang on macOS (for now) exits
