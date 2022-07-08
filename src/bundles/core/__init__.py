@@ -127,7 +127,6 @@ def profile(func):
 
 # These are entry points for copying files into
 # .dist-info directories of wheels when they are built
-
 def copy_distinfo_file(cmd, basename, filename, binary=''):
     """Entry point to copy files into bundle .dist-info directory.
 
@@ -137,7 +136,8 @@ def copy_distinfo_file(cmd, basename, filename, binary=''):
     try:
         with open(basename, 'r' + binary, encoding=encoding) as fi:
             value = fi.read()
-            from distutils import log
+            import logging
+            log = logging.getLogger()
             log.info("copying %s" % basename)
             if not cmd.dry_run:
                 with open(filename, 'w' + binary, encoding=encoding) as fo:
@@ -145,7 +145,6 @@ def copy_distinfo_file(cmd, basename, filename, binary=''):
     except IOError:
         # Missing file is okay
         pass
-
 
 def copy_distinfo_binary_file(cmd, basename, filename):
     copy_distinfo_file(cmd, basename, filename, binary='b')
@@ -677,8 +676,8 @@ def init(argv, event_loop=True):
         site.USER_BASE = adu.user_data_dir
         site.USER_SITE = os.path.join(ad.user_data_dir, "site-packages")
     else:
-        from distutils import sysconfig
-        site.USER_SITE = sysconfig.get_python_lib()
+        import sysconfig
+        site.USER_SITE = sysconfig.get_paths()['platlib']
 
     # Find the location of "share" directory so that we can inform
     # the C++ layer.  Assume it's a sibling of the directory that
