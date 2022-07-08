@@ -65,6 +65,11 @@ class AlphaFoldPAEOpen(ToolInstance):
         
         layout.addStretch(1)    # Extra space at end
 
+        # Set initial menu entry to an AlphaFold model
+        amod = [m for m in session.models.list(type = AtomicStructure) if hasattr(m, 'alphafold')]
+        if amod:
+            self._structure_menu.value = amod[-1]
+
         tw.manage(placement=None)	# Start floating
 
     # ---------------------------------------------------------------------------
