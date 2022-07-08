@@ -1,7 +1,7 @@
 # vim: set expandtab ts=4 sw=4:
 
-# Force import in a particular order since the latter two mess
-# with the contents of distutils, and we want Cython to win
+# Force import in a particular order since both Cython and
+# setuptools patch distutils, and we want Cython to win
 import setuptools
 import setuptools._distutils as distutils
 from Cython.Build import cythonize
