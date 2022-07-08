@@ -3,16 +3,13 @@
 # Force import in a particular order since the latter two mess
 # with the contents of distutils, and we want Cython to win
 import setuptools
-# In newer versions of setuptools, we have to import distutils second
-# since setuptools attempts to monkey patch distutils otherwise
-import distutils  # noqa
+import setuptools._distutils as distutils
 from Cython.Build import cythonize
 from packaging.version import Version
 
 # Always import this because it changes the behavior of setuptools
 from numpy.distutils.misc_util import get_numpy_include_dirs
 
-#
 # The compile process is initiated by setuptools and handled
 # by numpy.distutils, which eventually calls subprocess.
 # On Windows, subprocess invokes CreateProcess.  If a shell
