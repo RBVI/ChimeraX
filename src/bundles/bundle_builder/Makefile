@@ -8,7 +8,6 @@
 # including partial copies, of the software or any revisions
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
-
 TOP = ../../..
 include $(TOP)/mk/config.make
 
@@ -33,8 +32,7 @@ PYLINT = $(PYTHON_EXE) -m flake8
 PYSRCS = $(wildcard src/*.py)
 
 wheel: $(PYSRCS)
-	$(PYTHON_EXE) setup.py --no-user-cfg build
-	$(PYTHON_EXE) setup.py --no-user-cfg bdist_wheel --python-tag py$(PYVER_NODOT)
+	$(PYTHON_EXE) -m build --no-isolation --wheel
 	rm -rf *.egg-info
 
 install app-install: wheel

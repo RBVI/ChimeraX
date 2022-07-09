@@ -1011,10 +1011,11 @@ class Render:
         p = self.current_shader_program
         if p is None:
             raise OpenGLError('Render.set_colormap(): No current shader program.')
-        colormap_texture.bind_texture(tex_unit = self._colormap_texture_unit)
-        v0,v1 = colormap_range
-        s = data_texture.normalization()
-        p.set_vector2('colormap_range', (s*v0, 1/(s*(v1-v0))))
+        if self.SHADER_COLORMAP & p.capabilities:
+            colormap_texture.bind_texture(tex_unit = self._colormap_texture_unit)
+            v0,v1 = colormap_range
+            s = data_texture.normalization()
+            p.set_vector2('colormap_range', (s*v0, 1/(s*(v1-v0))))
 
     def check_for_opengl_errors(self):
         # Clear previous errors.
