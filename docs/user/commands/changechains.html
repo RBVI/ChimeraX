@@ -1,0 +1,68 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: changechains</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#commands">Command</a>: changechains</h3>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>changechains</b>
+&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
+<i>new-ID</i>
+</h3>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>changechains</b>
+&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
+&nbsp;<i>current-ID-list</i> &nbsp;<i>new-ID-list</i>
+</h3>
+<p>
+The command <b>changechains</b> changes the chain identifiers (IDs) of
+the specified atoms. 
+<!--
+The corresponding tool is <a href="../tools/changechains.html"><b>Change
+Chain IDs</b></a>.
+-->
+See also: 
+<a href="renumber.html"><b>renumber</b></a>,
+<a href="rename.html"><b>rename</b></a>,
+<a href="build.html"><b>build</b></a>,
+<a href="combine.html"><b>combine</b></a>,
+<a href="save.html#pdb"><b>save</b></a>
+</p><p>
+Either a single desired chain ID can be given, or
+a comma-separated list of current IDs followed by a comma-separated list
+of the desired IDs. 
+</p><p>
+If lists are used, they must contain equal numbers of IDs, 
+which will be paired in the order given. Ranges of IDs cannot be given.
+Within the set of specified atoms, occurrences of the Nth chain ID in the 
+first list will be changed to the Nth ID in the second list.
+The same ID may appear in both lists; the first list is only evaluated before 
+the changes are made.
+</p><p>
+Capitalization of the IDs is important and will be used exactly as entered.
+</p>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+June 2022</address>
+</body></html>

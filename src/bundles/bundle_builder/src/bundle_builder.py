@@ -1,18 +1,15 @@
 # vim: set expandtab ts=4 sw=4:
 
-# Force import in a particular order since the latter two mess
-# with the contents of distutils, and we want Cython to win
+# Force import in a particular order since both Cython and
+# setuptools patch distutils, and we want Cython to win
 import setuptools
-# In newer versions of setuptools, we have to import distutils second
-# since setuptools attempts to monkey patch distutils otherwise
-import distutils  # noqa
+import setuptools._distutils as distutils
 from Cython.Build import cythonize
 from packaging.version import Version
 
 # Always import this because it changes the behavior of setuptools
-from numpy.distutils.misc_util import get_numpy_include_dirs
+from numpy import get_include as get_numpy_include_dirs
 
-#
 # The compile process is initiated by setuptools and handled
 # by numpy.distutils, which eventually calls subprocess.
 # On Windows, subprocess invokes CreateProcess.  If a shell
@@ -793,7 +790,7 @@ class _CompiledCode:
         inc_dirs = [os.path.join(root, "include")]
         lib_dirs = [os.path.join(root, "lib")]
         if self.uses_numpy:
-            inc_dirs.extend(get_numpy_include_dirs())
+            inc_dirs.extend([get_numpy_include_dirs()])
         if sys.platform == "darwin":
             libraries = self.libraries
             # Unfortunately, clang on macOS (for now) exits
