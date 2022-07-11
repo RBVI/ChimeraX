@@ -15,20 +15,20 @@ from chimerax.core.toolshed import BundleAPI
 
 class ChangeChains_API(BundleAPI):
 
-    #@staticmethod
-    #def get_class(class_name):
-    #    if class_name == "RenumberResiduesDialog":
-    #        from .tool import RenumberResiduesDialog
-    #        return RenumberResiduesDialog
+    @staticmethod
+    def get_class(class_name):
+        if class_name == "ChangeChainIDsDialog":
+            from .tool import ChangeChainIDsDialog
+            return ChangeChainIDsDialog
 
     @staticmethod
     def register_command(command_name, logger):
         from . import cmd
         cmd.register_command(command_name, logger)
 
-    #@staticmethod
-    #def start_tool(session, tool_name):
-    #    from .tool import renumber_residues_dialog
-    #    return renumber_residues_dialog(session, tool_name)
+    @staticmethod
+    def start_tool(session, tool_name):
+        from .tool import change_chain_ids_dialog
+        return change_chain_ids_dialog(session, tool_name)
 
 bundle_api = ChangeChains_API()

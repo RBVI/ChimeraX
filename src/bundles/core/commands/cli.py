@@ -2882,7 +2882,7 @@ class Command:
             ci = self._ci
             kw_args = self._kw_args
             really_log = log and _used_aliases is None and not self._ci.self_logging
-            if really_log:
+            if really_log or log_only:
                 self.log()
             cmd_text = self.current_text[self.start:self.amount_parsed]
             with command_trigger(session, really_log, cmd_text):
