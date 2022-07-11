@@ -23,7 +23,7 @@ def change_chain_ids_dialog(session, tool_name):
 
 class ChangeChainIDsDialog(ToolInstance):
 
-    #help = "help:user/tools/renumber.html"
+    help = "help:user/tools/changechains.html"
     SESSION_SAVE = False
 
     single_text = "To one ID"
@@ -86,8 +86,7 @@ class ChangeChainIDsDialog(ToolInstance):
         bbox.accepted.connect(self.delete) # slots executed in the order they are connected
         bbox.rejected.connect(self.delete)
         from chimerax.core.commands import run
-        #bbox.helpRequested.connect(lambda *, run=run, ses=session: run(ses, "help " + self.help))
-        bbox.button(qbbox.Help).setEnabled(False)
+        bbox.helpRequested.connect(lambda *, run=run, ses=session: run(ses, "help " + self.help))
         layout.addWidget(bbox)
 
         tw.manage(placement=None)
