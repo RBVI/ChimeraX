@@ -46,7 +46,7 @@ class ChangeChainIDsDialog(ToolInstance):
 
         from chimerax.ui.options import OptionsPanel, StringOption
         one_id_widget = OptionsPanel()
-        self.single_id = StringOption("Change residues chain ID to", "", None)
+        self.single_id = StringOption("New chain ID:", "", None)
         self.single_id.widget.setMaximumWidth(5 * self.single_id.widget.fontMetrics().averageCharWidth())
         one_id_widget.add_option(self.single_id)
         self.tabs.addTab(one_id_widget, self.single_text)
@@ -64,9 +64,8 @@ class ChangeChainIDsDialog(ToolInstance):
         self.widgets_layout.setSpacing(0)
         multi_layout.addLayout(self.widgets_layout)
         self.chain_list.itemSelectionChanged.connect(self._update_chain_list)
-        self.tip = QLabel("Choose one or more chain IDs from the list on the left.  "
-            "Doing so will cause corresponding entry fields to appear here, where"
-            " you can enter the chain IDs to change to.")
+        self.tip = QLabel("For each chain ID chosen from the list on the left,"
+            " a blank for entering a new ID will appear on the right.")
         self.tip.setWordWrap(True)
         self.widgets_layout.addWidget(self.tip, 0, 0)
         self._update_chain_list()
