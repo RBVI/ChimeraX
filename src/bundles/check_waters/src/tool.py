@@ -61,6 +61,9 @@ class CheckWatersInputTool(ToolInstance):
         CheckWaterViewer(self.session, "Check Waters", s)
 
 class CheckWaterViewer(ToolInstance):
+
+    help = "help:user/tools/checkwaters.html"
+
     def __init__(self, session, tool_name, check_model=None, *, compare_info=None, model_labels=None):
         # if 'check_model' is None, we are being restored from a session 
         # and _finalize_init() will be called later
