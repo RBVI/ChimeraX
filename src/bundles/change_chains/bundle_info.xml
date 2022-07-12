@@ -27,7 +27,7 @@
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
     <ChimeraXClassifier>Command :: changechains :: Structure Editing :: change chain IDs</ChimeraXClassifier>
-    <!-- <ChimeraXClassifier>Tool :: Change Chain IDs :: Structure Editing :: change chain IDs</ChimeraXClassifier> -->
+    <ChimeraXClassifier>Tool :: Change Chain IDs :: Structure Editing :: change chain IDs</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>
