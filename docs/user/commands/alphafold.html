@@ -121,7 +121,7 @@ See also:
 <blockquote>
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>alphafold fetch</b> &nbsp;<i>uniprot-id</i>&nbsp;
-<span class="nowrap">[&nbsp;<a href="#alignTo"><b>alignTo</b></a>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>chain-spec</i></a>&nbsp;[&nbsp;<a href="#trim"><b>trim</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]]</span>
+<span class="nowrap">[&nbsp;<a href="#alignTo"><b>alignTo</b></a>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>chain-spec</i></a>&nbsp;[&nbsp;<a href="#trim"><b>trim</b></a>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]]</span>
 [&nbsp;<a href="#colorConfidence"><b>colorConfidence</b></a>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<a href="#ignoreCache"><b>ignoreCache</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<a href="#pae"><b>pae</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
@@ -129,7 +129,7 @@ See also:
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>alphafold match</b> &nbsp;<i>sequence</i>&nbsp;
 [&nbsp;<a href="#search-option"><b>search</b></a>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
-[&nbsp;<a href="#trim"><b>trim</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<a href="#trim"><b>trim</b></a>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<a href="#colorConfidence"><b>colorConfidence</b></a>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<a href="#ignoreCache"><b>ignoreCache</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<a href="#pae"><b>pae</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
@@ -405,8 +405,7 @@ to avoid failures during minimization.
 Whether to trim a predicted protein structure to the same residue range
 as the corresponding experimental structure given with the 
 <b>alphafold match</b> command or the <b>alignTo</b> option
-of <b>alphafold fetch</b>. With <b>trim true</b> (default unless 
-<a href="#pae"><b>pae true</b></a> is used):
+of <b>alphafold fetch</b>. With <b>trim true</b> (default):
 <ul>
 <li>Predictions with UniProt identifier determined by <b>alphafold match</b>
 from the experimental structure's input file will be
@@ -428,9 +427,12 @@ as part of the superposition step.
 <p>
 Using <b>trim false</b> indicates retaining the full-length models
 for the <a href="https://www.uniprot.org/" target="_blank">UniProt</a>
-sequences, which could be longer. Since a <a href="#pae">PAE plot</a>
+sequences, which could be longer. 
+<!--
+Since a <a href="#pae">PAE plot</a>
 covers the full sequence, using <a href="#pae"><b>pae true</b></a>
 automatically sets <b>trim</b> to <b>false</b>.
+-->
 </p>
 </blockquote>
 
@@ -834,5 +836,5 @@ alphafold contacts sel palette blue:red range 1,5
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-June 2022</address>
+July 2022</address>
 </body></html>
