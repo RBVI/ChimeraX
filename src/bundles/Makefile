@@ -20,8 +20,8 @@ SYNC_DIR = $(wildcard $(TOP)/build/sync)
 BUNDLE_BUILDER_SUBDIR = bundle_builder
 TOOLSHED_UTILS_SUBDIR = toolshed_utils
 
-REST_SUBDIRS = add_charge addh align_algs alignment_hdrs \
-	  alignments alphafold altloc_explorer amber_info arrays atom_search \
+REST_SUBDIRS = add_charge addh alignment_algs alignment_headers \
+	  alphafold altloc_explorer amber_info arrays atom_search \
 	  atomic atomic_lib axes_planes basic_actions bild \
 	  blastprotein bond_rot bug_reporter build_structure \
 	  bumps buttons cage_builder \
@@ -41,8 +41,8 @@ REST_SUBDIRS = add_charge addh align_algs alignment_hdrs \
 	  neuron nucleotides open_command \
 	  pdb pdb_bio pdb_lib pdb_matrices pick_blobs positions preset_mgr pubchem \
 	  read_pbonds registration remote_control renumber_residues rest_server \
-	  residue_fit rna_layout rotamer_lib_mgr rotamer_libs save_command scheme_mgr \
-	  sdf sel_inspector segger segment seq_view shape \
+	  residue_fit rna_layout rotamer_libs rotamers save_command scheme_mgr \
+	  sdf sel_inspector segger segment seqalign seq_view shape \
 	  shell shortcuts show_attr show_sequences sideview sim_matrices smiles \
 	  smooth_lines spacenavigator std_commands \
 	  stl storm struct_measure struts surface swapaa swap_res \

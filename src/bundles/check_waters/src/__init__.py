@@ -30,7 +30,11 @@ class _CheckWatersBundle(BundleAPI):
     @staticmethod
     def start_tool(session, tool_name):
         if tool_name == 'Check Waters':
-            from .tool import CheckWatersInputTool
+            from .tool import CheckWatersInputTool, CheckWaterViewer
+            from chimerax.atomic import all_atomic_structures as aas
+            structures = aas(session)
+            if len(structures) == 1:
+                return CheckWaterViewer(session, tool_name, structures[0])
             return CheckWatersInputTool(session)
 
 bundle_api = _CheckWatersBundle()

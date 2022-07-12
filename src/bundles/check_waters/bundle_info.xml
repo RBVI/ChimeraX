@@ -23,8 +23,8 @@
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>Command :: checkwaters :: Volume Data :: Check water placement in a map</ChimeraXClassifier>
-    <ChimeraXClassifier>Tool :: Check Waters :: Volume Data :: Check water placement in a map</ChimeraXClassifier> -->
+    <ChimeraXClassifier>Command :: checkwaters :: Structure Analysis :: Check water placement in a map</ChimeraXClassifier>
+    <ChimeraXClassifier>Tool :: Check Waters :: Structure Analysis :: Check water placement in a map</ChimeraXClassifier> -->
   </Classifiers>
 
 </BundleInfo>
