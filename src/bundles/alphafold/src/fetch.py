@@ -46,9 +46,6 @@ def alphafold_fetch(session, uniprot_id, color_confidence=True,
             s._auto_style = False
             _color_by_confidence(s)
 
-    if pae:
-        trim = False	# Cannot associate PAE if structure is trimmed
-        
     if align_to is not None:
         _align_and_trim(models, align_to, trim)
         _log_chain_info(models, align_to.name)
