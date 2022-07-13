@@ -1558,7 +1558,8 @@ def draw_depth(renderer, drawings, opaque_only = True):
     r = renderer
     dc = r.disable_capabilities
     r.disable_shader_capabilities(r.SHADER_LIGHTING | r.SHADER_SHADOW | r.SHADER_MULTISHADOW |
-                                  r.SHADER_DEPTH_CUE | r.SHADER_TEXTURE_2D | r.SHADER_TEXTURE_3D)
+                                  r.SHADER_DEPTH_CUE | r.SHADER_TEXTURE_2D | r.SHADER_TEXTURE_3D |
+                                  r.SHADER_COLORMAP)
     draw_opaque(r, drawings)
     if not opaque_only:
         draw_transparent(r, drawings)
@@ -1919,6 +1920,8 @@ class Pick:
     def description(self):
         '''Text description of the picked object.'''
         return None
+
+    # objects that contain a single drawing should return that in a drawing() method
 
     def specifier(self):
         '''Command specifier for the picked object.'''

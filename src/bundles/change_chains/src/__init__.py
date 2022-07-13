@@ -11,30 +11,24 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from .compare import compare_waters
-
 from chimerax.core.toolshed import BundleAPI
 
-class _CheckWatersBundle(BundleAPI):
+class ChangeChains_API(BundleAPI):
 
     @staticmethod
     def get_class(class_name):
-        from . import tool
-        return getattr(tool, class_name)
+        if class_name == "ChangeChainIDsDialog":
+            from .tool import ChangeChainIDsDialog
+            return ChangeChainIDsDialog
 
     @staticmethod
     def register_command(command_name, logger):
         from . import cmd
-        cmd.register_command(logger)
+        cmd.register_command(command_name, logger)
 
     @staticmethod
     def start_tool(session, tool_name):
-        if tool_name == 'Check Waters':
-            from .tool import CheckWatersInputTool, CheckWaterViewer
-            from chimerax.atomic import all_atomic_structures as aas
-            structures = aas(session)
-            if len(structures) == 1:
-                return CheckWaterViewer(session, tool_name, structures[0])
-            return CheckWatersInputTool(session)
+        from .tool import change_chain_ids_dialog
+        return change_chain_ids_dialog(session, tool_name)
 
-bundle_api = _CheckWatersBundle()
+bundle_api = ChangeChains_API()

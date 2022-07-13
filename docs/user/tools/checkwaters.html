@@ -33,13 +33,13 @@ See also:
 <a href="rotamers.html"><b>Rotamers</b></a>,
 <a href="altlocexplorer.html"><b>Altloc Explorer</b></a>,
 <a href="renumber.html"><b>Renumber Residues</b></a>,
+<a href="changechains.html"><b>Change Chain IDs</b></a>,
 <a href="hbonds.html"><b>H-Bonds</b></a>,
 <a href="../commands/view.html"><b>view</b></a>,
 <a href="../commands/clip.html"><b>clip</b></a>
 </p><p>
 <b>Check Waters</b> can be started 
-from the <b>Volume</b> section of the 
-<!-- from the <b>Structure Analysis</b> section of the -->
+from the <b>Structure Analysis</b> section of the
 <b>Tools</b> menu and manipulated like other panels
 (<a href="../window.html#panels">more...</a>).
 </p><p>
@@ -67,8 +67,21 @@ recalculates the H-bonds accordingly.
 Clicking <b>Delete</b> deletes the chosen waters. 
 Caution: deletion cannot be undone except by reopening the original structure.
 </p>
+<ul>
+<li><b>Go to next water in list after Delete</b>
+&ndash; whether deleting a single water should automatically choose 
+the next one in the list; either way, deleting multiple waters 
+at the same time will not choose anything automatically
+</ul>
+<p>
+Choosing water(s) from the list focuses the view by adjusting
+the <a href="../commands/zoom.html">zoom</a> and positioning
+near/far <a href="../commands/clip.html">clipping</a> planes.
+Clicking <b>Unclip</b> turns off such clipping to allow viewing
+the entire depth of the structure.
+</p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-June 2022</address>
+July 2022</address>
 </body></html>

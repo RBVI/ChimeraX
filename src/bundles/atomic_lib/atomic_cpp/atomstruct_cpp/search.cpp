@@ -159,14 +159,24 @@ _Node::_Node(const std::vector<Atom*>& atoms, bool transformed, double sep_val)
             if (axis_data.front() == median) {
                 for (auto ad: axis_data) {
                     if (ad > median) {
-                        median = (median + ad) / 2.0;
+                        auto next_median = (median + ad) / 2.0;
+                        if (next_median == median)
+                            // difference so small that you cannot halve it
+                            median = ad;
+                        else
+                            median = next_median;
                         break;
                     }
                 }
             } else if (axis_data.back() == median) {
                 for (int i = last_index; i >= 0; --i) {
                     if (axis_data[i] < median) {
-                        median = (median + axis_data[i]) / 2.0;
+                        auto next_median = (median + axis_data[i]) / 2.0;
+                        if (next_median == median)
+                            // difference so small that you cannot halve it
+                            median = axis_data[i];
+                        else
+                            median = next_median;
                         break;
                     }
                 }

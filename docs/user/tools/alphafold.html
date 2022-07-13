@@ -219,7 +219,8 @@ in the <a href="log.html"><b>Log</b></a>:
   for superposition; the number of positions with identical residues
   divided by the length of the shorter sequence
   </ul>
-<li>the predicted structure is trimmed to the same residue range as the 
+<li>by <a href="#options">default</a>,
+the predicted structure is trimmed to the same residue range as the 
 existing chain (<a href="../commands/alphafold.html#trim">details...</a>)
 <li>the following <a href="../attributes.html">attributes</a>
  are assigned to the residues of the predicted structure:
@@ -285,14 +286,17 @@ on the user's browser settings; it is not kept in the
 <a href="../preferences.html">ChimeraX preferences</a>.
 </p><p>
 <a name="options"></a>
-Clicking <b>Options</b> shows/hides an additional option for <b>Predict</b>:
+Clicking <b>Options</b> shows/hides additional options:
 </p>
 <ul>
-<a name="minimize"></a>
 <li><b>Energy-minimize predicted structures</b>
 &ndash; when running a new prediction, whether to minimize the result;
 turning this off allows for faster job completion and/or
 avoidance of failures during minimization.
+<li><b>Trim fetched structure to the aligned structure sequence</b>
+&ndash; whether to trim a fetched structure to the same residue range 
+as the structure to which it is aligned 
+(<a href="../commands/alphafold.html#trim">details...</a>)
 </ul>
 <p>
 A single calculation may take hours to complete
@@ -333,7 +337,7 @@ target="_blank">AlphaFold Database</a> (<i>e.g.</i>, with
 target="_blank">performance statistics</a>).
 The process includes installing various software packages on a virtual machine,
 searching sequence databases, generating a multiple sequence alignment,
-predicting atomic coordinates, and by <a href="#minimize">default</a>,
+predicting atomic coordinates, and by <a href="#options">default</a>,
 energy-minimizing the best structure.
 Predicting a multimer (complex) structure may take longer than predicting
 the structure of a monomer with the same total number of residues.
@@ -673,5 +677,5 @@ Error (&Aring;)</b>&rdquo;) would need to be created separately with
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-June 2022</address>
+July 2022</address>
 </body></html>

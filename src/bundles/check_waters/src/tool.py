@@ -35,7 +35,6 @@ class CheckWatersInputTool(ToolInstance):
         from Qt.QtCore import Qt
         layout = QVBoxLayout()
         parent.setLayout(layout)
-        layout.setContentsMargins(0,0,0,0)
         check_layout = QHBoxLayout()
         layout.addLayout(check_layout)
         check_layout.addWidget(QLabel("Check waters in:"), alignment=Qt.AlignRight)
@@ -62,6 +61,9 @@ class CheckWatersInputTool(ToolInstance):
         CheckWaterViewer(self.session, "Check Waters", s)
 
 class CheckWaterViewer(ToolInstance):
+
+    help = "help:user/tools/checkwaters.html"
+
     def __init__(self, session, tool_name, check_model=None, *, compare_info=None, model_labels=None):
         # if 'check_model' is None, we are being restored from a session 
         # and _finalize_init() will be called later
@@ -112,9 +114,9 @@ class CheckWaterViewer(ToolInstance):
         parent = self.tool_window.ui_area
 
         from Qt.QtWidgets import QHBoxLayout, QButtonGroup, QVBoxLayout, QRadioButton, QCheckBox
-        from Qt.QtWidgets import QPushButton, QLabel, QToolButton
+        from Qt.QtWidgets import QPushButton, QLabel, QToolButton, QGridLayout
         layout = QHBoxLayout()
-        layout.setContentsMargins(0,0,0,0)
+        layout.setContentsMargins(2,2,2,2)
         layout.setSpacing(0)
         parent.setLayout(layout)
         if self.compared_waters:
@@ -142,7 +144,8 @@ class CheckWaterViewer(ToolInstance):
             self.filter_residues = sorted(_water_residues(self.check_model))
         self.filter_model = self.check_model
         from chimerax.atomic.widgets import ResidueListWidget
-        self.res_list = ResidueListWidget(self.session, filter_func=self._filter_residues)
+        self.res_list = ResidueListWidget(self.session, filter_func=self._filter_residues,
+            autoselect=ResidueListWidget.AUTOSELECT_NONE)
         if from_session:
             # Complicated code to avoid having the residue list callback change
             # the restored session state:  after one frame drawn look for a new
@@ -170,7 +173,12 @@ class CheckWaterViewer(ToolInstance):
                 return DEREGISTER
             self.session.triggers.add_handler("frame drawn", frame_drawn_handler)
         else:
+            # initially select all residues, but allow empty selections later
+            self.res_list.autoselect = self.res_list.AUTOSELECT_ALL
             self.res_list.value_changed.connect(self._res_sel_cb)
+            from Qt.QtCore import QTimer
+            # The '1' is because this needs to fire after a singleShot(0) in the list code (ugh!)
+            QTimer.singleShot(1, lambda rl=self.res_list: setattr(rl, 'autoselect', rl.AUTOSELECT_NONE))
         layout.addWidget(self.res_list)
 
         self.hbond_groups = {}
@@ -212,12 +220,21 @@ class CheckWaterViewer(ToolInstance):
         controls_layout.addLayout(hbonds_layout)
         if not from_session and self.settings.show_hbonds:
             self._show_hbonds_cb(True)
-        delete_layout = QHBoxLayout()
+        delete_layout = QGridLayout()
         but = QPushButton("Delete")
         but.clicked.connect(self._delete_waters)
-        delete_layout.addWidget(but, alignment=Qt.AlignRight)
-        delete_layout.addWidget(QLabel("chosen water(s)"), alignment=Qt.AlignLeft)
+        delete_layout.addWidget(but, 0, 0, alignment=Qt.AlignRight)
+        delete_layout.addWidget(QLabel(" chosen water(s)"), 0, 1, alignment=Qt.AlignLeft)
+        self.next_after_del = QCheckBox("Go to next water in list after Delete")
+        self.next_after_del.setChecked(True)
+        delete_layout.addWidget(self.next_after_del, 1, 0, 1, 2, alignment=Qt.AlignCenter)
         controls_layout.addLayout(delete_layout)
+        clip_layout = QHBoxLayout()
+        self.unclip_button = QPushButton("Unclip")
+        self.unclip_button.clicked.connect(self._unclip_cb)
+        clip_layout.addWidget(self.unclip_button, alignment=Qt.AlignRight)
+        clip_layout.addWidget(QLabel(" view"), alignment=Qt.AlignLeft)
+        controls_layout.addLayout(clip_layout)
         layout.addLayout(controls_layout)
 
         self.tool_window.manage('side')
@@ -272,13 +289,16 @@ class CheckWaterViewer(ToolInstance):
             if ask(self.session, "Really delete %d waters?" % len(waters),
                     default="no", title="Delete waters") == "no":
                 return
+            self.res_list.value = []
         else:
             # go to the next water in the list
             all_values = self.res_list.all_values
-            if len(all_values) > 1:
+            if len(all_values) > 1 and self.next_after_del.isChecked():
                 next_row = (all_values.index(waters[0]) + 1) % len(all_values)
                 self.res_list.value = [all_values[next_row]]
                 self.res_list.scrollToItem(self.res_list.item(next_row))
+            else:
+                self.res_list.value = []
         from chimerax.atomic import Residues
         Residues(waters).atoms.delete()
 
@@ -327,7 +347,7 @@ class CheckWaterViewer(ToolInstance):
     def _res_sel_cb(self):
         selected = self.res_list.value
         if not selected:
-            cmd = "~select; view %s" % self.check_model.atomspec
+            cmd = "~select"
         else:
             if selected[0].structure.display:
                 base_cmd = ""
@@ -350,6 +370,10 @@ class CheckWaterViewer(ToolInstance):
             except KeyError:
                 self.hbond_groups[group_key] = group = self._make_hb_group()
             group.display = True
+
+    def _unclip_cb(self):
+        from chimerax.core.commands import run
+        run(self.session, "clip off")
 
     def _update_button_texts(self):
         all_input, after_only, douse_in_common, input_in_common = self.compared_waters
