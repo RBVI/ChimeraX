@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-Phenix" version="1.0"
+<BundleInfo name="ChimeraX-Phenix" version="1.3"
 	    package="chimerax.phenix"
   	    minSessionVersion="1" maxSessionVersion="1">
 
@@ -15,8 +15,10 @@
 
   <Dependencies>
     <Dependency name="ChimeraX-Core" version="~=1.0"/>
-    <Dependency name="ChimeraX-DataFormats" version="~=1.0"/>
-    <Dependency name="ChimeraX-OpenCommand" version="~=1.0"/>
+    <Dependency name="ChimeraX-Atomic" version="~=1.32"/>
+    <Dependency name="ChimeraX-MapData" version="~=2.0"/>
+    <Dependency name="ChimeraX-PDB" version="~=2.6"/>
+    <Dependency name="ChimeraX-UI" version="~=1.21"/>
   </Dependencies>
 
   <Classifiers>
@@ -24,7 +26,7 @@
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
     <ChimeraXClassifier>Command :: phenix douse :: Structure Editing :: Place waters in a map</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: phenix location :: Structure Editing :: Set location of Phenix installation</ChimeraXClassifier>
-    <ChimeraXClassifier>Tool :: Water Placement :: Structure Editing :: Place waters in a map</ChimeraXClassifier>
+    <!-- <ChimeraXClassifier>Tool :: Water Placement :: Structure Editing :: Place waters in a map</ChimeraXClassifier> -->
   </Classifiers>
 
 </BundleInfo>

@@ -16,18 +16,21 @@ from chimerax.core.toolshed import BundleAPI
 class _PhenixBundle(BundleAPI):
 
     @staticmethod
+    def get_class(class_name):
+        from . import tool
+        return getattr(tool, class_name)
+
+    @staticmethod
+    def register_command(command_name, logger):
+        from . import cmd
+        cmd.register_command(logger)
+
+    """
+    @staticmethod
     def start_tool(session, tool_name):
         if tool_name == 'Water Placement':
             from . import douse
             return douse.show_water_placement_tool(session)
-
-    @staticmethod
-    def register_command(command_name, logger):
-        if command_name == 'phenix douse':
-            from . import douse
-            douse.register_phenix_douse_command(logger)
-        elif command_name == 'phenix location':
-            from . import locate
-            locate.register_phenix_location_command(logger)
+    """
 
 bundle_api = _PhenixBundle()

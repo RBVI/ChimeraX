@@ -145,8 +145,8 @@ class _Section(QWidgetAction):
             action.triggered.connect(button_info.callback)
         if not button_info.enabled:
             action.setEnabled(False)
-        actions = self._actions.setdefault(orig_title, [])
-        actions.append(action)
+        actions = self._actions.setdefault(orig_title, {})
+        actions[parent] = action
         if group_follow:
             button = self._groups[parent][button_info.group]
             button.addAction(action)
@@ -270,8 +270,11 @@ class _Section(QWidgetAction):
             self.compact_height = 2
         self._redo_layout()
 
-    def get_qt_button_action(self, title):
-        return self._actions.get(title, None)
+    def get_qt_button_action(self, parent, title):
+        actions = self._actions.get(title, None)
+        if actions:
+            return actions.get(parent)
+        return None
 
     def add_button_highlight(self, title, redo=True):
         for button_info in self._buttons:
@@ -328,21 +331,42 @@ class _Section(QWidgetAction):
         for button_info in self._buttons:
             if button_info.highlight_icon is None:
                 continue
-            print("REDO:", button_info.title)
             self.add_button_highlight(button_info.title, redo=False)
         self._redo_layout()
 
-    def set_enabled(self, enabled, title, redo=True):
+    def set_enabled(self, enabled, button_title, redo=True):
         for button_info in self._buttons:
-            if button_info.title == title:
+            if button_info.title == button_title:
                 break
         else:
-            raise ValueError(f"Didn't find button '{title}'")
+            raise ValueError(f"Didn't find button '{button_title}'")
         if button_info.enabled == enabled:
             return
         button_info.enabled = enabled
         if redo:
-            self._redo_layout()
+            existing_widgets = self.createdWidgets()
+            for parent in existing_widgets:
+                action = self.get_qt_button_action(parent, button_title)
+                if action is None:
+                    continue
+                action.setEnabled(enabled)
+
+    def show_group_button(self, button_title):
+        for button_info in self._buttons:
+            if button_info.title == button_title:
+                break
+        else:
+            return
+        group = button_info.group
+        if group is None:
+            return
+        existing_widgets = self.createdWidgets()
+        for parent in existing_widgets:
+            action = self.get_qt_button_action(parent, button_title)
+            if action is None:
+                continue
+            b = self._groups[parent][group]
+            b.setDefaultAction(action)
 
 
 class TabbedToolbar(QTabWidget):
@@ -497,6 +521,11 @@ class TabbedToolbar(QTabWidget):
                     continue
                 section.set_highlight_color(qcolor)
 
+    def show_group_button(self, tab_title, section_title, button_title):
+        section = self._get_section(tab_title, section_title, create=False)
+        if section is None:
+            raise ValueError(f"Didn't find section '{section_title}' in tab '{tab_title}'")
+        section.show_group_button(button_title)
 
 if __name__ == "__main__":
     import sys

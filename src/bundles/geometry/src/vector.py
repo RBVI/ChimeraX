@@ -33,13 +33,14 @@ __all__ = [
     'inner_product',
     'distance',
     'distance_squared',
+    'length',
 ]
 
 from .matrix import vector_sum
 from .matrix import normalize_vectors
 from .matrix import normalize_vector
 from .matrix import cross_product, cross_products
-from .matrix import norm
+from .matrix import norm, length
 from .matrix import vector_angle_radians as vector_angle
 
 from ._geometry import distances_perpendicular_to_axis

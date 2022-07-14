@@ -13,6 +13,7 @@ blacklist = set([
     "chimerax.alignment_algs.libalign_algs",  # non-importable dynamic lib
     "chimerax.alphafold.alphafold_predict_colab",  # IPython notebook with syntax magic
     "chimerax.alphafold.alphafold21_predict_colab",  # IPython notebook with syntax magic
+    "chimerax.alphafold.alphafold22_predict_colab",  # IPython notebook with syntax magic
     "chimerax.alphafold.fix_seq_titles",
     "chimerax.atomic.libmolc",  # non-importable dynamic lib
     "chimerax.atomic.md_crds.dcd.MDToolsMarch97.md_tests",  # test code
@@ -36,6 +37,8 @@ blacklist = set([
     "chimerax.segger.segloop_dialog",
     "chimerax.structcomp",  # ChimeraX command script
     "chimerax.surface.geodesic", # development script
+    "chimerax.webcam.camera",		# Uses QVideoSink only in Qt6
+    "chimerax.webcam.camera_qt5",	# Uses QAbstractVideoSurface only in Qt5
 ])
 
 failed = 0

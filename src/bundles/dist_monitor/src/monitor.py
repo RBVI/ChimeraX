@@ -77,6 +77,8 @@ class DistancesMonitor(StateManager):
     def remove_group(self, group):
         self.monitored_groups.discard(group)
         if group in self.update_callbacks:
+            # can't check if there were pseudobonds since group may be already deleted
+            self.update_callbacks[group]()
             del self.update_callbacks[group]
 
     def _get_show_units(self):

@@ -224,11 +224,17 @@ class PaletteLabelsArg(Annotation):
         num_labels = len(cmap.colors)
         for i in range(num_labels):
             if not rest.lstrip():
+                if len(vals) == 1:
+                    vals.extend([''] * len(cmap.colors))
+                    return vals, final_text, rest
                 raise AnnotationError("Need at least %d labels to match palette" % num_labels)
             label_token, text, rest = next_token(rest.lstrip(), session)
-            final_text += ' ' + text
             if not label_token.startswith(':'):
+                if len(vals) == 1:
+                    vals.extend([''] * len(cmap.colors))
+                    return vals, final_text, text + ' ' + rest
                 raise AnnotationError("Each label must be prefixed with ':'")
+            final_text += ' ' + text
             vals.append(label_token[1:])
         return vals, final_text, rest
 

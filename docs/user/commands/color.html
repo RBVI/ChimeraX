@@ -578,7 +578,7 @@ to make the cap match the nearby atoms.
 [&nbsp;<b>offset</b>&nbsp;&nbsp;<i>d</i>&nbsp;]
 [&nbsp;<b>key</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>update</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
-[&nbsp;<a href="#palette-options"></a><b>palette</b></a>&nbsp;&nbsp;<i>palette</i>&nbsp;]
+[&nbsp;<a href="#palette-options"><b>palette</b></a>&nbsp;&nbsp;<i>palette</i>&nbsp;]
 [&nbsp;<b>range</b>&nbsp;&nbsp;<i>low</i>,<i>high</i>&nbsp;|&nbsp;<b>full</b>&nbsp;]
 [&nbsp;<a href="#transparency"><b>transparency</b></a>&nbsp;&nbsp;<i>percent</i>&nbsp;]
 </blockquote>
@@ -740,24 +740,24 @@ when the shape of the surface changes.
 </p>
 <ul>
 <li><b>color radial</b> colors by distance from a 
-<a href="pointspec.html#point">point</a> given with the <b>center</b> option.
+<a href="pointspec.html#point">point</a> given with the <b>center</b> option
+(default <b>0,0,0</b>).
 <li><b>color cylindrical</b> colors by distance from an axis.
 The axis is defined by a <a href="pointspec.html#point">point</a> 
 on the axis (given with <b>center</b>) 
 and its direction (a <a href="pointspec.html#vector">vector</a> 
-given with <b>axis</b>).
+given with <b>axis</b>, default <b>z</b>).
 <li><b>color height</b> colors by topographic height, or distance from a plane.
 The plane is defined by a <a href="pointspec.html#point">point</a>
 on the plane (given with <b>center</b>)
 and a <a href="pointspec.html#vector">vector</a> 
 normal to the plane (given with <b>axis</b>).
 </ul>
-The <b>coordinateSystem</b> for interpreting center and axis coordinates
-can be specified by reference model number. If no reference model is given,
-the <a href="view.html#scenecoords">scene coordinate system</a>
-will be used for the center 
-and the <a href="view.html#screencoords">screen coordinate system</a>
-(X horizontal, Y vertical, Z in/out) for the axis.
+The <b>coordinateSystem</b> for interpreting <b>center</b> and <b>axis</b>
+coordinates can be specified by reference model number. 
+The default coordinate system is that of the model being colored, generally
+the same as the <a href="view.html#scenecoords">scene coordinate system</a> 
+unless the model has been moved separately.
 </p>
 
 <a name="zone"></a>
@@ -917,6 +917,7 @@ or <a href="#byattribute">attribute</a>).
 See also: 
 <a href="coulombic.html"><b>coulombic</b></a>,
 <a href="mlp.html"><b>mlp</b></a>,
+<a href="alphafold.html#contacts"><b>alphafold contacts</b></a>,
 <a href="measure.html#convexity"><b>measure convexity</b></a>
 <blockquote>
 <a name="palette"></a><b>palette</b></a>&nbsp;&nbsp;<i>palette</i>
@@ -1008,6 +1009,60 @@ align="center"><font size="-1" color="white">100</font></td>
 <a href="https://alphafold.ebi.ac.uk/faq#faq-5" target="_blank">pLDDT
 confidence measure</a> in the B-factor field of
 <a href="../tools/alphafold.html">AlphaFold predictions</a>)
+<li><b>pae</b>
+<table border cellpadding="0" cellspacing="0"
+style="display:inline-block; vertical-align:top"><tr>
+<td bgcolor="blue" width="30px" title="blue"
+align="center"><font size="-1" color="white">0</font></td>
+<td bgcolor="cornflowerblue" width="30px" title="cornflowerblue"
+align="center"><font size="-1" color="white">5</font></td>
+<td bgcolor="yellow" width="30px" title="yellow"
+align="center"><font size="-1">10</font></td>
+<td bgcolor="orange" width="30px" title="orange"
+align="center"><font size="-1">15</font></td>
+<td bgcolor="gray" width="30px" title="gray"
+align="center"><font size="-1" color="white">20</font></td>
+<td bgcolor="lightgray" width="30px" title="lightgray"
+align="center"><font size="-1">25</font></td>
+<td bgcolor="white" width="30px" title="white"
+align="center"><font size="-1">30</font></td>
+</tr></table>
+(the default for plotting
+<a href="../commands/alphafold.html#pae">AlphaFold PAE</a>)
+<li><b>paegreen</b>
+<table border cellpadding="0" cellspacing="0"
+style="display:inline-block; vertical-align:top"><tr>
+<td bgcolor="#1e3546661e35" width="30px" title="#1e3546661e35"
+align="center"><font size="-1" color="white">0</font></td>
+<td bgcolor="#245a922c245a" width="30px" title="#245a922c245a"
+align="center"><font size="-1" color="white">5</font></td>
+<td bgcolor="#374cb168374c" width="30px" title="#374cb168374c"
+align="center"><font size="-1" color="white">10</font></td>
+<td bgcolor="#5687c9ba5687" width="30px" title="#5687c9ba5687"
+align="center"><font size="-1">15</font></td>
+<td bgcolor="#828fddf3828f" width="30px" title="#828fddf3828f"
+align="center"><font size="-1">20</font></td>
+<td bgcolor="#bae1efdebae1" width="30px" title="#bae1efdebae1"
+align="center"><font size="-1">25</font></td>
+<td bgcolor=white width="30px" title="white"
+align="center"><font size="-1">30</font></td>
+</tr></table>
+<li><b>paecontacts</b>
+<table border cellpadding="0" cellspacing="0"
+style="display:inline-block; vertical-align:top"><tr>
+<td bgcolor="blue" width="30px" title="blue"
+align="center"><font size="-1" color="white">0</font></td>
+<td bgcolor="cornflowerblue" width="30px" title="cornflowerblue"
+align="center"><font size="-1" color="white">5</font></td>
+<td bgcolor="yellow" width="30px" title="yellow"
+align="center"><font size="-1">10</font></td>
+<td bgcolor="orange" width="30px" title="orange"
+align="center"><font size="-1">15</font></td>
+<td bgcolor="red" width="30px" title="red"
+align="center"><font size="-1">20</font></td>
+</tr></table>
+(the default for 
+<a href="../commands/alphafold.html#contacts"><b>alphafold contacts</b></a>)
   <li><a href="palettes.html#colorbrewer">ColorBrewer palettes</a> &ndash;
 a default number of colors will be used if the number is omitted from the name.
 Examples:
@@ -1195,5 +1250,5 @@ See also: <a href="palette.html#list"><b>palette list</b></a>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-September 2021</address>
+June 2022</address>
 </body></html>

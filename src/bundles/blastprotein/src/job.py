@@ -13,6 +13,7 @@
 import json
 
 from urllib3.exceptions import MaxRetryError
+
 from chimerax.core.tasks import JobError
 from chimerax.webservices.cxservices_job import CxServicesJob
 from chimerax.webservices.cxservices_utils import (
@@ -25,29 +26,34 @@ from .ui import BlastProteinResults
 from .utils import BlastParams, make_instance_name
 
 class BlastProteinJob(CxServicesJob):
-    QUERY_FILENAME = "query.json"
-    RESULTS_FILENAME = "results.json"
-
     inet_error = "Could not start BLAST job. Please check your internet connection and try again."
+    service_name = "blast"
 
     def __init__(self, session, seq, atomspec, **kw):
         super().__init__(session)
+
         if 'tool_inst_name' not in kw:
             kw['tool_inst_name'] = make_instance_name()
         if kw['tool_inst_name'] is None:
             kw['tool_inst_name'] = make_instance_name()
-        self.setup(seq, atomspec, **kw)
+
+        try:
+            self.setup(seq, atomspec, **kw)
+        except JobError as e:
+            session.logger.warning(" ".join(["Cannot submit job:", str(e)]))
+            return
+
         self.params = {
             "db": self.database,
             "evalue": str(self.cutoff),
             "matrix": self.matrix,
             "blimit": str(self.max_seqs),
             "input_seq": self.seq,
-            "output_file": self.RESULTS_FILENAME,
             "version": self.version
         }
+
         try:
-            self.start("blast", self.params)
+            self.start(self.service_name, self.params)
         except MaxRetryError:
             session.logger.warning(self.inet_error)
 
@@ -55,6 +61,10 @@ class BlastProteinJob(CxServicesJob):
               matrix: str = "BLOSUM62", max_seqs: int = 100, log = None, tool_inst_name = None,
               sequence_name = None):
         self.seq = seq.replace('?', 'X')                  # string
+        if self.seq.count('X') == len(self.seq):
+            raise JobError("Sequence consists entirely of unknown amino acids.")
+        # if self.seq.count('X') > len(self.seq) // 2:
+        #     self.thread_safe_warn("Attempting to run BLAST job with a high occurrence of unknown sequences.")
         self.sequence_name = sequence_name                # string
         self.atomspec = atomspec                          # string (atom specifier)
         self.database = database                          # string
@@ -73,11 +83,14 @@ class BlastProteinJob(CxServicesJob):
         return ''.join(data)
 
     def _params(self):
-        return BlastParams(self.atomspec, self.database, self.cutoff, self.max_seqs, self.matrix, self.version)
+        return BlastParams(
+            self.atomspec, self.database, self.cutoff
+            , self.max_seqs, self.matrix, self.version
+        )
 
     def on_finish(self):
         logger = self.session.logger
-        logger.info("BlastProtein finished.")
+        logger.status("BlastProtein finished.")
         if self.session.ui.is_gui:
             BlastProteinResults.from_job(
                     session = self.session

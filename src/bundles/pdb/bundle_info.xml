@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-PDB" version="2.6.5"
+<BundleInfo name="ChimeraX-PDB" version="2.6.6"
 	    package="chimerax.pdb" purePython="false"
   	    minSessionVersion="1" maxSessionVersion="1">
 
@@ -30,7 +30,7 @@
     <Dependency name="ChimeraX-Core" version="~=1.0"/>
     <Dependency name="ChimeraX-Arrays" build="true" version="~=1.0"/>
     <Dependency name="ChimeraX-Atomic" version="~=1.0"/>
-    <Dependency name="ChimeraX-AtomicLibrary" build="true" version="~=5.0"/>
+    <Dependency name="ChimeraX-AtomicLibrary" build="true" version="~=7.0"/>
     <Dependency name="ChimeraX-DataFormats" version="~=1.0"/>
     <Dependency name="ChimeraX-IO" version="~=1.0.1"/>
     <Dependency name="ChimeraX-OpenCommand" version="~=1.0"/>

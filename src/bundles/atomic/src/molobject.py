@@ -533,7 +533,7 @@ class PseudobondManager(StateManager):
             if not obj:
                 from .pbgroup import PseudobondGroup
                 obj = PseudobondGroup(pbg_ptr, session=self.session)
-                f = c_function('set_pbgroup_py_instance',
+                f = c_function('set_pseudobondgroup_py_instance',
                     args = (ctypes.c_void_p, ctypes.py_object))
                 f(pbg_ptr, obj)
             obj_map[cat] = obj
@@ -1202,12 +1202,16 @@ class StructureSeq(Sequence):
         }
         return data
 
-    def _cpp_demotion(self):
+    def _cpp_seq_demotion(self):
         # called from C++ layer when this should be demoted to Sequence
         numbering_start = self.numbering_start
         self._fire_trigger('delete', self)
         self.__class__ = Sequence
         self.numbering_start = numbering_start
+
+    def _cpp_structure_seq_demotion(self):
+        # called from C++ layer when a Chain should be demoted to a StructureSeq
+        self.__class__ = StructureSeq
 
     def _cpp_modified(self):
         # called from C++ layer when the residue list changes
@@ -1276,6 +1280,22 @@ class Chain(StructureSeq):
     def atomspec(self):
         return self.string(style="command")
 
+    # also used by Residue
+    @staticmethod
+    def chain_id_to_atom_spec(chain_id):
+        if chain_id:
+            if chain_id.isspace():
+                id_text = "?"
+            elif chain_id.isalnum():
+                id_text = chain_id
+            else:
+                # use single quotes on the inside so that they can be used in 
+                # cxcmd HTML contexts
+                id_text = "/chain_id='%s'" % chain_id
+        else:
+            id_text = "?"
+        return '/' + id_text
+
     @property
     def identity(self):
         """'Fake' attribute to allow for //identity="/A" tests"""
@@ -1323,7 +1343,7 @@ class Chain(StructureSeq):
         return chain
 
     def string(self, style=None, include_structure=None):
-        chain_str = '/' + (self.chain_id if self.chain_id and not self.chain_id.isspace() else "?")
+        chain_str = self.chain_id_to_atom_spec(self.chain_id)
         from .structure import Structure
         if include_structure is not False and (
         include_structure is True
@@ -1349,13 +1369,14 @@ _cid_index = { c:i for i,c in enumerate(chain_id_characters) }
 def next_chain_id(cid):
     if not cid or cid.isspace():
         return chain_id_characters[0]
-    try:
-        next_index = _cid_index[cid[-1]] + 1
-    except KeyError:
-        raise ValueError("Illegal chain ID character: %s" % repr(cid[-1]))
-    if next_index == len(chain_id_characters):
-        return cid + chain_id_characters[0]
-    return cid[:-1] + chain_id_characters[next_index]
+    for col in range(len(cid)-1, -1, -1):
+        try:
+            next_index = _cid_index[cid[col]] + 1
+        except KeyError:
+            raise ValueError("Illegal chain ID character: %s" % repr(cid[col]))
+        if next_index < len(chain_id_characters):
+            return cid[:col] + chain_id_characters[next_index] + (chain_id_characters[0] * (len(cid)-col-1))
+    return chain_id_characters[0] * (len(cid)+1)
 
 # -----------------------------------------------------------------------------
 #
@@ -1467,6 +1488,8 @@ class StructureData:
         f(s_ref, 1, key, values)
     pdb_version = c_property('pdb_version', int32, doc = "If this structure came from a PDB file,"
         " the major PDB version number of that file (2 or 3). Read only.")
+    res_numbering = c_property('structure_res_numbering', int32,
+        doc = "Numbering scheme for residues.  One of Residue.RN_AUTHOR/RN_CANONICAL/RN_UNIPROT")
     ribbon_tether_scale = c_property('structure_ribbon_tether_scale', float32,
         doc = "Ribbon tether thickness scale factor"
         " (1.0 = match displayed atom radius, 0=invisible).")
@@ -1582,9 +1605,18 @@ class StructureData:
         '''Add coordinate sets.  If 'replace' is True, clear out existing coordinate sets first'''
         if len(xyzs.shape) != 3:
             raise ValueError('add_coordsets(): array must be (frames)x(atoms)x3-dimensional')
-        if self.num_atoms and xyzs.shape[1] != self.num_atoms:
+        cs_size = self.coordset_size
+        if cs_size > 0:
+            dim_check = cs_size
+            check_text = "previous coordinate sets"
+            do_check = True
+        else:
+            dim_check = self.num_atoms
+            check_text = "number of atoms"
+            do_check = dim_check > 0
+        if do_check and xyzs.shape[1] != dim_check:
             raise ValueError('add_coordsets(): second dimension of coordinate array'
-                ' must be same as number of atoms')
+                ' must be same as %s' % check_text)
         if xyzs.shape[2] != 3:
             raise ValueError('add_coordsets(): third dimension of coordinate array'
                 ' must be 3 (xyz)')
@@ -1648,6 +1680,13 @@ class StructureData:
                args = (ctypes.c_void_p, ctypes.c_char_p, ctypes.c_int, ctypes.c_char),
                ret = ctypes.py_object)
         return f(self._c_pointer, chain_id.encode('utf-8'), pos, insert.encode('utf-8'))
+
+    @property
+    def frag_sel(self):
+        # special purpose function for the "connected fragment" selection level;
+        # returns a mask of connected fragment atoms involving currently selected atoms
+        f = c_function('structure_frag_sel', args = (ctypes.c_void_p,), ret = ctypes.py_object)
+        return f(self._c_pointer)
 
     @property
     def molecules(self):
@@ -1765,7 +1804,7 @@ class StructureData:
             create_arg = 0
         elif create_type == "normal":
             create_arg = 1
-        else:  # per-coordset
+        else:  # per coordset
             create_arg = 2
         f = c_function('structure_pseudobond_group',
                        args = (ctypes.c_void_p, ctypes.c_char_p, ctypes.c_int),
@@ -1794,6 +1833,12 @@ class StructureData:
         '''
         f = c_function('structure_reorder_residues', args = (ctypes.c_void_p, ctypes.py_object))
         f(self._c_pointer, [r._c_pointer.value for r in new_order])
+
+    def res_numbering_valid(self, res_numbering):
+        '''Is a particular residue-numbering scheme (author, UniProt) valid for this structure?'''
+        f = c_function('structure_res_numbering_valid', args = (ctypes.c_void_p, ctypes.c_int),
+            ret = ctypes.c_bool)
+        return f(self._c_pointer, res_numbering)
 
     @classmethod
     def restore_snapshot(cls, session, data):
@@ -1830,7 +1875,14 @@ class StructureData:
         f = c_function('structure_session_restore',
                 args = (ctypes.c_void_p, ctypes.c_int,
                         ctypes.py_object, ctypes.py_object, ctypes.py_object))
-        f(self._c_pointer, data['version'], tuple(data['ints']), tuple(data['floats']), tuple(data['misc']))
+        try:
+            f(self._c_pointer, data['version'], tuple(data['ints']), tuple(data['floats']),
+                tuple(data['misc']))
+        except TypeError as e:
+            if "Don't know how to restore new session data" in str(e):
+                from chimerax.core.session import RestoreError
+                raise RestoreError(str(e))
+            raise
         self._ses_end_handler = session.triggers.add_handler("end restore session",
             self._ses_restore_teardown)
 
@@ -1903,6 +1955,12 @@ class StructureData:
         f = c_function('set_structure_color',
                     args = (ctypes.c_void_p, ctypes.c_void_p))
         return f(self._c_pointer, pointer(rgba))
+
+    def set_res_numbering_valid(self, res_numbering, valid=True):
+        '''Indicate whether a particular residue-numbering scheme (author, UniProt) is valid for this structure'''
+        f = c_function('set_structure_res_numbering_valid',
+                    args = (ctypes.c_void_p, ctypes.c_int, ctypes.c_bool))
+        f(self._c_pointer, res_numbering, valid)
 
     def use_default_atom_radii(self):
         '''If some atoms' radii has previously been explicitly set, this call will

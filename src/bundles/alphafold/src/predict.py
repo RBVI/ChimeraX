@@ -11,26 +11,33 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def alphafold_predict(session, sequences, prokaryote = False):
+def alphafold_predict(session, sequences, minimize = True):
     if not _is_alphafold_available(session):
         return
     ar = show_alphafold_run(session)
     if ar.running:
         from chimerax.core.errors import UserError
         raise UserError('AlphaFold prediction currently running.  Can only run one at a time.')
-    ar.start(sequences, prokaryote)
+    ar.start(sequences, minimize)
+    return ar
 
 # ------------------------------------------------------------------------------
 #
 from chimerax.core.tools import ToolInstance
 class AlphaFoldRun(ToolInstance):
+    # Even though the notebook name alphafold21_predict_colab.ipynb suggests it is AlphaFold 2.1
+    # it has been updated to AlphaFold 2.2.0.  I am using the same file for the update so older
+    # ChimeraX versions make use of the latest AlphaFold version.
     _ipython_notebook_url = 'https://colab.research.google.com/github/RBVI/ChimeraX/blob/develop/src/bundles/alphafold/src/alphafold21_predict_colab.ipynb'
+    # Do not use alphafold_test_colab.ipynb since that was accidentally used by ChimeraX distributions
+    # from April 4, 2022 to May 25, 2022.  Bug #6958.  So use a new alphafold_test2_colab.ipynb instead.
+    # _ipython_notebook_url = 'https://colab.research.google.com/github/RBVI/ChimeraX/blob/develop/src/bundles/alphafold/src/alphafold_test2_colab.ipynb'
     def __init__(self, session, tool_name):
         ToolInstance.__init__(self, session, tool_name)
 
         self._running = False
         self._sequences = None	# List of Sequence or Chain instances
-        self._prokaryote = False
+        self._energy_minimize = True
         self._download_directory = None
 
         from chimerax.ui import MainToolWindow
@@ -56,10 +63,10 @@ class AlphaFoldRun(ToolInstance):
 
         tw.manage(placement=None)
 
-    def start(self, sequences, prokaryote = False):
+    def start(self, sequences, energy_minimize = True):
         colab_started = (self._sequences is not None)
         self._sequences = sequences
-        self._prokaryote = prokaryote
+        self._energy_minimize = energy_minimize
         if not colab_started:
             b = self._browser
             from Qt.QtCore import QUrl
@@ -84,8 +91,8 @@ class AlphaFoldRun(ToolInstance):
     def _set_colab_sequence(self):
         p = self._browser.page()
         seqs = ','.join(seq.ungapped() for seq in self._sequences)
-        if self._prokaryote:
-            seqs = 'prokaryote,' + seqs
+        if not self._energy_minimize:
+            seqs = 'dont_minimize,' + seqs
         set_seqs_javascript = ('document.querySelector("paper-input").setAttribute("value", "%s")'
                                % seqs + '; ' +
                               'document.querySelector("paper-input").dispatchEvent(new Event("change"))')
@@ -184,9 +191,9 @@ class AlphaFoldRun(ToolInstance):
             import zipfile
             with zipfile.ZipFile(path, 'r') as z:
                 z.extractall(self._download_directory)
-        self._open_prediction()
         self.session.logger.info('AlphaFold prediction finished\n' +
                                  'Results in %s' % self._download_directory)
+        self._open_prediction()
         self._download_directory = None  # Make next run go in a new directory
 
 # ------------------------------------------------------------------------------
@@ -217,7 +224,7 @@ def register_alphafold_predict_command(logger):
     from chimerax.atomic import SequencesArg
     desc = CmdDesc(
         required = [('sequences', SequencesArg)],
-        keyword = [('prokaryote', BoolArg)],
+        keyword = [('minimize', BoolArg)],
         synopsis = 'Predict a structure with AlphaFold'
     )
     register('alphafold predict', desc, alphafold_predict, logger=logger)

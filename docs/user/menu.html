@@ -126,14 +126,21 @@ Startup from the system command line uses the current shell directory instead.
   <b>Sequence...</b> <a href="findseq.html">find and select</a>
   a specified amino acid or nucleotide sequence or sequence pattern
   <li><a name="selectzone"></a>
-  <b>Zone...</b> select <b>atoms</b> or <b>residues</b>
+  <b>Zone...</b> 
+select <b>atoms</b> or <b>residues</b>
 within and/or beyond a specified distance from the currently selected atoms.
 If both the within (&lt;) and beyond (&gt;) options are checked, 
 both criteria must be met; for example, the atoms or residues must fall within 
 12 &Aring; of but farther away than 8 &Aring; from the current selection.
 <b>OK</b> performs the selection and closes the dialog, whereas
 <b>Apply</b> performs the selection without closing the dialog.
-See also: <a href="commands/atomspec.html#zones">zone atom specification</a>
+See also: 
+<a href="commands/select.html#zone"><b>select zone</b></a>,
+<a href="commands/atomspec.html#zones">zone atom specification</a>
+  <li><a name="selectcontacts"></a> <b>Contacts...</b> 
+use <a href="selectcontacts.html"><b>Select Contacts</b></a>
+to select atomic or chain-chain contacts based on specified criteria
+(<a href="selectcontacts.html">details...</a>)
   <li><b>Clear</b> &ndash; deselect any existing selection
   <li><b>Invert</b> &ndash; select all items that are currently unselected,
 deselect all items that are currently selected
@@ -323,12 +330,21 @@ Examples:
    </ul>
   <li><b>Residues</b>
     <ul>
-    <li><b>Name</b>
-    <li><b>Specifier</b></a> &ndash; chain ID and number
-    <li><b>Name Combo</b> &ndash; chain ID, name, and number
+    <li><b>Name</b> &ndash; for example, <b>TRP</b>
+    <li><b>Specifier</b></a> &ndash; chain ID and residue number
+    (<b>/A:183</b>)
+    <li><b>Name and Number</b> &ndash; residue name and number
+    (<b>TRP 183</b>)
+    <li><b>Chain, Name, Number</b> &ndash; chain ID, residue name, and number
+    (<b>/A TRP 183</b>)
     <li><b>1-Letter Code</b> &ndash; 1-letter code for standard
-    amino acid and nucleic acid residues, name for other residues
-    <li><b>1-Letter Code Combo</b> &ndash; as above plus chain ID and number
+    amino acid and nucleic acid residues (<i>e.g.</i>, <b>W</b>), 
+    full name for other residues (<i>e.g.</i>, <b>HOH</b>)
+    <li><b>Code and Number</b>
+    &ndash; as above plus residue number (<b>W 183</b>)
+    <li><b>Chain, Code, Number</b> 
+    &ndash; chain ID, 1-letter code, and residue number
+    (<b>/A W 183</b>)
     <li><b>Custom Text</b>
 &ndash; arbitrary text and/or values of
 <a href="attributes.html">attributes</a>, as described for the
@@ -504,5 +520,5 @@ target="_blank"><b>Tutorials</b></a>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-January 2022</address>
+May 2022</address>
 </body></html> 

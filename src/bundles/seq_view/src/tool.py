@@ -514,6 +514,7 @@ class SequenceViewer(ToolInstance):
         file_menu = menu.addMenu("File")
         save_as_menu = file_menu.addMenu("Save As")
         from chimerax.core.commands import run, StringArg
+        align_arg = "%s " % self.alignment if len(self.session.alignments.alignments) > 1 else ""
         fmts = [fmt for fmt in self.session.save_command.save_data_formats if fmt.category == "Sequence"]
         fmts.sort(key=lambda fmt: fmt.synopsis.casefold())
         for fmt in fmts:
@@ -527,6 +528,9 @@ class SequenceViewer(ToolInstance):
         file_menu.addAction(scf_action)
 
         edit_menu = menu.addMenu("Edit")
+        copy_action = QAction("Copy Sequence...", edit_menu)
+        copy_action.triggered.connect(self.show_copy_sequence_dialog)
+        edit_menu.addAction(copy_action)
         from chimerax.seqalign.cmd import alignment_program_name_args
         prog_to_arg = {}
         for arg, prog in alignment_program_name_args.items():
@@ -558,7 +562,6 @@ class SequenceViewer(ToolInstance):
             action.setChecked(hdr.shown)
             if not hdr.relevant:
                 action.setEnabled(False)
-            align_arg = "%s " % self.alignment if len(self.session.alignments.alignments) > 1 else ""
             action.triggered.connect(lambda *, action=action, hdr=hdr, align_arg=align_arg, self=self: run(
                 self.session, "seq header %s%s %s" % (align_arg, hdr.ident, "show" if action.isChecked() else "hide")))
             headers_menu.addAction(action)
@@ -568,10 +571,44 @@ class SequenceViewer(ToolInstance):
             if not hdr.relevant:
                 continue
             action = QAction(hdr.name, hdr_save_menu)
-            align_arg = "%s " % self.alignment if len(self.session.alignments.alignments) > 1 else ""
             action.triggered.connect(lambda *, hdr=hdr, align_arg=align_arg, self=self: run(
                 self.session, "seq header %s%s save browse" % (align_arg, hdr.ident)))
             hdr_save_menu.addAction(action)
+
+        numberings_menu = menu.addMenu("Numberings")
+        action = QAction("Overall", numberings_menu)
+        action.setCheckable(True)
+        action.setChecked(self.seq_canvas.show_ruler)
+        action.triggered.connect(lambda*, sc=self.seq_canvas, action=action:
+            setattr(sc, "show_ruler", action.isChecked()))
+        numberings_menu.addAction(action)
+        refseq_menu = numberings_menu.addMenu("Reference Sequence")
+        action = QAction("No Reference Sequence", refseq_menu)
+        action.setCheckable(True)
+        action.setChecked(self.alignment.reference_seq is None)
+        action.triggered.connect(lambda*, align_arg=align_arg, action=action, self=self:
+            run(self.session, "seq ref " + align_arg) if action.isChecked() else None)
+        refseq_menu.addAction(action)
+        for seq in self.alignment.seqs:
+            action = QAction(seq.name, refseq_menu)
+            action.setCheckable(True)
+            action.setChecked(self.alignment.reference_seq is seq)
+            action.triggered.connect(lambda*, seq_arg=StringArg.unparse(align_arg + ':' + seq.name),
+                action=action: run(self.session, "seq ref " + seq_arg) if action.isChecked() else None)
+            refseq_menu.addAction(action)
+        numberings_menu.addSeparator()
+        action = QAction("Left Sequence", numberings_menu)
+        action.setCheckable(True)
+        action.setChecked(self.seq_canvas.show_left_numbering)
+        action.triggered.connect(lambda*, sc=self.seq_canvas, action=action:
+            setattr(sc, "show_left_numbering", action.isChecked()))
+        numberings_menu.addAction(action)
+        action = QAction("Right Sequence", numberings_menu)
+        action.setCheckable(True)
+        action.setChecked(self.seq_canvas.show_right_numbering)
+        action.triggered.connect(lambda*, sc=self.seq_canvas, action=action:
+            setattr(sc, "show_right_numbering", action.isChecked()))
+        numberings_menu.addAction(action)
 
         tools_menu = menu.addMenu("Tools")
         comp_model_action = QAction("Modeller Comparative Modeling...", tools_menu)
@@ -598,23 +635,11 @@ class SequenceViewer(ToolInstance):
                 blast_action.triggered.connect(lambda: run(self.session,
                     "blastprotein %s" % (StringArg.unparse("%s:%d" % (self.alignment.ident, i+1)))))
                 blast_menu.addAction(blast_action)
+        if len(self.alignment.seqs) > 1:
+            identity_action = QAction("Percent Identity...", menu)
+            identity_action.triggered.connect(self.show_percent_identity_dialog)
+            tools_menu.addAction(identity_action)
 
-        """
-        #TODO: instead of completely launching from menu, just a top-level item that brings up
-        # a non-modal dialog for choosing structure and modeling areas (all missing; non-terminal;
-        # selection region; current region)
-        loop_menu = menu.addMenu("Loop Modeling")
-        if self.alignment.associations:
-            structs = set([chain.structure for chain in self.associations])
-            if len(structs) > 1:
-                for s in structs:
-                    struct_menu = loop_menu.addMenu(str(s))
-                    self._add_loop_action_menu(struct_menu, s)
-            else:
-                self._add_loop_action_menu(loop_menu, structs[0])
-        else:
-            loop_menu.setEnabled(False)
-        """
 
         # Whenever Region Browser and UniProt Annotations happen, the thought is to
         # put them in an "Annotations" menu (rather than "Info"); for now with only
@@ -678,6 +703,14 @@ class SequenceViewer(ToolInstance):
             self.associations_tool.tool_window.manage(None)
         self.associations_tool.tool_window.shown = True
 
+    def show_copy_sequence_dialog(self):
+        if not hasattr(self, "copy_sequence_dialog"):
+            from .copy_seq import CopySeqDialog
+            self.copy_sequence_dialog = CopySeqDialog(self,
+                self.tool_window.create_child_window("Copy Sequence", close_destroys=False))
+            self.copy_sequence_dialog.tool_window.manage(None)
+        self.copy_sequence_dialog.tool_window.shown = True
+
     def show_feature_browser(self, seq, *, state=None):
         if seq not in self._feature_browsers:
             from .feature_browser import FeatureBrowser
@@ -685,6 +718,14 @@ class SequenceViewer(ToolInstance):
                 self.tool_window.create_child_window("%s Features" % seq.name, close_destroys=False))
             self._feature_browsers[seq].tool_window.manage(None)
         self._feature_browsers[seq].tool_window.shown = True
+
+    def show_percent_identity_dialog(self):
+        if not hasattr(self, "percent_identity_dialog"):
+            from .identity import PercentIdentityDialog
+            self.percent_identity_dialog = PercentIdentityDialog(self,
+                self.tool_window.create_child_window("Percent Identity", close_destroys=False))
+            self.percent_identity_dialog.tool_window.manage(None)
+        self.percent_identity_dialog.tool_window.shown = True
 
     def show_settings(self):
         if not hasattr(self, "settings_tool"):

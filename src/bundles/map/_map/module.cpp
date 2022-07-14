@@ -97,6 +97,8 @@ static struct PyMethodDef map_cpp_methods[] =
    METH_VARARGS|METH_KEYWORDS, NULL},
   {const_cast<char*>("bin_counts"), (PyCFunction)bin_counts,
    METH_VARARGS|METH_KEYWORDS, NULL},
+  {const_cast<char*>("bin_counts_float64"), (PyCFunction)bin_counts_float64,
+   METH_VARARGS|METH_KEYWORDS, NULL},
   {const_cast<char*>("high_count"), (PyCFunction)high_count_py,
    METH_VARARGS|METH_KEYWORDS, NULL},
   {const_cast<char*>("high_indices"), (PyCFunction)high_indices_py,

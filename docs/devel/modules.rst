@@ -39,59 +39,59 @@ Commands and Tools
 .. toctree::
     :maxdepth: 1
 
-    core/commands/commands.rst
+    bundles/core/commands/commands.rst
 
-    core/tools.rst
+    bundles/core/tools.rst
 
-    core/toolshed.rst
+    bundles/core/toolshed.rst
 
 Data
   
 .. toctree::
     :maxdepth: 1
 
-    core/models.rst
+    bundles/core/models.rst
 
-    core/objects.rst
+    bundles/core/objects.rst
 
-    core/session.rst
+    bundles/core/session.rst
 
 Files
 
 .. toctree::
     :maxdepth: 1
 
-    core/fetch.rst
+    bundles/core/fetch.rst
 
-    core/history.rst
+    bundles/core/history.rst
 
-    core/safesave.rst
+    bundles/core/safesave.rst
 
-    core/serialize.rst
+    bundles/core/serialize.rst
 
-    core/settings.rst
+    bundles/core/settings.rst
 
 Notifications
 
 .. toctree::
     :maxdepth: 1
 
-    core/data_events.rst
+    bundles/core/data_events.rst
 
-    core/logger.rst
+    bundles/core/logger.rst
 
-    core/tasks.rst
+    bundles/core/tasks.rst
 
-    core/triggerset.rst
+    bundles/core/triggerset.rst
 
 Utility
 
 .. toctree::
     :maxdepth: 1
 
-    core/orderedset.rst
+    bundles/core/orderedset.rst
 
-    core/utils.rst
+    bundles/core/utils.rst
 
 Generic I/O
 -----------

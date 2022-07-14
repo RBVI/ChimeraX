@@ -10,6 +10,7 @@
 # including partial copies, of the software or any revisions
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
+import os
 
 def model(session, targets, *, block=True, multichain=True, custom_script=None,
           dist_restraints=None, executable_location=None, fast=False, het_preserve=False,
@@ -205,11 +206,21 @@ def model(session, targets, *, block=True, multichain=True, custom_script=None,
             templates_strings[i] = [template_string]
 
     from .common import write_modeller_scripts, get_license_key
-    script_path, config_path, temp_dir = write_modeller_scripts(get_license_key(session, license_key),
+    _license_key = get_license_key(session, license_key)
+    script_path, config_path, temp_dir = write_modeller_scripts(_license_key,
                                                                 num_models, het_preserve, water_preserve,
                                                                 hydrogens, fast, None, custom_script, temp_path,
                                                                 thorough_opt, dist_restraints)
-
+    config_as_json = {
+            "key": _license_key
+            , "version": 2
+            , "numModels": num_models
+            , "hetAtom": het_preserve
+            , "water": water_preserve
+            , "allHydrogen": hydrogens
+            , "veryFast": fast
+            , "loopInfo": None
+    }
     input_file_map = []
 
     # form the sequences to be written out as a PIR
@@ -248,7 +259,6 @@ def model(session, targets, *, block=True, multichain=True, custom_script=None,
             structures_to_save.add(chain.structure)
         pir_template.characters = '/'.join(strings)
         pir_seqs.append(pir_template)
-    import os.path
     pir_file = os.path.join(temp_dir.name, "alignment.ali")
     aln = session.alignments.new_alignment(pir_seqs, False, auto_associate=False, create_headers=False)
     aln.save(pir_file, format_name="pir")
@@ -266,7 +276,6 @@ def model(session, targets, *, block=True, multichain=True, custom_script=None,
     input_file_map.append((config_name, "text_file", config_path))
 
     # save structure files
-    import os
     struct_dir = os.path.join(temp_dir.name, "template_struc")
     if not os.path.exists(struct_dir):
         try:
@@ -294,7 +303,7 @@ def model(session, targets, *, block=True, multichain=True, custom_script=None,
             session.logger.warning("Thorough optimization only supported when executing locally")
         from .common import ModellerWebService
         job_runner = ModellerWebService(session, match_chains, num_models,
-                                        pir_target.name, input_file_map, config_name, targets)
+                                        pir_target.name, input_file_map, config_as_json, temp_dir, targets)
     else:
         # a custom script [only used when executing locally] needs to be copied into the tmp dir...
         if(

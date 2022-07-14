@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-AtomSearch" version="2.0"
+<BundleInfo name="ChimeraX-AtomSearch" version="2.0.1"
             package="chimerax.atom_search" purePython="false"
             installedIncludeDir="include" installedLibraryDir="lib"
             cython="true" cythonInclude="search_cpp"
@@ -21,14 +21,12 @@
 
   <CModule name="ast">
     <SourceFile>search_cpp/ast.pyx</SourceFile>
-    <Library>atomsearch</Library>
     <Library>atomstruct</Library>
   </CModule>
 
   <Dependencies>
     <Dependency name="ChimeraX-Core" version="~=1.0"/>
-    <Dependency name="ChimeraX-AtomSearchLibrary" build="true" version="~=1.0"/>
-    <Dependency name="ChimeraX-AtomicLibrary" build="true" version="~=5.0"/>
+    <Dependency name="ChimeraX-AtomicLibrary" build="true" version="~=7.0"/>
   </Dependencies>
 
   <Classifiers>

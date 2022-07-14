@@ -30,7 +30,10 @@
     <ChimeraXClassifier>Command :: alphafold fetch :: Structure Predictioo :: Fetch AlphaFold database models for a UniProt identifier</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: alphafold search :: Structure Prediction :: Search AlphaFold database using BLAST</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: alphafold predict :: Structure Prediction :: Predict a structure using AlphaFold</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: alphafold pae :: Structure Prediction :: Show AlphaFold predicted aligned error as heatmap</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: alphafold contacts :: Structure Prediction :: Show AlphaFold contact pseudobond colored by predicted aligned error</ChimeraXClassifier>
     <ChimeraXClassifier>Tool :: AlphaFold :: Structure Prediction :: Fetch or calculate AlphaFold structures</ChimeraXClassifier>
+    <ChimeraXClassifier>Tool :: AlphaFold Error Plot :: Structure Prediction :: Plot AlphaFold predicted aligned error</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

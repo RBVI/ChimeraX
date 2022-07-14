@@ -1,0 +1,31 @@
+--- qtconsole/console_widget.py.orig	2022-05-02 12:53:14.000000000 -0700
++++ qtconsole/console_widget.py	2022-05-02 12:53:42.000000000 -0700
+@@ -264,12 +264,7 @@
+         # information for subclasses; they should be considered read-only.
+         self._append_before_prompt_cursor = self._control.textCursor()
+         self._ansi_processor = QtAnsiCodeProcessor()
+-        if self.gui_completion == 'ncurses':
+-            self._completion_widget = CompletionHtml(self)
+-        elif self.gui_completion == 'droplist':
+-            self._completion_widget = CompletionWidget(self)
+-        elif self.gui_completion == 'plain':
+-            self._completion_widget = CompletionPlain(self)
++        self._completion_widget = CompletionWidget(self)
+ 
+         self._continuation_prompt = '> '
+         self._continuation_prompt_html = None
+@@ -787,13 +782,7 @@
+     def _set_completion_widget(self, gui_completion):
+         """ Set gui completion widget.
+         """
+-        if gui_completion == 'ncurses':
+-            self._completion_widget = CompletionHtml(self)
+-        elif gui_completion == 'droplist':
+-            self._completion_widget = CompletionWidget(self)
+-        elif gui_completion == 'plain':
+-            self._completion_widget = CompletionPlain(self)
+-
++        self._completion_widget = CompletionWidget(self)
+         self.gui_completion = gui_completion
+ 
+     def open_anchor(self, anchor):

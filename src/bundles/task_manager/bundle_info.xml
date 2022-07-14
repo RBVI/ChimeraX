@@ -1,5 +1,5 @@
 <BundleInfo name="ChimeraX-TaskManager" version="1.0"
-            package="chimerax.taskmanager"
+            package="chimerax.task_manager"
             minSessionVersion="1" maxSessionVersion="1">
 
   <Author>UCSF RBVI</Author>

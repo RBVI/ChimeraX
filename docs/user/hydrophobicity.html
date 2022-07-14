@@ -1,0 +1,165 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="userdocs.css" />
+<title>Amino Acid Hydrophobicity Scales</title>
+</head><body>
+
+<a name="top"></a>
+<a href="index.html">
+<img width="60px" src="ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3>Amino Acid Hydrophobicity Scales</h3>
+
+<p>
+The hydrophobicity scales tabulated below are provided as
+<a href="formats/defattr.html">attribute assignment files</a>
+for use in ChimeraX. See also: 
+<a href="attributes.html">attributes</a>,
+<a href="preferences.html#startup">custom preset example</a>,
+<a href="commands/mlp.html"><b>mlp</b></a>
+<a href="tools/moldisplay.html" title="Molecule Display Toolbar..."><img
+class="icon" border=1 src="tools/shortcut-icons/hydrophobicity.png"></a>,
+<a href="commands/setattr.html"><b>setattr</b></a>,
+<a href="commands/color.html#byattribute"><b>color byattribute</b></a>
+</p>
+
+<TABLE border cellpadding="2px" cellspacing="0px">
+<tr><th align="center">Residue Type</th>
+<th align="center">kdHydrophobicity<a href="#anote"><sup>a</sup></a></th>
+<th align="center">wwHydrophobicity<a href="#bnote"><sup>b</sup></a></th>
+<th align="center">hhHydrophobicity<a href="#cnote"><sup>c</sup></a></th>
+<th align="center">mfHydrophobicity<a href="#dnote"><sup>d</sup></a></th>
+<th align="center">ttHydrophobicity<a href="#enote"><sup>e</sup></a></th>
+</tr>
+<tr><td align=center>Ile</td> <td align=center>4.5</td>
+<td align=center>0.31</td> <td align=center>-0.60</td>
+<td align=center>-1.56</td><td align=center>1.97</td></tr>
+<tr><td align=center>Val</td> <td align=center>4.2</td>
+<td align=center>-0.07</td> <td align=center>-0.31</td>
+<td align=center>-0.78</td><td align=center>1.46</td></tr>
+<tr><td align=center>Leu</td> <td align=center>3.8</td>
+<td align=center>0.56</td> <td align=center>-0.55</td>
+<td align=center>-1.81</td><td align=center>1.82</td></tr>
+<tr><td align=center>Phe</td> <td align=center>2.8</td>
+<td align=center>1.13</td> <td align=center>-0.32</td>
+<td align=center>-2.20</td><td align=center>1.98</td></tr>
+<tr><td align=center>Cys</td> <td align=center>2.5</td>
+<td align=center>0.24</td> <td align=center>-0.13</td>
+<td align=center>0.49</td><td align=center>-0.30</td></tr>
+<tr><td align=center>Met</td> <td align=center>1.9</td>
+<td align=center>0.23</td> <td align=center>-0.10</td>
+<td align=center>-0.76</td><td align=center>1.40</td></tr>
+<tr><td align=center>Ala</td> <td align=center>1.8</td>
+<td align=center>-0.17</td> <td align=center>0.11</td>
+<td align=center>0.0</td><td align=center>0.38</td></tr>
+<tr><td align=center>Gly</td> <td align=center>-0.4</td>
+<td align=center>-0.01</td> <td align=center>0.74</td>
+<td align=center>1.72</td><td align=center>-0.19</td></tr>
+<tr><td align=center>Thr</td> <td align=center>-0.7</td>
+<td align=center>-0.14</td> <td align=center>0.52</td>
+<td align=center>1.78</td><td align=center>-0.32</td></tr>
+<tr><td align=center>Ser</td> <td align=center>-0.8</td>
+<td align=center>-0.13</td> <td align=center>0.84</td>
+<td align=center>1.83</td><td align=center>-0.53</td></tr>
+<tr><td align=center>Trp</td> <td align=center>-0.9</td>
+<td align=center>1.85</td> <td align=center>0.30</td>
+<td align=center>-0.38</td><td align=center>1.53</td></tr>
+<tr><td align=center>Tyr</td> <td align=center>-1.3</td>
+<td align=center>0.94</td> <td align=center>0.68</td>
+<td align=center>-1.09</td><td align=center>0.49</td></tr>
+<tr><td align=center>Pro</td> <td align=center>-1.6</td>
+<td align=center>-0.45</td> <td align=center>2.23</td>
+<td align=center>-1.52</td><td align=center>-1.44</td></tr>
+<tr><td align=center>His</td> <td align=center>-3.2</td>
+<td align=center>-0.96</td> <td align=center>2.06</td>
+<td align=center>4.76</td><td align=center>-1.44</td></tr>
+<tr><td align=center>Glu</td> <td align=center>-3.5</td>
+<td align=center>-2.02</td> <td align=center>2.68</td>
+<td align=center>1.64</td><td align=center>-2.90</td></tr>
+<tr><td align=center>Gln</td> <td align=center>-3.5</td>
+<td align=center>-0.58</td> <td align=center>2.36</td>
+<td align=center>3.01</td><td align=center>-1.84</td></tr>
+<tr><td align=center>Asp</td> <td align=center>-3.5</td>
+<td align=center>-1.23</td> <td align=center>3.49</td>
+<td align=center>2.95</td><td align=center>-3.27</td></tr>
+<tr><td align=center>Asn</td> <td align=center>-3.5</td>
+<td align=center>-0.42</td> <td align=center>2.05</td>
+<td align=center>3.47</td><td align=center>-1.62</td></tr>
+<tr><td align=center>Lys</td> <td align=center>-3.9</td>
+<td align=center>-0.99</td> <td align=center>2.71</td>
+<td align=center>5.39</td><td align=center>-3.46</td></tr>
+<tr><td align=center>Arg</td> <td align=center>-4.5</td>
+<td align=center>-0.81</td> <td align=center>2.58</td>
+<td align=center>3.71</td><td align=center>-2.57</td></tr>
+</TABLE>
+
+<p>
+<a name="anote"><sup><b>a</b></sup></a>
+<a href="https://www.ncbi.nlm.nih.gov/pubmed/7108955" target="_blank">
+A simple method for displaying the hydropathic character of a protein.</a>
+Kyte J, Doolittle RF.
+<i>J Mol Biol.</i> 1982 May 5;157(1):105-32.
+Attribute assignment file 
+<a href="formats/kdHydrophobicity.defattr">kdHydrophobicity.defattr</a>.
+</p><p>
+<a name="bnote"><sup><b>b</b></sup></a>
+<a href="https://www.ncbi.nlm.nih.gov/pubmed/8836100" target="_blank">
+Experimentally determined hydrophobicity scale for 
+proteins at membrane interfaces.</a>
+Wimley WC, White SH.
+<i>Nat Struct Biol.</i> 1996 Oct;3(10):842-8.
+Attribute assignment file 
+<a href="formats/wwHydrophobicity.defattr">wwHydrophobicity.defattr</a>.
+</p><p>
+<a name="cnote"><sup><b>c</b></sup></a>
+<a href="https://www.ncbi.nlm.nih.gov/pubmed/15674282" target="_blank">
+Recognition of transmembrane helices by the 
+endoplasmic reticulum translocon.</a>
+Hessa T, Kim H, Bihlmaier K, Lundin C, Boekel J, Andersson H, Nilsson I, 
+White SH, von Heijne G.
+<i>Nature.</i> 2005 Jan 27;433(7024):377-81, supplementary data.
+Attribute assignment file 
+<a href="formats/hhHydrophobicity.defattr">hhHydrophobicity.defattr</a>.
+In this scale, negative values indicate greater hydrophobicity.
+</p><p>
+<a name="dnote"><sup><b>d</b></sup></a>
+<a href="https://www.ncbi.nlm.nih.gov/pubmed/21606332" target="_blank">
+Side-chain hydrophobicity scale derived from transmembrane protein folding 
+into lipid bilayers.</a>
+Moon CP, Fleming KG.
+<i>Proc Natl Acad Sci USA.</i> 2011 Jun 21;108(25):10174-7, supplementary data.
+Attribute assignment file 
+<a href="formats/mfHydrophobicity.defattr">mfHydrophobicity.defattr</a>.
+In this scale, negative values indicate greater hydrophobicity.
+</p><p>
+<a name="enote"><sup><b>e</b></sup></a>
+<a href="https://www.ncbi.nlm.nih.gov/pubmed/16877712" target="_blank">
+An amino acid &ldquo;transmembrane tendency&rdquo; scale that approaches 
+the theoretical limit to accuracy for prediction of transmembrane helices:
+relationship to biological hydrophobicity.</a>
+Zhao G, London E.
+<i>Protein Sci.</i> 2006 Aug;15(8):1987-2001.
+Attribute assignment file 
+<a href="formats/ttHydrophobicity.defattr">ttHydrophobicity.defattr</a>
+(contributed by Shyam M. Saladi).
+</p>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics /
+February 2022</address>
+</body></html>

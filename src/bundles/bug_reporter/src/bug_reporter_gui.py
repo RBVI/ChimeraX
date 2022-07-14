@@ -5,7 +5,7 @@
 # All rights reserved.  This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
 # duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
 # This notice must be embedded in or attached to all copies,
 # including partial copies, of the software or any revisions
 # or derivations thereof.
@@ -13,7 +13,7 @@
 
 BUG_HOST = "www.rbvi.ucsf.edu"
 BUG_SELECTOR = "/chimerax/cgi-bin/chimerax_bug_report.py"
-BUG_URL = "http://" + BUG_HOST + BUG_SELECTOR
+BUG_URL = "https://" + BUG_HOST + BUG_SELECTOR
 
 # -----------------------------------------------------------------------------
 # User interface for bug reporter.
@@ -112,8 +112,10 @@ class BugReporter(ToolInstance):
         self.gathered_info = gi = TextEdit('', 3)
         import sys
         info = self.opengl_info()
+        import platform
+        info += f"\n\nPython: {platform.python_version()}\n"
         my_locale = [x for x in locale.getdefaultlocale() if x is not None]
-        info += f"\n\nLocale: {'.'.join(my_locale)}\n"
+        info += f"Locale: {'.'.join(my_locale)}\n"
         info += _qt_info(session)
         if sys.platform == 'win32':
             info += _win32_info()
@@ -236,6 +238,8 @@ class BugReporter(ToolInstance):
 
         # Add attachment to form data.
         file_list = self.read_attachment(entry_values['filename'])
+        if file_list is None:
+            return	# Attachment file not found.
         fields = [(k, None, v) for k,v in my_attrs.items()]
         fields.extend(file_list)
 
@@ -740,7 +744,7 @@ Manufacturer: {vendor}
 Model: {product}
 OS: {' '.join(distro.linux_distribution())}
 Architecture: {' '.join(platform.architecture())}
-Virutal Machine: {virtual_machine}
+Virtual Machine: {virtual_machine}
 CPU: {count} {model_name}
 Cache Size: {cache_size}
 Memory:
@@ -779,6 +783,7 @@ def _qt_info(session):
     import Qt
     return (
         f"Qt version: {Qt.version}\n"
+        f"Qt runtime version: {Qt.QtCore.qVersion()}\n"
         f"Qt platform: {session.ui.platformName()}\n"
     )
 

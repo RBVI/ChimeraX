@@ -73,6 +73,14 @@ is much larger than <b>PDB</b> alone and takes much longer to search
 &ndash; artificial-intelligence-predicted structures in the
 <a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold Database</a>
 (<a href="alphafold.html">more...</a>)
+   <li><b>uniref100</b> &ndash; 
+<a href="https://www.uniprot.org/help/uniref" 
+target="_blank">UniProt Reference (UniRef)</a> cluster at 100% identity
+(identical sequences and subfragments collapsed into a single entry)
+   <li><b>uniref90</b> &ndash; based on <b>uniref100</b>, but omitting
+sequences shorter than 11 residues and clustering at 90% identity
+   <li><b>uniref50</b> &ndash; based on <b>uniref100</b>, but omitting 
+sequences shorter than 11 residues and clustering at 50% identity
    </ul>
 <li><b># Sequences</b> (default <b>100</b>)
 &ndash; maximum number of unique sequences to return; more hits than this number
@@ -147,11 +155,21 @@ by clicking and dragging with the left mouse button;
 <b>Ctrl</b>-click (or <b>command</b>-click if using a Mac)
 toggles whether a row is chosen.
 The result panel's <a href="../window.html#context-menu">context menu</a> 
-can be used to fetch and superimpose all of the corresponding structures, or to
-show their <a href="#notes">multiple sequence alignment</a> with the query
-in the <a href="sequenceviewer.html"><b>Sequence Viewer</b></a>.
-</p><p>
-Some columns are available no matter which database is searched:
+can be used to:
+</p>
+<ul>
+<li><b>Load Structures</b> 
+&ndash; fetch and superimpose all of the corresponding structures, if any,
+for the chosen hits
+<li><b>Show Sequence Alignment</b> 
+&ndash; show the <a href="#notes">multiple sequence alignment</a> of the
+chosen hits with the query in the 
+<a href="sequenceviewer.html"><b>Sequence Viewer</b></a>
+<li><b>Show Database Webpage</b> 
+&ndash; show sequence database webpages for the chosen hits
+</ul>
+<p>
+Some columns of data are available no matter which database is searched:
 </p>
 <ul>
 <li><b>Hit #</b> &ndash; hit number (sorted by most significant
@@ -159,7 +177,7 @@ Some columns are available no matter which database is searched:
 <li><b>Name</b>
   <ul>
   <li>for PDB sequences, the corresponding PDB identifier, including the chain 
-  <li>for AlphaFold predictions, the corresponding
+  <li>for AlphaFold predictions or UniRef entries, the corresponding
 <a href="https://www.uniprot.org/help/entry_name"
 target="_blank">UniProt entry name</a>
   <li>otherwise, sequence GI number
@@ -171,7 +189,10 @@ target="_blank">NCBI Protein</a> database -->
 <a href="https://blast.ncbi.nlm.nih.gov/Blast.cgi?CMD=Web&PAGE_TYPE=BlastDocs&DOC_TYPE=FAQ#expect" target="_blank">Expect value</a>
 <li><b>Score</b> &ndash; alignment score
 <li><b>Title</b> &ndash; a brief description of the sequence
-<li><b>Species</b> &ndash; source organism
+<li><b>Species</b> &ndash; source organism,
+or for UniRef entries, the taxonomic range of source organisms in the 
+<a href="https://www.uniprot.org/help/uniref" 
+target="_blank">UniRef cluster</a> (typically broader than a single species)
 <!--
 <li><b>Description</b> 
 (or for AlphaFold, separate <b>Title</b> and <b>Species</b> columns)
@@ -195,7 +216,8 @@ target="_blank">version number</a>
 target="_blank">NCBI taxid</a> of the source organism
 </ul>
 <p>
-Additional columns for PDB entries (from searching PDB or NR):
+Additional columns for PDB entries (from searching PDB or other databases
+that include it, such as NR):
 </p>
 <ul>
 <li><b># Atoms</b>
@@ -228,8 +250,22 @@ target="_blank"><b>SMILES</b></a> strings of ligand chemical components
 target="_blank">PubMed</a> identifier of literature reference, if any
 <li><b>Resolution</b> &ndash; crystallographic resolution
 <li><b>UniProt ID</b>
-&ndash; <a href="https://www.uniprot.org/" target="_blank">UniProt</a>
-identifier, if any, for the hit chain
+&ndash; <a href="https://www.uniprot.org/help/accession_numbers" 
+target="_blank">UniProt accession number</a>, if any, for the hit chain
+</ul>
+<p>
+Additional columns for UniRef entries:
+</p>
+<ul>
+<li><b>Cluster ID</b> 
+&ndash; ID number of the <a href="https://www.uniprot.org/help/uniref"
+target="_blank">UniRef cluster</a> represented by the hit 
+<li><b>Cluster Size</b> 
+&ndash; number of sequences in the <a href="https://www.uniprot.org/help/uniref"
+target="_blank">UniRef cluster</a> represented by the hit 
+<li><b>UniProt ID</b>
+&ndash; <a href="https://www.uniprot.org/help/accession_numbers" 
+target="_blank">UniProt accession number</a>, if any, for the hit chain
 </ul>
 
 <a name="notes"></a>
@@ -265,5 +301,5 @@ Altschul SF, Gish W, Miller W, Myers EW, Lipman DJ.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-November 2021</address>
+April 2022</address>
 </body></html>

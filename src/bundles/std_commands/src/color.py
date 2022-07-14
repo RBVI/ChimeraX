@@ -1437,7 +1437,8 @@ def register_command(logger):
                             ('range', ColormapRangeArg),
                             ('no_value_color', ColorArg),
                             ('transparency', FloatArg),
-                            ('key', BoolArg)],
+                            ('key', BoolArg),
+                            ('log_info', BoolArg)],
                    synopsis="color atoms by bfactor")
     register('color byattribute', desc, color_by_attr, logger=logger)
     create_alias('color bfactor', 'color byattribute bfactor $*', logger=logger,

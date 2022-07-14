@@ -6,6 +6,12 @@ exclude = [
 ignore = [
     "src/bundles/**/build"
 ]
+[tool.yapf]
+# All changes must be PEP8 compatible
+blank_line_before_nested_class_or_def=true
+column_limit=95
+dedent_closing_brackets=true
+space_between_ending_comma_and_closing_bracket=false
 [tool.yapfignore]
 ignore_patterns = [
     ".venv",
@@ -39,19 +45,19 @@ flake8-ignore = [
     # Modeller script boilerplate
     "src/bundles/modeller/src/script_head.py ALL",
     "src/bundles/modeller/src/script_tail.py ALL",
-	# Imported but unused, star import, entity referenced after star
-	"**/__init__.py F401 F403 F405",
+    # Imported but unused, star import, entity referenced after star
+    "**/__init__.py F401 F403 F405",
     # Overhangig indent
     "E121",
     # Underhanging indent
     "E126",
     # Mandates no whitespace before comma, which is sensible, but
     # just as it's better to have all operators aligned, it's better
-    # to have all commas aligned. 
+    # to have all commas aligned.
     "E203",
-    # Mandates no spaces around keyword/parameter = 
+    # Mandates no spaces around keyword/parameter =
     "E251",
-    # Mandates two spaces before inline comment 
+    # Mandates two spaces before inline comment
     "E261",
     # Mandates two blank lines between functions
     "E302",
@@ -59,10 +65,12 @@ flake8-ignore = [
     "E306",
     # Disallows Multiple imports on one line
     "E401",
+	# Disallows long lines
+	"E501",
     # Disallows bare except statement
     "E722",
     # Disallows breaking before binary operators as in Haskell
-    # This can be removed when flake8 is updated to consider 
+    # This can be removed when flake8 is updated to consider
     # breaking before a binary operator as the best practice
     # (coming soon)
     "W503",

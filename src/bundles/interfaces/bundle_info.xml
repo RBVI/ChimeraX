@@ -15,9 +15,17 @@
 
   <Dependencies>
     <Dependency name="ChimeraX-Core" version="~=1.0"/>
+    <Dependency name="ChimeraX-DataFormats" version="~=1.0"/>
     <Dependency name="ChimeraX-Geometry" version="~=1.0"/>
     <Dependency name="ChimeraX-UI" version="~=1.0"/>
   </Dependencies>
+
+  <Providers manager="data formats">
+    <Provider name="Scalable Vector Graphics" synopsis="SVG image" nicknames="svg" category="Image" suffixes=".svg"
+		reference_url="https://en.wikipedia.org/wiki/Scalable_Vector_Graphics" />
+    <Provider name="Portable Document Format" synopsis="PDF document" nicknames="pdf" category="Image"
+		suffixes=".pdf" reference_url="https://en.wikipedia.org/wiki/PDF" />
+  </Providers>
 
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>

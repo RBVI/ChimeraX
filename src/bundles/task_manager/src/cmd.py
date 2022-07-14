@@ -20,19 +20,14 @@ def taskman(session: Session, action: str, job: str = None) -> None:
         if len(session.tasks.list()) == 0:
             session.logger.info("No tasks running")
         else:
-            session.logger.info("\n".join([str(task) for task in session.tasks.list()]))
+            session.logger.info("\n".join([str(task) for task in session.tasks.values()]))
     elif action == 'kill':
         if not job:
             raise UserError("Job keyword required for command 'kill'")
     elif action == 'pause':
         pass
     else:
-        raise UserError("Unsupported action.")
-#    match action:
-#        case 'list':
-#            pass
-#        case _:
-#            raise UserError("Unsupported action.")
+        raise UserError("Unsupported action. Please use one of [list, kill, pause].")
 
 taskman_desc: CmdDesc = CmdDesc(
     required = [("action", StringArg)],

@@ -43,6 +43,7 @@ _additional_categories = (
     "citation_author",
     "citation_editor",
     "chem_comp",
+    "database_2",	# EMDB map reference
     "exptl",
     "refine",
     "reflns",
@@ -193,6 +194,19 @@ def _get_formatted_metadata(model, session, *, verbose=False):
             html += _process_src(gen, "Host organism%s", [
                 'host_org_common_name', 'pdbx_host_org_scientific_name', 'host_org_genus',
                 'host_org_species', 'pdbx_host_org_ncbi_taxonomy_id'])
+
+    # EMDB map
+    database_2 = get_mmcif_tables_from_metadata(model, ["database_2"], metadata=metadata)[0]
+    if database_2:
+        for id, code in database_2.fields(['database_id', 'database_code']):
+            if id == 'EMDB' and code.startswith('EMD-'):
+                entry_id = code[4:]
+                emdb_link = '<a href="https://www.ebi.ac.uk/emdb/EMD-%s">EMDB %s</a>' % (entry_id, entry_id)
+                emdb_load = '<a href="cxcmd:open %s from emdb">open map</a>' % entry_id
+                html += '  <tr>\n'
+                html += '   <th>CryoEM Map</th>\n'
+                html += '   <td>%s &mdash; %s</td>\n' % (emdb_link, emdb_load)
+                html += '  </tr>\n'
 
     # experimental method; resolution
     experiment = get_mmcif_tables_from_metadata(model, ["exptl"], metadata=metadata)[0]
@@ -394,9 +408,13 @@ def fetch_mmcif_pdbj(session, pdb_id, **kw):
 def _get_template(session, name):
     """Get Chemical Component Dictionary (CCD) entry"""
     from chimerax.core.fetch import fetch_file
+    from urllib.parse import quote as url_quote
+    if not name.isprintable():
+        session.logger.warning("Non-printable residue name.  Corrupt mmCIF file?")
+        return None
     filename = '%s.cif' % name
-    url = "http://ligand-expo.rcsb.org/reports/%s/%s/%s.cif" % (name[0], name,
-                                                                name)
+    url_path = url_quote(f"reports/{name[0]}/{name}/{name}.cif")
+    url = f"http://ligand-expo.rcsb.org/{url_path}"
     try:
         return fetch_file(session, url, 'CCD %s' % name, filename, 'CCD')
     except (UserError, OSError):
@@ -1141,6 +1159,8 @@ def fetch_ccd(session, ccd_id, ignore_cache=False):
         new_a0 = new_atoms[atoms[0]]
         new_a1 = new_atoms[atoms[1]]
         new_structure.new_bond(new_a0, new_a1)
+    from chimerax.atomic import connect
+    connect.find_and_add_metal_coordination_bonds(new_structure)
 
     from chimerax.pdb import process_chem_name
     new_structure.html_title = process_chem_name(ccd.description)

@@ -231,6 +231,24 @@ class UniProtSequenceArg(Annotation):
         if uname is not None:
             seq.uniprot_name = uname
         return seq, used, rest
+                
+class UniProtIdArg(Annotation):
+    name = 'UniProt id'
+    
+    @classmethod
+    def parse(cls, text, session):
+        uid, used, rest = StringArg.parse(text, session)
+        if not is_uniprot_id(uid):
+            raise AnnotationError('Invalid UniProt identifier "%s"' % uid)
+        if '_' in uid:
+            from chimerax.uniprot import map_uniprot_ident
+            try:
+                uid = map_uniprot_ident(uid, return_value = 'entry')
+            except Exception:
+                raise AnnotationError('UniProt name "%s" must be 1-5 characters followed by an underscore followed by 1-5 characters' % uid)
+        if len(uid) not in (6, 10):
+            raise AnnotationError('UniProt id "%s" must be 6 or 10 characters' % uid)
+        return uid.upper(), used, rest
 
 def is_uniprot_id(text):
     # Name and accession format described here.
@@ -658,10 +676,15 @@ def concise_residue_spec(session, residues):
             chain_id_index_map[cid] = i
         specs = {}
         for struct, chain_id, chain_residues in struct_residues.by_chain:
-            sort_residues = list(chain_residues)
-            sort_residues.sort(key=lambda res: (res.number, res.insertion_code))
-            specs.setdefault(':' + _form_range(sort_residues, res_index_map, lambda r:
-                r.string(omit_structure=True, style="command", residue_only=True)[1:]), []).append(chain_id)
+            # if chain_residues is all the residues with that chain ID, don't need a residue spec
+            if len(struct.residues[struct.residues.chain_ids == chain_id]) == len(chain_residues):
+                spec = ""
+            else:
+                sort_residues = list(chain_residues)
+                sort_residues.sort(key=lambda res: (res.number, res.insertion_code))
+                spec = ':' + _form_range(sort_residues, res_index_map, lambda r:
+                    r.string(omit_structure=True, style="command", residue_only=True)[1:])
+            specs.setdefault(spec, []).append(chain_id)
 
         if full_spec:
             full_spec += ' '

@@ -11,6 +11,9 @@
 #
 #	https://github.com/gregneagle/relocatable-python
 #
+# Before using this Makefile need to set the Python version in chimerax/mk/config.make
+# and also comment out the setting SSL_CERT_FILE in config.make.
+#
 # There is a Python ticket to distribute a relocatable framework for macOS
 #
 #	https://bugs.python.org/issue42514
@@ -23,13 +26,19 @@ PYTHON_PATCH_LEVEL = $(PYTHON_VERSION).$(PYTHON_PATCH_VERSION)
 
 ifeq ($(OSARCH),DarwinIntel64)
 	DISTRIBUTION = python-$(PYTHON_PATCH_LEVEL)-mac.tar.bz2
+	MACOS_VER = 10.9
 else ifeq ($(OSARCH),DarwinArm64)
 	DISTRIBUTION = python-$(PYTHON_PATCH_LEVEL)-mac-arm.tar.bz2
+	MACOS_VER = 11
 endif
 
 all : $(DISTRIBUTION)
 
 $(DISTRIBUTION):
+	# Move the user's Python directory so we can build relocatable Python cleanly
+	if [ -d ~/Library/Python/$(PYTHON_VERSION)/ ]; then \
+		mv ~/Library/Python/$(PYTHON_VERSION) ~/Library/Python/$(PYTHON_VERSION).backup; \
+	fi
 	git clone git@github.com:gregneagle/relocatable-python.git
 	# Create requirements.txt to pip install certifi
 	cd relocatable-python && \
@@ -37,7 +46,7 @@ $(DISTRIBUTION):
 	cd relocatable-python && \
 	./make_relocatable_python_framework.py \
 		   --python-version $(PYTHON_PATCH_LEVEL) \
-		   --os-version $(MACOSV1) \
+		   --os-version $(MACOS_VER) \
 		   --pip-requirements requirements.txt \
 		   --upgrade-pip
 	# For Python ssl to find the certifi certificates need this symbolic link
@@ -46,3 +55,7 @@ $(DISTRIBUTION):
 	cd relocatable-python && \
 	tar jcf $(DISTRIBUTION) Python.framework
 	mv relocatable-python/$(DISTRIBUTION) .
+	# Restore the user's Python directory
+	if [ -d ~/Library/Python/$(PYTHON_VERSION).backup ]; then \
+		mv ~/Library/Python/$(PYTHON_VERSION).backup ~/Library/Python/$(PYTHON_VERSION); \
+	fi

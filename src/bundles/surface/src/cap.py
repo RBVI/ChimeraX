@@ -24,7 +24,7 @@ def update_clip_caps(view):
                 (view.camera.redraw_needed and cp.have_camera_plane()))))
     # TODO: Update caps only on specific drawings whose shape changed.
     if update:
-        drawings = view.drawing.all_drawings(displayed_only = True)
+        drawings = view.drawing.all_drawings()
         show_surface_clip_caps(planes, drawings,
                                offset = settings.clipping_cap_offset,
                                subdivision = settings.clipping_cap_subdivision,
@@ -33,6 +33,8 @@ def update_clip_caps(view):
 def show_surface_clip_caps(planes, drawings, offset = 0.01, subdivision = 0.0, cap_meshes = False):
     for p in planes:
         for d in drawings:
+            if d.was_deleted:
+                continue	# Cap drawing that was removed.
             # Clip only drawings that have "clip_cap" attribute true.
             if _drawing_shows_caps(d, cap_meshes):
                 varray, narray, tarray = compute_cap(d, p, offset, subdivision)
@@ -47,7 +49,8 @@ def show_surface_clip_caps(planes, drawings, offset = 0.01, subdivision = 0.0, c
             _remove_cap(cap.clip_cap_owner, cap.clip_plane_name)
 
 def _drawing_shows_caps(d, cap_meshes = False):
-    return (getattr(d, 'clip_cap', False)
+    return (d.display and d.parents_displayed and
+            getattr(d, 'clip_cap', False)
             and d.triangles is not None
             and not hasattr(d, 'clip_cap_owner')
             and (cap_meshes or d.display_style != d.Mesh))
@@ -176,7 +179,7 @@ def set_cap_drawing_geometry(drawing, plane_name, varray, narray, tarray):
         if np == 1:
             cm = _new_cap(d, plane_name)
         else:
-            cm = _new_cap(d, plane_name + ' ' + d.name, parent = d.parent)
+            cm = _new_cap(d, plane_name, parent = _parent_above_instances(d))
             cm.pickable = False	  # Don't want pick of one cap to pick all instance caps.
 
     cm.set_geometry(varray, narray, tarray)
@@ -197,11 +200,19 @@ def _new_cap(drawing, plane_name, parent = None):
         parent.add([c])
     else:
         # Cap is on a Drawing that is not a Model
-        c = ClipCapDrawing(cap_name)
+        c = ClipCapDrawing(plane_name, drawing)
         c.name = cap_name
         parent.add_drawing(c)
     
     return c
+
+def _parent_above_instances(drawing):
+    p = None
+    for d in drawing.parent.drawing_lineage:
+        if d.num_displayed_positions > 1:
+            return p
+        p = d
+    return p
 
 from chimerax.core.models import Surface
 class ClipCap(Surface):
@@ -228,7 +239,10 @@ class ClipCap(Surface):
 
     @staticmethod
     def restore_snapshot(session, data):
-        c = ClipCap(data['clip_plane_name'], data['clip_cap_owner'])
+        drawing = data['clip_cap_owner']
+        if drawing is None:
+            return None	# Volume surface was not restored, so cannot restore cap.
+        c = ClipCap(data['clip_plane_name'], drawing)
         Surface.set_state_from_snapshot(c, session, data['model state'])
         return c
 

@@ -1,6 +1,6 @@
 ..  vim: set expandtab shiftwidth=4 softtabstop=4:
 
-.. 
+..
     === UCSF ChimeraX Copyright ===
     Copyright 2016 Regents of the University of California.
     All rights reserved.  This software provided pursuant to a
@@ -26,6 +26,11 @@ Documentation Strings should follow Python's documentation style
 given in `Chapter 7 <http://docs.python.org/devguide/documenting.html>`_
 of the `Python Developer's Guide <http://docs.python.org/devguide/index.html>`_.
 So use `reStructuredText (reST) as extended by Sphinx <http://sphinx-doc.org/latest/rest.html>`_.
+
+The docstrings of :class:`.MainToolWindow` and :py:meth:`.MainToolWindow.create_child_window()`
+can serve as reference docstrings. Specifying an argument's type is not necessary; if :pep:`484`
+style type hints are used, Sphinx (through the spinx_autodoc_typehints extension) will pick
+them up automatically.
 
 Editor defaults
 ---------------

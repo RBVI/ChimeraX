@@ -43,9 +43,9 @@ class _gltfBundle(BundleAPI):
                 @property
                 def save_args(self):
                     from chimerax.core.commands import BoolArg, ModelsArg, Float3Arg, \
-                        FloatArg
+                        FloatArg, Or
                     return {
-                        'center': Float3Arg,
+                        'center': Or(BoolArg, Float3Arg),
                         'float_colors': BoolArg,
                         'models': ModelsArg,
                         'preserve_transparency': BoolArg,

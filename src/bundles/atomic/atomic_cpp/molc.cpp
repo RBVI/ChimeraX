@@ -1470,6 +1470,46 @@ extern "C" EXPORT PyObject *atom_intra_bonds(void *atoms, size_t n)
     }
 }
 
+extern "C" EXPORT PyObject *structure_frag_sel(void *mol)
+{
+    Structure *m = static_cast<Structure *>(mol);
+    PyObject *o = NULL;
+    std::set<Atom *> current_sel;
+    std::set<Atom *> next_layer, prev_layer;
+    try {
+        for (auto a: m->atoms()) {
+            if (a->selected()) {
+                current_sel.insert(a);
+                prev_layer.insert(a);
+            }
+        }
+        do {
+            // lacks the Chimera 1 logic where selected chain-trace pseudobonds
+            // select their residues; not sure it's necessary (and can be added if so)
+            next_layer.clear();
+            for (auto la: prev_layer) {
+                for (auto nb: la->neighbors()) {
+                    if (la->residue()->chain_id() != nb->residue()->chain_id())
+                        continue;
+                    if (current_sel.find(nb) != current_sel.end())
+                        continue;
+                    next_layer.insert(nb);
+                }
+            }
+            current_sel.insert(next_layer.begin(), next_layer.end());
+            prev_layer = next_layer;
+        } while (!next_layer.empty());
+
+        unsigned char *sels;
+        o = python_bool_array(m->atoms().size(), &sels);
+        for (auto a: m->atoms())
+            *sels++ = current_sel.find(a) != current_sel.end();
+    } catch (...) {
+        molc_error();
+    }
+    return o;
+}
+
 // -------------------------------------------------------------------------
 // bond functions
 //
@@ -4391,6 +4431,27 @@ extern "C" EXPORT void structure_change_tracker(void *mols, size_t n, pyobject_t
     }
 }
 
+extern "C" EXPORT bool structure_res_numbering_valid(void *mol, int res_numbering)
+{
+    Structure *m = static_cast<Structure *>(mol);
+    try {
+        return m->res_numbering_valid(static_cast<atomstruct::ResNumbering>(res_numbering));
+    } catch (...) {
+        molc_error();
+        return false;
+    }
+}
+
+extern "C" EXPORT void set_structure_res_numbering_valid(void *mol, int res_numbering, bool valid)
+{
+    Structure *m = static_cast<Structure *>(mol);
+    try {
+        m->set_res_numbering_valid(static_cast<atomstruct::ResNumbering>(res_numbering), valid);
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" EXPORT void structure_ribbon_tether_scale(void *mols, size_t n, float32_t *ribbon_tether_scale)
 {
     Structure **m = static_cast<Structure **>(mols);
@@ -4606,6 +4667,23 @@ extern "C" EXPORT void structure_ring_display_count(void *mols, size_t n, int32_
 {
     Structure **m = static_cast<Structure **>(mols);
     error_wrap_array_get(m, n, &Structure::ring_display_count, ring_display_count);
+}
+
+extern "C" EXPORT void structure_res_numbering(void *mols, size_t n, int32_t *res_numbering)
+{
+    Structure **m = static_cast<Structure **>(mols);
+    error_wrap_array_get(m, n, &Structure::res_numbering, res_numbering);
+}
+
+extern "C" EXPORT void set_structure_res_numbering(void *mols, size_t n, int32_t *res_numbering)
+{
+    Structure **m = static_cast<Structure **>(mols);
+    try {
+        for (size_t i = 0; i < n; ++i)
+            m[i]->set_res_numbering(static_cast<atomstruct::ResNumbering>(res_numbering[i]));
+    } catch (...) {
+        molc_error();
+    }
 }
 
 extern "C" EXPORT void structure_pbg_map(void *mols, size_t n, pyobject_t *pbgs)

@@ -1,5 +1,5 @@
 # distutils: language=c++
-#cython: language_level=3, boundscheck=False, auto_pickle=False 
+# cython: language_level=3, boundscheck=False, auto_pickle=False
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
@@ -744,6 +744,8 @@ cdef class CyAtom:
             atoms = self.residue.atoms
             if len(atoms.filter(atoms.names == self.name)) > 1:
                 atom_str = '@@serial_number=' + str(self.serial_number)
+            elif self.name.endswith('-'):
+                atom_str = '@@name="' + self.name + '"'
             else:
                 atom_str = '@' + self.name
         else:
@@ -1269,6 +1271,10 @@ cdef class CyResidue:
 
     @omega.setter
     def omega(self, val):
+        self.set_omega(val)
+
+    # Cython doesn't seem to allow **kw in a property setter despite always_allow_keywords=True, so...
+    def set_omega(self, val, **kw):
         cur_omega = self.omega
         if cur_omega is None:
             return
@@ -1285,7 +1291,7 @@ cdef class CyResidue:
             i = prev_c.neighbors.index(n)
         except IndexError:
             return
-        _set_angle(self.session, prev_c, prev_c.bonds[i], val, cur_omega, "omega")
+        _set_angle(self.session, prev_c, prev_c.bonds[i], val, cur_omega, "omega", **kw)
 
     @property
     def one_letter_code(self):
@@ -1317,6 +1323,10 @@ cdef class CyResidue:
 
     @phi.setter
     def phi(self, val):
+        self.set_phi(val)
+
+    # Cython doesn't seem to allow **kw in a property setter despite always_allow_keywords=True, so...
+    def set_phi(self, val, **kw):
         cur_phi = self.phi
         if cur_phi is None:
             return
@@ -1326,7 +1336,7 @@ cdef class CyResidue:
             i = n.neighbors.index(ca)
         except IndexError:
             return
-        _set_angle(self.session, n, n.bonds[i], val, cur_phi, "phi")
+        _set_angle(self.session, n, n.bonds[i], val, cur_phi, "phi", **kw)
 
     @property
     def psi(self):
@@ -1354,6 +1364,10 @@ cdef class CyResidue:
 
     @psi.setter
     def psi(self, val):
+        self.set_psi(val)
+
+    # Cython doesn't seem to allow **kw in a property setter despite always_allow_keywords=True, so...
+    def set_psi(self, val, **kw):
         cur_psi = self.psi
         if cur_psi is None:
             return
@@ -1363,7 +1377,7 @@ cdef class CyResidue:
             i = ca.neighbors.index(c)
         except IndexError:
             return
-        _set_angle(self.session, ca, ca.bonds[i], val, cur_psi, "psi")
+        _set_angle(self.session, ca, ca.bonds[i], val, cur_psi, "psi", **kw)
 
     PT_NONE, PT_AMINO, PT_NUCLEIC = range(3)
     PT_PROTEIN = PT_AMINO
@@ -1471,6 +1485,11 @@ cdef class CyResidue:
         "Supported API. Whether any atom in the residue is selected."
         if self._deleted: raise RuntimeError("Residue already deleted")
         return self.cpp_res.selected()
+
+    RN_AUTHOR, RN_CANONICAL, RN_UNIPROT = range(3)
+    def set_number(self, numbering, num):
+        if self._deleted: raise RuntimeError("Residue already deleted")
+        self.cpp_res.set_number(numbering, num)
 
     @property
     def standard_aa_name(self):
@@ -1674,7 +1693,8 @@ cdef class CyResidue:
             res_str = ":" + str(self.number) + ic
         if residue_only:
             return res_str
-        chain_str = '/' + (self.chain_id if self.chain_id and not self.chain_id.isspace() else "?")
+        from chimerax.atomic import Chain
+        chain_str = Chain.chain_id_to_atom_spec(self.chain_id)
         if omit_structure is None:
             from .structure import Structure
             omit_structure = len([s for s in self.structure.session.models.list()
@@ -1728,8 +1748,9 @@ cdef class CyResidue:
         except KeyError:
             return None
 
-def _set_angle(session, torsion_atom2, bond, new_angle, cur_angle, attr_name):
-    br = session.bond_rotations.new_rotation(bond)
+def _set_angle(session, torsion_atom2, bond, new_angle, cur_angle, attr_name, **kw):
+    br = session.bond_rotations.new_rotation(bond, **kw)
     br.angle += new_angle - cur_angle
     res = bond.atoms[0].residue
     res.structure.change_tracker.add_modified(res, attr_name + " changed")
+    session.bond_rotations.delete_rotation(br)

@@ -23,6 +23,9 @@ class _AlphaFoldBundle(BundleAPI):
         elif tool_name == 'AlphaFold Coloring':
             from . import colorgui
             return colorgui.show_alphafold_coloring_panel(session)
+        elif tool_name == 'AlphaFold Error Plot':
+            from . import pae
+            return pae.show_alphafold_error_plot_panel(session)
 
     @staticmethod
     def register_command(command_name, logger):
@@ -38,6 +41,12 @@ class _AlphaFoldBundle(BundleAPI):
         elif command_name == 'alphafold predict':
             from . import predict
             predict.register_alphafold_predict_command(logger)
+        elif command_name == 'alphafold pae':
+            from . import pae
+            pae.register_alphafold_pae_command(logger)
+        elif command_name == 'alphafold contacts':
+            from . import contacts
+            contacts.register_alphafold_contacts_command(logger)
 
     @staticmethod
     def run_provider(session, name, mgr):
@@ -47,7 +56,8 @@ class _AlphaFoldBundle(BundleAPI):
                 def fetch(self, session, ident, format_name, ignore_cache, **kw):
                     from .fetch import alphafold_fetch
                     return alphafold_fetch(session, ident, ignore_cache=ignore_cache,
-                                           add_to_session=False, **kw)
+                                           add_to_session=False, in_file_history=False,
+                                           **kw)
                 @property
                 def fetch_args(self):
                     from chimerax.core.commands import BoolArg, Or, EnumOf

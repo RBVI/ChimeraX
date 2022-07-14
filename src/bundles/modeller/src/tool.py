@@ -302,7 +302,7 @@ class ModellerLauncher(ToolInstance):
         run(
             self.session
             , ("modeller %s %s numModels %d fast %s " % (sub_cmd, " ".join(aln_seq_args),
-               self.settings.num_models, repr(self.settings.fast).lower()) + specific_args + (" tempPath %s"
+               self.settings.num_models, repr(self.settings.fast).lower()) + specific_args + (" directory %s"
                % FileNameArg.unparse(self.settings.temp_path) if self.settings.temp_path else ""))
         )
         self.delete()

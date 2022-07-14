@@ -53,18 +53,25 @@ class CommandLine(ToolInstance):
             def dragEnterEvent(self, event):
                 if event.mimeData().text():
                     event.acceptProposedAction()
-                    if sys.platform == "linux":
+                    if sys.platform == "linux" and not self._drop_hack:
                         if "file://" not in self.lineEdit().text():
                             self._drop_hack = True
                             self.editTextChanged.connect(self._drop_hack_cb)
 
+            # On Linux, not only do you not get the drop event, but
+            # dragLeaveEvent is called immediately after dragEnterEvent,
+            # before the release for the drop has even happened, so can't
+            # depend on dragLeaveEvent to make the hack more reliable
+            """
             def dragLeaveEvent(self, event):
                 if self._drop_hack:
                     self._drop_hack = False
                     self.editTextChanged.disconnect(self._drop_hack_cb)
+            """
 
             def dropEvent(self, event):
-                text = event.mimeData().text()
+                from urllib.parse import unquote
+                text = unquote(event.mimeData().text())
                 if text.startswith("file://"):
                     text = text[7:]
                     if sys.platform.startswith("win") and text.startswith('/'):
@@ -78,7 +85,12 @@ class CommandLine(ToolInstance):
                 self._drop_hack = False
                 self.editTextChanged.disconnect(self._drop_hack_cb)
                 if "file://" in new_text:
-                    self.lineEdit().setText(new_text.replace("file://", ""))
+                    # Since we are getting the text of the entire line
+                    # rather than just the dropped text, we have no
+                    # ability to quotes spaces properly if needed
+                    fixed_up = "".join([c for c in new_text.replace(
+                        "file://", "") if c.isprintable()])
+                    self.lineEdit().setText(fixed_up)
 
             def focusInEvent(self, event):
                 self._out_selection = None
@@ -193,6 +205,12 @@ class CommandLine(ToolInstance):
         if self.settings.startup_commands:
             # prevent the startup command output from being summarized into 'startup messages' table
             self._handlers.append(session.ui.triggers.add_handler('ready', self._run_startup_commands))
+        # on Windows Qt6, the descender of 'g' is cut off unless we make
+        # the line edit slightly taller
+        if sys.platform.startswith("win"):
+            from Qt.QtCore import QTimer
+            QTimer.singleShot(0, lambda *args, le=self.text.lineEdit():
+                    le.setMinimumHeight(le.height()+1))
 
     def cmd_clear(self):
         self.text.lineEdit().clear()

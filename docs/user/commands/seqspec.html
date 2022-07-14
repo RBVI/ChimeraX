@@ -25,20 +25,21 @@ class="clRight" title="User Guide Index"/></a>
 
 <h2>Command-Line Sequence Specification</h2>
 <p>
-Some <a href="../index.html#commands">commands</a>
-(<a href="blastprotein.html"><b>blastprotein</b></a>, <i>etc.</i>)
-<!-- blastprotein, modeller, sequence -->
-allow or require specifying a sequence from an &ldquo;alignment&rdquo;
-of one or more sequences open in ChimeraX.
-</p>
-Command-line specification of a sequence is by alignment ID, 
-as reported in the title bar of the
+Certain <a href="../index.html#commands">commands</a>
+(<a href="blastprotein.html"><b>blastprotein</b></a> and others)
+<!-- blastprotein, modeller, sequence, alphafold predict -->
+allow specifying a sequence from a ChimeraX
+<a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a> window.
+The &ldquo;alignment&rdquo; in the window may contain one or more sequences.
+</p><p>
+The sequence is specified by alignment ID, as reported in the title bar of the
 <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a> window,
-and the name or index number of the sequence in the alignment,
-in the form:
+and the name or index number of the sequence in the alignment, in the form:
+</p>
 <blockquote><b>
 <i>alignment-ID</i>:<i>sequence-ID</i>
 </b></blockquote>
+<p>
 ... enclosed in quotation marks if 
 <i>alignment-ID</i> or <i>sequence-ID</i> includes spaces.
 </p><p>
@@ -46,11 +47,12 @@ The index number can be a positive integer <i>N</i>
 for the <i>N</i><sup>th</sup> sequence in the alignment,
 or negative for the <i>N</i><sup>th</sup>-to-last sequence.
 For example, 
+</p>
 <blockquote>
 <b>super8.msf:-2</b> 
 </blockquote>
+<p>
 specifies the next-to-last sequence in alignment super8.msf.
-</p><p>
 The alignment ID and colon (:) can be omitted if only one alignment is open
 or the sequence name given is unique across all alignments.
 </p><p>
@@ -60,5 +62,5 @@ See also:
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-May 2019</address>
+January 2022</address>
 </body></html> 

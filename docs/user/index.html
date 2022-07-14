@@ -88,12 +88,18 @@ src="triangled.png" width=10 height=10/>&nbsp;<b>Tools</b></li>
 &ndash; get protein structures predicted by
 <a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold</a> 
 artificial intelligence</li>
+<li><a href="tools/alphafold.html#pae"><b>AlphaFold Error Plot</b></a>
+&ndash; plot 
+<a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold</a>
+estimated residue-residue distance errors</li>
 <li><a href="tools/altlocexplorer.html"><b>Altloc Explorer</b></a></li>
 <li><a href="tools/angles.html"><b>Angles/Torsions</b></a></li>
 <li><a href="tools/basicactions.html"><b>Basic Actions</b></a></li>
 <li><a href="tools/blastprotein.html"><b>Blast Protein</b></a></li>
 <li><a href="tools/buildstructure.html"><b>Build Structure</b></a></li>
 <li><a href="tools/cagebuilder.html"><b>Cage Builder</b></a></li>
+<li><a href="tools/changechains.html"><b>Change Chain IDs</b></a></a>
+<li><a href="tools/checkwaters.html"><b>Check Waters</b></a></li>
 <li><a href="tools/clashes.html"><b>Clashes</b></a></li>
 <li><a href="tools/coloractions.html"><b>Color Actions</b></a></li>
 <li><a href="tools/colorkey.html"><b>Color Key</b></a>
@@ -122,7 +128,8 @@ artificial intelligence</li>
 min, max, mean, standard deviation, root-mean-square deviation from zero</li>
 <li><a href="tools/markerplacement.html"><b>Marker Placement</b></a>
 <img class="icon" src="tools/mouse-icons/marker.png"></li>
-<li><a href="tools/matchmaker.html"><b>Matchmaker</b></a></li>
+<li><a href="tools/matchmaker.html"><b>Matchmaker</b></a>
+&ndash; superimpose proteins or nucleic acids, guided by sequence alignment</li>
 <li><a href="tools/measureblobs.html"><b>Measure and Color Blobs</b></a>
 <img class="icon" src="tools/mouse-icons/pickblobs.png"></li>
 <li><a href="tools/measurevolume.html"><b>Measure Volume and Area</b></a></li>
@@ -138,6 +145,7 @@ of a protein structure with
 &ndash; interface to comparative modeling with
 <a href="https://www.salilab.org/modeller/" target="_blank">Modeller</a></li>
 <li><a href="tools/registration.html"><b>Registration</b></a></li>
+<li><a href="tools/renumber.html"><b>Renumber Residues</b></a></li>
 <li><a href="tools/rotamers.html"><b>Rotamers</b></a>
 &ndash; view and evaluate amino acid rotamers; 
 &ldquo;mutate&rdquo; residues</li>
@@ -210,6 +218,8 @@ artificial intelligence</li>
 <a href="commands/cartoon.html#subcommands">styles</a></li>
 <li><a href="commands/cd.html"><b>cd</b></a>
 &ndash; change the working directory</li>
+<li><a href="commands/changechains.html"><b>changechains</b></a>
+&ndash; change chain IDs</li>
 <li><a href="commands/clashes.html"><b>clashes</b>, <b>contacts</b></a>
 &ndash; identify interatomic clashes or contacts</li>
 <li><a href="commands/clip.html"><b>clip</b></a>
@@ -335,6 +345,8 @@ display frame</li>
 &ndash; allow sending commands to ChimeraX using REST or XML-RPC</li>
 <li><a href="commands/rename.html"><b>rename</b></a>
 &ndash; change model name and/or ID number</li>
+<li><a href="commands/renumber.html"><b>renumber</b></a>
+&ndash; renumber residues</li>
 <li><a href="commands/resfit.html"><b>resfit</b></a>
 &ndash; show density fit of successive amino acid residues along a chain</li>
 <li><a href="commands/rmsd.html"><b>rmsd</b></a>
@@ -346,7 +358,7 @@ display frame</li>
 <li><a href="commands/roll.html"><b>roll</b></a>
 &ndash; rotate continuously</li>
 <li><a href="commands/runscript.html"><b>runscript</b></a>
-&ndash; run Python scripts with command-line arguments</li>
+&ndash; run Python or ChimeraX command scripts with command-line arguments</li>
 <li><a href="commands/save.html"><b>save</b></a>
 &ndash; save image, session, map, coordinates, sequences,
 or other data to a file</li>
@@ -390,6 +402,8 @@ and <a href="pseudobonds.html">pseudobonds</a></li>
 &ndash; virtual mutation (change amino acid type)</li>
 <li><a href="commands/sym.html"><b>sym</b></a>
 &ndash; build multimers using assembly information</li>
+<li><a href="commands/tile.html"><b>tile</b></a>
+&ndash; spread models out into a plane</li>
 <li><a href="commands/toolshed.html"><b>toolshed</b></a>
 &ndash; install/update ChimeraX bundles from the
 <a href="https://cxtoolshed.rbvi.ucsf.edu/" target="_blank">Toolshed</a> 
@@ -398,10 +412,11 @@ and <a href="pseudobonds.html">pseudobonds</a></li>
 &ndash; set or report torsion angles (rotate bonds)</li>
 <li><a href="commands/transparency.html"><b>transparency</b></a>
 &ndash; adjust transparency of atoms/bonds, cartoons, surfaces</li>
+<li><a href="commands/tug.html"><b>tug</b></a>
+&ndash; pull a set of atoms to target locations using
+<a href="../tools/mousemodes.html#openmm">OpenMM dynamics</a></li>
 <li><a href="commands/turn.html"><b>turn</b></a>
 &ndash; rotate</li>
-<li><a href="commands/tile.html"><b>tile</b></a>
-&ndash; spread models out into a plane</li>
 <li><a href="commands/ui.html"><b>ui</b></a>
 &ndash; set tool-interface preferences, show/hide graphical interfaces,
 assign functions to buttons</li>
@@ -440,7 +455,7 @@ set camera and model positions with matrices</li>
 <hr>
 <p align="center">
 UCSF ChimeraX documentation is copyrighted &copy; by the
-Regents of the University of California, 2015-2021.
+Regents of the University of California, 2015-2022.
 All rights reserved.
 </p>
 </body></html> 

@@ -211,7 +211,7 @@ void fill_slab(const FArray &depth, const FArray &depth2,
   int ds0 = depth.stride(0), ds1 = depth.stride(1);
   int d2s0 = depth2.stride(0), d2s1 = depth2.stride(1);
   const float *da = depth.values(), *da2 = depth2.values();
-  int ms0 = mvol.stride(0), ms1 = mvol.stride(1), ms2 = mvol.stride(2);
+  int64_t ms0 = mvol.stride(0), ms1 = mvol.stride(1), ms2 = mvol.stride(2);
   T *mv = mvol.values();
   float (*t)[4]  = mijk_to_dijk;
   for (int k = 0 ; k < ksize ; ++k)

@@ -207,8 +207,9 @@ See also: <a href="interfaces.html"><b>interfaces</b></a>
 <blockquote>
 Calculate the center of mass of each density map and/or set of atoms in 
 <a href="atomspec.html"><i>spec</i></a>.
-Map centers are reported in grid indices,
-atomic centers of mass in the atomic coordinate system.
+Map centers are reported in grid indices and
+<a href="view.html#scenecoords">scene coordinates</a>,
+atomic centers of mass in <a href="view.html#scenecoords">scene coordinates</a>.
 The <b>level</b> option indicates using only map regions
 above <i>contour-level</i>.
 If <b>mark</b> is <b>true</b>, a <a href="../markers.html">marker</a> 
@@ -223,8 +224,7 @@ The marker model is opened as number <i>model-number</i>
 (default based on the contents of <a href="atomspec.html"><i>spec</i></a>).
 Atomic mass-weighting is always used, but the related command
 <a href="define.html#centroid"><b>define centroid</b></a>
-allows calculating the center of geometry (not mass-weighted)
-of a set of atoms.
+allows calculating the non-mass-weighted center of a set of atoms.
 See also: <a href="cofr"><b>cofr</b></a>
 </blockquote>
 
@@ -550,7 +550,9 @@ style="display:inline-block; vertical-align:middle"><tr>
 title="cornflower blue"></td></tr></table>, respectively).
 </p><p>
 See also:
-<a href="fitmap.html"><b>fitmap</b></a>
+<a href="fitmap.html"><b>fitmap</b></a>,
+<a href="view.html#matrix"><b>view matrix</b></a>,
+<a href="../formats/positions.html">ChimeraX positions files</a>
 </p>
 </blockquote>
 
@@ -741,5 +743,5 @@ has the same axes and moments as the measured surface.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-January 2022</address>
+March 2022</address>
 </body></html>

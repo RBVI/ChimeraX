@@ -10,6 +10,7 @@
 # === UCSF ChimeraX Copyright ===
 
 TOP = ../..
+-include $(TOP)/.makerc
 SUBDIR_SYNC = 1
 SUBDIR_BUILD = 1
 include $(TOP)/mk/config.make
@@ -19,16 +20,17 @@ SYNC_DIR = $(wildcard $(TOP)/build/sync)
 BUNDLE_BUILDER_SUBDIR = bundle_builder
 TOOLSHED_UTILS_SUBDIR = toolshed_utils
 
-REST_SUBDIRS = add_charge addh align_algs alignment_hdrs \
-	  alignments alphafold altloc_explorer amber_info arrays atom_search \
-	  atom_search_lib atomic atomic_lib axes_planes basic_actions bild \
+REST_SUBDIRS = add_charge addh alignment_algs alignment_headers \
+	  alphafold altloc_explorer amber_info arrays atom_search \
+	  atomic atomic_lib axes_planes basic_actions bild \
 	  blastprotein bond_rot bug_reporter build_structure \
 	  bumps buttons cage_builder \
-	  cellpack centroids chem_group clashes cmd_line color_actions \
+	  cellpack centroids change_chains check_waters chem_group \
+	  clashes cmd_line color_actions \
 	  color_globe color_key connect_structure core_formats \
 	  coulombic crosslinks crystal crystal_contacts data_formats \
 	  dicom dist_monitor dssp \
-	  exp_cmd file_history function_key \
+	  emdb_sff exp_cmd file_history function_key \
 	  geometry gltf graphics \
 	  hbonds help_viewer hkcage ihm image_formats imod \
 	  interfaces items_inspection io label list_info log looking_glass maestro \
@@ -38,20 +40,15 @@ REST_SUBDIRS = add_charge addh align_algs alignment_hdrs \
 	  mmcif mmtf model_panel modeller mol2 morph mouse_modes movie \
 	  neuron nucleotides open_command \
 	  pdb pdb_bio pdb_lib pdb_matrices pick_blobs positions preset_mgr pubchem \
-	  read_pbonds registration remote_control rest_server \
-	  residue_fit rna_layout rotamer_lib_mgr rotamer_libs save_command scheme_mgr \
-	  sdf sel_inspector segger segment seq_view shape \
+	  read_pbonds registration remote_control renumber_residues rest_server \
+	  residue_fit rna_layout rotamer_libs rotamers save_command scheme_mgr \
+	  sdf sel_inspector segger segment seqalign seq_view shape \
 	  shell shortcuts show_attr show_sequences sideview sim_matrices smiles \
 	  smooth_lines spacenavigator std_commands \
 	  stl storm struct_measure struts surface swapaa swap_res \
 	  tape_measure test toolbar tug ui uniprot unit_cell \
 	  viewdockx viperdb vive volume_menu vtk wavefront_obj \
 	  webcam webservices zone
-
-ifneq ($(OSARCH),DarwinArm64)
-# emdb_sff depends on h5py which is not available for Mac arm64 (July 2021)
-REST_SUBDIRS += emdb_sff
-endif
 
 ifeq ($(OS),Linux)
 REST_SUBDIRS += linux_support
@@ -70,10 +67,13 @@ dir:	Makefile.dependencies
 
 $(SUBDIR_BUILD): dir
 
-install:
+install-core:
+	$(MAKE) -C core install
+
+install: install-core
 	$(MAKE) build
-	cd $(SYNC_DIR) && $(APP_BOOTSTRAP_PIP) install --upgrade --upgrade-strategy only-if-needed */*.whl
-	$(APP_EXE) --exit --nogui --silent --cmd "toolshed reload installed"
+	cd $(SYNC_DIR) && $(APP_BOOTSTRAP_PIP) install --upgrade --upgrade-strategy only-if-needed *.whl
+	$(APP_PYTHON_EXE) -m chimerax.core --exit --nogui --silent --cmd "toolshed reload installed"
 
 lint:
 ifneq (,$(PYSRCS))
@@ -81,10 +81,8 @@ ifneq (,$(PYSRCS))
 endif
 
 clean:
+	$(MAKE) -C core clean
 	rm -rf __pycache__ Makefile.dependencies
-ifneq (,$(wildcard $(SYNC_DIR)))
-	cd $(SYNC_DIR) && rm -f */*.whl
-endif
 
 #
 # Build Time Dependencies

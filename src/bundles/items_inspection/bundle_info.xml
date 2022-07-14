@@ -23,7 +23,7 @@
   </Dependencies>
 
   <Managers>
-    <Manager name="items inspection" uiOnly="true"/>
+    <Manager name="items inspection" guiOnly="true"/>
   </Managers>
 
   <Classifiers>
