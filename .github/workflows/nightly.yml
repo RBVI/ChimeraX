@@ -1,9 +1,10 @@
+name: Nightly Build
 on:
   schedule:
     - cron: '30 10 * * *' # 2:30AM PT/10:30AM UTC
 
 jobs:
-  build-linux:
+  build-ubuntu:
     strategy:
       matrix:
         os: [ubuntu-22.04, ubuntu-20.04, ubuntu-18.04]
@@ -18,11 +19,18 @@ jobs:
         #        with:
         #          name: ChimeraX-${{matrix.os}}.tar.gz
         #          path: ./ChimeraX.tar.gz
-#build-linux-docker:
-#  runs-on: ubuntu-latest
-#  matrix:
-#    strategy:
-#      platforms: [centos8]
+  build-centos-docker:
+    runs-on: ubuntu-20.04
+    container: 
+      image: centos:latest
+    steps:
+      # https://techglimpse.com/failed-metadata-repo-appstream-centos-8/
+      - uses: actions/checkout@v3
+      - run: sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-*
+      - run: sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-*
+      - run: dnf update -y && ${PWD}/utils/set_up_centos.sh
+      - run: make install
+  # TODO: Build Generic Linux
   build-macos:
     runs-on: macos-latest
     steps:
