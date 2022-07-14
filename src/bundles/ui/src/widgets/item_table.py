@@ -176,10 +176,14 @@ class QCxTableModel(QAbstractTableModel):
         #TODO: might need to be '<br>'.join(words)
         return '\n'.join(words)
 
-class NumSortingProxyModel(QSortFilterProxyModel):
-    def lessThan(self, left_index, right_index):
-        left_data = self.sourceModel().data(left_index)
-        right_data = self.sourceModel().data(right_index)
+    def _sort_func(self, left_index, right_index):
+        col = self._item_table._columns[left_index.column()]
+        if col.sort_func is not None:
+            left_item = self._item_table._data[left_index.row()]
+            right_item = self._item_table._data[right_index.row()]
+            return col.sort_func(left_item, right_item)
+        left_data = self.data(left_index)
+        right_data = self.data(right_index)
         try:
             left_num = float(left_data)
             right_num = float(right_data)
@@ -194,6 +198,10 @@ class NumSortingProxyModel(QSortFilterProxyModel):
         except ValueError:
             return left_data.casefold() < right_data.casefold()
         return left_num < right_num
+
+class NumSortingProxyModel(QSortFilterProxyModel):
+    def lessThan(self, left_index, right_index):
+        return self.sourceModel()._sort_func(left_index, right_index)
 
 class ItemTable(QTableView):
     """ Typical usage is to add_column()s, set the 'data' attribute, and then launch() (see doc
@@ -311,7 +319,7 @@ class ItemTable(QTableView):
 
     def add_column(self, title, data_fetch, *, format="%s", data_set=None, display=None, title_display=True,
             justification="center", balloon=None, font=None, refresh=True, color=None,
-            header_justification=None, icon=None, editable=False, validator=None):
+            header_justification=None, icon=None, editable=False, validator=None, sort_func=None):
         """ Add a column who's header text is 'title'.  It is allowable to add a column with the
             same title multiple times.  The duplicative additions will be ignored.
 
@@ -377,6 +385,10 @@ class ItemTable(QTableView):
             text value as an argument and returns True if it is valid and False otherwise.  Supplying a
             'validator' value implies that 'editable' is True (and therefore 'editable' does not need to
             be specified separately).
+
+            If the column should sort on something other than numeric values or alphabetized text, you
+            can supply a 'sort_func' function which takes two items as arguments and returns whether the
+            first item is "less than" the second item based on those items' values in this column.
         """
         titles = [c.title for c in self._columns]
         if title in titles:
@@ -401,7 +413,7 @@ class ItemTable(QTableView):
             header_justification = justification if justification != "decimal" else "right"
 
         c = _ItemColumn(title, data_fetch, format, data_set, title_display, justification, font, color,
-            header_justification, balloon, icon, self._session, editable, validator)
+            header_justification, balloon, icon, self._session, editable, validator, sort_func)
 
         if self._column_control_info:
             self._add_column_control_entry(c)
@@ -665,7 +677,7 @@ class ItemTable(QTableView):
 
 class _ItemColumn:
     def __init__(self, title, data_fetch, display_format, data_set, title_display, justification, font,
-            color, header_justification, balloon, icon, session, editable, validator):
+            color, header_justification, balloon, icon, session, editable, validator, sort_func):
         # set all args to corresponding 'self' attributes...
         import inspect
         args, varargs, keywords, locals = inspect.getargvalues(inspect.currentframe())
