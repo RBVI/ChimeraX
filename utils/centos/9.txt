@@ -49,6 +49,7 @@ nss
 nss-util
 openjpeg2
 openssl-libs
+openssl-devel
 pango
 pulseaudio-libs
 pulseaudio-libs-glib2
