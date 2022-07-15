@@ -75,9 +75,6 @@ endif
 
 ifdef NEED_MESA
 SUBDIRS += mesa
-ifeq ($(OS),Darwin)
-NEED_PKGCONFIG=1
-endif
 else
 mesa.install:
 mesa.app-install:
@@ -85,19 +82,9 @@ endif
 
 ifdef NEED_LLVM
 SUBDIRS += llvm
-ifeq ($(OS),Darwin)
-NEED_PKGCONFIG=1
-endif
 else
 llvm.install:
 llvm.app-install:
-endif
-
-ifdef NEED_PKGCONFIG
-SUBDIRS += pkgconfig
-else
-pkgconfig.install:
-pkgconfig.app-install:
 endif
 
 ifdef NEED_OPENSSL
@@ -189,11 +176,11 @@ cxservices.app-install: pips.app-install
 gdcm.app-install: Python.app-install
 gdcm.install: Python.install
 llvm.install: 
-mesa.install: llvm.install pkgconfig.install
+mesa.install: llvm.install
 openmm.app-install: Python.app-install pips.app-install
 openmm.install: Python.install pips.install
 openssl.app-install: chrpath.app-install
-openssl.install: chrpath.install pkgconfig.install
+openssl.install: chrpath.install
 osmesa.app-install: Python.app-install
 osmesa.install: Python.install
 ifdef NEED_MESA
