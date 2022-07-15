@@ -52,6 +52,7 @@ openssl-libs
 pango
 pulseaudio-libs
 pulseaudio-libs-glib2
+rsync
 sqlite
 xcb-util-image
 xcb-util-keysyms
