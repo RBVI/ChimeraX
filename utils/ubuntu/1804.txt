@@ -13,7 +13,6 @@ libffi-dev
 libfftw3-single3
 libfontconfig1
 libfreetype6
-libgcc-s1
 libgdk-pixbuf2.0-0
 libgfortran5
 libgl1
