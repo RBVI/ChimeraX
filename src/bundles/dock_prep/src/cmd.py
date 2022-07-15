@@ -13,16 +13,11 @@
 
 from chimerax.core.errors import UserError
 from chimerax.core.commands import CmdDesc, register, BoolArg, Or, EmptyArg, EnumOf, SaveFileNameArg
-
-MEMORIZE_USE = "use"
-MEMORIZE_SAVE = "save"
-MEMORIZE_NONE = "none"
+from .prep import MEMORIZE_NONE, MEMORIZE_USE, MEMORIZE_SAVE
 
 # the args directly provided by DockPrep
-dock_prep_arg_info = {
-    'del_solvent': BoolArg,
-    'del_ions': BoolArg,
-}
+from .settings import defaults
+dock_prep_arg_info = { setting: BoolArg for setting in defaults }
 
 #NOTES: dock_prep_caller() is the public API and also called via the command.  It assembles a series
 #  of steps to execute (by calling dock_prep_steps())
@@ -49,29 +44,31 @@ def get_param_info():
             param_info[arg_prefix + arg_name] = arg_annotation
     return param_info
 
-def dock_prep_steps(del_solvent=True, del_ions=False, del_alt_locs=True, change_MSE=True, change_UMP=True,
-        change_UMS=True, change_CSL=True, complete_side_chains=True, add_hydrogens=True, add_charges=True):
+def dock_prep_steps(add_hydrogens=True, add_charges=True, **kw):
     steps = []
-    if del_solvent or del_ions or del_alt_locs:
-        kw_dict = {}
+    kw_dict = {}
+    dp_step_needed = False
+    for param, default in defaults.items():
+        val = kw.get(param, default)
+        if val:
+            dp_step_needed = True
+        kw_dict[param] = val
+    if dp_step_needed:
         steps.append(("dock_prep", kw_dict))
-        if del_solvent:
-            kw_dict['del_solvent'] = True
-        if del_ions:
-            kw_dict['del_ions'] = True
-        if del_alt_locs:
-            kw_dict['del_alt_locs'] = True
-    #TODO
+    #TODO: external steps
     return steps
 
-def dock_prep_caller(session, structures, *, memorization=MEMORIZE_NONE, memorize_name=None,
+def dock_prep_caller(session, structures, *, memorization=MEMORIZE_NONE, memorize_name=None, nogui=None,
         callback=None, **kw):
+    if nogui is None:
+        nogui = session.in_script or not session.ui.is_gui
     state = {
         'steps': dock_prep_steps(**kw),
         'memorization': memorization,
         'memorize_name': memorize_name,
         'callback': callback,
         'structures': structures,
+        'nogui': nogui,
     }
     run_steps(session, state)
 
@@ -92,19 +89,20 @@ def run_steps(session, state):
         step_mod.run_for_dock_prep(session, state, run_steps, state['memorization'], step_memorize_name,
             state['structures'], kw_dict)
 
-def dock_prep_cmd(session, structures,  *, memorize=MEMORIZE_NONE, mol2=None, **kw):
+def dock_prep_cmd(session, structures,  *, memorize=MEMORIZE_NONE, **kw):
     if structures is None:
         from chimerax.atomic import all_atomic_structures
         structures = all_atomic_structures(session)
     if not structures:
         raise UserError("No atomic structures open/specified")
-    dock_prep_caller(session, structures, memorization=memorize, **kw)
+    dock_prep_caller(session, structures, memorization=memorize, memorize_name="dock prep", nogui=True, **kw)
 
 def register_command(logger):
     from chimerax.atomic import AtomicStructuresArg
     cmd_desc = CmdDesc(
         required=[('structures', Or(AtomicStructuresArg, EmptyArg))],
-        keyword=[('memorize', EnumOf((MEMORIZE_USE, MEMORIZE_SAVE, MEMORIZE_NONE)))]
-            + list(get_param_info().items()),
+        keyword=[
+            ('memorize', EnumOf((MEMORIZE_USE, MEMORIZE_SAVE, MEMORIZE_NONE))),
+        ] + list(get_param_info().items()),
         synopsis='Prepare structures for computations')
     register('dockprep', cmd_desc, dock_prep_cmd, logger=logger)

@@ -16,7 +16,7 @@ from .cmd import dock_prep_caller
 
 # all modules involved in the DockPrep piepline provide these variables/functions
 from .cmd import dock_prep_arg_info
-from .prep import prep as run_for_dock_prep
+from .prep import prep as run_for_dock_prep, handle_memorization, MEMORIZE_USE, MEMORIZE_SAVE, MEMORIZE_NONE
 
 #--- toolshed/session-init funcs ---
 
