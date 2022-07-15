@@ -2,12 +2,12 @@
 # Google Colab code for running an AlphaFold structure prediction using ColabFold.
 #
 def run_prediction(sequences,
-                   job_name = 'model',
+                   job_name = '',
                    msa_mode = "MMseqs2 (UniRef+Environmental)", 
                    pair_mode = "unpaired+paired",
                    use_templates = False,
                    custom_template_path = None,
-                   energy_minimize = True,
+                   energy_minimize = False,
                    model_type = "auto",
                    num_recycles = 3,
                    dpi = 200,
@@ -26,7 +26,7 @@ def run_prediction(sequences,
     model_type: "auto", "AlphaFold2-ptm", "AlphaFold2-multimer-v1", "AlphaFold2-multimer-v2"
        "auto" = protein structure prediction using "AlphaFold2-ptm" and complex prediction "AlphaFold-multimer-v2"
         For complexes "AlphaFold-multimer-v[1,2]" and "AlphaFold-ptm" can be used.
-    dip: set dpi for image resolution
+    dpi: dots-per-inch for saved plot images
     '''
 
     start_logging()
@@ -37,17 +37,24 @@ def run_prediction(sequences,
 
     warn_k80_gpu()
 
-    remove_old_files(job_name)
-    
-    query_sequence = ':'.join(sequences)
+    remove_old_files()
 
-    queries_path=f"{job_name}.csv"
-    with open(queries_path, "w") as text_file:
-      text_file.write(f"id,sequence\n{job_name},{query_sequence}")
+    if not job_name:
+        nres = sum(len(seq) for seq in sequences)
+        job_name = 'af%d' % nres
 
+    # Write sequences, used only for inclusion in returned results.
+    with open('query.fasta', 'w') as seqs_file:
+        seqs_file.write(''.join(f'>{i+1}\n{seq}\n' for i,seq in enumerate(sequences)))
+                        
     from colabfold.utils import setup_logging
     from pathlib import Path
     setup_logging(Path(".").joinpath("log.txt"))
+        
+    query_sequence = ':'.join(sequences)
+    queries_path=f"{job_name}.csv"
+    with open(queries_path, "w") as text_file:
+      text_file.write(f"id,sequence\n{job_name},{query_sequence}")
 
     from colabfold.batch import get_queries, set_model_type
     queries, is_complex = get_queries(queries_path)
@@ -257,11 +264,11 @@ def plot_chain_names(Ls, plot_axis):
 #
 def download_results(energy_minimize):
   relax = 'relaxed' if energy_minimize else 'unrelaxed'
-  !cp -p model_{relax}_rank_1_model_*.pdb best_model.pdb
-  !cp -p model_unrelaxed_rank_1_model_*_scores.json best_model_pae.json
+  !cp -p *_{relax}_rank_1_model_*.pdb best_model.pdb
+  !cp -p *_unrelaxed_rank_1_model_*_scores.json best_model_pae.json
 
   # Make a zip file of the predictions
-  !zip -q -r results.zip *.json *.a3m *.pdb cite.bibtex *.png
+  !zip -q -r results.zip query.fasta *.csv *.json *.a3m *.pdb cite.bibtex *.png
     
   # Download predictions.
   from google.colab import files
@@ -282,14 +289,14 @@ def warn_k80_gpu():
 
 # ================================================================================================
 #
-def remove_old_files(job_name):
+def remove_old_files():
   '''
   Remove previous runs files otherwise they will not be overwritten because
   the file name contains both the rank number and model number.
   Also need to remove model_ and model_env directories otherwise errors
   occur if different sequences are run when computing MSA.
   '''
-  !rm -rf *.pdb *.json {job_name}_ {job_name}_env
+  !rm -rf *.pdb *.json *_ *_env
 
 # ================================================================================================
 #
