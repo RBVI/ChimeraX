@@ -14,19 +14,19 @@ filelock==3.4.2
 grako==3.16.5
 html2text==2020.1.16
 ihm==0.27
-imagecodecs==2021.11.20 ; platform_machine != 'arm64'
-ipykernel==6.6.1
+imagecodecs==2022.2.22 ; platform_machine != 'arm64'
+ipykernel==6.15.0
 # if ipython updated, make sure autocompletion still works (e.g. "mi<tab>" becomes min) and if not then
 # try a newer version of jedi
-ipython==7.31.1
+ipython==8.4.0
 # the version of jedi that works with ipython
 jedi==0.18.1
-jupyter-client==7.1.0
-lxml==4.7.1
+jupyter-client==7.3.4
+lxml==4.9.1
 lz4==3.1.10
 matplotlib==3.5.1
 msgpack==1.0.3
-netCDF4==1.5.8 ; platform_machine != 'arm64'
+netCDF4==1.6.0
 networkx==2.6.3
 numpy==1.22.1
 openvr==1.16.802
@@ -45,7 +45,7 @@ python-dateutil==2.8.2
 # PyQt handled in prereqs/PyQt
 # sip handled in prereqs/PyQt
 #PySide2==5.15.2
-qtconsole==5.3.0
+qtconsole==5.3.1
 requests==2.27.1
 scipy==1.7.3
 six==1.16.0
@@ -83,5 +83,5 @@ line_profiler==3.4.0
 #
 # Indirect dependencies listed here to pin the version number
 #
-traitlets==5.1.1
+traitlets==5.3.0
 

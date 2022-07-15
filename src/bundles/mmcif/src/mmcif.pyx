@@ -43,6 +43,7 @@ _additional_categories = (
     "citation_author",
     "citation_editor",
     "chem_comp",
+    "database_2",	# EMDB map reference
     "exptl",
     "refine",
     "reflns",
@@ -193,6 +194,19 @@ def _get_formatted_metadata(model, session, *, verbose=False):
             html += _process_src(gen, "Host organism%s", [
                 'host_org_common_name', 'pdbx_host_org_scientific_name', 'host_org_genus',
                 'host_org_species', 'pdbx_host_org_ncbi_taxonomy_id'])
+
+    # EMDB map
+    database_2 = get_mmcif_tables_from_metadata(model, ["database_2"], metadata=metadata)[0]
+    if database_2:
+        for id, code in database_2.fields(['database_id', 'database_code']):
+            if id == 'EMDB' and code.startswith('EMD-'):
+                entry_id = code[4:]
+                emdb_link = '<a href="https://www.ebi.ac.uk/emdb/EMD-%s">EMDB %s</a>' % (entry_id, entry_id)
+                emdb_load = '<a href="cxcmd:open %s from emdb">open map</a>' % entry_id
+                html += '  <tr>\n'
+                html += '   <th>CryoEM Map</th>\n'
+                html += '   <td>%s &mdash; %s</td>\n' % (emdb_link, emdb_load)
+                html += '  </tr>\n'
 
     # experimental method; resolution
     experiment = get_mmcif_tables_from_metadata(model, ["exptl"], metadata=metadata)[0]

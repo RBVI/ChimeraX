@@ -65,6 +65,11 @@ class AlphaFoldPAEOpen(ToolInstance):
         
         layout.addStretch(1)    # Extra space at end
 
+        # Set initial menu entry to an AlphaFold model
+        amod = [m for m in session.models.list(type = AtomicStructure) if hasattr(m, 'alphafold')]
+        if amod:
+            self._structure_menu.value = amod[-1]
+
         tw.manage(placement=None)	# Start floating
 
     # ---------------------------------------------------------------------------
@@ -133,6 +138,7 @@ class AlphaFoldPAEOpen(ToolInstance):
             from os import path
             dir = path.split(s.filename)[0]
         elif self._pae_file.text():
+            from os import path
             dir = path.split(self._pae_file.text())[0]
         else:
             dir = None
@@ -412,7 +418,7 @@ class AlphaFoldPAEPlot(ToolInstance):
         if colormap is None:
             from chimerax.core.colors import BuiltinColormaps
             colormap = BuiltinColormaps[self._default_colormap_name]
-        self._pae_view._make_image(self._pae._pae_matrix, colormap)
+        self._pae_view._make_image(self._pae.pae_matrix, colormap)
         
     # ---------------------------------------------------------------------------
     #
@@ -433,7 +439,7 @@ class AlphaFoldPAEPlot(ToolInstance):
         if colormap is None:
             colormap = self._pae_view._block_colormap((0,0,0,255))
         color_blocks = self._residue_color_blocks()
-        self._pae_view._make_image(self._pae._pae_matrix, colormap, color_blocks)
+        self._pae_view._make_image(self._pae.pae_matrix, colormap, color_blocks)
 
     # ---------------------------------------------------------------------------
     #
@@ -491,7 +497,7 @@ class AlphaFoldPAEPlot(ToolInstance):
     # ---------------------------------------------------------------------------
     #
     def _report_residues(self, index1, index2):
-        m = self._pae._pae_matrix
+        m = self._pae.pae_matrix
         size = m.shape[0]
         s = self._pae.structure
         if s is None:
@@ -744,6 +750,39 @@ class AlphaFoldPAE:
         self._cluster_min_size = 10
         self._clusters = None		# Cache computed clusters
         self._cluster_colors = None
+
+    def reduce_matrix_to_residues_in_structure(self):
+        '''
+        Delete rows and columns of PAE matrix for which there are no structure residues.
+        This allows using PAE matrix data after an AlphaFold structure has been trimmed
+        by deleting N-terminal and C-terminal residues to match an experimental structure.
+        Returns True if successful, False if structure does not appear to have the right
+        sequence length for the PAE matrix.
+        '''
+        structure = self.structure
+        if structure.num_residues == self.matrix_size:
+            return True
+
+        chains = structure.chains
+        num_res = sum([chain.num_residues for chain in chains], 0)
+        if num_res != self.matrix_size:
+            # Structure does not appear to represent same number of residues as matrix.
+            # This could happen if a whole chain was deleted.
+            return False
+
+        cres = [(chain.chain_id, chain.residues) for chain in chains]
+        cres.sort(key = lambda cid_res: cid_res[0])	  # Sort by chain identifier
+        res = sum([r for cid,r in cres], [])	          # List of residues with None for deleted ones
+        res_in_structure = [i for i,r in enumerate(res) if r is not None]  # Indices of structure residues
+        self._pae_matrix = self._pae_matrix[res_in_structure,:][:,res_in_structure]
+
+        return True
+
+    # ---------------------------------------------------------------------------
+    #
+    @property
+    def pae_matrix(self):
+        return self._pae_matrix
 
     # ---------------------------------------------------------------------------
     #
@@ -1004,12 +1043,11 @@ def alphafold_pae(session, structure = None, file = None, uniprot_id = None,
         
     if file:
         pae = AlphaFoldPAE(file, structure)
-        if structure:
-            if structure.num_residues != pae.matrix_size:
-                from chimerax.core.errors import UserError
-                raise UserError('Number of residues in structure "%s" is %d which does not match PAE matrix size %d.'
-                                % (str(structure), structure.num_residues, pae.matrix_size) +
-                                '\n\nThis can happen if the AlphaFold model has been trimmed to match an experimental structure, or if residues have been deleted.  The full-length AlphaFold model must be used to show predicted aligned error.')
+        if structure and not pae.reduce_matrix_to_residues_in_structure():
+            from chimerax.core.errors import UserError
+            raise UserError('Number of residues in structure "%s" is %d which does not match PAE matrix size %d.'
+                            % (str(structure), structure.num_residues, pae.matrix_size) +
+                            '\n\nThis can happen if chains were deleted from the AlphaFold model or if the PAE data was applied to a structure that was not the one predicted by AlphaFold.  Use the full-length AlphaFold model to show predicted aligned error.')
             structure.alphafold_pae = pae
     elif structure is None:
         from chimerax.core.errors import UserError

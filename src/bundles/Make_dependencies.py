@@ -57,7 +57,6 @@ def make_dependencies(dir_path, output_name):
             print(f"{dir_name}.clean: {' '.join(clean_dirs)}", file=f)
 
     # Report any bundle dependencies that is not found
-    missing.discard("ChimeraX-Core")
     missing.discard("qtconsole")
     missing.discard("PyAudio")
     missing.discard("SpeechRecognition")
