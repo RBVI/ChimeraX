@@ -43,7 +43,6 @@ endif
 endif
 ifndef UBUNTU_DIST
 ifndef CENTOS_DIST
-#NEED_EXPAT=1
 NEED_OPENSSL=1
 NEED_ZLIB=1
 #NEED_LLVM=1
@@ -99,13 +98,6 @@ SUBDIRS += pkgconfig
 else
 pkgconfig.install:
 pkgconfig.app-install:
-endif
-
-ifdef NEED_EXPAT
-SUBDIRS += expat
-else
-expat.install:
-expat.app-install:
 endif
 
 ifdef NEED_OPENSSL
@@ -210,5 +202,5 @@ osmesa.install: mesa.install
 endif
 pips.app-install: Python.app-install
 pips.install: Python.install
-Python.app-install: zlib.app-install openssl.app-install expat.app-install chrpath.app-install
-Python.install: zlib.install openssl.install expat.install chrpath.install
+Python.app-install: zlib.app-install openssl.app-install chrpath.app-install
+Python.install: zlib.install openssl.install chrpath.install
