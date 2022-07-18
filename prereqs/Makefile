@@ -137,8 +137,6 @@ endif
 
 cxservices.install: pips.install
 cxservices.app-install: pips.app-install
-gdcm.app-install: Python.app-install
-gdcm.install: Python.install
 openmm.app-install: Python.app-install pips.app-install
 openmm.install: Python.install pips.install
 openssl.app-install: chrpath.app-install
