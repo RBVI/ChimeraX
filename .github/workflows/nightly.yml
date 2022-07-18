@@ -29,7 +29,7 @@ jobs:
       - run: sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-*
       - run: sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-*
       - run: dnf update -y && ${PWD}/utils/set_up_centos.sh
-      - run: make install
+      - run: make -f Makefile.centos install
   # TODO: Build Generic Linux
   build-macos:
     runs-on: macos-latest
