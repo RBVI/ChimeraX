@@ -1,5 +1,5 @@
 <!-- Edit bundle_info.xml.in, not bundle_info.xml; then run make_selectors.py  -->
-<BundleInfo name="ChimeraX-Atomic" version="1.39.5"
+<BundleInfo name="ChimeraX-Atomic" version="1.39.6"
             package="chimerax.atomic"
             purePython="false"
             customInit="true"

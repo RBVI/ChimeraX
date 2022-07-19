@@ -26,17 +26,18 @@ endif
 # For Windows, we assume Cygwin is being used.
 OS = $(patsubst CYGWIN_NT%,CYGWIN_NT,$(shell uname -s))
 ifeq ($(OS),CYGWIN_NT)
-CHIMERAX_EXE = $(CHIMERAX_APP)/bin/python.exe -I -m chimerax.core
+APP_PYTHON_EXE = $(CHIMERAX_APP)/bin/python.exe -I
 PYMOD_EXT = pyd
 endif
 ifeq ($(OS),Darwin)
-CHIMERAX_EXE = $(CHIMERAX_APP)/Contents/bin/python3.9 -I -m chimerax.core
+APP_PYTHON_EXE = $(CHIMERAX_APP)/Contents/bin/python3.9 -I
 PYMOD_EXT = so
 endif
 ifeq ($(OS),Linux)
-CHIMERAX_EXE = $(CHIMERAX_APP)/bin/python3.9 -I -m chimerax.core
+APP_PYTHON_EXE = $(CHIMERAX_APP)/bin/python3.9 -I
 PYMOD_EXT = so
 endif
+CHIMERAX_EXE = $(APP_PYTHON_EXE) -m chimerax.core
 RUN = $(CHIMERAX_EXE) --nogui --safemode --exit --cmd
 
 ifdef INSTALL_TO_VENV
@@ -75,11 +76,7 @@ ifeq ($(OS),Linux)
 endif
 
 sync:
-ifneq (,$(wildcard dist/*-py*-none-any.whl))
-	rsync -av dist/*.whl $(SYNC_DIR)/python-only
-else
-	rsync -av dist/*.whl $(SYNC_DIR)/binary
-endif
+	rsync -av dist/*.whl $(SYNC_DIR)
 
 ifdef BUILD_AND_INSTALL
 INSTALL_ARGS = noDeps true

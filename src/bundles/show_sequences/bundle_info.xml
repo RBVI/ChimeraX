@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-ShowSequences" version="1.0" package="chimerax.show_sequences"
+<BundleInfo name="ChimeraX-ShowSequences" version="1.0.1" package="chimerax.show_sequences"
   	    minSessionVersion="1" maxSessionVersion="1">
 
   <!-- Additional information about bundle source -->

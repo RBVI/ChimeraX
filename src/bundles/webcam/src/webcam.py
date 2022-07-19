@@ -17,11 +17,7 @@ def webcam(session, enable = True, foreground_color = (0,255,0,255), saturation 
            flip_horizontal = True, name = None, size = None, framerate = 25,
            color_popup = False):
 
-    import Qt
-    if Qt.using_qt6:
-        from .camera import WebCam
-    elif Qt.using_qt5:
-        from .camera_qt5 import WebCam
+    from .camera import WebCam
  
     wc_list = session.models.list(type = WebCam)
     if enable:

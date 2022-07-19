@@ -189,10 +189,15 @@ class AlphaFoldGUI(ToolInstance):
     def _search(self):
         self._run_command('search')
     def _fetch(self):
-        self._run_command('match')
+        options = '' if self._trim.enabled else 'trim false'
+        self._run_command('match', options = options)
     def _predict(self):
-        options = 'minimize false' if not self._energy_minimize.enabled else ''
-        self._run_command('predict', options = options)
+        options = []
+        if self._energy_minimize.enabled:
+            options.append('minimize true')
+        if self._use_templates.enabled:
+            options.append('templates true')
+        self._run_command('predict', options = ' '.join(options))
     def _coloring(self):
         from . import colorgui
         colorgui.show_alphafold_coloring_panel(self.session)
@@ -209,8 +214,17 @@ class AlphaFoldGUI(ToolInstance):
 
         # Energy minimization option for prediction
         from chimerax.ui.widgets import EntriesRow
-        em = EntriesRow(f, True, 'Energy-minimize predicted structures')
+        ut = EntriesRow(f, False, 'Use PDB templates when predicting structures')
+        self._use_templates = ut.values[0]
+
+        # Energy minimization option for prediction
+        em = EntriesRow(f, False, 'Energy-minimize predicted structures')
         self._energy_minimize = em.values[0]
+
+        # Trim residues option for fetch
+        tr = EntriesRow(f, True, 'Trim fetched structure to the aligned structure sequence')
+        self._trim = tr.values[0]
+
         return p
 
     # ---------------------------------------------------------------------------

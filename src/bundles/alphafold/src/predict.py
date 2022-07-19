@@ -11,14 +11,20 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def alphafold_predict(session, sequences, minimize = True):
+def alphafold_predict(session, sequences, minimize = False, templates = False):
     if not _is_alphafold_available(session):
         return
+
+    if not hasattr(session, '_cite_colabfold'):
+        msg = 'Please cite <a href="https://www.nature.com/articles/s41592-022-01488-1">ColabFold: Making protein folding accessible to all. Nature Methods (2022)</a> if you use these predictions.'
+        session.logger.info(msg, is_html = True)
+        session._cite_colabfold = True  # Only log this message once per session.
+        
     ar = show_alphafold_run(session)
     if ar.running:
         from chimerax.core.errors import UserError
         raise UserError('AlphaFold prediction currently running.  Can only run one at a time.')
-    ar.start(sequences, minimize)
+    ar.start(sequences, energy_minimize=minimize, use_pdb_templates=templates)
     return ar
 
 # ------------------------------------------------------------------------------
@@ -37,7 +43,8 @@ class AlphaFoldRun(ToolInstance):
 
         self._running = False
         self._sequences = None	# List of Sequence or Chain instances
-        self._energy_minimize = True
+        self._energy_minimize = False
+        self._use_pdb_templates = False
         self._download_directory = None
 
         from chimerax.ui import MainToolWindow
@@ -63,10 +70,11 @@ class AlphaFoldRun(ToolInstance):
 
         tw.manage(placement=None)
 
-    def start(self, sequences, energy_minimize = True):
+    def start(self, sequences, energy_minimize = False, use_pdb_templates = False):
         colab_started = (self._sequences is not None)
         self._sequences = sequences
         self._energy_minimize = energy_minimize
+        self._use_pdb_templates = use_pdb_templates
         if not colab_started:
             b = self._browser
             from Qt.QtCore import QUrl
@@ -93,6 +101,8 @@ class AlphaFoldRun(ToolInstance):
         seqs = ','.join(seq.ungapped() for seq in self._sequences)
         if not self._energy_minimize:
             seqs = 'dont_minimize,' + seqs
+        if self._use_pdb_templates:
+            seqs = 'use_pdb_templates,' + seqs
         set_seqs_javascript = ('document.querySelector("paper-input").setAttribute("value", "%s")'
                                % seqs + '; ' +
                               'document.querySelector("paper-input").dispatchEvent(new Event("change"))')
@@ -157,6 +167,10 @@ class AlphaFoldRun(ToolInstance):
 
         from chimerax.pdb import open_pdb
         models, msg = open_pdb(self.session, path)
+
+        from chimerax.core.commands import log_equivalent_command
+        log_equivalent_command(self.session, f'open {path}')
+        
         from .match import _set_alphafold_model_attributes
         _set_alphafold_model_attributes(models)
 
@@ -181,6 +195,10 @@ class AlphaFoldRun(ToolInstance):
         from .fetch import _color_by_confidence
         for m in models:
             _color_by_confidence(m)
+
+        # Put entry in file history for opening this model
+        from chimerax.core.filehistory import remember_file
+        remember_file(self.session, path, 'pdb', models)
     
     def _unzip_results(self, *args, **kw):
         if self._download_directory is None:
@@ -224,7 +242,8 @@ def register_alphafold_predict_command(logger):
     from chimerax.atomic import SequencesArg
     desc = CmdDesc(
         required = [('sequences', SequencesArg)],
-        keyword = [('minimize', BoolArg)],
+        keyword = [('minimize', BoolArg),
+                   ('templates', BoolArg)],
         synopsis = 'Predict a structure with AlphaFold'
     )
     register('alphafold predict', desc, alphafold_predict, logger=logger)

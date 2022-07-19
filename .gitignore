@@ -59,6 +59,7 @@ src/apps/ChimeraX/ChimeraX.ico
 src/apps/ChimeraX/icon.rc
 src/bundles/Makefile.dependencies
 src/bundles/arrays/src/include/
+src/bundles/atomic/atomic_cpp/connect.cpp
 src/bundles/atomic/atomic_cpp/cymol.cpp
 src/bundles/atomic/atomic_cpp/cytmpl.cpp
 src/bundles/atomic/atomic_cpp/data/
@@ -66,6 +67,7 @@ src/bundles/atomic/atomic_cpp/include/
 src/bundles/atomic/atomic_cpp/pyinstance_cpp/imex.map.h
 src/bundles/atomic/src/include/
 src/bundles/atomic/src/data/
+src/bundles/atomic/src/connect.pyx
 src/bundles/atomic/src/cymol.pyx
 src/bundles/atomic/src/cytmpl.pyx
 src/bundles/atom_search/search_cpp/ast.cpp

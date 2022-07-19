@@ -1,0 +1,33 @@
+<BundleInfo name="ChimeraX-ChangeChains" version="1.0" package="chimerax.change_chains"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <!-- Additional information about bundle source -->
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <!-- Synopsis is a one-line description
+       Description is a full multi-line description -->
+  <Synopsis>Change chain IDs</Synopsis>
+  <Description>Change chain IDs</Description>
+
+  <!-- Categories is a list where this bundle should appear -->
+  <Categories>
+    <Category name="Structure Editing"/>
+  </Categories>
+
+  <!-- Dependencies on other ChimeraX/Python packages -->
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version="~=1.4"/>
+    <Dependency name="ChimeraX-Atomic" version="~=1.39"/>
+  </Dependencies>
+
+  <Classifiers>
+    <!-- Development Status should be compatible with bundle version number -->
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    <ChimeraXClassifier>Command :: changechains :: Structure Editing :: change chain IDs</ChimeraXClassifier>
+    <ChimeraXClassifier>Tool :: Change Chain IDs :: Structure Editing :: change chain IDs</ChimeraXClassifier>
+  </Classifiers>
+
+</BundleInfo>

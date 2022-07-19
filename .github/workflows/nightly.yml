@@ -1,0 +1,65 @@
+name: Nightly Build
+on:
+  schedule:
+    - cron: '30 10 * * *' # 2:30AM PT/10:30AM UTC
+
+jobs:
+  build-ubuntu:
+    strategy:
+      matrix:
+        os: [ubuntu-22.04, ubuntu-20.04]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v3
+      - run: sudo apt-get update && sudo apt-get upgrade -y && ${PWD}/utils/set_up_ubuntu.sh
+      - run: make install
+        #      - run: tar -cvzf ChimeraX.tar.gz ChimeraX.app
+        #      - name: Upload the Built ChimeraX
+        #        uses: actions/upload-artifact@v3.1.0
+        #        with:
+        #          name: ChimeraX-${{matrix.os}}.tar.gz
+        #          path: ./ChimeraX.tar.gz
+  build-centos-docker:
+    runs-on: ubuntu-20.04
+    container: 
+      image: centos:latest
+    steps:
+      # https://techglimpse.com/failed-metadata-repo-appstream-centos-8/
+      - uses: actions/checkout@v3
+      - run: sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-*
+      - run: sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-*
+      - run: dnf update -y && ${PWD}/utils/set_up_centos.sh
+      - run: make -f Makefile.centos install
+  # TODO: Build Generic Linux
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v3
+      - run: make install
+        # TODO: Notarize
+        #      - run: tar -Jcvf ChimeraX.tar.xz ChimeraX.app
+        #      - name: Upload the Built ChimeraX
+        #        uses: actions/upload-artifact@v3.1.0
+        #        with:
+        #          name: ChimeraX-macOS.tar.xz
+        #          path: ./ChimeraX.tar.xz
+#  build-windows:
+#    runs-on: windows-2019
+#    defaults:
+#      run:
+#        shell: C:\tools\cygwin\bin\bash.exe -o igncr '{0}'
+#    steps:
+#      - uses: actions/checkout@v2
+#      - uses: egor-tensin/setup-cygwin@v3
+#        with:
+#          platform: x64
+#          packages: binutils git imagemagick make openssh patch rsync unzip
+#            # hardlinks: 1 TODO: Enable if regular installation fails 
+#      - run: . ${PWD}/utils/set_up_windows.sh
+#      - run: make install
+#      - run: tar -cvzf ChimeraX.tar.gz ChimeraX.app
+#      - name: Upload the Built ChimeraX
+#        uses: actions/upload-artifact@v3.1.0
+#        with:
+#          name: ChimeraX-Windows.tar.gz
+#          path: ./ChimeraX.app
