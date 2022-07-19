@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-ItemsInspection" version="1.0" package="chimerax.items_inspection"
+<BundleInfo name="ChimeraX-ItemsInspection" version="1.0.1" package="chimerax.items_inspection"
             minSessionVersion="1" maxSessionVersion="1">
 
   <!-- Additional information about bundle source -->
