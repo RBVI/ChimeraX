@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-MapEraser" version="1.0"
+<BundleInfo name="ChimeraX-MapEraser" version="1.0.1"
 	    package="chimerax.map_eraser"
   	    minSessionVersion="1" maxSessionVersion="1" customInit="true">
 
@@ -22,7 +22,7 @@
     <Dependency name="ChimeraX-Geometry" version="~=1.0"/>
     <Dependency name="ChimeraX-MouseModes" version="~=1.0"/>
     <Dependency name="ChimeraX-MapData" version="~=2.0"/>
-    <Dependency name="ChimeraX-UI" version="~=1.0"/>
+    <Dependency name="ChimeraX-UI" version="~=2.0"/>
   </Dependencies>
 
   <Classifiers>

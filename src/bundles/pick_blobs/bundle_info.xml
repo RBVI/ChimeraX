@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-PickBlobs" version="1.0"
+<BundleInfo name="ChimeraX-PickBlobs" version="1.0.1"
 	    package="chimerax.pick_blobs"
   	    minSessionVersion="1" maxSessionVersion="1" customInit="true">
 
@@ -21,7 +21,7 @@
     <Dependency name="ChimeraX-Core" version="~=1.0"/>
     <Dependency name="ChimeraX-Geometry" version="~=1.0"/>
     <Dependency name="ChimeraX-MouseModes" version="~=1.0"/>
-    <Dependency name="ChimeraX-UI" version="~=1.0"/>
+    <Dependency name="ChimeraX-UI" version="~=2.0"/>
   </Dependencies>
 
   <Classifiers>

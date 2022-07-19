@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-BasicActions" version="1.1.1"
+<BundleInfo name="ChimeraX-BasicActions" version="1.1.2"
             package="chimerax.basic_actions" customInit="true"
             minSessionVersion="1" maxSessionVersion="1">
 
@@ -31,7 +31,7 @@ atoms, cartoons and surfaces.
   <!-- Dependencies on other ChimeraX/Python packages -->
   <Dependencies>
     <Dependency name="ChimeraX-Core" version="~=1.0"/>
-    <Dependency name="ChimeraX-UI" version="~=1.0"/>
+    <Dependency name="ChimeraX-UI" version="~=2.0"/>
   </Dependencies>
 
   <Providers>

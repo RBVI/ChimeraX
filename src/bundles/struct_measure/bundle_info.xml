@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-StructMeasure" version="1.0.1" package="chimerax.struct_measure"
+<BundleInfo name="ChimeraX-StructMeasure" version="1.0.2" package="chimerax.struct_measure"
   	    customInit="true" minSessionVersion="1" maxSessionVersion="1">
 
   <!-- Additional information about bundle source -->
@@ -25,7 +25,7 @@
     <Dependency name="ChimeraX-Core" version="~=1.0"/>
     <Dependency name="ChimeraX-Geometry" version="~=1.0"/>
     <Dependency name="ChimeraX-MouseModes" version="~=1.0"/>
-    <Dependency name="ChimeraX-UI" version="~=1.0"/>
+    <Dependency name="ChimeraX-UI" version="~=2.0"/>
   </Dependencies>
 
   <Classifiers>

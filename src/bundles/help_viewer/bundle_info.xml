@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-Help" version="2.0"
+<BundleInfo name="ChimeraX-Help" version="2.0.1"
     package="chimerax.help_viewer"
     minSessionVersion="1" maxSessionVersion="1" customInit="true">
 
@@ -19,7 +19,7 @@
 
   <Dependencies>
     <Dependency name="ChimeraX-Core" version="~=1.0"/>
-    <Dependency name="ChimeraX-UI" version="~=1.0"/>
+    <Dependency name="ChimeraX-UI" version="~=2.0"/>
     <Dependency name="ChimeraX-DataFormats" version="~=1.0"/>
     <Dependency name="ChimeraX-OpenCommand" version="~=1.0"/>
   </Dependencies>

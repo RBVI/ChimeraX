@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-CrystalContacts" version="1.0"
+<BundleInfo name="ChimeraX-CrystalContacts" version="1.0.1"
 	    package="chimerax.crystal_contacts"
   	    minSessionVersion="1" maxSessionVersion="1">
 
@@ -16,7 +16,7 @@
   <Dependencies>
     <Dependency name="ChimeraX-Core" version="~=1.0"/>
     <Dependency name="ChimeraX-Geometry" version="~=1.0"/>
-    <Dependency name="ChimeraX-UI" version="~=1.0"/>
+    <Dependency name="ChimeraX-UI" version="~=2.0"/>
   </Dependencies>
 
   <Classifiers>

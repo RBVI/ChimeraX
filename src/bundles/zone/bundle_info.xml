@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-Zone" version="1.0" package="chimerax.zone"
+<BundleInfo name="ChimeraX-Zone" version="1.0.1" package="chimerax.zone"
   	    customInit="true" minSessionVersion="1" maxSessionVersion="1">
 
   <!-- Additional information about bundle source -->
@@ -23,7 +23,7 @@
   <!-- Dependencies on other ChimeraX/Python packages -->
   <Dependencies>
     <Dependency name="ChimeraX-Core" version="~=1.0"/>
-    <Dependency name="ChimeraX-UI" version="~=1.0"/>
+    <Dependency name="ChimeraX-UI" version="~=2.0"/>
     <Dependency name="ChimeraX-MapFilter" version="~=2.0"/>
     <Dependency name="ChimeraX-MouseModes" version="~=1.0"/>
   </Dependencies>

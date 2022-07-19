@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-MapSeries" version="2.1"
+<BundleInfo name="ChimeraX-MapSeries" version="2.1.1"
 	    package="chimerax.map_series"
   	    customInit="true" minSessionVersion="1" maxSessionVersion="1">
 
@@ -23,7 +23,7 @@
     <Dependency name="ChimeraX-Map" version="~=1.0"/>
     <Dependency name="ChimeraX-MapData" version="~=2.0"/>
     <Dependency name="ChimeraX-MapFit" version="~=2.0"/>
-    <Dependency name="ChimeraX-UI" version="~=1.0"/>
+    <Dependency name="ChimeraX-UI" version="~=2.0"/>
   </Dependencies>
 
   <Classifiers>
