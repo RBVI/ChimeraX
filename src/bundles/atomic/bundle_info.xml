@@ -98,6 +98,12 @@
 	<Provider name="structures" ui_name="atomic models"/>
   </Providers>
 
+  <Providers manager="render by attribute">
+    <Provider name="atoms"/>
+    <Provider name="residues"/>
+    <Provider name="structures"/>
+  </Providers>
+
   <Classifiers>
         <ChimeraXClassifier>ChimeraX :: Selector :: C1 :: sp-hybridized carbon bonded to 2 other atoms</ChimeraXClassifier>
     <ChimeraXClassifier>ChimeraX :: Selector :: C1- :: sp-hybridized carbon bonded to 1 other atom</ChimeraXClassifier>

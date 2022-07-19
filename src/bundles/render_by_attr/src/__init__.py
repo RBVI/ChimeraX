@@ -11,21 +11,20 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+
+#--- public API ---
+
+from .manager import RenderAttrInfo
+
+#--- toolshed/session-init funcs ---
+
 from chimerax.core.toolshed import BundleAPI
 
-class _MyAPI(BundleAPI):
+class RenderByAttrAPI(BundleAPI):
 
     @staticmethod
     def start_tool(session, tool_name):
-        from .tool import show_attr
-        return show_attr(session)
+        from .tool import RenderByAttrTool
+        return RenderByAttrTool(session, tool_name)
 
-    @staticmethod
-    def get_class(class_name):
-        # 'get_class' is called by session code to get class saved in a session
-        if class_name == 'ShowAttr':
-            from . import tool
-            return tool.ShowAttr
-        return None
-
-bundle_api = _MyAPI()
+bundle_api = RenderByAttrAPI()
