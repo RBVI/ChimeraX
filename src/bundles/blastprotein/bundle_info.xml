@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-BlastProtein" version="2.1.1" package="chimerax.blastprotein" minSessionVersion="1" maxSessionVersion="1">
+<BundleInfo name="ChimeraX-BlastProtein" version="2.1.2" package="chimerax.blastprotein" minSessionVersion="1" maxSessionVersion="1">
 	<Author>UCSF RBVI</Author>
 	<Email>chimerax@cgl.ucsf.edu</Email>
 	<URL>https://www.rbvi.ucsf.edu/chimerax/</URL>

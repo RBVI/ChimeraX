@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-FileHistory" version="1.0"
+<BundleInfo name="ChimeraX-FileHistory" version="1.0.1"
 	    package="chimerax.file_history"
   	    minSessionVersion="1" maxSessionVersion="1">
 
