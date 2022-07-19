@@ -392,11 +392,7 @@ class EnumBase(Option):
             self.__button_group = QButtonGroup()
             self.remake_buttons()
             self.__button_group.button(self.values.index(self.default)).setChecked(True)
-            from Qt import using_pyqt6
-            if using_pyqt6:
-                self.__button_group.idClicked.connect(self.make_callback)
-            else:
-                self.__button_group.buttonClicked[int].connect(self.make_callback)
+            self.__button_group.idClicked.connect(self.make_callback)
         else:
             if display_value is not None:
                 button_label = display_value
@@ -549,8 +545,7 @@ class FontOption(EnumOption):
     def __init__(self, *args, **kw):
         if self.values is None:
             from Qt.QtGui import QFontDatabase
-            from Qt import using_qt5
-            fdb = QFontDatabase() if using_qt5 else QFontDatabase
+            fdb = QFontDatabase
             self.values = sorted(list(fdb.families()))
             super().__init__(*args, **kw)
 
