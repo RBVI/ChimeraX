@@ -114,11 +114,7 @@ class MultitouchTrackpad:
             # time consuming computatation.  It appears Qt does not collapse the events.
             # So event processing can get tens of seconds behind.  To reduce this problem
             # we only handle the most recent touch update per redraw.
-            from Qt import using_qt5, using_qt6
-            if using_qt5:
-                self._recent_touches = [Touch(t) for t in event.touchPoints()]
-            elif using_qt6:
-                self._recent_touches = [Touch(t) for t in event.points()]
+            self._recent_touches = [Touch(t) for t in event.points()]
         elif t == QEvent.Type.TouchEnd or t == QEvent.Type.TouchCancel or t == QEvent.Type.TouchBegin:
             # Sometimes we don't get a TouchEnd macOS gesture like 3-finger swipe up
             # for mission control took over half-way through a gesture.  So also
@@ -222,22 +218,13 @@ class MultitouchTrackpad:
         if self._touch_handler is None:
             return False	# Multi-touch disabled
 
-        from Qt import using_qt5, using_qt6
-        if using_qt5:
-            from Qt.QtCore import Qt
-            using_mouse = (event.source() == Qt.MouseEventNotSynthesized)
-        elif using_qt6:
-            from Qt.QtGui import QPointingDevice
-            using_mouse = (event.pointingDevice() == QPointingDevice.PointerType.Generic)
+        from Qt.QtGui import QPointingDevice
+        using_mouse = (event.pointingDevice() == QPointingDevice.PointerType.Generic)
         if using_mouse:
             return False	# Event is from a real mouse.
 
-        if using_qt5:
-            from Qt.QtGui import QTouchDevice
-            touch_devices = QTouchDevice.devices()
-        elif using_qt6:
-            from Qt.QtGui import QInputDevice
-            touch_devices = [d for d in QInputDevice.devices() if d.type() == d.DeviceType.TouchPad]
+        from Qt.QtGui import QInputDevice
+        touch_devices = [d for d in QInputDevice.devices() if d.type() == d.DeviceType.TouchPad]
         if len(touch_devices) == 0:
             return False	# No trackpad devices
 
@@ -249,11 +236,7 @@ class Touch:
         self.id = t.id()
         # Touch positions in macOS correspond to physical trackpad distances in points (= 1/72 inch).
         # There is an offset in Qt 5.9 which is the current pointer window position x,y (in pixels).
-        from Qt import using_qt5, using_qt6        
-        if using_qt5:
-            p = t.pos()
-        elif using_qt6:
-            p = t.position()
+        p = t.position()
         self.x = p.x()
         self.y = p.y()
 
