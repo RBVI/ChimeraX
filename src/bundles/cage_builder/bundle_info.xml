@@ -19,7 +19,7 @@ The cages can be decorated with atomic models to create oligomeric molecular ass
     <Dependency name="ChimeraX-Core" version="~=1.0"/>
     <Dependency name="ChimeraX-Geometry" version="~=1.0"/>
     <Dependency name="ChimeraX-Markers" version="~=1.0"/>
-    <Dependency name="ChimeraX-UI" version="~=2.0"/>
+    <Dependency name="ChimeraX-UI" version="~=1.0"/>
   </Dependencies>
 
   <Classifiers>

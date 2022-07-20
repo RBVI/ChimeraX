@@ -28,7 +28,7 @@
     <Dependency name="ChimeraX-Atomic" version="~=1.0,>=1.22.2"/>
     <Dependency name="ChimeraX-Geometry" version="~=1.0"/>
     <Dependency name="ChimeraX-Surface" version="~=1.0"/>
-    <Dependency name="ChimeraX-UI" version="~=2.0"/>
+    <Dependency name="ChimeraX-UI" version="~=1.0"/>
   </Dependencies>
 
   <DataFiles>

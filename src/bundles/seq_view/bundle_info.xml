@@ -20,7 +20,7 @@
     <Dependency name="ChimeraX-AlignmentHdrs" version="~=3.0"/>
     <Dependency name="ChimeraX-Atomic" version="~=1.10"/>
     <Dependency name="ChimeraX-Geometry" version="~=1.0"/>
-    <Dependency name="ChimeraX-UI" version="~=2.0"/>
+    <Dependency name="ChimeraX-UI" version="~=1.0"/>
   </Dependencies>
 
   <Providers manager="alignments">

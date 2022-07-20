@@ -40,7 +40,7 @@ REST_SUBDIRS = add_charge addh alignment_algs alignment_headers \
 	  mmcif mmtf model_panel modeller mol2 morph mouse_modes movie \
 	  neuron nucleotides open_command pdb pdb_bio pdb_lib pdb_matrices \
 	  pick_blobs positions preset_mgr pubchem read_pbonds registration \
-	  remote_control renumber_residues rest_server \
+	  remote_control render_by_attr renumber_residues rest_server \
 	  residue_fit rna_layout rotamers rotamer_libs \
 	  save_command scheme_mgr \
 	  sdf sel_inspector segger segment seqalign seq_view shape \

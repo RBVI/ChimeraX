@@ -52,7 +52,7 @@
     <Dependency name="ChimeraX-MapFilter" version="~=2.0"/>
     <Dependency name="ChimeraX-MapSeries" version="~=2.0"/>
     <Dependency name="ChimeraX-MouseModes" version="~=1.0"/>
-    <Dependency name="ChimeraX-UI" version="~=2.0"/>
+    <Dependency name="ChimeraX-UI" version="~=1.0"/>
     <Dependency name="ChimeraX-OpenCommand" version="~=1.0"/>
     <Dependency name="ChimeraX-SaveCommand" version="~=1.0"/>
   </Dependencies>

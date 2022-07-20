@@ -22,7 +22,7 @@
     <Dependency name="ChimeraX-AlignmentAlgorithms" version="~=2.0"/>
     <Dependency name="ChimeraX-AlignmentHdrs" version="~=3.0"/>
     <Dependency name="ChimeraX-Atomic" version="~=1.0"/>
-    <Dependency name="ChimeraX-UI" version="~=2.0"/>
+    <Dependency name="ChimeraX-UI" version="~=1.0"/>
     <Dependency name="ChimeraX-DataFormats" version="~=1.0"/>
     <Dependency name="ChimeraX-OpenCommand" version="~=1.0"/>
     <Dependency name="ChimeraX-SaveCommand" version="~=1.0"/>

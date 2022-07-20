@@ -11,7 +11,7 @@ Provide command line tool with command history.
 	</Categories>
 	<Dependencies>
 		<Dependency name="ChimeraX-Core" version="~=1.0"/>
-		<Dependency name="ChimeraX-UI" version="~=2.0"/>
+		<Dependency name="ChimeraX-UI" version="~=1.0"/>
 	</Dependencies>
 	<Classifiers>
 		<PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
