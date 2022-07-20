@@ -15,7 +15,7 @@
 
   <Dependencies>
     <Dependency name="ChimeraX-Core" version="~=1.0"/>
-    <Dependency name="ChimeraX-UI" version="~=2.0"/>
+    <Dependency name="ChimeraX-UI" version="~=1.0"/>
     <Dependency name="ChimeraX-Atomic" version="~=1.0"/>
   </Dependencies>
 
