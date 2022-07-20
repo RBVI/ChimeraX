@@ -99,7 +99,7 @@
   </Providers>
 
   <Providers manager="render by attribute">
-    <Provider name="atoms"/>
+    <Provider name="atoms" colors_cartoons="false"/>
     <Provider name="residues"/>
     <Provider name="structures"/>
   </Providers>

@@ -64,21 +64,27 @@ class RenderByAttrManager(ProviderManager):
         self.attr_classes = {}
         self._provider_bundles = {}
         self._ui_names = {}
+        self._color_targets = {}
         super().__init__("render by attribute")
         self._initializing = False
 
-    def add_provider(self, bundle_info, name, *, ui_name=None):
+    def add_provider(self, bundle_info, name, *,
+            ui_name=None, colors_atoms=True, colors_cartoons=True, colors_surfaces=True):
         # 'name' is the name used as an arg in the command
         # 'ui_name' is the name used in the tool interface
         self._provider_bundles[name] = bundle_info
         self._ui_names[name] = name if ui_name is None else ui_name
+        self._color_targets[name] = color_targets = set()
+        if colors_atoms != "false":
+            color_targets.add("atoms")
+        if colors_cartoons != "false":
+            color_targets.add("cartoons")
+        if colors_surfaces != "false":
+            color_targets.add("surfaces")
         self._infos = {}
 
-    def render_attr_info(self, provider_name):
-        if provider_name not in self._infos:
-            self._infos[provider_name] = self._provider_bundles[provider_name].run_provider(
-                self.session, provider_name, self)
-        return self._infos[provider_name]
+    def color_targets(self, provider_name):
+        return self._color_targets[provider_name]
 
     def end_providers(self):
         if self._initializing:
@@ -90,6 +96,12 @@ class RenderByAttrManager(ProviderManager):
     @property
     def provider_names(self):
         return list(self._provider_bundles.keys())
+
+    def render_attr_info(self, provider_name):
+        if provider_name not in self._infos:
+            self._infos[provider_name] = self._provider_bundles[provider_name].run_provider(
+                self.session, provider_name, self)
+        return self._infos[provider_name]
 
     def ui_name(self, provider_name):
         return self._ui_names[provider_name]

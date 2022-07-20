@@ -26,7 +26,7 @@ class RenderByAttrTool(ToolInstance):
         self.tool_window = tw = MainToolWindow(self, statusbar=True)
         parent = tw.ui_area
         from Qt.QtWidgets import QVBoxLayout, QHBoxLayout, QDialogButtonBox, QPushButton, QMenu, QLabel
-        from Qt.QtWidgets import QTabWidget, QWidget
+        from Qt.QtWidgets import QTabWidget, QWidget, QCheckBox
         from Qt.QtCore import Qt
         overall_layout = QVBoxLayout()
         overall_layout.setContentsMargins(0,0,0,0)
@@ -76,6 +76,30 @@ class RenderByAttrTool(ToolInstance):
         self.render_radii_markers = rh.add_markers(new_color='slate gray', activate=False,
             coord_type='relative')
         self.render_radii_markers.extend([((0.0, 0.0), None), ((1.0, 0.0), None)])
+        self.render_type_widget = QTabWidget()
+        self.render_type_widget.setTabBarAutoHide(True)
+        render_tab_layout.addWidget(self.render_type_widget)
+        color_render_tab = QWidget()
+        color_render_tab_layout = crt_layout = QVBoxLayout()
+        color_render_tab.setLayout(color_render_tab_layout)
+        color_target_layout = QHBoxLayout()
+        crt_layout.addLayout(color_target_layout)
+        color_target_layout.addStretch(1)
+        color_target_layout.addWidget(QLabel("Color: "), alignment=Qt.AlignCenter)
+        self.color_atoms = QCheckBox("atoms")
+        self.color_atoms.setChecked(True)
+        color_target_layout.addStretch(1)
+        color_target_layout.addWidget(self.color_atoms, alignment=Qt.AlignCenter)
+        self.color_cartoons = QCheckBox("cartoons")
+        self.color_cartoons.setChecked(True)
+        color_target_layout.addStretch(1)
+        color_target_layout.addWidget(self.color_cartoons, alignment=Qt.AlignCenter)
+        self.color_surfaces = QCheckBox("surfaces")
+        self.color_surfaces.setChecked(True)
+        color_target_layout.addStretch(1)
+        color_target_layout.addWidget(self.color_surfaces, alignment=Qt.AlignCenter)
+        color_target_layout.addStretch(1)
+        self.render_type_widget.addTab(color_render_tab, "Colors")
         self.mode_widget.addTab(render_tab, "Render")
 
         sel_tab = QWidget()
@@ -160,6 +184,10 @@ class RenderByAttrTool(ToolInstance):
         self.target_menu_button.setText(target)
         self.model_list.refresh()
         self._update_render_attr_menu()
+        color_targets = self._ui_to_color_targets.get(target, set())
+        self.color_atoms.setEnabled("atoms" in color_targets)
+        self.color_cartoons.setEnabled("cartoons" in color_targets)
+        self.color_surfaces.setEnabled("surfaces" in color_targets)
 
     def _update_histogram(self, attr_name):
         attr_info = self._cur_attr_info()
@@ -194,11 +222,13 @@ class RenderByAttrTool(ToolInstance):
         from .manager import get_manager
         mgr = get_manager(self.session)
         self._ui_to_info = {}
+        self._ui_to_color_targets = {}
         ui_names = []
         for pn in mgr.provider_names:
             ui_name = mgr.ui_name(pn)
             ui_names.append(ui_name)
             self._ui_to_info[ui_name] = mgr.render_attr_info(pn)
+            self._ui_to_color_targets[ui_name] = mgr.color_targets(pn)
         ui_names.sort()
         menu = self.target_menu_button.menu()
         menu.clear()
