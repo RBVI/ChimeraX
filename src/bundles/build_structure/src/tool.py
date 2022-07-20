@@ -34,9 +34,6 @@ class BuildStructureTool(ToolInstance):
         layout.setSpacing(3)
         parent.setLayout(layout)
 
-        session.logger.status("Build Structure is a work in progress, more functions coming soon...",
-            color="blue")
-
         self.category_button = QPushButton()
         layout.addWidget(self.category_button, alignment=Qt.AlignCenter)
         cat_menu = QMenu(parent)

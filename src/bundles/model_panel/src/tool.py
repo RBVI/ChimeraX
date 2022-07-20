@@ -213,6 +213,8 @@ class ModelPanel(ToolInstance):
         for model in self.models:
             model_id, model_id_string, bg_color, display, name, selected, part_selected = \
                 self._get_info(model, all_selected_models, part_selected_models)
+            if model_id is None:
+                continue
             len_id = len(model_id)
             if update:
                 if len_id == len(item_stack):
