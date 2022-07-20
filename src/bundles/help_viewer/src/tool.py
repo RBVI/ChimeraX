@@ -22,14 +22,10 @@ from chimerax.ui.widgets.htmlview import (
     ChimeraXHtmlView, chimerax_intercept,
     create_chimerax_profile
 )
-from Qt.QtWebEngineCore import QWebEngineUrlSchemeHandler
-from Qt import using_qt5, using_qt6
-
-if using_qt5:
-    from Qt.QtWebEngineWidgets import QWebEnginePage
-elif using_qt6:
-    from Qt.QtWebEngineCore import QWebEnginePage
-    from Qt.QtWebEngineCore import QWebEngineDownloadRequest
+from Qt.QtWebEngineCore import (
+        QWebEngineUrlSchemeHandler, QWebEnginePage
+        , QWebEngineDownloadRequest
+)
 
 _singleton = None
 _sys_tags = None
@@ -73,10 +69,7 @@ class _HelpWebView(ChimeraXHtmlView):
         from Qt.QtCore import Qt
         page = self.page()
         # keep reference to menu, so it doesn't get deleted before being shown
-        if using_qt5:
-            self._context_menu = menu = page.createStandardContextMenu()
-        elif using_qt6:
-            self._context_menu = menu = self.createStandardContextMenu()
+        self._context_menu = menu = self.createStandardContextMenu()
         menu.setAttribute(Qt.WA_DeleteOnClose, True)
         action = page.action(QWebEnginePage.OpenLinkInThisWindow)
         actions = iter(menu.actions())
@@ -364,13 +357,9 @@ class HelpUI(ToolInstance):
             item.setDownloadDirectory(dirname)
             item.setDownloadFileName(filename)
         # print("HelpUI.download_requested accept", file_path)
-        if using_qt5:
-            item.downloadProgress.connect(self.download_progress)
-            item.finished.connect(lambda *args, **kw: self.download_finished(*args, **kw, item=item, is_wheel=is_wheel))
-        elif using_qt6:
-            item.totalBytesChanged.connect(lambda: self.change_total_bytes(item=item))
-            item.receivedBytesChanged.connect(lambda: self.change_received_bytes(item=item))
-            item.isFinishedChanged.connect(lambda *args, **kw: self.download_finished(*args, **kw, item=item, is_wheel=is_wheel))
+        item.totalBytesChanged.connect(lambda: self.change_total_bytes(item=item))
+        item.receivedBytesChanged.connect(lambda: self.change_received_bytes(item=item))
+        item.isFinishedChanged.connect(lambda *args, **kw: self.download_finished(*args, **kw, item=item, is_wheel=is_wheel))
         item.accept()
 
     def download_progress(self, bytes_received = None, bytes_total = None):
@@ -388,39 +377,22 @@ class HelpUI(ToolInstance):
         self.download_progress(bytes_received = item.receivedBytes())
 
     def download_finished(self, *args, item=None, is_wheel=False, **kw):
-        if using_qt5:
-            item.downloadProgress.disconnect()
-            item.finished.disconnect()
-        elif using_qt6:
-            item.totalBytesChanged.disconnect()
-            item.receivedBytesChanged.disconnect()
-            item.isFinishedChanged.disconnect()
+        item.totalBytesChanged.disconnect()
+        item.receivedBytesChanged.disconnect()
+        item.isFinishedChanged.disconnect()
         self.progress_bar.setVisible(False)
         state = item.state()
-        if using_qt5:
-            if state == item.DownloadCompleted:
-                self.status("Download finished")
-            elif state == item.DownloadCancelled:
-                self.status("Download cancelled")
-                return
-            elif state == item.DownloadInterrupted:
-                self.status(f"Download interrupted: {item.interrupteReasonString()}")
-                return
-            else:
-                self.status(f"Odd download state: {state}")
-                return
-        elif using_qt6:
-            if state == QWebEngineDownloadRequest.DownloadCompleted:
-                self.status("Download finished")
-            elif state == QWebEngineDownloadRequest.DownloadCancelled:
-                self.status("Download cancelled")
-                return
-            elif state == QWebEngineDownloadRequest.DownloadInterrupted:
-                self.status(f"Download interrupted: {item.interrupteReasonString()}")
-                return
-            else:
-                self.status(f"Odd download state: {state}")
-                return
+        if state == QWebEngineDownloadRequest.DownloadCompleted:
+            self.status("Download finished")
+        elif state == QWebEngineDownloadRequest.DownloadCancelled:
+            self.status("Download cancelled")
+            return
+        elif state == QWebEngineDownloadRequest.DownloadInterrupted:
+            self.status(f"Download interrupted: {item.interrupteReasonString()}")
+            return
+        else:
+            self.status(f"Odd download state: {state}")
+            return
         if not is_wheel:
             return
         import os

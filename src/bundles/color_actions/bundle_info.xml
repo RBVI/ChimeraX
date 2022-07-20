@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-ColorActions" version="1.0" package="chimerax.color_actions"
+<BundleInfo name="ChimeraX-ColorActions" version="1.0.1" package="chimerax.color_actions"
   	    minSessionVersion="1" maxSessionVersion="1">
 
   <!-- Additional information about bundle source -->

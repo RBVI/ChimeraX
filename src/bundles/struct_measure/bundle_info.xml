@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-StructMeasure" version="1.0.1" package="chimerax.struct_measure"
+<BundleInfo name="ChimeraX-StructMeasure" version="1.0.2" package="chimerax.struct_measure"
   	    customInit="true" minSessionVersion="1" maxSessionVersion="1">
 
   <!-- Additional information about bundle source -->
