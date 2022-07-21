@@ -148,14 +148,17 @@ def modify_atom(atom, element, num_bonds, *, geometry=None, name=None, connect_b
                     possible_name = "H" + atom.name[1:]
                     if not atom.residue.find_atom(possible_name):
                         h_name = possible_name
-                if h_name is None and len(atom.name) < 4:
-                    for n in range(h_num, len(positions)+1):
-                        possible_name = "H%s%d" % (atom.name[1:], n)
-                        if atom.residue.find_atom(possible_name):
-                            possible_name = None
-                            break
+                if h_name is None:
+                    if len(atom.name) < 4:
+                        for n in range(h_num, len(positions)+1):
+                            possible_name = "H%s%d" % (atom.name[1:], n)
+                            if atom.residue.find_atom(possible_name):
+                                possible_name = None
+                                break
+                        else:
+                            possible_name = "H%s%d" % (atom.name[1:], h_num)
                     else:
-                        possible_name = "H%s%d" % (atom.name[1:], h_num)
+                        possible_name = None
             h_name = possible_name \
                 if possible_name is not None and len(possible_name) <= 4 \
                 else gen_atom_name(hydrogen, atom.residue)
