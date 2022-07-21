@@ -440,6 +440,10 @@ class ItemTable(QTableView):
         return [c.title for c in self._columns]
 
     @property
+    def columns(self):
+        return self._columns[:]
+
+    @property
     def data(self):
         return self._data[:]
 

@@ -21,6 +21,7 @@ def get_tool(session, tool_name):
 
 from chimerax.core.errors import UserError, LimitationError
 from chimerax.core.tools import ToolInstance
+from chimerax.core.commands import concise_model_spec, run
 from Qt.QtWidgets import QTableWidget, QHBoxLayout, QVBoxLayout, QAbstractItemView, QWidget, QPushButton, \
     QTabWidget, QTableWidgetItem, QFileDialog, QDialogButtonBox as qbbox, QLabel, QButtonGroup, \
     QRadioButton, QLineEdit, QGroupBox, QGridLayout, QCheckBox
@@ -39,7 +40,7 @@ class StructMeasureTool(ToolInstance):
         self.tool_window = tw = MainToolWindow(self)
         parent = tw.ui_area
         self.tab_widget = QTabWidget()
-        self.tab_widget.currentChanged.connect(self._set_help)
+        self.tab_widget.currentChanged.connect(self._tab_changed_cb)
         layout = QVBoxLayout()
         layout.setContentsMargins(0,0,0,0)
         layout.setSpacing(0)
@@ -88,6 +89,12 @@ class StructMeasureTool(ToolInstance):
         func = angle if len(atoms) == 3 else dihedral
         return self._angle_fmt % func(*[a.scene_coord for a in atoms])
 
+    def _apc_delete_items(self):
+        sel = self.apc_table.selected
+        if not sel:
+            raise UserError("No items selected in table")
+        run(self.session, "close %s" % concise_model_spec(self.session, sel))
+
     def _apc_selection_changed(self, newly_selected, newly_deselected):
         sel = self.apc_table.selected
         if len(sel) == 2:
@@ -127,10 +134,11 @@ class StructMeasureTool(ToolInstance):
                     info.append("angle: %.3f" % angle)
             info_text = "; ".join(info)
             self.apc_status_label.setText(info_text)
+            self.apc_status_label.setHidden(False)
             self.session.logger.info("<b>%s</b> <i>to</i> <b>%s</b>: %s" % (sel1, sel2, info_text),
                 is_html=True)
         elif newly_selected or newly_deselected:
-            self.apc_status_label.setText("")
+            self.apc_status_label.setHidden(True)
 
     def _create_angle(self):
         from chimerax.atomic import selected_atoms
@@ -156,7 +164,6 @@ class StructMeasureTool(ToolInstance):
         sel_atoms = selected_atoms(self.session)
         if len(sel_atoms) != 2:
             raise UserError("Exactly two atoms must be selected!")
-        from chimerax.core.commands import run
         run(self.session, "distance %s %s" % tuple(a.string(style="command") for a in sel_atoms))
 
     def _delete_angle(self):
@@ -181,7 +188,6 @@ class StructMeasureTool(ToolInstance):
         for i, pb in enumerate(pbs):
             if i in rows:
                 del_pbs.append(pb)
-        from chimerax.core.commands import run
         for pb in del_pbs:
             run(self.session, "~distance %s %s" % tuple([a.string(style="command") for a in pb.atoms]))
 
@@ -236,6 +242,8 @@ class StructMeasureTool(ToolInstance):
         self.handlers.append(get_triggers().add_handler('changes', self. _angle_changes_handler))
 
     def _fill_axis_tab(self, tab_area):
+        self.apc_status_tip = "Choose two items in table to report angle/distance (also logged);"\
+            " double click Name/ID to edit"
         layout = QVBoxLayout()
         layout.setContentsMargins(0,0,0,0)
         layout.setSpacing(0)
@@ -257,6 +265,7 @@ class StructMeasureTool(ToolInstance):
         table_area = QWidget()
         layout.addWidget(table_area, stretch=1)
         table_layout = QVBoxLayout()
+        table_layout.setSpacing(1)
         table_area.setLayout(table_layout)
         from chimerax.ui.widgets import ItemTable
         self.apc_table = ItemTable(session=self.session)
@@ -284,7 +293,6 @@ class StructMeasureTool(ToolInstance):
         self.apc_table.add_column("Shown", "display", format=ItemTable.COL_FORMAT_BOOLEAN, icon="shown")
         def run_sel_cmd(item, value, ses=self.session):
             cmd = "select" if value else "~select"
-            from chimerax.core.commands import run
             run(ses, cmd + " " + item.atomspec)
         self.apc_table.add_column("Selected", "selected", format=ItemTable.COL_FORMAT_BOOLEAN, icon="select",
             data_set=run_sel_cmd, title_display=False)
@@ -303,11 +311,17 @@ class StructMeasureTool(ToolInstance):
                 MODEL_SELECTION_CHANGED):
             self.handlers.append(self.session.triggers.add_handler(trig_name, self._refresh_apc_cell))
         table_layout.addWidget(self.apc_table, alignment=Qt.AlignHCenter)
-        self.apc_status_label = QLabel("Choose two items in table to report angle/distance (also logged);"
-            " double click Name/ID to edit")
+        self.apc_status_label = QLabel(self.apc_status_tip)
         self.apc_status_label.setWordWrap(True)
         self.apc_status_label.setAlignment(Qt.AlignHCenter)
         table_layout.addWidget(self.apc_status_label)
+        delete_layout = QHBoxLayout()
+        delete_layout.setSpacing(0)
+        table_layout.addLayout(delete_layout)
+        delete_button = QPushButton("Delete")
+        delete_button.clicked.connect(self._apc_delete_items)
+        delete_layout.addWidget(delete_button, alignment=Qt.AlignRight)
+        delete_layout.addWidget(QLabel(" items selected in table"))
 
     def _fill_dist_table(self, *args):
         dist_grp = self.session.pb_manager.get_group("distances", create=False)
@@ -371,7 +385,6 @@ class StructMeasureTool(ToolInstance):
         from chimerax.ui.options import SettingsPanel, BooleanOption, ColorOption, IntOption, FloatOption
         panel = SettingsPanel()
         from chimerax.dist_monitor.settings import settings
-        from chimerax.core.commands import run
         from chimerax.core.colors import color_name
         for opt_name, attr_name, opt_class, opt_class_kw, cmd_arg in [
                 ("Color", 'color', ColorOption, {}, 'color %s'),
@@ -420,6 +433,10 @@ class StructMeasureTool(ToolInstance):
     def _refresh_apc_table(self, trig_name, models):
         if self._filter_apc_models(models):
             self.apc_table.data = self._filter_apc_models(self.session.models)
+            columns = self.apc_table.columns
+            for i, col in enumerate(columns):
+                if col.display_format not in self.apc_table.color_formats:
+                    self.apc_table.resizeColumnToContents(i)
 
     def _save_angle_info(self):
         if not self._angle_info:
@@ -441,7 +458,6 @@ class StructMeasureTool(ToolInstance):
         pbs = dist_grp.pseudobonds
         if not pbs:
             raise UserError("No distances to save!")
-        from chimerax.core.commands import run
         run(self.session, "distance save browse")
 
     def _set_angle_decimal_places(self, decimal_places):
@@ -465,6 +481,16 @@ class StructMeasureTool(ToolInstance):
 
     def _show_define_plane_dialog(self):
         raise LimitationError("Define Planes dialog not implemented yet")
+
+    def _tab_changed_cb(self, index):
+        self._set_help(index)
+        if self.tab_names[index] == "Axes/Planes/Centroids":
+            if self.apc_status_label.text() == self.apc_status_tip:
+                def clear_status(s=self):
+                    if s.apc_status_label.text() == s.apc_status_tip:
+                        s.apc_status_label.setHidden(True)
+                from Qt.QtCore import QTimer
+                self._hold_ref_to_timer = QTimer.singleShot(12000, clear_status)
 
     def _update_angles(self):
         next_angle_info = []
@@ -751,7 +777,6 @@ class DefineAxisDialog:
         structures = self.helix_structure_list.value
         if not structures:
             raise UserError("No structures chosen")
-        from chimerax.core.commands import concise_model_spec
         from chimerax.atomic import Structure
         params = concise_model_spec(self.session, structures, relevant_types=Structure)
         if params:
@@ -763,7 +788,6 @@ class DefineAxisDialog:
         planes = self.plane_list.value
         if not planes:
             raise UserError("No planes chosen")
-        from chimerax.core.commands import concise_model_spec
         params = concise_model_spec(self.session, planes)
         if params:
             params += " "
@@ -830,7 +854,6 @@ class DefineAxisDialog:
         if hide:
             self.tool_window.shown = False
         # run command here
-        from chimerax.core.commands import run
         run(self.session, "define axis " + cmd_params)
 
     def show_applicable_params(self, button):
