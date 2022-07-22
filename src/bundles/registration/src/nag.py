@@ -237,7 +237,13 @@ def _get_usage():
                     continue
                 key, value = [s.strip() for s in line.split(':', 1)]
                 if key == "date":
-                    usage["dates"].append(_strptime(value))
+                    try:
+                        date = _strptime(value)
+                    except ValueError:
+                        # protect against corrupted files
+                        from datetime import datetime
+                        date = datetime(1, 1, 1)
+                    usage["dates"].append(date)
                 elif key == "count":
                     usage["count"] = int(value)
     except IOError:
