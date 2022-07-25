@@ -185,7 +185,7 @@ class CheckWaterViewer(ToolInstance):
         controls_layout = QVBoxLayout()
         hbonds_layout = QVBoxLayout()
         hbonds_layout.setSpacing(1)
-        self.show_hbonds = check = QCheckBox("Show hydrogen bonds")
+        self.show_hbonds = check = QCheckBox("Show H-bonds")
         check.setChecked(self.settings.show_hbonds)
         check.clicked.connect(self._show_hbonds_cb)
         hbonds_layout.addWidget(check)
@@ -195,7 +195,7 @@ class CheckWaterViewer(ToolInstance):
         self.params_arrow.setMaximumSize(16, 16)
         self.params_arrow.clicked.connect(self._hb_disclosure_cb)
         disclosure_layout.addWidget(self.params_arrow, alignment=Qt.AlignRight)
-        disclosure_layout.addWidget(QLabel(" H-Bond Parameters"), alignment=Qt.AlignLeft)
+        disclosure_layout.addWidget(QLabel(" H-bond parameters..."), alignment=Qt.AlignLeft)
         disclosure_layout.addStretch(1)
         hbonds_layout.addLayout(disclosure_layout)
         from chimerax.hbonds.gui import HBondsGUI
