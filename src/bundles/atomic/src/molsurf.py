@@ -302,9 +302,14 @@ class MolecularSurface(Surface):
             v2a[i1] = nearest1
             self._vertex_to_atom = v2a
             self._vertex_to_atom_count = len(self.atoms)
-        elif self._vertex_to_atom is not None and len(self.atoms) < self._vertex_to_atom_count:
-            # Atoms deleted
-            self._vertex_to_atom = None
+        elif self._vertex_to_atom is not None:
+            if len(self.atoms) < self._vertex_to_atom_count:
+                # Atoms deleted
+                self._vertex_to_atom = None
+            if len(self._vertex_to_atom) != len(self.vertices):
+                # Some other code like color zone with sharp_edges = True
+                # changed the surface geometery.
+                self._vertex_to_atom = None
         return self._vertex_to_atom
 
     def _vertices_for_atoms(self, atoms):
