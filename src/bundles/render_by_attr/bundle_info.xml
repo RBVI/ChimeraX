@@ -1,0 +1,32 @@
+<BundleInfo name="ChimeraX-RenderByAttr" version="1.0"
+	    package="chimerax.render_by_attr"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>Depict attribute values on structures</Synopsis>
+  <Description>Depict attribute values on structures and surfaces using colors, atom sizes, or cartoon thickness.</Description>
+
+  <Categories>
+    <Category name="Depiction, Structure Analysis"/>
+  </Categories>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version="~=1.3dev2021"/>
+    <Dependency name="ChimeraX-StdCommands" version="~=1.3"/>
+    <Dependency name="ChimeraX-UI" version="~=1.7"/>
+  </Dependencies>
+
+  <Managers>
+    <Manager name="render by attribute" autostart="false"/>
+  </Managers>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    <ChimeraXClassifier>Tool :: Render By Attribute :: Structure Analysis, Depiction :: depict attribute values on structures</ChimeraXClassifier>
+  </Classifiers>
+
+</BundleInfo>

@@ -38,12 +38,13 @@ REST_SUBDIRS = add_charge addh alignment_algs alignment_headers \
 	  markers mask match_maker md_crds \
 	  medical_toolbar meeting mlp model_series \
 	  mmcif mmtf model_panel modeller mol2 morph mouse_modes movie \
-	  neuron nucleotides open_command \
-	  pdb pdb_bio pdb_lib pdb_matrices pick_blobs positions preset_mgr pubchem \
-	  read_pbonds registration remote_control renumber_residues rest_server \
-	  residue_fit rna_layout rotamer_libs rotamers save_command scheme_mgr \
+	  neuron nucleotides open_command pdb pdb_bio pdb_lib pdb_matrices \
+	  pick_blobs positions preset_mgr pubchem read_pbonds registration \
+	  remote_control renumber_residues rest_server \
+	  residue_fit rna_layout rotamers rotamer_libs \
+	  save_command scheme_mgr \
 	  sdf sel_inspector segger segment seqalign seq_view shape \
-	  shell shortcuts show_attr show_sequences sideview sim_matrices smiles \
+	  shell shortcuts show_sequences sideview sim_matrices smiles \
 	  smooth_lines spacenavigator std_commands \
 	  stl storm struct_measure struts surface swapaa swap_res \
 	  tape_measure test toolbar tug ui uniprot unit_cell \

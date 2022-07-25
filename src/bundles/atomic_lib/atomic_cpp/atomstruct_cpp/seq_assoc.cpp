@@ -345,11 +345,14 @@ constrained_match(const Sequence::Contents& aseq, const StructureSeq& mseq,
         throw std::logic_error("Internal match problem: #segments != #offsets");
     AssocRetvals ret;
     unsigned int res_offset = 0;
+    auto num_mseq_res = mseq.residues().size();
     for (unsigned int si = 0; si < ap.segments.size(); ++si) {
         int offset = offsets[si];
         const Sequence::Contents& segment = ap.segments[si];
         for (unsigned int i = 0; i < segment.size(); ++i) {
             Residue* r = mseq.residues()[res_offset+i];
+            if (res_offset+i >= num_mseq_res)
+                break;
             if (r != nullptr) {
                 ret.match_map[r] = offset+i;
                 ret.match_map[offset+i] = r;
@@ -420,6 +423,7 @@ gapped_match(const Sequence::Contents& aseq, const StructureSeq& mseq,
 
     AssocRetvals ret;
     ret.num_errors = tot_errs;
+    auto num_mseq_res = mseq.residues().size();
     int mseq_index = 0;
     for (int i = 0; i < best_offset + (int)aseq.size(); ++i) {
         if (i >= (int)gapped.size())
@@ -435,6 +439,8 @@ gapped_match(const Sequence::Contents& aseq, const StructureSeq& mseq,
             }
         }
         ++mseq_index;
+        if (mseq_index >= num_mseq_res)
+            break;
     }
     return ret;
 }
@@ -462,6 +468,8 @@ try_assoc(const Sequence& align_seq, const StructureSeq& mseq,
     } catch (SA_AssocFailure&) {
         assoc_failure = true;
     }
+    retvals.match_map.aseq = &align_seq;
+    retvals.match_map.mseq = &mseq;
 
     if (!assoc_failure && retvals.num_errors == 0)
         return retvals;

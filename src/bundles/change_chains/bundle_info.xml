@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-ChangeChains" version="1.0" package="chimerax.renumber_residues"
+<BundleInfo name="ChimeraX-ChangeChains" version="1.0" package="chimerax.change_chains"
   	    minSessionVersion="1" maxSessionVersion="1">
 
   <!-- Additional information about bundle source -->
