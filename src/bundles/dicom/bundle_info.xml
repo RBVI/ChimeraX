@@ -18,7 +18,8 @@
     <Dependency name="ChimeraX-DataFormats" version="~=1.0"/>
     <Dependency name="ChimeraX-Geometry" version="~=1.0"/>
     <Dependency name="ChimeraX-MapData" version="~=2.0"/>
-    <Dependency name="ChimeraX-OpenCommand" version="~=1.0"/>
+	<Dependency name="ChimeraX-OpenCommand" version="~=1.0"/>
+	<Dependency name="pydicom" version="~=2.3.0"/>
   </Dependencies>
 
   <Providers manager="data formats">
