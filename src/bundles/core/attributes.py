@@ -16,9 +16,7 @@ Attributes: support for custom attibute saving in sessions
 ==========================================================
 
 This module allows classes that can have arbitrary new attributes defined to preserve those attributes
-in session files.  Such attributes can have a default value, and if provided then instances of the class
-where the attribute value has not been explicitly set will return the default value instead of raising
-AttributeError.
+in session files.
 """
 
 def string_to_attr(string, *, prefix="", collapse=True):
