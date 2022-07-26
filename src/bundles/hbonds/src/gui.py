@@ -14,7 +14,7 @@
 from chimerax.atomic import AtomicStructure
 from chimerax.core.colors import BuiltinColors
 from .hbond import rec_dist_slop, rec_angle_slop
-from Qt.QtWidgets import QWidget
+from Qt.QtWidgets import QWidget, QGroupBox
 from Qt.QtCore import Qt
 from chimerax.ui.options import Option, OptionsPanel, ColorOption, FloatOption, BooleanOption, IntOption, \
     OptionalRGBAOption, make_optional
@@ -49,10 +49,10 @@ class HBondsGUI(QWidget):
             # what controls to show in the interface
             show_bond_restrict=True, show_color=True, show_dashes=True, show_inter_model=True,
             show_intra_model=True, show_intra_mol=True, show_intra_res=True, show_inter_submodel=False,
-            show_log=True, show_make_pseudobonds=True, show_model_restrict=True, show_radius=True,
-            show_relax=True, show_retain_current=True, show_reveal=True, show_salt_only=True,
-            show_save_file=True, show_select=True, show_show_dist=True, show_slop=True, show_slop_color=True,
-            show_two_colors=True):
+            show_log=True, show_make_pseudobonds=True, show_pseudobond_creation=True,
+            show_model_restrict=True, show_radius=True, show_relax=True, show_retain_current=True,
+            show_reveal=True, show_salt_only=True, show_save_file=True, show_select=True,
+            show_show_dist=True, show_slop=True, show_slop_color=True, show_two_colors=True):
 
         self.session = session
 
@@ -88,9 +88,12 @@ class HBondsGUI(QWidget):
         self.setLayout(layout)
 
         if show_make_pseudobonds:
-            self.__make_pb_option = BooleanOption("Display as pseudobonds", None if settings
-                else make_pseudobonds, None, attr_name="make_pseudobonds", settings=settings, as_group=True)
-            group = self.__make_pb_option.widget
+            if show_pseudobond_creation:
+                self.__make_pb_option = BooleanOption("Display as pseudobonds", None if settings
+                    else make_pseudobonds, None, attr_name="make_pseudobonds", settings=settings, as_group=True)
+                group = self.__make_pb_option.widget
+            else:
+                group = QGroupBox("Pseudobond display")
             layout.addWidget(group)
             make_pb_layout = QVBoxLayout()
             make_pb_layout.setContentsMargins(0,0,0,0)
@@ -289,7 +292,8 @@ class HBondsGUI(QWidget):
 
         # may be saved in settings
         if self.__show_values['make_pseudobonds']:
-            settings['make_pseudobonds'] = self.__make_pb_option.value
+            if self.__show_values['pseudobond_creation']:
+                settings['make_pseudobonds'] = self.__make_pb_option.value
             if self.__show_values['color']:
                 settings['color'] = self.__color_option.value
             if self.__show_values['radius']:
