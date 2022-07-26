@@ -548,14 +548,15 @@ class MolecularSurface(Surface):
         v = self.triangles[t,0]
         v2a = self.vertex_to_atom_map()
         if v2a is None:
-            pa = p
+            from chimerax.core.models import PickedModel
+            pa = PickedModel(self, p.distance)
         else:
             a = v2a[v]
             atom = self.atoms[a]
             from .structure import PickedAtom
             pa = PickedAtom(atom, p.distance)
-            if isinstance(p, PickedTriangle):
-                pa.triangle_pick = p	# Used by for reporting surface color value
+        if isinstance(p, PickedTriangle):
+            pa.triangle_pick = p	# Used by for reporting surface color value
         return pa
 
     def set_selected(self, sel, *, fire_trigger=True):
