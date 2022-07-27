@@ -195,8 +195,9 @@ class ItemTable(QTableView):
         Do not do anything Qt related with the ItemTable until launch() has been called, because
         that's when the underlying QTableView gets initialized.
 
-        ItemTable provides a selection_changed signal that delivers a list of the selected data
-        items to the connected function.
+        ItemTable provides a selection_changed signal that delivers two lists to the connected function:
+        newly selected items and newly deselected items.  To find all currently selected items, use the
+        tables 'selected' property.
     """
 
     selection_changed = Signal(list, list)
@@ -207,6 +208,9 @@ class ItemTable(QTableView):
     COL_FORMAT_TRANSPARENT_COLOR = "alpha"
     COL_FORMAT_OPAQUE_COLOR = "no alpha"
     color_formats = [COL_FORMAT_TRANSPARENT_COLOR, COL_FORMAT_OPAQUE_COLOR]
+
+    SORT_ASCENDING = Qt.SortOrder.AscendingOrder
+    SORT_DESCENDING = Qt.SortOrder.DescendingOrder
 
     def __init__(self, *, auto_multiline_headers: bool = True
                  # TODO: Should this be a NamedTuple?
@@ -420,7 +424,7 @@ class ItemTable(QTableView):
             self._data = data[:]
             self._table_model.endResetModel()
             if emit_signal:
-                self.selection_changed.emit([])
+                self.selection_changed.emit([], emit_signal)
             return
         while True:
             for i, datum in enumerate(self._data):
@@ -461,7 +465,8 @@ class ItemTable(QTableView):
         bottom_right = self._table_model.index(len(self._data)-1, len(self.columns)-1)
         self._table_model.dataChanged(top_left, bottom_right, [Qt.FontRole]).emit()
 
-    def launch(self, *, select_mode=QAbstractItemView.SelectionMode.ExtendedSelection, session_info=None, suppress_resize=False):
+    def launch(self, *, select_mode=QAbstractItemView.SelectionMode.ExtendedSelection, session_info=None,
+            suppress_resize=False):
         self._table_model = QCxTableModel(self)
         if self._allow_user_sorting:
             sort_model = NumSortingProxyModel()
@@ -482,7 +487,7 @@ class ItemTable(QTableView):
             sel_model = self.selectionModel()
             for i in selected:
                 index = self._table_model.index(i,0)
-                sel_model.select(index, sel_model.Rows | sel_model.SelectCurrent)
+                sel_model.select(index, sel_model.Rows | sel_model.Select)
             self.highlight([self._data[i] for i in highlighted])
             for c in self._columns:
                 self.update_column(c, display=column_display.get(c.title, True))
@@ -505,6 +510,19 @@ class ItemTable(QTableView):
                 for i in self.selectionModel().selectedRows()]
         return [self._data[i.row()] for i in self.selectionModel().selectedRows()]
 
+    @selected.setter
+    def selected(self, items):
+        sel_model = self.selectionModel()
+        data_rows = [self._data.index(item) for item in items]
+        if self._allow_user_sorting:
+            model_indices = [self.model().mapFromSource(self._table_model.index(row, 0))
+                for row in data_rows]
+        else:
+            model_indices = [self.model().index(row, 0) for row in data_rows]
+        sel_model.clear()
+        for index in model_indices:
+            sel_model.select(index, sel_model.Select | sel_model.Rows)
+
     def session_info(self):
         version = 1
         selected = set([i.row() for i in self.selectedIndexes()])
@@ -515,6 +533,18 @@ class ItemTable(QTableView):
         else:
             sort_info = None
         return (version, selected, column_display, highlighted, sort_info)
+
+    def sort_by(self, column, order):
+        if not self._allow_user_sorting:
+            raise ValueError("Table was not configured to allow sorting")
+        self.model().sort(self._columns.index(column), order)
+
+    @property
+    def sorted_data(self):
+        if self._allow_user_sorting:
+            return [self._data[self.model().mapToSource(self.model().index(i,0)).row()]
+                for i in range(len(self._data))]
+        return self._data
 
     def update_cell(self, col_info, datum):
         if isinstance(col_info, str):
@@ -598,10 +628,10 @@ class ItemTable(QTableView):
 
     def _relay_selection_change(self, selected, deselected):
         if self._allow_user_sorting:
-            sel_data, desel_data = [[self._data[self.model().mapToSource(i).row()] for i in x.indexes()]
-                for x in (selected, deselected)]
+            sel_data, desel_data = [list(set(self._data[self.model().mapToSource(i).row()]
+                for i in x.indexes())) for x in (selected, deselected)]
         else:
-            sel_data, desel_data = [[self._data[i.row()] for i in x.indexes()]
+            sel_data, desel_data = [list(set(self._data[i.row()] for i in x.indexes()))
                 for x in (selected, deselected)]
         self.selection_changed.emit(sel_data, desel_data)
 

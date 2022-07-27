@@ -105,7 +105,11 @@ class CheckWaterViewer(ToolInstance):
         else:
             self.compare_label, self.check_label = [x.capitalize() for x in model_labels]
         from chimerax.core.models import REMOVE_MODELS
-        self.handlers = [self.session.triggers.add_handler(REMOVE_MODELS, self._models_removed_cb)]
+        from chimerax.atomic import get_triggers
+        self.handlers = [
+            self.session.triggers.add_handler(REMOVE_MODELS, self._models_removed_cb),
+            get_triggers().add_handler("changes", self._changes_cb)
+        ]
 
         # change any sphere representations into stick
         if not session_info:
@@ -156,48 +160,9 @@ class CheckWaterViewer(ToolInstance):
         from chimerax.ui.widgets import ItemTable
         self.res_table = ItemTable()
         self.res_table.add_column("Water", str)
-        self.res_table.add_column("# H-bonds", self.HB_COUNT_ATTR)
+        self.hbonds_column = self.res_table.add_column("# H-bonds", self.HB_COUNT_ATTR)
         self.res_table.selection_changed.connect(self._res_sel_cb)
         layout.addWidget(self.res_table)
-        """
-        from chimerax.atomic.widgets import ResidueListWidget
-        self.res_list = ResidueListWidget(self.session, filter_func=self._filter_residues,
-            autoselect=ResidueListWidget.AUTOSELECT_NONE)
-        if session_info:
-            # Complicated code to avoid having the residue list callback change
-            # the restored session state:  after one frame drawn look for a new
-            # frame where there aren't changes pending, then hook up callback.
-            # Three handlers are involved because "frame drawn" is not called
-            # if "new frame" has nothing to draw.
-            cb_info = []
-            def new_frame_handler(*args, ses=self.session, cb_info=cb_info,
-                    signal=self.res_list.value_changed, handler=self._res_sel_cb):
-                if ses.change_tracker.changed:
-                    from chimerax.atomic import get_triggers
-                    get_triggers().add_handler("changes done", cb_info[0])
-                else:
-                    signal.connect(handler)
-                from chimerax.core.triggerset import DEREGISTER
-                return DEREGISTER
-            def changes_done_handler(*args, ses=self.session):
-                ses.triggers.add_handler("new frame", new_frame_handler)
-                from chimerax.core.triggerset import DEREGISTER
-                return DEREGISTER
-            cb_info.append(changes_done_handler)
-            def frame_drawn_handler(*args, ses=self.session):
-                ses.triggers.add_handler("new frame", new_frame_handler)
-                from chimerax.core.triggerset import DEREGISTER
-                return DEREGISTER
-            self.session.triggers.add_handler("frame drawn", frame_drawn_handler)
-        else:
-            # initially select all residues, but allow empty selections later
-            self.res_list.autoselect = self.res_list.AUTOSELECT_ALL
-            self.res_list.value_changed.connect(self._res_sel_cb)
-            from Qt.QtCore import QTimer
-            # The '1' is because this needs to fire after a singleShot(0) in the list code (ugh!)
-            QTimer.singleShot(1, lambda rl=self.res_list: setattr(rl, 'autoselect', rl.AUTOSELECT_NONE))
-        layout.addWidget(self.res_list)
-        """
 
         controls_layout = QVBoxLayout()
         hbonds_layout = QVBoxLayout()
@@ -258,9 +223,11 @@ class CheckWaterViewer(ToolInstance):
             self._make_hb_groups()
         self.res_table.data = table_waters
         self.res_table.launch(session_info=table_info)
-        if not session_info and self.settings.show_hbonds:
-            self._show_hbonds_cb(True)
-        self._selected_treatment(table_waters)
+        if not session_info:
+            self.res_table.sort_by(self.hbonds_column, self.res_table.SORT_DESCENDING)
+            if self.settings.show_hbonds:
+                self._show_hbonds_cb(True)
+            self._selected_treatment(table_waters)
 
         self.tool_window.manage('side')
 
@@ -274,20 +241,13 @@ class CheckWaterViewer(ToolInstance):
     def restore_snapshot(cls, session, data):
         inst = super().restore_snapshot(session, data['ToolInstance'])
         inst._finalize_init(data['check_model'], data['compare_info'], data['model_labels'],
-            from_session=True)
+            session_info=(data['check_waters'], data['hbond_groups'], data['table info']))
         if data['radio info']:
             for but in inst.radio_group.buttons():
                 if but.text() == data['radio info']:
                     but.setChecked(True)
                     inst._update_residues()
                     break
-        #TODO
-        """
-        if data['water']:
-            inst.res_list.blockSignals(True)
-            inst.res_list.value = data['water']
-            inst.res_list.blockSignals(False)
-        """
         inst.settings.show_hbonds = data['show hbonds']
         inst.show_hbonds.setChecked(data['show hbonds'])
         return inst
@@ -299,20 +259,26 @@ class CheckWaterViewer(ToolInstance):
             'ToolInstance': ToolInstance.take_snapshot(self, session, flags),
             'compared_waters': self.compared_waters,
             'check_model': self.check_model,
+            'check_waters': self.check_waters,
             'compare_info': self.compare_info,
+            'hbond_groups': self.hbond_groups,
             'model_labels': self.model_labels,
             'radio info': self.radio_group.checkedButton().text() if self.radio_group else None,
             'show hbonds': self.settings.show_hbonds,
+            'table info': self.res_table.session_info(),
             'version': 1,
-            #TODO
-            #'water': self.res_list.value,
         }
         return data
 
+    def _changes_cb(self, trig_name, changes):
+        if changes.num_deleted_residues() > 0:
+            cur_data = self.res_table.data
+            live_data = [d for d in cur_data if not d.deleted]
+            if len(live_data) < len(cur_data):
+                self.res_table.data = live_data
+
     def _delete_waters(self):
-        #TODO
-        return
-        waters = self.res_list.value
+        waters = self.res_table.selected
         if not waters:
             raise UserError("No waters chosen")
         if len(waters) > 1:
@@ -320,21 +286,18 @@ class CheckWaterViewer(ToolInstance):
             if ask(self.session, "Really delete %d waters?" % len(waters),
                     default="no", title="Delete waters") == "no":
                 return
-            self.res_list.value = []
         else:
             # go to the next water in the list
-            all_values = self.res_list.all_values
+            all_values = self.res_table.sorted_data
             if len(all_values) > 1 and self.next_after_del.isChecked():
                 next_row = (all_values.index(waters[0]) + 1) % len(all_values)
-                self.res_list.value = [all_values[next_row]]
-                self.res_list.scrollToItem(self.res_list.item(next_row))
-            else:
-                self.res_list.value = []
+                datum = all_values[next_row]
+                self.res_table.selected = [datum]
+                self.res_table.scroll_to(datum)
+        # remove soon-to-be dead water(s) before table tries to redraw...
+        self.res_table.data = [item for item in self.res_table.data if item not in waters]
         from chimerax.atomic import Residues
         Residues(waters).atoms.delete()
-
-    def _filter_residues(self, r):
-        return r.structure == self.filter_model and r in self.filter_residues
 
     def _hb_disclosure_cb(self, *args):
         is_hidden = self.hb_gui.isHidden()
@@ -361,14 +324,13 @@ class CheckWaterViewer(ToolInstance):
                 else:
                     waters = douse_in_common
                     model = self.check_model
-                input_data.append((but, name, waters))
+                input_data.append((but, name, waters, model))
         else:
-            input_data.append((None, "water H-bonds", self.check_waters))
-            model = self.check_model
+            input_data.append((None, "water H-bonds", self.check_waters, self.check_model))
         cmd_name, spec, args = self.hb_gui.get_command()
         from chimerax.atomic import concise_residue_spec, Residue
         Residue.register_attr(self.session, self.HB_COUNT_ATTR, "Check Waters", attr_type=int)
-        for key, name, waters in input_data:
+        for key, name, waters, model in input_data:
             spec = concise_residue_spec(self.session, waters)
             from chimerax.core.commands import run, StringArg
             hbonds = run(self.session, '%s %s %s restrict any name %s' % (cmd_name, spec, args,
@@ -396,8 +358,8 @@ class CheckWaterViewer(ToolInstance):
             self._update_residues()
             self.tool_window.ui_area.layout().removeItem(self.button_layout)
 
-    def _res_sel_cb(self):
-        self._selected_treatment(self.res_table.selected)
+    def _res_sel_cb(self, selected, deselected):
+        self._selected_treatment(selected)
 
     def _selected_treatment(self, selected):
         if not selected:
@@ -419,11 +381,7 @@ class CheckWaterViewer(ToolInstance):
             group.display = False
         if checked:
             group_key = self.radio_group.checkedButton() if self.radio_group else None
-            try:
-                group = self.hbond_groups[group_key]
-            except KeyError:
-                self.hbond_groups[group_key] = group = self._make_hb_group()
-            group.display = True
+            self.hbond_groups[group_key].display = True
 
     def _unclip_cb(self):
         from chimerax.core.commands import run
@@ -437,25 +395,23 @@ class CheckWaterViewer(ToolInstance):
             len(all_input - input_in_common)))
 
     def _update_hbonds(self):
-        group_key = self.radio_group.checkedButton() \
-            if (self.radio_group and self.settings.show_hbonds) else None
-        self.session.models.close([group for key, group in self.hbond_groups.items() if key != group_key])
-        if self.settings.show_hbonds:
-            self.hbond_groups[group_key] = self._make_hb_group()
+        self.session.models.close([group for group in self.hbond_groups.values()])
+        self._make_hb_groups()
+        if not self.settings.show_hbonds:
+            for grp in self.hbond_groups.values():
+                grp.display = False
+        self.res_table.update_column(self.hbonds_column, data=True)
 
     def _update_residues(self):
         all_input, after_only, douse_in_common, input_in_common = self.compared_waters
         checked = self.radio_group.checkedButton()
         if checked == self.after_only_button:
-            self.filter_model = self.check_model
-            self.filter_residues = after_only
+            residues = after_only
         elif checked == self.before_only_button:
-            self.filter_model = self.compare_model
-            self.filter_residues = all_input - input_in_common
+            residues = all_input - input_in_common
         else:
-            self.filter_model = self.compare_model
-            self.filter_residues = input_in_common
+            residues = input_in_common
         if self.show_hbonds.isChecked():
             self._show_hbonds_cb(True)
-        #TODO
-        #self.res_list.refresh()
+        self.res_table.data = residues
+        self._selected_treatment(residues)
