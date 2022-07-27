@@ -249,15 +249,19 @@ def _copy_new_waters(douse_model, near_model, keep_input_water, far_water, map_n
     # Add found water molecules to copy of input molecule.
     if keep_input_water:
         from chimerax.check_waters import compare_waters
-        input_waters, douse_only_waters, douse_both_waters, input_both_waters = \
-            compared_waters = compare_waters(near_model, douse_model)
+        input_waters, douse_only_waters, douse_both_waters, input_both_waters = compare_waters(near_model,
+            douse_model)
+        # since the douse model will be closed, translate its "both" waters to the new model's waters
+        res_map =  { r:i for i, r in enumerate(near_model.residues) }
+        from chimerax.atomic import Residues
+        both_waters = Residues([model.residues[res_map[r]] for r in input_both_waters])
     else:
-        douse_waters = _water_residues(douse_model)
+        douse_only_waters = _water_residues(douse_model)
         _water_residues(model).delete()
         compared_waters = None
     added_wat_res = _add_waters(model, douse_only_waters)
-    if compared_waters:
-        compared_waters = compared_waters[:1] + (added_wat_res,) + compared_waters[2:]
+    if keep_input_water:
+        compared_waters = (input_waters, added_wat_res, both_waters, input_both_waters)
 
     model.session.models.add([model])	# Need to assign id number for use in log message
 
