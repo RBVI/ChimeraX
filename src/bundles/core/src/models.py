@@ -208,7 +208,7 @@ class Model(State, Drawing):
                     return True
 
         return False
-    
+
     def set_selected(self, sel, *, fire_trigger=True):
         Drawing.set_highlighted(self, sel)
         if fire_trigger:
@@ -224,13 +224,13 @@ class Model(State, Drawing):
 
     selected = property(get_selected, set_selected)
     '''selected indicates if this model has any part selected but does not include children.'''
-        
+
     def _get_selected_positions(self):
         return self.highlighted_positions
     def _set_selected_positions(self, positions):
         self.highlighted_positions = positions
     selected_positions = property(_get_selected_positions, _set_selected_positions)
-    
+
     def _model_set_position(self, pos):
         if pos != self.position:
             Drawing.position.fset(self, pos)
@@ -280,10 +280,10 @@ class Model(State, Drawing):
         if not same_vertex_count and auto_recolor:
             # Number of vertices changed.  Recompute colors.
             auto_recolor()
-            
+
     color_undo_state = property(_color_undo_state, _restore_colors_from_undo_state)
 
-    def add(self, models):
+    def add(self, models) -> None:
         '''Add child models to this model.'''
         om = self.session.models
         if type(models) is not list:
@@ -332,7 +332,7 @@ class Model(State, Drawing):
         while m is not None and m.SESSION_SAVE:
             m = m.parent
         return m is None
-        
+
     def take_snapshot(self, session, flags):
         p = self.parent
         if p is session.models.scene_root_model:
@@ -426,7 +426,7 @@ class Model(State, Drawing):
     def clear_selection(self):
         self.clear_highlight()
         self._selection_changed()
-        
+
     def added_to_session(self, session):
         html_title = self.get_html_title(session)
         if not html_title:
@@ -741,7 +741,7 @@ class Models(StateManager):
     def have_model(self, model):
         return model.id is not None and (self._models.get(model.id) is model
                                          or model is self.scene_root_model)
-    
+
     def _parent_for_added_model(self, model, parent, root_model = False):
         if root_model:
             if parent is not None:
@@ -795,7 +795,7 @@ class Models(StateManager):
             child.id = id + child.id[-1:]
             mt[child.id] = child
             self._update_child_ids(child)
-            
+
     def assign_id(self, model, id):
         '''Parent model for new id must already exist.'''
         cm = self._models.get(id)
