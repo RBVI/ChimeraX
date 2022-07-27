@@ -562,12 +562,16 @@ class MolecularSurface(Surface):
     def set_selected(self, sel, *, fire_trigger=True):
         self.atoms.selected = sel
         self.update_selection(fire_trigger=fire_trigger)
+        if not self.has_atom_patches():
+            Surface.set_selected(self, sel, fire_trigger=fire_trigger)
     selected = property(Surface.selected.fget, set_selected)
 
     def update_selection(self, *, fire_trigger=True):
         asel = self.atoms.selected
         tmask = self._atom_triangle_mask(asel)
         if tmask is None:
+            if not self.has_atom_patches():
+                return
             sel_val = False
         else:
             sel_val = (tmask.sum() > 0)
