@@ -393,9 +393,9 @@ class Arrow:
         self.weight = weight
         self.start = start
         self.end = end
-        self.visibility = visibility
         self.head_style = head_style
         self.drawing = d = ArrowModel(session, self)
+        self.visibility = d.display = visibility
         lb = session_arrows(session, create = True)
         lb.add_arrow(self)
 
