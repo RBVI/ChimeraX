@@ -134,7 +134,7 @@ class CheckWaterViewer(ToolInstance):
 
         from Qt.QtWidgets import QHBoxLayout, QButtonGroup, QVBoxLayout, QRadioButton, QCheckBox
         from Qt.QtWidgets import QPushButton, QLabel, QToolButton, QGridLayout
-        layout = QHBoxLayout()
+        layout = QVBoxLayout()
         layout.setContentsMargins(2,2,2,2)
         layout.setSpacing(0)
         parent.setLayout(layout)
@@ -142,17 +142,17 @@ class CheckWaterViewer(ToolInstance):
             # we kept the input waters
             self.radio_group = QButtonGroup(parent)
             self.radio_group.buttonClicked.connect(self._update_residues)
-            self.button_layout = but_layout = QVBoxLayout()
+            self.button_layout = but_layout = QHBoxLayout()
             layout.addLayout(but_layout)
             self.after_only_button = QRadioButton(parent)
             self.radio_group.addButton(self.after_only_button)
-            but_layout.addWidget(self.after_only_button)
+            but_layout.addWidget(self.after_only_button, alignment=Qt.AlignCenter)
             self.in_common_button = QRadioButton(parent)
             self.radio_group.addButton(self.in_common_button)
-            but_layout.addWidget(self.in_common_button)
+            but_layout.addWidget(self.in_common_button, alignment=Qt.AlignCenter)
             self.before_only_button = QRadioButton(parent)
             self.radio_group.addButton(self.before_only_button)
-            but_layout.addWidget(self.before_only_button)
+            but_layout.addWidget(self.before_only_button, alignment=Qt.AlignCenter)
             self._update_button_texts()
             self.after_only_button.setChecked(True)
             all_input, after_only, douse_in_common, input_in_common = self.compared_waters
@@ -164,6 +164,8 @@ class CheckWaterViewer(ToolInstance):
                 from .compare import _water_residues
                 self.check_waters = sorted(_water_residues(self.check_model))
             table_waters = self.check_waters
+        data_layout = QHBoxLayout()
+        layout.addLayout(data_layout)
         from chimerax.ui.widgets import ItemTable
         self.res_table = ItemTable()
         self.res_table.add_column("Water", str)
@@ -172,7 +174,7 @@ class CheckWaterViewer(ToolInstance):
             self._compute_densities()
             self.res_table.add_column("Density", self.DENSITY_ATTR, format="%g")
         self.res_table.selection_changed.connect(self._res_sel_cb)
-        layout.addWidget(self.res_table)
+        data_layout.addWidget(self.res_table)
 
         controls_layout = QVBoxLayout()
         hbonds_layout = QVBoxLayout()
@@ -226,7 +228,7 @@ class CheckWaterViewer(ToolInstance):
         clip_layout.addWidget(self.unclip_button, alignment=Qt.AlignRight)
         clip_layout.addWidget(QLabel(" view"), alignment=Qt.AlignLeft)
         controls_layout.addLayout(clip_layout)
-        layout.addLayout(controls_layout)
+        data_layout.addLayout(controls_layout)
         # The H-bonds GUI needs to exist before running _make_hb_groups() and showing the
         # H-bonds in the table, so these lines are down here
         if not session_info:
@@ -395,10 +397,15 @@ class CheckWaterViewer(ToolInstance):
         if not selected:
             cmd = "~select"
         else:
-            if selected[0].structure.display:
+            structure = selected[0].structure
+            if structure.display:
                 base_cmd = ""
             else:
-                base_cmd = "show %s models; " % selected[0].structure.atomspec
+                base_cmd = "show %s models; " % structure.atomspec
+            if self.compare_model:
+                other_model = self.compare_model if structure == self.check_model else self.check_model
+                if other_model.display:
+                    base_cmd += "hide %s models; " % other_model.atomspec
             from chimerax.atomic import concise_residue_spec
             spec = concise_residue_spec(self.session, selected)
             cmd = base_cmd + f"select {spec}; disp {spec} :<4; view {spec} @<4"
@@ -440,7 +447,7 @@ class CheckWaterViewer(ToolInstance):
         elif checked == self.before_only_button:
             residues = all_input - input_in_common
         else:
-            residues = input_in_common
+            residues = douse_in_common
         if self.show_hbonds.isChecked():
             self._show_hbonds_cb(True)
         self.res_table.data = residues
