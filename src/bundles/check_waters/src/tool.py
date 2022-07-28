@@ -390,8 +390,8 @@ class CheckWaterViewer(ToolInstance):
             self._update_residues()
             self.tool_window.ui_area.layout().removeItem(self.button_layout)
 
-    def _res_sel_cb(self, selected, deselected):
-        self._selected_treatment(selected)
+    def _res_sel_cb(self, newly_selected, newly_deselected):
+        self._selected_treatment(self.res_table.selected)
 
     def _selected_treatment(self, selected):
         if not selected:
