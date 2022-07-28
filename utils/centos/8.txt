@@ -10,12 +10,14 @@ fftw-libs-single
 fontconfig
 freetype
 gcc
+gcc-c++
 gdk-pixbuf2
 glib2
 glibc
 gtk3
 libdrm
 libffi
+libffi-devel
 libgcc
 libgfortran
 libglvnd-egl
