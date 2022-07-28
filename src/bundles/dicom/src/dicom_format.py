@@ -12,10 +12,9 @@
 from os import listdir
 from os.path import basename, dirname, isfile, isdir, join
 
+from numpy import cross, dot
 from numpy import int8, uint8, int16, uint16, float32
 from pydicom import dcmread
-
-from chimerax.geometry import cross_product, inner_product
 
 def find_dicom_series(paths, search_directories: bool = True, search_subdirectories: bool = True,
                       log = None, verbose: bool = False):
@@ -276,7 +275,7 @@ class Series:
             orient = files[0]._orientation
             if orient is not None:
                 x_axis, y_axis = orient[0:3], orient[3:6]
-                z_axis = cross_product(x_axis, y_axis)
+                z_axis = cross(x_axis, y_axis)
                 return (x_axis, y_axis, z_axis)
         return ((1, 0, 0), (0, 1, 0), (0, 0, 1))
 
@@ -285,7 +284,7 @@ class Series:
 
     def _sort_by_z_position(self, series_files):
         z_axis = self.plane_normal()
-        series_files.sort(key = lambda sf: (sf._time, (0 if sf._position is None else inner_product(sf._position, z_axis))))
+        series_files.sort(key = lambda sf: (sf._time, (0 if sf._position is None else dot(sf._position, z_axis))))
 
     def pixel_spacing(self):
         pspacing = self.attributes.get('PixelSpacing')
@@ -328,7 +327,7 @@ class Series:
                 else:
                     # TODO: Need to reverse order if z decrease as frame number increases
                     z_axis = self.plane_normal()
-                    z = [inner_product(fp, z_axis) for fp in fpos]
+                    z = [dot(fp, z_axis) for fp in fpos]
                     dz = self._spacing(z)
                 if dz is not None and dz < 0:
                     self._reverse_frames = True
@@ -338,7 +337,7 @@ class Series:
             else:
                 nz = self.grid_size()[2]  # For time series just look at first time point.
                 z_axis = self.plane_normal()
-                z = [inner_product(f._position, z_axis) for f in files[:nz]]
+                z = [dot(f._position, z_axis) for f in files[:nz]]
                 dz = self._spacing(z)
             self._z_spacing = dz
         return dz
