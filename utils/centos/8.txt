@@ -16,6 +16,7 @@ glibc
 gtk3
 libdrm
 libffi
+libffi-devel
 libgcc
 libgfortran
 libglvnd-egl
