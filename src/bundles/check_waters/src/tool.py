@@ -31,16 +31,20 @@ class CheckWatersInputTool(ToolInstance):
         tw.title = "Choose Structure for Water Checking"
         parent = self.tool_window.ui_area
         parent = tw.ui_area
-        from Qt.QtWidgets import QHBoxLayout, QVBoxLayout, QLabel
+        from Qt.QtWidgets import QHBoxLayout, QVBoxLayout, QLabel, QFormLayout
         from Qt.QtCore import Qt
         layout = QVBoxLayout()
         parent.setLayout(layout)
-        check_layout = QHBoxLayout()
+        check_layout = QFormLayout()
         layout.addLayout(check_layout)
-        check_layout.addWidget(QLabel("Check waters in:"), alignment=Qt.AlignRight)
         from chimerax.atomic.widgets import AtomicStructureMenuButton
         self.structure_menu = AtomicStructureMenuButton(session)
-        check_layout.addWidget(self.structure_menu, alignment=Qt.AlignLeft)
+        check_layout.addRow("Check waters in:", self.structure_menu)
+        from chimerax.map import Volume
+        from chimerax.ui.widgets import ModelListWidget
+        self.map_list = ModelListWidget(session, selection_mode='single', class_filter=Volume)
+        check_layout.addRow("Against volume/map (optional):", self.map_list)
+
 
         from Qt.QtWidgets import QDialogButtonBox as qbbox
         self.bbox = bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
@@ -58,27 +62,30 @@ class CheckWatersInputTool(ToolInstance):
         s = self.structure_menu.value
         if not s:
             raise UserError("No structure chosen for checking")
-        CheckWaterViewer(self.session, "Check Waters", s)
+        CheckWaterViewer(self.session, "Check Waters", s, compare_map=self.map_list.value)
 
 class CheckWaterViewer(ToolInstance):
 
     help = "help:user/tools/checkwaters.html"
 
+    DENSITY_ATTR = "cw_density"
     HB_COUNT_ATTR = "num_cw_hbonds"
 
-    def __init__(self, session, tool_name, check_model=None, *, compare_info=None, model_labels=None):
+    def __init__(self, session, tool_name, check_model=None, *, compare_info=None, model_labels=None,
+            compare_map=None):
         # if 'check_model' is None, we are being restored from a session 
         # and _finalize_init() will be called later
         super().__init__(session, tool_name)
         self.settings = CheckWaterSettings(session, tool_name)
         if check_model is None:
             return
-        self._finalize_init(check_model, compare_info, model_labels)
+        self._finalize_init(check_model, compare_info, model_labels, compare_map)
 
-    def _finalize_init(self, check_model, compare_info, model_labels, *, session_info=None):
+    def _finalize_init(self, check_model, compare_info, model_labels, compare_map, *, session_info=None):
         self.check_model = check_model
         self.compare_info = compare_info
         self.model_labels = model_labels
+        self.compare_map = compare_map
         if session_info:
             self.check_waters, self.hbond_groups, table_info = session_info
         else:
@@ -160,7 +167,10 @@ class CheckWaterViewer(ToolInstance):
         from chimerax.ui.widgets import ItemTable
         self.res_table = ItemTable()
         self.res_table.add_column("Water", str)
-        self.hbonds_column = self.res_table.add_column("# H-bonds", self.HB_COUNT_ATTR)
+        self.hbonds_column = self.res_table.add_column("H-bonds", self.HB_COUNT_ATTR)
+        if self.compare_map:
+            self._compute_densities()
+            self.res_table.add_column("Density", self.DENSITY_ATTR, format="%g")
         self.res_table.selection_changed.connect(self._res_sel_cb)
         layout.addWidget(self.res_table)
 
@@ -240,8 +250,13 @@ class CheckWaterViewer(ToolInstance):
     @classmethod
     def restore_snapshot(cls, session, data):
         inst = super().restore_snapshot(session, data['ToolInstance'])
+        if data['version'] == 1:
+            # Just can't initialize completely properly from version 1 info
+            session_info = None
+        else:
+            session_info = (data['check_waters'], data['hbond_groups'], data['table info'])
         inst._finalize_init(data['check_model'], data['compare_info'], data['model_labels'],
-            session_info=(data['check_waters'], data['hbond_groups'], data['table info']))
+            data.get('compare_map', None), session_info=session_info)
         if data['radio info']:
             for but in inst.radio_group.buttons():
                 if but.text() == data['radio info']:
@@ -261,12 +276,13 @@ class CheckWaterViewer(ToolInstance):
             'check_model': self.check_model,
             'check_waters': self.check_waters,
             'compare_info': self.compare_info,
+            'compare_map': self.compare_map,
             'hbond_groups': self.hbond_groups,
             'model_labels': self.model_labels,
             'radio info': self.radio_group.checkedButton().text() if self.radio_group else None,
             'show hbonds': self.settings.show_hbonds,
             'table info': self.res_table.session_info(),
-            'version': 1,
+            'version': 2,
         }
         return data
 
@@ -276,6 +292,20 @@ class CheckWaterViewer(ToolInstance):
             live_data = [d for d in cur_data if not d.deleted]
             if len(live_data) < len(cur_data):
                 self.res_table.data = live_data
+
+    def _compute_densities(self):
+        from chimerax.atomic import concise_residue_spec, Residue
+        Residue.register_attr(self.session, self.DENSITY_ATTR, "Check Waters", attr_type=float)
+        residue_groups = []
+        if self.radio_group:
+            all_input, after_only, douse_in_common, input_in_common = self.compared_waters
+            residue_groups = [after_only, all_input - input_in_common, douse_in_common]
+        else:
+            residue_groups = [self.check_waters]
+        for res_group in residue_groups:
+            for r in res_group:
+                setattr(r, self.DENSITY_ATTR, sum(self.compare_map.interpolated_values(r.atoms.coords,
+                    point_xform=r.structure.scene_position)))
 
     def _delete_waters(self):
         waters = self.res_table.selected
