@@ -9,6 +9,7 @@ expat
 fftw-libs-single
 fontconfig
 freetype
+git
 gcc
 gcc-c++
 gdk-pixbuf2
