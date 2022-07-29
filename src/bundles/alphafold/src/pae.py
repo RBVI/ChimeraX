@@ -988,6 +988,7 @@ def pae_domains(pae_matrix, pae_power=1, pae_cutoff=5, graph_resolution=0.5,
     # error in j when aligned on i. Take the smallest error estimate for each pair.
     import numpy
     pae_matrix = numpy.minimum(pae_matrix, pae_matrix.T)
+    pae_matrix = numpy.maximum(pae_matrix, 1)	# AlphaFold Database version 3 has 0 values.
     weights = 1/pae_matrix**pae_power if pae_power != 1 else 1/pae_matrix
 
     import networkx as nx
