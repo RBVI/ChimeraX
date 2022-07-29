@@ -1041,12 +1041,13 @@ def set_pae_domain_residue_attribute(residues, clusters):
 #
 def alphafold_pae(session, structure = None, file = None, uniprot_id = None,
                   palette = None, range = None, plot = None, divider_lines = None,
-                  color_domains = False, connect_max_pae = 5, cluster = 0.5, min_size = 10):
+                  color_domains = False, connect_max_pae = 5, cluster = 0.5, min_size = 10,
+                  version = None):
     '''Load AlphaFold predicted aligned error file and show plot or color domains.'''
 
     if uniprot_id:
         from .database import alphafold_pae_url
-        pae_url = alphafold_pae_url(session, uniprot_id)
+        pae_url = alphafold_pae_url(session, uniprot_id, database_version = version)
         file_name = pae_url.split('/')[-1]
         from chimerax.core.fetch import fetch_file
         file = fetch_file(session, pae_url, 'AlphaFold PAE %s' % uniprot_id,
@@ -1114,7 +1115,8 @@ def register_alphafold_pae_command(logger):
                    ('color_domains', BoolArg),
                    ('connect_max_pae', FloatArg),
                    ('cluster', FloatArg),
-                   ('min_size', IntArg)],
+                   ('min_size', IntArg),
+                   ('version', IntArg)],
         synopsis = 'Show AlphaFold predicted aligned error'
     )
     
