@@ -51,6 +51,12 @@ def uniprot_id_from_filename(filename):
 
 # -----------------------------------------------------------------------------
 #
+def default_database_version(session):
+    settings = _alphafold_database_settings(session)
+    return settings.database_version
+
+# -----------------------------------------------------------------------------
+#
 def _alphafold_database_settings(session):
     settings = getattr(session, '_alphafold_database_settings', None)
     if settings is None:

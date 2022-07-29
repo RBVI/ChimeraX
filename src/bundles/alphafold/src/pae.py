@@ -195,8 +195,16 @@ class AlphaFoldPAEOpen(ToolInstance):
         uniprot_id = self._pae_file.text()
         from chimerax.core.commands import run, quote_if_necessary
         cmd = 'alphafold pae #%s uniprot %s' % (structure.id_string, uniprot_id)
-        run(self.session, cmd)
 
+        version = _alphafold_db_structure_version(self._structure_menu.value)
+        if version is not None:
+            from .database import default_database_version
+            if str(version) != default_database_version(self.session):
+                cmd += f' version {version}'
+                self.session.logger.warning(f'Fetching PAE using AlphaFold database version {version}')
+
+        run(self.session, cmd)
+        
     # ---------------------------------------------------------------------------
     #
     def _show_help(self):
@@ -298,6 +306,31 @@ def _guess_uniprot_id(structure_path):
     from .database import uniprot_id_from_filename
     uniprot_id = uniprot_id_from_filename(filename)
     return uniprot_id
+        
+# ---------------------------------------------------------------------------
+#
+def _alphafold_db_structure_version(structure):
+    '''
+    Parse the structure filename to get the AlphaFold database version.
+    Example database file name AF-A0A4T0DZS4-F1-model_v3.cif
+    '''
+    if structure is None:
+        return None
+    path = getattr(structure, 'filename', None)
+    if path is None:
+        return None
+    from os.path import split, splitext
+    filename = split(path)[1]
+    if filename.startswith('AF') and (filename.endswith('.cif') or filename.endswith('.pdb')):
+        fields = splitext(filename)[0].split('_')
+        if len(fields) > 1 and fields[-1].startswith('v'):
+            try:
+                version = int(fields[-1][1:])
+            except ValueError:
+                return None
+            return version
+
+    return None
 
 # -----------------------------------------------------------------------------
 #
