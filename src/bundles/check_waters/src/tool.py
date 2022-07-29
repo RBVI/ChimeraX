@@ -41,8 +41,8 @@ class CheckWatersInputTool(ToolInstance):
         self.structure_menu = AtomicStructureMenuButton(session)
         check_layout.addRow("Check waters in:", self.structure_menu)
         from chimerax.map import Volume
-        from chimerax.ui.widgets import ModelListWidget
-        self.map_list = ModelListWidget(session, selection_mode='single', class_filter=Volume)
+        from chimerax.ui.widgets import ModelMenuButton
+        self.map_list = ModelMenuButton(session, class_filter=Volume)
         check_layout.addRow("Against volume/map (optional):", self.map_list)
 
 
@@ -390,8 +390,8 @@ class CheckWaterViewer(ToolInstance):
             self._update_residues()
             self.tool_window.ui_area.layout().removeItem(self.button_layout)
 
-    def _res_sel_cb(self, selected, deselected):
-        self._selected_treatment(selected)
+    def _res_sel_cb(self, newly_selected, newly_deselected):
+        self._selected_treatment(self.res_table.selected)
 
     def _selected_treatment(self, selected):
         if not selected:

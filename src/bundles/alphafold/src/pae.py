@@ -195,8 +195,16 @@ class AlphaFoldPAEOpen(ToolInstance):
         uniprot_id = self._pae_file.text()
         from chimerax.core.commands import run, quote_if_necessary
         cmd = 'alphafold pae #%s uniprot %s' % (structure.id_string, uniprot_id)
-        run(self.session, cmd)
 
+        version = _alphafold_db_structure_version(self._structure_menu.value)
+        if version is not None:
+            from .database import default_database_version
+            if str(version) != default_database_version(self.session):
+                cmd += f' version {version}'
+                self.session.logger.warning(f'Fetching PAE using AlphaFold database version {version}')
+
+        run(self.session, cmd)
+        
     # ---------------------------------------------------------------------------
     #
     def _show_help(self):
@@ -298,6 +306,31 @@ def _guess_uniprot_id(structure_path):
     from .database import uniprot_id_from_filename
     uniprot_id = uniprot_id_from_filename(filename)
     return uniprot_id
+        
+# ---------------------------------------------------------------------------
+#
+def _alphafold_db_structure_version(structure):
+    '''
+    Parse the structure filename to get the AlphaFold database version.
+    Example database file name AF-A0A4T0DZS4-F1-model_v3.cif
+    '''
+    if structure is None:
+        return None
+    path = getattr(structure, 'filename', None)
+    if path is None:
+        return None
+    from os.path import split, splitext
+    filename = split(path)[1]
+    if filename.startswith('AF') and (filename.endswith('.cif') or filename.endswith('.pdb')):
+        fields = splitext(filename)[0].split('_')
+        if len(fields) > 1 and fields[-1].startswith('v'):
+            try:
+                version = int(fields[-1][1:])
+            except ValueError:
+                return None
+            return version
+
+    return None
 
 # -----------------------------------------------------------------------------
 #
@@ -894,22 +927,32 @@ def read_json_pae_matrix(path):
         raise UserError(f'JSON file "{path}" is not AlphaFold predicted aligned error data, expected a top level list')
     d = j[0]
 
-    valid = (isinstance(d, dict) and 'residue1' in d and 'residue2' in d and 'distance' in d)
-    if not valid:
+    if not isinstance(d, dict):
         from chimerax.core.errors import UserError
-        raise UserError(f'JSON file "{path}" is not AlphaFold predicted aligned error data, expected a dictionary with keys "residue1", "residue2" and "distance"')
-
-    # Read distance errors into numpy array
-    from numpy import array, zeros, float32, int32
-    r1 = array(d['residue1'], dtype=int32)
-    r2 = array(d['residue2'], dtype=int32)
-    ea = array(d['distance'], dtype=float32)
-    # me = d['max_predicted_aligned_error']
-    n = r1.max()
-    pae = zeros((n,n), float32)
-    pae[r1-1,r2-1] = ea
-
-    return pae
+        raise UserError(f'JSON file "{path}" is not AlphaFold predicted aligned error data, expected a top level list containing a dictionary')
+        
+    if 'residue1' in d and 'residue2' in d and 'distance' in d:
+        # AlphaFold Database versions 1 and 2 use this format
+        # Read PAE into numpy array
+        from numpy import array, zeros, float32, int32
+        r1 = array(d['residue1'], dtype=int32)
+        r2 = array(d['residue2'], dtype=int32)
+        ea = array(d['distance'], dtype=float32)
+        # me = d['max_predicted_aligned_error']
+        n = r1.max()
+        pae = zeros((n,n), float32)
+        pae[r1-1,r2-1] = ea
+        return pae
+        
+    if 'predicted_aligned_error' in d:
+        # AlphaFold Database version 3 uses this format.
+        from numpy import array, float32
+        pae = array(d['predicted_aligned_error'], dtype=float32)
+        return pae
+    
+    keys = ', '.join(str(k) for k in d.keys())
+    from chimerax.core.errors import UserError
+    raise UserError(f'JSON file "{path}" is not AlphaFold predicted aligned error data, expected a dictionary with keys "predicted_aligned_error" or "residue1", "residue2" and "distance", got keys {keys}')
 
 # -----------------------------------------------------------------------------
 #
@@ -978,6 +1021,7 @@ def pae_domains(pae_matrix, pae_power=1, pae_cutoff=5, graph_resolution=0.5,
     # error in j when aligned on i. Take the smallest error estimate for each pair.
     import numpy
     pae_matrix = numpy.minimum(pae_matrix, pae_matrix.T)
+    pae_matrix = numpy.maximum(pae_matrix, 0.2)	# AlphaFold Database version 3 has 0 values.
     weights = 1/pae_matrix**pae_power if pae_power != 1 else 1/pae_matrix
 
     import networkx as nx
@@ -1030,12 +1074,13 @@ def set_pae_domain_residue_attribute(residues, clusters):
 #
 def alphafold_pae(session, structure = None, file = None, uniprot_id = None,
                   palette = None, range = None, plot = None, divider_lines = None,
-                  color_domains = False, connect_max_pae = 5, cluster = 0.5, min_size = 10):
+                  color_domains = False, connect_max_pae = 5, cluster = 0.5, min_size = 10,
+                  version = None):
     '''Load AlphaFold predicted aligned error file and show plot or color domains.'''
 
     if uniprot_id:
         from .database import alphafold_pae_url
-        pae_url = alphafold_pae_url(session, uniprot_id)
+        pae_url = alphafold_pae_url(session, uniprot_id, database_version = version)
         file_name = pae_url.split('/')[-1]
         from chimerax.core.fetch import fetch_file
         file = fetch_file(session, pae_url, 'AlphaFold PAE %s' % uniprot_id,
@@ -1103,7 +1148,8 @@ def register_alphafold_pae_command(logger):
                    ('color_domains', BoolArg),
                    ('connect_max_pae', FloatArg),
                    ('cluster', FloatArg),
-                   ('min_size', IntArg)],
+                   ('min_size', IntArg),
+                   ('version', IntArg)],
         synopsis = 'Show AlphaFold predicted aligned error'
     )
     
