@@ -8,7 +8,7 @@ packaging==21.0
 #
 
 # Cython used by compile core/_serialize.pyx
-Cython==0.29.26
+Cython==0.29.32
 
 # Grako used to make _atomspec.py parser from _atomspec.peg in core/commands
 grako==3.16.5
