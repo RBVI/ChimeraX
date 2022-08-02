@@ -1983,12 +1983,18 @@ class PromoteAtomSelection(SelectionPromotion):
         if s.deleted:
             return
         atoms = s.atoms
-        atoms.selected = asel = self._atom_sel_mask
+        asel = self._atom_sel_mask
+        if len(atoms) != len(asel):
+            return	# Atoms added or deleted
+        atoms.selected = asel
         atoms[asel].intra_bonds.selected = True
     def demote(self):
         s = self._structure
         if s.deleted:
             return
+        if (s.num_atoms != len(self._prev_atom_sel_mask) or
+            s.num_bonds != len(self._prev_bond_sel_mask)):
+            return   # Atoms or bonds deleted or added.
         s.atoms.selected = self._prev_atom_sel_mask
         s.bonds.selected = self._prev_bond_sel_mask
 

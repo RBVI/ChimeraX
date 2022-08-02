@@ -55,7 +55,7 @@ def alphafold_fetch(session, uniprot_id, color_confidence=True,
 
     if pae:
         from .pae import alphafold_pae
-        alphafold_pae(session, structure = models[0], uniprot_id = uniprot_id)
+        alphafold_pae(session, structure = models[0], uniprot_id = uniprot_id, version = version)
         
     return models, status
 

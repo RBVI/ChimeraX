@@ -306,7 +306,7 @@ def remove_old_files():
   Also need to remove model_ and model_env directories otherwise errors
   occur if different sequences are run when computing MSA.
   '''
-  !rm -rf *.pdb *.json *_ *_env
+  !rm -rf *.pdb *.json *_ *_env *.zip *.csv *.png *.a3m *.fasta
 
 # ================================================================================================
 #
