@@ -92,8 +92,37 @@ class StructMeasureTool(ToolInstance):
     def _apc_delete_items(self):
         sel = self.apc_table.selected
         if not sel:
-            raise UserError("No items selected in table")
+            raise UserError("No items chosen in table")
         run(self.session, "close %s" % concise_model_spec(self.session, sel))
+
+    def _apc_report_distance(self):
+        sel = self.apc_table.selected
+        if not sel:
+            raise UserError("No items chosen in table")
+        from chimerax.atomic import selected_atoms
+        sel_atoms = selected_atoms(self.session)
+        if not sel_atoms:
+            raise UserError("No atoms selected")
+        # Try to "promote" atoms to higher "level" to make shorter atom spec
+        residues = sel_atoms.unique_residues
+        if sum(residues.num_atoms) == len(sel_atoms):
+            chains = residues.unique_chains
+            if sum(chains.num_existing_residues) == len(residues):
+                structures = chains.structures.unique()
+                if sum(structures.num_chains) == len(chains):
+                    spec_source = structures
+                else:
+                    spec_source = chains
+            else:
+                spec_source = residues
+        else:
+            spec_source = sel_atoms
+        target_spec = "".join([x.atomspec for x in spec_source])
+        item_spec = "".join([x.atomspec for x in sel])
+        info = run(self.session, "distance %s %s" % (target_spec, item_spec))
+        if len(sel) == 1:
+            #TODO: report as status also
+            pass
 
     def _apc_selection_changed(self, newly_selected, newly_deselected):
         sel = self.apc_table.selected
@@ -315,13 +344,26 @@ class StructMeasureTool(ToolInstance):
         self.apc_status_label.setWordWrap(True)
         self.apc_status_label.setAlignment(Qt.AlignHCenter)
         table_layout.addWidget(self.apc_status_label)
+        delete_layout_widget = QWidget() # so that the label+button is centered collectively
         delete_layout = QHBoxLayout()
         delete_layout.setSpacing(0)
-        table_layout.addLayout(delete_layout)
+        delete_layout.setContentsMargins(0,0,0,0)
+        delete_layout_widget.setLayout(delete_layout)
+        table_layout.addWidget(delete_layout_widget, alignment=Qt.AlignCenter)
         delete_button = QPushButton("Delete")
         delete_button.clicked.connect(self._apc_delete_items)
         delete_layout.addWidget(delete_button, alignment=Qt.AlignRight)
-        delete_layout.addWidget(QLabel(" items selected in table"))
+        delete_layout.addWidget(QLabel(" items chosen in table"), alignment=Qt.AlignLeft)
+        report_layout_widget = QWidget() # so that the label+button is centered collectively
+        report_layout = QHBoxLayout()
+        report_layout.setSpacing(0)
+        report_layout.setContentsMargins(0,0,0,0)
+        report_layout_widget.setLayout(report_layout)
+        table_layout.addWidget(report_layout_widget, alignment=Qt.AlignCenter)
+        report_button = QPushButton("Report distance")
+        report_button.clicked.connect(self._apc_report_distance)
+        report_layout.addWidget(report_button, alignment=Qt.AlignRight)
+        report_layout.addWidget(QLabel(" to selected atoms"), alignment=Qt.AlignLeft)
 
     def _fill_dist_table(self, *args):
         dist_grp = self.session.pb_manager.get_group("distances", create=False)
