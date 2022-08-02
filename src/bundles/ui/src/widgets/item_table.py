@@ -225,6 +225,9 @@ class ItemTable(QTableView):
     COL_FORMAT_OPAQUE_COLOR = "no alpha"
     color_formats = [COL_FORMAT_TRANSPARENT_COLOR, COL_FORMAT_OPAQUE_COLOR]
 
+    SORT_ASCENDING = Qt.SortOrder.AscendingOrder
+    SORT_DESCENDING = Qt.SortOrder.DescendingOrder
+
     def __init__(self, *, auto_multiline_headers: bool=True, column_control_info=None,
              allow_user_sorting=True, settings_attr=None, parent=None, session=None):
         """
@@ -528,7 +531,7 @@ class ItemTable(QTableView):
             sel_model = self.selectionModel()
             for i in selected:
                 index = self._table_model.index(i,0)
-                sel_model.select(index, sel_model.Rows | sel_model.SelectCurrent)
+                sel_model.select(index, sel_model.Rows | sel_model.Select)
             self.highlight([self._data[i] for i in highlighted])
             for c in self._columns:
                 self.update_column(c, display=column_display.get(c.title, True))
@@ -551,6 +554,19 @@ class ItemTable(QTableView):
                 for i in self.selectionModel().selectedRows()]
         return [self._data[i.row()] for i in self.selectionModel().selectedRows()]
 
+    @selected.setter
+    def selected(self, items):
+        sel_model = self.selectionModel()
+        data_rows = [self._data.index(item) for item in items]
+        if self._allow_user_sorting:
+            model_indices = [self.model().mapFromSource(self._table_model.index(row, 0))
+                for row in data_rows]
+        else:
+            model_indices = [self.model().index(row, 0) for row in data_rows]
+        sel_model.clear()
+        for index in model_indices:
+            sel_model.select(index, sel_model.Select | sel_model.Rows)
+
     def session_info(self):
         version = 1
         selected = set([i.row() for i in self.selectedIndexes()])
@@ -561,6 +577,18 @@ class ItemTable(QTableView):
         else:
             sort_info = None
         return (version, selected, column_display, highlighted, sort_info)
+
+    def sort_by(self, column, order):
+        if not self._allow_user_sorting:
+            raise ValueError("Table was not configured to allow sorting")
+        self.model().sort(self._columns.index(column), order)
+
+    @property
+    def sorted_data(self):
+        if self._allow_user_sorting:
+            return [self._data[self.model().mapToSource(self.model().index(i,0)).row()]
+                for i in range(len(self._data))]
+        return self._data
 
     def update_cell(self, col_info, datum):
         if isinstance(col_info, str):

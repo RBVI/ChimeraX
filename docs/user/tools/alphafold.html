@@ -57,19 +57,16 @@ AlphaFold Protein Structure Database: massively expanding the structural coverag
 Varadi M, Anyango S, Deshpande M, <i>et al.</i>
 <i>Nucleic Acids Res.</i> 2022 Jan 7;50(D1):D439-D444.
 </blockquote>
-<p>
-The database contains models for protein sequences in
-<a href="https://www.uniprot.org" target="_blank">UniProt</a>
-(single-chain models only, not complexes):
-  <br><b>version 1</b> &ndash; predictions for ~360,000 sequences,
-reference proteomes of 21 species including <i>Homo sapiens</i>;
-used by <b>ChimeraX 1.3</b>
-  <br><b>version 2</b> &ndash; predictions for ~800,000 sequences,
-v1 + most of the manually curated entries in
-<a href="https://www.uniprot.org" target="_blank">UniProt</a>
-  <br><b>version 3</b> &ndash; predictions for ~1 million sequences, 
-v2 + sequences relevant to neglected tropical disease or 
-antimicrobial resistance; used by <b>ChimeraX 1.4+</b>
+The database contains models for sequences (as single chains, not complexes)
+in <a href="https://www.uniprot.org" target="_blank">UniProt</a>:
+<br>
+<b>Version 1</b> (database release 1, used by ChimeraX 1.3): ~360,000 sequences,
+reference proteomes of 21 species including <i>Homo sapiens</i>
+<br><b>Version 2</b> (database releases 2 and 3 combined,
+<a href="../commands/alphafold.html#version">default</a> in ChimeraX 1.4+):
+~1 million sequences, v1 + most of SwissProt + sequences relevant to 
+neglected tropical disease or antimicrobial resistance
+<br><b>Version 3</b> (database release 4): &gt;200 million sequences
 </p>
 <li><a href="#predict">runs new AlphaFold predictions</a>
 on <a href="https://colab.research.google.com/signup" target="_blank">Google 

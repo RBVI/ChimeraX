@@ -23,8 +23,9 @@ class DouseSettings(Settings):
 
 from chimerax.check_waters.tool import CheckWaterViewer
 class DouseResultsViewer(CheckWaterViewer):
-    def __init__(self, session, tool_name, orig_model=None, douse_model=None, compared_waters=None):
+    def __init__(self, session, tool_name, orig_model=None, douse_model=None, compared_waters=None,
+            map=None):
         # if 'model' is None, we are being restored from a session and _finalize_init() will be called later
         super().__init__(session, tool_name, douse_model, compare_info=(orig_model, compared_waters),
-            model_labels=("input", "douse"))
+            model_labels=("input", "douse"), compare_map=map)
 
