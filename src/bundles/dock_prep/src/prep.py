@@ -55,6 +55,36 @@ def prep(session, state, callback, memorization, memorize_name, structures, keyw
             change_std.append(r_name)
     if change_std:
         standardize_residues(session, structures.residues, res_types=change_std, verbose=True)
+    
+    if active_settings['complete_side_chains']:
+        targets = []
+        for s in structures:
+            for r in s.residues:
+                if r.polymer_type != r.PT_AMINO:
+                    continue
+                if r.name != r.standard_aa_name:
+                    continue
+                if not r.is_missing_heavy_template_atoms():
+                    continue
+                for bb_name in r.aa_min_backbone_names:
+                    if not r.find_atom(bb_name):
+                        session.logger.warning("%s is missing heavy backbone atoms" % r)
+                        break
+                else:
+                    targets.append(r)
+        if targets:
+            session.logger.info("Filling out missing side chains")
+            style = active_settings['complete_side_chains']
+            if style is True:
+                # use default rotamer lib
+                style = session.rotamers.default_command_library_name
+            from chimerax.swap_res import swap_aa
+            if style in ('gly', 'ala'):
+                for r in targets:
+                    res_type = 'gly' if not r.find_atom('CB') else style
+                    swap_aa(session, [r], res_type)
+            else:
+                swap_aa(session, targets, "same", rot_lib=style)
     callback(session, state)
 
 def handle_memorization(session, memorization, memorize_requester, main_settings_name, keywords, defaults,

@@ -12,12 +12,11 @@
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.core.errors import UserError
-from chimerax.core.commands import CmdDesc, register, BoolArg, Or, EmptyArg, EnumOf, SaveFileNameArg
+from chimerax.core.commands import CmdDesc, register, BoolArg, Or, EmptyArg, EnumOf, DynamicEnum
 from .prep import MEMORIZE_NONE, MEMORIZE_USE, MEMORIZE_SAVE
 
 # the args directly provided by DockPrep
 from .settings import defaults
-dock_prep_arg_info = { setting: BoolArg for setting in defaults }
 
 #NOTES: dock_prep_caller() is the public API and also called via the command.  It assembles a series
 #  of steps to execute (by calling dock_prep_steps())
@@ -27,22 +26,28 @@ dock_prep_arg_info = { setting: BoolArg for setting in defaults }
 #  with session and iterator, and will call the next step, or the dock_prep_caller callback if finished.
 #
 #  Bundles need to provide a public run_for_dock_prep function that can be called to execute the step
-#  and a dock_prep_arg_info dictionary (arg-name: annotation) for arguments to be added to the dockprep
-#  command and that will be provided to the run_for_dock_prep function.  These arguments will be given
-#  a prefix before being added to the dockprep command keywords, but will not have that prefix when
-#  given to the run_for_dock_prep function.
+#  and a dock_prep_arg_info(session) function that returns a dictionary (arg-name: annotation) of arguments
+#  to be added to the dockprep command and that will be provided to the run_for_dock_prep function.
+#  These arguments will be given a prefix before being added to the dockprep command keywords, but will not
+#  have that prefix when given to the run_for_dock_prep function.
 #
 #  Bundles are in charge of their own memorization
 
-def get_param_info():
+def get_param_info(session):
     param_info = {}
     import importlib
     for mod_name, arg_prefix in [("dock_prep", "")]:
         full_mod_name = "chimerax." + mod_name
         mod = importlib.import_module(full_mod_name)
-        for arg_name, arg_annotation in mod.dock_prep_arg_info.items():
+        for arg_name, arg_annotation in mod.dock_prep_arg_info(session).items():
             param_info[arg_prefix + arg_name] = arg_annotation
     return param_info
+
+def dock_prep_arg_info(session):
+    info = { setting: BoolArg for setting in defaults }
+    info['complete_side_chains'] = Or(BoolArg, EnumOf(('gly', 'ala')),
+        DynamicEnum(session.rotamers.library_names))
+    return info
 
 def dock_prep_steps(add_hydrogens=True, add_charges=True, **kw):
     steps = []
@@ -103,6 +108,6 @@ def register_command(logger):
         required=[('structures', Or(AtomicStructuresArg, EmptyArg))],
         keyword=[
             ('memorize', EnumOf((MEMORIZE_USE, MEMORIZE_SAVE, MEMORIZE_NONE))),
-        ] + list(get_param_info().items()),
+        ] + list(get_param_info(logger.session).items()),
         synopsis='Prepare structures for computations')
     register('dockprep', cmd_desc, dock_prep_cmd, logger=logger)
