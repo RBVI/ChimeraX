@@ -27,7 +27,9 @@ include $(TOP)/mk/subdir.make
 BUNDLE_NAME = ChimeraX-Core
 PKG_NAME = chimerax.core
 
+# PKG_PATH = chimerax/core
 PKG_PATH = $(shell echo $(PKG_NAME) | sed 's,\.,/,'g)
+# PKG_DIR = $(TOP)/build/lib/python3.9/site-packages/chimerax/core
 PKG_DIR = $(PYSITEDIR)/$(PKG_PATH)
 ifndef WIN32
 BUILD_TOP = $(TOP)
@@ -47,14 +49,24 @@ PYSRCS = $(filter-out setup.py,$(wildcard *.py)) $(GENSRCS)
 WHEEL = dist/$(WHL_BNDL_NAME)-$(BUNDLE_VERSION)-cp$(PYVER_NODOT)-cp$(PYVER_NODOT)$(PYTHON_ABI)-$(BIN_PLATFORM).whl
 DATA = colorbrewer.json
 
-ifdef INSTALL_TO_VENV
-WHEEL = $(wildcard dist/*.whl)
-endif
+# So instead let's build everything from scratch with the PEP 517 bundle builder. 
+# First, we'll copy all the header files over into the directories they're already
+# going into, so that they can be used by downstream packages that haven't been
+# converted yet. 
+#
+# Then, we'll build ChimeraX-Core.
+#
+# Lastly, we'll copy the built objects over, again so that downstream packages that
+# haven't yet been converted can still build. 
 
 all: $(PYOBJS)
 
 build install reinstall: dir all
+	# Install the sources and data to pysitedir;
+	# we install by hand so that we don't have to install
+	# with the python in the build directory?
 	$(RSYNC) $(PYSRCS) $(DATA) $(PKG_DIR)
+	# then if the app prefix is made, we install there too
 	if [ -d "$(app_prefix)" ]; then \
 		$(MAKE) app-install ;\
 	fi
@@ -64,18 +76,7 @@ app-install: wheel
 	# number), so to install something that hasn't been committed, uninstall first.
 	$(APP_BOOTSTRAP_PIP) uninstall --yes $(WHL_BNDL_NAME)
 	$(APP_BOOTSTRAP_PIP) install $(WHEEL)
-ifdef INSTALL_TO_VENV
-ifndef VIRTUAL_ENV
-	@echo "No virtual env to install to! Skipping venv install."
-	@echo "This warning does not indicate success or failure of bundle installs to ChimeraX's internal environment."
-else
-ifdef IGNORE_DEPS
-	pip install $(WHEEL) --no-deps
-else
-	pip install $(WHEEL)
-endif # IGNORE_DEPS
-endif # VIRTUAL_ENV
-endif # INSTALL_TO_VENV
+	# then we send it to /build/sync
 	$(MAKE) sync
 
 .PHONY: wheel

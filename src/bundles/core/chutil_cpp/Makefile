@@ -19,15 +19,23 @@ DIRNAME := $(DIRNAME:_cpp=)
 SRCS	= $(wildcard *.cpp)
 OBJS	= $(SRCS:.cpp=.$(OBJ_EXT))
 
+# LIBRARY is defined in os.make and evaluates to 
+# lib$(LIBNAME).$(LIB_EXT)
 $(LIBRARY): $(OBJS)
+	# ar rc $(LIBRARY) $(OBJS)
 	$(LIB_LINK)
 
 build install: $(LIBRARY)
+	# rsync the built library library to $(TOP)/build/lib
 	$(RSYNC) $(LIBRARY) $(libdir)
+	# rsync the headers to $(TOP)/build/include/chutil
 	$(RSYNC) $(wildcard *.h) $(includedir)/$(DIRNAME)/
+	# if ChimeraX.app exists then put the headers in 
+	# ChimeraX.app/include/chutil
 	if [ -d "$(app_includedir)" ]; then \
 		$(RSYNC) $(wildcard *.h) $(app_includedir)/$(DIRNAME)/; \
 	fi
+	# if ChimeraX.app exists then put the library in ChimeraX.app/lib
 	if [ -d "$(app_libdir)" ]; then \
 		$(RSYNC) $(LIBRARY) $(app_libdir); \
 	fi
