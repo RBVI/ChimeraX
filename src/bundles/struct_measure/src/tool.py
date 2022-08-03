@@ -121,8 +121,12 @@ class StructMeasureTool(ToolInstance):
         item_spec = "".join([x.atomspec for x in sel])
         info = run(self.session, "distance %s %s" % (target_spec, item_spec))
         if len(sel) == 1:
-            #TODO: report as status also
-            pass
+            min_info, avg, max_info = list(info.values())[0]
+            dist_fmt = self.session.pb_dist_monitor.distance_format
+            self.apc_status_label.setText(("Distance from %s to %d atoms: min " + dist_fmt
+                + " (%s), avg " + dist_fmt + ", max " + dist_fmt + " (%s)")
+                % (sel[0], len(sel_atoms), min_info[0], min_info[1], avg, max_info[0], max_info[1]))
+            self.apc_status_label.setHidden(False)
 
     def _apc_selection_changed(self, newly_selected, newly_deselected):
         sel = self.apc_table.selected
