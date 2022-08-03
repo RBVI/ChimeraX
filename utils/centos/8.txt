@@ -9,13 +9,16 @@ expat
 fftw-libs-single
 fontconfig
 freetype
+git
 gcc
+gcc-c++
 gdk-pixbuf2
 glib2
 glibc
 gtk3
 libdrm
 libffi
+libffi-devel
 libgcc
 libgfortran
 libglvnd-egl
@@ -42,6 +45,7 @@ libXrandr
 libXrender
 libXtst
 make
+mesa-libGL-devel
 mesa-libGLU
 mesa-libOSMesa
 nspr
@@ -49,9 +53,11 @@ nss
 nss-util
 openjpeg2
 openssl-libs
+openssl-devel
 pango
 pulseaudio-libs
 pulseaudio-libs-glib2
+rsync
 sqlite
 xcb-util-image
 xcb-util-keysyms

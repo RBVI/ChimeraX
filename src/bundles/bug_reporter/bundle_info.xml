@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-BugReporter" version="1.0"
+<BundleInfo name="ChimeraX-BugReporter" version="1.0.1"
 	    package="chimerax.bug_reporter"
   	    customInit="true" minSessionVersion="1" maxSessionVersion="1">
 

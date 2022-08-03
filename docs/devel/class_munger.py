@@ -91,8 +91,9 @@ class DoctreeNodeVisitor(GenericNodeVisitor):
         # for old, new in Replacements:
         #     text = text.replace(old, new)
         if text != orig_text:
+            rawsource = str(node).replace('\x00', '\\')
             from docutils.nodes import Text
-            node.parent.replace(node, Text(text, node.rawsource))
+            node.parent.replace(node, Text(text, rawsource))
 
     def default_visit(self, node):
         return

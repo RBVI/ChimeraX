@@ -150,7 +150,7 @@ class MarkedHistogram(QWidget):
 
         # Create the add/delete marker help
         if show_marker_help and layout != 'below':
-            self._marker_help = QLabel("Ctrl-click on histogram to add or delete thresholds")
+            self._marker_help = QLabel("Shift-click on histogram to add or delete thresholds")
             self._marker_help.setAlignment(Qt.AlignCenter)
             overall_layout.addWidget(self._marker_help)
         else:
@@ -170,13 +170,13 @@ class MarkedHistogram(QWidget):
         self._data_widgets = QStackedWidget()
         data_frame_layout.addWidget(self._data_widgets)
 
-        # Crate the histogram widget
+        # Create the histogram widget
         self._hist_scene = QGraphicsScene()
         self._hist_bars = self._hist_scene.createItemGroup([])
         self._hist_view = QGraphicsView(self._hist_scene)
         self._hist_view.resizeEvent = self._redraw
         self._hist_scene.mousePressEvent = lambda event: self._add_or_delete_marker_cb(event) \
-            if event.modifiers() & mod_key_info("control")[0] else self._select_marker_cb(event)
+            if event.modifiers() & mod_key_info("shift")[0] else self._select_marker_cb(event)
         self._hist_scene.mouseMoveEvent = lambda event: self._move_marker_cb(event) \
             if self._drag_marker else super().mouseMoveEvent(event)
         self._hist_scene.mouseReleaseEvent = self._button_up_cb
@@ -200,11 +200,11 @@ class MarkedHistogram(QWidget):
             min_max_layout = QHBoxLayout()
             if min_label:
                 self._min_label = QLabel()
-                min_max_layout.addWidget(self._min_label, alignment=Qt.AlignLeft & Qt.AlignTop)
+                min_max_layout.addWidget(self._min_label, alignment=Qt.AlignLeft | Qt.AlignTop)
 
             if max_label:
                 self._max_label = QLabel()
-                min_max_layout.addWidget(self._max_label, alignment=Qt.AlignRight & Qt.AlignTop)
+                min_max_layout.addWidget(self._max_label, alignment=Qt.AlignRight | Qt.AlignTop)
             overall_layout.addLayout(min_max_layout)
         else:
             self._range_label = QLabel()
@@ -419,7 +419,7 @@ class MarkedHistogram(QWidget):
         fm = ve.fontMetrics()
         tm = ve.textMargins()
         cm = ve.contentsMargins()
-        w = vw*fm.width('w') + tm.left() + tm.right() + cm.left() + cm.right() + 8
+        w = vw*fm.averageCharWidth() + tm.left() + tm.right() + cm.left() + cm.right() + 8
         ve.setMaximumWidth(w)
 
     def _abs2rel(self, abs_xy):

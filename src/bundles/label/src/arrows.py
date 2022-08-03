@@ -308,6 +308,9 @@ class Arrows(Model):
         return tuple(self._named_arrows.keys())
 
     def delete_arrow(self, arrow):
+        if arrow not in self._arrows:
+            # in a script, it's possible for the model-removed trigger and a delete command to both call this
+            return
         if arrow.name:
             del self._named_arrows[arrow.name]
         self._arrows.remove(arrow)
@@ -390,9 +393,9 @@ class Arrow:
         self.weight = weight
         self.start = start
         self.end = end
-        self.visibility = visibility
         self.head_style = head_style
         self.drawing = d = ArrowModel(session, self)
+        self.visibility = d.display = visibility
         lb = session_arrows(session, create = True)
         lb.add_arrow(self)
 

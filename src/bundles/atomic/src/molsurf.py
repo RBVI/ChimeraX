@@ -302,9 +302,14 @@ class MolecularSurface(Surface):
             v2a[i1] = nearest1
             self._vertex_to_atom = v2a
             self._vertex_to_atom_count = len(self.atoms)
-        elif self._vertex_to_atom is not None and len(self.atoms) < self._vertex_to_atom_count:
-            # Atoms deleted
-            self._vertex_to_atom = None
+        elif self._vertex_to_atom is not None:
+            if len(self.atoms) < self._vertex_to_atom_count:
+                # Atoms deleted
+                self._vertex_to_atom = None
+            if len(self._vertex_to_atom) != len(self.vertices):
+                # Some other code like color zone with sharp_edges = True
+                # changed the surface geometery.
+                self._vertex_to_atom = None
         return self._vertex_to_atom
 
     def _vertices_for_atoms(self, atoms):
@@ -543,25 +548,30 @@ class MolecularSurface(Surface):
         v = self.triangles[t,0]
         v2a = self.vertex_to_atom_map()
         if v2a is None:
-            pa = p
+            from chimerax.core.models import PickedModel
+            pa = PickedModel(self, p.distance)
         else:
             a = v2a[v]
             atom = self.atoms[a]
             from .structure import PickedAtom
             pa = PickedAtom(atom, p.distance)
-            if isinstance(p, PickedTriangle):
-                pa.triangle_pick = p	# Used by for reporting surface color value
+        if isinstance(p, PickedTriangle):
+            pa.triangle_pick = p	# Used by for reporting surface color value
         return pa
 
     def set_selected(self, sel, *, fire_trigger=True):
         self.atoms.selected = sel
         self.update_selection(fire_trigger=fire_trigger)
+        if not self.has_atom_patches():
+            Surface.set_selected(self, sel, fire_trigger=fire_trigger)
     selected = property(Surface.selected.fget, set_selected)
 
     def update_selection(self, *, fire_trigger=True):
         asel = self.atoms.selected
         tmask = self._atom_triangle_mask(asel)
         if tmask is None:
+            if not self.has_atom_patches():
+                return
             sel_val = False
         else:
             sel_val = (tmask.sum() > 0)
