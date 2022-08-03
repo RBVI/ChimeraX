@@ -38,6 +38,7 @@ def getcrd(session, atoms=None, coordinate_system='scene'):
         msgs.append("Atom %s %.3f %.3f %.3f" % (a.atomspec, c[0], c[1], c[2]))
     settings.atomspec_contents = save
     session.logger.info('\n'.join(msgs))
+    return coords
 getcrd_desc = CmdDesc(required=[("atoms", AtomSpecArg),],
                       optional=[("coordinate_system", EnumOf(('scene', 'model', 'screen')))],
                       synopsis='report atomic coordinates')

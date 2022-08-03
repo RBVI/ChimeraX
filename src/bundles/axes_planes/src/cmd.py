@@ -254,12 +254,12 @@ class AxisModel(Surface, ComplexMeasurable):
             in_plane = plane.nearest(pt)
         pt_ext = inner_product(in_plane - xf_center, xf_direction)
         if pt_ext < -self.extent:
-            measure_pt = min_pt
+            from_pt, to_pt = min_pt, pt
         elif pt_ext > self.extent:
-            measure_pt = max_pt
+            from_pt, to_pt = max_pt, pt
         else:
-            measure_pt = in_plane
-        return distance(pt, measure_pt)
+            from_pt, to_pt = xf_center, in_plane
+        return distance(from_pt, to_pt)
 
     def _get_radius(self):
         return self._radius
