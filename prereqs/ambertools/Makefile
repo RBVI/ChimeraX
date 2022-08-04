@@ -53,9 +53,10 @@ ENV_OPTS = -u CC -u CXX FFLAGS=-fallow-argument-mismatch
 PATCHES += flex-cygwin.patch
 else ifeq ($(OS),Linux)
 CONFIG_ARGS = gnu
+ENV_OPTS = FFLAGS=-fallow-argument-mismatch
 ifdef UBUNTU_DIST
 ifeq ($(shell expr $(UBUNTU_DIST) '>' 18.04),1)
-ENV_OPTS = CC=gcc-9 FC=gfortran-9
+ENV_OPTS += CC=gcc-9 FC=gfortran-9
 endif
 endif
 else ifeq ($(OS),Darwin)
