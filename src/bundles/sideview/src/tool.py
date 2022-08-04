@@ -107,6 +107,7 @@ class SideViewCanvas(QWindow):
         self.applique.delete()
         self.applique = None
         self.setParent(None)
+        QWindow.destroy(self)
 
     def _redraw(self, *_):
         self.render()
