@@ -11,7 +11,7 @@ VERSION = 20
 USE_PREBUILT=true
 UPLOAD_PREBUILT=false
 ifeq ($(OS),Linux)
-SUPPORTED_DISTROS := Ubuntu CentOS Debian
+SUPPORTED_DISTROS := Ubuntu CentOS Debian Rocky
 # CentOS uses "CentOS Linux", hence the second awk in the following line
 LINUX_FLAVOR = $(shell egrep '^NAME=' /etc/os-release | awk -F= '{ print $$2 }' | awk '{ print $$1 }' | tr -d '"')
 LINUX_RELEASE = $(shell egrep '^VERSION_ID=' /etc/os-release | awk -F= '{ print $$2 }' | tr -d '"')
