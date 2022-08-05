@@ -234,13 +234,13 @@ class SideViewCanvas(QWindow):
                 camera.field_width = far * width / f
 
             vc = array([[255, 0, 0, 255]] * 12, dtype=uint8)
+            vc[0:8,:] = [255, 255, 0, 255]
             if self.moving == self.ON_EYE:
-                vc[0] = vc[1] = vc[2] = vc[3] = [255, 255, 0, 255]
+                vc[0] = vc[1] = vc[2] = vc[3] = [0, 255, 0, 255]
             elif self.moving == self.ON_NEAR:
-                vc[4] = vc[5] = [255, 255, 0, 255]
+                vc[4] = vc[5] = [0, 255, 0, 255]
             elif self.moving == self.ON_FAR:
-                vc[6] = vc[7] = [255, 255, 0, 255]
-            self.applique.vertex_colors = vc
+                vc[6] = vc[7] = [0, 255, 0, 255]
             es = self.EyeSize
             old_vertices = self.applique.vertices
             v = array([
@@ -274,6 +274,7 @@ class SideViewCanvas(QWindow):
                 [9, 11],   # right plane
             ], dtype=int32)
             self.applique.set_geometry(v, None, t)
+            self.applique.vertex_colors = vc
             self.view.draw()
             # if has_string_marker:
             #     text = b"End SideView"
