@@ -993,7 +993,7 @@ def axis_and_center(axis, center, coordinate_system, to_coords):
         a = to_coords.inverse().transform_vector(asc)
     if center:
         csc = center.scene_coordinates(coordinate_system or to_coords)
-        c = to_coords.position.inverse() * csc
+        c = to_coords.inverse() * csc
     return a, c
 
 # -----------------------------------------------------------------------------

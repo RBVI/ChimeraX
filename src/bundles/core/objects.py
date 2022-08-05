@@ -141,6 +141,7 @@ class Objects:
         ibonds = concatenate(mbonds, Bonds, remove_duplicates=True) - self.bonds
         ipbonds = concatenate(mpbonds, Pseudobonds, remove_duplicates=True) - self.pseudobonds
         imodels.update(iatoms.unique_structures)
+        imodels.update(ipbonds.unique_groups)
         self._atoms = [iatoms]
         self._bonds = [ibonds]
         self._pseudobonds = [ipbonds]
