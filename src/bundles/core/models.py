@@ -492,6 +492,9 @@ class Model(State, Drawing):
                     return False
         return True
 
+    def show_info(self):
+        pass
+
 class PickedModel(Pick):
     def __init__(self, model, distance):
         super().__init__(distance)

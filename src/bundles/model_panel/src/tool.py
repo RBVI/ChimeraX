@@ -12,7 +12,9 @@
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.core.tools import ToolInstance
-
+from chimerax.core.errors import UserError
+from chimerax.core.commands import run, concise_model_spec
+from chimerax.core.settings import Settings
 
 class ModelPanel(ToolInstance):
 
@@ -361,7 +363,6 @@ class ModelPanel(ToolInstance):
                 ids = [int(x) for x in id_text.split('.')]
             except Exception:
                 self._initiate_fill_tree()
-                from chimerax.core.errors import UserError
                 raise UserError("ID must be one or more integers separated by '.' characters")
             self.self_initiated = True
             run(self.session, "rename %s id #%s" % (item._model.atomspec, id_text))
@@ -377,13 +378,11 @@ class ModelPanel(ToolInstance):
             run(self.session, "rename %s %s" % (item._model.atomspec, StringArg.unparse(new_name)))
 
 
-from chimerax.core.settings import Settings
 class ModelPanelSettings(Settings):
     AUTO_SAVE = {
         'last_use': None
     }
 
-from chimerax.core.commands import run, concise_model_spec
 def close(models, session):
     # ask for confirmation if multiple top-level models being closed without explicitly selecting them
     if len([m for m in models if '.' not in m.id_string]) > 1 and not _mp.tree.selectedItems():
@@ -404,20 +403,10 @@ def hide(models, session):
     run(session, "hide %s target m" % concise_model_spec(session, models))
 
 def info(models, session):
-    from chimerax.atomic import AtomicStructure
-    structures = [m for m in models if isinstance(m, AtomicStructure)]
-    if not structures:
-        from chimerax.core.errors import UserError
-        raise UserError("No atomic structure models chosen")
-    spec = concise_model_spec(session, structures, allow_empty_spec=False, relevant_types=AtomicStructure)
-    from chimerax.atomic.structure import assembly_html_table
-    for s in structures:
-        if assembly_html_table(s):
-            base_cmd = "sym %s; " % spec
-            break
-    else:
-        base_cmd = ""
-    run(session, base_cmd + "log metadata %s; log chains %s" % (spec, spec))
+    if not models:
+        raise UserError("No selection made")
+    for m in models:
+        m.show_info()
 
 _mp = None
 def model_panel(session, tool_name):
