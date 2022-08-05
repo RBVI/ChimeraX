@@ -407,6 +407,8 @@ class SideViewUI(ToolInstance):
         self.clip_far.clicked.connect(self.on_far)
 
         button_layout = QHBoxLayout()
+        button_layout.setContentsMargins(10,0,0,0)
+        button_layout.setSpacing(10)
         button_layout.addWidget(clip, alignment=Qt.AlignCenter)
         button_layout.addWidget(self.clip_near)
         button_layout.addWidget(self.clip_far)
@@ -419,6 +421,8 @@ class SideViewUI(ToolInstance):
                 return QSize(200, 200)
 
         layout = QVBoxLayout()
+        layout.setContentsMargins(0,0,0,0)
+        layout.setSpacing(0)
         ga = graphics_area(parent)
         ga.addWidget(self.opengl_canvas.widget)
         layout.addWidget(ga, 1)
