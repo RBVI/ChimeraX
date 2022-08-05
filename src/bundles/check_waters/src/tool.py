@@ -381,6 +381,9 @@ class CheckWaterViewer(ToolInstance):
                         setattr(a.residue, self.HB_COUNT_ATTR, getattr(a.residue, self.HB_COUNT_ATTR)+1)
                 seen.add(hb)
                 seen.add((hb[1], hb[0]))
+        if 'showDist true' in args:
+            run(self.session, 'label size 16')
+            run(self.session, 'distance style decimalPlaces 2')
 
     def _models_removed_cb(self, trig_name, trig_data):
         if self.check_model in trig_data:
