@@ -203,7 +203,10 @@ class SideViewCanvas(QWindow):
             loc = self.locations
             loc.bottom = .05 * height
             loc.top = .95 * height
-            ratio = tan(0.5 * fov)
+            if ortho:
+                ratio = 0.5 * main_camera.field_width * (wh/ww) / far
+            else:
+                ratio = tan(0.5 * fov)
             if self.moving:
                 eye = self.view.win_coord(main_pos.origin())
                 eye[2] = 0
@@ -252,18 +255,25 @@ class SideViewCanvas(QWindow):
                 (0, 0, 0), (0, 0, 0),
             ], dtype=float32)
             if ortho:
-                v[8] = (loc.near, loc.far_top, 0)
-                v[9] = (loc.near, loc.far_bottom, 0)
+                fh = main_camera.field_width * wh / ww
+                oh = fh * (loc.far - loc.eye[0]) / far
+                ft, fb = 0.5*height + 0.5*oh, 0.5*height - 0.5*oh
+                v[8] = (loc.near, ft, 0)
+                v[9] = (loc.near, fb, 0)
             else:
                 v[8] = loc.eye
                 v[9] = loc.eye
-            if self.moving and old_vertices is not None:
+            if self.moving and old_vertices is not None and not ortho:
                 ps = self.view.render.pixel_scale()
                 v[10] = old_vertices[10] / ps
                 v[11] = old_vertices[11] / ps
             else:
-                v[10] = (loc.far, loc.far_top, 0)
-                v[11] = (loc.far, loc.far_bottom, 0)
+                if ortho:
+                    v[10] = (loc.far, ft, 0)
+                    v[11] = (loc.far, fb, 0)
+                else:
+                    v[10] = (loc.far, loc.far_top, 0)
+                    v[11] = (loc.far, loc.far_bottom, 0)
             ps = self.view.render.pixel_scale()
             v *= ps
             t = array([
