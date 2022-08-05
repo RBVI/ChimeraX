@@ -17,7 +17,7 @@ MEMORIZE_NONE = "none"
 
 def prep(session, state, callback, memorization, memorize_name, structures, keywords, *, tool_settings=None):
     if tool_settings is None and not state['nogui'] and memorization != MEMORIZE_USE:
-        # run tool that calls back to this routine with from_tool=True
+        # run tool that calls back to this routine with tool_settings specified
         #TODO: return function-to-start-tool()
         raise NotImplemented("call tool")
 
