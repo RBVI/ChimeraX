@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-Contacts" version="1.0"
+<BundleInfo name="ChimeraX-Contacts" version="1.0.1"
 	    package="chimerax.interfaces"
   	    minSessionVersion="1" maxSessionVersion="1">
 

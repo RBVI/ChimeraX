@@ -27,74 +27,64 @@ class="clRight" title="User Guide Index"/></a>
 <p>
 <a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold</a>
 is an artificial intelligence method for predicting protein structures
-that has been highly successful in recent tests.
-The ChimeraX <b>AlphaFold</b> tool:
-<ul>
-<li><a href="#search">finds and retrieves existing models</a>
-from the <a href="https://alphafold.ebi.ac.uk/"
-target="_blank">AlphaFold Database</a>
-<li><a href="#predict">runs new AlphaFold predictions</a>
-using <a href="https://colab.research.google.com/signup" 
-target="_blank">Google Colab</a> and
-<a href="https://github.com/deepmind/alphafold/#model-parameters-license"
-target="_blank">learned parameters</a> 
-</ul>
-<p>
-Both are freely available for academic and commercial use under
-<a href="https://creativecommons.org/licenses/by/4.0/"
-target="_blank">CC BY 4.0</a>.
-The related tool <a href="#pae"><b>AlphaFold Error Plot</b></a>
-plots residue-residue alignment errors for AlphaFold structures.
-</p><p>
-Users should cite:
+that has been highly successful in 
+<a href="https://en.wikipedia.org/wiki/AlphaFold#Competitions"
+target="_blank">recent tests</a>.
+The method is described in:
 </p>
 <blockquote>
 <a href="https://www.nature.com/articles/s41586-021-03819-2" target="_blank">
 Highly accurate protein structure prediction with AlphaFold.</a>
 Jumper J, Evans R, Pritzel A, <i>et al.</i>
 <i>Nature.</i> 2021 Aug;596(7873):583-589.
-</blockquote>
+<br>
 <a name="alphafold-multimer"></a>
-<p>
-...and for multimer prediction:
-</p>
-<blockquote>
 <a href="https://www.biorxiv.org/content/10.1101/2021.10.04.463034"
 target="_blank">Protein complex prediction with AlphaFold-Multimer.</a>
 Evans R, O'Neill M, Pritzel A, <i>et al.</i> bioRxiv 2021.
-doi: https://doi.org/10.1101/2021.10.04.463034.
 </blockquote>
 <p>
-The
-<a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold Database</a>
-contains modeled structures for protein sequences in
-<a href="https://www.uniprot.org" target="_blank">UniProt</a>:
+The ChimeraX <b>AlphaFold</b> tool:
+</p>
+<ul>
+<li><a href="#search">finds and retrieves existing models</a>
+from the <a href="https://alphafold.ebi.ac.uk/"
+target="_blank">AlphaFold Database</a>:
 </p>
 <blockquote>
-<a href="https://academic.oup.com/nar/advance-article/doi/10.1093/nar/gkab1061/6430488" target="_blank">
+<a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC8728224/" target="_blank">
 AlphaFold Protein Structure Database: massively expanding the structural coverage of protein-sequence space with high-accuracy models.</a>
 Varadi M, Anyango S, Deshpande M, <i>et al.</i>
 <i>Nucleic Acids Res.</i> 2022 Jan 7;50(D1):D439-D444.
 </blockquote>
-<ul>
-<li>version 1 &ndash; predictions for ~360,000 sequences,
-the full reference proteomes of
-<a href="https://alphafold.ebi.ac.uk/download" target="_blank">21 species</a>
-including <i>Homo sapiens</i>; used by ChimeraX 1.3
-<li>version 2 &ndash; predictions for ~800,000 sequences,
-augmented from version 1 to include most of the manually curated entries in
-<a href="https://www.uniprot.org" target="_blank">UniProt</a>
-<li>version 3 &ndash; predictions for ~1 million sequences,
-augmented from version 2 to include organisms relevant to 
-neglected tropical disease or antimicrobial resistance;
-used by ChimeraX 1.4 and newer
+The database contains models for sequences (as single chains, not complexes)
+in <a href="https://www.uniprot.org" target="_blank">UniProt</a>:
+<br>
+<b>Version 1</b> (database release 1, used by ChimeraX 1.3): ~360,000 sequences,
+reference proteomes of 21 species including <i>Homo sapiens</i>
+<br><b>Version 2</b> (database releases 2 and 3 combined,
+<a href="../commands/alphafold.html#version">default</a> in ChimeraX 1.4+):
+~1 million sequences, v1 + most of SwissProt + sequences relevant to 
+neglected tropical disease or antimicrobial resistance
+<br><b>Version 3</b> (database release 4): &gt;200 million sequences
+</p>
+<li><a href="#predict">runs new AlphaFold predictions</a>
+on <a href="https://colab.research.google.com/signup" target="_blank">Google 
+Colab</a> using <b>ColabFold</b>, an open-source, optimized version of
+<a href="https://en.wikipedia.org/wiki/AlphaFold#AlphaFold_2,_2020"
+target="_blank">AlphaFold 2</a>:
+<blockquote>
+<a href="https://www.nature.com/articles/s41592-022-01488-1"
+target="_blank">ColabFold: making protein folding accessible to all.</a>
+Mirdita M, Sch&uuml;tze K, Moriwaki Y, Heo L, Ovchinnikov S, Steinegger M. 
+<i>Nat Methods.</i> 2022 Jun;19(6):679-682.
+</blockquote>
 </ul>
 <p>
-The predicted structures vary in
-confidence levels and should be interpreted with caution.
-The database contains structures for single chains, not complexes;
-assembling individually predicted structures into a complex may give
-unphysical results where parts of the chains interact poorly with one another.
+AlphaFold-predicted structures vary in confidence levels 
+(see <a href="#coloring">coloring</a>) and should be interpreted with caution. 
+The related tool <a href="#pae"><b>AlphaFold Error Plot</b></a>
+plots residue-residue alignment errors for AlphaFold structures.
 </p><p>
 The <b>AlphaFold</b> tool is also implemented as the
 <a href="../commands/alphafold.html"><b>alphafold</b></a> command.
@@ -108,35 +98,6 @@ See also: <a href="blastprotein.html"><b>Blast Protein</b></a>,
 <a href="modelloops.html"><b>Model Loops</b></a>,
 <a href="rotamers.html"><b>Rotamers</b></a>
 </p>
-<!--
-Presentations:
-<ul>
-<li><a href="https://www.rbvi.ucsf.edu/chimerax/data/alphafold-aug2021/alphafold.html"
-target="_blank">AlphaFold vs. experiment</a>
-<li><a href="https://www.rbvi.ucsf.edu/chimerax/data/alphafold-dec2021/af_multimer.html"
-target="_blank">AlphaFold for complexes</a>
-<li><a href="https://www.rbvi.ucsf.edu/chimerax/data/sbgrid-mar2022/alphafold_pae.html"
-target="_blank">AlphaFold for cryoEM modeling &ndash; 2022a</a>
-(<a href="https://www.rbvi.ucsf.edu/chimerax/data/stanford-apr2022/cryoem_intro.html"
-target="_blank">2022b</a>)
-(<a href="https://www.rbvi.ucsf.edu/chimerax/data/alphafold-nov2021/af_sbgrid.html"
-target="_blank">2021</a>)
-</ul>
-<a href="https://www.rbvi.ucsf.edu/chimerax/docs/videos/"
-target="_blank">ChimeraX videos</a>:
-<ul>
-<li><a href="https://youtu.be/x-9urTQ1rJY" target="_blank">searching
-by sequence</a> for AlphaFold models (first 5 minutes)
-<li><a href="https://youtu.be/W6KsBfNwDgs" target="_blank">fetching</a> an
-AlphaFold model
-<li><a href="https://youtu.be/vj3sQfvWfDU" target="_blank">matching</a>
-a known assembly structure
-<li><a href="https://youtu.be/le7NatFo8vI" target="_blank">predicting</a>
-a structure
-<li><a href="https://youtu.be/6lXeCPuTePs" target="_blank">predicting
-a complex</a>
-</ul>
--->
 
 <blockquote>
 <a href="#dialog"><b>AlphaFold Dialog</b></a>
@@ -173,13 +134,6 @@ Prediction may only be feasible for smaller complexes
 (<a href="#caveats">details...</a>).
 </p>
 <ul>
-<!--
-When <a href="#alphafold-multimer">AlphaFold-Multimer</a> is predicting a
-complex and finds multiple similar sequences from the same organism, it
-needs to decide which sequences are orthologous to which chain of the target.
-Sequences from the same organism are paired in order of their rank similarity 
-to the target sequences.
--->
 <li>
 <a name="match"></a>
 <b>Fetch</b> gets the most sequence-similar model available from the
@@ -219,7 +173,8 @@ in the <a href="log.html"><b>Log</b></a>:
   for superposition; the number of positions with identical residues
   divided by the length of the shorter sequence
   </ul>
-<li>the predicted structure is trimmed to the same residue range as the 
+<li>by <a href="#options">default</a>,
+the predicted structure is trimmed to the same residue range as the 
 existing chain (<a href="../commands/alphafold.html#trim">details...</a>)
 <li>the following <a href="../attributes.html">attributes</a>
  are assigned to the residues of the predicted structure:
@@ -269,89 +224,87 @@ to retrieve the model.
 <br><br>
 <li>
 <a name="predict"></a>
-<b>Predict</b>
-runs an <a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold</a>
-version 2.2.0
-calculation using <a href="https://colab.research.google.com/signup" 
-target="_blank">Google Colab</a>, which is provided under the
-<a href="https://www.apache.org/licenses/LICENSE-2.0" target="_blank">Apache
-2.0</a> license. The corresponding command is
+<b>Predict</b> runs a calculation on
+<a href="https://colab.research.google.com/signup"
+target="_blank">Google Colab</a> using <b>ColabFold</b>, 
+an open-source, optimized version of
+<a href="https://en.wikipedia.org/wiki/AlphaFold#AlphaFold_2,_2020"
+target="_blank">AlphaFold 2</a>. 
+The corresponding command is
 <a href="../commands/alphafold.html#predict"><b>alphafold predict</b></a>.
-A warning will appear saying that this Colab notebook is from github 
+Users should cite:
+<blockquote>
+<a href="https://www.nature.com/articles/s41592-022-01488-1"
+target="_blank">ColabFold: making protein folding accessible to all.</a>
+Mirdita M, Sch&uuml;tze K, Moriwaki Y, Heo L, Ovchinnikov S, Steinegger M. 
+<i>Nat Methods.</i> 2022 Jun;19(6):679-682.
+</blockquote>
+<p>
+A warning will appear saying that this Colab notebook is from github
 (was not authored by Google), with a button to click to run anyway.
 Users will need to have a Google account and to sign into it via
 a browser. Once that is done, the sign-in may be remembered depending
-on the user's browser settings; it is not kept in the 
+on the user's browser settings; it is not kept in the
 <a href="../preferences.html">ChimeraX preferences</a>.
+See the <a href="https://www.youtube.com/watch?v=gIbCAcMDM7E" 
+target="_blank">example video</a> for an explanation of the images/plots
+from <b>ColabFold</b> that appear in the Colab window
+and where to find downloaded files. 
 </p><p>
 <a name="options"></a>
-Clicking <b>Options</b> shows/hides an additional option for <b>Predict</b>:
+Clicking <b>Options</b> shows/hides additional options:
 </p>
 <ul>
-<a name="minimize"></a>
-<li><b>Energy-minimize predicted structures</b>
-&ndash; when running a new prediction, whether to minimize the result;
-turning this off allows for faster job completion and/or
-avoidance of failures during minimization.
+<li><b>Use PDB templates when predicting structures</b> (default <b>off</b>)
+&ndash; AlphaFold can use up to four structures as templates;
+when this option is on, ColabFold will search the PDB
+sequences for similarity to the target and report in the Colab log
+which entries (if any) are used as templates
+<li><b>Energy-minimize predicted structures</b> (default <b>off</b>)
+&ndash; turning this off allows for faster job completion and/or
+avoidance of failures that may occur during minimization
+<li><b>Trim fetched structure to the aligned structure sequence</b>
+(default <b>on</b>)
+&ndash; whether to trim a fetched structure to the same residue range 
+as the structure to which it is aligned 
+(<a href="../commands/alphafold.html#trim">details...</a>)
 </ul>
 <p>
-A single calculation may take hours to complete
-(see the <a href="#caveats">caveats</a> below).
-The free version of Colab
-limits jobs to 12 hours and may terminate them at shorter times at Google's
-discretion (see the <a href="https://colab.research.google.com/signup"
-target="_blank">FAQ</a>).
-Those who want to run longer and/or more frequent calculations
-may need to sign up for one of the paid
-<a href="https://colab.research.google.com/signup"
-target="_blank">Colab plans</a>.
-</p><p>
 The model for a sequence that was specified by structure chain will
 be superimposed on that chain and assigned structure-comparison attributes 
 for further analysis
 (<a href="../commands/alphafold.html#structmatch">details...</a>).
 </p><p>
 <a name="caveats"></a>
-Please note the following caveats:
+Please note the following caveats of running a prediction:
 </p>
 <ul>
-<li>Prediction calculations run a <b>simplified implementation</b> of AlphaFold 
-that does not use structural templates and that
-searches a smaller set of protein sequences 
-(<a href="https://colab.research.google.com/github/deepmind/alphafold/blob/main/notebooks/AlphaFold.ipynb" 
-target="_blank">details...</a>).
-The instance used by ChimeraX also limits the sequence length
-and the number of sequences in the multiple sequence alignment.
-For best reliability, it is recommended to use the 
-<a href="https://github.com/deepmind/alphafold/" target="_blank">full 
-open-source AlphaFold</a> or the <a href="https://alphafold.ebi.ac.uk/"
-target="_blank">AlphaFold Database</a> (<i>e.g.</i>, with 
-<a href="#search"><b>alphafold search</b></a>) instead.
-<br><br>
-<li>A single prediction <b>may take hours to complete</b> (see
-<a href="https://www.rbvi.ucsf.edu/chimerax/data/alphafold-jan2022/afspeed.html"
-target="_blank">performance statistics</a>).
-The process includes installing various software packages on a virtual machine,
+<li>The process includes
+installing various software packages on a virtual machine,
 searching sequence databases, generating a multiple sequence alignment,
-predicting atomic coordinates, and by <a href="#minimize">default</a>,
-energy-minimizing the best structure.
-Predicting a multimer (complex) structure may take longer than predicting
+predicting atomic coordinates, and <a href="#options">optionally</a>,
+energy-minimizing the best structure. In addition,
+predicting a multimer (complex) structure may take longer than predicting
 the structure of a monomer with the same total number of residues.
+<b>The free version of Colab limits jobs</b> to 12 hours
+and may terminate them at shorter times at Google's
+discretion (see the <a href="https://colab.research.google.com/signup"
+target="_blank">FAQ</a>).
 Those who want to run longer and/or more frequent calculations
 may need to sign up for one of the paid
 <a href="https://colab.research.google.com/signup"
-target="_blank">Colab plans</a> for greater computational resources.
+target="_blank">Colab plans</a>.
 <br><br>
 <li>Total <b>sequence length cannot be very large</b>.
 AlphaFold runs out of graphics memory for long sequences (~800 amino acids
-on old Google Colab GPUs with 16 GB memory). 
+on old Google Colab GPUs with 16 GB memory).
 Multimer predictions face the same limit on the total number of residues,
 so <b>only smaller complexes can be predicted</b>. 
 As mentioned above, paid <a href="https://colab.research.google.com/signup"
 target="_blank">Colab plans</a> provide more computational resources
 than the free plan.
 </ul>
-<br><br>
+<br>
 <li><b>Coloring</b> 
 shows the <a href="#coloring"><b>Alphafold Coloring</b> dialog</a>
 for applying different color schemes to the predicted structures,
@@ -673,5 +626,5 @@ Error (&Aring;)</b>&rdquo;) would need to be created separately with
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-June 2022</address>
+July 2022</address>
 </body></html>

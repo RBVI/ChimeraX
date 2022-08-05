@@ -1,16 +1,15 @@
 # vim: set expandtab ts=4 sw=4:
 
-# Force import in a particular order since the latter two mess
-# with the contents of distutils, and we want Cython to win
-import distutils  # noqa
+# Force import in a particular order since both Cython and
+# setuptools patch distutils, and we want Cython to win
 import setuptools
+import setuptools._distutils as distutils
 from Cython.Build import cythonize
 from packaging.version import Version
 
 # Always import this because it changes the behavior of setuptools
-from numpy.distutils.misc_util import get_numpy_include_dirs
+from numpy import get_include as get_numpy_include_dirs
 
-#
 # The compile process is initiated by setuptools and handled
 # by numpy.distutils, which eventually calls subprocess.
 # On Windows, subprocess invokes CreateProcess.  If a shell
@@ -791,7 +790,7 @@ class _CompiledCode:
         inc_dirs = [os.path.join(root, "include")]
         lib_dirs = [os.path.join(root, "lib")]
         if self.uses_numpy:
-            inc_dirs.extend(get_numpy_include_dirs())
+            inc_dirs.extend([get_numpy_include_dirs()])
         if sys.platform == "darwin":
             libraries = self.libraries
             # Unfortunately, clang on macOS (for now) exits
@@ -893,7 +892,7 @@ class _CompiledCode:
                 raise RuntimeError("Unsupported language for %s" % f)
         if cpp_files:
             compiler.compile(cpp_files,
-                             extra_preargs=cpp_flags+self.compile_arguments,
+                             extra_preargs=cpp_flags + self.compile_arguments,
                              macros=macros, debug=debug)
             self.target_lang = "c++"
         if c_files:
@@ -940,7 +939,7 @@ class _CModule(_CompiledCode):
             extra_link_args.append("-Wl,-rpath,@loader_path%s" % install_dir)
         return Extension(package + '.' + self.name,
                          define_macros=macros,
-                         extra_compile_args=cpp_flags+self.compile_arguments,
+                         extra_compile_args=cpp_flags + self.compile_arguments,
                          include_dirs=inc_dirs,
                          library_dirs=lib_dirs,
                          libraries=libraries,

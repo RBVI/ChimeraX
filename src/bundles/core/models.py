@@ -34,7 +34,7 @@ MODEL_STATE_VERSION = 1
 MODELS_STATE_VERSION = 1
 
 from .state import State
-from chimerax.graphics import Drawing
+from chimerax.graphics import Drawing, Pick, PickedTriangle
 class Model(State, Drawing):
     """A Model is a :class:`.Drawing` together with an id number
     that allows it to be referenced in a typed command.
@@ -119,6 +119,13 @@ class Model(State, Drawing):
         '''
         # may be overriden in subclass, e.g. Structure
         return self._deleted
+
+    def first_intercept(self, mxyz1, mxyz2, exclude=None):
+        '''So that generic models can be properly picked.  Most model classes override this.'''
+        pick = super().first_intercept(mxyz1, mxyz2, exclude=exclude)
+        if isinstance(pick, PickedTriangle):
+            pick = PickedModel(self, pick.distance)
+        return pick
 
     def _get_id(self):
         return self._id
@@ -485,6 +492,27 @@ class Model(State, Drawing):
                     return False
         return True
 
+class PickedModel(Pick):
+    def __init__(self, model, distance):
+        super().__init__(distance)
+        self.model = model
+
+    def description(self):
+        return str(self.model)
+
+    def drawing(self):
+        return self.model
+
+    def select(self, mode='add'):
+        from chimerax.core.commands import run
+        m = self.model
+        if mode == 'add' or (mode == 'toggle' and not m.selected):
+            run(m.session, f"select add {m.atomspec}")
+        else:
+            run(m.session, f"select subtract {m.atomspec}")
+
+    def specifier(self):
+        return self.model.atomspec
 
 class Surface(Model):
     '''

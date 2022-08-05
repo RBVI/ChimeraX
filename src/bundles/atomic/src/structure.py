@@ -1983,12 +1983,18 @@ class PromoteAtomSelection(SelectionPromotion):
         if s.deleted:
             return
         atoms = s.atoms
-        atoms.selected = asel = self._atom_sel_mask
+        asel = self._atom_sel_mask
+        if len(atoms) != len(asel):
+            return	# Atoms added or deleted
+        atoms.selected = asel
         atoms[asel].intra_bonds.selected = True
     def demote(self):
         s = self._structure
         if s.deleted:
             return
+        if (s.num_atoms != len(self._prev_atom_sel_mask) or
+            s.num_bonds != len(self._prev_bond_sel_mask)):
+            return   # Atoms or bonds deleted or added.
         s.atoms.selected = self._prev_atom_sel_mask
         s.bonds.selected = self._prev_bond_sel_mask
 
@@ -2180,6 +2186,8 @@ class PickedPseudobond(Pick):
     def description(self):
         dist_fmt = self.pbond.session.pb_dist_monitor.distance_format
         return str(self.pbond) + " " + dist_fmt % self.pbond.length
+    def drawing(self):
+        return self.group
     @property
     def residue(self):
         a1, a2 = self.pbond.atoms
@@ -2333,13 +2341,16 @@ def _has_structure_descendant(model):
 #
 def all_atomic_structures(session):
     '''List of all :class:`.AtomicStructure` objects.'''
-    return [m for m in session.models.list() if isinstance(m,AtomicStructure)]
+    from .molarray import AtomicStructures
+    return AtomicStructures([m for m in session.models.list() if isinstance(m,AtomicStructure)])
 
 # -----------------------------------------------------------------------------
 #
 def all_structures(session, atomic_only=False):
     '''List of all :class:`.Structure` objects.'''
-    return [m for m in session.models.list() if isinstance(m,Structure)]
+    from .molarray import Structures
+    class_obj = AtomicStructure if atomic_only else Structure
+    return Structures([m for m in session.models.list() if isinstance(m,class_obj)])
 
 # -----------------------------------------------------------------------------
 #

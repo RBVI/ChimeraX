@@ -543,12 +543,14 @@ def _make_bundle_info(d, installed, logger):
         return None
     try:
         description = md.description
-        if description.startswith("UNKNOWN"):
+        # In new versions of setuptools, wheels that have no description won't get one
+        # at all, and this causes an AttributeError. If we test the object (none is Falsy)
+        # we can short circuit past the access that would throw the error.
+        if not description or description.startswith("UNKNOWN"):
             description = "Missing bundle description"
         bi.description = description
     except (KeyError, OSError):
         pass
-
     return bi
 
 

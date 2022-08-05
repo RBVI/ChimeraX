@@ -738,7 +738,10 @@ class ObjectLabel:
                 final_text = base_text.format(self.object)
             except AttributeError:
                 # don't label objects missing the requested attribute(s)
+                # and treat them as having no label assigned rather than
+                # one with a missing attribute
                 final_text = ""
+                self._text = None
             except Exception:
                 final_text = base_text
         else:

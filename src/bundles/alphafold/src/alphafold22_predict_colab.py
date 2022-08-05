@@ -520,16 +520,22 @@ def minimize_best_model(best_model_name, output_dir):
     from os import path
     relaxed_path = path.join(output_dir, best_model_name + '_relaxed.pdb')
     if path.exists(relaxed_path):
-        return
+        return True
     
     print('Energy minimizing best structure %s with OpenMM and Amber forcefield' % best_model_name)
     unrelaxed_path = path.join(output_dir, best_model_name + '_unrelaxed.pdb')
     from alphafold.common import protein
     with open(unrelaxed_path, 'r') as f:
         best_unrelaxed_protein = protein.from_pdb_string(f.read())
-        relaxed_pdb = energy_minimize_structure(best_unrelaxed_protein)
+        try:
+            relaxed_pdb = energy_minimize_structure(best_unrelaxed_protein)
+        except Exception as e:
+            print('Energy minimization failed.  This is usually because of severe atom clashes.  Returning unminimized structure.  ' + str(e))
+            return False
         # Write out PDB file
         write_pdb(relaxed_pdb, best_model_name + '_relaxed.pdb', output_dir)
+
+    return True
 
 def energy_minimize_structure(pdb_model):
     from alphafold.relax import relax
@@ -659,10 +665,11 @@ def run_prediction(sequences,
     # Energy minimize
     best_model_name = best_model(model_names, output_dir)
     if best_model_name:
+        pdb_suffix = '_unrelaxed.pdb'
         if energy_minimize:
-            minimize_best_model(best_model_name, output_dir)
+            if minimize_best_model(best_model_name, output_dir):
+                pdb_suffix = '_relaxed.pdb'
         # Copy best model and pae files.
-        pdb_suffix = '_relaxed.pdb' if energy_minimize else '_unrelaxed.pdb'
         copy_file(best_model_name + pdb_suffix, 'best_model.pdb', output_dir)
         copy_file(best_model_name + '_pae.json', 'best_model_pae.json', output_dir)
         

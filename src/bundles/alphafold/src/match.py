@@ -26,9 +26,6 @@ def alphafold_match(session, sequences, color_confidence=True, trim = True,
         from chimerax.core.errors import UserError
         raise UserError('No protein sequences specified')
 
-    if pae:
-        trim = False  # Can only associate PAE matrix with full AlphaFold models
-        
     log = session.logger
 
     # Use UniProt identifiers in file metadata to get AlphaFold models.
