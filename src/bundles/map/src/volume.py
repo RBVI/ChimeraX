@@ -16,6 +16,7 @@
 # Holds surface and image rendering thresholds, color, and transparency and brightness
 # factors.
 #
+
 from chimerax.core.models import Model
 class Volume(Model):
   '''
@@ -97,6 +98,81 @@ class Volume(Model):
     self.surface_piece_change_handler = None
 
     self.model_panel_show_expanded = False	# Don't show submodels initially in model panel
+
+  @classmethod
+  def _from_grid_data(cls, grid_data, session, style = 'auto',
+                            open_model = True, model_id = None, show_dialog = True):
+    '''
+    Supported API.
+    Create a new :class:`.Volume` model from a :class:`~.data.GridData` instance and set its initial 
+    display style and color and add it to the session open models.
+  
+    Parameters
+    ----------
+    grid_data : :class:`~.data.GridData`
+      Use this GridData to create the Volume.
+    session : :class:`~chimerax.core.session.Session`
+      The session that the Volume will belong to.
+    style : 'auto', 'surface', 'mesh' or 'image'
+      The initial display style.
+    open_model : bool
+      Whether to add the Volume to the session open models.
+    model_id : tuple of integers
+      Model id for the newly created Volume.
+      It is an error if the specifid id equals the id of an existing model.
+    show_dialog : bool
+      Whether to show the Volume Viewer user interface panel.
+  
+    Returns
+    -------
+    volume : the created :class:`.Volume`
+    '''
+    
+    set_data_cache(grid_data, session)
+  
+    ds = default_settings(session)
+    ro = ds.rendering_option_defaults()
+    if getattr(grid_data, 'polar_values', None):
+      ro.flip_normals = True
+      ro.cap_faces = False
+    if hasattr(grid_data, 'initial_rendering_options'):
+      for oname, ovalue in grid_data.initial_rendering_options.items():
+        setattr(ro, oname, ovalue)
+    
+    # Create volume model
+    d = data_already_opened(grid_data.path, grid_data.grid_id, session)
+    if d:
+      grid_data = d
+      
+    v = cls(session, grid_data, rendering_options = ro)
+    
+    # Set display style
+    if style == 'auto':
+      # Show single plane data in image style.
+      single_plane = [s for s in grid_data.size if s == 1]
+      style = 'image' if single_plane else 'surface'
+    if style is not None:
+      v._style_when_shown = style
+    
+    if grid_data.rgba is None:
+      set_initial_volume_color(v, session)
+  
+    if not model_id is None:
+      if session.models.have_id(model_id):
+        from chimerax.core.errors import UserError
+        raise UserError('Tried to create model #%s which already exists'
+                        % '.'.join('%d'%i for i in model_id))
+      
+      v.id = model_id
+  
+    if open_model:
+      session.models.add([v])
+  
+    if show_dialog:
+      show_volume_dialog(session)
+  
+    return v
+
 
   # ---------------------------------------------------------------------------
   #
@@ -3354,78 +3430,7 @@ def data_cache(session):
 # -----------------------------------------------------------------------------
 # Open and display a map using Volume Viewer.
 #
-def volume_from_grid_data(grid_data, session, style = 'auto',
-                          open_model = True, model_id = None, show_dialog = True):
-  '''
-  Supported API.
-  Create a new :class:`.Volume` model from a :class:`~.data.GridData` instance and set its initial 
-  display style and color and add it to the session open models.
-
-  Parameters
-  ----------
-  grid_data : :class:`~.data.GridData`
-    Use this GridData to create the Volume.
-  session : :class:`~chimerax.core.session.Session`
-    The session that the Volume will belong to.
-  style : 'auto', 'surface', 'mesh' or 'image'
-    The initial display style.
-  open_model : bool
-    Whether to add the Volume to the session open models.
-  model_id : tuple of integers
-    Model id for the newly created Volume.
-    It is an error if the specifid id equals the id of an existing model.
-  show_dialog : bool
-    Whether to show the Volume Viewer user interface panel.
-
-  Returns
-  -------
-  volume : the created :class:`.Volume`
-  '''
-  
-  set_data_cache(grid_data, session)
-
-  ds = default_settings(session)
-  ro = ds.rendering_option_defaults()
-  if getattr(grid_data, 'polar_values', None):
-    ro.flip_normals = True
-    ro.cap_faces = False
-  if hasattr(grid_data, 'initial_rendering_options'):
-    for oname, ovalue in grid_data.initial_rendering_options.items():
-      setattr(ro, oname, ovalue)
-  
-  # Create volume model
-  d = data_already_opened(grid_data.path, grid_data.grid_id, session)
-  if d:
-    grid_data = d
-    
-  v = Volume(session, grid_data, rendering_options = ro)
-  
-  # Set display style
-  if style == 'auto':
-    # Show single plane data in image style.
-    single_plane = [s for s in grid_data.size if s == 1]
-    style = 'image' if single_plane else 'surface'
-  if style is not None:
-    v._style_when_shown = style
-  
-  if grid_data.rgba is None:
-    set_initial_volume_color(v, session)
-
-  if not model_id is None:
-    if session.models.have_id(model_id):
-      from chimerax.core.errors import UserError
-      raise UserError('Tried to create model #%s which already exists'
-                      % '.'.join('%d'%i for i in model_id))
-    
-    v.id = model_id
-
-  if open_model:
-    session.models.add([v])
-
-  if show_dialog:
-    show_volume_dialog(session)
-
-  return v
+volume_from_grid_data = Volume._from_grid_data
 
 # -----------------------------------------------------------------------------
 #
