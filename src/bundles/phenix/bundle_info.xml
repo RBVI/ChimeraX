@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-Phenix" version="1.3"
+<BundleInfo name="ChimeraX-PhenixUI" version="1.0"
 	    package="chimerax.phenix"
   	    minSessionVersion="1" maxSessionVersion="1">
 
@@ -27,7 +27,7 @@
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
     <ChimeraXClassifier>Command :: phenix douse :: Structure Editing :: Place waters in a map</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: phenix location :: Structure Editing :: Set location of Phenix installation</ChimeraXClassifier>
-    <!-- <ChimeraXClassifier>Tool :: Water Placement :: Structure Editing :: Place waters in a map</ChimeraXClassifier> -->
+    <ChimeraXClassifier>Tool :: Water Placement :: Structure Editing, Phenix :: Place waters in a map</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

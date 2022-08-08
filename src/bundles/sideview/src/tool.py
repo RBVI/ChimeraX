@@ -384,6 +384,7 @@ class SideViewCanvas(QWindow):
 
 class SideViewUI(ToolInstance):
 
+    SESSION_ENDURING = True
     help = "help:user/tools/sideview.html"
 
     def __init__(self, session, tool_name):
