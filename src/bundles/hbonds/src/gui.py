@@ -40,10 +40,10 @@ class HBondsGUI(QWidget):
             # If 'compact' is True then various changes will be made (like splitting long labels
             # into multiple lines) to make the overall interface area smaller.
             angle_slop=rec_angle_slop, color=AtomicStructure.default_hbond_color,
-            dashes=AtomicStructure.default_hbond_dashes, dist_slop=rec_dist_slop, inter_model=True,
-            inter_submodel=False, intra_model=True, intra_mol=True, intra_res=True, log=False,
-            make_pseudobonds=True, radius=AtomicStructure.default_hbond_radius, relax=True, restrict=None,
-            retain_current=False, reveal=True, salt_only=False, save_file=None, select=False,
+            dashes=AtomicStructure.default_hbond_dashes, display_pseudobonds=True, dist_slop=rec_dist_slop,
+            inter_model=True, inter_submodel=False, intra_model=True, intra_mol=True, intra_res=True,
+            log=False, make_pseudobonds=True, radius=AtomicStructure.default_hbond_radius, relax=True,
+            restrict=None, retain_current=False, reveal=True, salt_only=False, save_file=None, select=False,
             show_dist=False, slop_color=BuiltinColors["dark orange"], two_colors=False,
 
             # what controls to show in the interface
@@ -137,11 +137,11 @@ class HBondsGUI(QWidget):
             relax_layout.addWidget(relax_options)
             if show_slop:
                 self.__dist_slop_option = FloatOption("Distance tolerance", None if settings else dist_slop,
-                    None, attr_name="dist_slop", settings=settings)
+                    None, attr_name="dist_slop", settings=settings, step=0.1)
                 self.__dist_slop_option.widget.setSuffix("\N{ANGSTROM SIGN}")
                 relax_options.add_option(self.__dist_slop_option)
                 self.__angle_slop_option = FloatOption("Angle tolerance", None if settings else angle_slop,
-                    None, attr_name="angle_slop", settings=settings)
+                    None, attr_name="angle_slop", settings=settings, step=1)
                 self.__angle_slop_option.widget.setSuffix("\N{DEGREE SIGN}")
                 relax_options.add_option(self.__angle_slop_option)
             if show_slop_color:
@@ -294,6 +294,8 @@ class HBondsGUI(QWidget):
         if self.__show_values['make_pseudobonds']:
             if self.__show_values['pseudobond_creation']:
                 settings['make_pseudobonds'] = self.__make_pb_option.value
+            else:
+                settings['make_pseudobonds'] = self.__initial_values['make_pseudobonds']
             if self.__show_values['color']:
                 settings['color'] = self.__color_option.value
             if self.__show_values['radius']:
