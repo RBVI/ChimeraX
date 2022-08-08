@@ -27,6 +27,7 @@ class="clRight" title="User Guide Index"/></a>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>close</b> &nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
 </h3>
+<a name="session"></a>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>close</b> &nbsp;<b>session</b>
 </h3>
@@ -36,19 +37,25 @@ including any submodels at lower levels of the hierarchy. For example,
 <b>close #3</b> will close any models #3.<i>N</i>, #3.<i>N.N</i>, <i>etc.</i>
 As per the usual convention, a blank specification indicates all models.
 </p><p>
-The command <b>close session</b> closes all models
-plus various tool and results panels (plots,
-<a href="../tools/sequenceviewer.html">sequence alignments</a>, <i>etc.</i>)
-and <a href="2dlabels.html">2D labels</a>.
-<!--
-and restores some global settings to their baseline values.
--->
+The command <b>close session</b> closes all models, including 3D 
+data and 2D annotations (<a href="2dlabels.html">2D labels</a>
+and <a href="key.html">color key</a>), any
+<a href="../tools/sequenceviewer.html">sequence</a> data,
+and certain data-associated tools and results panels (plots, <i>etc.</i>).
+It also restores several global settings to their startup values:
+<a href="camera.html">camera mode</a>, <a href="lighting.html">lighting
+and depth-cueing</a>, <a href="clip.html">clipping</a>,
+<a href="surface.html#cap">surface capping</a>,
+and <a href="graphics.html">graphics</a> settings
+such as background color and silhouettes.
+<!-- see #7406; not mouse mode currently -->
 </p><p>
 See also: <a href="open.html"><b>open</b></a>,
 <a href="show.html"><b>hide</b></a>,
 <a href="delete.html"><b>delete</b></a>,
 <a href="quit.html"><b>quit</b></a>,
 <a href="../tools/modelpanel.html"><b>Model Panel</b></a>,
+<a href="save.html#session">ChimeraX sessions</a>,
 the <a href="../menu.html#file">ChimeraX menu</a>
 </p><p>
 Examples:
@@ -67,5 +74,5 @@ Examples:
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-September 2018</address>
+August 2022</address>
 </body></html>
