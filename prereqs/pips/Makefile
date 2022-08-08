@@ -8,7 +8,7 @@ include Makefile.pip
 LANG	= en_US.UTF-8
 
 # qtconsole.patch: Fix crash in completion widget, see Trac#6363
-PATCHES = pyopengl_macos11.patch webcolors.patch qtconsole.patch
+PATCHES = 
 PYTABLES_DYLIBS = libblosc.1.dylib libhdf5.200.dylib libsnappy.1.dylib \
 				  libc++.1.dylib libcrypto.3.dylib libssl.3.dylib
 
