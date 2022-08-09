@@ -1658,6 +1658,16 @@ class AtomicStructure(Structure):
         if html:
             session.logger.info(html, is_html=True)
 
+    def show_info(self):
+        from chimerax.core.commands import run, concise_model_spec
+        spec = concise_model_spec(self.session, [self], allow_empty_spec=False, relevant_types=AtomicStructure)
+        if assembly_html_table(self):
+            base_cmd = "sym %s; " % spec
+        else:
+            base_cmd = ""
+        run(self.session, base_cmd + "log metadata %s; log chains %s" % (spec, spec))
+
+
 # also used by model panel to determine if its "Info" button should issue a "sym" command...
 def assembly_html_table(mol):
     '''HTML table listing assemblies using info from metadata instead of reparsing mmCIF file.'''

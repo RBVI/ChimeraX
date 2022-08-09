@@ -1088,11 +1088,12 @@ def alphafold_pae(session, structure = None, file = None, uniprot_id = None,
         
     if file:
         pae = AlphaFoldPAE(file, structure)
-        if structure and not pae.reduce_matrix_to_residues_in_structure():
-            from chimerax.core.errors import UserError
-            raise UserError('Number of residues in structure "%s" is %d which does not match PAE matrix size %d.'
-                            % (str(structure), structure.num_residues, pae.matrix_size) +
-                            '\n\nThis can happen if chains were deleted from the AlphaFold model or if the PAE data was applied to a structure that was not the one predicted by AlphaFold.  Use the full-length AlphaFold model to show predicted aligned error.')
+        if structure:
+            if not pae.reduce_matrix_to_residues_in_structure():
+                from chimerax.core.errors import UserError
+                raise UserError('Number of residues in structure "%s" is %d which does not match PAE matrix size %d.'
+                                % (str(structure), structure.num_residues, pae.matrix_size) +
+                                '\n\nThis can happen if chains were deleted from the AlphaFold model or if the PAE data was applied to a structure that was not the one predicted by AlphaFold.  Use the full-length AlphaFold model to show predicted aligned error.')
             structure.alphafold_pae = pae
     elif structure is None:
         from chimerax.core.errors import UserError
