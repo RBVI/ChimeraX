@@ -3597,7 +3597,7 @@ def open_map(session, path, name = None, format = None, **kw):
 
 # -----------------------------------------------------------------------------
 #
-def open_grids(session, grids, name, **kw):
+def open_grids(session, grids, name, cls = Volume, **kw):
 
     if kw.get('polar_values', False):
       for g in grids:
@@ -3640,7 +3640,7 @@ def open_grids(session, grids, name, **kw):
       vkw = {'show_dialog': False}
       if hasattr(d, 'initial_style') and d.initial_style in ('surface', 'mesh', 'image'):
         vkw['style'] = d.initial_style
-      v = volume_from_grid_data(d, session, open_model = False, **vkw)
+      v = cls._from_grid_data(d, session, open_model = False, **vkw)
       maps.append(v)
       if not show_data:
         v.display = False
