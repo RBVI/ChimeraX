@@ -27,7 +27,7 @@ class CheckWatersInputTool(ToolInstance):
     def __init__(self, session):
         super().__init__(session, "Check Waters Input")
         from chimerax.ui import MainToolWindow
-        self.tool_window = tw = MainToolWindow(self, close_destroys=False, statusbar=False)
+        self.tool_window = tw = MainToolWindow(self)
         tw.title = "Choose Structure for Water Checking"
         parent = self.tool_window.ui_area
         parent = tw.ui_area
@@ -129,7 +129,7 @@ class CheckWaterViewer(ToolInstance):
                     compare_atoms.draw_modes == compare_atoms.SPHERE_STYLE)
                 compare_spheres.draw_modes = compare_atoms.STICK_STYLE
         from chimerax.ui import MainToolWindow
-        self.tool_window = MainToolWindow(self, close_destroys=False, statusbar=False)
+        self.tool_window = MainToolWindow(self)
         parent = self.tool_window.ui_area
 
         from Qt.QtWidgets import QHBoxLayout, QButtonGroup, QVBoxLayout, QRadioButton, QCheckBox
@@ -381,6 +381,9 @@ class CheckWaterViewer(ToolInstance):
                         setattr(a.residue, self.HB_COUNT_ATTR, getattr(a.residue, self.HB_COUNT_ATTR)+1)
                 seen.add(hb)
                 seen.add((hb[1], hb[0]))
+        if 'showDist true' in args:
+            run(self.session, 'label size 16')
+            run(self.session, 'distance style decimalPlaces 2')
 
     def _models_removed_cb(self, trig_name, trig_data):
         if self.check_model in trig_data:
