@@ -16,7 +16,7 @@ defaults = {
 	"del_ions": True,
     "del_alt_locs": True,
     "complete_side_chains": True,
-    "add_hydrogens": True,
+    "addh": True,
     "add_charges": True,
 }
 from chimerax.atomic.struct_edit import standardizable_residues as std_res
@@ -31,4 +31,4 @@ def get_settings(session, memorize_requester, main_settings_name, defaults):
     class DP_Settings(Settings):
         AUTO_SAVE = deepcopy(defaults)
 
-    return DP_Settings(session, "%s dock prep" % memorize_requester)
+    return DP_Settings(session, "%s %s" % (memorize_requester, main_settings_name))

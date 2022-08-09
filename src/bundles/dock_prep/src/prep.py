@@ -22,7 +22,7 @@ def prep(session, state, callback, memorization, memorize_name, structures, keyw
         raise NotImplemented("call tool")
 
     from .settings import defaults
-    active_settings = handle_memorization(session, memorization, memorize_name, "dock_prep", keywords,
+    active_settings = handle_memorization(session, memorization, memorize_name, "base", keywords,
         defaults, tool_settings)
 
     if active_settings['del_solvent']:
@@ -90,9 +90,9 @@ def prep(session, state, callback, memorization, memorize_name, structures, keyw
 def handle_memorization(session, memorization, memorize_requester, main_settings_name, keywords, defaults,
         tool_settings):
     from .settings import get_settings
-    if memorize_requester is None or memorization == MEMORIZE_NONE or memorization == MEMORIZE_SAVE:
+    if memorization == MEMORIZE_NONE or memorization == MEMORIZE_SAVE:
         base_settings = defaults
-    elif memorization == MEMORIZE_USE:
+    else: # USE
         settings = get_settings(session, memorize_requester, main_settings_name, defaults)
         base_settings = { param: getattr(settings, param) for param in defaults.keys() }
 

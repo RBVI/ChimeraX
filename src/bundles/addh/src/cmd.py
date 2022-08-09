@@ -18,6 +18,7 @@ from chimerax.atomic.struct_edit import add_atom
 from chimerax.atomic.colors import element_color
 from chimerax.atomic.bond_geom import linear
 
+# functions in .dock_prep may need updating if cmd_addh() call signature changes
 def cmd_addh(session, structures, *, hbond=True, in_isolation=True, metal_dist=3.95, template=False,
     use_his_name=True, use_glu_name=True, use_asp_name=True, use_lys_name=True, use_cys_name=True):
 

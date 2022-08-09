@@ -21,9 +21,10 @@ from .settings import defaults
 #NOTES: dock_prep_caller() is the public API and also called via the command.  It assembles a series
 #  of steps to execute (by calling dock_prep_steps())
 #
-#  The step info provides a function to call, that should receive the session, iterator, callback,
-#  memorization info, and a dictionary of step-associated keywords.  The callback should be invoked,
-#  with session and iterator, and will call the next step, or the dock_prep_caller callback if finished.
+#  The step info provides a function to call, that should receive the session, state, callback,
+#  memorization type (MEMORIZE_NONE/USE/SAVE). memorization name, structures, and a dictionary of
+#  step-associated keywords.  The callback should be invoked, with session and state, and will call the
+#  next step, or the dock_prep_caller callback if finished.
 #
 #  Bundles need to provide a public run_for_dock_prep function that can be called to execute the step
 #  and a dock_prep_arg_info(session) function that returns a dictionary (arg-name: annotation) of arguments
@@ -31,12 +32,15 @@ from .settings import defaults
 #  These arguments will be given a prefix before being added to the dockprep command keywords, but will not
 #  have that prefix when given to the run_for_dock_prep function.
 #
-#  Bundles are in charge of their own memorization
+#  Bundles are in charge of their own memorization, but can use the handle_memorization() function
+#  to do most of the heavy lifting.
 
 def get_param_info(session):
     param_info = {}
     import importlib
-    for mod_name, arg_prefix in [("dock_prep", "")]:
+    for mod_name, arg_prefix in [("dock_prep", ""), ("addh", "addh_")]:
+        if mod_name != "dock_prep":
+            param_info[arg_prefix[:-1]] = BoolArg
         full_mod_name = "chimerax." + mod_name
         mod = importlib.import_module(full_mod_name)
         for arg_name, arg_annotation in mod.dock_prep_arg_info(session).items():
@@ -49,7 +53,13 @@ def dock_prep_arg_info(session):
         DynamicEnum(session.rotamers.library_names))
     return info
 
-def dock_prep_steps(add_hydrogens=True, add_charges=True, **kw):
+def dock_prep_steps(session, memorization, memorize_name, **kw):
+    if memorization == MEMORIZE_USE:
+        from .prep import handle_memorization
+        active_settings = handle_memorization(session, memorization, memorize_name, "base", kw,
+            defaults, None)
+    else:
+        active_settings = kw
     steps = []
     kw_dict = {}
     dp_step_needed = False
@@ -60,17 +70,32 @@ def dock_prep_steps(add_hydrogens=True, add_charges=True, **kw):
         kw_dict[param] = val
     if dp_step_needed:
         steps.append(("dock_prep", kw_dict))
-    #TODO: external steps
+    #TODO: add charge step
+    for step_name in ["addh"]:
+        if active_settings.get(step_name, True):
+            step_kw = {}
+            for k, v in kw.items():
+                if k.startswith(step_name + '_'):
+                    step_kw[k[len(step_name)+1:]] = v
+            steps.append((step_name, step_kw))
     return steps
 
 def dock_prep_caller(session, structures, *, memorization=MEMORIZE_NONE, memorize_name=None, nogui=None,
         callback=None, **kw):
+    """Supply 'memorize_name' if you want settings for your workflow to be separately memorizable from
+       generic Dock Prep.  It should be a string descriptive of your workflow ("minimization", tool name,
+       etc.)
+    """
     if nogui is None:
         nogui = session.in_script or not session.ui.is_gui
+    if memorize_name:
+        final_memorize_name = "%s dock prep" % memorize_name
+    else:
+        final_memorize_name =  "dock prep"
     state = {
-        'steps': dock_prep_steps(**kw),
+        'steps': dock_prep_steps(session, memorization, final_memorize_name, **kw),
         'memorization': memorization,
-        'memorize_name': memorize_name,
+        'memorize_name': final_memorize_name,
         'callback': callback,
         'structures': structures,
         'nogui': nogui,
@@ -84,14 +109,10 @@ def run_steps(session, state):
         if callback:
             callback()
     else:
-        step_memorize_name = "dock_prep"
-        memorize_name = state['memorize_name']
-        if memorize_name:
-            step_memorize_name += '_' + memorize_name
         mod_name, kw_dict = steps.pop(0)
         import importlib
         step_mod = importlib.import_module("chimerax." + mod_name)
-        step_mod.run_for_dock_prep(session, state, run_steps, state['memorization'], step_memorize_name,
+        step_mod.run_for_dock_prep(session, state, run_steps, state['memorization'], state['memorize_name'],
             state['structures'], kw_dict)
 
 def dock_prep_cmd(session, structures,  *, memorize=MEMORIZE_NONE, **kw):
@@ -100,7 +121,7 @@ def dock_prep_cmd(session, structures,  *, memorize=MEMORIZE_NONE, **kw):
         structures = all_atomic_structures(session)
     if not structures:
         raise UserError("No atomic structures open/specified")
-    dock_prep_caller(session, structures, memorization=memorize, memorize_name="dock prep", nogui=True, **kw)
+    dock_prep_caller(session, structures, memorization=memorize, nogui=True, **kw)
 
 def register_command(logger):
     from chimerax.atomic import AtomicStructuresArg
