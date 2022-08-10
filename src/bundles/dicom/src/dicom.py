@@ -26,7 +26,6 @@ from pydicom import dcmread
 
 from chimerax.core.models import Model, Surface
 
-from chimerax.map import add_map_format
 from chimerax.map.volume import open_grids, Volume
 from chimerax.map_data import MapFileFormat, GridData
 from chimerax.map_data.readarray import allocate_array

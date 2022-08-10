@@ -11,16 +11,16 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 from chimerax.core.toolshed import BundleAPI
-
+from chimerax.map import add_map_format
 from chimerax.open_command import OpenerInfo
 
-from .dicom import register_dicom_format, open_dicom
+from .dicom import DICOM, DICOMMapFormat
 
 class _DICOMBundle(BundleAPI):
     @staticmethod
     def initialize(session, bundle_info):
         """Register file formats, commands, and database fetch."""
-        register_dicom_format(session)
+        add_map_format(session, DICOMMapFormat())
 
     @staticmethod
     def run_provider(session, name, mgr, **kw):
