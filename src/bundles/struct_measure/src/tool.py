@@ -24,7 +24,7 @@ from chimerax.core.tools import ToolInstance
 from chimerax.core.commands import concise_model_spec, run
 from Qt.QtWidgets import QTableWidget, QHBoxLayout, QVBoxLayout, QAbstractItemView, QWidget, QPushButton, \
     QTabWidget, QTableWidgetItem, QFileDialog, QDialogButtonBox as qbbox, QLabel, QButtonGroup, \
-    QRadioButton, QLineEdit, QGroupBox, QGridLayout, QCheckBox
+    QRadioButton, QLineEdit, QGroupBox, QGridLayout, QCheckBox, QMenu
 from Qt.QtGui import QDoubleValidator
 from Qt.QtCore import Qt
 from chimerax.ui.widgets import ColorButton
@@ -88,6 +88,9 @@ class StructMeasureTool(ToolInstance):
         from chimerax.geometry import angle, dihedral
         func = angle if len(atoms) == 3 else dihedral
         return self._angle_fmt % func(*[a.scene_coord for a in atoms])
+
+    def _apc_align_and_center(self):
+        pass
 
     def _apc_delete_items(self):
         sel = self.apc_table.selected
@@ -368,6 +371,23 @@ class StructMeasureTool(ToolInstance):
         report_button.clicked.connect(self._apc_report_distance)
         report_layout.addWidget(report_button, alignment=Qt.AlignRight)
         report_layout.addWidget(QLabel(" to selected atoms"), alignment=Qt.AlignLeft)
+        align_layout_widget = QWidget() # so that the widgets are centered collectively
+        align_layout = QHBoxLayout()
+        align_layout.setSpacing(0)
+        align_layout.setContentsMargins(0,0,0,0)
+        align_layout_widget.setLayout(align_layout)
+        table_layout.addWidget(align_layout_widget, alignment=Qt.AlignCenter)
+        align_button = QPushButton("Center and align")
+        align_button.clicked.connect(self._apc_align_and_center)
+        align_layout.addWidget(align_button)
+        align_layout.addWidget(QLabel(" chosen axis or plane normal along "))
+        self.apc_axis_button = QPushButton("X")
+        menu = QMenu(self.apc_axis_button)
+        for axis in ['X', 'Y', 'Z']:
+            menu.addAction(axis)
+        menu.triggered.connect(lambda action, but=self.apc_axis_button: but.setText(action.text()))
+        self.apc_axis_button.setMenu(menu)
+        align_layout.addWidget(self.apc_axis_button)
 
     def _fill_dist_table(self, *args):
         dist_grp = self.session.pb_manager.get_group("distances", create=False)
