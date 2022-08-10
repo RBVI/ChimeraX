@@ -26,7 +26,8 @@ class _DICOMBundle(BundleAPI):
     def run_provider(session, name, mgr, **kw):
         class DicomOpenerInfo(OpenerInfo):
             def open(self, session, data, file_name, **kw):
-                return open_dicom(session, data)
+                dcm = DICOM.from_paths(session, data)
+                return dcm.open()
         return DicomOpenerInfo()
 
 
