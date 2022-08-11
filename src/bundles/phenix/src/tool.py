@@ -27,7 +27,11 @@ class DouseResultsViewer(CheckWaterViewer):
             map=None):
         # if 'model' is None, we are being restored from a session and _finalize_init() will be called later
         super().__init__(session, tool_name, douse_model, compare_info=(orig_model, compared_waters),
-            model_labels=("input", "douse"), compare_map=map)
+            model_labels=("input", "douse"), compare_map=map, category_tips=(
+            "Waters placed by douse that are not in input model",
+            "Waters in input model and also found by douse",
+            "Waters in input model only"
+            ))
 
 from chimerax.core.settings import Settings
 from .douse import command_defaults as defaults

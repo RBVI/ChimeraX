@@ -63,6 +63,7 @@ class DouseJob(Job):
         ses.ui.thread_safe(ses.logger.status, "Douse job still running (%s)" % time_info)
 
     def next_check(self):
+        return self._monitor_interval
         self._monitor_time += self._monitor_interval
         return self._monitor_time
 
