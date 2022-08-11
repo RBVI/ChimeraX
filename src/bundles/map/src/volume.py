@@ -760,7 +760,7 @@ class Volume(Model):
     if vm is None:
       s._volume_update_manager = vm = VolumeUpdateManager(s)
     vm.add(self)
-    if s.in_script:
+    if s.in_script and getattr(self, '_initial_style_set', False):
       # In scripts update volume drawings immediately.
       # Script commands often depend on volume surfaces being computed immediately.
       # For examnple, set surface level, then run volume dust.
@@ -3701,7 +3701,8 @@ def set_initial_region_and_style(v):
       v._style_when_shown = 'surface'
   else:
     v.display = False
-    
+  v._initial_style_set = True
+  
   # Determine initial region bounds and step.
   region = v.full_region()[:2]
   if one_plane:
