@@ -1,6 +1,6 @@
 
 # used to manage package versions
-packaging==21.0
+packaging==21.3
 
 #
 # Packages needed during the build process.

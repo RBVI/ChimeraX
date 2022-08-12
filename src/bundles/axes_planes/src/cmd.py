@@ -66,6 +66,12 @@ class PlaneModel(Surface, ComplexMeasurable):
         self.display_style = self.Solid
         self._update_geometry()
 
+    @property
+    def alignment_points(self):
+        xform_center = self.scene_position.transform_vector(self.plane.origin)
+        xform_normal = self.xform_normal
+        return xform_center + xform_normal, xform_center - xform_normal
+
     def angle(self, obj):
         if isinstance(obj, AxisModel):
             return _axis_plane_angle(obj, self)
@@ -174,6 +180,12 @@ class AxisModel(Surface, ComplexMeasurable):
         self._radius = radius
         self.display_style = self.Solid
         self._update_geometry()
+
+    @property
+    def alignment_points(self):
+        xform_center = self.xform_center
+        xform_direction = self.xform_direction * self.extent
+        return xform_center + xform_direction, xform_center - xform_direction
 
     def angle(self, obj):
         if isinstance(obj, PlaneModel):
