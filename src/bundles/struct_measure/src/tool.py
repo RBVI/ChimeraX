@@ -90,7 +90,17 @@ class StructMeasureTool(ToolInstance):
         return self._angle_fmt % func(*[a.scene_coord for a in atoms])
 
     def _apc_align_and_center(self):
-        pass
+        sel = self.apc_table.selected
+        from chimerax.axes_planes import AxisModel, PlaneModel
+        if len(sel) != 1 or not isinstance(sel[0], (AxisModel, PlaneModel)):
+            raise UserError("Choose exactly one axis or plane in table")
+        item = sel[0]
+        run(self.session, "view zalign %s" % item.atomspec)
+        axis = self.apc_axis_button.text()
+        if axis == 'Y':
+            run(self.session, "turn x 90 center %s" % item.atomspec)
+        elif axis == 'X':
+            run(self.session, "turn y 90 center %s" % item.atomspec)
 
     def _apc_delete_items(self):
         sel = self.apc_table.selected
