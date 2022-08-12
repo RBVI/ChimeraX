@@ -46,6 +46,13 @@ class ComplexMeasurable(ABC):
     def angle(self, obj):
         pass
 
+    @property
+    def alignment_points(self):
+        """ Returns two points for aligning the object along an axis.  Should be in the order
+            (front, back) if sensible.
+        """
+        raise NotImplemented("%s does not implement alignment_points()" % self.__class__.__name__)
+
 from chimerax.core.triggerset import TriggerSet
 group_triggers = TriggerSet()
 group_triggers.add_trigger("update")
