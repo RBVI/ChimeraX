@@ -219,8 +219,26 @@ class AlphaFoldParser(Parser):
     def _extract_hit(self, hit):
         id_list = []
         for entry in hit["description"]:
-            uniprot_id = entry["title"].split('|')[1]
-            desc = entry["title"].split('|')[2]
+            title = entry["title"]
+            if '|' in title:
+                # AlphaFold database version 2
+                fields = title.split('|')
+                uniprot_id = fields[1]
+                desc = fields[2]
+            else:
+                # AlphaFold database version 3
+                fields = title.split(' ', 1)
+                if not (fields[0].startswith('AFDB:AF-') and fields[0].endswith('-F1')):
+                    raise ValueError(f'Expected AlphaFold BLAST result title line to start with AFDB:AF-[uniprot_id]-F1, got {entry["title"]}')
+                uniprot_id = fields[0][8:-3]
+                desc = fields[1] if len(fields) >= 2 else ''
+                # Parsing is partly done here and partly in databases.py in
+                # AlphaFoldDB.add_info().  Need to start description with uniprot name
+                # for parsing in databases.py to work correctly.
+                from .databases import Database
+                uniprot_name = Database._get_equal_sep_attr(desc, 'UI')
+                name = uniprot_name if uniprot_name else uniprot_id
+                desc = name + ' ' + desc
             id_list.append((uniprot_id, desc))
         match_list = []
         for hsp in hit["hsps"]:
