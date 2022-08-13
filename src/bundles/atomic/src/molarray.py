@@ -197,6 +197,12 @@ class Collection(State):
     def __and__(self, objects):
         '''The and operator & takes the intersection of two collections removing duplicates.'''
         return self.intersect(objects)
+    def __add__(self, objects):
+        '''The addition operator "+" returns a new collection containing all the items
+        from the collections being added.  Duplicates are not removed.'''
+        if self.__class__ != objects.__class__:
+            raise TypeError("Cannot add different Collection subclasses")
+        return concatenate((self, objects))
     def __sub__(self, objects):
         '''The subtract operator "-" subtracts one collection from another as sets,
         eliminating all duplicates.'''

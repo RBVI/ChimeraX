@@ -72,22 +72,24 @@ class CheckWaterViewer(ToolInstance):
     HB_COUNT_ATTR = "num_cw_hbonds"
 
     def __init__(self, session, tool_name, check_model=None, *, compare_info=None, model_labels=None,
-            compare_map=None):
+            compare_map=None, category_tips=None):
         # if 'check_model' is None, we are being restored from a session 
         # and _finalize_init() will be called later
         super().__init__(session, tool_name)
         self.settings = CheckWaterSettings(session, tool_name)
         if check_model is None:
             return
-        self._finalize_init(check_model, compare_info, model_labels, compare_map)
+        self._finalize_init(check_model, compare_info, model_labels, compare_map, category_tips)
 
-    def _finalize_init(self, check_model, compare_info, model_labels, compare_map, *, session_info=None):
+    def _finalize_init(self, check_model, compare_info, model_labels, compare_map, category_tips,
+            *, session_info=None):
         self.check_model = check_model
         self.compare_info = compare_info
         self.model_labels = model_labels
         self.compare_map = compare_map
+        self.category_tips = category_tips
         if session_info:
-            self.check_waters, self.hbond_groups, table_info = session_info
+            self.check_waters, self.hbond_groups, table_info, table_waters = session_info
         else:
             table_info = None
         if compare_info is None:
@@ -156,14 +158,16 @@ class CheckWaterViewer(ToolInstance):
             self._update_button_texts()
             self.after_only_button.setChecked(True)
             all_input, after_only, douse_in_common, input_in_common = self.compared_waters
-            table_waters = after_only
+            if not session_info:
+                table_waters = after_only
+            self.check_waters = None
         else:
             # didn't keep the input waters
             self.radio_group = None
             if not session_info:
                 from .compare import _water_residues
                 self.check_waters = sorted(_water_residues(self.check_model))
-            table_waters = self.check_waters
+                table_waters = self.check_waters
         data_layout = QHBoxLayout()
         layout.addLayout(data_layout)
         from chimerax.ui.widgets import ItemTable
@@ -256,14 +260,14 @@ class CheckWaterViewer(ToolInstance):
             # Just can't initialize completely properly from version 1 info
             session_info = None
         else:
-            session_info = (data['check_waters'], data['hbond_groups'], data['table info'])
+            session_info = (data['check_waters'], data['hbond_groups'], data['table info'],
+                data['table waters'])
         inst._finalize_init(data['check_model'], data['compare_info'], data['model_labels'],
-            data.get('compare_map', None), session_info=session_info)
+            data.get('compare_map', None), data.get('category_tips', None), session_info=session_info)
         if data['radio info']:
             for but in inst.radio_group.buttons():
                 if but.text() == data['radio info']:
                     but.setChecked(True)
-                    inst._update_residues()
                     break
         inst.settings.show_hbonds = data['show hbonds']
         inst.show_hbonds.setChecked(data['show hbonds'])
@@ -274,6 +278,7 @@ class CheckWaterViewer(ToolInstance):
     def take_snapshot(self, session, flags):
         data = {
             'ToolInstance': ToolInstance.take_snapshot(self, session, flags),
+            'category_tips': self.category_tips,
             'compared_waters': self.compared_waters,
             'check_model': self.check_model,
             'check_waters': self.check_waters,
@@ -284,7 +289,8 @@ class CheckWaterViewer(ToolInstance):
             'radio info': self.radio_group.checkedButton().text() if self.radio_group else None,
             'show hbonds': self.settings.show_hbonds,
             'table info': self.res_table.session_info(),
-            'version': 2,
+            'table waters': self.res_table.data,
+            'version': 3,
         }
         return data
 
@@ -356,7 +362,7 @@ class CheckWaterViewer(ToolInstance):
                 else:
                     waters = douse_in_common
                     model = self.check_model
-                input_data.append((but, name, waters, model))
+                input_data.append((but.text(), name, waters, model))
         else:
             input_data.append((None, "water H-bonds", self.check_waters, self.check_model))
         cmd_name, spec, args = self.hb_gui.get_command()
@@ -420,7 +426,7 @@ class CheckWaterViewer(ToolInstance):
         for group in self.hbond_groups.values():
             group.display = False
         if checked:
-            group_key = self.radio_group.checkedButton() if self.radio_group else None
+            group_key = self.radio_group.checkedButton().text() if self.radio_group else None
             self.hbond_groups[group_key].display = True
 
     def _unclip_cb(self):
@@ -433,6 +439,10 @@ class CheckWaterViewer(ToolInstance):
         self.in_common_button.setText("In common (%d)" % len(input_in_common))
         self.before_only_button.setText("%s only (%d)" % (self.compare_label,
             len(all_input - input_in_common)))
+        if self.category_tips:
+            for but, tip in zip((self.after_only_button, self.in_common_button, self.before_only_button),
+                    self.category_tips):
+                but.setToolTip(tip)
 
     def _update_hbonds(self):
         self.session.models.close([group for group in self.hbond_groups.values()])
