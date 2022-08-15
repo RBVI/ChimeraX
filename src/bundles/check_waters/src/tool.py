@@ -310,10 +310,11 @@ class CheckWaterViewer(ToolInstance):
             residue_groups = [after_only, all_input - input_in_common, douse_in_common]
         else:
             residue_groups = [self.check_waters]
+        from chimerax.core.utils import round_off
         for res_group in residue_groups:
             for r in res_group:
-                setattr(r, self.DENSITY_ATTR, sum(self.compare_map.interpolated_values(r.atoms.coords,
-                    point_xform=r.structure.scene_position)))
+                setattr(r, self.DENSITY_ATTR, round_off(sum(self.compare_map.interpolated_values(
+                    r.atoms.coords, point_xform=r.structure.scene_position)), 3))
 
     def _delete_waters(self):
         waters = self.res_table.selected

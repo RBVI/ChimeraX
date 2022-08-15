@@ -202,3 +202,8 @@ class CustomSortString(str):
                 return super().__ge__(other)
             return self.sort_val >= other.sort_val
         return super().__ge__(other)
+
+def round_off(val, significant_digits):
+    """Reduce a numerical value to the specified number of significant digits"""
+    from math import log10, floor
+    return round(val, significant_digits - 1 - int(floor(log10(abs(val)))))
