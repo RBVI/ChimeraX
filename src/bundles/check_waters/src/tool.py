@@ -412,6 +412,8 @@ class CheckWaterViewer(ToolInstance):
                 base_cmd = ""
             else:
                 base_cmd = "show %s models; " % structure.atomspec
+            if self.compare_map and not self.compare_map.display:
+                base_cmd += "show %s models; " % self.compare_map.atomspec
             if self.compare_model:
                 other_model = self.compare_model if structure == self.check_model else self.check_model
                 if other_model.display:
