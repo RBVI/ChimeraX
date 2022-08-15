@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-Label" version="1.1.5"
+<BundleInfo name="ChimeraX-Label" version="1.1.6"
 	    package="chimerax.label"
   	    minSessionVersion="1" maxSessionVersion="1" customInit="true">
 

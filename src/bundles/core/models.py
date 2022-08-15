@@ -124,7 +124,9 @@ class Model(State, Drawing):
         '''So that generic models can be properly picked.  Most model classes override this.'''
         pick = super().first_intercept(mxyz1, mxyz2, exclude=exclude)
         if isinstance(pick, PickedTriangle):
-            pick = PickedModel(self, pick.distance)
+            picked_model = PickedModel(self, pick.distance)
+            picked_model.picked_triangle = pick
+            pick = picked_model
         return pick
 
     def _get_id(self):
