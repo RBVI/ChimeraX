@@ -125,6 +125,7 @@ See also:
 [&nbsp;<b>matrix</b>&nbsp;&nbsp;<i>similarity-matrix</i>&nbsp;]
 [&nbsp;<b>cutoff</b>&nbsp;&nbsp;<i>evalue</i>&nbsp;]
 [&nbsp;<b>maxSeqs</b>&nbsp;&nbsp;<i>M</i>&nbsp;]
+[&nbsp;<a href="#version"><b>version</b></a>&nbsp;&nbsp;1&nbsp;|&nbsp;<b>2</b>&nbsp;|&nbsp;3&nbsp;]
 </blockquote>
 <ul>
 <li>The <b>alphafold fetch</b> command retrieves the model (if available)
@@ -439,8 +440,11 @@ target="_blank">AlphaFold Database</a>
 contains single-chain models for protein sequences
 in <a href="https://www.uniprot.org" target="_blank">UniProt</a>.
 This option specifies which version of the database to use with
-<a href="#fetch"><b>alphafold fetch</b></a>
-or <a href="#pae"><b>alphafold pae</b></a>:
+<a href="#fetch"><b>alphafold fetch</b></a>,
+<a href="#pae"><b>alphafold pae</b></a>, or
+<a href="#search"><b>alphafold search</b></a>
+(as well as <a href="blastprotein.html"><b>blastprotein</b></a> with 
+<b>database alphafold</b>):
   <ul>
   <li><b>version 1</b> (database release 1): ~360,000 sequences,
 reference proteomes of 21 species including <i>Homo sapiens</i>
@@ -448,7 +452,8 @@ reference proteomes of 21 species including <i>Homo sapiens</i>
   <li><b>version 2</b> (default, database releases 2 and 3 combined):
 ~1 million sequences, v1 + most of the manually curated entries (SwissProt) +
 sequences relevant to neglected tropical disease or antimicrobial resistance
-  <li><b>version 3</b> (database release 4): &gt;200 million sequences
+  <li><b>version 3</b> (database release 4): &gt;200 million sequences,
+takes more time (minutes) to search
 </ul>
 The <a href="#match"><b>alphafold match</b></a> command does not have this
 option and always uses version 2.
@@ -847,5 +852,5 @@ alphafold contacts sel palette blue:red range 1,5
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-July 2022</address>
+August 2022</address>
 </body></html>
