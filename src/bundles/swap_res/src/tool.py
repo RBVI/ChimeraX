@@ -343,6 +343,7 @@ class RotamerDialog(ToolInstance):
         self.delete()
 
     def _eval_vol(self, vol):
+        from chimerax.core.utils import round_off
         AtomicStructure.register_attr(self.session, "sum_density", self.registerer, attr_type=float)
         for rot in self.mgr.rotamers:
             values = vol.interpolated_values(rot.atoms.coords, point_xform=rot.scene_position)
@@ -351,7 +352,7 @@ class RotamerDialog(ToolInstance):
                 # 'is_side_chain' only works for actual polymers
                 if a.name not in a.residue.aa_max_backbone_names:
                     total += val
-            rot.sum_density = total
+            rot.sum_density = round_off(total, 3)
         sd_type = "Density"
         if sd_type in self.opt_columns:
             self.table.update_column(self.opt_columns[sd_type], data=True)
