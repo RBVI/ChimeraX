@@ -757,6 +757,7 @@ class Series:
 
 class SeriesFile:
     def __init__(self, path, data):
+        self.data = data
         self.inferred_properties = []
         self.path = path
         pos = getattr(data, 'ImagePositionPatient', None)
