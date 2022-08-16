@@ -49,8 +49,7 @@ class CheckWatersInputTool(ToolInstance):
         from Qt.QtWidgets import QDialogButtonBox as qbbox
         self.bbox = bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
         bbox.accepted.connect(self.launch_cw_tool)
-        bbox.button(qbbox.Apply).clicked.connect(self.launch_cw_tool)
-        bbox.accepted.connect(self.delete) # slots executed in the order they are connected
+        bbox.button(qbbox.Apply).clicked.connect(lambda s=self: s.launch_cw_tool(apply=True))
         bbox.rejected.connect(self.delete)
         from chimerax.core.commands import run
         bbox.helpRequested.connect(lambda *, run=run, ses=session: run(ses, "help " + self.help))
@@ -58,11 +57,30 @@ class CheckWatersInputTool(ToolInstance):
 
         tw.manage(placement=None)
 
-    def launch_cw_tool(self):
+    def launch_cw_tool(self, *, apply=False):
         s = self.structure_menu.value
         if not s:
             raise UserError("No structure chosen for checking")
-        CheckWaterViewer(self.session, "Check Waters", s, compare_map=self.map_list.value)
+        map = self.map_list.value
+        #TODO: want to use geometry_bounds(), but that doesn't include children; bounds() only includes shown
+        """
+        if map and len(self.map_list.all_values) > 1:
+            # check that bounding box of map and structure at least overlap
+            s_bbox = s.bounds()
+            map_bbox = map.bounds()
+            #s_center = s.position * s_bbox.center()
+            #map_center = map.position * map_bbox.center()
+            s_center = s_bbox.center()
+            map_center = map_bbox.center()
+            from chimerax.geometry import distance
+            if distance(s_center, map_center) > s_bbox.radius() + map_bbox.radius():
+                from chimerax.ui.ask import ask
+                if ask(self.session, "Structure and map don't overlap, continue anyway?") == "no":
+                    return
+        """
+        CheckWaterViewer(self.session, "Check Waters", s, compare_map=map)
+        if not apply:
+            self.delete()
 
 class CheckWaterViewer(ToolInstance):
 
