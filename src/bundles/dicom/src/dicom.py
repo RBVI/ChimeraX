@@ -10,6 +10,7 @@
 # including partial copies, of the software or any revisions
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
+from collections import defaultdict
 from numpy import cross, dot
 from numpy import (
     array, concatenate, empty
@@ -17,12 +18,9 @@ from numpy import (
     , int8, int16, int32
     , uint8, uint16
 )
-from os import listdir
-from os.path import (
-    basename, dirname, commonprefix
-    , isfile, isdir, join
-)
+import os
 from pydicom import dcmread
+from typing import Any, Dict, TypeVar, Union
 
 from chimerax.core.models import Model, Surface
 
@@ -37,9 +35,15 @@ except ModuleNotFoundError:
 else:
     _has_gdcm = True
 
+Path = TypeVar("Path", os.PathLike, str, bytes, None)
 class DICOMModel(Model):
+    # def __init__(self, patient, session):
+        # top = Model(dname, self.session)
+        # Model.__init__(self, 'Patient %s' % patient, session)
+
     def show_info(self, parent):
         pass
+        # for x in series._file_info:
         # if has_gui:
         # return DICOMMetadataTool(?)
         # else:
@@ -49,25 +53,35 @@ class DICOMModel(Model):
 class DICOMVolume(DICOMModel, Volume):
     pass
 
+class Patient:
+    pass
+
+class Study:
+    pass
+
 class DICOM:
-    def __init__(self, session, data):
+    def __init__(self, session, data: Union[Path,list[Path]]):
         self.session = session
         self.logger = session.logger
-        self.paths = data
+        if type(data) is not list:
+            self.paths = [data]
+        else:
+            self.paths = data
 
     @classmethod
-    def from_paths(cls, session, path):
+    def from_paths(cls, session, path: Union[Path,list[Path]]):
         return cls(session, path)
 
-    def open(self):
-        if isinstance(self.paths, (str, list)):
-            map_path = self.paths  # Batched paths
-        else:
-            raise ValueError('open_dicom() requires path argument, got "%s"' % repr(self.paths))
+    def models(self):
+        pass
 
+    def new_series(self):
+        return Series(self.session)
+
+    def open(self):
         # Locate all series in subdirectories
-        series = self.find_dicom_series(map_path)
-        series = self.omit_16bit_lossless_jpeg(series)
+        series = self.find_dicom_series(self.paths)
+        series = self.filter_unreadable(series)
 
         # Open volume models for image series
         image_series = []
@@ -92,13 +106,13 @@ class DICOM:
 
         # Warn about unrecognized series types.
         if extra_series:
-            snames = ', '.join('%s (%s)' % (s.name, s.dicom_class) for s in extra_series)
+            snames = ', '.os.path.join('%s (%s)' % (s.name, s.dicom_class) for s in extra_series)
             self.session.logger.warning(
                 'Can only handle images and contours, got %d other series types: %s'
                 % (len(extra_series), snames)
-                )
+            )
 
-        gmodels = self.group_models(map_path, models)
+        gmodels = self.group_models(self.paths, models)
 
         return gmodels, msg
 
@@ -115,7 +129,7 @@ class DICOM:
         for grid_group in grids:
             if isinstance(grid_group, (tuple, list)):
                 # Handle multiple channels or time series
-                gname = commonprefix([g.name for g in grid_group])
+                gname = os.path.commonprefix([g.name for g in grid_group])
                 if len(gname) == 0:
                     gname = grid_group[0].name
                 gmodels, gmsg = open_grids(self.session, grid_group, gname, cls = DICOMVolume)
@@ -137,7 +151,7 @@ class DICOM:
         msg = '\n'.join(msg_lines)
         return models, msg
 
-    def omit_16bit_lossless_jpeg(self, series):
+    def filter_unreadable(self, series):
         if _has_gdcm:
             return series  # PyDicom will use gdcm to read 16-bit lossless jpeg
 
@@ -154,10 +168,11 @@ class DICOM:
 
     def group_models(self, paths, models):
         """Group into a four level hierarchy: directory, patient id, date, series."""
+        # Patient, Study, Series, Image
         if len(models) == 0:
             return []
-        dname = basename(paths[0]) if len(paths) == 1 else basename(dirname(paths[0]))
-        top = Model(dname, self.session)
+        dname = os.path.basename(paths[0]) if len(paths) == 1 else os.path.basename(os.path.dirname(paths[0]))
+        top = DICOMModel(dname, self.session)
         locations = []
         for m in models:
             s = self.model_series(m)
@@ -172,7 +187,7 @@ class DICOM:
             if gnames not in leaf:
                 for i in range(len(gnames)):
                     if gnames[:i + 1] not in leaf:
-                        leaf[gnames[:i + 1]] = gm = Model(gnames[i], self.session)
+                        leaf[gnames[:i + 1]] = gm = DICOMModel(gnames[i], self.session)
                         leaf[gnames[:i]].add([gm])
             leaf[gnames].add([m])
         return [top]
@@ -250,7 +265,7 @@ class DICOM:
 
     def find_dicom_series(
         self, paths, search_directories: bool = True, search_subdirectories: bool = True,
-        ):
+    ) -> list[list['Series']]:
         """Look through directories to find dicom files (.dcm) and group the ones
         that belong to the same study and image series.  Also determine the order
         of the 2D images (one per file) in the 3D stack.  A series must be in a single
@@ -260,7 +275,8 @@ class DICOM:
         dfiles = self.files_by_directory(
             paths, search_directories=search_directories,
             search_subdirectories=search_subdirectories
-            )
+        )
+        self.session.logger.info(str(dfiles))
         nseries = len(dfiles)
         nfiles = sum(len(dpaths) for dpaths in dfiles.values())
         nsfiles = 0
@@ -271,67 +287,49 @@ class DICOM:
                 self.logger.status('Reading DICOM series %d of %d files in %d series' % (nsfiles, nfiles, nseries))
             series.extend(self.dicom_file_series(dpaths))
 
-        # Include patient id in model name only if multiple patients found
         pids = set(s.attributes['PatientID'] for s in series if 'PatientID' in s.attributes)
-        use_patient_id_in_name = self.unique_prefix_length(pids) if len(pids) > 1 else 0
-        for s in series:
-            s.use_patient_id_in_name = use_patient_id_in_name
         series.sort(key=lambda s: s.sort_key)
-        self.find_reference_series(series)
-        return series
-
-    def find_reference_series(self, series):
         plane_ids = {s.plane_uids: s for s in series}
         for s in series:
             ref = s.ref_plane_uids
             if ref and ref in plane_ids:
                 s.refers_to_series = plane_ids[ref]
+        return series
 
-    def unique_prefix_length(self, strings):
-        sset = set(strings)
-        maxlen = max(len(s) for s in sset)
-        for i in range(maxlen):
-            if len(set(s[:i] for s in sset)) == len(sset):
-                return i
-        return maxlen
-
-    def dicom_file_series(self, paths):
+    def dicom_file_series(self, paths) -> list['Series']:
         """Group DICOM files into series"""
-        series = {}
+        series = defaultdict(self.new_series)
         for path in paths:
             d = dcmread(path)
             if hasattr(d, 'SeriesInstanceUID'):
                 series_id = d.SeriesInstanceUID
-                if series_id in series:
-                    s = series[series_id]
-                else:
-                    series[series_id] = s = Series(self.session)
-                s.add(path, d)
-        series = tuple(series.values())
-        for s in series:
+                series[series_id].add(path, d)
+        for s in series.values():
             s.order_slices()
+        self.session.logger.info(str(series))
+        series = list(series.values())
         return series
 
     def files_by_directory(
         self, paths, search_directories=True, search_subdirectories=True,
         suffix='.dcm', _dfiles=None
-        ):
+    ) -> Dict[str,list[str]]:
         """Find all dicom files (suffix .dcm) in directories and subdirectories
         and group them by directory"""
         dfiles = {} if _dfiles is None else _dfiles
         for p in paths:
-            if isfile(p) and p.endswith(suffix):
-                d = dirname(p)
+            if os.path.isfile(p) and p.endswith(suffix):
+                d = os.path.dirname(p)
                 if d in dfiles:
                     dfiles[d].add(p)
                 else:
                     dfiles[d] = set([p])
-            elif search_directories and isdir(p):
-                ppaths = [join(p, fname) for fname in listdir(p)]
+            elif search_directories and os.path.isdir(p):
+                ppaths = [os.path.join(p, fname) for fname in os.listdir(p)]
                 self.files_by_directory(
                     ppaths, search_directories=search_subdirectories,
                     search_subdirectories=search_subdirectories, _dfiles=dfiles
-                    )
+                )
         return dfiles
 
 
@@ -340,14 +338,13 @@ class DICOMMapFormat(MapFileFormat, DICOM):
         MapFileFormat.__init__(
             self, 'DICOM image', 'dicom', ['dicom'], ['dcm'],
             batch=True, allow_directory=True
-            )
+        )
 
     @property
     def open_func(self):
         return self.open_dicom_grids
 
     def open_dicom_grids(self, paths):
-
         if isinstance(paths, str):
             paths = [paths]
         grids = self.dicom_grids(paths)
@@ -471,7 +468,6 @@ class Series:
         self._reverse_frames = False
         self._num_times = None
         self._z_spacing = None
-        self.use_patient_id_in_name = 0
         self.session = session
         self._log = session.logger
 
@@ -496,9 +492,6 @@ class Series:
     def name(self):
         attrs = self.attributes
         fields = []
-        # if self.use_patient_id_in_name and 'PatientID' in attrs:
-        #     n = self.use_patient_id_in_name
-        #     fields.append(attrs['PatientID'][:n])
         desc = attrs.get('SeriesDescription')
         if desc:
             fields.append(desc)
@@ -735,8 +728,8 @@ class Series:
             if self._log:
                 msg = ('Plane z spacings are unequal, min = %.6g, max = %.6g, using max.\n' % (dzmin, dzmax) +
                        'Perpendicular axis (%.3f, %.3f, %.3f)\n' % tuple(self.plane_normal()) +
-                       'Directory %s\n' % dirname(self._file_info[0].path) +
-                       '\n'.join(['%s %s' % (basename(f.path), f._position) for f in self._file_info]))
+                       'Directory %s\n' % os.path.dirname(self._file_info[0].path) +
+                       '\n'.join(['%s %s' % (os.path.basename(f.path), f._position) for f in self._file_info]))
                 self._log.warning(msg)
         dz = dzmax if abs(dzmax) > abs(dzmin) else dzmin
         return dz
@@ -890,6 +883,12 @@ class DicomData:
         istep, jstep, kstep = ijk_step
         dsize = self.data_size  # noqa assigned but not accessed
         if self.files_are_3d:
+            # TODO:
+            # data = None
+            # if channel is not None:
+            #     data = self.d.pixel_array[:,:,:,channel]
+            # else:
+            #     data = self.d.pixel_array
             a = self.read_frames(time, channel)
             array[:] = a[k0: k0 + ksz:kstep, j0:j0 + jsz:jstep, i0:i0 + isz:istep]
         else:
