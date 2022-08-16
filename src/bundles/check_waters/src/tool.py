@@ -423,6 +423,11 @@ class CheckWaterViewer(ToolInstance):
             cmd = base_cmd + f"select {spec}; disp {spec} :<4; view {spec} @<4"
         from chimerax.core.commands import run
         run(self.session, cmd)
+        if len(selected) == 1 and selected[0].num_atoms == 1:
+            from chimerax.geometry import distance
+            d = distance(selected[0].atoms[0].scene_coord, self.session.main_view.camera.position.origin())
+            if d < 20:
+                run(self.session, "zoom %g" % (d / 20.0))
 
     def _show_hbonds_cb(self, checked):
         self.settings.show_hbonds = checked
