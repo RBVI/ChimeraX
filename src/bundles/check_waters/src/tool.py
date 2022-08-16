@@ -49,8 +49,7 @@ class CheckWatersInputTool(ToolInstance):
         from Qt.QtWidgets import QDialogButtonBox as qbbox
         self.bbox = bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
         bbox.accepted.connect(self.launch_cw_tool)
-        bbox.button(qbbox.Apply).clicked.connect(self.launch_cw_tool)
-        bbox.accepted.connect(self.delete) # slots executed in the order they are connected
+        bbox.button(qbbox.Apply).clicked.connect(lambda s=self: s.launch_cw_tool(apply=True))
         bbox.rejected.connect(self.delete)
         from chimerax.core.commands import run
         bbox.helpRequested.connect(lambda *, run=run, ses=session: run(ses, "help " + self.help))
@@ -58,11 +57,30 @@ class CheckWatersInputTool(ToolInstance):
 
         tw.manage(placement=None)
 
-    def launch_cw_tool(self):
+    def launch_cw_tool(self, *, apply=False):
         s = self.structure_menu.value
         if not s:
             raise UserError("No structure chosen for checking")
-        CheckWaterViewer(self.session, "Check Waters", s, compare_map=self.map_list.value)
+        map = self.map_list.value
+        #TODO: want to use geometry_bounds(), but that doesn't include children; bounds() only includes shown
+        """
+        if map and len(self.map_list.all_values) > 1:
+            # check that bounding box of map and structure at least overlap
+            s_bbox = s.bounds()
+            map_bbox = map.bounds()
+            #s_center = s.position * s_bbox.center()
+            #map_center = map.position * map_bbox.center()
+            s_center = s_bbox.center()
+            map_center = map_bbox.center()
+            from chimerax.geometry import distance
+            if distance(s_center, map_center) > s_bbox.radius() + map_bbox.radius():
+                from chimerax.ui.ask import ask
+                if ask(self.session, "Structure and map don't overlap, continue anyway?") == "no":
+                    return
+        """
+        CheckWaterViewer(self.session, "Check Waters", s, compare_map=map)
+        if not apply:
+            self.delete()
 
 class CheckWaterViewer(ToolInstance):
 
@@ -310,10 +328,11 @@ class CheckWaterViewer(ToolInstance):
             residue_groups = [after_only, all_input - input_in_common, douse_in_common]
         else:
             residue_groups = [self.check_waters]
+        from chimerax.core.utils import round_off
         for res_group in residue_groups:
             for r in res_group:
-                setattr(r, self.DENSITY_ATTR, sum(self.compare_map.interpolated_values(r.atoms.coords,
-                    point_xform=r.structure.scene_position)))
+                setattr(r, self.DENSITY_ATTR, round_off(sum(self.compare_map.interpolated_values(
+                    r.atoms.coords, point_xform=r.structure.scene_position)), 3))
 
     def _delete_waters(self):
         waters = self.res_table.selected
@@ -411,6 +430,8 @@ class CheckWaterViewer(ToolInstance):
                 base_cmd = ""
             else:
                 base_cmd = "show %s models; " % structure.atomspec
+            if self.compare_map and not self.compare_map.display:
+                base_cmd += "show %s models; " % self.compare_map.atomspec
             if self.compare_model:
                 other_model = self.compare_model if structure == self.check_model else self.check_model
                 if other_model.display:
@@ -420,6 +441,11 @@ class CheckWaterViewer(ToolInstance):
             cmd = base_cmd + f"select {spec}; disp {spec} :<4; view {spec} @<4"
         from chimerax.core.commands import run
         run(self.session, cmd)
+        if len(selected) == 1 and selected[0].num_atoms == 1:
+            from chimerax.geometry import distance
+            d = distance(selected[0].atoms[0].scene_coord, self.session.main_view.camera.position.origin())
+            if d < 20:
+                run(self.session, "zoom %g" % (d / 20.0))
 
     def _show_hbonds_cb(self, checked):
         self.settings.show_hbonds = checked
