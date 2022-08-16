@@ -591,11 +591,12 @@ def find_adding_model(models):
 
 def determine_axes(atoms, name, length, padding, radius, mass_weighting, primary, secondary, tertiary,
         color):
-    from chimerax.atomic.colors import element_color, predominant_color
+    from chimerax.atomic.colors import element_color, predominant_color, average_color
     if color is None:
         color = predominant_color(atoms)
         if color is None:
-            color = element_color(6)
+            # probably rainbowed
+            color = average_color(atoms)
     import numpy
     from numpy.linalg import eig, svd, eigh
     if mass_weighting:

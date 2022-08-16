@@ -349,17 +349,20 @@ def structure_color(id, bg_color):
         model_color = Color(distinguish_from(avoid, num_candidates=7, seed=14))
     return model_color
 
-def predominant_color(atoms, *, none_fraction=0.3):
-    '''Returns the single predominant color among the (displayed) atoms (which could be the cartoon color).
-    If the predominant color is in less than 'none_fraction' of the displayed atoms, then None will be
-    returned.  If no atoms are displayed in any way and 'none_fraction' is 0, then gray is returned.
-    '''
+def _displayed_colors(atoms):
     unhidden = atoms.filter(atoms.hides == 0)
     displayed_normally = unhidden.filter(unhidden.displays)
     hidden = atoms.filter(atoms.hides != 0)
     displayed_cartoon = hidden.filter(hidden.residues.ribbon_displays)
     from .molarray import concatenate
-    colors = concatenate([displayed_normally, displayed_cartoon]).colors
+    return concatenate([displayed_normally, displayed_cartoon]).colors
+
+def predominant_color(atoms, *, none_fraction=0.3):
+    '''Returns the single predominant color among the (displayed) atoms (which could be the cartoon color).
+    If the predominant color is in less than 'none_fraction' of the displayed atoms, then None will be
+    returned.  If no atoms are displayed in any way and 'none_fraction' is 0, then gray is returned.
+    '''
+    colors = _displayed_colors(atoms)
     if len(colors) == 0:
         if none_fraction > 0:
             return None
@@ -372,3 +375,13 @@ def predominant_color(atoms, *, none_fraction=0.3):
     if numpy.count_nonzero((colors == color).all(axis=1)) < none_fraction * len(colors):
         return None
     return color
+
+def average_color(atoms):
+    '''Returns the average of the displayed atoms' (possibly cartoon) color.  If none of the atoms is
+    displayed in any way, return the average color of all the atoms.
+    '''
+    colors = _displayed_colors(atoms)
+    if len(colors) == 0:
+        colors = atoms.colors
+    return colors.mean(axis=0)
+
