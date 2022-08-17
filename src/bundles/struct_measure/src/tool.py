@@ -21,13 +21,15 @@ def get_tool(session, tool_name):
 
 from chimerax.core.errors import UserError, LimitationError
 from chimerax.core.tools import ToolInstance
-from chimerax.core.commands import concise_model_spec, run
+from chimerax.core.commands import concise_model_spec, run, StringArg
 from Qt.QtWidgets import QTableWidget, QHBoxLayout, QVBoxLayout, QAbstractItemView, QWidget, QPushButton, \
     QTabWidget, QTableWidgetItem, QFileDialog, QDialogButtonBox as qbbox, QLabel, QButtonGroup, \
     QRadioButton, QLineEdit, QGroupBox, QGridLayout, QCheckBox, QMenu
 from Qt.QtGui import QDoubleValidator
 from Qt.QtCore import Qt
 from chimerax.ui.widgets import ColorButton
+from chimerax.ui.options import SettingsPanel, OptionsPanel, Option, \
+    BooleanOption, ColorOption, IntOption, FloatOption, StringOption
 
 class StructMeasureTool(ToolInstance):
 
@@ -274,7 +276,6 @@ class StructMeasureTool(ToolInstance):
 
         from .settings import get_settings
         settings = get_settings(self.session, "angles")
-        from chimerax.ui.options import SettingsPanel, IntOption
         panel = SettingsPanel()
         for opt_name, attr_name, opt_class, opt_class_kw in [
                 ("Decimal places", 'decimal_places', IntOption, {'min': 0})]:
@@ -458,7 +459,6 @@ class StructMeasureTool(ToolInstance):
         button_layout.addWidget(save_info_button)
         table_layout.addLayout(button_layout)
 
-        from chimerax.ui.options import SettingsPanel, BooleanOption, ColorOption, IntOption, FloatOption
         panel = SettingsPanel()
         from chimerax.dist_monitor.settings import settings
         from chimerax.core.colors import color_name
@@ -556,7 +556,9 @@ class StructMeasureTool(ToolInstance):
         raise LimitationError("Define Centroids dialog not implemented yet")
 
     def _show_define_plane_dialog(self):
-        raise LimitationError("Define Planes dialog not implemented yet")
+        if not self._define_plane_dialog:
+            self._define_plane_dialog = DefinePlaneDialog(self)
+        self._define_plane_dialog.tool_window.shown = True
 
     def _tab_changed_cb(self, index):
         self._set_help(index)
@@ -885,7 +887,6 @@ class DefineAxisDialog:
         return ("fromPoint %g,%g,%g toPoint %g,%g,%g " % (*from_pt, *to_pt))+ self.generic_params()
 
     def generic_params(self):
-        from chimerax.core.commands import StringArg
         color_button = self.color_group.checkedButton()
         if color_button == self.default_color_button:
             params = ""
@@ -942,3 +943,115 @@ class DefineAxisDialog:
                 self.params_group_layout.setRowStretch(padding_row, 0 if hidden else 1)
             widget.setHidden(hidden)
         self.name_entry.setText(self.axis_name_for_button[button])
+
+class ColorWithDefaultOption(Option):
+    def set_multiple(self):
+        self.value = None
+
+    def get_value(self):
+        if self.color_group.checkedButton() == self.default_color_button:
+            return None
+        return self.color_widget.color
+
+    def set_value(self, value):
+        if value is None:
+            self.default_color_button.setChecked(True)
+        else:
+            self.default_color_button.setChecked(False)
+            self.color_widget.color = value
+
+    value = property(get_value, set_value)
+
+    def _make_widget(self):
+        self.widget = QWidget()
+        layout = QHBoxLayout()
+        self.widget.setLayout(layout)
+        self.color_group = QButtonGroup()
+        self.default_color_button = QRadioButton("default")
+        self.color_group.addButton(self.default_color_button)
+        layout.addWidget(self.default_color_button)
+        layout.addSpacing(9)
+        explicit_color_button = QRadioButton()
+        self.color_group.addButton(explicit_color_button)
+        layout.addWidget(explicit_color_button, alignment=Qt.AlignRight)
+        self.color_widget = ColorButton(max_size=(16,16))
+        self.color_widget.color_changed.connect(
+            lambda *args, but=explicit_color_button: but.setChecked(True))
+        from chimerax.core.colors import Color
+        # button doesn't start off the right size unless explicitly given a color
+        self.color_widget.color = Color("#909090")
+        layout.addWidget(self.color_widget, alignment=Qt.AlignLeft)
+        self.default_color_button.setChecked(True)
+
+class DefinePlaneDialog:
+    def __init__(self, sm_tool):
+        self.tool_window = tw = sm_tool.tool_window.create_child_window("Define Plane", close_destroys=False)
+        self.session = sm_tool.session
+        layout = QVBoxLayout()
+        layout.setSpacing(0)
+        tw.ui_area.setLayout(layout)
+
+        layout.addWidget(QLabel("Create plane for selected atoms..."), alignment=Qt.AlignCenter)
+        self.options_panel = options_panel = OptionsPanel(sorting=False, scrolled=False)
+        layout.addWidget(options_panel)
+        self.name_option = StringOption("Plane name", "plane", None)
+        options_panel.add_option(self.name_option)
+        self.color_option = ColorWithDefaultOption("Color", None, None)
+        options_panel.add_option(self.color_option)
+        self.enclose_option = BooleanOption("Set disk size to enclose atom projections", True,
+            self._enclosed_changed)
+        options_panel.add_option(self.enclose_option)
+        self.padding_option = FloatOption("Extra radius (padding)", 0.0, None, decimal_places=1, step=1.0)
+        options_panel.add_option(self.padding_option)
+        self.radius_option = FloatOption("Fixed radius", 10.0, None, decimal_places=1, step=1.0)
+        options_panel.add_option(self.radius_option)
+        options_panel.hide_option(self.radius_option)
+        self.thickness_option = FloatOption("Disk thickness", 0.1, None, decimal_places=2, step=.05)
+        options_panel.add_option(self.thickness_option)
+
+        bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
+        bbox.accepted.connect(self.define_plane)
+        bbox.rejected.connect(lambda tw=tw: setattr(tw, 'shown', False))
+        bbox.button(qbbox.Apply).clicked.connect(lambda *args: self.define_plane(hide=False))
+        bbox.button(qbbox.Help).setEnabled(False)
+        layout.addWidget(bbox)
+
+        tw.manage(None)
+
+    def define_plane(self, hide=True):
+        # gather parameters before hiding, so that dialog stays up if there's an error in parameters
+        from chimerax.atomic import selected_atoms
+        sel_atoms = selected_atoms(self.session)
+        if len(sel_atoms) < 3:
+            raise UserError("Need to select at least 3 atoms to define a plane")
+        cmd = "define plane sel"
+        plane_name = self.name_option.value
+        if plane_name and plane_name != "plane":
+            cmd += " name %s" % StringArg.unparse(plane_name)
+        color = self.color_option.value
+        if color is not None:
+            from chimerax.core.colors import color_name
+            cmd += " color " + StringArg.unparse(color_name(color))
+        enclose = self.enclose_option.value
+        if enclose:
+            padding = self.padding_option.value
+            if padding != 0.0:
+                cmd += " padding %g" % padding
+        else:
+            radius = self.radius_option.value
+            cmd += " radius %g" % radius
+        thickness = self.thickness_option.value
+        if thickness != 0.1:
+            cmd += " thickness %g" % thickness
+        if hide:
+            self.tool_window.shown = False
+        # run command here
+        run(self.session, cmd)
+
+    def _enclosed_changed(self, opt):
+        if opt.value:
+            self.options_panel.hide_option(self.radius_option)
+            self.options_panel.show_option(self.padding_option)
+        else:
+            self.options_panel.hide_option(self.padding_option)
+            self.options_panel.show_option(self.radius_option)
