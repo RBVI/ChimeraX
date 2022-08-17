@@ -553,7 +553,9 @@ class StructMeasureTool(ToolInstance):
         self._define_axis_dialog.tool_window.shown = True
 
     def _show_define_centroid_dialog(self):
-        raise LimitationError("Define Centroids dialog not implemented yet")
+        if not self._define_centroid_dialog:
+            self._define_centroid_dialog = DefineCentroidDialog(self)
+        self._define_centroid_dialog.tool_window.shown = True
 
     def _show_define_plane_dialog(self):
         if not self._define_plane_dialog:
@@ -962,7 +964,7 @@ class ColorWithDefaultOption(Option):
 
     value = property(get_value, set_value)
 
-    def _make_widget(self):
+    def _make_widget(self, **kw):
         self.widget = QWidget()
         layout = QHBoxLayout()
         self.widget.setLayout(layout)
@@ -974,7 +976,7 @@ class ColorWithDefaultOption(Option):
         explicit_color_button = QRadioButton()
         self.color_group.addButton(explicit_color_button)
         layout.addWidget(explicit_color_button, alignment=Qt.AlignRight)
-        self.color_widget = ColorButton(max_size=(16,16))
+        self.color_widget = ColorButton(max_size=(16,16), **kw)
         self.color_widget.color_changed.connect(
             lambda *args, but=explicit_color_button: but.setChecked(True))
         from chimerax.core.colors import Color
@@ -996,17 +998,19 @@ class DefinePlaneDialog:
         layout.addWidget(options_panel)
         self.name_option = StringOption("Plane name", "plane", None)
         options_panel.add_option(self.name_option)
-        self.color_option = ColorWithDefaultOption("Color", None, None)
+        self.color_option = ColorWithDefaultOption("Color", None, None, has_alpha_channel=True)
         options_panel.add_option(self.color_option)
         self.enclose_option = BooleanOption("Set disk size to enclose atom projections", True,
             self._enclosed_changed)
         options_panel.add_option(self.enclose_option)
         self.padding_option = FloatOption("Extra radius (padding)", 0.0, None, decimal_places=1, step=1.0)
         options_panel.add_option(self.padding_option)
-        self.radius_option = FloatOption("Fixed radius", 10.0, None, decimal_places=1, step=1.0)
+        self.radius_option = FloatOption("Fixed radius", 10.0, None, decimal_places=1, step=1.0,
+            min="positive")
         options_panel.add_option(self.radius_option)
         options_panel.hide_option(self.radius_option)
-        self.thickness_option = FloatOption("Disk thickness", 0.1, None, decimal_places=2, step=.05)
+        self.thickness_option = FloatOption("Disk thickness", 0.1, None, decimal_places=2, step=.05,
+            min="positive")
         options_panel.add_option(self.thickness_option)
 
         bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
@@ -1043,6 +1047,66 @@ class DefinePlaneDialog:
         thickness = self.thickness_option.value
         if thickness != 0.1:
             cmd += " thickness %g" % thickness
+        if hide:
+            self.tool_window.shown = False
+        # run command here
+        run(self.session, cmd)
+
+    def _enclosed_changed(self, opt):
+        if opt.value:
+            self.options_panel.hide_option(self.radius_option)
+            self.options_panel.show_option(self.padding_option)
+        else:
+            self.options_panel.hide_option(self.padding_option)
+            self.options_panel.show_option(self.radius_option)
+
+class DefineCentroidDialog:
+    def __init__(self, sm_tool):
+        self.tool_window = tw = sm_tool.tool_window.create_child_window("Define Centroid",
+            close_destroys=False)
+        self.session = sm_tool.session
+        layout = QVBoxLayout()
+        layout.setSpacing(0)
+        tw.ui_area.setLayout(layout)
+
+        layout.addWidget(QLabel("Create centroid for selected atoms..."), alignment=Qt.AlignCenter)
+        self.options_panel = options_panel = OptionsPanel(sorting=False, scrolled=False)
+        layout.addWidget(options_panel)
+        self.name_option = StringOption("Centroid name", "centroid", None)
+        options_panel.add_option(self.name_option)
+        self.weighting_option = BooleanOption("Mass weighting", True, None)
+        options_panel.add_option(self.weighting_option)
+        self.color_option = ColorWithDefaultOption("Color", None, None, has_alpha_channel=True)
+        options_panel.add_option(self.color_option)
+        self.radius_option = FloatOption("Radius", 2.0, None, decimal_places=1, step=0.5, min="positive")
+        options_panel.add_option(self.radius_option)
+
+        bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
+        bbox.accepted.connect(self.define_centroid)
+        bbox.rejected.connect(lambda tw=tw: setattr(tw, 'shown', False))
+        bbox.button(qbbox.Apply).clicked.connect(lambda *args: self.define_centroid(hide=False))
+        bbox.button(qbbox.Help).setEnabled(False)
+        layout.addWidget(bbox)
+
+        tw.manage(None)
+
+    def define_centroid(self, hide=True):
+        # gather parameters before hiding, so that dialog stays up if there's an error in parameters
+        from chimerax.atomic import selected_atoms
+        sel_atoms = selected_atoms(self.session)
+        if len(sel_atoms) < 1:
+            raise UserError("Need to select at least one atom")
+        cmd = "define centroid sel"
+        centroid_name = self.name_option.value
+        if centroid_name and centroid_name != "centroid":
+            cmd += " name %s" % StringArg.unparse(centroid_name)
+        color = self.color_option.value
+        if color is not None:
+            from chimerax.core.colors import color_name
+            cmd += " color " + StringArg.unparse(color_name(color))
+        radius = self.radius_option.value
+        if radius != 2.0:
+            cmd += " radius %g" % radius
         if hide:
             self.tool_window.shown = False
         # run command here
