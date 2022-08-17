@@ -30,6 +30,8 @@ from Qt.QtCore import Qt
 from chimerax.ui.widgets import ColorButton
 from chimerax.ui.options import SettingsPanel, OptionsPanel, Option, \
     BooleanOption, ColorOption, IntOption, FloatOption, StringOption
+from chimerax.centroids import CentroidModel
+from chimerax.axes_planes import AxisModel, PlaneModel
 
 class StructMeasureTool(ToolInstance):
 
@@ -105,10 +107,16 @@ class StructMeasureTool(ToolInstance):
             run(self.session, "turn y 90 center %s" % item.atomspec)
 
     def _apc_delete_items(self):
-        sel = self.apc_table.selected
-        if not sel:
-            raise UserError("No items chosen in table")
-        run(self.session, "close %s" % concise_model_spec(self.session, sel))
+        items = self.apc_table.selected
+        if not items:
+            items = self.apc_table.data
+            if not items:
+                raise UserError("No items in table")
+            if len(items) > 1:
+                from chimerax.ui.ask import ask
+                if ask(self.session, "Really delete %d items?" % len(items)) == "no":
+                    return
+        run(self.session, "close %s" % concise_model_spec(self.session, items))
 
     def _apc_report_distance(self):
         sel = self.apc_table.selected
@@ -142,6 +150,33 @@ class StructMeasureTool(ToolInstance):
                 + " (%s), avg " + dist_fmt + ", max " + dist_fmt + " (%s)")
                 % (sel[0], len(sel_atoms), min_info[0], min_info[1], avg, max_info[0], max_info[1]))
             self.apc_status_label.setHidden(False)
+
+    def _apc_save_info(self):
+        apc_items = self.apc_table.data
+        if not apc_items:
+            raise UserError("No axes/planes/centroids to save!")
+        path = QFileDialog.getSaveFileName(self.angle_table, "Save Axes/Planes/Centroids Info File")[0]
+        if not path:
+            return
+        need_space = False
+        with open(path, 'wt') as f:
+            for section_hdr, model_type, formatting in [
+                ("Axes\nname, model ID, length, center, direction", AxisModel,
+                    lambda x: "%s: %s %g %s %s" % (x.name, x.atomspec, x.length, x.center, x.direction)),
+                ("Planes\nname, model ID, center, normal, radius", PlaneModel,
+                    lambda x: "%s: %s %s %s %g" % (x.name, x.atomspec, x.center, x.normal, x.radius)),
+                ("Centroids\nname, model ID, center", CentroidModel,
+                    lambda x: "%s: %s %s" % (x.name, x.atomspec, x.atoms[0].coord)),
+            ]:
+                items = [x for x in apc_items if isinstance(x, model_type)]
+                if not items:
+                    continue
+                if need_space:
+                    print("", file=f)
+                print(section_hdr, file=f)
+                for item in items:
+                    print(formatting(item), file=f)
+                need_space = True
 
     def _apc_selection_changed(self, newly_selected, newly_deselected):
         sel = self.apc_table.selected
@@ -217,7 +252,11 @@ class StructMeasureTool(ToolInstance):
     def _delete_angle(self):
         rows = set([index.row() for index in self.angle_table.selectedIndexes()])
         if not rows:
-            raise UserError("Must select one or more angles/torsions in the table")
+            rows = range(self.angle_table.rowCount())
+            if len(rows) > 1:
+                from chimerax.ui.ask import ask
+                if ask(self.session, "Really delete %d angles/torsions?" % len(rows)) == "no":
+                    return
         for row in reversed(sorted(list(rows))):
             self.angle_table.removeRow(row)
             del self._angle_info[row]
@@ -231,7 +270,11 @@ class StructMeasureTool(ToolInstance):
             raise UserError("No distances to delete!")
         rows = set([index.row() for index in self.dist_table.selectedIndexes()])
         if not rows:
-            raise UserError("Must select one or more distances in the table")
+            rows = range(self.dist_table.rowCount())
+            if len(rows) > 1:
+                from chimerax.ui.ask import ask
+                if ask(self.session, "Really delete %d distances?" % len(rows)) == "no":
+                    return
         del_pbs = []
         for i, pb in enumerate(pbs):
             if i in rows:
@@ -289,8 +332,8 @@ class StructMeasureTool(ToolInstance):
         self.handlers.append(get_triggers().add_handler('changes', self. _angle_changes_handler))
 
     def _fill_axis_tab(self, tab_area):
-        self.apc_status_tip = "Choose two items in table to report angle/distance (also logged);"\
-            " double click Name/ID to edit"
+        self.apc_status_tip = "Choose two items in table to report angle/distance (also logged).\n"\
+            "Double click Name/ID to edit."
         layout = QVBoxLayout()
         layout.setContentsMargins(0,0,0,0)
         layout.setSpacing(0)
@@ -362,16 +405,17 @@ class StructMeasureTool(ToolInstance):
         self.apc_status_label.setWordWrap(True)
         self.apc_status_label.setAlignment(Qt.AlignHCenter)
         table_layout.addWidget(self.apc_status_label)
-        delete_layout_widget = QWidget() # so that the label+button is centered collectively
         delete_layout = QHBoxLayout()
         delete_layout.setSpacing(0)
         delete_layout.setContentsMargins(0,0,0,0)
-        delete_layout_widget.setLayout(delete_layout)
-        table_layout.addWidget(delete_layout_widget, alignment=Qt.AlignCenter)
+        table_layout.addLayout(delete_layout)
         delete_button = QPushButton("Delete")
         delete_button.clicked.connect(self._apc_delete_items)
-        delete_layout.addWidget(delete_button, alignment=Qt.AlignRight)
-        delete_layout.addWidget(QLabel(" items chosen in table"), alignment=Qt.AlignLeft)
+        delete_button.setToolTip("Delete items selected in table (or all if none selected)")
+        delete_layout.addWidget(delete_button, alignment=Qt.AlignCenter)
+        info_button = QPushButton("Save Info...")
+        info_button.clicked.connect(self._apc_save_info)
+        delete_layout.addWidget(info_button, alignment=Qt.AlignCenter)
         report_layout_widget = QWidget() # so that the label+button is centered collectively
         report_layout = QHBoxLayout()
         report_layout.setSpacing(0)
@@ -484,8 +528,6 @@ class StructMeasureTool(ToolInstance):
         self._fill_dist_table()
 
     def _filter_apc_models(self, models):
-        from chimerax.centroids import CentroidModel
-        from chimerax.axes_planes import AxisModel, PlaneModel
         return [m for m in models if isinstance(m, (CentroidModel, AxisModel, PlaneModel))]
 
     def _refresh_apc_cell(self, trig_name, model):
@@ -518,6 +560,8 @@ class StructMeasureTool(ToolInstance):
         if not self._angle_info:
             raise UserError("No angles/torsions to save!")
         path = QFileDialog.getSaveFileName(self.angle_table, "Save Angles/Torsions File")[0]
+        if not path:
+            return
         with open(path, 'wt') as f:
             for atoms, num_expected_atoms in self._angle_info:
                 atom_strings = [str(atoms[0])]

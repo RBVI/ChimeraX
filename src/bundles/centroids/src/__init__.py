@@ -20,8 +20,8 @@ class CentroidsAPI(BundleAPI):
 
     @staticmethod
     def get_class(class_name):
-        if class_name == "Centroid":
-            return Centroid
+        if class_name == "CentroidModel":
+            return CentroidModel
         raise ValueError("Don't know about class %s" % class_name)
 
     @staticmethod

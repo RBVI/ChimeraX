@@ -81,6 +81,11 @@ class PlaneModel(Surface, ComplexMeasurable):
         degrees = angle(self.xform_normal, obj.xform_normal)
         return degrees if degrees < 90 else 180 - degrees
 
+    @property
+    def center(self):
+        return self.plane.origin
+    origin = center
+
     def distance(self, obj, *, signed=False):
         if isinstance(obj, PlaneModel):
             from chimerax.geometry.plane import PlaneNoIntersectionError
@@ -161,6 +166,11 @@ class PlaneModel(Surface, ComplexMeasurable):
         inst = cls(session, None, data['plane'], data['thickness'], data['radius'], data['color'])
         Surface.set_state_from_snapshot(inst, session, data['base data'])
         return inst
+
+    @property
+    def xform_center(self):
+        return self.scene_position.transform_vector(self.center)
+    xform_origin = xform_center
 
     @property
     def xform_normal(self):
@@ -612,10 +622,10 @@ def determine_axes(atoms, name, length, padding, radius, mass_weighting, primary
     if mass_weighting:
         structures = atoms.unique_structures
         classes = set([s.__class__ for s in structures])
-        if len(classes) > 1:
+        from chimerax.atomic import AtomicStructure
+        if len(classes) > 1 and AtomicStructure in classes:
             from chimerax.core.errors import UserError
             raise UserError("Cannot mix markers/centroids and regular atoms when using mass weighting")
-        from chimerax.atomic import AtomicStructure
         if AtomicStructure in classes:
             weights = atoms.elements.masses
         else:

@@ -14,7 +14,18 @@
 from chimerax.atomic import Structure
 # to make it easy to identify centroid models...
 class CentroidModel(Structure):
-    pass
+    def take_snapshot(self, session, flags):
+        return { 'base data': super().take_snapshot(session, flags) }
+
+    @classmethod
+    def restore_snapshot(cls, session, data):
+        inst = cls(session, auto_style=False, log_info=False)
+        if 'base data' in data:
+            restore_data = data['base data']
+        else:
+            restore_data = data
+        inst.set_state_from_snapshot(session, restore_data)
+        return inst
 
 from . import centroid
 
