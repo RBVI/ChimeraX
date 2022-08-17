@@ -18,7 +18,8 @@ class CentroidModel(Structure):
 
 from . import centroid
 
-def cmd_centroid(session, atoms=None, *, mass_weighting=False, name="centroid", color=None, radius=2.0):
+def cmd_centroid(session, atoms=None, *, mass_weighting=False, name="centroid", color=None, radius=2.0,
+        show_tool=True):
     """Wrapper to be called by command line.
 
        Use chimerax.centroids.centroid for other programming applications.
@@ -66,6 +67,9 @@ def cmd_centroid(session, atoms=None, *, mass_weighting=False, name="centroid", 
         structures[0].add([s])
 
     session.logger.info("Centroid '%s' placed at %s" % (name, xyz))
+    if show_tool and session.ui.is_gui and not session.in_script:
+        from chimerax.core.commands import run
+        run(session, "ui tool show Axes/Planes/Centroids", log=False)
     return a
 
 def register_command(command_name, logger):
@@ -74,7 +78,7 @@ def register_command(command_name, logger):
     from chimerax.atomic import AtomsArg
     desc = CmdDesc(required=[('atoms', Or(AtomsArg,EmptyArg))],
         keyword = [('mass_weighting', BoolArg), ('name', StringArg), ('color', ColorArg),
-            ('radius', FloatArg)],
+            ('radius', FloatArg), ('show_tool', BoolArg)],
         synopsis = 'Show centroid'
     )
     register('define centroid', desc, cmd_centroid, logger=logger)

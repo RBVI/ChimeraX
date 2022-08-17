@@ -365,7 +365,7 @@ def quadrant_angle(angle):
     return angle
 
 def cmd_define_plane(session, atoms, *, thickness=defaults["plane_thickness"], padding=0.0, color=None,
-        radius=None, name="plane"):
+        radius=None, name="plane", show_tool=True):
     """Wrapper to be called by command line.
 
        Use chimerax.geometry.Plane for other programming applications.
@@ -417,11 +417,14 @@ def cmd_define_plane(session, atoms, *, thickness=defaults["plane_thickness"], p
     else:
         adding_model.add([plane_model])
     session.logger.info("Plane '%s' placed at %s with normal %s" % (name, plane.origin, plane.normal))
+    if show_tool and session.ui.is_gui and not session.in_script:
+        from chimerax.core.commands import run
+        run(session, "ui tool show Axes/Planes/Centroids", log=False)
     return plane_model
 
 def cmd_define_axis(session, targets=None, *, color=None, radius=None, length=None, name=None, padding=0.0,
         primary=True, secondary=False, tertiary=False, mass_weighting=False, from_point=None, to_point=None,
-        per_helix=False):
+        per_helix=False, show_tool=True):
     """Wrapper to be called by command line.
 
        Use chimerax.geometry.vector for other programming applications.
@@ -572,6 +575,9 @@ def cmd_define_axis(session, targets=None, *, color=None, radius=None, length=No
                     needs_normalization=False)
                 axes.append(axis)
                 add_model.add([axis])
+    if show_tool and session.ui.is_gui and not session.in_script:
+        from chimerax.core.commands import run
+        run(session, "ui tool show Axes/Planes/Centroids", log=False)
     return axes
 
 def find_adding_model(models):
@@ -663,7 +669,7 @@ def register_command(command_name, logger):
     desc = CmdDesc(
         required=[('atoms', AtomsArg)],
         keyword = [('thickness', PositiveFloatArg), ('padding', FloatArg), ('color', ColorArg),
-            ('radius', PositiveFloatArg), ('name', StringArg)],
+            ('radius', PositiveFloatArg), ('name', StringArg), ('show_tool', BoolArg)],
         synopsis = 'Create plane'
     )
     register('define plane', desc, cmd_define_plane, logger=logger)
@@ -682,7 +688,7 @@ def register_command(command_name, logger):
         keyword = [('color', ColorArg), ('radius', PositiveFloatArg), ('length', PositiveFloatArg),
             ('name', StringArg), ('primary', BoolArg), ('secondary', BoolArg), ('tertiary', BoolArg),
             ('mass_weighting', BoolArg), ('from_point', Float3Arg), ('to_point', Float3Arg),
-            ('per_helix', BoolArg), ('padding', FloatArg)],
-        synopsis = 'Create plane'
+            ('per_helix', BoolArg), ('padding', FloatArg), ('show_tool', BoolArg)],
+        synopsis = 'Create axis'
     )
     register('define axis', desc, cmd_define_axis, logger=logger)
