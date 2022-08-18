@@ -144,11 +144,15 @@ class StructMeasureTool(ToolInstance):
         item_spec = "".join([x.atomspec for x in sel])
         info = run(self.session, "distance %s %s" % (target_spec, item_spec))
         if len(sel) == 1:
-            min_info, avg, max_info = list(info.values())[0]
             dist_fmt = self.session.pb_dist_monitor.distance_format
-            self.apc_status_label.setText(("Distance from %s to %d atoms: min " + dist_fmt
-                + " (%s), avg " + dist_fmt + ", max " + dist_fmt + " (%s)")
-                % (sel[0], len(sel_atoms), min_info[0], min_info[1], avg, max_info[0], max_info[1]))
+            if isinstance(info, float):
+                user_info = ("Distance from %s to %s: " + dist_fmt) % (sel[0], sel_atoms[0], info)
+            else:
+                min_info, avg, max_info = list(info.values())[0]
+                user_info = ("Distance from %s to %d atoms: min " + dist_fmt + " (%s), avg " + dist_fmt
+                    + ", max " + dist_fmt + " (%s)") % (sel[0], len(sel_atoms), min_info[0], min_info[1],
+                    avg, max_info[0], max_info[1])
+            self.apc_status_label.setText(user_info)
             self.apc_status_label.setHidden(False)
 
     def _apc_save_info(self):
@@ -200,7 +204,7 @@ class StructMeasureTool(ToolInstance):
                             dist = d
                     if angle is None:
                         a = sel2.angle(sel1)
-                        if a is not notImplemented:
+                        if a is not NotImplemented:
                             angle = a
             else:
                 from chimerax.geometry import distance
