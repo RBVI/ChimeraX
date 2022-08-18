@@ -348,10 +348,10 @@ class StructMeasureTool(ToolInstance):
         axis_button = QPushButton("Define axes...")
         axis_button.clicked.connect(lambda *args, cb=self._show_define_axis_dialog: cb())
         button_layout.addWidget(axis_button, alignment=Qt.AlignHCenter)
-        plane_button = QPushButton("Define planes...")
+        plane_button = QPushButton("Define plane...")
         plane_button.clicked.connect(lambda *args, cb=self._show_define_plane_dialog: cb())
         button_layout.addWidget(plane_button, alignment=Qt.AlignHCenter)
-        centroid_button = QPushButton("Define centroids...")
+        centroid_button = QPushButton("Define centroid...")
         centroid_button.clicked.connect(lambda *args, cb=self._show_define_centroid_dialog: cb())
         button_layout.addWidget(centroid_button, alignment=Qt.AlignHCenter)
         self._define_axis_dialog = self._define_plane_dialog = self._define_centroid_dialog = None
@@ -634,6 +634,11 @@ class StructMeasureTool(ToolInstance):
         for row in reversed(death_row):
             self.angle_table.removeRow(row)
 
+class AngstromOption(FloatOption):
+    def __init__(self, *args, **kw):
+        kw['right_text'] = "\N{ANGSTROM SIGN}"
+        super().__init__(*args, **kw)
+
 class DefineAxisDialog:
     def __init__(self, sm_tool):
         self.tool_window = tw = sm_tool.tool_window.create_child_window("Define Axes", close_destroys=False)
@@ -654,7 +659,7 @@ class DefineAxisDialog:
         self.button_dispatch = {}
         self.axis_name_for_button = {}
 
-        helix_button = QRadioButton("Each helix in structure(s)")
+        helix_button = QRadioButton("Each helix in structure")
         helix_button.setChecked(True)
         self.button_group.addButton(helix_button)
         type_layout.addWidget(helix_button, alignment=Qt.AlignLeft | Qt.AlignTop)
@@ -670,7 +675,7 @@ class DefineAxisDialog:
         self.axis_name_for_button[atoms_button] = "axis"
         self.button_dispatch[atoms_button] = self.cmd_params_atoms_axis
 
-        plane_button = QRadioButton("Plane normal(s)")
+        plane_button = QRadioButton("Plane normals")
         plane_button.setChecked(False)
         self.button_group.addButton(plane_button)
         type_layout.addWidget(plane_button, alignment=Qt.AlignLeft | Qt.AlignTop)
@@ -690,7 +695,7 @@ class DefineAxisDialog:
         controls_layout.addLayout(params_layout)
         self.all_params_widgets = []
 
-        structure_label = QLabel("Structure(s)")
+        structure_label = QLabel("Structures")
         params_layout.addWidget(structure_label)
         self.shown_for_button[helix_button].add(structure_label)
         self.all_params_widgets.append(structure_label)
@@ -706,7 +711,7 @@ class DefineAxisDialog:
         self.shown_for_button[helix_button].add(self.helix_structure_list)
         self.all_params_widgets.append(self.helix_structure_list)
 
-        plane_label = QLabel("Planes(s)")
+        plane_label = QLabel("Planes")
         params_layout.addWidget(plane_label)
         self.shown_for_button[plane_button].add(plane_label)
         self.all_params_widgets.append(plane_label)
@@ -747,6 +752,37 @@ class DefineAxisDialog:
 
         params_group = QGroupBox("Axis Parameters")
         params_layout.addWidget(params_group)
+        pg_layout = QHBoxLayout()
+        params_group.setLayout(pg_layout)
+        self.options = OptionsPanel(sorting=False, scrolled=False)
+        pg_layout.addWidget(self.options)
+        self.color_option = ColorWithDefaultOption("Color", None, None, has_alpha_channel=True)
+        self.options.add_option(self.color_option)
+        self.name_option = StringOption("Name", None, None)
+        self.options.add_option(self.name_option)
+        self.radius_type_option = BooleanOption("Set radius to average atom-axis distance", True,
+            lambda opt, s=self: s.options.set_option_shown(s.radius_option, not opt.value))
+        self.options.add_option(self.radius_type_option)
+        self.radius_option = AngstromOption("Fixed radius", 2.0, None, min="positive", decimal_places=1,
+            step=1.0)
+        self.options.add_option(self.radius_option)
+        self.options.hide_option(self.radius_option)
+        self.length_type_option = BooleanOption("Set length to enclose atom projections", True,
+            lambda opt, s=self: (s.options.set_option_shown(s.length_option, not opt.value),
+            s.options.set_option_shown(s.padding_option, opt.value)))
+        self.options.add_option(self.length_type_option)
+        self.length_option = AngstromOption("Fixed length", 10.0, None, min="positive", decimal_places=1,
+            step=1.0)
+        self.options.add_option(self.length_option)
+        self.options.hide_option(self.length_option)
+        self.padding_option = AngstromOption("with padding", 0.0, None, decimal_places=1, step=0.5)
+        self.options.add_option(self.padding_option)
+        self.weighting_option = BooleanOption("Mass weighting", False, None)
+        self.options.add_option(self.weighting_option)
+        self.shown_for_button[atoms_button].add(self.weighting_option)
+        self.all_params_widgets.append(self.weighting_option)
+
+        """
         self.params_group_layout = pg_layout = QGridLayout()
         pg_layout.setColumnMinimumWidth(1, 9)
         pg_layout.setColumnStretch(2, 1)
@@ -770,7 +806,7 @@ class DefineAxisDialog:
         pg_layout.setRowStretch(row, 1)
 
         self.color_group = QButtonGroup()
-        self.default_color_button = QRadioButton("default")
+        self.default_color_button = QRadioButton("atom-based")
         self.color_group.addButton(self.default_color_button)
         color_layout.addWidget(self.default_color_button)
         color_layout.addSpacing(9)
@@ -880,6 +916,7 @@ class DefineAxisDialog:
 
         row = next(row_count)
         pg_layout.setRowStretch(row, 1)
+        """
 
         self.show_applicable_params(self.button_group.checkedButton())
 
@@ -897,6 +934,7 @@ class DefineAxisDialog:
         if not selected_atoms(self.session):
             raise UserError("No atoms/centroids selected")
         base_params = "sel " + self.generic_params()
+        #TODO
         if self.mass_weighting.isChecked():
             return base_params + " mass true"
         return base_params
@@ -937,6 +975,7 @@ class DefineAxisDialog:
         return ("fromPoint %g,%g,%g toPoint %g,%g,%g " % (*from_pt, *to_pt))+ self.generic_params()
 
     def generic_params(self):
+        #TODO
         color_button = self.color_group.checkedButton()
         if color_button == self.default_color_button:
             params = ""
@@ -988,11 +1027,11 @@ class DefineAxisDialog:
         shown_widgets = self.shown_for_button[button]
         for widget in self.all_params_widgets:
             hidden = widget not in shown_widgets
-            if isinstance(widget, tuple):
-                widget, padding_row = widget
-                self.params_group_layout.setRowStretch(padding_row, 0 if hidden else 1)
-            widget.setHidden(hidden)
-        self.name_entry.setText(self.axis_name_for_button[button])
+            if isinstance(widget, Option):
+                self.options.set_option_shown(widget, not hidden)
+            else:
+                widget.setHidden(hidden)
+        self.name_option.value = self.axis_name_for_button[button]
 
 class ColorWithDefaultOption(Option):
     def set_multiple(self):
@@ -1015,9 +1054,11 @@ class ColorWithDefaultOption(Option):
     def _make_widget(self, **kw):
         self.widget = QWidget()
         layout = QHBoxLayout()
+        layout.setSpacing(0)
+        layout.setContentsMargins(0,0,0,0)
         self.widget.setLayout(layout)
         self.color_group = QButtonGroup()
-        self.default_color_button = QRadioButton("default")
+        self.default_color_button = QRadioButton("atom-based")
         self.color_group.addButton(self.default_color_button)
         layout.addWidget(self.default_color_button)
         layout.addSpacing(9)
@@ -1048,16 +1089,16 @@ class DefinePlaneDialog:
         options_panel.add_option(self.name_option)
         self.color_option = ColorWithDefaultOption("Color", None, None, has_alpha_channel=True)
         options_panel.add_option(self.color_option)
-        self.enclose_option = BooleanOption("Set disk size to enclose atom projections", True,
+        self.enclose_option = BooleanOption("Set disk radius to enclose atom projections", True,
             self._enclosed_changed)
         options_panel.add_option(self.enclose_option)
-        self.padding_option = FloatOption("Extra radius (padding)", 0.0, None, decimal_places=1, step=1.0)
+        self.padding_option = AngstromOption("Extra radius (padding)", 0.0, None, decimal_places=1, step=1.0)
         options_panel.add_option(self.padding_option)
-        self.radius_option = FloatOption("Fixed radius", 10.0, None, decimal_places=1, step=1.0,
+        self.radius_option = AngstromOption("Fixed radius", 10.0, None, decimal_places=1, step=1.0,
             min="positive")
         options_panel.add_option(self.radius_option)
         options_panel.hide_option(self.radius_option)
-        self.thickness_option = FloatOption("Disk thickness", 0.1, None, decimal_places=2, step=.05,
+        self.thickness_option = AngstromOption("Disk thickness", 0.1, None, decimal_places=2, step=.05,
             min="positive")
         options_panel.add_option(self.thickness_option)
 
@@ -1122,12 +1163,12 @@ class DefineCentroidDialog:
         layout.addWidget(options_panel)
         self.name_option = StringOption("Centroid name", "centroid", None)
         options_panel.add_option(self.name_option)
-        self.weighting_option = BooleanOption("Mass weighting", True, None)
-        options_panel.add_option(self.weighting_option)
         self.color_option = ColorWithDefaultOption("Color", None, None, has_alpha_channel=True)
         options_panel.add_option(self.color_option)
-        self.radius_option = FloatOption("Radius", 2.0, None, decimal_places=1, step=0.5, min="positive")
+        self.radius_option = AngstromOption("Radius", 2.0, None, decimal_places=1, step=0.5, min="positive")
         options_panel.add_option(self.radius_option)
+        self.weighting_option = BooleanOption("Mass weighting", True, None)
+        options_panel.add_option(self.weighting_option)
 
         bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
         bbox.accepted.connect(self.define_centroid)
