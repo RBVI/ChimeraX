@@ -19,6 +19,7 @@ from numpy import (
     , uint8, uint16
 )
 import os
+import weakref
 from pydicom import dcmread
 from typing import Any, Dict, TypeVar, Union
 
@@ -36,236 +37,140 @@ else:
     _has_gdcm = True
 
 Path = TypeVar("Path", os.PathLike, str, bytes, None)
-class DICOMModel(Model):
-    # def __init__(self, patient, session):
-        # top = Model(dname, self.session)
-        # Model.__init__(self, 'Patient %s' % patient, session)
 
-    def show_info(self, parent):
+class MismatchedUIDError(Exception):
+    pass
+
+class DICOMVolume(Volume):
+    pass
+
+class Patient(Model):
+    """A set of DICOM files that have the same Patient ID"""
+    def __init__(self, session, pid):
+        self.pid = pid
+        self.session = session
+        Model.__init__(self, 'Patient %s' % pid, session)
+        self.studies = []
+
+    def studies_from_files(self, files) -> None:
+        studies = defaultdict(list)
+        for f in files:
+            if hasattr(f, 'StudyInstanceUID'):
+                studies[f.StudyInstanceUID].append(f)
+            else:
+                studies["Unknown Study"].append(f)
+        for key, files in studies.items():
+            study = Study(self.session, key)
+            study.series_from_files(files)
+            self.studies.append(study)
+            self.add(study) # add the study as a child model
+
+    # @requires_gui
+    def show_info():
         pass
-        # for x in series._file_info:
-        # if has_gui:
-        # return DICOMMetadataTool(?)
-        # else:
-        #     UserError("No GUI") ?
+
+    def __str__(self):
+        return f"Patient {self.pid} with {len(self.studies)} studies"
 
 
-class DICOMVolume(DICOMModel, Volume):
-    pass
+class Study(Model):
+    """A set of DICOM files that have the same Study Instance UID"""
+    def __init__(self, session, uid):
+        self.uid = uid
+        self.session = session
+        Model.__init__(self, 'Study %s' % uid, session)
+        self.series = [] # regular images
 
-class Patient:
-    pass
+    def series_from_files(self, files) -> None:
+        files = self.filter_unreadable(files)
+        series = defaultdict(list)
+        for f in files:
+            if hasattr(f, 'SeriesInstanceUID'):
+                series[f.SeriesInstanceUID].append(f)
+            else:
+                series['Unknown Series'].append(f)
+        for key, files in series.items():
+            s = Series(self.session, files)
+            self.series.append(s)
+            self.add(s.to_models())
 
-class Study:
-    pass
+#        series.sort(key=lambda s: s.sort_key)
+#        plane_ids = {s.plane_uids: s for s in series}
+#        for s in series:
+#            ref = s.ref_plane_uids
+#            if ref and ref in plane_ids:
+#                s.refers_to_series = plane_ids[ref]
+        #models, msg = self.dicom_volumes(image_series)
+        ## Open contour models for DICOM RT Structure Set series.
+        #if contour_series:
+        #    cmodels, cmsg = self.dicom_contours(contour_series)
+        #    models += cmodels
+        #    msg += '\n' + cmsg
+        #    # TODO: Associate contour models with image data they were derived from.
+
+        ## Warn about unrecognized series types.
+        #if extra_series:
+        #    snames = ', '.os.path.join('%s (%s)' % (s.name, s.dicom_class) for s in extra_series)
+        #    self.session.logger.warning(
+        #        'Can only handle images and contours, got %d other series types: %s'
+        #        % (len(extra_series), snames)
+        #    )
+
+        #gmodels = self.group_models(self.paths, models)
+
+    def filter_unreadable(self, files):
+        if _has_gdcm:
+            return files # PyDicom will use gdcm to read 16-bit lossless jpeg
+
+        # Python Image Library cannot read 16-bit lossless jpeg.
+        keep = []
+        for f in files:
+            if f.file_meta.TransferSyntaxUID == '1.2.840.10008.1.2.4.70' and f.attributes.get('BitsAllocated') == 16:
+                warning = 'Could not read DICOM %s because Python Image Library cannot read 16-bit lossless jpeg ' \
+                          'images. This functionality can be enabled by installing python-gdcm'
+                self.session.logger.warning(warning % f.paths[0])
+            else:
+                keep.append(f)
+        return keep
+
+    # @requires_gui
+    def show_info(self) -> None:
+        pass
+        # return DICOMMetadataTool(self)
+
+    def __str__(self):
+        return f"Study {self.uid} with {len(self.series)} series"
 
 class DICOM:
     def __init__(self, session, data: Union[Path,list[Path]]):
+        self.patients = []
         self.session = session
         self.logger = session.logger
         if type(data) is not list:
             self.paths = [data]
         else:
             self.paths = data
+        self.find_dicom_series(self.paths)
+
+    def __contains__(self, patient: str) -> bool:
+        for patient in self.patients:
+            if patient.pid == patient:
+                return True
+            return False
 
     @classmethod
     def from_paths(cls, session, path: Union[Path,list[Path]]):
         return cls(session, path)
 
-    def models(self):
-        pass
-
-    def new_series(self):
-        return Series(self.session)
-
     def open(self):
-        # Locate all series in subdirectories
-        series = self.find_dicom_series(self.paths)
-        series = self.filter_unreadable(series)
+        return self.patients, ""
 
-        # Open volume models for image series
-        image_series = []
-        contour_series = []
-        extra_series = []
-        for s in series:
-            if s.has_image_data:
-                image_series.append(s)
-            elif s.dicom_class == 'RT Structure Set Storage':
-                contour_series.append(s)
-            else:
-                extra_series.append(s)
-
-        models, msg = self.dicom_volumes(image_series)
-
-        # Open contour models for DICOM RT Structure Set series.
-        if contour_series:
-            cmodels, cmsg = self.dicom_contours(contour_series)
-            models += cmodels
-            msg += '\n' + cmsg
-            # TODO: Associate contour models with image data they were derived from.
-
-        # Warn about unrecognized series types.
-        if extra_series:
-            snames = ', '.os.path.join('%s (%s)' % (s.name, s.dicom_class) for s in extra_series)
-            self.session.logger.warning(
-                'Can only handle images and contours, got %d other series types: %s'
-                % (len(extra_series), snames)
-            )
-
-        gmodels = self.group_models(self.paths, models)
-
-        return gmodels, msg
-
-    def dicom_contours(self, contour_series):
-        models = [DicomContours(self.session, s) for s in contour_series]
-        msg = 'Opened %d contour models' % len(models)
-        return models, msg
-
-    def dicom_volumes(self, series):
-        grids = self.dicom_grids_from_series(series)
-        models = []
-        msg_lines = []
-        sgrids = []
-        for grid_group in grids:
-            if isinstance(grid_group, (tuple, list)):
-                # Handle multiple channels or time series
-                gname = os.path.commonprefix([g.name for g in grid_group])
-                if len(gname) == 0:
-                    gname = grid_group[0].name
-                gmodels, gmsg = open_grids(self.session, grid_group, gname, cls = DICOMVolume)
-                models.extend(gmodels)
-                msg_lines.append(gmsg)
-            else:
-                sgrids.append(grid_group)
-        if sgrids:
-            smodels, smsg = open_grids(self.session, sgrids, None, cls = DICOMVolume)
-            models.extend(smodels)
-            msg_lines.append(smsg)
-        for v in models:
-            if isinstance(v, Volume):
-                v.dicom_series = v.data.dicom_data.dicom_series
-            else:
-                for cv in v.child_models():
-                    if isinstance(cv, Volume):
-                        cv.dicom_series = cv.data.dicom_data.dicom_series
-        msg = '\n'.join(msg_lines)
-        return models, msg
-
-    def filter_unreadable(self, series):
-        if _has_gdcm:
-            return series  # PyDicom will use gdcm to read 16-bit lossless jpeg
-
-        # Python Image Library cannot read 16-bit lossless jpeg.
-        keep = []
-        for s in series:
-            if s.transfer_syntax == '1.2.840.10008.1.2.4.70' and s.attributes.get('BitsAllocated') == 16:
-                warning = 'Could not read DICOM %s because Python Image Library cannot read 16-bit lossless jpeg ' \
-                          'images. This functionality can be enabled by installing python-gdcm'
-                self.session.logger.warning(warning % s.paths[0])
-            else:
-                keep.append(s)
-        return keep
-
-    def group_models(self, paths, models):
-        """Group into a four level hierarchy: directory, patient id, date, series."""
-        # Patient, Study, Series, Image
-        if len(models) == 0:
-            return []
-        dname = os.path.basename(paths[0]) if len(paths) == 1 else os.path.basename(os.path.dirname(paths[0]))
-        top = DICOMModel(dname, self.session)
-        locations = []
-        for m in models:
-            s = self.model_series(m)
-            if s is None:
-                locations.append((m, ()))
-            else:
-                pid = s.attributes.get('PatientID', 'unknown')
-                date = s.attributes.get('StudyDate', 'date unknown')
-                locations.append((m, ('Patient %s' % pid, date)))
-        leaf = {(): top}
-        for m, gnames in locations:
-            if gnames not in leaf:
-                for i in range(len(gnames)):
-                    if gnames[:i + 1] not in leaf:
-                        leaf[gnames[:i + 1]] = gm = DICOMModel(gnames[i], self.session)
-                        leaf[gnames[:i]].add([gm])
-            leaf[gnames].add([m])
-        return [top]
-
-    def model_series(self, m):
-        s = getattr(m, 'dicom_series', None)
-        if s is None:
-            # Look at child models for multi-channel and time-series.
-            for c in m.child_models():
-                s = getattr(c, 'dicom_series', None)
-                if s:
-                    break
-        return s
-
-    def dicom_grids(self, paths, log=None):
-        series = self.find_dicom_series(paths)
-        grids = self.dicom_grids_from_series(series)
-        return grids
-
-    def dicom_grids_from_series(self, series):
-        grids = []
-        derived = []  # For grouping derived series with original series
-        sgrids = {}
-        for s in series:
-            if not s.has_image_data:
-                continue
-            d = DicomData(s)
-            if d.mode == 'RGB':
-                # Create 3-channels for RGB series
-                cgrids = []
-                colors = [(1, 0, 0, 1), (0, 1, 0, 1), (0, 0, 1, 1)]
-                suffixes = [' red', ' green', ' blue']
-                for channel in (0, 1, 2):
-                    g = DicomGrid(d, channel=channel)
-                    g.name += suffixes[channel]
-                    g.rgba = colors[channel]
-                    cgrids.append(g)
-                grids.append(cgrids)
-            elif s.num_times > 1:
-                # Create time series for series containing multiple times as frames
-                tgrids = []
-                for t in range(s.num_times):
-                    g = DicomGrid(d, time=t)
-                    g.series_index = t
-                    tgrids.append(g)
-                grids.append(tgrids)
-            else:
-                # Create single channel, single time series.
-                g = DicomGrid(d)
-                rs = getattr(s, 'refers_to_series', None)
-                if rs:
-                    # If this associated with another series (e.g. is a segmentation), make
-                    # it a channel together with that associated series.
-                    derived.append((g, rs))
-                else:
-                    sgrids[s] = gg = [g]
-                    grids.append(gg)
-        # Group derived series with the original series
-        channel_colors = [(1, 0, 0, 1), (0, 1, 0, 1), (0, 0, 1, 1)]
-        for g, rs in derived:
-            sg = sgrids[rs]
-            if len(sg) == 1:
-                sg[0].channel = 1
-            sg.append(g)
-            g.channel = len(sg)
-            g.rgba = channel_colors[(g.channel - 2) % len(channel_colors)]
-            if not g.dicom_data.origin_specified:
-                # Segmentation may not have specified an origin
-                g.set_origin(sg[0].origin)
-        # Show only first group of grids
-        for gg in grids[1:]:
-            for g in gg:
-                g.show_on_open = False
-        return grids
+    def dicom_grids(self, paths, log=None) -> list[Any]:
+        return [s._to_grids() for s in series]
 
     def find_dicom_series(
         self, paths, search_directories: bool = True, search_subdirectories: bool = True,
-    ) -> list[list['Series']]:
+    ) -> None:
         """Look through directories to find dicom files (.dcm) and group the ones
         that belong to the same study and image series.  Also determine the order
         of the 2D images (one per file) in the 3D stack.  A series must be in a single
@@ -280,35 +185,38 @@ class DICOM:
         nseries = len(dfiles)
         nfiles = sum(len(dpaths) for dpaths in dfiles.values())
         nsfiles = 0
-        series = []
         for dpaths in dfiles.values():
             nsfiles += len(dpaths)
             if self.logger:
                 self.logger.status('Reading DICOM series %d of %d files in %d series' % (nsfiles, nfiles, nseries))
-            series.extend(self.dicom_file_series(dpaths))
+            patients = self.dicom_patients(dpaths)
+            for patient in patients:
+                self.patients.extend(patients)
+                #if not patient in self:
+                # self.patients.extend(patients)
+                #else:
+                # set patient id to something else
+        self.session.logger.info(str(self.patients))
+        #for study in self.patients:
+        #    for series in study:
+        #        series.find_reference_uid()
 
-        pids = set(s.attributes['PatientID'] for s in series if 'PatientID' in s.attributes)
-        series.sort(key=lambda s: s.sort_key)
-        plane_ids = {s.plane_uids: s for s in series}
-        for s in series:
-            ref = s.ref_plane_uids
-            if ref and ref in plane_ids:
-                s.refers_to_series = plane_ids[ref]
-        return series
 
-    def dicom_file_series(self, paths) -> list['Series']:
+    def dicom_patients(self, paths) -> list[Patient]:
         """Group DICOM files into series"""
-        series = defaultdict(self.new_series)
+        series = defaultdict(list)
+        patients = []
         for path in paths:
             d = dcmread(path)
-            if hasattr(d, 'SeriesInstanceUID'):
-                series_id = d.SeriesInstanceUID
-                series[series_id].add(path, d)
-        for s in series.values():
-            s.order_slices()
-        self.session.logger.info(str(series))
-        series = list(series.values())
-        return series
+            if hasattr(d, 'PatientID'):
+                series[d.PatientID].append(d)
+            else:
+                series["Unknown Patient"].append(d)
+        for key, series in series.items():
+            patient = Patient(self.session, key)
+            patient.studies_from_files(series)
+            patients.append(patient)
+        return patients
 
     def files_by_directory(
         self, paths, search_directories=True, search_subdirectories=True,
@@ -352,7 +260,7 @@ class DICOMMapFormat(MapFileFormat, DICOM):
 
 
 class DicomContours(Model):
-    def __init__(self, session, series):
+    def __init__(self, session, data):
         def rgb_255(cs):
             return tuple(int(c) for c in cs)
 
@@ -361,33 +269,35 @@ class DicomContours(Model):
             xyz = array(a, float32).reshape(len(a) // 3, 3)
             return xyz
 
-        self.dicom_series = series
-        path = series.paths[0]
-        if series.dicom_class != 'RT Structure Set Storage':
-            raise ValueError(
-                'DICOM file has SOPClassUID, %s, expected "RT Structure Set Storage", file %s'
-                % (series.dicom_class, path)
-                )
+        if type(data) is not list:
+            data = [data]
+        self.dicom_series = data[0]
 
-        if len(series.paths) > 1:
+        if len(data) > 1:
             raise ValueError(
                 'DICOM series has %d files, can only handle one file for "RT Structure Set Storage", '
                 'file %s' % (len(series.paths), path)
-                )
-
-        d = dcmread(path)
-
-        desc = d.get('SeriesDescription', '')
+        )
+        desc = self.dicom_series.get('SeriesDescription', '')
         Model.__init__(self, 'Regions %s' % desc, session)
 
         el = self.dicom_elements(
-            d, {'StructureSetROISequence': {'ROINumber': int,
-                                            'ROIName':   str},
-                'ROIContourSequence':      {'ROIDisplayColor': rgb_255,
-                                            'ContourSequence': {'ContourGeometricType':  str,
-                                                                'NumberOfContourPoints': int,
-                                                                'ContourData':           xyz_list}}}
-            )
+            self.dicom_series
+            , {
+                'StructureSetROISequence': {
+                    'ROINumber': int
+                    , 'ROIName': str
+                }
+                , 'ROIContourSequence': {
+                    'ROIDisplayColor': rgb_255
+                    , 'ContourSequence': {
+                        'ContourGeometricType':  str
+                        , 'NumberOfContourPoints': int
+                        , 'ContourData': xyz_list
+                    }
+                }
+            }
+        )
         regions = []
         for rs, rcs in zip(el['StructureSetROISequence'], el['ROIContourSequence']):
             r = ROIContourModel(session, rs['ROIName'], rs['ROINumber'], rcs['ROIDisplayColor'], rcs['ContourSequence'])
@@ -459,34 +369,72 @@ class Series:
                         'SamplesPerPixel', 'SeriesDescription', 'SeriesInstanceUID', 'SeriesNumber',
                         'SOPClassUID', 'StudyDate']
 
-    def __init__(self, session):
-        self.paths = []
+    def __init__(self, session, files):
         self.attributes = {}
         self.transfer_syntax = None
-        self._file_info = []
+        self.files = files
         self._multiframe = None
         self._reverse_frames = False
         self._num_times = None
         self._z_spacing = None
         self.session = session
         self._log = session.logger
+        self.image_series = True
+        self.contour_series = False
+        if any([f.SOPClassUID == '1.2.840.10008.5.1.4.1.1.481.3' for f in files]):
+            self.image_series = False
+            self.contour_series = True
+        #sample_file = files[0]
+        #attrs = self.attributes
+        #for attr in self.dicom_attributes:
+        #    if hasattr(sample_file, attr):
+        #        attrs[attr] = getattr(sample_file, attr)
+        #for f in files:
+        #    self.files.append(SeriesFile(f))
+        #if self.transfer_syntax is None and hasattr(sample_file.file_meta, 'TransferSyntaxUID'):
+        #    self.transfer_syntax = sample_file.file_meta.TransferSyntaxUID
 
-    def add(self, path, data):
-        # Read attributes that should be the same for all planes.
-        if len(self.paths) == 0:
-            attrs = self.attributes
-            for attr in self.dicom_attributes:
-                if hasattr(data, attr):
-                    attrs[attr] = getattr(data, attr)
+    def to_models(self):
+        if self.contour_series:
+            return [DicomContours(self.session, s) for s in self.files]
+        else:
+            pass
 
-        self.paths.append(path)
+#    def group_models(self, paths, models):
+#        """Group into a four level hierarchy: directory, patient id, date, series."""
+#        # Patient, Study, Series, Image
+#        if len(models) == 0:
+#            return []
+#        dname = os.path.basename(paths[0]) if len(paths) == 1 else os.path.basename(os.path.dirname(paths[0]))
+#        top = DICOMModel(dname, self.session)
+#        locations = []
+#        for m in models:
+#            s = self.model_series(m)
+#            if s is None:
+#                locations.append((m, ()))
+#            else:
+#                pid = s.attributes.get('PatientID', 'unknown')
+#                date = s.attributes.get('StudyDate', 'date unknown')
+#                locations.append((m, ('Patient %s' % pid, date)))
+#        leaf = {(): top}
+#        for m, gnames in locations:
+#            if gnames not in leaf:
+#                for i in range(len(gnames)):
+#                    if gnames[:i + 1] not in leaf:
+#                        leaf[gnames[:i + 1]] = gm = DICOMModel(gnames[i], self.session)
+#                        leaf[gnames[:i]].add([gm])
+#            leaf[gnames].add([m])
+#        return [top]
 
-        # Read attributes used for ordering the images.
-        self._file_info.append(SeriesFile(path, data))
-
-        # Get image encoding format
-        if self.transfer_syntax is None and hasattr(data.file_meta, 'TransferSyntaxUID'):
-            self.transfer_syntax = data.file_meta.TransferSyntaxUID
+#    def model_series(self, m):
+#        s = getattr(m, 'dicom_series', None)
+#        if s is None:
+#            # Look at child models for multi-channel and time-series.
+#            for c in m.child_models():
+#                s = getattr(c, 'dicom_series', None)
+#                if s:
+#                    break
+#        return s
 
     @property
     def name(self):
@@ -509,18 +457,74 @@ class Series:
         name = ' '.join(fields)
         return name
 
+    def _to_grids(self, series) -> list['DicomGrid']:
+        grids = []
+        derived = []  # For grouping derived series with original series
+        sgrids = {}
+        for s in series:
+            if not s.has_image_data:
+                continue
+            d = DicomData(s)
+            if d.mode == 'RGB':
+                # Create 3-channels for RGB series
+                cgrids = []
+                colors = [(1, 0, 0, 1), (0, 1, 0, 1), (0, 0, 1, 1)]
+                suffixes = [' red', ' green', ' blue']
+                for channel in (0, 1, 2):
+                    g = DicomGrid(d, channel=channel)
+                    g.name += suffixes[channel]
+                    g.rgba = colors[channel]
+                    cgrids.append(g)
+                grids.append(cgrids)
+            elif s.num_times > 1:
+                # Create time series for series containing multiple times as frames
+                tgrids = []
+                for t in range(s.num_times):
+                    g = DicomGrid(d, time=t)
+                    g.series_index = t
+                    tgrids.append(g)
+                grids.append(tgrids)
+            else:
+                # Create single channel, single time series.
+                g = DicomGrid(d)
+                rs = getattr(s, 'refers_to_series', None)
+                if rs:
+                    # If this associated with another series (e.g. is a segmentation), make
+                    # it a channel together with that associated series.
+                    derived.append((g, rs))
+                else:
+                    sgrids[s] = gg = [g]
+                    grids.append(gg)
+        # Group derived series with the original series
+        channel_colors = [(1, 0, 0, 1), (0, 1, 0, 1), (0, 0, 1, 1)]
+        for g, rs in derived:
+            sg = sgrids[rs]
+            if len(sg) == 1:
+                sg[0].channel = 1
+            sg.append(g)
+            g.channel = len(sg)
+            g.rgba = channel_colors[(g.channel - 2) % len(channel_colors)]
+            if not g.dicom_data.origin_specified:
+                # Segmentation may not have specified an origin
+                g.set_origin(sg[0].origin)
+        # Show only first group of grids
+        for gg in grids[1:]:
+            for g in gg:
+                g.show_on_open = False
+        return grids
+
     @property
     def sort_key(self):
         attrs = self.attributes
-        return (attrs.get('PatientID', ''), attrs.get('StudyDate', ''), self.name, self.paths[0])
+        return (attrs.get('PatientID', ''), attrs.get('StudyDate', ''), self.name)
 
     @property
     def plane_uids(self):
-        return tuple(fi._instance_uid for fi in self._file_info)
+        return tuple(fi._instance_uid for fi in self.files)
 
     @property
     def ref_plane_uids(self):
-        fis = self._file_info
+        fis = self.files
         if len(fis) == 1 and hasattr(fis[0], '_ref_instance_uids'):
             uids = fis[0]._ref_instance_uids
             if uids is not None:
@@ -532,9 +536,9 @@ class Series:
         if self._num_times is None:
             nt = self.attributes.get('NumberOfTemporalPositions', None)
             if nt is None:
-                times = sorted(set(data.trigger_time for data in self._file_info))
+                times = sorted(set(data.trigger_time for data in self.files))
                 nt = len(times)
-                for data in self._file_info:
+                for data in self.files:
                     data._time = times.index(data.trigger_time) + 1
                     data.inferred_properties += "TemporalPositionIdentifier"
                 if nt > 1:
@@ -552,7 +556,7 @@ class Series:
         mf = self._multiframe
         if mf is None:
             mf = False
-            for fi in self._file_info:
+            for fi in self.files:
                 if fi.multiframe:
                     self._multiframe = mf = True
                     break
@@ -560,27 +564,25 @@ class Series:
         return mf
 
     def order_slices(self):
-        paths = self.paths
-        if len(paths) == 1 and self.multiframe:
+        files = self.paths
+        if len(files) == 1 and self.multiframe:
             # Determination of whether frames reversed done in z_plane_spacing()
             self.z_plane_spacing()
 
-        if len(paths) <= 1:
+        if len(files) <= 1:
             return
 
         # Check that time series images all have time value, and all times are found
         self._validate_time_series()
 
-        files = self._file_info
+        files = self.files
         self._sort_by_z_position(files)
-
-        self.paths = tuple(fi.path for fi in files)
 
     def _validate_time_series(self):
         if self.num_times == 1:
             return
 
-        files = self._file_info
+        files = self.files
         for fi in files:
             if fi._time is None:
                 raise ValueError('Missing dicom TemporalPositionIdentifier for image %s' % fi.path)
@@ -607,10 +609,10 @@ class Series:
     def grid_size(self):
         attrs = self.attributes
         xsize, ysize = attrs['Columns'], attrs['Rows']
-        files = self._file_info
+        files = self.files
         if self.multiframe:
             if len(files) == 1:
-                zsize = self._file_info[0]._num_frames
+                zsize = self.files[0]._num_frames
             else:
                 maxf = max(fi._num_frames for fi in files)
                 raise ValueError(
@@ -623,7 +625,7 @@ class Series:
         return (xsize, ysize, zsize)
 
     def origin(self):
-        files = self._file_info
+        files = self.files
         if len(files) == 0:
             return None
 
@@ -643,7 +645,7 @@ class Series:
         return ((x0, x1, x2), (y0, y1, y2), (z0, z1, z2))
 
     def _patient_axes(self):
-        files = self._file_info
+        files = self.files
         if files:
             # TODO: Different files can have different orientations.
             #   For example, study 02ef8f31ea86a45cfce6eb297c274598/series-000004.
@@ -665,7 +667,7 @@ class Series:
     def pixel_spacing(self):
         pspacing = self.attributes.get('PixelSpacing')
         if pspacing is None and self.multiframe:
-            pspacing = self._file_info[0]._pixel_spacing
+            pspacing = self.files[0]._pixel_spacing
 
         if pspacing is None:
             xs = ys = 1
@@ -692,7 +694,7 @@ class Series:
     def z_plane_spacing(self):
         dz = self._z_spacing
         if dz is None:
-            files = self._file_info
+            files = self.files
             if self.multiframe:
                 f = files[0]
                 fpos = f._frame_positions
@@ -728,8 +730,8 @@ class Series:
             if self._log:
                 msg = ('Plane z spacings are unequal, min = %.6g, max = %.6g, using max.\n' % (dzmin, dzmax) +
                        'Perpendicular axis (%.3f, %.3f, %.3f)\n' % tuple(self.plane_normal()) +
-                       'Directory %s\n' % os.path.dirname(self._file_info[0].path) +
-                       '\n'.join(['%s %s' % (os.path.basename(f.path), f._position) for f in self._file_info]))
+                       'Directory %s\n' % os.path.dirname(self.files[0].path) +
+                       '\n'.join(['%s %s' % (os.path.basename(f.path), f._position) for f in self.files]))
                 self._log.warning(msg)
         dz = dzmax if abs(dzmax) > abs(dzmin) else dzmin
         return dz
@@ -749,10 +751,9 @@ class Series:
 
 
 class SeriesFile:
-    def __init__(self, path, data):
+    def __init__(self, data):
         self.data = data
         self.inferred_properties = []
-        self.path = path
         pos = getattr(data, 'ImagePositionPatient', None)
         self._position = tuple(float(p) for p in pos) if pos else None
         orient = getattr(data, 'ImageOrientationPatient', None)  # horz and vertical image axes
