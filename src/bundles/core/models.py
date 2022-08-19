@@ -286,6 +286,8 @@ class Model(State, Drawing):
     def add(self, models):
         '''Add child models to this model.'''
         om = self.session.models
+        if type(models) is not list:
+            models = [models]
         if om.have_model(self):
             # Parent already open.
             om.add(models, parent = self)

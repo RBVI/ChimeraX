@@ -42,8 +42,8 @@ def cmd_centroid(session, atoms=None, *, mass_weighting=False, name="centroid", 
         structures_atoms = [m.atoms for m in session.models if isinstance(m, AtomicStructure)]
         if structures_atoms:
             atoms = concatenate(structures_atoms)
-        else:
-            raise UserError("Atom specifier selects no atoms")
+    if not atoms:
+        raise UserError("Atom specifier selects no atoms")
 
     structures = atoms.unique_structures
     if len(structures) > 1:

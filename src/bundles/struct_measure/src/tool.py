@@ -29,7 +29,7 @@ from Qt.QtGui import QDoubleValidator
 from Qt.QtCore import Qt
 from chimerax.ui.widgets import ColorButton
 from chimerax.ui.options import SettingsPanel, OptionsPanel, Option, \
-    BooleanOption, ColorOption, IntOption, FloatOption, StringOption
+    BooleanOption, ColorOption, IntOption, FloatOption, StringOption, EnumOption
 from chimerax.centroids import CentroidModel
 from chimerax.axes_planes import AxisModel, PlaneModel
 
@@ -144,11 +144,15 @@ class StructMeasureTool(ToolInstance):
         item_spec = "".join([x.atomspec for x in sel])
         info = run(self.session, "distance %s %s" % (target_spec, item_spec))
         if len(sel) == 1:
-            min_info, avg, max_info = list(info.values())[0]
             dist_fmt = self.session.pb_dist_monitor.distance_format
-            self.apc_status_label.setText(("Distance from %s to %d atoms: min " + dist_fmt
-                + " (%s), avg " + dist_fmt + ", max " + dist_fmt + " (%s)")
-                % (sel[0], len(sel_atoms), min_info[0], min_info[1], avg, max_info[0], max_info[1]))
+            if isinstance(info, float):
+                user_info = ("Distance from %s to %s: " + dist_fmt) % (sel[0], sel_atoms[0], info)
+            else:
+                min_info, avg, max_info = list(info.values())[0]
+                user_info = ("Distance from %s to %d atoms: min " + dist_fmt + " (%s), avg " + dist_fmt
+                    + ", max " + dist_fmt + " (%s)") % (sel[0], len(sel_atoms), min_info[0], min_info[1],
+                    avg, max_info[0], max_info[1])
+            self.apc_status_label.setText(user_info)
             self.apc_status_label.setHidden(False)
 
     def _apc_save_info(self):
@@ -200,7 +204,7 @@ class StructMeasureTool(ToolInstance):
                             dist = d
                     if angle is None:
                         a = sel2.angle(sel1)
-                        if a is not notImplemented:
+                        if a is not NotImplemented:
                             angle = a
             else:
                 from chimerax.geometry import distance
@@ -756,22 +760,31 @@ class DefineAxisDialog:
         self.options.add_option(self.color_option)
         self.name_option = StringOption("Name", None, None)
         self.options.add_option(self.name_option)
-        self.radius_type_option = BooleanOption("Set radius to average atom-axis distance", True,
-            lambda opt, s=self: s.options.set_option_shown(s.radius_option, not opt.value))
+        #TODO: below needs work; only correct for axis based on atoms rather than normals/points
+        class AxisRadiusOption(EnumOption):
+            AVERAGE = "Average atom-axis distance"
+            FIXED = "Fixed value"
+            values = [AVERAGE, FIXED]
+        self.radius_type_option = AxisRadiusOption("Radius", AxisRadiusOption.AVERAGE,
+            lambda opt, s=self: s.options.set_option_shown(s.radius_option, opt.value == opt.FIXED))
         self.options.add_option(self.radius_type_option)
         self.radius_option = AngstromOption("Fixed radius", 2.0, None, min="positive", decimal_places=1,
             step=1.0)
         self.options.add_option(self.radius_option)
         self.options.hide_option(self.radius_option)
-        self.length_type_option = BooleanOption("Set length to enclose atom projections", True,
-            lambda opt, s=self: (s.options.set_option_shown(s.length_option, not opt.value),
-            s.options.set_option_shown(s.padding_option, opt.value)))
+        class AxisLengthOption(EnumOption):
+            ENCLOSE = "Enclose atom projections"
+            FIXED = "Fixed value"
+            values = [ENCLOSE, FIXED]
+        self.length_type_option = AxisLengthOption("Length", AxisLengthOption.ENCLOSE,
+            lambda opt, s=self: (s.options.set_option_shown(s.length_option, opt.value == opt.FIXED),
+            s.options.set_option_shown(s.padding_option, opt.value == opt.ENCLOSE)))
         self.options.add_option(self.length_type_option)
         self.length_option = AngstromOption("Fixed length", 10.0, None, min="positive", decimal_places=1,
             step=1.0)
         self.options.add_option(self.length_option)
         self.options.hide_option(self.length_option)
-        self.padding_option = AngstromOption("with padding", 0.0, None, decimal_places=1, step=0.5)
+        self.padding_option = AngstromOption("Length padding", 0.0, None, decimal_places=1, step=0.5)
         self.options.add_option(self.padding_option)
         self.weighting_option = BooleanOption("Mass weighting", False, None)
         self.options.add_option(self.weighting_option)
