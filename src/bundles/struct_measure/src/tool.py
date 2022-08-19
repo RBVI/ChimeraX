@@ -29,7 +29,7 @@ from Qt.QtGui import QDoubleValidator
 from Qt.QtCore import Qt
 from chimerax.ui.widgets import ColorButton
 from chimerax.ui.options import SettingsPanel, OptionsPanel, Option, \
-    BooleanOption, ColorOption, IntOption, FloatOption, StringOption
+    BooleanOption, ColorOption, IntOption, FloatOption, StringOption, EnumOption
 from chimerax.centroids import CentroidModel
 from chimerax.axes_planes import AxisModel, PlaneModel
 
@@ -760,22 +760,31 @@ class DefineAxisDialog:
         self.options.add_option(self.color_option)
         self.name_option = StringOption("Name", None, None)
         self.options.add_option(self.name_option)
-        self.radius_type_option = BooleanOption("Set radius to average atom-axis distance", True,
-            lambda opt, s=self: s.options.set_option_shown(s.radius_option, not opt.value))
+        #TODO: below needs work; only correct for axis based on atoms rather than normals/points
+        class AxisRadiusOption(EnumOption):
+            AVERAGE = "Average atom-axis distance"
+            FIXED = "Fixed value"
+            values = [AVERAGE, FIXED]
+        self.radius_type_option = AxisRadiusOption("Radius", AxisRadiusOption.AVERAGE,
+            lambda opt, s=self: s.options.set_option_shown(s.radius_option, opt.value == opt.FIXED))
         self.options.add_option(self.radius_type_option)
         self.radius_option = AngstromOption("Fixed radius", 2.0, None, min="positive", decimal_places=1,
             step=1.0)
         self.options.add_option(self.radius_option)
         self.options.hide_option(self.radius_option)
-        self.length_type_option = BooleanOption("Set length to enclose atom projections", True,
-            lambda opt, s=self: (s.options.set_option_shown(s.length_option, not opt.value),
-            s.options.set_option_shown(s.padding_option, opt.value)))
+        class AxisLengthOption(EnumOption):
+            ENCLOSE = "Enclose atom projections"
+            FIXED = "Fixed value"
+            values = [ENCLOSE, FIXED]
+        self.length_type_option = AxisLengthOption("Length", AxisLengthOption.ENCLOSE,
+            lambda opt, s=self: (s.options.set_option_shown(s.length_option, opt.value == opt.FIXED),
+            s.options.set_option_shown(s.padding_option, opt.value == opt.ENCLOSE)))
         self.options.add_option(self.length_type_option)
         self.length_option = AngstromOption("Fixed length", 10.0, None, min="positive", decimal_places=1,
             step=1.0)
         self.options.add_option(self.length_option)
         self.options.hide_option(self.length_option)
-        self.padding_option = AngstromOption("with padding", 0.0, None, decimal_places=1, step=0.5)
+        self.padding_option = AngstromOption("Length padding", 0.0, None, decimal_places=1, step=0.5)
         self.options.add_option(self.padding_option)
         self.weighting_option = BooleanOption("Mass weighting", False, None)
         self.options.add_option(self.weighting_option)
