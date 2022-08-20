@@ -375,7 +375,7 @@ class StructMeasureTool(ToolInstance):
         def id_cmp(item1, item2):
             components1 = [int(x) for x in item1.id_string.split('.')]
             components2 = [int(x) for x in item2.id_string.split('.')]
-            for i in range(max(len(components1), len(components2))):
+            for i in range(min(len(components1), len(components2))):
                 if components1[i] == components2[i]:
                     continue
                 return components1[i] < components2[i]
@@ -656,6 +656,7 @@ class DefineAxisDialog:
         self.button_group = QButtonGroup()
         self.button_group.buttonClicked.connect(self.show_applicable_params)
         self.shown_for_button = {} # widgets that are always shown don't go into this
+        self.conditionally_shown = {}
         self.button_dispatch = {}
         self.axis_name_for_button = {}
 
@@ -675,7 +676,7 @@ class DefineAxisDialog:
         self.axis_name_for_button[atoms_button] = "axis"
         self.button_dispatch[atoms_button] = self.cmd_params_atoms_axis
 
-        plane_button = QRadioButton("Plane normals")
+        self.plane_button = plane_button = QRadioButton("Plane normals")
         plane_button.setChecked(False)
         self.button_group.addButton(plane_button)
         type_layout.addWidget(plane_button, alignment=Qt.AlignLeft | Qt.AlignTop)
@@ -683,7 +684,7 @@ class DefineAxisDialog:
         self.axis_name_for_button[plane_button] = "normal"
         self.button_dispatch[plane_button] = self.cmd_params_plane_axis
 
-        points_button = QRadioButton("Two points")
+        self.points_button = points_button = QRadioButton("Two points")
         points_button.setChecked(False)
         self.button_group.addButton(points_button)
         type_layout.addWidget(points_button, alignment=Qt.AlignLeft | Qt.AlignTop)
@@ -758,174 +759,101 @@ class DefineAxisDialog:
         pg_layout.addWidget(self.options)
         self.color_option = ColorWithDefaultOption("Color", None, None, has_alpha_channel=True)
         self.options.add_option(self.color_option)
+        from chimerax.core.colors import Color
+        self.points_color_option = ColorOption("Color", Color("#909090"), None, has_alpha_channel=True)
+        self.options.add_option(self.points_color_option)
+        self.options.hide_option(self.points_color_option)
         self.name_option = StringOption("Name", None, None)
         self.options.add_option(self.name_option)
-        #TODO: below needs work; only correct for axis based on atoms rather than normals/points
-        class AxisRadiusOption(EnumOption):
-            AVERAGE = "Average atom-axis distance"
+        class AtomsRadiusOption(EnumOption):
+            VARIABLE = "Average atom-axis distance"
             FIXED = "Fixed value"
-            values = [AVERAGE, FIXED]
-        self.radius_type_option = AxisRadiusOption("Radius", AxisRadiusOption.AVERAGE,
+            values = [VARIABLE, FIXED]
+        self.atoms_radius_type_option = AtomsRadiusOption("Radius method", AtomsRadiusOption.VARIABLE,
             lambda opt, s=self: s.options.set_option_shown(s.radius_option, opt.value == opt.FIXED))
-        self.options.add_option(self.radius_type_option)
-        self.radius_option = AngstromOption("Fixed radius", 2.0, None, min="positive", decimal_places=1,
+        self.options.add_option(self.atoms_radius_type_option)
+        self.all_params_widgets.append(self.atoms_radius_type_option)
+        self.shown_for_button[helix_button].add(self.atoms_radius_type_option)
+        self.shown_for_button[atoms_button].add(self.atoms_radius_type_option)
+        class NormalRadiusOption(EnumOption):
+            VARIABLE = "5% of plane radius"
+            FIXED = "Fixed value"
+            values = [VARIABLE, FIXED]
+        self.normal_radius_type_option = NormalRadiusOption("Radius method", NormalRadiusOption.VARIABLE,
+            lambda opt, s=self: s.options.set_option_shown(s.radius_option, opt.value == opt.FIXED))
+        self.options.add_option(self.normal_radius_type_option)
+        self.all_params_widgets.append(self.normal_radius_type_option)
+        self.shown_for_button[plane_button].add(self.normal_radius_type_option)
+        self.options.hide_option(self.normal_radius_type_option)
+        self.radius_option = AngstromOption("Radius", 2.0, None, min="positive", decimal_places=1,
             step=1.0)
         self.options.add_option(self.radius_option)
+        self.all_params_widgets.append(self.radius_option)
+        self.shown_for_button[points_button].add(self.radius_option)
+        self.conditionally_shown[self.radius_option] = {
+            helix_button: (self.atoms_radius_type_option, AtomsRadiusOption.FIXED),
+            atoms_button: (self.atoms_radius_type_option, AtomsRadiusOption.FIXED),
+            plane_button: (self.normal_radius_type_option, NormalRadiusOption.FIXED)
+        }
         self.options.hide_option(self.radius_option)
-        class AxisLengthOption(EnumOption):
-            ENCLOSE = "Enclose atom projections"
+        class AtomsLengthOption(EnumOption):
+            VARIABLE = "Enclose atom/point projections"
             FIXED = "Fixed value"
-            values = [ENCLOSE, FIXED]
-        self.length_type_option = AxisLengthOption("Length", AxisLengthOption.ENCLOSE,
+            values = [VARIABLE, FIXED]
+        self.atoms_length_type_option = AtomsLengthOption("Length method", AtomsLengthOption.VARIABLE,
             lambda opt, s=self: (s.options.set_option_shown(s.length_option, opt.value == opt.FIXED),
-            s.options.set_option_shown(s.padding_option, opt.value == opt.ENCLOSE)))
-        self.options.add_option(self.length_type_option)
-        self.length_option = AngstromOption("Fixed length", 10.0, None, min="positive", decimal_places=1,
+            s.options.set_option_shown(s.padding_option, opt.value == opt.VARIABLE)))
+        self.options.add_option(self.atoms_length_type_option)
+        self.all_params_widgets.append(self.atoms_length_type_option)
+        self.shown_for_button[helix_button].add(self.atoms_length_type_option)
+        self.shown_for_button[atoms_button].add(self.atoms_length_type_option)
+        self.shown_for_button[points_button].add(self.atoms_length_type_option)
+        class NormalLengthOption(EnumOption):
+            VARIABLE = "Equal to plane radius"
+            FIXED = "Fixed value"
+            values = [VARIABLE, FIXED]
+        self.normal_length_type_option = NormalLengthOption("Length method", NormalLengthOption.VARIABLE,
+            lambda opt, s=self: (s.options.set_option_shown(s.length_option, opt.value == opt.FIXED),
+            s.options.set_option_shown(s.padding_option, opt.value == opt.VARIABLE)))
+        self.options.add_option(self.normal_length_type_option)
+        self.all_params_widgets.append(self.normal_length_type_option)
+        self.shown_for_button[plane_button].add(self.normal_length_type_option)
+        self.options.hide_option(self.normal_length_type_option)
+        self.length_option = AngstromOption("Length", 10.0, None, min="positive", decimal_places=1,
             step=1.0)
         self.options.add_option(self.length_option)
+        self.all_params_widgets.append(self.length_option)
+        self.conditionally_shown[self.length_option] = {
+            helix_button: (self.atoms_length_type_option, AtomsLengthOption.FIXED),
+            atoms_button: (self.atoms_length_type_option, AtomsLengthOption.FIXED),
+            plane_button: (self.normal_length_type_option, NormalLengthOption.FIXED),
+            points_button: (self.atoms_length_type_option, AtomsLengthOption.FIXED),
+        }
         self.options.hide_option(self.length_option)
         self.padding_option = AngstromOption("Length padding", 0.0, None, decimal_places=1, step=0.5)
         self.options.add_option(self.padding_option)
+        self.all_params_widgets.append(self.padding_option)
+        self.conditionally_shown[self.padding_option] = {
+            helix_button: (self.atoms_length_type_option, AtomsLengthOption.VARIABLE),
+            atoms_button: (self.atoms_length_type_option, AtomsLengthOption.VARIABLE),
+            plane_button: (self.normal_length_type_option, NormalLengthOption.VARIABLE),
+            points_button: (self.atoms_length_type_option, AtomsLengthOption.VARIABLE),
+        }
         self.weighting_option = BooleanOption("Mass weighting", False, None)
         self.options.add_option(self.weighting_option)
         self.shown_for_button[atoms_button].add(self.weighting_option)
         self.all_params_widgets.append(self.weighting_option)
 
-        """
-        self.params_group_layout = pg_layout = QGridLayout()
-        pg_layout.setColumnMinimumWidth(1, 9)
-        pg_layout.setColumnStretch(2, 1)
-        pg_layout.setSpacing(0)
-        pg_layout.setContentsMargins(1,1,1,1)
-        params_group.setLayout(pg_layout)
-
-        from itertools import count
-        row_count = count(0)
-        # blank "spacer" rows above, below, and between
-        row = next(row_count)
-        pg_layout.setRowStretch(row, 1)
-
-        row = next(row_count)
-        pg_layout.addWidget(QLabel("Color"), row, 0, alignment=Qt.AlignRight)
-        color_layout = QHBoxLayout()
-        color_layout.setSpacing(0)
-        pg_layout.addLayout(color_layout, row, 2, alignment=Qt.AlignLeft)
-
-        row = next(row_count)
-        pg_layout.setRowStretch(row, 1)
-
-        self.color_group = QButtonGroup()
-        self.default_color_button = QRadioButton("atom-based")
-        self.color_group.addButton(self.default_color_button)
-        color_layout.addWidget(self.default_color_button)
-        color_layout.addSpacing(9)
-        explicit_color_button = QRadioButton()
-        self.color_group.addButton(explicit_color_button)
-        color_layout.addWidget(explicit_color_button, alignment=Qt.AlignRight)
-        self.color_widget = ColorButton(max_size=(16,16))
-        self.color_widget.color_changed.connect(
-            lambda *args, but=explicit_color_button: but.setChecked(True))
-        from chimerax.core.colors import Color
-        # button doesn't start off the right size unless explicitly given a color
-        self.color_widget.color = Color("#909090")
-        color_layout.addWidget(self.color_widget, alignment=Qt.AlignLeft)
-        self.default_color_button.setChecked(True)
-
-        row = next(row_count)
-        pg_layout.addWidget(QLabel("Name"), row, 0, alignment=Qt.AlignRight)
-        self.name_entry = QLineEdit()
-        pg_layout.addWidget(self.name_entry, row, 2)
-
-        row = next(row_count)
-        pg_layout.setRowStretch(row, 1)
-
-        row = next(row_count)
-        pg_layout.addWidget(QLabel("Radius"), row, 0, alignment=Qt.AlignRight)
-        radius_layout = QHBoxLayout()
-        radius_layout.setSpacing(0)
-        pg_layout.addLayout(radius_layout, row, 2, alignment=Qt.AlignLeft)
-
-        self.radius_group = QButtonGroup()
-        self.default_radius_button = QRadioButton("default")
-        self.radius_group.addButton(self.default_radius_button)
-        radius_layout.addWidget(self.default_radius_button)
-        radius_layout.addSpacing(9)
-        explicit_radius_button = QRadioButton()
-        self.radius_group.addButton(explicit_radius_button)
-        radius_layout.addWidget(explicit_radius_button, alignment=Qt.AlignRight)
-        explicit_radius_layout = QHBoxLayout()
-        radius_layout.addLayout(explicit_radius_layout, stretch=1)
-        self.radius_entry = QLineEdit()
-        self.radius_entry.setValidator(QDoubleValidator())
-        self.radius_entry.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        self.radius_entry.textChanged.connect(
-            lambda *args, but=explicit_radius_button: but.setChecked(True))
-        radius_layout.addWidget(self.radius_entry, alignment=Qt.AlignLeft, stretch=1)
-        radius_layout.addWidget(QLabel(" \N{ANGSTROM SIGN}"))
-        self.default_radius_button.setChecked(True)
-
-        row = next(row_count)
-        pg_layout.setRowStretch(row, 1)
-
-        row = next(row_count)
-        pg_layout.addWidget(QLabel("Length"), row, 0, alignment=Qt.AlignRight)
-        length_layout = QHBoxLayout()
-        length_layout.setSpacing(0)
-        pg_layout.addLayout(length_layout, row, 2, alignment=Qt.AlignLeft)
-
-        self.length_group = QButtonGroup()
-        self.default_length_button = QRadioButton("default")
-        self.length_group.addButton(self.default_length_button)
-        length_layout.addWidget(self.default_length_button)
-        length_layout.addSpacing(9)
-        explicit_length_button = QRadioButton()
-        self.length_group.addButton(explicit_length_button)
-        length_layout.addWidget(explicit_length_button, alignment=Qt.AlignRight)
-        explicit_length_layout = QHBoxLayout()
-        length_layout.addLayout(explicit_length_layout, stretch=1)
-        self.length_entry = QLineEdit()
-        self.length_entry.setValidator(QDoubleValidator())
-        self.length_entry.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        length_layout.addWidget(self.length_entry, alignment=Qt.AlignLeft, stretch=1)
-        length_layout.addWidget(QLabel(" \N{ANGSTROM SIGN}"))
-        row = next(row_count)
-        padding_layout = QHBoxLayout()
-        pg_layout.addLayout(padding_layout, row, 2, alignment=Qt.AlignLeft)
-        padding_widgets = []
-        padding_label = QLabel("padding:")
-        padding_layout.addWidget(padding_label)
-        padding_widgets.append(padding_label)
-        self.padding_entry = QLineEdit()
-        self.padding_entry.setValidator(QDoubleValidator())
-        self.padding_entry.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        self.padding_entry.setText("0")
-        self.padding_entry.setMaximumWidth(30)
-        padding_layout.addWidget(self.padding_entry, alignment=Qt.AlignLeft)
-        padding_widgets.append(self.padding_entry)
-        padding_angstroms = QLabel(" \N{ANGSTROM SIGN}")
-        padding_layout.addWidget(padding_angstroms, alignment=Qt.AlignLeft)
-        padding_widgets.append(padding_angstroms)
-        self.length_entry.textChanged.connect(lambda *args, but=explicit_length_button,
-            widgets=padding_widgets: (but.setChecked(True), [w.setHidden(True) for w in widgets]))
-        explicit_length_button.clicked.connect(lambda *args, widgets=padding_widgets:
-            [w.setHidden(True) for w in widgets])
-        self.default_length_button.clicked.connect(lambda *args, widgets=padding_widgets:
-            [w.setHidden(False) for w in widgets])
-        self.default_length_button.setChecked(True)
-
-        row = next(row_count)
-        pg_layout.setRowStretch(row, 1)
-
-        row = next(row_count)
-        self.mass_weighting = QCheckBox("Mass weighting")
-        self.mass_weighting.setChecked(False)
-        pg_layout.addWidget(self.mass_weighting, row, 0, 1, 3, alignment=Qt.AlignCenter)
-        self.shown_for_button[atoms_button].add((self.mass_weighting, row+1))
-        self.all_params_widgets.append((self.mass_weighting, row+1))
-
-        row = next(row_count)
-        pg_layout.setRowStretch(row, 1)
-        """
+        self.generic_param_options = {
+            helix_button: (self.color_option, self.name_option, self.atoms_radius_type_option,
+                self.radius_option, self.atoms_length_type_option, self.length_option, self.padding_option),
+            atoms_button: (self.color_option, self.name_option, self.atoms_radius_type_option,
+                self.radius_option, self.atoms_length_type_option, self.length_option, self.padding_option),
+            plane_button: (self.color_option, self.name_option, self.normal_radius_type_option,
+                self.radius_option, self.normal_length_type_option, self.length_option, self.padding_option),
+            points_button: (self.points_color_option, self.name_option, self.atoms_radius_type_option,
+                self.radius_option, self.atoms_length_type_option, self.length_option, self.padding_option),
+        }
 
         self.show_applicable_params(self.button_group.checkedButton())
 
@@ -943,8 +871,7 @@ class DefineAxisDialog:
         if not selected_atoms(self.session):
             raise UserError("No atoms/centroids selected")
         base_params = "sel " + self.generic_params()
-        #TODO
-        if self.mass_weighting.isChecked():
+        if self.weighting_option.value:
             return base_params + " mass true"
         return base_params
 
@@ -984,43 +911,27 @@ class DefineAxisDialog:
         return ("fromPoint %g,%g,%g toPoint %g,%g,%g " % (*from_pt, *to_pt))+ self.generic_params()
 
     def generic_params(self):
-        #TODO
-        color_button = self.color_group.checkedButton()
-        if color_button == self.default_color_button:
+        color_option, name_option, radius_type_option, radius_option, length_type_option, length_option, \
+            padding_option = self.generic_param_options[self.button_group.checkedButton()]
+        print("value:", repr(color_option.value), " default:", repr(color_option.default))
+        if color_option.value is None:
             params = ""
         else:
             from chimerax.core.colors import color_name
-            params = "color " + StringArg.unparse(color_name(self.color_widget.color)) + " "
+            params = "color " + StringArg.unparse(color_name(color_option.value)) + " "
 
-        name = self.name_entry.text().strip()
+        name = name_option.value
         if name:
             params += "name %s " % StringArg.unparse(name)
 
-        radius_button = self.radius_group.checkedButton()
-        if radius_button != self.default_radius_button:
-            if not self.radius_entry.hasAcceptableInput():
-                raise UserError("Radius must be a number")
-            radius = float(self.radius_entry.text())
-            if radius <= 0.0:
-                raise UserError("Radius must be a positive number")
-            params += "radius %g " % radius
+        if radius_type_option.value != radius_type_option.default:
+            params += "radius %g " % radius_option.value
 
-        length_button = self.length_group.checkedButton()
-        if length_button == self.default_length_button:
-            text = self.padding_entry.text()
-            if text:
-                if not self.padding_entry.hasAcceptableInput():
-                    raise UserError("Padding must be a number")
-                padding = float(self.padding_entry.text())
-                if padding != 0.0:
-                    params += "padding %g " % padding
+        if length_type_option.value == length_type_option.default:
+            if padding_option.value != padding_option.default:
+                params += " padding %g " % padding_option.value
         else:
-            if not self.length_entry.hasAcceptableInput():
-                raise UserError("Length must be a number")
-            length = float(self.length_entry.text())
-            if length <= 0.0:
-                raise UserError("Length must be a positive number")
-            params += "length %g " % length
+            params += " length %g " % length_option.value
         return params
 
     def define_axis(self, hide=True):
@@ -1032,10 +943,23 @@ class DefineAxisDialog:
         run(self.session, "define axis " + cmd_params)
 
     def show_applicable_params(self, button):
-        # widgets that are _always_ shown aren't in "shown_widgets"
+        # widgets that are _always_ shown aren't in "all_params_widgets"
+        if button == self.points_button:
+            self.options.hide_option(self.color_option)
+            self.options.show_option(self.points_color_option)
+        else:
+            self.options.hide_option(self.points_color_option)
+            self.options.show_option(self.color_option)
+        color_text = "plane color" if button == self.plane_button else "atom-based"
+        self.color_option.default_color_button.setText(color_text)
         shown_widgets = self.shown_for_button[button]
         for widget in self.all_params_widgets:
-            hidden = widget not in shown_widgets
+            try:
+                control_option, control_value = self.conditionally_shown[widget][button]
+            except KeyError:
+                hidden = widget not in shown_widgets
+            else:
+                hidden = control_option.value != control_value
             if isinstance(widget, Option):
                 self.options.set_option_shown(widget, not hidden)
             else:
