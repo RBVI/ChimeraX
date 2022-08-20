@@ -1022,13 +1022,16 @@ class DefinePlaneDialog:
         options_panel.add_option(self.name_option)
         self.color_option = ColorWithDefaultOption("Color", None, None, has_alpha_channel=True)
         options_panel.add_option(self.color_option)
-        self.enclose_option = BooleanOption("Set disk radius to enclose atom projections", True,
-            self._enclosed_changed)
-        options_panel.add_option(self.enclose_option)
+        class RadiusTypeOption(EnumOption):
+            VARIABLE = "Enclose atom projections"
+            FIXED = "Fixed value"
+            values = [VARIABLE, FIXED]
+        self.radius_type_option = RadiusTypeOption("Radius method", RadiusTypeOption.VARIABLE,
+            self._radius_type_changed)
+        options_panel.add_option(self.radius_type_option)
         self.padding_option = AngstromOption("Extra radius (padding)", 0.0, None, decimal_places=1, step=1.0)
         options_panel.add_option(self.padding_option)
-        self.radius_option = AngstromOption("Fixed radius", 10.0, None, decimal_places=1, step=1.0,
-            min="positive")
+        self.radius_option = AngstromOption("Radius", 10.0, None, decimal_places=1, step=1.0, min="positive")
         options_panel.add_option(self.radius_option)
         options_panel.hide_option(self.radius_option)
         self.thickness_option = AngstromOption("Disk thickness", 0.1, None, decimal_places=2, step=.05,
@@ -1058,8 +1061,7 @@ class DefinePlaneDialog:
         if color is not None:
             from chimerax.core.colors import color_name
             cmd += " color " + StringArg.unparse(color_name(color))
-        enclose = self.enclose_option.value
-        if enclose:
+        if self.radius_type_option.value == self.radius_type_option.VARIABLE:
             padding = self.padding_option.value
             if padding != 0.0:
                 cmd += " padding %g" % padding
@@ -1074,8 +1076,8 @@ class DefinePlaneDialog:
         # run command here
         run(self.session, cmd)
 
-    def _enclosed_changed(self, opt):
-        if opt.value:
+    def _radius_type_changed(self, opt):
+        if opt.value == opt.VARIABLE:
             self.options_panel.hide_option(self.radius_option)
             self.options_panel.show_option(self.padding_option)
         else:
@@ -1100,7 +1102,7 @@ class DefineCentroidDialog:
         options_panel.add_option(self.color_option)
         self.radius_option = AngstromOption("Radius", 2.0, None, decimal_places=1, step=0.5, min="positive")
         options_panel.add_option(self.radius_option)
-        self.weighting_option = BooleanOption("Mass weighting", True, None)
+        self.weighting_option = BooleanOption("Mass weighting", False, None)
         options_panel.add_option(self.weighting_option)
 
         bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
