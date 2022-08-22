@@ -62,22 +62,22 @@ class CheckWatersInputTool(ToolInstance):
         if not s:
             raise UserError("No structure chosen for checking")
         map = self.map_list.value
-        #TODO: want to use geometry_bounds(), but that doesn't include children; bounds() only includes shown
-        """
-        if map and len(self.map_list.all_values) > 1:
-            # check that bounding box of map and structure at least overlap
-            s_bbox = s.bounds()
-            map_bbox = map.bounds()
-            #s_center = s.position * s_bbox.center()
-            #map_center = map.position * map_bbox.center()
-            s_center = s_bbox.center()
-            map_center = map_bbox.center()
-            from chimerax.geometry import distance
-            if distance(s_center, map_center) > s_bbox.radius() + map_bbox.radius():
-                from chimerax.ui.ask import ask
-                if ask(self.session, "Structure and map don't overlap, continue anyway?") == "no":
-                    return
-        """
+        from chimerax.map.volume import atom_bounds
+        min_ijk, max_ijk = atom_bounds(s.atoms, 0.0, map)
+        atoms_outside = False
+        for min_bound in min_ijk:
+            if min_bound < 0:
+                atoms_outside = True
+                break
+        if not atoms_outside:
+            for max_bound, map_bound in zip(max_ijk, map.data.size):
+                if max_bound > map_bound:
+                    atoms_outside = True
+                    break
+        if atoms_outside:
+            from chimerax.ui.ask import ask
+            if ask(self.session, "Some (or all) atoms lie outside the volume, continue anyway?") == "no":
+                return
         CheckWaterViewer(self.session, "Check Waters", s, compare_map=map)
         if not apply:
             self.delete()
