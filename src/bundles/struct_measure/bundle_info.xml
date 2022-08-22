@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-StructMeasure" version="1.0.2" package="chimerax.struct_measure"
+<BundleInfo name="ChimeraX-StructMeasure" version="1.1" package="chimerax.struct_measure"
   	    customInit="true" minSessionVersion="1" maxSessionVersion="1">
 
   <!-- Additional information about bundle source -->
@@ -23,9 +23,10 @@
   <!-- Dependencies on other ChimeraX/Python packages -->
   <Dependencies>
     <Dependency name="ChimeraX-Core" version="~=1.0"/>
+    <Dependency name="ChimeraX-AxesPlanes" version="~=2.2"/>
     <Dependency name="ChimeraX-Geometry" version="~=1.0"/>
     <Dependency name="ChimeraX-MouseModes" version="~=1.0"/>
-    <Dependency name="ChimeraX-UI" version="~=1.0"/>
+    <Dependency name="ChimeraX-UI" version="~=1.23"/>
   </Dependencies>
 
   <Classifiers>
@@ -34,6 +35,7 @@
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
     <ChimeraXClassifier>Tool :: Distances :: Structure Analysis :: inter-atomic distances</ChimeraXClassifier>
     <ChimeraXClassifier>Tool :: Angles/Torsions :: Structure Analysis :: report angle/torsion values</ChimeraXClassifier>
+    <ChimeraXClassifier>Tool :: Axes/Planes/Centroids :: Structure Analysis :: create/analyze axes/planes/centroids</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

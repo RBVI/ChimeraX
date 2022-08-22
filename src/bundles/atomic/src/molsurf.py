@@ -144,7 +144,10 @@ class MolecularSurface(Surface):
             self.triangle_mask = self._calc_triangle_mask()
 
     def _clear_shape(self):
-        self.set_geometry(None, None, None)
+        from numpy import empty, float32, int32
+        va = na = empty((0,3),float32)
+        ta = empty((0,3),int32) 
+        self.set_geometry(va, na, ta)
         self.color = self._average_color()
         self.vertex_colors = None
         self._vertex_to_atom = None
