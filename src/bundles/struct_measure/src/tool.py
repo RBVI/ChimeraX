@@ -36,7 +36,7 @@ from chimerax.axes_planes import AxisModel, PlaneModel
 class StructMeasureTool(ToolInstance):
 
     tab_names = ["Distances", "Angles/Torsions", "Axes/Planes/Centroids"]
-    help_info = ["distances", "angles", None]
+    help_info = ["distances", "angles", "axesplanes"]
 
     def __init__(self, session):
         ToolInstance.__init__(self, session, "Structure Measurements")
