@@ -32,6 +32,7 @@ class DouseResultsViewer(CheckWaterViewer):
             "Waters in input model and also found by douse",
             "Waters in input model only"
             ))
+        self.tool_window.title = "Water Placement Results"
 
 from chimerax.core.settings import Settings
 from .douse import command_defaults as defaults
