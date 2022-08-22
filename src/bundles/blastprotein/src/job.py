@@ -58,8 +58,8 @@ class BlastProteinJob(CxServicesJob):
             session.logger.warning(self.inet_error)
 
     def setup(self, seq, atomspec, database: str = "pdb", cutoff: float = 1.0e-3,
-              matrix: str = "BLOSUM62", max_seqs: int = 100, log = None, tool_inst_name = None,
-              sequence_name = None):
+              matrix: str = "BLOSUM62", max_seqs: int = 100, log = None,
+              version = None, tool_inst_name = None, sequence_name = None):
         self.seq = seq.replace('?', 'X')                  # string
         if self.seq.count('X') == len(self.seq):
             raise JobError("Sequence consists entirely of unknown amino acids.")
@@ -71,7 +71,9 @@ class BlastProteinJob(CxServicesJob):
         self.cutoff = cutoff                              # float
         self.matrix = matrix                              # string
         self.max_seqs = max_seqs                          # int
-        self.version = "2"                                # AlphaFold DB Version
+        if version is None:
+            version = "2"
+        self.version = version                            # AlphaFold DB Version
         self.log = log
         self.tool_inst_name = tool_inst_name
 

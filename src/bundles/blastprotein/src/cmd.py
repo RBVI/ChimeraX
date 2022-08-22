@@ -23,7 +23,8 @@ from .job import BlastProteinJob, manually_pull_blast_job
 
 # Use camel-case variable names for displaying keywords in help/usage
 def blastprotein(session, atoms=None, database="pdb", cutoff=1.0e-3,
-                 matrix="BLOSUM62", maxSeqs=100, log=None, *, name=None):
+                 matrix="BLOSUM62", maxSeqs=100, version=None, log=None,
+                 *, name=None):
     if isinstance(atoms, tuple):
         # Must be alignment:seq
         alignment, chain = atoms
@@ -53,7 +54,8 @@ def blastprotein(session, atoms=None, database="pdb", cutoff=1.0e-3,
             chain_spec = str_chain.structure.atomspec + chain_spec
     BlastProteinJob(session, chain.ungapped(), chain_spec,
                     database=database, cutoff=cutoff, matrix=matrix,
-                    max_seqs=maxSeqs, log=log, tool_inst_name=name)
+                    max_seqs=maxSeqs, version=version, log=log,
+                    tool_inst_name=name)
 
 
 blastprotein_desc = CmdDesc(
@@ -62,6 +64,7 @@ blastprotein_desc = CmdDesc(
                                  ("cutoff", FloatArg),
                                  ("matrix", EnumOf(AvailableMatrices)),
                                  ("maxSeqs", IntArg),
+                                 ("version", StringArg),
                                  ("log", BoolArg),
                                  ("name", StringArg),
                                  ],

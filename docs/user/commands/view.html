@@ -75,7 +75,7 @@ See also:
 [&nbsp;<b>clip</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>pad</b>&nbsp;&nbsp;<i>fraction</i>&nbsp;]
 [&nbsp;<b>cofr</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
-[&nbsp;<b>orient</b>&nbsp;|&nbsp;<b>zalign</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>atom1</i></a>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>atom2</i></a>&nbsp;]
+[&nbsp;<b>orient</b>&nbsp;|&nbsp;<b>zalign</b>&nbsp;(&nbsp;<a href="atomspec.html#hierarchy"><i>atom1</i></a>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>atom2</i></a>&nbsp;|&nbsp;<a href="atomspec.html#othermodels"><i>axis-spec</i></a>&nbsp;|&nbsp;<a href="atomspec.html#othermodels"><i>plane-spec</i></a>&nbsp;)]
 <br>
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>view</b> &nbsp;<b>initial</b>
@@ -122,16 +122,25 @@ X-axis horizontal increasing rightward, Y-axis vertical increasing upward,
 and Z-axis perpendicular to the screen increasing toward the viewer;
 in other words, it aligns <a href="#scenecoords">scene coordinates</a> with
 <a href="#screencoords">screen coordinates</a>.
-Alternatively, the <b>zalign</b> option can be used to align two atoms 
-along the <a href="#screencoords">screen</a> Z-axis, with the first atom
-in front. If exactly two atoms are <a href="../selection.html">selected</a>,
+</p><p>
+Alternatively, the <b>zalign</b> option can be used to align any of the 
+following along the <a href="#screencoords">screen</a> Z-axis:
+</p>
+<ul>
+<li>two atoms, with the first atom in front. 
+If exactly two atoms are <a href="../selection.html">selected</a>,
 they can be <a href="atomspec.html#builtin">specified</a> collectively
 with the word <b>sel</b>; for example, to Z-align a selection of two atoms
 and center the view on the residue(s) containing them:
-</p>
-<blockquote>
 <b>view sel-residues zalign sel</b>
-</blockquote>
+<li>a previously defined <a href="define.html">defined</a> axis model,
+specified by model number or as a <a href="../selection.html">selection</a>
+with <b>sel</b>
+<li>the normal axis of
+a previously <a href="define.html">defined</a> plane model,
+specified by model number or as a <a href="../selection.html">selection</a>
+with <b>sel</b>
+</ul>
 <p>
 The <b>view initial</b> command removes rotations and translations of
 models relative to the scene (aligns individual model coordinates with
@@ -288,5 +297,5 @@ later applied from such a file. See also:
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-June 2022</address>
+August 2022</address>
 </body></html>
