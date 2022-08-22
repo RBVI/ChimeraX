@@ -921,18 +921,18 @@ def picked_3d_label(session, win_x, win_y):
     if xyz1 is None or xyz2 is None:
         return None
     pick = None
-    from chimerax.graphics import PickedTriangle
+    from chimerax.core.models import PickedModel
     for m in session.models.list(type = ObjectLabels):
         mtf = m.parent.scene_position.inverse()
         mxyz1, mxyz2 =  mtf*xyz1, mtf*xyz2
         p = m.first_intercept(mxyz1, mxyz2)
-        if isinstance(p, PickedTriangle) and (pick is None or p.distance < pick.distance):
+        if isinstance(p, PickedModel) and (pick is None or p.distance < pick.distance):
             pick = p
 
     if pick:
         # Return ObjectLabel instance
         lmodel = pick.drawing()
-        lobject = lmodel.picked_label(pick.triangle_number)
+        lobject = lmodel.picked_label(pick.picked_triangle.triangle_number)
         if lobject:
             lobject._label_model = lmodel
             return lobject
