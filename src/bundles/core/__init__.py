@@ -864,20 +864,21 @@ def init(argv, event_loop=True):
             if sess.ui.is_gui and opts.debug:
                 print(msg, flush=True)
         from chimerax.core.commands import run
-        for cmd in opts.commands:
-            try:
-                run(sess, cmd)
-            except Exception:
-                if not sess.ui.is_gui:
-                    import traceback
-                    traceback.print_exc()
-                    return os.EX_SOFTWARE
-                # Allow GUI to start up despite errors;
-                if sess.debug:
-                    import traceback
-                    traceback.print_exc(file=sys.__stderr__)
-                else:
-                    sess.ui.thread_safe(sess.logger.report_exception, exc_info=sys.exc_info())
+        with sess.in_script:
+            for cmd in opts.commands:
+                try:
+                    run(sess, cmd)
+                except Exception:
+                    if not sess.ui.is_gui:
+                        import traceback
+                        traceback.print_exc()
+                        return os.EX_SOFTWARE
+                    # Allow GUI to start up despite errors;
+                    if sess.debug:
+                        import traceback
+                        traceback.print_exc(file=sys.__stderr__)
+                    else:
+                        sess.ui.thread_safe(sess.logger.report_exception, exc_info=sys.exc_info())
 
     if opts.scripts:
         if not opts.silent:
