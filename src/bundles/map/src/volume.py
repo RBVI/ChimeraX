@@ -3525,6 +3525,14 @@ def volume_list(session):
 
 # -----------------------------------------------------------------------------
 #
+def any_volume_open(session):
+  for m in session.models.list():
+    if isinstance(m, Volume):
+      return True
+  return False
+
+# -----------------------------------------------------------------------------
+#
 def open_map(session, path, name = None, format = None, **kw):
     '''
     Supported API. Open a density map file having any of the known density map formats.
@@ -3555,7 +3563,7 @@ def open_map(session, path, name = None, format = None, **kw):
     models : list of :class:`.Volume`
     message : description of the opened data
     '''
-    if session.models.empty():
+    if not any_volume_open(session):
       _reset_color_sequence(session)
       
     if name is None:
