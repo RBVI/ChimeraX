@@ -62,22 +62,22 @@ class CheckWatersInputTool(ToolInstance):
         if not s:
             raise UserError("No structure chosen for checking")
         map = self.map_list.value
-        #TODO: want to use geometry_bounds(), but that doesn't include children; bounds() only includes shown
-        """
-        if map and len(self.map_list.all_values) > 1:
-            # check that bounding box of map and structure at least overlap
-            s_bbox = s.bounds()
-            map_bbox = map.bounds()
-            #s_center = s.position * s_bbox.center()
-            #map_center = map.position * map_bbox.center()
-            s_center = s_bbox.center()
-            map_center = map_bbox.center()
-            from chimerax.geometry import distance
-            if distance(s_center, map_center) > s_bbox.radius() + map_bbox.radius():
-                from chimerax.ui.ask import ask
-                if ask(self.session, "Structure and map don't overlap, continue anyway?") == "no":
-                    return
-        """
+        from chimerax.map.volume import atom_bounds
+        min_ijk, max_ijk = atom_bounds(s.atoms, 0.0, map)
+        atoms_outside = False
+        for min_bound in min_ijk:
+            if min_bound < 0:
+                atoms_outside = True
+                break
+        if not atoms_outside:
+            for max_bound, map_bound in zip(max_ijk, map.data.size):
+                if max_bound > map_bound:
+                    atoms_outside = True
+                    break
+        if atoms_outside:
+            from chimerax.ui.ask import ask
+            if ask(self.session, "Some (or all) atoms lie outside the volume, continue anyway?") == "no":
+                return
         CheckWaterViewer(self.session, "Check Waters", s, compare_map=map)
         if not apply:
             self.delete()
@@ -149,7 +149,7 @@ class CheckWaterViewer(ToolInstance):
                     compare_atoms.draw_modes == compare_atoms.SPHERE_STYLE)
                 compare_spheres.draw_modes = compare_atoms.STICK_STYLE
         from chimerax.ui import MainToolWindow
-        self.tool_window = MainToolWindow(self)
+        self.tool_window = MainToolWindow(self, close_destroys=False)
         parent = self.tool_window.ui_area
 
         from Qt.QtWidgets import QHBoxLayout, QButtonGroup, QVBoxLayout, QRadioButton, QCheckBox
@@ -186,8 +186,8 @@ class CheckWaterViewer(ToolInstance):
                 from .compare import _water_residues
                 self.check_waters = sorted(_water_residues(self.check_model))
                 table_waters = self.check_waters
-        data_layout = QHBoxLayout()
-        layout.addLayout(data_layout)
+        table_hbonds_layout = QHBoxLayout()
+        layout.addLayout(table_hbonds_layout, stretch=1)
         from chimerax.ui.widgets import ItemTable
         self.res_table = ItemTable()
         self.res_table.add_column("Water", str)
@@ -196,9 +196,8 @@ class CheckWaterViewer(ToolInstance):
             self._compute_densities()
             self.res_table.add_column("Density", self.DENSITY_ATTR, format="%g")
         self.res_table.selection_changed.connect(self._res_sel_cb)
-        data_layout.addWidget(self.res_table)
+        table_hbonds_layout.addWidget(self.res_table, stretch=1)
 
-        controls_layout = QVBoxLayout()
         hbonds_layout = QVBoxLayout()
         hbonds_layout.setSpacing(1)
         self.show_hbonds = check = QCheckBox("Show H-bonds")
@@ -234,7 +233,10 @@ class CheckWaterViewer(ToolInstance):
         hb_apply_layout.addWidget(self.hb_apply_label)
         hb_apply_layout.addStretch(1)
         hbonds_layout.addLayout(hb_apply_layout)
-        controls_layout.addLayout(hbonds_layout)
+        table_hbonds_layout.addLayout(hbonds_layout)
+
+        controls_layout = QHBoxLayout()
+        layout.addLayout(controls_layout)
         delete_layout = QGridLayout()
         but = QPushButton("Delete")
         but.clicked.connect(self._delete_waters)
@@ -250,7 +252,6 @@ class CheckWaterViewer(ToolInstance):
         clip_layout.addWidget(self.unclip_button, alignment=Qt.AlignRight)
         clip_layout.addWidget(QLabel(" view"), alignment=Qt.AlignLeft)
         controls_layout.addLayout(clip_layout)
-        data_layout.addLayout(controls_layout)
         # The H-bonds GUI needs to exist before running _make_hb_groups() and showing the
         # H-bonds in the table, so these lines are down here
         if not session_info:
