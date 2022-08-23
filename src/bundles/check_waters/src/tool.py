@@ -186,8 +186,8 @@ class CheckWaterViewer(ToolInstance):
                 from .compare import _water_residues
                 self.check_waters = sorted(_water_residues(self.check_model))
                 table_waters = self.check_waters
-        data_layout = QHBoxLayout()
-        layout.addLayout(data_layout)
+        table_hbonds_layout = QHBoxLayout()
+        layout.addLayout(table_hbonds_layout, stretch=1)
         from chimerax.ui.widgets import ItemTable
         self.res_table = ItemTable()
         self.res_table.add_column("Water", str)
@@ -196,9 +196,8 @@ class CheckWaterViewer(ToolInstance):
             self._compute_densities()
             self.res_table.add_column("Density", self.DENSITY_ATTR, format="%g")
         self.res_table.selection_changed.connect(self._res_sel_cb)
-        data_layout.addWidget(self.res_table)
+        table_hbonds_layout.addWidget(self.res_table, stretch=1)
 
-        controls_layout = QVBoxLayout()
         hbonds_layout = QVBoxLayout()
         hbonds_layout.setSpacing(1)
         self.show_hbonds = check = QCheckBox("Show H-bonds")
@@ -234,7 +233,10 @@ class CheckWaterViewer(ToolInstance):
         hb_apply_layout.addWidget(self.hb_apply_label)
         hb_apply_layout.addStretch(1)
         hbonds_layout.addLayout(hb_apply_layout)
-        controls_layout.addLayout(hbonds_layout)
+        table_hbonds_layout.addLayout(hbonds_layout)
+
+        controls_layout = QHBoxLayout()
+        layout.addLayout(controls_layout)
         delete_layout = QGridLayout()
         but = QPushButton("Delete")
         but.clicked.connect(self._delete_waters)
@@ -250,7 +252,6 @@ class CheckWaterViewer(ToolInstance):
         clip_layout.addWidget(self.unclip_button, alignment=Qt.AlignRight)
         clip_layout.addWidget(QLabel(" view"), alignment=Qt.AlignLeft)
         controls_layout.addLayout(clip_layout)
-        data_layout.addLayout(controls_layout)
         # The H-bonds GUI needs to exist before running _make_hb_groups() and showing the
         # H-bonds in the table, so these lines are down here
         if not session_info:
