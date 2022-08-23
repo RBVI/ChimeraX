@@ -426,7 +426,8 @@ def cmd_define_plane(session, atoms, *, thickness=defaults["plane_thickness"], p
         session.models.add([plane_model])
     else:
         adding_model.add([plane_model])
-    session.logger.info("Plane '%s' placed at %s with normal %s" % (name, plane.origin, plane.normal))
+    session.logger.info("Plane '%s' placed at %s with normal %s and radius %.1f"
+        % (name, plane.origin, plane.normal, radius))
     if show_tool and session.ui.is_gui and not session.in_script:
         from chimerax.core.commands import run
         run(session, "ui tool show Axes/Planes/Centroids", log=False)

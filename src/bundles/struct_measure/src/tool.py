@@ -36,7 +36,7 @@ from chimerax.axes_planes import AxisModel, PlaneModel
 class StructMeasureTool(ToolInstance):
 
     tab_names = ["Distances", "Angles/Torsions", "Axes/Planes/Centroids"]
-    help_info = ["distances", "angles", None]
+    help_info = ["distances", "angles", "axesplanes"]
 
     def __init__(self, session):
         ToolInstance.__init__(self, session, "Structure Measurements")
@@ -640,6 +640,7 @@ class AngstromOption(FloatOption):
         super().__init__(*args, **kw)
 
 class DefineAxisDialog:
+    help = "help:user/tools/axesplanes.html#define-axes"
     def __init__(self, sm_tool):
         self.tool_window = tw = sm_tool.tool_window.create_child_window("Define Axes", close_destroys=False)
         self.session = sm_tool.session
@@ -1008,6 +1009,7 @@ class ColorWithDefaultOption(Option):
         self.default_color_button.setChecked(True)
 
 class DefinePlaneDialog:
+    help = "help:user/tools/axesplanes.html#define-plane"
     def __init__(self, sm_tool):
         self.tool_window = tw = sm_tool.tool_window.create_child_window("Define Plane", close_destroys=False)
         self.session = sm_tool.session
@@ -1085,6 +1087,7 @@ class DefinePlaneDialog:
             self.options_panel.show_option(self.radius_option)
 
 class DefineCentroidDialog:
+    help = "help:user/tools/axesplanes.html#define-centroid"
     def __init__(self, sm_tool):
         self.tool_window = tw = sm_tool.tool_window.create_child_window("Define Centroid",
             close_destroys=False)
