@@ -149,7 +149,7 @@ class CheckWaterViewer(ToolInstance):
                     compare_atoms.draw_modes == compare_atoms.SPHERE_STYLE)
                 compare_spheres.draw_modes = compare_atoms.STICK_STYLE
         from chimerax.ui import MainToolWindow
-        self.tool_window = MainToolWindow(self)
+        self.tool_window = MainToolWindow(self, close_destroys=False)
         parent = self.tool_window.ui_area
 
         from Qt.QtWidgets import QHBoxLayout, QButtonGroup, QVBoxLayout, QRadioButton, QCheckBox
