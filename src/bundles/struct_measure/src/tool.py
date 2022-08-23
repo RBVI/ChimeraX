@@ -99,7 +99,7 @@ class StructMeasureTool(ToolInstance):
         if len(sel) != 1 or not isinstance(sel[0], (AxisModel, PlaneModel)):
             raise UserError("Choose exactly one axis or plane in table")
         item = sel[0]
-        run(self.session, "view zalign %s" % item.atomspec)
+        run(self.session, "view %s zalign %s" % (item.atomspec, item.atomspec))
         axis = self.apc_axis_button.text()
         if axis == 'Y':
             run(self.session, "turn x 90 center %s" % item.atomspec)
@@ -218,7 +218,7 @@ class StructMeasureTool(ToolInstance):
                     dist_fmt = self.session.pb_dist_monitor.distance_format
                     info.append("distance: " + dist_fmt % dist)
                 if angle is not None:
-                    info.append("angle: %.3f" % angle)
+                    info.append("angle: %.1f\N{DEGREE SIGN}" % angle)
             info_text = "; ".join(info)
             self.apc_status_label.setText(info_text)
             self.apc_status_label.setHidden(False)
@@ -390,8 +390,8 @@ class StructMeasureTool(ToolInstance):
             run(ses, cmd + " " + item.atomspec)
         self.apc_table.add_column("Selected", "selected", format=ItemTable.COL_FORMAT_BOOLEAN, icon="select",
             data_set=run_sel_cmd, title_display=False)
-        self.apc_table.add_column("Length", "length", format="%4.1f")
-        self.apc_table.add_column("Radius", "radius", format="%4.1f")
+        self.apc_table.add_column("Length (\N{ANGSTROM SIGN})", "length", format="%4.1f")
+        self.apc_table.add_column("Radius (\N{ANGSTROM SIGN})", "radius", format="%4.1f")
         self.apc_table.launch()
         self.apc_table.data = self._filter_apc_models(self.session.models)
         self.apc_table.sortByColumn(1, Qt.AscendingOrder)
