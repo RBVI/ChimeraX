@@ -41,9 +41,29 @@ class LogStdout:
             self.errors = "ignore"
 
         def write(self, s):
-            self.logger.session.ui.thread_safe(self.logger.info,
-                                               s, add_newline = False)
-            # self.logger.info(s, add_newline = False)
+            # Assume that all logs will use the message format from
+            # core.__init__ which is level:message
+            message_level = s.split(':')[0]
+            # Messages may have colons in them, so maybe merge everything
+            # from field 1 on.
+            message = ':'.join(s.split(':')[1:])
+            if message_level == 'INFO':
+                self.logger.session.ui.thread_safe(
+                    self.logger.info, message, add_newline = False
+                )
+            elif message_level == 'WARNING':
+                self.logger.session.ui.thread_safe(
+                    self.logger.warning, message, add_newline = False
+                )
+            elif message_level == 'ERROR':
+                self.logger.session.ui.thread_safe(
+                    self.logger.error, message, add_newline = False
+                )
+            # TODO: Come up with something good for BUG
+            else:
+                self.logger.session.ui.thread_safe(
+                    self.logger.info, message, add_newline = False
+                )
 
         def flush(self):
             return
