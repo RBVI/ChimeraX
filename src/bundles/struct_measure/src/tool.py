@@ -99,7 +99,7 @@ class StructMeasureTool(ToolInstance):
         if len(sel) != 1 or not isinstance(sel[0], (AxisModel, PlaneModel)):
             raise UserError("Choose exactly one axis or plane in table")
         item = sel[0]
-        run(self.session, "view zalign %s" % item.atomspec)
+        run(self.session, "view %s zalign %s" % (item.atomspec, item.atomspec))
         axis = self.apc_axis_button.text()
         if axis == 'Y':
             run(self.session, "turn x 90 center %s" % item.atomspec)
