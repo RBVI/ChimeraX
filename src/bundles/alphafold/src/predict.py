@@ -11,7 +11,9 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def alphafold_predict(session, sequences, minimize = False, templates = False):
+default_results_directory = '~/Downloads/ChimeraX/AlphaFold/prediction_[N]'
+
+def alphafold_predict(session, sequences, minimize = False, templates = False, directory = None):
     if not _is_alphafold_available(session):
         return
 
@@ -24,7 +26,8 @@ def alphafold_predict(session, sequences, minimize = False, templates = False):
     if ar.running:
         from chimerax.core.errors import UserError
         raise UserError('AlphaFold prediction currently running.  Can only run one at a time.')
-    ar.start(sequences, energy_minimize=minimize, use_pdb_templates=templates)
+    ar.start(sequences, energy_minimize=minimize, use_pdb_templates=templates,
+             results_directory=directory)
     return ar
 
 # ------------------------------------------------------------------------------
@@ -45,7 +48,7 @@ class AlphaFoldRun(ToolInstance):
         self._sequences = None	# List of Sequence or Chain instances
         self._energy_minimize = False
         self._use_pdb_templates = False
-        self._download_directory = None
+        self._results_directory = default_results_directory
 
         from chimerax.ui import MainToolWindow
         self.tool_window = tw = MainToolWindow(self)
@@ -70,11 +73,15 @@ class AlphaFoldRun(ToolInstance):
 
         tw.manage(placement=None)
 
-    def start(self, sequences, energy_minimize = False, use_pdb_templates = False):
+    def start(self, sequences, energy_minimize = False, use_pdb_templates = False,
+              results_directory = None):
         colab_started = (self._sequences is not None)
         self._sequences = sequences
         self._energy_minimize = energy_minimize
         self._use_pdb_templates = use_pdb_templates
+        self._results_directory = results_directory
+        if results_directory is None:
+            self._results_directory = default_results_directory
         if not colab_started:
             b = self._browser
             from Qt.QtCore import QUrl
@@ -134,9 +141,10 @@ class AlphaFoldRun(ToolInstance):
         if filename == 'best_model.pdb':
             item.cancel()  # Historical.  Used to just download pdb file.
             return
-        dir = self._download_directory
-        if dir is None:
-            self._download_directory = dir = self._unique_download_directory()
+        dir = self._results_directory
+        from os.path import isdir
+        if not isdir(dir):
+            self._results_directory = dir = self._unique_results_directory()
         item.setDownloadDirectory(dir)
         if  filename == 'results.zip':
             if hasattr(item, 'finished'):
@@ -145,22 +153,35 @@ class AlphaFoldRun(ToolInstance):
                 item.isFinishedChanged.connect(self._unzip_results)	# Qt 6
         item.accept()
 
-    def _unique_download_directory(self):
+    def _unique_results_directory(self):
         from os.path import expanduser, join, exists
-        ddir = expanduser('~/Downloads')
-        adir = join(ddir, 'ChimeraX', 'AlphaFold')
+        rdir = expanduser(self._results_directory)
+        if '[N]' in rdir:
+            for i in range(1,1000000):
+                path = rdir.replace('[N]', str(i))
+                if not exists(path):
+                    rdir = path
+                    break
         from os import makedirs
-        makedirs(adir, exist_ok = True)
-        for i in range(1,1000000):
-            path = join(adir, 'prediction_%d' % i)
-            if not exists(path):
-                break
-        makedirs(path, exist_ok = True)
-        return path
+        try:
+            makedirs(rdir, exist_ok = True)
+        except Exception as e:
+            if self._results_directory != default_results_directory:
+                msg = f'Could not create AlphaFold prediction directory {rdir}: {str(e)}'
+                self.session.logger.warning(msg)
+                self._results_directory = default_results_directory
+                return self._unique_results_directory()
+        if exists(join(rdir, 'results.zip')):
+            # Already have a previous prediction in this directory.  Avoid overwriting it.
+            msg = f'AlphaFold prediction directory {rdir} already has results.zip, making new directory'
+            self.session.logger.warning(msg)
+            self._results_directory += '_[N]'
+            return self._unique_results_directory()
+        return rdir
 
     def _open_prediction(self):
         from os.path import join, exists
-        path = join(self._download_directory, 'best_model.pdb')
+        path = join(self._results_directory, 'best_model.pdb')
         if not exists(path):
             self.session.logger.warning('Downloaded prediction file not found: %s' % path)
             return
@@ -201,18 +222,15 @@ class AlphaFoldRun(ToolInstance):
         remember_file(self.session, path, 'pdb', models)
     
     def _unzip_results(self, *args, **kw):
-        if self._download_directory is None:
-            return  # If user manages to request two downloads before one completes. Bug #5412
+        dir = self._results_directory
         from os.path import join, exists
-        path = join(self._download_directory, 'results.zip')
+        path = join(dir, 'results.zip')
         if exists(path):
             import zipfile
             with zipfile.ZipFile(path, 'r') as z:
-                z.extractall(self._download_directory)
-        self.session.logger.info('AlphaFold prediction finished\n' +
-                                 'Results in %s' % self._download_directory)
+                z.extractall(dir)
+        self.session.logger.info(f'AlphaFold prediction finished\nResults in {dir}')
         self._open_prediction()
-        self._download_directory = None  # Make next run go in a new directory
 
 # ------------------------------------------------------------------------------
 #
@@ -238,12 +256,13 @@ def show_alphafold_run(session):
 # ------------------------------------------------------------------------------
 #
 def register_alphafold_predict_command(logger):
-    from chimerax.core.commands import CmdDesc, register, BoolArg
+    from chimerax.core.commands import CmdDesc, register, BoolArg, StringArg
     from chimerax.atomic import SequencesArg
     desc = CmdDesc(
         required = [('sequences', SequencesArg)],
         keyword = [('minimize', BoolArg),
-                   ('templates', BoolArg)],
+                   ('templates', BoolArg),
+                   ('directory', StringArg)],
         synopsis = 'Predict a structure with AlphaFold'
     )
     register('alphafold predict', desc, alphafold_predict, logger=logger)

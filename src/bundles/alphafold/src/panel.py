@@ -193,6 +193,10 @@ class AlphaFoldGUI(ToolInstance):
         self._run_command('match', options = options)
     def _predict(self):
         options = []
+        dir = self._results_directory.value
+        from .predict import default_results_directory
+        if dir != default_results_directory:
+            options.append(f'directory {dir}')
         if self._energy_minimize.enabled:
             options.append('minimize true')
         if self._use_templates.enabled:
@@ -212,8 +216,16 @@ class AlphaFoldGUI(ToolInstance):
         self._options_panel = p = CollapsiblePanel(parent, title = None)
         f = p.content_area
 
-        # Energy minimization option for prediction
         from chimerax.ui.widgets import EntriesRow
+
+        # Results directory
+        rd = EntriesRow(f, 'Results directory', '', ('Browse', self._choose_results_directory))
+        self._results_directory = dir = rd.values[0]
+        dir.pixel_width = 350
+        from .predict import default_results_directory
+        dir.value = default_results_directory
+        
+        # Energy minimization option for prediction
         ut = EntriesRow(f, False, 'Use PDB templates when predicting structures')
         self._use_templates = ut.values[0]
 
@@ -231,6 +243,22 @@ class AlphaFoldGUI(ToolInstance):
     #
     def _show_or_hide_options(self):
         self._options_panel.toggle_panel_display()
+        
+    # ---------------------------------------------------------------------------
+    #
+    def _choose_results_directory(self):
+        dir = _existing_directory(self._results_directory.value)
+        if not dir:
+            from .predict import default_results_directory
+            dir = _existing_directory(default_results_directory)
+        parent = self.tool_window.ui_area
+        from Qt.QtWidgets import QFileDialog
+        path, ftype  = QFileDialog.getSaveFileName(parent,
+                                                   caption = 'AlphaFold prediction results directory',
+                                                   directory = dir,
+                                                   options = QFileDialog.Option.ShowDirsOnly)
+        if path:
+            self._results_directory.value = path
         
     # ---------------------------------------------------------------------------
     #
@@ -272,6 +300,15 @@ class AlphaFoldGUI(ToolInstance):
         log = self.session.logger
         log.warning(message)
         log.status(message, color='red')
+
+# -----------------------------------------------------------------------------
+#
+def _existing_directory(directory):
+    from os.path import expanduser, isdir, dirname
+    dir = expanduser(directory)
+    if dir == '' or isdir(dir):
+        return directory
+    return _existing_directory(dirname(dir))
 
 # -----------------------------------------------------------------------------
 #
