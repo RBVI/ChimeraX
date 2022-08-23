@@ -9,21 +9,23 @@ all install build:	check
 	$(APP_EXE) --nogui --silent --exit --script '$(SCRIPT) build'
 	$(MAKE) -C $(TOP)/docs/user/tools DOCDIR=$$(pwd)/user/tools RSYNC="ln -fs" install-icons
 
-ifneq (,$(wildcard $(PYTHON_EXE)))
-check:
-	$(PYTHON_EXE) $(SCRIPT) check $(VERBOSE)
+ifeq (,$(wildcard $(APP_EXE)))
+# No application means an incomplete installation
 
-clean:	check
-	$(PYTHON_EXE) $(SCRIPT) clean
-
-distclean:
-	$(PYTHON_EXE) $(SCRIPT) clean
-else
 clean distclean:
 	rm -rf user
+
+else
+check:
+	$(APP_EXE) --nogui --safemode --exit --script '$(SCRIPT) check $(VERBOSE)'
+
+clean:	check
+	$(APP_EXE) --nogui --safemode --exit --script '$(SCRIPT) clean'
+
+distclean:
+	$(APP_EXE) --nogui --safemode --exit --script '$(SCRIPT) clean'
 endif
 
 from-daily:
 	rm -rf user
-	bin=$(shell dirname $$(readlink $$(which chimerax-daily))); \
-	$(MAKE) APP_EXE=chimerax-daily PYTHON_EXE="$$bin/python$(PYTHON_VERSION)" install
+	$(MAKE) APP_EXE="$$(which chimerax-daily)" install
