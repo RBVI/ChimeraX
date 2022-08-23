@@ -12,8 +12,17 @@
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.atomic import Structure
+from chimerax.dist_monitor import SimpleMeasurable
 # to make it easy to identify centroid models...
-class CentroidModel(Structure):
+class CentroidModel(Structure, SimpleMeasurable):
+    @property
+    def coord(self):
+        return self.atoms[0].coord
+
+    @property
+    def scene_coord(self):
+        return self.atoms[0].scene_coord
+
     def take_snapshot(self, session, flags):
         return { 'base data': super().take_snapshot(session, flags) }
 

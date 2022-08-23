@@ -36,9 +36,11 @@ def view(session, objects=None, frames=None, clip=True, cofr=True,
       Specifying the orient keyword moves the camera view point to
       look down the scene z axis with the x-axis horizontal and y-axis
       vertical.
-    zalign : Atoms
+    zalign : Objects
       Rotate view point so two specified atoms are aligned along the view
       axis with the first atom in front.  Exactly two atoms must be specified.
+      Alternatively an AxisModel or a PlaneModel can be specified, in which
+      case the axis or plane normal will be aligned.
     pad : float
       When making objects fit in window use a window size reduced by this fraction.
       Default value is 0.05.  Pad is ignored when restoring named views.
