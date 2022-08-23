@@ -862,7 +862,8 @@ class DefineAxisDialog:
         bbox.accepted.connect(self.define_axis)
         bbox.rejected.connect(lambda tw=tw: setattr(tw, 'shown', False))
         bbox.button(qbbox.Apply).clicked.connect(lambda *args: self.define_axis(hide=False))
-        bbox.button(qbbox.Help).setEnabled(False)
+        from chimerax.core.commands import run
+        bbox.helpRequested.connect(lambda *, run=run, ses=self.session: run(ses, "help " + self.help))
         layout.addWidget(bbox)
 
         tw.manage(None)
@@ -1044,7 +1045,8 @@ class DefinePlaneDialog:
         bbox.accepted.connect(self.define_plane)
         bbox.rejected.connect(lambda tw=tw: setattr(tw, 'shown', False))
         bbox.button(qbbox.Apply).clicked.connect(lambda *args: self.define_plane(hide=False))
-        bbox.button(qbbox.Help).setEnabled(False)
+        from chimerax.core.commands import run
+        bbox.helpRequested.connect(lambda *, run=run, ses=self.session: run(ses, "help " + self.help))
         layout.addWidget(bbox)
 
         tw.manage(None)
@@ -1112,7 +1114,8 @@ class DefineCentroidDialog:
         bbox.accepted.connect(self.define_centroid)
         bbox.rejected.connect(lambda tw=tw: setattr(tw, 'shown', False))
         bbox.button(qbbox.Apply).clicked.connect(lambda *args: self.define_centroid(hide=False))
-        bbox.button(qbbox.Help).setEnabled(False)
+        from chimerax.core.commands import run
+        bbox.helpRequested.connect(lambda *, run=run, ses=self.session: run(ses, "help " + self.help))
         layout.addWidget(bbox)
 
         tw.manage(None)
