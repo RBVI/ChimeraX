@@ -144,7 +144,7 @@ def _process_results(session, douse_model, shift, near_model, keep_input_water, 
         _show_waters(near_model, model, residue_range, map, map_range)
         if session.ui.is_gui:
             from .tool import DouseResultsViewer
-            DouseResultsViewer(session, "Douse Results", near_model, model, compared_waters, map)
+            DouseResultsViewer(session, "Water Placement Results", near_model, model, compared_waters, map)
 
 
 def _fix_map_origin(map):

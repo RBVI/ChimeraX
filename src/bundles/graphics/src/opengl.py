@@ -372,6 +372,7 @@ class Render:
 
         self._opengl_context = oc = opengl_context
         self._recording_calls = None
+        self._front_buffer_valid = False
 
         if not hasattr(oc, 'shader_programs'):
             oc.shader_programs = {}
@@ -494,7 +495,12 @@ class Render:
 
     def swap_buffers(self):
         self._opengl_context.swap_buffers()
+        self._front_buffer_valid = True
 
+    @property
+    def front_buffer_valid(self):
+        return self._front_buffer_valid
+    
     def wait_for_vsync(self, wait):
         '''
         Control whether OpenGL synchronizes to the display vertical refresh.
@@ -541,6 +547,8 @@ class Render:
             # This probably indicates the window has been destroyed.  Bug #3605.
             oc.window = prev_win
             raise
+        if window != prev_win:
+            self._front_buffer_valid = False
         return prev_win
 
     @property

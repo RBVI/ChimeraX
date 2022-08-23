@@ -24,6 +24,7 @@ MODEL_DISPLAY_CHANGED = 'model display changed'
 MODEL_ID_CHANGED = 'model id changed'
 MODEL_NAME_CHANGED = 'model name changed'
 MODEL_POSITION_CHANGED = 'model position changed'
+MODEL_SELECTION_CHANGED = 'model selection changed'
 RESTORED_MODELS = 'restored models'
 RESTORED_MODEL_TABLE = 'restored model table'
 # TODO: register Model as data event type
@@ -124,7 +125,9 @@ class Model(State, Drawing):
         '''So that generic models can be properly picked.  Most model classes override this.'''
         pick = super().first_intercept(mxyz1, mxyz2, exclude=exclude)
         if isinstance(pick, PickedTriangle):
-            pick = PickedModel(self, pick.distance)
+            picked_model = PickedModel(self, pick.distance)
+            picked_model.picked_triangle = pick
+            pick = picked_model
         return pick
 
     def _get_id(self):
@@ -213,6 +216,7 @@ class Model(State, Drawing):
 
     def _selection_changed(self):
         self.session.selection.trigger_fire_needed = True
+        self.session.triggers.activate_trigger(MODEL_SELECTION_CHANGED, self)
 
     # Provide a direct way to set only the model selection status
     # without subclass interference
@@ -282,6 +286,8 @@ class Model(State, Drawing):
     def add(self, models):
         '''Add child models to this model.'''
         om = self.session.models
+        if type(models) is not list:
+            models = [models]
         if om.have_model(self):
             # Parent already open.
             om.add(models, parent = self)
@@ -562,6 +568,7 @@ class Models(StateManager):
         t.add_trigger(MODEL_ID_CHANGED)
         t.add_trigger(MODEL_NAME_CHANGED)
         t.add_trigger(MODEL_POSITION_CHANGED)
+        t.add_trigger(MODEL_SELECTION_CHANGED)
         t.add_trigger(RESTORED_MODELS)
         t.add_trigger(RESTORED_MODEL_TABLE)
         self._models = {}				# Map id to Model

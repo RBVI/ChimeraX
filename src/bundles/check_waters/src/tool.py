@@ -49,8 +49,7 @@ class CheckWatersInputTool(ToolInstance):
         from Qt.QtWidgets import QDialogButtonBox as qbbox
         self.bbox = bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
         bbox.accepted.connect(self.launch_cw_tool)
-        bbox.button(qbbox.Apply).clicked.connect(self.launch_cw_tool)
-        bbox.accepted.connect(self.delete) # slots executed in the order they are connected
+        bbox.button(qbbox.Apply).clicked.connect(lambda s=self: s.launch_cw_tool(apply=True))
         bbox.rejected.connect(self.delete)
         from chimerax.core.commands import run
         bbox.helpRequested.connect(lambda *, run=run, ses=session: run(ses, "help " + self.help))
@@ -58,11 +57,30 @@ class CheckWatersInputTool(ToolInstance):
 
         tw.manage(placement=None)
 
-    def launch_cw_tool(self):
+    def launch_cw_tool(self, *, apply=False):
         s = self.structure_menu.value
         if not s:
             raise UserError("No structure chosen for checking")
-        CheckWaterViewer(self.session, "Check Waters", s, compare_map=self.map_list.value)
+        map = self.map_list.value
+        from chimerax.map.volume import atom_bounds
+        min_ijk, max_ijk = atom_bounds(s.atoms, 0.0, map)
+        atoms_outside = False
+        for min_bound in min_ijk:
+            if min_bound < 0:
+                atoms_outside = True
+                break
+        if not atoms_outside:
+            for max_bound, map_bound in zip(max_ijk, map.data.size):
+                if max_bound > map_bound:
+                    atoms_outside = True
+                    break
+        if atoms_outside:
+            from chimerax.ui.ask import ask
+            if ask(self.session, "Some (or all) atoms lie outside the volume, continue anyway?") == "no":
+                return
+        CheckWaterViewer(self.session, "Check Waters", s, compare_map=map)
+        if not apply:
+            self.delete()
 
 class CheckWaterViewer(ToolInstance):
 
@@ -131,7 +149,7 @@ class CheckWaterViewer(ToolInstance):
                     compare_atoms.draw_modes == compare_atoms.SPHERE_STYLE)
                 compare_spheres.draw_modes = compare_atoms.STICK_STYLE
         from chimerax.ui import MainToolWindow
-        self.tool_window = MainToolWindow(self)
+        self.tool_window = MainToolWindow(self, close_destroys=False)
         parent = self.tool_window.ui_area
 
         from Qt.QtWidgets import QHBoxLayout, QButtonGroup, QVBoxLayout, QRadioButton, QCheckBox
@@ -168,8 +186,8 @@ class CheckWaterViewer(ToolInstance):
                 from .compare import _water_residues
                 self.check_waters = sorted(_water_residues(self.check_model))
                 table_waters = self.check_waters
-        data_layout = QHBoxLayout()
-        layout.addLayout(data_layout)
+        table_hbonds_layout = QHBoxLayout()
+        layout.addLayout(table_hbonds_layout, stretch=1)
         from chimerax.ui.widgets import ItemTable
         self.res_table = ItemTable()
         self.res_table.add_column("Water", str)
@@ -178,9 +196,8 @@ class CheckWaterViewer(ToolInstance):
             self._compute_densities()
             self.res_table.add_column("Density", self.DENSITY_ATTR, format="%g")
         self.res_table.selection_changed.connect(self._res_sel_cb)
-        data_layout.addWidget(self.res_table)
+        table_hbonds_layout.addWidget(self.res_table, stretch=1)
 
-        controls_layout = QVBoxLayout()
         hbonds_layout = QVBoxLayout()
         hbonds_layout.setSpacing(1)
         self.show_hbonds = check = QCheckBox("Show H-bonds")
@@ -216,7 +233,10 @@ class CheckWaterViewer(ToolInstance):
         hb_apply_layout.addWidget(self.hb_apply_label)
         hb_apply_layout.addStretch(1)
         hbonds_layout.addLayout(hb_apply_layout)
-        controls_layout.addLayout(hbonds_layout)
+        table_hbonds_layout.addLayout(hbonds_layout)
+
+        controls_layout = QHBoxLayout()
+        layout.addLayout(controls_layout)
         delete_layout = QGridLayout()
         but = QPushButton("Delete")
         but.clicked.connect(self._delete_waters)
@@ -232,7 +252,6 @@ class CheckWaterViewer(ToolInstance):
         clip_layout.addWidget(self.unclip_button, alignment=Qt.AlignRight)
         clip_layout.addWidget(QLabel(" view"), alignment=Qt.AlignLeft)
         controls_layout.addLayout(clip_layout)
-        data_layout.addLayout(controls_layout)
         # The H-bonds GUI needs to exist before running _make_hb_groups() and showing the
         # H-bonds in the table, so these lines are down here
         if not session_info:
@@ -310,10 +329,11 @@ class CheckWaterViewer(ToolInstance):
             residue_groups = [after_only, all_input - input_in_common, douse_in_common]
         else:
             residue_groups = [self.check_waters]
+        from chimerax.core.utils import round_off
         for res_group in residue_groups:
             for r in res_group:
-                setattr(r, self.DENSITY_ATTR, sum(self.compare_map.interpolated_values(r.atoms.coords,
-                    point_xform=r.structure.scene_position)))
+                setattr(r, self.DENSITY_ATTR, round_off(sum(self.compare_map.interpolated_values(
+                    r.atoms.coords, point_xform=r.structure.scene_position)), 3))
 
     def _delete_waters(self):
         waters = self.res_table.selected
@@ -411,6 +431,8 @@ class CheckWaterViewer(ToolInstance):
                 base_cmd = ""
             else:
                 base_cmd = "show %s models; " % structure.atomspec
+            if self.compare_map and not self.compare_map.display:
+                base_cmd += "show %s models; " % self.compare_map.atomspec
             if self.compare_model:
                 other_model = self.compare_model if structure == self.check_model else self.check_model
                 if other_model.display:
@@ -420,6 +442,11 @@ class CheckWaterViewer(ToolInstance):
             cmd = base_cmd + f"select {spec}; disp {spec} :<4; view {spec} @<4"
         from chimerax.core.commands import run
         run(self.session, cmd)
+        if len(selected) == 1 and selected[0].num_atoms == 1:
+            from chimerax.geometry import distance
+            d = distance(selected[0].atoms[0].scene_coord, self.session.main_view.camera.position.origin())
+            if d < 20:
+                run(self.session, "zoom %g" % (d / 20.0))
 
     def _show_hbonds_cb(self, checked):
         self.settings.show_hbonds = checked
