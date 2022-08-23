@@ -1,7 +1,9 @@
-import logging
 import importlib
+import logging
+import sys
+from logging_tree import printout
 
-_log = logging.getLogger(__name__)
+_log = logging.getLogger()
 
 try:
     import chimerax.ui
