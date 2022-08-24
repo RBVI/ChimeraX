@@ -1020,7 +1020,11 @@ def init(argv, event_loop=True):
         sess.ui.open_pending_files(ignore_files=(args if bad_drop_events else []))
 
     # By this point the GUI module will have redirected stdout if it's going to
-    logging.basicConfig(format = "%(levelname)s:%(message)s", handlers = [logging.StreamHandler(sys.stdout)])
+    logging.basicConfig(
+        level = logging.INFO
+        , format = "%(levelname)s:%(message)s"
+        , handlers = [logging.StreamHandler(sys.stdout)]
+    )
     # Allow the event_loop to be disabled, so we can be embedded in
     # another application
     if event_loop and opts.event_loop:
