@@ -20,6 +20,10 @@ class CentroidModel(Structure, SimpleMeasurable):
         return self.atoms[0].coord
 
     @property
+    def radius(self):
+        return self.atoms[0].radius
+
+    @property
     def scene_coord(self):
         return self.atoms[0].scene_coord
 
