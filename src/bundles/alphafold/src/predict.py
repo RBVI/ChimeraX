@@ -256,13 +256,13 @@ def show_alphafold_run(session):
 # ------------------------------------------------------------------------------
 #
 def register_alphafold_predict_command(logger):
-    from chimerax.core.commands import CmdDesc, register, BoolArg, StringArg
+    from chimerax.core.commands import CmdDesc, register, BoolArg, SaveFolderNameArg
     from chimerax.atomic import SequencesArg
     desc = CmdDesc(
         required = [('sequences', SequencesArg)],
         keyword = [('minimize', BoolArg),
                    ('templates', BoolArg),
-                   ('directory', StringArg)],
+                   ('directory', SaveFolderNameArg)],
         synopsis = 'Predict a structure with AlphaFold'
     )
     register('alphafold predict', desc, alphafold_predict, logger=logger)
