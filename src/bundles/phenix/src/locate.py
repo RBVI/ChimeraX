@@ -46,7 +46,7 @@ def find_phenix_command(session, program_name, phenix_location = None):
                     return cmd
         from chimerax.core.commands import commas
         raise UserError('Could not find phenix program %s in %s folder of %s' % (program_name,
-            commaa(bin_dirs), commas(phenix_dirs)))
+            commas(bin_dirs), commas(phenix_dirs)))
     else:
         for bin_dir in bin_dirs:
             cmd = join(phenix_location, bin_dir, program_name)
