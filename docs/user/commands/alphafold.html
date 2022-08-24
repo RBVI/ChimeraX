@@ -342,6 +342,23 @@ or a command can be used to draw a corresponding color key, for example:
   </blockquote>
 </blockquote>
 <blockquote>
+<a name="directory"></a>
+<b>directory</b>&nbsp;&nbsp;<i>results-folder</i>
+<br>
+For <a href="#predict"><b>alphafold predict</b></a>, 
+specify a <i>results-folder</i> pathname (name and location)
+or the word <a href="usageconventions.html#browse"><b>browse</b></a>
+to specify it interactively in a file browser window.
+The directory or folder does not need to exist already, as it will be
+created by the command. The pathname can include [N] to indicate 
+substitution with the smallest positive integer that makes a new directory
+(default <b>~/Downloads/ChimeraX/AlphaFold/prediction_[N]</b>).
+If the specified pathname does not include [N]
+but a directory of that name and location already exists
+and contains a results.zip file, _[N] will be appended automatically 
+to avoid overwriting the existing directory.
+</blockquote>
+<blockquote>
 <a name="ignoreCache"></a>
 <b>ignoreCache</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
 <br>
@@ -487,6 +504,7 @@ For <b>monomer</b> prediction:
 <b>alphafold predict</b> &nbsp;<i>sequence</i>
 [&nbsp;<a href="#minimize"><b>minimize</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<a href="#templates"><b>templates</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<a href="#directory"><b>directory</b></a>&nbsp;&nbsp;<i>results-folder</i>&nbsp;]
 </blockquote>
 <p>
 <a name="sequence-spec"></a>
@@ -515,11 +533,13 @@ For <b>multimer</b> (protein complex) prediction:
 &nbsp;<a href="atomspec.html#hierarchy"><i>chain-spec</i></a>
 [&nbsp;<a href="#minimize"><b>minimize</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<a href="#templates"><b>templates</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<a href="#directory"><b>directory</b></a>&nbsp;&nbsp;<i>results-folder</i>&nbsp;]
 <br>&ndash; or &ndash;</br>
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>alphafold predict</b> &nbsp;<i>sequence1</i>,<i>sequence2</i>[,<i>sequence3</i>...,<i>sequenceN</i>]
 [&nbsp;<a href="#minimize"><b>minimize</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<a href="#templates"><b>templates</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<a href="#directory"><b>directory</b></a>&nbsp;&nbsp;<i>results-folder</i>&nbsp;]
 </blockquote>
 <p>
 The sequences of two or more protein chains can be specified
