@@ -148,11 +148,13 @@ class QCxTableModel(QAbstractTableModel):
         return False
 
     def _convert_justification(self, justification):
+        # the int() calls in the below are to work around a Qt bug, see:
+        # https://stackoverflow.com/questions/35175210/how-to-align-right-and-vertically-center-in-qabstracttablemodel
         if justification == "left":
-            return Qt.AlignLeft | Qt.AlignVCenter
+            return int(Qt.AlignLeft | Qt.AlignVCenter)
         if justification == "center":
-            return Qt.AlignHCenter | Qt.AlignVCenter
-        return Qt.AlignRight | Qt.AlignVCenter
+            return int(Qt.AlignHCenter | Qt.AlignVCenter)
+        return int(Qt.AlignRight | Qt.AlignVCenter)
 
     def _make_multiline(self, title):
         words = title.strip().split()
