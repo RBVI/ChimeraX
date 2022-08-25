@@ -18,7 +18,8 @@ class AddHTool(ToolInstance):
     SESSION_SAVE = False
 
     def __init__(self, session, tool_name):
-        ToolInstance.__init__(self, session, tool_name)
+        ToolInstance.__init__(self, session, tool_name, *, dock_prep_info=None)
+        self.dock_prep_info = dock_prep_info
 
         from chimerax.ui import MainToolWindow
         self.tool_window = MainToolWindow(self)
@@ -33,16 +34,18 @@ class AddHTool(ToolInstance):
         layout.setSpacing(0)
         parent.setLayout(layout)
 
-        from chimerax.atomic.widgets import AtomicStructureListWidget
-        class ShortASList(AtomicStructureListWidget):
-            def sizeHint(self):
-                hint = super().sizeHint()
-                hint.setHeight(hint.height()//2)
-                return hint
-        structure_layout = QHBoxLayout()
-        structure_layout.addWidget(QLabel("Add hydrogens to:"), alignment=Qt.AlignRight)
-        structure_layout.addWidget(ShortASList(session), alignment=Qt.AlignLeft)
-        layout.addLayout(structure_layout)
+        if dock_prep_info is None:
+            from chimerax.atomic.widgets import AtomicStructureListWidget
+            class ShortASList(AtomicStructureListWidget):
+                def sizeHint(self):
+                    hint = super().sizeHint()
+                    hint.setHeight(hint.height()//2)
+                    return hint
+            structure_layout = QHBoxLayout()
+            structure_layout.addWidget(QLabel("Add hydrogens to:"), alignment=Qt.AlignRight)
+            self.structure_list = ShortASList(session)
+            structure_layout.addWidget(self.structure_list, alignment=Qt.AlignLeft)
+            layout.addLayout(structure_layout)
         self.isolation = QCheckBox("Consider each model in isolation from all others")
         self.isolation.setChecked(True)
         layout.addWidget(self.isolation, alignment=Qt.AlignCenter)
@@ -80,3 +83,8 @@ class AddHTool(ToolInstance):
     def delete(self):
         ToolInstance.delete(self)
 
+    @property
+    def structures(self):
+        if self.dock_prep_info is None:
+            return self.structure_list.value
+        return self.dock_prep_info['structures']
