@@ -3409,6 +3409,8 @@ def volume_from_grid_data(grid_data, session, style = 'auto',
     v._style_when_shown = style
   
   if grid_data.rgba is None:
+    if not any_volume_open(session):
+      _reset_color_sequence(session)
     set_initial_volume_color(v, session)
 
   if not model_id is None:
@@ -3526,7 +3528,7 @@ def volume_list(session):
 # -----------------------------------------------------------------------------
 #
 def any_volume_open(session):
-  for m in session.models.list():
+  for m in session.models:
     if isinstance(m, Volume):
       return True
   return False
@@ -3563,9 +3565,6 @@ def open_map(session, path, name = None, format = None, **kw):
     models : list of :class:`.Volume`
     message : description of the opened data
     '''
-    if not any_volume_open(session):
-      _reset_color_sequence(session)
-      
     if name is None:
       from os.path import basename
       name = basename(path if isinstance(path, str) else path[0])
