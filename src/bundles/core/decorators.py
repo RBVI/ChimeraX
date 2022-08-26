@@ -1,7 +1,8 @@
-import logging
 import importlib
+import logging
+import sys
 
-_log = logging.getLogger(__name__)
+_log = logging.getLogger()
 
 try:
     import chimerax.ui
