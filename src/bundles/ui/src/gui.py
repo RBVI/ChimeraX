@@ -30,53 +30,6 @@ from Qt.QtWidgets import QApplication
 from chimerax.core.logger import PlainTextLog
 import sys
 
-class LogStdout:
-
-        # Qt's error logging looks at the encoding of sys.stderr...
-        encoding = 'utf-8'
-
-        def __init__(self, logger):
-            self.logger = logger
-            self.closed = False
-            self.errors = "ignore"
-
-        def write(self, s):
-            # Assume that all logs will use the message format from
-            # core.__init__ which is level:message
-            message_level = s.split(':')[0]
-            # Messages may have colons in them, so maybe merge everything
-            # from field 1 on.
-            message = ':'.join(s.split(':')[1:])
-            if message_level == 'INFO':
-                self.logger.session.ui.thread_safe(
-                    self.logger.info, message, add_newline = False
-                )
-            elif message_level == 'WARNING':
-                self.logger.session.ui.thread_safe(
-                    self.logger.warning, message, add_newline = False
-                )
-            elif message_level == 'ERROR':
-                self.logger.session.ui.thread_safe(
-                    self.logger.error, message, add_newline = False
-                )
-            # TODO: Come up with something good for BUG
-            else:
-                self.logger.session.ui.thread_safe(
-                    self.logger.info, message, add_newline = False
-                )
-
-        def flush(self):
-            return
-
-        def isatty(self):
-            return False
-
-LogStderr = LogStdout
-sys.orig_stdout = sys.stdout
-sys.orig_stderr = sys.stderr
-sys.stdout = None
-sys.stderr = None
-
 def initialize_qt():
     initialize_qt_plugins_location()
     initialize_qt_high_dpi_display_support()
@@ -2470,6 +2423,7 @@ class _Qt:
         self.dock_widget.setWindowTitle(title)
 
 def redirect_stdio_to_logger(logger):
+    from .redirect_logger import LogStdout, LogStderr
     sys.stdout = LogStdout(logger)
     # TODO: Should raise an error dialog for exceptions, but traceback
     #       is written to stderr with a separate call to the write() method
