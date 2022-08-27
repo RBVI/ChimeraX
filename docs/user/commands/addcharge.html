@@ -78,32 +78,31 @@ documentation for further force field details.
 standard residues with the <b>standardizeResidues</b> option, 
 where <i>list</i> is a comma-separated list (without spaces) 
 of one or more of the following residue names:
-<b>MSE</b>, <b>5BU</b>, <b>UMS</b>, and <b>CSL</b>
-(default <b>5BU,UMS,CSL</b>). Conversion details:
   <ul>
-  <li><a href="https://www.rcsb.org/ligand/MSE" target="_blank">MSE</a>
-(selenomethionine) to MET (methionine) &ndash; change MSE
-to MET by changing the selenium atom to a sulfur atom named SD
-and adjusting the CG-SD and SD-CE bond lengths to 1.81 and 1.78 &Aring;,
-respectively. If not converted, MSE will still get the same partial charges
-as MET, but the bond lengths will not be changed.
   <li><a href="https://www.rcsb.org/ligand/5BU" target="_blank">5BU</a>
 (bromo-UMP) to U (UMP) &ndash; change 5-bromouridine-5'-monophosphate 
 to RNA residue uridine-5'-monophosphate by deleting the bromine atom
-  <li><a href="https://www.rcsb.org/ligand/UMS" target="_blank">UMS</a>
-(methylselenyl-dUMP) to U (UMP) &ndash;
-change 2'-methylselenyl-2'-deoxyuridine-5'-phosphate 
-to RNA residue uridine-5'-monophosphate
-by replacing the methylselenyl moiety with an oxygen atom named O2'
-and adjusting the bond length to 1.430 &Aring;
   <li><a href="https://www.rcsb.org/ligand/CSL" target="_blank">CSL</a>
 (methylselenyl-dCMP) to C (CMP) &ndash;
 change 2'-methylselenyl-2'-deoxycytidine-5'-phosphate
 to RNA residue cytidine-5'-monophosphate
 by replacing the methylselenyl moiety with an oxygen atom named O2'
 and adjusting the bond length to 1.430 &Aring;
+  <li><a href="https://www.rcsb.org/ligand/UMS" target="_blank">UMS</a>
+(methylselenyl-dUMP) to U (UMP) &ndash;
+change 2'-methylselenyl-2'-deoxyuridine-5'-phosphate 
+to RNA residue uridine-5'-monophosphate
+by replacing the methylselenyl moiety with an oxygen atom named O2'
+and adjusting the bond length to 1.430 &Aring;
+  <li><a href="https://www.rcsb.org/ligand/MSE" target="_blank">MSE</a>
+(selenomethionine) to MET (methionine) &ndash; change MSE
+to MET by changing the selenium atom to a sulfur atom named SD
+and adjusting the CG-SD and SD-CE bond lengths to 1.81 and 1.78 &Aring;,
+respectively. If not converted, MSE will still get the same partial charges
+as MET, but the bond lengths will not be changed.
   </ul>
-<br>
+The default is all but MSE, namely: <b>5BU,CSL,UMS</b>
+<br><br>
 <li>ATP, ADP, GTP, GDP, NAD, and NDP are assigned charges from the
 <a href="http://research.bmh.manchester.ac.uk/bryce/amber"
 target="_blank">Amber parameter database</a>. 
