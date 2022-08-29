@@ -89,13 +89,15 @@ def _fetch_by_sequence(session, sequences, color_confidence = True, trim = True,
 
     from .search import alphafold_sequence_search, SearchError
     seq_strings = [seq.characters for seq in sequences]
+    if [seq for seq in seq_strings if len(seq) < 20]:
+        log.warning('Cannot search short sequences less than 20 amino acids')
     try:
-        seq_uids = alphafold_sequence_search(seq_strings, local = local, log = log)
+        match_uids = alphafold_sequence_search(seq_strings, local = local, log = log)
     except SearchError as e:
         log.error(str(e))
         return {}
 
-    seq_uids = [(seq,uid) for seq, uid in zip(sequences, seq_uids) if uid is not None]
+    seq_uids = [(seq,uid) for seq, uid in zip(sequences, match_uids) if uid is not None]
     from chimerax.atomic import Chain
     for seq, uid in seq_uids:
         if isinstance(seq, Chain):
