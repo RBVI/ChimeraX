@@ -111,18 +111,68 @@ class AddHTool(ToolInstance):
             b1.setChecked(True)
         self._protonation_res_change("histidine")
 
+        from chimerax.ui.options import OptionsPanel, FloatOption, BooleanOption
+        self.options_panel = OptionsPanel(sorting=False, scrolled=False)
+        self.options_panel.layout().setSpacing(20)
+        from .cmd import metal_dist_default
+        self.metal_option = FloatOption(
+            "Strip proton from heavy atom X near metal M if X\N{LEFT RIGHT ARROW}M\n"
+            "distance less than entry value, and...\n"
+            "    \N{BULLET} X is electronegative\n"
+            "    \N{BULLET} the X-H-M angle would be >120°\n",
+            metal_dist_default, None, min=0.0, max=99.9)
+        self.options_panel.add_option(self.metal_option)
+        options_layout.addWidget(self.options_panel)
+        self.template_option = BooleanOption("Base non-standard residue atom typing on\n"
+            "idealized coordinates rather than actual coordinates", False, None,
+            balloon="If a non-standard residue has an entry in the PDB Chemical Component Dictionary,\n"
+            "use the idealized coordinates from the entry for atom typing rather than the actual\n"
+            "coordinates from the structure.  This means the residue name has to correspond to the\n"
+            "component name in the dictionary.")
+        self.options_panel.add_option(self.template_option)
+
         from Qt.QtWidgets import QDialogButtonBox as qbbox
         bbox = qbbox(qbbox.Ok | qbbox.Cancel | qbbox.Help)
         options_button = bbox.addButton("Options", qbbox.ActionRole)
         options_button.clicked.connect(self._toggle_options)
-        # connected function will call self.delete() if no errors
-        #bbox.accepted.connect(self.launch_modeller)
+        bbox.accepted.connect(self.add_h)
         bbox.rejected.connect(self.delete)
         from chimerax.core.commands import run
         bbox.helpRequested.connect(lambda *, run=run, ses=session: run(ses, "help " + self.help))
         bbox.button(qbbox.Help).setEnabled(False)
         layout.addWidget(bbox)
         self.tool_window.manage(None)
+
+    def add_h(self):
+        from chimerax.core.errors import UserError
+        self.tool_window.shown = False
+        self.session.ui.processEvents()
+        if not self.structures:
+            if self.dock_prep_info is None:
+                self.tool_window.shown = True
+                raise UserError("No structures chosen for hydrogen addition.")
+            self.delete()
+            return
+        from chimerax.core.commands import run, concise_model_spec
+        cmd = "addh %s" % concise_model_spec(self.session, self.structures)
+        if not self.isolation.isChecked():
+            cmd += " inIsolation false"
+        if self.method_group.checkedButton() == self.steric_method:
+            cmd += " hbond false"
+        for res_name, widgets in self.prot_widget_lookup.items():
+            box, grp = widgets
+            if not grp.checkedButton().text().startswith("Residue-name-based"):
+                cmd += " use%sName false" % self.prot_arg_lookup[res_name].capitalize()
+        from .cmd import metal_dist_default
+        if self.metal_option.value != metal_dist_default:
+            cmd += " metalDist %g" % self.metal_option.value
+        if self.template_option.value:
+            cmd += " template true"
+        run(self.session, cmd)
+        self.delete()
+        if self.dock_prep_info is not None:
+            #TODO: continue dock prep call chain
+            pass
 
     def delete(self):
         ToolInstance.delete(self)
