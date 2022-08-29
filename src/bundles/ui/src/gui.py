@@ -2256,6 +2256,7 @@ class _Qt:
             raise RuntimeError("No main window or main window dead")
 
         from Qt.QtWidgets import QDockWidget, QWidget, QVBoxLayout
+        from Qt.QtCore import Qt
         self.dock_widget = dw = QDockWidget(title, mw)
         dw.closeEvent = lambda e, *, tw=tool_window, mw=mw: mw.close_request(tw, e)
         if close_destroys:
@@ -2334,10 +2335,12 @@ class _Qt:
                 vis = dw.isVisible()
                 from Qt.QtCore import Qt
                 # Changing window type allows undocked tool to stack
-                # below main window on but issues errors on macOS Big Sur.
+                # below main window.  Using Qt5 it issued errors on macOS 11.
+                # but using Qt6 on 10.15 and 12 -- no errors
                 # See ChimeraX bug #453 for details.
-                # window_flags = (Qt.CustomizeWindowHint | Qt.Window)
-                window_flags = dw.windowFlags()
+                window_flags = (Qt.CustomizeWindowHint | Qt.Window)
+                # original code:
+                #window_flags = dw.windowFlags()
                 button_flags = (Qt.WindowType.WindowMinimizeButtonHint |
                                 Qt.WindowType.WindowMaximizeButtonHint |
                                 Qt.WindowType.WindowCloseButtonHint)
