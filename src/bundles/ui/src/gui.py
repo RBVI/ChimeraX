@@ -2011,7 +2011,7 @@ class ToolWindow(StatusLogger):
         dock_area_value(Qt.DockWidgetArea.TopDockWidgetArea): "top",
         dock_area_value(Qt.DockWidgetArea.BottomDockWidgetArea): "bottom"
     }
-    def manage(self, placement, fixed_size=False, allowed_areas=Qt.DockWidgetArea.AllDockWidgetAreas,
+    def manage(self, placement = None, fixed_size=False, allowed_areas=Qt.DockWidgetArea.AllDockWidgetAreas,
             initially_hidden=False):
         """Supported API. Show this tool window in the interface
 
