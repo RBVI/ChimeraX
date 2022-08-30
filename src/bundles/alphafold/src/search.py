@@ -110,7 +110,7 @@ def _fasta(sequence_strings, LINELEN=60):
         lines.append('')
     return '\n'.join(lines)
 
-sequence_search_url = 'https://www.rbvi.ucsf.edu/chimerax/cgi-bin/alphafold_search2_cgi.py'
+sequence_search_url = 'https://www.rbvi.ucsf.edu/chimerax/cgi-bin/alphafold_search3_cgi.py'
 def _search_sequences_web(sequences, url = sequence_search_url):
     import json
     request = json.dumps({'sequences': sequences})
@@ -129,8 +129,8 @@ def _search_sequences_web(sequences, url = sequence_search_url):
         raise SearchError('AlphaFold sequence search web service\n\n%s\n\nreported error:\n\n%s'
                           % (url, results['error']))
     seq_uids = {seq : UniprotSequence(u['uniprot id'], u['uniprot name'],
-                                      (u['dbseq start'], u['dbseq end']),
-                                      (u['query start'], u['query end']),
+                                      (u.get('dbseq start'), u.get('dbseq end')),
+                                      (u.get('query start'), u.get('query end')),
                                       u['db version'])
                 for seq, u in zip(sequences, results['sequences']) if u}
     return seq_uids
