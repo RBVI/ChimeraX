@@ -19,8 +19,21 @@ from chimerax.core.toolshed import BundleAPI
 class AddH_API(BundleAPI):
 
     @staticmethod
+    def get_class(class_name):
+        if class_name == "AddHTool":
+            from .tool import AddHTool
+            return AddHTool
+        else:
+            raise ValueError(f"Don't know how to get class {class_name}")
+
+    @staticmethod
     def register_command(command_name, logger):
         from . import cmd
         cmd.register_command(command_name, logger)
+
+    @staticmethod
+    def start_tool(session, tool_name):
+        from .tool import AddHTool
+        return AddHTool(session, tool_name)
 
 bundle_api = AddH_API()

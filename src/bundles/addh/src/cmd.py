@@ -18,9 +18,12 @@ from chimerax.atomic.struct_edit import add_atom
 from chimerax.atomic.colors import element_color
 from chimerax.atomic.bond_geom import linear
 
+metal_dist_default = 3.95
+
 # functions in .dock_prep may need updating if cmd_addh() call signature changes
-def cmd_addh(session, structures, *, hbond=True, in_isolation=True, metal_dist=3.95, template=False,
-    use_his_name=True, use_glu_name=True, use_asp_name=True, use_lys_name=True, use_cys_name=True):
+def cmd_addh(session, structures, *, hbond=True, in_isolation=True, metal_dist=metal_dist_default,
+    template=False, use_his_name=True, use_glu_name=True, use_asp_name=True, use_lys_name=True,
+    use_cys_name=True):
 
     if structures is None:
         from chimerax.atomic import AtomicStructure
@@ -846,8 +849,8 @@ def metal_clash(metal_pos, pos, parent_pos, parent_atom, parent_type_info):
         # non-sp1 carbons, et al, can't coordinate metals
         return False
     from chimerax.geometry import distance, angle
-    if distance(metal_pos, pos) > 2.7:
-        # "_metal_dist" is 2.7 + putative S-H bond length of 1.25;
+    if distance(metal_pos, pos) > _metal_dist - 1.25:
+        # default "_metal_dist" is 2.7 + putative S-H bond length of 1.25;
         # see nitrogen stripping in CYS 77 and 120 in 3r24
         return False
     # 135.0 is not strict enough (see :1004.a in 1nyr)
