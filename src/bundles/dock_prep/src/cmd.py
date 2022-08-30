@@ -35,10 +35,17 @@ from .settings import defaults
 #  Bundles are in charge of their own memorization, but can use the handle_memorization() function
 #  to do most of the heavy lifting.
 
+mod_to_arg_prefix = {
+    "addh": "ah_",
+    "add_charge": "ac_",
+    "dock_prep": ""
+}
+
 def get_param_info(session):
     param_info = {}
     import importlib
-    for mod_name, arg_prefix in [("dock_prep", ""), ("addh", "addh_")]:
+    for mod_name in ["dock_prep", "addh"]:
+        arg_prefix = mod_to_arg_prefix[mod_name]
         if mod_name != "dock_prep":
             param_info[arg_prefix[:-1]] = BoolArg
         full_mod_name = "chimerax." + mod_name
@@ -74,9 +81,10 @@ def dock_prep_steps(session, memorization, memorize_name, **kw):
     for step_name in ["addh"]:
         if active_settings.get(step_name, True):
             step_kw = {}
+            step_prefix = mod_to_arg_prefix[step_name]
             for k, v in kw.items():
-                if k.startswith(step_name + '_'):
-                    step_kw[k[len(step_name)+1:]] = v
+                if k.startswith(step_prefix):
+                    step_kw[k[len(step_prefix):]] = v
             steps.append((step_name, step_kw))
     return steps
 
