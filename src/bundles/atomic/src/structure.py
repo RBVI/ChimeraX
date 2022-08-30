@@ -302,6 +302,7 @@ class Structure(Model, StructureData):
         return self.color
 
     def _set_model_color(self, color):
+        Model.model_color.fset(self, color)
         self.atoms.colors = color
         residues = self.residues
         residues.ribbon_colors = color
