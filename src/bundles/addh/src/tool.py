@@ -112,24 +112,22 @@ class AddHTool(ToolInstance):
         self._protonation_res_change("histidine")
 
         from chimerax.ui.options import OptionsPanel, FloatOption, BooleanOption
-        self.options_panel = OptionsPanel(sorting=False, scrolled=False)
-        self.options_panel.layout().setSpacing(20)
+        op1 = OptionsPanel(sorting=False, scrolled=False, contents_margins=(0,0,0,0))
         from .cmd import metal_dist_default
-        self.metal_option = FloatOption(
-            "Strip proton from heavy atom X near metal M if X\N{LEFT RIGHT ARROW}M\n"
-            "distance less than entry value, and...\n"
-            "    \N{BULLET} X is electronegative\n"
-            "    \N{BULLET} the X-H-M angle would be >120°\n",
-            metal_dist_default, None, min=0.0, max=99.9)
-        self.options_panel.add_option(self.metal_option)
-        options_layout.addWidget(self.options_panel)
-        self.template_option = BooleanOption("Base non-standard residue atom typing on\n"
-            "idealized coordinates rather than actual coordinates", False, None,
-            balloon="If a non-standard residue has an entry in the PDB Chemical Component Dictionary,\n"
+        self.metal_option = FloatOption("",
+            metal_dist_default, None, min=0.0, max=99.9,
+            left_text="Do not protonate electro-negative atom X within",
+            right_text="Å of metal M if X-H-M angle would be >120°")
+        op1.add_option(self.metal_option)
+        options_layout.addWidget(op1)
+        self.template_checkbox = QCheckBox("Use idealized template to guess "
+            "atom types in nonstandard residues")
+        self.template_checkbox.setToolTip(
+            "If a non-standard residue has an entry in the PDB Chemical Component Dictionary,\n"
             "use the idealized coordinates from the entry for atom typing rather than the actual\n"
             "coordinates from the structure.  This means the residue name has to correspond to the\n"
             "component name in the dictionary.")
-        self.options_panel.add_option(self.template_option)
+        options_layout.addWidget(self.template_checkbox, alignment=Qt.AlignCenter)
 
         from Qt.QtWidgets import QDialogButtonBox as qbbox
         bbox = qbbox(qbbox.Ok | qbbox.Cancel | qbbox.Help)
@@ -166,7 +164,7 @@ class AddHTool(ToolInstance):
         from .cmd import metal_dist_default
         if self.metal_option.value != metal_dist_default:
             cmd += " metalDist %g" % self.metal_option.value
-        if self.template_option.value:
+        if self.template_checkbox.isChecked():
             cmd += " template true"
         run(self.session, cmd)
         self.delete()
