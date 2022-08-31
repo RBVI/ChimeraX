@@ -13,6 +13,7 @@
 
 from .charge import estimate_net_charge, ChargeError, add_charges, default_standardized
 from .cmd import ChargeMethodArg
+from .dock_prep import dock_prep_arg_info, run_for_dock_prep
 
 from chimerax.core.toolshed import BundleAPI
 

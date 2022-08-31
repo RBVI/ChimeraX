@@ -18,6 +18,7 @@ ChargeMethodArg.default_value = 'am1-bcc'
 from chimerax.core.errors import UserError
 from .charge import default_standardized, add_charges, add_nonstandard_res_charges
 
+# functions in .dock_prep may need updating if cmd_addcharge() call signature changes
 def cmd_addcharge(session, residues, *, method=ChargeMethodArg.default_value,
         standardize_residues=default_standardized):
     if residues is None:
