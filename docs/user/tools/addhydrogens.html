@@ -172,19 +172,20 @@ thus, adding hydrogens will change the VDW radii of some atoms.
 <h3>Protonation States</h3>
 <p>
 <b>Add Hydrogens</b> aims to generate
-protonation states reasonable at physiological pH.
-For example, hydrogens are not added to the phosphodiester moieties
-of DNA and RNA. The <a href="#options">default</a> behavior is to make
+protonation states reasonable for pH ~7 (such as in blood).
+For example, hydrogens are not added to the phosphodiester backbone
+of DNA and RNA, and in proteins, the <a href="#options">default</a> is to make
 aspartic acid and glutamic acid sidechains negatively charged and
-arginine and lysine sidechains positively charged, whereas the
-following depend on details of the structure:
+arginine and lysine sidechains positively charged. The following groups
+typically have pKa values near 7, however, so how they get protonated
+depends on the details of the structure: 
 </p>
 <ul>
 <li>imidazoles such as histidine sidechains; histidine protonation states
-can be <a href="#options">specified by the user</a> (by changing residue
+can be <a href="#method">guessed by the method</a> or
+<a href="#options">specified by the user</a> (by changing residue
 names beforehand with <a href="../commands/setattr.html"><b>setattr</b></a>
 or by text-editing the input structure file)
-or guessed by the <a href="#method">method</a>
 <li>terminal phosphates (the third ionization);
 if one P&ndash;O bond is at least 0.05 &Aring; longer than the others
 around that same phosphorus atom, that oxygen will be protonated
