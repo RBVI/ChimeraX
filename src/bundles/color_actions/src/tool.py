@@ -114,12 +114,13 @@ class ColorActions(ToolInstance):
             but = QPushButton("By " + label)
             if tooltip:
                 but.setToolTip(tooltip)
-            but.clicked.connect(lambda *, run=run, ses=self.session, arg=arg: run(ses,
-                "color " + ("" if ses.selection.empty() else "sel ") + "by" + arg))
+            but.clicked.connect(lambda *, run=run, ses=self.session, get_target=self._target_arg, arg=arg:
+                run(ses, "color " + ("" if ses.selection.empty() else "sel ") + "by" + arg + get_target()))
             grp_layout.addWidget(but)
         but = QPushButton("From Editor")
         but.setToolTip("Bring up a color editor to choose the color")
-        but.clicked.connect(self.session.ui.main_window.color_by_editor)
+        but.clicked.connect(lambda *, f=self.session.ui.main_window.color_by_editor,
+            get_target=self._target_arg: f(cmd_arg_func=get_target))
         grp_layout.addWidget(but)
 
         actions_layout.addStretch(1)
@@ -216,15 +217,11 @@ class ColorActions(ToolInstance):
     def _color(self, color_name):
         from chimerax.core.errors import UserError
         from chimerax.core.commands import run
-        target = ""
-        for but, targ_char in self.target_button_info:
-            if but.isChecked():
-                target += targ_char
         commands = []
         if target:
             commands.append("color "
                 + ("" if self.session.selection.empty() else "sel ") + color_name
-                + ("" if target == "acspf" else " target " + target))
+                + self._target_arg())
 
         for but, cmd in self.global_button_info:
             if but.isChecked():
@@ -255,6 +252,13 @@ class ColorActions(ToolInstance):
         if reddish and not greenish and bluish:
             return (5, -rgba[0]+rgba[1]-rgba[2])
         return (6, rgba)
+
+    def _target_arg(self):
+        target = ""
+        for but, targ_char in self.target_button_info:
+            if but.isChecked():
+                target += targ_char
+        return "" if target == "acspf" else " target " + target
 
     def _toggle_all_colors(self, *args):
         if self.all_colors_check_box.isChecked():

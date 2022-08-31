@@ -30,7 +30,7 @@ msgpack==1.0.4
 netCDF4==1.6.0
 networkx==2.8.5
 numpy==1.23.1
-openvr==1.16.802
+openvr==1.23.701
 # as per Tristan's request in ticket #3055
 ParmEd==3.4.3
 pep517==0.13.0
