@@ -20,6 +20,7 @@ from chimerax.atomic.bond_geom import linear
 
 metal_dist_default = 3.95
 
+# functions in .dock_prep may need updating if cmd_addh() call signature changes
 def cmd_addh(session, structures, *, hbond=True, in_isolation=True, metal_dist=metal_dist_default,
     template=False, use_his_name=True, use_glu_name=True, use_asp_name=True, use_lys_name=True,
     use_cys_name=True):

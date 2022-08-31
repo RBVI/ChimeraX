@@ -394,6 +394,7 @@ class StructMeasureTool(ToolInstance):
         self.apc_table.add_column("Radius (\N{ANGSTROM SIGN})", "radius", format="%4.1f")
         self.apc_table.launch()
         self.apc_table.data = self._filter_apc_models(self.session.models)
+        self._add_centroid_triggers(self.apc_table.data)
         self.apc_table.sortByColumn(1, Qt.AscendingOrder)
         self.apc_table.selection_changed.connect(self._apc_selection_changed)
         from chimerax.core.models import ADD_MODELS, REMOVE_MODELS
@@ -559,6 +560,13 @@ class StructMeasureTool(ToolInstance):
             for i, col in enumerate(columns):
                 if col.display_format not in self.apc_table.color_formats:
                     self.apc_table.resizeColumnToContents(i)
+            self._add_centroid_triggers(models)
+    def _add_centroid_triggers(self, models):
+        for m in models:
+            if isinstance(m, CentroidModel):
+                # color can change w/o model_color changing
+                m.triggers.add_handler("changes", lambda *args, m=m, update=self.apc_table.update_cell:
+                    update("Color", m))
 
     def _save_angle_info(self):
         if not self._angle_info:

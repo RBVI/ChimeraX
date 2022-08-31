@@ -63,10 +63,12 @@ in <a href="https://www.uniprot.org" target="_blank">UniProt</a>:
 <b>Version 1</b> (database release 1, used by ChimeraX 1.3): ~360,000 sequences,
 reference proteomes of 21 species including <i>Homo sapiens</i>
 <br><b>Version 2</b> (database releases 2 and 3 combined,
-<a href="../commands/alphafold.html#version">default</a> in ChimeraX 1.4+):
+default in ChimeraX 1.4):
 ~1 million sequences, v1 + most of SwissProt + sequences relevant to 
 neglected tropical disease or antimicrobial resistance
-<br><b>Version 3</b> (database release 4): &gt;200 million sequences
+<br><b>Version 3</b> (database release 4; 
+<a href="../commands/alphafold.html#version">default</a> in ChimeraX 1.5+
+builds from August 31, 2022 and later): &gt;200 million sequences
 </p>
 <li><a href="#predict">runs new AlphaFold predictions</a>
 on <a href="https://colab.research.google.com/signup" target="_blank">Google 
@@ -135,8 +137,8 @@ for each specified chain.
 Specifying a whole model specifies all of its protein chains.
 For each chain, a model is obtained for the exact UniProt entry 
 if available, otherwise the single top hit identified by
-<a href="https://en.wikipedia.org/wiki/BLAT_(bioinformatics)"
-target="_blank">BLAT</a>-searching the 
+<a href="https://www.rbvi.ucsf.edu/chimerax/data/kmer-aug2022/kmer_search.html"
+target="_blank">K-mer search</a> of the
 <a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold Database</a>
 (<a href="../commands/alphafold.html#search-option">details...</a>).
 The corresponding command is
@@ -206,7 +208,10 @@ returning a maximum of <b>100</b> of unique sequences
 or other sequence-database entries may have the same sequence).
 The corresponding command is
 <a href="../commands/alphafold.html#search"><b>alphafold search</b></a>.
-<b>Search</b> differs from <b>Fetch</b> in that it uses BLAST instead of BLAT,
+<b>Search</b> differs from <b>Fetch</b> in that it uses BLAST instead
+of fast (but low-sensitivity)
+<a href="https://www.rbvi.ucsf.edu/chimerax/data/kmer-aug2022/kmer_search.html"
+target="_blank">K-mer searching</a>,
 accepts only a single chain or sequence as input,
 and returns a list of hits for the user to inspect,
 rather than fetching the single top hit per chain automatically.

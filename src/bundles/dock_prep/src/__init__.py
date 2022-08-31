@@ -11,17 +11,27 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from .charge import estimate_net_charge, ChargeError, add_charges, default_standardized
-from .cmd import ChargeMethodArg
-from .dock_prep import dock_prep_arg_info, run_for_dock_prep
+#--- public API ---
+from .cmd import dock_prep_caller
+
+# all modules involved in the DockPrep piepline provide these variables/functions
+from .cmd import dock_prep_arg_info
+from .prep import prep as run_for_dock_prep, handle_memorization, MEMORIZE_USE, MEMORIZE_SAVE, MEMORIZE_NONE
+
+#--- toolshed/session-init funcs ---
 
 from chimerax.core.toolshed import BundleAPI
 
-class AddCharge_API(BundleAPI):
+class DockPrepAPI(BundleAPI):
 
     @staticmethod
     def register_command(command_name, logger):
-        from . import cmd
-        cmd.register_command(logger)
+        from .cmd import register_command
+        register_command(logger)
 
-bundle_api = AddCharge_API()
+    #@staticmethod
+    #def start_tool(session, tool_name):
+    #    from .tool import DockPrepTool
+    #    return DockPrepTool(session, tool_name)
+
+bundle_api = DockPrepAPI()

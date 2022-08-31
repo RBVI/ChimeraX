@@ -1445,16 +1445,12 @@ class MainWindow(QMainWindow, PlainTextLog):
         action.triggered.connect(lambda *, run=run, ses=self.session:
             run(ses, "ui tool show 'Selection Inspector'"))
 
-    def color_by_editor(self, *args):
+    def color_by_editor(self, *args, cmd_arg_func=lambda:""):
         if not self._color_dialog:
             from Qt.QtWidgets import QColorDialog
             self._color_dialog = cd = QColorDialog(self)
             cd.setOption(cd.NoButtons, True)
             cd.setOption(cd.ShowAlphaChannel, True)
-            from chimerax.core.commands import run, sel_or_all
-            cd.currentColorChanged.connect(lambda clr, *, ses=self.session:
-                run(ses, "color %s %s" % (sel_or_all(ses, ['atoms', 'bonds']),
-                clr.name() + clr.name(clr.HexArgb)[1:3])))
             cd.destroyed.connect(lambda *, s=self: setattr(s, '_color_dialog', None))
         else:
             cd = self._color_dialog
@@ -1465,6 +1461,11 @@ class MainWindow(QMainWindow, PlainTextLog):
             import sys
             if sys.platform == "darwin":
                 cd.hide()
+            cd.currentColorChanged.disconnect()
+        from chimerax.core.commands import run, sel_or_all
+        cd.currentColorChanged.connect(lambda clr, *, ses=self.session, arg_func=cmd_arg_func:
+            run(ses, "color %s %s" % (sel_or_all(ses, ['atoms', 'bonds']),
+            clr.name() + clr.name(clr.HexArgb)[1:3]) + arg_func()))
         cd.show()
 
     def _run_surf_command(self, cmd, *, whole_surf=False):
@@ -2010,7 +2011,7 @@ class ToolWindow(StatusLogger):
         dock_area_value(Qt.DockWidgetArea.TopDockWidgetArea): "top",
         dock_area_value(Qt.DockWidgetArea.BottomDockWidgetArea): "bottom"
     }
-    def manage(self, placement, fixed_size=False, allowed_areas=Qt.DockWidgetArea.AllDockWidgetAreas,
+    def manage(self, placement = None, fixed_size=False, allowed_areas=Qt.DockWidgetArea.AllDockWidgetAreas,
             initially_hidden=False):
         """Supported API. Show this tool window in the interface
 

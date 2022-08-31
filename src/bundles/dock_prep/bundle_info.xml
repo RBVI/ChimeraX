@@ -1,0 +1,34 @@
+<BundleInfo name="ChimeraX-DockPrep" version="1.0"
+	    package="chimerax.dock_prep"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>Prepare structures for docking</Synopsis>
+  <Description>Prepare structures for docking (or other computations such as minimization) by adding hydrogens, filling out missing side chains, etc.</Description>
+
+  <Categories>
+    <Category name="Structure Editing"/>
+  </Categories>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version="~=1.2"/>
+    <Dependency name="ChimeraX-AddCharge" version="~=1.4"/>
+    <Dependency name="ChimeraX-AddH" version="~=2.2"/>
+    <Dependency name="ChimeraX-Mol2" version="~=2.0"/>
+    <Dependency name="ChimeraX-SwapRes" version="~=2.1"/>
+    <Dependency name="ChimeraX-UI" version="~=1.10"/>
+  </Dependencies>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    <ChimeraXClassifier>Command :: dockprep :: Structure Editing :: prepare structures for docking</ChimeraXClassifier>
+	<!--
+    <ChimeraXClassifier>Tool :: Dock Prep :: Structure Editing :: prepare structures for docking</ChimeraXClassifier>
+	-->
+  </Classifiers>
+
+</BundleInfo>
