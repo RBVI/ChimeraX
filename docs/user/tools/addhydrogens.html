@@ -73,13 +73,13 @@ sidechain will be protonated based on its local environment,
 whereas the sidechains of other residue types will be assigned
 <a href="#states">protonation states</a> 
 reasonable at physiological pH, regardless of the local
-environment: negative glutamic acid and aspartic acid,
-positive lysine and arginine, and neutral cysteine and tyrosine.
-Alternative protonation states of histidine, glutamic acid, aspartic acid,
-lysine, and cysteine can be specified interactively or
+environment: negative aspartic acid and glutamic acid,
+positive arginine and lysine, and neutral cysteine and tyrosine.
+Alternative protonation states of histidine, aspartic acid, cysteine,
+glutamic acid, and lysine can be specified interactively or
 with special residue names in the input coordinate file:
 <ul>
-<li>Choices for <a name="hisprot"><b>histidine</b></a>:
+<li>Choices for <b>histidine</b>:
   <ul>
   <li><b>Residue-name-based</b> (default)
   &ndash; residue names will be used to determine which
@@ -174,14 +174,14 @@ thus, adding hydrogens will change the VDW radii of some atoms.
 <b>Add Hydrogens</b> aims to generate
 protonation states reasonable at physiological pH.
 For example, hydrogens are not added to the phosphodiester moieties
-of DNA and RNA.  By default,
-aspartic acid and glutamic acid sidechains are assumed to be
-negatively charged, arginine and lysine sidechains positively charged.
-Two chemical moieties are treated as ambiguous at biological pH:
+of DNA and RNA. The <a href="#options">default</a> behavior is to make
+aspartic acid and glutamic acid sidechains negatively charged and
+arginine and lysine sidechains positively charged, whereas the
+following depend on details of the structure:
 </p>
 <ul>
 <li>imidazoles such as histidine sidechains; histidine protonation states
-can be <a href="#hisprot">specified by the user</a> (by changing residue
+can be <a href="#options">specified by the user</a> (by changing residue
 names beforehand with <a href="../commands/setattr.html"><b>setattr</b></a>
 or by text-editing the input structure file)
 or guessed by the <a href="#method">method</a>
@@ -192,14 +192,20 @@ around that same phosphorus atom, that oxygen will be protonated
 <p>
 Potentially ambiguous or rare (shifted-pKa) protonation states,
 especially in binding sites and nonstandard residues,
-should be verified and corrected as needed.  For example,
-extra hydrogens can be <a href="../commands/delete.html">deleted</a>,
-and <a href="../atomtypes.html">atom types</a> can be edited
-(before hydrogen addition)
+should be verified and corrected as needed:
+</p>
+<ul>
+<li>hydrogens can be <a href="../commands/delete.html">deleted</a>
+<li>unusual protonation states of certain amino acids can be specified
+by changing their residue names beforehand
+(see <a href="#options">options</a>)
+<li><a href="../atomtypes.html">atom types</a> in nonstandard
+residues can be edited (also before hydrogen addition)
 with <a href="../commands/setattr.html"><b>setattr</b></a>
-or <a href="buildstructure.html"><b>Build Structure</b></a>.
-</p><p>
+or <a href="buildstructure.html"><b>Build Structure</b></a>
+</ul>
 <a name="termini"></a>
+<p>
 Residues at the ends of connected peptide chains are inspected
 to determine whether
 they are real termini, based on any SEQRES information in the input PDB
