@@ -16,8 +16,8 @@ defaults = {
 	"del_ions": True,
     "del_alt_locs": True,
     "complete_side_chains": True,
-    "addh": True,
-    "add_charges": True,
+    "ah": True,
+    "ac": True,
 }
 from chimerax.atomic.struct_edit import standardizable_residues as std_res
 change_args = ['change_'+name for name in std_res]

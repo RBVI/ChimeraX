@@ -44,7 +44,7 @@ mod_to_arg_prefix = {
 def get_param_info(session):
     param_info = {}
     import importlib
-    for mod_name in ["dock_prep", "addh"]:
+    for mod_name in ["dock_prep", "addh", "add_charge"]:
         arg_prefix = mod_to_arg_prefix[mod_name]
         if mod_name != "dock_prep":
             param_info[arg_prefix[:-1]] = BoolArg
@@ -77,11 +77,10 @@ def dock_prep_steps(session, memorization, memorize_name, **kw):
         kw_dict[param] = val
     if dp_step_needed:
         steps.append(("dock_prep", kw_dict))
-    #TODO: add charge step
-    for step_name in ["addh"]:
-        if active_settings.get(step_name, True):
+    for step_name in ["addh", "add_charge"]:
+        step_prefix = mod_to_arg_prefix[step_name]
+        if active_settings.get(step_prefix[:-1], True):
             step_kw = {}
-            step_prefix = mod_to_arg_prefix[step_name]
             for k, v in kw.items():
                 if k.startswith(step_prefix):
                     step_kw[k[len(step_prefix):]] = v
