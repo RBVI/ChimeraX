@@ -1571,7 +1571,7 @@ find_6ring_planar_NR2(PyObject *, PyObject *args)
 	// divvy up the atoms among the threads;
 	// letting the threads take atoms from a global pool
 	// results in too much lock contention since many
-	// of the atoms fail to form a group quickly
+	// of the atoms quickly fail to form a group
 	num_threads = std::min(num_threads, atoms.size());
 	if (num_threads > 0) {
 		float per_thread = atoms.size() / (float) num_threads;
