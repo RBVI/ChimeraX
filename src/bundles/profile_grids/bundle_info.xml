@@ -1,0 +1,34 @@
+<BundleInfo name="ChimeraX-ProfileGrids" version="1.0"
+	    package="chimerax.profile_grids"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>Sequence alignment overview</Synopsis>
+  <Description>Sequence alignment summary/overview</Description>
+
+  <Categories>
+    <Category name="Sequence"/>
+  </Categories>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version="~=1.4"/>
+    <Dependency name="ChimeraX-Alignments" version="~=2.6"/>
+    <Dependency name="ChimeraX-AlignmentHdrs" version="~=3.2"/>
+    <Dependency name="ChimeraX-UI" version="~=1.41"/>
+  </Dependencies>
+
+  <Providers manager="alignments">
+	<!-- subcommand_name also defined in __init__.py and used in various other .py files -->
+    <Provider name="profile-grids" synonyms="pg,grid" subcommand_name="grid" type="viewer"/>
+  </Providers>
+
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+  </Classifiers>
+
+</BundleInfo>
