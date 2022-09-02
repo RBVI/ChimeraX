@@ -39,29 +39,38 @@ class LogStdout:
 
         def write(self, s):
             message = s
-            message_level = 'INFO'
             # Assume that all logs will use the message format from
             # core.__init__ which is level:message
-            need_message_level = len(s.split(':')) > 1
-            if need_message_level:
-                message_level = s.split(':')[0]
+            maybe_need_message_level = len(s.split(':')) > 1
+            if maybe_need_message_level:
+                maybe_message_level = s.split(':')[0]
                 # Messages may have colons in them, so maybe merge everything
                 # from field 1 on.
-                message = ':'.join(s.split(':')[1:])
-            # TODO: Come up with something good for BUG
-            if message_level == 'WARNING':
-                self.logger.session.ui.thread_safe(
-                    self.logger.warning, message, add_newline = False
-                )
-            elif message_level == 'ERROR':
-                self.logger.session.ui.thread_safe(
-                    self.logger.error, message, add_newline = False
-                )
+                # TODO: Come up with something good for BUG
+                if maybe_message_level == 'WARNING':
+                    message = ':'.join(s.split(':')[1:])
+                    self.logger.session.ui.thread_safe(
+                        self.logger.warning, message, add_newline = False
+                    )
+                elif maybe_message_level == 'ERROR':
+                    message = ':'.join(s.split(':')[1:])
+                    self.logger.session.ui.thread_safe(
+                        self.logger.error, message, add_newline = False
+                    )
+                elif maybe_message_level == 'INFO':
+                    message = ':'.join(s.split(':')[1:])
+                    self.logger.session.ui.thread_safe(
+                        self.logger.info, message, add_newline = False
+                    )
+                else:
+                    self.logger.session.ui.thread_safe(
+                        self.logger.info, message, add_newline = False
+                    )
             else:
                 self.logger.session.ui.thread_safe(
                     self.logger.info, message, add_newline = False
                 )
-
+ 
         def flush(self):
             return
 
