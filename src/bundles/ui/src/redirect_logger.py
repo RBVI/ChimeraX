@@ -38,17 +38,18 @@ class LogStdout:
             self.errors = "ignore"
 
         def write(self, s):
+            message = s
+            message_level = 'INFO'
             # Assume that all logs will use the message format from
             # core.__init__ which is level:message
-            message_level = s.split(':')[0]
-            # Messages may have colons in them, so maybe merge everything
-            # from field 1 on.
-            message = ':'.join(s.split(':')[1:])
-            if message_level == 'INFO':
-                self.logger.session.ui.thread_safe(
-                    self.logger.info, message, add_newline = False
-                )
-            elif message_level == 'WARNING':
+            need_message_level = len(s.split(':')) > 1
+            if need_message_level:
+                message_level = s.split(':')[0]
+                # Messages may have colons in them, so maybe merge everything
+                # from field 1 on.
+                message = ':'.join(s.split(':')[1:])
+            # TODO: Come up with something good for BUG
+            if message_level == 'WARNING':
                 self.logger.session.ui.thread_safe(
                     self.logger.warning, message, add_newline = False
                 )
@@ -56,7 +57,6 @@ class LogStdout:
                 self.logger.session.ui.thread_safe(
                     self.logger.error, message, add_newline = False
                 )
-            # TODO: Come up with something good for BUG
             else:
                 self.logger.session.ui.thread_safe(
                     self.logger.info, message, add_newline = False
