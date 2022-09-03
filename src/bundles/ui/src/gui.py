@@ -244,7 +244,10 @@ class UI(QApplication):
                 # So remember file and startup script will open it when ready.
                 self._files_to_open.append(event.file())
             else:
-                _open_dropped_file(self.session, event.file())
+                try:
+                    _open_dropped_file(self.session, event.file())
+                except Exception as e:
+                    self.session.logger.warning('Failed opening file %s:\n%s' % (event.file(), str(e)))
             return True
         return QApplication.event(self, event)
 
