@@ -111,13 +111,14 @@ target="_blank">Amber parameter database</a>.
 by the main <b>addcharge</b> command or specified for a single
 residue type at a time with the <b>addcharge nonstd</b> subcommand.
 Monatomic ions are simply assigned their net charges. 
-The other nonstandard residues are assigned atomic partial charges and 
+<a name="method"></a>
+The remaining nonstandard residues are assigned atomic partial charges and 
 <a href="https://ambermd.org/antechamber/gaff.html#atomtype" 
 target="_blank">GAFF types</a> by 
 <a href="https://ambermd.org/antechamber/antechamber.html"
 target="_blank"><b>Antechamber</b></a>, which is included with ChimeraX.
-<a name="method"></a>
 The <b>method</b> of charge calculation can be either of the following:
+</p>
   <ul>
   <li><b>am1-bcc</b> (default) &ndash; semi-empirical (AM1) 
   with bond charge correction (BCC), parametrized to reproduce 
@@ -125,9 +126,10 @@ The <b>method</b> of charge calculation can be either of the following:
   <li><b>gasteiger</b> &ndash; iterative partial equalization of orbital
   electronegativity, a faster method based on atom types and connectivity
  </ul>
+<p>
 While both methods are much faster than <i>ab initio</i> calculations,
 the Gasteiger method is the faster and more approximate of the two.
-<p>
+</p><p>
 <b>Note</b>: Antechamber/GAFF are meant to handle most small organic molecules,
 but not metal complexes, inorganic compounds, or unstable species such as
 radicals, and may not work well on highly charged molecules.
