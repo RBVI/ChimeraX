@@ -16,6 +16,7 @@ from chimerax.core.tools import ToolInstance
 class AddHTool(ToolInstance):
 
     SESSION_SAVE = False
+    help ="help:user/tools/addhydrogens.html"
 
     def __init__(self, session, tool_name, *, dock_prep_info=None):
         ToolInstance.__init__(self, session, tool_name)
@@ -112,14 +113,15 @@ class AddHTool(ToolInstance):
         self._protonation_res_change("histidine")
 
         from chimerax.ui.options import OptionsPanel, FloatOption, BooleanOption
-        op1 = OptionsPanel(sorting=False, scrolled=False, contents_margins=(0,0,0,0))
+        op1 = OptionsPanel(sorting=False, scrolled=False, contents_margins=(6,0,6,0))
         from .cmd import metal_dist_default
         self.metal_option = FloatOption("",
             metal_dist_default, None, min=0.0, max=99.9,
-            left_text="Do not protonate electro-negative atom X within",
-            right_text="Å of metal M if X-H-M angle would be >120°")
+            left_text="Do not protonate electronegative atom X within",
+            right_text="Å of metal M")
         op1.add_option(self.metal_option)
         options_layout.addWidget(op1)
+        options_layout.addWidget(QLabel("if X-H-M angle would be >120°"), alignment=Qt.AlignTop|Qt.AlignHCenter)
         self.template_checkbox = QCheckBox("Use idealized template to guess "
             "atom types in nonstandard residues")
         self.template_checkbox.setToolTip(
@@ -137,7 +139,6 @@ class AddHTool(ToolInstance):
         bbox.rejected.connect(self.delete)
         from chimerax.core.commands import run
         bbox.helpRequested.connect(lambda *, run=run, ses=session: run(ses, "help " + self.help))
-        bbox.button(qbbox.Help).setEnabled(False)
         layout.addWidget(bbox)
         self.tool_window.manage(None)
 
