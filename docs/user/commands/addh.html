@@ -36,29 +36,33 @@ class="clRight" title="User Guide Index"/></a>
 <p>
 The <b>addh</b> command adds hydrogen atoms to atomic models, as well as
 OXT atoms where missing from peptide C-termini.
+The corresponding tool is <a href="../tools/addhydrogens.html"><b>Add
+Hydrogens</b></a>.
 See also: <a href="delete.html"><b>delete</b></a>,
 <a href="build.html"><b>build</b></a>,
 <a href="hbonds.html"><b>hbonds</b></a>,
 <a href="altlocs.html"><b>altlocs</b></a>,
-<a href="addcharge.html"><b>addcharge</b></a>
+<a href="addcharge.html"><b>addcharge</b></a>,
+<a href="dockprep.html"><b>dockprep</b></a>
 </p><p>
 Hydrogens are added to entire atomic model(s) 
 even if only parts of models are specified.
-Placement is based on <a href="../atomtypes.html">atom types</a>
-and to avoid clashes, if possible.
 The positions of pre-existing atoms are not changed, but
 any lone pairs and atoms of unidentifiable element are deleted.
-Hydrogens are named in accordance with the PDB standard if possible.
-<!--
-If any atom cannot be assigned a type, a dialog will appear for specifying
-its proper substituent geometry and number of substituents.
--->
+Hydrogens are named in accordance with the PDB standard, if possible, and
+positioned to produce the expected
+<a href="../tools/addhydrogens.html#bondlengths">bond lengths</a>.
+An attempt is made to preserve coloring schemes, coloring the added hydrogens
+<a href="colortables.html#element">by element</a> (white)
+and/or to match their bond partners.
 </p><p>
+<a name="hbond"></a>
 The <b>hbond</b> option (default <b>true</b>) controls 
 whether H-bond formation should also be considered.
 Considering H-bonds increases calculation time and may not
 produce a globally optimal network of H-bonds.
 </p><p>
+<a name="inIsolation"></a>
 The <b>inIsolation</b> option (default <b>true</b>) indicates using
 only the atoms within the same model. Otherwise,
 other models in the vicinity (except sibling submodels of the same model)
@@ -68,16 +72,19 @@ Sibling submodels of the same model (<i>e.g.</i>, #1.1, #1.2, #1.3, ...)
 are always treated in isolation from one another, even if this option is 
 <b>false</b>.
 </p><p>
+<a name="metalDist"></a>
 The <b>metalDist</b> option specifies a distance between a heavy atom X
 and metal ion M (default <b>3.95</b> &Aring;)
 within which to suppress adding a hydrogen to X
 if both of the following also apply:
 </p>
 <ul>
-<li>X is electronegative (O or N, but more generally, periodic table groups 15-16)
+<li>X is electronegative
+(O or N, but more generally, periodic table groups 15-16)
 <li>the X-H-M angle would be &gt;120&deg;
 </ul>
 <p>
+<a name="template"></a>
 The <b>template</b> option (default <b>false</b>) allows using idealized
 coordinates to discern <a href="../atomtypes.html">atom types</a> 
 in nonstandard residues, instead of their actual coordinates in the structure.
@@ -89,8 +96,16 @@ mis-typed, potentially causing addition of the wrong number of hydrogens or
 hydrogens in incorrect positions.
 </p>
 <a name="options"></a>
-The remaining options allow alternative protonation states of certain amino acids
-to be specified with special residue names:
+<p>
+By default, if amino acids have standard residue names, each histidine
+sidechain will be protonated based on its local environment,
+whereas the sidechains of other residue types will be assigned
+<a href="../tools/addhydrogens.html#states">protonation states</a> 
+reasonable at physiological pH, regardless of the local
+environment: negative aspartic acid and glutamic acid,
+positive arginine and lysine, and neutral cysteine and tyrosine.
+The following <b>addh</b> command options allow alternative protonation states
+of certain amino acids to be specified with special residue names:
 </p>
 <table border cellpadding="4" cellspacing="0"><tr>
 <td align="center" style="background-color:#cccccc"><b>option</b></td>
@@ -126,13 +141,9 @@ GLH neutral (OE2-protonated)</td>
 The <a href="../atomtypes.html">atom types</a> within these amino acids
 are ignored for hydrogen addition, so changing them manually to try to control
 hydrogen addition will have no effect.
-</p><p>
-An attempt is made to preserve coloring schemes, coloring the added hydrogens
-<a href="colortables.html#element">by element</a> (white)
-and/or to match their bond partners.
 </p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-August 2022</address>
+September 2022</address>
 </body></html>
