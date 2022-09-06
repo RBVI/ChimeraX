@@ -45,6 +45,16 @@ or for other calculations. The steps could be performed separately, but
 <b>dockprep</b> unites them for convenience:
 </p>
 <ul>
+<li><b>memorize</b> &ndash; whether to save the current settings of all (other)
+<b>dockprep</b> options in <a href="../preferences.html#other">preferences</a>
+for future use, or use previously saved options:
+ <ul>
+ <li><b>none</b> (default) &ndash; neither save nor use previously saved
+option settings
+ <li><b>save</b> &ndash; save all (other) option settings for future use
+ <li><b>use</b> &ndash; use previously saved option settings
+ </ul>
+<br>
 <li><b>delSolvent</b>, <b>delIons</b> (both default <b>true</b>) &ndash; 
 whether to delete water and ions, respectively;
 see also <a href="delete.html"><b>delete</b></a>
@@ -80,23 +90,16 @@ and dynamics from comprehensive molecular dynamics simulations in water.</a>
 Scouras AD, Daggett V.
 <i>Protein Sci.</i> 2011 Feb;20(2):341-52.
    </blockquote>
-<!--
-The Dynameomics library includes multiple choices of residue type
-for cysteine and histidine, depending on the oxidation or protonation state;
-see <a href="#multiplechoices">above</a>.
--->
  <li><b>Richardson.common</b> &ndash; common-atom values (author-recommended)
-from the <a href="http://kinemage.biochem.duke.edu/databases/rotamer.php#PRL"
-target="_blank">Richardson backbone-independent rotamer library</a>:
+from the Richardson backbone-independent rotamer library:
    <blockquote>
 <a href="https://www.ncbi.nlm.nih.gov/pubmed/10861930" target="_blank">
 The penultimate rotamer library.</a>
 Lovell SC, Word JM, Richardson JS, Richardson DC.
 <i>Proteins.</i> 2000 Aug 15;40(3):389-408.
    </blockquote>
- <li><b>Richardson.mode</b> &ndash; mode values from the
-<a href="http://kinemage.biochem.duke.edu/databases/rotamer.php#PRL"
-target="_blank">Richardson backbone-independent rotamer library</a>
+ <li><b>Richardson.mode</b> &ndash; mode values
+from the Richardson backbone-independent rotamer library
  <li><b>ala</b> &ndash; convert amino acid residues with truncated sidechains 
 to alanine (leave only sidechain -CH<sub>3</sub>)
  <li><b>gly</b> &ndash; convert amino acid residues with truncated sidechains 
@@ -166,6 +169,91 @@ command options except that the keywords start with &ldquo;<b>ah</b>&rdquo;:
 [&nbsp;<b>ahUseHisName</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>ahUseLysName</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 </blockquote>
+</p><p>
+<a name="ahHbond"></a>
+The <b>ahHbond</b> option (default <b>true</b>) controls
+whether H-bond formation should also be considered.
+Considering H-bonds increases calculation time and may not
+produce a globally optimal network of H-bonds.
+</p><p>
+<a name="ahInIsolation"></a>
+The <b>ahInIsolation</b> option (default <b>true</b>) indicates using
+only the atoms within the same model. Otherwise,
+other models in the vicinity (except sibling submodels of the same model)
+may affect hydrogen placement, even if the other models were not
+designated for hydrogen addition.
+Sibling submodels of the same model (<i>e.g.</i>, #1.1, #1.2, #1.3, ...)
+are always treated in isolation from one another, even if this option is
+<b>false</b>.
+</p><p>
+<a name="ahMetalDist"></a>
+The <b>ahMetalDist</b> option specifies a distance between a heavy atom X
+and metal ion M (default <b>3.95</b> &Aring;)
+within which to suppress adding a hydrogen to X
+if both of the following also apply:
+</p>
+<ul>
+<li>X is electronegative
+(O or N, but more generally, periodic table groups 15-16)
+<li>the X-H-M angle would be &gt;120&deg;
+</ul>
+<p>
+<a name="ahTemplate"></a>
+The <b>ahTemplate</b> option (default <b>false</b>) allows using idealized
+coordinates to discern <a href="../atomtypes.html">atom types</a>
+in nonstandard residues, instead of their actual coordinates in the structure.
+The idealized coordinates are looked up by residue name
+in the <a href="https://www.wwpdb.org/data/ccd" target="_blank">PDB
+Chemical Component Dictionary</a>. Setting <b>template true</b> is useful
+for structures with poorly (structurally) determined ligands that could be
+mis-typed, potentially causing addition of the wrong number of hydrogens or
+hydrogens in incorrect positions.
+</p><p>
+By default, if amino acids have standard residue names, each histidine
+sidechain will be protonated based on its local environment,
+whereas the sidechains of other residue types will be assigned
+<a href="../tools/addhydrogens.html#states">protonation states</a>
+reasonable at physiological pH, regardless of the local
+environment: negative aspartic acid and glutamic acid,
+positive arginine and lysine, and neutral cysteine and tyrosine.
+The following <b>addh</b> command options allow alternative protonation states
+of certain amino acids to be specified with special residue names:
+</p>
+<table border cellpadding="4" cellspacing="0"><tr>
+<td align="center" style="background-color:#cccccc"><b>option</b></td>
+<td align="center" style="background-color:#cccccc"><b>true (default)</b></td>
+<td align="center" style="background-color:#cccccc"><b>false</b></td>
+</tr><tr>
+<td align="center"><b>ahUseHisName</b></td>
+<td align="center">HIS unspecified (guess from local environment),
+<br>HID &delta;-nitrogen protonated, HIE &epsilon;-nitrogen protonated,
+<br>HIP both sidechain nitrogens protonated</td>
+<td align="center">all treated as unspecified</td>
+</tr><tr>
+<td align="center"><b>ahUseAspName</b></td>
+<td align="center" class="text">ASP negatively charged,
+ASH neutral (OD2-protonated)</td>
+<td align="center">all negatively charged</td>
+</tr><tr>
+<td align="center"><b>ahUseGluName</b></td>
+<td align="center" class="text">GLU negatively charged,
+GLH neutral (OE2-protonated)</td>
+<td align="center">all negatively charged</td>
+</tr><tr>
+<td align="center"><b>ahUseLysName</b></td>
+<td align="center">LYS positively charged, LYN neutral</td>
+<td align="center">all positively charged</td>
+</tr><tr>
+<td align="center"><b>ahUseCysName</b></td>
+<td align="center">CYS unspecified (guess from local environment),
+<br>CYM negatively charged</td>
+<td align="center">all treated as unspecified</td>
+</tr></table>
+<p>
+The <a href="../atomtypes.html">atom types</a> within these amino acids
+are ignored for hydrogen addition, so changing them manually to try to control
+hydrogen addition will have no effect.
+</p>
 
 <a name="ac-option"></a>
 <p class="nav">
