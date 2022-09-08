@@ -31,6 +31,7 @@ Pseudobond::Pseudobond(Atom* a1, Atom* a2, PBGroup* grp): Connection(a1, a2), _g
     _halfbond = false;
     _radius = 0.05;
     change_tracker()->add_created(grp->structure(), this);
+    graphics_changes()->set_gc_adddel();
 }
 
 ChangeTracker*
