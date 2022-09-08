@@ -44,14 +44,16 @@ def interfaces(session, atoms = None, probe_radius = 1.4, area_cutoff = chain_ar
     log.info(msg)
     log.status(msg)
 
+    plot = None
     if len(ba) == 0:
         pass
     elif session.ui.is_gui:
         from . import tool
-        tool.ContactPlot(session, sg, ba, interface_residue_area_cutoff)
+        plot = tool.ContactPlot(session, sg, ba, interface_residue_area_cutoff)
     else:
         log.warning("unable to show graph without GUI")
 
+    return plot
 
 def interfaces_select(session, atoms = None, contacting = None,
                       both_sides = False,
