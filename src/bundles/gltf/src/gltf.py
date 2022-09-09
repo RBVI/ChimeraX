@@ -264,7 +264,7 @@ def read_chunks(input):
 def buffer_views(buffer_views, binc):
     bviews = []
     for bv in buffer_views:
-        bo = bv['byteOffset']	# int
+        bo = bv.get('byteOffset', 0)	# int
         bl = bv['byteLength']	# int
         bviews.append(binc[bo:bo+bl])
     return bviews
