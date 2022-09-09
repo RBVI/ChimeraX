@@ -29,7 +29,7 @@ REST_SUBDIRS = add_charge addh alignment_algs alignment_headers \
 	  clashes cmd_line color_actions \
 	  color_globe color_key connect_structure core_formats \
 	  coulombic crosslinks crystal crystal_contacts data_formats \
-	  dicom dist_monitor dssp \
+	  dicom dist_monitor dock_prep dssp \
 	  emdb_sff exp_cmd file_history function_key \
 	  geometry gltf graphics \
 	  hbonds help_viewer hkcage ihm image_formats imod \
@@ -37,7 +37,7 @@ REST_SUBDIRS = add_charge addh alignment_algs alignment_headers \
 	  map map_data map_eraser map_filter map_fit map_series \
 	  markers mask match_maker md_crds \
 	  medical_toolbar meeting mlp model_series \
-	  mmcif mmtf model_panel modeller mol2 morph mouse_modes movie \
+	  mmcif mmtf model_panel modeller mol2 mole morph mouse_modes movie \
 	  neuron nucleotides open_command pdb pdb_bio pdb_lib pdb_matrices \
 	  pick_blobs positions preset_mgr pubchem read_pbonds registration \
 	  remote_control renumber_residues rest_server \

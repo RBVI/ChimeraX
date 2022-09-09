@@ -176,7 +176,8 @@ class Option(metaclass=ABCMeta):
         pass
 
     # no "shown" property because the option is in a QFormLayout and there is no way to hide a row,
-    # not to mention that hiding our widget doesn't hide the corresponding label
+    # without access to the form.  Use the hide/show_option methods or set_option_shown method
+    # of the container widget.
 
     # In Python 3.7, abstract properties where the getter/setter funcs have the same name don't
     # work as expected in derived classes; use old-style property definition

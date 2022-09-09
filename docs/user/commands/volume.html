@@ -1378,7 +1378,8 @@ Several operations are available:
 <li><a href="#erase"><b>volume erase</b></a>
 <a href="../tools/mousemodes.html" title="Right Mouse Toolbar...">
 <img class="icon" border=1 src="../tools/mouse-icons/eraser.png"></a>
-&ndash; erase (zero) map inside or outside of a defined sphere 
+&ndash; erase (zero or set to other constant) map values inside or outside
+a defined sphere 
 <li><a href="#falloff"><b>volume falloff</b></a>
 &ndash; smooth the boundaries of masked density
 <li><a href="#flatten"><b>volume flatten</b></a>
@@ -1654,15 +1655,17 @@ inherent in computer calculations.
 
 <a href="#vop" class="nounder">&bull;</a>
 <a name="erase"><b>volume erase</b></a> &nbsp;<i>volume-spec</i>&nbsp;
-<b>center</b> &nbsp;<a href="pointspec.html#point"><i>point-spec</i></a>
+<b>center</b> &nbsp;<a href="pointspec.html#point"><i>point-spec</i></a>&nbsp;
 <b>radius</b>&nbsp;&nbsp;<i>r</i>&nbsp;
+[&nbsp;<b>value</b>&nbsp;&nbsp;<i>new-value</i>&nbsp;]
 [&nbsp;<b>coordinateSystem</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
 [&nbsp;<b>outside</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 <!--
 &nbsp;<a href="#vop-options"><i>new-map-options</i></a>
 -->
 <blockquote>
-Erase (zero the values) of the displayed map at points within a sphere
+Erase (set values to zero, unless a different <i>new-value</i> is given with
+the <b>value</b> option) the displayed map at points within a sphere
 of the specified <b>center</b> and <b>radius</b>, or if 
 <b>outside</b> is <b>true</b>, erase outside the sphere instead. 
 Only a single map should be displayed. If the map was read from a file, 
@@ -2633,5 +2636,5 @@ the original volume, if any.
 </p>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-June 2022</address>
+September 2022</address>
 </body></html>

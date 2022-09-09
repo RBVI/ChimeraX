@@ -24,6 +24,7 @@ MODEL_DISPLAY_CHANGED = 'model display changed'
 MODEL_ID_CHANGED = 'model id changed'
 MODEL_NAME_CHANGED = 'model name changed'
 MODEL_POSITION_CHANGED = 'model position changed'
+MODEL_SELECTION_CHANGED = 'model selection changed'
 RESTORED_MODELS = 'restored models'
 RESTORED_MODEL_TABLE = 'restored model table'
 # TODO: register Model as data event type
@@ -215,6 +216,7 @@ class Model(State, Drawing):
 
     def _selection_changed(self):
         self.session.selection.trigger_fire_needed = True
+        self.session.triggers.activate_trigger(MODEL_SELECTION_CHANGED, self)
 
     # Provide a direct way to set only the model selection status
     # without subclass interference
@@ -284,6 +286,8 @@ class Model(State, Drawing):
     def add(self, models):
         '''Add child models to this model.'''
         om = self.session.models
+        if type(models) is not list:
+            models = [models]
         if om.have_model(self):
             # Parent already open.
             om.add(models, parent = self)
@@ -524,7 +528,11 @@ class Surface(Model):
     A surface is a type of model where vertex coloring, style (filled, mesh, dot) and masking
     can be controlled by user commands.
     '''
-    pass
+    @classmethod
+    def restore_snapshot(cls, session, data):
+        m = Surface(data['name'], session)
+        m.set_state_from_snapshot(session, data)
+        return m
 
 from .state import StateManager
 class Models(StateManager):
@@ -564,6 +572,7 @@ class Models(StateManager):
         t.add_trigger(MODEL_ID_CHANGED)
         t.add_trigger(MODEL_NAME_CHANGED)
         t.add_trigger(MODEL_POSITION_CHANGED)
+        t.add_trigger(MODEL_SELECTION_CHANGED)
         t.add_trigger(RESTORED_MODELS)
         t.add_trigger(RESTORED_MODEL_TABLE)
         self._models = {}				# Map id to Model

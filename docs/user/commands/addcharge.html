@@ -1,0 +1,163 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: addcharge</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#commands">Command</a>: addcharge</h3>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>addcharge</b> 
+&nbsp;<a href="atomspec.html"><i>residue-spec</i></a>&nbsp;
+[&nbsp;<a href="#method"><b>method</b></a>&nbsp;&nbsp;<b>am1-bcc</b>&nbsp;|&nbsp;gasteiger&nbsp;]
+[&nbsp;<a href="#standardizeResidues"><b>standardizeResidues</b></a>&nbsp;&nbsp;<i>list</i>&nbsp;]
+</h3>
+<a name="nonstd"></a>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>addcharge nonstd</b>
+&nbsp;<a href="atomspec.html"><i>residue-spec</i></a>&nbsp;
+&nbsp;<i>residue-name</i>&nbsp;
+&nbsp;<i>net-charge</i>&nbsp;
+[&nbsp;<a href="#method"><b>method</b></a>&nbsp;&nbsp;<b>am1-bcc</b>&nbsp;|&nbsp;gasteiger&nbsp;]
+</h3>
+<p>
+Using 
+<a href="https://ambermd.org/AmberTools.php" target="_blank">AmberTools</a> 20,
+the <b>addcharge</b> command assigns atomic partial charges and 
+Amber/GAFF atom types as the <a href="../attributes.html">attributes</a>
+<b>charge</b> and <b>gaff_type</b>, respectively. 
+Explicit hydrogens must be present;
+they can be added beforehand with <a href="addh.html"><b>addh</b></a>.
+See also: <a href="coulombic.html"><b>coulombic</b></a>,
+<a href="dockprep.html"><b>dockprep</b></a>
+</p><p>
+The main <b>addcharge</b> command works on both standard and nonstandard
+residues, guessing net charges for the latter.
+The subcommand <b>addcharge nonstd</b> allows specifying the desired
+integral <i>net-charge</i> of an individual nonstandard residue type with
+name <i>residue-name</i>, for which the atomic partial charges 
+will be calculated as detailed <a href="#method">below</a>.
+The scope of either command can be limited with a non-blank
+<a href="atomspec.html"><i>residue-spec</i></a>.
+</p>
+<ul>
+<li>Standard residues (water, standard amino acids, standard nucleic acids,
+certain lipids, and a few common variants and capping groups) are assigned 
+charges and types from the recommended force field versions in
+<a href="https://ambermd.org/AmberTools.php" target="_blank">AmberTools</a> 20:
+  <ul>
+  <li>protein: ff14SB 
+  (files amino12.lib, aminoct12.lib, aminont12.lib)
+  <li>DNA: OL15 (DNA.OL15.lib)
+  <li>RNA: OL3 (RNA.lib)
+  <li>lipid: lipid17 (lipid17.lib)
+  <li>water: TIP3P (atomic_ions.lib, solvents.lib)
+  </ul>
+See the <a href="https://ambermd.org/" target="_blank"><b>Amber</b></a> 
+documentation for further force field details.
+<br><br>
+<a name="standardizeResidues"></a>
+<li>Certain nonstandard residues can be converted to their corresponding
+standard residues with the <b>standardizeResidues</b> option, 
+where <i>list</i> is a comma-separated list (without spaces) 
+of one or more of the following residue names:
+  <ul>
+  <li><a href="https://www.rcsb.org/ligand/5BU" target="_blank">5BU</a>
+(bromo-UMP) to U (UMP) &ndash; change 5-bromouridine-5'-monophosphate 
+to RNA residue uridine-5'-monophosphate by deleting the bromine atom
+  <li><a href="https://www.rcsb.org/ligand/CSL" target="_blank">CSL</a>
+(methylselenyl-dCMP) to C (CMP) &ndash;
+change 2'-methylselenyl-2'-deoxycytidine-5'-phosphate
+to RNA residue cytidine-5'-monophosphate
+by replacing the methylselenyl moiety with an oxygen atom named O2'
+and adjusting the bond length to 1.430 &Aring;
+  <li><a href="https://www.rcsb.org/ligand/UMS" target="_blank">UMS</a>
+(methylselenyl-dUMP) to U (UMP) &ndash;
+change 2'-methylselenyl-2'-deoxyuridine-5'-phosphate 
+to RNA residue uridine-5'-monophosphate
+by replacing the methylselenyl moiety with an oxygen atom named O2'
+and adjusting the bond length to 1.430 &Aring;
+  <li><a href="https://www.rcsb.org/ligand/MSE" target="_blank">MSE</a>
+(selenomethionine) to MET (methionine) &ndash; change MSE
+to MET by changing the selenium atom to a sulfur atom named SD
+and adjusting the CG-SD and SD-CE bond lengths to 1.81 and 1.78 &Aring;,
+respectively. If not converted, MSE will still get the same partial charges
+as MET, but the bond lengths will not be changed.
+  </ul>
+The default is all but MSE, namely: <b>5BU,CSL,UMS</b>
+<br><br>
+<li>ATP, ADP, GTP, GDP, NAD, and NDP are assigned charges from the
+<a href="http://research.bmh.manchester.ac.uk/bryce/amber"
+target="_blank">Amber parameter database</a>. 
+<br><br>
+<li>The net charges of other nonstandard residues are guessed
+by the main <b>addcharge</b> command or specified for a single
+residue type at a time with the <b>addcharge nonstd</b> subcommand.
+Monatomic ions are simply assigned their net charges. 
+<a name="method"></a>
+The remaining nonstandard residues are assigned atomic partial charges and 
+<a href="https://ambermd.org/antechamber/gaff.html#atomtype" 
+target="_blank">GAFF types</a> by 
+<a href="https://ambermd.org/antechamber/antechamber.html"
+target="_blank"><b>Antechamber</b></a>, which is included with ChimeraX.
+The <b>method</b> of charge calculation can be either of the following:
+</p>
+  <ul>
+  <li><b>am1-bcc</b> (default) &ndash; semi-empirical (AM1) 
+  with bond charge correction (BCC), parametrized to reproduce 
+  <i>ab initio</i> (HF/6-31G*) electrostatic potentials
+  <li><b>gasteiger</b> &ndash; iterative partial equalization of orbital
+  electronegativity, a faster method based on atom types and connectivity
+ </ul>
+<p>
+While both methods are much faster than <i>ab initio</i> calculations,
+the Gasteiger method is the faster and more approximate of the two.
+</p><p>
+<b>Note</b>: Antechamber/GAFF are meant to handle most small organic molecules,
+but not metal complexes, inorganic compounds, or unstable species such as
+radicals, and may not work well on highly charged molecules.
+GAFF allows for parametrization of most organic molecules made of
+C, N, O, H, S, P, F, Cl, Br and I. Publications using results from
+<a href="https://ambermd.org/antechamber/antechamber.html"
+target="_blank"><b>Antechamber</b></a> should cite:
+<a name="antechamber-ref"></a>
+<blockquote>
+<a href="https://www.ncbi.nlm.nih.gov/pubmed/16458552" target="_blank">
+Automatic atom type and bond type perception in molecular mechanical
+calculations.</a>
+Wang J, Wang W, Kollman PA, Case DA.
+<i>J Mol Graph Model.</i> 2006 Oct;25(2):247-60.
+</blockquote>
+The GAFF atom types and associated parameters are described
+<a href="https://ambermd.org/antechamber/gaff.html" target="_blank">online</a>
+and in:
+<blockquote>
+<a href="https://www.ncbi.nlm.nih.gov/pubmed/15116359" target="_blank">
+Development and testing of a general amber force field.</a>
+Wang J, Wolf RM, Caldwell JW, Kollman PA, Case DA.
+<i>J Comput Chem.</i> 2004 Jul 15;25(9):1157-74.
+</blockquote>
+</ul>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics /
+September 2022</address>
+</body></html>

@@ -110,7 +110,7 @@ See also:
 [&nbsp;<a href="#colorConfidence"><b>colorConfidence</b></a>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<a href="#ignoreCache"><b>ignoreCache</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<a href="#pae"><b>pae</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
-[&nbsp;<a href="#version"><b>version</b></a>&nbsp;&nbsp;1&nbsp;|&nbsp;<b>2</b>&nbsp;|&nbsp;3&nbsp;]
+[&nbsp;<a href="#version"><b>version</b></a>&nbsp;&nbsp;1&nbsp;|&nbsp;2&nbsp;|&nbsp;<b>3</b>&nbsp;]
 <br>
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>alphafold match</b> &nbsp;<i>sequence</i>&nbsp;
@@ -125,7 +125,7 @@ See also:
 [&nbsp;<b>matrix</b>&nbsp;&nbsp;<i>similarity-matrix</i>&nbsp;]
 [&nbsp;<b>cutoff</b>&nbsp;&nbsp;<i>evalue</i>&nbsp;]
 [&nbsp;<b>maxSeqs</b>&nbsp;&nbsp;<i>M</i>&nbsp;]
-[&nbsp;<a href="#version"><b>version</b></a>&nbsp;&nbsp;1&nbsp;|&nbsp;<b>2</b>&nbsp;|&nbsp;3&nbsp;]
+[&nbsp;<a href="#version"><b>version</b></a>&nbsp;&nbsp;1&nbsp;|&nbsp;2&nbsp;|&nbsp;<b>3</b>&nbsp;]
 </blockquote>
 <ul>
 <li>The <b>alphafold fetch</b> command retrieves the model (if available)
@@ -162,8 +162,8 @@ in the form:
 <p>
 For a specified structure chain, a model is obtained for its exact 
 UniProt entry if available, otherwise the single top hit identified by
-<a href="https://en.wikipedia.org/wiki/BLAT_(bioinformatics)"
-target="_blank">BLAT</a>-searching the 
+<a href="https://www.rbvi.ucsf.edu/chimerax/data/kmer-aug2022/kmer_search.html"
+target="_blank">K-mer search</a> of the
 <a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold Database</a>
 (<a href="#search-option">details...</a>).
 For each model with a corresponding structure chain
@@ -215,7 +215,10 @@ a <a href="../tools/blastprotein.html#notes">BLAST</a> web service
 hosted by the <a href="https://www.cgl.ucsf.edu/Overview/index.html" 
 target="_blank">UCSF RBVI</a> to search the 
 <a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold Database</a>.
-It differs from <b>alphafold match</b> in that it uses BLAST instead of BLAT,
+It differs from <b>alphafold match</b> in that it uses BLAST instead
+of fast (but low-sensitivity)
+<a href="https://www.rbvi.ucsf.edu/chimerax/data/kmer-aug2022/kmer_search.html"
+target="_blank">K-mer searching</a>,
 accepts only a single chain or sequence as input,
 and returns a list of hits for the user to inspect, 
 rather than fetching the single top hit per chain automatically.
@@ -342,6 +345,23 @@ or a command can be used to draw a corresponding color key, for example:
   </blockquote>
 </blockquote>
 <blockquote>
+<a name="directory"></a>
+<b>directory</b>&nbsp;&nbsp;<i>results-folder</i>
+<br>
+For <a href="#predict"><b>alphafold predict</b></a>, 
+specify a <i>results-folder</i> pathname (name and location)
+or the word <a href="usageconventions.html#browse"><b>browse</b></a>
+to specify it interactively in a file browser window.
+The directory or folder does not need to exist already, as it will be
+created by the command. The pathname can include [N] to indicate 
+substitution with the smallest positive integer that makes a new directory
+(default <b>~/Downloads/ChimeraX/AlphaFold/prediction_[N]</b>).
+If the specified pathname does not include [N]
+but a directory of that name and location already exists
+and contains a results.zip file, _[N] will be appended automatically 
+to avoid overwriting the existing directory.
+</blockquote>
+<blockquote>
 <a name="ignoreCache"></a>
 <b>ignoreCache</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
 <br>
@@ -362,13 +382,10 @@ target="_blank">UniProt accession number</a>
 for a chain is not provided in the experimental structure's input file,
 or is provided but not found in the 
 <a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold Database</a>
-(<b>true</b>, default).
-The search uses a <a href="https://en.wikipedia.org/wiki/BLAT_(bioinformatics)"
-target="_blank">BLAT</a> web service hosted by the 
-<a href="https://www.cgl.ucsf.edu/Overview/index.html" 
-target="_blank">UCSF RBVI</a>.
-The closest sequence match for which a models is available
-will be retrieved, as long as the sequence identity is at least 25%.
+(<b>true</b>, default). A fast but low-sensitivity (requiring high % identity)
+<a href="https://www.rbvi.ucsf.edu/chimerax/data/kmer-aug2022/kmer_search.html"
+target="_blank">K-mer search</a> of the the database is performed.
+The closest sequence match for which a model is available will be retrieved.
 With <b>search false</b>, only the experimental structure's input file will
 be used as a potential source of UniProt accession numbers.
 When present, these are given in 
@@ -433,7 +450,7 @@ sequences, which could be longer.
 </blockquote>
 <blockquote>
 <a name="version"></a>
-<b>version</b>&nbsp;&nbsp;1&nbsp;|&nbsp;<b>2</b>&nbsp;|&nbsp;3
+<b>version</b>&nbsp;&nbsp;1&nbsp;|&nbsp;2&nbsp;|&nbsp;<b>3</b>
 <br>
 The <a href="https://alphafold.ebi.ac.uk/"
 target="_blank">AlphaFold Database</a> 
@@ -447,16 +464,17 @@ This option specifies which version of the database to use with
 <b>database alphafold</b>):
   <ul>
   <li><b>version 1</b> (database release 1): ~360,000 sequences,
-reference proteomes of 21 species including <i>Homo sapiens</i>
-(used by Chimera 1.3, which does not have a <b>version</b> option)
-  <li><b>version 2</b> (default, database releases 2 and 3 combined):
+reference proteomes of 21 species including <i>Homo sapiens</i>;
+used by Chimera 1.3, which does not have a <b>version</b> option
+  <li><b>version 2</b> (database releases 2 and 3 combined):
 ~1 million sequences, v1 + most of the manually curated entries (SwissProt) +
-sequences relevant to neglected tropical disease or antimicrobial resistance
-  <li><b>version 3</b> (database release 4): &gt;200 million sequences,
-takes more time (minutes) to search
+sequences relevant to neglected tropical disease or antimicrobial resistance;
+default in ChimeraX 1.4
+  <li><b>version 3</b> (database release 4): &gt;200 million sequences;
+default in ChimeraX 1.5+ builds from August 31, 2022 and later
 </ul>
-The <a href="#match"><b>alphafold match</b></a> command does not have this
-option and always uses version 2.
+The <a href="#match"><b>alphafold match</b></a> command always uses version 3
+and does not have this option.
 <p>
 </p>
 </blockquote>
@@ -487,6 +505,7 @@ For <b>monomer</b> prediction:
 <b>alphafold predict</b> &nbsp;<i>sequence</i>
 [&nbsp;<a href="#minimize"><b>minimize</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<a href="#templates"><b>templates</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<a href="#directory"><b>directory</b></a>&nbsp;&nbsp;<i>results-folder</i>&nbsp;]
 </blockquote>
 <p>
 <a name="sequence-spec"></a>
@@ -515,11 +534,13 @@ For <b>multimer</b> (protein complex) prediction:
 &nbsp;<a href="atomspec.html#hierarchy"><i>chain-spec</i></a>
 [&nbsp;<a href="#minimize"><b>minimize</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<a href="#templates"><b>templates</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<a href="#directory"><b>directory</b></a>&nbsp;&nbsp;<i>results-folder</i>&nbsp;]
 <br>&ndash; or &ndash;</br>
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>alphafold predict</b> &nbsp;<i>sequence1</i>,<i>sequence2</i>[,<i>sequence3</i>...,<i>sequenceN</i>]
 [&nbsp;<a href="#minimize"><b>minimize</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<a href="#templates"><b>templates</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<a href="#directory"><b>directory</b></a>&nbsp;&nbsp;<i>results-folder</i>&nbsp;]
 </blockquote>
 <p>
 The sequences of two or more protein chains can be specified
@@ -615,7 +636,7 @@ target="_blank">AlphaFold Error Estimates example</a> and
 [&nbsp;<b>connectMaxPae</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
 [&nbsp;<b>cluster</b>&nbsp;&nbsp;<i>resolution</i>&nbsp;]
 [&nbsp;<b>dividerLines</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
-[&nbsp;<a href="#version"><b>version</b></a>&nbsp;&nbsp;1&nbsp;|&nbsp;<b>2</b>&nbsp;|&nbsp;3&nbsp;]
+[&nbsp;<a href="#version"><b>version</b></a>&nbsp;&nbsp;1&nbsp;|&nbsp;2&nbsp;|&nbsp;<b>3</b>&nbsp;]
 </blockquote>
 <p>
 With <b>alphafold pae</b>, the matrix of PAE values can be either:

@@ -29,7 +29,7 @@ from .readarray import allocate_array
 from .arrays import interpolate_volume_data, interpolate_volume_gradient
 
 from .arrays import MatrixValueStatistics, invert_matrix
-from .arrays import grid_indices, zone_masked_grid_data
+from .arrays import grid_indices, zone_masked_grid_data, zone_mask
 from .arrays import zone_mask, masked_grid_data
 from .arrays import surface_level_enclosing_volume
 

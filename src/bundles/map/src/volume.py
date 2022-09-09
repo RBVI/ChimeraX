@@ -760,7 +760,7 @@ class Volume(Model):
     if vm is None:
       s._volume_update_manager = vm = VolumeUpdateManager(s)
     vm.add(self)
-    if s.in_script:
+    if s.in_script and getattr(self, '_initial_style_set', False):
       # In scripts update volume drawings immediately.
       # Script commands often depend on volume surfaces being computed immediately.
       # For examnple, set surface level, then run volume dust.
@@ -3409,6 +3409,8 @@ def volume_from_grid_data(grid_data, session, style = 'auto',
     v._style_when_shown = style
   
   if grid_data.rgba is None:
+    if not any_volume_open(session):
+      _reset_color_sequence(session)
     set_initial_volume_color(v, session)
 
   if not model_id is None:
@@ -3525,6 +3527,14 @@ def volume_list(session):
 
 # -----------------------------------------------------------------------------
 #
+def any_volume_open(session):
+  for m in session.models:
+    if isinstance(m, Volume):
+      return True
+  return False
+
+# -----------------------------------------------------------------------------
+#
 def open_map(session, path, name = None, format = None, **kw):
     '''
     Supported API. Open a density map file having any of the known density map formats.
@@ -3555,9 +3565,6 @@ def open_map(session, path, name = None, format = None, **kw):
     models : list of :class:`.Volume`
     message : description of the opened data
     '''
-    if session.models.empty():
-      _reset_color_sequence(session)
-      
     if name is None:
       from os.path import basename
       name = basename(path if isinstance(path, str) else path[0])
@@ -3701,7 +3708,8 @@ def set_initial_region_and_style(v):
       v._style_when_shown = 'surface'
   else:
     v.display = False
-    
+  v._initial_style_set = True
+  
   # Determine initial region bounds and step.
   region = v.full_region()[:2]
   if one_plane:

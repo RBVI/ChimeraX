@@ -84,15 +84,16 @@ def crosslinks_histogram(session, pbonds, coordsets = None, bins = 50,
     if coordsets:
         if len(pbonds) == 1:
             from .lengths import EnsemblePlot
-            EnsemblePlot(session, pbonds[0], coordsets,
-                         bins=bins, max_length=max_length, min_length=min_length, height=height)
+            plot = EnsemblePlot(session, pbonds[0], coordsets,
+                                bins=bins, max_length=max_length, min_length=min_length, height=height)
         else:
             from chimerax.core.errors import UserError        
             raise UserError('Plotting coordset lengths requires exactly one crosslink, got %d.' % len(pbonds))
     else:
         from .lengths import LengthsPlot
-        LengthsPlot(session, pbonds,
-                    bins=bins, max_length=max_length, min_length=min_length, height=height)
+        plot = LengthsPlot(session, pbonds,
+                           bins=bins, max_length=max_length, min_length=min_length, height=height)
+    return plot
 
 def crosslinks_minimize(session, pbonds, move_models = None, iterations = 10, frames = None):
     '''

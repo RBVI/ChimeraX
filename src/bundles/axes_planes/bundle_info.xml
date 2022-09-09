@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-AxesPlanes" version="2.2" package="chimerax.axes_planes"
+<BundleInfo name="ChimeraX-AxesPlanes" version="2.3" package="chimerax.axes_planes"
   	    minSessionVersion="1" maxSessionVersion="1">
 
   <!-- Additional information about bundle source -->
@@ -19,7 +19,7 @@
   <!-- Dependencies on other ChimeraX/Python packages -->
   <Dependencies>
     <Dependency name="ChimeraX-Core" version="~=1.0"/>
-    <Dependency name="ChimeraX-Atomic" version="~=1.0"/>
+    <Dependency name="ChimeraX-Atomic" version="~=1.41"/>
     <Dependency name="ChimeraX-Geometry" version="~=1.1"/>
     <Dependency name="ChimeraX-DistMonitor" version="~=1.2"/>
   </Dependencies>

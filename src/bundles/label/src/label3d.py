@@ -773,8 +773,11 @@ class ObjectLabel:
             bg = self.background
             if bg is None:
                 bg = [255*r for r in self.view.background_color]
-            light_bg = (sum(bg[:3]) > 1.5*255)
-            rgba8 = (0,0,0,255) if light_bg else (255,255,255,255)
+            from chimerax.core.colors import contrast_with
+            if contrast_with([c/255 for c in bg[:3]])[0] == 0.0:
+                rgba8 = (0, 0, 0, 255)
+            else:
+                rgba8 = (255, 255, 255, 255)
         else:
             rgba8 = c
         return rgba8

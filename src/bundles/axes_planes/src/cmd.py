@@ -81,6 +81,11 @@ class PlaneModel(Surface, ComplexMeasurable):
         degrees = angle(self.xform_normal, obj.xform_normal)
         return degrees if degrees < 90 else 180 - degrees
 
+    @property
+    def center(self):
+        return self.plane.origin
+    origin = center
+
     def distance(self, obj, *, signed=False):
         if isinstance(obj, PlaneModel):
             from chimerax.geometry.plane import PlaneNoIntersectionError
@@ -161,6 +166,11 @@ class PlaneModel(Surface, ComplexMeasurable):
         inst = cls(session, None, data['plane'], data['thickness'], data['radius'], data['color'])
         Surface.set_state_from_snapshot(inst, session, data['base data'])
         return inst
+
+    @property
+    def xform_center(self):
+        return self.scene_position.transform_vector(self.center)
+    xform_origin = xform_center
 
     @property
     def xform_normal(self):
@@ -247,6 +257,10 @@ class AxisModel(Surface, ComplexMeasurable):
     @property
     def extent(self):
         return self._extent
+
+    @property
+    def length(self):
+        return 2 * self._extent
 
     def _point_distance(self, pt):
         # pt should already be in our transformed coord sys
@@ -361,7 +375,7 @@ def quadrant_angle(angle):
     return angle
 
 def cmd_define_plane(session, atoms, *, thickness=defaults["plane_thickness"], padding=0.0, color=None,
-        radius=None, name="plane"):
+        radius=None, name="plane", show_tool=True):
     """Wrapper to be called by command line.
 
        Use chimerax.geometry.Plane for other programming applications.
@@ -412,12 +426,16 @@ def cmd_define_plane(session, atoms, *, thickness=defaults["plane_thickness"], p
         session.models.add([plane_model])
     else:
         adding_model.add([plane_model])
-    session.logger.info("Plane '%s' placed at %s with normal %s" % (name, plane.origin, plane.normal))
+    session.logger.info("Plane '%s' placed at %s with normal %s and radius %.1f"
+        % (name, plane.origin, plane.normal, radius))
+    if show_tool and session.ui.is_gui and not session.in_script:
+        from chimerax.core.commands import run
+        run(session, "ui tool show Axes/Planes/Centroids", log=False)
     return plane_model
 
 def cmd_define_axis(session, targets=None, *, color=None, radius=None, length=None, name=None, padding=0.0,
         primary=True, secondary=False, tertiary=False, mass_weighting=False, from_point=None, to_point=None,
-        per_helix=False):
+        per_helix=False, show_tool=True):
     """Wrapper to be called by command line.
 
        Use chimerax.geometry.vector for other programming applications.
@@ -568,6 +586,9 @@ def cmd_define_axis(session, targets=None, *, color=None, radius=None, length=No
                     needs_normalization=False)
                 axes.append(axis)
                 add_model.add([axis])
+    if show_tool and session.ui.is_gui and not session.in_script:
+        from chimerax.core.commands import run
+        run(session, "ui tool show Axes/Planes/Centroids", log=False)
     return axes
 
 def find_adding_model(models):
@@ -591,20 +612,21 @@ def find_adding_model(models):
 
 def determine_axes(atoms, name, length, padding, radius, mass_weighting, primary, secondary, tertiary,
         color):
-    from chimerax.atomic.colors import element_color, predominant_color
+    from chimerax.atomic.colors import element_color, predominant_color, average_color
     if color is None:
         color = predominant_color(atoms)
         if color is None:
-            color = element_color(6)
+            # probably rainbowed
+            color = average_color(atoms)
     import numpy
     from numpy.linalg import eig, svd, eigh
     if mass_weighting:
         structures = atoms.unique_structures
         classes = set([s.__class__ for s in structures])
-        if len(classes) > 1:
+        from chimerax.atomic import AtomicStructure
+        if len(classes) > 1 and AtomicStructure in classes:
             from chimerax.core.errors import UserError
             raise UserError("Cannot mix markers/centroids and regular atoms when using mass weighting")
-        from chimerax.atomic import AtomicStructure
         if AtomicStructure in classes:
             weights = atoms.elements.masses
         else:
@@ -658,7 +680,7 @@ def register_command(command_name, logger):
     desc = CmdDesc(
         required=[('atoms', AtomsArg)],
         keyword = [('thickness', PositiveFloatArg), ('padding', FloatArg), ('color', ColorArg),
-            ('radius', PositiveFloatArg), ('name', StringArg)],
+            ('radius', PositiveFloatArg), ('name', StringArg), ('show_tool', BoolArg)],
         synopsis = 'Create plane'
     )
     register('define plane', desc, cmd_define_plane, logger=logger)
@@ -677,7 +699,7 @@ def register_command(command_name, logger):
         keyword = [('color', ColorArg), ('radius', PositiveFloatArg), ('length', PositiveFloatArg),
             ('name', StringArg), ('primary', BoolArg), ('secondary', BoolArg), ('tertiary', BoolArg),
             ('mass_weighting', BoolArg), ('from_point', Float3Arg), ('to_point', Float3Arg),
-            ('per_helix', BoolArg), ('padding', FloatArg)],
-        synopsis = 'Create plane'
+            ('per_helix', BoolArg), ('padding', FloatArg), ('show_tool', BoolArg)],
+        synopsis = 'Create axis'
     )
     register('define axis', desc, cmd_define_axis, logger=logger)
