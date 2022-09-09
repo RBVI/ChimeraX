@@ -149,8 +149,8 @@ class CheckWaterViewer(ToolInstance):
                     compare_atoms.draw_modes == compare_atoms.SPHERE_STYLE)
                 compare_spheres.draw_modes = compare_atoms.STICK_STYLE
         from chimerax.ui import MainToolWindow
-        self.tool_window = MainToolWindow(self, close_destroys=False)
-        parent = self.tool_window.ui_area
+        self.tool_window = tw = MainToolWindow(self, close_destroys=False)
+        parent = tw.ui_area
 
         from Qt.QtWidgets import QHBoxLayout, QButtonGroup, QVBoxLayout, QRadioButton, QCheckBox
         from Qt.QtWidgets import QPushButton, QLabel, QToolButton, QGridLayout
@@ -199,40 +199,18 @@ class CheckWaterViewer(ToolInstance):
         table_hbonds_layout.addWidget(self.res_table, stretch=1)
 
         hbonds_layout = QVBoxLayout()
-        hbonds_layout.setSpacing(1)
+        hbonds_layout.setSpacing(10)
         self.show_hbonds = check = QCheckBox("Show H-bonds")
         check.setChecked(self.settings.show_hbonds)
         check.clicked.connect(self._show_hbonds_cb)
-        hbonds_layout.addWidget(check)
-        disclosure_layout = QHBoxLayout()
-        self.params_arrow = QToolButton()
-        self.params_arrow.setArrowType(Qt.RightArrow)
-        self.params_arrow.setMaximumSize(16, 16)
-        self.params_arrow.clicked.connect(self._hb_disclosure_cb)
-        disclosure_layout.addWidget(self.params_arrow, alignment=Qt.AlignRight)
-        disclosure_layout.addWidget(QLabel(" H-bond parameters..."), alignment=Qt.AlignLeft)
-        disclosure_layout.addStretch(1)
-        hbonds_layout.addLayout(disclosure_layout)
-        from chimerax.hbonds.gui import HBondsGUI
-        self.hb_gui = HBondsGUI(self.session, settings_name="CheckWater H-bonds", compact=True,
-            inter_model=False, show_bond_restrict=False, show_inter_model=False, show_intra_model=False,
-            show_intra_mol=False, show_intra_res=False, show_log=False, show_model_restrict=False,
-            show_pseudobond_creation = False, show_retain_current=False, show_reveal=False,
-            show_salt_only=False, show_save_file=False, show_select=False)
-        self.hb_gui.layout().setContentsMargins(0,0,0,0)
-        self.hb_gui.setHidden(True)
-        hbonds_layout.addWidget(self.hb_gui)
-        hb_apply_layout = QHBoxLayout()
-        hb_apply_layout.addStretch(1)
-        self.hb_apply_but = apply_but = QPushButton("Apply")
-        self.hb_apply_but.setHidden(True)
-        apply_but.clicked.connect(self._update_hbonds)
-        hb_apply_layout.addWidget(apply_but)
-        self.hb_apply_label = QLabel("above parameters")
-        self.hb_apply_label.setHidden(True)
-        hb_apply_layout.addWidget(self.hb_apply_label)
-        hb_apply_layout.addStretch(1)
-        hbonds_layout.addLayout(hb_apply_layout)
+        hbonds_layout.addWidget(check, alignment=Qt.AlignHCenter|Qt.AlignBottom)
+        params_but = QPushButton("H-bonds parameters...")
+        params_but.clicked.connect(self._show_hbonds_dialog)
+        hbonds_layout.addWidget(params_but, alignment=Qt.AlignHCenter|Qt.AlignTop)
+        self.hbond_params_window = tw.create_child_window("%s H-Bond Parameters" % self.tool_name,
+            close_destroys=False)
+        self._populate_hbond_params()
+        self.hbond_params_window.manage(initially_hidden=True)
         table_hbonds_layout.addLayout(hbonds_layout)
 
         controls_layout = QHBoxLayout()
@@ -419,6 +397,28 @@ class CheckWaterViewer(ToolInstance):
             self._update_residues()
             self.tool_window.ui_area.layout().removeItem(self.button_layout)
 
+    def _populate_hbond_params(self):
+        from Qt.QtWidgets import QVBoxLayout
+        layout = QVBoxLayout()
+        self.hbond_params_window.ui_area.setLayout(layout)
+        from chimerax.hbonds.gui import HBondsGUI
+        self.hb_gui = HBondsGUI(self.session, settings_name="%s H-bonds" % self.tool_name, compact=True,
+            inter_model=False, show_bond_restrict=False, show_inter_model=False, show_intra_model=False,
+            show_intra_mol=False, show_intra_res=False, show_log=False, show_model_restrict=False,
+            show_pseudobond_creation = False, show_retain_current=False, show_reveal=False,
+            show_salt_only=False, show_save_file=False, show_select=False)
+        layout.addWidget(self.hb_gui)
+
+        from Qt.QtWidgets import QDialogButtonBox as qbbox
+        self.bbox = bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
+        bbox.accepted.connect(self._update_hbonds)
+        bbox.button(qbbox.Apply).clicked.connect(lambda *args, s=self: s._update_hbonds(hide=False))
+        bbox.rejected.connect(lambda *args, tw=self.hbond_params_window: setattr(tw, 'shown', False))
+        from chimerax.core.commands import run
+        bbox.helpRequested.connect(lambda *, run=run, ses=self.session: run(ses, "help " + self.help))
+        bbox.button(qbbox.Help).setEnabled(False)
+        layout.addWidget(bbox)
+
     def _res_sel_cb(self, newly_selected, newly_deselected):
         self._selected_treatment(self.res_table.selected)
 
@@ -456,6 +456,9 @@ class CheckWaterViewer(ToolInstance):
             group_key = self.radio_group.checkedButton().text() if self.radio_group else None
             self.hbond_groups[group_key].display = True
 
+    def _show_hbonds_dialog(self):
+        self.hbond_params_window.shown =True
+
     def _unclip_cb(self):
         from chimerax.core.commands import run
         run(self.session, "clip off")
@@ -471,13 +474,15 @@ class CheckWaterViewer(ToolInstance):
                     self.category_tips):
                 but.setToolTip(tip)
 
-    def _update_hbonds(self):
+    def _update_hbonds(self, hide=True):
         self.session.models.close([group for group in self.hbond_groups.values()])
         self._make_hb_groups()
         if not self.settings.show_hbonds:
             for grp in self.hbond_groups.values():
                 grp.display = False
         self.res_table.update_column(self.hbonds_column, data=True)
+        if hide:
+            self.hbond_params_window.shown = False
 
     def _update_residues(self):
         all_input, after_only, douse_in_common, input_in_common = self.compared_waters
