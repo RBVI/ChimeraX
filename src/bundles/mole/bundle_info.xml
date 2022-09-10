@@ -1,0 +1,36 @@
+<BundleInfo name="ChimeraX-Mole" version="1.0"
+	    package="chimerax.mole"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>Open JSON tunnel files from Mole</Synopsis>
+  <Description>Open JSON tunnel files from Mole</Description>
+
+  <Categories>
+    <Category name="Structure Analysis"/>
+  </Categories>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version="~=1.0"/>
+    <Dependency name="ChimeraX-DataFormats" version="~=1.0"/>
+    <Dependency name="ChimeraX-OpenCommand" version="~=1.0"/>
+  </Dependencies>
+
+  <Providers manager="data formats">
+    <Provider name="Mole" category="Generic 3D objects" suffixes=".json"
+		synopsis="Mole tunnels" nicknames="mole" reference_url="https://mole.upol.cz" />
+  </Providers>
+
+  <Providers manager="open command">
+    <Provider name="Mole" />
+  </Providers>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+  </Classifiers>
+
+</BundleInfo>

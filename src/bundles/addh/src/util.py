@@ -61,16 +61,17 @@ def determine_termini(session, structs):
     fake_N = []
     fake_C = []
     fake_5p = []
+    fake_3p = []
     logger = session.logger
     for s in structs:
         sr_res = set()
         for chain in s.chains:
             if chain.from_seqres:
                 sr_res.update(chain.residues)
-                rn, rc, fn, fc, f5p = termini_from_seqres(chain)
+                rn, rc, fn, fc, f5p, f3p = termini_from_seqres(chain)
                 logger.info("Termini for %s determined from SEQRES records" % chain.full_name)
             else:
-                rn, rc, fn, fc, f5p = guess_termini(chain)
+                rn, rc, fn, fc, f5p, f3p = guess_termini(chain)
                 logger.info("No usable SEQRES records for %s; guessing termini instead"
                     % chain.full_name)
             real_N.extend(rn)
@@ -78,6 +79,7 @@ def determine_termini(session, structs):
             fake_N.extend(fn)
             fake_C.extend(fc)
             fake_5p.extend(f5p)
+            fake_3p.extend(f3p)
         if sr_res:
             # Look for peptide termini not in SEQRES records
             from chimerax.atomic import Sequence
@@ -99,7 +101,7 @@ def determine_termini(session, structs):
                         else:
                             termini.append(r)
 
-    return real_N, real_C, fake_N, fake_C, fake_5p
+    return real_N, real_C, fake_N, fake_C, fake_5p, fake_3p
 
 def termini_from_seqres(chain):
     real_N = []
@@ -107,6 +109,7 @@ def termini_from_seqres(chain):
     fake_N = []
     fake_C = []
     fake_5p = []
+    fake_3p = []
     if chain.polymer_type == Residue.PT_AMINO:
         if chain.residues[0]:
             real_N.append(chain.residues[0])
@@ -129,7 +132,13 @@ def termini_from_seqres(chain):
             if res != chain.residues[0]:
                 fake_5p.append(res)
             break
-    return real_N, real_C, fake_N, fake_C, fake_5p
+        for res in reversed(chain.residues):
+            if not res:
+                continue
+            if res != chain.residues[-1]:
+                fake_3p.append(res)
+            break
+    return real_N, real_C, fake_N, fake_C, fake_5p, fake_3p
 
 def guess_termini(seq):
     real_N = []
@@ -137,6 +146,7 @@ def guess_termini(seq):
     fake_N = []
     fake_C = []
     fake_5p = []
+    fake_3p = []
     if seq.polymer_type == Residue.PT_AMINO:
         residues = seq.residues
         existing_residues = seq.existing_residues
@@ -175,7 +185,7 @@ def guess_termini(seq):
             if res.number + 1 < next_res.number:
                 fake_C.append(res)
                 fake_N.append(next_res)
-    return real_N, real_C, fake_N, fake_C, fake_5p
+    return real_N, real_C, fake_N, fake_C, fake_5p, fake_3p
 
 def cross_residue(res, at_name):
     a = res.find_atom(at_name)

@@ -99,7 +99,7 @@ class StructMeasureTool(ToolInstance):
         if len(sel) != 1 or not isinstance(sel[0], (AxisModel, PlaneModel)):
             raise UserError("Choose exactly one axis or plane in table")
         item = sel[0]
-        run(self.session, "view zalign %s" % item.atomspec)
+        run(self.session, "view %s zalign %s" % (item.atomspec, item.atomspec))
         axis = self.apc_axis_button.text()
         if axis == 'Y':
             run(self.session, "turn x 90 center %s" % item.atomspec)
@@ -218,7 +218,7 @@ class StructMeasureTool(ToolInstance):
                     dist_fmt = self.session.pb_dist_monitor.distance_format
                     info.append("distance: " + dist_fmt % dist)
                 if angle is not None:
-                    info.append("angle: %.3f" % angle)
+                    info.append("angle: %.1f\N{DEGREE SIGN}" % angle)
             info_text = "; ".join(info)
             self.apc_status_label.setText(info_text)
             self.apc_status_label.setHidden(False)
@@ -390,10 +390,11 @@ class StructMeasureTool(ToolInstance):
             run(ses, cmd + " " + item.atomspec)
         self.apc_table.add_column("Selected", "selected", format=ItemTable.COL_FORMAT_BOOLEAN, icon="select",
             data_set=run_sel_cmd, title_display=False)
-        self.apc_table.add_column("Length", "length", format="%4.1f")
-        self.apc_table.add_column("Radius", "radius", format="%4.1f")
+        self.apc_table.add_column("Length (\N{ANGSTROM SIGN})", "length", format="%4.1f")
+        self.apc_table.add_column("Radius (\N{ANGSTROM SIGN})", "radius", format="%4.1f")
         self.apc_table.launch()
         self.apc_table.data = self._filter_apc_models(self.session.models)
+        self._add_centroid_triggers(self.apc_table.data)
         self.apc_table.sortByColumn(1, Qt.AscendingOrder)
         self.apc_table.selection_changed.connect(self._apc_selection_changed)
         from chimerax.core.models import ADD_MODELS, REMOVE_MODELS
@@ -559,6 +560,13 @@ class StructMeasureTool(ToolInstance):
             for i, col in enumerate(columns):
                 if col.display_format not in self.apc_table.color_formats:
                     self.apc_table.resizeColumnToContents(i)
+            self._add_centroid_triggers(models)
+    def _add_centroid_triggers(self, models):
+        for m in models:
+            if isinstance(m, CentroidModel):
+                # color can change w/o model_color changing
+                m.triggers.add_handler("changes", lambda *args, m=m, update=self.apc_table.update_cell:
+                    update("Color", m))
 
     def _save_angle_info(self):
         if not self._angle_info:
@@ -640,6 +648,7 @@ class AngstromOption(FloatOption):
         super().__init__(*args, **kw)
 
 class DefineAxisDialog:
+    help = "help:user/tools/axesplanes.html#define-axes"
     def __init__(self, sm_tool):
         self.tool_window = tw = sm_tool.tool_window.create_child_window("Define Axes", close_destroys=False)
         self.session = sm_tool.session
@@ -861,7 +870,8 @@ class DefineAxisDialog:
         bbox.accepted.connect(self.define_axis)
         bbox.rejected.connect(lambda tw=tw: setattr(tw, 'shown', False))
         bbox.button(qbbox.Apply).clicked.connect(lambda *args: self.define_axis(hide=False))
-        bbox.button(qbbox.Help).setEnabled(False)
+        from chimerax.core.commands import run
+        bbox.helpRequested.connect(lambda *, run=run, ses=self.session: run(ses, "help " + self.help))
         layout.addWidget(bbox)
 
         tw.manage(None)
@@ -1008,6 +1018,7 @@ class ColorWithDefaultOption(Option):
         self.default_color_button.setChecked(True)
 
 class DefinePlaneDialog:
+    help = "help:user/tools/axesplanes.html#define-plane"
     def __init__(self, sm_tool):
         self.tool_window = tw = sm_tool.tool_window.create_child_window("Define Plane", close_destroys=False)
         self.session = sm_tool.session
@@ -1042,7 +1053,8 @@ class DefinePlaneDialog:
         bbox.accepted.connect(self.define_plane)
         bbox.rejected.connect(lambda tw=tw: setattr(tw, 'shown', False))
         bbox.button(qbbox.Apply).clicked.connect(lambda *args: self.define_plane(hide=False))
-        bbox.button(qbbox.Help).setEnabled(False)
+        from chimerax.core.commands import run
+        bbox.helpRequested.connect(lambda *, run=run, ses=self.session: run(ses, "help " + self.help))
         layout.addWidget(bbox)
 
         tw.manage(None)
@@ -1085,6 +1097,7 @@ class DefinePlaneDialog:
             self.options_panel.show_option(self.radius_option)
 
 class DefineCentroidDialog:
+    help = "help:user/tools/axesplanes.html#define-centroid"
     def __init__(self, sm_tool):
         self.tool_window = tw = sm_tool.tool_window.create_child_window("Define Centroid",
             close_destroys=False)
@@ -1109,7 +1122,8 @@ class DefineCentroidDialog:
         bbox.accepted.connect(self.define_centroid)
         bbox.rejected.connect(lambda tw=tw: setattr(tw, 'shown', False))
         bbox.button(qbbox.Apply).clicked.connect(lambda *args: self.define_centroid(hide=False))
-        bbox.button(qbbox.Help).setEnabled(False)
+        from chimerax.core.commands import run
+        bbox.helpRequested.connect(lambda *, run=run, ses=self.session: run(ses, "help " + self.help))
         layout.addWidget(bbox)
 
         tw.manage(None)

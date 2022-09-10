@@ -28,6 +28,7 @@ in a thread-safe manner.  The UI instance is accessed as session.ui.
 
 from Qt.QtWidgets import QApplication
 from chimerax.core.logger import PlainTextLog
+import sys
 
 def initialize_qt():
     initialize_qt_plugins_location()
@@ -119,6 +120,7 @@ class UI(QApplication):
         from chimerax import app_dirs as ad
         QApplication.__init__(self, [ad.appname])
 
+        redirect_stdio_to_logger(self.session.logger)
         self.redirect_qt_messages()
 
         self._keystroke_sinks = []
@@ -242,7 +244,10 @@ class UI(QApplication):
                 # So remember file and startup script will open it when ready.
                 self._files_to_open.append(event.file())
             else:
-                _open_dropped_file(self.session, event.file())
+                try:
+                    _open_dropped_file(self.session, event.file())
+                except Exception as e:
+                    self.session.logger.warning('Failed opening file %s:\n%s' % (event.file(), str(e)))
             return True
         return QApplication.event(self, event)
 
@@ -275,7 +280,6 @@ class UI(QApplication):
     def event_loop(self):
         if self.already_quit:
             return
-        redirect_stdio_to_logger(self.session.logger)
         self.exec()
         self.session.logger.clear()
 
@@ -1444,16 +1448,12 @@ class MainWindow(QMainWindow, PlainTextLog):
         action.triggered.connect(lambda *, run=run, ses=self.session:
             run(ses, "ui tool show 'Selection Inspector'"))
 
-    def color_by_editor(self, *args):
+    def color_by_editor(self, *args, cmd_arg_func=lambda:""):
         if not self._color_dialog:
             from Qt.QtWidgets import QColorDialog
             self._color_dialog = cd = QColorDialog(self)
             cd.setOption(cd.NoButtons, True)
             cd.setOption(cd.ShowAlphaChannel, True)
-            from chimerax.core.commands import run, sel_or_all
-            cd.currentColorChanged.connect(lambda clr, *, ses=self.session:
-                run(ses, "color %s %s" % (sel_or_all(ses, ['atoms', 'bonds']),
-                clr.name() + clr.name(clr.HexArgb)[1:3])))
             cd.destroyed.connect(lambda *, s=self: setattr(s, '_color_dialog', None))
         else:
             cd = self._color_dialog
@@ -1464,6 +1464,11 @@ class MainWindow(QMainWindow, PlainTextLog):
             import sys
             if sys.platform == "darwin":
                 cd.hide()
+            cd.currentColorChanged.disconnect()
+        from chimerax.core.commands import run, sel_or_all
+        cd.currentColorChanged.connect(lambda clr, *, ses=self.session, arg_func=cmd_arg_func:
+            run(ses, "color %s %s" % (sel_or_all(ses, ['atoms', 'bonds']),
+            clr.name() + clr.name(clr.HexArgb)[1:3]) + arg_func()))
         cd.show()
 
     def _run_surf_command(self, cmd, *, whole_surf=False):
@@ -2009,7 +2014,7 @@ class ToolWindow(StatusLogger):
         dock_area_value(Qt.DockWidgetArea.TopDockWidgetArea): "top",
         dock_area_value(Qt.DockWidgetArea.BottomDockWidgetArea): "bottom"
     }
-    def manage(self, placement, fixed_size=False, allowed_areas=Qt.DockWidgetArea.AllDockWidgetAreas,
+    def manage(self, placement = None, fixed_size=False, allowed_areas=Qt.DockWidgetArea.AllDockWidgetAreas,
             initially_hidden=False):
         """Supported API. Show this tool window in the interface
 
@@ -2255,6 +2260,7 @@ class _Qt:
             raise RuntimeError("No main window or main window dead")
 
         from Qt.QtWidgets import QDockWidget, QWidget, QVBoxLayout
+        from Qt.QtCore import Qt
         self.dock_widget = dw = QDockWidget(title, mw)
         dw.closeEvent = lambda e, *, tw=tool_window, mw=mw: mw.close_request(tw, e)
         if close_destroys:
@@ -2333,10 +2339,12 @@ class _Qt:
                 vis = dw.isVisible()
                 from Qt.QtCore import Qt
                 # Changing window type allows undocked tool to stack
-                # below main window on but issues errors on macOS Big Sur.
+                # below main window.  Using Qt5 it issued errors on macOS 11.
+                # but using Qt6 on 10.15 and 12 -- no errors
                 # See ChimeraX bug #453 for details.
-                # window_flags = (Qt.CustomizeWindowHint | Qt.Window)
-                window_flags = dw.windowFlags()
+                window_flags = (Qt.CustomizeWindowHint | Qt.Window)
+                # original code:
+                #window_flags = dw.windowFlags()
                 button_flags = (Qt.WindowType.WindowMinimizeButtonHint |
                                 Qt.WindowType.WindowMaximizeButtonHint |
                                 Qt.WindowType.WindowCloseButtonHint)
@@ -2422,36 +2430,12 @@ class _Qt:
         self.dock_widget.setWindowTitle(title)
 
 def redirect_stdio_to_logger(logger):
-    # Redirect stderr to log
-    class LogStdout:
-
-        # Qt's error logging looks at the encoding of sys.stderr...
-        encoding = 'utf-8'
-
-        def __init__(self, logger):
-            self.logger = logger
-            self.closed = False
-            self.errors = "ignore"
-
-        def write(self, s):
-            self.logger.session.ui.thread_safe(self.logger.info,
-                                               s, add_newline = False)
-            # self.logger.info(s, add_newline = False)
-
-        def flush(self):
-            return
-
-        def isatty(self):
-            return False
-    LogStderr = LogStdout
-    import sys
-    sys.orig_stdout = sys.stdout
+    from .redirect_logger import LogStdout, LogStderr
     sys.stdout = LogStdout(logger)
     # TODO: Should raise an error dialog for exceptions, but traceback
     #       is written to stderr with a separate call to the write() method
     #       for each line, making it hard to aggregate the lines into one
     #       error dialog.
-    sys.orig_stderr = sys.stderr
     sys.stderr = LogStderr(logger)
 
 def _show_context_menu(event, tool_instance, tool_window, fill_cb, autostartable, memorable):

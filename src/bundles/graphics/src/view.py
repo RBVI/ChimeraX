@@ -317,6 +317,9 @@ class View:
     def draw_xor_rectangle(self, x1, y1, x2, y2, color):
         if not self._use_opengl():
             return	# OpenGL not available
+        if not self.render.front_buffer_valid:
+            self.draw(check_for_changes = False)
+            self._use_opengl()
         d = getattr(self, '_rectangle_drawing', None)
         from .drawing import draw_xor_rectangle
         self._rectangle_drawing = draw_xor_rectangle(self._render, x1, y1, x2, y2, color, d)

@@ -528,7 +528,11 @@ class Surface(Model):
     A surface is a type of model where vertex coloring, style (filled, mesh, dot) and masking
     can be controlled by user commands.
     '''
-    pass
+    @classmethod
+    def restore_snapshot(cls, session, data):
+        m = Surface(data['name'], session)
+        m.set_state_from_snapshot(session, data)
+        return m
 
 from .state import StateManager
 class Models(StateManager):

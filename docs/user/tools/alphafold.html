@@ -63,10 +63,12 @@ in <a href="https://www.uniprot.org" target="_blank">UniProt</a>:
 <b>Version 1</b> (database release 1, used by ChimeraX 1.3): ~360,000 sequences,
 reference proteomes of 21 species including <i>Homo sapiens</i>
 <br><b>Version 2</b> (database releases 2 and 3 combined,
-<a href="../commands/alphafold.html#version">default</a> in ChimeraX 1.4+):
+default in ChimeraX 1.4):
 ~1 million sequences, v1 + most of SwissProt + sequences relevant to 
 neglected tropical disease or antimicrobial resistance
-<br><b>Version 3</b> (database release 4): &gt;200 million sequences
+<br><b>Version 3</b> (database release 4; 
+<a href="../commands/alphafold.html#version">default</a> in ChimeraX 1.5+
+builds from August 31, 2022 and later): &gt;200 million sequences
 </p>
 <li><a href="#predict">runs new AlphaFold predictions</a>
 on <a href="https://colab.research.google.com/signup" target="_blank">Google 
@@ -101,10 +103,8 @@ See also: <a href="blastprotein.html"><b>Blast Protein</b></a>,
 
 <blockquote>
 <a href="#dialog"><b>AlphaFold Dialog</b></a>
-<br>
-<a href="#coloring"><b>AlphaFold Coloring Dialog</b></a>
-<br>
-<a href="#pae"><b>AlphaFold Error Plot</b></a>
+<br><a href="#coloring"><b>AlphaFold Coloring Dialog</b></a>
+<br><a href="#pae"><b>AlphaFold Error Plot</b></a>
 </blockquote>
 
 <a name="dialog"></a>
@@ -121,20 +121,15 @@ The <b>Sequence</b> can be specified by
 <a href="https://www.uniprot.org/" target="_blank">UniProt</a>
 name or accession number, pasted in as plain text, or chosen
 from the menu of currently open protein structure chains.
-</p><p>
-For predicting a complex (multimer), the sequences of all chains in the complex
-must be given. The same sequence must be given multiple times if it occurs in 
-multiple copies in the complex. The sequences can be specified
-either collectively as a model number chosen from the menu of currently
-open models (<i>e.g.</i> when that model contains multiple chains), or
-individually within a comma-separated list of
-<a href="https://www.uniprot.org/" target="_blank">UniProt</a>
-identifiers or pasted-in amino acid sequences.
-Prediction may only be feasible for smaller complexes
-(<a href="#caveats">details...</a>).
 </p>
-<ul>
-<li>
+<blockquote>
+<a href="#match"><b>Fetch</b></a>
+<br><a href="#search"><b>Search</b></a>
+<br><a href="#predict"><b>Predict</b></a>
+<br><a href="#options"><b>Options</b></a>
+</blockquote>
+<p>
+<a href="#dialog" class="nounder">&larr;</a>
 <a name="match"></a>
 <b>Fetch</b> gets the most sequence-similar model available from the
 <a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold Database</a>
@@ -142,8 +137,8 @@ for each specified chain.
 Specifying a whole model specifies all of its protein chains.
 For each chain, a model is obtained for the exact UniProt entry 
 if available, otherwise the single top hit identified by
-<a href="https://en.wikipedia.org/wiki/BLAT_(bioinformatics)"
-target="_blank">BLAT</a>-searching the 
+<a href="https://www.rbvi.ucsf.edu/chimerax/data/kmer-aug2022/kmer_search.html"
+target="_blank">K-mer search</a> of the
 <a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold Database</a>
 (<a href="../commands/alphafold.html#search-option">details...</a>).
 The corresponding command is
@@ -197,7 +192,8 @@ where ~ indicates a user's home directory.
 If a file specified for opening is not found in this local cache,
 the file will be fetched and cached. 
 </p>
-<li>
+<p>
+<a href="#dialog" class="nounder">&larr;</a>
 <a name="search"></a>
 <b>Search</b>
 uses a <a href="../tools/blastprotein.html#notes">BLAST</a> web service
@@ -212,7 +208,10 @@ returning a maximum of <b>100</b> of unique sequences
 or other sequence-database entries may have the same sequence).
 The corresponding command is
 <a href="../commands/alphafold.html#search"><b>alphafold search</b></a>.
-<b>Search</b> differs from <b>Fetch</b> in that it uses BLAST instead of BLAT,
+<b>Search</b> differs from <b>Fetch</b> in that it uses BLAST instead
+of fast (but low-sensitivity)
+<a href="https://www.rbvi.ucsf.edu/chimerax/data/kmer-aug2022/kmer_search.html"
+target="_blank">K-mer searching</a>,
 accepts only a single chain or sequence as input,
 and returns a list of hits for the user to inspect,
 rather than fetching the single top hit per chain automatically.
@@ -221,8 +220,8 @@ When results are returned, the hits are listed in a
 Clicking the name of a hit uses
 <a href="../commands/alphafold.html#fetch"><b>alphafold fetch</b></a> 
 to retrieve the model.
-<br><br>
-<li>
+</p><p>
+<a href="#dialog" class="nounder">&larr;</a>
 <a name="predict"></a>
 <b>Predict</b> runs a calculation on
 <a href="https://colab.research.google.com/signup"
@@ -233,6 +232,7 @@ target="_blank">AlphaFold 2</a>.
 The corresponding command is
 <a href="../commands/alphafold.html#predict"><b>alphafold predict</b></a>.
 Users should cite:
+</p>
 <blockquote>
 <a href="https://www.nature.com/articles/s41592-022-01488-1"
 target="_blank">ColabFold: making protein folding accessible to all.</a>
@@ -240,6 +240,17 @@ Mirdita M, Sch&uuml;tze K, Moriwaki Y, Heo L, Ovchinnikov S, Steinegger M.
 <i>Nat Methods.</i> 2022 Jun;19(6):679-682.
 </blockquote>
 <p>
+For predicting a complex (multimer), the sequences of all chains in the complex
+must be given. The same sequence must be given multiple times if it occurs in 
+multiple copies in the complex. The sequences can be specified
+either collectively as a model number chosen from the menu of currently
+open models (<i>e.g.</i> when that model contains multiple chains), or
+individually within a comma-separated list of
+<a href="https://www.uniprot.org/" target="_blank">UniProt</a>
+identifiers or pasted-in amino acid sequences.
+Prediction may only be feasible for smaller complexes
+(<a href="#caveats">details...</a>).
+</p><p>
 A warning will appear saying that this Colab notebook is from github
 (was not authored by Google), with a button to click to run anyway.
 Users will need to have a Google account and to sign into it via
@@ -251,10 +262,24 @@ target="_blank">example video</a> for an explanation of the images/plots
 from <b>ColabFold</b> that appear in the Colab window
 and where to find downloaded files. 
 </p><p>
+<a href="#dialog" class="nounder">&larr;</a>
 <a name="options"></a>
-Clicking <b>Options</b> shows/hides additional options:
+The <b>Options</b> button shows/hides additional options:
 </p>
 <ul>
+<li><b>Results directory</b> 
+(default <b>~/Downloads/ChimeraX/AlphaFold/prediction_[N]</b>)
+&ndash; the pathname (name and location) of a folder or directory
+in which to store prediction results. Clicking <b>Browse</b>
+brings up a file browser window for choosing it interactively.
+The directory does not need to exist already, as it will be
+created by running the prediction.
+As shown in the default, the pathname can include [N] to indicate
+substitution with the smallest positive integer that makes a new directory.
+If the specified pathname does not include [N]
+but a directory of that name and location already exists
+and contains a results.zip file, _[N] will be appended automatically
+to avoid overwriting the existing directory.
 <li><b>Use PDB templates when predicting structures</b> (default <b>off</b>)
 &ndash; AlphaFold can use up to four structures as templates;
 when this option is on, ColabFold will search the PDB
@@ -303,20 +328,20 @@ so <b>only smaller complexes can be predicted</b>.
 As mentioned above, paid <a href="https://colab.research.google.com/signup"
 target="_blank">Colab plans</a> provide more computational resources
 than the free plan.
+<p>
 </ul>
-<br>
-<li><b>Coloring</b> 
+<b>Coloring</b> 
 shows the <a href="#coloring"><b>Alphafold Coloring</b> dialog</a>
 for applying different color schemes to the predicted structures,
 as well as hiding, showing, and 
 <a href="../selection.html">selecting</b></a> their residues based on 
 <a href="../attributes.html">attribute</a> value.
-<br><br>
-<li><b>Error plot</b> draws the <a href="#pae">AlphaFold Error Plot</a>,
+</p><p>
+<b>Error plot</b> draws the <a href="#pae">AlphaFold Error Plot</a>,
 in which color gradations show (for each pairwise combination of residues)
 the expected error in position of one residue when the
 true and predicted structures are aligned based on the other residue.
-</ul>
+</p>
 
 <a name="coloring"></a>
 <p class="nav">
@@ -626,5 +651,5 @@ Error (&Aring;)</b>&rdquo;) would need to be created separately with
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-July 2022</address>
+August 2022</address>
 </body></html>

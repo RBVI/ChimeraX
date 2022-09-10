@@ -148,11 +148,13 @@ class QCxTableModel(QAbstractTableModel):
         return False
 
     def _convert_justification(self, justification):
+        # the int() calls in the below are to work around a Qt bug, see:
+        # https://stackoverflow.com/questions/35175210/how-to-align-right-and-vertically-center-in-qabstracttablemodel
         if justification == "left":
-            return Qt.AlignLeft | Qt.AlignVCenter
+            return int(Qt.AlignLeft | Qt.AlignVCenter)
         if justification == "center":
-            return Qt.AlignHCenter | Qt.AlignVCenter
-        return Qt.AlignRight | Qt.AlignVCenter
+            return int(Qt.AlignHCenter | Qt.AlignVCenter)
+        return int(Qt.AlignRight | Qt.AlignVCenter)
 
     def _make_multiline(self, title):
         words = title.strip().split()
@@ -217,6 +219,7 @@ class ItemTable(QTableView):
     """
 
     selection_changed = Signal(list, list)
+    get_selection = Signal(list)
 
     DEFAULT_SETTINGS_ATTR = "item_table_info"
 
@@ -242,12 +245,12 @@ class ItemTable(QTableView):
                 table adds columns whose 'data_set' attribute is a string (since it will be run as command).
 
         Notes:
-           For a menu the value of column_control_info should be:
+            For a menu the value of column_control_info should be:
                 (QMenu instance, chimerax.core.settings.Settings instance, defaults dictionary,
-                  fallback default [, optional display callback])
+                 fallback default [, optional display callback])
             For a widget the value is:
                 (QWidget instance, chimerax.core.settings.Settings instance, defaults dictionary,
-                  fallback default, display callback, number of check box columns, show global buttons)
+                 fallback default, display callback, number of check box columns, show global buttons)
 
             The parameters for column_control_info are:
 
@@ -316,6 +319,10 @@ class ItemTable(QTableView):
                     bbox.addButton("Toggle Controls", qbbox.ActionRole).clicked.connect(
                         self._toggle_columns_checkboxes)
         self._highlighted = set()
+        self.doubleClicked.connect(self.doubleclicked)
+
+    def doubleclicked(self, _) -> list:
+        self.get_selection.emit(self.selected)
 
     def _toggle_columns_checkboxes(self):
         self._col_checkbox_container.setVisible(not self._col_checkbox_container.isVisible())
@@ -457,6 +464,8 @@ class ItemTable(QTableView):
             data: A sequence of objects that act as the model for a row. Information will be
                   retrieved from the object using the data_fetch function supplied to add_column.
         """
+        if type(data) is not list:
+            data = [data]
         if not self._table_model:
             self._data = data[:]
             return
