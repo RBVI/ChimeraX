@@ -48,14 +48,11 @@ def prep(session, state, callback, memorization, memorize_name, structures, keyw
         for s in structures:
             s.delete_alt_locs()
 
-    change_std = []
-    from chimerax.atomic.struct_edit import standardize_residues, standardizable_residues as std_res
-    for r_name in std_res:
-        if active_settings['change_' + r_name]:
-            change_std.append(r_name)
-    if change_std:
-        standardize_residues(session, structures.residues, res_types=change_std, verbose=True)
-    
+    std_res = active_settings['standardize_residues']
+    if std_res:
+        from chimerax.atomic.struct_edit import standardize_residues
+        standardize_residues(session, structures.residues, res_types=std_res, verbose=True)
+ 
     if active_settings['complete_side_chains']:
         targets = []
         for s in structures:

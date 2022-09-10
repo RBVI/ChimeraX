@@ -19,8 +19,8 @@ def dock_prep_arg_info(session):
             from . import ChargeMethodArg
             annotation = ChargeMethodArg
         elif name == "standardize_residues":
-            from chimerax.atomic.struct_edit import standardizable_residues
-            annotation = ListOf(EnumOf(standardizable_residues))
+            # provided directly by Dock Prep
+            continue
         else:
             raise ValueError("Don't know how to prepare addcharge arg '%s' for Dock Prep" % name)
         arg_info[name] = annotation
@@ -44,6 +44,9 @@ def _get_defaults():
     sig = inspect.signature(cmd_addcharge)
     for name, param in sig.parameters.items():
         if param.kind != param.KEYWORD_ONLY:
+            continue
+        if name == "standardize_residues":
+            # provided directly by Dock Prep
             continue
         defaults[name] = param.default
     return defaults

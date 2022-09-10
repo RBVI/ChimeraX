@@ -10,6 +10,10 @@
 # including partial copies, of the software or any revisions
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
+import os
+
+def get_bin() -> str:
+    return os.path.join(os.path.dirname(__file__), "bin")
 
 from .header_sequence import HeaderSequence, FixedHeaderSequence, DynamicHeaderSequence, \
     DynamicStructureHeaderSequence

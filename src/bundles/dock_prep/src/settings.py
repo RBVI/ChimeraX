@@ -11,7 +11,9 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+from chimerax.atomic.struct_edit import standardizable_residues as std_res
 defaults = {
+    "standardize_residues": std_res,
     "del_solvent": True,
 	"del_ions": True,
     "del_alt_locs": True,
@@ -19,10 +21,6 @@ defaults = {
     "ah": True,
     "ac": True,
 }
-from chimerax.atomic.struct_edit import standardizable_residues as std_res
-change_args = ['change_'+name for name in std_res]
-for change_arg in change_args:
-    defaults[change_arg] = True
 
 from copy import deepcopy
 
