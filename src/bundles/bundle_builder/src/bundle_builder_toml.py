@@ -565,6 +565,8 @@ class Bundle:
         setup_args = ["--no-user-cfg", "build"]
         setup_args.extend(["bdist_wheel"])
         dist, built = self._run_setup(setup_args)
+        if not self.version:
+            self.version = dist.get_version()
         wheel = self._check_output(type_ = "wheel")
         return wheel
 
@@ -572,6 +574,8 @@ class Bundle:
         self._clear_distutils_dir_and_prep_srcdir()
         setup_args = ["sdist"]
         dist, built = self._run_setup(setup_args)
+        if not self.version:
+            self.version = dist.get_version()
         sdist = self._check_output(type_ = "sdist")
         return sdist
 
@@ -589,6 +593,8 @@ class Bundle:
             , "editable_wheel"
         ]
         dist, built = self._run_setup(setup_args)
+        if not self.version:
+            self.version = dist.get_version()
         wheel = self._check_output(type_ = "wheel")
         return wheel
 
