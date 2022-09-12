@@ -71,6 +71,28 @@ class DouseJob(Job):
         return self._running
 
 
+_needs_resolution = None
+def douse_needs_resolution(session, phenix_location=None):
+    global _needs_resolution
+    if _needs_resolution is None:
+        # Find the phenix.douse executable
+        from .locate import find_phenix_command
+        exe_path = find_phenix_command(session, 'phenix.douse', phenix_location)
+        args = [exe_path, "--show-defaults", "3"]
+        import subprocess
+        p = subprocess.run(args, capture_output = True)
+        if p.returncode != 0:
+            cmd = " ".join(args)
+            out, err = p.stdout.decode("utf-8"), p.stderr.decode("utf-8")
+            msg = (f'phenix.douse exited with error code {p.returncode}\n\n' +
+                   f'Command: {cmd}\n\n' +
+                   f'stdout:\n{out}\n\n' +
+                   f'stderr:\n{err}')
+            from chimerax.core.errors import UserError
+            raise UserError(msg)
+        _needs_resolution = "resolution =" in p.stdout.decode("utf-8")
+    return _needs_resolution
+
 command_defaults = {
     'far_water': False,
     'keep_input_water': True,
@@ -84,6 +106,7 @@ def phenix_douse(session, map, near_model, *, block=None, phenix_location=None,
         map_range=command_defaults['map_range'],
         residue_range=command_defaults['residue_range'],
         verbose=command_defaults['verbose'],
+        resolution=None,
         option_arg=[], position_arg=[]):
 
     # Find the phenix.douse executable
@@ -115,6 +138,8 @@ def phenix_douse(session, map, near_model, *, block=None, phenix_location=None,
 
     # Run phenix.douse
     douse_keep_input_water = (keep_input_water and far_water)
+    if resolution is not None:
+        position_arg.append("resolution=%g" % resolution)
     # keep a reference to 'd' in the callback so that the temporary directory isn't removed before
     # douse runs
     callback = lambda douse_model, *args, session=session, shift=shift, near_model=near_model, \

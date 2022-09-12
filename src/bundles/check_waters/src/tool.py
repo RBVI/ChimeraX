@@ -234,6 +234,7 @@ class CheckWaterViewer(ToolInstance):
         # H-bonds in the table, so these lines are down here
         if not session_info:
             self._make_hb_groups()
+            self._show_hbonds_cb(self.show_hbonds.isChecked())
         self.res_table.data = table_waters
         self.res_table.launch(session_info=table_info)
         if not session_info:
@@ -430,13 +431,15 @@ class CheckWaterViewer(ToolInstance):
             if structure.display:
                 base_cmd = ""
             else:
-                base_cmd = "show %s models; " % structure.atomspec
+                # avoid changing H-bond groups display value
+                base_cmd = "show #!%s models; " % structure.atomspec[1:]
             if self.compare_map and not self.compare_map.display:
                 base_cmd += "show %s models; " % self.compare_map.atomspec
             if self.compare_model:
                 other_model = self.compare_model if structure == self.check_model else self.check_model
                 if other_model.display:
-                    base_cmd += "hide %s models; " % other_model.atomspec
+                    # avoid changing H-bond groups display value
+                    base_cmd += "hide #!%s models; " % other_model.atomspec[1:]
             from chimerax.atomic import concise_residue_spec
             spec = concise_residue_spec(self.session, selected)
             cmd = base_cmd + f"select {spec}; disp {spec} :<4; view {spec} @<4"
@@ -493,7 +496,6 @@ class CheckWaterViewer(ToolInstance):
             residues = all_input - input_in_common
         else:
             residues = douse_in_common
-        if self.show_hbonds.isChecked():
-            self._show_hbonds_cb(True)
+        self._show_hbonds_cb(self.show_hbonds.isChecked())
         self.res_table.data = residues
         self._selected_treatment(residues)

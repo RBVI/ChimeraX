@@ -38,7 +38,8 @@ def find_phenix_command(session, program_name, phenix_location = None):
                 pdirs.sort(reverse = True)
                 phenix_dirs.extend(pdirs)
         if len(phenix_dirs) == 0:
-            raise UserError('Could not find phenix installation in ' + ', '.join(search_dirs))
+            raise UserError('Could not find Phenix installation in ' + ', '.join(search_dirs)
+                + '.\nUse "phenix location" command to specify the location of your Phenix installlation.')
         for pdir in phenix_dirs:
             for bin_dir in bin_dirs:
                 cmd = join(pdir, bin_dir, program_name)
