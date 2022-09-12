@@ -634,6 +634,8 @@ class ChimeraXClassifier:
         for k, v in self.attrs.items():
             formatted_field = k.replace('-', '_')
             if type(v) is list:
+                if not v:
+                    continue
                 formatted_val = ','.join([quote_if_necessary(str(val)) for val in v])
             elif type(v) is bool:
                 formatted_val = quote_if_necessary(str(v).lower())
