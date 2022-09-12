@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-StdCommands" version="1.9"
+<BundleInfo name="ChimeraX-StdCommands" version="1.10"
 	    package="chimerax.std_commands" customInit="true"
   	    minSessionVersion="1" maxSessionVersion="1">
 
@@ -47,6 +47,7 @@
     <ChimeraXClassifier>Selector :: sel :: selected atoms</ChimeraXClassifier>
     <ChimeraXClassifier>Selector :: all :: everything</ChimeraXClassifier>
     <ChimeraXClassifier>Selector :: pbonds :: pseudobonds</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: pbondatoms :: pseudobond atoms</ChimeraXClassifier>
     <ChimeraXClassifier>Selector :: hbonds :: hydrogen bonds</ChimeraXClassifier>
     <ChimeraXClassifier>Selector :: hbondatoms :: hydrogen bond atoms</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: alias :: General Controls :: create shorthand version of command</ChimeraXClassifier>
