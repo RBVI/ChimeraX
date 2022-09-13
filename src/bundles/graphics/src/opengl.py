@@ -1140,7 +1140,8 @@ class Render:
             # Bugs in Apple AMD graphics drivers
             if (rname.startswith('AMD Radeon Pro Vega') or
                 rname.startswith('AMD Radeon Pro 5500M') or # ChimeraX bug 4238
-                rname.startswith('AMD Radeon Pro 5300M')):  # ChimeraX bug 6014
+                rname.startswith('AMD Radeon Pro 5300M') or # ChimeraX bug 6014
+                rname.startswith('AMD Radeon Pro 5700')): # ChimeraX bug 7585
                 offscreen_outline = True
         self.outline.offscreen_outline_needed = offscreen_outline
 

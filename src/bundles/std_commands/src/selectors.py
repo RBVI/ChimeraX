@@ -19,6 +19,7 @@ def register_selectors(logger):
     reg("sel", _sel_selector, logger, desc="selected atoms")
     reg("all", _all_selector, logger, desc="everything")
     reg("pbonds", _pbonds_selector, logger, desc="pseudobonds")
+    reg("pbondatoms", _pbondatoms_selector, logger, desc="pseudobond atoms")
     reg("hbonds", _hbonds_selector, logger, desc="hydrogen bonds")
     reg("hbondatoms", _hbondatoms_selector, logger, desc="hydrogen bond atoms")
 
@@ -71,6 +72,15 @@ def _pbonds_selector(session, models, results):
     results.add_pseudobonds(pbonds)
     for m in pbonds.unique_groups:
         results.add_model(m)
+
+def _pbondatoms_selector(session, models, results):
+    from chimerax.atomic import all_pseudobonds, concatenate
+    pbonds = all_pseudobonds(session)
+    if len(pbonds) > 0:
+        atoms = concatenate(pbonds.atoms)
+        results.add_atoms(atoms)
+        for m in atoms.unique_structures:
+            results.add_model(m)
 
 def _hbonds_selector(session, models, results):
     from chimerax.atomic import Pseudobonds, PseudobondGroup, concatenate

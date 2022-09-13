@@ -289,6 +289,7 @@ intersphinx_mapping = {
     'python': ('https://docs.python.org/PYTHON_VERSION', None),
     'scipy': ('https://docs.scipy.org/doc/scipy/reference/', None),
     'sphinx': ('https://www.sphinx-doc.org/en/master', None),
+    'setuptools': ('https://setuptools.readthedocs.io/en/latest/', None),
 }
 
 # -- Options for extlinks --------------------------------------------

@@ -10,7 +10,7 @@
 # including partial copies, of the software or any revisions
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
-
+import os
 from chimerax.core.commands import CmdDesc, StringArg, OpenFolderNameArg, BoolArg
 
 _aliases = {}
@@ -94,7 +94,10 @@ def devel_build(session, path, test=None, debug=False, exit=False):
     '''
     if test is not None:
         session.logger.warning("The test option has been removed")
-    from chimerax.bundle_builder import BundleBuilder
+    if _has_bundle_xml(path):
+        from chimerax.bundle_builder import BundleBuilder
+    else:
+        from chimerax.bundle_builder import BundleBuilderTOML as BundleBuilder
     _run(path, session.logger, exit, BundleBuilder.make_wheel, debug=debug)
 
 
@@ -105,7 +108,7 @@ devel_build_desc = CmdDesc(required=[("path", OpenFolderNameArg)],
                            synopsis='Build a wheel for bundle')
 
 
-def devel_install(session, path, test=None, user=None, debug=False, exit=False, no_deps=None):
+def devel_install(session, path, test=None, user=None, debug=False, exit=False, no_deps=None, editable=False):
     '''Build and install a wheel in for the source code in bundle path.
 
     Parameters
@@ -121,9 +124,15 @@ def devel_install(session, path, test=None, user=None, debug=False, exit=False, 
     '''
     if test is not None:
         session.logger.warning("The test option has been removed")
-    from chimerax.bundle_builder import BundleBuilder
+    if _has_bundle_xml(path):
+        from chimerax.bundle_builder import BundleBuilder
+        if editable:
+            session.logger.warning("Editable installs not supported when using bundle_info.xml")
+            editable = False
+    else:
+        from chimerax.bundle_builder import BundleBuilderTOML as BundleBuilder
     _run(path, session.logger, exit, BundleBuilder.make_install,
-         session, debug=debug, user=user, no_deps=no_deps)
+         session, debug=debug, user=user, no_deps=no_deps, editable=editable)
 
 
 devel_install_desc = CmdDesc(required=[("path", OpenFolderNameArg)],
@@ -131,7 +140,8 @@ devel_install_desc = CmdDesc(required=[("path", OpenFolderNameArg)],
                                       ("debug", BoolArg),
                                       ("no_deps", BoolArg),
                                       ("user", BoolArg),
-                                      ("exit", BoolArg)],
+                                      ("exit", BoolArg),
+                                      ("editable", BoolArg)],
                              synopsis='Build and install wheel for bundle')
 
 
@@ -143,7 +153,10 @@ def devel_clean(session, path, exit=False):
     path : string
       Path to folder containing bundle source code or bundle alias.
     '''
-    from chimerax.bundle_builder import BundleBuilder
+    if _has_bundle_xml(path):
+        from chimerax.bundle_builder import BundleBuilder
+    else:
+        from chimerax.bundle_builder import BundleBuilderTOML as BundleBuilder
     _run(path, session.logger, exit, BundleBuilder.make_clean)
 
 
@@ -154,7 +167,7 @@ devel_clean_desc = CmdDesc(required=[("path", OpenFolderNameArg)],
 
 def _run(path, logger, exit, unbound_method, *args, **kw):
     from chimerax.core.logger import StringPlainTextLog
-    bb = _get_builder(path, logger)
+    bb = _get_builder(logger, path)
     exit_status = 0
     if bb is not None:
         with StringPlainTextLog(logger) as log:
@@ -189,16 +202,18 @@ def devel_dump(session, path):
 devel_dump_desc = CmdDesc(required=[("path", OpenFolderNameArg)],
                           synopsis='Dump bundle information in bundle path')
 
-
-def _get_builder(path, logger):
+def _get_builder(logger, path):
     """Return BundleBuilder instance or None."""
-    from chimerax.bundle_builder import BundleBuilder
+    if _has_bundle_xml(path):
+        from chimerax.bundle_builder import BundleBuilder
+    else:
+        from chimerax.bundle_builder import BundleBuilderTOML as BundleBuilder
     try:
         path = _aliases[path]
     except KeyError:
         pass
     try:
-        bb = BundleBuilder(logger, bundle_path=path)
+        bb = BundleBuilder.from_path(logger=logger, bundle_path=path)
     except IOError as e:
         logger.error(str(e))
         return None
@@ -208,6 +223,8 @@ def _get_builder(path, logger):
     else:
         return bb
 
+def _has_bundle_xml(path):
+    return os.path.exists(os.path.join(os.path.abspath(path), "bundle_info.xml"))
 
 def register_command(logger):
     from chimerax.core.commands import register
