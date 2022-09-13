@@ -371,4 +371,16 @@ Take care when compiling libraries or executables. Because setuptools does not
 handle these especially well, we build them in-place in the source tree, so 
 be sure to add them to your makefile's ``clean`` target.
 
+Platform-Specific Extensions
+----------------------------
+The only required arguments to ``setuptools.Extension()`` are a name and a list of 
+source files. The list of source files can even be an empty list! In that case, no
+extension is compiled.
+
+In the above example we wrote the metadata for the ``ioutil`` extension in ChimeraX.
+If instead we had written ::
+
+    [chimerax.extension.ioutil.macos]
+
+The net effect would be an extension that is only compiled on macOS.
 .. TODO: A documentation tag
