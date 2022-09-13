@@ -93,6 +93,7 @@ class _mmCIFioAPI(BundleAPI):
                 def save_args(self):
                     from chimerax.core.commands import BoolArg, ModelsArg, ModelArg
                     return {
+                        'all_coordsets': BoolArg,
                         'displayed_only': BoolArg,
                         'models': ModelsArg,
                         'rel_model': ModelArg,
