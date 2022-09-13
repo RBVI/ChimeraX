@@ -204,7 +204,7 @@ class CheckWaterViewer(ToolInstance):
         check.setChecked(self.settings.show_hbonds)
         check.clicked.connect(self._show_hbonds_cb)
         hbonds_layout.addWidget(check, alignment=Qt.AlignHCenter|Qt.AlignBottom)
-        params_but = QPushButton("H-bonds parameters...")
+        params_but = QPushButton("H-bond parameters...")
         params_but.clicked.connect(self._show_hbonds_dialog)
         hbonds_layout.addWidget(params_but, alignment=Qt.AlignHCenter|Qt.AlignTop)
         self.hbond_params_window = tw.create_child_window("%s H-Bond Parameters" % self.tool_name,
@@ -416,8 +416,8 @@ class CheckWaterViewer(ToolInstance):
         bbox.button(qbbox.Apply).clicked.connect(lambda *args, s=self: s._update_hbonds(hide=False))
         bbox.rejected.connect(lambda *args, tw=self.hbond_params_window: setattr(tw, 'shown', False))
         from chimerax.core.commands import run
-        bbox.helpRequested.connect(lambda *, run=run, ses=self.session: run(ses, "help " + self.help))
-        bbox.button(qbbox.Help).setEnabled(False)
+        bbox.helpRequested.connect(lambda *, run=run, ses=self.session:
+            run(ses, "help " + self.help + "#hbonds"))
         layout.addWidget(bbox)
 
     def _res_sel_cb(self, newly_selected, newly_deselected):
