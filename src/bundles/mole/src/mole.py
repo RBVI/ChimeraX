@@ -34,8 +34,29 @@ def read_mole_json(session, filename, name, transparency = 0.5):
 
     import json
     j = json.load(input)
-    channels = j['Channels']
 
+    models = channel_models(session, j['Channels'], transparency)
+
+    if len(models) > 1:
+        from chimerax.model_series.mseries import mseries_slider
+        mseries_slider(session, models, title = f'{len(models)} channels', name = 'Channel')
+
+    name  = f'{len(models)} channels'
+    filename = channel_source(j['Config'])
+    if filename:
+        name += ' in ' + filename
+
+    from chimerax.core.models import Model
+    group = Model(name, session)
+    group.add(models)
+
+    message = f'Opened {len(models)} Mole channels'
+    if filename:
+        message += ' in ' + filename
+    
+    return [group], message
+
+def channel_models(session, channel_json, transparency):
     channel_colors = mole_channel_colors()
     num_colors = len(channel_colors)
 
@@ -44,7 +65,7 @@ def read_mole_json(session, filename, name, transparency = 0.5):
     models = []
     from chimerax.atomic import Structure
     for ctype in ('Pores', 'MergedPores', 'Tunnels', 'Paths'):
-        channels = j['Channels'].get(ctype,[])
+        channels = channel_json.get(ctype,[])
         for cnum, channel in enumerate(channels):
             chid = channel['Id']
             color = tuple(channel_colors[cnum % num_colors][:3]) + (opacity,)
@@ -65,11 +86,27 @@ def read_mole_json(session, filename, name, transparency = 0.5):
                 res.add_atom(a)
             models.append(s)
 
-    if len(models) > 1:
-        from chimerax.model_series.mseries import mseries_slider
-        mseries_slider(session, models, title = f'{len(models)} channels', name = 'Channel')
-    
-    return models, f'Opened {len(models)} Mole channels' 
+    return models
+
+def channel_source(config_json):
+    filename = ''
+    file_path = dictionary_string(config_json, 'UserStructure')
+    if file_path:
+        filename = file_path.split('\\')[-1].split('/')[-1]
+    else:
+        pdb_id = (dictionary_string(config_json, 'PdbId') or
+                  dictionary_string(config_json, 'Export', 'Parameters', 'ChimeraPDBId'))
+        if pdb_id:
+            filename = f'PDB {pdb_id}'
+    return filename
+
+def dictionary_string(d, *keys):
+    for key in keys:
+        if key in d:
+            d = d[key]
+        else:
+            return None
+    return d if isinstance(d, str) else None
 
 def mole_channel_colors():
     channel_colors = [
