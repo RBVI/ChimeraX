@@ -35,9 +35,15 @@ wheel: $(PYSRCS)
 	$(PYTHON_EXE) -m build --no-isolation --wheel
 	rm -rf *.egg-info
 
+sdist: $(PYSRCS)
+	$(PYTHON_EXE) -m build --no-isolation --sdist
+
 install app-install: wheel
 	$(PYTHON_EXE) -m pip uninstall --yes ChimeraX-BundleBuilder
 	$(PYTHON_EXE) -m pip install dist/*.whl
+
+install-editable:
+	$(PYTHON_EXE) -m pip install --no-build-isolation --editable .
 
 sync:
 	rsync -av dist/*.whl $(TOP)/build/sync/

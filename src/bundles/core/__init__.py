@@ -122,33 +122,6 @@ def profile(func):
     return wrapper
 
 
-# These are entry points for copying files into
-# .dist-info directories of wheels when they are built
-
-def copy_distinfo_file(cmd, basename, filename, binary=''):
-    """Entry point to copy files into bundle .dist-info directory.
-
-    File is copied as text if binary is '', and as binary if 'b'.
-    """
-    encoding = None if binary else 'utf-8'
-    try:
-        with open(basename, 'r' + binary, encoding=encoding) as fi:
-            value = fi.read()
-            import logging
-            log = logging.getLogger()
-            log.info("copying %s" % basename)
-            if not cmd.dry_run:
-                with open(filename, 'w' + binary, encoding=encoding) as fo:
-                    fo.write(value)
-    except IOError:
-        # Missing file is okay
-        pass
-
-
-def copy_distinfo_binary_file(cmd, basename, filename):
-    copy_distinfo_file(cmd, basename, filename, binary='b')
-
-
 def is_daily_build():
     """Supported API. Return if ChimeraX Core is from a daily build."""
     # Daily builds are development releases

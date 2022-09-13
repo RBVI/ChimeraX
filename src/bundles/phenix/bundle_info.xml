@@ -9,6 +9,10 @@
   <Synopsis>Run model bulding calculations using Phenix</Synopsis>
   <Description>Run model building calculations using Phenix</Description>
 
+  <DataFiles>
+    <DataDir>docs</DataDir>
+  </DataFiles>
+
   <Categories>
     <Category name="Structure Editing"/>
   </Categories>
