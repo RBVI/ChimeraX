@@ -15,7 +15,7 @@ or derivations thereof.
 
 <head>
 <link rel="stylesheet" type="text/css" href="../userdocs.css" />
-<title>Tool: Check Waters</title>
+<title>Tool: Water Placement</title>
 </head><body>
 
 <a name="top"></a>
@@ -23,13 +23,28 @@ or derivations thereof.
 <img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
 class="clRight" title="User Guide Index"/></a>
 
-<h3><a href="../index.html#tools">Tool</a>: Check Waters</h3>
+<h3><a href="../index.html#tools">Tool</a>: Water Placement</h3>
 <p>
-<b>Check Waters</b> lists the waters in an atomic structure and allows
-inspecting them individually for H-bonds and visual agreement with 
-a corresponding density map (if any) opened separately and shown with 
-<a href="volumeviewer.html"><b>Volume Viewer</b></a>.
-See also: 
+The <b>Water Placement</b> tool in ChimeraX:
+</p>
+<ul>
+<li>runs the <a href="https://phenix-online.org"
+target="_blank">Phenix</a> program 
+<a href="https://phenix-online.org/documentation/reference/douse.html"
+target="_blank"><i>douse</i></a> to place water molecules in cryo-EM density
+<li>provides a graphical interface for inspecting and editing the results. 
+The command-line implementation is <b>phenix douse</b>.
+</ul>
+<p>
+Phenix must be installed locally and the 
+<b>PhenixUI</b> bundle installed in ChimeraX.
+After the <i>douse</i> calculation completes, the resulting waters,
+as well as any that were already present in the atomic structure beforehand, 
+can be inspected individually for H-bonds and agreement with the density, 
+and optionally deleted. 
+The <a href="checkwaters.html"><b>Check Waters</b></a> tool is a 
+similar interface for inspecting the waters already present in a structure,
+See also:
 <a href="rotamers.html"><b>Rotamers</b></a>,
 <a href="addhydrogens.html"><b>Add Hydrogens</b></a>,
 <a href="altlocexplorer.html"><b>Altloc Explorer</b></a>,
@@ -39,20 +54,46 @@ See also:
 <a href="../commands/view.html"><b>view</b></a>,
 <a href="../commands/clip.html"><b>clip</b></a>
 </p>
+<a name="initial"></a>
+<p>
+The atomic structure and corresponding density map should be open
+in ChimeraX before the tool is started. <b>Water Placement</b> 
+can then be started from the <b>Phenix</b> section of the <b>Tools</b> menu.
+An initial dialog will appear for choosing the atomic structure and map 
+of interest, <i>douse</i> parameters, and display options:
+</p>
+<ul>
+<li><b>First shell only</b> (initial default <b>on</b>) 
+&ndash; whether to place only waters that interact directly with the structure
+(not just with other waters)
+<li><b>Hide map far from waters</b> (initial default <b>on</b>) 
+<li><b>Map resolution</b> (initial default <b>3.0</b> &Aring;)
+(this option may not appear, depending on what version of Phenix is installed)
+<li><b>Map-hiding distance (angstroms)</b> (initial default <b>8.0</b> &Aring;)
+<li><b>Retain waters from input structure in generated structure</b> 
+(initial default <b>on</b>) 
+<li><b>Show full douse output in log</b> (initial default <b>off</b>)
+<li><b>Show residues with atoms within this distance of waters</b> 
+(initial default <b>5.0</b> &Aring;)
+</ul>
+<p>
+Clicking <b>OK</b> initiates the <i>douse</i> calculation.
+After the calculation completes, another panel will appear with a 
+<a href="#waterlist">list of the waters</a> in the structure.
+</p>
+
+<a name="waterlist"></a>
+<p class="nav">
+[<a href="#top">back to top: Water Placement</a>]
+</p>
+<h3>Water List</h3>
 <table class="clRight">
 <tr><td>
-<img class="outline" src="checkwaters.png"
-alt="Check Waters dialog" width="300px">
+<img class="outline" src="waterplacement.png"
+alt="Water Placement dialog" width="300px">
 </td></tr>
 </table>
 <p>
-<b>Check Waters</b> can be started 
-from the <b>Structure Analysis</b> section of the <b>Tools</b> menu.
-An initial dialog will appear for choosing the model of interest 
-from a menu of the current atomic models.
-Clicking <b>Apply</b> (to keep that dialog up) or <b>OK</b> (to dismiss it) 
-will open another panel with a list of the waters in the structure.
-</p><p>
 This dialog with list of waters can be
 manipulated like other panels (<a href="../window.html#panels">more...</a>).
 For each water, the list gives the number of <b>H-bonds</b>,
