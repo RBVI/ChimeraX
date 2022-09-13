@@ -29,11 +29,11 @@ The <b>Water Placement</b> tool in ChimeraX:
 </p>
 <ul>
 <li>runs the <a href="https://phenix-online.org"
-target="_blank">Phenix</a> program 
+target="_blank">Phenix</a> program
 <a href="https://phenix-online.org/documentation/reference/douse.html"
-target="_blank"><i>douse</i></a> to place water molecules in cryo-EM density
-<li>provides a graphical interface for inspecting and editing the results. 
-The command-line implementation is <b>phenix douse</b>.
+target="_blank"><i>douse</i></a> to place water molecules in cryo-EM density;
+the command-line implementation is <b>phenix douse</b>
+<li>provides a graphical interface for inspecting and editing the results
 </ul>
 <p>
 Phenix must be installed locally and the 
@@ -41,9 +41,10 @@ Phenix must be installed locally and the
 After the <i>douse</i> calculation completes, the resulting waters,
 as well as any that were already present in the atomic structure beforehand, 
 can be inspected individually for H-bonds and agreement with the density, 
-and optionally deleted. 
+and optionally deleted.
+</p><p>
 The <a href="checkwaters.html"><b>Check Waters</b></a> tool is a 
-similar interface for inspecting the waters already present in a structure,
+similar interface for inspecting the waters already present in a structure.
 See also:
 <a href="rotamers.html"><b>Rotamers</b></a>,
 <a href="addhydrogens.html"><b>Add Hydrogens</b></a>,
@@ -59,8 +60,8 @@ See also:
 The atomic structure and corresponding density map should be open
 in ChimeraX before the tool is started. <b>Water Placement</b> 
 can then be started from the <b>Phenix</b> section of the <b>Tools</b> menu.
-An initial dialog will appear for choosing the atomic structure and map 
-of interest, <i>douse</i> parameters, and display options:
+An initial dialog will appear for choosing the atomic structure and map from 
+menus of the available models, as well as other settings:
 </p>
 <ul>
 <li><b>First shell only</b> (initial default <b>on</b>) 
@@ -72,7 +73,10 @@ of interest, <i>douse</i> parameters, and display options:
 <li><b>Map-hiding distance (angstroms)</b> (initial default <b>8.0</b> &Aring;)
 <li><b>Retain waters from input structure in generated structure</b> 
 (initial default <b>on</b>) 
+&ndash; whether to keep pre-existing waters instead of deleting them
 <li><b>Show full douse output in log</b> (initial default <b>off</b>)
+&ndash; whether to echo all <i>douse</i> messages to the 
+<a href="log.html"><b>Log</b></a>
 <li><b>Show residues with atoms within this distance of waters</b> 
 (initial default <b>5.0</b> &Aring;)
 </ul>
@@ -86,7 +90,7 @@ After the calculation completes, another panel will appear with a
 <p class="nav">
 [<a href="#top">back to top: Water Placement</a>]
 </p>
-<h3>Water List</h3>
+<h3>List of Waters</h3>
 <table class="clRight">
 <tr><td>
 <img class="outline" src="waterplacement.png"
@@ -94,8 +98,15 @@ alt="Water Placement dialog" width="300px">
 </td></tr>
 </table>
 <p>
-This dialog with list of waters can be
-manipulated like other panels (<a href="../window.html#panels">more...</a>).
+There are three options for which set of waters to list, with the
+respective number of waters in parentheses:
+</p>
+<ul>
+<li><b>Douse only</b> (initial default)
+<li><b>In common</b>
+<li><b>Input only</b>
+</ul>
+<p>
 For each water, the list gives the number of <b>H-bonds</b>,
 and if a corresponding density map was open before <b>Check Waters</b>
 was started, the <b>Density</b> at atom positions summed over the atoms
