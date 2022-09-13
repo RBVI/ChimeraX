@@ -84,7 +84,7 @@ def _same_chains(chain0, chain1):
     return c0 == c1
 
 
-def write_mmcif(session, path, *, models=None, rel_model=None, selected_only=False, displayed_only=False, fixed_width=True, best_guess=False):
+def write_mmcif(session, path, *, models=None, rel_model=None, selected_only=False, displayed_only=False, fixed_width=True, best_guess=False, all_coordsets=False):
     from chimerax.atomic import Structure
     if models is None:
         models = session.models.list(type=Structure)
@@ -121,7 +121,7 @@ def write_mmcif(session, path, *, models=None, rel_model=None, selected_only=Fal
             file_name = path.replace("[ID]", m.id_string).replace("[NAME]", m.name)
             with open(file_name, 'w', encoding='utf-8', newline='\r\n') as f:
                 f.write(MMCIF_PREAMBLE)
-                save_structure(session, f, [m], [xforms[m]], used_data_names, selected_only, displayed_only, fixed_width, best_guess)
+                save_structure(session, f, [m], [xforms[m]], used_data_names, selected_only, displayed_only, fixed_width, best_guess, all_coordsets)
         return
 
     # Need to figure out which ChimeraX models should be grouped together
@@ -146,10 +146,10 @@ def write_mmcif(session, path, *, models=None, rel_model=None, selected_only=Fal
         f.write(MMCIF_PREAMBLE)
         for g, models in grouped.items():
             if is_ensemble[g]:
-                save_structure(session, f, models, [xforms[m] for m in models], used_data_names, selected_only, displayed_only, fixed_width, best_guess)
+                save_structure(session, f, models, [xforms[m] for m in models], used_data_names, selected_only, displayed_only, fixed_width, best_guess, all_coordsets)
             else:
                 for m in models:
-                    save_structure(session, f, [m], [xforms[m]], used_data_names, selected_only, displayed_only, fixed_width, best_guess)
+                    save_structure(session, f, [m], [xforms[m]], used_data_names, selected_only, displayed_only, fixed_width, best_guess, all_coordsets)
 
 
 ChimeraX_audit_conform = mmcif.CIFTable(
@@ -244,7 +244,7 @@ def _save_metadata(model, categories, file, metadata):
     return printed
 
 
-def save_structure(session, file, models, xforms, used_data_names, selected_only, displayed_only, fixed_width, best_guess):
+def save_structure(session, file, models, xforms, used_data_names, selected_only, displayed_only, fixed_width, best_guess, all_coordsets):
     # save mmCIF data section for a structure
     # 'models' should only have more than one model if NMR ensemble
     # All 'models' should have the same metadata.
@@ -534,7 +534,7 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
             if alt_loc != '.':
                 atom.set_alt_loc(original_alt_loc, False)
 
-    for m, xform, model_num in zip(models, xforms, range(1, sys.maxsize)):
+    def do_atom_site_model(m, xform, model_num):
         residues = m.residues
         het_residues = residues.filter(residues.polymer_types == Residue.PT_NONE)
         for c in m.chains:
@@ -553,6 +553,14 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
         for r in het_residues:
             asym_id, entity_id = het_asym_info[r.mmcif_chain_id]
             atom_site_residue(r, '.', asym_id, entity_id, model_num, xform)
+
+    if all_coordsets and len(models) == 1 and best_m.num_coordsets > 1:
+        xform = xforms[0]
+        for model_num in range(1, best_m.num_coordsets + 1):
+            do_atom_site_model(best_m, xform, model_num)
+    else:
+        for m, xform, model_num in zip(models, xforms, range(1, sys.maxsize)):
+            do_atom_site_model(m, xform, model_num)
 
     atom_site_data[:] = flattened(atom_site_data)
     atom_site.print(file, fixed_width=fixed_width)
@@ -903,5 +911,5 @@ if 0:
     # models = open_cmd(session, pdb_id, format='pdb')
     # save_mmcif(session, '%s.cif' % pdb_id, models)
     with open('%s.cif' % pdb_id, 'w') as file:
-        save_structure(session, file, models, set(), False, False)  # noqa
+        save_structure(session, file, models, set(), False, False, False)  # noqa
     raise SystemExit(-1)
