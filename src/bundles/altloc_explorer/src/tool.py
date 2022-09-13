@@ -59,7 +59,7 @@ class AltlocExplorerTool(ToolInstance):
             settings=AltlocExplorerSettings(session, tool_name))
         self._show_hbonds_opt.widget.setText("Show H-bonds")
         panel.add_option(self._show_hbonds_opt)
-        params_but = QPushButton("H-bonds parameters...")
+        params_but = QPushButton("H-bond parameters...")
         params_but.clicked.connect(self._show_hbonds_dialog)
         side_layout.addWidget(params_but, alignment=Qt.AlignCenter)
         self.hbond_params_window = tw.create_child_window("Altloc H-Bond Parameters", close_destroys=False)
@@ -174,8 +174,8 @@ class AltlocExplorerTool(ToolInstance):
         bbox.button(qbbox.Apply).clicked.connect(lambda *args, s=self: s._apply_hb_params(hide=False))
         bbox.rejected.connect(lambda *args, tw=self.hbond_params_window: setattr(tw, 'shown', False))
         from chimerax.core.commands import run
-        bbox.helpRequested.connect(lambda *, run=run, ses=self.session: run(ses, "help " + self.help))
-        bbox.button(qbbox.Help).setEnabled(False)
+        bbox.helpRequested.connect(lambda *, run=run, ses=self.session:
+            run(ses, "help " + self.help + "#hbonds"))
         layout.addWidget(bbox)
 
     def _show_hbonds_dialog(self):

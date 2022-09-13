@@ -28,6 +28,7 @@ def register_command(logger):
                    ('verbose', BoolArg),
                    ('option_arg', RepeatOf(StringArg)),
                    ('position_arg', RepeatOf(StringArg)),
+                   ('resolution', FloatArg),
         ],
         required_arguments = ['near_model'],
         synopsis = 'Place water molecules in map'

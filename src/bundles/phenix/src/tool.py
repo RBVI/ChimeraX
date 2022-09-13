@@ -98,6 +98,10 @@ class LaunchDouseTool(ToolInstance):
         self.verbose_option = BooleanOption("Show full douse output in log", None, None,
             attr_name="verbose", settings=self.settings)
         options.add_option(self.verbose_option)
+        from .douse import douse_needs_resolution
+        if douse_needs_resolution(session):
+            self.resolution_option = FloatOption("Map resolution", 3.0, None, min=0.0, max=9999.9)
+            options.add_option(self.resolution_option)
 
         from Qt.QtWidgets import QDialogButtonBox as qbbox
         self.bbox = bbox = qbbox(qbbox.Ok | qbbox.Close | qbbox.Help)
@@ -143,5 +147,7 @@ class LaunchDouseTool(ToolInstance):
         verbose = self.verbose_option.value
         if verbose != defaults['verbose']:
             cmd += " verbose %s" % BoolArg.unparse(verbose)
+        if hasattr(self, 'resolution_option'):
+            cmd += " resolution %g" % self.resolution_option.value
         from chimerax.core.commands import run
         run(self.session, cmd)
