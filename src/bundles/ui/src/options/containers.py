@@ -80,7 +80,8 @@ class OptionsPanel(QWidget):
             insert_row = len(self._options)
         else:
             if self._sorting is True:
-                test = lambda o1, o2: o1.name < o2.name
+                convolve = lambda name: [c if c.isalnum() else ' ' for c in name]
+                test = lambda o1, o2, convolve=convolve: convolve(o1.name) < convolve(o2.name)
             else:
                 test = lambda o1, o2: self._sorting(o1) < self._sorting(o2)
             for insert_row in range(len(self._options)):

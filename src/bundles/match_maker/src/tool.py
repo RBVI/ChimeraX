@@ -167,7 +167,6 @@ class MatchMakerTool(ToolInstance):
         bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
         bbox.accepted.connect(self.run_matchmaker)
         bbox.button(qbbox.Apply).clicked.connect(self.run_matchmaker)
-        bbox.accepted.connect(self.delete) # slots executed in the order they are connected
         bbox.rejected.connect(self.delete)
         from chimerax.core.commands import run
         bbox.helpRequested.connect(lambda *, run=run, ses=session: run(ses, "help " + self.help))
@@ -287,6 +286,7 @@ class MatchMakerTool(ToolInstance):
                     cmd += ' mat' + let1 + let2 + ' ' + FloatArg.unparse(val)
 
         run(self.session, cmd)
+        self.delete()
 
     def _compute_ss_change(self, opt):
         if opt.value:

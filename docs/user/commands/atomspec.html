@@ -407,14 +407,21 @@ atoms (<i>e.g.</i>, a truncated sidechain), but occasionally extra ones
 <li><b>selAtoms</b> &ndash; the current atomic
 <a href="../selection.html">selection</a>,
 or if nothing is selected, all atomic models
-<li><b>selMaps</b> &ndash; the currently <a href="../selection.html">selected</a>
+<li><b>selMaps</b> &ndash; 
+the currently <a href="../selection.html">selected</a>
 volume models, or if none are selected, all displayed volume models
 -->
 <li><b>pbonds</b> &ndash; all <a href="../pseudobonds.html">pseudobonds</a>
+  <ul>
+<li><b>pbondatoms</b> &ndash; 
+all <a href="../pseudobonds.html">pseudobonds</a> and their endpoint atoms
+  </ul>
 <li><b>hbonds</b> &ndash; H-bond <a href="../pseudobonds.html">pseudobonds</a>
 (those in a pseudobond model named <b>hydrogen bonds</b>)
-<li><b>hbondatoms</b> &ndash; H-bond <a href="../pseudobonds.html">pseudobonds</a>
-and their endpoint atoms
+  <ul>
+<li><b>hbondatoms</b> &ndash; H-bond
+<a href="../pseudobonds.html">pseudobonds</a> and their endpoint atoms
+  </ul>
 </ul>
 <p>
 Built-in classifications cannot be redefined by the user.
@@ -774,5 +781,5 @@ of residues with any atom within 4 &Aring; of <a href="#surfcats">ligand</a>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-May 2022</address>
+September 2022</address>
 </body></html> 

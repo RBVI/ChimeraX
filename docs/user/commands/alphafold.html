@@ -870,6 +870,13 @@ alphafold contacts /A to /B distance 8
 alphafold contacts sel palette blue:red range 1,5
 </b></blockquote>
 </p>
+The following would select all pseudobonds and label them with the names and
+numbers of the residues that they connect:
+<blockquote><b>
+<a href="select.html">sel</a> pbonds
+<br>
+<a href="label.html">label</a>&nbsp;sel&nbsp;pseudobonds&nbsp;text&nbsp;"{0.atoms[0].residue.name}&nbsp;{0.atoms[0].residue.number}&nbsp;to&nbsp;{0.atoms[1].residue.name}&nbsp;{0.atoms[1].residue.number}"
+</b></blockquote>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
