@@ -28,7 +28,7 @@ class="clRight" title="User Guide Index"/></a>
 The <b>phenix</b> command is provided by the <b>PhenixUI</b> bundle.
 It interfaces with a local installation of
 <a href="https://www.phenix-online.org" target="_blank">Phenix</a>.
-See also: <a href="../tools/volumeviewer.html"><b>Volume Viewer</b></a></a>
+See also: <a href="volume.html"><b>volume</b></a>
 </p>
 
 <a name="douse"></a>
@@ -65,9 +65,11 @@ Remaining options
 <li><b>farWater</b> (default <b>false</b>)
 &ndash; if <b>keepInputWater</b> is <b>true</b>, whether <i>douse</i>
 should use the pre-existing waters; since <i>douse</i> only places waters 
-near existing atoms, ignoring pre-existing waters limits the results to
-waters that interact directly with the rest of the structure (<b>farWater
-false</b>, default)
+near existing atoms, setting this option to <b>true</b> means that 
+<i>douse</i> may place waters that interact
+directly with pre-existing waters but not the rest of the structure.
+Setting this option to <b>false</b> (default) means that only waters 
+that interact directly with the rest of the structure should be added.
 <li><b>mapRange</b>
 &ndash; show only map within <i>dist<sub>m</sub></i>
 (default <b>8.0</b> &Aring;) of water atoms; specifying the distance as
