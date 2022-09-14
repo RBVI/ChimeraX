@@ -23,6 +23,9 @@ class DouseSettings(Settings):
 
 from chimerax.check_waters.tool import CheckWaterViewer
 class DouseResultsViewer(CheckWaterViewer):
+
+    help = "help:user/tools/waterplacement.html#waterlist"
+
     def __init__(self, session, tool_name, orig_model=None, douse_model=None, compared_waters=None,
             map=None):
         # if 'model' is None, we are being restored from a session and _finalize_init() will be called later
@@ -46,6 +49,9 @@ class LaunchDouseSettings(Settings):
     }
 
 class LaunchDouseTool(ToolInstance):
+
+    help = "help:user/tools/waterplacement.html"
+
     def __init__(self, session, tool_name):
         super().__init__(session, tool_name)
         from chimerax.ui import MainToolWindow
@@ -77,40 +83,42 @@ class LaunchDouseTool(ToolInstance):
         if not hasattr(self.__class__, 'settings'):
             self.__class__.settings = LaunchDouseSettings(session, "launch douse")
         from chimerax.ui.options import OptionsPanel, BooleanOption, FloatOption
-        options = OptionsPanel(scrolled=False)
+        options = OptionsPanel(sorting=False, scrolled=False)
         layout.addWidget(options)
+        self.keep_waters_option = BooleanOption("Keep waters from input structure",
+            None, None, attr_name="keep_waters", settings=self.settings)
+        options.add_option(self.keep_waters_option)
         self.first_shell_option = BooleanOption("First shell only", None, None,
             attr_name="first_shell", settings=self.settings,
             balloon="Only place waters that interact directly with structure, rather than other waters")
         options.add_option(self.first_shell_option)
-        self.keep_waters_option = BooleanOption("Retain waters from input structure in generated structure",
-            None, None, attr_name="keep_waters", settings=self.settings)
-        options.add_option(self.keep_waters_option)
+        from .douse import douse_needs_resolution
+        if douse_needs_resolution(session):
+            self.resolution_option = FloatOption("Map resolution", 3.0, None, decimal_places=1,
+                min=0.0, max=99.9, right_text="\N{ANGSTROM SIGN}")
+            options.add_option(self.resolution_option)
         self.hide_map_option = BooleanOption("Hide map far from waters", None, None,
             attr_name="hide_map", settings=self.settings)
         options.add_option(self.hide_map_option)
-        self.hide_map_dist_option = FloatOption("Map-hiding distance (angstroms)", None, None,
-            attr_name="hide_map_dist", settings=self.settings, decimal_places=1, step=1, min=0, max=99)
+        self.hide_map_dist_option = FloatOption("Map-hiding distance", None, None,
+            attr_name="hide_map_dist", settings=self.settings, decimal_places=1, step=1, min=0, max=99,
+            right_text="\N{ANGSTROM SIGN}")
         options.add_option(self.hide_map_dist_option)
         self.res_range_option = FloatOption("Show residues with atoms within this distance of waters", None,
-            None, attr_name="res_range", settings=self.settings, decimal_places=1, step=1, min=0, max=99)
+            None, attr_name="res_range", settings=self.settings, decimal_places=1, step=1, min=0, max=99,
+            right_text="\N{ANGSTROM SIGN}")
         options.add_option(self.res_range_option)
         self.verbose_option = BooleanOption("Show full douse output in log", None, None,
             attr_name="verbose", settings=self.settings)
         options.add_option(self.verbose_option)
-        from .douse import douse_needs_resolution
-        if douse_needs_resolution(session):
-            self.resolution_option = FloatOption("Map resolution", 3.0, None, min=0.0, max=9999.9)
-            options.add_option(self.resolution_option)
 
         from Qt.QtWidgets import QDialogButtonBox as qbbox
         self.bbox = bbox = qbbox(qbbox.Ok | qbbox.Close | qbbox.Help)
         bbox.accepted.connect(self.launch_douse)
         bbox.accepted.connect(self.delete) # slots executed in the order they are connected
         bbox.rejected.connect(self.delete)
-        #from chimerax.core.commands import run
-        #bbox.helpRequested.connect(lambda *, run=run, ses=session: run(ses, "help " + self.help))
-        bbox.button(qbbox.Help).setEnabled(False)
+        from chimerax.core.commands import run
+        bbox.helpRequested.connect(lambda *, run=run, ses=session: run(ses, "help " + self.help))
         layout.addWidget(bbox)
 
         tw.manage(placement=None)

@@ -416,8 +416,12 @@ class CheckWaterViewer(ToolInstance):
         bbox.button(qbbox.Apply).clicked.connect(lambda *args, s=self: s._update_hbonds(hide=False))
         bbox.rejected.connect(lambda *args, tw=self.hbond_params_window: setattr(tw, 'shown', False))
         from chimerax.core.commands import run
+        if '#' in self.help:
+            hbonds_help_url = self.help[:self.help.index('#')]
+        else:
+            hbonds_help_url = self.help
         bbox.helpRequested.connect(lambda *, run=run, ses=self.session:
-            run(ses, "help " + self.help + "#hbonds"))
+            run(ses, "help " + hbonds_help_url + "#hbonds"))
         layout.addWidget(bbox)
 
     def _res_sel_cb(self, newly_selected, newly_deselected):
