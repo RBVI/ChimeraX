@@ -692,6 +692,7 @@ ExtractMolecule::finished_parse()
         auto mol = mi.second;
 
         // fill in coord set for Monte-Carlo trajectories if necessary
+        // (the last coord set might be too small)
         if (coordsets && mol->coord_sets().size() > 1) {
             CoordSet *acs = mol->active_coord_set();
             const CoordSet *prev_cs = mol->find_coord_set(acs->id() - 1);
@@ -1374,7 +1375,7 @@ ExtractMolecule::parse_atom_site()
                     } else {
                         mol = new Structure(_logger);
                     }
-                    molecules[0] = mol;
+                    molecules[model_num] = mol;
                     CoordSet *cs = mol->new_coord_set(model_num);
                     mol->set_active_coord_set(cs);
                 } else {
