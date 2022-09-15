@@ -1053,7 +1053,10 @@ class _CLibrary(_CompiledCode):
     output_dir = "src/lib"
 
     def __init__(self, name, attrs):
-        self.name = name
+        if sys.platform == "win32":
+            self.name = 'lib' + name
+        else:
+            self.name = name
         super().__init__(name, attrs)
         self.static = attrs.get("static", False)
 
@@ -1065,12 +1068,6 @@ class _CLibrary(_CompiledCode):
             debug
         )
         compiler.mkpath(self.output_dir)
-        if sys.platform == "win32":
-            # # Link library directory for Python on Windows
-            # compiler.add_library_dir(os.path.join(sys.exec_prefix, 'libs'))
-            lib_name = "lib" + self.name
-        else:
-            lib_name = self.name
         if self.static:
             lib = compiler.library_filename(lib_name, lib_type="static")
             compiler.create_static_lib(
