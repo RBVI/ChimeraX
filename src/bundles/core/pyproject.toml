@@ -1,0 +1,80 @@
+[build-system]
+requires = ["setuptools", "ChimeraX-BundleBuilder"]
+build-backend = "chimerax.bundle_builder.cx_pep517"
+
+[project]
+name = "ChimeraX-Core"
+license = { file = "copyright.txt" }
+authors= [{name = "UCSF RBVI", email="chimerax@cgl.ucsf.edu"}]
+description = "ChimeraX Core Package"
+dependencies = [
+    # "beautifulsoup4 == 4.5.3",	# in prereqs/pips
+    # "colorama == 0.3.7",		# in prereqs/pips
+    # "filelock == 2",  # TODO: breaks on Windows
+    # "grako == 3.16.5",            # in prereqs/pips
+    # "numpy == 1.11",  # TODO: breaks on Windows
+    # "Pillow == 4.2.1",		# in prereqs/pips
+    # "pycollada == 0.4",  # TODO: pypi version doesn't work with Python 3
+    # We use PyOpenGL 3.1.1 for Windows but 3.1.0 (our build) for
+    # Linux and Mac.  Maybe we start using >=?
+    # "PyOpenGL == 3.1.0",
+    # "PySide2 == 5.15.1",		# in prereqs/pips
+    # "scipy == 0.18",  # TODO: breaks on Windows
+    # "setuptools == 34.4.1",	# in prereqs/setuptools
+    # "sortedcontainers == 1.5.7",	# in prereqs/pips
+    # "msgpack >= 0.5",
+]
+dynamic = ["classifiers", "requires-python", "version"]
+
+#[project.readme]
+#content-type = "text"
+#text = """Interface to the RBVI web service to search the PDB, NR, or AlphaFold
+#databases using BLAST. Results are shown in a tool when a graphical
+#interface is available; otherwise, the results are logged."""
+	
+[project.urls]
+Home = "https://www.rbvi.ucsf.edu/chimerax/"
+
+[tool.setuptools.dynamic]
+version = { attr = "src.__version__" }
+
+[chimerax]
+min-session-version = 1
+max-session-version = 2
+categories = ["Sequence"]
+classifiers = ["Development Status :: 2 - Pre-Alpha"]
+#"ChimeraX :: Bundle :: Core :: 1,2 :: chimerax.core :: :: ",
+
+[chimerax.extension._serialize]
+sources = ["src/_serialize.pyx"]
+
+[chimerax.library.chutil]
+static = true
+sources = ["core_cpp/chutil/*.cpp"]
+include-dirs = ["core_cpp/chutil/"]
+
+[chimerax.library.ioutil]
+static = true
+sources = ["core_cpp/ioutil/*.cpp"]
+include-dirs = ["core_cpp/ioutil/"]
+
+[chimerax.library.ioutil.win]
+sources = ["core_cpp/ioutil/win32_dirent.c"]
+
+[chimerax.library.logger]
+static = true
+sources = ["core_cpp/logger/*.cpp"]
+include-dirs = ["core_cpp/logger/"]
+
+[chimerax.library.logger.win]
+extra-compile-args = ["-Wno-logical-op-parentheses"]
+
+[chimerax.extension._mac_util.mac]
+sources = ["core_cpp/mac_util/*.cpp", "core_cpp/mac_util/*.m"]
+extra-compile-args = ["-ObjC++", "-std=c++11", "-stdlib=libc++", "-pipe", "-fvisibility-ms-compat"]
+extra-link-args = ["-framework", "AppKit"]
+include-dirs = ["core_cpp/mac_util/"]
+
+[chimerax.extension.pysupport]
+sources = ["core_cpp/pysupport/*.cpp"]
+include-dirs = ["core_cpp/pysupport/"]
