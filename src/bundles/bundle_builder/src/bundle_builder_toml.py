@@ -401,6 +401,8 @@ class Bundle:
         shutil.rmtree(os.path.join(self.path, "dist"), ignore_errors=True)
         shutil.rmtree(os.path.join(self.path, "src", "__pycache__"), ignore_errors=True)
         shutil.rmtree(self.egg_info, ignore_errors=True)
+        self._clean_extrafiles()
+        self._remove_libraries()
         for root, dirnames, filenames in os.walk("src"):
             # Linux, Mac
             for filename in fnmatch.filter(filenames, "*.o"):
@@ -498,6 +500,33 @@ class Bundle:
                     else:
                         shutil.copyfile(entry, destination)
 
+    # Since we aren't trusting setuptools to compile libraries properly we have
+    # to remove them ourselves. Work around the prepare_metadata_for_build_editable
+    # bug.
+    def _remove_libraries(self):
+        for lib in self.c_libraries:
+            if lib.static:
+                os.remove(os.path.join("src/lib/", "".join(["lib", lib.name, ".a"])))
+            else:
+                if sys.platform == 'darwin':
+                    os.remove(os.path.join("src/lib/", "".join([lib.name, ".dylib"])))
+                elif sys.platform == "linux":
+                    os.remove(os.path.join("src/lib/", "".join([lib.name, ".so"])))
+
+    def _clean_extrafiles(self):
+        for pkg_name, items in self.extra_files.items():
+            path = pkg_name.replace(self.module_name, "src").replace('.', '/')
+            if not os.path.exists(path):
+                os.makedirs(path, exist_ok=True)
+            for item in items:
+                globbed_items = glob.glob(item)
+                for entry in globbed_items:
+                    destination = os.path.join(path, os.path.basename(entry))
+                    if os.path.isdir(entry):
+                        shutil.rmtree(destination, ignore_errors=True)
+                    else:
+                        os.remove(destination)
+
     def _make_package_arguments(self):
         def add_package(base_package, folder):
             package_dir[base_package] = folder
@@ -594,9 +623,12 @@ class Bundle:
     def build_wheel_for_build_editable(self):
         wheel_name = self.build_wheel()
         wheel_location = os.path.join(self.path, 'dist', wheel_name)
+        # Clean everything that was placed in the source directory as a side effect
+        self._clean_extrafiles()
         return wheel_location
 
     def build_editable(self):
+        self._remove_libraries()
         self._clear_distutils_dir_and_prep_srcdir(build_exts=True)
         setup_args = [
             "build_ext"
@@ -1065,9 +1097,12 @@ class _CLibrary(_CompiledCode):
         )
         compiler.mkpath(self.output_dir)
         if self.static:
-            lib = compiler.library_filename(lib_name, lib_type="static")
+            output_file = os.path.join("src/lib/", "".join(["lib", self.name, ".a"]))
+            if os.path.exists(output_file):
+                os.remove(output_file)
+            lib = compiler.library_filename(self.name, lib_type="static")
             compiler.create_static_lib(
-                objs, lib_name, output_dir=self.output_dir,
+                objs, self.name, output_dir=self.output_dir,
                 target_lang=self.target_lang,
                 debug=debug
             )
@@ -1081,7 +1116,7 @@ class _CLibrary(_CompiledCode):
                     pass
                 else:
                     compiler.linker_so[n] = "-dynamiclib"
-                lib = compiler.library_filename(lib_name, lib_type="dylib")
+                lib = compiler.library_filename(self.name, lib_type="dylib")
                 extra_link_args.extend(
                     ["-Wl,-rpath,@loader_path",
                      "-Wl,-install_name,@rpath/%s" % lib]
@@ -1094,9 +1129,9 @@ class _CLibrary(_CompiledCode):
                 )
             elif sys.platform == "win32":
                 # On Windows, we need both .dll and .lib
-                link_lib = compiler.library_filename(lib_name, lib_type="static")
+                link_lib = compiler.library_filename(self.name, lib_type="static")
                 extra_link_args.append("/LIBPATH:%s" % link_lib)
-                lib = compiler.shared_object_filename(lib_name)
+                lib = compiler.shared_object_filename(self.name)
                 compiler.link_shared_object(
                     objs, lib, output_dir=self.output_dir,
                     extra_preargs=extra_link_args,
@@ -1105,7 +1140,7 @@ class _CLibrary(_CompiledCode):
                 )
             else:
                 # On Linux, we only need the .so
-                lib = compiler.library_filename(lib_name, lib_type="shared")
+                lib = compiler.library_filename(self.name, lib_type="shared")
                 extra_link_args.append("-Wl,-rpath,$ORIGIN")
                 compiler.link_shared_object(
                     objs, lib, output_dir=self.output_dir,
