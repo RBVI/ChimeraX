@@ -191,8 +191,6 @@ class Bundle:
 
         self.egg_info = os.path.join(self.path, self.dist_info_name + ".egg-info")
 
-        self.logger.info(self.egg_info)
-
         dependencies = project_data.get('dependencies', [])
 
         self.dependencies = []
@@ -326,7 +324,7 @@ class Bundle:
             for file in files:
                 # Unlike data files, which takes filenames and wildcards with extensions,
                 # extra files needs to take directories or filenames or wildcard filenames
-                # or directory/*-type wildcards. 
+                # or directory/*-type wildcards.
                 # If we have a basename, take the basename. If not, take the folder name.
                 # core_cpp/logger/*.h --> *.h
                 # core_cpp/logger/ --> "" <-- requires os.path.dirname
@@ -335,7 +333,7 @@ class Bundle:
                 if not maybe_file:
                     maybe_file = os.path.dirname(file)
                 self.datafiles[pkg_name].add(maybe_file)
-            # But we need to leave it alone in extra files so we can copy it over 
+            # But we need to leave it alone in extra files so we can copy it over
             # into the source tree!
             if pkg_name not in self.extra_files:
                 self.extra_files[pkg_name] = set(files)
@@ -343,7 +341,6 @@ class Bundle:
                 curr_files = self.extra_files[pkg_name]
                 self.extra_files[pkg_name] = curr_files | files
 
-        print(self.datafiles)
         if self.c_libraries:
             pkg_name = ".".join([self.module_name, "lib"])
             self.packages.add((pkg_name, "src/lib"))
@@ -488,7 +485,6 @@ class Bundle:
         self.setup_arguments["package_dir"], self.setup_arguments["packages"] = self._make_package_arguments()
 
     def _copy_extrafiles(self):
-        print(self.extra_files)
         for pkg_name, items in self.extra_files.items():
             path = pkg_name.replace(self.module_name, "src").replace('.', '/')
             if not os.path.exists(path):
@@ -1157,7 +1153,6 @@ class _CLibrary(_CompiledCode):
                     )
                 )
         return paths
-
 
 # TODO: Doesn't produce arm64/x86_64 executables on macOS
 class _CExecutable(_CompiledCode):
