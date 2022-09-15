@@ -17,48 +17,38 @@ BUNDLE_VERSION := $(shell $(APP_PYTHON_EXE) mkbuildinfo -v $(TOP) $(BUNDLE_VERSI
 PYSRCS = $(filter-out setup.py,$(wildcard *.py)) src/buildinfo.py
 DATA = src/colorbrewer.json
 
-build install reinstall:
-	#$(RSYNC) $(PYSRCS) $(DATA) $(PKG_DIR)
-	$(MAKE) app-install
-	#$(RSYNC) $(PYSRCS) $(DATA) $(PKG_DIR)
+.PHONY: src/commands/_atomspec.py wheel src/buildinfo.py
 
-app-install: clean src/buildinfo.py wheel
+build install reinstall:
+	$(MAKE) app-install
+	$(RSYNC) src/lib/* $(app_libdir)
+	$(RSYNC) src/lib/* $(libdir)
+	$(RSYNC) src/include/* $(app_includedir)
+	$(RSYNC) src/include/* $(includedir)
+
+app-install: clean src/buildinfo.py src/commands/_atomspec.py
 	# newer versions of pip won't install over the same version number (which depends on the last commit
 	# number), so to install something that hasn't been committed, uninstall first.
 	$(APP_BOOTSTRAP_PIP) uninstall --yes ChimeraX-Core
-	$(APP_PYTHON_EXE) -m pip install dist/*.whl
+	$(APP_PYTHON_EXE) -m pip install --no-build-isolation .
 
-.PHONY: wheel
+install-editable: clean src/buildinfo.py src/commands/_atomspec.py
+	$(APP_BOOTSTRAP_PIP) uninstall --yes ChimeraX-Core
+	$(APP_PYTHON_EXE) -m pip install --no-build-isolation --editable .
+
 wheel: clean src/buildinfo.py
 	$(APP_PYTHON_EXE) -m build --no-isolation --wheel
 
 sync:
 	rsync -av dist/*.whl $(build_prefix)/sync/
 
-clean:
-	rm -rf __pycache__ build dist *.egg-info src/_serialize.cpp src/buildinfo.py \
-		src/lib/* core_cpp/*/*.a core_cpp/*/*.o src/include
-
-pylint:
-	$(PYLINT) $(PYSRCS)
-
-.PHONY: src/buildinfo.py
 src/buildinfo.py: buildinfo.py.in mkbuildinfo
 	rm -f src/buildinfo.py
 	$(PYTHON_EXE) mkbuildinfo -b $(TOP) $(BUNDLE_VERSION) || (rm src/buildinfo.py ; exit 1)
 
-#all: $(PYOBJS)
-#
-#build install: all dir
-#	$(RSYNC) $(PYSRCS) $(PKG_DIR)
-#
-#dir:
-#	if [ ! -d "$(PKG_DIR)" ]; then mkdir $(PKG_DIR); fi
-#	if [ -d "$(app_prefix)" ]; then mkdir -p $(APP_PKG_DIR); fi
-#
-#.SUFFIXES: .peg
-#.peg.py:
-#	$(PYTHON_EXE) -m grako --name $* -o $@ $^
-#
-#test_peg: _atomspec.py
-#	$(PYTHON_EXE) _atomspec.py --trace atomspec_test.in atom_specifier
+src/commands/_atomspec.py: src/commands/_atomspec.peg
+	$(APP_PYTHON_EXE) -m grako --name _atomspec -o $@ $<
+
+clean:
+	rm -rf __pycache__ build dist *.egg-info src/_serialize.cpp src/buildinfo.py \
+		src/lib/* core_cpp/*/*.a core_cpp/*/*.o src/include src/*.so

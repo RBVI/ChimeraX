@@ -61,7 +61,7 @@ static = true
 sources = ["core_cpp/ioutil/*.cpp"]
 include-dirs = ["core_cpp/ioutil/"]
 
-[chimerax.library.ioutil.win]
+[chimerax.library.ioutil.platform.win]
 sources = ["core_cpp/ioutil/win32_dirent.c"]
 
 [chimerax.library.logger]
@@ -69,10 +69,10 @@ static = true
 sources = ["core_cpp/logger/*.cpp"]
 include-dirs = ["core_cpp/logger/"]
 
-[chimerax.library.logger.win]
+[chimerax.library.logger.platform.win]
 extra-compile-args = ["-Wno-logical-op-parentheses"]
 
-[chimerax.extension._mac_util.mac]
+[chimerax.extension._mac_util.platform.mac]
 sources = ["core_cpp/mac_util/*.cpp", "core_cpp/mac_util/*.m"]
 extra-compile-args = ["-ObjC++", "-std=c++11", "-stdlib=libc++", "-pipe", "-fvisibility-ms-compat"]
 extra-link-args = ["-framework", "AppKit"]
