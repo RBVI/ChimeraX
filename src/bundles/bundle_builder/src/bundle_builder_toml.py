@@ -312,7 +312,7 @@ class Bundle:
         self.packages = {(self.module_name, "src")}
 
         for folder, files in chimerax_data.get('package-data', {}).items():
-            pkg_name = ".".join([self.module_name, folder.replace('src/', '').replace('/', '.')])
+            pkg_name = ".".join([self.module_name, folder.replace('src/', '').replace('/', '.')]).rstrip('.')
             self.packages.add((pkg_name, folder))
             if pkg_name not in self.datafiles:
                 self.datafiles[pkg_name] = set(files)
@@ -321,14 +321,29 @@ class Bundle:
                 self.datafiles[pkg_name] = curr_files | files
 
         for folder, files in chimerax_data.get('extra-files', {}).items():
-            pkg_name = ".".join([self.module_name, folder.replace('src/', '').replace('/', '.')])
+            pkg_name = ".".join([self.module_name, folder.replace('src/', '').replace('/', '.')]).rstrip('.')
             self.packages.add((pkg_name, folder))
-            if pkg_name not in self.datafiles:
+            for file in files:
+                # Unlike data files, which takes filenames and wildcards with extensions,
+                # extra files needs to take directories or filenames or wildcard filenames
+                # or directory/*-type wildcards. 
+                # If we have a basename, take the basename. If not, take the folder name.
+                # core_cpp/logger/*.h --> *.h
+                # core_cpp/logger/ --> "" <-- requires os.path.dirname
+                # core_cpp/logger --> logger
+                maybe_file = os.path.basename(file)
+                if not maybe_file:
+                    maybe_file = os.path.dirname(file)
+                self.datafiles[pkg_name].add(maybe_file)
+            # But we need to leave it alone in extra files so we can copy it over 
+            # into the source tree!
+            if pkg_name not in self.extra_files:
                 self.extra_files[pkg_name] = set(files)
             else:
-                curr_files = self.datafiles[pkg_name]
+                curr_files = self.extra_files[pkg_name]
                 self.extra_files[pkg_name] = curr_files | files
 
+        print(self.datafiles)
         if self.c_libraries:
             pkg_name = ".".join([self.module_name, "lib"])
             self.packages.add((pkg_name, "src/lib"))
@@ -472,20 +487,20 @@ class Bundle:
         self.setup_arguments["classifiers"] = self.classifiers
         self.setup_arguments["package_dir"], self.setup_arguments["packages"] = self._make_package_arguments()
 
-    def _copy_extrafiles(self, files):
-        for pkg_name, entries in files.items():
-            for kind, src, dst in entries:
-                if kind == "file":
-                    filepath = os.path.join("src", dst)
-                    dirpath = os.path.dirname(filepath)
-                    if dirpath:
-                        os.makedirs(dirpath, exist_ok=True)
-                    shutil.copyfile(src, filepath)
-                elif kind == "dir":
-                    dstdir = os.path.join("src", dst.replace('/', os.sep))
-                    if os.path.exists(dstdir):
-                        shutil.rmtree(dstdir)
-                    shutil.copytree(src, dstdir)
+    def _copy_extrafiles(self):
+        print(self.extra_files)
+        for pkg_name, items in self.extra_files.items():
+            path = pkg_name.replace(self.module_name, "src").replace('.', '/')
+            if not os.path.exists(path):
+                os.makedirs(path, exist_ok=True)
+            for item in items:
+                globbed_items = glob.glob(item)
+                for entry in globbed_items:
+                    destination = os.path.join(path, os.path.basename(entry))
+                    if os.path.isdir(entry):
+                        shutil.copytree(entry, destination)
+                    else:
+                        shutil.copyfile(entry, destination)
 
     def _make_package_arguments(self):
         def add_package(base_package, folder):
@@ -533,7 +548,7 @@ class Bundle:
         except AttributeError:
             pass
         # Copy additional files into package source tree
-        self._copy_extrafiles(self.extra_files)
+        self._copy_extrafiles()
         if build_exts:
             # Build C libraries and executables
             for lib in self.c_libraries:
@@ -847,10 +862,10 @@ class _CompiledCode:
         self.include_libraries = attrs.get("library-modules", [])
         self.library_dirs = attrs.get("library-dirs", [])
         self.framework_dirs = attrs.get("framework-dirs", [])
-        self.macros = attrs.get("macros", [])
+        self.macros = []
         self.target_lang = attrs.get("target-lang", None)
         self.limited_api = attrs.get("limited-api", None)
-        defines = attrs.get("defines", [])
+        defines = attrs.get("define-macros", [])
         self.source_files = []
         for entry in source_files:
             self.source_files.extend(glob.glob(entry))
@@ -863,15 +878,15 @@ class _CompiledCode:
                 )
             elif len(edef) == 1:
                 edef.append(None)
-            c.add_macro_define(*edef)
-        for undef_ in attrs.get("undefines", []):
-            c.add_macro_undef(self._get_element_text(e))
+            self.add_macro_define(*edef)
+        for undef_ in attrs.get("undef-macros", []):
+            self.add_macro_undef(self._get_element_text(e))
         if self.limited_api:
             v = self.limited_api
             if v < CHIMERAX1_0_PYTHON_VERSION:
                 v = CHIMERAX1_0_PYTHON_VERSION
             hex_version = (v.major << 24) | (v.minor << 16) | (v.micro << 8)
-            c.add_macro_define("Py_LIMITED_API", hex_version)
+            self.add_macro_define("Py_LIMITED_API", hex_version)
 
     def get_platform_specific_args(self, attrs):
         for platform in self._platforms[sys.platform]:
