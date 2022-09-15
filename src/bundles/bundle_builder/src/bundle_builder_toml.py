@@ -1097,9 +1097,10 @@ class _CLibrary(_CompiledCode):
         )
         compiler.mkpath(self.output_dir)
         if self.static:
-            output_file = os.path.join("src/lib/", "".join(["lib", self.name, ".a"]))
-            if os.path.exists(output_file):
-                os.remove(output_file)
+            if sys.platform == 'darwin':
+                output_file = os.path.join("src/lib/", "".join(["lib", self.name, ".a"]))
+                if os.path.exists(output_file):
+                    os.remove(output_file)
             lib = compiler.library_filename(self.name, lib_type="static")
             compiler.create_static_lib(
                 objs, self.name, output_dir=self.output_dir,
