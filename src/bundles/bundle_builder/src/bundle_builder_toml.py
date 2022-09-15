@@ -445,7 +445,7 @@ class Bundle:
         ]
         if not self.pure:
             if sys.platform == "darwin":
-                env = "Environment :: MacOS X :: Aqua",
+                env = "Environment :: MacOS X :: Aqua"
                 op_sys = "Operating System :: MacOS :: MacOS X"
             elif sys.platform == "win32":
                 env = "Environment :: Win32 (MS Windows)"
