@@ -1,0 +1,60 @@
+[build-system]
+requires = ["setuptools", "ChimeraX-BundleBuilder"]
+build-backend = "chimerax.bundle_builder.cx_pep517"
+
+[project]
+name = "ChimeraX-Dicom"
+license = { text = "Free for non-commercial use" }
+authors= [{name = "UCSF RBVI", email="chimerax@cgl.ucsf.edu"}]
+description = "Read medical imaging and segmentations in DICOM format"
+dependencies = [
+	"ChimeraX-Core ~=1.0"
+	, "ChimeraX-DataFormats ~=1.0"
+	, "ChimeraX-Geometry ~= 1.0"
+	, "ChimeraX-MapData ~= 2.0"
+	, "ChimeraX-OpenCommand ~= 1.0"
+]
+dynamic = ["classifiers", "requires-python", "version"]
+
+[project.optional-dependencies]
+losslessjpeg = ["python-gdcm"]
+
+[project.readme]
+content-type = "text"
+text = "Read medical imaging and segmentations in DICOM format."
+	
+[project.urls]
+Home = "https://www.rbvi.ucsf.edu/chimerax/"
+
+[tool.setuptools.dynamic]
+version = { attr = "src.__version__" }
+
+[chimerax]
+custom-init = true
+min-session-version = 1
+max-session-version = 1
+categories = ["Volume Data"]
+classifiers = ["Development Status :: 2 - Pre-Alpha"]
+
+[chimerax.data-format."DICOM medical imaging"]
+category = "Volume data"
+nicknames = ["dicom"]
+suffixes = [".dcm"]
+allow-directory = true
+open = { batch = true }
+
+[chimerax.tool."Blast Protein"]
+category = "Sequence"
+description = "Search PDB/NR/AlphaFold using BLAST"
+
+[chimerax.command.blastprotein]
+category = "Sequence"
+description = "Search PDB/NR/AlphaFold using BLAST"
+
+[chimerax.command.blastpdb]
+category = "Sequence"
+description = "Search PDB/NR/AlphaFold using BLAST"
+
+[chimerax.command."blastprotein pull"]
+category = "Sequence" 
+description = "Get results for a finished BlastProtein job"
