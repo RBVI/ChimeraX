@@ -58,6 +58,7 @@ src/apps/ChimeraX/ChimeraX-tool.png
 src/apps/ChimeraX/ChimeraX.ico
 src/apps/ChimeraX/icon.rc
 src/bundles/Makefile.dependencies
+src/bundles/alignment_headers/src/bin
 src/bundles/arrays/src/include/
 src/bundles/atomic/atomic_cpp/connect.cpp
 src/bundles/atomic/atomic_cpp/cymol.cpp

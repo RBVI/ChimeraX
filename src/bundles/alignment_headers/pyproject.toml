@@ -1,0 +1,54 @@
+[build-system]
+requires = ["setuptools", "ChimeraX-BundleBuilder"]
+build-backend = "chimerax.bundle_builder.cx_pep517"
+
+[project]
+name = "ChimeraX-AlignmentHdrs"
+license = { text = "Free for non-commercial use" }
+authors= [{name = "UCSF RBVI", email="chimerax@cgl.ucsf.edu"}]
+description = "Alignment header support"
+dependencies = [
+	"ChimeraX-Core ~=1.0"
+	, "ChimeraX-Alignments ~=2.0"
+	, "ChimeraX-AlignmentMatrices ~=2.0"
+	, "ChimeraX-Geometry ~=1.0"
+]
+dynamic = ["classifiers", "requires-python", "version"]
+
+[project.readme]
+content-type = "text"
+text = "Default useful alignment headers, and support for creating custom headers"
+	
+[project.urls]
+Home = "https://www.rbvi.ucsf.edu/chimerax/"
+
+[tool.setuptools.dynamic]
+version = { attr = "src.__version__" }
+
+[chimerax]
+module-name-override = "alignment_headers"
+min-session-version = 1
+max-session-version = 1
+categories = ["Sequence"]
+classifiers = ["Development Status :: 2 - Pre-Alpha"]
+
+[chimerax.executable.al2co]
+sources = ["al2co/al2co.c"]
+
+[chimerax.executable.al2co.platform.linux]
+libraries = ["m"]
+
+[chimerax.executable.al2co.platform.mac]
+extra-compile-args = ["-Wno-logical-op-parentheses"]
+
+[chimerax.provider.Consensus]
+manager = "alignments"
+type = "header"
+
+[chimerax.provider.Conservation]
+manager = "alignments"
+type = "header"
+
+[chimerax.provider.RMSD]
+manager = "alignments"
+type = "header"
