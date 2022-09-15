@@ -26,12 +26,6 @@ dependencies = [
 ]
 dynamic = ["classifiers", "requires-python", "version"]
 
-#[project.readme]
-#content-type = "text"
-#text = """Interface to the RBVI web service to search the PDB, NR, or AlphaFold
-#databases using BLAST. Results are shown in a tool when a graphical
-#interface is available; otherwise, the results are logged."""
-	
 [project.urls]
 Home = "https://www.rbvi.ucsf.edu/chimerax/"
 
@@ -41,9 +35,18 @@ version = { attr = "src.__version__" }
 [chimerax]
 min-session-version = 1
 max-session-version = 2
-categories = ["Sequence"]
+categories = ["Core"]
 classifiers = ["Development Status :: 2 - Pre-Alpha"]
-#"ChimeraX :: Bundle :: Core :: 1,2 :: chimerax.core :: :: ",
+
+[chimerax.package-data]
+"src/" = ["colorbrewer.json"]
+
+[chimerax.extra-files]
+"src/include/chutil" = ["core_cpp/chutil/*.h"]
+"src/include/ioutil" = ["core_cpp/ioutil/*.h"]
+"src/include/logger" = ["core_cpp/logger/*.h"]
+"src/include/pysupport" = ["core_cpp/pysupport/*.h"]
+"src/include/mac_util" = ["core_cpp/mac_util/*.h"]
 
 [chimerax.extension._serialize]
 sources = ["src/_serialize.pyx"]

@@ -101,7 +101,7 @@ def actual_version(version, build_type, daytime_number):
 
 def write_buildinfo(version, branch, commit, daytime, copyright):
     with open("buildinfo.py.in", 'r') as input:
-        with open("buildinfo.py", 'w', encoding="utf-8") as output:
+        with open("src/buildinfo.py", 'w', encoding="utf-8") as output:
             for line in input:
                 line = line.replace('VERSION', version)
                 line = line.replace('BRANCH', branch)
