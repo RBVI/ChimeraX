@@ -456,16 +456,16 @@ def init(argv, event_loop=True):
     # figure out the user/system directories for application
     # invoked with -m ChimeraX_main, so argv[0] is full path to ChimeraX_main
     # Windows:
-    # 'C:\\...\\ChimeraX.app\\bin\\lib\\site-packages\\ChimeraX_main.py'
+    # 'C:\\...\\ChimeraX.app\\bin\\lib\\site-packages\\chimerax\\core\\__main__.py'
     # Linux:
-    # '/.../ChimeraX.app/lib/python3.5/site-packages/ChimeraX_main.py'
+    # '/.../ChimeraX.app/lib/python3.5/site-packages/chimerax/core/__main__.py'
     # Mac OS X:
-    # '/.../ChimeraX.app/Contents/lib/python3.5/site-packages/ChimeraX_main.py'
-    # '/.../ChimeraX.app/Contents/Library/Frameworks/Python.framework/Versions/3.5/lib/python3.5/site-packages/ChimeraX_main.py'
-    # TODO: more robust way
+    # '/.../ChimeraX.app/Contents/lib/python3.5/site-packages/chimerax/core/__main__.py'
+    # '/.../ChimeraX.app/Contents/Library/Frameworks/Python.framework/Versions/3.5/lib/python3.5/site-packages/chimerax/core/__main__.py'
     dn = os.path.dirname
-    rootdir = dn(dn(dn(dn(dn(dn(argv[0]))))))
+    rootdir = sys.base_prefix
     if sys.platform.startswith('darwin'):
+        # TODO: more robust way
         rootdir = dn(dn(dn(dn(dn(rootdir)))))
     if sys.platform.startswith('linux'):
         os.environ['XDG_CONFIG_DIRS'] = rootdir
