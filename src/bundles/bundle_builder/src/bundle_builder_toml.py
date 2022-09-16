@@ -41,6 +41,7 @@ import distutils.dir_util
 import re
 import shutil
 import sys
+import sysconfig
 import tomli
 import traceback
 import unicodedata
