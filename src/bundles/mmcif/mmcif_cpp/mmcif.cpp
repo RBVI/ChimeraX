@@ -197,7 +197,7 @@ struct ExtractMolecule: public readcif::CIFFile
     virtual void data_block(const string& name);
     virtual void reset_parse();
     virtual void finished_parse();
-    void connect_polymer_pair(Residue* r0, Residue* r1, bool gap, bool nstd_okay);
+    void connect_polymer_pair(Residue* r0, Residue* r1, bool gap, bool nstd_okay, int model_num);
     void connect_residue_by_template(Residue* r, const tmpl::Residue* tr, int model_num);
     const tmpl::Residue* find_template_residue(const ResName& name, bool start = false, bool stop = false);
     void parse_audit_conform();
@@ -498,7 +498,7 @@ ExtractMolecule::find_template_residue(const ResName& name, bool start, bool sto
 }
 
 void
-ExtractMolecule::connect_polymer_pair(Residue* r0, Residue* r1, bool gap, bool nstd_okay)
+ExtractMolecule::connect_polymer_pair(Residue* r0, Residue* r1, bool gap, bool nstd_okay, int model_num)
 {
     // Connect adjacent residues that have the same type
     // and have link & chief atoms (i.e., peptides and nucleotides)
@@ -560,7 +560,7 @@ ExtractMolecule::connect_polymer_pair(Residue* r0, Residue* r1, bool gap, bool n
         pdb_connect::find_nearest_pair(r0, r1, &a0, &a1);
         if (a0 == nullptr || a0->element() != Element::C || a0->name() != "CA") {
             // suppress warning for CA traces and when missing templates
-            if (!gap && tr0 && tr1)
+            if (model_num == first_model_num && !gap && tr0 && tr1)
                 logger::warning(_logger, "Expected gap or ", conn_type,
                                 r0->str(), " and ", r1->str());
         }
@@ -568,7 +568,7 @@ ExtractMolecule::connect_polymer_pair(Residue* r0, Residue* r1, bool gap, bool n
         a1 = pdb_connect::find_closest(a0, r1, nullptr, true);
         if (a1 == nullptr || a1->element() != Element::C || a1->name() != "CA") {
             // suppress warning for CA traces and when missing templates
-            if (!gap && tr0 && tr1)
+            if (model_num == first_model_num && !gap && tr0 && tr1)
                 logger::warning(_logger,
                                 "Expected gap or linking atom in ",
                                 r1->str(), " for ", r0->str());
@@ -797,7 +797,7 @@ ExtractMolecule::finished_parse()
                         continue;
                     }
                     if (!previous.empty())
-                        connect_polymer_pair(previous[0], current[0], gap, nstd);
+                        connect_polymer_pair(previous[0], current[0], gap, nstd, model_num);
                     previous = std::move(current);
                     current.clear();
                     if (!lastp || lastp->seq_id != p.seq_id) {
@@ -818,7 +818,7 @@ ExtractMolecule::finished_parse()
                 if (auth_chain_id.empty())
                     auth_chain_id = r->chain_id();
                 if (!previous.empty() && !current.empty()) {
-                    connect_polymer_pair(previous[0], current[0], gap, nstd);
+                    connect_polymer_pair(previous[0], current[0], gap, nstd, model_num);
                     gap = false;
                 }
                 if (!current.empty()) {
@@ -833,7 +833,7 @@ ExtractMolecule::finished_parse()
             if (stop_residue != nullptr)
                 stop_residues.insert(stop_residue);
             if (!previous.empty() && !current.empty())
-                connect_polymer_pair(previous[0], current[0], gap, nstd);
+                connect_polymer_pair(previous[0], current[0], gap, nstd, model_num);
             if (has_poly_seq.find(entity_id) == has_poly_seq.end())
                 found_missing_poly_seq = true;
             else {
