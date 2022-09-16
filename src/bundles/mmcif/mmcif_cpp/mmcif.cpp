@@ -287,6 +287,7 @@ struct ExtractMolecule: public readcif::CIFFile
     bool atomic;  // use AtomicStructure if true, else Structure
     bool guess_fixed_width_categories;
     bool verbose;  // whether to give extra warning messages
+    int hydrogens_missing_in_template;
 #ifdef SHEET_HBONDS
     typedef map<string, map<std::pair<string, string>, string>> SheetOrder;
     SheetOrder sheet_order;
@@ -309,7 +310,7 @@ const char* ExtractMolecule::builtin_categories[] = {
 ExtractMolecule::ExtractMolecule(PyObject* logger, const StringVector& generic_categories, bool coordsets, bool atomic):
     _logger(logger), first_model_num(INT_MAX), my_templates(nullptr),
     found_missing_poly_seq(false), coordsets(coordsets), atomic(atomic),
-    guess_fixed_width_categories(false), verbose(false)
+    guess_fixed_width_categories(false), verbose(false), hydrogens_missing_in_template(0)
 {
     empty_residue_templates.insert("UNL");  // Unknown ligand
     empty_residue_templates.insert("UNX");  // Unknown atom or ion
@@ -403,14 +404,14 @@ ExtractMolecule::ExtractMolecule(PyObject* logger, const StringVector& generic_c
 ExtractMolecule::~ExtractMolecule()
 {
     if (verbose) {
-	if (has_PDBx_fixed_width_columns())
-	    logger::info(_logger, "Used PDBx fixed column width tables to speed up reading mmCIF file");
-	else
-	    logger::info(_logger, "No PDBx fixed column width tables");
-	if (PDBx_keywords())
-	    logger::info(_logger, "Used PDBx keywords to speed up reading mmCIF file");
-	else
-	    logger::info(_logger, "No PDBx keywords");
+        if (has_PDBx_fixed_width_columns())
+            logger::info(_logger, "Used PDBx fixed column width tables to speed up reading mmCIF file");
+        else
+            logger::info(_logger, "No PDBx fixed column width tables");
+        if (PDBx_keywords())
+            logger::info(_logger, "Used PDBx keywords to speed up reading mmCIF file");
+        else
+            logger::info(_logger, "No PDBx keywords");
     }
     if (my_templates)
         delete my_templates;
@@ -437,6 +438,7 @@ ExtractMolecule::reset_parse()
     found_missing_poly_seq = false;
     has_poly_seq.clear();
     guess_fixed_width_categories = false;
+    hydrogens_missing_in_template = 0;
 }
 
 inline Residue*
@@ -632,9 +634,21 @@ ExtractMolecule::connect_residue_by_template(Residue* r, const tmpl::Residue* tr
             }
             // TODO: worth checking if there is a metal coordination bond?
             if (!connected) {
-                if (model_num == first_model_num)
-                    logger::warning(_logger, "Atom ", a->name(),
-                                    " is not in the residue template for ", r->str());
+                if (model_num == first_model_num) {
+                    bool show_message = true;
+                    if (a->element().number() == Element::H) {
+                        const int threshold = 10;
+                        hydrogens_missing_in_template += 1;
+                        show_message = threshold > hydrogens_missing_in_template;
+                        if (threshold == hydrogens_missing_in_template) {
+                            logger::warning(_logger, "Too many hydrogens missing from "
+                                            " residue template(s) to warn about ");
+                        }
+                    }
+                    if (show_message)
+                        logger::warning(_logger, "Atom ", a->name(),
+                                        " is not in the residue template for ", r->str());
+                }
                 pdb_connect::connect_residue_by_distance(r);
                 return;
             }
