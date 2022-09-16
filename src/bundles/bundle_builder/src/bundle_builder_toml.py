@@ -445,7 +445,7 @@ class Bundle:
         ]
         if not self.pure:
             if sys.platform == "darwin":
-                env = "Environment :: MacOS X :: Aqua",
+                env = "Environment :: MacOS X :: Aqua"
                 op_sys = "Operating System :: MacOS :: MacOS X"
             elif sys.platform == "win32":
                 env = "Environment :: Win32 (MS Windows)"
@@ -919,7 +919,7 @@ class _CompiledCode:
     def get_platform_specific_args(self, attrs):
         for platform in self._platforms[sys.platform]:
             try:
-                platform_args = attrs.pop(platform)
+                platform_args = attrs["platform"].pop(platform)
                 return platform_args
             except KeyError:
                 pass
@@ -1211,7 +1211,9 @@ class _CExecutable(_CompiledCode):
         )
         compiler.mkpath(self.output_dir)
         if sys.platform == "darwin":
-            extra_link_args.append("-Wl,-rpath,@loader_path")
+            extra_link_args.extend(["-Wl,-rpath,@loader_path"])
+            if 'universal2' in sysconfig.get_platform():
+                extra_link_args.extend(["-arch", "arm64", "-arch", "x86_64"])
         elif sys.platform == "win32":
             # Remove .exe suffix because it will be added
             if self.name.endswith(".exe"):
