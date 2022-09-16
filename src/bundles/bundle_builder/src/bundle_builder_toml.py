@@ -1211,7 +1211,9 @@ class _CExecutable(_CompiledCode):
         )
         compiler.mkpath(self.output_dir)
         if sys.platform == "darwin":
-            extra_link_args.extend(["-Wl,-rpath,@loader_path", "-arch", "arm64", "-arch", "x86_64"])
+            extra_link_args.extend(["-Wl,-rpath,@loader_path"])
+            if 'universal2' in sysconfig.get_platform():
+                extra_link_args.extend(["-arch", "arm64", "-arch", "x86_64"])
         elif sys.platform == "win32":
             # Remove .exe suffix because it will be added
             if self.name.endswith(".exe"):
