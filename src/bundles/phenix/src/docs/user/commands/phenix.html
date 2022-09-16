@@ -30,6 +30,10 @@ It interfaces with a local installation of
 <a href="https://www.phenix-online.org" target="_blank">Phenix</a>.
 See also: <a href="volume.html"><b>volume</b></a>
 </p>
+<ul>
+<li><a href="#douse"><b>phenix douse</b></a>
+<li><a href="#location"><b>phenix location</b></a>
+</ul>
 
 <a name="douse"></a>
 <a href="#top" class="nounder">&bull;</a>
@@ -45,6 +49,7 @@ See also: <a href="volume.html"><b>volume</b></a>
 [&nbsp;<b>verbose</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>phenixLocation</b> &nbsp;<i>folder</i>&nbsp;]
 [&nbsp;<b>block</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+&nbsp;<a href="#advanced"><i>advanced-options</i></a>
 <blockquote>
 <p>
 Run the <a href="https://phenix-online.org" target="_blank">Phenix</a> program
@@ -52,10 +57,9 @@ Run the <a href="https://phenix-online.org" target="_blank">Phenix</a> program
 target="_blank"><i>douse</i></a> to place water molecules in cryo-EM density.
 The density map and corresponding atomic model should be already open
 and specified as the
-&nbsp;<a href="atomspec.html#othermodels"><i>map-model</i></a>&nbsp;
-&nbsp;<a href="atomspec.html#hierarchy"><i>atomic-model</i></a>, respectively.
-</p><p>
-Remaining options
+<a href="atomspec.html#othermodels"><i>map-model</i></a> and
+<a href="atomspec.html#hierarchy"><i>atomic-model</i></a>, respectively.
+Other options:
 </p>
 <ul>
 <li><b>resolution</b>
@@ -81,19 +85,55 @@ that interact directly with the rest of the structure should be added.
 &ndash; whether to echo all <i>douse</i> messages to the
 <a href="log.html"><b>Log</b></a>
 <li><b>phenixLocation</b> &ndash; where Phenix is installed
-(default is the system <b>Applications</b> folder);
-giving <i>folder</i> as the word
+(for example, <b>/Applications/phenix-1.20.1-4487</b>).
+Giving <i>folder</i> as the word
 <a href="usageconventions.html#browse"><b>browse</b></a> opens
-a file browser window for locating the folder interactively
+a file browser window for locating the folder interactively.
+The location is saved in <a href="../preferences.html#other">preferences</a>.
+If no location is specified, the previously saved location will be used. 
+If no location has been saved, however, ChimeraX will look for a folder 
+name that starts with <b>phenix</b> in the user's home directory, 
+and on Mac only, if none is found there, then in the system 
+<b>/Applications</b> folder.
 <li><b>block</b>
 &ndash; whether to wait for the calculation to finish before starting to execute
 any subsequent commands, default true when the command is being executed in a
 <a href="usageconventions.html#cxc-files">command script</a> and/or in
 <a href="../options.html#nogui">nogui mode</a>, otherwise false
 </ul>
+<a name="advanced"></a>
+<p>
+Advanced options:
+</p>
+</ul>
+<li><b>optionArg</b> &nbsp;<i>string</i> 
+&ndash; pass command-line arguments to 
+<a href="https://phenix-online.org/documentation/reference/douse.html"
+target="_blank"><i>douse</i></a> that need to appear before the
+map/structure arguments (such as <b>--help</b>);
+can be used multiple times in the same command
+<li><b>positionArg</b> &nbsp;<i>string</i>
+&ndash; pass command-line arguments to
+<a href="https://phenix-online.org/documentation/reference/douse.html"
+target="_blank"><i>douse</i></a> that need to appear after the
+map/structure arguments (such as <b>dist_max=5.0</b>);
+can be used multiple times in the same command
+</ul>
+</blockquote>
+
+<a name="location"></a>
+<a href="#top" class="nounder">&bull;</a>
+<b>phenix location</b> &nbsp;<i>folder</i>
+<blockquote>
+Specify where Phenix is installed
+(for example, <b>/Applications/phenix-1.20.1-4487</b>);
+giving <i>folder</i> as the word
+<a href="usageconventions.html#browse"><b>browse</b></a> opens
+a file browser window for locating the folder interactively.
+The location is saved in <a href="../preferences.html#other">preferences</a>.
 </blockquote>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-October 2022</address>
+September 2022</address>
 </body></html>
