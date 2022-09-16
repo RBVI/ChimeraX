@@ -69,7 +69,10 @@ static = true
 sources = ["core_cpp/logger/*.cpp"]
 include-dirs = ["core_cpp/logger/"]
 
-[chimerax.library.logger.platform.win]
+[chimerax.library.logger.platform.mac]
+extra-compile-args = ["-Wno-logical-op-parentheses"]
+
+[chimerax.library.logger.platform.linux]
 extra-compile-args = ["-Wno-logical-op-parentheses"]
 
 [chimerax.extension._mac_util.platform.mac]
