@@ -1270,7 +1270,8 @@ class AtomicStructure(Structure):
         if style is None:
             if self.num_chains == 0:
                 style = "non-polymer"
-            elif self.num_chains < 5 and len(self.atoms) < SMALL_THRESHOLD:
+            elif self.num_chains < 5 and len(self.atoms) < SMALL_THRESHOLD \
+            and len(self.chains.existing_residues) < MAX_RIBBON_THRESHOLD:
                 style = "small polymer"
             elif self.num_chains < 250 and len(self.atoms) < MEDIUM_THRESHOLD:
                 style = "medium polymer"
@@ -1297,7 +1298,7 @@ class AtomicStructure(Structure):
             het_atoms.colors = element_colors(het_atoms.element_numbers)
             ribbonable = self.chains.existing_residues
             # 10 residues or less is basically a trivial depiction if ribboned
-            if explicit_style or MIN_RIBBON_THRESHOLD < len(ribbonable) < MAX_RIBBON_THRESHOLD:
+            if explicit_style or MIN_RIBBON_THRESHOLD < len(ribbonable):
                 atoms.displays = False
                 ligand = atoms.filter(atoms.structure_categories == "ligand").residues
                 ribbonable -= ligand
