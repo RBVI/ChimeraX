@@ -65,7 +65,7 @@ static struct PyModuleDef moduledef = {
 // ----------------------------------------------------------------------------
 // Initialization routine called by python when module is dynamically loaded.
 //
-PyMODINIT_FUNC
+extern "C" __attribute__((__visibility__("default"))) PyMODINIT_FUNC
 PyInit__mac_util(void)
 {
     PyObject *module = PyModule_Create(&moduledef);

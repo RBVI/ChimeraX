@@ -41,6 +41,7 @@ import distutils.dir_util
 import re
 import shutil
 import sys
+import sysconfig
 import tomli
 import traceback
 import unicodedata
@@ -191,8 +192,6 @@ class Bundle:
 
         self.egg_info = os.path.join(self.path, self.dist_info_name + ".egg-info")
 
-        self.logger.info(self.egg_info)
-
         dependencies = project_data.get('dependencies', [])
 
         self.dependencies = []
@@ -312,7 +311,9 @@ class Bundle:
         self.packages = {(self.module_name, "src")}
 
         for folder, files in chimerax_data.get('package-data', {}).items():
-            pkg_name = ".".join([self.module_name, folder.replace('src/', '').replace('/', '.')])
+            pkg_name = ".".join([self.module_name, folder.replace('src/', '').replace('/', '.')]).rstrip('.')
+            if sys.platform == "win32":
+                folder = folder.rstrip('/')
             self.packages.add((pkg_name, folder))
             if pkg_name not in self.datafiles:
                 self.datafiles[pkg_name] = set(files)
@@ -321,12 +322,28 @@ class Bundle:
                 self.datafiles[pkg_name] = curr_files | files
 
         for folder, files in chimerax_data.get('extra-files', {}).items():
-            pkg_name = ".".join([self.module_name, folder.replace('src/', '').replace('/', '.')])
+            pkg_name = ".".join([self.module_name, folder.replace('src/', '').replace('/', '.')]).rstrip('.')
+            if sys.platform == "win32":
+                folder = folder.rstrip('/')
             self.packages.add((pkg_name, folder))
-            if pkg_name not in self.datafiles:
+            for file in files:
+                # Unlike data files, which takes filenames and wildcards with extensions,
+                # extra files needs to take directories or filenames or wildcard filenames
+                # or directory/*-type wildcards.
+                # If we have a basename, take the basename. If not, take the folder name.
+                # core_cpp/logger/*.h --> *.h
+                # core_cpp/logger/ --> "" <-- requires os.path.dirname
+                # core_cpp/logger --> logger
+                maybe_file = os.path.basename(file)
+                if not maybe_file:
+                    maybe_file = os.path.dirname(file)
+                self.datafiles[pkg_name].add(maybe_file)
+            # But we need to leave it alone in extra files so we can copy it over
+            # into the source tree!
+            if pkg_name not in self.extra_files:
                 self.extra_files[pkg_name] = set(files)
             else:
-                curr_files = self.datafiles[pkg_name]
+                curr_files = self.extra_files[pkg_name]
                 self.extra_files[pkg_name] = curr_files | files
 
         if self.c_libraries:
@@ -389,6 +406,8 @@ class Bundle:
         shutil.rmtree(os.path.join(self.path, "dist"), ignore_errors=True)
         shutil.rmtree(os.path.join(self.path, "src", "__pycache__"), ignore_errors=True)
         shutil.rmtree(self.egg_info, ignore_errors=True)
+        self._clean_extrafiles()
+        self._remove_libraries()
         for root, dirnames, filenames in os.walk("src"):
             # Linux, Mac
             for filename in fnmatch.filter(filenames, "*.o"):
@@ -431,7 +450,7 @@ class Bundle:
         ]
         if not self.pure:
             if sys.platform == "darwin":
-                env = "Environment :: MacOS X :: Aqua",
+                env = "Environment :: MacOS X :: Aqua"
                 op_sys = "Operating System :: MacOS :: MacOS X"
             elif sys.platform == "win32":
                 env = "Environment :: Win32 (MS Windows)"
@@ -472,28 +491,57 @@ class Bundle:
         self.setup_arguments["classifiers"] = self.classifiers
         self.setup_arguments["package_dir"], self.setup_arguments["packages"] = self._make_package_arguments()
 
-    def _copy_extrafiles(self, files):
-        for pkg_name, entries in files.items():
-            for kind, src, dst in entries:
-                if kind == "file":
-                    filepath = os.path.join("src", dst)
-                    dirpath = os.path.dirname(filepath)
-                    if dirpath:
-                        os.makedirs(dirpath, exist_ok=True)
-                    shutil.copyfile(src, filepath)
-                elif kind == "dir":
-                    dstdir = os.path.join("src", dst.replace('/', os.sep))
-                    if os.path.exists(dstdir):
-                        shutil.rmtree(dstdir)
-                    shutil.copytree(src, dstdir)
+    def _copy_extrafiles(self):
+        for pkg_name, items in self.extra_files.items():
+            path = pkg_name.replace(self.module_name, "src").replace('.', '/')
+            if not os.path.exists(path):
+                os.makedirs(path, exist_ok=True)
+            for item in items:
+                globbed_items = glob.glob(item)
+                for entry in globbed_items:
+                    destination = os.path.join(path, os.path.basename(entry))
+                    if os.path.isdir(entry):
+                        shutil.copytree(entry, destination)
+                    else:
+                        shutil.copyfile(entry, destination)
+
+    # Since we aren't trusting setuptools to compile libraries properly we have
+    # to remove them ourselves. Work around the prepare_metadata_for_build_editable
+    # bug.
+    def _remove_libraries(self):
+        for lib in self.c_libraries:
+            if lib.static:
+                os.remove(os.path.join("src/lib/", "".join(["lib", lib.name, ".a"])))
+            else:
+                if sys.platform == 'darwin':
+                    os.remove(os.path.join("src/lib/", "".join([lib.name, ".dylib"])))
+                elif sys.platform == "linux":
+                    os.remove(os.path.join("src/lib/", "".join([lib.name, ".so"])))
+
+    def _clean_extrafiles(self):
+        for pkg_name, items in self.extra_files.items():
+            path = pkg_name.replace(self.module_name, "src").replace('.', '/')
+            if not os.path.exists(path):
+                os.makedirs(path, exist_ok=True)
+            for item in items:
+                globbed_items = glob.glob(item)
+                for entry in globbed_items:
+                    destination = os.path.join(path, os.path.basename(entry))
+                    if os.path.isdir(entry):
+                        shutil.rmtree(destination, ignore_errors=True)
+                    else:
+                        os.remove(destination)
 
     def _make_package_arguments(self):
         def add_package(base_package, folder):
+            if sys.platform == "win32":
+                folder.rstrip('/')
             package_dir[base_package] = folder
             packages.append(base_package)
-            packages.extend([
-                base_package + "." + sub_pkg for sub_pkg in find_packages(folder)
-            ])
+            # I have no idea why find_packages complains about trailing
+            # slashes on Win32 and not Unix
+            for sub_pkg in find_packages(folder):
+                packages.append(base_package + '.' + sub_pkg)
 
         package_dir = {}
         packages = []
@@ -533,7 +581,7 @@ class Bundle:
         except AttributeError:
             pass
         # Copy additional files into package source tree
-        self._copy_extrafiles(self.extra_files)
+        self._copy_extrafiles()
         if build_exts:
             # Build C libraries and executables
             for lib in self.c_libraries:
@@ -583,9 +631,12 @@ class Bundle:
     def build_wheel_for_build_editable(self):
         wheel_name = self.build_wheel()
         wheel_location = os.path.join(self.path, 'dist', wheel_name)
+        # Clean everything that was placed in the source directory as a side effect
+        self._clean_extrafiles()
         return wheel_location
 
     def build_editable(self):
+        self._remove_libraries()
         self._clear_distutils_dir_and_prep_srcdir(build_exts=True)
         setup_args = [
             "build_ext"
@@ -847,10 +898,10 @@ class _CompiledCode:
         self.include_libraries = attrs.get("library-modules", [])
         self.library_dirs = attrs.get("library-dirs", [])
         self.framework_dirs = attrs.get("framework-dirs", [])
-        self.macros = attrs.get("macros", [])
+        self.macros = []
         self.target_lang = attrs.get("target-lang", None)
         self.limited_api = attrs.get("limited-api", None)
-        defines = attrs.get("defines", [])
+        defines = attrs.get("define-macros", [])
         self.source_files = []
         for entry in source_files:
             self.source_files.extend(glob.glob(entry))
@@ -863,20 +914,20 @@ class _CompiledCode:
                 )
             elif len(edef) == 1:
                 edef.append(None)
-            c.add_macro_define(*edef)
-        for undef_ in attrs.get("undefines", []):
-            c.add_macro_undef(self._get_element_text(e))
+            self.add_macro_define(*edef)
+        for undef_ in attrs.get("undef-macros", []):
+            self.add_macro_undef(self._get_element_text(e))
         if self.limited_api:
             v = self.limited_api
             if v < CHIMERAX1_0_PYTHON_VERSION:
                 v = CHIMERAX1_0_PYTHON_VERSION
             hex_version = (v.major << 24) | (v.minor << 16) | (v.micro << 8)
-            c.add_macro_define("Py_LIMITED_API", hex_version)
+            self.add_macro_define("Py_LIMITED_API", hex_version)
 
     def get_platform_specific_args(self, attrs):
         for platform in self._platforms[sys.platform]:
             try:
-                platform_args = attrs.pop(platform)
+                platform_args = attrs["platform"].pop(platform)
                 return platform_args
             except KeyError:
                 pass
@@ -1019,17 +1070,21 @@ class _CModule(_CompiledCode):
             extra_link_args.append("-Wl,-rpath,$ORIGIN/lib")
         elif sys.platform == "darwin":
             extra_link_args.append("-Wl,-rpath,@loader_path/lib")
-        return Extension(
-            package + '.' + self.name,
-            define_macros=macros,
-            extra_compile_args=cpp_flags + self.compile_arguments,
-            include_dirs=inc_dirs,
-            library_dirs=lib_dirs,
-            libraries=libraries,
-            extra_link_args=extra_link_args,
-            sources=self.source_files,
-            py_limited_api=self.limited_api
-        )
+        if self.source_files:
+            return Extension(
+                package + '.' + self.name,
+                define_macros=macros,
+                extra_compile_args=cpp_flags + self.compile_arguments,
+                include_dirs=inc_dirs,
+                library_dirs=lib_dirs,
+                libraries=libraries,
+                extra_link_args=extra_link_args,
+                sources=self.source_files,
+                py_limited_api=self.limited_api
+            )
+        else:
+            return None
+
 
 
 class _CLibrary(_CompiledCode):
@@ -1038,7 +1093,10 @@ class _CLibrary(_CompiledCode):
     output_dir = "src/lib"
 
     def __init__(self, name, attrs):
-        self.name = name
+        if sys.platform == "win32":
+            name = 'lib' + name
+        else:
+            name = name
         super().__init__(name, attrs)
         self.static = attrs.get("static", False)
 
@@ -1050,16 +1108,14 @@ class _CLibrary(_CompiledCode):
             debug
         )
         compiler.mkpath(self.output_dir)
-        if sys.platform == "win32":
-            # # Link library directory for Python on Windows
-            # compiler.add_library_dir(os.path.join(sys.exec_prefix, 'libs'))
-            lib_name = "lib" + self.name
-        else:
-            lib_name = self.name
         if self.static:
-            lib = compiler.library_filename(lib_name, lib_type="static")
+            if sys.platform == 'darwin':
+                output_file = os.path.join("src/lib/", "".join(["lib", self.name, ".a"]))
+                if os.path.exists(output_file):
+                    os.remove(output_file)
+            lib = compiler.library_filename(self.name, lib_type="static")
             compiler.create_static_lib(
-                objs, lib_name, output_dir=self.output_dir,
+                objs, self.name, output_dir=self.output_dir,
                 target_lang=self.target_lang,
                 debug=debug
             )
@@ -1073,7 +1129,7 @@ class _CLibrary(_CompiledCode):
                     pass
                 else:
                     compiler.linker_so[n] = "-dynamiclib"
-                lib = compiler.library_filename(lib_name, lib_type="dylib")
+                lib = compiler.library_filename(self.name, lib_type="dylib")
                 extra_link_args.extend(
                     ["-Wl,-rpath,@loader_path",
                      "-Wl,-install_name,@rpath/%s" % lib]
@@ -1086,9 +1142,9 @@ class _CLibrary(_CompiledCode):
                 )
             elif sys.platform == "win32":
                 # On Windows, we need both .dll and .lib
-                link_lib = compiler.library_filename(lib_name, lib_type="static")
+                link_lib = compiler.library_filename(self.name, lib_type="static")
                 extra_link_args.append("/LIBPATH:%s" % link_lib)
-                lib = compiler.shared_object_filename(lib_name)
+                lib = compiler.shared_object_filename(self.name)
                 compiler.link_shared_object(
                     objs, lib, output_dir=self.output_dir,
                     extra_preargs=extra_link_args,
@@ -1097,7 +1153,7 @@ class _CLibrary(_CompiledCode):
                 )
             else:
                 # On Linux, we only need the .so
-                lib = compiler.library_filename(lib_name, lib_type="shared")
+                lib = compiler.library_filename(self.name, lib_type="shared")
                 extra_link_args.append("-Wl,-rpath,$ORIGIN")
                 compiler.link_shared_object(
                     objs, lib, output_dir=self.output_dir,
@@ -1146,7 +1202,6 @@ class _CLibrary(_CompiledCode):
                 )
         return paths
 
-
 # TODO: Doesn't produce arm64/x86_64 executables on macOS
 class _CExecutable(_CompiledCode):
     install_dir = "src/bin"
@@ -1168,7 +1223,9 @@ class _CExecutable(_CompiledCode):
         )
         compiler.mkpath(self.output_dir)
         if sys.platform == "darwin":
-            extra_link_args.append("-Wl,-rpath,@loader_path")
+            extra_link_args.extend(["-Wl,-rpath,@loader_path"])
+            if 'universal2' in sysconfig.get_platform():
+                extra_link_args.extend(["-arch", "arm64", "-arch", "x86_64"])
         elif sys.platform == "win32":
             # Remove .exe suffix because it will be added
             if self.name.endswith(".exe"):
