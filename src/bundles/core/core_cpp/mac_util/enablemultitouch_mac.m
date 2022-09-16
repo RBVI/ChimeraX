@@ -13,6 +13,7 @@
 
 #import <AppKit/AppKit.h>
 
+extern "C"
 void enable_mac_multitouch(long nsview_pointer)
 {
   NSView *view = (NSView *)(nsview_pointer);

@@ -17,9 +17,6 @@ include $(TOP)/mk/config.make
 
 SYNC_DIR = $(wildcard $(TOP)/build/sync)
 
-BUNDLE_BUILDER_SUBDIR = bundle_builder
-TOOLSHED_UTILS_SUBDIR = toolshed_utils
-
 REST_SUBDIRS = add_charge addh alignment_algs alignment_headers \
 	  alphafold altloc_explorer amber_info arrays atom_search \
 	  atomic atomic_lib axes_planes basic_actions bild \
@@ -55,7 +52,7 @@ ifeq ($(OS),Linux)
 REST_SUBDIRS += linux_support
 endif
 
-SUBDIRS = $(BUNDLE_BUILDER_SUBDIR) $(TOOLSHED_UTILS_SUBDIR) $(REST_SUBDIRS)
+SUBDIRS = $(REST_SUBDIRS)
 
 NO_SUBDIR_INSTALL = 1
 
@@ -68,10 +65,10 @@ dir:	Makefile.dependencies
 
 $(SUBDIR_BUILD): dir
 
-install-core:
+install: 
+	$(MAKE) -C bundle_builder install
 	$(MAKE) -C core install
-
-install: install-core
+	$(MAKE) -C toolshed_utils install
 	$(MAKE) build
 	cd $(SYNC_DIR) && $(APP_BOOTSTRAP_PIP) install --upgrade --upgrade-strategy only-if-needed *.whl
 	$(APP_PYTHON_EXE) -m chimerax.core --exit --nogui --silent --cmd "toolshed reload installed"
@@ -105,12 +102,12 @@ clean:
 # bundle_info.xml files, and are placed in to the Makefile.dependencies file.
 #
 
-Makefile.dependencies: */bundle_info.xml* Make_dependencies.py
+Makefile.dependencies: */bundle_info.xml* */pyproject.toml* Make_dependencies.py
 ifneq ($(MAKECMDGOALS),clean)
 	$(APP_PYTHON_EXE) Make_dependencies.py
 
 # Make sure bundle_builder and toolshed bundles are installed before all others.
-$(REST_SUBDIRS:=.build): $(BUNDLE_BUILDER_SUBDIR).build $(TOOLSHED_UTILS_SUBDIR).build
+$(REST_SUBDIRS:=.build):
 
 include Makefile.dependencies
 endif
