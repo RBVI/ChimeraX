@@ -312,6 +312,8 @@ class Bundle:
 
         for folder, files in chimerax_data.get('package-data', {}).items():
             pkg_name = ".".join([self.module_name, folder.replace('src/', '').replace('/', '.')]).rstrip('.')
+            if sys.platform == "win32":
+                folder = folder.rstrip('/')
             self.packages.add((pkg_name, folder))
             if pkg_name not in self.datafiles:
                 self.datafiles[pkg_name] = set(files)
@@ -321,6 +323,8 @@ class Bundle:
 
         for folder, files in chimerax_data.get('extra-files', {}).items():
             pkg_name = ".".join([self.module_name, folder.replace('src/', '').replace('/', '.')]).rstrip('.')
+            if sys.platform == "win32":
+                folder = folder.rstrip('/')
             self.packages.add((pkg_name, folder))
             for file in files:
                 # Unlike data files, which takes filenames and wildcards with extensions,
@@ -530,11 +534,14 @@ class Bundle:
 
     def _make_package_arguments(self):
         def add_package(base_package, folder):
+            if sys.platform == "win32":
+                folder.rstrip('/')
             package_dir[base_package] = folder
             packages.append(base_package)
-            packages.extend([
-                base_package + "." + sub_pkg for sub_pkg in find_packages(folder)
-            ])
+            # I have no idea why find_packages complains about trailing
+            # slashes on Win32 and not Unix
+            for sub_pkg in find_packages(folder):
+                packages.append(base_package + '.' + sub_pkg)
 
         package_dir = {}
         packages = []
@@ -1063,17 +1070,21 @@ class _CModule(_CompiledCode):
             extra_link_args.append("-Wl,-rpath,$ORIGIN/lib")
         elif sys.platform == "darwin":
             extra_link_args.append("-Wl,-rpath,@loader_path/lib")
-        return Extension(
-            package + '.' + self.name,
-            define_macros=macros,
-            extra_compile_args=cpp_flags + self.compile_arguments,
-            include_dirs=inc_dirs,
-            library_dirs=lib_dirs,
-            libraries=libraries,
-            extra_link_args=extra_link_args,
-            sources=self.source_files,
-            py_limited_api=self.limited_api
-        )
+        if self.source_files:
+            return Extension(
+                package + '.' + self.name,
+                define_macros=macros,
+                extra_compile_args=cpp_flags + self.compile_arguments,
+                include_dirs=inc_dirs,
+                library_dirs=lib_dirs,
+                libraries=libraries,
+                extra_link_args=extra_link_args,
+                sources=self.source_files,
+                py_limited_api=self.limited_api
+            )
+        else:
+            return None
+
 
 
 class _CLibrary(_CompiledCode):
@@ -1083,9 +1094,9 @@ class _CLibrary(_CompiledCode):
 
     def __init__(self, name, attrs):
         if sys.platform == "win32":
-            self.name = 'lib' + name
+            name = 'lib' + name
         else:
-            self.name = name
+            name = name
         super().__init__(name, attrs)
         self.static = attrs.get("static", False)
 
