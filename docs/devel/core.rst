@@ -20,7 +20,7 @@ Intro to ChimeraX Design
 There are three major components of the ChimeraX core:
 the :doc:`user interface <user_interface>` modules,
 the :doc:`data interface <data_interface>` modules,
-and the :doc:`tool interface <bundles/core/tools>` modules.
+and the :doc:`tool interface <bundles/core/src/tools>` modules.
 The user interface modules support the GUI and the command line interfaces,
 the data interface modules support the native data types,
 and the tool interface modules support common functionality
