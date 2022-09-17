@@ -452,21 +452,21 @@ def init(argv, event_loop=True):
         # only load tools if we have a GUI
         opts.load_tools = False
 
-    is_root = False  # On Linux, don't create user directories if root (the installer uid)
-    # figure out the user/system directories for application
-    # invoked with -m ChimeraX_main, so argv[0] is full path to ChimeraX_main
     # Windows:
-    # 'C:\\...\\ChimeraX.app\\bin\\lib\\site-packages\\chimerax\\core\\__main__.py'
+    #     python: C:\\...\\ChimeraX.app\\python.exe
+    #     ChimeraX: C:\\...\\ChimeraX.app\\ChimeraX
     # Linux:
-    # '/.../ChimeraX.app/lib/python3.5/site-packages/chimerax/core/__main__.py'
-    # Mac OS X:
-    # '/.../ChimeraX.app/Contents/lib/python3.5/site-packages/chimerax/core/__main__.py'
-    # '/.../ChimeraX.app/Contents/Library/Frameworks/Python.framework/Versions/3.5/lib/python3.5/site-packages/chimerax/core/__main__.py'
+    #     python: /../ChimeraX.app/bin/python3.x
+    #     ChimeraX: /../ChimeraX.app/ChimeraX
+    # macOS:
+    #     python: /../ChimeraX.app/Contents/bin/python3.x
+    #     ChimeraX: /../ChimeraX.app/Contents/MacOS/ChimeraX
     dn = os.path.dirname
-    rootdir = sys.base_prefix
-    if sys.platform.startswith('darwin'):
-        # TODO: more robust way
-        rootdir = dn(dn(dn(dn(dn(rootdir)))))
+    rootdir = dn(sys.executable))
+    if not sys.platform.startswith('win32'):
+        rootdir = dn(rootdir)
+    # On Linux, don't create user directories if root (the installer uid)
+    is_root = False 
     if sys.platform.startswith('linux'):
         os.environ['XDG_CONFIG_DIRS'] = rootdir
         is_root = os.getuid() == 0
