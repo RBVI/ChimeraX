@@ -269,7 +269,11 @@ class Conservation(DynamicHeaderSequence):
         temp_stream.close()
         session.alignments.destroy_alignment(temp_alignment)
         import os.path
-        command = [os.path.join(os.path.dirname(__file__), "bin", "al2co.exe"),
+        import sys
+        exe = "al2co"
+        if sys.platform.startswith('win32'):
+            exe += ".exe"
+        command = [os.path.join(os.path.dirname(__file__), "bin", exe),
             "-i", file_name,
             "-f", str(self.settings.al2co_freq),
             "-c", str(self.settings.al2co_cons),
