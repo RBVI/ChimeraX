@@ -211,6 +211,7 @@ struct ExtractMolecule: public readcif::CIFFile
     void parse_struct_sheet_order();
     void parse_pdbx_struct_sheet_hbond();
 #endif
+    void parse_entity();
     void parse_entity_poly();
     void parse_entity_poly_seq();
     void parse_entry();
@@ -276,6 +277,7 @@ struct ExtractMolecule: public readcif::CIFFile
         EntityPoly(bool nstd, PolymerType pt = PolymerType::PT_NONE): nstd(nstd), ptype(pt) {}
     };
     map<string /* entity_id */, EntityPoly> poly;
+    set<string /* entity_id */> non_poly;
     int first_model_num;
     string entry_id;
     tmpl::Molecule* my_templates;
@@ -334,6 +336,10 @@ ExtractMolecule::ExtractMolecule(PyObject* logger, const StringVector& generic_c
         [this] () {
             parse_pdbx_database_PDB_obs_spr();
         }, { "entry" });
+    register_category("entity",
+        [this] () {
+            parse_entity();
+        });
     register_category("entity_poly",
         [this] () {
             parse_entity_poly();
@@ -345,7 +351,7 @@ ExtractMolecule::ExtractMolecule(PyObject* logger, const StringVector& generic_c
     register_category("atom_site",
         [this] () {
             parse_atom_site();
-        }, { "entity_poly_seq" });
+        }, { "entity", "entity_poly_seq" });
     register_category("atom_site_anisotrop",
         [this] () {
             parse_atom_site_anisotrop();
@@ -431,6 +437,7 @@ ExtractMolecule::reset_parse()
     entry_id.clear();
     generic_tables.clear();
     poly.clear();
+    non_poly.clear();
     if (my_templates) {
         delete my_templates;
         my_templates = nullptr;
@@ -723,8 +730,12 @@ ExtractMolecule::finished_parse()
         bool no_polymer = true;
         for (auto& chain: all_residues[model_num]) {
             ResidueMap& residue_map = chain.second;
+            if (residue_map.size() <= 1)
+                continue;
             auto ri = residue_map.begin();
             const string& entity_id = ri->first.entity_id;
+            if (non_poly.find(entity_id) != non_poly.end())
+                continue;
             if (poly.find(entity_id) == poly.end())
                 continue;
             const PolySeq* lastp = nullptr;
@@ -1458,7 +1469,9 @@ ExtractMolecule::parse_atom_site()
             cur_auth_seq_id = auth_position;
             cur_chain_id = chain_id;
             cur_comp_id = residue_name;
-            if (has_poly_seq.find(entity_id) == has_poly_seq.end()) {
+            if (has_poly_seq.find(entity_id) == has_poly_seq.end()
+            && non_poly.find(entity_id) == non_poly.end()) {
+                // sequence not given in entity_poly_seq and not in a known non-polymeric entity
                 auto tr = find_template_residue(residue_name);
                 if (tr && tr->polymer_type() != PolymerType::PT_NONE) {
                     // only save polymer residues
@@ -2440,6 +2453,38 @@ ExtractMolecule::parse_pdbx_struct_sheet_hbond()
 #endif
 
 void
+ExtractMolecule::parse_entity()
+{
+    // keep track of non-polymer entities, so we don't try to connect them
+    // type must be one of "branched", "macrolide", "non-polymer", "polymer", "water"
+    // so only look at first letter
+    CIFFile::ParseValues pv;
+    pv.reserve(2);
+
+    string entity_id;
+    char type;
+
+    try {
+        pv.emplace_back(get_column("id", Required),
+            [&] (const char* start, const char* end) {
+                entity_id = string(start, end - start);
+            });
+        pv.emplace_back(get_column("type", Required),
+            [&] (const char* start) {
+                type = *start;
+            });
+    } catch (std::runtime_error& e) {
+        logger::warning(_logger, "Skipping entity category: ", e.what());
+        return;
+    }
+
+    while (parse_row(pv)) {
+        if (type != 'p' && type != 'P')
+            non_poly.emplace(entity_id);
+    }
+}
+
+void
 ExtractMolecule::parse_entity_poly()
 {
     CIFFile::ParseValues pv;
@@ -2449,7 +2494,6 @@ ExtractMolecule::parse_entity_poly()
     string type;
     bool nstd_monomer = false;
 
-    pv.reserve(4);
     try {
         pv.emplace_back(get_column("entity_id", Required),
             [&] (const char* start, const char* end) {
