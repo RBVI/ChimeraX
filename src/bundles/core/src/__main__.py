@@ -453,18 +453,16 @@ def init(argv, event_loop=True):
         opts.load_tools = False
 
     # Windows:
-    #     python: C:\\...\\ChimeraX.app\\python.exe
-    #     ChimeraX: C:\\...\\ChimeraX.app\\ChimeraX
+    #     python: C:\\...\\ChimeraX.app\\bin\\python.exe
+    #     ChimeraX: C:\\...\\ChimeraX.app\\bin\\ChimeraX
     # Linux:
     #     python: /../ChimeraX.app/bin/python3.x
-    #     ChimeraX: /../ChimeraX.app/ChimeraX
+    #     ChimeraX: /../ChimeraX.app/bin/ChimeraX
     # macOS:
     #     python: /../ChimeraX.app/Contents/bin/python3.x
     #     ChimeraX: /../ChimeraX.app/Contents/MacOS/ChimeraX
     dn = os.path.dirname
-    rootdir = dn(sys.executable)
-    if not sys.platform.startswith('win32'):
-        rootdir = dn(rootdir)
+    rootdir = dn(dn(sys.executable))
     # On Linux, don't create user directories if root (the installer uid)
     is_root = False 
     if sys.platform.startswith('linux'):
