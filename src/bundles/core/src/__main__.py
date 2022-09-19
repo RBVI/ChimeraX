@@ -473,6 +473,7 @@ def init(argv, event_loop=True):
             os.environ['HOME'] = "/do/not/run/as/root"
 
     if sys.platform.startswith('win'):
+        rootdir = os.path.join(rootdir, "bin")
         if 'HOME' in os.environ:
             # Windows uses HOMEPATH and HOMEDRIVE, so HOME's presence indicates
             # a non-standard startup environment.  So remove HOME to make
@@ -490,7 +491,7 @@ def init(argv, event_loop=True):
         setdlldir = ctypes.windll.kernel32.SetDllDirectoryW
         setdlldir.argtypes = [ctypes.c_wchar_p]
         setdlldir.restype = ctypes.c_bool
-        setdlldir(os.path.join(rootdir, 'bin'))
+        setdlldir(rootdir)
 
     from packaging.version import Version
     ver = Version(version)
@@ -534,7 +535,10 @@ def init(argv, event_loop=True):
     # Find the location of "share" directory so that we can inform
     # the C++ layer.  Assume it's a sibling of the directory that
     # the executable is in.
-    chimerax.app_bin_dir = os.path.join(rootdir, "bin")
+    if sys.platform == "win32":
+        chimerax.app_bin_dir = os.path.join(rootdir)
+    else:
+        chimerax.app_bin_dir = os.path.join(rootdir, "bin")
     chimerax.app_data_dir = os.path.join(rootdir, "share")
     chimerax.app_lib_dir = os.path.join(rootdir, "lib")
 
