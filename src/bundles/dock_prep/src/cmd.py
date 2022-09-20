@@ -112,6 +112,10 @@ def dock_prep_caller(session, structures, *, memorization=MEMORIZE_NONE, memoriz
     run_steps(session, state)
 
 def run_steps(session, state):
+    structures = state['structures']
+    if not structures:
+        # User has closed relevant structures
+        return
     steps = state['steps']
     if not steps:
         callback = state['callback']
@@ -122,7 +126,7 @@ def run_steps(session, state):
         import importlib
         step_mod = importlib.import_module("chimerax." + mod_name)
         step_mod.run_for_dock_prep(session, state, run_steps, state['memorization'], state['memorize_name'],
-            state['structures'], kw_dict)
+            structures, kw_dict)
 
 def dock_prep_cmd(session, structures,  *, memorize=MEMORIZE_NONE, **kw):
     if structures is None:
