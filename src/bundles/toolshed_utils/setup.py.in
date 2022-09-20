@@ -59,6 +59,6 @@ setup(
         "Topic :: Scientific/Engineering :: Chemistry",
         "Topic :: Scientific/Engineering :: Bio-Informatics",
         "ChimeraX :: Bundle :: Utilities :: 1,1 :: chimerax.toolshed_utils ::  :: true",
-        "ChimeraX :: Tool :: Updates :: Utilities :: synopsis",
+        "ChimeraX :: Tool :: Updates :: Utilities :: install/update ChimeraX bundles from the Toolshed (web repository)",
     ],
 )

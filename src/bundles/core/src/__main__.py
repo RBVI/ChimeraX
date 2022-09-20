@@ -452,21 +452,19 @@ def init(argv, event_loop=True):
         # only load tools if we have a GUI
         opts.load_tools = False
 
-    is_root = False  # On Linux, don't create user directories if root (the installer uid)
-    # figure out the user/system directories for application
-    # invoked with -m ChimeraX_main, so argv[0] is full path to ChimeraX_main
     # Windows:
-    # 'C:\\...\\ChimeraX.app\\bin\\lib\\site-packages\\chimerax\\core\\__main__.py'
+    #     python: C:\\...\\ChimeraX.app\\bin\\python.exe
+    #     ChimeraX: C:\\...\\ChimeraX.app\\bin\\ChimeraX
     # Linux:
-    # '/.../ChimeraX.app/lib/python3.5/site-packages/chimerax/core/__main__.py'
-    # Mac OS X:
-    # '/.../ChimeraX.app/Contents/lib/python3.5/site-packages/chimerax/core/__main__.py'
-    # '/.../ChimeraX.app/Contents/Library/Frameworks/Python.framework/Versions/3.5/lib/python3.5/site-packages/chimerax/core/__main__.py'
+    #     python: /../ChimeraX.app/bin/python3.x
+    #     ChimeraX: /../ChimeraX.app/bin/ChimeraX
+    # macOS:
+    #     python: /../ChimeraX.app/Contents/bin/python3.x
+    #     ChimeraX: /../ChimeraX.app/Contents/MacOS/ChimeraX
     dn = os.path.dirname
-    rootdir = sys.base_prefix
-    if sys.platform.startswith('darwin'):
-        # TODO: more robust way
-        rootdir = dn(dn(dn(dn(dn(rootdir)))))
+    rootdir = dn(dn(sys.executable))
+    # On Linux, don't create user directories if root (the installer uid)
+    is_root = False 
     if sys.platform.startswith('linux'):
         os.environ['XDG_CONFIG_DIRS'] = rootdir
         is_root = os.getuid() == 0
@@ -475,6 +473,7 @@ def init(argv, event_loop=True):
             os.environ['HOME'] = "/do/not/run/as/root"
 
     if sys.platform.startswith('win'):
+        rootdir = os.path.join(rootdir, "bin")
         if 'HOME' in os.environ:
             # Windows uses HOMEPATH and HOMEDRIVE, so HOME's presence indicates
             # a non-standard startup environment.  So remove HOME to make
@@ -492,7 +491,7 @@ def init(argv, event_loop=True):
         setdlldir = ctypes.windll.kernel32.SetDllDirectoryW
         setdlldir.argtypes = [ctypes.c_wchar_p]
         setdlldir.restype = ctypes.c_bool
-        setdlldir(os.path.join(rootdir, 'bin'))
+        setdlldir(rootdir)
 
     from packaging.version import Version
     ver = Version(version)
@@ -536,11 +535,11 @@ def init(argv, event_loop=True):
     # Find the location of "share" directory so that we can inform
     # the C++ layer.  Assume it's a sibling of the directory that
     # the executable is in.
-    chimerax.app_bin_dir = os.path.join(rootdir, "bin")
-    if sys.platform.startswith('win'):
-        chimerax.app_data_dir = os.path.join(chimerax.app_bin_dir, "share")
+    if sys.platform == "win32":
+        chimerax.app_bin_dir = os.path.join(rootdir)
     else:
-        chimerax.app_data_dir = os.path.join(rootdir, "share")
+        chimerax.app_bin_dir = os.path.join(rootdir, "bin")
+    chimerax.app_data_dir = os.path.join(rootdir, "share")
     chimerax.app_lib_dir = os.path.join(rootdir, "lib")
 
     from chimerax.core import session

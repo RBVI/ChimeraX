@@ -129,13 +129,17 @@ def write_mmcif(session, path, *, models=None, rel_model=None, selected_only=Fal
     # "parent" id (other than blank) are a nmr ensemble.
     grouped = {}
     for m in models:
-        grouped.setdefault(m.id[:-1], []).append(m)
+        if m.id is None:
+            group = None
+        else:
+            group = m.id[:-1]
+        grouped.setdefault(group, []).append(m)
 
     # Go through grouped models and confirm they look like an NMR ensemble
     # This should catch fix for docking models and hierarchical models (IHM)
     is_ensemble = {}
     for g, models in grouped.items():
-        if len(models) == 1:
+        if len(models) == 1 or g is None:
             is_ensemble[g] = False
             continue
         chains = models[0].chains
