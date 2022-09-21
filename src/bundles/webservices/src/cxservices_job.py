@@ -71,6 +71,7 @@ class CxServicesJob(Job):
         super().__init__(*args, **kw)
         # Initialize ChimeraX REST request state
         self.reset_state()
+        self.job_id = None
 
     @property
     def status(self) -> str:
@@ -119,11 +120,14 @@ class CxServicesJob(Job):
         except ApiException as e:
             self.status = "failed"
             self.end_time = time.time()
-            raise JobLaunchError(str(e))
+            reason = json.loads(e.body)['description']
+            self.thread_safe_error(
+                "Error launching job: %s" % reason
+            )
         except (URLError, MaxRetryError, NewConnectionError) as e:
             self.status = "failed"
             self.end_time = time.time()
-            self.thread_safe_log(
+            self.thread_safe_error(
                 "Error launching job: ChimeraX Web Services unavailable. Please try again soon."
             )
         else:
@@ -141,6 +145,10 @@ class CxServicesJob(Job):
 
         """
         return self.launch_time is not None and self.end_time is None
+
+    @property
+    def launched_successfully(self) -> bool:
+        return bool(self.job_id)
 
     def next_check(self) -> Optional[int]:
         return self.next_poll
