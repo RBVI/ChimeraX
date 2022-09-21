@@ -25,6 +25,7 @@ build install reinstall:
 	$(RSYNC) src/lib/* $(libdir)
 	$(RSYNC) src/include/* $(app_includedir)
 	$(RSYNC) src/include/* $(includedir)
+	$(MAKE) sync
 
 app-install: clean src/buildinfo.py src/commands/_atomspec.py
 	# newer versions of pip won't install over the same version number (which depends on the last commit

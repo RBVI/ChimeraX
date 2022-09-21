@@ -40,6 +40,7 @@ sdist: $(PYSRCS)
 install app-install:
 	$(PYTHON_EXE) -m pip uninstall --yes ChimeraX-BundleBuilder
 	$(PYTHON_EXE) -m pip install --no-build-isolation .
+	$(MAKE) sync
 
 install-editable:
 	$(PYTHON_EXE) -m pip install --no-build-isolation --editable .
