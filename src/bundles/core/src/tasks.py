@@ -459,6 +459,9 @@ class Tasks(StateManager):
             pass
         self.session.triggers.activate_trigger(REMOVE_TASK, task)
 
+    def remove(self, task: Task) -> None:
+        self.__delitem__(task)
+
     def find_by_class(self, cls):
         """Return a list of tasks of the given class.
 

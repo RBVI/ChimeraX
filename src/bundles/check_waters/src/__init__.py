@@ -38,6 +38,9 @@ class _CheckWatersBundle(BundleAPI):
                 vols = [m for m in session.models if isinstance(m, Volume)]
                 if len(vols) < 2:
                     vol_arg = None if not vols else vols[0]
+                    if vol_arg is not None:
+                        from .tool import check_overlap
+                        check_overlap(structures[0], vol_arg)
                     return CheckWaterViewer(session, tool_name, structures[0], compare_map=vol_arg)
             return CheckWatersInputTool(session)
 

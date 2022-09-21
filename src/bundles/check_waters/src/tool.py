@@ -49,7 +49,7 @@ class CheckWatersInputTool(ToolInstance):
         from Qt.QtWidgets import QDialogButtonBox as qbbox
         self.bbox = bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
         bbox.accepted.connect(self.launch_cw_tool)
-        bbox.button(qbbox.Apply).clicked.connect(lambda s=self: s.launch_cw_tool(apply=True))
+        bbox.button(qbbox.Apply).clicked.connect(lambda *args: self.launch_cw_tool(apply=True))
         bbox.rejected.connect(self.delete)
         from chimerax.core.commands import run
         bbox.helpRequested.connect(lambda *, run=run, ses=session: run(ses, "help " + self.help))
@@ -62,25 +62,30 @@ class CheckWatersInputTool(ToolInstance):
         if not s:
             raise UserError("No structure chosen for checking")
         map = self.map_list.value
-        from chimerax.map.volume import atom_bounds
-        min_ijk, max_ijk = atom_bounds(s.atoms, 0.0, map)
-        atoms_outside = False
-        for min_bound in min_ijk:
-            if min_bound < 0:
-                atoms_outside = True
-                break
-        if not atoms_outside:
-            for max_bound, map_bound in zip(max_ijk, map.data.size):
-                if max_bound > map_bound:
-                    atoms_outside = True
-                    break
-        if atoms_outside:
-            from chimerax.ui.ask import ask
-            if ask(self.session, "Some (or all) atoms lie outside the volume, continue anyway?") == "no":
-                return
+        if map is not None:
+            check_overlap(s, map)
         CheckWaterViewer(self.session, "Check Waters", s, compare_map=map)
         if not apply:
             self.delete()
+
+def check_overlap(structure, map):
+    from chimerax.map.volume import atom_bounds
+    min_ijk, max_ijk = atom_bounds(structure.atoms, 0.0, map)
+    atoms_outside = False
+    for min_bound in min_ijk:
+        if min_bound < 0:
+            atoms_outside = True
+            break
+    if not atoms_outside:
+        for max_bound, map_bound in zip(max_ijk, map.data.size):
+            if max_bound > map_bound:
+                atoms_outside = True
+                break
+    if atoms_outside:
+        from chimerax.ui.ask import ask
+        if ask(structure.session, "Some (or all) atoms lie outside the volume, continue anyway?") == "no":
+            from chimerax.core.errors import CancelOperation
+            raise CancelOperation("Map/structure mismatch")
 
 class CheckWaterViewer(ToolInstance):
 

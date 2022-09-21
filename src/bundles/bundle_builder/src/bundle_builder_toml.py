@@ -635,7 +635,7 @@ class Bundle:
         self._clean_extrafiles()
         return wheel_location
 
-    def build_editable(self):
+    def build_editable(self, config_settings = None):
         self._remove_libraries()
         self._clear_distutils_dir_and_prep_srcdir(build_exts=True)
         setup_args = [
@@ -643,6 +643,9 @@ class Bundle:
             , "--inplace"
             , "editable_wheel"
         ]
+        if config_settings:
+            if 'editable_mode' in config_settings:
+                setup_args.extend(["--mode", config_settings["editable_mode"]])
         dist, built = self._run_setup(setup_args)
         if not self.version:
             self.version = dist.get_version()

@@ -384,6 +384,9 @@ class StructureDatas(Collection):
     alt_loc_change_notifies = cvec_property('structure_alt_loc_change_notify', npy_bool)
     '''Whether notifications are issued when altlocs are changed.  Should only be
     set to true when temporarily changing alt locs in a Python script. Numpy bool array.'''
+    ss_change_notifies = cvec_property('structure_ss_change_notify', npy_bool)
+    '''Whether notifications are issued when secondary structure is changed.  Should only be
+    set to true when temporarily changing secondary structure in a Python script. Numpy bool array.'''
     active_coordsets = cvec_property('structure_active_coordset', cptr, astype = _coordsets,
         read_only = True,
         doc="Returns a :class:`CoordSets` of the active coordset of each structure. Read only.")

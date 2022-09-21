@@ -37,9 +37,10 @@ wheel: $(PYSRCS)
 sdist: $(PYSRCS)
 	$(PYTHON_EXE) -m build --no-isolation --sdist
 
-install app-install:
+install app-install: wheel
 	$(PYTHON_EXE) -m pip uninstall --yes ChimeraX-BundleBuilder
 	$(PYTHON_EXE) -m pip install --no-build-isolation .
+	$(MAKE) sync
 
 install-editable:
 	$(PYTHON_EXE) -m pip install --no-build-isolation --editable .

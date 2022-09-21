@@ -29,7 +29,7 @@
     <Dependency name="ChimeraX-Core" version="~=1.0"/>
     <Dependency name="ChimeraX-Arrays" build="true" version="~=1.0"/>
     <Dependency name="ChimeraX-Atomic" version="~=1.0"/>
-    <Dependency name="ChimeraX-AtomicLibrary" build="true" version="~=7.0"/>
+    <Dependency name="ChimeraX-AtomicLibrary" build="true" version="~=8.0"/>
     <Dependency name="ChimeraX-PDB" version="~=2.0"/>
     <Dependency name="ChimeraX-PDBLibrary" build="true" version="~=1.0"/>
     <Dependency name="ChimeraX-DataFormats" version="~=1.0"/>

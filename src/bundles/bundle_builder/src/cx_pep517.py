@@ -31,7 +31,7 @@ def build_sdist(sdist_directory, config_settings=None) -> None:
 
 def build_editable(wheel_directory, config_settings=None, metadata_directory=None) -> None:
     bundle = Bundle(log, read_toml('pyproject.toml'))
-    return bundle.build_editable()
+    return bundle.build_editable(config_settings)
 
 def get_requires_for_build_wheel(config_settings = None) -> None:
     toml_file = read_toml('pyproject.toml')

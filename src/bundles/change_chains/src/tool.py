@@ -82,8 +82,7 @@ class ChangeChainIDsDialog(ToolInstance):
         from Qt.QtWidgets import QDialogButtonBox as qbbox
         self.bbox = bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
         bbox.accepted.connect(self.change_chain_ids)
-        bbox.button(qbbox.Apply).clicked.connect(self.change_chain_ids)
-        bbox.accepted.connect(self.delete) # slots executed in the order they are connected
+        bbox.button(qbbox.Apply).clicked.connect(lambda *args: self.change_chain_ids(apply=True))
         bbox.rejected.connect(self.delete)
         from chimerax.core.commands import run
         bbox.helpRequested.connect(lambda *, run=run, ses=session: run(ses, "help " + self.help))
@@ -98,7 +97,7 @@ class ChangeChainIDsDialog(ToolInstance):
             handler.remove()
         super().delete()
 
-    def change_chain_ids(self):
+    def change_chain_ids(self, apply=False):
         cmd = "changechains "
         spec_present = False
         if self.sel_restrict.isChecked():
@@ -124,6 +123,8 @@ class ChangeChainIDsDialog(ToolInstance):
                 if not to_id:
                     raise UserError("Cannot change to an empty ID")
                 to_ids.append(to_id)
+            if not from_ids:
+                raise UserError("Must select one or more chain IDs from the list on the left")
             from chimerax.core.commands import StringArg
             from_list = ','.join([StringArg.unparse(cid) for cid in from_ids])
             # the atom spec parser coughs up a hair ball for some quoted strings, so
@@ -136,6 +137,9 @@ class ChangeChainIDsDialog(ToolInstance):
 
         from chimerax.core.commands import run
         run(self.session, cmd)
+
+        if not apply:
+            self.delete()
 
     def _possibly_update_chains(self, trig_name, trig_data):
         if trig_data.created_residues() or trig_data.num_deleted_residues() > 0 \
