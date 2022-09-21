@@ -150,7 +150,7 @@ compute_ss(PyObject *, PyObject *args, PyObject* keywds)
             PyTuple_SET_ITEM(datum, 1, type);
             PyList_SET_ITEM(helices, i, datum);
         }
-        PyDict_SetItemString(data, "helex_info", helices);
+        PyDict_SetItemString(data, "helix_info", helices);
         Py_DECREF(helices);
         return data;
     }
