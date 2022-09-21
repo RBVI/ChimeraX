@@ -49,7 +49,7 @@ class CheckWatersInputTool(ToolInstance):
         from Qt.QtWidgets import QDialogButtonBox as qbbox
         self.bbox = bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
         bbox.accepted.connect(self.launch_cw_tool)
-        bbox.button(qbbox.Apply).clicked.connect(lambda s=self: s.launch_cw_tool(apply=True))
+        bbox.button(qbbox.Apply).clicked.connect(lambda *args: self.launch_cw_tool(apply=True))
         bbox.rejected.connect(self.delete)
         from chimerax.core.commands import run
         bbox.helpRequested.connect(lambda *, run=run, ses=session: run(ses, "help " + self.help))
