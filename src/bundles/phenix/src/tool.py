@@ -21,7 +21,7 @@ class DouseSettings(Settings):
         "show_hbonds": True,
     }
 
-from chimerax.check_waters.tool import CheckWaterViewer
+from chimerax.check_waters.tool import CheckWaterViewer, check_overlap
 class DouseResultsViewer(CheckWaterViewer):
 
     help = "help:user/tools/waterplacement.html#waterlist"
@@ -115,7 +115,6 @@ class LaunchDouseTool(ToolInstance):
         from Qt.QtWidgets import QDialogButtonBox as qbbox
         self.bbox = bbox = qbbox(qbbox.Ok | qbbox.Close | qbbox.Help)
         bbox.accepted.connect(self.launch_douse)
-        bbox.accepted.connect(self.delete) # slots executed in the order they are connected
         bbox.rejected.connect(self.delete)
         from chimerax.core.commands import run
         bbox.helpRequested.connect(lambda *, run=run, ses=session: run(ses, "help " + self.help))
@@ -126,14 +125,11 @@ class LaunchDouseTool(ToolInstance):
     def launch_douse(self):
         structure = self.structure_menu.value
         if not structure:
-            # raising UserError leaves C++ destroyed, but not Python
-            self.session.logger.error("Must specify a structure for water placement")
-            return
+            raise UserError("Must specify a structure for water placement")
         map = self.map_menu.value
         if not map:
-            # raising UserError leaves C++ destroyed, but not Python
-            self.session.logger.error("Must specify a map for water placement")
-            return
+            raise UserError("Must specify a map for water placement")
+        check_overlap(structure, map)
         cmd = "phenix douse %s near %s" % (map.atomspec, structure.atomspec)
         from chimerax.core.commands import BoolArg
         first_shell = self.first_shell_option.value
@@ -159,3 +155,4 @@ class LaunchDouseTool(ToolInstance):
             cmd += " resolution %g" % self.resolution_option.value
         from chimerax.core.commands import run
         run(self.session, cmd)
+        self.delete()
