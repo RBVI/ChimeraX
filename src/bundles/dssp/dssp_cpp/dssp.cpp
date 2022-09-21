@@ -74,7 +74,7 @@ compute_ss(PyObject *, PyObject *args, PyObject* keywds)
     int return_values = false;
     std::unique_ptr<CompSSInfo> ss_data;
     static const char* kwlist[] = {
-        "mol_ptr", "cutoff", "min_h_len", "min_s_len", "do_report", "return_values", nullptr };
+        "", "energy_cutoff", "min_helix_len", "min_strand_len", "report", "return_values", nullptr };
     if (!PyArg_ParseTupleAndKeywords(
              args, keywds, PY_STUPID "O|diipp", (char**) kwlist,
              &ptr, &energy_cutoff, &min_helix_length, &min_strand_length,
@@ -150,7 +150,7 @@ compute_ss(PyObject *, PyObject *args, PyObject* keywds)
             PyTuple_SET_ITEM(datum, 1, type);
             PyList_SET_ITEM(helices, i, datum);
         }
-        PyDict_SetItemString(data, "helex_info", helices);
+        PyDict_SetItemString(data, "helix_info", helices);
         Py_DECREF(helices);
         return data;
     }
@@ -162,13 +162,13 @@ static const char* docstr_compute_ss =
 "compute_ss\n"
 "Compute/assign Kabsch & Sander DSSP secondary structure\n"
 "\n"
-"The function takes five arguments:\n"
-"    mol_ptr       pointer to Structure\n"
-"    cutoff        hbond energy cutoff (default -0.5)\n"
-"    min_h_len     minimum helix length (default 3)\n"
-"    min_s_len     minimum strand length (default 3)\n"
-"    do_report     whether to log computed values (default false)\n"
-"    return_values whether to return computed values (default false)\n";
+"The arguments are:\n"
+"    mol_ptr        pointer to Structure (required)\n"
+"    energy_cutoff  hbond energy cutoff (default -0.5)\n"
+"    min_helix_len  minimum helix length (default 3)\n"
+"    min_strand_len minimum strand length (default 3)\n"
+"    report         whether to log computed values (default false)\n"
+"    return_values  whether to return computed values (default false)\n";
 
 static PyMethodDef dssp_methods[] = {
     { PY_STUPID "compute_ss", (PyCFunction) compute_ss, METH_VARARGS|METH_KEYWORDS, PY_STUPID docstr_compute_ss },
