@@ -27,17 +27,17 @@ build install reinstall:
 	$(RSYNC) src/include/* $(includedir)
 	$(MAKE) sync
 
-app-install: clean src/buildinfo.py src/commands/_atomspec.py
+app-install: wheel
 	# newer versions of pip won't install over the same version number (which depends on the last commit
 	# number), so to install something that hasn't been committed, uninstall first.
 	$(APP_BOOTSTRAP_PIP) uninstall --yes ChimeraX-Core
-	$(APP_PYTHON_EXE) -m pip install --no-build-isolation .
+	$(APP_PYTHON_EXE) -m pip install dist/*.whl
 
 install-editable: clean src/buildinfo.py src/commands/_atomspec.py
 	$(APP_BOOTSTRAP_PIP) uninstall --yes ChimeraX-Core
 	$(APP_PYTHON_EXE) -m pip install --no-build-isolation --editable .
 
-wheel: clean src/buildinfo.py
+wheel: clean src/buildinfo.py src/commands/_atomspec.py
 	$(APP_PYTHON_EXE) -m build --no-isolation --wheel
 
 sync:
