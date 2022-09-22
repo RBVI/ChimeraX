@@ -910,7 +910,10 @@ class Toolshed:
         A :py:const:`TOOLSHED_BUNDLE_INSTALLED` trigger is fired after installation.
         """
         from chimerax.toolshed_utils import _install_bundle
-        _install_bundle(self, bundle, logger, per_user=per_user, reinstall=reinstall, session=session, no_deps=no_deps)
+        try:
+            _install_bundle(self, bundle, logger, per_user=per_user, reinstall=reinstall, session=session, no_deps=no_deps)
+        except ToolshedInstalledError as e:
+            logger.error(str(e))
 
     def uninstall_bundle(self, bundle, logger, *, session=None, force_remove=False):
         """Supported API. Uninstall bundle by removing the corresponding Python distribution.
