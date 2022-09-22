@@ -80,8 +80,8 @@ class SaveOptionsWidget(QFrame):
         self.computed_sheets = QCheckBox('Computed sheets')
         options_layout.addWidget(self.computed_sheets, alignment=Qt.AlignLeft)
         self.computed_sheets.setToolTip(
-            "Workaround ChimeraX not saving sheet information from input files"
-            " and write computed sheet and strand information")
+            "Workaround ChimeraX not retaining sheet information from opened files"
+            " and save computed sheet and strand information")
 
         self.simple_rel_models = len(self.structure_list.value) < 2
         if self.simple_rel_models:
