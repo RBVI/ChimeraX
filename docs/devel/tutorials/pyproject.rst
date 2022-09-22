@@ -69,6 +69,24 @@ Unlike other metadata, dynamic metadata should go under a ``[tool.setuptools.dyn
 
 For more information, see :doc:`setuptools's documentation. <setuptools:userguide/pyproject_config>`
 
+Package Data and Extra Files
+----------------------------
+``[chimerax.package-data]`` and ``[chimerax.extra-files]`` can be used to specify
+files to include in the distribution from within the source tree and from outside
+the source tree, respectively. ::
+
+    [chimerax.package-data]
+    "src/" = ["colorbrewer.json"]
+
+    [chimerax.extra-files]
+    "src/include/chutil" = ["core_cpp/chutil/*.h"]
+    "src/include/ioutil" = ["core_cpp/ioutil/*.h"]
+    "src/include/logger" = ["core_cpp/logger/*.h"]
+    "src/include/pysupport" = ["core_cpp/pysupport/*.h"]
+    "src/include/mac_util" = ["core_cpp/mac_util/*.h"]
+
+The general syntax is ``"target/directory" = ["list", "of", "source", "files"]``.
+
 Configuring Basic Metadata
 --------------------------
 The basic bundle metadata, such as the minimum and maximum supported session versions, bundle 
@@ -228,18 +246,18 @@ Or you can specify the one value you want like so: ::
 Finally, data formats with many openers can use TOML tables to declare many
 openers at the same time: ::
 
-    [chimerax.data-formats."web fetch"]
+    [chimerax.data-format."web fetch"]
     category = "I/O"
     
-    [[chimerax.data-formats."web fetch".open]]
+    [[chimerax.data-format."web fetch".open]]
     name = "http"
     type = "fetch"
     
-    [[chimerax.data-formats."web fetch".open]]
+    [[chimerax.data-format."web fetch".open]]
     name = "https"
     type = "fetch"
     
-    [[chimerax.data-formats."web fetch".open]]
+    [[chimerax.data-format."web fetch".open]]
     name = "ftp"
     type = "fetch"
 
@@ -251,9 +269,9 @@ At the most basic level, file saving can be enabled by setting
 ``save`` to ``true`` in the format's root table. When using a 
 boolean value, all the options below are set to their defaults. ::
 
-    [chimerax.data-format.]
-    compression_okay = true
-    is_default = true
+    [chimerax.data-format."ChimeraX session".save]
+    compression-okay = false
+    is-default = true
 
 Declaring Presets
 -----------------
@@ -380,7 +398,8 @@ extension is compiled.
 In the above example we wrote the metadata for the ``ioutil`` extension in ChimeraX.
 If instead we had written ::
 
-    [chimerax.extension.ioutil.macos]
+    [chimerax.extension.ioutil.platform.mac]
 
 The net effect would be an extension that is only compiled on macOS.
+
 .. TODO: A documentation tag
