@@ -56,7 +56,7 @@ class ChangeChainIDsDialog(ToolInstance):
         multi_widget.setLayout(multi_layout)
         self.chain_list = QListWidget()
         self.chain_list.setSelectionMode(self.chain_list.ExtendedSelection)
-        self.chain_list.setMaximumWidth(5 * self.chain_list.fontMetrics().averageCharWidth())
+        self.chain_list.setMaximumWidth(6 * self.chain_list.fontMetrics().averageCharWidth())
         multi_layout.addWidget(self.chain_list)
         self.widget_mapping = {}
         self.unused_widgets = []
