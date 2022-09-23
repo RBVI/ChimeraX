@@ -227,6 +227,7 @@ struct ExtractMolecule: public readcif::CIFFile
     // serial_num -> atom, alt_id for atom_site_anisotrop
     std::map <long, std::pair<Atom*, char>> atom_lookup;
     map<ChainID, string> chain_entity_map;  // [label_asym_id] -> entity_id
+    map<string, string> entity_description;  // entity_id: description
     struct ResidueKey {
         string entity_id;
         long seq_id;
@@ -429,6 +430,7 @@ ExtractMolecule::reset_parse()
     molecules.clear();
     atom_lookup.clear();
     chain_entity_map.clear();
+    entity_description.clear();
     all_residues.clear();
 #ifdef SHEET_HBONDS
     sheet_order.clear();
@@ -901,11 +903,17 @@ ExtractMolecule::finished_parse()
         all_molecules.push_back(m);
         m->metadata = generic_tables;
         m->use_best_alt_locs();
-#if 0
-        // Explicitly creating chains if they don't already exist, so
-        // the right information is copied to subsequent NMR models
-        (void) m->chains();
-#endif
+        auto& chains = m->chains();
+        for (auto& chain: chains) {
+            auto label_asym_id = chain->res_map().begin()->first->mmcif_chain_id();
+            auto cmi = chain_entity_map.find(label_asym_id);
+            if (cmi == chain_entity_map.end())
+                continue;
+            auto edi = entity_description.find(cmi->second);
+            if (edi == entity_description.end())
+                continue;
+            chain->set_description(edi->second);
+        }
     }
     reset_parse();
 }
@@ -2462,12 +2470,19 @@ ExtractMolecule::parse_entity()
     pv.reserve(2);
 
     string entity_id;
+    string description;
     char type;
 
     try {
         pv.emplace_back(get_column("id", Required),
             [&] (const char* start, const char* end) {
                 entity_id = string(start, end - start);
+            });
+        pv.emplace_back(get_column("pdbx_description"),
+            [&] (const char* start, const char* end) {
+                description = string(start, end - start);
+                if (description.size() == 1 && (description[0] == '?' || description[0] == '/'))
+                    description = "";
             });
         pv.emplace_back(get_column("type", Required),
             [&] (const char* start) {
@@ -2481,6 +2496,7 @@ ExtractMolecule::parse_entity()
     while (parse_row(pv)) {
         if (type != 'p' && type != 'P')
             non_poly.emplace(entity_id);
+        entity_description[entity_id] = description;
     }
 }
 
