@@ -195,7 +195,8 @@ class Task(State):
             self.update_state(FINISHED)
             # the non-blocking code path also has an on_finish()
             # call that executes asynchronously
-            self.session.ui.thread_safe(self.on_finish)
+            if self.launched_successfully:
+                self.session.ui.thread_safe(self.on_finish)
 
     def _cleanup(self):
         """Clean up after thread has ended.
@@ -209,24 +210,19 @@ class Task(State):
 
     def _run_thread(self, *args, **kw):
         blocking = kw.pop("blocking", False)
-        try:
-            self.run(*args, **kw)
-        except Exception:
-            preface = "Exception in thread"
-            if self.id:
-                preface += ' ' + str(self.id)
-            self.session.logger.report_exception(preface=preface,
-                                                 exc_info=sys.exc_info())
-        finally:
-            if self.terminating():
-                self.update_state(TERMINATED)
-            else:
-                self.update_state(FINISHED)
-        if not blocking:
+        self.run(*args, **kw)
+        if self.terminating():
+            self.update_state(TERMINATED)
+        else:
+            self.update_state(FINISHED)
+        if not blocking and self.launched_successfully:
             # the blocking code path also has an on_finish() call that executes immediately
             self.session.ui.thread_safe(self.on_finish)
 
     def exited_normally(self) -> bool:
+        return True
+
+    def launched_successfully(self) -> bool:
         return True
 
     @abc.abstractmethod
@@ -252,7 +248,6 @@ class Task(State):
     def __str__(self):
         return ("ChimeraX Task, ID %s" % self.id)
 
-
     def thread_safe_status(self, message):
         if self.session:
             status = self.session.logger.status
@@ -271,6 +266,11 @@ class Task(State):
             tsafe = self.session.ui.thread_safe
             tsafe(status, message)
 
+    def thread_safe_error(self, message):
+        if self.session:
+            status = self.session.logger.error
+            tsafe = self.session.ui.thread_safe
+            tsafe(status, message)
 
 class Job(Task):
     """

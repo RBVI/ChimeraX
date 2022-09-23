@@ -1,5 +1,5 @@
 <BundleInfo name="ChimeraX-PhenixUI" version="1.0.3"
-	    package="chimerax.phenix"
+	    package="chimerax.phenix_ui"
   	    minSessionVersion="1" maxSessionVersion="1">
 
   <Author>UCSF RBVI</Author>

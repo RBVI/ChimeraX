@@ -35,7 +35,11 @@ app-install: wheel
 
 install-editable: clean src/buildinfo.py src/commands/_atomspec.py
 	$(APP_BOOTSTRAP_PIP) uninstall --yes ChimeraX-Core
+ifeq ($(EDITABLE_MODE),strict)
+	$(APP_PYTHON_EXE) -m pip install --no-build-isolation --editable . --config-settings editable_mode=strict
+else
 	$(APP_PYTHON_EXE) -m pip install --no-build-isolation --editable .
+endif
 
 wheel: clean src/buildinfo.py src/commands/_atomspec.py
 	$(APP_PYTHON_EXE) -m build --no-isolation --wheel

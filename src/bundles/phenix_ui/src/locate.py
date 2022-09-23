@@ -13,9 +13,13 @@
 
 # ---------------------------------------------------------------------------------------
 #
-def find_phenix_command(session, program_name, phenix_location = None):
-    bin_dirs = ['bin', 'build/bin'] # for Python 3 / Python 2 Phenix respectively
-    settings = _phenix_settings(session)
+def find_phenix_command(session, program_name, phenix_location=None, *, from_root=False):
+    if from_root:
+        bin_dirs = ['.']
+    else:
+        bin_dirs = ['bin', 'build/bin'] # for Python 3 / Python 2 Phenix respectively
+    from .settings import get_settings
+    settings = get_settings(session)
     from os.path import isfile, isdir, join, expanduser
     from chimerax.core.errors import UserError
     if phenix_location is None:
@@ -61,22 +65,9 @@ def find_phenix_command(session, program_name, phenix_location = None):
 
 # ---------------------------------------------------------------------------------------
 #
-def _phenix_settings(session):
-    settings = getattr(session, '_phenix_settings', None)
-    if settings is None:
-        from chimerax.core.settings import Settings
-        class _PhenixSettings(Settings):
-            EXPLICIT_SAVE = {
-                'phenix_location': '',
-            }
-        settings = _PhenixSettings(session, 'phenix')
-        session._phenix_settings = settings
-    return settings
-
-# ---------------------------------------------------------------------------------------
-#
 def phenix_location(session, phenix_location = None):
-    settings = _phenix_settings(session)
+    from .settings import get_settings
+    settings = get_settings(session)
     if phenix_location is None:
         loc = settings.phenix_location
         if loc:
