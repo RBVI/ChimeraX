@@ -23,7 +23,7 @@ PYSIDE2_MACOS_REMOVE = PySide2/pyside2-lupdate \
 all:
 
 install:
-	LANG=$(LANG) $(PIP_INSTALL) -r build_requirements.txt
+	LANG=$(LANG) $(PIP_INSTALL) --no-build-isolation -r build_requirements.txt
 ifeq ($(OS),Darwin)
 	# Link cython in Python framework to build/bin, used compiling core/serialize.pyx.
 	ln -s ../Library/Frameworks/Python.Framework/Versions/$(PYTHON_VERSION)/bin/cython $(bindir)
@@ -36,12 +36,12 @@ app-list:
 	$(APP_PIP) list
 
 upgrade:
-	$(PIP_INSTALL) -U -r build_requirements.txt
+	$(PIP_INSTALL) -U --no-build-isolation -r build_requirements.txt
 
 app-install:
-	$(APP_PIP_INSTALL) -r app_requirements.txt
+	$(APP_PIP_INSTALL) --no-build-isolation -r app_requirements.txt
 ifdef DEV_DEPENDENCIES
-	$(APP_PIP_INSTALL) -r dev_requirements.txt
+	$(APP_PIP_INSTALL) --no-build-isolation -r dev_requirements.txt
 endif
 ifeq ($(OSARCH),DarwinArm64)
 	# Install the Conda versions of Python wheels for arm64 Mac

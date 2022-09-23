@@ -184,16 +184,22 @@ def cylinder_geometry(radius, height, nz, nc, caps):
     if not caps:
         return varray, tarray
 
-    vc = varray.shape[0]
-    varray.resize((vc+2*nc+2,3))
+
     # Duplicate end circle vertices so they can have different normals.
+    #
+    # NOTE: resize does not zero out the array on resize! It's fine
+    # here, we fill in the array. But we must make sure not to allow
+    # trash values through in future refactors.
+    from numpy import resize
+    vc = varray.shape[0]
+    varray = resize(varray, (vc+2*nc+2,3))
     varray[vc,:] = (0,0,-0.5*height)
     varray[vc+1:vc+1+nc,:] = varray[:nc,:]
     varray[vc+nc+1,:] = (0,0,0.5*height)
     varray[vc+nc+2:,:] = varray[(nz-1)*nc:nz*nc,:]
 
     tc = tarray.shape[0]
-    tarray.resize((tc+2*nc,3))
+    tarray = resize(tarray, (tc+2*nc,3))
     for i in range(nc):
         tarray[tc+i,:] = (vc,vc+1+(i+1)%nc,vc+1+i)
         tarray[tc+nc+i,:] = (vc+nc+1,vc+nc+2+i,vc+nc+2+(i+1)%nc)

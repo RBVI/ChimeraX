@@ -129,6 +129,7 @@ protected:
     bool  _active_coord_set_change_notify = true;
     CoordSet *  _active_coord_set;
     mutable bool  _alt_loc_change_notify = true;
+    mutable bool  _ss_change_notify = true;
     bool  _atom_types_notify = true;
     Atoms  _atoms;
     float  _ball_scale = 0.25;
@@ -221,6 +222,7 @@ public:
     bool  active_coord_set_change_notify() const { return _active_coord_set_change_notify; }
     CoordSet*  active_coord_set() const { return _active_coord_set; };
     bool  alt_loc_change_notify() const { return _alt_loc_change_notify; }
+    bool  ss_change_notify() const { return _ss_change_notify; }
     bool  asterisks_translated;
     const Atoms&  atoms() const { return _atoms; }
     float  ball_scale() const { return _ball_scale; }
@@ -315,6 +317,7 @@ public:
     void  set_active_coord_set_change_notify(bool cn) { _active_coord_set_change_notify = cn; }
     void  set_active_coord_set(CoordSet *cs);
     void  set_alt_loc_change_notify(bool cn) const { _alt_loc_change_notify = cn; }
+    void  set_ss_change_notify(bool cn) const { _ss_change_notify = cn; }
     void  set_ball_scale(float bs) {
         if (bs == _ball_scale) return;
         set_gc_shape(); _ball_scale = bs;

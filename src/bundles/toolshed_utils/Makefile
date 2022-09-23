@@ -45,6 +45,7 @@ wheel $(WHEEL): setup.py $(PYSRCS)
 	# $(PYTHON_EXE) setup.py --no-user-cfg test
 	$(PYTHON_EXE) setup.py --no-user-cfg bdist_wheel --python-tag py$(PYVER_NODOT)
 	rm -rf $(WHL_BNDL_NAME).egg-info
+	$(MAKE) sync
 
 install app-install: $(WHEEL)
 	$(PYTHON_EXE) -m pip uninstall --yes $(BUNDLE_NAME)

@@ -32,12 +32,21 @@ The <b>Water Placement</b> tool in ChimeraX:
 target="_blank">Phenix</a> program
 <a href="https://phenix-online.org/documentation/reference/douse.html"
 target="_blank"><i>douse</i></a> to place water molecules in cryo-EM density;
-the command-line implementation is <b>phenix douse</b>
+the command implementation is 
+<a href="../commands/phenix.html#douse"><b>phenix douse</b></a>
 <li>provides a graphical interface for inspecting and editing the results
 </ul>
 <p>
-Phenix must be installed locally and the 
-<b>PhenixUI</b> bundle installed in ChimeraX.
+<a href="https://phenix-online.org" target="_blank">Phenix</a>
+must be installed locally and the <b>PhenixUI</b> bundle installed in ChimeraX.
+The program location can be specified (saved in
+<a href="../preferences.html#other">preferences</a>) beforehand with the
+<a href="../commands/phenix.html"><b>phenix</b></a> command.
+If no location has been specified, however, ChimeraX will look for a folder
+name that starts with <b>phenix</b> in the user's home directory,
+and on Mac only, if none is found there, then in the system
+<b>/Applications</b> folder.
+</p><p>
 After the <i>douse</i> calculation completes, the resulting waters,
 as well as any that were already present in the atomic structure beforehand, 
 can be inspected individually for H-bonds and agreement with the density, 
@@ -64,21 +73,26 @@ An initial dialog will appear for choosing the atomic structure and map from
 menus of the available models, as well as other settings:
 </p>
 <ul>
-<li><b>First shell only</b> (initial default <b>on</b>) 
-&ndash; whether to place only waters that interact directly with the structure
-(not just with other waters)
-<li><b>Hide map far from waters</b> (initial default <b>on</b>) 
-<li><b>Map resolution</b> (initial default <b>3.0</b> &Aring;)
-(this option may not appear, depending on what version of Phenix is installed)
-<li><b>Map-hiding distance (angstroms)</b> (initial default <b>8.0</b> &Aring;)
-<li><b>Retain waters from input structure in generated structure</b> 
+<li><b>Keep waters from input structure</b> 
 (initial default <b>on</b>) 
 &ndash; whether to keep pre-existing waters instead of deleting them
+<li><b>First shell only</b> (initial default <b>on</b>) 
+&ndash; if keeping waters from the input structure, whether <i>douse</i>
+should ignore them; since <i>douse</i> only places waters near existing atoms, 
+ignoring pre-existing waters means that only waters that interact directly 
+with the rest of the structure (&ldquo;first shell&rdquo;) will be added.
+If this option is <b>off</b>, <i>douse</i> may place waters that interact 
+directly with pre-existing waters but not the rest of the structure.
+<li><b>Map resolution</b> (initial default <b>3.0</b> &Aring;)
+(this option may not appear, depending on what version of Phenix is installed)
+<li><b>Hide map far from waters</b> (initial default <b>on</b>) 
+<li><b>Map-hiding distance</b> (initial default <b>8.0</b> &Aring;)
+&ndash; what distance is considered far for map-hiding purposes
+<li><b>Show residues with atoms within this distance of waters</b> 
+(initial default <b>5.0</b> &Aring;)
 <li><b>Show full douse output in log</b> (initial default <b>off</b>)
 &ndash; whether to echo all <i>douse</i> messages to the 
 <a href="log.html"><b>Log</b></a>
-<li><b>Show residues with atoms within this distance of waters</b> 
-(initial default <b>5.0</b> &Aring;)
 </ul>
 <p>
 Clicking <b>OK</b> initiates the <i>douse</i> calculation.

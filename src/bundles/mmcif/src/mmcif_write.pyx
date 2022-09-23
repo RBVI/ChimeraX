@@ -84,7 +84,7 @@ def _same_chains(chain0, chain1):
     return c0 == c1
 
 
-def write_mmcif(session, path, *, models=None, rel_model=None, selected_only=False, displayed_only=False, fixed_width=True, best_guess=False, all_coordsets=False):
+def write_mmcif(session, path, *, models=None, rel_model=None, selected_only=False, displayed_only=False, fixed_width=True, best_guess=False, all_coordsets=False, computed_sheets):
     from chimerax.atomic import Structure
     if models is None:
         models = session.models.list(type=Structure)
@@ -121,7 +121,7 @@ def write_mmcif(session, path, *, models=None, rel_model=None, selected_only=Fal
             file_name = path.replace("[ID]", m.id_string).replace("[NAME]", m.name)
             with open(file_name, 'w', encoding='utf-8', newline='\r\n') as f:
                 f.write(MMCIF_PREAMBLE)
-                save_structure(session, f, [m], [xforms[m]], used_data_names, selected_only, displayed_only, fixed_width, best_guess, all_coordsets)
+                save_structure(session, f, [m], [xforms[m]], used_data_names, selected_only, displayed_only, fixed_width, best_guess, all_coordsets, computed_sheets)
         return
 
     # Need to figure out which ChimeraX models should be grouped together
@@ -129,13 +129,17 @@ def write_mmcif(session, path, *, models=None, rel_model=None, selected_only=Fal
     # "parent" id (other than blank) are a nmr ensemble.
     grouped = {}
     for m in models:
-        grouped.setdefault(m.id[:-1], []).append(m)
+        if m.id is None:
+            group = None
+        else:
+            group = m.id[:-1]
+        grouped.setdefault(group, []).append(m)
 
     # Go through grouped models and confirm they look like an NMR ensemble
     # This should catch fix for docking models and hierarchical models (IHM)
     is_ensemble = {}
     for g, models in grouped.items():
-        if len(models) == 1:
+        if len(models) == 1 or g is None:
             is_ensemble[g] = False
             continue
         chains = models[0].chains
@@ -146,10 +150,10 @@ def write_mmcif(session, path, *, models=None, rel_model=None, selected_only=Fal
         f.write(MMCIF_PREAMBLE)
         for g, models in grouped.items():
             if is_ensemble[g]:
-                save_structure(session, f, models, [xforms[m] for m in models], used_data_names, selected_only, displayed_only, fixed_width, best_guess, all_coordsets)
+                save_structure(session, f, models, [xforms[m] for m in models], used_data_names, selected_only, displayed_only, fixed_width, best_guess, all_coordsets, computed_sheets)
             else:
                 for m in models:
-                    save_structure(session, f, [m], [xforms[m]], used_data_names, selected_only, displayed_only, fixed_width, best_guess, all_coordsets)
+                    save_structure(session, f, [m], [xforms[m]], used_data_names, selected_only, displayed_only, fixed_width, best_guess, all_coordsets, computed_sheets)
 
 
 ChimeraX_audit_conform = mmcif.CIFTable(
@@ -244,7 +248,7 @@ def _save_metadata(model, categories, file, metadata):
     return printed
 
 
-def save_structure(session, file, models, xforms, used_data_names, selected_only, displayed_only, fixed_width, best_guess, all_coordsets):
+def save_structure(session, file, models, xforms, used_data_names, selected_only, displayed_only, fixed_width, best_guess, all_coordsets, computed_sheets):
     # save mmCIF data section for a structure
     # 'models' should only have more than one model if NMR ensemble
     # All 'models' should have the same metadata.
@@ -718,9 +722,11 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
         "end_label_comp_id",
         "end_label_asym_id",
         "end_label_seq_id",
+        "beg_auth_comp_id",
         "beg_auth_asym_id",
         "beg_auth_seq_id",
         "pdbx_beg_PDB_ins_code",
+        "end_auth_comp_id",
         "end_auth_asym_id",
         "end_auth_seq_id",
         "pdbx_end_PDB_ins_code",
@@ -753,8 +759,28 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
             id, ctype,
             beg_res.name, beg_asym, beg_seq,
             end_res.name, end_asym, end_seq,
-            beg_cid, beg_rnum, beg_rins,
-            end_cid, end_rnum, end_rins))
+            beg_res.name, beg_cid, beg_rnum, beg_rins,
+            end_res.name, end_cid, end_rnum, end_rins))
+
+    sheet_data = []
+    sheet = mmcif.CIFTable("struct_sheet", [
+        "id",
+        "number_strands"
+    ], sheet_data)
+
+    def sheet_entry(id, count):
+        sheet_data.append((id, count))
+
+    sheet_order_data = []
+    sheet_order = mmcif.CIFTable("struct_sheet_order", [
+        "sheet_id",
+        "range_id_1",
+        "range_id_2",
+        "sense",
+    ], sheet_order_data)
+
+    def sheet_order_entry(sheet_id, first, second, sense):
+        sheet_order_data.append((sheet_id, first, second, sense))
 
     sheet_range_data = []
     sheet_range = mmcif.CIFTable("struct_sheet_range", [
@@ -765,16 +791,17 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
         "end_label_comp_id",
         "end_label_asym_id",
         "end_label_seq_id",
-        "symmetry",
+        "beg_auth_comp_id",
         "beg_auth_asym_id",
         "beg_auth_seq_id",
         "pdbx_beg_PDB_ins_code",
+        "end_auth_comp_id",
         "end_auth_asym_id",
         "end_auth_seq_id",
         "pdbx_end_PDB_ins_code",
     ], sheet_range_data)
 
-    def sheet_range_entry(sheet_id, count, beg_res, end_res, symmetry="1_555"):
+    def sheet_range_entry(sheet_id, strand_num, beg_res, end_res):
         nonlocal sheet_range_data
         beg_asym, beg_seq = residue_info[beg_res]
         end_asym, end_seq = residue_info[end_res]
@@ -793,16 +820,17 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
         if not end_rins:
             end_rins = '?'
         sheet_range_data.append((
-            sheet_id, count,
+            sheet_id, strand_num,
             beg_res.name, beg_asym, beg_seq,
             end_res.name, end_asym, end_seq,
-            symmetry,
-            beg_cid, beg_rnum, beg_rins,
-            end_cid, end_rnum, end_rins))
+            beg_res.name, beg_cid, beg_rnum, beg_rins,
+            end_res.name, end_cid, end_rnum, end_rins))
 
     helix_count = 0
     strand_count = 0
     residues = best_m.residues
+    # use ChimeraX's secondary structure information
+    # which does not include sheets
     ssids = residues.secondary_structure_ids
     last_ssid = 0
     beg_res = None
@@ -820,7 +848,7 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
             elif beg_res.is_helix:
                 helix_count += 1
                 struct_conf_entry('HELX%d' % helix_count, "HELX_P", beg_res, end_res)
-            elif beg_res.is_strand:
+            elif not computed_sheets and beg_res.is_strand:
                 strand_count += 1
                 sheet_range_entry('?', strand_count, beg_res, end_res)
             beg_res = end_res = r
@@ -832,18 +860,50 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
         elif beg_res.is_helix:
             helix_count += 1
             struct_conf_entry('HELX%d' % helix_count, "HELX_P", beg_res, end_res)
-        elif beg_res.is_strand:
+        elif not computed_sheets and beg_res.is_strand:
             strand_count += 1
-            struct_conf_entry('STRN%d' % strand_count, "STRN_P", beg_res, end_res)
-
-    if helix_count:
-        struct_conf_type_data.append("HELX_P")
+            sheet_range_entry('?', strand_count, beg_res, end_res)
+    if computed_sheets:
+        # "best guess" case - guess at sheet information by running DSSP
+        with best_m.suppress_ss_change_notifications():
+            from chimerax.dssp import compute_ss
+            ss_data = compute_ss(best_m, return_values=True)
+            # helix_info = ss_data["helix_info"]
+            # if helix_info:
+            #     for (beg_res, end_res), htype in helix_info:
+            #         # Helix type is always HELX_P in current PDB entries
+            #         helix_count += 1
+            #         struct_conf_entry('HELX%d' % helix_count, "HELX_P", beg_res, end_res)
+            ss_sheets = ss_data["sheets"]
+            if ss_sheets:
+                ss_strands = ss_data["strands"]
+                strand_map = {}
+                for i, strands in enumerate(ss_sheets, start=1):
+                    sheet_id = f'S{i}'
+                    sheet_entry(sheet_id, len(strands))
+                    for j, strand in enumerate(strands, start=1):
+                        beg_res, end_res = ss_strands[strand]
+                        sheet_range_entry(sheet_id, j, beg_res, end_res)
+                        strand_map[strand] = (sheet_id, j)
+                ss_parallel = ss_data["strands_parallel"]
+                for (first, second) in ss_parallel:
+                    parallel = 'parallel' if ss_parallel[(first, second)] else 'anti-parallel'
+                    st1 = strand_map[first]
+                    st2 = strand_map[second]
+                    if st1[0] != st2[0]:
+                        print("old strand order:", st1, st2)
+                        continue
+                    sheet_order_entry(st1[0], st1[1], st2[1], parallel)
 
     struct_conf_data[:] = flattened(struct_conf_data)
     struct_conf.print(file, fixed_width=fixed_width)
     # struct_conf_type_data[:] = flattened(struct_conf_type_data)
     struct_conf_type.print(file, fixed_width=fixed_width)
     # del struct_conf_data, struct_conf, struct_conf_type_data, struct_conf_type  # not in cython
+    sheet_data[:] = flattened(sheet_data)
+    sheet.print(file, fixed_width=fixed_width)
+    sheet_order_data[:] = flattened(sheet_order_data)
+    sheet_order.print(file, fixed_width=fixed_width)
     sheet_range_data[:] = flattened(sheet_range_data)
     sheet_range.print(file, fixed_width=fixed_width)
     # del sheet_range_data, sheet_range  # not in cython

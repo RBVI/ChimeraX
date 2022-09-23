@@ -65,9 +65,14 @@ def cylinder_geometry(radius = 1, height = 1, nz = 2, nc = 10, caps = True,
         return varray, narray, tarray
 
     # Duplicate end rings to make sharp crease at cap edge.
+    #
+    # NOTE: resize does not zero out the array on resize! It's fine
+    # here, we fill in the array. But we must make sure not to allow
+    # trash values through in future refactors.
+    from numpy import resize
     vc = varray.shape[0]
-    varray.resize((vc+2*nc+2,3))
-    narray.resize((vc+2*nc+2,3))
+    varray = resize(varray, (vc+2*nc+2,3))
+    narray = resize(narray, (vc+2*nc+2,3))
     varray[vc:vc+nc,:] = varray[0:nc,:] # Copy circle
     varray[vc+nc,:] = (0,0,-0.5*height) # Center of circle
     varray[vc+nc+1:vc+2*nc+1,:] = varray[vc-nc:vc,:] # Copy circle
@@ -76,7 +81,7 @@ def cylinder_geometry(radius = 1, height = 1, nz = 2, nc = 10, caps = True,
     narray[vc+nc+1:,:] = (0,0,1)
 
     tc = tarray.shape[0]
-    tarray.resize((tc+2*nc,3))
+    tarray = resize(tarray, (tc+2*nc,3))
     for i in range(nc):
         tarray[tc+i,:] = (vc+nc,vc+(i+1)%nc,vc+i)
         tarray[tc+nc+i,:] = (vc+2*nc+1,vc+nc+1+i,vc+nc+1+(i+1)%nc)
