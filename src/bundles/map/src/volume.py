@@ -100,6 +100,11 @@ class Volume(Model):
 
   # ---------------------------------------------------------------------------
   #
+  def show_info(self):
+    return self.data.show_info()
+
+  # ---------------------------------------------------------------------------
+  #
   def message(self, text, **kw):
 
     if self.message_cb:
