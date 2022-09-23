@@ -79,36 +79,38 @@ The <a name="preset"><i>preset</i></a> can be:
 <a href="../tools/graphics.html" title="Graphics Toolbar">
 <img class="icon" border=1 src="../tools/shortcut-icons/simplelight.png"></a>
 &ndash; all three kinds of light, but no shadows
+(<a href="#simple">details...</a>)
 <li><b>full</b>
 <a href="../tools/graphics.html" title="Graphics Toolbar">
 <img class="icon" border=1 src="../tools/shortcut-icons/fulllight.png"></a>
 &ndash; all three kinds of light, key light with shadows,
 ambient lighting with shadowing from 64 directions
-(8 directions in <a href="../vr.html">virtual reality</a>)
+(8 in <a href="../vr.html">VR</a>)
+(<a href="#full">details...</a>)
 <li><b>soft</b>
 <a href="../tools/graphics.html" title="Graphics Toolbar">
 <img class="icon" border=1 src="../tools/shortcut-icons/softlight.png"></a>
 &ndash; ambient lighting only, ambient shadowing from 64 directions
-(8 directions in <a href="../vr.html">virtual reality</a>)
+(8 in <a href="../vr.html">VR</a>)
+(<a href="#soft">details...</a>)
   <ul>
-  <li>if appearance is smudgy, try <b>gentle</b> instead
+  <li>to decrease a sooty/smudgy appearance, try <b>gentle</b> instead
+and/or increase the multishadow directions, <i>e.g.</i> 
+<b>lighting <a href="#multishadow">multishadow</a> 512</b>
   <li>in general, however, ambient shadowing works better with
-  space-filling representations (<i>e.g.</i>, surfaces) 
-  than with sparser cartoons and sticks
+  space-filling representations such as surfaces 
+  than with more sparse representations such as cartoons and sticks
   </ul>
 <li><b>gentle</b> 
-&ndash; same as <b>soft</b> except tuned to emphasize larger indentations
-<!--
-<br>(same as <b>soft</b> except with
-<a href="#msMapSize"><b>msMapSize</b></a> 128 instead of 1024 and
-<a href="#msDepthBias"><b>msDepthBias</b></a> 0.05 instead of 0.01)
--->
+&ndash; same as <b>soft</b>, except tuned to emphasize larger indentations
+(<a href="#gentle">details...</a>)
 <li><b>flat</b> 
 <a href="../tools/graphics.html" title="Graphics Toolbar">
 <img class="icon" border=1 src="../tools/shortcut-icons/flat.png"></a>
-&ndash; ambient lighting only, no shadows, silhouettes on
+&ndash; ambient lighting only, no shadows, silhouettes <b>on</b>
+(<a href="#flat">details...</a>)
   <ul>
-  <li>for silhouettes off, use
+  <li>for silhouettes <b>off</b>, use
 <a href="../tools/graphics.html" title="Graphics Toolbar">
 <img class="icon" border=1 src="../tools/shortcut-icons/silhouette.png"></a>
 or <a href="graphics.html#silhouettes"><b>graphics silhouettes false</b></a>
@@ -342,7 +344,118 @@ when ambient shadowing is <a href="#multiShadow">enabled globally</a>
 (number of directions <i>N</i> &gt; 0).
 </blockquote>
 
+<a name="preset-details"></a>
+<p class="nav">
+[<a href="#top">back to top: lighting</a>]
+</p>
+<h3>Lighting Preset Details</h3>
+
+<a href="#preset" class="nounder">&bull;</a>
+<a name="simple"><b>default</b> or <b>simple</b></a>
+<a href="../tools/graphics.html" title="Graphics Toolbar">
+<img class="icon" border=1 src="../tools/shortcut-icons/simplelight.png"></a>
+&ndash; all three kinds of light, but no shadows:
+<blockquote><pre>
+Intensity: 1
+Direction: 0.577,-0.577,-0.577
+Color: 100,100,100
+Fill intensity: 0.5
+Fill direction: -0.2,-0.2,-0.959
+Fill color: 100,100,100
+Ambient intensity: 0.4
+Ambient color: 100,100,100
+Depth cue: 1, start 0.5, end 1, color 0,0,0
+Shadow: False (depth map size 2048, depth bias 0.005)
+Multishadows: 0 (max 1024, depth map size 1024, depth bias 0.01)
+</pre></blockquote>
+
+<a href="#preset" class="nounder">&bull;</a>
+<a name="full"><b>full</b></a>
+<a href="../tools/graphics.html" title="Graphics Toolbar">
+<img class="icon" border=1 src="../tools/shortcut-icons/fulllight.png"></a>
+&ndash; all three kinds of light, key light with shadows,
+ambient lighting with shadowing from 64 directions
+(8 in <a href="../vr.html">VR</a>):
+<blockquote><pre>
+Intensity: 0.7
+Direction: 0.577,-0.577,-0.577
+Color: 100,100,100
+Fill intensity: 0.3
+Fill direction: -0.2,-0.2,-0.959
+Fill color: 100,100,100
+Ambient intensity: 0.8
+Ambient color: 100,100,100
+Depth cue: 1, start 0.5, end 1, color 0,0,0
+Shadow: True (depth map size 2048, depth bias 0.005)
+Multishadows: 64 (max 1024, depth map size 1024, depth bias 0.01)
+  <a href="../vr.html">VR</a> Multishadows: 8 
+</pre></blockquote>
+
+<a href="#preset" class="nounder">&bull;</a>
+<a name="soft"><b>soft</b></a>
+<a href="../tools/graphics.html" title="Graphics Toolbar">
+<img class="icon" border=1 src="../tools/shortcut-icons/softlight.png"></a>
+&ndash; ambient lighting only, ambient shadowing from 64 directions
+(8 in <a href="../vr.html">VR</a>):
+<blockquote><pre>
+Intensity: 0
+Direction: 0.577,-0.577,-0.577
+Color: 100,100,100
+Fill intensity: 0
+Fill direction: -0.2,-0.2,-0.959
+Fill color: 100,100,100
+Ambient intensity: 1.5
+Ambient color: 100,100,100
+Depth cue: 1, start 0.5, end 1, color 0,0,0
+Shadow: False (depth map size 2048, depth bias 0.005)
+Multishadows: 64 (max 1024, depth map size 1024, depth bias 0.01)
+  <a href="../vr.html">VR</a> Multishadows: 8 
+</pre></blockquote>
+
+<a href="#preset" class="nounder">&bull;</a>
+<a name="gentle"><b>gentle</b></a>
+&ndash; same as <b>soft</b>, except tuned to emphasize larger indentations
+with <a href="#msMapSize"><b>msMapSize</b></a> <b>128</b> instead of 1024 and
+<a href="#msDepthBias"><b>msDepthBias</b></a> <b>0.05</b> instead of 0.01
+<blockquote><pre>
+Intensity: 0
+Direction: 0.577,-0.577,-0.577
+Color: 100,100,100
+Fill intensity: 0
+Fill direction: -0.2,-0.2,-0.959
+Fill color: 100,100,100
+Ambient intensity: 1.5
+Ambient color: 100,100,100
+Depth cue: 1, start 0.5, end 1, color 0,0,0
+Shadow: False (depth map size 2048, depth bias 0.005)
+Multishadows: 64 (max 1024, depth map size 128, depth bias 0.05)
+</pre></blockquote>
+
+<a href="#preset" class="nounder">&bull;</a>
+<a name="flat"><b>flat</b></a>
+<a href="../tools/graphics.html" title="Graphics Toolbar">
+<img class="icon" border=1 src="../tools/shortcut-icons/flat.png"></a>
+&ndash; ambient lighting only, no shadows
+(this preset also turns silhouettes <b>on</b>;
+for silhouettes <b>off</b>, use
+<a href="../tools/graphics.html" title="Graphics Toolbar">
+<img class="icon" border=1 src="../tools/shortcut-icons/silhouette.png"></a>
+or <a href="graphics.html#silhouettes"><b>graphics silhouettes false</b></a>):
+<blockquote><pre>
+Intensity: 0
+Direction: 0.577,-0.577,-0.577
+Color: 100,100,100
+Fill intensity: 0
+Fill direction: -0.2,-0.2,-0.959
+Fill color: 100,100,100
+Ambient intensity: 1.45
+Ambient color: 100,100,100
+Depth cue: 1, start 0.5, end 1, color 0,0,0
+Shadow: False (depth map size 2048, depth bias 0.005)
+Multishadows: 0 (max 1024, depth map size 1024, depth bias 0.01)
+</pre></blockquote>
+
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-August 2020</address>
+September 2022</address>
 </body></html>
