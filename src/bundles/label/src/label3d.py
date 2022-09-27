@@ -323,7 +323,7 @@ class ObjectLabels(Model):
         self.use_lighting = False
         Model.set_color(self, (255,255,255,255))	# Do not modulate texture colors
 
-        self._texture_width = 2048			# Pixels.
+        self._texture_width = 4096			# Pixels.
         self._texture_needs_update = True		# Has text, color, size, font changed.
         self._positions_need_update = True		# Has label position changed relative to atom?
         self._visibility_needs_update = True		# Does an atom hide require a label to hide?
@@ -560,6 +560,9 @@ class ObjectLabels(Model):
                 hr = h
             positions.append((x,y,w,h))
             x += w
+            if w > tw:
+                msg = f'Label width {w} exceeds maximum {tw} and will be clipped'
+                self.session.logger.warning(msg)
         th = y + hr	# Teture height in pixels
 
         # Create single image with packed label images
@@ -567,7 +570,7 @@ class ObjectLabels(Model):
         trgba = empty((th, tw, 4), uint8)
         for (x,y,w,h),rgba in zip(positions, images):
             h,w = rgba.shape[:2]
-            trgba[y:y+h,x:x+w,:] = rgba
+            trgba[y:y+h,x:x+w,:] = rgba[:,:tw,:]
 
         # Create texture coordinates for each label.
         tclist = []
