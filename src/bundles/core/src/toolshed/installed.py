@@ -565,12 +565,54 @@ def _get_installed_packages(d, logger):
         logger.warning("cannot get installed file list for %r" % d.project_name)
         return []
     packages = []
+    finder_file = None
     for row in csv.reader(d.get_metadata_lines(record_file)):
         if len(row) != 3:
             continue
         path = row[0]
+        if path.endswith('finder.py'):
+            finder_file = path
         if not path.endswith('/__init__.py'):
             continue
         parts = path.split('/')
         packages.append(tuple(parts[:-1]))
+    # If we looked at the RECORD file and didn't find any packages, then the
+    # bundle was probably installed in editable mode. Instead, we can list the
+    # source directory tree and add any directory that has an init.py to the
+    # list. While we add ALL packages to the installed packages list, for ChimeraX's
+    # purposes, things only really break if we don't know where our bundles are.
+    if not packages and "chimerax" in d.project_name.lower():
+        if not finder_file:
+            logger.warning("tried to get metadata for package installed in editable mode (%r) "
+                           "but could not find the package's finder file" % d.project_name)
+            return []
+        else:
+            # This is a pretty complex way of avoiding eval, but if we don't do it then
+            # any build system could throw whatever trash they wanted on the MAPPING
+            # line and we'd have an ACE vulnerability
+            import os
+            with open(os.path.join(d.location, finder_file)) as f:
+                for line in f:
+                    if line.startswith("MAPPING"):
+                        break
+                else:
+                    logger.warning("editable install likely broken; no mapping found for "
+                                   "bundle %r" % d.project_name)
+                    return []
+                # MAPPING = {'chimerax.XXXX': '/Some/path/to/a/folder'}
+                source_directory = line.split(':')[1].split('}')[0].strip().strip("'")
+                module_prefix = line.split(':')[0].split('{')[1].strip("'")
+                # We're going to replace 'src' with 'chimerax.xxxx' like we do to
+                # construct package arguments in Bundle Builder, so we need to filter
+                # out the beginnings of all the absolute paths we're about to get from
+                # os.walk
+                path_to_package = os.path.dirname(source_directory) + '/'
+                for dir_, _, files in os.walk(source_directory):
+                    if "__init__.py"  in files:
+                        packages.append(_directory_to_package(dir_, path_to_package, module_prefix))
     return packages
+
+def _directory_to_package(directory, base_directory, bundle_name) -> tuple:
+    bundle = bundle_name.replace('.', '/')
+    package = directory.replace(base_directory, "").replace("src", bundle)
+    return tuple(package.split('/'))

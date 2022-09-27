@@ -554,14 +554,14 @@ class BundleInfo:
             if tool_name == tinfo.name:
                 tool_info = tinfo
                 break
-        from ..errors import CancelOperation
+        from ..errors import CancelOperation, NotABug
         try:
             api = self._get_api(session.logger)
             ti = api._api_caller.start_tool(api, session, self, tool_info)
             if ti is not None:
                 ti.display(True)  # in case the instance is a singleton not currently shown
             return ti
-        except CancelOperation:
+        except (CancelOperation, NotABug):
             raise
         except Exception as e:
             raise ToolshedError(

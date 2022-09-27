@@ -84,7 +84,7 @@ def _same_chains(chain0, chain1):
     return c0 == c1
 
 
-def write_mmcif(session, path, *, models=None, rel_model=None, selected_only=False, displayed_only=False, fixed_width=True, best_guess=False, all_coordsets=False, computed_sheets):
+def write_mmcif(session, path, *, models=None, rel_model=None, selected_only=False, displayed_only=False, fixed_width=True, best_guess=False, all_coordsets=False, computed_sheets=False):
     from chimerax.atomic import Structure
     if models is None:
         models = session.models.list(type=Structure)
