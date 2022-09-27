@@ -85,7 +85,7 @@ def douse_needs_resolution(session, phenix_location=None):
         env_path = find_phenix_command(session, "phenix_env.sh", phenix_location, from_root=True)
         version_path = find_phenix_command(session, 'phenix.version')
         import subprocess
-        p = subprocess.run(env_path + " ; " + version_path, capture_output=True, shell=True)
+        p = subprocess.run(". " + env_path + " ; " + version_path, capture_output=True, shell=True)
         if p.returncode != 0:
             cmd = " ".join(args)
             out, err = p.stdout.decode("utf-8"), p.stderr.decode("utf-8")
@@ -112,8 +112,8 @@ def douse_needs_resolution(session, phenix_location=None):
                     raise UserError("Multiple 'release tag' fields in phenix.version output:\n%s"
                         % p.stdout.decode())
         if version is None or release is None:
-            raise UserError("Could not identify version and/or release tag in phenix.version output:%s"
-                % p.stdout.decode('utf-8'))
+            raise UserError("Could not identify version and/or release tag in phenix.version output "
+                "(running %s ; %s):%s" % (env_path, version_path, p.stdout.decode('utf-8')))
         _needs_resolution = not version.startswith("1.")
     return _needs_resolution
 
