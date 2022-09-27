@@ -11,8 +11,8 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-# ---------------------------------------------------------------------------------------
-#
+from chimerax.core.errors import UserError
+
 def find_phenix_command(session, program_name, phenix_location=None, *, from_root=False):
     if from_root:
         bin_dirs = ['.']
@@ -21,7 +21,6 @@ def find_phenix_command(session, program_name, phenix_location=None, *, from_roo
     from .settings import get_settings
     settings = get_settings(session)
     from os.path import isfile, isdir, join, expanduser
-    from chimerax.core.errors import UserError
     if phenix_location is None:
         if settings.phenix_location:
             for bin_dir in bin_dirs:
@@ -63,20 +62,15 @@ def find_phenix_command(session, program_name, phenix_location=None, *, from_roo
         settings.save()
         return cmd
 
-# ---------------------------------------------------------------------------------------
-#
 def phenix_location(session, phenix_location = None):
-    from .settings import get_settings
-    settings = get_settings(session)
-    if phenix_location is None:
-        loc = settings.phenix_location
-        if loc:
-            msg = f'Using Phenix installation {loc}'
-        else:
-            msg = 'No Phenix installation location set'
+    try:
+        cmd = find_phenix_command(session, "phenix_env.sh", from_root=True)
+    except UserError:
+        msg = "No Phenix installation found"
     else:
-        settings.phenix_location = phenix_location
-        settings.save()
-        msg = f'Using Phenix installation {phenix_location}'
-
-    session.logger.status(msg, log = True)
+        # remove trailing /./phenix_env.sh
+        import os.path
+        dot_path, env = os.path.split(cmd)
+        install_path, dot = os.path.split(dot_path)
+        msg = "Using Phenix installation %s" % install_path
+    session.logger.status(msg, log=True)
