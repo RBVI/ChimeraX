@@ -42,19 +42,3 @@ nicknames = ["dicom"]
 suffixes = [".dcm"]
 allow-directory = true
 open = { batch = true }
-
-[chimerax.tool."Blast Protein"]
-category = "Sequence"
-description = "Search PDB/NR/AlphaFold using BLAST"
-
-[chimerax.command.blastprotein]
-category = "Sequence"
-description = "Search PDB/NR/AlphaFold using BLAST"
-
-[chimerax.command.blastpdb]
-category = "Sequence"
-description = "Search PDB/NR/AlphaFold using BLAST"
-
-[chimerax.command."blastprotein pull"]
-category = "Sequence" 
-description = "Get results for a finished BlastProtein job"

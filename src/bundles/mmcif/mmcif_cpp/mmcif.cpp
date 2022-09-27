@@ -197,7 +197,7 @@ struct ExtractMolecule: public readcif::CIFFile
     virtual void data_block(const string& name);
     virtual void reset_parse();
     virtual void finished_parse();
-    void connect_polymer_pair(Residue* r0, Residue* r1, bool gap, bool nstd_okay);
+    void connect_polymer_pair(Residue* r0, Residue* r1, bool gap, bool nstd_okay, int model_num);
     void connect_residue_by_template(Residue* r, const tmpl::Residue* tr, int model_num);
     const tmpl::Residue* find_template_residue(const ResName& name, bool start = false, bool stop = false);
     void parse_audit_conform();
@@ -211,6 +211,7 @@ struct ExtractMolecule: public readcif::CIFFile
     void parse_struct_sheet_order();
     void parse_pdbx_struct_sheet_hbond();
 #endif
+    void parse_entity();
     void parse_entity_poly();
     void parse_entity_poly_seq();
     void parse_entry();
@@ -226,6 +227,7 @@ struct ExtractMolecule: public readcif::CIFFile
     // serial_num -> atom, alt_id for atom_site_anisotrop
     std::map <long, std::pair<Atom*, char>> atom_lookup;
     map<ChainID, string> chain_entity_map;  // [label_asym_id] -> entity_id
+    map<string, string> entity_description;  // entity_id: description
     struct ResidueKey {
         string entity_id;
         long seq_id;
@@ -276,6 +278,7 @@ struct ExtractMolecule: public readcif::CIFFile
         EntityPoly(bool nstd, PolymerType pt = PolymerType::PT_NONE): nstd(nstd), ptype(pt) {}
     };
     map<string /* entity_id */, EntityPoly> poly;
+    set<string /* entity_id */> non_poly;
     int first_model_num;
     string entry_id;
     tmpl::Molecule* my_templates;
@@ -334,6 +337,10 @@ ExtractMolecule::ExtractMolecule(PyObject* logger, const StringVector& generic_c
         [this] () {
             parse_pdbx_database_PDB_obs_spr();
         }, { "entry" });
+    register_category("entity",
+        [this] () {
+            parse_entity();
+        });
     register_category("entity_poly",
         [this] () {
             parse_entity_poly();
@@ -345,7 +352,7 @@ ExtractMolecule::ExtractMolecule(PyObject* logger, const StringVector& generic_c
     register_category("atom_site",
         [this] () {
             parse_atom_site();
-        }, { "entity_poly_seq" });
+        }, { "entity", "entity_poly_seq" });
     register_category("atom_site_anisotrop",
         [this] () {
             parse_atom_site_anisotrop();
@@ -423,6 +430,7 @@ ExtractMolecule::reset_parse()
     molecules.clear();
     atom_lookup.clear();
     chain_entity_map.clear();
+    entity_description.clear();
     all_residues.clear();
 #ifdef SHEET_HBONDS
     sheet_order.clear();
@@ -431,6 +439,7 @@ ExtractMolecule::reset_parse()
     entry_id.clear();
     generic_tables.clear();
     poly.clear();
+    non_poly.clear();
     if (my_templates) {
         delete my_templates;
         my_templates = nullptr;
@@ -498,7 +507,7 @@ ExtractMolecule::find_template_residue(const ResName& name, bool start, bool sto
 }
 
 void
-ExtractMolecule::connect_polymer_pair(Residue* r0, Residue* r1, bool gap, bool nstd_okay)
+ExtractMolecule::connect_polymer_pair(Residue* r0, Residue* r1, bool gap, bool nstd_okay, int model_num)
 {
     // Connect adjacent residues that have the same type
     // and have link & chief atoms (i.e., peptides and nucleotides)
@@ -560,7 +569,7 @@ ExtractMolecule::connect_polymer_pair(Residue* r0, Residue* r1, bool gap, bool n
         pdb_connect::find_nearest_pair(r0, r1, &a0, &a1);
         if (a0 == nullptr || a0->element() != Element::C || a0->name() != "CA") {
             // suppress warning for CA traces and when missing templates
-            if (!gap && tr0 && tr1)
+            if (model_num == first_model_num && !gap && tr0 && tr1)
                 logger::warning(_logger, "Expected gap or ", conn_type,
                                 r0->str(), " and ", r1->str());
         }
@@ -568,7 +577,7 @@ ExtractMolecule::connect_polymer_pair(Residue* r0, Residue* r1, bool gap, bool n
         a1 = pdb_connect::find_closest(a0, r1, nullptr, true);
         if (a1 == nullptr || a1->element() != Element::C || a1->name() != "CA") {
             // suppress warning for CA traces and when missing templates
-            if (!gap && tr0 && tr1)
+            if (model_num == first_model_num && !gap && tr0 && tr1)
                 logger::warning(_logger,
                                 "Expected gap or linking atom in ",
                                 r1->str(), " for ", r0->str());
@@ -723,8 +732,12 @@ ExtractMolecule::finished_parse()
         bool no_polymer = true;
         for (auto& chain: all_residues[model_num]) {
             ResidueMap& residue_map = chain.second;
+            if (residue_map.size() <= 1)
+                continue;
             auto ri = residue_map.begin();
             const string& entity_id = ri->first.entity_id;
+            if (non_poly.find(entity_id) != non_poly.end())
+                continue;
             if (poly.find(entity_id) == poly.end())
                 continue;
             const PolySeq* lastp = nullptr;
@@ -797,7 +810,7 @@ ExtractMolecule::finished_parse()
                         continue;
                     }
                     if (!previous.empty())
-                        connect_polymer_pair(previous[0], current[0], gap, nstd);
+                        connect_polymer_pair(previous[0], current[0], gap, nstd, model_num);
                     previous = std::move(current);
                     current.clear();
                     if (!lastp || lastp->seq_id != p.seq_id) {
@@ -818,7 +831,7 @@ ExtractMolecule::finished_parse()
                 if (auth_chain_id.empty())
                     auth_chain_id = r->chain_id();
                 if (!previous.empty() && !current.empty()) {
-                    connect_polymer_pair(previous[0], current[0], gap, nstd);
+                    connect_polymer_pair(previous[0], current[0], gap, nstd, model_num);
                     gap = false;
                 }
                 if (!current.empty()) {
@@ -833,7 +846,7 @@ ExtractMolecule::finished_parse()
             if (stop_residue != nullptr)
                 stop_residues.insert(stop_residue);
             if (!previous.empty() && !current.empty())
-                connect_polymer_pair(previous[0], current[0], gap, nstd);
+                connect_polymer_pair(previous[0], current[0], gap, nstd, model_num);
             if (has_poly_seq.find(entity_id) == has_poly_seq.end())
                 found_missing_poly_seq = true;
             else {
@@ -890,11 +903,17 @@ ExtractMolecule::finished_parse()
         all_molecules.push_back(m);
         m->metadata = generic_tables;
         m->use_best_alt_locs();
-#if 0
-        // Explicitly creating chains if they don't already exist, so
-        // the right information is copied to subsequent NMR models
-        (void) m->chains();
-#endif
+        auto& chains = m->chains();
+        for (auto& chain: chains) {
+            auto label_asym_id = chain->res_map().begin()->first->mmcif_chain_id();
+            auto cmi = chain_entity_map.find(label_asym_id);
+            if (cmi == chain_entity_map.end())
+                continue;
+            auto edi = entity_description.find(cmi->second);
+            if (edi == entity_description.end())
+                continue;
+            chain->set_description(edi->second);
+        }
     }
     reset_parse();
 }
@@ -1458,7 +1477,9 @@ ExtractMolecule::parse_atom_site()
             cur_auth_seq_id = auth_position;
             cur_chain_id = chain_id;
             cur_comp_id = residue_name;
-            if (has_poly_seq.find(entity_id) == has_poly_seq.end()) {
+            if (has_poly_seq.find(entity_id) == has_poly_seq.end()
+            && non_poly.find(entity_id) == non_poly.end()) {
+                // sequence not given in entity_poly_seq and not in a known non-polymeric entity
                 auto tr = find_template_residue(residue_name);
                 if (tr && tr->polymer_type() != PolymerType::PT_NONE) {
                     // only save polymer residues
@@ -2440,6 +2461,46 @@ ExtractMolecule::parse_pdbx_struct_sheet_hbond()
 #endif
 
 void
+ExtractMolecule::parse_entity()
+{
+    // keep track of non-polymer entities, so we don't try to connect them
+    // type must be one of "branched", "macrolide", "non-polymer", "polymer", "water"
+    // so only look at first letter
+    CIFFile::ParseValues pv;
+    pv.reserve(2);
+
+    string entity_id;
+    string description;
+    char type;
+
+    try {
+        pv.emplace_back(get_column("id", Required),
+            [&] (const char* start, const char* end) {
+                entity_id = string(start, end - start);
+            });
+        pv.emplace_back(get_column("pdbx_description"),
+            [&] (const char* start, const char* end) {
+                description = string(start, end - start);
+                if (description.size() == 1 && (description[0] == '?' || description[0] == '/'))
+                    description = "";
+            });
+        pv.emplace_back(get_column("type", Required),
+            [&] (const char* start) {
+                type = *start;
+            });
+    } catch (std::runtime_error& e) {
+        logger::warning(_logger, "Skipping entity category: ", e.what());
+        return;
+    }
+
+    while (parse_row(pv)) {
+        if (type != 'p' && type != 'P')
+            non_poly.emplace(entity_id);
+        entity_description[entity_id] = description;
+    }
+}
+
+void
 ExtractMolecule::parse_entity_poly()
 {
     CIFFile::ParseValues pv;
@@ -2449,7 +2510,6 @@ ExtractMolecule::parse_entity_poly()
     string type;
     bool nstd_monomer = false;
 
-    pv.reserve(4);
     try {
         pv.emplace_back(get_column("entity_id", Required),
             [&] (const char* start, const char* end) {

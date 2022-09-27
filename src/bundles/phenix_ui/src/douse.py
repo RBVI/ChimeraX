@@ -73,24 +73,48 @@ class DouseJob(Job):
 
 _needs_resolution = None
 def douse_needs_resolution(session, phenix_location=None):
+    # We could run "douse --show-defaults 3" to determine if the resolution parameter
+    # is needed, but unfortunately douse takes a minimum of 2 seconds to start up
+    # (and frequenty considerably longer on its first execution) due to overhead of
+    # the Phenix execution environment.  So, instead rely on phenix.version, which 
+    # only requires shell script execution, which is fast
     global _needs_resolution
     if _needs_resolution is None:
         # Find the phenix.douse executable
         from .locate import find_phenix_command
-        exe_path = find_phenix_command(session, 'phenix.douse', phenix_location)
-        args = [exe_path, "--show-defaults", "3"]
+        env_path = find_phenix_command(session, "phenix_env.sh", phenix_location, from_root=True)
+        version_path = find_phenix_command(session, 'phenix.version')
         import subprocess
-        p = subprocess.run(args, capture_output = True)
+        p = subprocess.run(". " + env_path + " ; " + version_path, capture_output=True, shell=True)
         if p.returncode != 0:
             cmd = " ".join(args)
             out, err = p.stdout.decode("utf-8"), p.stderr.decode("utf-8")
-            msg = (f'phenix.douse exited with error code {p.returncode}\n\n' +
+            msg = (f'phenix.version exited with error code {p.returncode}\n\n' +
                    f'Command: {cmd}\n\n' +
                    f'stdout:\n{out}\n\n' +
                    f'stderr:\n{err}')
             from chimerax.core.errors import UserError
             raise UserError(msg)
-        _needs_resolution = "resolution =" in p.stdout.decode("utf-8")
+        from chimerax.core.errors import UserError
+        version = release = None
+        for line in p.stdout.decode("utf-8").splitlines():
+            fields = line.strip().lower().split()
+            if len(fields) == 2 and fields[0] == "version:":
+                if version is None:
+                    version = fields[1]
+                else:
+                    raise UserError("Multiple 'version' fields in phenix.version output:\n%s"
+                        % p.stdout.decode())
+            if len(fields) == 3 and fields[0] == "release" and fields[1] == "tag:":
+                if release is None:
+                    release = fields[2]
+                else:
+                    raise UserError("Multiple 'release tag' fields in phenix.version output:\n%s"
+                        % p.stdout.decode())
+        if version is None or release is None:
+            raise UserError("Could not identify version and/or release tag in phenix.version output "
+                "(running %s ; %s):%s" % (env_path, version_path, p.stdout.decode('utf-8')))
+        _needs_resolution = not version.startswith("1.")
     return _needs_resolution
 
 command_defaults = {

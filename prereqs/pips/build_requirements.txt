@@ -12,3 +12,6 @@ Cython==0.29.32
 
 # Grako used to make _atomspec.py parser from _atomspec.peg in core/commands
 grako==3.16.5
+
+# Used to build lz4
+setuptools-scm==7.0.5

@@ -100,6 +100,7 @@ class _mmCIFioAPI(BundleAPI):
                         'selected_only': BoolArg,
                         'fixed_width': BoolArg,
                         'best_guess': BoolArg,
+                        'computed_sheets': BoolArg,
                     }
 
                 def save_args_widget(self, session):

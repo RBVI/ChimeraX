@@ -778,6 +778,7 @@ by incorporating alphabetical characters
 [&nbsp;<b>allCoordsets</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>fixedWidth</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>bestGuess</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>computedSheets</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 </blockquote>
 <p>
 Atomic coordinates and associated information can be saved in 
@@ -798,6 +799,14 @@ target="_blank">faster in ChimeraX</a>
 <li><b>bestGuess</b> (default <b>false</b>) 
 &ndash; whether to try to write polymer sequence information when it was
 missing from the input file, or the structure was built or modified by the user
+<li><b>computedSheets</b> (default <b>false</b>) 
+&ndash; although ChimeraX retains helix and strand assignments from input,
+it currently loses track of which strands are in the same sheets as each other. 
+This option specifies whether to run <a href="dssp.html"><b>dssp</b></a> 
+to recalculate strands and their sheet membership and to include that
+information in the output mmCIF. It does not affect secondary structure 
+assignments in the currently open structure, but the strand assignments in 
+the file may be different from those in the open structure.
 </ul>
 
 <a name="mol2"></a>
