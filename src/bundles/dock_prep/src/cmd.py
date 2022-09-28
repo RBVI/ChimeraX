@@ -93,18 +93,20 @@ def dock_prep_caller(session, structures, *, memorization=MEMORIZE_NONE, memoriz
         callback=None, **kw):
     """Supply 'memorize_name' if you want settings for your workflow to be separately memorizable from
        generic Dock Prep.  It should be a string descriptive of your workflow ("minimization", tool name,
-       etc.)
+       etc.) since it will also be used in dialog titles.
     """
     if nogui is None:
         nogui = session.in_script or not session.ui.is_gui
     if memorize_name:
         final_memorize_name = "%s dock prep" % memorize_name
+        process_name = memorize_name
     else:
-        final_memorize_name =  "dock prep"
+        final_memorize_name = process_name = "dock prep"
     state = {
         'steps': dock_prep_steps(session, memorization, final_memorize_name, **kw),
         'memorization': memorization,
         'memorize_name': final_memorize_name,
+        'process_name': process_name,
         'callback': callback,
         'structures': structures,
         'nogui': nogui,

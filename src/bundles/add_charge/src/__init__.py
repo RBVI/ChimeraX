@@ -24,4 +24,9 @@ class AddCharge_API(BundleAPI):
         from . import cmd
         cmd.register_command(logger)
 
+    @staticmethod
+    def start_tool(session, tool_name):
+        from .tool import AddChargeTool
+        return AddChargeTool(session, tool_name)
+
 bundle_api = AddCharge_API()
