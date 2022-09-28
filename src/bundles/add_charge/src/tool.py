@@ -13,10 +13,10 @@
 
 from chimerax.core.tools import ToolInstance
 
-class AddHTool(ToolInstance):
+class AddChargeTool(ToolInstance):
 
     SESSION_SAVE = False
-    help ="help:user/tools/addhydrogens.html"
+    #help ="help:user/tools/addhydrogens.html"
 
     def __init__(self, session, tool_name, *, dock_prep_info=None):
         ToolInstance.__init__(self, session, tool_name)
@@ -42,13 +42,14 @@ class AddHTool(ToolInstance):
                 hint.setHeight(hint.height()//2)
                 return hint
         structure_layout = QHBoxLayout()
-        structure_layout.addWidget(QLabel("Add hydrogens to:"), alignment=Qt.AlignRight)
+        structure_layout.addWidget(QLabel("Assign charges to:"), alignment=Qt.AlignRight)
         self.structure_list = ShortASList(session)
         structure_layout.addWidget(self.structure_list, alignment=Qt.AlignLeft)
         layout.addLayout(structure_layout)
         if dock_prep_info is not None:
-            self.structure_list.setEnabled(False)
             self.tool_window.title = "%s for %s" % (tool_name, dock_prep_info.process_name.capitalize())
+            self.structure_list.setEnabled(False)
+        """
         self.isolation = QCheckBox("Consider each model in isolation from all others")
         self.isolation.setChecked(True)
         layout.addWidget(self.isolation, alignment=Qt.AlignCenter)
@@ -132,19 +133,19 @@ class AddHTool(ToolInstance):
             "coordinates from the structure.  This means the residue name has to correspond to the\n"
             "component name in the dictionary.")
         options_layout.addWidget(self.template_checkbox, alignment=Qt.AlignCenter)
+        """
 
         from Qt.QtWidgets import QDialogButtonBox as qbbox
         bbox = qbbox(qbbox.Ok | qbbox.Cancel | qbbox.Help)
-        options_button = bbox.addButton("Options", qbbox.ActionRole)
-        options_button.clicked.connect(self._toggle_options)
-        bbox.accepted.connect(self.add_h)
+        bbox.accepted.connect(self.add_charges)
         bbox.rejected.connect(self.delete)
         from chimerax.core.commands import run
         bbox.helpRequested.connect(lambda *, run=run, ses=session: run(ses, "help " + self.help))
+        bbox.button(qbbox.Help).setEnabled(False)
         layout.addWidget(bbox)
         self.tool_window.manage(None)
 
-    def add_h(self):
+    def add_charges(self):
         from chimerax.core.errors import UserError
         self.tool_window.shown = False
         self.session.ui.processEvents()
