@@ -169,7 +169,10 @@ def segmentHingeApproximate(m0, m1, fraction=0.5, min_hinge_spacing=6, matrix="B
         from chimerax.sim_matrices import matrix_compatible
         from chimerax.match_maker.settings import defaults
         from chimerax.match_maker.match import align
-        ksdsspCache = set([m0, m1])
+        ksdsspCache = {
+				m0: (m0.residues.ss_ids, m0.residues.ss_types),
+				m1: (m1.residues.ss_ids, m1.residues.ss_types),
+		}
         parts = []
         atomMap = {}
         matrices = [
