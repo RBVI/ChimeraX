@@ -1055,7 +1055,10 @@ start_t = end_t;
         }
 
         case PDB::SEQRES: {
-            auto chain_id = ChainID(record.seqres.chain_id);
+            auto cid_ptr = record.seqres.chain_id;
+            if (*cid_ptr == ' ')
+                cid_ptr++;
+            auto chain_id = ChainID(cid_ptr);
             if (chain_id != seqres_cur_chain) {
                 seqres_cur_chain = chain_id;
                 seqres_cur_count = 0;
