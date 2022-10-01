@@ -27,6 +27,8 @@ def cmd_addcharge(session, residues, *, method=ChargeMethodArg.default_value,
     if not residues:
         raise UserError("No residues specified")
 
+    if standardize_residues == "none":
+        standardize_residues = []
     check_hydrogens(session, residues)
     add_charges(session, residues, method=method, status=session.logger.status,
         standardize_residues=standardize_residues)
@@ -60,13 +62,14 @@ def check_hydrogens(session, residues):
 
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register, Or, EmptyArg, EnumOf, IntArg, StringArg, ListOf
+    from chimerax.core.commands import NoneArg
     from chimerax.atomic import ResiduesArg
     from chimerax.atomic.struct_edit import standardizable_residues
     desc = CmdDesc(
         required = [('residues', Or(ResiduesArg, EmptyArg))],
         keyword = [
             ('method', ChargeMethodArg),
-            ('standardize_residues', ListOf(EnumOf(standardizable_residues))),
+            ('standardize_residues', Or(ListOf(EnumOf(standardizable_residues)),NoneArg)),
         ],
         synopsis = 'Add charges'
     )
