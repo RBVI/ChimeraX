@@ -34,7 +34,7 @@
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
     <ChimeraXClassifier>Command :: addcharge :: Structure Editing :: Add charges</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: addcharge nonstd :: Structure Editing :: Add charges to non-standard residues</ChimeraXClassifier>
-    <ChimeraXClassifier>Tool :: Add Charge :: Structure Editing :: Add partial charges to structure</ChimeraXClassifier>
+    <ChimeraXClassifier>Tool :: Add Charges :: Structure Editing :: Add partial charges to structure</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>
