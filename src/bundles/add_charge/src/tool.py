@@ -32,7 +32,7 @@ class AddChargeTool(ToolInstance):
 
         layout = QVBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(0)
+        layout.setSpacing(5)
         parent.setLayout(layout)
 
         from chimerax.atomic.widgets import AtomicStructureListWidget
@@ -43,15 +43,28 @@ class AddChargeTool(ToolInstance):
                 return hint
         structure_layout = QHBoxLayout()
         structure_layout.addWidget(QLabel("Assign charges to:"), alignment=Qt.AlignRight)
+        list_layout = QVBoxLayout()
+        structure_layout.addLayout(list_layout)
         self.structure_list = ShortASList(session)
-        structure_layout.addWidget(self.structure_list, alignment=Qt.AlignLeft)
+        list_layout.addWidget(self.structure_list, alignment=Qt.AlignLeft)
+        self.sel_restrict = QCheckBox("Also restrict to selection")
+        self.sel_restrict.setChecked(dock_prep_info is None)
+        list_layout.addWidget(self.sel_restrict, alignment=Qt.AlignCenter)
         layout.addLayout(structure_layout)
         if dock_prep_info is not None:
             self.tool_window.title = "%s for %s" % (tool_name, dock_prep_info.process_name.capitalize())
             self.structure_list.setEnabled(False)
+            self.sel_restrict.setHidden(True)
 
-        self.standardize_button = QCheckBox('"Standardize" certain residues:')
+        self.standardize_button = QCheckBox('"Standardize" certain residue types:')
         self.standardize_button.setChecked(True)
+        layout.addWidget(self.standardize_button)
+        std_text = QLabel("* selenomethionine (MSE) \N{RIGHTWARDS ARROW} methionine (MET)\n"
+            "* bromo-UMP (5BU) \N{RIGHTWARDS ARROW} UMP (U)\n"
+            "* methylselenyl-dUMP (UMS) \N{RIGHTWARDS ARROW} UMP (U)\n"
+            "* methylselenyl-dCMP (CSL) \N{RIGHTWARDS ARROW} CMP (C)")
+        std_text.setTextFormat(Qt.MarkdownText)
+        layout.addWidget(std_text)
 
         from Qt.QtWidgets import QDialogButtonBox as qbbox
         bbox = qbbox(qbbox.Ok | qbbox.Cancel | qbbox.Help)
@@ -68,47 +81,44 @@ class AddChargeTool(ToolInstance):
         self.tool_window.shown = False
         self.session.ui.processEvents()
         if not self.structures:
-            if self.dock_prep_info is None:
+            if self.dock_prep_info is None and self.structure_list.all_values:
                 self.tool_window.shown = True
-                raise UserError("No structures chosen for hydrogen addition.")
+                raise UserError("No structures chosen for charge addition.")
             self.delete()
             return
-        from chimerax.core.commands import run, concise_model_spec
-        cmd = "addh %s" % concise_model_spec(self.session, self.structures)
-        if not self.isolation.isChecked():
-            cmd += " inIsolation false"
-        if self.method_group.checkedButton() == self.steric_method:
-            cmd += " hbond false"
-        for res_name, widgets in self.prot_widget_lookup.items():
-            box, grp = widgets
-            if not grp.checkedButton().text().startswith("Residue-name-based"):
-                cmd += " use%sName false" % self.prot_arg_lookup[res_name].capitalize()
-        from .cmd import metal_dist_default
-        if self.metal_option.value != metal_dist_default:
-            cmd += " metalDist %g" % self.metal_option.value
-        if self.template_checkbox.isChecked():
-            cmd += " template true"
-        run(self.session, cmd)
+        standardize = self.standardize_button.isChecked()
+        sel_restrict = self.sel_restrict.isChecked()
+        from chimerax.atomic import AtomicStructures, selected_residues
+        if sel_restrict:
+            selected = selected_residues(self.session)
+            if not selected:
+                sel_restrict = False
+        from chimerax.core.commands import concise_model_spec
+        cmd = "addcharge %s standardize" % concise_model_spec(self.session, self.structures)
+        from chimerax.atomic.struct_edit import standardizable_residues
+        params = {
+            'standardize_residues': standardizable_residues if standardize else [],
+        }
+        self.session.logger.info("Closest equivalent command: <b>addcharge %s%s standardizeResidues %s</b>"
+            % (concise_model_spec(self.session, self.structures), " & sel" if sel_restrict else "",
+            ",".join(standardizable_residues) if standardize else "none"), is_html=True)
+        residues = AtomicStructures(self.structures).residues
+        if sel_restrict:
+            residues = residues.intersect(selected)
+            if not residues:
+                self.tool_window.shown = True
+                raise UserError("None of the selected residues are in the structures being assigned charges")
+        from .charge import add_standard_charges
+        non_std = add_standard_charges(self.session, residues=residues, **params)
+        #TODO: some kind of hydrogen check?
+        print("Non-standard:", non_std)
         self.delete()
         if self.dock_prep_info is not None:
             #TODO: continue dock prep call chain
             pass
-
-    def delete(self):
-        ToolInstance.delete(self)
 
     @property
     def structures(self):
         if self.dock_prep_info is None:
             return self.structure_list.value
         return self.dock_prep_info['structures']
-
-    def _protonation_res_change(self, res_name):
-        self.protonation_res_button.setText(res_name)
-        for box, grp in self.prot_widget_lookup.values():
-            box.setHidden(True)
-        box, grp = self.prot_widget_lookup[res_name]
-        box.setHidden(False)
-
-    def _toggle_options(self, *args, **kw):
-        self.options_area.setHidden(not self.options_area.isHidden())
