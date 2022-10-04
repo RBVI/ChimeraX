@@ -179,35 +179,35 @@ else
 	WSD=`cygpath -u "$WindowsSdkDir"`
 
 	export PATH="$VCT/bin/HostX64/x64:\
-	$WSD/bin/x64:\
-	$VSD/Team Tools/Performance Tools/x64:\
-	$VSD/Team Tools/Performance Tools:\
-	$WSD/bin/$WindowsSDKVersion/x64:\
-	$WSD/bin/x64:\
-	$VSD/Common7/Tools:\
-	$PATH"
+$WSD/bin/x64:\
+$VSD/Team Tools/Performance Tools/x64:\
+$VSD/Team Tools/Performance Tools:\
+$WSD/bin/$WindowsSDKVersion/x64:\
+$WSD/bin/x64:\
+$VSD/Common7/Tools:\
+$PATH"
 
 	export INCLUDE="$VCToolsInstallDir\\include;\
-	$VCToolsInstallDir\\atlmfc\\include;\
-	$WindowsSdkDir\\include\\$WindowsSDKVersion\\ucrt;\
-	$WindowsSdkDir\\include\\$WindowsSDKVersion\\shared;\
-	$WindowsSdkDir\\include\\$WindowsSDKVersion\\um;\
-	$WindowsSdkDir\\include\\$WindowsSDKVersion\\winrt;\
-	$WindowsSdkDir\\include\\$WindowsSDKVersion\\cppwinrt;\
-	$INCLUDE"
+$VCToolsInstallDir\\atlmfc\\include;\
+$WindowsSdkDir\\include\\$WindowsSDKVersion\\ucrt;\
+$WindowsSdkDir\\include\\$WindowsSDKVersion\\shared;\
+$WindowsSdkDir\\include\\$WindowsSDKVersion\\um;\
+$WindowsSdkDir\\include\\$WindowsSDKVersion\\winrt;\
+$WindowsSdkDir\\include\\$WindowsSDKVersion\\cppwinrt;\
+$INCLUDE"
 
 	export LIB="$VCToolsInstallDir\\lib\\$X64;\
-	$VCToolsInstallDir\\atlmfc\\lib\\$X64;\
-	$WindowsSdkDir\\lib\\$WindowsSDKLibVersion\\ucrt$X64;\
-	$WindowsSdkDir\\lib\\$WindowsSDKLibVersion\\um$X64;\
-	$LIB"
+$VCToolsInstallDir\\atlmfc\\lib\\$X64;\
+$WindowsSdkDir\\lib\\$WindowsSDKLibVersion\\ucrt$X64;\
+$WindowsSdkDir\\lib\\$WindowsSDKLibVersion\\um$X64;\
+$LIB"
 
 	export LIBPATH="$VCToolsInstallDir\\lib\\$X64;\
-	$VCToolsInstallDir\\atlmfc\\lib\\$X64;\
-	$VCToolsInstallDir\\lib\\x86\\store\\references\\$X64;\
-	$WindowsSdkDir\\UnionMetadata\\$WindowsSDKVersion;\
-	$WindowsSdkDir\\References\\$WindowsSDKVersion;\
-	$LIBPATH"
+$VCToolsInstallDir\\atlmfc\\lib\\$X64;\
+$VCToolsInstallDir\\lib\\x86\\store\\references\\$X64;\
+$WindowsSdkDir\\UnionMetadata\\$WindowsSDKVersion;\
+$WindowsSdkDir\\References\\$WindowsSDKVersion;\
+$LIBPATH"
 
 	unset DED VSD VCD FD WSD VCT
 fi
