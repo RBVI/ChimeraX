@@ -1314,7 +1314,7 @@ Structure::nonstd_res_names() const
 {
     std::set<ResName> nonstd;
     for (auto r: residues()) {
-        if (Sequence::rname3to1(r->name()) == 'X'
+        if ((r->polymer_type() == PT_NONE || Sequence::rname3to1(r->name()) == 'X')
         && Residue::std_solvent_names.find(r->name()) == Residue::std_solvent_names.end())
             nonstd.insert(r->name());
     }
