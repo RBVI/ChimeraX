@@ -12,7 +12,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - run: sudo apt-get update && sudo apt-get upgrade -y && ${PWD}/utils/set_up_ubuntu.sh
-      - run: make install-rbvi
+      - run: make install
         #      - run: tar -cvzf ChimeraX.tar.gz ChimeraX.app
         #      - name: Upload the Built ChimeraX
         #        uses: actions/upload-artifact@v3.1.0
@@ -29,13 +29,13 @@ jobs:
       - run: sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-*
       - run: dnf update -y && ${PWD}/utils/set_up_centos.sh
       - uses: actions/checkout@v3
-      - run: make -f Makefile.centos install-rbvi
+      - run: make -f Makefile.centos install
   # TODO: Build Generic Linux
   build-macos:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v3
-      - run: make install-rbvi
+      - run: make install
         # TODO: Notarize
         #      - run: tar -Jcvf ChimeraX.tar.xz ChimeraX.app
         #      - name: Upload the Built ChimeraX

@@ -42,7 +42,8 @@ See also: <a href="delete.html"><b>delete</b></a>,
 <a href="build.html"><b>build</b></a>,
 <a href="hbonds.html"><b>hbonds</b></a>,
 <a href="altlocs.html"><b>altlocs</b></a>,
-<a href="addcharge.html"><b>addcharge</b></a>
+<a href="addcharge.html"><b>addcharge</b></a>,
+<a href="dockprep.html"><b>dockprep</b></a>
 </p><p>
 Hydrogens are added to entire atomic model(s) 
 even if only parts of models are specified.
@@ -55,11 +56,13 @@ An attempt is made to preserve coloring schemes, coloring the added hydrogens
 <a href="colortables.html#element">by element</a> (white)
 and/or to match their bond partners.
 </p><p>
+<a name="hbond"></a>
 The <b>hbond</b> option (default <b>true</b>) controls 
 whether H-bond formation should also be considered.
 Considering H-bonds increases calculation time and may not
 produce a globally optimal network of H-bonds.
 </p><p>
+<a name="inIsolation"></a>
 The <b>inIsolation</b> option (default <b>true</b>) indicates using
 only the atoms within the same model. Otherwise,
 other models in the vicinity (except sibling submodels of the same model)
@@ -69,6 +72,7 @@ Sibling submodels of the same model (<i>e.g.</i>, #1.1, #1.2, #1.3, ...)
 are always treated in isolation from one another, even if this option is 
 <b>false</b>.
 </p><p>
+<a name="metalDist"></a>
 The <b>metalDist</b> option specifies a distance between a heavy atom X
 and metal ion M (default <b>3.95</b> &Aring;)
 within which to suppress adding a hydrogen to X
@@ -80,6 +84,7 @@ if both of the following also apply:
 <li>the X-H-M angle would be &gt;120&deg;
 </ul>
 <p>
+<a name="template"></a>
 The <b>template</b> option (default <b>false</b>) allows using idealized
 coordinates to discern <a href="../atomtypes.html">atom types</a> 
 in nonstandard residues, instead of their actual coordinates in the structure.
@@ -140,5 +145,5 @@ hydrogen addition will have no effect.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-August 2022</address>
+September 2022</address>
 </body></html>

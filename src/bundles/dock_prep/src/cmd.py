@@ -12,7 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.core.errors import UserError
-from chimerax.core.commands import CmdDesc, register, BoolArg, Or, EmptyArg, EnumOf, DynamicEnum
+from chimerax.core.commands import CmdDesc, register, BoolArg, Or, EmptyArg, EnumOf, DynamicEnum, ListOf
 from .prep import MEMORIZE_NONE, MEMORIZE_USE, MEMORIZE_SAVE
 
 # the args directly provided by DockPrep
@@ -58,6 +58,8 @@ def dock_prep_arg_info(session):
     info = { setting: BoolArg for setting in defaults }
     info['complete_side_chains'] = Or(BoolArg, EnumOf(('gly', 'ala')),
         DynamicEnum(session.rotamers.library_names))
+    from chimerax.atomic.struct_edit import standardizable_residues
+    info['standardize_residues'] = ListOf(EnumOf(standardizable_residues))
     return info
 
 def dock_prep_steps(session, memorization, memorize_name, **kw):

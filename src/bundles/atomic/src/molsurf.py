@@ -221,7 +221,7 @@ class MolecularSurface(Surface):
     
     def calculate_surface_geometry(self):
         '''Recalculate the surface if parameters have been changed.'''
-        if not self.vertices is None:
+        if self.vertices is not None and len(self.vertices) > 0:
             return              # Geometry already computed
 
         atoms = self.atoms

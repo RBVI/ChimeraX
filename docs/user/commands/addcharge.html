@@ -46,7 +46,8 @@ Amber/GAFF atom types as the <a href="../attributes.html">attributes</a>
 <b>charge</b> and <b>gaff_type</b>, respectively. 
 Explicit hydrogens must be present;
 they can be added beforehand with <a href="addh.html"><b>addh</b></a>.
-See also: <a href="coulombic.html"><b>coulombic</b></a>
+See also: <a href="coulombic.html"><b>coulombic</b></a>,
+<a href="dockprep.html"><b>dockprep</b></a>
 </p><p>
 The main <b>addcharge</b> command works on both standard and nonstandard
 residues, guessing net charges for the latter.
@@ -111,13 +112,14 @@ target="_blank">Amber parameter database</a>.
 by the main <b>addcharge</b> command or specified for a single
 residue type at a time with the <b>addcharge nonstd</b> subcommand.
 Monatomic ions are simply assigned their net charges. 
-The other nonstandard residues are assigned atomic partial charges and 
+<a name="method"></a>
+The remaining nonstandard residues are assigned atomic partial charges and 
 <a href="https://ambermd.org/antechamber/gaff.html#atomtype" 
 target="_blank">GAFF types</a> by 
 <a href="https://ambermd.org/antechamber/antechamber.html"
 target="_blank"><b>Antechamber</b></a>, which is included with ChimeraX.
-<a name="method"></a>
 The <b>method</b> of charge calculation can be either of the following:
+</p>
   <ul>
   <li><b>am1-bcc</b> (default) &ndash; semi-empirical (AM1) 
   with bond charge correction (BCC), parametrized to reproduce 
@@ -125,9 +127,10 @@ The <b>method</b> of charge calculation can be either of the following:
   <li><b>gasteiger</b> &ndash; iterative partial equalization of orbital
   electronegativity, a faster method based on atom types and connectivity
  </ul>
+<p>
 While both methods are much faster than <i>ab initio</i> calculations,
 the Gasteiger method is the faster and more approximate of the two.
-<p>
+</p><p>
 <b>Note</b>: Antechamber/GAFF are meant to handle most small organic molecules,
 but not metal complexes, inorganic compounds, or unstable species such as
 radicals, and may not work well on highly charged molecules.
@@ -156,5 +159,5 @@ Wang J, Wolf RM, Caldwell JW, Kollman PA, Case DA.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-August 2022</address>
+September 2022</address>
 </body></html>

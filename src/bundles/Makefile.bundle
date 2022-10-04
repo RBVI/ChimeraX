@@ -24,8 +24,9 @@ endif
 
 # Platform-dependent settings.  Should not need fixing.
 # For Windows, we assume Cygwin is being used.
-OS = $(patsubst CYGWIN_NT%,CYGWIN_NT,$(shell uname -s))
-ifeq ($(OS),CYGWIN_NT)
+OS	:= $(shell uname -s)
+SHORT_OS := $(shell uname -o)
+ifneq ($(filter $(SHORT_OS),Cygwin Msys),)
 APP_PYTHON_EXE = $(CHIMERAX_APP)/bin/python.exe -I
 PYMOD_EXT = pyd
 endif
@@ -48,12 +49,15 @@ PYSRCS = $(wildcard src/*.py)
 # Some bundles (e.g. chem_group) need to add to PYSRCS
 .SECONDEXPANSION:
 
-wheel:	bundle_info.xml $$(PYSRCS)
+wheel: $$(PYSRCS)
 	$(RUN) "devel build . exit true $(DEBUG_ARG) $(BUILD_ARGS)"
 
 # The space means install and app-install are the same
-install app-install: bundle_info.xml $$(PYSRCS)
+install app-install: $$(PYSRCS)
 	$(RUN) "devel install . user false exit true $(DEBUG_ARG) $(INSTALL_ARGS)"
+
+install-editable: 
+	$(RUN) "devel install . user false editable true exit true $(DEBUG_ARG) $(INSTALL_ARGS)"
 
 venv-install:
 ifndef VIRTUAL_ENV

@@ -29,21 +29,13 @@ class="clRight" title="User Guide Index"/></a>
 where an atomic structure contains multiple different positions for the
 same set of atoms. In PDB format, for example, alternate locations are
 indicated by a character identifier in column 17 of ATOM and HETATM records.
-<!-- examples 1hf4, 1crc, 1a0m, 5nn8 -->
-</p><p>
+<!-- examples 1hf4, 1crc, 1a0m, 5nn8, 4ez4 -->
 ChimeraX uses only one of the alternate locations at a time for display
 and for any calculations. For each contiguous (through-bond) set of atoms
 with alternate locations, the location used initially is that with
 the highest average atomic occupancy, then as a tie-breaker, the lowest
 average atomic B-factor, and if a  tie-breaker is still needed,
 by alphabetical order of the alternate location ID.
-</p><p>
-The <b>Altloc Explorer</b> can be started 
-from the <b>Structure Analysis</b> section of the 
-<b>Tools</b> menu and manipulated like other panels
-(<a href="../window.html#panels">more...</a>).
-It is also implemented as the command
-<a href="../commands/altlocs.html"><b>altlocs</b></a>.
 See also: <a href="rotamers.html"><b>Rotamers</b></a>,
 <a href="buildstructure.html"><b>Build Structure</b></a>,
 <a href="checkwaters.html"><b>Check Waters</b></a>,
@@ -51,14 +43,30 @@ See also: <a href="rotamers.html"><b>Rotamers</b></a>,
 <a href="changechains.html"><b>Change Chain IDs</b></a>,
 <a href="../attributes.html">attributes</a>
 </p><p>
+The <b>Altloc Explorer</b> can be started 
+from the <b>Structure Analysis</b> section of the 
+<b>Tools</b> menu and manipulated like other panels
+(<a href="../window.html#panels">more...</a>).
+It is also implemented as the command
+<a href="../commands/altlocs.html"><b>altlocs</b></a>.
+</p><p>
 The pulldown menu near the top of the dialog lists the current atomic models.
 Choosing a specific model lists any residues with alternate locations
 that it contains. Clicking the identifier of a residue with alternate
 locations focuses on that residue and displays its atoms, and the adjacent
 buttons can be used to change which ID (which location) is being used.
+</p><p>
+<a name="hbonds"></a>
+H-bonds are displayed as
+<a href="../pseudobonds.html">pseudobonds</a> unless
+<b>Show H-bonds</b> is turned off (initial default <b>on</b>).
+Clicking <b>H-bond parameters</b> opens a separate dialog with
+several of the calculation options that also appear in the
+<a href="hbonds.html"><b>H-Bonds</b></a> tool;
+clicking <b>Apply</b> recalculates the H-bonds accordingly.
 </p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-July 2022</address>
+September 2022</address>
 </body></html>

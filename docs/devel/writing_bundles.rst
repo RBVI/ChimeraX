@@ -290,3 +290,10 @@ Bundle Information XML Tags
 ChimeraX bundle information is stored in **bundle_info.xml**.
 Details of supported XML tags are found in
 :doc:`tutorials/bundle_info`.
+
+Using ``pyproject.toml`` for Bundles
+------------------------------------
+
+ChimeraX bundle information can optionally be stored in **pyproject.toml**.
+Details of that file are found in
+:doc:`tutorials/pyproject`

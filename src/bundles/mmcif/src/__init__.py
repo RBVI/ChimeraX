@@ -93,12 +93,14 @@ class _mmCIFioAPI(BundleAPI):
                 def save_args(self):
                     from chimerax.core.commands import BoolArg, ModelsArg, ModelArg
                     return {
+                        'all_coordsets': BoolArg,
                         'displayed_only': BoolArg,
                         'models': ModelsArg,
                         'rel_model': ModelArg,
                         'selected_only': BoolArg,
                         'fixed_width': BoolArg,
                         'best_guess': BoolArg,
+                        'computed_sheets': BoolArg,
                     }
 
                 def save_args_widget(self, session):

@@ -37,8 +37,8 @@ See also:
 <b>Structure Editing</b> section of the <b>Tools</b> menu and 
 manipulated like other panels (<a href="../window.html#panels">more...</a>).
 <p></p>
-The atomic model(s) to protonate should be chosen from the
-<b>Add hydrogens to:</b> list in the dialog.
+<b>Add hydrogens to</b>: The atomic model(s) to protonate
+should be chosen from the list.
 </p>
 <ul>
 <li><b>Consider each model in isolation from all others</b>
@@ -67,7 +67,7 @@ total H-bonding energy is not necessarily found.
 <p>
 Clicking the <b>Options</b> button shows/hides additional options:
 </p><p>
-<b>Protonation states</b> of certain ionizable sidechains can be specified.
+<b>Protonation states</b>:
 By default, if amino acids have standard residue names, each histidine
 sidechain will be protonated based on its local environment,
 whereas the sidechains of other residue types will be assigned
@@ -75,9 +75,10 @@ whereas the sidechains of other residue types will be assigned
 reasonable at physiological pH, regardless of the local
 environment: negative aspartic acid and glutamic acid,
 positive arginine and lysine, and neutral cysteine and tyrosine.
-Alternative protonation states of histidine, aspartic acid, cysteine,
-glutamic acid, and lysine can be specified interactively or
-with special residue names in the input coordinate file:
+However, alternative protonation states of certain amino acids
+can be specified by changing their residue names beforehand 
+(with <a href="../commands/setattr.html"><b>setattr</b></a>
+or by text-editing the input structure file):
 <ul>
 <li>Choices for <b>histidine</b>:
   <ul>
@@ -143,7 +144,7 @@ The idealized coordinates are looked up by residue name
 in the <a href="https://www.wwpdb.org/data/ccd" target="_blank">PDB
 Chemical Component Dictionary</a>. This option is useful
 for structures with poorly (structurally) determined ligands that could be
-mis-typed, potentially causing addition of the wrong number of hydrogens or
+mistyped, potentially causing addition of the wrong number of hydrogens or
 hydrogens in incorrect positions.
 </ul>
 <p>
@@ -263,7 +264,7 @@ obtained by adding the covalent bond radii of elements X and H.
 <h3>Recommended Alternative: Reduce</h3>
 <p>
 When a more intensive approach is desired, the program
-<a href="https://kinemage-site.herokuapp.com/software/reduce/"
+<a href="http://molprobity.biochem.duke.edu/help/reduce_guide/reduce_guide.html"
 target="_blank"><b>Reduce</b></a> provided as part of
 <a href="http://molprobity.biochem.duke.edu/" 
 target="_blank"><b>MolProbity</b></a> is a good alternative.

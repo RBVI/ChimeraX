@@ -33,7 +33,7 @@ Bundles may want to be able to react to various kinds of events, such as new mod
 being opened, or the graphics window background coloring changing.  When such events
 occur, a "trigger" will be fired, and functions that have been registered with the
 trigger will be executed and given data related to the trigger.  The nuts and bolts of
-how to register for a trigger is described in :doc:`bundles/core/triggerset`.  Information
+how to register for a trigger is described in :doc:`bundles/core/src/triggerset`.  Information
 about where widely-used triggers can be found, their names, and what data they provide
 can be found in :doc:`well_known_triggers`.
 
@@ -43,17 +43,17 @@ Modules
 .. toctree::
     :maxdepth: 1
 
-    bundles/core/commands/commands.rst
+    bundles/core/src/commands/commands.rst
 
-    bundles/core/data_events.rst
+    bundles/core/src/data_events.rst
 
-    bundles/core/objects.rst
+    bundles/core/src/objects.rst
 
-    bundles/core/session.rst
+    bundles/core/src/session.rst
 
-    bundles/core/triggerset.rst
+    bundles/core/src/triggerset.rst
 
-    bundles/core/scripting.rst
+    bundles/core/src/scripting.rst
 
 Structure-related Modules
 ~~~~~~~~~~~~~~~~~~~~~~~~~

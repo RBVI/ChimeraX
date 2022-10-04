@@ -83,7 +83,8 @@ exclude_patterns = ['_build',
 		    'tutorials/build_test_distribute.rst',
 		    'tutorials/outline.rst',
 		    'tutorials/references.rst',
-		    'tutorials/src.rst']
+		    'tutorials/src.rst',
+		    'bundles/*/build']
 
 # The reST default role (used for this markup: `text`) to use for all documents.
 #default_role = None
@@ -289,6 +290,7 @@ intersphinx_mapping = {
     'python': ('https://docs.python.org/PYTHON_VERSION', None),
     'scipy': ('https://docs.scipy.org/doc/scipy/reference/', None),
     'sphinx': ('https://www.sphinx-doc.org/en/master', None),
+    'setuptools': ('https://setuptools.readthedocs.io/en/latest/', None),
 }
 
 # -- Options for extlinks --------------------------------------------

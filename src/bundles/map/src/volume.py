@@ -16,7 +16,6 @@
 # Holds surface and image rendering thresholds, color, and transparency and brightness
 # factors.
 #
-
 from chimerax.core.models import Model
 class Volume(Model):
   '''
@@ -99,80 +98,10 @@ class Volume(Model):
 
     self.model_panel_show_expanded = False	# Don't show submodels initially in model panel
 
-  @classmethod
-  def _from_grid_data(cls, grid_data, session, style = 'auto',
-                            open_model = True, model_id = None, show_dialog = True):
-    '''
-    Supported API.
-    Create a new :class:`.Volume` model from a :class:`~.data.GridData` instance and set its initial
-    display style and color and add it to the session open models.
-
-    Parameters
-    ----------
-    grid_data : :class:`~.data.GridData`
-      Use this GridData to create the Volume.
-    session : :class:`~chimerax.core.session.Session`
-      The session that the Volume will belong to.
-    style : 'auto', 'surface', 'mesh' or 'image'
-      The initial display style.
-    open_model : bool
-      Whether to add the Volume to the session open models.
-    model_id : tuple of integers
-      Model id for the newly created Volume.
-      It is an error if the specifid id equals the id of an existing model.
-    show_dialog : bool
-      Whether to show the Volume Viewer user interface panel.
-
-    Returns
-    -------
-    volume : the created :class:`.Volume`
-    '''
-
-    set_data_cache(grid_data, session)
-
-    ds = default_settings(session)
-    ro = ds.rendering_option_defaults()
-    if getattr(grid_data, 'polar_values', None):
-      ro.flip_normals = True
-      ro.cap_faces = False
-    if hasattr(grid_data, 'initial_rendering_options'):
-      for oname, ovalue in grid_data.initial_rendering_options.items():
-        setattr(ro, oname, ovalue)
-
-    # Create volume model
-    d = data_already_opened(grid_data.path, grid_data.grid_id, session)
-    if d:
-      grid_data = d
-
-    v = cls(session, grid_data, rendering_options = ro)
-
-    # Set display style
-    if style == 'auto':
-      # Show single plane data in image style.
-      single_plane = [s for s in grid_data.size if s == 1]
-      style = 'image' if single_plane else 'surface'
-    if style is not None:
-      v._style_when_shown = style
-
-    if grid_data.rgba is None:
-      set_initial_volume_color(v, session)
-
-    if not model_id is None:
-      if session.models.have_id(model_id):
-        from chimerax.core.errors import UserError
-        raise UserError('Tried to create model #%s which already exists'
-                        % '.'.join('%d'%i for i in model_id))
-
-      v.id = model_id
-
-    if open_model:
-      session.models.add([v])
-
-    if show_dialog:
-      show_volume_dialog(session)
-
-    return v
-
+  # ---------------------------------------------------------------------------
+  #
+  def show_info(self):
+    self.data.show_info()
 
   # ---------------------------------------------------------------------------
   #
@@ -2233,19 +2162,19 @@ class VolumeSurface(Surface):
     va, na, ta, hidden_edges, matrix, level, rendering_options = result
     self._set_surface(va, na, ta, hidden_edges)
     self._set_appearance(rendering_options)
-    
+
     show_status = (matrix.size >= self._min_status_message_voxels)
     if show_status:
       v = self.volume
       v.message('Calculated %s surface, level %.3g, with %d triangles'
                    % (v.data.name, level, len(ta)), blank_after = 3.0)
-    
+
   # ---------------------------------------------------------------------------
   #
   def _calculate_contour_surface_threaded(self, matrix, level, rendering_options):
     va, na, ta, hidden_edges = self._calculate_contour_surface(matrix,level, rendering_options)
     return va, na, ta, hidden_edges, matrix, level, rendering_options
-  
+
   # ---------------------------------------------------------------------------
   #
   def _calculate_contour_surface(self, matrix, level, rendering_options):
@@ -2270,7 +2199,7 @@ class VolumeSurface(Surface):
                                                              rendering_options, level)
 
     return va, na, ta, hidden_edges
-      
+
   # ---------------------------------------------------------------------------
   #
   def _adjust_surface_geometry(self, varray, narray, tarray, rendering_options, level):
@@ -2299,7 +2228,7 @@ class VolumeSurface(Surface):
       _map.principle_plane_edges(varray, tarray, hidden_edges)
     else:
       hidden_edges = None
-      
+
     if ro.surface_smoothing:
       sf, si = ro.smoothing_factor, ro.smoothing_iterations
       from chimerax.surface import smooth_vertex_positions
@@ -2315,7 +2244,7 @@ class VolumeSurface(Surface):
   # ---------------------------------------------------------------------------
   #
   def _set_surface(self, va, na, ta, hidden_edges):
-    
+
     self.set_geometry(va, na, ta, edge_mask = hidden_edges)
 
     # TODO: Clip cap offset for different contour levels is not related to voxel size.
@@ -2353,7 +2282,7 @@ class VolumeSurface(Surface):
 #     else:
 #       bmode = self.SRC_1_DST_1_MINUS_ALPHA
 #     self.transparencyBlendMode = bmode
-      
+
   # ---------------------------------------------------------------------------
   #
   def _geometry_changed(self, rendering_options):
@@ -2407,7 +2336,7 @@ class VolumeSurface(Surface):
       if len(s.vertices) == len(vc):
         s.vertex_colors = vc
     return s
-      
+
 # -----------------------------------------------------------------------------
 #
 def maps_pickable(session, pickable):
@@ -2443,7 +2372,7 @@ class PickedMap(Pick):
     m.selected = sel
     for s in m.surfaces:
       s.selected = sel
-    
+
 # -----------------------------------------------------------------------------
 #
 class OutlineBox:
@@ -2453,7 +2382,7 @@ class OutlineBox:
     self._volume = volume
     self._drawing = None		# Child of volume
     self._settings = {}			# Settings from last draw.
-    
+
   # ---------------------------------------------------------------------------
   # The center and planes option are for orthoplane outlines.
   #
@@ -2477,24 +2406,24 @@ class OutlineBox:
       settings['offset'] = ro.tilted_slab_offset
       settings['spacing'] = ro.tilted_slab_spacing
       settings['plane_count'] = ro.tilted_slab_plane_count
-      
+
     if settings == self._settings:
       return
     self._settings = settings
-    
+
     if ortho:
       vertices, triangles, edge_mask = self._orthoplanes_outline()
     elif slab:
       vertices, triangles, edge_mask = self._tilted_slab_outline()
     else:
       vertices, triangles, edge_mask = self._box_outline()
-      
+
     self._make_box(rgb, linewidth, vertices, triangles, edge_mask)
 
   # ---------------------------------------------------------------------------
   #
   def _box_outline(self):
-    
+
     vlist = self._settings['corners']
     tlist = ((0,4,5), (5,1,0), (0,2,6), (6,4,0),
              (0,1,3), (3,2,0), (7,3,1), (1,5,7),
@@ -2559,7 +2488,7 @@ class OutlineBox:
     d.edge_mask = edge_mask
     rgba = tuple(rgb) + (1,)
     d.color = tuple(int(255*r) for r in rgba)
-    
+
   # ---------------------------------------------------------------------------
   #
   def _plane_outlines(self, corners, center, planes, vlist, tlist):
@@ -2612,13 +2541,13 @@ class OutlineBox:
     d = self._drawing
     if d is None:
       return
-    
+
     if not d.was_deleted:
       self._volume.remove_drawing(d)
 
     self._drawing = None
     self._settings = {}
-      
+
 # -----------------------------------------------------------------------------
 # Compute scale factor f minimizing norm of (f*v + u) over domain v >= level.
 #
@@ -2641,9 +2570,9 @@ def minimum_rms_scale(v, u, level):
     f = 1
   else:
     f = -vcu/vcvc
-    
+
   return f
-  
+
 # -----------------------------------------------------------------------------
 #
 def same_grid(v1, region1, v2, region2):
@@ -2652,7 +2581,7 @@ def same_grid(v1, region1, v2, region2):
           v1.data.ijk_to_xyz_transform.same(v2.data.ijk_to_xyz_transform) and
           v1.model_transform().same(v2.model_transform()))
   return same
-    
+
 # -----------------------------------------------------------------------------
 # Remember visited subregions.
 #
@@ -2683,7 +2612,7 @@ class Region_List:
       return
     rlist.insert(ni, ijk_min_max)
     self.trim_list()
-    
+
   # ---------------------------------------------------------------------------
   #
   def trim_list(self):
@@ -3023,7 +2952,7 @@ def limit_voxels(voxel_count, ijk_step, limit_voxel_count, mvoxel_limit):
 
     if mvoxel_limit == None:
       return ijk_step
-    
+
     voxel_limit = int(mvoxel_limit * (2 ** 20))
     if voxel_limit < 1:
       return ijk_step
@@ -3043,7 +2972,7 @@ def limit_voxels(voxel_count, ijk_step, limit_voxel_count, mvoxel_limit):
       if voxel_count(new_step) > voxel_limit:
         break
       step = new_step
-    
+
     return step
 
 # ---------------------------------------------------------------------------
@@ -3124,7 +3053,7 @@ class cycle_through_planes:
     session.triggers.add_handler('new frame', self.handler)
 
   def next_plane_cb(self, *_):
-    
+
     p = self.plane
     if self.step * (self.plast - p) >= 0:
       self.plane += self.step
@@ -3273,7 +3202,7 @@ def transformed_points(points, tf):
   tf_points = array(points, floatc)
   tf.transform_points(tf_points, in_place = True)
   return tf_points
-    
+
 # -----------------------------------------------------------------------------
 #
 def saturate_rgba(rgba):
@@ -3346,7 +3275,7 @@ def map_from_periodic_map(grid, ijk_min, ijk_max):
             for ic in range(cell_min[0], cell_max[0]+1):
                 ijkc = (ic,jc,kc)
                 ijk0 = [max(a*c,b)-b for a,b,c in zip(ijkc, ijk_min, gsize)]
-                ijk1 = [min((a+1)*c,b+1)-d for a,b,c,d in 
+                ijk1 = [min((a+1)*c,b+1)-d for a,b,c,d in
                         zip(ijkc, ijk_max, gsize, ijk_min)]
                 size = [a-b for a,b in zip(ijk1, ijk0)]
                 origin = [max(0, b-a*c) for a,b,c in zip(ijkc, ijk_min, gsize)]
@@ -3396,7 +3325,7 @@ def open_volume_file(path, session, format = None, name = None, style = 'auto',
   if not show_data:
     for v in vlist:
       v.display = False
-      
+
   return vlist
 
 # -----------------------------------------------------------------------------
@@ -3430,7 +3359,80 @@ def data_cache(session):
 # -----------------------------------------------------------------------------
 # Open and display a map using Volume Viewer.
 #
-volume_from_grid_data = Volume._from_grid_data
+def volume_from_grid_data(grid_data, session, style = 'auto',
+                          open_model = True, model_id = None, show_dialog = True):
+  '''
+  Supported API.
+  Create a new :class:`.Volume` model from a :class:`~.data.GridData` instance and set its initial
+  display style and color and add it to the session open models.
+
+  Parameters
+  ----------
+  grid_data : :class:`~.data.GridData`
+    Use this GridData to create the Volume.
+  session : :class:`~chimerax.core.session.Session`
+    The session that the Volume will belong to.
+  style : 'auto', 'surface', 'mesh' or 'image'
+    The initial display style.
+  open_model : bool
+    Whether to add the Volume to the session open models.
+  model_id : tuple of integers
+    Model id for the newly created Volume.
+    It is an error if the specifid id equals the id of an existing model.
+  show_dialog : bool
+    Whether to show the Volume Viewer user interface panel.
+
+  Returns
+  -------
+  volume : the created :class:`.Volume`
+  '''
+
+  set_data_cache(grid_data, session)
+
+  ds = default_settings(session)
+  ro = ds.rendering_option_defaults()
+  if getattr(grid_data, 'polar_values', None):
+    ro.flip_normals = True
+    ro.cap_faces = False
+  if hasattr(grid_data, 'initial_rendering_options'):
+    for oname, ovalue in grid_data.initial_rendering_options.items():
+      setattr(ro, oname, ovalue)
+
+  # Create volume model
+  d = data_already_opened(grid_data.path, grid_data.grid_id, session)
+  if d:
+    grid_data = d
+
+  v = Volume(session, grid_data, rendering_options = ro)
+
+  # Set display style
+  if style == 'auto':
+    # Show single plane data in image style.
+    single_plane = [s for s in grid_data.size if s == 1]
+    style = 'image' if single_plane else 'surface'
+  if style is not None:
+    v._style_when_shown = style
+
+  if grid_data.rgba is None:
+    if not any_volume_open(session):
+      _reset_color_sequence(session)
+    set_initial_volume_color(v, session)
+
+  if not model_id is None:
+    if session.models.have_id(model_id):
+      from chimerax.core.errors import UserError
+      raise UserError('Tried to create model #%s which already exists'
+                      % '.'.join('%d'%i for i in model_id))
+
+    v.id = model_id
+
+  if open_model:
+    session.models.add([v])
+
+  if show_dialog:
+    show_volume_dialog(session)
+
+  return v
 
 # -----------------------------------------------------------------------------
 #
@@ -3451,10 +3453,10 @@ def show_when_opened(v, show_on_open, max_voxels):
 
   if not show_on_open:
     return False
-  
+
   if max_voxels == None:
     return False
-  
+
   voxel_limit = int(max_voxels * (2 ** 20))
   ijk_origin, ijk_size, ijk_step = v.ijk_aligned_region()
   sx,sy,sz = [s//st for s,st in zip(ijk_size, ijk_step)]
@@ -3470,10 +3472,10 @@ def show_one_plane(size, show_plane, min_voxels):
 
   if not show_plane:
     return False
-  
+
   if min_voxels == None:
     return False
-  
+
   voxel_limit = int(min_voxels * (2 ** 20))
   voxels = float(size[0]) * float(size[1]) * float(size[2])
 
@@ -3516,7 +3518,7 @@ def data_already_opened(path, grid_id, session):
 
   if not path:
     return None
-  
+
   for v in volume_list(session):
     d = v.data
     if not d.writable and d.path == path and d.grid_id == grid_id:
@@ -3602,7 +3604,7 @@ def open_map(session, path, name = None, format = None, **kw):
 
 # -----------------------------------------------------------------------------
 #
-def open_grids(session, grids, name, cls = Volume, **kw):
+def open_grids(session, grids, name, **kw):
 
     if kw.get('polar_values', False):
       for g in grids:
@@ -3614,7 +3616,7 @@ def open_grids(session, grids, name, cls = Volume, **kw):
     if channel is not None:
       for g in grids:
         g.channel = channel
-        
+
     series = kw.get('vseries', None)
     if series is not None:
       if series:
@@ -3645,7 +3647,7 @@ def open_grids(session, grids, name, cls = Volume, **kw):
       vkw = {'show_dialog': False}
       if hasattr(d, 'initial_style') and d.initial_style in ('surface', 'mesh', 'image'):
         vkw['style'] = d.initial_style
-      v = cls._from_grid_data(d, session, open_model = False, **vkw)
+      v = volume_from_grid_data(d, session, open_model = False, **vkw)
       maps.append(v)
       if not show_data:
         v.display = False
@@ -3712,12 +3714,12 @@ def set_initial_region_and_style(v):
   else:
     v.display = False
   v._initial_style_set = True
-  
+
   # Determine initial region bounds and step.
   region = v.full_region()[:2]
   if one_plane:
     region[0][2] = region[1][2] = data.size[2]//2
-    
+
   fpa = faces_per_axis(v.image_shown, ro.image_mode)
   ijk_step = ijk_step_for_voxel_limit(region[0], region[1], (1,1,1), fpa,
                                       ro.limit_voxel_count, ro.voxel_limit)
@@ -3727,7 +3729,7 @@ def set_initial_region_and_style(v):
 # -----------------------------------------------------------------------------
 #
 class MapChannels:
-  
+
   def __init__(self, maps):
     self.set_maps(maps)
 
@@ -3747,7 +3749,7 @@ class MapChannels:
     channel_show_max = channels[min(2,len(channels)-1)]
     for v in maps:
       v.display = (v.data.channel <= channel_show_max)
-    
+
   @property
   def first_channel(self):
     return self.maps[0]
@@ -3755,7 +3757,7 @@ class MapChannels:
 # -----------------------------------------------------------------------------
 #
 class MapChannelsModel(Model, MapChannels):
-  
+
   def __init__(self, name, maps, session):
     Model.__init__(self, name, session)
     self.add(maps)
@@ -3792,13 +3794,13 @@ class MapChannelsModel(Model, MapChannels):
       from chimerax.core.triggerset import DEREGISTER
       return DEREGISTER
     session.triggers.add_handler('end restore session', restore_maps)
-    
+
     return c
 
 # -----------------------------------------------------------------------------
 #
 class MultiChannelSeries(Model):
-  
+
   def __init__(self, name, map_series, session):
     Model.__init__(self, name, session)
     self.add(map_series)
@@ -3845,9 +3847,9 @@ class MultiChannelSeries(Model):
       from chimerax.core.triggerset import DEREGISTER
       return DEREGISTER
     session.triggers.add_handler('end restore session', restore_maps)
-    
+
     return mcs
-  
+
 # -----------------------------------------------------------------------------
 #
 def save_map(session, path, format_name, models = None, region = None, step = (1,1,1),
@@ -3861,7 +3863,7 @@ def save_map(session, path, format_name, models = None, region = None, step = (1
     Parameters:
         session: :class:`~chimerax.core.session.Session`
             The session containing the Volume models.
-        path: string 
+        path: string
             File path on disk.  For saving multiple volumes to multiple files
             the path can contain a C-style integer format specifier like "%d" or "%03d"
             which will have be replaced by integer values starting at parameter base_index
@@ -3890,7 +3892,7 @@ def save_map(session, path, format_name, models = None, region = None, step = (1
 
 
     Parameters below only supported by Chimera Map format (\*.cmap)
-    
+
     Parameters:
         subsamples: list of tuples of 3 integers or None
             For file formats that support saving multiple subsampled copies of
@@ -3930,7 +3932,7 @@ def save_map(session, path, format_name, models = None, region = None, step = (1
           from chimerax.core.errors import UserError
           raise UserError('Specified models are not volumes' + mstring)
 
-      
+
     from chimerax.map_data.fileformats import file_writer, file_formats
     if file_writer(path, format_name) is None:
         from chimerax.core.errors import UserError

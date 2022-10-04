@@ -323,7 +323,7 @@ class ObjectLabels(Model):
         self.use_lighting = False
         Model.set_color(self, (255,255,255,255))	# Do not modulate texture colors
 
-        self._texture_width = 2048			# Pixels.
+        self._texture_width = 4096			# Pixels.
         self._texture_needs_update = True		# Has text, color, size, font changed.
         self._positions_need_update = True		# Has label position changed relative to atom?
         self._visibility_needs_update = True		# Does an atom hide require a label to hide?
@@ -560,6 +560,9 @@ class ObjectLabels(Model):
                 hr = h
             positions.append((x,y,w,h))
             x += w
+            if w > tw:
+                msg = f'Label width {w} exceeds maximum {tw} and will be clipped'
+                self.session.logger.warning(msg)
         th = y + hr	# Teture height in pixels
 
         # Create single image with packed label images
@@ -567,7 +570,7 @@ class ObjectLabels(Model):
         trgba = empty((th, tw, 4), uint8)
         for (x,y,w,h),rgba in zip(positions, images):
             h,w = rgba.shape[:2]
-            trgba[y:y+h,x:x+w,:] = rgba
+            trgba[y:y+h,x:x+w,:] = rgba[:,:tw,:]
 
         # Create texture coordinates for each label.
         tclist = []
@@ -773,8 +776,11 @@ class ObjectLabel:
             bg = self.background
             if bg is None:
                 bg = [255*r for r in self.view.background_color]
-            light_bg = (sum(bg[:3]) > 1.5*255)
-            rgba8 = (0,0,0,255) if light_bg else (255,255,255,255)
+            from chimerax.core.colors import contrast_with
+            if contrast_with([c/255 for c in bg[:3]])[0] == 0.0:
+                rgba8 = (0, 0, 0, 255)
+            else:
+                rgba8 = (255, 255, 255, 255)
         else:
             rgba8 = c
         return rgba8

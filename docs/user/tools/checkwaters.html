@@ -38,24 +38,21 @@ See also:
 <a href="hbonds.html"><b>H-Bonds</b></a>,
 <a href="../commands/view.html"><b>view</b></a>,
 <a href="../commands/clip.html"><b>clip</b></a>
-</p><p>
-<b>Check Waters</b> can be started 
-from the <b>Structure Analysis</b> section of the
-<b>Tools</b> menu and manipulated like other panels
-(<a href="../window.html#panels">more...</a>).
-</p><p>
-The initial dialog contains a menu of the current atomic models.
-Designating the model of interest and
-clicking <b>Apply</b> (to keep that dialog up) or <b>OK</b> (to dismiss it) 
-will open another panel with a list of the waters in the structure.
 </p>
 <table class="clRight">
 <tr><td>
-<a href="checkwaters.png"><img class="outline" src="checkwaters.png"
-title="click to enlarge..." alt="Check Waters dialog" width="400px"></a>
+<img class="outline" src="checkwaters.png"
+alt="Check Waters dialog" width="300px">
 </td></tr>
 </table>
 <p>
+<b>Check Waters</b> can be started 
+from the <b>Structure Analysis</b> section of the <b>Tools</b> menu.
+An initial dialog will appear for choosing the model of interest 
+from a menu of the current atomic models.
+Clicking <b>Apply</b> (to keep that dialog up) or <b>OK</b> (to dismiss it) 
+will open another panel with a list of the waters in the structure.
+</p><p>
 For each water, the list gives the number of <b>H-bonds</b>,
 and if a corresponding density map was open before <b>Check Waters</b>
 was started, the <b>Density</b> at atom positions summed over the atoms
@@ -72,12 +69,14 @@ Choosing waters in the list automatically
 on their near vicinities (atoms within 4&Aring;), slicing the structure
 by placing near/far <a href="../commands/clip.html">clipping</a> planes.
 </p><p>
-The H-bonds are displayed as
-<a href="../pseudobonds.html">pseudobonds</a> unless 
+<a name="hbonds"></a>
+H-bonds are displayed as
+<a href="../pseudobonds.html">pseudobonds</a> unless
 <b>Show H-bonds</b> is turned off (initial default <b>on</b>).
-Expanding the <b>H-bond parameters</b> section allows changing certain
-<a href="hbonds.html"><b>H-Bonds</b></a> parameters; clicking <b>Apply</b>
-in that section recalculates the H-bonds accordingly.
+Clicking <b>H-bond parameters</b> opens a separate dialog with
+several of the calculation options that also appear in the
+<a href="hbonds.html"><b>H-Bonds</b></a> tool;
+clicking <b>Apply</b> recalculates the H-bonds accordingly.
 </p>
 <ul>
 <li>Clicking <b>Delete</b> deletes the chosen waters. 
@@ -93,5 +92,5 @@ to allow viewing the entire depth of the structure.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-August 2022</address>
+September 2022</address>
 </body></html>

@@ -13,8 +13,7 @@ include $(TOP)/mk/config.make
 
 CHIMERAX_APP = $(wildcard $(TOP)/ChimeraX*.app)
 
-OS = $(patsubst CYGWIN_NT%,CYGWIN_NT,$(shell uname -s))
-ifeq ($(OS),CYGWIN_NT)
+ifneq ($(filter $(SHORT_OS),Cygwin Msys),)
 PYTHON_BIN = $(CHIMERAX_APP)/bin/python.exe
 CHIMERAX_EXE = $(CHIMERAX_APP)/bin/ChimeraX.exe
 endif
@@ -33,18 +32,20 @@ PYSRCS = $(wildcard src/*.py)
 
 wheel: $(PYSRCS)
 	$(PYTHON_EXE) -m build --no-isolation --wheel
-	rm -rf *.egg-info
+
+sdist: $(PYSRCS)
+	$(PYTHON_EXE) -m build --no-isolation --sdist
 
 install app-install: wheel
 	$(PYTHON_EXE) -m pip uninstall --yes ChimeraX-BundleBuilder
-	$(PYTHON_EXE) -m pip install dist/*.whl
+	$(PYTHON_EXE) -m pip install --no-build-isolation .
+	$(MAKE) sync
+
+install-editable:
+	$(PYTHON_EXE) -m pip install --no-build-isolation --editable .
 
 sync:
 	rsync -av dist/*.whl $(TOP)/build/sync/
-
-build: install
-	# unlike normal bundles, install as well
-	$(MAKE) sync
 
 test:
 	for t in $(wildcard test*.cxc) $(wildcard test*.py);\

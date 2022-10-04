@@ -30,10 +30,15 @@ def mseries(session, models, pause_frames = 10, loop = 1, step = 1):
         msp = ModelSequencePlayer(mlist, pause_frames = pause_frames,
                                   loop = loop, step = step)
         msp.start()
+    else:
+        msp = None
+
+    return msp
 
 # -----------------------------------------------------------------------------
 #
-def mseries_slider(session, models, pause_frames = 10, step = 1, movie_framerate = 25):
+def mseries_slider(session, models, pause_frames = 10, step = 1, movie_framerate = 25,
+                   title = None, name = 'Model'):
     '''Show slider to play through (i.e. display) a series of models.
 
     Parameters
@@ -46,16 +51,23 @@ def mseries_slider(session, models, pause_frames = 10, step = 1, movie_framerate
       Show every Nth model with N given by step, default 1.
     movie_framerate : float
       Frames per second used when playing back a movie recorded with the record button.
+    title : string
+      Title shown at the top of the slider pane.
     '''
     mlist = models[0].child_models() if len(models) == 1 else models
     if mlist:
-        ModelSequenceSlider(session, mlist, pause_frames = pause_frames,
-                            step = step, movie_framerate = movie_framerate)
+        mss = ModelSequenceSlider(session, mlist, pause_frames = pause_frames,
+                                  step = step, movie_framerate = movie_framerate,
+                                  title = title, name = name)
+    else:
+        mss = None
+
+    return mss
 
 # ------------------------------------------------------------------------------
 #
 def register_mseries_command(logger):
-    from chimerax.core.commands import CmdDesc, register, TopModelsArg, IntArg
+    from chimerax.core.commands import CmdDesc, register, TopModelsArg, IntArg, StringArg
     desc = CmdDesc(required = [('models', TopModelsArg)],
                    keyword = [('pause_frames', IntArg),
                               ('loop', IntArg),
@@ -66,7 +78,10 @@ def register_mseries_command(logger):
     desc = CmdDesc(required = [('models', TopModelsArg)],
                    keyword = [('pause_frames', IntArg),
                               ('step', IntArg),
-                              ('movie_framerate', IntArg)],
+                              ('movie_framerate', IntArg),
+                              ('title', StringArg),
+                              ('name', StringArg),
+                              ],
                    synopsis = 'Show slider to play through sequence of models.')
     register('mseries slider', desc, mseries_slider, logger=logger)
     
@@ -128,13 +143,15 @@ from chimerax.ui.widgets.slider import Slider
 
 class ModelSequenceSlider(Slider):
 
-    def __init__(self, session, models, pause_frames = 1, step = 1, movie_framerate = 25):
+    def __init__(self, session, models, pause_frames = 1, step = 1, movie_framerate = 25,
+                 title = None, name = 'Model'):
 
         self.models = models[::step]
         n = len(self.models)
 
-        title = 'Model series (%d) %s ...' % (len(models), models[0].name,)
-        Slider.__init__(self, session, 'Model Series', 'Model', title, value_range = (1,n),
+        if title is None:
+            title = 'Model series (%d) %s ...' % (len(models), models[0].name,)
+        Slider.__init__(self, session, 'Model Series', name, title, value_range = (1,n),
                         pause_frames = pause_frames, pause_when_recording = True,
                         movie_framerate = movie_framerate)
         dm = [i for i,m in enumerate(self.models) if m.display]

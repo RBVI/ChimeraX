@@ -464,8 +464,6 @@ class ItemTable(QTableView):
             data: A sequence of objects that act as the model for a row. Information will be
                   retrieved from the object using the data_fetch function supplied to add_column.
         """
-        if type(data) is not list:
-            data = [data]
         if not self._table_model:
             self._data = data[:]
             return
