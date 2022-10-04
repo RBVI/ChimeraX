@@ -316,17 +316,6 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
     _save_metadata(best_m, ['exptl'], file, best_metadata)
 
     from chimerax.atomic import Residue
-    old_entity, old_asym = mmcif.get_mmcif_tables_from_metadata(
-        best_m, ['entity', 'struct_asym'], metadata=best_metadata)
-    try:
-        if not old_entity or not old_asym:
-            raise ValueError
-        old_mmcif_chain_to_entity = old_asym.mapping('id', 'entity_id')
-        old_entity_to_description = old_entity.mapping('id', 'pdbx_description')
-    except ValueError:
-        old_mmcif_chain_to_entity = {}
-        old_entity_to_description = {}
-
     from collections import OrderedDict
     entity_info = {}     # { entity_id: (type, pdbx_description) }
     asym_info = {}       # { auth_chain_id: (entity_id, label_asym_id) }
@@ -346,9 +335,8 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
             chains.append(c)
         else:
             mcid = c.existing_residues[0].mmcif_chain_id
-            try:
-                descrip = old_entity_to_description[old_mmcif_chain_to_entity[mcid]]
-            except KeyError:
+            descrip = c.description
+            if not descrip:
                 descrip = '?'
             eid = len(entity_info) + 1
             entity_info[eid] = ('polymer', descrip)
@@ -442,8 +430,11 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
             else:
                 etype = 'non-polymer'
             try:
-                descrip = old_entity_to_description[old_mmcif_chain_to_entity[mcid]]
-            except KeyError:
+                tr = mmcif.find_template_residue(session, r.name)
+                descrip = tr.description
+                if not descrip:
+                    raise ValueError
+            except (ValueError, AttributeError):
                 descrip = '?'
             eid = len(entity_info) + 1
             entity_info[eid] = (etype, descrip)

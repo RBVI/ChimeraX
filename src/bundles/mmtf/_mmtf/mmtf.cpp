@@ -148,6 +148,7 @@ extract_data(const mmtf::StructureData& data, PyObject* _logger, bool coordset)
         auto m = new AtomicStructure(_logger);
         models.push_back(m);
         // traverse chains
+        map<string, string> chain_descriptions;
         const size_t model_chain_count = data.chainsPerModel[model_index];
         for (size_t _model_chain = 0; _model_chain < model_chain_count; ++_model_chain) {
             chain_index += 1;
@@ -167,8 +168,10 @@ extract_data(const mmtf::StructureData& data, PyObject* _logger, bool coordset)
                 logger::warning(_logger, "Missing entity information for chain ", chain_id);
             }
             vector<Residue*> residues;
-            if (is_polymer && has_sequence_index_list)
+            if (is_polymer && has_sequence_index_list) {
                 residues.reserve(entity.sequence.size());
+                chain_descriptions[chain_name] = data.entityList[entity_index].description;
+            }
 
             // traverse groups
             const char* last_ss = nullptr;
@@ -348,6 +351,12 @@ extract_data(const mmtf::StructureData& data, PyObject* _logger, bool coordset)
                 m->input_seq_source = "MMTF sequence";
             }
         }
+        auto& chains = m->chains();
+        for (auto& chain: chains) {
+            auto& chain_id = chain->res_map().begin()->first->chain_id();
+            chain->set_description(chain_descriptions[chain_id]);
+        }
+
     }
 
     if (has_bond_atom_list) {

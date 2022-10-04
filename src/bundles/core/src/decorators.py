@@ -7,7 +7,7 @@ _log = logging.getLogger()
 try:
     import chimerax.ui
     _has_ui = True
-except ModuleNotFoundError:
+except ModuleNotFoundError, ImportError:
     _has_ui = False
 
 checked_modules = {}

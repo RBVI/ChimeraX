@@ -24,8 +24,9 @@ endif
 
 # Platform-dependent settings.  Should not need fixing.
 # For Windows, we assume Cygwin is being used.
-OS = $(patsubst CYGWIN_NT%,CYGWIN_NT,$(shell uname -s))
-ifeq ($(OS),CYGWIN_NT)
+OS	:= $(shell uname -s)
+SHORT_OS := $(shell uname -o)
+ifneq ($(filter $(SHORT_OS),Cygwin Msys),)
 APP_PYTHON_EXE = $(CHIMERAX_APP)/bin/python.exe -I
 PYMOD_EXT = pyd
 endif
