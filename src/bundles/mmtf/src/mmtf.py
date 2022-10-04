@@ -27,7 +27,7 @@ def fetch_mmtf(session, pdb_id, ignore_cache=False, **kw):
     pdb_id = pdb_id.lower()
     mmtf_name = '%s.mmtf' % pdb_id
 
-    url = 'http://mmtf.rcsb.org/v1.0/full/%s.mmtf.gz' % pdb_id.upper()
+    url = 'https://mmtf.rcsb.org/v1.0/full/%s.mmtf.gz' % pdb_id.upper()
     from chimerax.core.fetch import fetch_file
     filename = fetch_file(session, url, 'MMTF %s' % pdb_id, mmtf_name, 'PDB',
         ignore_cache=ignore_cache, uncompress=True)

@@ -22,7 +22,7 @@ losslessjpeg = ["python-gdcm"]
 [project.readme]
 content-type = "text"
 text = "Read medical imaging and segmentations in DICOM format."
-	
+
 [project.urls]
 Home = "https://www.rbvi.ucsf.edu/chimerax/"
 
@@ -43,18 +43,10 @@ suffixes = [".dcm"]
 allow-directory = true
 open = { batch = true }
 
-[chimerax.tool."Blast Protein"]
-category = "Sequence"
-description = "Search PDB/NR/AlphaFold using BLAST"
+[chimerax.tool."DICOM Browser"]
+category = "Volume data"
+description = "View the metadata of a patient's DICOM files"
 
-[chimerax.command.blastprotein]
-category = "Sequence"
-description = "Search PDB/NR/AlphaFold using BLAST"
-
-[chimerax.command.blastpdb]
-category = "Sequence"
-description = "Search PDB/NR/AlphaFold using BLAST"
-
-[chimerax.command."blastprotein pull"]
-category = "Sequence" 
-description = "Get results for a finished BlastProtein job"
+[chimerax.tool."DICOM Metadata"]
+category = "Volume data"
+description = "View the metadata of a DICOM file or series"

@@ -6,7 +6,7 @@
     All rights reserved.  This software provided pursuant to a
     license agreement containing restrictions on its disclosure,
     duplication and use.  For details see:
-    http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+    https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
     This notice must be embedded in or attached to all copies,
     including partial copies, of the software or any revisions
     or derivations thereof.
@@ -101,72 +101,18 @@ Steps for compiling ChimeraX on Windows 10:
 
 Linux Build
 -----------
-A long list of required packages are used to compile ChimeraX on Linux.
-We currently use Singularity images to compile Linux ChimeraX versions on virtual machines
-including Redhat / CentOS 7 and 8 and Ubuntu 16, 18, and 20.
-Debian and RPM packages are created for distribution.
 
-The definition files for the virtual machine images list the required packages and
-are currently part of the private build_tools git repository on plato.cgl.ucsf.edu.
-TODO: Definition files should be moved to ChimeraX repository at GitHub.
+All of the binary Linux ChimeraX bundles are built on a lowest common denominator
+(LCD) Linux.  That way a Linux binary download from the toolshed will work on all
+Linux variants.  The only code specific to a Linux variant is the Python binary and
+dependencies (especially OpenSSL, so it gets security patches from the vendor), and
+the AmberTools binaries that have a FORTRAN runtime dependency.
 
-Here is an example of the requirements for building on Ubuntu 20.04::
-
-    sudo apt-get install -y --no-install-recommends \
-	language-selector-common ffmpeg vim-nox \
-	build-essential g++ gfortran \
-	chrpath patch openssh-client rsync ca-certificates \
-	make autoconf automake libtool pkg-config \
-	flex bison yasm unzip tar fakeroot curl wget \
-	python2.7 \
-	imagemagick \
-	libasound2-dev \
-	libatk1.0-dev \
-	libbz2-dev \
-	libcairo2-dev \
-	libcups2-dev \
-	libdbus-1-dev \
-	libegl1-mesa-dev \
-	libexpat1-dev \
-	libffi-dev \
-	libfftw3-dev \
-	libfreetype6-dev \
-	libgdk-pixbuf2.0-dev \
-	libgl1-mesa-dev \
-	libglu1-mesa-dev \
-	libgstreamer1.0-dev \
-	libgstreamer-plugins-base1.0-dev \
-	libgtk-3-dev \
-	libhdf5-dev \
-	libicu-dev \
-	libjpeg-dev \
-	liblzma-dev \
-	libmysqlclient-dev \
-	libnss3-dev \
-	libosmesa6-dev \
-	libpango1.0-dev \
-	libpcre3-dev \
-	libpng-dev \
-	libpulse-dev \
-	libssl-dev \
-	libtiff-dev \
-	libx11-dev \
-	libxcomposite-dev \
-	libxcursor-dev \
-	libxft-dev \
-	libxi-dev \
-	libxmu-dev \
-	libxpm-dev \
-	libxrandr-dev \
-	libxslt1-dev \
-	libxss-dev \
-	libxt-dev \
-	libxtst-dev \
-	llvm-dev \
-	x11proto-scrnsaver-dev \
-	xdg-utils \
-	zlib1g-dev
-
+The RBVI uses singularity/apptainer containers for each supported Linux variant.
+The Linux variant specific singularity definition files can be found in the
+`linux_buildenv directory <https://github.com/RBVI/ChimeraX/tree/develop/prereqs/linux_buildenv>`_.
+At the time of this writing, ChimeraX uses Rocky 8, a Red Hat Enterprise Linux derivative,
+as the LCD Linux.
 
 macOS Build
 -----------

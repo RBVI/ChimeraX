@@ -12,22 +12,25 @@
 # === UCSF ChimeraX Copyright ===
 __version__ = "1.1"
 from chimerax.core.toolshed import BundleAPI
-
+from chimerax.map import add_map_format
 from chimerax.open_command import OpenerInfo
 
-from .dicom import register_dicom_format, open_dicom
+from .dicom import DICOM, DICOMMapFormat
+from .ui import DICOMBrowserTool, DICOMMetadata
 
 class _DICOMBundle(BundleAPI):
+
     @staticmethod
     def initialize(session, bundle_info):
         """Register file formats, commands, and database fetch."""
-        register_dicom_format(session)
+        add_map_format(session, DICOMMapFormat())
 
     @staticmethod
     def run_provider(session, name, mgr, **kw):
         class DicomOpenerInfo(OpenerInfo):
             def open(self, session, data, file_name, **kw):
-                return open_dicom(session, data)
+                dcm = DICOM.from_paths(session, data)
+                return dcm.open()
         return DicomOpenerInfo()
 
 

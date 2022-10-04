@@ -195,7 +195,7 @@ class ColorActions(ToolInstance):
 
         from Qt.QtWidgets import QDialogButtonBox as qbbox
         bbox = qbbox(qbbox.Close | qbbox.Help)
-        bbox.rejected.connect(self.delete)
+        bbox.rejected.connect(lambda: self.display(False))
         if self.help:
             bbox.helpRequested.connect(lambda *, run=run, ses=self.session: run(ses, "help " + self.help))
         else:

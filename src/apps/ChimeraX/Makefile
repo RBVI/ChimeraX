@@ -168,10 +168,10 @@ ChimeraX-icon16.png:
 
 ifdef WIN32
 
-YEAR = $(shell $(PYTHON_EXE) geticoninfo.py -y)
-VER = $(shell $(PYTHON_EXE) geticoninfo.py -v)
-PRODVER = $(shell $(PYTHON_EXE) geticoninfo.py -p)
-RELEASE =  $(shell $(PYTHON_EXE) geticoninfo.py -r)
+YEAR = $(shell $(APP_PYTHON_EXE) geticoninfo.py -y)
+VER = $(shell $(APP_PYTHON_EXE) geticoninfo.py -v)
+PRODVER = $(shell $(APP_PYTHON_EXE) geticoninfo.py -p)
+RELEASE =  $(shell $(APP_PYTHON_EXE) geticoninfo.py -r)
 ifeq ($(RELEASE),prerelease)
 FLAGS = VS_FF_PRERELEASE
 else

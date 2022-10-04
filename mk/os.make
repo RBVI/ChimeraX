@@ -132,42 +132,42 @@ ifeq ($(OS),Windows)
 
 	OBJ_EXT = obj
 	LIB_EXT = lib
-	LIB_LINK = lib /OUT:$(LIBRARY) $(OBJS)
+	LIB_LINK = lib -OUT:$(LIBRARY) $(OBJS)
 	RANLIB = :
 	SHLIB_EXT = dll
 	PYMOD_EXT = pyd
-	SHLIB_LINK = $(CXX) $(LDFLAGS) /LD /Fe$(SHLIB) $(OBJS) $(LIBS); if [ -e $(SHLIB).manifest ]; then mt -nologo -manifest $(SHLIB).manifest -outputresource:$(SHLIB)\;2 ; fi
+	SHLIB_LINK = $(CXX) $(LDFLAGS) -LD -Fe$(SHLIB) $(OBJS) $(LIBS); if [ -e $(SHLIB).manifest ]; then mt -nologo -manifest $(SHLIB).manifest -outputresource:$(SHLIB)\;2 ; fi
 	PROG_EXT = .exe
-	PROG_LINK = $(CXX) $(LDFLAGS) /Fe$(PROG) $(OBJS) $(LIBS); if [ -e $(PROG).manifest ]; then mt -nologo -manifest $(PROG).manifest -outputresource:$(PROG)\;1 ; fi
+	PROG_LINK = $(CXX) $(LDFLAGS) -Fe$(PROG) $(OBJS) $(LIBS); if [ -e $(PROG).manifest ]; then mt -nologo -manifest $(PROG).manifest -outputresource:$(PROG)\;1 ; fi
 
 ifdef DEBUG
-	OPT = /Zi /Wall /W3
+	OPT = -Zi -Wall -W3
 else
-	OPT = /Ox /W2
+	OPT = -Ox -W2
 endif
-	CC = cl /nologo /EHa /GR /GF /MD
+	CC = cl -nologo -EHa -GR -GF -MD
 	# Suppress warning, 4251, about "needs to have dll-interface to be used by clients of class"
 	# since we can't fix it for standard container classes
-	CXX = $(CC) /Zc:inline,rvalueCast,strictStrings /wd4251
+	CXX = $(CC) -Zc:inline,rvalueCast,strictStrings -wd4251
 
 	PYDEF =
 	PYTHON_LIB = python$(PYVER_NODOT).$(LIB_EXT)
-	PYMOD_LINK = $(CXX) $(LDFLAGS) /LD /Fe$(PYMOD) $(OBJS) $(LIBS); if [ -e $(PYMOD).manifest ]; then mt -nologo -manifest $(PYMOD).manifest -outputresource:$(PYMOD)\;2 ; fi
+	PYMOD_LINK = $(CXX) $(LDFLAGS) -LD -Fe$(PYMOD) $(OBJS) $(LIBS); if [ -e $(PYMOD).manifest ]; then mt -nologo -manifest $(PYMOD).manifest -outputresource:$(PYMOD)\;2 ; fi
 
 	OPENGL_LIBS = glu32.lib opengl32.lib
 	INCS = -I'$(shell cygpath -m '$(includedir)')'
-	LIBS = /link /LIBPATH:'$(shell cygpath -m '$(libdir)')'
+	LIBS = -link -LIBPATH:'$(shell cygpath -m '$(libdir)')'
 
 .SUFFIXES: .obj .rc
 
 .cpp.obj:
-	$(CXX) $(CXXFLAGS) /c $<
+	$(CXX) $(CXXFLAGS) -c $<
 
 .c.obj:
-	$(CC) $(CFLAGS) /c $<
+	$(CC) $(CFLAGS) -c $<
 
 .rc.obj:
-	rc $(DEFS) /i . /Fo$@ $<
+	rc $(DEFS) -i . -Fo$@ $<
 endif
 
 CFLAGS = $(OPT) $(INCS) $(DEFS)

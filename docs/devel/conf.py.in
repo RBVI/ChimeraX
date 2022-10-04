@@ -83,7 +83,8 @@ exclude_patterns = ['_build',
 		    'tutorials/build_test_distribute.rst',
 		    'tutorials/outline.rst',
 		    'tutorials/references.rst',
-		    'tutorials/src.rst']
+		    'tutorials/src.rst',
+		    'bundles/*/build']
 
 # The reST default role (used for this markup: `text`) to use for all documents.
 #default_role = None

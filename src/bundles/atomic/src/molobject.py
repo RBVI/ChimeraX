@@ -1393,6 +1393,7 @@ class StructureData:
         ret = ctypes.c_char_p)().decode('utf-8')
     PBG_HYDROGEN_BONDS = c_function('structure_PBG_HYDROGEN_BONDS', args = (),
         ret = ctypes.c_char_p)().decode('utf-8')
+    _ss_suppress_count = 0
 
     def __init__(self, mol_pointer=None, *, logger=None):
         if mol_pointer is None:
@@ -1436,6 +1437,9 @@ class StructureData:
     alt_loc_change_notify = c_property('structure_alt_loc_change_notify', npy_bool, doc=
         '''Whether notifications are issued when altlocs are changed.  Should only be
         set to false when temporarily changing alt locs in a Python script. Boolean''')
+    ss_change_notify = c_property('structure_ss_change_notify', npy_bool, doc=
+        '''Whether notifications are issued when secondardy structure is changed.  Should only be
+        set to false when temporarily changing secondary structure in a Python script. Boolean''')
     atoms = c_property('structure_atoms', cptr, 'num_atoms', astype = convert.atoms, read_only = True,
         doc = "Supported API. :class:`.Atoms` collection containing all atoms of the structure.")
     ball_scale = c_property('structure_ball_scale', float32,
@@ -1535,6 +1539,25 @@ class StructureData:
     ss_assigned = c_property('structure_ss_assigned', npy_bool, doc =
         "Has secondary structure been assigned, either by data in original structure file "
         "or by some algorithm (e.g. dssp command)")
+
+    from contextlib import contextmanager
+    @contextmanager
+    def suppress_ss_change_notifications(self):
+        """Suppress secondard structure change notifications while the code body runs.
+           Restore the original secondard structure of this atom when done."""
+        orig_ss_types = self.residues.ss_types
+        orig_ss_ids = self.residues.ss_ids
+        if self._ss_suppress_count == 0:
+            self.ss_change_notify = False
+        self._ss_suppress_count += 1
+        try:
+            yield
+        finally:
+            self.residues.ss_types = orig_ss_types
+            self.residues.ss_ids = orig_ss_ids
+            self._ss_suppress_count -= 1
+            if self._ss_suppress_count == 0:
+                self.ss_change_notify = True
 
     def _combine(self, s, chain_id_map, ref_xform):
         f = c_function('structure_combine', args = (ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p,
