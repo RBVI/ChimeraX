@@ -15,6 +15,12 @@
 #############################################
 Setting Up a ChimeraX Development Environment
 #############################################
+What follows are instructions for setting up an environment to develop ChimeraX
+or bundles for ChimeraX on your personal machine where e.g. compiler versions need
+not be as strict. This is OK for development and personal use; however, to merge
+core code or distribute bundles, please ensure that you are using the same compilers
+as the reference machines used to build the ChimeraX distribution, either on your
+build machine or in your CI scripts.
 
 =======
 Windows
