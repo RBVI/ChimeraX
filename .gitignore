@@ -42,6 +42,8 @@ dist
 *.out
 _build
 # {Virtual,} Environments
+# The Windows venv doesn't have a leading dot
+venv
 .venv
 .virtualenv
 .makerc
