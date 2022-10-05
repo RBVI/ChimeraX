@@ -156,7 +156,8 @@ All Platforms
 =============
 Git associates a user name and email address with all check-ins. The defaults
 are based on your :envvar:`USERNAME` and your computer's hostname. The email
-address is usually wrong. To explicitly set those values: ::
+address is usually wrong. To explicitly set those values, issue the following
+commands in your shell of choice: ::
 
     git config --global user.name "Your Name"
     git config --global user.email you@example.com
