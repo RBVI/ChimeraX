@@ -14,7 +14,7 @@ include $(TOP)/mk/config.make
 
 CHIMERAX_APP = $(wildcard $(TOP)/ChimeraX*.app)
 
-ifneq ($(filter $(SHORT_OS),Cygwin Msys),)
+ifeq ($(OS),Windows)
 PYTHON_BIN = $(CHIMERAX_APP)/bin/python.exe
 CHIMERAX_EXE = $(CHIMERAX_APP)/bin/ChimeraX.exe
 endif

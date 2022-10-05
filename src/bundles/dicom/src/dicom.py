@@ -71,13 +71,20 @@ else:
 # - Code is just as flexible with this code as without
 # - Default session = None makes code easier to test
 
+
 class MismatchedUIDError(Exception):
     pass
+
+
+class UnrenderableSeriesError(Exception):
+    pass
+
 
 class DICOM:
     # TODO: Make a singleton
     def __init__(self, data: Union[Path, list[Path]], *, session = None):
-        self.patients = defaultdict(list)
+        self.patients_by_id = defaultdict(list)
+        self.patients = {}
         self.session = session or _session
         if type(data) is not list:
             self.paths = [data]
@@ -91,6 +98,8 @@ class DICOM:
         return cls(path, session = session)
 
     def open(self):
+        for patient in list(self.patients.values()):
+            patient.render()
         return list(self.patients.values()), ""
 
     def dicom_grids(self, paths, log=None) -> list[Any]:
@@ -117,7 +126,7 @@ class DICOM:
             _logger.status('Reading DICOM series %d of %d files in %d series' % (nsfiles, nfiles, nseries))
             patients = self.dicom_patients(dpaths)
             for patient in patients:
-                self.patients[patient.pid].append(patient)
+                self.patients_by_id[patient.pid].append(patient)
 
     def dicom_patients(self, paths) -> list['Patient']:
         """Group DICOM files into series"""
@@ -159,7 +168,7 @@ class DICOM:
 
     def merge_patients_by_id(self):
         """Iterate over the patients dictionary and merge all that have the same pid"""
-        for patient_list in list(self.patients.values()):
+        for patient_list in list(self.patients_by_id.values()):
             ref_patient = patient_list[0]
             for patient in patient_list[1:]:
                 ref_patient.merge_and_delete_other(patient)
@@ -195,7 +204,6 @@ class Patient(Model):
             study = Study(self.session, key, self)
             study.series_from_files(files)
             self.studies.append(study)
-            self.add(study) # add the study as a child model
         if studies:
             self.name = f'Patient (ID: %s)' % self.patient_id
 
@@ -251,6 +259,12 @@ class Patient(Model):
     def __str__(self):
         return f"Patient {self.pid} with {len(self.studies)} studies"
 
+    def render(self):
+        for study in self.studies:
+            self.add([study])
+            study.series.sort(key = lambda x: x.number)
+            study.open_series_as_models()
+
 
 class Study(Model):
     """A set of DICOM files that have the same Study Instance UID"""
@@ -259,7 +273,7 @@ class Study(Model):
         self.session = session
         self.patient = patient
         Model.__init__(self, 'Study (%s)' % uid, session)
-        self.series = [] # regular images
+        self.series = []  # regular images
 
     def series_from_files(self, files) -> None:
         files = self.filter_unreadable(files)
@@ -272,7 +286,6 @@ class Study(Model):
         for key, files in series.items():
             s = Series(self.session, files)
             self.series.append(s)
-            self.add(s.to_models())
         if self.series:
             if self.date_as_datetime:
                 self.name = 'Study (%s)' % self.date_as_datetime.strftime("%Y-%m-%d")
@@ -287,7 +300,7 @@ class Study(Model):
 
     def filter_unreadable(self, files):
         if _has_gdcm:
-            return files # PyDicom will use gdcm to read 16-bit lossless jpeg
+            return files  # PyDicom will use gdcm to read 16-bit lossless jpeg
 
         # Python Image Library cannot read 16-bit lossless jpeg.
         keep = []
@@ -313,10 +326,13 @@ class Study(Model):
         other.delete()
         del other
 
-    def to_model(self):
+    def open_series_as_models(self):
         if self.series:
             for s in self.series:
-                self.add(s.to_model())
+                try:
+                    self.add(s.to_models())
+                except UnrenderableSeriesError as e:
+                    _logger.warning(str(e))
 
     def __str__(self):
         return f"Study {self.uid} with {len(self.series)} series"
@@ -505,6 +521,8 @@ class Series:
         if any([f.SOPClassUID == '1.2.840.10008.5.1.4.1.1.481.3' for f in files]):
             self.image_series = False
             self.contour_series = True
+        if not any([f.get("PixelData") for f in files]):
+            self.image_series = False
         self.sample_file = self._raw_files[0]
         attrs = self.attributes
         for attr in self.dicom_attributes:
@@ -521,8 +539,12 @@ class Series:
     def to_models(self):
         if self.contour_series:
             return [DicomContours(self.session, s) for s in self._raw_files]
-        else:
+        elif self.image_series:
             return open_grids(self.session, self._to_grids(), name=self.name)[0]
+        else:
+            raise UnrenderableSeriesError("Processed Series #%s from patient %s but did not open "
+                                          "it as a model as it had no pixel data. Metadata will still"
+                                          "be available." % (self.number, self.patient_id))
 
     @property
     def name(self):
