@@ -72,6 +72,14 @@ by re-running the Cygwin installer. ::
     rsync
     unzip
 
+WSL
+===
+It is not recommended to use WSL to develop ChimeraX on Windows.
+Depending on the version of Linux chosen, ChimeraX may or may not
+work on WSL. Regardless, the use of ChimeraX on WSL is unsupported
+at this time. ChimeraX will launch on an Ubuntu 20.04 WSLg installation;
+however, floating windows are unresponsive (October 2022).
+
 Using the Windows Terminal
 ==========================
 To add a new profile to the Windows Terminal, first open it. Then, click
