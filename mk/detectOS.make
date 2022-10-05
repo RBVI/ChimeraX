@@ -16,7 +16,7 @@ OS=$(shell uname -s)
 # We're on Windows
 ifeq ($(filter $(OS),Linux Darwin),)
 OS=$(shell uname -o)
-ifneq ($(filter $(SHORT_OS),Cygwin Msys),)
+ifneq ($(filter $(OS),Cygwin Msys),)
 OS=Windows
 endif
 endif
