@@ -14,6 +14,7 @@
 #include <Python.h>
 #include <algorithm>  // std::min
 #include <arrays/pythonarray.h>	// use python_float_array
+#include <atomstruct/Sequence.h>
 #include <cctype>
 #include <cstring>
 #include <functional>
@@ -26,7 +27,9 @@
 #include <typeinfo>
 #include <vector>
 
-typedef std::vector<std::vector<char>> SequencesType;
+using atomstruct::Sequence;
+
+typedef std::vector<Sequence*> SequencesType;
 typedef std::vector<float> WeightsType;
 typedef std::vector<std::vector<float>> ProfileType;
 
@@ -37,16 +40,16 @@ static void
 initiate_compute_profile(SequencesType* sequences, int start, int end, WeightsType* weights,
 	ProfileType* profile, std::mutex* profile_mutex)
 {
-	for (auto col = start; col != end; ++col) {
+	for (auto col = start; col < end; ++col) {
 		profile_mutex->lock();
 		auto& counts = (*profile)[col];
 		profile_mutex->unlock();
 		counts.resize(NUM_CATEGORIES);
 		size_t num_seqs = sequences->size();
 		for (size_t i = 0; i < num_seqs; ++i) {
-			auto& seq = (*sequences)[i];
+			auto seq = (*sequences)[i];
 			auto weight = (*weights)[i];
-			auto c = seq[col];
+			auto c = seq->contents()[col];
 			if (std::isalpha(c))
 				counts[std::toupper(c) - 'A'] += weight;
 			else if (c == '?')
@@ -87,7 +90,7 @@ compute_profile(PyObject *, PyObject *args)
 	if (!PyArg_ParseTuple(args, PY_STUPID "OOI", &py_seqs, &py_weights, &num_cpus))
 		return nullptr;
 	if (!PyList_Check(py_seqs)) {
-		PyErr_SetString(PyExc_TypeError, "1st argument must be a list of strings (sequences)");
+		PyErr_SetString(PyExc_TypeError, "1st argument must be a list of Sequence pointers");
 		return nullptr;
 	}
 	if (!PyList_Check(py_weights)) {
@@ -95,23 +98,26 @@ compute_profile(PyObject *, PyObject *args)
 		return nullptr;
 	}
 
-	SequencesType sequences;
+	std::vector<long> longs;
 	try {
-		pysupport::pylist_of_string_to_cvec_of_cvec(py_seqs, sequences, "sequences");
+		pysupport::pylist_of_int_to_cvec(py_seqs, longs, "sequences");
 	} catch (pysupport::PySupportError& pse) {
 		PyErr_SetString(PyExc_TypeError, pse.what());
 		return nullptr;
 	}
-	auto seq_len = sequences[0].size();
-	for (auto &seq: sequences)
-		if (seq.size() != seq_len) {
+	SequencesType sequences;
+	for (auto ptr_val: longs)
+		sequences.push_back(reinterpret_cast<Sequence*>(ptr_val));
+	auto seq_len = sequences[0]->size();
+	for (auto seq: sequences)
+		if (seq->size() != seq_len) {
 			PyErr_SetString(PyExc_TypeError, "Not all sequences in alignment are same length");
 			return nullptr;
 		}
 
 	WeightsType weights;
 	try {
-		pysupport::pylist_of_int_to_cvec(py_weights, weights, "sequence weights");
+		pysupport::pylist_of_float_to_cvec(py_weights, weights, "sequence weights");
 	} catch (pysupport::PySupportError& pse) {
 		PyErr_SetString(PyExc_TypeError, pse.what());
 		return nullptr;
@@ -135,7 +141,7 @@ compute_profile(PyObject *, PyObject *args)
 		int start = 0;
 		std::vector<std::thread> threads;
 		for (size_t i = 0; i < num_threads; ++i) {
-			decltype(start) end = start + (int)((i+1) * per_thread + 0.5);
+			decltype(start) end = (int)((i+1) * per_thread + 0.5);
 			if (i == num_threads - 1) // an overabundance of caution
 				end = seq_len;
 			threads.push_back(std::thread(initiate_compute_profile, &sequences, start, end, &weights,
