@@ -79,10 +79,10 @@ Steps for compiling ChimeraX on Windows 10:
       MSVC v142 - VS 2019 C++ x64/x86 build tools (v14.24)
     Alternatively you can edit the vsvars.sh script to use the current
     Visual Studio 2019 versions of these components.
-    
+
     Then start Visual Studio and login, then quit, to complete setup.
-    
-#. Install ​Cygwin, 64-bit version. In addition to the default packages, you'll need::
+
+#. Install Cygwin, 64-bit version. In addition to the default packages, you'll need::
 
     binutils - xdr in md_crds needs ld.exe
     git - to be able to check in changes
@@ -92,7 +92,7 @@ Steps for compiling ChimeraX on Windows 10:
     patch - to patch source distribution
     rsync - to install files and fetch them
     unzip - used to build ffmpeg
-  
+
 #. Clone the `ChimeraX repository <https://github.com/RBVI/ChimeraX>`_ from GitHub.
 
 #. Run ". ./vsvars.sh" in chimerax root directory to set path to Visual Studio compiler.
@@ -116,9 +116,8 @@ as the LCD Linux.
 
 macOS Build
 -----------
-
 XCode compilers are used.  Tested with XCode version 12.2 (Jan 2021) on macOS 10.15 (Catalina) and 11 (Big Sur).
-  
+
 #. Clone the `ChimeraX repository <https://github.com/RBVI/ChimeraX>`_ from GitHub::
 
      git clone git@github.com:RBVI/ChimeraX.git chimerax
@@ -132,21 +131,10 @@ XCode compilers are used.  Tested with XCode version 12.2 (Jan 2021) on macOS 10
 
     make build-from-scratch >& make.out
 
-macOS with ARM CPUs
-^^^^^^^^^^^^^^^^^^^
-
-A native ARM CPU build of ChimeraX has not yet been made (July 2021).  We have made a
-partly functional version and it was 1-2 times faster than Intel ChimeraX running under
-Rosetta 2 emulation. A primary obstacle is PyQt5 is not distributed for Mac ARM CPUs.
-Homebrew provides a native PyQt5 without QtWebEngine which we have tried.  The missing
-QtWebEngine disables some ChimeraX tools like the Log panel.  Progress on a native
-Mac ARM distribution is described in ChimeraX ticket
-`#4663 <https://www.rbvi.ucsf.edu/trac/ChimeraX/ticket/4663>`_.
-
 Known Issues
 ------------
 - On macOS Monterey with Anaconda bin directory /opt/anaconda3/bin in the PATH the
   the ChimeraX lxml compilation can find the incorrect Anaconda lxml header files
   resulting in broken lxml the missing symbol _xmlFree. Lxml is used by bundle builder
   and will fail building ChimeraX bundles.  A workaround is to temporarily
-  remove Anaconda from PATH. 
+  remove Anaconda from PATH.
