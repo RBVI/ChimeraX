@@ -41,9 +41,10 @@ installs various non-Python third-party libraries.  It builds
 wheels for about 100 ChimeraX-specific bundles written in Python and C++.  And it builds an application
 with an appropriate directory structure the operating system.
 
-The ChimeraX build as of December 2020 uses PySide2 for the Qt user interface.
-Formerly it used a commercial license version of PyQt and this was fetched from plato.cgl.ucsf.edu and
-required that the build machine can ssh to plato.
+None of these operations leak out of the built ChimeraX and onto the rest of the system.
+
+The ChimeraX build as of October 2022 uses commercial PyQt6 (through a hand-rolled Qt shim) for the Qt 
+user interface.
 
 The prereqs subdirectory contains Makefiles to build the various third party packages.  Most of the ChimeraX
 build time is making these prereq packages.  To save time on subsequent builds the installed packages are
