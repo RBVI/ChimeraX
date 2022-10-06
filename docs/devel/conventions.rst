@@ -29,7 +29,7 @@ can serve as reference docstrings. Specifying an argument's type is not necessar
 style type hints are used, Sphinx (through the ``spinx_autodoc_typehints`` extension) will pick
 them up automatically.
 
-Editor defaults
+Editor Defaults
 ---------------
 .. From <http://wiki.python.org/moin/Vim>:
 All python files should have the following modeline at the top: ::
@@ -41,3 +41,15 @@ But modelines are a security risk, so put: ::
     au FileType python setlocal tabstop=8 expandtab shiftwidth=4 softtabstop=4
 
 in your .vimrc as well.
+
+Line Endings
+------------
+The ChimeraX git repository uses line ending normalization. On checkout, the majority
+of files will have LF line endings. Use any editor in any configuration; line endings
+in mixed files or CRLF files will be converted to LF on check-in except as specified
+in ``.gitattributes``, which you may edit to protect any file that must have its
+original line endings.
+
+If you are comfortable, you can set ``core.safecrlf`` to ``false`` in your
+``~/.gitconfig`` in order to ignore routine normalization warnings from ``git``
+when using CRLF line endings on Windows.
