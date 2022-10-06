@@ -24,6 +24,7 @@ jobs:
     container: 
       image: centos:latest
     steps:
+      - run: export GIT_DISCOVERY_ACROSS_FILESYSTEM=1
       # https://techglimpse.com/failed-metadata-repo-appstream-centos-8/
       - run: sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-*
       - run: sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-*
