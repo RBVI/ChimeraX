@@ -16,7 +16,7 @@ from typing import Dict
 from Qt.QtCore import Qt, QThread, Signal, Slot
 from Qt.QtWidgets import (
     QWidget, QVBoxLayout, QAbstractItemView
-    , QLabel
+    , QLabel, QPushButton, QHBoxLayout
 )
 from Qt.QtGui import QAction
 
@@ -208,6 +208,10 @@ class BlastProteinResults(ToolInstance):
             _settings = BlastProteinResultsSettings(self.session, "Blastprotein")
         self.main_layout = QVBoxLayout()
         self.control_widget = QWidget(parent)
+        self.buttons_label = QLabel("For Selected Entries:", parent=parent)
+        self.load_buttons_widget = QWidget(parent)
+        self.load_button_container = QHBoxLayout()
+        self.load_button_container.addWidget(self.buttons_label)
 
         param_str = self._format_param_str()
         self.param_report = QLabel(" ".join(["Query:", param_str]), parent)
@@ -219,9 +223,21 @@ class BlastProteinResults(ToolInstance):
         self.table.get_selection.connect(self.load)
         self.tool_window.fill_context_menu = self.fill_context_menu
 
+        self.load_button = QPushButton("Load Structures", parent=self.load_buttons_widget)
+        self.seq_view_button = QPushButton("Show Sequence Alignment", parent=self.load_buttons_widget)
+        self.load_db_button = QPushButton("Open Database Webpage", parent=self.load_buttons_widget)
+        self.load_button_container.addWidget(self.load_button)
+        self.load_button_container.addWidget(self.seq_view_button)
+        self.load_button_container.addWidget(self.load_db_button)
+        self.load_button.clicked.connect(lambda: self.load(self.table.selected))
+        self.seq_view_button.clicked.connect(lambda: self._show_mav(self.table.selected))
+        self.load_db_button.clicked.connect(lambda: self.load_sequence(self.table.selected))
+
         self.main_layout.addWidget(self.param_report)
         self.main_layout.addWidget(self.table)
         self.main_layout.addWidget(self.control_widget)
+        self.load_buttons_widget.setLayout(self.load_button_container)
+        self.main_layout.addWidget(self.load_buttons_widget)
 
         if self._from_restore:
             self._on_report_hits_signal(self._hits)

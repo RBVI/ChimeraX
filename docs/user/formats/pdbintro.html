@@ -1,0 +1,816 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<title>Introduction to PDB Format</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h2>Introduction to PDB Format</h2></a>
+
+<p>
+Protein Data Bank (PDB) format is a standard 
+for files containing atomic coordinates. 
+It is used for structures in the
+<a href="https://www.wwpdb.org/" target="_blank">Protein Data Bank</a>
+and is read and written by many programs.
+While this short description will suffice for many users,
+those in need of further details should consult the 
+<a href="https://www.wwpdb.org/documentation/file-format"
+target="_blank">definitive description</a>.
+The complete PDB file specification provides for a wealth of information,
+including authors, literature references, and the method of structure
+determination.  
+</p><p>
+PDB format consists of lines of information in a text file.
+<a name="record-def">
+Each line of information in the file is called a <b><i>record</i></b>.
+</a>
+A PDB file generally contains several different types of records,
+arranged in a specific order to describe a structure.
+</p>
+<table border align="center" width="90%" cellpadding="5" cellspacing="0">
+<tr>
+<th colspan="2">Selected Protein Data Bank Record Types</th>
+</tr><tr>
+<th>Record Type</th><th>Data Provided by Record</th>
+</tr><tr>
+<td><b>ATOM</b></td>
+<td>atomic coordinate record containing the X,Y,Z orthogonal
+&Aring; coordinates for atoms in standard residues
+(amino acids and nucleic acids).</td>
+</tr><tr>
+<td><b>HETATM</b></td>
+<td>atomic coordinate record containing the X,Y,Z orthogonal
+&Aring; coordinates for atoms in nonstandard residues.
+Nonstandard residues include inhibitors, cofactors, ions, and solvent.
+The only functional difference from ATOM records is that HETATM
+residues are by default not connected to other residues.
+Note that water residues should be in HETATM records.</td>
+</tr><tr>
+<td><b>TER</b></td>
+<td>indicates the end of a chain of residues.
+For example, a hemoglobin molecule consists of four
+subunit chains that are not connected.
+TER indicates the end of a chain
+and prevents the display of a connection to the next chain.</td>
+</tr><tr>
+<td><b>HELIX</b></td>
+<td>indicates the location and type (right-handed alpha, <i>etc.</i>) 
+of helices.  One record per helix.</td>
+</tr><tr>
+<td><b>SHEET</b></td>
+<td>indicates the location, sense (anti-parallel, <i>etc.</i>)
+and registration with respect to the previous strand in the sheet (if any)
+of each strand in the model.  One record per strand.</td>
+</tr><tr>
+<td><b>SSBOND</b></td>
+<td>defines disulfide bond linkages between cysteine residues.</td>
+</tr>
+</table>
+<p>
+The formats of these record types are given in the tables below.
+Some differences between older and newer files occur in the fields following
+the temperature factor in ATOM and HETATM records;
+these fields are omitted from the <a href="#examples">examples</a>.
+Some fields are frequently blank, such as the alternate
+location indicator when an atom does not have alternate locations.
+</p> 
+<blockquote><b>
+<ul class="none">
+<li><a href="#coords">Atomic Coordinates</a>
+<li><a href="#secondary">Secondary Structure</a>
+<li><a href="#examples">Examples</a>
+<li><a href="#errors">Common Errors</a>
+<li><a href="#hydrogens">Hydrogen Atoms</a>
+<li><a href="#PQR">PQR Format</a>
+</ul>
+</b></blockquote>
+
+<a name="coords"></a>
+<p class="nav">
+[<a href="#top">back to top: Intro to PDB Format</a>]
+</p>
+<table border align="center" cellpadding="5px" cellspacing="0px">
+<tr><th colspan="5">Protein Data Bank Format:
+<br>Coordinate Section</th></tr>
+<tr><th>Record Type</th><th>Columns</th><th>Data</th>
+<th>Justification</th><th>Data Type</th></tr>
+<tr>
+<td rowspan="16" valign="top">ATOM</td>
+<td>1-4</td><td>&ldquo;ATOM&rdquo;</td><td></td><td align="center">character</td></tr>
+<tr>
+<td>7-11<sup><a href="#note4">#</a></sup></td><td>Atom serial number</td><td align="center">right</td><td align="center">integer</td>
+</tr><tr>
+<td>13-16</td><td>Atom name</td><td align="center">left<sup><a href="#note1">*</a></sup></td><td align="center">character</td>
+</tr><tr>
+<td>17</td><td>Alternate location indicator</td><td></td><td align="center">character</td>
+</tr><tr>
+<td>18-20<sup><a href="#note5">&sect;</a></sup></td><td>Residue name</td><td align="center">right</td><td align="center">character</td>
+</tr><tr>
+<td>22<sup><a href="#note5">&sect;</a></sup></td><td>Chain identifier</td><td></td><td align="center">character</td>
+</tr><tr>
+<td>23-26</td><td>Residue sequence number</td><td align="center">right</td><td align="center">integer</td>
+</tr><tr>
+<td>27</td><td>Code for insertions of residues</td><td></td><td align="center">character</td>
+</tr><tr>
+<td>31-38</td><td>X orthogonal &Aring; coordinate</td><td align="center">right</td><td align="center">real (8.3)</td>
+</tr><tr>
+<td>39-46</td><td>Y orthogonal &Aring; coordinate</td><td align="center">right</td><td align="center">real (8.3)</td>
+</tr><tr>
+<td>47-54</td><td>Z orthogonal &Aring; coordinate</td><td align="center">right</td><td align="center">real (8.3)</td>
+</tr><tr>
+<td>55-60</td><td>Occupancy</td><td align="center">right</td><td align="center">real (6.2)</td>
+</tr><tr>
+<td>61-66</td><td>Temperature factor</td><td align="center">right</td><td align="center">real (6.2)</td>
+</tr><tr>
+<td>73-76</td><td>Segment identifier<sup><a href="#note6">&para;</a></sup></td><td align="center">left</td><td align="center">character</td>
+</tr><tr>
+<td>77-78</td><td>Element symbol</td><td align="center">right</td><td align="center">character</td>
+</tr><tr>
+<td>79-80</td><td>Charge</td><td></td><td align="center">character</td>
+</tr><tr>
+<td rowspan="2" valign="top">HETATM</td><td>1-6</td><td>&ldquo;HETATM&rdquo;</td><td></td><td align="center">character</td>
+</tr><tr>
+<td>7-80</td><td colspan="3">same as ATOM records</td>
+</tr><tr>
+<td rowspan="6" valign="top">TER</td>
+<td>1-3</td><td>&ldquo;TER&rdquo;</td><td></td><td align="center">character</td>
+</tr><tr>
+<td>7-11<sup><a href="#note4">#</a></sup></td><td>Serial number</td><td align="center">right</td><td align="center">integer</td>
+</tr><tr>
+<td>18-20<sup><a href="#note5">&sect;</a></sup></td><td>Residue name</td><td align="center">right</td><td align="center">character</td>
+</tr><tr>
+<td>22<sup><a href="#note5">&sect;</a></sup></td><td>Chain identifier</td><td></td><td align="center">character</td>
+</tr><tr>
+<td>23-26</td><td>Residue sequence number</td><td align="center">right</td><td align="center">integer</td>
+</tr><tr>
+<td>27</td><td>Code for insertions of residues</td><td></td><td align="center">character</td>
+</tr>
+</table>
+
+<p>
+<a name="note4"><sup>#</sup></a>
+If the file contains &gt;99,999 atoms, ChimeraX requires using <b>amber</b> 
+or <b>h36</b> <a href="../commands/save.html#pdb">serial numbering</a>.
+<!-- 
+Chimera allows (nonstandard) use of
+columns 6-11 for the integer atom serial number in ATOM records, and
+in TER records, only the &ldquo;TER&rdquo; is required.
+-->
+</p><p>
+<a name="note1"><sup>*</sup></a>Atom names start with element symbols
+right-justified in columns 13-14 as permitted by the length of the name.
+For example, the symbol FE for iron appears in columns 13-14, 
+whereas the symbol C for carbon appears in column 14
+(see <a href="#misalignment">Misaligned Atom Names</a>).
+If an atom name has four characters, however, it must start in column
+13 even if the element symbol is a single character
+(for example, see <a href="#hydrogens">Hydrogen Atoms</a>).
+</p><p>
+<a name="note5"><sup>&sect;</sup></a>ChimeraX allows two-character chain
+identifiers occupying an additional column to the left, but if chain IDs 
+are single-character only, it permits (nonstandard) use of four-character 
+residue names occupying an additional column to the right.
+</p><p>
+<a name="note6"><sup>&para;</sup></a>Segment identifier is obsolete,
+but still used by some programs.
+<!--
+Chimera assigns it as the atom attribute <b>pdbSegment</b> to allow
+<a href="../midas/atom_spec.html#descriptors">command-line specification</a>.
+-->
+</p>
+
+<a name="secondary"></a>
+<p class="nav">
+[<a href="#top">back to top: Intro to PDB Format</a>]
+</p>
+<table border align="center" cellpadding="5px" cellspacing="0px">
+<tr><th colspan="5">Protein Data Bank Format:
+<br>Protein Secondary Structure and Disulfides</th></tr>
+<tr><th>Record Type</th><th>Columns</th><th>Data</th>
+<th>Justification</th><th>Data Type</th></tr>
+<tr>
+<td rowspan="14" valign="top">HELIX</td>
+<td>1-5</td><td>&ldquo;HELIX&rdquo;</td><td></td><td align="center">character</td>
+</tr><tr>
+<td>8-10</td><td>Helix serial number</td><td align="center">right</td><td align="center">integer</td>
+</tr><tr>
+<td>12-14</td><td>Helix identifier</td><td align="center">right</td><td align="center">character</td>
+</tr><tr>
+<td>16-18<sup><a href="#note5">&sect;</a></sup></td><td>Initial residue name</td><td align="center">right</td><td align="center">character</td>
+</tr><tr>
+<td>20<sup><a href="#note5">&sect;</a></sup></td><td>Chain identifier</td><td></td><td align="center">character</td>
+</tr><tr>
+<td>22-25</td><td>Residue sequence number</td><td align="center">right</td><td align="center">integer</td>
+</tr><tr>
+<td>26</td><td>Code for insertions of residues</td><td></td><td align="center">character</td>
+</tr><tr>
+<td>28-30<sup><a href="#note5">&sect;</a></sup></td><td>Terminal residue name</td><td align="center">right</td><td align="center">character</td>
+</tr><tr>
+<td>32</td><td>Chain identifier</td><td></td><td align="center">character</td>
+</tr><tr>
+<td>34-37</td><td>Residue sequence number</td><td align="center">right</td><td align="center">integer</td>
+</tr><tr>
+<td>38</td><td>Code for insertions of residues</td><td></td><td align="center">character</td>
+</tr><tr>
+<td>39-40</td><td>Type of helix<sup><a href="#note2">&dagger;</a></sup></td><td align="center">right</td><td align="center">integer</td>
+</tr><tr>
+<td>41-70</td><td>Comment</td><td align="center">left</td><td align="center">character</td>
+</tr><tr>
+<td>72-76</td><td>Length of helix</td><td align="center">right</td><td align="center">integer</td>
+</tr><tr>
+<td rowspan="24" valign="top">SHEET</td>
+<td>1-5</td><td>&ldquo;SHEET&rdquo;</td><td></td><td align="center">character</td>
+</tr><tr>
+<td>8-10</td><td>Strand number (in current sheet)</td><td align="center">right</td><td align="center">integer</td>
+</tr><tr>
+<td>12-14</td><td>Sheet identifier</td><td align="center">right</td><td align="center">character</td>
+</tr><tr>
+<td>15-16</td><td>Number of strands (in current sheet)</td><td align="center">right</td><td align="center">integer</td>
+</tr><tr>
+<td>18-20<sup><a href="#note5">&sect;</a></sup></td><td>Initial residue name</td><td align="center">right</td><td align="center">character</td>
+</tr><tr>
+<td>22<sup><a href="#note5">&sect;</a></sup></td><td>Chain identifier</td><td></td><td align="center">character</td>
+</tr><tr>
+<td>23-26</td><td>Residue sequence number</td><td align="center">right</td><td align="center">integer</td>
+</tr><tr>
+<td>27</td><td>Code for insertions of residues</td><td></td><td align="center">character</td>
+</tr><tr>
+<td>29-31<sup><a href="#note5">&sect;</a></sup></td><td>Terminal residue name</td><td align="center">right</td><td align="center">character</td>
+</tr><tr>
+<td>33<sup><a href="#note5">&sect;</a></sup></td><td>Chain identifier</td><td></td><td align="center">character</td>
+</tr><tr>
+<td>34-37</td><td>Residue sequence number</td><td align="center">right</td><td align="center">integer</td>
+</tr><tr>
+<td>38</td><td>Code for insertions of residues</td><td></td><td align="center">character</td>
+</tr><tr>
+<td>39-40</td><td>Strand sense with respect to previous<sup><a href="#note3">&Dagger;</a></sup></td><td align="center">right</td><td align="center">integer</td>
+</tr><tr>
+<td colspan="4">
+<blockquote>
+<p>
+The following fields identify two atoms involved in a hydrogen bond,
+<br>the first in the current strand and the second in the previous strand.
+<br>These fields should be blank for strand 1 (the first strand in a sheet).
+</p>
+</blockquote>
+</td>
+</tr><tr>
+<td>42-45</td><td>Atom name (as per ATOM record)</td><td align="center">left</td><td align="center">character</td>
+</tr><tr>
+<td>46-48<sup><a href="#note5">&sect;</a></sup></td><td>Residue name</td><td align="center">right</td><td align="center">character</td>
+</tr><tr>
+<td>50<sup><a href="#note5">&sect;</a></sup></td><td>Chain identifier</td><td></td><td align="center">character</td>
+</tr><tr>
+<td>51-54</td><td>Residue sequence number</td><td align="center">right</td><td align="center">integer</td>
+</tr><tr>
+<td>55</td><td>Code for insertions of residues</td><td></td><td align="center">character</td>
+</tr><tr>
+<td>57-60</td><td>Atom name (as per ATOM record)</td><td align="center">left</td><td align="center">character</td>
+</tr><tr>
+<td>61-63<sup><a href="#note5">&sect;</a></sup></td><td>Residue name</td><td align="center">right</td><td align="center">character</td>
+</tr><tr>
+<td>65<sup><a href="#note5">&sect;</a></sup></td><td>Chain identifier</td><td></td><td align="center">character</td>
+</tr><tr>
+<td>66-69</td><td>Residue sequence number</td><td align="center">right</td><td align="center">integer</td>
+</tr><tr>
+<td>70</td><td>Code for insertions of residues</td><td></td><td align="center">character</td>
+</tr><tr>
+<td rowspan="13" valign="top">SSBOND</td>
+<td>1-6</td><td>&ldquo;SSBOND&rdquo;</td><td></td><td align="center">character</td>
+</tr><tr>
+<td>8-10</td><td>Serial number</td><td align="center">right</td><td align="center">integer</td>
+</tr><tr>
+<td>12-14</td><td>Residue name (&ldquo;CYS&rdquo;)</td><td align="center">right</td><td align="center">character</td>
+</tr><tr>
+<td>16<sup><a href="#note5">&sect;</a></sup></td><td>Chain identifier</td><td></td><td align="center">character</td>
+</tr><tr>
+<td>18-21</td><td>Residue sequence number</td><td align="center">right</td><td align="center">integer</td>
+</tr><tr>
+<td>22</td><td>Code for insertions of residues</td><td></td><td align="center">character</td>
+</tr><tr>
+<td>26-28</td><td>Residue name (&ldquo;CYS&rdquo;)</td><td align="center">right</td><td align="center">character</td>
+</tr><tr>
+<td>30<sup><a href="#note5">&sect;</a></sup></td><td>Chain identifier</td><td></td><td align="center">character</td>
+</tr><tr>
+<td>32-35</td><td>Residue sequence number</td><td align="center">right</td><td align="center">integer</td>
+</tr><tr>
+<td>36</td><td>Code for insertions of residues</td><td></td><td align="center">character</td>
+</tr><tr>
+<td>60-65</td><td>Symmetry operator for first residue</td><td align="center">right</td><td align="center">integer</td>
+</tr><tr>
+<td>67-72</td><td>Symmetry operator for second residue</td><td align="center">right</td><td align="center">integer</td>
+</tr><tr>
+<td>74-78</td><td>Length of disulfide bond</td><td align="center">right</td><td align="center">real (5.2)</td>
+</tr>
+</table>
+<p>
+<a name="note2"><sup>&dagger;</sup></a>Helix types:
+<table cellspacing="0" cellpadding="5">
+<colgroup>
+<col width="25">
+<col width="15">
+<col span="1">
+<col width="25">
+<col width="15">
+<col span="1">
+</colgroup>
+<tr>
+<td align="right">1</td><td></td><td>Right-handed alpha (default)</td>
+<td align="right">6</td><td></td><td>Left-handed alpha</td>
+</tr><tr>
+<td align="right">2</td><td></td><td>Right-handed omega</td>
+<td align="right">7</td><td></td><td>Left-handed omega</td>
+</tr><tr>
+<td align="right">3</td><td></td><td>Right-handed pi</td>
+<td align="right">8</td><td></td><td>Left-handed gamma</td>
+</tr><tr>
+<td align="right">4</td><td></td><td>Right-handed gamma</td>
+<td align="right">9</td><td></td><td>2/7 ribbon/helix</td>
+</tr><tr>
+<td align="right">5</td><td></td><td>Right-handed 3/10</td>
+<td align="right">10</td><td></td><td>Polyproline</td>
+</tr>
+</table>
+</p><p>
+<a name="note3"><sup>&Dagger;</sup></a>Sense is 0 for strand 1
+(the first strand in a sheet), 1 for parallel, and &ndash;1 for antiparallel.
+</p>
+
+<p>
+For those who are familiar with the FORTRAN programming language,
+the following format descriptions will be meaningful.
+Those unfamiliar with FORTRAN should ignore this gibberish:
+<table cellspacing="10">
+<tr>
+<td><b>ATOM</b><br><b>HETATM</b></td>
+<td>Format ( A6,I5,1X,A4,A1,A3,1X,A1,I4,A1,3X,3F8.3,2F6.2,10X,A2,A2 )</td>
+</tr><tr>
+<td><b>HELIX</b></td>
+<td>Format ( A6,1X,I3,1X,A3,2(1X,A3,1X,A1,1X,I4,A1),I2,A30,1X,I5 )</td>
+</tr><tr>
+<td><b>SHEET</b></td>
+<td>Format ( A6,1X,I3,1X,A3,I2,2(1X,A3,1X,A1,I4,A1),I2,2(1X,A4,A3,1X,A1,I4,A1) )</td>
+</tr><tr>
+<td><b>SSBOND</b></td>
+<td>Format ( A6,1X,I3,1X,A3,1X,A1,1X,I4,A1,3X,A3,1X,A1,1X,I4,A1,23X,2(2I3,1X),F5.2 )</td>
+</tr>
+</table>
+
+<a name="examples">
+<p class="nav">
+[<a href="#top">back to top: Intro to PDB Format</a>]
+</p>
+<h3>Examples of PDB Format</h3></a>
+<p>
+Glucagon is a small protein of 29 amino acids in a single chain.
+The first residue is the amino-terminal amino acid, histidine,
+which is followed by a serine residue and then a glutamine.
+The coordinate information (entry <b>1gcn</b>) starts with:
+</p>
+<pre>
+ATOM      1  N   HIS A   1      49.668  24.248  10.436  1.00 25.00           N
+ATOM      2  CA  HIS A   1      50.197  25.578  10.784  1.00 16.00           C
+ATOM      3  C   HIS A   1      49.169  26.701  10.917  1.00 16.00           C
+ATOM      4  O   HIS A   1      48.241  26.524  11.749  1.00 16.00           O
+ATOM      5  CB  HIS A   1      51.312  26.048   9.843  1.00 16.00           C
+ATOM      6  CG  HIS A   1      50.958  26.068   8.340  1.00 16.00           C
+ATOM      7  ND1 HIS A   1      49.636  26.144   7.860  1.00 16.00           N
+ATOM      8  CD2 HIS A   1      51.797  26.043   7.286  1.00 16.00           C
+ATOM      9  CE1 HIS A   1      49.691  26.152   6.454  1.00 17.00           C
+ATOM     10  NE2 HIS A   1      51.046  26.090   6.098  1.00 17.00           N
+ATOM     11  N   SER A   2      49.788  27.850  10.784  1.00 16.00           N
+ATOM     12  CA  SER A   2      49.138  29.147  10.620  1.00 15.00           C
+ATOM     13  C   SER A   2      47.713  29.006  10.110  1.00 15.00           C
+ATOM     14  O   SER A   2      46.740  29.251  10.864  1.00 15.00           O
+ATOM     15  CB  SER A   2      49.875  29.930   9.569  1.00 16.00           C
+ATOM     16  OG  SER A   2      49.145  31.057   9.176  1.00 19.00           O
+ATOM     17  N   GLN A   3      47.620  28.367   8.973  1.00 15.00           N
+ATOM     18  CA  GLN A   3      46.287  28.193   8.308  1.00 14.00           C
+ATOM     19  C   GLN A   3      45.406  27.172   8.963  1.00 14.00           C
+</pre>
+<p>
+Notice that each line or record begins with the record type ATOM.
+The atom serial number is the next item in each record.
+</p><p>
+The atom name is the third item in the record.
+Notice that the first one or two characters of the atom name
+consists of the chemical symbol for the atom type.
+All the atom names beginning with C are carbon atoms; N
+indicates a nitrogen and O indicates oxygen.
+In amino acid residues, 
+the next character is the remoteness indicator code, which is
+transliterated according to:
+<blockquote>
+<table>
+<tr>
+<td>&alpha;</td><td>A</td>
+</tr><tr>
+<td>&beta;</td><td>B</td>
+</tr><tr>
+<td>&gamma;</td><td>G</td>
+</tr><tr>
+<td>&delta;</td><td>D</td>
+</tr><tr>
+<td>&epsilon;</td><td>E</td>
+</tr><tr>
+<td>&zeta;</td><td>Z</td>
+</tr><tr>
+<td>&eta;</td><td>H</td>
+</tr>
+</table>
+</blockquote>
+The next character of the atom name is a branch indicator, if required.
+</p><p>
+The next data field is the residue type.
+Notice that each record contains the residue type.
+In this example, the first residue in the chain is HIS (histidine)
+and the second residue is a SER (serine).
+</p><p>
+The next data field contains the chain identifier, in this case A.
+</p><p>
+The next data field contains the residue sequence number.
+Notice that as the residue changes from histidine to serine,
+the residue number changes from 1 to 2.
+Two like residues may be adjacent to one another,
+so the residue number is important for distinguishing between them.
+</p><p>
+The next three data fields contain the X, Y, and Z coordinate values,
+respectively.  The last three fields shown are the occupancy,
+temperature factor (B-factor), and element symbol.
+</p><p>
+The spacing of the data fields is crucial.
+If a data field does not apply, it should be left blank.
+</p><p>
+The glucagon
+data file continues in this manner until the final residue is reached:
+<pre>
+ATOM    239  N   THR A  29       3.391  19.940  12.762  1.00 21.00           N
+ATOM    240  CA  THR A  29       2.014  19.761  13.283  1.00 21.00           C
+ATOM    241  C   THR A  29       0.826  19.943  12.332  1.00 23.00           C
+ATOM    242  O   THR A  29       0.932  19.600  11.133  1.00 30.00           O
+ATOM    243  CB  THR A  29       1.845  20.667  14.505  1.00 21.00           C
+ATOM    244  OG1 THR A  29       1.214  21.893  14.153  1.00 21.00           O
+ATOM    245  CG2 THR A  29       3.180  20.968  15.185  1.00 21.00           C
+ATOM    246  OXT THR A  29      -0.317  20.109  12.824  1.00 25.00           O
+TER     247      THR A  29
+</pre>
+Note that this residue includes the extra oxygen atom OXT
+on the terminal carboxyl group.  Other than OXT and the rarely seen HXT,
+atoms in standard nucleotides and amino acids in version 3.0 PDB
+files are named according to the IUPAC recommendations 
+(<a href="http://publications.iupac.org/pac/70/1/0117/index.html"
+target="_blank">Markley <i>et al.</i></a>,
+<i>Pure Appl Chem</i> <b>70</b>:117 (1998)).
+The TER record terminates the amino acid chain.
+</p><p>
+A more complicated protein, hemoglobin, consists of four amino acid 
+chains, each with an associated heme group.  
+There are two alpha chains (identifiers
+A and C) and two beta chains (identifiers B and D).
+The first ten lines of coordinates for this molecule (entry <b>3hhb</b>) are:
+<pre>
+ATOM      1  N   VAL A   1       6.452  16.459   4.843  7.00 47.38           N
+ATOM      2  CA  VAL A   1       7.060  17.792   4.760  6.00 48.47           C
+ATOM      3  C   VAL A   1       8.561  17.703   5.038  6.00 37.13           C
+ATOM      4  O   VAL A   1       8.992  17.182   6.072  8.00 36.25           O
+ATOM      5  CB  VAL A   1       6.342  18.738   5.727  6.00 55.13           C
+ATOM      6  CG1 VAL A   1       7.114  20.033   5.993  6.00 54.30           C
+ATOM      7  CG2 VAL A   1       4.924  19.032   5.232  6.00 64.75           C
+ATOM      8  N   LEU A   2       9.333  18.209   4.095  7.00 30.18           N
+ATOM      9  CA  LEU A   2      10.785  18.159   4.237  6.00 35.60           C
+ATOM     10  C   LEU A   2      11.247  19.305   5.133  6.00 35.47           C
+</pre>
+At the end of chain A, the heme group records appear:
+<pre>
+ATOM   1058  N   ARG A 141      -6.466  12.036 -10.348  7.00 19.11           N
+ATOM   1059  CA  ARG A 141      -7.922  12.248 -10.253  6.00 26.80           C
+ATOM   1060  C   ARG A 141      -8.119  13.499  -9.393  6.00 28.93           C
+ATOM   1061  O   ARG A 141      -7.112  13.967  -8.853  8.00 28.68           O
+ATOM   1062  CB  ARG A 141      -8.639  11.005  -9.687  6.00 24.11           C
+ATOM   1063  CG  ARG A 141      -8.153  10.551  -8.308  6.00 19.20           C
+ATOM   1064  CD  ARG A 141      -8.914   9.319  -7.796  6.00 21.53           C
+ATOM   1065  NE  ARG A 141      -8.517   9.076  -6.403  7.00 20.93           N
+ATOM   1066  CZ  ARG A 141      -9.142   8.234  -5.593  6.00 23.56           C
+ATOM   1067  NH1 ARG A 141     -10.150   7.487  -6.019  7.00 19.04           N
+ATOM   1068  NH2 ARG A 141      -8.725   8.129  -4.343  7.00 25.11           N
+ATOM   1069  OXT ARG A 141      -9.233  14.024  -9.296  8.00 40.35           O
+TER    1070      ARG A 141
+HETATM 1071 FE   HEM A   1       8.128   7.371 -15.022 24.00 16.74          FE
+HETATM 1072  CHA HEM A   1       8.617   7.879 -18.361  6.00 17.74           C
+HETATM 1073  CHB HEM A   1      10.356  10.005 -14.319  6.00 18.92           C
+HETATM 1074  CHC HEM A   1       8.307   6.456 -11.669  6.00 11.00           C
+HETATM 1075  CHD HEM A   1       6.928   4.145 -15.725  6.00 13.25           C
+</pre>
+The last residue in the alpha chain is an ARG (arginine).
+Again, the extra oxygen atom OXT appears in the terminal carboxyl group.
+The TER record indicates the end of the peptide chain.
+It is important to have TER records at the end of peptide
+chains so a bond is not drawn from the
+end of one chain to the start of another.
+</p><p>
+In the example above, the TER record is correct and should
+be present, but the molecule chain would still be terminated at that
+point even without a TER record, because HETATM residues
+are not connected to other residues or to each other.
+The heme group is a single residue made up of HETATM records.
+</p><p>
+After the heme group associated with chain A, chain B begins:
+<pre>
+HETATM 1109  CAD HEM A   1       7.618   5.696 -20.432  6.00 21.38           C
+HETATM 1110  CBD HEM A   1       8.947   5.143 -20.947  6.00 29.03           C
+HETATM 1111  CGD HEM A   1       9.047   5.155 -22.461  6.00 30.08           C
+HETATM 1112  O1D HEM A   1      10.139   5.458 -22.959  8.00 33.72           O
+HETATM 1113  O2D HEM A   1       8.096   4.833 -23.177  8.00 33.55           O
+ATOM   1114  N   VAL B   1       9.143 -20.582   1.231  7.00 48.92           N
+ATOM   1115  CA  VAL B   1       8.824 -20.084  -0.109  6.00 52.26           C
+ATOM   1116  C   VAL B   1       9.440 -20.964  -1.190  6.00 57.72           C
+ATOM   1117  O   VAL B   1       9.768 -22.138  -0.985  8.00 55.05           O
+ATOM   1118  CB  VAL B   1       9.314 -18.642  -0.302  6.00 58.48           C
+ATOM   1119  CG1 VAL B   1       8.269 -17.606   0.113  6.00 59.43           C
+ATOM   1120  CG2 VAL B   1      10.683 -18.373   0.331  6.00 45.96           C
+</pre>
+<p>
+Here the TER card is implicit in the start of a new chain.
+</p><p>
+Protein Data Bank format relies on the concept of <b><i>residues</i></b>:
+</p>
+<ul>
+<li>Each atom in a residue must be uniquely identifiable.
+Two atoms in the same residue can only have the same name if they
+have different alternate location identifiers.
+<li>Residue names are a maximum of three characters
+long<sup><a href="#note5">&sect;</a></sup> 
+and uniquely identify the residue type.
+Thus, all residues of a given name should be the same type of residue
+and have the same structure (contain the same atoms with the same connectivity).
+</ul>
+
+<a name="errors">
+<p class="nav">
+[<a href="#top">back to top: Intro to PDB Format</a>]
+</p>
+<h3>Common Errors in PDB Format Files</h3></a>
+<p>
+If a data file fails to display correctly,
+it is sometimes difficult to determine where in the hundreds of lines of
+data the mistake occurred.
+This section enumerates some of the most common errors found in PDB files.
+</p>
+
+<h3>Program-Generated PDB Files</h3>
+<h4>Spurious Long Bonds</h4>
+<p>
+A couple of common errors in program-generated PDB files
+result in the display of very long bonds between residues:
+<ul>
+<li> Missing TER cards: Either a TER card or a change in the chain ID
+is needed to mark the end of a chain.
+<li> Improper use of ATOM records instead of HETATM records:
+HETATM records should be employed for compounds
+that do not form chains, such as water or heme.
+The first <i>six</i> columns of the
+ATOM record should be changed to HETATM so that the
+remaining columns stay aligned correctly.
+</ul>
+<p>
+Apart from any format errors,
+ChimeraX draws <a href="../pseudobonds.html">pseudobonds</a>
+to indicate connectivity across
+chain segments that lack coordinates (<i>e.g.</i>, 
+regions of missing density due to crystallographic disorder).
+</p>
+<a name="misalignment">
+<h4>Misaligned Atom Names</h4></a>
+<p>
+Incorrectly aligned atom names in PDB records can cause problems.
+Atom names are composed of an atomic (element) symbol
+<i>right</i>-justified in columns 13-14, and trailing identifying characters
+<i>left</i>-justified in columns 15-16.  
+A single-character element symbol should not appear in column 13 
+unless the atom name has four characters
+(for example, see <a href="#hydrogens">Hydrogen Atoms</a>).
+Many programs simply left-justify all atom names starting in column 13.
+The difference can be seen clearly in a short segment of hemoglobin
+(entry <b>3hhb</b>):
+</p>
+<i>Correct:</i>
+<pre>
+HETATM 1071 FE   HEM A   1       8.128   7.371 -15.022 24.00 16.74          FE
+HETATM 1072  CHA HEM A   1       8.617   7.879 -18.361  6.00 17.74           C
+HETATM 1073  CHB HEM A   1      10.356  10.005 -14.319  6.00 18.92           C
+HETATM 1074  CHC HEM A   1       8.307   6.456 -11.669  6.00 11.00           C
+HETATM 1075  CHD HEM A   1       6.928   4.145 -15.725  6.00 13.25           C
+</pre>
+<i>Incorrect:</i>
+<pre>
+HETATM 1071 FE   HEM A   1       8.128   7.371 -15.022 24.00 16.74          FE
+HETATM 1072 CHA  HEM A   1       8.617   7.879 -18.361  6.00 17.74           C
+HETATM 1073 CHB  HEM A   1      10.356  10.005 -14.319  6.00 18.92           C
+HETATM 1074 CHC  HEM A   1       8.307   6.456 -11.669  6.00 11.00           C
+HETATM 1075 CHD  HEM A   1       6.928   4.145 -15.725  6.00 13.25           C
+</pre>
+
+<h3>Hand-Edited PDB Files</h3>
+<h4>Duplicate Atom Names</h4>
+<p>
+One possible editing mistake is the failure to uniquely name all atoms within a given residue.
+In the following example, two atoms in the same residue are named CA:
+<pre>
+ATOM    185  N   VAL A  23      13.455  17.883  10.517  1.00  7.00           N
+ATOM    186  CA  VAL A  23      12.574  17.403  11.589  1.00  7.00           C
+ATOM    187  C   VAL A  23      11.283  18.205  11.729  1.00  7.00           C
+ATOM    188  O   VAL A  23      10.233  17.600  12.052  1.00  7.00           O
+ATOM    189  CA  VAL A  23      13.339  17.278  12.906  1.00 10.00           C
+ATOM    190  CG1 VAL A  23      12.441  17.004  14.108  1.00 13.00           C
+ATOM    191  CG2 VAL A  23      14.455  16.248  12.794  1.00 13.00           C
+ATOM    192  N   GLN A  24      11.255  19.253  10.941  1.00  8.00           N
+ATOM    193  CA  GLN A  24      10.082  20.114  10.818  1.00  8.00           C
+ATOM    194  C   GLN A  24       9.158  19.638   9.692  1.00  8.00           C
+</pre>
+Depending on the display program, the residue may be shown with
+incorrect connectivity, or it may become evident only upon labeling
+that the residue is missing a CB atom.
+</p>
+
+<h4>Residues Out of Sequence</h4>
+<p>
+In the following example, the second residue in the
+file is erroneously numbered residue 5.
+Many display programs will show this residue as connected to residues 1 and 3.
+If this residue was meant to be connected to residues 4 and 6 instead,
+it should appear between those residues in the PDB file.
+<pre>
+ATOM      1  N   HIS A   1      49.668  24.248  10.436  1.00 25.00           N
+ATOM      2  CA  HIS A   1      50.197  25.578  10.784  1.00 16.00           C
+ATOM      3  C   HIS A   1      49.169  26.701  10.917  1.00 16.00           C
+ATOM      4  O   HIS A   1      48.241  26.524  11.749  1.00 16.00           O
+ATOM      5  CB  HIS A   1      51.312  26.048   9.843  1.00 16.00           C
+ATOM      6  CG  HIS A   1      50.958  26.068   8.340  1.00 16.00           C
+ATOM      7  ND1 HIS A   1      49.636  26.144   7.860  1.00 16.00           N
+ATOM      8  CD2 HIS A   1      51.797  26.043   7.286  1.00 16.00           C
+ATOM      9  CE1 HIS A   1      49.691  26.152   6.454  1.00 17.00           C
+ATOM     10  NE2 HIS A   1      51.046  26.090   6.098  1.00 17.00           N
+ATOM     11  N   SER A   5      49.788  27.850  10.784  1.00 16.00           N
+ATOM     12  CA  SER A   5      49.138  29.147  10.620  1.00 15.00           C
+ATOM     13  C   SER A   5      47.713  29.006  10.110  1.00 15.00           C
+ATOM     14  O   SER A   5      46.740  29.251  10.864  1.00 15.00           O
+ATOM     15  CB  SER A   5      49.875  29.930   9.569  1.00 16.00           C
+ATOM     16  OG  SER A   5      49.145  31.057   9.176  1.00 19.00           O
+ATOM     17  N   GLN A   3      47.620  28.367   8.973  1.00 15.00           N
+ATOM     18  CA  GLN A   3      46.287  28.193   8.308  1.00 14.00           C
+</pre>
+</p>
+
+<h4>Common Typos</h4>
+<p>
+Sometimes the letter l is accidentally substituted for the number 1.
+This has different repercussions depending on where in the file
+the error occurs; a grossly misplaced atom may indicate the presence
+of such an error in a coordinate field.
+These errors can be located readily if the text of the data file appears
+in uppercase, by invoking a text editor to search for all
+instances of the lowercase letter l.
+</p>
+
+<a name="hydrogens">
+<p class="nav">
+[<a href="#top">back to top: Intro to PDB Format</a>]
+</p>
+<h3>Hydrogen Atoms</h3></a>
+<p>
+In brief, conventions for hydrogen atoms in version 3.0 PDB format
+are as follows:
+<ul>
+<li>Hydrogen atom records follow the
+records of all other atoms of a particular residue.
+<li>A hydrogen atom name starts with H.  The next part of the name
+is based on the name of the connected nonhydrogen atom.
+For example, in amino acid residues, H is
+followed by the remoteness indicator (if any) of the connected atom,
+followed by the branch indicator (if any) of the connected atom;
+if more than one hydrogen is connected to the same atom, 
+an additional digit is appended so that each hydrogen atom will have
+a unique name.  Hydrogen atoms in standard nucleotides and amino acids 
+(other than the rarely seen HXT)
+are named according to the IUPAC recommendations
+(<a href="http://publications.iupac.org/pac/70/1/0117/index.html"
+target="_blank">Markley <i>et al.</i></a>,
+<i>Pure Appl Chem</i> <b>70</b>:117 (1998)).
+Names of hydrogen atoms in HETATM
+residues are determined in a similar fashion.
+<li>If the name of a hydrogen has four characters, it is left-justified 
+starting in column 13; if it has fewer than four characters, 
+it is left-justified starting in column 14.
+</ul>
+In the following excerpt from entry <b>1vm3</b>,
+atom H is attached to atom N.  Atom HA is attached to atom CA;
+the remoteness indicator A is the same for these atoms.
+Two hydrogen atoms are connected to CB, one is connected to CG,
+three are connected to CD1, and three are connected to CD2.
+</p>
+<pre>
+ATOM     10  N   LEU A   2       4.595   6.365   3.756  1.00  0.00           N
+ATOM     11  CA  LEU A   2       4.471   5.443   2.633  1.00  0.00           C
+ATOM     12  C   LEU A   2       5.841   5.176   2.015  1.00  0.00           C
+ATOM     13  O   LEU A   2       6.205   4.029   1.755  1.00  0.00           O
+ATOM     14  CB  LEU A   2       3.526   6.037   1.578  1.00  0.00           C
+ATOM     15  CG  LEU A   2       2.790   4.919   0.823  1.00  0.00           C
+ATOM     16  CD1 LEU A   2       3.803   3.916   0.262  1.00  0.00           C
+ATOM     17  CD2 LEU A   2       1.817   4.196   1.769  1.00  0.00           C
+ATOM     18  H   LEU A   2       4.169   7.246   3.704  1.00  0.00           H
+ATOM     19  HA  LEU A   2       4.063   4.514   2.992  1.00  0.00           H
+ATOM     20  HB2 LEU A   2       2.804   6.675   2.065  1.00  0.00           H
+ATOM     21  HB3 LEU A   2       4.099   6.623   0.873  1.00  0.00           H
+ATOM     22  HG  LEU A   2       2.234   5.353   0.004  1.00  0.00           H
+ATOM     23 HD11 LEU A   2       4.648   4.447  -0.148  1.00  0.00           H
+ATOM     24 HD12 LEU A   2       3.334   3.331  -0.516  1.00  0.00           H
+ATOM     25 HD13 LEU A   2       4.137   3.260   1.052  1.00  0.00           H
+ATOM     26 HD21 LEU A   2       0.941   3.892   1.216  1.00  0.00           H
+ATOM     27 HD22 LEU A   2       1.522   4.860   2.568  1.00  0.00           H
+ATOM     28 HD23 LEU A   2       2.296   3.323   2.188  1.00  0.00           H
+</pre>
+
+<a name="PQR">
+<p class="nav">
+[<a href="#top">back to top: Intro to PDB Format</a>]
+</p>
+<h3>PQR Variant of PDB Format</h3></a>
+<p>
+Several programs use a modified PDB format called PQR, in which
+atomic partial charge (Q) and radius (R) fields follow the X,Y,Z 
+coordinate fields in ATOM and HETATM records. An excerpt:
+<!-- 
+first two residues of 2gbp; apparently chain ID is stripped;
+REMARK records not included here say that BGC was omitted 
+-->
+<pre>
+ATOM      1  N   ALA     1      46.457  12.189  21.556  0.1414 1.8240
+ATOM      2  CA  ALA     1      47.614  11.997  22.448  0.0962 1.9080
+ATOM      3  C   ALA     1      47.538  12.947  23.645  0.6163 1.9080
+ATOM      4  O   ALA     1      46.441  13.476  23.962 -0.5722 1.6612
+ATOM      5  CB  ALA     1      48.911  12.134  21.650 -0.0597 1.9080
+ATOM      6  H2  ALA     1      45.672  11.684  21.917  0.1997 0.6000
+ATOM      7  H3  ALA     1      46.235  13.163  21.506  0.1997 0.6000
+ATOM      8  H   ALA     1      46.683  11.849  20.642  0.1997 0.6000
+ATOM      9  HA  ALA     1      47.603  11.052  22.786  0.0889 1.1000
+ATOM     10  HB1 ALA     1      49.041  11.319  21.087  0.0300 1.4870
+ATOM     11  HB3 ALA     1      48.855  12.941  21.064  0.0300 1.4870
+ATOM     12  HB2 ALA     1      49.679  12.231  22.281  0.0300 1.4870
+ATOM     13  N   ASP     2      48.702  13.128  24.279 -0.5163 1.8240
+ATOM     14  CA  ASP     2      48.826  13.956  25.493  0.0381 1.9080
+ATOM     15  C   ASP     2      48.614  15.471  25.323  0.5366 1.9080
+ATOM     16  O   ASP     2      49.292  16.362  24.807 -0.5819 1.6612
+ATOM     17  CB  ASP     2      50.156  13.635  26.226 -0.0303 1.9080
+ATOM     18  CG  ASP     2      49.984  12.419  27.136  0.7994 1.9080
+ATOM     19  OD1 ASP     2      50.595  12.308  28.221 -0.8014 1.6612
+ATOM     20  OD2 ASP     2      49.198  11.502  26.778 -0.8014 1.6612
+ATOM     21  H   ASP     2      49.511  12.637  23.845  0.2936 0.6000
+ATOM     22  HA  ASP     2      48.104  13.630  26.146  0.0880 1.3870
+ATOM     23  HB3 ASP     2      50.392  14.413  26.773 -0.0122 1.4870
+ATOM     24  HB2 ASP     2      50.832  13.431  25.545 -0.0122 1.4870
+</pre>
+PQR format is rather loosely defined and varies according to which
+program is producing or using the file. For example, 
+<a href="https://www.poissonboltzmann.org/" target="_blank">APBS</a>
+requires only that all fields be whitespace-delimited.
+</p><p>
+If an ATOM or HETATM record being read by Chimera is not in PDB format,
+Chimera next tries to read it as PQR format.  In that case,
+all fields up to and including the coordinates are still expected
+to adhere to the <a href="#coords">standard format</a>, 
+but the next two eight-column fields are each expected 
+to contain a floating-point number:  charge is read from
+columns 55-62 and radius is read from columns 63-70.
+The radius values are assigned as the atom 
+<a href="../attributes.html">attribute</a> named <b>radius</b>.
+<!-- <b>charge</b> and --> 
+</p><p>
+<a href="https://www.poissonboltzmann.org" target="_blank">PDB2PQR</a>
+is a program for structure cleanup, charge/radius assignment,
+and PQR file generation. 
+</p>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics /
+October 2022</address>
+</body></html>

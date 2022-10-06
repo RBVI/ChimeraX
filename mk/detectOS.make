@@ -12,8 +12,14 @@
 
 # Detect Operating System and architecture
 
-OS	:= $(shell uname -s)
-SHORT_OS := $(shell uname -o)
+OS=$(shell uname -s)
+# We're on Windows
+ifeq ($(filter $(OS),Linux Darwin),)
+OS=$(shell uname -o)
+ifneq ($(filter $(OS),Cygwin Msys),)
+OS=Windows
+endif
+endif
 
 # Linux
 ifeq ($(OS),Linux)
@@ -42,7 +48,7 @@ ifeq ($(OS),Darwin)
 endif
 
 # Cygwin environment on Windows, don't care if NT versus 2000 ...
-ifneq ($(filter $(SHORT_OS),Cygwin Msys),)
+ifeq ($(OS),Windows)
 	# Windows is what Python's platform.system() returns.
 	OS = Windows
 	#MACHINE	:= $(shell uname -m)

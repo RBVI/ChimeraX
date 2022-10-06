@@ -42,6 +42,8 @@ dist
 *.out
 _build
 # {Virtual,} Environments
+# The Windows venv doesn't have a leading dot
+venv
 .venv
 .virtualenv
 .makerc
@@ -87,10 +89,8 @@ src/bundles/mmcif/mmcif_cpp/include/
 src/bundles/mmcif/src/mmcif.cpp
 src/bundles/mmcif/src/mmcif_write.cpp
 src/bundles/mmtf/.eggs/
-src/bundles/mmtf/mmtf-cpp-master/
-src/bundles/mmtf/mmtf-cpp-master.zip
-src/bundles/mmtf/msgpack-c-master.zip
-src/bundles/mmtf/msgpack-c-master/
+src/bundles/mmtf/mmtf-cpp-*
+src/bundles/mmtf/msgpack-c-*
 src/bundles/pdb/pdb_cpp/include/
 src/bundles/pdb/src/include/
 src/bundles/pdb_lib/src/include/
