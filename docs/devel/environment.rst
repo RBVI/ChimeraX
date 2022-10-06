@@ -135,7 +135,12 @@ set to the directory you'd like to start in.
 =====
 macOS
 =====
-At minimum Xcode and its command-line tools are required.
+You will need the Xcode Command Line Tools at a minimum. To install them,
+open a terminal and type ::
+
+    xcode-select --install
+
+Note that this does not install ``homebrew``.
 
 =====
 Linux
