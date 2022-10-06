@@ -28,18 +28,47 @@ Popular IDEs include PyCharm and VS Code. Your choice of IDE is up to you;
 many share the same feature set thanks to the *language server protocol* (LSP)
 and the *debug adapter protocol* (DAP).
 
-You may set ChimeraX's internal Python interpreter as the interpreter for your IDE:
-
-* Windows: ``C:\path\to\your\repo\ChimeraX.app\bin\python.exe``
-* macOS: ``/path/to/your/repo/ChimeraX.app/Contents/bin/python``
-* Linux: ``/path/to/your/repo/ChimeraX.app/bin/python``
-
-But this may confuse your IDE, which may report that it cannot find certain
-modules. The recommended way to access ChimeraX's Python environment in an
-IDE is to use the internal python to create a virtual environment, give
-that virtual environment access to ChimeraX's ``site-packages`` directory, and
-then set that virtual environment's Python as the project's Python interpreter
+When you first open a new IDE, it will probably try to set its
+Python interpreter to the system Python. It is better to use a virtual
+environment based on ChimeraX's internal Python as the Python interpreter
 instead.
+
+If you set ChimeraX's internal interpreter directly as your IDE interpreter,
+the IDE may become confused and report that it cannot find certain modules or
+that certain modules which are present in the ChimeraX distribution are not
+actually installed.
+
+Virtual environments solve both problems, and many others. You can install
+packages into the virtual environment without corrupting the internal Python
+environment, and trash the virtual environment and start again if something
+goes wrong.
+
+First, build ChimeraX or obtain a built ChimeraX. If you have built
+ChimeraX, then you can use the makefile to create a virtual environment
+with the correct settings in your repository directory: ::
+
+    make venv
+
+If you are working off of the ChimeraX distribution, use the internal Python
+to create a virtual environment in your project's folder. The internal
+Python can be found at the following locations:
+
+* Windows: ``C:\path\to\ChimeraX.app\bin\python.exe``
+* macOS: ``/path/to/ChimeraX.app/Contents/bin/python``
+* Linux: ``/path/to/ChimeraX.app/bin/python``
+
+Ensure that the virtual environment has access to ChimeraX's ``site-packages``
+directory, and then set that virtual environment's Python as the project's
+Python interpreter in your IDE.
+
+Example commands: ::
+
+    # Windows
+    C:\path\to\ChimeraX.app\bin\python.exe -m venv .venv --system-site-packages
+    # macOS
+    /path/to/ChimeraX.app/Contents/bin/python -m venv .venv --system-site-packages
+    # Linux
+    /path/to/ChimeraX.app/bin/python -m venv .venv --system-site-packages
 
 =========
 Debugging
