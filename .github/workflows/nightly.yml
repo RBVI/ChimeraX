@@ -29,6 +29,7 @@ jobs:
       - run: sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-*
       - run: sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-*
       - run: dnf update -y
+      - run: dnf install git-all
       - uses: actions/checkout@v3
       - run: ${PWD}/utils/set_up_centos.sh
       - run: make -f Makefile.centos install
@@ -58,5 +59,4 @@ jobs:
           update: true
           install: git mingw-w64-x86_64-imagemagick mingw-w64-x86_64-binutils rsync patch unzip openssh make
       # TODO: Freeze version to the production ChimeraX compiler
-      - run: AUTOMATIC_DISCOVERY=1 . ./vsvars.sh
-      - run: make install
+      - run: AUTOMATIC_DISCOVERY=1 . ./vsvars.sh && make install

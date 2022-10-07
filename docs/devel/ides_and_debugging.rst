@@ -75,8 +75,8 @@ Debugging
 =========
 .. TODO: nogui debugging
 
-Since PyCharm uses its own wrapper around pydevd instead of debugy, we'll start
-with steps for PyCha.
+Since PyCharm uses its own wrapper around ``pydevd`` instead of ``debugpy``, 
+we'll start with steps for PyCharm.
 
 * Create a new Run/Debug Configuration
 * Set the script path field to point at a module instead
@@ -85,16 +85,26 @@ with steps for PyCha.
 * Uncheck "Add content roots to PYTHONPATH"
 * Uncheck "Add source roots to PYTHONPATH"
 
-We recommend the following profile for programs using debugpy as the interface
+We recommend the following profiles for programs using debugpy as the interface
 to pydevd (the majority of them). ::
 
     {
-        "name": "Launch ChimeraX",
+        "name": "ChimeraX (GUI)",
         "type": "python",
         "request": "launch",
         "module": "chimerax.core",
         # Ensure we can pause ChimeraX, not just break in our module
         "justMyCode": false
+    },
+    {
+        "name": "ChimeraX (NoGUI)",
+        "type": "python",
+        "request": "launch",
+        "module": "chimerax.core",
+        "args": ["--nogui"],
+        # Ensure we can pause ChimeraX, not just break in our module
+        "justMyCode": false,
+        "console": "externalTerminal"
     }
 
 Breaking on raise leads to slow execution in the debugger, but breaking on an
