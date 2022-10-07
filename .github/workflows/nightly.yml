@@ -58,5 +58,4 @@ jobs:
           update: true
           install: git mingw-w64-x86_64-imagemagick mingw-w64-x86_64-binutils rsync patch unzip openssh make
       # TODO: Freeze version to the production ChimeraX compiler
-      - run: AUTOMATIC_DISCOVERY=1 . ./vsvars.sh
-      - run: make install
+      - run: AUTOMATIC_DISCOVERY=1 . ./vsvars.sh && make install
