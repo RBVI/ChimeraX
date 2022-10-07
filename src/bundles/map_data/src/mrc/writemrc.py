@@ -55,11 +55,13 @@ def write_mrc2000_grid_data(grid_data, path, options = {}, progress = None):
     mtype = grid_data.value_type.type
     type = closest_mrc2000_type(mtype)
 
+    ccp4_format = options.get('ccp4_format')
+    header = mrc2000_header(grid_data, type, ccp4_format = ccp4_format)
+
     f = open(path, 'wb')
     if progress:
         progress.close_on_cancel(f)
 
-    header = mrc2000_header(grid_data, type)
     f.write(header)
 
     stats = Matrix_Statistics()
@@ -74,7 +76,7 @@ def write_mrc2000_grid_data(grid_data, path, options = {}, progress = None):
             progress.plane(k)
 
     # Put matrix statistics in header
-    header = mrc2000_header(grid_data, type, stats)
+    header = mrc2000_header(grid_data, type, stats, ccp4_format = ccp4_format)
     f.seek(0)
     f.write(header)
 
@@ -82,7 +84,7 @@ def write_mrc2000_grid_data(grid_data, path, options = {}, progress = None):
 
 # -----------------------------------------------------------------------------
 #
-def mrc2000_header(grid_data, value_type, stats = None):
+def mrc2000_header(grid_data, value_type, stats = None, ccp4_format = False):
 
     size = grid_data.size
 
@@ -90,6 +92,19 @@ def mrc2000_header(grid_data, value_type, stats = None):
     if value_type == float32:         mode = 2
     elif value_type == int16:         mode = 1
     elif value_type == int8:          mode = 0
+
+    if ccp4_format:
+        origin = (0,0,0)
+        fstart = -grid_data.xyz_to_ijk((0,0,0))
+        start = tuple(int(round(x)) for x in fstart)
+        if max([abs(s-fs) for s,fs in zip(start, fstart)]) > 0.01:
+            msg = ('Did not save CCP4 file, format requires an integer grid origin, ' +
+                   'got non-integer %.5g,%.5g,%.5g' % tuple(fstart))
+            from chimerax.core.errors import UserError
+            raise UserError(msg)
+    else:
+        origin = grid_data.origin
+        start = (0,0,0)
 
     cell_size = tuple(a*b for a,b in zip(grid_data.step, size))
 
@@ -127,7 +142,7 @@ def mrc2000_header(grid_data, value_type, stats = None):
     strings = [
         binary_string(size, int32),  # nx, ny, nz
         binary_string(mode, int32),  # mode
-        binary_string((0,0,0), int32), # nxstart, nystart, nzstart
+        binary_string(start, int32), # nxstart, nystart, nzstart
         binary_string(size, int32),  # mx, my, mz
         binary_string(cell_size, float32), # cella
         binary_string(grid_data.cell_angles, float32), # cellb
@@ -136,7 +151,7 @@ def mrc2000_header(grid_data, value_type, stats = None):
         binary_string(0, int32), # ispg
         binary_string(0, int32), # nsymbt
         binary_string([0]*25, int32), # extra
-        binary_string(grid_data.origin, float32), # origin
+        binary_string(origin, float32), # origin
         'MAP '.encode('utf-8'), # map
         binary_string(machst, int32), # machst
         binary_string(rms, float32), # rms
@@ -146,6 +161,13 @@ def mrc2000_header(grid_data, value_type, stats = None):
 
     header = b''.join(strings)
     return header
+
+# -----------------------------------------------------------------------------
+#
+def write_ccp4_grid_data(grid_data, path, options = {}, progress = None):
+    ccp4_opts = options.copy()
+    ccp4_opts['ccp4_format'] = True
+    write_mrc2000_grid_data(grid_data, path, options = ccp4_opts, progress = progress)
     
 # -----------------------------------------------------------------------------
 #
