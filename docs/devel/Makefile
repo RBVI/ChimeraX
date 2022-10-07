@@ -68,7 +68,7 @@ install: html
 	$(RSYNC) $(BUILDDIR)/html/ $(DOCDIR)
 
 clean:
-	-rm -rf $(BUILDDIR)/* conf.py index.rst _static/cxlinks.js __pycache__
+	-rm -rf $(BUILDDIR)/* conf.py index.rst _static/cxlinks.js __pycache__ _static/devdocs.css
 
 conf.py: conf.py.in
 	sed -e 's/PYTHON_VERSION/$(PYTHON_VERSION)/' \
