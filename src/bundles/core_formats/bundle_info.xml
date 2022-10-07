@@ -23,7 +23,7 @@
   <Providers manager="data formats">
     <Provider name="ChimeraX session" category="Session" nicknames="session"
 		suffixes=".cxs" mime_types="application/x-chimerax-session"
-		reference_url="help:user/commands/save.html" />
+		reference_url="help:user/commands/save.html#session" />
     <Provider name="ChimeraX commands" category="Command script"
 		suffixes=".cxc" nicknames="cmd" mime_types="application/x-chimerax-code"
 		reference_url="help:user/commands/usageconventions.html" />
