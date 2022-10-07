@@ -793,7 +793,7 @@ class Sequence(State):
     default_strand_fill_color = (0.88, 1.0, 1.0) # light cyan
     default_strand_outline_color = tuple([0.75*chan for chan in default_strand_fill_color])
 
-    chimera_exiting = False
+    chimerax_exiting = False
 
     def __init__(self, seq_pointer=None, *, name="sequence", characters=""):
         self.attrs = {} # miscellaneous attributes
@@ -852,7 +852,7 @@ class Sequence(State):
         return copy_seq
 
     def __del__(self):
-        if Sequence.chimera_exiting:
+        if Sequence.chimerax_exiting:
             return
         # __del__ methods that create additional references (which the code in the
         # 'if' below apparently does) can cause __del__ to be called multiple times,
@@ -1017,7 +1017,7 @@ class Sequence(State):
 
     @atexit.register
     def _exiting():
-        Sequence.chimera_exiting = True
+        Sequence.chimerax_exiting = True
 
 # -----------------------------------------------------------------------------
 #
@@ -1037,6 +1037,15 @@ class StructureSeq(Sequence):
         super().__init__(sseq_pointer)
         self.triggers.add_trigger('delete')
         self.triggers.add_trigger('modify')
+        from weakref import proxy
+        def proxy_handler(*args, s=proxy(self)):
+            s._changes_cb(*args)
+        from . import get_triggers
+        self.changes_handler = get_triggers().add_handler('changes', proxy_handler)
+
+    def __del__(self):
+        if not self.chimerax_exiting:
+            self.changes_handler.remove()
 
     def __lt__(self, other):
         # for sorting (objects of the same type)
@@ -1081,6 +1090,7 @@ class StructureSeq(Sequence):
             characters = "".join(characters)
         f = c_function('sseq_bulk_set', args = (ctypes.c_void_p, ctypes.py_object, ctypes.c_char_p))
         f(self._c_pointer, ptrs, characters.encode('utf-8'))
+        self._fire_trigger('modify', self)
 
     def __copy__(self):
         f = c_function('sseq_copy', args = (ctypes.c_void_p,), ret = ctypes.c_void_p)
@@ -1201,6 +1211,22 @@ class StructureSeq(Sequence):
             'custom attrs': self.custom_attrs
         }
         return data
+
+    def _changes_cb(self, trig_name, changes):
+        if "name changed" in changes.residue_reasons():
+            updated_chars = []
+            some_changed = False
+            for res, cur_char in zip(self.residues, self.characters):
+                if res:
+                    uc = Sequence.rname3to1(res.name)
+                    updated_chars.append(uc)
+                    if uc != cur_char:
+                        some_changed = True
+                else:
+                    updated_chars.append(cur_char)
+            if some_changed:
+                self.bulk_set(self.residues, ''.join(updated_chars))
+                self.from_seqres = False
 
     def _cpp_seq_demotion(self):
         # called from C++ layer when this should be demoted to Sequence
