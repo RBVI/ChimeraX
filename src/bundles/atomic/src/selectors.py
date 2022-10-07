@@ -342,7 +342,7 @@ def _update_select_residues_menu(session):
     nucleic = set()
     from . import Sequence
     for r in structures.residues:
-        if Sequence.rname3to1(r.name) == 'X':
+        if r.polymer_type == r.PT_NONE or Sequence.rname3to1(r.name) == 'X':
             nonstandard.add(r.name)
         elif Sequence.amino3to1(r.name) == 'X':
             nucleic.add(r.name)

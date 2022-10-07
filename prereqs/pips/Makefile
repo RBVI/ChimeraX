@@ -90,8 +90,10 @@ app-upgrade:
 #	done
 
 clean:
-	rm -f pip.log
-	make -C package_checker clean
+	-rm -f pip.log $(PYTABLES_DYLIBS) \
+		imagecodecs-2022.2.22-cp39-cp39-macosx_12_0_arm64.whl \
+		tables-3.7.0-cp39-cp39-macosx_12_0_arm64.whl
+	make -C package_checker clean	
 
 outdated:
 	$(PIP) list --outdated --format=columns

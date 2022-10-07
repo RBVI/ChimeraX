@@ -22,7 +22,7 @@ losslessjpeg = ["python-gdcm"]
 [project.readme]
 content-type = "text"
 text = "Read medical imaging and segmentations in DICOM format."
-	
+
 [project.urls]
 Home = "https://www.rbvi.ucsf.edu/chimerax/"
 
@@ -37,8 +37,16 @@ categories = ["Volume Data"]
 classifiers = ["Development Status :: 2 - Pre-Alpha"]
 
 [chimerax.data-format."DICOM medical imaging"]
-category = "Volume data"
+category = "Volume Data"
 nicknames = ["dicom"]
 suffixes = [".dcm"]
 allow-directory = true
 open = { batch = true }
+
+[chimerax.tool."DICOM Browser"]
+category = "Volume Data"
+description = "View the metadata of a patient's DICOM files"
+
+[chimerax.tool."DICOM Metadata"]
+category = "Volume Data"
+description = "View the metadata of a DICOM file or series"

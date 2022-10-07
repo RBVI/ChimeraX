@@ -13,8 +13,7 @@ include $(TOP)/mk/config.make
 
 CHIMERAX_APP = $(wildcard $(TOP)/ChimeraX*.app)
 
-OS = $(patsubst CYGWIN_NT%,CYGWIN_NT,$(shell uname -s))
-ifeq ($(OS),CYGWIN_NT)
+ifeq ($(OS),Windows)
 PYTHON_BIN = $(CHIMERAX_APP)/bin/python.exe
 CHIMERAX_EXE = $(CHIMERAX_APP)/bin/ChimeraX.exe
 endif
