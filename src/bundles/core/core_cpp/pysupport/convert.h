@@ -302,7 +302,7 @@ void pylist_of_int_to_cvec(PyObject* pylist, std::vector<Int>& cvec, const char*
     cvec.resize(num_items);
     for (decltype(num_items) i = 0; i < num_items; ++i) {
         PyObject* item = PyList_GET_ITEM(pylist, i);
-        cvec[i] = static_cast<int>(pyint_to_clong(item, item_description));
+        cvec[i] = static_cast<Int>(pyint_to_clong(item, item_description));
     }
 }
 
@@ -315,7 +315,7 @@ void pylist_of_float_to_cvec(PyObject* pylist, std::vector<Float>& cvec,
     cvec.resize(num_items);
     for (decltype(num_items) i = 0; i < num_items; ++i) {
         PyObject* item = PyList_GET_ITEM(pylist, i);
-        cvec[i] = static_cast<int>(pyfloat_to_cdouble(item, item_description));
+        cvec[i] = static_cast<Float>(pyfloat_to_cdouble(item, item_description));
     }
 }
 

@@ -1,0 +1,73 @@
+Bootstrap: docker
+From: rockylinux:9
+
+%help
+RHEL 9 compatible containter that can build ChimeraX
+
+%labels
+    Maintainer "Chimera Staff <chimera-staff@cgl.ucsf.edu>"
+    org.label-schema.schema-version "1.0"
+    org.label-scheme.description "This image has the right compiler environment to run ChimeraX"
+
+%post 
+    dnf -y install epel-release dnf-plugins-core
+    dnf config-manager --set-enabled crb
+    dnf -y --setopt=exclude='*.i?86' group install "Development Tools"
+    dnf -y --setopt=exclude='*.i?86' install \
+	tcsh python3 \
+	chrpath patch openssh-clients rsync ca-certificates \
+	autoconf automake libtool pkgconfig \
+	flex bison yasm unzip tar gzip bzip2 xz p7zip \
+	rpm-build rpmdevtools rpmlint \
+	gfortran \
+	ImageMagick \
+	alsa-lib-devel \
+	atk-devel \
+	bzip2-devel \
+	cairo-devel \
+	cairo-gobject-devel \
+	cups-devel \
+	dbus-libs \
+	expat-devel \
+	fftw-devel \
+	fontconfig-devel \
+	freetype-devel \
+	gdk-pixbuf2-devel \
+	glib2-devel \
+	glibc-devel \
+	gtk3-devel \
+	libdrm-devel \
+	libgcc \
+	libstdc++ \
+	libX11-devel \
+	libxcb-devel \
+	libXcomposite-devel \
+	libXcursor-devel \
+	libXdamage-devel \
+	libXext-devel \
+	libffi-devel \
+	libXfixes-devel \
+	libXi-devel \
+	libXrandr-devel \
+	libXrender-devel \
+	libXtst-devel \
+	mesa-libEGL \
+	mesa-libGL-devel \
+	mesa-libGLU-devel \
+	mesa-libOSMesa-devel \
+	nspr-devel \
+	nss-devel \
+	nss-util-devel \
+	openssl \
+	openssl-devel \
+	pango-devel \
+	pulseaudio-libs-devel \
+	sqlite-devel \
+	xdg-utils \
+	xz-devel \
+	zlib-devel
+
+%environment
+    export PATH=/usr/bin:/usr/sbin:/bin:/sbin
+    export SHELL=/bin/bash
+    export LANG=en_US.UTF-8

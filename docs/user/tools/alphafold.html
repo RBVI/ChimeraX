@@ -320,7 +320,11 @@ may need to sign up for one of the paid
 <a href="https://colab.research.google.com/signup"
 target="_blank">Colab plans</a>.
 <br><br>
-<li>Total <b>sequence length cannot be very large</b>.
+<li><b>Each chain must contain at least 16 residues.</b>
+Shorter sequences are not accepted because they cannot be used to generate
+a reliable multiple sequence alignment.
+<br><br>
+<li><b>Total sequence length cannot be very large</b>.
 AlphaFold runs out of graphics memory for long sequences (~800 amino acids
 on old Google Colab GPUs with 16 GB memory).
 Multimer predictions face the same limit on the total number of residues,
@@ -651,5 +655,5 @@ Error (&Aring;)</b>&rdquo;) would need to be created separately with
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-August 2022</address>
+October 2022</address>
 </body></html>

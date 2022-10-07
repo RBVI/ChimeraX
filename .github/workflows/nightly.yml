@@ -12,7 +12,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - run: sudo apt-get update && sudo apt-get upgrade -y && ${PWD}/utils/set_up_ubuntu.sh
-      - run: make install-rbvi
+      - run: make install
         #      - run: tar -cvzf ChimeraX.tar.gz ChimeraX.app
         #      - name: Upload the Built ChimeraX
         #        uses: actions/upload-artifact@v3.1.0
@@ -24,18 +24,20 @@ jobs:
     container: 
       image: centos:latest
     steps:
+      - run: export GIT_DISCOVERY_ACROSS_FILESYSTEM=1
       # https://techglimpse.com/failed-metadata-repo-appstream-centos-8/
       - run: sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-*
       - run: sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-*
-      - run: dnf update -y && ${PWD}/utils/set_up_centos.sh
+      - run: dnf update -y
       - uses: actions/checkout@v3
-      - run: make -f Makefile.centos install-rbvi
+      - run: ${PWD}/utils/set_up_centos.sh
+      - run: make -f Makefile.centos install
   # TODO: Build Generic Linux
   build-macos:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v3
-      - run: make install-rbvi
+      - run: make install
         # TODO: Notarize
         #      - run: tar -Jcvf ChimeraX.tar.xz ChimeraX.app
         #      - name: Upload the Built ChimeraX
@@ -43,23 +45,18 @@ jobs:
         #        with:
         #          name: ChimeraX-macOS.tar.xz
         #          path: ./ChimeraX.tar.xz
-#  build-windows:
-#    runs-on: windows-2019
-#    defaults:
-#      run:
-#        shell: C:\tools\cygwin\bin\bash.exe -o igncr '{0}'
-#    steps:
-#      - uses: actions/checkout@v2
-#      - uses: egor-tensin/setup-cygwin@v3
-#        with:
-#          platform: x64
-#          packages: binutils git imagemagick make openssh patch rsync unzip
-#            # hardlinks: 1 TODO: Enable if regular installation fails 
-#      - run: . ${PWD}/utils/set_up_windows.sh
-#      - run: make install
-#      - run: tar -cvzf ChimeraX.tar.gz ChimeraX.app
-#      - name: Upload the Built ChimeraX
-#        uses: actions/upload-artifact@v3.1.0
-#        with:
-#          name: ChimeraX-Windows.tar.gz
-#          path: ./ChimeraX.app
+  build-windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: git mingw-w64-x86_64-imagemagick mingw-w64-x86_64-binutils rsync patch unzip openssh make
+      # TODO: Freeze version to the production ChimeraX compiler
+      - run: AUTOMATIC_DISCOVERY=1 . ./vsvars.sh
+      - run: make install

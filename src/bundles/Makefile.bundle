@@ -24,18 +24,26 @@ endif
 
 # Platform-dependent settings.  Should not need fixing.
 # For Windows, we assume Cygwin is being used.
-OS	:= $(shell uname -s)
-SHORT_OS := $(shell uname -o)
-ifneq ($(filter $(SHORT_OS),Cygwin Msys),)
+OS=$(shell uname -s)
+ifeq ($(filter $(OS),Darwin Linux),)
+OS=$(shell uname -o)
+ifneq ($(filter $(OS),Cygwin Msys),)
+OS=Windows
+endif
+endif
+ifeq ($(OS),Windows)
 APP_PYTHON_EXE = $(CHIMERAX_APP)/bin/python.exe -I
+CX_BIN = $(CHIMERAX_APP)/bin/ChimeraX-console.exe
 PYMOD_EXT = pyd
 endif
 ifeq ($(OS),Darwin)
 APP_PYTHON_EXE = $(CHIMERAX_APP)/Contents/bin/python3.9 -I
+CX_BIN = $(CHIMERAX_APP)/Contents/bin/ChimeraX
 PYMOD_EXT = so
 endif
 ifeq ($(OS),Linux)
 APP_PYTHON_EXE = $(CHIMERAX_APP)/bin/python3.9 -I
+CX_BIN = $(CHIMERAX_APP)/bin/chimerax
 PYMOD_EXT = so
 endif
 CHIMERAX_EXE = $(APP_PYTHON_EXE) -m chimerax.core
@@ -99,7 +107,7 @@ debug:
 	$(CHIMERAX_EXE) --debug
 
 clean:
-	if [ -x $(CHIMERAX_EXE) -a -e bundle_info.xml ]; then \
+	if [ -x $(CX_BIN) -a -e bundle_info.xml ]; then \
 		$(RUN) "devel clean . exit true" ; \
 	else \
 		rm -rf $(CLEAN) ; \
