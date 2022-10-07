@@ -1036,7 +1036,8 @@ class StructureSeq(Sequence):
                     chain_id.encode('utf-8'), structure._c_pointer, polymer_type)
         super().__init__(sseq_pointer)
         self.triggers.add_trigger('delete')
-        self.triggers.add_trigger('modify')
+        self.triggers.add_trigger('characters changed')
+        self.triggers.add_trigger('residues changed')
         from weakref import proxy
         def proxy_handler(*args, s=proxy(self)):
             s._changes_cb(*args)
@@ -1082,7 +1083,7 @@ class StructureSeq(Sequence):
 
     # allow append/extend for now, since NeedlemanWunsch uses it
 
-    def bulk_set(self, residues, characters):
+    def bulk_set(self, residues, characters, *, fire_triggers=True):
         '''Set all residues/characters of StructureSeq. '''
         '''"characters" is a string or a list of characters.'''
         ptrs = [r._c_pointer.value if r else 0 for r in residues]
@@ -1090,7 +1091,9 @@ class StructureSeq(Sequence):
             characters = "".join(characters)
         f = c_function('sseq_bulk_set', args = (ctypes.c_void_p, ctypes.py_object, ctypes.c_char_p))
         f(self._c_pointer, ptrs, characters.encode('utf-8'))
-        self._fire_trigger('modify', self)
+        if fire_triggers:
+            self._fire_trigger('characters changed', self)
+            self._fire_trigger('residues changed', self)
 
     def __copy__(self):
         f = c_function('sseq_copy', args = (ctypes.c_void_p,), ret = ctypes.c_void_p)
@@ -1177,7 +1180,7 @@ class StructureSeq(Sequence):
         sseq = StructureSeq(chain_id=data['chain_id'], structure=data['structure'])
         Sequence.set_state_from_snapshot(sseq, session, data['Sequence'])
         sseq.description = data['description']
-        sseq.bulk_set(data['residues'], sseq.characters)
+        sseq.bulk_set(data['residues'], sseq.characters, fire_triggers=False)
         sseq.description = data.get('description', None)
         sseq.set_custom_attrs(data)
         return sseq
@@ -1225,8 +1228,9 @@ class StructureSeq(Sequence):
                 else:
                     updated_chars.append(cur_char)
             if some_changed:
-                self.bulk_set(self.residues, ''.join(updated_chars))
+                self.bulk_set(self.residues, ''.join(updated_chars), fire_triggers=False)
                 self.from_seqres = False
+                self._fire_trigger('characters changed', self)
 
     def _cpp_seq_demotion(self):
         # called from C++ layer when this should be demoted to Sequence
