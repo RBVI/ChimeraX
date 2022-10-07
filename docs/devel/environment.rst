@@ -25,15 +25,17 @@ build machine or in your CI scripts.
 =======
 Windows
 =======
+Microsoft Visual Studio Community 2017 or 2019 is used to compile C++ on Windows. For
+personal builds you may use whatever version of Visual Studio, but to distribute bundles
+you should use one of these compilers, as they were chosen to match the compiler used by
+the standard Python 3 distribution.
 
-The ChimeraX git repository uses line ending normalization. On checkout, the majority
-of files will have LF line endings. Use any editor in any configuration; line endings
-in mixed files or CRLF files will be converted to LF on check-in except as specified
-in ``.gitattributes``, which you may edit to protect any file that must have its
-original line endings.
+Install Visual Studio. When choosing components, select at least the following: ::
 
-If you are comfortable, you can set ``core.safecrlf`` to ``false`` in your
-``~/.gitconfig`` in order to ignore routine normalization warnings from ``git``.
+    "Desktop Development with C++"
+    "Universal Windows Platform development"
+
+Then start Visual Studio and login, then quit, to complete setup.
 
 MinGW
 =====
@@ -135,7 +137,12 @@ set to the directory you'd like to start in.
 =====
 macOS
 =====
-At minimum Xcode and its command-line tools are required.
+You will need the Xcode Command Line Tools at a minimum. To install them,
+open a terminal and type ::
+
+    xcode-select --install
+
+Note that this does not install ``homebrew``.
 
 =====
 Linux
