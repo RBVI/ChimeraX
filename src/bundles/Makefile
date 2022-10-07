@@ -80,6 +80,8 @@ endif
 
 clean:
 	$(MAKE) -C core clean
+	$(MAKE) -C bundle_builder clean
+	$(MAKE) -C toolshed_utils clean
 	rm -rf __pycache__ Makefile.dependencies
 
 #

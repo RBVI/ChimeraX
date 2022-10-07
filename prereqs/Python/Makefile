@@ -251,4 +251,4 @@ make_mac_distribution:
 	make -f Makefile.macos
 
 clean:
-	rm -rf $(SOURCE)
+	-rm -rf $(SOURCE) $(DISTRIBUTION)
