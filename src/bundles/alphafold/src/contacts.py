@@ -15,7 +15,7 @@
 #
 def alphafold_contacts(session, residues, to_residues = None, distance = 3,
                        flip = False, palette = None, range = None, radius = 0.2, dashes = 1,
-                       output_file = None):
+                       name = 'PAE Contacts', replace = True, output_file = None):
     '''
     Create pseudobonds between close residues of an AlphaFold structure
     colored by the predicted aligned error value.  The paecontacts colormap
@@ -61,9 +61,10 @@ def alphafold_contacts(session, residues, to_residues = None, distance = 3,
     if range is not None and range != 'full':
         palette = palette.rescale_range(range[0], range[1], full = True)
 
-    # Delete old pseudobonds
-    g = s.pseudobond_group('PAE Contacts')
-    g.pseudobonds.delete()
+    g = s.pseudobond_group(name)
+    if replace:
+        # Delete old pseudobonds
+        g.pseudobonds.delete()
     g.dashes = dashes
         
     # Create pseudobonds between close residues
@@ -112,7 +113,7 @@ def _close_residue_pairs(residues1, residues2, distance):
 # -----------------------------------------------------------------------------
 #
 def register_alphafold_contacts_command(logger):
-    from chimerax.core.commands import CmdDesc, register, FloatArg, IntArg, BoolArg
+    from chimerax.core.commands import CmdDesc, register, FloatArg, IntArg, BoolArg, StringArg
     from chimerax.core.commands import ColormapArg, ColormapRangeArg, SaveFileNameArg
     from chimerax.atomic import ResiduesArg
     desc = CmdDesc(
@@ -124,6 +125,8 @@ def register_alphafold_contacts_command(logger):
                    ('range', ColormapRangeArg),
                    ('radius', FloatArg),
                    ('dashes', IntArg),
+                   ('name', StringArg),
+                   ('replace', BoolArg),
                    ('output_file', SaveFileNameArg)],
         synopsis = 'Make pseudobonds colored by PAE for close residues'
     )
