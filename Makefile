@@ -68,7 +68,8 @@ venv:
 	if [ -x $(APP_PYTHON_BIN) ] && [ ! -x .venv ]; then \
 		$(APP_PYTHON_BIN) -m venv .venv --system-site-packages ; \
 		echo 'Virtual environment created in .venv' ; \
-		echo 'source .venv/bin/activate to activate it' ; \
+		echo 'source .venv/bin/activate to activate it on Linux or macOS' ; \
+		echo 'or source .venv/Scripts/activate to activate it on Windows' ; \
 		exit ; \
 	else \
 		if [ -x .venv ]; then \
