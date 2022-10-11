@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from .util import complete_terminal_carboxylate, determine_termini, bond_with_H_length
+from .util import complete_terminal_carboxylate, determine_termini, bond_with_H_length, check_no_hyds
 from .dock_prep import dock_prep_arg_info, run_for_dock_prep
 
 from chimerax.core.toolshed import BundleAPI

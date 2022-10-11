@@ -36,6 +36,40 @@ def bond_with_H_length(heavy, geom):
     from chimerax.atomic import Element
     return Element.bond_length(heavy.element, Element.get_element(1))
 
+def _res_check(residues):
+    okay_no_hyd = residues.filter(residues.num_atoms == 1)
+    okay_metal = okay_no_hyd.filter(okay_no_hyd.atoms.elements.is_metal)
+    okay_halogen = okay_no_hyd.filter(okay_no_hyd.atoms.elements.is_halogen)
+    return residues.subtract(okay_metal).subtract(okay_halogen)
+
+def check_no_hyds(session, items, process, cb, cb_args):
+    # 'items' can be Structures or Residues
+    from chimerax.atomic import Residues
+    if isinstance(items, Residues):
+        checks = items.by_structure
+    else:
+        check = []
+        for s in items:
+            checks.append((s, s.residues))
+    needs_hyds = []
+    for s, residues in checks:
+        residues = _res_check(residues)
+        atoms = residues.atoms
+        if len(atoms.filter(atoms.element_numbers == 1)) == 0:
+            needs_hyds.append(s)
+    if not need_hyds:
+        # ensure that N terminii that aren't actual N terminii are Npl so that adding charges works
+        real_N, real_C, fake_N, fake_C, fake_5p, fake_3p = determini_termini(need_hyds)
+        for n_ter in fake_N:
+            if not n_ter.find_atom("H"):
+                continue
+            n = n_ter.find_atom("N")
+            if n:
+                n.idatm_type = "Npl"
+        cb(*cb_args)
+        return
+    #TODO: query user about adding hydrogens
+
 def complete_terminal_carboxylate(session, cter):
     from chimerax.atomic.bond_geom import bond_positions
     from chimerax.atomic.struct_edit import add_atom

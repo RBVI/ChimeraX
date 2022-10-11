@@ -93,6 +93,19 @@ class AddChargeTool(ToolInstance):
             selected = selected_residues(self.session)
             if not selected:
                 sel_restrict = False
+        residues = AtomicStructures(self.structures).residues
+        if sel_restrict:
+            residues = residues.intersect(selected)
+            if not residues:
+                self.tool_window.shown = True
+                raise UserError("None of the selected residues are in the structures being assigned charges")
+        if self.dock_prep_info is None:
+            from chimerax.addh import check_no_hyds
+            check_no_hyds(self.session, residues, "adding charges", self._finish_add_charge, (residues,))
+        else:
+            # Dock prep has add hydrogens built in, so don't check
+            self._finish_add_charge(residues)
+        #TODO: move into _finish_add_charge
         from chimerax.core.commands import concise_model_spec
         cmd = "addcharge %s standardize" % concise_model_spec(self.session, self.structures)
         from chimerax.atomic.struct_edit import standardizable_residues
@@ -102,16 +115,10 @@ class AddChargeTool(ToolInstance):
         self.session.logger.info("Closest equivalent command: <b>addcharge %s%s standardizeResidues %s</b>"
             % (concise_model_spec(self.session, self.structures), " & sel" if sel_restrict else "",
             ",".join(standardizable_residues) if standardize else "none"), is_html=True)
-        residues = AtomicStructures(self.structures).residues
-        if sel_restrict:
-            residues = residues.intersect(selected)
-            if not residues:
-                self.tool_window.shown = True
-                raise UserError("None of the selected residues are in the structures being assigned charges")
         from .charge import add_standard_charges
-        non_std = add_standard_charges(self.session, residues=residues, **params)
         #TODO: some kind of hydrogen check?
-        print("Non-standard:", non_std)
+        non_std = add_standard_charges(self.session, residues=residues, **params)
+        #TODO: launch non-standard tool
         self.delete()
         if self.dock_prep_info is not None:
             #TODO: continue dock prep call chain
