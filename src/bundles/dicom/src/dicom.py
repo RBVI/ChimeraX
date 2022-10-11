@@ -265,6 +265,9 @@ class Patient(Model):
             study.series.sort(key = lambda x: x.number)
             study.open_series_as_models()
 
+    def __iter__(self):
+        return iter(self.studies)
+
 
 class Study(Model):
     """A set of DICOM files that have the same Study Instance UID"""
@@ -373,6 +376,9 @@ class Study(Model):
     @property
     def study_id(self):
         return self.series[0].study_id
+
+    def __iter__(self):
+        return iter(self.series)
 
 class DICOMMapFormat(MapFileFormat, DICOM):
     def __init__(self):
