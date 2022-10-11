@@ -70,13 +70,22 @@ class NoGuiLog(PlainTextLog):
 
 class UI:
 
-    def __init__(self, session):
-        self.is_gui = False
-        self.has_graphics = False
+    _instance = None
 
-        import weakref
-        self._session = weakref.ref(session)
-        self._queue = None
+    def __new__(cls, session):
+        if cls._instance is None:
+            cls._instance = super(UI, cls).__new__(cls)
+            c = cls._instance
+            c.is_gui = False
+            c.has_graphics = False
+            import weakref
+            c._session = weakref.ref(session)
+            c._queue = None
+        return cls._instance
+
+    @classmethod
+    def instance(cls):
+        return cls._instance
 
     def initialize_color_output(self, color_output):
         global _color_output
