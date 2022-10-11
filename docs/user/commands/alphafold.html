@@ -787,6 +787,8 @@ Residue-residue <a href="#pae">PAE values</a> can also be shown with colored
 [&nbsp;<a href="color.html#palette-options"><b>range</b></a>&nbsp;&nbsp;<i>low,high</i>&nbsp;|&nbsp;full&nbsp;]
 [&nbsp;<b>radius</b>&nbsp;&nbsp;<i>r</i>&nbsp;]
 [&nbsp;<b>dashes</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
+[&nbsp;<b>name</b>&nbsp;&nbsp;<i>model-name</i>&nbsp;]
+[&nbsp;<b>replace</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>outputFile</b>&nbsp;&nbsp;<i>pae-file</i>&nbsp;]
 </blockquote>
 <p>
@@ -798,7 +800,8 @@ See also:
 <a href="size.html"><b>size</b></a>,
 <a href="style.html"><b>style</b></a>,
 <a href="clashes.html"><b>contacts</b></a>,
-<a href="crosslinks.html"><b>crosslinks</b></a>
+<a href="crosslinks.html"><b>crosslinks</b></a>,
+<a href="rename.html"><b>rename</b></a>
 </p><p>
 A <a href="#pae">PAE plot</a> 
 containing the specified residues must already be shown.
@@ -856,6 +859,11 @@ instead spacing the colors evenly across the specified range.
 The <a href="../pseudobonds.html">pseudobond</a> stick <b>radius</b>
 (default <b>0.2</b> &Aring;) and number of <b>dashes</b> (default <b>1</b>,
 meaning a solid stick) can also be specified. 
+</p><p>
+The <b>name</b> option allows specifying the pseudobond <i>model-name</i> 
+(default <b>PAE Contacts</b>).  If a model by that name already exists, any
+pre-existing pseudobonds will be removed from that model and replaced by the
+new ones (<b>replace true</b>, default) unless <b>replace false</b> is used.
 </p><p>
 The <b>outputFile</b> option allows saving a list
 of the residue pairs (those meeting the distance criterion) and

@@ -52,7 +52,11 @@ def run_prediction(sequences,
     from colabfold.utils import setup_logging
     from pathlib import Path
     setup_logging(Path(".").joinpath("log.txt"))
-        
+
+    # Avoid various FutureWarning message from deprecated jax features
+    import warnings
+    warnings.simplefilter(action='ignore', category=FutureWarning)
+
     query_sequence = ':'.join(sequences)
     queries_path=f"{job_name}.csv"
     with open(queries_path, "w") as text_file:
@@ -322,9 +326,9 @@ def install(use_amber = False, use_templates = False, install_log = 'install_log
     cmds = f'''
 set -e
 # We have to use "--no-warn-conflicts" because colab already has a lot preinstalled with requirements different to ours
-pip install -q --no-warn-conflicts "colabfold[alphafold-minus-jax] @ git+https://github.com/sokrypton/ColabFold@26de12d3afb5f85d49d0c7db1b9371f034388395"
+pip install --no-warn-conflicts "colabfold[alphafold-minus-jax] @ git+https://github.com/sokrypton/ColabFold@22671664ac2c9dcb30086c3e654414d950ccb297"
 # high risk high gain
-pip install -q "jax[cuda11_cudnn805]>=0.3.8,<0.4" -f https://storage.googleapis.com/jax-releases/jax_releases.html
+pip install "jax[cuda11_cudnn805]>=0.3.8,<0.4" -f https://storage.googleapis.com/jax-releases/jax_releases.html
 touch COLABFOLD_READY
 '''
     run_shell_commands(cmds, 'install_colabfold.sh', install_log)

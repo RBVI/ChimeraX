@@ -13,16 +13,17 @@ from itertools import chain
 
 
 from Qt.QtGui import QAction
-from Qt.QtWidgets import QVBoxLayout
-from Qt.QtWidgets import QHeaderView
-from Qt.QtWidgets import QWidget
-from Qt.QtWidgets import QLabel
-from Qt.QtWidgets import QAbstractItemView
+from Qt.QtWidgets import (
+    QVBoxLayout, QHBoxLayout, QHeaderView
+    , QWidget, QLabel, QAbstractItemView
+    , QPushButton
+)
 
 from chimerax.core.tools import ToolInstance
 from chimerax.ui import MainToolWindow
 
 from .widgets import DICOMTable
+from . import DICOMMetadata
 
 # TODO: Make singleton
 class DICOMBrowserTool(ToolInstance):
@@ -44,6 +45,23 @@ class DICOMBrowserTool(ToolInstance):
         self.tool_window = MainToolWindow(self)
         self.parent = self.tool_window.ui_area
         self.main_layout = QVBoxLayout()
+
+        self.buttons_label = QLabel("For Highlighted Entries:", parent=self.parent)
+        self.load_buttons_widget = QWidget(self.parent)
+        self.load_button_container = QHBoxLayout()
+        self.load_button_container.addWidget(self.buttons_label)
+
+        self.load_pt_button = QPushButton("Load Patient Metadata", parent=self.load_buttons_widget)
+        self.load_st_button = QPushButton("Load Study Metadata", parent=self.load_buttons_widget)
+        self.load_sr_button = QPushButton("Load Series Metadata", parent=self.load_buttons_widget)
+        self.load_button_container.addWidget(self.load_pt_button)
+        self.load_button_container.addWidget(self.load_st_button)
+        self.load_button_container.addWidget(self.load_sr_button)
+        self.load_pt_button.clicked.connect(lambda: self.patient_metadata(self.patient_table.selected))
+        self.load_st_button.clicked.connect(lambda: self.study_metadata(self.study_table.selected))
+        self.load_sr_button.clicked.connect(lambda: self.series_metadata(self.series_table.selected))
+
+        self.load_buttons_widget.setLayout(self.load_button_container)
 
         self.patient_control_widget = QWidget(self.parent)
         self.study_control_widget = QWidget(self.parent)
@@ -77,8 +95,6 @@ class DICOMBrowserTool(ToolInstance):
 
         self.patient_table.get_selection.connect(self.on_patient_highlighted)
 
-        self.tool_window.fill_context_menu = self.fill_context_menu
-
         self.main_layout.addWidget(self.patient_label)
         self.main_layout.addWidget(self.patient_table)
         self.main_layout.addWidget(self.study_label)
@@ -86,22 +102,26 @@ class DICOMBrowserTool(ToolInstance):
         self.main_layout.addWidget(self.series_label)
         self.main_layout.addWidget(self.series_table)
 
+        self.main_layout.addWidget(self.load_buttons_widget)
+
         self.tool_window.ui_area.setLayout(self.main_layout)
         self.patient_table.launch()
         self.study_table.launch()
         self.series_table.launch()
 
-        self.tool_window.fill_context_menu = self.fill_context_menu
-
         self.tool_window.manage()
 
-    def fill_context_menu(self, menu, x, y):
-        open_metadata_action = QAction("Load Metadata", menu)
-        open_metadata_action.triggered.connect(lambda: self.metadata(self.patient_table.selected))
-        menu.addAction(open_metadata_action)
+    def patient_metadata(self, selection):
+        if len(selection) > 0:
+            return DICOMMetadata.from_patients(self.session, selection)
 
-    def metadata(self, selection):
-        pass
+    def study_metadata(self, selection):
+        if len(selection) > 0:
+            return DICOMMetadata.from_studies(self.session, selection)
+
+    def series_metadata(self, selection):
+        if len(selection) > 0:
+            return DICOMMetadata.from_series(self.session, selection)
 
     def add_patient(self, patients):
         if not patients:
