@@ -44,7 +44,7 @@ def swap_aa(session, residues, res_type, *, bfactor=None, clash_hbond_allowance=
                     raise LimitationError("%s rotamer library does not support %s" %(rot_lib, r_type))
                 except NoResidueRotamersError:
                     if log:
-                        session.logger.info("Swapping %s to %s\n" % (res, r_type))
+                        session.logger.info("Swapping %s to %s" % (res, r_type))
                     try:
                         template_swap_res(res, r_type, bfactor=bfactor)
                     except TemplateSwapError as e:

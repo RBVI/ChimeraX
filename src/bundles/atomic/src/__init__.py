@@ -10,6 +10,11 @@
 # including partial copies, of the software or any revisions
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
+import os
+
+# Atomic sticks its library in the same directory as other files
+def get_lib() -> str:
+    return os.path.dirname(__file__)
 
 # ensure atomic_libs C++ shared libs are linkable by us
 import chimerax.atomic_lib

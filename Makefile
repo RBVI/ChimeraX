@@ -63,12 +63,22 @@ sync:
 	mkdir -p $(build_prefix)/sync/
 	$(MAKE) -C src/bundles sync
 
-sync-venv:
-ifndef VIRTUAL_ENV
-	@echo "No virtual env to install to! Doing nothing."
-else
-	pip install --force-reinstall $(build_prefix)/sync/*
-endif
+.PHONY: venv
+venv:
+	if [ -x $(APP_PYTHON_BIN) ] && [ ! -x .venv ]; then \
+		$(APP_PYTHON_BIN) -m venv .venv --system-site-packages ; \
+		echo 'Virtual environment created in .venv' ; \
+		echo 'source .venv/bin/activate to activate it on Linux or macOS' ; \
+		echo 'or source .venv/Scripts/activate to activate it on Windows' ; \
+		exit ; \
+	else \
+		if [ -x .venv ]; then \
+			echo '.venv already exists' ; \
+			exit ; \
+		fi ; \
+		echo 'Build ChimeraX before creating your virtual environment'; \
+		exit ; \
+	fi
 
 ifdef WIN32
 vsdefined:

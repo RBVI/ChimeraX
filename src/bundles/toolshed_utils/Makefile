@@ -14,8 +14,7 @@ include $(TOP)/mk/config.make
 
 CHIMERAX_APP = $(wildcard $(TOP)/ChimeraX*.app)
 
-OS = $(patsubst CYGWIN_NT%,CYGWIN_NT,$(shell uname -s))
-ifeq ($(OS),CYGWIN_NT)
+ifeq ($(OS),Windows)
 PYTHON_BIN = $(CHIMERAX_APP)/bin/python.exe
 CHIMERAX_EXE = $(CHIMERAX_APP)/bin/ChimeraX.exe
 endif
@@ -45,6 +44,7 @@ wheel $(WHEEL): setup.py $(PYSRCS)
 	# $(PYTHON_EXE) setup.py --no-user-cfg test
 	$(PYTHON_EXE) setup.py --no-user-cfg bdist_wheel --python-tag py$(PYVER_NODOT)
 	rm -rf $(WHL_BNDL_NAME).egg-info
+	$(MAKE) sync
 
 install app-install: $(WHEEL)
 	$(PYTHON_EXE) -m pip uninstall --yes $(BUNDLE_NAME)

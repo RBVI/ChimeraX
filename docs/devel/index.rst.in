@@ -1,6 +1,6 @@
-..  vim: set expandtab shiftwidth=4 softtabstop=4:
+..  vim: set expandtab shiftwidth=4 softtabstop=4 syntax=rst:
 
-.. 
+..
     === UCSF ChimeraX Copyright ===
     Copyright 2016 Regents of the University of California.
     All rights reserved.  This software provided pursuant to a
@@ -35,16 +35,21 @@ Tutorials and Examples
 
 Developer Guide
 ===============
+Bundle developers can optionally skip Compiling ChimeraX and 
+Code Conventions. It is recommended that developers intending to 
+contribute to ChimeraX read all sections.
 
 .. toctree::
    :maxdepth: 1
 
+   environment.rst
    getcode.rst
+   building.rst
+   ides_and_debugging.rst
    conventions.rst
    apps/ChimeraX/ChimeraX.rst
    writing_bundles.rst
    core.rst
-   building.rst
 
 API Reference
 =============
@@ -52,9 +57,9 @@ API Reference
 .. toctree::
    :maxdepth: 1
 
-   supported_api.rst	      
+   supported_api.rst
    modules.rst
-   bundles/core/commands/user_commands.rst
+   bundles/core/src/commands/user_commands.rst
    classes.rst
    cpplibs.rst
    prereqs.rst

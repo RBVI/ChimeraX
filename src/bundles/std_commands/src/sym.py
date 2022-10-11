@@ -15,7 +15,7 @@ def sym(session, structures,
         symmetry = None, center = None, axis = None, coordinate_system = None,
         contact = None, range = None, assembly = None,
         copies = None, new_model = None, surface_only = False,
-        resolution = None, grid_spacing = None):
+        resolution = None, grid_spacing = None, add_mmcif_assembly = False):
     '''
     Show molecular assemblies of molecular models defined in mmCIF files.
     These can be subassemblies or symmetrical copies with individual chains 
@@ -65,6 +65,8 @@ def sym(session, structures,
       Resolution for computing surfaces when surface_only is true.
     grid_spacing : float
       Grid spacing for computing surfaces when surface_only is true.
+    add_mmcif_assembly : bool
+      Whether to add mmCIF metadata defining this assembly
     '''
     if len(structures) == 0:
         from chimerax.core.errors import UserError
@@ -91,8 +93,14 @@ def sym(session, structures,
             transforms = _close_center_transforms(structures, transforms, range)
         if copies is None and not surface_only:
             copies = (len(transforms) <= 12)
-        show_symmetry(structures, symmetry.group, transforms, copies, new_model, surface_only,
-                      resolution, grid_spacing, session)
+        new_mols = show_symmetry(structures, symmetry.group, transforms, copies, new_model,
+                                 surface_only, resolution, grid_spacing, session)
+        if add_mmcif_assembly:
+            for structure in structures:
+                add_mmcif_assembly_to_metadata(structure, transforms)
+            if not copies:
+                for structure in new_mols:
+                    add_mmcif_assembly_to_metadata(structure, transforms)
         return
             
     for m in structures:
@@ -154,7 +162,8 @@ def register_command(logger):
                    ('new_model', BoolArg),
                    ('surface_only', BoolArg),
                    ('resolution', FloatArg),
-                   ('grid_spacing', FloatArg)],
+                   ('grid_spacing', FloatArg),
+                   ('add_mmcif_assembly', BoolArg)],
         synopsis = 'create model copies')
     register('sym', desc, sym, logger=logger)
     desc = CmdDesc(
@@ -165,6 +174,7 @@ def register_command(logger):
 def show_symmetry(structures, sym_name, transforms, copies, new_model, surface_only,
                   resolution, grid_spacing, session):
     name = '%s %s' % (','.join(s.name for s in structures), sym_name)
+    new_mols = []
     if copies:
         # Copies true always behaves as if new_model is true.
         from chimerax.core.models import Model
@@ -175,21 +185,24 @@ def show_symmetry(structures, sym_name, transforms, copies, new_model, surface_o
                 ci = Model('copy %d' % (i+1), session)
                 ci.position = tf
                 g.add([ci])
-                copies = [m.copy() for m in structures]
-                for c,m in zip(copies, structures):
+                mols = [m.copy() for m in structures]
+                for c,m in zip(mols, structures):
                     c.position = m.scene_position
-                ci.add(copies)
+                ci.add(mols)
+                new_mols.extend(mols)
             else:
                 m0 = structures[0]
                 c = m0.copy()
                 c.position = tf * m0.scene_position
                 g.add([c])
+                new_mols.append(c)
         session.models.add([g])
     else:
         if new_model:
             from chimerax.core.models import Model
             group = Model(name, session)
             mols = [m.copy() for m in structures]
+            new_mols.extend(mols)
             group.add(mols)
             session.models.add([group])
         else:
@@ -210,6 +223,8 @@ def show_symmetry(structures, sym_name, transforms, copies, new_model, surface_o
     if copies or new_model:
         for s in structures:
             s.display = False
+
+    return new_mols
             
 def pdb_assemblies(m):
     if getattr(m, 'filename', None)  is None or not m.filename.endswith('.cif'):
@@ -250,6 +265,54 @@ def mmcif_assemblies(model):
     alist = [Assembly(id, name[id], chain_ops[id], ops, True) for id in ids]
     return alist
 
+def add_mmcif_assembly_to_metadata(model, positions):
+    table_names = ('pdbx_struct_assembly',
+                   'pdbx_struct_assembly_gen',
+                   'pdbx_struct_oper_list')
+    from chimerax import mmcif
+    assem, assem_gen, oper = mmcif.get_mmcif_tables_from_metadata(model, table_names)
+
+    nsym = len(positions)
+    assem_id = _next_cif_id(assem)
+    assem_tags = ['id', 'details', 'oligomeric_details', 'oligomeric_count']
+    assem_data = [f'{assem_id}', 'author defined symmetry', f'{nsym}-meric', f'{nsym}']
+    from chimerax.mmcif import CIFTable
+    assem_add = CIFTable('pdbx_struct_assembly', assem_tags, assem_data)
+
+    oper_id0 = _next_cif_id(oper)
+    oper_id1 = oper_id0 + nsym - 1
+    from numpy import unique
+    asym_ids = ','.join(unique(model.residues.mmcif_chain_ids))
+    assem_gen_tags = ['assembly_id', 'oper_expression', 'asym_id_list']
+    assem_gen_data = [f'{assem_id}', f'({oper_id0}-{oper_id1})', f'{asym_ids}']
+    assem_gen_add = CIFTable('pdbx_struct_assembly_gen', assem_gen_tags, assem_gen_data)
+
+    oper_tags = ['id',
+                 'matrix[1][1]', 'matrix[1][2]', 'matrix[1][3]', 'vector[1]',
+                 'matrix[2][1]', 'matrix[2][2]', 'matrix[2][3]', 'vector[2]',
+                 'matrix[3][1]', 'matrix[3][2]', 'matrix[3][3]', 'vector[3]']
+    oper_data = []
+    for p, position in enumerate(positions):
+        m = position.matrix
+        mvals = ['%.8f' % m[r,c] for r in range(3) for c in range(4)]
+        oper_data.extend([f'{oper_id0+p}'] + mvals)
+    oper_add = CIFTable('pdbx_struct_oper_list', oper_tags, oper_data)
+
+    for current,add in ((assem, assem_add), (assem_gen, assem_gen_add), (oper, oper_add)):
+        if current:
+            current.extend(add)
+        else:
+            current = add
+        current._set_metadata(model)
+
+def _next_cif_id(cif_table, id_name = 'id'):
+    if cif_table is None:
+        return 1
+    ids = [id for id, in cif_table.fields([id_name])]
+    id = 1
+    while str(id) in ids:
+        id += 1
+    return id
 #
 # Assemblies described using mmCIF chain ids but ChimeraX uses author chain ids.
 # Map author chain id and residue number to mmCIF chain id.

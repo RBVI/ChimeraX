@@ -2,7 +2,7 @@ TOP	= ../../..
 include $(TOP)/mk/config.make
 
 CHIMERAX_APP = $(realpath $(wildcard ../../../ChimeraX*.app))
-SEGGER_SRC = seggerx_2022_06_01.tar.gz
+SEGGER_SRC = seggerx_2022_10_07.tar.gz
 
 install app-install: seggerx
 	$(MAKE) -C seggerx/Segger install

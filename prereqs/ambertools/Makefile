@@ -11,7 +11,7 @@ VERSION = 20
 USE_PREBUILT=true
 UPLOAD_PREBUILT=false
 ifeq ($(OS),Linux)
-SUPPORTED_DISTROS := Ubuntu CentOS Debian
+SUPPORTED_DISTROS := Ubuntu CentOS Debian Rocky
 # CentOS uses "CentOS Linux", hence the second awk in the following line
 LINUX_FLAVOR = $(shell egrep '^NAME=' /etc/os-release | awk -F= '{ print $$2 }' | awk '{ print $$1 }' | tr -d '"')
 LINUX_RELEASE = $(shell egrep '^VERSION_ID=' /etc/os-release | awk -F= '{ print $$2 }' | tr -d '"')
@@ -53,9 +53,10 @@ ENV_OPTS = -u CC -u CXX FFLAGS=-fallow-argument-mismatch
 PATCHES += flex-cygwin.patch
 else ifeq ($(OS),Linux)
 CONFIG_ARGS = gnu
+ENV_OPTS = FFLAGS=-fallow-argument-mismatch
 ifdef UBUNTU_DIST
 ifeq ($(shell expr $(UBUNTU_DIST) '>' 18.04),1)
-ENV_OPTS = CC=gcc-9 FC=gfortran-9
+ENV_OPTS += CC=gcc-9 FC=gfortran-9
 endif
 endif
 else ifeq ($(OS),Darwin)

@@ -66,6 +66,12 @@ class PlaneModel(Surface, ComplexMeasurable):
         self.display_style = self.Solid
         self._update_geometry()
 
+    @property
+    def alignment_points(self):
+        xform_center = self.scene_position.transform_vector(self.plane.origin)
+        xform_normal = self.xform_normal
+        return xform_center + xform_normal, xform_center - xform_normal
+
     def angle(self, obj):
         if isinstance(obj, AxisModel):
             return _axis_plane_angle(obj, self)
@@ -74,6 +80,11 @@ class PlaneModel(Surface, ComplexMeasurable):
         from chimerax.geometry import angle
         degrees = angle(self.xform_normal, obj.xform_normal)
         return degrees if degrees < 90 else 180 - degrees
+
+    @property
+    def center(self):
+        return self.plane.origin
+    origin = center
 
     def distance(self, obj, *, signed=False):
         if isinstance(obj, PlaneModel):
@@ -157,6 +168,11 @@ class PlaneModel(Surface, ComplexMeasurable):
         return inst
 
     @property
+    def xform_center(self):
+        return self.scene_position.transform_vector(self.center)
+    xform_origin = xform_center
+
+    @property
     def xform_normal(self):
         return self.scene_position.transform_vector(self.normal)
 
@@ -174,6 +190,12 @@ class AxisModel(Surface, ComplexMeasurable):
         self._radius = radius
         self.display_style = self.Solid
         self._update_geometry()
+
+    @property
+    def alignment_points(self):
+        xform_center = self.xform_center
+        xform_direction = self.xform_direction * self.extent
+        return xform_center + xform_direction, xform_center - xform_direction
 
     def angle(self, obj):
         if isinstance(obj, PlaneModel):
@@ -236,6 +258,10 @@ class AxisModel(Surface, ComplexMeasurable):
     def extent(self):
         return self._extent
 
+    @property
+    def length(self):
+        return 2 * self._extent
+
     def _point_distance(self, pt):
         # pt should already be in our transformed coord sys
         xf_center = self.xform_center
@@ -254,12 +280,12 @@ class AxisModel(Surface, ComplexMeasurable):
             in_plane = plane.nearest(pt)
         pt_ext = inner_product(in_plane - xf_center, xf_direction)
         if pt_ext < -self.extent:
-            measure_pt = min_pt
+            from_pt, to_pt = min_pt, pt
         elif pt_ext > self.extent:
-            measure_pt = max_pt
+            from_pt, to_pt = max_pt, pt
         else:
-            measure_pt = in_plane
-        return distance(pt, measure_pt)
+            from_pt, to_pt = xf_center, in_plane
+        return distance(from_pt, to_pt)
 
     def _get_radius(self):
         return self._radius
@@ -349,7 +375,7 @@ def quadrant_angle(angle):
     return angle
 
 def cmd_define_plane(session, atoms, *, thickness=defaults["plane_thickness"], padding=0.0, color=None,
-        radius=None, name="plane"):
+        radius=None, name="plane", show_tool=True):
     """Wrapper to be called by command line.
 
        Use chimerax.geometry.Plane for other programming applications.
@@ -400,12 +426,16 @@ def cmd_define_plane(session, atoms, *, thickness=defaults["plane_thickness"], p
         session.models.add([plane_model])
     else:
         adding_model.add([plane_model])
-    session.logger.info("Plane '%s' placed at %s with normal %s" % (name, plane.origin, plane.normal))
+    session.logger.info("Plane '%s' placed at %s with normal %s and radius %.1f"
+        % (name, plane.origin, plane.normal, radius))
+    if show_tool and session.ui.is_gui and not session.in_script:
+        from chimerax.core.commands import run
+        run(session, "ui tool show Axes/Planes/Centroids", log=False)
     return plane_model
 
 def cmd_define_axis(session, targets=None, *, color=None, radius=None, length=None, name=None, padding=0.0,
         primary=True, secondary=False, tertiary=False, mass_weighting=False, from_point=None, to_point=None,
-        per_helix=False):
+        per_helix=False, show_tool=True):
     """Wrapper to be called by command line.
 
        Use chimerax.geometry.vector for other programming applications.
@@ -556,6 +586,9 @@ def cmd_define_axis(session, targets=None, *, color=None, radius=None, length=No
                     needs_normalization=False)
                 axes.append(axis)
                 add_model.add([axis])
+    if show_tool and session.ui.is_gui and not session.in_script:
+        from chimerax.core.commands import run
+        run(session, "ui tool show Axes/Planes/Centroids", log=False)
     return axes
 
 def find_adding_model(models):
@@ -579,20 +612,21 @@ def find_adding_model(models):
 
 def determine_axes(atoms, name, length, padding, radius, mass_weighting, primary, secondary, tertiary,
         color):
-    from chimerax.atomic.colors import element_color, predominant_color
+    from chimerax.atomic.colors import element_color, predominant_color, average_color
     if color is None:
         color = predominant_color(atoms)
         if color is None:
-            color = element_color(6)
+            # probably rainbowed
+            color = average_color(atoms)
     import numpy
     from numpy.linalg import eig, svd, eigh
     if mass_weighting:
         structures = atoms.unique_structures
         classes = set([s.__class__ for s in structures])
-        if len(classes) > 1:
+        from chimerax.atomic import AtomicStructure
+        if len(classes) > 1 and AtomicStructure in classes:
             from chimerax.core.errors import UserError
             raise UserError("Cannot mix markers/centroids and regular atoms when using mass weighting")
-        from chimerax.atomic import AtomicStructure
         if AtomicStructure in classes:
             weights = atoms.elements.masses
         else:
@@ -646,7 +680,7 @@ def register_command(command_name, logger):
     desc = CmdDesc(
         required=[('atoms', AtomsArg)],
         keyword = [('thickness', PositiveFloatArg), ('padding', FloatArg), ('color', ColorArg),
-            ('radius', PositiveFloatArg), ('name', StringArg)],
+            ('radius', PositiveFloatArg), ('name', StringArg), ('show_tool', BoolArg)],
         synopsis = 'Create plane'
     )
     register('define plane', desc, cmd_define_plane, logger=logger)
@@ -665,7 +699,7 @@ def register_command(command_name, logger):
         keyword = [('color', ColorArg), ('radius', PositiveFloatArg), ('length', PositiveFloatArg),
             ('name', StringArg), ('primary', BoolArg), ('secondary', BoolArg), ('tertiary', BoolArg),
             ('mass_weighting', BoolArg), ('from_point', Float3Arg), ('to_point', Float3Arg),
-            ('per_helix', BoolArg), ('padding', FloatArg)],
-        synopsis = 'Create plane'
+            ('per_helix', BoolArg), ('padding', FloatArg), ('show_tool', BoolArg)],
+        synopsis = 'Create axis'
     )
     register('define axis', desc, cmd_define_axis, logger=logger)

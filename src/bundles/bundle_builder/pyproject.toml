@@ -35,8 +35,8 @@ content-type = "text"
 text = "Utilities for building ChimeraX bundles."
 
 [project.entry-points."egg_info.writers"]
-"RELNOTES.html" = "chimerax.core:copy_distinfo_file"
-"screenshot.png" = "chimerax.core:copy_distinfo_binary_file"
+"RELNOTES.html" = "chimerax.bundle_builder:copy_distinfo_file"
+"screenshot.png" = "chimerax.bundle_builder:copy_distinfo_binary_file"
 
 [project.urls]
 Home="https://www.rbvi.ucsf.edu/chimerax/"

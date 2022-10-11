@@ -43,8 +43,8 @@ between a specified or <a href="selection.html">selected</a> pair of atoms
   <ul>
   <li>the <a href="commands/distance.html"><b>distance</b></a> command
   can also measure distances from an atom to an object
-  (<a href="commands/define.html#axis">axis</a> or
-  <a href="commands/define.html#plane">plane</a>)
+  (<a href="tools/axesplanes.html#define-axes">axis</a> or
+  <a href="tools/axesplanes.html#define-plane">plane</a>)
   or between two objects, but without adding a distance monitor
   </ul>
 <li>
@@ -69,6 +69,9 @@ also works with <a href="tools/volumeviewer.html">volume data</a>,
 <a href="commands/cartoon.html">cartoon</a>, 
 and <a href="commands/surface.html">molecular surface</a> displays
 (<a href="tools/mousemodes.html#tapemeasure">details...</a>)
+<li><a href="tools/axesplanes.html#objectlist"><b>Axes/Planes/Centroids</b></a>
+&ndash; distances between axis, plane, and/or centroid objects; min/max/mean 
+distances between such objects and <a href="selection.html">selected</a> atoms
 </ul>
 <p>
 Angles:
@@ -76,31 +79,38 @@ Angles:
 <ul>
 <li><a href="commands/angle.html"><b>angle</b></a>
 &ndash; angle defined by three atoms or two objects
-(<a href="commands/define.html#axis">axes</a> and/or
-<a href="commands/define.html#plane">planes</a>)
+(<a href="tools/axesplanes.html#define-axes">axes</a> and/or
+<a href="tools/axesplanes.html#define-plane">planes</a>)
 <li><a href="commands/torsion.html"><b>torsion</b></a>
 &ndash; torsion angle defined by four atoms
 <li><a href="tools/angles.html"><b>Angles/Torsions</b></a>
 &ndash; both kinds of angle measurements
+<li><a href="tools/axesplanes.html#objectlist"><b>Axes/Planes/Centroids</b></a>
+&ndash; angle defined by two objects
+(<a href="tools/axesplanes.html#define-axes">axes</a> and/or
+<a href="tools/axesplanes.html#define-plane">planes</a>)
 </ul>
 <p>
 Center coordinates:
 </p>
 <ul>
 <li><a href="commands/measure.html#center"><b>measure center</b></a>
-<li><a href="commands/define.html#centroid"><b>define centroid</b></a>
+<li><a href="tools/axesplanes.html"><b>Axes/Planes/Centroids</b></a>,
+command <a href="commands/define.html#centroid"><b>define centroid</b></a>
 </ul>
 <p>
 Best-fit axes:
 </p>
 <ul>
-<li><a href="commands/define.html#axis"><b>define axis</b></a>
+<li><a href="tools/axesplanes.html"><b>Axes/Planes/Centroids</b></a>,
+command <a href="commands/define.html#axis"><b>define axis</b></a>
 </ul>
 <p>
 Best-fit planes or inertia ellipsoids, respectively:
 </p>
 <ul>
-<li><a href="commands/define.html#plane"><b>define plane</b></a>
+<li><a href="tools/axesplanes.html"><b>Axes/Planes/Centroids</b></a>,
+command <a href="commands/define.html#plane"><b>define plane</b></a>
 <li><a href="commands/measure.html#inertia"><b>measure inertia</b></a>
 </ul>
 <p>
@@ -205,5 +215,5 @@ and a map isosurface (to compare time steps in a
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-January 2022</address>
+August 2022</address>
 </body></html>

@@ -12,6 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.core.commands import Annotation, AnnotationError
+from chimerax.core.errors import UserError
 
 
 def view(session, objects=None, frames=None, clip=True, cofr=True,
@@ -35,9 +36,11 @@ def view(session, objects=None, frames=None, clip=True, cofr=True,
       Specifying the orient keyword moves the camera view point to
       look down the scene z axis with the x-axis horizontal and y-axis
       vertical.
-    zalign : Atoms
+    zalign : Objects
       Rotate view point so two specified atoms are aligned along the view
       axis with the first atom in front.  Exactly two atoms must be specified.
+      Alternatively an AxisModel or a PlaneModel can be specified, in which
+      case the axis or plane normal will be aligned.
     pad : float
       When making objects fit in window use a window size reduced by this fraction.
       Default value is 0.05.  Pad is ignored when restoring named views.
@@ -74,14 +77,12 @@ def view(session, objects=None, frames=None, clip=True, cofr=True,
 
 def view_objects(objects, v, clip, cofr, pad):
     if objects.empty():
-        from chimerax.core.errors import UserError
         raise UserError('No objects specified.')
     disp = objects.displayed()
     # Use atoms but not whole molecular surfaces. Ticket #5663
     disp = _remove_molecular_surfaces(disp)
     b = disp.bounds()
     if b is None:
-        from chimerax.core.errors import UserError
         raise UserError('No displayed objects specified.')
     v.view_all(b, pad = pad)
     c, r = b.center(), b.radius()
@@ -121,16 +122,37 @@ def _remove_molecular_surfaces(objects):
             o.add_model_instances(m, minst)
     return o
     
-def _z_align_view(camera, atoms):
+def _z_align_view(camera, objects):
     '''
-    Rotate camera so two atoms are along view direction, first atom in front.
-    Rotation is about midpoint between the two atoms.
+    Rotate camera so axis/plane/two atoms is/are along view direction (if atoms, first atom in front).
+    Rotation is about midpoint between the two atoms, or center of axis/plane.
     '''
-    if len(atoms) != 2:
-        from chimerax.core.errors import UserError
-        raise UserError('view: Must specify two atoms with zalign option, got %d'
-                        % len(atoms))
-    xyz_front, xyz_back = atoms.scene_coords
+    align_pts = None
+    from chimerax.dist_monitor import ComplexMeasurable
+    for m in objects.models:
+        if isinstance(m, ComplexMeasurable):
+            try:
+                m_align_pts = m.alignment_points
+            except NotImplemented:
+                continue
+            if align_pts is None:
+                align_pts = m_align_pts
+            else:
+                raise UserError("Specify only one axis or plane to 'zalign'")
+
+    atoms = objects.atoms
+    if atoms:
+        if len(atoms) != 2:
+            raise UserError('view: Must specify two atoms with zalign option, got %d' % len(atoms))
+        elif align_pts:
+            raise UserError("Must specify one axis or plane or two atoms for 'zalign'; you specified"
+                " both an axis/plane and atoms")
+        else:
+            align_pts = atoms.scene_coords
+    elif align_pts is None:
+        raise UserError("Must specify one axis or plane or two atoms for 'zalign' option")
+
+    xyz_front, xyz_back = align_pts
     new_view_direction = xyz_back - xyz_front
     center = 0.5*(xyz_front + xyz_back) - camera.position.origin()
     from chimerax.geometry import vector_rotation, translation
@@ -152,7 +174,6 @@ def view_name(session, name):
                 'list', 'matrix', 'orient', 'zalign', 'pad', 'position')
     matches = [r for r in reserved if r.startswith(name)]
     if matches:
-        from chimerax.core.errors import UserError
         raise UserError('view name "%s" conflicts with "%s" view option.\n' % (name, matches[0]) +
                         'Names cannot be option names or their abbreviations:\n %s'
                         % ', '.join('"%s"' % n for n in reserved))
@@ -535,7 +556,6 @@ def view_position(session, models, same_as_models):
             if m is not tm:
                 m.positions = p
     elif len(models) != len(same_as_models):
-        from chimerax.core.errors import UserError
         raise UserError('Must specify equal numbers of models to align, got %d and %d'
                         % (len(models), len(same_as_models)))
     else:
@@ -609,7 +629,7 @@ def register_command(logger):
         keyword=[('clip', BoolArg),
                  ('cofr', BoolArg),
                  ('orient', NoArg),
-                 ('zalign', AtomsArg),
+                 ('zalign', ObjectsArg),
                  ('pad', FloatArg)],
         synopsis='adjust camera so everything is visible')
     register('view', desc, view, logger=logger)

@@ -42,6 +42,8 @@ dist
 *.out
 _build
 # {Virtual,} Environments
+# The Windows venv doesn't have a leading dot
+venv
 .venv
 .virtualenv
 .makerc
@@ -58,6 +60,7 @@ src/apps/ChimeraX/ChimeraX-tool.png
 src/apps/ChimeraX/ChimeraX.ico
 src/apps/ChimeraX/icon.rc
 src/bundles/Makefile.dependencies
+src/bundles/alignment_headers/src/bin
 src/bundles/arrays/src/include/
 src/bundles/atomic/atomic_cpp/connect.cpp
 src/bundles/atomic/atomic_cpp/cymol.cpp
@@ -86,10 +89,8 @@ src/bundles/mmcif/mmcif_cpp/include/
 src/bundles/mmcif/src/mmcif.cpp
 src/bundles/mmcif/src/mmcif_write.cpp
 src/bundles/mmtf/.eggs/
-src/bundles/mmtf/mmtf-cpp-master/
-src/bundles/mmtf/mmtf-cpp-master.zip
-src/bundles/mmtf/msgpack-c-master.zip
-src/bundles/mmtf/msgpack-c-master/
+src/bundles/mmtf/mmtf-cpp-*
+src/bundles/mmtf/msgpack-c-*
 src/bundles/pdb/pdb_cpp/include/
 src/bundles/pdb/src/include/
 src/bundles/pdb_lib/src/include/
@@ -102,10 +103,11 @@ src/bundles/std_commands/bundle_info.xml
 src/bundles/viewdockx/src/lib/flot
 src/bundles/viewdockx/src/lib/rateyo
 src/bundles/viewdockx/src/lib/jquery.multiselect.*
-src/bundles/core/buildinfo.py
-src/bundles/core/_serialize.cpp
-src/bundles/core/_serialize.cpp-e
-src/bundles/core/commands/_atomspec.py
+src/bundles/core/src/buildinfo.py
+src/bundles/core/src/_serialize.cpp
+src/bundles/core/src/_serialize.cpp-e
+src/bundles/core/src/include
+src/bundles/core/src/commands/_atomspec.py
 src/examples/sample/license.txt
 src/examples/sample/vc140.pdb
 src/wheelhouse/Makefile.wheelhouse

@@ -73,11 +73,11 @@ def _move_near_far_clip_planes(view, zdist):
             plane.plane_point -= zdist * view.camera.view_direction()
     
 def register_command(logger):
-    from chimerax.core.commands import CmdDesc, register, FloatArg, PositiveIntArg
+    from chimerax.core.commands import CmdDesc, register, PositiveFloatArg, PositiveIntArg
     desc = CmdDesc(
-        optional=[('factor', FloatArg),
+        optional=[('factor', PositiveFloatArg),
                   ('frames', PositiveIntArg)],
-        keyword=[('pixel_size', FloatArg)],
+        keyword=[('pixel_size', PositiveFloatArg)],
         synopsis='zoom models'
     )
     register('zoom', desc, zoom, logger=logger)

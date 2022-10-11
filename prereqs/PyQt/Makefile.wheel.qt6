@@ -10,7 +10,7 @@ REMOTE_DIR = $(REMOTE_HOST)/usr/local/src/PyQt6
 
 # QT_VERSION is overriden by Makefile
 BASE_VERSION = 6.3
-QT_MINOR_VERSION = 1
+QT_MINOR_VERSION = 2
 PYQT_MINOR_VERSION = 1
 PYQTWE_MINOR_VERSION = 1
 QT_VERSION = $(BASE_VERSION).$(QT_MINOR_VERSION)
@@ -64,16 +64,6 @@ install: $(QT_WHEEL) $(WB_WHEEL)
 
 app-install: $(QT_WHEEL) $(WB_WHEEL)
 	$(APP_PIP) install -U $(WHEELS)
-ifeq ($(OSARCH),DarwinArm64)
-ifeq ($(PYQT_LICENSE),commercial)
-# PyQt6 commercial wheel signature is broken because Riverbank modifies QtCore.abi3.so
-# to add the Riverbank license check.  This makes ChimeraX crash on startup on Mac M1 (not Intel).
-# Phil Thompson of Riverbank plans to fix this (July 18, 2022).
-	security unlock -p chimera ~/Library/Keychains/codesign.keychain
-	codesign --keychain ~/Library/Keychains/codesign.keychain --sign "(LWV8X224YF)" $(APP_PYSITEDIR)/PyQt6/QtCore.abi3.so
-	security lock ~/Library/Keychains/codesign.keychain
-endif
-endif
 
 prefetch: $(QT_WHEEL) $(WB_WHEEL)
 

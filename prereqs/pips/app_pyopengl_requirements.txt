@@ -5,5 +5,8 @@
 # warns "Unable to load numpy_formathandler accelerator from OpenGL_accelerate".
 # ChimeraX bug #3760.
 #
+# Version 3.1.6 does not have source distribution for PyOpenGL-accelerate
+# and only has Windows binary distributions.  So staying at 3.1.5.
+#
 PyOpenGL==3.1.5
 PyOpenGL-accelerate==3.1.5

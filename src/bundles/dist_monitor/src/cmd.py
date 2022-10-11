@@ -46,6 +46,13 @@ class ComplexMeasurable(ABC):
     def angle(self, obj):
         pass
 
+    @property
+    def alignment_points(self):
+        """ Returns two points for aligning the object along an axis.  Should be in the order
+            (front, back) if sensible.
+        """
+        raise NotImplemented("%s does not implement alignment_points()" % self.__class__.__name__)
+
 from chimerax.core.triggerset import TriggerSet
 group_triggers = TriggerSet()
 group_triggers.add_trigger("update")
@@ -57,67 +64,97 @@ def distance(session, objects, *, color=None, dashes=None,
     Show/report distance between two objects.
     '''
     from chimerax.core.errors import UserError, LimitationError
-    measurables = [m for m in objects.models if isinstance(m, (SimpleMeasurable, ComplexMeasurable))]
-    measurables.extend(objects.atoms)
-    if len(measurables) != 2:
-        raise UserError("Expected exactly two atoms and/or measurable objects (e.g. axes, planes), got %d"
-            % len(measurables))
-    if len(objects.atoms) != 2:
-        # just report the distance -- no distance monitor
-        if len([m for m in measurables if isinstance(m, SimpleMeasurable)]) == 2:
-            from chimerax.geometry import distance
-            dist = distance(measurables[0].scene_coord, measurables[1].scene_coord)
-        else:
-            dist = NotImplemented
-            if isinstance(measurables[0], ComplexMeasurable):
-                dist = measurables[0].distance(measurables[1], signed=signed)
-            if dist is NotImplemented and isinstance(measurables[1], ComplexMeasurable):
-                dist = measurables[1].distance(measurables[0], signed=signed)
-            if dist is NotImplemented:
-                raise LimitationError("Don't know how to measure distance between %s and %s"
-                    % tuple(measurables))
-        session.logger.info(("Distance between %s and %s: " + session.pb_dist_monitor.distance_format)
-            % (measurables[0], measurables[1], dist))
-        return dist
-    a1, a2 = measurables
-    grp = session.pb_manager.get_group("distances", create=False)
-    from .settings import settings
-    if not grp:
-        # create group and add to DistMonitor
-        grp = session.pb_manager.get_group("distances")
+    non_atom_measurables = [m for m in objects.models
+        if isinstance(m, (SimpleMeasurable, ComplexMeasurable))]
+    atoms = list(objects.atoms)
+    measurables = non_atom_measurables + atoms
+    if len(measurables) == 2:
+        if len(atoms) != 2:
+            # just report the distance -- no distance monitor
+            if len([m for m in measurables if isinstance(m, SimpleMeasurable)]) == 2:
+                from chimerax.geometry import distance
+                dist = distance(measurables[0].scene_coord, measurables[1].scene_coord)
+            else:
+                dist = NotImplemented
+                if isinstance(measurables[0], ComplexMeasurable):
+                    dist = measurables[0].distance(measurables[1], signed=signed)
+                if dist is NotImplemented and isinstance(measurables[1], ComplexMeasurable):
+                    dist = measurables[1].distance(measurables[0], signed=signed)
+                if dist is NotImplemented:
+                    raise LimitationError("Don't know how to measure distance between %s and %s"
+                        % tuple(measurables))
+            session.logger.info(("Distance between %s and %s: " + session.pb_dist_monitor.distance_format)
+                % (measurables[0], measurables[1], dist))
+            return dist
+        a1, a2 = measurables
+        grp = session.pb_manager.get_group("distances", create=False)
+        from .settings import settings
+        if not grp:
+            # create group and add to DistMonitor
+            grp = session.pb_manager.get_group("distances")
+            if color is not None:
+                grp.color = color.uint8x4()
+            else:
+                grp.color = settings.color.uint8x4()
+            if radius is not None:
+                grp.radius = radius
+            else:
+                grp.radius = settings.radius
+            grp.dashes = settings.dashes
+            session.models.add([grp])
+            session.pb_dist_monitor.add_group(grp, update_callback=_notify_updates)
+        for pb in grp.pseudobonds:
+            pa1, pa2 = pb.atoms
+            if (pa1 == a1 and pa2 == a2) or (pa1 == a2 and pa2 == a1):
+                raise UserError("Distance already exists;"
+                    " modify distance properties with 'distance style'")
+        pb = grp.new_pseudobond(a1, a2)
+
         if color is not None:
-            grp.color = color.uint8x4()
-        else:
-            grp.color = settings.color.uint8x4()
+            pb.color = color.uint8x4()
+        if dashes is not None:
+            grp.dashes = dashes
         if radius is not None:
-            grp.radius = radius
-        else:
-            grp.radius = settings.radius
-        grp.dashes = settings.dashes
-        session.models.add([grp])
-        session.pb_dist_monitor.add_group(grp, update_callback=_notify_updates)
-    for pb in grp.pseudobonds:
-        pa1, pa2 = pb.atoms
-        if (pa1 == a1 and pa2 == a2) or (pa1 == a2 and pa2 == a1):
-            raise UserError("Distance already exists;"
-                " modify distance properties with 'distance style'")
-    pb = grp.new_pseudobond(a1, a2)
+            pb.radius = radius
+        if decimal_places is not None or symbol is not None:
+            if decimal_places is not None:
+                session.pb_dist_monitor.decimal_places = decimal_places
+            if symbol is not None:
+                session.pb_dist_monitor.show_units = symbol
 
-    if color is not None:
-        pb.color = color.uint8x4()
-    if dashes is not None:
-        grp.dashes = dashes
-    if radius is not None:
-        pb.radius = radius
-    if decimal_places is not None or symbol is not None:
-        if decimal_places is not None:
-            session.pb_dist_monitor.decimal_places = decimal_places
-        if symbol is not None:
-            session.pb_dist_monitor.show_units = symbol
-
-    session.logger.info(("Distance between %s and %s: " + session.pb_dist_monitor.distance_format)
-        % (a1, a2.string(relative_to=a1), pb.length))
-    return pb.length
+        session.logger.info(("Distance between %s and %s: " + session.pb_dist_monitor.distance_format)
+            % (a1, a2.string(relative_to=a1), pb.length))
+        return pb.length
+    elif len(non_atom_measurables) > 0 and len(atoms) > 0:
+        results = {}
+        for object in non_atom_measurables:
+            dists = []
+            min_info = max_info = None
+            for a in atoms:
+                dist = object.distance(a, signed=signed)
+                if dist is NotImplemented:
+                    break
+                dists.append(dist)
+                if min_info is None:
+                    min_info = max_info = (dist, a)
+                elif dist < min_info[0]:
+                    min_info = (dist, a)
+                elif dist > max_info[0]:
+                    max_info = (dist, a)
+            else:
+                avg = sum(dists) / len(dists)
+                results[object] = (min_info, avg, max_info)
+                dist_fmt = session.pb_dist_monitor.distance_format
+                session.logger.info(("Distance between %s and %d atoms: min " + dist_fmt + " (%s), average:"
+                    " " + dist_fmt + ", max " + dist_fmt + " (%s)") % (object, len(atoms), min_info[0],
+                    min_info[1], avg, max_info[0], max_info[1]))
+                continue
+            raise LimitationError("Don't know how to measure distance between %s and %s" % (object, a))
+        return results
+    else:
+        raise UserError("Expected exactly two atoms and/or measurable objects (e.g. axes, planes),"
+            " or one or more measurable object and one or more atoms,"
+            " got %d atoms and %d measurable objects" % (len(atoms), len(non_atom_measurables)))
 
 def distance_save(session, save_file_name):
     from chimerax.io import open_output
@@ -218,7 +255,6 @@ def register_command(logger):
     from chimerax.core.commands import CmdDesc, register, AnnotationError, \
         Or, EmptyArg, ColorArg, NonNegativeIntArg, FloatArg, BoolArg, SaveFileNameArg, ObjectsArg
     from chimerax.atomic import PseudobondsArg
-    # eventually this will handle more than just atoms, but for now...
     d_desc = CmdDesc(
         required = [('objects', ObjectsArg)],
         keyword = [('color', ColorArg), ('dashes', NonNegativeIntArg), ('radius', FloatArg),

@@ -191,9 +191,8 @@ class MultiColorButton(ColorButton):
                     icon_file = test_icon
             if os.sep != '/':
                 icon_file = '/'.join(icon_file.split(os.sep))
-            self.setStyleSheet("background-image: url(%s);" % icon_file)
-        else:
-            ColorButton.set_color(self, color)
+            return self.setStyleSheet("background-image: url(%s);" % icon_file)
+        return ColorButton.set_color(self, color)
 
     color = property(ColorButton.get_color, set_color)
 

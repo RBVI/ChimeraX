@@ -13,7 +13,8 @@
 
 # -------------------------------------------------------------------------
 #
-def volume_erase(session, volumes, center, radius, coordinate_system = None, outside = False):
+def volume_erase(session, volumes, center, radius, coordinate_system = None,
+                 outside = False, value = 0):
     '''Erase a volume inside or outside a sphere.'''
     ev = []
     cscene = center.scene_coordinates(coordinate_system)
@@ -22,41 +23,40 @@ def volume_erase(session, volumes, center, radius, coordinate_system = None, out
         v = volume.writable_copy()
         ev.append(v)
         if outside:
-            _zero_data_outside_sphere(v.data, cvol, radius)
+            _set_data_outside_sphere(v.data, cvol, radius, value)
         else:
-            _zero_data_in_sphere(v.data, cvol, radius)
+            _set_data_in_sphere(v.data, cvol, radius, value)
     return ev[0] if len(ev) == 1 else ev
 
 # -----------------------------------------------------------------------------
 #
-def _zero_data_in_sphere(grid_data, center, radius):
+def _set_data_in_sphere(grid_data, center, radius, value = 0):
 
     # Optimization: Mask only subregion containing sphere.
     ijk_min, ijk_max = _sphere_grid_bounds(grid_data, center, radius)
-    from chimerax.map_data import GridSubregion, zone_masked_grid_data
+    from chimerax.map_data import GridSubregion, zone_mask
     subgrid = GridSubregion(grid_data, ijk_min, ijk_max)
 
-    mg = zone_masked_grid_data(subgrid, [center], radius)
+    mask = zone_mask(subgrid, [center], radius)
 
     dmatrix = subgrid.full_matrix()
-    mdmatrix = mg.full_matrix()
 
-    from numpy import subtract
-    subtract(dmatrix, mdmatrix, dmatrix)
+    from numpy import putmask
+    putmask(dmatrix, mask, value)
 
     grid_data.values_changed()
 
 # -----------------------------------------------------------------------------
 #
-def _zero_data_outside_sphere(grid_data, center, radius):
+def _set_data_outside_sphere(grid_data, center, radius, value = 0):
 
-    from chimerax.map_data import zone_masked_grid_data
-    mg = zone_masked_grid_data(grid_data, [center], radius)
+    from chimerax.map_data import zone_mask
+    mask = zone_mask(grid_data, [center], radius, invert_mask = True)
 
     dmatrix = grid_data.full_matrix()
-    mdmatrix = mg.full_matrix()
 
-    dmatrix[:,:,:] = mdmatrix[:,:,:]
+    from numpy import putmask
+    putmask(dmatrix, mask, value)
 
     grid_data.values_changed()
 
@@ -83,6 +83,7 @@ def register_volume_erase_command(logger):
                    ('radius', FloatArg),
                    ('coordinate_system', CoordSysArg),
                    ('outside', BoolArg),
+                   ('value', FloatArg),
         ],
         required_arguments = ['center', 'radius'],
         synopsis = 'Set map values to zero inside a sphere'

@@ -302,6 +302,7 @@ class Structure(Model, StructureData):
         return self.color
 
     def _set_model_color(self, color):
+        Model.model_color.fset(self, color)
         self.atoms.colors = color
         residues = self.residues
         residues.ribbon_colors = color
@@ -1269,7 +1270,8 @@ class AtomicStructure(Structure):
         if style is None:
             if self.num_chains == 0:
                 style = "non-polymer"
-            elif self.num_chains < 5 and len(self.atoms) < SMALL_THRESHOLD:
+            elif self.num_chains < 5 and len(self.atoms) < SMALL_THRESHOLD \
+            and len(self.chains.existing_residues) < MAX_RIBBON_THRESHOLD:
                 style = "small polymer"
             elif self.num_chains < 250 and len(self.atoms) < MEDIUM_THRESHOLD:
                 style = "medium polymer"
@@ -1296,7 +1298,7 @@ class AtomicStructure(Structure):
             het_atoms.colors = element_colors(het_atoms.element_numbers)
             ribbonable = self.chains.existing_residues
             # 10 residues or less is basically a trivial depiction if ribboned
-            if explicit_style or MIN_RIBBON_THRESHOLD < len(ribbonable) < MAX_RIBBON_THRESHOLD:
+            if explicit_style or MIN_RIBBON_THRESHOLD < len(ribbonable):
                 atoms.displays = False
                 ligand = atoms.filter(atoms.structure_categories == "ligand").residues
                 ribbonable -= ligand
@@ -1610,7 +1612,7 @@ class AtomicStructure(Structure):
             return '<a title="Show sequence" href="cxcmd:sequence chain %s">%s</a>' % (
                 ''.join([chain.string(style="command", include_structure=True)
                     for chain in chains]), escape(description))
-        uids = {u.chain_id:u.uniprot_name for u in uniprot_ids(self)}
+        uids = {u.chain_id:(u.uniprot_id,u.uniprot_name) for u in uniprot_ids(self)}
         have_uniprot_ids = len([chain for chains in descripts.values()
                                 for chain in chains if chain.chain_id in uids]) > 0
         from chimerax.core.logger import html_table_params
@@ -1637,7 +1639,7 @@ class AtomicStructure(Structure):
                 uidset = set(uids.get(chain.chain_id) for chain in chains
                              if chain.chain_id in uids)
                 ucmd = '<a title="Show annotations" href="cxcmd:open %s from uniprot">%s</a>'
-                cuids = ','.join(ucmd % (uname,uname) for uname in uidset)
+                cuids = ','.join(ucmd % (uacc,uname) for uacc,uname in uidset)
             lines.extend([
                 '    <tr>',
                 '      <td style="text-align:center">' + cids + '</td>',
@@ -1657,6 +1659,16 @@ class AtomicStructure(Structure):
         html = assembly_html_table(self)
         if html:
             session.logger.info(html, is_html=True)
+
+    def show_info(self):
+        from chimerax.core.commands import run, concise_model_spec
+        spec = concise_model_spec(self.session, [self], allow_empty_spec=False, relevant_types=AtomicStructure)
+        if assembly_html_table(self):
+            base_cmd = "sym %s; " % spec
+        else:
+            base_cmd = ""
+        run(self.session, base_cmd + "log metadata %s; log chains %s" % (spec, spec))
+
 
 # also used by model panel to determine if its "Info" button should issue a "sym" command...
 def assembly_html_table(mol):
@@ -1983,12 +1995,18 @@ class PromoteAtomSelection(SelectionPromotion):
         if s.deleted:
             return
         atoms = s.atoms
-        atoms.selected = asel = self._atom_sel_mask
+        asel = self._atom_sel_mask
+        if len(atoms) != len(asel):
+            return	# Atoms added or deleted
+        atoms.selected = asel
         atoms[asel].intra_bonds.selected = True
     def demote(self):
         s = self._structure
         if s.deleted:
             return
+        if (s.num_atoms != len(self._prev_atom_sel_mask) or
+            s.num_bonds != len(self._prev_bond_sel_mask)):
+            return   # Atoms or bonds deleted or added.
         s.atoms.selected = self._prev_atom_sel_mask
         s.bonds.selected = self._prev_bond_sel_mask
 

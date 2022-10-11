@@ -672,13 +672,13 @@ merge_ladder(int start, int end, std::map<int, int>& res_to_strand, std::map<int
 	}
 	if (component_strands.empty()) {
 		// create new strand
-		*strand_num += 1;
 		std::set<int> strand;
 		for (int i = start_i; i <= end_i; ++i) {
 			strand.insert(i);
 			res_to_strand[i] = *strand_num;
 		}
 		strands[*strand_num] = strand;
+		*strand_num += 1;
 	} else if (component_strands.size() == 1) {
 		// just (possibly) increase the existing strand
 		int strand_i = *component_strands.begin();
@@ -688,7 +688,6 @@ merge_ladder(int start, int end, std::map<int, int>& res_to_strand, std::map<int
 		}
 	} else {
 		// create new strand and coalesce old strands and ladder into it
-		*strand_num += 1;
 		std::set<int> strand;
 		for (auto strand_i: component_strands) {
 			for (auto i: strands[strand_i]) {
@@ -702,6 +701,7 @@ merge_ladder(int start, int end, std::map<int, int>& res_to_strand, std::map<int
 			res_to_strand[i] = *strand_num;
 		}
 		strands[*strand_num] = strand;
+		*strand_num += 1;
 	}
 }
 

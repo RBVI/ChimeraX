@@ -35,7 +35,9 @@ def run_prediction(sequences,
     
     install(use_amber=use_amber, use_templates=use_templates, install_log=install_log)
 
-    warn_k80_gpu()
+    report_gpu_type()
+
+    warn_about_sequence_length(sequences)
 
     remove_old_files()
 
@@ -50,7 +52,11 @@ def run_prediction(sequences,
     from colabfold.utils import setup_logging
     from pathlib import Path
     setup_logging(Path(".").joinpath("log.txt"))
-        
+
+    # Avoid various FutureWarning message from deprecated jax features
+    import warnings
+    warnings.simplefilter(action='ignore', category=FutureWarning)
+
     query_sequence = ':'.join(sequences)
     queries_path=f"{job_name}.csv"
     with open(queries_path, "w") as text_file:
@@ -276,16 +282,24 @@ def download_results(energy_minimize):
     
 # ================================================================================================
 #
-def warn_k80_gpu():
-  K80_chk = !nvidia-smi | grep "Tesla K80" | wc -l
-  if "1" in K80_chk:
-    print("WARNING: found GPU Tesla K80: limited to total length < 1000")
+def report_gpu_type():
+  gpu_name_lines = !nvidia-smi --format=csv,noheader --query-gpu=name
+  gpu_name = gpu_name_lines[0]
+  print(f'Using {gpu_name} graphics processor')
+  if gpu_name.startswith('Tesla K80'):
     if "TF_FORCE_UNIFIED_MEMORY" in os.environ:
       import os
       del os.environ["TF_FORCE_UNIFIED_MEMORY"]
     if "XLA_PYTHON_CLIENT_MEM_FRACTION" in os.environ:
       import os
       del os.environ["XLA_PYTHON_CLIENT_MEM_FRACTION"]
+
+# ================================================================================================
+#
+def warn_about_sequence_length(sequences, warning_length = 1000):
+    seq_len = sum([len(seq) for seq in sequences])
+    if seq_len >= warning_length:
+        print(f'Prediction may fail with total sequence length over {warning_length} residues due to limited GPU memory.\nPredicting {seq_len} residues.')
 
 # ================================================================================================
 #
@@ -296,7 +310,7 @@ def remove_old_files():
   Also need to remove model_ and model_env directories otherwise errors
   occur if different sequences are run when computing MSA.
   '''
-  !rm -rf *.pdb *.json *_ *_env
+  !rm -rf *.pdb *.json *_ *_env *.zip *.csv *.png *.a3m *.fasta
 
 # ================================================================================================
 #
@@ -312,9 +326,9 @@ def install(use_amber = False, use_templates = False, install_log = 'install_log
     cmds = f'''
 set -e
 # We have to use "--no-warn-conflicts" because colab already has a lot preinstalled with requirements different to ours
-pip install -q --no-warn-conflicts "colabfold[alphafold-minus-jax] @ git+https://github.com/sokrypton/ColabFold"
+pip install --no-warn-conflicts "colabfold[alphafold-minus-jax] @ git+https://github.com/sokrypton/ColabFold@22671664ac2c9dcb30086c3e654414d950ccb297"
 # high risk high gain
-pip install -q "jax[cuda11_cudnn805]>=0.3.8,<0.4" -f https://storage.googleapis.com/jax-releases/jax_releases.html
+pip install "jax[cuda11_cudnn805]>=0.3.8,<0.4" -f https://storage.googleapis.com/jax-releases/jax_releases.html
 touch COLABFOLD_READY
 '''
     run_shell_commands(cmds, 'install_colabfold.sh', install_log)

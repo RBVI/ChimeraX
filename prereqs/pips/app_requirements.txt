@@ -7,65 +7,64 @@
 # TODO: Deprecate conda version when pip gets arm64 ports
 #
 appdirs==1.4.4
-build==0.7.0
-colorama==0.4.4
-Cython==0.29.26
-filelock==3.4.2
+build==0.8.0
+colorama==0.4.5
+Cython==0.29.32
+filelock==3.7.1
 grako==3.16.5
 html2text==2020.1.16
-ihm==0.27
-imagecodecs==2022.2.22 ; platform_machine != 'arm64'
-ipykernel==6.15.0
+ihm==0.33
+imagecodecs==2022.7.31 ; platform_machine != 'arm64'
+ipykernel==6.15.3
 # if ipython updated, make sure autocompletion still works (e.g. "mi<tab>" becomes min) and if not then
 # try a newer version of jedi
 ipython==8.4.0
 # the version of jedi that works with ipython
 jedi==0.18.1
 jupyter-client==7.3.4
+line_profiler==3.5.1
 lxml==4.9.1
-lz4==3.1.10
-matplotlib==3.5.1
-msgpack==1.0.3
+lz4==4.0.2
+matplotlib==3.5.2
+msgpack==1.0.4
 netCDF4==1.6.0
-networkx==2.6.3
-numpy==1.22.1
-openvr==1.16.802
+networkx==2.8.5
+numpy==1.23.1
+openvr==1.23.701
 # as per Tristan's request in ticket #3055
 ParmEd==3.4.3
-pep517==0.12.0
-Pillow==9.0.1
-pkginfo==1.8.2
-psutil==5.9.0
+pep517==0.13.0
+Pillow==9.2.0
+pkginfo==1.8.3
+psutil==5.9.1
 pycollada==0.7.2
-pydicom==2.2.2
+pydicom==2.3.0
 # PyOpenGL handled in app_pyopengl_requirements.txt
-#PyOpenGL==3.1.5
-#PyOpenGL-accelerate==3.1.5
 python-dateutil==2.8.2
 # PyQt handled in prereqs/PyQt
 # sip handled in prereqs/PyQt
 #PySide2==5.15.2
 qtconsole==5.3.1
-requests==2.27.1
-scipy==1.7.3
+requests==2.28.1
+scipy==1.9.0
 six==1.16.0
 sortedcontainers==2.4.0
 tables==3.7.0 ; platform_machine != 'arm64'
-tifffile==2021.11.2
+tifffile==2022.7.31
 tinyarray==1.2.4
 tomli==2.0.1
-webcolors==1.11.1
-wheel-filename==1.3.0
+webcolors==1.12
+wheel-filename==1.4.1
 #
 # Documentation
 #
 blockdiag==3.0.0
-docutils==0.17.1
-Jinja2==3.0.3
-Pygments==2.11.2
-Sphinx==4.3.2
+docutils==0.19
+Jinja2==3.1.2
+Pygments==2.12.0
+Sphinx==5.1.1
 sphinxcontrib-blockdiag==3.0.0
-sphinx_autodoc_typehints==1.15.2
+sphinx_autodoc_typehints==1.19.1
 #
 # Windows
 #
@@ -75,11 +74,7 @@ comtypes==1.1.10; sys_platform == 'win32'
 #
 # Linux
 #
-distro==1.6.0; sys_platform == 'linux'
-# There are only line_profiler binaries for Linux,
-# and it is hard to compile elsewhere
-#line_profiler==3.2.6; sys_platform == 'linux'
-line_profiler==3.4.0
+distro==1.7.0; sys_platform == 'linux'
 #
 # Indirect dependencies listed here to pin the version number
 #

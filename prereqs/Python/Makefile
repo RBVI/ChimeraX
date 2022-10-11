@@ -5,9 +5,9 @@ include $(TOP)/mk/config.make
 # PYTHON_VERSION is in config.make
 PYTHON_PATCH_LEVEL = $(PYTHON_VERSION).$(PYTHON_PATCH_VERSION)
 
-PIP_VERSION = 21.3.1
+PIP_VERSION = 22.2.2
 WHEEL_VERSION = 0.37.1
-SETUPTOOLS_VERSION = 62.6.0
+SETUPTOOLS_VERSION = 65.1.1
 
 ifeq ($(OS),Windows)
 DISTRIBUTION = python-$(PYTHON_PATCH_LEVEL)-win-amd64.tar.bz2
@@ -251,4 +251,4 @@ make_mac_distribution:
 	make -f Makefile.macos
 
 clean:
-	rm -rf $(SOURCE)
+	-rm -rf $(SOURCE) $(DISTRIBUTION)

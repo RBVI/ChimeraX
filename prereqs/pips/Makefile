@@ -8,7 +8,7 @@ include Makefile.pip
 LANG	= en_US.UTF-8
 
 # qtconsole.patch: Fix crash in completion widget, see Trac#6363
-PATCHES = pyopengl_macos11.patch webcolors.patch qtconsole.patch
+PATCHES = 
 PYTABLES_DYLIBS = libblosc.1.dylib libhdf5.200.dylib libsnappy.1.dylib \
 				  libc++.1.dylib libcrypto.3.dylib libssl.3.dylib
 
@@ -23,7 +23,7 @@ PYSIDE2_MACOS_REMOVE = PySide2/pyside2-lupdate \
 all:
 
 install:
-	LANG=$(LANG) $(PIP_INSTALL) -r build_requirements.txt
+	LANG=$(LANG) $(PIP_INSTALL) --no-build-isolation -r build_requirements.txt
 ifeq ($(OS),Darwin)
 	# Link cython in Python framework to build/bin, used compiling core/serialize.pyx.
 	ln -s ../Library/Frameworks/Python.Framework/Versions/$(PYTHON_VERSION)/bin/cython $(bindir)
@@ -36,12 +36,12 @@ app-list:
 	$(APP_PIP) list
 
 upgrade:
-	$(PIP_INSTALL) -U -r build_requirements.txt
+	$(PIP_INSTALL) -U --no-build-isolation -r build_requirements.txt
 
 app-install:
-	$(APP_PIP_INSTALL) -r app_requirements.txt
+	$(APP_PIP_INSTALL) --no-build-isolation -r app_requirements.txt
 ifdef DEV_DEPENDENCIES
-	$(APP_PIP_INSTALL) -r dev_requirements.txt
+	$(APP_PIP_INSTALL) --no-build-isolation -r dev_requirements.txt
 endif
 ifeq ($(OSARCH),DarwinArm64)
 	# Install the Conda versions of Python wheels for arm64 Mac
@@ -90,8 +90,10 @@ app-upgrade:
 #	done
 
 clean:
-	rm -f pip.log
-	make -C package_checker clean
+	-rm -f pip.log $(PYTABLES_DYLIBS) \
+		imagecodecs-2022.2.22-cp39-cp39-macosx_12_0_arm64.whl \
+		tables-3.7.0-cp39-cp39-macosx_12_0_arm64.whl
+	make -C package_checker clean	
 
 outdated:
 	$(PIP) list --outdated --format=columns
@@ -100,10 +102,11 @@ outdated:
 	@echo "  distlib 0.2.7 last version that works with 'toolshed uninstall'"
 	@echo "  grako (3.16.5 is the last version that works [see #3460])"
 	@echo "  lineprofiler 2.1.2, newer versions 3.0 and above require cmake"
-	@echo "  pip, wheel, setuptools versions are set in ../python/Makefile"
 	@echo "  jedi (pulled in by line-profiler)"
 	@echo "  MarkupSafe (pulled in by Jinja2)"
 	@echo "  parso (pulled in by line-profiler via jedi)"
+	@echo "  pip, wheel, setuptools versions are set in ../python/Makefile"
+	@echo "  PyOpenGL 3.1.6, no source distribution for accelerate"
 	@echo "  pyzmq (pulled in by ipykernel via jupyter-client)"
 	@echo "  snowballstemmer (pulled in by Sphinx)"
 	@echo "  tornado (pulled in by ipykernel)"

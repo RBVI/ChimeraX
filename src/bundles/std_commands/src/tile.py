@@ -39,6 +39,7 @@ def tile(session, models=None, columns=None, spacing_factor=1.3,
             commands.append("view")
         if independent_rotation:
             commands.append('mouse left "rotate independent" ; light simple')
+            session.triggers.add_handler('remove models', rotate_normal(models))
         from chimerax.core.commands import run
         run(session, "; ".join(commands), log=False)
     undo.finish(session, models)
@@ -50,6 +51,29 @@ def tile(session, models=None, columns=None, spacing_factor=1.3,
     session.logger.info("%d model%s tiled" %
                         (len(models), "s" if len(models) != 1 else ""))
 
+class rotate_normal:
+    '''
+    Switch mouse mode from rotate independent to normal rotation after
+    all tiled models are closed.
+    '''
+    def __init__(self, tiled_models):
+        self._session = tiled_models[0].session if tiled_models else None
+        self._tiled_models = set(tiled_models)
+    def __call__(self, trigger_name, deleted_models):
+        tiled = self._tiled_models
+        for m in deleted_models:
+            tiled.discard(m)
+        if tiled:
+            return  # Some tiled models still open
+
+        s = self._session
+        mode = s.ui.mouse_modes.mode(button = 'left')
+        if mode and mode.name == 'rotate independent':
+            from chimerax.core.commands import run
+            run(s, 'mouse left rotate', log = False)
+
+        return 'delete handler'
+    
 def _tiling_models(session, models):
     if models is None:
         models = [m for m in session.models.list() if len(m.id) == 1 and m.visible]
