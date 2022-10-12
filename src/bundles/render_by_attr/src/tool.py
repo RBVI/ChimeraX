@@ -20,6 +20,8 @@ class RenderByAttrTool(ToolInstance):
 
     #help = "help:user/tools/matchmaker.html"
 
+    NO_ATTR_TEXT = "choose attr"
+
     def __init__(self, session, tool_name):
         ToolInstance.__init__(self, session, tool_name)
         from chimerax.ui import MainToolWindow
@@ -61,6 +63,7 @@ class RenderByAttrTool(ToolInstance):
         render_tab = QWidget()
         render_tab_layout = QVBoxLayout()
         render_tab.setLayout(render_tab_layout)
+        render_tab_layout.setSpacing(1)
         attr_menu_layout = QHBoxLayout()
         render_tab_layout.addLayout(attr_menu_layout)
         attr_menu_layout.addWidget(QLabel("Attribute:"), alignment=Qt.AlignRight)
@@ -72,15 +75,17 @@ class RenderByAttrTool(ToolInstance):
         self.render_histogram = rh = MarkedHistogram(min_label=True, max_label=True, status_line=tw.status)
         render_tab_layout.addWidget(rh)
         self.render_color_markers = rh.add_markers(activate=True, coord_type='relative')
-        self.render_color_markers.extend([((0.0, 0.0), "red"), ((0.5, 0.0), "white"), ((1.0, 0.0), "blue")])
-        self.render_radii_markers = rh.add_markers(new_color='slate gray', activate=False,
+        self.render_color_markers.extend([((0.0, 0.0), "blue"), ((0.5, 0.0), "white"), ((1.0, 0.0), "red")])
+        self.render_radius_markers = rh.add_markers(new_color='slate gray', activate=False,
             coord_type='relative')
-        self.render_radii_markers.extend([((0.0, 0.0), None), ((1.0, 0.0), None)])
+        self.render_radius_markers.extend([((0.0, 0.0), None), ((1.0, 0.0), None)])
         self.render_type_widget = QTabWidget()
         self.render_type_widget.setTabBarAutoHide(True)
         render_tab_layout.addWidget(self.render_type_widget)
         color_render_tab = QWidget()
         color_render_tab_layout = crt_layout = QVBoxLayout()
+        crt_layout.setSpacing(1)
+        crt_layout.setContentsMargins(2,2,2,2)
         color_render_tab.setLayout(color_render_tab_layout)
         color_target_layout = QHBoxLayout()
         crt_layout.addLayout(color_target_layout)
@@ -99,7 +104,21 @@ class RenderByAttrTool(ToolInstance):
         color_target_layout.addStretch(1)
         color_target_layout.addWidget(self.color_surfaces, alignment=Qt.AlignCenter)
         color_target_layout.addStretch(1)
+        no_value_layout = QHBoxLayout()
+        no_value_layout.addStretch(1)
+        self.color_no_value = QCheckBox("Color missing values with:")
+        no_value_layout.addWidget(self.color_no_value, alignment=Qt.AlignRight)
+        no_value_layout.addSpacing(7)
+        from chimerax.ui.widgets import ColorButton
+        self.no_value_color = ColorButton(has_alpha_channel=True, max_size=(16,16))
+        self.no_value_color.color = "gray"
+        no_value_layout.addWidget(self.no_value_color)
+        no_value_layout.addStretch(1)
+        crt_layout.addLayout(no_value_layout)
         self.render_type_widget.addTab(color_render_tab, "Colors")
+        self.sel_restrict = QCheckBox("Also restrict to selection")
+        self.sel_restrict.setChecked(False)
+        render_tab_layout.addWidget(self.sel_restrict, alignment=Qt.AlignCenter)
         self.mode_widget.addTab(render_tab, "Render")
 
         sel_tab = QWidget()
@@ -114,18 +133,53 @@ class RenderByAttrTool(ToolInstance):
         from Qt.QtWidgets import QDialogButtonBox as qbbox
         bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
         bbox.accepted.connect(self.render)
-        bbox.button(qbbox.Apply).clicked.connect(self.render)
-        bbox.accepted.connect(self.delete) # slots executed in the order they are connected
+        bbox.button(qbbox.Apply).clicked.connect(lambda: self.render(apply=True))
         bbox.rejected.connect(self.delete)
-        #from chimerax.core.commands import run
-        #bbox.helpRequested.connect(lambda *, run=run, ses=session: run(ses, "help " + self.help))
-        bbox.button(qbbox.Help).setEnabled(False)
+        if hasattr(self, 'help'):
+            from chimerax.core.commands import run
+            bbox.helpRequested.connect(lambda *, run=run, ses=session: run(ses, "help " + self.help))
+        else:
+            bbox.button(qbbox.Help).setEnabled(False)
         overall_layout.addWidget(bbox)
 
         tw.manage(placement=None)
 
-    def render(self):
-        pass
+    def render(self, *, apply=False):
+        models = self.model_list.value
+        if not models:
+            raise UserError("No models chosen for rendering")
+        attr_name = self.attr_menu_button.text()
+        if attr_name == self.NO_ATTR_TEXT:
+            raise UserError("No attribute chosen for rendering")
+        tabs = self.render_type_widget
+        tab_text = tabs.tabText(tabs.currentIndex()).lower()
+        method = tab_text[:-1] if tab_text[-1] == 's' else "radius"
+        if method == "color":
+            targets = set()
+            for target in ["atoms", "cartoons", "surfaces"]:
+                target_widget = getattr(self, "color_" + target)
+                if target_widget.isChecked() and target_widget.isEnabled():
+                    targets.add(target)
+            if not targets:
+                raise UserError("No coloring targets specified")
+            # histograms values + possibly None
+            markers = getattr(self, "render_" + method + "_markers")
+            vals = []
+            markers.coord_type = "absolute"
+            for marker in markers:
+                vals.append((marker.xy[0], marker.rgba))
+            markers.coord_type = "relative"
+            if self.color_no_value.isChecked():
+                vals.append((None, [v/255.0 for v in self.no_value_color.color]))
+            if not vals:
+                raise UserError("No coloring values specified")
+            params = (targets, vals)
+        else:
+            raise NotImplemented("Don't know how to get parameters for '%s' method" % method)
+        self._cur_attr_info().render(self.session, attr_name, models, method, params,
+            self.sel_restrict.isChecked())
+        if not apply:
+            self.delete()
 
     def _attr_names_of_type(self, *types):
         attr_info = self._cur_attr_info()
@@ -141,7 +195,7 @@ class RenderByAttrTool(ToolInstance):
 
     def _filter_model(self, model):
         try:
-            return self._ui_to_info[self.target_menu_button.text()].model_filter(model)
+            return self._cur_attr_info().model_filter(model)
         except (AttributeError, KeyError):
             return False
 
@@ -160,7 +214,7 @@ class RenderByAttrTool(ToolInstance):
                 attr_name = "no model chosen"
                 enabled = False
             else:
-                attr_name = "choose attr"
+                attr_name = self.NO_ATTR_TEXT
         else:
             if isinstance(attr_name_info, str):
                 attr_name = attr_name_info

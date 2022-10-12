@@ -98,7 +98,7 @@
 	<Provider name="structures" ui_name="atomic models"/>
   </Providers>
   <Providers manager="render by attribute">
-    <Provider name="atoms" colors_cartoons="false"/>
+    <Provider name="atoms"/>
     <Provider name="residues"/>
     <Provider name="structures"/>
   </Providers>
