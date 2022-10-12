@@ -1158,4 +1158,4 @@ class DicomGrid(GridData):
         return m
 
     def show_info(self):
-        return DICOMMetadata.from_series(self.dicom_data.dicom_series)
+        return DICOMMetadata.from_series(self.dicom_data.dicom_series.session, self.dicom_data.dicom_series)
