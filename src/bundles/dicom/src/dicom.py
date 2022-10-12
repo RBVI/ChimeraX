@@ -392,7 +392,7 @@ class DICOMMapFormat(MapFileFormat, DICOM):
 
 
 class DicomContours(Model):
-    def __init__(self, session, data):
+    def __init__(self, session, data, name):
         def rgb_255(cs):
             return tuple(int(c) for c in cs)
 
@@ -410,8 +410,8 @@ class DicomContours(Model):
                 'DICOM series has %d files, can only handle one file for "RT Structure Set Storage", '
                 'file %s' % (len(series.paths), path)
             )
-        desc = self.dicom_series.get('SeriesDescription', '')
-        Model.__init__(self, 'Regions %s' % desc, session)
+        
+        Model.__init__(self, name, session)
 
         el = self.dicom_elements(
             self.dicom_series
@@ -537,7 +537,7 @@ class Series:
 
     def to_models(self):
         if self.contour_series:
-            return [DicomContours(self.session, s) for s in self._raw_files]
+            return [DicomContours(self.session, s, self.name) for s in self._raw_files]
         elif self.image_series:
             return open_grids(self.session, self._to_grids(), name=self.name)[0]
         else:
@@ -547,24 +547,12 @@ class Series:
 
     @property
     def name(self):
-        attrs = self.attributes
         fields = []
-        desc = attrs.get('SeriesDescription')
-        if desc:
-            fields.append(desc)
-        else:
-            if 'BodyPartExamined' in attrs:
-                fields.append(attrs['BodyPartExamined'])
-            if 'Modality' in attrs:
-                fields.append(attrs['Modality'])
-        if 'SeriesNumber' in attrs:
-            fields.append(str(attrs['SeriesNumber']))
-        # if 'StudyDate' in attrs:
-        #     fields.append(attrs['StudyDate'])
-        if len(fields) == 0:
-            fields.append('unknown')
-        name = ' '.join(fields)
-        return name
+        desc = self.attributes.get('SeriesDescription', "Unknown")
+        body_part = self.attributes.get('BodyPartExamined', "Unknown Body Part")
+        mod = self.attributes.get('Modality', "Unknown Modality")
+        no = self.attributes.get('SeriesNumber', "Unknown Series Number")
+        return f"{no} {mod} {body_part} ({desc})"
 
     @property
     def birth_date(self):
