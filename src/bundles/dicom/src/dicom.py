@@ -43,33 +43,26 @@ else:
 Path = TypeVar("Path", os.PathLike, str, bytes, None)
 
 try:
-    # We are inside ChimeraX
-    from Qt.QtWidgets import QApplication
-except ModuleNotFoundError:
-    # We are either in another Qt application or not
+    # We are inside GUI ChimeraX
+    from chimerax.ui.gui import UI
+except (ModuleNotFoundError, ImportError):
+    # We could be in NoGUI ChimeraX
     try:
-        from PyQt6.QtWidgets import QApplication
-    except ModuleNotFoundError:
+        from chimerax.core.nogui import UI
+    except (ModuleNotFoundError, ImportError):
         pass
-else:
+finally:
     try:
-        # We either found our Qt shim or we at least found PyQt6
-        # which means we could be in ChimeraX or not.
-        _logger = QApplication.instance().session.logger
-        _session = QApplication.instance().session
-    except (AttributeError, NameError):
-        # If the QApplication has no session object from us then we're
-        # outside ChimeraX and should not assume either a global session
-        # or the presence of our logger.
+        _logger = UI.instance().session.logger
+        _session = UI.instance().session
+    except (NameError, AttributeError):
+        # We didn't have either of ChimeraX's UIs, or they were uninitialized.
+        # We're either in some other application or being used as a library.
+        # Default to passed in sessions and the Python logging module
         import logging
         _session = None
         _logger = logging.getLogger()
         _logger.status = _logger.info
-
-# Arguments for:
-# - This is the Pythonic way to do logging
-# - Code is just as flexible with this code as without
-# - Default session = None makes code easier to test
 
 
 class MismatchedUIDError(Exception):
