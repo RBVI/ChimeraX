@@ -722,6 +722,8 @@ class Series:
         reference_file = self._raw_files[0]
         if hasattr(reference_file, "SliceLocation"):
             self._raw_files.sort(key=lambda x: x.SliceLocation)
+        elif hasattr(reference_file, "ImageIndex"):
+            self._raw_files.sort(key=lambda x: x.ImageIndex)
 
     def _validate_time_series(self):
         if self.num_times == 1:
