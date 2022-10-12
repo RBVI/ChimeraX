@@ -863,16 +863,22 @@ class Series:
         return dz
 
     def _spacing(self, z):
+        # Try to calculate spacing based on file spacing first
         spacings = [(z1 - z0) for z0, z1 in zip(z[:-1], z[1:])]
         dzmin, dzmax = min(spacings), max(spacings)
         tolerance = 1e-3 * max(abs(dzmax), abs(dzmin))
+        dz = dzmax if abs(dzmax) > abs(dzmin) else dzmin
         if dzmax - dzmin > tolerance:
             msg = ('Plane z spacings are unequal, min = %.6g, max = %.6g, using max.\n' % (dzmin, dzmax) +
                    'Perpendicular axis (%.3f, %.3f, %.3f)\n' % tuple(self.plane_normal()) +
                    'Directory %s\n' % os.path.dirname(self.files[0].path) +
                    '\n'.join(['%s %s' % (os.path.basename(f.path), f._position) for f in self.files]))
             _logger.warning(msg)
-        dz = dzmax if abs(dzmax) > abs(dzmin) else dzmin
+            # If we're over the threshold try to get it from SliceThickness * SliceSpacing
+            thickness = self.files[0].SliceThickness or 1
+            spacing = self.files[0].SliceSpacing or 1
+            spacing = thickness * spacing
+            dz = spacing
         return dz
 
     @property
