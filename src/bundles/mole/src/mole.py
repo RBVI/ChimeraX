@@ -20,7 +20,7 @@ Read Mole tunnel json files and display as spheres.
 
 # -----------------------------------------------------------------------------
 #
-def read_mole_json(session, filename, name, transparency = 0.5):
+def read_mole_json(session, filename, name, transparency = 0):
     """Read Mole channels and create a separate Structure for each to be shown as spheres.
 
     :param filename: either the name of a file or a file-like object
