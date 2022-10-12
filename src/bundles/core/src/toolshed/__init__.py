@@ -359,9 +359,9 @@ class Toolshed:
             self.init_available_from_cache(logger)
         except Exception:
             logger.report_exception("Error preloading available bundles")
-        if check_available and (self._available_bundle_info is None or
+        if (check_available and self._available_bundle_info is not None and
                                 self._available_bundle_info.toolshed_url != self.remote_url):
-            check_remote = True
+            self._available_bundle_info = None
         self.reload(logger, check_remote=check_remote, rebuild_cache=rebuild_cache, _session=session)
         from datetime import datetime
         from ..core_settings import settings

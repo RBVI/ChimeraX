@@ -722,6 +722,8 @@ class Series:
         reference_file = self._raw_files[0]
         if hasattr(reference_file, "SliceLocation"):
             self._raw_files.sort(key=lambda x: x.SliceLocation)
+        elif hasattr(reference_file, "ImageIndex"):
+            self._raw_files.sort(key=lambda x: x.ImageIndex)
 
     def _validate_time_series(self):
         if self.num_times == 1:
@@ -861,16 +863,22 @@ class Series:
         return dz
 
     def _spacing(self, z):
+        # Try to calculate spacing based on file spacing first
         spacings = [(z1 - z0) for z0, z1 in zip(z[:-1], z[1:])]
         dzmin, dzmax = min(spacings), max(spacings)
         tolerance = 1e-3 * max(abs(dzmax), abs(dzmin))
+        dz = dzmax if abs(dzmax) > abs(dzmin) else dzmin
         if dzmax - dzmin > tolerance:
             msg = ('Plane z spacings are unequal, min = %.6g, max = %.6g, using max.\n' % (dzmin, dzmax) +
                    'Perpendicular axis (%.3f, %.3f, %.3f)\n' % tuple(self.plane_normal()) +
                    'Directory %s\n' % os.path.dirname(self.files[0].path) +
                    '\n'.join(['%s %s' % (os.path.basename(f.path), f._position) for f in self.files]))
             _logger.warning(msg)
-        dz = dzmax if abs(dzmax) > abs(dzmin) else dzmin
+            # If we're over the threshold try to get it from SliceThickness * SliceSpacing
+            thickness = self.files[0].SliceThickness or 1
+            spacing = self.files[0].SliceSpacing or 1
+            spacing = thickness * spacing
+            dz = spacing
         return dz
 
     @property
@@ -953,6 +961,10 @@ class SeriesFile:
     def multiframe(self):
         nf = self._num_frames
         return nf is not None and nf > 1
+    
+    def __getattr__(self, item):
+        # For any field that we don't override just return the pydicom attr
+        return self.data.get(item)
 
     def __iter__(self):
         return iter(self.data)
@@ -1158,4 +1170,4 @@ class DicomGrid(GridData):
         return m
 
     def show_info(self):
-        return DICOMMetadata.from_series(self.dicom_data.dicom_series)
+        return DICOMMetadata.from_series(self.dicom_data.dicom_series.session, self.dicom_data.dicom_series)
