@@ -43,33 +43,26 @@ else:
 Path = TypeVar("Path", os.PathLike, str, bytes, None)
 
 try:
-    # We are inside ChimeraX
-    from Qt.QtWidgets import QApplication
-except ModuleNotFoundError:
-    # We are either in another Qt application or not
+    # We are inside GUI ChimeraX
+    from chimerax.ui.gui import UI
+except (ModuleNotFoundError, ImportError):
+    # We could be in NoGUI ChimeraX
     try:
-        from PyQt6.QtWidgets import QApplication
-    except ModuleNotFoundError:
+        from chimerax.core.nogui import UI
+    except (ModuleNotFoundError, ImportError):
         pass
-else:
+finally:
     try:
-        # We either found our Qt shim or we at least found PyQt6
-        # which means we could be in ChimeraX or not.
-        _logger = QApplication.instance().session.logger
-        _session = QApplication.instance().session
-    except (AttributeError, NameError):
-        # If the QApplication has no session object from us then we're
-        # outside ChimeraX and should not assume either a global session
-        # or the presence of our logger.
+        _logger = UI.instance().session.logger
+        _session = UI.instance().session
+    except (NameError, AttributeError):
+        # We didn't have either of ChimeraX's UIs, or they were uninitialized.
+        # We're either in some other application or being used as a library.
+        # Default to passed in sessions and the Python logging module
         import logging
         _session = None
         _logger = logging.getLogger()
         _logger.status = _logger.info
-
-# Arguments for:
-# - This is the Pythonic way to do logging
-# - Code is just as flexible with this code as without
-# - Default session = None makes code easier to test
 
 
 class MismatchedUIDError(Exception):
@@ -399,7 +392,7 @@ class DICOMMapFormat(MapFileFormat, DICOM):
 
 
 class DicomContours(Model):
-    def __init__(self, session, data):
+    def __init__(self, session, data, name):
         def rgb_255(cs):
             return tuple(int(c) for c in cs)
 
@@ -417,8 +410,8 @@ class DicomContours(Model):
                 'DICOM series has %d files, can only handle one file for "RT Structure Set Storage", '
                 'file %s' % (len(series.paths), path)
             )
-        desc = self.dicom_series.get('SeriesDescription', '')
-        Model.__init__(self, 'Regions %s' % desc, session)
+        
+        Model.__init__(self, name, session)
 
         el = self.dicom_elements(
             self.dicom_series
@@ -544,7 +537,7 @@ class Series:
 
     def to_models(self):
         if self.contour_series:
-            return [DicomContours(self.session, s) for s in self._raw_files]
+            return [DicomContours(self.session, s, self.name) for s in self._raw_files]
         elif self.image_series:
             return open_grids(self.session, self._to_grids(), name=self.name)[0]
         else:
@@ -554,24 +547,12 @@ class Series:
 
     @property
     def name(self):
-        attrs = self.attributes
         fields = []
-        desc = attrs.get('SeriesDescription')
-        if desc:
-            fields.append(desc)
-        else:
-            if 'BodyPartExamined' in attrs:
-                fields.append(attrs['BodyPartExamined'])
-            if 'Modality' in attrs:
-                fields.append(attrs['Modality'])
-        if 'SeriesNumber' in attrs:
-            fields.append(str(attrs['SeriesNumber']))
-        # if 'StudyDate' in attrs:
-        #     fields.append(attrs['StudyDate'])
-        if len(fields) == 0:
-            fields.append('unknown')
-        name = ' '.join(fields)
-        return name
+        desc = self.attributes.get('SeriesDescription', "Unknown")
+        body_part = self.attributes.get('BodyPartExamined', "Unknown Body Part")
+        mod = self.attributes.get('Modality', "Unknown Modality")
+        no = self.attributes.get('SeriesNumber', "Unknown Series Number")
+        return f"{no} {mod} {body_part} ({desc})"
 
     @property
     def birth_date(self):
@@ -729,6 +710,8 @@ class Series:
         reference_file = self._raw_files[0]
         if hasattr(reference_file, "SliceLocation"):
             self._raw_files.sort(key=lambda x: x.SliceLocation)
+        elif hasattr(reference_file, "ImageIndex"):
+            self._raw_files.sort(key=lambda x: x.ImageIndex)
 
     def _validate_time_series(self):
         if self.num_times == 1:
@@ -868,16 +851,22 @@ class Series:
         return dz
 
     def _spacing(self, z):
+        # Try to calculate spacing based on file spacing first
         spacings = [(z1 - z0) for z0, z1 in zip(z[:-1], z[1:])]
         dzmin, dzmax = min(spacings), max(spacings)
         tolerance = 1e-3 * max(abs(dzmax), abs(dzmin))
+        dz = dzmax if abs(dzmax) > abs(dzmin) else dzmin
         if dzmax - dzmin > tolerance:
             msg = ('Plane z spacings are unequal, min = %.6g, max = %.6g, using max.\n' % (dzmin, dzmax) +
                    'Perpendicular axis (%.3f, %.3f, %.3f)\n' % tuple(self.plane_normal()) +
                    'Directory %s\n' % os.path.dirname(self.files[0].path) +
                    '\n'.join(['%s %s' % (os.path.basename(f.path), f._position) for f in self.files]))
             _logger.warning(msg)
-        dz = dzmax if abs(dzmax) > abs(dzmin) else dzmin
+            # If we're over the threshold try to get it from SliceThickness * SliceSpacing
+            thickness = self.files[0].SliceThickness or 1
+            spacing = self.files[0].SliceSpacing or 1
+            spacing = thickness * spacing
+            dz = spacing
         return dz
 
     @property
@@ -960,6 +949,10 @@ class SeriesFile:
     def multiframe(self):
         nf = self._num_frames
         return nf is not None and nf > 1
+    
+    def __getattr__(self, item):
+        # For any field that we don't override just return the pydicom attr
+        return self.data.get(item)
 
     def __iter__(self):
         return iter(self.data)
@@ -1165,4 +1158,4 @@ class DicomGrid(GridData):
         return m
 
     def show_info(self):
-        return DICOMMetadata.from_series(self.dicom_data.dicom_series)
+        return DICOMMetadata.from_series(self.dicom_data.dicom_series.session, self.dicom_data.dicom_series)
