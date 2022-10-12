@@ -4,7 +4,7 @@ TOP	= ../../..
 include $(TOP)/mk/config.make
 
 HOLOPLAYCORE_LIBRARY = holoplaycore-0.1.0.tar.gz
-CLEAN_ALWAYS = $(HOLOPLAYCORE_LIBRARY)
+CLEAN_ALWAYS = $(HOLOPLAYCORE_LIBRARY) src/lib
 
 wheel install app-install: $(HOLOPLAYCORE_LIBRARY)
 

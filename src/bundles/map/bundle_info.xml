@@ -99,6 +99,7 @@
 
   <Providers manager="save command">
     <Provider name="BRIX density map" />
+    <Provider name="CCP4 density map" />
     <Provider name="Chimera map" />
     <Provider name="ImageJ TIFF map" is_default="false" />
     <Provider name="IMAGIC density map" />

@@ -55,7 +55,8 @@ src/commands/_atomspec.py: src/commands/_atomspec.peg
 	$(APP_PYTHON_EXE) -m grako --name _atomspec -o $@ $<
 
 clean:
-	rm -rf __pycache__ build dist *.egg-info src/_serialize.cpp src/buildinfo.py \
+	rm -rf __pycache__ src/__pycache__ build dist *.egg-info src/_serialize.cpp \
+		src/buildinfo.py src/commands/_atomspec.py src/toolshed/__pycache__ \
 		src/lib/* core_cpp/*/*.a core_cpp/*/*.o src/include src/*.so \
 		chutil_cpp logger_cpp ioutil_cpp mac_util_cpp toolshed commands \
 		_serialize.cpp buildinfo.py setup.py

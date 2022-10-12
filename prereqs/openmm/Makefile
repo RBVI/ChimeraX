@@ -83,4 +83,4 @@ upload_new_version:
 	$(RSYNC) $(DISTRIBUTION) $(PREREQS_UPLOAD)/openmm
 
 clean:
-	rm -rf $(SOURCE)
+	rm -rf $(SOURCE) $(DISTRIBUTION)
