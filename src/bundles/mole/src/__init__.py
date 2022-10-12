@@ -24,8 +24,11 @@ class _MoleBundle(BundleAPI):
             class Info(OpenerInfo):
                 def open(self, session, data, file_name, **kw):
                     from . import mole
-                    return mole.read_mole_json(session, data, file_name)
-                    
+                    return mole.read_mole_json(session, data, file_name, **kw)
+                @property
+                def open_args(self):
+                    from chimerax.core.commands import FloatArg
+                    return {'transparency': FloatArg}
         return Info()
 
 

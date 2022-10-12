@@ -20,10 +20,12 @@ Read Mole tunnel json files and display as spheres.
 
 # -----------------------------------------------------------------------------
 #
-def read_mole_json(session, filename, name, transparency = 0.5):
+def read_mole_json(session, filename, name, transparency = 0):
     """Read Mole channels and create a separate Structure for each to be shown as spheres.
 
-    :param filename: either the name of a file or a file-like object
+    :param filename: either the name of a file or a file-like object.
+    :param name: model name to use for the channel models.
+    :param transparency: in percent (0-100), default 0.
     """
 
     if hasattr(filename, 'read'):
@@ -35,7 +37,7 @@ def read_mole_json(session, filename, name, transparency = 0.5):
     import json
     j = json.load(input)
 
-    models = channel_models(session, j['Channels'], transparency)
+    models = channel_models(session, j['Channels'], transparency/100.0)
 
     if len(models) > 1:
         from chimerax.model_series.mseries import mseries_slider

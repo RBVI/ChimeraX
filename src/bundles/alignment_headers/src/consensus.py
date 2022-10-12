@@ -27,6 +27,11 @@ class Consensus(DynamicHeaderSequence):
         self.handler_ID = self.settings.triggers.add_handler('setting changed',
             lambda *args: self.reevaluate())
 
+    def alignment_notification(self, note_name, note_data):
+        super().alignment_notification(note_name, note_data)
+        if note_name == self.alignment.NOTE_SEQ_CONTENTS:
+            self.reevaluate()
+
     @property
     def capitalize_threshold(self):
         return self.settings.capitalize_threshold

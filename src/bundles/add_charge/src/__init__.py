@@ -27,6 +27,6 @@ class AddCharge_API(BundleAPI):
     @staticmethod
     def start_tool(session, tool_name):
         from .tool import AddChargeTool
-        return AddChergeTool(session, tool_name)
+        return AddChargeTool(session, tool_name)
 
 bundle_api = AddCharge_API()

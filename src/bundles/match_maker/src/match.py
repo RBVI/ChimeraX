@@ -268,8 +268,9 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
     small_mol_err_msg = "Reference and/or match model contains no nucleic or"\
         " amino acid chains.\nUse the command-line 'align' command" \
         " to superimpose small molecules/ligands."
+    logged_matrix = matrix
     rd_res, md_res = domain_residues
-    from chimerax.sim_matrices import matrix_compatible
+    from chimerax.sim_matrices import matrix_compatible, compatible_matrix_names, protein_matrix
     if chain_pairing == CP_SPECIFIC_SPECIFIC:
         # specific chain(s) in each
 
@@ -280,25 +281,33 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
         match_chains = {}
         match_mols = {}
         ref_mols = {}
+        final_matrix_name = {}
         for ref, match in match_items:
-            if not matrix_compatible(ref, matrix, session.logger):
-                raise UserError("Reference chain (%s) not"
-                    " compatible with %s similarity"
+            final_matrix_name[match] = matrix
+            ref_compatible = matrix_compatible(ref, matrix, session.logger)
+            match_compatible = matrix_compatible(match, matrix, session.logger)
+            if not ref_compatible and not match_compatible:
+                compatible_names = compatible_matrix_names(match, session.logger)
+                if len(compatible_names) == 1:
+                    logged_matrix = final_matrix_name[match] = compatible_names[0]
+                    session.logger.info("Using %s matrix instead of %s to match %s to %s"
+                        % (logged_matrix, matrix, match, ref))
+                    ref_compatible = match_compatible = True
+
+            if not ref_compatible:
+                raise UserError("Reference chain (%s) not compatible with %s similarity"
                     " matrix" % (ref.full_name, matrix))
-            if not matrix_compatible(match, matrix, session.logger):
-                raise UserError("Match chain (%s) not"
-                    " compatible with %s similarity"
+            if not match_compatible:
+                raise UserError("Match chain (%s) not compatible with %s similarity"
                     " matrix" % (match.full_name, matrix))
             if match in match_chains:
-                raise UserError("Cannot match the same chain"
-                    " to multiple reference chains")
+                raise UserError("Cannot match the same chain to multiple reference chains")
             match_chains[match] = ref
             if match.structure in ref_mols \
             or ref.structure in match_mols \
             or match.structure == ref.structure:
                 raise UserError("Cannot have same molecule"
-                    " model provide both reference and"
-                    " match chains")
+                    " model provide both reference and match chains")
             match_mols[match.structure] = ref
             ref_mols[ref.structure] = match
 
@@ -309,7 +318,7 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
         for match, ref in match_chains.items():
             match, ref = [check_domain_matching([ch], dr)[0] for ch, dr in
                 ((match, md_res), (ref, rd_res))]
-            score, s1, s2 = align(session, ref, match, matrix, alg,
+            score, s1, s2 = align(session, ref, match, final_matrix_name[match], alg,
                         gap_open, gap_extend, dssp_cache, **align_kw)
             pairings.setdefault(s2.structure, []).append((score, s1, s2))
 
@@ -320,8 +329,14 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
         if not ref or not matches:
             raise UserError("Must select at least one reference and match item.\n")
         if not matrix_compatible(ref, matrix, session.logger):
-            raise UserError("Reference chain (%s) not compatible"
-                        " with %s similarity matrix" % (ref.full_name, matrix))
+            compatible_names = compatible_matrix_names(ref, session.logger)
+            if len(compatible_names) == 1:
+                session.logger.info("Using %s matrix instead of %s to match to %s"
+                    % (compatible_names[0], matrix, ref))
+                logged_matrix = matrix = compatible_names[0]
+            else:
+                raise UserError("Reference chain (%s) not compatible"
+                            " with %s similarity matrix" % (ref.full_name, matrix))
         ref = check_domain_matching([ref], rd_res)[0]
         for match in matches:
             best_score = None
@@ -348,12 +363,19 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
         if not ref or not matches:
             raise UserError("Must select at least one reference"
                 " and match item in different models.\n")
-        rseqs = [s for s in check_domain_matching(ref.chains, rd_res)
-                    if matrix_compatible(s, matrix, session.logger)]
+        domain_rseqs = [s for s in check_domain_matching(ref.chains, rd_res)]
+        rseqs = [s for s in domain_rseqs if matrix_compatible(s, matrix, session.logger)]
         if not rseqs and ref.chains:
-            raise UserError("No chains in reference structure"
-                " %s compatible with %s similarity"
-                " matrix" % (ref, matrix))
+            compatible_names = compatible_matrix_names(domain_rseqs[0], session.logger)
+            if len(compatible_names) == 1:
+                session.logger.info("Using %s matrix instead of %s for matching"
+                    % (compatible_names[0], matrix))
+                logged_matrix = matrix = compatible_names[0]
+                rseqs = [s for s in domain_rseqs if matrix_compatible(s, matrix, session.logger)]
+            else:
+                raise UserError("No chains in reference structure"
+                    " %s compatible with %s similarity"
+                    " matrix" % (ref, matrix))
         for match in matches:
             best_score = None
             mseqs = [s for s in check_domain_matching(match.chains, md_res)
@@ -482,7 +504,7 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
                         %s
                         %s
                     </table>
-                """ % (html_table_params, chain_pairing, alg_name, matrix, ss_rows, iterate_row)
+                """ % (html_table_params, chain_pairing, alg_name, logged_matrix, ss_rows, iterate_row)
                 logger.info(param_table, is_html=True)
                 logged_params = True
             logger.status("Matchmaker %s (#%s) with %s (#%s),"
