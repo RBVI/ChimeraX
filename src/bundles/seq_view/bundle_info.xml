@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-SeqView" version="2.7.2"
+<BundleInfo name="ChimeraX-SeqView" version="2.7.3"
 	    package="chimerax.seq_view"
 	    supercedes="ChimeraX-SEQ-VIEW"
   	    minSessionVersion="1" maxSessionVersion="1">
@@ -16,7 +16,7 @@
 
   <Dependencies>
     <Dependency name="ChimeraX-Core" version="~=1.3dev2021"/>
-    <Dependency name="ChimeraX-Alignments" version="~=2.5"/>
+    <Dependency name="ChimeraX-Alignments" version="~=2.7"/>
     <Dependency name="ChimeraX-AlignmentHdrs" version="~=3.0"/>
     <Dependency name="ChimeraX-Atomic" version="~=1.10"/>
     <Dependency name="ChimeraX-Geometry" version="~=1.0"/>
