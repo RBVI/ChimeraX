@@ -961,6 +961,10 @@ class SeriesFile:
     def multiframe(self):
         nf = self._num_frames
         return nf is not None and nf > 1
+    
+    def __getattr__(self, item):
+        # For any field that we don't override just return the pydicom attr
+        return self.data.get(item)
 
     def __iter__(self):
         return iter(self.data)
