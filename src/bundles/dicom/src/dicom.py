@@ -284,9 +284,9 @@ class Study(Model):
             self.series.append(s)
         if self.series:
             if self.date_as_datetime:
-                self.name = 'Study (%s)' % self.date_as_datetime.strftime("%Y-%m-%d")
+                self.name = '%s Study (%s)' % (self.body_part, self.date_as_datetime.strftime("%Y-%m-%d"))
             else:
-                self.name = 'Study (Unknown Date)'
+                self.name = '%s Study (Unknown Date)' % (self.body_part)
             self.series.sort(key=lambda s: s.sort_key)
             plane_ids = {s.plane_uids: s for s in self.series}
             for s in self.series:
@@ -333,6 +333,10 @@ class Study(Model):
     def __str__(self):
         return f"Study {self.uid} with {len(self.series)} series"
 
+    @property
+    def body_part(self):
+        return self.series[0].body_part
+    
     @property
     def birth_date(self):
         return self.series[0].birth_date
@@ -548,12 +552,19 @@ class Series:
     @property
     def name(self):
         fields = []
-        desc = self.attributes.get('SeriesDescription', "Unknown")
-        body_part = self.attributes.get('BodyPartExamined', "Unknown Body Part")
+        desc = self.attributes.get('SeriesDescription')
+        if not desc:
+            desc = "No Description"
         mod = self.attributes.get('Modality', "Unknown Modality")
         no = self.attributes.get('SeriesNumber', "Unknown Series Number")
-        return f"{no} {mod} {body_part} ({desc})"
+        return f"{no} {mod} ({desc})"
 
+    # TODO: Is this really less ugly / confusing than __getattr__?
+    
+    @property
+    def body_part(self):
+        return self.sample_file.get("BodyPartExamined")
+    
     @property
     def birth_date(self):
         return self.sample_file.get("PatientBirthDate")
