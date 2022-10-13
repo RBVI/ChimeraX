@@ -27,6 +27,9 @@ class StdCommandsAPI(BundleAPI):
         if class_name in ['NamedView', 'NamedViews']:
             from . import view
             return getattr(view, class_name)
+        if class_name in ['CoordinateSetSlider']:
+            from . import coordset_gui
+            return getattr(coordset_gui, class_name)
 
     @staticmethod
     def register_command(command_name, logger):

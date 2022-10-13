@@ -1038,9 +1038,11 @@ class StructureSeq(Sequence):
         self.triggers.add_trigger('delete')
         self.triggers.add_trigger('characters changed')
         self.triggers.add_trigger('residues changed')
-        from weakref import proxy
-        def proxy_handler(*args, s=proxy(self)):
-            s._changes_cb(*args)
+        from weakref import ref
+        def proxy_handler(*args, rs=ref(self)):
+            s = rs()
+            if s:
+                s._changes_cb(*args)
         from . import get_triggers
         self.changes_handler = get_triggers().add_handler('changes', proxy_handler)
 
@@ -1245,7 +1247,7 @@ class StructureSeq(Sequence):
 
     def _cpp_modified(self):
         # called from C++ layer when the residue list changes
-        self._fire_trigger('modify', self)
+        self._fire_trigger('residues changed', self)
 
 # sequence-structure association functions that work on StructureSeqs...
 

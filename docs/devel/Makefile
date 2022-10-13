@@ -15,20 +15,20 @@ TOP	= ../..
 include $(TOP)/mk/config.make
 
 # You can set these variables from the command line.
-SPHINXOPTS    =
+SPHINXOPTS    ?=
 ifdef USE_MAC_FRAMEWORKS
-SPHINXBUILD   = $(APP_PYTHON_EXE) $(APP_PYTHON_FRAMEWORK)/bin/sphinx-build
+SPHINXBUILD   ?= $(APP_PYTHON_EXE) $(APP_PYTHON_FRAMEWORK)/bin/sphinx-build
 else ifdef WIN32
-SPHINXBUILD   = $(APP_PYTHON_EXE) '$(shell cygpath -m '$(app_bindir)/Scripts/sphinx-build.exe')'
+SPHINXBUILD   ?= $(APP_PYTHON_EXE) '$(shell cygpath -m '$(app_bindir)/Scripts/sphinx-build.exe')'
 else
-SPHINXBUILD   = $(APP_PYTHON_EXE) $(app_bindir)/sphinx-build
+SPHINXBUILD   ?= $(APP_PYTHON_EXE) $(app_bindir)/sphinx-build
 endif
-PAPER         =
-BUILDDIR      = _build
-DOCDIR        = $(app_datadir)/docs/devel
+PAPER         ?=
+BUILDDIR      ?= _build
+DOCDIR        ?= $(app_datadir)/docs/devel
 
 # The short X.Y version extracted for core Makefile
-CHIMERAX_VERSION = $(shell grep -m 1 ^BUNDLE_VERSION $(TOP)/src/core/Makefile | cut -d\  -f3)
+CHIMERAX_VERSION = $(shell grep -m 1 ^BUNDLE_VERSION $(TOP)/src/bundles/core/Makefile | cut -d\  -f3)
 # The full version, including alpha/beta/rc tags.
 CHX_FULL_VERSION = $(CHIMERAX_VERSION)
 
@@ -198,6 +198,3 @@ doctest: conf.py index.rst
 	$(SPHINXBUILD) -b doctest $(ALLSPHINXOPTS) $(BUILDDIR)/doctest
 	@echo "Testing of doctests in the sources finished, look at the " \
 	      "results in $(BUILDDIR)/doctest/output.txt."
-
-llgr: conf.py
-	$(APP_PYTHON_EXE) $(bindir)/rst2html.py --config=conf.py ../src/llgr/llgr.rst > llgr.html
