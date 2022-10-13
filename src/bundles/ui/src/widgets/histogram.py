@@ -770,7 +770,7 @@ class HistogramMarkers:
        to that function.
 
        Contained HistogramMarker instances can be accessed as if
-       HistogramMarker were a sequence.  The instances are always kept
+       HistogramMarkers were a sequence.  The instances are always kept
        sorted ascending in X, so sequence order can change with any
        method that adds markers (e.g. a marker added with 'append'
        may not wind up at the end of the sequence).  Methods that create

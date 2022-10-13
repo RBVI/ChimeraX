@@ -284,9 +284,9 @@ class Study(Model):
             self.series.append(s)
         if self.series:
             if self.date_as_datetime:
-                self.name = 'Study (%s)' % self.date_as_datetime.strftime("%Y-%m-%d")
+                self.name = '%s Study (%s)' % (self.body_part, self.date_as_datetime.strftime("%Y-%m-%d"))
             else:
-                self.name = 'Study (Unknown Date)'
+                self.name = '%s Study (Unknown Date)' % (self.body_part)
             self.series.sort(key=lambda s: s.sort_key)
             plane_ids = {s.plane_uids: s for s in self.series}
             for s in self.series:
@@ -333,6 +333,10 @@ class Study(Model):
     def __str__(self):
         return f"Study {self.uid} with {len(self.series)} series"
 
+    @property
+    def body_part(self):
+        return self.series[0].body_part
+    
     @property
     def birth_date(self):
         return self.series[0].birth_date
@@ -392,7 +396,7 @@ class DICOMMapFormat(MapFileFormat, DICOM):
 
 
 class DicomContours(Model):
-    def __init__(self, session, data):
+    def __init__(self, session, data, name):
         def rgb_255(cs):
             return tuple(int(c) for c in cs)
 
@@ -410,8 +414,8 @@ class DicomContours(Model):
                 'DICOM series has %d files, can only handle one file for "RT Structure Set Storage", '
                 'file %s' % (len(series.paths), path)
             )
-        desc = self.dicom_series.get('SeriesDescription', '')
-        Model.__init__(self, 'Regions %s' % desc, session)
+        
+        Model.__init__(self, name, session)
 
         el = self.dicom_elements(
             self.dicom_series
@@ -537,7 +541,7 @@ class Series:
 
     def to_models(self):
         if self.contour_series:
-            return [DicomContours(self.session, s) for s in self._raw_files]
+            return [DicomContours(self.session, s, self.name) for s in self._raw_files]
         elif self.image_series:
             return open_grids(self.session, self._to_grids(), name=self.name)[0]
         else:
@@ -547,25 +551,20 @@ class Series:
 
     @property
     def name(self):
-        attrs = self.attributes
         fields = []
-        desc = attrs.get('SeriesDescription')
-        if desc:
-            fields.append(desc)
-        else:
-            if 'BodyPartExamined' in attrs:
-                fields.append(attrs['BodyPartExamined'])
-            if 'Modality' in attrs:
-                fields.append(attrs['Modality'])
-        if 'SeriesNumber' in attrs:
-            fields.append(str(attrs['SeriesNumber']))
-        # if 'StudyDate' in attrs:
-        #     fields.append(attrs['StudyDate'])
-        if len(fields) == 0:
-            fields.append('unknown')
-        name = ' '.join(fields)
-        return name
+        desc = self.attributes.get('SeriesDescription')
+        if not desc:
+            desc = "No Description"
+        mod = self.attributes.get('Modality', "Unknown Modality")
+        no = self.attributes.get('SeriesNumber', "Unknown Series Number")
+        return f"{no} {mod} ({desc})"
 
+    # TODO: Is this really less ugly / confusing than __getattr__?
+    
+    @property
+    def body_part(self):
+        return self.sample_file.get("BodyPartExamined")
+    
     @property
     def birth_date(self):
         return self.sample_file.get("PatientBirthDate")
