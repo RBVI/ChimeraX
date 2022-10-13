@@ -198,6 +198,3 @@ doctest: conf.py index.rst
 	$(SPHINXBUILD) -b doctest $(ALLSPHINXOPTS) $(BUILDDIR)/doctest
 	@echo "Testing of doctests in the sources finished, look at the " \
 	      "results in $(BUILDDIR)/doctest/output.txt."
-
-llgr: conf.py
-	$(APP_PYTHON_EXE) $(bindir)/rst2html.py --config=conf.py ../src/llgr/llgr.rst > llgr.html
