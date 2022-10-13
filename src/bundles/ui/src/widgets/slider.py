@@ -48,6 +48,7 @@ class Slider(ToolInstance):
         layout = QHBoxLayout()
         layout.setContentsMargins(0,0,0,0)
         layout.setSpacing(4)
+        self.value_name = value_name
         vl = QLabel(value_name)
         layout.addWidget(vl)
         self.value_box = vb = QSpinBox()
