@@ -22,6 +22,7 @@ Thumbs.db
 *.exp
 # Editors (Emacs, Vi{,m}, etc)
 .projectile
+.fleet
 *.swp
 .vscode
 # Test files
