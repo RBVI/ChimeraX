@@ -28,7 +28,7 @@ BUILDDIR      ?= _build
 DOCDIR        ?= $(app_datadir)/docs/devel
 
 # The short X.Y version extracted for core Makefile
-CHIMERAX_VERSION = $(shell grep -m 1 ^BUNDLE_VERSION $(TOP)/src/core/Makefile | cut -d\  -f3)
+CHIMERAX_VERSION = $(shell grep -m 1 ^BUNDLE_VERSION $(TOP)/src/bundles/core/Makefile | cut -d\  -f3)
 # The full version, including alpha/beta/rc tags.
 CHX_FULL_VERSION = $(CHIMERAX_VERSION)
 
