@@ -99,9 +99,11 @@ class AddChargeTool(ToolInstance):
             if not residues:
                 self.tool_window.shown = True
                 raise UserError("None of the selected residues are in the structures being assigned charges")
+        #TODO: rework dock_prep_info to be more generic process_info, ala addh
         if self.dock_prep_info is None:
-            from chimerax.addh import check_no_hyds
-            check_no_hyds(self.session, residues, "adding charges", self._finish_add_charge, (residues,))
+            from chimerax.addh.tool import check_no_hyds
+            check_no_hyds(self.session, residues, "adding charges",
+                lambda f=self._finish_add_charge, r=residues: f(r))
         else:
             # Dock prep has add hydrogens built in, so don't check
             self._finish_add_charge(residues)
