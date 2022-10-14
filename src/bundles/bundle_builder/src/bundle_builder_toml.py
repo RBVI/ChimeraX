@@ -511,7 +511,10 @@ class Bundle:
     def _remove_libraries(self):
         for lib in self.c_libraries:
             if lib.static:
-                os.remove(os.path.join("src/lib/", "".join(["lib", lib.name, ".a"])))
+                if sys.platform == "win32":
+                    os.remove(os.path.join("src/lib/", "".join([lib.name, ".lib"])))
+                else:
+                    os.remove(os.path.join("src/lib/", "".join([lib.name, ".a"])))
             else:
                 if sys.platform == 'darwin':
                     os.remove(os.path.join("src/lib/", "".join([lib.name, ".dylib"])))

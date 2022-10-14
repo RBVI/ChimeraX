@@ -155,7 +155,7 @@ class ModelSequenceSlider(Slider):
                         pause_frames = pause_frames, pause_when_recording = True,
                         movie_framerate = movie_framerate)
         dm = [i for i,m in enumerate(self.models) if m.display]
-        self.update_value(dm[0]+1 if dm else 1)
+        self.set_slider(dm[0]+1 if dm else 1)
 
         from chimerax.core.models import REMOVE_MODELS
         self._model_close_handler = session.triggers.add_handler(REMOVE_MODELS, self.models_closed_cb)
@@ -181,3 +181,25 @@ class ModelSequenceSlider(Slider):
         self._model_close_handler = None
         super().delete()
         self.models = []
+
+    SESSION_SAVE = True
+    version = 1
+    def take_snapshot(self, session, flags):
+        data = {
+            'models': [m for m in self.models if not m.deleted],
+            'pause_frames': self.pause_frames,
+            'movie_framerate': self.movie_framerate,
+            'title': self.display_name,
+            'name': self.value_name,
+            'version': self.version
+        }
+        return data
+
+    @staticmethod
+    def restore_snapshot(session, data):
+        mss = ModelSequenceSlider(session, data['models'],
+                                  pause_frames = data['pause_frames'],
+                                  movie_framerate = data['movie_framerate'],
+                                  title = data['title'],
+                                  name = data['name'])
+        return mss
