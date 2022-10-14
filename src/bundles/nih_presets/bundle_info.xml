@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-NIHPresets" version="1.0.6" package="chimerax.nih_presets"
+<BundleInfo name="ChimeraX-NIHPresets" version="1.1" package="chimerax.nih_presets"
             minSessionVersion="1" maxSessionVersion="1">
 
   <!-- Additional information about bundle source -->
@@ -31,6 +31,7 @@
     <Provider category="NIH3D" name="ribbon by chain"/>
     <Provider category="NIH3D" name="ribbon by chain (printable)"/>
     <Provider category="NIH3D" name="ribbon by polymer (printable)"/>
+    <Provider category="NIH3D" name="ribbon monochrome"/>
     <Provider category="NIH3D" name="ribbon monochrome (printable)"/>
     <Provider category="NIH3D" name="surface monochrome"/>
     <Provider category="NIH3D" name="surface coulombic"/>
