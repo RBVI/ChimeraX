@@ -17,3 +17,6 @@ endif # INSTALL_TO_VENV
 
 app-install:
 	$(RSYNC) Qt $(APP_PYSITEDIR)
+
+clean:
+	rm -rf *.egg-info build dist
