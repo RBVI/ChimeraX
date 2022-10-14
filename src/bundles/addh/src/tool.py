@@ -49,7 +49,7 @@ class AddHTool(ToolInstance):
         if 'structures' in process_info:
             self.structure_list.setEnabled(False)
         if process_info is not None:
-            self.tool_window.title = "%s for %s" % (tool_name, process_info['process name'].capitalize())
+            self.tool_window.title = "%s for %s" % (tool_name, process_info['process name'].title())
         self.isolation = QCheckBox("Consider each model in isolation from all others")
         self.isolation.setChecked(True)
         layout.addWidget(self.isolation, alignment=Qt.AlignCenter)
@@ -216,7 +216,7 @@ class AddHTool(ToolInstance):
     def _toggle_options(self, *args, **kw):
         self.options_area.setHidden(not self.options_area.isHidden())
 
-def check_no_hyds(session, items, process, cb, *, help=None):
+def check_no_hyds(session, items, process_info, *, help=None):
     # 'items' can be Structures or Residues
     from chimerax.atomic import Residues
     if isinstance(items, Residues):
@@ -243,21 +243,27 @@ def check_no_hyds(session, items, process, cb, *, help=None):
         cb()
         return
     # query user about adding hydrogens
-    #TODO: run AskNoHyds
+    ask_dialog = AskNoHyds(session, process_info['process_name'], help)
+    ask_dialog.exec()
+    clicked_button =  ask_dialog.clickedButton()
+    if clicked_button == ask_dialog.addh_button:
+        AddHTool(session, "Add Hydrogens", process_info=process_info)
+    elif clicked_button == ask_dialog.continue_button and 'callback' in process_info:
+        process_info['callback']()
 
 from Qt.QWidgets import QMessageBox
 class AskNoHyds(QMessageBox):
     def __init__(self, session, process_name, help):
         super().__init__()
         self.setWindowTitle("No Hydrogens...")
-        self.setText("Hydrogens must be present for %s to work correctly.\n"
-            "Some of the relevant models have no hydrogens.\n"
+        self.setText("Hydrogens must be present for %s to work correctly."
+        self.setInformativeText("Some of the relevant models have no hydrogens.\n"
             "You can add hydrogens using the Add Hydrogens tool.\n"
             "What would you like to do?")
-        self.addButton("Abort", self.RejectRole)
-        addh_button = self.addButton("Add Hydrogens", self.AcceptRole)
-        self.setDefaultButton(addh_button)
-        self.addButton("Continue Anyway", self.AcceptRole)
+        self.abort_button = self.addButton("Abort", self.RejectRole)
+        self.addh_button = self.addButton("Add Hydrogens", self.AcceptRole)
+        self.setDefaultButton(self.addh_button)
+        self.continue_button = self.addButton("Continue Anyway", self.AcceptRole)
         help_button = self.addButton(self.Help)
         if help:
             from chimerax.core.commands import run

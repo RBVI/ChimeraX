@@ -17,6 +17,7 @@ class AddChargeTool(ToolInstance):
 
     SESSION_SAVE = False
     #help ="help:user/tools/addhydrogens.html"
+    help = None
 
     def __init__(self, session, tool_name, *, dock_prep_info=None):
         ToolInstance.__init__(self, session, tool_name)
@@ -70,9 +71,11 @@ class AddChargeTool(ToolInstance):
         bbox = qbbox(qbbox.Ok | qbbox.Cancel | qbbox.Help)
         bbox.accepted.connect(self.add_charges)
         bbox.rejected.connect(self.delete)
-        from chimerax.core.commands import run
-        bbox.helpRequested.connect(lambda *, run=run, ses=session: run(ses, "help " + self.help))
-        bbox.button(qbbox.Help).setEnabled(False)
+        if self.help:
+            from chimerax.core.commands import run
+            bbox.helpRequested.connect(lambda *, run=run, ses=session: run(ses, "help " + self.help))
+        else:
+            bbox.button(qbbox.Help).setEnabled(False)
         layout.addWidget(bbox)
         self.tool_window.manage(None)
 
@@ -101,9 +104,13 @@ class AddChargeTool(ToolInstance):
                 raise UserError("None of the selected residues are in the structures being assigned charges")
         #TODO: rework dock_prep_info to be more generic process_info, ala addh
         if self.dock_prep_info is None:
+            process_info = {
+                'process name': "adding charges",
+                'structures': self.structures,
+                'callback': lambda f=self._finish_add_charge, r=residues: f(r))
+            }
             from chimerax.addh.tool import check_no_hyds
-            check_no_hyds(self.session, residues, "adding charges",
-                lambda f=self._finish_add_charge, r=residues: f(r))
+            check_no_hyds(self.session, residues, process_info, help=self.help)
         else:
             # Dock prep has add hydrogens built in, so don't check
             self._finish_add_charge(residues)
@@ -118,7 +125,6 @@ class AddChargeTool(ToolInstance):
             % (concise_model_spec(self.session, self.structures), " & sel" if sel_restrict else "",
             ",".join(standardizable_residues) if standardize else "none"), is_html=True)
         from .charge import add_standard_charges
-        #TODO: some kind of hydrogen check?
         non_std = add_standard_charges(self.session, residues=residues, **params)
         #TODO: launch non-standard tool
         self.delete()
