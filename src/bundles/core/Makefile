@@ -17,6 +17,10 @@ BUNDLE_VERSION := $(shell $(APP_PYTHON_EXE) mkbuildinfo -v $(TOP) $(BUNDLE_VERSI
 PYSRCS = $(filter-out setup.py,$(wildcard *.py)) src/buildinfo.py
 DATA = src/colorbrewer.json
 
+APP_PYTHON_EXE:=PYTHONNOUSERSITE=1 $(APP_PYTHON_EXE)
+APP_BOOTSTRAP_PIP:=PYTHONNOUSERSITE=1 $(APP_BOOTSTRAP_PIP)
+PYTHON_EXE:=PYTHONNOUSERSITE=1 $(PYTHON_EXE)
+
 .PHONY: src/commands/_atomspec.py wheel src/buildinfo.py
 
 build install reinstall:
