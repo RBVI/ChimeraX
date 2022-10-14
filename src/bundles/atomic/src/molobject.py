@@ -1238,6 +1238,7 @@ class StructureSeq(Sequence):
         # called from C++ layer when this should be demoted to Sequence
         numbering_start = self.numbering_start
         self._fire_trigger('delete', self)
+        self.changes_handler.remove()
         self.__class__ = Sequence
         self.numbering_start = numbering_start
 
