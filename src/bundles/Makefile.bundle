@@ -47,7 +47,7 @@ CX_BIN = $(CHIMERAX_APP)/bin/chimerax
 PYMOD_EXT = so
 endif
 CHIMERAX_EXE = $(APP_PYTHON_EXE) -m chimerax.core
-RUN = $(CHIMERAX_EXE) --nogui --safemode --exit --cmd
+RUN = PYTHONNOUSERSITE=1 $(CHIMERAX_EXE) --nogui --safemode --exit --cmd
 
 ifdef INSTALL_TO_VENV
 WHEEL = $(wildcard dist/*.whl)

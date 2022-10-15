@@ -75,6 +75,28 @@ class CoordinateSetSlider(Slider):
         super().delete()
         self.structure = None
 
+    SESSION_SAVE = True
+    version = 1
+    def take_snapshot(self, session, flags):
+        data = {
+            'structure': self.structure,
+            'pause_frames': self.pause_frames,
+            'movie_framerate': self.movie_framerate,
+            'steady_atoms': self._player.steady_atoms,
+            'compute_ss': self._player.compute_ss,
+            'version': self.version
+        }
+        return data
+
+    @staticmethod
+    def restore_snapshot(session, data):
+        css = CoordinateSetSlider(session, data['structure'],
+                                  pause_frames = data['pause_frames'],
+                                  movie_framerate = data['movie_framerate'],
+                                  steady_atoms = data['steady_atoms'],
+                                  compute_ss = data['compute_ss'])
+        return css
+
 # -----------------------------------------------------------------------------
 #
 from chimerax.mouse_modes import MouseMode

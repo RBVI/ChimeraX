@@ -1,5 +1,5 @@
 <!-- Edit bundle_info.xml.in, not bundle_info.xml; then run make_selectors.py  -->
-<BundleInfo name="ChimeraX-Atomic" version="1.41.4"
+<BundleInfo name="ChimeraX-Atomic" version="1.43.2"
             package="chimerax.atomic"
             purePython="false"
             customInit="true"
@@ -96,6 +96,11 @@
 	<Provider name="pseudobonds"/>
 	<Provider name="residues"/>
 	<Provider name="structures" ui_name="atomic models"/>
+  </Providers>
+  <Providers manager="render by attribute">
+    <Provider name="atoms"/>
+    <Provider name="residues"/>
+    <Provider name="structures"/>
   </Providers>
 
   <Classifiers>

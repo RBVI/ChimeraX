@@ -25,7 +25,7 @@ ifeq ($(OS),Linux)
 PYTHON_BIN = $(CHIMERAX_APP)/bin/python$(PYTHON_VERSION)
 CHIMERAX_EXE = $(CHIMERAX_APP)/bin/ChimeraX
 endif
-PYTHON_EXE = $(PYTHON_BIN) -I
+PYTHON_EXE = PYTHONNOUSERSITE=1 $(PYTHON_BIN) -I
 PYLINT = $(PYTHON_EXE) -m flake8
 
 PYSRCS = $(wildcard src/*.py)

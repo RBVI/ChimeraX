@@ -34,6 +34,7 @@ class Alignment(State):
     NOTE_DESTROYED     = "destroyed"
     NOTE_COMMAND       = "command"
     NOTE_REF_SEQ       = "reference seq changed"
+    NOTE_SEQ_CONTENTS  = "seq contents changed"
 
     # associated note_data for the above is None except for:
     #   NOTE_ADD_ASSOC: list of new matchmaps
@@ -50,6 +51,7 @@ class Alignment(State):
     #       is a list of modified matchmaps.
     #   NOTE_COMMAND: the observer subcommand text
     #   NOTE_REF_SEQ: the new reference sequence (which could be None)
+    #   NOTE_SEQ_CONTENTS: the sequence whose characters changed
     #   not yet implemented:  NOTE_ADD_SEQS, NOTE_PRE_DEL_SEQS, NOTE_DEL_SEQS, NOTE_ADD_DEL_SEQS,
 
     NOTE_HDR_VALUES    = "header values changed"
@@ -86,14 +88,18 @@ class Alignment(State):
         self.associations = {}
         # need to be able to look up chain obj even after demotion to Sequence
         self._sseq_to_chain = {}
-        from chimerax.atomic import Chain
+        from chimerax.atomic import Chain, StructureSeq
         self.intrinsic = intrinsic
         self._in_destroy = False
+        self._seq_handlers = []
         for i, seq in enumerate(self._seqs):
             if isinstance(seq, Chain):
                 from copy import copy
                 self._seqs[i] = copy(seq)
             self._seqs[i].match_maps = {}
+            if isinstance(self._seqs[i], StructureSeq):
+                self._seq_handlers.append(self._seqs[i].triggers.add_handler("characters changed",
+                    self._seq_characters_changed_cb))
         # need an _headers placeholder before associate() gets called...
         self._headers = []
         self._assoc_handler = None
@@ -660,6 +666,8 @@ class Alignment(State):
         self.associations.clear()
         if self._assoc_handler:
             self._assoc_handler.remove()
+        for handler in self._seq_handlers:
+            handler.remove()
 
     def _dispatch_header_command(self, subcommand_text):
         from chimerax.core.errors import UserError
@@ -739,6 +747,9 @@ class Alignment(State):
                     session.logger.warning("Could not find alignment header class %s" % class_name)
         aln._session_restore = False
         return aln
+
+    def _seq_characters_changed_cb(self, trig_name, seq):
+        self._notify_observers(self.NOTE_SEQ_CONTENTS, seq)
 
     def _set_residue_attributes(self, *, headers=None, match_maps=None):
         if headers is None:
