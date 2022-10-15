@@ -231,9 +231,9 @@ def check_no_hyds(session, items, process_info, *, help=None):
         atoms = residues.atoms
         if len(atoms.filter(atoms.element_numbers == 1)) == 0:
             needs_hyds.append(s)
-    if not need_hyds:
+    if not needs_hyds:
         # ensure that N terminii that aren't actual N terminii are Npl so that adding charges works
-        real_N, real_C, fake_N, fake_C, fake_5p, fake_3p = determine_termini(need_hyds)
+        real_N, real_C, fake_N, fake_C, fake_5p, fake_3p = determine_termini(needs_hyds)
         for n_ter in fake_N:
             if not n_ter.find_atom("H"):
                 continue
@@ -243,20 +243,30 @@ def check_no_hyds(session, items, process_info, *, help=None):
         cb()
         return
     # query user about adding hydrogens
-    ask_dialog = AskNoHyds(session, process_info['process_name'], help)
+    ask_dialog = AskNoHyds(session, process_info['process name'], help)
     ask_dialog.exec()
     clicked_button =  ask_dialog.clickedButton()
+    if clicked_button == ask_dialog.abort_button:
+        from chimerax.core.errors import CancelOperation
+        raise CancelOperation(process_info['process name'])
     if clicked_button == ask_dialog.addh_button:
         AddHTool(session, "Add Hydrogens", process_info=process_info)
-    elif clicked_button == ask_dialog.continue_button and 'callback' in process_info:
+    elif 'callback' in process_info:
+        # "Continue"
         process_info['callback']()
 
-from Qt.QWidgets import QMessageBox
+def _res_check(residues):
+    okay_no_hyd = residues.filter(residues.num_atoms == 1)
+    okay_metal = okay_no_hyd.filter(okay_no_hyd.atoms.elements.is_metal)
+    okay_halogen = okay_no_hyd.filter(okay_no_hyd.atoms.elements.is_halogen)
+    return residues.subtract(okay_metal).subtract(okay_halogen)
+
+from Qt.QtWidgets import QMessageBox
 class AskNoHyds(QMessageBox):
     def __init__(self, session, process_name, help):
         super().__init__()
         self.setWindowTitle("No Hydrogens...")
-        self.setText("Hydrogens must be present for %s to work correctly."
+        self.setText("Hydrogens must be present for %s to work correctly." % process_name)
         self.setInformativeText("Some of the relevant models have no hydrogens.\n"
             "You can add hydrogens using the Add Hydrogens tool.\n"
             "What would you like to do?")

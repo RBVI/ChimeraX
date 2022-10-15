@@ -36,12 +36,6 @@ def bond_with_H_length(heavy, geom):
     from chimerax.atomic import Element
     return Element.bond_length(heavy.element, Element.get_element(1))
 
-def _res_check(residues):
-    okay_no_hyd = residues.filter(residues.num_atoms == 1)
-    okay_metal = okay_no_hyd.filter(okay_no_hyd.atoms.elements.is_metal)
-    okay_halogen = okay_no_hyd.filter(okay_no_hyd.atoms.elements.is_halogen)
-    return residues.subtract(okay_metal).subtract(okay_halogen)
-
 def complete_terminal_carboxylate(session, cter):
     from chimerax.atomic.bond_geom import bond_positions
     from chimerax.atomic.struct_edit import add_atom

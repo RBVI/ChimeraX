@@ -53,19 +53,20 @@ class AddChargeTool(ToolInstance):
         list_layout.addWidget(self.sel_restrict, alignment=Qt.AlignCenter)
         layout.addLayout(structure_layout)
         if dock_prep_info is not None:
-            self.tool_window.title = "%s for %s" % (tool_name, dock_prep_info.process_name.capitalize())
+            self.tool_window.title = "%s for %s" % (tool_name, dock_prep_info['process_name'].capitalize())
             self.structure_list.setEnabled(False)
             self.sel_restrict.setHidden(True)
-
-        self.standardize_button = QCheckBox('"Standardize" certain residue types:')
-        self.standardize_button.setChecked(True)
-        layout.addWidget(self.standardize_button)
-        std_text = QLabel("* selenomethionine (MSE) \N{RIGHTWARDS ARROW} methionine (MET)\n"
-            "* bromo-UMP (5BU) \N{RIGHTWARDS ARROW} UMP (U)\n"
-            "* methylselenyl-dUMP (UMS) \N{RIGHTWARDS ARROW} UMP (U)\n"
-            "* methylselenyl-dCMP (CSL) \N{RIGHTWARDS ARROW} CMP (C)")
-        std_text.setTextFormat(Qt.MarkdownText)
-        layout.addWidget(std_text)
+        else:
+            # Dock Prep handles standardization directly
+            self.standardize_button = QCheckBox('"Standardize" certain residue types:')
+            self.standardize_button.setChecked(True)
+            layout.addWidget(self.standardize_button)
+            std_text = QLabel("* selenomethionine (MSE) \N{RIGHTWARDS ARROW} methionine (MET)\n"
+                "* bromo-UMP (5BU) \N{RIGHTWARDS ARROW} UMP (U)\n"
+                "* methylselenyl-dUMP (UMS) \N{RIGHTWARDS ARROW} UMP (U)\n"
+                "* methylselenyl-dCMP (CSL) \N{RIGHTWARDS ARROW} CMP (C)")
+            std_text.setTextFormat(Qt.MarkdownText)
+            layout.addWidget(std_text)
 
         from Qt.QtWidgets import QDialogButtonBox as qbbox
         bbox = qbbox(qbbox.Ok | qbbox.Cancel | qbbox.Help)
@@ -80,7 +81,7 @@ class AddChargeTool(ToolInstance):
         self.tool_window.manage(None)
 
     def add_charges(self):
-        from chimerax.core.errors import UserError
+        from chimerax.core.errors import UserError, CancelOperation
         self.tool_window.shown = False
         self.session.ui.processEvents()
         if not self.structures:
@@ -89,7 +90,6 @@ class AddChargeTool(ToolInstance):
                 raise UserError("No structures chosen for charge addition.")
             self.delete()
             return
-        standardize = self.standardize_button.isChecked()
         sel_restrict = self.sel_restrict.isChecked()
         from chimerax.atomic import AtomicStructures, selected_residues
         if sel_restrict:
@@ -102,38 +102,46 @@ class AddChargeTool(ToolInstance):
             if not residues:
                 self.tool_window.shown = True
                 raise UserError("None of the selected residues are in the structures being assigned charges")
-        #TODO: rework dock_prep_info to be more generic process_info, ala addh
         if self.dock_prep_info is None:
             process_info = {
                 'process name': "adding charges",
                 'structures': self.structures,
-                'callback': lambda f=self._finish_add_charge, r=residues: f(r))
+                'callback': lambda f=self._finish_add_charge, r=residues: f(r)
             }
             from chimerax.addh.tool import check_no_hyds
-            check_no_hyds(self.session, residues, process_info, help=self.help)
+            try:
+                check_no_hyds(self.session, residues, process_info, help=self.help)
+            except CancelOperation:
+                self.delete()
         else:
             # Dock prep has add hydrogens built in, so don't check
             self._finish_add_charge(residues)
-        #TODO: move into _finish_add_charge
-        from chimerax.core.commands import concise_model_spec
-        cmd = "addcharge %s standardize" % concise_model_spec(self.session, self.structures)
-        from chimerax.atomic.struct_edit import standardizable_residues
-        params = {
-            'standardize_residues': standardizable_residues if standardize else [],
-        }
-        self.session.logger.info("Closest equivalent command: <b>addcharge %s%s standardizeResidues %s</b>"
-            % (concise_model_spec(self.session, self.structures), " & sel" if sel_restrict else "",
-            ",".join(standardizable_residues) if standardize else "none"), is_html=True)
-        from .charge import add_standard_charges
-        non_std = add_standard_charges(self.session, residues=residues, **params)
-        #TODO: launch non-standard tool
-        self.delete()
-        if self.dock_prep_info is not None:
-            #TODO: continue dock prep call chain
-            pass
 
     @property
     def structures(self):
         if self.dock_prep_info is None:
             return self.structure_list.value
         return self.dock_prep_info['structures']
+
+    def _finish_add_charge(self, residues):
+        if not residues:
+            self.delete()
+            return
+        from chimerax.atomic.struct_edit import standardizable_residues
+        standardize = self.standardize_button.isChecked() if self.dock_prep_info is None else False
+        params = {
+            'standardize_residues': standardizable_residues if standardize else [],
+        }
+        sel_restrict = self.sel_restrict.isChecked()
+        from chimerax.core.commands import concise_model_spec
+        self.session.logger.info("Closest equivalent command: <b>addcharge %s%s standardizeResidues %s</b>"
+            % (concise_model_spec(self.session, self.structures), " & sel" if sel_restrict else "",
+            ",".join(standardizable_residues) if standardize else "none"), is_html=True)
+        from .charge import add_standard_charges
+        non_std = add_standard_charges(self.session, residues=residues, **params)
+        if non_std:
+            #TODO: launch non-standard tool
+            raise NotImplementedError("Non-standard charges tool")
+        self.delete()
+        if (not non_std) and self.dock_prep_info is not None:
+            self.dock_prep_info['callback'](tool_settings=params)
