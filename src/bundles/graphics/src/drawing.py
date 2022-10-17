@@ -390,7 +390,7 @@ class Drawing:
     def get_display_positions(self):
         dp = self._displayed_positions
         if dp is None:
-            from numpy import ones, bool
+            from numpy import ones
             dp = ones((len(self._positions),), bool)
             self._displayed_positions = dp
         return dp
