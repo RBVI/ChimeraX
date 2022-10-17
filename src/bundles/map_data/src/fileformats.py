@@ -148,8 +148,8 @@ def open_file(path, file_type = None, **kw):
   apath = absolute_path(path) if isinstance(path,str) else [absolute_path(p) for p in path]
 
   if kw:
-    from inspect import getargspec
-    args = getargspec(open_func).args
+    from inspect import getfullargspec
+    args = getfullargspec(open_func).args
     okw = {name:value for name, value in kw.items() if name in args}
   else:
     okw = {}
