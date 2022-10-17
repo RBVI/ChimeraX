@@ -13,7 +13,7 @@
 
 _SpecialColors = ["byatom", "byelement", "byhetero", "bychain",
                   "bypolymer", "byidentity", "bynucleotide", "bymodel",
-                  "fromatoms", "fromribbons", "random"]
+                  "fromatoms", "fromcartoons", "fromribbons", "random"]
 
 _SequentialLevels = ["residues", "chains", "polymers", "structures"]
 # More possible sequential levels: "helix", "helices", "strands", "SSEs", "volmodels", "allmodels"
@@ -359,7 +359,7 @@ def _set_surface_colors(session, atoms, color, opacity, bgcolor=None, undo_state
     if color in _SpecialColors:
         if color == 'fromatoms':
             ns = _color_surfaces_at_atoms(atoms, opacity=opacity, undo_state=undo_state)
-        elif color == 'fromribbons':
+        elif color == 'fromribbons' or color == "fromcartoons":
             res = atoms.unique_residues
             ns = _color_surfaces_at_residues(res, res.ribbon_colors, opacity=opacity,
                                              undo_state=undo_state)
