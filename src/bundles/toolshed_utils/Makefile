@@ -50,6 +50,9 @@ install app-install: $(WHEEL)
 	$(PYTHON_EXE) -m pip uninstall --yes $(BUNDLE_NAME)
 	$(PYTHON_EXE) -m pip install $(WHEEL)
 
+install-editable:
+	$(PYTHON_EXE) -m pip install --no-build-isolation --editable .
+
 sync:
 	rsync -av dist/*.whl $(TOP)/build/sync/
 
