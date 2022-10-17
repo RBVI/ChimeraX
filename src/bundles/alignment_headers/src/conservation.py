@@ -143,8 +143,8 @@ class Conservation(DynamicHeaderSequence):
     def percent_identity(self, pos, for_histogram=False):
         """actually returns a fraction"""
         occur = {}
-        for i in range(len(self.alignment.seqs)):
-            let = self.alignment.seqs[i][pos]
+        for seq in self.alignment.seqs:
+            let = seq[pos]
             try:
                 occur[let] += 1
             except KeyError:
