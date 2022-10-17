@@ -11,8 +11,9 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-_SpecialColors = ["byatom", "byelement", "byhetero", "bychain", "bypolymer", "byidentity", "bynucleotide",
-        "bymodel", "fromatoms", "random"]
+_SpecialColors = ["byatom", "byelement", "byhetero", "bychain",
+                  "bypolymer", "byidentity", "bynucleotide", "bymodel",
+                  "fromatoms", "fromcartoons", "fromribbons", "random"]
 
 _SequentialLevels = ["residues", "chains", "polymers", "structures"]
 # More possible sequential levels: "helix", "helices", "strands", "SSEs", "volmodels", "allmodels"
@@ -111,8 +112,8 @@ def color(session, objects, color=None, what=None, target=None,
     if 'a' in target:
         # atoms/bonds
         if atoms is not None and color is not None:
-            _set_atom_colors(atoms, color, opacity, bgcolor, undo_state)
-            items.append('%d atoms' % len(atoms))
+            if _set_atom_colors(atoms, color, opacity, bgcolor, undo_state):
+                items.append('%d atoms' % len(atoms))
 
     if 's' in target and color is not None:
         from chimerax.atomic import MolecularSurface, concatenate, Structure, PseudobondGroup
@@ -138,14 +139,14 @@ def color(session, objects, color=None, what=None, target=None,
     residues = None
     if 'c' in target and color is not None:
         residues = objects.residues
-        _set_ribbon_colors(residues, color, opacity, bgcolor, undo_state)
-        items.append('%d residues' % len(residues))
+        if _set_ribbon_colors(residues, color, opacity, bgcolor, undo_state):
+            items.append('%d residues' % len(residues))
 
     if 'f' in target and color is not None:
         if residues is None:
             residues = objects.residues
-        _set_ring_colors(residues, color, opacity, bgcolor, undo_state)
-        items.append('rings')  # not sure how many
+        if _set_ring_colors(residues, color, opacity, bgcolor, undo_state):
+            items.append('rings')  # not sure how many
 
     if 'b' in target:
         if color not in _SpecialColors and color is not None:
@@ -251,6 +252,7 @@ def _set_atom_colors(atoms, color, opacity, bgcolor, undo_state):
         if c is not None:
             undo_state.add(atoms, "colors", atoms.colors, c)
             atoms.colors = c
+            return True
     else:
         c = atoms.colors
         c[:, :3] = color.uint8x4()[:3]    # Preserve transparency
@@ -258,7 +260,8 @@ def _set_atom_colors(atoms, color, opacity, bgcolor, undo_state):
             c[:, 3] = opacity
         undo_state.add(atoms, "colors", atoms.colors, c)
         atoms.colors = c
-
+        return True
+    return False
 
 def _set_ribbon_colors(residues, color, opacity, bgcolor, undo_state):
     if color not in _SpecialColors:
@@ -302,7 +305,9 @@ def _set_ribbon_colors(residues, color, opacity, bgcolor, undo_state):
         c[:, 3] = 255   # No transparency
         undo_state.add(residues, "ribbon_colors", residues.ribbon_colors, c)
         residues.ribbon_colors = c
-
+    else:
+        return False
+    return True
 
 def _set_ring_colors(residues, color, opacity, bgcolor, undo_state):
     if color not in _SpecialColors:
@@ -346,12 +351,18 @@ def _set_ring_colors(residues, color, opacity, bgcolor, undo_state):
         c[:, 3] = 255   # No transparency
         undo_state.add(residues, "ring_colors", residues.ring_colors, c)
         residues.ring_colors = c
-
+    else:
+        return False
+    return True
 
 def _set_surface_colors(session, atoms, color, opacity, bgcolor=None, undo_state=None):
     if color in _SpecialColors:
         if color == 'fromatoms':
             ns = _color_surfaces_at_atoms(atoms, opacity=opacity, undo_state=undo_state)
+        elif color == 'fromribbons' or color == "fromcartoons":
+            res = atoms.unique_residues
+            ns = _color_surfaces_at_residues(res, res.ribbon_colors, opacity=opacity,
+                                             undo_state=undo_state)
         else:
             # Surface colored different from atoms
             c = _computed_atom_colors(atoms, color, opacity, bgcolor)
@@ -1265,8 +1276,9 @@ def _color_surfaces_at_atoms(atoms = None, color = None, per_atom_colors = None,
 #
 def _color_surfaces_at_residues(residues, colors, opacity = None, undo_state = None):
     atoms, acolors = _residue_atoms_and_colors(residues, colors)
-    _color_surfaces_at_atoms(atoms, per_atom_colors = acolors, opacity=opacity,
-                             undo_state=undo_state)
+    num_surf = _color_surfaces_at_atoms(atoms, per_atom_colors = acolors, opacity=opacity,
+                                        undo_state=undo_state)
+    return num_surf
 
 # -----------------------------------------------------------------------------
 #
