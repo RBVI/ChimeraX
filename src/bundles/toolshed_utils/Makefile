@@ -8,8 +8,7 @@
 # including partial copies, of the software or any revisions
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
-
-TOP = ../../..
+TOP=../../..
 include $(TOP)/mk/config.make
 
 CHIMERAX_APP = $(wildcard $(TOP)/ChimeraX*.app)
@@ -29,26 +28,18 @@ endif
 PYTHON_EXE = PYTHONNOUSERSITE=1 $(PYTHON_BIN) -I
 PYLINT = $(PYTHON_EXE) -m flake8
 
-BUNDLE_NAME = ChimeraX-ToolshedUtils
-BUNDLE_VERSION = 1.2.1
-PKG_NAME = chimerax.toolshed_utils
-
-BASE_BNDL_NAME = $(subst ChimeraX-,,$(BUNDLE_NAME))
-WHL_BNDL_NAME = $(subst -,_,$(BUNDLE_NAME))
-
 PYSRCS = $(wildcard src/*.py)
-WHEEL = dist/$(WHL_BNDL_NAME)-$(BUNDLE_VERSION)-py$(PYVER_NODOT)-none-any.whl
 
-wheel $(WHEEL): setup.py $(PYSRCS)
-	$(PYTHON_EXE) setup.py --no-user-cfg build
-	# $(PYTHON_EXE) setup.py --no-user-cfg test
-	$(PYTHON_EXE) setup.py --no-user-cfg bdist_wheel --python-tag py$(PYVER_NODOT)
-	rm -rf $(WHL_BNDL_NAME).egg-info
+wheel: $(PYSRCS)
+	$(PYTHON_EXE) -m build --no-isolation --wheel
+
+sdist: $(PYSRCS)
+	$(PYTHON_EXE) -m build --no-isolation --sdist
+
+install app-install:
+	$(PYTHON_EXE) -m pip uninstall --yes ChimeraX-ToolshedUtils
+	$(PYTHON_EXE) -m pip install --no-build-isolation .
 	$(MAKE) sync
-
-install app-install: $(WHEEL)
-	$(PYTHON_EXE) -m pip uninstall --yes $(BUNDLE_NAME)
-	$(PYTHON_EXE) -m pip install $(WHEEL)
 
 install-editable:
 	$(PYTHON_EXE) -m pip install --no-build-isolation --editable .
@@ -69,14 +60,7 @@ debug:
 	$(CHIMERAX_EXE) --debug
 
 clean:
-	rm -rf src/__pycache__ build dist $(WHL_BNDL_NAME).egg-info setup.py
+	rm -rf src/__pycache__ build dist *.egg-info
 
 pylint:
 	$(PYLINT) $(PYSRCS)
-
-setup.py: setup.py.in Makefile
-	sed \
-		-e 's,BUNDLE_NAME,$(BUNDLE_NAME),' \
-		-e 's,BUNDLE_VERSION,$(BUNDLE_VERSION),' \
-		-e 's,PKG_NAME,$(PKG_NAME),' \
-		< setup.py.in > setup.py
