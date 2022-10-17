@@ -261,8 +261,8 @@ class MRC_Data:
   #
   def read_values_from_string(self, string, etype, count):
   
-    from numpy import fromstring
-    values = fromstring(string, etype)
+    from numpy import frombuffer
+    values = frombuffer(string, etype)
     if self.swap_bytes:
       values = values.byteswap()
     if count == 1:
