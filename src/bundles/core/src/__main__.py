@@ -595,8 +595,11 @@ def init(argv, event_loop=True):
         sess.ui.initialize_color_output(opts.color)    # Colored text
 
     # Set current working directory to Desktop when launched from icon.
-    if ((sys.platform.startswith('darwin') and os.getcwd() == '/') or
-            (sys.platform.startswith('win') and os.getcwd().endswith('\\Users\\Public\\Desktop'))):
+    if ((sys.platform.startswith('darwin') and
+         os.getcwd() == '/') or
+        (sys.platform.startswith('win') and
+         (os.getcwd().endswith('\\Users\\Public\\Desktop') or
+          os.getcwd().endswith('\\ProgramData\\ChimeraX')))):
         try:
             os.chdir(os.path.expanduser('~/Desktop'))
         except Exception:
