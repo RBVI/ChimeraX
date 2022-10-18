@@ -145,7 +145,7 @@ static void calculate_loops(Edge_Map &edges, const FArray &varray,
   FArray cvarray = varray.contiguous_array();
   float *v = cvarray.values();
 
-  int nc = 0;
+  //  int nc = 0;
   int start = 0, next = 0;
   while (edges.size() > 0)
     {
@@ -176,7 +176,7 @@ static void calculate_loops(Edge_Map &edges, const FArray &varray,
 		// Non-loop.  Erase points back to start of trace.
 		points.erase(points.begin()+3*start, points.end());
 		next = start;
-		nc += 1;
+		//		nc += 1;
 	      }
 	    }
 	}
