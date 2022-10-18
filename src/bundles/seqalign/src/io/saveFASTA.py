@@ -18,8 +18,8 @@ writes a FASTA file
 LINELEN = 60
 
 def save(session, alignment, stream):
-	for seq in alignment.seqs:
-		print(">%s" % seq.name, file=stream)
-		for i in range(0, len(seq), LINELEN):
-			print(seq[i:i+LINELEN], file=stream)
-		print("", file=stream)
+    for seq in alignment.seqs:
+        print(">%s" % seq.name, file=stream)
+        for i in range(0, len(seq), LINELEN):
+            print(seq[i:i+LINELEN], file=stream)
+        print("", file=stream)
