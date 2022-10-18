@@ -638,6 +638,20 @@ def surface_rgba(color, transparency, chain_id = None):
         rgba8[3] = opacity
     return rgba8
 
+def surface_initial_color(color, transparency, atoms = None):
+    if color is None:
+        if atoms is None:
+            from numpy import array, uint8
+            rgba8 = array((180,180,180,255), uint8)
+        else:
+            rgba8 = atoms.average_ribbon_color
+    else:
+        rgba8 = color.uint8x4()
+    if not transparency is None:
+        opacity = int(255*(100.0-transparency)/100.0)
+        rgba8[3] = opacity
+    return rgba8
+
 def update_color(surf, color, transparency):
     if color is None:
         if not transparency is None:
