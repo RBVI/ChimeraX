@@ -65,28 +65,19 @@ def channel_models(session, channel_json, transparency):
     opacity = int(255 * (1-transparency))
     
     models = []
-    from chimerax.atomic import Structure
+    from chimerax.markers import MarkerSet
     for ctype in ('Pores', 'MergedPores', 'Tunnels', 'Paths'):
         channels = channel_json.get(ctype,[])
         for cnum, channel in enumerate(channels):
             chid = channel['Id']
             color = tuple(channel_colors[cnum % num_colors][:3]) + (opacity,)
-            s = Structure(session, name = f'{ctype[:-1]} {chid}')
-            s.display = (cnum == 0)
-            res_name = 'T'
-            chain_id = 'A'
-            res_num = 1
-            res = s.new_residue(res_name, chain_id, res_num)
+            ms = MarkerSet(session, name = f'{ctype[:-1]} {chid}')
+            ms.display = (cnum == 0)
             spheres = channel['Profile']
             for sphere in spheres:
                 r,x,y,z = [sphere[attr] for attr in ('Radius', 'X', 'Y', 'Z')]
-                a = s.new_atom(f's{chid}', 'C')
-                a.coord = (x,y,z)
-                a.radius = r
-                a.draw_mode = a.SPHERE_STYLE
-                a.color = color
-                res.add_atom(a)
-            models.append(s)
+                ms.create_marker((x,y,z), color, r)
+            models.append(ms)
 
     return models
 

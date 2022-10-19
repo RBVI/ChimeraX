@@ -208,7 +208,7 @@ class BlastProteinResults(ToolInstance):
             _settings = BlastProteinResultsSettings(self.session, "Blastprotein")
         self.main_layout = QVBoxLayout()
         self.control_widget = QWidget(parent)
-        self.buttons_label = QLabel("For Selected Entries:", parent=parent)
+        self.buttons_label = QLabel("For chosen entries:", parent=parent)
         self.load_buttons_widget = QWidget(parent)
         self.load_button_container = QHBoxLayout()
         self.load_button_container.addWidget(self.buttons_label)
