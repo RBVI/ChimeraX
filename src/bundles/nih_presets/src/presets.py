@@ -192,7 +192,7 @@ def run_preset(session, name, mgr):
             "color bypolymer"
         ] + print_prep(pb_radius=None)
     elif name == "ribbon monochrome":
-        cmd = base_setup + base_macro_model + base_ribbon + [
+        cmd = undo_printable + base_setup + base_macro_model + base_ribbon + [
             "color nih_blue",
             "setattr p color nih_blue"
         ]
