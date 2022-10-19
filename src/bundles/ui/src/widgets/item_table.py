@@ -309,7 +309,7 @@ class ItemTable(QTableView):
                     buttons_layout = QHBoxLayout()
                     buttons_layout.setContentsMargins(0,0,0,0)
                     self._col_button_container.setLayout(buttons_layout)
-                    buttons_layout.addWidget(QLabel("Show columns"))
+                    buttons_layout.addWidget(QLabel("Show columns:"))
                     bbox = qbbox()
                     buttons_layout.addWidget(bbox)
                     bbox.addButton("All", qbbox.ActionRole).clicked.connect(self._show_all_columns)
