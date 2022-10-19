@@ -52,6 +52,9 @@ def measure_inertia(session, objects, show_ellipsoid = True, color = None, per_c
         info = density_map_inertia_ellipsoid(maps, color, surf)
         log.info('Inertia axes for %s\n%s' % (mname, info))
 
+    if not (atoms or surfs or maps):
+        log.info('No atoms, surfaces or volumes specified')
+
 # -----------------------------------------------------------------------------
 #
 def _surface_model(name, place, model_id, replace, session):
