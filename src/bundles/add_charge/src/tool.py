@@ -135,13 +135,41 @@ class AddChargeTool(ToolInstance):
         sel_restrict = self.sel_restrict.isChecked()
         from chimerax.core.commands import concise_model_spec
         self.session.logger.info("Closest equivalent command: <b>addcharge %s%s standardizeResidues %s</b>"
-            % (concise_model_spec(self.session, self.structures), " & sel" if sel_restrict else "",
+            % (concise_model_spec(self.session, self.structures,
+            relevant_types=self.structures.object_class), " & sel" if sel_restrict else "",
             ",".join(standardizable_residues) if standardize else "none"), is_html=True)
         from .charge import add_standard_charges
         non_std = add_standard_charges(self.session, residues=residues, **params)
         if non_std:
-            #TODO: launch non-standard tool
-            raise NotImplementedError("Non-standard charges tool")
+            AddNonstandardChargesTool(self.session, "Add Non-Standard Charges", non_std,
+                dock_prep_info=self.dock_prep_info)
         self.delete()
         if (not non_std) and self.dock_prep_info is not None:
             self.dock_prep_info['callback'](tool_settings=params)
+
+class AddNonstandardChargesTool(ToolInstance):
+
+    SESSION_SAVE = False
+    #help ="help:user/tools/addhydrogens.html"
+    help = None
+
+    def __init__(self, session, tool_name, non_std_info, *, dock_prep_info=None):
+        print("non_std_info:", non_std_info)
+        ToolInstance.__init__(self, session, tool_name)
+        self.dock_prep_info = dock_prep_info
+
+        from chimerax.ui import MainToolWindow
+        self.tool_window = MainToolWindow(self)
+        parent = self.tool_window.ui_area
+
+        from Qt.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel, QCheckBox, QGroupBox, QButtonGroup
+        from Qt.QtWidgets import QRadioButton, QPushButton, QMenu, QWidget
+        from Qt.QtCore import Qt
+
+        layout = QVBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(5)
+        parent.setLayout(layout)
+
+        if dock_prep_info is not None:
+            self.tool_window.title = "%s for %s" % (tool_name, dock_prep_info['process_name'].capitalize())
