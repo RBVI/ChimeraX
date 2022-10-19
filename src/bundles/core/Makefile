@@ -11,7 +11,7 @@
 TOP = ../../..
 include $(TOP)/mk/config.make
 
-BUNDLE_VERSION = 1.5
+BUNDLE_VERSION = 1.6
 BUNDLE_VERSION := $(shell $(APP_PYTHON_EXE) mkbuildinfo -v $(TOP) $(BUNDLE_VERSION) $(BUILD_TYPE))
 
 PYSRCS = $(filter-out setup.py,$(wildcard *.py)) src/buildinfo.py
