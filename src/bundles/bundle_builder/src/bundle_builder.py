@@ -853,6 +853,16 @@ class _CompiledCode:
             return None, None
         inc = bundle.include_dir()
         lib = bundle.library_dir()
+        if not inc and not lib:
+            try:
+                import importlib
+                mod = importlib.import_module(bundle.package_name)
+                inc = mod.get_include()
+                lib = mod.get_lib()
+            # This code does not distinguish between build dependencies and
+            # regular dependencies, so must gracefully fail either way
+            except (AttributeError, ModuleNotFoundError):
+                return None, None
         return inc, lib
 
     def compile_objects(self, logger, dependencies, static, debug):
