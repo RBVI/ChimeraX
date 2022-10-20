@@ -1,8 +1,8 @@
 # need to install C++ headers for subsequent builds
-BUILD_AND_INSTALL = 1
-include ../Makefile.bundle
 TOP = ../../..
 include $(TOP)/mk/config.make
+BUILD_AND_INSTALL = 1
+include ../Makefile.bundle
 
 CSRCS = connect_cpp/imex.h connect_cpp/connect.cpp connect_cpp/connect.h
 CLEAN_ALWAYS =	src/lib src/include src/*.$(PYMOD_EXT) \

@@ -1,7 +1,7 @@
-include ../Makefile.bundle
-
-TOP	= ../../..
+TOP = ../../..
 include $(TOP)/mk/config.make
+
+include ../Makefile.bundle
 
 HOLOPLAYCORE_LIBRARY = holoplaycore-0.1.0.tar.gz
 CLEAN_ALWAYS = $(HOLOPLAYCORE_LIBRARY) src/lib
