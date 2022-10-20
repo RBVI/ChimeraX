@@ -32,4 +32,9 @@ install:
 	BUILD_AND_INSTALL=1 PYTHON=$(shell command -v python) PIP=$(shell command -v pip) $(MAKE) -C src/bundles/mmtf install
 	BUILD_AND_INSTALL=1 PYTHON=$(shell command -v python) PIP=$(shell command -v pip) $(MAKE) -C src/bundles/pdb install
 	BUILD_AND_INSTALL=1 PYTHON=$(shell command -v python) PIP=$(shell command -v pip) $(MAKE) -C src/bundles/atomic install
+	$(MAKE) -C docs/devel conf.py
+	$(MAKE) -C docs/devel index.rst
+	$(MAKE) -C docs/devel _static/cxlinks.js
+	$(MAKE) -C docs/devel _static/devdocs.css
 	# Don't need to $(MAKE) -C docs/devel html because readthedocs will take care of that in a subsequent build step
+	# but we DO still need to make all of that target's dependencies so the nonexistent ChimeraX python doesn't do it
