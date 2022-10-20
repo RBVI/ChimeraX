@@ -128,7 +128,6 @@ def devel_install(session, path, test=None, user=None, debug=False, exit=False, 
         from chimerax.bundle_builder import BundleBuilder
         if editable:
             session.logger.warning("Editable installs not supported when using bundle_info.xml")
-            editable = False
     else:
         from chimerax.bundle_builder import BundleBuilderTOML as BundleBuilder
     _run(path, session.logger, exit, BundleBuilder.make_install,
