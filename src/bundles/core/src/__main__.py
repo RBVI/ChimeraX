@@ -462,7 +462,7 @@ def init(argv, event_loop=True):
     #     python: /../ChimeraX.app/Contents/bin/python3.x
     #     ChimeraX: /../ChimeraX.app/Contents/MacOS/ChimeraX
     dn = os.path.dirname
-    rootdir = dn(dn(sys.executable))
+    rootdir = dn(dn(os.path.realpath(sys.executable)))
     # On Linux, don't create user directories if root (the installer uid)
     is_root = False 
     if sys.platform.startswith('linux'):
