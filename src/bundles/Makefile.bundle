@@ -109,7 +109,7 @@ debug:
 
 clean:
 	if [ -x $(CX_BIN) -a -e bundle_info.xml ]; then \
-		$(RUN) "devel clean . exit true" ; \
+		$(RUN_CMD) "devel clean . exit true" ; \
 	else \
 		rm -rf $(CLEAN) ; \
 	fi
