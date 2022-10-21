@@ -47,8 +47,9 @@ CX_BIN = $(CHIMERAX_APP)/bin/chimerax
 PYMOD_EXT = so
 endif
 PYTHON ?= $(APP_PYTHON_EXE) -I
-RUN = PYTHONNOUSERSITE=1 $(PYTHON) -m chimerax.core --nogui --safemode --exit
-RUN_CMD = PYTHONNOUSERSITE=1 $(PYTHON) -m chimerax.core --nogui --safemode --exit --cmd
+RUN = PYTHONNOUSERSITE=1 $(PYTHON) -m chimerax.core --nogui --exit
+RUN_SAFE = $(RUN) --safemode
+RUN_CMD = $(RUN_SAFE) --cmd
 
 ifdef INSTALL_TO_VENV
 WHEEL = $(wildcard dist/*.whl)
@@ -101,7 +102,7 @@ endif
 
 test:
 	for t in $(wildcard cxtest*.cxc) $(wildcard cxtest*.py);\
-		do $(CHIMERAX_EXE) --exit --nogui $$t;\
+		do $(RUN) $$t;\
 	done
 
 debug:
@@ -109,7 +110,7 @@ debug:
 
 clean:
 	if [ -x $(CX_BIN) -a -e bundle_info.xml ]; then \
-		$(RUN) "devel clean . exit true" ; \
+		$(RUN_CMD) "devel clean . exit true" ; \
 	else \
 		rm -rf $(CLEAN) ; \
 	fi
