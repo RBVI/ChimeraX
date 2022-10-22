@@ -110,8 +110,10 @@ ifeq ($(OS),Darwin)
 endif
 
 build-app-dirs:
-	-mkdir -p $(app_prefix) $(app_bindir) $(app_libdir) $(app_datadir) \
-		$(app_includedir)
+	-mkdir -p $(app_prefix) $(app_bindir) $(app_datadir)
+ifneq ($(OS),Windows)
+	-mkdir -p $(app_libdir) $(app_includedir)
+endif
 ifeq ($(OS),Darwin)
 	-mkdir -p $(app_prefix)/MacOS $(app_prefix)/Resources \
 		$(app_frameworkdir)

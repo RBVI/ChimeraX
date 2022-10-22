@@ -69,7 +69,7 @@ endif
 .NOTPARALLEL:
 
 # keep in alphabetical order, dependencies go below
-SUBDIRS	+= ambertools cxservices imex openmm pips PyQt Python qtshim
+SUBDIRS	+= ambertools cxservices openmm pips PyQt Python qtshim
 
 
 # All needed subdirectories must be set by now.

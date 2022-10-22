@@ -1025,6 +1025,7 @@ class Structure(Model, StructureData):
                 expand_by = atoms.filter(not_a()).full_structures.atoms
         if expand_by:
             results.add_atoms(expand_by)
+            results.add_model(self)
 
 class AtomsDrawing(Drawing):
     # can't have any child drawings

@@ -15,12 +15,10 @@ all:
 
 install:
 	cp rsync.convert $(bindir)
-	$(RSYNC) include/* $(includedir)
 	if [ -d $(DLL_DIR) ]; then $(RSYNC) $(DLL_DIR)/*.dll $(bindir); fi
 
 
 app-install:;
-	$(RSYNC) include/* $(app_includedir)
 	if [ -d $(DLL_DIR) ]; then $(RSYNC) $(DLL_DIR)/*.dll $(bindir); fi
 
 fetch-cmake: $(CMAKE_INSTALLER)
