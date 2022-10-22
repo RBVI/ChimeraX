@@ -40,6 +40,9 @@ endif
 	$(MAKE) -C docs install
 ifndef WIN32
 	# Admin privileges are needed on Windows 10
+	# To enable, follow the instructions at
+	# https://stackoverflow.com/a/65504258/12208118
+	# then you can make -C vdocs by hand if you like
 	$(MAKE) -C vdocs install
 endif
 	$(APP_PYTHON_EXE) clean_app.py
