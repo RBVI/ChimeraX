@@ -78,8 +78,11 @@ class HeaderSequence(list):
     def alignment_notification(self, note_name, note_data):
         if note_name == self.alignment.NOTE_EDIT_START:
             self._alignment_being_edited = True
-        if note_name == self.alignment.NOTE_EDIT_END:
+        elif note_name == self.alignment.NOTE_EDIT_END:
             self._alignment_being_edited = False
+        elif note_name == self.alignment.NOTE_REALIGNMENT:
+            with self.alignment_notifications_suppressed():
+                self.reevaluate()
 
     @contextmanager
     def alignment_notifications_suppressed(self):

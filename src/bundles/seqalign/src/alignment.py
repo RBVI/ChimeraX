@@ -22,6 +22,8 @@ class Alignment(State):
     Should only be created through new_alignment method of the alignment manager
     """
 
+    # non-viewers (e.g. headers) notified before viewers, so that they can be "ready" for the viewer
+    # (important for NOTE_REALIGNMENT)
     NOTE_ADD_ASSOC     = "add association"
     NOTE_DEL_ASSOC     = "remove association"
     NOTE_MOD_ASSOC     = "modify association"
@@ -34,7 +36,8 @@ class Alignment(State):
     NOTE_DESTROYED     = "destroyed"
     NOTE_COMMAND       = "command"
     NOTE_REF_SEQ       = "reference seq changed"
-    NOTE_SEQ_CONTENTS  = "seq contents changed"
+    NOTE_SEQ_CONTENTS  = "seq contents changed"  # Not fired if NOTE_REALIGNMENT applicable
+    NOTE_REALIGNMENT   = "sequences realigned"  # preempts NOTE_SEQ_CONTENTS
 
     # associated note_data for the above is None except for:
     #   NOTE_ADD_ASSOC: list of new matchmaps
@@ -52,6 +55,7 @@ class Alignment(State):
     #   NOTE_COMMAND: the observer subcommand text
     #   NOTE_REF_SEQ: the new reference sequence (which could be None)
     #   NOTE_SEQ_CONTENTS: the sequence whose characters changed
+    #   NOTE_REALIGNMENT: a list of copies of the previous sequences
     #   not yet implemented:  NOTE_ADD_SEQS, NOTE_PRE_DEL_SEQS, NOTE_DEL_SEQS, NOTE_ADD_DEL_SEQS,
 
     NOTE_HDR_VALUES    = "header values changed"
@@ -700,6 +704,7 @@ class Alignment(State):
             return
         if viewer_criteria is None:
             recipients = self.observers
+            recipients.sort(key=lambda x: x in self.viewers)
         else:
             recipients = self.viewers_by_subcommand.get(viewer_criteria, [])
         for recipient in recipients:
@@ -749,7 +754,19 @@ class Alignment(State):
         return aln
 
     def _seq_characters_changed_cb(self, trig_name, seq):
-        self._notify_observers(self.NOTE_SEQ_CONTENTS, seq)
+        if not getattr(self, '_realigning', False):
+            self._notify_observers(self.NOTE_SEQ_CONTENTS, seq)
+
+    def _set_realigned(self, realigned_seqs):
+        # realigned sequences need to be in the same order as the current sequences
+        self._realigning = True
+        from copy import copy
+        prev_seqs = []
+        for cur_seq, realigned_seq in zip(self.seqs, realigned_seqs):
+            prev_seqs.append(copy(cur_seq))
+            cur_seq.characters = realigned_seq.characters
+        self._realigning = False
+        self._notify_observers(self.NOTE_REALIGNMENT, prev_seqs)
 
     def _set_residue_attributes(self, *, headers=None, match_maps=None):
         if headers is None:
