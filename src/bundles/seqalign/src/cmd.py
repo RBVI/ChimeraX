@@ -325,9 +325,11 @@ alignment_program_name_args = { 'muscle': MUSCLE, 'omega': CLUSTAL_OMEGA, 'clust
 def seqalign_align(session, seq_source, *, program=CLUSTAL_OMEGA):
     from .alignment import Alignment
     if isinstance(seq_source, Alignment):
+        in_place = True
         raw_input_sequences = seq_source.seqs
         title = "%s realignment of %s" % (program, seq_source.description)
     else:
+        in_place = False
         raw_input_sequences = seq_source
         title = "%s alignment" % program
     from chimerax.atomic import Residue
@@ -337,6 +339,9 @@ def seqalign_align(session, seq_source, *, program=CLUSTAL_OMEGA):
         raise UserError("Must specify 2 or more protein sequences")
     from .align import realign_sequences
     realigned = realign_sequences(session, input_sequences, program=program)
+    if in_place:
+        seq_source._set_realigned(realigned)
+        return seq_source
     return session.alignments.new_alignment(realigned, None, name=title)
 
 def register_seqalign_command(logger):

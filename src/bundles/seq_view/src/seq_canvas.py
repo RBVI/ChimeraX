@@ -1042,8 +1042,12 @@ class SeqCanvas:
         if hasattr(self, 'lead_block'):
             if note_name == self.alignment.NOTE_REF_SEQ:
                 self.lead_block.rerule()
-            if note_name == self.alignment.NOTE_SEQ_CONTENTS:
+            elif note_name == self.alignment.NOTE_SEQ_CONTENTS:
                 self.refresh(note_data)
+            elif note_name == self.alignment.NOTE_REALIGNMENT:
+                # headers are notified before us, so they should be "ready to go"
+                self.sv.region_browser.clear_regions()
+                self._reformat()
             if note_name not in (self.alignment.NOTE_HDR_SHOWN, self.alignment.NOTE_HDR_VALUES,
                     self.alignment.NOTE_HDR_NAME):
                 return
