@@ -66,9 +66,9 @@ dir:	Makefile.dependencies
 $(SUBDIR_BUILD): dir
 
 install: 
-	$(MAKE) -C bundle_builder install
-	$(MAKE) -C core install
-	$(MAKE) -C toolshed_utils install
+	$(MAKE) -C bundle_builder build
+	$(MAKE) -C core build
+	$(MAKE) -C toolshed_utils build
 	$(MAKE) build
 	cd $(SYNC_DIR) && $(APP_BOOTSTRAP_PIP) install --upgrade --upgrade-strategy only-if-needed *.whl
 	$(APP_PYTHON_EXE) -m chimerax.core --exit --nogui --silent --cmd "toolshed reload installed"
