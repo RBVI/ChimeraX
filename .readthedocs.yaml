@@ -1,0 +1,18 @@
+version: 2
+build:
+  os: ubuntu-20.04
+  apt_packages:
+    - mesa-common-dev
+    - libglu1-mesa-dev
+    - rsync
+  tools:
+    python: "3.9"
+  jobs:
+    post_checkout:
+      - git fetch --unshallow
+    post_install:
+      - make -f Makefile.readthedocs install
+
+sphinx:
+  builder: "html"
+  configuration: "docs/conf.py"

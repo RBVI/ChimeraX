@@ -28,8 +28,8 @@ Modules
 .. toctree::
     :maxdepth: 1
 
-    bundles/core/src/commands/commands.rst
+    modules/core/commands/commands.rst
 
-    bundles/ui/src/gui.rst
+    modules/ui/gui.rst
 
-    bundles/core/src/settings.rst
+    modules/core/settings.rst

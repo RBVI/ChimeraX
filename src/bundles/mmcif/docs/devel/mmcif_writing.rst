@@ -67,7 +67,7 @@ This is also needed for the mmCIF files to validate.
 Stylized Output
 ---------------
 
-As shown in :doc:`Benchmarking readcif <../mmcif_cpp/readcif_cpp/docs/compare>`,
+As shown in :doc:`Benchmarking readcif <../../cpp/mmcif/readcif/compare>`,
 stylized PDBx/mmCIF output can be read faster than unstylized output.
 It is also easier to visually scan fixed column width tables for
 interesting values.

@@ -93,7 +93,7 @@ The follow command line arguments are recognized:
     Turns off querying the Toolshed at startup (not default).
 
 ``--lineprofile``
-    Turn on line profiling.  See `Line Profiling`_ for details.
+    Turn on line profiling.  See :ref:`line-profiling` for details.
     Turns off querying the Toolshed at startup.
 
 ``--listioformats``
