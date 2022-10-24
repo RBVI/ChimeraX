@@ -301,10 +301,10 @@ class Study(Model):
         # Python Image Library cannot read 16-bit lossless jpeg.
         keep = []
         for f in files:
-            if f.file_meta.TransferSyntaxUID == '1.2.840.10008.1.2.4.70' and f.attributes.get('BitsAllocated') == 16:
+            if f.file_meta.TransferSyntaxUID == '1.2.840.10008.1.2.4.70' and f.get('BitsAllocated') == 16:
                 warning = 'Could not read DICOM %s because Python Image Library cannot read 16-bit lossless jpeg ' \
                           'images. This functionality can be enabled by installing python-gdcm'
-                _logger.warning(warning % f.paths[0])
+                _logger.warning(warning % f.filename)
             else:
                 keep.append(f)
         return keep
@@ -336,7 +336,7 @@ class Study(Model):
     @property
     def body_part(self):
         return self.series[0].body_part
-    
+
     @property
     def birth_date(self):
         return self.series[0].birth_date
@@ -347,7 +347,10 @@ class Study(Model):
 
     @property
     def patient_id(self):
-        return self.series[0].patient_id
+        if self.series:
+            return self.series[0].patient_id
+        else:
+            return "Unknown"
 
     @property
     def patient_sex(self):
@@ -414,7 +417,7 @@ class DicomContours(Model):
                 'DICOM series has %d files, can only handle one file for "RT Structure Set Storage", '
                 'file %s' % (len(series.paths), path)
             )
-        
+
         Model.__init__(self, name, session)
 
         el = self.dicom_elements(
@@ -560,11 +563,11 @@ class Series:
         return f"{no} {mod} ({desc})"
 
     # TODO: Is this really less ugly / confusing than __getattr__?
-    
+
     @property
     def body_part(self):
         return self.sample_file.get("BodyPartExamined")
-    
+
     @property
     def birth_date(self):
         return self.sample_file.get("PatientBirthDate")
@@ -960,7 +963,7 @@ class SeriesFile:
     def multiframe(self):
         nf = self._num_frames
         return nf is not None and nf > 1
-    
+
     def __getattr__(self, item):
         # For any field that we don't override just return the pydicom attr
         return self.data.get(item)
