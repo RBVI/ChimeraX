@@ -136,7 +136,7 @@ class AddChargeTool(ToolInstance):
         from chimerax.core.commands import concise_model_spec
         self.session.logger.info("Closest equivalent command: <b>addcharge %s%s standardizeResidues %s</b>"
             % (concise_model_spec(self.session, self.structures,
-            relevant_types=self.structures.object_class), " & sel" if sel_restrict else "",
+            relevant_types=self.structures[0].__class__), " & sel" if sel_restrict else "",
             ",".join(standardizable_residues) if standardize else "none"), is_html=True)
         from .charge import add_standard_charges
         non_std = add_standard_charges(self.session, residues=residues, **params)
@@ -154,7 +154,6 @@ class AddNonstandardChargesTool(ToolInstance):
     help = None
 
     def __init__(self, session, tool_name, non_std_info, *, dock_prep_info=None):
-        print("non_std_info:", non_std_info)
         ToolInstance.__init__(self, session, tool_name)
         self.dock_prep_info = dock_prep_info
 
@@ -163,7 +162,7 @@ class AddNonstandardChargesTool(ToolInstance):
         parent = self.tool_window.ui_area
 
         from Qt.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel, QCheckBox, QGroupBox, QButtonGroup
-        from Qt.QtWidgets import QRadioButton, QPushButton, QMenu, QWidget
+        from Qt.QtWidgets import QRadioButton, QPushButton, QMenu, QWidget, QFrame, QGridLayout
         from Qt.QtCore import Qt
 
         layout = QVBoxLayout()
@@ -173,3 +172,37 @@ class AddNonstandardChargesTool(ToolInstance):
 
         if dock_prep_info is not None:
             self.tool_window.title = "%s for %s" % (tool_name, dock_prep_info['process_name'].capitalize())
+
+        charge_frame = QFrame()
+        charge_frame.setFrameStyle(QFrame.Shape.Box | QFrame.Shadow.Plain)
+        layout.addWidget(charge_frame, alignment=Qt.AlignCenter)
+        frame_layout = QGridLayout()
+        frame_layout.setSpacing(0)
+        charge_frame.setLayout(frame_layout)
+        for col, title in enumerate(["Residue", "Net Charge"]):
+            l = QLabel(title, alignment=Qt.AlignCenter)
+            l.setFrameStyle(QFrame.Shape.Panel|QFrame.Shadow.Raised)
+            l.setLineWidth(2)
+            frame_layout.addWidget(l, 0, col)
+        from . import estimate_net_charge
+        self.charge_widgets = {}
+        for text, residues in non_std_info.items():
+            nc = estimate_net_charge(residues[0].atoms)
+            row = frame_layout.rowCount()
+            frame_layout.addWidget(QLabel(text), row, 0, alignment=Qt.AlignCenter)
+            button = self.charge_widgets[text] = QPushButton(str(nc))
+            frame_layout.addWidget(button, row, 1, alignment=Qt.AlignCenter)
+
+
+
+        from Qt.QtWidgets import QDialogButtonBox as qbbox
+        bbox = qbbox(qbbox.Ok | qbbox.Cancel | qbbox.Help)
+        #bbox.accepted.connect(self.add_charges)
+        bbox.rejected.connect(self.delete)
+        if self.help:
+            from chimerax.core.commands import run
+            bbox.helpRequested.connect(lambda *, run=run, ses=session: run(ses, "help " + self.help))
+        else:
+            bbox.button(qbbox.Help).setEnabled(False)
+        layout.addWidget(bbox)
+        self.tool_window.manage(None)
