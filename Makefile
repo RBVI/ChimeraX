@@ -40,6 +40,9 @@ endif
 	$(MAKE) -C docs install
 ifndef WIN32
 	# Admin privileges are needed on Windows 10
+	# To enable, follow the instructions at
+	# https://stackoverflow.com/a/65504258/12208118
+	# then you can make -C vdocs by hand if you like
 	$(MAKE) -C vdocs install
 endif
 	$(APP_PYTHON_EXE) clean_app.py
@@ -110,8 +113,10 @@ ifeq ($(OS),Darwin)
 endif
 
 build-app-dirs:
-	-mkdir -p $(app_prefix) $(app_bindir) $(app_libdir) $(app_datadir) \
-		$(app_includedir)
+	-mkdir -p $(app_prefix) $(app_bindir) $(app_datadir)
+ifneq ($(OS),Windows)
+	-mkdir -p $(app_libdir) $(app_includedir)
+endif
 ifeq ($(OS),Darwin)
 	-mkdir -p $(app_prefix)/MacOS $(app_prefix)/Resources \
 		$(app_frameworkdir)

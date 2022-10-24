@@ -11,38 +11,26 @@
 TOP = ../../..
 include $(TOP)/mk/config.make
 
-CHIMERAX_APP = $(wildcard $(TOP)/ChimeraX*.app)
-
-ifeq ($(OS),Windows)
-PYTHON_BIN = $(CHIMERAX_APP)/bin/python.exe
-CHIMERAX_EXE = $(CHIMERAX_APP)/bin/ChimeraX.exe
-endif
-ifeq ($(OS),Darwin)
-PYTHON_BIN = $(CHIMERAX_APP)/Contents/bin/python$(PYTHON_VERSION)
-CHIMERAX_EXE = $(CHIMERAX_APP)/Contents/bin/ChimeraX
-endif
-ifeq ($(OS),Linux)
-PYTHON_BIN = $(CHIMERAX_APP)/bin/python$(PYTHON_VERSION)
-CHIMERAX_EXE = $(CHIMERAX_APP)/bin/ChimeraX
-endif
-PYTHON_EXE = PYTHONNOUSERSITE=1 $(PYTHON_BIN) -I
-PYLINT = $(PYTHON_EXE) -m flake8
+PYTHON ?= PYTHONNOUSERSITE=1 $(APP_PYTHON_EXE)
+PYLINT = $(PYTHON) -m flake8
 
 PYSRCS = $(wildcard src/*.py)
 
 wheel: $(PYSRCS)
-	$(PYTHON_EXE) -m build --no-isolation --wheel
+	$(PYTHON) -m build --no-isolation --wheel
 
 sdist: $(PYSRCS)
-	$(PYTHON_EXE) -m build --no-isolation --sdist
+	$(PYTHON) -m build --no-isolation --sdist
 
 install app-install: wheel
-	$(PYTHON_EXE) -m pip uninstall --yes ChimeraX-BundleBuilder
-	$(PYTHON_EXE) -m pip install --no-build-isolation .
+	$(PYTHON) -m pip uninstall --yes ChimeraX-BundleBuilder
+	$(PYTHON) -m pip install --no-build-isolation .
+
+build: install
 	$(MAKE) sync
 
 install-editable:
-	$(PYTHON_EXE) -m pip install --no-build-isolation --editable .
+	$(PYTHON) -m pip install --no-build-isolation --editable .
 
 sync:
 	rsync -av dist/*.whl $(TOP)/build/sync/

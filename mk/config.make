@@ -84,6 +84,17 @@ endif
 
 APP_NAME = ChimeraX
 APP_FILENAME = $(APP_NAME).app
+CHIMERAX_APP = $(wildcard $(TOP)/ChimeraX*.app)
+ifeq ($(OS),Windows)
+CHIMERAX_EXE = $(CHIMERAX_APP)/bin/ChimeraX.exe
+endif
+ifeq ($(OS),Darwin)
+CHIMERAX_EXE = $(CHIMERAX_APP)/Contents/bin/ChimeraX
+endif
+ifeq ($(OS),Linux)
+CHIMERAX_EXE = $(CHIMERAX_APP)/bin/ChimeraX
+endif
+
 
 ifeq ($(OS),Darwin)
 frameworkdir = $(build_prefix)/Library/Frameworks

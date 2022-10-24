@@ -494,6 +494,36 @@ extern "C" EXPORT void set_atom_color(void *atoms, size_t n, uint8_t *rgba)
     }
 }
 
+extern "C" EXPORT PyObject *atom_average_ribbon_color(void *atoms, size_t n)
+{
+    Atom **aa = static_cast<Atom **>(atoms);
+    try {
+      unsigned char *rgba;
+      PyObject *color = python_uint8_array(4, &rgba);
+      if (n > 0)
+	{
+	  double r = 0, g = 0, b = 0, a = 0;
+	  for (size_t i = 0; i < n; ++i) {
+	    const Rgba &c = aa[i]->residue()->ribbon_color();
+	    r += c.r;
+	    g += c.g;
+	    b += c.b;
+	    a += c.a;
+	  }
+	  rgba[0] = (int)(r/n + .5);
+	  rgba[1] = (int)(g/n + .5);
+	  rgba[2] = (int)(b/n + .5);
+	  rgba[3] = (int)(a/n + .5);
+	}
+      else
+	{ rgba[0] = rgba[1] = rgba[2] = 180; rgba[3] = 255; }
+      return color;
+    } catch (...) {
+        molc_error();
+        return 0;
+    }
+}
+
 extern "C" EXPORT bool atom_connects_to(pyobject_t atom1, pyobject_t atom2)
 {
     Atom *a1 = static_cast<Atom *>(atom1), *a2 = static_cast<Atom *>(atom2);

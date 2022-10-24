@@ -102,10 +102,17 @@ class InstalledBundleCache(list):
         else:
             from chimerax import app_data_dir as directory
         timestamp_file = os.path.join(directory, _TIMESTAMP)
-        with open(timestamp_file, 'w') as f:
-            # Contents of file are never read, see _is_cache_newer()
-            import time
-            print(time.ctime(), file=f)
+        try:
+            os.makedirs(directory, exist_ok = True)
+            with open(timestamp_file, 'w+') as f:
+                # Contents of file are never read, see _is_cache_newer()
+                import time
+                print(time.ctime(), file=f)
+        # May not be able to create a share directory where we are - PermissionError
+        # May be read-only - OSError
+        except (OSError, PermissionError):
+            pass
+
 
     #
     # Methods below are internal

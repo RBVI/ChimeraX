@@ -473,6 +473,7 @@ class SequenceViewer(ToolInstance):
         elif note_name == alignment.NOTE_COMMAND:
             from .cmd import run
             run(self.session, self, note_data)
+
         self.seq_canvas.alignment_notification(note_name, note_data)
 
     @property
@@ -536,10 +537,13 @@ class SequenceViewer(ToolInstance):
         for arg, prog in alignment_program_name_args.items():
             prog_to_arg[prog] = arg
         for prog in sorted(prog_to_arg.keys()):
-            realign_action = QAction("Realign Sequences with %s" % prog, edit_menu)
-            realign_action.triggered.connect(lambda *args, arg=prog_to_arg[prog], unparse=StringArg.unparse:
-                run(self.session, "seq align %s program %s" % (unparse(self.alignment.ident), unparse(arg))))
-            edit_menu.addAction(realign_action)
+            prog_menu = edit_menu.addMenu("Realign Sequences with %s" % prog)
+            for menu_text, cmd_text in [("new", ":" + ','.join([str(i) for i in range(1, len(self.alignment.seqs)+1)])), ("this", "")]:
+                realign_action = QAction("in %s window" % menu_text, prog_menu)
+                realign_action.triggered.connect(lambda *args, arg=prog_to_arg[prog],
+                    unparse=StringArg.unparse, cmd_text=cmd_text: run(self.session,
+                    "seq align %s%s program %s" % (unparse(self.alignment.ident), cmd_text, unparse(arg))))
+                prog_menu.addAction(realign_action)
 
         structure_menu = menu.addMenu("Structure")
         assoc_action = QAction("Associations...", structure_menu)
