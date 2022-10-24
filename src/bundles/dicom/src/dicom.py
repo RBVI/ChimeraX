@@ -31,7 +31,6 @@ from chimerax.map.volume import open_grids
 from chimerax.map_data import MapFileFormat, GridData
 from chimerax.map_data.readarray import allocate_array
 
-from .ui import DICOMBrowserTool, DICOMMetadata
 
 try:
     import gdcm # noqa import used elsewhere
@@ -55,6 +54,8 @@ finally:
     try:
         _logger = UI.instance().session.logger
         _session = UI.instance().session
+        from .ui import DICOMBrowserTool, DICOMMetadata
+        # __all__ += ["DICOMBrowserTool", "DICOMMetadata"]
     except (NameError, AttributeError):
         # We didn't have either of ChimeraX's UIs, or they were uninitialized.
         # We're either in some other application or being used as a library.
