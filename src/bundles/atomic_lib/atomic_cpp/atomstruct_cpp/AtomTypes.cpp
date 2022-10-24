@@ -657,6 +657,19 @@ t0 = t1;
         untyped_atoms.push_back(h_n.first);
     std::set<const Atom*>
         untyped_set(untyped_atoms.begin(), untyped_atoms.end());
+    // since we need the heavy count for possibly-typed neighbor atoms in pass 5,
+    // get the heavy count for all atoms
+    for (auto a: atoms()) {
+        if (heavys.find(a) == heavys.end()) {
+            int heavy_count = 0;
+            for (auto bondee: a->neighbors()) {
+                if (bondee->element().number() > 1) {
+                    heavy_count++;
+                }
+            }
+            heavys[a] = heavy_count;
+        }
+    }
 #ifdef TIME_PASSES
 t1 = clock();
 std::cerr << "pass 1 took " << (t1 - t0) / (float)CLOCKS_PER_SEC << " seconds\n";

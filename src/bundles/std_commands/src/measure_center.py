@@ -64,7 +64,7 @@ def measure_center(session, objects, level = None, mark = False, color = None,
             msg = 'Surface %s has zero area' % surf
             log.status(msg, log = True)
         else:
-            sxyz = (surf.vertices * areas.reshape((len(areas),1))).mean(axis = 0) / area
+            sxyz = (surf.vertices * areas.reshape((len(areas),1))).sum(axis = 0) / area
             xyz = surf.scene_position * sxyz
             msg = ('Center of area of surface %s = (%.2f, %.2f, %.2f)'
                    % (surf, xyz[0], xyz[1], xyz[2]))
