@@ -221,6 +221,7 @@ as a percentage of the specified <b>denominator</b>:
 <blockquote>
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>sequence &nbsp;align</b> &nbsp;<i>alignment-ID</i>
+[&nbsp;<b>replace</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>program</b>&nbsp;&nbsp;<b>clustalOmega</b>&nbsp;|&nbsp;muscle&nbsp;]
 <br>
 <a href="usageconventions.html"><b>Usage</b></a>:
@@ -238,28 +239,41 @@ The <b>sequence align</b> command calculates a new alignment of the
 specified protein sequences using a web service hosted by the
 <a href="https://www.rbvi.ucsf.edu/Overview/index.html" target="_blank">UCSF
 RBVI</a>. The result is opened in a new
-<a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a> window.
+<a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a> window,
+except that <b>replace true</b> (default <b>false</b>)
+can be used to specify overwriting an 
+existing alignment when all of its sequences are being realigned.
 </p><p>
 The sequences to align can be specified collectively by:
 </p>
 <ul>
 <li>alignment ID, as shown in the title bar of an existing
-<a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a> window
+<a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a> window;
 <li>a <a href="atomspec.html#hierarchy"><i>chain-spec</i></a>
 (for atomic-structure protein chains already open in ChimeraX)
 </ul>
 ...or individually as a comma-separated list (without spaces) 
 of any combination of:
 <ul>
+<li>plain text of the entire amino acid sequence pasted directly 
+into the command line
+<li><a href="https://www.uniprot.org" target="_blank">UniProt</a>
+name or accession number, for example:
+<blockquote>
+<b>sequence align ldlr_rat,ldlr_mouse,ldlr_human</b>
+</blockquote>
 <li>the <a href="seqspec.html"><i>sequence-spec</i></a> of a sequence
 in the <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>,
 in the form: 
 &nbsp;<span class="nowrap"><i>alignment-ID</i>:<i>sequence-ID</i></span>&nbsp;
-(<a href="seqspec.html">details...</a>)
-<li><a href="https://www.uniprot.org" target="_blank">UniProt</a>
-name or accession number
-<li>plain text of the entire amino acid sequence pasted directly 
-into the command line
+(<a href="seqspec.html">details...</a>). Example:
+<blockquote>
+<b>open myfile.msf</b>
+<br>
+<b>sequence align 1,2,3,-1</b>
+<br><i>&ndash; OR (if multiple sequence windows are open) &ndash;</i><br>
+<span class="nowrap"><b>sequence align myfile.msf:1,myfile.msf:2,myfile.msf:3,myfile.msf:-1</b></span>
+</blockquote>
 </ul>
 <p>
 The <b>program</b> can be either of two choices:
@@ -315,5 +329,5 @@ Edgar RC.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-April 2022</address>
+October 2022</address>
 </body></html>

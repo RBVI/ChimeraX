@@ -44,7 +44,7 @@ surface blob
 &ndash; calculate <a href="surface.html#surfdefs">solvent-accessible surface</a>
 area buried between two sets of atoms
 <li><a href="#center"><b>center</b></a>
-&ndash; calculate center of mass of map and/or atoms
+&ndash; calculate center of mass of map, atoms, and/or surface
 <li><a href="#convexity"><b>convexity</b></a>
 &ndash; calculate convexity at each surface vertex,
 color the surface accordingly
@@ -205,11 +205,16 @@ See also: <a href="interfaces.html"><b>interfaces</b></a>
 [&nbsp;<b>modelId</b>&nbsp;&nbsp;<i>model-number</i>&nbsp;]
 [&nbsp;<b>name</b>&nbsp;&nbsp;<i>model-name</i>&nbsp;]
 <blockquote>
-Calculate the center of mass of each density map and/or set of atoms in 
-<a href="atomspec.html"><i>spec</i></a>.
-Map centers are reported in grid indices and
+Calculate the center of mass of each density map,
+surface (other than a map surface), and/or
+set of atoms in <a href="atomspec.html"><i>spec</i></a>.
+The centers of mass are reported in 
 <a href="view.html#scenecoords">scene coordinates</a>,
-atomic centers of mass in <a href="view.html#scenecoords">scene coordinates</a>.
+and map centers also in grid indices.
+The approach for surfaces is analogous to that for atoms, except that 
+the points in space are the vertices of the triangulated surface.
+Each vertex is weighted by &frac13; of the sum of the areas of all 
+attached triangles. This treats the surface as a thin shell.
 The <b>level</b> option indicates using only map regions
 above <i>contour-level</i>.
 If <b>mark</b> is <b>true</b>, a <a href="../markers.html">marker</a> 
@@ -729,9 +734,9 @@ rotation axis. Before this formula is applied, the center of mass
 position is subtracted from the atom coordinates,
 so that the measured quantity is the inertia about the center of mass.
 The approach for surfaces is analogous, where atoms are replaced
-by vertices of the triangulated surface, and the &ldquo;mass&rdquo;
-of each vertex is &frac13; of the area of the attached triangle.
-This treats the surface as a thin shell.
+by vertices of the triangulated surface. 
+Each vertex is weighted by &frac13; of the sum of the areas of all 
+attached triangles. This treats the surface as a thin shell.
 The &ldquo;inertia ellipsoid&rdquo; shown by ChimeraX is not the same
 as the one defined in physics. Instead, it is the ellipsoid that has
 the same inertia as the measured object:
