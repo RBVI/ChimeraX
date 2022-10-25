@@ -549,8 +549,8 @@ class Series:
         elif self.image_series:
             return open_grids(self.session, self._to_grids(), name=self.name)[0]
         else:
-            raise UnrenderableSeriesError("Processed Series #%s from patient %s but did not open "
-                                          "it as a model as it had no pixel data. Metadata will still "
+            raise UnrenderableSeriesError("No model created for Series #%s from patient %s because "
+                                          "it had no pixel data. Metadata will still "
                                           "be available." % (self.number, self.patient_id))
 
     @property

@@ -141,6 +141,9 @@ prereqs/Python/relocatable-python
 prereqs/PyQt/*commercial*
 prereqs/PyQt/qt/*.xz
 prereqs/zlib/*.gz
+docs/devel/apps
+docs/devel/chimerax
+docs/devel/modules
 docs/license.html
 docs/license.txt
 docs/embedded.html

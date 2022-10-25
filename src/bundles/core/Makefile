@@ -11,7 +11,6 @@
 TOP = ../../..
 include $(TOP)/mk/config.make
 PYTHON ?=PYTHONNOUSERSITE=1 $(APP_PYTHON_EXE)
-PIP ?=PYTHONNOUSERSITE=1 $(APP_BOOTSTRAP_PIP)
 
 BUNDLE_VERSION = 1.6
 BUNDLE_VERSION := $(shell $(PYTHON) mkbuildinfo -v $(TOP) $(BUNDLE_VERSION) $(BUILD_TYPE))
@@ -21,14 +20,14 @@ BUNDLE_VERSION := $(shell $(PYTHON) mkbuildinfo -v $(TOP) $(BUNDLE_VERSION) $(BU
 install reinstall app-install: wheel
 	# newer versions of pip won't install over the same version number (which depends on the last commit
 	# number), so to install something that hasn't been committed, uninstall first.
-	$(PIP) uninstall --yes ChimeraX-Core
+	$(PYTHON) -m pip uninstall --yes ChimeraX-Core
 	$(PYTHON) -m pip install dist/*.whl
 
 build: install
 	$(MAKE) sync
 
 install-editable: clean src/buildinfo.py src/commands/_atomspec.py
-	$(PIP) uninstall --yes ChimeraX-Core
+	$(PYTHON) -m pip uninstall --yes ChimeraX-Core
 ifeq ($(EDITABLE_MODE),strict)
 	$(PYTHON) -m pip install --no-build-isolation --editable . --config-settings editable_mode=strict
 else

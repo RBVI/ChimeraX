@@ -7,7 +7,7 @@ include ../Makefile.bundle
 CSRCS = pdbio_cpp/PDBio.cpp
 CLEAN_ALWAYS =	src/*.$(PYMOD_EXT) pdbio_cpp/PDBio.o* \
 
-wheel install app-install:	$(CSRCS) pdb
+wheel install install-editable app-install:	$(CSRCS) pdb
 
 pdb:
 	$(MAKE) -C pdb_cpp install
