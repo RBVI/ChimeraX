@@ -58,6 +58,8 @@ build:
       - mv docs/user docs/devel/_build/html/
       - mv docs/*.html docs/devel/_build/html/
       - mv docs/css docs/js docs/pdbimages docs/quickstart docs/videos docs/devel/_build/html
+      - rm -rf _build
+      - mv docs/devel/_build .
 
 sphinx:
   builder: "html"
