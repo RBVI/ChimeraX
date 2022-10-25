@@ -11,43 +11,42 @@ build:
     post_checkout:
       - git fetch --unshallow
     post_install:
-      - $(command -v python) -m pip install setuptools==65.1.1
-      - $(command -v python) -m pip install -r prereqs/pips/build_requirements.txt
-      - $(command -v python) -m pip install prereqs/qtshim
-      - $(command -v python) -m pip install PyQt6 PyQt6-WebEngine sphinx sphinx-autodoc-typehints
-      - $(command -v python) -m pip install sortedcontainers filelock appdirs pkginfo lxml msgpack 
-      - $(command -v python) -m pip install build wheel numpy tinyarray pillow grako
-      - $(command -v python) -c "import setuptools; print(setuptools.__version__)"
-      - BUILD_AND_INSTALL=1 PYTHON=$(command -v python) PIP=$(command -v pip) make -C src/bundles/bundle_builder install-editable
-      - BUILD_AND_INSTALL=1 PYTHON=$(command -v python) PIP=$(command -v pip) make -C src/bundles/bundle_builder install-editable
-      - BUILD_AND_INSTALL=1 PYTHON=$(command -v python) PIP=$(command -v pip) make -C src/bundles/toolshed_utils install-editable
-      - BUILD_AND_INSTALL=1 PYTHON=$(command -v python) PIP=$(command -v pip) make -C src/bundles/core install-editable
-      - BUILD_AND_INSTALL=1 PYTHON=$(command -v python) PIP=$(command -v pip) make -C src/bundles/arrays install-editable
-      - BUILD_AND_INSTALL=1 PYTHON=$(command -v python) PIP=$(command -v pip) make -C src/bundles/sim_matrices install-editable
-      - BUILD_AND_INSTALL=1 PYTHON=$(command -v python) PIP=$(command -v pip) make -C src/bundles/alignment_algs install-editable
-      - BUILD_AND_INSTALL=1 PYTHON=$(command -v python) PIP=$(command -v pip) make -C src/bundles/atomic_lib install-editable
-      - BUILD_AND_INSTALL=1 PYTHON=$(command -v python) PIP=$(command -v pip) make -C src/bundles/coulombic install-editable
-      - BUILD_AND_INSTALL=1 PYTHON=$(command -v python) PIP=$(command -v pip) make -C src/bundles/geometry install-editable
-      - BUILD_AND_INSTALL=1 PYTHON=$(command -v python) PIP=$(command -v pip) make -C src/bundles/graphics install-editable
-      - BUILD_AND_INSTALL=1 PYTHON=$(command -v python) PIP=$(command -v pip) make -C src/bundles/map install-editable
-      - BUILD_AND_INSTALL=1 PYTHON=$(command -v python) PIP=$(command -v pip) make -C src/bundles/mask install-editable
-      - BUILD_AND_INSTALL=1 PYTHON=$(command -v python) PIP=$(command -v pip) make -C src/bundles/mlp install-editable
-      - BUILD_AND_INSTALL=1 PYTHON=$(command -v python) PIP=$(command -v pip) make -C src/bundles/morph install-editable
-      - BUILD_AND_INSTALL=1 PYTHON=$(command -v python) PIP=$(command -v pip) make -C src/bundles/realsense install-editable
-      - BUILD_AND_INSTALL=1 PYTHON=$(command -v python) PIP=$(command -v pip) make -C src/bundles/segment install-editable
-      - BUILD_AND_INSTALL=1 PYTHON=$(command -v python) PIP=$(command -v pip) make -C src/bundles/stl install-editable
-      - BUILD_AND_INSTALL=1 PYTHON=$(command -v python) PIP=$(command -v pip) make -C src/bundles/surface install-editable
-      - BUILD_AND_INSTALL=1 PYTHON=$(command -v python) PIP=$(command -v pip) make -C src/bundles/webcam install-editable
-      - BUILD_AND_INSTALL=1 PYTHON=$(command -v python) PIP=$(command -v pip) make -C src/bundles/atom_search install-editable
-      - BUILD_AND_INSTALL=1 PYTHON=$(command -v python) PIP=$(command -v pip) make -C src/bundles/chem_group install-editable
-      - BUILD_AND_INSTALL=1 PYTHON=$(command -v python) PIP=$(command -v pip) make -C src/bundles/connect_structure install-editable
-      - BUILD_AND_INSTALL=1 PYTHON=$(command -v python) PIP=$(command -v pip) make -C src/bundles/dssp install-editable
-      - BUILD_AND_INSTALL=1 PYTHON=$(command -v python) PIP=$(command -v pip) make -C src/bundles/pdb_lib install-editable
-      - $(command -v python) -I -m chimerax.core --nogui --exit --safemode --cmd "toolshed reload installed"
-      - BUILD_AND_INSTALL=1 PYTHON=$(command -v python) PIP=$(command -v pip) make -C src/bundles/mmcif install-editable
-      - BUILD_AND_INSTALL=1 PYTHON=$(command -v python) PIP=$(command -v pip) make -C src/bundles/mmtf install-editable
-      - BUILD_AND_INSTALL=1 PYTHON=$(command -v python) PIP=$(command -v pip) make -C src/bundles/pdb install-editable
-      - BUILD_AND_INSTALL=1 PYTHON=$(command -v python) PIP=$(command -v pip) make -C src/bundles/atomic install-editable
+      - python -I -m pip install setuptools==65.1.1
+      - python -I -m pip install -r prereqs/pips/build_requirements.txt
+      - python -I -m pip install prereqs/qtshim
+      - python -I -m pip install PyQt6 PyQt6-WebEngine sphinx sphinx-autodoc-typehints
+      - python -I -m pip install sortedcontainers filelock appdirs pkginfo lxml msgpack 
+      - python -I -m pip install build wheel numpy tinyarray pillow
+      - BUILD_AND_INSTALL=1 PYTHON=python make -C src/bundles/bundle_builder install-editable
+      - BUILD_AND_INSTALL=1 PYTHON=python make -C src/bundles/toolshed_utils install-editable
+      - BUILD_AND_INSTALL=1 PYTHON=python make -C src/bundles/core install-editable
+      - BUILD_AND_INSTALL=1 PYTHON=python make -C src/bundles/arrays install-editable
+      - BUILD_AND_INSTALL=1 PYTHON=python make -C src/bundles/segment install-editable
+      - BUILD_AND_INSTALL=1 PYTHON=python make -C src/bundles/sim_matrices install-editable
+      - BUILD_AND_INSTALL=1 PYTHON=python make -C src/bundles/alignment_algs install-editable
+      - BUILD_AND_INSTALL=1 PYTHON=python make -C src/bundles/atomic_lib install-editable
+      - BUILD_AND_INSTALL=1 PYTHON=python make -C src/bundles/coulombic install-editable
+      - BUILD_AND_INSTALL=1 PYTHON=python make -C src/bundles/geometry install-editable
+      - BUILD_AND_INSTALL=1 PYTHON=python make -C src/bundles/graphics install-editable
+      - BUILD_AND_INSTALL=1 PYTHON=python make -C src/bundles/map install-editable
+      - BUILD_AND_INSTALL=1 PYTHON=python make -C src/bundles/mask install-editable
+      - BUILD_AND_INSTALL=1 PYTHON=python make -C src/bundles/mlp install-editable
+      - BUILD_AND_INSTALL=1 PYTHON=python make -C src/bundles/morph install-editable
+      - BUILD_AND_INSTALL=1 PYTHON=python make -C src/bundles/realsense install-editable
+      - BUILD_AND_INSTALL=1 PYTHON=python make -C src/bundles/stl install-editable
+      - BUILD_AND_INSTALL=1 PYTHON=python make -C src/bundles/surface install-editable
+      - BUILD_AND_INSTALL=1 PYTHON=python make -C src/bundles/webcam install-editable
+      - BUILD_AND_INSTALL=1 PYTHON=python make -C src/bundles/atom_search install-editable
+      - BUILD_AND_INSTALL=1 PYTHON=python make -C src/bundles/chem_group install-editable
+      - BUILD_AND_INSTALL=1 PYTHON=python make -C src/bundles/connect_structure install-editable
+      - BUILD_AND_INSTALL=1 PYTHON=python make -C src/bundles/dssp install-editable
+      - BUILD_AND_INSTALL=1 PYTHON=python make -C src/bundles/pdb_lib install-editable
+      # No idea why we need to toolshed reload installed here.
+      - python -I -m chimerax.core --nogui --exit --safemode --cmd "toolshed reload installed"
+      - BUILD_AND_INSTALL=1 PYTHON=python make -C src/bundles/mmcif install-editable
+      - BUILD_AND_INSTALL=1 PYTHON=python make -C src/bundles/mmtf install-editable
+      - BUILD_AND_INSTALL=1 PYTHON=python make -C src/bundles/pdb install-editable
+      - BUILD_AND_INSTALL=1 PYTHON=python make -C src/bundles/atomic install-editable
       - make -C docs/devel conf.py
       - make -C docs/devel index.rst
       - make -C docs/devel _static/cxlinks.js
