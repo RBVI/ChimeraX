@@ -17,7 +17,7 @@ MSGPACK_DISTRIBUTION = $(MSGPACK_SOURCE).zip
 
 CLEAN_ALWAYS = $(MMTF_CPP_SOURCE) $(MSGPACK_SOURCE)
 
-build wheel install app-install:	$(CSRCS) $(HEADERS)
+build wheel install install-editable app-install:	$(CSRCS) $(HEADERS)
 
 $(MMTF_CPP_SOURCE): $(MMTF_CPP_DISTRIBUTION)
 	# only need the include files

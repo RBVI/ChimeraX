@@ -400,6 +400,9 @@ except as hidden by <a href="clip.html">clipping</a>
 <li><a href="#splitbycolor"><b>surface splitbycolor</b></a>
 &ndash; split a surface into a separate model for each color of the 
 original surface
+<li><a href="#smooth"><b>surface smooth</b></a>
+&ndash; smooth a surface by moving each vertex toward the average position
+of its neighbors
 <li><a href="#squaremesh"><b>surface squaremesh</b></a>
 &ndash; hide diagonal mesh lines
 <li><a href="#transform"><b>surface transform</b></a>
@@ -508,6 +511,28 @@ the dust, allowing the density within to be
 <blockquote>
 Show all mesh lines and triangles in the specified surface(s)
 except where hidden by <a href="clip.html">clipping</a>.
+</blockquote>
+
+<a name="smooth"></a>
+<a href="#sop" class="nounder">&bull;</a>
+<b>surface smooth</b>
+&nbsp;<a href="atomspec.html#othermodels"><i>surface-spec</i></a>&nbsp;
+[&nbsp;<b>factor</b>&nbsp;&nbsp;<i>f</i>&nbsp;]
+[&nbsp;<b>iterations</b>&nbsp;&nbsp;<i>i</i>&nbsp;]
+[&nbsp;<b>inPlace</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+<blockquote>
+Smooth the specified surface(s)
+by moving each vertex toward the average position of its
+neighboring vertices (those connected by triangle edges).
+In each of <i>i</i> iterations (default <b>2</b>),
+each vertex is moved a fraction <b><i>f</i></b> (default <b>0.3</b>)
+of the way toward the average position of its neighbors.
+The <b>inPlace</b> option indicates whether to overwrite the existing surface
+(default <b>false</b>, meaning to create a new surface instead of overwriting
+the existing one). This command will generally &ldquo;shrink&rdquo; 
+a surface, for example, make an enclosed surface contain a smaller volume.
+Note that a <a href="surface.html">molecular surface</a> can be smoothed 
+without shrinkage by using a smaller <b>gridSpacing</b> value.
 </blockquote>
 
 <a name="splitbycolor"></a>

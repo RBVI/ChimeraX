@@ -21,8 +21,8 @@ mmcif: Read and write mmCIF files
    mmcif_writing.rst
    mmcif_guidelines.rst
 
-   ../mmcif_cpp/readcif_cpp/cifgrep/cifgrep.rst
-   ../mmcif_cpp/readcif_cpp/docs/index.rst
+   ../../cpp/mmcif/cifgrep/cifgrep.rst
+   ../../cpp/mmcif/readcif/index.rst
    
 .. automodule:: chimerax.mmcif.mmcif
     :members:

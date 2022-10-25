@@ -124,7 +124,7 @@ and treats other categories as generic tables of string data.
 
 The ChimeraX code for reading CIF files consists of two parts:
 
-  * a :doc:`fast CIF parser <../mmcif_cpp/readcif_cpp/docs/index>`
+  * a :doc:`fast CIF parser <../../cpp/mmcif/readcif/index>`
     that provides the framework for fast parsing
     (skipping unused categories, PDBx/mmCIF styling), and
 
@@ -152,7 +152,7 @@ mmCIF files from the World-Wide PDB (wwPDB) are typically formatted for fast par
 This is known as PDBx/mmCIF
 `styling`.
 If a CIF file is known to use PDBx/mmCIF stylized formatting,
-then parsing can be almost :doc:`four times faster <../mmcif_cpp/readcif_cpp/docs/compare>`.
+then parsing can be almost :doc:`four times faster <../../cpp/mmcif/readcif/compare>`.
 Currently, ChimeraX uses a heuristic to detect that a mmCIF file is stylized:
 it is assumed only when a mmCIF file uses the
 `mmcif_pdbx dictionary`_ version 4 or later.
