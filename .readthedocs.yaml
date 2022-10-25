@@ -52,6 +52,12 @@ build:
       - make -C docs/devel _static/cxlinks.js
       - make -C docs/devel _static/devdocs.css
       - ./utils/doc_symlinks.sh
+    post_build:
+      - mkdir _build/html/devel
+      - mv _build/html/* devel || true
+      - mv docs/user _build/html/
+      - mv docs/*.html _build/html
+      - mv docs/{css,js,pdbimages,quickstart,videos} _build/html
 
 sphinx:
   builder: "html"
