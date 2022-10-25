@@ -51,11 +51,7 @@ build:
       - make -C docs/devel index.rst
       - make -C docs/devel _static/cxlinks.js
       - make -C docs/devel _static/devdocs.css
-      - mv docs/devel .
-      - rm -rf docs
-      - mv devel docs
-      - DEV_DOCS_IN_ROOT=1 ./utils/doc_symlinks.sh
 
 sphinx:
   builder: "html"
-  configuration: "docs/conf.py"
+  configuration: "docs/devel/conf.py"
