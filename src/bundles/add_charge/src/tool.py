@@ -187,12 +187,18 @@ class AddNonstandardChargesTool(ToolInstance):
         from . import estimate_net_charge
         self.charge_widgets = {}
         for text, residues in non_std_info.items():
-            nc = estimate_net_charge(residues[0].atoms)
+            enc = estimate_net_charge(residues[0].atoms)
             row = frame_layout.rowCount()
             frame_layout.addWidget(QLabel(text), row, 0, alignment=Qt.AlignCenter)
-            button = self.charge_widgets[text] = QPushButton(str(nc))
+            button = self.charge_widgets[text] = QPushButton("%+d" % enc if enc else "0")
             frame_layout.addWidget(button, row, 1, alignment=Qt.AlignCenter)
-
+            charge_menu = QMenu(button)
+            button.setMenu(charge_menu)
+            charge_menu.triggered.connect(lambda action, button=button: button.setText(action.text()))
+            low_charge = min(-9, enc-5)
+            high_charge = max(9, enc+5)
+            for c in range(low_charge, high_charge+1):
+                charge_menu.addAction("%+d" % c if c else "0")
 
 
         from Qt.QtWidgets import QDialogButtonBox as qbbox
