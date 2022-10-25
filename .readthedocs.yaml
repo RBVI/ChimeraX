@@ -54,4 +54,3 @@ build:
 
 sphinx:
   builder: "html"
-  configuration: "docs/devel/conf.py"
