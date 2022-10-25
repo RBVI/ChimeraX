@@ -134,6 +134,7 @@ prereqs/p7zip/*.xz
 prereqs/p7zip/7za
 prereqs/pytables/tables-*.tar.gz
 prereqs/Python/Python-*/
+prereqs/Python/Python.framework
 prereqs/Python/python-*.tar.bz2
 prereqs/Python/*.xz
 prereqs/Python/relocatable-python

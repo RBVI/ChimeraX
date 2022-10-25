@@ -376,13 +376,13 @@ class MapEraserSettings(ToolInstance):
         
 # -------------------------------------------------------------------------
 #
-from chimerax.core.models import Model
-class SphereModel(Model):
+from chimerax.core.models import Surface
+class SphereModel(Surface):
     SESSION_SAVE = False
     
     def __init__(self, name, session, color, center, radius):
         self._num_triangles = 1000
-        Model.__init__(self, name, session)
+        Surface.__init__(self, name, session)
         from chimerax.surface import sphere_geometry2
         va, na, ta = sphere_geometry2(self._num_triangles)
         self._unit_vertices = va

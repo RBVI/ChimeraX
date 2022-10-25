@@ -93,6 +93,8 @@ def measure_volume(session, surfaces, include_masked = True, return_holes = Fals
         if totholes > 0:
             line += ' with %d surface holes' % totholes
         lines.append(line)
+    elif len(surfaces) == 0:
+        lines.append('No surfaces specified')
     
     msg = '\n'.join(lines)
     if len(lines) == 1:
@@ -117,6 +119,8 @@ def measure_area(session, surfaces, include_masked = True):
         lines.append('Surface area for %s (#%s) = %.4g' % (surf.name, surf.id_string, a))
     if len(surfaces) > 1:
         lines.append('Total surface area for %d surfaces = %.4g' % (len(surfaces), atot))
+    elif len(surfaces) == 0:
+        lines.append('No surfaces specified')
     msg = '\n'.join(lines)
     if len(lines) == 1:
         session.logger.status(msg)

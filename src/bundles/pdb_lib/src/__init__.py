@@ -21,6 +21,7 @@ def get_lib() -> str:
 def get_include() -> str:
     return os.path.join(path_to_src(), 'include')
 
+import chimerax.atomic_lib
 from chimerax.core.toolshed import BundleAPI
 
 class _PdbLibAPI(BundleAPI):

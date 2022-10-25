@@ -4,7 +4,7 @@
 ChimeraX Startup
 ================
 
-The ChimeraX application runs on Microsoft Windows, Apple Mac OS X,
+The ChimeraX application runs on Microsoft Windows, macOS,
 and Linux.
 
 By default, ChimeraX does an asynchronous network query
@@ -16,7 +16,7 @@ as noted below.
 Command Line Arguments
 ======================
 
-When running ChimeraX from a terminal, *a.k.a.*, a shell, it can be given
+When running ChimeraX from a terminal (*a.k.a.* a shell) it can be given
 various options followed by data files.
 The data files are specified with same syntax as the filename argument
 of Models' :py:func:`~chimerax.core.models.Models.open`.
@@ -223,31 +223,3 @@ Leaf functions frequently are only given one attribute (or none at all).
 
 Other initial sessiona attributes are initialized in :py:func:`chimerax.core.session.common_startup`.
 
-Line Profiling
-==============
-
-    Line profiling is based on `Robert Kern's <https://github.com/rkern>`_
-    `line_profiler <https://github.com/rkern/line_profiler>`_ package.
-    Support is restricted to platforms that have binaries in pypi.org (just Linux for now).
-    Differences from the conventional setup are given in parenthesizes.
-
-    There are five parts to profiling:
-
-    1. Decorate functions that you wish to profile with the
-       ``@line_profile`` decorator and install them.
-       This decorator is a no-op if ChimeraX is not profiled.
-       (Instead of the conventional ``@profile``.)
-
-    2. Run ``ChimeraX --lineprofile`` from the command line.
-       (Instead of using ``kernprof``.)
-       This generates a ``ChimeraX.lprof`` file in the current directory.
-
-    3. Get your profiling results by running
-       ``ChimeraX -m line_profiler ChimeraX.lprof``.
-
-    4. Analyze your results, possibly edit your code, and return to step 1.
-
-    5. Remove the function decorators before committing your changes.
-
-To use the :py:mod:`timeit` module, see the :py:mod:`~chimerax.core.scripting`
-documentation.

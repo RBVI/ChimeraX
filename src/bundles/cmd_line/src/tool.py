@@ -447,7 +447,10 @@ class _HistoryDialog:
     def add(self, item, *, typed=False):
         if len(self._history) >= self.controller.settings.num_remembered:
             if not self.typed_only or self._history[0][1]:
+                # unless signals are blocked, this will clear partially entered text
+                self.listbox.blockSignals(True)
                 self.listbox.takeItem(0)
+                self.listbox.blockSignals(False)
         if typed or not self.typed_only:
             self.listbox.addItem(item)
         self._history.enqueue((item, typed))
