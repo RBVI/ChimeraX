@@ -51,6 +51,7 @@ build:
       - make -C docs/devel index.rst
       - make -C docs/devel _static/cxlinks.js
       - make -C docs/devel _static/devdocs.css
+      - ./utils/doc_symlinks.sh
 
 sphinx:
   builder: "html"
