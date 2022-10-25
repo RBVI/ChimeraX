@@ -24,22 +24,22 @@ Modules
 .. toctree::
     :maxdepth: 2
 
-    bundles/core/src/tools.rst
+    modules/core/tools.rst
 
-    bundles/core/src/toolshed.rst
+    modules/core/toolshed.rst
 
-    bundles/core/src/tasks.rst
+    modules/core/tasks.rst
 
-    bundles/core/src/logger.rst
+    modules/core/logger.rst
 
-    bundles/core/src/history.rst
+    modules/core/history.rst
 
-    bundles/core/src/safesave.rst
+    modules/core/safesave.rst
 
-    bundles/core/src/serialize.rst
+    modules/core/serialize.rst
 
-    bundles/core/src/orderedset.rst
+    modules/core/orderedset.rst
 
-    bundles/core/src/utils.rst
+    modules/core/utils.rst
 
-    bundles/core/src/configfile.rst
+    modules/core/configfile.rst

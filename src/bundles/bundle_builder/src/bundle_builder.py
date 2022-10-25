@@ -120,11 +120,6 @@ class BundleBuilder:
         for executable in self.c_executables:
             executable.compile(self.logger, self.dependencies, debug=debug)
         setup_args = ["build_ext", "--inplace", "editable_wheel"]
-        if self._is_pure_python():
-            setup_args.extend(["--python-tag", self.tag.interpreter])
-        else:
-            if self.limited_api:
-                setup_args.extend(["--py-limited-api", self.tag.interpreter])
         dist, built = self._run_setup(setup_args)
         import glob
         whl_path = glob.glob(os.path.join(self.path, 'dist', '*editable*.whl'))

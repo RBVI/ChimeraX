@@ -23,11 +23,11 @@ Atomic Structures
 .. toctree::
    :maxdepth: 1
               
-   bundles/atomic/src/atomic.rst
+   modules/atomic/atomic.rst
 
-   bundles/mmcif/src/mmcif.rst
+   modules/mmcif/mmcif.rst
 
-   bundles/atomic/src/pdbio.rst
+   modules/atomic/pdbio.rst
 
 ChimeraX Core
 -------------
@@ -39,59 +39,59 @@ Commands and Tools
 .. toctree::
     :maxdepth: 1
 
-    bundles/core/src/commands/commands.rst
+    modules/core/commands/commands.rst
 
-    bundles/core/src/tools.rst
+    modules/core/tools.rst
 
-    bundles/core/src/toolshed.rst
+    modules/core/toolshed.rst
 
 Data
   
 .. toctree::
     :maxdepth: 1
 
-    bundles/core/src/models.rst
+    modules/core/models.rst
 
-    bundles/core/src/objects.rst
+    modules/core/objects.rst
 
-    bundles/core/src/session.rst
+    modules/core/session.rst
 
 Files
 
 .. toctree::
     :maxdepth: 1
 
-    bundles/core/src/fetch.rst
+    modules/core/fetch.rst
 
-    bundles/core/src/history.rst
+    modules/core/history.rst
 
-    bundles/core/src/safesave.rst
+    modules/core/safesave.rst
 
-    bundles/core/src/serialize.rst
+    modules/core/serialize.rst
 
-    bundles/core/src/settings.rst
+    modules/core/settings.rst
 
 Notifications
 
 .. toctree::
     :maxdepth: 1
 
-    bundles/core/src/data_events.rst
+    modules/core/data_events.rst
 
-    bundles/core/src/logger.rst
+    modules/core/logger.rst
 
-    bundles/core/src/tasks.rst
+    modules/core/tasks.rst
 
-    bundles/core/src/triggerset.rst
+    modules/core/triggerset.rst
 
 Utility
 
 .. toctree::
     :maxdepth: 1
 
-    bundles/core/src/orderedset.rst
+    modules/core/orderedset.rst
 
-    bundles/core/src/utils.rst
+    modules/core/utils.rst
 
 Generic I/O
 -----------
@@ -99,7 +99,7 @@ Generic I/O
 .. toctree::
     :maxdepth: 1
 
-    bundles/io/src/io.rst
+    modules/io/io.rst
 
 Geometry
 --------
@@ -107,7 +107,7 @@ Geometry
 .. toctree::
     :maxdepth: 1
 
-    bundles/geometry/src/geometry.rst
+    modules/geometry/geometry.rst
 
 
 Graphics
@@ -116,7 +116,7 @@ Graphics
 .. toctree::
     :maxdepth: 1
 
-    bundles/graphics/src/graphics.rst
+    modules/graphics/graphics.rst
 
 Open and Save
 -------------
@@ -124,9 +124,9 @@ Open and Save
 .. toctree::
     :maxdepth: 1
 
-    bundles/open_command/src/open.rst
+    modules/open_command/open.rst
 
-    bundles/save_command/src/save.rst
+    modules/save_command/save.rst
     
 
 Surfaces
@@ -135,7 +135,7 @@ Surfaces
 .. toctree::
     :maxdepth: 1
 
-    bundles/surface/src/surface.rst
+    modules/surface/surface.rst
 
     
 User Interface
@@ -144,11 +144,11 @@ User Interface
 .. toctree::
     :maxdepth: 1
 
-    bundles/ui/src/gui.rst
+    modules/ui/gui.rst
 
-    bundles/scheme_mgr/scheme_mgr.rst
+    modules/scheme_mgr/scheme_mgr.rst
 
-    bundles/toolbar/toolbar.rst
+    modules/toolbar/toolbar.rst
     
 Volume Data
 -----------
@@ -156,8 +156,8 @@ Volume Data
 .. toctree::
     :maxdepth: 1
 
-    bundles/map/src/map.rst
+    modules/map/map.rst
 
-    bundles/map_fit/src/fitmap.rst
+    modules/map_fit/fitmap.rst
 
-    bundles/segment/src/segment.rst
+    modules/segment/segment.rst

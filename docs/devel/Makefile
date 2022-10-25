@@ -63,12 +63,13 @@ help:
 	@echo "  linkcheck  to check all external links for integrity"
 	@echo "  doctest    to run all doctests embedded in the documentation (if enabled)"
 
-install: html
+install: clean html
 	if [ ! -d "$(DOCDIR)" ]; then mkdir -p $(DOCDIR); fi
 	$(RSYNC) $(BUILDDIR)/html/ $(DOCDIR)
 
 clean:
-	-rm -rf $(BUILDDIR)/* conf.py index.rst _static/cxlinks.js __pycache__ _static/devdocs.css
+	-rm -rf $(BUILDDIR)/* conf.py index.rst _static/cxlinks.js __pycache__ _static/devdocs.css \
+		apps chimerax modules
 
 conf.py: conf.py.in
 	sed -e 's/PYTHON_VERSION/$(PYTHON_VERSION)/' \
@@ -81,7 +82,14 @@ index.rst: index.rst.in
 		sed $$'/COPYRIGHT_NOTICE/{r /dev/stdin\nd\n}' \
 		$< > $@
 
-html: conf.py index.rst _static/cxlinks.js _static/devdocs.css
+html: clean conf.py index.rst _static/cxlinks.js _static/devdocs.css
+	# This code path handles a built ChimeraX, for the Plato build 
+	# system or on a user's local machine. On readthedocs, the 
+	# symlinks are made in Makefile.readthedocs
+	if [ -d $(APP_PYSITEDIR) ]; then \
+		ln -s $(realpath $(APP_PYSITEDIR)/chimerax) chimerax ; \
+		INTERNAL_CHIMERAX=1 $(TOP)/utils/doc_symlinks.sh ; \
+	fi
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
 	@echo
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."
