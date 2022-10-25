@@ -16,7 +16,8 @@ build:
       - $(command -v python) -m pip install prereqs/qtshim
       - $(command -v python) -m pip install PyQt6 PyQt6-WebEngine sphinx sphinx-autodoc-typehints
       - $(command -v python) -m pip install sortedcontainers filelock appdirs pkginfo lxml msgpack 
-      - $(command -v python) -m pip install build wheel numpy tinyarray pillow
+      - $(command -v python) -m pip install build wheel numpy tinyarray pillow grako
+      - $(command -v python) -c "import setuptools; print(setuptools.__version__)"
       - BUILD_AND_INSTALL=1 PYTHON=$(command -v python) PIP=$(command -v pip) make -C src/bundles/bundle_builder install-editable
       - BUILD_AND_INSTALL=1 PYTHON=$(command -v python) PIP=$(command -v pip) make -C src/bundles/bundle_builder install-editable
       - BUILD_AND_INSTALL=1 PYTHON=$(command -v python) PIP=$(command -v pip) make -C src/bundles/toolshed_utils install-editable
