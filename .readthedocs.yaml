@@ -57,7 +57,7 @@ build:
       - mv docs/devel/_build/html/* docs/devel/_build/html/devel || true
       - mv docs/user docs/devel/_build/html/
       - mv docs/*.html docs/devel/_build/html/
-      - mv docs/{css,js,pdbimages,quickstart,videos} docs/devel/_build/html
+      - mv docs/css docs/js docs/pdbimages docs/quickstart docs/videos docs/devel/_build/html
 
 sphinx:
   builder: "html"
