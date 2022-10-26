@@ -1,7 +1,10 @@
 <h1 align="center">UCSF ChimeraX Molecular Visualization</h1>
 <div align="center">
-  <a href='https://www.cgl.ucsf.edu/chimerax/docs/devel/index.html'>
+  <a href='https://chimerax.readthedocs.io/en/latest/?badge=latest'>
     <img src='https://readthedocs.org/projects/chimerax/badge/?version=latest' alt='Documentation Status' />
+  </a>
+  <a href='https://www.cgl.ucsf.edu/chimerax/docs/user/index.html'>
+	<img src='https://img.shields.io/badge/-user%20guide-brightgreen' alt='User Documentation' />
   </a>
 </div>
 
