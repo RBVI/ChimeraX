@@ -196,7 +196,7 @@ class _AtomicBundleAPI(BundleAPI):
                     try:
                         all_vals = getattr(concatenate(collections), plural_of(attr_name))
                     except AttributeError:
-                        all_vals = [getattr(item, attr_name) for item in collections]
+                        all_vals = [getattr(item, attr_name, None) for item in collections]
                     import numpy
                     if not isinstance(all_vals, numpy.ndarray):
                         all_vals = numpy.array(all_vals)
