@@ -51,8 +51,8 @@ def check_hydrogens(session, residues):
     if session.in_script:
         return
     from chimerax.ui.ask import ask
-    if ask(session, "Adding charges requires hydrogen atoms to be present.\n"
-            "The residues requested have no hydrogen atoms.\n"
+    if ask(session, "Adding charges requires hydrogen atoms to be present.", show_icon=False,
+            info="The residues requested have no hydrogen atoms.\n"
             "Add hydrogens to them now?") == "yes":
         from chimerax.core.commands import run, StringArg
         from chimerax.atomic import concise_residue_spec

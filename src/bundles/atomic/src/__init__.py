@@ -151,7 +151,11 @@ class _AtomicBundleAPI(BundleAPI):
                     from chimerax.core.commands import run, concise_model_spec, StringArg
                     spec = concise_model_spec(session, models)
                     if sel_only:
-                        spec += " & sel"
+                        if not session.selection.empty():
+                            if spec:
+                                spec += " & sel"
+                            else:
+                                spec = "sel"
                     targets, spectrum = params
                     letters = ""
                     for target in targets:
@@ -187,7 +191,12 @@ class _AtomicBundleAPI(BundleAPI):
                     else:
                         collections = [Structures(models)]
                     from chimerax.core.commands import plural_of
-                    all_vals = getattr(concatenate(collections), plural_of(attr_name))
+                    collections = concatenate(collections)
+                    plural_attr = plural_of(attr_name)
+                    try:
+                        all_vals = getattr(concatenate(collections), plural_of(attr_name))
+                    except AttributeError:
+                        all_vals = [getattr(item, attr_name) for item in collections]
                     import numpy
                     if not isinstance(all_vals, numpy.ndarray):
                         all_vals = numpy.array(all_vals)
