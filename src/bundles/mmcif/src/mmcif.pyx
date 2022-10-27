@@ -139,6 +139,9 @@ def open_mmcif(session, path, file_name=None, auto_style=True, coordsets=False, 
         model.get_formatted_metadata = MethodType(_get_formatted_metadata, proxy(model))
         model.get_formatted_res_info = MethodType(_get_formatted_res_info, proxy(model))
         break
+    if log is not None and not models:
+        log.warning("No mmCIF models found.  Perhaps this is a small-molecule CIF file?\n"
+                "Unfortunately, they are not supported at this time.\n")
     return models, info
 
 
