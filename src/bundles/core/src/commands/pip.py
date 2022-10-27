@@ -9,6 +9,7 @@
 # including partial copies, of the software or any revisions
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
+import os
 import subprocess
 import sys
 
@@ -21,8 +22,19 @@ from ..errors import UserError
 
 __all__ = ['pip', 'pip_desc', 'register_pip_commands']
 
-def pip(session: Session, action: str = None, package: str = None, upgrade: bool = False, verbose: bool = False):
-    pip_cmd = [sys.executable, "-m", "pip"]
+def pip(
+    session: Session
+    , action: str = None
+    , package: str = None
+    , upgrade: bool = False
+    , verbose: bool = False
+):
+    using_chimerax = "chimerax" in sys.executable.split(os.sep)[-1].lower()
+    if using_chimerax:
+        pip_cmd = [sys.executable]
+    else:
+        pip_cmd = [sys.executable, "-m", "chimerax.core"]
+    pip_cmd.extend(["-m", "pip"])
     if action == 'install':
         if not package:
             raise UserError("Can't possibly install an unspecified package.")
