@@ -61,7 +61,7 @@ base_ribbon = [
 
 base_surface = [
     "delete solvent",
-    "hide H|ligand|~(protein|nucleic-acid)",
+    "hide H|ligand|~(protein|nucleic-acid) atoms",
     "~nuc",
     "~ribbon",
     "~display",
