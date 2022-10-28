@@ -95,6 +95,9 @@ def sym(session, structures,
             copies = (len(transforms) <= 12)
         new_mols = show_symmetry(structures, symmetry.group, transforms, copies, new_model,
                                  surface_only, resolution, grid_spacing, session)
+        copy_descrip = 'copies' if copies else 'graphical clones'
+        mnames = ', '.join(m.name for m in structures)
+        session.logger.info(f'Made {len(transforms)} {copy_descrip} for {mnames} symmetry {symmetry.group}')
         if add_mmcif_assembly:
             for structure in structures:
                 add_mmcif_assembly_to_metadata(structure, transforms)
@@ -120,10 +123,12 @@ def sym(session, structures,
             mcopies = (a.num_copies <= 12) if copies is None and not surface_only else copies
             if mcopies:
                 a.show_copies(m, surface_only, resolution, grid_spacing, session)
+                session.logger.info(f'Made {a.num_copies} copies for {m.name} assembly {a.id}')
             elif surface_only:
                 a.show_surfaces(m, resolution, grid_spacing, new_model, session)
             else:
                 a.show(m, new_model, session)
+                session.logger.info(f'Made {a.num_copies} graphical clones for {m.name} assembly {a.id}')
             if new_model:
                 m.display = False
 
@@ -364,7 +369,8 @@ class Assembly:
                     excluded_atoms.unique_residues.ribbon_displays = False
             self._show_atoms(included_atoms)
             m.positions = ops
-
+        return mols
+    
     def _show_atoms(self, atoms):
         if not atoms.displays.all():
             # Show chains that have not atoms or ribbons shown.
@@ -413,7 +419,8 @@ class Assembly:
                 surface(session, m.atoms, grid_spacing = grid_spacing, resolution = resolution)
 
         mol.display = False
-
+        return mlist
+    
     @property
     def num_copies(self):
         return sum([len(ops) for chain_ids, op_expr, ops in self.chain_ops], 0)
