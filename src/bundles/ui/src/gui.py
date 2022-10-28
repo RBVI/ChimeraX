@@ -2308,6 +2308,12 @@ class _Qt:
                 self.dock_widget.deleteLater()
             else:
                 self.dock_widget.destroy()
+        else:
+            # in case the auto-destroying window was closed by other means [#7882]
+            # Also, self.dock_widget.destroy() does not fix the problem
+            from Qt.QtWidgets import QDockWidget
+            delattr(self.dock_widget, 'closeEvent')
+            self.dock_widget.close()
 
     @property
     def dockable(self):
