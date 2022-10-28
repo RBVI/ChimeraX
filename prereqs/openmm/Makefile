@@ -17,9 +17,9 @@ endif
 ifeq ($(OS),Linux)
 PLATFORM = linux
 # The Linux distribution comes from Tristan Croll
-# compiled with the same compiler as ChimeraX.
+# compiled Oct 28, 2022 with the same compiler as ChimeraX.
 # Using CUDA 11.2
-DISTRIBUTION = openmm-7.7.0-linux-py39_cuda112_1.tar.bz2
+DISTRIBUTION = openmm-7.7.0-linux-py39_cuda112_2.tar.bz2
 endif
 ifeq ($(OS),Windows)
 PLATFORM = windows
