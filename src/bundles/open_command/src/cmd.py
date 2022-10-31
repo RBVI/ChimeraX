@@ -300,7 +300,10 @@ def _get_path(mgr, file_name, check_path, check_compression=True):
 def _get_stream(mgr, file_name, encoding):
     path = _get_path(mgr, file_name, True, check_compression=False)
     from chimerax import io
-    return io.open_input(path, encoding)
+    try:
+        return io.open_input(path, encoding)
+    except (IOError, PermissionError) as e:
+        raise UserError("Cannot open '%s': %s" % (path, e))
 
 def fetches_vs_files(mgr, names, format_name, database_name):
     fetches = []
