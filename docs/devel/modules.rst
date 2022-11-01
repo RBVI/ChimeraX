@@ -22,6 +22,7 @@ Atomic Structures
 
 .. toctree::
    :maxdepth: 1
+   :titlesonly:
               
    modules/atomic/atomic.rst
 
@@ -38,6 +39,7 @@ Commands and Tools
 
 .. toctree::
     :maxdepth: 1
+    :titlesonly:
 
     modules/core/commands/commands.rst
 
@@ -49,6 +51,7 @@ Data
   
 .. toctree::
     :maxdepth: 1
+    :titlesonly:
 
     modules/core/models.rst
 
@@ -60,6 +63,7 @@ Files
 
 .. toctree::
     :maxdepth: 1
+    :titlesonly:
 
     modules/core/fetch.rst
 
@@ -75,6 +79,7 @@ Notifications
 
 .. toctree::
     :maxdepth: 1
+    :titlesonly:
 
     modules/core/data_events.rst
 
@@ -88,6 +93,7 @@ Utility
 
 .. toctree::
     :maxdepth: 1
+    :titlesonly:
 
     modules/core/orderedset.rst
 
@@ -98,6 +104,7 @@ Generic I/O
 
 .. toctree::
     :maxdepth: 1
+    :titlesonly:
 
     modules/io/io.rst
 
@@ -106,6 +113,7 @@ Geometry
   
 .. toctree::
     :maxdepth: 1
+    :titlesonly:
 
     modules/geometry/geometry.rst
 
@@ -115,6 +123,7 @@ Graphics
   
 .. toctree::
     :maxdepth: 1
+    :titlesonly:
 
     modules/graphics/graphics.rst
 
@@ -123,6 +132,7 @@ Open and Save
 
 .. toctree::
     :maxdepth: 1
+    :titlesonly:
 
     modules/open_command/open.rst
 
@@ -134,6 +144,7 @@ Surfaces
 
 .. toctree::
     :maxdepth: 1
+    :titlesonly:
 
     modules/surface/surface.rst
 
@@ -143,6 +154,7 @@ User Interface
 
 .. toctree::
     :maxdepth: 1
+    :titlesonly:
 
     modules/ui/gui.rst
 
@@ -155,6 +167,7 @@ Volume Data
 
 .. toctree::
     :maxdepth: 1
+    :titlesonly:
 
     modules/map/map.rst
 
