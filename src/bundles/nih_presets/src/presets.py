@@ -228,12 +228,15 @@ def run_preset(session, name, mgr):
             + [ "color bypolymer target ar" ] + by_chain_cmds(session)
     elif name == "surface blob by chain":
         cmd = undo_printable + base_setup + base_surface + addh_cmds(session) + [
-                "surf %s resolution 18 grid 6; %s" % (s.atomspec, rainbow_cmd(s, target_atoms=True))
+                "surf %s%s resolution 18 grid 6; %s" % (s.atomspec,
+                ("" if s.num_atoms < 250000 else " enclose %s" % s.atomspec),
+                rainbow_cmd(s, target_atoms=True))
                     for s in all_atomic_structures(session)
             ]
     elif name == "surface blob by polymer":
         cmd = undo_printable + base_setup + base_surface + addh_cmds(session) + [
-                "surf %s resolution 18 grid 6" % s.atomspec
+                "surf %s%s resolution 18 grid 6"
+                % (s.atomspec, ("" if s.num_atoms < 250000 else " enclose %s" % s.atomspec))
                     for s in all_atomic_structures(session)
             ] + [ "color bypolymer target ar" ] + by_chain_cmds(session)
     elif name == "sticks":
