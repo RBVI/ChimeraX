@@ -228,12 +228,15 @@ def run_preset(session, name, mgr):
             + [ "color bypolymer target ar" ] + by_chain_cmds(session)
     elif name == "surface blob by chain":
         cmd = undo_printable + base_setup + base_surface + addh_cmds(session) + [
-                "surf %s resolution 18 grid 6; %s" % (s.atomspec, rainbow_cmd(s, target_atoms=True))
+                "surf %s%s resolution 18 grid 6; %s" % (s.atomspec,
+                ("" if s.num_atoms < 250000 else " enclose %s" % s.atomspec),
+                rainbow_cmd(s, target_atoms=True))
                     for s in all_atomic_structures(session)
             ]
     elif name == "surface blob by polymer":
         cmd = undo_printable + base_setup + base_surface + addh_cmds(session) + [
-                "surf %s resolution 18 grid 6" % s.atomspec
+                "surf %s%s resolution 18 grid 6"
+                % (s.atomspec, ("" if s.num_atoms < 250000 else " enclose %s" % s.atomspec))
                     for s in all_atomic_structures(session)
             ] + [ "color bypolymer target ar" ] + by_chain_cmds(session)
     elif name == "sticks":
@@ -294,8 +297,11 @@ def surface_cmds(session):
     import math
     cmds = []
     for s in all_atomic_structures(session):
-        grid_size = min(2.5, max(0.5, math.log10(s.num_atoms) - 2.5))
-        cmds.append("surface %s enclose %s grid %g sharp true" % (s.atomspec, s.atomspec, grid_size))
+        if s.num_atoms < 250000:
+            grid_size = min(2.5, max(0.5, math.log10(s.num_atoms) - 2.5))
+            cmds.append("surface %s enclose %s grid %g sharp true" % (s.atomspec, s.atomspec, grid_size))
+        else:
+            cmds.append("surface %s enclose %s resolution 18 grid 6" % (s.atomspec, s.atomspec))
     return cmds
 
 def volume_cleanup_cmds(session, contour_cmds=None):
