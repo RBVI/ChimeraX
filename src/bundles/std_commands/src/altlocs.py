@@ -151,42 +151,46 @@ class _AltlocStateManager(StateManager):
         self.init_state_manager(session, "residue altlocs")
         self.session = session
         self.base_residue = base_residue
-        self.alt_locs = { l: self._build_alt_loc(l) for l in base_residue.alt_locs } #TODO
+        self.alt_locs = { l: self._build_alt_loc(l) for l in base_residue.alt_locs }
         self.group = session.models.add_group(self.alt_locs.values(), name="%s alternate locations"
             % base_residue.string(omit_structure=True), parent=base_residue.structure)
         #TODO
-        self.rotamers = list(rotamers) # don't want auto-shrinking of a Collection
-        self.group = session.models.add_group(rotamers, name="%s rotamers"
-            % base_residue.string(omit_structure=True), parent=base_residue.structure)
         from chimerax.atomic import get_triggers
         self.handler = get_triggers().add_handler('changes', self._changes_cb)
         from chimerax.core.triggerset import TriggerSet
         self.triggers = TriggerSet()
-        self.triggers.add_trigger('fewer rotamers') # but not zero
+        self.triggers.add_trigger('fewer altlocs') # but not zero
         self.triggers.add_trigger('self destroyed')
-        # below salvaged from swapaa interactive command...
-        ret_val = []
-        from . import swap_res
-        from chimerax.atomic import AtomicStructures
-        from chimerax.core.objects import Objects
-        for r in residues:
-            if res_type == "same":
-                r_type = r.name
-            else:
-                r_type = res_type.upper()
-            rotamers = swap_res.get_rotamers(session, r, res_type=r_type, rot_lib=rot_lib, log=log)
-            mgr = _RotamerStateManager(session, r, rotamers)
-            if session.ui.is_gui:
-                from .tool import RotamerDialog
-                RotamerDialog(session, "%s Side-Chain Rotamers" % r, mgr, res_type, rot_lib)
-            ret_val.append(mgr)
-            rot_structs = AtomicStructures(rotamers)
-            rot_objects = Objects(atoms=rot_structs.atoms, bonds=rot_structs.bonds)
-            from chimerax.std_commands.color import color
-            color(session, rot_objects, color="byelement")
-            from chimerax.std_commands.size import size
-            size(session, rot_objects, stick_radius=0.1)
 
+    def _build_alt_loc(self, alt_loc):
+        from chimerax.atomic import AtomicStructure
+        s = AtomicStructure(self.session, name=alt_loc, auto_style=False, log_info=False)
+        br = self.base_residue
+        r = s.new_residue(br.name, br.chain_id, br.number, insert=br.insertion_code)
+        from chimerax.atomic.struct_edit import add_atom
+        atom_map = {}
+        for old_a in br.atoms:
+            new_a = add_atom(old_a.name, old_a.element, r, old_a.coord, alt_loc=alt_loc)
+            atom_map[old_a] = new_a
+        handled_bonds = set()
+        for old_a in br.atoms:
+            for old_b in old_a.bonds:
+                a1, a2 = old_b.atoms
+                try:
+                    new1 = atom_map[a1]
+                    new2 = atom_map[a2]
+                except KeyError:
+                    continue
+                s.new_bond(new1, new2)
+        from chimerax.core.objects import Objects
+        alt_loc_objects = Objects(atoms=s.atoms, bonds=s.bonds)
+        from chimerax.std_commands.color import color
+        color(session, alt_loc_objects, color="byelement")
+        from chimerax.std_commands.size import size
+        size(session, alt_loc_objects, stick_radius=0.1)
+        return s
+
+    #TODO
     def destroy(self):
         self.handler.remove()
         if self.group.id is not None:
