@@ -78,7 +78,7 @@ class FitJob(Job):
 command_defaults = {
     'verbose': False
 }
-def phenix_local_fit(session, model, resolution, whole_map, at=None, half_maps=None, *,
+def phenix_local_fit(session, model, in_map=None, center=None, half_maps=None, resolution=None, *,
         block=None, phenix_location=None, verbose=command_defaults['verbose'],
         option_arg=[], position_arg=[]):
 
@@ -90,8 +90,9 @@ def phenix_local_fit(session, model, resolution, whole_map, at=None, half_maps=N
     if block is None:
         block = session.in_script or not session.ui.is_gui
 
-    # 'at' and 'half_maps' are keyword args just to sidestep problem with adjacent atom specs...
-    search_center = at
+    # some keywords are just to avoid adjacent atom specs, so reassign to more natural names
+    whole_map = in_map
+    search_center = center
 
     if len(half_maps) != 2:
         raise UserError("Please specify exactly two half maps.  You specified %d" % (len(half_maps)))
@@ -204,17 +205,17 @@ def register_command(logger):
     from chimerax.atomic import AtomicStructureArg
     desc = CmdDesc(
         required = [('model', AtomicStructureArg),
-                    ('resolution', FloatArg),
-                    ('whole_map', MapArg),
         ],
-        required_arguments = ['at', 'half_maps'],
+        required_arguments = ['center', 'half_maps', 'in_map', 'resolution'],
         keyword = [('block', BoolArg),
+                   ('center', CenterArg),
+                   ('half_maps', MapsArg),
+                   ('in_map', MapArg),
                    ('phenix_location', OpenFolderNameArg),
                    ('verbose', BoolArg),
                    ('option_arg', RepeatOf(StringArg)),
                    ('position_arg', RepeatOf(StringArg)),
-                   ('at', CenterArg),
-                   ('half_maps', MapsArg),
+                   ('resolution', FloatArg),
         ],
         synopsis = 'Place structure in map'
     )
