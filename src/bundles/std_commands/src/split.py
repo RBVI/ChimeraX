@@ -287,7 +287,7 @@ def check_for_overlapping_atoms(atom_subsets):
     from chimerax.core.errors import UserError
     have_spec = [a for a in atom_subsets if isinstance(getattr(a, 'spec', None), str)]
     if len(have_spec) < len(atom_subsets):
-        raise UserError('split command requires non-overlapping atoms, '
+        raise UserError('The split command requires non-overlapping atoms, '
                         '%d atoms are overlapping' % (na - len(atoms)))
 
     olap = []
@@ -296,7 +296,7 @@ def check_for_overlapping_atoms(atom_subsets):
             ia = a.intersect(a2)
             if len(ia) > 0:
                 olap.append(f'"{a.spec}" and "{a2.spec}" have {len(ia)} atoms in common')
-    raise UserError('split command requires non-overlapping atoms, ' + ', '.join(olap))
+    raise UserError('The split command requires non-overlapping atoms, ' + ', '.join(olap))
         
 # -----------------------------------------------------------------------------
 #
