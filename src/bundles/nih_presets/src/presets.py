@@ -253,6 +253,14 @@ def run_preset(session, name, mgr):
             "~ribbon",
             "disp"
         ] + print_prep(ion_size_increase=0.35)
+    elif name == "sticks monochrome":
+        cmd = undo_printable + base_setup + [
+            "style stick",
+            "~nuc",
+            "~ribbon",
+            "disp",
+            "color nih_blue",
+        ]
     elif name == "sticks monochrome (printable)":
         cmd = undo_printable + base_setup + [
             "style stick",
