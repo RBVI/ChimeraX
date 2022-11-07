@@ -192,11 +192,12 @@ class Mol2Parser:
                 if atom_data.charge is not None:
                     atom.charge = atom_data.charge
                 atom.mol2_type = atom_data.atom_type
+                subst_id = atom_data.subst_id
                 try:
-                    residue = substid2residue[atom_data.subst_id]
+                    residue = substid2residue[subst_id]
                 except KeyError:
                     # Must not have been a substructure section
-                    residue = s.new_residue("UNK", '', atom_data.subst_id)
+                    residue = s.new_residue("UNL", '', 1 if subst_id is None else subst_id)
                     substid2residue[atom_data.subst_id] = residue
                 residue.add_atom(atom)
                 atomid2atom[atom_data.atom_id] = atom

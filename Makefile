@@ -131,6 +131,11 @@ distclean: clean
 	-rm -rf prereqs/prebuilt-*.tar.bz2
 	-$(MAKE) -C prereqs/cxservices clean
 
+reallyclean:
+	rm -rf $$(git status --short --ignored --porcelain=v1 | sed -e '/^!!/!d' -e 's/^!! //')
+	# for linux:
+	rm -rf .cache .config
+
 clean:
 	-rm -rf $(APP_FILENAME)
 	-rm -rf $(build_prefix)

@@ -1343,7 +1343,8 @@ def color_zone(session, surfaces, near, distance=2, sharp_edges = False,
     for s in surfaces:
         cprev = s.color_undo_state
         # Transform points to surface coordinates
-        spoints = s.scene_position.inverse() * points
+        tf = s.scene_position
+        spoints = points if tf.is_identity() else (tf.inverse() * points)
         color_zone(s, spoints, colors, distance, sharp_edges = sharp_edges,
                    far_color = fcolor, auto_update = update)
         undo_state.add(s, 'color_undo_state', cprev, s.color_undo_state)

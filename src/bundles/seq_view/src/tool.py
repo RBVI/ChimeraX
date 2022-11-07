@@ -538,11 +538,11 @@ class SequenceViewer(ToolInstance):
             prog_to_arg[prog] = arg
         for prog in sorted(prog_to_arg.keys()):
             prog_menu = edit_menu.addMenu("Realign Sequences with %s" % prog)
-            for menu_text, cmd_text in [("new", ":" + ','.join([str(i) for i in range(1, len(self.alignment.seqs)+1)])), ("this", "")]:
+            for menu_text, cmd_text in [("new", ""), ("this", " replace true")]:
                 realign_action = QAction("in %s window" % menu_text, prog_menu)
                 realign_action.triggered.connect(lambda *args, arg=prog_to_arg[prog],
                     unparse=StringArg.unparse, cmd_text=cmd_text: run(self.session,
-                    "seq align %s%s program %s" % (unparse(self.alignment.ident), cmd_text, unparse(arg))))
+                    "seq align %s program %s%s" % (unparse(self.alignment.ident), unparse(arg), cmd_text)))
                 prog_menu.addAction(realign_action)
 
         structure_menu = menu.addMenu("Structure")

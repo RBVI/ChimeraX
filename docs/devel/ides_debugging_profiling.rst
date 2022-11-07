@@ -12,9 +12,10 @@
     or derivations thereof.
     === UCSF ChimeraX Copyright ===
 
-##################
-IDEs and Debugging
-##################
+
+##############################
+IDEs, Debugging, and Profiling
+##############################
 ChimeraX is a mostly Python project and ships mostly Python code alongside
 C++ extensions. There are over 260 packages in the distributed ChimeraX,
 including over 150 bundles. This is an unwieldy amount of code for any one
@@ -117,3 +118,35 @@ into the context of the GUI module.
 
 There, the GUI module's reference to the program's session will be available so
 that you can get an idea of what's going on in your debugging session.
+
+.. _line-profiling:
+
+==============
+Line Profiling
+==============
+
+Line profiling is based on `Robert Kern's <https://github.com/rkern>`_
+`line_profiler <https://github.com/rkern/line_profiler>`_ package.
+Support is restricted to platforms that have binaries in pypi.org (just Linux for now).
+Differences from the conventional setup are given in parenthesizes.
+
+There are five parts to profiling:
+
+    1. Decorate functions that you wish to profile with the
+       ``@line_profile`` decorator and install them.
+       This decorator is a no-op if ChimeraX is not profiled.
+       (Instead of the conventional ``@profile``.)
+
+    2. Run ``ChimeraX --lineprofile`` from the command line.
+       (Instead of using ``kernprof``.)
+       This generates a ``ChimeraX.lprof`` file in the current directory.
+
+    3. Get your profiling results by running
+       ``ChimeraX -m line_profiler ChimeraX.lprof``.
+
+    4. Analyze your results, possibly edit your code, and return to step 1.
+
+    5. Remove the function decorators before committing your changes.
+
+To use the :py:mod:`timeit` module, see the :py:mod:`~chimerax.core.scripting`
+documentation.

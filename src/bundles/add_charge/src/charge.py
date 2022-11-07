@@ -592,9 +592,15 @@ def nonstd_charge(session, residues, net_charge, method, *, status=None, temp_di
                 break
             if status:
                 status("(%s) %s" % (r.name, line.rstrip()))
+            # Using <code> avoids extra newlines
             session.logger.status("(%s) <code>%s</code>" % (r.name, line.rstrip()), is_html=True, log=True)
         ante_failure_msg = "Failure running ANTECHAMBER for residue %s\nCheck reply log for details" % r.name
         if not os.path.exists(ante_out):
+            sqm_out = os.path.join(temp_dir, "sqm.out")
+            if os.path.exists(sqm_out) and os.stat(sqm_out).st_size > 0:
+                with open(sqm_out) as f:
+                    sqm_info = "<br><i>Contents of sqm.out:</i><pre>%s</pre>" % f.read()
+                session.logger.info(sqm_info, is_html=True)
             raise ChargeError(ante_failure_msg)
         if status:
             status("Reading ANTECHAMBER output for residue %s" % r.name)

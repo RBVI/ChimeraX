@@ -1413,7 +1413,7 @@ class Drawing:
             print("%s<Appearance USE='%s'/>" % (tab, name), file=stream)
             return
 
-        from graphics.linetype import LineType
+        from .linetype import LineType
         print("%s<Appearance DEF='%s'>" % (tab, name), file=stream)
         if line_width != 1 or line_type != LineType.Solid:
             print("%s <LineProperties" % tab, end='', file=stream)
