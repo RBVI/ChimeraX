@@ -7,7 +7,7 @@
 # Mesh patterns are 'isotropic', 'slash', or 'backslash'.
 # Colormap is 'rainbow' or 'none'.
 #
-def topography(session, volume, height = None, interpolate = 'cubic',
+def topography(session, volume, height = None, interpolate = 'none',
                mesh_type = 'isotropic', palette = None, range = None,
                smoothing_factor = 0.3, smoothing_iterations = 0,
                color = (180,180,180,255), replace = True):

@@ -821,8 +821,12 @@ def init(argv, event_loop=True):
     startup.run_user_startup_scripts(sess)
 
     if opts.cmd:
-        # Emulated Python's -c option.
+        # Emulate Python's -c option.
         # This is needed for -m pip to work in some cases.
+        # Also for pip, when it recursively calls sys.executable, it doesn't
+        # always propagate the -I argument.  But the ChimeraX executable always
+        # acts as if -I were passed in.  So add back '' to sys.path to compensate.
+        sys.path.insert(0, '')  # get pip source installs to work
         sys.argv = ['-c'] + args
         global_dict = {
             'session': sess,
