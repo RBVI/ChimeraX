@@ -142,7 +142,7 @@ class AddChargeTool(ToolInstance):
         non_std = add_standard_charges(self.session, residues=residues, **params)
         if non_std:
             AddNonstandardChargesTool(self.session, "Add Non-Standard Charges", non_std,
-                dock_prep_info=self.dock_prep_info)
+                dock_prep_info=self.dock_prep_info, main_params=params)
         self.delete()
         if (not non_std) and self.dock_prep_info is not None:
             self.dock_prep_info['callback'](tool_settings=params)
@@ -153,9 +153,11 @@ class AddNonstandardChargesTool(ToolInstance):
     #help ="help:user/tools/addhydrogens.html"
     help = None
 
-    def __init__(self, session, tool_name, non_std_info, *, dock_prep_info=None):
+    def __init__(self, session, tool_name, non_std_info, *, dock_prep_info=None, main_params=None):
         ToolInstance.__init__(self, session, tool_name)
         self.dock_prep_info = dock_prep_info
+        self.main_params = main_params
+        self.non_std_info = non_std_info
 
         from chimerax.ui import MainToolWindow
         self.tool_window = MainToolWindow(self)
@@ -236,7 +238,7 @@ class AddNonstandardChargesTool(ToolInstance):
 
         from Qt.QtWidgets import QDialogButtonBox as qbbox
         bbox = qbbox(qbbox.Ok | qbbox.Cancel | qbbox.Help)
-        #bbox.accepted.connect(self.add_charges)
+        bbox.accepted.connect(self.add_charges)
         bbox.rejected.connect(self.delete)
         if self.help:
             from chimerax.core.commands import run
@@ -245,3 +247,18 @@ class AddNonstandardChargesTool(ToolInstance):
             bbox.button(qbbox.Help).setEnabled(False)
         layout.addWidget(bbox)
         self.tool_window.manage(None)
+
+    def add_charges(self):
+        from .charge import add_nonstandard_res_charges
+        self.tool_window.shown = False
+        self.session.ui.processEvents()
+        method = self.method_option.value
+        for text, residues in self.non_std_info.items():
+            residues = [r for r in residues if not r.deleted]
+            if residues:
+                charge = int(self.charge_widgets[text].text())
+                add_nonstandard_res_charges(self.session, residues, charge, method=method)
+        self.delete()
+        if self.dock_prep_info is not None:
+            self.main_params['method'] = method
+            self.dock_prep_info['callback'](tool_settings=self.main_params)
