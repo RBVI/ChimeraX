@@ -38,10 +38,10 @@ def fetch_emdb(session, emdb_id, mirror = None, transfer_method = None, ignore_c
     # Choice of ftp vs https based on speed tests.  Ticket #5448
     if mirror == 'united states':
         # The RCSB ftp does not report file size so progress messages don't indicate how long it will take.
-        if transfer_method == 'https':
-            url_pattern = 'https://ftp.wwpdb.org/pub/emdb/structures/EMD-%s/map/%s.gz'
-        else:
+        if transfer_method == 'ftp':
             url_pattern = 'ftp://ftp.wwpdb.org/pub/emdb/structures/EMD-%s/map/%s.gz'
+        else:
+            url_pattern = 'https://files.wwpdb.org/pub/emdb/structures/EMD-%s/map/%s.gz'
     elif mirror == 'china':
         if transfer_method == 'https':
             url_pattern = 'https://ftp.emdb-china.org/structures/EMD-%s/map/%s.gz'
