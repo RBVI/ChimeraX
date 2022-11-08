@@ -27,7 +27,7 @@
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
     <ChimeraXClassifier>Command :: alphafold match :: Structure Prediction :: Fetch AlphaFold database models matching a structure</ChimeraXClassifier>
-    <ChimeraXClassifier>Command :: alphafold fetch :: Structure Predictioo :: Fetch AlphaFold database models for a UniProt identifier</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: alphafold fetch :: Structure Prediction :: Fetch AlphaFold database models for a UniProt identifier</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: alphafold search :: Structure Prediction :: Search AlphaFold database using BLAST</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: alphafold predict :: Structure Prediction :: Predict a structure using AlphaFold</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: alphafold pae :: Structure Prediction :: Show AlphaFold predicted aligned error as heatmap</ChimeraXClassifier>
