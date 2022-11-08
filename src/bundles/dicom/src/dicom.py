@@ -67,7 +67,9 @@ class DICOM:
     def open(self):
         for patient in list(self.patients.values()):
             patient.render()
-        return list(self.patients.values()), ""
+        # In order to present the correct DICOM hierarchy, color included, we need to
+        # take control of rendering ourselves.
+        return [], ""
 
     def dicom_grids(self, paths, log=None) -> list[Any]:
         return [s._to_grids() for s in series]

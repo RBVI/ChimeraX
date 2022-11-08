@@ -135,6 +135,7 @@ class Patient(Model):
         return f"Patient {self.pid} with {len(self.studies)} studies"
 
     def render(self):
+        self.session.models.add([self])
         for study in self.studies:
             self.add([study])
             study.series.sort(key = lambda x: x.number)
