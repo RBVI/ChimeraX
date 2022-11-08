@@ -46,10 +46,10 @@ class AddHTool(ToolInstance):
         self.structure_list = ShortASList(session)
         structure_layout.addWidget(self.structure_list, alignment=Qt.AlignLeft)
         layout.addLayout(structure_layout)
-        if 'structures' in process_info:
-            self.structure_list.setEnabled(False)
         if process_info is not None:
             self.tool_window.title = "%s for %s" % (tool_name, process_info['process name'].title())
+            if 'structures' in process_info:
+                self.structure_list.setEnabled(False)
         self.isolation = QCheckBox("Consider each model in isolation from all others")
         self.isolation.setChecked(True)
         layout.addWidget(self.isolation, alignment=Qt.AlignCenter)
@@ -233,14 +233,16 @@ def check_no_hyds(session, items, process_info, *, help=None):
             needs_hyds.append(s)
     if not needs_hyds:
         # ensure that N terminii that aren't actual N terminii are Npl so that adding charges works
-        real_N, real_C, fake_N, fake_C, fake_5p, fake_3p = determine_termini(needs_hyds)
+        from . import determine_termini
+        real_N, real_C, fake_N, fake_C, fake_5p, fake_3p = determine_termini(session, needs_hyds)
         for n_ter in fake_N:
             if not n_ter.find_atom("H"):
                 continue
             n = n_ter.find_atom("N")
             if n:
                 n.idatm_type = "Npl"
-        cb()
+        if 'callback' in process_info:
+            process_info['callback']()
         return
     # query user about adding hydrogens
     ask_dialog = AskNoHyds(session, process_info['process name'], help)

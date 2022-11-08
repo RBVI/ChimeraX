@@ -166,7 +166,7 @@ class AddNonstandardChargesTool(ToolInstance):
         from Qt.QtCore import Qt
 
         layout = QVBoxLayout()
-        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setContentsMargins(2, 0, 2, 0)
         layout.setSpacing(5)
         parent.setLayout(layout)
 
@@ -178,6 +178,7 @@ class AddNonstandardChargesTool(ToolInstance):
         layout.addWidget(charge_frame, alignment=Qt.AlignCenter)
         frame_layout = QGridLayout()
         frame_layout.setSpacing(0)
+        frame_layout.setContentsMargins(0, 0, 0, 0)
         charge_frame.setLayout(frame_layout)
         for col, title in enumerate(["Residue", "Net Charge"]):
             l = QLabel(title, alignment=Qt.AlignCenter)
@@ -190,7 +191,7 @@ class AddNonstandardChargesTool(ToolInstance):
             enc = estimate_net_charge(residues[0].atoms)
             row = frame_layout.rowCount()
             frame_layout.addWidget(QLabel(text), row, 0, alignment=Qt.AlignCenter)
-            button = self.charge_widgets[text] = QPushButton("%+d" % enc if enc else "0")
+            button = self.charge_widgets[text] = QPushButton("%+d" % enc if enc else "+0")
             frame_layout.addWidget(button, row, 1, alignment=Qt.AlignCenter)
             charge_menu = QMenu(button)
             button.setMenu(charge_menu)
@@ -200,6 +201,38 @@ class AddNonstandardChargesTool(ToolInstance):
             for c in range(low_charge, high_charge+1):
                 charge_menu.addAction("%+d" % c if c else "0")
 
+        instructions = QLabel("Please specify the net charges for the above residues"
+            " so that their atomic partial charges can be computed.")
+        instructions.setAlignment(Qt.AlignCenter)
+        instructions.setWordWrap(True)
+        layout.addWidget(instructions)
+
+        # Since QFormLayout doesn't center label with widget, cheat ...
+        method_group = QGroupBox("Charge method")
+        method_layout = QHBoxLayout()
+        method_layout.setContentsMargins(0,0,0,0)
+        method_group.setLayout(method_layout)
+        method_group.setAlignment(Qt.AlignHCenter)
+        from chimerax.ui.options import SettingsPanel, SymbolicEnumOption
+        from .cmd import ChargeMethodArg
+        from .settings import get_settings
+        panel = SettingsPanel(scrolled=False, contents_margins=(0,0,0,0), buttons=False)
+        settings =  get_settings(session)
+        class MethodOption(SymbolicEnumOption):
+            labels = [x.upper() if '-' in x else x.capitalize() for x in ChargeMethodArg.values]
+            values = ChargeMethodArg.values
+        self.method_option = MethodOption("", settings.method, None, as_radio_buttons=True,
+            horizontal_radio_buttons=True, attr_name="method", settings=settings)
+        panel.add_option(self.method_option)
+        method_layout.addWidget(panel)
+        layout.addWidget(method_group)
+
+        from chimerax.ui.widgets import Citation
+        layout.addWidget(Citation(session, "Wang, J., Wang, W., Kollman, P.A., and Case, D.A. (2006)\n"
+            "Automatic atom type and bond type perception in molecular mechanical calculations\n"
+            "Journal of Molecular Graphics and Modelling, 25, 247-260.",
+            prefix="Charges are computed using ANTECHAMBER.\n"
+            "Publications using ANTECHAMBER charges should cite:", pubmed_id=16458552))
 
         from Qt.QtWidgets import QDialogButtonBox as qbbox
         bbox = qbbox(qbbox.Ok | qbbox.Cancel | qbbox.Help)
