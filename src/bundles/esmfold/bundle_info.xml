@@ -1,0 +1,33 @@
+<BundleInfo name="ChimeraX-ESMFold" version="1.0"
+	    package="chimerax.esmfold"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>Predict or fetch ESMFold structures</Synopsis>
+  <Description>Predict structures using ESMFold or fetch them from the ESM Metagenomic Atlas</Description>
+
+  <Categories>
+    <Category name="Structure Prediction"/>
+  </Categories>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version="~=1.0"/>
+    <Dependency name="ChimeraX-OpenCommand" version="~=1.0"/>
+  </Dependencies>
+
+  <Providers manager="open command">
+      <Provider name="esmfold" type="fetch" format_name="PDB"/>
+  </Providers>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    <ChimeraXClassifier>Command :: esmfold fetch :: Structure Prediction :: Fetch ESM Metagenomic Atlas models for a MGnify accession code</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: esmfold pae :: Structure Prediction :: Show ESMFold predicted aligned error as heatmap</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: esmfold predict :: Structure Prediction :: Predict a structure using ESMFold</ChimeraXClassifier>
+  </Classifiers>
+
+</BundleInfo>
