@@ -28,6 +28,25 @@ from .widgets import DICOMTable
 
 dicom_template_url: str = "http://dicomlookup.com/lookup.asp?sw=Tnumber&q=%s" # noqa they don't have https
 
+try:
+    # We are inside GUI ChimeraX
+    from chimerax.ui.gui import UI
+except (ModuleNotFoundError, ImportError):
+    # We could be in NoGUI ChimeraX
+    try:
+        from chimerax.core.nogui import UI
+    except (ModuleNotFoundError, ImportError):
+        pass
+finally:
+    try:
+        _session = UI.instance().session
+    except (NameError, AttributeError):
+        # We didn't have either of ChimeraX's UIs, or they were uninitialized.
+        # We're either in some other application or being used as a library.
+        # Default to passed in sessions.
+        _session = None
+
+
 class MetadataRow:
     """Takes in and stores a dictionary. This class only exists to coerce Python into hashing a dictionary."""
 
@@ -41,15 +60,16 @@ class MetadataRow:
     def __getattr__(self, key):
         return getattr(self._internal_dict, key)
 
+
 class DICOMMetadata(ToolInstance):
-    def __init__(self, session):
+    def __init__(self, session = None, name = "DICOM Metadata"):
         """Bring up a tool to view fine-grained metadata in DICOM files.
         session: A ChimeraX session
         dicom_file: The data structure returned by pydicom.dcmread()
         """
         self.files = []
-        self.display_name = "DICOM Metadata"
-        super().__init__(session, self.display_name)
+        session = session or _session
+        super().__init__(session, name)
 
     def build_ui(self):
         # Construct the GUI
