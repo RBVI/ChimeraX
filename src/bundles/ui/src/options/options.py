@@ -383,12 +383,16 @@ class EnumBase(Option):
                     self.make_callback()
     remake_buttons = remake_menu
 
-    def _make_widget(self, *, as_radio_buttons=False, display_value=None, **kw):
-        from Qt.QtWidgets import QPushButton, QMenu, QWidget, QButtonGroup, QVBoxLayout
+    def _make_widget(self, *, as_radio_buttons=False, horizontal_radio_buttons=False, display_value=None,
+            **kw):
+        from Qt.QtWidgets import QPushButton, QMenu, QWidget, QButtonGroup, QVBoxLayout, QHBoxLayout
         self.__as_radio_buttons = as_radio_buttons
         if as_radio_buttons:
             self.widget = QWidget()
-            layout = QVBoxLayout()
+            if horizontal_radio_buttons:
+                layout = QHBoxLayout()
+            else:
+                layout = QVBoxLayout()
             self.widget.setLayout(layout)
             self.__button_group = QButtonGroup()
             self.remake_buttons()

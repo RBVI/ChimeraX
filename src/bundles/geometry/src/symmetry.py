@@ -57,7 +57,7 @@ def tetrahedral_symmetry_matrices(orientation = '222', center = (0,0,0)):
         # EMAN convention, 3-fold on z, 3-fold in yz plane along neg y.
         from math import acos, sqrt, pi
         tf = rotation((0,0,1), -45.0) * rotation((1,0,0), -acos(1/sqrt(3))*180/pi)
-        syms = syms.coordinate_transform(tf)
+        syms = syms.transform_coordinates(tf)
 
     syms = recenter_symmetries(syms, center)
     return syms
