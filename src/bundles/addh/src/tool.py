@@ -18,9 +18,9 @@ class AddHTool(ToolInstance):
     SESSION_SAVE = False
     help ="help:user/tools/addhydrogens.html"
 
-    def __init__(self, session, tool_name, *, dock_prep_info=None):
+    def __init__(self, session, tool_name, *, process_info=None):
         ToolInstance.__init__(self, session, tool_name)
-        self.dock_prep_info = dock_prep_info
+        self.process_info = process_info
 
         from chimerax.ui import MainToolWindow
         self.tool_window = MainToolWindow(self)
@@ -35,18 +35,21 @@ class AddHTool(ToolInstance):
         layout.setSpacing(0)
         parent.setLayout(layout)
 
-        if dock_prep_info is None:
-            from chimerax.atomic.widgets import AtomicStructureListWidget
-            class ShortASList(AtomicStructureListWidget):
-                def sizeHint(self):
-                    hint = super().sizeHint()
-                    hint.setHeight(hint.height()//2)
-                    return hint
-            structure_layout = QHBoxLayout()
-            structure_layout.addWidget(QLabel("Add hydrogens to:"), alignment=Qt.AlignRight)
-            self.structure_list = ShortASList(session)
-            structure_layout.addWidget(self.structure_list, alignment=Qt.AlignLeft)
-            layout.addLayout(structure_layout)
+        from chimerax.atomic.widgets import AtomicStructureListWidget
+        class ShortASList(AtomicStructureListWidget):
+            def sizeHint(self):
+                hint = super().sizeHint()
+                hint.setHeight(hint.height()//2)
+                return hint
+        structure_layout = QHBoxLayout()
+        structure_layout.addWidget(QLabel("Add hydrogens to:"), alignment=Qt.AlignRight)
+        self.structure_list = ShortASList(session)
+        structure_layout.addWidget(self.structure_list, alignment=Qt.AlignLeft)
+        layout.addLayout(structure_layout)
+        if process_info is not None:
+            self.tool_window.title = "%s for %s" % (tool_name, process_info['process name'].title())
+            if 'structures' in process_info:
+                self.structure_list.setEnabled(False)
         self.isolation = QCheckBox("Consider each model in isolation from all others")
         self.isolation.setChecked(True)
         layout.addWidget(self.isolation, alignment=Qt.AlignCenter)
@@ -147,40 +150,61 @@ class AddHTool(ToolInstance):
         self.tool_window.shown = False
         self.session.ui.processEvents()
         if not self.structures:
-            if self.dock_prep_info is None:
+            if self.process_info is None:
                 self.tool_window.shown = True
                 raise UserError("No structures chosen for hydrogen addition.")
             self.delete()
             return
+        settings = {}
         from chimerax.core.commands import run, concise_model_spec
         cmd = "addh %s" % concise_model_spec(self.session, self.structures)
         if not self.isolation.isChecked():
             cmd += " inIsolation false"
+            settings["in_isolation"] = False
         if self.method_group.checkedButton() == self.steric_method:
             cmd += " hbond false"
+            settings["hbond"] = False
         for res_name, widgets in self.prot_widget_lookup.items():
             box, grp = widgets
             if not grp.checkedButton().text().startswith("Residue-name-based"):
-                cmd += " use%sName false" % self.prot_arg_lookup[res_name].capitalize()
+                res_arg = self.prot_arg_lookup[res_name]
+                cmd += " use%sName false" % res_arg.capitalize()
+                settings["use_%s_name" % res_arg] = False
         from .cmd import metal_dist_default
         if self.metal_option.value != metal_dist_default:
-            cmd += " metalDist %g" % self.metal_option.value
+            metal_dist = self.metal_option.value
+            cmd += " metalDist %g" % metal_dist
+            settings["metal_dist"] = metal_dist
         if self.template_checkbox.isChecked():
             cmd += " template true"
+            settings["template"] = True
         run(self.session, cmd)
         self.delete()
-        if self.dock_prep_info is not None:
-            #TODO: continue dock prep call chain
-            pass
+        if self.process_info is not None:
+            if 'callback' in self.process_info:
+                cb = self.process_info['callback']
+                need_settings = False
+                from inspect import signature
+                sig = signature(cb)
+                try:
+                    param = sig.parameters['tool_settings']
+                except KeyError:
+                    pass
+                else:
+                    need_settings = True
+                if need_settings:
+                    cb(tool_settings=settings)
+                else:
+                    cb()
 
     def delete(self):
         ToolInstance.delete(self)
 
     @property
     def structures(self):
-        if self.dock_prep_info is None:
+        if self.process_info is None:
             return self.structure_list.value
-        return self.dock_prep_info['structures']
+        return self.process_info['structures']
 
     def _protonation_res_change(self, res_name):
         self.protonation_res_button.setText(res_name)
@@ -191,3 +215,72 @@ class AddHTool(ToolInstance):
 
     def _toggle_options(self, *args, **kw):
         self.options_area.setHidden(not self.options_area.isHidden())
+
+def check_no_hyds(session, items, process_info, *, help=None):
+    # 'items' can be Structures or Residues
+    from chimerax.atomic import Residues
+    if isinstance(items, Residues):
+        checks = items.by_structure
+    else:
+        check = []
+        for s in items:
+            checks.append((s, s.residues))
+    needs_hyds = []
+    for s, residues in checks:
+        residues = _res_check(residues)
+        atoms = residues.atoms
+        if len(atoms.filter(atoms.element_numbers == 1)) == 0:
+            needs_hyds.append(s)
+    if not needs_hyds:
+        # ensure that N terminii that aren't actual N terminii are Npl so that adding charges works
+        from . import determine_termini
+        real_N, real_C, fake_N, fake_C, fake_5p, fake_3p = determine_termini(session, needs_hyds)
+        for n_ter in fake_N:
+            if not n_ter.find_atom("H"):
+                continue
+            n = n_ter.find_atom("N")
+            if n:
+                n.idatm_type = "Npl"
+        if 'callback' in process_info:
+            process_info['callback']()
+        return
+    # query user about adding hydrogens
+    ask_dialog = AskNoHyds(session, process_info['process name'], help)
+    ask_dialog.exec()
+    clicked_button =  ask_dialog.clickedButton()
+    if clicked_button == ask_dialog.abort_button:
+        from chimerax.core.errors import CancelOperation
+        raise CancelOperation(process_info['process name'])
+    if clicked_button == ask_dialog.addh_button:
+        AddHTool(session, "Add Hydrogens", process_info=process_info)
+    elif 'callback' in process_info:
+        # "Continue"
+        process_info['callback']()
+
+def _res_check(residues):
+    okay_no_hyd = residues.filter(residues.num_atoms == 1)
+    okay_metal = okay_no_hyd.filter(okay_no_hyd.atoms.elements.is_metal)
+    okay_halogen = okay_no_hyd.filter(okay_no_hyd.atoms.elements.is_halogen)
+    return residues.subtract(okay_metal).subtract(okay_halogen)
+
+from Qt.QtWidgets import QMessageBox
+class AskNoHyds(QMessageBox):
+    def __init__(self, session, process_name, help):
+        super().__init__()
+        self.setWindowTitle("No Hydrogens...")
+        self.setText("Hydrogens must be present for %s to work correctly." % process_name)
+        self.setInformativeText("Some of the relevant models have no hydrogens.\n"
+            "You can add hydrogens using the Add Hydrogens tool.\n"
+            "What would you like to do?")
+        self.abort_button = self.addButton("Abort", self.RejectRole)
+        self.addh_button = self.addButton("Add Hydrogens", self.AcceptRole)
+        self.setDefaultButton(self.addh_button)
+        self.continue_button = self.addButton("Continue Anyway", self.AcceptRole)
+        help_button = self.addButton(self.Help)
+        if help:
+            from chimerax.core.commands import run
+            help_button.clicked.connect(lambda *, run=run, ses=session, help=help: run(ses, "help " + help))
+        else:
+            help_button.setEnabled(False)
+
+

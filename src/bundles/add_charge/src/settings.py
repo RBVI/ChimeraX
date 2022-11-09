@@ -11,19 +11,23 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def register_command(logger):
-    from chimerax.core.commands import CmdDesc, register
-    from chimerax.core.commands import OpenFolderNameArg
+from .cmd import ChargeMethodArg
+defaults = {
+    'method': ChargeMethodArg.default_value,
+}
 
-    desc = CmdDesc(
-        optional = [('phenix_location', OpenFolderNameArg)],
-        synopsis = 'Set the Phenix installation location'
-    )
-    from .locate import phenix_location
-    register('phenix location', desc, phenix_location, logger=logger)
+from  chimerax.core.settings import Settings
+from copy import deepcopy
 
-    from . import douse
-    douse.register_command(logger)
+class _AddChargeSettings(Settings):
+    EXPLICIT_SAVE = deepcopy(defaults)
 
-    from . import model_in_sphere
-    model_in_sphere.register_command(logger)
+# for the GUI
+_settings = None
+def get_settings(session):
+    global _settings
+    # don't initialize a zillion times, which would also overwrite
+    # any changed but not saved settings
+    if _settings is None:
+        _settings = _AddChargeSettings(session, "add_charge")
+    return _settings

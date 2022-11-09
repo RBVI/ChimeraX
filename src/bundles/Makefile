@@ -27,7 +27,7 @@ REST_SUBDIRS = add_charge addh alignment_algs alignment_headers \
 	  color_globe color_key connect_structure core_formats \
 	  coulombic crosslinks crystal crystal_contacts data_formats \
 	  dicom dist_monitor dock_prep dssp \
-	  emdb_sff exp_cmd file_history function_key \
+	  emdb_sff esmfold exp_cmd file_history function_key \
 	  geometry gltf graphics \
 	  hbonds help_viewer hkcage ihm image_formats imod \
 	  interfaces items_inspection io label list_info log looking_glass maestro \

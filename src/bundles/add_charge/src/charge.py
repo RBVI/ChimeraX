@@ -712,6 +712,10 @@ class FakeAtom:
         else:
             setattr(self.fa_atom, name, val)
 
+    @property
+    def deleted(self):
+        return self.fa_atom.deleted
+
 class FakeRes:
     def __init__(self, name, atoms=None):
         if atoms is None:
@@ -741,6 +745,11 @@ class FakeRes:
         self.name = name
         self.atoms = atoms
         self.structure = atoms[0].structure
+
+    @property
+    def deleted(self):
+        self.atoms = [a for a in self.atoms if not a.deleted]
+        return not self.atoms
 
     def find_atom(self, atom_name):
         for a in self.atoms:

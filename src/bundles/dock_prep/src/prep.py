@@ -99,7 +99,7 @@ def handle_memorization(session, memorization, memorize_requester, main_settings
         else:
             active_settings = { param: keywords.get(param, defaults[param]) for param in defaults.keys() }
     else:
-        active_settings = tool_settings
+        active_settings = { param: tool_settings.get(param, defaults[param]) for param in defaults.keys() }
     if memorize_requester is not None and memorization == MEMORIZE_SAVE:
         settings = get_settings(session, memorize_requester, main_settings_name, defaults)
         for param, val in active_settings.items():

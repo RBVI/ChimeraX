@@ -393,3 +393,27 @@ def _show_waters(input_model, douse_model, residue_range, map, map_range):
     cmd = ' ; '.join(commands)
     from chimerax.core.commands import run
     run(douse_model.session, cmd, log=False)
+
+def register_command(logger):
+    from chimerax.core.commands import CmdDesc, register
+    from chimerax.core.commands import OpenFolderNameArg, BoolArg, FloatArg, RepeatOf, StringArg
+    from chimerax.map import MapArg
+    from chimerax.atomic import AtomicStructureArg
+    desc = CmdDesc(
+        required = [('map', MapArg)],
+        keyword = [('block', BoolArg),
+                   ('far_water', BoolArg),
+                   ('keep_input_water', BoolArg),
+                   ('map_range', FloatArg),
+                   ('near_model', AtomicStructureArg),
+                   ('phenix_location', OpenFolderNameArg),
+                   ('residue_range', FloatArg),
+                   ('verbose', BoolArg),
+                   ('option_arg', RepeatOf(StringArg)),
+                   ('position_arg', RepeatOf(StringArg)),
+                   ('resolution', FloatArg),
+        ],
+        required_arguments = ['near_model'],
+        synopsis = 'Place water molecules in map'
+    )
+    register('phenix douse', desc, phenix_douse, logger=logger)
