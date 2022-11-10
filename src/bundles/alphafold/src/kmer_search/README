@@ -12,9 +12,15 @@ To make a new version of the AlphaFold kmer database
 
 mkdir v9_kmer
 cd v9_kmer
+
+# If AlphaFold sequence file has single line sequences can just link to it
 ln -s ../v9/alphafold.fasta .
-curl https://github.com/RBVI/ChimeraX/blob/develop/src/bundles/alphafold/src/kmer_search/kmer_search.py
-python3 kmer_search.py makeindex alphafold.fasta
+# Otherwise convert it to single line sequences
+curl -O https://raw.githubusercontent.com/RBVI/ChimeraX/develop/src/bundles/alphafold/src/kmer_search/single_line_sequences.py
+python3 single_line_sequences.py < ../v9/alphafold.fasta > alphafold.fasta
+
+curl -O https://raw.githubusercontent.com/RBVI/ChimeraX/develop/src/bundles/alphafold/src/kmer_search/kmer_search.py
+nohup python3 kmer_search.py makeindex alphafold.fasta >& makeindex.out &
 
 Notes
 -----
@@ -25,12 +31,12 @@ Notes
 3) The kmer_search.py script can run much faster if you compile some C code into a shared library that it
    will use if it finds it in the current directory.  Time 1.3 GB fasta becomes 6 minutes instead of 18 minutes.
    This test was on a slow network file system.  See note 4 about using an SSD drivefor ten times faster speed.
-     curl https://github.com/RBVI/ChimeraX/blob/develop/src/bundles/alphafold/src/kmer_search/make_kmer_index.c
+     curl -O https://raw.githubusercontent.com/RBVI/ChimeraX/develop/src/bundles/alphafold/src/kmer_search/make_kmer_index.c
    on Linux
      cc make_kmer_index.c -shared -o make_kmer_index.so -std=c99 -fPIC -O3
    on Mac
      cc make_kmer_index.c -shared -o make_kmer_index.dylib -O3
 
 4) The kmer_search.py script will run faster with the sequence file on a fast SSD drive.
-   For example on a Mac laptop with the shared library it took 30 seconds versus Y minutes on a linux server
+   For example on a Mac laptop with the shared library it took 30 seconds versus 6 minutes on a linux server
    with network filesystem.

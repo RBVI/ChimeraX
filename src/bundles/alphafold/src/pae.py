@@ -783,6 +783,7 @@ class AlphaFoldPAE:
         self._cluster_min_size = 10
         self._clusters = None		# Cache computed clusters
         self._cluster_colors = None
+        self._plddt_palette = 'alphafold'
 
     def reduce_matrix_to_residues_in_structure(self):
         '''
@@ -890,7 +891,7 @@ class AlphaFoldPAE:
         if m is None:
             return
 
-        cmd = f'color bfactor #{m.id_string} palette alphafold'
+        cmd = f'color bfactor #{m.id_string} palette {self._plddt_palette}'
         if not log_command:
             cmd += ' log false'
         from chimerax.core.commands import run
