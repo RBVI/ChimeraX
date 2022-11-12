@@ -11,22 +11,23 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from .charge import estimate_net_charge, ChargeError, add_charges, default_standardized
 from .cmd import ChargeMethodArg
-from .dock_prep import dock_prep_arg_info, run_for_dock_prep
+defaults = {
+    'method': ChargeMethodArg.default_value,
+}
 
-from chimerax.core.toolshed import BundleAPI
+from  chimerax.core.settings import Settings
+from copy import deepcopy
 
-class AddCharge_API(BundleAPI):
+class _AddChargeSettings(Settings):
+    EXPLICIT_SAVE = deepcopy(defaults)
 
-    @staticmethod
-    def register_command(command_name, logger):
-        from . import cmd
-        cmd.register_command(logger)
-
-    @staticmethod
-    def start_tool(session, tool_name):
-        from .tool import AddChargeTool
-        return AddChargeTool(session, tool_name)
-
-bundle_api = AddCharge_API()
+# for the GUI
+_settings = None
+def get_settings(session):
+    global _settings
+    # don't initialize a zillion times, which would also overwrite
+    # any changed but not saved settings
+    if _settings is None:
+        _settings = _AddChargeSettings(session, "add_charge")
+    return _settings

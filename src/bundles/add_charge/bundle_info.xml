@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-AddCharge" version="1.4.1" package="chimerax.add_charge"
+<BundleInfo name="ChimeraX-AddCharge" version="1.5" package="chimerax.add_charge"
   	    minSessionVersion="1" maxSessionVersion="1">
 
   <!-- Additional information about bundle source -->
@@ -35,6 +35,7 @@
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
     <ChimeraXClassifier>Command :: addcharge :: Structure Editing :: Add charges</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: addcharge nonstd :: Structure Editing :: Add charges to non-standard residues</ChimeraXClassifier>
+    <ChimeraXClassifier>Tool :: Add Charges :: Structure Editing :: Add partial charges to structure</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

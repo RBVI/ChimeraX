@@ -638,14 +638,17 @@ class Session:
         """Deserialize session from binary stream."""
         from . import serialize
         if hasattr(stream, 'peek'):
-            use_pickle = stream.peek(1)[0] != ord(b'#')
+            first_byte = stream.peek(1)
         elif hasattr(stream, 'buffer'):
-            use_pickle = stream.buffer.peek(1)[0] != ord(b'#')
+            first_byte = stream.buffer.peek(1)
         elif stream.seekable():
-            use_pickle = stream.read(1)[0] != ord(b'#')
+            first_byte = stream.read(1)
             stream.seek(0)
         else:
             raise RuntimeError('Could not peek at first byte of session file.')
+        if len(first_byte) == 0:
+            raise UserError("Can not open empty session file")
+        use_pickle = first_byte[0] != ord(b'#')
         if use_pickle:
             try:
                 version = serialize.pickle_deserialize(stream)
