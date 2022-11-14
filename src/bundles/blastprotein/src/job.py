@@ -72,7 +72,7 @@ class BlastProteinJob(CxServicesJob):
         self.matrix = matrix                              # string
         self.max_seqs = max_seqs                          # int
         if version is None:
-            version = "3"
+            version = "4"
         self.version = version                            # AlphaFold DB Version
         self.log = log
         self.tool_inst_name = tool_inst_name
