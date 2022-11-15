@@ -369,6 +369,7 @@ SmallMolecule::parse_geom_bond()
 {
     CIFFile::ParseValues pv;
     string label1, label2;
+    string sym1 = ".", sym2 = ".";
 
     pv.reserve(6);
     try {
@@ -380,11 +381,21 @@ SmallMolecule::parse_geom_bond()
             [&] (const char* start, const char* end) {
                 label2 = string(start, end - start);
             });
+        pv.emplace_back(get_column("site_symmetry_1"),
+            [&] (const char* start, const char* end) {
+                sym1 = string(start, end - start);
+            });
+        pv.emplace_back(get_column("site_symmetry_2"),
+            [&] (const char* start, const char* end) {
+                sym2 = string(start, end - start);
+            });
     } catch (std::runtime_error& e) {
         logger::warning(_logger, "Skipping geom_bond category: ", e.what());
         return;
     }
     while (parse_row(pv)) {
+        if (sym1 != "." || sym2 != ".")
+            continue;  // ignore symmetry for now
         auto& ai = atom_lookup.find(label1);
         if (ai == atom_lookup.end())
             continue;
