@@ -93,6 +93,8 @@ def open_pdb(session, stream, file_name=None, *, auto_style=True, coordsets=Fals
     from numpy import isnan
     for m in models:
         if isnan(m.atoms.coords).any():
+            for dm in models:
+                dm.delete()
             raise UserError("Some X/Y/Z coordinate values in the '%s' PDB file are not numbers" % file_name)
 
     if max_models is not None:
