@@ -82,7 +82,7 @@ def prep(session, state, callback, memorization, memorize_name, structures, keyw
                     swap_aa(session, [r], res_type)
             else:
                 swap_aa(session, targets, "same", rot_lib=style)
-    callback(session, state)
+    callback(session, state, structures)
 
 def handle_memorization(session, memorization, memorize_requester, main_settings_name, keywords, defaults,
         tool_settings):

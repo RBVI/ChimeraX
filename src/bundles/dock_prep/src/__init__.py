@@ -14,7 +14,7 @@
 #--- public API ---
 from .cmd import dock_prep_caller
 
-# all modules involved in the DockPrep piepline provide these variables/functions
+# all modules involved in the DockPrep pipeline provide these variables/functions
 from .cmd import dock_prep_arg_info
 from .prep import prep as run_for_dock_prep, handle_memorization, MEMORIZE_USE, MEMORIZE_SAVE, MEMORIZE_NONE
 
@@ -29,9 +29,8 @@ class DockPrepAPI(BundleAPI):
         from .cmd import register_command
         register_command(logger)
 
-    #@staticmethod
-    #def start_tool(session, tool_name):
-    #    from .tool import DockPrepTool
-    #    return DockPrepTool(session, tool_name)
+    @staticmethod
+    def start_tool(session, tool_name):
+        dock_prep_caller(session, None, nogui=False)
 
 bundle_api = DockPrepAPI()

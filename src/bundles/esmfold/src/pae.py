@@ -79,12 +79,12 @@ def esmfold_pae(session, structure = None, file = None, mgnify_id = None,
 # -----------------------------------------------------------------------------
 #
 def register_esmfold_pae_command(logger):
-    from chimerax.core.commands import CmdDesc, register, OpenFileNameArg, ColormapArg, ColormapRangeArg, BoolArg, FloatArg, IntArg
-    from chimerax.atomic import AtomicStructureArg, UniProtIdArg
+    from chimerax.core.commands import CmdDesc, register, OpenFileNameArg, ColormapArg, ColormapRangeArg, BoolArg, FloatArg, IntArg, StringArg
+    from chimerax.atomic import AtomicStructureArg
     desc = CmdDesc(
         optional = [('structure', AtomicStructureArg)],
         keyword = [('file', OpenFileNameArg),
-                   ('uniprot_id', UniProtIdArg),
+                   ('mgnify_id', StringArg),
                    ('palette', ColormapArg),
                    ('range', ColormapRangeArg),
                    ('plot', BoolArg),
