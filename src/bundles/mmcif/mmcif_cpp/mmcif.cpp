@@ -302,11 +302,14 @@ struct ExtractMolecule: public readcif::CIFFile
 };
 
 const char* ExtractMolecule::builtin_categories[] = {
-    "audit_conform", "audit_syntax", "atom_site", "entity_poly", "entity_poly_seq"
+    "chimerax_audit_syntax",
+    "audit_conform", "audit_syntax", "entity", "entity_poly", "entity_poly_seq",
+    "atom_site", "atom_site_anisotrop",
     "struct_conn", "struct_conf", "struct_sheet_range",
 #ifdef SHEET_HBONDS
     "struct_sheet_order", "pdbx_struct_sheet_hbond",
 #endif
+    "chem_comp", "chem_comp_bond",
 };
 #define MIXED_CASE_BUILTIN_CATEGORIES 0
 
@@ -1175,6 +1178,8 @@ ExtractMolecule::parse_audit_conform()
         set_PDBx_keywords(true);
         guess_fixed_width_categories = true;
     }
+    // If dict_name is core_std.dic, then it's a small molecule cif
+    // if dict_name doesn't start with mmcif, the give a warning
 }
 
 void

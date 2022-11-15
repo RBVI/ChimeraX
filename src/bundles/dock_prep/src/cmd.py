@@ -21,6 +21,7 @@ from .settings import defaults
 #NOTES: dock_prep_caller() is the public API and also called via the command.  It assembles a series
 #  of steps to execute (by calling dock_prep_steps())
 #
+#  INTERNAL IMPLEMENTATION NOTES:
 #  The step info provides a function to call, that should receive the session, state, callback,
 #  memorization type (MEMORIZE_NONE/USE/SAVE). memorization name, structures, and a dictionary of
 #  step-associated keywords.  The callback should be invoked, with session and state, and will call the
@@ -93,10 +94,14 @@ def dock_prep_caller(session, structures, *, memorization=MEMORIZE_NONE, memoriz
         callback=None, **kw):
     """Supply 'memorize_name' if you want settings for your workflow to be separately memorizable from
        generic Dock Prep.  It should be a string descriptive of your workflow ("minimization", tool name,
-       etc.) since it will also be used in dialog titles.
+       etc.) since it will also be used in dialog titles.  if 'structures' is None, the user can choose
+       the structures to prep (all structures in nogui mode).
     """
     if nogui is None:
         nogui = session.in_script or not session.ui.is_gui
+    if (nogui or memorization == MEMORIZE_USE) and structures is None:
+        from chimerax.atomic import all_atomic_structures
+        structures = all_atomic_structures(session)
     if memorize_name:
         final_memorize_name = "%s dock prep" % memorize_name
         process_name = memorize_name
@@ -108,14 +113,12 @@ def dock_prep_caller(session, structures, *, memorization=MEMORIZE_NONE, memoriz
         'memorize_name': final_memorize_name,
         'process_name': process_name,
         'callback': callback,
-        'structures': structures,
         'nogui': nogui,
     }
-    run_steps(session, state)
+    run_steps(session, state, structures)
 
-def run_steps(session, state):
-    structures = state['structures']
-    if not structures:
+def run_steps(session, state, structures):
+    if structures is not None and not structures:
         # User has closed relevant structures
         return
     steps = state['steps']

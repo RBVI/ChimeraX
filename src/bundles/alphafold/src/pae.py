@@ -435,6 +435,8 @@ class AlphaFoldPAEPlot(ToolInstance):
         self._add_menu_toggle(menu, 'Show chain divider lines',
                               self._showing_chain_dividers, self.show_chain_dividers)
 
+        menu.addAction('Save image', self._save_image)
+        
     # ---------------------------------------------------------------------------
     #
     def _add_menu_toggle(self, menu, text, checked, callback):
@@ -515,12 +517,27 @@ class AlphaFoldPAEPlot(ToolInstance):
     def _color_domains(self):
         # TODO: Log the command to do the coloring.
         self._pae.color_domains(log_command = True)
-         
+
     # ---------------------------------------------------------------------------
     #
     def _color_plddt(self):
         self._pae.color_plddt(log_command = True)
 
+    # ---------------------------------------------------------------------------
+    #
+    def _save_image(self, default_suffix = '.png'):
+        from os.path import splitext, basename, join
+        filename = splitext(basename(self._pae._pae_path))[0] + default_suffix
+        from os import getcwd
+        suggested_path = join(getcwd(), filename)
+        from Qt.QtWidgets import QFileDialog
+        parent = self.tool_window.ui_area
+        path, ftype  = QFileDialog.getSaveFileName(parent,
+                                                   'AlphaFold PAE Image',
+                                                   suggested_path)
+        if path:
+            self._pae_view.save_image(path)
+        
     # ---------------------------------------------------------------------------
     #
     def _show_help(self):
@@ -770,11 +787,16 @@ class PAEView(QGraphicsView):
         colors = [((1-f)*fcolor + f*bgcolor) for f in fracs]
         colormap = Colormap(pae_range, colors)
         return colormap
+
+    def save_image(self, path):
+        pixmap = self.grab()
+        pixmap.save(path)
         
 # -----------------------------------------------------------------------------
 #
 class AlphaFoldPAE:
     def __init__(self, pae_path, structure):
+        self._pae_path = pae_path
         self._pae_matrix = read_pae_matrix(pae_path)
         self.structure = structure
         self._residue_indices = None	# Map residue to index

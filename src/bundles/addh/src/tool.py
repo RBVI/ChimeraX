@@ -48,7 +48,9 @@ class AddHTool(ToolInstance):
         layout.addLayout(structure_layout)
         if process_info is not None:
             self.tool_window.title = "%s for %s" % (tool_name, process_info['process name'].title())
-            if 'structures' in process_info:
+            process_structures = process_info['structures']
+            if process_structures is not None:
+                self.structure_list.value = list(process_structures)
                 self.structure_list.setEnabled(False)
         self.isolation = QCheckBox("Consider each model in isolation from all others")
         self.isolation.setChecked(True)
@@ -150,7 +152,7 @@ class AddHTool(ToolInstance):
         self.tool_window.shown = False
         self.session.ui.processEvents()
         if not self.structures:
-            if self.process_info is None:
+            if self.process_info is None or self.process_info['structures'] is None:
                 self.tool_window.shown = True
                 raise UserError("No structures chosen for hydrogen addition.")
             self.delete()
@@ -178,7 +180,8 @@ class AddHTool(ToolInstance):
         if self.template_checkbox.isChecked():
             cmd += " template true"
             settings["template"] = True
-        run(self.session, cmd)
+        if self.process_info is None or self.process_info.get('run_command', True):
+            run(self.session, cmd)
         self.delete()
         if self.process_info is not None:
             if 'callback' in self.process_info:
@@ -186,25 +189,28 @@ class AddHTool(ToolInstance):
                 need_settings = False
                 from inspect import signature
                 sig = signature(cb)
-                try:
-                    param = sig.parameters['tool_settings']
-                except KeyError:
-                    pass
-                else:
-                    need_settings = True
-                if need_settings:
-                    cb(tool_settings=settings)
-                else:
-                    cb()
+                args = []
+                kw = {}
+                from chimerax.atomic import AtomicStructures
+                for name, value in [('structures', AtomicStructures(self.structures)),
+                        ('tool_settings', settings)]:
+                    try:
+                        param = sig.parameters[name]
+                    except KeyError:
+                        continue
+                    else:
+                        if param.kind == param.KEYWORD_ONLY:
+                            kw[name] = value
+                        else:
+                            args.append(value)
+                cb(*tuple(args), **kw)
 
     def delete(self):
         ToolInstance.delete(self)
 
     @property
     def structures(self):
-        if self.process_info is None:
-            return self.structure_list.value
-        return self.process_info['structures']
+        return self.structure_list.value
 
     def _protonation_res_change(self, res_name):
         self.protonation_res_button.setText(res_name)
