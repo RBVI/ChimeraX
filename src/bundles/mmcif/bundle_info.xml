@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-mmCIF" version="2.8"
+<BundleInfo name="ChimeraX-mmCIF" version="2.9"
 	    package="chimerax.mmcif" purePython="false"
   	    minSessionVersion="1" maxSessionVersion="1">
 
@@ -68,7 +68,7 @@
 	    nicknames="ccd" suffixes=".cif"
 	    encoding="utf-8" reference_url="http://www.wwpdb.org/data/ccd" />
     <Provider name="Small Molecule CIF" category="Molecular structure"
-	    nicknames="corecif" suffixes=".cif"
+	    nicknames="corecif,smallcif" suffixes=".cif"
 	    encoding="utf-8" reference_url="https://www.iucr.org/resources/cif" />
     <Provider name="Crystallography Open Database" category="Molecular structure"
 	    nicknames="cod" suffixes=".cif"

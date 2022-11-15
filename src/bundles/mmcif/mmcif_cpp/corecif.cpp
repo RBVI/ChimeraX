@@ -107,7 +107,6 @@ struct SmallMolecule: public readcif::CIFFile
     double length_a, length_b, length_c;  // unit cell lengths
     double alpha, beta, gamma;            // unit cell angles
     double cell[3][3];
-    bool has_bonds;
     std::map<string, std::pair<Atom*, char>> atom_lookup;
     std::map<string, StringVector> generic_tables;
 };
@@ -135,7 +134,7 @@ SmallMolecule::SmallMolecule(PyObject* logger, const StringVector& generic_categ
         }, { "atom_site" });
     register_category("geom_bond",
         [this] () {
-            parse_atom_site();
+            parse_geom_bond();
         }, { "atom_site" });
     for (auto& cat: generic_categories) {
 #if MIXED_CASE_BUILTIN_CATEGORIES==0
@@ -178,7 +177,6 @@ SmallMolecule::reset_parse()
     residue = nullptr;
     length_a = length_b = length_c = 0;
     alpha = beta = gamma = M_PI / 2;
-    has_bonds = false;
     atom_lookup.clear();
     generic_tables.clear();
 }
@@ -188,8 +186,14 @@ SmallMolecule::finished_parse()
 {
     if (!molecule)
         return;
-    if (!has_bonds)
-        pdb_connect::connect_residue_by_distance(residue);
+
+    std::set<Atom*> has_bonds;
+    for (auto& a: residue->atoms()) {
+        if (a->bonds().size() > 0)
+            has_bonds.insert(a);
+    }
+    pdb_connect::connect_residue_by_distance(residue, &has_bonds);
+    pdb_connect::find_and_add_metal_coordination_bonds(molecule);
     molecule->metadata = generic_tables;
     molecule->use_best_alt_locs();
     all_molecules.push_back(molecule);
@@ -380,7 +384,6 @@ SmallMolecule::parse_geom_bond()
         logger::warning(_logger, "Skipping geom_bond category: ", e.what());
         return;
     }
-    has_bonds = true;
     while (parse_row(pv)) {
         auto& ai = atom_lookup.find(label1);
         if (ai == atom_lookup.end())
