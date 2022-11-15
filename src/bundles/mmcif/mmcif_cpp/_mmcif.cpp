@@ -1,5 +1,6 @@
 #include "_mmcif.h"
 #include "mmcif.h"
+#include "corecif.h"
 #include <stdlib.h>	/* for getenv() and atoi() */
 #include <string.h>
 #include <typeinfo>
@@ -384,6 +385,130 @@ _mmcif_non_standard_bonds(PyObject*, PyObject* _args)
 
 static const char _mmcifnon_standard_bonds_doc[] = "non_standard_bonds(bonds: Bonds, selected_only: bool, displayed_only: bool) -> tuple[disulfide, covalent]";
 
+static PyObject*
+_mmcif_parse_coreCIF_buffer(PyObject*, PyObject* _args, PyObject* _keywds)
+{
+	switch (PyTuple_Size(_args)) {
+	  default:
+		PyErr_SetString(PyExc_TypeError, "parse_coreCIF_buffer() expected 2 or 3 arguments");
+		return NULL;
+	  case 2: {
+		Py_buffer _ptArg1;
+		PyObject* _ptArg2;
+		if (_keywds != NULL && PyDict_Size(_keywds) != 0) {
+			PyErr_SetString(PyExc_TypeError, "parse_coreCIF_buffer() expected no keyword arguments");
+			return NULL;
+		}
+		if (!PyArg_ParseTuple(_args, "s*O:parse_coreCIF_buffer", &_ptArg1, &_ptArg2))
+			return NULL;
+		try {
+			const unsigned char* cppArg1 = reinterpret_cast<unsigned char*>(_ptArg1.buf);
+			PyObject* cppArg2 = _ptArg2;
+			PyObject* _result = parse_coreCIF_buffer(cppArg1, cppArg2);
+			PyBuffer_Release(&_ptArg1);
+			return _result;
+		} catch (...) {
+			PyBuffer_Release(&_ptArg1);
+			_mmcifError();
+		}
+		break;
+	  }
+	  case 3: {
+		Py_buffer _ptArg1;
+		PyObject* _ptArg2;
+		PyObject* _ptArg3;
+		if (_keywds != NULL && PyDict_Size(_keywds) != 0) {
+			PyErr_SetString(PyExc_TypeError, "parse_coreCIF_buffer() expected no keyword arguments");
+			return NULL;
+		}
+		if (!PyArg_ParseTuple(_args, "s*OO:parse_coreCIF_buffer", &_ptArg1, &_ptArg2, &_ptArg3))
+			return NULL;
+		try {
+			const unsigned char* cppArg1 = reinterpret_cast<unsigned char*>(_ptArg1.buf);
+			std::vector<std::string> cppArg2;
+			if (!sequence_to_vector_string(_ptArg2, &cppArg2))
+				throw std::invalid_argument("argument 2 should be a sequence of str");
+			PyObject* cppArg3 = _ptArg3;
+			PyObject* _result = parse_coreCIF_buffer(cppArg1, cppArg2, cppArg3);
+			PyBuffer_Release(&_ptArg1);
+			return _result;
+		} catch (...) {
+			PyBuffer_Release(&_ptArg1);
+			_mmcifError();
+		}
+		break;
+	  }
+	}
+	return NULL;
+}
+
+static const char _mmcifparse_coreCIF_buffer_doc[] = "parse_coreCIF_buffer(buffer: bytes, logger: object) -> object\n\
+parse_coreCIF_buffer(buffer: bytes, extra_categories: list of str, logger: object) -> object";
+
+static PyObject*
+_mmcif_parse_coreCIF_file(PyObject*, PyObject* _args, PyObject* _keywds)
+{
+	switch (PyTuple_Size(_args)) {
+	  default:
+		PyErr_SetString(PyExc_TypeError, "parse_coreCIF_file() expected 2 or 3 arguments");
+		return NULL;
+	  case 2: {
+		PyObject* _ptArg1;
+		PyObject* _ptArg2;
+		if (_keywds != NULL && PyDict_Size(_keywds) != 0) {
+			PyErr_SetString(PyExc_TypeError, "parse_coreCIF_file() expected no keyword arguments");
+			return NULL;
+		}
+		if (!PyArg_ParseTuple(_args, "OO:parse_coreCIF_file", &_ptArg1, &_ptArg2))
+			return NULL;
+		try {
+			if (!PyUnicode_Check(_ptArg1))
+				throw std::invalid_argument("argument 1 should be a str");
+			Py_ssize_t size;
+			const char *data = PyUnicode_AsUTF8AndSize(_ptArg1, &size);
+			std::string cppArg1(data, size);
+			PyObject* cppArg2 = _ptArg2;
+			PyObject* _result = parse_coreCIF_file(cppArg1.c_str(), cppArg2);
+			return _result;
+		} catch (...) {
+			_mmcifError();
+		}
+		break;
+	  }
+	  case 3: {
+		PyObject* _ptArg1;
+		PyObject* _ptArg2;
+		PyObject* _ptArg3;
+		if (_keywds != NULL && PyDict_Size(_keywds) != 0) {
+			PyErr_SetString(PyExc_TypeError, "parse_coreCIF_file() expected no keyword arguments");
+			return NULL;
+		}
+		if (!PyArg_ParseTuple(_args, "OOO:parse_coreCIF_file", &_ptArg1, &_ptArg2, &_ptArg3))
+			return NULL;
+		try {
+			if (!PyUnicode_Check(_ptArg1))
+				throw std::invalid_argument("argument 1 should be a str");
+			Py_ssize_t size;
+			const char *data = PyUnicode_AsUTF8AndSize(_ptArg1, &size);
+			std::string cppArg1(data, size);
+			std::vector<std::string> cppArg2;
+			if (!sequence_to_vector_string(_ptArg2, &cppArg2))
+				throw std::invalid_argument("argument 2 should be a sequence of str");
+			PyObject* cppArg3 = _ptArg3;
+			PyObject* _result = parse_coreCIF_file(cppArg1.c_str(), cppArg2, cppArg3);
+			return _result;
+		} catch (...) {
+			_mmcifError();
+		}
+		break;
+	  }
+	}
+	return NULL;
+}
+
+static const char _mmcifparse_coreCIF_file_doc[] = "parse_coreCIF_file(filename: str, logger: object) -> object\n\
+parse_coreCIF_file(filename: str, extra_categories: list of str, logger: object) -> object";
+
 PyMethodDef _mmcifMethods[] = {
 	{
 		"extract_CIF_tables", (PyCFunction) _mmcif_extract_CIF_tables,
@@ -416,6 +541,14 @@ PyMethodDef _mmcifMethods[] = {
 	{
 		"non_standard_bonds", (PyCFunction) _mmcif_non_standard_bonds,
 		METH_VARARGS, _mmcifnon_standard_bonds_doc
+	},
+	{
+		"parse_coreCIF_buffer", (PyCFunction) _mmcif_parse_coreCIF_buffer,
+		METH_VARARGS | METH_KEYWORDS, _mmcifparse_coreCIF_buffer_doc
+	},
+	{
+		"parse_coreCIF_file", (PyCFunction) _mmcif_parse_coreCIF_file,
+		METH_VARARGS | METH_KEYWORDS, _mmcifparse_coreCIF_file_doc
 	},
 	{ NULL, NULL, 0, NULL }
 };
