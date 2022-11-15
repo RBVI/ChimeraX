@@ -91,6 +91,7 @@ target="_blank">presentations</a> and
 <a href="https://www.rbvi.ucsf.edu/chimerax/docs/videos/"
 target="_blank">videos</a> show modeling with AlphaFold and related analyses.
 See also:
+<a href="esmfold.html"><b>esmfold</b></a>,
 <a href="blastprotein.html"><b>blastprotein</b></a>,
 <a href="modeller.html"><b>modeller</b></a>,
 <a href="swapaa.html"><b>swapaa</b></a>
@@ -110,7 +111,7 @@ See also:
 [&nbsp;<a href="#colorConfidence"><b>colorConfidence</b></a>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<a href="#ignoreCache"><b>ignoreCache</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<a href="#pae"><b>pae</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
-[&nbsp;<a href="#version"><b>version</b></a>&nbsp;&nbsp;1&nbsp;|&nbsp;2&nbsp;|&nbsp;<b>3</b>&nbsp;]
+[&nbsp;<a href="#version"><b>version</b></a>&nbsp;&nbsp;1&nbsp;|&nbsp;2&nbsp;|&nbsp;3&nbsp;|&nbsp;<b>4</b>&nbsp;]
 <br>
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>alphafold match</b> &nbsp;<i>sequence</i>&nbsp;
@@ -125,7 +126,7 @@ See also:
 [&nbsp;<b>matrix</b>&nbsp;&nbsp;<i>similarity-matrix</i>&nbsp;]
 [&nbsp;<b>cutoff</b>&nbsp;&nbsp;<i>evalue</i>&nbsp;]
 [&nbsp;<b>maxSeqs</b>&nbsp;&nbsp;<i>M</i>&nbsp;]
-[&nbsp;<a href="#version"><b>version</b></a>&nbsp;&nbsp;1&nbsp;|&nbsp;2&nbsp;|&nbsp;<b>3</b>&nbsp;]
+[&nbsp;<a href="#version"><b>version</b></a>&nbsp;&nbsp;1&nbsp;|&nbsp;2&nbsp;|&nbsp;3&nbsp;|&nbsp;<b>4</b>&nbsp;]
 </blockquote>
 <ul>
 <li>The <b>alphafold fetch</b> command retrieves the model (if available)
@@ -203,7 +204,7 @@ and existing chains after their superposition (step 2 above)
   <li><b>missing_structure</b>
 &ndash; positions missing from the coordinates of the existing chain
   <li><b>same_sequence</b>
-&ndash; positions with different residue types than the existing chain
+&ndash; positions with the same residue type as the existing chain
   </ul>
 These <a href="../attributes.html">attributes</a>
 can be used for <a href="../tools/alphafold.html#coloring">coloring</a> 
@@ -450,7 +451,7 @@ sequences, which could be longer.
 </blockquote>
 <blockquote>
 <a name="version"></a>
-<b>version</b>&nbsp;&nbsp;1&nbsp;|&nbsp;2&nbsp;|&nbsp;<b>3</b>
+<b>version</b>&nbsp;&nbsp;1&nbsp;|&nbsp;2&nbsp;|&nbsp;3&nbsp;|&nbsp;<b>4</b>
 <br>
 The <a href="https://alphafold.ebi.ac.uk/"
 target="_blank">AlphaFold Database</a> 
@@ -463,19 +464,21 @@ This option specifies which version of the database to use with
 (as well as <a href="blastprotein.html"><b>blastprotein</b></a> with 
 <b>database alphafold</b>):
   <ul>
-  <li><b>version 1</b> (database release 1): ~360,000 sequences,
+  <li><b>version 1</b> (Jul 2021): ~360,000 sequences,
 reference proteomes of 21 species including <i>Homo sapiens</i>;
 used by Chimera 1.3, which does not have a <b>version</b> option
-  <li><b>version 2</b> (database releases 2 and 3 combined):
+  <li><b>version 2</b> (Dec 2021 and Jan 2022 releases combined):
 ~1 million sequences, v1 + most of the manually curated entries (SwissProt) +
 sequences relevant to neglected tropical disease or antimicrobial resistance;
 default in ChimeraX 1.4
-  <li><b>version 3</b> (database release 4): &gt;200 million sequences;
+  <li><b>version 3</b> (Jul 2022): &gt;200 million sequences;
 default in ChimeraX 1.5+ builds from August 31, 2022 and later
+  <li><b>version 4</b> (Nov 2022): bugfix of version 3, 
+updating the coordinates of ~4% of the entries
 </ul>
-The <a href="#match"><b>alphafold match</b></a> command always uses version 3
-and does not have this option.
 <p>
+The <a href="#match"><b>alphafold match</b></a> command always uses version 4
+and does not have this option.
 </p>
 </blockquote>
 
@@ -640,7 +643,7 @@ target="_blank">AlphaFold Error Estimates example</a> and
 [&nbsp;<b>connectMaxPae</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
 [&nbsp;<b>cluster</b>&nbsp;&nbsp;<i>resolution</i>&nbsp;]
 [&nbsp;<b>dividerLines</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
-[&nbsp;<a href="#version"><b>version</b></a>&nbsp;&nbsp;1&nbsp;|&nbsp;2&nbsp;|&nbsp;<b>3</b>&nbsp;]
+[&nbsp;<a href="#version"><b>version</b></a>&nbsp;&nbsp;1&nbsp;|&nbsp;2&nbsp;|&nbsp;3&nbsp;|&nbsp;<b>4</b>&nbsp;]
 </blockquote>
 <p>
 With <b>alphafold pae</b>, the matrix of PAE values can be either:
@@ -700,13 +703,6 @@ end of one chain and the start of another. The lines may obscure a few
 chain-terminal residues in the plot, and <b>dividerLines false</b>
 can be used if this is problematic.
 </p><p>
-The plot window has buttons for coloring the 
-<a href="#association">associated</a> structure.
-<b>Color PAE Domains</b> applies coloring by PAE cluster as
-described <a href="#colorDomains">above</a>.
-<b>Color pLDDT</b> returns the structure to
-the default <a href="#colorConfidence">confidence coloring</a>.
-</p><p>
 The default <a href="color.html#palette-options"><b>palette</b></a> 
 for coloring the PAE plot is <b>pae</b>, with colors assigned to values
 as follows:
@@ -750,6 +746,20 @@ align="center"><font size="-1">25</font></td>
 align="center"><font size="-1">30</font></td>
 </tr></table>
 <p>
+The plot window has a 
+<a href="../tools/alphafold.html#context">context menu</a>
+with options for recoloring the plot and 
+<a href="#association">associated</a> structure,
+hiding/showing the divider lines, and saving the plot as an image,
+as well as buttons for recoloring the structure: 
+</p>
+<ul>
+<li><b>Color PAE Domains</b> applies coloring by PAE cluster as
+described <a href="#colorDomains">above</a>.
+<li><b>Color pLDDT</b> returns the structure to
+the default <a href="#colorConfidence">confidence coloring</a>.
+</ul>
+<p>
 The <a href="../tools/colorkey.html"><b>Color Key</b></a> graphical interface
 or a command can be used to draw (in the main graphics window)
 a color key for the PAE plot. For example, to make a color key that
@@ -767,6 +777,7 @@ A title for the color key (<i>e.g.</i>, &ldquo;<b>AlphaFold Predicted Aligned
 Error (&Aring;)</b>&rdquo;) would need to be created separately with
 <a href="2dlabels.html"><b>2dlabels</b></a>.
 </p>
+
 <a name="contacts"></a>
 <p class="nav">
 [<a href="#top">back to top: alphafold</a>]
@@ -892,5 +903,5 @@ numbers of the residues that they connect:
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-October 2022</address>
+November 2022</address>
 </body></html>
