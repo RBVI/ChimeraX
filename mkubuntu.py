@@ -398,7 +398,7 @@ def copy_app(pkg_root, pkg_name):
     dst_dir = f'{pkg_root}/{INST_DIR}'
     dst = f'{pkg_root}/{INST_DIR}/{pkg_name}'
     os.makedirs(dst_dir)
-    shutil.copytree(src, dst)
+    shutil.copytree(src, dst, symlinks=True)
 
     # cleanup -- remove __pycache__ directories
     cache_dirs = subprocess.check_output([
