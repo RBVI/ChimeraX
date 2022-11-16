@@ -158,7 +158,7 @@ recipient: residues
 
 	::amber_name="CYS"	CYM
 
-	:CYS@hg	CYS
+	:CYS@hg*	CYS
 
 # protonated aspartic/glutamic acid
 

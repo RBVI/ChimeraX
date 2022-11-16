@@ -39,6 +39,9 @@ def get_heavy_synonyms(resid, heavy):
     if resid.endswith('MET') and heavy == 'sd':
         # so MSE also works
         return ['se']
+    if resid.endswith('ILE') and heavy == 'cd1':
+        # non-standard variant name
+        return ['cd']
     if len(resid) == 4 and resid[0] == 'C':
         return cterm_heavy_synonyms.get(heavy, [])
     return heavy_synonyms.get(heavy, [])
