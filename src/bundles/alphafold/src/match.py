@@ -68,7 +68,7 @@ def _fetch_by_uniprot_id(session, sequences, color_confidence = True, trim = Tru
                          local = False, ignore_cache = False, log = None):
     # Get Uniprot ids from mmCIF or PDB file metadata
     sequence_uids = _sequence_uniprot_ids(sequences)
-    seq_models, missing_uids = _alphafold_models(session, sequences, sequence_uids,
+    seq_models, missing_uids = _alphafold_models(session, sequence_uids,
                                                  color_confidence=color_confidence, trim=trim,
                                                  ignore_cache=ignore_cache)
     if missing_uids:
@@ -104,7 +104,7 @@ def _fetch_by_sequence(session, sequences, color_confidence = True, trim = True,
             uid.chain_id = seq.chain_id
 
     seq_models, missing_uids = \
-        _alphafold_models(session, sequences, seq_uids,
+        _alphafold_models(session, seq_uids,
                           color_confidence=color_confidence, trim=trim,
                           ignore_cache=ignore_cache)
     if missing_uids and log:
@@ -120,14 +120,14 @@ def _fetch_by_sequence(session, sequences, color_confidence = True, trim = True,
 
     return seq_models
 
-def _alphafold_models(session, sequences, seq_uids, color_confidence=True, trim=True,
+def _alphafold_models(session, sequence_uids, color_confidence=True, trim=True,
                       ignore_cache=False):
     seq_models = {}
     missing = {}
     from chimerax.core.errors import UserError
     from .fetch import alphafold_fetch
     from chimerax.atomic import Chain
-    for seq, uid in seq_uids:
+    for seq, uid in sequence_uids:
         if uid.uniprot_id in missing:
             missing[uid.uniprot_id].append(seq)
             continue
@@ -137,7 +137,7 @@ def _alphafold_models(session, sequences, seq_uids, color_confidence=True, trim=
                                              version = db_version,
                                              color_confidence=color_confidence,
                                              add_to_session=False,
-                                             in_file_history=(len(seq_uids)==1),
+                                             in_file_history=(len(sequence_uids)==1),
                                              ignore_cache=ignore_cache)
         except UserError as e:
             if not str(e).endswith('Not Found'):
