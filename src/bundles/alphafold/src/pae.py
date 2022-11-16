@@ -481,7 +481,10 @@ class AlphaFoldPAEPlot(ToolInstance):
     def show_chain_dividers(self, show = True, thickness = 4):
         self._showing_chain_dividers = show
         if show:
-            chain_ids = self._pae.structure.residues.chain_ids
+            s = self._pae.structure
+            if s is None:
+                return  # Don't know chain lengths without structure.
+            chain_ids = s.residues.chain_ids
             # Residue indices for start of each chain excluding the first.
             dividers = tuple((chain_ids[:-1] != chain_ids[1:]).nonzero()[0]+1)
         else:
