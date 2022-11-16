@@ -172,7 +172,11 @@ class Mol2Parser:
             substid2residue = {}
             for subst_data in self._substs:
                 # ChimeraX limitation: 4-letter residue type
-                name = subst_data.subst_name[:4]
+                name = subst_data.subst_name
+                # subst_name might be something like ALA19, so check sub_type
+                sub_type = subst_data.sub_type
+                if sub_type and sub_type in name:
+                    name = sub_type
                 chain = subst_data.chain
                 if chain is None or chain == "****":
                     chain = ''
