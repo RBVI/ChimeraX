@@ -396,7 +396,7 @@ SmallMolecule::parse_geom_bond()
     while (parse_row(pv)) {
         if (sym1 != "." || sym2 != ".")
             continue;  // ignore symmetry for now
-        auto& ai = atom_lookup.find(label1);
+        auto ai = atom_lookup.find(label1);
         if (ai == atom_lookup.end())
             continue;
         Atom *a1 = ai->second.first;
