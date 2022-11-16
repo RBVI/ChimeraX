@@ -172,59 +172,59 @@ recipient: residues
 
 # chain-terminal variants
 
-	::amber_name=ALA @oxt	CALA
+	::amber_name=ALA @oxt,ot2,2oct	CALA
 
-	::amber_name=ARG @oxt	CARG
+	::amber_name=ARG @oxt,ot2,2oct	CARG
 
-	::amber_name=ASH @oxt	CASH
+	::amber_name=ASH @oxt,ot2,2oct	CASH
 
-	::amber_name=ASN @oxt	CASN
+	::amber_name=ASN @oxt,ot2,2oct	CASN
 
-	::amber_name=ASP @oxt	CASP
+	::amber_name=ASP @oxt,ot2,2oct	CASP
 
-	::amber_name=CYM @oxt	CCYM
+	::amber_name=CYM @oxt,ot2,2oct	CCYM
 
-	::amber_name=CYS @oxt	CCYS
+	::amber_name=CYS @oxt,ot2,2oct	CCYS
 
-	::amber_name=CYX @oxt	CCYX
+	::amber_name=CYX @oxt,ot2,2oct	CCYX
 
-	::amber_name=GLH @oxt	CGLH
+	::amber_name=GLH @oxt,ot2,2oct	CGLH
 
-	::amber_name=GLN @oxt	CGLN
+	::amber_name=GLN @oxt,ot2,2oct	CGLN
 
-	::amber_name=GLU @oxt	CGLU
+	::amber_name=GLU @oxt,ot2,2oct	CGLU
 
-	::amber_name=GLY @oxt	CGLY
+	::amber_name=GLY @oxt,ot2,2oct	CGLY
 
-	::amber_name=HID @oxt	CHID
+	::amber_name=HID @oxt,ot2,2oct	CHID
 
-	::amber_name=HIE @oxt	CHIE
+	::amber_name=HIE @oxt,ot2,2oct	CHIE
 
-	::amber_name=HIP @oxt	CHIP
+	::amber_name=HIP @oxt,ot2,2oct	CHIP
 
-	::amber_name=ILE @oxt	CILE
+	::amber_name=ILE @oxt,ot2,2oct	CILE
 
-	::amber_name=LEU @oxt	CLEU
+	::amber_name=LEU @oxt,ot2,2oct	CLEU
 
-	::amber_name=LYN @oxt	CLYN
+	::amber_name=LYN @oxt,ot2,2oct	CLYN
 
-	::amber_name=LYS @oxt	CLYS
+	::amber_name=LYS @oxt,ot2,2oct	CLYS
 
-	::amber_name=MET @oxt	CMET
+	::amber_name=MET @oxt,ot2,2oct	CMET
 
-	::amber_name=PHE @oxt	CPHE
+	::amber_name=PHE @oxt,ot2,2oct	CPHE
 
-	::amber_name=PRO @oxt	CPRO
+	::amber_name=PRO @oxt,ot2,2oct	CPRO
 
-	::amber_name=SER @oxt	CSER
+	::amber_name=SER @oxt,ot2,2oct	CSER
 
-	::amber_name=THR @oxt	CTHR
+	::amber_name=THR @oxt,ot2,2oct	CTHR
 
-	::amber_name=TRP @oxt	CTRP
+	::amber_name=TRP @oxt,ot2,2oct	CTRP
 
-	::amber_name=TYR @oxt	CTYR
+	::amber_name=TYR @oxt,ot2,2oct	CTYR
 
-	::amber_name=VAL @oxt	CVAL
+	::amber_name=VAL @oxt,ot2,2oct	CVAL
 
 	::amber_name=ALA @N & @@idatm_type=N3+	NALA
 

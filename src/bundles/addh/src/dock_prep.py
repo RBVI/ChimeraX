@@ -33,7 +33,7 @@ def run_for_dock_prep(session, state, callback, memo_type, memo_name, structures
         tool_settings)
     from .cmd import cmd_addh
     cmd_addh(session, structures, **active_settings)
-    callback(session, state)
+    callback(session, state, structures)
 
 def _get_defaults():
     from .cmd import cmd_addh

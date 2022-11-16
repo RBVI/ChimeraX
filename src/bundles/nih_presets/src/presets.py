@@ -206,14 +206,14 @@ def run_preset(session, name, mgr):
             + [ "color nih_blue" ]
     elif name == "surface coulombic":
         cmd = undo_printable + base_setup + base_surface + addh_cmds(session) + surface_cmds(session) \
-            + [ "color white", "coulombic surfaces #*" ]
+            + [ "color white", "coulombic surfaces #* chargeMethod gasteiger" ]
         from chimerax.atomic import AtomicStructures
         structures = AtomicStructures(all_atomic_structures(session))
         main_atoms = structures.atoms.filter(structures.atoms.structure_categories == "main")
         main_residues = main_atoms.unique_residues
         incomplete_residues = main_residues.filter(main_residues.is_missing_heavy_template_atoms)
         if len(incomplete_residues) > len(main_residues) / 10:
-            session.logger.warning("More than 10% or residues are incomplete;"
+            session.logger.warning("More than 10% of residues are incomplete;"
                 " electrostatics probably inaccurate")
         elif "HIS" in incomplete_residues.names:
             session.logger.warning("Incomplete HIS residue; coulombic will likely fail")
