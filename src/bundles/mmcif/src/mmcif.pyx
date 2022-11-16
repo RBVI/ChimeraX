@@ -30,7 +30,6 @@ _additional_categories = (
     "pdbx_struct_assembly",
     "pdbx_struct_assembly_gen",
     "pdbx_struct_oper_list",
-    "entity",
     "entity_src_gen",
     "entity_src_nat",
     "cell",
@@ -42,7 +41,6 @@ _additional_categories = (
     "citation",
     "citation_author",
     "citation_editor",
-    "chem_comp",
     "database_2",	# EMDB map reference
     "exptl",
     "refine",
@@ -141,7 +139,7 @@ def open_mmcif(session, path, file_name=None, auto_style=True, coordsets=False, 
         break
     if log is not None and not models:
         log.warning("No mmCIF models found.  Perhaps this is a small-molecule CIF file?\n"
-                "Unfortunately, they are not supported at this time.\n")
+                f"Try <a href='cxcmd:open {path} format corecif'>open {file_name} format corecif</a>.\n", is_html=True)
     return models, info
 
 
