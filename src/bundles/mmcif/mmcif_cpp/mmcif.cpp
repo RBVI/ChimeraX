@@ -1253,6 +1253,17 @@ ExtractMolecule::parse_atom_site()
     if (guess_fixed_width_categories)
         set_PDBx_fixed_width_columns("atom_site");
 
+    // If it has fractional coordinates, then it is a coreCIF file
+    bool is_corecif = true;
+    try {
+        get_column("fract_x", Required);
+    } catch (std::runtime_error& e) {
+        is_corecif = false;
+    }
+    if (is_corecif) {
+        throw std::runtime_error("is a small molecule (coreCIF) file");
+    }
+
     try {
         pv.emplace_back(get_column("id"),
             [&] (const char* start) {
