@@ -72,13 +72,11 @@ def _parse_uniprot_id(uniprot_id):
                         % uniprot_id)
     return uniprot_id.upper()
 
-def _color_by_confidence(structure):
-    from chimerax.core.colors import Colormap, BuiltinColors
-    colors = [BuiltinColors[name] for name in ('red', 'orange', 'yellow', 'cornflowerblue', 'blue')]
-    palette = Colormap((0, 50, 70, 90, 100), colors)
+def _color_by_confidence(structure, palette_name = 'alphafold'):
+    from chimerax.core.colors import BuiltinColormaps
     from chimerax.std_commands.color import color_by_attr
-    color_by_attr(structure.session, 'bfactor', atoms = structure.atoms, palette = palette,
-                  log_info = False)
+    color_by_attr(structure.session, 'bfactor', atoms = structure.atoms,
+                  palette = BuiltinColormaps[palette_name], log_info = False)
 
 def _align_and_trim(models, align_to_chain, trim):
     from . import match

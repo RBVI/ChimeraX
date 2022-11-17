@@ -481,7 +481,10 @@ class AlphaFoldPAEPlot(ToolInstance):
     def show_chain_dividers(self, show = True, thickness = 4):
         self._showing_chain_dividers = show
         if show:
-            chain_ids = self._pae.structure.residues.chain_ids
+            s = self._pae.structure
+            if s is None:
+                return  # Don't know chain lengths without structure.
+            chain_ids = s.residues.chain_ids
             # Residue indices for start of each chain excluding the first.
             dividers = tuple((chain_ids[:-1] != chain_ids[1:]).nonzero()[0]+1)
         else:
@@ -982,13 +985,37 @@ def read_json_pae_matrix(path):
 def read_pickle_pae_matrix(path):
     f = open(path, 'rb')
     import pickle
-    p = pickle.load(f)
+    try:
+        p = pickle.load(f)
+    except ModuleNotFoundError as e:
+        if 'jax' in str(e):
+            _fix_alphafold_pickle_jax_dependency()
+            p = pickle.load(f)
+        else:
+            raise
+            
     f.close()
     if isinstance(p, dict) and 'predicted_aligned_error' in p:
         return p['predicted_aligned_error']
 
     from chimerax.core.errors import UserError
     raise UserError(f'File {path} does not contain AlphaFold predicted aligned error (PAE) data. The AlphaFold "monomer" preset does not compute PAE.  Run AlphaFold with the "monomer_ptm" or "multimer" presets to get PAE values.')
+    
+# -----------------------------------------------------------------------------
+#
+def _fix_alphafold_pickle_jax_dependency():
+    '''
+    In AlphaFold 2.2.4 the pickle files written out have a dependency on the jax
+    module which prevents unpickling them, ChimeraX bug #8032.
+    Work around this by adding a fake jax module.
+    '''
+    import sys
+    from types import ModuleType
+    sys.modules['jax'] = ModuleType('dummy_jax_for_pickle')
+    sys.modules['jax._src.device_array'] = m = ModuleType('dummy_jax_device_array')
+    def dummy_jax_reconstruct_device_array(*args, **kw):
+        return None
+    m.reconstruct_device_array = dummy_jax_reconstruct_device_array
 
 # -----------------------------------------------------------------------------
 #
