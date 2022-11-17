@@ -14,9 +14,9 @@
 # -----------------------------------------------------------------------------
 # Search AlphaFold database for sequences
 #
-def alphafold_sequence_search(sequences, min_length=20, local=False, log=None):
+def alphafold_sequence_search(sequences, min_length=20, log=None):
     '''
-    Search all AlphaFold database sequences using blat.
+    Search AlphaFold database sequences using kmer search web service.
     Return best match uniprot ids.
     '''
     useqs = list(set(seq for seq in sequences if len(seq) >= min_length))
@@ -27,64 +27,13 @@ def alphafold_sequence_search(sequences, min_length=20, local=False, log=None):
         log.status('Searching AlphaFold database for %d sequence%s'
                    % (len(useqs), _plural(useqs)))
 
-    if local:
-        seq_uniprot_ids = _search_sequences_local(useqs)
-    else:
-        seq_uniprot_ids = _search_sequences_web(useqs)
+    seq_uniprot_ids = _search_sequences_web(useqs)
     seq_uids = [seq_uniprot_ids.get(seq) for seq in sequences]
 
     return seq_uids
 
 def _plural(seq):
     return 's' if len(seq) > 1 else ''
-
-seq_database = '/Users/goddard/ucsf/data/alphafold/sequences/ref_proteomes/alphafold.fasta'
-blat_exe = '/Users/goddard/ucsf/blat/bin/blat'
-def _search_sequences_local(sequences, database_path=seq_database, blat_exe=blat_exe):
-
-    # Make temporary directory for blat input and output files.
-    from tempfile import TemporaryDirectory
-    d = TemporaryDirectory(prefix = 'AlphaFold_Blat')
-    dir = d.name
-    from os.path import join
-    query_path = join(dir, 'query.fasta')
-    blat_output = join(dir, 'blat.out')
-
-    # Write FASTA query file
-    fq = open(query_path, 'w')
-    fq.write(_fasta(sequences))
-    fq.close()
-
-    # Run BLAT
-    args = (blat_exe, database_path, query_path, blat_output, '-out=blast8', '-prot')
-    from subprocess import run
-    status = run(args)
-    if status.returncode != 0:
-        raise RuntimeError('blat failed: %s' % ' '.join(args))
-
-    # Parse blat results
-    seq_uids = _parse_blat_output(blat_output, sequences)
-
-    return seq_uids
-
-def _parse_blat_output(blat_output, sequences):
-
-    f = open(blat_output, 'r')
-    out_lines = f.readlines()
-    f.close()
-    seq_uids = {}
-    for line in out_lines:
-        fields = line.split()
-        s = int(fields[0])
-        seq = sequences[s]
-        if seq not in seq_uids:
-            uniprot_id, uniprot_name = fields[1].split('|')[1:3]
-            qstart, qend, mstart, mend = [int(p) for p in fields[6:10]]
-            useq = UniprotSequence(uniprot_id, uniprot_name,
-                                   (mstart, mend), (qstart, qend))
-            seq_uids[seq] = useq
-
-    return seq_uids
 
 class UniprotSequence:
     def __init__(self, uniprot_id, uniprot_name,
@@ -100,15 +49,6 @@ class UniprotSequence:
     def copy(self):
         return UniprotSequence(self.uniprot_id, self.uniprot_name,
                                self.database_sequence_range, self.query_sequence_range)
-
-def _fasta(sequence_strings, LINELEN=60):
-    lines = []
-    for s,seq in enumerate(sequence_strings):
-        lines.append('>%d' % s)
-        for i in range(0, len(seq), LINELEN):
-            lines.append(seq[i:i+LINELEN])
-        lines.append('')
-    return '\n'.join(lines)
 
 sequence_search_url = 'https://www.rbvi.ucsf.edu/chimerax/cgi-bin/alphafold_search3_cgi.py'
 def _search_sequences_web(sequences, url = sequence_search_url):
