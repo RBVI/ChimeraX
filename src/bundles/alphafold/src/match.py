@@ -434,14 +434,16 @@ def _group_chains_by_structure(seq_models):
 def _log_alphafold_chain_info(alphafold_group_model):
     am = alphafold_group_model
     struct_name = am.name.removesuffix(' AlphaFold')
-    _log_alphafold_chain_table(am.child_models(), struct_name)
+    _log_chain_table(am.child_models(), struct_name)
 
-def _log_alphafold_chain_table(chain_models, match_to_name):
+def _log_chain_table(chain_models, match_to_name, database_name = 'AlphaFold',
+                     database_ids = [('UniProt Name', 'uniprot_name'), ('UniProt Id', 'uniprot_id')]):
     from chimerax.core.logger import html_table_params
-    lines = ['<table %s>' % html_table_params,
+    id_titles = ''.join([f'<th>{title}' for title, attr in database_ids])
+    lines = [f'<table {html_table_params}>',
              '  <thead>',
-             '    <tr><th colspan=7>AlphaFold chains matching %s</th>' % match_to_name,
-             '    <tr><th>Chain<th>UniProt Name<th>UniProt Id<th>RMSD<th>Length<th>Seen<th>% Id',
+             f'    <tr><th colspan=7>{database_name} chains matching {match_to_name}</th>',
+             f'    <tr><th>Chain{id_titles}<th>RMSD<th>Length<th>Seen<th>% Id',
              '  </thead>',
              '  <tbody>',
     ]
@@ -451,10 +453,8 @@ def _log_alphafold_chain_table(chain_models, match_to_name):
         cid = ' '.join(_sel_chain_cmd(m,c.chain_id) for c in m.chains)
         rmsd = ('%.2f' % m.rmsd) if hasattr(m, 'rmsd') else ''
         pct_id = '%.0f' % (100*m.seq_identity) if hasattr(m, 'seq_identity') else 'N/A'
-        uname = getattr(m, 'uniprot_name', '')
-        uid = getattr(m, 'uniprot_id', '')
-        rows.append((cid, uname, uid, rmsd,
-                     m.num_residues, m.num_observed_residues, pct_id))
+        ids = tuple(getattr(m, attr, '') for title, attr in database_ids)
+        rows.append((cid,) + ids + (rmsd, m.num_residues, m.num_observed_residues, pct_id))
 
     # Combine rows that are identical except chain id.
     row_cids = {}
