@@ -246,9 +246,10 @@ SmallMolecule::parse_atom_site()
     double occupancy = NAN;
     int atom_serial = 0;
     char alt_id = 0;
+    string disorder_assembly, disorder_group;
 
     symbol[0] = '\0';
-    pv.reserve(6);
+    pv.reserve(10);
     try {
         pv.emplace_back(get_column("label", Required),
             [&] (const char* start, const char* end) {
@@ -281,28 +282,100 @@ SmallMolecule::parse_atom_site()
                 if (std::isnan(occupancy))
                     occupancy = 1;
             });
+        pv.emplace_back(get_column("disorder_assembly"),
+            [&] (const char* start, const char* end) {
+                disorder_assembly = string(start, end - start);
+                if (disorder_assembly == ".")
+                    disorder_assembly = "";
+            });
+        pv.emplace_back(get_column("disorder_group"),
+            [&] (const char* start, const char* end) {
+                disorder_group = string(start, end - start);
+                if (disorder_group == ".")
+                    disorder_group = "";
+            });
     } catch (std::runtime_error& e) {
         logger::warning(_logger, "Skipping atom_site category: ", e.what());
         return;
     }
+
+    string current_assembly, current_group, first_group;
     compute_cell_matrix();
     molecule = new AtomicStructure(_logger);
     residue = molecule->new_residue("UNK", "A", 1, 0);
+    std::vector<Atom*> alt_atoms;
+    int alt_count = 0;
+    bool alt_warned = false;
+    bool too_many = false;
+    bool skip_group = false;
     while (parse_row(pv)) {
-        Real xyz[3];
-        to_cartesian(fract_xyz, xyz);
+        if (label.empty())
+            continue;
+        if (label[0] == '?' || label[label.size() - 1] == '?') {
+            // skip disordered atoms that don't have disorder_ tags
+            if (!alt_warned) {
+                logger::warning(_logger, "Ignoring alternate atoms locations with ? names near line ", line_number());
+                alt_warned = true;
+            }
+            continue;
+        }
         const Element* elem;
         if (symbol[0])
             elem = &Element::get_element(symbol);
         else {
             elem = &Element::get_element(label.c_str());
         }
-        Atom* a = molecule->new_atom(label.c_str(), *elem);
-        residue->add_atom(a);
-        if (alt_id)
+        bool make_new_atom = true;
+        Atom* a;
+        if (disorder_assembly != current_assembly) {
+            if (disorder_assembly.empty())
+                alt_id = 0;
+            else
+                alt_id = 'A';
+            current_assembly = disorder_assembly;
+            first_group = current_group = disorder_group;
+            alt_atoms.clear();
+        } else if (!disorder_group.empty() && disorder_group != first_group) {
+            if (disorder_group != current_group) {
+                alt_id += 1;
+                alt_count = 0;
+                current_group = disorder_group;
+                too_many = false;
+            } else if (skip_group) {
+                continue;
+            } else {
+                ++alt_count;
+            }
+            if (alt_count >= alt_atoms.size()) {
+                if (!too_many) {
+                    logger::warning(_logger, "More atoms in disorder assembly ", current_assembly,
+                                    " group ", current_group, " than group ", first_group, " near line ", line_number());
+                    too_many = true;
+                }
+                continue;
+            }
+            make_new_atom = false;
+            a = alt_atoms[alt_count];
+            if (a->element() != *elem) {
+                skip_group = true;
+                logger::warning(_logger, "Mismatched alternate atom, skipping rest of disorder assembly ", current_assembly,
+                                " group ", current_group, " near line ", line_number());
+                continue;
+            }
             a->set_alt_loc(alt_id, true);
-        ++atom_serial;
-        a->set_serial_number(atom_serial);
+        }
+        if (make_new_atom) {
+            a = molecule->new_atom(label.c_str(), *elem);
+            residue->add_atom(a);
+            if (alt_id) {
+                a->set_alt_loc(alt_id, true);
+                alt_atoms.push_back(a);
+            }
+            ++atom_serial;
+            a->set_serial_number(atom_serial);
+        }
+        Real xyz[3];
+        to_cartesian(fract_xyz, xyz);
         Coord c(xyz);
         a->set_coord(c);
         if (!std::isnan(occupancy))
@@ -404,7 +477,11 @@ SmallMolecule::parse_geom_bond()
         if (ai == atom_lookup.end())
             continue;
         Atom *a2 = ai->second.first;
-        molecule->new_bond(a1, a2);
+        try {
+            molecule->new_bond(a1, a2);
+        } catch (std::exception&) {
+            ; // probably bond for alternate atoms
+        }
     }
 }
 
