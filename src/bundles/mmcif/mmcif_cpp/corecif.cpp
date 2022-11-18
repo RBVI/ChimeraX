@@ -42,6 +42,10 @@
 #include <math.h>
 #define MIXED_CASE_BUILTIN_CATEGORIES 0
 
+#undef FIGURE_OUT_ALT_ATOMS
+// The atoms that a disordered atom name corresponds to is difficult to figure out
+// Might need graph traversal to merge atoms.  Too hard for now.
+
 using std::string;
 using std::vector;
 using atomstruct::AtomicStructure;
@@ -100,6 +104,9 @@ struct SmallMolecule: public readcif::CIFFile
 
     void compute_cell_matrix();
     void to_cartesian(const double fract_xyz[3], Real xyz[3]);
+#ifdef FIGURE_OUT_ALT_ATOMS
+    Atom* find_alt_atom(const string& name, std::map<string, Atom*>& atoms);
+#endif
 
     vector<Structure*> all_molecules;
     Structure* molecule;
@@ -246,9 +253,10 @@ SmallMolecule::parse_atom_site()
     double occupancy = NAN;
     int atom_serial = 0;
     char alt_id = 0;
+    string disorder_assembly, disorder_group;
 
     symbol[0] = '\0';
-    pv.reserve(6);
+    pv.reserve(10);
     try {
         pv.emplace_back(get_column("label", Required),
             [&] (const char* start, const char* end) {
@@ -281,28 +289,97 @@ SmallMolecule::parse_atom_site()
                 if (std::isnan(occupancy))
                     occupancy = 1;
             });
+        pv.emplace_back(get_column("disorder_assembly"),
+            [&] (const char* start, const char* end) {
+                disorder_assembly = string(start, end - start);
+                if (disorder_assembly == ".")
+                    disorder_assembly = "";
+            });
+        pv.emplace_back(get_column("disorder_group"),
+            [&] (const char* start, const char* end) {
+                disorder_group = string(start, end - start);
+                if (disorder_group == ".")
+                    disorder_group = "";
+            });
     } catch (std::runtime_error& e) {
         logger::warning(_logger, "Skipping atom_site category: ", e.what());
         return;
     }
+
+    string current_assembly, current_group, first_group;
     compute_cell_matrix();
     molecule = new AtomicStructure(_logger);
     residue = molecule->new_residue("UNK", "A", 1, 0);
+#ifdef FIGURE_OUT_ALT_ATOMS
+    std::map<string, Atom*> alt_atoms;
+#else
+    bool alt_warned = false;
+    const char alt_warning[] = "Ignoring alternate atom locations";
+#endif
     while (parse_row(pv)) {
+        if (label.empty())
+            continue;
+#ifdef FIGURE_OUT_ALT_ATOMS
+#else
+        // skip disordered atoms
+        if (label[0] == '?' || label[label.size() - 1] == '?') {
+            if (!alt_warned) {
+                logger::warning(_logger, alt_warning);
+                alt_warned = true;
+            }
+            continue;
+        }
+#endif
+        bool make_new_atom = true;
+        Atom* a;
+        if (disorder_assembly != current_assembly) {
+            if (disorder_assembly.empty())
+                alt_id = 0;
+            else
+                alt_id = 'A';
+            current_assembly = disorder_assembly;
+            first_group = current_group = disorder_group;
+#ifdef FIGURE_OUT_ALT_ATOMS
+            alt_atoms.clear();
+#endif
+        } else if (!disorder_group.empty() && disorder_group != first_group) {
+#ifdef FIGURE_OUT_ALT_ATOMS
+            if (disorder_group != current_group) {
+                alt_id += 1;
+                current_group = disorder_group;
+            }
+            a = find_alt_atom(label, alt_atoms);
+            make_new_atom = a == nullptr;
+            if (!make_new_atom)
+                a->set_alt_loc(alt_id, true);
+#else
+            if (!alt_warned) {
+                logger::warning(_logger, alt_warning);
+                alt_warned = true;
+            }
+            continue;
+#endif
+        }
+        if (make_new_atom) {
+            const Element* elem;
+            if (symbol[0])
+                elem = &Element::get_element(symbol);
+            else {
+                elem = &Element::get_element(label.c_str());
+            }
+            a = molecule->new_atom(label.c_str(), *elem);
+            residue->add_atom(a);
+            if (alt_id) {
+                a->set_alt_loc(alt_id, true);
+#ifdef FIGURE_OUT_ALT_ATOMS
+                alt_atoms.emplace(label, a);
+#endif
+            }
+            ++atom_serial;
+            a->set_serial_number(atom_serial);
+        }
         Real xyz[3];
         to_cartesian(fract_xyz, xyz);
-        const Element* elem;
-        if (symbol[0])
-            elem = &Element::get_element(symbol);
-        else {
-            elem = &Element::get_element(label.c_str());
-        }
-        Atom* a = molecule->new_atom(label.c_str(), *elem);
-        residue->add_atom(a);
-        if (alt_id)
-            a->set_alt_loc(alt_id, true);
-        ++atom_serial;
-        a->set_serial_number(atom_serial);
         Coord c(xyz);
         a->set_coord(c);
         if (!std::isnan(occupancy))
@@ -404,7 +481,11 @@ SmallMolecule::parse_geom_bond()
         if (ai == atom_lookup.end())
             continue;
         Atom *a2 = ai->second.first;
-        molecule->new_bond(a1, a2);
+        try {
+            molecule->new_bond(a1, a2);
+        } catch (std::exception&) {
+            ; // probably bond for alternate atoms
+        }
     }
 }
 
@@ -451,6 +532,37 @@ SmallMolecule::to_cartesian(const double fract_xyz[3], Real xyz[3])
         for (auto j = 0; j < 3; ++j)
             xyz[i] += fract_xyz[i] * cell[i][j];
 }
+
+#ifdef FIGURE_OUT_ALT_ATOMS
+Atom*
+SmallMolecule::find_alt_atom(const string& name, std::map<string, Atom*>& atoms)
+{
+    // Try to find common atom name:
+    // Could be CC12 -> C12, or C12A -> C12, or CB51 -> C151
+    // TODO: last case doesn't work
+    string atom_name;
+    Atom *a;
+
+    // First try by stripping trailing character: C15C -> C15
+    atom_name = name.substr(0, name.size() - 1);
+    auto ai = atoms.find(atom_name);
+    if (ai != atoms.end())
+        return ai->second;
+
+    // Next try stripping last character before digits: CC15 -> C15
+    int i;
+    for (i = 0; i < name.size(); ++i)
+        if (isdigit(name[i]))
+            break;
+    if (i == name.size() || i <= 1)
+        return nullptr;
+    atom_name = name.substr(0, i - 1) + name.substr(i);
+    ai = atoms.find(atom_name);
+    if (ai != atoms.end())
+        return ai->second;
+    return nullptr;
+}
+#endif
 
 static PyObject*
 structure_pointers(SmallMolecule &e)
