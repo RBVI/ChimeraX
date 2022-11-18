@@ -16,8 +16,7 @@ from chimerax.core.tools import ToolInstance
 class AddChargeTool(ToolInstance):
 
     SESSION_SAVE = False
-    #help ="help:user/tools/addhydrogens.html"
-    help = None
+    help ="help:user/tools/addcharges.html"
 
     def __init__(self, session, tool_name, *, dock_prep_info=None):
         ToolInstance.__init__(self, session, tool_name)
@@ -155,8 +154,7 @@ class AddChargeTool(ToolInstance):
 class AddNonstandardChargesTool(ToolInstance):
 
     SESSION_SAVE = False
-    #help ="help:user/tools/addhydrogens.html"
-    help = None
+    help ="help:user/tools/addcharges.html#nonstandard"
 
     def __init__(self, session, tool_name, non_std_info, *, dock_prep_info=None, main_params=None):
         ToolInstance.__init__(self, session, tool_name)
