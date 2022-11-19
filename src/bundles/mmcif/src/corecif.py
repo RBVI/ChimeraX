@@ -48,18 +48,18 @@ def open_corecif(session, path, file_name=None, auto_style=True, log_info=True, 
     info = ''
     for model in models:
         model.is_corecif = True	 # Indicates metadata is from corecif.
-        continue
-        # TODO
         from . import mmcif
-        struct = mmcif.get_mmcif_tables_from_metadata(model, ["struct"])[0]
-        if not struct:
+        chem = mmcif.get_mmcif_tables_from_metadata(model, ["chemical_formula"])[0]
+        if not chem:
             continue
         try:
-            title = struct.fields(['title'])[0][0]
+            title = chem.fields(['sum'])[0][0]
         except mmcif.TableMissingFieldsError:
             continue
         from chimerax.pdb import process_chem_name
         model.html_title = process_chem_name(title, sentences=True)
+        model.has_formatted_metadata = lambda ses: False
+        continue
         model.has_formatted_metadata = lambda ses: True
         # use proxy to avoid circular ref
         from weakref import proxy
