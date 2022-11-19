@@ -69,22 +69,28 @@ def add_standard_charges(session, residues=None, *, status=None, standardize_res
     from chimerax.std_commands.defattr import defattr
     defattr(session, attr_file, restriction=structures, summary=False)
 
+    """
     if status:
         status("Checking phosphorylation of chain-terminal nucleic acids")
     for r in residues:
         amber_name = getattr(r, 'amber_name', "UNK")
         if len(amber_name) != 3 or amber_name[0] not in 'DR' or amber_name[1] not in 'ACGTU':
             # not typed as chain terminal
+            print(r, f"not typed as terminal ({amber_name})")
             continue
         p = r.find_atom('P')
         if not p:
+            print("no P in", r)
             continue
         for nb in p.neighbors:
             if nb.residue != r:
+                print("cross-residue P in", r)
                 break
         else:
-            # 5' phosphate (i.e. not standard); treat as not chain-terminal
-            r.amber_name = r.amber_name[:2]
+            # 5' phosphate (i.e. not standard)
+            print("changing", r.amber_name, "to",  r.amber_name + "PP")
+            r.amber_name = r.amber_name + "PP"
+    """
 
     if status:
         status("Adding standard charges")
@@ -116,6 +122,7 @@ def add_standard_charges(session, residues=None, *, status=None, standardize_res
             try:
                 a.charge, a.gaff_type = heavy_charge_type_data[(a.residue.amber_name, a.name.lower())]
             except KeyError:
+                print(a.residue, a.residue.amber_name)
                 raise ChargeError("Nonstandard name for heavy atom %s" % a)
         if r.name == 'UNK' and r.amber_name == "ALA":
             # we treat actual polymeric UNK residues as ALA, so that chains of
