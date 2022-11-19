@@ -7,7 +7,7 @@ match mode: 1-to-1
 	/B:2@O4'	os
 	/B:2@OP1	o
 	/B:2@P	p5
-	/B:2@C2'	c1
+	/B:2@C2'	c3
 	/B:2@O5'	os
 	/B:2@O3'	oh
 	/B:2@C1'	c3
@@ -67,3 +67,5 @@ match mode: 1-to-1
 	/A:2@HO3'	ho
 	/A:2@OP3	o
 	/B:2@OP3	o
+	/B:2@H2'	hc
+	/B:2@H2''	hc

@@ -365,14 +365,18 @@ def estimate_net_charge(atoms):
     rings = set()
     subs = {}
     for a in atoms:
+        print(a, a.idatm_type)
         if len(a.bonds) == 0:
             if a.element.is_alkali_metal:
+                print("alkali metal")
                 charge_total += 2
                 continue
             if a.element.is_metal:
+                print("metal")
                 charge_total += 4
                 continue
             if a.element.is_halogen:
+                print("halogen")
                 charge_total -= 2
                 continue
         from chimerax.atomic.idatm import type_info
@@ -383,6 +387,8 @@ def estimate_net_charge(atoms):
         else:
             # missing/additional protons
             charge_total += 2 * (a.num_bonds - subs[a])
+            if a.num_bonds - subs[a]:
+                print("missing bonds")
         a_rings = a.rings()
         rings.update([ar for ar in a_rings if ar.aromatic])
         if a.idatm_type == "C2" and not a_rings:
@@ -392,6 +398,7 @@ def estimate_net_charge(atoms):
                     break
             else:
                 # all ring neighbors in aromatic rings
+                print("neighbors aromatic")
                 charge_total += 2
         try:
             info = charge_info[a.idatm_type]
@@ -399,8 +406,10 @@ def estimate_net_charge(atoms):
             continue
         if type(info) == int:
             charge_total += info
+            print("charge info:", info)
         else:
             charge_total += info(a)
+            print("charge info:", info(a))
     for ring in rings:
         # since we are only handling aromatic rings, any non-ring bonds are presumably single bond
         # (or matched aromatic bonds)
@@ -414,6 +423,7 @@ def estimate_net_charge(atoms):
                 electrons += 1
         if electrons % 2 == 1:
             charge_total += 2
+            print("ring charge")
     return charge_total // 2
 
 
