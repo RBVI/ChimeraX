@@ -173,9 +173,8 @@ and <a href="../atomtypes.html">atom types</a> can be edited
 with <a href="../commands/setattr.html"><b>setattr</b></a>
 or <a href="buildstructure.html"><b>Build Structure</b></a>.
 </p><p>
-A warning will appear if the name of any atom in a standard residue
-is not recognized or a model's net charge is not an integer;
-details will be reported in the <a href="log.html"><b>Log</b></a>.
+An unrecognized atom name in a standard residue will cause an error,
+and if the net charge of a model is not an integer, a warning will be issued.
 Cases of unrecognized atoms in standard residues and/or incorrect net charges
 should be examined and resolved.
 </p><p>
@@ -193,10 +192,12 @@ for example:
 <p>
 Note that chain-terminal nucleotide residues will normally
 have non-integral charges, but the 5' and 3' charges sum to an integer.
+<!--
 If a nucleic acid chain has a 5'-terminal phosphate,
 the user will be asked whether this group should be deleted;
 otherwise, its atoms will be assigned charges of zero
 (the charge sets lack parameters for 5' phosphates).
+-->
 </p><p>
 Atoms can be labeled with their partial charges by using the menu
 (<a href="../menu.html#actlabel"><b>Actions...  Label... Atoms... 

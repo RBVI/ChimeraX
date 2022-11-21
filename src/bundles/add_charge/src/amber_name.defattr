@@ -376,3 +376,20 @@ recipient: residues
 
 	::amber_name="RU5"@ho3'	RUN
 
+# special handling of non-standard phosphorylated 5' terminus
+	::amber_name="DA"@op3	DA5PP
+
+	::amber_name="DC"@op3	DC5PP
+
+	::amber_name="DG"@op3	DG5PP
+
+	::amber_name="DT"@op3	DT5PP
+
+	::amber_name="RA"@op3	RA5PP
+
+	::amber_name="RC"@op3	RC5PP
+
+	::amber_name="RG"@op3	RG5PP
+
+	::amber_name="RU"@op3	RU5PP
+
