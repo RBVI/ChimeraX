@@ -93,8 +93,8 @@ def _log_chain_info(models, align_to_name):
         def _show_chain_table(session, m=m):
             from chimerax.atomic import AtomicStructure
             AtomicStructure.added_to_session(m, session)
-            from .match import _log_alphafold_chain_table
-            _log_alphafold_chain_table([m], align_to_name)
+            from .match import _log_chain_table
+            _log_chain_table([m], align_to_name)
         m.added_to_session = _show_chain_table
         m._log_info = False   # Don't show standard chain table
 

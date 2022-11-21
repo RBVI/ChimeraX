@@ -92,6 +92,7 @@ struct SmallMolecule: public readcif::CIFFile
     virtual void reset_parse();
     virtual void finished_parse();
 
+    void parse_chemical_formula();
     void parse_cell();
     void parse_atom_site();
     void parse_atom_site_aniso();
@@ -120,6 +121,10 @@ const char* SmallMolecule::builtin_categories[] = {
 SmallMolecule::SmallMolecule(PyObject* logger, const StringVector& generic_categories):
     _logger(logger)
 {
+    register_category("chemical_formula",
+        [this] () {
+            parse_chemical_formula();
+        });
     register_category("cell",
         [this] () {
             parse_cell();
@@ -197,6 +202,29 @@ SmallMolecule::finished_parse()
     molecule->metadata = generic_tables;
     molecule->use_best_alt_locs();
     all_molecules.push_back(molecule);
+}
+
+void
+SmallMolecule::parse_chemical_formula()
+{
+    CIFFile::ParseValues pv;
+    string sum;
+
+    pv.reserve(2);
+    try {
+        pv.emplace_back(get_column("sum"),
+            [&] (const char* start, const char* end) {
+                sum = string(start, end - start);
+            });
+    } catch (std::runtime_error& e) {
+        logger::warning(_logger, "Skipping chemical_formula category: ", e.what());
+        return;
+    }
+    parse_row(pv);
+    if (!sum.empty()) {
+        generic_tables["chemical_formula"] = { "chemical_formula", "sum" };
+        generic_tables["chemical_formula data"] = { sum };
+    }
 }
 
 void
@@ -302,7 +330,7 @@ SmallMolecule::parse_atom_site()
     string current_assembly, current_group, first_group;
     compute_cell_matrix();
     molecule = new AtomicStructure(_logger);
-    residue = molecule->new_residue("UNK", "A", 1, 0);
+    residue = molecule->new_residue("UNK", "A", 1);
     std::vector<Atom*> alt_atoms;
     int alt_count = 0;
     bool alt_warned = false;

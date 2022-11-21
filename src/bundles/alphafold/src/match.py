@@ -30,16 +30,13 @@ def alphafold_match(session, sequences, color_confidence=True, trim = True,
 
     # Use UniProt identifiers in file metadata to get AlphaFold models.
     seq_models = _fetch_by_uniprot_id(session, sequences, color_confidence=color_confidence,
-                                      trim=trim, local=(search == 'local'), log=log,
-                                      ignore_cache=ignore_cache)
+                                      trim=trim, log=log, ignore_cache=ignore_cache)
 
     # Try sequence search if some sequences were not found by UniProt identifier.
     if search:
         search_seqs = [seq for seq in sequences if seq not in seq_models]
-        search_seq_models = _fetch_by_sequence(session, search_seqs,
-                                               color_confidence=color_confidence,
-                                               trim=trim, local=(search == 'local'),
-                                               log=log, ignore_cache=ignore_cache)
+        search_seq_models = _fetch_by_sequence(session, search_seqs, color_confidence=color_confidence,
+                                               trim=trim, log=log, ignore_cache=ignore_cache)
         seq_models.update(search_seq_models)
 
     # Report sequences with no AlphaFold model
@@ -65,7 +62,7 @@ def alphafold_match(session, sequences, color_confidence=True, trim = True,
     return mlist
 
 def _fetch_by_uniprot_id(session, sequences, color_confidence = True, trim = True,
-                         local = False, ignore_cache = False, log = None):
+                         ignore_cache = False, log = None):
     # Get Uniprot ids from mmCIF or PDB file metadata
     sequence_uids = _sequence_uniprot_ids(sequences)
     seq_models, missing_uids = _alphafold_models(session, sequence_uids,
@@ -85,14 +82,14 @@ def _fetch_by_uniprot_id(session, sequences, color_confidence = True, trim = Tru
     return seq_models
 
 def _fetch_by_sequence(session, sequences, color_confidence = True, trim = True,
-                       local = False, ignore_cache = False, log = None):
+                       ignore_cache = False, log = None):
 
     from .search import alphafold_sequence_search, SearchError
     seq_strings = [seq.characters for seq in sequences]
     if [seq for seq in seq_strings if len(seq) < 20]:
         log.warning('Cannot search short sequences less than 20 amino acids')
     try:
-        match_uids = alphafold_sequence_search(seq_strings, local = local, log = log)
+        match_uids = alphafold_sequence_search(seq_strings, log = log)
     except SearchError as e:
         log.error(str(e))
         return {}

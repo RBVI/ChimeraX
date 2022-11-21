@@ -662,14 +662,7 @@ CIFFile::internal_parse(bool one_table)
 					for (auto& c: category)
 						c = tolower(c);
 #endif
-					sep = current_category.size();
-					if (category.substr(0, sep) == current_category
-					&& category[sep] == '_') {
-						category = current_category;
-#ifdef CASE_INSENSITIVE
-						category_cp = current_category_cp;
-#endif
-					} else for (;;) {
+					for (;;) {
 						sep = category.rfind('_');
 						if (sep == string::npos)
 							break;

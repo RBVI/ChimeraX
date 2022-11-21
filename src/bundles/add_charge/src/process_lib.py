@@ -46,8 +46,7 @@ def get_heavy_synonyms(resid, heavy):
         return cterm_heavy_synonyms.get(heavy, [])
     return heavy_synonyms.get(heavy, [])
 
-heavy_data = {}
-hyd_data = {}
+from .5p_data import heavy_data, hyd_data
 for lib in sys.argv[1:]:
     f = open(lib, "r")
     seen = set()
