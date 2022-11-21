@@ -79,6 +79,7 @@ See also:
 [&nbsp;<a href="#colorConfidence"><b>colorConfidence</b></a>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<a href="#ignoreCache"><b>ignoreCache</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<a href="#pae"><b>pae</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<a href="#version"><b>version</b></a>&nbsp;&nbsp;<b>0</b>&nbsp;]
 </blockquote>
 <ul>
 <li>The <b>esmfold fetch</b> command retrieves the model (if available)
@@ -249,6 +250,16 @@ as part of the superposition step.
 Using <b>trim false</b> indicates retaining the full-length models
 of the sequences, which could be longer. 
 </blockquote>
+<blockquote>
+<a name="version"></a>
+<b>version</b>&nbsp;&nbsp;<b>0</b>
+<br>
+Currently there is only one version of the 
+<a href="https://esmatlas.com/about#about_this_website"
+target="_blank">ESM Metagenomic Atlas</a>
+to use with <a href="#fetch"><b>esmfold fetch</b></a> and
+<a href="#pae"><b>esmfold pae</b></a>.
+</blockquote>
 
 <a name="predict"></a>
 <p class="nav">
@@ -361,6 +372,7 @@ or the command <b>esmfold pae</b>:
 [&nbsp;<b>connectMaxPae</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
 [&nbsp;<b>cluster</b>&nbsp;&nbsp;<i>resolution</i>&nbsp;]
 [&nbsp;<b>dividerLines</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<a href="#version"><b>version</b></a>&nbsp;&nbsp;<b>0</b>&nbsp;]
 </blockquote>
 <p>
 With <b>esmfold pae</b>, the matrix of PAE values can be either:
@@ -373,7 +385,10 @@ where <i>mgnify-id</i> can be obtained by
 <a href="https://esmatlas.com/resources?action=search_sequence"
 target="_blank">sequence search at the ESM Metagenomic Atlas</a>
 <br>&ndash; or &ndash;
-<li>a json or pkl file from ESMFold specified with the <b>file</b> option.
+<li>a json file from ESMFold 
+(<i>e.g.</i>, obtained by URL such as
+<a href="https://api.esmatlas.com/fetchConfidencePrediction/MGYP002537940442"
+target="_blank">https://api.esmatlas.com/fetchConfidencePrediction/MGYP002537940442</a>) specified with the <b>file</b> option.
 The <i>filename</i> is generally a pathname to a local file, 
 either absolute or relative to the current working directory as reported by 
 <a href="pwd.html"><b>pwd</b></a>. Substituting the word 
