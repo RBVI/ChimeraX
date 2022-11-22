@@ -30,16 +30,17 @@ def alphafold_match(session, sequences, color_confidence=True, trim = True,
 
     # Use UniProt identifiers in file metadata to get AlphaFold models.
     seq_models = _fetch_by_uniprot_id(session, sequences, color_confidence=color_confidence,
-                                      trim=trim, local=(search == 'local'), log=log,
-                                      ignore_cache=ignore_cache)
+                                      trim=trim, log=log, ignore_cache=ignore_cache)
 
     # Try sequence search if some sequences were not found by UniProt identifier.
     if search:
+        from .fetch import alphafold_fetch
+        from .search import alphafold_sequence_search
         search_seqs = [seq for seq in sequences if seq not in seq_models]
         search_seq_models = _fetch_by_sequence(session, search_seqs,
-                                               color_confidence=color_confidence,
-                                               trim=trim, local=(search == 'local'),
-                                               log=log, ignore_cache=ignore_cache)
+                                               color_confidence=color_confidence, trim=trim,
+                                               sequence_search=alphafold_sequence_search,
+                                               fetch=alphafold_fetch, ignore_cache=ignore_cache, log=log)
         seq_models.update(search_seq_models)
 
     # Report sequences with no AlphaFold model
@@ -58,41 +59,42 @@ def alphafold_match(session, sequences, color_confidence=True, trim = True,
     if pae:
         for seq,models in seq_models.items():
             for m in models:
-                if hasattr(m, 'uniprot_id'):
-                    from .pae import alphafold_pae
-                    alphafold_pae(session, structure = m, uniprot_id = m.uniprot_id)
+                from .pae import alphafold_pae
+                alphafold_pae(session, structure = m, uniprot_id = m.database.id,
+                              version = m.database.version)
 
     return mlist
 
 def _fetch_by_uniprot_id(session, sequences, color_confidence = True, trim = True,
-                         local = False, ignore_cache = False, log = None):
+                         ignore_cache = False, log = None):
     # Get Uniprot ids from mmCIF or PDB file metadata
     sequence_uids = _sequence_uniprot_ids(sequences)
-    seq_models, missing_uids = _alphafold_models(session, sequences, sequence_uids,
-                                                 color_confidence=color_confidence, trim=trim,
-                                                 ignore_cache=ignore_cache)
+    from .fetch import alphafold_fetch
+    seq_models, missing_uids = _database_models(session, sequence_uids,
+                                                color_confidence=color_confidence, trim=trim,
+                                                fetch=alphafold_fetch, ignore_cache=ignore_cache)
     if missing_uids:
         log.warning('%d UniProt id%s'
                     % (len(missing_uids), _plural(missing_uids)) +
                     (' do not have AlphaFold database models: ' if len(missing_uids) > 1 else
                      ' does not have an AlphaFold database model: ') +
-                    _uniprot_sequences_description(missing_uids))
+                    _id_and_sequences_description(missing_uids))
     if seq_models:
-        uid_seqs = _uniprot_sequences(seq_models)
+        uid_seqs = _sequences_by_id(seq_models)
         log.info('%d AlphaFold model%s found using UniProt identifier%s: %s'
                  % (len(uid_seqs), _plural(uid_seqs), _plural(uid_seqs),
-                    _uniprot_sequences_description(uid_seqs)))
+                    _id_and_sequences_description(uid_seqs)))
     return seq_models
 
 def _fetch_by_sequence(session, sequences, color_confidence = True, trim = True,
-                       local = False, ignore_cache = False, log = None):
+                       sequence_search = None, fetch = None, ignore_cache = False, log = None):
 
-    from .search import alphafold_sequence_search, SearchError
+    from .search import SearchError
     seq_strings = [seq.characters for seq in sequences]
     if [seq for seq in seq_strings if len(seq) < 20]:
         log.warning('Cannot search short sequences less than 20 amino acids')
     try:
-        match_uids = alphafold_sequence_search(seq_strings, local = local, log = log)
+        match_uids = sequence_search(seq_strings, log = log)
     except SearchError as e:
         log.error(str(e))
         return {}
@@ -104,65 +106,66 @@ def _fetch_by_sequence(session, sequences, color_confidence = True, trim = True,
             uid.chain_id = seq.chain_id
 
     seq_models, missing_uids = \
-        _alphafold_models(session, sequences, seq_uids,
-                          color_confidence=color_confidence, trim=trim,
-                          ignore_cache=ignore_cache)
+        _database_models(session, seq_uids,
+                         color_confidence=color_confidence, trim=trim,
+                         fetch=fetch, ignore_cache=ignore_cache)
+
     if missing_uids and log:
         missing_names = ', '.join('%s (%s)' % (uid, _sequences_description(seqs))
                                   for uid,seqs in missing_uids.items())
-        log.warning('Sequence search found %d UniProt id%s'
-                    % (len(missing_uids), _plural(missing_uids)) +
-                    ' that do not have AlphaFold database models: %s' % missing_names)
+        db_name = seg_uids[0][1].database
+        log.warning('Sequence search found %d %s id%s'
+                    % (len(missing_uids), db_name, _plural(missing_uids)) +
+                    ' that do not have %s database models: %s' % (db_name, missing_names))
     if seq_models and log:
-        uid_seqs = _uniprot_sequences(seq_models)
-        log.info('%d AlphaFold model%s found using sequence similarity searches: %s'
-                 % (len(uid_seqs), _plural(uid_seqs), _uniprot_sequences_description(uid_seqs)))
+        uid_seqs = _sequences_by_id(seq_models)
+        db_name = seq_uids[0][1].database
+        log.info('%d %s model%s found using sequence similarity searches: %s'
+                 % (len(uid_seqs), db_name, _plural(uid_seqs), _id_and_sequences_description(uid_seqs)))
 
     return seq_models
 
-def _alphafold_models(session, sequences, seq_uids, color_confidence=True, trim=True,
-                      ignore_cache=False):
+def _database_models(session, sequence_database_ids, color_confidence=True, trim=True,
+                     fetch=None, ignore_cache=False):
     seq_models = {}
     missing = {}
     from chimerax.core.errors import UserError
-    from .fetch import alphafold_fetch
     from chimerax.atomic import Chain
-    for seq, uid in seq_uids:
-        if uid.uniprot_id in missing:
-            missing[uid.uniprot_id].append(seq)
+    for seq, db_id in sequence_database_ids:
+        if db_id.id in missing:
+            missing[db_id.id].append(seq)
             continue
-        db_version = getattr(uid, 'alphafold_database_version', None)
         try:
-            models, status = alphafold_fetch(session, uid.uniprot_id,
-                                             version = db_version,
-                                             color_confidence=color_confidence,
-                                             add_to_session=False,
-                                             in_file_history=(len(seq_uids)==1),
-                                             ignore_cache=ignore_cache)
+            models, status = fetch(session, db_id.id,
+                                   version = db_id.version,
+                                   color_confidence=color_confidence,
+                                   add_to_session=False,
+                                   in_file_history=(len(sequence_database_ids)==1),
+                                   ignore_cache=ignore_cache)
         except UserError as e:
             if not str(e).endswith('Not Found'):
                 session.logger.warning(str(e))
-            missing[uid.uniprot_id] = [seq]
+            missing[db_id.id] = [seq]
             models = []
-        _set_alphafold_model_attributes(models, uid.uniprot_id, uid.uniprot_name)
-        for alphafold_model in models:
-            alphafold_model._log_info = False          # Don't log chain tables
-            seq_match = getattr(uid, 'range_from_sequence_match', False)
-            if trim and not seq_match and uid.database_sequence_range:
-                _trim_sequence(alphafold_model, uid.database_sequence_range)
+        _set_model_database_info(models, db_id)
+        for database_model in models:
+            database_model._log_info = False          # Don't log chain tables
+            seq_range = getattr(db_id, 'database_sequence_range', None)
+            if trim and seq_range:
+                _trim_sequence(database_model, seq_range)
             if isinstance(seq, Chain):
-                _rename_chains(alphafold_model, [seq.chain_id])
-                _align_to_chain(alphafold_model, seq, use_dssp = False)
+                _rename_chains(database_model, [seq.chain_id])
+                _align_to_chain(database_model, seq, use_dssp = False)
             else:
-                _log_sequence_similarity(alphafold_model, seq)
-            if trim and seq_match:
-                seq_range = getattr(alphafold_model, 'seq_match_range', None)
+                _log_sequence_similarity(database_model, seq)
+            if trim and seq_range is None:
+                seq_range = getattr(database_model, 'seq_match_range', None)
                 if seq_range:
-                    _trim_sequence(alphafold_model, seq_range)
-            uname = getattr(uid, 'uniprot_name', '') or uid.uniprot_id
-            alphafold_model.name = 'AlphaFold %s' % uname
+                    _trim_sequence(database_model, seq_range)
+            uname = db_id.name or db_id.id
+            database_model.name = f'{db_id.database} {uname}'
             if isinstance(seq, Chain):
-                alphafold_model.name += ' chain %s' % seq.chain_id
+                database_model.name += ' chain %s' % seq.chain_id
         if models:
             if seq in seq_models:
                 seq_models[seq].extend(models)
@@ -171,18 +174,12 @@ def _alphafold_models(session, sequences, seq_uids, color_confidence=True, trim=
 
     return seq_models, missing
 
-def _set_alphafold_model_attributes(models, uniprot_id = None, uniprot_name = None):
+def _set_model_database_info(models, database_entry_id):
     for model in models:
-        model.alphafold = True
+        model.database = database_entry_id
         # Save attribute in sessions
         from chimerax.atomic import AtomicStructure
-        AtomicStructure.register_attr(model.session, "alphafold", "AlphaFold", attr_type=bool)
-        if uniprot_id:
-            model.uniprot_id = uniprot_id
-            AtomicStructure.register_attr(model.session, "uniprot_id", "AlphaFold", attr_type=str)
-        if uniprot_name:
-            model.uniprot_name = uniprot_name
-            AtomicStructure.register_attr(model.session, "uniprot_name", "AlphaFold", attr_type=str)
+        AtomicStructure.register_attr(model.session, 'database', database_entry_id.database)
 
 def _trim_sequence(structure, sequence_range):
     seq_start, seq_end = sequence_range
@@ -336,13 +333,15 @@ def _sequence_uniprot_ids(sequences):
         for u in uniprot_ids(structure):
             chain = id_to_chain.get(u.chain_id)
             if chain:
-                seq_uids.append((chain, u))
+                from .search import DatabaseEntryId
+                uid = DatabaseEntryId(u.uniprot_id, name = u.uniprot_name)
+                uid.database_sequence_range = u.database_sequence_range
+                seq_uids.append((chain, uid))
     for seq in sequences:
         if hasattr(seq, 'uniprot_accession'):
-            from .search import UniprotSequence
-            u = UniprotSequence(seq.uniprot_accession, getattr(seq, 'uniprot_name', None),
-                                None, None)
-            seq_uids.append((seq, u))
+            from .search import DatabaseEntryId
+            uid = DatabaseEntryId(seq.uniprot_accession, name = getattr(seq, 'uniprot_name', None))
+            seq_uids.append((seq, uid))
     return seq_uids
 
 def _chains_by_structure(sequences):
@@ -357,25 +356,25 @@ def _chains_by_structure(sequences):
                 struct_chains[s] = [chain]
     return struct_chains
 
-def _uniprot_sequences_description(uniprot_sequences):
-    info = ', '.join('%s (%s)' % (uid, _sequences_description(seqs))
-                     for uid,seqs in uniprot_sequences.items())
+def _id_and_sequences_description(id_sequences):
+    info = ', '.join('%s (%s)' % (id, _sequences_description(seqs))
+                     for id,seqs in id_sequences.items())
     return info
 
-def _uniprot_sequences(seq_models):
-    uc = {}
+def _sequences_by_id(seq_models):
+    id_to_seqs = {}
     for seq, models in seq_models.items():
         for model in models:
-            uid = model.uniprot_id
-            if uid in uc:
-                uc[uid].append(seq)
+            uid = model.database.id
+            if uid in id_to_seqs:
+                id_to_seqs[uid].append(seq)
             else:
-                uc[uid] = [seq]
-    return uc
+                id_to_seqs[uid] = [seq]
+    return id_to_seqs
 
 def _sequences_description(seqs):
     from chimerax.atomic import Chain
-    cids, uids, nseq = [], [], 0
+    cids, uids, mgids, nseq = [], [], [], 0
     for seq in seqs:
         if isinstance(seq, Chain):
             cids.append(seq.chain_id)
@@ -383,6 +382,8 @@ def _sequences_description(seqs):
             uids.append(seq.uniprot_name)
         elif hasattr(seq, 'uniprot_accession'):
             uids.append(seq.uniprot_accession)
+        elif hasattr(seq, 'mgnify_accession'):
+            mgids.append(seq.mgnify_accession)
         else:
             nseq += 1
     items = []
@@ -390,6 +391,8 @@ def _sequences_description(seqs):
         items.append('chain%s %s' % (_plural(cids), ','.join(cids)))
     if uids:
         items.append('UniProt %s' % ', '.join(uids))
+    if mgids:
+        items.append('MGnify %s' % ', '.join(mgids))
     if nseq > 0:
         items.append('%d sequences' % nseq)
     descrip = ', '.join(items)
@@ -419,9 +422,10 @@ def _group_chains_by_structure(seq_models):
     mlist = []
     nmodels = 0
     for structure, models in struct_models.items():
+        database_name = models[0].database.database	# 'AlphaFold'
         from chimerax.core.models import Model
-        group = Model('%s AlphaFold' % structure.name, structure.session)
-        group.added_to_session = lambda session, g=group: _log_alphafold_chain_info(g)
+        group = Model(f'{structure.name} {database_name}', structure.session)
+        group.added_to_session = lambda session, g=group: _log_chain_info(g)
         group.add(models)
         mlist.append(group)
         nmodels += len(models)
@@ -431,17 +435,31 @@ def _group_chains_by_structure(seq_models):
 
     return mlist, nmodels
 
-def _log_alphafold_chain_info(alphafold_group_model):
-    am = alphafold_group_model
-    struct_name = am.name.removesuffix(' AlphaFold')
-    _log_alphafold_chain_table(am.child_models(), struct_name)
+def _log_chain_info(group_model):
+    models = group_model.child_models()
+    if models:
+        database_name = models[0].database.database
+        struct_name = group_model.name.removesuffix(' ' + database_name)
+        _log_chain_table(models, struct_name)
 
-def _log_alphafold_chain_table(chain_models, match_to_name):
+def _log_chain_table(chain_models, match_to_name, prediction_method = None):
+    db = getattr(chain_models[0], 'database', None)
+    if db:
+        db_name = db.database
+        id_titles = f'<th>{db.id_type} Id'
+        use_db_name = (db.name is not None)
+        if use_db_name:
+            id_titles += f'<th>{db.id_type} Name'
+    else:
+        db_name = prediction_method if prediction_method else ''
+        id_titles = ''
+
+
     from chimerax.core.logger import html_table_params
-    lines = ['<table %s>' % html_table_params,
+    lines = [f'<table {html_table_params}>',
              '  <thead>',
-             '    <tr><th colspan=7>AlphaFold chains matching %s</th>' % match_to_name,
-             '    <tr><th>Chain<th>UniProt Name<th>UniProt Id<th>RMSD<th>Length<th>Seen<th>% Id',
+             f'    <tr><th colspan=7>{db_name} prediction matching {match_to_name}</th>',
+             f'    <tr><th>Chain{id_titles}<th>RMSD<th>Length<th>Seen<th>% Id',
              '  </thead>',
              '  <tbody>',
     ]
@@ -451,10 +469,11 @@ def _log_alphafold_chain_table(chain_models, match_to_name):
         cid = ' '.join(_sel_chain_cmd(m,c.chain_id) for c in m.chains)
         rmsd = ('%.2f' % m.rmsd) if hasattr(m, 'rmsd') else ''
         pct_id = '%.0f' % (100*m.seq_identity) if hasattr(m, 'seq_identity') else 'N/A'
-        uname = getattr(m, 'uniprot_name', '')
-        uid = getattr(m, 'uniprot_id', '')
-        rows.append((cid, uname, uid, rmsd,
-                     m.num_residues, m.num_observed_residues, pct_id))
+        if db:
+            ids = (m.database.id, m.database.name) if use_db_name else (m.database.id,)
+        else:
+            ids = ()
+        rows.append((cid,) + ids + (rmsd, m.num_residues, m.num_observed_residues, pct_id))
 
     # Combine rows that are identical except chain id.
     row_cids = {}
@@ -480,29 +499,18 @@ def _sel_chain_cmd(structure, chain_id):
     spec = '#%s/%s' % (structure.id_string, chain_id)
     return '<a title="Select chain" href="cxcmd:select %s">%s</a>' % (spec, chain_id)
 
-def _log_sequence_similarity(alphafold_model, seq):
+def _log_sequence_similarity(alphafold_model, seq, database_name = 'AlphaFold'):
+    if alphafold_model.num_chains != 1:
+        return
     def _log_info(session, am=alphafold_model, seq=seq):
-        _log_alphafold_sequence_info(am, seq)
+        mname = am.name.removeprefix(database_name + ' ')
+        msg = _similarity_table_html(am.chains[0], seq, mname, database_name = database_name)
+        am.session.logger.info(msg, is_html = True)
         from chimerax.atomic import AtomicStructure
         AtomicStructure.added_to_session(alphafold_model, session)
     alphafold_model.added_to_session = _log_info
 
-def _log_alphafold_sequence_info(alphafold_model, seq):
-    session = alphafold_model.session
-    same_sequence = ((hasattr(alphafold_model, 'uniprot_id')
-                      and hasattr(seq, 'uniprot_accession')
-                      and alphafold_model.uniprot_id == seq.uniprot_accession) or
-                     (hasattr(alphafold_model, 'uniprot_name')
-                      and hasattr(seq, 'uniprot_name')
-                      and alphafold_model.uniprot_name == seq.uniprot_name))
-    chains = alphafold_model.chains
-    if len(chains) == 1 and not same_sequence:
-        mseq = chains[0]
-        mname = alphafold_model.name.removeprefix('AlphaFold ')
-        msg = _similarity_table_html(mseq, seq, mname)
-        session.logger.info(msg, is_html = True)
-
-def _similarity_table_html(mseq, seq, mname):
+def _similarity_table_html(mseq, seq, mname, database_name = 'AlphaFold'):
     from chimerax.alignment_algs.NeedlemanWunsch import nw
     score, (mseq_gapped, seq_gapped) = nw(mseq, seq, return_seqs = True)
     _set_same_sequence_attribute(mseq_gapped, seq_gapped)
@@ -510,10 +518,10 @@ def _similarity_table_html(mseq, seq, mname):
     sc = _sequence_coverage(mseq_gapped, seq_gapped)
     fields = [mname, _sequence_name(seq), '%.1f' % (100*si), '%.1f' % (100*sc)]
     from chimerax.core.logger import html_table_params
-    lines = ['<table %s>' % html_table_params,
+    lines = [f'<table {html_table_params}>',
              '  <thead>',
              '    <tr><th colspan=4>Sequence Similarity',
-             '    <tr><th>AlphaFold Model<th>Query Sequence<th>Identity %<th>Coverage %',
+             f'    <tr><th>{database_name} Model<th>Query Sequence<th>Identity %<th>Coverage %',
              '  </thead>',
              '  <tbody>',
              '\n'.join('    <td style="text-align:center">%s' % field for field in fields),
@@ -529,6 +537,8 @@ def _sequence_name(seq):
         return seq.uniprot_name
     if hasattr(seq, 'uniprot_accession'):
         return seq.uniprot_accession
+    if hasattr(seq, 'mgnify_accession'):
+        return seq.mgnify_accession
     ug = seq.ungapped()
     if len(ug) <= 10:
         return ug

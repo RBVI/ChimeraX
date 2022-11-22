@@ -22,6 +22,9 @@ from .mmcif import (  # noqa
     find_template_residue, load_mmCIF_templates,
     add_citation, add_software,
 )
+from .corecif import (  # noqa
+    open_corecif, fetch_cod, fetch_pcod,
+)
 
 from chimerax.core.toolshed import BundleAPI
 
@@ -58,6 +61,25 @@ class _mmCIFioAPI(BundleAPI):
                 class Info(FetcherInfo):
                     def fetch(self, session, ident, format_name, ignore_cache,
                               fetcher=mmcif.fetch_ccd, **kw):
+                        return fetcher(session, ident, ignore_cache=ignore_cache, **kw)
+            elif name == "Small Molecule CIF":
+                from chimerax.open_command import OpenerInfo
+                from . import corecif
+
+                class Info(OpenerInfo):
+                    def open(self, session, data, file_name, **kw):
+                        return corecif.open_corecif(session, data, file_name, **kw)
+            elif name in ("cod", "pcod"):
+                from chimerax.open_command import FetcherInfo
+                from . import corecif
+                fetcher = {
+                    "cod": corecif.fetch_cod,
+                    "pcod": corecif.fetch_pcod,
+                }[name]
+
+                class Info(FetcherInfo):
+                    def fetch(self, session, ident, format_name, ignore_cache,
+                              fetcher=fetcher, **kw):
                         return fetcher(session, ident, ignore_cache=ignore_cache, **kw)
             else:
                 from chimerax.open_command import FetcherInfo

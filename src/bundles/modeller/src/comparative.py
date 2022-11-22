@@ -157,7 +157,7 @@ def model(session, targets, *, block=True, multichain=True, custom_script=None,
                     template_strings.append(tmp_str)
                     templates_info.append((chain, aseq.match_maps[chain]))
             templates_strings.append(template_strings)
-        target_name = "target" if len(targets) > 1 else target.name
+        target_name = "target" if len(targets) > 1 else targets[0][1].name
     else:
         if len(targets) > 1:
             raise LimitationError("Cannot have multiple targets(/alignments) unless creating multimeric model")

@@ -59,8 +59,7 @@ class BundleBuilder:
         except ValueError as err:
             raise ValueError("%s: %s" % (info_file, err))
         self._make_paths()
-        self._make_setup_arguments()
-   
+
     @classmethod
     def from_path(cls, logger, bundle_path):
         return cls(logger, bundle_path)
@@ -70,6 +69,7 @@ class BundleBuilder:
         # for a single setup() run.  We want to run setup() multiple
         # times which can remove/create the same directories.
         # So we need to flush the cache before each run.
+        self._make_setup_arguments()
         import distutils.dir_util
         try:
             distutils.dir_util._path_created.clear()
@@ -106,6 +106,7 @@ class BundleBuilder:
         # for a single setup() run.  We want to run setup() multiple
         # times which can remove/create the same directories.
         # So we need to flush the cache before each run.
+        self._make_setup_arguments()
         import distutils.dir_util
         try:
             distutils.dir_util._path_created.clear()
@@ -160,6 +161,9 @@ class BundleBuilder:
         self._rmtree(os.path.join(self.path, "src", "__pycache__"))
         self._rmtree(self.egg_info)
         for root, dirnames, filenames in os.walk("src"):
+            # Static libraries
+            for filename in fnmatch.filter(filenames, "*.a"):
+                os.remove(os.path.join(root, filename))
             # Linux, Mac
             for filename in fnmatch.filter(filenames, "*.o"):
                 os.remove(os.path.join(root, filename))

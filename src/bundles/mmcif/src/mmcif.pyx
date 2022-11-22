@@ -30,7 +30,6 @@ _additional_categories = (
     "pdbx_struct_assembly",
     "pdbx_struct_assembly_gen",
     "pdbx_struct_oper_list",
-    "entity",
     "entity_src_gen",
     "entity_src_nat",
     "cell",
@@ -42,7 +41,6 @@ _additional_categories = (
     "citation",
     "citation_author",
     "citation_editor",
-    "chem_comp",
     "database_2",	# EMDB map reference
     "exptl",
     "refine",
@@ -88,6 +86,18 @@ def open_mmcif(session, path, file_name=None, auto_style=True, coordsets=False, 
     try:
         pointers = _mmcif.parse_mmCIF_file(path, categories, log, coordsets, atomic)
     except _mmcif.error as e:
+        error_text = str(e)
+        if 'coreCIF' in error_text:
+            from . import corecif
+            if log is not None:
+                log.info("Not a mmCIF file.  Trying as a small molecule CIF file."
+                    "  Next time use: "
+                    f"<a href='cxcmd:open {path} format corecif'>"
+                    f"open {file_name} format corecif</a>.\n", is_html=True)
+            return corecif.open_corecif(
+                session, path, file_name=file_name,
+                auto_style=auto_style, log_info=log_info
+            )
         raise UserError('mmCIF parsing error: %s' % e)
 
     if file_name is None:
@@ -140,8 +150,7 @@ def open_mmcif(session, path, file_name=None, auto_style=True, coordsets=False, 
         model.get_formatted_res_info = MethodType(_get_formatted_res_info, proxy(model))
         break
     if log is not None and not models:
-        log.warning("No mmCIF models found.  Perhaps this is a small-molecule CIF file?\n"
-                "Unfortunately, they are not supported at this time.\n")
+        log.warning("No mmCIF models found.\n")
     return models, info
 
 

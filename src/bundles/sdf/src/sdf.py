@@ -266,22 +266,24 @@ def read_data_line(s, state, reading_data, line, atoms, data, indexed_charges, d
                         indexed_charges = True
                     data.append((index, charge))
         else:
-            if not indexed_charges and len(atoms) != len(data):
-                raise UserError("Number of charges (%d) in %s data not equal to number of atoms"
-                    " (%d)" % (len(data), orig_data_name, len(atoms)))
-            if indexed_charges:
-                for a in atoms:
-                    # charge defaults to 0.0, so don't need to set non-indexed
-                    for index, charge in data:
-                        atoms[index].charge = charge
-            else:
-                indices = list(atoms.keys())
-                indices.sort
-                for a, charge in zip([atoms[i] for i in indices], data):
-                    a.charge = charge
-            if "mmff94" in data_name:
-                s.charge_model = "MMFF94"
             reading_data = None
+            # single value of '0' indicates that charges are not being provided
+            if not (len(data) == 1 and len(atoms) != 1 and data[0] == 0.0):
+                if not indexed_charges and len(atoms) != len(data):
+                    raise UserError("Number of charges (%d) in %s data not equal to number of atoms"
+                        " (%d)" % (len(data), orig_data_name, len(atoms)))
+                if indexed_charges:
+                    for a in atoms:
+                        # charge defaults to 0.0, so don't need to set non-indexed
+                        for index, charge in data:
+                            atoms[index].charge = charge
+                else:
+                    indices = list(atoms.keys())
+                    indices.sort
+                    for a, charge in zip([atoms[i] for i in indices], data):
+                        a.charge = charge
+                if "mmff94" in data_name:
+                    s.charge_model = "MMFF94"
     elif reading_data == "cid":
         data_item = line.strip()
         if data_item:
