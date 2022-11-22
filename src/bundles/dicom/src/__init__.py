@@ -29,10 +29,7 @@ class _DICOMBundle(BundleAPI):
     @staticmethod
     def start_tool(session, bi, ti):
         from chimerax.core.tools import get_singleton
-        tools = {
-            "DICOM Browser": DICOMBrowserTool
-        }
-        return get_singleton(session, tools[ti.name], ti.name)
+        return get_singleton(session, DICOMBrowserTool, "DICOM Browser")
 
     @staticmethod
     def run_provider(session, name, mgr, **kw):
