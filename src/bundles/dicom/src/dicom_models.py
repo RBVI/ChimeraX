@@ -8,8 +8,6 @@ from chimerax.core.models import Model, Surface
 from chimerax.map_data import GridData
 from chimerax.map_data.readarray import allocate_array
 
-from .ui import DICOMMetadata
-
 class DicomContours(Model):
     def __init__(self, session, data, name):
         def rgb_255(cs):
@@ -164,4 +162,5 @@ class DicomGrid(GridData):
 
     @requires_gui
     def show_info(self):
+        from .ui import DICOMMetadata
         return DICOMMetadata()
