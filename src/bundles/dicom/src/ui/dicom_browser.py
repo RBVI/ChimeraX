@@ -78,15 +78,9 @@ class DICOMBrowserTool(ToolInstance):
         self.load_button_container = QHBoxLayout()
         self.load_button_container.addWidget(self.buttons_label)
 
-        self.load_pt_button = QPushButton("Load Patient Metadata", parent=self.load_buttons_widget)
-        self.load_st_button = QPushButton("Load Study Metadata", parent=self.load_buttons_widget)
-        self.load_sr_button = QPushButton("Load Series Metadata", parent=self.load_buttons_widget)
-        self.load_button_container.addWidget(self.load_pt_button)
-        self.load_button_container.addWidget(self.load_st_button)
-        self.load_button_container.addWidget(self.load_sr_button)
-        self.load_pt_button.clicked.connect(lambda: self.patient_metadata(self.patient_table.selected))
-        self.load_st_button.clicked.connect(lambda: self.study_metadata(self.study_table.selected))
-        self.load_sr_button.clicked.connect(lambda: self.series_metadata(self.series_table.selected))
+        self.load_md_button = QPushButton("Show Metadata", parent=self.load_buttons_widget)
+        self.load_button_container.addWidget(self.load_md_button)
+        self.load_md_button.clicked.connect(lambda: self.load_metadata_from_button())
 
         self.load_buttons_widget.setLayout(self.load_button_container)
 
@@ -121,6 +115,7 @@ class DICOMBrowserTool(ToolInstance):
         self.series_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
 
         self.patient_table.selection_changed.connect(self.on_patient_highlighted)
+        self.study_table.selection_changed.connect(self.on_study_highlighted)
 
         self.main_layout.addWidget(self.patient_label)
         self.main_layout.addWidget(self.patient_table)
@@ -148,7 +143,7 @@ class DICOMBrowserTool(ToolInstance):
         table = self._hovered_table(x, y)
         if table:
             load_metadata_action = QAction("Load Metadata from Highlighted Entries", menu)
-            load_metadata_action.triggered.connect(lambda: self.load_metadata(table.selected))
+            load_metadata_action.triggered.connect(lambda: self.load_metadata_from_right_click(table.selected))
             menu.addAction(load_metadata_action)
 
     def _hovered_table(self, x, y) -> Optional[QWidget]:
@@ -186,7 +181,7 @@ class DICOMBrowserTool(ToolInstance):
         self.study_table.data = list(chain.from_iterable([x.studies for x in chain(list(self.patients))]))
         self.series_table.data = list(chain.from_iterable([x.series for x in self.study_table.data]))
 
-    def load_metadata(self, data):
+    def load_metadata_from_right_click(self, data):
         # Data will always be a uniform list of Patients, Studies, or Series
         if not data:
             return
@@ -199,6 +194,9 @@ class DICOMBrowserTool(ToolInstance):
         else:
             return
 
+    def load_metadata_from_button(self):
+        self.series_metadata(self.series_table.selected)
+
     def patient_metadata(self, selection):
         if len(selection) > 0:
             return DICOMMetadata.from_patients(self.session, selection)
@@ -210,6 +208,8 @@ class DICOMBrowserTool(ToolInstance):
     def series_metadata(self, selection):
         if len(selection) > 0:
             return DICOMMetadata.from_series(self.session, selection)
+        else:
+            _logger.warning("Pick at least one series to show metadata")
 
     def on_patient_highlighted(self):
         selections = self.patient_table.selected
@@ -218,7 +218,7 @@ class DICOMBrowserTool(ToolInstance):
         self.study_table.data = list(chain.from_iterable([x.studies for x in selections]))
         self.series_table.data = list(chain.from_iterable([x.series for x in self.study_table.data]))
 
-    def on_series_highlighted(self, *args, **kwargs):
+    def on_study_highlighted(self, *args, **kwargs):
         selections = self.study_table.selected
         if not selections:
             return
