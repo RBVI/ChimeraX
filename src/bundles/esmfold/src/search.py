@@ -38,8 +38,7 @@ def _plural(seq):
 
 from chimerax.alphafold.search import DatabaseEntryId
 
-#sequence_search_url = 'https://www.rbvi.ucsf.edu/chimerax/cgi-bin/esmfold_search_cgi.py'
-sequence_search_url = 'https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/esmfold_search_cgi.py'
+sequence_search_url = 'https://www.rbvi.ucsf.edu/chimerax/cgi-bin/esmfold_search_cgi.py'
 def _search_sequences_web(sequences, url = sequence_search_url):
     import json
     request = json.dumps({'sequences': sequences})
