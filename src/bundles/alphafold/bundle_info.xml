@@ -32,6 +32,10 @@
     <ChimeraXClassifier>Command :: alphafold predict :: Structure Prediction :: Predict a structure using AlphaFold</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: alphafold pae :: Structure Prediction :: Show AlphaFold predicted aligned error as heatmap</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: alphafold contacts :: Structure Prediction :: Show AlphaFold contact pseudobond colored by predicted aligned error</ChimeraXClassifier>
+    <!--
+    <ChimeraXClassifier>Command :: alphafold covariation :: Structure Prediction :: Show frequency of residue pairs in AlphaFold sequence alignment</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: alphafold msa :: Structure Prediction :: Show number of each combination of chains in AlphaFold sequence alignment</ChimeraXClassifier>
+    -->
     <ChimeraXClassifier>Tool :: AlphaFold :: Structure Prediction :: Fetch or calculate AlphaFold structures</ChimeraXClassifier>
     <ChimeraXClassifier>Tool :: AlphaFold Error Plot :: Structure Prediction :: Plot AlphaFold predicted aligned error</ChimeraXClassifier>
   </Classifiers>

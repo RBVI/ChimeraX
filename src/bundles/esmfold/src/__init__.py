@@ -20,6 +20,9 @@ class _ESMFoldBundle(BundleAPI):
         if command_name == 'esmfold fetch':
             from . import fetch
             fetch.register_esmfold_fetch_command(logger)
+        elif command_name == 'esmfold match':
+            from . import match
+            match.register_esmfold_match_command(logger)
         elif command_name == 'esmfold predict':
             from . import predict
             predict.register_esmfold_predict_command(logger)
