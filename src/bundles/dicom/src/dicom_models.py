@@ -163,4 +163,4 @@ class DicomGrid(GridData):
     @requires_gui
     def show_info(self):
         from .ui import DICOMMetadata
-        return DICOMMetadata()
+        return DICOMMetadata.from_series(self.dicom_data.dicom_series.session, self.dicom_data.dicom_series)
