@@ -22,10 +22,6 @@ def esmfold_predict(session, sequence, residue_range=None, subsequence=None,
         msg = 'Please cite <a href="https://doi.org/10.1101/2022.07.20.500902">Language models of protein sequences at the scale of evolution enable accurate structure prediction.</a> if you use these predictions.'
         session.logger.info(msg, is_html = True)
         session._cite_esmfold = True  # Only log this message once per session.
-        
-    if _running_esmfold_prediction(session):
-        from chimerax.core.errors import UserError
-        raise UserError('ESMFold prediction currently running.  Can only run one at a time.')
 
     from chimerax.atomic import Chain
     chain = sequence if isinstance(sequence, Chain) else None
@@ -54,16 +50,21 @@ def esmfold_predict(session, sequence, residue_range=None, subsequence=None,
     else:
         _start_esmfold_prediction(session, seq, align_to = chain)
 
-# ------------------------------------------------------------------------------
-#
-def _is_esmfold_available(session):
-    # TODO: Check status web page
-    return True
 
 # ------------------------------------------------------------------------------
 #
-def _running_esmfold_prediction(session):
-    return False
+def _is_esmfold_available(session):
+    '''Check if the AlphaFold web service has been discontinued or is down.'''
+    url = 'https://www.rbvi.ucsf.edu/chimerax/data/status/esmfold_v1.html'
+    import requests
+    try:
+        r = requests.get(url)
+    except requests.exceptions.ConnectionError:
+        return True
+    if r.status_code == 200:
+        session.logger.error(r.text, is_html = True)
+        return False
+    return True
 
 # ------------------------------------------------------------------------------
 #
@@ -81,16 +82,29 @@ def _start_esmfold_prediction(session, sequence, align_to = None):
     
     with open(pdb_path, 'w') as f:
         f.write(pdb_string)
-    from chimerax.core.commands import run
-    s = run(session, f'open {pdb_path}')[0]
-    run(session, f'color bfactor {s.atomspec} palette esmfold')
+
+    from chimerax.pdb import open_pdb
+    models, msg = open_pdb(session, pdb_path)
+
+    from chimerax.core.commands import log_equivalent_command
+    log_equivalent_command(session, f'open {pdb_path}')
 
     # Align to specified structure.
     if align_to is not None:
         chain = align_to
         from chimerax.alphafold.match import _rename_chains, _align_to_chain
-        _rename_chains(s, [chain.chain_id])
-        _align_to_chain(s, chain)
+        from chimerax.alphafold.fetch import _log_chain_info
+        for s in models:
+            _rename_chains(s, [chain.chain_id])
+            _align_to_chain(s, chain)
+            _log_chain_info([s], chain.string(include_structure = True),
+                            prediction_method = 'ESMFold')
+
+    session.models.add(models)
+    
+    from chimerax.alphafold.fetch import _color_by_confidence
+    for m in models:
+        _color_by_confidence(m, palette_name = 'esmfold')
 
 # ------------------------------------------------------------------------------
 #

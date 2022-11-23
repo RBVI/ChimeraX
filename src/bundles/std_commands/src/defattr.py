@@ -383,12 +383,16 @@ def write_defattr(session, output, *, models=None, attr_name=None, match_mode="1
                         none_handling = "string"
                 else:
                     val = '"%s"' % val
-            elif not isinstance(val, (int, float)):
-                if not type_warning_issued:
-                    session.logger.warning("One or more attribute values aren't integer, floating-point,"
-                        " string or None (e.g. %s); skipping those" % repr(val))
-                    type_warning_issued = True
-                continue
+            else:
+                # Can't just "not isinstance(val, (int, float))" because of numpy
+                try:
+                    float(str(val))
+                except ValueError:
+                    if not type_warning_issued:
+                        session.logger.warning("One or more attribute values aren't integer, floating-point,"
+                            " string or None (e.g. %s); skipping those" % repr(val))
+                        type_warning_issued = True
+                    continue
             if recipient == "structures":
                 spec = source.atomspec
             else:

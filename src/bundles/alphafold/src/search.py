@@ -33,23 +33,28 @@ def alphafold_sequence_search(sequences, min_length=20, log=None):
     return seq_uids
 
 def _plural(seq):
-    return 's' if len(seq) > 1 else ''
+    n = seq if isinstance(seq, int) else len(seq)
+    return 's' if n > 1 else ''
 
-class UniprotSequence:
-    def __init__(self, uniprot_id, uniprot_name,
-                 database_sequence_range, query_sequence_range,
-                 alphafold_database_version = '2'):
-        self.uniprot_id = uniprot_id
-        self.uniprot_name = uniprot_name
-        self.database_sequence_range = database_sequence_range
-        self.query_sequence_range = query_sequence_range
-        self.range_from_sequence_match = True
-        self.alphafold_database_version = alphafold_database_version
+from chimerax.core.state import State
+class DatabaseEntryId(State):
+    '''Database entry identifier for a predicted structure.'''
+    def __init__(self, id, name = None, id_type = 'UniProt', database = 'AlphaFold', version = None):
+        self.id = id			# 'Q6JC40'
+        self.id_type = id_type		# 'UniProt'
+        self.name = name		# 'Q6JC40_9VIRU'
+        self.database = database	# 'AlphaFold'
+        self.version = version		# '3'
 
-    def copy(self):
-        return UniprotSequence(self.uniprot_id, self.uniprot_name,
-                               self.database_sequence_range, self.query_sequence_range)
-
+    # State save/restore in ChimeraX
+    _save_attrs = ['id', 'id_type', 'name', 'database', 'version']
+    def take_snapshot(self, session, flags):
+        data = {attr: getattr(self, attr) for attr in self._save_attrs}
+        return data
+    @staticmethod
+    def restore_snapshot(session, data):
+        return DatabaseEntryId(**data)
+    
 sequence_search_url = 'https://www.rbvi.ucsf.edu/chimerax/cgi-bin/alphafold_search3_cgi.py'
 def _search_sequences_web(sequences, url = sequence_search_url):
     import json
@@ -68,10 +73,7 @@ def _search_sequences_web(sequences, url = sequence_search_url):
     if 'error' in results:
         raise SearchError('AlphaFold sequence search web service\n\n%s\n\nreported error:\n\n%s'
                           % (url, results['error']))
-    seq_uids = {seq : UniprotSequence(u['uniprot id'], u['uniprot name'],
-                                      (u.get('dbseq start'), u.get('dbseq end')),
-                                      (u.get('query start'), u.get('query end')),
-                                      u['db version'])
+    seq_uids = {seq : DatabaseEntryId(u['uniprot id'], name = u['uniprot name'], version = u['db version'])
                 for seq, u in zip(sequences, results['sequences']) if u}
     return seq_uids
 

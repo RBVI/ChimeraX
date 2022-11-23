@@ -26,6 +26,7 @@
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
     <ChimeraXClassifier>Command :: esmfold fetch :: Structure Prediction :: Fetch ESM Metagenomic Atlas models for a MGnify accession code</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: esmfold match :: Structure Prediction :: Fetch ESM Metagenomic Atlas models matching a structure</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: esmfold pae :: Structure Prediction :: Show ESMFold predicted aligned error as heatmap</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: esmfold predict :: Structure Prediction :: Predict a structure using ESMFold</ChimeraXClassifier>
   </Classifiers>

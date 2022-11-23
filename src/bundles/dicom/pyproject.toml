@@ -46,7 +46,3 @@ open = { batch = true }
 [chimerax.tool."DICOM Browser"]
 category = "Volume Data"
 description = "View the metadata of a patient's DICOM files"
-
-[chimerax.tool."DICOM Metadata"]
-category = "Volume Data"
-description = "View the metadata of a DICOM file or series"

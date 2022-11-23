@@ -11,8 +11,6 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-esmfold_pae_url = 'https://api.esmatlas.com/fetchConfidencePrediction/'
-
 def esmfold_pae(session, structure = None, file = None, mgnify_id = None,
                 palette = None, range = None, plot = None, divider_lines = None,
                 color_domains = False, connect_max_pae = 5, cluster = 0.5, min_size = 10,
@@ -20,8 +18,8 @@ def esmfold_pae(session, structure = None, file = None, mgnify_id = None,
     '''Load ESM Metagenomics Atlas predicted aligned error file and show plot or color domains.'''
 
     if mgnify_id:
-        pae_url = esmfold_pae_url + mgnify_id
-        file_name = mgnify_id + '.json'
+        from .database import esmfold_pae_url
+        pae_url, file_name = esmfold_pae_url(session, mgnify_id, database_version=version)
         from chimerax.core.fetch import fetch_file
         file = fetch_file(session, pae_url, 'ESM Metagenomics Atlas PAE %s' % mgnify_id,
                           file_name, 'ESMFold', error_status = False)
@@ -88,7 +86,6 @@ def register_esmfold_pae_command(logger):
                    ('palette', ColormapArg),
                    ('range', ColormapRangeArg),
                    ('plot', BoolArg),
-                   ('divider_lines', BoolArg),
                    ('color_domains', BoolArg),
                    ('connect_max_pae', FloatArg),
                    ('cluster', FloatArg),
