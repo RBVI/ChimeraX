@@ -14,7 +14,7 @@
 results_directory = '~/Downloads/ChimeraX/ESMFold'
 
 def esmfold_predict(session, sequence, residue_range=None, subsequence=None,
-                    chunk=None, overlap=0):
+                    chunk=None, overlap=0, directory=results_directory):
     if not _is_esmfold_available(session):
         return
 
@@ -48,7 +48,7 @@ def esmfold_predict(session, sequence, residue_range=None, subsequence=None,
                 break
             offset += chunk - overlap
     else:
-        _start_esmfold_prediction(session, seq, align_to = chain)
+        _start_esmfold_prediction(session, seq, align_to = chain, directory = directory)
 
 
 # ------------------------------------------------------------------------------
@@ -69,11 +69,11 @@ def _is_esmfold_available(session):
 # ------------------------------------------------------------------------------
 #
 esmfold_predict_url = 'https://api.esmatlas.com/foldSequence/v1/pdb'
-def _start_esmfold_prediction(session, sequence, align_to = None):
+def _start_esmfold_prediction(session, sequence, align_to = None, directory = results_directory):
     '''sequence is a Sequence or Chain instance.'''
     import requests
     r = requests.post(esmfold_predict_url, data = sequence)
-    pdb_path = _esmfold_pdb_file_path(sequence)
+    pdb_path = _esmfold_pdb_file_path(sequence, directory=directory)
     pdb_string = r.text
 
     if not pdb_string.startswith('HEADER'):
@@ -108,9 +108,9 @@ def _start_esmfold_prediction(session, sequence, align_to = None):
 
 # ------------------------------------------------------------------------------
 #
-def _esmfold_pdb_file_path(sequence, seq_chars=10):
+def _esmfold_pdb_file_path(sequence, seq_chars=10, directory=results_directory):
     from os import path, makedirs
-    dir = path.expanduser(results_directory)
+    dir = path.expanduser(directory)
     if not path.exists(dir):
         makedirs(dir)
     basename = f'{sequence[:seq_chars]}_{len(sequence)}'
@@ -136,14 +136,16 @@ def _unique_filename(basepath, suffix):
 # ------------------------------------------------------------------------------
 #
 def register_esmfold_predict_command(logger):
-    from chimerax.core.commands import CmdDesc, register, Int2Arg, IntArg
+    from chimerax.core.commands import CmdDesc, register, Int2Arg, IntArg, SaveFolderNameArg
     from chimerax.atomic import SequenceArg
     desc = CmdDesc(
         required = [('sequence', SequenceArg)],
         keyword = [('subsequence', Int2Arg),
                    ('residue_range', Int2Arg),
                    ('chunk', IntArg),
-                   ('overlap', IntArg)],
+                   ('overlap', IntArg),
+                   ('directory', SaveFolderNameArg)],
+
         synopsis = 'Predict a structure with ESMFold'
     )
     register('esmfold predict', desc, esmfold_predict, logger=logger)
