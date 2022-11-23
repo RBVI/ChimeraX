@@ -718,7 +718,8 @@ class FakeRes:
                             if fa_name not in atom_names:
                                 break
                         else:
-                            raise ValueError("Could not come up with unique atom name in mega-residue")
+                            raise ChargeError(
+                                f"Could not come up with unique atom name in mega-residue {name}")
                         fa = FakeAtom(a, self, fa_name)
                     else:
                         fa = FakeAtom(a, self)
