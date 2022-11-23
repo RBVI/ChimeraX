@@ -57,20 +57,19 @@ class AlphaFoldColoringGUI(ToolInstance):
     def _create_residues_menu(self, parent):
 
         from chimerax.ui.widgets import ModelMenuButton
-        sm = ModelMenuButton(self.session, filter_func = _is_alphafold_model,
-                             autoselect = ModelMenuButton.AUTOSELECT_FIRST_DISPLAYED)
+        sm = ModelMenuButton(self.session)
         self._model_menu = sm
         mlist = [m for m in self.session.models.list() if _is_alphafold_model(m)]
         if mlist:
             sm.value = mlist[0]
         
         entries = ('all',
-                   'confidence below',
+                   'confidence (bfactor) below',
                    'C-alpha distance greater than',
                    'missing structure',
                    'different sequence',
                    '-',
-                   'confidence above',
+                   'confidence (bfactor) above',
                    'C-alpha distance less than',
                    'paired structure',
                    'same sequence',
@@ -205,7 +204,18 @@ class AlphaFoldColoringGUI(ToolInstance):
 # -----------------------------------------------------------------------------
 #
 def _is_alphafold_model(m):
-    return getattr(m, 'alphafold', False) or m.name.endswith('AlphaFold')
+    if getattr(m, 'alphafold', False):
+        return True
+
+    if 'AlphaFold' in m.name:
+        return True
+
+    from chimerax.mmcif import get_mmcif_tables_from_metadata
+    db_ref = get_mmcif_tables_from_metadata(m, ['database_2'])[0]
+    if db_ref is not None:
+        for fields in db_ref.fields(['database_id']):
+            if fields[0] == 'AlphaFoldDB':
+                return True
 
 # ---------------------------------------------------------------------------
 #

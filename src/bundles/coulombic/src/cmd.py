@@ -14,8 +14,8 @@
 from chimerax.core.errors import UserError
 from chimerax.add_charge import ChargeMethodArg
 
-def cmd_coulombic(session, atoms, *, surfaces=None, his_scheme=None, offset=1.4, gspacing=1.0,
-        gpadding=5.0, grid=None, palette=None, range=None, dist_dep=True, dielectric=4.0,
+def cmd_coulombic(session, atoms, *, surfaces=None, his_scheme=None, offset=1.4, gspacing=None,
+        gpadding=None, grid=None, palette=None, range=None, dist_dep=True, dielectric=4.0,
         charge_method=ChargeMethodArg.default_value, key=False):
     session.logger.status("Computing Coulombic potential%s" % (" map" if map else ""))
     if palette is None:
@@ -127,11 +127,11 @@ def cmd_coulombic(session, atoms, *, surfaces=None, his_scheme=None, offset=1.4,
 
     session.logger.status("", secondary=True)
     session.logger.status("Finished coloring surfaces")
-    session.logger.status("Computing Coulombic potential grids")
     if grid is None:
         grid = gspacing is not None or gpadding is not None
     if not grid:
         return
+    session.logger.status("Computing Coulombic potential grids")
     if gspacing is None:
         gspacing = 1.0
     if gpadding is None:
