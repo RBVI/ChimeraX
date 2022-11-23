@@ -700,6 +700,19 @@ class FakeAtom:
     def deleted(self):
         return self.fa_atom.deleted
 
+def find_fake_name(base_name, known_names):
+    import string
+    for c in string.digits:
+        fa_name = base_name + c
+        if fa_name not in known_names:
+            return fa_name
+    if len(base_name)+1 < 4:
+        for c in string.digits:
+            fa_name = find_fake_name(base_name + c, known_names)
+            if fa_name is not None:
+                return fa_name
+    return None
+
 class FakeRes:
     def __init__(self, name, atoms=None):
         if atoms is None:
@@ -713,12 +726,10 @@ class FakeRes:
             for r in residues:
                 for a in r.atoms:
                     if a.name in atom_names:
-                        for c in string.digits + string.ascii_uppercase:
-                            fa_name = a.name[:3] + c
-                            if fa_name not in atom_names:
-                                break
-                        else:
-                            raise ValueError("Could not come up with unique atom name in mega-residue")
+                        fa_name = find_fake_name(a.element.name.upper(), atom_names)
+                        if not fa_name:
+                            raise ChargeError(
+                                f"Could not come up with unique atom name in mega-residue {name}")
                         fa = FakeAtom(a, self, fa_name)
                     else:
                         fa = FakeAtom(a, self)
