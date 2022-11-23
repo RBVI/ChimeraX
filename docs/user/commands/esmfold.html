@@ -79,7 +79,7 @@ See also:
 [&nbsp;<a href="#colorConfidence"><b>colorConfidence</b></a>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<a href="#ignoreCache"><b>ignoreCache</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<a href="#pae"><b>pae</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
-[&nbsp;<a href="#version"><b>version</b></a>&nbsp;&nbsp;<b>0</b>&nbsp;]
+[&nbsp;<a href="#version"><b>version</b></a>&nbsp;&nbsp;<i>N</i>&nbsp;]
 </blockquote>
 <ul>
 <li>The <b>esmfold fetch</b> command retrieves the model (if available)
@@ -92,7 +92,7 @@ target="_blank">sequence search at the ESM Metagenomic Atlas</a>. Example:
 <!-- related but nonidentical structure 4dnl -->
 </blockquote>
 <p>
-For each model with a corresponding structure chain from the 
+For a model with a corresponding structure chain from the 
 <a href="#alignTo"><b>alignTo</b></a> option of <b>esmfold fetch</b>:
 </p>
 <a name="structmatch"></a>
@@ -252,13 +252,18 @@ of the sequences, which could be longer.
 </blockquote>
 <blockquote>
 <a name="version"></a>
-<b>version</b>&nbsp;&nbsp;<b>0</b>
+<b>version</b>&nbsp;&nbsp;<i>N</i>
 <br>
-Currently there is only one version of the 
-<a href="https://esmatlas.com/about#about_this_website"
+Which version of the <a href="https://esmatlas.com/about#about_this_website"
 target="_blank">ESM Metagenomic Atlas</a>
 to use with <a href="#fetch"><b>esmfold fetch</b></a> and
 <a href="#pae"><b>esmfold pae</b></a>.
+The default is the most recent version found at the website
+(currently <b>0</b>).
+<!--
+The default is the version supported by the sequence search,
+currently <b>0</b>.
+-->
 </blockquote>
 
 <a name="predict"></a>
@@ -276,7 +281,7 @@ target="_blank">ESM Metagenomic Atlas</a>.
 <blockquote>
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>esmfold predict</b> &nbsp;<i>sequence</i>
-[&nbsp;<b>subsequence</b> &nbsp;<i>subsequence</i>&nbsp;]
+[&nbsp;<b>subsequence</b> &nbsp;<i>start,end</i>&nbsp;]
 [&nbsp;<b>residueRange</b> &nbsp;<i>start,end</i>&nbsp;]
 [&nbsp;<b>chunk</b> &nbsp;<i>N</i>&nbsp;]
 [&nbsp;<b>overlap</b> &nbsp;<i>M</i>&nbsp;]
@@ -302,9 +307,12 @@ The first three methods above specify an entire sequence,
 but a subsequence can be:
 <ul>
 <li>pasted directly as the <i>sequence</i>
-<li>pasted with the <b>subsequence</b> option
+<li>given with <b>subsequence</b> <i>start,end</i>
+(integers separated by a comma only; subsequence start and end positions
+in a UniProt or pasted sequence, where the first residue is 1)
 <li>given with <b>residueRange</b> <i>start,end</i> 
-(start and end of the two integers separated by a comma only)
+(integers separated by a comma only; subsequence start and end positions
+in a specified structure chain, using the structure residue numbering)
 </ul>
 Alternatively, a single command can be used
 to predict a long sequence as a series of shorter chunks with overlaps
@@ -371,8 +379,7 @@ or the command <b>esmfold pae</b>:
 [&nbsp;<b>minSize</b>&nbsp;&nbsp;<i>M</i>&nbsp;]
 [&nbsp;<b>connectMaxPae</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
 [&nbsp;<b>cluster</b>&nbsp;&nbsp;<i>resolution</i>&nbsp;]
-[&nbsp;<b>dividerLines</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
-[&nbsp;<a href="#version"><b>version</b></a>&nbsp;&nbsp;<b>0</b>&nbsp;]
+[&nbsp;<a href="#version"><b>version</b></a>&nbsp;&nbsp;<i>N</i>&nbsp;]
 </blockquote>
 <p>
 With <b>esmfold pae</b>, the matrix of PAE values can be either:
@@ -433,12 +440,6 @@ which is ~5 seconds for 1000 residues when the default of 5.0 is used.
 &ndash; graph resolution; larger values give smaller domains
 </ul>
 <p>
-The <b>dividerLines</b> option (default <b>true</b>) indicates whether,
-for multimer predictions, to draw lines on the plot demarcating the
-end of one chain and the start of another. The lines may obscure a few
-chain-terminal residues in the plot, and <b>dividerLines false</b>
-can be used if this is problematic.
-</p><p>
 The default <a href="color.html#palette-options"><b>palette</b></a> 
 for coloring the PAE plot is <b>pae</b>, with colors assigned to values
 as follows:
