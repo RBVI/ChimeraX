@@ -95,3 +95,71 @@ def register_esmfold_pae_command(logger):
     )
     
     register('esmfold pae', desc, esmfold_pae, logger=logger)
+
+# -----------------------------------------------------------------------------
+#
+from chimerax.alphafold.pae import OpenPredictedAlignedError
+class OpenESMFoldPAE(OpenPredictedAlignedError):
+    method = 'ESMFold'
+    database_key = 'MGnify'
+    command = 'esmfold'
+    name = 'ESMFold Error Plot'
+    help = 'help:user/tools/esmfold.html#pae'
+
+    def is_predicted_model(self, m):
+        from .panel import _is_esmfold_model
+        return _is_esmfold_model(m)
+
+    def predicted_structure_version(self, structure): 
+        return _esmfold_db_structure_version(structure)
+
+    def guess_database_id(self, path):
+        return _guess_mgnify_id(path)
+        
+# ---------------------------------------------------------------------------
+#
+def _esmfold_db_structure_version(structure):
+    '''
+    Parse the structure filename to get the ESMFold database version.
+    Example database file name MGYP000456789012_v0.pdb
+    '''
+    if structure is None:
+        return None
+    path = getattr(structure, 'filename', None)
+    if path is None:
+        return None
+    from os.path import split, splitext
+    filename = split(path)[1]
+    if filename.startswith('MGYP') and (filename.endswith('.cif') or filename.endswith('.pdb')):
+        fields = splitext(filename)[0].split('_')
+        if len(fields) > 1 and fields[-1].startswith('v'):
+            try:
+                version = int(fields[-1][1:])
+            except ValueError:
+                return None
+            return version
+
+    return None
+
+# ---------------------------------------------------------------------------
+#
+def _guess_mgnify_id(structure_path):
+    from os.path import split
+    basename = split(structure_path)[1]
+    if '_' in basename:
+        basename = basename.split('_')[0]
+    if basename.startswith('MGYP') and len(basename) == 16:
+        return basename
+    return None
+
+# -----------------------------------------------------------------------------
+#
+def esmfold_error_plot_panel(session, create = False):
+    return OpenESMFoldPAE.get_singleton(session, create=create)
+  
+# -----------------------------------------------------------------------------
+#
+def show_esmfold_error_plot_panel(session):
+    p = esmfold_error_plot_panel(session, create = True)
+    p.display(True)
+    return p

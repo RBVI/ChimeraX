@@ -16,8 +16,9 @@
 # Panel for hiding surface dust
 #
 from chimerax.core.tools import ToolInstance
-class AlphaFoldColoringGUI(ToolInstance):
-
+class PredictedStructureColoringGUI(ToolInstance):
+    method = 'AlphaFold'
+    default_confidence_cutoff = 50.0
     help = 'help:user/tools/alphafold.html#coloring'
 
     def __init__(self, session, tool_name):
@@ -32,7 +33,7 @@ class AlphaFoldColoringGUI(ToolInstance):
         from chimerax.ui.widgets import vertical_layout
         layout = vertical_layout(parent, margins = (5,0,0,0))
 
-        # Make menu to choose AlphaFold structure
+        # Make menu to choose predicted structure
         rm = self._create_residues_menu(parent)
         layout.addWidget(rm)
 
@@ -47,9 +48,9 @@ class AlphaFoldColoringGUI(ToolInstance):
     # ---------------------------------------------------------------------------
     #
     @classmethod
-    def get_singleton(self, session, create=True):
+    def get_singleton(cls, session, create=True):
         from chimerax.core import tools
-        return tools.get_singleton(session, AlphaFoldColoringGUI, 'AlphaFold Coloring',
+        return tools.get_singleton(session, cls, f'{cls.method} Coloring',
                                    create=create)
     
     # ---------------------------------------------------------------------------
@@ -59,7 +60,7 @@ class AlphaFoldColoringGUI(ToolInstance):
         from chimerax.ui.widgets import ModelMenuButton
         sm = ModelMenuButton(self.session)
         self._model_menu = sm
-        mlist = [m for m in self.session.models.list() if _is_alphafold_model(m)]
+        mlist = [m for m in self.session.models.list() if self.is_predicted_model(m)]
         if mlist:
             sm.value = mlist[0]
         
@@ -75,7 +76,7 @@ class AlphaFoldColoringGUI(ToolInstance):
                    'same sequence',
                    )
         from chimerax.ui.widgets import EntriesRow
-        er = EntriesRow(parent, 'Residues', sm, entries, 50.0, 3.0)
+        er = EntriesRow(parent, 'Residues', sm, entries, self.default_confidence_cutoff, 3.0)
         self._filter_menu, self._confidence, self._ca_distance = fm,con,cd = er.values
         fm.widget.menu().triggered.connect(self._filter_changed)
         conw, cdw = con.widget, cd.widget
@@ -84,6 +85,11 @@ class AlphaFoldColoringGUI(ToolInstance):
         cdw.setMaximumWidth(25)
         cdw.setVisible(False)
         return er.frame
+
+    # ---------------------------------------------------------------------------
+    #
+    def is_predicted_model(self, m):
+        return _is_alphafold_model(m)
 
     # ---------------------------------------------------------------------------
     #
@@ -101,7 +107,7 @@ class AlphaFoldColoringGUI(ToolInstance):
     #
     @property
     def _confidence_cutoff(self):
-        return _string_to_float(self._confidence.value, 50.0)
+        return _string_to_float(self._confidence.value, self.default_confidence_cutoff)
     @property
     def _distance_cutoff(self):
         return _string_to_float(self._ca_distance.value, 3.0)
@@ -225,6 +231,12 @@ def _string_to_float(string, default):
     except ValueError:
         v = default
     return v
+
+# -----------------------------------------------------------------------------
+# Panel for coloring predicted structures by confidence or alignment errors.
+#
+class AlphaFoldColoringGUI(PredictedStructureColoringGUI):
+    pass
     
 # -----------------------------------------------------------------------------
 #

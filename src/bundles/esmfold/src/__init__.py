@@ -16,8 +16,23 @@ from chimerax.core.toolshed import BundleAPI
 class _ESMFoldBundle(BundleAPI):
 
     @staticmethod
+    def start_tool(session, tool_name):
+        if tool_name == 'ESMFold':
+            from . import panel
+            return panel.show_esmfold_panel(session)
+        elif tool_name == 'ESMFold Coloring':
+            from . import panel
+            return panel.show_esmfold_coloring_panel(session)
+        elif tool_name == 'ESMFold Error Plot':
+            from . import pae
+            return pae.show_esmfold_error_plot_panel(session)
+
+    @staticmethod
     def register_command(command_name, logger):
-        if command_name == 'esmfold fetch':
+        if command_name == 'esmfold contacts':
+            from . import contacts
+            contacts.register_esmfold_contacts_command(logger)
+        elif command_name == 'esmfold fetch':
             from . import fetch
             fetch.register_esmfold_fetch_command(logger)
         elif command_name == 'esmfold match':
@@ -29,6 +44,9 @@ class _ESMFoldBundle(BundleAPI):
         elif command_name == 'esmfold pae':
             from . import pae
             pae.register_esmfold_pae_command(logger)
+        elif command_name == 'esmfold search':
+            from . import blast
+            blast.register_esmfold_search_command(logger)
 
     @staticmethod
     def run_provider(session, name, mgr):
