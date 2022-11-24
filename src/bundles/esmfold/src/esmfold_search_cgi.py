@@ -4,7 +4,7 @@
 # database using k-mer search.
 
 # On plato.cgl.ucsf.edu:
-database_version = '1'
+database_version = '0'
 database_path = f'/databases/mol/ESMFold/v{database_version}_kmer/esmfold.fasta'
 
 def parse_request_sequences():
