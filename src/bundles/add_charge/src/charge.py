@@ -69,29 +69,6 @@ def add_standard_charges(session, residues=None, *, status=None, standardize_res
     from chimerax.std_commands.defattr import defattr
     defattr(session, attr_file, restriction=structures, summary=False)
 
-    """
-    if status:
-        status("Checking phosphorylation of chain-terminal nucleic acids")
-    for r in residues:
-        amber_name = getattr(r, 'amber_name', "UNK")
-        if len(amber_name) != 3 or amber_name[0] not in 'DR' or amber_name[1] not in 'ACGTU':
-            # not typed as chain terminal
-            print(r, f"not typed as terminal ({amber_name})")
-            continue
-        p = r.find_atom('P')
-        if not p:
-            print("no P in", r)
-            continue
-        for nb in p.neighbors:
-            if nb.residue != r:
-                print("cross-residue P in", r)
-                break
-        else:
-            # 5' phosphate (i.e. not standard)
-            print("changing", r.amber_name, "to",  r.amber_name + "PP")
-            r.amber_name = r.amber_name + "PP"
-    """
-
     if status:
         status("Adding standard charges")
     Atom.register_attr(session, "charge", "add charge", attr_type=float)
@@ -365,18 +342,14 @@ def estimate_net_charge(atoms):
     rings = set()
     subs = {}
     for a in atoms:
-        print(a, a.idatm_type)
         if len(a.bonds) == 0:
             if a.element.is_alkali_metal:
-                print("alkali metal")
                 charge_total += 2
                 continue
             if a.element.is_metal:
-                print("metal")
                 charge_total += 4
                 continue
             if a.element.is_halogen:
-                print("halogen")
                 charge_total -= 2
                 continue
         from chimerax.atomic.idatm import type_info
@@ -387,8 +360,6 @@ def estimate_net_charge(atoms):
         else:
             # missing/additional protons
             charge_total += 2 * (a.num_bonds - subs[a])
-            if a.num_bonds - subs[a]:
-                print("missing bonds")
         a_rings = a.rings()
         rings.update([ar for ar in a_rings if ar.aromatic])
         if a.idatm_type == "C2" and not a_rings:
@@ -398,7 +369,6 @@ def estimate_net_charge(atoms):
                     break
             else:
                 # all ring neighbors in aromatic rings
-                print("neighbors aromatic")
                 charge_total += 2
         try:
             info = charge_info[a.idatm_type]
@@ -406,10 +376,8 @@ def estimate_net_charge(atoms):
             continue
         if type(info) == int:
             charge_total += info
-            print("charge info:", info)
         else:
             charge_total += info(a)
-            print("charge info:", info(a))
     for ring in rings:
         # since we are only handling aromatic rings, any non-ring bonds are presumably single bond
         # (or matched aromatic bonds)
@@ -423,7 +391,6 @@ def estimate_net_charge(atoms):
                 electrons += 1
         if electrons % 2 == 1:
             charge_total += 2
-            print("ring charge")
     return charge_total // 2
 
 
@@ -733,6 +700,19 @@ class FakeAtom:
     def deleted(self):
         return self.fa_atom.deleted
 
+def find_fake_name(base_name, known_names):
+    import string
+    for c in string.digits:
+        fa_name = base_name + c
+        if fa_name not in known_names:
+            return fa_name
+    if len(base_name)+1 < 4:
+        for c in string.digits:
+            fa_name = find_fake_name(base_name + c, known_names)
+            if fa_name is not None:
+                return fa_name
+    return None
+
 class FakeRes:
     def __init__(self, name, atoms=None):
         if atoms is None:
@@ -746,12 +726,10 @@ class FakeRes:
             for r in residues:
                 for a in r.atoms:
                     if a.name in atom_names:
-                        for c in string.digits + string.ascii_uppercase:
-                            fa_name = a.name[:3] + c
-                            if fa_name not in atom_names:
-                                break
-                        else:
-                            raise ValueError("Could not come up with unique atom name in mega-residue")
+                        fa_name = find_fake_name(a.element.name.upper(), atom_names)
+                        if not fa_name:
+                            raise ChargeError(
+                                f"Could not come up with unique atom name in mega-residue {name}")
                         fa = FakeAtom(a, self, fa_name)
                     else:
                         fa = FakeAtom(a, self)

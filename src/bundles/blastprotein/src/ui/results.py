@@ -21,7 +21,6 @@ from Qt.QtWidgets import (
 from Qt.QtGui import QAction
 
 from chimerax.atomic import Sequence
-from chimerax.alphafold.match import _log_alphafold_sequence_info
 from chimerax.core.commands import run
 from chimerax.core.errors import UserError
 from chimerax.core.tools import ToolInstance
@@ -56,7 +55,7 @@ class BlastProteinResults(ToolInstance):
 
     SESSION_ENDURING = False
     SESSION_SAVE = True
-    help = "help:/user/tools/blastprotein.html#results"
+    help = "help:user/tools/blastprotein.html#results"
 
     def __init__(self, session, tool_name, **kw):
         display_name = "Blast Protein Results [name: %s]" % tool_name
@@ -387,8 +386,11 @@ class BlastProteinResults(ToolInstance):
     def _log_alphafold(self, models):
         query_match = self._sequences[0][1]
         query_seq = Sequence(name = 'query', characters = query_match.h_seq)
+        from chimerax.alphafold.match import _similarity_table_html
         for m in models:
-            _log_alphafold_sequence_info(m, query_seq)
+            # TODO: Would be nice if all models were in one log table.
+            msg = _similarity_table_html(m, query_seq, m.database.id)
+            m.session.logger.info(msg, is_html = True)
 
     # Code for displaying matches as multiple sequence alignment
     def _show_mav(self, selections) -> None:
