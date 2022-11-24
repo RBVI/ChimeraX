@@ -14,8 +14,11 @@
 # -----------------------------------------------------------------------------
 #
 from chimerax.core.tools import ToolInstance
-class AlphaFoldPAEOpen(ToolInstance):
+class OpenPredictedAlignedError(ToolInstance):
 
+    method = 'AlphaFold'
+    database_key = 'UniProt'
+    command = 'alphafold'
     name = 'AlphaFold Error Plot'
     help = 'help:user/tools/alphafold.html#pae'
 
@@ -33,17 +36,17 @@ class AlphaFoldPAEOpen(ToolInstance):
 
         from chimerax.atomic import AtomicStructure
         from chimerax.ui.widgets import ModelMenu
-        m = ModelMenu(self.session, parent, label = 'AlphaFold structure',
+        m = ModelMenu(self.session, parent, label = f'{self.method} structure',
                       model_types = [AtomicStructure],
                       model_chosen_cb = self._structure_chosen)
         self._structure_menu = m
         layout.addWidget(m.frame)
 
         self._source_file = 'file (.json or .pkl)'
-        self._source_alphafold_db = 'AlphaFold database (UniProt id)'
+        self._source_database = f'{self.method} database ({self.database_key} id)'
         from chimerax.ui.widgets import EntriesRow
         ft = EntriesRow(parent, 'Predicted aligned error (PAE) from',
-                        (self._source_file, self._source_alphafold_db))
+                        (self._source_file, self._source_database))
         self._source = sf = ft.values[0]
         sf.widget.menu().triggered.connect(lambda action, self=self: self._guess_for_source())
         layout.addWidget(ft.frame)
@@ -65,8 +68,8 @@ class AlphaFoldPAEOpen(ToolInstance):
         
         layout.addStretch(1)    # Extra space at end
 
-        # Set initial menu entry to an AlphaFold model
-        amod = [m for m in session.models.list(type = AtomicStructure) if hasattr(m, 'alphafold')]
+        # Set initial menu entry to a predicted model
+        amod = [m for m in session.models.list(type = AtomicStructure) if self.is_predicted_model(m)]
         if amod:
             self._structure_menu.value = amod[-1]
 
@@ -75,29 +78,29 @@ class AlphaFoldPAEOpen(ToolInstance):
     # ---------------------------------------------------------------------------
     #
     @classmethod
-    def get_singleton(self, session, create=True):
+    def get_singleton(cls, session, create=True):
         from chimerax.core import tools
-        return tools.get_singleton(session, AlphaFoldPAEOpen, 'AlphaFold Error Plot',
+        return tools.get_singleton(session, cls, '{cls.method} Error Plot',
                                    create=create)
 
     # ---------------------------------------------------------------------------
     #
     def _structure_chosen(self):
-        self._guess_pae_file_or_uniprot_id()
+        self._guess_pae_file_or_database_id()
 
     # ---------------------------------------------------------------------------
     #
-    def _guess_pae_file_or_uniprot_id(self):
+    def _guess_pae_file_or_database_id(self):
         structure_path = self._structure_path
         if structure_path is None:
             return
 
         self._pae_file.setText('')
         
-        uniprot_id = _guess_uniprot_id(structure_path)
-        if uniprot_id:
-            self._pae_file.setText(uniprot_id)
-            self._source.value = self._source_alphafold_db
+        database_id = self.guess_database_id(structure_path)
+        if database_id:
+            self._pae_file.setText(database_id)
+            self._source.value = self._source_database
             return
 
         pae_path = _matching_pae_file(structure_path)
@@ -117,11 +120,16 @@ class AlphaFoldPAEOpen(ToolInstance):
             pae_path = _matching_pae_file(structure_path)
             if pae_path:
                 self._pae_file.setText(pae_path)
-        elif source == self._source_alphafold_db:
-            uniprot_id = _guess_uniprot_id(structure_path)
-            if uniprot_id:
-                self._pae_file.setText(uniprot_id)
-                
+        elif source == self._source_database:
+            database_id = self.guess_database_id(structure_path)
+            if database_id:
+                self._pae_file.setText(database_id)
+
+    # ---------------------------------------------------------------------------
+    #
+    def guess_database_id(self, path):
+        return _guess_uniprot_id(path)
+    
     # ---------------------------------------------------------------------------
     #
     @property
@@ -164,8 +172,8 @@ class AlphaFoldPAEOpen(ToolInstance):
         source = self._source.value
         if source == self._source_file:
             self._open_pae_from_file(s)
-        elif source == self._source_alphafold_db:
-            self._open_pae_from_alphafold_db(s)
+        elif source == self._source_database:
+            self.open_pae_from_database(s)
 
         self.display(False)
 
@@ -186,25 +194,35 @@ class AlphaFoldPAEOpen(ToolInstance):
             raise UserError(f'PAE file suffix must be ".json" or ".pkl".')
 
         from chimerax.core.commands import run, quote_if_necessary
-        cmd = 'alphafold pae #%s file %s' % (structure.id_string, quote_if_necessary(path))
+        cmd = '%s pae #%s file %s' % (self.command, structure.id_string, quote_if_necessary(path))
         run(self.session, cmd)
 
     # ---------------------------------------------------------------------------
     #
-    def _open_pae_from_alphafold_db(self, structure):
-        uniprot_id = self._pae_file.text()
+    def open_pae_from_database(self, structure):
+        database_id = self._pae_file.text()
         from chimerax.core.commands import run, quote_if_necessary
-        cmd = 'alphafold pae #%s uniprot %s' % (structure.id_string, uniprot_id)
+        cmd = f'{self.command} pae {structure.atomspec} {self.database_key.lower()} {database_id}'
 
-        version = _alphafold_db_structure_version(self._structure_menu.value)
+        structure = self._structure_menu.value
+        version = self.predicted_structure_version(structure)
         if version is not None:
-            from .database import default_database_version
-            if str(version) != default_database_version(self.session):
-                cmd += f' version {version}'
-                self.session.logger.warning(f'Fetching PAE using AlphaFold database version {version}')
+            cmd += f' version {version}'
+            self.session.logger.warning(f'Fetching PAE using {self.method} database version {version}')
 
         run(self.session, cmd)
-        
+
+    # ---------------------------------------------------------------------------
+    #
+    def is_predicted_model(self, m):
+        from .colorgui import _is_alphafold_model
+        return _is_alphafold_model(m)
+
+    # ---------------------------------------------------------------------------
+    #
+    def predicted_structure_version(self, structure): 
+        return _alphafold_db_structure_version(structure)
+    
     # ---------------------------------------------------------------------------
     #
     def _show_help(self):
@@ -334,8 +352,13 @@ def _alphafold_db_structure_version(structure):
 
 # -----------------------------------------------------------------------------
 #
+class OpenAlphaFoldPAE(OpenPredictedAlignedError):
+    pass
+
+# -----------------------------------------------------------------------------
+#
 def alphafold_error_plot_panel(session, create = False):
-    return AlphaFoldPAEOpen.get_singleton(session, create=create)
+    return OpenAlphaFoldPAE.get_singleton(session, create=create)
   
 # -----------------------------------------------------------------------------
 #

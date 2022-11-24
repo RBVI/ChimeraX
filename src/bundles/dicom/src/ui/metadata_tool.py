@@ -62,6 +62,9 @@ class MetadataRow:
 
 
 class DICOMMetadata(ToolInstance):
+    
+    help = "help:user/tools/dicommetadata.html"
+
     def __init__(self, session = None, name = "DICOM Metadata"):
         """Bring up a tool to view fine-grained metadata in DICOM files.
         session: A ChimeraX session
