@@ -36,13 +36,13 @@ def prep(session, state, callback, memo_type, memo_name, structures, keywords, *
         defaults, tool_settings)
 
     if active_settings['del_solvent']:
-        session.logger.info("Deleting solvent")
+        session.logger.status("Deleting solvent", log=True)
         for s in structures:
             atoms = s.atoms
             atoms.filter(atoms.structure_categories == "solvent").delete()
 
     if active_settings['del_ions']:
-        session.logger.info("Deleting non-metal-complex ions")
+        session.logger.status("Deleting non-metal-complex ions", log=True)
         for s in structures:
             atoms = s.atoms
             ions = atoms.filter(atoms.structure_categories == "ions")
@@ -54,7 +54,7 @@ def prep(session, state, callback, memo_type, memo_name, structures, keywords, *
             ions.delete()
 
     if active_settings['del_alt_locs']:
-        session.logger.info("Deleting non-current alt locs")
+        session.logger.status("Deleting non-current alt locs", log=True)
         for s in structures:
             s.delete_alt_locs()
 
@@ -80,7 +80,7 @@ def prep(session, state, callback, memo_type, memo_name, structures, keywords, *
                 else:
                     targets.append(r)
         if targets:
-            session.logger.info("Filling out missing side chains")
+            session.logger.status("Filling out missing side chains", log=True)
             style = active_settings['complete_side_chains']
             if style is True:
                 # use default rotamer lib
@@ -92,6 +92,7 @@ def prep(session, state, callback, memo_type, memo_name, structures, keywords, *
                     swap_aa(session, [r], res_type)
             else:
                 swap_aa(session, targets, "same", rot_lib=style)
+    session.logger.status("Dock prep finished", log=True)
     callback(session, state, structures)
 
 def handle_memorization(session, memorization, memorize_requester, main_settings_name, keywords, defaults,
