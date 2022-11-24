@@ -52,7 +52,7 @@ class AddChargeTool(ToolInstance):
         list_layout.addWidget(self.sel_restrict, alignment=Qt.AlignCenter)
         layout.addLayout(structure_layout)
         if dock_prep_info is not None:
-            self.tool_window.title = "%s for %s" % (tool_name, dock_prep_info['process_name'].capitalize())
+            self.tool_window.title = "%s for %s" % (tool_name, dock_prep_info['process name'].title())
             dp_structures = dock_prep_info['structures']
             if dp_structures is not None:
                 self.structure_list.value = list(dp_structures)
