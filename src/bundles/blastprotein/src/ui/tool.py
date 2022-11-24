@@ -34,7 +34,7 @@ class BlastProteinTool(ToolInstance):
 
     SESSION_ENDURING = False
     SESSION_SAVE = True
-    help = "help:/user/tools/blastprotein.html"
+    help = "help:user/tools/blastprotein.html"
 
     def __init__(self, session: Session, *
                  , chain: Optional[str] = None, db: str = AvailableDBs[0]

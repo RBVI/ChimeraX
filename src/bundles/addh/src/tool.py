@@ -180,7 +180,7 @@ class AddHTool(ToolInstance):
         if self.template_checkbox.isChecked():
             cmd += " template true"
             settings["template"] = True
-        if self.process_info is None or self.process_info.get('run_command', True):
+        if self.process_info is None or self.process_info.get('run command', True):
             run(self.session, cmd)
         self.delete()
         if self.process_info is not None:

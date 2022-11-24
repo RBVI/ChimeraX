@@ -53,6 +53,7 @@ finally:
 
 class DICOMBrowserTool(ToolInstance):
 
+    help = "help:user/tools/dicombrowser.html"
     patients = []
 
     def __init__(self, session = None, name = "DICOM Browser"):
