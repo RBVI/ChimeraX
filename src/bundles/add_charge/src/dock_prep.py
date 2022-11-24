@@ -28,9 +28,9 @@ def dock_prep_arg_info(session):
 
 def run_for_dock_prep(session, state, callback, memo_type, memo_name, structures, kw, *, tool_settings=None):
     from chimerax.dock_prep import handle_memorization, MEMORIZE_USE
-    if tool_settings is None and not state['nogui'] and memorization != MEMORIZE_USE:
+    if tool_settings is None and not state['nogui'] and memo_type != MEMORIZE_USE:
         from .tool import AddChargeTool
-        AddChargeTool(session, "Add Hydrogens", dock_prep_info={
+        AddChargeTool(session, "Add Charges", dock_prep_info={
             'process name': memo_name,
             'structures': structures,
             'callback': lambda used_structures, args1=[session, state, callback, memo_type, memo_name],
@@ -40,8 +40,10 @@ def run_for_dock_prep(session, state, callback, memo_type, memo_name, structures
         return
     active_settings = handle_memorization(session, memo_type, memo_name, "add_charge", kw, _get_defaults(),
         tool_settings)
-    from .cmd import cmd_addcharge
-    cmd_addcharge(session, structures.residues, **active_settings)
+    # tool adds charges directly
+    if tool_settings is None:
+        from .cmd import cmd_addcharge
+        cmd_addcharge(session, structures.residues, **active_settings)
     callback(session, state, structures)
 
 def _get_defaults():

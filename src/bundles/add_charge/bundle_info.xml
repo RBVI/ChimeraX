@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-<BundleInfo name="ChimeraX-AddCharge" version="1.5.1" package="chimerax.add_charge"
-=======
 <BundleInfo name="ChimeraX-AddCharge" version="1.5.5" package="chimerax.add_charge"
->>>>>>> 44389f709421d2aada7a39fc93aa7173662e1462
   	    minSessionVersion="1" maxSessionVersion="1">
 
   <!-- Additional information about bundle source -->
