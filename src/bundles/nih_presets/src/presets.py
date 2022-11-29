@@ -82,7 +82,7 @@ print_ribbon = [
     #"size hbonds pseudobondRadius 0.6",
     "size pseudobondRadius 0.6",
     # ribbons need to be up to date for struts to work right
-    "wait 1; struts @ca|ligand|P|##num_atoms<500 length 8 loop 60 rad 0.75 color struts_grey",
+    "wait 1; struts (@ca|ligand|P) & ##num_atoms<500 length 8 loop 60 rad 0.75 color struts_grey",
     "~struts @PB,PG resetRibbon false",
     "~struts adenine|cytosine|guanine|thymine|uracil resetRibbon false",
     #"color struts_grey pseudobonds",
@@ -105,7 +105,7 @@ def by_chain_cmds(session, rainbow=False, target_atoms=False):
     for s in all_atomic_structures(session):
         if rainbow:
             cmds.append(rainbow_cmd(s, target_atoms=target_atoms))
-        cmds.append("color zone %s near %s distance 20" % (s.atomspec, s.atomspec))
+        cmds.append("color zone %s near %s & main distance 20" % (s.atomspec, s.atomspec))
     return cmds
 
 def color_by_hydrophobicity_cmds(session, target="rs"):
