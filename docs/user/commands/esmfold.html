@@ -58,9 +58,12 @@ and <a href="#contacts">shows them with colored pseudobonds</a>
 <p>
 ESMFold-predicted structures vary in confidence levels
 (see <a href="#colorConfidence">coloring</a>) 
-and should be interpreted with caution. See the 
-<a href="https://www.rbvi.ucsf.edu/chimerax/data/esmfold-nov2022/esmfold.html" target="_blank">ChimeraX ESMFold example</a>.
-See also:
+and should be interpreted with caution. 
+The <b>esmfold</b> command is also implemented as the tools
+<a href="../tools/esmfold.html"><b>ESMFold</b></a>
+and <a href="../tools/esmfold.html#pae"><b>ESMFold Error Plot</b></a>.
+See the 
+<a href="https://www.rbvi.ucsf.edu/chimerax/data/esmfold-nov2022/esmfold.html" target="_blank">ChimeraX ESMFold example</a>,
 <a href="alphafold.html"><b>alphafold</b></a>,
 <!-- <a href="blastprotein.html"><b>blastprotein</b></a>, -->
 <a href="modeller.html"><b>modeller</b></a>,
@@ -69,6 +72,7 @@ See also:
 
 <a name="fetch"></a>
 <a name="match"></a>
+<a name="search"></a>
 <p class="nav">
 [<a href="#top">back to top: esmfold</a>]
 </p>
@@ -88,6 +92,15 @@ See also:
 [&nbsp;<a href="#colorConfidence"><b>colorConfidence</b></a>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<a href="#ignoreCache"><b>ignoreCache</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<a href="#pae"><b>pae</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+<!--
+<br>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>esmfold search</b> &nbsp;<i>sequence</i>&nbsp;
+[&nbsp;<b>matrix</b>&nbsp;&nbsp;<i>similarity-matrix</i>&nbsp;]
+[&nbsp;<b>cutoff</b>&nbsp;&nbsp;<i>evalue</i>&nbsp;]
+[&nbsp;<b>maxSeqs</b>&nbsp;&nbsp;<i>M</i>&nbsp;]
+[&nbsp;<a href="#version"><b>version</b></a>&nbsp;&nbsp;<i>N</i>&nbsp;]
+-->
 </blockquote>
 <ul>
 <li>The <b>esmfold fetch</b> command retrieves the model (if available)
@@ -168,7 +181,53 @@ and existing chains after their superposition (step 2 above)
   <li><b>same_sequence</b>
 &ndash; positions with the same residue type as the existing chain
   </ul>
+These <a href="../attributes.html">attributes</a>
+can be used for <a href="../tools/esmfold.html#coloring">coloring</a>
+and other purposes.
 </ol>
+<!--
+<br>
+<li>The <b>esmfold search</b> command uses
+a <a href="../tools/blastprotein.html#notes">BLAST</a> web service
+hosted by the <a href="https://www.cgl.ucsf.edu/Overview/index.html"
+target="_blank">UCSF RBVI</a> to search the
+<a href="https://esmatlas.com/about#about_this_website"
+target="_blank">ESM Metagenomic Atlas</a>.
+It differs from <b>esmfold match</b> in that it uses BLAST instead
+of fast (but low-sensitivity)
+<a href="https://www.rbvi.ucsf.edu/chimerax/data/kmer-aug2022/kmer_search.html"
+target="_blank">K-mer searching</a>,
+accepts only a single chain or sequence as input,
+and returns a list of hits for the user to inspect,
+rather than fetching the single top hit per chain automatically.
+The query <i>sequence</i> can be given as any of the following:
+  <ul>
+  <li>a <a href="atomspec.html#hierarchy"><i>chain-spec</i></a>
+  corresponding to a single chain in an atomic structure open in ChimeraX
+  <li>the <a href="seqspec.html"><i>sequence-spec</i></a> of a sequence
+  in the <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>
+  <li>a UniProt name or accession number
+  <li>plain text pasted directly into the command line
+  </ul>
+<p>
+The <b>matrix</b> option indicates which amino acid <i>similarity-matrix</i>
+to use for scoring the hits (uppercase or lowercase can be used): BLOSUM45,
+BLOSUM50, <b>BLOSUM62</b> (default), BLOSUM80, BLOSUM90, PAM30, PAM70, PAM250,
+or IDENTITY.
+The <b>cutoff</b> <i>evalue</i> is the maximum or least significant
+expectation value needed to qualify as a hit (default <b>1e-3</b>).
+Results can also be limited with the <b>maxSeqs</b> option
+(default <b>100</b>); this is the
+maximum number of unique sequences to return; more hits than this number
+may be obtained because multiple structures or other sequence-database entries
+may have the same sequence.
+</p><p>
+When results are returned, the hits are listed in a
+<a href="../tools/blastprotein.html#results"><b>Blast Protein</b></a> window.
+Clicking the name of a hit uses
+<a href="#fetch"><b>esmfold fetch</b></a> to retrieve the model.
+</p>
+-->
 </ul>
 
 <a name="options"></a>
@@ -316,6 +375,11 @@ Which version of the <a href="https://esmatlas.com/about#about_this_website"
 target="_blank">ESM Metagenomic Atlas</a>
 to use with <a href="#fetch"><b>esmfold fetch</b></a> and
 <a href="#pae"><b>esmfold pae</b></a>.
+<!-- 
+or <a href="#search"><b>esmfold search</b></a>
+(as well as <a href="blastprotein.html"><b>blastprotein</b></a> with
+<b>database esmfold</b>)
+-->
 The default is the most recent version found at the website
 (currently <b>0</b>).
 The <a href="#match"><b>esmfold match</b></a> command always uses the
@@ -365,10 +429,11 @@ but a subsequence can be:
 <li>pasted directly as the <i>sequence</i>
 <li>given with <b>subsequence</b> <i>start,end</i>
 (integers separated by a comma only; subsequence start and end positions
-in a UniProt or pasted sequence, where the first residue is 1)
+relative to the entire sequence starting at 1)
 <li>given with <b>residueRange</b> <i>start,end</i> 
 (integers separated by a comma only; subsequence start and end positions
-in a specified structure chain, using the structure residue numbering)
+in the structure residue numbering, when the sequence is specified as 
+a structure chain)
 </ul>
 Alternatively, a single command can be used
 to predict a long sequence as a series of shorter chunks with overlaps
@@ -645,7 +710,7 @@ matches the <b>pae</b> or <b>paegreen</b> scheme, respectively:
   &nbsp;<a href="key.html#options"><b>showTool true</b></a>
   </blockquote>
 <p>
-A title for the color key (<i>e.g.</i>, &ldquo;<b>ESMFold Predicted Aligned
+A title for the color key (<i>e.g.</i>, &ldquo;<b>Predicted Aligned
 Error (&Aring;)</b>&rdquo;) would need to be created separately with
 <a href="2dlabels.html"><b>2dlabels</b></a>.
 </p>

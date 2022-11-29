@@ -64,7 +64,7 @@ class RMSD(DynamicStructureHeaderSequence):
             for i, crd1 in enumerate(coords):
                 for crd2 in coords[i+1:]:
                     sum += distance_squared(crd1, crd2)
-                n += (len(coords) * (len(coords)-1)) // 2
+            n += (len(coords) * (len(coords)-1)) // 2
         if n == 0:
             return None
         from math import sqrt
