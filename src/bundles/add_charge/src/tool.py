@@ -176,7 +176,7 @@ class AddNonstandardChargesTool(ToolInstance):
         parent.setLayout(layout)
 
         if dock_prep_info is not None:
-            self.tool_window.title = "%s for %s" % (tool_name, dock_prep_info['process_name'].capitalize())
+            self.tool_window.title = "%s for %s" % (tool_name, dock_prep_info['process name'].capitalize())
 
         charge_frame = QFrame()
         charge_frame.setFrameStyle(QFrame.Shape.Box | QFrame.Shadow.Plain)
