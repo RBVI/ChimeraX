@@ -208,18 +208,12 @@ The <b>Options</b> button shows/hides additional options:
 </p>
 <ul>
 <li><b>Results directory</b> 
-(default <b>~/Downloads/ChimeraX/ESMFold/prediction_[N]</b>)
+(default <b>~/Downloads/ChimeraX/ESMFold/</b>)
 &ndash; the pathname (name and location) of a folder or directory
 in which to store prediction results. Clicking <b>Browse</b>
 brings up a file browser window for choosing it interactively.
 The directory does not need to exist already, as it will be
 created by running the prediction.
-As shown in the default, the pathname can include [N] to indicate
-substitution with the smallest positive integer that makes a new directory.
-If the specified pathname does not include [N]
-but a directory of that name and location already exists
-and contains a results.zip file, _[N] will be appended automatically
-to avoid overwriting the existing directory.
 <li><b>Trim fetched structure to the aligned structure sequence</b>
 (default <b>on</b>)
 &ndash; whether to trim a fetched structure to the same residue range 
@@ -474,10 +468,10 @@ The PAE values can be either:
 <ul>
 <li>fetched from the
 <a href="https://esmatlas.com/about#about_this_website"
-target="_blank">ESM Metagenomic Atlas</a> and
-by giving the MGnify identifier of the sequence, which can be obtained by
-<a href="https://esmatlas.com/resources?action=search_sequence"
-target="_blank">sequence search at the ESM Metagenomic Atlas</a>
+target="_blank">ESM Metagenomic Atlas</a>
+by giving the MGnify identifier of the sequence (<i>e.g.</i>, as evident from
+the name of the corresponding previously <a href="#match">fetched</a>
+ESMfold structure model)
 <li>a json file from ESMFold
 (<i>e.g.</i>, obtained by URL such as
 <a href="https://api.esmatlas.com/fetchConfidencePrediction/MGYP002537940442"
