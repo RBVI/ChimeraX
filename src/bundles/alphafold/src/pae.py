@@ -80,7 +80,7 @@ class OpenPredictedAlignedError(ToolInstance):
     @classmethod
     def get_singleton(cls, session, create=True):
         from chimerax.core import tools
-        return tools.get_singleton(session, cls, '{cls.method} Error Plot',
+        return tools.get_singleton(session, cls, f'{cls.method} Error Plot',
                                    create=create)
 
     # ---------------------------------------------------------------------------
