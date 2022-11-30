@@ -303,15 +303,31 @@ class AlphaFoldDB(Database):
 
 
 AvailableDBsDict = {
-    'pdb': PDB,
-    'nr': NRDB,
-    'alphafold': AlphaFoldDB,
-    'uniref100': UniRefDB,
-    'uniref90': UniRefDB,
-    'uniref50': UniRefDB
+    'pdb': PDB
+    , 'nr': NRDB
+    , 'alphafold': AlphaFoldDB
+    , 'uniref100': UniRefDB
+    , 'uniref90': UniRefDB
+    , 'uniref50': UniRefDB
+    # , 'esmfold': ESMFoldDB
 }
+
+CurrentDBVersions = {
+    'pdb': 1
+    , 'nr': 1
+    , 'alphafold': 4
+    , 'uniref100': 1
+    , 'uniref90': 1
+    , 'uniref50': 1
+    # , 'esmfold': 0
+}
+
 AvailableDBs = list(AvailableDBsDict.keys())
-AvailableMatrices = ["BLOSUM45", "BLOSUM50", "BLOSUM62", "BLOSUM80", "BLOSUM90", "PAM30", "PAM70", "PAM250", "IDENTITY"]
+AvailableMatrices = [
+    "BLOSUM45", "BLOSUM50", "BLOSUM62", "BLOSUM80", "BLOSUM90"
+    , "PAM30", "PAM70", "PAM250"
+    , "IDENTITY"
+]
 
 def get_database(db: str) -> Database:
     """Instantiate and return a database instance.
