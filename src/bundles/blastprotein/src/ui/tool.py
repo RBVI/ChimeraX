@@ -10,13 +10,15 @@
 # including partial copies, of the software or any revisions
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
+import string
 from typing import Dict, Optional, Union
 
-from Qt.QtWidgets import QPushButton
-from Qt.QtWidgets import QLabel, QSizePolicy
-from Qt.QtWidgets import QVBoxLayout, QHBoxLayout
-from Qt.QtWidgets import QComboBox, QWidget
-from Qt.QtWidgets import QSpinBox, QAbstractSpinBox
+from Qt.QtWidgets import (
+    QPushButton, QLabel, QSizePolicy
+    , QVBoxLayout, QHBoxLayout, QComboBox
+    , QWidget, QSpinBox, QAbstractSpinBox
+    , QStackedWidget, QLineEdit, QPlainTextEdit
+)
 
 from chimerax.atomic.widgets import ChainMenuButton
 from chimerax.core.commands import run
@@ -39,7 +41,7 @@ class BlastProteinTool(ToolInstance):
     help = "help:user/tools/blastprotein.html"
 
     def __init__(self, session: Session, *
-                 , chain: Optional[str] = None
+                 , chain: Optional[Union[str, list[str]]] = None
                  , db: str = AvailableDBs[0]
                  , seqs: Optional[int] = 100
                  # Guards against changes in list order
@@ -78,58 +80,71 @@ class BlastProteinTool(ToolInstance):
         self.tool_window = MainToolWindow(self)
         parent = self.tool_window.ui_area
 
-        main_layout = QVBoxLayout()
-        input_container_row1 = QWidget(parent)
-        input_container_row2 = QWidget(parent)
-        input_container_row3 = QWidget(parent)
-        menu_layout_row1 = QHBoxLayout()
-        menu_layout_row2 = QHBoxLayout()
-        menu_layout_row3 = QHBoxLayout()
+        self.main_layout = QVBoxLayout()
+        self.input_container_row1 = QWidget(parent)
+        self.input_container_row2 = QWidget(parent)
+        self.input_container_row3 = QWidget(parent)
+        self.input_container_row4 = QWidget(parent)
+        self.menu_layout_row1 = QHBoxLayout()
+        self.menu_layout_row2 = QHBoxLayout()
+        self.menu_layout_row3 = QHBoxLayout()
+        self.menu_layout_row4 = QHBoxLayout()
 
-        self.menu_widgets['chain'] = ChainMenuButton(self.session, no_value_button_text = "No chain chosen", parent=input_container_row1)
+        # Row 1
+        self.menu_widgets['matrices'] = BlastProteinFormWidget("Matrix", QComboBox, self.input_container_row1)
+        self.menu_widgets['cutoff'] = BlastProteinFormWidget("Cutoff 1e", QSpinBox, self.input_container_row1)
+        self.menu_widgets['sequences'] = BlastProteinFormWidget("# Sequences", QSpinBox, self.input_container_row1)
 
-        self.menu_widgets['database'] = BlastProteinFormWidget("Database", QComboBox, input_container_row1)
-
-        self.menu_widgets['sequences'] = BlastProteinFormWidget("# Sequences", QSpinBox, input_container_row1)
+        self.menu_widgets['cutoff'].input_widget.setRange(-100, 100)
+        self.menu_widgets['cutoff'].input_widget.setButtonSymbols(QAbstractSpinBox.NoButtons)
         self.menu_widgets['sequences'].input_widget.setRange(1, 5000)
         self.menu_widgets['sequences'].input_widget.setButtonSymbols(QAbstractSpinBox.NoButtons)
 
-        self.menu_widgets['matrices'] = BlastProteinFormWidget("Matrix", QComboBox, input_container_row1)
-
-        self.menu_widgets['cutoff'] = BlastProteinFormWidget("Cutoff 1e", QSpinBox, input_container_row2)
-        self.menu_widgets['cutoff'].input_widget.setRange(-100, 100)
-        self.menu_widgets['cutoff'].input_widget.setButtonSymbols(QAbstractSpinBox.NoButtons)
-
-        self.menu_widgets['version'] = BlastProteinFormWidget("Version", QSpinBox, input_container_row2)
+        # Row 2
+        self.menu_widgets['chain'] = ChainMenuButton(
+            self.session, no_value_button_text = "No chain chosen", parent=self.input_container_row2
+            , special_items=["UniProt ID", "Sequence"]
+        )
+        self.menu_widgets['database'] = BlastProteinFormWidget("Database", QComboBox, self.input_container_row2)
+        self.menu_widgets['version'] = BlastProteinFormWidget("Version", QSpinBox, self.input_container_row2)
         self.menu_widgets['version'].input_widget.setButtonSymbols(QAbstractSpinBox.NoButtons)
 
-        self.menu_widgets['help'] = QPushButton("Help", input_container_row3)
-        self.menu_widgets['apply'] = QPushButton("Apply", input_container_row3)
-        self.menu_widgets['reset'] = QPushButton("Reset", input_container_row3)
-        self.menu_widgets['close'] = QPushButton("Close", input_container_row3)
-        self.menu_widgets['ok'] = QPushButton("OK", input_container_row3)
+        # Row 3
+        self.menu_widgets['uniprot_or_seq_input'] = QLineEdit(parent = self.input_container_row3)
+        self.input_container_row3.hide()
+        self.menu_widgets['uniprot_or_seq_input'].hide()
+
+        # Row 4
+        self.menu_widgets['help'] = QPushButton("Help", self.input_container_row4)
+        self.menu_widgets['apply'] = QPushButton("Apply", self.input_container_row4)
+        self.menu_widgets['reset'] = QPushButton("Reset", self.input_container_row4)
+        self.menu_widgets['close'] = QPushButton("Close", self.input_container_row4)
+        self.menu_widgets['ok'] = QPushButton("OK", self.input_container_row4)
 
         for widget in ['help', 'apply', 'reset', 'close', 'ok']:
             self.menu_widgets[widget].setSizePolicy(QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum))
 
         # Lay the menu out
-        menu_layout_row1.addWidget(self.menu_widgets['chain'])
-        menu_layout_row1.addWidget(self.menu_widgets['database'])
-        menu_layout_row1.addWidget(self.menu_widgets['version'])
+        self.menu_layout_row1.addWidget(self.menu_widgets['matrices'])
+        self.menu_layout_row1.addWidget(self.menu_widgets['cutoff'])
+        self.menu_layout_row1.addWidget(self.menu_widgets['sequences'])
 
-        menu_layout_row2.addWidget(self.menu_widgets['matrices'])
-        menu_layout_row2.addWidget(self.menu_widgets['cutoff'])
-        menu_layout_row2.addWidget(self.menu_widgets['sequences'])
+        self.menu_layout_row2.addWidget(self.menu_widgets['chain'])
+        self.menu_layout_row2.addWidget(self.menu_widgets['database'])
+        self.menu_layout_row2.addWidget(self.menu_widgets['version'])
 
-        menu_layout_row3.addWidget(self.menu_widgets['help'])
-        menu_layout_row3.addWidget(self.menu_widgets['apply'])
-        menu_layout_row3.addWidget(self.menu_widgets['reset'])
-        menu_layout_row3.addWidget(self.menu_widgets['close'])
-        menu_layout_row3.addWidget(self.menu_widgets['ok'])
+        self.menu_layout_row3.addWidget(self.menu_widgets['uniprot_or_seq_input'])
+
+        self.menu_layout_row4.addWidget(self.menu_widgets['help'])
+        self.menu_layout_row4.addWidget(self.menu_widgets['apply'])
+        self.menu_layout_row4.addWidget(self.menu_widgets['reset'])
+        self.menu_layout_row4.addWidget(self.menu_widgets['close'])
+        self.menu_layout_row4.addWidget(self.menu_widgets['ok'])
 
         # Functionalize the menu
         self.menu_widgets['database'].input_widget.addItems(AvailableDBs)
         self.menu_widgets['matrices'].input_widget.addItems(AvailableMatrices)
+        self.menu_widgets['chain'].value_changed.connect(self._on_chain_menu_changed)
         self.menu_widgets['sequences'].input_widget.valueChanged.connect(self._on_num_sequences_changed)
         self.menu_widgets['cutoff'].input_widget.valueChanged.connect(self._on_cutoff_value_changed)
         self.menu_widgets['database'].input_widget.currentIndexChanged.connect(self._on_database_changed)
@@ -161,20 +176,23 @@ class BlastProteinTool(ToolInstance):
             self.menu_widgets['version'].input_widget.setRange(1, CurrentDBVersions[self._current_database])
         self.menu_widgets['version'].input_widget.valueChanged.connect(self._on_version_changed)
 
-        input_container_row1.setLayout(menu_layout_row1)
-        input_container_row2.setLayout(menu_layout_row2)
-        input_container_row3.setLayout(menu_layout_row3)
-        main_layout.addWidget(input_container_row1)
-        main_layout.addWidget(input_container_row2)
-        main_layout.addWidget(input_container_row3)
+        self.input_container_row1.setLayout(self.menu_layout_row1)
+        self.input_container_row2.setLayout(self.menu_layout_row2)
+        self.input_container_row3.setLayout(self.menu_layout_row3)
+        self.input_container_row4.setLayout(self.menu_layout_row4)
+        self.main_layout.addWidget(self.input_container_row1)
+        self.main_layout.addWidget(self.input_container_row2)
+        self.main_layout.addWidget(self.input_container_row3)
+        self.main_layout.addWidget(self.input_container_row4)
 
-        for layout in [main_layout, menu_layout_row1, menu_layout_row3]:
+        for layout in [self.main_layout, self.menu_layout_row4]:
             layout.setContentsMargins(0, 0, 0, 0)
             layout.setSpacing(0)
-        menu_layout_row2.setContentsMargins(8, 0, 0, 0)
-        menu_layout_row2.setSpacing(0)
+        for layout in [self.menu_layout_row1, self.menu_layout_row2]:
+            layout.setContentsMargins(4, 0, 0, 0)
+            layout.setSpacing(2)
 
-        self.tool_window.ui_area.setLayout(main_layout)
+        self.tool_window.ui_area.setLayout(self.main_layout)
         self.tool_window.manage('side')
 
     #
@@ -189,33 +207,49 @@ class BlastProteinTool(ToolInstance):
         self.menu_widgets['version'].input_widget.setValue(1)
 
     def _run_blast_job(self) -> None:
-        try:
-            chain = self.menu_widgets['chain'].get_value().string().split(" ")[-1]
-        except:
-            err = "Cannot run BLAST without a chain."
-            if len(self.session.models) == 0:
-                err = err + " " + "Please open a model and select a chain."
-            raise UserError(err)
-        else:
-            cmd_text = [
-                "blastprotein"
-                # When two or more models are displayed the protein name is inserted
-                # before the Model #/Chain Name. Grabbing list[-1] always gets either
-                # the only element or the Model #/Chain Name since it comes last.
-                , chain
-                , "database", self.menu_widgets['database'].input_widget.currentText()
-                , "cutoff"
-                , "".join(["1e", str(self._cutoff)])
-                , "matrix", self.menu_widgets['matrices'].input_widget.currentText()
-                , "maxSeqs", str(self._num_sequences)
-                , "version", str(self._version)
-                , "name", make_instance_name()
-            ]
-            run(self.session, " ".join(cmd_text))
+        blast_input_type = self.menu_widgets['chain'].get_value()
+        blast_input = None
+        if blast_input_type in ["UniProt ID", "Sequence"]:
+            blast_input = self.menu_widgets['uniprot_or_seq_input'].text().translate(str.maketrans('', '', string.whitespace))
+        else: # it's a chain
+            try:
+                blast_input = chain.string().split(" ")[-1]
+            except:
+                err = "Cannot run BLAST without some kind of sequence."
+                if len(self.session.models) == 0:
+                    err = err + " " + "Please open a model and select a chain, or input sequences or a UniProt ID."
+                raise UserError(err)
+        cmd_text = [
+            "blastprotein"
+            # When two or more models are displayed the protein name is inserted
+            # before the Model #/Chain Name. Grabbing list[-1] always gets either
+            # the only element or the Model #/Chain Name since it comes last.
+            , blast_input
+            , "database", self.menu_widgets['database'].input_widget.currentText()
+            , "cutoff"
+            , "".join(["1e", str(self._cutoff)])
+            , "matrix", self.menu_widgets['matrices'].input_widget.currentText()
+            , "maxSeqs", str(self._num_sequences)
+            , "version", str(self._version)
+            , "name", make_instance_name()
+        ]
+        run(self.session, " ".join(cmd_text))
 
     def _run_and_close(self) -> None:
         self._run_blast_job()
         self.delete()
+
+    def _on_chain_menu_changed(self) -> None:
+        chain = self.menu_widgets['chain'].get_value()
+        self._blast_input = None
+        if chain in ["UniProt ID", "Sequence"]:
+            self.input_container_row3.show()
+            self.menu_widgets['uniprot_or_seq_input'].show()
+        else:
+            self.input_container_row3.hide()
+            self.menu_widgets['uniprot_or_seq_input'].hide()
+            chain = chain.string().split(" ")[-1]
+            self._blast_input = chain
 
     def _on_num_sequences_changed(self, value) -> None:
         self._num_sequences = value
@@ -261,21 +295,31 @@ class BlastProteinTool(ToolInstance):
     #
     @classmethod
     def from_snapshot(cls, session, data):
-        tmp = cls(
-            session
-            , chain = data['_protein_chain']
-            , db = data["_current_database"]
-            , seqs = data["_num_sequences"]
-            , matrix = data["_current_matrix"]
-            , cutoff = data["_cutoff"]
-        )
+        if data['version'] == 2 or 'version' not in data:
+            tmp = cls(
+                session
+                , chain = data['_protein_chain']
+                , db = data["_current_database"]
+                , seqs = data["_num_sequences"]
+                , matrix = data["_current_matrix"]
+                , cutoff = data["_cutoff"]
+            )
+        else:
+            tmp = cls(
+                session
+                , chain = data['_blast_input']
+                , db = data["_current_database"]
+                , seqs = data["_num_sequences"]
+                , matrix = data["_current_matrix"]
+                , cutoff = data["_cutoff"]
+            )
         return tmp
 
     def take_snapshot(self, session, flags):
         data = {
-            "version": 2,
+            "version": 3,
             "_super": super().take_snapshot(session, flags),
-            "_protein_chain": self._protein_chain,
+            "_blast_input": self._blast_input,
             "_current_database": self._current_database,
             "_num_sequences": self._num_sequences,
             "_current_matrix": self._current_matrix,
