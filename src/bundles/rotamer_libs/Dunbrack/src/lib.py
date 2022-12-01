@@ -19,14 +19,6 @@ from chimerax.rotamers import RotamerLibrary, RotamerParams, UnsupportedResTypeE
 class DunbrackRotamerLibrary(RotamerLibrary):
 
     @property
-    def display_name(self):
-        return "Dunbrack"
-
-    @property
-    def description(self):
-        return "Dunbrack 2010 backbone-dependent rotamer library -- 5% stepdown"
-
-    @property
     def citation(self):
         return """Shapovalov, M.S., and Dunbrack, R.L., Jr. (2011)
 A Smoothed Backbone-Dependent Rotamer Library for Proteins

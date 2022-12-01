@@ -222,10 +222,11 @@ def get_rotamers(session, res, phi=None, psi=None, cis=False, res_type=None, rot
                 al_info = ""
             session.logger.info("%s%s: phi %s, psi %s %s" % (res, al_info, _info(phi), _info(psi),
                 "cis" if cis else "trans"))
-    session.logger.status("Retrieving rotamers from %s library" % rot_lib.display_name)
+    ui_name = session.rotamers.ui_name(rot_lib.name)
+    session.logger.status("Retrieving rotamers from %s library" % ui_name)
     res_template_func = rot_lib.res_template_func
     params = rot_lib.rotamer_params(res_type, phi, psi, cis=cis)
-    session.logger.status("Rotamers retrieved from %s library" % rot_lib.display_name)
+    session.logger.status("Rotamers retrieved from %s library" % ui_name)
 
     mapped_res_type = rot_lib.res_name_mapping.get(res_type, res_type)
     template = rot_lib.res_template_func(mapped_res_type)
