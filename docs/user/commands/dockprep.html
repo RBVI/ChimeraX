@@ -31,48 +31,69 @@ class="clRight" title="User Guide Index"/></a>
 [&nbsp;<b>delSolvent</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>delIons</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>delAltLocs</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
-[&nbsp;<a href="#completeSideChains"><b>completeSideChains</b></a>&nbsp;&nbsp;<i>choices</i>&nbsp;]
+[&nbsp;<a href="#completeSideChains"><b>completeSideChains</b></a>&nbsp;&nbsp;<i>method</i>&nbsp;]
 [&nbsp;<a href="#standardizeResidues"><b>standardizeResidues</b></a>&nbsp;&nbsp;<i>list</i>&nbsp;]
-[&nbsp;<b>ah</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
-&nbsp;<a href="#ah-options"><i>hydrogen-options</i></a>&nbsp;
-[&nbsp;<b>ac</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
-&nbsp;<a href="#ac-option"><i>charge-option</i></a>&nbsp;
+[&nbsp;<a href="#ah"><b>ah</b></a>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
+[&nbsp;<a href="#ah-options"><i>addh-options</i></a>&nbsp;]]
+[&nbsp;<a href="#ac"><b>ac</b></a>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<a href="#acMethod"><b>acMethod</b></a>&nbsp;&nbsp;<b>am1-bcc</b>&nbsp;|&nbsp;gasteiger&nbsp;]
 </h3>
 <p>
 The <b>dockprep</b> command performs several tasks to prepare structures for
-<a href="http://dock.compbio.ucsf.edu/index.html" target="_blank">DOCK</a>
-or for other calculations. The steps could be performed separately, but
-<b>dockprep</b> unites them for convenience:
+molecular docking or other calculations, such as: 
 </p>
 <ul>
-<li><b>memorize</b> &ndash; whether to save the current settings of all (other)
-<b>dockprep</b> options in <a href="../preferences.html#other">preferences</a>
-for future use, or use previously saved options:
- <ul>
- <li><b>none</b> (default) &ndash; neither save nor use previously saved
-option settings
- <li><b>save</b> &ndash; save all (other) option settings for future use
- <li><b>use</b> &ndash; use previously saved option settings
- </ul>
+<li> deleting water molecules
+<li> repairing truncated sidechains
+<li> adding hydrogens
+<li> assigning partial charges
+</ul>
+<p>
+Many of these steps can be performed separately, but <b>dockprep</b> 
+unites them for convenience. The corresponding tool (graphical interface)
+is <a href="../tools/dockprep.html"><b>Dock Prep</b></a>.
+</p>
+
+<a name="options"></a>
+<p class="nav">
+[<a href="#top">back to top: hbonds</a>]
+</p>
+<h3>Options</h3>
+
+<blockquote>
+<a name="memorize"></a>
+<b>memorize</b>&nbsp;&nbsp;<b>none</b>&nbsp;|&nbsp;save&nbsp;|&nbsp;use
 <br>
-<li><b>delSolvent</b>, <b>delIons</b> (both default <b>true</b>) &ndash; 
-whether to delete water and ions, respectively;
-see also <a href="delete.html"><b>delete</b></a>
-<br><br>
-<li><b>delAltLocs</b> (default <b>true</b>) &ndash; 
-whether to delete all but the currently used alternate locations;
-see also <a href="altlocs.html#clean"><b>altlocs clean</b></a>
-<br><br>
-<li><a name="completeSideChains"></a> <b>completeSideChains</b>
-&ndash; whether and how to repair truncated amino acid sidechains;
-see also <a href="swapaa.html"><b>swapaa</b></a>,
-<a href="../tools/addcharges.html#notes">troubleshooting charge addition</a>
+Whether to save the current settings of all (other)
+<b>dockprep</b> options in <a href="../preferences.html#other">preferences</a>
+for future use, or use previously saved options, or neither (<b>none</b>,
+default).
+</blockquote><blockquote>
+<a name="delete"></a>
+<b>delSolvent</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
+<br>
+<b>delIons</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
+<br>
+Whether to delete water and ions, respectively (both default <b>true</b>).
+See also: <a href="delete.html"><b>delete</b></a>
+</blockquote><blockquote>
+<b>delAltLocs</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
+<br>
+Whether to delete all but the currently used alternate locations (default
+<b>true</b>). See also: <a href="altlocs.html#clean"><b>altlocs clean</b></a>
+</blockquote><blockquote>
+<a name="completeSideChains"></a> 
+<b>completeSideChains</b></a>&nbsp;&nbsp;<i>method</i>
+<br>
+Whether and how to repair truncated amino acid sidechains, where
+<i>method</i> can be any of the following:
   <ul>
   <li><b>Dunbrack</b> or <b>true</b> (default)
 &ndash; <a href="http://dunbrack.fccc.edu/bbdep2010/"
 target="_blank">Dunbrack 2010 smooth backbone-dependent rotamer library</a>
 (5% stepdown; for chain-terminal residues,
-the Dunbrack 2002 backbone-independent version is used instead):
+the Dunbrack 2002 backbone-independent version is used instead)
+<!--
    <blockquote>
 <a href="https://www.ncbi.nlm.nih.gov/pubmed/21645855" target="_blank">
 A smoothed backbone-dependent rotamer library for proteins derived from
@@ -80,9 +101,11 @@ adaptive kernel density estimates and regressions.</a>
 Shapovalov MV, Dunbrack RL Jr.
 <i>Structure.</i> 2011 Jun 8;19(6):844-58.
    </blockquote>
+-->
   <li><b>Dynameomics</b> &ndash;
 <a href="http://www.dynameomics.org/rotamer/indexRotamer.aspx"
 target="_blank">Dynameomics rotamer library</a>:
+<!--
    <blockquote>
 <a href="https://www.ncbi.nlm.nih.gov/pubmed/21280126" target="_blank">
 The Dynameomics rotamer library: amino acid side chain conformations
@@ -90,14 +113,17 @@ and dynamics from comprehensive molecular dynamics simulations in water.</a>
 Scouras AD, Daggett V.
 <i>Protein Sci.</i> 2011 Feb;20(2):341-52.
    </blockquote>
+-->
  <li><b>Richardson.common</b> &ndash; common-atom values (author-recommended)
 from the Richardson backbone-independent rotamer library:
+<!--
    <blockquote>
 <a href="https://www.ncbi.nlm.nih.gov/pubmed/10861930" target="_blank">
 The penultimate rotamer library.</a>
 Lovell SC, Word JM, Richardson JS, Richardson DC.
 <i>Proteins.</i> 2000 Aug 15;40(3):389-408.
    </blockquote>
+-->
  <li><b>Richardson.mode</b> &ndash; mode values
 from the Richardson backbone-independent rotamer library
  <li><b>ala</b> &ndash; convert amino acid residues with truncated sidechains 
@@ -105,12 +131,16 @@ to alanine (leave only sidechain -CH<sub>3</sub>)
  <li><b>gly</b> &ndash; convert amino acid residues with truncated sidechains 
 to glycine (remove sidechain entirely)
 </ul>
+<p>
+See also: <a href="swapaa.html"><b>swapaa</b></a>,
+<a href="../tools/addcharges.html#notes">troubleshooting charge addition</a>
+</p>
+</blockquote><blockquote>
+<a name="standardizeResidues"></a>
+<b>standardizeResidues</b>&nbsp;&nbsp;<i>list</i>
 <br>
-<li><a name="standardizeResidues"></a>
-<b>standardizeResidues</b> 
-&ndash; whether to convert certain
-nonstandard residues to their corresponding standard residues,
-where <i>list</i> is a list separated by commas only
+Whether to convert certain nonstandard residues to their corresponding 
+standard residues, where <i>list</i> is a list separated by commas only
 (default <b>5BU,CSL,UMS,MSE</b>)
 of one or more of the following residue names:
   <ul>
@@ -136,17 +166,40 @@ and adjusting the CG-SD and SD-CE bond lengths to 1.81 and 1.78 &Aring;,
 respectively. If not converted, MSE will still get the same partial charges
 as MET, but the bond lengths will not be changed.
   </ul>
-</p>
-<li><b>ah</b> (default <b>true</b>) &ndash; whether to add hydrogens
-(as if using <a href="addh.html"><b>addh</b></a>);
-see <a href="#ah-options">associated options</a>
-<br><br>
-<li><b>ac</b> (default <b>true</b>) &ndash; whether to add charges;
-(as if using <a href="addcharge.html"><b>addcharge</b></a>);
-see <a href="#ac-option">associated option</a>.
+</blockquote><blockquote>
+<a name="ah"></a>
+<b>ah</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
+&nbsp;[&nbsp;<a href="#ah-options"><i>addh-options</i></a>&nbsp;]
+<br>
+Whether to add hydrogens (default <b>true</b>), 
+with further <a href="#ah-options">associated options</a>.
+See also: <a href="addh.html"><b>addh</b></a>
+</blockquote><blockquote>
+<a name="ac"></a>
+<b>ac</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
+<br>
+Whether to add charges (default <b>true</b>).
 Adding charges requires explicit hydrogens on the structure, 
-either present already or added with the <b>ah</b> option.
-</ul>
+either present already or added with the <a href="#ah"><b>ah</b></a> option.
+</blockquote>
+<blockquote>
+<a name="acMethod"></a>
+<b>acMethod</b>&nbsp;&nbsp;<b>am1-bcc</b>&nbsp;|&nbsp;gasteiger
+<br>
+If adding charges (<a href="#ac"><b>ac true</b></a>),
+which charge calculation method to use for nonstandard residues:
+ <ul>
+ <li><b>am1-bcc</b> (default) &ndash; semi-empirical (AM1)
+ with bond charge correction (BCC), parametrized to reproduce
+ <i>ab initio</i> (HF/6-31G*) electrostatic potentials
+ <li><b>gasteiger</b> &ndash; iterative partial equalization of orbital
+ electronegativity, a faster method based on atom types and connectivity
+ </ul>
+While both methods are much faster than <i>ab initio</i> calculations,
+the Gasteiger method is the faster and more approximate of the two.
+See the <a href="addcharge.html#method"><b>method</b></a> option of
+<a href="addcharge.html"><b>addcharge</b></a> for further details.
+</blockquote>
 
 <a name="ah-options"></a>
 <p class="nav">
@@ -154,61 +207,62 @@ either present already or added with the <b>ah</b> option.
 </p>
 <h3>Hydrogen Addition Options</h3>
 <p>
-Several options apply only when hydrogens are added (<b>ah true</b>)
+Several options only apply to adding hydrogens
+(<a href="#ah"><b>ah true</b></a>)
 and are identical to the corresponding <a href="addh.html"><b>addh</b></a> 
 command options except that the keywords start with &ldquo;<b>ah</b>&rdquo;:
 </p>
 <blockquote>
-[&nbsp;<b>ahHbond</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
-[&nbsp;<b>ahInIsolation</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
-[&nbsp;<b>ahMetalDist</b>&nbsp;&nbsp;<i>d</i>&nbsp;]
-[&nbsp;<b>ahTemplate</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
-[&nbsp;<b>ahUseAspName</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
-[&nbsp;<b>ahUseCysName</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
-[&nbsp;<b>ahUseGluName</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
-[&nbsp;<b>ahUseHisName</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
-[&nbsp;<b>ahUseLysName</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
-</blockquote>
-</p><p>
 <a name="ahHbond"></a>
-The <b>ahHbond</b> option (default <b>true</b>) controls
-whether H-bond formation should also be considered.
+<b>ahHbond</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
+<br>
+Whether H-bond formation should also be considered (default <b>true</b>).
 Considering H-bonds increases calculation time and may not
 produce a globally optimal network of H-bonds.
-</p><p>
+</blockquote><blockquote>
 <a name="ahInIsolation"></a>
-The <b>ahInIsolation</b> option (default <b>true</b>) indicates using
-only the atoms within the same model. Otherwise,
-other models in the vicinity (except sibling submodels of the same model)
-may affect hydrogen placement, even if the other models were not
-designated for hydrogen addition.
+<b>ahInIsolation</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
+<br>
+Whether to use only the atoms within the same model (default <b>true</b>).
+Otherwise, other models in the vicinity (except sibling submodels of the 
+same model) may affect hydrogen placement,
+even if the other models were not designated for hydrogen addition.
 Sibling submodels of the same model (<i>e.g.</i>, #1.1, #1.2, #1.3, ...)
 are always treated in isolation from one another, even if this option is
 <b>false</b>.
-</p><p>
+</blockquote><blockquote>
 <a name="ahMetalDist"></a>
-The <b>ahMetalDist</b> option specifies a distance between a heavy atom X
+<b>ahMetalDist</b>&nbsp;&nbsp;<i>d</i>
+<br>
+The distance between a heavy atom X
 and metal ion M (default <b>3.95</b> &Aring;)
 within which to suppress adding a hydrogen to X
 if both of the following also apply:
-</p>
 <ul>
 <li>X is electronegative
 (O or N, but more generally, periodic table groups 15-16)
 <li>the X-H-M angle would be &gt;120&deg;
 </ul>
-<p>
+</blockquote><blockquote>
 <a name="ahTemplate"></a>
-The <b>ahTemplate</b> option (default <b>false</b>) allows using idealized
-coordinates to discern <a href="../atomtypes.html">atom types</a>
-in nonstandard residues, instead of their actual coordinates in the structure.
+<b>ahTemplate</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>
+Whether to use idealized coordinates to discern 
+<a href="../atomtypes.html">atom types</a> in nonstandard residues,
+instead of their actual coordinates in the structure (default <b>false</b>).
 The idealized coordinates are looked up by residue name
 in the <a href="https://www.wwpdb.org/data/ccd" target="_blank">PDB
 Chemical Component Dictionary</a>. Setting <b>template true</b> is useful
 for structures with poorly (structurally) determined ligands that could be
 mis-typed, potentially causing addition of the wrong number of hydrogens or
 hydrogens in incorrect positions.
-</p><p>
+</blockquote><blockquote>
+<b>ahUseAspName</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br><b>ahUseCysName</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br><b>ahUseGluName</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br><b>ahUseHisName</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br><b>ahUseLysName</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
+<p>
 By default, if amino acids have standard residue names, each histidine
 sidechain will be protonated based on its local environment,
 whereas the sidechains of other residue types will be assigned
@@ -216,7 +270,7 @@ whereas the sidechains of other residue types will be assigned
 reasonable at physiological pH, regardless of the local
 environment: negative aspartic acid and glutamic acid,
 positive arginine and lysine, and neutral cysteine and tyrosine.
-The following <b>addh</b> command options allow alternative protonation states
+The following command options allow alternative protonation states
 of certain amino acids to be specified with special residue names:
 </p>
 <table border cellpadding="4" cellspacing="0"><tr>
@@ -250,38 +304,16 @@ GLH neutral (OE2-protonated)</td>
 <td align="center">all treated as unspecified</td>
 </tr></table>
 <p>
+These names can be assigned to residues beforehand by text-editing 
+the PDB file of the structure before it is opened, or by using the command
+<a href="setattr.html"><b>setattr</b></a> to change the <b>name</b>
+<a href="../attributes.html#residue">residue attribute</a>.
 The <a href="../atomtypes.html">atom types</a> within these amino acids
-are ignored for hydrogen addition, so changing them manually to try to control
+are ignored for hydrogen addition, so changing them to try to control
 hydrogen addition will have no effect.
 </p>
-
-<a name="ac-option"></a>
-<p class="nav">
-[<a href="#top">back to top: dockprep</a>]
-</p>
-<h3>Charge Calculation Option</h3>
-<blockquote>
-[&nbsp;<b>acMethod</b>&nbsp;&nbsp;<b>am1-bcc</b>&nbsp;|&nbsp;gasteiger&nbsp;]
 </blockquote>
-<p>
-The <b>acMethod</b> option applies when only when charges are added 
-(<b>ac true</b>). It specifies the method of charge calculation for 
-nonstandard residues, with possible values:
-</p>
-  <ul>
-  <li><b>am1-bcc</b> (default) &ndash; semi-empirical (AM1)
-  with bond charge correction (BCC), parametrized to reproduce
-  <i>ab initio</i> (HF/6-31G*) electrostatic potentials
-  <li><b>gasteiger</b> &ndash; iterative partial equalization of orbital
-  electronegativity, a faster method based on atom types and connectivity
- </ul>
-<p>
-While both methods are much faster than 
-<i>ab initio</i> calculations,
-the Gasteiger method is the faster and more approximate of the two.
-See the <a href="addcharge.html#method"><b>method</b></a> option of
-<a href="addcharge.html"><b>addcharge</b></a> for further details.
-</p>
+
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
