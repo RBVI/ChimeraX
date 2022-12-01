@@ -63,7 +63,7 @@ See the
 <a href="https://www.rbvi.ucsf.edu/chimerax/data/esmfold-nov2022/esmfold.html" target="_blank">ChimeraX ESMFold example</a>.
 See also:
 <a href="alphafold.html"><b>AlphaFold</b></a>,
-<!-- <a href="blastprotein.html"><b>Blast Protein</b></a>, -->
+<a href="blastprotein.html"><b>Blast Protein</b></a>,
 <a href="modeller.html"><b>Modeller Comparative</b></a>,
 <a href="modelloops.html"><b>Model Loops</b></a>,
 <a href="rotamers.html"><b>Rotamers</b></a>
@@ -93,7 +93,6 @@ from the menu of currently open protein structure chains.
 <blockquote>
 <a href="#match"><b>Fetch</b></a>
 <br><a href="#search"><b>Search</b></a> 
-&ndash; <font color="brown">not yet implemented</font>
 <br><a href="#predict"><b>Predict</b></a>
 <br><a href="#options"><b>Options</b></a>
 </blockquote>
@@ -163,8 +162,6 @@ the file will be fetched and cached.
 <a href="#dialog" class="nounder">&larr;</a>
 <a name="search"></a>
 <b>Search</b>
-&ndash; <font color="brown">not yet implemented</font>
-<!--
 uses a <a href="../tools/blastprotein.html#notes">BLAST</a> web service
 hosted by the <a href="https://www.cgl.ucsf.edu/Overview/index.html" 
 target="_blank">UCSF RBVI</a> to search the 
@@ -187,10 +184,13 @@ and returns a list of hits for the user to inspect,
 rather than fetching the single top hit per chain automatically.
 When results are returned, the hits are listed in a
 <a href="blastprotein.html#results"><b>Blast Protein</b></a> window.
-Clicking the name of a hit uses
+Double-clicking a hit uses
 <a href="../commands/esmfold.html#fetch"><b>esmfold fetch</b></a> 
-to retrieve the model.
--->
+to retrieve the model,
+or multiple chosen hits can be retrieved at once by using the results panel
+<a href="../window.html#context-menu">context menu</a>
+or <b>Load Structures</b> button
+(<a href="blastprotein.html#results">details...</a>).
 </p><p>
 <a href="#dialog" class="nounder">&larr;</a>
 <a name="predict"></a>
@@ -577,5 +577,5 @@ Error (&Aring;)</b>&rdquo;) would need to be created separately with
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-November 2022</address>
+December 2022</address>
 </body></html>
