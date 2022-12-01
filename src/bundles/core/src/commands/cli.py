@@ -896,7 +896,7 @@ class Or(Annotation):
         raise AnnotationError("Expected %s" % self.name)
 
     def unparse(self, value, session=None):
-        for a in self.annoations:
+        for a in self.annotations:
             try:
                 return a.unparse(value, session)
             except ValueError:

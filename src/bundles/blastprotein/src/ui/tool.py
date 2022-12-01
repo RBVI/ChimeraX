@@ -26,7 +26,9 @@ from chimerax.core.tools import ToolInstance
 from chimerax.ui import MainToolWindow
 from chimerax.ui.options import Option
 
-from ..data_model import AvailableDBs, AvailableMatrices
+from ..data_model import (
+    AvailableDBs, AvailableMatrices, CurrentDBVersions
+)
 from ..utils import make_instance_name
 from .widgets import BlastProteinFormWidget
 
@@ -37,11 +39,14 @@ class BlastProteinTool(ToolInstance):
     help = "help:user/tools/blastprotein.html"
 
     def __init__(self, session: Session, *
-                 , chain: Optional[str] = None, db: str = AvailableDBs[0]
+                 , chain: Optional[str] = None
+                 , db: str = AvailableDBs[0]
                  , seqs: Optional[int] = 100
                  # Guards against changes in list order
                  , matrix: str = AvailableMatrices[AvailableMatrices.index("BLOSUM62")]
-                 , cutoff: Optional[int] = -3, instance_name: Optional[str] = None):
+                 , cutoff: Optional[int] = -3
+                 , version: Optional[int] = None
+                 , instance_name: Optional[str] = None):
         self.display_name = "Blast Protein"
         super().__init__(session, self.display_name)
 
@@ -50,6 +55,7 @@ class BlastProteinTool(ToolInstance):
         self._num_sequences = seqs
         self._current_matrix = matrix
         self._cutoff = cutoff
+        self._version = version
 
         self.menu_widgets: Dict[str, Union[QWidget, Option]] = {}
         self._build_ui()
@@ -93,7 +99,9 @@ class BlastProteinTool(ToolInstance):
         self.menu_widgets['cutoff'] = BlastProteinFormWidget("Cutoff 1e", QSpinBox, input_container_row2)
         self.menu_widgets['cutoff'].input_widget.setRange(-100, 100)
         self.menu_widgets['cutoff'].input_widget.setButtonSymbols(QAbstractSpinBox.NoButtons)
-        self.menu_widgets['placeholder'] = BlastProteinFormWidget("", QLabel, input_container_row2)
+
+        self.menu_widgets['version'] = BlastProteinFormWidget("Version", QSpinBox, input_container_row2)
+        self.menu_widgets['version'].input_widget.setButtonSymbols(QAbstractSpinBox.NoButtons)
 
         self.menu_widgets['help'] = QPushButton("Help", input_container_row3)
         self.menu_widgets['apply'] = QPushButton("Apply", input_container_row3)
@@ -107,11 +115,11 @@ class BlastProteinTool(ToolInstance):
         # Lay the menu out
         menu_layout_row1.addWidget(self.menu_widgets['chain'])
         menu_layout_row1.addWidget(self.menu_widgets['database'])
-        menu_layout_row1.addWidget(self.menu_widgets['sequences'])
+        menu_layout_row1.addWidget(self.menu_widgets['version'])
 
         menu_layout_row2.addWidget(self.menu_widgets['matrices'])
         menu_layout_row2.addWidget(self.menu_widgets['cutoff'])
-        menu_layout_row2.addWidget(self.menu_widgets['placeholder'])
+        menu_layout_row2.addWidget(self.menu_widgets['sequences'])
 
         menu_layout_row3.addWidget(self.menu_widgets['help'])
         menu_layout_row3.addWidget(self.menu_widgets['apply'])
@@ -124,6 +132,7 @@ class BlastProteinTool(ToolInstance):
         self.menu_widgets['matrices'].input_widget.addItems(AvailableMatrices)
         self.menu_widgets['sequences'].input_widget.valueChanged.connect(self._on_num_sequences_changed)
         self.menu_widgets['cutoff'].input_widget.valueChanged.connect(self._on_cutoff_value_changed)
+        self.menu_widgets['database'].input_widget.currentIndexChanged.connect(self._on_database_changed)
 
         self.menu_widgets['help'].clicked.connect(lambda *, run=run, ses=self.session: run(ses, " ".join(["open", self.help])))
         self.menu_widgets['apply'].clicked.connect(self._run_blast_job)
@@ -137,6 +146,20 @@ class BlastProteinTool(ToolInstance):
         self.menu_widgets['sequences'].input_widget.setValue(self._num_sequences)
         self.menu_widgets['matrices'].input_widget.setCurrentIndex(AvailableMatrices.index(self._current_matrix))
         self.menu_widgets['cutoff'].input_widget.setValue(self._cutoff)
+
+        self.menu_widgets['version'].label.hide()
+        self.menu_widgets['version'].input_widget.hide()
+        if self._current_database == "esmfold":
+            self.menu_widgets['version'].input_widget.setRange(0, CurrentDBVersions[self._current_database])
+            self.menu_widgets['version'].input_widget.show()
+            self.menu_widgets['version'].label.show()
+        if self._current_database == "alphafold":
+            self.menu_widgets['version'].input_widget.setRange(1, CurrentDBVersions[self._current_database])
+            self.menu_widgets['version'].input_widget.show()
+            self.menu_widgets['version'].label.show()
+        else:
+            self.menu_widgets['version'].input_widget.setRange(1, CurrentDBVersions[self._current_database])
+        self.menu_widgets['version'].input_widget.valueChanged.connect(self._on_version_changed)
 
         input_container_row1.setLayout(menu_layout_row1)
         input_container_row2.setLayout(menu_layout_row2)
@@ -163,6 +186,7 @@ class BlastProteinTool(ToolInstance):
         self.menu_widgets['sequences'].input_widget.setValue(100)
         self.menu_widgets['matrices'].input_widget.setCurrentIndex(AvailableMatrices.index('BLOSUM62'))
         self.menu_widgets['cutoff'].input_widget.setValue(-3)
+        self.menu_widgets['version'].input_widget.setValue(1)
 
     def _run_blast_job(self) -> None:
         try:
@@ -184,6 +208,7 @@ class BlastProteinTool(ToolInstance):
                 , "".join(["1e", str(self._cutoff)])
                 , "matrix", self.menu_widgets['matrices'].input_widget.currentText()
                 , "maxSeqs", str(self._num_sequences)
+                , "version", str(self._version)
                 , "name", make_instance_name()
             ]
             run(self.session, " ".join(cmd_text))
@@ -197,6 +222,25 @@ class BlastProteinTool(ToolInstance):
 
     def _on_cutoff_value_changed(self, value) -> None:
         self._cutoff = value
+
+    def _on_database_changed(self, _) -> None:
+        self._current_database = self.menu_widgets['database'].input_widget.currentText()
+        if self._current_database == "alphafold":
+            self.menu_widgets['version'].input_widget.setRange(1, CurrentDBVersions[self._current_database])
+            self.menu_widgets['version'].label.show()
+            self.menu_widgets['version'].input_widget.show()
+        elif self._current_database == "esmfold":
+            self.menu_widgets['version'].input_widget.setRange(0, CurrentDBVersions[self._current_database])
+            self.menu_widgets['version'].label.show()
+            self.menu_widgets['version'].input_widget.show()
+        else:
+            self.menu_widgets['version'].input_widget.hide()
+            self.menu_widgets['version'].label.hide()
+        self.menu_widgets['version'].input_widget.setValue(CurrentDBVersions[self._current_database])
+        self._version = CurrentDBVersions[self._current_database]
+
+    def _on_version_changed(self, version) -> None:
+        self._version = version
 
     #
     # Uncategorized

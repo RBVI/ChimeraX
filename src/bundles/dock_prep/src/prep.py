@@ -22,7 +22,7 @@ def prep(session, state, callback, memo_type, memo_name, structures, keywords, *
     if tool_settings is None and not state['nogui'] and memo_type != MEMORIZE_USE:
         # run tool that calls back to this routine with tool_settings specified
         from .tool import DockPrepTool
-        DockPrepTool(session, {
+        DockPrepTool(session, dock_prep_info={
             'process name': memo_name,
             'structures': structures,
             'callback': lambda used_structures, args1=[session, state, callback, memo_type, memo_name],

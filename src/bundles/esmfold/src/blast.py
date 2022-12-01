@@ -17,9 +17,6 @@
 def esmfold_search(session, sequence, cutoff=1.0e-3, max_sequences=100,
                    matrix="BLOSUM62", version=None):
 
-    from chimerax.core.errors import UserError
-    raise UserError('BLAST search of ESMFold database is not yet implemented.')
-
     from chimerax.atomic import Chain
     if isinstance(sequence, Chain):
         chain_spec = sequence.string(style = 'command', include_structure = True)

@@ -57,8 +57,9 @@ def get_param_info(session):
 
 def dock_prep_arg_info(session):
     info = { setting: BoolArg for setting in defaults }
-    info['complete_side_chains'] = Or(BoolArg, EnumOf(('gly', 'ala')),
-        DynamicEnum(session.rotamers.library_names))
+    # put BoolArg last, so that unparse doesn't convert the others to bool
+    info['complete_side_chains'] = Or(EnumOf(('gly', 'ala')),
+        DynamicEnum(session.rotamers.library_names), BoolArg)
     from chimerax.atomic.struct_edit import standardizable_residues
     info['standardize_residues'] = ListOf(EnumOf(standardizable_residues))
     return info

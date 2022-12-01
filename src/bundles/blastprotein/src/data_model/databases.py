@@ -301,17 +301,58 @@ class AlphaFoldDB(Database):
             # column and formatted elsewhere.
             del matches[match]["description"]
 
+@dataclass
+class ESMFoldDB(Database):
+    name: str = "esmfold"
+    fetchable_col: str = "mgnify_id"
+    parser_factory: object = dbparsers.PDBParser
+    database_url: str = "https://esmatlas.com/resources/detail/%s"
+    default_cols: tuple = ("hit_#", "mgnify_id", "name", "e-value", "score")
+    excluded_cols: tuple = ("id", "url")
+
+    @staticmethod
+    def load_model(chimerax_session, match_code, ref_atomspec, version):
+        cmd = "esmfold fetch %s version %s" % (match_code, version)
+        if ref_atomspec:
+            cmd += ' alignTo %s' % ref_atomspec
+        models, _ = run(chimerax_session, cmd)
+        # Hack around the fact that we use run(...) to load the model
+        return models, None
+
+    @staticmethod
+    def add_info(matches, sequences):
+        # TODO: Get more data?
+        for chain_id, hit in sequences.items():
+            hit["mgnify_id"] = hit["description"]
+            hit["url"] = ESMFoldDB.database_url % hit["description"]
+            del hit["description"]
 
 AvailableDBsDict = {
-    'pdb': PDB,
-    'nr': NRDB,
-    'alphafold': AlphaFoldDB,
-    'uniref100': UniRefDB,
-    'uniref90': UniRefDB,
-    'uniref50': UniRefDB
+    'pdb': PDB
+    , 'nr': NRDB
+    , 'alphafold': AlphaFoldDB
+    , 'uniref100': UniRefDB
+    , 'uniref90': UniRefDB
+    , 'uniref50': UniRefDB
+    , 'esmfold': ESMFoldDB
 }
+
+CurrentDBVersions = {
+    'pdb': 1
+    , 'nr': 1
+    , 'alphafold': 4
+    , 'uniref100': 1
+    , 'uniref90': 1
+    , 'uniref50': 1
+    , 'esmfold': 0
+}
+
 AvailableDBs = list(AvailableDBsDict.keys())
-AvailableMatrices = ["BLOSUM45", "BLOSUM50", "BLOSUM62", "BLOSUM80", "BLOSUM90", "PAM30", "PAM70", "PAM250", "IDENTITY"]
+AvailableMatrices = [
+    "BLOSUM45", "BLOSUM50", "BLOSUM62", "BLOSUM80", "BLOSUM90"
+    , "PAM30", "PAM70", "PAM250"
+    , "IDENTITY"
+]
 
 def get_database(db: str) -> Database:
     """Instantiate and return a database instance.
