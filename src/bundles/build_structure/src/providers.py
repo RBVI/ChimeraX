@@ -477,7 +477,7 @@ class PeptideParamDialog(QDialog):
 
     @property
     def rot_lib(self):
-        return self.rot_lib_button.text()
+        return self.rot_lib_button.lib_name
 
     def _seed_phi_psi(self, option):
         phi, psi = option.value
