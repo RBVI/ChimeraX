@@ -831,23 +831,28 @@ def get_cif_tables(filename, table_names, *, all_data_blocks=False):
     return result
 
 
-def get_mmcif_tables_from_metadata(model, table_names, *, metadata=None):
+def get_mmcif_tables_from_metadata(obj, table_names, *, metadata=None):
     """Supported API. Extract mmCIF tables from previously read metadata
 
     Parameters
     ----------
-    model : instance of a :py:class:`~chimerax.atomic.AtomicStructure`
-        The model.
+    obj : object
+        An object with a 'metadata' attribute.  For example:
+        an :py:class:`~chimerax.atomic.AtomicStructure` instance
+        or a :py:class:`~chimerax.atomic.TmplResidue` instance.
     table_names : list of str
         A list of mmCIF category names.
     metadata : optional metadata dictonary
         Allow reuse of existing metadata dictionary.
+
+    Returns a list of :py:class:`CIFtable`s or :external+python:ref:`None`,
+    one for each table name.
     """
     if metadata is None:
         try:
-            metadata = model.metadata
+            metadata = obj.metadata
         except AttributeError:
-            raise ValueError("Expected a structure")
+            raise ValueError("Expected an object with a metadata attribute")
     tlist = []
     for n in table_names:
         n = n.casefold()
