@@ -16,8 +16,7 @@ from chimerax.core.tools import ToolInstance
 class DockPrepTool(ToolInstance):
 
     SESSION_SAVE = False
-    #help ="help:user/tools/dockprep.html"
-    help = None
+    help ="help:user/tools/dockprep.html"
     tool_name = "Dock Prep"
 
     def __init__(self, session, *, dock_prep_info={}):
