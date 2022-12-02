@@ -15,6 +15,7 @@ from chimerax.core.commands import (
     StringArg, BoolArg, FloatArg, IntArg, EnumOf, Or,
     CmdDesc, AtomSpecArg, atomspec
 )
+from chimerax.atomic import SequenceArg, Sequence, Chain
 from chimerax.core.errors import UserError
 from chimerax.seqalign import AlignSeqPairArg
 
@@ -25,6 +26,7 @@ from .job import BlastProteinJob, manually_pull_blast_job
 def blastprotein(session, atoms=None, database="pdb", cutoff=1.0e-3,
                  matrix="BLOSUM62", maxSeqs=100, version=None, log=None,
                  *, name=None):
+    str_chain = None
     if isinstance(atoms, tuple):
         # Must be alignment:seq
         alignment, chain = atoms
@@ -33,6 +35,8 @@ def blastprotein(session, atoms=None, database="pdb", cutoff=1.0e-3,
             if c is chain:
                 str_chain = sc
                 break
+    elif isinstance(atoms, Sequence):
+        chain = atoms
     else:
         if atoms is None:
             atoms = atomspec.everything(session)
@@ -59,7 +63,7 @@ def blastprotein(session, atoms=None, database="pdb", cutoff=1.0e-3,
 
 
 blastprotein_desc = CmdDesc(
-                        required=[("atoms", Or(AtomSpecArg, AlignSeqPairArg))],
+                        required=[("atoms", Or(AtomSpecArg, AlignSeqPairArg, SequenceArg))],
                         keyword=[("database", EnumOf(AvailableDBs)),
                                  ("cutoff", FloatArg),
                                  ("matrix", EnumOf(AvailableMatrices)),

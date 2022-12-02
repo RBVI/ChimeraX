@@ -16,11 +16,10 @@ from chimerax.core.tools import ToolInstance
 class DockPrepTool(ToolInstance):
 
     SESSION_SAVE = False
-    #help ="help:user/tools/dockprep.html"
-    help = None
+    help ="help:user/tools/dockprep.html"
     tool_name = "Dock Prep"
 
-    def __init__(self, session, dock_prep_info):
+    def __init__(self, session, *, dock_prep_info={}):
         ToolInstance.__init__(self, session, self.tool_name)
         self.dock_prep_info = dock_prep_info
 
@@ -48,14 +47,16 @@ class DockPrepTool(ToolInstance):
         self.structure_list = ShortASList(session)
         structure_layout.addWidget(self.structure_list, alignment=Qt.AlignLeft)
         layout.addLayout(structure_layout)
-        self.tool_window.title = dock_prep_info['process name'].title()
-        dp_structures = dock_prep_info['structures']
-        if dp_structures is not None:
-            self.structure_list.value = list(dp_structures)
-            self.structure_list.setEnabled(False)
+        if dock_prep_info:
+            self.tool_window.title = dock_prep_info['process name'].title()
+            dp_structures = dock_prep_info['structures']
+            if dp_structures is not None:
+                self.structure_list.value = list(dp_structures)
+                self.structure_list.setEnabled(False)
 
         from .settings import get_settings, defaults
-        settings = get_settings(session, dock_prep_info['process name'], "base", defaults)
+        settings = get_settings(session, dock_prep_info['process name'] if dock_prep_info else "dock prep",
+            "base", defaults)
         layout.addWidget(QLabel("For the chosen structures, do the following:"), alignment=Qt.AlignLeft)
         self.del_solvent_button = QCheckBox("Delete solvent")
         self.del_solvent_button.setChecked(settings.del_solvent)
@@ -75,36 +76,24 @@ class DockPrepTool(ToolInstance):
         side_chain_layout = QHBoxLayout()
         side_chain_layout.setContentsMargins(0,0,0,0)
         layout.addLayout(side_chain_layout)
+        self.citation_widgets = { "showing": None }
         self.side_chain_button = QCheckBox("Incomplete side chains:")
         sc_setting = settings.complete_side_chains
         self.side_chain_button.setChecked(bool(sc_setting))
         side_chain_layout.addWidget(self.side_chain_button, alignment=Qt.AlignLeft)
-        self.rl_menu_to_arg = {}
-        self.rl_arg_to_menu = {}
+        self.sc_menu_to_arg = {}
+        self.sc_arg_to_menu = {}
         self.side_chain_menu_button = QPushButton()
         sc_menu = QMenu(self.side_chain_menu_button)
-        for lib_name in sorted(session.rotamers.library_names()):
-            display_lib_name = session.rotamers.library(lib_name).display_name
-            menu_entry = f"Replace using {display_lib_name} rotamer library"
-            sc_menu.addAction(menu_entry)
-            self.rl_menu_to_arg[menu_entry] = lib_name
-            self.rl_arg_to_menu[lib_name] = menu_entry
-        mut_ala = "Mutate residues to ALA (if CB present) or GLY"
-        sc_menu.addAction(mut_ala)
-        self.rl_menu_to_arg[mut_ala] = 'ala'
-        self.rl_arg_to_menu['ala'] = mut_ala
-        mut_gly = "Mutate residues to GLY"
-        sc_menu.addAction(mut_gly)
-        sc_menu.triggered.connect(lambda action, b=self.side_chain_menu_button: b.setText(action.text()))
+        sc_menu.triggered.connect(lambda action, f=self._lib_change_cb: f(action.text()))
+        sc_menu.aboutToShow.connect(self._fill_sidechain_menu)
         self.side_chain_menu_button.setMenu(sc_menu)
-        self.rl_menu_to_arg[mut_gly] = 'gly'
-        self.rl_arg_to_menu['gly'] = mut_gly
+        self._fill_sidechain_menu()
         if sc_setting and sc_setting is not True:
-            button_text = self.rl_arg_to_menu[sc_setting]
+            button_text = self.sc_arg_to_menu[sc_setting]
         else:
             default_rot_lib = session.rotamers.default_command_library_name
-            button_text = self.rl_arg_to_menu[default_rot_lib]
-        self.side_chain_menu_button.setText(button_text)
+            button_text = self.sc_arg_to_menu[default_rot_lib]
         side_chain_layout.addWidget(self.side_chain_menu_button, alignment=Qt.AlignLeft)
         self.add_hyds_button = QCheckBox("Add hydrogens")
         self.add_hyds_button.setChecked(settings.ah)
@@ -112,9 +101,12 @@ class DockPrepTool(ToolInstance):
         self.add_charges_button = QCheckBox("Add charges")
         self.add_charges_button.setChecked(settings.ac)
         layout.addWidget(self.add_charges_button, alignment=Qt.AlignLeft)
+        self.write_mol2_button = QCheckBox("Write Mol2 file")
+        self.write_mol2_button.setChecked(not dock_prep_info)
+        layout.addWidget(self.write_mol2_button, alignment=Qt.AlignLeft)
 
         from Qt.QtWidgets import QDialogButtonBox as qbbox
-        bbox = qbbox(qbbox.Ok | qbbox.Cancel | qbbox.Help)
+        self.bbox = bbox = qbbox(qbbox.Ok | qbbox.Cancel | qbbox.Help)
         bbox.accepted.connect(self.dock_prep)
         bbox.rejected.connect(self.delete)
         if self.help:
@@ -124,19 +116,23 @@ class DockPrepTool(ToolInstance):
             bbox.button(qbbox.Help).setEnabled(False)
         layout.addWidget(bbox)
         self.tool_window.manage(None)
+        # self.bbox has to be defined before we call this, _and_ the window has to be floating, otherwise
+        # shrink_to_fit() shrinks the other docked widgets
+        self._lib_change_cb(button_text)
 
     def dock_prep(self):
         from chimerax.core.errors import UserError, CancelOperation
         self.tool_window.shown = False
         self.session.ui.processEvents()
         if not self.structures:
-            if self.dock_prep_info['structures'] is None and self.structure_list.all_values:
+            if (not self.dock_prep_info or self.dock_prep_info['structures'] is None) \
+            and self.structure_list.all_values:
                 self.tool_window.shown = True
                 raise UserError("No structures chosen for Dock Prep.")
             self.delete()
             return
         if self.side_chain_button.isChecked():
-            sc_val = self.rl_menu_to_arg[self.side_chain_menu_button.text()]
+            sc_val = self.sc_menu_to_arg[self.side_chain_menu_button.text()]
         else:
             sc_val = False
         from chimerax.atomic.struct_edit import standardizable_residues
@@ -148,9 +144,85 @@ class DockPrepTool(ToolInstance):
             'ah': self.add_hyds_button.isChecked(),
             'ac': self.add_charges_button.isChecked(),
         }
-        self.delete()
-        self.dock_prep_info['callback'](self.structures, tool_settings=params)
+        try:
+            if self.dock_prep_info:
+                self.dock_prep_info['callback'](self.structures, tool_settings=params)
+            else:
+                from chimerax.core.commands import run, concise_model_spec
+                from .cmd import dock_prep_arg_info
+                dp_arg_info = dock_prep_arg_info(self.session)
+                from .settings import defaults
+                from chimerax.atomic import AtomicStructure
+                cmd_parts = ["dockprep",
+                    concise_model_spec(self.session, self.structures, relevant_types=AtomicStructure)]
+                for py_keyword, arg_val in params.items():
+                    if arg_val == defaults[py_keyword]:
+                        continue
+                    annotation = dp_arg_info[py_keyword]
+                    arg_parts = py_keyword.split('_')
+                    cmd_arg = arg_parts[0]
+                    for ap in arg_parts[1:]:
+                        cmd_arg += ap.capitalize()
+                    cmd_parts.extend([cmd_arg, annotation.unparse(arg_val)])
+                run(self.session, " ".join(cmd_parts))
+            if self.write_mol2_button.isChecked():
+                from chimerax.save_command import show_save_file_dialog
+                show_save_file_dialog(self.session,
+                    format=self.session.data_formats.save_format_from_suffix(".mol2").name)
+        finally:
+            self.delete()
 
     @property
     def structures(self):
         return self.structure_list.value
+
+    def _fill_sidechain_menu(self):
+        sc_menu = self.side_chain_menu_button.menu()
+        sc_menu.clear()
+        mgr = self.session.rotamers
+        for lib_name in sorted(mgr.library_names()):
+            menu_entry = "Replace using %s rotamer library" % mgr.ui_name(lib_name)
+            sc_menu.addAction(menu_entry)
+            self.sc_menu_to_arg[menu_entry] = lib_name
+            self.sc_arg_to_menu[lib_name] = menu_entry
+        mut_ala = "Mutate residues to ALA (if CB present) or GLY"
+        sc_menu.addAction(mut_ala)
+        self.sc_menu_to_arg[mut_ala] = 'ala'
+        self.sc_arg_to_menu['ala'] = mut_ala
+        mut_gly = "Mutate residues to GLY"
+        sc_menu.addAction(mut_gly)
+        self.sc_menu_to_arg[mut_gly] = 'gly'
+        self.sc_arg_to_menu['gly'] = mut_gly
+
+    def _lib_change_cb(self, lib_text):
+        self.side_chain_menu_button.setText(lib_text)
+        layout = self.tool_window.ui_area.layout()
+        prev_cite = self.citation_widgets["showing"]
+        if prev_cite:
+            layout.removeWidget(prev_cite)
+            prev_cite.hide()
+        arg_val = self.sc_menu_to_arg[lib_text]
+        try:
+            new_cite = self.citation_widgets[arg_val]
+        except KeyError:
+            from chimerax.rotamers import NoRotamerLibraryError
+            try:
+                lib = self.session.rotamers.library(arg_val)
+            except NoRotamerLibraryError:
+                new_cite = None
+            else:
+                new_cite = self._make_citation_widget(lib)
+            self.citation_widgets[arg_val] = new_cite
+        if new_cite:
+            from Qt.QtCore import Qt
+            layout.insertWidget(layout.indexOf(self.bbox), new_cite, alignment=Qt.AlignCenter)
+            new_cite.show()
+        self.citation_widgets["showing"] = new_cite
+        self.tool_window.shrink_to_fit()
+
+    def _make_citation_widget(self, lib):
+        if not lib.citation:
+            return None
+        from chimerax.ui.widgets import Citation
+        return Citation(self.session, lib.citation, prefix="Publications using %s rotamers should cite:"
+            % self.session.rotamers.ui_name(lib.name), pubmed_id=lib.cite_pubmed_id)

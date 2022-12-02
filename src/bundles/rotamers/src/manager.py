@@ -33,39 +33,53 @@ class RotamerLibManager(ProviderManager):
         self.triggers = TriggerSet()
         self.triggers.add_trigger("rotamer libs changed")
         self._library_info = {}
+        self._ui_names = {}
+        self._descriptions = {}
         self.settings = _RotamerManagerSettings(session, "rotamer lib manager")
         self._uninstalled_suffix = " [not installed]"
         super().__init__(name)
 
     def library(self, name):
-        try:
-            lib_info = self._library_info[name]
-        except KeyError:
-            raise NoRotamerLibraryError("No rotamer library named %s" % name)
+        lib_name = self._name_to_lib_name(name)
+        lib_info = self._library_info[lib_name]
         from . import RotamerLibrary
         if not isinstance(lib_info, RotamerLibrary):
-            self._library_info[name] = lib_info = lib_info.run_provider(self.session, name, self)
+            self._library_info[lib_name] = lib_info = lib_info.run_provider(self.session, lib_name, self)
         return lib_info
 
-    def library_names(self, *, installed_only=False):
+    def library_names(self, *, installed_only=False, for_display=False):
         if not installed_only:
+            if for_display:
+                return list(self._ui_names.values())
             return list(self._library_info.keys())
         from . import RotamerLibrary
         lib_names = []
         for name, info in self._library_info.items():
             if isinstance(info, RotamerLibrary) or info.installed:
-                lib_names.append(name)
+                if for_display:
+                    lib_names.append(self._ui_names[name])
+                else:
+                    lib_names.append(name)
         return lib_names
 
     def library_name_menu(self, *, initial_lib=None, installed_only=False, callback=None):
         from Qt.QtWidgets import QPushButton, QMenu
-        menu_button = QPushButton()
+        class RotLibMenuButton(QPushButton):
+            def __init__(self, session, *args, **kw):
+                self.session = session
+                super().__init__(*args, **kw)
+
+            @property
+            def lib_name(self):
+                return self.session.rotamers._menu_text_to_lib_name(self.text())
+
+        menu_button = RotLibMenuButton(self.session)
         if initial_lib is None:
             lib_name = self.settings.gui_lib_name
         else:
             lib_name = initial_lib
-        if lib_name not in self.library_names(installed_only=installed_only):
-            lib_name = self.default_command_library_name
+        if lib_name not in self.library_names(installed_only=installed_only, for_display=True):
+            lib_name = self._ui_names[self.default_command_library_name]
         menu_button.setText(lib_name)
         menu = QMenu(menu_button)
         menu_button.setMenu(menu)
@@ -83,7 +97,7 @@ class RotamerLibManager(ProviderManager):
                     callback=self.make_callback)
 
             def get_value(self):
-                return self.widget.text()
+                return self.widget.lib_name
 
             def set_value(self, val):
                 self.widget.setText(val)
@@ -109,34 +123,53 @@ class RotamerLibManager(ProviderManager):
                 raise LimitationError("No rotamer libraries installed")
         return lib
 
-    def add_provider(self, bundle_info, name, **kw):
+    def description(self, provider_name):
+        return self._descriptions[provider_name]
+
+    def ui_name(self, provider_name):
+        return self._ui_names[provider_name]
+
+    def add_provider(self, bundle_info, name, *, ui_name=None, description=None):
         self._library_info[name] = bundle_info
+        self._ui_names[name] = name if ui_name is None else ui_name
+        self._descriptions[name] = name if description is None else description
 
     def end_providers(self):
         self.triggers.activate_trigger("rotamer libs changed", self)
 
     def _menu_choose_cb(self, action, button, callback):
-        menu_text = action.text()
-        if menu_text.endswith(self._uninstalled_suffix):
-            lib_name = menu_text[:-len(self._uninstalled_suffix)]
-        else:
-            lib_name = menu_text
-        button.setText(lib_name)
-        self.settings.gui_lib_name = lib_name
+        ui_lib_name = self.ui_name(self._menu_text_to_lib_name(action.text()))
+        button.setText(ui_lib_name)
+        self.settings.gui_lib_name = ui_lib_name
         if callback:
             callback()
 
     def _menu_show_cb(self, menu, installed_only):
         menu.clear()
-        names = self.library_names(installed_only=installed_only)
+        names = self.library_names(installed_only=installed_only, for_display=True)
         if not names:
             raise LimitationError("No rotamer libraries %s!"
                 % ("installed" if installed_only else "available"))
         names.sort()
-        installed = set(self.library_names(installed_only=True))
+        installed = set(self.library_names(installed_only=True, for_display=True))
         for name in names:
             if name in installed:
                 menu.addAction(name)
             else:
                 menu.addAction(name + self._uninstalled_suffix)
 
+    def _menu_text_to_lib_name(self, menu_text):
+        if menu_text.endswith(self._uninstalled_suffix):
+            ui_name = menu_text[:-len(self._uninstalled_suffix)]
+        else:
+            ui_name = menu_text
+        return self._name_to_lib_name(ui_name)
+
+    def _name_to_lib_name(self, name):
+        if name in self._library_info:
+            return name
+        # might be display name, check...
+        for lib_name, ui_name in self._ui_names.items():
+            if name == ui_name:
+                return lib_name
+        raise NoRotamerLibraryError("No rotamer library named %s" % name)

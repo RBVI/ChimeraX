@@ -165,6 +165,8 @@ class BlastProteinResults(ToolInstance):
             return 'E-Value'
         if title == 'uniprot_id':
             return 'UniProt ID'
+        if title == 'mgnify_id':
+            return 'MGnify ID'
         new_title = capwords(" ".join(title.split('_')))
         new_title = new_title.replace('Id', 'ID')
         return new_title
@@ -364,7 +366,7 @@ class BlastProteinResults(ToolInstance):
         db = AvailableDBsDict[self.params.database]
         for row in selections:
             code = row[db.fetchable_col]
-            if self.params.database == "alphafold":
+            if self.params.database in ["alphafold", "esmfold"]:
                 models, chain_id = db.load_model(
                     self.session, code, self.params.chain, self.params._asdict().get("version", "1")
                 )

@@ -65,7 +65,7 @@ and <a href="../tools/esmfold.html#pae"><b>ESMFold Error Plot</b></a>.
 See the 
 <a href="https://www.rbvi.ucsf.edu/chimerax/data/esmfold-nov2022/esmfold.html" target="_blank">ChimeraX ESMFold example</a>,
 <a href="alphafold.html"><b>alphafold</b></a>,
-<!-- <a href="blastprotein.html"><b>blastprotein</b></a>, -->
+<a href="blastprotein.html"><b>blastprotein</b></a>,
 <a href="modeller.html"><b>modeller</b></a>,
 <a href="swapaa.html"><b>swapaa</b></a>
 </p>
@@ -92,15 +92,13 @@ See the
 [&nbsp;<a href="#colorConfidence"><b>colorConfidence</b></a>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<a href="#ignoreCache"><b>ignoreCache</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<a href="#pae"><b>pae</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
-<!--
 <br>
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>esmfold search</b> &nbsp;<i>sequence</i>&nbsp;
 [&nbsp;<b>matrix</b>&nbsp;&nbsp;<i>similarity-matrix</i>&nbsp;]
 [&nbsp;<b>cutoff</b>&nbsp;&nbsp;<i>evalue</i>&nbsp;]
-[&nbsp;<b>maxSeqs</b>&nbsp;&nbsp;<i>M</i>&nbsp;]
+[&nbsp;<b>maxSequences</b>&nbsp;&nbsp;<i>M</i>&nbsp;]
 [&nbsp;<a href="#version"><b>version</b></a>&nbsp;&nbsp;<i>N</i>&nbsp;]
--->
 </blockquote>
 <ul>
 <li>The <b>esmfold fetch</b> command retrieves the model (if available)
@@ -185,7 +183,6 @@ These <a href="../attributes.html">attributes</a>
 can be used for <a href="../tools/esmfold.html#coloring">coloring</a>
 and other purposes.
 </ol>
-<!--
 <br>
 <li>The <b>esmfold search</b> command uses
 a <a href="../tools/blastprotein.html#notes">BLAST</a> web service
@@ -216,18 +213,19 @@ BLOSUM50, <b>BLOSUM62</b> (default), BLOSUM80, BLOSUM90, PAM30, PAM70, PAM250,
 or IDENTITY.
 The <b>cutoff</b> <i>evalue</i> is the maximum or least significant
 expectation value needed to qualify as a hit (default <b>1e-3</b>).
-Results can also be limited with the <b>maxSeqs</b> option
+Results can also be limited with the <b>maxSequences</b> option
 (default <b>100</b>); this is the
-maximum number of unique sequences to return; more hits than this number
-may be obtained because multiple structures or other sequence-database entries
-may have the same sequence.
+maximum number of unique sequences to return.
 </p><p>
 When results are returned, the hits are listed in a
 <a href="../tools/blastprotein.html#results"><b>Blast Protein</b></a> window.
-Clicking the name of a hit uses
-<a href="#fetch"><b>esmfold fetch</b></a> to retrieve the model.
+Double-clicking a hit uses
+<a href="#fetch"><b>esmfold fetch</b></a> to retrieve the model,
+or multiple chosen hits can be retrieved at once by using the results panel
+<a href="../window.html#context-menu">context menu</a>
+or <b>Load Structures</b> button 
+(<a href="../tools/blastprotein.html#results">details...</a>).
 </p>
--->
 </ul>
 
 <a name="options"></a>
@@ -374,12 +372,10 @@ of the sequences, which could be longer.
 Which version of the <a href="https://esmatlas.com/about#about_this_website"
 target="_blank">ESM Metagenomic Atlas</a>
 to use with <a href="#fetch"><b>esmfold fetch</b></a> and
-<a href="#pae"><b>esmfold pae</b></a>.
-<!-- 
+<a href="#pae"><b>esmfold pae</b></a>
 or <a href="#search"><b>esmfold search</b></a>
 (as well as <a href="blastprotein.html"><b>blastprotein</b></a> with
-<b>database esmfold</b>)
--->
+<b>database esmfold</b>).
 The default is the most recent version found at the website
 (currently <b>0</b>).
 The <a href="#match"><b>esmfold match</b></a> command always uses the
@@ -446,7 +442,7 @@ The predicted structure will be opened automatically and
 <a href="#colorConfidence">colored by confidence value</a>.
 The model for a sequence that was specified by structure chain will
 be superimposed on that chain 
-<!-- and assigned structure-comparison attributes for further analysis -->
+and assigned structure-comparison attributes for further analysis
 (<a href="#structmatch">details...</a>).
 </p>
 
@@ -583,7 +579,6 @@ align="center"><font size="-1">25</font></td>
 <td bgcolor="white" width="30px" title="white"
 align="center"><font size="-1">30</font></td>
 </tr></table>
-<!--
 <p>
 Another <a href="color.html#palette-options"><b>palette</b></a> 
 with value range suitable for PAE plots is <b>paegreen</b>:
@@ -606,7 +601,6 @@ align="center"><font size="-1">25</font></td>
 align="center"><font size="-1">30</font></td>
 <p>
 </tr></table>
--->
 
 <a name="plot"></a>
 <p class="nav">
@@ -836,5 +830,5 @@ numbers of the residues that they connect:
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-November 2022</address>
+December 2022</address>
 </body></html>

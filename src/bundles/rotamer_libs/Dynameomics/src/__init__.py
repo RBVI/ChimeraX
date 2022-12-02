@@ -18,7 +18,7 @@ class _DynameomicsLibBundleAPI(BundleAPI):
     @staticmethod
     def run_provider(session, name, mgr, **kw):
         from .lib import DynameomicsRotamerLibrary
-        return DynameomicsRotamerLibrary()
+        return DynameomicsRotamerLibrary(name)
 
 
 bundle_api = _DynameomicsLibBundleAPI()
