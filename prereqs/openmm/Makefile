@@ -24,7 +24,7 @@ endif
 ifeq ($(OS),Windows)
 PLATFORM = windows
 # Using CUDA 11.2
-DISTRIBUTION = openmm-7.7.0-win-py39h6dc0912_1.tar.bz2
+DISTRIBUTION = openmm-8.0.0dev2-win-py39h2179fd6_0.tar.bz2
 endif
 
 SOURCE = $(tmpdir)/OpenMM-$(VERSION)-$(PLATFORM)
