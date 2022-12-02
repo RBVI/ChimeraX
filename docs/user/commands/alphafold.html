@@ -125,7 +125,7 @@ See also:
 <b>alphafold search</b> &nbsp;<i>sequence</i>&nbsp;
 [&nbsp;<b>matrix</b>&nbsp;&nbsp;<i>similarity-matrix</i>&nbsp;]
 [&nbsp;<b>cutoff</b>&nbsp;&nbsp;<i>evalue</i>&nbsp;]
-[&nbsp;<b>masSequences</b>&nbsp;&nbsp;<i>M</i>&nbsp;]
+[&nbsp;<b>maxSequences</b>&nbsp;&nbsp;<i>M</i>&nbsp;]
 [&nbsp;<a href="#version"><b>version</b></a>&nbsp;&nbsp;1&nbsp;|&nbsp;2&nbsp;|&nbsp;3&nbsp;|&nbsp;<b>4</b>&nbsp;]
 </blockquote>
 <ul>
@@ -239,11 +239,8 @@ BLOSUM50, <b>BLOSUM62</b> (default), BLOSUM80, BLOSUM90, PAM30, PAM70, PAM250,
 or IDENTITY.
 The <b>cutoff</b> <i>evalue</i> is the maximum or least significant
 expectation value needed to qualify as a hit (default <b>1e-3</b>).
-Results can also be limited with the <b>masSequences</b> option
-(default <b>100</b>); this is the
-maximum number of unique sequences to return; more hits than this number
-may be obtained because multiple structures or other sequence-database entries
-may have the same sequence.
+Results can also be limited with the <b>maxSequences</b> option
+(default <b>100</b>); this is the maximum number of unique sequences to return.
 </p><p>
 When results are returned, the hits are listed in a
 <a href="../tools/blastprotein.html#results"><b>Blast Protein</b></a> window.
