@@ -55,6 +55,7 @@ class BlastProteinTool(ToolInstance):
         super().__init__(session, self.display_name)
 
         self._protein_chain = chain
+        self._last_menu_option = None
         self._uniprot_id = uniprot_id
         self._sequences = sequences
         self._current_database = db
@@ -162,9 +163,11 @@ class BlastProteinTool(ToolInstance):
         # Fill in blastprotein's default arguments or snapshot values
         if self._uniprot_id:
             self.menu_widgets['chain'].value = "UniProt ID"
+            self._last_menu_option = "UniProt ID"
             self.menu_widgets['uniprot_or_seq_input'].setText(self._uniprot_id)
         elif self._sequences:
             self.menu_widgets['chain'].value = "Sequence"
+            self._last_menu_option = "Sequence"
             self.menu_widgets['uniprot_or_seq_input'].setText(self._sequences)
         else:
             pass
@@ -253,6 +256,14 @@ class BlastProteinTool(ToolInstance):
     def _on_chain_menu_changed(self) -> None:
         chain = self.menu_widgets['chain'].get_value()
         if chain in ["UniProt ID", "Sequence"]:
+            # We're using the same widgets for two (perhaps many) different
+            # options so that we can elegantly telegraph to the user that those
+            # options are available, but we don't want to break the illusion of
+            # the different options *actually being* different widgets, so clear
+            # the text on update.
+            if chain != self._last_menu_option:
+                self.menu_widgets['uniprot_or_seq_input'].setText("")
+                self._last_menu_option = chain
             self.input_container_row3.show()
             self.menu_widgets['uniprot_or_seq_input'].show()
         else:
@@ -260,9 +271,9 @@ class BlastProteinTool(ToolInstance):
                 self.input_container_row3.hide()
                 self.menu_widgets['uniprot_or_seq_input'].hide()
                 self.menu_widgets['uniprot_or_seq_input'].setText("")
-                chain = chain.string().split(" ")[-1]
+                self._last_menu_option = chain.string().split(" ")[-1]
             except:
-                # Maybe it changed because a model was closed
+                # Maybe it changed because the last model was closed
                 pass
 
     def _on_num_sequences_changed(self, value) -> None:
