@@ -316,6 +316,9 @@ def remove_old_files():
 #
 def install(use_amber = False, use_templates = False, install_log = 'install_log.txt'):
 
+  from sys import version_info as vi
+  python_version = f'{vi.major}.{vi.minor}'
+
   import logging
   logger = logging.getLogger(__name__)
   logger.info('Installing ColabFold on Google Colab virtual machine.')
@@ -351,7 +354,7 @@ touch CONDA_READY
     cmds = f'''  
 # setup template search
 set -e
-conda install -y -q -c conda-forge -c bioconda kalign2=2.04 hhsuite=3.3.0 python=3.7 2>&1 1>/dev/null
+conda install -y -q -c conda-forge -c bioconda kalign2=2.04 hhsuite=3.3.0 python={python_version} 2>&1 1>/dev/null
 touch HH_READY
 '''
     run_shell_commands(cmds, 'install_hhsuite.sh', install_log)
@@ -361,10 +364,10 @@ touch HH_READY
     cmds = f'''  
 # setup openmm for amber refinement
 set -e
-conda install -y -q -c conda-forge openmm=7.5.1 python=3.7 pdbfixer 2>&1 1>/dev/null
+conda install -y -q -c conda-forge openmm=7.5.1 python={python_version} pdbfixer 2>&1 1>/dev/null
 # Make colab python find conda openmm and pdbfixer
-ln -s /usr/local/lib/python3.7/site-packages/simtk .
-ln -s /usr/local/lib/python3.7/site-packages/pdbfixer .
+ln -s /usr/local/lib/python{python_version}/site-packages/simtk .
+ln -s /usr/local/lib/python{python_version}/site-packages/pdbfixer .
 touch AMBER_READY
 '''
     run_shell_commands(cmds, 'install_openmm.sh', install_log)
