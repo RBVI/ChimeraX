@@ -8,11 +8,11 @@ VERSION = 7.7.0
 
 ifeq ($(OS),Darwin)
 PLATFORM = mac
+VERSION = 8.0.0dev2
 ifeq ($(MACOS_ARCH),arm64)
 DISTRIBUTION = openmm-8.0.0dev2-mac-py39hff2a810_0_apple.tar.bz2
-VERSION = 8.0.0dev2
 else
-DISTRIBUTION = openmm-7.7.0-mac-py39h8a2e0eb_1_apple.tar.bz2
+DISTRIBUTION = openmm-8.0.0dev2-mac-py39h6369d3c_0_apple.tar.bz2 
 endif
 endif
 ifeq ($(OS),Linux)
