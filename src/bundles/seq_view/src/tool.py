@@ -628,16 +628,20 @@ class SequenceViewer(ToolInstance):
             loops_model_action.setEnabled(False)
         tools_menu.addAction(loops_model_action)
         if len(self.alignment.seqs) == 1:
+            from chimerax.blastprotein import BlastProteinTool
             blast_action = QAction("Blast Protein...", tools_menu)
-            blast_action.triggered.connect(lambda: run(self.session,
-                "blastprotein %s" % (StringArg.unparse("%s:1" % self.alignment.ident))))
+            blast_action.triggered.connect(
+                lambda: BlastProteinTool(self.session, sequences = StringArg.unparse("%s:1" % self.alignment.ident))
+            )
             tools_menu.addAction(blast_action)
         else:
+            from chimerax.blastprotein import BlastProteinTool
             blast_menu = tools_menu.addMenu("Blast Protein")
             for i, seq in enumerate(self.alignment.seqs):
                 blast_action = QAction(seq.name, blast_menu)
-                blast_action.triggered.connect(lambda: run(self.session,
-                    "blastprotein %s" % (StringArg.unparse("%s:%d" % (self.alignment.ident, i+1)))))
+                blast_action.triggered.connect(
+                    lambda: BlastProteinTool(self.session, sequences = StringArg.unparse("%s:%d" % (self.alignment.ident, i+1)))
+                )
                 blast_menu.addAction(blast_action)
         if len(self.alignment.seqs) > 1:
             identity_action = QAction("Percent Identity...", menu)
