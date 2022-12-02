@@ -41,7 +41,9 @@ class BlastProteinTool(ToolInstance):
     help = "help:user/tools/blastprotein.html"
 
     def __init__(self, session: Session, *
-                 , chain: Optional[Union[str, list[str]]] = None
+                 , sequences: Optional[Union[str, list[str]]] = None
+                 , uniprot_id: Optional[str] = None
+                 , chain: Optional[str] = None
                  , db: str = AvailableDBs[0]
                  , seqs: Optional[int] = 100
                  # Guards against changes in list order
@@ -53,6 +55,8 @@ class BlastProteinTool(ToolInstance):
         super().__init__(session, self.display_name)
 
         self._protein_chain = chain
+        self._uniprot_id = uniprot_id
+        self._sequences = sequences
         self._current_database = db
         self._num_sequences = seqs
         self._current_matrix = matrix
@@ -156,7 +160,14 @@ class BlastProteinTool(ToolInstance):
         self.menu_widgets['ok'].clicked.connect(self._run_and_close)
 
         # Fill in blastprotein's default arguments or snapshot values
-        self.menu_widgets['chain'].value = self._protein_chain
+        if self._uniprot_id:
+            self.menu_widgets['chain'].value = "UniProt ID"
+            self.menu_widgets['uniprot_or_seq_input'].setText(self._uniprot_id)
+        elif self._sequences:
+            self.menu_widgets['chain'].value = "Sequence"
+            self.menu_widgets['uniprot_or_seq_input'].setText(self._sequences)
+        else:
+            pass
         self.menu_widgets['database'].input_widget.setCurrentIndex(AvailableDBs.index(self._current_database))
         self.menu_widgets['sequences'].input_widget.setValue(self._num_sequences)
         self.menu_widgets['matrices'].input_widget.setCurrentIndex(AvailableMatrices.index(self._current_matrix))
@@ -207,7 +218,7 @@ class BlastProteinTool(ToolInstance):
         self.menu_widgets['version'].input_widget.setValue(1)
 
     def _run_blast_job(self) -> None:
-        blast_input_type = self.menu_widgets['chain'].get_value()
+        blast_input_type = chain = self.menu_widgets['chain'].get_value()
         blast_input = None
         if blast_input_type in ["UniProt ID", "Sequence"]:
             blast_input = self.menu_widgets['uniprot_or_seq_input'].text().translate(str.maketrans('', '', string.whitespace))
@@ -241,15 +252,18 @@ class BlastProteinTool(ToolInstance):
 
     def _on_chain_menu_changed(self) -> None:
         chain = self.menu_widgets['chain'].get_value()
-        self._blast_input = None
         if chain in ["UniProt ID", "Sequence"]:
             self.input_container_row3.show()
             self.menu_widgets['uniprot_or_seq_input'].show()
         else:
-            self.input_container_row3.hide()
-            self.menu_widgets['uniprot_or_seq_input'].hide()
-            chain = chain.string().split(" ")[-1]
-            self._blast_input = chain
+            try:
+                self.input_container_row3.hide()
+                self.menu_widgets['uniprot_or_seq_input'].hide()
+                self.menu_widgets['uniprot_or_seq_input'].setText("")
+                chain = chain.string().split(" ")[-1]
+            except:
+                # Maybe it changed because a model was closed
+                pass
 
     def _on_num_sequences_changed(self, value) -> None:
         self._num_sequences = value
@@ -305,21 +319,58 @@ class BlastProteinTool(ToolInstance):
                 , cutoff = data["_cutoff"]
             )
         else:
-            tmp = cls(
-                session
-                , chain = data['_blast_input']
-                , db = data["_current_database"]
-                , seqs = data["_num_sequences"]
-                , matrix = data["_current_matrix"]
-                , cutoff = data["_cutoff"]
-            )
+            if data["_blast_input_type"] == "UniProt ID":
+                tmp = cls(
+                    session
+                    , uniprot_id = data['_blast_input']
+                    , db = data["_current_database"]
+                    , seqs = data["_num_sequences"]
+                    , matrix = data["_current_matrix"]
+                    , cutoff = data["_cutoff"]
+                )
+            elif data["_blast_input_type"] == "Sequence":
+                tmp = cls(
+                    session
+                    , sequences = data['_blast_input']
+                    , db = data["_current_database"]
+                    , seqs = data["_num_sequences"]
+                    , matrix = data["_current_matrix"]
+                    , cutoff = data["_cutoff"]
+                )
+            elif data['_blast_input_type'] == "Chain":
+                tmp = cls(
+                    session
+                    , chain = data['_blast_input']
+                    , db = data["_current_database"]
+                    , seqs = data["_num_sequences"]
+                    , matrix = data["_current_matrix"]
+                    , cutoff = data["_cutoff"]
+                )
+            else:
+                 tmp = cls(
+                    session
+                    , db = data["_current_database"]
+                    , seqs = data["_num_sequences"]
+                    , matrix = data["_current_matrix"]
+                    , cutoff = data["_cutoff"]
+                )
         return tmp
 
     def take_snapshot(self, session, flags):
+        blast_input_type = self.menu_widgets['chain'].get_value()
+        if blast_input_type in ["UniProt ID", "Sequence"]:
+            blast_input = self.menu_widgets['uniprot_or_seq_input'].text().translate(str.maketrans('', '', string.whitespace))
+        elif blast_input_type == "No chain chosen":
+            blast_input_type = None
+            blast_input = None
+        else: # it's a chain
+            blast_input = blast_input_type.string().split(" ")[-1]
+            blast_input_type = "Chain"
         data = {
             "version": 3,
             "_super": super().take_snapshot(session, flags),
-            "_blast_input": self._blast_input,
+            "_blast_input_type": blast_input_type,
+            "_blast_input": blast_input,
             "_current_database": self._current_database,
             "_num_sequences": self._num_sequences,
             "_current_matrix": self._current_matrix,
