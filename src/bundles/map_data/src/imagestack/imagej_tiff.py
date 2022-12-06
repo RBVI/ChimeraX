@@ -42,11 +42,16 @@ class ImageJGrid(GridData):
     if d.nchannels > 1:
         name += ' ch%d' % channel
 
+    grid_id = '' if channel is None else f'c{channel}'
+    if time is not None:
+        grid_id += f't{time}'
+        
     origin = (0,0,0)
     GridData.__init__(self, d.grid_size, d.value_type,
                       origin, d.grid_spacing,
                       name = name, path = d.path,
                       file_type = 'imagestack',
+                      grid_id = grid_id,
                       channel = channel,
                       time = time)
 
