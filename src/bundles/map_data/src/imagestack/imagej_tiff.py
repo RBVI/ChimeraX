@@ -135,7 +135,7 @@ def imagej_pixels(path):
     name = basename(path)
     shape = page0.shape
     ysize, xsize = shape[:2]
-    zsize = int(h['slices']) if 'slices' in h else len(pages)
+    zsize = int(h['slices']) if 'slices' in h else 1
     grid_size = (xsize, ysize, zsize)
     zspacing = float(h['spacing']) if 'spacing' in h else 1
     grid_spacing = (pixel_width, pixel_height, zspacing)
@@ -143,7 +143,7 @@ def imagej_pixels(path):
     nt = int(h['frames']) if 'frames' in h else 1
     value_type = page0.dtype
     ncolors = 3 if page0.photometric == TIFF.PHOTOMETRIC.RGB else 1
-    multiframe = (zsize > 1)
+    multiframe = (zsize > 1 or nc > 1)
 
     # Check for ImageJ hyperstack format for > 4 GB data where TIFF has only one page.
     if zsize > 1 or nc > 1 or nt > 1:
