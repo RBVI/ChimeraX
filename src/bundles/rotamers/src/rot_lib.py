@@ -35,6 +35,10 @@ class RotamerLibrary:
        "lazy" (i.e. on demand) manner if possible to minimize startup time.
     """
 
+    def __init__(self, name):
+        # name as given in Provider tag
+        self.name = name
+
     @property
     def citation(self):
         """If your library has a reference to cite, the text of the citation.  Used as the 'cite'
@@ -48,34 +52,12 @@ class RotamerLibrary:
         return None
 
     @property
-    def cite_name(self):
-        """In the preamble to the citation, cite_name replaces XXX in "Publications using XXX rotamers
-           should cite:"
-        """
-        return self.display_name
-
-    @property
     def cite_pubmed_id(self):
         """The (integer) PubMed ID corresponding to your citation"""
         return None
 
-    @property
-    @abstractmethod
-    def display_name(self):
-        """Short name to display in a list of libraries, e.g. "Dunbrack 2010" or "Dynameomics"
-           Should be the same as the 'name' attribute used in your Provider tag in bundle_info.xml.
-           Also used as argument to swapaa command.
-        """
-        pass
-
-    @property
-    def description(self):
-        """A somewhat longer decription than 'display_name' (though typically still one line)
-        to show in interfaces when the library has been selected, e.g.:
-
-        Dunbrack 2010 backbone-dependent rotamer library -- 5% stepdown
-        """
-        return self.display_name
+    # display_name and description is now a Provider attribute (display_name changed to ui_name),
+    # since they are needed even if the library is not yet installed
 
     def map_res_name(self, res_name, exemplar=None):
         """Take a residue name and map it to a name that this library supports.  For, example if

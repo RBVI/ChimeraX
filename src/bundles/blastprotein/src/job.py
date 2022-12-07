@@ -21,7 +21,7 @@ from chimerax.webservices.cxservices_utils import (
 )
 from cxservices.rest import ApiException
 
-from .data_model import get_database
+from .data_model import get_database, CurrentDBVersions
 from .ui import BlastProteinResults
 from .utils import BlastParams, make_instance_name
 
@@ -72,8 +72,8 @@ class BlastProteinJob(CxServicesJob):
         self.matrix = matrix                              # string
         self.max_seqs = max_seqs                          # int
         if version is None:
-            version = "3"
-        self.version = version                            # AlphaFold DB Version
+            version = CurrentDBVersions[self.database]
+        self.version = version                            # DB Version
         self.log = log
         self.tool_inst_name = tool_inst_name
 

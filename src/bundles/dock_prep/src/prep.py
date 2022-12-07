@@ -15,24 +15,34 @@ MEMORIZE_USE = "use"
 MEMORIZE_SAVE = "save"
 MEMORIZE_NONE = "none"
 
-def prep(session, state, callback, memorization, memorize_name, structures, keywords, *, tool_settings=None):
-    if tool_settings is None and not state['nogui'] and memorization != MEMORIZE_USE:
+def prep(session, state, callback, memo_type, memo_name, structures, keywords, *, tool_settings=None):
+    if isinstance(structures, list):
+        from chimerax.atomic import AtomicStructures
+        structures = AtomicStructures(structures)
+    if tool_settings is None and not state['nogui'] and memo_type != MEMORIZE_USE:
         # run tool that calls back to this routine with tool_settings specified
-        #TODO: return function-to-start-tool()
-        raise NotImplemented("call tool")
+        from .tool import DockPrepTool
+        DockPrepTool(session, dock_prep_info={
+            'process name': memo_name,
+            'structures': structures,
+            'callback': lambda used_structures, args1=[session, state, callback, memo_type, memo_name],
+                keywords=keywords, tool_settings=None:
+                prep(*tuple(args1+[used_structures, keywords]), tool_settings=tool_settings)
+        })
+        return
 
     from .settings import defaults
-    active_settings = handle_memorization(session, memorization, memorize_name, "base", keywords,
+    active_settings = handle_memorization(session, memo_type, memo_name, "base", keywords,
         defaults, tool_settings)
 
     if active_settings['del_solvent']:
-        session.logger.info("Deleting solvent")
+        session.logger.status("Deleting solvent", log=True)
         for s in structures:
             atoms = s.atoms
             atoms.filter(atoms.structure_categories == "solvent").delete()
 
     if active_settings['del_ions']:
-        session.logger.info("Deleting non-metal-complex ions")
+        session.logger.status("Deleting non-metal-complex ions", log=True)
         for s in structures:
             atoms = s.atoms
             ions = atoms.filter(atoms.structure_categories == "ions")
@@ -44,7 +54,7 @@ def prep(session, state, callback, memorization, memorize_name, structures, keyw
             ions.delete()
 
     if active_settings['del_alt_locs']:
-        session.logger.info("Deleting non-current alt locs")
+        session.logger.status("Deleting non-current alt locs", log=True)
         for s in structures:
             s.delete_alt_locs()
 
@@ -70,7 +80,7 @@ def prep(session, state, callback, memorization, memorize_name, structures, keyw
                 else:
                     targets.append(r)
         if targets:
-            session.logger.info("Filling out missing side chains")
+            session.logger.status("Filling out missing side chains", log=True)
             style = active_settings['complete_side_chains']
             if style is True:
                 # use default rotamer lib
@@ -82,7 +92,8 @@ def prep(session, state, callback, memorization, memorize_name, structures, keyw
                     swap_aa(session, [r], res_type)
             else:
                 swap_aa(session, targets, "same", rot_lib=style)
-    callback(session, state)
+    session.logger.status("Dock prep finished", log=True)
+    callback(session, state, structures)
 
 def handle_memorization(session, memorization, memorize_requester, main_settings_name, keywords, defaults,
         tool_settings):

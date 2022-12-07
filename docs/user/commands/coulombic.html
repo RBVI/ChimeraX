@@ -34,11 +34,7 @@ class="clRight" title="User Guide Index"/></a>
 [&nbsp;<b>chargeMethod</b>&nbsp;<b>am1-bcc</b>&nbsp;|&nbsp;gasteiger&nbsp;]
 [&nbsp;<b>key</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 &nbsp;<i><a href="#palette-options">palette-options</a></i>&nbsp;
-<!-- not yet implemented
-[&nbsp;<b>map</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
-[&nbsp;<b>spacing</b>&nbsp;&nbsp;<i>s</i>&nbsp;]
-[&nbsp;<b>padding</b>&nbsp;&nbsp;<i>p</i>&nbsp;]
--->
+&nbsp;<i><a href="#map-options">map-options</a></i>&nbsp;
 </h3>
 <p>
 The <b>coulombic</b> command calculates Coulombic electrostatic potential
@@ -238,28 +234,39 @@ model ID and chain number:
 <b>coulombic #1/A & protein surfaces #2</b>
 </blockquote>
 
-<!--
-<a name="map"></a>
+<a name="map-options"></a>
 <p class="nav">
 [<a href="#top">back to top: coulombic</a>]
 </p>
-<h3>ESP Maps</h3>
-<p>
-With <b>map true</b> (default <b>false</b>), 
-each ESP map will be opened a volume model.
+<h3>ESP Map Options</h3>
+<blockquote>
+<a name="map"></a>
+<b>map</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>
+Whether to generate a <a href="../tools/volumeviewer.html">volume model</a>
+(with values at points on a 3D grid) for each computed ESP map.
 This allows <a href="save.html#map">saving the map</a> to a file and/or
 subsequently coloring surfaces by the map values using 
 <a href="color.html#map"><b>color electrostatic</b></a>
 without having to recalculate the map on the fly.
-</p><p>
-The <b>spacing</b> <i>s</i> of the map grid can be
-specified in the range 0.1&ndash;10.0 &Aring; (default <b>1.0</b>).
+The map will be displayed initially as red and blue isosurfaces at levels 
+-10 and +10, respectively, with 50% transparency.
+The isosurface display can be hidden or otherwise adjusted by using the 
+<a href="../tools/volumeviewer.html"><b>Volume Viewer</b></a>
+or the <a href="volume.html"><b>volume</b></a> command.
+</blockquote>
+<blockquote>
+<b>gspacing</b>&nbsp;&nbsp;<i>s</i>
+<br>
+Spacing between map grid points, with possible
+range 0.1&ndash;10.0 &Aring; (default <b>1.0</b> &Aring;).
 Decreasing the spacing increases map size and calculation time.
-</p><p>
-The <b>padding</b> <i>p</i> is how far the map grid should extend beyond
-the atoms in every direction (default <b>5.0</b> &Aring;).
-</p>
--->
+</blockquote><blockquote>
+<b>gpadding</b>&nbsp;&nbsp;<i>p</i>
+<br>
+How far the map grid should extend in every direction beyond the atoms 
+used to compute the ESP (default <b>5.0</b> &Aring;).
+</blockquote>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 

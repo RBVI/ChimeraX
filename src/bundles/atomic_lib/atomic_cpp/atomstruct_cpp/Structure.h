@@ -270,7 +270,7 @@ public:
     CoordSet*  new_coord_set(int index);
     CoordSet*  new_coord_set(int index, int size);
     Residue*  new_residue(const ResName& name, const ChainID& chain,
-        int pos, char insert, Residue *neighbor=NULL, bool after=true);
+        int pos, char insert=' ', Residue *neighbor=NULL, bool after=true);
     std::set<ResName>  nonstd_res_names() const;
     virtual void  normalize_ss_ids() {}
     size_t  num_atoms() const { return atoms().size(); }

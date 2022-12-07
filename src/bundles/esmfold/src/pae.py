@@ -11,8 +11,6 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-esmfold_pae_url = 'https://api.esmatlas.com/fetchConfidencePrediction/'
-
 def esmfold_pae(session, structure = None, file = None, mgnify_id = None,
                 palette = None, range = None, plot = None, divider_lines = None,
                 color_domains = False, connect_max_pae = 5, cluster = 0.5, min_size = 10,
@@ -20,8 +18,8 @@ def esmfold_pae(session, structure = None, file = None, mgnify_id = None,
     '''Load ESM Metagenomics Atlas predicted aligned error file and show plot or color domains.'''
 
     if mgnify_id:
-        pae_url = esmfold_pae_url + mgnify_id
-        file_name = mgnify_id + '.json'
+        from .database import esmfold_pae_url
+        pae_url, file_name = esmfold_pae_url(session, mgnify_id, database_version=version)
         from chimerax.core.fetch import fetch_file
         file = fetch_file(session, pae_url, 'ESM Metagenomics Atlas PAE %s' % mgnify_id,
                           file_name, 'ESMFold', error_status = False)
@@ -79,16 +77,15 @@ def esmfold_pae(session, structure = None, file = None, mgnify_id = None,
 # -----------------------------------------------------------------------------
 #
 def register_esmfold_pae_command(logger):
-    from chimerax.core.commands import CmdDesc, register, OpenFileNameArg, ColormapArg, ColormapRangeArg, BoolArg, FloatArg, IntArg
-    from chimerax.atomic import AtomicStructureArg, UniProtIdArg
+    from chimerax.core.commands import CmdDesc, register, OpenFileNameArg, ColormapArg, ColormapRangeArg, BoolArg, FloatArg, IntArg, StringArg
+    from chimerax.atomic import AtomicStructureArg
     desc = CmdDesc(
         optional = [('structure', AtomicStructureArg)],
         keyword = [('file', OpenFileNameArg),
-                   ('uniprot_id', UniProtIdArg),
+                   ('mgnify_id', StringArg),
                    ('palette', ColormapArg),
                    ('range', ColormapRangeArg),
                    ('plot', BoolArg),
-                   ('divider_lines', BoolArg),
                    ('color_domains', BoolArg),
                    ('connect_max_pae', FloatArg),
                    ('cluster', FloatArg),
@@ -98,3 +95,71 @@ def register_esmfold_pae_command(logger):
     )
     
     register('esmfold pae', desc, esmfold_pae, logger=logger)
+
+# -----------------------------------------------------------------------------
+#
+from chimerax.alphafold.pae import OpenPredictedAlignedError
+class OpenESMFoldPAE(OpenPredictedAlignedError):
+    method = 'ESMFold'
+    database_key = 'MGnify'
+    command = 'esmfold'
+    name = 'ESMFold Error Plot'
+    help = 'help:user/tools/esmfold.html#pae'
+
+    def is_predicted_model(self, m):
+        from .panel import _is_esmfold_model
+        return _is_esmfold_model(m)
+
+    def predicted_structure_version(self, structure): 
+        return _esmfold_db_structure_version(structure)
+
+    def guess_database_id(self, path):
+        return _guess_mgnify_id(path)
+        
+# ---------------------------------------------------------------------------
+#
+def _esmfold_db_structure_version(structure):
+    '''
+    Parse the structure filename to get the ESMFold database version.
+    Example database file name MGYP000456789012_v0.pdb
+    '''
+    if structure is None:
+        return None
+    path = getattr(structure, 'filename', None)
+    if path is None:
+        return None
+    from os.path import split, splitext
+    filename = split(path)[1]
+    if filename.startswith('MGYP') and (filename.endswith('.cif') or filename.endswith('.pdb')):
+        fields = splitext(filename)[0].split('_')
+        if len(fields) > 1 and fields[-1].startswith('v'):
+            try:
+                version = int(fields[-1][1:])
+            except ValueError:
+                return None
+            return version
+
+    return None
+
+# ---------------------------------------------------------------------------
+#
+def _guess_mgnify_id(structure_path):
+    from os.path import split
+    basename = split(structure_path)[1]
+    if '_' in basename:
+        basename = basename.split('_')[0]
+    if basename.startswith('MGYP') and len(basename) == 16:
+        return basename
+    return None
+
+# -----------------------------------------------------------------------------
+#
+def esmfold_error_plot_panel(session, create = False):
+    return OpenESMFoldPAE.get_singleton(session, create=create)
+  
+# -----------------------------------------------------------------------------
+#
+def show_esmfold_error_plot_panel(session):
+    p = esmfold_error_plot_panel(session, create = True)
+    p.display(True)
+    return p

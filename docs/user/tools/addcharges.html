@@ -31,9 +31,10 @@ as the <a href="../attributes.html">attributes</a>
 The command implementation is
 <a href="../commands/addcharge.html"><b>addcharge</b></a>.
 It may be helpful to run
-<a href="../commands/dockprep.html"><b>dockprep</b></a> beforehand
+<a href="dockprep.html"><b>Dock Prep</b></a> beforehand
 to fix any truncated amino acid sidechains.
 See also: 
+<a href="addhydrogens.html"><b>Add Hydrogens</b></a>,
 <a href="../commands/coulombic.html"><b>coulombic</b></a>,
 <a href="#notes">troubleshooting charge addition</a>
 </p><p>
@@ -93,8 +94,8 @@ target="_blank">Amber parameter database</a>.
 </ul>
 <p>
 <b>OK</b> initiates processing and dismisses the dialog, 
-whereas <b>Cancel</b> simply dismisses the dialog.
-<b>Help</b> opens this manual page in a browser window.
+whereas <b>Cancel</b> simply dismisses the dialog. <b>Help</b>
+opens this page in the <a href="helpviewer.html"><b>Help Viewer</b></a>.
 Explicit hydrogens are required for charge assignment;
 <a href="addhydrogens.html"><b>Add Hydrogens</b></a>
 will be called as needed.
@@ -153,8 +154,8 @@ Wang J, Wolf RM, Caldwell JW, Kollman PA, Case DA.
 </ul>
 <p>
 <b>OK</b> initiates processing and dismisses the dialog, 
-whereas <b>Cancel</b> simply dismisses the dialog.
-<b>Help</b> opens this manual page in a browser window.
+whereas <b>Cancel</b> simply dismisses the dialog. <b>Help</b> 
+opens this page in the <a href="helpviewer.html"><b>Help Viewer</b></a>.
 </p>
 
 <a name="notes"></a>
@@ -173,13 +174,12 @@ and <a href="../atomtypes.html">atom types</a> can be edited
 with <a href="../commands/setattr.html"><b>setattr</b></a>
 or <a href="buildstructure.html"><b>Build Structure</b></a>.
 </p><p>
-A warning will appear if the name of any atom in a standard residue
-is not recognized or a model's net charge is not an integer;
-details will be reported in the <a href="log.html"><b>Log</b></a>.
+An unrecognized atom name in a standard residue will cause an error,
+and if the net charge of a model is not an integer, a warning will be issued.
 Cases of unrecognized atoms in standard residues and/or incorrect net charges
 should be examined and resolved.
 </p><p>
-The <a href="../commands/dockprep.html"><b>dockprep</b></a> command
+<a href="dockprep.html"><b>Dock Prep</b></a>
 allows repairing truncated amino acid sidechains, one common cause
 of non-integral net charges, before adding hydrogens and charges.
 Standard residues with missing or extra atoms can be identified 
@@ -193,10 +193,6 @@ for example:
 <p>
 Note that chain-terminal nucleotide residues will normally
 have non-integral charges, but the 5' and 3' charges sum to an integer.
-If a nucleic acid chain has a 5'-terminal phosphate,
-the user will be asked whether this group should be deleted;
-otherwise, its atoms will be assigned charges of zero
-(the charge sets lack parameters for 5' phosphates).
 </p><p>
 Atoms can be labeled with their partial charges by using the menu
 (<a href="../menu.html#actlabel"><b>Actions...  Label... Atoms... 

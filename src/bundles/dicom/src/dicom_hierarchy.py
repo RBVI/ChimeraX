@@ -13,6 +13,7 @@
 from collections import defaultdict
 import datetime
 import os
+import warnings
 from numpy import (
     cross, dot, float32
     , uint8, int8, uint16, int16
@@ -21,8 +22,9 @@ from numpy import (
 from pydicom import dcmread
 from typing import Optional
 
-from chimerax.core.models import Model
 from chimerax.core.decorators import requires_gui
+from chimerax.core.models import Model
+from chimerax.core.tools import get_singleton
 
 from chimerax.map.volume import open_grids
 
@@ -49,7 +51,6 @@ finally:
     try:
         _logger = UI.instance().session.logger
         _session = UI.instance().session
-        from .ui import DICOMBrowserTool, DICOMMetadata
     except (NameError, AttributeError):
         # We didn't have either of ChimeraX's UIs, or they were uninitialized.
         # We're either in some other application or being used as a library.
@@ -84,7 +85,9 @@ class Patient(Model):
 
     @requires_gui
     def show_info(self):
-        return DICOMBrowserTool(self)
+        from .ui import DICOMBrowserTool
+        tool = get_singleton(self.session, DICOMBrowserTool, "DICOM Browser")
+        tool.display(True)
 
     def merge_and_delete_other(self, other):
         if not other.pid == self.pid:
@@ -135,7 +138,10 @@ class Patient(Model):
         return f"Patient {self.pid} with {len(self.studies)} studies"
 
     def render(self):
-        self.session.models.add([self])
+        try:
+            self.session.models.add([self])
+        except ValueError: # Already in scene
+            pass
         for study in self.studies:
             self.add([study])
             study.series.sort(key = lambda x: x.number)
@@ -153,6 +159,7 @@ class Study(Model):
         self.patient = patient
         Model.__init__(self, 'Study (%s)' % uid, session)
         self.series = []  # regular images
+        self._drawn_series = set()
 
     def series_from_files(self, files) -> None:
         files = self.filter_unreadable(files)
@@ -194,12 +201,21 @@ class Study(Model):
 
     @requires_gui
     def show_info(self):
-        return DICOMBrowserTool()
+        from .ui import DICOMBrowserTool
+        tool = get_singleton(self.session, DICOMBrowserTool, "DICOM Browser")
+        tool.display(True)
 
     def merge_and_delete_other(self, other):
         if not other.uid == self.uid:
             raise MismatchedUIDError("Can't merge studies that don't have the same Study UID")
-        self.series.extend(other.series)
+        # TODO: Improve the logic here
+        series = {}
+        for series_ in self.series:
+            series[series_.uid] = series_
+        for series_ in other.series:
+            if series_.uid not in series:
+                series[series_.uid] = series_
+        self.series = list(series.values())
         if self._child_drawings and other._child_drawings:
             self.add(other._child_drawings)
         other.delete()
@@ -209,7 +225,9 @@ class Study(Model):
         if self.series:
             for s in self.series:
                 try:
-                    self.add(s.to_models())
+                    if s.uid not in self._drawn_series:
+                        self.add(s.to_models())
+                        self._drawn_series.add(s.uid)
                 except UnrenderableSeriesError as e:
                     _logger.warning(str(e))
 
@@ -380,6 +398,10 @@ class Series:
         return self.sample_file.get("Modality")
 
     @property
+    def uid(self):
+        return self.sample_file.get("SeriesInstanceUID")
+
+    @property
     def size(self) -> Optional[str]:
         x, y = self.sample_file.get("Columns"), self.sample_file.get("Rows")
         if x and y:
@@ -434,9 +456,9 @@ class Series:
                 # Segmentation may not have specified an origin
                 g.set_origin(sg[0].origin)
         # Show only first group of grids
-        for gg in grids[1:]:
-            for g in gg:
-                g.show_on_open = False
+        #for gg in grids[1:]:
+        #    for g in gg:
+        #        g.show_on_open = False
         return grids
 
     @property

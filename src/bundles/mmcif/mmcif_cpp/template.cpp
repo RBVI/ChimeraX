@@ -60,6 +60,8 @@ namespace mmcif {
 using atomstruct::AtomName;
 using atomstruct::ResName;
 
+typedef vector<string> StringVector;
+
 // Symbolic names for readcif arguments
 static const bool Required = true;  // column is required
 
@@ -128,6 +130,7 @@ struct ExtractTemplate: public readcif::CIFFile
     void parse_chem_comp();
     void parse_chem_comp_atom();
     void parse_chem_comp_bond();
+    void parse_generic_residue_category();
 
     vector<tmpl::Residue*> all_residues;
     tmpl::Residue* residue;         // current residue
@@ -153,6 +156,14 @@ ExtractTemplate::ExtractTemplate(): residue(nullptr)
         [this] () {
             parse_chem_comp_bond();
         }, { "chem_comp", "chem_comp_atom" });
+    register_category("pdbx_chem_comp_descriptor",
+        [this] () {
+            parse_generic_residue_category();
+        }, { "chem_comp" });
+    register_category("pdbx_chem_comp_identifier",
+        [this] () {
+            parse_generic_residue_category();
+        }, { "chem_comp" });
 }
 
 ExtractTemplate::~ExtractTemplate()
@@ -441,6 +452,23 @@ ExtractTemplate::parse_chem_comp_bond()
             continue;
         templates->new_bond(a1, a2);
     }
+}
+
+void
+ExtractTemplate::parse_generic_residue_category()
+{
+    const string& category = this->category();
+    const StringVector& colnames = this->colnames();
+    string category_ci = category;
+    for (auto& c: category_ci)
+        c = tolower(c);
+    StringVector colinfo;
+    colinfo.reserve(colnames.size() + 1);
+    colinfo.push_back(category);
+    colinfo.insert(colinfo.end(), colnames.begin(), colnames.end());
+    StringVector& data = parse_whole_category();
+    residue->metadata[category_ci] = colinfo;
+    residue->metadata[category_ci + " data"].swap(data);
 }
 
 void

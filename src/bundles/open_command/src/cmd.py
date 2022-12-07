@@ -683,10 +683,11 @@ def cmd_open_formats(session):
         session.logger.info(msg, is_html=True)
 
 def format_names(session):
-    fmt_names = set([ fmt.nicknames[0] for fmt in session.open_command.open_data_formats ])
+    fmt_names = set([ nick for fmt in session.open_command.open_data_formats for nick in fmt.nicknames ])
     for db_name in session.open_command.database_names:
         for fmt_name in session.open_command.database_info(db_name).keys():
-            fmt_names.add(session.data_formats[fmt_name].nicknames[0])
+            for nick in session.data_formats[fmt_name].nicknames:
+                fmt_names.add(nick)
     return fmt_names
 
 _main_open_CmdDesc = None

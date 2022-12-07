@@ -30,7 +30,6 @@ _additional_categories = (
     "pdbx_struct_assembly",
     "pdbx_struct_assembly_gen",
     "pdbx_struct_oper_list",
-    "entity",
     "entity_src_gen",
     "entity_src_nat",
     "cell",
@@ -42,7 +41,6 @@ _additional_categories = (
     "citation",
     "citation_author",
     "citation_editor",
-    "chem_comp",
     "database_2",	# EMDB map reference
     "exptl",
     "refine",
@@ -88,6 +86,18 @@ def open_mmcif(session, path, file_name=None, auto_style=True, coordsets=False, 
     try:
         pointers = _mmcif.parse_mmCIF_file(path, categories, log, coordsets, atomic)
     except _mmcif.error as e:
+        error_text = str(e)
+        if 'coreCIF' in error_text:
+            from . import corecif
+            if log is not None:
+                log.info("Not a mmCIF file.  Trying as a small molecule CIF file."
+                    "  Next time use: "
+                    f"<a href='cxcmd:open {path} format corecif'>"
+                    f"open {file_name} format corecif</a>.\n", is_html=True)
+            return corecif.open_corecif(
+                session, path, file_name=file_name,
+                auto_style=auto_style, log_info=log_info
+            )
         raise UserError('mmCIF parsing error: %s' % e)
 
     if file_name is None:
@@ -140,8 +150,7 @@ def open_mmcif(session, path, file_name=None, auto_style=True, coordsets=False, 
         model.get_formatted_res_info = MethodType(_get_formatted_res_info, proxy(model))
         break
     if log is not None and not models:
-        log.warning("No mmCIF models found.  Perhaps this is a small-molecule CIF file?\n"
-                "Unfortunately, they are not supported at this time.\n")
+        log.warning("No mmCIF models found.\n")
     return models, info
 
 
@@ -416,8 +425,8 @@ def _get_template(session, name):
         session.logger.warning("Non-printable residue name.  Corrupt mmCIF file?")
         return None
     filename = '%s.cif' % name
-    url_path = url_quote(f"reports/{name[0]}/{name}/{name}.cif")
-    url = f"http://ligand-expo.rcsb.org/{url_path}"
+    url_path = url_quote(f"pub/pdb/refdata/chem_comp/{name[-1]}/{name}/{name}.cif")
+    url = f"https://files.wwpdb.org/{url_path}"
     try:
         return fetch_file(session, url, 'CCD %s' % name, filename, 'CCD')
     except (UserError, OSError):
@@ -822,23 +831,28 @@ def get_cif_tables(filename, table_names, *, all_data_blocks=False):
     return result
 
 
-def get_mmcif_tables_from_metadata(model, table_names, *, metadata=None):
+def get_mmcif_tables_from_metadata(obj, table_names, *, metadata=None):
     """Supported API. Extract mmCIF tables from previously read metadata
 
     Parameters
     ----------
-    model : instance of a :py:class:`~chimerax.atomic.AtomicStructure`
-        The model.
+    obj : object
+        An object with a 'metadata' attribute.  For example:
+        an :py:class:`~chimerax.atomic.AtomicStructure` instance
+        or a :py:class:`~chimerax.atomic.TmplResidue` instance.
     table_names : list of str
         A list of mmCIF category names.
     metadata : optional metadata dictonary
         Allow reuse of existing metadata dictionary.
+
+    Returns a list of :py:class:`CIFtable`s or :external+python:ref:`None`,
+    one for each table name.
     """
     if metadata is None:
         try:
-            metadata = model.metadata
+            metadata = obj.metadata
         except AttributeError:
-            raise ValueError("Expected a structure")
+            raise ValueError("Expected an object with a metadata attribute")
     tlist = []
     for n in table_names:
         n = n.casefold()

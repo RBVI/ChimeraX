@@ -4,7 +4,7 @@
 # database using k-mer search.
 
 # On plato.cgl.ucsf.edu:
-database_version = '3'
+database_version = '4'
 database_path = f'/databases/mol/AlphaFold/v{database_version}_kmer/alphafold.fasta'
 
 def parse_request_sequences():

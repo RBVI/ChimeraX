@@ -1932,7 +1932,7 @@ t0 = t1;
                 if (!remote_sp2) {
                     int hvys = heavys[a];
                     if (hvys > 1)
-                        a->set_computed_idatm_type("N2");
+                        a->set_computed_idatm_type(hvys > 2 ? "Npl" : "N2");
                     else if (hvys == 1)
                         a->set_computed_idatm_type(is_N3plus_okay(
                             a->neighbors()) ? "N3+" : "N3");

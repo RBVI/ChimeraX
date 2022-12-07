@@ -25,9 +25,14 @@
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    <ChimeraXClassifier>Command :: esmfold contacts :: Structure Prediction :: Show ESMFold contact pseudobond colored by predicted aligned error</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: esmfold fetch :: Structure Prediction :: Fetch ESM Metagenomic Atlas models for a MGnify accession code</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: esmfold match :: Structure Prediction :: Fetch ESM Metagenomic Atlas models matching a structure</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: esmfold pae :: Structure Prediction :: Show ESMFold predicted aligned error as heatmap</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: esmfold predict :: Structure Prediction :: Predict a structure using ESMFold</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: esmfold search :: Structure Prediction :: Search ESMFold database using BLAST</ChimeraXClassifier>
+    <ChimeraXClassifier>Tool :: ESMFold :: Structure Prediction :: Fetch or calculate ESMFold structures</ChimeraXClassifier>
+    <ChimeraXClassifier>Tool :: ESMFold Error Plot :: Structure Prediction :: Plot ESMFold predicted aligned error</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

@@ -82,7 +82,7 @@ print_ribbon = [
     #"size hbonds pseudobondRadius 0.6",
     "size pseudobondRadius 0.6",
     # ribbons need to be up to date for struts to work right
-    "wait 1; struts @ca|ligand|P|##num_atoms<500 length 8 loop 60 rad 0.75 color struts_grey",
+    "wait 1; struts (@ca|ligand|P) & ##num_atoms<500 length 8 loop 60 rad 0.75 color struts_grey",
     "~struts @PB,PG resetRibbon false",
     "~struts adenine|cytosine|guanine|thymine|uracil resetRibbon false",
     #"color struts_grey pseudobonds",
@@ -105,7 +105,7 @@ def by_chain_cmds(session, rainbow=False, target_atoms=False):
     for s in all_atomic_structures(session):
         if rainbow:
             cmds.append(rainbow_cmd(s, target_atoms=target_atoms))
-        cmds.append("color zone %s near %s distance 20" % (s.atomspec, s.atomspec))
+        cmds.append("color zone %s near %s & main distance 20" % (s.atomspec, s.atomspec))
     return cmds
 
 def color_by_hydrophobicity_cmds(session, target="rs"):
@@ -206,14 +206,14 @@ def run_preset(session, name, mgr):
             + [ "color nih_blue" ]
     elif name == "surface coulombic":
         cmd = undo_printable + base_setup + base_surface + addh_cmds(session) + surface_cmds(session) \
-            + [ "color white", "coulombic surfaces #*" ]
+            + [ "color white", "coulombic surfaces #* chargeMethod gasteiger" ]
         from chimerax.atomic import AtomicStructures
         structures = AtomicStructures(all_atomic_structures(session))
         main_atoms = structures.atoms.filter(structures.atoms.structure_categories == "main")
         main_residues = main_atoms.unique_residues
         incomplete_residues = main_residues.filter(main_residues.is_missing_heavy_template_atoms)
         if len(incomplete_residues) > len(main_residues) / 10:
-            session.logger.warning("More than 10% or residues are incomplete;"
+            session.logger.warning("More than 10% of residues are incomplete;"
                 " electrostatics probably inaccurate")
         elif "HIS" in incomplete_residues.names:
             session.logger.warning("Incomplete HIS residue; coulombic will likely fail")

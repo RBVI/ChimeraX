@@ -13,6 +13,8 @@
 from collections import defaultdict
 
 import os
+import warnings
+
 from pydicom import dcmread
 from typing import Any, Dict, TypeVar, Union
 
@@ -138,11 +140,23 @@ class DICOM:
     def merge_patients_by_id(self):
         """Iterate over the patients dictionary and merge all that have the same pid"""
         for patient_list in list(self.patients_by_id.values()):
-            ref_patient = patient_list[0]
-            for patient in patient_list[1:]:
+            ref_patient = self._find_existing_patient(patient_list[0])
+            starting_index = 0
+            if not ref_patient:
+                ref_patient = patient_list[0]
+                starting_index = 1
+            else:
+                _logger.warning("Merged incoming unique studies with existing patient with same ID")
+            for patient in patient_list[starting_index:]:
                 ref_patient.merge_and_delete_other(patient)
             self.patients[ref_patient.pid] = ref_patient
             del patient_list
+
+    def _find_existing_patient(self, patient):
+        for model in self.session.models:
+            if type(model) is Patient and model.pid == patient.pid:
+                return model
+        return None
 
     def __iter__(self):
         return iter(list(self.patients.values()))

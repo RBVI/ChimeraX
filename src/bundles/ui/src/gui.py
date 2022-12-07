@@ -1346,7 +1346,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         #
         label_menu = actions_menu.addMenu("Label")
         label_atoms_menu = label_menu.addMenu("Atoms")
-        main_atom_label_info = [("Name", None), ("Element", "element"), ("IDATM Type", "idatm_type")]
+        main_atom_label_info = [("Name", "name"), ("Element", "element"), ("IDATM Type", "idatm_type")]
         for menu_entry, attr_name in main_atom_label_info:
             action = QAction(menu_entry, self)
             label_atoms_menu.addAction(action)

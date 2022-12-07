@@ -403,12 +403,16 @@ class Assembly:
             for pos in ops:
                 m = mol.copy()
                 m.ignore_assemblies = True
-                mlist.append(m)
                 m.position = pos
                 included_atoms, excluded_atoms = self._partition_atoms(m.atoms, chain_ids)
                 if len(excluded_atoms) > 0:
                     excluded_atoms.delete()
                 self._show_atoms(included_atoms)
+                if m.deleted:
+                    msg = f'Assembly chain ids {",".join(chain_ids)} are not present in structure {mol}'
+                    mol.session.logger.warning(msg)
+                    continue # For bad files the assembly may contain no atoms.
+                mlist.append(m)
 
         g = session.models.add_group(mlist)
         g.name = '%s assembly %s' % (mol.name, self.id)

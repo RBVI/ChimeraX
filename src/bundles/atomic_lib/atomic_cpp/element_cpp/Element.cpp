@@ -232,8 +232,10 @@ Element::atomic_number(const char *name)
             symbol[0] = name[0];
         if (isupper(name[1]))
             symbol[1] = tolower(name[1]);
-        else
+        else if (islower(name[1]))
             symbol[1] = name[1];
+        else
+            symbol[1] = '\0';
     }
 
     if (symbol[1] == '\0')

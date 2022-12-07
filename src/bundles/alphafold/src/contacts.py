@@ -15,7 +15,8 @@
 #
 def alphafold_contacts(session, residues, to_residues = None, distance = 3,
                        flip = False, palette = None, range = None, radius = 0.2, dashes = 1,
-                       name = 'PAE Contacts', replace = True, output_file = None):
+                       name = 'PAE Contacts', replace = True, output_file = None,
+                       method = 'alphafold'):
     '''
     Create pseudobonds between close residues of an AlphaFold structure
     colored by the predicted aligned error value.  The paecontacts colormap
@@ -26,7 +27,7 @@ def alphafold_contacts(session, residues, to_residues = None, distance = 3,
     # Get structure containing residues.
     if len(residues) == 0:
         from chimerax.core.errors import UserError        
-        raise UserError('No residues specified for alphafold contacts')
+        raise UserError(f'No residues specified for {method} contacts')
     s = residues[0].structure
 
     # If to_residues not specified use all other residues in same structure.
@@ -38,7 +39,7 @@ def alphafold_contacts(session, residues, to_residues = None, distance = 3,
     # Check that we have some residues
     if len(to_residues) == 0:
         from chimerax.core.errors import UserError        
-        raise UserError('No to residues specified for alphafold contacts')
+        raise UserError(f'No to residues specified for {method} contacts')
 
     # Make sure all residues belong to one structure
     ns = len((residues | to_residues).unique_structures)
@@ -47,10 +48,10 @@ def alphafold_contacts(session, residues, to_residues = None, distance = 3,
         raise UserError('Interface PAE pseudobonds can only be computed for a single structure, got %d.' % ns)
 
     # Make sure structure has PAE data opened.
-    if not hasattr(s, 'alphafold_pae'):
+    pae = getattr(s, f'{method}_pae', None)
+    if pae is None:
         from chimerax.core.errors import UserError
         raise UserError('Structure %s does not have PAE data opened' % s)
-    pae = s.alphafold_pae
 
     # Use pae palette if none specified.
     if palette is None:
@@ -109,10 +110,10 @@ def _close_residue_pairs(residues1, residues2, distance):
             rclose = atoms2[i2].unique_residues
             rpairs.extend([(r1,rc) for rc in rclose if rc is not r1])
     return rpairs
-
+    
 # -----------------------------------------------------------------------------
 #
-def register_alphafold_contacts_command(logger):
+def contacts_command_description():
     from chimerax.core.commands import CmdDesc, register, FloatArg, IntArg, BoolArg, StringArg
     from chimerax.core.commands import ColormapArg, ColormapRangeArg, SaveFileNameArg
     from chimerax.atomic import ResiduesArg
@@ -130,5 +131,11 @@ def register_alphafold_contacts_command(logger):
                    ('output_file', SaveFileNameArg)],
         synopsis = 'Make pseudobonds colored by PAE for close residues'
     )
+    return desc
     
+# -----------------------------------------------------------------------------
+#
+def register_alphafold_contacts_command(logger):
+    desc = contacts_command_description()
+    from chimerax.core.commands import register
     register('alphafold contacts', desc, alphafold_contacts, logger=logger)
