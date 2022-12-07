@@ -20,11 +20,14 @@ from Qt.QtWidgets import (
     , QStackedWidget, QLineEdit, QPlainTextEdit
 )
 
-from chimerax.atomic.widgets import ChainMenuButton
 from chimerax.core.commands import run
 from chimerax.core.errors import UserError
 from chimerax.core.session import Session
 from chimerax.core.tools import ToolInstance
+
+from chimerax.atomic import Residue
+from chimerax.atomic.widgets import ChainMenuButton
+
 from chimerax.ui import MainToolWindow
 from chimerax.ui.options import Option
 
@@ -109,6 +112,7 @@ class BlastProteinTool(ToolInstance):
         self.menu_widgets['chain'] = ChainMenuButton(
             self.session, no_value_button_text = "No chain chosen", parent=self.input_container_row2
             , special_items=["UniProt ID", "Sequence"]
+            , filter_func = lambda c: c.polymer_type == Residue.PT_AMINO
         )
         self.menu_widgets['database'] = BlastProteinFormWidget("Database", QComboBox, self.input_container_row2)
         self.menu_widgets['version'] = BlastProteinFormWidget("Version", QSpinBox, self.input_container_row2)
