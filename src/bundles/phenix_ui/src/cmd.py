@@ -25,5 +25,5 @@ def register_command(logger):
     from . import douse
     douse.register_command(logger)
 
-    from . import model_in_sphere
-    model_in_sphere.register_command(logger)
+    from . import emplace_local
+    emplace_local.register_command(logger)

@@ -12,7 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 #
-# Command to place a structure in a cryoEM map using Phenix emplace_model_in_sphere.
+# Command to place a structure in a cryoEM map using Phenix emplace_local.
 #
 from chimerax.core.tasks import Job
 from chimerax.core.errors import UserError
@@ -82,9 +82,9 @@ def phenix_local_fit(session, model, in_map=None, center=None, half_maps=None, r
         block=None, phenix_location=None, verbose=command_defaults['verbose'],
         option_arg=[], position_arg=[]):
 
-    # Find the phenix.voyager.emplace_model_in_sphere executable
+    # Find the phenix.voyager.emplace_local executable
     from .locate import find_phenix_command
-    exe_path = find_phenix_command(session, 'phenix.voyager.emplace_model_in_sphere', phenix_location)
+    exe_path = find_phenix_command(session, 'phenix.voyager.emplace_local', phenix_location)
 
     # if blocking not explicitly specified, block if in a script or in nogui mode
     if block is None:
@@ -97,7 +97,7 @@ def phenix_local_fit(session, model, in_map=None, center=None, half_maps=None, r
     if len(half_maps) != 2:
         raise UserError("Please specify exactly two half maps.  You specified %d" % (len(half_maps)))
 
-    # Setup temporary directory to run phenix.voyager.emplace_model_in_sphere.
+    # Setup temporary directory to run phenix.voyager.emplace_local.
     from tempfile import TemporaryDirectory
     d = TemporaryDirectory(prefix = 'phenix_emis_')  # Will be cleaned up when object deleted.
     temp_dir = d.name
@@ -118,7 +118,7 @@ def phenix_local_fit(session, model, in_map=None, center=None, half_maps=None, r
     from chimerax.pdb import save_pdb
     save_pdb(session, path.join(temp_dir,'model.pdb'), models=[model], rel_model=map_0)
 
-    # Run phenix.voyager.emplace_model_in_sphere
+    # Run phenix.voyager.emplace_local
     # keep a reference to 'd' in the callback so that the temporary directory isn't removed before
     # the program runs
     callback = lambda fit_model, *args, session=session, whole_map=whole_map, shift=shift, d_ref=d: \
@@ -155,7 +155,7 @@ def _fix_map_origin(map):
 def _run_fit_subprocess(session, exe_path, optional_args, map_file_name, half_map1_file_name,
         half_map2_file_name, search_center, model_file_name, positional_args, temp_dir, resolution, verbose):
     '''
-    Run emplace_model_in_sphere in a subprocess and return the model.
+    Run emplace_local in a subprocess and return the model.
     '''
     from chimerax.core.commands import StringArg
     args = [exe_path] + optional_args + [
@@ -174,7 +174,7 @@ def _run_fit_subprocess(session, exe_path, optional_args, map_file_name, half_ma
     if p.returncode != 0:
         cmd = " ".join(args)
         out, err = p.stdout.decode("utf-8"), p.stderr.decode("utf-8")
-        msg = (f'phenix.voyager.emplace_model_in_sphere exited with error code {p.returncode}\n\n' +
+        msg = (f'phenix.voyager.emplace_local exited with error code {p.returncode}\n\n' +
                f'Command: {cmd}\n\n' +
                f'stdout:\n{out}\n\n' +
                f'stderr:\n{err}')
@@ -219,4 +219,4 @@ def register_command(logger):
         ],
         synopsis = 'Place structure in map'
     )
-    register('phenix localFit', desc, phenix_local_fit, logger=logger)
+    register('phenix emplaceLocal', desc, phenix_local_fit, logger=logger)
