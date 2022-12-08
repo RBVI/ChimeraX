@@ -309,7 +309,7 @@ class Shortcut:
         if self.atoms_arg:
             f(shortcut_atoms(s))
         elif self.each_map:
-            for m in shortcut_maps(s):
+            for m in shortcut_maps(s, undisplayed=False):
                 f(m)
         elif self.each_molecule:
             for m in shortcut_molecules(s):
@@ -471,10 +471,11 @@ def shortcut_atoms(session):
         atoms = Atoms()
     return atoms
 
-def shortcut_surfaces(session):
+def shortcut_surfaces(session, include_undisplayed_selected = False):
     sel = session.selection
     from chimerax.core.models import Surface
-    surfs = [m for m in sel.models() if isinstance(m, Surface)]
+    surfs = [m for m in sel.models()
+             if isinstance(m, Surface) and (m.visible or include_undisplayed_selected)]
     if surfs:
         return surfs
     surfs = [m for m in session.models.list(type = Surface) if m.visible]
@@ -484,7 +485,7 @@ def shortcut_surfaces_and_maps(session):
     sel = session.selection
     from chimerax.map import Volume
     from chimerax.core.models import Surface
-    sm = [m for m in sel.models() if isinstance(m,(Surface, Volume))]
+    sm = [m for m in sel.models() if isinstance(m,(Surface, Volume)) and m.visible]
     if sm:
         return sm
     sm = [m for m in session.models.list(type = (Surface, Volume)) if m.visible]
@@ -911,7 +912,7 @@ def show_asymmetric_unit(m, session):
         m.positions = Places([m.positions[0]])
 
 def display_surface(session):
-    surfs = shortcut_surfaces(session)
+    surfs = shortcut_surfaces(session, include_undisplayed_selected = True)
     if len(surfs) == 0 or session.selection.empty():
         surfs = [m for m in session.models.list() if not m.empty_drawing()]
     for m in surfs:

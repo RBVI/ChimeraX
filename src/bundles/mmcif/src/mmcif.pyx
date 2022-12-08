@@ -425,8 +425,8 @@ def _get_template(session, name):
         session.logger.warning("Non-printable residue name.  Corrupt mmCIF file?")
         return None
     filename = '%s.cif' % name
-    url_path = url_quote(f"reports/{name[0]}/{name}/{name}.cif")
-    url = f"http://ligand-expo.rcsb.org/{url_path}"
+    url_path = url_quote(f"pub/pdb/refdata/chem_comp/{name[-1]}/{name}/{name}.cif")
+    url = f"https://files.wwpdb.org/{url_path}"
     try:
         return fetch_file(session, url, 'CCD %s' % name, filename, 'CCD')
     except (UserError, OSError):
