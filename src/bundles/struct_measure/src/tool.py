@@ -623,7 +623,7 @@ class StructMeasureTool(ToolInstance):
         if self.tab_names[index] == "Axes/Planes/Centroids":
             if self.apc_status_label.text() == self.apc_status_tip:
                 def clear_status(s=self):
-                    if s.apc_status_label.text() == s.apc_status_tip:
+                    if s in s.session.tools and s.apc_status_label.text() == s.apc_status_tip:
                         s.apc_status_label.setHidden(True)
                 from Qt.QtCore import QTimer
                 self._hold_ref_to_timer = QTimer.singleShot(12000, clear_status)
