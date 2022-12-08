@@ -55,6 +55,7 @@ openjpeg2
 openssl-libs
 openssl-devel
 pango
+patch
 pulseaudio-libs
 pulseaudio-libs-glib2
 rsync
