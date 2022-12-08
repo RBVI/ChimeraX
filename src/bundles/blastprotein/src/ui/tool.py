@@ -14,10 +14,10 @@ import string
 from typing import Dict, Optional, Union
 
 from Qt.QtWidgets import (
-    QPushButton, QLabel, QSizePolicy
+    QPushButton, QSizePolicy
     , QVBoxLayout, QHBoxLayout, QComboBox
     , QWidget, QSpinBox, QAbstractSpinBox
-    , QStackedWidget, QLineEdit, QPlainTextEdit
+    , QLayout, QPlainTextEdit
 )
 
 from chimerax.core.commands import run
@@ -119,7 +119,9 @@ class BlastProteinTool(ToolInstance):
         self.menu_widgets['version'].input_widget.setButtonSymbols(QAbstractSpinBox.NoButtons)
 
         # Row 3
-        self.menu_widgets['uniprot_or_seq_input'] = QLineEdit(parent = self.input_container_row3)
+        self.menu_widgets['uniprot_or_seq_input'] = QPlainTextEdit(parent = self.input_container_row3)
+        self.menu_widgets['uniprot_or_seq_input'].setSizePolicy(QSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.MinimumExpanding))
+        self.menu_widgets['uniprot_or_seq_input'].setPlaceholderText("Input Sequence")
         self.input_container_row3.hide()
         self.menu_widgets['uniprot_or_seq_input'].hide()
 
@@ -168,11 +170,11 @@ class BlastProteinTool(ToolInstance):
         if self._uniprot_id:
             self.menu_widgets['chain'].value = "UniProt ID"
             self._last_menu_option = "UniProt ID"
-            self.menu_widgets['uniprot_or_seq_input'].setText(self._uniprot_id)
+            self.menu_widgets['uniprot_or_seq_input'].setPlainText(self._uniprot_id)
         elif self._sequences:
             self.menu_widgets['chain'].value = "Sequence"
             self._last_menu_option = "Sequence"
-            self.menu_widgets['uniprot_or_seq_input'].setText(self._sequences)
+            self.menu_widgets['uniprot_or_seq_input'].setPlainText(self._sequences)
         else:
             pass
         self.menu_widgets['database'].input_widget.setCurrentIndex(AvailableDBs.index(self._current_database))
@@ -229,7 +231,7 @@ class BlastProteinTool(ToolInstance):
         blast_input_type = chain = self.menu_widgets['chain'].get_value()
         blast_input = None
         if blast_input_type in ["UniProt ID", "Sequence"]:
-            blast_input = self.menu_widgets['uniprot_or_seq_input'].text().translate(str.maketrans('', '', string.whitespace))
+            blast_input = self.menu_widgets['uniprot_or_seq_input'].toPlainText().translate(str.maketrans('', '', string.whitespace))
         else: # it's a chain
             try:
                 blast_input = chain.string().split(" ")[-1]
@@ -267,7 +269,7 @@ class BlastProteinTool(ToolInstance):
             # the different options *actually being* different widgets, so clear
             # the text on update.
             if chain != self._last_menu_option:
-                self.menu_widgets['uniprot_or_seq_input'].setText("")
+                self.menu_widgets['uniprot_or_seq_input'].setPlainText("")
                 self._last_menu_option = chain
             self.input_container_row3.show()
             self.menu_widgets['uniprot_or_seq_input'].show()
@@ -275,8 +277,8 @@ class BlastProteinTool(ToolInstance):
             try:
                 self.input_container_row3.hide()
                 self.menu_widgets['uniprot_or_seq_input'].hide()
-                self.menu_widgets['uniprot_or_seq_input'].setText("")
                 self.tool_window.shrink_to_fit()
+                self.menu_widgets['uniprot_or_seq_input'].setPlainText("")
                 self._last_menu_option = chain.string().split(" ")[-1]
             except:
                 # Maybe it changed because the last model was closed
@@ -376,7 +378,7 @@ class BlastProteinTool(ToolInstance):
     def take_snapshot(self, session, flags):
         blast_input_type = self.menu_widgets['chain'].get_value()
         if blast_input_type in ["UniProt ID", "Sequence"]:
-            blast_input = self.menu_widgets['uniprot_or_seq_input'].text().translate(str.maketrans('', '', string.whitespace))
+            blast_input = self.menu_widgets['uniprot_or_seq_input'].toPlainText().translate(str.maketrans('', '', string.whitespace))
         elif blast_input_type == "No chain chosen":
             blast_input_type = None
             blast_input = None
