@@ -106,13 +106,7 @@ clean:
 
 Makefile.dependencies: */bundle_info.xml* */pyproject.toml* Make_dependencies.py
 ifneq ($(MAKECMDGOALS),clean)
-ifeq ($(OS),Linux)
-# On Linux daily builds "make sync" is done on CentOS 7 where ChimeraX Python will not run.
-# So use the system Python to make dependencies.
-	./Make_dependencies.py
-else
 	$(APP_PYTHON_EXE) Make_dependencies.py
-endif
 
 # Make sure bundle_builder and toolshed bundles are installed before all others.
 $(REST_SUBDIRS:=.build):
