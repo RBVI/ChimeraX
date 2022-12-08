@@ -276,6 +276,7 @@ class BlastProteinTool(ToolInstance):
                 self.input_container_row3.hide()
                 self.menu_widgets['uniprot_or_seq_input'].hide()
                 self.menu_widgets['uniprot_or_seq_input'].setText("")
+                self.tool_window.shrink_to_fit()
                 self._last_menu_option = chain.string().split(" ")[-1]
             except:
                 # Maybe it changed because the last model was closed
