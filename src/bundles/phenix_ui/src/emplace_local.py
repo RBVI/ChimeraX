@@ -100,12 +100,9 @@ def phenix_local_fit(session, model, in_map=None, center=None, half_maps=None, r
     if prefitted is not None:
         # subtract off density attributed to prefitted structures
         from chimerax.map.molmap import molmap
-        fitted_map = molmap(session, prefitted.atoms, resolution, open_model=False)
-        # TODO: the scale of the values of the molmap aren't the same as the density map
-        #from chimerax.map_fit.fitmap import simulated_map
-        #fitted_map = simulated_map(prefitted.atoms, resolution, session)
+        fitted_map = molmap(session, prefitted.atoms, resolution, open_model=True)
         from chimerax.map_filter.vopcommand import volume_subtract
-        target_map = volume_subtract(session, [whole_map, fitted_map], open_model=False)
+        target_map = volume_subtract(session, [whole_map, fitted_map], min_rms=True, open_model=True)
     else:
         target_map = whole_map
     # Setup temporary directory to run phenix.voyager.emplace_local.
