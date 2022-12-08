@@ -202,6 +202,7 @@ class BlastProteinTool(ToolInstance):
         self.main_layout.addWidget(self.input_container_row2)
         self.main_layout.addWidget(self.input_container_row3)
         self.main_layout.addWidget(self.input_container_row4)
+        self.main_layout.addStretch()
 
         for layout in [self.main_layout, self.menu_layout_row4]:
             layout.setContentsMargins(0, 0, 0, 0)
