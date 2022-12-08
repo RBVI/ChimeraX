@@ -40,6 +40,8 @@ can be opened from the <b>Sequence</b> section of the
 (<a href="../window.html#panels">more...</a>).
 It is also implemented as the
 <a href="../commands/blastprotein.html"><b>blastprotein</b></a> command.
+See also:
+<a href="../commands/alphafold.html#search"><b>alphafold search</b></a>
 </p>
 
 <a name="parameters"></a>
@@ -49,14 +51,21 @@ It is also implemented as the
 <h3>Search Parameters</h3>
 
 <p>
-The first menu allows choosing a protein chain from the currently open 
-atomic structures to use as the query. Note: 
-the <a href="../commands/blastprotein.html"><b>blastprotein</b></a> command 
-additionally allows using a sequence (for which no structure may be available) 
-as the query, such as to find templates for 
-<a href="modeller.html">comparative modeling</a>. See also:
-<a href="../commands/alphafold.html#search"><b>alphafold search</b></a>
+The first menu allows specifying the amino acid sequence to use
+as the <b>Query</b>:
 </p>
+<ul>
+<li><b>UniProt ID</b> &ndash;
+a <a href="https://www.uniprot.org/help/entry_name"
+target="_blank">UniProt name</a> or
+<a href="https://www.uniprot.org/help/accession_numbers"
+target="_blank">accession number</a>
+<li><b>Sequence</b></a> &ndash; amino acid sequence as plain text
+pasted into the entry field
+<li>a single protein chain in an atomic structure currently open in ChimeraX
+(available chains will be listed individually)
+</ul>
+Further options:
 <ul class="none">
 <li><b>Database</b> &ndash; protein sequence database to search:
    <ul>

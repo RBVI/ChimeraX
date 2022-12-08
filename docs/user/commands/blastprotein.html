@@ -25,8 +25,7 @@ class="clRight" title="User Guide Index"/></a>
 
 <h3><a href="../index.html#commands">Command</a>: blastprotein</h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
-<br><b>blastprotein</b> 
-(&nbsp;<a href="atomspec.html#hierarchy"><i>chain-spec</i></a>&nbsp;|&nbsp;<a href="seqspec.html"><i>sequence-spec</i></a>&nbsp;)
+<br><b>blastprotein</b> &nbsp;<i>sequence</i>&nbsp;
 [&nbsp;<b>database</b>&nbsp;&nbsp;<i>sequence-database</i>&nbsp;]
 [&nbsp;<a href="alphafold.html#version"><b>version</b></a>&nbsp;&nbsp;1&nbsp;|&nbsp;2&nbsp;|&nbsp;<b>3</b>&nbsp;]
 [&nbsp;<b>matrix</b>&nbsp;&nbsp;<i>similarity-matrix</i>&nbsp;]
@@ -47,13 +46,19 @@ One use is to search with a target sequence of unknown structure
 to find templates for <a href="modeller.html">comparative modeling</a>.
 See also: <a href="alphafold.html#search"><b>alphafold search</b></a>
 </p><p>
-The query sequence can be taken from a protein structure or a sequence 
-alignment open in ChimeraX: 
-<ul>
-<li>&nbsp;<a href="atomspec.html#hierarchy"><i>chain-spec</i></a>
-<br>&ndash; OR &ndash;
-<li>&nbsp;<a href="seqspec.html"><i>sequence-spec</i></a>
-</ul>
+The query <i>sequence</i> can be given as any of the following:
+</p>
+  <ul>
+  <li>a <a href="atomspec.html#hierarchy"><i>chain-spec</i></a>
+  corresponding to a single chain in an atomic structure open in ChimeraX
+  <li>the <a href="seqspec.html"><i>sequence-spec</i></a> of a sequence
+  in the <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>
+  <li>a <a href="https://www.uniprot.org/help/entry_name"
+  target="_blank">UniProt name</a> or 
+  <a href="https://www.uniprot.org/help/accession_numbers"
+  target="_blank">accession number</a>
+  <li>plain text pasted directly into the command line
+  </ul>
 <p>
 The protein <i>sequence-database</i> to search can be:
 </p>
