@@ -111,11 +111,13 @@ class BlastProteinTool(ToolInstance):
         self.menu_widgets['sequences'].input_widget.setButtonSymbols(QAbstractSpinBox.NoButtons)
 
         # Row 2
-        self.menu_widgets['chain'] = ChainMenuButton(
-            self.session, no_value_button_text = "No chain chosen", parent=self.input_container_row2
-            , special_items=["UniProt ID", "Sequence"]
+        self.menu_widgets['chain'] = BlastProteinFormWidget("Query", input_widget=None, parent=self.input_container_row2)
+        self.menu_widgets['_chain_button'] = ChainMenuButton(
+            self.session, no_value_button_text = "No chain chosen", parent=self.menu_widgets['chain']
+            , special_items=["UniProt ID", "Raw Sequence"]
             , filter_func = lambda c: c.polymer_type == Residue.PT_AMINO
         )
+        self.menu_widgets['chain'].input_widget = self.menu_widgets['_chain_button']
         self.menu_widgets['database'] = BlastProteinFormWidget("Database", QComboBox, self.input_container_row2)
         self.menu_widgets['version'] = BlastProteinFormWidget("Version", QSpinBox, self.input_container_row2)
         self.menu_widgets['version'].input_widget.setButtonSymbols(QAbstractSpinBox.NoButtons)
@@ -162,7 +164,7 @@ class BlastProteinTool(ToolInstance):
         # Functionalize the menu
         self.menu_widgets['database'].input_widget.addItems(AvailableDBs)
         self.menu_widgets['matrices'].input_widget.addItems(AvailableMatrices)
-        self.menu_widgets['chain'].value_changed.connect(self._on_chain_menu_changed)
+        self.menu_widgets['chain'].input_widget.value_changed.connect(self._on_chain_menu_changed)
         self.menu_widgets['sequences'].input_widget.valueChanged.connect(self._on_num_sequences_changed)
         self.menu_widgets['cutoff'].input_widget.valueChanged.connect(self._on_cutoff_value_changed)
         self.menu_widgets['database'].input_widget.currentIndexChanged.connect(self._on_database_changed)
@@ -175,13 +177,14 @@ class BlastProteinTool(ToolInstance):
 
         # Fill in blastprotein's default arguments or snapshot values
         if self._uniprot_id:
-            self.menu_widgets['chain'].value = "UniProt ID"
+            self.menu_widgets['chain'].input_widget.value = "UniProt ID"
             self._last_menu_option = "UniProt ID"
             self.menu_widgets['uniprot_input'].setText(self._uniprot_id)
         elif self._sequences:
-            self.menu_widgets['chain'].value = "Sequence"
-            self._last_menu_option = "Sequence"
+            self.menu_widgets['chain'].input_widget.value = "Raw Sequence"
+            self._last_menu_option = "Raw Sequence"
             self.menu_widgets['seq_input'].setPlainText(self._sequences)
+            self.menu_widgets['uniprot_or_seq_input'].setText(self._sequences)
         else:
             pass
         self.menu_widgets['database'].input_widget.setCurrentIndex(AvailableDBs.index(self._current_database))
@@ -218,9 +221,11 @@ class BlastProteinTool(ToolInstance):
         for layout in [self.main_layout, self.menu_layout_row5]:
             layout.setContentsMargins(0, 0, 0, 0)
             layout.setSpacing(0)
+        for layout in [self.menu_layout_row3, self.menu_layout_row4]:
+            layout.setContentsMargins(2, 2, 2, 2)
         for layout in [self.menu_layout_row1, self.menu_layout_row2]:
-            layout.setContentsMargins(4, 0, 0, 0)
-            layout.setSpacing(2)
+            layout.setContentsMargins(0, 0, 0, 0)
+            layout.setSpacing(0)
 
         self.tool_window.ui_area.setLayout(self.main_layout)
         self.tool_window.manage('side')
@@ -229,7 +234,7 @@ class BlastProteinTool(ToolInstance):
     # Data population and action callbacks for menu items
     #
     def _reset_options(self) -> None:
-        self.menu_widgets['chain'].value = None
+        self.menu_widgets['chain'].input_widget.value = None
         self.menu_widgets['database'].input_widget.setCurrentIndex(AvailableDBs.index('pdb'))
         self.menu_widgets['sequences'].input_widget.setValue(100)
         self.menu_widgets['matrices'].input_widget.setCurrentIndex(AvailableMatrices.index('BLOSUM62'))
@@ -239,9 +244,9 @@ class BlastProteinTool(ToolInstance):
     def _run_blast_job(self) -> None:
         blast_input_type = chain = self.menu_widgets['chain'].get_value()
         blast_input = None
-        if blast_input_type == "Sequence":
+        if blast_input_type == "Raw Sequence":
             blast_input = self.menu_widgets['seq_input'].toPlainText().translate(str.maketrans('', '', string.whitespace))
-        elif blast_input_type == "Sequence":
+        elif blast_input_type == "UniProt ID":
             blast_input = self.menu_widgets['uniprot_input'].text().translate(str.maketrans('', '', string.whitespace))
         else: # it's a chain
             try:
@@ -272,7 +277,7 @@ class BlastProteinTool(ToolInstance):
         self.delete()
 
     def _on_chain_menu_changed(self) -> None:
-        chain = self.menu_widgets['chain'].get_value()
+        chain = self.menu_widgets['chain'].input_widget.get_value()
         if chain == "UniProt ID":
             if chain != self._last_menu_option:
                 self.menu_widgets['uniprot_input'].setText("")
@@ -281,7 +286,7 @@ class BlastProteinTool(ToolInstance):
             self.menu_widgets['uniprot_input'].show()
             self.input_container_row3.show()
             self.tool_window.shrink_to_fit()
-        elif chain == "Sequence":
+        elif chain == "Raw Sequence":
             if chain != self._last_menu_option:
                 self.menu_widgets['seq_input'].setPlainText("")
                 self._last_menu_option = chain
@@ -364,7 +369,7 @@ class BlastProteinTool(ToolInstance):
                     , matrix = data["_current_matrix"]
                     , cutoff = data["_cutoff"]
                 )
-            elif data["_blast_input_type"] == "Sequence":
+            elif data["_blast_input_type"] == "Raw Sequence":
                 tmp = cls(
                     session
                     , sequences = data['_blast_input']
@@ -394,7 +399,9 @@ class BlastProteinTool(ToolInstance):
 
     def take_snapshot(self, session, flags):
         blast_input_type = self.menu_widgets['chain'].get_value()
-        if blast_input_type in ["UniProt ID", "Sequence"]:
+        if blast_input_type == "UniProt ID":
+            blast_input = self.menu_widgets['uniprot_input'].text().translate(str.maketrans('', '', string.whitespace))
+        elif blast_input_type == "Raw Sequence":
             blast_input = self.menu_widgets['seq_input'].toPlainText().translate(str.maketrans('', '', string.whitespace))
         elif blast_input_type == "No chain chosen":
             blast_input_type = None
