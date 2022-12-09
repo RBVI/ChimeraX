@@ -242,7 +242,7 @@ class BlastProteinTool(ToolInstance):
         self.menu_widgets['version'].input_widget.setValue(1)
 
     def _run_blast_job(self) -> None:
-        blast_input_type = chain = self.menu_widgets['chain'].get_value()
+        blast_input_type = chain = self.menu_widgets['chain'].input_widget.get_value()
         blast_input = None
         if blast_input_type == "Raw Sequence":
             blast_input = self.menu_widgets['seq_input'].toPlainText().translate(str.maketrans('', '', string.whitespace))
@@ -398,7 +398,7 @@ class BlastProteinTool(ToolInstance):
         return tmp
 
     def take_snapshot(self, session, flags):
-        blast_input_type = self.menu_widgets['chain'].get_value()
+        blast_input_type = self.menu_widgets['chain'].input_widget.get_value()
         if blast_input_type == "UniProt ID":
             blast_input = self.menu_widgets['uniprot_input'].text().translate(str.maketrans('', '', string.whitespace))
         elif blast_input_type == "Raw Sequence":
