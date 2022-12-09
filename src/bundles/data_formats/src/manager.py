@@ -48,6 +48,7 @@ class FormatsManager(ProviderManager):
         insecure = category == self.CAT_SCRIPT if insecure is None else insecure
 
         logger = self.session.logger
+        update_bundle_only = False
         if name in self._formats:
             if not bundle_info.installed:
                 return
@@ -55,11 +56,18 @@ class FormatsManager(ProviderManager):
             if prev_bundle.installed:
                 logger.info("Replacing data format '%s' as defined by %s with definition"
                     " from %s" % (name, prev_bundle.name, bundle_info.name))
-        from .format import DataFormat
-        data_format = DataFormat(name, category, suffixes, nicknames, mime_types,
-            reference_url, insecure, encoding, synopsis, allow_directory)
-        for suffix in suffixes:
-            self._suffix_to_formats.setdefault(suffix.lower(), []).append(data_format)
+                del self._formats[name]
+            else:
+                # usually previously uninstalled bundle getting installed
+                update_bundle_only = prev_bundle.name == bundle_info.name
+        if update_bundle_only:
+            data_format = self._formats[name][1]
+        else:
+            from .format import DataFormat
+            data_format = DataFormat(name, category, suffixes, nicknames, mime_types,
+                reference_url, insecure, encoding, synopsis, allow_directory)
+            for suffix in suffixes:
+                self._suffix_to_formats.setdefault(suffix.lower(), []).append(data_format)
         self._formats[name] = (bundle_info, data_format)
         if raise_trigger:
             self.triggers.activate_trigger("data formats changed", self)

@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-MapFilter" version="2.0"
+<BundleInfo name="ChimeraX-MapFilter" version="2.0.1"
 	    package="chimerax.map_filter"
   	    minSessionVersion="1" maxSessionVersion="1">
 

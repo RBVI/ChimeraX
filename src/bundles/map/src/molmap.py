@@ -66,7 +66,9 @@ def molmap(session,
            display_threshold = 0.95, # fraction of total density
            model_id = None, # integer
            replace = True,
-           show_dialog = True
+           show_dialog = True,
+           open_model = True,   # if calling directly from Python, may not want model opened
+                                # implies show_dialog=False
           ):
     '''
     Create a density map by placing Gaussians centered on atoms.
@@ -125,9 +127,12 @@ def molmap(session,
         from chimerax.core.commands.parse import parse_model_id
         model_id = parse_model_id(model_id)
 
+    if not open_model:
+        show_dialog = False
     v = make_molecule_map(atoms, resolution, step, pad, on_grid,
                           cutoff_range, sigma_factor, balls, transforms,
-                          display_threshold, model_id, replace, show_dialog, name, session)
+                          display_threshold, model_id, replace, show_dialog, name, session,
+                          open_model=open_model)
 
     return v
 
@@ -138,7 +143,7 @@ molecule_map = molmap
 def make_molecule_map(atoms, resolution, step, pad, on_grid, cutoff_range,
                       sigma_factor, balls, transforms,
                       display_threshold, model_id,
-                      replace, show_dialog, name, session):
+                      replace, show_dialog, name, session, open_model = True):
 
     grid = molecule_grid_data(atoms, resolution, step, pad, on_grid,
                               cutoff_range, sigma_factor, balls,
@@ -162,7 +167,8 @@ def make_molecule_map(atoms, resolution, step, pad, on_grid, cutoff_range,
     v.molmap_atoms = atoms   # Remember atoms used to calculate volume
     v.molmap_parameters = (resolution, step, pad, cutoff_range, sigma_factor)
 
-    session.models.add([v])
+    if open_model:
+        session.models.add([v])
     return v
 
 # -----------------------------------------------------------------------------

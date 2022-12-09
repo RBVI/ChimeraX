@@ -15,18 +15,22 @@ from Qt.QtCore import Qt
 from Qt.QtWidgets import QWidget, QFormLayout, QLabel
 
 class BlastProteinFormWidget(QWidget):
-    def __init__(self, label, input_widget, parent):
+    def __init__(self, label, input_widget = None, parent = None):
         super().__init__()
-        layout = QFormLayout()
+        self.layout = QFormLayout()
         self._label = QLabel(label)
-        self._input_widget = input_widget(parent)
-        layout.setWidget(0, QFormLayout.LabelRole, self._label)
-        layout.setWidget(0, QFormLayout.FieldRole, self._input_widget)
-        layout.setLabelAlignment(Qt.AlignLeft)
-        layout.setFormAlignment(Qt.AlignLeft)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(0)
-        self.setLayout(layout)
+        if input_widget:
+            self._input_widget = input_widget(parent)
+        self.layout.setWidget(0, QFormLayout.LabelRole, self._label)
+        if input_widget:
+            self.layout.setWidget(0, QFormLayout.FieldRole, self._input_widget)
+        self.layout.setLabelAlignment(Qt.AlignLeft)
+        self.layout.setFormAlignment(Qt.AlignLeft)
+        # If the second value is not at least 4 then ChainMenuButton stops being
+        # rendered in native macOS style.
+        self.layout.setContentsMargins(0,4,0,0)
+        self.layout.setSpacing(2)
+        self.setLayout(self.layout)
 
     @property
     def input_widget(self) -> QWidget:
@@ -35,3 +39,8 @@ class BlastProteinFormWidget(QWidget):
     @property
     def label(self) -> QLabel:
         return self._label
+
+    @input_widget.setter
+    def input_widget(self, widget) -> None:
+        self._input_widget = widget
+        self.layout.setWidget(0, QFormLayout.FieldRole, widget)
