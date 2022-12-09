@@ -90,7 +90,7 @@ class SelectMouseMode(MouseMode):
                 if entry is None:
                     menu.addSeparator()
                     continue
-                action = QAction(entry.label(ses))
+                action = QAction(entry.label(*args))
                 action.triggered.connect(lambda *, cb=entry.callback, args=args: cb(*args))
                 menu.addAction(action)
                 actions.append(action) # keep reference
