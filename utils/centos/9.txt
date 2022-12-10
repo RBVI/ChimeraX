@@ -23,6 +23,7 @@ libgcc
 libgfortran
 libglvnd-egl
 libglvnd-glx
+libglvnd-devel
 libstdc++
 libtool
 libuuid
