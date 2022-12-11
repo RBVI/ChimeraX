@@ -47,6 +47,7 @@ libXrender
 libXtst
 make
 mesa-libGL-devel
+mesa-libGLU-devel
 mesa-libGLU
 mesa-libOSMesa
 nspr
