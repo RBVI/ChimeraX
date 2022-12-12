@@ -17,6 +17,7 @@ from Qt.QtCore import Qt, QThread, Signal, Slot
 from Qt.QtWidgets import (
     QWidget, QVBoxLayout, QAbstractItemView
     , QLabel, QPushButton, QHBoxLayout
+    , QCheckBox
 )
 from Qt.QtGui import QAction
 
@@ -290,10 +291,10 @@ class BlastProteinResults(ToolInstance):
         worker.report_sequences.connect(self._on_report_sequences_signal)
 
     def job_failed(self, error):
-        self.session.logger.warning("BlastProtein failed: %s" % error)
+        self.session.logger.error("BlastProtein failed: %s" % error)
 
     def parse_failed(self, error):
-        self.session.logger.warning("Parsing BlastProtein results failed: %s" % error)
+        self.session.logger.error("Parsing BlastProtein results failed: %s" % error)
 
     def parsing_results(self):
         self.session.logger.status("Parsing BLAST results.")

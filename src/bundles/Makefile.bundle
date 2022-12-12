@@ -66,7 +66,7 @@ wheel: $$(PYSRCS)
 install app-install: $$(PYSRCS)
 	$(RUN_CMD) "devel install . user false exit true $(DEBUG_ARG) $(INSTALL_ARGS)"
 
-install-editable: 
+install-editable: clean
 	$(RUN_CMD) "devel install . user false editable true exit true $(DEBUG_ARG) $(INSTALL_ARGS)"
 
 venv-install:

@@ -23,6 +23,7 @@ libgcc
 libgfortran
 libglvnd-egl
 libglvnd-glx
+libglvnd-devel
 libstdc++
 libtool
 libuuid
@@ -46,6 +47,7 @@ libXrender
 libXtst
 make
 mesa-libGL-devel
+mesa-libGLU-devel
 mesa-libGLU
 mesa-libOSMesa
 nspr
@@ -60,6 +62,7 @@ pulseaudio-libs
 pulseaudio-libs-glib2
 rsync
 sqlite
+unzip
 xcb-util-image
 xcb-util-keysyms
 xcb-util-renderutil
