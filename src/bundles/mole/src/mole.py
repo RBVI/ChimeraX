@@ -37,6 +37,10 @@ def read_mole_json(session, filename, name, transparency = 0):
     import json
     j = json.load(input)
 
+    if not isinstance(j, dict) or 'Channels' not in j:
+        from chimerax.core.errors import UserError
+        raise UserError(f'{name} does not look like Mole Online json file, does not contain Channels.')
+    
     models = channel_models(session, j['Channels'], transparency/100.0)
 
     if len(models) > 1:
