@@ -303,6 +303,10 @@ class CheckWaterViewer(ToolInstance):
             live_data = [d for d in cur_data if not d.deleted]
             if len(live_data) < len(cur_data):
                 self.res_table.data = live_data
+        for group in self.hbond_groups.values():
+            if group.deleted:
+                self.delete()
+                break
 
     def _compute_densities(self):
         from chimerax.atomic import concise_residue_spec, Residue
