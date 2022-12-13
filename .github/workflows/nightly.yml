@@ -30,6 +30,9 @@ jobs:
       - run: sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-*
       - run: dnf update -y
       - run: dnf install -y git-all
+      - run: dnf install -y epel-release
+      - run: dnf config-manager --set-enabled PowerTools
+      - run: dnf update -y
       - uses: actions/checkout@v3
       - run: ${PWD}/utils/set_up_centos.sh
       - run: make -f Makefile.centos install
