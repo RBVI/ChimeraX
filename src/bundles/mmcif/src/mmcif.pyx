@@ -155,15 +155,18 @@ def open_mmcif(session, path, file_name=None, auto_style=True, coordsets=False, 
 
 
 def _get_formatted_metadata(model, session, *, verbose=False):
+    from html import escape
     from chimerax.core.logger import html_table_params
     from chimerax.pdb import process_chem_name
     html = "<table %s>\n" % html_table_params
     html += ' <thead>\n'
     html += '  <tr>\n'
-    html += '   <th colspan="2">Metadata for %s</th>\n' % model
+    html += '   <th colspan="2">Metadata for %s</th>\n' % escape(str(model))
     html += '  </tr>\n'
     html += ' </thead>\n'
     html += ' <tbody>\n'
+
+    metadata = model.metadata  # get once from C++ layer
 
     # title
     if hasattr(model, 'html_title'):
@@ -173,7 +176,7 @@ def _get_formatted_metadata(model, session, *, verbose=False):
         html += '  </tr>\n'
 
     # citations
-    cites = citations(model)
+    cites = citations(model, metadata=metadata)
     if cites:
         html += '  <tr>\n'
         if len(cites) > 1:
@@ -189,8 +192,6 @@ def _get_formatted_metadata(model, session, *, verbose=False):
 
     # non-standard residues
     html += model.get_formatted_res_info(standalone=False)
-
-    metadata = model.metadata  # get once from C++ layer
 
     # source
     nat, gen = get_mmcif_tables_from_metadata(model, ["entity_src_nat", "entity_src_gen"], metadata=metadata)
@@ -217,38 +218,21 @@ def _get_formatted_metadata(model, session, *, verbose=False):
                 emdb_load = '<a href="cxcmd:open %s from emdb">open map</a>' % entry_id
                 html += '  <tr>\n'
                 html += '   <th>CryoEM Map</th>\n'
-                html += '   <td>%s &mdash; %s</td>\n' % (emdb_link, emdb_load)
+                html += '   <td>%s &mdash; %s</td>\n' % (escape(emdb_link), escape(emdb_load))
                 html += '  </tr>\n'
 
     # experimental method; resolution
-    experiment = get_mmcif_tables_from_metadata(model, ["exptl"], metadata=metadata)[0]
-    if experiment:
-        method = substitute_none_for_unspecified(experiment.fields(
-            ['method'], allow_missing_fields=True)[0])[0]
-        if method:
-            html += '  <tr>\n'
-            html += '   <th>Experimental method</th>\n'
-            html += '   <td>%s</td>\n' % process_chem_name(method, sentences=True)
-            html += '  </tr>\n'
-    res = None
-    reflections = get_mmcif_tables_from_metadata(model, ["reflns"], metadata=metadata)[0]
-    if reflections:
-        res = substitute_none_for_unspecified(reflections.fields(
-            ['d_resolution_high'], allow_missing_fields=True)[0])[0]
-    if res is None:
-        refine = get_mmcif_tables_from_metadata(model, ["refine"], metadata=metadata)[0]
-        if refine:
-            res = substitute_none_for_unspecified(refine.fields(
-                ['ls_d_res_high'], allow_missing_fields=True)[0])[0]
-    if res is None:
-        em = get_mmcif_tables_from_metadata(model, ["em_3d_reconstruction"], metadata=metadata)[0]
-        if em:
-            res = substitute_none_for_unspecified(em.fields(
-                ['resolution'], allow_missing_fields=True)[0])[0]
+    method = experimental_method(model, metadata=metadata)
+    if method:
+        html += '  <tr>\n'
+        html += '   <th>Experimental method</th>\n'
+        html += '   <td>%s</td>\n' % process_chem_name(method, sentences=True)
+        html += '  </tr>\n'
+    res = resolution(model, metadata=metadata)
     if res is not None:
         html += '  <tr>\n'
         html += '   <th>Resolution</th>\n'
-        html += '   <td>%s\N{ANGSTROM SIGN}</td>\n' % res
+        html += '   <td>%s\N{ANGSTROM SIGN}</td>\n' % escape(res)
         html += '  </tr>\n'
 
     # modeled structure scores
@@ -265,18 +249,46 @@ def _get_formatted_metadata(model, session, *, verbose=False):
         metric_ids.sort(key=lambda m: metric_names[m].lower())
         for metric_id in metric_ids:
             if metric_descriptions:
-                description = ' title="%s"' % metric_descriptions[metric_id]
+                description = ' title="%s"' % escape(metric_descriptions[metric_id])
             else:
                 description = ''
             html += '  <tr>\n'
-            html += '   <th%s>%s</th>\n' % (description, metric_names[metric_id])
-            html += '   <td>%s</td>\n' % metric_values[metric_id]
+            html += '   <th%s>%s</th>\n' % (description, escape(metric_names[metric_id]))
+            html += '   <td>%s</td>\n' % escape(metric_values[metric_id])
             html += '  </tr>\n'
 
     html += ' </tbody>\n'
     html += "</table>"
 
     return html
+
+
+def experimental_method(model, metadata=None):
+    experiment = get_mmcif_tables_from_metadata(model, ["exptl"], metadata=metadata)[0]
+    if not experiment:
+        return
+    method = substitute_none_for_unspecified(experiment.fields(
+        ['method'], allow_missing_fields=True)[0])[0]
+    return method
+
+def resolution(model, metadata=None):
+    # experimental method; resolution
+    res = None
+    reflections = get_mmcif_tables_from_metadata(model, ["reflns"], metadata=metadata)[0]
+    if reflections:
+        res = substitute_none_for_unspecified(reflections.fields(
+            ['d_resolution_high'], allow_missing_fields=True)[0])[0]
+    if res is None:
+        refine = get_mmcif_tables_from_metadata(model, ["refine"], metadata=metadata)[0]
+        if refine:
+            res = substitute_none_for_unspecified(refine.fields(
+                ['ls_d_res_high'], allow_missing_fields=True)[0])[0]
+    if res is None:
+        em = get_mmcif_tables_from_metadata(model, ["em_3d_reconstruction"], metadata=metadata)[0]
+        if em:
+            res = substitute_none_for_unspecified(em.fields(
+                ['resolution'], allow_missing_fields=True)[0])[0]
+    return res
 
 
 def _get_formatted_res_info(model, *, standalone=True):
@@ -509,7 +521,7 @@ def load_mmCIF_templates(filename):
 from ._mmcif import quote_value as quote
 
 
-def citations(model, only=None):
+def citations(model, only=None, metadata=None):
     """Return APA-style HTML citations for model
 
     Parameters
@@ -523,7 +535,7 @@ def citations(model, only=None):
     if not isinstance(model, Structure):
         return ""
     citation, citation_author = get_mmcif_tables_from_metadata(model, [
-        "citation", "citation_author"])
+        "citation", "citation_author"], metadata=metadata)
     if not citation:
         return ""
 
