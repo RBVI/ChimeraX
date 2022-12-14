@@ -305,6 +305,7 @@ const char* ExtractMolecule::builtin_categories[] = {
     "chimerax_audit_syntax",
     "audit_conform", "audit_syntax", "entity", "entity_poly", "entity_poly_seq",
     "atom_site", "atom_site_anisotrop",
+    "atom_site_aniso",  // for small CIF detection
     "struct_conn", "struct_conf", "struct_sheet_range",
 #ifdef SHEET_HBONDS
     "struct_sheet_order", "pdbx_struct_sheet_hbond",
@@ -360,6 +361,9 @@ ExtractMolecule::ExtractMolecule(PyObject* logger, const StringVector& generic_c
         [this] () {
             parse_atom_site_anisotrop();
         }, { "atom_site" });
+    register_category("atom_site_aniso",
+        // So parsing small v1 CIF files does treat this as atom_site table
+        [this] () {});
     register_category("struct_conn",
         [this] () {
             parse_struct_conn();
@@ -1254,11 +1258,11 @@ ExtractMolecule::parse_atom_site()
         set_PDBx_fixed_width_columns("atom_site");
 
     // If it has fractional coordinates, then it is a coreCIF file
-    bool is_corecif = true;
+    bool is_corecif = false;
     try {
         get_column("fract_x", Required);
+        is_corecif = true;
     } catch (std::runtime_error& e) {
-        is_corecif = false;
     }
     if (is_corecif) {
         throw std::runtime_error("is a small molecule (coreCIF) file");
