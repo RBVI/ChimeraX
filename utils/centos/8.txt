@@ -70,5 +70,6 @@ xcb-util-keysyms
 xcb-util-renderutil
 xcb-util-wm
 xdg-utils
+xz
 xz-libs
 zlib
