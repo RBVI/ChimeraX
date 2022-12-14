@@ -769,12 +769,14 @@ def register_command(logger):
     _registered = True
     from chimerax.core.commands import CmdDesc, register, FloatArg, StringArg, \
         BoolArg, NoneArg, TopModelsArg, create_alias, Or, DynamicEnum
-    from chimerax.atomic import AtomsArg
+    # use OrderedAtomsArg so that /A-F come out in the expected order even if not ordered that way
+    # internally [#7577]
+    from chimerax.atomic import OrderedAtomsArg
     from chimerax import sim_matrices
     desc = CmdDesc(
-        required = [('match_atoms', AtomsArg)],
+        required = [('match_atoms', OrderedAtomsArg)],
         required_arguments = ['to'],
-        keyword = [('to', AtomsArg), ('pairing', StringArg), ('alg', StringArg),
+        keyword = [('to', OrderedAtomsArg), ('pairing', StringArg), ('alg', StringArg),
             ('verbose', BoolArg), ('ss_fraction', Or(FloatArg, BoolArg)),
             ('matrix', DynamicEnum(lambda logger=logger: sim_matrices.matrices(logger).keys())),
             ('gap_open', FloatArg), ('hgap', FloatArg), ('sgap', FloatArg), ('ogap', FloatArg),
