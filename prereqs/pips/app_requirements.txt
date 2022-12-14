@@ -82,5 +82,5 @@ distro==1.7.0; sys_platform == 'linux'
 #
 # Indirect dependencies listed here to pin the version number
 #
-traitlets==5.3.0
+#traitlets==5.3.0
 
