@@ -527,11 +527,6 @@ CIFFile::internal_parse(bool one_table)
 #endif
 					cii = categories.find(current_category);
 					if (cii != categories.end()) {
-						// if already seen, then
-						// category is a prefix
-						if (seen.find(current_category)
-								!= seen.end())
-							cii = categories.end();
 						break;
 					}
 				}
@@ -670,13 +665,7 @@ CIFFile::internal_parse(bool one_table)
 #ifdef CASE_INSENSITIVE
 						category_cp.resize(sep);
 #endif
-						if (categories.find(category)
-								!= categories.end()) {
-							// if already seen, then
-							// category is a prefix
-							if (seen.find(current_category)
-									!= seen.end())
-								cii = categories.end();
+						if (categories.find(category) != categories.end()) {
 							break;
 						}
 					}

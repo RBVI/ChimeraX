@@ -21,6 +21,29 @@ Read coreCIF files.
 from chimerax.core.errors import UserError
 
 _additional_corecif_categories = (
+    "chemical",
+    "chemical_formula",
+    "citation",
+    "citation_author",
+    "citation_editor",
+    "exptl",
+    "journal",
+    "publ",
+    "publ_author",
+    "refine",
+    "reflns",
+    # Unable to unambigiously determine the category in CIF v1 files, so
+    # register categories that are suffixes of previously listed categories.
+    "chemical_conn_atom",
+    "chemical_conn_bond",
+    "exptl_crystal",
+    "exptl_crystal_face",
+    "journal_index",
+    "publ_body",
+    "publ_manuscript_incl",
+    "reflns_class",
+    "reflns_scale",
+    "reflns_shell",
 )
 
 
@@ -48,28 +71,111 @@ def open_corecif(session, path, file_name=None, auto_style=True, log_info=True, 
     info = ''
     for model in models:
         model.is_corecif = True	 # Indicates metadata is from corecif.
-        from . import mmcif
-        chem = mmcif.get_mmcif_tables_from_metadata(model, ["chemical_formula"])[0]
-        if not chem:
-            continue
-        try:
-            title = chem.fields(['sum'])[0][0]
-        except mmcif.TableMissingFieldsError:
-            continue
-        from chimerax.pdb import process_chem_name
-        model.html_title = process_chem_name(title, sentences=True)
-        model.has_formatted_metadata = lambda ses: False
-        continue
+        model.is_mmcif = True	 # Indicates metadata is from mmcif.
+        _, title = chemical_name(model)
+        if not title:
+            title = chemical_formula(model)
+        if title:
+            from chimerax.pdb import process_chem_name
+            model.html_title = process_chem_name(title, sentences=True)
         model.has_formatted_metadata = lambda ses: True
         # use proxy to avoid circular ref
         from weakref import proxy
         from types import MethodType
-        model.get_formatted_metadata = MethodType(mmcif._get_formatted_metadata, proxy(model))
-        model.get_formatted_res_info = MethodType(mmcif._get_formatted_res_info, proxy(model))
-        break
+        model.get_formatted_metadata = MethodType(_get_formatted_metadata, proxy(model))
     if log is not None and not models:
         log.warning("No small molecule CIF models found.  Perhaps this is a mmCIF file?\n")
     return models, info
+
+
+def chemical_name(model, metadata=None):
+    from . import mmcif
+    chem = mmcif.get_mmcif_tables_from_metadata(model, ["chemical"], metadata=metadata)[0]
+    if chem:
+        fields = ['name_common', 'name_mineral', 'name_sructure_type', 'name_systematic']
+        titles = chem.fields(fields, allow_missing_fields=True)[0]
+        for field, title in zip(fields, titles):
+            if title:
+                return field, title
+    return None, None
+
+
+def chemical_formula(model, metadata=None):
+    from . import mmcif
+    chem = mmcif.get_mmcif_tables_from_metadata(model, ["chemical_formula"], metadata=metadata)[0]
+    if not chem:
+        return
+    try:
+        return chem.fields(['sum'])[0][0]
+    except mmcif.TableMissingFieldsError:
+        return
+
+
+def _get_formatted_metadata(model, session, *, verbose=False):
+    from html import escape
+    from .mmcif import citations, experimental_method, resolution
+    from chimerax.core.logger import html_table_params
+    from chimerax.pdb import process_chem_name
+    html = "<table %s>\n" % html_table_params
+    html += ' <thead>\n'
+    html += '  <tr>\n'
+    html += '   <th colspan="2">Metadata for %s</th>\n' % escape(str(model))
+    html += '  </tr>\n'
+    html += ' </thead>\n'
+    html += ' <tbody>\n'
+
+    metadata = model.metadata  # get once from C++ layer
+
+    kind, name = chemical_name(model)
+    if name:
+        title = kind.removeprefix("name_").replace('_', ' ').title()
+        html += (
+            '  <tr>\n'
+            f'   <th>{escape(title)} Name</th>\n'
+            f'   <td>{escape(name)}</td>\n'
+            '  </tr>\n'
+        )
+
+    formula = chemical_formula(model, metadata=metadata)
+    if formula:
+        html += '  <tr>\n'
+        html += '   <th>Chemical Formula</th>\n'
+        html += '   <td>%s</td>\n' % escape(formula)
+        html += '  </tr>\n'
+
+    # citations
+    cites = citations(model, metadata=metadata)
+    if cites:
+        html += '  <tr>\n'
+        if len(cites) > 1:
+            html += '   <th rowspan="%d">Citations</th>\n' % len(cites)
+        else:
+            html += '   <th>Citation</th>\n'
+        html += '   <td>%s</td>\n' % cites[0]
+        html += '  </tr>\n'
+        for cite in cites[1:]:
+            html += '  <tr>\n'
+            html += '   <td>%s</td>\n' % cite
+            html += '  </tr>\n'
+
+    # experimental method; resolution
+    method = experimental_method(model, metadata=metadata)
+    if method:
+        html += '  <tr>\n'
+        html += '   <th>Experimental method</th>\n'
+        html += '   <td>%s</td>\n' % process_chem_name(method, sentences=True)
+        html += '  </tr>\n'
+    res = resolution(model, metadata=metadata)
+    if res is not None:
+        html += '  <tr>\n'
+        html += '   <th>Resolution</th>\n'
+        html += '   <td>%s\N{ANGSTROM SIGN}</td>\n' % escape(res)
+        html += '  </tr>\n'
+
+    html += ' </tbody>\n'
+    html += "</table>"
+
+    return html
 
 
 def is_int(name):
