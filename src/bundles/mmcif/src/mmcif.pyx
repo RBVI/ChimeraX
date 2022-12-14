@@ -991,34 +991,33 @@ cdef class CIFTable:
         missing fields are allowed, then the corresponding items are the
         missing_value object.
         """
-        cdef int i, n
+        cdef int i, n, has_missing
         t = self._folded_tags
         n = len(self._folded_tags)
-        if allow_missing_fields:
-            from itertools import zip_longest
-            fi = []
-            for fn in field_names:
-                try:
-                    fi.append(t.index(fn.casefold()))
-                except ValueError:
-                    fi.append(-1)
-            ftable = list(zip_longest(
-                *(self._data[i::n] if i >= 0 else [] for i in fi),
-                fillvalue=missing_value))
-        else:
-            missing = [fn for fn in field_names if fn.casefold() not in t]
-            if missing:
-                from chimerax.core.commands.cli import commas, plural_form
-                missed = commas(['"%s"' % m for m in missing], 'and')
-                missed_noun = plural_form(missing, 'Field')
-                missed_verb = plural_form(missing, 'is', 'are')
-                have = commas(['"%s"' % t for t in self._tags], 'and')
-                have_noun = plural_form(self._tags, 'field')
-                raise TableMissingFieldsError('%s %s %s not in table "%s", have %s %s' % (
-                    missed_noun, missed, missed_verb, self.table_name, have_noun,
-                    have))
-            fi = tuple(t.index(fn.casefold()) for fn in field_names)
+        has_missing = False
+        fi = []
+        for fn in field_names:
+            try:
+                fi.append(t.index(fn.casefold()))
+            except ValueError:
+                has_missing = True
+                fi.append(-1)
+        if not has_missing:
             ftable = list(zip(*(self._data[i::n] for i in fi)))
+        elif allow_missing_fields:
+            missing_values = [missing_value] * self.num_rows()
+            ftable = list(zip(
+                *(self._data[i::n] if i >= 0 else missing_values for i in fi)))
+        else:
+            from chimerax.core.commands.cli import commas, plural_form
+            missing = [fn for i, fn in enumerate(field_names) if fi[i] < 0]
+            missed = commas(['"%s"' % m for m in missing], 'and')
+            missed_noun = plural_form(missing, 'Field')
+            missed_verb = plural_form(missing, 'is', 'are')
+            have = commas(['"%s"' % t for t in self._tags], 'and')
+            have_noun = plural_form(self._tags, 'field')
+            raise TableMissingFieldsError('%s %s %s not in table "%s", have %s %s' % (
+                missed_noun, missed, missed_verb, self.table_name, have_noun, have))
         return ftable
 
     def extend(self, CIFTable table not None):
