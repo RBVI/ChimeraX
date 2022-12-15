@@ -10,21 +10,22 @@ else
 	exit 1
 fi
 
-dnf install -y git-all
 dnf install -y epel-release
 
 case $CENTOS_VER in
 	'8')
 		dnf config-manager --set-enabled powertools
 		dnf update -y
+		dnf -y --setopt=exclude='*.i?86' group install "Development Tools"
 		PREREQ_FILE="${ROOT}/utils/centos/8.txt"
 		;;
 	'9')
 		dnf install 'dnf-command(config-manager)'
 		/usr/bin/crb enable
 		dnf update -y
+		dnf -y --setopt=exclude='*.i?86' group install "Development Tools"
 		PREREQ_FILE="${ROOT}/utils/centos/9.txt"
 		;;
 esac
 
-mapfile -t packages < "$PREREQ_FILE" ; dnf install -y "${packages[@]}"
+mapfile -t packages < "$PREREQ_FILE" ; dnf --setopt=exclude='*.i?86' install -y "${packages[@]}"
