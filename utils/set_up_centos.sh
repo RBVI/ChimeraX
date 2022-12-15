@@ -20,6 +20,9 @@ case $CENTOS_VER in
 		PREREQ_FILE="${ROOT}/utils/centos/8.txt"
 		;;
 	'9')
+		dnf install 'dnf-command(config-manager)'
+		/usr/bin/crb enable
+		dnf update -y
 		PREREQ_FILE="${ROOT}/utils/centos/9.txt"
 		;;
 esac
