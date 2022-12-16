@@ -98,7 +98,7 @@ undo_printable = [
 ]
 
 def addh_cmds(session):
-    return [ "addh %s" % s.atomspec for s in all_atomic_structures(session) if s.num_atoms < 25000 ]
+    return [ "addh %s hb f" % s.atomspec for s in all_atomic_structures(session) if s.num_atoms < 25000 ]
 
 def by_chain_cmds(session, rainbow=False, target_atoms=False):
     cmds = []
