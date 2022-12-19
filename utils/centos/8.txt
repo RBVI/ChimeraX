@@ -12,6 +12,10 @@ freetype
 git
 gcc
 gcc-c++
+gcc-toolset-10
+gcc-toolset-10-binutils-devel
+gcc-toolset-10-elfutils-devel
+gcc-toolset-10-valgrind-devel
 gdk-pixbuf2
 glib2
 glibc
