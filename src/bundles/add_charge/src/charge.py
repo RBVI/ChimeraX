@@ -286,7 +286,8 @@ def add_nonstandard_res_charges(session, residues, net_charge, method="am1-bcc",
         for r in residues:
             a = r.atoms[0]
             a.charge = net_charge
-            session.change_tracker.add_modified(a, "charge changed")
+            session.change_tracker.add_modified(
+                a.fa_atom if isinstance(a, FakeAtom) else a, "charge changed")
             if a.element.name in ion_types:
                 a.gaff_type = ion_types[a.element.name]
             else:
