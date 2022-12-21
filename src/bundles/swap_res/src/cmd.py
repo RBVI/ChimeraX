@@ -50,13 +50,27 @@ def swap_aa(session, residues, res_type, *, angle_slop=None, bfactor=None, crite
 
 from chimerax.core.state import StateManager
 class _RotamerStateManager(StateManager):
-    def __init__(self, session, base_residue, rotamers):
+    def __init__(self, session, base_residue, rotamers, *, group=True):
         self.init_state_manager(session, "residue rotamers")
         self.session = session
         self.base_residue = base_residue
         self.rotamers = list(rotamers) # don't want auto-shrinking of a Collection
-        self.group = session.models.add_group(rotamers, name="%s rotamers"
-            % base_residue.string(omit_structure=True), parent=base_residue.structure)
+        # if 'group' is False, then an old session is restoring that didn't save the group info:
+        # try to find the group in session.models
+        # if 'group' is True, then create the group
+        # Otherwise, 'group' is the group to use
+        group_name = "%s rotamers" % base_residue.string(omit_structure=True)
+        if group is True:
+            self.group = session.models.add_group(rotamers, name=group_name, parent=base_residue.structure)
+        elif group is False:
+            for m in session.models:
+                if m.name == group_name:
+                    self.group = m
+                    break
+            else:
+                raise AssertionError("Cannot find rotamer grouping model in open models")
+        else:
+            self.group = group
         from chimerax.atomic import get_triggers
         self.handler = get_triggers().add_handler('changes', self._changes_cb)
         from chimerax.core.triggerset import TriggerSet
@@ -77,11 +91,12 @@ class _RotamerStateManager(StateManager):
 
     @classmethod
     def restore_snapshot(cls, session, data):
-        return cls(session, data['base residue'], data['rotamers'])
+        return cls(session, data['base residue'], data['rotamers'], group=data.get('group', False))
 
     def take_snapshot(self, session, flags):
         data = {
             'base residue': self.base_residue,
+            'group': self.group,
             'rotamers': self.rotamers
         }
         return data
