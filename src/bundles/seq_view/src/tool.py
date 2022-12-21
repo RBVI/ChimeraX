@@ -640,7 +640,7 @@ class SequenceViewer(ToolInstance):
             for i, seq in enumerate(self.alignment.seqs):
                 blast_action = QAction(seq.name, blast_menu)
                 blast_action.triggered.connect(
-                    lambda: BlastProteinTool(self.session, sequences = StringArg.unparse("%s:%d" % (self.alignment.ident, i+1)))
+                    lambda *args, index=i+1: BlastProteinTool(self.session, sequences = StringArg.unparse("%s:%d" % (self.alignment.ident, index)))
                 )
                 blast_menu.addAction(blast_action)
         if len(self.alignment.seqs) > 1:
