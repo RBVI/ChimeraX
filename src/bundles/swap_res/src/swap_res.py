@@ -184,6 +184,14 @@ def swap_aa(session, residues, res_type, *, bfactor=None, clash_hbond_allowance=
     for rot in destroy_list:
         rot.delete()
 
+def swap_na(session, residues, res_type, *, bfactor=None, preserve=False):
+    """backend implementation of "swapna" command."""
+    for res in residues:
+        try:
+            template_swap_res(res, res_type, bfactor=bfactor, preserve=preserve)
+        except TemplateSwapError as e:
+            raise UserError(str(e))
+
 def get_rotamers(session, res, phi=None, psi=None, cis=False, res_type=None, rot_lib="Dunbrack", log=False):
     """Takes a Residue instance and optionally phi/psi angles (if different from the Residue), residue
        type (e.g. "TYR"), and/or rotamer library name.  Returns a list of AtomicStructure instances (sublass of
@@ -534,7 +542,7 @@ def get_res_info(res):
 def form_dihedral(res_bud, real1, tmpl_res, a, b, pos=None, dihed=None):
     from chimerax.atomic.struct_edit import add_atom, add_dihedral_atom
     res = res_bud.residue
-    if pos:
+    if pos is not None:
         return add_atom(a.name, a.element, res, pos, info_from=real1)
     # use neighbors of res_bud rather than real1 to avoid clashes with
     # other res_bud neighbors in case bond to real1 neighbor freely rotates
