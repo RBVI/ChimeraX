@@ -21,12 +21,7 @@ def swap_aa(session, residues, res_type, *, angle_slop=None, bfactor=None, crite
 
     residues = _check_residues(residues)
 
-    if len(residues) > 2 and session.ui.is_gui and not session.in_script:
-        from chimerax.ui.ask import ask
-        if ask(session, "Really swap side chains for %d residues?" % len(residues),
-                title="Confirm Swap") == "no":
-            from chimerax.core.errors import CancelOperation
-            raise CancelOperation("Swap %d side chains cancelled" % len(residues))
+    _check_num_residues(session, residues)
 
     if type(criteria) == str:
         for c in criteria:
@@ -47,6 +42,21 @@ def swap_aa(session, residues, res_type, *, angle_slop=None, bfactor=None, crite
         criteria=criteria, density=density, hbond_angle_slop=angle_slop,
         hbond_dist_slop=dist_slop, ignore_other_models=ignore_other_models, rot_lib=rot_lib, log=log,
         preserve=preserve, hbond_relax=relax, retain=retain)
+
+def swap_na(session, residues, res_type, *, preserve=False, bfactor=None):
+    # Can't swap P-only residues anyway, so just test for C4'
+    if len(residues) == 0:
+        raise UserError("No residues specified for swapping")
+    import numpy
+    nuc_residues = residues.filter(numpy.array([(pa is not None and pa.name == "C4'")
+        for pa in residues.principal_atoms]))
+    if len(nuc_residues) == 0:
+        raise UserError("No nucleic acid residues specified for swapping")
+
+    _check_num_residues(session, nuc_residues)
+
+    from . import swap_res
+    swap_res.swap_na(session, nuc_residues, res_type, bfactor=bfactor, preserve=preserve)
 
 from chimerax.core.state import StateManager
 class _RotamerStateManager(StateManager):
@@ -154,6 +164,14 @@ def _check_residues(residues):
         raise UserError("No amino acid residues specified for swapping")
     return residues
 
+def _check_num_residues(session, residues):
+    if len(residues) > 2 and session.ui.is_gui and not session.in_script:
+        from chimerax.ui.ask import ask
+        if ask(session, "Really swap side chains for %d residues?" % len(residues),
+                title="Confirm Swap") == "no":
+            from chimerax.core.errors import CancelOperation
+            raise CancelOperation("Swap %d side chains cancelled" % len(residues))
+
 def register_command(command_name, logger):
     from chimerax.core.commands import CmdDesc, register, StringArg, BoolArg, NonNegativeIntArg, Or
     from chimerax.core.commands import NonNegativeFloatArg, DynamicEnum, ListOf, FloatArg, EnumOf
@@ -190,3 +208,13 @@ def register_command(command_name, logger):
         synopsis = 'Show possible side-chain rotamers'
     )
     register("swapaa interactive", desc, rotamers, logger=logger)
+
+    desc = CmdDesc(
+        required = [('residues', ResiduesArg), ('res_type', StringArg)],
+        keyword = [
+            ('bfactor', FloatArg),
+            ('preserve', BoolArg),
+        ],
+        synopsis = 'Swap nucleic acid side chain(s)'
+    )
+    register("swapna", desc, swap_na, logger=logger)
