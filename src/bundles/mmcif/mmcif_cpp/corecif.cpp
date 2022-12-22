@@ -92,7 +92,6 @@ struct SmallMolecule: public readcif::CIFFile
     virtual void reset_parse();
     virtual void finished_parse();
 
-    void parse_chemical_formula();
     void parse_cell();
     void parse_atom_site();
     void parse_atom_site_aniso();
@@ -121,10 +120,6 @@ const char* SmallMolecule::builtin_categories[] = {
 SmallMolecule::SmallMolecule(PyObject* logger, const StringVector& generic_categories):
     _logger(logger)
 {
-    register_category("chemical_formula",
-        [this] () {
-            parse_chemical_formula();
-        });
     register_category("cell",
         [this] () {
             parse_cell();
@@ -202,29 +197,6 @@ SmallMolecule::finished_parse()
     molecule->metadata = generic_tables;
     molecule->use_best_alt_locs();
     all_molecules.push_back(molecule);
-}
-
-void
-SmallMolecule::parse_chemical_formula()
-{
-    CIFFile::ParseValues pv;
-    string sum;
-
-    pv.reserve(2);
-    try {
-        pv.emplace_back(get_column("sum"),
-            [&] (const char* start, const char* end) {
-                sum = string(start, end - start);
-            });
-    } catch (std::runtime_error& e) {
-        logger::warning(_logger, "Skipping chemical_formula category: ", e.what());
-        return;
-    }
-    parse_row(pv);
-    if (!sum.empty()) {
-        generic_tables["chemical_formula"] = { "chemical_formula", "sum" };
-        generic_tables["chemical_formula data"] = { sum };
-    }
 }
 
 void
@@ -516,6 +488,9 @@ SmallMolecule::parse_geom_bond()
 void
 SmallMolecule::parse_generic_category()
 {
+    // If we have seen this category before, and there is only one row of data
+    // then extend that row.  This is because in some v1 CIF files the tables are not
+    // presented contiguously in the file.
     const string& category = this->category();
     const StringVector& colnames = this->colnames();
     string category_ci = category;
@@ -525,9 +500,21 @@ SmallMolecule::parse_generic_category()
     colinfo.reserve(colnames.size() + 1);
     colinfo.push_back(category);
     colinfo.insert(colinfo.end(), colnames.begin(), colnames.end());
-    generic_tables[category_ci] = colinfo;
     StringVector& data = parse_whole_category();
-    generic_tables[category_ci + " data"].swap(data);
+    bool existing = generic_tables.find(category_ci) != generic_tables.end();
+    if (!existing) {
+        generic_tables[category_ci] = colinfo;
+        generic_tables[category_ci + " data"].swap(data);
+    } else {
+        StringVector& old_colinfo = generic_tables[category_ci];
+        StringVector& old_data = generic_tables[category_ci + " data"];
+        if (old_colinfo.size() != old_data.size() + 1 || colinfo.size() != data.size() + 1) {
+            // TODO: warn
+            return;
+        }
+        old_colinfo.insert(old_colinfo.end(), colinfo.begin() + 1, colinfo.end());
+        old_data.insert(old_data.end(), data.begin(), data.end());
+    }
 }
 
 void

@@ -371,6 +371,9 @@ def format_source_name(common_name, scientific_name, genus, species, ncbi_id):
     if common_name:
         if text:
             common_name = process_chem_name(common_name.lower())
+            if not ncbi_id:
+                from html import escape
+                text = escape(text)
             text = text + ' (%s)' % common_name
         else:
             common_name = process_chem_name(common_name.lower(), sentences=True)
@@ -420,7 +423,8 @@ def process_chem_name(name, use_greek=True, probable_abbrs=False, sentences=Fals
             text = " ".join(processed_words)
         else:
             text = name
-    return text
+    from html import escape
+    return escape(text)
 
 greek_letters = {
     'alpha': u'\N{GREEK SMALL LETTER ALPHA}',

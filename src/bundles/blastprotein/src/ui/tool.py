@@ -184,7 +184,6 @@ class BlastProteinTool(ToolInstance):
             self.menu_widgets['chain'].input_widget.value = "Raw Sequence"
             self._last_menu_option = "Raw Sequence"
             self.menu_widgets['seq_input'].setPlainText(self._sequences)
-            self.menu_widgets['uniprot_or_seq_input'].setText(self._sequences)
         else:
             pass
         self.menu_widgets['database'].input_widget.setCurrentIndex(AvailableDBs.index(self._current_database))

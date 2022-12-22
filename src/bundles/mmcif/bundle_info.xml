@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-mmCIF" version="2.9"
+<BundleInfo name="ChimeraX-mmCIF" version="2.10"
 	    package="chimerax.mmcif" purePython="false"
   	    minSessionVersion="1" maxSessionVersion="1">
 
@@ -53,7 +53,7 @@
     <Dependency name="ChimeraX-Core" version="~=1.0"/>
     <Dependency name="ChimeraX-Arrays" build="true" version="~=1.0"/>
     <Dependency name="ChimeraX-Atomic" version="~=1.34"/>
-    <Dependency name="ChimeraX-AtomicLibrary" build="true" version="~=8.0,>=8.0.4"/>
+    <Dependency name="ChimeraX-AtomicLibrary" build="true" version="~=9.0"/>
     <Dependency name="ChimeraX-PDB" version="~=2.0"/>
     <Dependency name="ChimeraX-PDBLibrary" build="true" version="~=1.0"/>
     <Dependency name="ChimeraX-DataFormats" version="~=1.0"/>

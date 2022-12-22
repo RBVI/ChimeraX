@@ -51,11 +51,13 @@ def size(session, objects=None, atom_radius=None,
                 is_delta, amount = False, atom_radius
             if is_delta:
                 old_radii = atoms.radii
-                if amount < 0 and len(old_radii) > 0 and min(old_radii) < abs(amount):
-                    raise UserError("Cannot reduce atom radius to < 0")
+                if amount < 0 and len(old_radii) > 0 and min(old_radii) <= abs(amount):
+                    raise UserError("Cannot reduce atom radius to <= 0")
                 atoms.radii += amount
                 undo_state.add(atoms, "radii", old_radii, atoms.radii)
             else:
+                if amount <= 0:
+                    raise UserError('Atom radius must be greater than 0.')
                 undo_state.add(atoms, "radii", atoms.radii, amount)
                 atoms.radii = amount
         what.append('%d atom radii' % len(atoms))
@@ -68,17 +70,19 @@ def size(session, objects=None, atom_radius=None,
             is_delta, amount = False, stick_radius
         if is_delta:
             old_radii = b.radii
-            if amount < 0 and len(old_radii) > 0 and min(old_radii) < abs(amount):
-                raise UserError("Cannot reduce stick radius to < 0")
+            if amount < 0 and len(old_radii) > 0 and min(old_radii) <= abs(amount):
+                raise UserError("Cannot reduce stick radius to <= 0")
             b.radii += amount
             undo_state.add(b, "radii", old_radii, b.radii)
             # If singleton atom specified then set the single-atom stick radius.
             for s, atoms in objects.atoms.by_structure:
                 if (atoms.num_bonds == 0).any():
                     if amount < 0 and s.bond_radius < amount:
-                        raise UserError("Cannot reduce bond radius to < 0")
+                        raise UserError("Cannot reduce bond radius to <= 0")
                     s.bond_radius += amount
         else:
+            if amount <= 0:
+                raise UserError('Bond radius must be greater than 0.')
             undo_state.add(b, "radii", b.radii, amount)
             b.radii = amount
             # If singleton atom specified then set the single-atom stick radius.
@@ -95,11 +99,13 @@ def size(session, objects=None, atom_radius=None,
         pb = objects.pseudobonds
         if is_delta:
             old_radii = pb.radii
-            if amount < 0 and len(old_radii) > 0 and min(old_radii) < abs(amount):
-                raise UserError("Cannot reduce pseudobond radius to < 0")
+            if amount < 0 and len(old_radii) > 0 and min(old_radii) <= abs(amount):
+                raise UserError("Cannot reduce pseudobond radius to <= 0")
             pb.radii += amount
             undo_state.add(pb, "radii", old_radii, pb.radii)
         else:
+            if amount <= 0:
+                raise UserError('Pseudobond radius must be greater than 0.')
             undo_state.add(pb, "radii", pb.radii, amount)
             pb.radii = amount
             from chimerax.atomic import concatenate
@@ -113,9 +119,13 @@ def size(session, objects=None, atom_radius=None,
         mols = objects.residues.unique_structures
         if is_delta:
             for s in mols:
+                if amount < 0 and s.ball_scale + amount <= 0:
+                    raise UserError("Cannot reduce ball scale to <= 0")
                 undo_state.add(s, "ball_scale", s.ball_scale, s.ball_scale + amount)
                 s.ball_scale += amount
         else:
+            if amount <= 0:
+                raise UserError('Ball scale must be greater than 0.')
             for s in mols:
                 undo_state.add(s, "ball_scale", s.ball_scale, amount)
                 s.ball_scale = amount
