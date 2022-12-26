@@ -63,6 +63,18 @@ class Slider(ToolInstance):
         pb.setCheckable(True)
         pb.pressed.connect(self.play_cb)
         layout.addWidget(pb)
+        tool_tip = "Number of frames to show before advancing to next image"
+        rl = QLabel()
+        from chimerax.ui.icons import get_icon_path
+        rl.setPixmap(QPixmap(get_icon_path("snail")).scaledToHeight(20))
+        rl.setToolTip(tool_tip)
+        layout.addWidget(rl)
+        self.rate_box = rb = QSpinBox()
+        rb.setMinimum(1)
+        rb.setValue(pause_frames)
+        rb.valueChanged.connect(self.rate_changed_cb)
+        rb.setToolTip(tool_tip)
+        layout.addWidget(rb)
         self.record_button = rb = QPushButton()
         rb.setCheckable(True)
         rb.clicked.connect(self.record_cb)
@@ -85,6 +97,9 @@ class Slider(ToolInstance):
     def value_changed_cb(self, event):
         v = self.value_box.value()
         self.slider.setValue(v)
+
+    def rate_changed_cb(self, event):
+        self.pause_frames = self.rate_box.value()
 
     def slider_moved_cb(self, event):
         v = self.slider.value()
