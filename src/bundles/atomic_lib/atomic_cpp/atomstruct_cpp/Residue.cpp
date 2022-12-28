@@ -90,10 +90,12 @@ Residue::~Residue() {
 }
 
 void
-Residue::add_atom(Atom* a)
+Residue::add_atom(Atom* a, bool copying_structure)
 {
     a->_residue = this;
     _atoms.push_back(a);
+    if (copying_structure)
+        return;
 
     // if this is the first atom of a residue being introduced into a chain gap,
     // possibly adjust missing-structure pseudobonds; try to do this work only if

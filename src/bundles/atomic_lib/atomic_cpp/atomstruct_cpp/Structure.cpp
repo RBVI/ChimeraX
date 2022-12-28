@@ -443,7 +443,7 @@ void Structure::_copy(Structure* s, PositionMatrix coord_adjust,
     for (auto a: atoms()) {
         Atom* ca = s->new_atom(a->name().c_str(), a->element());
         Residue *cr = rmap[a->residue()];
-        cr->add_atom(ca);	// Must set residue before setting alt locs
+        cr->add_atom(ca, true);	// Must set residue before setting alt locs
         ca->_coord_index = coord_base + a->coord_index();
         std::set<char> alocs = a->alt_locs();
         if (!alocs.empty()) {
