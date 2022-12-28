@@ -1090,26 +1090,25 @@ class Volume(Model):
       return None
 
     if self.image_shown:
+      vxyz1, vxyz2 = self.position.inverse() * (mxyz1, mxyz2)
+      from . import slice
+      xyz_in, xyz_out = slice.box_line_intercepts((vxyz1, vxyz2), self.xyz_bounds())
+      if xyz_in is None or xyz_out is None:
+        return None
+      from chimerax.geometry import norm
+      f = norm(0.5*(xyz_in+xyz_out) - mxyz1) / norm(mxyz2 - mxyz1)
       ro = self.rendering_options
-      if ro.image_mode == 'full region':
-        vxyz1, vxyz2 = self.position.inverse() * (mxyz1, mxyz2)
-        from . import slice
-        xyz_in, xyz_out = slice.box_line_intercepts((vxyz1, vxyz2), self.xyz_bounds())
-        if xyz_in is None or xyz_out is None:
-          return None
-        from chimerax.geometry import norm
-        f = norm(0.5*(xyz_in+xyz_out) - mxyz1) / norm(mxyz2 - mxyz1)
-        if self.single_plane():
-          # Report voxel under mouse and data value.
-          ijk = tuple(int(round(i)) for i in self.data.xyz_to_ijk(0.5*(xyz_in + xyz_out)))
-          detail = 'voxel %d,%d,%d' % ijk
-          ijk_step = self.region[2]
-          v = self.region_matrix((ijk,ijk,ijk_step))
-          if v.size == 1:
-            detail += ' value %.4g' % v[0,0,0]
-        else:
-          detail = ''
-        return PickedMap(self, f, detail)
+      if ro.image_mode == 'full region' and self.single_plane():
+        # Report voxel under mouse and data value.
+        ijk = tuple(int(round(i)) for i in self.data.xyz_to_ijk(0.5*(xyz_in + xyz_out)))
+        detail = 'voxel %d,%d,%d' % ijk
+        ijk_step = self.region[2]
+        v = self.region_matrix((ijk,ijk,ijk_step))
+        if v.size == 1:
+          detail += ' value %.4g' % v[0,0,0]
+      else:
+        detail = ''
+      return PickedMap(self, f, detail)
     elif self.surface_shown:
       from chimerax.graphics import Drawing
       pd = Drawing.first_intercept(self, mxyz1, mxyz2, exclude)

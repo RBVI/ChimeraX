@@ -639,9 +639,8 @@ class SequenceViewer(ToolInstance):
             blast_menu = tools_menu.addMenu("Blast Protein")
             for i, seq in enumerate(self.alignment.seqs):
                 blast_action = QAction(seq.name, blast_menu)
-                blast_action.triggered.connect(
-                    lambda: BlastProteinTool(self.session, sequences = StringArg.unparse("%s:%d" % (self.alignment.ident, i+1)))
-                )
+                blast_action.triggered.connect(lambda *args, chars=seq.ungapped():
+                    BlastProteinTool(self.session, sequences=StringArg.unparse(chars)))
                 blast_menu.addAction(blast_action)
         if len(self.alignment.seqs) > 1:
             identity_action = QAction("Percent Identity...", menu)

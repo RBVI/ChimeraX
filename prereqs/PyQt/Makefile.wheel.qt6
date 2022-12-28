@@ -35,7 +35,7 @@ WHEEL_PLATFORM = macosx_10_14_universal2
 WE_WHEEL_PLATFORM = $(WHEEL_PLATFORM)
 else ifeq ($(OS),Linux)
 BIN_PLATFORM = linux
-WHEEL_PLATFORM = manylinux1_x86_64
+WHEEL_PLATFORM = manylinux_2_28_x86_64
 WE_WHEEL_PLATFORM = $(WHEEL_PLATFORM)
 else ifeq ($(OS),Windows)
 BIN_PLATFORM = win.exe

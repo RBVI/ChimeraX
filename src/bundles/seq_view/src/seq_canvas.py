@@ -86,10 +86,12 @@ class SeqCanvas:
         label_vsb = self.label_view.verticalScrollBar()
         main_vsb.valueChanged.connect(label_vsb.setValue)
         label_vsb.valueChanged.connect(main_vsb.setValue)
-        from Qt.QtGui import QKeySequence
-        self._copy_shortcut = QShortcut(QKeySequence.StandardKey.Copy, parent)
-        import sys
-        self._copy_shortcut.activated.connect(lambda *args: self.sv.show_copy_sequence_dialog())
+        # The below turns out to be too annoying because when trying to copy text from the log,
+        # we grab the shortcut and show the sequence-copy dialog
+        #from Qt.QtGui import QKeySequence
+        #self._copy_shortcut = QShortcut(QKeySequence.StandardKey.Copy, parent)
+        #import sys
+        #self._copy_shortcut.activated.connect(lambda *args: self.sv.show_copy_sequence_dialog())
         """TODO
         self.labelCanvas = Tkinter.Canvas(parent, bg="#E4E4E4")
         self._vdivider = Tkinter.Frame(parent, bd=2, relief='raised')

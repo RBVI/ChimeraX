@@ -82,7 +82,7 @@ print_ribbon = [
     #"size hbonds pseudobondRadius 0.6",
     "size pseudobondRadius 0.6",
     # ribbons need to be up to date for struts to work right
-    "wait 1; struts (@ca|ligand|P) & ##num_atoms<500 length 8 loop 60 rad 0.75 color struts_grey",
+    "wait 1; struts @ca|ligand|P length 8 loop 60 rad 0.75 color struts_grey",
     "~struts @PB,PG resetRibbon false",
     "~struts adenine|cytosine|guanine|thymine|uracil resetRibbon false",
     #"color struts_grey pseudobonds",
@@ -98,7 +98,7 @@ undo_printable = [
 ]
 
 def addh_cmds(session):
-    return [ "addh %s" % s.atomspec for s in all_atomic_structures(session) if s.num_atoms < 25000 ]
+    return [ "addh %s hb f" % s.atomspec for s in all_atomic_structures(session) if s.num_atoms < 25000 ]
 
 def by_chain_cmds(session, rainbow=False, target_atoms=False):
     cmds = []

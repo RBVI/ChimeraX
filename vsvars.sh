@@ -73,53 +73,80 @@ then
 else
 	B64=""
 	X64=""
-	if [ -e "/cygdrive/c/Program Files (x86)/Microsoft Visual Studio/2019" ]
+	if [ ! -z "$GITHUB_ACTIONS_CI" ]
 	then
 		echo Setting environment for using Microsoft Visual Studio 2019
 		Platform=x64
-		VSINSTALLDIR="c:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Community"
+		VSINSTALLDIR="c:\\Program Files\\Microsoft Visual Studio\\2022\\Enterprise"
 		WindowsSdkDir="c:\\Program Files (x86)\\Windows Kits\\10"
-		ExtensionSdkDir="$WindowsSdkDir\\ExtensionSDKs"
+		ExtensionSdkDir="$WindowsSdkDir\\Extension SDKs" # Double-check the space here on local machine
+		# The GitHub Actions runner has a space there
 		# also use 64 bit tools
 		B64=64
 		X64="\\x64"
 
-		Framework40Version=v4.0
-		FrameworkVersion=v4.0.30319
-		FrameworkVersion64=v4.0.30319
-		VCToolsVersion=14.24.28314
-		VisualStudioVersion=16.0
-		WindowsSDKLibVersion=10.0.18362.0
-		WindowsSDKVersion=10.0.18362.0
+		Framework40Version=v4.0 # referenced nowhere else??
+		FrameworkVersion=v4.0.30319 # still valid on Windows Server 2022 runner
+		FrameworkVersion64=v4.0.30319 # still valid on Windows Server 2022 runner
+		VCToolsVersion=14.34.31933 # could be 14.16.27023 or 14.29.30133 instead
+		VisualStudioVersion=17.0
+		# Could be 10.0.10240.0; 10.0.17763.0; 10.0.19041.0; 10.0.20348.0; 10.0.22000.0; 10.0.22621.0
+		WindowsSDKLibVersion=10.0.19041.0
+		WindowsSDKVersion=10.0.19041.0
 
 		VCINSTALLDIR="$VSINSTALLDIR\\VC"
 		VCToolsInstallDir="$VCINSTALLDIR\\Tools\\MSVC\\$VCToolsVersion"
-		VCToolsRedistDir="$VCINSTALLDIR\\Redist\MSVC\\14.24.28127"
-	elif [ -e "/cygdrive/c/Program Files (x86)/Microsoft Visual Studio/2017" ]
-	then
-		echo Setting environment for using Microsoft Visual Studio 2017
-		Platform=x64
-		VSINSTALLDIR="c:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\Community"
-		WindowsSdkDir="c:\\Program Files (x86)\\Windows Kits\\10"
-		ExtensionSdkDir="$WindowsSdkDir\\ExtensionSDKs"
-		# also use 64 bit tools
-		B64=64
-		X64="\\x64"
+		VCToolsRedistDir="$VCINSTALLDIR\\Redist\MSVC\\14.34.31931" # could be 14.16.27012, 14.29.30133, 14.32.31326, or v143
 
-		Framework40Version=v4.0
-		FrameworkVersion=v4.0.30319
-		FrameworkVersion64=v4.0.30319
-		VCToolsVersion=14.16.27023
-		VisualStudioVersion=15.0
-		WindowsSDKLibVersion=10.0.17763.0
-		WindowsSDKVersion=10.0.17763.0
-
-		VCINSTALLDIR="$VSINSTALLDIR\\VC"
-		VCToolsInstallDir="$VCINSTALLDIR\\Tools\\MSVC\\$VCToolsVersion"
-		VCToolsRedistDir="$VCINSTALLDIR\\Redist\MSVC\\14.16.27012"
 	else
-		echo "error: neither Microsoft Visual C++ 2019 nor 2017 compiler found"
-		return 1
+		if [ -e "/cygdrive/c/Program Files (x86)/Microsoft Visual Studio/2019" ]
+		then
+			echo Setting environment for using Microsoft Visual Studio 2019
+			Platform=x64
+			VSINSTALLDIR="c:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Community"
+			WindowsSdkDir="c:\\Program Files (x86)\\Windows Kits\\10"
+			ExtensionSdkDir="$WindowsSdkDir\\ExtensionSDKs"
+			# also use 64 bit tools
+			B64=64
+			X64="\\x64"
+
+			Framework40Version=v4.0
+			FrameworkVersion=v4.0.30319
+			FrameworkVersion64=v4.0.30319
+			VCToolsVersion=14.24.28314
+			VisualStudioVersion=16.0
+			WindowsSDKLibVersion=10.0.18362.0
+			WindowsSDKVersion=10.0.18362.0
+
+			VCINSTALLDIR="$VSINSTALLDIR\\VC"
+			VCToolsInstallDir="$VCINSTALLDIR\\Tools\\MSVC\\$VCToolsVersion"
+			VCToolsRedistDir="$VCINSTALLDIR\\Redist\MSVC\\14.24.28127"
+		elif [ -e "/cygdrive/c/Program Files (x86)/Microsoft Visual Studio/2017" ]
+		then
+			echo Setting environment for using Microsoft Visual Studio 2017
+			Platform=x64
+			VSINSTALLDIR="c:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\Community"
+			WindowsSdkDir="c:\\Program Files (x86)\\Windows Kits\\10"
+			ExtensionSdkDir="$WindowsSdkDir\\ExtensionSDKs"
+			# also use 64 bit tools
+			B64=64
+			X64="\\x64"
+
+			Framework40Version=v4.0
+			FrameworkVersion=v4.0.30319
+			FrameworkVersion64=v4.0.30319
+			VCToolsVersion=14.16.27023
+			VisualStudioVersion=15.0
+			WindowsSDKLibVersion=10.0.17763.0
+			WindowsSDKVersion=10.0.17763.0
+
+			VCINSTALLDIR="$VSINSTALLDIR\\VC"
+			VCToolsInstallDir="$VCINSTALLDIR\\Tools\\MSVC\\$VCToolsVersion"
+			VCToolsRedistDir="$VCINSTALLDIR\\Redist\MSVC\\14.16.27012"
+		else
+			echo "error: neither Microsoft Visual C++ 2019 nor 2017 compiler found"
+			return 1
+		fi
 	fi
 
 	export VSINSTALLDIR

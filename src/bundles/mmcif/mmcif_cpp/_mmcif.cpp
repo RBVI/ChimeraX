@@ -39,6 +39,8 @@ _mmcifError()
 		PyErr_Format(_mmcifErrorObj, "range_error: %s", e.what());
 	} catch (std::underflow_error& e) {
 		PyErr_Format(_mmcifErrorObj, "underflow_error: %s", e.what());
+	} catch (std::bad_function_call& e) {
+		PyErr_Format(_mmcifErrorObj, "empty function object: %s", e.what());
 	} catch (std::logic_error& e) {
 		PyErr_SetString(PyExc_ValueError, e.what());
 	} catch (std::ios_base::failure& e) {

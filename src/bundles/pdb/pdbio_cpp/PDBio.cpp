@@ -1976,6 +1976,21 @@ write_coord_set(StreamDispatcher& os, const Structure* s, const CoordSet* cs,
         prev_res = r;
         prev_standard = standard;
     }
+    if (prev_res != nullptr && prev_standard && some_output) {
+        // Output a final TER if the last residue was in a chain
+        p_ter.ter.serial = ++serial;
+        set_res_name_and_chain_id(prev_res, p_ter.ter.res.name, &p_ter.ter.res.chain_id);
+        int seq_num = prev_res->number();
+        char i_code = prev_res->insertion_code();
+        if (seq_num > 9999) {
+            // usurp the insertion code...
+            i_code = '0' + (seq_num % 10);
+            seq_num = seq_num / 10;
+        }
+        p_ter.ter.res.seq_num = seq_num;
+        p_ter.ter.res.i_code = i_code;
+        os << p_ter << "\n";
+    }
 }
 
 static bool
