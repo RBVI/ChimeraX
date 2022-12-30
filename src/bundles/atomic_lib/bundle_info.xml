@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-AtomicLibrary" version="9.0"
+<BundleInfo name="ChimeraX-AtomicLibrary" version="10.0"
             package="chimerax.atomic_lib"
             purePython="false"
             installedDataDir="data"

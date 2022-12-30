@@ -66,7 +66,7 @@ class Slider(ToolInstance):
         tool_tip = "Number of frames to show before advancing to next image"
         rl = QLabel()
         from chimerax.ui.icons import get_icon_path
-        rl.setPixmap(QPixmap(get_icon_path("snail")).scaledToHeight(20))
+        rl.setPixmap(QPixmap(get_icon_path("snail")).scaledToHeight(19))
         rl.setToolTip(tool_tip)
         layout.addWidget(rl)
         self.rate_box = rb = QSpinBox()
