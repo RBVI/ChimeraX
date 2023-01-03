@@ -586,7 +586,7 @@ def cmd_define_axis(session, targets=None, *, color=None, radius=None, length=No
                     needs_normalization=False)
                 axes.append(axis)
                 add_model.add([axis])
-    if show_tool and session.ui.is_gui and not session.in_script:
+    if show_tool and session.ui.is_gui:
         from chimerax.core.commands import run
         run(session, "ui tool show Axes/Planes/Centroids", log=False)
     return axes
