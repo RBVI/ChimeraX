@@ -406,7 +406,10 @@ class BlastProteinTool(ToolInstance):
             blast_input_type = None
             blast_input = None
         else: # it's a chain
-            blast_input = blast_input_type.string().split(" ")[-1]
+            try:
+                blast_input = blast_input_type.string().split(" ")[-1]
+            except AttributeError:
+                blast_input = None
             blast_input_type = "Chain"
         data = {
             "version": 3,
