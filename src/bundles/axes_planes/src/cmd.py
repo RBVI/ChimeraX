@@ -580,7 +580,7 @@ def cmd_define_axis(session, targets=None, *, color=None, radius=None, length=No
                 if structure:
                     inverse = structure.scene_position.inverse()
                     center = inverse * center
-                    direction = inverse * direction
+                    direction = inverse.zero_translation() * direction
 
                 axis = AxisModel(session, axis_name, center, direction, extent, radius, color,
                     needs_normalization=False)
