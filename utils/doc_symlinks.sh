@@ -6,7 +6,7 @@ ROOT=$(realpath $(dirname $(dirname -- $0)))
 cd ${ROOT}
 
 # maxdepth 3 catches rotamer_libs/*/src but not md_crds/gromacs/xdrfile/src
-mapfile -t BUNDLE_SRC_FOLDERS < <(find src/bundles -type d -maxdepth 3 -name "src" | grep -v build | sort)
+mapfile -t BUNDLE_SRC_FOLDERS < <(find src/bundles -type d -maxdepth 3 -name "src" | sort)
 mapfile -t BUNDLE_DEV_DOC_FOLDERS < <(find src/bundles/**/docs -maxdepth 1 -type d -name "devel" | sort)
 mapfile -t BUNDLE_USR_DOC_FOLDERS < <(find src/bundles/**/docs -maxdepth 1 -type d -name "user" | sort)
 
