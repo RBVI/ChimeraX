@@ -64,9 +64,9 @@ def distance(session, objects, *, color=None, dashes=None,
     Show/report distance between two objects.
     '''
     from chimerax.core.errors import UserError, LimitationError
-    non_atom_measurables = [m for m in objects.models
-        if isinstance(m, (SimpleMeasurable, ComplexMeasurable))]
-    atoms = list(objects.atoms)
+    non_atom_measurables = [m for m in objects.models if isinstance(m, ComplexMeasurable)]
+    atoms = list(objects.atoms) + [m for m in objects.models
+        if isinstance(m, SimpleMeasurable) and not hasattr(m, 'atoms')]
     measurables = non_atom_measurables + atoms
     if len(measurables) == 2:
         if len(atoms) != 2:
