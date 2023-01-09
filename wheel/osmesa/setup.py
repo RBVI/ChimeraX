@@ -47,6 +47,6 @@ This Python module provides the OSMesa library that can be used by PyOpenGL.
     
     classifiers = [
         'Development Status :: 5 - Production/Stable',
-        'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.9',
     ],
 )
