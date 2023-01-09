@@ -85,6 +85,8 @@ def cmd_centroid(session, atoms=None, *, mass_weighting=False, name="centroid", 
         else:
             a.color = color
     a.radius = radius
+    # override string() to avoid 4(!) "centroid"s in the output
+    a.string = lambda self=a, style=None, **kw: self.structure.string(style=style)
     if len(structures) > 1:
         session.models.add([s])
     else:
