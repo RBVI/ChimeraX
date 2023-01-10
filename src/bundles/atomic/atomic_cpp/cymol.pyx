@@ -103,8 +103,7 @@ cdef class CyAtom:
 
     @alt_loc.setter
     def alt_loc(self, loc):
-        "For switching between existing alt locs;"
-        " use 'set_alt_loc' method for creating alt locs"
+        "For switching between existing alt locs; use 'set_alt_loc' method for creating alt locs"
         if len(loc) != 1:
             raise ValueError("Alt loc must be single character, not '%s'" % loc)
         if self._deleted: raise RuntimeError("Atom already deleted")
@@ -118,8 +117,7 @@ cdef class CyAtom:
 
     @property
     def aniso_u(self):
-        "Supported API. Anisotropic temperature factors,"
-        " returns 3x3 array of float or None.  Read only."
+        "Supported API. Anisotropic temperature factors, returns 3x3 array of float or None.  Read only."
         if self._deleted: raise RuntimeError("Atom already deleted")
         c_arr = self.cpp_atom.aniso_u()
         if c_arr:
@@ -135,8 +133,9 @@ cdef class CyAtom:
 
     @property
     def aniso_u6(self):
-        "Get anisotropic temperature factors as a 6 element float array"
-        " containing (u11, u22, u33, u12, u13, u23) [i.e. PDB/mmCIF order] or None."
+        '''Get anisotropic temperature factors as a 6 element float array
+           containing (u11, u22, u33, u12, u13, u23) [i.e. PDB/mmCIF order] or None.
+        '''
         if self._deleted: raise RuntimeError("Atom already deleted")
         c_arr = self.cpp_atom.aniso_u()
         if c_arr:
@@ -153,10 +152,11 @@ cdef class CyAtom:
 
     @aniso_u6.setter
     def aniso_u6(self, u6):
-        "Set anisotropic temperature factors as a 6 element float array"
-        " representing the unique elements of the symmetrix matrix"
-        " containing (u11, u22, u33, u12, u13, u23). If 'u6' arg is None,"
-        " then clear any aniso_u values."
+        '''Set anisotropic temperature factors as a 6 element float array
+           representing the unique elements of the symmetrix matrix
+           containing (u11, u22, u33, u12, u13, u23). If 'u6' arg is None,
+           then clear any aniso_u values."
+        '''
         if self._deleted: raise RuntimeError("Atom already deleted")
         if u6 is None:
             self.cpp_atom.clear_aniso_u()
@@ -184,8 +184,7 @@ cdef class CyAtom:
 
     @property
     def bonds(self):
-        "Supported API. Bonds connected to this atom"
-        " as a list of :py:class:`Bond` objects. Read only."
+        "Supported API. Bonds connected to this atom as a list of :py:class:`Bond` objects. Read only."
         # work around non-const-correct code by using temporary...
         if self._deleted: raise RuntimeError("Atom already deleted")
         bonds = self.cpp_atom.bonds()
@@ -212,19 +211,20 @@ cdef class CyAtom:
 
     @property
     def coord(self):
-        "Supported API. Coordinates from the current coordinate set (or alt loc) as a"
-        " length 3 sequence/array, float values.  See get_coord method for other"
-        " coordsets / alt locs.  See scene_coord for coordinates after rotations and"
-        " translations."
+        '''Supported API. Coordinates from the current coordinate set (or alt loc) as a length 3
+           sequence/array, float values.  See get_coord method for other coordsets / alt locs.
+           See scene_coord for coordinates after rotations and translations.
+        '''
         if self._deleted: raise RuntimeError("Atom already deleted")
         crd = self.cpp_atom.coord()
         return array((crd[0], crd[1], crd[2]))
 
     @property
     def pb_coord(self):
-        "Pseudobond coordinates.  If atom is not visible and is part of a residue"
-        " displayed as a cartoon, return coordinates on the cartoon.  Otherwise,"
-        " return the actual atomic coordinates."
+        '''Pseudobond coordinates.  If atom is not visible and is part of a residue
+           displayed as a cartoon, return coordinates on the cartoon.  Otherwise,
+           return the actual atomic coordinates.
+        '''
         if not self.visible and self.residue.ribbon_display:
             c = self.ribbon_coord
             if c is not None:
@@ -291,13 +291,14 @@ cdef class CyAtom:
 
     @property
     def draw_mode(self):
-        "Supported API. Controls how the atom is depicted.\n\nPossible values:\n\n"
-        "SPHERE_STYLE\n"
-        "    Use full atom radius\n\n"
-        "BALL_STYLE\n"
-        "    Use reduced atom radius, but larger than bond radius\n\n"
-        "STICK_STYLE\n"
-        "    Match bond radius"
+        '''Supported API. Controls how the atom is depicted.\n\nPossible values:\n\n
+        SPHERE_STYLE\n
+            Use full atom radius\n\n
+        BALL_STYLE\n
+            Use reduced atom radius, but larger than bond radius\n\n
+        STICK_STYLE\n
+            Match bond radius
+        '''
         if self._deleted: raise RuntimeError("Atom already deleted")
         return self.cpp_atom.draw_mode()
 
@@ -308,8 +309,9 @@ cdef class CyAtom:
 
     @property
     def effective_coord(self):
-        "Return the atom's ribbon_coord if the residue is displayed as a ribbon"
-        " and it has a ribbon coordinate, otherwise return the current coordinate."
+        '''Return the atom's ribbon_coord if the residue is displayed as a ribbon
+           and it has a ribbon coordinate, otherwise return the current coordinate.
+        '''
         if self._deleted: raise RuntimeError("Atom already deleted")
         crd = self.cpp_atom.effective_coord()
         return array((crd[0], crd[1], crd[2]))
@@ -335,14 +337,15 @@ cdef class CyAtom:
 
     @property
     def hide(self):
-        "Supported API. Whether atom is hidden (overrides display).  Integer bitmask."
-        "\n\nPossible values:\n\n"
-        "HIDE_RIBBON\n"
-        "    Hide mask for backbone atoms in ribbon.\n"
-        "HIDE_ISOLDE\n"
-        "    Hide mask for backbone atoms for ISOLDE.\n"
-        "HIDE_NUCLEOTIDE\n"
-        "    Hide mask for sidechain atoms in nucleotides.\n"
+        '''Supported API. Whether atom is hidden (overrides display).
+        Integer bitmask.\n\nPossible values:\n\n
+        HIDE_RIBBON\n
+            Hide mask for backbone atoms in ribbon.\n
+        HIDE_ISOLDE\n
+            Hide mask for backbone atoms for ISOLDE.\n
+        HIDE_NUCLEOTIDE\n
+            Hide mask for sidechain atoms in nucleotides.\n
+        '''
         if self._deleted: raise RuntimeError("Atom already deleted")
         return self.cpp_atom.hide()
 
@@ -371,24 +374,25 @@ cdef class CyAtom:
 
     @property
     def is_side_connector(self):
-        "Whether this atom is connects the side chain to the backbone, e.g. CA/ribose."
-        " Read only."
+        "Whether this atom is connects the side chain to the backbone, e.g. CA/ribose. Read only."
         if self._deleted: raise RuntimeError("Atom already deleted")
         return self.cpp_atom.is_side_connector()
 
     @property
     def is_side_chain(self):
-        "Whether this atom is part of an amino/nucleic acid sidechain."
-        " Includes atoms needed to connect to backbone (CA/ribose)."
-        " is_side_only property excludes those. Read only."
+        '''Whether this atom is part of an amino/nucleic acid sidechain.
+           Includes atoms needed to connect to backbone (CA/ribose).
+           is_side_only property excludes those. Read only.
+        '''
         if self._deleted: raise RuntimeError("Atom already deleted")
         return self.cpp_atom.is_side_chain(False)
 
     @property
     def is_side_only(self):
-        "Whether this atom is part of an amino/nucleic acid sidechain."
-        "  Does not include atoms needed to connect to backbone (CA/ribose)."
-        "  is_side_chain property includes those.  Read only."
+        '''Whether this atom is part of an amino/nucleic acid sidechain.
+           Does not include atoms needed to connect to backbone (CA/ribose).
+           is_side_chain property includes those.  Read only.
+        '''
         if self._deleted: raise RuntimeError("Atom already deleted")
         return self.cpp_atom.is_side_chain(True)
 
@@ -405,8 +409,7 @@ cdef class CyAtom:
 
     @property
     def neighbors(self):
-        "Supported API. :class:`.Atom`\\ s connected to this atom directly by one bond."
-        " Read only."
+        "Supported API. :class:`.Atom`\\ s connected to this atom directly by one bond. Read only."
         # work around Cython not always generating const-correct code
         if self._deleted: raise RuntimeError("Atom already deleted")
         tmp = <cydecl.vector[cydecl.Atom*]>self.cpp_atom.neighbors()
@@ -426,8 +429,7 @@ cdef class CyAtom:
 
     @property
     def num_explicit_bonds(self):
-        "Supported API. Number of bonds and missing-structure pseudobonds"
-        " connected to this atom. Read only."
+        "Supported API. Number of bonds and missing-structure pseudobonds connected to this atom. Read only."
         if self._deleted: raise RuntimeError("Atom already deleted")
         return self.cpp_atom.num_explicit_bonds()
 
@@ -461,9 +463,10 @@ cdef class CyAtom:
 
     @property
     def ribbon_coord(self):
-        "Atom ribbon coordinate in the structure coordinate system"
-        " for displaying pseudobonds or tethers to the ribbon when"
-        " the atom is hidden.  Value is None for non-backbone atoms."
+        '''Atom ribbon coordinate in the structure coordinate system
+           for displaying pseudobonds or tethers to the ribbon when
+           the atom is hidden.  Value is None for non-backbone atoms.
+        '''
         if self._deleted: raise RuntimeError("Atom already deleted")
         crd = self.cpp_atom.ribbon_coord()
         if crd:
@@ -482,9 +485,10 @@ cdef class CyAtom:
 
     @property
     def scene_coord(self):
-        "Supported API. Atom center coordinates in the global scene coordinate system."
-        " This accounts for the :class:`Drawing` positions for the hierarchy "
-        " of models this atom belongs to."
+        '''Supported API. Atom center coordinates in the global scene coordinate system.
+           This accounts for the :class:`Drawing` positions for the hierarchy
+           of models this atom belongs to.
+        '''
         if self._deleted: raise RuntimeError("Atom already deleted")
         crd = self.cpp_atom.scene_coord()
         return array((crd[0], crd[1], crd[2]))
@@ -558,8 +562,9 @@ cdef class CyAtom:
     # instance methods...
 
     def clear_hide_bits(self, bit_mask):
-        '''Set the hide bits 'off' that are 'on' in "bitmask"'''
-        " and leave others unchanged. Opposite of set_hide_bits()"
+        '''Set the hide bits 'off' that are 'on' in "bitmask"
+           and leave others unchanged. Opposite of set_hide_bits()
+        '''
         if self._deleted: raise RuntimeError("Atom already deleted")
         self.cpp_atom.clear_hide_bits(bit_mask)
 
@@ -574,17 +579,19 @@ cdef class CyAtom:
         self.cpp_atom.structure().delete_atom(self.cpp_atom)
 
     def delete_alt_loc(self, loc):
-        "'Raw' editing routine with very little consistency checking."
-        "  Using Residue.delete_alt_loc() is recommended in most cases."
+        ''''Raw' editing routine with very little consistency checking.
+           Using Residue.delete_alt_loc() is recommended in most cases.
+        '''
         if len(loc) != 1:
             raise ValueError("Alt loc must be single character, not '%s'" % loc)
         if self._deleted: raise RuntimeError("Atom already deleted")
         self.cpp_atom.delete_alt_loc(ord(loc[0]))
 
     def get_alt_loc_coord(self, loc):
-        "Supported API.  Like the 'coord' property, but uses the given alt loc"
-        " (character) rather than the current alt loc.  Space character gets the"
-        " non-alt-loc coord."
+        '''Supported API.  Like the 'coord' property, but uses the given alt loc
+           (character) rather than the current alt loc.  Space character gets the
+           non-alt-loc coord."
+        '''
         if self._deleted: raise RuntimeError("Atom already deleted")
         if loc == ' ':
             return self.coord
@@ -594,17 +601,19 @@ cdef class CyAtom:
         raise ValueError("Atom %s has no alt loc %s" % (self, loc))
 
     def get_alt_loc_scene_coord(self, loc):
-        "Supported API.  Like the 'scene_coord' property, but uses the given alt loc"
-        " (character) rather than the current alt loc. Space character gets the"
-        " non-alt-loc scene coord."
+        '''Supported API.  Like the 'scene_coord' property, but uses the given alt loc
+           (character) rather than the current alt loc. Space character gets the
+           non-alt-loc scene coord.
+        '''
         if self._deleted: raise RuntimeError("Atom already deleted")
         if loc == ' ':
             return self.scene_coord
         return self.structure.scene_position * self.get_alt_loc_coord(loc)
 
     def get_coordset_coord(self, cs_id):
-        "Supported API.  Like the 'coord' property, but uses the given coordset ID"
-        " (integer) rather than the current coordset."
+        '''Supported API.  Like the 'coord' property, but uses the given coordset ID
+           (integer) rather than the current coordset.
+        '''
         if self._deleted: raise RuntimeError("Atom already deleted")
         cdef cydecl.CoordSet* cs = self.cpp_atom.structure().find_coord_set(cs_id)
         if not cs:
@@ -613,8 +622,9 @@ cdef class CyAtom:
         return array((crd[0], crd[1], crd[2]))
 
     def get_coordset_scene_coord(self, cs_id):
-        "Supported API.  Like the 'scene_coord' property, but uses the given coordset ID"
-        " (integer) rather than the current coordset."
+        '''Supported API.  Like the 'scene_coord' property, but uses the given coordset ID
+           (integer) rather than the current coordset.
+        '''
         return self.structure.scene_position * self.get_coordset_coord(cs_id)
 
     def has_alt_loc(self, loc):
@@ -625,15 +635,15 @@ cdef class CyAtom:
         return self.cpp_atom.has_alt_loc(ord(loc[0]))
 
     def is_backbone(self, bb_extent=CyAtom.BBE_MAX):
-        "Supported API. Whether this Atom is considered backbone,"
-        " given the 'extent' criteria. "
-        "\n\nPossible 'extent' values are:\n\n"
-        "BBE_MIN\n"
-        "    Only the atoms needed to connect the residue chain (and their hydrogens)"
-        "BBE_MAX\n"
-        "    All non-sidechain atoms"
-        "BBE_RIBBON\n"
-        "    The backbone atoms that a ribbon depiction hides"
+        '''Supported API. Whether this Atom is considered backbone, given the 'extent' criteria.n\n
+        Possible 'extent' values are:\n\n
+        BBE_MIN\n
+            Only the atoms needed to connect the residue chain (and their hydrogens)
+        BBE_MAX\n
+            All non-sidechain atoms
+        BBE_RIBBON\n
+            The backbone atoms that a ribbon depiction hides
+        '''
         if self._deleted: raise RuntimeError("Atom already deleted")
         return self.cpp_atom.is_backbone(<cydecl.BackboneExtent>bb_extent)
 
@@ -662,8 +672,9 @@ cdef class CyAtom:
         return Rings(numpy.array([<ptr_type>r for r in ring_ptrs], dtype=numpy.uintp))
 
     def set_alt_loc(self, loc, create):
-        "Normally used to create alt locs. "
-        "The 'alt_loc' property is used to switch between existing alt locs."
+        '''Normally used to create alt locs.
+           The 'alt_loc' property is used to switch between existing alt locs.
+        '''
         if self._deleted: raise RuntimeError("Atom already deleted")
         self.cpp_atom.set_alt_loc(ord(loc[0]), create, False)
 
@@ -681,8 +692,9 @@ cdef class CyAtom:
         self.cpp_atom.set_coord(cydecl.cycoord.Point(xyz[0], xyz[1], xyz[2]), cs)
 
     def set_hide_bits(self, bit_mask):
-        '''Set the hide bits 'on' that are 'on' in "bitmask"'''
-        " and leave others unchanged. Opposite of clear_hide_bits()"
+        '''Set the hide bits 'on' that are 'on' in "bitmask"
+           and leave others unchanged. Opposite of clear_hide_bits()
+        '''
         if self._deleted: raise RuntimeError("Atom already deleted")
         self.cpp_atom.set_hide_bits(bit_mask)
 
@@ -716,9 +728,10 @@ cdef class CyAtom:
         return Atoms(numpy.array([<ptr_type>r for r in tmp], dtype=numpy.uintp))
 
     def string(self, atom_only = False, style = None, relative_to=None, omit_structure=None):
-        "Supported API.  Get text representation of Atom"
-        " (also used by __str__ for printing); if omit_structure is None, the the structure"
-        " will be omitted if only one structure is open"
+        '''Supported API.  Get text representation of Atom
+           (also used by __str__ for printing); if omit_structure is None, the the structure
+           will be omitted if only one structure is open
+        '''
         if style == None:
             from .settings import settings
             style = settings.atomspec_contents
@@ -757,8 +770,9 @@ cdef class CyAtom:
         return '%s %s' % (self.residue.string(style=style, omit_structure=omit_structure), atom_str)
 
     def use_default_radius(self):
-        "Supported API.  If an atom's radius has previously been explicitly set,"
-        " this call will revert it to using the default radius"
+        '''Supported API.  If an atom's radius has previously been explicitly set,
+           this call will revert it to using the default radius
+        '''
         if self._deleted: raise RuntimeError("Atom already deleted")
         self.cpp_atom.use_default_radius()
 
@@ -845,8 +859,9 @@ cdef class Element:
 
     @property
     def mass(self):
-        "Supported API. Atomic mass, taken from"
-        " http://en.wikipedia.org/wiki/List_of_elements_by_atomic_weight.  Read only."
+        '''Supported API. Atomic mass, taken from
+           http://en.wikipedia.org/wiki/List_of_elements_by_atomic_weight.  Read only.
+        '''
         return self.cpp_element.mass()
 
     @property
@@ -878,8 +893,9 @@ cdef class Element:
 
     @staticmethod
     def bond_length(e1, e2):
-        "Supported API. Standard single-bond length between two elements."
-        " Arguments can be element instances, atomic numbers, or element names"
+        '''Supported API. Standard single-bond length between two elements.
+           Arguments can be element instances, atomic numbers, or element names
+        '''
         if not isinstance(e1, Element):
             e1 = Element.get_element(e1)
         if not isinstance(e2, Element):
@@ -892,9 +908,10 @@ cdef class Element:
 
     @staticmethod
     def bond_radius(e):
-        "Supported API. Standard single-bond 'radius'"
-        " (the amount this element would contribute to bond length)."
-        " Argument can be an element instance, atomic number, or element name"
+        '''Supported API. Standard single-bond 'radius'
+           (the amount this element would contribute to bond length).
+           Argument can be an element instance, atomic number, or element name
+        '''
         if not isinstance(e, Element):
             e = Element.get_element(e)
         return Element._bond_radius(e.cpp_pointer)
@@ -917,8 +934,7 @@ cdef class Element:
 
     @staticmethod
     def get_element(ident):
-        "Supported API.  Given an atomic symbol or atomic number, return the"
-        " corresponding Element instance."
+        "Supported API.  Given an atomic symbol or atomic number, return the corresponding Element instance."
         cdef const cydecl.cyelem.Element* ele_ptr
         if isinstance(ident, int):
             if ident < 0 or ident > cydecl.cyelem.Element.AS.NUM_SUPPORTED_ELEMENTS:
@@ -1529,8 +1545,9 @@ cdef class CyResidue:
     SS_SHEET = SS_STRAND
     @property
     def ss_type(self):
-        "Supported API. Secondary structure type of residue. Integer value."
-        " One of Residue.SS_COIL, Residue.SS_HELIX, Residue.SS_SHEET (a.k.a. SS_STRAND)"
+        '''Supported API. Secondary structure type of residue. Integer value.
+           One of Residue.SS_COIL, Residue.SS_HELIX, Residue.SS_SHEET (a.k.a. SS_STRAND)
+        '''
         if self._deleted: raise RuntimeError("Residue already deleted")
         return self.cpp_res.ss_type()
 
@@ -1572,8 +1589,9 @@ cdef class CyResidue:
         self.cpp_res.clean_alt_locs()
 
     def connects_to(self, CyResidue other_res):
-        "Supported API. Return True if this residue is connected by at least one bond "
-        " (not pseudobond) to other_res"
+        '''Supported API. Return True if this residue is connected by at least one bond
+           (not pseudobond) to other_res
+        '''
         if self._deleted: raise RuntimeError("Residue already deleted")
         return self.cpp_res.connects_to(<cydecl.Residue*>other_res.cpp_res)
 
@@ -1583,20 +1601,21 @@ cdef class CyResidue:
         self.cpp_res.structure().delete_atoms(self.cpp_res.atoms())
 
     def delete_alt_loc(self, loc):
-        "Deletes the specified alt loc in this residue and possibly other residues"
-        "  if their alt locs are 'connected'.  If deleting this residue's current alt"
-        "  loc, the best remaining one will become current.  For simply deleting all"
-        "  alt locs in the structure except the current ones (and changing those to"
-        "  non-alt locs) use Structure.delete_alt_locs()."
+        '''Deletes the specified alt loc in this residue and possibly other residues
+           if their alt locs are 'connected'.  If deleting this residue's current alt
+           loc, the best remaining one will become current.  For simply deleting all
+           alt locs in the structure except the current ones (and changing those to
+           non-alt locs) use Structure.delete_alt_locs().
+        '''
         if len(loc) != 1:
             raise ValueError("Alt loc must be single character, not '%s'" % loc)
         if self._deleted: raise RuntimeError("Atom already deleted")
         self.cpp_res.delete_alt_loc(ord(loc[0]))
 
     def find_atom(self, atom_name):
-        '''Supported API. Return the atom with the given name, or None if not found.\n'''
-        '''If multiple atoms in the residue have that name, an arbitrary one that matches will'''
-        ''' be returned.'''
+        '''Supported API. Return the atom with the given name, or None if not found.
+           If multiple atoms in the residue have that name, an arbitrary one that matches will
+           be returned.'''
         if self._deleted: raise RuntimeError("Residue already deleted")
         fa_ptr = self.cpp_res.find_atom(atom_name.encode())
         if fa_ptr:
@@ -1681,8 +1700,9 @@ cdef class CyResidue:
         self.cpp_res.remove_atom(atom.cpp_atom)
 
     def string(self, *, residue_only=False, omit_structure=None, style=None):
-        "Supported API.  Get text representation of Residue"
-        "  If 'omit_structure' is None, the structure will be omitted only if exactly one structure is open"
+        '''Supported API.  Get text representation of Residue
+           If 'omit_structure' is None, the structure will be omitted only if exactly one structure is open
+        '''
         if style == None:
             from .settings import settings
             style = settings.atomspec_contents
