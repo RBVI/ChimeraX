@@ -302,6 +302,8 @@ def _get_stream(mgr, file_name, encoding):
     from chimerax import io
     try:
         return io.open_input(path, encoding)
+    except IsADirectoryError:
+        raise UserError("'%s' is a folder, not a file" % path)
     except (IOError, PermissionError) as e:
         raise UserError("Cannot open '%s': %s" % (path, e))
 

@@ -1416,10 +1416,21 @@ ExtractMolecule::parse_atom_site()
             cur_model_num = model_num;
             cur_residue = nullptr;
             if (!coordsets) {
-                if (atomic) {
+                if (molecules.find(cur_model_num) != molecules.end()) {
+                    logger::warning(_logger, "Previously completed PDB model ", cur_model_num,
+                                    " found.  Trying to extend.");
+                    mol = molecules[cur_model_num];
+                    cur_entity_id.clear();
+                    cur_seq_id = INT_MAX;
+                    cur_auth_seq_id = INT_MAX;
+                    cur_chain_id.clear();
+                    cur_comp_id.clear();
+                } else if (atomic) {
                     mol = molecules[cur_model_num] = new AtomicStructure(_logger);
+                    mol->set_res_numbering_valid(RN_CANONICAL, true);
                 } else {
                     mol = molecules[cur_model_num] = new Structure(_logger);
+                    mol->set_res_numbering_valid(RN_CANONICAL, true);
                 }
             } else {
                 if (mol == nullptr) {
@@ -1431,6 +1442,7 @@ ExtractMolecule::parse_atom_site()
                     molecules[model_num] = mol;
                     CoordSet *cs = mol->new_coord_set(model_num);
                     mol->set_active_coord_set(cs);
+                    mol->set_res_numbering_valid(RN_CANONICAL, true);
                 } else {
                     // make additional CoordSets same size as others
                     size_t cs_size = mol->active_coord_set()->coords().size();
@@ -1446,7 +1458,6 @@ ExtractMolecule::parse_atom_site()
                     mol->set_active_coord_set(cs);
                 }
             }
-            mol->set_res_numbering_valid(RN_CANONICAL, true);
         }
 
         bool missing_entity_id = entity_id.empty();

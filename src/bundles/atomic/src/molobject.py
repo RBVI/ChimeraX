@@ -219,8 +219,7 @@ class Bond(State):
         return f(self._c_pointer)
 
     def string(self, style = None):
-        "Supported API.  Get text representation of Bond"
-        " (also used by __str__ for printing)"
+        "Supported API.  Get text representation of Bond (also used by __str__ for printing)"
         a1, a2 = self.atoms
         bond_sep = " \N{Left Right Arrow} "
         return a1.string(style=style) + bond_sep + a2.string(style=style, relative_to=a1)
@@ -418,16 +417,18 @@ class PseudobondGroupData:
         f(self._c_pointer, pb._c_pointer)
 
     def get_num_pseudobonds(self, cs_id):
-        "Supported API. Get the number of pseudobonds for a particular coordinate set. "
-        " Use the 'num_pseudobonds' property to get the number of pseudobonds for the current "
-        " coordinate set."
+        '''Supported API. Get the number of pseudobonds for a particular coordinate set.
+        Use the 'num_pseudobonds' property to get the number of pseudobonds for the current
+        coordinate set.
+        '''
         f = c_function('pseudobond_group_get_num_pseudobonds',
                        args = (ctypes.c_void_p, ctypes.c_int,), ret = ctypes.c_size_t)
         return f(self._c_pointer, cs_id)
 
     def get_pseudobonds(self, cs_id):
-        "Supported API. Get the pseudobonds for a particular coordinate set. Use the 'pseudobonds'"
-        " property to get the pseudobonds for the current coordinate set."
+        '''Supported API. Get the pseudobonds for a particular coordinate set. Use the 'pseudobonds'
+        property to get the pseudobonds for the current coordinate set.
+        '''
         from numpy import empty
         ai = empty((self.get_num_pseudobonds(cs_id),), cptr)
         f = c_function('pseudobond_group_get_pseudobonds',
@@ -437,9 +438,10 @@ class PseudobondGroupData:
         return convert.pseudobonds(ai)
 
     def new_pseudobond(self, atom1, atom2, cs_id = None):
-        "Supported API. Create a new pseudobond between the specified :class:`Atom` objects. "
-        " If the pseudobond group supports per-coordset pseudobonds, you may"
-        " specify a coordinate set ID (defaults to the current coordinate set)."
+        '''Supported API. Create a new pseudobond between the specified :class:`Atom` objects.
+        If the pseudobond group supports per-coordset pseudobonds, you may
+        specify a coordinate set ID (defaults to the current coordinate set).
+        '''
         if cs_id is None:
             f = c_function('pseudobond_group_new_pseudobond',
                            args = (ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p),
@@ -476,8 +478,7 @@ class PseudobondGroupData:
 # -----------------------------------------------------------------------------
 #
 class PseudobondManager(StateManager):
-    '''Per-session singleton pseudobond manager keeps track of all
-    :class:`.PseudobondGroupData` objects.'''
+    '''Per-session singleton pseudobond manager keeps track of all :class:`.PseudobondGroupData` objects.'''
 
     def __init__(self, session):
         self.session = session
@@ -499,8 +500,7 @@ class PseudobondManager(StateManager):
         f(self._c_pointer, pbg._c_pointer)
 
     def get_group(self, name, create = True):
-        "Supported API. Get an existing :class:`.PseudobondGroup`"
-        " or create a new one with the given name."
+        "Supported API. Get an existing :class:`.PseudobondGroup` or create a new one with the given name."
         f = c_function('pseudobond_global_manager_get_group',
                        args = (ctypes.c_void_p, ctypes.c_char_p, ctypes.c_int),
                        ret = ctypes.c_void_p)
@@ -713,8 +713,9 @@ class Ring:
 
     @property
     def bonds(self):
-        "Supported API. :class:`.Bonds` collection containing the bonds of the ring, "
-        "in no particular order (see :meth:`.Ring.ordered_bonds`)"
+        '''Supported API. :class:`.Bonds` collection containing the bonds of the ring,
+        in no particular order (see :meth:`.Ring.ordered_bonds`)
+        '''
         return self.__bonds
 
     @property
@@ -1086,8 +1087,7 @@ class StructureSeq(Sequence):
     # allow append/extend for now, since NeedlemanWunsch uses it
 
     def bulk_set(self, residues, characters, *, fire_triggers=True):
-        '''Set all residues/characters of StructureSeq. '''
-        '''"characters" is a string or a list of characters.'''
+        '''Set all residues/characters of StructureSeq.  "characters" is a string or a list of characters.'''
         ptrs = [r._c_pointer.value if r else 0 for r in residues]
         if type(characters) == list:
             characters = "".join(characters)
@@ -1158,22 +1158,21 @@ class StructureSeq(Sequence):
         return obj_map
 
     def residue_at(self, index):
-        '''Supported API. Return the Residue/None at the (ungapped) position 'index'.'''
-        '''  More efficient that self.residues[index] since the entire residues'''
-        ''' list isn't built/destroyed.'''
+        '''Supported API. Return the Residue/None at the (ungapped) position 'index'.
+        More efficient than self.residues[index] since the entire residues
+        list isn't built/destroyed.
+        '''
         f = c_function('sseq_residue_at', args = (ctypes.c_void_p, ctypes.c_size_t),
             ret = ctypes.c_void_p)
         return convert.residue_or_none(f(self._c_pointer, index))
 
     def residue_before(self, r):
-        '''Return the residue at index one less than the given residue,
-        or None if no such residue exists.'''
+        '''Return the residue at index one less than the given residue, or None if no such residue exists.'''
         pos = self.res_map[r]
         return None if pos == 0 else self.residue_at(pos-1)
 
     def residue_after(self, r):
-        '''Return the residue at index one more than the given residue,
-        or None if no such residue exists.'''
+        '''Return the residue at index one more than the given residue, or None if no such residue exists.'''
         pos = self.res_map[r]
         return None if pos+1 >= len(self) else self.residue_at(pos+1)
 
