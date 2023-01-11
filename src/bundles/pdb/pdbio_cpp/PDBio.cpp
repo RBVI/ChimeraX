@@ -419,9 +419,20 @@ push_seqres(Chain *chain, size_t start_index, int record_num, std::vector<std::s
 static void
 compile_seqres(const Structure* s, std::vector<std::string>& seqres)
 {
+    std::set<ChainID> incomplete_chains;
+    auto pbg = s->pb_mgr().get_group(Structure::PBG_MISSING_STRUCTURE);
+    if (pbg != nullptr) {
+        for (auto pb: pbg->pseudobonds()) {
+            incomplete_chains.insert(pb->atoms()[0]->residue()->chain_id());
+        }
+    }
     for (auto chain: s->chains()) {
         int record_num = 1;
         for (size_t i = 0; i < chain->characters().size(); i += 13) {
+                // only output SEQRES for chains where we believe we know the complete polymer sequence
+                if (!chain->from_seqres()
+                && incomplete_chains.find(chain->chain_id()) != incomplete_chains.end())
+                    continue;
                 push_seqres(chain, i, record_num++, seqres);
         }
     }
