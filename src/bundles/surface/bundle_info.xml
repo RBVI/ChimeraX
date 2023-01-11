@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-Surface" version="1.0"
+<BundleInfo name="ChimeraX-Surface" version="1.0.1"
 	    package="chimerax.surface" customInit="true"
   	    minSessionVersion="1" maxSessionVersion="1">
 
