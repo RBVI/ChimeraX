@@ -22,7 +22,7 @@ def fetch_uniprot(session, ident, ignore_cache=False):
         accession, entry = map_uniprot_ident(ident, return_value="both")
         if accession != entry:
             session.logger.info("UniProt identifier %s maps to entry %s" % (accession, entry))
-        seq_string, full_name, features = fetch_uniprot_accession_info(session, accession,
+        seq_string, full_name, features = fetch_uniprot_accession_info(session, entry,
             ignore_cache=ignore_cache)
     except InvalidAccessionError as e:
         raise UserError(str(e))
