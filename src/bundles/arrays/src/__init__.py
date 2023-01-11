@@ -11,6 +11,8 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 import os
+import sys
+import warnings
 
 def path_to_src() -> str:
     return os.path.dirname(__file__)
@@ -21,32 +23,20 @@ def get_lib() -> str:
 def get_include() -> str:
     return os.path.join(path_to_src(), 'include')
 
+if sys.platform.startswith('win'):
+    os.add_dll_directory(get_lib())
+
+from . import _arrays
+
+def load_libarrays():
+    warnings.warn(
+        "load_libarrays is no longer required to link libarrays."
+        "Please instead import chimerax.arrays"
+    )
+
 from chimerax.core.toolshed import BundleAPI
 
 class _ArraysAPI(BundleAPI):
     pass
 
 bundle_api = _ArraysAPI()
-
-_libarrays = None
-def load_libarrays():
-    '''
-    Load the libarrays C++ dynamic library.
-    This allows other C modules that link against libarrays to find it
-    without setting search paths like RPATH since it will be part of
-    the process once loaded and the runtime linker will find it.
-    Matching libraries that are part of the process are used on
-    macOS, Windows, Linux.
-    '''
-    global _libarrays
-    if _libarrays is None:
-        add_library_search_path()
-        from . import _arrays
-        _libarrays = True
-
-def add_library_search_path():
-    import sys
-    if sys.platform.startswith('win'):
-        from os import path, add_dll_directory
-        libdir = path.join(path.dirname(__file__), 'lib')
-        add_dll_directory(libdir)

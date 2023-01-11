@@ -18,7 +18,7 @@ from .area import surface_area, enclosed_volume, surface_volume_and_area
 from .gridsurf import ses_surface_geometry
 
 # Make sure _surface can runtime link shared library libarrays.
-from chimerax import arrays ; arrays.load_libarrays()
+import chimerax.arrays
 
 from ._surface import subdivide_triangles, vertex_areas
 from ._surface import surface_area_of_spheres, estimate_surface_area_of_spheres
