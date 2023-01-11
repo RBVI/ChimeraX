@@ -93,7 +93,7 @@
 #
 
 # Make sure _segment can runtime link shared library libarrays.
-from chimerax import arrays ; arrays.load_libarrays()
+import chimerax.arrays
 
 from ._segment import watershed_regions, region_index_lists, region_contacts, region_bounds
 from ._segment import region_point_count, region_points, region_maxima, interface_values

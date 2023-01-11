@@ -29,15 +29,12 @@ class _AtomicLibAPI(BundleAPI):
 bundle_api = _AtomicLibAPI()
 
 # Load libarrays since atomic_libs C++ shared libraries use it.
-from chimerax import arrays
-arrays.load_libarrays()
+import chimerax.arrays
 
 # Include atomic_libs/lib in runtime library search path.
 import sys
 if sys.platform.startswith('win'):
-    from os import path, add_dll_directory
-    libdir = path.join(path.dirname(__file__), 'lib')
-    add_dll_directory(libdir)
+    os.add_dll_directory(get_lib())
 
 # Load atomic_libs libraries so they are found by other C++ modules that link to them.
 from . import _load_libs

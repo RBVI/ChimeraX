@@ -15,8 +15,7 @@
 # other C++ modules to parse numpy arrays.  This code loads
 # the library into the ChimeraX process so it does not need
 # to be on the runtime loader search path.
-from chimerax.arrays import load_libarrays
-load_libarrays()
+import chimerax.arrays
 
 from .place import Place, Places, identity
 from .place import rotation, quaternion_rotation, vector_rotation, translation, scale, z_align

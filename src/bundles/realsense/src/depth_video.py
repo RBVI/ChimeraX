@@ -258,7 +258,7 @@ class DepthVideo (Model):
             if self._denoise_depth:
                 ave_depth = self._ave_depth_image
                 # Make sure _depthvideo can runtime link shared library libarrays.
-                from chimerax import arrays ; arrays.load_libarrays()
+                import chimerax.arrays
                 from ._depthvideo import denoise_depth
                 denoise_depth(depth_image, color_image,
                               ave_depth = ave_depth, ave_weight = self._denoise_weight,

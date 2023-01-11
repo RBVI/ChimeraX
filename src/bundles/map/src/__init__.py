@@ -29,7 +29,7 @@ from .volume import VolumeSurface, VolumeImage
 # Map contouring and distance maps.
 #
 # Make sure _map can runtime link shared library libarrays.
-from chimerax import arrays ; arrays.load_libarrays()
+import chimerax.arrays
 
 from ._map import contour_surface, sphere_surface_distance
 from ._map import interpolate_colormap, set_outside_volume_colors

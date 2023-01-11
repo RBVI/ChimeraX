@@ -395,7 +395,7 @@ def calculatefimap(atoms, method, spacing, max_dist, nexp):
     from numpy import zeros, float32
     pot = zeros((nzgrid+1, nygrid+1, nxgrid+1), float32)
     # Make sure _mlp can runtime link shared library libarrays.
-    from chimerax import arrays ; arrays.load_libarrays()
+    import chimerax.arrays
     from ._mlp import mlp_sum
     mlp_sum(xyz, fi, origin, spacing, max_dist, method, nexp, pot)
                  

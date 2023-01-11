@@ -137,8 +137,7 @@ def cmd_coulombic(session, atoms, *, surfaces=None, his_scheme=None, offset=1.4,
     if gpadding is None:
         gpadding = 5.0
     import numpy, os
-    # Make sure _esp can runtime link shared library libarrays.
-    from chimerax import arrays ; arrays.load_libarrays()
+    import chimerax.arrays # Make sure _esp can runtime link shared library libarrays.
     from ._esp import potential_at_points
     from chimerax.map import volume_from_grid_data
     from chimerax.map_data import ArrayGridData
@@ -183,8 +182,7 @@ def color_vertices(session, surface, offset, charged_atoms, dist_dep, dielectric
         target_points = surface.vertices + offset * surface.normals
     arv = surface.auto_recolor_vertices
     import numpy, os
-    # Make sure _esp can runtime link shared library libarrays.
-    from chimerax import arrays ; arrays.load_libarrays()
+    import chimerax.arrays # Make sure _esp can runtime link shared library libarrays.
     from ._esp import potential_at_points
     cpu_count = os.cpu_count()
     vertex_values = potential_at_points(surface.scene_position.transform_points(target_points),

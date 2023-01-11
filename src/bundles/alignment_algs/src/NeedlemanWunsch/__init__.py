@@ -33,7 +33,7 @@ def nw(s1, s2, score_match=10, score_mismatch=-3, score_gap=0, score_gap_open=-4
     is the match score."""
 
     # Make sure _nw can runtime link shared library libarrays.
-    from chimerax import arrays ; arrays.load_libarrays()
+    import chimerax.arrays
     from .._nw import match
     if gap_open_helix is None:
         ss_specific_gaps = False
