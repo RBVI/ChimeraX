@@ -1613,9 +1613,10 @@ class AtomicStructure(Structure):
             return '<a title="Show sequence" href="cxcmd:sequence chain %s">%s</a>' % (
                 ''.join([chain.string(style="command", include_structure=True)
                     for chain in chains]), escape(description))
-        uids = {u.chain_id:(u.uniprot_id,u.uniprot_name) for u in uniprot_ids(self)}
+        uids = uniprot_ids(self)
+        uchains = set(uid.chain_id for uid in uids)
         have_uniprot_ids = len([chain for chains in descripts.values()
-                                for chain in chains if chain.chain_id in uids]) > 0
+                                for chain in chains if chain.chain_id in uchains]) > 0
         from chimerax.core.logger import html_table_params
         struct_name = self.name if is_ensemble else str(self)
         lines = ['<table %s>' % html_table_params,
@@ -1637,10 +1638,7 @@ class AtomicStructure(Structure):
             cids = ' '.join([chain_text(chain) for chain in chains])
             cdescrip = descript_text(description, chains)
             if have_uniprot_ids:
-                uidset = set(uids.get(chain.chain_id) for chain in chains
-                             if chain.chain_id in uids)
-                ucmd = '<a title="Show annotations" href="cxcmd:open %s from uniprot">%s</a>'
-                cuids = ','.join(ucmd % (uacc,uname) for uacc,uname in uidset)
+                cuids = uniprot_chain_descriptions(uids, chains)
             lines.extend([
                 '    <tr>',
                 '      <td style="text-align:center">' + cids + '</td>',
@@ -1728,6 +1726,38 @@ def chain_res_range(chain):
     ranges.append((start_res, end_res))
     return range_string(*ranges[0], first_res_only=False) + ',' + ','.join(
         [range_string(first, last, first_res_only=True)[1:] for first, last in ranges[1:]])
+
+def uniprot_chain_descriptions(uids, chains):
+
+    if len(chains) == 0:
+        return ''
+    
+    # Group uniport ids with different sequence ranges.
+    uranges = {}
+    chain_ids = set(chain.chain_id for chain in chains)
+    for uid in uids:
+        if uid.chain_id in chain_ids:
+            if uid.uniprot_id in uranges:
+                uranges[uid.uniprot_id].append(uid)
+            else:
+                uranges[uid.uniprot_id] = [uid]
+
+    # Make a link for each Uniprot id and list sequence ranges
+    descrips = []
+    ucmd = '<a title="Show annotations" href="cxcmd:open %s from uniprot">%s</a>'
+    cspec = f'#{chains[0].structure.id_string}/{",".join(sorted(chain_ids))}'
+    scmd = f'<a title="Select sequence" href="cxcmd:select {cspec}:%d-%d">%d-%d</a>'
+    for ruids in uranges.values():
+        uid = ruids[0]
+        utext = uid.uniprot_name if uid.uniprot_name else uid.uniprot_id
+        descrip = ucmd % (uid.uniprot_id, utext)
+        seq_ranges = set(tuple(uid.chain_sequence_range)
+                         for uid in ruids if uid.chain_sequence_range)
+        if seq_ranges:
+            descrip += ' ' + ' '.join(scmd % (s,e,s,e) for s,e in sorted(seq_ranges))
+        descrips.append(descrip)
+        
+    return ', '.join(descrips)
 
 
 # -----------------------------------------------------------------------------
