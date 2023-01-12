@@ -349,6 +349,7 @@ def fetch_info(mgr, file_arg, format_name, database_name):
         ident = file_arg
     else:
         return None
+    db_name = db_name.lower()
     from .manager import NoOpenerError
     try:
         db_formats = list(mgr.database_info(db_name).keys())
