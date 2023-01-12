@@ -14,7 +14,6 @@
 # -----------------------------------------------------------------------------
 # Make sure _morph can runtime link shared library libarrays.
 #
-from chimerax import arrays
-arrays.load_libarrays()
+import chimerax.arrays
 
 from ._morph import *

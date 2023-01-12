@@ -47,7 +47,7 @@ setup(
     # See class BinaryDistribution that was defined earlier
     distclass = BinaryDistribution,
 
-    version = '1.2.0',
+    version = '1.6.0',
     url = 'https://github.com/RBVI/ChimeraX',
     author = 'UCSF Computer Graphics Lab',
     author_email = 'chimera-programmers@cgl.ucsf.edu',
@@ -60,12 +60,14 @@ setup(
         'PyOpenGL',	# Render images
         'PyOpenGL_accelerate',	# Render images
         'Pillow',	# Render images
+        'sortedcontainers', # Color code uses this
+        'packaging',	# is_daily_build() is using this.  TODO: Can remove this dependency?
     ],
     
     classifiers = [
         'Development Status :: 5 - Production/Stable',
         'License :: Other/Proprietary License',
         'Intended Audience :: Science/Research',
-        'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.9',
     ],
 )

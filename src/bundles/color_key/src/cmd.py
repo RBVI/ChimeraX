@@ -89,7 +89,7 @@ def key_cmd(session, colors_and_labels=None, *, pos=None, size=None, font_size=N
             session.logger.warning("Key is partially or completely offscreen")
     if colors_and_labels is not None:
         key.rgbas_and_labels = rgbas_and_labels
-    if show_tool and session.ui.is_gui and not session.in_script:
+    if show_tool and session.ui.is_gui:
         from chimerax.core.commands import run
         run(session,"ui tool show 'Color Key'", log=False)
     return key

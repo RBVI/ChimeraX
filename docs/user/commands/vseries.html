@@ -205,7 +205,7 @@ By default, playback is as fast as possible, which can be fairly slow
 for large data. This option can be used to slow playback when it is too fast;
 however, the number of image frames per <a href="#time">time</a> step 
 will still depend on the speed of graphics rendering.
-The <a href="pauseFrames"><b>pauseFrames</b></a> option 
+The <a href="#pauseFrames"><b>pauseFrames</b></a> option 
 slows playback more reproducibly and may be preferred.
 </blockquote>
 <blockquote>
@@ -249,11 +249,24 @@ the slider; however, it allows assigning the same slider to
 two or more series (different channels/wavelengths) even if the series
 are not the same sizes. 
 <p>
-In the interface, the slider can be dragged
-or a <a href="#time">time</a> value entered directly. The interface also
-includes a play/pause button and another that toggles between the full 
-data (step 1) and every-other-point subsampling (step 2).
-The slider is saved in <a href="save.html#session">sessions</a>.
+The slider can be dragged or a <a href="#time">time</a> value entered directly. 
+The interface also includes a play/pause button, a
+&nbsp;<img style="height:16px; margin: 1px -1px; vertical-align:top"
+src="../tools/ui-icons/snail.png">&nbsp; value to increase for slower playback
+(<a href="#pauseFrames"><b>pauseFrames</b></a> as described above),
+and a button for recording a movie
+(<img class="iconbar" src="../tools/ui-icons/record.png">).
+The movie will start at the current slider position, so
+to include the whole series, place the slider at the far left
+before clicking the record button.
+The button on the far right
+<span class="nowrap">(&nbsp;<img style="height:18px; margin: 1px -1px;
+vertical-align:top" src="../tools/ui-icons/half.png">&nbsp;)</span>
+toggles between the full data
+(<a href="volume.html#step">step</a> 1)
+and every-other-point subsampling
+(<a href="volume.html#step">step</a> 2).
+See also: <a href="coordset.html#slider"><b>coordset slider</b></a>
 </p><p>
 Volume series playback can also be assigned to
 a <a href="ui.html#mousemode">mouse mode</a> such as scrolling.
@@ -431,5 +444,5 @@ Compress the output file (<a href="save.html#chimap">Chimera map format</a>).
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-October 2022</address>
+January 2023</address>
 </body></html>

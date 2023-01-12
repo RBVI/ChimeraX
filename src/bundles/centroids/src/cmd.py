@@ -13,6 +13,10 @@
 
 from chimerax.atomic import Structure
 from chimerax.dist_monitor import SimpleMeasurable
+
+def simplified_string(a, style=None, **kw):
+    return a.structure.string(style=style)
+
 # to make it easy to identify centroid models...
 class CentroidModel(Structure, SimpleMeasurable):
     @property
@@ -38,6 +42,8 @@ class CentroidModel(Structure, SimpleMeasurable):
         else:
             restore_data = data
         inst.set_state_from_snapshot(session, restore_data)
+        a = inst.atoms[0]
+        a.string = lambda a=a, **kw: simplified_string(a, **kw)
         return inst
 
 from . import centroid
@@ -85,6 +91,8 @@ def cmd_centroid(session, atoms=None, *, mass_weighting=False, name="centroid", 
         else:
             a.color = color
     a.radius = radius
+    # override string() to avoid 4(!) "centroid"s in the output
+    a.string = lambda a=a, **kw: simplified_string(a, **kw)
     if len(structures) > 1:
         session.models.add([s])
     else:
