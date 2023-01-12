@@ -87,7 +87,8 @@ def coordset_stop(session, structures = None):
 # -----------------------------------------------------------------------------
 #
 def coordset_slider(session, structures, hold_steady = None,
-                    pause_frames = 1, loop = 1, compute_ss = False):
+                    pause_frames = 1, loop = 1, compute_ss = False,
+                    movie_framerate = 25.0):
   '''Show a slider that controls which coordinate set is shown.
 
   Parameters
@@ -102,6 +103,8 @@ def coordset_slider(session, structures, hold_steady = None,
     This is to slow down playback.  Default 1.
   compute_ss : bool
     Whether to recompute secondary structure using dssp for every new frame.  Default false.
+  movie_framerate : float
+    The playback speed for a recorded movie. Default 25 frames/sec.
   '''
 
   if len(structures) == 0:
@@ -112,13 +115,14 @@ def coordset_slider(session, structures, hold_steady = None,
     hold = hold_steady.intersect(m.atoms) if hold_steady else None
     from .coordset_gui import CoordinateSetSlider
     CoordinateSetSlider(session, m, steady_atoms = hold,
-                        pause_frames = pause_frames, compute_ss = compute_ss)
+                        pause_frames = pause_frames, compute_ss = compute_ss,
+                        movie_framerate = movie_framerate)
 
 # -----------------------------------------------------------------------------
 #
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register, ListOf
-    from chimerax.core.commands import IntArg, BoolArg, Or, EmptyArg
+    from chimerax.core.commands import IntArg, BoolArg, FloatArg, Or, EmptyArg
     from chimerax.atomic import AtomsArg, StructuresArg
     desc = CmdDesc(
         required = [('structures', StructuresArg),
@@ -140,7 +144,8 @@ def register_command(logger):
         required = [('structures', StructuresArg)],
         keyword = [('hold_steady', AtomsArg),
                    ('pause_frames', IntArg),
-                   ('compute_ss', BoolArg)],
+                   ('compute_ss', BoolArg),
+                   ('movie_framerate', FloatArg)],
         synopsis = 'show slider for coordinate sets')
     register('coordset slider', desc, coordset_slider, logger=logger)
 
