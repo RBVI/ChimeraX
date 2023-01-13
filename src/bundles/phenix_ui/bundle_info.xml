@@ -35,6 +35,7 @@
     <ChimeraXClassifier>Command :: phenix emplaceLocal :: Structure Editing :: Place model in map</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: phenix location :: Structure Editing :: Set location of Phenix installation</ChimeraXClassifier>
     <ChimeraXClassifier>Tool :: Water Placement :: Structure Editing, Phenix :: Place waters in a map</ChimeraXClassifier>
+    <ChimeraXClassifier>Tool :: Local Fitting :: Structure Editing, Phenix :: Place structure in a map using localized search</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

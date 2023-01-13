@@ -49,7 +49,6 @@ class LaunchDouseSettings(Settings):
     }
 
 class LaunchDouseTool(ToolInstance):
-
     help = "help:user/tools/waterplacement.html"
 
     def __init__(self, session, tool_name):
@@ -156,3 +155,139 @@ class LaunchDouseTool(ToolInstance):
         from chimerax.core.commands import run
         run(self.session, cmd)
         self.delete()
+
+class LaunchEmplaceLocalTool(ToolInstance):
+    #help = "help:user/tools/waterplacement.html"
+    help = None
+
+    CENTER_XYZ = "specified xyz position..."
+    CENTER_HALF_MAPS = "center of half maps"
+    CENTERING_METHODS = [CENTER_XYZ, CENTER_HALF_MAPS]
+
+    def __init__(self, session, tool_name):
+        super().__init__(session, tool_name)
+        from chimerax.ui import MainToolWindow
+        self.tool_window = tw = MainToolWindow(self)
+        parent = tw.ui_area
+
+        from Qt.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel, QWidget, QPushButton, QMenu, QLineEdit
+        from Qt.QtGui import QDoubleValidator
+        from Qt.QtCore import Qt
+        layout = QVBoxLayout()
+        parent.setLayout(layout)
+        #layout.setContentsMargins(0,0,0,0)
+        layout.setSpacing(1)
+
+        centering_widget = QWidget()
+        layout.addWidget(centering_widget, alignment=Qt.AlignCenter)
+        structure_layout = QHBoxLayout()
+        structure_layout.setSpacing(1)
+        centering_widget.setLayout(structure_layout)
+        structure_layout.addWidget(QLabel("Fit "), alignment=Qt.AlignRight, stretch=1)
+        from chimerax.atomic.widgets import AtomicStructureMenuButton
+        self.structure_menu = AtomicStructureMenuButton(session)
+        structure_layout.addWidget(self.structure_menu)
+        structure_layout.addWidget(QLabel(" using half maps "))
+        from chimerax.ui.widgets import ModelListWidget
+        class ShortMLWidget(ModelListWidget):
+            def sizeHint(self):
+                hint = super().sizeHint()
+                hint.setHeight(hint.height()//2)
+                return hint
+        from chimerax.map import Volume
+        self.half_map_list = ShortMLWidget(session, class_filter=Volume)
+        structure_layout.addWidget(self.half_map_list, alignment=Qt.AlignLeft, stretch=1)
+
+        from chimerax.ui.options import OptionsPanel, FloatOption
+        res_options = OptionsPanel(scrolled=False, contents_margins=(0,0,0,0))
+        layout.addWidget(res_options, alignment=Qt.AlignCenter)
+        self.res_option = FloatOption("Map resolution:", 3.8, None, min="positive", decimal_places=2,
+            step=0.1, max=99.99)
+        res_options.add_option(self.res_option)
+
+        centering_widget = QWidget()
+        layout.addWidget(centering_widget, alignment=Qt.AlignCenter)
+        centering_layout = QHBoxLayout()
+        centering_layout.setSpacing(1)
+        centering_widget.setLayout(centering_layout)
+        centering_layout.addWidget(QLabel("Center search at"), alignment=Qt.AlignRight, stretch=1)
+        self.centering_button = QPushButton()
+        centering_layout.addWidget(self.centering_button)
+        centering_menu = QMenu(self.centering_button)
+        for method in self.CENTERING_METHODS:
+            centering_menu.addAction(method)
+        centering_menu.triggered.connect(lambda act: self._set_centering_method(act.text()))
+        self.centering_button.setMenu(centering_menu)
+        self.xyz_area = QWidget()
+        xyz_layout = QHBoxLayout()
+        xyz_layout.setSpacing(1)
+        self.xyz_area.setLayout(xyz_layout)
+        self.xyz_widgets = []
+        for lab in ["X", " Y", " Z"]:
+            xyz_layout.addWidget(QLabel(lab), alignment=Qt.AlignRight)
+            entry = QLineEdit()
+            entry.setValidator(QDoubleValidator())
+            entry.setAlignment(Qt.AlignCenter)
+            entry.setMaximumWidth(50)
+            entry.setText("0")
+            xyz_layout.addWidget(entry, alignment=Qt.AlignLeft)
+            self.xyz_widgets.append(entry)
+
+        centering_layout.addWidget(self.xyz_area)
+        self._set_centering_method()
+
+        from Qt.QtWidgets import QDialogButtonBox as qbbox
+        self.bbox = bbox = qbbox(qbbox.Ok | qbbox.Close | qbbox.Help)
+        bbox.accepted.connect(self.launch_emplace_local)
+        bbox.rejected.connect(self.delete)
+        if self.help:
+            from chimerax.core.commands import run
+            bbox.helpRequested.connect(lambda *, run=run, ses=session: run(ses, "help " + self.help))
+        else:
+            bbox.button(qbbox.Help).setEnabled(False)
+        layout.addWidget(bbox)
+
+        tw.manage(placement=None)
+
+    def launch_emplace_local(self):
+        '''
+        structure = self.structure_menu.value
+        if not structure:
+            raise UserError("Must specify a structure for water placement")
+        map = self.map_menu.value
+        if not map:
+            raise UserError("Must specify a map for water placement")
+        check_overlap(structure, map)
+        cmd = "phenix douse %s near %s" % (map.atomspec, structure.atomspec)
+        from chimerax.core.commands import BoolArg
+        first_shell = self.first_shell_option.value
+        if first_shell != (not defaults['far_water']):
+            cmd +=  " farWater %s" % BoolArg.unparse(not first_shell)
+        keep_waters = self.keep_waters_option.value
+        if keep_waters != defaults['keep_input_water']:
+            cmd += " keepInputWater %s" % BoolArg.unparse(keep_waters)
+        hide_map = self.hide_map_option.value
+        if hide_map:
+            hide_map_dist = self.hide_map_dist_option.value
+            if hide_map_dist != defaults['map_range']:
+                cmd += " mapRange %g" % hide_map_dist
+        elif defaults['map_range'] > 0:
+            cmd += " mapRange 0"
+        res_range = self.res_range_option.value
+        if res_range != defaults['residue_range']:
+            cmd += " residueRange %g" % res_range
+        verbose = self.verbose_option.value
+        if verbose != defaults['verbose']:
+            cmd += " verbose %s" % BoolArg.unparse(verbose)
+        if hasattr(self, 'resolution_option'):
+            cmd += " resolution %g" % self.resolution_option.value
+        from chimerax.core.commands import run
+        run(self.session, cmd)
+        self.delete()
+        '''
+
+    def _set_centering_method(self, method=CENTER_HALF_MAPS):
+        self.centering_button.setText(method)
+        self.xyz_area.setHidden(True)
+        if method == self.CENTER_XYZ:
+            self.xyz_area.setHidden(False)
