@@ -358,8 +358,8 @@ def fetch_mmcif(
     if not _initialized:
         _initialize(session)
 
-    if len(pdb_id) != 4:
-        raise UserError('PDB identifiers are 4 characters long, got "%s"' % pdb_id)
+    if len(pdb_id) not in (4,8):
+        raise UserError('PDB identifiers are either 4 or 8 characters long, got "%s"' % pdb_id)
     if structure_factors:
         try:
             from chimerax.clipper.io import fetch_cif
@@ -369,11 +369,15 @@ def fetch_mmcif(
 
     import os
     pdb_id = pdb_id.lower()
+    if len(pdb_id) == 8 and pdb_id.startswith("0000"):
+        # avoid two differently named but identical entries in the cache...
+        pdb_id = pdb_id[4:]
+    entry = pdb_id if len(pdb_id) == 4 else "pdb_" + pdb_id
     filename = None
     if not fetch_source.endswith('updated'):
         # check on local system -- TODO: configure location
-        subdir = pdb_id[1:3]
-        filename = "/databases/mol/mmCIF/%s/%s.cif" % (subdir, pdb_id)
+        subdir = pdb_id[-3:-1]
+        filename = "/databases/mol/mmCIF/%s/%s.cif" % (subdir, entry)
         if os.path.exists(filename):
             session.logger.info("Fetching mmCIF %s from system cache: %s" % (pdb_id, filename))
         else:
@@ -385,7 +389,7 @@ def fetch_mmcif(
         base_url = _mmcif_sources.get(fetch_source, None)
         if base_url is None:
             raise UserError('unrecognized mmCIF/PDB source "%s"' % fetch_source)
-        url = base_url % pdb_id
+        url = base_url % entry
         pdb_name = "%s.cif" % pdb_id
         from chimerax.core.fetch import fetch_file
         filename = fetch_file(session, url, 'mmCIF %s' % pdb_id, pdb_name,

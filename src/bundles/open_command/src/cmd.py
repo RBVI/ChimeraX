@@ -28,7 +28,8 @@ class OpenInputArg(OpenFileNamesArg):
 import os.path
 def likely_pdb_id(text, format_name):
     return not exists_locally(text, format_name) \
-        and len(text) == 4 and text[0].isdigit() and text[1:].isalnum()
+        and ((len(text) == 4 and text[0].isdigit() and text[1:].isalnum())
+            or (len(text) == 8 and text[:5].isdigit() and text[5:].isalnum()))
 
 def exists_locally(text, format):
     # does that name exist on the file system, and if it does but has no suffix, is there a format?
