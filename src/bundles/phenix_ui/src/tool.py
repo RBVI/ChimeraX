@@ -250,41 +250,28 @@ class LaunchEmplaceLocalTool(ToolInstance):
         tw.manage(placement=None)
 
     def launch_emplace_local(self):
-        '''
         structure = self.structure_menu.value
         if not structure:
-            raise UserError("Must specify a structure for water placement")
-        map = self.map_menu.value
-        if not map:
-            raise UserError("Must specify a map for water placement")
-        check_overlap(structure, map)
-        cmd = "phenix douse %s near %s" % (map.atomspec, structure.atomspec)
-        from chimerax.core.commands import BoolArg
-        first_shell = self.first_shell_option.value
-        if first_shell != (not defaults['far_water']):
-            cmd +=  " farWater %s" % BoolArg.unparse(not first_shell)
-        keep_waters = self.keep_waters_option.value
-        if keep_waters != defaults['keep_input_water']:
-            cmd += " keepInputWater %s" % BoolArg.unparse(keep_waters)
-        hide_map = self.hide_map_option.value
-        if hide_map:
-            hide_map_dist = self.hide_map_dist_option.value
-            if hide_map_dist != defaults['map_range']:
-                cmd += " mapRange %g" % hide_map_dist
-        elif defaults['map_range'] > 0:
-            cmd += " mapRange 0"
-        res_range = self.res_range_option.value
-        if res_range != defaults['residue_range']:
-            cmd += " residueRange %g" % res_range
-        verbose = self.verbose_option.value
-        if verbose != defaults['verbose']:
-            cmd += " verbose %s" % BoolArg.unparse(verbose)
-        if hasattr(self, 'resolution_option'):
-            cmd += " resolution %g" % self.resolution_option.value
-        from chimerax.core.commands import run
+            raise UserError("Must specify a structure to fit")
+        maps = self.half_map_list.value
+        if len(maps) != 2:
+            raise UserError("Must specify exactly two half maps for fitting")
+        res = self.res_option.value
+        if self.centering_button.text() == self.CENTER_XYZ:
+            center = [float(widget.text()) for widget in self.xyz_widgets]
+        else:
+            # center of half-map
+            data = maps[0].data
+            center =[]
+            for limit, o in zip(data.ijk_to_xyz(data.size), data.origin):
+                center.append((limit - o) / 2)
+        from chimerax.core.commands import run, concise_model_spec
+        from chimerax.map import Volume
+        cmd = "phenix emplaceLocal %s halfMaps %s resolution %g center %g,%g,%g" % (structure.atomspec,
+            concise_model_spec(self.session, maps, relevant_types=Volume, allow_empty_spec=False),
+            res, *center)
         run(self.session, cmd)
         self.delete()
-        '''
 
     def _set_centering_method(self, method=CENTER_HALF_MAPS):
         self.centering_button.setText(method)
