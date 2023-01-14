@@ -162,7 +162,8 @@ class LaunchEmplaceLocalTool(ToolInstance):
 
     CENTER_XYZ = "specified xyz position..."
     CENTER_HALF_MAPS = "center of half maps"
-    CENTERING_METHODS = [CENTER_XYZ, CENTER_HALF_MAPS]
+    CENTER_MARKER = "at marker..."
+    CENTERING_METHODS = [CENTER_XYZ, CENTER_HALF_MAPS, CENTER_MARKER]
 
     def __init__(self, session, tool_name):
         super().__init__(session, tool_name)
@@ -232,6 +233,8 @@ class LaunchEmplaceLocalTool(ToolInstance):
             entry.setText("0")
             xyz_layout.addWidget(entry, alignment=Qt.AlignLeft)
             self.xyz_widgets.append(entry)
+        self.marker_menu = MarkerMenuButton(session)
+        centering_layout.addWidget(self.marker_menu)
 
         centering_layout.addWidget(self.xyz_area)
         self._set_centering_method()
@@ -276,5 +279,22 @@ class LaunchEmplaceLocalTool(ToolInstance):
     def _set_centering_method(self, method=CENTER_HALF_MAPS):
         self.centering_button.setText(method)
         self.xyz_area.setHidden(True)
+        self.marker_menu.setHidden(True)
         if method == self.CENTER_XYZ:
             self.xyz_area.setHidden(False)
+        elif method == self.CENTER_MARKER:
+            self.marker_menu.setHidden(False)
+
+from chimerax.ui.widgets import ItemMenuButton
+class MarkerMenuButton(ItemMenuButton):
+    def __init__(self, session):
+        def list_markers(ses=session):
+            from chimerax.markers import MarkerSet
+            markers = []
+            for m in ses.models:
+                if isinstance(m, MarkerSet):
+                    markers.extend(list(m.residues))
+            return markers
+
+        from chimerax.atomic import get_triggers
+        super().__init__(list_func=list_markers, trigger_info=[(get_triggers(), 'changes')])
