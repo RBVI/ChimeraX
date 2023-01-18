@@ -173,7 +173,7 @@ class OpenManager(ProviderManager):
             # fetch-only type (e.g. cellPACK)
             args = {}
         args.update(provider_info.bundle_info.run_provider(self.session,
-            database_name, self).fetch_args)
+            database_name.lower(), self).fetch_args)
         return args
 
     def open_data(self, path, *, in_file_history=False, **kw):

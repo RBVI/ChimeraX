@@ -54,14 +54,14 @@ setup(
     license_files = ['LICENSE.md'],
     
     install_requires = [
-        'numpy',	# For atom coordinate arrays and microscopy images
-        'tinyarray',	# For atom coordinates
-        'html2text',	# To convert log output from html to plain text
-        'PyOpenGL',	# Render images
-        'PyOpenGL_accelerate',	# Render images
-        'Pillow',	# Render images
-        'sortedcontainers', # Color code uses this
-        'packaging',	# is_daily_build() is using this.  TODO: Can remove this dependency?
+        'numpy',                # For atom coordinate arrays and microscopy images
+        'tinyarray',            # For atom coordinates
+        'html2text',            # To convert log output from html to plain text
+        #'PyOpenGL',             # Render images
+        #'PyOpenGL_accelerate',  # Render images
+        #'Pillow',               # Render images
+        'sortedcontainers',     # Color code uses this
+        'packaging',            # is_daily_build() is using this.  TODO: Can remove this dependency?
     ],
     
     classifiers = [

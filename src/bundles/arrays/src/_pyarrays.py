@@ -11,6 +11,8 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 import os
+import sys
+import warnings
 
 def path_to_src() -> str:
     return os.path.dirname(__file__)
@@ -21,20 +23,22 @@ def get_lib() -> str:
 def get_include() -> str:
     return os.path.join(path_to_src(), 'include')
 
-from chimerax.core.toolshed import BundleAPI
-
-class _AtomicLibAPI(BundleAPI):
-    pass
-
-bundle_api = _AtomicLibAPI()
-
-# Load libarrays since atomic_libs C++ shared libraries use it.
-import chimerax.arrays
-
-# Include atomic_libs/lib in runtime library search path.
-import sys
 if sys.platform.startswith('win'):
     os.add_dll_directory(get_lib())
 
-# Load atomic_libs libraries so they are found by other C++ modules that link to them.
-from . import _load_libs
+from . import _arrays
+
+def load_libarrays():
+    warnings.warn(
+        "load_libarrays is no longer required to link libarrays."
+        " Please instead import chimerax.arrays"
+        , DeprecationWarning
+        , stacklevel=2
+    )
+
+from chimerax.core.toolshed import BundleAPI
+
+class _ArraysAPI(BundleAPI):
+    pass
+
+bundle_api = _ArraysAPI()

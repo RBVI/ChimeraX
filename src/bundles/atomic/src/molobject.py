@@ -21,8 +21,7 @@ from . import ctypes_support as convert
 # -------------------------------------------------------------------------------
 # Access functions from libmolc C library.
 #
-from chimerax.arrays import load_libarrays
-load_libarrays() 	# Load libarrrays shared library before importing libmolc.
+import chimerax.arrays # Load libarrrays shared library before importing libmolc.
 _atomic_c_functions = CFunctions('libmolc')
 c_property = _atomic_c_functions.c_property
 cvec_property = _atomic_c_functions.cvec_property
