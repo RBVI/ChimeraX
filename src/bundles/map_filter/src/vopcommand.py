@@ -447,7 +447,7 @@ def combine_operation(volumes, operation, subregion, step,
             rv.combine_interpolated_values(v, op, subregion = subregion, step = step,
                                            scale = scale[i])
     rv.data.values_changed()
-    if volumes:
+    if volumes and not in_place:
         rv.copy_settings_from(v0, copy_region = False, copy_xform = False, copy_colors = False)
         if rv.data.name.endswith('difference'):
             rv.set_parameters(cap_faces = False)
