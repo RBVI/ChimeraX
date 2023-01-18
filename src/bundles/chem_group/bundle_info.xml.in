@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-ChemGroup" version="2.0"
+<BundleInfo name="ChimeraX-ChemGroup" version="2.0.1"
 	    package="chimerax.chem_group" customInit="true"
 		purePython="false"
   	    minSessionVersion="1" maxSessionVersion="1">
