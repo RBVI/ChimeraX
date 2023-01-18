@@ -10,33 +10,14 @@
 # including partial copies, of the software or any revisions
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
-import os
-import sys
-import warnings
+from ._pyarrays import get_lib, get_include, load_libarrays
 
-def path_to_src() -> str:
-    return os.path.dirname(__file__)
+__all__ = ["get_lib", "get_include", "load_libarrays"]
 
-def get_lib() -> str:
-    return os.path.join(path_to_src(), 'lib')
-
-def get_include() -> str:
-    return os.path.join(path_to_src(), 'include')
-
-if sys.platform.startswith('win'):
-    os.add_dll_directory(get_lib())
-
-from . import _arrays
-
-def load_libarrays():
-    warnings.warn(
-        "load_libarrays is no longer required to link libarrays."
-        "Please instead import chimerax.arrays"
-    )
-
-from chimerax.core.toolshed import BundleAPI
-
-class _ArraysAPI(BundleAPI):
-    pass
-
-bundle_api = _ArraysAPI()
+# try:
+#     from chimerax import running_as_application
+# except ImportError:
+#     running_as_application = False
+# if running_as_application:
+from ._pyarrays import bundle_api
+__all__.append("bundle_api")
