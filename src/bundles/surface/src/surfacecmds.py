@@ -68,7 +68,7 @@ def surface(session, atoms = None, enclose = None, include = None,
                                ' not both, ignoring probeRadius')
         
     from chimerax.atomic.molsurf import MolecularSurface, remove_solvent_ligands_ions
-    from chimerax.atomic.molsurf import surface_rgba, update_color, surfaces_overlapping_atoms
+    from chimerax.atomic.molsurf import surface_initial_color, update_color, surfaces_overlapping_atoms
 
     if replace:
         all_surfs = dict((s.atoms.hash(), s) for s in session.models.list(type = MolecularSurface))
@@ -114,7 +114,7 @@ def surface(session, atoms = None, enclose = None, include = None,
             if s is None:
                 stype = 'SES' if resolution is None else 'Gaussian'
                 name = '%s_%s %s surface' % (m.name, chain_id, stype)
-                rgba = surface_rgba(color, transparency, chain_id)
+                rgba = surface_initial_color(color, transparency, enclose_atoms)
                 s = MolecularSurface(session, enclose_atoms, show_atoms,
                                      probe, grid, resolution, level,
                                      name, rgba, visible_patches, sharp)
@@ -135,7 +135,7 @@ def surface(session, atoms = None, enclose = None, include = None,
             mols = enclose.unique_structures
             parent = mols[0] if len(mols) == 1 else None
             name = 'Surface %s' % enclose.spec
-            rgba = surface_rgba(color, transparency)
+            rgba = surface_initial_color(color, transparency, enclose_atoms)
             s = MolecularSurface(session, enclose_atoms, show_atoms,
                                  probe, grid, resolution, level,
                                  name, rgba, visible_patches, sharp)

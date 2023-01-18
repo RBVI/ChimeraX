@@ -58,13 +58,6 @@ def register_surface_subcommands(logger):
                        (('pieces', surface_pieces_arg),), (), ()),
         'showPieces': (show_pieces_op,
                        (('pieces', surface_pieces_arg),), (), ()),
-        'smooth': (smooth_op,
-                      (('surfaces', surface_pieces_arg),),
-                      (),
-                      (('factor', float_arg),
-                       ('iterations', int_arg),
-                       ('inPlace', bool_arg),
-                       ('modelId', model_id_arg))),
         'split': (split_op,
                       (('surfaces', surface_pieces_arg),),
                       (),
@@ -92,6 +85,13 @@ def register_surface_subcommands(logger):
     invert_desc = CmdDesc(required = [('surfaces', SurfacesArg)],
                           synopsis = 'show hidden part of surface and hide shown part')
     register('surface invertShown', invert_desc, surface_invert_shown, logger=logger)
+
+    smooth_desc = CmdDesc(required = [('surfaces', SurfacesArg)],
+                          keyword = [('factor', FloatArg),
+                                     ('iterations', IntArg),
+                                     ('in_place', BoolArg)],
+                        synopsis = 'smooth surfaces')
+    register('surface smooth', smooth_desc, surface_smooth, logger=logger)
 
     transform_desc = CmdDesc(required = [('surfaces', SurfacesArg)],
                              keyword = [('scale', FloatArg),
@@ -225,16 +225,44 @@ def color_copy_op(surfaces, tosurfaces):
 
 # -----------------------------------------------------------------------------
 #
-def smooth_op(surfaces, factor = 0.3, iterations = 2, inPlace = False, modelId = None):
+def surface_smooth(session, surfaces, factor = 0.3, iterations = 2, in_place = False):
 
-    from Commands import check_number, parse_model_id
     if len(surfaces) == 0:
-        raise CommandError('No surfaces specified')
-    plist = surfaces
-    s = None if inPlace else new_surface('smoothed', plist[0].model, modelId)
-    from smooth import smooth_surface_piece
-    for p in plist:
-        smooth_surface_piece(p, factor, iterations, s)
+        from chimerax.core.errors import UserError
+        raise UserError('No surfaces specified')
+
+    from chimerax.surface import smooth_vertex_positions
+    if in_place:
+        for surface in surfaces:
+            va, na, ta = surface.vertices, surface.normals, surface.triangles
+            smooth_vertex_positions(va, ta, factor, iterations)
+            smooth_vertex_positions(na, ta, factor, iterations)
+            surface.set_geometry(va, na, ta)
+        return surfaces
+    else:
+        copies = []
+        from chimerax.core.models import Surface
+        for surface in surfaces:
+            va, na, ta = surface.vertices.copy(), surface.normals.copy(), surface.triangles.copy()
+            smooth_vertex_positions(va, ta, factor, iterations)
+            smooth_vertex_positions(na, ta, factor, iterations)
+            copy = Surface(surface.name + ' smooth', session)
+            copy.set_geometry(va, na, ta)
+            copy.positions = surface.get_scene_positions()
+            _copy_surface_attributes(surface, copy)
+            copies.append(copy)
+        session.models.add(copies)
+        return copies
+
+# -----------------------------------------------------------------------------
+#
+def _copy_surface_attributes(from_surf, to_surf):
+    # TODO: There are many more attributes that could be copied.
+    to_surf.color = from_surf.color
+    to_surf.vertex_colors = from_surf.vertex_colors
+    to_surf.display_style = from_surf.display_style
+    to_surf.edge_mask = from_surf.edge_mask
+    to_surf.triangle_mask = from_surf.triangle_mask
 
 # -----------------------------------------------------------------------------
 #

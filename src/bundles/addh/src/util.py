@@ -40,20 +40,32 @@ def complete_terminal_carboxylate(session, cter):
     from chimerax.atomic.bond_geom import bond_positions
     from chimerax.atomic.struct_edit import add_atom
     from chimerax.atomic import Element
-    if cter.find_atom("OXT"):
-        return
     c = cter.find_atom("C")
-    if c:
-        if c.num_bonds != 2:
-            return
-        loc = bond_positions(c.coord, 3, 1.229, [n.coord for n in c.neighbors])[0]
-        oxt = add_atom("OXT", Element.get_element("O"), cter, loc, bonded_to=c)
-        from chimerax.atomic.colors import element_color
-        if c.color == element_color(c.element.number):
-            oxt.color = element_color(oxt.element.number)
-        else:
-            oxt.color = c.color
-        session.logger.info("Missing OXT added to C-terminal residue %s" % str(cter))
+    if not c:
+        return
+    missing_O = missing_OXT = True
+    for nb in c.neighbors:
+        if nb.name == "O":
+            missing_O = False
+        elif nb.name == "OXT":
+            missing_OXT = False
+    if missing_O and missing_OXT:
+        session.logger.warning("Both O and OXT missing from C-terminal residue %s; cannot complete teminus"
+            % str(cter))
+        return
+    if not missing_O and not missing_OXT:
+        return
+    missing_name = "OXT" if missing_OXT else "O"
+    if c.num_bonds != 2:
+        return
+    loc = bond_positions(c.coord, 3, 1.229, [n.coord for n in c.neighbors])[0]
+    oxt = add_atom(missing_name, Element.get_element("O"), cter, loc, bonded_to=c)
+    from chimerax.atomic.colors import element_color
+    if c.color == element_color(c.element.number):
+        oxt.color = element_color(oxt.element.number)
+    else:
+        oxt.color = c.color
+    session.logger.info("Missing %s added to C-terminal residue %s" % (missing_name, str(cter)))
 
 def determine_termini(session, structs):
     real_N = []

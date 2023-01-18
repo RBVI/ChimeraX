@@ -302,11 +302,15 @@ struct ExtractMolecule: public readcif::CIFFile
 };
 
 const char* ExtractMolecule::builtin_categories[] = {
-    "audit_conform", "audit_syntax", "atom_site", "entity_poly", "entity_poly_seq"
+    "chimerax_audit_syntax",
+    "audit_conform", "audit_syntax", "entity", "entity_poly", "entity_poly_seq",
+    "atom_site", "atom_site_anisotrop",
+    "atom_site_aniso",  // for small CIF detection
     "struct_conn", "struct_conf", "struct_sheet_range",
 #ifdef SHEET_HBONDS
     "struct_sheet_order", "pdbx_struct_sheet_hbond",
 #endif
+    "chem_comp", "chem_comp_bond",
 };
 #define MIXED_CASE_BUILTIN_CATEGORIES 0
 
@@ -357,6 +361,9 @@ ExtractMolecule::ExtractMolecule(PyObject* logger, const StringVector& generic_c
         [this] () {
             parse_atom_site_anisotrop();
         }, { "atom_site" });
+    register_category("atom_site_aniso",
+        // So parsing small v1 CIF files does treat this as atom_site table
+        [this] () {});
     register_category("struct_conn",
         [this] () {
             parse_struct_conn();
@@ -1175,6 +1182,8 @@ ExtractMolecule::parse_audit_conform()
         set_PDBx_keywords(true);
         guess_fixed_width_categories = true;
     }
+    // If dict_name is core_std.dic, then it's a small molecule cif
+    // if dict_name doesn't start with mmcif, the give a warning
 }
 
 void
@@ -1247,6 +1256,17 @@ ExtractMolecule::parse_atom_site()
 
     if (guess_fixed_width_categories)
         set_PDBx_fixed_width_columns("atom_site");
+
+    // If it has fractional coordinates, then it is a coreCIF file
+    bool is_corecif = false;
+    try {
+        get_column("fract_x", Required);
+        is_corecif = true;
+    } catch (std::runtime_error& e) {
+    }
+    if (is_corecif) {
+        throw std::runtime_error("is a small molecule (coreCIF) file");
+    }
 
     try {
         pv.emplace_back(get_column("id"),
@@ -1396,10 +1416,21 @@ ExtractMolecule::parse_atom_site()
             cur_model_num = model_num;
             cur_residue = nullptr;
             if (!coordsets) {
-                if (atomic) {
+                if (molecules.find(cur_model_num) != molecules.end()) {
+                    logger::warning(_logger, "Previously completed PDB model ", cur_model_num,
+                                    " found.  Trying to extend.");
+                    mol = molecules[cur_model_num];
+                    cur_entity_id.clear();
+                    cur_seq_id = INT_MAX;
+                    cur_auth_seq_id = INT_MAX;
+                    cur_chain_id.clear();
+                    cur_comp_id.clear();
+                } else if (atomic) {
                     mol = molecules[cur_model_num] = new AtomicStructure(_logger);
+                    mol->set_res_numbering_valid(RN_CANONICAL, true);
                 } else {
                     mol = molecules[cur_model_num] = new Structure(_logger);
+                    mol->set_res_numbering_valid(RN_CANONICAL, true);
                 }
             } else {
                 if (mol == nullptr) {
@@ -1411,6 +1442,7 @@ ExtractMolecule::parse_atom_site()
                     molecules[model_num] = mol;
                     CoordSet *cs = mol->new_coord_set(model_num);
                     mol->set_active_coord_set(cs);
+                    mol->set_res_numbering_valid(RN_CANONICAL, true);
                 } else {
                     // make additional CoordSets same size as others
                     size_t cs_size = mol->active_coord_set()->coords().size();
@@ -1426,7 +1458,6 @@ ExtractMolecule::parse_atom_site()
                     mol->set_active_coord_set(cs);
                 }
             }
-            mol->set_res_numbering_valid(RN_CANONICAL, true);
         }
 
         bool missing_entity_id = entity_id.empty();

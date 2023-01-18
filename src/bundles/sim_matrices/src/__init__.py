@@ -12,7 +12,10 @@
 def read_matrix_file(file_name, style="protein"):
 	mfile = open(file_name, "r")
 
-	matrix = {}
+	class SimMatrix(dict):
+		def __init__(self, matrix_type):
+			self.type = matrix_type
+	matrix = SimMatrix(style)
 	if style == "protein":
 		min_chars = 20
 	else:
@@ -60,6 +63,9 @@ def read_matrix_file(file_name, style="protein"):
 	return matrix
 
 _matrices = _matrix_files = None
+
+def compatible_matrix_names(chain, logger=None):
+	return [mat_name for mat_name in matrix_files(logger) if matrix_compatible(chain, mat_name, logger)]
 
 def matrices(logger=None):
 	if _matrices == None:
@@ -117,7 +123,7 @@ def _init(logger):
 				ftype = "protein"
 				name = matrix_file[:-7]
 			elif matrix_file.endswith(".dnamatrix"):
-				ftype = "dna"
+				ftype = "nucleic"
 				name = matrix_file[:-10]
 			else:
 				continue

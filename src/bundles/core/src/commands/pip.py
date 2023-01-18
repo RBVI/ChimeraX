@@ -9,6 +9,7 @@
 # including partial copies, of the software or any revisions
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
+import os
 import subprocess
 import sys
 
@@ -21,26 +22,37 @@ from ..errors import UserError
 
 __all__ = ['pip', 'pip_desc', 'register_pip_commands']
 
-def pip(session: Session, action: str = None, package: str = None, upgrade: bool = False, verbose: bool = False):
-    pip_cmd = [sys.executable, "-m", "pip"]
+def pip(
+    session: Session
+    , action: str = None
+    , package: str = None
+    , upgrade: bool = False
+    , verbose: bool = False
+):
+    using_chimerax = "chimerax" in sys.executable.split(os.sep)[-1].lower()
+    if using_chimerax:
+        pip_cmd = [sys.executable]
+    else:
+        pip_cmd = [sys.executable, "-m", "chimerax.core"]
+    pip_cmd.extend(["-m", "pip"])
     if action == 'install':
         if not package:
             raise UserError("Can't possibly install an unspecified package.")
         else:
-            try:
-                req = Requirement(package)
-            except InvalidRequirement:
-                raise UserError("Can't install package: invalid requirement specified.")
-            else:
-                pip_cmd.extend(["install", "--user"])
-                if upgrade:
-                    pip_cmd.extend(["--upgrade"])
-                pip_cmd.extend(["%s" % package])
-                # If we don't add this flag then pip complains that distutils and sysconfig
-                # don't report the same location for the user's site packages directory. The
-                # error tells programmers to report the error to 
-                # https://github.com/pypa/pip/issues/10151
-                pip_cmd.extend(["--no-warn-script-location"])
+            if not package.endswith(".tar.gz"):
+                try:
+                    req = Requirement(package)
+                except InvalidRequirement:
+                    raise UserError("Can't install package: invalid requirement specified.")
+            pip_cmd.extend(["install" , "--user"])
+            if upgrade:
+                pip_cmd.extend(["--upgrade"])
+            pip_cmd.extend(["%s" % package])
+            # If we don't add this flag then pip complains that distutils and sysconfig
+            # don't report the same location for the user's site packages directory. The
+            # error tells programmers to report the error to
+            # https://github.com/pypa/pip/issues/10151
+            pip_cmd.extend(["--no-warn-script-location"])
     elif action == 'uninstall':
         if not package:
             raise UserError("Can't possibly uninstall an unspecified package.")

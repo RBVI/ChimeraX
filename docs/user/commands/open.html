@@ -147,6 +147,13 @@ target="_blank">MMTF (Macromolecular Transmission Format)</a></td>
 <br><a href="#compressed">+&nbsp;compressed</td>
 <td align="center">atomic coordinates and associated annotations</td>
 </tr><tr>
+<td align="center">
+<a href="http://ww1.iucr.org/iucr-top/cif/standard/cifstd1.html" 
+target="_blank">Crystallographic Information File (CIF)</td>
+<td align="center"><b>corecif<br>smallcif</b></td>
+<td align="center">.cif</td>
+<td align="center">atomic coordinates and crystallographic information</td>
+</tr><tr>
 <td align="center">Sybyl Mol2</td>
 <td align="center"><b>mol2</b></td>
 <td align="center">.mol2</td>
@@ -626,10 +633,11 @@ target="_blank">MOLEonline</a> channels</td>
 <td align="center"><b>mole</b></td>
 <td align="center">.json</td>
 <td align="center" class="text">channels in JSON format from
-<a href="https://mole.upol.cz/" target="_blank">MOLEonline</a>
-are shown as <a href="../markers.html">marker models</a> with a 
-<a href="mseries.html#slider">slider interface</a>
-for flipping between them</td>
+<a href="https://mole.upol.cz/" target="_blank">MOLEonline</a>;
+shown as <a href="../markers.html">marker models</a> with
+the specified <a href="#transparency">transparency</a>
+and a <a href="mseries.html#slider">slider interface</a>
+for flipping through them</td>
 </tr><tr>
 <td align="center">Neuron trace
 <br>(<a href="http://www.neuronland.org/NLMorphologyConverter/MorphologyFormats/SWC/Spec.html" target="_blank">SWC</a>, see also the
@@ -1235,6 +1243,16 @@ Method to use when <a href="#fetch">fetching</a> a map
 from a specific EMDB mirror site.
 </blockquote>
 <blockquote>
+<a name="transparency"></a>
+<b>transparency</b>&nbsp;&nbsp;<i>percent</i>
+<br>
+Assign the specified <i>percent</i> transparency to
+<a href="https://mole.upol.cz/" target="_blank">MOLEonline</a> 
+channels read from <a href="#object">JSON format</a>
+(default <b>0</b>, not transparent).
+See also the <a href="transparency.html"><b>transparency</b></a> command.
+</blockquote>
+<blockquote>
 <a name="vseries"></a>
 <b>vseries</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false
 <br>
@@ -1424,8 +1442,14 @@ reading trajectories from multi-model mmCIF or PDB files.
 Whether to show a graphical interface for 
 <a href="../trajectories.html">trajectory</a> playback (default <b>true</b>).
 The slider can be dragged or a frame number entered directly.
-The interface also includes a play/pause button and another
-(marked with a red dot) for recording a movie.
+The interface also includes a play/pause button, a
+&nbsp;<img style="height:16px; margin: 1px -1px; vertical-align:top"
+src="../tools/ui-icons/snail.png">&nbsp; value to increase for slower playback,
+and a button for recording a movie
+(<img class="iconbar" src="../tools/ui-icons/record.png">).
+The movie will start at the current slider position, so
+to include the whole trajectory, place the slider at the far left
+before clicking the record button.
 See also: <a href="coordset.html#slider"><b>coordset slider</b></a>
 </blockquote>
 
@@ -1674,6 +1698,19 @@ target="_blank">AlphaFold</a> and specified by
 <a href="https://www.uniprot.org/" target="_blank">UniProt</a>
 name or accession number (<a href="alphafold.html#fetch">details...</a>)</td>
 <td align="center"><b>mmcif</b></td>
+</tr><tr>
+<td align="center"><a href="http://www.crystallography.net/cod/"
+target="_blank">Crystallography Open Database</a></td>
+<td align="center"><b>cod</b></td>
+<td align="center">crystal structures of small molecules and 
+inorganic compounds</td>
+<td align="center"><b>corecif</b></td>
+</tr><tr>
+<td align="center"><a href="http://www.crystallography.net/pcod/"
+target="_blank">Predicted Crystallography Open Database</a></td>
+<td align="center"><b>pcod</b></td>
+<td align="center">predicted structures of inorganic compounds</td>
+<td align="center"><b>corecif</b></td>
 </tr><tr>
 <td align="center"><a href="http://www.cellpack.org"
 target="_blank">cellPACK</a></td>
@@ -1942,5 +1979,5 @@ only arrays with the specified <i>name</i>. Example:
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-October 2022</address>
+January 2023</address>
 </body></html>

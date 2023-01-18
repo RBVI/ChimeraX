@@ -13,28 +13,7 @@
 
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register
-    from chimerax.core.commands import OpenFolderNameArg, BoolArg, FloatArg, RepeatOf, StringArg
-    from chimerax.map import MapArg
-    from chimerax.atomic import AtomicStructureArg
-    desc = CmdDesc(
-        required = [('map', MapArg)],
-        keyword = [('block', BoolArg),
-                   ('far_water', BoolArg),
-                   ('keep_input_water', BoolArg),
-                   ('map_range', FloatArg),
-                   ('near_model', AtomicStructureArg),
-                   ('phenix_location', OpenFolderNameArg),
-                   ('residue_range', FloatArg),
-                   ('verbose', BoolArg),
-                   ('option_arg', RepeatOf(StringArg)),
-                   ('position_arg', RepeatOf(StringArg)),
-                   ('resolution', FloatArg),
-        ],
-        required_arguments = ['near_model'],
-        synopsis = 'Place water molecules in map'
-    )
-    from .douse import phenix_douse
-    register('phenix douse', desc, phenix_douse, logger=logger)
+    from chimerax.core.commands import OpenFolderNameArg
 
     desc = CmdDesc(
         optional = [('phenix_location', OpenFolderNameArg)],
@@ -42,3 +21,9 @@ def register_command(logger):
     )
     from .locate import phenix_location
     register('phenix location', desc, phenix_location, logger=logger)
+
+    from . import douse
+    douse.register_command(logger)
+
+    from . import emplace_local
+    emplace_local.register_command(logger)

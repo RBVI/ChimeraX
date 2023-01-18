@@ -47,6 +47,12 @@ class _AlphaFoldBundle(BundleAPI):
         elif command_name == 'alphafold contacts':
             from . import contacts
             contacts.register_alphafold_contacts_command(logger)
+        elif command_name == 'alphafold covariation':
+            from . import msa
+            msa.register_alphafold_covariation_command(logger)
+        elif command_name == 'alphafold msa':
+            from . import msa
+            msa.register_alphafold_msa_command(logger)
 
     @staticmethod
     def run_provider(session, name, mgr):
@@ -68,5 +74,12 @@ class _AlphaFoldBundle(BundleAPI):
                         'trim': BoolArg,
                     }
             return Info()
+
+    @staticmethod
+    def get_class(class_name):
+        # 'get_class' is called by session code to get class saved in a session
+        if class_name == 'DatabaseEntryId':
+            from .search import DatabaseEntryId
+            return DatabaseEntryId
 
 bundle_api = _AlphaFoldBundle()

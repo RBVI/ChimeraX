@@ -439,12 +439,18 @@ def uninstall(session, system=False, verbose=False):
         if not system:
             uninstall_desktop_icon(info.desktop, verbose=verbose)
         uninstall_desktop_menu(info.desktop, info.system, verbose)
-        os.remove(info.desktop)
+        try:
+            os.remove(info.desktop)
+        except FileNotFoundError:
+            pass
     # Don't uninstall icons because they might be
     # shared with other packages
     if os.path.exists(info.mime_file):
         uninstall_mime_file(info.mime_file, system, verbose)
-        os.remove(info.mime_file)
+        try:
+            os.remove(info.mime_file)
+        except FileNotFoundError:
+            pass
 
 
 def get_mime_types(session):

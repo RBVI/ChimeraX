@@ -91,6 +91,7 @@ target="_blank">presentations</a> and
 <a href="https://www.rbvi.ucsf.edu/chimerax/docs/videos/"
 target="_blank">videos</a> show modeling with AlphaFold and related analyses.
 See also:
+<a href="esmfold.html"><b>esmfold</b></a>,
 <a href="blastprotein.html"><b>blastprotein</b></a>,
 <a href="modeller.html"><b>modeller</b></a>,
 <a href="swapaa.html"><b>swapaa</b></a>
@@ -110,7 +111,7 @@ See also:
 [&nbsp;<a href="#colorConfidence"><b>colorConfidence</b></a>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<a href="#ignoreCache"><b>ignoreCache</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<a href="#pae"><b>pae</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
-[&nbsp;<a href="#version"><b>version</b></a>&nbsp;&nbsp;1&nbsp;|&nbsp;2&nbsp;|&nbsp;<b>3</b>&nbsp;]
+[&nbsp;<a href="#version"><b>version</b></a>&nbsp;&nbsp;1&nbsp;|&nbsp;2&nbsp;|&nbsp;3&nbsp;|&nbsp;<b>4</b>&nbsp;]
 <br>
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>alphafold match</b> &nbsp;<i>sequence</i>&nbsp;
@@ -124,8 +125,8 @@ See also:
 <b>alphafold search</b> &nbsp;<i>sequence</i>&nbsp;
 [&nbsp;<b>matrix</b>&nbsp;&nbsp;<i>similarity-matrix</i>&nbsp;]
 [&nbsp;<b>cutoff</b>&nbsp;&nbsp;<i>evalue</i>&nbsp;]
-[&nbsp;<b>maxSeqs</b>&nbsp;&nbsp;<i>M</i>&nbsp;]
-[&nbsp;<a href="#version"><b>version</b></a>&nbsp;&nbsp;1&nbsp;|&nbsp;2&nbsp;|&nbsp;<b>3</b>&nbsp;]
+[&nbsp;<b>maxSequences</b>&nbsp;&nbsp;<i>M</i>&nbsp;]
+[&nbsp;<a href="#version"><b>version</b></a>&nbsp;&nbsp;1&nbsp;|&nbsp;2&nbsp;|&nbsp;3&nbsp;|&nbsp;<b>4</b>&nbsp;]
 </blockquote>
 <ul>
 <li>The <b>alphafold fetch</b> command retrieves the model (if available)
@@ -145,9 +146,9 @@ specifies all of its protein chains. Examples with <i>sequence</i> given as a
 <a href="atomspec.html#hierarchy"><i>chain-spec</i></a>:
 <blockquote>
 <b>alphafold match #1</b>
+<!-- example structure 3p5b -->
 <br>
 <b>alphafold match #3/B,D trim false</b>
-<!-- example structure 3p5b -->
 </blockquote>
 Alternatively, the <i>sequence</i> can be given as any of the following:
   <ul>
@@ -203,7 +204,7 @@ and existing chains after their superposition (step 2 above)
   <li><b>missing_structure</b>
 &ndash; positions missing from the coordinates of the existing chain
   <li><b>same_sequence</b>
-&ndash; positions with different residue types than the existing chain
+&ndash; positions with the same residue type as the existing chain
   </ul>
 These <a href="../attributes.html">attributes</a>
 can be used for <a href="../tools/alphafold.html#coloring">coloring</a> 
@@ -228,7 +229,10 @@ The query <i>sequence</i> can be given as any of the following:
   corresponding to a single chain in an atomic structure open in ChimeraX
   <li>the <a href="seqspec.html"><i>sequence-spec</i></a> of a sequence
   in the <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>
-  <li>a UniProt name or accession number
+  <li>a <a href="https://www.uniprot.org/help/entry_name"
+  target="_blank">UniProt name</a> or
+  <a href="https://www.uniprot.org/help/accession_numbers"
+  target="_blank">accession number</a>
   <li>plain text pasted directly into the command line
   </ul>
 <p>
@@ -238,16 +242,17 @@ BLOSUM50, <b>BLOSUM62</b> (default), BLOSUM80, BLOSUM90, PAM30, PAM70, PAM250,
 or IDENTITY.
 The <b>cutoff</b> <i>evalue</i> is the maximum or least significant
 expectation value needed to qualify as a hit (default <b>1e-3</b>).
-Results can also be limited with the <b>maxSeqs</b> option
-(default <b>100</b>); this is the
-maximum number of unique sequences to return; more hits than this number
-may be obtained because multiple structures or other sequence-database entries
-may have the same sequence.
+Results can also be limited with the <b>maxSequences</b> option
+(default <b>100</b>); this is the maximum number of unique sequences to return.
 </p><p>
 When results are returned, the hits are listed in a
 <a href="../tools/blastprotein.html#results"><b>Blast Protein</b></a> window.
-Clicking the name of a hit uses
-<a href="#fetch"><b>alphafold fetch</b></a> to retrieve the model.
+Double-clicking a hit uses
+<a href="#fetch"><b>alphafold fetch</b></a> to retrieve the model,
+or multiple chosen hits can be retrieved at once by using the results panel
+<a href="../window.html#context-menu">context menu</a>
+or <b>Load Structures</b> button
+(<a href="../tools/blastprotein.html#results">details...</a>).
 </p>
 </ul>
 
@@ -450,7 +455,7 @@ sequences, which could be longer.
 </blockquote>
 <blockquote>
 <a name="version"></a>
-<b>version</b>&nbsp;&nbsp;1&nbsp;|&nbsp;2&nbsp;|&nbsp;<b>3</b>
+<b>version</b>&nbsp;&nbsp;1&nbsp;|&nbsp;2&nbsp;|&nbsp;3&nbsp;|&nbsp;<b>4</b>
 <br>
 The <a href="https://alphafold.ebi.ac.uk/"
 target="_blank">AlphaFold Database</a> 
@@ -463,19 +468,20 @@ This option specifies which version of the database to use with
 (as well as <a href="blastprotein.html"><b>blastprotein</b></a> with 
 <b>database alphafold</b>):
   <ul>
-  <li><b>version 1</b> (database release 1): ~360,000 sequences,
+  <li><b>version 1</b> (Jul 2021): ~360,000 sequences,
 reference proteomes of 21 species including <i>Homo sapiens</i>;
 used by Chimera 1.3, which does not have a <b>version</b> option
-  <li><b>version 2</b> (database releases 2 and 3 combined):
+  <li><b>version 2</b> (Dec 2021 and Jan 2022 releases combined):
 ~1 million sequences, v1 + most of the manually curated entries (SwissProt) +
 sequences relevant to neglected tropical disease or antimicrobial resistance;
 default in ChimeraX 1.4
-  <li><b>version 3</b> (database release 4): &gt;200 million sequences;
-default in ChimeraX 1.5+ builds from August 31, 2022 and later
+  <li><b>version 3</b> (Jul 2022): &gt;200 million sequences
+  <li><b>version 4</b> (Nov 2022): bugfix of version 3, updating the 
+coordinates of ~4% of the entries; default in ChimeraX 1.5 and later
 </ul>
-The <a href="#match"><b>alphafold match</b></a> command always uses version 3
-and does not have this option.
 <p>
+The <a href="#match"><b>alphafold match</b></a> command always uses version 4
+and does not have this option.
 </p>
 </blockquote>
 
@@ -630,8 +636,8 @@ target="_blank">AlphaFold Error Estimates example</a> and
 <blockquote>
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>alphafold pae</b>
-(&nbsp;<b>uniprotId</b></a>&nbsp;&nbsp;<i>uniprot</i>&nbsp;|&nbsp;<b>file</b>&nbsp;&nbsp;<i>filename</i>&nbsp;)
 [&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
+(&nbsp;<b>uniprotId</b></a>&nbsp;&nbsp;<i>uniprot</i>&nbsp;|&nbsp;<b>file</b>&nbsp;&nbsp;<i>filename</i>&nbsp;)
 [&nbsp;<a href="color.html#palette-options"><b>palette</b></a>&nbsp;&nbsp;<i>palette</i>&nbsp;]
 [&nbsp;<a href="color.html#palette-options"><b>range</b></a>&nbsp;&nbsp;<i>low,high</i>&nbsp;|&nbsp;full&nbsp;]
 [&nbsp;<b>plot</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
@@ -640,7 +646,7 @@ target="_blank">AlphaFold Error Estimates example</a> and
 [&nbsp;<b>connectMaxPae</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
 [&nbsp;<b>cluster</b>&nbsp;&nbsp;<i>resolution</i>&nbsp;]
 [&nbsp;<b>dividerLines</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
-[&nbsp;<a href="#version"><b>version</b></a>&nbsp;&nbsp;1&nbsp;|&nbsp;2&nbsp;|&nbsp;<b>3</b>&nbsp;]
+[&nbsp;<a href="#version"><b>version</b></a>&nbsp;&nbsp;1&nbsp;|&nbsp;2&nbsp;|&nbsp;3&nbsp;|&nbsp;<b>4</b>&nbsp;]
 </blockquote>
 <p>
 With <b>alphafold pae</b>, the matrix of PAE values can be either:
@@ -700,13 +706,6 @@ end of one chain and the start of another. The lines may obscure a few
 chain-terminal residues in the plot, and <b>dividerLines false</b>
 can be used if this is problematic.
 </p><p>
-The plot window has buttons for coloring the 
-<a href="#association">associated</a> structure.
-<b>Color PAE Domains</b> applies coloring by PAE cluster as
-described <a href="#colorDomains">above</a>.
-<b>Color pLDDT</b> returns the structure to
-the default <a href="#colorConfidence">confidence coloring</a>.
-</p><p>
 The default <a href="color.html#palette-options"><b>palette</b></a> 
 for coloring the PAE plot is <b>pae</b>, with colors assigned to values
 as follows:
@@ -750,6 +749,20 @@ align="center"><font size="-1">25</font></td>
 align="center"><font size="-1">30</font></td>
 </tr></table>
 <p>
+The plot window has a 
+<a href="../tools/alphafold.html#context">context menu</a>
+with options for recoloring the plot and 
+<a href="#association">associated</a> structure,
+hiding/showing the divider lines, and saving the plot as an image,
+as well as buttons for recoloring the structure: 
+</p>
+<ul>
+<li><b>Color PAE Domains</b> applies coloring by PAE cluster as
+described <a href="#colorDomains">above</a>.
+<li><b>Color pLDDT</b> returns the structure to
+the default <a href="#colorConfidence">confidence coloring</a>.
+</ul>
+<p>
 The <a href="../tools/colorkey.html"><b>Color Key</b></a> graphical interface
 or a command can be used to draw (in the main graphics window)
 a color key for the PAE plot. For example, to make a color key that
@@ -763,10 +776,11 @@ matches the <b>pae</b> or <b>paegreen</b> scheme, respectively:
   &nbsp;<a href="key.html#options"><b>showTool true</b></a>
   </blockquote>
 <p>
-A title for the color key (<i>e.g.</i>, &ldquo;<b>AlphaFold Predicted Aligned
+A title for the color key (<i>e.g.</i>, &ldquo;<b>Predicted Aligned
 Error (&Aring;)</b>&rdquo;) would need to be created separately with
 <a href="2dlabels.html"><b>2dlabels</b></a>.
 </p>
+
 <a name="contacts"></a>
 <p class="nav">
 [<a href="#top">back to top: alphafold</a>]
@@ -787,6 +801,8 @@ Residue-residue <a href="#pae">PAE values</a> can also be shown with colored
 [&nbsp;<a href="color.html#palette-options"><b>range</b></a>&nbsp;&nbsp;<i>low,high</i>&nbsp;|&nbsp;full&nbsp;]
 [&nbsp;<b>radius</b>&nbsp;&nbsp;<i>r</i>&nbsp;]
 [&nbsp;<b>dashes</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
+[&nbsp;<b>name</b>&nbsp;&nbsp;<i>model-name</i>&nbsp;]
+[&nbsp;<b>replace</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>outputFile</b>&nbsp;&nbsp;<i>pae-file</i>&nbsp;]
 </blockquote>
 <p>
@@ -798,7 +814,8 @@ See also:
 <a href="size.html"><b>size</b></a>,
 <a href="style.html"><b>style</b></a>,
 <a href="clashes.html"><b>contacts</b></a>,
-<a href="crosslinks.html"><b>crosslinks</b></a>
+<a href="crosslinks.html"><b>crosslinks</b></a>,
+<a href="rename.html"><b>rename</b></a>
 </p><p>
 A <a href="#pae">PAE plot</a> 
 containing the specified residues must already be shown.
@@ -857,6 +874,11 @@ The <a href="../pseudobonds.html">pseudobond</a> stick <b>radius</b>
 (default <b>0.2</b> &Aring;) and number of <b>dashes</b> (default <b>1</b>,
 meaning a solid stick) can also be specified. 
 </p><p>
+The <b>name</b> option allows specifying the pseudobond <i>model-name</i> 
+(default <b>PAE Contacts</b>).  If a model by that name already exists, any
+pre-existing pseudobonds will be removed from that model and replaced by the
+new ones (<b>replace true</b>, default) unless <b>replace false</b> is used.
+</p><p>
 The <b>outputFile</b> option allows saving a list
 of the residue pairs (those meeting the distance criterion) and
 their PAE values to a plain text file. 
@@ -884,5 +906,5 @@ numbers of the residues that they connect:
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-October 2022</address>
+December 2022</address>
 </body></html>

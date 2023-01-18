@@ -527,11 +527,6 @@ CIFFile::internal_parse(bool one_table)
 #endif
 					cii = categories.find(current_category);
 					if (cii != categories.end()) {
-						// if already seen, then
-						// category is a prefix
-						if (seen.find(current_category)
-								!= seen.end())
-							cii = categories.end();
 						break;
 					}
 				}
@@ -662,14 +657,7 @@ CIFFile::internal_parse(bool one_table)
 					for (auto& c: category)
 						c = tolower(c);
 #endif
-					sep = current_category.size();
-					if (category.substr(0, sep) == current_category
-					&& category[sep] == '_') {
-						category = current_category;
-#ifdef CASE_INSENSITIVE
-						category_cp = current_category_cp;
-#endif
-					} else for (;;) {
+					for (;;) {
 						sep = category.rfind('_');
 						if (sep == string::npos)
 							break;
@@ -677,13 +665,7 @@ CIFFile::internal_parse(bool one_table)
 #ifdef CASE_INSENSITIVE
 						category_cp.resize(sep);
 #endif
-						if (categories.find(category)
-								!= categories.end()) {
-							// if already seen, then
-							// category is a prefix
-							if (seen.find(current_category)
-									!= seen.end())
-								cii = categories.end();
+						if (categories.find(category) != categories.end()) {
 							break;
 						}
 					}

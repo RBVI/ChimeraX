@@ -28,7 +28,8 @@ class OpenInputArg(OpenFileNamesArg):
 import os.path
 def likely_pdb_id(text, format_name):
     return not exists_locally(text, format_name) \
-        and len(text) == 4 and text[0].isdigit() and text[1:].isalnum()
+        and ((len(text) == 4 and text[0].isdigit() and text[1:].isalnum())
+            or (len(text) == 8 and text[:5].isdigit() and text[5:].isalnum()))
 
 def exists_locally(text, format):
     # does that name exist on the file system, and if it does but has no suffix, is there a format?
@@ -300,7 +301,12 @@ def _get_path(mgr, file_name, check_path, check_compression=True):
 def _get_stream(mgr, file_name, encoding):
     path = _get_path(mgr, file_name, True, check_compression=False)
     from chimerax import io
-    return io.open_input(path, encoding)
+    try:
+        return io.open_input(path, encoding)
+    except IsADirectoryError:
+        raise UserError("'%s' is a folder, not a file" % path)
+    except (IOError, PermissionError) as e:
+        raise UserError("Cannot open '%s': %s" % (path, e))
 
 def fetches_vs_files(mgr, names, format_name, database_name):
     fetches = []
@@ -344,6 +350,7 @@ def fetch_info(mgr, file_arg, format_name, database_name):
         ident = file_arg
     else:
         return None
+    db_name = db_name.lower()
     from .manager import NoOpenerError
     try:
         db_formats = list(mgr.database_info(db_name).keys())
@@ -680,10 +687,11 @@ def cmd_open_formats(session):
         session.logger.info(msg, is_html=True)
 
 def format_names(session):
-    fmt_names = set([ fmt.nicknames[0] for fmt in session.open_command.open_data_formats ])
+    fmt_names = set([ nick for fmt in session.open_command.open_data_formats for nick in fmt.nicknames ])
     for db_name in session.open_command.database_names:
         for fmt_name in session.open_command.database_info(db_name).keys():
-            fmt_names.add(session.data_formats[fmt_name].nicknames[0])
+            for nick in session.data_formats[fmt_name].nicknames:
+                fmt_names.add(nick)
     return fmt_names
 
 _main_open_CmdDesc = None

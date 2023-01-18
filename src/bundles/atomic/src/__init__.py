@@ -146,6 +146,43 @@ class _AtomicBundleAPI(BundleAPI):
                     return self._class_obj
                 def model_filter(self, model):
                     return isinstance(model, Structure)
+                def render(self, session, attr_name, models, method, params, sel_only):
+                    prefix = { Atom: 'a', Residue: 'r', Structure: 'm' }[self.class_object]
+                    from chimerax.core.commands import run, concise_model_spec, StringArg
+                    spec = concise_model_spec(session, models)
+                    if sel_only:
+                        if not session.selection.empty():
+                            if spec:
+                                spec += " & sel"
+                            else:
+                                spec = "sel"
+                    targets, spectrum = params
+                    letters = ""
+                    for target in targets:
+                        if target == "atoms":
+                            letters += "ab"
+                        elif target == "cartoons":
+                            letters += "c"
+                        elif target == "surfaces":
+                            letters += "s"
+                    from chimerax.core.colors import color_name
+                    no_val_string = ""
+                    palette_vals = []
+                    for val, rgba in spectrum:
+                        cname = color_name([int(v*255 + 0.5) for v in rgba])
+                        if val is None:
+                            no_val_string = " noValueColor %s" % StringArg.unparse(cname)
+                        else:
+                            palette_vals.append((val,cname))
+                    if palette_vals:
+                        if len(palette_vals) == 1:
+                            palette_vals.append(palette_vals[0])
+                        palette_string = "palette %s" % StringArg.unparse(":".join(["%g,%s" % (v,c)
+                            for v, c in palette_vals]))
+                    else:
+                        palette_string = ""
+                    run(session, "color byattr %s:%s %s target %s %s%s" % (prefix, attr_name, spec, letters,
+                        palette_string, no_val_string))
                 def values(self, attr_name, models):
                     if self._class_obj == Atom:
                         collections = [m.atoms for m in models]
@@ -154,7 +191,12 @@ class _AtomicBundleAPI(BundleAPI):
                     else:
                         collections = [Structures(models)]
                     from chimerax.core.commands import plural_of
-                    all_vals = getattr(concatenate(collections), plural_of(attr_name))
+                    collections = concatenate(collections)
+                    plural_attr = plural_of(attr_name)
+                    try:
+                        all_vals = getattr(concatenate(collections), plural_of(attr_name))
+                    except AttributeError:
+                        all_vals = [getattr(item, attr_name, None) for item in collections]
                     import numpy
                     if not isinstance(all_vals, numpy.ndarray):
                         all_vals = numpy.array(all_vals)

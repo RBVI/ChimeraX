@@ -131,8 +131,8 @@ def _parse_python_args(argv, usage):
     opts.safe_mode = True
 
     def next_arg(argv):
-        no_arg = "bdhiqvuBEIOSV"  # python option w/o argument
-        has_arg = "cmWX"          # python option w/argument
+        no_arg = "bBdEhiIOqsSuvVx"  # python option w/o argument
+        has_arg = "cmWX"            # python option w/argument
         cur_index = 1
         while len(argv) > cur_index and argv[cur_index][0] == '-':
             cur_opts = argv[cur_index]
@@ -146,9 +146,9 @@ def _parse_python_args(argv, usage):
                 elif opt in has_arg:
                     if len(argv) <= cur_index:
                         raise RuntimeError(f"Missing argument for '-{opt}'")
-                    if opt == 'm':
+                    if opt == 'm' or opt == 'c':
                         # special case, eats rest of arguments
-                        yield '-m', argv[cur_index]
+                        yield f'-{opt}', argv[cur_index]
                         yield None, argv[cur_index + 1:]
                         return
                     arg = argv[cur_index]
@@ -167,8 +167,8 @@ def _parse_python_args(argv, usage):
                 break  # last one anyway
             # silently ignore options we don't use
             if opt == "-c":
-                if not opts.cmd:
-                    opts.cmd = optarg
+                opts.cmd = optarg
+                opts.safe_mode = True
             elif opt == "-m":
                 opts.module = optarg
                 opts.safe_mode = True
@@ -462,7 +462,7 @@ def init(argv, event_loop=True):
     #     python: /../ChimeraX.app/Contents/bin/python3.x
     #     ChimeraX: /../ChimeraX.app/Contents/MacOS/ChimeraX
     dn = os.path.dirname
-    rootdir = dn(dn(sys.executable))
+    rootdir = dn(dn(os.path.realpath(sys.executable)))
     # On Linux, don't create user directories if root (the installer uid)
     is_root = False 
     if sys.platform.startswith('linux'):
@@ -595,8 +595,11 @@ def init(argv, event_loop=True):
         sess.ui.initialize_color_output(opts.color)    # Colored text
 
     # Set current working directory to Desktop when launched from icon.
-    if ((sys.platform.startswith('darwin') and os.getcwd() == '/') or
-            (sys.platform.startswith('win') and os.getcwd().endswith('\\Users\\Public\\Desktop'))):
+    if ((sys.platform.startswith('darwin') and
+         os.getcwd() == '/') or
+        (sys.platform.startswith('win') and
+         (os.getcwd().endswith('\\Users\\Public\\Desktop') or
+          os.getcwd().endswith('\\ProgramData\\ChimeraX')))):
         try:
             os.chdir(os.path.expanduser('~/Desktop'))
         except Exception:
@@ -818,9 +821,13 @@ def init(argv, event_loop=True):
     startup.run_user_startup_scripts(sess)
 
     if opts.cmd:
-        # Emulated Python's -c option.
+        # Emulate Python's -c option.
         # This is needed for -m pip to work in some cases.
-        sys.argv = ['-c', opts.cmd]
+        # Also for pip, when it recursively calls sys.executable, it doesn't
+        # always propagate the -I argument.  But the ChimeraX executable always
+        # acts as if -I were passed in.  So add back '' to sys.path to compensate.
+        sys.path.insert(0, '')  # get pip source installs to work
+        sys.argv = ['-c'] + args
         global_dict = {
             'session': sess,
             '__name__': '__main__',
@@ -869,6 +876,14 @@ def init(argv, event_loop=True):
     # Open files dropped on application
     if opts.gui:
         sess.ui.open_pending_files(ignore_files=(args if bad_drop_events else []))
+
+    # By this point the GUI module will have redirected stdout if it's going to
+    if bool(os.getenv("DEBUG")):
+        logging.basicConfig(
+            level = logging.INFO
+            , format = "%(levelname)s:%(message)s"
+            , handlers = [logging.StreamHandler(sys.stdout)]
+        )
 
     # Allow the event_loop to be disabled, so we can be embedded in
     # another application

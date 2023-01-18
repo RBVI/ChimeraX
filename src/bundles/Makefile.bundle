@@ -32,19 +32,24 @@ OS=Windows
 endif
 endif
 ifeq ($(OS),Windows)
-APP_PYTHON_EXE = $(CHIMERAX_APP)/bin/python.exe -I
+APP_PYTHON_EXE = $(CHIMERAX_APP)/bin/python.exe
+CX_BIN = $(CHIMERAX_APP)/bin/ChimeraX-console.exe
 PYMOD_EXT = pyd
 endif
 ifeq ($(OS),Darwin)
-APP_PYTHON_EXE = $(CHIMERAX_APP)/Contents/bin/python3.9 -I
+APP_PYTHON_EXE = $(CHIMERAX_APP)/Contents/bin/python3.9
+CX_BIN = $(CHIMERAX_APP)/Contents/bin/ChimeraX
 PYMOD_EXT = so
 endif
 ifeq ($(OS),Linux)
-APP_PYTHON_EXE = $(CHIMERAX_APP)/bin/python3.9 -I
+APP_PYTHON_EXE = $(CHIMERAX_APP)/bin/python3.9
+CX_BIN = $(CHIMERAX_APP)/bin/chimerax
 PYMOD_EXT = so
 endif
-CHIMERAX_EXE = $(APP_PYTHON_EXE) -m chimerax.core
-RUN = $(CHIMERAX_EXE) --nogui --safemode --exit --cmd
+PYTHON ?= $(APP_PYTHON_EXE) -I
+RUN = PYTHONNOUSERSITE=1 $(PYTHON) -m chimerax.core --nogui --exit
+RUN_SAFE = $(RUN) --safemode
+RUN_CMD = $(RUN_SAFE) --cmd
 
 ifdef INSTALL_TO_VENV
 WHEEL = $(wildcard dist/*.whl)
@@ -55,14 +60,14 @@ PYSRCS = $(wildcard src/*.py)
 .SECONDEXPANSION:
 
 wheel: $$(PYSRCS)
-	$(RUN) "devel build . exit true $(DEBUG_ARG) $(BUILD_ARGS)"
+	$(RUN_CMD) "devel build . exit true $(DEBUG_ARG) $(BUILD_ARGS)"
 
 # The space means install and app-install are the same
 install app-install: $$(PYSRCS)
-	$(RUN) "devel install . user false exit true $(DEBUG_ARG) $(INSTALL_ARGS)"
+	$(RUN_CMD) "devel install . user false exit true $(DEBUG_ARG) $(INSTALL_ARGS)"
 
-install-editable: 
-	$(RUN) "devel install . user false editable true exit true $(DEBUG_ARG) $(INSTALL_ARGS)"
+install-editable: clean
+	$(RUN_CMD) "devel install . user false editable true exit true $(DEBUG_ARG) $(INSTALL_ARGS)"
 
 venv-install:
 ifndef VIRTUAL_ENV
@@ -97,15 +102,15 @@ endif
 
 test:
 	for t in $(wildcard cxtest*.cxc) $(wildcard cxtest*.py);\
-		do $(CHIMERAX_EXE) --exit --nogui $$t;\
+		do $(RUN) $$t;\
 	done
 
 debug:
 	$(CHIMERAX_EXE) --debug
 
 clean:
-	if [ -x $(CHIMERAX_EXE) -a -e bundle_info.xml ]; then \
-		$(RUN) "devel clean . exit true" ; \
+	if [ -x $(CX_BIN) -a -e bundle_info.xml ]; then \
+		$(RUN_CMD) "devel clean . exit true" ; \
 	else \
 		rm -rf $(CLEAN) ; \
 	fi

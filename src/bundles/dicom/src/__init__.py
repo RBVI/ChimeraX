@@ -19,11 +19,17 @@ from .dicom import DICOM, DICOMMapFormat
 from .ui import DICOMBrowserTool, DICOMMetadata
 
 class _DICOMBundle(BundleAPI):
+    api_version = 1
 
     @staticmethod
     def initialize(session, bundle_info):
         """Register file formats, commands, and database fetch."""
         add_map_format(session, DICOMMapFormat())
+
+    @staticmethod
+    def start_tool(session, bi, ti):
+        from chimerax.core.tools import get_singleton
+        return get_singleton(session, DICOMBrowserTool, "DICOM Browser")
 
     @staticmethod
     def run_provider(session, name, mgr, **kw):

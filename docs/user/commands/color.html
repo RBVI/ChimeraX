@@ -140,8 +140,10 @@ molecular surfaces
 <li><a name="byhet"><b>byhet</b> or <b>byhetero</b></a>
 &ndash; same as <b>byelement</b>, except leaving carbon atoms unchanged
 <li><b>fromatoms</b>
-&ndash; color other <a href="#target">targets</a> in atomic models
-(molecular surface patches, <i>etc.</i>) to match the corresponding atoms
+&ndash; color molecular surface patches to match the corresponding atoms
+<li><b>fromcartoons</b> or <b>fromribbons</b>
+&ndash; color molecular surface patches to match the cartoon segments
+of the corresponding residues
 <li><a name="bynucleotide"><b>bynucleotide</b></a> 
 <a href="../tools/nucdisplay.html" title="Nucleotides Toolbar...">
 <img class="icon" border=1 src="../tools/nuc-icons/nuc-color.png"></a>
@@ -150,9 +152,7 @@ molecular surfaces
 <li><a name="bychain"><b>bychain</b></a>
 <a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/colorbychain.png"></a>
-&ndash; a built-in scheme <a href="colortables.html#autocolors">by chain ID</a>,
-also used for the initial colors of per-chain
-<a href="surface.html">molecular surfaces</a>
+&ndash; a built-in scheme <a href="colortables.html#autocolors">by chain ID</a>
 <li><a name="bypolymer"></a><b>byidentity</b> or <b>bypolymer</b>
 <a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/polymer.png"></a>
@@ -478,6 +478,8 @@ For coloring by a user-defined attribute, see the
 <a href="../preferences.html#startup">custom preset example</a>.
 For coloring by segmentation region, 
 see <a href="segmentation.html"><b>segmentation</b></a>.
+The graphical interface to <b>color byattribute</b> is
+<a href="../tools/render.html"><b>Render by Attribute</b></a>.
 See also the tutorial:
 <a href="https://www.rbvi.ucsf.edu/chimerax/data/conservation-coloring/conservation-coloring.html"
 target="_blank">Coloring by Sequence Conservation</a>
@@ -1009,6 +1011,24 @@ align="center"><font size="-1" color="white">100</font></td>
 <a href="https://alphafold.ebi.ac.uk/faq#faq-5" target="_blank">pLDDT
 confidence measure</a> in the B-factor field of
 <a href="../tools/alphafold.html">AlphaFold predictions</a>)
+<li><b>esmfold</b>
+<table border cellpadding="0" cellspacing="0"
+style="display:inline-block; vertical-align:top"><tr>
+<td bgcolor=red width="30px" title="red"
+align="center"><font size="-1" color="white">0.0</font></td>
+<td bgcolor=orange width="30px" title="orange"
+align="center"><font size="-1">0.5</font></td>
+<td bgcolor=yellow width="30px" title="yellow"
+align="center"><font size="-1">0.7</font></td>
+<td bgcolor=cornflowerblue width="30px" title="cornflowerblue"
+align="center"><font size="-1" color="white">0.9</font></td>
+<td bgcolor=blue width="30px" title="blue"
+align="center"><font size="-1" color="white">1.0</font></td>
+</tr></table>
+(used to show the
+<a href="https://alphafold.ebi.ac.uk/faq#faq-5" target="_blank">pLDDT
+confidence measure</a> in the B-factor field of
+<a href="esmfold.html">ESMFold predictions</a>)
 <li><b>pae</b>
 <table border cellpadding="0" cellspacing="0"
 style="display:inline-block; vertical-align:top"><tr>
@@ -1027,8 +1047,9 @@ align="center"><font size="-1">25</font></td>
 <td bgcolor="white" width="30px" title="white"
 align="center"><font size="-1">30</font></td>
 </tr></table>
-(the default for plotting
-<a href="../commands/alphafold.html#pae">AlphaFold PAE</a>)
+(the default for plotting PAE
+<a href="alphafold.html#pae">from AlphaFold</a>
+or <a href="esmfold.html#pae">from ESMFold</a>)
 <li><b>paegreen</b>
 <table border cellpadding="0" cellspacing="0"
 style="display:inline-block; vertical-align:top"><tr>
@@ -1062,7 +1083,7 @@ align="center"><font size="-1">15</font></td>
 align="center"><font size="-1">20</font></td>
 </tr></table>
 (the default for 
-<a href="../commands/alphafold.html#contacts"><b>alphafold contacts</b></a>)
+<a href="alphafold.html#contacts"><b>alphafold contacts</b></a>)
   <li><a href="palettes.html#colorbrewer">ColorBrewer palettes</a> &ndash;
 a default number of colors will be used if the number is omitted from the name.
 Examples:
@@ -1250,5 +1271,5 @@ See also: <a href="palette.html#list"><b>palette list</b></a>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-June 2022</address>
+November 2022</address>
 </body></html>

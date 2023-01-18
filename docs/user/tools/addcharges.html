@@ -1,0 +1,209 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Tool: Add Charges</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#tools">Tool</a>: Add Charges</h3>
+<p>
+<b>Add Charges</b> assigns atomic partial charges and Amber/GAFF atom types
+as the <a href="../attributes.html">attributes</a>
+<b>charge</b> and <b>gaffType</b>, respectively.
+The command implementation is
+<a href="../commands/addcharge.html"><b>addcharge</b></a>.
+It may be helpful to run
+<a href="dockprep.html"><b>Dock Prep</b></a> beforehand
+to fix any truncated amino acid sidechains.
+See also: 
+<a href="addhydrogens.html"><b>Add Hydrogens</b></a>,
+<a href="../commands/coulombic.html"><b>coulombic</b></a>,
+<a href="#notes">troubleshooting charge addition</a>
+</p><p>
+<b>Add Charges</b> can be opened from the 
+<b>Structure Editing</b> section of the <b>Tools</b> menu and 
+manipulated like other panels (<a href="../window.html#panels">more...</a>).
+</p><p>
+<b>Assign charges to:</b> The atomic model(s) to process should
+be chosen from the list.  <b>Also restrict to selection</b> 
+indicates whether to limit assignment to the currently 
+<a href="../selection.html">selected</a> atoms.
+</p>
+<ul>
+<li><b>&ldquo;Standardize&rdquo; certain residue types</b> 
+&ndash; whether to convert the following nonstandard residues to the 
+corresponding standard types:
+  <ul>
+  <li><b>selenomethionine 
+(<a href="https://www.rcsb.org/ligand/MSE" target="_blank">MSE</a>)
+&rarr; methionine (MET)</b> &ndash; 
+change the selenium atom to a sulfur atom named SD
+and adjust the CG-SD and SD-CE bond lengths to 1.81 and 1.78 &Aring;,
+respectively
+  <li><b>bromo-UMP 
+(<a href="https://www.rcsb.org/ligand/5BU" target="_blank">5BU</a>)
+&rarr; UMP (U)</b> &ndash; change 5-bromouridine-5'-monophosphate
+to RNA residue uridine-5'-monophosphate by deleting the bromine atom
+  <li><b>methylselenyl-dUMP 
+(<a href="https://www.rcsb.org/ligand/UMS" target="_blank">UMS</a>)
+&rarr; UMP (U)</b> &ndash;
+replace the methylselenyl moiety with an oxygen atom named O2'
+and adjust the bond length to 1.430 &Aring;
+  <li><b>methylselenyl-dCMP
+(<a href="https://www.rcsb.org/ligand/CSL" target="_blank">CSL</a>)
+&rarr; CMP (C)</b> &ndash;
+replace the methylselenyl moiety with an oxygen atom named O2'
+and adjust the bond length to 1.430 &Aring;
+  </ul><br>
+<li>Standard residues (water, standard amino acids, standard nucleic acids,
+certain lipids, and a few common variants and capping groups) are assigned
+charges and types from the recommended force field versions in
+<a href="https://ambermd.org/AmberTools.php" target="_blank">AmberTools</a> 20:
+  <ul>
+  <li>protein: ff14SB
+  (files amino12.lib, aminoct12.lib, aminont12.lib)
+  <li>DNA: OL15 (DNA.OL15.lib)
+  <li>RNA: OL3 (RNA.lib)
+  <li>lipid: lipid17 (lipid17.lib)
+  <li>water: TIP3P (atomic_ions.lib, solvents.lib)
+  </ul>
+See the <a href="https://ambermd.org/" target="_blank"><b>Amber</b></a>
+documentation for further force field details.
+<br><br>
+<li>ATP, ADP, GTP, GDP, NAD, and NDP are assigned charges from the
+<a href="http://research.bmh.manchester.ac.uk/bryce/amber"
+target="_blank">Amber parameter database</a>.
+</ul>
+<p>
+<b>OK</b> initiates processing and dismisses the dialog, 
+whereas <b>Cancel</b> simply dismisses the dialog. <b>Help</b>
+opens this page in the <a href="helpviewer.html"><b>Help Viewer</b></a>.
+Explicit hydrogens are required for charge assignment;
+<a href="addhydrogens.html"><b>Add Hydrogens</b></a>
+will be called as needed.
+</p>
+<ul>
+<a name="nonstandard"></a>
+<li>If other nonstandard residue types are present, another dialog will 
+appear for specifying the <b>Net Charge</b> of each. 
+Initial values are guessed, but can be changed as needed. 
+Names of the form RES1+RES2 indicate covalently bonded residues
+that will be treated as a single unit, and the net charge is for the
+combined entity. Monatomic ions are simply assigned their 
+net charges, whereas atomic partial charges and
+<a href="https://ambermd.org/antechamber/gaff.html#atomtype"
+target="_blank">GAFF types</a>
+for the remaining (multiatomic) nonstandard residues are calculated by
+<a href="https://ambermd.org/antechamber/antechamber.html"
+target="_blank"><b>Antechamber</b></a>, which is included with ChimeraX.
+The method of charge calculation can be either of the following:
+</p>
+  <ul>
+  <li><b>AM1-BCC</b> &ndash; semi-empirical (AM1)
+  with bond charge correction (BCC), parametrized to reproduce
+  <i>ab initio</i> (HF/6-31G*) electrostatic potentials
+  <li><b>Gasteiger</b> &ndash; iterative partial equalization of orbital
+  electronegativity, a faster method based on atom types and connectivity
+ </ul>
+<p>
+While both methods are much faster than <i>ab initio</i> calculations,
+the Gasteiger method is the faster and more approximate of the two.
+</p><p>
+<b>Note</b>: Antechamber/GAFF are meant to handle most small organic molecules,
+but not metal complexes, inorganic compounds, or unstable species such as
+radicals, and may not work well on highly charged molecules.
+GAFF allows for parametrization of most organic molecules made of
+C, N, O, H, S, P, F, Cl, Br and I. Publications using results from
+<a href="https://ambermd.org/antechamber/antechamber.html"
+target="_blank"><b>Antechamber</b></a> should cite:
+<a name="antechamber-ref"></a>
+<blockquote>
+<a href="https://www.ncbi.nlm.nih.gov/pubmed/16458552" target="_blank">
+Automatic atom type and bond type perception in molecular mechanical
+calculations.</a>
+Wang J, Wang W, Kollman PA, Case DA.
+<i>J Mol Graph Model.</i> 2006 Oct;25(2):247-60.
+</blockquote>
+The GAFF atom types and associated parameters are described
+<a href="https://ambermd.org/antechamber/gaff.html" target="_blank">online</a>
+and in:
+<blockquote>
+<a href="https://www.ncbi.nlm.nih.gov/pubmed/15116359" target="_blank">
+Development and testing of a general amber force field.</a>
+Wang J, Wolf RM, Caldwell JW, Kollman PA, Case DA.
+<i>J Comput Chem.</i> 2004 Jul 15;25(9):1157-74.
+</blockquote>
+</ul>
+<p>
+<b>OK</b> initiates processing and dismisses the dialog, 
+whereas <b>Cancel</b> simply dismisses the dialog. <b>Help</b> 
+opens this page in the <a href="helpviewer.html"><b>Help Viewer</b></a>.
+</p>
+
+<a name="notes"></a>
+<p class="nav">
+[<a href="#top">back to top: Add Charges</a>]
+</p>
+<h3>Troubleshooting Charge Addition</h3>
+<p>
+Potentially ambiguous or rare (shifted-pKa) protonation states,
+especially in binding sites and nonstandard residues,
+should be verified and corrected before charges are assigned.
+For example,
+extra hydrogens can be <a href="../commands/delete.html">deleted</a>,
+and <a href="../atomtypes.html">atom types</a> can be edited
+(before hydrogen addition)
+with <a href="../commands/setattr.html"><b>setattr</b></a>
+or <a href="buildstructure.html"><b>Build Structure</b></a>.
+</p><p>
+An unrecognized atom name in a standard residue will cause an error,
+and if the net charge of a model is not an integer, a warning will be issued.
+Cases of unrecognized atoms in standard residues and/or incorrect net charges
+should be examined and resolved.
+</p><p>
+<a href="dockprep.html"><b>Dock Prep</b></a>
+allows repairing truncated amino acid sidechains, one common cause
+of non-integral net charges, before adding hydrogens and charges.
+Standard residues with missing or extra atoms can be identified 
+in the command line as
+<a href="../commands/atomspec.html#builtin"><b>template-mismatch</b></a>,
+for example:
+</p>
+<blockquote>
+<b>label template-mismatch height 2 color red</b>
+</blockquote>
+<p>
+Note that chain-terminal nucleotide residues will normally
+have non-integral charges, but the 5' and 3' charges sum to an integer.
+</p><p>
+Atoms can be labeled with their partial charges by using the menu
+(<a href="../menu.html#actlabel"><b>Actions...  Label... Atoms... 
+Other... Charge</b></a>) or the 
+<a href="../commands/label.html"><b>label</b></a> command, for example:
+</p>
+<blockquote>
+<b>label ligand atoms attribute charge</b>
+</blockquote>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+November 2022</address>
+</body></html>

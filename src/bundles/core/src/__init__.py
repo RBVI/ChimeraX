@@ -18,6 +18,17 @@ chimerax.core: collection of base ChimeraX functionality
 """
 from .buildinfo import version
 __version__ = version
+
+import os
+def path_to_src() -> str:
+    return os.path.dirname(__file__)
+
+def get_lib() -> str:
+    return os.path.join(path_to_src(), 'lib')
+
+def get_include() -> str:
+    return os.path.join(path_to_src(), 'include')
+
 from .toolshed import BundleAPI
 BUNDLE_NAME = 'ChimeraX-Core'
 

@@ -10,52 +10,46 @@
 # === UCSF ChimeraX Copyright ===
 TOP = ../../..
 include $(TOP)/mk/config.make
+PYTHON ?=PYTHONNOUSERSITE=1 $(APP_PYTHON_EXE)
 
-BUNDLE_VERSION = 1.5
-BUNDLE_VERSION := $(shell $(APP_PYTHON_EXE) mkbuildinfo -v $(TOP) $(BUNDLE_VERSION) $(BUILD_TYPE))
-
-PYSRCS = $(filter-out setup.py,$(wildcard *.py)) src/buildinfo.py
-DATA = src/colorbrewer.json
+BUNDLE_VERSION = 1.6
+BUNDLE_VERSION := $(shell $(PYTHON) mkbuildinfo -v $(TOP) $(BUNDLE_VERSION) $(BUILD_TYPE))
 
 .PHONY: src/commands/_atomspec.py wheel src/buildinfo.py
 
-build install reinstall:
-	$(MAKE) app-install
-	$(RSYNC) src/lib/* $(app_libdir)
-	$(RSYNC) src/lib/* $(libdir)
-	$(RSYNC) src/include/* $(app_includedir)
-	$(RSYNC) src/include/* $(includedir)
-	$(MAKE) sync
-
-app-install: wheel
+install reinstall app-install: wheel
 	# newer versions of pip won't install over the same version number (which depends on the last commit
 	# number), so to install something that hasn't been committed, uninstall first.
-	$(APP_BOOTSTRAP_PIP) uninstall --yes ChimeraX-Core
-	$(APP_PYTHON_EXE) -m pip install dist/*.whl
+	$(PYTHON) -m pip uninstall --yes ChimeraX-Core
+	$(PYTHON) -m pip install dist/*.whl
+
+build: install
+	$(MAKE) sync
 
 install-editable: clean src/buildinfo.py src/commands/_atomspec.py
-	$(APP_BOOTSTRAP_PIP) uninstall --yes ChimeraX-Core
+	$(PYTHON) -m pip uninstall --yes ChimeraX-Core
 ifeq ($(EDITABLE_MODE),strict)
-	$(APP_PYTHON_EXE) -m pip install --no-build-isolation --editable . --config-settings editable_mode=strict
+	$(PYTHON) -m pip install --no-build-isolation --editable . --config-settings editable_mode=strict
 else
-	$(APP_PYTHON_EXE) -m pip install --no-build-isolation --editable .
+	$(PYTHON) -m pip install --no-build-isolation --editable .
 endif
 
 wheel: clean src/buildinfo.py src/commands/_atomspec.py
-	$(APP_PYTHON_EXE) -m build --no-isolation --wheel
+	$(PYTHON) -m build --no-isolation --wheel
 
 sync:
 	rsync -av dist/*.whl $(build_prefix)/sync/
 
 src/buildinfo.py: buildinfo.py.in mkbuildinfo
 	rm -f src/buildinfo.py
-	$(PYTHON_EXE) mkbuildinfo -b $(TOP) $(BUNDLE_VERSION) || (rm src/buildinfo.py ; exit 1)
+	$(PYTHON) mkbuildinfo -b $(TOP) $(BUNDLE_VERSION) || (rm src/buildinfo.py ; exit 1)
 
 src/commands/_atomspec.py: src/commands/_atomspec.peg
-	$(APP_PYTHON_EXE) -m grako --name _atomspec -o $@ $<
+	$(PYTHON) -m grako --name _atomspec -o $@ $<
 
 clean:
-	rm -rf __pycache__ build dist *.egg-info src/_serialize.cpp src/buildinfo.py \
+	rm -rf __pycache__ src/__pycache__ build dist *.egg-info src/_serialize.cpp \
+		src/buildinfo.py src/commands/_atomspec.py src/toolshed/__pycache__ \
 		src/lib/* core_cpp/*/*.a core_cpp/*/*.o src/include src/*.so \
 		chutil_cpp logger_cpp ioutil_cpp mac_util_cpp toolshed commands \
 		_serialize.cpp buildinfo.py setup.py

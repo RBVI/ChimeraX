@@ -178,7 +178,7 @@ class MarkedHistogram(QWidget):
         self._hist_scene.mousePressEvent = lambda event: self._add_or_delete_marker_cb(event) \
             if event.modifiers() & mod_key_info("shift")[0] else self._select_marker_cb(event)
         self._hist_scene.mouseMoveEvent = lambda event: self._move_marker_cb(event) \
-            if self._drag_marker else super().mouseMoveEvent(event)
+            if self._drag_marker else self._hist_scene.__class__.mouseMoveEvent(self._hist_scene, event)
         self._hist_scene.mouseReleaseEvent = self._button_up_cb
         self._redraw_timer = QTimer()
         self._redraw_timer.timeout.connect(self._redraw_cb)
@@ -617,7 +617,13 @@ class MarkedHistogram(QWidget):
         view = self._hist_view
         scene = self._hist_scene
         hist_size = view.viewport().size()
-        self._hist_width, self._hist_height = hist_width, hist_height = hist_size.width(), hist_size.height()
+        if self._active_markers is not None:
+            # allow space for markers on ends
+            dx = self._active_markers.box_radius
+        else:
+            dx = 0
+        self._hist_width, self._hist_height = hist_width, hist_height = \
+            hist_size.width() - 2*dx, hist_size.height()
         self._min_val, self._max_val, self._bins = ds
         filled_range = self._max_val - self._min_val
         empty_ranges = [0, 0]
@@ -770,7 +776,7 @@ class HistogramMarkers:
        to that function.
 
        Contained HistogramMarker instances can be accessed as if
-       HistogramMarker were a sequence.  The instances are always kept
+       HistogramMarkers were a sequence.  The instances are always kept
        sorted ascending in X, so sequence order can change with any
        method that adds markers (e.g. a marker added with 'append'
        may not wind up at the end of the sequence).  Methods that create

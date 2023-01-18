@@ -18,7 +18,7 @@ from chimerax.core.settings import Settings
 class _AlphaFoldDatabaseSettings(Settings):
     EXPLICIT_SAVE = {
         'database_url': 'https://alphafold.ebi.ac.uk/files/AF-{uniprot_id}-F1-model_v{version}.cif',
-        'database_version': '3',
+        'database_version': '4',
         'last_update_time': 0.0,	# seconds since 1970 epoch
         'update_interval': 86400.0,	# seconds
         'update_url': 'https://www.rbvi.ucsf.edu/chimerax/data/status/alphafold_database3.json',

@@ -86,10 +86,12 @@ class SeqCanvas:
         label_vsb = self.label_view.verticalScrollBar()
         main_vsb.valueChanged.connect(label_vsb.setValue)
         label_vsb.valueChanged.connect(main_vsb.setValue)
-        from Qt.QtGui import QKeySequence
-        self._copy_shortcut = QShortcut(QKeySequence.StandardKey.Copy, parent)
-        import sys
-        self._copy_shortcut.activated.connect(lambda *args: self.sv.show_copy_sequence_dialog())
+        # The below turns out to be too annoying because when trying to copy text from the log,
+        # we grab the shortcut and show the sequence-copy dialog
+        #from Qt.QtGui import QKeySequence
+        #self._copy_shortcut = QShortcut(QKeySequence.StandardKey.Copy, parent)
+        #import sys
+        #self._copy_shortcut.activated.connect(lambda *args: self.sv.show_copy_sequence_dialog())
         """TODO
         self.labelCanvas = Tkinter.Canvas(parent, bg="#E4E4E4")
         self._vdivider = Tkinter.Frame(parent, bd=2, relief='raised')
@@ -1042,6 +1044,12 @@ class SeqCanvas:
         if hasattr(self, 'lead_block'):
             if note_name == self.alignment.NOTE_REF_SEQ:
                 self.lead_block.rerule()
+            elif note_name == self.alignment.NOTE_SEQ_CONTENTS:
+                self.refresh(note_data)
+            elif note_name == self.alignment.NOTE_REALIGNMENT:
+                # headers are notified before us, so they should be "ready to go"
+                self.sv.region_browser.clear_regions()
+                self._reformat()
             if note_name not in (self.alignment.NOTE_HDR_SHOWN, self.alignment.NOTE_HDR_VALUES,
                     self.alignment.NOTE_HDR_NAME):
                 return

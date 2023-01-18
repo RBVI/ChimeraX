@@ -67,7 +67,7 @@ def mlp(session, atoms=None, method="fauchere", spacing=1.0, max_distance=5.0, n
         from chimerax.core.undo import UndoState
         undo_state = UndoState('mlp')
         for s in surfs:
-            surf_has_atoms = hasattr(s, 'atoms')
+            surf_has_atoms = hasattr(s, 'atoms') and len(s.atoms.intersect(patoms)) > 0
             satoms = s.atoms if surf_has_atoms else patoms
             name = 'mlp ' + s.name.split(maxsplit=1)[0]
             v = mlp_map(session, satoms, method, spacing,
@@ -395,7 +395,7 @@ def calculatefimap(atoms, method, spacing, max_dist, nexp):
     from numpy import zeros, float32
     pot = zeros((nzgrid+1, nygrid+1, nxgrid+1), float32)
     # Make sure _mlp can runtime link shared library libarrays.
-    from chimerax import arrays ; arrays.load_libarrays()
+    import chimerax.arrays
     from ._mlp import mlp_sum
     mlp_sum(xyz, fi, origin, spacing, max_dist, method, nexp, pot)
                  

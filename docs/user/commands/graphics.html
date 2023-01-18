@@ -250,13 +250,16 @@ Additional options:
 <table border cellpadding="4" cellspacing="0"
 style="display:inline-block; vertical-align:middle"><tr>
 <td bgcolor=black width="10px" title="lime"></td></tr></table>)
-<li><b>width</b> in pixels (initial default is the system display scaling factor,
+<li><b>width</b> in pixels
+(initial default is the system display scaling factor,
 typically <b>1</b>, but <b>2</b> on high-DPI displays such as Apple Retina)
 <li><b>depthJump</b> &ndash; change in depth needed to trigger 
 drawing silhouettes, expressed as a fraction of the distance between the
 <a href="clip.html">near and far clipping planes</a>
-(initial default <b>0.03</b>, but changed to <b>0.01</b> by the
-<a href="lighting.html#preset"><b>flat</b> lighting preset</a>)
+(initial default <b>0.03</b>; changed to <b>0.01</b> by the
+<a href="lighting.html#preset"><b>flat</b> lighting preset</a>,
+restored to <b>0.03</b> by the other 
+<a href="lighting.html#preset">lighting presets</a>)
 </ul>
 Given without options, <b>graphics silhouettes</b> reports the 
 current settings in the <a href="../tools/log.html"><b>Log</b></a>.
@@ -276,5 +279,5 @@ Triangulation fineness can be controlled with
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-April 2020</address>
+November 2022</address>
 </body></html>

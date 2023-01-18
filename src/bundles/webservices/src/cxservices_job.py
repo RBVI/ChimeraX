@@ -224,10 +224,10 @@ class CxServicesJob(Job):
             return content.decode(encoding)
 
     def get_stdout(self):
-        return self.get_file("_stdout")
+        return self.get_file("stdout.txt")
 
     def get_stderr(self):
-        return self.get_file("_stdout")
+        return self.get_file("stderr.txt")
 
     def get_all_filenames(self, refresh=False):
         """Return dictionary of output files and their URLs.

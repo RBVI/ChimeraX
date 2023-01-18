@@ -9,7 +9,7 @@ authors= [{name = "UCSF RBVI", email="chimerax@cgl.ucsf.edu"}]
 description = "Alignment header support"
 dependencies = [
 	"ChimeraX-Core ~=1.0"
-	, "ChimeraX-Alignments ~=2.0"
+	, "ChimeraX-Alignments ~=2.8"
 	, "ChimeraX-AlignmentMatrices ~=2.0"
 	, "ChimeraX-Geometry ~=1.0"
 ]

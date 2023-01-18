@@ -59,6 +59,7 @@ def open_pdb(session, stream, file_name=None, *, auto_style=True, coordsets=Fals
     'renumber' (don't fill in and use the next available coordset ID).
     """
 
+    from chimerax.core.errors import UserError
     if isinstance(stream, str):
         path = stream
         stream = open(stream, 'r')
@@ -78,7 +79,6 @@ def open_pdb(session, stream, file_name=None, *, auto_style=True, coordsets=Fals
             ['fill', 'ignore', 'renumber'].index(missing_coordsets))
     except ValueError as e:
         if 'non-ASCII' in str(e):
-            from chimerax.core.errors import UserError
             raise UserError(str(e))
         raise
     finally:
@@ -90,6 +90,12 @@ def open_pdb(session, stream, file_name=None, *, auto_style=True, coordsets=Fals
         from chimerax.atomic.structure import Structure as StructureClass
     models = [StructureClass(session, name=file_name, c_pointer=p, auto_style=auto_style, log_info=log_info)
         for p in pointers]
+    from numpy import isnan
+    for m in models:
+        if isnan(m.atoms.coords).any():
+            for dm in models:
+                dm.delete()
+            raise UserError("Some X/Y/Z coordinate values in the '%s' PDB file are not numbers" % file_name)
 
     if max_models is not None:
         for m in models[max_models:]:
@@ -365,6 +371,9 @@ def format_source_name(common_name, scientific_name, genus, species, ncbi_id):
     if common_name:
         if text:
             common_name = process_chem_name(common_name.lower())
+            if not ncbi_id:
+                from html import escape
+                text = escape(text)
             text = text + ' (%s)' % common_name
         else:
             common_name = process_chem_name(common_name.lower(), sentences=True)
@@ -414,7 +423,8 @@ def process_chem_name(name, use_greek=True, probable_abbrs=False, sentences=Fals
             text = " ".join(processed_words)
         else:
             text = name
-    return text
+    from html import escape
+    return escape(text)
 
 greek_letters = {
     'alpha': u'\N{GREEK SMALL LETTER ALPHA}',

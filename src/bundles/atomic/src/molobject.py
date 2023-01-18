@@ -21,8 +21,7 @@ from . import ctypes_support as convert
 # -------------------------------------------------------------------------------
 # Access functions from libmolc C library.
 #
-from chimerax.arrays import load_libarrays
-load_libarrays() 	# Load libarrrays shared library before importing libmolc.
+import chimerax.arrays # Load libarrrays shared library before importing libmolc.
 _atomic_c_functions = CFunctions('libmolc')
 c_property = _atomic_c_functions.c_property
 cvec_property = _atomic_c_functions.cvec_property
@@ -219,8 +218,7 @@ class Bond(State):
         return f(self._c_pointer)
 
     def string(self, style = None):
-        "Supported API.  Get text representation of Bond"
-        " (also used by __str__ for printing)"
+        "Supported API.  Get text representation of Bond (also used by __str__ for printing)"
         a1, a2 = self.atoms
         bond_sep = " \N{Left Right Arrow} "
         return a1.string(style=style) + bond_sep + a2.string(style=style, relative_to=a1)
@@ -418,16 +416,18 @@ class PseudobondGroupData:
         f(self._c_pointer, pb._c_pointer)
 
     def get_num_pseudobonds(self, cs_id):
-        "Supported API. Get the number of pseudobonds for a particular coordinate set. "
-        " Use the 'num_pseudobonds' property to get the number of pseudobonds for the current "
-        " coordinate set."
+        '''Supported API. Get the number of pseudobonds for a particular coordinate set.
+        Use the 'num_pseudobonds' property to get the number of pseudobonds for the current
+        coordinate set.
+        '''
         f = c_function('pseudobond_group_get_num_pseudobonds',
                        args = (ctypes.c_void_p, ctypes.c_int,), ret = ctypes.c_size_t)
         return f(self._c_pointer, cs_id)
 
     def get_pseudobonds(self, cs_id):
-        "Supported API. Get the pseudobonds for a particular coordinate set. Use the 'pseudobonds'"
-        " property to get the pseudobonds for the current coordinate set."
+        '''Supported API. Get the pseudobonds for a particular coordinate set. Use the 'pseudobonds'
+        property to get the pseudobonds for the current coordinate set.
+        '''
         from numpy import empty
         ai = empty((self.get_num_pseudobonds(cs_id),), cptr)
         f = c_function('pseudobond_group_get_pseudobonds',
@@ -437,9 +437,10 @@ class PseudobondGroupData:
         return convert.pseudobonds(ai)
 
     def new_pseudobond(self, atom1, atom2, cs_id = None):
-        "Supported API. Create a new pseudobond between the specified :class:`Atom` objects. "
-        " If the pseudobond group supports per-coordset pseudobonds, you may"
-        " specify a coordinate set ID (defaults to the current coordinate set)."
+        '''Supported API. Create a new pseudobond between the specified :class:`Atom` objects.
+        If the pseudobond group supports per-coordset pseudobonds, you may
+        specify a coordinate set ID (defaults to the current coordinate set).
+        '''
         if cs_id is None:
             f = c_function('pseudobond_group_new_pseudobond',
                            args = (ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p),
@@ -476,8 +477,7 @@ class PseudobondGroupData:
 # -----------------------------------------------------------------------------
 #
 class PseudobondManager(StateManager):
-    '''Per-session singleton pseudobond manager keeps track of all
-    :class:`.PseudobondGroupData` objects.'''
+    '''Per-session singleton pseudobond manager keeps track of all :class:`.PseudobondGroupData` objects.'''
 
     def __init__(self, session):
         self.session = session
@@ -499,8 +499,7 @@ class PseudobondManager(StateManager):
         f(self._c_pointer, pbg._c_pointer)
 
     def get_group(self, name, create = True):
-        "Supported API. Get an existing :class:`.PseudobondGroup`"
-        " or create a new one with the given name."
+        "Supported API. Get an existing :class:`.PseudobondGroup` or create a new one with the given name."
         f = c_function('pseudobond_global_manager_get_group',
                        args = (ctypes.c_void_p, ctypes.c_char_p, ctypes.c_int),
                        ret = ctypes.c_void_p)
@@ -713,8 +712,9 @@ class Ring:
 
     @property
     def bonds(self):
-        "Supported API. :class:`.Bonds` collection containing the bonds of the ring, "
-        "in no particular order (see :meth:`.Ring.ordered_bonds`)"
+        '''Supported API. :class:`.Bonds` collection containing the bonds of the ring,
+        in no particular order (see :meth:`.Ring.ordered_bonds`)
+        '''
         return self.__bonds
 
     @property
@@ -793,7 +793,7 @@ class Sequence(State):
     default_strand_fill_color = (0.88, 1.0, 1.0) # light cyan
     default_strand_outline_color = tuple([0.75*chan for chan in default_strand_fill_color])
 
-    chimera_exiting = False
+    chimerax_exiting = False
 
     def __init__(self, seq_pointer=None, *, name="sequence", characters=""):
         self.attrs = {} # miscellaneous attributes
@@ -852,7 +852,7 @@ class Sequence(State):
         return copy_seq
 
     def __del__(self):
-        if Sequence.chimera_exiting:
+        if Sequence.chimerax_exiting:
             return
         # __del__ methods that create additional references (which the code in the
         # 'if' below apparently does) can cause __del__ to be called multiple times,
@@ -1017,7 +1017,7 @@ class Sequence(State):
 
     @atexit.register
     def _exiting():
-        Sequence.chimera_exiting = True
+        Sequence.chimerax_exiting = True
 
 # -----------------------------------------------------------------------------
 #
@@ -1036,7 +1036,19 @@ class StructureSeq(Sequence):
                     chain_id.encode('utf-8'), structure._c_pointer, polymer_type)
         super().__init__(sseq_pointer)
         self.triggers.add_trigger('delete')
-        self.triggers.add_trigger('modify')
+        self.triggers.add_trigger('characters changed')
+        self.triggers.add_trigger('residues changed')
+        from weakref import ref
+        def proxy_handler(*args, rs=ref(self)):
+            s = rs()
+            if s:
+                s._changes_cb(*args)
+        from . import get_triggers
+        self.changes_handler = get_triggers().add_handler('changes', proxy_handler)
+
+    def __del__(self):
+        if not self.chimerax_exiting:
+            self.changes_handler.remove()
 
     def __lt__(self, other):
         # for sorting (objects of the same type)
@@ -1073,14 +1085,16 @@ class StructureSeq(Sequence):
 
     # allow append/extend for now, since NeedlemanWunsch uses it
 
-    def bulk_set(self, residues, characters):
-        '''Set all residues/characters of StructureSeq. '''
-        '''"characters" is a string or a list of characters.'''
+    def bulk_set(self, residues, characters, *, fire_triggers=True):
+        '''Set all residues/characters of StructureSeq.  "characters" is a string or a list of characters.'''
         ptrs = [r._c_pointer.value if r else 0 for r in residues]
         if type(characters) == list:
             characters = "".join(characters)
         f = c_function('sseq_bulk_set', args = (ctypes.c_void_p, ctypes.py_object, ctypes.c_char_p))
         f(self._c_pointer, ptrs, characters.encode('utf-8'))
+        if fire_triggers:
+            self._fire_trigger('characters changed', self)
+            self._fire_trigger('residues changed', self)
 
     def __copy__(self):
         f = c_function('sseq_copy', args = (ctypes.c_void_p,), ret = ctypes.c_void_p)
@@ -1143,22 +1157,21 @@ class StructureSeq(Sequence):
         return obj_map
 
     def residue_at(self, index):
-        '''Supported API. Return the Residue/None at the (ungapped) position 'index'.'''
-        '''  More efficient that self.residues[index] since the entire residues'''
-        ''' list isn't built/destroyed.'''
+        '''Supported API. Return the Residue/None at the (ungapped) position 'index'.
+        More efficient than self.residues[index] since the entire residues
+        list isn't built/destroyed.
+        '''
         f = c_function('sseq_residue_at', args = (ctypes.c_void_p, ctypes.c_size_t),
             ret = ctypes.c_void_p)
         return convert.residue_or_none(f(self._c_pointer, index))
 
     def residue_before(self, r):
-        '''Return the residue at index one less than the given residue,
-        or None if no such residue exists.'''
+        '''Return the residue at index one less than the given residue, or None if no such residue exists.'''
         pos = self.res_map[r]
         return None if pos == 0 else self.residue_at(pos-1)
 
     def residue_after(self, r):
-        '''Return the residue at index one more than the given residue,
-        or None if no such residue exists.'''
+        '''Return the residue at index one more than the given residue, or None if no such residue exists.'''
         pos = self.res_map[r]
         return None if pos+1 >= len(self) else self.residue_at(pos+1)
 
@@ -1167,7 +1180,7 @@ class StructureSeq(Sequence):
         sseq = StructureSeq(chain_id=data['chain_id'], structure=data['structure'])
         Sequence.set_state_from_snapshot(sseq, session, data['Sequence'])
         sseq.description = data['description']
-        sseq.bulk_set(data['residues'], sseq.characters)
+        sseq.bulk_set(data['residues'], sseq.characters, fire_triggers=False)
         sseq.description = data.get('description', None)
         sseq.set_custom_attrs(data)
         return sseq
@@ -1202,10 +1215,28 @@ class StructureSeq(Sequence):
         }
         return data
 
+    def _changes_cb(self, trig_name, changes):
+        if "name changed" in changes.residue_reasons():
+            updated_chars = []
+            some_changed = False
+            for res, cur_char in zip(self.residues, self.characters):
+                if res:
+                    uc = Sequence.rname3to1(res.name)
+                    updated_chars.append(uc)
+                    if uc != cur_char:
+                        some_changed = True
+                else:
+                    updated_chars.append(cur_char)
+            if some_changed:
+                self.bulk_set(self.residues, ''.join(updated_chars), fire_triggers=False)
+                self.from_seqres = False
+                self._fire_trigger('characters changed', self)
+
     def _cpp_seq_demotion(self):
         # called from C++ layer when this should be demoted to Sequence
         numbering_start = self.numbering_start
         self._fire_trigger('delete', self)
+        self.changes_handler.remove()
         self.__class__ = Sequence
         self.numbering_start = numbering_start
 
@@ -1215,7 +1246,7 @@ class StructureSeq(Sequence):
 
     def _cpp_modified(self):
         # called from C++ layer when the residue list changes
-        self._fire_trigger('modify', self)
+        self._fire_trigger('residues changed', self)
 
 # sequence-structure association functions that work on StructureSeqs...
 

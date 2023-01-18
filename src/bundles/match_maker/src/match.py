@@ -33,156 +33,148 @@ def align(session, ref, match, matrix_name, algorithm, gap_open, gap_extend, dss
                     gap_open_other=defaults["other_open"],
                     compute_ss=defaults["compute_ss"],
                     keep_computed_ss=defaults['overwrite_ss']):
-    try:
-        from chimerax import sim_matrices
-        similarity_matrix = sim_matrices.matrix(matrix_name, session.logger)
-        ssf = ss_fraction
-        ssm = ss_matrix
-        if ssf is not None and ssf is not False and compute_ss:
-            need_compute = []
-            if ref.structure not in dssp_cache:
-                for r in ref.residues:
-                    if r and len(r.atoms) > 1:
-                        # not CA only
-                        need_compute.append(ref.structure)
-                        dssp_cache[ref.structure] = (ref.structure.residues.ss_ids,
-                            ref.structure.residues.ss_types)
-                        break
-            if match.structure not in dssp_cache:
-                for r in match.residues:
-                    if r and len(r.atoms) > 1:
-                        # not CA only
-                        need_compute.append(match.structure)
-                        dssp_cache[match.structure] = (match.structure.residues.ss_ids,
-                            match.structure.residues.ss_types)
-                        break
-            if need_compute:
-                from chimerax import dssp
-                for s in need_compute:
-                    # keep_computed_ss is None in a recursive call
-                    if not keep_computed_ss and keep_computed_ss is not None:
-                        s.ss_change_notify = False
-                    dssp.compute_ss(s)
-        if algorithm == "nw":
-            from chimerax.alignment_algs import NeedlemanWunsch
-            score, seqs = NeedlemanWunsch.nw(ref, match,
-                score_gap=-gap_extend, score_gap_open=0-gap_open,
-                similarity_matrix=similarity_matrix, return_seqs=True,
-                ss_matrix=ss_matrix, ss_fraction=ss_fraction,
-                gap_open_helix=-gap_open_helix,
-                gap_open_strand=-gap_open_strand,
-                gap_open_other=-gap_open_other)
-            gapped_ref, gapped_match = seqs
-        elif algorithm =="sw":
-            def ss_let(r):
-                if not r:
-                    return ' '
-                if r.is_helix:
-                    return 'H'
-                elif r.is_strand:
-                    return 'S'
-                return 'O'
-            if ssf is False or ssf is None:
-                ssf = 0.0
-                ssm = None
-            if ssm:
-                # account for missing structure (blank SS letter)
-                ssm = ssm.copy()
-                for let in "HSO ":
-                    ssm[(let, ' ')] = 0.0
-                    ssm[(' ', let)] = 0.0
-            from chimerax.alignment_algs import SmithWaterman
-            score, alignment = SmithWaterman.align(ref.characters, match.characters,
-                similarity_matrix, float(gap_open), float(gap_extend),
-                gap_char=".", ss_matrix=ssm, ss_fraction=ssf,
-                gap_open_helix=float(gap_open_helix),
-                gap_open_strand=float(gap_open_strand),
-                gap_open_other=float(gap_open_other),
-                ss1="".join([ss_let(r) for r in ref.residues]),
-                ss2="".join([ss_let(r) for r in match.residues]))
-            from chimerax.atomic import StructureSeq, Sequence
-            gapped_ref = StructureSeq(structure=ref.structure, chain_id=ref.chain_id)
-            gapped_ref.name = ref.structure.name
-            gapped_match = StructureSeq(structure=match.structure, chain_id=match.chain_id)
-            gapped_match.name = match.structure.name
-            # Smith-Waterman may not be entirety of sequences...
-            for orig, gapped, sw in [
-                    (ref, gapped_ref, Sequence(characters=alignment[0])),
-                    (match, gapped_match, Sequence(characters=alignment[1]))]:
-                ungapped = sw.ungapped()
-                for i in range(len(orig) - len(ungapped) + 1):
-                    if ungapped == orig[i:i+len(ungapped)]:
-                        break
-                else:
-                    raise ValueError("Smith-Waterman result not"
-                        " a subsequence of original sequence")
-                gapped.bulk_set(orig.residues[i:i+len(ungapped)], sw.characters)
-        else:
-            raise ValueError("Unknown sequence alignment algorithm: %s" % algorithm)
+    from chimerax import sim_matrices
+    similarity_matrix = sim_matrices.matrix(matrix_name, session.logger)
+    ssf = ss_fraction
+    ssm = ss_matrix
+    if ssf is not None and ssf is not False and compute_ss:
+        need_compute = []
+        if ref.structure not in dssp_cache:
+            for r in ref.residues:
+                if r and len(r.atoms) > 1:
+                    # not CA only
+                    need_compute.append(ref.structure)
+                    dssp_cache[ref.structure] = (ref.structure.residues.ss_ids,
+                        ref.structure.residues.ss_types)
+                    break
+        if match.structure not in dssp_cache:
+            for r in match.residues:
+                if r and len(r.atoms) > 1:
+                    # not CA only
+                    need_compute.append(match.structure)
+                    dssp_cache[match.structure] = (match.structure.residues.ss_ids,
+                        match.structure.residues.ss_types)
+                    break
+        if need_compute:
+            from chimerax import dssp
+            for s in need_compute:
+                # keep_computed_ss is None in a recursive call
+                if not keep_computed_ss and keep_computed_ss is not None:
+                    s.ss_change_notify = False
+                dssp.compute_ss(s)
+    if algorithm == "nw":
+        from chimerax.alignment_algs import NeedlemanWunsch
+        score, seqs = NeedlemanWunsch.nw(ref, match,
+            score_gap=-gap_extend, score_gap_open=0-gap_open,
+            similarity_matrix=similarity_matrix, return_seqs=True,
+            ss_matrix=ss_matrix, ss_fraction=ss_fraction,
+            gap_open_helix=-gap_open_helix,
+            gap_open_strand=-gap_open_strand,
+            gap_open_other=-gap_open_other)
+        gapped_ref, gapped_match = seqs
+    elif algorithm =="sw":
+        def ss_let(r):
+            if not r:
+                return ' '
+            if r.is_helix:
+                return 'H'
+            elif r.is_strand:
+                return 'S'
+            return 'O'
+        if ssf is False or ssf is None:
+            ssf = 0.0
+            ssm = None
+        if ssm:
+            # account for missing structure (blank SS letter)
+            ssm = ssm.copy()
+            for let in "HSO ":
+                ssm[(let, ' ')] = 0.0
+                ssm[(' ', let)] = 0.0
+        from chimerax.alignment_algs import SmithWaterman
+        score, alignment = SmithWaterman.align(ref.characters, match.characters,
+            similarity_matrix, float(gap_open), float(gap_extend),
+            gap_char=".", ss_matrix=ssm, ss_fraction=ssf,
+            gap_open_helix=float(gap_open_helix),
+            gap_open_strand=float(gap_open_strand),
+            gap_open_other=float(gap_open_other),
+            ss1="".join([ss_let(r) for r in ref.residues]),
+            ss2="".join([ss_let(r) for r in match.residues]))
+        from chimerax.atomic import StructureSeq, Sequence
+        gapped_ref = StructureSeq(structure=ref.structure, chain_id=ref.chain_id)
+        gapped_ref.name = ref.structure.name
+        gapped_match = StructureSeq(structure=match.structure, chain_id=match.chain_id)
+        gapped_match.name = match.structure.name
+        # Smith-Waterman may not be entirety of sequences...
+        for orig, gapped, sw in [
+                (ref, gapped_ref, Sequence(characters=alignment[0])),
+                (match, gapped_match, Sequence(characters=alignment[1]))]:
+            ungapped = sw.ungapped()
+            for i in range(len(orig) - len(ungapped) + 1):
+                if ungapped == orig[i:i+len(ungapped)]:
+                    break
+            else:
+                raise ValueError("Smith-Waterman result not"
+                    " a subsequence of original sequence")
+            gapped.bulk_set(orig.residues[i:i+len(ungapped)], sw.characters)
+    else:
+        raise ValueError("Unknown sequence alignment algorithm: %s" % algorithm)
 
-        # If the structures are disjoint snippets of the same longer SEQRES,
-        # they may be able to be structurally aligned but the SEQRES records
-        # will keep them apart.  Try to detect this situation and work around
-        # by snipping off sequence ends.
-        sr_disjoint = False
-        if ref.from_seqres and match.from_seqres:
-            struct_match = 0
-            for i in range(len(gapped_ref)):
-                uri = gapped_ref.gapped_to_ungapped(i)
-                if uri is None:
-                    continue
-                umi = gapped_match.gapped_to_ungapped(i)
-                if umi is None:
-                    continue
-                if gapped_ref.residues[uri] and gapped_match.residues[umi]:
-                    struct_match += 1
-                    if struct_match >= 3:
+    # If the structures are disjoint snippets of the same longer SEQRES,
+    # they may be able to be structurally aligned but the SEQRES records
+    # will keep them apart.  Try to detect this situation and work around
+    # by snipping off sequence ends.
+    sr_disjoint = False
+    if ref.from_seqres and match.from_seqres:
+        struct_match = 0
+        for i in range(len(gapped_ref)):
+            uri = gapped_ref.gapped_to_ungapped(i)
+            if uri is None:
+                continue
+            umi = gapped_match.gapped_to_ungapped(i)
+            if umi is None:
+                continue
+            if gapped_ref.residues[uri] and gapped_match.residues[umi]:
+                struct_match += 1
+                if struct_match >= 3:
+                    break
+        if struct_match < 3:
+            seq_match = 0
+            for s1, s2 in zip(gapped_ref[:], gapped_match[:]):
+                if s1.isalpha() and s2.isalpha():
+                    seq_match += 1
+                    if seq_match > 3:
                         break
-            if struct_match < 3:
-                seq_match = 0
-                for s1, s2 in zip(gapped_ref[:], gapped_match[:]):
-                    if s1.isalpha() and s2.isalpha():
-                        seq_match += 1
-                        if seq_match > 3:
-                            break
-                if seq_match > 3:
-                    need = 3 - struct_match
-                    if (ref.residues[:need].count(None) == 3
-                    or ref.residues[-need:].count(None) == 3) \
-                    and (match.residues[:need].count(None) == 3
-                    or match.residues[-need:].count(None) == 3):
-                        sr_disjoint = True
-        if sr_disjoint:
-            from copy import copy
-            clipped_ref = copy(ref)
-            clipped_match = copy(match)
-            for seq in (clipped_ref, clipped_match):
-                num_none = 0
-                for r in seq.residues:
-                    if r:
-                        break
-                    num_none += 1
-                if num_none:
-                    seq.bulk_set(seq.residues[num_none:], seq[num_none:])
+            if seq_match > 3:
+                need = 3 - struct_match
+                if (ref.residues[:need].count(None) == 3
+                or ref.residues[-need:].count(None) == 3) \
+                and (match.residues[:need].count(None) == 3
+                or match.residues[-need:].count(None) == 3):
+                    sr_disjoint = True
+    if sr_disjoint:
+        from copy import copy
+        clipped_ref = copy(ref)
+        clipped_match = copy(match)
+        for seq in (clipped_ref, clipped_match):
+            num_none = 0
+            for r in seq.residues:
+                if r:
+                    break
+                num_none += 1
+            if num_none:
+                seq.bulk_set(seq.residues[num_none:], seq[num_none:])
 
-                num_none = 0
-                for r in reversed(seq.residues):
-                    if r:
-                        break
-                    num_none += 1
-                if num_none:
-                    seq.bulk_set(seq.residues[:-num_none], seq[:-num_none])
-            return align(session, clipped_ref, clipped_match, matrix_name, algorithm, gap_open,
-                gap_extend, dssp_cache, ss_matrix=ss_matrix, ss_fraction=ss_fraction,
-                gap_open_helix=gap_open_helix, gap_open_strand=gap_open_strand,
-                gap_open_other=gap_open_other, compute_ss=False, keep_computed_ss=None)
-    finally:
-        if not keep_computed_ss and keep_computed_ss is not None:
-            for s, ss_info in dssp_cache.items():
-                ss_ids, ss_types = ss_info
-                s.residues.ss_ids = ss_ids
-                s.residues.ss_types = ss_types
-                s.ss_change_notify = True
+            num_none = 0
+            for r in reversed(seq.residues):
+                if r:
+                    break
+                num_none += 1
+            if num_none:
+                seq.bulk_set(seq.residues[:-num_none], seq[:-num_none])
+        return align(session, clipped_ref, clipped_match, matrix_name, algorithm, gap_open,
+            gap_extend, dssp_cache, ss_matrix=ss_matrix, ss_fraction=ss_fraction,
+            gap_open_helix=gap_open_helix, gap_open_strand=gap_open_strand,
+            gap_open_other=gap_open_other, compute_ss=False, keep_computed_ss=None)
     for orig, aligned in [(ref, gapped_ref), (match, gapped_match)]:
         if hasattr(orig, '_dm_rebuild_info'):
             aligned._dm_rebuild_info = orig._dm_rebuild_info
@@ -268,112 +260,142 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
     small_mol_err_msg = "Reference and/or match model contains no nucleic or"\
         " amino acid chains.\nUse the command-line 'align' command" \
         " to superimpose small molecules/ligands."
+    logged_matrix = matrix
     rd_res, md_res = domain_residues
-    from chimerax.sim_matrices import matrix_compatible
-    if chain_pairing == CP_SPECIFIC_SPECIFIC:
-        # specific chain(s) in each
+    from chimerax.sim_matrices import matrix_compatible, compatible_matrix_names, protein_matrix
+    try:
+        if chain_pairing == CP_SPECIFIC_SPECIFIC:
+            # specific chain(s) in each
 
-        # various sanity checks
-        #
-        # (1) can't have same chain matched to multiple refs
-        # (2) reference structure can't be a match structure
-        match_chains = {}
-        match_mols = {}
-        ref_mols = {}
-        for ref, match in match_items:
+            # various sanity checks
+            #
+            # (1) can't have same chain matched to multiple refs
+            # (2) reference structure can't be a match structure
+            match_chains = {}
+            match_mols = {}
+            ref_mols = {}
+            final_matrix_name = {}
+            for ref, match in match_items:
+                final_matrix_name[match] = matrix
+                ref_compatible = matrix_compatible(ref, matrix, session.logger)
+                match_compatible = matrix_compatible(match, matrix, session.logger)
+                if not ref_compatible and not match_compatible:
+                    compatible_names = compatible_matrix_names(match, session.logger)
+                    if len(compatible_names) == 1:
+                        logged_matrix = final_matrix_name[match] = compatible_names[0]
+                        session.logger.info("Using %s matrix instead of %s to match %s to %s"
+                            % (logged_matrix, matrix, match, ref))
+                        ref_compatible = match_compatible = True
+
+                if not ref_compatible:
+                    raise UserError("Reference chain (%s) not compatible with %s similarity"
+                        " matrix" % (ref.full_name, matrix))
+                if not match_compatible:
+                    raise UserError("Match chain (%s) not compatible with %s similarity"
+                        " matrix" % (match.full_name, matrix))
+                if match in match_chains:
+                    raise UserError("Cannot match the same chain to multiple reference chains")
+                match_chains[match] = ref
+                if match.structure in ref_mols \
+                or ref.structure in match_mols \
+                or match.structure == ref.structure:
+                    raise UserError("Cannot have same molecule"
+                        " model provide both reference and match chains")
+                match_mols[match.structure] = ref
+                ref_mols[ref.structure] = match
+
+            if not match_chains:
+                raise UserError("Must select at least one reference"
+                                    " chain.\n")
+
+            for match, ref in match_chains.items():
+                match, ref = [check_domain_matching([ch], dr)[0] for ch, dr in
+                    ((match, md_res), (ref, rd_res))]
+                score, s1, s2 = align(session, ref, match, final_matrix_name[match], alg,
+                            gap_open, gap_extend, dssp_cache, **align_kw)
+                pairings.setdefault(s2.structure, []).append((score, s1, s2))
+
+        elif chain_pairing == CP_SPECIFIC_BEST:
+            # specific chain in reference;
+            # best seq-aligning chain in match model(s)
+            ref, matches = match_items
+            if not ref or not matches:
+                raise UserError("Must select at least one reference and match item.\n")
             if not matrix_compatible(ref, matrix, session.logger):
-                raise UserError("Reference chain (%s) not"
-                    " compatible with %s similarity"
-                    " matrix" % (ref.full_name, matrix))
-            if not matrix_compatible(match, matrix, session.logger):
-                raise UserError("Match chain (%s) not"
-                    " compatible with %s similarity"
-                    " matrix" % (match.full_name, matrix))
-            if match in match_chains:
-                raise UserError("Cannot match the same chain"
-                    " to multiple reference chains")
-            match_chains[match] = ref
-            if match.structure in ref_mols \
-            or ref.structure in match_mols \
-            or match.structure == ref.structure:
-                raise UserError("Cannot have same molecule"
-                    " model provide both reference and"
-                    " match chains")
-            match_mols[match.structure] = ref
-            ref_mols[ref.structure] = match
-
-        if not match_chains:
-            raise UserError("Must select at least one reference"
-                                " chain.\n")
-
-        for match, ref in match_chains.items():
-            match, ref = [check_domain_matching([ch], dr)[0] for ch, dr in
-                ((match, md_res), (ref, rd_res))]
-            score, s1, s2 = align(session, ref, match, matrix, alg,
-                        gap_open, gap_extend, dssp_cache, **align_kw)
-            pairings.setdefault(s2.structure, []).append((score, s1, s2))
-
-    elif chain_pairing == CP_SPECIFIC_BEST:
-        # specific chain in reference;
-        # best seq-aligning chain in match model(s)
-        ref, matches = match_items
-        if not ref or not matches:
-            raise UserError("Must select at least one reference and match item.\n")
-        if not matrix_compatible(ref, matrix, session.logger):
-            raise UserError("Reference chain (%s) not compatible"
-                        " with %s similarity matrix" % (ref.full_name, matrix))
-        ref = check_domain_matching([ref], rd_res)[0]
-        for match in matches:
-            best_score = None
-            seqs = [s for s in match.chains if matrix_compatible(s, matrix, session.logger)]
-            if not seqs and match.chains:
-                raise UserError("No chains in match structure"
-                    " %s compatible with %s similarity"
-                    " matrix" % (match, matrix))
-            seqs = check_domain_matching(seqs, md_res)
-            for seq in seqs:
-                score, s1, s2 = align(session, ref, seq, matrix, alg,
-                        gap_open, gap_extend, dssp_cache, **align_kw)
-                if best_score is None or score > best_score:
-                    best_score = score
-                    pairing = (score, s1, s2)
-            if best_score is None:
-                raise LimitationError(small_mol_err_msg)
-            pairings[match]= [pairing]
-
-    elif chain_pairing == CP_BEST_BEST:
-        # best seq-aligning pair of chains between
-        # reference and match structure(s)
-        ref, matches = match_items
-        if not ref or not matches:
-            raise UserError("Must select at least one reference"
-                " and match item in different models.\n")
-        rseqs = [s for s in check_domain_matching(ref.chains, rd_res)
-                    if matrix_compatible(s, matrix, session.logger)]
-        if not rseqs and ref.chains:
-            raise UserError("No chains in reference structure"
-                " %s compatible with %s similarity"
-                " matrix" % (ref, matrix))
-        for match in matches:
-            best_score = None
-            mseqs = [s for s in check_domain_matching(match.chains, md_res)
-                        if matrix_compatible(s, matrix, session.logger)]
-            if not mseqs and match.chains:
-                raise UserError("No chains in match structure"
-                    " %s compatible with %s similarity"
-                    " matrix" % (match, matrix))
-            for mseq in mseqs:
-                for rseq in rseqs:
-                    score, s1, s2 = align(session, rseq, mseq,
-                        matrix, alg, gap_open, gap_extend, dssp_cache, **align_kw)
+                compatible_names = compatible_matrix_names(ref, session.logger)
+                if len(compatible_names) == 1:
+                    session.logger.info("Using %s matrix instead of %s to match to %s"
+                        % (compatible_names[0], matrix, ref))
+                    logged_matrix = matrix = compatible_names[0]
+                else:
+                    raise UserError("Reference chain (%s) not compatible"
+                                " with %s similarity matrix" % (ref.full_name, matrix))
+            ref = check_domain_matching([ref], rd_res)[0]
+            for match in matches:
+                best_score = None
+                seqs = [s for s in match.chains if matrix_compatible(s, matrix, session.logger)]
+                if not seqs and match.chains:
+                    raise UserError("No chains in match structure"
+                        " %s compatible with %s similarity"
+                        " matrix" % (match, matrix))
+                seqs = check_domain_matching(seqs, md_res)
+                for seq in seqs:
+                    score, s1, s2 = align(session, ref, seq, matrix, alg,
+                            gap_open, gap_extend, dssp_cache, **align_kw)
                     if best_score is None or score > best_score:
                         best_score = score
-                        pairing = (score,s1,s2)
-            if best_score is None:
-                raise LimitationError(small_mol_err_msg)
-            pairings[match]= [pairing]
-    else:
-        raise ValueError("No such chain-pairing method")
+                        pairing = (score, s1, s2)
+                if best_score is None:
+                    raise LimitationError(small_mol_err_msg)
+                pairings[match]= [pairing]
+
+        elif chain_pairing == CP_BEST_BEST:
+            # best seq-aligning pair of chains between
+            # reference and match structure(s)
+            ref, matches = match_items
+            if not ref or not matches:
+                raise UserError("Must select at least one reference"
+                    " and match item in different models.\n")
+            domain_rseqs = [s for s in check_domain_matching(ref.chains, rd_res)]
+            rseqs = [s for s in domain_rseqs if matrix_compatible(s, matrix, session.logger)]
+            if not rseqs and ref.chains:
+                compatible_names = compatible_matrix_names(domain_rseqs[0], session.logger)
+                if len(compatible_names) == 1:
+                    session.logger.info("Using %s matrix instead of %s for matching"
+                        % (compatible_names[0], matrix))
+                    logged_matrix = matrix = compatible_names[0]
+                    rseqs = [s for s in domain_rseqs if matrix_compatible(s, matrix, session.logger)]
+                else:
+                    raise UserError("No chains in reference structure"
+                        " %s compatible with %s similarity"
+                        " matrix" % (ref, matrix))
+            for match in matches:
+                best_score = None
+                mseqs = [s for s in check_domain_matching(match.chains, md_res)
+                            if matrix_compatible(s, matrix, session.logger)]
+                if not mseqs and match.chains:
+                    raise UserError("No chains in match structure"
+                        " %s compatible with %s similarity"
+                        " matrix" % (match, matrix))
+                for mseq in mseqs:
+                    for rseq in rseqs:
+                        score, s1, s2 = align(session, rseq, mseq,
+                            matrix, alg, gap_open, gap_extend, dssp_cache, **align_kw)
+                        if best_score is None or score > best_score:
+                            best_score = score
+                            pairing = (score,s1,s2)
+                if best_score is None:
+                    raise LimitationError(small_mol_err_msg)
+                pairings[match]= [pairing]
+        else:
+            raise ValueError("No such chain-pairing method")
+    finally:
+        if not align_kw.get('keep_computed_ss', defaults['overwrite_ss']):
+            for s, ss_info in dssp_cache.items():
+                ss_ids, ss_types = ss_info
+                s.residues.ss_ids = ss_ids
+                s.residues.ss_types = ss_types
+                s.ss_change_notify = True
 
     logger = session.logger
     ret_vals = []
@@ -482,7 +504,7 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
                         %s
                         %s
                     </table>
-                """ % (html_table_params, chain_pairing, alg_name, matrix, ss_rows, iterate_row)
+                """ % (html_table_params, chain_pairing, alg_name, logged_matrix, ss_rows, iterate_row)
                 logger.info(param_table, is_html=True)
                 logged_params = True
             logger.status("Matchmaker %s (#%s) with %s (#%s),"
@@ -747,12 +769,14 @@ def register_command(logger):
     _registered = True
     from chimerax.core.commands import CmdDesc, register, FloatArg, StringArg, \
         BoolArg, NoneArg, TopModelsArg, create_alias, Or, DynamicEnum
-    from chimerax.atomic import AtomsArg
+    # use OrderedAtomsArg so that /A-F come out in the expected order even if not ordered that way
+    # internally [#7577]
+    from chimerax.atomic import OrderedAtomsArg
     from chimerax import sim_matrices
     desc = CmdDesc(
-        required = [('match_atoms', AtomsArg)],
+        required = [('match_atoms', OrderedAtomsArg)],
         required_arguments = ['to'],
-        keyword = [('to', AtomsArg), ('pairing', StringArg), ('alg', StringArg),
+        keyword = [('to', OrderedAtomsArg), ('pairing', StringArg), ('alg', StringArg),
             ('verbose', BoolArg), ('ss_fraction', Or(FloatArg, BoolArg)),
             ('matrix', DynamicEnum(lambda logger=logger: sim_matrices.matrices(logger).keys())),
             ('gap_open', FloatArg), ('hgap', FloatArg), ('sgap', FloatArg), ('ogap', FloatArg),

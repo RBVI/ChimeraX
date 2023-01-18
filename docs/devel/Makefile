@@ -15,20 +15,20 @@ TOP	= ../..
 include $(TOP)/mk/config.make
 
 # You can set these variables from the command line.
-SPHINXOPTS    =
+SPHINXOPTS    ?=
 ifdef USE_MAC_FRAMEWORKS
-SPHINXBUILD   = $(APP_PYTHON_EXE) $(APP_PYTHON_FRAMEWORK)/bin/sphinx-build
+SPHINXBUILD   ?= $(APP_PYTHON_EXE) $(APP_PYTHON_FRAMEWORK)/bin/sphinx-build
 else ifdef WIN32
-SPHINXBUILD   = $(APP_PYTHON_EXE) '$(shell cygpath -m '$(app_bindir)/Scripts/sphinx-build.exe')'
+SPHINXBUILD   ?= $(APP_PYTHON_EXE) '$(shell cygpath -m '$(app_bindir)/Scripts/sphinx-build.exe')'
 else
-SPHINXBUILD   = $(APP_PYTHON_EXE) $(app_bindir)/sphinx-build
+SPHINXBUILD   ?= $(APP_PYTHON_EXE) $(app_bindir)/sphinx-build
 endif
-PAPER         =
-BUILDDIR      = _build
-DOCDIR        = $(app_datadir)/docs/devel
+PAPER         ?=
+BUILDDIR      ?= _build
+DOCDIR        ?= $(app_datadir)/docs/devel
 
 # The short X.Y version extracted for core Makefile
-CHIMERAX_VERSION = $(shell grep -m 1 ^BUNDLE_VERSION $(TOP)/src/core/Makefile | cut -d\  -f3)
+CHIMERAX_VERSION = $(shell grep -m 1 ^BUNDLE_VERSION $(TOP)/src/bundles/core/Makefile | cut -d\  -f3)
 # The full version, including alpha/beta/rc tags.
 CHX_FULL_VERSION = $(CHIMERAX_VERSION)
 
@@ -63,12 +63,13 @@ help:
 	@echo "  linkcheck  to check all external links for integrity"
 	@echo "  doctest    to run all doctests embedded in the documentation (if enabled)"
 
-install: html
+install: clean html
 	if [ ! -d "$(DOCDIR)" ]; then mkdir -p $(DOCDIR); fi
 	$(RSYNC) $(BUILDDIR)/html/ $(DOCDIR)
 
 clean:
-	-rm -rf $(BUILDDIR)/* conf.py index.rst _static/cxlinks.js __pycache__
+	-rm -rf $(BUILDDIR)/* conf.py index.rst _static/cxlinks.js __pycache__ _static/devdocs.css \
+		apps chimerax modules
 
 conf.py: conf.py.in
 	sed -e 's/PYTHON_VERSION/$(PYTHON_VERSION)/' \
@@ -81,7 +82,14 @@ index.rst: index.rst.in
 		sed $$'/COPYRIGHT_NOTICE/{r /dev/stdin\nd\n}' \
 		$< > $@
 
-html: conf.py index.rst _static/cxlinks.js _static/devdocs.css
+html: clean conf.py index.rst _static/cxlinks.js _static/devdocs.css
+	# This code path handles a built ChimeraX, for the Plato build 
+	# system or on a user's local machine. On readthedocs, the 
+	# symlinks are made in Makefile.readthedocs
+	if [ -d $(APP_PYSITEDIR) ]; then \
+		ln -s $(realpath $(APP_PYSITEDIR)/chimerax) chimerax ; \
+		INTERNAL_CHIMERAX=1 $(TOP)/utils/doc_symlinks.sh ; \
+	fi
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
 	@echo
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."
@@ -198,6 +206,3 @@ doctest: conf.py index.rst
 	$(SPHINXBUILD) -b doctest $(ALLSPHINXOPTS) $(BUILDDIR)/doctest
 	@echo "Testing of doctests in the sources finished, look at the " \
 	      "results in $(BUILDDIR)/doctest/output.txt."
-
-llgr: conf.py
-	$(APP_PYTHON_EXE) $(bindir)/rst2html.py --config=conf.py ../src/llgr/llgr.rst > llgr.html

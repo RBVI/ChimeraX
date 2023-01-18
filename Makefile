@@ -18,6 +18,7 @@ SUBDIRS = prereqs src
 -include .makerc
 include $(TOP)/mk/config.make
 include $(TOP)/mk/subdir.make
+include $(TOP)/mk/detectOS.make
 
 all:
 	@echo "'make install' to build everything" && exit 1
@@ -40,6 +41,9 @@ endif
 	$(MAKE) -C docs install
 ifndef WIN32
 	# Admin privileges are needed on Windows 10
+	# To enable, follow the instructions at
+	# https://stackoverflow.com/a/65504258/12208118
+	# then you can make -C vdocs by hand if you like
 	$(MAKE) -C vdocs install
 endif
 	$(APP_PYTHON_EXE) clean_app.py
@@ -63,12 +67,22 @@ sync:
 	mkdir -p $(build_prefix)/sync/
 	$(MAKE) -C src/bundles sync
 
-sync-venv:
-ifndef VIRTUAL_ENV
-	@echo "No virtual env to install to! Doing nothing."
-else
-	pip install --force-reinstall $(build_prefix)/sync/*
-endif
+.PHONY: venv
+venv:
+	if [ -x $(APP_PYTHON_BIN) ] && [ ! -x .venv ]; then \
+		$(APP_PYTHON_BIN) -m venv .venv --system-site-packages ; \
+		echo 'Virtual environment created in .venv' ; \
+		echo 'source .venv/bin/activate to activate it on Linux or macOS' ; \
+		echo 'or source .venv/Scripts/activate to activate it on Windows' ; \
+		exit ; \
+	else \
+		if [ -x .venv ]; then \
+			echo '.venv already exists' ; \
+			exit ; \
+		fi ; \
+		echo 'Build ChimeraX before creating your virtual environment'; \
+		exit ; \
+	fi
 
 ifdef WIN32
 vsdefined:
@@ -100,8 +114,10 @@ ifeq ($(OS),Darwin)
 endif
 
 build-app-dirs:
-	-mkdir -p $(app_prefix) $(app_bindir) $(app_libdir) $(app_datadir) \
-		$(app_includedir)
+	-mkdir -p $(app_prefix) $(app_bindir) $(app_datadir)
+ifneq ($(OS),Windows)
+	-mkdir -p $(app_libdir) $(app_includedir)
+endif
 ifeq ($(OS),Darwin)
 	-mkdir -p $(app_prefix)/MacOS $(app_prefix)/Resources \
 		$(app_frameworkdir)
@@ -115,6 +131,11 @@ distclean: clean
 	-$(MAKE) -C vdocs clean
 	-rm -rf prereqs/prebuilt-*.tar.bz2
 	-$(MAKE) -C prereqs/cxservices clean
+
+reallyclean:
+	rm -rf $$(git status --short --ignored --porcelain=v1 | sed -e '/^!!/!d' -e 's/^!! //')
+	# for linux:
+	rm -rf .cache .config
 
 clean:
 	-rm -rf $(APP_FILENAME)

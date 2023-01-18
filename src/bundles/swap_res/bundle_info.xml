@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-SwapRes" version="2.1.3" package="chimerax.swap_res"
+<BundleInfo name="ChimeraX-SwapRes" version="2.2" package="chimerax.swap_res"
   	    customInit="true" minSessionVersion="1" maxSessionVersion="1">
 
   <!-- Additional information about bundle source -->
@@ -23,7 +23,7 @@
     <Dependency name="ChimeraX-Clashes" version="~=2.0"/>
     <Dependency name="ChimeraX-Geometry" version="~=1.0"/>
     <Dependency name="ChimeraX-Hbonds" version="~=2.0"/>
-    <Dependency name="ChimeraX-RotamerLibMgr" version="~=2.0"/>
+    <Dependency name="ChimeraX-RotamerLibMgr" version="~=3.0"/>
     <Dependency name="ChimeraX-UI" version="~=1.0"/>
   </Dependencies>
 
@@ -31,8 +31,9 @@
     <!-- Development Status should be compatible with bundle version number -->
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>Command :: swapaa :: Structure Editing :: swap residue side chain </ChimeraXClassifier>
-    <ChimeraXClassifier>Tool :: Rotamers :: Structure Editing :: swap residue side chain</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: swapaa :: Structure Editing :: swap amino acid residue side chain </ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: swapna :: Structure Editing :: swap nucleic acid residue side chain </ChimeraXClassifier>
+    <ChimeraXClassifier>Tool :: Rotamers :: Structure Editing :: swap amino acid residue side chain</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

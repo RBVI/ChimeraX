@@ -20,10 +20,12 @@ Read Mole tunnel json files and display as spheres.
 
 # -----------------------------------------------------------------------------
 #
-def read_mole_json(session, filename, name, transparency = 0.5):
+def read_mole_json(session, filename, name, transparency = 0):
     """Read Mole channels and create a separate Structure for each to be shown as spheres.
 
-    :param filename: either the name of a file or a file-like object
+    :param filename: either the name of a file or a file-like object.
+    :param name: model name to use for the channel models.
+    :param transparency: in percent (0-100), default 0.
     """
 
     if hasattr(filename, 'read'):
@@ -35,7 +37,11 @@ def read_mole_json(session, filename, name, transparency = 0.5):
     import json
     j = json.load(input)
 
-    models = channel_models(session, j['Channels'], transparency)
+    if not isinstance(j, dict) or 'Channels' not in j:
+        from chimerax.core.errors import UserError
+        raise UserError(f'{name} does not look like Mole Online json file, does not contain Channels.')
+    
+    models = channel_models(session, j['Channels'], transparency/100.0)
 
     if len(models) > 1:
         from chimerax.model_series.mseries import mseries_slider
@@ -63,28 +69,19 @@ def channel_models(session, channel_json, transparency):
     opacity = int(255 * (1-transparency))
     
     models = []
-    from chimerax.atomic import Structure
+    from chimerax.markers import MarkerSet
     for ctype in ('Pores', 'MergedPores', 'Tunnels', 'Paths'):
         channels = channel_json.get(ctype,[])
         for cnum, channel in enumerate(channels):
             chid = channel['Id']
             color = tuple(channel_colors[cnum % num_colors][:3]) + (opacity,)
-            s = Structure(session, name = f'{ctype[:-1]} {chid}')
-            s.display = (cnum == 0)
-            res_name = 'T'
-            chain_id = 'A'
-            res_num = 1
-            res = s.new_residue(res_name, chain_id, res_num)
+            ms = MarkerSet(session, name = f'{ctype[:-1]} {chid}')
+            ms.display = (cnum == 0)
             spheres = channel['Profile']
             for sphere in spheres:
                 r,x,y,z = [sphere[attr] for attr in ('Radius', 'X', 'Y', 'Z')]
-                a = s.new_atom(f's{chid}', 'C')
-                a.coord = (x,y,z)
-                a.radius = r
-                a.draw_mode = a.SPHERE_STYLE
-                a.color = color
-                res.add_atom(a)
-            models.append(s)
+                ms.create_marker((x,y,z), color, r)
+            models.append(ms)
 
     return models
 

@@ -1,5 +1,5 @@
 <!-- Edit bundle_info.xml.in, not bundle_info.xml; then run make_selectors.py  -->
-<BundleInfo name="ChimeraX-Atomic" version="1.41.4"
+<BundleInfo name="ChimeraX-Atomic" version="1.43.4"
             package="chimerax.atomic"
             purePython="false"
             customInit="true"
@@ -62,7 +62,7 @@
   <!-- Edit bundle_info.xml.in, not bundle_info.xml; then run make_selectors.py  -->
   <Dependencies>
     <Dependency name="ChimeraX-Core" version="~=1.0"/>
-    <Dependency name="ChimeraX-AtomicLibrary" build="true" version="~=8.0"/>
+    <Dependency name="ChimeraX-AtomicLibrary" build="true" version="~=10.0"/>
     <Dependency name="ChimeraX-ConnectStructure" version="~=2.0"/>
     <Dependency name="ChimeraX-Geometry" build="true" version="~=1.0"/>
     <Dependency name="ChimeraX-Graphics" build="true" version="~=1.0"/>
@@ -96,6 +96,11 @@
 	<Provider name="pseudobonds"/>
 	<Provider name="residues"/>
 	<Provider name="structures" ui_name="atomic models"/>
+  </Providers>
+  <Providers manager="render by attribute">
+    <Provider name="atoms"/>
+    <Provider name="residues"/>
+    <Provider name="structures"/>
   </Providers>
 
   <Classifiers>

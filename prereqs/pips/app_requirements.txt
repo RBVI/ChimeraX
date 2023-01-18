@@ -13,30 +13,30 @@ Cython==0.29.32
 filelock==3.7.1
 grako==3.16.5
 html2text==2020.1.16
-ihm==0.33
-imagecodecs==2022.7.31 ; platform_machine != 'arm64'
-ipykernel==6.15.3
+ihm==0.35
+imagecodecs==2022.9.26 ; platform_machine != 'arm64'
+ipykernel==6.19.2
 # if ipython updated, make sure autocompletion still works (e.g. "mi<tab>" becomes min) and if not then
 # try a newer version of jedi
-ipython==8.4.0
+ipython==8.7.0
 # the version of jedi that works with ipython
-jedi==0.18.1
-jupyter-client==7.3.4
+jedi==0.18.2
+jupyter-client==7.4.8
 line_profiler==3.5.1
 lxml==4.9.1
 lz4==4.0.2
-matplotlib==3.5.2
+matplotlib==3.6.2
 msgpack==1.0.4
 netCDF4==1.6.0
-networkx==2.8.5
-numpy==1.23.1
+networkx==2.8.8
+numpy==1.23.5
 openvr==1.23.701
 # as per Tristan's request in ticket #3055
 ParmEd==3.4.3
 pep517==0.13.0
-Pillow==9.2.0
+Pillow==9.3.0
 pkginfo==1.8.3
-psutil==5.9.1
+psutil==5.9.4
 pycollada==0.7.2
 pydicom==2.3.0
 # PyOpenGL handled in app_pyopengl_requirements.txt
@@ -44,13 +44,13 @@ python-dateutil==2.8.2
 # PyQt handled in prereqs/PyQt
 # sip handled in prereqs/PyQt
 #PySide2==5.15.2
-qtconsole==5.3.1
+qtconsole==5.4.0
 requests==2.28.1
-scipy==1.9.0
+scipy==1.9.3
 six==1.16.0
 sortedcontainers==2.4.0
 tables==3.7.0 ; platform_machine != 'arm64'
-tifffile==2022.7.31
+tifffile==2022.10.10
 tinyarray==1.2.4
 tomli==2.0.1
 webcolors==1.12
@@ -78,5 +78,5 @@ distro==1.7.0; sys_platform == 'linux'
 #
 # Indirect dependencies listed here to pin the version number
 #
-traitlets==5.3.0
+traitlets==5.8.0
 

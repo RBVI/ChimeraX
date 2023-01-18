@@ -22,6 +22,7 @@ Thumbs.db
 *.exp
 # Editors (Emacs, Vi{,m}, etc)
 .projectile
+.fleet
 *.swp
 .vscode
 # Test files
@@ -133,12 +134,16 @@ prereqs/p7zip/*.xz
 prereqs/p7zip/7za
 prereqs/pytables/tables-*.tar.gz
 prereqs/Python/Python-*/
+prereqs/Python/Python.framework
 prereqs/Python/python-*.tar.bz2
 prereqs/Python/*.xz
 prereqs/Python/relocatable-python
 prereqs/PyQt/*commercial*
 prereqs/PyQt/qt/*.xz
 prereqs/zlib/*.gz
+docs/devel/apps
+docs/devel/chimerax
+docs/devel/modules
 docs/license.html
 docs/license.txt
 docs/embedded.html
@@ -151,3 +156,4 @@ src/apps/ChimeraX/ChimeraX-icon128.png
 src/apps/ChimeraX/ChimeraX-icon64.png
 src/apps/ChimeraX/ChimeraX-icon32.png
 src/apps/ChimeraX/ChimeraX-icon16.png
+wheel/chimerax

@@ -174,7 +174,7 @@ def markers_from_mesh(session, surfaces, edge_radius = 1, color = None, markers 
 
     if mset.id is None:
         session.models.add([mset])
-        
+
     return mset
 
 def _masked_edges(surface):
@@ -190,15 +190,14 @@ def _masked_edges(surface):
     em0 = em1 = em2 = True
     for t, (v0,v1,v2) in enumerate(surface.triangles):
         if tmask is None or tmask[t]:
-            if emask is not None:
-                em = emask[t]
-                em0,em1,em2 = em & 0x1, em & 0x2, em & 0x4
-                if em & 0x1 and (v1,v0) not in edges:
-                    edges.add((v0,v1))
-                if em & 0x2 and (v2,v1) not in edges:
-                    edges.add((v1,v2))
-                if em & 0x4 and (v0,v2) not in edges:
-                    edges.add((v2,v0))
+            em = 0x7 if emask is None else emask[t]
+            em0,em1,em2 = em & 0x1, em & 0x2, em & 0x4
+            if em & 0x1 and (v1,v0) not in edges:
+                edges.add((v0,v1))
+            if em & 0x2 and (v2,v1) not in edges:
+                edges.add((v1,v2))
+            if em & 0x4 and (v0,v2) not in edges:
+                edges.add((v2,v0))
     return edges
 
 def _surface_name(surface):

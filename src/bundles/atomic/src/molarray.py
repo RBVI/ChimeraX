@@ -548,6 +548,13 @@ class Atoms(Collection):
     colors = cvec_property('atom_color', uint8, 4,
         doc="Returns a :mod:`numpy` Nx4 array of uint8 RGBA values. Can be set "
         "with such an array (or equivalent sequence), or with a single RGBA value.")
+    @property
+    def average_ribbon_color(self):
+        "Average ribbon color as length 4 unit8 RGBA values."
+        f = c_function('atom_average_ribbon_color',
+                       args = [ctypes.c_void_p, ctypes.c_size_t],
+                       ret = ctypes.py_object)
+        return f(self._c_pointers, len(self))
     coords = cvec_property('atom_coord', float64, 3,
         doc="Returns a :mod:`numpy` Nx3 array of XYZ values. Can be set.")
     coord_indices = cvec_property('atom_coord_index', uint32, read_only = True,

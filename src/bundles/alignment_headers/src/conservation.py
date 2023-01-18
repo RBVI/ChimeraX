@@ -98,6 +98,11 @@ class Conservation(DynamicHeaderSequence):
         else:
             self.al2co_options_widget.hide()
 
+    def alignment_notification(self, note_name, note_data):
+        super().alignment_notification(note_name, note_data)
+        if note_name == self.alignment.NOTE_SEQ_CONTENTS:
+            self.reevaluate()
+
     def destroy(self):
         self.handler_ID.remove()
         super().destroy()
@@ -138,8 +143,8 @@ class Conservation(DynamicHeaderSequence):
     def percent_identity(self, pos, for_histogram=False):
         """actually returns a fraction"""
         occur = {}
-        for i in range(len(self.alignment.seqs)):
-            let = self.alignment.seqs[i][pos]
+        for seq in self.alignment.seqs:
+            let = seq[pos]
             try:
                 occur[let] += 1
             except KeyError:

@@ -1,0 +1,834 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: esmfold</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#commands">Command</a>: esmfold</h3>
+<p>
+<a href="https://github.com/facebookresearch/esm" target="_blank">ESMFold</a>
+(Evolutionary Scale Modeling)
+is an artificial intelligence method for predicting protein structures.
+The method is described in:
+</p>
+<blockquote>
+<a href="https://doi.org/10.1101/2022.07.20.500902" target="_blank">
+Language models of protein sequences at the scale of evolution enable 
+accurate structure prediction.</a>
+Lin Z, Akin H, Rao R, <i>et al.</i> <i>bioRxiv.</i> 2022.07.20.500902.
+</blockquote>
+<p>
+The <b>esmfold</b> command:
+</p>
+<ul>
+<li><a href="#fetch">finds and retrieves existing models</a>
+from the <a href="https://esmatlas.com/about#about_this_website"
+target="_blank">ESM Metagenomic Atlas</a>, which contains
+over 600 million predicted protein structures
+<br><br>
+<li><a href="#predict">runs new ESMFold predictions</a>
+on the <a href="https://esmatlas.com/about#fold" target="_blank">prediction
+server</a> provided by the 
+<a href="https://esmatlas.com/about#about_this_website"
+target="_blank">ESM Metagenomic Atlas</a>
+<br><br>
+<li><a href="#pae">plots residue-residue alignment errors</a>
+for ESMFold structures 
+and <a href="#contacts">shows them with colored pseudobonds</a>
+</ul>
+<p>
+ESMFold-predicted structures vary in confidence levels
+(see <a href="#colorConfidence">coloring</a>) 
+and should be interpreted with caution. 
+The <b>esmfold</b> command is also implemented as the tools
+<a href="../tools/esmfold.html"><b>ESMFold</b></a>
+and <a href="../tools/esmfold.html#pae"><b>ESMFold Error Plot</b></a>.
+See the 
+<a href="https://www.rbvi.ucsf.edu/chimerax/data/esmfold-nov2022/esmfold.html" target="_blank">ChimeraX ESMFold example</a>,
+<a href="alphafold.html"><b>alphafold</b></a>,
+<a href="blastprotein.html"><b>blastprotein</b></a>,
+<a href="modeller.html"><b>modeller</b></a>,
+<a href="swapaa.html"><b>swapaa</b></a>
+</p>
+
+<a name="fetch"></a>
+<a name="match"></a>
+<a name="search"></a>
+<p class="nav">
+[<a href="#top">back to top: esmfold</a>]
+</p>
+<h3>Getting Models from the ESM Metagenomic Atlas</h3>
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>esmfold fetch</b> &nbsp;<i>mgnify-id</i>&nbsp;
+<span class="nowrap">[&nbsp;<a href="#alignTo"><b>alignTo</b></a>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>chain-spec</i></a>&nbsp;[&nbsp;<a href="#trim"><b>trim</b></a>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]]</span>
+[&nbsp;<a href="#colorConfidence"><b>colorConfidence</b></a>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<a href="#ignoreCache"><b>ignoreCache</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<a href="#pae"><b>pae</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<a href="#version"><b>version</b></a>&nbsp;&nbsp;<i>N</i>&nbsp;]
+<br>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>esmfold match</b> &nbsp;<i>sequence</i>&nbsp;
+[&nbsp;<a href="#trim"><b>trim</b></a>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<a href="#colorConfidence"><b>colorConfidence</b></a>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<a href="#ignoreCache"><b>ignoreCache</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<a href="#pae"><b>pae</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+<br>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>esmfold search</b> &nbsp;<i>sequence</i>&nbsp;
+[&nbsp;<b>matrix</b>&nbsp;&nbsp;<i>similarity-matrix</i>&nbsp;]
+[&nbsp;<b>cutoff</b>&nbsp;&nbsp;<i>evalue</i>&nbsp;]
+[&nbsp;<b>maxSequences</b>&nbsp;&nbsp;<i>M</i>&nbsp;]
+[&nbsp;<a href="#version"><b>version</b></a>&nbsp;&nbsp;<i>N</i>&nbsp;]
+</blockquote>
+<ul>
+<li>The <b>esmfold fetch</b> command retrieves the model (if available)
+for a sequence specified by its MGnify identifier. 
+This identifier can be obtained by 
+<a href="https://esmatlas.com/resources?action=search_sequence"
+target="_blank">sequence search at the ESM Metagenomic Atlas</a>. Example:
+<blockquote>
+<b>esmfold fetch MGYP000542242899</b>
+<!-- related but nonidentical structure 4dnl -->
+</blockquote>
+<li>The <b>esmfold match</b> command retrieves models for sequences
+the same as or similar to those of experimentally determined protein structures
+already open in ChimeraX, or other sequences independent of structure.
+Giving the model number of an atomic structure already open in ChimeraX
+specifies all of its protein chains. Examples with <i>sequence</i> given as a
+<a href="atomspec.html#hierarchy"><i>chain-spec</i></a>:
+<blockquote>
+<b>esmfold match #1</b>
+<!-- example structure 3p5b -->
+<br>
+<b>esmfold match #3/B,D trim false</b>
+</blockquote>
+<p>
+Alternatively, the <i>sequence</i> can be given as any of the following:
+  <ul>
+  <li>the <a href="seqspec.html"><i>sequence-spec</i></a> of a sequence
+  in the <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>,
+in the form:
+&nbsp;<span class="nowrap"><i>alignment-ID</i>:<i>sequence-ID</i></span>&nbsp;
+(<a href="seqspec.html">details...</a>)
+  <li>a UniProt name or accession number
+  <li>plain text pasted directly into the command line
+  </ul>
+<p>
+For a specified structure chain, a model is obtained for 
+the single top hit (closest sequence match) identified by
+<a href="https://www.rbvi.ucsf.edu/chimerax/data/kmer-aug2022/kmer_search.html"
+target="_blank">K-mer search</a> 
+of the <a href="https://esmatlas.com/about#about_this_website"
+target="_blank">ESM Metagenomic Atlas</a>.
+This type of search is fast but low-sensitivity, requiring high % identity 
+for a hit to be found. For each model with a corresponding structure chain
+from the <b>esmfold match</b> command or the
+<a href="#alignTo"><b>alignTo</b></a> option of <b>esmfold fetch</b>:
+</p>
+<a name="structmatch"></a>
+<ol>
+<li>the chain ID of the predicted structure is made the same as the
+corresponding chain of the existing model
+<li>the predicted structure is superimposed onto the existing chain using
+<a href="matchmaker.html"><b>matchmaker</b></a>,
+and the following are reported in a table
+in the <a href="../tools/log.html"><b>Log</b></a>:
+  <ul>
+  <li><b>Chain</b> &ndash; chain ID in ChimeraX
+  <li><b>MGnify Id</b></a> &ndash; sequence ID used by the
+<a href="https://esmatlas.com/about#about_this_website"
+target="_blank">ESM Metagenomic Atlas</a>
+  <li><b>RMSD</b> &ndash; C&alpha; root-mean-square deviation between
+  the predicted and experimental structures, over all residues of the latter
+  <li><b>Length</b> &ndash; number of residues in the predicted structure
+  <li><b>Seen</b> &ndash; number of residues with atomic coordinates
+  in the experimental structure
+  <li><b>% Id</b> &ndash; percent identity in the sequence alignment generated
+  by <a href="matchmaker.html"><b>matchmaker</b></a> for superposition;
+  the number of positions with identical residues
+  divided by the length of the shorter sequence
+  </ul>
+<li>the following <a href="../attributes.html">attributes</a>
+ are assigned to the residues of the predicted structure:
+  <ul>
+  <li><b>c_alpha_distance</b>
+&ndash; C&alpha; distance between corresponding positions of the predicted
+and existing chains after their superposition (step 2 above)
+  <li><b>missing_structure</b>
+&ndash; positions missing from the coordinates of the existing chain
+  <li><b>same_sequence</b>
+&ndash; positions with the same residue type as the existing chain
+  </ul>
+These <a href="../attributes.html">attributes</a>
+can be used for <a href="../tools/esmfold.html#coloring">coloring</a>
+and other purposes.
+</ol>
+<br>
+<li>The <b>esmfold search</b> command uses
+a <a href="../tools/blastprotein.html#notes">BLAST</a> web service
+hosted by the <a href="https://www.cgl.ucsf.edu/Overview/index.html"
+target="_blank">UCSF RBVI</a> to search the
+<a href="https://esmatlas.com/about#about_this_website"
+target="_blank">ESM Metagenomic Atlas</a>.
+It differs from <b>esmfold match</b> in that it uses BLAST instead
+of fast (but low-sensitivity)
+<a href="https://www.rbvi.ucsf.edu/chimerax/data/kmer-aug2022/kmer_search.html"
+target="_blank">K-mer searching</a>,
+accepts only a single chain or sequence as input,
+and returns a list of hits for the user to inspect,
+rather than fetching the single top hit per chain automatically.
+The query <i>sequence</i> can be given as any of the following:
+  <ul>
+  <li>a <a href="atomspec.html#hierarchy"><i>chain-spec</i></a>
+  corresponding to a single chain in an atomic structure open in ChimeraX
+  <li>the <a href="seqspec.html"><i>sequence-spec</i></a> of a sequence
+  in the <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>
+  <li>a UniProt name or accession number
+  <li>plain text pasted directly into the command line
+  </ul>
+<p>
+The <b>matrix</b> option indicates which amino acid <i>similarity-matrix</i>
+to use for scoring the hits (uppercase or lowercase can be used): BLOSUM45,
+BLOSUM50, <b>BLOSUM62</b> (default), BLOSUM80, BLOSUM90, PAM30, PAM70, PAM250,
+or IDENTITY.
+The <b>cutoff</b> <i>evalue</i> is the maximum or least significant
+expectation value needed to qualify as a hit (default <b>1e-3</b>).
+Results can also be limited with the <b>maxSequences</b> option
+(default <b>100</b>); this is the
+maximum number of unique sequences to return.
+</p><p>
+When results are returned, the hits are listed in a
+<a href="../tools/blastprotein.html#results"><b>Blast Protein</b></a> window.
+Double-clicking a hit uses
+<a href="#fetch"><b>esmfold fetch</b></a> to retrieve the model,
+or multiple chosen hits can be retrieved at once by using the results panel
+<a href="../window.html#context-menu">context menu</a>
+or <b>Load Structures</b> button 
+(<a href="../tools/blastprotein.html#results">details...</a>).
+</p>
+</ul>
+
+<a name="options"></a>
+<p class="nav">
+[<a href="#top">back to top: esmfold</a>]
+</p>
+<h4>Options</h4>
+
+<blockquote>
+<a name="alignTo"></a>
+<b>alignTo</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>chain-spec</i></a>
+<br>
+Superimpose the predicted structure from 
+<a href="#fetch"><b>esmfold fetch</b></a> onto
+a single chain in an already-open structure, and make its chain ID the same
+as that chain's. See also the <a href="#trim"><b>trim</b></a> option. 
+</blockquote>
+<blockquote>
+<a name="colorConfidence"></a>
+<b>colorConfidence</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
+<br>
+Whether to <a href="color.html#byattribute">color</a>
+the predicted structures by the pLDDT confidence measure
+(same as <a href="https://alphafold.ebi.ac.uk/faq#faq-5" 
+target="_blank">for AlphaFold</a> except mapped to 0-1 instead of 0-100)
+in the B-factor field (default <b>true</b>):
+   <ul>
+     <li>1.0
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle">
+<tr><td bgcolor=blue width="10px" title="blue"></td></tr>
+</table>
+to 0.9
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle">
+<tr><td bgcolor=cornflowerblue width="10px" title="cornflower blue"></td></tr>
+</table>
+&ndash; high accuracy expected
+     <li>0.9
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle">
+<tr><td bgcolor=cornflowerblue width="10px" title="cornflower blue"></td></tr>
+</table>
+to 0.7
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle">
+<tr><td bgcolor=yellow width="10px" title="yellow"></td></tr>
+</table>
+&ndash; backbone expected to be modeled well
+     <li>0.7
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle">
+<tr><td bgcolor=yellow width="10px" title="yellow"></td></tr>
+</table>
+to 0.5
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle">
+<tr><td bgcolor=orange width="10px" title="orange"></td></tr>
+</table>
+&ndash; low confidence, caution
+     <li>0.5
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle">
+<tr><td bgcolor=orange width="10px" title="orange"></td></tr>
+</table>
+to 0.0
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle">
+<tr><td bgcolor=red width="10px" title="red"></td></tr>
+</table>
+&ndash; should not be interpreted, may be disordered
+     </ul>
+<p>
+...in other words, using
+</p>
+<blockquote><b>
+<a href="color.html#bfactor">color bfactor</a>
+<a href="color.html#palette-options">palette</a> esmfold
+<!-- 0,red:0.5,orange:0.7,yellow:0.9,cornflowerblue:1,blue -->
+<!-- 1,blue:0.9,cornflowerblue:0.7,yellow:0.5,orange:0,red -->
+</b></blockquote>
+<p>
+The <a href="../tools/colorkey.html"><b>Color Key</b></a> graphical interface
+or a command can be used to draw a corresponding color key, for example:
+</p>
+  <blockquote>
+  <a href="key.html"><b>key</b></a> <b>red:low orange: yellow: cornflowerblue: blue:high</b>
+  &nbsp;[<a href="key.html#options"><i>other-key-options</i></a>]
+<!--
+<br>
+  <b>key</b> <b>blue:1 cornflowerblue:0.9 yellow:0.7 orange:0.5 red:0</b>
+  &nbsp;<b>numericLabelSpacing equal</b>
+  &nbsp;[<a href="key.html#options"><i>other-key-options</i></a>]
+-->
+  </blockquote>
+</blockquote>
+<blockquote>
+<a name="ignoreCache"></a>
+<b>ignoreCache</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>
+The fetched models are stored locally in 
+<b>~/Downloads/ChimeraX/ESMFold/</b>,
+where ~ indicates a user's home directory.
+If a file specified for opening is not found in this local cache or 
+<b>ignoreCache</b> is set to <b>true</b>, the file will be fetched and cached.
+</blockquote>
+<blockquote>
+<a name="trim"></a>
+<b>trim</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
+<br>
+Whether to trim a predicted protein structure to the same residue range
+as the corresponding experimental structure given with the 
+<a href="#match"><b>esmfold match</b></a> command or the
+<b>alignTo</b> option of <a href="#fetch"><b>esmfold fetch</b></a>.
+With <b>trim true</b> (default): 
+<ul>
+<li>Predictions with UniProt identifier determined by
+<a href="#match"><b>esmfold match</b></a>
+from the experimental structure's input file will be
+trimmed to the same residue ranges as used in the experiment.
+These ranges are given in
+<a href="https://www.wwpdb.org/documentation/file-format-content/format33/sect3.html" target="_blank">DBREF records</a>
+in PDB format and in
+<a href="https://mmcif.wwpdb.org/dictionaries/mmcif_std.dic/Categories/struct_ref.html" target="_blank">struct_ref</a> and
+<a href="https://mmcif.wwpdb.org/dictionaries/mmcif_std.dic/Categories/struct_ref_seq.html" target="_blank">struct_ref_seq</a>
+tables in mmCIF.
+<li>Predictions retrieved with <a href="#fetch"><b>esmfold fetch</b></a> or
+found by <a href="#match"><b>esmfold match</b></a> searching for similar
+sequences in the ESM Atlas
+will be trimmed to start and end
+with the first and last aligned positions in the sequence alignment
+calculated by <a href="matchmaker.html"><b>matchmaker</b></a>
+as part of the superposition step.
+</ul>
+<p>
+Using <b>trim false</b> indicates retaining the full-length models
+of the sequences, which could be longer. 
+</p>
+</blockquote>
+<blockquote>
+<a name="version"></a>
+<b>version</b>&nbsp;&nbsp;<i>N</i>
+<br>
+Which version of the <a href="https://esmatlas.com/about#about_this_website"
+target="_blank">ESM Metagenomic Atlas</a>
+to use with <a href="#fetch"><b>esmfold fetch</b></a> and
+<a href="#pae"><b>esmfold pae</b></a>
+or <a href="#search"><b>esmfold search</b></a>
+(as well as <a href="blastprotein.html"><b>blastprotein</b></a> with
+<b>database esmfold</b>).
+The default is the most recent version found at the website
+(currently <b>0</b>).
+The <a href="#match"><b>esmfold match</b></a> command always uses the
+current version and does not have this option.
+</blockquote>
+
+<a name="predict"></a>
+<p class="nav">
+[<a href="#top">back to top: esmfold</a>]
+</p>
+<h3>Running an ESMFold Prediction</h3>
+<p>
+The <b>esmfold predict</b> command runs a calculation
+on the <a href="https://esmatlas.com/about#fold" target="_blank">prediction
+server</a> provided by the 
+from the <a href="https://esmatlas.com/about#about_this_website"
+target="_blank">ESM Metagenomic Atlas</a>.
+</p>
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>esmfold predict</b> &nbsp;<i>sequence</i>
+[&nbsp;<b>subsequence</b> &nbsp;<i>start,end</i>&nbsp;]
+[&nbsp;<b>residueRange</b> &nbsp;<i>start,end</i>&nbsp;]
+[&nbsp;<b>chunk</b> &nbsp;<i>N</i>&nbsp;]
+[&nbsp;<b>overlap</b> &nbsp;<i>M</i>&nbsp;]
+</blockquote>
+<p>
+<a name="sequence-spec"></a>
+The protein <i>sequence</i> to predict can be given as any of the following:
+</p>
+<ol>
+<li>a <a href="atomspec.html#hierarchy"><i>chain-spec</i></a>
+corresponding to a single chain in an atomic structure open in ChimeraX
+<li>the <a href="seqspec.html"><i>sequence-spec</i></a> of a sequence
+in the <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>,
+in the form:
+&nbsp;<span class="nowrap"><i>alignment-ID</i>:<i>sequence-ID</i></span>&nbsp;
+(<a href="seqspec.html">details...</a>)
+<li>a UniProt name or accession number
+<li>plain text pasted directly into the command line
+</ol>
+<p>
+The server has a maximum sequence length of 400 residues.
+The first three methods above specify an entire sequence, 
+but a subsequence can be:
+<ul>
+<li>pasted directly as the <i>sequence</i>
+<li>given with <b>subsequence</b> <i>start,end</i>
+(integers separated by a comma only; subsequence start and end positions
+relative to the entire sequence starting at 1)
+<li>given with <b>residueRange</b> <i>start,end</i> 
+(integers separated by a comma only; subsequence start and end positions
+in the structure residue numbering, when the sequence is specified as 
+a structure chain)
+</ul>
+Alternatively, a single command can be used
+to predict a long sequence as a series of shorter chunks with overlaps
+(to allow their superposition). Example:
+<blockquote>
+<b>esmfold predict</b> #1 <b>chunk</b> 400 <b>overlap</b> 20
+</blockquote>
+<p>
+The predicted structure will be opened automatically and
+<a href="#colorConfidence">colored by confidence value</a>.
+The model for a sequence that was specified by structure chain will
+be superimposed on that chain 
+and assigned structure-comparison attributes for further analysis
+(<a href="#structmatch">details...</a>).
+</p>
+
+<a name="caveats"></a>
+<h4>Caveats</h4>
+<ul>
+<li>ESMFold is faster but often <b>less accurate</b> than AlphaFold.
+<li>The prediction server has a <b>maximum sequence length</b> of 400 residues.
+(The atlas contains longer predictions, up to 1024 residues.)
+<li><b>No multimer prediction</b>.
+Only single-chain structures (not multimers) are predicted, 
+although structures of the individual protein chains in a complex 
+can be predicted separately.
+<li><b>PAE not available from server</b>.
+Although ESMFold computes <a href="#pae">predicted aligned error (PAE)</a>,
+the prediction server does not provide it. The PAE is available for 
+entries <a href="#fetch">fetched</a> from the atlas, however.
+<li>The server developers request that users run 
+<b>only one prediction at a time</b> due to capacity limitations.
+<li>The server <b>may time out</b> during a prediction.
+</ul>
+
+<a name="pae"></a>
+<p class="nav">
+[<a href="#top">back to top: esmfold</a>]
+</p>
+<h3>ESMFold Predicted Aligned Error (PAE)</h3>
+<p>
+Besides <a href="#colorConfidence">per-residue confidence values</a>,
+ESMFold gives for each pair of residues (X,Y) the expected position error
+at residue X if the predicted and true structures were aligned on residue Y.
+These <b><i>predicted aligned error</i></b> or PAE values
+are not provided by the <a href="#predict">prediction server</a> or
+<a href="#predict"><b>esmfold predict</b></a>, but
+are available for structures already in the
+<a href="https://esmatlas.com/about#about_this_website"
+target="_blank">ESM Metagenomic Atlas</a> and can be shown as a
+<a href="#plot">2D plot</a> by using
+<a href="#fetch"><b>esmfold fetch</b></a> or
+<a href="#match"><b>esmfold match</b></a> with the option <b>pae true</b>,
+or the command <b>esmfold pae</b>:
+</p>
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>esmfold pae</b>
+[&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
+(&nbsp;<b>mgnifyId</b></a>&nbsp;&nbsp;<i>mgnify-id</i>&nbsp;|&nbsp;<b>file</b>&nbsp;&nbsp;<i>filename</i>&nbsp;)
+[&nbsp;<a href="color.html#palette-options"><b>palette</b></a>&nbsp;&nbsp;<i>palette</i>&nbsp;]
+[&nbsp;<a href="color.html#palette-options"><b>range</b></a>&nbsp;&nbsp;<i>low,high</i>&nbsp;|&nbsp;full&nbsp;]
+[&nbsp;<b>plot</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>colorDomains</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>minSize</b>&nbsp;&nbsp;<i>M</i>&nbsp;]
+[&nbsp;<b>connectMaxPae</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
+[&nbsp;<b>cluster</b>&nbsp;&nbsp;<i>resolution</i>&nbsp;]
+[&nbsp;<a href="#version"><b>version</b></a>&nbsp;&nbsp;<i>N</i>&nbsp;]
+</blockquote>
+<p>
+With <b>esmfold pae</b>, the matrix of PAE values can be either:
+<ul>
+<li>fetched from the 
+<a href="https://esmatlas.com/about#about_this_website"
+target="_blank">ESM Metagenomic Atlas</a>
+with the <b>mgnifyId</b> option,
+where <i>mgnify-id</i> can be obtained by 
+<a href="https://esmatlas.com/resources?action=search_sequence"
+target="_blank">sequence search at the ESM Metagenomic Atlas</a>
+<br>&ndash; or &ndash;
+<li>a json file from ESMFold 
+(<i>e.g.</i>, obtained by URL such as
+<a href="https://api.esmatlas.com/fetchConfidencePrediction/MGYP002537940442"
+target="_blank">https://api.esmatlas.com/fetchConfidencePrediction/MGYP002537940442</a>) specified with the <b>file</b> option.
+The <i>filename</i> is generally a pathname to a local file, 
+either absolute or relative to the current working directory as reported by 
+<a href="pwd.html"><b>pwd</b></a>. Substituting the word 
+<a href="usageconventions.html#browse"><b>browse</b></a>
+for <i>filename</i> brings up a file browser window for choosing the
+name and location interactively.
+</ul>
+<a name="association"></a>
+<p>
+The corresponding ESMfold structure (already open) can be given
+as a <a href="atomspec.html#hierarchy"><i>model-spec</i></a>
+in the <b>esmfold pae</b> command
+to associate it with the plot. This association allows
+coloring by domain as described below, and for selections
+on the plot to highlight the corresponding parts of the structure.
+</p><p>
+By default, the PAE plot is drawn when domain coloring is not done 
+(<b>plot</b> is default <b>true</b> when <b>colorDomains</b> is <b>false</b>)
+and <i>vice versa</i>.
+</p><p>
+<a name="colorDomains"></a>
+Setting <b>colorDomains</b> to <b>true</b> clusters the residues into
+coherent domains (sets of residues with relatively low pairwise PAE values)
+and uses randomly chosen colors to distinguish these domains in the structure.
+The residues are assigned an integer domain identifier (starting with 1) as an
+<a href="../attributes.html">attribute</a> named <b>pae_domain</b>
+that can be used to <a href="atomspec.html#attributes">specify</a> 
+them in commands (for example, to recolor or select specific domains).
+Residues not grouped into any domain are assigned a <b>pae_domain</b> 
+value of <b>None</b>. The clustering uses the
+NetworkX greedy_modularity_communities algorithm with parameters:
+</p>
+<ul>
+<li><b>minSize</b> (default <b>10</b> residues)
+&ndash; minimum number of residues allowed in a domain
+<li><b>connectMaxPae</b> (default <b>5.0</b> &Aring;)
+&ndash; the maximum PAE value allowed between residues for them to be 
+clustered into the same domain. Larger values give larger domains
+and generally increase the time to compute the clustering, 
+which is ~5 seconds for 1000 residues when the default of 5.0 is used.
+<li><b>cluster</b> (default <b>0.5</b>, typical range 0.5&ndash;5.0) 
+&ndash; graph resolution; larger values give smaller domains
+</ul>
+<p>
+The default <a href="color.html#palette-options"><b>palette</b></a> 
+for coloring the PAE plot is <b>pae</b>, with colors assigned to values
+as follows:
+</p>
+<table border cellpadding="0" cellspacing="0"
+style="display:inline-block; vertical-align:top"><tr>
+<td bgcolor="blue" width="30px" title="blue"
+align="center"><font size="-1" color="white">0</font></td>
+<td bgcolor="cornflowerblue" width="30px" title="cornflowerblue"
+align="center"><font size="-1" color="white">5</font></td>
+<td bgcolor="yellow" width="30px" title="yellow"
+align="center"><font size="-1">10</font></td>
+<td bgcolor="orange" width="30px" title="orange"
+align="center"><font size="-1">15</font></td>
+<td bgcolor="gray" width="30px" title="gray"
+align="center"><font size="-1" color="white">20</font></td>
+<td bgcolor="lightgray" width="30px" title="lightgray"
+align="center"><font size="-1">25</font></td>
+<td bgcolor="white" width="30px" title="white"
+align="center"><font size="-1">30</font></td>
+</tr></table>
+<p>
+Another <a href="color.html#palette-options"><b>palette</b></a> 
+with value range suitable for PAE plots is <b>paegreen</b>:
+</p>
+<table border cellpadding="0" cellspacing="0"
+style="display:inline-block; vertical-align:top"><tr>
+<td bgcolor="#1e3546661e35" width="30px" title="#1e3546661e35"
+align="center"><font size="-1" color="white">0</font></td>
+<td bgcolor="#245a922c245a" width="30px" title="#245a922c245a"
+align="center"><font size="-1" color="white">5</font></td>
+<td bgcolor="#374cb168374c" width="30px" title="#374cb168374c"
+align="center"><font size="-1" color="white">10</font></td>
+<td bgcolor="#5687c9ba5687" width="30px" title="#5687c9ba5687"
+align="center"><font size="-1">15</font></td>
+<td bgcolor="#828fddf3828f" width="30px" title="#828fddf3828f"
+align="center"><font size="-1">20</font></td>
+<td bgcolor="#bae1efdebae1" width="30px" title="#bae1efdebae1"
+align="center"><font size="-1">25</font></td>
+<td bgcolor=white width="30px" title="white"
+align="center"><font size="-1">30</font></td>
+<p>
+</tr></table>
+
+<a name="plot"></a>
+<p class="nav">
+[<a href="#top">back to top: esmfold</a>]
+</p>
+<h3>ESMFold Predicted Aligned Error Plot</h3>
+<p>
+Besides <a href="#colorConfidence">per-residue confidence values</a>,
+ESMFold gives for each pair of residues (X,Y) the expected position error
+at residue X if the predicted and true structures were aligned on residue Y.
+These <b><i>predicted aligned error</i></b> or PAE values
+are not provided by the <a href="#predict">prediction server</a> or
+<a href="#predict"><b>esmfold predict</b></a>, but
+are available for structures already in the
+<a href="https://esmatlas.com/about#about_this_website"
+target="_blank">ESM Metagenomic Atlas</a> and can be shown as a 2D plot by using
+<a href="#fetch"><b>esmfold fetch</b></a> with the option <b>pae true</b>,
+or the command <a href="#pae"><b>esmfold pae</b></a>.
+</p><p>
+The plot window has buttons for coloring the 
+<a href="#association">associated</a> structure:
+</p>
+<ul>
+<li><b>Color PAE Domains</b> applies coloring by PAE cluster as
+described <a href="#colorDomains">above</a>.
+<li><b>Color pLDDT</b> returns the structure to
+the default <a href="#colorConfidence">confidence coloring</a>.
+</ul>
+<p>
+<a name="context"></a>
+The plot's <a href="../window.html#context-menu">context menu</a> includes:
+</p>
+<ul>
+<li><b>Dragging box colors structure</b> (initial default checked <b>on</b>)
+&ndash; whether dragging a box on the plot highlights the corresponding parts
+of the 3D structure with bright colors and makes everything else gray;
+if this option is unchecked, highlighting will be done with
+<a href="../selection.html">selection</a> instead of coloring
+<li><b>Color plot from structure</b>
+&ndash; color the plot to match the 3D structure where the pair of residues
+represented by an X,Y point have the same ribbon color; show the rest of the
+plot in shades of gray
+<li><b>Color plot rainbow</b>
+&ndash; use the <b>pae</b>
+<a href="../commands/color.html#palette-options">palette</a> (default)
+to color the plot:
+<table border cellpadding="0" cellspacing="0"
+style="display:inline-block; vertical-align:top"><tr>
+<td bgcolor="blue" width="30px" title="blue"
+align="center"><font size="-1" color="white">0</font></td>
+<td bgcolor="cornflowerblue" width="30px" title="cornflowerblue"
+align="center"><font size="-1" color="white">5</font></td>
+<td bgcolor="yellow" width="30px" title="yellow"
+align="center"><font size="-1">10</font></td>
+<td bgcolor="orange" width="30px" title="orange"
+align="center"><font size="-1">15</font></td>
+<td bgcolor="gray" width="30px" title="gray"
+align="center"><font size="-1" color="white">20</font></td>
+<td bgcolor="lightgray" width="30px" title="lightgray"
+align="center"><font size="-1">25</font></td>
+<td bgcolor="white" width="30px" title="white"
+align="center"><font size="-1">30</font></td>
+</tr></table>
+<li><b>Color plot green</b>
+&ndash; use the <b>paegreen</b>
+<a href="../commands/color.html#palette-options">palette</a> to color the plot:
+<table border cellpadding="0" cellspacing="0"
+style="display:inline-block; vertical-align:top"><tr>
+<td bgcolor="#1e3546661e35" width="30px" title="#1e3546661e35"
+align="center"><font size="-1" color="white">0</font></td>
+<td bgcolor="#245a922c245a" width="30px" title="#245a922c245a"
+align="center"><font size="-1" color="white">5</font></td>
+<td bgcolor="#374cb168374c" width="30px" title="#374cb168374c"
+align="center"><font size="-1" color="white">10</font></td>
+<td bgcolor="#5687c9ba5687" width="30px" title="#5687c9ba5687"
+align="center"><font size="-1">15</font></td>
+<td bgcolor="#828fddf3828f" width="30px" title="#828fddf3828f"
+align="center"><font size="-1">20</font></td>
+<td bgcolor="#bae1efdebae1" width="30px" title="#bae1efdebae1"
+align="center"><font size="-1">25</font></td>
+<td bgcolor=white width="30px" title="white"
+align="center"><font size="-1">30</font></td>
+</tr></table>
+<li><b>Show chain divider lines</b> (initial default checked <b>on</b>)
+&ndash; for multimer predictions, draw lines on the plot demarcating the
+end of one chain and the start of another; the lines may obscure a few
+chain-terminal residues in the plot, and can be hidden if this is problematic
+<li><b>Save image</b> &ndash; save the plot as a PNG file
+</ul>
+<p>
+The <a href="../tools/colorkey.html"><b>Color Key</b></a> graphical interface
+or a command can be used to draw (in the main graphics window)
+a color key for the PAE plot. For example, to make a color key that
+matches the <b>pae</b> or <b>paegreen</b> scheme, respectively:
+</p>
+  <blockquote>
+  <a href="key.html"><b>key</b></a>&nbsp;<b>pae&nbsp;:0&nbsp;:&nbsp;:&nbsp;:15&nbsp;:&nbsp;:&nbsp;:30</b>
+  &nbsp;<a href="key.html#options"><b>showTool true</b></a>
+<br>
+  <a href="key.html"><b>key</b></a>&nbsp;<b>paegreen&nbsp;:0&nbsp;:&nbsp;:&nbsp;:15&nbsp;:&nbsp;:&nbsp;:30</b>
+  &nbsp;<a href="key.html#options"><b>showTool true</b></a>
+  </blockquote>
+<p>
+A title for the color key (<i>e.g.</i>, &ldquo;<b>Predicted Aligned
+Error (&Aring;)</b>&rdquo;) would need to be created separately with
+<a href="2dlabels.html"><b>2dlabels</b></a>.
+</p>
+
+<a name="contacts"></a>
+<p class="nav">
+[<a href="#top">back to top: esmfold</a>]
+</p>
+<h3>Pseudobonds Colored by PAE</h3>
+<p>
+Residue-residue <a href="#pae">PAE values</a> can also be shown with colored
+<a href="../pseudobonds.html">pseudobonds</a> in the predicted structure:
+</p>
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>esmfold contacts</b>
+&nbsp;<a href="atomspec.html"><i>res-spec1</i></a>&nbsp;
+[&nbsp;<b>toResidues</b>&nbsp;&nbsp;<a href="atomspec.html"><i>res-spec2</i></a>&nbsp;
+[&nbsp;<b>flip</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>distance</b>&nbsp;&nbsp;<i>d</i>&nbsp;]
+[&nbsp;<a href="color.html#palette-options"><b>palette</b></a>&nbsp;&nbsp;<i>palette</i>&nbsp;]
+[&nbsp;<a href="color.html#palette-options"><b>range</b></a>&nbsp;&nbsp;<i>low,high</i>&nbsp;|&nbsp;full&nbsp;]
+[&nbsp;<b>radius</b>&nbsp;&nbsp;<i>r</i>&nbsp;]
+[&nbsp;<b>dashes</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
+[&nbsp;<b>name</b>&nbsp;&nbsp;<i>model-name</i>&nbsp;]
+[&nbsp;<b>replace</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>outputFile</b>&nbsp;&nbsp;<i>pae-file</i>&nbsp;]
+</blockquote>
+<p>
+See also:
+<a href="size.html"><b>size</b></a>,
+<a href="style.html"><b>style</b></a>,
+<a href="clashes.html"><b>contacts</b></a>,
+<a href="crosslinks.html"><b>crosslinks</b></a>,
+<a href="rename.html"><b>rename</b></a>
+</p><p>
+A <a href="#pae">PAE plot</a>
+containing the specified residues must already be shown.
+The PAE matrix is not symmetrical. The first specification
+<a href="atomspec.html"><i>res-spec1</i></a> gives the aligned residues,
+whereas <b>toResidues</b> <a href="atomspec.html"><i>res-spec2</i></a>
+gives the residues whose error values are reported, except that using
+<b>flip true</b> swaps the meaning of
+<a href="atomspec.html"><i>res-spec1</i></a> and
+<a href="atomspec.html"><i>res-spec2</i></a>.
+If one set of residues is higher-confidence (lower in pLDDT
+than the other, it is usually best to specify them as the aligned residues
+so that the coloring will show the error values of the lower-confidence set.
+</p><p>
+Omitting the <b>toResidues</b> option defines
+<a href="atomspec.html"><i>res-spec2</i></a>
+as all residues covered by the PAE plot except for those in
+<a href="atomspec.html"><i>res-spec1</i></a>; however, if <b>toResidues</b>
+is omitted and <a href="atomspec.html"><i>res-spec1</i></a>
+includes all residues in the plot,
+<a href="atomspec.html"><i>res-spec2</i></a>
+will also be defined as all residues in the plot.
+</p><p>
+</p><p>
+The <b>distance</b> option allows limiting the number of
+<a href="../pseudobonds.html">pseudobonds</a> by
+only drawing them between pairs of residues with any interresidue distance
+&le; <i>d</i> &Aring; (default <b>3.0</b>). These pseudobonds are drawn between
+&alpha;-carbons regardless of which atoms were within the distance cutoff.
+</p><p>
+The default <a href="color.html#palette-options"><b>palette</b></a> for
+coloring the pseudobonds by <a href="#pae">PAE value</a> is <b>paecontacts</b>,
+with colors assigned to values as follows:
+</p>
+<table border cellpadding="0" cellspacing="0"
+style="display:inline-block; vertical-align:top"><tr>
+<td bgcolor="blue" width="30px" title="blue"
+align="center"><font size="-1" color="white">0</font></td>
+<td bgcolor="cornflowerblue" width="30px" title="cornflowerblue"
+align="center"><font size="-1" color="white">5</font></td>
+<td bgcolor="yellow" width="30px" title="yellow"
+align="center"><font size="-1">10</font></td>
+<td bgcolor="orange" width="30px" title="orange"
+align="center"><font size="-1">15</font></td>
+<td bgcolor="red" width="30px" title="red"
+align="center"><font size="-1">20</font></td>
+</tr></table>
+<p>
+Although this palette includes value-color pairs, it may be helpful
+to give a value <a href="color.html#range"><b>range</b></a>
+if a colors-only palette is used instead.
+A range can also be used to override the values in a value-color palette,
+instead spacing the colors evenly across the specified range.
+</p><p>
+The <a href="../pseudobonds.html">pseudobond</a> stick <b>radius</b>
+(default <b>0.2</b> &Aring;) and number of <b>dashes</b> (default <b>1</b>,
+meaning a solid stick) can also be specified.
+</p><p>
+The <b>name</b> option allows specifying the pseudobond <i>model-name</i>
+(default <b>PAE Contacts</b>).  If a model by that name already exists, any
+pre-existing pseudobonds will be removed from that model and replaced by the
+new ones (<b>replace true</b>, default) unless <b>replace false</b> is used.
+</p><p>
+The <b>outputFile</b> option allows saving a list
+of the residue pairs (those meeting the distance criterion) and
+their PAE values to a plain text file.
+The <i>pae-file</i> argument is the output file pathname,
+enclosed in quotation marks if it includes spaces,
+or the word <a href="usageconventions.html#browse"><b>browse</b></a>
+to specify it interactively in a file browser window.
+</p><p>
+<a name="examples">Examples</a>:
+<blockquote><b>
+esmfold contacts #1
+<br>
+esmfold contacts /A to /B distance 8
+<br>
+esmfold contacts sel palette blue:red range 1,5
+</b></blockquote>
+</p>
+The following would select all pseudobonds and label them with the names and
+numbers of the residues that they connect:
+<blockquote><b>
+<a href="select.html">sel</a> pbonds
+<br>
+<a href="label.html">label</a>&nbsp;sel&nbsp;pseudobonds&nbsp;text&nbsp;"{0.atoms[0].residue.name}&nbsp;{0.atoms[0].residue.number}&nbsp;to&nbsp;{0.atoms[1].residue.name}&nbsp;{0.atoms[1].residue.number}"
+</b></blockquote>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+December 2022</address>
+</body></html>

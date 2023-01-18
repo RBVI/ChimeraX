@@ -473,6 +473,7 @@ class SequenceViewer(ToolInstance):
         elif note_name == alignment.NOTE_COMMAND:
             from .cmd import run
             run(self.session, self, note_data)
+
         self.seq_canvas.alignment_notification(note_name, note_data)
 
     @property
@@ -536,10 +537,13 @@ class SequenceViewer(ToolInstance):
         for arg, prog in alignment_program_name_args.items():
             prog_to_arg[prog] = arg
         for prog in sorted(prog_to_arg.keys()):
-            realign_action = QAction("Realign Sequences with %s" % prog, edit_menu)
-            realign_action.triggered.connect(lambda *args, arg=prog_to_arg[prog], unparse=StringArg.unparse:
-                run(self.session, "seq align %s program %s" % (unparse(self.alignment.ident), unparse(arg))))
-            edit_menu.addAction(realign_action)
+            prog_menu = edit_menu.addMenu("Realign Sequences with %s" % prog)
+            for menu_text, cmd_text in [("new", ""), ("this", " replace true")]:
+                realign_action = QAction("in %s window" % menu_text, prog_menu)
+                realign_action.triggered.connect(lambda *args, arg=prog_to_arg[prog],
+                    unparse=StringArg.unparse, cmd_text=cmd_text: run(self.session,
+                    "seq align %s program %s%s" % (unparse(self.alignment.ident), unparse(arg), cmd_text)))
+                prog_menu.addAction(realign_action)
 
         structure_menu = menu.addMenu("Structure")
         assoc_action = QAction("Associations...", structure_menu)
@@ -624,16 +628,19 @@ class SequenceViewer(ToolInstance):
             loops_model_action.setEnabled(False)
         tools_menu.addAction(loops_model_action)
         if len(self.alignment.seqs) == 1:
+            from chimerax.blastprotein import BlastProteinTool
             blast_action = QAction("Blast Protein...", tools_menu)
-            blast_action.triggered.connect(lambda: run(self.session,
-                "blastprotein %s" % (StringArg.unparse("%s:1" % self.alignment.ident))))
+            blast_action.triggered.connect(
+                lambda: BlastProteinTool(self.session, sequences = StringArg.unparse("%s:1" % self.alignment.ident))
+            )
             tools_menu.addAction(blast_action)
         else:
+            from chimerax.blastprotein import BlastProteinTool
             blast_menu = tools_menu.addMenu("Blast Protein")
             for i, seq in enumerate(self.alignment.seqs):
                 blast_action = QAction(seq.name, blast_menu)
-                blast_action.triggered.connect(lambda: run(self.session,
-                    "blastprotein %s" % (StringArg.unparse("%s:%d" % (self.alignment.ident, i+1)))))
+                blast_action.triggered.connect(lambda *args, chars=seq.ungapped():
+                    BlastProteinTool(self.session, sequences=StringArg.unparse(chars)))
                 blast_menu.addAction(blast_action)
         if len(self.alignment.seqs) > 1:
             identity_action = QAction("Percent Identity...", menu)

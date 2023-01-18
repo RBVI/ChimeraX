@@ -10,3 +10,6 @@ src/server.pem:	ssl.conf
 	# with both key and cert in the same file
 	openssl req -new -x509 -keyout src/server.pem -out src/server.pem \
 		-days 365 -nodes -config ssl.conf
+
+clean:
+	-rm -rf src/server.pem

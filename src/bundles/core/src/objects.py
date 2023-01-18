@@ -270,7 +270,7 @@ class Objects:
 
         # Model bounds excluding structures and pseudobond groups.
         from chimerax.atomic import Structure, PseudobondGroup
-        bm = [copies_bounding_box(m.geometry_bounds(), m.get_scene_positions())
+        bm = [copies_bounding_box(_model_bounds(m), m.get_scene_positions())
               for m in self.models if not isinstance(m, (Structure, PseudobondGroup))]
 
         # Model instance bounds
@@ -308,6 +308,16 @@ def _displayed_objects(objects):
         if shown.any():
             d.add_model_instances(m, shown)
     return d
+
+def _model_bounds(m):
+    '''Include this model and its subdrawings but not submodels.'''
+    b = m.geometry_bounds()
+    from chimerax.core.models import Model
+    child_bounds = [d.bounds() for d in m.child_drawings() if not isinstance(d, Model)]
+    if child_bounds:
+        from chimerax.geometry import union_bounds
+        b = union_bounds(child_bounds + [b])
+    return b
 
 class AllObjects:
     '''

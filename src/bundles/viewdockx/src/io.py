@@ -172,11 +172,18 @@ class Mol2Parser:
             substid2residue = {}
             for subst_data in self._substs:
                 # ChimeraX limitation: 4-letter residue type
-                name = subst_data.subst_name[:4]
+                name = subst_data.subst_name
+                res_num = subst_data.subst_id
+                # subst_name might be something like ALA19, so check sub_type
+                sub_type = subst_data.sub_type
+                if sub_type and sub_type in name:
+                    if name.startswith(sub_type) and name[len(sub_type):].isdigit():
+                        res_num = int(name[len(sub_type):])
+                    name = sub_type
                 chain = subst_data.chain
                 if chain is None or chain == "****":
                     chain = ''
-                residue = s.new_residue(name, chain, subst_data.subst_id)
+                residue = s.new_residue(name, chain, res_num)
                 substid2residue[subst_data.subst_id] = residue
             # Create atoms
             atomid2atom = {}
@@ -192,11 +199,12 @@ class Mol2Parser:
                 if atom_data.charge is not None:
                     atom.charge = atom_data.charge
                 atom.mol2_type = atom_data.atom_type
+                subst_id = atom_data.subst_id
                 try:
-                    residue = substid2residue[atom_data.subst_id]
+                    residue = substid2residue[subst_id]
                 except KeyError:
                     # Must not have been a substructure section
-                    residue = s.new_residue("UNK", '', atom_data.subst_id)
+                    residue = s.new_residue("UNL", '', 1 if subst_id is None else subst_id)
                     substid2residue[atom_data.subst_id] = residue
                 residue.add_atom(atom)
                 atomid2atom[atom_data.atom_id] = atom
@@ -209,6 +217,31 @@ class Mol2Parser:
                     self.session.logger.warning("bad atom index in bond")
                 else:
                     s.new_bond(origin, target)
+            # Add missing-structure pseudobonds
+            for i, r in enumerate(s.residues[:-1]):
+                if r.polymer_type == r.PT_NONE:
+                    continue
+                next_r = s.residues[i+1]
+                if r.polymer_type != next_r.polymer_type or r.chain_id != next_r.chain_id  \
+                or r.connects_to(next_r):
+                    continue
+                backbone_names = r.aa_min_ordered_backbone_names \
+                    if r.polymer_type == r.PT_AMINO else r.na_min_ordered_backbone_names
+                for bb_name in reversed(backbone_names):
+                    a1 = r.find_atom(bb_name)
+                    if a1 is not None:
+                        break
+                else:
+                    continue
+                for bb_name in backbone_names:
+                    a2 = next_r.find_atom(bb_name)
+                    if a2 is not None:
+                        break
+                else:
+                    continue
+                s.pseudobond_group(s.PBG_MISSING_STRUCTURE).new_pseudobond(a1, a2)
+
+
             self.structures.append(s)
         finally:
             self._reset_structure()

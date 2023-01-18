@@ -102,10 +102,17 @@ class InstalledBundleCache(list):
         else:
             from chimerax import app_data_dir as directory
         timestamp_file = os.path.join(directory, _TIMESTAMP)
-        with open(timestamp_file, 'w') as f:
-            # Contents of file are never read, see _is_cache_newer()
-            import time
-            print(time.ctime(), file=f)
+        try:
+            os.makedirs(directory, exist_ok = True)
+            with open(timestamp_file, 'w+') as f:
+                # Contents of file are never read, see _is_cache_newer()
+                import time
+                print(time.ctime(), file=f)
+        # May not be able to create a share directory where we are - PermissionError
+        # May be read-only - OSError
+        except (OSError, PermissionError):
+            pass
+
 
     #
     # Methods below are internal
@@ -566,12 +573,15 @@ def _get_installed_packages(d, logger):
         return []
     packages = []
     finder_file = None
+    path_file = None
     for row in csv.reader(d.get_metadata_lines(record_file)):
         if len(row) != 3:
             continue
         path = row[0]
         if path.endswith('finder.py'):
             finder_file = path
+        if path.endswith('.pth'):
+            path_file = path
         if not path.endswith('/__init__.py'):
             continue
         parts = path.split('/')
@@ -582,11 +592,11 @@ def _get_installed_packages(d, logger):
     # list. While we add ALL packages to the installed packages list, for ChimeraX's
     # purposes, things only really break if we don't know where our bundles are.
     if not packages and "chimerax" in d.project_name.lower():
-        if not finder_file:
+        if not finder_file and not path_file:
             logger.warning("tried to get metadata for package installed in editable mode (%r) "
-                           "but could not find the package's finder file" % d.project_name)
+                           "but could not find the package's finder.py or path file" % d.project_name)
             return []
-        else:
+        elif finder_file:
             # This is a pretty complex way of avoiding eval, but if we don't do it then
             # any build system could throw whatever trash they wanted on the MAPPING
             # line and we'd have an ACE vulnerability
@@ -610,6 +620,16 @@ def _get_installed_packages(d, logger):
                 for dir_, _, files in os.walk(source_directory):
                     if "__init__.py"  in files:
                         packages.append(_directory_to_package(dir_, path_to_package, module_prefix))
+                return packages
+        elif path_file:
+            import os
+            with open(os.path.join(d.location, path_file)) as f:
+                # The whole file will typically point at a folder
+                source_directory = f.read().rstrip() + "/"
+            for dir_, _, files in os.walk(source_directory):
+                package = dir_.replace(source_directory, "")
+                if "__init__.py"  in files:
+                    packages.append(tuple(package.split('/')))
     return packages
 
 def _directory_to_package(directory, base_directory, bundle_name) -> tuple:

@@ -17,11 +17,11 @@ from Qt.QtCore import Qt, QThread, Signal, Slot
 from Qt.QtWidgets import (
     QWidget, QVBoxLayout, QAbstractItemView
     , QLabel, QPushButton, QHBoxLayout
+    , QCheckBox
 )
 from Qt.QtGui import QAction
 
 from chimerax.atomic import Sequence
-from chimerax.alphafold.match import _log_alphafold_sequence_info
 from chimerax.core.commands import run
 from chimerax.core.errors import UserError
 from chimerax.core.tools import ToolInstance
@@ -56,7 +56,7 @@ class BlastProteinResults(ToolInstance):
 
     SESSION_ENDURING = False
     SESSION_SAVE = True
-    help = "help:/user/tools/blastprotein.html#results"
+    help = "help:user/tools/blastprotein.html#results"
 
     def __init__(self, session, tool_name, **kw):
         display_name = "Blast Protein Results [name: %s]" % tool_name
@@ -166,6 +166,8 @@ class BlastProteinResults(ToolInstance):
             return 'E-Value'
         if title == 'uniprot_id':
             return 'UniProt ID'
+        if title == 'mgnify_id':
+            return 'MGnify ID'
         new_title = capwords(" ".join(title.split('_')))
         new_title = new_title.replace('Id', 'ID')
         return new_title
@@ -208,7 +210,7 @@ class BlastProteinResults(ToolInstance):
             _settings = BlastProteinResultsSettings(self.session, "Blastprotein")
         self.main_layout = QVBoxLayout()
         self.control_widget = QWidget(parent)
-        self.buttons_label = QLabel("For Selected Entries:", parent=parent)
+        self.buttons_label = QLabel("For chosen entries:", parent=parent)
         self.load_buttons_widget = QWidget(parent)
         self.load_button_container = QHBoxLayout()
         self.load_button_container.addWidget(self.buttons_label)
@@ -289,10 +291,10 @@ class BlastProteinResults(ToolInstance):
         worker.report_sequences.connect(self._on_report_sequences_signal)
 
     def job_failed(self, error):
-        self.session.logger.warning("BlastProtein failed: %s" % error)
+        self.session.logger.error("BlastProtein failed: %s" % error)
 
     def parse_failed(self, error):
-        self.session.logger.warning("Parsing BlastProtein results failed: %s" % error)
+        self.session.logger.error("Parsing BlastProtein results failed: %s" % error)
 
     def parsing_results(self):
         self.session.logger.status("Parsing BLAST results.")
@@ -365,7 +367,7 @@ class BlastProteinResults(ToolInstance):
         db = AvailableDBsDict[self.params.database]
         for row in selections:
             code = row[db.fetchable_col]
-            if self.params.database == "alphafold":
+            if self.params.database in ["alphafold", "esmfold"]:
                 models, chain_id = db.load_model(
                     self.session, code, self.params.chain, self.params._asdict().get("version", "1")
                 )
@@ -387,8 +389,11 @@ class BlastProteinResults(ToolInstance):
     def _log_alphafold(self, models):
         query_match = self._sequences[0][1]
         query_seq = Sequence(name = 'query', characters = query_match.h_seq)
+        from chimerax.alphafold.match import _similarity_table_html
         for m in models:
-            _log_alphafold_sequence_info(m, query_seq)
+            # TODO: Would be nice if all models were in one log table.
+            msg = _similarity_table_html(m, query_seq, m.database.id)
+            m.session.logger.info(msg, is_html = True)
 
     # Code for displaying matches as multiple sequence alignment
     def _show_mav(self, selections) -> None:

@@ -33,6 +33,18 @@ ifeq ($(OS),Linux)
 		# MACHINE is i686
 		OSARCH	= Linux
 	endif
+	DISTRO_NAME ?= $(shell . /etc/os-release && echo $$ID)
+	DISTRO_VER ?= $(shell . /etc/os-release && echo $$VERSION_ID)
+	# ID is "centos", "debian", "fedora", "rocky", or "ubuntu"
+	ifneq ($(filter $(DISTRO_NAME),centos rocky),)
+		CENTOS_DIST = $(DISTRO_VER)
+	else ifeq ($(DISTRO_NAME),debian)
+		DEBIAN_DIST = $(DISTRO_VER)
+	else ifeq ($(DISTRO_NAME),fedora)
+		FEDORA_DIST = $(DISTRO_VER)
+	else ifeq ($(DISTRO_NAME),ubuntu)
+		UBUNTU_DIST = $(DISTRO_VER)
+	endif
 endif
 
 # Mac OS 10, Aqua or X11 windowing systems

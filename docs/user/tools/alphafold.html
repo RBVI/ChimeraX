@@ -60,15 +60,16 @@ Varadi M, Anyango S, Deshpande M, <i>et al.</i>
 The database contains models for sequences (as single chains, not complexes)
 in <a href="https://www.uniprot.org" target="_blank">UniProt</a>:
 <br>
-<b>Version 1</b> (database release 1, used by ChimeraX 1.3): ~360,000 sequences,
+<b>Version 1</b> (Jul 2021, used by ChimeraX 1.3): ~360,000 sequences,
 reference proteomes of 21 species including <i>Homo sapiens</i>
-<br><b>Version 2</b> (database releases 2 and 3 combined,
+<br><b>Version 2</b> (Dec 2021 and Jan 2022 releases combined,
 default in ChimeraX 1.4):
 ~1 million sequences, v1 + most of SwissProt + sequences relevant to 
 neglected tropical disease or antimicrobial resistance
-<br><b>Version 3</b> (database release 4; 
-<a href="../commands/alphafold.html#version">default</a> in ChimeraX 1.5+
-builds from August 31, 2022 and later): &gt;200 million sequences
+<br><b>Version 3</b> (Jul 2022): &gt;200 million sequences
+<br><b>Version 4</b> (Nov 2022;
+<a href="../commands/alphafold.html#version">default</a> in ChimeraX 1.5
+and later): bugfix of version 3, updating the coordinates of ~4% of the entries
 </p>
 <li><a href="#predict">runs new AlphaFold predictions</a>
 on <a href="https://colab.research.google.com/signup" target="_blank">Google 
@@ -95,7 +96,9 @@ Several ChimeraX
 target="_blank">presentations</a> and
 <a href="https://www.rbvi.ucsf.edu/chimerax/docs/videos/"
 target="_blank">videos</a> show modeling with AlphaFold and related analyses.
-See also: <a href="blastprotein.html"><b>Blast Protein</b></a>,
+See also: 
+<a href="esmfold.html"><b>ESMFold</b></a>,
+<a href="blastprotein.html"><b>Blast Protein</b></a>,
 <a href="modeller.html"><b>Modeller Comparative</b></a>,
 <a href="modelloops.html"><b>Model Loops</b></a>,
 <a href="rotamers.html"><b>Rotamers</b></a>
@@ -203,10 +206,9 @@ target="_blank">UCSF RBVI</a> to search the
 using default parameters: <b>BLOSUM62</b>
 amino acid similarity matrix for scoring the hits,
 similarity score cutoff e-value <b>1e-3</b>,
-returning a maximum of <b>100</b> of unique sequences
-(however, more than 100 hits may be obtained because multiple structures 
-or other sequence-database entries may have the same sequence).
-The corresponding command is
+returning a maximum of <b>100</b> of unique sequences.
+However, different values of these parameters can be specified
+using the corresponding command,
 <a href="../commands/alphafold.html#search"><b>alphafold search</b></a>.
 <b>Search</b> differs from <b>Fetch</b> in that it uses BLAST instead
 of fast (but low-sensitivity)
@@ -217,9 +219,13 @@ and returns a list of hits for the user to inspect,
 rather than fetching the single top hit per chain automatically.
 When results are returned, the hits are listed in a
 <a href="blastprotein.html#results"><b>Blast Protein</b></a> window.
-Clicking the name of a hit uses
+Double-clicking a hit uses
 <a href="../commands/alphafold.html#fetch"><b>alphafold fetch</b></a> 
-to retrieve the model.
+to retrieve the model,
+or multiple chosen hits can be retrieved at once by using the results panel
+<a href="../window.html#context-menu">context menu</a>
+or <b>Load Structures</b> button
+(<a href="blastprotein.html#results">details...</a>).
 </p><p>
 <a href="#dialog" class="nounder">&larr;</a>
 <a name="predict"></a>
@@ -512,7 +518,8 @@ the specified residues
 <p>
 The <b>AlphaFold Coloring</b> dialog does not color continuously 
 along a gradient to show the attribute values. 
-For coloring along a gradient, see the commands
+For coloring along a gradient, see 
+<a href="render.html"><b>Render by Attribute</b></a> and/or the commands
 <a href="../commands/color.html#bfactor"><b>color bfactor</b></a>
 (for the <a href="#confidence">confidence value</a>, which is read from the
 B-factor field of the PDB file) and
@@ -633,6 +640,7 @@ align="center"><font size="-1">30</font></td>
 &ndash; for multimer predictions, draw lines on the plot demarcating the
 end of one chain and the start of another; the lines may obscure a few 
 chain-terminal residues in the plot, and can be hidden if this is problematic
+<li><b>Save image</b> &ndash; save the plot as a PNG file 
 </ul>
 <p>
 The <a href="colorkey.html"><b>Color Key</b></a> graphical interface
@@ -648,12 +656,12 @@ matches the <b>pae</b> or <b>paegreen</b> scheme, respectively:
   &nbsp;<a href="../commands/key.html#options"><b>showTool true</b></a>
   </blockquote>
 <p>
-A title for the color key (<i>e.g.</i>, &ldquo;<b>AlphaFold Predicted Aligned
+A title for the color key (<i>e.g.</i>, &ldquo;<b>Predicted Aligned
 Error (&Aring;)</b>&rdquo;) would need to be created separately with
 <a href="../commands/2dlabels.html"><b>2dlabels</b></a>.
 </p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-October 2022</address>
+December 2022</address>
 </body></html>
