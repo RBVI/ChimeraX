@@ -44,7 +44,7 @@ def sequence_search(sequences, database_path = database_path, min_kmer_matches =
     kmer_index = KmerSequenceIndex(database_path)
     for sequence in sequences:
         seq = clean_sequence(sequence)
-        if len(seq) > max_sequence_length:
+        if len(seq) < min_kmer_matches or len(seq) > max_sequence_length:
             results.append({})
             continue
         seq_num, num_kmer_matches = kmer_index.search(seq, nthreads = nthreads)
