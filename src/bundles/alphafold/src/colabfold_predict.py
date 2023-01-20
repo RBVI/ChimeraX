@@ -288,11 +288,17 @@ def use_utf8_encoding():
   # Work-around bug where Conda/OpenMM changes the preferred encoding to ANSI breaking
   # Google Colab shell magic which requires UTF-8 encoding (January 17, 2023).
   # https://github.com/deepmind/alphafold/issues/483
+  # https://www.rbvi.ucsf.edu/trac/ChimeraX/ticket/8313
   import locale
   if locale.getpreferredencoding() != 'UTF-8':
-    def getpreferredencoding(do_setlocale = True):
-      return 'UTF-8'
-    locale.getpreferredencoding = getpreferredencoding
+      try:
+          import _locale
+          _locale.nl_langinfo_orig = _locale.nl_langinfo
+          def nl_langinfo_always_utf8(i):
+              return 'UTF-8' if i == _locale.CODESET else _locale.nl_langinfo_orig(i)
+          _locale.nl_langinfo = nl_langinfo_always_utf8
+      except:
+          pass  # Probably Python newer than 3.8 where private _locale changed.
     
 # ================================================================================================
 #

@@ -16,7 +16,9 @@
 
 def call_c_plus_plus(cpp_func, structures, return_collection, *args):
     import os
-    num_cpus = os.cpu_count() if not None else 1
+    num_cpus = os.cpu_count()
+    if num_cpus is None:
+        num_cpus = 1
 
     from chimerax.atomic import Atom, Atoms, AtomicStructure
     groups = []
