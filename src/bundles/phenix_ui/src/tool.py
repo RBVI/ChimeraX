@@ -161,9 +161,9 @@ class LaunchEmplaceLocalTool(ToolInstance):
     help = None
 
     CENTER_XYZ = "specified xyz position..."
+    CENTER_MODEL = "center of model..."
     CENTER_HALF_MAPS = "center of half maps"
-    CENTER_MARKER = "at marker..."
-    CENTERING_METHODS = [CENTER_XYZ, CENTER_HALF_MAPS, CENTER_MARKER]
+    CENTERING_METHODS = [CENTER_XYZ, CENTER_MODEL, CENTER_HALF_MAPS]
 
     def __init__(self, session, tool_name):
         super().__init__(session, tool_name)
@@ -180,16 +180,16 @@ class LaunchEmplaceLocalTool(ToolInstance):
         layout.setSpacing(1)
 
         centering_widget = QWidget()
-        layout.addWidget(centering_widget, alignment=Qt.AlignCenter)
+        layout.addWidget(centering_widget, alignment=Qt.AlignCenter, stretch=1)
         structure_layout = QHBoxLayout()
         structure_layout.setSpacing(1)
         centering_widget.setLayout(structure_layout)
-        structure_layout.addWidget(QLabel("Fit "), alignment=Qt.AlignRight, stretch=1)
+        structure_layout.addWidget(QLabel("Fit "), alignment=Qt.AlignRight)
         from chimerax.atomic.widgets import AtomicStructureMenuButton
         self.structure_menu = AtomicStructureMenuButton(session)
         structure_layout.addWidget(self.structure_menu)
         structure_layout.addWidget(QLabel(" using half maps "))
-        from chimerax.ui.widgets import ModelListWidget
+        from chimerax.ui.widgets import ModelListWidget, ModelMenuButton
         class ShortMLWidget(ModelListWidget):
             def sizeHint(self):
                 hint = super().sizeHint()
@@ -207,11 +207,11 @@ class LaunchEmplaceLocalTool(ToolInstance):
         res_options.add_option(self.res_option)
 
         centering_widget = QWidget()
-        layout.addWidget(centering_widget, alignment=Qt.AlignCenter)
+        layout.addWidget(centering_widget, alignment=Qt.AlignCenter, stretch=1)
         centering_layout = QHBoxLayout()
         centering_layout.setSpacing(1)
         centering_widget.setLayout(centering_layout)
-        centering_layout.addWidget(QLabel("Center search at"), alignment=Qt.AlignRight, stretch=1)
+        centering_layout.addWidget(QLabel("Center search at"), alignment=Qt.AlignRight)
         self.centering_button = QPushButton()
         centering_layout.addWidget(self.centering_button)
         centering_menu = QMenu(self.centering_button)
@@ -233,8 +233,8 @@ class LaunchEmplaceLocalTool(ToolInstance):
             entry.setText("0")
             xyz_layout.addWidget(entry, alignment=Qt.AlignLeft)
             self.xyz_widgets.append(entry)
-        self.marker_menu = MarkerMenuButton(session)
-        centering_layout.addWidget(self.marker_menu)
+        self.model_menu = ModelMenuButton(session)
+        centering_layout.addWidget(self.model_menu)
 
         centering_layout.addWidget(self.xyz_area)
         self._set_centering_method()
@@ -260,8 +260,19 @@ class LaunchEmplaceLocalTool(ToolInstance):
         if len(maps) != 2:
             raise UserError("Must specify exactly two half maps for fitting")
         res = self.res_option.value
-        if self.centering_button.text() == self.CENTER_XYZ:
+        method = self.centering_button.text()
+        if method == self.CENTER_XYZ:
             center = [float(widget.text()) for widget in self.xyz_widgets]
+        elif method == self.CENTER_MODEL:
+            centering_model = self.model_menu.value
+            if centering_model is None:
+                raise UserError("No model chosen for specifying search center")
+            bnds = centering_model.bounds()
+            if bnds is None:
+                raise UserError("No part of model for specifying search center is displayed")
+            center =[]
+            for o, xyz in zip(maps[0].data.origin, bnds.center()):
+                center.append(xyz - o)
         else:
             # center of half-map
             data = maps[0].data
@@ -279,11 +290,11 @@ class LaunchEmplaceLocalTool(ToolInstance):
     def _set_centering_method(self, method=CENTER_HALF_MAPS):
         self.centering_button.setText(method)
         self.xyz_area.setHidden(True)
-        self.marker_menu.setHidden(True)
+        self.model_menu.setHidden(True)
         if method == self.CENTER_XYZ:
             self.xyz_area.setHidden(False)
-        elif method == self.CENTER_MARKER:
-            self.marker_menu.setHidden(False)
+        elif method == self.CENTER_MODEL:
+            self.model_menu.setHidden(False)
 
 from chimerax.ui.widgets import ItemMenuButton
 class MarkerMenuButton(ItemMenuButton):
