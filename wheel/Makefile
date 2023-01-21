@@ -25,7 +25,9 @@ clean:
 	\rm chimerax
 
 test:
-	python -m pytest --rootdir=.
+	python -m pytest --rootdir=. tests/core
+	python -m pytest --rootdir=. --ignore=tests/core
+
 
 .PHONY: venv
 venv:
