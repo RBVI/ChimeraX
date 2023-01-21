@@ -269,16 +269,36 @@ def plot_chain_names(Ls, plot_axis):
 # ================================================================================================
 #
 def download_results(energy_minimize):
+  use_utf8_encoding()	# Work around preferred encoding bug.
+
   relax = 'relaxed' if energy_minimize else 'unrelaxed'
   !cp -p *_{relax}_rank_1_model_*.pdb best_model.pdb
   !cp -p *_unrelaxed_rank_1_model_*_scores.json best_model_pae.json
 
   # Make a zip file of the predictions
   !zip -q -r results.zip query.fasta *.csv *.json *.a3m *.pdb cite.bibtex *.png
-    
+
   # Download predictions.
   from google.colab import files
   files.download('results.zip')
+
+# ================================================================================================
+#
+def use_utf8_encoding():
+  # Work-around bug where Conda/OpenMM changes the preferred encoding to ANSI breaking
+  # Google Colab shell magic which requires UTF-8 encoding (January 17, 2023).
+  # https://github.com/deepmind/alphafold/issues/483
+  # https://www.rbvi.ucsf.edu/trac/ChimeraX/ticket/8313
+  import locale
+  if locale.getpreferredencoding() != 'UTF-8':
+      try:
+          import _locale
+          _locale.nl_langinfo_orig = _locale.nl_langinfo
+          def nl_langinfo_always_utf8(i):
+              return 'UTF-8' if i == _locale.CODESET else _locale.nl_langinfo_orig(i)
+          _locale.nl_langinfo = nl_langinfo_always_utf8
+      except:
+          pass  # Probably Python newer than 3.8 where private _locale changed.
     
 # ================================================================================================
 #

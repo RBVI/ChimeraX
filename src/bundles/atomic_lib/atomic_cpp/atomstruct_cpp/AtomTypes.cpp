@@ -417,11 +417,19 @@ aromatic_geometry(const Ring& r)
         Coord c2 = b->atoms()[1]->coord();
         Real d = c1.distance(c2), delta;
 
+        // The first two parameter numbers carried over from Chimera and it is
+        // lost in the sands of time how they got that many digits of precision,
+        // though the numbers are close to the 3-digit precision numbers in the
+        // source material cited above.  The oxygen number comes directly from
+        // the source.
         if (e1 == Element::C && e2 == Element::C) {
             delta = d - 1.38586;
         } else if ((e1 == Element::C || e2 == Element::C) &&
           (e1 == Element::N || e2 == Element::N)) {
             delta = d - 1.34148;
+        } else if ((e1 == Element::C || e2 == Element::C) &&
+          (e1 == Element::O || e2 == Element::O)) {
+            delta = d - 1.265;
         } else
             continue;
         bonds++;

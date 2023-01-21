@@ -25,9 +25,8 @@ ignore_patterns = [
     "src/core/toolshed/unused"
 ]
 [tool.pytest.ini_options]
-addopts = "--cache-clear --flake8 --verbose"
+addopts = "--cache-clear --verbose --order-dependencies" 
 console_output_style = "count"
-flake8-max-line-length = 120
 norecursedirs = [
     ".venv",
     "ChimeraX.app",
@@ -39,42 +38,42 @@ norecursedirs = [
     "src/bundles/**/dist",
     "src/core/toolshed/unused"
 ]
-## Ignore all the flake8 rules that directly contradict how
-## real life actual people write code in the real world
-flake8-ignore = [
-    # Modeller script boilerplate
-    "src/bundles/modeller/src/script_head.py ALL",
-    "src/bundles/modeller/src/script_tail.py ALL",
-    # Imported but unused, star import, entity referenced after star
-    "**/__init__.py F401 F403 F405",
-    # Overhangig indent
-    "E121",
-    # Underhanging indent
-    "E126",
-    # Mandates no whitespace before comma, which is sensible, but
-    # just as it's better to have all operators aligned, it's better
-    # to have all commas aligned.
-    "E203",
-    # Mandates no spaces around keyword/parameter =
-    "E251",
-    # Mandates two spaces before inline comment
-    "E261",
-    # Mandates two blank lines between functions
-    "E302",
-    # Mandates blank line before inner function definition
-    "E306",
-    # Disallows Multiple imports on one line
-    "E401",
-	# Disallows long lines
-	"E501",
-    # Disallows bare except statement
-    "E722",
-    # Disallows breaking before binary operators as in Haskell
-    # This can be removed when flake8 is updated to consider
-    # breaking before a binary operator as the best practice
-    # (coming soon)
-    "W503",
-    # Disallows breaking after a binary operator
-    # This should be removed when W503 becomes the standard
-    "W504"
-]
+### Ignore all the flake8 rules that directly contradict how
+### real life actual people write code in the real world
+#flake8-ignore = [
+#    # Modeller script boilerplate
+#    "src/bundles/modeller/src/script_head.py ALL",
+#    "src/bundles/modeller/src/script_tail.py ALL",
+#    # Imported but unused, star import, entity referenced after star
+#    "**/__init__.py F401 F403 F405",
+#    # Overhangig indent
+#    "E121",
+#    # Underhanging indent
+#    "E126",
+#    # Mandates no whitespace before comma, which is sensible, but
+#    # just as it's better to have all operators aligned, it's better
+#    # to have all commas aligned.
+#    "E203",
+#    # Mandates no spaces around keyword/parameter =
+#    "E251",
+#    # Mandates two spaces before inline comment
+#    "E261",
+#    # Mandates two blank lines between functions
+#    "E302",
+#    # Mandates blank line before inner function definition
+#    "E306",
+#    # Disallows Multiple imports on one line
+#    "E401",
+#	# Disallows long lines
+#	"E501",
+#    # Disallows bare except statement
+#    "E722",
+#    # Disallows breaking before binary operators as in Haskell
+#    # This can be removed when flake8 is updated to consider
+#    # breaking before a binary operator as the best practice
+#    # (coming soon)
+#    "W503",
+#    # Disallows breaking after a binary operator
+#    # This should be removed when W503 becomes the standard
+#    "W504"
+#]

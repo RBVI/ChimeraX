@@ -18,6 +18,7 @@ SUBDIRS = prereqs src
 -include .makerc
 include $(TOP)/mk/config.make
 include $(TOP)/mk/subdir.make
+include $(TOP)/mk/detectOS.make
 
 all:
 	@echo "'make install' to build everything" && exit 1
