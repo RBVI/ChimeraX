@@ -52,6 +52,10 @@ class ProfileGridsTool(ToolInstance):
             from ._profile_grids import compute_profile
             weights = [getattr(seq, 'weight', 1.0) for seq in alignment.seqs]
             grid_data = compute_profile([seq.cpp_pointer for seq in alignment.seqs], weights, num_cpus)
+            # the returned grid data is (num seqs x num symbols), which is the transpose of what we
+            # display, so to reduce confusion in the code, transpose it
+            import numpy
+            grid_data = numpy.transpose(grid_data)
         else:
             grid_data, weights = session_data
         self.grid_canvas = GridCanvas(parent, self, self.alignment, grid_data, weights)

@@ -60,6 +60,8 @@ class GridCanvas:
         self.alignment = alignment
         self.grid_data = grid_data
         self.weights = weights
+        import numpy
+        self.empty_rows = numpy.where(~self.grid_data.any(axis=1))[0]
         from Qt.QtGui import QFont, QFontMetrics
         self.font = QFont("Helvetica")
         #self.emphasis_font = QFont(self.font)
@@ -94,21 +96,36 @@ class GridCanvas:
 
     def layout_alignment(self):
         #NOTE: maybe group each header line (QGraphicsItemGroup) to make them easier to move
-        #TODO: seems to be backwards -- check that values seem right
-        columns, rows = self.grid_data.shape
+        rows, columns = self.grid_data.shape
         print("rows:", rows, "columns:", columns)
+        import string
+        labels = list(string.ascii_uppercase) + ['?', 'gap', 'misc'] 
+        if rows != len(labels):
+            raise AssertionError("Expected %d rows, got %d" % (len(labels), rows))
         width, height = self.font_pixels
         divisor = sum(self.weights)
         from Qt.QtGui import QColor, QBrush
+        from chimerax.core.colors import contrast_with
+        y = 0
         for i in range(rows):
-            y = i * height
+            if i in self.empty_rows:
+                continue
             for j in range(columns):
                 x = j * width
-                val = self.grid_data[j,i]
+                val = self.grid_data[i,j]
                 fraction = val / divisor
                 non_blue = int(255 * (1.0 - fraction) + 0.5)
                 fill_color = QColor(non_blue, non_blue, 255)
                 self.main_scene.addRect(x, y, width, height, brush=QBrush(fill_color))
+                if val > 0.0:
+                    text_rgb = contrast_with((non_blue/255.0, non_blue/255.0, 1.0))
+                    text_val = str(int(100  * fraction + 0.5))
+                    cell_text = self.main_scene.addSimpleText(text_val, self.font)
+                    cell_text.moveBy(x, y)
+                    cell_text.setBrush(QBrush(QColor(*[int(255 * channel + 0.5) for channel in text_rgb])))
+            label_text = self.label_scene.addSimpleText(labels[i], self.font)
+            label_text.moveBy(0, y)
+            y += height
         self._update_scene_rects()
         #TODO: everything else
         return
@@ -191,6 +208,6 @@ class GridCanvas:
         # and that the horizontal size of the header_scene is the same as the main_scene
         lbr = self.label_scene.itemsBoundingRect()
         mr = self.main_scene.sceneRect()
-        self.label_scene.setSceneRect(lbr.x(), mr.y(), lbr.width(), mr.height())
         hbr = self.header_scene.itemsBoundingRect()
+        self.label_scene.setSceneRect(lbr.x(), mr.y(), lbr.width(), mr.height() + hbr.height())
         self.header_scene.setSceneRect(mr.x(), hbr.y(), mr.width(), hbr.height())
