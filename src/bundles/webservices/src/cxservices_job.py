@@ -85,13 +85,16 @@ class CxServicesJob(Job):
         # Initialize ChimeraX REST request state
         self.reset_state()
         # Prefer the HTTPS proxy
+        self.chimerax_api = None
         if settings.https_proxy:
             url, port = settings.https_proxy
-            self.chimerax_api = get_cxservices_api_with_proxy(proxy_url = url, proxy_port = port, https = True)
+            if url:
+                self.chimerax_api = get_cxservices_api_with_proxy(proxy_url = url, proxy_port = port, https = True)
         elif settings.http_proxy:
             url, port = settings.http_proxy
-            self.chimerax_api = get_cxservices_api_with_proxy(proxy_url = url, proxy_port = port, https = False)
-        else:
+            if url:
+                self.chimerax_api = get_cxservices_api_with_proxy(proxy_url = url, proxy_port = port, https = False)
+        if not self.chimerax_api:
             self.chimerax_api = default_api.DefaultApi()
         self.job_id = None
 
