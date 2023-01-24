@@ -24,7 +24,7 @@ _color_map_args_doc = '''
     offset : float
       Displacement distance along surface normals for sampling map when using map option.  Default 0.
     transparency : float
-      Percent transparency to use.  If not specified current transparency is preserved.
+      Percent transparency to use.  If not specified then palette transparency values are used.
     update : bool
       Whether to automatically update the surface coloring when the surface shape changes.
 '''
