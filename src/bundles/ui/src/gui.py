@@ -332,6 +332,26 @@ class UI(QApplication):
         from Qt.QtCore import Qt
         return modifiers & Qt.ShiftModifier
 
+    def post_context_menu(self, menu, position):
+        self.dismiss_context_menu()
+        self._last_context_menu = menu
+        # The exec call runs a sub-event loop which does not return
+        # until the menu is dismissed (Qt 6.4).
+        menu.exec(position)
+
+    def dismiss_context_menu(self):
+        '''
+        Clicks on the graphics QWindow don't dismiss context menus in Qt 6.4.
+        This call works around that problem allowing graphics clicks to
+        dismiss any context menus shown with UI.post_context_menu().
+        '''
+        m = getattr(self, '_last_context_menu', None)
+        if m:
+            import Qt
+            if not Qt.qt_object_is_deleted(m):
+                m.close()
+            self._last_context_menu = None
+
     def remove_tool(self, tool_instance):
         self.main_window.remove_tool(tool_instance)
         # get garbage collection to break callback loops in deleted tools
@@ -2508,10 +2528,7 @@ def _show_context_menu(event, tool_instance, tool_window, fill_cb, autostartable
             _remember_tool_pos(ui, ti, widget))
         menu.addAction(position_action)
     p = event.globalPos()  if hasattr(event, 'globalPos') else event.globalPosition().toPoint()
-    if hasattr(menu, 'exec'):
-        menu.exec(p)	# PyQt6
-    else:
-        menu.exec_(p)	# PyQt5
+    session.ui.post_context_menu(menu, p)
 
 def _remember_tool_pos(ui, tool_instance, widget):
     mw = ui.main_window

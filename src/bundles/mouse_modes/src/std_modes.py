@@ -99,11 +99,8 @@ class SelectMouseMode(MouseMode):
         # this will prevent atom-spec balloons from showing up
         from Qt.QtCore import QPoint
         p = QPoint(*event.global_position())
-        if hasattr(menu, 'exec'):
-            menu.exec(p)	# PyQt6
-        else:
-            menu.exec_(p)	# PyQt5
-
+        ses.ui.post_context_menu(menu, p)
+        
     @staticmethod
     def register_menu_entry(menu_entry):
         '''Register a context-menu entry shown when double-clicking in select mode.
