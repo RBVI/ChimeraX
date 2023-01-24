@@ -466,7 +466,7 @@ target="_blank">Potassium Channel-Calmodulin Complex</a>
 [&nbsp;<a href="#target"><b>target</b></a>&nbsp;&nbsp;<i>string</i>&nbsp;]
 [&nbsp;<b>average</b>&nbsp;&nbsp;residues&nbsp;]
 &nbsp;<a href="#palette-options"><i>palette-options</i></a>&nbsp;
-[&nbsp;<b>transparency</b>&nbsp;&nbsp;<i>percent</i>&nbsp;]
+[&nbsp;<a href="#transparency-bfactor"><b>transparency</b></a>&nbsp;&nbsp;<i>percent</i>&nbsp;]
 [&nbsp;<b>noValueColor</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
 </blockquote>
 <p>
@@ -502,11 +502,14 @@ style="display:inline-block; vertical-align:middle"><tr>
 <td bgcolor=white width="10px" title="white"></td>
 <td bgcolor=red width="10px" title="red"></td>
 </tr></table> over the full range).
+</p><p>
+<a name="transparency-bfactor"></a>
 Transparency (alpha < 1) can be inherent in the colors of the
-<a href="#palette-options">palette</a>, or the separate
+<a href="#palette">palette</a>, or the separate
 <b>transparency</b> option can be used to specify it as a <i>percent</i>,
 where 0% is completely opaque and 100% is completely transparent.
 If both, the <b>transparency</b> option wins out.
+See also: <a href="transparency.html"><b>transparency</b></a>
 </p><p>
 Items without an assignment for the specified attribute
 will be left unchanged unless another color is specified
@@ -541,7 +544,7 @@ spreading blue-white-red coloring across value range 2-30:
 <b>color bfactor /A range 2,30</b>
 </blockquote>
 <p>
-Regardless of whether the <a href="palette-options">range</a> of values 
+Regardless of whether the <a href="#range">range</a> of values 
 over which to spread the coloring is specified, the full range of atomic
 values (or per-residue values if <b>average residue</b> is used) is reported
 in the <a href="../tools/log.html"><b>Log</b></a>.
@@ -590,9 +593,9 @@ to make the cap match the nearby atoms.
 [&nbsp;<b>offset</b>&nbsp;&nbsp;<i>d</i>&nbsp;]
 [&nbsp;<b>key</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>update</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
-[&nbsp;<a href="#palette-options"><b>palette</b></a>&nbsp;&nbsp;<i>palette</i>&nbsp;]
-[&nbsp;<b>range</b>&nbsp;&nbsp;<i>low</i>,<i>high</i>&nbsp;|&nbsp;<b>full</b>&nbsp;]
-[&nbsp;<b>transparency</b>&nbsp;&nbsp;<i>percent</i>&nbsp;]
+[&nbsp;<a href="#palette"><b>palette</b></a>&nbsp;&nbsp;<i>palette</i>&nbsp;]
+[&nbsp;<b>range</b>&nbsp;&nbsp;<i>low</i>,<i>high</i>&nbsp;|&nbsp;full&nbsp;]
+[&nbsp;<a href="#transparency-bfactor"><b>transparency</b></a>&nbsp;&nbsp;<i>percent</i>&nbsp;]
 </blockquote>
 <p>
 The <b>sample</b>, <b>electrostatic</b>, and <b>gradient</b> coloring options
@@ -604,7 +607,7 @@ Surface coloring by map value is also implemented in the
 <a href="../tools/surfacecolor.html"><b>Surface Color</b></a> tool.
 The color-to-value mapping is specified
 with <a href="#palette-options">palette options</a>,
-where the <a href="#palette-options"><b>palette</b></a> 
+where the <a href="#palette"><b>palette</b></a> 
 default is <b>red-white-blue</b>
 <table border cellpadding="4" cellspacing="0"
 style="display:inline-block; vertical-align:middle"><tr>
@@ -613,11 +616,6 @@ style="display:inline-block; vertical-align:middle"><tr>
 <td bgcolor=blue width="10px" title="blue"></td>
 </tr></table> and the <a href="#range"><b>range</b></a> default depends on the 
 specific type of map coloring, explained below.
-Any transparency inherent in the colors of the 
-<a href="#palette-options"><b>palette</b></a> will be ignored, 
-but a single value for the surface transparency can be set with the
-<b>transparency</b> option.
-See also: <a href="transparency.html"><b>transparency</b></a>
 </p><p>
 When the coloring command is run interactively (in gui mode and not via a
 <a href="usageconventions.html#cxc-files">script</a>),
@@ -679,7 +677,8 @@ and a zero or negative offset for coloring the surface of one structure
 by the potential from another.**
 <br><br>
 <li><b>color gradient</b> colors by map gradient norm with 
-default <b>offset</b> <b>0.0</b> &Aring; and default <b>range</b> <b>full</b>.
+default <b>offset</b> <b>0.0</b> &Aring; and default 
+<a href="#range"><b>range</b></a> <b>full</b>.
 The gradient at each volume grid point is
 computed by taking the difference in data values between the
 next and preceding grid points along each axis and dividing by twice
@@ -722,7 +721,8 @@ Same as previous except use royal blue instead of blue:
 [&nbsp;<b>key</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>update</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 &nbsp;<a href="#palette-options"><i>palette-options</i></a>&nbsp;
-<br>
+[&nbsp;<a href="#transparency-bfactor"><b>transparency</b></a>&nbsp;&nbsp;<i>percent</i>&nbsp;]
+<br><br>
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>color</b> (&nbsp;<b>cylindrical</b>&nbsp;|&nbsp;<b>height</b>&nbsp;)
 &nbsp;<a href="atomspec.html#othermodels"><i>surf-spec</i></a>&nbsp;
@@ -732,6 +732,7 @@ Same as previous except use royal blue instead of blue:
 [&nbsp;<b>key</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>update</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 &nbsp;<a href="#palette-options"><i>palette-options</i></a>&nbsp;
+[&nbsp;<a href="#transparency-bfactor"><b>transparency</b></a>&nbsp;&nbsp;<i>percent</i>&nbsp;]
 </blockquote>
 <p>
 Coloring by distance applies to surfaces only,
@@ -746,9 +747,6 @@ style="display:inline-block; vertical-align:middle"><tr>
 <td bgcolor=white width="10px" title="white"></td>
 <td bgcolor=blue width="10px" title="blue"></td>
 </tr></table> across the full range).
-Transparency (alpha < 1) can be inherent in the colors of the
-<a href="#palette-options">palette</a>. 
-See also: <a href="transparency.html"><b>transparency</b></a>
 </p><p>
 When the coloring command is run interactively (in gui mode and not via a
 <a href="usageconventions.html#cxc-files">script</a>),
