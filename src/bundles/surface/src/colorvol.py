@@ -228,8 +228,6 @@ class VolumeColor(State):
         if self.transparency is not None:
             opacity = min(255, max(0, int(2.56 * (100 - self.transparency))))
             rgba8[:,3] = opacity
-        else:
-            rgba8[:,3] = self.surface.color[3]
 
         return rgba8
         
