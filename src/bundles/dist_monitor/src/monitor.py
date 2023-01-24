@@ -15,7 +15,7 @@ from chimerax.core.state import StateManager
 class DistancesMonitor(StateManager):
     """Keep distances pseudobonds up to date"""
 
-    def __init__(self, session, bundle_info):
+    def __init__(self, session):
         self.session = session
         self.monitored_groups = set()
         self.update_callbacks = {}

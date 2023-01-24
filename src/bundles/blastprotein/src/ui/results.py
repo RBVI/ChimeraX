@@ -29,7 +29,7 @@ from chimerax.ui.gui import MainToolWindow
 from chimerax.help_viewer import show_url
 
 from ..data_model import AvailableDBsDict, get_database, Match
-from ..utils import BlastParams, SeqId
+from ..utils import BlastParams, SeqId, _instance_generator
 from .widgets import (
     BlastResultsTable, BlastResultsRow
     , BlastProteinResultsSettings
@@ -141,6 +141,11 @@ class BlastProteinResults(ToolInstance):
     #
     @classmethod
     def restore_snapshot(cls, session, data):
+        # Increment the counter on the Blast name generator each time a blast
+        # instance with a default name is restored, so that subsequent blast
+        # jobs have the correct default name if needed
+        if data['tool_name'].startswith('bp'):
+            next(_instance_generator)
         return BlastProteinResults.from_snapshot(session, data)
 
     def take_snapshot(self, session, flags):
