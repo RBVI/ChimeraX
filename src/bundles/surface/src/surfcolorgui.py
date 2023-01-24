@@ -556,7 +556,7 @@ class PaletteWidget:
         from chimerax.ui.widgets import ColorButton
         from Qt.QtCore import Qt
         for col in range(max_colors):
-            cb = ColorButton(cf, max_size = (24,24))
+            cb = ColorButton(cf, max_size = (24,24), has_alpha_channel = True)
             cb.color = (128,128,128,255)
             buttons.append(cb)
             layout.addWidget(cb, row, col, Qt.AlignHCenter)
@@ -575,8 +575,8 @@ class PaletteWidget:
     @property
     def palette_specifier(self):
         clist,vlist = self._colors_and_values()
-        from chimerax.ui.widgets import hex_color_name
-        cnames = [hex_color_name(c) for c in clist]
+        from chimerax.core.colors import hex_color
+        cnames = [hex_color(c) for c in clist]
         if vlist is None:
             spec = ':'.join(cnames)
         else:

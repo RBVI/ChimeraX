@@ -30,6 +30,20 @@ from chimerax.core.tasks import Job, JobError, JobLaunchError, JobMonitorError
 
 from cxservices.rest import ApiException
 from cxservices.api import default_api
+from cxservices.api_client import ApiClient
+from cxservices.configuration import Configuration
+
+from chimerax.core.core_settings import settings
+
+def get_cxservices_api_with_proxy(proxy_url = None, proxy_port = None, https = True):
+    configuration = Configuration()
+    if https and not proxy_url.startswith("https://"):
+        proxy_url = "".join(["https://", proxy_url])
+    elif not https and not proxy_url.startswith("http://"):
+        proxy_url = "".join(["http://", proxy_url])
+    configuration.proxy = ":".join([proxy_url, str(proxy_port)])
+    api_client = ApiClient(configuration = configuration)
+    return default_api.DefaultApi(api_client = api_client)
 
 class CxServicesJob(Job):
     """Launch a ChimeraX REST web service request and monitor its status.
@@ -50,7 +64,6 @@ class CxServicesJob(Job):
     next_poll : time
     """
     save_attrs = ('job_id', 'launch_time', 'end_time', 'status', 'outputs', 'next_poll')
-    chimerax_api = default_api.DefaultApi()
     # Ticket #6187, set urllib3 not to log messages to the general ChimeraX log
     logging.getLogger("urllib3").setLevel(100)
 
@@ -71,6 +84,18 @@ class CxServicesJob(Job):
         super().__init__(*args, **kw)
         # Initialize ChimeraX REST request state
         self.reset_state()
+        # Prefer the HTTPS proxy
+        self.chimerax_api = None
+        if settings.https_proxy:
+            url, port = settings.https_proxy
+            if url:
+                self.chimerax_api = get_cxservices_api_with_proxy(proxy_url = url, proxy_port = port, https = True)
+        elif settings.http_proxy:
+            url, port = settings.http_proxy
+            if url:
+                self.chimerax_api = get_cxservices_api_with_proxy(proxy_url = url, proxy_port = port, https = False)
+        if not self.chimerax_api:
+            self.chimerax_api = default_api.DefaultApi()
         self.job_id = None
 
     @property
@@ -276,14 +301,10 @@ class CxServicesJob(Job):
             for a in self.save_attrs:
                 if a in data:
                     setattr(tmp, a, data[a])
-            if tmp.end_time is None:
-                tmp.chimerax_api = default_api.DefaultApi()
         else:
             for a in self.save_attrs:
                 if a in data:
                     setattr(tmp, a, data[a])
-            if tmp.end_time is None:
-                tmp.chimerax_api = default_api.DefaultApi()
         return tmp
 
     #
