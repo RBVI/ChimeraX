@@ -25,9 +25,8 @@ clean:
 	\rm chimerax
 
 test:
-	python -m pytest --rootdir=. tests/core
-	python -m pytest --rootdir=. --ignore=tests/core
-
+	python -m coverage run -m pytest --rootdir=. tests/core
+	python -m coverage run -m pytest --rootdir=. --ignore=tests/core
 
 .PHONY: venv
 venv:
