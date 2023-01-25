@@ -515,7 +515,6 @@ class PseudobondManager(StateManager):
             inst = PseudobondGroup(pbg, session=self.session)
             f = c_function('set_pseudobondgroup_py_instance', args = (ctypes.c_void_p, ctypes.py_object))
             f(pbg, inst)
-            self.session.models.add([inst])
         return inst
 
     @property

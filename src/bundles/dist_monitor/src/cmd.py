@@ -211,6 +211,8 @@ def distance_style(session, pbonds, *, color=None, dashes=None,
     if dashes is not None:
         if not grp:
             grp = session.pb_manager.get_group("distances", create=True)
+            session.models.add([grp])
+            session.pb_dist_monitor.add_group(grp, update_callback=_notify_updates)
         grp.dashes = dashes
         settings.dashes = dashes
         if set_defaults:
