@@ -99,6 +99,7 @@ class BlastProteinTool(ToolInstance):
         self.menu_layout_row3 = QHBoxLayout()
         self.menu_layout_row4 = QHBoxLayout()
         self.menu_layout_row5 = QHBoxLayout()
+        self.menu_layout_row5.insertStretch(0,5)
 
         # Row 1
         self.menu_widgets['matrices'] = BlastProteinFormWidget("Matrix", QComboBox, self.input_container_row1)
