@@ -17,8 +17,8 @@ def test_hydrogen_bonds():
     initialize_atomic(session)
     _DistMonitorBundleAPI.initialize(session)
     pdb_loc = os.path.join(os.path.dirname(__file__), "..", "data", "pdb", "1ie9.pdb")
-    pdb = open_pdb(session, pdb_loc)
-    pdb_model = pdb[0][0]
-    session.models.add([pdb_model])
+    models, status_message = open_pdb(session, pdb_loc)
+    pdb_model = models[0]
+    session.models.add(models)
     ligand = pdb_model.atoms.filter(pdb_model.atoms.structure_categories == 'ligand')
     assert len(cmd_hbonds(session, ligand)) == 10
