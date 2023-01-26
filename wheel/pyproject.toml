@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ChimeraX"
+license = { text = "Free for non-commercial use" }
+authors= [{name = "UCSF RBVI", email="chimerax@cgl.ucsf.edu"}]
+description = "Analysis and visualization of molecular structures and 3D microscopy"
+dependencies = [
+    'numpy',                # For atom coordinate arrays and microscopy images
+    'tinyarray',            # For atom coordinates
+    'html2text',            # To convert log output from html to plain text
+    #'PyOpenGL',            # Render images
+    #'PyOpenGL_accelerate', # Render images
+    #'Pillow',              # Render images
+    'sortedcontainers',     # Color code uses this
+    'packaging',            # is_daily_build() is using this.  TODO: Can remove this dependency?
+]
+classifiers = [
+    'Development Status :: 5 - Production/Stable',
+    'License :: Other/Proprietary License',
+    'Intended Audience :: Science/Research',
+    'Programming Language :: Python :: 3.9',
+]
+dynamic = ["version"]
+
+# TODO:
+# [project.optional-dependencies]
+
+
+#[project.readme]
+#content-type = "text"
+#text = """Interface to the RBVI web service to search the PDB, NR, or AlphaFold
+#databases using BLAST. Results are shown in a tool when a graphical
+#interface is available; otherwise, the results are logged."""
+	
+[project.urls]
+Home = "https://www.rbvi.ucsf.edu/chimerax/"
+
+[tool.setuptools.dynamic]
+version = { attr = "chimerax.core.buildinfo.version" }

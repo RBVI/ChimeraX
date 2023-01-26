@@ -1,0 +1,10 @@
+coverage
+pytest
+pytest-dependency
+pytest-order
+PyOpenGL
+PyOpenGL-accelerate
+numpy
+tinyarray
+sortedcontainers
+Pillow
