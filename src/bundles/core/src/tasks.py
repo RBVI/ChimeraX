@@ -542,8 +542,9 @@ class Tasks(StateManager):
         tasks = {}
         for tid, task in self._tasks.items():
             assert(isinstance(task, Task))
-            if task.state == TaskState.RUNNING and task.SESSION_SAVE:
-                tasks[tid] = task
+            # if task.state == TaskState.RUNNING and task.SESSION_SAVE:
+            tasks[tid] = task
+            # tasks[tid] = task.take_snapshot(session, flags)
         data = {'tasks': tasks,
                 'version': TASKS_STATE_VERSION,
                 'counter': next(self._id_counter) - 1}
