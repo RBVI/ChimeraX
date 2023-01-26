@@ -416,9 +416,8 @@ class Tasks(StateManager):
     tasks in the session, as well as managing saving and restoring
     task states for scenes and sessions.
     """
-    _id_counter = itertools.count(1)
 
-    def __init__(self, session):
+    def __init__(self, session, ids_start_from = 1):
         """Initialize per-session state manager for tasks.
 
         Parameters
@@ -428,6 +427,7 @@ class Tasks(StateManager):
 
         """
         self._session = weakref.ref(session)
+        self._id_counter = itertools.count(ids_start_from)
         self._tasks = {}
 
     def __len__(self) -> int:
@@ -545,8 +545,8 @@ class Tasks(StateManager):
             if task.state == TaskState.RUNNING and task.SESSION_SAVE:
                 tasks[tid] = task
         data = {'tasks': tasks,
-                'version': TASKS_STATE_VERSION}
-        # TODO: self._id_counter?
+                'version': TASKS_STATE_VERSION,
+                'counter': next(self._id_counter) - 1}
         return data
 
     @staticmethod
