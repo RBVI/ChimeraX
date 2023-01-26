@@ -13,6 +13,7 @@
 
 defaults = {
     'phenix_location': '',
+    'emplace_local_search_center': 'model'
 }
 
 from  chimerax.core.settings import Settings

@@ -37,15 +37,15 @@ class DouseResultsViewer(CheckWaterViewer):
             ))
 
 from chimerax.core.settings import Settings
-from .douse import command_defaults as defaults
+from .douse import command_defaults as douse_defaults
 class LaunchDouseSettings(Settings):
     AUTO_SAVE = {
-        'first_shell': not defaults['far_water'],
-        'keep_waters': defaults['keep_input_water'],
-        'hide_map': defaults['map_range'] > 0,
-        'hide_map_dist': defaults['map_range'],
-        'res_range': defaults['residue_range'],
-        'verbose': defaults['verbose'],
+        'first_shell': not douse_defaults['far_water'],
+        'keep_waters': douse_defaults['keep_input_water'],
+        'hide_map': douse_defaults['map_range'] > 0,
+        'hide_map_dist': douse_defaults['map_range'],
+        'res_range': douse_defaults['residue_range'],
+        'verbose': douse_defaults['verbose'],
     }
 
 class LaunchDouseTool(ToolInstance):
@@ -132,23 +132,23 @@ class LaunchDouseTool(ToolInstance):
         cmd = "phenix douse %s near %s" % (map.atomspec, structure.atomspec)
         from chimerax.core.commands import BoolArg
         first_shell = self.first_shell_option.value
-        if first_shell != (not defaults['far_water']):
+        if first_shell != (not douse_defaults['far_water']):
             cmd +=  " farWater %s" % BoolArg.unparse(not first_shell)
         keep_waters = self.keep_waters_option.value
-        if keep_waters != defaults['keep_input_water']:
+        if keep_waters != douse_defaults['keep_input_water']:
             cmd += " keepInputWater %s" % BoolArg.unparse(keep_waters)
         hide_map = self.hide_map_option.value
         if hide_map:
             hide_map_dist = self.hide_map_dist_option.value
-            if hide_map_dist != defaults['map_range']:
+            if hide_map_dist != douse_defaults['map_range']:
                 cmd += " mapRange %g" % hide_map_dist
-        elif defaults['map_range'] > 0:
+        elif douse_defaults['map_range'] > 0:
             cmd += " mapRange 0"
         res_range = self.res_range_option.value
-        if res_range != defaults['residue_range']:
+        if res_range != douse_defaults['residue_range']:
             cmd += " residueRange %g" % res_range
         verbose = self.verbose_option.value
-        if verbose != defaults['verbose']:
+        if verbose != douse_defaults['verbose']:
             cmd += " verbose %s" % BoolArg.unparse(verbose)
         if hasattr(self, 'resolution_option'):
             cmd += " resolution %g" % self.resolution_option.value
@@ -160,16 +160,20 @@ class LaunchEmplaceLocalTool(ToolInstance):
     #help = "help:user/tools/waterplacement.html"
     help = None
 
-    CENTER_XYZ = "specified xyz position..."
-    CENTER_MODEL = "center of model..."
     CENTER_HALF_MAPS = "center of half maps"
-    CENTERING_METHODS = [CENTER_XYZ, CENTER_MODEL, CENTER_HALF_MAPS]
+    CENTER_MODEL = "center of model..."
+    CENTER_VIEW = "center of view"
+    CENTER_XYZ = "specified xyz position..."
+    CENTERING_METHODS = [CENTER_HALF_MAPS, CENTER_MODEL, CENTER_VIEW, CENTER_XYZ]
 
     def __init__(self, session, tool_name):
         super().__init__(session, tool_name)
         from chimerax.ui import MainToolWindow
         self.tool_window = tw = MainToolWindow(self)
         parent = tw.ui_area
+
+        if not hasattr(self.__class__, 'settings'):
+            self.__class__.settings = LaunchEmplaceLocalSettings(session, "launch emplace local")
 
         from Qt.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel, QWidget, QPushButton, QMenu, QLineEdit
         from Qt.QtGui import QDoubleValidator
@@ -273,12 +277,15 @@ class LaunchEmplaceLocalTool(ToolInstance):
             center =[]
             for o, xyz in zip(maps[0].data.origin, bnds.center()):
                 center.append(xyz - o)
+        elif method == self.CENTER_VIEW:
+            raise NotImplementedError("Awaiting info from T.G.")
         else:
             # center of half-map
             data = maps[0].data
             center =[]
             for limit, o in zip(data.ijk_to_xyz(data.size), data.origin):
                 center.append((limit - o) / 2)
+        self.settings.search_center = method
         from chimerax.core.commands import run, concise_model_spec
         from chimerax.map import Volume
         cmd = "phenix emplaceLocal %s halfMaps %s resolution %g center %g,%g,%g" % (structure.atomspec,
@@ -287,7 +294,11 @@ class LaunchEmplaceLocalTool(ToolInstance):
         run(self.session, cmd)
         self.delete()
 
-    def _set_centering_method(self, method=CENTER_HALF_MAPS):
+    def _set_centering_method(self, method=None):
+        if method is None:
+            method = self.settings.search_center
+            if method not in self.CENTERING_METHODS:
+                method = self.CENTER_MODEL
         self.centering_button.setText(method)
         self.xyz_area.setHidden(True)
         self.model_menu.setHidden(True)
@@ -309,3 +320,8 @@ class MarkerMenuButton(ItemMenuButton):
 
         from chimerax.atomic import get_triggers
         super().__init__(list_func=list_markers, trigger_info=[(get_triggers(), 'changes')])
+
+class LaunchEmplaceLocalSettings(Settings):
+    AUTO_SAVE = {
+        'search_center': LaunchEmplaceLocalTool.CENTER_MODEL,
+    }
