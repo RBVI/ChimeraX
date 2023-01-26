@@ -423,9 +423,16 @@ void Structure::_copy(Structure* s, PositionMatrix coord_adjust,
             for (decltype(_coord_sets)::size_type i = 0; i < coord_sets().size(); ++i) {
                 auto s_cs = s->coord_sets()[i];
                 auto c_cs = coord_sets()[i];
-                if (coord_adjust != nullptr)
-                    c_cs->xform(coord_adjust);
-                s_cs->add_coords(c_cs);
+                if (coord_adjust != nullptr) {
+                    // c_cs.xform() would overwrite coords rather than produce a new copy
+                    CoordSet::Coords tmp = c_cs->coords();
+                    size_t nc = tmp.size();
+                    for (size_t i = 0 ; i < nc ; ++i)
+                        tmp[i].xform(coord_adjust);
+                    s_cs->_coords.insert(s_cs->_coords.end(), tmp.begin(), tmp.end());
+                } else {
+                    s_cs->add_coords(c_cs);
+                }
                 cs_map[c_cs] = s_cs;
             }
         }
