@@ -539,6 +539,8 @@ def get_res_info(res):
             raise BackboneError(errmsg)
     return (list(fixed), final_bud, start, end)
 
+name_correction = { 'O1P': 'OP1', 'O2P': 'OP2' }
+
 def form_dihedral(res_bud, real1, tmpl_res, a, b, pos=None, dihed=None):
     from chimerax.atomic.struct_edit import add_atom, add_dihedral_atom
     res = res_bud.residue
@@ -556,7 +558,8 @@ def form_dihedral(res_bud, real1, tmpl_res, a, b, pos=None, dihed=None):
         real2 = res.find_atom("O4'")
     else:
         real2 = inres[0]
-    xyz0, xyz1, xyz2 = [tmpl_res.find_atom(a.name).coord for a in (res_bud, real1, real2)]
+    xyz0, xyz1, xyz2 = [tmpl_res.find_atom(name_correction.get(a.name, a.name)).coord
+        for a in (res_bud, real1, real2)]
 
     xyz = a.coord
     blen = b.length
