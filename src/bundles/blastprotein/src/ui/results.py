@@ -28,7 +28,7 @@ from chimerax.core.tools import ToolInstance
 from chimerax.ui.gui import MainToolWindow
 from chimerax.help_viewer import show_url
 
-from ..data_model import AvailableDBsDict, get_database, Match
+from ..data_model import AvailableDBsDict, Match, parse_blast_results
 from ..utils import BlastParams, SeqId, _instance_generator
 from .widgets import (
     BlastResultsTable, BlastResultsRow
@@ -487,35 +487,8 @@ class BlastResultsWorker(QThread):
     def _parse_results(self, db, results, sequence, atomspec):
         try:
             self.parsing_results.emit()
-            self._ref_atomspec = atomspec
-            self._sequences = {}
-            blast_results = get_database(db)
-            blast_results.parse("query", sequence, results)
-            query_match = blast_results.parser.matches[0]
-            if self._ref_atomspec:
-                name = self._ref_atomspec
-            else:
-                name = query_match.name
-            self._sequences[0] = (name, query_match)
-            match_chains = {}
-            sequence_only_hits = {}
-            for n, m in enumerate(blast_results.parser.matches[1:]):
-                sid = n + 1
-                hit = {"id": sid, "e-value": m.evalue, "score": m.score,
-                       "description": m.description}
-                if m.match:
-                    hit["name"] = m.match
-                    match_chains[m.match] = hit
-                else:
-                    hit["name"] = m.name
-                    sequence_only_hits[m.name] = hit
-                self._sequences[sid] = (hit["name"], m)
-            # TODO: Make what this function does more explicit. It works on the
-            # hits that are in match_chain's hit dictionary, but that's not
-            # immediately clear.
-            blast_results.add_info(match_chains, sequence_only_hits)
-            self._hits = list(match_chains.values()) + list(sequence_only_hits.values())
-            self.report_hits.emit(self._hits)
-            self.report_sequences.emit(self._sequences)
+            hits, sequences = parse_blast_results(db, results, sequence, atomspec)
+            self.report_hits.emit(hits)
+            self.report_sequences.emit(sequences)
         except Exception as e:
             self.parse_failed.emit(str(e))
