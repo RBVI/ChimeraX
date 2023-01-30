@@ -834,7 +834,8 @@ class FormatFetcher(Provider):
         else:
             name, attrs["format_name"] = attrs.pop("name"), name
             for key, val in self.default_attrs.items():
-                attrs[key] = val
+                if key not in attrs:
+                    attrs[key] = val
         super().__init__("open command", name, attrs)
 
 

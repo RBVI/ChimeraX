@@ -10,7 +10,7 @@
 # including partial copies, of the software or any revisions
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
-__version__ = "1.2"
+__version__ = "1.2.1"
 
 from .bundle_builder import BundleBuilder  # noqa
 from .bundle_builder_toml import Bundle as BundleBuilderTOML
