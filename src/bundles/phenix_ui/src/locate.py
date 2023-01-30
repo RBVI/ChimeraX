@@ -62,9 +62,9 @@ def find_phenix_command(session, program_name, phenix_location=None, *, from_roo
         settings.save()
         return cmd
 
-def phenix_location(session, phenix_location = None):
+def phenix_location(session, phenix_location=None):
     try:
-        cmd = find_phenix_command(session, "phenix_env.sh", from_root=True)
+        cmd = find_phenix_command(session, "phenix_env.sh", phenix_location=phenix_location, from_root=True)
     except UserError:
         msg = "No Phenix installation found"
     else:
