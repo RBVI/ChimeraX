@@ -37,19 +37,18 @@ class DouseResultsViewer(CheckWaterViewer):
             ))
 
 from chimerax.core.settings import Settings
-from .douse import command_defaults as defaults
+from .douse import command_defaults as douse_defaults
 class LaunchDouseSettings(Settings):
     AUTO_SAVE = {
-        'first_shell': not defaults['far_water'],
-        'keep_waters': defaults['keep_input_water'],
-        'hide_map': defaults['map_range'] > 0,
-        'hide_map_dist': defaults['map_range'],
-        'res_range': defaults['residue_range'],
-        'verbose': defaults['verbose'],
+        'first_shell': not douse_defaults['far_water'],
+        'keep_waters': douse_defaults['keep_input_water'],
+        'hide_map': douse_defaults['map_range'] > 0,
+        'hide_map_dist': douse_defaults['map_range'],
+        'res_range': douse_defaults['residue_range'],
+        'verbose': douse_defaults['verbose'],
     }
 
 class LaunchDouseTool(ToolInstance):
-
     help = "help:user/tools/waterplacement.html"
 
     def __init__(self, session, tool_name):
@@ -133,26 +132,196 @@ class LaunchDouseTool(ToolInstance):
         cmd = "phenix douse %s near %s" % (map.atomspec, structure.atomspec)
         from chimerax.core.commands import BoolArg
         first_shell = self.first_shell_option.value
-        if first_shell != (not defaults['far_water']):
+        if first_shell != (not douse_defaults['far_water']):
             cmd +=  " farWater %s" % BoolArg.unparse(not first_shell)
         keep_waters = self.keep_waters_option.value
-        if keep_waters != defaults['keep_input_water']:
+        if keep_waters != douse_defaults['keep_input_water']:
             cmd += " keepInputWater %s" % BoolArg.unparse(keep_waters)
         hide_map = self.hide_map_option.value
         if hide_map:
             hide_map_dist = self.hide_map_dist_option.value
-            if hide_map_dist != defaults['map_range']:
+            if hide_map_dist != douse_defaults['map_range']:
                 cmd += " mapRange %g" % hide_map_dist
-        elif defaults['map_range'] > 0:
+        elif douse_defaults['map_range'] > 0:
             cmd += " mapRange 0"
         res_range = self.res_range_option.value
-        if res_range != defaults['residue_range']:
+        if res_range != douse_defaults['residue_range']:
             cmd += " residueRange %g" % res_range
         verbose = self.verbose_option.value
-        if verbose != defaults['verbose']:
+        if verbose != douse_defaults['verbose']:
             cmd += " verbose %s" % BoolArg.unparse(verbose)
         if hasattr(self, 'resolution_option'):
             cmd += " resolution %g" % self.resolution_option.value
         from chimerax.core.commands import run
         run(self.session, cmd)
         self.delete()
+
+class LaunchEmplaceLocalTool(ToolInstance):
+    #help = "help:user/tools/waterplacement.html"
+    help = None
+
+    CENTER_HALF_MAPS = "center of half maps"
+    CENTER_MODEL = "center of model..."
+    CENTER_VIEW = "center of view"
+    CENTER_XYZ = "specified xyz position..."
+    CENTERING_METHODS = [CENTER_HALF_MAPS, CENTER_MODEL, CENTER_VIEW, CENTER_XYZ]
+
+    def __init__(self, session, tool_name):
+        super().__init__(session, tool_name)
+        from chimerax.ui import MainToolWindow
+        self.tool_window = tw = MainToolWindow(self)
+        parent = tw.ui_area
+
+        if not hasattr(self.__class__, 'settings'):
+            self.__class__.settings = LaunchEmplaceLocalSettings(session, "launch emplace local")
+
+        from Qt.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel, QWidget, QPushButton, QMenu, QLineEdit
+        from Qt.QtGui import QDoubleValidator
+        from Qt.QtCore import Qt
+        layout = QVBoxLayout()
+        parent.setLayout(layout)
+        #layout.setContentsMargins(0,0,0,0)
+        layout.setSpacing(1)
+
+        centering_widget = QWidget()
+        layout.addWidget(centering_widget, alignment=Qt.AlignCenter, stretch=1)
+        structure_layout = QHBoxLayout()
+        structure_layout.setSpacing(1)
+        centering_widget.setLayout(structure_layout)
+        structure_layout.addWidget(QLabel("Fit "), alignment=Qt.AlignRight)
+        from chimerax.atomic.widgets import AtomicStructureMenuButton
+        self.structure_menu = AtomicStructureMenuButton(session)
+        structure_layout.addWidget(self.structure_menu)
+        structure_layout.addWidget(QLabel(" using half maps "))
+        from chimerax.ui.widgets import ModelListWidget, ModelMenuButton
+        class ShortMLWidget(ModelListWidget):
+            def sizeHint(self):
+                hint = super().sizeHint()
+                hint.setHeight(hint.height()//2)
+                return hint
+        from chimerax.map import Volume
+        self.half_map_list = ShortMLWidget(session, class_filter=Volume)
+        structure_layout.addWidget(self.half_map_list, alignment=Qt.AlignLeft, stretch=1)
+
+        from chimerax.ui.options import OptionsPanel, FloatOption
+        res_options = OptionsPanel(scrolled=False, contents_margins=(0,0,0,0))
+        layout.addWidget(res_options, alignment=Qt.AlignCenter)
+        self.res_option = FloatOption("Map resolution:", 3.8, None, min="positive", decimal_places=2,
+            step=0.1, max=99.99)
+        res_options.add_option(self.res_option)
+
+        centering_widget = QWidget()
+        layout.addWidget(centering_widget, alignment=Qt.AlignCenter, stretch=1)
+        centering_layout = QHBoxLayout()
+        centering_layout.setSpacing(1)
+        centering_widget.setLayout(centering_layout)
+        centering_layout.addWidget(QLabel("Center search at"), alignment=Qt.AlignRight)
+        self.centering_button = QPushButton()
+        centering_layout.addWidget(self.centering_button)
+        centering_menu = QMenu(self.centering_button)
+        for method in self.CENTERING_METHODS:
+            centering_menu.addAction(method)
+        centering_menu.triggered.connect(lambda act: self._set_centering_method(act.text()))
+        self.centering_button.setMenu(centering_menu)
+        self.xyz_area = QWidget()
+        xyz_layout = QHBoxLayout()
+        xyz_layout.setSpacing(1)
+        self.xyz_area.setLayout(xyz_layout)
+        self.xyz_widgets = []
+        for lab in ["X", " Y", " Z"]:
+            xyz_layout.addWidget(QLabel(lab), alignment=Qt.AlignRight)
+            entry = QLineEdit()
+            entry.setValidator(QDoubleValidator())
+            entry.setAlignment(Qt.AlignCenter)
+            entry.setMaximumWidth(50)
+            entry.setText("0")
+            xyz_layout.addWidget(entry, alignment=Qt.AlignLeft)
+            self.xyz_widgets.append(entry)
+        self.model_menu = ModelMenuButton(session)
+        centering_layout.addWidget(self.model_menu)
+
+        centering_layout.addWidget(self.xyz_area)
+        self._set_centering_method()
+
+        from Qt.QtWidgets import QDialogButtonBox as qbbox
+        self.bbox = bbox = qbbox(qbbox.Ok | qbbox.Close | qbbox.Help)
+        bbox.accepted.connect(self.launch_emplace_local)
+        bbox.rejected.connect(self.delete)
+        if self.help:
+            from chimerax.core.commands import run
+            bbox.helpRequested.connect(lambda *, run=run, ses=session: run(ses, "help " + self.help))
+        else:
+            bbox.button(qbbox.Help).setEnabled(False)
+        layout.addWidget(bbox)
+
+        tw.manage(placement=None)
+
+    def launch_emplace_local(self):
+        structure = self.structure_menu.value
+        if not structure:
+            raise UserError("Must specify a structure to fit")
+        maps = self.half_map_list.value
+        if len(maps) != 2:
+            raise UserError("Must specify exactly two half maps for fitting")
+        res = self.res_option.value
+        method = self.centering_button.text()
+        if method == self.CENTER_XYZ:
+            center = [float(widget.text()) for widget in self.xyz_widgets]
+        elif method == self.CENTER_MODEL:
+            centering_model = self.model_menu.value
+            if centering_model is None:
+                raise UserError("No model chosen for specifying search center")
+            bnds = centering_model.bounds()
+            if bnds is None:
+                raise UserError("No part of model for specifying search center is displayed")
+            center =[]
+            for o, xyz in zip(maps[0].data.origin, bnds.center()):
+                center.append(xyz - o)
+        elif method == self.CENTER_VIEW:
+            raise NotImplementedError("Awaiting info from T.G.")
+        else:
+            # center of half-map
+            data = maps[0].data
+            center =[]
+            for limit, o in zip(data.ijk_to_xyz(data.size), data.origin):
+                center.append((limit - o) / 2)
+        self.settings.search_center = method
+        from chimerax.core.commands import run, concise_model_spec
+        from chimerax.map import Volume
+        cmd = "phenix emplaceLocal %s halfMaps %s resolution %g center %g,%g,%g" % (structure.atomspec,
+            concise_model_spec(self.session, maps, relevant_types=Volume, allow_empty_spec=False),
+            res, *center)
+        run(self.session, cmd)
+        self.delete()
+
+    def _set_centering_method(self, method=None):
+        if method is None:
+            method = self.settings.search_center
+            if method not in self.CENTERING_METHODS:
+                method = self.CENTER_MODEL
+        self.centering_button.setText(method)
+        self.xyz_area.setHidden(True)
+        self.model_menu.setHidden(True)
+        if method == self.CENTER_XYZ:
+            self.xyz_area.setHidden(False)
+        elif method == self.CENTER_MODEL:
+            self.model_menu.setHidden(False)
+
+from chimerax.ui.widgets import ItemMenuButton
+class MarkerMenuButton(ItemMenuButton):
+    def __init__(self, session):
+        def list_markers(ses=session):
+            from chimerax.markers import MarkerSet
+            markers = []
+            for m in ses.models:
+                if isinstance(m, MarkerSet):
+                    markers.extend(list(m.residues))
+            return markers
+
+        from chimerax.atomic import get_triggers
+        super().__init__(list_func=list_markers, trigger_info=[(get_triggers(), 'changes')])
+
+class LaunchEmplaceLocalSettings(Settings):
+    AUTO_SAVE = {
+        'search_center': LaunchEmplaceLocalTool.CENTER_MODEL,
+    }
