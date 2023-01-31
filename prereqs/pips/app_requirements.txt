@@ -7,7 +7,7 @@
 # TODO: Deprecate conda version when pip gets arm64 ports
 #
 appdirs==1.4.4
-build==0.8.0
+build==0.10.0
 colorama==0.4.6
 Cython==0.29.33
 filelock==3.9.0
@@ -35,7 +35,7 @@ openvr==1.23.701
 ParmEd==3.4.3
 pep517==0.13.0
 Pillow==9.3.0
-pkginfo==1.8.3
+pkginfo==1.9.6
 psutil==5.9.4
 pycollada==0.7.2
 pydicom==2.3.0
@@ -78,5 +78,5 @@ distro==1.7.0; sys_platform == 'linux'
 #
 # Indirect dependencies listed here to pin the version number
 #
-traitlets==5.8.0
+traitlets==5.9.0
 
