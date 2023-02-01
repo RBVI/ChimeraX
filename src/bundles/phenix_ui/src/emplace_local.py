@@ -142,6 +142,58 @@ def phenix_local_fit(session, model, in_map=None, center=None, half_maps=None, r
     FitJob(session, exe_path, option_arg, "half_map1.mrc", "half_map2.mrc", search_center,
         "model.pdb", position_arg, temp_dir, resolution, verbose, callback, block)
 
+class ViewBoxError(ValueError):
+    pass
+
+def view_box(session, model):
+    """Return the mid-point of the view line of sight intersected with the model bounding box"""
+    bbox = model.bounds()
+    if bbox is None:
+        raise ViewBoxError("%s is not displayed" % model)
+    min_xyz, max_xyz = bbox.xyz_min, bbox.xyz_max
+    #from chimerax.geometry import Plane, ray_segment
+    from chimerax.geometry import Plane, PlaneNoIntersectionError
+    # X normal, then Y normal, then Z normal planes
+    plane_pairs = []
+    for fixed_axis, var_axis1, var_axis2 in [(0,1,2), (1,0,2), (2,0,1)]:
+        pts1 = [[0,0,0], [0,0,0], [0,0,0], [0,0,0]] # can't do "*4" because you'll get copies
+        pts2 = [[0,0,0], [0,0,0], [0,0,0], [0,0,0]]
+        for pt1 in pts1:
+            pt1[fixed_axis] = min_xyz[fixed_axis]
+        for pt2 in pts2:
+            pt2[fixed_axis] = max_xyz[fixed_axis]
+        for pts in (pts1, pts2):
+            pts[0][var_axis1] = min_xyz[var_axis1]
+            pts[1][var_axis1] = min_xyz[var_axis1]
+            pts[2][var_axis1] = max_xyz[var_axis1]
+            pts[3][var_axis1] = max_xyz[var_axis1]
+
+            pts[0][var_axis2] = min_xyz[var_axis2]
+            pts[1][var_axis2] = max_xyz[var_axis2]
+            pts[2][var_axis2] = min_xyz[var_axis2]
+            pts[3][var_axis2] = max_xyz[var_axis2]
+        plane_pairs.append((Plane(pts1), Plane(pts2)))
+    cam = session.main_view.camera
+    origin = cam.position.origin()
+    direction = cam.view_direction()
+    from chimerax.core.colors import Color
+    color = Color((0.9, 0.0, 0.0, 0.7)).uint8x4()
+    from chimerax.axes_planes import PlaneModel, AxisModel
+    session.models.add([AxisModel(session, "view axis", origin, direction, 25, 2, color)])
+    for plane_pair in plane_pairs:
+        try:
+            intersections = [plane.line_intersection(origin, direction) for plane in plane_pair]
+        except PlaneNoIntersectionError:
+            continue
+        mid_point = (intersections[0] + intersections[1]) / 2
+        for plane1, plane2 in plane_pairs:
+            if plane1.distance(mid_point) * plane2.distance(mid_point) > 0:
+                # outside plane pair
+                break
+        else:
+            return mid_point
+    raise ViewBoxError("Center of view does not intersect %s bounding box" % model)
+
 def _process_results(session, fit_model, half_maps, shift):
     #fit_model.position = whole_map.scene_position
     fit_model.position = half_maps[0].scene_position
