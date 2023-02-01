@@ -278,7 +278,11 @@ class LaunchEmplaceLocalTool(ToolInstance):
             for o, xyz in zip(maps[0].data.origin, bnds.center()):
                 center.append(xyz - o)
         elif method == self.CENTER_VIEW:
-            raise NotImplementedError("Awaiting info from T.G.")
+            from .emplace_local import view_box, ViewBoxError
+            try:
+                center = view_box(self.session, maps[0])
+            except ViewBoxError as e:
+                raise UserError(str(e))
         else:
             # center of half-map
             data = maps[0].data
