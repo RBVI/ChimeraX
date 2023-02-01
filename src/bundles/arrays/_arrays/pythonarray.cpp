@@ -375,8 +375,9 @@ bool float_2d_array_values(PyObject *farray, int64_t n2, float **f, int64_t *siz
     }
 
   // Check if array is contiguous.
-  if (PyArray_STRIDE(fa,1) != static_cast<int>(sizeof(float)) ||
-      PyArray_STRIDE(fa,0) != static_cast<int>(n2*sizeof(float)))
+  if (PyArray_DIM(fa,0) > 0 &&
+      (PyArray_STRIDE(fa,1) != static_cast<int>(sizeof(float)) ||
+       PyArray_STRIDE(fa,0) != static_cast<int>(n2*sizeof(float))))
     {
       PyErr_SetString(PyExc_TypeError, "NumPy array is not contiguous");
       return false;
