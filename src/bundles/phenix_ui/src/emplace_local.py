@@ -176,10 +176,6 @@ def view_box(session, model):
     cam = session.main_view.camera
     origin = cam.position.origin()
     direction = cam.view_direction()
-    from chimerax.core.colors import Color
-    color = Color((0.9, 0.0, 0.0, 0.7)).uint8x4()
-    from chimerax.axes_planes import PlaneModel, AxisModel
-    session.models.add([AxisModel(session, "view axis", origin, direction, 25, 2, color)])
     for plane_pair in plane_pairs:
         try:
             intersections = [plane.line_intersection(origin, direction) for plane in plane_pair]
