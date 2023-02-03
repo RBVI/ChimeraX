@@ -12,11 +12,14 @@
 # === UCSF ChimeraX Copyright ===
 __version__ = "1.1"
 from chimerax.core.toolshed import BundleAPI
+from chimerax.core.commands import register
 from chimerax.map import add_map_format
-from chimerax.open_command import OpenerInfo
+from chimerax.open_command import OpenerInfo, FetcherInfo
+from chimerax.core.tools import get_singleton
 
 from .dicom import DICOM, DICOMMapFormat
-from .ui import DICOMBrowserTool, DICOMMetadata
+from .dicom_fetch import fetch_nbia_images
+from .ui import DICOMBrowserTool, DICOMMetadata, DICOMDatabases
 
 class _DICOMBundle(BundleAPI):
     api_version = 1
@@ -28,16 +31,32 @@ class _DICOMBundle(BundleAPI):
 
     @staticmethod
     def start_tool(session, bi, ti):
-        from chimerax.core.tools import get_singleton
-        return get_singleton(session, DICOMBrowserTool, "DICOM Browser")
+        if ti.name == "DICOM Browser":
+            return get_singleton(session, DICOMBrowserTool, "DICOM Browser")
+        else:
+            return DICOMDatabases(session)
 
     @staticmethod
     def run_provider(session, name, mgr, **kw):
-        class DicomOpenerInfo(OpenerInfo):
-            def open(self, session, data, file_name, **kw):
-                dcm = DICOM.from_paths(session, data)
-                return dcm.open()
-        return DicomOpenerInfo()
+        if name == "DICOM medical imaging":
+            class DicomOpenerInfo(OpenerInfo):
+                def open(self, session, data, file_name, **kw):
+                    dcm = DICOM.from_paths(session, data)
+                    return dcm.open()
+            return DicomOpenerInfo()
+        else:
+            # Borrow from PDB to leave open the possibility of other DICOM databases
+            fetcher = {
+                'tcia': fetch_nbia_images
+            }[name]
+            class Info(FetcherInfo):
+                def fetch(self, session, ident, format_name, ignore_cache, fetcher=fetcher, **kw):
+                    return fetcher(session, ident, ignore_cache=ignore_cache, **kw)
 
+                @property
+                def fetch_args(self):
+                    return {}
+                    #from chimerax.core.commands import BoolArg, IntArg, FloatArg
+            return Info()
 
 bundle_api = _DICOMBundle()

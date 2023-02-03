@@ -530,6 +530,7 @@ class MouseModes:
                 # Another button was pressed so release current mouse mode.
                 lm.mouse_up(MouseEvent(event, modifiers=modifiers))
             self._last_mode = m
+            self.session.ui.dismiss_context_menu()	# Work around Qt 6.4 bug.
         else:
             m = self._last_mode	     # Stay with same mode until button up even if modifier keys change.
         if m and hasattr(m, action):

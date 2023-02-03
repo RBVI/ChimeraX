@@ -294,17 +294,12 @@ class CxServicesJob(Job):
     def __str__(self) -> str:
         return "CxServicesJob (ID: %s)" % self.id
 
+
+
     @classmethod
     def from_snapshot(cls, session, data):
-        tmp = cls()
-        if data.version == 1:
-            for a in self.save_attrs:
-                if a in data:
-                    setattr(tmp, a, data[a])
-        else:
-            for a in self.save_attrs:
-                if a in data:
-                    setattr(tmp, a, data[a])
+        tmp = cls(session)
+        job_restore_helper(tmp, data)
         return tmp
 
     #
@@ -316,10 +311,15 @@ class CxServicesJob(Job):
         The semantics of the data is unknown to the caller.
         Returns None if should be skipped."""
         data = {a:getattr(self,a) for a in self.save_attrs}
-        data['version'] = 2
         return data
 
     @staticmethod
     def restore_snapshot(session, data) -> 'CxServicesJob':
         """Restore data snapshot creating instance."""
         return CxServicesJob.from_snapshot(session, data)
+
+
+def job_restore_helper(job, attrs):
+    for a in CxServicesJob.save_attrs:
+        if a in attrs:
+            setattr(job, a, attrs[a])

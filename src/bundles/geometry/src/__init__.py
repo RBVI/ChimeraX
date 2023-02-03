@@ -49,7 +49,7 @@ from .icosahedron import coordinate_system_names as icosahedral_orientations
 from .icosahedron import coordinate_system_transform as icosahedral_coordinate_system_transform
 from .spline import arc_lengths
 from .adaptive_tree import AdaptiveTree
-from .plane import Plane
+from .plane import Plane, PlaneNoIntersectionError
 
 from chimerax.core.toolshed import BundleAPI
 class _GeometryBundleAPI(BundleAPI):

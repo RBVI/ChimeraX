@@ -78,6 +78,7 @@ class DICOMBrowserTool(ToolInstance):
         self.load_buttons_widget = QWidget(self.parent)
         self.load_button_container = QHBoxLayout()
         self.load_button_container.addWidget(self.buttons_label)
+        self.load_button_container.insertStretch(0,2)
 
         self.load_md_button = QPushButton("Show Metadata", parent=self.load_buttons_widget)
         self.load_button_container.addWidget(self.load_md_button)
