@@ -41,39 +41,43 @@ class DICOMDatabases(ToolInstance):
         self.interface_stack = QStackedWidget(self.parent)
         self.main_layout.addWidget(self.interface_stack)
 
-        self.databse_entries_container = QWidget(self.interface_stack)
-        self.databse_entries_layout = QVBoxLayout(self.databse_entries_container)
-        self.databse_entries_container.setLayout(self.databse_entries_layout)
+        self.database_entries_container = QWidget(self.interface_stack)
+        self.database_entries_layout = QVBoxLayout(self.database_entries_container)
+        self.database_entries_container.setLayout(self.database_entries_layout)
 
-        self.available_dbs = QComboBox(self.databse_entries_container)
-        self.databse_entries_control_widget = QWidget(self.databse_entries_container)
+        self.available_dbs = QComboBox(self.database_entries_container)
+        self.database_entries_control_widget = QWidget(self.database_entries_container)
         self.search_button = QPushButton("Search")
-        self.database_label = QLabel("DICOM Database:", self.databse_entries_container)
-        self.control_container = QWidget(self.databse_entries_container)
+        self.database_label = QLabel("Database:", self.database_entries_container)
+        self.control_container = QWidget(self.database_entries_container)
         self.control_layout = QHBoxLayout(self.control_container)
 
         self.control_container.setLayout(self.control_layout)
 
         self.search_button.clicked.connect(lambda: self._on_search_button_pressed())
 
-        self.control_layout.addStretch()
         self.control_layout.addWidget(self.database_label)
         self.control_layout.addWidget(self.available_dbs)
         self.control_layout.addWidget(self.search_button)
-        self.databse_entries_control_widget.setVisible(False)
-        self.databse_entries = DICOMTable(self.databse_entries_control_widget, None, self.databse_entries_container)
-        self.databse_entries_layout.addWidget(self.databse_entries)
-        self.databse_entries_layout.addWidget(self.databse_entries_control_widget)
-        self.databse_entries_layout.addWidget(self.control_container)
-        self.databse_entries_layout.setContentsMargins(0, 0, 0, 0)
+        self.control_layout.addStretch()
+        self.dataset_highlighted_label = QLabel("For highlighted entries:")
+        self.refine_dataset_button = QPushButton("Drill down to Studies")
+        self.control_layout.addWidget(self.dataset_highlighted_label)
+        self.control_layout.addWidget(self.refine_dataset_button)
+        self.database_entries_control_widget.setVisible(False)
+        self.database_entries = DICOMTable(self.database_entries_control_widget, None, self.database_entries_container)
+        self.database_entries_layout.addWidget(self.database_entries)
+        self.database_entries_layout.addWidget(self.database_entries_control_widget)
+        self.database_entries_layout.addWidget(self.control_container)
+        self.database_entries_layout.setContentsMargins(0, 0, 0, 0)
         self.control_layout.setContentsMargins(0, 0, 0, 0)
         self.main_layout.setContentsMargins(4,4,4,4)
 
 
-        self.databse_entries.add_column("Dataset", lambda x: x.collection)
-        self.databse_entries.add_column("Number of Series", lambda x: x.count)
+        self.database_entries.add_column("Dataset", lambda x: x.collection)
+        self.database_entries.add_column("Number of Series", lambda x: x.count)
 
-        self.interface_stack.addWidget(self.databse_entries_container)
+        self.interface_stack.addWidget(self.database_entries_container)
 
         self.combo_box_model = self.available_dbs.model()
         self.available_dbs.addItem("None")
@@ -82,14 +86,16 @@ class DICOMDatabases(ToolInstance):
         else:
             self.available_dbs.addItem("TCIA")
             self.available_dbs.model().item(self.combo_box_model.rowCount() - 1).setEnabled(False)
-        self.databse_entries.launch()
-        self.databse_entries.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+        self.database_entries.launch()
+        self.database_entries.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
         self.interface_stack.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
-        self.databse_entries.get_selection.connect(self._on_main_table_double_clicked)
+        self.database_entries.get_selection.connect(self._on_main_table_double_clicked)
 
         self.study_entries_container = QWidget(self.interface_stack)
         self.study_entries_layout = QVBoxLayout(self.study_entries_container)
         self.back_to_search_button = QPushButton("Back to Databases")
+        self.study_highlighted_label = QLabel("For highlighted entries:")
+        self.refine_study_button = QPushButton("Drill down to Series")
 
         self.study_entries_control_widget = QWidget(self.study_entries_container)
         self.study_entries_control_widget.setVisible(False)
@@ -106,6 +112,8 @@ class DICOMDatabases(ToolInstance):
         self.study_view_control_layout = QHBoxLayout(self.study_view_control_container)
         self.study_view_control_layout.addWidget(self.back_to_search_button)
         self.study_view_control_layout.addStretch()
+        self.study_view_control_layout.addWidget(self.study_highlighted_label)
+        self.study_view_control_layout.addWidget(self.refine_study_button)
         self.study_entries_layout.addWidget(self.study_view_control_container)
         self.study_entries.get_selection.connect(self._on_study_table_double_clicked)
         self.study_entries.launch()
@@ -116,6 +124,8 @@ class DICOMDatabases(ToolInstance):
         self.series_entries_layout = QVBoxLayout(self.series_entries_container)
         self.back_to_studies_button = QPushButton("Back to Studies")
         self.back_to_beginning_button = QPushButton("Back to Databases")
+        self.series_highlighted_label = QLabel("For highlighted entries:")
+        self.open_button = QPushButton("Download and Open")
 
         self.series_entries_control_widget = QWidget(self.series_entries_container)
         self.series_entries_control_widget.setVisible(False)
@@ -135,6 +145,8 @@ class DICOMDatabases(ToolInstance):
         self.series_view_control_layout.addWidget(self.back_to_beginning_button)
         self.series_view_control_layout.addWidget(self.back_to_studies_button)
         self.series_view_control_layout.addStretch()
+        self.series_view_control_layout.addWidget(self.series_highlighted_label)
+        self.series_view_control_layout.addWidget(self.open_button)
         self.series_entries_layout.addWidget(self.series_view_control_container)
         self.series_entries.get_selection.connect(self._on_series_table_double_clicked)
         self.series_entries.launch()
@@ -142,6 +154,14 @@ class DICOMDatabases(ToolInstance):
         self.back_to_beginning_button.clicked.connect(lambda: self._on_back_to_search_button_clicked())
         self.interface_stack.addWidget(self.series_entries_container)
 
+        self.study_entries_layout.setContentsMargins(0, 0, 0, 0)
+        self.study_view_control_layout.setContentsMargins(0, 0, 0, 0)
+        self.series_entries_layout.setContentsMargins(0, 0, 0, 0)
+        self.series_view_control_layout.setContentsMargins(0, 0, 0, 0)
+
+        self.refine_dataset_button.clicked.connect(lambda: self._on_drill_down_dataset_clicked())
+        self.refine_study_button.clicked.connect(lambda: self._on_drill_down_clicked())
+        self.open_button.clicked.connect(lambda: self._on_open_button_clicked())
         self.parent.setLayout(self.main_layout)
         self.tool_window.manage('side')
 
@@ -149,27 +169,29 @@ class DICOMDatabases(ToolInstance):
         if self.available_dbs.currentText() == "TCIA":
             # As with blastprotein, dicts cannot be used as table
             # entries because they are unhashable.
-            # self._build_databse_entries('tcia')?
-            self.databse_entries.data = [
+            # self._build_database_entries('tcia')?
+            self.database_entries.data = [
                 MainTableEntry(x['criteria'], x['count']) for x in fetch_nbia_collections_with_patients()
             ]
 
     def _on_main_table_double_clicked(self, items):
         # There'll only ever be one item from a double click
-        item = items[0]
-        self.study_entries.data = [
-            StudyTableEntry(
-                x['StudyInstanceUID']
-                , x['StudyDate']
-                , x['StudyDescription']
-                , x['PatientID']
-                , x['PatientName']
-                , x['PatientSex']
-                , x['SeriesCount']
-                , x['Collection']
-            )
-            for x in fetch_nbia_study(collection = item.collection)
-        ]
+        entries = []
+        for item in items:
+            entries.extend([
+                StudyTableEntry(
+                    x['StudyInstanceUID']
+                    , x['StudyDate']
+                    , x['StudyDescription']
+                    , x['PatientID']
+                    , x['PatientName']
+                    , x['PatientSex']
+                    , x['SeriesCount']
+                    , x['Collection']
+                )
+                for x in fetch_nbia_study(collection = item.collection)
+            ])
+        self.study_entries.data = entries
         self.interface_stack.setCurrentIndex(1)
 
     def _on_back_to_search_button_clicked(self):
@@ -180,26 +202,36 @@ class DICOMDatabases(ToolInstance):
 
     def _on_study_table_double_clicked(self, items):
         # There'll only ever be one item from a double click
-        item = items[0]
-        self.series_entries.data = [
-            SeriesTableEntry(
-                x['SeriesInstanceUID']
-                , x['Modality']
-                , x['ProtocolName']
-                , x['SeriesDescription']
-                , x['BodyPartExamined']
-                , x['SeriesNumber']
-                , x['PatientID']
-                , x['ImageCount']
-            )
-            for x in fetch_nbia_series(studyUid = item.suid)
-        ]
+        entries = []
+        for item in items:
+            entries.extend([
+                SeriesTableEntry(
+                    x['SeriesInstanceUID']
+                    , x['Modality']
+                    , x['ProtocolName']
+                    , x['SeriesDescription']
+                    , x['BodyPartExamined']
+                    , x['SeriesNumber']
+                    , x['PatientID']
+                    , x['ImageCount']
+                )
+                for x in fetch_nbia_series(studyUid = item.suid)
+            ])
+        self.series_entries.data = entries
         self.interface_stack.setCurrentIndex(2)
 
+    def _on_drill_down_clicked(self):
+        self._on_study_table_double_clicked(self.study_entries.selected)
+
+    def _on_drill_down_dataset_clicked(self):
+        self._on_main_table_double_clicked(self.database_entries.selected)
+
+    def _on_open_button_clicked(self):
+        self._on_series_table_double_clicked(self.series_entries.selected)
+
     def _on_series_table_double_clicked(self, items):
-        # There'll only ever be one item from a double click
-        item = items[0]
-        run(self.session, f"open {item.serUid} fromDatabase tcia format dicom")
+        for item in items:
+            run(self.session, f"open {item.serUid} fromDatabase tcia format dicom")
 
 
 class SeriesTableEntry:
