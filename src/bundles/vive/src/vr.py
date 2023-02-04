@@ -45,8 +45,8 @@ def vr(session, enable = None, room_position = None, mirror = None,
       is started.  If vr is turned off and the on it remembers the previous model position unless
       this options is specified.
     click_range : float
-      How far away hand controller tip can be when clicking an atom in scene units
-      (Angstroms).  Default 5.
+      How far away hand controller tip can be when clicking an atom or object in room units
+      (meters).  Default 0.10.
     near_clip_distance : float
       Parts of the scene closer than this distance (meters) to the eye are not shown.
       Default 0.10.
@@ -1434,7 +1434,7 @@ class UserInterface:
         self._camera = camera
         self._session = session
 
-        self._mouse_mode_click_range = 5 # In scene units (Angstroms).
+        self._mouse_mode_click_range = 0.10 # In room units (meters).
         self._update_later = 0		# Redraw panel after this many frames
         self._update_delay = 10		# After click on panel, update after this number of frames
         self._ui_model = None
@@ -3130,7 +3130,7 @@ class HandEvent:
         '''Scene coordinates point.'''
         return self.position.origin()
     def picking_segment(self):
-        '''Range is given in scene units.'''
+        '''Segment is in scene coordinates.'''
         p = self.hand_controller.position
         xyz1 = p * (0,0,0)
         xyz2 = p * (0,0,-self._picking_range)
