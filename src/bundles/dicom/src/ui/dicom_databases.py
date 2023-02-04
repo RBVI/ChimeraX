@@ -206,14 +206,14 @@ class DICOMDatabases(ToolInstance):
         for item in items:
             entries.extend([
                 SeriesTableEntry(
-                    x['SeriesInstanceUID']
-                    , x['Modality']
-                    , x['ProtocolName']
-                    , x['SeriesDescription']
-                    , x['BodyPartExamined']
-                    , x['SeriesNumber']
-                    , x['PatientID']
-                    , x['ImageCount']
+                    x.get('SeriesInstanceUID', None)
+                    , x.get('Modality', None)
+                    , x.get('ProtocolName', None)
+                    , x.get('SeriesDescription', None)
+                    , x.get('BodyPartExamined', None)
+                    , x.get('SeriesNumber', None)
+                    , x.get('PatientID', None)
+                    , x.get('ImageCount', None)
                 )
                 for x in fetch_nbia_series(studyUid = item.suid)
             ])
