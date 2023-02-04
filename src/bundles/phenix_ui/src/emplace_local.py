@@ -49,7 +49,7 @@ class FitJob(Job):
                     positional_args, temp_dir, resolution, verbose)
             finally:
                 self._running = False
-            self.session.ui.thread_safe(callback, results)
+            self.session.ui.thread_safe(callback, *results)
         import threading
         thread = threading.Thread(target=threaded_run, daemon=True)
         thread.start()
@@ -82,8 +82,8 @@ class FitJob(Job):
 command_defaults = {
     'verbose': False
 }
-def phenix_local_fit(session, model, in_map=None, center=None, half_maps=None, resolution=None, *,
-        block=None, phenix_location=None, prefitted=None, verbose=command_defaults['verbose'],
+def phenix_local_fit(session, model, center=None, half_maps=None, resolution=None, *,
+        block=None, phenix_location=None, verbose=command_defaults['verbose'],
         option_arg=[], position_arg=[]):
 
     # Find the phenix.voyager.emplace_local executable
@@ -95,20 +95,11 @@ def phenix_local_fit(session, model, in_map=None, center=None, half_maps=None, r
         block = session.in_script or not session.ui.is_gui
 
     # some keywords are just to avoid adjacent atom specs, so reassign to more natural names
-    whole_map = in_map
     search_center = center
 
     if len(half_maps) != 2:
         raise UserError("Please specify exactly two half maps.  You specified %d" % (len(half_maps)))
 
-    if prefitted is not None:
-        # subtract off density attributed to prefitted structures
-        from chimerax.map.molmap import molmap
-        fitted_map = molmap(session, prefitted.atoms, resolution, open_model=True)
-        from chimerax.map_filter.vopcommand import volume_subtract
-        target_map = volume_subtract(session, [whole_map, fitted_map], min_rms=True, open_model=True)
-    else:
-        target_map = whole_map
     # Setup temporary directory to run phenix.voyager.emplace_local.
     from tempfile import TemporaryDirectory
     d = TemporaryDirectory(prefix = 'phenix_emis_')  # Will be cleaned up when object deleted.
@@ -133,10 +124,8 @@ def phenix_local_fit(session, model, in_map=None, center=None, half_maps=None, r
     # Run phenix.voyager.emplace_local
     # keep a reference to 'd' in the callback so that the temporary directory isn't removed before
     # the program runs
-    #callback = lambda fit_model, *args, session=session, whole_map=whole_map, shift=shift, d_ref=d: \
-    #    _process_results(session, fit_model, whole_map, shift)
-    callback = lambda fit_model, *args, session=session, half_maps=half_maps, shift=shift, d_ref=d: \
-        _process_results(session, fit_model, half_maps, shift)
+    callback = lambda fit_model, sharpened_map, *args, session=session, half_maps=half_maps, shift=shift, d_ref=d: \
+        _process_results(session, fit_model, sharpened_map, model, half_maps, shift)
     #FitJob(session, exe_path, option_arg, "target_map.mrc", "half_map1.mrc", "half_map2.mrc", search_center,
     #    "model.pdb", position_arg, temp_dir, resolution, verbose, callback, block)
     FitJob(session, exe_path, option_arg, "half_map1.mrc", "half_map2.mrc", search_center,
@@ -190,14 +179,17 @@ def view_box(session, model):
             return mid_point
     raise ViewBoxError("Center of view does not intersect %s bounding box" % model)
 
-def _process_results(session, fit_model, half_maps, shift):
-    #fit_model.position = whole_map.scene_position
+def _process_results(session, fit_model, sharpened_map, orig_model, half_maps, shift):
     fit_model.position = half_maps[0].scene_position
     if shift is not None:
         fit_model.atoms.coords += shift
-    session.models.add([fit_model])
+    from chimerax.std_commands.align import align
+    xf = align(session, orig_model.atoms, fit_model.atoms, log_info=False)[-1]
+    fit_model.delete()
+    sharpened_map.name = "sharpened map"
+    session.models.add([sharpened_map])
     session.logger.status("Fitting job finished")
-    session.logger.info("Fitted model opened as %s" % fit_model)
+    #session.logger.info("Fitted model opened as %s" % fit_model)
 
 def _fix_map_origin(map):
     '''
@@ -258,11 +250,13 @@ def _run_fit_subprocess(session, exe_path, optional_args, half_map1_file_name,
 
     # Open new model with added waters
     from os import path
-    output_path = path.join(temp_dir,'top_model.pdb')
+    model_path = path.join(temp_dir,'top_model.pdb')
     from chimerax.pdb import open_pdb
-    models, info = open_pdb(session, output_path, log_info=False)
+    fitted_models, info = open_pdb(session, model_path, log_info=False)
+    map_path = path.join(temp_dir,'top_model.map')
+    sharpened_maps, info = session.open_command.open_data(map_path)
 
-    return models[0]
+    return fitted_models[0], sharpened_maps[0]
 
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register
@@ -277,9 +271,7 @@ def register_command(logger):
         keyword = [('block', BoolArg),
                    ('center', CenterArg),
                    ('half_maps', MapsArg),
-                   #('in_map', MapArg),
                    ('phenix_location', OpenFolderNameArg),
-                   #('prefitted', AtomicStructuresArg),
                    ('verbose', BoolArg),
                    ('option_arg', RepeatOf(StringArg)),
                    ('position_arg', RepeatOf(StringArg)),
