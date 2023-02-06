@@ -15,6 +15,7 @@ from chimerax.core.tools import ToolInstance
 from chimerax.core.errors import UserError
 from chimerax.core.settings import Settings
 from Qt.QtCore import Qt
+from Qt.QtWidgets import QDialog
 
 class DouseSettings(Settings):
     AUTO_SAVE = {
@@ -176,6 +177,7 @@ class LaunchEmplaceLocalTool(ToolInstance):
             self.__class__.settings = LaunchEmplaceLocalSettings(session, "launch emplace local")
 
         from Qt.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel, QWidget, QPushButton, QMenu, QLineEdit
+        from Qt.QtWidgets import QCheckBox
         from Qt.QtGui import QDoubleValidator
         from Qt.QtCore import Qt
         layout = QVBoxLayout()
@@ -206,7 +208,7 @@ class LaunchEmplaceLocalTool(ToolInstance):
         from chimerax.ui.options import OptionsPanel, FloatOption
         res_options = OptionsPanel(scrolled=False, contents_margins=(0,0,0,0))
         layout.addWidget(res_options, alignment=Qt.AlignCenter)
-        self.res_option = FloatOption("Map resolution:", 3.8, None, min="positive", decimal_places=2,
+        self.res_option = FloatOption("Map resolution:", None, None, min="positive", decimal_places=2,
             step=0.1, max=99.99)
         res_options.add_option(self.res_option)
 
@@ -239,9 +241,12 @@ class LaunchEmplaceLocalTool(ToolInstance):
             self.xyz_widgets.append(entry)
         self.model_menu = ModelMenuButton(session)
         centering_layout.addWidget(self.model_menu)
-
         centering_layout.addWidget(self.xyz_area)
         self._set_centering_method()
+
+        self.verify_center_checkbox = QCheckBox("Interactively verify/adjust center before searching")
+        self.verify_center_checkbox.setChecked(True)
+        layout.addWidget(self.verify_center_checkbox, alignment=Qt.AlignCenter)
 
         from Qt.QtWidgets import QDialogButtonBox as qbbox
         self.bbox = bbox = qbbox(qbbox.Ok | qbbox.Close | qbbox.Help)
@@ -263,6 +268,8 @@ class LaunchEmplaceLocalTool(ToolInstance):
         maps = self.half_map_list.value
         if len(maps) != 2:
             raise UserError("Must specify exactly two half maps for fitting")
+        if float(self.res_option.widget.text()) <= 0.0:
+            raise UserError("Need to set map resolution value")
         res = self.res_option.value
         method = self.centering_button.text()
         if method == self.CENTER_XYZ:
@@ -278,7 +285,14 @@ class LaunchEmplaceLocalTool(ToolInstance):
             for o, xyz in zip(maps[0].data.origin, bnds.center()):
                 center.append(xyz - o)
         elif method == self.CENTER_VIEW:
-            raise NotImplementedError("Awaiting info from T.G.")
+            from .emplace_local import view_box, ViewBoxError
+            try:
+                box_center = view_box(self.session, maps[0])
+            except ViewBoxError as e:
+                raise UserError(str(e))
+            center =[]
+            for o, xyz in zip(maps[0].data.origin, box_center):
+                center.append(xyz - o)
         else:
             # center of half-map
             data = maps[0].data
@@ -286,12 +300,10 @@ class LaunchEmplaceLocalTool(ToolInstance):
             for limit, o in zip(data.ijk_to_xyz(data.size), data.origin):
                 center.append((limit - o) / 2)
         self.settings.search_center = method
-        from chimerax.core.commands import run, concise_model_spec
-        from chimerax.map import Volume
-        cmd = "phenix emplaceLocal %s halfMaps %s resolution %g center %g,%g,%g" % (structure.atomspec,
-            concise_model_spec(self.session, maps, relevant_types=Volume, allow_empty_spec=False),
-            res, *center)
-        run(self.session, cmd)
+        if self.verify_center_checkbox.isChecked():
+            VerifyCenterDialog(self.session, structure, maps, res, center)
+        else:
+            _run_emplace_local_command(self.session, structure, maps, res, center)
         self.delete()
 
     def _set_centering_method(self, method=None):
@@ -307,21 +319,74 @@ class LaunchEmplaceLocalTool(ToolInstance):
         elif method == self.CENTER_MODEL:
             self.model_menu.setHidden(False)
 
-from chimerax.ui.widgets import ItemMenuButton
-class MarkerMenuButton(ItemMenuButton):
-    def __init__(self, session):
-        def list_markers(ses=session):
-            from chimerax.markers import MarkerSet
-            markers = []
-            for m in ses.models:
-                if isinstance(m, MarkerSet):
-                    markers.extend(list(m.residues))
-            return markers
+class VerifyCenterDialog(QDialog):
+    def __init__(self, session, structure, maps, resolution, initial_center):
+        super().__init__()
+        self.session = session
+        self.structure = structure
+        self.maps = maps
+        self.resolution = resolution
 
-        from chimerax.atomic import get_triggers
-        super().__init__(list_func=list_markers, trigger_info=[(get_triggers(), 'changes')])
+        adjusted_center = [ic+o for ic,o in zip(initial_center, maps[0].data.origin)]
+        marker_set_id = session.models.next_id()[0]
+        from chimerax.core.commands import run
+        self.marker = run(session, "marker #%d position %g,%g,%g radius 2 color green"
+            % (marker_set_id, *adjusted_center))
+
+        from chimerax.core.models import REMOVE_MODELS
+        self.handler = session.triggers.add_handler(REMOVE_MODELS, self._check_still_valid)
+        from Qt.QtWidgets import QVBoxLayout, QLabel
+        layout = QVBoxLayout()
+        self.setLayout(layout)
+        search_button_label = "Start search"
+        instructions = QLabel(
+            "The search center is depicted as a green marker (model #%d).  "
+            "You may have to adjust the maps' visibility to see it (hide / use mesh / set transparency).  "
+            "You can use all the normal means to move markers / models to adjust the marker position, "
+            'e.g. the "Move" right mouse mode in the Markers section of the toolbar.  '
+            'When satisfied with the marker position, use the "%s" button to start the fitting.'
+             % (marker_set_id, search_button_label)
+        )
+        instructions.setWordWrap(True)
+        instructions.setAlignment(Qt.AlignCenter)
+        layout.addWidget(instructions)
+
+        from Qt.QtWidgets import QDialogButtonBox as qbbox
+        bbox = qbbox(qbbox.Cancel)
+        bbox.addButton(search_button_label, bbox.AcceptRole)
+        bbox.accepted.connect(self.launch_emplace_local)
+        bbox.accepted.connect(self.close)
+        bbox.rejected.connect(self.close)
+        layout.addWidget(bbox)
+
+        self.show()
+
+    def closeEvent(self, event):
+        if not self.marker.structure.deleted:
+            self.session.models.close([self.marker.structure])
+        self.handler.remove()
+        super().closeEvent(event)
+
+    def launch_emplace_local(self):
+        center = self.marker.scene_coord
+        _run_emplace_local_command(self.session, self.structure, self.maps, self.resolution,
+            [c-o for c, o in zip(center, self.maps[0].data.origin)])
+
+    def _check_still_valid(self, trig_name, removed_models):
+        for rm in removed_models:
+            if rm in self.maps + [self.structure, self.marker.structure]:
+                self.close()
+                break
 
 class LaunchEmplaceLocalSettings(Settings):
     AUTO_SAVE = {
         'search_center': LaunchEmplaceLocalTool.CENTER_MODEL,
     }
+
+def _run_emplace_local_command(session, structure, maps, resolution, center):
+    from chimerax.core.commands import run, concise_model_spec
+    from chimerax.map import Volume
+    cmd = "phenix emplaceLocal %s halfMaps %s resolution %g center %g,%g,%g" % (structure.atomspec,
+        concise_model_spec(session, maps, relevant_types=Volume, allow_empty_spec=False),
+        resolution, *center)
+    run(session, cmd)

@@ -5,7 +5,7 @@ PYTHON = ../ChimeraX.app/Contents/bin/python3.9
 
 BUNDLE ?=
 
-wheel: chimerax
+wheel: clean chimerax-copy
 	touch $(APP_PYSITEDIR)/chimerax/__init__.py
 	mv $(APP_PYSITEDIR)/chimerax/ui $(APP_PYSITEDIR)/chimerax_ui
 	python -m build
@@ -24,9 +24,11 @@ copy-bundle:
 bundle-diff:
 	diff -r chimerax/${BUNDLE} ../src/bundles/${BUNDLE}/src
 
+chimerax-diff:
+	diff chimerax $(APP_PYSITEDIR)/chimerax 
+
 clean:
-	\rm -rf dist build chimerax.egg-info
-	\rm chimerax
+	\rm -rf dist build chimerax.egg-info htmlcov chimerax
 
 test:
 	python -m coverage run -m pytest --rootdir=. tests/core

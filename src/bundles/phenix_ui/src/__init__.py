@@ -30,7 +30,7 @@ class _PhenixBundle(BundleAPI):
         if tool_name == 'Water Placement':
             from .tool import LaunchDouseTool
             return LaunchDouseTool(session, tool_name)
-        if tool_name == 'Local Fitting':
+        if tool_name == 'Local EM Fitting':
             from .tool import LaunchEmplaceLocalTool
             return LaunchEmplaceLocalTool(session, tool_name)
 
