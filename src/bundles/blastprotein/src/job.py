@@ -10,19 +10,12 @@
 # including partial copies, of the software or any revisions
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
-import json
-
 from urllib3.exceptions import MaxRetryError
 
 from chimerax.core.tasks import JobError
 from chimerax.webservices.cxservices_job import CxServicesJob
-from chimerax.webservices.cxservices_utils import (
-    get_status, get_stdout, get_stderr, get_file
-)
-from cxservices.rest import ApiException
 
 from .data_model import get_database, CurrentDBVersions
-from .ui import BlastProteinResults
 from .utils import BlastParams, make_instance_name
 
 class BlastProteinJob(CxServicesJob):
@@ -94,6 +87,7 @@ class BlastProteinJob(CxServicesJob):
         logger = self.session.logger
         logger.status("BlastProtein finished.")
         if self.session.ui.is_gui:
+            from .ui import BlastProteinResults
             BlastProteinResults.from_job(
                     session = self.session
                     , tool_name = self.tool_inst_name
@@ -101,17 +95,11 @@ class BlastProteinJob(CxServicesJob):
                     , job=self
             )
         else:
-            out = err = results = None
-            out = self.get_stdout()
-            if out:
-                logger.error("Standard output:\n" + out)
-            if not self.exited_normally():
-                err = self.get_stderr()
-                if err:
-                    logger.bug("Standard error:\n" + err)
-            else:
-                results = self.get_file(self.RESULTS_FILENAME)
+            if self.exited_normally():
+                results = self.get_results()
                 parse_blast_results_nogui(self.session, self._params(), self.seq, results, self.log)
+            else:
+                self.session.logger.error("BLAST job failed")
 
     def __str__(self):
         return "BlastProtein Job, ID %s" % self.id

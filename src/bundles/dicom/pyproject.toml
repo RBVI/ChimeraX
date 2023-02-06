@@ -41,8 +41,20 @@ category = "Volume Data"
 nicknames = ["dicom"]
 suffixes = [".dcm"]
 allow-directory = true
-open = { batch = true }
+
+[[chimerax.data-format."DICOM medical imaging".open]]
+batch = true
+
+[[chimerax.data-format."DICOM medical imaging".open]]
+type = "fetch"
+name = "tcia"
+format-name = "dicom"
+is-default = false
 
 [chimerax.tool."DICOM Browser"]
 category = "Volume Data"
 description = "View the metadata of a patient's DICOM files"
+
+[chimerax.tool."DICOM Databases"]
+category = "Volume Data"
+description = "View the contents of public DICOM datasets from within ChimeraX"

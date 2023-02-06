@@ -19,7 +19,7 @@ REMOTE_DIR = $(REMOTE_HOST)/usr/local/src/PyQt6
 # BASE_VERSION is overriden by Makefile
 BASE_VERSION = 6.4
 QT_MINOR_VERSION = 2
-PYQT_MINOR_VERSION = 0
+PYQT_MINOR_VERSION = 2
 PYQTWE_MINOR_VERSION = 0
 QT_VERSION = $(BASE_VERSION).$(QT_MINOR_VERSION)
 ifeq (,$(PYQT_MINOR_VERSION))
@@ -35,7 +35,7 @@ endif
 
 # Versions of Riverbank Computing Limited packages/programs from when
 # unlicensed wheels where built and presumably matches the gpl wheel in PyPI.
-SIP_VERSION = 13.4.0
+SIP_VERSION = 13.4.1
 BUILDER_VERSION = 1.14.0
 
 PYTHON_TAGS = cp36

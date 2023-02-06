@@ -1836,8 +1836,12 @@ write_coord_set(StreamDispatcher& os, const Structure* s, const CoordSet* cs,
                 continue;
             std::string aname = s->asterisks_translated ?
                 primes_to_asterisks(a->name().c_str()) : a->name().c_str();
+            if (aname.size() > 4 && !*warned_atom_name_length) {
+                *warned_atom_name_length = true;
+                logger::warning(py_logger, "Atom names longer than 4 characters; truncating");
+            }
             if (strlen(a->element().name()) > 1) {
-                strcpy(*rec_name, aname.c_str());
+                strncpy(*rec_name, aname.c_str(), 4);
             } else {
                 bool element_compares;
                 if (strncmp(a->element().name(), a->name().c_str(), 1) == 0) {
@@ -1852,14 +1856,10 @@ write_coord_set(StreamDispatcher& os, const Structure* s, const CoordSet* cs,
                     strcpy(*rec_name, " ");
                     strcat(*rec_name, aname.c_str());
                 } else {
-                    strcpy(*rec_name, aname.c_str());
+                    strncpy(*rec_name, aname.c_str(), 4);
                 }
             }
-            if (aname.size() > 4 && !*warned_atom_name_length) {
-                *warned_atom_name_length = true;
-                logger::warning(py_logger, "Atom names longer than 4 characters; truncating");
-
-            }
+            (*rec_name)[4] = '\0';
             set_res_name_and_chain_id(r, res->name, &res->chain_id,
                 py_logger, warned_res_name_length, warned_chain_id_length);
             auto seq_num = r->number();

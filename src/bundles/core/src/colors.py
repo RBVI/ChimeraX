@@ -290,6 +290,8 @@ class Colormap(State):
             c = array(colors, dtype=float32)
         self.colors = c[order]
 
+        self.is_transparent = not (c[:,3] == 1).all()
+        
         if color_above_value_range is None:
             color_above_value_range = self.colors[-1]
         if color_below_value_range is None:

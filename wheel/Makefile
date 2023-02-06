@@ -5,27 +5,34 @@ PYTHON = ../ChimeraX.app/Contents/bin/python3.9
 
 BUNDLE ?=
 
-wheel: chimerax
-	$(PYTHON) setup.py bdist_wheel
+wheel: clean chimerax-copy
+	touch $(APP_PYSITEDIR)/chimerax/__init__.py
+	mv $(APP_PYSITEDIR)/chimerax/ui $(APP_PYSITEDIR)/chimerax_ui
+	python -m build
+	mv $(APP_PYSITEDIR)/chimerax_ui $(APP_PYSITEDIR)/chimerax/ui
+	rm $(APP_PYSITEDIR)/chimerax/__init__.py
 
 chimerax:
-	ln -s ../ChimeraX.app/Contents/lib/python3.9/site-packages/chimerax .
+	ln -s $(APP_PYSITEDIR)/chimerax .
 
 chimerax-copy:
-	cp -r ../ChimeraX.app/Contents/lib/python3.9/site-packages/chimerax .
+	cp -r $(APP_PYSITEDIR)/chimerax .
 
 copy-bundle:
-	cp -r ../ChimeraX.app/Contents/lib/python3.9/site-packages/chimerax/${BUNDLE} chimerax/${BUNDLE}
+	cp -r $(APP_PYSITEDIR)/chimerax/${BUNDLE} chimerax/${BUNDLE}
 
 bundle-diff:
 	diff -r chimerax/${BUNDLE} ../src/bundles/${BUNDLE}/src
 
+chimerax-diff:
+	diff chimerax $(APP_PYSITEDIR)/chimerax 
+
 clean:
-	\rm -rf dist build chimerax.egg-info
-	\rm chimerax
+	\rm -rf dist build chimerax.egg-info htmlcov chimerax
 
 test:
-	python -m pytest --rootdir=.
+	python -m coverage run -m pytest --rootdir=. tests/core
+	python -m coverage run -m pytest --rootdir=. --ignore=tests/core
 
 .PHONY: venv
 venv:

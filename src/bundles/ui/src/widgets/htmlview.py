@@ -305,7 +305,7 @@ class _LoggingPage(QWebEnginePage):
         import os.path
         filename = os.path.basename(sourceId)
         print("JS console(%s:%d:%s): %s" % (filename, lineNumber,
-                                            self.Levels[level], msg))
+                                            self.Levels[level.value], msg))
 
 
 class _RequestInterceptor(QWebEngineUrlRequestInterceptor):

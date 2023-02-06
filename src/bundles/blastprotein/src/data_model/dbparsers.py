@@ -17,6 +17,39 @@ from abc import ABC, abstractmethod
 from ..utils import SeqGapChars
 from .match import Match
 
+
+def parse_blast_results(db, results, sequence, atomspec):
+    from .databases import get_database
+    sequences = {}
+    blast_results = get_database(db)
+    blast_results.parse("query", sequence, results)
+    query_match = blast_results.parser.matches[0]
+    if atomspec:
+        name = atomspec
+    else:
+        name = query_match.name
+    sequences[0] = (name, query_match)
+    match_chains = {}
+    sequence_only_hits = {}
+    for n, m in enumerate(blast_results.parser.matches[1:]):
+        sid = n + 1
+        hit = {"id":          sid, "e-value": m.evalue, "score": m.score,
+               "description": m.description}
+        if m.match:
+            hit["name"] = m.match
+            match_chains[m.match] = hit
+        else:
+            hit["name"] = m.name
+            sequence_only_hits[m.name] = hit
+        sequences[sid] = (hit["name"], m)
+    # TODO: Make what this function does more explicit. It works on the
+    # hits that are in match_chain's hit dictionary, but that's not
+    # immediately clear.
+    blast_results.add_info(match_chains, sequence_only_hits)
+    hits = list(match_chains.values()) + list(sequence_only_hits.values())
+    return hits, sequences
+
+
 class Parser(ABC):
     """Abstract base class for BLAST JSON parsers. To define a parser for a new
     type of database, create a subclass that implements _extract_hit"""

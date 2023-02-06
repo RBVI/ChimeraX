@@ -104,6 +104,10 @@ calculated with <a href="commands/measure.html#sasa"><b>measure sasa</b></a></td
 <td align=center><b>bfactor=</b><i>bfactor</i></td>
 <td class="text"><i>bfactor</i> is the B-factor value of the atom</td>
 </tr><tr>
+<td align=center><b>charge=</b><i>q</i></td>
+<td class="text"><i>q</i> is the atomic partial charge
+assigned by running <a href="commands/addcharge.html"><b>addcharge</b></a></td>
+</tr><tr>
 <td align=center><b>color=</b><i>color</i></td>
 <td class="text"><i>color</i> is the color of the atom (assigned on a per-atom basis)</td>
 </tr><tr>
@@ -122,6 +126,12 @@ for <a href="markers.html">markers</a> on
 <a href="trajectories.html#vseries">volume series</a> data,
 the associated time step within the series (<i>N</i> = 0, 1, ...) for
 <a href="commands/vseries.html#play">synchronized playback</a></td>
+</tr><tr>
+<td align=center><b>gaff_type=</b><i>gtype</i></td>
+<td class="text"><i>gtype</i> is the 
+<a href="https://ambermd.org/antechamber/gaff.html#atomtype"
+target="_blank">GAFF atom type</a>
+assigned by running <a href="commands/addcharge.html"><b>addcharge</b></a></td>
 </tr><tr>
 <td align=center><b>idatm_type=</b><i>type</i></td>
 <td class="text"><i>type</i> is the <a href="atomtypes.html">atom type</a></td>
@@ -165,6 +175,11 @@ of the atom in &Aring;</td>
 <a href="commands/info.html#residues"><b>info residues</b></a>,
 <a href="commands/info.html#resattr"><b>info resattr</b></a>)</td></tr>
 <tr>
+<td align=center><b>amber_name=</b><i>aname</i></td>
+<td class="text"><i>aname</i> is the 
+AMBER residue name (for standard residues only)
+assigned by running <a href="commands/addcharge.html"><b>addcharge</b></a></td>
+</tr><tr>
 <td align=center><b>area=</b><i>sasa</i></td>
 <td class="text"><i>sasa</i> 
 is the solvent-accessible surface area of the residue 
@@ -352,5 +367,5 @@ from the <a href="https://www.wwpdb.org" target="_blank">wwPDB</a>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-October 2022</address>
+January 2023</address>
 </body></html>
