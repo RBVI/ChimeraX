@@ -62,12 +62,21 @@ class _AlignmentsBundleAPI(BundleAPI):
                         format_name=name.upper(), **kw)
 
                 @property
-                def open_args(self):
-                    from chimerax.core.commands import BoolArg, StringArg
+                def open_args(self, *, session=session):
+                    from chimerax.core.commands import BoolArg, StringArg, Or, DynamicEnum
+                    def viewer_names(mgr):
+                        names = set()
+                        for type_viewers in mgr.viewer_info.values():
+                            for vname, nicknames in type_viewers.items():
+                                names.add(vname)
+                                names.update(nicknames)
+                        return names
                     return {
                         'alignment': BoolArg,
                         'auto_associate': BoolArg,
                         'ident': StringArg,
+                        'viewer': Or(BoolArg,
+                                    DynamicEnum(lambda mgr=session.alignments, f=viewer_names: f(mgr))),
                     }
         else:
             from chimerax.save_command import SaverInfo
