@@ -27,7 +27,7 @@ class DICOMDatabases(ToolInstance):
 
     help = "help:user/tools/dicomdatabases.html"
 
-    def __init__(self, session = None, name = "DICOM Databases"):
+    def __init__(self, session = None, name = "Download DICOM"):
         """Bring up a tool to explore DICOM models open in the session."""
         super().__init__(session, name)
 
