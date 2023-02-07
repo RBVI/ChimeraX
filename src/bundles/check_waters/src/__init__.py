@@ -23,11 +23,6 @@ class _CheckWatersBundle(BundleAPI):
         return getattr(tool, class_name)
 
     @staticmethod
-    def register_command(command_name, logger):
-        from . import cmd
-        cmd.register_command(logger)
-
-    @staticmethod
     def start_tool(session, tool_name):
         if tool_name == 'Check Waters':
             from .tool import CheckWatersInputTool, CheckWaterViewer

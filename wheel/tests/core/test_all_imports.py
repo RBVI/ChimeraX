@@ -15,6 +15,8 @@ module_blacklist = set([
     , "chimerax.build_structure" # needs Qt
     , "chimerax.dicom" # tries to import its .ui submodule in __init__
     , "chimerax.structcomp"  # ChimeraX command script
+    # Not going in the library, but part of test suite for GUI ChimeraX
+    , "chimerax.ui" # tries to import Qt
 ])
 
 fine_blacklist = set([
@@ -53,6 +55,8 @@ fine_blacklist = set([
     , "chimerax.smiles.build_ui" # imports Qt
     , "chimerax.std_commands.coordset_gui" # imports chimerax.ui
     , "chimerax.std_commands.defattr_gui" # imports Qt
+    # Not going in the library, but part of test suite for GUI ChimeraX
+    , "chimerax.ui.core_settings_ui" # imports settings from core_settings before initialized if imported standalone
     # Held over from cxtestimports.py
     , "chimerax.add_charge.process_lib"  # creates data.py
     , "chimerax.alignment_algs.libalign_algs"  # non-importable dynamic lib
@@ -100,7 +104,6 @@ def test_all_imports():
             raise
     for info in pkgutil.walk_packages(chimerax.__path__, prefix=chimerax.__name__ + '.', onerror=check_if_true_error):
         module_finder, name, is_pkg = info
-        # print(name)
         if name.endswith(".tool") or (name in fine_blacklist) or (name in module_blacklist):
             continue
         m = importlib.import_module(name)

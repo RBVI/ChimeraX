@@ -623,7 +623,7 @@ def cmd_open_formats(session):
         else:
             session.logger.info(title)
             session.logger.info('File format, Short name(s), Suffixes:')
-        formats.sort(key = lambda f: f.name.lower())
+        formats.sort(key = lambda f: f.synopsis.lower())
         some_uninstalled = False
         for f in formats:
             bundle_info = session.open_command.provider_info(f).bundle_info
