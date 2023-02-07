@@ -61,7 +61,7 @@ class DICOMDatabases(ToolInstance):
         self.control_layout.addWidget(self.search_button)
         self.control_layout.addStretch()
         self.dataset_highlighted_label = QLabel("For highlighted entries:")
-        self.refine_dataset_button = QPushButton("Drill down to Studies")
+        self.refine_dataset_button = QPushButton("Drill Down to Studies")
         self.control_layout.addWidget(self.dataset_highlighted_label)
         self.control_layout.addWidget(self.refine_dataset_button)
         self.database_entries_control_widget.setVisible(False)
@@ -95,7 +95,7 @@ class DICOMDatabases(ToolInstance):
         self.study_entries_layout = QVBoxLayout(self.study_entries_container)
         self.back_to_search_button = QPushButton("Back to Collections")
         self.study_highlighted_label = QLabel("For highlighted entries:")
-        self.refine_study_button = QPushButton("Drill down to Series")
+        self.refine_study_button = QPushButton("Drill Down to Series")
 
         self.study_entries_control_widget = QWidget(self.study_entries_container)
         self.study_entries_control_widget.setVisible(False)
