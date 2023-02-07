@@ -154,6 +154,18 @@ target="_blank">Crystallographic Information File (CIF)</td>
 <td align="center">.cif</td>
 <td align="center">atomic coordinates and crystallographic information</td>
 </tr><tr>
+<td align="center">SwissDock</td>
+<td align="center"><b>swissdock</b></td>
+<td align="center">.pdb</td>
+<td align="center" class="text">atomic coordinates of docked ligands
+and/or target receptor in the modified PDB format written by
+<a href="http://www.swissdock.ch/" target="_blank">SwissDock</a>
+<br>
+(see <a href="../tools/viewdockx.html"><b>ViewDockX</b></a>
+for analysis of docking results from
+<a href="http://www.swissdock.ch/" target="_blank">SwissDock</a>)
+</td>
+</tr><tr>
 <td align="center">Sybyl Mol2</td>
 <td align="center"><b>mol2</b></td>
 <td align="center">.mol2</td>
@@ -680,7 +692,8 @@ target="_blank">Wavefront OBJ</a></td>
 <a name="sequence"></a>
 <a href="#formats" class="nounder"><b>&larr;</b></a>
 <b>Sequences</b> (associated tool: 
-<a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>)</td>
+<a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>,
+but see the <a href="#viewer"><b>viewer</b></a> option)</td>
 </tr><tr>
 <td align="center">Clustal ALN</td>
 <td align="center"><b>aln</b></td>
@@ -884,7 +897,8 @@ in a Terminal window.
 <b>alignment</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
 <br>
 Whether to interpret a multi-sequence file as an alignment 
-(default, all sequences in one <b>Multalign Viewer</b> window).
+(default, all sequences in one 
+<a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a> window).
 Otherwise, each sequence will be opened in a separate window. 
 If the sequences (including any gap characters) are of differing lengths,
 the option must be set to <b>false</b>. 
@@ -922,7 +936,8 @@ bypassing chemical perception steps like identifying
 <b>autoAssociate</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false
 <br>
 Whether structure-chain sequences should be compared to sequences in 
-<b>Multalign Viewer</b> and automatically associated if the number of
+<a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>
+and automatically associated if the number of
 mismatches is no more than 1/10 the number of residues in the structure chain.
 Unlike the other options of <b>open</b>, this sets a state that persists 
 within the ChimeraX session unless explicitly changed. 
@@ -1251,6 +1266,20 @@ Assign the specified <i>percent</i> transparency to
 channels read from <a href="#object">JSON format</a>
 (default <b>0</b>, not transparent).
 See also the <a href="transparency.html"><b>transparency</b></a> command.
+</blockquote>
+<blockquote>
+<a name="viewer"></a>
+<b>viewer</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
+<br>
+Whether to show the 
+<a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>
+when opening <a href="#sequence">sequence data</a>.
+<!-- 
+also has option seqview = sv = view, meaning the Sequence Viewer,
+which will be relevant when an option is added for ProfileGrid instead.
+Then, true will mean whichever of the two was last used, if any, for 
+a single sequence or sequence alignment, which will be remembered separately 
+-->
 </blockquote>
 <blockquote>
 <a name="vseries"></a>
@@ -1979,5 +2008,5 @@ only arrays with the specified <i>name</i>. Example:
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-January 2023</address>
+February 2023</address>
 </body></html>

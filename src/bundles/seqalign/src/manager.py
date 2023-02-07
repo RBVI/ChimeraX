@@ -142,7 +142,7 @@ class AlignmentsManager(StateManager, ProviderManager):
         return names
 
     def new_alignment(self, seqs, identify_as, attrs=None, markups=None, auto_destroy=None,
-            align_viewer=None, seq_viewer=None, auto_associate=True, name=None, intrinsic=False, **kw):
+            viewer=True, auto_associate=True, name=None, intrinsic=False, **kw):
         """Create new alignment from 'seqs'
 
         Parameters
@@ -161,8 +161,8 @@ class AlignmentsManager(StateManager, ProviderManager):
             Whether to automatically destroy the alignment when the last viewer for it
             is closed.  If None, then treated as False if the value of the 'viewer' keyword
             results in no viewer being launched, else True.
-        align_viewer/seq_viewer : str, False or None
-           What alignment/sequence viewer to launch.  If False, do not launch a viewer.  If None,
+        viewer: str, True, or False
+           What alignment/sequence viewer to launch.  If False, do not launch a viewer.  If True,
            use the current preference setting for the user.  The string must either be
            the viewer's tool display_name or a synonym registered by the viewer (during
            its register_viewer call).
@@ -180,15 +180,14 @@ class AlignmentsManager(StateManager, ProviderManager):
         Returns the created Alignment
         """
         if self.session.ui.is_gui and identify_as is not False:
+            viewer_text = viewer
             if len(seqs) > 1:
-                viewer_text = align_viewer
                 attr = 'align_viewer'
                 type_text = "alignment"
             else:
-                viewer_text = seq_viewer
                 attr = 'seq_viewer'
                 type_text = "sequence"
-            if viewer_text is None:
+            if viewer_text is True:
                 from .settings import settings
                 viewer_text = getattr(settings, attr).lower()
             if viewer_text:

@@ -27,7 +27,7 @@ class DICOMDatabases(ToolInstance):
 
     help = "help:user/tools/dicomdatabases.html"
 
-    def __init__(self, session = None, name = "DICOM Databases"):
+    def __init__(self, session = None, name = "Download DICOM"):
         """Bring up a tool to explore DICOM models open in the session."""
         super().__init__(session, name)
 
@@ -61,7 +61,7 @@ class DICOMDatabases(ToolInstance):
         self.control_layout.addWidget(self.search_button)
         self.control_layout.addStretch()
         self.dataset_highlighted_label = QLabel("For highlighted entries:")
-        self.refine_dataset_button = QPushButton("Drill down to Studies")
+        self.refine_dataset_button = QPushButton("Drill Down to Studies")
         self.control_layout.addWidget(self.dataset_highlighted_label)
         self.control_layout.addWidget(self.refine_dataset_button)
         self.database_entries_control_widget.setVisible(False)
@@ -75,7 +75,7 @@ class DICOMDatabases(ToolInstance):
 
 
         self.database_entries.add_column("Dataset", lambda x: x.collection)
-        self.database_entries.add_column("Number of Series", lambda x: x.count)
+        self.database_entries.add_column("Number of Patients", lambda x: x.count)
 
         self.interface_stack.addWidget(self.database_entries_container)
 
@@ -93,9 +93,9 @@ class DICOMDatabases(ToolInstance):
 
         self.study_entries_container = QWidget(self.interface_stack)
         self.study_entries_layout = QVBoxLayout(self.study_entries_container)
-        self.back_to_search_button = QPushButton("Back to Databases")
+        self.back_to_search_button = QPushButton("Back to Collections")
         self.study_highlighted_label = QLabel("For highlighted entries:")
-        self.refine_study_button = QPushButton("Drill down to Series")
+        self.refine_study_button = QPushButton("Drill Down to Series")
 
         self.study_entries_control_widget = QWidget(self.study_entries_container)
         self.study_entries_control_widget.setVisible(False)
@@ -123,7 +123,7 @@ class DICOMDatabases(ToolInstance):
         self.series_entries_container = QWidget(self.interface_stack)
         self.series_entries_layout = QVBoxLayout(self.series_entries_container)
         self.back_to_studies_button = QPushButton("Back to Studies")
-        self.back_to_beginning_button = QPushButton("Back to Databases")
+        self.back_to_beginning_button = QPushButton("Back to Collections")
         self.series_highlighted_label = QLabel("For highlighted entries:")
         self.open_button = QPushButton("Download and Open")
 
@@ -206,14 +206,14 @@ class DICOMDatabases(ToolInstance):
         for item in items:
             entries.extend([
                 SeriesTableEntry(
-                    x['SeriesInstanceUID']
-                    , x['Modality']
-                    , x['ProtocolName']
-                    , x['SeriesDescription']
-                    , x['BodyPartExamined']
-                    , x['SeriesNumber']
-                    , x['PatientID']
-                    , x['ImageCount']
+                    x.get('SeriesInstanceUID', None)
+                    , x.get('Modality', None)
+                    , x.get('ProtocolName', None)
+                    , x.get('SeriesDescription', None)
+                    , x.get('BodyPartExamined', None)
+                    , x.get('SeriesNumber', None)
+                    , x.get('PatientID', None)
+                    , x.get('ImageCount', None)
                 )
                 for x in fetch_nbia_series(studyUid = item.suid)
             ])

@@ -3,10 +3,10 @@ requires = ["setuptools", "ChimeraX-BundleBuilder"]
 build-backend = "chimerax.bundle_builder.cx_pep517"
 
 [project]
-name = "ChimeraX-Dicom"
+name = "ChimeraX-Nifti"
 license = { text = "Free for non-commercial use" }
 authors= [{name = "UCSF RBVI", email="chimerax@cgl.ucsf.edu"}]
-description = "Read medical imaging and segmentations in DICOM format"
+description = "Read medical images in Nifti format"
 dependencies = [
 	"ChimeraX-Core ~=1.0"
 	, "ChimeraX-DataFormats ~=1.0"
@@ -30,31 +30,22 @@ Home = "https://www.rbvi.ucsf.edu/chimerax/"
 version = { attr = "src.__version__" }
 
 [chimerax]
-custom-init = true
 min-session-version = 1
 max-session-version = 1
-categories = ["Medical Imaging"]
+categories = ["Volume Data"]
 classifiers = ["Development Status :: 2 - Pre-Alpha"]
 
-[chimerax.data-format."DICOM medical imaging"]
-category = "Medical Imaging"
-nicknames = ["dicom"]
-suffixes = [".dcm"]
-allow-directory = true
+[chimerax.data-format."NifTI Medical Imaging"]
+category = "Volume Data"
+nicknames = ["nifti"]
+suffixes = [".nii", ".nii.gz"]
+allow-directory = false
 
-[[chimerax.data-format."DICOM medical imaging".open]]
-batch = true
+[[chimerax.data-format."NifTI Medical Imaging".open]]
+batch = false
 
-[[chimerax.data-format."DICOM medical imaging".open]]
+[[chimerax.data-format."NifTI Medical Imaging".open]]
 type = "fetch"
 name = "tcia"
-format-name = "dicom"
+format-name = "nifti"
 is-default = false
-
-[chimerax.tool."DICOM Browser"]
-category = "Medical Imaging"
-description = "View the metadata of a patient's DICOM files"
-
-[chimerax.tool."Download DICOM"]
-category = "Medical Imaging"
-description = "View the contents of public DICOM datasets from within ChimeraX"
