@@ -66,7 +66,6 @@ class ProfileGridsTool(ToolInstance):
 
         self.tool_window.manage('side')
 
-
     def alignment_notification(self, note_name, note_data):
         raise NotImplementedError("alignment_notification")
         alignment = self.alignment

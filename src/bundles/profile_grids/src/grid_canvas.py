@@ -21,14 +21,34 @@ class GridCanvas:
 
     def __init__(self, parent, pg, alignment, grid_data, weights):
         from Qt.QtWidgets import QGraphicsView, QGraphicsScene, QGridLayout, QShortcut
-        from Qt.QtCore import Qt
-        self.label_scene = QGraphicsScene()
+        from Qt.QtCore import Qt, QSize
+
+        self.pg = pg
+        self.alignment = alignment
+        self.grid_data = grid_data
+        self.weights = weights
+
+        import string
+        self.row_labels = list(string.ascii_uppercase) + ['?', 'gap', 'misc']
+        import numpy
+        self.empty_rows = numpy.where(~self.grid_data.any(axis=1))[0]
+        from Qt.QtGui import QFont, QFontMetrics
+        self.font = QFont("Helvetica")
+        self.font_metrics = QFontMetrics(self.font)
+        self.max_label_width = 0
+        for i, text in enumerate(self.row_labels):
+            if i in self.empty_rows:
+                continue
+            self.max_label_width = max(self.max_label_width, self.font_metrics.horizontalAdvance(text + ' '))
+
+        self.main_label_scene = QGraphicsScene()
         """
-        self.label_scene.setBackgroundBrush(Qt.lightGray)
+        self.main_label_scene.setBackgroundBrush(Qt.lightGray)
         """
-        self.label_scene.setBackgroundBrush(Qt.white)
-        self.label_view = QGraphicsView(self.label_scene)
-        self.label_view.setAttribute(Qt.WA_AlwaysShowToolTips)
+        self.main_label_scene.setBackgroundBrush(Qt.white)
+        self.main_label_view = QGraphicsView(self.main_label_scene)
+        self.main_label_view.setMaximumWidth(self.max_label_width)
+        self.main_label_view.setAttribute(Qt.WA_AlwaysShowToolTips)
         self.header_scene = QGraphicsScene()
         """
         self.header_scene.setBackgroundBrush(Qt.lightGray)
@@ -49,29 +69,20 @@ class GridCanvas:
         self.main_view.setAttribute(Qt.WA_AlwaysShowToolTips)
         #self.main_view.setMouseTracking(True)
         main_vsb = self.main_view.verticalScrollBar()
-        label_vsb = self.label_view.verticalScrollBar()
+        label_vsb = self.main_label_view.verticalScrollBar()
         main_vsb.valueChanged.connect(label_vsb.setValue)
         label_vsb.valueChanged.connect(main_vsb.setValue)
         main_hsb = self.main_view.horizontalScrollBar()
         header_hsb = self.header_view.horizontalScrollBar()
         main_hsb.valueChanged.connect(header_hsb.setValue)
         header_hsb.valueChanged.connect(main_hsb.setValue)
-        self.pg = pg
-        self.alignment = alignment
-        self.grid_data = grid_data
-        self.weights = weights
-        import numpy
-        self.empty_rows = numpy.where(~self.grid_data.any(axis=1))[0]
-        from Qt.QtGui import QFont, QFontMetrics
-        self.font = QFont("Helvetica")
         #self.emphasis_font = QFont(self.font)
         #self.emphasis_font.setBold(True)
-        self.font_metrics = QFontMetrics(self.font)
         #self.emphasis_font_metrics = QFontMetrics(self.emphasis_font)
         digits = self.pg.settings.percent_decimal_places
         wide_string = "100" if digits == 0 else "100." + '0' * digits
         font_width, font_height = self.font_metrics.horizontalAdvance(wide_string), self.font_metrics.height()
-        self.label_view.setMinimumHeight(font_height)
+        self.main_label_view.setMinimumHeight(font_height)
         self.main_view.setMinimumHeight(font_height)
         # pad font a little...
         self.font_pixels = (font_width + self.TEXT_MARGIN, font_height + self.TEXT_MARGIN)
@@ -79,12 +90,15 @@ class GridCanvas:
         layout.setContentsMargins(0,0,0,0)
         layout.setSpacing(0)
         layout.addWidget(self.header_view, 0, 1)
-        layout.addWidget(self.label_view, 1, 0)
+        layout.addWidget(self.main_label_view, 1, 0, alignment=Qt.AlignRight)
         layout.addWidget(self.main_view, 1, 1)
-        layout.columnStretch(1)
+        layout.setColumnStretch(0, 0)
+        layout.setColumnStretch(1, 1)
+        layout.setRowStretch(0, 0)
+        layout.setRowStretch(1, 1)
         parent.setLayout(layout)
         self.header_view.show()
-        self.label_view.show()
+        self.main_label_view.show()
         self.main_view.show()
         self.layout_alignment()
 
@@ -97,11 +111,8 @@ class GridCanvas:
     def layout_alignment(self):
         #NOTE: maybe group each header line (QGraphicsItemGroup) to make them easier to move
         rows, columns = self.grid_data.shape
-        print("rows:", rows, "columns:", columns)
-        import string
-        labels = list(string.ascii_uppercase) + ['?', 'gap', 'misc'] 
-        if rows != len(labels):
-            raise AssertionError("Expected %d rows, got %d" % (len(labels), rows))
+        if rows != len(self.row_labels):
+            raise AssertionError("Expected %d rows, got %d" % (len(self.row_labels), rows))
         width, height = self.font_pixels
         divisor = sum(self.weights)
         from Qt.QtGui import QColor, QBrush
@@ -123,8 +134,9 @@ class GridCanvas:
                     cell_text = self.main_scene.addSimpleText(text_val, self.font)
                     cell_text.moveBy(x, y)
                     cell_text.setBrush(QBrush(QColor(*[int(255 * channel + 0.5) for channel in text_rgb])))
-            label_text = self.label_scene.addSimpleText(labels[i], self.font)
-            label_text.moveBy(0, y)
+            label_text = self.main_label_scene.addSimpleText(self.row_labels[i], self.font)
+            label_width = self.font_metrics.horizontalAdvance(self.row_labels[i] + ' ')
+            label_text.moveBy((self.max_label_width - label_width) / 2, y)
             y += height
         self._update_scene_rects()
         #TODO: everything else
@@ -183,7 +195,7 @@ class GridCanvas:
                             [hdr for hdr in self.alignment.headers if hdr.shown], self.sv.settings,
                             self.font_metrics, self.emphasis_font_metrics, SeqBlock.label_pad):
                         self.lead_block.replace_label(hdr)
-                        self.label_scene.update()
+                        self.main_label_scene.update()
                     else:
                         self._reformat()
 
@@ -203,11 +215,17 @@ class GridCanvas:
         self._update_scene_rects()
 
     def _update_scene_rects(self):
+        #NOTE: scrolling doesn't work right for sequence viewer either if not wrapped, docked,
+        # and labels don't need horizontal scrollbar
+        mbr = self.main_scene.itemsBoundingRect()
         self.main_scene.setSceneRect(self.main_scene.itemsBoundingRect())
-        # For scrolling to work right, ensure that vertical size of label_scene is the same as main_scene
+        # For scrolling to work right, ensure that vertical size of main_label_scene is the same as main_scene
         # and that the horizontal size of the header_scene is the same as the main_scene
-        lbr = self.label_scene.itemsBoundingRect()
+        lbr = self.main_label_scene.itemsBoundingRect()
         mr = self.main_scene.sceneRect()
-        hbr = self.header_scene.itemsBoundingRect()
-        self.label_scene.setSceneRect(lbr.x(), mr.y(), lbr.width(), mr.height() + hbr.height())
-        self.header_scene.setSceneRect(mr.x(), hbr.y(), mr.width(), hbr.height())
+        #hbr = self.header_scene.itemsBoundingRect()
+        #self.main_label_scene.setSceneRect(lbr.x(), mr.y(), lbr.width(), mr.height() + hbr.height())
+        self.main_label_scene.setSceneRect(lbr.x(), mr.y(), lbr.width(), mr.height())
+        #self.header_scene.setSceneRect(mr.x(), hbr.y(), mr.width(), hbr.height())
+        msr = self.main_scene.sceneRect()
+        lsr = self.main_label_scene.sceneRect()
