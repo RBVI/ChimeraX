@@ -76,12 +76,7 @@ class DICOMDatabases(ToolInstance):
         self.interface_stack.addWidget(self.database_entries_container)
 
         self.combo_box_model = self.available_dbs.model()
-        self.available_dbs.addItem("None")
-        if have_tcia:
-            self.available_dbs.addItem("TCIA")
-        else:
-            self.available_dbs.addItem("TCIA")
-            self.available_dbs.model().item(self.combo_box_model.rowCount() - 1).setEnabled(False)
+        self.available_dbs.addItem("TCIA")
         self.database_entries.launch()
         self.database_entries.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
         self.interface_stack.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
