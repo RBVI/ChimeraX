@@ -47,18 +47,14 @@ class DICOMDatabases(ToolInstance):
 
         self.available_dbs = QComboBox(self.database_entries_container)
         self.database_entries_control_widget = QWidget(self.database_entries_container)
-        self.search_button = QPushButton("Search")
         self.database_label = QLabel("Database:", self.database_entries_container)
         self.control_container = QWidget(self.database_entries_container)
         self.control_layout = QHBoxLayout(self.control_container)
 
         self.control_container.setLayout(self.control_layout)
 
-        self.search_button.clicked.connect(lambda: self._on_search_button_pressed())
-
         self.control_layout.addWidget(self.database_label)
         self.control_layout.addWidget(self.available_dbs)
-        self.control_layout.addWidget(self.search_button)
         self.control_layout.addStretch()
         self.dataset_highlighted_label = QLabel("For highlighted entries:")
         self.refine_dataset_button = QPushButton("Drill Down to Studies")
