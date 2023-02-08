@@ -9,6 +9,10 @@
 # including partial copies, of the software or any revisions
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
+from enum import Enum
+
+from bs4 import BeautifulSoup
+from Qt.QtCore import QThread, QObject, Signal, Slot, Qt
 from Qt.QtWidgets import (
     QVBoxLayout, QHBoxLayout, QHeaderView
     , QWidget, QLabel, QAbstractItemView
@@ -22,6 +26,10 @@ from chimerax.core.commands import run
 
 from ..dicom_fetch import *
 from .widgets import DICOMTable
+
+class Action(Enum):
+    LOAD_COLLECTIONS = 1
+
 
 class DICOMDatabases(ToolInstance):
 
@@ -47,12 +55,14 @@ class DICOMDatabases(ToolInstance):
 
         self.available_dbs = QComboBox(self.database_entries_container)
         self.database_entries_control_widget = QWidget(self.database_entries_container)
+        # TODO: Remove when there's more than one DB, add 'Choose a Database' item to spinbox
         self.database_label = QLabel("Database:", self.database_entries_container)
         self.control_container = QWidget(self.database_entries_container)
         self.control_layout = QHBoxLayout(self.control_container)
 
         self.control_container.setLayout(self.control_layout)
 
+        # TODO: Remove when there's more than one DB, add 'Choose a Database' item to spinbox
         self.control_layout.addWidget(self.database_label)
         self.control_layout.addWidget(self.available_dbs)
         self.control_layout.addStretch()
@@ -82,6 +92,8 @@ class DICOMDatabases(ToolInstance):
         self.interface_stack.addWidget(self.database_entries_container)
 
         self.combo_box_model = self.available_dbs.model()
+        # TODO: Enable when there's more than one database
+        # self.available_dbs.addItem("Choose a Database")
         self.available_dbs.addItem("TCIA")
         self.database_entries.launch()
         self.database_entries.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
@@ -162,14 +174,23 @@ class DICOMDatabases(ToolInstance):
         self.parent.setLayout(self.main_layout)
         self.tool_window.manage('side')
 
-    def _on_search_button_pressed(self):
-        if self.available_dbs.currentText() == "TCIA":
-            # As with blastprotein, dicts cannot be used as table
-            # entries because they are unhashable.
-            # self._build_database_entries('tcia')?
-            self.database_entries.data = [
-                MainTableEntry(x['criteria'], x['count']) for x in fetch_nbia_collections_with_patients()
-            ]
+        # TODO: When there's more than one database available remove this call
+        self._on_database_changed()
+
+    def _on_database_changed(self):
+        self.thread = QThread()
+        self.worker = DatabaseWorker(self.session, self.available_dbs.currentText(), Action.LOAD_COLLECTIONS)
+        self.worker.moveToThread(self.thread)
+        self.worker.collections_ready.connect(self._on_collection_entries_returned_from_worker)
+        self.thread.started.connect(self.worker.run)
+        self.worker.finished.connect(self.thread.quit)
+        self.worker.finished.connect(self.thread.deleteLater)
+        self.thread.finished.connect(self.worker.deleteLater)
+        self.thread.start()
+
+    def _on_collection_entries_returned_from_worker(self, entries):
+        self.database_entries.data = [MainTableEntry(x['criteria'], x['count']) for x in entries]
+
 
     def _on_main_table_double_clicked(self, items):
         # There'll only ever be one item from a double click
@@ -198,7 +219,6 @@ class DICOMDatabases(ToolInstance):
         self.interface_stack.setCurrentIndex(1)
 
     def _on_study_table_double_clicked(self, items):
-        # There'll only ever be one item from a double click
         entries = []
         for item in items:
             entries.extend([
@@ -265,3 +285,26 @@ class MainTableEntry:
     def __init__(self, collection, count):
         self.collection = collection
         self.count = count
+
+class DatabaseWorker(QObject):
+    collections_ready = Signal(list)
+    finished = Signal()
+
+    def __init__(self, session, database: str, action: Action):
+        super().__init__()
+        self.session = session
+        self.database = database
+        self.action = action
+
+    @Slot()
+    def run(self):
+        if self.action == Action.LOAD_COLLECTIONS:
+            self._fetch_collections()
+        self.finished.emit()
+
+    def _fetch_collections(self):
+        entries = None
+        self.session.ui.thread_safe(self.session.logger.status, f"Loading collections from {self.database}")
+        if self.database == "TCIA":
+            entries = fetch_nbia_collections_with_patients()
+        self.collections_ready.emit(entries)
