@@ -68,6 +68,12 @@ class DICOMDatabases(ToolInstance):
         self.database_entries_layout.setContentsMargins(0, 0, 0, 0)
         self.control_layout.setContentsMargins(0, 0, 0, 0)
         self.main_layout.setContentsMargins(4,4,4,4)
+        self.main_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        self.database_entries_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        self.control_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        self.database_entries_layout.setSpacing(0)
+        self.control_layout.setSpacing(0)
+        self.main_layout.setSpacing(0)
 
 
         self.database_entries.add_column("Dataset", lambda x: x.collection)
