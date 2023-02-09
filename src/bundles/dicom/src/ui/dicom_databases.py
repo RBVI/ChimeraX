@@ -9,6 +9,10 @@
 # including partial copies, of the software or any revisions
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
+from enum import Enum
+
+from bs4 import BeautifulSoup
+from Qt.QtCore import QThread, QObject, Signal, Slot, Qt
 from Qt.QtWidgets import (
     QVBoxLayout, QHBoxLayout, QHeaderView
     , QWidget, QLabel, QAbstractItemView
@@ -23,11 +27,15 @@ from chimerax.core.commands import run
 from ..dicom_fetch import *
 from .widgets import DICOMTable
 
+class Action(Enum):
+    LOAD_COLLECTIONS = 1
+
+
 class DICOMDatabases(ToolInstance):
 
     help = "help:user/tools/dicomdatabases.html"
 
-    def __init__(self, session = None, name = "DICOM Databases"):
+    def __init__(self, session = None, name = "Download DICOM"):
         """Bring up a tool to explore DICOM models open in the session."""
         super().__init__(session, name)
 
@@ -47,21 +55,19 @@ class DICOMDatabases(ToolInstance):
 
         self.available_dbs = QComboBox(self.database_entries_container)
         self.database_entries_control_widget = QWidget(self.database_entries_container)
-        self.search_button = QPushButton("Search")
+        # TODO: Remove when there's more than one DB, add 'Choose a Database' item to spinbox
         self.database_label = QLabel("Database:", self.database_entries_container)
         self.control_container = QWidget(self.database_entries_container)
         self.control_layout = QHBoxLayout(self.control_container)
 
         self.control_container.setLayout(self.control_layout)
 
-        self.search_button.clicked.connect(lambda: self._on_search_button_pressed())
-
+        # TODO: Remove when there's more than one DB, add 'Choose a Database' item to spinbox
         self.control_layout.addWidget(self.database_label)
         self.control_layout.addWidget(self.available_dbs)
-        self.control_layout.addWidget(self.search_button)
         self.control_layout.addStretch()
         self.dataset_highlighted_label = QLabel("For highlighted entries:")
-        self.refine_dataset_button = QPushButton("Drill down to Studies")
+        self.refine_dataset_button = QPushButton("Drill Down to Studies")
         self.control_layout.addWidget(self.dataset_highlighted_label)
         self.control_layout.addWidget(self.refine_dataset_button)
         self.database_entries_control_widget.setVisible(False)
@@ -72,20 +78,23 @@ class DICOMDatabases(ToolInstance):
         self.database_entries_layout.setContentsMargins(0, 0, 0, 0)
         self.control_layout.setContentsMargins(0, 0, 0, 0)
         self.main_layout.setContentsMargins(4,4,4,4)
+        self.main_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        self.database_entries_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        self.control_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        self.database_entries_layout.setSpacing(0)
+        self.control_layout.setSpacing(0)
+        self.main_layout.setSpacing(0)
 
 
         self.database_entries.add_column("Dataset", lambda x: x.collection)
-        self.database_entries.add_column("Number of Series", lambda x: x.count)
+        self.database_entries.add_column("Number of Patients", lambda x: x.count)
 
         self.interface_stack.addWidget(self.database_entries_container)
 
         self.combo_box_model = self.available_dbs.model()
-        self.available_dbs.addItem("None")
-        if have_tcia:
-            self.available_dbs.addItem("TCIA")
-        else:
-            self.available_dbs.addItem("TCIA")
-            self.available_dbs.model().item(self.combo_box_model.rowCount() - 1).setEnabled(False)
+        # TODO: Enable when there's more than one database
+        # self.available_dbs.addItem("Choose a Database")
+        self.available_dbs.addItem("TCIA")
         self.database_entries.launch()
         self.database_entries.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
         self.interface_stack.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
@@ -93,9 +102,9 @@ class DICOMDatabases(ToolInstance):
 
         self.study_entries_container = QWidget(self.interface_stack)
         self.study_entries_layout = QVBoxLayout(self.study_entries_container)
-        self.back_to_search_button = QPushButton("Back to Databases")
+        self.back_to_search_button = QPushButton("Back to Collections")
         self.study_highlighted_label = QLabel("For highlighted entries:")
-        self.refine_study_button = QPushButton("Drill down to Series")
+        self.refine_study_button = QPushButton("Drill Down to Series")
 
         self.study_entries_control_widget = QWidget(self.study_entries_container)
         self.study_entries_control_widget.setVisible(False)
@@ -123,7 +132,7 @@ class DICOMDatabases(ToolInstance):
         self.series_entries_container = QWidget(self.interface_stack)
         self.series_entries_layout = QVBoxLayout(self.series_entries_container)
         self.back_to_studies_button = QPushButton("Back to Studies")
-        self.back_to_beginning_button = QPushButton("Back to Databases")
+        self.back_to_beginning_button = QPushButton("Back to Collections")
         self.series_highlighted_label = QLabel("For highlighted entries:")
         self.open_button = QPushButton("Download and Open")
 
@@ -165,14 +174,23 @@ class DICOMDatabases(ToolInstance):
         self.parent.setLayout(self.main_layout)
         self.tool_window.manage('side')
 
-    def _on_search_button_pressed(self):
-        if self.available_dbs.currentText() == "TCIA":
-            # As with blastprotein, dicts cannot be used as table
-            # entries because they are unhashable.
-            # self._build_database_entries('tcia')?
-            self.database_entries.data = [
-                MainTableEntry(x['criteria'], x['count']) for x in fetch_nbia_collections_with_patients()
-            ]
+        # TODO: When there's more than one database available remove this call
+        self._on_database_changed()
+
+    def _on_database_changed(self):
+        self.thread = QThread()
+        self.worker = DatabaseWorker(self.session, self.available_dbs.currentText(), Action.LOAD_COLLECTIONS)
+        self.worker.moveToThread(self.thread)
+        self.worker.collections_ready.connect(self._on_collection_entries_returned_from_worker)
+        self.thread.started.connect(self.worker.run)
+        self.worker.finished.connect(self.thread.quit)
+        self.worker.finished.connect(self.thread.deleteLater)
+        self.thread.finished.connect(self.worker.deleteLater)
+        self.thread.start()
+
+    def _on_collection_entries_returned_from_worker(self, entries):
+        self.database_entries.data = [MainTableEntry(x['criteria'], x['count']) for x in entries]
+
 
     def _on_main_table_double_clicked(self, items):
         # There'll only ever be one item from a double click
@@ -201,7 +219,6 @@ class DICOMDatabases(ToolInstance):
         self.interface_stack.setCurrentIndex(1)
 
     def _on_study_table_double_clicked(self, items):
-        # There'll only ever be one item from a double click
         entries = []
         for item in items:
             entries.extend([
@@ -268,3 +285,26 @@ class MainTableEntry:
     def __init__(self, collection, count):
         self.collection = collection
         self.count = count
+
+class DatabaseWorker(QObject):
+    collections_ready = Signal(list)
+    finished = Signal()
+
+    def __init__(self, session, database: str, action: Action):
+        super().__init__()
+        self.session = session
+        self.database = database
+        self.action = action
+
+    @Slot()
+    def run(self):
+        if self.action == Action.LOAD_COLLECTIONS:
+            self._fetch_collections()
+        self.finished.emit()
+
+    def _fetch_collections(self):
+        entries = None
+        self.session.ui.thread_safe(self.session.logger.status, f"Loading collections from {self.database}")
+        if self.database == "TCIA":
+            entries = fetch_nbia_collections_with_patients()
+        self.collections_ready.emit(entries)

@@ -138,7 +138,12 @@ def view_box(session, model):
     """Return the mid-point of the view line of sight intersected with the model bounding box"""
     bbox = model.bounds()
     if bbox is None:
-        raise ViewBoxError("%s is not displayed" % model)
+        if not model.display:
+            model.display = True
+            bbox = model.bounds()
+            model.display = False
+        if bbox is None:
+            raise ViewBoxError("%s is not displayed" % model)
     min_xyz, max_xyz = bbox.xyz_min, bbox.xyz_max
     #from chimerax.geometry import Plane, ray_segment
     from chimerax.geometry import Plane, PlaneNoIntersectionError
@@ -186,7 +191,7 @@ def _process_results(session, fit_model, sharpened_map, orig_model, half_maps, s
     from chimerax.std_commands.align import align
     xf = align(session, orig_model.atoms, fit_model.atoms, log_info=False)[-1]
     fit_model.delete()
-    sharpened_map.name = "sharpened map"
+    sharpened_map.name = "sharpened local map"
     session.models.add([sharpened_map])
     session.logger.status("Fitting job finished")
     #session.logger.info("Fitted model opened as %s" % fit_model)

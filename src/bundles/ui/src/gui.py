@@ -2694,6 +2694,8 @@ class SelZoneDialog(QDialog):
             QCheckBox, QDoubleSpinBox, QPushButton, QMenu, QWidget, QTabWidget
         from Qt.QtCore import Qt
         layout = QVBoxLayout()
+        layout.setSpacing(1)
+        layout.setContentsMargins(5,3,5,3)
         target_area = QWidget()
         target_layout = QHBoxLayout()
         target_layout.setContentsMargins(0,0,0,0)
@@ -2710,6 +2712,7 @@ class SelZoneDialog(QDialog):
         target_layout.addWidget(QLabel(":"))
         layout.addWidget(target_area, alignment=Qt.AlignLeft)
         less_layout = QHBoxLayout()
+        less_layout.setSpacing(5)
         self.less_checkbox = QCheckBox("<")
         self.less_checkbox.setChecked(True)
         self.less_checkbox.stateChanged.connect(self._update_button_states)
@@ -2723,6 +2726,7 @@ class SelZoneDialog(QDialog):
         less_layout.addWidget(QLabel("from the currently selected atoms"))
         layout.addLayout(less_layout)
         more_layout = QHBoxLayout()
+        more_layout.setSpacing(5)
         self.more_checkbox = QCheckBox(">")
         self.more_checkbox.stateChanged.connect(self._update_button_states)
         more_layout.addWidget(self.more_checkbox, alignment=Qt.AlignRight)
@@ -2734,6 +2738,10 @@ class SelZoneDialog(QDialog):
         more_layout.addWidget(self.more_spinbox)
         more_layout.addWidget(QLabel("from the currently selected atoms"))
         layout.addLayout(more_layout)
+        self.exclude_checkbox = QCheckBox("Also deselect current selection")
+        self.exclude_checkbox.setChecked(False)
+        layout.addWidget(self.exclude_checkbox, alignment=Qt.AlignCenter)
+        layout.addSpacing(3)
 
         self.bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
         self.bbox.accepted.connect(self.zone)
@@ -2756,6 +2764,12 @@ class SelZoneDialog(QDialog):
                 cmd += ' & '
         if self.more_checkbox.isChecked():
             cmd += "sel %s> %g" % (char, self.more_spinbox.value())
+        if self.exclude_checkbox.isChecked():
+            if cmd:
+                cmd += ' & '
+            else:
+                cmd = 'sel '
+            cmd += "~sel"
         self.session.ui.main_window.select_by_mode(cmd)
 
     def _update_button_states(self, *args):

@@ -198,7 +198,7 @@ struct ExtractMolecule: public readcif::CIFFile
     virtual void reset_parse();
     virtual void finished_parse();
     void connect_polymer_pair(Residue* r0, Residue* r1, bool gap, bool nstd_okay, int model_num);
-    void connect_residue_by_template(Residue* r, const tmpl::Residue* tr, int model_num);
+    void connect_residue_by_template(Residue* r, const tmpl::Residue* tr, int model_num, bool *has_metal);
     const tmpl::Residue* find_template_residue(const ResName& name, bool start = false, bool stop = false);
     void parse_audit_conform();
     void parse_audit_syntax();
@@ -620,56 +620,53 @@ ExtractMolecule::connect_polymer_pair(Residue* r0, Residue* r1, bool gap, bool n
 //    Connect bonds in residue according to the given template.  Takes into
 //    account alternate atom locations.
 void
-ExtractMolecule::connect_residue_by_template(Residue* r, const tmpl::Residue* tr, int model_num)
+ExtractMolecule::connect_residue_by_template(Residue* r, const tmpl::Residue* tr, int model_num, bool *has_metal)
 {
     auto& atoms = r->atoms();
     if (atoms.size() <= 1)
         return;
 
-    // Confirm all atoms in residue are in template, if not connect by distance
+    // Confirm all atoms in residue are in template.  If not, connect by distance.
     for (auto&& a: atoms) {
         tmpl::Atom *ta = tr->find_atom(a->name());
-        if (!ta) {
-            if (tr->atoms_map().size() == 0) {
-                if (model_num == first_model_num
-                && empty_residue_templates.find(r->name()) == empty_residue_templates.end()) {
-                    empty_residue_templates.insert(r->name());
-                    logger::warning(_logger, "Empty ", r->name(),
-                                    " residue template");
-                }
-                // Fill in missing connectivity
-                pdb_connect::connect_residue_by_distance(r);
-                return;
+        if (ta)
+            continue;
+
+        bool connected = false;
+        auto bonds = a->bonds();
+        for (auto&& b: bonds) {
+            if (b->other_atom(a)->residue() == r) {
+                connected = true;
             }
-            bool connected = false;
-            auto bonds = a->bonds();
-            for (auto&& b: bonds) {
-                if (b->other_atom(a)->residue() == r) {
-                    connected = true;
-                }
-            }
-            // TODO: worth checking if there is a metal coordination bond?
-            if (!connected) {
-                if (model_num == first_model_num) {
-                    bool show_message = true;
-                    if (a->element().number() == Element::H) {
-                        const int threshold = 10;
-                        hydrogens_missing_in_template += 1;
-                        show_message = threshold > hydrogens_missing_in_template;
-                        if (threshold == hydrogens_missing_in_template) {
-                            logger::warning(_logger, "Too many hydrogens missing from "
-                                            " residue template(s) to warn about ");
-                        }
-                    }
-                    if (show_message)
-                        logger::warning(_logger, "Atom ", a->name(),
-                                        " is not in the residue template for ", r->str());
-                }
-                pdb_connect::connect_residue_by_distance(r);
-                return;
-            }
-            // atom is connected, so assume template is still appropriate
         }
+        if (connected)
+            continue;
+
+        if (model_num == first_model_num) {
+            bool show_message = true;
+            if (a->element().number() == Element::H) {
+                const int threshold = 10;
+                hydrogens_missing_in_template += 1;
+                show_message = threshold > hydrogens_missing_in_template;
+                if (threshold == hydrogens_missing_in_template) {
+                    logger::warning(_logger, "Too many hydrogens missing from "
+                                    " residue template(s) to warn about ");
+                }
+            }
+            if (show_message)
+                logger::warning(_logger, "Atom ", a->name(),
+                                " is not in the residue template for ", r->str());
+        }
+        if (!*has_metal) {
+            for (auto&& atom: r->atoms()) {
+                if (atom->element().is_metal()) {
+                    *has_metal = true;
+                    break;
+                }
+            }
+        }
+        pdb_connect::connect_residue_by_distance(r);
+        return;
     }
 
     // foreach atom in residue
@@ -872,16 +869,28 @@ ExtractMolecule::finished_parse()
             bool start = start_residues.find(r) != start_residues.end();
             bool stop = stop_residues.find(r) != stop_residues.end();
             auto tr = find_template_residue(r->name(), start, stop);
-            if (tr == nullptr) {
+            if (tr == nullptr || tr->atoms_map().size() == 0) {
                 if (model_num == first_model_num) {
-                    // Warning already given about missing template
-                    // logger::warning(_logger, "Missing or invalid residue template for ", r->str());
-                    has_metal = true;   // it's okay to do extra work
+                    if (tr->atoms_map().size() == 0) {
+                        if (empty_residue_templates.find(r->name()) == empty_residue_templates.end()) {
+                            empty_residue_templates.insert(r->name());
+                            logger::warning(_logger, "Empty ", r->name(),
+                                            " residue template");
+                        }
+                    }
+                    if (!has_metal) {
+                        for (auto&& atom: r->atoms()) {
+                            if (atom->element().is_metal()) {
+                                has_metal = true;
+                                break;
+                            }
+                        }
+                    }
                 }
                 pdb_connect::connect_residue_by_distance(r);
             } else {
                 has_metal = has_metal || tr->has_metal();
-                connect_residue_by_template(r, tr, model_num);
+                connect_residue_by_template(r, tr, model_num, &has_metal);
             }
         }
 
