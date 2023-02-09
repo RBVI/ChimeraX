@@ -13,10 +13,13 @@
 
 from chimerax.atomic import Element
 
-class ParamError(ValueError):
+class BindError(ValueError):
     pass
 
-class BindError(ValueError):
+class InvertChiralityError(ValueError):
+    pass
+
+class ParamError(ValueError):
     pass
 
 def modify_atom(atom, element, num_bonds, *, geometry=None, name=None, connect_back=True,
@@ -505,3 +508,7 @@ def bind(a1, a2, length, dihed_info, *, renumber=None, log_chain_remapping=False
     b = add_bond(b1, new_b2)
     s1.session.models.close([s2])
     return b
+
+def invert_chirality(center, *, swapees=None):
+    #TODO
+    pass

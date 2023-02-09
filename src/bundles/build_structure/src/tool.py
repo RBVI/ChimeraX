@@ -45,7 +45,7 @@ class BuildStructureTool(ToolInstance):
 
         self.handlers = []
         self.category_widgets = {}
-        for category in ["Start Structure", "Modify Structure", "Adjust Bonds", "Join Models"]:
+        for category in ["Start Structure", "Modify Structure", "Adjust Bonds", "Join Models", "Invert"]:
             self.category_widgets[category] = widget = QFrame()
             widget.setLineWidth(2)
             widget.setFrameStyle(QFrame.Panel | QFrame.Sunken)
@@ -121,6 +121,13 @@ class BuildStructureTool(ToolInstance):
                 % (length, omega, phi, side))
         except BindError as e:
             raise UserError(e)
+
+    def _invert_swap_cb(self):
+        from chimerax.atomic import selected_atoms
+        sel_atoms = selected_atoms(self.session)
+        if len(sel_atoms) not in [1,2]:
+            raise UserError("You must select 1 or 2 atoms; you selected %d" % len(sel_atoms))
+        run(self.session, "build invert sel")
 
     def _layout_adjust_bonds(self, parent):
         layout = QVBoxLayout()
@@ -217,6 +224,20 @@ class BuildStructureTool(ToolInstance):
         from chimerax.core.selection import SELECTION_CHANGED
         self.handlers.append(self.session.triggers.add_handler(SELECTION_CHANGED, self._ab_sel_changed))
         self._ab_sel_changed()
+
+    def _layout_invert(self, parent):
+        layout = QVBoxLayout()
+        parent.setLayout(layout)
+
+        instructions = QLabel("Select one atom to swap the two smallest subsituents bonded to that atom,"
+            " or select two atoms bonded to the same atom to swap those specific substituents",
+            alignment=Qt.AlignCenter)
+        instructions.setWordWrap(True)
+        layout.addWidget(instructions)
+
+        swap_button = QPushButton("Swap")
+        swap_button.clicked.connect(lambda checked: self._invert_swap_cb())
+        layout.addWidget(swap_button, alignment=Qt.AlignHCenter|Qt.AlignTop, stretch=1)
 
     def _layout_join_models(self, parent):
         layout = QVBoxLayout()
