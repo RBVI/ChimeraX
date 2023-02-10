@@ -510,5 +510,54 @@ def bind(a1, a2, length, dihed_info, *, renumber=None, log_chain_remapping=False
     return b
 
 def invert_chirality(center, *, swapees=None):
-    #TODO
-    pass
+    from chimerax.atomic import Atom, Atoms, Element
+    if swapees is None:
+        # swap smallest two non-ring substituents
+        candidates = []
+        for nb, b in zip(center.neighbors, center.bonds):
+            if b.rings():
+                continue
+            try:
+                size = len(b.side_atoms(nb))
+            except ValueError:
+                continue
+            candidates.append((size, nb.element.number, nb))
+        # implicit hydrogens...
+        from chimerax.atomic.idatm import type_info
+        if center.idatm_type in type_info:
+            from chimerax.atomic.bond_geom import bond_positions
+            h_positions = bond_positions(center.coord, type_info[center.idatm_type].geometry, 1.0,
+                [nb.coord for nb in center.neighbors])
+            candidates.extend([(1, 1, hp) for hp in h_positions])
+        if len(candidates) < 2:
+            raise InvertChiralityError("%s doesn't have at least two non-ring substituents"
+                " to swap!" % center)
+        # avoid comparing the third element of the tuple...
+        candidates.sort(key=lambda x: (Element.NUM_SUPPORTED_ELEMENTS+1)*x[0] + x[1])
+        swapees = [c[-1] for c in candidates[:2]]
+    else:
+        for swapee in swapees:
+            if not isinstance(swapee, Atom):
+                continue
+            for nb, b in zip(swapee.neighbors, swapee.bonds):
+                if nb == center:
+                    break
+            else:
+                raise InvertChiralityError("Atom to invert (%s) is not bonded to center (%s)"
+                    % (swapee, center))
+            if b.rings(cross_residue=True):
+                raise InvertChiralityError("Cannot invert chirality because %s and %s are in the same"
+                    " ring/cycle" % (center, swapee))
+
+    p1, p2, p3, = center.coord, *[s.coord if isinstance(s, Atom) else s for s in swapees]
+    from chimerax import geometry
+    angle = geometry.angle(p2, p1, p3)
+    cv = geometry.cross_product(p2-p1, p3-p1)
+    rot1 = geometry.rotation(cv, angle)
+    rot2 = geometry.rotation(cv, -angle)
+    trans1 = geometry.translation(-p1)
+    trans2 = geometry.translation(p1)
+    atom_sets = [a.side_atoms(center) if isinstance(a, Atom) else Atoms(None) for a in swapees]
+    for atoms, rot in zip(atom_sets, (rot1, rot2)):
+        if atoms:
+            atoms.coords = trans2 * (rot * (trans1 * atoms.coords))
