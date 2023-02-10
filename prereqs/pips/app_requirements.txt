@@ -55,7 +55,7 @@ six==1.16.0
 sortedcontainers==2.4.0
 tables==3.7.0 ; platform_machine != 'arm64'
 tifffile==2022.10.10
-tinyarray==1.2.4
+# tinyarray==1.2.4 # 3.11 requires getting this from Plato
 tomli==2.0.1
 webcolors==1.12
 wheel-filename==1.4.1
