@@ -12,7 +12,7 @@ build==0.10.0
 colorama==0.4.6
 Cython==0.29.33
 filelock==3.9.0
-grako==3.16.5
+# grako==3.16.5 # See the Makefile; need patched Grako for 3.11
 html2text==2020.1.16
 ihm==0.35
 imagecodecs==2022.9.26 ; platform_machine != 'arm64'
@@ -53,7 +53,7 @@ requests==2.28.2
 scipy==1.9.3
 six==1.16.0
 sortedcontainers==2.4.0
-tables==3.7.0 ; platform_machine != 'arm64'
+tables==3.8.0 ; platform_machine != 'arm64'
 tifffile==2022.10.10
 # tinyarray==1.2.4 # 3.11 requires getting this from Plato
 tomli==2.0.1
