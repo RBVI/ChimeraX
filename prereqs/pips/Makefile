@@ -37,8 +37,8 @@ ifeq ($(OS),Darwin)
 TINYARRAY_WHEEL = tinyarray-1.2.4-cp311-cp311-macosx_10_9_universal2.whl
 PYOPENGL_ACCELERATE_WHEEL = PyOpenGL_accelerate-3.1.6-cp311-cp311-macosx_10_9_universal2.whl
 ifeq ($(OSARCH),DarwinArm64)
-IMAGECODECS_WHEEL = $(PREREQS_ARCHIVE)/imagecodecs/imagecodecs-2022.2.22-cp39-cp39-macosx_12_0_arm64.whl
-PYTABLES_WHEEL = $(PREREQS_ARCHIVE)/pytables/tables-3.7.0-cp39-cp39-macosx_12_0_arm64.whl
+IMAGECODECS_WHEEL = $(PREREQS_ARCHIVE)/imagecodecs/imagecodecs-2023.1.23-cp311-cp311-macosx_12_0_arm64.whl
+PYTABLES_WHEEL = $(PREREQS_ARCHIVE)/pytables/tables-3.8.0-cp311-cp311-macosx_11_0_arm64.whl
 else
 ifeq ($(OSARCH),DarwinIntel64)
 endif
@@ -99,23 +99,11 @@ endif
 	for prereq in $(PLATO_PREREQS); do \
 		$(FETCH_PREREQ) $$prereq; \
 	done
-ifeq ($(OSARCH),DarwinArm64)
-	# Install the Conda versions of Python wheels for arm64 Mac
-	for l in $(PYTABLES_DYLIBS); do \
-		$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/pytables/$$l.arm64 ; \
-	done
-	for l in $(PYTABLES_DYLIBS); do \
-		mv $$l.arm64 $$l ; \
-		chmod +x $$l ; \
-	done
-ifdef USE_MAC_FRAMEWORKS
-	$(RSYNC) *.dylib $(APP_PYTHON_FRAMEWORK_LIBDIR)
-else
-	$(RSYNC) *.dylib $(app_shlibdir)
-endif
-endif
 	$(APP_PIP_INSTALL) -r app_pyopengl_requirements.txt
 	$(APP_PIP_INSTALL) $(PLATO_WHEELS)
+ifneq ($(OSARCH),DarwinArm64)
+	$(APP_PIP_INSTALL) --no-build-isolation -r tables.txt
+endif
 	-for p in $(PATCHES); do \
 		patch --ignore-whitespace -d $(APP_PYSITEDIR) -N -p0 < $$p ; \
 	done
