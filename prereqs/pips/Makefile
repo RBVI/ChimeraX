@@ -101,9 +101,6 @@ endif
 	done
 	$(APP_PIP_INSTALL) -r app_pyopengl_requirements.txt
 	$(APP_PIP_INSTALL) $(PLATO_WHEELS)
-ifeq ($(OSARCH),DarwinArm64)
-	$(APP_PIP_INSTALL) --no-build-isolation -r tables.txt
-endif
 	-for p in $(PATCHES); do \
 		patch --ignore-whitespace -d $(APP_PYSITEDIR) -N -p0 < $$p ; \
 	done
