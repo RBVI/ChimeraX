@@ -351,5 +351,5 @@ def _convert_to_timestamp(date):
     from email.utils import parsedate_to_datetime
     try:
         return parsedate_to_datetime(date).timestamp()
-    except TypeError:
+    except (TypeError, ValueError):
         return None
