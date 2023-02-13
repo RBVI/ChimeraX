@@ -15,7 +15,7 @@ filelock==3.9.0
 # grako==3.16.5 # See the Makefile; need patched Grako for 3.11
 html2text==2020.1.16
 ihm==0.35
-imagecodecs==2022.9.26 ; platform_machine != 'arm64'
+imagecodecs==2023.1.23 ; platform_machine != 'arm64'
 ipykernel==6.21.1
 # if ipython updated, make sure autocompletion still works (e.g. "mi<tab>" becomes min) and if not then
 # try a newer version of jedi
