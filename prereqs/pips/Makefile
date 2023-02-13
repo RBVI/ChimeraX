@@ -30,8 +30,7 @@ PYOPENGL_ACCELERATE_WHEEL = PyOpenGL_accelerate-3.1.6-cp311-cp311-win_amd64.whl
 else
 ifeq ($(OS),Linux)
 TINYARRAY_WHEEL = tinyarray-1.2.4-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
-PYOPENGL_ACCELERATE_WHEEL =
-# PYOPENGL_ACCELERATE_WHEEL = PyOpenGL_accelerate-3.1.6-cp311-cp311-win_amd64.whl??
+PYOPENGL_ACCELERATE_WHEEL = PyOpenGL_accelerate-3.1.6-cp311-cp311-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_28_x86_64.whl
 else
 ifeq ($(OS),Darwin)
 TINYARRAY_WHEEL = tinyarray-1.2.4-cp311-cp311-macosx_10_9_universal2.whl
