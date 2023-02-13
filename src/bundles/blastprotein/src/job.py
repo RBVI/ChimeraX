@@ -46,6 +46,12 @@ class BlastProteinJob(CxServicesJob):
         }
 
         try:
+            model_no = int(atomspec.split('/')[0].split('#')[1])
+            self.model_name = session.models._models[(model_no,)]._name
+        except (ValueError, KeyError, AttributeError):
+            self.model_name = None
+
+        try:
             self.start(self.service_name, self.params)
         except MaxRetryError:
             session.logger.warning(self.inet_error)
