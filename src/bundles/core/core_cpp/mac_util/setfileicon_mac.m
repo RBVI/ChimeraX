@@ -17,8 +17,11 @@
 #import <Foundation/Foundation.h>
 #import <AppKit/AppKit.h>
 
+#define PY_SSIZE_T_CLEAN
+#include <Python.h>
+
 extern "C"
-int set_mac_file_icon(const char *file_path_utf8, const char *image_data, int image_bytes)
+int set_mac_file_icon(const char *file_path_utf8, const char *image_data, Py_ssize_t image_bytes)
 {
   //  NSAutoreleasePool * pool = [[NSAutoreleasePool alloc] init];
   NSString *path = [[NSString alloc] initWithUTF8String:file_path_utf8];

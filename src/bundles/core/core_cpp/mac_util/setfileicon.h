@@ -15,7 +15,7 @@
 //
 #ifndef SETFILEICON_HEADER_INCLUDED
 #define SETFILEICON_HEADER_INCLUDED
-
+#define PY_SSIZE_T_CLEAN
 #include <Python.h>			// use PyObject
 
 extern "C"
