@@ -18,7 +18,7 @@ PLATFORM = linux
 # The Linux distribution comes from Tristan Croll
 # compiled Oct 31, 2022 with the same compiler as ChimeraX.
 # Using CUDA 11.2
-DISTRIBUTION = openmm-8.0.0-linux-py39_cuda112.tar.bz2
+DISTRIBUTION = openmm-8.0.0-linux-py311_cuda112.tar.bz2
 endif
 ifeq ($(OS),Windows)
 PLATFORM = windows
