@@ -45,10 +45,18 @@ class Option(metaclass=ABCMeta):
             # reference to settings for now; if that proves problematic then revisit.
             self.settings = settings
             from weakref import proxy
-            self.settings_handler = self.settings.triggers.add_handler('setting changed',
-                lambda trig_name, data, *, pself=proxy(self):
-                data[0] == pself.attr_name and (setattr(pself, "value", pself.get_attribute())
-                or (pself._callback and pself._callback(pself))))
+            def proxy_handler(trig_name, data, *, pself=proxy(self)):
+                # in case some bad code is holding onto the Python side of a dead tool,
+                # ignore AttributeErrors
+                try:
+                    if data[0] == pself.attr_name:
+                        setattr(pself, "value", pself.get_attribute())
+                        if pself._callback:
+                            pself._callback(pself)
+                except AttributeError:
+                    from chimerax.core.triggerset import DEREGISTER
+                    return DEREGISTER
+            self.settings_handler = self.settings.triggers.add_handler('setting changed', proxy_handler)
         self.auto_set_attr = auto_set_attr
 
         if default is None and attr_name and settings:
