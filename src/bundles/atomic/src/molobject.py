@@ -1863,7 +1863,13 @@ class StructureData:
         f = c_function('structure_pseudobond_group',
                        args = (ctypes.c_void_p, ctypes.c_char_p, ctypes.c_int),
                        ret = ctypes.py_object)
-        return f(self._c_pointer, name.encode('utf-8'), create_arg)
+        # if the group is being created, the C++ layer will call the Python constructor, which
+        # in turn will add the group to the open models.  Depending on what trigger handlers
+        # do, this could result in a loop of the C++ layer trying to create Python instances,
+        # so suppress the trigger until the C++ call returns.
+        from chimerax.core.models import ADD_MODELS
+        with self.session.triggers.block_trigger(ADD_MODELS):
+            return f(self._c_pointer, name.encode('utf-8'), create_arg)
 
     def _delete_pseudobond_group(self, pbg):
         f = c_function('structure_delete_pseudobond_group',

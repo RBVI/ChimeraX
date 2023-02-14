@@ -213,12 +213,12 @@ def _get_formatted_metadata(model, session, *, verbose=False):
     if database_2:
         for id, code in database_2.fields(['database_id', 'database_code']):
             if id == 'EMDB' and code.startswith('EMD-'):
-                entry_id = code[4:]
+                entry_id = escape(code[4:])
                 emdb_link = '<a href="https://www.ebi.ac.uk/emdb/EMD-%s">EMDB %s</a>' % (entry_id, entry_id)
                 emdb_load = '<a href="cxcmd:open %s from emdb">open map</a>' % entry_id
                 html += '  <tr>\n'
                 html += '   <th>CryoEM Map</th>\n'
-                html += '   <td>%s &mdash; %s</td>\n' % (escape(emdb_link), escape(emdb_load))
+                html += '   <td>%s &mdash; %s</td>\n' % (emdb_link, emdb_load)
                 html += '  </tr>\n'
 
     # experimental method; resolution

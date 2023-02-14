@@ -195,7 +195,10 @@ class BlastProteinResults(ToolInstance):
         except AttributeError: # There won't be a selected chain either
             chain = None
         if model_no:
-            model_formatted = ''.join([str(self.session.models._models[(model_no,)]), chain])
+            try:
+                model_formatted = ''.join([self.job.model_name, chain])
+            except KeyError:
+                model_formatted = None
         else:
             model_formatted = None
         values[0] = model_formatted

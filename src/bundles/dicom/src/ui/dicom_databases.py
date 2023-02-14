@@ -9,6 +9,10 @@
 # including partial copies, of the software or any revisions
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
+from enum import Enum
+
+from bs4 import BeautifulSoup
+from Qt.QtCore import QThread, QObject, Signal, Slot, Qt
 from Qt.QtWidgets import (
     QVBoxLayout, QHBoxLayout, QHeaderView
     , QWidget, QLabel, QAbstractItemView
@@ -22,6 +26,11 @@ from chimerax.core.commands import run
 
 from ..dicom_fetch import *
 from .widgets import DICOMTable
+
+class Action(Enum):
+    LOAD_COLLECTIONS = 1
+    LOAD_STUDIES = 2
+    LOAD_SERIES = 3
 
 class DICOMDatabases(ToolInstance):
 
@@ -47,18 +56,16 @@ class DICOMDatabases(ToolInstance):
 
         self.available_dbs = QComboBox(self.database_entries_container)
         self.database_entries_control_widget = QWidget(self.database_entries_container)
-        self.search_button = QPushButton("Search")
+        # TODO: Remove when there's more than one DB, add 'Choose a Database' item to spinbox
         self.database_label = QLabel("Database:", self.database_entries_container)
         self.control_container = QWidget(self.database_entries_container)
         self.control_layout = QHBoxLayout(self.control_container)
 
         self.control_container.setLayout(self.control_layout)
 
-        self.search_button.clicked.connect(lambda: self._on_search_button_pressed())
-
+        # TODO: Remove when there's more than one DB, add 'Choose a Database' item to spinbox
         self.control_layout.addWidget(self.database_label)
         self.control_layout.addWidget(self.available_dbs)
-        self.control_layout.addWidget(self.search_button)
         self.control_layout.addStretch()
         self.dataset_highlighted_label = QLabel("For highlighted entries:")
         self.refine_dataset_button = QPushButton("Drill Down to Studies")
@@ -72,6 +79,12 @@ class DICOMDatabases(ToolInstance):
         self.database_entries_layout.setContentsMargins(0, 0, 0, 0)
         self.control_layout.setContentsMargins(0, 0, 0, 0)
         self.main_layout.setContentsMargins(4,4,4,4)
+        self.main_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        self.database_entries_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        self.control_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        self.database_entries_layout.setSpacing(0)
+        self.control_layout.setSpacing(0)
+        self.main_layout.setSpacing(0)
 
 
         self.database_entries.add_column("Dataset", lambda x: x.collection)
@@ -80,12 +93,9 @@ class DICOMDatabases(ToolInstance):
         self.interface_stack.addWidget(self.database_entries_container)
 
         self.combo_box_model = self.available_dbs.model()
-        self.available_dbs.addItem("None")
-        if have_tcia:
-            self.available_dbs.addItem("TCIA")
-        else:
-            self.available_dbs.addItem("TCIA")
-            self.available_dbs.model().item(self.combo_box_model.rowCount() - 1).setEnabled(False)
+        # TODO: Enable when there's more than one database
+        # self.available_dbs.addItem("Choose a Database")
+        self.available_dbs.addItem("TCIA")
         self.database_entries.launch()
         self.database_entries.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
         self.interface_stack.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
@@ -165,33 +175,46 @@ class DICOMDatabases(ToolInstance):
         self.parent.setLayout(self.main_layout)
         self.tool_window.manage('side')
 
-    def _on_search_button_pressed(self):
-        if self.available_dbs.currentText() == "TCIA":
-            # As with blastprotein, dicts cannot be used as table
-            # entries because they are unhashable.
-            # self._build_database_entries('tcia')?
-            self.database_entries.data = [
-                MainTableEntry(x['criteria'], x['count']) for x in fetch_nbia_collections_with_patients()
-            ]
+        # TODO: When there's more than one database available remove this call
+        self._on_database_changed()
+
+    def _allocate_thread_and_worker(self, action: Action):
+        self.thread = QThread()
+        self.worker = DatabaseWorker(self.session, self.available_dbs.currentText(), action)
+        self.worker.moveToThread(self.thread)
+        self.thread.started.connect(self.worker.run)
+        self.worker.finished.connect(self.thread.quit)
+        self.worker.finished.connect(self.thread.deleteLater)
+        self.thread.finished.connect(self.worker.deleteLater)
+
+    def _on_database_changed(self):
+        self._allocate_thread_and_worker(Action.LOAD_COLLECTIONS)
+        self.worker.collections_ready.connect(self._on_collection_entries_returned_from_worker)
+        self.thread.start()
+
+    def _on_collection_entries_returned_from_worker(self, entries):
+        self.database_entries.data = [MainTableEntry(x['criteria'], x['count']) for x in entries]
 
     def _on_main_table_double_clicked(self, items):
-        # There'll only ever be one item from a double click
-        entries = []
-        for item in items:
-            entries.extend([
-                StudyTableEntry(
-                    x['StudyInstanceUID']
-                    , x['StudyDate']
-                    , x['StudyDescription']
-                    , x['PatientID']
-                    , x['PatientName']
-                    , x['PatientSex']
-                    , x['SeriesCount']
-                    , x['Collection']
-                )
-                for x in fetch_nbia_study(collection = item.collection)
-            ])
-        self.study_entries.data = entries
+        self._allocate_thread_and_worker(Action.LOAD_STUDIES)
+        self.worker.studies_ready.connect(self._on_studies_returned_from_worker)
+        self.worker.requested_studies = items
+        self.thread.start()
+
+    def _on_studies_returned_from_worker(self, entries):
+        self.study_entries.data = [
+            StudyTableEntry(
+                  x.get('StudyInstanceUID', None)
+                , x.get('StudyDate', None)
+                , x.get('StudyDescription', None)
+                , x.get('PatientID', None)
+                , x.get('PatientName', None)
+                , x.get('PatientSex', None)
+                , x.get('SeriesCount', None)
+                , x.get('Collection', None)
+            )
+            for x in entries
+        ]
         self.interface_stack.setCurrentIndex(1)
 
     def _on_back_to_search_button_clicked(self):
@@ -201,23 +224,25 @@ class DICOMDatabases(ToolInstance):
         self.interface_stack.setCurrentIndex(1)
 
     def _on_study_table_double_clicked(self, items):
-        # There'll only ever be one item from a double click
-        entries = []
-        for item in items:
-            entries.extend([
-                SeriesTableEntry(
-                    x.get('SeriesInstanceUID', None)
-                    , x.get('Modality', None)
-                    , x.get('ProtocolName', None)
-                    , x.get('SeriesDescription', None)
-                    , x.get('BodyPartExamined', None)
-                    , x.get('SeriesNumber', None)
-                    , x.get('PatientID', None)
-                    , x.get('ImageCount', None)
-                )
-                for x in fetch_nbia_series(studyUid = item.suid)
-            ])
-        self.series_entries.data = entries
+        self._allocate_thread_and_worker(Action.LOAD_SERIES)
+        self.worker.series_ready.connect(self._on_series_returned_from_worker)
+        self.worker.requested_series = items
+        self.thread.start()
+
+    def _on_series_returned_from_worker(self, entries):
+        self.series_entries.data = [
+            SeriesTableEntry(
+                x.get('SeriesInstanceUID', None)
+                , x.get('Modality', None)
+                , x.get('ProtocolName', None)
+                , x.get('SeriesDescription', None)
+                , x.get('BodyPartExamined', None)
+                , x.get('SeriesNumber', None)
+                , x.get('PatientID', None)
+                , x.get('ImageCount', None)
+            )
+            for x in entries
+        ]
         self.interface_stack.setCurrentIndex(2)
 
     def _on_drill_down_clicked(self):
@@ -268,3 +293,50 @@ class MainTableEntry:
     def __init__(self, collection, count):
         self.collection = collection
         self.count = count
+
+class DatabaseWorker(QObject):
+    collections_ready = Signal(list)
+    studies_ready = Signal(list)
+    series_ready = Signal(list)
+    finished = Signal()
+
+    def __init__(self, session, database: str, action: Action):
+        super().__init__()
+        self.session = session
+        self.database = database
+        self.action = action
+        self.requested_studies = None
+        self.requested_series = None
+
+    @Slot()
+    def run(self):
+        if self.action == Action.LOAD_COLLECTIONS:
+            self._fetch_collections()
+        elif self.action == Action.LOAD_STUDIES:
+            self._fetch_studies()
+        elif self.action == Action.LOAD_SERIES:
+            self._fetch_series()
+        self.finished.emit()
+
+    def _fetch_collections(self):
+        entries = None
+        self.session.ui.thread_safe(self.session.logger.status, f"Loading collections from {self.database}")
+        if self.database == "TCIA":
+            entries = fetch_nbia_collections_with_patients()
+        self.collections_ready.emit(entries)
+
+    def _fetch_studies(self):
+        entries = []
+        self.session.ui.thread_safe(self.session.logger.status, f"Loading requested studies...")
+        if self.database == "TCIA":
+            for study in self.requested_studies:
+                entries.extend(fetch_nbia_study(collection=study.collection))
+        self.studies_ready.emit(entries)
+
+    def _fetch_series(self):
+        entries = []
+        self.session.ui.thread_safe(self.session.logger.status, f"Loading requested series...")
+        if self.database == "TCIA":
+            for series in self.requested_series:
+                entries.extend(fetch_nbia_series(studyUid=series.suid))
+        self.series_ready.emit(entries)
