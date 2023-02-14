@@ -2911,7 +2911,7 @@ non_standard_bonds(const Bond **bonds, size_t num_bonds, bool selected_only, boo
             // should never happen because residues are in same chain
             continue;
         }
-        if (std::abs((ssize_t) (p1 - p0)) != 1) {
+        if (std::abs((std::ptrdiff_t) (p1 - p0)) != 1) {
             // not adjacent (circular)
             covalent.push_back(b);
             continue;
