@@ -12,7 +12,7 @@
  * or derivations thereof.
  * === UCSF ChimeraX Copyright ===
  */
-
+#define PY_SSIZE_T_CLEAN
 #include <Python.h>     // Use PyUnicode_FromString
 
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
@@ -5599,7 +5599,7 @@ extern "C" EXPORT void pointer_array_freed(void *numpy_array)
 
 // -------------------------------------------------------------------------
 // pointer array functions
-extern "C" EXPORT ssize_t pointer_index(void *pointer_array, size_t n, void *pointer)
+extern "C" EXPORT std::ptrdiff_t pointer_index(void *pointer_array, size_t n, void *pointer)
 {
     void **pa = static_cast<void **>(pointer_array);
     try {
