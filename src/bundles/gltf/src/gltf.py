@@ -404,7 +404,8 @@ def colors_to_uint8(vc):
 def write_gltf(session, filename, models = None,
                center = True, size = None, short_vertex_indices = False,
                float_colors = False, preserve_transparency = True,
-               texture_colors = False, instancing = False):
+               texture_colors = False, instancing = False,
+               metallic_factor = None, roughness_factor = None):
     if models is None:
         models = session.models.list()
 
@@ -412,7 +413,7 @@ def write_gltf(session, filename, models = None,
 
     buffers = Buffers()
     materials = Materials(buffers, preserve_transparency, float_colors,
-                          texture_colors)
+                          texture_colors, metallic_factor, roughness_factor)
     nodes, meshes = nodes_and_meshes(drawings, buffers, materials,
                                      short_vertex_indices,
                                      instancing)
@@ -954,12 +955,15 @@ class Buffers:
 #
 class Materials:
     def __init__(self, buffers, preserve_transparency = True, float_vertex_colors = False,
-                 convert_vertex_to_texture_colors = False):
+                 convert_vertex_to_texture_colors = False, metallic_factor = None,
+                 roughness_factor = None):
         self._colors = {}	# rgba tuple -> Material
         self._materials = []
         self._preserve_transparency = preserve_transparency
         self._float_vertex_colors = float_vertex_colors
         self._convert_vertex_to_texture_colors = convert_vertex_to_texture_colors
+        self._metallic_factor = metallic_factor;
+        self._roughness_factor = roughness_factor;
         self.textures = Textures(buffers)
         
     def material(self, color, texture_image = None):
@@ -971,7 +975,9 @@ class Materials:
         if m is None:
             mi = len(self._materials)
             ti = self.textures.add_texture(texture_image) if texture_image is not None else None
-            m = Material(mi, c, ti)
+            m = Material(mi, c, texture_index = ti,
+                         metallic_factor = self._metallic_factor,
+                         roughness_factor = self._roughness_factor)
             if ti is None:
                 self._colors[c] = m
             self._materials.append(m)
@@ -984,10 +990,13 @@ class Materials:
 # -----------------------------------------------------------------------------
 #
 class Material:
-    def __init__(self, material_index, base_color8, texture_index = None):
+    def __init__(self, material_index, base_color8, texture_index = None,
+                 metallic_factor = None, roughness_factor = None):
         self._index = material_index
         self._base_color8 = base_color8
         self._texture_index = texture_index
+        self._metallic_factor = metallic_factor
+        self._roughness_factor = roughness_factor
 
     @property
     def index(self):
@@ -998,6 +1007,10 @@ class Material:
         from chimerax.core.colors import rgba8_to_rgba
         color = rgba8_to_rgba(self._base_color8)
         pbr = {'baseColorFactor': color}
+        if self._metallic_factor is not None:
+            pbr['metallicFactor'] = self._metallic_factor
+        if self._roughness_factor is not None:
+            pbr['roughnessFactor'] = self._roughness_factor
         if self._texture_index is not None:
             pbr['baseColorTexture'] = {'index': self._texture_index}
         spec = {'pbrMetallicRoughness': pbr}
