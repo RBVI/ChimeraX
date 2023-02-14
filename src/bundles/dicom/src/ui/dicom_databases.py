@@ -29,7 +29,8 @@ from .widgets import DICOMTable
 
 class Action(Enum):
     LOAD_COLLECTIONS = 1
-
+    LOAD_STUDIES = 2
+    LOAD_SERIES = 3
 
 class DICOMDatabases(ToolInstance):
 
@@ -177,39 +178,43 @@ class DICOMDatabases(ToolInstance):
         # TODO: When there's more than one database available remove this call
         self._on_database_changed()
 
-    def _on_database_changed(self):
+    def _allocate_thread_and_worker(self, action: Action):
         self.thread = QThread()
-        self.worker = DatabaseWorker(self.session, self.available_dbs.currentText(), Action.LOAD_COLLECTIONS)
+        self.worker = DatabaseWorker(self.session, self.available_dbs.currentText(), action)
         self.worker.moveToThread(self.thread)
-        self.worker.collections_ready.connect(self._on_collection_entries_returned_from_worker)
         self.thread.started.connect(self.worker.run)
         self.worker.finished.connect(self.thread.quit)
         self.worker.finished.connect(self.thread.deleteLater)
         self.thread.finished.connect(self.worker.deleteLater)
+
+    def _on_database_changed(self):
+        self._allocate_thread_and_worker(Action.LOAD_COLLECTIONS)
+        self.worker.collections_ready.connect(self._on_collection_entries_returned_from_worker)
         self.thread.start()
 
     def _on_collection_entries_returned_from_worker(self, entries):
         self.database_entries.data = [MainTableEntry(x['criteria'], x['count']) for x in entries]
 
-
     def _on_main_table_double_clicked(self, items):
-        # There'll only ever be one item from a double click
-        entries = []
-        for item in items:
-            entries.extend([
-                StudyTableEntry(
-                    x['StudyInstanceUID']
-                    , x['StudyDate']
-                    , x['StudyDescription']
-                    , x['PatientID']
-                    , x['PatientName']
-                    , x['PatientSex']
-                    , x['SeriesCount']
-                    , x['Collection']
-                )
-                for x in fetch_nbia_study(collection = item.collection)
-            ])
-        self.study_entries.data = entries
+        self._allocate_thread_and_worker(Action.LOAD_STUDIES)
+        self.worker.studies_ready.connect(self._on_studies_returned_from_worker)
+        self.worker.requested_studies = items
+        self.thread.start()
+
+    def _on_studies_returned_from_worker(self, entries):
+        self.study_entries.data = [
+            StudyTableEntry(
+                  x.get('StudyInstanceUID', None)
+                , x.get('StudyDate', None)
+                , x.get('StudyDescription', None)
+                , x.get('PatientID', None)
+                , x.get('PatientName', None)
+                , x.get('PatientSex', None)
+                , x.get('SeriesCount', None)
+                , x.get('Collection', None)
+            )
+            for x in entries
+        ]
         self.interface_stack.setCurrentIndex(1)
 
     def _on_back_to_search_button_clicked(self):
@@ -219,22 +224,25 @@ class DICOMDatabases(ToolInstance):
         self.interface_stack.setCurrentIndex(1)
 
     def _on_study_table_double_clicked(self, items):
-        entries = []
-        for item in items:
-            entries.extend([
-                SeriesTableEntry(
-                    x.get('SeriesInstanceUID', None)
-                    , x.get('Modality', None)
-                    , x.get('ProtocolName', None)
-                    , x.get('SeriesDescription', None)
-                    , x.get('BodyPartExamined', None)
-                    , x.get('SeriesNumber', None)
-                    , x.get('PatientID', None)
-                    , x.get('ImageCount', None)
-                )
-                for x in fetch_nbia_series(studyUid = item.suid)
-            ])
-        self.series_entries.data = entries
+        self._allocate_thread_and_worker(Action.LOAD_SERIES)
+        self.worker.series_ready.connect(self._on_series_returned_from_worker)
+        self.worker.requested_series = items
+        self.thread.start()
+
+    def _on_series_returned_from_worker(self, entries):
+        self.series_entries.data = [
+            SeriesTableEntry(
+                x.get('SeriesInstanceUID', None)
+                , x.get('Modality', None)
+                , x.get('ProtocolName', None)
+                , x.get('SeriesDescription', None)
+                , x.get('BodyPartExamined', None)
+                , x.get('SeriesNumber', None)
+                , x.get('PatientID', None)
+                , x.get('ImageCount', None)
+            )
+            for x in entries
+        ]
         self.interface_stack.setCurrentIndex(2)
 
     def _on_drill_down_clicked(self):
@@ -288,6 +296,8 @@ class MainTableEntry:
 
 class DatabaseWorker(QObject):
     collections_ready = Signal(list)
+    studies_ready = Signal(list)
+    series_ready = Signal(list)
     finished = Signal()
 
     def __init__(self, session, database: str, action: Action):
@@ -295,11 +305,17 @@ class DatabaseWorker(QObject):
         self.session = session
         self.database = database
         self.action = action
+        self.requested_studies = None
+        self.requested_series = None
 
     @Slot()
     def run(self):
         if self.action == Action.LOAD_COLLECTIONS:
             self._fetch_collections()
+        elif self.action == Action.LOAD_STUDIES:
+            self._fetch_studies()
+        elif self.action == Action.LOAD_SERIES:
+            self._fetch_series()
         self.finished.emit()
 
     def _fetch_collections(self):
@@ -308,3 +324,19 @@ class DatabaseWorker(QObject):
         if self.database == "TCIA":
             entries = fetch_nbia_collections_with_patients()
         self.collections_ready.emit(entries)
+
+    def _fetch_studies(self):
+        entries = []
+        self.session.ui.thread_safe(self.session.logger.status, f"Loading requested studies...")
+        if self.database == "TCIA":
+            for study in self.requested_studies:
+                entries.extend(fetch_nbia_study(collection=study.collection))
+        self.studies_ready.emit(entries)
+
+    def _fetch_series(self):
+        entries = []
+        self.session.ui.thread_safe(self.session.logger.status, f"Loading requested series...")
+        if self.database == "TCIA":
+            for series in self.requested_series:
+                entries.extend(fetch_nbia_series(studyUid=series.suid))
+        self.series_ready.emit(entries)
