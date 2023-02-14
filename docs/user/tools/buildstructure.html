@@ -49,9 +49,16 @@ Sections:
 </p>
 <ul>
 <li><a href="#start"><b>Start Structure</b></a>
+&ndash; add an atom, fragment, or molecule not bonded to existing atoms
 <li><a href="#modify"><b>Modify Structure</b></a>
+&ndash; change or delete existing atoms,
+build outward step-by-step from an existing structure
 <li><a href="#bonds"><b>Adjust Bonds</b></a>
+&ndash; add bonds, delete bonds, change bond lengths
 <li><a href="#join"><b>Join Models</b></a>
+&ndash; bond and merge two models, moving one of them to form the bond
+<li><a href="#invert"><b>Invert</b></a>
+&ndash; swap substituents, potentially changing chirality
 </ul>
 
 <p class="nav">
@@ -408,6 +415,36 @@ other peptide torsion angles are <a href="../attributes.html">attributes</a>
 of the amino acid residue containing the newly bonded N.
 </p>
 
+<p class="nav">
+<a name="invert"></a>
+[<a href="#top">back to top: Build Structure</a>]
+</p>
+<h3>Invert</h3>
+<p>
+The <b>Invert</b> section of <a href="#top"><b>Build Structure</b></a> 
+allows exchanging the positions of two substituents of an atom,
+potentially inverting a chiral center.
+Substituents of atoms that are not chiral centers can also be swapped.
+</p>
+<ul>
+<li>If a single atom is <a href="../selection.html">selected</a>,
+clicking <b>Swap</b> exchanges the positions of its two smallest substituents
+based on number of atoms, or if those are the same, the atomic weights of
+the atoms directly bonded to the selected atom.
+Implicit hydrogens on the selected atom are considered, but not those
+on its substituents.
+These rules are not meant to reproduce the much more complex
+&ldquo;priority&rdquo; calculations used in chirality determination.
+<li>If two atoms directly bonded to the same central atom are
+<a href="../selection.html">selected</a>,
+clicking <b>Swap</b> will exchange the positions of the substituents
+rooted at those atoms.
+</ul>
+<p>
+Any unintended results can be reversed by clicking <b>Swap</b> again
+without changing the <a href="../selection.html">selection</a>.
+</p>
+
 <a name="covrad"></a>
 <p class="nav">
 [<a href="#top">back to top: Build Structure</a>]
@@ -450,5 +487,5 @@ states from heavy atom coordinates.</a> Meng EC, Lewis RA.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-December 2022</address>
+February 2023</address>
 </body></html>
