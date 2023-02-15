@@ -352,8 +352,8 @@ class VerifyCenterDialog(QDialog):
         adjusted_center = [ic+o for ic,o in zip(initial_center, maps[0].data.origin)]
         marker_set_id = session.models.next_id()[0]
         from chimerax.core.commands import run
-        self.marker = run(session, "marker #%d position %g,%g,%g radius 2 color green"
-            % (marker_set_id, *adjusted_center))
+        self.marker = run(session, "marker #%d position %g,%g,%g radius %g color 100,65,0,50"
+            % (marker_set_id, *adjusted_center, self.find_search_radius()))
 
         from chimerax.core.models import REMOVE_MODELS
         self.handler = session.triggers.add_handler(REMOVE_MODELS, self._check_still_valid)
@@ -362,8 +362,9 @@ class VerifyCenterDialog(QDialog):
         self.setLayout(layout)
         search_button_label = "Start search"
         instructions = QLabel(
-            "The search center is depicted as a green marker (model #%d).  "
-            "You may have to adjust the maps' visibility to see it (hide / use mesh / set transparency).  "
+            "The search center is depicted as a transparent orange marker (model #%d).  "
+            "The size of the sphere indicates the extent of the search "
+            " -- positions where any part of the structure lies within the sphere will be searched.  "
             "You can use all the normal means to move markers / models to adjust the marker position, "
             'e.g. the "Move" right mouse mode in the Markers section of the toolbar.  '
             'When satisfied with the marker position, use the "%s" button to start the fitting.'
@@ -388,6 +389,14 @@ class VerifyCenterDialog(QDialog):
             self.session.models.close([self.marker.structure])
         self.handler.remove()
         super().closeEvent(event)
+
+    def find_search_radius(self):
+        import numpy
+        crds = self.structure.atoms.coords
+        crd_min = numpy.amin(crds, axis=0)
+        crd_max = numpy.amax(crds, axis=0)
+        mid = (crd_min + crd_max) / 2
+        return max(numpy.linalg.norm(crds-mid, axis=1))
 
     def launch_emplace_local(self):
         center = self.marker.scene_coord
