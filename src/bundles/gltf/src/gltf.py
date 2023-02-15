@@ -700,6 +700,7 @@ class Mesh:
         self._geom_buffers = None
         self._texture_image = None
         self._converted_vertex_to_texture_colors = False
+        self._has_vertex_colors = (drawing.vertex_colors is not None)
 
     # -----------------------------------------------------------------------------
     #
@@ -714,8 +715,10 @@ class Mesh:
         else:
             instance_color = (255,255,255,255)  # Modulated by vertex colors
         materials = self._materials
+        transparent = self._drawing.showing_transparent(include_children = False)
         for prim in prims:
-            material = materials.material(instance_color, self._texture_image)
+            material = materials.material(instance_color, self._texture_image,
+                                          transparent = transparent)
             prim['material'] = material.index
         mesh = {'primitives': prims}
         return mesh
@@ -782,7 +785,6 @@ class Mesh:
         if self._short_vertex_indices:
             geom = limit_vertex_count(geom)
             
-        self._has_vertex_colors = (vc is not None)
         self._geom_buffers = geom_bufs = [self._make_buffers(pva,pna,pvc,ptc,pta)
                                           for pva,pna,pvc,ptc,pta in geom]
         return geom_bufs
@@ -957,8 +959,8 @@ class Buffers:
 #
 class Materials:
     def __init__(self, buffers, preserve_transparency = True, float_vertex_colors = False,
-                 convert_vertex_to_texture_colors = False, metallic_factor = None,
-                 roughness_factor = None):
+                 convert_vertex_to_texture_colors = False,
+                 metallic_factor = None, roughness_factor = None):
         self._colors = {}	# rgba tuple -> Material
         self._materials = []
         self._preserve_transparency = preserve_transparency
@@ -968,7 +970,7 @@ class Materials:
         self._roughness_factor = roughness_factor;
         self.textures = Textures(buffers)
         
-    def material(self, color, texture_image = None):
+    def material(self, color, texture_image = None, transparent = False):
         r,g,b,a = color
         if not self._preserve_transparency:
             a = 255
@@ -978,6 +980,7 @@ class Materials:
             mi = len(self._materials)
             ti = self.textures.add_texture(texture_image) if texture_image is not None else None
             m = Material(mi, c, texture_index = ti,
+                         transparent = (transparent and self._preserve_transparency),
                          metallic_factor = self._metallic_factor,
                          roughness_factor = self._roughness_factor)
             if ti is None:
@@ -993,10 +996,11 @@ class Materials:
 #
 class Material:
     def __init__(self, material_index, base_color8, texture_index = None,
-                 metallic_factor = None, roughness_factor = None):
+                 transparent = False, metallic_factor = None, roughness_factor = None):
         self._index = material_index
         self._base_color8 = base_color8
         self._texture_index = texture_index
+        self._transparent = transparent
         self._metallic_factor = metallic_factor
         self._roughness_factor = roughness_factor
 
@@ -1016,6 +1020,8 @@ class Material:
         if self._texture_index is not None:
             pbr['baseColorTexture'] = {'index': self._texture_index}
         spec = {'pbrMetallicRoughness': pbr}
+        if self._transparent:
+            spec['alphaMode'] = 'BLEND'
         return spec
 
 # -----------------------------------------------------------------------------
