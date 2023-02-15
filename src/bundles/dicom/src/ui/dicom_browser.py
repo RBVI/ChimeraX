@@ -74,7 +74,7 @@ class DICOMBrowserTool(ToolInstance):
         self.parent = self.tool_window.ui_area
         self.main_layout = QVBoxLayout()
 
-        self.buttons_label = QLabel("For Highlighted Entries:", parent=self.parent)
+        self.buttons_label = QLabel("For chosen entries:", parent=self.parent)
         self.load_buttons_widget = QWidget(self.parent)
         self.load_button_container = QHBoxLayout()
         self.load_button_container.addWidget(self.buttons_label)
