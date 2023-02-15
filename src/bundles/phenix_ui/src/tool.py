@@ -216,8 +216,23 @@ class LaunchEmplaceLocalTool(ToolInstance):
         centering_layout = QHBoxLayout()
         centering_layout.setSpacing(1)
         centering_widget.setLayout(centering_layout)
-        centering_layout.addWidget(QLabel("Center search at"), alignment=Qt.AlignRight)
+        centering_tip = '''How to specify the center of the fitting search.  Choices are:
+
+%s — If the center of rotation is being displayed ("cofr showPivot true") use that.  Otherwise,
+    if the center of rotation is a fixed point ("cofr fixed") use that.  If neither of those is
+    true, use the midpoint of where the center of the window intersects the front and back of
+    the bounding box of the map.
+
+%s — The center of a particular model, frequently the map, or the structure to be fittref once
+    it has been approximately positioned.
+
+%s — A specific X/Y/X position, given in angstroms relative to the origin of the map.
+        ''' % (self.CENTER_VIEW.rstrip('.'), self.CENTER_MODEL.rstrip('.'), self.CENTER_XYZ.rstrip('.'))
+        centering_label = QLabel("Center search at")
+        centering_label.setToolTip(centering_tip)
+        centering_layout.addWidget(centering_label, alignment=Qt.AlignRight)
         self.centering_button = QPushButton()
+        self.centering_button.setToolTip(centering_tip)
         centering_layout.addWidget(self.centering_button)
         centering_menu = QMenu(self.centering_button)
         for method in self.CENTERING_METHODS:
