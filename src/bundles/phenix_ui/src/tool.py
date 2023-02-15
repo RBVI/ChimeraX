@@ -161,11 +161,10 @@ class LaunchEmplaceLocalTool(ToolInstance):
     #help = "help:user/tools/waterplacement.html"
     help = None
 
-    CENTER_HALF_MAPS = "center of half maps"
     CENTER_MODEL = "center of model..."
     CENTER_VIEW = "center of view"
     CENTER_XYZ = "specified xyz position..."
-    CENTERING_METHODS = [CENTER_HALF_MAPS, CENTER_MODEL, CENTER_VIEW, CENTER_XYZ]
+    CENTERING_METHODS = [CENTER_MODEL, CENTER_VIEW, CENTER_XYZ]
 
     def __init__(self, session, tool_name):
         super().__init__(session, tool_name)
@@ -285,7 +284,7 @@ class LaunchEmplaceLocalTool(ToolInstance):
             for o, xyz in zip(maps[0].data.origin, bnds.center()):
                 center.append(xyz - o)
         elif method == self.CENTER_VIEW:
-            # If pivot point shown or using fixed center of rotaion, use that.
+            # If pivot point shown or using fixed center of rotation, use that.
             # Otherwise, midpoint where center ow window intersects front and back of halfmap bounding box.
             view_center = None
             mv = self.session.main_view
@@ -306,11 +305,7 @@ class LaunchEmplaceLocalTool(ToolInstance):
             for o, xyz in zip(maps[0].data.origin, view_center):
                 center.append(xyz - o)
         else:
-            # center of half-map
-            data = maps[0].data
-            center =[]
-            for limit, o in zip(data.ijk_to_xyz(data.size), data.origin):
-                center.append((limit - o) / 2)
+            raise AssertionError("Unknown centering method")
         self.settings.search_center = method
         if self.verify_center_checkbox.isChecked():
             VerifyCenterDialog(self.session, structure, maps, res, center)
