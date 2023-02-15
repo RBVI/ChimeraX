@@ -67,7 +67,7 @@ class DICOMDatabases(ToolInstance):
         self.control_layout.addWidget(self.database_label)
         self.control_layout.addWidget(self.available_dbs)
         self.control_layout.addStretch()
-        self.dataset_highlighted_label = QLabel("For highlighted entries:")
+        self.dataset_highlighted_label = QLabel("For chosen entries:")
         self.refine_dataset_button = QPushButton("Drill Down to Studies")
         self.control_layout.addWidget(self.dataset_highlighted_label)
         self.control_layout.addWidget(self.refine_dataset_button)
