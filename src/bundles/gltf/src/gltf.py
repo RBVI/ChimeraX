@@ -707,14 +707,16 @@ class Mesh:
         prims = self._geometry_primitives()
         if not self._has_vertex_colors:
             # Need to copy the geometry with the correct material color.
-            materials = self._materials
             from copy import deepcopy
             prims = deepcopy(prims)
             if self._converted_vertex_to_texture_colors:
                 instance_color = (255,255,255,255)
-            for prim in prims:
-                material = materials.material(instance_color, self._texture_image)
-                prim['material'] = material.index
+        else:
+            instance_color = (255,255,255,255)  # Modulated by vertex colors
+        materials = self._materials
+        for prim in prims:
+            material = materials.material(instance_color, self._texture_image)
+            prim['material'] = material.index
         mesh = {'primitives': prims}
         return mesh
 
