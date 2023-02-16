@@ -171,18 +171,26 @@ def view_box(session, model):
     cam = session.main_view.camera
     origin = cam.position.origin()
     direction = cam.view_direction()
+    # find the two points that have the property of being a plane intercept and lying between
+    # the other two plane pairs (these two points may not be on opposite sides of the box)
+    face_intercepts = []
     for plane_pair in plane_pairs:
-        try:
-            intersections = [plane.line_intersection(origin, direction) for plane in plane_pair]
-        except PlaneNoIntersectionError:
-            continue
-        mid_point = (intersections[0] + intersections[1]) / 2
-        for plane1, plane2 in plane_pairs:
-            if plane1.distance(mid_point) * plane2.distance(mid_point) > 0:
-                # outside plane pair
-                break
-        else:
-            return mid_point
+        for plane in plane_pair:
+            try:
+                intersection = plane.line_intersection(origin, direction)
+            except PlaneNoIntersectionError:
+                continue
+            for pp2 in plane_pairs:
+                if pp2 is plane_pair:
+                    continue
+                plane1, plane2 = pp2
+                if plane1.distance(intersection) * plane2.distance(intersection) > 0:
+                    # outside plane pair
+                    break
+            else:
+                face_intercepts.append(intersection)
+    if len(face_intercepts) == 2:
+        return (face_intercepts[0] + face_intercepts[1]) / 2
     raise ViewBoxError("Center of view does not intersect %s bounding box" % model)
 
 def _process_results(session, fit_model, sharpened_map, orig_model, half_maps, shift):

@@ -311,9 +311,15 @@ class LaunchEmplaceLocalTool(ToolInstance):
                 if mv.center_of_rotation_method == "fixed":
                     view_center = mv.center_of_rotation
             if view_center is None:
+                from chimerax.map import Volume
+                shown_vols = [v for v in self.session.models if isinstance(v, Volume) and v.display]
+                if len(shown_vols) == 1:
+                    view_map = shown_vols[0]
+                else:
+                    view_map = maps[0]
                 from .emplace_local import view_box, ViewBoxError
                 try:
-                    view_center = view_box(self.session, maps[0])
+                    view_center = view_box(self.session, view_map)
                 except ViewBoxError as e:
                     raise UserError(str(e))
             center =[]
