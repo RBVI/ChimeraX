@@ -698,7 +698,7 @@ class Mesh:
         
         self._primitives = None
         self._geom_buffers = None
-        self._texture_image = None
+        self._texture_images = []
         self._converted_vertex_to_texture_colors = False
         self._has_vertex_colors = (drawing.vertex_colors is not None)
 
@@ -715,10 +715,15 @@ class Mesh:
         else:
             instance_color = (255,255,255,255)  # Modulated by vertex colors
         materials = self._materials
-        transparent = self._drawing.showing_transparent(include_children = False)
-        for prim in prims:
-            material = materials.material(instance_color, self._texture_image,
-                                          transparent = transparent)
+        d = self._drawing
+        transparent = d.showing_transparent(include_children = False)
+        twosided_lighting = (d.multitexture is not None or d.texture is not None)
+        tex_images = self._texture_images
+        for p, prim in enumerate(prims):
+            texture_image = tex_images[p % len(tex_images)] if tex_images else None
+            material = materials.material(instance_color, texture_image,
+                                          transparent = transparent,
+                                          twosided_lighting = twosided_lighting)
             prim['material'] = material.index
         mesh = {'primitives': prims}
         return mesh
@@ -755,9 +760,10 @@ class Mesh:
         d = self._drawing
         va, na, vc, tc, ta = (d.vertices, d.normals, d.vertex_colors,
                               d.texture_coordinates, d.masked_triangles)
-        if d.texture and d.texture.dimension == 2 and hasattr(d.texture, 'image_array'):
-            self._texture_image = d.texture.image_array
-        else:
+
+        # Collect textures
+        self._texture_images = _read_texture_images(d)
+        if len(self._texture_images) == 0:
             tc = None
 
         # Combine instances into a single triangle set.
@@ -776,12 +782,18 @@ class Mesh:
                     from chimerax.surface.texture import vertex_colors_to_texture
                     tex_coords, tex_image = vertex_colors_to_texture(vc)
                     tc = tex_coords
-                    self._texture_image = tex_image
+                    self._texture_images = [tex_image]
                     vc = None
                     self._converted_vertex_to_texture_colors = True
-                    
-        # Some implementations only allow 16-bit unsigned vertex indices.
+
         geom = [(va, na, vc, tc, ta)]
+
+        # Split multitexture into one geometry per texture
+        ntex = len(self._texture_images)
+        if ntex > 1:
+            geom = _split_multitexture_geometry(va, na, vc, tc, ta, ntex)
+                
+        # Some implementations only allow 16-bit unsigned vertex indices.
         if self._short_vertex_indices:
             geom = limit_vertex_count(geom)
             
@@ -813,6 +825,38 @@ class Mesh:
         ea = ta.astype(etype, copy=False).reshape((3*ne,))
         ti = b.add_array(ea)
         return (vi,ni,ci,tci,ti)
+
+# -----------------------------------------------------------------------------
+#
+def _read_texture_images(drawing):
+    d = drawing
+    if d.texture and d.texture.dimension == 2:
+        d._opengl_context.make_current()
+        ti = [d.texture.read_texture_data()]
+        d._opengl_context.done_current()
+    elif d.multitexture:
+        d._opengl_context.make_current()
+        ti = [t.read_texture_data() for t in d.multitexture]
+        d._opengl_context.done_current()
+    else:
+        ti = []
+
+    return ti
+
+# -----------------------------------------------------------------------------
+#
+def _split_multitexture_geometry(va, na, vc, tc, ta, ntex):
+    tpt = len(ta)//ntex
+    geom = []
+    for i in range(ntex):
+        tai = ta[i*tpt:(i+1)*tpt]
+        vi_min, vi_max = tai.min(), tai.max()
+        vai = va[vi_min:vi_max+1]
+        nai = na[vi_min:vi_max+1] if na is not None else None
+        vci = vc[vi_min:vi_max+1] if vc is not None else None
+        tci = tc[vi_min:vi_max+1]
+        geom.append((vai, nai, vci, tci, tai - vi_min))
+    return geom
 
 # -----------------------------------------------------------------------------
 #
@@ -961,7 +1005,6 @@ class Materials:
     def __init__(self, buffers, preserve_transparency = True, float_vertex_colors = False,
                  convert_vertex_to_texture_colors = False,
                  metallic_factor = None, roughness_factor = None):
-        self._colors = {}	# rgba tuple -> Material
         self._materials = []
         self._preserve_transparency = preserve_transparency
         self._float_vertex_colors = float_vertex_colors
@@ -969,23 +1012,32 @@ class Materials:
         self._metallic_factor = metallic_factor;
         self._roughness_factor = roughness_factor;
         self.textures = Textures(buffers)
+
+        self._single_color_materials = {}	# (rgba, transparent, twosided) -> Material, reuse these
         
-    def material(self, color, texture_image = None, transparent = False):
+    def material(self, color, texture_image = None,
+                 transparent = False, twosided_lighting = False):
         r,g,b,a = color
         if not self._preserve_transparency:
             a = 255
         c = (r,g,b,a)
-        m = self._colors.get(c, None)
-        if m is None:
-            mi = len(self._materials)
-            ti = self.textures.add_texture(texture_image) if texture_image is not None else None
-            m = Material(mi, c, texture_index = ti,
-                         transparent = (transparent and self._preserve_transparency),
-                         metallic_factor = self._metallic_factor,
-                         roughness_factor = self._roughness_factor)
-            if ti is None:
-                self._colors[c] = m
-            self._materials.append(m)
+        if texture_image is None:
+            ctt = (c, transparent, twosided_lighting)
+            m = self._single_color_materials.get(ctt, None)
+            if m:
+                return m
+
+        mi = len(self._materials)
+        ti = self.textures.add_texture(texture_image) if texture_image is not None else None
+        m = Material(mi, c, texture_index = ti,
+                     transparent = (transparent and self._preserve_transparency),
+                     metallic_factor = self._metallic_factor,
+                     roughness_factor = self._roughness_factor,
+                     twosided_lighting = twosided_lighting)
+        self._materials.append(m)
+        if texture_image is None:
+            self._single_color_materials[ctt] = m
+
         return m
 
     @property
@@ -996,13 +1048,15 @@ class Materials:
 #
 class Material:
     def __init__(self, material_index, base_color8, texture_index = None,
-                 transparent = False, metallic_factor = None, roughness_factor = None):
+                 transparent = False, metallic_factor = None, roughness_factor = None,
+                 twosided_lighting = False):
         self._index = material_index
         self._base_color8 = base_color8
         self._texture_index = texture_index
         self._transparent = transparent
         self._metallic_factor = metallic_factor
         self._roughness_factor = roughness_factor
+        self._twosided_lighting = twosided_lighting
 
     @property
     def index(self):
@@ -1022,6 +1076,8 @@ class Material:
         spec = {'pbrMetallicRoughness': pbr}
         if self._transparent:
             spec['alphaMode'] = 'BLEND'
+        if self._twosided_lighting:
+            spec['doubleSided'] = True
         return spec
 
 # -----------------------------------------------------------------------------
