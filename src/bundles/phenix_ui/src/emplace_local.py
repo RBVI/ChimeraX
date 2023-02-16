@@ -140,6 +140,7 @@ def view_box(session, model):
     if bbox is None:
         if not model.display:
             model.display = True
+            model.update_drawings()
             bbox = model.bounds()
             model.display = False
         if bbox is None:
@@ -227,7 +228,8 @@ def _run_fit_subprocess(session, exe_path, optional_args, half_map1_file_name,
             "map2=%s" % StringArg.unparse(half_map2_file_name),
             "d_min=%g" % resolution,
             "model_file=%s" % StringArg.unparse(model_file_name),
-            "sphere_center=(%g,%g,%g)" % tuple(search_center.scene_coordinates())
+            "sphere_center=(%g,%g,%g)" % tuple(search_center.scene_coordinates()),
+            "--json",
         ] + positional_args
     tsafe=session.ui.thread_safe
     logger = session.logger
@@ -255,11 +257,22 @@ def _run_fit_subprocess(session, exe_path, optional_args, half_map1_file_name,
 
     # Open new model with added waters
     from os import path
-    model_path = path.join(temp_dir,'top_model.pdb')
+    json_path = path.join(temp_dir,'emplace_local_result.json')
+    import json
+    with open(json_path, 'r') as f:
+        info = json.load(f)
+    model_path = path.join(temp_dir, info["model_filename"])
     from chimerax.pdb import open_pdb
-    fitted_models, info = open_pdb(session, model_path, log_info=False)
-    map_path = path.join(temp_dir,'top_model.map')
-    sharpened_maps, info = session.open_command.open_data(map_path)
+    fitted_models, status = open_pdb(session, model_path, log_info=False)
+    map_path = path.join(temp_dir, info["map_filename"])
+    sharpened_maps, status = session.open_command.open_data(map_path)
+    from chimerax.core.commands import plural_form
+    num_solutions = info["n_solutions"]
+    tsafe(logger.info, "%d fitting %s" % (num_solutions, plural_form(num_solutions, "solution")))
+    tsafe(logger.info, "map LLG %s: %s" % (plural_form(num_solutions, "value"),
+        ', '.join(["%g" % v for v in info["mapLLG"]])))
+    tsafe(logger.info, "map CC %s: %s" % (plural_form(num_solutions, "value"),
+        ', '.join(["%g" % v for v in info["mapCC"]])))
 
     return fitted_models[0], sharpened_maps[0]
 
