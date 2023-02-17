@@ -192,7 +192,7 @@ struct ExtractMolecule: public readcif::CIFFile
     static const char* builtin_categories[];
     PyObject* _logger;
     ExtractMolecule(PyObject* logger, const StringVector& generic_categories, bool coordsets,
-        bool atomic);
+        bool atomic, bool ignore_styling);
     ~ExtractMolecule();
     virtual void data_block(const string& name);
     virtual void reset_parse();
@@ -288,6 +288,7 @@ struct ExtractMolecule: public readcif::CIFFile
     set<ResName> missing_residue_templates;
     bool coordsets;  // use coordsets (trajectory) instead of separate models (NMR)
     bool atomic;  // use AtomicStructure if true, else Structure
+    bool ignore_styling;  // ignore any information about PDBx/mmCIF styling
     bool guess_fixed_width_categories;
     bool verbose;  // whether to give extra warning messages
     int hydrogens_missing_in_template;
@@ -314,10 +315,11 @@ const char* ExtractMolecule::builtin_categories[] = {
 };
 #define MIXED_CASE_BUILTIN_CATEGORIES 0
 
-ExtractMolecule::ExtractMolecule(PyObject* logger, const StringVector& generic_categories, bool coordsets, bool atomic):
+ExtractMolecule::ExtractMolecule(PyObject* logger, const StringVector& generic_categories, bool coordsets, bool atomic, bool ignore_styling):
     _logger(logger), first_model_num(INT_MAX), my_templates(nullptr),
     found_missing_poly_seq(false), coordsets(coordsets), atomic(atomic),
-    guess_fixed_width_categories(false), verbose(false), hydrogens_missing_in_template(0)
+    guess_fixed_width_categories(false), verbose(false), hydrogens_missing_in_template(0),
+    ignore_styling(ignore_styling)
 {
     empty_residue_templates.insert("UNL");  // Unknown ligand
     empty_residue_templates.insert("UNX");  // Unknown atom or ion
@@ -1165,6 +1167,8 @@ ExtractMolecule::parse_chem_comp_bond()
 void
 ExtractMolecule::parse_audit_conform()
 {
+    if (ignore_styling)
+        return;
     // Looking for a way to tell if the mmCIF file was written
     // in the PDBx/mmCIF stylized format.  The following technique
     // is not guaranteed to work, but we'll use it for now.
@@ -1198,6 +1202,8 @@ ExtractMolecule::parse_audit_conform()
 void
 ExtractMolecule::parse_audit_syntax()
 {
+    if (ignore_styling)
+        return;
     // Looking for a way to tell if the mmCIF file was written
     // in the PDBx/mmCIF stylized format.  The following technique
     // is not guaranteed to work, but we'll use it for now.
@@ -2657,47 +2663,47 @@ structure_pointers(ExtractMolecule &e)
 }
 
 PyObject*
-parse_mmCIF_file(const char *filename, PyObject* logger, bool coordsets, bool atomic)
+parse_mmCIF_file(const char *filename, PyObject* logger, bool coordsets, bool atomic, bool ignore_styling)
 {
 #ifdef CLOCK_PROFILING
     ClockProfile p("parse_mmCIF_file");
 #endif
-    ExtractMolecule extract(logger, StringVector(), coordsets, atomic);
+    ExtractMolecule extract(logger, StringVector(), coordsets, atomic, ignore_styling);
     extract.parse_file(filename);
     return structure_pointers(extract);
 }
 
 PyObject*
 parse_mmCIF_file(const char *filename, const StringVector& generic_categories,
-                 PyObject* logger, bool coordsets, bool atomic)
+                 PyObject* logger, bool coordsets, bool atomic, bool ignore_styling)
 {
 #ifdef CLOCK_PROFILING
     ClockProfile p("parse_mmCIF_file2");
 #endif
-    ExtractMolecule extract(logger, generic_categories, coordsets, atomic);
+    ExtractMolecule extract(logger, generic_categories, coordsets, atomic, ignore_styling);
     extract.parse_file(filename);
     return structure_pointers(extract);
 }
 
 PyObject*
-parse_mmCIF_buffer(const unsigned char *whole_file, PyObject* logger, bool coordsets, bool atomic)
+parse_mmCIF_buffer(const unsigned char *whole_file, PyObject* logger, bool coordsets, bool atomic, bool ignore_styling)
 {
 #ifdef CLOCK_PROFILING
     ClockProfile p("parse_mmCIF_buffer");
 #endif
-    ExtractMolecule extract(logger, StringVector(), coordsets, atomic);
+    ExtractMolecule extract(logger, StringVector(), coordsets, atomic, ignore_styling);
     extract.parse(reinterpret_cast<const char *>(whole_file));
     return structure_pointers(extract);
 }
 
 PyObject*
 parse_mmCIF_buffer(const unsigned char *whole_file,
-   const StringVector& generic_categories, PyObject* logger, bool coordsets, bool atomic)
+   const StringVector& generic_categories, PyObject* logger, bool coordsets, bool atomic, bool ignore_styling)
 {
 #ifdef CLOCK_PROFILING
     ClockProfile p("parse_mmCIF_buffer2");
 #endif
-    ExtractMolecule extract(logger, generic_categories, coordsets, atomic);
+    ExtractMolecule extract(logger, generic_categories, coordsets, atomic, ignore_styling);
     extract.parse(reinterpret_cast<const char *>(whole_file));
     return structure_pointers(extract);
 }
