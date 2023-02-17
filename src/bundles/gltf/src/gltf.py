@@ -24,6 +24,12 @@ from chimerax.core.errors import UserError
 class glTFError(UserError):
     pass
 
+
+# -----------------------------------------------------------------------------
+# Mesh styles
+#
+GLTF_POINTS = 0
+GLTF_LINES = 1
 GLTF_TRIANGLES = 4
 
 # -----------------------------------------------------------------------------
@@ -194,13 +200,12 @@ def meshes_as_models(session, meshes, material_colors, material_textures,
             raise glTFError('glTF mesh has no "primitives": %s' % str(j))
         pdlist = []
         for pi,p in enumerate(m['primitives']):
-            if 'mode' in p and p['mode'] != GLTF_TRIANGLES:
-                raise glTFError('glTF reader only handles triangles, got mode %d' % p['mode'])
+            element_size = _element_size_for_gltf_mode(p.get('mode'))
             if 'indices' not in p:
                 raise glTFError('glTF missing "indices" in primitive %s' % str(p))
             ta = ba[p['indices']]
             if len(ta.shape) == 1:
-                ta = ta.reshape((len(ta)//3,3))
+                ta = ta.reshape((len(ta)//element_size, element_size))
             ta = ta.astype(int32, copy=False)
             if 'attributes' not in p:
                 raise glTFError('glTF missing "attributes" in primitive %s' % str(p))
@@ -243,6 +248,7 @@ def copy_model(model, to_model = None):
     c.vertex_colors = model.vertex_colors
     c.texture_coordinates = model.texture_coordinates
     c.texture = model.texture
+    c.display_style = model.display_style
     return c
 
 # -----------------------------------------------------------------------------
@@ -300,7 +306,7 @@ def buffer_arrays(accessors, buffer_views, binc):
         elif atype == 'SCALAR':
             pass
         else:
-            raise glTFError('glTF accessor type is not VEC3 or SCALAR, got %s' % atype)
+            raise glTFError('glTF accessor type is not VEC2, VEC3, VEC4 or SCALAR, got %s' % atype)
         balist.append(ba)
     return balist
         
@@ -312,6 +318,10 @@ def set_geometry(model, va, na, vc, tc, ta):
         model.vertex_colors = colors_to_uint8(vc)
     if tc is not None:
         model.texture_coordinates = tc
+    if ta.ndim == 2 and ta.shape[1] == 2:
+        model.display_style = model.Mesh
+    elif ta.ndim == 1 or (ta.ndim == 2 and ta.shape[1] == 1):
+        model.display_style = model.Dot
 
 # -----------------------------------------------------------------------------
 #
@@ -736,10 +746,11 @@ class Mesh:
             return prims
         
         self._primitives = prims = []
-        for vi,ni,ci,tci,ti in self._geometry_buffers():
+        for vi,ni,ci,tci,ti,mode in self._geometry_buffers():
             attr = {'POSITION': vi}
             prim = {'attributes': attr,
-                    'indices': ti}
+                    'indices': ti,
+                    'mode': mode}
             if ni is not None:
                 attr['NORMAL'] = ni
             if ci is not None:
@@ -758,9 +769,14 @@ class Mesh:
             return geom_bufs
         
         d = self._drawing
-        va, na, vc, tc, ta = (d.vertices, d.normals, d.vertex_colors,
-                              d.texture_coordinates, d.masked_triangles)
+        va, na, vc, tc = (d.vertices, d.normals, d.vertex_colors, d.texture_coordinates)
 
+        # Get triangles, lines or points
+        if d.display_style == d.Solid:
+            ta = d.masked_triangles
+        else:
+            ta = d._draw_shape.elements	# Lines or points
+            
         # Collect textures
         self._texture_images = _read_texture_images(d)
         if len(self._texture_images) == 0:
@@ -822,10 +838,37 @@ class Mesh:
         tci = b.add_array(tc) if tc is not None else None
         ne = len(ta)
         etype = uint16 if self._short_vertex_indices else uint32
-        ea = ta.astype(etype, copy=False).reshape((3*ne,))
+        ea = ta.astype(etype, copy=False).reshape((ta.size,))
         ti = b.add_array(ea)
-        return (vi,ni,ci,tci,ti)
-
+        mode = _mesh_style(ta)
+        return (vi,ni,ci,tci,ti,mode)
+    
+# -----------------------------------------------------------------------------
+#
+def _mesh_style(triangle_array):
+    ndim = triangle_array.ndim
+    esize = triangle_array.shape[1] if ndim == 2 else 1
+    if esize == 3:
+        mode = GLTF_TRIANGLES
+    elif esize == 2:
+        mode = GLTF_LINES
+    else:
+        mode = GLTF_POINTS
+    return mode
+    
+# -----------------------------------------------------------------------------
+#
+def _element_size_for_gltf_mode(gltf_mode):
+    if gltf_mode is None or gltf_mode == GLTF_TRIANGLES:
+        element_size = 3
+    elif gltf_mode == GLTF_LINES:
+        element_size = 2
+    elif gltf_mode == GLTF_POINTS:
+        element_size = 1
+    else:
+        raise glTFError('glTF reader only handles triangles, lines, and points, got mode %d' % p['mode'])
+    return element_size
+    
 # -----------------------------------------------------------------------------
 #
 def _read_texture_images(drawing):
@@ -919,13 +962,14 @@ def limit_vertex_count(geom, vmax = 2**16):
                         vs = len(vmap)
                         vmap[v] = vs
                         vi.append(v)
-                if len(vmap) > vmax - 3 or ti == nt-1:
+                esize = len(tv)
+                if len(vmap) > vmax - esize or ti == nt-1:
                     sva = va[vi]
                     sna = None if na is None else na[vi]
                     svc = None if vc is None else vc[vi]
                     from numpy import array
                     sta = array([vmap[v] for tv in ta[ti0:ti+1] for v in tv])
-                    sta = sta.reshape((len(sta)//3,3))
+                    sta = sta.reshape((len(sta)//esize,esize))
                     lgeom.append((sva,sna,svc,sta))
                     vi = []
                     vmap = {}
