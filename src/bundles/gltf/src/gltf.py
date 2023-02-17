@@ -415,7 +415,7 @@ def write_gltf(session, filename, models = None,
                center = True, size = None, short_vertex_indices = False,
                float_colors = False, preserve_transparency = True,
                texture_colors = False, instancing = False,
-               metallic_factor = None, roughness_factor = None):
+               metallic_factor = 0, roughness_factor = 1):
     if models is None:
         models = session.models.list()
 
@@ -1048,7 +1048,7 @@ class Buffers:
 class Materials:
     def __init__(self, buffers, preserve_transparency = True, float_vertex_colors = False,
                  convert_vertex_to_texture_colors = False,
-                 metallic_factor = None, roughness_factor = None):
+                 metallic_factor = 0, roughness_factor = 1):
         self._materials = []
         self._preserve_transparency = preserve_transparency
         self._float_vertex_colors = float_vertex_colors
@@ -1092,7 +1092,7 @@ class Materials:
 #
 class Material:
     def __init__(self, material_index, base_color8, texture_index = None,
-                 transparent = False, metallic_factor = None, roughness_factor = None,
+                 transparent = False, metallic_factor = 0, roughness_factor = 1,
                  twosided_lighting = False):
         self._index = material_index
         self._base_color8 = base_color8
@@ -1110,11 +1110,10 @@ class Material:
     def specification(self):
         from chimerax.core.colors import rgba8_to_rgba
         color = rgba8_to_rgba(self._base_color8)
-        pbr = {'baseColorFactor': color}
-        if self._metallic_factor is not None:
-            pbr['metallicFactor'] = self._metallic_factor
-        if self._roughness_factor is not None:
-            pbr['roughnessFactor'] = self._roughness_factor
+        pbr = {'baseColorFactor': color,
+               'metallicFactor': self._metallic_factor,
+               'roughnessFactor': self._roughness_factor,
+               }
         if self._texture_index is not None:
             pbr['baseColorTexture'] = {'index': self._texture_index}
         spec = {'pbrMetallicRoughness': pbr}
