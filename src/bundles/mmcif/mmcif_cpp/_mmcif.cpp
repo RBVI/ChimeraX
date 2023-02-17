@@ -134,25 +134,27 @@ _mmcif_parse_mmCIF_buffer(PyObject*, PyObject* _args, PyObject* _keywds)
 {
 	switch (PyTuple_Size(_args)) {
 	  default:
-		PyErr_SetString(PyExc_TypeError, "parse_mmCIF_buffer() expected 4 or 5 arguments");
+		PyErr_SetString(PyExc_TypeError, "parse_mmCIF_buffer() expected 5 or 6 arguments");
 		return NULL;
-	  case 4: {
+	  case 5: {
 		Py_buffer _ptArg1;
 		PyObject* _ptArg2;
 		int _ptArg3;
 		int _ptArg4;
+		int _ptArg5;
 		if (_keywds != NULL && PyDict_Size(_keywds) != 0) {
 			PyErr_SetString(PyExc_TypeError, "parse_mmCIF_buffer() expected no keyword arguments");
 			return NULL;
 		}
-		if (!PyArg_ParseTuple(_args, "s*Oii:parse_mmCIF_buffer", &_ptArg1, &_ptArg2, &_ptArg3, &_ptArg4))
+		if (!PyArg_ParseTuple(_args, "s*Oiii:parse_mmCIF_buffer", &_ptArg1, &_ptArg2, &_ptArg3, &_ptArg4, &_ptArg5))
 			return NULL;
 		try {
 			const unsigned char* cppArg1 = reinterpret_cast<unsigned char*>(_ptArg1.buf);
 			PyObject* cppArg2 = _ptArg2;
 			bool cppArg3(_ptArg3);
 			bool cppArg4(_ptArg4);
-			PyObject* _result = parse_mmCIF_buffer(cppArg1, cppArg2, cppArg3, cppArg4);
+			bool cppArg5(_ptArg5);
+			PyObject* _result = parse_mmCIF_buffer(cppArg1, cppArg2, cppArg3, cppArg4, cppArg5);
 			PyBuffer_Release(&_ptArg1);
 			return _result;
 		} catch (...) {
@@ -161,17 +163,18 @@ _mmcif_parse_mmCIF_buffer(PyObject*, PyObject* _args, PyObject* _keywds)
 		}
 		break;
 	  }
-	  case 5: {
+	  case 6: {
 		Py_buffer _ptArg1;
 		PyObject* _ptArg2;
 		PyObject* _ptArg3;
 		int _ptArg4;
 		int _ptArg5;
+		int _ptArg6;
 		if (_keywds != NULL && PyDict_Size(_keywds) != 0) {
 			PyErr_SetString(PyExc_TypeError, "parse_mmCIF_buffer() expected no keyword arguments");
 			return NULL;
 		}
-		if (!PyArg_ParseTuple(_args, "s*OOii:parse_mmCIF_buffer", &_ptArg1, &_ptArg2, &_ptArg3, &_ptArg4, &_ptArg5))
+		if (!PyArg_ParseTuple(_args, "s*OOiii:parse_mmCIF_buffer", &_ptArg1, &_ptArg2, &_ptArg3, &_ptArg4, &_ptArg5, &_ptArg6))
 			return NULL;
 		try {
 			const unsigned char* cppArg1 = reinterpret_cast<unsigned char*>(_ptArg1.buf);
@@ -181,7 +184,8 @@ _mmcif_parse_mmCIF_buffer(PyObject*, PyObject* _args, PyObject* _keywds)
 			PyObject* cppArg3 = _ptArg3;
 			bool cppArg4(_ptArg4);
 			bool cppArg5(_ptArg5);
-			PyObject* _result = parse_mmCIF_buffer(cppArg1, cppArg2, cppArg3, cppArg4, cppArg5);
+			bool cppArg6(_ptArg6);
+			PyObject* _result = parse_mmCIF_buffer(cppArg1, cppArg2, cppArg3, cppArg4, cppArg5, cppArg6);
 			PyBuffer_Release(&_ptArg1);
 			return _result;
 		} catch (...) {
@@ -202,18 +206,19 @@ _mmcif_parse_mmCIF_file(PyObject*, PyObject* _args, PyObject* _keywds)
 {
 	switch (PyTuple_Size(_args)) {
 	  default:
-		PyErr_SetString(PyExc_TypeError, "parse_mmCIF_file() expected 4 or 5 arguments");
+		PyErr_SetString(PyExc_TypeError, "parse_mmCIF_file() expected 5 or 6 arguments");
 		return NULL;
-	  case 4: {
+	  case 5: {
 		PyObject* _ptArg1;
 		PyObject* _ptArg2;
 		int _ptArg3;
 		int _ptArg4;
+		int _ptArg5;
 		if (_keywds != NULL && PyDict_Size(_keywds) != 0) {
 			PyErr_SetString(PyExc_TypeError, "parse_mmCIF_file() expected no keyword arguments");
 			return NULL;
 		}
-		if (!PyArg_ParseTuple(_args, "OOii:parse_mmCIF_file", &_ptArg1, &_ptArg2, &_ptArg3, &_ptArg4))
+		if (!PyArg_ParseTuple(_args, "OOiii:parse_mmCIF_file", &_ptArg1, &_ptArg2, &_ptArg3, &_ptArg4, &_ptArg5))
 			return NULL;
 		try {
 			if (!PyUnicode_Check(_ptArg1))
@@ -224,24 +229,26 @@ _mmcif_parse_mmCIF_file(PyObject*, PyObject* _args, PyObject* _keywds)
 			PyObject* cppArg2 = _ptArg2;
 			bool cppArg3(_ptArg3);
 			bool cppArg4(_ptArg4);
-			PyObject* _result = parse_mmCIF_file(cppArg1.c_str(), cppArg2, cppArg3, cppArg4);
+			bool cppArg5(_ptArg5);
+			PyObject* _result = parse_mmCIF_file(cppArg1.c_str(), cppArg2, cppArg3, cppArg4, cppArg5);
 			return _result;
 		} catch (...) {
 			_mmcifError();
 		}
 		break;
 	  }
-	  case 5: {
+	  case 6: {
 		PyObject* _ptArg1;
 		PyObject* _ptArg2;
 		PyObject* _ptArg3;
 		int _ptArg4;
 		int _ptArg5;
+		int _ptArg6;
 		if (_keywds != NULL && PyDict_Size(_keywds) != 0) {
 			PyErr_SetString(PyExc_TypeError, "parse_mmCIF_file() expected no keyword arguments");
 			return NULL;
 		}
-		if (!PyArg_ParseTuple(_args, "OOOii:parse_mmCIF_file", &_ptArg1, &_ptArg2, &_ptArg3, &_ptArg4, &_ptArg5))
+		if (!PyArg_ParseTuple(_args, "OOOiii:parse_mmCIF_file", &_ptArg1, &_ptArg2, &_ptArg3, &_ptArg4, &_ptArg5, &_ptArg6))
 			return NULL;
 		try {
 			if (!PyUnicode_Check(_ptArg1))
@@ -255,7 +262,8 @@ _mmcif_parse_mmCIF_file(PyObject*, PyObject* _args, PyObject* _keywds)
 			PyObject* cppArg3 = _ptArg3;
 			bool cppArg4(_ptArg4);
 			bool cppArg5(_ptArg5);
-			PyObject* _result = parse_mmCIF_file(cppArg1.c_str(), cppArg2, cppArg3, cppArg4, cppArg5);
+			bool cppArg6(_ptArg6);
+			PyObject* _result = parse_mmCIF_file(cppArg1.c_str(), cppArg2, cppArg3, cppArg4, cppArg5, cppArg6);
 			return _result;
 		} catch (...) {
 			_mmcifError();

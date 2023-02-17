@@ -74,7 +74,8 @@ def _initialize(session):
 
 
 def open_mmcif(session, path, file_name=None, auto_style=True, coordsets=False, atomic=True,
-               max_models=None, log_info=True, extra_categories=(), combine_sym_atoms=True, slider=True):
+               max_models=None, log_info=True, extra_categories=(), combine_sym_atoms=True,
+               slider=True, ignore_styling=False):
     # mmCIF parsing requires an uncompressed file
 
     if not _initialized:
@@ -84,7 +85,7 @@ def open_mmcif(session, path, file_name=None, auto_style=True, coordsets=False, 
     categories = _additional_categories + tuple(extra_categories)
     log = session.logger if log_info else None
     try:
-        pointers = _mmcif.parse_mmCIF_file(path, categories, log, coordsets, atomic)
+        pointers = _mmcif.parse_mmCIF_file(path, categories, log, coordsets, atomic, ignore_styling)
     except _mmcif.error as e:
         error_text = str(e)
         if 'coreCIF' in error_text:
@@ -97,6 +98,15 @@ def open_mmcif(session, path, file_name=None, auto_style=True, coordsets=False, 
             return corecif.open_corecif(
                 session, path, file_name=file_name,
                 auto_style=auto_style, log_info=log_info
+            )
+        if 'PDBx/mmCIF styling lost' in error_text:
+            if log is not None:
+                log.info(error_text + ".  Rereading mmCIF file from the beginning.")
+            return open_mmcif(
+                session, path, file_name=file_name,
+                auto_style=auto_style, coordsets=coordsets, atomic=atomic,
+                max_models=max_models, log_info=log_info, extra_categories=extra_categories,
+                combine_sym_atoms=combine_sym_atoms, slider=slider, ignore_styling=True
             )
         raise UserError('mmCIF parsing error: %s' % e)
 
