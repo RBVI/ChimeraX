@@ -158,8 +158,7 @@ class LaunchDouseTool(ToolInstance):
         self.delete()
 
 class LaunchEmplaceLocalTool(ToolInstance):
-    #help = "help:user/tools/waterplacement.html"
-    help = None
+    help = "help:user/tools/loaclemfitting.html"
 
     CENTER_MODEL = "center of model..."
     CENTER_VIEW = "center of view"
@@ -223,10 +222,10 @@ class LaunchEmplaceLocalTool(ToolInstance):
     true, use the midpoint of where the center of the window intersects the front and back of
     the bounding box of the map.
 
-%s — The center of a particular model, frequently the map, or the structure to be fittref once
+%s — The center of a particular model, frequently the map, or the structure to be fitted once
     it has been approximately positioned.
 
-%s — A specific X/Y/X position, given in angstroms relative to the origin of the map.
+%s — A specific X/Y/Z position, given in angstroms relative to the origin of the map.
         ''' % (self.CENTER_VIEW.rstrip('.'), self.CENTER_MODEL.rstrip('.'), self.CENTER_XYZ.rstrip('.'))
         centering_label = QLabel("Center search at")
         centering_label.setToolTip(centering_tip)
@@ -368,12 +367,13 @@ class VerifyCenterDialog(QDialog):
         self.setLayout(layout)
         search_button_label = "Start search"
         instructions = QLabel(
-            "The search center is depicted as a transparent orange marker (model #%d).  "
-            "The size of the sphere indicates the extent of the search "
-            " -- positions where any part of the structure lies within the sphere will be searched.  "
-            "You can use all the normal means to move markers / models to adjust the marker position, "
-            'e.g. the "Move" right mouse mode in the Markers section of the toolbar.  '
-            'When satisfied with the marker position, use the "%s" button to start the fitting.'
+            "A transparent orange marker (model #%d) has been drawn to show the search volume and location. "
+            "  Positions with any part of the atomic structure inside the marker sphere will be searched."
+            "  The size of the search volume is based on the size of the structure and cannot be adjusted, "
+            "but the search center can be moved by moving the marker, "
+            "using any ChimeraX method for moving markers or models "
+            '(e.g. the "move markers" right mouse mode in the Markers section of the toolbar).'
+            '  When the position is satisfactory, click "%s."'
              % (marker_set_id, search_button_label)
         )
         instructions.setWordWrap(True)
