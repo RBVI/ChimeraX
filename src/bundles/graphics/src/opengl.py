@@ -3156,6 +3156,21 @@ class Texture:
             raise TypeError('Texture value type %s not supported' % str(dtype))
         return format, iformat, tdtype, ncomp
 
+    def read_texture_data(self):
+        '''
+        The data is read back to a numpy array as uint8 values using the
+        same array shape used to fill the texture.
+        '''
+        from numpy import zeros, uint8
+        data = zeros(self._array_shape, uint8)
+        format, iformat, tdtype, ncomp = self.texture_format(data)
+        gl_target = self.gl_target
+        GL.glBindTexture(gl_target, self.id)
+        level = 0
+        GL.glGetTexImage(gl_target, level, format, tdtype, data)
+        GL.glBindTexture(gl_target, 0)
+        return data
+    
     def normalization(self):
         '''
         Scale factor for converting texture values to normalized values,
