@@ -1,0 +1,121 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Tool: Local EM Fitting</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#tools">Tool</a>: Local EM Fitting</h3>
+<p>
+The <b>Local EM Fitting</b> tool in ChimeraX runs
+<i>voyager.emplace_local</i> (included in the 
+<a href="https://phenix-online.org" target="_blank">Phenix</a> nightly build)
+<!--
+not found
+<a href="https://phenix-online.org/documentation/reference/emplace_local.html"
+target="_blank">
+-->
+to fit an atomic structure within a local region of cryo-EM density;
+the command implementation is 
+<a href="../commands/phenix.html#emplaceLocal"><b>phenix emplaceLocal</b></a>.
+See also:
+<a href="fitmap.html"><b>Fit in Map</b></a>,
+<a href="waterplacement.html"><b>Water Placement</b></a>
+</p><p>
+Limiting the search space to a local region of the map can improve the
+signal-to-noise ratio and lead to success in cases where global search fails,
+in addition to being much faster. The method uses two &ldquo;half maps&rdquo;
+that cover the same spatial region but are each generated from half of the
+experimental data.
+</p><p>
+<a href="https://phenix-online.org" target="_blank">Phenix</a>
+must be installed locally and the <b>PhenixUI</b> bundle installed in ChimeraX.
+The program location can be specified (saved in
+<a href="../preferences.html#other">preferences</a>) beforehand with the
+<a href="../commands/phenix.html#location"><b>phenix location</b></a> command.
+If no location has been specified, however, ChimeraX will look for a folder
+name that starts with <b>phenix</b> in the user's home directory,
+and on Mac only, if none is found there, then in the system
+<b>/Applications</b> folder.
+</p>
+<a name="initial"></a>
+<p>
+<b>Local EM Fitting</b> 
+can be started from the <b>Phenix</b> section of the <b>Tools</b> menu.
+The atomic structure to be fitted and both half maps should already be open
+in ChimeraX; other maps (often the full map) and atomic structures may also 
+be present. The structure to fit and the half maps should be chosen from
+the menus of the available models. Other settings:
+</p>
+<ul>
+<li><b>Map resolution</b> 
+&ndash; initially <b>0.0</b>, but a suitable nonzero value should be 
+specified by the user 
+<li><b>Center search at</b>
+  <ul>
+  <li><b>center of model...</b> center of the bounding box of the chosen model
+  <li><b>center of view</b> &ndash; determined as follows:
+    <ol>
+    <li>if center-of-rotation crosshairs are displayed
+(<b><a href="../commands/cofr.html">cofr</a> showPivot true</b>),
+at the center of the crosshairs;
+   <li>otherwise, if the <a href="../commands/cofr.html">center-of-rotation 
+method</a> is <b>fixed</b>, at that center of rotation;
+   <li>otherwise, if a single map is displayed, in the center of the graphics
+window in the plane of the window (screen XY coordinates), and at the middle 
+of the map's bounding box in depth (screen Z-coordinate)
+   <li>otherwise, if more than one map is displayed, as immediately above except
+using the bounding box of one of the half maps used in the fitting calculation
+   </ol>
+  <li><b>specified xyz position...</b> X, Y, and Z coordinates (&Aring;)
+relative to the origin of the map and in the coordinate system of the map
+  </ul>
+<li><b>Interactively verify/adjust center before searching</b>
+(initial default <b>on</b>)
+&ndash; whether to generate a transparent orange
+<a href="../markers.html">marker</a> to show the search space size and location.
+Positions with any part of the atomic structure inside the marker sphere 
+will be searched. The size of the search volume is based on the size of the 
+structure and cannot be adjusted, but the search center can be moved by 
+moving the marker, using any ChimeraX method for moving markers or models
+(<i>e.g.</i>, clicking the <b>move markers</b>
+<a href="markers.html" title="Markers...">
+<img class="icon" border=1 src="mouse-icons/move.png"></a> icon
+in the <a href="markers.html"><b>Markers</b></a> toolbar to assign the mode to 
+the right mouse button, then using right-mouse click-drag to move the marker).
+Clicking <b>Start search</b> starts the local fitting calculation.
+</ul>
+<p>
+If the above option to interactively adjust the center was not used,
+clicking <b>OK</b> on the main dialog starts the local fitting calculation.
+This calculation generally takes on the order of a minute;
+after it completes, the atomic structure will be moved to the position of the
+top fitting solution, and the sharpened map generated by Phenix as part of
+the calculation will be opened as a new model.
+</p><p>
+Clicking <b>Help</b> shows this page
+in the <a href="helpviewer.html"><b>Help Viewer</b></a>.
+</p>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+February 2023</address>
+</body></html>

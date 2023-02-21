@@ -12,6 +12,10 @@
     or derivations thereof.
     === UCSF ChimeraX Copyright ===
 
+==========================
+orderedset: An ordered set
+==========================
+
 .. automodule:: chimerax.core.orderedset
     :members:
     :show-inheritance:
