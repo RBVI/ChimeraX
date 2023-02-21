@@ -12,6 +12,10 @@
     or derivations thereof.
     === UCSF ChimeraX Copyright ===
 
+===========================================
+gui: Main ChimeraX graphical user interface
+===========================================
+
 .. module:: chimerax.ui
 
 .. automodule:: chimerax.ui.gui
