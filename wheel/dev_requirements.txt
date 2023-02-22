@@ -23,6 +23,7 @@ pytest-dependency==0.5.1
 pytest-order==1.0.1
 requests==2.28.2
 sortedcontainers==2.4.0
+setuptools==65.1.1
 tinyarray==1.2.4
 tomli==2.0.1
 urllib3==1.26.14
