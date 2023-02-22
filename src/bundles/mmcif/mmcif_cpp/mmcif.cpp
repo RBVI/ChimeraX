@@ -12,7 +12,7 @@
  * or derivations thereof.
  * === UCSF ChimeraX Copyright ===
  */
-
+#define PY_SSIZE_T_CLEAN
 #include "_mmcif.h"
 #include "mmcif.h"
 #include <atomstruct/AtomicStructure.h>
@@ -37,10 +37,15 @@
 #include <algorithm>
 #include <unordered_map>
 #include <set>
+#include <cstddef>
 
 #undef CLOCK_PROFILING
 #ifdef CLOCK_PROFILING
 #include <ctime>
+#endif
+
+#ifdef Py_LIMITED_API
+#define PyTuple_SET_ITEM PyTuple_SetItem
 #endif
 
 // The PDB has a limited form of struct_sheet_hbond called
@@ -2917,7 +2922,7 @@ non_standard_bonds(const Bond **bonds, size_t num_bonds, bool selected_only, boo
             // should never happen because residues are in same chain
             continue;
         }
-        if (std::abs((ssize_t) (p1 - p0)) != 1) {
+        if (std::abs((std::ptrdiff_t) (p1 - p0)) != 1) {
             // not adjacent (circular)
             covalent.push_back(b);
             continue;
@@ -2950,15 +2955,24 @@ quote_value(PyObject* value, int max_len)
     if (PyBool_Check(value) || PyLong_Check(value) || PyFloat_Check(value))
         return str;
 
+#ifdef Py_LIMITED_API
+    Py_ssize_t len = PyUnicode_GetLength(str);
+#else
     Py_ssize_t len = PyUnicode_GET_LENGTH(str);
+#endif
     if (len == 0) {
         Py_DECREF(str);
         return PyUnicode_FromString("''");
     }
 
     Py_UCS4 ch;
+#ifdef Py_LIMITED_API
+    Py_UCS4* data = PyUnicode_AsUCS4Copy(str);
+# define PyUnicode_READ(kind, data, index) data[index]
+#else
     int kind = PyUnicode_KIND(str);
     void* data = PyUnicode_DATA(str);
+#endif
     ch = PyUnicode_READ(kind, data, 0);
     bool sing_quote = ch == '\'';
     bool dbl_quote = ch == '"';
@@ -3071,6 +3085,9 @@ quote_value(PyObject* value, int max_len)
                 special = true;
         }
     }
+#ifdef Py_LIMITED_API
+    PyMem_Free(data);
+#endif
     PyObject* result;
     if (line_break || (sing_quote && dbl_quote) || (max_len && len > max_len))
         result = PyUnicode_FromFormat("\n;%U\n;\n", str);
