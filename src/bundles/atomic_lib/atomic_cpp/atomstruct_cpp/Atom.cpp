@@ -1259,10 +1259,14 @@ Atom::session_save(int** ints, float** floats, PyObject* misc) const
     float_ptr += SESSION_NUM_FLOATS();
 
     using pysupport::cchar_to_pystring;
-    if (PyList_Append(misc, cchar_to_pystring(_computed_idatm_type, "computed IDATM type")) < 0)
+    auto py_comp_type = cchar_to_pystring(_computed_idatm_type, "computed IDATM type");
+    if (PyList_Append(misc, py_comp_type) < 0)
         throw std::runtime_error("Cannot append computed atom type to misc list");
-    if (PyList_Append(misc, cchar_to_pystring(_explicit_idatm_type, "explicit IDATM type")) < 0)
+    Py_DECREF(py_comp_type);
+    auto py_explicit_type = cchar_to_pystring(_explicit_idatm_type, "explicit IDATM type");
+    if (PyList_Append(misc, py_explicit_type) < 0)
         throw std::runtime_error("Cannot append explicit atom type to misc list");
+    Py_DECREF(py_explicit_type);
 
     if (_aniso_u != nullptr) {
         for (auto v: *_aniso_u) {
