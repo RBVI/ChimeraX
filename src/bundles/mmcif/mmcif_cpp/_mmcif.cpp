@@ -13,10 +13,16 @@
 # define PY_STUPID (char *)
 #endif
 
+#ifdef Py_LIMITED_API
+#define PyTuple_SET_ITEM PyTuple_SetItem
+#define PyUnicode_GET_LENGTH PyUnicode_GetLength
+#endif
+
 namespace mmcif {
 
 PyObject* _mmcifErrorObj;
 int _mmcifDebug;
+PyTypeObject* Bonds_Type;
 
 void
 _mmcifError()
@@ -350,9 +356,9 @@ _mmcif_non_standard_bonds(PyObject*, PyObject* _args)
 	if (!PyArg_ParseTuple(_args, "O|ii:non_standard_bonds", &_ptArg1, &_ptArg2, &_ptArg3))
 		return NULL;
 	try {
-		const char* tp_name = Py_TYPE(_ptArg1)->tp_name;
+		PyTypeObject* type1 = Py_TYPE(_ptArg1);
 		// chimerax.atomic.molarray.Bonds
-		if (strcmp(tp_name, "Bonds") != 0)
+		if (type1 != Bonds_Type)
 			throw std::invalid_argument("argument 1 should be a Bonds collection");
 		PyObject* pointers = PyObject_GetAttrString(_ptArg1, "_pointers");
 		if (pointers == NULL)
@@ -596,6 +602,16 @@ PyInit__mmcif()
 		return NULL;
 	Py_INCREF(mmcif::_mmcifErrorObj);
 	PyModule_AddObject(module, "error", mmcif::_mmcifErrorObj);
+
+	PyObject* atomic = PyImport_ImportModule("chimerax.atomic");
+	if (atomic == NULL)
+		return NULL;
+	PyObject* mod_dict = PyModule_GetDict(atomic);
+	mmcif::Bonds_Type = reinterpret_cast<PyTypeObject*>(PyDict_GetItemString(mod_dict, "Bonds"));
+	if (mmcif::Bonds_Type == NULL)
+		return NULL;
+	Py_INCREF(reinterpret_cast<PyObject*>(mmcif::Bonds_Type));
+	Py_DECREF(atomic);
 
 	return module;
 }
