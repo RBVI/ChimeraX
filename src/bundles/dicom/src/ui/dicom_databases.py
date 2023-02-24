@@ -86,7 +86,6 @@ class DICOMDatabases(ToolInstance):
         self.control_layout.setSpacing(0)
         self.main_layout.setSpacing(0)
 
-
         self.database_entries.add_column("Dataset", lambda x: x.collection)
         self.database_entries.add_column("Number of Patients", lambda x: x.count)
 
@@ -110,6 +109,7 @@ class DICOMDatabases(ToolInstance):
         self.study_entries_control_widget = QWidget(self.study_entries_container)
         self.study_entries_control_widget.setVisible(False)
         self.study_entries = DICOMTable(self.study_entries_control_widget, None, self.study_entries_container)
+        self.study_entries.add_column("Collection", lambda x: x.collection)
         self.study_entries.add_column("Study Instance UID", lambda x: x.suid)
         self.study_entries.add_column("Date", lambda x: x.date)
         self.study_entries.add_column("Description", lambda x: x.desc)
@@ -140,7 +140,8 @@ class DICOMDatabases(ToolInstance):
         self.series_entries_control_widget = QWidget(self.series_entries_container)
         self.series_entries_control_widget.setVisible(False)
         self.series_entries = DICOMTable(self.series_entries_control_widget, None, self.series_entries_container)
-        self.series_entries.add_column("Series Instance UID", lambda x: x.serUid)
+        self.series_entries.add_column("Study Instance UID", lambda x: x.studyUid)
+        self.series_entries.add_column("Series Instance UID", lambda x: x.seriesUid)
         self.series_entries.add_column("Modality", lambda x: x.modality)
         self.series_entries.add_column("Protocol Name", lambda x: x.protocolName)
         self.series_entries.add_column("Series Description", lambda x: x.seriesDescription)
@@ -215,6 +216,7 @@ class DICOMDatabases(ToolInstance):
             )
             for x in entries
         ]
+        self.study_entries.sortByColumn(0, Qt.SortOrder.AscendingOrder)
         self.interface_stack.setCurrentIndex(1)
 
     def _on_back_to_search_button_clicked(self):
@@ -232,7 +234,8 @@ class DICOMDatabases(ToolInstance):
     def _on_series_returned_from_worker(self, entries):
         self.series_entries.data = [
             SeriesTableEntry(
-                x.get('SeriesInstanceUID', None)
+                x.get('StudyInstanceUID', None)
+                , x.get('SeriesInstanceUID', None)
                 , x.get('Modality', None)
                 , x.get('ProtocolName', None)
                 , x.get('SeriesDescription', None)
@@ -243,6 +246,7 @@ class DICOMDatabases(ToolInstance):
             )
             for x in entries
         ]
+        self.series_entries.sortByColumn(0, Qt.SortOrder.AscendingOrder)
         self.interface_stack.setCurrentIndex(2)
 
     def _on_drill_down_clicked(self):
@@ -256,15 +260,16 @@ class DICOMDatabases(ToolInstance):
 
     def _on_series_table_double_clicked(self, items):
         for item in items:
-            run(self.session, f"open {item.serUid} fromDatabase tcia format dicom")
+            run(self.session, f"open {item.seriesUid} fromDatabase tcia format dicom")
 
 
 class SeriesTableEntry:
-    __slots__ = ["serUid", "modality", "protocolName", "seriesDescription", "bodyPart", "seriesNumber", "patientID",
+    __slots__ = ["studyUid", "seriesUid", "modality", "protocolName", "seriesDescription", "bodyPart", "seriesNumber", "patientID",
                  "imageCount"]
 
-    def __init__(self, serUid, modality, protocolName, seriesDescription, bodyPart, seriesNumber, patientID, imageCount):
-        self.serUid = serUid
+    def __init__(self, studyUid, serUid, modality, protocolName, seriesDescription, bodyPart, seriesNumber, patientID, imageCount):
+        self.studyUid = studyUid
+        self.seriesUid = serUid
         self.modality = modality
         self.protocolName = protocolName
         self.seriesDescription = seriesDescription
