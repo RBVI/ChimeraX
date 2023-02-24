@@ -12,6 +12,10 @@
     or derivations thereof.
     === UCSF ChimeraX Copyright ===
 
+===============================
+logger: Application log support
+===============================
+
 .. automodule:: chimerax.core.logger
     :members:
     :show-inheritance:

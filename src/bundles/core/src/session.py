@@ -373,7 +373,7 @@ class _RestoreManager:
     def log_bundles(self, session, missing_bundles, out_of_date_bundles):
 
         bundle_link = session.toolshed.bundle_link
-        msg = "<blockquote>\n" "To Restore session:<ul>\n"
+        msg = "<blockquote>\n" "To restore session:<ul>\n"
         if missing_bundles:
             for name, version in missing_bundles:
                 msg += f"<li>install {bundle_link(name)} bundle version {version} or newer</li>" "\n"

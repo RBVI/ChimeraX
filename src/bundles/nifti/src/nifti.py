@@ -40,12 +40,13 @@ class NiftiData:
         self.data_size = data.shape
         self.images = data.get_fdata()
         # TODO: Get the rotation from the NifTI file
-        # affine = data.affine
-        # self.data_rotation = [
-        #     [affine[0,0], 0, 0]
-        #     , [0, affine[1,1], 0]
-        #     , [0, 0, affine[2,2]]
-        # ]
+        affine = data.affine
+        self.data_rotation = [
+            [affine[0,0], 0, 0]
+            , [0, affine[1,1], 0]
+            , [0, 0, affine[2,2]]
+        ]
+        self.center = [affine[0,3], affine[1,3], affine[2,3]]
         # Affine matrix is a 4 x 4 matrix
         # --          --
         # | a  0  0  x |
@@ -56,8 +57,6 @@ class NiftiData:
         # Where x, y, and z are translations
         # the sign of the 3x3 diagonal determines direction
         # and the magnitudes of the 3x3 diagonal are scaling factors
-        self.data_rotation = ((1, 0, 0), (0, 1, 0), (0, 0, 1))
-        self.center = (0, 0, 0)
         self.data_type = data.dataobj.dtype
 
 
@@ -66,7 +65,7 @@ class NiftiGrid(GridData):
         self.nifti_data = nifti
         GridData.__init__(
             self, nifti.data_size, nifti.data_type
-            , nifti.center #, data_step = ???, rotation = ???
+            , nifti.center, rotation=nifti.data_rotation #, data_step = ???, rotation = ???
             # , path = ???, name = ???
             , file_type = 'nifti' #, time, channel ???
         )
@@ -74,4 +73,4 @@ class NiftiGrid(GridData):
     def read_matrix(self, ijk_origin = (0,0,0), ijk_size = None,
                   ijk_step = (1,1,1), progress = None):
         return self.nifti_data.images
-        # self.initial_plane_display = True ? 
+        # self.initial_plane_display = True ?
