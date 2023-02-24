@@ -30,10 +30,7 @@ class Option(metaclass=ABCMeta):
         if attr_name:
             self.attr_name = attr_name
         elif not hasattr(self, 'attr_name'):
-            if self.name:
-                self.attr_name = self.name
-            else:
-                self.attr_name = None
+            self.attr_name = None
 
         if settings is None:
             self.settings_handler = self.settings = None

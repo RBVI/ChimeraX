@@ -82,7 +82,7 @@ class FitJob(Job):
 command_defaults = {
     'verbose': False
 }
-def phenix_local_fit(session, model, center=None, half_maps=None, resolution=None, *,
+def phenix_local_fit(session, model, center=None, half_maps=None, *, resolution=0.0,
         block=None, phenix_location=None, verbose=command_defaults['verbose'],
         option_arg=[], position_arg=[]):
 
@@ -140,6 +140,7 @@ def view_box(session, model):
     if bbox is None:
         if not model.display:
             model.display = True
+            model.update_drawings()
             bbox = model.bounds()
             model.display = False
         if bbox is None:
@@ -170,18 +171,26 @@ def view_box(session, model):
     cam = session.main_view.camera
     origin = cam.position.origin()
     direction = cam.view_direction()
+    # find the two points that have the property of being a plane intercept and lying between
+    # the other two plane pairs (these two points may not be on opposite sides of the box)
+    face_intercepts = []
     for plane_pair in plane_pairs:
-        try:
-            intersections = [plane.line_intersection(origin, direction) for plane in plane_pair]
-        except PlaneNoIntersectionError:
-            continue
-        mid_point = (intersections[0] + intersections[1]) / 2
-        for plane1, plane2 in plane_pairs:
-            if plane1.distance(mid_point) * plane2.distance(mid_point) > 0:
-                # outside plane pair
-                break
-        else:
-            return mid_point
+        for plane in plane_pair:
+            try:
+                intersection = plane.line_intersection(origin, direction)
+            except PlaneNoIntersectionError:
+                continue
+            for pp2 in plane_pairs:
+                if pp2 is plane_pair:
+                    continue
+                plane1, plane2 = pp2
+                if plane1.distance(intersection) * plane2.distance(intersection) > 0:
+                    # outside plane pair
+                    break
+            else:
+                face_intercepts.append(intersection)
+    if len(face_intercepts) == 2:
+        return (face_intercepts[0] + face_intercepts[1]) / 2
     raise ViewBoxError("Center of view does not intersect %s bounding box" % model)
 
 def _process_results(session, fit_model, sharpened_map, orig_model, half_maps, shift):
@@ -227,7 +236,8 @@ def _run_fit_subprocess(session, exe_path, optional_args, half_map1_file_name,
             "map2=%s" % StringArg.unparse(half_map2_file_name),
             "d_min=%g" % resolution,
             "model_file=%s" % StringArg.unparse(model_file_name),
-            "sphere_center=(%g,%g,%g)" % tuple(search_center.scene_coordinates())
+            "sphere_center=(%g,%g,%g)" % tuple(search_center.scene_coordinates()),
+            "--json",
         ] + positional_args
     tsafe=session.ui.thread_safe
     logger = session.logger
@@ -255,11 +265,22 @@ def _run_fit_subprocess(session, exe_path, optional_args, half_map1_file_name,
 
     # Open new model with added waters
     from os import path
-    model_path = path.join(temp_dir,'top_model.pdb')
+    json_path = path.join(temp_dir,'emplace_local_result.json')
+    import json
+    with open(json_path, 'r') as f:
+        info = json.load(f)
+    model_path = path.join(temp_dir, info["model_filename"])
     from chimerax.pdb import open_pdb
-    fitted_models, info = open_pdb(session, model_path, log_info=False)
-    map_path = path.join(temp_dir,'top_model.map')
-    sharpened_maps, info = session.open_command.open_data(map_path)
+    fitted_models, status = open_pdb(session, model_path, log_info=False)
+    map_path = path.join(temp_dir, info["map_filename"])
+    sharpened_maps, status = session.open_command.open_data(map_path)
+    from chimerax.core.commands import plural_form
+    num_solutions = info["n_solutions"]
+    tsafe(logger.info, "%d fitting %s" % (num_solutions, plural_form(num_solutions, "solution")))
+    tsafe(logger.info, "map LLG %s: %s" % (plural_form(num_solutions, "value"),
+        ', '.join(["%g" % v for v in info["mapLLG"]])))
+    tsafe(logger.info, "map CC %s: %s" % (plural_form(num_solutions, "value"),
+        ', '.join(["%g" % v for v in info["mapCC"]])))
 
     return fitted_models[0], sharpened_maps[0]
 
@@ -271,8 +292,7 @@ def register_command(logger):
     desc = CmdDesc(
         required = [('model', AtomicStructureArg),
         ],
-        #required_arguments = ['center', 'half_maps', 'in_map', 'resolution'],
-        required_arguments = ['center', 'half_maps', 'resolution'],
+        required_arguments = ['center', 'half_maps'],
         keyword = [('block', BoolArg),
                    ('center', CenterArg),
                    ('half_maps', MapsArg),

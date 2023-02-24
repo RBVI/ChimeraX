@@ -104,7 +104,7 @@ class DICOMDatabases(ToolInstance):
         self.study_entries_container = QWidget(self.interface_stack)
         self.study_entries_layout = QVBoxLayout(self.study_entries_container)
         self.back_to_search_button = QPushButton("Back to Collections")
-        self.study_highlighted_label = QLabel("For highlighted entries:")
+        self.study_highlighted_label = QLabel("For chosen entries:")
         self.refine_study_button = QPushButton("Drill Down to Series")
 
         self.study_entries_control_widget = QWidget(self.study_entries_container)
@@ -134,7 +134,7 @@ class DICOMDatabases(ToolInstance):
         self.series_entries_layout = QVBoxLayout(self.series_entries_container)
         self.back_to_studies_button = QPushButton("Back to Studies")
         self.back_to_beginning_button = QPushButton("Back to Collections")
-        self.series_highlighted_label = QLabel("For highlighted entries:")
+        self.series_highlighted_label = QLabel("For chosen entries:")
         self.open_button = QPushButton("Download and Open")
 
         self.series_entries_control_widget = QWidget(self.series_entries_container)
