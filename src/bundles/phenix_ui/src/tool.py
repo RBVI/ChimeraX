@@ -206,8 +206,9 @@ class LaunchEmplaceLocalTool(ToolInstance):
         from chimerax.ui.options import OptionsPanel, FloatOption
         res_options = OptionsPanel(scrolled=False, contents_margins=(0,0,0,0))
         layout.addWidget(res_options, alignment=Qt.AlignCenter)
-        self.res_option = FloatOption("Map resolution:", None, None, min="positive", decimal_places=2,
-            step=0.1, max=99.99)
+        self.res_option = FloatOption("Map resolution:", None, None, min=0.0, decimal_places=2,
+            step=0.1, max=99.99, balloon="Full map resolution.  If unknown, providing a value"
+            " of zero will cause an estimated resolution to be used.")
         res_options.add_option(self.res_option)
 
         centering_widget = QWidget()
@@ -281,8 +282,6 @@ class LaunchEmplaceLocalTool(ToolInstance):
         maps = self.half_map_list.value
         if len(maps) != 2:
             raise UserError("Must specify exactly two half maps for fitting")
-        if float(self.res_option.widget.text()) <= 0.0:
-            raise UserError("Need to set map resolution value")
         res = self.res_option.value
         method = self.centering_button.text()
         if method == self.CENTER_XYZ:

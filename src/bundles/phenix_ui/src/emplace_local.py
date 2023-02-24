@@ -82,7 +82,7 @@ class FitJob(Job):
 command_defaults = {
     'verbose': False
 }
-def phenix_local_fit(session, model, center=None, half_maps=None, resolution=None, *,
+def phenix_local_fit(session, model, center=None, half_maps=None, *, resolution=0.0,
         block=None, phenix_location=None, verbose=command_defaults['verbose'],
         option_arg=[], position_arg=[]):
 
@@ -292,8 +292,7 @@ def register_command(logger):
     desc = CmdDesc(
         required = [('model', AtomicStructureArg),
         ],
-        #required_arguments = ['center', 'half_maps', 'in_map', 'resolution'],
-        required_arguments = ['center', 'half_maps', 'resolution'],
+        required_arguments = ['center', 'half_maps'],
         keyword = [('block', BoolArg),
                    ('center', CenterArg),
                    ('half_maps', MapsArg),
