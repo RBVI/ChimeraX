@@ -12,6 +12,10 @@
     or derivations thereof.
     === UCSF ChimeraX Copyright ===
 
+======================================================
+triggerset: Support for managing triggers and handlers
+======================================================
+
 .. automodule:: chimerax.core.triggerset
     :members:
     :show-inheritance:

@@ -28,6 +28,7 @@ lxml==4.9.2
 lz4==4.3.2
 matplotlib==3.6.3
 msgpack==1.0.4
+nibabel == 5.0.1
 netCDF4==1.6.2
 networkx==2.8.8
 numpy==1.23.5

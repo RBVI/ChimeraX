@@ -929,7 +929,8 @@ class _CompiledCode:
             if v < CHIMERAX1_0_PYTHON_VERSION:
                 v = CHIMERAX1_0_PYTHON_VERSION
             hex_version = (v.major << 24) | (v.minor << 16) | (v.micro << 8)
-            self.add_macro_define("Py_LIMITED_API", hex_version)
+            self.add_macro_define("Py_LIMITED_API", hex(hex_version))
+            self.add_macro_define("CYTHON_LIMITED_API", hex(hex_version))
 
     def get_platform_specific_args(self, attrs):
         for platform in self._platforms[sys.platform]:
