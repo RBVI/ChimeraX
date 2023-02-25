@@ -134,8 +134,8 @@ can be used multiple times in the same command
 <b>phenix emplaceLocal</b>
 &nbsp;<a href="atomspec.html#hierarchy"><i>atomic-model</i></a>&nbsp;
 <b>halfMaps</b>&nbsp;&nbsp;<a href="atomspec.html#othermodels"><i>map-models</i></a>&nbsp;
-<b>resolution</b>&nbsp;&nbsp;<i>r</i>&nbsp;
 <b>center</b>&nbsp;&nbsp;<a href="pointspec.html#point"><i>point-spec</i></a>&nbsp;
+[&nbsp;<b>resolution</b>&nbsp;&nbsp;<i>r</i>&nbsp;]
 [&nbsp;<b>verbose</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>phenixLocation</b> &nbsp;<i>folder</i>&nbsp;]
 [&nbsp;<b>block</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
@@ -152,16 +152,21 @@ The atomic model to fit and the experimental &ldquo;half maps&rdquo;
 should be already open and specified as the
 <a href="atomspec.html#hierarchy"><i>atomic-model</i></a> and
 <a href="atomspec.html#othermodels"><i>map-models</i></a>, respectively.
-Additional required arguments (no defaults):
+Additional arguments:
 </p>
 <ul>
-<li><b>resolution</b> &ndash; map resolution
-<li><b>center</b> &ndash; center of the search space given as
+<li><b>center</b> (required, no default)
+&ndash; center of the search space given as
 <i>x,y,z</i> (three values separated by commas only),
 an <a href="atomspec.html"><i>atom-spec</i></a>, or any of the other
 standard <a href="pointspec.html#vector">point specifications</a>.
 The size of the search space is based on the size of the structure 
 and cannot be adjusted.
+<li><b>resolution</b>
+&ndash; map resolution (default <b>0.0</b> &Aring;);
+a suitable nonzero value for the map resolution should be specified
+by the user, if possible. Otherwise, a nonzero value will be estimated 
+and used in the calculation.
 </ul>
 <p>
 The remaining options are as described above for

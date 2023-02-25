@@ -6,7 +6,7 @@ build-backend = "chimerax.bundle_builder.cx_pep517"
 name = "ChimeraX-Nifti"
 license = { text = "Free for non-commercial use" }
 authors= [{name = "UCSF RBVI", email="chimerax@cgl.ucsf.edu"}]
-description = "Read medical images in Nifti format"
+description = "Read medical images in NifTI format"
 dependencies = [
 	"ChimeraX-Core ~=1.0"
 	, "ChimeraX-DataFormats ~=1.0"
@@ -21,7 +21,7 @@ losslessjpeg = ["python-gdcm"]
 
 [project.readme]
 content-type = "text"
-text = "Read medical imaging and segmentations in DICOM format."
+text = "Read medical imaging and segmentations in NifTI format."
 
 [project.urls]
 Home = "https://www.rbvi.ucsf.edu/chimerax/"
