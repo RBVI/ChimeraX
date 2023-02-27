@@ -1,0 +1,113 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Tool: Download DICOM</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#tools">Tool</a>: Download DICOM</h3>
+
+<table class="clRight" cellpadding="0px" cellspacing="0px">
+<tr><td>
+<a href="tcia1.png"><img class="outline" src="tcia1.png" width="350px" 
+alt="TCIA collections" title="click to enlarge..."></a>
+</td></tr>
+<tr><td align="center">&darr;</td></tr>
+<tr><td>
+<a href="tcia2.png"><img class="outline" src="tcia2.png" width="350px" 
+alt="TCIA studies" title="click to enlarge..."></a>
+</td><tr>
+<tr><td align="center">&darr;</td></tr>
+<tr><td>
+<a href="tcia3.png"><img class="outline" src="tcia3.png" width="350px" 
+alt="TCIA series" title="click to enlarge..."></a>
+<tr><td align="center">&darr;</td></tr>
+<tr><td>
+<a href="tcia4.png"><img class="outline" src="tcia4.png" width="350px" 
+alt="series in ChimeraX" title="click to enlarge..."></a>
+</td><tr>
+</table>
+
+<p>
+<b>Download DICOM</b> allows browsing and fetching publicly available
+medical image data into ChimeraX. It can be started from the
+<b>Medical Imaging</b> section of the <b>Tools</b> menu
+and manipulated like other panels
+(<a href="../window.html#panels">more...</a>).
+See also: 
+<a href="../dicom-quickref.html">ChimeraX DICOM Reference</a>,
+<a href="dicombrowser.html"><b>DICOM Browser</b></a>,
+<a href="dicommetadata.html"><b>DICOM Metadata</b></a>
+</p><p>
+Currently, <b>Download DICOM</b> interfaces with
+one database, <a href="https://www.cancerimagingarchive.net/"
+target="_blank">The Cancer Imaging Archive (TCIA)</a>:
+</p>
+<blockquote>
+<a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3824915/"
+target="_blank">
+The Cancer Imaging Archive (TCIA): maintaining and operating a public information repository.</a>
+Clark K, Vendt B, Smith K, Freymann J, Kirby J, Koppel P, Moore S, Phillips S, Maffitt D, Pringle M, Tarbox L, Prior F. 
+<i>J Digit Imaging.</i>  2013 Dec;<b>26</b>(6):1045-57.
+</blockquote>
+<p>
+Data hierarchy:
+</p>
+<ul>
+<li>The top level of dataset organization in TCIA is a <b><i>collection</i></b>,
+typically corresponding to a research project involving multiple patients,
+with potentially multiple studies per patient.
+<li>Each <b><i>study</i></b> may contain multiple series. 
+<li>An individual <b><i>series</i></b> is a 3D image (stack of 2D images)
+that can be opened as <a href="volumeviewer.html">volume data</a>
+in ChimeraX.
+</ul>
+<p>
+<b>Download DICOM</b> allows traversing the hierachy from collections
+to studies to series, then choosing series to fetch and open.
+</p><p>
+<a name="chosen"></a>
+One or more rows in the dialog can be chosen (highlighted)
+by clicking and dragging with the left mouse button;
+<b>Ctrl</b>-click (or <b>command</b>-click if using a Mac)
+toggles whether a row is chosen.
+</p>
+Initially, the dialog lists collections. One or more collections can
+be chosen, and clicking <b>Drill down to Studies</b> will list the studies 
+they contain.
+</p><p>
+When the dialog is listing studies, one or more studies can be chosen, 
+and clicking <b>Drill Down to Series</b> will list the series
+they contain.
+</p><p>
+When the dialog is listing series, one or more can be chosen to
+<b>Download and Open</b>.
+Buttons for navigating back up the hierarchy (<b>Back to Studies</b>,
+<b>Back to Collections</b>) are provided at the lower levels.
+</p><p>
+The data are stored locally in <b>~/Downloads/ChimeraX/tciaDownload/</b>.
+<!-- will cached data be reused? -->
+</p>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+February 2023</address>
+</body></html>
