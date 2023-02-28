@@ -400,7 +400,7 @@ class BlastProteinResults(ToolInstance):
         from chimerax.alphafold.match import _similarity_table_html
         for m in models:
             # TODO: Would be nice if all models were in one log table.
-            msg = _similarity_table_html(m, query_seq, m.database.id)
+            msg = _similarity_table_html(m.chains[0], query_seq, m.database.id)
             m.session.logger.info(msg, is_html = True)
 
     # Code for displaying matches as multiple sequence alignment
