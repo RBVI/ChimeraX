@@ -19,7 +19,7 @@ class DockPrepTool(ToolInstance):
     help ="help:user/tools/dockprep.html"
     tool_name = "Dock Prep"
 
-    def __init__(self, session, *, dock_prep_info={}):
+    def __init__(self, session, dock_prep_info):
         ToolInstance.__init__(self, session, self.tool_name)
         self.dock_prep_info = dock_prep_info
 
@@ -47,16 +47,14 @@ class DockPrepTool(ToolInstance):
         self.structure_list = ShortASList(session)
         structure_layout.addWidget(self.structure_list, alignment=Qt.AlignLeft)
         layout.addLayout(structure_layout)
-        if dock_prep_info:
-            self.tool_window.title = dock_prep_info['process name'].title()
-            dp_structures = dock_prep_info['structures']
-            if dp_structures is not None:
-                self.structure_list.value = list(dp_structures)
-                self.structure_list.setEnabled(False)
+        self.tool_window.title = dock_prep_info['process name'].title()
+        dp_structures = dock_prep_info['structures']
+        if dp_structures is not None:
+            self.structure_list.value = list(dp_structures)
+            self.structure_list.setEnabled(False)
 
         from .settings import get_settings, defaults
-        settings = get_settings(session, dock_prep_info['process name'] if dock_prep_info else "dock prep",
-            "base", defaults)
+        settings = get_settings(session, dock_prep_info['process name'], "base", defaults)
         layout.addWidget(QLabel("For the chosen structures, do the following:"), alignment=Qt.AlignLeft)
         self.del_solvent_button = QCheckBox("Delete solvent")
         self.del_solvent_button.setChecked(settings.del_solvent)
@@ -102,7 +100,8 @@ class DockPrepTool(ToolInstance):
         self.add_charges_button.setChecked(settings.ac)
         layout.addWidget(self.add_charges_button, alignment=Qt.AlignLeft)
         self.write_mol2_button = QCheckBox("Write Mol2 file")
-        self.write_mol2_button.setChecked(not dock_prep_info)
+        plain_dock_prep = dock_prep_info['process name'] == "dock prep"
+        self.write_mol2_button.setChecked(plain_dock_prep and settings.write_mol2)
         layout.addWidget(self.write_mol2_button, alignment=Qt.AlignLeft)
 
         from Qt.QtWidgets import QDialogButtonBox as qbbox
@@ -125,8 +124,7 @@ class DockPrepTool(ToolInstance):
         self.tool_window.shown = False
         self.session.ui.processEvents()
         if not self.structures:
-            if (not self.dock_prep_info or self.dock_prep_info['structures'] is None) \
-            and self.structure_list.all_values:
+            if self.dock_prep_info['structures'] is None and self.structure_list.all_values:
                 self.tool_window.shown = True
                 raise UserError("No structures chosen for Dock Prep.")
             self.delete()
@@ -143,32 +141,14 @@ class DockPrepTool(ToolInstance):
             'complete_side_chains': sc_val,
             'ah': self.add_hyds_button.isChecked(),
             'ac': self.add_charges_button.isChecked(),
+            'write_mol2': self.write_mol2_button.isChecked(),
         }
+        if self.dock_prep_info['process name'] == "dock prep":
+            from .settings import get_settings, defaults
+            settings = get_settings(self.session, self.dock_prep_info['process name'], "base", defaults)
+            settings.write_mol2 = params['write_mol2']
         try:
-            if self.dock_prep_info:
-                self.dock_prep_info['callback'](self.structures, tool_settings=params)
-            else:
-                from chimerax.core.commands import run, concise_model_spec
-                from .cmd import dock_prep_arg_info
-                dp_arg_info = dock_prep_arg_info(self.session)
-                from .settings import defaults
-                from chimerax.atomic import AtomicStructure
-                cmd_parts = ["dockprep",
-                    concise_model_spec(self.session, self.structures, relevant_types=AtomicStructure)]
-                for py_keyword, arg_val in params.items():
-                    if arg_val == defaults[py_keyword]:
-                        continue
-                    annotation = dp_arg_info[py_keyword]
-                    arg_parts = py_keyword.split('_')
-                    cmd_arg = arg_parts[0]
-                    for ap in arg_parts[1:]:
-                        cmd_arg += ap.capitalize()
-                    cmd_parts.extend([cmd_arg, annotation.unparse(arg_val)])
-                run(self.session, " ".join(cmd_parts))
-            if self.write_mol2_button.isChecked():
-                from chimerax.save_command import show_save_file_dialog
-                show_save_file_dialog(self.session,
-                    format=self.session.data_formats.save_format_from_suffix(".mol2").name)
+            self.dock_prep_info['callback'](self.structures, tool_settings=params)
         finally:
             self.delete()
 

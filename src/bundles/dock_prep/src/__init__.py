@@ -31,7 +31,6 @@ class DockPrepAPI(BundleAPI):
 
     @staticmethod
     def start_tool(session, tool_name):
-        from .tool import DockPrepTool
-        DockPrepTool(session)
+        dock_prep_caller(session, None, nogui=False)
 
 bundle_api = DockPrepAPI()

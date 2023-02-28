@@ -92,7 +92,16 @@ def prep(session, state, callback, memo_type, memo_name, structures, keywords, *
                     swap_aa(session, [r], res_type)
             else:
                 swap_aa(session, targets, "same", rot_lib=style)
-    session.logger.status("Dock prep finished", log=True)
+    def postscript(session=session, mol2=tool_settings and tool_settings['write_mol2']):
+        session.logger.status("Dock prep finished", log=True)
+        if mol2:
+            from chimerax.save_command import show_save_file_dialog
+            show_save_file_dialog(session, format=session.data_formats.save_format_from_suffix(".mol2").name)
+    cb = state['callback']
+    if cb is None:
+        state['callback'] = postscript
+    else:
+        state['callback'] = lambda cb=cb, ps=postscript: (ps(), cb())
     callback(session, state, structures)
 
 def handle_memorization(session, memorization, memorize_requester, main_settings_name, keywords, defaults,
