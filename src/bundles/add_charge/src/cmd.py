@@ -16,7 +16,7 @@ ChargeMethodArg = EnumOf(['am1-bcc', 'gasteiger'])
 ChargeMethodArg.default_value = 'am1-bcc'
 
 from chimerax.core.errors import UserError
-from .charge import default_standardized, add_charges, add_nonstandard_res_charges
+from .charge import default_standardized, add_charges, add_nonstandard_res_charges, ChargeError
 
 # functions in .dock_prep may need updating if cmd_addcharge() call signature changes
 def cmd_addcharge(session, residues, *, method=ChargeMethodArg.default_value,
@@ -30,8 +30,11 @@ def cmd_addcharge(session, residues, *, method=ChargeMethodArg.default_value,
     if standardize_residues == "none":
         standardize_residues = []
     check_hydrogens(session, residues)
-    add_charges(session, residues, method=method, status=session.logger.status,
-        standardize_residues=standardize_residues)
+    try:
+        add_charges(session, residues, method=method, status=session.logger.status,
+            standardize_residues=standardize_residues)
+    except ChargeError as e:
+        raise UserError(str(e))
     from math import floor
     def is_non_integral(val):
         return abs(floor(val+0.5) - val) > 0.005
