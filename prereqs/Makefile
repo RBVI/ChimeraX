@@ -33,8 +33,10 @@ ifeq ($(OS),Linux)
 NEED_CHRPATH=1
 ifndef UBUNTU_DIST
 ifndef CENTOS_DIST
+ifndef FLATPAK_DIST
 NEED_OPENSSL=1
 NEED_ZLIB=1
+endif
 endif
 endif
 endif
