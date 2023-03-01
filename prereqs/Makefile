@@ -20,7 +20,9 @@ all:
 #
 
 ifndef UBUNTU_DIST
+ifndef FLATPAK_DIST
 NEED_FFMPEG=1
+endif
 endif
 
 ifdef WIN32
