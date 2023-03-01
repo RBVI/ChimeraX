@@ -5,6 +5,11 @@ runtime-version: '22.08'
 sdk: org.freedesktop.Sdk
 command: chimerax
 
+build-options:
+    build_args:
+    # need to fetch files from https://cxtoolshed.rbvi.ucsf.edu/prereqs
+    - --share=network
+
 finish-args:
   # X11 + Xshm access
   - --share=ipc
@@ -27,7 +32,7 @@ modules:
     buildsystem: simple
     sources:
       - type: git
-        url: git@github.com:RBVI/ChimeraX.git
+        url: ssh://git@github.com/RBVI/ChimeraX.git
         branch: develop
     build-commands:
       - make -f Makefile.flatpak install
