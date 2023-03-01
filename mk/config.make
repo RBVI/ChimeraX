@@ -83,7 +83,11 @@ endif
 
 
 APP_NAME = ChimeraX
+ifdef FLATPAK_DIST
+APP_FILENAME = /app/$(APP_NAME)
+else
 APP_FILENAME = $(APP_NAME).app
+endif
 CHIMERAX_APP = $(wildcard $(TOP)/ChimeraX*.app)
 ifeq ($(OS),Windows)
 CHIMERAX_EXE = $(CHIMERAX_APP)/bin/ChimeraX.exe
@@ -121,6 +125,9 @@ ifndef WIN32
 RSYNC = rsync -rltWv --executability
 else
 RSYNC = $(bindir)/rsync.convert -rlptWv
+endif
+ifdef FLATPAK_DIST
+RSYNC := flatpak-spawn --host $(RSYNC)
 endif
 
 ifdef WIN32
