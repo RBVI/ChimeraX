@@ -1,3 +1,4 @@
+# vim:set expandtab:
 id: edu.ucsf.rbvi.ChimeraX
 runtime: org.freedesktop.Platform
 runtime-version: '22.08'
@@ -27,6 +28,6 @@ modules:
     sources:
       - type: git
         url: git@github.com:RBVI/ChimeraX.git
-	branch: develop
+        branch: develop
     build-commands:
       - make -f Makefile.flatpak install
