@@ -38,7 +38,7 @@ wheel: clean src/buildinfo.py src/commands/_atomspec.py
 	$(PYTHON) -m build --no-isolation --wheel
 
 sync:
-	rsync -av dist/*.whl $(build_prefix)/sync/
+	cp -av dist/*.whl $(build_prefix)/sync/
 
 src/buildinfo.py: buildinfo.py.in mkbuildinfo
 	rm -f src/buildinfo.py

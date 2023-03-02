@@ -90,7 +90,7 @@ ifeq ($(OS),Linux)
 endif
 
 sync:
-	rsync -av dist/*.whl $(SYNC_DIR)
+	cp -av dist/*.whl $(SYNC_DIR)
 
 ifdef BUILD_AND_INSTALL
 INSTALL_ARGS = noDeps true
