@@ -20,11 +20,6 @@ from chimerax.map.volume import open_grids
 from chimerax.map_data import GridData
 from chimerax.image_formats.open_image import ImageSurface
 
-# A quick note on coordinate systems:
-#
-# ChimeraX appears to use a right-handed coordinate system. Open any data
-#
-
 class NRRD:
     def __init__(self, session, data):
         self.session = session
@@ -48,7 +43,6 @@ class NRRD:
         for nrd in self.nrrds:
             if len(nrd.shape) == 2:
                 models.append(ImageSurface(self.session, nrd.name, nrd.image, nrd.shape[0], nrd.shape[1]))
-            # if len(nrd.shape) == 2 and one of the axes has a value of 3?
             else:
                 grids = []
                 for nrd in self.nrrds:
@@ -68,7 +62,6 @@ class NRRDData:
         self._transformed_data = None
         self._spacings = None
         self._name = None
-        self._space = None
 
     @property
     def name(self):
@@ -124,41 +117,6 @@ class NRRDData:
     def _axis_corrected_spacing(self):
         pass
 
-    @property
-    def space(self):
-        # Reducing the ambiguity that comes with having two different
-        # terms for the same space.
-        if not self._space:
-            space = self._raw_header.get("space", None)
-            if space == "right-anterior-superior" or space == "RAS":
-                ...
-            elif space == "left-anterior-superior" or space == "LAS":
-                ...
-            elif space == "left-posterior-superior" or space == "LPS":
-                ...
-            elif space == "right-anterior-superior-time" or space == "RAST":
-                ...
-            elif space == "left-anterior-superior-time" or space == "LAST":
-                ...
-            elif space == "left-posterior-superior-time" or space == "LPST":
-                ...
-            elif space == "scanner-xyz":
-                ...
-            elif space == "scanner-xyz-time":
-                ...
-            elif space == "3D-right-handed":
-                ...
-            elif space == "3D-left-handed":
-                ...
-            elif space == "3D-right-handed-time":
-                ...
-            elif space == "3D-left-handed-time":
-                ...
-            else:
-                return None
-            self._space = space
-        return self._space
-
 
 class NRRDGrid(GridData):
     def __init__(self, nrrd, time = None, channel = None):
@@ -171,4 +129,3 @@ class NRRDGrid(GridData):
     def read_matrix(self, ijk_origin = (0,0,0), ijk_size = None,
                   ijk_step = (1,1,1), progress = None):
         return self.nrrd_data.image
-        #return rotate(self.nrrd_data.image, angle=180, axes=(1,2), reshape=False)
