@@ -16,7 +16,7 @@ install: $(SOURCE)
 	cd $(SOURCE) && $(MAKE) install
 
 app-install:
-	cp -av $(includedir)/libGLU.h $(app_includedir)
+	cp -av $(includedir)/glu.h $(app_includedir)
 	cp -av $(libdir)/libGLU $(app_libdir)
 
 $(SOURCE): $(DISTRIBUTION)
