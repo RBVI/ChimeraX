@@ -33,7 +33,7 @@ install-editable:
 	$(PYTHON) -m pip install --no-build-isolation --editable .
 
 sync:
-	rsync -av dist/*.whl $(TOP)/build/sync/
+	cp -av dist/*.whl $(TOP)/build/sync/
 
 build: install
 	# unlike normal bundles, install as well
