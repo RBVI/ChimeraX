@@ -41,6 +41,10 @@ endif
 endif
 endif
 
+ifdef FLATPAK_DIST
+NEED_RSYNC=1
+endif
+
 ifdef NEED_CHRPATH
 SUBDIRS += chrpath
 else
@@ -67,6 +71,13 @@ SUBDIRS += zlib
 else
 zlib.install:
 zlib.app-install:
+endif
+
+ifdef NEED_RSYNC
+SUBDIRS += rsync
+else
+rsync.install:
+rsync.app-install:
 endif
 
 # Python egg installation has a race condition updating easy-install.pth
@@ -134,6 +145,9 @@ endif
 #ifdef UNIX
 #$(subst unix.install,,$(SUBDIR_INSTALL)): unix.install
 #endif
+ifdef FLATPAK_DIST
+$(subst rsync.install,,$(SUBDIR_INSTALL)): rsync.install
+endif
 
 # Please keep dependencies in alphabetical order.
 # All packages that have dependencies should depend on the .install
