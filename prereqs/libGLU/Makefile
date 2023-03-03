@@ -16,8 +16,9 @@ install: $(SOURCE)
 	cd $(SOURCE) && $(MAKE) install
 
 app-install:
-	cp -av $(includedir)/glu.h $(app_includedir)
-	cp -av $(libdir)/libGLU $(app_libdir)
+	mkdir -p $(app_includedir)/GL
+	cp -av $(includedir)/GL/glu.h $(app_includedir)/GL
+	cp -av $(libdir)/libGLU* $(app_libdir)
 
 $(SOURCE): $(DISTRIBUTION)
 	tar jxf $(DISTRIBUTION) -C $(tmpdir)
