@@ -151,16 +151,16 @@ install: $(LINUX_ICONS)
 endif
 
 ChimeraX-icon128.png:
-	convert ChimeraX-icon512.png -geometry 128x128 ChimeraX-icon128.png
+	ffmpeg -loglevel warning -i ChimeraX-icon512.png -vf scale=128:128 ChimeraX-icon128.png
 
 ChimeraX-icon64.png:
-	convert ChimeraX-icon512.png -geometry 64x64 ChimeraX-icon64.png
+	ffmpeg -loglevel warning -i ChimeraX-icon512.png -vf scale=64:64 ChimeraX-icon64.png
 
 ChimeraX-icon32.png:
-	convert ChimeraX-icon512.png -geometry 32x32 ChimeraX-icon32.png
+	ffmpeg -loglevel warning -i ChimeraX-icon512.png -vf scale=32:32 ChimeraX-icon32.png
 
 ChimeraX-icon16.png:
-	convert ChimeraX-icon512.png -geometry 16x16 ChimeraX-icon16.png
+	ffmpeg -loglevel warning -i ChimeraX-icon512.png -vf scale=16:16 ChimeraX-icon16.png
 
 #
 # For Windows
