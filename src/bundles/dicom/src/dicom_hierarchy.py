@@ -289,14 +289,6 @@ class Series:
     # value for these parameters.  So they are only read for the first file.
     # Not sure if this is a valid assumption.
     #
-    dicom_attributes = ['BitsAllocated', 'BodyPartExamined', 'Columns', 'Modality',
-                        'NumberOfTemporalPositions',
-                        'PatientID', 'PhotometricInterpretation',
-                        'PixelPaddingValue', 'PixelRepresentation', 'PixelSpacing',
-                        'RescaleIntercept', 'RescaleSlope', 'Rows',
-                        'SamplesPerPixel', 'SeriesDescription', 'SeriesInstanceUID', 'SeriesNumber',
-                        'SOPClassUID', 'StudyDate', 'SliceThickness', 'SpacingBetweenSlices']
-
     def __init__(self, session, files):
         self._raw_files = files
         self.order_slices()
@@ -304,7 +296,6 @@ class Series:
         self.files = []
         for f in self._raw_files:
             self.files.append(SeriesFile(f))
-        self.attributes = {}
         self.transfer_syntax = None
         self._multiframe = None
         self._reverse_frames = False
@@ -319,10 +310,6 @@ class Series:
         if not any([f.get("PixelData") for f in files]):
             self.image_series = False
         self.sample_file = self._raw_files[0]
-        attrs = self.attributes
-        for attr in self.dicom_attributes:
-            if hasattr(self.sample_file, attr):
-                attrs[attr] = getattr(self.sample_file, attr)
         if self.transfer_syntax is None and hasattr(self.sample_file.file_meta, 'TransferSyntaxUID'):
             self.transfer_syntax = self.sample_file.file_meta.TransferSyntaxUID
         if len(files) == 1 and self.multiframe:
@@ -343,15 +330,39 @@ class Series:
 
     @property
     def name(self):
-        fields = []
-        desc = self.attributes.get('SeriesDescription')
-        if not desc:
-            desc = "No Description"
-        mod = self.attributes.get('Modality', "Unknown Modality")
-        no = self.attributes.get('SeriesNumber', "Unknown Series Number")
-        return f"{no} {mod} ({desc})"
+        return f"{self.number} {self.modality} ({self.description})"
+    
+    @property
+    def sop_class_uid(self):
+        return self.sample_file.get("SOPClassUID")
 
-    # TODO: Is this really less ugly / confusing than __getattr__?
+    @property
+    def samples_per_pixel(self):
+        return self.sample_file.get('SamplesPerPixel')
+
+    @property
+    def pixel_padding(self):
+        return self.sample_file.get('PixelPaddingValue')
+
+    @property
+    def bits_allocated(self):
+        return self.sample_file.get('BitsAllocated')
+
+    @property
+    def pixel_representation(self):
+        return self.sample_file.get('PixelRepresentation')
+
+    @property
+    def photometric_interpretation(self):
+        return self.sample_file.get('PhotometricInterpretation')
+
+    @property
+    def rescale_slope(self):
+        return self.sample_file.get('RescaleSlope', 1)
+
+    @property
+    def rescale_intercept(self):
+        return self.sample_file.get('RescaleIntercept', 0)
 
     @property
     def body_part(self):
@@ -367,7 +378,7 @@ class Series:
 
     @property
     def patient_id(self):
-        return self.sample_file.get("PatientID")
+        return self.sample_file.get("PatientID", "")
 
     @property
     def patient_sex(self):
@@ -375,7 +386,7 @@ class Series:
 
     @property
     def study_date(self):
-        return self.sample_file.get("StudyDate")
+        return self.sample_file.get("StudyDate", "")
 
     @property
     def study_id(self):
@@ -387,23 +398,31 @@ class Series:
 
     @property
     def number(self):
-        return self.sample_file.get("SeriesNumber")
+        return self.sample_file.get("SeriesNumber", "Unknown Series Number")
 
     @property
     def description(self):
-        return self.sample_file.get("SeriesDescription")
+        return self.sample_file.get("SeriesDescription", "No Description")
 
     @property
     def modality(self):
-        return self.sample_file.get("Modality")
+        return self.sample_file.get("Modality", "Unknown Modality")
 
     @property
     def uid(self):
         return self.sample_file.get("SeriesInstanceUID")
 
     @property
+    def columns(self):
+        return self.sample_file.get("Columns")
+
+    @property
+    def rows(self):
+        return self.sample_file.get("Rows")
+
+    @property
     def size(self) -> Optional[str]:
-        x, y = self.sample_file.get("Columns"), self.sample_file.get("Rows")
+        x, y = self.columns, self.rows
         if x and y:
             return "%sx%s" % (x, y)
         return None
@@ -463,18 +482,17 @@ class Series:
 
     @property
     def sort_key(self):
-        attrs = self.attributes
-        return attrs.get('PatientID', ''), attrs.get('StudyDate', ''), self.name
+        return self.patient_id, self.study_date, self.name
 
     @property
     def plane_uids(self):
-        return tuple(fi._instance_uid for fi in self.files)
+        return tuple(fi.instance_uid for fi in self.files)
 
     @property
     def ref_plane_uids(self):
         fis = self.files
-        if len(fis) == 1 and hasattr(fis[0], '_ref_instance_uids'):
-            uids = fis[0]._ref_instance_uids
+        if len(fis) == 1 and hasattr(fis[0], 'ref_instance_uids'):
+            uids = fis[0].ref_instance_uids
             if uids is not None:
                 return tuple(uids)
         return None
@@ -482,7 +500,7 @@ class Series:
     @property
     def num_times(self):
         if self._num_times is None:
-            nt = self.attributes.get('NumberOfTemporalPositions', None)
+            nt = self.sample_file.get('NumberOfTemporalPositions', None)
             if nt is None:
                 times = sorted(set(data.trigger_time for data in self.files))
                 nt = len(times)
@@ -548,8 +566,7 @@ class Series:
                     )
 
     def grid_size(self):
-        attrs = self.attributes
-        xsize, ysize = attrs['Columns'], attrs['Rows']
+        xsize, ysize = self.columns, self.rows
         files = self.files
         if self.multiframe:
             if len(files) == 1:
@@ -602,9 +619,9 @@ class Series:
         return self._patient_axes()[2]
 
     def pixel_spacing(self):
-        pspacing = self.attributes.get('PixelSpacing')
+        pspacing = self.sample_file.get('PixelSpacing')
         if pspacing is None and self.multiframe:
-            pspacing = self.files[0]._pixel_spacing
+            pspacing = self.files[0].pixel_spacing
 
         if pspacing is None:
             xs = ys = 1
@@ -632,9 +649,9 @@ class Series:
             files = self.files
             if self.multiframe:
                 f = files[0]
-                fpos = f._frame_positions
+                fpos = f.frame_positions
                 if fpos is None:
-                    gfov = f._grid_frame_offset_vector
+                    gfov = f.grid_frame_offset_vector
                     if gfov is None:
                         dz = None
                     else:
@@ -678,15 +695,11 @@ class Series:
 
     @property
     def has_image_data(self):
-        attrs = self.attributes
-        for attr in ('BitsAllocated', 'PixelRepresentation'):
-            if attrs.get(attr) is None:
-                return False
-        return True
+        return (self.bits_allocated and self.pixel_representation)
 
     @property
     def dicom_class(self):
-        cuid = self.attributes.get('SOPClassUID')
+        cuid = self.sop_class_uid
         return 'unknown' if cuid is None else cuid.name
 
     @requires_gui
@@ -700,16 +713,16 @@ class DicomData:
         self.paths = tuple(series.paths)
         npaths = len(series.paths)  # noqa assigned but not accessed
         self.name = series.name
-        attrs = series.attributes
-        rsi = float(attrs.get('RescaleIntercept', 0))
+        rsi = self.dicom_series.rescale_intercept
         if rsi == int(rsi):
             rsi = int(rsi)
         self.rescale_intercept = rsi
-        self.rescale_slope = float(attrs.get('RescaleSlope', 1))
-        bits = attrs.get('BitsAllocated')
-        rep = attrs.get('PixelRepresentation')
+        self.rescale_slope = self.dicom_series.rescale_slope
+        bits = self.dicom_series.bits_allocated
+        rep = self.dicom_series.pixel_representation
         self.value_type = self.numpy_value_type(bits, rep, self.rescale_slope, self.rescale_intercept)
-        ns = attrs.get('SamplesPerPixel')
+        self.dicom_series.samples_per_pixel
+        ns = self.dicom_series.samples_per_pixel
         if ns == 1:
             mode = 'grayscale'
         elif ns == 3:
@@ -718,12 +731,12 @@ class DicomData:
             raise ValueError('Only 1 or 3 samples per pixel supported, got %d' % ns)
         self.mode = mode
         self.channel = 0
-        pi = attrs['PhotometricInterpretation']
+        pi = self.dicom_series.photometric_interpretation
         if pi == 'MONOCHROME1':
             pass  # Bright to dark values.
         if pi == 'MONOCHROME2':
             pass  # Dark to bright values.
-        ppv = attrs.get('PixelPaddingValue')
+        self.dicom_series.pixel_padding
         if ppv is not None:
             self.pad_value = self.rescale_slope * ppv + self.rescale_intercept
         else:
@@ -836,30 +849,29 @@ class SeriesFile:
         nf = getattr(data, 'NumberOfFrames', None)
         self._num_frames = int(nf) if nf is not None else None
         gfov = getattr(data, 'GridFrameOffsetVector', None)
-        self._grid_frame_offset_vector = [float(o) for o in gfov] if gfov is not None else None
-        self._class_uid = getattr(data, 'SOPClassUID', None)
-        self._instance_uid = getattr(data, 'SOPInstanceUID', None)
-        self._ref_instance_uid = getattr(data, 'ReferencedSOPInstanceUID', None)
-        self._trigger_time = getattr(data, 'TriggerTime', None)
-        self._pixel_spacing = None
-        self._frame_positions = None
+        self.grid_frame_offset_vector = [float(o) for o in gfov] if gfov is not None else None
+        self.class_uid = getattr(data, 'SOPClassUID', None)
+        self.instance_uid = getattr(data, 'SOPInstanceUID', None)
+        self.ref_instance_uid = getattr(data, 'ReferencedSOPInstanceUID', None)
+        self.pixel_spacing = None
+        self.frame_positions = None
         if self._num_frames is not None:
             def floats(s):
                 return [float(x) for x in s]
 
-            self._pixel_spacing = self._sequence_elements(
+            self.pixel_spacing = self._sequence_elements(
                 data
                 , (('SharedFunctionalGroupsSequence', 1), ('PixelMeasuresSequence', 1))
                 , 'PixelSpacing'
                 , floats
             )
-            self._frame_positions = self._sequence_elements(
+            self.frame_positions = self._sequence_elements(
                 data
                 , (('PerFrameFunctionalGroupsSequence', 'all'), ('PlanePositionSequence', 1))
                 , 'ImagePositionPatient'
                 , floats
             )
-            self._ref_instance_uids = self._sequence_elements(
+            self.ref_instance_uids = self._sequence_elements(
                 data
                 ,
                 (('SharedFunctionalGroupsSequence', 1), ('DerivationImageSequence', 1), ('SourceImageSequence', 'all'))
@@ -875,7 +887,7 @@ class SeriesFile:
 
     @property
     def trigger_time(self):
-        return self._trigger_time
+        return getattr(self.data, 'TriggerTime', None)
 
     @property
     def multiframe(self):
