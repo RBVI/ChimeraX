@@ -326,16 +326,21 @@ def html_user_agent(app_dirs):
     if app_version is not None:
         user_agent += "/%s" % token(app_version)
     import platform
+    # want system to resemble "OS VERSION ARCH"
     system = platform.system()
     if system == "Darwin":
-        system = f"{system} {platform.mac_ver()}"
+        mac_ver = platform.mac_ver()
+        system = f"{system} {mac_ver[0]} {mac_ver[2]}"
     elif system == "Windows":
-        system = f"{system} {platform.win32_ver()[1]}"
+        u = platform.uname()
+        system = f"{system} {u.version} {u.machine}"
     elif system == "Linux":
         import distro
-        system = f"{system} {' '.join(distro.linux_distribution())}"
+        system = f"{system} {distro.name()} {distro.version(best=True)} {platform.machine()}"
+    else:
+        system = f"{system} {platform.version()} {platform.machine()}"
     if system:
-        user_agent += " (%s)" % comment(system)
+        user_agent += f" ({comment(system)})"
     return user_agent
 
 
