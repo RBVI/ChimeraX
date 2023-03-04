@@ -13,7 +13,6 @@
 from collections import defaultdict
 import datetime
 import os
-import warnings
 from numpy import (
     cross, dot, float32
     , uint8, int8, uint16, int16
@@ -468,9 +467,8 @@ class Series:
 
     @property
     def ref_plane_uids(self):
-        fis = self.files
-        if len(fis) == 1 and hasattr(fis[0], 'ref_instance_uids'):
-            uids = fis[0].ref_instance_uids
+        if len(self.files) == 1 and hasattr(self.files[0], 'ref_instance_uids'):
+            uids = self.files[0].ref_instance_uids
             if uids is not None:
                 return tuple(uids)
         return None
@@ -520,12 +518,11 @@ class Series:
         if self.num_times == 1:
             return
 
-        files = self.files
-        for fi in files:
+        for fi in self.files:
             if fi._time is None:
                 raise ValueError('Missing dicom TemporalPositionIdentifier for image %s' % fi.path)
 
-        tset = set(fi._time for fi in files)
+        tset = set(fi._time for fi in self.files)
         if len(tset) != self.num_times:
             msg = ('DICOM series header says it has %d times but %d found, %s... %d files.'
                     % (self.num_times, len(tset), self.files[0].path, len(self.files)))
@@ -533,9 +530,9 @@ class Series:
             self._num_times = len(tset)
 
         tcount = {t: 0 for t in tset}
-        for fi in files:
+        for fi in self.files:
             tcount[fi._time] += 1
-        nz = len(files) / self.num_times
+        nz = len(self.files) / self.num_times
         for t, c in tcount.items():
             if c != nz:
                 raise ValueError(
@@ -561,11 +558,9 @@ class Series:
         return xsize, ysize, zsize
 
     def origin(self):
-        files = self.files
-        if len(files) == 0:
+        if len(self.files) == 0:
             return None
-
-        pos = files[0]._position
+        pos = self.files[0]._position
         if pos is None:
             return None
 

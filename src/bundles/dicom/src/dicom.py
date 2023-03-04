@@ -142,7 +142,7 @@ class DICOM:
         for patient in self.patients:
             if patient.pid == patient:
                 return True
-            return False
+        return False
 
 
 class DICOMMapFormat(MapFileFormat, DICOM):
