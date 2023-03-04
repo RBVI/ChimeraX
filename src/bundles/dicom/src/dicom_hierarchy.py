@@ -736,7 +736,7 @@ class DicomData:
             pass  # Bright to dark values.
         if pi == 'MONOCHROME2':
             pass  # Dark to bright values.
-        self.dicom_series.pixel_padding
+        ppv = self.dicom_series.pixel_padding
         if ppv is not None:
             self.pad_value = self.rescale_slope * ppv + self.rescale_intercept
         else:
