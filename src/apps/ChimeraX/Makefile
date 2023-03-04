@@ -22,6 +22,8 @@ BINMODE	= 755
 
 ICONS	= ChimeraX-icon.svg ChimeraX-icon512.png
 ifeq ($(OS),Linux)
+# ffmpeg might be in $(bindir)
+export PATH:=$(bindir):$(PATH)
 LINUX_ICONS = ChimeraX-icon128.png ChimeraX-icon64.png ChimeraX-icon32.png ChimeraX-icon16.png
 ICONS	+= $(LINUX_ICONS)
 endif
