@@ -25,6 +25,7 @@ from typing import Optional
 from chimerax.core.decorators import requires_gui
 from chimerax.core.models import Model
 from chimerax.core.tools import get_singleton
+from chimerax.core.session import Session
 
 from chimerax.map.volume import open_grids
 
@@ -38,34 +39,11 @@ except ModuleNotFoundError:
 else:
     _has_gdcm = True
 
-try:
-    # We are inside GUI ChimeraX
-    from chimerax.ui.gui import UI
-except (ModuleNotFoundError, ImportError):
-    # We could be in NoGUI ChimeraX
-    try:
-        from chimerax.core.nogui import UI
-    except (ModuleNotFoundError, ImportError):
-        pass
-finally:
-    try:
-        _logger = UI.instance().session.logger
-        _session = UI.instance().session
-    except (NameError, AttributeError):
-        # We didn't have either of ChimeraX's UIs, or they were uninitialized.
-        # We're either in some other application or being used as a library.
-        # Default to passed in sessions and the Python logging module
-        import logging
-        _session = None
-        _logger = logging.getLogger()
-        _logger.status = _logger.info
-
-
 class Patient(Model):
     """A set of DICOM files that have the same Patient ID"""
-    def __init__(self, session, pid):
+    def __init__(self, session: Session, pid: str):
+        self.session = session
         self.pid = pid
-        self.session = session or _session
         Model.__init__(self, 'Patient %s' % pid, session)
         self.studies = []
 
@@ -194,7 +172,7 @@ class Study(Model):
             if f.file_meta.TransferSyntaxUID == '1.2.840.10008.1.2.4.70' and f.get('BitsAllocated') == 16:
                 warning = 'Could not read DICOM %s because Python Image Library cannot read 16-bit lossless jpeg ' \
                           'images. This functionality can be enabled by installing python-gdcm'
-                _logger.warning(warning % f.filename)
+                self.session.logger.warning(warning % f.filename)
             else:
                 keep.append(f)
         return keep
@@ -229,7 +207,7 @@ class Study(Model):
                         self.add(s.to_models())
                         self._drawn_series.add(s.uid)
                 except UnrenderableSeriesError as e:
-                    _logger.warning(str(e))
+                    self.session.logger.warning(str(e))
 
     def __str__(self):
         return f"Study {self.uid} with {len(self.series)} series"
@@ -508,7 +486,7 @@ class Series:
                     data._time = times.index(data.trigger_time) + 1
                     data.inferred_properties += "TemporalPositionIdentifier"
                 if nt > 1:
-                    _logger.warning(
+                    self.session.logger.warning(
                         "Inferring time series from TriggerTime metadata \
                         field in series missing NumberOfTemporalPositions"
                     )
@@ -550,8 +528,8 @@ class Series:
         tset = set(fi._time for fi in files)
         if len(tset) != self.num_times:
             msg = ('DICOM series header says it has %d times but %d found, %s... %d files.'
-                    % (self.num_times, len(tset), files[0].path, len(files)))
-            _logger.warning(msg)
+                    % (self.num_times, len(tset), self.files[0].path, len(self.files)))
+            self.session.logger.warning(msg)
             self._num_times = len(tset)
 
         tcount = {t: 0 for t in tset}
@@ -625,20 +603,20 @@ class Series:
 
         if pspacing is None:
             xs = ys = 1
-            _logger.warning('Missing PixelSpacing, using value 1, %s' % self.paths[0])
+            self.session.logger.warning('Missing PixelSpacing, using value 1, %s' % self.paths[0])
         else:
             xs, ys = [float(s) for s in pspacing]
         zs = self.z_plane_spacing()
         if zs is None:
             nz = self.grid_size()[2]
             if nz > 1:
-                _logger.warning(
+                self.session.logger.warning(
                     'Cannot determine z spacing, missing ImagePositionPatient, using value 1, %s'
                     % self.paths[0]
                     )
             zs = 1  # Single plane image
         elif zs == 0:
-            _logger.warning('Error. Image planes are at same z-position.  Setting spacing to 1.')
+            self.session.logger.warning('Error. Image planes are at same z-position.  Setting spacing to 1.')
             zs = 1
 
         return (xs, ys, zs)
@@ -685,7 +663,7 @@ class Series:
                    'Perpendicular axis (%.3f, %.3f, %.3f)\n' % tuple(self.plane_normal()) +
                    'Directory %s\n' % os.path.dirname(self.files[0].path) +
                    '\n'.join(['%s %s' % (os.path.basename(f.path), f._position) for f in self.files]))
-            _logger.warning(msg)
+            self.session.logger.warning(msg)
             # If we're over the threshold try to get it from SliceThickness * SliceSpacing
             thickness = self.files[0].SliceThickness or 1
             spacing = self.files[0].SliceSpacing or 1
