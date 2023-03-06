@@ -24,7 +24,7 @@ from chimerax.core.tools import ToolInstance
 from chimerax.ui import MainToolWindow
 from chimerax.core.commands import run
 
-from ..dicom_fetch import *
+from ..databases import TCIADatabase
 from .widgets import DICOMTable
 
 class Action(Enum):
@@ -327,21 +327,21 @@ class DatabaseWorker(QObject):
         entries = None
         self.session.ui.thread_safe(self.session.logger.status, f"Loading collections from {self.database}")
         if self.database == "TCIA":
-            entries = fetch_nbia_collections_with_patients()
+            entries = TCIADatabase.getCollections(patient_counts=True)
         self.collections_ready.emit(entries)
 
     def _fetch_studies(self):
         entries = []
-        self.session.ui.thread_safe(self.session.logger.status, f"Loading requested studies...")
+        self.session.ui.thread_safe(self.session.logger.status, "Loading requested studies...")
         if self.database == "TCIA":
             for study in self.requested_studies:
-                entries.extend(fetch_nbia_study(collection=study.collection))
+                entries.extend(TCIADatabase.getStudy(collection=study.collection))
         self.studies_ready.emit(entries)
 
     def _fetch_series(self):
         entries = []
-        self.session.ui.thread_safe(self.session.logger.status, f"Loading requested series...")
+        self.session.ui.thread_safe(self.session.logger.status, "Loading requested series...")
         if self.database == "TCIA":
             for series in self.requested_series:
-                entries.extend(fetch_nbia_series(studyUid=series.suid))
+                entries.extend(TCIADatabase.getSeries(studyUid=series.suid))
         self.series_ready.emit(entries)
