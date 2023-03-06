@@ -46,31 +46,42 @@ web service hosted by the
 Resource for Biocomputing, Visualization, and Informatics (RBVI)</a>.
 <br><br>
 
-<!-- daily build 8/31/2022 onward uses K-mer search instead
-<dt><a name="blat"><b>BLAT Search</b></a>
-<dd>
-The <a href="user/commands/alphafold.html"><b>alphafold match</b></a> command
-and <a href="user/tools/alphafold.html"><b>AlphaFold</b></a> tool
-<b>Fetch</b> function perform protein sequence searches using a
-<a href="https://en.wikipedia.org/wiki/BLAT_(bioinformatics)"
-target="_blank">BLAT</a> web service hosted by the
-<a href="https://www.rbvi.ucsf.edu/Overview/index.html" target="_blank">UCSF
-RBVI</a>.
-<br><br>
--->
-
 <dt><a name="clustalomega"><b>Clustal Omega</b></a>
 <dd>
 Multiple sequence alignment with
 <a href="http://www.clustal.org/omega/" target="_blank">Clustal Omega</a>
 can be performed using a web service hosted by the
-<a href="https://www.cgl.ucsf.edu/Overview/index.html" target="_blank">UCSF
+<a href="https://www.rbvi.ucsf.edu/Overview/index.html" target="_blank">UCSF
 RBVI,</a> accessed via the
 <a href="user/commands/sequence.html#align"><b>sequence align</b></a> command
 or the
 <a href="user/tools/sequenceviewer.html#context"><b>Sequence Viewer</b>
 context menu</a>.
 <br><br>
+
+<dt><a name="esmfold"><b>ESMFold</b></a>
+<dd>
+The <a href="https://esmatlas.com/about#about_this_website"
+target="_blank">ESM Metagenomic Atlas</a> provides a
+<a href="https://esmatlas.com/about#fold" 
+target="_blank">structure prediction server</a> used by the command
+<a href="user/commands/esmfold.html#predict"><b>esmfold predict</b></a>.
+<br><br>
+
+<dt><a name="k-mer"><b>Fast Sequence Database Search</b></a>
+<dd>
+A <a href="https://www.rbvi.ucsf.edu/chimerax/data/kmer-aug2022/kmer_search.html">K-mer sequence search</a>
+service hosted by the 
+<a href="https://www.rbvi.ucsf.edu/Overview/index.html" target="_blank">UCSF
+RBVI</a> is used by the commands
+<a href="user/commands/alphafold.html#match"><b>alphafold match</b></a>
+and <a href="user/commands/esmfold.html#match"><b>esmfold match</b></a>,
+as well as the <a href="user/tools/alphafold.html"><b>AlphaFold</b></a> and
+<a href="user/tools/esmfold.html"><b>ESMFold</b></a> <b>Fetch</b> capability.
+This search algorithm is fast but low-sensitivity, as appropriate for 
+searching large sequence databases for matches with very high % identity. 
+<br><br>
+
 
 <dt><a name="modeller"><b>Modeller</b></a>
 <dd>
@@ -89,7 +100,7 @@ RBVI.</a>
 Multiple sequence alignment with
 <a href="https://drive5.com/muscle/" target="_blank">MUSCLE</a>
 can be performed using a web service hosted by the
-<a href="https://www.cgl.ucsf.edu/Overview/index.html" target="_blank">UCSF
+<a href="https://www.rbvi.ucsf.edu/Overview/index.html" target="_blank">UCSF
 RBVI,</a> accessed via the
 <a href="user/commands/sequence.html#align"><b>sequence align</b></a> command
 or the
@@ -181,5 +192,5 @@ target="_blank">UniProt</a>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-August 2022</address>
+February 2023</address>
 </body></html>

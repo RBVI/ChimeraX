@@ -191,9 +191,6 @@ class AlphaFoldRun(ToolInstance):
 
         from chimerax.core.commands import log_equivalent_command
         log_equivalent_command(self.session, f'open {path}')
-        
-        from .match import _set_alphafold_model_attributes
-        _set_alphafold_model_attributes(models)
 
         # TODO: Rename and align multiple chains and log info.
         #   AlphaFold relaxed models have chains A,B,C,... I believe ordered by input sequence order.
@@ -208,8 +205,9 @@ class AlphaFoldRun(ToolInstance):
                 _rename_chains(m, chain_ids)
                 _align_to_chain(m, longest_chain)
             if len(chains) == 1:
+                # TODO: Improve code to log RMSD per-chain for multimer predictions.
                 from .fetch import _log_chain_info
-                _log_chain_info(models, chains[0].name)
+                _log_chain_info(models, _chain_names(chains), prediction_method = 'AlphaFold')
 
         self.session.models.add(models)
 
@@ -231,6 +229,17 @@ class AlphaFoldRun(ToolInstance):
                 z.extractall(dir)
         self.session.logger.info(f'AlphaFold prediction finished\nResults in {dir}')
         self._open_prediction()
+
+# ------------------------------------------------------------------------------
+#
+def _chain_names(chains):
+    sc = {}
+    for chain in chains:
+        s = chain.structure
+        if s not in sc:
+            sc[s] = []
+        sc[s].append(chain.chain_id)
+    return ''.join(str(s) + '/' + ','.join(schains) for s, schains in sc.items())
 
 # ------------------------------------------------------------------------------
 #

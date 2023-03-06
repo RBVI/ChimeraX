@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-NIHPresets" version="1.1.1" package="chimerax.nih_presets"
+<BundleInfo name="ChimeraX-NIHPresets" version="1.1.9" package="chimerax.nih_presets"
             minSessionVersion="1" maxSessionVersion="1">
 
   <!-- Additional information about bundle source -->
@@ -42,6 +42,7 @@
     <Provider category="NIH3D" name="surface blob by polymer"/>
     <Provider category="NIH3D" name="sticks"/>
     <Provider category="NIH3D" name="sticks (printable)"/>
+    <Provider category="NIH3D" name="sticks monochrome"/>
     <Provider category="NIH3D" name="sticks monochrome (printable)"/>
     <Provider category="NIH3D" name="CPK"/>
     <Provider category="NIH3D" name="CPK monochrome"/>

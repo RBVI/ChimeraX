@@ -17,10 +17,10 @@ REMOTE_HOST = plato.cgl.ucsf.edu:
 REMOTE_DIR = $(REMOTE_HOST)/usr/local/src/PyQt6
 
 # BASE_VERSION is overriden by Makefile
-BASE_VERSION = 6.2
-QT_MINOR_VERSION = 3
-PYQT_MINOR_VERSION = 3
-PYQTWE_MINOR_VERSION = 1
+BASE_VERSION = 6.4
+QT_MINOR_VERSION = 2
+PYQT_MINOR_VERSION = 2
+PYQTWE_MINOR_VERSION = 0
 QT_VERSION = $(BASE_VERSION).$(QT_MINOR_VERSION)
 ifeq (,$(PYQT_MINOR_VERSION))
 PYQT_VERSION = $(BASE_VERSION)
@@ -35,8 +35,8 @@ endif
 
 # Versions of Riverbank Computing Limited packages/programs from when
 # unlicensed wheels where built and presumably matches the gpl wheel in PyPI.
-SIP_VERSION = 13.2.0
-BUILDER_VERSION = 1.12.2
+SIP_VERSION = 13.4.1
+BUILDER_VERSION = 1.14.0
 
 PYTHON_TAGS = cp36
 WHEEL_ABI = abi3
@@ -48,7 +48,7 @@ WE_WHEEL_PLATFORM = $(WHEEL_PLATFORM)
 QTDIR = $(HOME)/Qt/$(QT_VERSION)/macos
 else ifeq ($(OS),Linux)
 BIN_PLATFORM = linux
-WHEEL_PLATFORM = manylinux1_x86_64
+WHEEL_PLATFORM = manylinux_2_28_x86_64
 WE_WHEEL_PLATFORM = $(WHEEL_PLATFORM)
 #QTDIR = $(HOME)/Qt$(QT_VERSION)/$(QT_VERSION)/gcc_64
 QTDIR = $(HOME)/Qt/$(QT_VERSION)/gcc_64

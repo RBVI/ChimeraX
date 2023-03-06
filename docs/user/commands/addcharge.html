@@ -43,11 +43,13 @@ Using
 <a href="https://ambermd.org/AmberTools.php" target="_blank">AmberTools</a> 20,
 the <b>addcharge</b> command assigns atomic partial charges and 
 Amber/GAFF atom types as the <a href="../attributes.html">attributes</a>
-<b>charge</b> and <b>gaff_type</b>, respectively. 
+<b>charge</b> and <b>gaff_type</b>, respectively. The corresponding tool is 
+<a href="../tools/addcharges.html"><b>Add Charges</b></a>.
 Explicit hydrogens must be present;
 they can be added beforehand with <a href="addh.html"><b>addh</b></a>.
 See also: <a href="coulombic.html"><b>coulombic</b></a>,
-<a href="dockprep.html"><b>dockprep</b></a>
+<a href="dockprep.html"><b>dockprep</b></a>,
+<a href="../tools/addcharges.html#notes">troubleshooting charge addition</a>
 </p><p>
 The main <b>addcharge</b> command works on both standard and nonstandard
 residues, guessing net charges for the latter.
@@ -71,6 +73,8 @@ charges and types from the recommended force field versions in
   <li>lipid: lipid17 (lipid17.lib)
   <li>water: TIP3P (atomic_ions.lib, solvents.lib)
   </ul>
+Their Amber residue names are assigned as the 
+<a href="../attributes.html">attribute</a> <b>amber_name</b>.
 See the <a href="https://ambermd.org/" target="_blank"><b>Amber</b></a> 
 documentation for further force field details.
 <br><br>
@@ -159,5 +163,5 @@ Wang J, Wolf RM, Caldwell JW, Kollman PA, Case DA.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-September 2022</address>
+January 2023</address>
 </body></html>

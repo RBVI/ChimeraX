@@ -70,23 +70,6 @@ def add_standard_charges(session, residues=None, *, status=None, standardize_res
     defattr(session, attr_file, restriction=structures, summary=False)
 
     if status:
-        status("Checking phosphorylation of chain-terminal nucleic acids")
-    for r in residues:
-        amber_name = getattr(r, 'amber_name', "UNK")
-        if len(amber_name) != 3 or amber_name[0] not in 'DR' or amber_name[1] not in 'ACGTU':
-            # not typed as chain terminal
-            continue
-        p = r.find_atom('P')
-        if not p:
-            continue
-        for nb in p.neighbors:
-            if nb.residue != r:
-                break
-        else:
-            # 5' phosphate (i.e. not standard); treat as not chain-terminal
-            r.amber_name = r.amber_name[:2]
-
-    if status:
         status("Adding standard charges")
     Atom.register_attr(session, "charge", "add charge", attr_type=float)
     Atom.register_attr(session, "gaff_type", "add charge", attr_type=str)
@@ -116,6 +99,7 @@ def add_standard_charges(session, residues=None, *, status=None, standardize_res
             try:
                 a.charge, a.gaff_type = heavy_charge_type_data[(a.residue.amber_name, a.name.lower())]
             except KeyError:
+                print(a.residue, a.residue.amber_name)
                 raise ChargeError("Nonstandard name for heavy atom %s" % a)
         if r.name == 'UNK' and r.amber_name == "ALA":
             # we treat actual polymeric UNK residues as ALA, so that chains of
@@ -302,7 +286,8 @@ def add_nonstandard_res_charges(session, residues, net_charge, method="am1-bcc",
         for r in residues:
             a = r.atoms[0]
             a.charge = net_charge
-            session.change_tracker.add_modified(a, "charge changed")
+            session.change_tracker.add_modified(
+                a.fa_atom if isinstance(a, FakeAtom) else a, "charge changed")
             if a.element.name in ion_types:
                 a.gaff_type = ion_types[a.element.name]
             else:
@@ -592,9 +577,15 @@ def nonstd_charge(session, residues, net_charge, method, *, status=None, temp_di
                 break
             if status:
                 status("(%s) %s" % (r.name, line.rstrip()))
+            # Using <code> avoids extra newlines
             session.logger.status("(%s) <code>%s</code>" % (r.name, line.rstrip()), is_html=True, log=True)
         ante_failure_msg = "Failure running ANTECHAMBER for residue %s\nCheck reply log for details" % r.name
         if not os.path.exists(ante_out):
+            sqm_out = os.path.join(temp_dir, "sqm.out")
+            if os.path.exists(sqm_out) and os.stat(sqm_out).st_size > 0:
+                with open(sqm_out) as f:
+                    sqm_info = "<br><i>Contents of sqm.out:</i><pre>%s</pre>" % f.read()
+                session.logger.info(sqm_info, is_html=True)
             raise ChargeError(ante_failure_msg)
         if status:
             status("Reading ANTECHAMBER output for residue %s" % r.name)
@@ -706,6 +697,23 @@ class FakeAtom:
         else:
             setattr(self.fa_atom, name, val)
 
+    @property
+    def deleted(self):
+        return self.fa_atom.deleted
+
+def find_fake_name(base_name, known_names):
+    import string
+    for c in string.digits:
+        fa_name = base_name + c
+        if fa_name not in known_names:
+            return fa_name
+    if len(base_name)+1 < 4:
+        for c in string.digits:
+            fa_name = find_fake_name(base_name + c, known_names)
+            if fa_name is not None:
+                return fa_name
+    return None
+
 class FakeRes:
     def __init__(self, name, atoms=None):
         if atoms is None:
@@ -719,12 +727,10 @@ class FakeRes:
             for r in residues:
                 for a in r.atoms:
                     if a.name in atom_names:
-                        for c in string.digits + string.ascii_uppercase:
-                            fa_name = a.name[:3] + c
-                            if fa_name not in atom_names:
-                                break
-                        else:
-                            raise ValueError("Could not come up with unique atom name in mega-residue")
+                        fa_name = find_fake_name(a.element.name.upper(), atom_names)
+                        if not fa_name:
+                            raise ChargeError(
+                                f"Could not come up with unique atom name in mega-residue {name}")
                         fa = FakeAtom(a, self, fa_name)
                     else:
                         fa = FakeAtom(a, self)
@@ -735,6 +741,11 @@ class FakeRes:
         self.name = name
         self.atoms = atoms
         self.structure = atoms[0].structure
+
+    @property
+    def deleted(self):
+        self.atoms = [a for a in self.atoms if not a.deleted]
+        return not self.atoms
 
     def find_atom(self, atom_name):
         for a in self.atoms:

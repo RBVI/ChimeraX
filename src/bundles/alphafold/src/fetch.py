@@ -36,8 +36,11 @@ def alphafold_fetch(session, uniprot_id, color_confidence=True,
                                                     name = model_name,
                                                     in_file_history = in_file_history,
                                                     **kw)
-    from .match import _set_alphafold_model_attributes
-    _set_alphafold_model_attributes(models, uniprot_id, uniprot_name)
+
+    from .search import DatabaseEntryId
+    db_id = DatabaseEntryId(uniprot_id, name = uniprot_name, version=version)
+    from .match import _set_model_database_info
+    _set_model_database_info(models, db_id)
 
     if color_confidence:
         for s in models:
@@ -72,13 +75,11 @@ def _parse_uniprot_id(uniprot_id):
                         % uniprot_id)
     return uniprot_id.upper()
 
-def _color_by_confidence(structure):
-    from chimerax.core.colors import Colormap, BuiltinColors
-    colors = [BuiltinColors[name] for name in ('red', 'orange', 'yellow', 'cornflowerblue', 'blue')]
-    palette = Colormap((0, 50, 70, 90, 100), colors)
+def _color_by_confidence(structure, palette_name = 'alphafold'):
+    from chimerax.core.colors import BuiltinColormaps
     from chimerax.std_commands.color import color_by_attr
-    color_by_attr(structure.session, 'bfactor', atoms = structure.atoms, palette = palette,
-                  log_info = False)
+    color_by_attr(structure.session, 'bfactor', atoms = structure.atoms,
+                  palette = BuiltinColormaps[palette_name], log_info = False)
 
 def _align_and_trim(models, align_to_chain, trim):
     from . import match
@@ -90,13 +91,13 @@ def _align_and_trim(models, align_to_chain, trim):
             if seq_range:
                 match._trim_sequence(alphafold_model, seq_range)
 
-def _log_chain_info(models, align_to_name):
+def _log_chain_info(models, align_to_name, prediction_method = None):
     for m in models:
         def _show_chain_table(session, m=m):
             from chimerax.atomic import AtomicStructure
             AtomicStructure.added_to_session(m, session)
-            from .match import _log_alphafold_chain_table
-            _log_alphafold_chain_table([m], align_to_name)
+            from .match import _log_chain_table
+            _log_chain_table([m], align_to_name, prediction_method=prediction_method)
         m.added_to_session = _show_chain_table
         m._log_info = False   # Don't show standard chain table
 

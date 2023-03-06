@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-PhenixUI" version="1.0.5"
+<BundleInfo name="ChimeraX-PhenixUI" version="1.1.7"
 	    package="chimerax.phenix_ui"
   	    minSessionVersion="1" maxSessionVersion="1">
 
@@ -21,7 +21,10 @@
     <Dependency name="ChimeraX-Core" version="~=1.5dev1"/>
     <Dependency name="ChimeraX-Atomic" version="~=1.32"/>
     <Dependency name="ChimeraX-CheckWaters" version="~=1.3"/>
+    <Dependency name="ChimeraX-Geometry" version="~=1.3"/>
+    <Dependency name="ChimeraX-Map" version="~=1.1.3"/>
     <Dependency name="ChimeraX-MapData" version="~=2.0"/>
+    <Dependency name="ChimeraX-MapFilter" version="~=2.0.1"/>
     <Dependency name="ChimeraX-PDB" version="~=2.6"/>
     <Dependency name="ChimeraX-UI" version="~=1.21"/>
   </Dependencies>
@@ -30,8 +33,10 @@
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
     <ChimeraXClassifier>Command :: phenix douse :: Structure Editing :: Place waters in a map</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: phenix emplaceLocal :: Structure Editing :: Place model in map</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: phenix location :: Structure Editing :: Set location of Phenix installation</ChimeraXClassifier>
     <ChimeraXClassifier>Tool :: Water Placement :: Structure Editing, Phenix :: Place waters in a map</ChimeraXClassifier>
+    <ChimeraXClassifier>Tool :: Local EM Fitting :: Structure Editing, Phenix :: Place structure in a map using localized search</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

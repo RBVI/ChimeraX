@@ -16,6 +16,8 @@ gdk-pixbuf2
 glib2
 glibc
 gtk3
+ImageMagick
+ImageMagick-devel
 libdrm
 libffi
 libffi-devel
@@ -23,6 +25,7 @@ libgcc
 libgfortran
 libglvnd-egl
 libglvnd-glx
+libglvnd-devel
 libstdc++
 libtool
 libuuid
@@ -46,6 +49,7 @@ libXrender
 libXtst
 make
 mesa-libGL-devel
+mesa-libGLU-devel
 mesa-libGLU
 mesa-libOSMesa
 nspr
@@ -55,14 +59,18 @@ openjpeg2
 openssl-libs
 openssl-devel
 pango
+patch
 pulseaudio-libs
 pulseaudio-libs-glib2
 rsync
 sqlite
+unzip
 xcb-util-image
 xcb-util-keysyms
 xcb-util-renderutil
 xcb-util-wm
 xdg-utils
+xz
 xz-libs
 zlib
+zlib-devel

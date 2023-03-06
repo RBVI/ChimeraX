@@ -147,6 +147,25 @@ target="_blank">MMTF (Macromolecular Transmission Format)</a></td>
 <br><a href="#compressed">+&nbsp;compressed</td>
 <td align="center">atomic coordinates and associated annotations</td>
 </tr><tr>
+<td align="center">
+<a href="http://ww1.iucr.org/iucr-top/cif/standard/cifstd1.html" 
+target="_blank">Crystallographic Information File (CIF)</td>
+<td align="center"><b>corecif<br>smallcif</b></td>
+<td align="center">.cif</td>
+<td align="center">atomic coordinates and crystallographic information</td>
+</tr><tr>
+<td align="center">SwissDock</td>
+<td align="center"><b>swissdock</b></td>
+<td align="center">.pdb</td>
+<td align="center" class="text">atomic coordinates of docked ligands
+and/or target receptor in the modified PDB format written by
+<a href="http://www.swissdock.ch/" target="_blank">SwissDock</a>
+<br>
+(see <a href="../tools/viewdockx.html"><b>ViewDockX</b></a>
+for analysis of docking results from
+<a href="http://www.swissdock.ch/" target="_blank">SwissDock</a>)
+</td>
+</tr><tr>
 <td align="center">Sybyl Mol2</td>
 <td align="center"><b>mol2</b></td>
 <td align="center">.mol2</td>
@@ -673,7 +692,8 @@ target="_blank">Wavefront OBJ</a></td>
 <a name="sequence"></a>
 <a href="#formats" class="nounder"><b>&larr;</b></a>
 <b>Sequences</b> (associated tool: 
-<a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>)</td>
+<a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>,
+but see the <a href="#viewer"><b>viewer</b></a> option)</td>
 </tr><tr>
 <td align="center">Clustal ALN</td>
 <td align="center"><b>aln</b></td>
@@ -877,7 +897,8 @@ in a Terminal window.
 <b>alignment</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
 <br>
 Whether to interpret a multi-sequence file as an alignment 
-(default, all sequences in one <b>Multalign Viewer</b> window).
+(default, all sequences in one 
+<a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a> window).
 Otherwise, each sequence will be opened in a separate window. 
 If the sequences (including any gap characters) are of differing lengths,
 the option must be set to <b>false</b>. 
@@ -915,7 +936,8 @@ bypassing chemical perception steps like identifying
 <b>autoAssociate</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false
 <br>
 Whether structure-chain sequences should be compared to sequences in 
-<b>Multalign Viewer</b> and automatically associated if the number of
+<a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>
+and automatically associated if the number of
 mismatches is no more than 1/10 the number of residues in the structure chain.
 Unlike the other options of <b>open</b>, this sets a state that persists 
 within the ChimeraX session unless explicitly changed. 
@@ -1246,6 +1268,20 @@ channels read from <a href="#object">JSON format</a>
 See also the <a href="transparency.html"><b>transparency</b></a> command.
 </blockquote>
 <blockquote>
+<a name="viewer"></a>
+<b>viewer</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
+<br>
+Whether to show the 
+<a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>
+when opening <a href="#sequence">sequence data</a>.
+<!-- 
+also has option seqview = sv = view, meaning the Sequence Viewer,
+which will be relevant when an option is added for ProfileGrid instead.
+Then, true will mean whichever of the two was last used, if any, for 
+a single sequence or sequence alignment, which will be remembered separately 
+-->
+</blockquote>
+<blockquote>
 <a name="vseries"></a>
 <b>vseries</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false
 <br>
@@ -1435,8 +1471,14 @@ reading trajectories from multi-model mmCIF or PDB files.
 Whether to show a graphical interface for 
 <a href="../trajectories.html">trajectory</a> playback (default <b>true</b>).
 The slider can be dragged or a frame number entered directly.
-The interface also includes a play/pause button and another
-(marked with a red dot) for recording a movie.
+The interface also includes a play/pause button, a
+&nbsp;<img style="height:16px; margin: 1px -1px; vertical-align:top"
+src="../tools/ui-icons/snail.png">&nbsp; value to increase for slower playback,
+and a button for recording a movie
+(<img class="iconbar" src="../tools/ui-icons/record.png">).
+The movie will start at the current slider position, so
+to include the whole trajectory, place the slider at the far left
+before clicking the record button.
 See also: <a href="coordset.html#slider"><b>coordset slider</b></a>
 </blockquote>
 
@@ -1544,6 +1586,7 @@ The <b>alignTo</b> and <b>trim</b> options also apply only to
 See also: <a href="alphafold.html"><b>alphafold</b></a>
 </p><p>
 See also: 
+<a href="../tools/downloaddicom.html"><b>Download DICOM</b></a>,
 <a href="../preferences.html#webaccess"><b>Web Access</b> preferences</a>
 </p>
 
@@ -1685,6 +1728,19 @@ target="_blank">AlphaFold</a> and specified by
 <a href="https://www.uniprot.org/" target="_blank">UniProt</a>
 name or accession number (<a href="alphafold.html#fetch">details...</a>)</td>
 <td align="center"><b>mmcif</b></td>
+</tr><tr>
+<td align="center"><a href="http://www.crystallography.net/cod/"
+target="_blank">Crystallography Open Database</a></td>
+<td align="center"><b>cod</b></td>
+<td align="center">crystal structures of small molecules and 
+inorganic compounds</td>
+<td align="center"><b>corecif</b></td>
+</tr><tr>
+<td align="center"><a href="http://www.crystallography.net/pcod/"
+target="_blank">Predicted Crystallography Open Database</a></td>
+<td align="center"><b>pcod</b></td>
+<td align="center">predicted structures of inorganic compounds</td>
+<td align="center"><b>corecif</b></td>
 </tr><tr>
 <td align="center"><a href="http://www.cellpack.org"
 target="_blank">cellPACK</a></td>
@@ -1953,5 +2009,5 @@ only arrays with the specified <i>name</i>. Example:
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-October 2022</address>
+February 2023</address>
 </body></html>

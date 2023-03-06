@@ -538,13 +538,14 @@ def _prep_add(session, structures, unknowns_info, template, need_all=False, **pr
                 # heavy atoms, skip it instead of incorrectly protonating
                 # (or possibly throwing an error if e.g. it's planar)
                 # also
-                # UNK/N residues will be missing some or all of their side-chain atoms, so
+                # UNK/N/DN residues will be missing some or all of their side-chain atoms, so
                 # skip atoms that would otherwise be incorrectly protonated due to their
                 # missing neighbors
                 truncated = \
                         atom.is_missing_heavy_template_neighbors(no_template_okay=True) \
                     or \
-                        (atom.residue.name in ["UNK", "N"] and atom.residue.polymer_type != Residue.PT_NONE
+                        (atom.residue.name in ["UNK", "N", "DN"] \
+                        and atom.residue.polymer_type != Residue.PT_NONE \
                         and unk_atom_truncated(atom)) \
                     or \
                         (atom.residue.polymer_type == Residue.PT_NUCLEIC and atom.name == "P"
@@ -868,7 +869,7 @@ def unk_atom_truncated(atom):
                 return num_heavy_nbs < 3
             elif atom.name == "O2'":
                 return num_heavy_nbs < 1
-        return num_heavy_nbs < 2
+        return num_heavy_nbs < 2 and atom.name not in ["N2", "N4", "N6", "O2", "O4", "O6"]
     return False
 
 def vdw_radius(atom):

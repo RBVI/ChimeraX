@@ -13,5 +13,6 @@
 
 from .metadata_tool import *
 from .dicom_browser import *
+from .dicom_databases import *
 
-__all__ = ["DICOMMetadata", "DICOMBrowserTool"]
+__all__ = ["DICOMMetadata", "DICOMBrowserTool", "DICOMDatabases"]

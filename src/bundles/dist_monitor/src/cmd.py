@@ -64,9 +64,9 @@ def distance(session, objects, *, color=None, dashes=None,
     Show/report distance between two objects.
     '''
     from chimerax.core.errors import UserError, LimitationError
-    non_atom_measurables = [m for m in objects.models
-        if isinstance(m, (SimpleMeasurable, ComplexMeasurable))]
-    atoms = list(objects.atoms)
+    non_atom_measurables = [m for m in objects.models if isinstance(m, ComplexMeasurable)]
+    atoms = list(objects.atoms) + [m for m in objects.models
+        if isinstance(m, SimpleMeasurable) and not hasattr(m, 'atoms')]
     measurables = non_atom_measurables + atoms
     if len(measurables) == 2:
         if len(atoms) != 2:
@@ -211,6 +211,8 @@ def distance_style(session, pbonds, *, color=None, dashes=None,
     if dashes is not None:
         if not grp:
             grp = session.pb_manager.get_group("distances", create=True)
+            session.models.add([grp])
+            session.pb_dist_monitor.add_group(grp, update_callback=_notify_updates)
         grp.dashes = dashes
         settings.dashes = dashes
         if set_defaults:

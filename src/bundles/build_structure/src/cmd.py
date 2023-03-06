@@ -30,6 +30,28 @@ def cmd_bond_length(session, bond, length=None, *, move="small"):
         from chimerax.atomic.struct_edit import set_bond_length
         set_bond_length(bond, length, move_smaller_side=(move=="small"))
 
+def cmd_invert(session, atoms):
+    if len(atoms) not in [1,2]:
+        raise UserError("Must specify exactly 1 or 2 atoms; you specified %d" % len(atoms))
+    if len(atoms) == 1:
+        center = atoms[0]
+        kw = {}
+    else:
+        a1, a2 = atoms
+        common_neighbors = set(a1.neighbors) & set (a2.neighbors)
+        if len(common_neighbors) == 1:
+            center = common_neighbors.pop()
+            kw = { 'swapees': atoms }
+        elif common_neighbors:
+            raise UserError("%s and %s have more than one neighbor in common!" % (a1, a2))
+        else:
+            raise UserError("%s and %s have no neighbor atoms in common!" % (a1, a2))
+    from .mod import invert_chirality, InvertChiralityError
+    try:
+        invert_chirality(center, **kw)
+    except InvertChiralityError as e:
+        raise UserError(str(e))
+
 def cmd_join_peptide(session, atoms, *, length=1.33, omega=180.0, phi=None, move="small"):
     # identify C-terminal carbon
     cs = atoms.filter(atoms.elements.names == "C")
@@ -138,6 +160,12 @@ def register_command(command_name, logger):
     from chimerax.core.commands import DynamicEnum, RestOfLine, create_alias, PositiveFloatArg, FloatArg
     from chimerax.atomic import AtomArg, ElementArg, StructureArg, AtomsArg, BondArg
     from chimerax.atomic.bond_geom import geometry_name
+    desc = CmdDesc(
+        required=[('atoms', AtomsArg)],
+        synopsis = 'invert chirality of substituents'
+    )
+    register('build invert', desc, cmd_invert, logger=logger)
+
     desc = CmdDesc(
         required=[('atoms', AtomsArg)],
         keyword = [('length', PositiveFloatArg),

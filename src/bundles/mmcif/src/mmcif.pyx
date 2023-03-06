@@ -30,7 +30,6 @@ _additional_categories = (
     "pdbx_struct_assembly",
     "pdbx_struct_assembly_gen",
     "pdbx_struct_oper_list",
-    "entity",
     "entity_src_gen",
     "entity_src_nat",
     "cell",
@@ -42,7 +41,6 @@ _additional_categories = (
     "citation",
     "citation_author",
     "citation_editor",
-    "chem_comp",
     "database_2",	# EMDB map reference
     "exptl",
     "refine",
@@ -76,7 +74,8 @@ def _initialize(session):
 
 
 def open_mmcif(session, path, file_name=None, auto_style=True, coordsets=False, atomic=True,
-               max_models=None, log_info=True, extra_categories=(), combine_sym_atoms=True, slider=True):
+               max_models=None, log_info=True, extra_categories=(), combine_sym_atoms=True,
+               slider=True, ignore_styling=False):
     # mmCIF parsing requires an uncompressed file
 
     if not _initialized:
@@ -86,8 +85,29 @@ def open_mmcif(session, path, file_name=None, auto_style=True, coordsets=False, 
     categories = _additional_categories + tuple(extra_categories)
     log = session.logger if log_info else None
     try:
-        pointers = _mmcif.parse_mmCIF_file(path, categories, log, coordsets, atomic)
+        pointers = _mmcif.parse_mmCIF_file(path, categories, log, coordsets, atomic, ignore_styling)
     except _mmcif.error as e:
+        error_text = str(e)
+        if 'coreCIF' in error_text:
+            from . import corecif
+            if log is not None:
+                log.info("Not a mmCIF file.  Trying as a small molecule CIF file."
+                    "  Next time use: "
+                    f"<a href='cxcmd:open {path} format corecif'>"
+                    f"open {file_name} format corecif</a>.\n", is_html=True)
+            return corecif.open_corecif(
+                session, path, file_name=file_name,
+                auto_style=auto_style, log_info=log_info
+            )
+        if 'PDBx/mmCIF styling lost' in error_text:
+            if log is not None:
+                log.info(error_text + ".  Rereading mmCIF file from the beginning.")
+            return open_mmcif(
+                session, path, file_name=file_name,
+                auto_style=auto_style, coordsets=coordsets, atomic=atomic,
+                max_models=max_models, log_info=log_info, extra_categories=extra_categories,
+                combine_sym_atoms=combine_sym_atoms, slider=slider, ignore_styling=True
+            )
         raise UserError('mmCIF parsing error: %s' % e)
 
     if file_name is None:
@@ -139,19 +159,24 @@ def open_mmcif(session, path, file_name=None, auto_style=True, coordsets=False, 
         model.get_formatted_metadata = MethodType(_get_formatted_metadata, proxy(model))
         model.get_formatted_res_info = MethodType(_get_formatted_res_info, proxy(model))
         break
+    if log is not None and not models:
+        log.warning("No mmCIF models found.\n")
     return models, info
 
 
 def _get_formatted_metadata(model, session, *, verbose=False):
+    from html import escape
     from chimerax.core.logger import html_table_params
     from chimerax.pdb import process_chem_name
     html = "<table %s>\n" % html_table_params
     html += ' <thead>\n'
     html += '  <tr>\n'
-    html += '   <th colspan="2">Metadata for %s</th>\n' % model
+    html += '   <th colspan="2">Metadata for %s</th>\n' % escape(str(model))
     html += '  </tr>\n'
     html += ' </thead>\n'
     html += ' <tbody>\n'
+
+    metadata = model.metadata  # get once from C++ layer
 
     # title
     if hasattr(model, 'html_title'):
@@ -161,7 +186,7 @@ def _get_formatted_metadata(model, session, *, verbose=False):
         html += '  </tr>\n'
 
     # citations
-    cites = citations(model)
+    cites = citations(model, metadata=metadata)
     if cites:
         html += '  <tr>\n'
         if len(cites) > 1:
@@ -177,8 +202,6 @@ def _get_formatted_metadata(model, session, *, verbose=False):
 
     # non-standard residues
     html += model.get_formatted_res_info(standalone=False)
-
-    metadata = model.metadata  # get once from C++ layer
 
     # source
     nat, gen = get_mmcif_tables_from_metadata(model, ["entity_src_nat", "entity_src_gen"], metadata=metadata)
@@ -200,7 +223,7 @@ def _get_formatted_metadata(model, session, *, verbose=False):
     if database_2:
         for id, code in database_2.fields(['database_id', 'database_code']):
             if id == 'EMDB' and code.startswith('EMD-'):
-                entry_id = code[4:]
+                entry_id = escape(code[4:])
                 emdb_link = '<a href="https://www.ebi.ac.uk/emdb/EMD-%s">EMDB %s</a>' % (entry_id, entry_id)
                 emdb_load = '<a href="cxcmd:open %s from emdb">open map</a>' % entry_id
                 html += '  <tr>\n'
@@ -209,34 +232,17 @@ def _get_formatted_metadata(model, session, *, verbose=False):
                 html += '  </tr>\n'
 
     # experimental method; resolution
-    experiment = get_mmcif_tables_from_metadata(model, ["exptl"], metadata=metadata)[0]
-    if experiment:
-        method = substitute_none_for_unspecified(experiment.fields(
-            ['method'], allow_missing_fields=True)[0])[0]
-        if method:
-            html += '  <tr>\n'
-            html += '   <th>Experimental method</th>\n'
-            html += '   <td>%s</td>\n' % process_chem_name(method, sentences=True)
-            html += '  </tr>\n'
-    res = None
-    reflections = get_mmcif_tables_from_metadata(model, ["reflns"], metadata=metadata)[0]
-    if reflections:
-        res = substitute_none_for_unspecified(reflections.fields(
-            ['d_resolution_high'], allow_missing_fields=True)[0])[0]
-    if res is None:
-        refine = get_mmcif_tables_from_metadata(model, ["refine"], metadata=metadata)[0]
-        if refine:
-            res = substitute_none_for_unspecified(refine.fields(
-                ['ls_d_res_high'], allow_missing_fields=True)[0])[0]
-    if res is None:
-        em = get_mmcif_tables_from_metadata(model, ["em_3d_reconstruction"], metadata=metadata)[0]
-        if em:
-            res = substitute_none_for_unspecified(em.fields(
-                ['resolution'], allow_missing_fields=True)[0])[0]
+    method = experimental_method(model, metadata=metadata)
+    if method:
+        html += '  <tr>\n'
+        html += '   <th>Experimental method</th>\n'
+        html += '   <td>%s</td>\n' % process_chem_name(method, sentences=True)
+        html += '  </tr>\n'
+    res = resolution(model, metadata=metadata)
     if res is not None:
         html += '  <tr>\n'
         html += '   <th>Resolution</th>\n'
-        html += '   <td>%s\N{ANGSTROM SIGN}</td>\n' % res
+        html += '   <td>%s\N{ANGSTROM SIGN}</td>\n' % escape(res)
         html += '  </tr>\n'
 
     # modeled structure scores
@@ -253,18 +259,46 @@ def _get_formatted_metadata(model, session, *, verbose=False):
         metric_ids.sort(key=lambda m: metric_names[m].lower())
         for metric_id in metric_ids:
             if metric_descriptions:
-                description = ' title="%s"' % metric_descriptions[metric_id]
+                description = ' title="%s"' % escape(metric_descriptions[metric_id])
             else:
                 description = ''
             html += '  <tr>\n'
-            html += '   <th%s>%s</th>\n' % (description, metric_names[metric_id])
-            html += '   <td>%s</td>\n' % metric_values[metric_id]
+            html += '   <th%s>%s</th>\n' % (description, escape(metric_names[metric_id]))
+            html += '   <td>%s</td>\n' % escape(metric_values[metric_id])
             html += '  </tr>\n'
 
     html += ' </tbody>\n'
     html += "</table>"
 
     return html
+
+
+def experimental_method(model, metadata=None):
+    experiment = get_mmcif_tables_from_metadata(model, ["exptl"], metadata=metadata)[0]
+    if not experiment:
+        return
+    method = substitute_none_for_unspecified(experiment.fields(
+        ['method'], allow_missing_fields=True)[0])[0]
+    return method
+
+def resolution(model, metadata=None):
+    # experimental method; resolution
+    res = None
+    reflections = get_mmcif_tables_from_metadata(model, ["reflns"], metadata=metadata)[0]
+    if reflections:
+        res = substitute_none_for_unspecified(reflections.fields(
+            ['d_resolution_high'], allow_missing_fields=True)[0])[0]
+    if res is None:
+        refine = get_mmcif_tables_from_metadata(model, ["refine"], metadata=metadata)[0]
+        if refine:
+            res = substitute_none_for_unspecified(refine.fields(
+                ['ls_d_res_high'], allow_missing_fields=True)[0])[0]
+    if res is None:
+        em = get_mmcif_tables_from_metadata(model, ["em_3d_reconstruction"], metadata=metadata)[0]
+        if em:
+            res = substitute_none_for_unspecified(em.fields(
+                ['resolution'], allow_missing_fields=True)[0])[0]
+    return res
 
 
 def _get_formatted_res_info(model, *, standalone=True):
@@ -334,8 +368,8 @@ def fetch_mmcif(
     if not _initialized:
         _initialize(session)
 
-    if len(pdb_id) != 4:
-        raise UserError('PDB identifiers are 4 characters long, got "%s"' % pdb_id)
+    if len(pdb_id) not in (4,8):
+        raise UserError('PDB identifiers are either 4 or 8 characters long, got "%s"' % pdb_id)
     if structure_factors:
         try:
             from chimerax.clipper.io import fetch_cif
@@ -345,11 +379,15 @@ def fetch_mmcif(
 
     import os
     pdb_id = pdb_id.lower()
+    if len(pdb_id) == 8 and pdb_id.startswith("0000"):
+        # avoid two differently named but identical entries in the cache...
+        pdb_id = pdb_id[4:]
+    entry = pdb_id if len(pdb_id) == 4 else "pdb_" + pdb_id
     filename = None
     if not fetch_source.endswith('updated'):
         # check on local system -- TODO: configure location
-        subdir = pdb_id[1:3]
-        filename = "/databases/mol/mmCIF/%s/%s.cif" % (subdir, pdb_id)
+        subdir = pdb_id[-3:-1]
+        filename = "/databases/mol/mmCIF/%s/%s.cif" % (subdir, entry)
         if os.path.exists(filename):
             session.logger.info("Fetching mmCIF %s from system cache: %s" % (pdb_id, filename))
         else:
@@ -361,7 +399,7 @@ def fetch_mmcif(
         base_url = _mmcif_sources.get(fetch_source, None)
         if base_url is None:
             raise UserError('unrecognized mmCIF/PDB source "%s"' % fetch_source)
-        url = base_url % pdb_id
+        url = base_url % entry
         pdb_name = "%s.cif" % pdb_id
         from chimerax.core.fetch import fetch_file
         filename = fetch_file(session, url, 'mmCIF %s' % pdb_id, pdb_name,
@@ -413,8 +451,8 @@ def _get_template(session, name):
         session.logger.warning("Non-printable residue name.  Corrupt mmCIF file?")
         return None
     filename = '%s.cif' % name
-    url_path = url_quote(f"reports/{name[0]}/{name}/{name}.cif")
-    url = f"http://ligand-expo.rcsb.org/{url_path}"
+    url_path = url_quote(f"pub/pdb/refdata/chem_comp/{name[-1]}/{name}/{name}.cif")
+    url = f"https://files.wwpdb.org/{url_path}"
     try:
         return fetch_file(session, url, 'CCD %s' % name, filename, 'CCD')
     except (UserError, OSError):
@@ -497,7 +535,7 @@ def load_mmCIF_templates(filename):
 from ._mmcif import quote_value as quote
 
 
-def citations(model, only=None):
+def citations(model, only=None, metadata=None):
     """Return APA-style HTML citations for model
 
     Parameters
@@ -511,7 +549,7 @@ def citations(model, only=None):
     if not isinstance(model, Structure):
         return ""
     citation, citation_author = get_mmcif_tables_from_metadata(model, [
-        "citation", "citation_author"])
+        "citation", "citation_author"], metadata=metadata)
     if not citation:
         return ""
 
@@ -819,23 +857,28 @@ def get_cif_tables(filename, table_names, *, all_data_blocks=False):
     return result
 
 
-def get_mmcif_tables_from_metadata(model, table_names, *, metadata=None):
+def get_mmcif_tables_from_metadata(obj, table_names, *, metadata=None):
     """Supported API. Extract mmCIF tables from previously read metadata
 
     Parameters
     ----------
-    model : instance of a :py:class:`~chimerax.atomic.AtomicStructure`
-        The model.
+    obj : object
+        An object with a 'metadata' attribute.  For example:
+        an :py:class:`~chimerax.atomic.AtomicStructure` instance
+        or a :py:class:`~chimerax.atomic.TmplResidue` instance.
     table_names : list of str
         A list of mmCIF category names.
     metadata : optional metadata dictonary
         Allow reuse of existing metadata dictionary.
+
+    Returns a list of :py:class:`CIFtable`s or :external+python:ref:`None`,
+    one for each table name.
     """
     if metadata is None:
         try:
-            metadata = model.metadata
+            metadata = obj.metadata
         except AttributeError:
-            raise ValueError("Expected a structure")
+            raise ValueError("Expected an object with a metadata attribute")
     tlist = []
     for n in table_names:
         n = n.casefold()
@@ -974,34 +1017,33 @@ cdef class CIFTable:
         missing fields are allowed, then the corresponding items are the
         missing_value object.
         """
-        cdef int i, n
+        cdef int i, n, has_missing
         t = self._folded_tags
         n = len(self._folded_tags)
-        if allow_missing_fields:
-            from itertools import zip_longest
-            fi = []
-            for fn in field_names:
-                try:
-                    fi.append(t.index(fn.casefold()))
-                except ValueError:
-                    fi.append(-1)
-            ftable = list(zip_longest(
-                *(self._data[i::n] if i >= 0 else [] for i in fi),
-                fillvalue=missing_value))
-        else:
-            missing = [fn for fn in field_names if fn.casefold() not in t]
-            if missing:
-                from chimerax.core.commands.cli import commas, plural_form
-                missed = commas(['"%s"' % m for m in missing], 'and')
-                missed_noun = plural_form(missing, 'Field')
-                missed_verb = plural_form(missing, 'is', 'are')
-                have = commas(['"%s"' % t for t in self._tags], 'and')
-                have_noun = plural_form(self._tags, 'field')
-                raise TableMissingFieldsError('%s %s %s not in table "%s", have %s %s' % (
-                    missed_noun, missed, missed_verb, self.table_name, have_noun,
-                    have))
-            fi = tuple(t.index(fn.casefold()) for fn in field_names)
+        has_missing = False
+        fi = []
+        for fn in field_names:
+            try:
+                fi.append(t.index(fn.casefold()))
+            except ValueError:
+                has_missing = True
+                fi.append(-1)
+        if not has_missing:
             ftable = list(zip(*(self._data[i::n] for i in fi)))
+        elif allow_missing_fields:
+            missing_values = [missing_value] * self.num_rows()
+            ftable = list(zip(
+                *(self._data[i::n] if i >= 0 else missing_values for i in fi)))
+        else:
+            from chimerax.core.commands.cli import commas, plural_form
+            missing = [fn for i, fn in enumerate(field_names) if fi[i] < 0]
+            missed = commas(['"%s"' % m for m in missing], 'and')
+            missed_noun = plural_form(missing, 'Field')
+            missed_verb = plural_form(missing, 'is', 'are')
+            have = commas(['"%s"' % t for t in self._tags], 'and')
+            have_noun = plural_form(self._tags, 'field')
+            raise TableMissingFieldsError('%s %s %s not in table "%s", have %s %s' % (
+                missed_noun, missed, missed_verb, self.table_name, have_noun, have))
         return ftable
 
     def extend(self, CIFTable table not None):

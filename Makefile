@@ -18,6 +18,7 @@ SUBDIRS = prereqs src
 -include .makerc
 include $(TOP)/mk/config.make
 include $(TOP)/mk/subdir.make
+include $(TOP)/mk/detectOS.make
 
 all:
 	@echo "'make install' to build everything" && exit 1
@@ -130,6 +131,11 @@ distclean: clean
 	-$(MAKE) -C vdocs clean
 	-rm -rf prereqs/prebuilt-*.tar.bz2
 	-$(MAKE) -C prereqs/cxservices clean
+
+reallyclean:
+	rm -rf $$(git status --short --ignored --porcelain=v1 | sed -e '/^!!/!d' -e 's/^!! //')
+	# for linux:
+	rm -rf .cache .config
 
 clean:
 	-rm -rf $(APP_FILENAME)

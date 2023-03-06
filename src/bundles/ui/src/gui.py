@@ -332,6 +332,26 @@ class UI(QApplication):
         from Qt.QtCore import Qt
         return modifiers & Qt.ShiftModifier
 
+    def post_context_menu(self, menu, position):
+        self.dismiss_context_menu()
+        self._last_context_menu = menu
+        # The exec call runs a sub-event loop which does not return
+        # until the menu is dismissed (Qt 6.4).
+        menu.exec(position)
+
+    def dismiss_context_menu(self):
+        '''
+        Clicks on the graphics QWindow don't dismiss context menus in Qt 6.4.
+        This call works around that problem allowing graphics clicks to
+        dismiss any context menus shown with UI.post_context_menu().
+        '''
+        m = getattr(self, '_last_context_menu', None)
+        if m:
+            import Qt
+            if not Qt.qt_object_is_deleted(m):
+                m.close()
+            self._last_context_menu = None
+
     def remove_tool(self, tool_instance):
         self.main_window.remove_tool(tool_instance)
         # get garbage collection to break callback loops in deleted tools
@@ -1346,7 +1366,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         #
         label_menu = actions_menu.addMenu("Label")
         label_atoms_menu = label_menu.addMenu("Atoms")
-        main_atom_label_info = [("Name", None), ("Element", "element"), ("IDATM Type", "idatm_type")]
+        main_atom_label_info = [("Name", "name"), ("Element", "element"), ("IDATM Type", "idatm_type")]
         for menu_entry, attr_name in main_atom_label_info:
             action = QAction(menu_entry, self)
             label_atoms_menu.addAction(action)
@@ -2308,6 +2328,12 @@ class _Qt:
                 self.dock_widget.deleteLater()
             else:
                 self.dock_widget.destroy()
+        else:
+            # in case the auto-destroying window was closed by other means [#7882]
+            # Also, self.dock_widget.destroy() does not fix the problem
+            from Qt.QtWidgets import QDockWidget
+            delattr(self.dock_widget, 'closeEvent')
+            self.dock_widget.close()
 
     @property
     def dockable(self):
@@ -2502,10 +2528,7 @@ def _show_context_menu(event, tool_instance, tool_window, fill_cb, autostartable
             _remember_tool_pos(ui, ti, widget))
         menu.addAction(position_action)
     p = event.globalPos()  if hasattr(event, 'globalPos') else event.globalPosition().toPoint()
-    if hasattr(menu, 'exec'):
-        menu.exec(p)	# PyQt6
-    else:
-        menu.exec_(p)	# PyQt5
+    session.ui.post_context_menu(menu, p)
 
 def _remember_tool_pos(ui, tool_instance, widget):
     mw = ui.main_window
@@ -2671,6 +2694,8 @@ class SelZoneDialog(QDialog):
             QCheckBox, QDoubleSpinBox, QPushButton, QMenu, QWidget, QTabWidget
         from Qt.QtCore import Qt
         layout = QVBoxLayout()
+        layout.setSpacing(1)
+        layout.setContentsMargins(5,3,5,3)
         target_area = QWidget()
         target_layout = QHBoxLayout()
         target_layout.setContentsMargins(0,0,0,0)
@@ -2687,6 +2712,7 @@ class SelZoneDialog(QDialog):
         target_layout.addWidget(QLabel(":"))
         layout.addWidget(target_area, alignment=Qt.AlignLeft)
         less_layout = QHBoxLayout()
+        less_layout.setSpacing(5)
         self.less_checkbox = QCheckBox("<")
         self.less_checkbox.setChecked(True)
         self.less_checkbox.stateChanged.connect(self._update_button_states)
@@ -2700,6 +2726,7 @@ class SelZoneDialog(QDialog):
         less_layout.addWidget(QLabel("from the currently selected atoms"))
         layout.addLayout(less_layout)
         more_layout = QHBoxLayout()
+        more_layout.setSpacing(5)
         self.more_checkbox = QCheckBox(">")
         self.more_checkbox.stateChanged.connect(self._update_button_states)
         more_layout.addWidget(self.more_checkbox, alignment=Qt.AlignRight)
@@ -2711,6 +2738,10 @@ class SelZoneDialog(QDialog):
         more_layout.addWidget(self.more_spinbox)
         more_layout.addWidget(QLabel("from the currently selected atoms"))
         layout.addLayout(more_layout)
+        self.exclude_checkbox = QCheckBox("Also deselect current selection")
+        self.exclude_checkbox.setChecked(False)
+        layout.addWidget(self.exclude_checkbox, alignment=Qt.AlignCenter)
+        layout.addSpacing(3)
 
         self.bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
         self.bbox.accepted.connect(self.zone)
@@ -2733,6 +2764,12 @@ class SelZoneDialog(QDialog):
                 cmd += ' & '
         if self.more_checkbox.isChecked():
             cmd += "sel %s> %g" % (char, self.more_spinbox.value())
+        if self.exclude_checkbox.isChecked():
+            if cmd:
+                cmd += ' & '
+            else:
+                cmd = 'sel '
+            cmd += "~sel"
         self.session.ui.main_window.select_by_mode(cmd)
 
     def _update_button_states(self, *args):

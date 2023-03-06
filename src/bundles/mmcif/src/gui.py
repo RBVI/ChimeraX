@@ -127,7 +127,7 @@ class SaveOptionsWidget(QFrame):
             if cmd:
                 cmd += ' '
             cmd += "bestGuess true"
-        if self.compute_sheets.isChecked():
+        if self.computed_sheets.isChecked():
             if cmd:
                 cmd += ' '
             cmd += "computeSheets true"

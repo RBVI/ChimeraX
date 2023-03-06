@@ -404,9 +404,7 @@ selection highlighting <a href="graphics.html#selections">color and width</a>
 model positions in the room and hand-controller button assignments
 <li><a href="../tools/log.html"><b>Log</b></a> contents
 <li>slider interfaces for playback of
-<a href="coordset.html#slider">trajectories</a>,
-<a href="vseries.html#slider">volume series</a>,
-and
+<a href="coordset.html#slider">trajectories</a> and
 <a href="mseries.html#slider">model series</a>
 </ul>
 Saving and later opening a session file 
@@ -1007,6 +1005,8 @@ Example:
 [&nbsp;<b>textureColors</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>preserveTransparency</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>instancing</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>metallicFactor</b>&nbsp;&nbsp;<i>f<sub>m</sub></i>&nbsp;]
+[&nbsp;<b>roughnessFactor</b>&nbsp;&nbsp;<i>f<sub>r</sub></i>&nbsp;]
 </blockquote>
 <p>
 Several options apply only to saving <a href="https://www.khronos.org/gltf" 
@@ -1075,8 +1075,20 @@ file smaller. The meaning for bonds is analogous to that for atoms.
 Instancing is always used for <a href="sym.html#copies">graphical clones</a>
 created with <a href="sym.html"><b>sym</b></a> regardless of this option.
 </blockquote>
+<blockquote>
+<b>metallicFactor</b>&nbsp;&nbsp;<i>f<sub>m</sub></i>
+<br>
+Write the specified metallic factor <i>f<sub>m</sub></i>
+(range 0.0-1.0, default <b>0.0</b>) into the output file. 
+</blockquote>
+<blockquote>
+<b>roughnessFactor</b>&nbsp;&nbsp;<i>f<sub>r</sub></i>
+<br>
+Write the specified roughness factor <i>f<sub>r</sub></i>
+(range 0.0-1.0, default <b>1.0</b>) into the output file. 
+</blockquote>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-October 2022</address>
+February 2023</address>
 </body></html>

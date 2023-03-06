@@ -17,19 +17,19 @@ from Qt.QtCore import Qt, QThread, Signal, Slot
 from Qt.QtWidgets import (
     QWidget, QVBoxLayout, QAbstractItemView
     , QLabel, QPushButton, QHBoxLayout
+    , QCheckBox
 )
 from Qt.QtGui import QAction
 
 from chimerax.atomic import Sequence
-from chimerax.alphafold.match import _log_alphafold_sequence_info
 from chimerax.core.commands import run
 from chimerax.core.errors import UserError
 from chimerax.core.tools import ToolInstance
 from chimerax.ui.gui import MainToolWindow
 from chimerax.help_viewer import show_url
 
-from ..data_model import AvailableDBsDict, get_database, Match
-from ..utils import BlastParams, SeqId
+from ..data_model import AvailableDBsDict, Match, parse_blast_results
+from ..utils import BlastParams, SeqId, _instance_generator
 from .widgets import (
     BlastResultsTable, BlastResultsRow
     , BlastProteinResultsSettings
@@ -56,7 +56,7 @@ class BlastProteinResults(ToolInstance):
 
     SESSION_ENDURING = False
     SESSION_SAVE = True
-    help = "help:/user/tools/blastprotein.html#results"
+    help = "help:user/tools/blastprotein.html#results"
 
     def __init__(self, session, tool_name, **kw):
         display_name = "Blast Protein Results [name: %s]" % tool_name
@@ -141,6 +141,11 @@ class BlastProteinResults(ToolInstance):
     #
     @classmethod
     def restore_snapshot(cls, session, data):
+        # Increment the counter on the Blast name generator each time a blast
+        # instance with a default name is restored, so that subsequent blast
+        # jobs have the correct default name if needed
+        if data['tool_name'].startswith('bp'):
+            next(_instance_generator)
         return BlastProteinResults.from_snapshot(session, data)
 
     def take_snapshot(self, session, flags):
@@ -166,6 +171,8 @@ class BlastProteinResults(ToolInstance):
             return 'E-Value'
         if title == 'uniprot_id':
             return 'UniProt ID'
+        if title == 'mgnify_id':
+            return 'MGnify ID'
         new_title = capwords(" ".join(title.split('_')))
         new_title = new_title.replace('Id', 'ID')
         return new_title
@@ -188,7 +195,10 @@ class BlastProteinResults(ToolInstance):
         except AttributeError: # There won't be a selected chain either
             chain = None
         if model_no:
-            model_formatted = ''.join([str(self.session.models._models[(model_no,)]), chain])
+            try:
+                model_formatted = ''.join([self.job.model_name, chain])
+            except KeyError:
+                model_formatted = None
         else:
             model_formatted = None
         values[0] = model_formatted
@@ -289,10 +299,10 @@ class BlastProteinResults(ToolInstance):
         worker.report_sequences.connect(self._on_report_sequences_signal)
 
     def job_failed(self, error):
-        self.session.logger.warning("BlastProtein failed: %s" % error)
+        self.session.logger.error("BlastProtein failed: %s" % error)
 
     def parse_failed(self, error):
-        self.session.logger.warning("Parsing BlastProtein results failed: %s" % error)
+        self.session.logger.error("Parsing BlastProtein results failed: %s" % error)
 
     def parsing_results(self):
         self.session.logger.status("Parsing BLAST results.")
@@ -365,7 +375,7 @@ class BlastProteinResults(ToolInstance):
         db = AvailableDBsDict[self.params.database]
         for row in selections:
             code = row[db.fetchable_col]
-            if self.params.database == "alphafold":
+            if self.params.database in ["alphafold", "esmfold"]:
                 models, chain_id = db.load_model(
                     self.session, code, self.params.chain, self.params._asdict().get("version", "1")
                 )
@@ -387,8 +397,11 @@ class BlastProteinResults(ToolInstance):
     def _log_alphafold(self, models):
         query_match = self._sequences[0][1]
         query_seq = Sequence(name = 'query', characters = query_match.h_seq)
+        from chimerax.alphafold.match import _similarity_table_html
         for m in models:
-            _log_alphafold_sequence_info(m, query_seq)
+            # TODO: Would be nice if all models were in one log table.
+            msg = _similarity_table_html(m.chains[0], query_seq, m.database.id)
+            m.session.logger.info(msg, is_html = True)
 
     # Code for displaying matches as multiple sequence alignment
     def _show_mav(self, selections) -> None:
@@ -477,35 +490,8 @@ class BlastResultsWorker(QThread):
     def _parse_results(self, db, results, sequence, atomspec):
         try:
             self.parsing_results.emit()
-            self._ref_atomspec = atomspec
-            self._sequences = {}
-            blast_results = get_database(db)
-            blast_results.parse("query", sequence, results)
-            query_match = blast_results.parser.matches[0]
-            if self._ref_atomspec:
-                name = self._ref_atomspec
-            else:
-                name = query_match.name
-            self._sequences[0] = (name, query_match)
-            match_chains = {}
-            sequence_only_hits = {}
-            for n, m in enumerate(blast_results.parser.matches[1:]):
-                sid = n + 1
-                hit = {"id": sid, "e-value": m.evalue, "score": m.score,
-                       "description": m.description}
-                if m.match:
-                    hit["name"] = m.match
-                    match_chains[m.match] = hit
-                else:
-                    hit["name"] = m.name
-                    sequence_only_hits[m.name] = hit
-                self._sequences[sid] = (hit["name"], m)
-            # TODO: Make what this function does more explicit. It works on the
-            # hits that are in match_chain's hit dictionary, but that's not
-            # immediately clear.
-            blast_results.add_info(match_chains, sequence_only_hits)
-            self._hits = list(match_chains.values()) + list(sequence_only_hits.values())
-            self.report_hits.emit(self._hits)
-            self.report_sequences.emit(self._sequences)
+            hits, sequences = parse_blast_results(db, results, sequence, atomspec)
+            self.report_hits.emit(hits)
+            self.report_sequences.emit(sequences)
         except Exception as e:
             self.parse_failed.emit(str(e))

@@ -40,16 +40,19 @@ def measure_sasa(session, atoms = None, probe_radius = 1.4, sum = None,
             
     # Report results
     area = areas.sum()
-    msg = 'Solvent accessible area for %s = %.5g' % (atoms.spec, area)
+    aname = f'{atoms.spec} ({len(atoms)} atoms)' if hasattr(atoms, 'spec') else f'{len(atoms)} atoms'
+    msg = 'Solvent accessible area for %s = %.5g' % (aname, area)
     log = session.logger
     log.info(msg)
     if sum is not None:
         a = areas[atoms.mask(sum)]
-        area = a.sum()
-        msg = ('Solvent accessible area for %s (%d atoms) of %s = %.5g'
-               % (sum.spec, len(a), atoms.spec, area))
+        sarea = a.sum()
+        sname = f'{sum.spec} ({len(sum)} atoms)' if hasattr(sum, 'spec') else f'{len(sum)} atoms'
+        msg = ('Solvent accessible area for %s of %s = %.5g' % (sname, aname, sarea))
         log.info(msg)
     log.status(msg)
+
+    return area if sum is None else (area, sarea)
 
 def set_area_attributes(atoms, areas):
     for a, area in zip(atoms, areas):

@@ -12,6 +12,7 @@
     or derivations thereof.
     === UCSF ChimeraX Copyright ===
 
+
 ##############################
 IDEs, Debugging, and Profiling
 ##############################
@@ -117,6 +118,8 @@ into the context of the GUI module.
 
 There, the GUI module's reference to the program's session will be available so
 that you can get an idea of what's going on in your debugging session.
+
+.. _line-profiling:
 
 ==============
 Line Profiling

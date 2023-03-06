@@ -67,7 +67,8 @@ and <a href="https://www.rbvi.ucsf.edu/chimerax/tutorials.html">Tutorials</a></l
 <li>Data Formats: see <a href="commands/open.html#formats"><b>open</b></a>
 and <a href="commands/save.html#formats"><b>save</b></a></li>
 <li>Manipulation: see 
-<a href="commands/ui.html#mousemode"><b>mousemode</b></a></li>
+<a href="commands/ui.html#mousemode"><b>mousemode</b></a>
+and <a href="commands/ui.html#selective">selective manipulation</li>
 <li><a href="selection.html">Selection</a></li>
 <li><a href="measurements.html">Measurements</a></li>
 <li><a href="images.html">Making Images</a></li>
@@ -84,7 +85,8 @@ and <a href="commands/save.html#formats"><b>save</b></a></li>
 src="triangled.png" width=10 height=10/>&nbsp;<b>Tools</b></li>
 <div id="tlist" class="expanded">
 <ul>
-<li><a href="tools/addhydrogens.html"><b>Add Hydrogens</b></a>
+<li><a href="tools/addcharges.html"><b>Add Charges</b></a></li>
+<li><a href="tools/addhydrogens.html"><b>Add Hydrogens</b></a></li>
 <li><a href="tools/alphafold.html"><b>AlphaFold</b></a>
 &ndash; get protein structures predicted by
 <a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold</a> 
@@ -114,6 +116,12 @@ estimated residue-residue distance errors</li>
 <li><a href="tools/dicombrowser.html"><b>DICOM Browser</b></a></li>
 <li><a href="tools/dicommetadata.html"><b>DICOM Metadata</b></a></li>
 <li><a href="tools/distances.html"><b>Distances</b></a></li>
+<li><a href="tools/dockprep.html"><b>Dock Prep</b></a></li>
+<li><a href="tools/downloaddicom.html"><b>Download DICOM</b></a></li>
+<li><a href="tools/esmfold.html"><b>ESMFold</b></a>
+&ndash; get protein structures predicted by ESMFold artificial intelligence</li>
+<li><a href="tools/esmfold.html#pae"><b>ESMFold Error Plot</b></a>
+&ndash; plot ESMFold estimated residue-residue distance errors</li>
 <li><a href="tools/filehistory.html"><b>File History</b></a></li>
 <li><a href="tools/fitmap.html"><b>Fit in Map</b></a></li>
 <li><a href="tools/fitsegments.html"><b>Fit to Segments</b></a></li>
@@ -149,7 +157,7 @@ of a protein structure with
 &ndash; interface to comparative modeling with
 <a href="https://www.salilab.org/modeller/" target="_blank">Modeller</a></li>
 <li><a href="tools/registration.html"><b>Registration</b></a></li>
-<li><a href="tools/render.html"><b>Render by Attribute</b></a>
+<li><a href="tools/render.html"><b>Render By Attribute</b></a>
 &ndash; color by <a href="attributes.html">attribute</a> values</li>
 <li><a href="tools/renumber.html"><b>Renumber Residues</b></a></li>
 <li><a href="tools/rotamers.html"><b>Rotamers</b></a>
@@ -264,6 +272,10 @@ Space Navigator<sup>&reg;</sup>, <i>etc.</i>)</li>
 &ndash; prepare atomic structures for other calculations</li>
 <li><a href="commands/dssp.html"><b>dssp</b></a>
 &ndash; define secondary structure of proteins using atomic coordinates</li>
+<li><a href="commands/esmfold.html"><b>esmfold</b></a>
+&ndash; get protein structures predicted by
+ESMFold (Evolutionary Scale Modeling)
+artificial intelligence</li>
 <li><a href="commands/exit.html"><b>exit</b> or <b>quit</b></a>
 &ndash; exit from ChimeraX</li>
 <li><a href="commands/fitmap.html"><b>fitmap</b></a>
@@ -409,7 +421,9 @@ and <a href="pseudobonds.html">pseudobonds</a></li>
 <li><a href="commands/surface.html"><b>surface</b></a>
 &ndash; create and show/hide molecular surfaces</li>
 <li><a href="commands/swapaa.html"><b>swapaa</b></a>
-&ndash; virtual mutation (change amino acid type)</li>
+&ndash; &ldquo;mutate&rdquo; amino acid residues</li>
+<li><a href="commands/swapna.html"><b>swapna</b></a>
+&ndash; &ldquo;mutate&rdquo; nucleic acid residues</li>
 <li><a href="commands/sym.html"><b>sym</b></a>
 &ndash; build multimers using assembly information</li>
 <li><a href="commands/tile.html"><b>tile</b></a>
@@ -418,6 +432,8 @@ and <a href="pseudobonds.html">pseudobonds</a></li>
 &ndash; install/update ChimeraX bundles from the
 <a href="https://cxtoolshed.rbvi.ucsf.edu/" target="_blank">Toolshed</a> 
 (web repository)</li>
+<li><a href="commands/topography.html"><b>topography</b></a>
+&ndash; plot values in a volume data plane as heights in a surface</li>
 <li><a href="commands/torsion.html"><b>torsion</b></a>
 &ndash; set or report torsion angles (rotate bonds)</li>
 <li><a href="commands/transparency.html"><b>transparency</b></a>
@@ -465,7 +481,7 @@ set camera and model positions with matrices</li>
 <hr>
 <p align="center">
 UCSF ChimeraX documentation is copyrighted &copy; by the
-Regents of the University of California, 2015-2022.
+Regents of the University of California, 2015-2023.
 All rights reserved.
 </p>
 </body></html> 

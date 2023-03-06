@@ -97,6 +97,7 @@ above could have been written more simply as:
 DEREGISTER = "delete handler"
 TRIGGER_ERROR = "Error processing trigger"
 
+from contextlib import contextmanager
 
 def _basic_report(msg):
     import sys
@@ -125,17 +126,36 @@ class _TriggerHandler:
         self._name = name
         self._func = func
         self._trigger_set = trigger_set
+        self._blocked = 0
 
     def remove(self):
         self._trigger_set.remove_handler(self)
 
     def invoke(self, data, remove_if_error):
+        if self._blocked:
+            return
         try:
             return self._func(self._name, data)
         except Exception:
             _report('%s "%s"' % (TRIGGER_ERROR, self._name))	# Report function will add exception info.
             if remove_if_error:
                 return DEREGISTER
+
+    @contextmanager
+    def blocked(self):
+        self._blocked += 1
+        try:
+            yield
+        finally:
+            self._blocked -= 1
+
+    def block(sel):
+        self._blocked += 1
+
+    def release(self):
+        if self._blocked <= 0:
+            raise RuntimeError("more releases than blocks")
+        self._blocked -= 1
 
 
 class _Trigger:
@@ -228,7 +248,15 @@ class _Trigger:
             self._pending_add.clear()
 
     def block(self):
-        self._blocked = self._blocked + 1
+        self._blocked += 1
+
+    @contextmanager
+    def blocked(self):
+        self._blocked += 1
+        try:
+            yield
+        finally:
+            self._blocked -= 1
 
     def is_blocked(self):
         return bool(self._blocked)

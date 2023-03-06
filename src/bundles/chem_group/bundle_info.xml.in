@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-ChemGroup" version="2.0"
+<BundleInfo name="ChimeraX-ChemGroup" version="2.0.1"
 	    package="chimerax.chem_group" customInit="true"
 		purePython="false"
   	    minSessionVersion="1" maxSessionVersion="1">
@@ -26,7 +26,7 @@
     <Dependency name="ChimeraX-Core" version="~=1.0"/>
     <Dependency name="ChimeraX-Arrays" build="true" version="~=1.0"/>
     <Dependency name="ChimeraX-Atomic" version="~=1.0"/>
-    <Dependency name="ChimeraX-AtomicLibrary" build="true" version="~=8.0"/>
+    <Dependency name="ChimeraX-AtomicLibrary" build="true" version="~=10.0"/>
   </Dependencies>
 
   <Classifiers>

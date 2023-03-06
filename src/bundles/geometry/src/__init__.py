@@ -15,8 +15,7 @@
 # other C++ modules to parse numpy arrays.  This code loads
 # the library into the ChimeraX process so it does not need
 # to be on the runtime loader search path.
-from chimerax.arrays import load_libarrays
-load_libarrays()
+import chimerax.arrays
 
 from .place import Place, Places, identity
 from .place import rotation, quaternion_rotation, vector_rotation, translation, scale, z_align
@@ -50,7 +49,7 @@ from .icosahedron import coordinate_system_names as icosahedral_orientations
 from .icosahedron import coordinate_system_transform as icosahedral_coordinate_system_transform
 from .spline import arc_lengths
 from .adaptive_tree import AdaptiveTree
-from .plane import Plane
+from .plane import Plane, PlaneNoIntersectionError
 
 from chimerax.core.toolshed import BundleAPI
 class _GeometryBundleAPI(BundleAPI):

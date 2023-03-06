@@ -514,7 +514,7 @@ class Bundle:
                 if sys.platform == "win32":
                     os.remove(os.path.join("src/lib/", "".join([lib.name, ".lib"])))
                 else:
-                    os.remove(os.path.join("src/lib/", "".join([lib.name, ".a"])))
+                    os.remove(os.path.join("src/lib/", "".join(["lib", lib.name, ".a"])))
             else:
                 if sys.platform == 'darwin':
                     os.remove(os.path.join("src/lib/", "".join([lib.name, ".dylib"])))
@@ -834,7 +834,8 @@ class FormatFetcher(Provider):
         else:
             name, attrs["format_name"] = attrs.pop("name"), name
             for key, val in self.default_attrs.items():
-                attrs[key] = val
+                if key not in attrs:
+                    attrs[key] = val
         super().__init__("open command", name, attrs)
 
 
@@ -928,7 +929,8 @@ class _CompiledCode:
             if v < CHIMERAX1_0_PYTHON_VERSION:
                 v = CHIMERAX1_0_PYTHON_VERSION
             hex_version = (v.major << 24) | (v.minor << 16) | (v.micro << 8)
-            self.add_macro_define("Py_LIMITED_API", hex_version)
+            self.add_macro_define("Py_LIMITED_API", hex(hex_version))
+            self.add_macro_define("CYTHON_LIMITED_API", hex(hex_version))
 
     def get_platform_specific_args(self, attrs):
         for platform in self._platforms[sys.platform]:

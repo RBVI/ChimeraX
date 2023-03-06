@@ -30,10 +30,7 @@ class Option(metaclass=ABCMeta):
         if attr_name:
             self.attr_name = attr_name
         elif not hasattr(self, 'attr_name'):
-            if self.name:
-                self.attr_name = self.name
-            else:
-                self.attr_name = None
+            self.attr_name = None
 
         if settings is None:
             self.settings_handler = self.settings = None
@@ -45,10 +42,20 @@ class Option(metaclass=ABCMeta):
             # reference to settings for now; if that proves problematic then revisit.
             self.settings = settings
             from weakref import proxy
-            self.settings_handler = self.settings.triggers.add_handler('setting changed',
-                lambda trig_name, data, *, pself=proxy(self):
-                data[0] == pself.attr_name and (setattr(pself, "value", pself.get_attribute())
-                or (pself._callback and pself._callback(pself))))
+            def proxy_handler(trig_name, data, *, pself=proxy(self)):
+                # In case some bad code is holding onto the Python side of a dead tool,
+                # ignore AttributeErrors.
+                # Also, if the last error occurred in a tool, sys.last_traceback can be holding
+                # reference to the tool, so ignore RuntimeErrors too [#8554]
+                try:
+                    if data[0] == pself.attr_name:
+                        setattr(pself, "value", pself.get_attribute())
+                        if pself._callback:
+                            pself._callback(pself)
+                except (AttributeError, RuntimeError):
+                    from chimerax.core.triggerset import DEREGISTER
+                    return DEREGISTER
+            self.settings_handler = self.settings.triggers.add_handler('setting changed', proxy_handler)
         self.auto_set_attr = auto_set_attr
 
         if default is None and attr_name and settings:
@@ -383,12 +390,16 @@ class EnumBase(Option):
                     self.make_callback()
     remake_buttons = remake_menu
 
-    def _make_widget(self, *, as_radio_buttons=False, display_value=None, **kw):
-        from Qt.QtWidgets import QPushButton, QMenu, QWidget, QButtonGroup, QVBoxLayout
+    def _make_widget(self, *, as_radio_buttons=False, horizontal_radio_buttons=False, display_value=None,
+            **kw):
+        from Qt.QtWidgets import QPushButton, QMenu, QWidget, QButtonGroup, QVBoxLayout, QHBoxLayout
         self.__as_radio_buttons = as_radio_buttons
         if as_radio_buttons:
             self.widget = QWidget()
-            layout = QVBoxLayout()
+            if horizontal_radio_buttons:
+                layout = QHBoxLayout()
+            else:
+                layout = QVBoxLayout()
             self.widget.setLayout(layout)
             self.__button_group = QButtonGroup()
             self.remake_buttons()

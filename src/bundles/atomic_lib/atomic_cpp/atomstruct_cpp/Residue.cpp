@@ -90,10 +90,12 @@ Residue::~Residue() {
 }
 
 void
-Residue::add_atom(Atom* a)
+Residue::add_atom(Atom* a, bool copying_structure)
 {
     a->_residue = this;
     _atoms.push_back(a);
+    if (copying_structure)
+        return;
 
     // if this is the first atom of a residue being introduced into a chain gap,
     // possibly adjust missing-structure pseudobonds; try to do this work only if
@@ -534,7 +536,20 @@ Residue::template_assign(void (Atom::*assign_func)(const char*),
     //   std::logic_error:  internal logic error
     using tmpl::TemplateCache;
     TemplateCache* tc = TemplateCache::template_cache();
-    TemplateCache::AtomMap* am = tc->res_template(name(),
+    auto lookup_name = name();
+    if (lookup_name == "UNK") {
+        // treat as GLY if backbone atoms present
+        bool treat_as_gly = true;
+        for (auto bb_name: aa_min_backbone_names) {
+            if (find_atom(bb_name) == nullptr) {
+                treat_as_gly = false;
+                break;
+            }
+        }
+        if (treat_as_gly)
+            lookup_name = "GLY";
+    }
+    TemplateCache::AtomMap* am = tc->res_template(lookup_name,
             app, template_dir, extension);
 
     std::vector<Atom*> unassigned;

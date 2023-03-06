@@ -532,6 +532,7 @@ class SequenceViewer(ToolInstance):
         copy_action = QAction("Copy Sequence...", edit_menu)
         copy_action.triggered.connect(self.show_copy_sequence_dialog)
         edit_menu.addAction(copy_action)
+        single_seq = len(self.alignment.seqs) == 1
         from chimerax.seqalign.cmd import alignment_program_name_args
         prog_to_arg = {}
         for arg, prog in alignment_program_name_args.items():
@@ -544,6 +545,8 @@ class SequenceViewer(ToolInstance):
                     unparse=StringArg.unparse, cmd_text=cmd_text: run(self.session,
                     "seq align %s program %s%s" % (unparse(self.alignment.ident), unparse(arg), cmd_text)))
                 prog_menu.addAction(realign_action)
+            if single_seq:
+                prog_menu.setEnabled(False)
 
         structure_menu = menu.addMenu("Structure")
         assoc_action = QAction("Associations...", structure_menu)
@@ -628,16 +631,19 @@ class SequenceViewer(ToolInstance):
             loops_model_action.setEnabled(False)
         tools_menu.addAction(loops_model_action)
         if len(self.alignment.seqs) == 1:
+            from chimerax.blastprotein import BlastProteinTool
             blast_action = QAction("Blast Protein...", tools_menu)
-            blast_action.triggered.connect(lambda: run(self.session,
-                "blastprotein %s" % (StringArg.unparse("%s:1" % self.alignment.ident))))
+            blast_action.triggered.connect(
+                lambda: BlastProteinTool(self.session, sequences = StringArg.unparse("%s:1" % self.alignment.ident))
+            )
             tools_menu.addAction(blast_action)
         else:
+            from chimerax.blastprotein import BlastProteinTool
             blast_menu = tools_menu.addMenu("Blast Protein")
             for i, seq in enumerate(self.alignment.seqs):
                 blast_action = QAction(seq.name, blast_menu)
-                blast_action.triggered.connect(lambda: run(self.session,
-                    "blastprotein %s" % (StringArg.unparse("%s:%d" % (self.alignment.ident, i+1)))))
+                blast_action.triggered.connect(lambda *args, chars=seq.ungapped():
+                    BlastProteinTool(self.session, sequences=StringArg.unparse(chars)))
                 blast_menu.addAction(blast_action)
         if len(self.alignment.seqs) > 1:
             identity_action = QAction("Percent Identity...", menu)

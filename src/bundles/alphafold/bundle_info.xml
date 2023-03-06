@@ -6,8 +6,8 @@
   <Email>chimerax@cgl.ucsf.edu</Email>
   <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
 
-  <Synopsis>Fetch structures from EBI AlphaFold database</Synopsis>
-  <Description>Fetch structures from EBI AlphaFold database</Description>
+  <Synopsis>Predict or fetch AlphaFold structures</Synopsis>
+  <Description>Predict structures using AlphaFold or fetch structures from the EBI AlphaFold database</Description>
 
   <Categories>
     <Category name="Structure Prediction"/>
@@ -27,11 +27,15 @@
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
     <ChimeraXClassifier>Command :: alphafold match :: Structure Prediction :: Fetch AlphaFold database models matching a structure</ChimeraXClassifier>
-    <ChimeraXClassifier>Command :: alphafold fetch :: Structure Predictioo :: Fetch AlphaFold database models for a UniProt identifier</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: alphafold fetch :: Structure Prediction :: Fetch AlphaFold database models for a UniProt identifier</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: alphafold search :: Structure Prediction :: Search AlphaFold database using BLAST</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: alphafold predict :: Structure Prediction :: Predict a structure using AlphaFold</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: alphafold pae :: Structure Prediction :: Show AlphaFold predicted aligned error as heatmap</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: alphafold contacts :: Structure Prediction :: Show AlphaFold contact pseudobond colored by predicted aligned error</ChimeraXClassifier>
+    <!--
+    <ChimeraXClassifier>Command :: alphafold covariation :: Structure Prediction :: Show frequency of residue pairs in AlphaFold sequence alignment</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: alphafold msa :: Structure Prediction :: Show number of each combination of chains in AlphaFold sequence alignment</ChimeraXClassifier>
+    -->
     <ChimeraXClassifier>Tool :: AlphaFold :: Structure Prediction :: Fetch or calculate AlphaFold structures</ChimeraXClassifier>
     <ChimeraXClassifier>Tool :: AlphaFold Error Plot :: Structure Prediction :: Plot AlphaFold predicted aligned error</ChimeraXClassifier>
   </Classifiers>

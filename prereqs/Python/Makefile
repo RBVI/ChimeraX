@@ -5,9 +5,9 @@ include $(TOP)/mk/config.make
 # PYTHON_VERSION is in config.make
 PYTHON_PATCH_LEVEL = $(PYTHON_VERSION).$(PYTHON_PATCH_VERSION)
 
-PIP_VERSION = 22.2.2
-WHEEL_VERSION = 0.37.1
-SETUPTOOLS_VERSION = 65.1.1
+PIP_VERSION = 23.0
+WHEEL_VERSION = 0.38.4
+SETUPTOOLS_VERSION = 67.4.0
 
 ifeq ($(OS),Windows)
 DISTRIBUTION = python-$(PYTHON_PATCH_LEVEL)-win-amd64.tar.bz2
@@ -118,9 +118,9 @@ else ifdef USE_MAC_FRAMEWORKS
 	tar xf $(DISTRIBUTION) -C $(frameworkdir)
 
 	# Link framework bin, lib, and include files to app directories
-	cd $(bindir) ; ln -s $(REL_PYTHON_FRAMEWORK)/bin/python* $(REL_PYTHON_FRAMEWORK)/bin/pip* .
-	ln -s $(REL_PYTHON_FRAMEWORK)/lib/python$(PYTHON_VERSION) $(libdir)
-	ln -s $(REL_PYTHON_FRAMEWORK)/include/python$(PYTHON_VERSION) $(includedir)
+	-cd $(bindir) ; ln -s $(REL_PYTHON_FRAMEWORK)/bin/python* $(REL_PYTHON_FRAMEWORK)/bin/pip* .
+	-ln -s $(REL_PYTHON_FRAMEWORK)/lib/python$(PYTHON_VERSION) $(libdir)
+	-ln -s $(REL_PYTHON_FRAMEWORK)/include/python$(PYTHON_VERSION) $(includedir)
 
 else
 	# Linux or Mac OS X without framework

@@ -667,7 +667,7 @@ class Drawing:
                 any_transparent = (oc < len(vc))
         return any_opaque, any_transparent
 
-    def showing_transparent(self):
+    def showing_transparent(self, include_children = True):
         '''Are any transparent objects being displayed. Includes all
         children.'''
         if self.display:
@@ -675,9 +675,10 @@ class Drawing:
                 any_opaque, any_transp = self._transparency()
                 if any_transp:
                     return True
-            for d in self.child_drawings():
-                if d.showing_transparent():
-                    return True
+            if include_children:
+                for d in self.child_drawings():
+                    if d.showing_transparent():
+                        return True
         return False
 
     def set_geometry(self, vertices, normals, triangles,
@@ -1413,7 +1414,7 @@ class Drawing:
             print("%s<Appearance USE='%s'/>" % (tab, name), file=stream)
             return
 
-        from graphics.linetype import LineType
+        from .linetype import LineType
         print("%s<Appearance DEF='%s'>" % (tab, name), file=stream)
         if line_width != 1 or line_type != LineType.Solid:
             print("%s <LineProperties" % tab, end='', file=stream)

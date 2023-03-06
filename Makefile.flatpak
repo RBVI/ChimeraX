@@ -1,0 +1,14 @@
+all:
+	# by default, do nothing
+
+preqreqs:
+	dnf install flatpak flatpak-builder
+
+install:
+	mkdir -p /app/ChimeraX
+	$(MAKE) install NO_PREBUILT=1 FLATPAK_DIST=22.08
+	mkdir -p /app/bin
+	ln -s /app/ChimeraX/bin/Chimerax /app/bin/chimera
+	install -Dm644 src/apps/ChimeraX/ChimeraX-icon.svg -t /app/share/icons/hicolor/scalable/apps/edu.ucsf.rbvi.ChimeraX.svg
+	# install -Dm644 edu.ucsf.rbvi.ChimeraX.metainfo.xml -t /app/share/metainfo
+	# install -Dm644 edu.ucsf.rbvi.ChimeraX.desktop -t /app/share/applications

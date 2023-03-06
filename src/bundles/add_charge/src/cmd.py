@@ -16,7 +16,7 @@ ChargeMethodArg = EnumOf(['am1-bcc', 'gasteiger'])
 ChargeMethodArg.default_value = 'am1-bcc'
 
 from chimerax.core.errors import UserError
-from .charge import default_standardized, add_charges, add_nonstandard_res_charges
+from .charge import default_standardized, add_charges, add_nonstandard_res_charges, ChargeError
 
 # functions in .dock_prep may need updating if cmd_addcharge() call signature changes
 def cmd_addcharge(session, residues, *, method=ChargeMethodArg.default_value,
@@ -27,9 +27,40 @@ def cmd_addcharge(session, residues, *, method=ChargeMethodArg.default_value,
     if not residues:
         raise UserError("No residues specified")
 
+    if standardize_residues == "none":
+        standardize_residues = []
     check_hydrogens(session, residues)
-    add_charges(session, residues, method=method, status=session.logger.status,
-        standardize_residues=standardize_residues)
+    try:
+        add_charges(session, residues, method=method, status=session.logger.status,
+            standardize_residues=standardize_residues)
+    except ChargeError as e:
+        raise UserError(str(e))
+    from math import floor
+    def is_non_integral(val):
+        return abs(floor(val+0.5) - val) > 0.005
+    non_integral_info = {}
+    for s, s_residues in residues.by_structure:
+        non_integral = []
+        total_charge = 0.0
+        for r in s_residues:
+            res_charge = sum([a.charge for a in r.atoms])
+            if is_non_integral(res_charge):
+                non_integral.append((r, res_charge))
+            total_charge += res_charge
+        if non_integral and is_non_integral(total_charge):
+            non_integral_info[s] = non_integral
+    if non_integral_info:
+        from chimerax.core.commands import plural_form, commas
+        session.logger.warning("%d %s has non-integral total charge.\n"
+            "Details in log." % (len(non_integral_info), plural_form(non_integral_info, "structure")))
+        session.logger.info("Here are the structures will non-integral total charge along with the"
+            " particular residues from those structures with non-integral total charge:")
+        for s, res_info in non_integral_info.items():
+            if len(res_info) == len([r for r in s.residues if r.num_atoms > 1]):
+                res_info_text = "all residues"
+            else:
+                res_info = commas(["%s: %g" % (r,c) for r, c in res_info], conjunction="and")
+            session.logger.info(f"{s}: {res_info}")
 
 def cmd_addcharge_nonstd(session, residues, res_name, net_charge, *,
         method=ChargeMethodArg.default_value):
@@ -51,8 +82,8 @@ def check_hydrogens(session, residues):
     if session.in_script:
         return
     from chimerax.ui.ask import ask
-    if ask(session, "Adding charges requires hydrogen atoms to be present.\n"
-            "The residues requested have no hydrogen atoms.\n"
+    if ask(session, "Adding charges requires hydrogen atoms to be present.", show_icon=False,
+            info="The residues requested have no hydrogen atoms.\n"
             "Add hydrogens to them now?") == "yes":
         from chimerax.core.commands import run, StringArg
         from chimerax.atomic import concise_residue_spec
@@ -60,13 +91,14 @@ def check_hydrogens(session, residues):
 
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register, Or, EmptyArg, EnumOf, IntArg, StringArg, ListOf
+    from chimerax.core.commands import NoneArg
     from chimerax.atomic import ResiduesArg
     from chimerax.atomic.struct_edit import standardizable_residues
     desc = CmdDesc(
         required = [('residues', Or(ResiduesArg, EmptyArg))],
         keyword = [
             ('method', ChargeMethodArg),
-            ('standardize_residues', ListOf(EnumOf(standardizable_residues))),
+            ('standardize_residues', Or(ListOf(EnumOf(standardizable_residues)),NoneArg)),
         ],
         synopsis = 'Add charges'
     )

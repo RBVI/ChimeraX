@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-CheckWaters" version="1.3"
+<BundleInfo name="ChimeraX-CheckWaters" version="1.3.1"
 	    package="chimerax.check_waters"
   	    minSessionVersion="1" maxSessionVersion="1">
 
@@ -24,7 +24,6 @@
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>Command :: checkwaters :: Structure Analysis :: Check water placement in a map</ChimeraXClassifier>
     <ChimeraXClassifier>Tool :: Check Waters :: Structure Analysis :: Check water placement in a map</ChimeraXClassifier> -->
   </Classifiers>
 

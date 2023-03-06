@@ -430,7 +430,9 @@ class Tasks(StateManager):
         if key in self:
             raise ValueError("Attempted to record task ID already in task list")
         if key is None:
-            dict.__setitem__(self._tasks, next(self._id_counter), task)
+            id = next(self._id_counter)
+            task.id = id
+            dict.__setitem__(self._tasks, id, task)
         else:
             dict.__setitem__(self._tasks, key, task)
         if self.session:

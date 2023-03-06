@@ -27,7 +27,7 @@ REST_SUBDIRS = add_charge addh alignment_algs alignment_headers \
 	  color_globe color_key connect_structure core_formats \
 	  coulombic crosslinks crystal crystal_contacts data_formats \
 	  dicom dist_monitor dock_prep dssp \
-	  emdb_sff exp_cmd file_history function_key \
+	  emdb_sff esmfold exp_cmd file_history function_key \
 	  geometry gltf graphics \
 	  hbonds help_viewer hkcage ihm image_formats imod \
 	  interfaces items_inspection io label list_info log looking_glass maestro \
@@ -35,7 +35,7 @@ REST_SUBDIRS = add_charge addh alignment_algs alignment_headers \
 	  markers mask match_maker md_crds \
 	  medical_toolbar meeting mlp model_series \
 	  mmcif mmtf model_panel modeller mol2 mole morph mouse_modes movie \
-	  neuron nucleotides open_command pdb pdb_bio pdb_lib pdb_matrices \
+	  neuron nifti nucleotides open_command pdb pdb_bio pdb_lib pdb_matrices \
 	  pick_blobs positions preset_mgr pubchem read_pbonds registration \
 	  remote_control render_by_attr renumber_residues rest_server \
 	  residue_fit rna_layout rotamers rotamer_libs \
@@ -44,7 +44,7 @@ REST_SUBDIRS = add_charge addh alignment_algs alignment_headers \
 	  shell shortcuts show_sequences sideview sim_matrices smiles \
 	  smooth_lines spacenavigator std_commands \
 	  stl storm struct_measure struts surface swapaa swap_res \
-	  tape_measure test toolbar tug ui uniprot unit_cell \
+	  tape_measure test toolbar topography tug ui uniprot unit_cell \
 	  viewdockx viperdb vive volume_menu vtk wavefront_obj \
 	  webcam webservices zone
 

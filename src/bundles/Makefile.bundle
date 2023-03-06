@@ -9,7 +9,11 @@
 
 TOP ?= ../../..
 -include $(TOP)/.makerc
+ifeq (,$(wildcard $(TOP)/app/ChimeraX))
 CHIMERAX_APP = $(wildcard $(TOP)/ChimeraX*.app)
+else
+CHIMERAX_APP = $(wildcard $(TOP)/app/ChimeraX)
+endif
 SYNC_DIR = $(wildcard $(TOP)/build/sync)
 
 # These can be overridden by bundles for customization
@@ -66,7 +70,7 @@ wheel: $$(PYSRCS)
 install app-install: $$(PYSRCS)
 	$(RUN_CMD) "devel install . user false exit true $(DEBUG_ARG) $(INSTALL_ARGS)"
 
-install-editable: 
+install-editable: clean
 	$(RUN_CMD) "devel install . user false editable true exit true $(DEBUG_ARG) $(INSTALL_ARGS)"
 
 venv-install:
@@ -90,7 +94,7 @@ ifeq ($(OS),Linux)
 endif
 
 sync:
-	rsync -av dist/*.whl $(SYNC_DIR)
+	cp -av dist/*.whl $(SYNC_DIR)
 
 ifdef BUILD_AND_INSTALL
 INSTALL_ARGS = noDeps true

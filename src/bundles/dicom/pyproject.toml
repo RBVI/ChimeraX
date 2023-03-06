@@ -33,20 +33,28 @@ version = { attr = "src.__version__" }
 custom-init = true
 min-session-version = 1
 max-session-version = 1
-categories = ["Volume Data"]
+categories = ["Medical Imaging"]
 classifiers = ["Development Status :: 2 - Pre-Alpha"]
 
 [chimerax.data-format."DICOM medical imaging"]
-category = "Volume Data"
+category = "Medical Imaging"
 nicknames = ["dicom"]
 suffixes = [".dcm"]
 allow-directory = true
-open = { batch = true }
+
+[[chimerax.data-format."DICOM medical imaging".open]]
+batch = true
+
+[[chimerax.data-format."DICOM medical imaging".open]]
+type = "fetch"
+name = "tcia"
+format-name = "dicom"
+is-default = false
 
 [chimerax.tool."DICOM Browser"]
-category = "Volume Data"
+category = "Medical Imaging"
 description = "View the metadata of a patient's DICOM files"
 
-[chimerax.tool."DICOM Metadata"]
-category = "Volume Data"
-description = "View the metadata of a DICOM file or series"
+[chimerax.tool."Download DICOM"]
+category = "Medical Imaging"
+description = "View the contents of public DICOM datasets from within ChimeraX"

@@ -59,8 +59,7 @@ class BundleBuilder:
         except ValueError as err:
             raise ValueError("%s: %s" % (info_file, err))
         self._make_paths()
-        self._make_setup_arguments()
-   
+
     @classmethod
     def from_path(cls, logger, bundle_path):
         return cls(logger, bundle_path)
@@ -70,6 +69,7 @@ class BundleBuilder:
         # for a single setup() run.  We want to run setup() multiple
         # times which can remove/create the same directories.
         # So we need to flush the cache before each run.
+        self._make_setup_arguments()
         import distutils.dir_util
         try:
             distutils.dir_util._path_created.clear()
@@ -106,6 +106,7 @@ class BundleBuilder:
         # for a single setup() run.  We want to run setup() multiple
         # times which can remove/create the same directories.
         # So we need to flush the cache before each run.
+        self._make_setup_arguments()
         import distutils.dir_util
         try:
             distutils.dir_util._path_created.clear()
@@ -120,11 +121,6 @@ class BundleBuilder:
         for executable in self.c_executables:
             executable.compile(self.logger, self.dependencies, debug=debug)
         setup_args = ["build_ext", "--inplace", "editable_wheel"]
-        if self._is_pure_python():
-            setup_args.extend(["--python-tag", self.tag.interpreter])
-        else:
-            if self.limited_api:
-                setup_args.extend(["--py-limited-api", self.tag.interpreter])
         dist, built = self._run_setup(setup_args)
         import glob
         whl_path = glob.glob(os.path.join(self.path, 'dist', '*editable*.whl'))
@@ -165,6 +161,9 @@ class BundleBuilder:
         self._rmtree(os.path.join(self.path, "src", "__pycache__"))
         self._rmtree(self.egg_info)
         for root, dirnames, filenames in os.walk("src"):
+            # Static libraries
+            for filename in fnmatch.filter(filenames, "*.a"):
+                os.remove(os.path.join(root, filename))
             # Linux, Mac
             for filename in fnmatch.filter(filenames, "*.o"):
                 os.remove(os.path.join(root, filename))
@@ -473,7 +472,8 @@ class BundleBuilder:
             if v < CHIMERAX1_0_PYTHON_VERSION:
                 v = CHIMERAX1_0_PYTHON_VERSION
             hex_version = (v.major << 24) | (v.minor << 16) | (v.micro << 8)
-            c.add_macro_define("Py_LIMITED_API", hex_version)
+            c.add_macro_define("Py_LIMITED_API", hex(hex_version))
+            c.add_macro_define("CYTHON_LIMITED_API", hex(hex_version))
 
     def _get_packages(self, bi):
         self.packages = []

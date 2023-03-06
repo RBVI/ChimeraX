@@ -419,9 +419,20 @@ push_seqres(Chain *chain, size_t start_index, int record_num, std::vector<std::s
 static void
 compile_seqres(const Structure* s, std::vector<std::string>& seqres)
 {
+    std::set<ChainID> incomplete_chains;
+    auto pbg = s->pb_mgr().get_group(Structure::PBG_MISSING_STRUCTURE);
+    if (pbg != nullptr) {
+        for (auto pb: pbg->pseudobonds()) {
+            incomplete_chains.insert(pb->atoms()[0]->residue()->chain_id());
+        }
+    }
     for (auto chain: s->chains()) {
         int record_num = 1;
         for (size_t i = 0; i < chain->characters().size(); i += 13) {
+                // only output SEQRES for chains where we believe we know the complete polymer sequence
+                if (!chain->from_seqres()
+                && incomplete_chains.find(chain->chain_id()) != incomplete_chains.end())
+                    continue;
                 push_seqres(chain, i, record_num++, seqres);
         }
     }
@@ -760,7 +771,8 @@ start_t = end_t;
 
             AtomName aname;
             ResName rname;
-            auto cid = segid_chains ? ChainID(record.atom.seg_id) : ChainID({record.atom.res.chain_id});
+            auto cid = segid_chains ? ChainID(record.atom.seg_id[0] == '\0' ? " " : record.atom.seg_id)
+                : ChainID({record.atom.res.chain_id});
             if (islower(record.atom.res.i_code))
                 record.atom.res.i_code = toupper(record.atom.res.i_code);
             int seq_num = record.atom.res.seq_num;
@@ -1824,8 +1836,12 @@ write_coord_set(StreamDispatcher& os, const Structure* s, const CoordSet* cs,
                 continue;
             std::string aname = s->asterisks_translated ?
                 primes_to_asterisks(a->name().c_str()) : a->name().c_str();
+            if (aname.size() > 4 && !*warned_atom_name_length) {
+                *warned_atom_name_length = true;
+                logger::warning(py_logger, "Atom names longer than 4 characters; truncating");
+            }
             if (strlen(a->element().name()) > 1) {
-                strcpy(*rec_name, aname.c_str());
+                strncpy(*rec_name, aname.c_str(), 4);
             } else {
                 bool element_compares;
                 if (strncmp(a->element().name(), a->name().c_str(), 1) == 0) {
@@ -1840,14 +1856,10 @@ write_coord_set(StreamDispatcher& os, const Structure* s, const CoordSet* cs,
                     strcpy(*rec_name, " ");
                     strcat(*rec_name, aname.c_str());
                 } else {
-                    strcpy(*rec_name, aname.c_str());
+                    strncpy(*rec_name, aname.c_str(), 4);
                 }
             }
-            if (aname.size() > 4 && !*warned_atom_name_length) {
-                *warned_atom_name_length = true;
-                logger::warning(py_logger, "Atom names longer than 4 characters; truncating");
-
-            }
+            (*rec_name)[4] = '\0';
             set_res_name_and_chain_id(r, res->name, &res->chain_id,
                 py_logger, warned_res_name_length, warned_chain_id_length);
             auto seq_num = r->number();
@@ -1975,6 +1987,21 @@ write_coord_set(StreamDispatcher& os, const Structure* s, const CoordSet* cs,
         }
         prev_res = r;
         prev_standard = standard;
+    }
+    if (prev_res != nullptr && prev_standard && some_output) {
+        // Output a final TER if the last residue was in a chain
+        p_ter.ter.serial = ++serial;
+        set_res_name_and_chain_id(prev_res, p_ter.ter.res.name, &p_ter.ter.res.chain_id);
+        int seq_num = prev_res->number();
+        char i_code = prev_res->insertion_code();
+        if (seq_num > 9999) {
+            // usurp the insertion code...
+            i_code = '0' + (seq_num % 10);
+            seq_num = seq_num / 10;
+        }
+        p_ter.ter.res.seq_num = seq_num;
+        p_ter.ter.res.i_code = i_code;
+        os << p_ter << "\n";
     }
 }
 

@@ -35,14 +35,20 @@ title="click to enlarge..." alt="DICOM Browser dialog" width="300px"></a>
 <a href="../dicom/dicom.html">DICOM files</a> contain associated information
 (metadata) that can be displayed in the <b>DICOM Browser</b> and the related 
 <a href="dicommetadata.html"><b>DICOM Metadata</b></a> tool.
+See also:
+<a href="downloaddicom.html"><b>Download DICOM</b></a>,
+<a href="../dicom-quickref.html">ChimeraX DICOM Reference</a>
 </p><p>
 The <b>DICOM Browser</b> can be shown by choosing a model 
-that corresponds to a patient or study in the
-<a href="modelpanel.html"><b>Model Panel</b></a>
-and clicking the <b>Info</b> button.
-It shows the DICOM patient&rarr;study&rarr;series hierarchy,
-with selected descriptors at each level. 
+in the <a href="modelpanel.html"><b>Model Panel</b></a>
+that corresponds to a patient or study (read from DICOM)
+and clicking the <b>Info</b> button. It can also be started from the
+<b>Medical Imaging</b> section of the <b>Tools</b> menu, although if no
+DICOM data are open at the time, it will be blank.
 </p><p>
+The <b>DICOM Browser</b> dialog
+shows the DICOM patient&rarr;study&rarr;series hierarchy,
+with selected descriptors at each level. 
 One or more rows can be chosen (highlighted) 
 by clicking and dragging with the left mouse button;
 <b>Ctrl</b>-click (or <b>command</b>-click if using a Mac)
@@ -51,10 +57,12 @@ toggles whether a row is chosen.
 Full <a href="dicommetadata.html"><b>DICOM Metadata</b></a>
 for the chosen row(s) can be shown by using the
 <a href="../window.html#context-menu">context menu</a>
-to <b>Load Metadata</b>.
+to <b>Load Metadata from Chosen Entries</b>, or by
+clicking the <b>Show Metadata</b> button at the bottom of the 
+<b>DICOM Browser</b> dialog.
 </p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-October 2022</address>
+February 2023</address>
 </body></html>

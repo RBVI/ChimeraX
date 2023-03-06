@@ -91,6 +91,15 @@ cdef class TmplResidue:
     def description(self):
         return self.cpp_res.description().decode()
 
+    @property
+    def metadata(self):
+        temp = self.cpp_res.metadata
+        metadata = {}
+        for mi in temp:
+            key = mi.first
+            metadata[key.decode()] = [v.decode() for v in mi.second]
+        return metadata
+
 cytmpl.Residue.set_py_class(TmplResidue)
 
 cdef class TmplAtom:

@@ -433,10 +433,13 @@ def _set_sequential_chain(session, objects, cmap, opacity, target, undo_state):
     chain_atoms = {}
     for c in uc:
         chain_atoms.setdefault(c.structure, []).append((c.chain_id, c.existing_residues.atoms))
+
     # Make sure there is a colormap
     if cmap is None:
         from chimerax.core import colors
         cmap = colors.BuiltinColormaps["rainbow"]
+    use_color_alpha = (opacity is None) and cmap.is_transparent
+
     # Each structure is colored separately with cmap applied by chain
     import numpy
     from chimerax.core.colors import Color
@@ -445,16 +448,17 @@ def _set_sequential_chain(session, objects, cmap, opacity, target, undo_state):
         colors = cmap.interpolated_rgba(numpy.linspace(0.0, 1.0, len(sl)))
         for color, (chain_id, atoms) in zip(colors, sl):
             c = Color(color)
+            opac = 255*color[3] if use_color_alpha else opacity
             if target is None or 'a' in target:
-                _set_atom_colors(atoms, c, opacity, None, undo_state)
+                _set_atom_colors(atoms, c, opac, None, undo_state)
             if target is None or 'c' in target:
                 res = atoms.unique_residues
-                _set_ribbon_colors(res, c, opacity, None, undo_state)
+                _set_ribbon_colors(res, c, opac, None, undo_state)
             if target is None or 'f' in target:
                 res = atoms.unique_residues
-                _set_ring_colors(res, c, opacity, None, undo_state)
+                _set_ring_colors(res, c, opac, None, undo_state)
             if target is None or 's' in target:
-                _set_surface_colors(session, atoms, c, opacity, undo_state=undo_state)
+                _set_surface_colors(session, atoms, c, opac, undo_state=undo_state)
 
 # ----------------------------------------------------------------------------------
 # Polymers (unique sequences) in each structure are colored from color map ordered
@@ -466,10 +470,13 @@ def _set_sequential_polymer(session, objects, cmap, opacity, target, undo_state)
     seq_atoms = {}
     for c in uc:
         seq_atoms.setdefault(c.structure, {}).setdefault(c.characters, []).append(c.existing_residues.atoms)
+
     # Make sure there is a colormap
     if cmap is None:
         from chimerax.core import colors
         cmap = colors.BuiltinColormaps["rainbow"]
+    use_color_alpha = (opacity is None) and cmap.is_transparent
+
     # Each structure is colored separately with cmap applied by chain
     import numpy
     from chimerax.core.colors import Color
@@ -479,17 +486,18 @@ def _set_sequential_polymer(session, objects, cmap, opacity, target, undo_state)
         colors = cmap.interpolated_rgba(numpy.linspace(0.0, 1.0, len(sseq)))
         for color, (seq, alist) in zip(colors, sseq):
             c = Color(color)
+            opac = 255*color[3] if use_color_alpha else opacity
             for atoms in alist:
                 if target is None or 'a' in target:
-                    _set_atom_colors(atoms, c, opacity, None, undo_state)
+                    _set_atom_colors(atoms, c, opac, None, undo_state)
                 if target is None or 'c' in target:
                     res = atoms.unique_residues
-                    _set_ribbon_colors(res, c, opacity, None, undo_state)
+                    _set_ribbon_colors(res, c, opac, None, undo_state)
                 if target is None or 'f' in target:
                     res = atoms.unique_residues
-                    _set_ring_colors(res, c, opacity, None, undo_state)
+                    _set_ring_colors(res, c, opac, None, undo_state)
                 if target is None or 's' in target:
-                    _set_surface_colors(session, atoms, c, opacity, undo_state=undo_state)
+                    _set_surface_colors(session, atoms, c, opac, undo_state=undo_state)
 
 # -----------------------------------------------------------------------------
 #
@@ -498,6 +506,8 @@ def _set_sequential_residue(session, objects, cmap, opacity, target, undo_state)
     if cmap is None:
         from chimerax.core import colors
         cmap = colors.BuiltinColormaps["rainbow"]
+    use_color_alpha = (opacity is None) and cmap.is_transparent
+
     # Get chains and atoms in chains with "by_chain"
     # Each chain is colored separately with cmap applied by residue
     res = objects.atoms.unique_residues
@@ -509,16 +519,16 @@ def _set_sequential_residue(session, objects, cmap, opacity, target, undo_state)
         colors = cmap.interpolated_rgba8(numpy.linspace(0.0, 1.0, len(residues)))
         for color, r in zip(colors, residues):
             c = Color(color)
+            opac = color[3] if use_color_alpha else opacity
             if target is None or 'a' in target:
-                _set_atom_colors(r.atoms, c, opacity, None, undo_state)
+                _set_atom_colors(r.atoms, c, opac, None, undo_state)
             if target is None or 'c' in target:
                 rgba = c.uint8x4()
-                if opacity is not None:
-                    rgba[3] = opacity
+                rgba[3] = r.ribbon_color[3] if opac is None else opac
                 undo_state.add(r, "ribbon_color", r.ribbon_color, rgba)
                 r.ribbon_color = rgba
         if 's' in target:
-            _color_surfaces_at_residues(residues, colors, opacity=opacity,
+            _color_surfaces_at_residues(residues, colors, opacity=opac,
                                         undo_state = undo_state)
                 
 # -----------------------------------------------------------------------------
@@ -528,6 +538,7 @@ def _set_sequential_structures(session, objects, cmap, opacity, target, undo_sta
     if cmap is None:
         from chimerax.core import colors
         cmap = colors.BuiltinColormaps["rainbow"]
+    use_color_alpha = (opacity is None) and cmap.is_transparent
 
     from chimerax.atomic import Structure
     models = list(m for m in objects.models if isinstance(m, Structure))
@@ -541,15 +552,16 @@ def _set_sequential_structures(session, objects, cmap, opacity, target, undo_sta
     colors = cmap.interpolated_rgba(numpy.linspace(0.0, 1.0, len(models)))
     for color, m in zip(colors, models):
         c = Color(color)
+        opac = 255*color[3] if use_color_alpha else opacity
         if 'a' in target:
-            _set_atom_colors(m.atoms, c, opacity, None, undo_state)
+            _set_atom_colors(m.atoms, c, opac, None, undo_state)
         if 'c' in target:
-            _set_ribbon_colors(m.residues, c, opacity, None, undo_state)
+            _set_ribbon_colors(m.residues, c, opac, None, undo_state)
         if 'f' in target:
-            _set_ring_colors(m.residues, c, opacity, None, undo_state)
+            _set_ring_colors(m.residues, c, opac, None, undo_state)
         if 's' in target:
             _color_surfaces_at_atoms(m.atoms, rgba_to_rgba8(color),
-                                     opacity=opacity, undo_state=undo_state)
+                                     opacity=opac, undo_state=undo_state)
 
 # -----------------------------------------------------------------------------
 #
@@ -1343,7 +1355,8 @@ def color_zone(session, surfaces, near, distance=2, sharp_edges = False,
     for s in surfaces:
         cprev = s.color_undo_state
         # Transform points to surface coordinates
-        spoints = s.scene_position.inverse() * points
+        tf = s.scene_position
+        spoints = points if tf.is_identity() else (tf.inverse() * points)
         color_zone(s, spoints, colors, distance, sharp_edges = sharp_edges,
                    far_color = fcolor, auto_update = update)
         undo_state.add(s, 'color_undo_state', cprev, s.color_undo_state)

@@ -134,7 +134,7 @@ html_theme_options = {
 
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
-html_logo = '../../src/apps/ChimeraX/ChimeraX-icon.svg'
+html_logo = 'apps/ChimeraX/ChimeraX-icon.svg'
 
 # The name of an image file (within the static path) to use as favicon of the
 # docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32
@@ -296,8 +296,7 @@ intersphinx_mapping = {
 # -- Options for extlinks --------------------------------------------
 
 extlinks = {
-    'jquery': ('http://api.jquery.com/jQuery.%s/', "jQuery API's "),
-    'pillow': ('https://pillow.readthedocs.org/reference/Image.html#%s', ''),
+    'jquery': ('http://api.jquery.com/jQuery.%s/', "jQuery APIs"),
 }
 
 

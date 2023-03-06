@@ -21,6 +21,7 @@ from .settings import defaults
 #NOTES: dock_prep_caller() is the public API and also called via the command.  It assembles a series
 #  of steps to execute (by calling dock_prep_steps())
 #
+#  INTERNAL IMPLEMENTATION NOTES:
 #  The step info provides a function to call, that should receive the session, state, callback,
 #  memorization type (MEMORIZE_NONE/USE/SAVE). memorization name, structures, and a dictionary of
 #  step-associated keywords.  The callback should be invoked, with session and state, and will call the
@@ -56,8 +57,9 @@ def get_param_info(session):
 
 def dock_prep_arg_info(session):
     info = { setting: BoolArg for setting in defaults }
-    info['complete_side_chains'] = Or(BoolArg, EnumOf(('gly', 'ala')),
-        DynamicEnum(session.rotamers.library_names))
+    # put BoolArg last, so that unparse doesn't convert the others to bool
+    info['complete_side_chains'] = Or(EnumOf(('gly', 'ala')),
+        DynamicEnum(session.rotamers.library_names), BoolArg)
     from chimerax.atomic.struct_edit import standardizable_residues
     info['standardize_residues'] = ListOf(EnumOf(standardizable_residues))
     return info
@@ -93,25 +95,33 @@ def dock_prep_caller(session, structures, *, memorization=MEMORIZE_NONE, memoriz
         callback=None, **kw):
     """Supply 'memorize_name' if you want settings for your workflow to be separately memorizable from
        generic Dock Prep.  It should be a string descriptive of your workflow ("minimization", tool name,
-       etc.)
+       etc.) since it will also be used in dialog titles.  if 'structures' is None, the user can choose
+       the structures to prep (all structures in nogui mode).
     """
     if nogui is None:
         nogui = session.in_script or not session.ui.is_gui
+    if (nogui or memorization == MEMORIZE_USE) and structures is None:
+        from chimerax.atomic import all_atomic_structures
+        structures = all_atomic_structures(session)
     if memorize_name:
         final_memorize_name = "%s dock prep" % memorize_name
+        process_name = memorize_name
     else:
-        final_memorize_name =  "dock prep"
+        final_memorize_name = process_name = "dock prep"
     state = {
         'steps': dock_prep_steps(session, memorization, final_memorize_name, **kw),
         'memorization': memorization,
         'memorize_name': final_memorize_name,
+        'process_name': process_name,
         'callback': callback,
-        'structures': structures,
         'nogui': nogui,
     }
-    run_steps(session, state)
+    run_steps(session, state, structures)
 
-def run_steps(session, state):
+def run_steps(session, state, structures):
+    if structures is not None and not structures:
+        # User has closed relevant structures
+        return
     steps = state['steps']
     if not steps:
         callback = state['callback']
@@ -122,7 +132,7 @@ def run_steps(session, state):
         import importlib
         step_mod = importlib.import_module("chimerax." + mod_name)
         step_mod.run_for_dock_prep(session, state, run_steps, state['memorization'], state['memorize_name'],
-            state['structures'], kw_dict)
+            structures, kw_dict)
 
 def dock_prep_cmd(session, structures,  *, memorize=MEMORIZE_NONE, **kw):
     if structures is None:

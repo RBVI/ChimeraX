@@ -1,5 +1,5 @@
 === UCSF ChimeraX Copyright ===
-Copyright 2016-2022 Regents of the University of California.
+Copyright 2016-2023 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
 license agreement containing restrictions on its disclosure,
 duplication and use.  For details see:

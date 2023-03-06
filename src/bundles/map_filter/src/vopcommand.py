@@ -369,7 +369,7 @@ def combine_op(volumes, operation = 'add', on_grid = None, bounding_grid = None,
                subregion = 'all', step = 1,
                grid_subregion = 'all', grid_step = 1, spacing = None, value_type = None,
                in_place = False, scale_factors = None, model_id = None, session = None,
-               hide_maps = True):
+               hide_maps = True, open_model = True):
 
     if bounding_grid is None and not in_place:
         bounding_grid = (on_grid is None)
@@ -388,7 +388,7 @@ def combine_op(volumes, operation = 'add', on_grid = None, bounding_grid = None,
     cv = [combine_operation(volumes, operation, subregion, step,
                             gv, grid_subregion, grid_step, spacing, value_type,
                             bounding_grid, in_place, scale_factors, model_id, session,
-                            hide_maps = hide_maps)
+                            hide_maps = hide_maps, open_model = open_model)
           for gv in on_grid]
 
     return _volume_or_list(cv)
@@ -398,7 +398,7 @@ def combine_op(volumes, operation = 'add', on_grid = None, bounding_grid = None,
 def combine_operation(volumes, operation, subregion, step,
                       gv, grid_subregion, grid_step, spacing, value_type,
                       bounding_grid, in_place, scale, model_id, session,
-                      hide_maps = True):
+                      hide_maps = True, open_model = True):
 
     if scale is None:
         scale = [1]*len(volumes)
@@ -440,14 +440,14 @@ def combine_operation(volumes, operation, subregion, step,
             rg.name = 'volume sum'
         from chimerax.map import volume_from_grid_data
         rv = volume_from_grid_data(rg, session, model_id = model_id,
-                                   show_dialog = False)
+                                   show_dialog = False, open_model = open_model)
         rv.position = gv.position
         for i,v in enumerate(volumes):
             op = 'add' if i == 0 else operation
             rv.combine_interpolated_values(v, op, subregion = subregion, step = step,
                                            scale = scale[i])
     rv.data.values_changed()
-    if volumes:
+    if volumes and not in_place:
         rv.copy_settings_from(v0, copy_region = False, copy_xform = False, copy_colors = False)
         if rv.data.name.endswith('difference'):
             rv.set_parameters(cap_faces = False)
@@ -901,7 +901,7 @@ def volume_subtract(session, volumes, on_grid = None, bounding_grid = False,
                     subregion = 'all', step = 1,
                     grid_subregion = 'all', grid_step = 1, spacing = None, value_type = None,
                     in_place = False, scale_factors = None, min_rms = False,
-                    model_id = None, hide_maps = True):
+                    model_id = None, hide_maps = True, open_model = True):
     '''Subtract two maps.'''
     if len(volumes) != 2:
         raise CommandError('volume subtract operation requires exactly two volumes')
@@ -912,7 +912,7 @@ def volume_subtract(session, volumes, on_grid = None, bounding_grid = False,
     sv = combine_op(volumes, 'subtract', on_grid, bounding_grid, subregion, step,
                     grid_subregion, grid_step, spacing, value_type,
                     in_place, mult, model_id, session,
-                    hide_maps = hide_maps)
+                    hide_maps = hide_maps, open_model=open_model)
     return sv
 
 # -----------------------------------------------------------------------------
