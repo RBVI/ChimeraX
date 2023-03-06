@@ -1,4 +1,4 @@
-# vim:set expandtab:
+# vim:set expandtab shiftwidth=2:
 id: edu.ucsf.rbvi.ChimeraX
 runtime: org.freedesktop.Platform
 runtime-version: '22.08'
@@ -6,9 +6,9 @@ sdk: org.freedesktop.Sdk
 command: chimerax
 
 build-options:
-    build_args:
-    # need to fetch files from https://cxtoolshed.rbvi.ucsf.edu/prereqs
-    - --share=network
+  build_args:
+  # need to fetch files from https://cxtoolshed.rbvi.ucsf.edu/prereqs
+  - --share=network
 
 finish-args:
   # X11 + Xshm access

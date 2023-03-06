@@ -6,7 +6,7 @@ preqreqs:
 
 install:
 	mkdir -p /app/ChimeraX
-	make install NO_PREBUILT=1 FLATPAK_DIST=22.08
+	$(MAKE) install NO_PREBUILT=1 FLATPAK_DIST=22.08
 	mkdir -p /app/bin
 	ln -s /app/ChimeraX/bin/Chimerax /app/bin/chimera
 	install -Dm644 src/apps/ChimeraX/ChimeraX-icon.svg -t /app/share/icons/hicolor/scalable/apps/edu.ucsf.rbvi.ChimeraX.svg
