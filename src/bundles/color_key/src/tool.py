@@ -384,6 +384,7 @@ class ColorKeyTool(ToolInstance):
     def _reverse_data(self, *args):
         run(self.session, "key " + self._colors_labels_arg(wells=reversed(self.wells),
             labels=reversed(self.labels)))
+        self.palette_chooser.update()
 
     def _update_colors_layout(self):
         rgbas_and_labels = self.key.rgbas_and_labels

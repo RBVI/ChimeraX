@@ -34,7 +34,7 @@ class Action(Enum):
 
 class DICOMDatabases(ToolInstance):
 
-    help = "help:user/tools/dicomdatabases.html"
+    help = "help:user/tools/downloaddicom.html"
 
     def __init__(self, session = None, name = "Download DICOM"):
         """Bring up a tool to explore DICOM models open in the session."""

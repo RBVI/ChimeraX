@@ -25,8 +25,5 @@ $(SOURCE): $(DISTRIBUTION)
 $(DISTRIBUTION):
 	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/rsync/$(DISTRIBUTION)
 
-upload_new_version:
-	$(RSYNC) $(DISTRIBUTION) $(PREREQS_UPLOAD)/lib
-
 clean:
 	rm -rf $(SOURCE)

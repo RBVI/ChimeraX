@@ -51,6 +51,17 @@ class PaletteChooser(QWidget):
         self.wells = wells
         self._apply_cb = apply_cb
 
+    def update(self):
+        from chimerax.core.colors import palette_name
+        palette = palette_name([well.color/255.0 for well in self._wells])
+        if palette is None:
+            palette = "custom"
+            enabled = False
+        else:
+            enabled = True
+        self.palette_menu_button.setText(palette)
+        self.palette_button.setEnabled(enabled)
+
     @property
     def wells(self):
         return self._wells[:]
@@ -60,13 +71,13 @@ class PaletteChooser(QWidget):
         if self._wells == new_wells:
             return
         for old_well in self._wells:
-            old_well.color_changed.disconnect(self._wells_changed)
+            old_well.color_changed.disconnect(self.update)
         for new_well in new_wells:
-            new_well.color_changed.connect(self._wells_changed)
+            new_well.color_changed.connect(self.update)
         if len(self._wells) != len(new_wells):
             self._update_palette_menu(len(new_wells))
         self._wells[:] = new_wells
-        self._wells_changed()
+        self.update()
 
     def _apply_palette(self):
         palette_name = self.palette_menu_button.text()
@@ -96,14 +107,3 @@ class PaletteChooser(QWidget):
             self.palette_button.setEnabled(False)
             self.palette_menu_button.setEnabled(False)
             self.palette_menu_button.setText("No %d-color palettes known" % num_colors)
-
-    def _wells_changed(self, *args):
-        from chimerax.core.colors import palette_name
-        palette = palette_name([well.color/255.0 for well in self._wells])
-        if palette is None:
-            palette = "custom"
-            enabled = False
-        else:
-            enabled = True
-        self.palette_menu_button.setText(palette)
-        self.palette_button.setEnabled(enabled)
