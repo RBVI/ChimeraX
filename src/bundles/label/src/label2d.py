@@ -288,8 +288,7 @@ def label_listfonts(session):
         from chimerax.core.errors import LimitationError
         raise LimitationError("Unable to do list fonts without being able to render images")
     from Qt.QtGui import QFontDatabase
-    fdb = QFontDatabase()
-    fnames = list(fdb.families())
+    fnames = list(QFontDatabase.families())
     fnames.sort()
     session.logger.info('%d fonts available:\n%s' % (len(fnames), '\n'.join(fnames)))
 
