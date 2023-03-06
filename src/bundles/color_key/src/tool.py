@@ -16,8 +16,8 @@ from Qt.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel, QSpinBox, QScrollArea
 from Qt.QtWidgets import QLineEdit, QPushButton, QMenu, QDoubleSpinBox, QCheckBox
 from Qt.QtCore import Qt
 from chimerax.core.commands import run, StringArg, camel_case
-from chimerax.core.colors import color_name, rgba8_to_rgba
-from .cmd import auto_color_strings, palette_name, palette_equal
+from chimerax.core.colors import color_name, rgba8_to_rgba, palette_name
+from .cmd import auto_color_strings
 
 _mouse_mode = None
 
@@ -76,22 +76,9 @@ class ColorKeyTool(ToolInstance):
         reverse_layout.addStretch(1)
         layout.addLayout(reverse_layout)
 
-        palette_layout = QHBoxLayout()
-        palette_layout.setSpacing(2)
-        palette_layout.setContentsMargins(1,1,1,1)
-        palette_layout.addStretch(1)
-        self.palette_button = QPushButton("Apply")
-        self.palette_button.clicked.connect(self._apply_palette)
-        palette_layout.addWidget(self.palette_button, alignment=Qt.AlignRight)
-        palette_layout.addWidget(QLabel("palette"))
-        self.palette_menu_button = QPushButton()
-        self.palette_menu = QMenu()
-        self.palette_menu.triggered.connect(lambda act, *, mbut=self.palette_menu_button,
-            abut=self.palette_button: (mbut.setText(act.text()),abut.setEnabled(True)))
-        self.palette_menu_button.setMenu(self.palette_menu)
-        palette_layout.addWidget(self.palette_menu_button, alignment=Qt.AlignLeft)
-        palette_layout.addStretch(1)
-        layout.addLayout(palette_layout)
+        from chimerax.ui.widgets import PaletteChooser
+        self.palette_chooser = PaletteChooser(apply_cb=self._apply_palette)
+        layout.addWidget(self.palette_chooser)
         self._update_colors_layout() # which also updates palette menu
 
         global _mouse_mode
@@ -242,8 +229,8 @@ class ColorKeyTool(ToolInstance):
         self.key = None
         super().delete()
 
-    def _apply_palette(self):
-        run(self.session, "key " + StringArg.unparse(self.palette_menu_button.text())
+    def _apply_palette(self, palette_name):
+        run(self.session, "key " + StringArg.unparse(palette_name)
             + " " + " ".join([StringArg.unparse(':' + label.text()) for label in reversed(self.labels)]))
 
     def _color_treatment_changed(self, blend):
@@ -397,16 +384,7 @@ class ColorKeyTool(ToolInstance):
     def _reverse_data(self, *args):
         run(self.session, "key " + self._colors_labels_arg(wells=reversed(self.wells),
             labels=reversed(self.labels)))
-
-    def _set_palette_name(self, rgbas):
-        palette = palette_name(rgbas)
-        if palette is None:
-            palette = "custom"
-            enabled = False
-        else:
-            enabled = True
-        self.palette_menu_button.setText(palette)
-        self.palette_button.setEnabled(enabled)
+        self.palette_chooser.update()
 
     def _update_colors_layout(self):
         rgbas_and_labels = self.key.rgbas_and_labels
@@ -416,9 +394,6 @@ class ColorKeyTool(ToolInstance):
             self.num_colors.setValue(num_colors)
         finally:
             self.num_colors.blockSignals(False)
-
-        if num_colors != len(self.wells):
-            self._update_palette_menu(num_colors)
 
         if num_colors > 10:
             if len(self.wells) > 10:
@@ -461,22 +436,4 @@ class ColorKeyTool(ToolInstance):
             rgba, text = rgbas_and_labels[i]
             self.wells[num_colors - 1 - i].color = [int(255.0 * x + 0.5) for x in rgba]
             self.labels[num_colors - 1 - i].setText("" if text is None else text)
-        self._set_palette_name([rgba for rgba, text in rgbas_and_labels])
-
-    def _update_palette_menu(self, num_colors):
-        from chimerax.core.colors import BuiltinColormaps
-        self.relevant_palettes = { name:cm for name, cm in BuiltinColormaps.items()
-            if len(cm.colors) == num_colors }
-        self.palette_menu.clear()
-        if self.relevant_palettes:
-            self.palette_button.setEnabled(True)
-            self.palette_menu_button.setEnabled(True)
-            palette_names = sorted(list(self.relevant_palettes))
-            if self.palette_menu_button.text() not in self.relevant_palettes:
-                self.palette_menu_button.setText(palette_names[0])
-            for name in palette_names:
-                self.palette_menu.addAction(name)
-        else:
-            self.palette_button.setEnabled(False)
-            self.palette_menu_button.setEnabled(False)
-            self.palette_menu_button.setText("No %d-color palettes known" % num_colors)
+        self.palette_chooser.wells = list(reversed(self.wells))

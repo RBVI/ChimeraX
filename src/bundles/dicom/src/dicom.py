@@ -18,43 +18,20 @@ import warnings
 from pydicom import dcmread
 from typing import Any, Dict, TypeVar, Union
 
+from chimerax.core.session import Session
 from chimerax.map_data import MapFileFormat
 
 from .dicom_hierarchy import Patient
 
 Path = TypeVar("Path", os.PathLike, str, bytes, None)
 
-try:
-    # We are inside GUI ChimeraX
-    from chimerax.ui.gui import UI
-except (ModuleNotFoundError, ImportError):
-    # We could be in NoGUI ChimeraX
-    try:
-        from chimerax.core.nogui import UI
-    except (ModuleNotFoundError, ImportError):
-        pass
-finally:
-    try:
-        _logger = UI.instance().session.logger
-        _session = UI.instance().session
-        from .ui import DICOMBrowserTool, DICOMMetadata
-        # __all__ += ["DICOMBrowserTool", "DICOMMetadata"]
-    except (NameError, AttributeError):
-        # We didn't have either of ChimeraX's UIs, or they were uninitialized.
-        # We're either in some other application or being used as a library.
-        # Default to passed in sessions and the Python logging module
-        import logging
-        _session = None
-        _logger = logging.getLogger()
-        _logger.status = _logger.info
-
 
 class DICOM:
     # TODO: Make a singleton
-    def __init__(self, data: Union[Path, list[Path]], *, session = None):
+    def __init__(self, data: Union[Path, list[Path]], *, session: Session):
         self.patients_by_id = defaultdict(list)
         self.patients = {}
-        self.session = session or _session
+        self.session = session
         if type(data) is not list:
             self.paths = [data]
         else:
@@ -94,7 +71,7 @@ class DICOM:
         nsfiles = 0
         for dpaths in list(dfiles.values()):
             nsfiles += len(dpaths)
-            _logger.status('Reading DICOM series %d of %d files in %d series' % (nsfiles, nfiles, nseries))
+            self.session.logger.status('Reading DICOM series %d of %d files in %d series' % (nsfiles, nfiles, nseries))
             patients = self.dicom_patients(dpaths)
             for patient in patients:
                 self.patients_by_id[patient.pid].append(patient)
@@ -146,7 +123,7 @@ class DICOM:
                 ref_patient = patient_list[0]
                 starting_index = 1
             else:
-                _logger.warning("Merged incoming unique studies with existing patient with same ID")
+                self.session.logger.warning("Merged incoming unique studies with existing patient with same ID")
             for patient in patient_list[starting_index:]:
                 ref_patient.merge_and_delete_other(patient)
             self.patients[ref_patient.pid] = ref_patient
@@ -165,7 +142,7 @@ class DICOM:
         for patient in self.patients:
             if patient.pid == patient:
                 return True
-            return False
+        return False
 
 
 class DICOMMapFormat(MapFileFormat, DICOM):
