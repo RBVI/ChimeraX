@@ -17,78 +17,101 @@ from Qt.QtCore import Qt
 class PaletteChooser(QWidget):
     """Widget for choosing/showing palettes.
 
-    It is given a list of ColorButtons (either initially or later by setting the 'wells' attribute)
-    and will show the palette name corresponding to the values of those buttons (or 'custom' if no
-    palette corresponds).  The list of color buttons can be changed as needed.  PaletteChooser does
-    not manage the color buttons (i.e. they must be placed in a layout elsewhere).
+    It is given a callback function to invoke if the user applies a palette.  The function will be called
+    with the name of the palette.  If RGB/RGBA values are desired, access the widget's 'rgbs'/'rgbas'
+    attribute.  Components of the rgb(a) values will be in the range 0-1.
 
-    The 'apply_cb' will be called if the user clicks the PaletteChooser's Apply button.  The value
-    given to the callback will be the name of the palette and no color button values will be changed
-    (at least directly changed by the PaletteChooser).  If no callback is supplied, then the
-    color button values will be changed to match the palette.
+    To get the widget to show palettes of the proper length and that correspond to your tool's current
+    settings, you need to set the widget's rgbs/rgbas attribute with a list of rgb(a) values.  Again, the
+    components of these values must be in the range 0-1.
+
+    If 'auto_apply' is True, palettes will be applied as soon as the user selects them from the palette
+    menu.  If it is False, the widget will have a separate Apply button and palettes will only be applied
+    when that button is clicked.
     """
-    def __init__(self, wells=[], *, apply_cb=None):
+
+    NO_PALETTE = "custom"
+    NO_NUM_PALETTES_PREFIX = "No "
+    NO_NUM_PALETTES_SUFFIX = "-color palettes known"
+
+    def __init__(self, apply_cb, *, auto_apply=True):
         super().__init__()
+        self._apply_cb = apply_cb
+        self._auto_apply = auto_apply
 
         layout = QHBoxLayout()
         layout.setSpacing(2)
         layout.setContentsMargins(1,1,1,1)
         layout.addStretch(1)
-        self.palette_button = QPushButton("Apply")
-        self.palette_button.clicked.connect(self._apply_palette)
-        layout.addWidget(self.palette_button, alignment=Qt.AlignRight)
+        if not auto_apply:
+            self.apply_button = QPushButton("Apply")
+            self.apply_button.clicked.connect(self._apply_palette)
+            layout.addWidget(self.apply_button, alignment=Qt.AlignRight)
         layout.addWidget(QLabel("palette"))
         self.palette_menu_button = QPushButton()
         self.palette_menu = QMenu()
-        self.palette_menu.triggered.connect(lambda act, *, mbut=self.palette_menu_button,
-            abut=self.palette_button: (mbut.setText(act.text()),abut.setEnabled(True)))
+        self.palette_menu.triggered.connect(self._palette_menu_cb)
         self.palette_menu_button.setMenu(self.palette_menu)
         layout.addWidget(self.palette_menu_button, alignment=Qt.AlignLeft)
         layout.addStretch(1)
+        self._last_palette_size = None
+        self.rgbas = []
         self.setLayout(layout)
 
-        self._wells = []
-        self.wells = wells
-        self._apply_cb = apply_cb
+    @property
+    def rgbs(self):
+        rgbas = self.rgbas
+        if rgbas is None:
+            return None
+        return [(r,g,b) for r,g,b,a in rgbas]
 
-    def update(self):
+    @rgbs.setter
+    def rgbs(self, rgbs):
+        self.rgbas = [(r,g,b,1.0) for r,g,b in rgbs]
+
+    @property
+    def rgbas(self):
+        palette_name = self.palette_menu_button.text()
+        if not palette_name or palette_name == self.NO_PALETTE:
+            return None
+        from chimerax.core.colors import BuiltinColormaps
+        return BuiltinColormaps[palette_name].colors
+
+    @rgbas.setter
+    def rgbas(self, rgbas):
+        import numpy
+        if numpy.array_equal(rgbas, self.rgbas):
+            return
         from chimerax.core.colors import palette_name
-        palette = palette_name([well.color/255.0 for well in self._wells])
+        palette = palette_name(rgbas)
         if palette is None:
-            palette = "custom"
+            palette = self.NO_PALETTE
             enabled = False
         else:
             enabled = True
+        if not self._auto_apply:
+            self.apply_button.setEnabled(enabled)
         self.palette_menu_button.setText(palette)
-        self.palette_button.setEnabled(enabled)
-
-    @property
-    def wells(self):
-        return self._wells[:]
-
-    @wells.setter
-    def wells(self, new_wells):
-        if self._wells == new_wells:
-            return
-        for old_well in self._wells:
-            old_well.color_changed.disconnect(self.update)
-        for new_well in new_wells:
-            new_well.color_changed.connect(self.update)
-        if len(self._wells) != len(new_wells):
-            self._update_palette_menu(len(new_wells))
-        self._wells[:] = new_wells
-        self.update()
+        if self._last_palette_size is None or len(rgbas) != self._last_palette_size:
+            self._update_palette_menu(len(rgbas))
+            self._last_palette_size = len(rgbas)
 
     def _apply_palette(self):
-        palette_name = self.palette_menu_button.text()
-        if self._apply_cb is None:
-            from chimerax.core.colors import BuiltinColormaps
-            for well, rgb_a in zip(self._wells, BuiltinColormaps[palette_name].colors):
-                if len(rgb_a) < 4:
-                    rgb_a += [1.0]
-                well.color = [255.0 * c for c in rgb_a]
-        else:
-            self._apply_cb(palette_name)
+        self._apply_cb(self.palette_menu_button.text())
+
+    @property
+    def _palette_menu_button_valid(self):
+        return self.palette_menu_button.text() != self.NO_PALETTE
+
+    def _palette_menu_cb(self, action):
+        menu_entry = action.text()
+        valid_menu_entry = not (menu_entry.startswith(self.NO_NUM_PALETTES_PREFIX) \
+            and menu_entry.endswith(self.NO_NUM_PALETTES_SUFFIX))
+        self.apply_button.setEnabled(valid_menu_entry)
+        if valid_menu_entry:
+            self.palette_menu_button.setText(menu_entry)
+            if self._auto_apply:
+                self._apply_palette()
 
     def _update_palette_menu(self, num_colors):
         from chimerax.core.colors import BuiltinColormaps
@@ -96,14 +119,13 @@ class PaletteChooser(QWidget):
             if len(cm.colors) == num_colors }
         self.palette_menu.clear()
         if self.relevant_palettes:
-            self.palette_button.setEnabled(True)
-            self.palette_menu_button.setEnabled(True)
+            if not self._auto_apply:
+                self.apply_button.setEnabled(True)
             palette_names = sorted(list(self.relevant_palettes))
-            if self.palette_menu_button.text() not in self.relevant_palettes:
-                self.palette_menu_button.setText(palette_names[0])
             for name in palette_names:
                 self.palette_menu.addAction(name)
         else:
-            self.palette_button.setEnabled(False)
-            self.palette_menu_button.setEnabled(False)
-            self.palette_menu_button.setText("No %d-color palettes known" % num_colors)
+            if not self._auto_apply:
+                self.apply_button.setEnabled(False)
+            self.palette_menu.addAction(self.NO_NUM_PALETTES_PREFIX + str(num_colors)
+                + self.NO_NUM_PALETTES_SUFFIX)
