@@ -323,7 +323,6 @@ class Bundle:
         self.packages = {(self.module_name, "src")}
 
         raw_package_data = chimerax_data.get('package-data', {})
-        print(raw_package_data)
         platform_package_data = {}
         if 'platform' in raw_package_data:
             for platform in _platforms[sys.platform]:
@@ -352,7 +351,6 @@ class Bundle:
                 self.datafiles[pkg_name] = curr_files | set(files)
 
         raw_extra_files = chimerax_data.get('extra-files', {})
-        print(raw_extra_files)
         platform_extra_files = {}
         if 'platform' in raw_extra_files:
             for platform in _platforms[sys.platform]:
