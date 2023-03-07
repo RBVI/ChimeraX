@@ -11,11 +11,10 @@ install:
 	$(MAKE) install NO_PREBUILT=1 FLATPAK_DIST=22.08
 	mkdir -p /app/bin
 	ln -s /app/ChimeraX/bin/ChimeraX /app/bin/chimerax
-	install -Dm644 src/apps/ChimeraX/ChimeraX-icon.svg -t /app/share/icons/hicolor/scalable/apps/${APPNAME}.svg
-	install -Dm644 src/apps/ChimeraX/ChimeraX-icon128.png -t /app/share/icons/hicolor/128x128/apps/${APPNAME}.png
-	install -Dm644 src/apps/ChimeraX/ChimeraX-icon64.png -t /app/share/icons/hicolor/64x64/apps/${APPNAME}.png
-	install -Dm644 src/apps/ChimeraX/ChimeraX-icon32.png -t /app/share/icons/hicolor/32x32/apps/${APPNAME}.png
-	install -Dm644 src/apps/ChimeraX/ChimeraX-icon16.png -t /app/share/icons/hicolor/16x16/apps/${APPNAME}.png
-	# install -Dm644 ${APPNAME}.metainfo.xml -t /app/share/metainfo
+	install -Dm644 src/apps/ChimeraX/ChimeraX-icon.svg /app/share/icons/hicolor/scalable/apps/${APPNAME}.svg
+	install -Dm644 src/apps/ChimeraX/ChimeraX-icon128.png /app/share/icons/hicolor/128x128/apps/${APPNAME}.png
+	install -Dm644 src/apps/ChimeraX/ChimeraX-icon64.png /app/share/icons/hicolor/64x64/apps/${APPNAME}.png
+	install -Dm644 src/apps/ChimeraX/ChimeraX-icon32.png /app/share/icons/hicolor/32x32/apps/${APPNAME}.png
+	install -Dm644 src/apps/ChimeraX/ChimeraX-icon16.png /app/share/icons/hicolor/16x16/apps/${APPNAME}.png
+	install -Dm644 ${APPNAME}.metainfo.xml -t /app/share/metainfo
 	# install -Dm644 ${APPNAME}.desktop -t /app/share/applications
-	install -Dm644 ${APPNAME}.appdata.xml -t /app/share/appdata
