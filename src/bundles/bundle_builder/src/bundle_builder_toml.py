@@ -116,6 +116,7 @@ def read_toml(file):
     with open(file, 'r') as f:
         return tomli.loads(f.read())
 
+
 class Bundle:
 
     def __init__(self, logger, bundle_info):
@@ -124,16 +125,22 @@ class Bundle:
         project_data = bundle_info['project']
         chimerax_data = bundle_info['chimerax']
 
-        self.pure = not (
+        self.pure_python = not (
             bool(chimerax_data.get('extension', {}))
             or bool(chimerax_data.get('library', {}))
             or bool(chimerax_data.get('executable', {}))
         )
 
+        if self.pure_python:
+            if not chimerax_data.get('pure', True):
+                # The user has no specified extensions, libraries, or executables
+                # but they have still specified that their bundle is impure
+                self.pure_python = False
+
         self.limited_api = chimerax_data.get('limited-api', False)
 
         if 'requires-python' in project_data['dynamic']:
-            if self.pure:
+            if self.pure_python:
                 # Python-only bundles default to the ChimeraX 1.0
                 # version of Python.
                 self.python_requirement = SpecifierSet(f'>={CHIMERAX1_0_PYTHON_VERSION}')
@@ -296,15 +303,15 @@ class Bundle:
         if 'executable' in chimerax_data:
             for name, attrs in chimerax_data['executable'].items():
                 self.c_executables.append(_CExecutable(name, attrs))
+
         # TODO: Finalize
-        #if 'documentation' in chimerax_data:
+        # if 'documentation' in chimerax_data:
         #    for paths in chimerax_data['documentation'].values():
         #        if type(paths) is list:
         #            for path in paths:
         #                self.doc_dirs.append(DocDir(path))
         #        else:
         #            self.doc_dirs.append(DocDir(paths))
-
 
         self.datafiles = collections.defaultdict(set)
         self.extra_files = collections.defaultdict(set)
@@ -366,7 +373,7 @@ class Bundle:
 
     @classmethod
     def from_toml_file(cls, logger, toml_file):
-       return cls(logger, read_toml(toml_file))
+        return cls(logger, read_toml(toml_file))
 
     @classmethod
     def from_path(cls, logger, bundle_path):
@@ -448,7 +455,7 @@ class Bundle:
                 cm.ext_mod(self.logger, self.module_name, self.dependencies) for cm in self.c_modules
             ] if em is not None
         ]
-        if not self.pure:
+        if not self.pure_python:
             if sys.platform == "darwin":
                 env = "Environment :: MacOS X :: Aqua"
                 op_sys = "Operating System :: MacOS :: MacOS X"
@@ -666,6 +673,7 @@ class Bundle:
 
 class ChimeraXClassifier:
     classifier_separator = " :: "
+
     def __init__(self, name, attrs):
         self.name = name
         self.attrs = attrs
@@ -731,11 +739,13 @@ class Selector(ChimeraXClassifier):
     def __str__(self):
         return f'ChimeraX :: Selector :: {self.name} :: {self.description}'
 
+
 class Manager(ChimeraXClassifier):
     default_attrs = {
         "gui-only": False
         , "autostart": False
     }
+
     def __init__(self, name, attrs):
         if not attrs:
             attrs = self.default_attrs
@@ -772,6 +782,7 @@ class DataFormat(Provider):
         , "insecure": False
         , "mime-types": []
     }
+
     def __init__(self, name, attrs):
         if not attrs:
             attrs = self.default_attrs
@@ -843,6 +854,7 @@ class Preset(Provider):
     default_attrs = {
         "category": "General"
     }
+
     def __init__(self, name, attrs):
         if not attrs:
             attrs = self.default_attrs
@@ -863,15 +875,15 @@ class Initialization:
         return f'ChimeraX :: InitAfter :: {self.type_} :: {separator.join(self.bundles)}'
 
 # TODO: Standardize
-#class DocDir:
+# class DocDir:
 #    def __init__(self, path):
 #        self.path = path
 #
 #    def __str__(self):
 #        return f'ChimeraX :: DocDir :: {self.path}'
 
-class _CompiledCode:
 
+class _CompiledCode:
     install_dir = "src"
     output_dir = "src"
 
@@ -1094,9 +1106,7 @@ class _CModule(_CompiledCode):
             return None
 
 
-
 class _CLibrary(_CompiledCode):
-
     install_dir = "src/lib"
     output_dir = "src/lib"
 
@@ -1209,6 +1219,7 @@ class _CLibrary(_CompiledCode):
                     )
                 )
         return paths
+
 
 # TODO: Doesn't produce arm64/x86_64 executables on macOS
 class _CExecutable(_CompiledCode):
