@@ -57,9 +57,13 @@ class _AlignmentsBundleAPI(BundleAPI):
             from chimerax.open_command import OpenerInfo
             class SeqInfo(OpenerInfo):
                 def open(self, session, data, file_name, **kw):
-                    from .parse import open_file
-                    return open_file(session, data, file_name,
-                        format_name=name.upper(), **kw)
+                    from .parse import open_file, NoSequencesError
+                    try:
+                        return open_file(session, data, file_name,
+                            format_name=name.upper(), **kw)
+                    except NoSequencesError as e:
+                        from chimerax.core.errors import UserError
+                        raise UserError(str(e))
 
                 @property
                 def open_args(self, *, session=session):
