@@ -56,7 +56,7 @@ from packaging.specifiers import SpecifierSet, InvalidSpecifier
 from setuptools import Extension, find_packages
 # From https://stackoverflow.com/questions/35112511/pip-setup-py-bdist-wheel-no-longer-builds-forced-non-pure-wheels
 from setuptools.dist import Distribution
-from setuptools.extension import Library
+from setuptools.extension import Library # noqa
 
 # Even setuptools.build_meta runs setup() behind the scenes...
 from setuptools.build_meta import suppress_known_deprecation # noqa import not in __all__
@@ -65,7 +65,7 @@ from pkg_resources import get_distribution, DistributionNotFound
 
 # TODO: Verify
 # Always import this because it changes the behavior of setuptools
-from numpy import get_include as get_numpy_include_dirs # noqa
+from numpy import get_include as get_numpy_include_dirs
 
 # TODO Fact check
 # The compile process is initiated by setuptools and handled
@@ -103,6 +103,11 @@ from .metadata_templates import (
 # Python version was 3.7 in ChimeraX 1.0
 CHIMERAX1_0_PYTHON_VERSION = "3.7"
 
+_platforms = {
+    "linux": ["linux"]
+    , "darwin": ["mac", "macos", "darwin"]
+    , "win32": ["win", "windows", "win32"]
+}
 
 class MissingInfoError(Exception):
     pass
@@ -317,7 +322,25 @@ class Bundle:
         self.extra_files = collections.defaultdict(set)
         self.packages = {(self.module_name, "src")}
 
-        for folder, files in chimerax_data.get('package-data', {}).items():
+        raw_package_data = chimerax_data.get('package-data', {})
+        print(raw_package_data)
+        platform_package_data = {}
+        if 'platform' in raw_package_data:
+            for platform in _platforms[sys.platform]:
+                try:
+                    platform_package_data = raw_package_data["platform"].pop(platform)
+                except KeyError:
+                    pass
+
+        raw_package_data.pop('platform', None)
+        filtered_package_data = raw_package_data
+        for key in platform_package_data:
+            if key in filtered_package_data:
+                filtered_package_data[key].append(platform_package_data[key])
+            else:
+                filtered_package_data[key] = platform_package_data[key]
+
+        for folder, files in filtered_package_data.items():
             pkg_name = ".".join([self.module_name, folder.replace('src/', '').replace('/', '.')]).rstrip('.')
             if sys.platform == "win32":
                 folder = folder.rstrip('/')
@@ -326,9 +349,27 @@ class Bundle:
                 self.datafiles[pkg_name] = set(files)
             else:
                 curr_files = self.datafiles[pkg_name]
-                self.datafiles[pkg_name] = curr_files | files
+                self.datafiles[pkg_name] = curr_files | set(files)
 
-        for folder, files in chimerax_data.get('extra-files', {}).items():
+        raw_extra_files = chimerax_data.get('extra-files', {})
+        print(raw_extra_files)
+        platform_extra_files = {}
+        if 'platform' in raw_extra_files:
+            for platform in _platforms[sys.platform]:
+                try:
+                    platform_extra_files = raw_extra_files["platform"].pop(platform)
+                except KeyError:
+                    pass
+
+        raw_extra_files.pop('platform', None)
+        filtered_extra_files = raw_extra_files
+        for key in platform_extra_files:
+            if key in filtered_extra_files:
+                filtered_extra_files[key].append(platform_extra_files[key])
+            else:
+                filtered_extra_files[key] = platform_extra_files[key]
+
+        for folder, files in filtered_extra_files.items():
             pkg_name = ".".join([self.module_name, folder.replace('src/', '').replace('/', '.')]).rstrip('.')
             if sys.platform == "win32":
                 folder = folder.rstrip('/')
@@ -351,7 +392,7 @@ class Bundle:
                 self.extra_files[pkg_name] = set(files)
             else:
                 curr_files = self.extra_files[pkg_name]
-                self.extra_files[pkg_name] = curr_files | files
+                self.extra_files[pkg_name] = curr_files | set(files)
 
         if self.c_libraries:
             pkg_name = ".".join([self.module_name, "lib"])
@@ -887,12 +928,6 @@ class _CompiledCode:
     install_dir = "src"
     output_dir = "src"
 
-    _platforms = {
-        "linux": ["linux"]
-        , "darwin": ["mac", "macos", "darwin"]
-        , "win32": ["win", "windows", "win32"]
-    }
-
     def __init__(self, name, attrs):
         self.name = name
         platform_specific_args = self.get_platform_specific_args(attrs)
@@ -935,7 +970,7 @@ class _CompiledCode:
                 edef.append(None)
             self.add_macro_define(*edef)
         for undef_ in attrs.get("undef-macros", []):
-            self.add_macro_undef(self._get_element_text(e))
+            self.add_macro_undef(undef_)
         if self.limited_api:
             v = self.limited_api
             if v < CHIMERAX1_0_PYTHON_VERSION:
@@ -945,7 +980,7 @@ class _CompiledCode:
             self.add_macro_define("CYTHON_LIMITED_API", hex(hex_version))
 
     def get_platform_specific_args(self, attrs):
-        for platform in self._platforms[sys.platform]:
+        for platform in _platforms[sys.platform]:
             try:
                 platform_args = attrs["platform"].pop(platform)
                 return platform_args
