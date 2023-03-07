@@ -58,7 +58,7 @@ class Patient(Model):
             study.series_from_files(files)
             self.studies.append(study)
         if studies:
-            self.name = f'Patient (ID: %s)' % self.patient_id
+            self.name = f'Patient (ID: {self.patient_id})'
 
     @requires_gui
     def show_info(self):

@@ -12,14 +12,14 @@
 # === UCSF ChimeraX Copyright ===
 __version__ = "1.1"
 from chimerax.core.toolshed import BundleAPI
-from chimerax.core.commands import register
 from chimerax.map import add_map_format
-from chimerax.open_command import OpenerInfo, FetcherInfo
 from chimerax.core.tools import get_singleton
 
-from .dicom import DICOM, DICOMMapFormat
-from .dicom_fetch import fetch_nbia_images
-from .ui import DICOMBrowserTool, DICOMMetadata, DICOMDatabases
+from .dicom import (
+    DICOMMapFormat, DicomOpener, fetchers,
+    DICOMBrowserTool, DICOMDatabases
+)
+
 
 class _DICOMBundle(BundleAPI):
     api_version = 1
@@ -38,25 +38,11 @@ class _DICOMBundle(BundleAPI):
 
     @staticmethod
     def run_provider(session, name, mgr, **kw):
+        # return runners['name']
         if name == "DICOM medical imaging":
-            class DicomOpenerInfo(OpenerInfo):
-                def open(self, session, data, file_name, **kw):
-                    dcm = DICOM.from_paths(session, data)
-                    return dcm.open()
-            return DicomOpenerInfo()
+            return DicomOpener()
         else:
-            # Borrow from PDB to leave open the possibility of other DICOM databases
-            fetcher = {
-                'tcia': fetch_nbia_images
-            }[name]
-            class Info(FetcherInfo):
-                def fetch(self, session, ident, format_name, ignore_cache, fetcher=fetcher, **kw):
-                    return fetcher(session, ident, ignore_cache=ignore_cache, **kw)
+            return fetchers[name]()
 
-                @property
-                def fetch_args(self):
-                    return {}
-                    #from chimerax.core.commands import BoolArg, IntArg, FloatArg
-            return Info()
 
 bundle_api = _DICOMBundle()
