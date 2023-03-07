@@ -77,7 +77,7 @@ class ColorKeyTool(ToolInstance):
         layout.addLayout(reverse_layout)
 
         from chimerax.ui.widgets import PaletteChooser
-        self.palette_chooser = PaletteChooser(apply_cb=self._apply_palette)
+        self.palette_chooser = PaletteChooser(self._apply_palette, auto_apply=False)
         layout.addWidget(self.palette_chooser)
         self._update_colors_layout() # which also updates palette menu
 
@@ -384,7 +384,6 @@ class ColorKeyTool(ToolInstance):
     def _reverse_data(self, *args):
         run(self.session, "key " + self._colors_labels_arg(wells=reversed(self.wells),
             labels=reversed(self.labels)))
-        self.palette_chooser.update()
 
     def _update_colors_layout(self):
         rgbas_and_labels = self.key.rgbas_and_labels
@@ -436,4 +435,4 @@ class ColorKeyTool(ToolInstance):
             rgba, text = rgbas_and_labels[i]
             self.wells[num_colors - 1 - i].color = [int(255.0 * x + 0.5) for x in rgba]
             self.labels[num_colors - 1 - i].setText("" if text is None else text)
-        self.palette_chooser.wells = list(reversed(self.wells))
+        self.palette_chooser.rgbas = [rgba for rgba, text in rgbas_and_labels]
