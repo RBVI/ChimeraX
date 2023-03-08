@@ -843,6 +843,10 @@ def palette_name(rgbas, *, tolerance=1/512):
     for name, cm in BuiltinColormaps.items():
         if palette_equal(cm.colors, rgbas, tolerance=tolerance):
             return name
+    # reversed palettes
+    for name, cm in BuiltinColormaps.items():
+        if palette_equal(cm.colors, list(reversed(rgbas)), tolerance=tolerance):
+            return '^' + name
     return None
 
 def hex_color(rgba8, *, always_include_alpha=False):
