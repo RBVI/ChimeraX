@@ -8,16 +8,16 @@
   <summary>Molecular Visualization</summary>
   <icon type="local" width="512" height="512">
     /app/share/icons/hicolor/512x512/apps/edu.ucsf.rbvi.ChimeraX.png
-  </icon
+  </icon>
   <icon type="local" width="128" height="128">
     /app/share/icons/hicolor/128x128/apps/edu.ucsf.rbvi.ChimeraX.png
-  </icon
+  </icon>
   <icon type="local" width="64" height="64">
     /app/share/icons/hicolor/64x64/apps/edu.ucsf.rbvi.ChimeraX.png
-  </icon
+  </icon>
   <icon type="local" width="32" height="32">
     /app/share/icons/hicolor/32x32/apps/edu.ucsf.rbvi.ChimeraX.png
-  </icon
+  </icon>
   <description>
     <!-- only tags allowed are: p, ol, ul, li, em, code and no nested lists -->
     <p>
