@@ -47,7 +47,7 @@ class PaletteChooser(QWidget):
             self.apply_button = QPushButton("Apply")
             self.apply_button.clicked.connect(self._apply_palette)
             layout.addWidget(self.apply_button, alignment=Qt.AlignRight)
-        layout.addWidget(QLabel("palette"))
+        layout.addWidget(QLabel("Palette:" if auto_apply else "palette"))
         self.palette_menu_button = QPushButton()
         self.palette_menu = QMenu()
         self.palette_menu.triggered.connect(self._palette_menu_cb)
@@ -107,7 +107,8 @@ class PaletteChooser(QWidget):
         menu_entry = action.text()
         valid_menu_entry = not (menu_entry.startswith(self.NO_NUM_PALETTES_PREFIX) \
             and menu_entry.endswith(self.NO_NUM_PALETTES_SUFFIX))
-        self.apply_button.setEnabled(valid_menu_entry)
+        if not self._auto_apply:
+            self.apply_button.setEnabled(valid_menu_entry)
         if valid_menu_entry:
             self.palette_menu_button.setText(menu_entry)
             if self._auto_apply:
