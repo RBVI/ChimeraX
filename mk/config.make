@@ -84,7 +84,7 @@ endif
 
 APP_NAME = ChimeraX
 ifdef FLATPAK_DIST
-APP_FILENAME = /app/$(APP_NAME)
+APP_FILENAME = /app
 else
 APP_FILENAME = $(APP_NAME).app
 endif

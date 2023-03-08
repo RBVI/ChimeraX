@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright 2023 Regents of the University of California -->
 <!-- vi:set shiftwidth=2: -->
 <!-- https://www.freedesktop.org/software/appstream/docs/chap-Metadata.html -->
 <component type="desktop-application">
@@ -46,12 +47,8 @@
   <url type="help">https://www.rbvi.ucsf.edu/chimerax/docs/contact.html</url>
   <launchable type="desktop-id">edu.ucsf.rbvi.ChimeraX.desktop</launchable>
   <releases>
-    <release version="1.5" date="2022-11-23"/>
-    <release version="1.4" date="2022-06-03"/>
-    <release version="1.3" date="2021-12-08"/>
-    <release version="1.2" date="2021-05-23"/>
-    <release version="1.1" date="2020-09-09"/>
-    <release version="1.0" date="2020-06-04"/>
+    <!-- TODO: generate release information -->
+    <release version="1.6dev20230308" date="2023-03-08"/>
   </releases>
   <provides>
     <binary>/app/bin/chimerax</binary>
@@ -73,5 +70,8 @@
       <caption>ChimeraX main window</caption>
       <image type="source" width="772" height="517">https://www.rbvi.ucsf.edu/chimerax/docs/quickstart/images/chimerax.png</image>
     </screenshot>
+    <!-- TODO: provide additional screenshots from features and gallery -->
   </screenshots>
+  <update_contact>https://www.rbvi.ucsf.edu/chimerax/docs/contact.html</update_contact>
+  <content_rating type="oars-1.1" />
 </component>
