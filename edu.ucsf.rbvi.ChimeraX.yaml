@@ -1,0 +1,42 @@
+# vim:set expandtab shiftwidth=2:
+id: edu.ucsf.rbvi.ChimeraX
+runtime: org.freedesktop.Platform
+runtime-version: '22.08'
+sdk: org.freedesktop.Sdk
+command: ChimeraX
+
+build-options:
+  build_args:
+  # need to fetch files from https://cxtoolshed.rbvi.ucsf.edu/prereqs
+  - --share=network
+  #? FontConfig error while running ChimeraX --nogui
+  #? - --ro-bind /usr/share/fonts /run/host/fonts
+
+finish-args:
+  # X11 + Xshm access
+  - --share=ipc
+  - --socket=x11
+  # fallback-x11 to use X11 if wayland is not found
+  # -- currently, we need X11
+  #- --socket=fallback-x11
+  # Wayland access
+  - --socket=wayland
+  # OpenGL rendering
+  - --device=dri
+  # Network access
+  - --share=network
+  # needs to save local files
+  - --filesystem=xdg-cache/ChimeraX:create
+  - --filesystem=xdg-config/ChimeraX:create
+  - --filesystem=xdg-data/ChimeraX:create
+  - --filesystem=xdg-download/ChimeraX:create
+
+modules:
+  - name: chimerax
+    buildsystem: simple
+    sources:
+      - type: git
+        url: ssh://git@github.com/RBVI/ChimeraX.git
+        branch: develop
+    build-commands:
+      - make -f Makefile.flatpak install

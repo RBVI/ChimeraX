@@ -483,6 +483,10 @@ class MarkedHistogram(QWidget):
                 return
             self._active_markers.remove(marker)
             self._set_sel_marker(None)
+            if self._drag_marker == marker:
+                self._drag_marker = None
+                if self._active_markers.move_callback:
+                    self._active_markers.move_callback('end')
 
     def _button_up_cb(self, event=None):
         if self._drag_marker:
@@ -795,9 +799,19 @@ class HistogramMarkers:
 
        Options are:
 
+        add_del_callback == function to call when one or more markers
+            are added or deleted.  The function is called with no
+            arguments.
+            default: None
+
         box_radius -- the radius in pixels of boxes drawn when the
             marker_type is 'box'
             default: 2
+
+        color_change_callback == function to call when a marker's color
+            is changed.  The function is called with the marker as an
+            argument.
+            default: None
 
         connect -- [init option] whether markers should be
             connected left-to-right with lines.  Typically
@@ -820,7 +834,7 @@ class HistogramMarkers:
             MarkedHistogram.add_markers()] the MarkedHistogram
             instance
 
-        marker_type -- [init option] the type of markers to use, 
+        marker_type -- [init option] the type of markers to use,
             either 'line' (vertical bars) or 'box' (squares).
             default: line
 
@@ -830,11 +844,10 @@ class HistogramMarkers:
             programmatically.
             default: None
 
-        move_callback -- [init option] function to call when the user
-            moves a marker.  The function receives a value of
-            'start' at the beginning of a move and 'end' at the
-            end.  During the move the value is the marker being
-            moved.
+        move_callback -- function to call when the user moves a marker.
+            The function receives a value of 'start' at the beginning
+            of a move and 'end' at the end.  During the move the value
+            is the marker being moved.
             default: None
 
         new_color -- the default color assigned to newly-created
@@ -842,11 +855,14 @@ class HistogramMarkers:
             default: yellow
     """
 
-    def __init__(self, *args, box_radius=2, connect=False, connect_color='yellow', coord_type='absolute',
-            histogram=None, marker_type='line', max_marks=None, min_marks=None, move_callback=None,
-            new_color='yellow', **kw):
+    def __init__(self, *args, add_del_callback=None, box_radius=2, color_change_callback=None,
+            connect=False, connect_color='yellow', coord_type='absolute', histogram=None,
+            marker_type='line', max_marks=None, min_marks=None, move_callback=None, new_color='yellow',
+            **kw):
 
+        self._add_del_callback = add_del_callback
         self._box_radius = box_radius
+        self._color_change_callback = color_change_callback
         self._connect = connect
         self._connect_color = connect_color
         self._coord_type = coord_type
@@ -874,7 +890,17 @@ class HistogramMarkers:
         marker = self._marker_func(val)
         self._markers.append(marker)
         self._update_plot()
+        if self._add_del_callback:
+            self._add_del_callback()
         return marker
+
+    @property
+    def add_del_callback(self):
+        return self._add_del_callback
+
+    @add_del_callback.setter
+    def add_del_callback(self, add_del_callback):
+        self._add_del_callback = add_del_callback
 
     @property
     def box_radius(self):
@@ -886,6 +912,14 @@ class HistogramMarkers:
             return
         self._box_radius = box_radius
         self._new_box_radius()
+
+    @property
+    def color_change_callback(self):
+        return self._color_change_callback
+
+    @color_change_callback.setter
+    def color_change_callback(self, color_change_callback):
+        self._color_change_callback = color_change_callback
 
     @property
     def connect(self):
@@ -909,6 +943,8 @@ class HistogramMarkers:
     def __delitem__(self, i):
         del self._markers[i]
         self._update_plot()
+        if self._add_del_callback:
+            self._add_del_callback()
 
     def destroy(self):
         self._unplot_markers()
@@ -917,6 +953,8 @@ class HistogramMarkers:
         markers = [self._marker_func(v) for v in vals]
         self._markers.extend(markers)
         self._update_plot()
+        if self._add_del_callback:
+            self._add_del_callback()
         return markers
 
     def __getitem__(self, i):
@@ -933,6 +971,8 @@ class HistogramMarkers:
         marker = self._marker_func(val)
         self._markers.insert(i, marker)
         self._update_plot()
+        if self._add_del_callback:
+            self._add_del_callback()
         return marker
 
     def __iter__(self):
@@ -965,6 +1005,10 @@ class HistogramMarkers:
     def move_callback(self):
         return self._move_callback
 
+    @move_callback.setter
+    def move_callback(self, move_callback):
+        self._move_callback = move_callback
+
     @property
     def new_color(self):
         return self._new_color
@@ -987,6 +1031,8 @@ class HistogramMarkers:
             self._sel_marker = None
         self._unplot_markers(marker)
         self._update_plot()
+        if self._add_del_callback:
+            self._add_del_callback()
 
     @property
     def shown(self):
@@ -1216,3 +1262,5 @@ class HistogramMarker:
         histo = self.markers.histogram
         if histo.current_marker_info()[-1] == self:
             histo._color_button.color = self.rgba
+        if self.markers.color_change_callback:
+            self.markers.color_change_callback(self)

@@ -215,7 +215,7 @@ def make_desktop(session, info, localized_app_name={}, verbose=False):
         desktop_string(f, "Icon", info.name)
         desktop_stringlist(f, "Categories", [
                            "Education", "Science", "Biology", "Chemistry",
-                           "Graphics", "2DGraphics", "DataVisualization"])
+                           "Graphics", "3DGraphics", "DataVisualization"])
         desktop_stringlist(f, "MimeType", mime_types)
         # Don't set StartupWMClass because is shared with all releases
         # and Gnome picks the last .desktop for showing the version of

@@ -13,6 +13,8 @@
 
 class FormatSyntaxError(Exception):
     pass
+class NoSequencesError(ValueError):
+    pass
 
 def open_file(session, stream, fname, format_name="FASTA", return_vals=None,
         alignment=True, ident=None, auto_associate=True, **kw):
@@ -32,7 +34,7 @@ def open_file(session, stream, fname, format_name="FASTA", return_vals=None,
     except FormatSyntaxError as err:
         raise IOError("Syntax error in %s file '%s': %s" % (format_name, fname, err))
     if not seqs:
-        raise ValueError("No sequences found in %s file '%s'!" % (format_name, fname))
+        raise NoSequencesError("No sequences found in %s file '%s'!" % (format_name, fname))
     uniform_length = True
     for s in seqs:
         if uniform_length and len(s) != len(seqs[0]):

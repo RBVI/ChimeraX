@@ -83,7 +83,11 @@ endif
 
 
 APP_NAME = ChimeraX
+ifdef FLATPAK_DIST
+APP_FILENAME = /app
+else
 APP_FILENAME = $(APP_NAME).app
+endif
 CHIMERAX_APP = $(wildcard $(TOP)/ChimeraX*.app)
 ifeq ($(OS),Windows)
 CHIMERAX_EXE = $(CHIMERAX_APP)/bin/ChimeraX.exe
@@ -101,7 +105,11 @@ frameworkdir = $(build_prefix)/Library/Frameworks
 app_prefix = $(TOP)/$(APP_FILENAME)/Contents
 app_frameworkdir =  $(app_prefix)/Library/Frameworks
 else
+ifneq (,$(patsubst /%,,$(APP_FILENAME)))
 app_prefix = $(TOP)/$(APP_FILENAME)
+else
+app_prefix = $(APP_FILENAME)
+endif
 endif
 app_bindir = $(app_prefix)/bin
 app_includedir = $(app_prefix)/include
@@ -121,6 +129,9 @@ ifndef WIN32
 RSYNC = rsync -rltWv --executability
 else
 RSYNC = $(bindir)/rsync.convert -rlptWv
+endif
+ifdef FLATPAK_DIST
+RSYNC := $(bindir)/$(RSYNC)
 endif
 
 ifdef WIN32

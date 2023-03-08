@@ -56,7 +56,7 @@ from packaging.specifiers import SpecifierSet, InvalidSpecifier
 from setuptools import Extension, find_packages
 # From https://stackoverflow.com/questions/35112511/pip-setup-py-bdist-wheel-no-longer-builds-forced-non-pure-wheels
 from setuptools.dist import Distribution
-from setuptools.extension import Library
+from setuptools.extension import Library # noqa
 
 # Even setuptools.build_meta runs setup() behind the scenes...
 from setuptools.build_meta import suppress_known_deprecation # noqa import not in __all__
@@ -65,7 +65,7 @@ from pkg_resources import get_distribution, DistributionNotFound
 
 # TODO: Verify
 # Always import this because it changes the behavior of setuptools
-from numpy import get_include as get_numpy_include_dirs # noqa
+from numpy import get_include as get_numpy_include_dirs
 
 # TODO Fact check
 # The compile process is initiated by setuptools and handled
@@ -103,6 +103,11 @@ from .metadata_templates import (
 # Python version was 3.7 in ChimeraX 1.0
 CHIMERAX1_0_PYTHON_VERSION = "3.7"
 
+_platforms = {
+    "linux": ["linux"]
+    , "darwin": ["mac", "macos", "darwin"]
+    , "win32": ["win", "windows", "win32"]
+}
 
 class MissingInfoError(Exception):
     pass
@@ -116,6 +121,7 @@ def read_toml(file):
     with open(file, 'r') as f:
         return tomli.loads(f.read())
 
+
 class Bundle:
 
     def __init__(self, logger, bundle_info):
@@ -124,16 +130,22 @@ class Bundle:
         project_data = bundle_info['project']
         chimerax_data = bundle_info['chimerax']
 
-        self.pure = not (
+        self.pure_python = not (
             bool(chimerax_data.get('extension', {}))
             or bool(chimerax_data.get('library', {}))
             or bool(chimerax_data.get('executable', {}))
         )
 
+        if self.pure_python:
+            if not chimerax_data.get('pure', True):
+                # The user has no specified extensions, libraries, or executables
+                # but they have still specified that their bundle is impure
+                self.pure_python = False
+
         self.limited_api = chimerax_data.get('limited-api', False)
 
         if 'requires-python' in project_data['dynamic']:
-            if self.pure:
+            if self.pure_python:
                 # Python-only bundles default to the ChimeraX 1.0
                 # version of Python.
                 self.python_requirement = SpecifierSet(f'>={CHIMERAX1_0_PYTHON_VERSION}')
@@ -296,8 +308,9 @@ class Bundle:
         if 'executable' in chimerax_data:
             for name, attrs in chimerax_data['executable'].items():
                 self.c_executables.append(_CExecutable(name, attrs))
+
         # TODO: Finalize
-        #if 'documentation' in chimerax_data:
+        # if 'documentation' in chimerax_data:
         #    for paths in chimerax_data['documentation'].values():
         #        if type(paths) is list:
         #            for path in paths:
@@ -305,12 +318,28 @@ class Bundle:
         #        else:
         #            self.doc_dirs.append(DocDir(paths))
 
-
         self.datafiles = collections.defaultdict(set)
         self.extra_files = collections.defaultdict(set)
         self.packages = {(self.module_name, "src")}
 
-        for folder, files in chimerax_data.get('package-data', {}).items():
+        raw_package_data = chimerax_data.get('package-data', {})
+        platform_package_data = {}
+        if 'platform' in raw_package_data:
+            for platform in _platforms[sys.platform]:
+                try:
+                    platform_package_data = raw_package_data["platform"].pop(platform)
+                except KeyError:
+                    pass
+
+        raw_package_data.pop('platform', None)
+        filtered_package_data = raw_package_data
+        for key in platform_package_data:
+            if key in filtered_package_data:
+                filtered_package_data[key].append(platform_package_data[key])
+            else:
+                filtered_package_data[key] = platform_package_data[key]
+
+        for folder, files in filtered_package_data.items():
             pkg_name = ".".join([self.module_name, folder.replace('src/', '').replace('/', '.')]).rstrip('.')
             if sys.platform == "win32":
                 folder = folder.rstrip('/')
@@ -319,9 +348,26 @@ class Bundle:
                 self.datafiles[pkg_name] = set(files)
             else:
                 curr_files = self.datafiles[pkg_name]
-                self.datafiles[pkg_name] = curr_files | files
+                self.datafiles[pkg_name] = curr_files | set(files)
 
-        for folder, files in chimerax_data.get('extra-files', {}).items():
+        raw_extra_files = chimerax_data.get('extra-files', {})
+        platform_extra_files = {}
+        if 'platform' in raw_extra_files:
+            for platform in _platforms[sys.platform]:
+                try:
+                    platform_extra_files = raw_extra_files["platform"].pop(platform)
+                except KeyError:
+                    pass
+
+        raw_extra_files.pop('platform', None)
+        filtered_extra_files = raw_extra_files
+        for key in platform_extra_files:
+            if key in filtered_extra_files:
+                filtered_extra_files[key].append(platform_extra_files[key])
+            else:
+                filtered_extra_files[key] = platform_extra_files[key]
+
+        for folder, files in filtered_extra_files.items():
             pkg_name = ".".join([self.module_name, folder.replace('src/', '').replace('/', '.')]).rstrip('.')
             if sys.platform == "win32":
                 folder = folder.rstrip('/')
@@ -344,7 +390,7 @@ class Bundle:
                 self.extra_files[pkg_name] = set(files)
             else:
                 curr_files = self.extra_files[pkg_name]
-                self.extra_files[pkg_name] = curr_files | files
+                self.extra_files[pkg_name] = curr_files | set(files)
 
         if self.c_libraries:
             pkg_name = ".".join([self.module_name, "lib"])
@@ -366,7 +412,7 @@ class Bundle:
 
     @classmethod
     def from_toml_file(cls, logger, toml_file):
-       return cls(logger, read_toml(toml_file))
+        return cls(logger, read_toml(toml_file))
 
     @classmethod
     def from_path(cls, logger, bundle_path):
@@ -448,7 +494,7 @@ class Bundle:
                 cm.ext_mod(self.logger, self.module_name, self.dependencies) for cm in self.c_modules
             ] if em is not None
         ]
-        if not self.pure:
+        if not self.pure_python:
             if sys.platform == "darwin":
                 env = "Environment :: MacOS X :: Aqua"
                 op_sys = "Operating System :: MacOS :: MacOS X"
@@ -666,6 +712,7 @@ class Bundle:
 
 class ChimeraXClassifier:
     classifier_separator = " :: "
+
     def __init__(self, name, attrs):
         self.name = name
         self.attrs = attrs
@@ -731,11 +778,13 @@ class Selector(ChimeraXClassifier):
     def __str__(self):
         return f'ChimeraX :: Selector :: {self.name} :: {self.description}'
 
+
 class Manager(ChimeraXClassifier):
     default_attrs = {
         "gui-only": False
         , "autostart": False
     }
+
     def __init__(self, name, attrs):
         if not attrs:
             attrs = self.default_attrs
@@ -772,6 +821,7 @@ class DataFormat(Provider):
         , "insecure": False
         , "mime-types": []
     }
+
     def __init__(self, name, attrs):
         if not attrs:
             attrs = self.default_attrs
@@ -843,6 +893,7 @@ class Preset(Provider):
     default_attrs = {
         "category": "General"
     }
+
     def __init__(self, name, attrs):
         if not attrs:
             attrs = self.default_attrs
@@ -863,23 +914,17 @@ class Initialization:
         return f'ChimeraX :: InitAfter :: {self.type_} :: {separator.join(self.bundles)}'
 
 # TODO: Standardize
-#class DocDir:
+# class DocDir:
 #    def __init__(self, path):
 #        self.path = path
 #
 #    def __str__(self):
 #        return f'ChimeraX :: DocDir :: {self.path}'
 
-class _CompiledCode:
 
+class _CompiledCode:
     install_dir = "src"
     output_dir = "src"
-
-    _platforms = {
-        "linux": ["linux"]
-        , "darwin": ["mac", "macos", "darwin"]
-        , "win32": ["win", "windows", "win32"]
-    }
 
     def __init__(self, name, attrs):
         self.name = name
@@ -923,7 +968,7 @@ class _CompiledCode:
                 edef.append(None)
             self.add_macro_define(*edef)
         for undef_ in attrs.get("undef-macros", []):
-            self.add_macro_undef(self._get_element_text(e))
+            self.add_macro_undef(undef_)
         if self.limited_api:
             v = self.limited_api
             if v < CHIMERAX1_0_PYTHON_VERSION:
@@ -933,7 +978,7 @@ class _CompiledCode:
             self.add_macro_define("CYTHON_LIMITED_API", hex(hex_version))
 
     def get_platform_specific_args(self, attrs):
-        for platform in self._platforms[sys.platform]:
+        for platform in _platforms[sys.platform]:
             try:
                 platform_args = attrs["platform"].pop(platform)
                 return platform_args
@@ -1094,9 +1139,7 @@ class _CModule(_CompiledCode):
             return None
 
 
-
 class _CLibrary(_CompiledCode):
-
     install_dir = "src/lib"
     output_dir = "src/lib"
 
@@ -1209,6 +1252,7 @@ class _CLibrary(_CompiledCode):
                     )
                 )
         return paths
+
 
 # TODO: Doesn't produce arm64/x86_64 executables on macOS
 class _CExecutable(_CompiledCode):

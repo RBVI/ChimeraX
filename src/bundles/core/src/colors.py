@@ -825,6 +825,30 @@ def color_name(color_or_rgba8, *, always_include_hex_alpha=False):
         name = hex_color(c, always_include_alpha=always_include_hex_alpha)
     return name
 
+def palette_equal(p1, p2, *, tolerance=1/512):
+    if len(p1) != len(p2):
+        return False
+    def len4(c):
+        if len(c) == 4:
+            return c
+        else:
+            return [x for x in c] + [1.0]
+    for c1, c2 in zip(p1, p2):
+        for v1, v2 in zip(len4(c1), len4(c2)):
+            if abs(v1 - v2) > tolerance:
+                return False
+    return True
+
+def palette_name(rgbas, *, tolerance=1/512):
+    for name, cm in BuiltinColormaps.items():
+        if palette_equal(cm.colors, rgbas, tolerance=tolerance):
+            return name
+    # reversed palettes
+    for name, cm in BuiltinColormaps.items():
+        if palette_equal(cm.colors, list(reversed(rgbas)), tolerance=tolerance):
+            return '^' + name
+    return None
+
 def hex_color(rgba8, *, always_include_alpha=False):
     return ('#%02x%02x%02x' % tuple(rgba8[:3])) if rgba8[3] == 255 and not always_include_alpha else (
         '#%02x%02x%02x%02x' % tuple(rgba8))
