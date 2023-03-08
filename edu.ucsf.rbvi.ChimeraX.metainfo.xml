@@ -67,7 +67,7 @@
     <!-- <mediatype>s given in .desktop file -->
   </provides>
   <requires>
-    <kernal version="3.11" compare="ge">Linux</kernel>  <!-- for Qt 6 -->
+    <kernel version="3.11" compare="ge">Linux</kernel>  <!-- for Qt 6 -->
   </requires>
   <recommends>
     <internet>first-run</internet>
