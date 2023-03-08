@@ -6,17 +6,9 @@
   <metadata_license>CC0-1.0</metadata_license>
   <name>UCSF ChimeraX</name>
   <summary>Molecular Visualization</summary>
-  <icon type="local" width="512" height="512">
-    /app/share/icons/hicolor/512x512/apps/edu.ucsf.rbvi.ChimeraX.png
-  </icon>
-  <icon type="local" width="128" height="128">
-    /app/share/icons/hicolor/128x128/apps/edu.ucsf.rbvi.ChimeraX.png
-  </icon>
-  <icon type="local" width="64" height="64">
-    /app/share/icons/hicolor/64x64/apps/edu.ucsf.rbvi.ChimeraX.png
-  </icon>
-  <icon type="local" width="32" height="32">
-    /app/share/icons/hicolor/32x32/apps/edu.ucsf.rbvi.ChimeraX.png
+  <icon type="remote" width="512" height="512">
+    <!-- TODO: put icon on website -->
+    https://github.com/RBVI/ChimeraX/raw/develop/src/apps/ChimeraX/ChimeraX-icon512.png
   </icon>
   <description>
     <!-- only tags allowed are: p, ol, ul, li, em, code and no nested lists -->
