@@ -12,6 +12,7 @@ install:
 	mkdir -p /app/bin
 	ln -s /app/ChimeraX/bin/ChimeraX /app/bin/chimerax
 	install -Dm644 src/apps/ChimeraX/ChimeraX-icon.svg /app/share/icons/hicolor/scalable/apps/${APPNAME}.svg
+	install -Dm644 src/apps/ChimeraX/ChimeraX-icon512.png /app/share/icons/hicolor/512x512/apps/${APPNAME}.png
 	install -Dm644 src/apps/ChimeraX/ChimeraX-icon128.png /app/share/icons/hicolor/128x128/apps/${APPNAME}.png
 	install -Dm644 src/apps/ChimeraX/ChimeraX-icon64.png /app/share/icons/hicolor/64x64/apps/${APPNAME}.png
 	install -Dm644 src/apps/ChimeraX/ChimeraX-icon32.png /app/share/icons/hicolor/32x32/apps/${APPNAME}.png

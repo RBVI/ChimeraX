@@ -1,44 +1,59 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- vi:set shiftwidth=2: -->
+<!-- https://www.freedesktop.org/software/appstream/docs/chap-Metadata.html -->
 <component type="desktop">
   <id>edu.ucsf.rbvi.ChimeraX</id>
-  <launchable type="desktop-id">edu.ucsf.rbvi.ChimeraX.desktop</launchable>
-  <name>ChimeraX</name>
-  <project_license>LicenseRef-proprietary=https://www.rbvi.ucsf.edu/chimerax/docs/license.html</project_license>
-  <developer_name>UCSF RBVI</developer_name>
-  <summary>Molecular Visualization</summary>
   <metadata_license>CC0-1.0</metadata_license>
+  <name>UCSF ChimeraX</name>
+  <summary>Molecular Visualization</summary>
+  <icon type="local" width="512" height="512">
+    /app/share/icons/hicolor/512x512/apps/edu.ucsf.rbvi.ChimeraX.png
+  </icon
+  <icon type="local" width="128" height="128">
+    /app/share/icons/hicolor/128x128/apps/edu.ucsf.rbvi.ChimeraX.png
+  </icon
+  <icon type="local" width="64" height="64">
+    /app/share/icons/hicolor/64x64/apps/edu.ucsf.rbvi.ChimeraX.png
+  </icon
+  <icon type="local" width="32" height="32">
+    /app/share/icons/hicolor/32x32/apps/edu.ucsf.rbvi.ChimeraX.png
+  </icon
+  <description>
+    <!-- only tags allowed are: p, ol, ul, li, em, code and no nested lists -->
+    <p>
+      UCSF ChimeraX (or simply ChimeraX)
+      is the next-generation molecular visualization program from the
+      Resource for Biocomputing, 
+      Visualization, and Informatics (RBVI).
+      ChimeraX is available free of charge
+      for academic, government, nonprofit, and personal use.
+      Commercial users, please see
+      ChimeraX commercial licensing, https://www.rbvi.ucsf.edu/chimerax/commercial_license.html.
+    </p>
+      <p>
+      ChimeraX is developed with support from
+      National Institutes of Health R01-GM129325,
+      Chan Zuckerberg Initiative grant EOSS4-0000000439,
+      and the Office of Cyber Infrastructure and Computational Biology,
+      National Institute of Allergy and Infectious Diseases.
+    </p>
+  </description>
+  <categories>
+    <category>Education</category>
+    <category>Science</category>
+    <category>Biology</category>
+    <category>Chemistry</category>
+    <category>DataVisualization</category>
+    <category>Graphics</category>
+    <category>3DGraphics</category>
+  </categories>
+  <keywords>
+    <keyword>Protein DataBank</keyword>
+  </keywords>
   <url type="homepage">https://www.rbvi.ucsf.edu/chimerax/</url>
   <url type="bugtracker">mailto:chimerax-bugs@cgl.ucsf.edu</url>
   <url type="help">https://www.rbvi.ucsf.edu/chimerax/docs/contact.html</url>
-  <description>
-UCSF ChimeraX (or simply ChimeraX)
-is the next-generation molecular visualization program from the
-<a href="https://www.rbvi.ucsf.edu/">Resource for Biocomputing, 
-Visualization, and Informatics</a> (RBVI),
-following <a href="https://www.rbvi.ucsf.edu/chimera/">UCSF Chimera</a>.
-ChimeraX can be downloaded free of charge
-for academic, government, nonprofit, and personal use.
-Commercial users, please see
-<a href="https://www.rbvi.ucsf.edu/chimera/commercial_license.html">ChimeraX commercial licensing</a>.
-</p>
-<p style="font-size: 90%; margin-bottom: 10px; margin-top: 5px;">
-ChimeraX is developed with support from
-<a href="https://www.nih.gov/"
-target="_blank">National Institutes of Health</a> R01-GM129325,
-<a href="https://chanzuckerberg.com/grants-ventures/grants/"
-target="_blank">Chan Zuckerberg Initiative</a> grant EOSS4-0000000439,
-and the Office of Cyber Infrastructure and Computational Biology,
-<a href="https://www.niaid.nih.gov/" target="_blank">National Institute
-of Allergy and Infectious Diseases</a>.
-    </p>
-  </description>
-  <screenshots>
-    <screenshot type="default">
-      <caption>Early version of ChimeraX main window</caption>
-      <image type="source" width="772" height="517">https://www.rbvi.ucsf.edu/chimerax/docs/quickstart/images/chimerax.png</image>
-    </screenshot>
-  </screenshots>
+  <launchable type="desktop-id">edu.ucsf.rbvi.ChimeraX.desktop</launchable>
   <releases>
     <release version="1.5" date="2022-11-23"/>
     <release version="1.4" date="2022-06-03"/>
@@ -47,5 +62,25 @@ of Allergy and Infectious Diseases</a>.
     <release version="1.1" date="2020-09-09"/>
     <release version="1.0" date="2020-06-04"/>
   </releases>
-  <content_rating type="oars-1.1"/>
+  <provides>
+    <binary>/app/bin/chimerax</binary>
+    <!-- <mediatype>s given in .desktop file -->
+  </provides>
+  <requires>
+    <kernal version="3.11" compare="ge">Linux</kernel>  <!-- for Qt 6 -->
+  </requires>
+  <recommends>
+    <internet>first-run</internet>
+  </recommends>
+  <supports>
+    <internet>always</internet>
+  </supports>
+  <project_license>LicenseRef-proprietary=https://www.rbvi.ucsf.edu/chimerax/docs/license.html</project_license>
+  <developer_name>UCSF RBVI</developer_name>
+  <screenshots>
+    <screenshot type="default">
+      <caption>ChimeraX main window</caption>
+      <image type="source" width="772" height="517">https://www.rbvi.ucsf.edu/chimerax/docs/quickstart/images/chimerax.png</image>
+    </screenshot>
+  </screenshots>
 </component>
