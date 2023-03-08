@@ -9,10 +9,10 @@
 
 TOP ?= ../../..
 -include $(TOP)/.makerc
-ifeq (,$(wildcard $(TOP)/app/ChimeraX))
+ifeq (,$(wildcard /app))
 CHIMERAX_APP = $(wildcard $(TOP)/ChimeraX*.app)
 else
-CHIMERAX_APP = $(wildcard $(TOP)/app/ChimeraX)
+CHIMERAX_APP = $(wildcard /app)
 endif
 SYNC_DIR = $(wildcard $(TOP)/build/sync)
 
