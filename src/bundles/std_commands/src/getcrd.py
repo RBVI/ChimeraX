@@ -22,6 +22,9 @@ def getcrd(session, atoms=None, coordinate_system='scene'):
         atoms = atomspec.everything(session)
     results = atoms.evaluate(session)
     atoms = results.atoms
+    if not atoms:
+        from chimerax.core.errors import UserError
+        raise UserError("No atoms specified")
     msgs = []
     if coordinate_system == 'scene':
         coords = atoms.scene_coords
