@@ -105,7 +105,7 @@ frameworkdir = $(build_prefix)/Library/Frameworks
 app_prefix = $(TOP)/$(APP_FILENAME)/Contents
 app_frameworkdir =  $(app_prefix)/Library/Frameworks
 else
-ifeq (,$(patsubst /%,,$(APP_FILENAME)))
+ifneq (,$(patsubst /%,,$(APP_FILENAME)))
 app_prefix = $(TOP)/$(APP_FILENAME)
 else
 app_prefix = $(APP_FILENAME)
