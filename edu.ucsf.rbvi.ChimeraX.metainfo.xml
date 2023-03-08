@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- vi:set shiftwidth=2: -->
 <!-- https://www.freedesktop.org/software/appstream/docs/chap-Metadata.html -->
-<component type="desktop">
+<component type="desktop-application">
   <id>edu.ucsf.rbvi.ChimeraX</id>
   <metadata_license>CC0-1.0</metadata_license>
   <name>UCSF ChimeraX</name>
@@ -51,7 +51,6 @@
     <keyword>Protein DataBank</keyword>
   </keywords>
   <url type="homepage">https://www.rbvi.ucsf.edu/chimerax/</url>
-  <url type="bugtracker">mailto:chimerax-bugs@cgl.ucsf.edu</url>
   <url type="help">https://www.rbvi.ucsf.edu/chimerax/docs/contact.html</url>
   <launchable type="desktop-id">edu.ucsf.rbvi.ChimeraX.desktop</launchable>
   <releases>
