@@ -66,13 +66,14 @@ class RenderByAttrTool(ToolInstance):
         attr_menu_layout.addWidget(self.attr_menu_button, alignment=Qt.AlignLeft)
         model_list_layout = QVBoxLayout()
         model_list_layout.addWidget(QLabel("Models"), alignment=Qt.AlignBottom)
-        from chimerax.ui.widgets import ModelListWidget, MarkedHistogram
-        class ShortModelListWidget(ModelListWidget):
+        from chimerax.ui.widgets import ModelListWidget, MarkedHistogram, PaletteChooser
+        class SmallerModelListWidget(ModelListWidget):
             def sizeHint(self):
                 sh = super().sizeHint()
                 sh.setHeight(sh.height() // 2)
+                sh.setWidth(sh.width() * 2 // 3)
                 return sh
-        self.model_list = ShortModelListWidget(session, filter_func=self._filter_model)
+        self.model_list = SmallerModelListWidget(session, filter_func=self._filter_model)
         self.model_list.value_changed.connect(self._models_changed)
         model_list_layout.addWidget(self.model_list, alignment=Qt.AlignTop)
         target_layout.addLayout(attribute_layout)
@@ -87,14 +88,18 @@ class RenderByAttrTool(ToolInstance):
         render_tab_layout.setSpacing(1)
         self.render_histogram = rh = MarkedHistogram(min_label=True, max_label=True, status_line=tw.status)
         render_tab_layout.addWidget(rh)
-        self.render_color_markers = rh.add_markers(activate=True, coord_type='relative')
+        self.render_color_markers = rh.add_markers(activate=True, coord_type='relative',
+            move_callback=self._render_marker_moved,
+            color_change_callback=lambda mrk, cb=self._update_palettes: cb())
         self.render_color_markers.extend([((0.0, 0.0), "blue"), ((0.5, 0.0), "white"), ((1.0, 0.0), "red")])
+        self.render_color_markers.add_del_callback = self._update_palettes
         self.render_radius_markers = rh.add_markers(new_color='slate gray', activate=False,
             coord_type='relative')
         self.render_radius_markers.extend([((0.0, 0.0), None), ((1.0, 0.0), None)])
         self.render_type_widget = QTabWidget()
         self.render_type_widget.setTabBarAutoHide(True)
         render_tab_layout.addWidget(self.render_type_widget)
+
         color_render_tab = QWidget()
         color_render_tab_layout = crt_layout = QVBoxLayout()
         crt_layout.setSpacing(1)
@@ -128,7 +133,26 @@ class RenderByAttrTool(ToolInstance):
         no_value_layout.addWidget(self.no_value_color)
         no_value_layout.addStretch(1)
         crt_layout.addLayout(no_value_layout)
+        self.palette_chooser = PaletteChooser(self._new_palette)
+        crt_layout.addWidget(self.palette_chooser, alignment=Qt.AlignCenter)
+        reverse_layout = QHBoxLayout()
+        reverse_layout.addStretch(1)
+        self.reverse_colors_button = QPushButton("Reverse")
+        self.reverse_colors_button.clicked.connect(self._reverse_colors)
+        reverse_layout.addWidget(self.reverse_colors_button, alignment=Qt.AlignRight)
+        reverse_layout.addWidget(QLabel(" threshold colors"), alignment=Qt.AlignLeft)
+        reverse_layout.addStretch(1)
+        crt_layout.addLayout(reverse_layout)
+        key_layout = QHBoxLayout()
+        key_layout.addStretch(1)
+        self.key_button = QPushButton("Create")
+        self.key_button.clicked.connect(self._create_key)
+        key_layout.addWidget(self.key_button, alignment=Qt.AlignRight)
+        key_layout.addWidget(QLabel(" corresponding color key"), alignment=Qt.AlignLeft)
+        key_layout.addStretch(1)
+        crt_layout.addLayout(key_layout)
         self.render_type_widget.addTab(color_render_tab, "Colors")
+
         self.sel_restrict = QCheckBox("Restrict to selection")
         self.sel_restrict.setChecked(False)
         render_tab_layout.addWidget(self.sel_restrict, alignment=Qt.AlignCenter)
@@ -203,6 +227,21 @@ class RenderByAttrTool(ToolInstance):
             attr_info.class_object, types, none_okay=True) if not attr_info.hide_attr(
             attr_name, self.mode_widget.tabText(self.mode_widget.currentIndex()) == "Render")]
 
+    def _create_key(self):
+        from chimerax.core.colors import Colormap, Color
+        colors = []
+        values = []
+        crd_type = self.render_color_markers.coord_type
+        self.render_color_markers.coord_type = 'absolute'
+        for marker in self.render_color_markers:
+            colors.append(Color(marker.rgba))
+            values.append(marker.xy[0])
+        self.render_color_markers.coord_type = crd_type
+        cmap = Colormap(values, colors, color_no_value=[x/255.0 for x in self.no_value_color.color])
+
+        from chimerax.color_key import show_key
+        show_key(self.session, cmap)
+
     def _cur_attr_info(self):
         target = self.target_menu_button.text()
         return self._ui_to_info[target]
@@ -240,11 +279,16 @@ class RenderByAttrTool(ToolInstance):
                 self.render_histogram.data_source = "Choose attribute to show histogram"
             else:
                 self._update_histogram(attr_name)
+            self._update_palettes()
         self.attr_menu_button.setEnabled(enabled)
 
 
     def _new_classes(self):
         self._update_target_menu()
+
+    def _new_palette(self, palette_name):
+        for marker, rgba in zip(self.render_color_markers, self.palette_chooser.rgbas):
+            marker.rgba = rgba
 
     def _new_target(self, target):
         if not isinstance(target, str):
@@ -256,6 +300,30 @@ class RenderByAttrTool(ToolInstance):
         self.color_cartoons.setEnabled("cartoons" in color_targets)
         self.color_surfaces.setEnabled("surfaces" in color_targets)
         self._new_attr()
+
+    def _render_marker_moved(self, move_info):
+        if move_info == "end":
+            self._update_palettes()
+
+    def _reverse_colors(self):
+        if len(self.render_color_markers) < 2:
+            return
+        rgbas = [m.rgba for m in self.render_color_markers]
+        rgbas.reverse()
+        cb = self.render_color_markers.color_change_callback
+        self.render_color_markers.color_change_callback = None
+        for m, rgba in zip(self.render_color_markers, rgbas):
+            m.rgba = rgba
+        self.render_color_markers.color_change_callback = cb
+        self._update_palettes()
+
+    def _update_attr_menu(self):
+        menu = self.attr_menu_button.menu()
+        menu.clear()
+        attr_names = self._attr_names_of_type(int, float)
+        attr_names.sort()
+        for attr_name in attr_names:
+            menu.addAction(attr_name)
 
     def _update_histogram(self, attr_name):
         attr_info = self._cur_attr_info()
@@ -276,13 +344,14 @@ class RenderByAttrTool(ToolInstance):
                 self.render_histogram.data_source = (min_val, max_val, lambda num_bins:
                     numpy.histogram(values, bins=num_bins, range=(min_val, max_val), density=False)[0])
 
-    def _update_attr_menu(self):
-        menu = self.attr_menu_button.menu()
-        menu.clear()
-        attr_names = self._attr_names_of_type(int, float)
-        attr_names.sort()
-        for attr_name in attr_names:
-            menu.addAction(attr_name)
+    def _update_palettes(self):
+        if type(self.render_histogram.data_source) == str:
+            rgbas = []
+        else:
+            rgbas = [m.rgba for m in self.render_color_markers]
+        self.reverse_colors_button.setEnabled(len(rgbas) > 1)
+        self.key_button.setEnabled(len(rgbas) > 1)
+        self.palette_chooser.rgbas = rgbas
 
     def _update_target_menu(self):
         from .manager import get_manager

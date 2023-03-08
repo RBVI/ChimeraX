@@ -19,6 +19,7 @@ from enum import Enum
 from chimerax.map.volume import open_grids
 from chimerax.map_data import GridData
 from chimerax.image_formats.open_image import ImageSurface
+from chimerax.dicom.coordinates import get_coordinate_system
 
 class NRRD:
     def __init__(self, session, data):
@@ -62,6 +63,8 @@ class NRRDData:
         self._transformed_data = None
         self._spacings = None
         self._name = None
+        self._image = None
+        self._coordinate_system = None
 
     @property
     def name(self):
@@ -75,7 +78,9 @@ class NRRDData:
 
     @property
     def image(self):
-        return self._raw_data
+        if not self._image:
+            self._image = self.coordinate_system.to_xyz(self._raw_data)
+        return self._image
 
     @property
     def dimension(self):
@@ -100,22 +105,35 @@ class NRRDData:
     @property
     def pixel_spacing(self):
         if not self._spacings:
+            x, y, z = self.coordinate_system.space_ordering
             if 'spacings' in self._raw_header:
-                spacings = self._raw_header['spacings']
+                spacing_vector = self._raw_header['spacings']
+                spacings = [
+                    spacing_vector[x]
+                    , spacing_vector[y]
+                    , spacing_vector[z]
+                ]
             elif 'space directions' in self._raw_header:
                 space_and_direction_matrix = self._raw_header['space directions']
                 spacings = [
-                    space_and_direction_matrix[1][1]
-                    , space_and_direction_matrix[0][0]
-                    , space_and_direction_matrix[2][2]
+                    space_and_direction_matrix[x][x]
+                    , space_and_direction_matrix[y][y]
+                    , space_and_direction_matrix[z][z]
                 ]
             else:
                 spacings = [1]*self.dimension
             self._spacings = spacings
         return self._spacings
 
-    def _axis_corrected_spacing(self):
-        pass
+    @property
+    def coordinate_system(self):
+        if not self._coordinate_system:
+            space = self._raw_header.get('space', None)
+            if space:
+                self._coordinate_system = get_coordinate_system(space)
+            else:
+                self._coordinate_system = get_coordinate_system("3D-right-handed")
+        return self._coordinate_system
 
 
 class NRRDGrid(GridData):
