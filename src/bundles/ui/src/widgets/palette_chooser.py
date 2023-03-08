@@ -75,6 +75,9 @@ class PaletteChooser(QWidget):
         if not palette_name or palette_name == self.NO_PALETTE:
             return None
         from chimerax.core.colors import BuiltinColormaps
+        if palette_name[0] == '^':
+            from numpy import flip
+            return flip(BuiltinColormaps[palette_name[1:]].colors, axis=0)
         return BuiltinColormaps[palette_name].colors
 
     @rgbas.setter
