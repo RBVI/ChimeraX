@@ -13,7 +13,7 @@
 
 from chimerax.core.commands import register, CmdDesc, EnumOf, AtomSpecArg, atomspec
 
-def initialize(command_name, logger):
+def register_command(logger):
     register("getcrd", getcrd_desc, getcrd, logger=logger)
 
 def getcrd(session, atoms=None, coordinate_system='scene'):
@@ -39,6 +39,7 @@ def getcrd(session, atoms=None, coordinate_system='scene'):
     settings.atomspec_contents = save
     session.logger.info('\n'.join(msgs))
     return coords
+
 getcrd_desc = CmdDesc(required=[("atoms", AtomSpecArg),],
                       optional=[("coordinate_system", EnumOf(('scene', 'model', 'screen')))],
                       synopsis='report atomic coordinates')

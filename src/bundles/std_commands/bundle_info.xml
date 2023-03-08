@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-StdCommands" version="1.10.1"
+<BundleInfo name="ChimeraX-StdCommands" version="1.10.2"
 	    package="chimerax.std_commands" customInit="true"
   	    minSessionVersion="1" maxSessionVersion="1">
 
@@ -84,6 +84,7 @@
     <ChimeraXClassifier>Command :: exit :: General Controls :: quit ChimeraX</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: quit :: General Controls :: quit ChimeraX</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: fly :: General Controls :: interpolate motions for animations</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: getcrd :: General :: report atomic coordinates</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: graphics :: General Controls :: control 3D graphics parameters</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: hide :: Viewing Controls :: stop displaying (parts of) a model</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: ~show :: Viewing Controls :: stop displaying (parts of) a model</ChimeraXClassifier>
