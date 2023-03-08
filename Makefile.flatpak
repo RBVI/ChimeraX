@@ -18,7 +18,7 @@ install:
 	install -Dm644 ${APPNAME}.metainfo.xml -t /app/share/metainfo
 	# install -Dm644 ${APPNAME}.desktop -t /app/share/applications
 
-build:
+build-flatpak:
 	rm -rf flatpak-build.tmp
 	flatpak-builder flatpak-build.tmp ${APPNAME}.yaml
 
