@@ -39,4 +39,21 @@ modules:
         url: ssh://git@github.com/RBVI/ChimeraX.git
         branch: develop
     build-commands:
-      - make -f Makefile.flatpak install
+      - make -j -f Makefile.flatpak install
+
+  # libQt6Network.so.6 from the Qt Group needs
+  # libgssapi_krb5.so.2, but is not in runtime environment
+  - name: krb5
+    buildsystem: simple
+    sources:
+    - type: archive
+      url: http://web.mit.edu/kerberos/dist/krb5/1.20/krb5-1.20.1.tar.gz
+      sha256: 704aed49b19eb5a7178b34b2873620ec299db08752d6a8574f95d41879ab8851
+    build-commands:
+      - cd src && ./configure
+      - make -j -C src/util
+      - make -j -C src/include
+      # need rpath to point to installation directory, not /usr/local/lib
+      - (cd lib; for m in $(find . -name Makefile); do sed -i "s/SHLIB_RDIRS=.*/SHLIB_RDIRS='\$\$ORIGIN'/" $m; done)
+      - make -j -C src/lib
+      - cd src/lib && cp libkrb5.so.3 libk5crypto.so.3 libcom_err.so.3 libkrb5support.so.0 libgssapi_krb5.so.2 /app/lib/python3*/site-packages/PyQt6/Qt6/lib/
