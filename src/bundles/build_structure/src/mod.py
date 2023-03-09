@@ -561,4 +561,3 @@ def invert_chirality(center, *, swapees=None):
     for atoms, rot in zip(atom_sets, (rot1, rot2)):
         if atoms:
             atoms.coords = trans2 * (rot * (trans1 * atoms.coords))
->>>>>>> 5649c3429592e1acb362615e4336ba933b3af78e
