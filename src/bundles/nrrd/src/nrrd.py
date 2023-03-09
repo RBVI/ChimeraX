@@ -78,8 +78,8 @@ class NRRDData:
 
     @property
     def image(self):
-        if not self._image:
-            self._image = self.coordinate_system.to_xyz(self._raw_data)
+        if self._image is None:
+            self._image = self._raw_data
         return self._image
 
     @property
@@ -101,6 +101,18 @@ class NRRDData:
     @property
     def origin(self):
         return self._raw_header.get("space origin", (0,0,0))
+
+    @property
+    def rotation(self):
+        return self.coordinate_system.rotation_matrix
+
+    # @property
+    # def columns(self):
+    #     ...
+
+    # @property
+    # def rows(self):
+    #     ...
 
     @property
     def pixel_spacing(self):
@@ -141,6 +153,7 @@ class NRRDGrid(GridData):
         self.nrrd_data = nrrd
         GridData.__init__(
             self, nrrd.shape, nrrd.data_type, origin = nrrd.origin
+            , rotation = nrrd.rotation
             , step = nrrd.pixel_spacing, file_type = 'nrrd'
         )
 
