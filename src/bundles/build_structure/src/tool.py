@@ -45,7 +45,8 @@ class BuildStructureTool(ToolInstance):
 
         self.handlers = []
         self.category_widgets = {}
-        for category in ["Start Structure", "Modify Structure", "Adjust Bonds", "Join Models", "Invert"]:
+        for category in ["Start Structure", "Modify Structure", "Adjust Bonds", "Adjust Torsions",
+                "Join Models", "Invert"]:
             self.category_widgets[category] = widget = QFrame()
             widget.setLineWidth(2)
             widget.setFrameStyle(QFrame.Panel | QFrame.Sunken)
@@ -96,6 +97,18 @@ class BuildStructureTool(ToolInstance):
         self.bond_len_slider.blockSignals(True)
         self.bond_len_slider.setValue(val)
         self.bond_len_slider.blockSignals(False)
+
+    def _at_activate(self):
+        from chimerax.atomic import selected_bonds
+        sel_bonds = selected_bonds(self.session)
+        if len(sel_bonds) != 1:
+            raise UserError("Exactly one bond must be selected in graphics window")
+        bond = sel_bonds[0]
+        # use bond-rotation manager here, which will detect bond-in-cycle and other problems...
+        #small = bond.smaller_side
+        #large = bond.other_atom(small)
+        #if len(small.neighbors) < 2 or len(large.neighbors) < 2:
+        #    raise UserError("Bond must have other atoms bonded to both ends to form torsion")
 
     def _cat_menu_cb(self, action):
         self.category_areas.setCurrentWidget(self.category_widgets[action.text()])
@@ -224,6 +237,29 @@ class BuildStructureTool(ToolInstance):
         from chimerax.core.selection import SELECTION_CHANGED
         self.handlers.append(self.session.triggers.add_handler(SELECTION_CHANGED, self._ab_sel_changed))
         self._ab_sel_changed()
+
+    def _layout_adjust_torsions(self, parent):
+        layout = QVBoxLayout()
+        layout.setContentsMargins(0,0,0,0)
+        layout.setSpacing(0)
+        parent.setLayout(layout)
+        activate_layout = QHBoxLayout()
+        activate_layout.addStretch(1)
+        activate_button = QPushButton("Activate")
+        activate_button.clicked.connect(self._at_activate)
+        activate_layout.addWidget(activate_button)
+        activate_layout.addWidget(QLabel(" selected bond as torsion"))
+        activate_layout.addStretch(1)
+        layout.addLayout(activate_layout)
+        torsions_row_layout = QHBoxLayout()
+        torsions_row_layout.addStretch(1)
+        self.at_no_torsions_label = QLabel("No torsions active")
+        self.at_no_torsions_label.setEnabled(False)
+        torsions_row_layout.addWidget(self.at_no_torsions_label)
+        self.at_torsions_layout = QGridLayout()
+        torsions_row_layout.addLayout(self.at_torsions_layout)
+        torsions_row_layout.addStretch(1)
+        layout.addLayout(torsions_row_layout)
 
     def _layout_invert(self, parent):
         layout = QVBoxLayout()
