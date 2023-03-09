@@ -107,6 +107,8 @@
     <ChimeraXClassifier>Command :: pwd :: Utilities :: report current working directory</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: rainbow :: Depiction :: "rainbow" color (parts of) structures</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: rename :: General Controls :: change name or ID of model</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: ribbon :: Depiction :: show stylized representation of structure</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: ~ribbon :: Depiction :: stop show stylized representation of structure</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: rmsd :: Structure Comparison :: measure RMSD between two sets of atoms</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: rock :: General Controls :: rock models back and forth</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: roll :: General Controls :: continuously turn model(s) about an axis</ChimeraXClassifier>
