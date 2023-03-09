@@ -41,6 +41,11 @@ The <b>Render by Attribute</b> dialog can be opened from the
 <b>Depiction</b> or <b>Structure Analysis</b> section of the <b>Tools</b> menu
 and manipulated like other panels (<a href="../window.html#panels">more...</a>).
 </p>
+<blockquote><b>
+<a href="#choosemodel">Choosing Model and Attribute</a>
+<br>
+<a href="#histogram">Histogram and Colors</a>
+</b></blockquote>
 
 <a name="choosemodel"></a>
 <p class="nav">
@@ -113,6 +118,7 @@ mapped to colors with this tool.
 <p>
 Choosing an attribute as described above shows a histogram of its
 values in the <a href="#choosemodel">chosen</a> models.
+</p><p>
 Each <b><i>threshold</i></b> or
 vertical bar on the histogram has a <b>Value</b>
 (position on the histogram) and a <b>Color</b>.
@@ -123,36 +129,63 @@ Clicking elsewhere within the histogram shows the <b>Value</b>
 A threshold can be moved by changing its <b>Value</b>
 and then pressing Enter (return) or by dragging it horizontally
 with the left mouse button. 
-</p><p>
 Thresholds can be added by Shift-clicking on the histogram, 
 whereas Shift-clicking an existing threshold deletes it.
-The <b>Color</b> square (color well) applies to the threshold most recently
-moved or clicked. Clicking the color well opens the system color editor 
-to allow choosing a color interactively.
-</p><p>
+<a name="threshold-settings"></a>
+The <b>Value</b> and <b>Color</b> settings apply to the threshold 
+most recently moved or clicked:
+<ul>
+<li>A threshold can also be moved by entering a new <b>Value</b>.
+<li>Clicking the <b>Color</b> square (color well) 
+opens the system color editor for choosing a color interactively.
+</ul>
+<p>
 Coloring can be applied to <b>atoms</b>, <b>cartoons</b>, and/or
 molecular <b>surfaces</b>.
-</p><p>
-The <b>Color missing values with</b> (a color well, default
+</p>
+<ul>
+<li><b>Color missing values with</b> (a color well, default
 <table border cellpadding="4" cellspacing="0"
 style="display:inline-block; vertical-align:middle"><tr>
 <td bgcolor="#808080" width="10px" title="blue"></td></tr></table>)
-option allows coloring atoms, residues, or models that have
+allows coloring atoms, residues, or models that have
 <a name="novalue">no value</a> assigned for the chosen attribute.
 For example, nucleic acid residues do not have peptide backbone
 <b>phi</b> angles. If the option is turned off (unchecked), any
 no-value atoms, <i>etc.</i> will retain their current colors.
-</p><p>
-<b>Restrict to selection</b> limits coloring to the current
+<br><br>
+<li>Choosing a <b>Palette</b> changes the colors without changing
+the number of thresholds or their positions.
+The desired number of thresholds should be present before the palette
+is chosen; individual colors can be changed afterwards with the system 
+color editor, as described <a href="#threshold-settings">above</a>.
+Many <a href="../commands/palettes.html">built-in palettes</a> are available.
+Only the ones with the same number of colors as the current number of
+thresholds will be listed; for example, the <b>rainbow</b> palette will
+not be listed unless there are exactly 5 thresholds in the histogram.
+If any colors are set interactively, the palette name will be
+shown as <b>custom</b>.
+<br><br>
+<li>Clicking <b>Reverse threshold colors</b> reverses the current colors
+without changing the number of thresholds or their positions.
+<br><br>
+<li>Clicking <b>Create corresponding color key</b> opens the
+<a href="colorkey.html"><b>Color Key</b></a> tool and populates it 
+with the current colors and values; a color key can then be 
+<a href="colorkey.html#adjust">drawn interactively</a> 
+in the graphics window using the settings in that tool.
+<br><br>
+<li><b>Restrict to selection</b> limits coloring to the current
 <a href="../selection.html">selection</a>.
-</p><p>
+</ul>
+<p>
 Clicking <b>Apply</b> performs the coloring without closing the dialog,
-whereas <b>Apply</b> performs the coloring and dismisses the dialog.
+whereas <b>OK</b> performs the coloring and dismisses the dialog.
 <b>Close</b> simply dismisses the dialog, and <b>Help</b> shows this page 
 in the <a href="helpviewer.html"><b>Help Viewer</b></a>.
 </p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-October 2022</address>
+March 2023</address>
 </body></html>

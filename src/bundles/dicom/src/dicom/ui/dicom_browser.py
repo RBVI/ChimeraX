@@ -144,7 +144,7 @@ class DICOMBrowserTool(ToolInstance):
     def fill_context_menu(self, menu, x, y):
         table = self._hovered_table(x, y)
         if table:
-            load_metadata_action = QAction("Load Metadata from Highlighted Entries", menu)
+            load_metadata_action = QAction("Load Metadata from Chosen Entries", menu)
             load_metadata_action.triggered.connect(lambda: self.load_metadata_from_right_click(table.selected))
             menu.addAction(load_metadata_action)
 

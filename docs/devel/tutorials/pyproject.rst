@@ -87,6 +87,13 @@ the source tree, respectively. ::
 
 The general syntax is ``"target/directory" = ["list", "of", "source", "files"]``.
 
+Platform-Specific Extra Files
+----------------------------
+You may choose to optionally include some extra files on certain platforms only. In this
+case put them in a table such as: ::
+
+    [chimerax.extra-files.platform.mac]
+
 Configuring Basic Metadata
 --------------------------
 The basic bundle metadata, such as the minimum and maximum supported session versions, bundle 
@@ -94,6 +101,7 @@ categories, python classifiers, and whether your bundle needs a custom init shou
 top of the ``[chimerax]`` table. For example: ::
 
     [chimerax]
+    pure = true
     min-session-ver = 1
     max-session-ver = 1
     custom-init = false
@@ -102,6 +110,8 @@ top of the ``[chimerax]`` table. For example: ::
 
 Notes:
 
+- ``pure`` is optional and defaults to True. In cases where pure is True and extensions,
+  libraries, or executables are present, it will be overridden as False.
 - ``category`` MUST be either a string or list of strings
 - ``category`` MAY instead be labelled ``categories``
 - ``custom-init`` is optional and assumed to be false if not present. 

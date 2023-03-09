@@ -31,8 +31,12 @@ It interfaces with a local installation of
 See also: <a href="volume.html"><b>volume</b></a>
 </p>
 <ul>
-<li><a href="#douse"><b>phenix douse</b></a>
+<li><a href="#douse"><b>phenix douse</b></a> 
+&ndash; place waters into EM density
+<li><a href="#emplaceLocal"><b>phenix emplaceLocal</b></a>
+&ndash; local fitting into EM density
 <li><a href="#location"><b>phenix location</b></a>
+&ndash; specify location of Phenix installation
 </ul>
 
 <a name="douse"></a>
@@ -55,6 +59,8 @@ See also: <a href="volume.html"><b>volume</b></a>
 Run the <a href="https://phenix-online.org" target="_blank">Phenix</a> program
 <a href="https://phenix-online.org/documentation/reference/douse.html"
 target="_blank"><i>douse</i></a> to place water molecules in cryo-EM density.
+The graphical interface to this command is
+<a href="../tools/waterplacement.html"><b>Water Placement</b></a>.
 The density map and corresponding atomic model should be already open
 and specified as the
 <a href="atomspec.html#othermodels"><i>map-model</i></a> and
@@ -82,8 +88,7 @@ that interact directly with the rest of the structure should be added.
 &ndash; show residues with any atom within <i>dist<sub>r</sub></i>
 (default <b>5.0</b> &Aring;) of water atoms
 <li><b>verbose</b> (default <b>false</b>)
-&ndash; whether to echo all <i>douse</i> messages to the
-<a href="log.html"><b>Log</b></a>
+&ndash; whether to echo all messages to the <a href="log.html"><b>Log</b></a>
 <li><b>phenixLocation</b> &ndash; where Phenix is installed
 (for example, <b>/Applications/phenix-1.20.1-4487</b>).
 Giving <i>folder</i> as the word
@@ -124,6 +129,51 @@ can be used multiple times in the same command
 </ul>
 </blockquote>
 
+<a name="emplaceLocal"></a>
+<a href="#top" class="nounder">&bull;</a>
+<b>phenix emplaceLocal</b>
+&nbsp;<a href="atomspec.html#hierarchy"><i>atomic-model</i></a>&nbsp;
+<b>halfMaps</b>&nbsp;&nbsp;<a href="atomspec.html#othermodels"><i>map-models</i></a>&nbsp;
+<b>center</b>&nbsp;&nbsp;<a href="pointspec.html#point"><i>point-spec</i></a>&nbsp;
+[&nbsp;<b>resolution</b>&nbsp;&nbsp;<i>r</i>&nbsp;]
+[&nbsp;<b>verbose</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>phenixLocation</b> &nbsp;<i>folder</i>&nbsp;]
+[&nbsp;<b>block</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+&nbsp;<a href="#advanced"><i>advanced-options</i></a>
+<blockquote>
+<p>
+Run the <a href="https://phenix-online.org" target="_blank">Phenix</a> 
+program <i>voyager.emplace_local</i> (included in the Phenix nightly build)
+to fit an atomic structure within a local region of cryo-EM density.
+The graphical interface to this command is
+<a href="../tools/localemfitting.html"><b>Local EM Fitting</b></a>.
+</p><p>
+The atomic model to fit and the experimental &ldquo;half maps&rdquo;
+should be already open and specified as the
+<a href="atomspec.html#hierarchy"><i>atomic-model</i></a> and
+<a href="atomspec.html#othermodels"><i>map-models</i></a>, respectively.
+Additional arguments:
+</p>
+<ul>
+<li><b>center</b> (required, no default)
+&ndash; center of the search space given as
+<i>x,y,z</i> (three values separated by commas only),
+an <a href="atomspec.html"><i>atom-spec</i></a>, or any of the other
+standard <a href="pointspec.html#vector">point specifications</a>.
+The size of the search space is based on the size of the structure 
+and cannot be adjusted.
+<li><b>resolution</b>
+&ndash; map resolution (default <b>0.0</b> &Aring;);
+a suitable nonzero value for the map resolution should be specified
+by the user, if possible. Otherwise, a nonzero value will be estimated 
+and used in the calculation.
+</ul>
+<p>
+The remaining options are as described above for
+<a href="#douse"><b>phenix douse</b></a>.
+</p>
+</blockquote>
+
 <a name="location"></a>
 <a href="#top" class="nounder">&bull;</a>
 <b>phenix location</b> [&nbsp;<i>folder</i>&nbsp;]
@@ -141,5 +191,5 @@ in the <a href="../tools/log.html"><b>Log</b></a>.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-September 2022</address>
+February 2023</address>
 </body></html>

@@ -1,0 +1,48 @@
+APPNAME = edu.ucsf.rbvi.ChimeraX
+BUILD_DIR = fp-build.tmp
+
+all:
+	# by default, do nothing
+
+preqreqs-rhel:
+	dnf install flatpak flatpak-builder
+
+prereqs-ubuntu:
+	apt install flatpak flatpak-builder gnome-software-plugin-flatpak
+
+build-flatpak:
+	flatpak-builder --force-clean ${BUILD_DIR} ${APPNAME}.yaml
+
+install:
+	# this is called indirectly by flatpak-builder via yaml/json manifest
+	mkdir -p /app
+	$(MAKE) install NO_PREBUILT=1 FLATPAK_DIST=22.08
+	install -Dm644 src/apps/ChimeraX/ChimeraX-icon.svg /app/share/icons/hicolor/scalable/apps/${APPNAME}.svg
+	install -Dm644 src/apps/ChimeraX/ChimeraX-icon512.png /app/share/icons/hicolor/512x512/apps/${APPNAME}.png
+	install -Dm644 src/apps/ChimeraX/ChimeraX-icon128.png /app/share/icons/hicolor/128x128/apps/${APPNAME}.png
+	install -Dm644 src/apps/ChimeraX/ChimeraX-icon64.png /app/share/icons/hicolor/64x64/apps/${APPNAME}.png
+	install -Dm644 src/apps/ChimeraX/ChimeraX-icon32.png /app/share/icons/hicolor/32x32/apps/${APPNAME}.png
+	install -Dm644 src/apps/ChimeraX/ChimeraX-icon16.png /app/share/icons/hicolor/16x16/apps/${APPNAME}.png
+	install -Dm644 ${APPNAME}.metainfo.xml -t /app/share/metainfo
+	# install -Dm644 ${APPNAME}.desktop -t /app/share/applications
+
+local-install:
+	# assume it has been built already
+	flatpak-builder --export-only --user --install ${BUILD_DIR} ${APPNAME}.yaml
+
+export-flatpak:
+	# Create a single file that can be installed 
+	flatpak build-export export ${BUILD_DIR}
+	flatpak build-bundle export ChimeraX.flatpak ${APPNAME}
+
+run:
+	flatpak run ${APPNAME}
+
+explore:
+	flatpak run --command=sh ${APPNAME}
+
+explore-sdk:
+	flatpak run $(shell grep ^sdk ${APPNAME}.yaml | cut -d ' ' -s -f 2)
+
+validate-metainfo:
+	appstream-util validate-relax ${APPNAME}.metainfo.xml

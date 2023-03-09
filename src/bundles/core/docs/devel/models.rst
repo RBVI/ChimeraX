@@ -12,6 +12,12 @@
     or derivations thereof.
     === UCSF ChimeraX Copyright ===
 
+======================
+models: Displayed data
+======================
+
+This is a test to see whether the other members go away...
+
 .. automodule:: chimerax.core.models
     :members:
     :show-inheritance:

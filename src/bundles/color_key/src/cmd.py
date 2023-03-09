@@ -100,28 +100,6 @@ def key_delete_cmd(session):
     if key is not None:
         key.delete()
 
-def palette_equal(p1, p2):
-    if len(p1) != len(p2):
-        return False
-    tolerance = 1 / 512
-    def len4(c):
-        if len(c) == 4:
-            return c
-        else:
-            return [x for x in c] + [1.0]
-    for c1, c2 in zip(p1, p2):
-        for v1, v2 in zip(len4(c1), len4(c2)):
-            if abs(v1 - v2) > tolerance:
-                return False
-    return True
-
-def palette_name(rgbas):
-    from chimerax.core.colors import BuiltinColormaps
-    for name, cm in BuiltinColormaps.items():
-        if palette_equal(cm.colors, rgbas):
-            return name
-    return None
-
 def _precision_values(values, precision):
     if precision is None:
         return "%g", values
@@ -159,7 +137,7 @@ def _precision_values(values, precision):
 def show_key(session, color_map, *, show_tool=True, precision=3):
     """If precision is None, use full precision"""
     from chimerax.core.commands import run, StringArg
-    from chimerax.core.colors import color_name, rgba_to_rgba8
+    from chimerax.core.colors import color_name, rgba_to_rgba8, palette_name
     palette = palette_name(color_map.colors)
     v_fmt, values = _precision_values(color_map.data_values, precision)
     if palette is None:

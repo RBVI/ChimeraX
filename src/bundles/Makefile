@@ -35,7 +35,7 @@ REST_SUBDIRS = add_charge addh alignment_algs alignment_headers \
 	  markers mask match_maker md_crds \
 	  medical_toolbar meeting mlp model_series \
 	  mmcif mmtf model_panel modeller mol2 mole morph mouse_modes movie \
-	  neuron nucleotides open_command pdb pdb_bio pdb_lib pdb_matrices \
+	  neuron nifti nrrd nucleotides open_command pdb pdb_bio pdb_lib pdb_matrices \
 	  pick_blobs positions preset_mgr pubchem read_pbonds registration \
 	  remote_control render_by_attr renumber_residues rest_server \
 	  residue_fit rna_layout rotamers rotamer_libs \

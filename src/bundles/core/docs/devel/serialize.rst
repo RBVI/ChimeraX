@@ -12,6 +12,10 @@
     or derivations thereof.
     === UCSF ChimeraX Copyright ===
 
+==================================================
+serialize: Support serialization of "simple" types
+==================================================
+
 .. automodule:: chimerax.core.serialize
     :members:
     :show-inheritance:

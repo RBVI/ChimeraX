@@ -13,6 +13,10 @@ _arg_map = {
     "CC": ["-I", "-L", "-fdebug-prefix-map="],
     "RUNSHARED": ["DYLD_FRAMEWORK_PATH", "LD_LIBRARY_PATH"],
     "BASECFLAGS": ["-F"],
+    "CONFINCLUDEPY": [""],
+    "CONFINCLUDEDIR": [""],
+    "INCLUDEPY": [""],
+    "INCLUDEDIR": [""],
 }
 
 def clean_make_line(line, build_path):

@@ -13,7 +13,6 @@
 from collections import defaultdict
 import datetime
 import os
-import warnings
 from numpy import (
     cross, dot, float32
     , uint8, int8, uint16, int16
@@ -25,6 +24,7 @@ from typing import Optional
 from chimerax.core.decorators import requires_gui
 from chimerax.core.models import Model
 from chimerax.core.tools import get_singleton
+from chimerax.core.session import Session
 
 from chimerax.map.volume import open_grids
 
@@ -38,34 +38,11 @@ except ModuleNotFoundError:
 else:
     _has_gdcm = True
 
-try:
-    # We are inside GUI ChimeraX
-    from chimerax.ui.gui import UI
-except (ModuleNotFoundError, ImportError):
-    # We could be in NoGUI ChimeraX
-    try:
-        from chimerax.core.nogui import UI
-    except (ModuleNotFoundError, ImportError):
-        pass
-finally:
-    try:
-        _logger = UI.instance().session.logger
-        _session = UI.instance().session
-    except (NameError, AttributeError):
-        # We didn't have either of ChimeraX's UIs, or they were uninitialized.
-        # We're either in some other application or being used as a library.
-        # Default to passed in sessions and the Python logging module
-        import logging
-        _session = None
-        _logger = logging.getLogger()
-        _logger.status = _logger.info
-
-
 class Patient(Model):
     """A set of DICOM files that have the same Patient ID"""
-    def __init__(self, session, pid):
+    def __init__(self, session: Session, pid: str):
+        self.session = session
         self.pid = pid
-        self.session = session or _session
         Model.__init__(self, 'Patient %s' % pid, session)
         self.studies = []
 
@@ -81,7 +58,7 @@ class Patient(Model):
             study.series_from_files(files)
             self.studies.append(study)
         if studies:
-            self.name = f'Patient (ID: %s)' % self.patient_id
+            self.name = f'Patient (ID: {self.patient_id})'
 
     @requires_gui
     def show_info(self):
@@ -194,7 +171,7 @@ class Study(Model):
             if f.file_meta.TransferSyntaxUID == '1.2.840.10008.1.2.4.70' and f.get('BitsAllocated') == 16:
                 warning = 'Could not read DICOM %s because Python Image Library cannot read 16-bit lossless jpeg ' \
                           'images. This functionality can be enabled by installing python-gdcm'
-                _logger.warning(warning % f.filename)
+                self.session.logger.warning(warning % f.filename)
             else:
                 keep.append(f)
         return keep
@@ -229,7 +206,7 @@ class Study(Model):
                         self.add(s.to_models())
                         self._drawn_series.add(s.uid)
                 except UnrenderableSeriesError as e:
-                    _logger.warning(str(e))
+                    self.session.logger.warning(str(e))
 
     def __str__(self):
         return f"Study {self.uid} with {len(self.series)} series"
@@ -289,14 +266,6 @@ class Series:
     # value for these parameters.  So they are only read for the first file.
     # Not sure if this is a valid assumption.
     #
-    dicom_attributes = ['BitsAllocated', 'BodyPartExamined', 'Columns', 'Modality',
-                        'NumberOfTemporalPositions',
-                        'PatientID', 'PhotometricInterpretation',
-                        'PixelPaddingValue', 'PixelRepresentation', 'PixelSpacing',
-                        'RescaleIntercept', 'RescaleSlope', 'Rows',
-                        'SamplesPerPixel', 'SeriesDescription', 'SeriesInstanceUID', 'SeriesNumber',
-                        'SOPClassUID', 'StudyDate', 'SliceThickness', 'SpacingBetweenSlices']
-
     def __init__(self, session, files):
         self._raw_files = files
         self.order_slices()
@@ -304,7 +273,6 @@ class Series:
         self.files = []
         for f in self._raw_files:
             self.files.append(SeriesFile(f))
-        self.attributes = {}
         self.transfer_syntax = None
         self._multiframe = None
         self._reverse_frames = False
@@ -319,10 +287,6 @@ class Series:
         if not any([f.get("PixelData") for f in files]):
             self.image_series = False
         self.sample_file = self._raw_files[0]
-        attrs = self.attributes
-        for attr in self.dicom_attributes:
-            if hasattr(self.sample_file, attr):
-                attrs[attr] = getattr(self.sample_file, attr)
         if self.transfer_syntax is None and hasattr(self.sample_file.file_meta, 'TransferSyntaxUID'):
             self.transfer_syntax = self.sample_file.file_meta.TransferSyntaxUID
         if len(files) == 1 and self.multiframe:
@@ -343,15 +307,39 @@ class Series:
 
     @property
     def name(self):
-        fields = []
-        desc = self.attributes.get('SeriesDescription')
-        if not desc:
-            desc = "No Description"
-        mod = self.attributes.get('Modality', "Unknown Modality")
-        no = self.attributes.get('SeriesNumber', "Unknown Series Number")
-        return f"{no} {mod} ({desc})"
+        return f"{self.number} {self.modality} ({self.description})"
+    
+    @property
+    def sop_class_uid(self):
+        return self.sample_file.get("SOPClassUID")
 
-    # TODO: Is this really less ugly / confusing than __getattr__?
+    @property
+    def samples_per_pixel(self):
+        return self.sample_file.get('SamplesPerPixel')
+
+    @property
+    def pixel_padding(self):
+        return self.sample_file.get('PixelPaddingValue')
+
+    @property
+    def bits_allocated(self):
+        return self.sample_file.get('BitsAllocated')
+
+    @property
+    def pixel_representation(self):
+        return self.sample_file.get('PixelRepresentation')
+
+    @property
+    def photometric_interpretation(self):
+        return self.sample_file.get('PhotometricInterpretation')
+
+    @property
+    def rescale_slope(self):
+        return self.sample_file.get('RescaleSlope', 1)
+
+    @property
+    def rescale_intercept(self):
+        return self.sample_file.get('RescaleIntercept', 0)
 
     @property
     def body_part(self):
@@ -367,7 +355,7 @@ class Series:
 
     @property
     def patient_id(self):
-        return self.sample_file.get("PatientID")
+        return self.sample_file.get("PatientID", "")
 
     @property
     def patient_sex(self):
@@ -375,7 +363,7 @@ class Series:
 
     @property
     def study_date(self):
-        return self.sample_file.get("StudyDate")
+        return self.sample_file.get("StudyDate", "")
 
     @property
     def study_id(self):
@@ -387,23 +375,31 @@ class Series:
 
     @property
     def number(self):
-        return self.sample_file.get("SeriesNumber")
+        return self.sample_file.get("SeriesNumber", "Unknown Series Number")
 
     @property
     def description(self):
-        return self.sample_file.get("SeriesDescription")
+        return self.sample_file.get("SeriesDescription", "No Description")
 
     @property
     def modality(self):
-        return self.sample_file.get("Modality")
+        return self.sample_file.get("Modality", "Unknown Modality")
 
     @property
     def uid(self):
         return self.sample_file.get("SeriesInstanceUID")
 
     @property
+    def columns(self):
+        return self.sample_file.get("Columns")
+
+    @property
+    def rows(self):
+        return self.sample_file.get("Rows")
+
+    @property
     def size(self) -> Optional[str]:
-        x, y = self.sample_file.get("Columns"), self.sample_file.get("Rows")
+        x, y = self.columns, self.rows
         if x and y:
             return "%sx%s" % (x, y)
         return None
@@ -463,18 +459,16 @@ class Series:
 
     @property
     def sort_key(self):
-        attrs = self.attributes
-        return attrs.get('PatientID', ''), attrs.get('StudyDate', ''), self.name
+        return self.patient_id, self.study_date, self.name
 
     @property
     def plane_uids(self):
-        return tuple(fi._instance_uid for fi in self.files)
+        return tuple(fi.instance_uid for fi in self.files)
 
     @property
     def ref_plane_uids(self):
-        fis = self.files
-        if len(fis) == 1 and hasattr(fis[0], '_ref_instance_uids'):
-            uids = fis[0]._ref_instance_uids
+        if len(self.files) == 1 and hasattr(self.files[0], 'ref_instance_uids'):
+            uids = self.files[0].ref_instance_uids
             if uids is not None:
                 return tuple(uids)
         return None
@@ -482,7 +476,7 @@ class Series:
     @property
     def num_times(self):
         if self._num_times is None:
-            nt = self.attributes.get('NumberOfTemporalPositions', None)
+            nt = self.sample_file.get('NumberOfTemporalPositions', None)
             if nt is None:
                 times = sorted(set(data.trigger_time for data in self.files))
                 nt = len(times)
@@ -490,7 +484,7 @@ class Series:
                     data._time = times.index(data.trigger_time) + 1
                     data.inferred_properties += "TemporalPositionIdentifier"
                 if nt > 1:
-                    _logger.warning(
+                    self.session.logger.warning(
                         "Inferring time series from TriggerTime metadata \
                         field in series missing NumberOfTemporalPositions"
                     )
@@ -524,22 +518,21 @@ class Series:
         if self.num_times == 1:
             return
 
-        files = self.files
-        for fi in files:
+        for fi in self.files:
             if fi._time is None:
                 raise ValueError('Missing dicom TemporalPositionIdentifier for image %s' % fi.path)
 
-        tset = set(fi._time for fi in files)
+        tset = set(fi._time for fi in self.files)
         if len(tset) != self.num_times:
             msg = ('DICOM series header says it has %d times but %d found, %s... %d files.'
-                    % (self.num_times, len(tset), files[0].path, len(files)))
-            _logger.warning(msg)
+                    % (self.num_times, len(tset), self.files[0].path, len(self.files)))
+            self.session.logger.warning(msg)
             self._num_times = len(tset)
 
         tcount = {t: 0 for t in tset}
-        for fi in files:
+        for fi in self.files:
             tcount[fi._time] += 1
-        nz = len(files) / self.num_times
+        nz = len(self.files) / self.num_times
         for t, c in tcount.items():
             if c != nz:
                 raise ValueError(
@@ -548,8 +541,7 @@ class Series:
                     )
 
     def grid_size(self):
-        attrs = self.attributes
-        xsize, ysize = attrs['Columns'], attrs['Rows']
+        xsize, ysize = self.columns, self.rows
         files = self.files
         if self.multiframe:
             if len(files) == 1:
@@ -566,11 +558,9 @@ class Series:
         return xsize, ysize, zsize
 
     def origin(self):
-        files = self.files
-        if len(files) == 0:
+        if len(self.files) == 0:
             return None
-
-        pos = files[0]._position
+        pos = self.files[0]._position
         if pos is None:
             return None
 
@@ -602,26 +592,26 @@ class Series:
         return self._patient_axes()[2]
 
     def pixel_spacing(self):
-        pspacing = self.attributes.get('PixelSpacing')
+        pspacing = self.sample_file.get('PixelSpacing')
         if pspacing is None and self.multiframe:
-            pspacing = self.files[0]._pixel_spacing
+            pspacing = self.files[0].pixel_spacing
 
         if pspacing is None:
             xs = ys = 1
-            _logger.warning('Missing PixelSpacing, using value 1, %s' % self.paths[0])
+            self.session.logger.warning('Missing PixelSpacing, using value 1, %s' % self.paths[0])
         else:
             xs, ys = [float(s) for s in pspacing]
         zs = self.z_plane_spacing()
         if zs is None:
             nz = self.grid_size()[2]
             if nz > 1:
-                _logger.warning(
+                self.session.logger.warning(
                     'Cannot determine z spacing, missing ImagePositionPatient, using value 1, %s'
                     % self.paths[0]
                     )
             zs = 1  # Single plane image
         elif zs == 0:
-            _logger.warning('Error. Image planes are at same z-position.  Setting spacing to 1.')
+            self.session.logger.warning('Error. Image planes are at same z-position.  Setting spacing to 1.')
             zs = 1
 
         return (xs, ys, zs)
@@ -632,9 +622,9 @@ class Series:
             files = self.files
             if self.multiframe:
                 f = files[0]
-                fpos = f._frame_positions
+                fpos = f.frame_positions
                 if fpos is None:
-                    gfov = f._grid_frame_offset_vector
+                    gfov = f.grid_frame_offset_vector
                     if gfov is None:
                         dz = None
                     else:
@@ -668,7 +658,7 @@ class Series:
                    'Perpendicular axis (%.3f, %.3f, %.3f)\n' % tuple(self.plane_normal()) +
                    'Directory %s\n' % os.path.dirname(self.files[0].path) +
                    '\n'.join(['%s %s' % (os.path.basename(f.path), f._position) for f in self.files]))
-            _logger.warning(msg)
+            self.session.logger.warning(msg)
             # If we're over the threshold try to get it from SliceThickness * SliceSpacing
             thickness = self.files[0].SliceThickness or 1
             spacing = self.files[0].SliceSpacing or 1
@@ -678,15 +668,11 @@ class Series:
 
     @property
     def has_image_data(self):
-        attrs = self.attributes
-        for attr in ('BitsAllocated', 'PixelRepresentation'):
-            if attrs.get(attr) is None:
-                return False
-        return True
+        return (self.bits_allocated and self.pixel_representation)
 
     @property
     def dicom_class(self):
-        cuid = self.attributes.get('SOPClassUID')
+        cuid = self.sop_class_uid
         return 'unknown' if cuid is None else cuid.name
 
     @requires_gui
@@ -700,16 +686,16 @@ class DicomData:
         self.paths = tuple(series.paths)
         npaths = len(series.paths)  # noqa assigned but not accessed
         self.name = series.name
-        attrs = series.attributes
-        rsi = float(attrs.get('RescaleIntercept', 0))
+        rsi = self.dicom_series.rescale_intercept
         if rsi == int(rsi):
             rsi = int(rsi)
         self.rescale_intercept = rsi
-        self.rescale_slope = float(attrs.get('RescaleSlope', 1))
-        bits = attrs.get('BitsAllocated')
-        rep = attrs.get('PixelRepresentation')
+        self.rescale_slope = self.dicom_series.rescale_slope
+        bits = self.dicom_series.bits_allocated
+        rep = self.dicom_series.pixel_representation
         self.value_type = self.numpy_value_type(bits, rep, self.rescale_slope, self.rescale_intercept)
-        ns = attrs.get('SamplesPerPixel')
+        self.dicom_series.samples_per_pixel
+        ns = self.dicom_series.samples_per_pixel
         if ns == 1:
             mode = 'grayscale'
         elif ns == 3:
@@ -718,12 +704,12 @@ class DicomData:
             raise ValueError('Only 1 or 3 samples per pixel supported, got %d' % ns)
         self.mode = mode
         self.channel = 0
-        pi = attrs['PhotometricInterpretation']
+        pi = self.dicom_series.photometric_interpretation
         if pi == 'MONOCHROME1':
             pass  # Bright to dark values.
         if pi == 'MONOCHROME2':
             pass  # Dark to bright values.
-        ppv = attrs.get('PixelPaddingValue')
+        ppv = self.dicom_series.pixel_padding
         if ppv is not None:
             self.pad_value = self.rescale_slope * ppv + self.rescale_intercept
         else:
@@ -836,30 +822,29 @@ class SeriesFile:
         nf = getattr(data, 'NumberOfFrames', None)
         self._num_frames = int(nf) if nf is not None else None
         gfov = getattr(data, 'GridFrameOffsetVector', None)
-        self._grid_frame_offset_vector = [float(o) for o in gfov] if gfov is not None else None
-        self._class_uid = getattr(data, 'SOPClassUID', None)
-        self._instance_uid = getattr(data, 'SOPInstanceUID', None)
-        self._ref_instance_uid = getattr(data, 'ReferencedSOPInstanceUID', None)
-        self._trigger_time = getattr(data, 'TriggerTime', None)
-        self._pixel_spacing = None
-        self._frame_positions = None
+        self.grid_frame_offset_vector = [float(o) for o in gfov] if gfov is not None else None
+        self.class_uid = getattr(data, 'SOPClassUID', None)
+        self.instance_uid = getattr(data, 'SOPInstanceUID', None)
+        self.ref_instance_uid = getattr(data, 'ReferencedSOPInstanceUID', None)
+        self.pixel_spacing = None
+        self.frame_positions = None
         if self._num_frames is not None:
             def floats(s):
                 return [float(x) for x in s]
 
-            self._pixel_spacing = self._sequence_elements(
+            self.pixel_spacing = self._sequence_elements(
                 data
                 , (('SharedFunctionalGroupsSequence', 1), ('PixelMeasuresSequence', 1))
                 , 'PixelSpacing'
                 , floats
             )
-            self._frame_positions = self._sequence_elements(
+            self.frame_positions = self._sequence_elements(
                 data
                 , (('PerFrameFunctionalGroupsSequence', 'all'), ('PlanePositionSequence', 1))
                 , 'ImagePositionPatient'
                 , floats
             )
-            self._ref_instance_uids = self._sequence_elements(
+            self.ref_instance_uids = self._sequence_elements(
                 data
                 ,
                 (('SharedFunctionalGroupsSequence', 1), ('DerivationImageSequence', 1), ('SourceImageSequence', 'all'))
@@ -875,7 +860,7 @@ class SeriesFile:
 
     @property
     def trigger_time(self):
-        return self._trigger_time
+        return getattr(self.data, 'TriggerTime', None)
 
     @property
     def multiframe(self):
