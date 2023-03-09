@@ -195,7 +195,10 @@ class BlastProteinResults(ToolInstance):
         except AttributeError: # There won't be a selected chain either
             chain = None
         if model_no:
-            model_formatted = ''.join([str(self.session.models._models[(model_no,)]), chain])
+            try:
+                model_formatted = ''.join([self.job.model_name, chain])
+            except KeyError:
+                model_formatted = None
         else:
             model_formatted = None
         values[0] = model_formatted
@@ -397,7 +400,7 @@ class BlastProteinResults(ToolInstance):
         from chimerax.alphafold.match import _similarity_table_html
         for m in models:
             # TODO: Would be nice if all models were in one log table.
-            msg = _similarity_table_html(m, query_seq, m.database.id)
+            msg = _similarity_table_html(m.chains[0], query_seq, m.database.id)
             m.session.logger.info(msg, is_html = True)
 
     # Code for displaying matches as multiple sequence alignment

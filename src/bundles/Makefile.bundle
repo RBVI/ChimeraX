@@ -9,7 +9,11 @@
 
 TOP ?= ../../..
 -include $(TOP)/.makerc
+ifeq (,$(wildcard /app))
 CHIMERAX_APP = $(wildcard $(TOP)/ChimeraX*.app)
+else
+CHIMERAX_APP = $(wildcard /app)
+endif
 SYNC_DIR = $(wildcard $(TOP)/build/sync)
 
 # These can be overridden by bundles for customization
@@ -90,7 +94,7 @@ ifeq ($(OS),Linux)
 endif
 
 sync:
-	rsync -av dist/*.whl $(SYNC_DIR)
+	cp -av dist/*.whl $(SYNC_DIR)
 
 ifdef BUILD_AND_INSTALL
 INSTALL_ARGS = noDeps true

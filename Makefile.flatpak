@@ -1,0 +1,33 @@
+APPNAME = edu.ucsf.rbvi.ChimeraX
+
+all:
+	# by default, do nothing
+
+preqreqs:
+	dnf install flatpak flatpak-builder
+
+install:
+	mkdir -p /app
+	$(MAKE) install NO_PREBUILT=1 FLATPAK_DIST=22.08
+	install -Dm644 src/apps/ChimeraX/ChimeraX-icon.svg /app/share/icons/hicolor/scalable/apps/${APPNAME}.svg
+	install -Dm644 src/apps/ChimeraX/ChimeraX-icon512.png /app/share/icons/hicolor/512x512/apps/${APPNAME}.png
+	install -Dm644 src/apps/ChimeraX/ChimeraX-icon128.png /app/share/icons/hicolor/128x128/apps/${APPNAME}.png
+	install -Dm644 src/apps/ChimeraX/ChimeraX-icon64.png /app/share/icons/hicolor/64x64/apps/${APPNAME}.png
+	install -Dm644 src/apps/ChimeraX/ChimeraX-icon32.png /app/share/icons/hicolor/32x32/apps/${APPNAME}.png
+	install -Dm644 src/apps/ChimeraX/ChimeraX-icon16.png /app/share/icons/hicolor/16x16/apps/${APPNAME}.png
+	install -Dm644 ${APPNAME}.metainfo.xml -t /app/share/metainfo
+	# install -Dm644 ${APPNAME}.desktop -t /app/share/applications
+
+build-flatpak:
+	rm -rf flatpak-build.tmp
+	flatpak-builder flatpak-build.tmp ${APPNAME}.yaml
+
+local-install:
+	# assume it has been built already
+	flatpak-builder --export-only --user --install flatpak-build.tmp ${APPNAME}.yaml
+
+run:
+	flatpak run ${APPNAME}
+
+validate-metainfo:
+	appstream-util validate-relax ${APPNAME}.metainfo.xml

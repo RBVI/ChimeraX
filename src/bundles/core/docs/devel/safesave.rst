@@ -12,6 +12,10 @@
     or derivations thereof.
     === UCSF ChimeraX Copyright ===
 
+============================
+safesave: Safely write files
+============================
+
 .. automodule:: chimerax.core.safesave
     :members:
     :show-inheritance:

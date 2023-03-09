@@ -849,7 +849,7 @@ class Atoms(Collection):
         containing (u11, u22, u33, u12, u13, u23) for each atom.'''
         n = len(self)
         if u6 is None:
-            f = c_function('clear_atom_aniso_u6', args = (ctypes.c_void_p,))
+            f = c_function('clear_atom_aniso_u6', args = (ctypes.c_void_p, ctypes.c_size_t))
             f(self._c_pointers, n)
             return
         f = c_function('set_atom_aniso_u6', args = (ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p))

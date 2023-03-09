@@ -12,6 +12,10 @@
     or derivations thereof.
     === UCSF ChimeraX Copyright ===
 
+===========================================
+fetch: Retrieve files from a network source
+===========================================
+
 .. automodule:: chimerax.core.fetch
     :members:
     :show-inheritance:

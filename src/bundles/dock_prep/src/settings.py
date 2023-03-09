@@ -20,6 +20,7 @@ defaults = {
     "complete_side_chains": True,
     "ah": True,
     "ac": True,
+    "write_mol2": True,
 }
 
 from copy import deepcopy

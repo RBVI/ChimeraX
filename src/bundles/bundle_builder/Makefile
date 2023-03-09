@@ -33,7 +33,7 @@ install-editable:
 	$(PYTHON) -m pip install --no-build-isolation --editable .
 
 sync:
-	rsync -av dist/*.whl $(TOP)/build/sync/
+	cp -av dist/*.whl $(TOP)/build/sync/
 
 test:
 	for t in $(wildcard test*.cxc) $(wildcard test*.py);\

@@ -19,7 +19,7 @@ imagecodecs==2022.9.26 ; platform_machine != 'arm64'
 ipykernel==6.21.1
 # if ipython updated, make sure autocompletion still works (e.g. "mi<tab>" becomes min) and if not then
 # try a newer version of jedi
-ipython==8.9.0
+ipython==8.10.0
 # the version of jedi that works with ipython
 jedi==0.18.2
 jupyter-client==8.0.2
@@ -28,6 +28,7 @@ lxml==4.9.2
 lz4==4.3.2
 matplotlib==3.6.3
 msgpack==1.0.4
+nibabel == 5.0.1
 netCDF4==1.6.2
 networkx==2.8.8
 numpy==1.23.5
@@ -40,6 +41,7 @@ pkginfo==1.9.6
 psutil==5.9.4
 pycollada==0.7.2
 pydicom==2.3.0
+pynrrd==1.0.0
 tcia_utils==1.0.2
 # PyOpenGL handled in app_pyopengl_requirements.txt
 python-dateutil==2.8.2

@@ -177,9 +177,10 @@ class Settings(ConfigFile):
     def __setattr__(self, name, value):
         if (self._settings_initialized and name[0] != '_' and name in self._cur_settings):
             cur_val = self._cur_settings[name]
+            import warnings
             import numpy as np
-            with np.warnings.catch_warnings():
-                np.warnings.simplefilter('ignore', category=np.VisibleDeprecationWarning)
+            with warnings.catch_warnings():
+                warnings.simplefilter('ignore', category=np.VisibleDeprecationWarning)
                 unequal = not np.array_equal(cur_val, value)
             if unequal:
                 self._cur_settings[name] = value

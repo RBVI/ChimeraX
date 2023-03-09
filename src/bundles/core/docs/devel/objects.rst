@@ -12,6 +12,10 @@
     or derivations thereof.
     === UCSF ChimeraX Copyright ===
 
+=======================
+objects: Manage objects
+=======================
+
 .. automodule:: chimerax.core.objects
     :members:
     :show-inheritance:
