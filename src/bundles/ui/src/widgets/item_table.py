@@ -191,10 +191,14 @@ class QCxTableModel(QAbstractTableModel):
             right_num = float(right_data)
         except TypeError:
             if left_data == right_data == None:
-                table = self.sourceModel()._item_table
+                table = self._item_table
                 left_item = table.data[left_index.row()]
                 right_item = table.data[right_index.row()]
                 col = table._columns[left_index.column()]
+                comp = col.value(left_item) < col.value(right_item)
+                if isinstance(comp, bool):
+                    return comp
+                # stupid numpy
                 return list(col.value(left_item)) < list(col.value(right_item))
             return left_index.row() < right_index.row()
         except ValueError:
