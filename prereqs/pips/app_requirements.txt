@@ -42,7 +42,7 @@ psutil==5.9.4
 pycollada==0.7.2
 pydicom==2.3.0
 pynrrd==1.0.0
-tcia_utils==1.0.2
+tcia_utils==1.2.0
 # PyOpenGL handled in app_pyopengl_requirements.txt
 python-dateutil==2.8.2
 # PyQt handled in prereqs/PyQt
