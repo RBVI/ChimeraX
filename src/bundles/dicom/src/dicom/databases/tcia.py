@@ -11,34 +11,32 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 import os
+import logging
 
 from typing import List, Dict
-from contextlib import redirect_stdout
 from chimerax.core.fetch import cache_directories
 from chimerax.core.commands import run
 from tcia_utils import nbia
 
 _nbia_base_url = "https://services.cancerimagingarchive.net/nbia-api/services/v1/"
 
+logging.getLogger('tcia_utils').setLevel(100)
 
 class TCIADatabase:
     @staticmethod
     def getCollections(patient_counts=False):
-        with redirect_stdout(None):
-            if patient_counts:
-                return nbia.getCollectionPatientCounts()
-            else:
-                return nbia.getCollections()
+        if patient_counts:
+            return nbia.getCollectionPatientCounts()
+        else:
+            return nbia.getCollections()
 
     @staticmethod
     def getStudy(collection, patientId="", studyUid=""):
-        with redirect_stdout(None):
-            return nbia.getStudy(collection, patientId, studyUid)
+        return nbia.getStudy(collection, patientId, studyUid)
 
     @staticmethod
     def getSeries(studyUid) -> List[Dict[str, str]]:
-        with redirect_stdout(None):
-            return nbia.getSeries(studyUid=studyUid)
+        return nbia.getSeries(studyUid=studyUid)
 
     @staticmethod
     def getImages(session, studyUID, ignore_cache, **kw):
