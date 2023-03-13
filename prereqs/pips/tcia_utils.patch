@@ -26,7 +26,7 @@
 +# Get HTML-formatted descriptions of collections and their DOIs
 +
 +def getCollectionDescriptions(api_url = "", format = ""):
-+    endpoint = "getCollectionDescriptons"
++    endpoint = "getCollectionDescriptions"
 +    options = {}
 +
 +    data = queryData(endpoint, options, api_url, format)
