@@ -1,0 +1,45 @@
+--- tcia_utils/nbia.py.orig	2023-03-13 12:21:23
++++ tcia_utils/nbia.py	2023-03-13 14:33:35
+@@ -12,8 +12,6 @@
+ import matplotlib.pyplot as plt
+ import pydicom
+ import numpy as np
+-from ipywidgets.widgets import *
+-import ipywidgets as widgets
+ 
+ class StopExecution(Exception):
+     def _render_traceback_(self):
+@@ -45,7 +43,7 @@
+                        "getSeriesSize", "getUpdatedSeries"]
+     advancedEndpoints = ["getModalityValuesAndCounts", "getBodyPartValuesAndCounts",
+                          "getDicomTags", "getSeriesMetadata2", "getCollectionOrSeriesForDOI",
+-                         "getCollectionValuesAndCounts"]
++                         "getCollectionValuesAndCounts", "getCollectionDescriptions"]
+ 
+     if not endpoint in searchEndpoints and not endpoint in advancedEndpoints:
+         _log.error(
+@@ -245,6 +243,16 @@
+     except requests.exceptions.RequestException as err:
+         _log.error(err)
+ 
++####### getCollectionDescriptions function
++# Get HTML-formatted descriptions of collections and their DOIs
++
++def getCollectionDescriptions(api_url = "", format = ""):
++    endpoint = "getCollectionDescriptons"
++    options = {}
++
++    data = queryData(endpoint, options, api_url, format)
++    return data
++
+ ####### getCollections function
+ # Gets a list of collections from a specified api_url
+ 
+@@ -1034,6 +1042,7 @@
+ #   provided since this is where downloadSeries() saves data
+ 
+ def viewSeries(seriesUid = "", path = ""):
++    from ipywidgets import interact
+ 
+     # set path where downloadSeries() saves the data if seriesUid is provided
+     if seriesUid != "":
