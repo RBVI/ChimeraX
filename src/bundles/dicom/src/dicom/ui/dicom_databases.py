@@ -11,7 +11,6 @@
 # === UCSF ChimeraX Copyright ===
 from enum import Enum
 
-from bs4 import BeautifulSoup
 from Qt.QtCore import QThread, QObject, Signal, Slot, Qt
 from Qt.QtWidgets import (
     QVBoxLayout, QHBoxLayout, QHeaderView
@@ -23,6 +22,7 @@ from Qt.QtWidgets import (
 from chimerax.core.tools import ToolInstance
 from chimerax.ui import MainToolWindow
 from chimerax.core.commands import run
+from chimerax.help_viewer import show_url
 
 from ..databases import TCIADatabase
 from .widgets import DICOMTable
@@ -174,10 +174,21 @@ class DICOMDatabases(ToolInstance):
         self.refine_study_button.clicked.connect(lambda: self._on_drill_down_clicked())
         self.open_button.clicked.connect(lambda: self._on_open_button_clicked())
         self.parent.setLayout(self.main_layout)
+        self.tool_window.fill_context_menu = self._fill_context_menu
         self.tool_window.manage('side')
 
         # TODO: When there's more than one database available remove this call
         self._on_database_changed()
+
+    def _fill_context_menu(self, menu, x, y):
+        load_database_action = QAction("Load Webpage for Chosen Entries", menu)
+        load_database_action.triggered.connect(lambda: self._on_open_tcia_webpage(self.database_entries.selected))
+        menu.addAction(load_database_action)
+
+    def _on_open_tcia_webpage(self, selections):
+        for selection in selections:
+            if selection.url is not None:
+                show_url(self.session, selection.url)
 
     def _allocate_thread_and_worker(self, action: Action):
         self.thread = QThread()
@@ -194,7 +205,13 @@ class DICOMDatabases(ToolInstance):
         self.thread.start()
 
     def _on_collection_entries_returned_from_worker(self, entries):
-        self.database_entries.data = [MainTableEntry(x['criteria'], x['count']) for x in entries]
+        self.database_entries.data = [
+            MainTableEntry(
+                x['name']
+                , x['patients']
+                , x['url']
+            ) for x in entries
+        ]
 
     def _on_main_table_double_clicked(self, items):
         self._allocate_thread_and_worker(Action.LOAD_STUDIES)
@@ -293,11 +310,12 @@ class StudyTableEntry:
 
 
 class MainTableEntry:
-    __slots__ = ["collection", "count"]
+    __slots__ = ["collection", "count", "url"]
 
-    def __init__(self, collection, count):
+    def __init__(self, collection, count, url):
         self.collection = collection
         self.count = count
+        self.url = url
 
 class DatabaseWorker(QObject):
     collections_ready = Signal(list)
@@ -327,7 +345,7 @@ class DatabaseWorker(QObject):
         entries = None
         self.session.ui.thread_safe(self.session.logger.status, f"Loading collections from {self.database}")
         if self.database == "TCIA":
-            entries = TCIADatabase.getCollections(patient_counts=True)
+            entries = TCIADatabase.get_collections()
         self.collections_ready.emit(entries)
 
     def _fetch_studies(self):
@@ -335,7 +353,7 @@ class DatabaseWorker(QObject):
         self.session.ui.thread_safe(self.session.logger.status, "Loading requested studies...")
         if self.database == "TCIA":
             for study in self.requested_studies:
-                entries.extend(TCIADatabase.getStudy(collection=study.collection))
+                entries.extend(TCIADatabase.get_study(collection=study.collection))
         self.studies_ready.emit(entries)
 
     def _fetch_series(self):
@@ -343,5 +361,5 @@ class DatabaseWorker(QObject):
         self.session.ui.thread_safe(self.session.logger.status, "Loading requested series...")
         if self.database == "TCIA":
             for series in self.requested_series:
-                entries.extend(TCIADatabase.getSeries(studyUid=series.suid))
+                entries.extend(TCIADatabase.get_series(studyUid=series.suid))
         self.series_ready.emit(entries)

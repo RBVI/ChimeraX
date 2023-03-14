@@ -13,7 +13,11 @@
 import os
 import logging
 
+from collections import defaultdict
 from typing import List, Dict
+
+from bs4 import BeautifulSoup
+
 from chimerax.core.fetch import cache_directories
 from chimerax.core.commands import run
 from tcia_utils import nbia
@@ -24,18 +28,35 @@ logging.getLogger('tcia_utils').setLevel(100)
 
 class TCIADatabase:
     @staticmethod
-    def getCollections(patient_counts=False):
-        if patient_counts:
-            return nbia.getCollectionPatientCounts()
-        else:
-            return nbia.getCollections()
+    def get_collections():
+        collections = nbia.getCollectionPatientCounts()
+        collections_dict = defaultdict(dict)
+        for entry in collections:
+            name = entry['criteria']
+            patient_count = entry['count']
+            collections_dict[name] = {
+                'name': name
+                , 'patients': patient_count
+            }
+        collection_descs = nbia.getCollectionDescriptions()
+        uris = defaultdict(str)
+        for entry in collection_descs:
+            uris[entry['collectionName']] = entry['descriptionURI']
+        for name in collections_dict:
+            if name in uris:
+                collections_dict[name]['url'] = uris[name]
+        # Workaround for the fact that this is the only entry in TCIA's dataset that doesn't have
+        # a link
+        collections_dict["CTpred-Sunitinib-panNET"]['url'] = "https://doi.org/10.7937/spgk-0p94"
+        return collections_dict.values()
+
 
     @staticmethod
-    def getStudy(collection, patientId="", studyUid=""):
+    def get_study(collection, patientId="", studyUid=""):
         return nbia.getStudy(collection, patientId, studyUid)
 
     @staticmethod
-    def getSeries(studyUid) -> List[Dict[str, str]]:
+    def get_series(studyUid) -> List[Dict[str, str]]:
         return nbia.getSeries(studyUid=studyUid)
 
     @staticmethod
