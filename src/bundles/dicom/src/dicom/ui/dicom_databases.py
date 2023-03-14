@@ -181,9 +181,21 @@ class DICOMDatabases(ToolInstance):
         self._on_database_changed()
 
     def _fill_context_menu(self, menu, x, y):
-        load_database_action = QAction("Load Webpage for Chosen Entries", menu)
-        load_database_action.triggered.connect(lambda: self._on_open_tcia_webpage(self.database_entries.selected))
-        menu.addAction(load_database_action)
+        table = self._hovered_table(x, y)
+        if table:
+            load_database_action = QAction("Load Webpage for Chosen Entries", menu)
+            load_database_action.triggered.connect(lambda: self._on_open_tcia_webpage(self.database_entries.selected))
+            menu.addAction(load_database_action)
+
+    def _hovered_table(self, x, y):
+        widget = self.tool_window.ui_area.childAt(x, y)
+        if not widget:
+            return None
+        if widget == self.database_entries:
+            return widget
+        if widget.parent() == self.database_entries:
+            return widget.parent()
+        return None
 
     def _on_open_tcia_webpage(self, selections):
         for selection in selections:
