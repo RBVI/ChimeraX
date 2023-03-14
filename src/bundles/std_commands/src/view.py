@@ -581,6 +581,10 @@ class ModelPlacesArg(Annotation):
             if len(tm) == 0:
                 raise AnnotationError('No models specified by "%s"' % fields[0])
             p = PlaceArg.parse_place(fields[1:13])
+            try:
+                p.inverse()
+            except:
+                raise AnnotationError('matrix %s is not invertible' % token)
             for m in tm:
                 mp.append((m,p))
             fields = fields[13:]

@@ -18,7 +18,6 @@ z increases towards the head. Imagine yourself looking into an MRI from the inle
 """
 from typing import Optional
 from enum import Enum
-from scipy.ndimage.interpolation import rotate
 
 def get_coordinate_system(coords: Optional[str] = None) -> 'CoordinateSystem':
     """Given a string representing a coordinate system, return a CoordinateSystem object.
@@ -72,32 +71,35 @@ class CoordinateSystem:
         self.handedness = Handedness.RIGHT
         self.patient_based = True
 
-    @staticmethod
-    def to_xyz(array):
-        return array
+    #def to_right_handed(self, array)
+
+    @property
+    def rotation_matrix(self):
+        return [1, 0, 0], [0, 1, 0], [0, 0, 1]
 
     @property
     def space_ordering(self):
-        return 1, 2, 3
+        return 0, 1, 2
 
     @property
     def dimension(self):
         # 3 or 4
         return 3 + int(self.have_time_axis)
 
+
 class LPS(CoordinateSystem):
-    @staticmethod
-    def to_xyz(array):
-        return rotate(array, 90, axes=(0,1))
+    @property
+    def rotation_matrix(self):
+        return [1, 0, 0], [0, 0, 1], [0, -1, 0]
 
     @property
     def space_ordering(self):
-        # We swap the Y and Z axes when we do the rotation, so
-        # we need to apply the Z spacing to Y and vice versa
-        return 0, 2, 1
+        return 0, 1, 2
+
 
 class RAS(CoordinateSystem):
     pass
+
 
 class LAS(CoordinateSystem):
     def __init__(self):
@@ -110,14 +112,14 @@ class ScannerXYZ(CoordinateSystem):
         super().__init__()
         self.patient_based = False
 
-class RightHanded3D(CoordinateSystem):
-    @staticmethod
-    def to_xyz(array):
-        return rotate(array, 90, axes=(0,1))
 
+class RightHanded3D(CoordinateSystem):
     @property
-    def space_ordering(self):
-        return 0, 2, 1
+    def rotation_matrix(self):
+        return [0, -1, 0], [0, 0, 1], [-1, 0, 0]
+
 
 class LeftHanded3D(CoordinateSystem):
-    pass
+    def __init__(self):
+        super().__init__()
+        self.handedness = Handedness.LEFT

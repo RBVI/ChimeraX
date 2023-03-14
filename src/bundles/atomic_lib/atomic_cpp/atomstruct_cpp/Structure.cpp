@@ -1256,8 +1256,8 @@ Structure::new_coord_set()
     return new_coord_set(_coord_sets.back()->id()+1);
 }
 
-static void
-_coord_set_insert(Structure::CoordSets &coord_sets, CoordSet* cs, int index)
+void
+Structure::_coord_set_insert(Structure::CoordSets &coord_sets, CoordSet* cs, int index)
 {
     if (coord_sets.empty() || coord_sets.back()->id() < index) {
         coord_sets.emplace_back(cs);
@@ -1269,8 +1269,11 @@ _coord_set_insert(Structure::CoordSets &coord_sets, CoordSet* cs, int index)
             return;
         } else if (index == (*csi)->id()) {
             auto pos = csi - coord_sets.begin();
+            bool update_active = (*csi == active_coord_set());
             delete *csi;
             coord_sets[pos] = cs;
+            if (update_active)
+                set_active_coord_set(cs);
             return;
         }
     }

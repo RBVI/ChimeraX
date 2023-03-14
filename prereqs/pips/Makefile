@@ -7,8 +7,9 @@ include Makefile.pip
 # Force LANG to UTF-8 so that grako will install successfully
 LANG	= en_US.UTF-8
 
-# qtconsole.patch: Fix crash in completion widget, see Trac#6363
-PATCHES = 
+# tcia_utils.patch: Fix needless import of x86_64 zmq on macOS, see Trac#8638
+# Remove if tcia_utils removes those imports
+PATCHES = tcia_utils.patch
 PYTABLES_DYLIBS = libblosc.1.dylib libhdf5.200.dylib libsnappy.1.dylib \
 				  libc++.1.dylib libcrypto.3.dylib libssl.3.dylib
 
@@ -64,7 +65,7 @@ endif
 endif
 	$(APP_PIP_INSTALL) -r app_pyopengl_requirements.txt
 	-for p in $(PATCHES); do \
-		patch -d $(APP_PYSITEDIR) -N -p0 < $$p ; \
+		patch --ignore-whitespace -d $(APP_PYSITEDIR) -N -p0 < $$p ; \
 	done
 	-cd $(APP_PYSITEDIR) ; rm -f $(PYSIDE2_MACOS_REMOVE)
 

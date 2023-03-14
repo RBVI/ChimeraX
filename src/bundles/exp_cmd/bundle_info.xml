@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-ExperimentalCommands" version="1.0"
+<BundleInfo name="ChimeraX-ExperimentalCommands" version="1.0.1"
 	    package="chimerax.exp_cmd"
   	    minSessionVersion="1" maxSessionVersion="1">
 
@@ -24,7 +24,6 @@
     <ChimeraXClassifier>Command :: ribbon hide :: General :: hide cartoon for selected residues</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: ~ribbon :: General :: hide cartoon for selected residues</ChimeraXClassifier>
     <!-- <ChimeraXClassifier>Command :: findclash :: General :: find clashes between atom pairs</ChimeraXClassifier> -->
-    <ChimeraXClassifier>Command :: getcrd :: General :: report atomic coordinates</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: debug dumpspec :: General :: report what a specifier matches</ChimeraXClassifier>
   </Classifiers>
 
