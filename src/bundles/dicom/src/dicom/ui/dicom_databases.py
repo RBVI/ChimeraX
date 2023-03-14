@@ -188,7 +188,7 @@ class DICOMDatabases(ToolInstance):
     def _on_open_tcia_webpage(self, selections):
         for selection in selections:
             if selection.url is not None:
-                show_url(self.session, selection.url)
+                show_url(self.session, selection.url, new_tab=True)
 
     def _allocate_thread_and_worker(self, action: Action):
         self.thread = QThread()
