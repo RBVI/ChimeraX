@@ -88,6 +88,9 @@ class DICOMDatabases(ToolInstance):
 
         self.database_entries.add_column("Dataset", lambda x: x.collection)
         self.database_entries.add_column("Number of Patients", lambda x: x.count)
+        self.database_entries.add_column("Body Parts", lambda x: x.body_parts)
+        self.database_entries.add_column("Species", lambda x: x.species)
+        self.database_entries.add_column("Modalities", lambda x: x.modalities)
 
         self.interface_stack.addWidget(self.database_entries_container)
 
@@ -221,6 +224,9 @@ class DICOMDatabases(ToolInstance):
             MainTableEntry(
                 x['name']
                 , x['patients']
+                , x['body_parts']
+                , x['species']
+                , x['modalities']
                 , x['url']
             ) for x in entries
         ]
@@ -322,11 +328,14 @@ class StudyTableEntry:
 
 
 class MainTableEntry:
-    __slots__ = ["collection", "count", "url"]
+    __slots__ = ["collection", "count", "body_parts", "species", "modalities", "url"]
 
-    def __init__(self, collection, count, url):
+    def __init__(self, collection, count, body_parts, species, modalities, url):
         self.collection = collection
         self.count = count
+        self.body_parts = ", ".join(body_parts)
+        self.modalities = ", ".join(modalities)
+        self.species = ", ".join(species)
         self.url = url
 
 class DatabaseWorker(QObject):
