@@ -346,15 +346,19 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
 
     seq_entities = OrderedDict()   # { chain.characters : (entity_id, _1to3, [chains]) }
     for c in best_m.chains:
+        eid = None
         chars = c.characters
         if chars in seq_entities:
             eid, _1to3, chains = seq_entities[chars]
-            chains.append(c)
-            continue
+            if _1to3 is not None or not c.from_seqres:
+                chains.append(c)
+                continue
+            # fallthrough when sequence wasn't authoratative, but is now
         descrip = c.description
         if not descrip:
             descrip = '?'
-        eid = len(entity_info) + 1
+        if eid is None:
+            eid = len(entity_info) + 1
         entity_info[eid] = ('polymer', descrip)
         names = set(c.existing_residues.names)
         nstd = 'yes' if names.difference(_standard_residues) else 'no'
@@ -374,7 +378,12 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
                 # must be RNA
                 _1to3 = _rna1to3
                 poly_info.append((eid, nstd, 'polydeoxyribonucleotide', chars))
-        seq_entities[chars] = (eid, _1to3, [c])
+        if chars not in seq_entities:
+            seq_entities[chars] = (eid, _1to3, [c])
+        else:
+            _, _, chains = seq_entities[chars]
+            chains.append(c)
+            seq_entities[chars] = (eid, _1to3, chains)
 
     if skipped_sequence_info:
         session.logger.warning("Not saving entity_poly_seq for non-authoritative sequences")
