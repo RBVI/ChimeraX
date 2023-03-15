@@ -33,7 +33,7 @@ NPEXSpecies = {
 
 class TCIADatabase:
     @staticmethod
-    def get_collections():
+    def get_collections(session = None):
         collections = nbia.getCollections()
         collection_descs = nbia.getCollectionDescriptions()
 
@@ -51,7 +51,10 @@ class TCIADatabase:
         # a link
         collections_dict["CTpred-Sunitinib-panNET"]['url'] = "https://doi.org/10.7937/spgk-0p94"
         # Now get modalities, species, etc
-        for collection in collections_dict:
+        num_collections = len(collections)
+        for index, collection in enumerate(collections_dict):
+            if session:
+                session.ui.thread_safe(session.logger.status, f"Loading collection {index+1}/{num_collections}")
             data = nbia.getSimpleSearchWithModalityAndBodyPartPaged(collection=collection)
             collections_dict[collection]['patients'] = data['totalPatients']
             collections_dict[collection]['body_parts'] = [string.capwords(x['value']) for x in data['bodyParts']]

@@ -366,7 +366,7 @@ class DatabaseWorker(QObject):
         entries = None
         self.session.ui.thread_safe(self.session.logger.status, f"Loading collections from {self.database}")
         if self.database == "TCIA":
-            entries = TCIADatabase.get_collections()
+            entries = TCIADatabase.get_collections(self.session)
         self.collections_ready.emit(entries)
 
     def _fetch_studies(self):
