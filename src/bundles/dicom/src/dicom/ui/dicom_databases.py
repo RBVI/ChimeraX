@@ -68,8 +68,10 @@ class DICOMDatabases(ToolInstance):
         self.control_layout.addWidget(self.available_dbs)
         self.control_layout.addStretch()
         self.dataset_highlighted_label = QLabel("For chosen entries:")
+        self.load_webpage_button = QPushButton("Load Webpage")
         self.refine_dataset_button = QPushButton("Drill Down to Studies")
         self.control_layout.addWidget(self.dataset_highlighted_label)
+        self.control_layout.addWidget(self.load_webpage_button)
         self.control_layout.addWidget(self.refine_dataset_button)
         self.database_entries_control_widget.setVisible(False)
         self.database_entries = DICOMTable(self.database_entries_control_widget, None, self.database_entries_container)
@@ -173,6 +175,7 @@ class DICOMDatabases(ToolInstance):
         self.series_entries_layout.setContentsMargins(0, 0, 0, 0)
         self.series_view_control_layout.setContentsMargins(0, 0, 0, 0)
 
+        self.load_webpage_button.clicked.connect(lambda: self._on_open_tcia_webpage())
         self.refine_dataset_button.clicked.connect(lambda: self._on_drill_down_dataset_clicked())
         self.refine_study_button.clicked.connect(lambda: self._on_drill_down_clicked())
         self.open_button.clicked.connect(lambda: self._on_open_button_clicked())
@@ -200,7 +203,9 @@ class DICOMDatabases(ToolInstance):
             return widget.parent()
         return None
 
-    def _on_open_tcia_webpage(self, selections):
+    def _on_open_tcia_webpage(self, selections = None):
+        if not selections:
+            selections = self.database_entries.selected
         for selection in selections:
             if selection.url is not None:
                 show_url(self.session, selection.url, new_tab=True)
