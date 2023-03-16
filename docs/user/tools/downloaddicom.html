@@ -48,10 +48,7 @@ alt="series in ChimeraX" title="click to enlarge..."></a>
 
 <p>
 <b>Download DICOM</b> allows browsing and fetching publicly available
-medical image data into ChimeraX. It can be started from the
-<b>Medical Imaging</b> section of the <b>Tools</b> menu
-and manipulated like other panels
-(<a href="../window.html#panels">more...</a>).
+medical image data into ChimeraX. 
 See also: 
 <a href="../commands/open.html#fetch"><b>open</b></a>,
 <a href="dicombrowser.html"><b>DICOM Browser</b></a>,
@@ -83,7 +80,13 @@ in ChimeraX.
 </ul>
 <p>
 <b>Download DICOM</b> allows traversing the hierachy from collections
-to studies to series, then choosing series to fetch and open.
+&rarr; studies &rarr; series, then choosing series to fetch and open.
+It can be started from the
+<b>Medical Imaging</b> section of the <b>Tools</b> menu
+and manipulated like other panels
+(<a href="../window.html#panels">more...</a>).
+It may take a few minutes to load the many rows and columns of information
+into the dialog.
 </p><p>
 <a name="chosen"></a>
 One or more rows in the dialog can be chosen (highlighted)
@@ -91,12 +94,18 @@ by clicking and dragging with the left mouse button;
 <b>Ctrl</b>-click (or <b>command</b>-click if using a Mac)
 toggles whether a row is chosen.
 </p>
-Initially, the dialog lists collections. One or more collections can
-be chosen, and clicking <b>Drill down to Studies</b> will list the studies 
-they contain. The TCIA page describing each chosen collection can be shown
-with the <a href="../window.html#context-menu">context menu</a> entry to
-<b>Load Webpage for Chosen Entries</b>.
-</p><p>
+Initially, the dialog lists collections.
+One or more collections can be chosen for further actions:
+</p>
+<ul>
+<li>Clicking <b>Load Webpage</b> or using the
+<a href="../window.html#context-menu">context menu</a> entry to
+<b>Load Webpage for Chosen Entries</b> will open the TCIA webpage 
+describing each chosen collection.
+<li>Clicking <b>Drill down to Studies</b> will switch the dialog to
+listing the studies within each chosen collection.
+</ul>
+<p>
 When the dialog is listing studies, one or more studies can be chosen, 
 and clicking <b>Drill Down to Series</b> will list the series
 they contain.
@@ -107,7 +116,6 @@ Buttons for navigating back up the hierarchy (<b>Back to Studies</b>,
 <b>Back to Collections</b>) are provided at the lower levels.
 </p><p>
 The data are stored locally in <b>~/Downloads/ChimeraX/tciaDownload/</b>.
-<!-- will cached data be reused? -->
 </p>
 
 <hr>
