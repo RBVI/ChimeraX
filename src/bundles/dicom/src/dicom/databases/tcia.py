@@ -10,13 +10,12 @@
 # including partial copies, of the software or any revisions
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
-import os
 import logging
+import os
+import string
 
 from collections import defaultdict
 from typing import List, Dict
-
-from bs4 import BeautifulSoup
 
 from chimerax.core.fetch import cache_directories
 from chimerax.core.commands import run
@@ -26,30 +25,46 @@ _nbia_base_url = "https://services.cancerimagingarchive.net/nbia-api/services/v1
 
 logging.getLogger('tcia_utils').setLevel(100)
 
+NPEXSpecies = {
+    "337915000": "Human"
+    , "447612001": "Mouse"
+    , "448771007": "Dog"
+}
+
 class TCIADatabase:
     @staticmethod
-    def get_collections():
-        collections = nbia.getCollectionPatientCounts()
-        collections_dict = defaultdict(dict)
-        for entry in collections:
-            name = entry['criteria']
-            patient_count = entry['count']
-            collections_dict[name] = {
-                'name': name
-                , 'patients': patient_count
-            }
+    def get_collections(session = None):
+        collections = nbia.getCollections()
         collection_descs = nbia.getCollectionDescriptions()
+
         uris = defaultdict(str)
+        collections_dict = defaultdict(dict)
         for entry in collection_descs:
             uris[entry['collectionName']] = entry['descriptionURI']
-        for name in collections_dict:
-            if name in uris:
-                collections_dict[name]['url'] = uris[name]
+        for entry in collections:
+            name = entry['Collection']
+            collections_dict[name] = {
+                'name': name
+                , 'url': uris.get(name, '')
+            }
         # Workaround for the fact that this is the only entry in TCIA's dataset that doesn't have
         # a link
         collections_dict["CTpred-Sunitinib-panNET"]['url'] = "https://doi.org/10.7937/spgk-0p94"
+        # Now get modalities, species, etc
+        num_collections = len(collections)
+        for index, collection in enumerate(collections_dict):
+            if session:
+                session.ui.thread_safe(session.logger.status, f"Loading collection {index+1}/{num_collections}")
+            data = nbia.getSimpleSearchWithModalityAndBodyPartPaged(collection=collection)
+            collections_dict[collection]['patients'] = data['totalPatients']
+            collections_dict[collection]['body_parts'] = [string.capwords(x['value']) for x in data['bodyParts']]
+            collections_dict[collection]['modalities'] = [m['value'] for m in data['modalities']]
+            species_list = []
+            for species in data['species']:
+                id = species['value']
+                species_list.append(NPEXSpecies.get(id, id))
+            collections_dict[collection]['species'] = species_list
         return collections_dict.values()
-
 
     @staticmethod
     def get_study(collection, patientId="", studyUid=""):

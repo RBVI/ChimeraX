@@ -1006,7 +1006,7 @@ class _CompiledCode:
             if not os.path.exists(req):
                 raise ValueError("unused on this platform")
         # Add the internal Python include and lib directories
-        root = os.path.dirname(os.path.dirname(sys.executable))
+        root = os.path.dirname(os.path.dirname(os.path.realpath(sys.executable)))
         inc_dirs = [os.path.join(root, "include")]
         lib_dirs = [os.path.join(root, "lib")]
         # Automatically add this bundle's library directory to lib dirs

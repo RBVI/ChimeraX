@@ -356,29 +356,41 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
             if not ref or not matches:
                 raise UserError("Must select at least one reference"
                     " and match item in different models.\n")
-            domain_rseqs = [s for s in check_domain_matching(ref.chains, rd_res)]
-            rseqs = [s for s in domain_rseqs if matrix_compatible(s, matrix, session.logger)]
-            if not rseqs and ref.chains:
-                compatible_names = compatible_matrix_names(domain_rseqs[0], session.logger)
-                if len(compatible_names) == 1:
-                    session.logger.info("Using %s matrix instead of %s for matching"
-                        % (compatible_names[0], matrix))
-                    logged_matrix = matrix = compatible_names[0]
-                    rseqs = [s for s in domain_rseqs if matrix_compatible(s, matrix, session.logger)]
-                else:
-                    raise UserError("No chains in reference structure"
-                        " %s compatible with %s similarity"
-                        " matrix" % (ref, matrix))
+            # check chain/matrix compatibilty: for our own sanity only allow one matrix for all
+            # matching, not one per ref/match pairing
+            ref_data = []
+            matches_data = []
+            cross_compatible = set()
+            for domain_rseq in [s for s in check_domain_matching(ref.chains, rd_res)]:
+                compatible_names = compatible_matrix_names(domain_rseq, session.logger)
+                ref_data.append(domain_rseq)
+                cross_compatible.update(compatible_names)
             for match in matches:
+                match_data = []
+                match_compatible = set()
+                for domain_mseq in [s for s in check_domain_matching(match.chains, md_res)]:
+                    compatible_names = compatible_matrix_names(domain_mseq, session.logger)
+                    match_data.append(domain_mseq)
+                    match_compatible.update(compatible_names)
+                matches_data.append((match, match_data))
+                cross_compatible &= match_compatible
+            if not cross_compatible:
+                raise UserError(
+                    "No matrix compatible with both reference structure and all match structures")
+            if matrix not in cross_compatible:
+                if len(cross_compatible) == 1:
+                    compatible_matrix = compatible_names[0]
+                    session.logger.info("Using %s matrix instead of %s for matching"
+                        % (compatible_matrix, matrix))
+                    logged_matrix = matrix = compatible_matrix
+                else:
+                    raise UserError("Chains in reference structure and match structures not both compatible"
+                        "with %s similarity matrix" % matrix)
+
+            for match, match_data in matches_data:
                 best_score = None
-                mseqs = [s for s in check_domain_matching(match.chains, md_res)
-                            if matrix_compatible(s, matrix, session.logger)]
-                if not mseqs and match.chains:
-                    raise UserError("No chains in match structure"
-                        " %s compatible with %s similarity"
-                        " matrix" % (match, matrix))
-                for mseq in mseqs:
-                    for rseq in rseqs:
+                for mseq in match_data:
+                    for rseq in ref_data:
                         score, s1, s2 = align(session, rseq, mseq,
                             matrix, alg, gap_open, gap_extend, dssp_cache, **align_kw)
                         if best_score is None or score > best_score:
