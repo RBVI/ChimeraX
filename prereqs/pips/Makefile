@@ -68,6 +68,10 @@ endif
 		patch --ignore-whitespace -d $(APP_PYSITEDIR) -N -p0 < $$p ; \
 	done
 	-cd $(APP_PYSITEDIR) ; rm -f $(PYSIDE2_MACOS_REMOVE)
+	# tcia_utils (a DICOM dependency) pulls in Pandas, but it is patched
+	# so that pandas is not needed. When those patches are upstreamed 
+	# and pandas is optional this line can be removed
+	$(APP_PIP) uninstall -y pandas
 
 app-upgrade:
 	$(APP_PIP_INSTALL) -U -r app_requirements.txt
