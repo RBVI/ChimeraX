@@ -875,6 +875,15 @@ class SeriesFile:
         return iter(self.data)
 
     def _sequence_elements(self, data, seq_names, element_name, convert=None):
+        """
+        seq_names:    List of (value, count) tuples that indicate the sequence to be
+                      inspected and how many values to return. Can be an integer or 'all'.
+        element_name: The final element name we're looking for
+        convert:      Any callable to be applied to the values returned.
+
+        Basically, recursively walk the list of sequence names in the DICOM dataset
+        looking for element_name, and return it when found.
+        """
         if len(seq_names) == 0:
             value = getattr(data, element_name, None)
             if value is not None and convert is not None:
