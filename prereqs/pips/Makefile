@@ -9,7 +9,7 @@ LANG	= en_US.UTF-8
 
 # tcia_utils.patch: Fix needless import of x86_64 zmq on macOS, see Trac#8638
 # Remove if tcia_utils removes those imports
-PATCHES = tcia_utils.patch
+PATCHES = tcia_utils.patch tcia_utils_metadata.patch
 PYTABLES_DYLIBS = libblosc.1.dylib libhdf5.200.dylib libsnappy.1.dylib \
 				  libc++.1.dylib libcrypto.3.dylib libssl.3.dylib
 
@@ -71,7 +71,7 @@ endif
 	# tcia_utils (a DICOM dependency) pulls in Pandas, but it is patched
 	# so that pandas is not needed. When those patches are upstreamed 
 	# and pandas is optional this line can be removed
-	# $(APP_PIP) uninstall -y pandas
+	$(APP_PIP) uninstall -y pandas
 
 app-upgrade:
 	$(APP_PIP_INSTALL) -U -r app_requirements.txt
