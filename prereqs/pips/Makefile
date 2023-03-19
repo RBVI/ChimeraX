@@ -71,7 +71,7 @@ endif
 	# tcia_utils (a DICOM dependency) pulls in Pandas, but it is patched
 	# so that pandas is not needed. When those patches are upstreamed 
 	# and pandas is optional this line can be removed
-	$(APP_PIP) uninstall -y pandas
+	# $(APP_PIP) uninstall -y pandas
 
 app-upgrade:
 	$(APP_PIP_INSTALL) -U -r app_requirements.txt
