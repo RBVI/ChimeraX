@@ -1,0 +1,47 @@
+<html>
+  <body>
+    <h2>Send to Quest</h2>
+    <p>
+      This tool sends a scene to an Oculus VR headset to be viewed by the Lookie
+      or LookieAR (augmented reality) application.
+    </p>
+
+    <p>
+      The scene must be simple enough for the Quest graphics to handle without
+      flickering.  With Lookie it must have less than 1 million triangles and
+      with LookieAR (which also shows the room), less than 300,000 triangles.
+    </p>
+
+    <p>
+      In the Lookie and LookieAR apps clicking the A or X hand-controller button
+      will show the user interface, and clicking "Open new files" will make new
+      files sent from ChimeraX automatically display.  There may be up to a 5
+      second delay displaying a new file.
+    </p>
+
+    <h3>Setup</h3>
+
+    <p>
+      To send the scene the computer must have the adb (Android Debug Bridge)
+      command line program installed.
+    </p>
+
+    <p>
+      The scene shown in ChimeraX can be sent wirelessly or over a USB cable
+      connecting the computer to the VR headset.  To set up wireless transfer
+      follow these steps
+    </p>
+
+    <ol>
+      <li>Plug in Quest to computer with usb cable.
+      <li>Click Allow Access in Quest headset.
+      <li>Check Quest IP address in headset clicking the wifi symbol in the Quest,
+        then clicking the connected wifi name, then scroll down and click Advanced.
+      <li>Use adb command "adb tcpip 5555" from a shell on the computer.
+      <li>Use adb command "adb 192.168.0.135" to specify the Quest IP address.
+      <li>Disconnect usb cable from Quest.
+      <li>Optionally, check connected devices with "adb devices"
+    </ol>
+
+  </body>
+</html>

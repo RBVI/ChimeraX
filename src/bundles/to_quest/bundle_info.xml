@@ -9,6 +9,10 @@
   <Synopsis>Copy scenes to VR Quest headset</Synopsis>
   <Description>Copy scene as GLTF for Quest Lookie VR app</Description>
 
+  <DataFiles>
+    <DataFile>help.html</DataFile>
+  </DataFiles>
+
   <Categories>
     <Category name="General"/>
   </Categories>
