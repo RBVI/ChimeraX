@@ -308,7 +308,7 @@ class Series:
     @property
     def name(self):
         return f"{self.number} {self.modality} ({self.description})"
-    
+
     @property
     def sop_class_uid(self):
         return self.sample_file.get("SOPClassUID")
@@ -560,7 +560,7 @@ class Series:
     def origin(self):
         if len(self.files) == 0:
             return None
-        pos = self.files[0]._position
+        pos = self.files[0].position
         if pos is None:
             return None
 
@@ -642,7 +642,7 @@ class Series:
             else:
                 nz = self.grid_size()[2]  # For time series just look at first time point.
                 z_axis = self.plane_normal()
-                z = [dot(f._position, z_axis) for f in files[:nz]]
+                z = [dot(f.position, z_axis) for f in files[:nz]]
                 dz = self._spacing(z)
             self._z_spacing = dz
         return dz
@@ -657,7 +657,7 @@ class Series:
             msg = ('Plane z spacings are unequal, min = %.6g, max = %.6g, using max.\n' % (dzmin, dzmax) +
                    'Perpendicular axis (%.3f, %.3f, %.3f)\n' % tuple(self.plane_normal()) +
                    'Directory %s\n' % os.path.dirname(self.files[0].path) +
-                   '\n'.join(['%s %s' % (os.path.basename(f.path), f._position) for f in self.files]))
+                   '\n'.join(['%s %s' % (os.path.basename(f.path), f.position) for f in self.files]))
             self.session.logger.warning(msg)
             # If we're over the threshold try to get it from SliceThickness * SliceSpacing
             thickness = self.files[0].SliceThickness or 1
@@ -810,8 +810,6 @@ class SeriesFile:
         self.data = data
         self.path = data.filename
         self.inferred_properties = []
-        pos = getattr(data, 'ImagePositionPatient', None)
-        self._position = tuple(float(p) for p in pos) if pos else None
         orient = getattr(data, 'ImageOrientationPatient', None)  # horz and vertical image axes
         self._orientation = tuple(float(p) for p in orient) if orient else None
         num = getattr(data, 'InstanceNumber', None)
@@ -854,9 +852,18 @@ class SeriesFile:
     def __lt__(self, im):
         if self._time == im._time:
             # Use z position instead of image number to assure right-handed coordinates.
-            return self._position[2] < im._position[2]
+            return self.position[2] < im.position[2]
         else:
             return self._time < im._time
+
+    @property
+    def position(self):
+        pos = self.data.get('ImagePositionPatient', None)
+        if self._num_frames is not None and pos is None:
+            pos_x, pos_y = self.frame_positions[0][:2]
+            z_origin = min(x[2] for x in self.frame_positions)
+            pos = [pos_x, pos_y, z_origin]
+        return tuple(float(p) for p in pos) if pos else None
 
     @property
     def trigger_time(self):
