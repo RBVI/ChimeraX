@@ -25,7 +25,7 @@ class BondRotationMouseMode(MouseMode):
     def mouse_down(self, event):
         MouseMode.mouse_down(self, event)
         pick = self._picked_bond(event)
-        self._bond_rot = self._picked_bond_rotation(pick)
+        self._bond_rot = self._picked_bond_rotation(pick, move_smaller_side = not event.shift_down())
     
     def mouse_drag(self, event):
         br = self._bond_rotation
@@ -45,7 +45,7 @@ class BondRotationMouseMode(MouseMode):
     
     def wheel(self, event):
         pick = self._picked_bond(event)
-        br = self._picked_bond_rotation(pick)
+        br = self._picked_bond_rotation(pick, move_smaller_side = not event.shift_down())
         if br:
             d = event.wheel_value()
             br.angle += d
@@ -56,12 +56,12 @@ class BondRotationMouseMode(MouseMode):
         pick = self.session.main_view.picked_object(x, y)
         return pick
 
-    def _picked_bond_rotation(self, pick):
+    def _picked_bond_rotation(self, pick, move_smaller_side = True):
         from chimerax.atomic import PickedBond
         if isinstance(pick, PickedBond):
             from .manager import BondRotationError
             try:
-                br = self.session.bond_rotations.new_rotation(pick.bond)
+                br = self.session.bond_rotations.new_rotation(pick.bond, move_smaller_side = move_smaller_side)
                 self.session.logger.status('Rotating bond %s' % str(pick.bond))
             except BondRotationError as e:
                 self.session.logger.status(str(e))

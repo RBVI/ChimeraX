@@ -1,0 +1,10 @@
+--- tcia_utils-1.2.0.dist-info/METADATA.orig	2023-03-18 21:18:23
++++ tcia_utils-1.2.0.dist-info/METADATA	2023-03-18 21:18:26
+@@ -13,7 +13,6 @@
+ Requires-Dist: ipywidgets
+ Requires-Dist: matplotlib
+ Requires-Dist: numpy
+-Requires-Dist: pandas
+ Requires-Dist: pydicom
+ Requires-Dist: requests
+ Description-Content-Type: text/markdown
