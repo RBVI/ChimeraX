@@ -713,8 +713,11 @@ class Drawing:
         np = self.number_of_positions(displayed_only)
         if np == 0:
             return 0
-        t = self.triangles
-        tc = 0 if t is None else np * len(t)
+        if displayed_only:
+            tc = np * self.num_masked_triangles
+        else:
+            t = self.triangles
+            tc = 0 if t is None else np * len(t)
         for d in self.child_drawings():
             tc += np * d.number_of_triangles(displayed_only)
         return tc
