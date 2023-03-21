@@ -267,18 +267,20 @@ class Series:
     # Not sure if this is a valid assumption.
     #
     def __init__(self, session, files):
+        self.session = session
         self._raw_files = files
         self.order_slices()
         self.paths = [file.filename for file in self._raw_files]
         self.files = []
+        self.files_by_size = defaultdict(list)
         for f in self._raw_files:
-            self.files.append(SeriesFile(f))
+            sf = SeriesFile(f)
+            self.files.append(sf)
         self.transfer_syntax = None
         self._multiframe = None
         self._reverse_frames = False
         self._num_times = None
         self._z_spacing = None
-        self.session = session
         self.image_series = True
         self.contour_series = False
         if any([f.SOPClassUID == '1.2.840.10008.5.1.4.1.1.481.3' for f in files]):
@@ -510,7 +512,7 @@ class Series:
             return
         reference_file = self._raw_files[0]
         if hasattr(reference_file, "SliceLocation"):
-            self._raw_files.sort(key=lambda x: x.SliceLocation)
+            self._raw_files.sort(key=lambda x: (x.get("TriggerTime", 1), x.SliceLocation))
         elif hasattr(reference_file, "ImageIndex"):
             self._raw_files.sort(key=lambda x: x.ImageIndex)
 
@@ -762,8 +764,8 @@ class DicomData:
             d = dcmread(self.paths[0])
             data = d.pixel_array[k]
         else:
-            p = k if time is None else (k + self.data_size[2] * time)
-            d = dcmread(self.paths[p])
+            p = k if time is None else (k + (self.data_size[2] * time))
+            d = self.dicom_series.files[p]
             data = d.pixel_array
         if channel is not None:
             data = data[:, :, channel]
@@ -857,7 +859,22 @@ class SeriesFile:
             return self._time < im._time
 
     @property
+    def columns(self):
+        return self.data.get("Columns")
+
+    @property
+    def rows(self):
+        return self.data.get("Rows")
+
+    @property
+    def size(self):
+        return self.columns, self.rows
+
+    @property
     def position(self):
+        # TODO: For some reason this breaks rendering the 4D Lung dataset?
+        # Each frame in the set has a different ImagePositionPatient
+        # So maybe we take this and move it to somewhere with more context
         pos = self.data.get('ImagePositionPatient', None)
         if self._num_frames is not None and pos is None:
             pos_x, pos_y = self.frame_positions[0][:2]
@@ -868,6 +885,10 @@ class SeriesFile:
     @property
     def trigger_time(self):
         return getattr(self.data, 'TriggerTime', None)
+
+    @property
+    def slice_location(self):
+        return self.data.get("SliceLocation", None)
 
     @property
     def multiframe(self):
