@@ -167,7 +167,7 @@ class ToQuest(ToolInstance):
         if atri:
             self._atom_triangles.value = atri
         if btri:
-            self._bond_triangles.value = btri
+            self._bond_triangles.value = 2*btri		# btri is for half-bond
         if rside:
             self._ribbon_sides.value = rside
         if rdiv:
