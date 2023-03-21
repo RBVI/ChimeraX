@@ -266,12 +266,22 @@ class ToQuest(ToolInstance):
         from subprocess import Popen, PIPE, DEVNULL
         p = Popen(args, stdin=DEVNULL, stdout=PIPE, stderr=PIPE)
         out, err = p.communicate()
+        out, err = out.decode('utf-8'), err.decode('utf-8')
         exit_code = p.returncode
 
         if exit_code != 0:
-            output = '\n'.join(['stdout:', out.decode('utf-8'),
-                                'stderr:', err.decode('utf-8')])
-            self.session.logger.info(output)
+            lines = []
+            if 'no devices' in out or 'no devices' in err:
+                lines.extend([
+                    'No VR headset was found by adb. '
+                    'Try connecting a USB cable between the computer and headset'
+                    'or using the adb connect <headset-ip-address> command from a shell.',
+                     ''])
+            if out:
+                lines.extend(['stdout:', out])
+            if err:
+                lines.extend(['stderr:', err])
+            self.session.logger.error('\n'.join(lines))
 
     # ---------------------------------------------------------------------------
     #
