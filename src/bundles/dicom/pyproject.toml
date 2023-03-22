@@ -41,6 +41,7 @@ category = "Medical Imaging"
 nicknames = ["dicom"]
 suffixes = [".dcm"]
 allow-directory = true
+synopsis = "DICOM"
 
 [[chimerax.data-format."DICOM medical imaging".open]]
 batch = true
