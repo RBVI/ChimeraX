@@ -204,6 +204,7 @@ class ModelPanel(ToolInstance):
         if not update:
             expanded_models = { i._model : i.isExpanded()
                                 for i in self._items if hasattr(i, '_model')}
+            scroll_position = self.tree.verticalScrollBar().sliderPosition()
             self.tree.clear()
             self._items = []
         all_selected_models = self.session.selection.models(all_selected=True)
@@ -292,6 +293,8 @@ class ModelPanel(ToolInstance):
                 expand = expanded_models.get(model, expand_default)
                 if expand:
                     self.tree.expandItem(item)
+        if not update:
+            self.tree.verticalScrollBar().setSliderPosition(scroll_position)
         for i in range(1,self.tree.columnCount()):
             self.tree.resizeColumnToContents(i)
         self.tree.blockSignals(False)
