@@ -40,12 +40,22 @@ class FormatsManager(ProviderManager):
 
         def convert_arg(arg, default=None):
             if arg and isinstance(arg, str):
+                if arg == 'None':
+                    return None
+                if arg == 'true':
+                    return True
+                if arg == 'false':
+                    return False
                 return arg.split(',')
             return [] if default is None else default
         suffixes = convert_arg(suffixes)
         nicknames = convert_arg(nicknames, [name.lower()])
         mime_types = convert_arg(mime_types)
-        insecure = category == self.CAT_SCRIPT if insecure is None else insecure
+        allow_directory = convert_arg(allow_directory, default=False)
+        insecure = convert_arg(insecure, default=False)
+
+
+        insecure = category == self.CAT_SCRIPT if (insecure is None or insecure is False) else insecure
 
         logger = self.session.logger
         update_bundle_only = False
