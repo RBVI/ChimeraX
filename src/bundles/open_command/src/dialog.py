@@ -69,8 +69,8 @@ else:
             label = QLabel(options_panel)
             label.setText("Format:")
             self._format_selector = selector = QComboBox(options_panel)
-            fmt_names = [fmt.synopsis for fmt in session.open_command.open_data_formats
-                         if fmt.nicknames and fmt.allow_directory]
+            fmt_names = sorted([fmt.synopsis for fmt in session.open_command.open_data_formats
+                         if fmt.nicknames and fmt.allow_directory])
             selector.addItems(fmt_names)
             options_layout = QHBoxLayout(options_panel)
             options_layout.addWidget(label)

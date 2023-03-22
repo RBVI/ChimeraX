@@ -28,7 +28,7 @@ class ToQuest(ToolInstance):
         ToolInstance.__init__(self, session, tool_name)
 
         from chimerax.ui import MainToolWindow
-        tw = MainToolWindow(self, close_destroys=False)
+        tw = MainToolWindow(self, close_destroys=True)
         self.tool_window = tw
         parent = tw.ui_area
         
@@ -51,6 +51,18 @@ class ToQuest(ToolInstance):
         
         tw.manage(placement="side")
 
+        vt = self.session.main_view.triggers
+        h = vt.add_handler('shape changed', self._geometry_changed)
+        self._geometry_change_handler = h
+
+    # ---------------------------------------------------------------------------
+    #
+    def delete(self):
+        vt = self.session.main_view.triggers
+        vt.remove_handler(self._geometry_change_handler)
+        self._geometry_change_handler = None
+        ToolInstance.delete(self)
+        
     # ---------------------------------------------------------------------------
     #
     @classmethod
@@ -66,7 +78,6 @@ class ToQuest(ToolInstance):
         from chimerax.ui.widgets import vertical_layout, EntriesRow
         layout = vertical_layout(f, margins = (5,0,0,0))
         tc = EntriesRow(f, '#', 'scene triangles',
-                        ('Update', self._report_triangle_count),
                         '    ', True, 'Maximum', 900000)
         self._triangle_count = tcount = tc.labels[0]
         self._use_max_triangles, self._max_triangles = um, mt = tc.values
@@ -114,7 +125,6 @@ class ToQuest(ToolInstance):
         from chimerax.core.commands import run
         run(self.session, f'graphics quality atomTriangles {tri}')
         self._atom_triangles.value = tri
-        self._report_triangle_count()
         
     # ---------------------------------------------------------------------------
     #
@@ -124,7 +134,6 @@ class ToQuest(ToolInstance):
         from chimerax.core.commands import run
         run(self.session, f'graphics quality bondTriangles {tri}')
         self._bond_triangles.value = tri
-        self._report_triangle_count()
         
     # ---------------------------------------------------------------------------
     #
@@ -134,7 +143,6 @@ class ToQuest(ToolInstance):
         from chimerax.core.commands import run
         run(self.session, f'graphics quality ribbonSides {sides}')
         self._ribbon_sides.value = sides
-        self._report_triangle_count()
         
     # ---------------------------------------------------------------------------
     #
@@ -144,7 +152,6 @@ class ToQuest(ToolInstance):
         from chimerax.core.commands import run
         run(self.session, f'graphics quality ribbonDivisions {div}')
         self._ribbon_divisions.value = div
-        self._report_triangle_count()
     
     # ---------------------------------------------------------------------------
     #
@@ -167,7 +174,7 @@ class ToQuest(ToolInstance):
         if atri:
             self._atom_triangles.value = atri
         if btri:
-            self._bond_triangles.value = btri
+            self._bond_triangles.value = 2*btri		# btri is for half-bond
         if rside:
             self._ribbon_sides.value = rside
         if rdiv:
@@ -194,6 +201,11 @@ class ToQuest(ToolInstance):
         from chimerax.std_commands.graphics import _drawing_triangles
         tri = _drawing_triangles(models, lines)
         return tri
+
+    # ---------------------------------------------------------------------------
+    #
+    def _geometry_changed(self, *unused):
+        self._report_triangle_count()
 
     # ---------------------------------------------------------------------------
     #
@@ -266,12 +278,22 @@ class ToQuest(ToolInstance):
         from subprocess import Popen, PIPE, DEVNULL
         p = Popen(args, stdin=DEVNULL, stdout=PIPE, stderr=PIPE)
         out, err = p.communicate()
+        out, err = out.decode('utf-8'), err.decode('utf-8')
         exit_code = p.returncode
 
         if exit_code != 0:
-            output = '\n'.join(['stdout:', out.decode('utf-8'),
-                                'stderr:', err.decode('utf-8')])
-            self.session.logger.info(output)
+            lines = []
+            if 'no devices' in out or 'no devices' in err:
+                lines.extend([
+                    'No VR headset was found by adb. '
+                    'Try connecting a USB cable between the computer and headset '
+                    'or using the adb connect <headset-ip-address> command from a shell.',
+                     ''])
+            if out:
+                lines.extend(['stdout:', out])
+            if err:
+                lines.extend(['stderr:', err])
+            self.session.logger.error('\n'.join(lines))
 
     # ---------------------------------------------------------------------------
     #

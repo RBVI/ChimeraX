@@ -37,6 +37,7 @@ category = "Volume Data"
 nicknames = ["nrrd"]
 suffixes = [".nrrd"]
 allow-directory = false
+synopsis = "NRRD"
 
 [[chimerax.data-format."NRRD Medical Imaging".open]]
 batch = false
