@@ -10,35 +10,69 @@
 # including partial copies, of the software or any revisions
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
+import logging
 import os
+import string
 
+from collections import defaultdict
 from typing import List, Dict
-from contextlib import redirect_stdout
+
 from chimerax.core.fetch import cache_directories
 from chimerax.core.commands import run
 from tcia_utils import nbia
 
 _nbia_base_url = "https://services.cancerimagingarchive.net/nbia-api/services/v1/"
 
+logging.getLogger('tcia_utils').setLevel(100)
+
+NPEXSpecies = {
+    "337915000": "Human"
+    , "447612001": "Mouse"
+    , "448771007": "Dog"
+}
 
 class TCIADatabase:
     @staticmethod
-    def getCollections(patient_counts=False):
-        with redirect_stdout(None):
-            if patient_counts:
-                return nbia.getCollectionPatientCounts()
-            else:
-                return nbia.getCollections()
+    def get_collections(session = None):
+        collections = nbia.getCollections()
+        collection_descs = nbia.getCollectionDescriptions()
+
+        uris = defaultdict(str)
+        collections_dict = defaultdict(dict)
+        for entry in collection_descs:
+            uris[entry['collectionName']] = entry['descriptionURI']
+        for entry in collections:
+            name = entry['Collection']
+            collections_dict[name] = {
+                'name': name
+                , 'url': uris.get(name, '')
+            }
+        # Workaround for the fact that this is the only entry in TCIA's dataset that doesn't have
+        # a link
+        collections_dict["CTpred-Sunitinib-panNET"]['url'] = "https://doi.org/10.7937/spgk-0p94"
+        # Now get modalities, species, etc
+        num_collections = len(collections)
+        for index, collection in enumerate(collections_dict):
+            if session:
+                session.ui.thread_safe(session.logger.status, f"Loading collection {index+1}/{num_collections}")
+            data = nbia.getSimpleSearchWithModalityAndBodyPartPaged(collection=collection)
+            collections_dict[collection]['patients'] = data['totalPatients']
+            collections_dict[collection]['body_parts'] = [string.capwords(x['value']) for x in data['bodyParts']]
+            collections_dict[collection]['modalities'] = [m['value'] for m in data['modalities']]
+            species_list = []
+            for species in data['species']:
+                id = species['value']
+                species_list.append(NPEXSpecies.get(id, id))
+            collections_dict[collection]['species'] = species_list
+        return collections_dict.values()
 
     @staticmethod
-    def getStudy(collection, patientId="", studyUid=""):
-        with redirect_stdout(None):
-            return nbia.getStudy(collection, patientId, studyUid)
+    def get_study(collection, patientId="", studyUid=""):
+        return nbia.getStudy(collection, patientId, studyUid)
 
     @staticmethod
-    def getSeries(studyUid) -> List[Dict[str, str]]:
-        with redirect_stdout(None):
-            return nbia.getSeries(studyUid=studyUid)
+    def get_series(studyUid) -> List[Dict[str, str]]:
+        return nbia.getSeries(studyUid=studyUid)
 
     @staticmethod
     def getImages(session, studyUID, ignore_cache, **kw):

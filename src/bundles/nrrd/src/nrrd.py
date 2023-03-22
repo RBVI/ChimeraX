@@ -1,5 +1,5 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
-
+import chimerax.core.session
 #  === UCSF ChimeraX Copyright ===
 #  Copyright 2023 Regents of the University of California.
 #  All rights reserved.  This software provided pursuant to a
@@ -14,8 +14,7 @@
 import nrrd
 import numpy as np
 import os
-from scipy.ndimage import rotate
-from enum import Enum
+from chimerax.core.session import Session
 from chimerax.map.volume import open_grids
 from chimerax.map_data import GridData
 from chimerax.image_formats.open_image import ImageSurface
@@ -33,7 +32,7 @@ class NRRD:
             # we needed it in z-y-x order.
             # See https://pynrrd.readthedocs.io/en/stable/background/how-to-use.html
             img, hdr = nrrd.read(path, index_order='C')
-            self.nrrds.append(NRRDData(hdr, img, path))
+            self.nrrds.append(NRRDData(self.session, hdr, img, path))
 
     @classmethod
     def from_paths(cls, session, data):
@@ -56,7 +55,8 @@ class NRRD:
 
 class NRRDData:
     """A wrapper over nrrd."""
-    def __init__(self, header: nrrd.NRRDHeader, data: np.ndarray, path = None):
+    def __init__(self, session: Session, header: nrrd.NRRDHeader, data: np.ndarray, path = None):
+        self.session = session
         self._path = path
         self._raw_header = header
         self._raw_data = data
@@ -78,8 +78,8 @@ class NRRDData:
 
     @property
     def image(self):
-        if not self._image:
-            self._image = self.coordinate_system.to_xyz(self._raw_data)
+        if self._image is None:
+            self._image = self._raw_data
         return self._image
 
     @property
@@ -92,7 +92,7 @@ class NRRDData:
     @property
     def shape(self):
         # _raw_data.shape and _raw_header.sizes should be the same data
-        return self._raw_data.shape
+        return self._raw_header['sizes']
 
     @property
     def data_type(self):
@@ -101,6 +101,18 @@ class NRRDData:
     @property
     def origin(self):
         return self._raw_header.get("space origin", (0,0,0))
+
+    @property
+    def rotation(self):
+        return self.coordinate_system.rotation_matrix
+
+    # @property
+    # def columns(self):
+    #     ...
+
+    # @property
+    # def rows(self):
+    #     ...
 
     @property
     def pixel_spacing(self):
@@ -121,7 +133,7 @@ class NRRDData:
                     , space_and_direction_matrix[z][z]
                 ]
             else:
-                spacings = [1]*self.dimension
+                spacings = [1] * self.dimension
             self._spacings = spacings
         return self._spacings
 
@@ -132,7 +144,8 @@ class NRRDData:
             if space:
                 self._coordinate_system = get_coordinate_system(space)
             else:
-                self._coordinate_system = get_coordinate_system("3D-right-handed")
+                # if self.dimension...
+                self._coordinate_system = get_coordinate_system("LAS")
         return self._coordinate_system
 
 
@@ -141,9 +154,10 @@ class NRRDGrid(GridData):
         self.nrrd_data = nrrd
         GridData.__init__(
             self, nrrd.shape, nrrd.data_type, origin = nrrd.origin
+            , rotation = nrrd.rotation
             , step = nrrd.pixel_spacing, file_type = 'nrrd'
         )
 
     def read_matrix(self, ijk_origin = (0,0,0), ijk_size = None,
                   ijk_step = (1,1,1), progress = None):
-        return self.nrrd_data.image
+        return self.nrrd_data.image[::ijk_step[0], ::ijk_step[1], ::ijk_step[2]]

@@ -267,18 +267,20 @@ class Series:
     # Not sure if this is a valid assumption.
     #
     def __init__(self, session, files):
+        self.session = session
         self._raw_files = files
         self.order_slices()
         self.paths = [file.filename for file in self._raw_files]
         self.files = []
+        self.files_by_size = defaultdict(list)
         for f in self._raw_files:
-            self.files.append(SeriesFile(f))
+            sf = SeriesFile(f)
+            self.files.append(sf)
         self.transfer_syntax = None
         self._multiframe = None
         self._reverse_frames = False
         self._num_times = None
         self._z_spacing = None
-        self.session = session
         self.image_series = True
         self.contour_series = False
         if any([f.SOPClassUID == '1.2.840.10008.5.1.4.1.1.481.3' for f in files]):
@@ -308,7 +310,7 @@ class Series:
     @property
     def name(self):
         return f"{self.number} {self.modality} ({self.description})"
-    
+
     @property
     def sop_class_uid(self):
         return self.sample_file.get("SOPClassUID")
@@ -510,7 +512,7 @@ class Series:
             return
         reference_file = self._raw_files[0]
         if hasattr(reference_file, "SliceLocation"):
-            self._raw_files.sort(key=lambda x: x.SliceLocation)
+            self._raw_files.sort(key=lambda x: (x.get("TriggerTime", 1), x.SliceLocation))
         elif hasattr(reference_file, "ImageIndex"):
             self._raw_files.sort(key=lambda x: x.ImageIndex)
 
@@ -560,7 +562,7 @@ class Series:
     def origin(self):
         if len(self.files) == 0:
             return None
-        pos = self.files[0]._position
+        pos = self.files[0].position
         if pos is None:
             return None
 
@@ -642,7 +644,7 @@ class Series:
             else:
                 nz = self.grid_size()[2]  # For time series just look at first time point.
                 z_axis = self.plane_normal()
-                z = [dot(f._position, z_axis) for f in files[:nz]]
+                z = [dot(f.position, z_axis) for f in files[:nz]]
                 dz = self._spacing(z)
             self._z_spacing = dz
         return dz
@@ -657,7 +659,7 @@ class Series:
             msg = ('Plane z spacings are unequal, min = %.6g, max = %.6g, using max.\n' % (dzmin, dzmax) +
                    'Perpendicular axis (%.3f, %.3f, %.3f)\n' % tuple(self.plane_normal()) +
                    'Directory %s\n' % os.path.dirname(self.files[0].path) +
-                   '\n'.join(['%s %s' % (os.path.basename(f.path), f._position) for f in self.files]))
+                   '\n'.join(['%s %s' % (os.path.basename(f.path), f.position) for f in self.files]))
             self.session.logger.warning(msg)
             # If we're over the threshold try to get it from SliceThickness * SliceSpacing
             thickness = self.files[0].SliceThickness or 1
@@ -762,8 +764,8 @@ class DicomData:
             d = dcmread(self.paths[0])
             data = d.pixel_array[k]
         else:
-            p = k if time is None else (k + self.data_size[2] * time)
-            d = dcmread(self.paths[p])
+            p = k if time is None else (k + (self.data_size[2] * time))
+            d = self.dicom_series.files[p]
             data = d.pixel_array
         if channel is not None:
             data = data[:, :, channel]
@@ -810,8 +812,6 @@ class SeriesFile:
         self.data = data
         self.path = data.filename
         self.inferred_properties = []
-        pos = getattr(data, 'ImagePositionPatient', None)
-        self._position = tuple(float(p) for p in pos) if pos else None
         orient = getattr(data, 'ImageOrientationPatient', None)  # horz and vertical image axes
         self._orientation = tuple(float(p) for p in orient) if orient else None
         num = getattr(data, 'InstanceNumber', None)
@@ -854,13 +854,41 @@ class SeriesFile:
     def __lt__(self, im):
         if self._time == im._time:
             # Use z position instead of image number to assure right-handed coordinates.
-            return self._position[2] < im._position[2]
+            return self.position[2] < im.position[2]
         else:
             return self._time < im._time
 
     @property
+    def columns(self):
+        return self.data.get("Columns")
+
+    @property
+    def rows(self):
+        return self.data.get("Rows")
+
+    @property
+    def size(self):
+        return self.columns, self.rows
+
+    @property
+    def position(self):
+        # TODO: For some reason this breaks rendering the 4D Lung dataset?
+        # Each frame in the set has a different ImagePositionPatient
+        # So maybe we take this and move it to somewhere with more context
+        pos = self.data.get('ImagePositionPatient', None)
+        if self._num_frames is not None and pos is None:
+            pos_x, pos_y = self.frame_positions[0][:2]
+            z_origin = min(x[2] for x in self.frame_positions)
+            pos = [pos_x, pos_y, z_origin]
+        return tuple(float(p) for p in pos) if pos else None
+
+    @property
     def trigger_time(self):
         return getattr(self.data, 'TriggerTime', None)
+
+    @property
+    def slice_location(self):
+        return self.data.get("SliceLocation", None)
 
     @property
     def multiframe(self):
@@ -875,6 +903,15 @@ class SeriesFile:
         return iter(self.data)
 
     def _sequence_elements(self, data, seq_names, element_name, convert=None):
+        """
+        seq_names:    List of (value, count) tuples that indicate the sequence to be
+                      inspected and how many values to return. Can be an integer or 'all'.
+        element_name: The final element name we're looking for
+        convert:      Any callable to be applied to the values returned.
+
+        Basically, recursively walk the list of sequence names in the DICOM dataset
+        looking for element_name, and return it when found.
+        """
         if len(seq_names) == 0:
             value = getattr(data, element_name, None)
             if value is not None and convert is not None:

@@ -828,7 +828,7 @@ class _CompiledCode:
         # platform-specific
         # Assume Python executable is in ROOT/bin/python
         # and make include directory be ROOT/include
-        root = os.path.dirname(os.path.dirname(sys.executable))
+        root = os.path.dirname(os.path.dirname(os.path.realpath(sys.executable)))
         inc_dirs = [os.path.join(root, "include")]
         lib_dirs = [os.path.join(root, "lib")]
         if self.uses_numpy:

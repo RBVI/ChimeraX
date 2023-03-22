@@ -309,7 +309,7 @@ class MolecularSurface(Surface):
             if len(self.atoms) < self._vertex_to_atom_count:
                 # Atoms deleted
                 self._vertex_to_atom = None
-            if len(self._vertex_to_atom) != len(self.vertices):
+            elif len(self._vertex_to_atom) != len(self.vertices):
                 # Some other code like color zone with sharp_edges = True
                 # changed the surface geometery.
                 self._vertex_to_atom = None

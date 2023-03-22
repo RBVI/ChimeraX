@@ -173,6 +173,7 @@ protected:
     virtual void  _compute_atom_types() {}
     void  _compute_idatm_types() { _idatm_valid = true; _compute_atom_types(); }
     virtual void  _compute_structure_cats() const {}
+    void _coord_set_insert(CoordSets &coord_sets, CoordSet* cs, int index);
     void  _copy(Structure* s, PositionMatrix coord_adjust = nullptr,
         std::map<ChainID, ChainID>* chain_id_map = nullptr) const;
     void  _delete_atom(Atom* a);

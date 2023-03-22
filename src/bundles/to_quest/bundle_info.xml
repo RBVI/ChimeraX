@@ -1,0 +1,30 @@
+<BundleInfo name="ChimeraX-ToQuest" version="1.0"
+	    package="chimerax.to_quest"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>Copy scenes to VR Quest headset</Synopsis>
+  <Description>Copy scene as GLTF for Quest Lookie VR app</Description>
+
+  <DataFiles>
+    <DataFile>help.html</DataFile>
+  </DataFiles>
+
+  <Categories>
+    <Category name="General"/>
+  </Categories>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version="~=1.0"/>
+  </Dependencies>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    <ChimeraXClassifier>Tool :: Send to Quest :: General :: Send scenes to Quest headset Lookie app</ChimeraXClassifier>
+  </Classifiers>
+
+</BundleInfo>

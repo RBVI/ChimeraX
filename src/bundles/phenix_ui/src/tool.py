@@ -367,7 +367,7 @@ class VerifyCenterDialog(QDialog):
         search_button_label = "Start search"
         instructions = QLabel(
             "A transparent orange marker (model #%d) has been drawn to show the search volume and location. "
-            "  Positions with any part of the atomic structure inside the marker sphere will be searched."
+            "  Fits that place any part of the atomic structure within the marker sphere will be evaluated."
             "  The size of the search volume is based on the size of the structure and cannot be adjusted, "
             "but the search center can be moved by moving the marker, "
             "using any ChimeraX method for moving markers or models "
