@@ -16,7 +16,7 @@ from chimerax.core.errors import UserError
 from chimerax.core.commands import run
 from Qt.QtWidgets import QVBoxLayout, QPushButton, QMenu, QStackedWidget, QWidget, QLabel, QFrame
 from Qt.QtWidgets import QGridLayout, QRadioButton, QHBoxLayout, QLineEdit, QCheckBox, QGroupBox
-from Qt.QtWidgets import QButtonGroup, QAbstractButton
+from Qt.QtWidgets import QButtonGroup, QAbstractButton, QStyle, QToolButton
 from Qt.QtGui import QAction
 from Qt.QtCore import Qt
 
@@ -62,6 +62,8 @@ class BuildStructureTool(ToolInstance):
     def delete(self):
         for handler in self.handlers:
             handler.remove()
+        for rotater in self.torsion_data.keys():
+            self.session.bond_rotations.delete_rotation(rotater)
         super().delete()
 
     def _ab_len_cb(self, opt):
@@ -104,11 +106,69 @@ class BuildStructureTool(ToolInstance):
         if len(sel_bonds) != 1:
             raise UserError("Exactly one bond must be selected in graphics window")
         bond = sel_bonds[0]
-        # use bond-rotation manager here, which will detect bond-in-cycle and other problems...
-        #small = bond.smaller_side
-        #large = bond.other_atom(small)
-        #if len(small.neighbors) < 2 or len(large.neighbors) < 2:
-        #    raise UserError("Bond must have other atoms bonded to both ends to form torsion")
+        for end_pt in bond.atoms:
+            if not end_pt.neighbors:
+                raise UserError("Bond must have other atoms bonded to both ends to form torsion")
+        self._at_add_torsion(bond)
+
+    def _at_add_torsion(self, bond):
+        try:
+            rotater = self.session.bond_rotations.new_rotation(bond, one_shot=False)
+        except self.session.bond_rotations.BondRotationError as e:
+            raise UserError(str(e))
+        self.at_no_torsions_label.hide()
+        for header in self.at_header_widgets:
+            header.show()
+        moving = rotater.moving_side
+        fixed = bond.other_atom(moving)
+        torsion_atoms = []
+        for end1, end2 in [(fixed, moving), (moving, fixed)]:
+            for nb in end1.neighbors:
+                if nb != end2:
+                    torsion_atoms.append(nb)
+                    break
+        grid = self.at_torsions_layout
+        row = grid.rowCount()
+        widgets = []
+        self.torsion_data[rotater] = (row, bond, torsion_atoms, widgets)
+        close_button = QToolButton()
+        close_action = QAction(close_button)
+        close_action.triggered.connect(lambda *args, torsion=rotater, f=self._at_remove_torsion: f(torsion))
+        close_action.setIcon(self.session.ui.style().standardIcon(QStyle.SP_TitleBarCloseButton))
+        close_button.setDefaultAction(close_action)
+        grid.addWidget(close_button, row, 0)
+
+        def multi_name(terminus, bonded, excluded):
+            for nb in bonded.neighbors:
+                if nb == terminus or nb == excluded:
+                    continue
+                if nb.name == terminus.name:
+                    return terminus.string(relative_to=bonded)
+            return terminus.name
+        for col, terminus, bonded in [(1, torsion_atoms[0], fixed), (3, torsion_atoms[1], moving)]:
+            single_widget = QLabel(terminus.name)
+            multi_widget = QPushButton(multi_name(terminus, bonded, bond.other_atom(bonded)))
+            show_multi = bonded.num_bonds > 2
+            grid.addWidget(single_widget, row, col, alignment=Qt.AlignCenter)
+            grid.addWidget(multi_widget, row, col, alignment=Qt.AlignCenter)
+            single_widget.setHidden(show_multi)
+            multi_widget.setHidden(not show_multi)
+            widgets.extend([single_widget, multi_widget])
+        #TODO: get bond label in fixed->moving order
+        bond_label = QLabel(str(bond))
+        grid.addWidget(bond_label, row, 2, alignment=Qt.AlignCenter)
+        widgets.append(bond_label)
+
+        widgets.append(close_button)
+
+    def _at_remove_torsion(self, rotater):
+        for widget in self.torsion_data[rotater][-1]:
+            widget.hide()
+        del self.torsion_data[rotater]
+        if not self.torsion_data:
+            self.at_no_torsions_label.show()
+            for header in self.at_header_widgets:
+                header.hide()
 
     def _cat_menu_cb(self, action):
         self.category_areas.setCurrentWidget(self.category_widgets[action.text()])
@@ -242,6 +302,7 @@ class BuildStructureTool(ToolInstance):
         layout = QVBoxLayout()
         layout.setContentsMargins(0,0,0,0)
         layout.setSpacing(0)
+        layout.addStretch(1)
         parent.setLayout(layout)
         activate_layout = QHBoxLayout()
         activate_layout.addStretch(1)
@@ -251,15 +312,33 @@ class BuildStructureTool(ToolInstance):
         activate_layout.addWidget(QLabel(" selected bond as torsion"))
         activate_layout.addStretch(1)
         layout.addLayout(activate_layout)
-        torsions_row_layout = QHBoxLayout()
-        torsions_row_layout.addStretch(1)
+        layout.addStretch(1)
+        grid_layout = QHBoxLayout()
+        grid_layout.setSpacing(5)
+        grid_layout.addStretch(1)
+        self.at_torsions_layout = grid = QGridLayout()
+        self.at_header_widgets = []
+        for col, text in enumerate(["Fixed", "Bond", "Moving"]):
+            label = QLabel(text)
+            grid.addWidget(label, 0, col+1, alignment=Qt.AlignCenter)
+            label.hide()
+            self.at_header_widgets.append(label)
+        grid_layout.addLayout(grid)
+        grid_layout.addStretch(1)
+        layout.addLayout(grid_layout)
+        layout.addStretch(1)
         self.at_no_torsions_label = QLabel("No torsions active")
         self.at_no_torsions_label.setEnabled(False)
-        torsions_row_layout.addWidget(self.at_no_torsions_label)
-        self.at_torsions_layout = QGridLayout()
-        torsions_row_layout.addLayout(self.at_torsions_layout)
-        torsions_row_layout.addStretch(1)
-        layout.addLayout(torsions_row_layout)
+        layout.addWidget(self.at_no_torsions_label, alignment=Qt.AlignCenter)
+        layout.addStretch(1)
+
+        self.torsion_data = {}
+        for b in self.session.bond_rotations.bond_rotations.keys():
+            for end_pt in b.atoms:
+                if not end_pt.neighbors:
+                    break
+            else:
+                self._at_add_torsion(b)
 
     def _layout_invert(self, parent):
         layout = QVBoxLayout()
