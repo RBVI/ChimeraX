@@ -5,24 +5,29 @@ PYTHON = ../ChimeraX.app/Contents/bin/python3.9
 
 BUNDLE ?=
 
-wheel: clean chimerax-copy
-	touch $(APP_PYSITEDIR)/chimerax/__init__.py
-	mv $(APP_PYSITEDIR)/chimerax/ui $(APP_PYSITEDIR)/chimerax_ui
+wheel: clean chimerax-copy pyproject.toml
+	touch chimerax/__init__.py
+	rm -rf chimerax/ui
 	python -m build
-	mv $(APP_PYSITEDIR)/chimerax_ui $(APP_PYSITEDIR)/chimerax/ui
-	rm $(APP_PYSITEDIR)/chimerax/__init__.py
 
-chimerax:
+pyproject.toml: ensure-chimerax pyproject.toml.in
+	$(APP_PYTHON_BIN) -I filter_deps.py
+
+chimerax-link: ensure-chimerax
 	ln -s $(APP_PYSITEDIR)/chimerax .
 
-chimerax-copy:
+chimerax-copy: ensure-chimerax
 	cp -r $(APP_PYSITEDIR)/chimerax .
 
-copy-bundle:
+copy-bundle: ensure-chimerax
 	cp -r $(APP_PYSITEDIR)/chimerax/${BUNDLE} chimerax/${BUNDLE}
 
 bundle-diff:
 	diff -r chimerax/${BUNDLE} ../src/bundles/${BUNDLE}/src
+
+ensure-chimerax:
+	@[ -e $(TOP)/$(APP_FILENAME) ] || (echo \
+		"ChimeraX not found; run 'make install' first before building the wheel." && exit 1)
 
 chimerax-diff:
 	diff chimerax $(APP_PYSITEDIR)/chimerax 
