@@ -6,8 +6,8 @@ PYTHON = ../ChimeraX.app/Contents/bin/python3.9
 BUNDLE ?=
 
 wheel: clean chimerax-copy pyproject.toml
-	touch chimerax/__init__.py
-	rm -rf chimerax/ui
+	$(APP_PYTHON_BIN) -I filter_modules.py
+	$(APP_PYTHON_BIN) -I make_init.py
 	python -m build
 
 pyproject.toml: ensure-chimerax pyproject.toml.in
