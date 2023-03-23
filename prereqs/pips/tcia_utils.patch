@@ -1,15 +1,41 @@
 --- tcia_utils/nbia.py.orig	2023-03-13 23:28:09
-+++ tcia_utils/nbia.py	2023-03-13 23:28:35
-@@ -12,8 +12,6 @@
++++ tcia_utils/nbia.py	2023-03-21 21:58:49
+@@ -1,7 +1,6 @@
+ ####### setup
+ import logging
+ import requests
+-import pandas as pd
+ import getpass
+ import json
+ import zipfile
+@@ -12,9 +11,13 @@
  import matplotlib.pyplot as plt
  import pydicom
  import numpy as np
 -from ipywidgets.widgets import *
 -import ipywidgets as widgets
  
++try:
++    import pandas as pd
++    _have_pandas = True
++except (ModuleNotFoundError, ImportError):
++    _have_pandas = False
++
  class StopExecution(Exception):
      def _render_traceback_(self):
-@@ -45,7 +43,8 @@
+         pass
+@@ -23,10 +26,6 @@
+ nlst_token_exp_time = datetime.now()
+ 
+ _log = logging.getLogger(__name__)
+-logging.basicConfig(
+-    format='%(asctime)s:%(levelname)s:%(message)s'
+-    , level=logging.INFO
+-)
+ 
+ ####### setApiUrl()
+ # Called by other functions to select base URL
+@@ -45,7 +44,8 @@
                         "getSeriesSize", "getUpdatedSeries"]
      advancedEndpoints = ["getModalityValuesAndCounts", "getBodyPartValuesAndCounts",
                           "getDicomTags", "getSeriesMetadata2", "getCollectionOrSeriesForDOI",
@@ -19,28 +45,139 @@
  
      if not endpoint in searchEndpoints and not endpoint in advancedEndpoints:
          _log.error(
-@@ -244,7 +243,17 @@
-         _log.error(errt)
+@@ -245,6 +245,16 @@
      except requests.exceptions.RequestException as err:
          _log.error(err)
-+
+ 
 +####### getCollectionDescriptions function
 +# Get HTML-formatted descriptions of collections and their DOIs
 +
 +def getCollectionDescriptions(api_url = "", format = ""):
 +    endpoint = "getCollectionDescriptions"
 +    options = {}
- 
++
 +    data = queryData(endpoint, options, api_url, format)
 +    return data
 +
  ####### getCollections function
  # Gets a list of collections from a specified api_url
  
-@@ -765,6 +774,57 @@
+@@ -580,13 +590,14 @@
+ 
+ def downloadSeries(series_data,
+                    number = 0,
++                   path = "",
+                    hash = "",
+                    api_url = "",
+                    input_type = "",
++                   foramt = "",
+                    csv_filename=""):
+ 
+     endpoint = "getImage"
+-    manifestDF=pd.DataFrame()
+     seriesUID = ''
+     success = 0
+     failed = 0
+@@ -595,6 +606,10 @@
+     # get base URL
+     base_url = setApiUrl(endpoint, api_url)
+ 
++    # Construct a dataframe for later
++    if format == "df" or format == "csv" or csv_filename != "":
++        manifestDF= pd.DataFrame()
++
+     # set sample size if you don't want to download the full set of results
+     if number > 0:
+         _log.info(f"Downloading {number} out of {len(series_data)} Series Instance UIDs (scans).")
+@@ -616,12 +631,15 @@
+             else:
+                 seriesUID = x['SeriesInstanceUID']
+             # set path for downloads and check for previously downloaded data
+-            path = "tciaDownload/" + seriesUID
++            if path != "":
++                pathTmp = path + "/" + seriesUID
++            else:
++                pathTmp = "tciaDownload/" + seriesUID
+             # set URLs
+             data_url = base_url + downloadOptions + seriesUID
+             metadata_url = base_url + "getSeriesMetaData?SeriesInstanceUID=" + seriesUID
+             # check if data was previously downloaded
+-            if not os.path.isdir(path):
++            if not os.path.isdir(pathTmp):
+                 _log.info(f"Downloading... {data_url}")
+                 # check if headers are necessary
+                 if api_url == "restricted":
+@@ -630,17 +648,18 @@
+                     data = requests.get(data_url)
+                 # if download was successful
+                 if data.status_code == 200:
+-                    # check if headers are necessary for metadata retrieval
+-                    if api_url == "restricted":
+-                        metadata = requests.get(metadata_url, headers = api_call_headers).json()
+-                    else:
+-                        metadata = requests.get(metadata_url).json()
++                    if format == "df" or format == "csv" or csv_filename != "":
++                        # check if headers are necessary for metadata retrieval
++                        if api_url == "restricted":
++                            metadata = requests.get(metadata_url, headers = api_call_headers).json()
++                        else:
++                            metadata = requests.get(metadata_url).json()
++                        # write the series metadata to a dataframe
++                        manifestDF = pd.concat([manifestDF, pd.DataFrame(metadata)], ignore_index=True)
+                     # unzip file
+                     file = zipfile.ZipFile(io.BytesIO(data.content))
+-                    file.extractall(path = "tciaDownload/" + "/" + seriesUID)
+-                    # write the series metadata to a dataframe
+-                    manifestDF = pd.concat([manifestDF, pd.DataFrame(metadata)], ignore_index=True)
+-                    # count successes and break if number parameter is met
++                    file.extractall(path = pathTmp)
++                     # count successes and break if number parameter is met
+                     success += 1;
+                     if number > 0:
+                         if success == number:
+@@ -650,13 +669,14 @@
+                     failed += 1;
+             # if data has already been downloaded, only write metadata to df
+             else:
+-                # get series metadata
+-                if api_url == "restricted":
+-                    metadata = requests.get(metadata_url, headers = api_call_headers).json()
+-                else:
+-                    metadata = requests.get(metadata_url).json()
+-                # write the series metadata to a dataframe
+-                manifestDF = pd.concat([manifestDF, pd.DataFrame(metadata)], ignore_index=True)
++                if format == "df" or format == "csv" or csv_filename != "":
++                    # get series metadata
++                    if api_url == "restricted":
++                        metadata = requests.get(metadata_url, headers = api_call_headers).json()
++                    else:
++                        metadata = requests.get(metadata_url).json()
++                    # write the series metadata to a dataframe
++                    manifestDF = pd.concat([manifestDF, pd.DataFrame(metadata)], ignore_index=True)
+                 _log.warning(f"Series {seriesUID} already downloaded.")
+                 previous += 1;
+         # summarize download results
+@@ -677,8 +697,14 @@
+             manifestDF.to_csv(csv_filename + '.csv')
+             _log.info(f"Manifest CSV saved as {csv_filename}.csv")
+             return manifestDF
+-        else:
++        if format == "csv" and csv_filename == "":
++            now = datetime.now()
++            dt_string = now.strftime("%Y-%m-%d_%H%M")
++            manifestDF.to_csv('downloadSeries_metadata_' + dt_string + '.csv')
++            _log.info(f"Series metadata saved as downloadSeries_metadata_{dt_string}.csv")
+             return manifestDF
++        if format == "df":
++            return manifestDF
+ 
+     except requests.exceptions.HTTPError as errh:
+         _log.error(errh)
+@@ -764,7 +790,58 @@
+ 
      data = queryData(endpoint, options, api_url, format)
      return data
- 
++
 +def getSimpleSearchWithModalityAndBodyPartPaged(api_url = "", collection = "", format=""):
 +    endpoint = "getSimpleSearchWithModalityAndBodyPartPaged"
 +    options = {}
@@ -81,7 +218,7 @@
 +                return metadata
 +        else:
 +            _log.info("No results found.")
-+
+ 
 +    except requests.exceptions.HTTPError as errh:
 +        _log.error(errh)
 +    except requests.exceptions.ConnectionError as errc:
@@ -95,7 +232,7 @@
  ####### getModalityCounts function (Advanced)
  # Get counts of Modality metadata from Advanced API
  # Allows filtering by collection and bodyPart
-@@ -1034,6 +1094,7 @@
+@@ -1034,6 +1111,7 @@
  #   provided since this is where downloadSeries() saves data
  
  def viewSeries(seriesUid = "", path = ""):

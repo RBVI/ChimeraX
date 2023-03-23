@@ -3,15 +3,14 @@ TOP	= ../..
 include $(TOP)/mk/config.make
 
 # Using OpenMM builds from https://anaconda.org/conda-forge/openmm/files
-
-VERSION = 8.0.0dev2
+VERSION = 8.0.0
 
 ifeq ($(OS),Darwin)
 PLATFORM = mac
 ifeq ($(MACOS_ARCH),arm64)
-DISTRIBUTION = openmm-8.0.0dev2-mac-py39hff2a810_0_apple.tar.bz2
+DISTRIBUTION = openmm-8.0.0-mac-py39ha14061b_0_apple.tar.bz2
 else
-DISTRIBUTION = openmm-8.0.0dev2-mac-py39h6369d3c_0_apple.tar.bz2 
+DISTRIBUTION = openmm-8.0.0-mac-py39hc22aeb8_0_apple.tar.bz2
 endif
 endif
 ifeq ($(OS),Linux)
@@ -24,7 +23,7 @@ endif
 ifeq ($(OS),Windows)
 PLATFORM = windows
 # Using CUDA 11.2
-DISTRIBUTION = openmm-8.0.0dev2-win-py39h2179fd6_0.tar.bz2
+DISTRIBUTION = openmm-8.0.0-win-py39h98f037e_0.tar.bz2
 endif
 
 SOURCE = $(tmpdir)/OpenMM-$(VERSION)-$(PLATFORM)

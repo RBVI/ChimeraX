@@ -817,7 +817,7 @@ class DataFormat(Provider):
         , "reference-url": None
         , "suffixes": None
         , "synopsis": None
-        , "allow_directory": False
+        , "allow-directory": False
         , "insecure": False
         , "mime-types": []
     }
@@ -854,7 +854,7 @@ class FormatReader(Provider):
 
 class FormatSaver(Provider):
     default_attrs = {
-        "compression_okay": True
+        "compression-okay": True
         , "is-default": True
     }
 
