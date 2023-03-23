@@ -19,6 +19,8 @@ class BondRotationManager(StateManager):
     """Manager for bond rotations"""
     CREATED, MODIFIED, REVERSED, DELETED = trigger_names = ("created", "modified",
         "reversed", "deleted")
+    # so you don't have to know how to import it...
+    BondRotationError = BondRotationError
 
     def __init__(self, session, bundle_info):
         self.bond_rotations = {} # bond -> BondRotation

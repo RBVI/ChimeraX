@@ -27,6 +27,7 @@
     <Dependency name="ChimeraX-AddH" version="~=2.0"/>
     <Dependency name="ChimeraX-Atomic" version="~=1.11"/>
     <Dependency name="ChimeraX-AtomSearch" version="~=2.0"/>
+    <Dependency name="ChimeraX-BondRot" version="~=2.0"/>
     <Dependency name="ChimeraX-Geometry" version="~=1.0"/>
 	<Dependency name="ChimeraX-RotamerLibMgr" version="~=3.0"/>
     <Dependency name="ChimeraX-StdCommands" version="~=1.0"/>
