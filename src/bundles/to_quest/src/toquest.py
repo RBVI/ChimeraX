@@ -91,6 +91,7 @@ class ToQuest(ToolInstance):
                          ('10', lambda: self._set_atom_triangles(10)),
                          ('30', lambda: self._set_atom_triangles(30)),
                          ('100', lambda: self._set_atom_triangles(100)),
+                         ('300', lambda: self._set_atom_triangles(300)),
                          '   bonds', 60,
                          ('12', lambda: self._set_bond_triangles(12)),
                          ('20', lambda: self._set_bond_triangles(20)),
