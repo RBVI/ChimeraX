@@ -29,6 +29,7 @@
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
     <ChimeraXClassifier>Command :: linux xdg-install :: General :: Integrate ChimeraX with Linux desktop</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: linux xdg-uninstall :: General :: Remove integration with Linux desktop</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: linux flatpak-files :: General :: Generate flatpak metainfo and desktop files</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

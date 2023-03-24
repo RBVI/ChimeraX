@@ -12,14 +12,14 @@
 # === UCSF ChimeraX Copyright ===
 
 import sys
-from chimerax.core.commands import CmdDesc, BoolArg
+from chimerax.core.commands import CmdDesc, BoolArg, StringArg
 from chimerax.core.errors import UserError
 
 
 def linux_xdg_install(session, verbose=False, system=False):
     if sys.platform != "linux":
         raise UserError("Only runs on Linux")
-    from ._xdg import install
+    from .xdg import install
     install(session, verbose=verbose, system=system)
 
 
@@ -35,7 +35,7 @@ linux_xdg_install_desc = CmdDesc(
 def linux_xdg_uninstall(session, verbose=False, system=False):
     if sys.platform != "linux":
         raise UserError("Only runs on Linux")
-    from ._xdg import uninstall
+    from .xdg import uninstall
     uninstall(session, verbose=verbose, system=system)
 
 
@@ -46,3 +46,20 @@ linux_xdg_uninstall_desc = CmdDesc(
     ],
     hidden=["system"],
     synopsis='Uninstall desktop menu and icons')
+
+
+def linux_flatpak_files(session, ident, verbose=False):
+    if sys.platform != "linux":
+        raise UserError("Only runs on Linux")
+    from .flatpak import flatpak_files
+    flatpak_files(session, ident, verbose=verbose)
+
+
+linux_flatpak_files_desc = CmdDesc(
+    required=[
+        ("ident", StringArg),
+    ],
+    keyword=[
+        ("verbose", BoolArg),
+    ],
+    synopsis='Generate flatpak metainfo and desktop files')
