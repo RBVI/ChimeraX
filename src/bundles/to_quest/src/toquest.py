@@ -91,7 +91,7 @@ class ToQuest(ToolInstance):
                          '   bonds', 60,
                          ('12', lambda: self._set_bond_triangles(12)),
                          ('20', lambda: self._set_bond_triangles(20)),
-                         ('60', lambda: self._set_bond_triangles(20)))
+                         ('60', lambda: self._set_bond_triangles(60)))
         self._atom_triangles, self._bond_triangles = at,bt = abt.values
         at.pixel_width, bt.pixel_width = 40,20
         at.return_pressed.connect(lambda *unused: self._set_atom_triangles())
