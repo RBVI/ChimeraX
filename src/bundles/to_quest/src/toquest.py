@@ -27,6 +27,8 @@ class ToQuest(ToolInstance):
     def __init__(self, session, tool_name):
         ToolInstance.__init__(self, session, tool_name)
 
+        self._settings = _ToQuestSettings(session, "send_to_quest")
+
         from chimerax.ui import MainToolWindow
         tw = MainToolWindow(self, close_destroys=True)
         self.tool_window = tw
@@ -258,6 +260,10 @@ class ToQuest(ToolInstance):
     def _send_to_quest(self):
         if self._too_many_triangles():
             return
+
+        if not self._have_adb_path():
+            self._need_adb()
+            return
         
         # Save current scene.
         from os.path import expanduser, sep
@@ -294,7 +300,10 @@ class ToQuest(ToolInstance):
             if err:
                 lines.extend(['stderr:', err])
             self.session.logger.error('\n'.join(lines))
-
+        else:
+            self._settings.adb_executable_path = adb
+            self._settings.quest_app_name = app
+            
     # ---------------------------------------------------------------------------
     #
     def _show_or_hide_options(self):
@@ -313,16 +322,14 @@ class ToQuest(ToolInstance):
         ac = EntriesRow(f, 'adb executable', '', ('Browse', self._choose_adb_path))
         self._adb_path = adb = ac.values[0]
         adb.pixel_width = 350
-        from sys import platform
-        adb_path = '/opt/homebrew/bin/adb' if platform == 'darwin' else 'adb'
-# Windows vive.cgl.ucsf.edu:        
-#        adb_path = 'C:/Program Files/Unity/Hub/Editor/2022.2.5f1/Editor/Data/PlaybackEngines/AndroidPlayer/SDK/platform-tools/adb.exe'
-        adb.value = adb_path
+        adb.value = self._settings.adb_executable_path
 
         # Use PDB structure templates option for prediction
         ut = EntriesRow(f, 'Send to Quest application', True, 'Lookie', False, 'LookieAR')
         self._send_to_lookie, self._send_to_lookie_ar = ut.values
         radio_buttons(*ut.values)
+        if self._settings.quest_app_name == 'LookieAR':
+            self._send_to_lookie_ar.value = True
         
         return p
         
@@ -334,7 +341,32 @@ class ToQuest(ToolInstance):
         path, ftype  = QFileDialog.getOpenFileName(parent, caption = f'adb executable')
         if path:
             self._adb_path.value = path
+            self._settings.adb_executable_path = path
 
+    # ---------------------------------------------------------------------------
+    #
+    def _have_adb_path(self):
+        adb = self._adb_path.value.strip()
+        from os import path
+        return adb and path.exists(adb)
+
+    # ---------------------------------------------------------------------------
+    #
+    def _need_adb(self):
+        msg = (
+            '<h2>ADB program needed to send files to Quest</h2>'
+            '<p>'
+            'To transfer files to the Quest you need the "adb" program installed '
+            'on your computer and you need to give the path to that program by '
+            'clicking the Options button in the Send to Quest panel '
+            'and filling in the adb executable entry field. '
+            'The adb command-line program is part of Android Studio SDK Platform-Tools '
+            'obtained here: '
+            '</p>'
+            '<a href="https://developer.android.com/studio/releases/platform-tools">https://developer.android.com/studio/releases/platform-tools</a>'
+            )
+        self.session.logger.error(msg, is_html = True)
+    
     # ---------------------------------------------------------------------------
     #
     def _help(self):
@@ -342,6 +374,15 @@ class ToQuest(ToolInstance):
       help_url = 'file://' + join(dirname(__file__), 'help.html')
       from chimerax.help_viewer import show_url
       show_url(self.session, help_url)
+
+# -----------------------------------------------------------------------------
+#
+from chimerax.core.settings import Settings
+class _ToQuestSettings(Settings):
+    AUTO_SAVE = {
+        'adb_executable_path': '',
+        'quest_app_name': 'Lookie',
+    }
         
 def to_quest_panel(session, create = True):
   return ToQuest.get_singleton(session, create)
