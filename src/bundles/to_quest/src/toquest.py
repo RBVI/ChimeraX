@@ -79,8 +79,9 @@ class ToQuest(ToolInstance):
         f = QFrame(parent)
         from chimerax.ui.widgets import vertical_layout, EntriesRow
         layout = vertical_layout(f, margins = (5,0,0,0))
+        max_tri = 900000 if self._settings.quest_app_name == 'Lookie' else 300000
         tc = EntriesRow(f, '#', 'scene triangles',
-                        '    ', True, 'Maximum', 900000)
+                        '    ', True, 'Maximum', max_tri)
         self._triangle_count = tcount = tc.labels[0]
         self._use_max_triangles, self._max_triangles = um, mt = tc.values
         mt.pixel_width = 70
@@ -326,7 +327,12 @@ class ToQuest(ToolInstance):
 
         # Use PDB structure templates option for prediction
         ut = EntriesRow(f, 'Send to Quest application', True, 'Lookie', False, 'LookieAR')
-        self._send_to_lookie, self._send_to_lookie_ar = ut.values
+        self._send_to_lookie, self._send_to_lookie_ar = sl,slar = ut.values
+        def set_max_tri(set, value):
+            if set:
+                self._max_triangles.value = value
+        sl.changed.connect(lambda checked: set_max_tri(checked, 900000))
+        slar.changed.connect(lambda checked: set_max_tri(checked, 300000))
         radio_buttons(*ut.values)
         if self._settings.quest_app_name == 'LookieAR':
             self._send_to_lookie_ar.value = True
