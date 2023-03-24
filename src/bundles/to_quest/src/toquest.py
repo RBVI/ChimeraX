@@ -13,7 +13,7 @@
 
 # -----------------------------------------------------------------------------
 # User interface for sending scenes to Quest VR headset for viewing with
-# Lookie app
+# LookSee app
 #
 from chimerax.core.tools import ToolInstance
 
@@ -79,7 +79,7 @@ class ToQuest(ToolInstance):
         f = QFrame(parent)
         from chimerax.ui.widgets import vertical_layout, EntriesRow
         layout = vertical_layout(f, margins = (5,0,0,0))
-        max_tri = 900000 if self._settings.quest_app_name == 'Lookie' else 300000
+        max_tri = 900000 if self._settings.quest_app_name == 'LookSee' else 300000
         tc = EntriesRow(f, '#', 'scene triangles',
                         '    ', True, 'Maximum', max_tri)
         self._triangle_count = tcount = tc.labels[0]
@@ -275,14 +275,14 @@ class ToQuest(ToolInstance):
 
         # Transfer scene file to Quest using adb
         adb = self._adb_path.value
-        app = 'Lookie' if self._send_to_lookie.enabled else 'LookieAR'
-        lookie_dir = f'/sdcard/Android/data/com.UCSF.{app}/files'
-        cmd = f'"{adb}" push {path} {lookie_dir}'
-        self.session.logger.info(f'Running command: {cmd}')
+        app = 'LookSee' if self._send_to_looksee.enabled else 'LookSeeAR'
+        scenes_dir = f'/sdcard/Android/data/com.UCSF.{app}/files'
 
         # all output is on stderr, but Windows needs all standard I/O to
         # be redirected if one is, so stdout is a pipe too
-        args = [adb, "push", path, lookie_dir]
+        args = [adb, "push", path, scenes_dir]
+        cmd = ' '.join(args)
+        self.session.logger.info(f'Running command: {cmd}')
         from subprocess import Popen, PIPE, DEVNULL
         p = Popen(args, stdin=DEVNULL, stdout=PIPE, stderr=PIPE)
         out, err = p.communicate()
@@ -327,16 +327,16 @@ class ToQuest(ToolInstance):
         adb.value = self._settings.adb_executable_path
 
         # Use PDB structure templates option for prediction
-        ut = EntriesRow(f, 'Send to Quest application', True, 'Lookie', False, 'LookieAR')
-        self._send_to_lookie, self._send_to_lookie_ar = sl,slar = ut.values
+        ut = EntriesRow(f, 'Send to Quest application', True, 'LookSee', False, 'LookSeeAR')
+        self._send_to_looksee, self._send_to_looksee_ar = sl,slar = ut.values
         def set_max_tri(set, value):
             if set:
                 self._max_triangles.value = value
         sl.changed.connect(lambda checked: set_max_tri(checked, 900000))
         slar.changed.connect(lambda checked: set_max_tri(checked, 300000))
         radio_buttons(*ut.values)
-        if self._settings.quest_app_name == 'LookieAR':
-            self._send_to_lookie_ar.value = True
+        if self._settings.quest_app_name == 'LookSeeAR':
+            self._send_to_looksee_ar.value = True
         
         return p
         
@@ -388,7 +388,7 @@ from chimerax.core.settings import Settings
 class _ToQuestSettings(Settings):
     AUTO_SAVE = {
         'adb_executable_path': '',
-        'quest_app_name': 'Lookie',
+        'quest_app_name': 'LookSee',
     }
         
 def to_quest_panel(session, create = True):
