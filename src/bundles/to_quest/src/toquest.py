@@ -314,7 +314,7 @@ class ToQuest(ToolInstance):
         self._adb_path = adb = ac.values[0]
         adb.pixel_width = 350
         from sys import platform
-        adb_path = '/opt/homebrew/bin/adb' if platform == 'darwin' else adb
+        adb_path = '/opt/homebrew/bin/adb' if platform == 'darwin' else 'adb'
 # Windows vive.cgl.ucsf.edu:        
 #        adb_path = 'C:/Program Files/Unity/Hub/Editor/2022.2.5f1/Editor/Data/PlaybackEngines/AndroidPlayer/SDK/platform-tools/adb.exe'
         adb.value = adb_path
