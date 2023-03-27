@@ -421,6 +421,8 @@ class StructureTugger:
 
         from openmm import app
         forcefield = app.ForceField(*self._forcefields)
+
+        self._add_ligands_to_forcefield(self.structure.residues, forcefield)
 #        self._add_hydrogens(pdb, forcefield)
 
         self._system = system = self._create_system(forcefield)
@@ -441,6 +443,57 @@ class StructureTugger:
         for name in ('k', 'x0', 'y0', 'z0'):
             force.addPerParticleParameter(name)
         system.addForce(force)
+
+    def _add_ligands_to_forcefield(self, residues, forcefield):
+        param_dir = self._ligand_parameters_directory()
+        if param_dir is None:
+            return     # TugLigands toolshed bundle not installed
+        
+        known_ligands = set(forcefield._templates.keys())
+        known_ligands.add('HIS')	# Seems OpenMM handles this specially.
+        from numpy import unique
+        rnames = [rname for rname in unique(residues.names) if rname not in known_ligands]
+        if len(rnames) == 0:
+            return
+
+        # Load GAFF atom types needed by Moriarty and Case ligand parameterizations.
+        if not hasattr(self, '_gaff_types_added'):
+            # Moriarty and Case parameterization uses GAFF atom types.
+            from os import path
+            gaff_types = path.join(param_dir, 'gaff2.xml')
+            forcefield.loadFile(gaff_types)
+            
+        # Try getting ligand parameters from Moriarty and Case parameterization of all PDB ligands.
+        rnames_not_found = []
+        from os import path
+        mc_ligand_zip = path.join(param_dir, 'moriarty_and_case_ligands.zip')
+        from zipfile import ZipFile
+        with ZipFile(mc_ligand_zip) as zf:
+            for rname in rnames:
+                try:
+                    with zf.open(rname+'.xml') as xml_file:
+                        forcefield.loadFile(xml_file)
+                except KeyError:
+                    rnames_not_found.append(rname)
+
+        # Warn about ligands without parameters
+        log = residues[0].structure.session.logger
+        if rnames_not_found:
+            log.warning('Could not find OpenMM parameters for %d residues %s in %s'
+                        % (len(rnames_not_found), ', '.join(rnames_not_found), mc_ligand_zip))
+
+        # Note ligands with parameters.
+        rnames_found = [rname for rname in rnames if rname not in rnames_not_found]
+        if rnames_found:
+            log.info('Using OpenMM parameters from Moriarty and Case for %d residues %s'
+                     % (len(rnames_found), ', '.join(rnames_found)))
+
+    def _ligand_parameters_directory(self):
+        try:
+            from chimerax import tug_ligands
+        except ImportError:
+            return None
+        return tug_ligands.parameters_directory
 
     def _system_from_prmtop(self, prmtop_path, impcrd_path):
         # load in Amber input files
