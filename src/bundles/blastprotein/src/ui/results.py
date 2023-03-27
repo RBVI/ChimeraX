@@ -197,7 +197,7 @@ class BlastProteinResults(ToolInstance):
         if model_no:
             try:
                 model_formatted = ''.join([self.job.model_name, chain])
-            except KeyError:
+            except (KeyError, AttributeError):
                 model_formatted = None
         else:
             model_formatted = None
