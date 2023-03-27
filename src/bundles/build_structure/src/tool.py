@@ -107,15 +107,17 @@ class BuildStructureTool(ToolInstance):
             raise UserError("Exactly one bond must be selected in graphics window")
         bond = sel_bonds[0]
         for end_pt in bond.atoms:
-            if not end_pt.neighbors:
+            if len(end_pt.neighbors) == 1:
                 raise UserError("Bond must have other atoms bonded to both ends to form torsion")
-        self._at_add_torsion(bond)
-
-    def _at_add_torsion(self, bond):
         try:
-            rotater = self.session.bond_rotations.new_rotation(bond, one_shot=False)
+            self.session.bond_rotations.new_rotation(bond, one_shot=False)
         except self.session.bond_rotations.BondRotationError as e:
             raise UserError(str(e))
+
+    def _at_add_torsion(self, rotater):
+        # _at_activate notifies the user about bond rotations that can't be torsions,
+        # we have to check here again to silently drop non-torsion rotations coming from other sources...
+        bond = rotater.rotation.bond
         self.at_no_torsions_label.hide()
         for header in self.at_header_widgets:
             header.show()
@@ -133,7 +135,8 @@ class BuildStructureTool(ToolInstance):
         self.torsion_data[rotater] = (row, bond, torsion_atoms, widgets)
         close_button = QToolButton()
         close_action = QAction(close_button)
-        close_action.triggered.connect(lambda *args, torsion=rotater, f=self._at_remove_torsion: f(torsion))
+        close_action.triggered.connect(lambda *args, rotater=rotater, manager=self.session.bond_rotations:
+            manager.delete_rotation(rotater))
         close_action.setIcon(self.session.ui.style().standardIcon(QStyle.SP_TitleBarCloseButton))
         close_button.setDefaultAction(close_action)
         grid.addWidget(close_button, row, 0)
@@ -145,21 +148,43 @@ class BuildStructureTool(ToolInstance):
                 if nb.name == terminus.name:
                     return terminus.string(relative_to=bonded)
             return terminus.name
-        for col, terminus, bonded in [(1, torsion_atoms[0], fixed), (3, torsion_atoms[1], moving)]:
+        for col, torsion_index, bonded in [(1, 0, fixed), (3, 1, moving)]:
+            terminus = torsion_atoms[torsion_index]
             single_widget = QLabel(terminus.name)
             multi_widget = QPushButton(multi_name(terminus, bonded, bond.other_atom(bonded)))
+            multi_menu = QMenu(multi_widget)
+            multi_menu.aboutToShow.connect(lambda *args, menu=multi_menu, end=bonded, bond=bond,
+                torsion_atoms=torsion_atoms, index=torsion_index, rotater=rotater:
+                self._at_compose_menu(menu, multi_widget, bonded, bond, index, rotater))
+            multi_widget.setMenu(multi_menu)
             show_multi = bonded.num_bonds > 2
             grid.addWidget(single_widget, row, col, alignment=Qt.AlignCenter)
             grid.addWidget(multi_widget, row, col, alignment=Qt.AlignCenter)
             single_widget.setHidden(show_multi)
             multi_widget.setHidden(not show_multi)
             widgets.extend([single_widget, multi_widget])
-        #TODO: get bond label in fixed->moving order
-        bond_label = QLabel(str(bond))
+        reversed = fixed == bond.atoms[1]
+        bond_label = QLabel(bond.string(minimal=True, reversed=reversed))
         grid.addWidget(bond_label, row, 2, alignment=Qt.AlignCenter)
         widgets.append(bond_label)
-
         widgets.append(close_button)
+
+    def _at_compose_menu(self, menu, menu_button, end_atom, bond, torsion_index, rotater):
+        menu.clear()
+        other_atom = bond.other_atom(end_atom)
+        for nb in end_atom.neighbors:
+            if nb == other_atom:
+                continue
+            action = QAction(menu)
+            action.setText(nb.string(relative_to=end_atom, minimal=True))
+            action.triggered.connect(lambda *args, torsion_index=torsion_index, rotater=rotater,
+                button=menu_button, text=action.text(), f=self._at_menu_cb: (button.setText(text),
+                f(nb, rotater, torsion_index)))
+            menu.addAction(action)
+
+    def _at_menu_cb(self, torsion_atom, rotater, torsion_index):
+        (row, bond, torsion_atoms, widgets) = self.torsion_data[rotater]
+        torsion_atoms[torsion_index] = torsion_atom
 
     def _at_remove_torsion(self, rotater):
         for widget in self.torsion_data[rotater][-1]:
@@ -332,13 +357,20 @@ class BuildStructureTool(ToolInstance):
         layout.addWidget(self.at_no_torsions_label, alignment=Qt.AlignCenter)
         layout.addStretch(1)
 
+        manager = self.session.bond_rotations
         self.torsion_data = {}
-        for b in self.session.bond_rotations.bond_rotations.keys():
-            for end_pt in b.atoms:
+        for bond, rotation in manager.bond_rotations.items():
+            for end_pt in bond.atoms:
                 if not end_pt.neighbors:
                     break
             else:
-                self._at_add_torsion(b)
+                for rotater in rotation.rotaters:
+                    if not rotater.one_shot:
+                        self._at_add_torsion(rotater)
+        self.handlers.append(manager.triggers.add_handler(manager.CREATED,
+            lambda name, rotater, *, f=self._at_add_torsion: f(rotater)))
+        self.handlers.append(manager.triggers.add_handler(manager.DELETED,
+            lambda name, rotater, *, f=self._at_remove_torsion: f(rotater)))
 
     def _layout_invert(self, parent):
         layout = QVBoxLayout()

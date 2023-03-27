@@ -162,3 +162,4 @@ src/apps/ChimeraX/ChimeraX-icon64.png
 src/apps/ChimeraX/ChimeraX-icon32.png
 src/apps/ChimeraX/ChimeraX-icon16.png
 wheel/chimerax
+wheel/pyproject.toml
