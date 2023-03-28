@@ -99,6 +99,12 @@ class FileHistory:
             self._save_files = True
             self.history_changed()
 
+    def clear_file_history(self):
+        f = self._files
+        f.clear()
+        self._save_files = True
+        self.history_changed()
+
     def history_changed(self):
         self.session.triggers.activate_trigger('file history changed', self._files)
             
