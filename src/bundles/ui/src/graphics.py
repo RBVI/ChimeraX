@@ -51,7 +51,8 @@ class GraphicsWindow(QWindow):
         if self.handle_drag_and_drop(event):
             return True
         from Qt.QtCore import QEvent
-        if event.type() == QEvent.Type.Show:
+        if event.type() == QEvent.Type.Show and not getattr(self, '_first_show', False):
+            self._first_show = True
             self.session.ui.mouse_modes.set_graphics_window(self)
             self._check_opengl()
         return QWindow.event(self, event)
@@ -60,6 +61,8 @@ class GraphicsWindow(QWindow):
         r = self.view.render
         log = self.session.logger
         from chimerax.graphics import OpenGLVersionError, OpenGLError
+        from chimerax.graphics import remember_current_opengl_context, restore_current_opengl_context
+        cc = remember_current_opengl_context()
         try:
             mc = r.make_current()
         except (OpenGLVersionError, OpenGLError) as e:
@@ -74,6 +77,8 @@ class GraphicsWindow(QWindow):
                 log.error(msg)
 
             self._check_for_bad_intel_driver()
+
+        restore_current_opengl_context(cc)
 
     def _check_for_bad_intel_driver(self):
         import sys

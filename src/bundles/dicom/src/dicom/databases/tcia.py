@@ -21,6 +21,8 @@ from chimerax.core.fetch import cache_directories
 from chimerax.core.commands import run
 from tcia_utils import nbia
 
+from ..dicom import DICOM
+
 _nbia_base_url = "https://services.cancerimagingarchive.net/nbia-api/services/v1/"
 
 logging.getLogger('tcia_utils').setLevel(100)
@@ -87,7 +89,9 @@ class TCIADatabase:
         os.chdir(old_cwd)
         status_message = ""
         if os.path.exists(final_download_dir):
-            run(session, f"open {final_download_dir} format dicom")
+            models, msg = DICOM.from_paths(session, final_download_dir).open()
+            msg += "Images from TCIA may be rotated so that flat planes appear invisible. If the screen looks black but no error message has been issued, try rotating the model into view with your mouse."
         else:
-            status_message = "No images were returned by TCIA"
-        return [], status_message
+            models = []
+            msg = "No images were returned by TCIA"
+        return models, msg
