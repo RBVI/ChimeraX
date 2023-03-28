@@ -276,7 +276,8 @@ see <a href="#multiwindowing">details</a>
 <td align="center"><img src="mouse-icons/bondrot.png" width="35px"></td>
 <td align="center"><b>bond rotation</b></td>
 <td align="center" class="text">adjust torsion angle (original position not 
-retained) by clicking a bond and dragging vertically;
+retained) by clicking a bond and dragging vertically, <b>+Shift</b> to
+move the larger set of atoms in the molecule instead of the smaller;
 see also <a href="../commands/torsion.html"><b>torsion</b></a></td>
 </tr><tr>
 <td align="center"><img src="mouse-icons/swapaa.png" width="35px"></td>
@@ -389,16 +390,26 @@ See also:
 <h3>OpenMM Dynamics</h3>
 <p>
 To work with the <b>tug</b> or <b>minimize</b> mouse modes,
-the entire atomic model must be parametrized in OpenMM.
+the entire atomic model must be parametrized in OpenMM,
+meaning that the structure:
+</p>
+<ol>
+<li>must be fully protonated (have all hydrogen atoms present).
+Hydrogen atoms can be added beforehand with 
+<a href="addhydrogens.html"><b>Add Hydrogens</b></a> or
+the command <a href="../commands/addh.html"><b>addh</b></a>.
+<li>must contain only standard residues and water,
 <!-- 
-uses the following from 
+parameters from 
 https://github.com/pandegroup/openmm/tree/master/wrappers/python/simtk/openmm/app/data/amber14 : protein.ff14SB.xml DNA.OL15.xml RNA.OL3.xml lipid17.xml tip3p.xml
 -->
-Currently, this requires a fully protonated structure
-containing only standard residues and/or water.
-Protons can be added beforehand with the command
-<a href="../commands/addh.html"><b>addh</b></a>.
-</p><p>
+unless the <a href="https://cxtoolshed.rbvi.ucsf.edu/apps/chimeraxtugligands"
+target="_blank"><b>TugLigands</b> bundle</a>, which contains
+parameters for &gt;21K additional residue types, has been installed from the
+<a href="https://cxtoolshed.rbvi.ucsf.edu/"
+target="_blank">ChimeraX Toolshed</a>.
+</ol>
+<p>
 The <b>tug</b> mode runs dynamics on the entire atomic model.
 A model named <b>Tug arrow</b> is added to show the location and direction
 of tugging.
@@ -523,5 +534,5 @@ both rotates and translates the volume-data slice in
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-October 2022</address>
+March 2023</address>
 </body></html>
