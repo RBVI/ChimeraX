@@ -30,6 +30,8 @@ finish-args:
   - --filesystem=xdg-config/ChimeraX:create
   - --filesystem=xdg-data/ChimeraX:create
   - --filesystem=xdg-download/ChimeraX:create
+  # want to be able to open files in current directory
+  - --filesystem=host
 
 modules:
   - name: chimerax

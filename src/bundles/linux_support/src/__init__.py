@@ -11,7 +11,7 @@ class _MyAPI(BundleAPI):
         from chimerax.core.commands import register
         base_cmd = "linux"
         # for subcmd in ("", " style", " style list", " style delete"):
-        for subcmd in (" xdg-install", " xdg-uninstall"):
+        for subcmd in (" xdg-install", " xdg-uninstall", " flatpak-files"):
             cmd_name = base_cmd + subcmd
             func_name = cmd_name.replace(' ', '_').replace('-', '_')
             func = getattr(cmd, func_name)

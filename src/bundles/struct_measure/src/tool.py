@@ -142,7 +142,9 @@ class StructMeasureTool(ToolInstance):
             spec_source = sel_atoms
         target_spec = "".join([x.atomspec for x in spec_source])
         item_spec = "".join([x.atomspec for x in sel])
-        info = run(self.session, "distance %s %s" % (target_spec, item_spec))
+        need_monitor = (len(sel) == 1 and isinstance(sel[0], CentroidModel)) and len(sel_atoms) == 1
+        info = run(self.session, "distance %s %s%s" % (target_spec, item_spec,
+            (" monitor false" if need_monitor else "")))
         if len(sel) == 1:
             dist_fmt = self.session.pb_dist_monitor.distance_format
             if isinstance(info, float):
