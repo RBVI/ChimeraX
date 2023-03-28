@@ -60,6 +60,8 @@ class GraphicsWindow(QWindow):
         r = self.view.render
         log = self.session.logger
         from chimerax.graphics import OpenGLVersionError, OpenGLError
+        from chimerax.graphics import remember_current_opengl_context, restore_current_opengl_context
+        cc = remember_current_opengl_context()
         try:
             mc = r.make_current()
         except (OpenGLVersionError, OpenGLError) as e:
@@ -74,6 +76,8 @@ class GraphicsWindow(QWindow):
                 log.error(msg)
 
             self._check_for_bad_intel_driver()
+
+        restore_current_opengl_context(cc)
 
     def _check_for_bad_intel_driver(self):
         import sys
