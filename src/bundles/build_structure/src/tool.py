@@ -16,7 +16,7 @@ from chimerax.core.errors import UserError
 from chimerax.core.commands import run
 from Qt.QtWidgets import QVBoxLayout, QPushButton, QMenu, QStackedWidget, QWidget, QLabel, QFrame
 from Qt.QtWidgets import QGridLayout, QRadioButton, QHBoxLayout, QLineEdit, QCheckBox, QGroupBox
-from Qt.QtWidgets import QButtonGroup, QAbstractButton, QStyle, QToolButton
+from Qt.QtWidgets import QButtonGroup, QAbstractButton, QStyle, QToolButton, QDoubleSpinBox, QDial
 from Qt.QtGui import QAction
 from Qt.QtCore import Qt
 
@@ -155,7 +155,7 @@ class BuildStructureTool(ToolInstance):
             multi_menu = QMenu(multi_widget)
             multi_menu.aboutToShow.connect(lambda *args, menu=multi_menu, end=bonded, bond=bond,
                 torsion_atoms=torsion_atoms, index=torsion_index, rotater=rotater:
-                self._at_compose_menu(menu, multi_widget, bonded, bond, index, rotater))
+                self._at_compose_menu(menu, end, bond, index, rotater))
             multi_widget.setMenu(multi_menu)
             show_multi = bonded.num_bonds > 2
             grid.addWidget(single_widget, row, col, alignment=Qt.AlignCenter)
@@ -168,8 +168,101 @@ class BuildStructureTool(ToolInstance):
         grid.addWidget(bond_label, row, 2, alignment=Qt.AlignCenter)
         widgets.append(bond_label)
         widgets.append(close_button)
+        angle_text = QDoubleSpinBox()
+        angle_text.setDecimals(1)
+        angle_text.setRange(-180.0, 180.0)
+        angle_text.setSingleStep(1.0)
+        angle_text.setWrapping(True)
+        angle_text.setAlignment(Qt.AlignRight)
+        grid.addWidget(angle_text, row, 4, alignment=Qt.AlignLeft)
+        widgets.append(angle_text)
+        # QDial is integer, so x10...
+        dial = QDial()
+        dial.setMinimum(-1800)
+        dial.setMaximum(1800)
+        dial.setSingleStep(10)
+        dial.setWrapping(True)
+        grid.addWidget(dial, row, 5, alignment=Qt.AlignLeft)
+        widgets.append(dial)
 
-    def _at_compose_menu(self, menu, menu_button, end_atom, bond, torsion_index, rotater):
+        self._at_update_torsion_value(rotater)
+
+    def _at_atomic_changes_cb(self, trig_name, trig_data):
+        if trig_name == 'changes':
+            update_names = 'name changed' in trig_data.atom_reasons() \
+                or 'name changed' in trig_data.residue_reasons() \
+                or 'name changed' in trig_data.chain_reasons()
+            update_ends = trig_data.created_atoms() or trig_data.num_deleted_atoms() > 0
+        else:
+            from chimerax.core.models import ADD_MODELS, REMOVE_MODELS
+            if trig_name == ADD_MODELS:
+                update_names = (len(self.session.models) - len(trig_data)) < 2
+            elif trig_name == REMOVE_MODELS:
+                update_names = len(self.session.models)  < 2
+            else:
+                update_names = True
+            update_ends = False
+        if not update_names and not update_ends:
+            return
+
+        death_row = []
+        for rotater, data in self.torsion_data.items():
+            row, bond, torsion_atoms, widgets = data
+            if bond.deleted:
+                # torsion manager will call back to us for this
+                continue
+            bond_widget = widgets[4]
+            moving = rotater.moving_side
+            reversed = bond.atoms[0] == moving
+            if update_ends:
+                for end in bond.atoms:
+                    if len(end.neighbors) < 2:
+                        death_row.append(rotater)
+                        break
+                if rotater in death_row:
+                    continue
+                for torsion_index, torsion_atom in enumerate(torsion_atoms):
+                    end = moving if torsion_index == 1 else bond.other_atom(moving)
+                    if torsion_atom.deleted:
+                        for nb in end.neighbors:
+                            if nb != bond.other_atom(end):
+                                self._at_change_torsion_atom(nb, rotater, torsion_index)
+                                break
+                    offset = 2 * torsion_index
+                    single_widget, multi_widget = widgets[offset:offset+2]
+                    is_single = len(end.neighbors) == 2
+                    single_widget.setHidden(not is_single)
+                    multi_widget.setHidden(is_single)
+                if update_names:
+                    bond_widget.setText(bond.string(minimal=True, reversed=reversed))
+            elif update_names:
+                bond_widget.setText(bond.string(minimal=True, reversed=reversed))
+                for torsion_index, torsion_atom in enumerate(torsion_atoms):
+                    end = moving if torsion_index == 1 else bond.other_atom(moving)
+                    offset = 2 * torsion_index
+                    single_widget, multi_widget = widgets[offset:offset+2]
+                    text = torsion_atom.string(relative_to=end, minimal=True)
+                    single_widget.setText(text)
+                    multi_widget.setText(text)
+        for rotater in death_row:
+            self.session.bond_rotations.delete_rotation(rotater)
+
+    def _at_change_torsion_atom(self, torsion_atom, rotater, torsion_index, text=None):
+        (row, bond, torsion_atoms, widgets) = self.torsion_data[rotater]
+        torsion_atoms[torsion_index] = torsion_atom
+        offset = 2 * torsion_index
+        if text is None:
+            if torsion_index == 0:
+                end = bond.other_atom(rotater.moving_side)
+            else:
+                end = rotater.moving_side
+            text = torsion_atom.string(relative_to=end, minimal=True)
+        for widget in widgets[offset:offset+2]:
+            widget.setText(text)
+        if not torsion_atom[1-torsion_index].deleted:
+            self._at_update_torsion_value(rotater)
+
+    def _at_compose_menu(self, menu, end_atom, bond, torsion_index, rotater):
         menu.clear()
         other_atom = bond.other_atom(end_atom)
         for nb in end_atom.neighbors:
@@ -177,14 +270,9 @@ class BuildStructureTool(ToolInstance):
                 continue
             action = QAction(menu)
             action.setText(nb.string(relative_to=end_atom, minimal=True))
-            action.triggered.connect(lambda *args, torsion_index=torsion_index, rotater=rotater,
-                button=menu_button, text=action.text(), f=self._at_menu_cb: (button.setText(text),
-                f(nb, rotater, torsion_index)))
+            action.triggered.connect(lambda *args, ta=nb, torsion_index=torsion_index, rotater=rotater,
+                text=action.text(), f=self._at_change_torsion_atom: f(ta, rotater, torsion_index, text))
             menu.addAction(action)
-
-    def _at_menu_cb(self, torsion_atom, rotater, torsion_index):
-        (row, bond, torsion_atoms, widgets) = self.torsion_data[rotater]
-        torsion_atoms[torsion_index] = torsion_atom
 
     def _at_remove_torsion(self, rotater):
         for widget in self.torsion_data[rotater][-1]:
@@ -194,6 +282,17 @@ class BuildStructureTool(ToolInstance):
             self.at_no_torsions_label.show()
             for header in self.at_header_widgets:
                 header.hide()
+
+    def _at_update_torsion_value(self, rotater):
+        (row, bond, torsion_atoms, widgets) = self.torsion_data[rotater]
+        spin_box, dial = widgets[-2:]
+        moving = rotater.moving_side
+        fixed = bond.other_atom(moving)
+        t1, t2 = torsion_atoms
+        from chimerax.geometry import dihedral
+        torsion_value = dihedral(t1.coord, fixed.coord, moving.coord, t2.coord)
+        spin_box.setValue(torsion_value)
+        dial.setValue(10 * torsion_value)
 
     def _cat_menu_cb(self, action):
         self.category_areas.setCurrentWidget(self.category_widgets[action.text()])
@@ -371,6 +470,14 @@ class BuildStructureTool(ToolInstance):
             lambda name, rotater, *, f=self._at_add_torsion: f(rotater)))
         self.handlers.append(manager.triggers.add_handler(manager.DELETED,
             lambda name, rotater, *, f=self._at_remove_torsion: f(rotater)))
+        from chimerax.atomic import get_triggers
+        self.handlers.append(get_triggers().add_handler('changes', self._at_atomic_changes_cb))
+        from chimerax.core.models import MODEL_NAME_CHANGED, MODEL_ID_CHANGED, ADD_MODELS, REMOVE_MODELS
+        triggers = self.session.triggers
+        self.handlers.append(triggers.add_handler(MODEL_NAME_CHANGED, self._at_atomic_changes_cb))
+        self.handlers.append(triggers.add_handler(MODEL_ID_CHANGED, self._at_atomic_changes_cb))
+        self.handlers.append(triggers.add_handler(ADD_MODELS, self._at_atomic_changes_cb))
+        self.handlers.append(triggers.add_handler(REMOVE_MODELS, self._at_atomic_changes_cb))
 
     def _layout_invert(self, parent):
         layout = QVBoxLayout()

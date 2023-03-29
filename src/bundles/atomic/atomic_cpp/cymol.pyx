@@ -772,7 +772,7 @@ cdef class CyAtom:
                     if isinstance(s, Structure)]) == 1
             if omit_structure:
                 return atom_str
-            return self.structure.string(style=style) + atom_str
+            return self.structure.string(style=style) + (" " if style.startswith("simple") else "") + atom_str
         if not style.startswith('simple'):
             return '%s%s' % (self.residue.string(
                 style=style, omit_structure=omit_structure, minimal=minimal), atom_str)
