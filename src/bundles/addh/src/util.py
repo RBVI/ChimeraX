@@ -53,7 +53,7 @@ def complete_terminal_carboxylate(session, cter):
             continue
         if len([nnb for nnb in nb.neighbors if nb.element.number > 1]) > 1:
             session.logger.warning("C-terminal %s does not look like carboxylate oxygen;"
-                " cannot complete teminus" % str(cter))
+                " cannot complete teminus" % str(nb))
             return
     if missing_O and missing_OXT:
         session.logger.warning("Both O and OXT missing from C-terminal residue %s; cannot complete teminus"
