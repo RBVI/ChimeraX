@@ -13,8 +13,8 @@
 
 from chimerax.core.errors import UserError
 
-def find_phenix_command(session, program_name, phenix_location=None, *, from_root=False):
-    if from_root:
+def find_phenix_command(session, program_name, phenix_location=None, *, verify_installation=False):
+    if verify_installation:
         bin_dirs = ['.']
     else:
         bin_dirs = ['bin', 'build/bin'] # for Python 3 / Python 2 Phenix respectively
@@ -57,14 +57,20 @@ def find_phenix_command(session, program_name, phenix_location=None, *, from_roo
             if isfile(cmd):
                 break
         else:
-            raise UserError('Could not find phenix program ' + program_name)
+            if verify_installation and phenix_location != settings.phenix_location:
+                from chimerax.ui.ask import ask
+                if ask(session, "Confirm Phenix Location", info="%s does not seem to be a Phenix"
+                        " installation (no '%s' in top folder), use anyway?" % (phenix_location,
+                        program_name), default="no") == "no":
+                    raise UserError('Could not find phenix program ' + program_name)
         settings.phenix_location = phenix_location
         settings.save()
         return cmd
 
 def phenix_location(session, phenix_location=None):
     try:
-        cmd = find_phenix_command(session, "phenix_env.sh", phenix_location=phenix_location, from_root=True)
+        cmd = find_phenix_command(session, "phenix_env.sh", phenix_location=phenix_location,
+            verify_installation=True)
     except UserError:
         msg = "No Phenix installation found"
     else:
