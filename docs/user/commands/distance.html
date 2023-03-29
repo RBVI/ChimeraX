@@ -29,6 +29,7 @@ class="clRight" title="User Guide Index"/></a>
 &nbsp;<a href="atomspec.html"><i>object1</i></a>&nbsp;
 &nbsp;<a href="atomspec.html"><i>object2</i></a>&nbsp;
 [&nbsp;<b>signed</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>monitor</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<a href="#options"><i>display-options</i></a>&nbsp;]
 </h3>
 <a name="delete"></a>
@@ -53,7 +54,9 @@ The <b>distance</b> command measures distances between two objects,
 which can be:
 <ul>
 <li>two atoms 
-(where a <a href="../markers.html">marker</a> is equivalent to an atom)
+(where a <a href="../markers.html">marker</a> or a previously defined 
+<a href="../tools/axesplanes.html#define-centroid">centroid</a>
+is equivalent to an atom)
 <li>an atom and a previously defined 
 <a href="../tools/axesplanes.html#define-axes">axis</a>
 or <a href="../tools/axesplanes.html#define-plane">plane</a>;
@@ -89,7 +92,7 @@ See also:
 <a href="../tools/axesplanes.html"><b>Axes/Planes/Centroids</b></a>,
 <a href="../measurements.html">measurements</a>
 </p><p>
-In the case of two atoms, 
+In the case of two atoms, unless <b>monitor false</b> is given,
 a <b><i>distance monitor</i></b> <a href="../pseudobonds.html">pseudobond</a>
 (see also the <a href="../tools/distances.html"><b>Distances</b></a>
 graphical interface) is added and labeled according to the
@@ -188,5 +191,5 @@ For smoother distance-label text in high-resolution images, see the
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-February 2023</address>
+March 2023</address>
 </body></html>
