@@ -174,6 +174,9 @@ class BuildStructureTool(ToolInstance):
         angle_text.setSingleStep(1.0)
         angle_text.setWrapping(True)
         angle_text.setAlignment(Qt.AlignRight)
+        angle_text.valueChanged.connect(
+            lambda val, *, rotater=rotater, f=self._at_issue_command: f(rotater, val))
+        angle_text.setKeyboardTracking(False) # don't get a signal for _every_ keystroke
         grid.addWidget(angle_text, row, 4, alignment=Qt.AlignLeft)
         widgets.append(angle_text)
         # QDial is integer, so x10...
@@ -182,8 +185,13 @@ class BuildStructureTool(ToolInstance):
         dial.setMaximum(1800)
         dial.setSingleStep(10)
         dial.setWrapping(True)
-        grid.addWidget(dial, row, 5, alignment=Qt.AlignLeft)
+        dial.valueChanged.connect(lambda val, *, rotater=rotater, f=self._at_dial_changed: f(rotater, val))
+        dial.sliderReleased.connect(
+            lambda *, rotater=rotater, dial=dial, f=self._at_issue_command: f(rotater, dial.value()/10))
+        grid.addWidget(dial, row, 5, alignment=Qt.AlignCenter)
+        self.session.dial = dial
         widgets.append(dial)
+        self._at_resize_dials()
 
         self._at_update_torsion_value(rotater)
 
@@ -274,6 +282,17 @@ class BuildStructureTool(ToolInstance):
                 text=action.text(), f=self._at_change_torsion_atom: f(ta, rotater, torsion_index, text))
             menu.addAction(action)
 
+    def _at_dial_changed(self, rotater, val):
+        delta = val/10 - self._at_torsion_value(rotater)
+        if delta != 0:
+            rotater.angle += delta
+
+    def _at_issue_command(self, rotater, val):
+        self.session.logger.info(source)
+        torsion_cmd_template = self._at_torsion_cmd(rotater)
+        from chimerax.core.commands import run
+        run(self.session, torsion_cmd_template % val)
+
     def _at_remove_torsion(self, rotater):
         for widget in self.torsion_data[rotater][-1]:
             widget.hide()
@@ -282,17 +301,51 @@ class BuildStructureTool(ToolInstance):
             self.at_no_torsions_label.show()
             for header in self.at_header_widgets:
                 header.hide()
+        else:
+            self._at_resize_dials()
 
-    def _at_update_torsion_value(self, rotater):
+    def _at_resize_dials(self):
+        if not self.torsion_data:
+            return
+        num_torsions = len(self.torsion_data)
+        target_height = 250 / num_torsions
+        dial_size = int(min(100, max(target_height, 30)))
+        for row, bond, torsion_atoms, widgets in self.torsion_data.values():
+            widgets[-1].setFixedSize(dial_size, dial_size)
+
+    def _at_torsion_atoms(self, rotater):
         (row, bond, torsion_atoms, widgets) = self.torsion_data[rotater]
-        spin_box, dial = widgets[-2:]
         moving = rotater.moving_side
         fixed = bond.other_atom(moving)
         t1, t2 = torsion_atoms
+        return t1, fixed, moving, t2
+
+    def _at_torsion_cmd(self, rotater):
+        cmd = "torsion "
+        prev = None
+        for a in self._at_torsion_atoms(rotater):
+            cmd += a.string(style="command", minimal=True, relative_to=prev)
+            prev = a
+        cmd += " %g"
+        return cmd
+
+    def _at_torsion_value(self, rotater):
+        (row, bond, torsion_atoms, widgets) = self.torsion_data[rotater]
+        spin_box, dial = widgets[-2:]
+        t1, fixed, moving, t2 = self._at_torsion_atoms(rotater)
         from chimerax.geometry import dihedral
-        torsion_value = dihedral(t1.coord, fixed.coord, moving.coord, t2.coord)
+        return dihedral(t1.coord, fixed.coord, moving.coord, t2.coord)
+
+    def _at_update_torsion_value(self, rotater):
+        torsion_value = self._at_torsion_value(rotater)
+        (row, bond, torsion_atoms, widgets) = self.torsion_data[rotater]
+        spin_box, dial = widgets[-2:]
+        spin_box.blockSignals(True)
         spin_box.setValue(torsion_value)
+        spin_box.blockSignals(False)
+        dial.blockSignals(True)
         dial.setValue(10 * torsion_value)
+        dial.blockSignals(False)
 
     def _cat_menu_cb(self, action):
         self.category_areas.setCurrentWidget(self.category_widgets[action.text()])
@@ -467,9 +520,11 @@ class BuildStructureTool(ToolInstance):
                     if not rotater.one_shot:
                         self._at_add_torsion(rotater)
         self.handlers.append(manager.triggers.add_handler(manager.CREATED,
-            lambda name, rotater, *, f=self._at_add_torsion: f(rotater)))
+            lambda trig_name, rotator, f=self._at_add_torsion: f(rotator)))
         self.handlers.append(manager.triggers.add_handler(manager.DELETED,
-            lambda name, rotater, *, f=self._at_remove_torsion: f(rotater)))
+            lambda trig_name, rotator, f=self._at_remove_torsion: f(rotator)))
+        self.handlers.append(manager.triggers.add_handler(manager.MODIFIED,
+            lambda trig_name, rotator, f=self._at_update_torsion_value: f(rotator)))
         from chimerax.atomic import get_triggers
         self.handlers.append(get_triggers().add_handler('changes', self._at_atomic_changes_cb))
         from chimerax.core.models import MODEL_NAME_CHANGED, MODEL_ID_CHANGED, ADD_MODELS, REMOVE_MODELS
