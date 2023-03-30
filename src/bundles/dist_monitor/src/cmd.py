@@ -59,20 +59,30 @@ group_triggers.add_trigger("update")
 group_triggers.add_trigger("delete")
 
 def distance(session, objects, *, color=None, dashes=None,
-        decimal_places=None, radius=None, symbol=None, signed=False):
+        decimal_places=None, radius=None, symbol=None, signed=False, monitor=True):
     '''
     Show/report distance between two objects.
     '''
     from chimerax.core.errors import UserError, LimitationError
-    non_atom_measurables = [m for m in objects.models if isinstance(m, ComplexMeasurable)]
-    atoms = list(objects.atoms) + [m for m in objects.models
+    from chimerax.centroids import CentroidModel
+    from chimerax.geometry import distance
+    complex_measurables = [m for m in objects.models if isinstance(m, ComplexMeasurable)]
+    simple_measurables = [m for m in objects.models
         if isinstance(m, SimpleMeasurable) and not hasattr(m, 'atoms')]
-    measurables = non_atom_measurables + atoms
+    atoms = []
+    centroids = []
+    for atom in objects.atoms:
+        if isinstance(atom.structure, CentroidModel):
+            centroids.append(atom)
+        else:
+            atoms.append(atom)
+    atomlike_measurables = atoms + simple_measurables + centroids
+    non_atom_measurables = complex_measurables + simple_measurables + centroids
+    measurables = complex_measurables + atoms + simple_measurables + centroids
     if len(measurables) == 2:
-        if len(atoms) != 2:
+        if len(atomlike_measurables) != 2 or not monitor:
             # just report the distance -- no distance monitor
-            if len([m for m in measurables if isinstance(m, SimpleMeasurable)]) == 2:
-                from chimerax.geometry import distance
+            if len(atomlike_measurables) == 2:
                 dist = distance(measurables[0].scene_coord, measurables[1].scene_coord)
             else:
                 dist = NotImplemented
@@ -130,8 +140,12 @@ def distance(session, objects, *, color=None, dashes=None,
         for object in non_atom_measurables:
             dists = []
             min_info = max_info = None
+            if isinstance(object, ComplexMeasurable):
+                get_dist = lambda a, cm=object, signed=signed: cm.distance(a, signed=signed)
+            else:
+                get_dist = lambda a, al=object: distance(a.scene_coord, al.scene_coord)
             for a in atoms:
-                dist = object.distance(a, signed=signed)
+                dist = get_dist(a)
                 if dist is NotImplemented:
                     break
                 dists.append(dist)
@@ -153,7 +167,7 @@ def distance(session, objects, *, color=None, dashes=None,
         return results
     else:
         raise UserError("Expected exactly two atoms and/or measurable objects (e.g. axes, planes),"
-            " or one or more measurable object and one or more atoms,"
+            " or one or more measurable objects and one or more atoms,"
             " got %d atoms and %d measurable objects" % (len(atoms), len(non_atom_measurables)))
 
 def distance_save(session, save_file_name):
@@ -260,7 +274,8 @@ def register_command(logger):
     d_desc = CmdDesc(
         required = [('objects', ObjectsArg)],
         keyword = [('color', ColorArg), ('dashes', NonNegativeIntArg), ('radius', FloatArg),
-            ('decimal_places', NonNegativeIntArg), ('symbol', BoolArg), ('signed', BoolArg)],
+            ('decimal_places', NonNegativeIntArg), ('symbol', BoolArg), ('signed', BoolArg),
+            ('monitor', BoolArg)],
         synopsis = 'show/report distance')
     register('distance', d_desc, distance, logger=logger)
     # command registration doesn't allow resuse of the sam CmdDesc, so...
