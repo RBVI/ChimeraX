@@ -146,9 +146,11 @@ class UI(QApplication):
         from Qt.QtCore import qInstallMessageHandler
         def cx_qt_msg_handler(msg_type, msg_log_context, msg_string,
                               log_fatal_error = self._log_qt_fatal_error):
-            if msg_string.startswith('delivering touch release to same window') \
-            or msg_string.startswith('skipping QEventPoint'):
+            if (msg_string.startswith('delivering touch release to same window')
+                or msg_string.startswith('skipping QEventPoint')):
                 return	# Supress Qt 6.2 warnings
+            if 'QWindowsWindow::setDarkBorderToWindow' in msg_string:
+                return  # Supress Qt 6.4 warning, ChimeraX ticket #8541
             if msg_type == QtMsgType.QtFatalMsg:
                 log_fatal_error('Qt fatal error: %s\n' % msg_string)
             log_level = qt_to_cx_log_level_map[msg_type]
