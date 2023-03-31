@@ -13,57 +13,6 @@
 
 from chimerax.core.errors import UserError
 
-def cmd_bondrot_change(session, ident, angle, frames=None):
-    """Wrapper called by command line."""
-    if frames is not None:
-        def bondrot_step(session, frame):
-            cmd_bondrot_change(session, ident=ident, angle=angle, frames=None)
-        from chimerax.core.commands import motion
-        motion.CallForNFrames(bondrot_step, frames, session)
-        return
-    from .manager import BondRotationError
-    mgr = session.bond_rotations
-    try:
-        br = mgr.rotation_for_ident(ident)
-    except BondRotationError as e:
-        raise UserError(str(e))
-    br.angle += angle
-
-def cmd_bondrot_create(session, ident, bond, move="small"):
-    """Wrapper called by command line."""
-
-    mgr = session.bond_rotations
-    from .manager import BondRotationError
-    try:
-        mgr.new_rotation(bond, ident=ident, move_smaller_side=(move == "small"), one_shot=False)
-    except BondRotationError as e:
-        raise UserError(str(e))
-
-def cmd_bondrot_reset(session, ident):
-    """Wrapper called by command line."""
-    mgr = session.bond_rotations
-    if ident is None:
-        rotations = mgr.bond_rotaters.values()
-    else:
-        try:
-            rotations = [mgr.rotation_for_ident(ident)]
-        except BondRotationError as e:
-            raise UserError(str(e))
-    for rot in rotations:
-        rot.angle = 0
-
-def cmd_xbondrot(session, ident):
-    """Wrapper called by command line."""
-    mgr = session.bond_rotations
-    if ident is None:
-        mgr.delete_all_rotations()
-        return
-    try:
-        br = mgr.rotation_for_ident(ident)
-    except BondRotationError as e:
-        raise UserError(str(e))
-    mgr.delete_rotation(br)
-
 def cmd_torsion(session, atoms, value=None, *, move="small"):
     """Wrapper called by command line."""
     if len(atoms) != 4:
@@ -96,33 +45,6 @@ def cmd_torsion(session, atoms, value=None, *, move="small"):
 
 
 def register_command(command_name, logger):
-    """
-    # Code for 'bondrot' command; currently not exposed
-    from chimerax.core.commands import CmdDesc, register, create_alias
-    from chimerax.core.commands import IntArg, FloatArg, Or, EmptyArg, EnumOf, PositiveIntArg
-    from chimerax.atomic import BondArg
-    if command_name == "bondrot create":
-        desc = CmdDesc(required=[('ident', Or(IntArg,EmptyArg)), ('bond', BondArg)],
-            keyword = [('move', EnumOf(("large","small")))],
-            synopsis = 'Activate bond for rotation'
-        )
-        register('bondrot create', desc, cmd_bondrot_create, logger=logger)
-    elif command_name == "bondrot":
-        desc = CmdDesc(required=[('ident', IntArg), ('angle', FloatArg)],
-            keyword = [('frames', PositiveIntArg)],
-            synopsis = 'Change bond bondrot'
-        )
-        register('bondrot', desc, cmd_bondrot_change, logger=logger)
-    elif command_name == "bondrot reset":
-        desc = CmdDesc(required = [('ident', Or(IntArg,EmptyArg))],
-            synopsis = 'Reset bond rotation(s) to starting position(s)')
-        register('bondrot reset', desc, cmd_bondrot_reset, logger=logger)
-    else:
-        desc = CmdDesc(required = [('ident', Or(IntArg,EmptyArg))],
-            synopsis = 'Deactivate bond rotation(s)')
-        register('bondrot delete', desc, cmd_xbondrot, logger=logger)
-        create_alias('~bondrot', 'bondrot delete $*', logger=logger)
-    """
     from chimerax.core.commands import CmdDesc, register
     from chimerax.core.commands import FloatArg, EnumOf
     from chimerax.atomic import AtomsArg

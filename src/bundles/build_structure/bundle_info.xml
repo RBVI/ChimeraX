@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-BuildStructure" version="2.8" package="chimerax.build_structure"
+<BundleInfo name="ChimeraX-BuildStructure" version="2.9" package="chimerax.build_structure"
   	    minSessionVersion="1" maxSessionVersion="1">
 
   <!-- Additional information about bundle source -->
@@ -25,8 +25,9 @@
   <Dependencies>
     <Dependency name="ChimeraX-Core" version="~=1.2"/>
     <Dependency name="ChimeraX-AddH" version="~=2.0"/>
-    <Dependency name="ChimeraX-Atomic" version="~=1.11"/>
+    <Dependency name="ChimeraX-Atomic" version="~=1.44"/>
     <Dependency name="ChimeraX-AtomSearch" version="~=2.0"/>
+    <Dependency name="ChimeraX-BondRot" version="~=2.0"/>
     <Dependency name="ChimeraX-Geometry" version="~=1.0"/>
 	<Dependency name="ChimeraX-RotamerLibMgr" version="~=3.0"/>
     <Dependency name="ChimeraX-StdCommands" version="~=1.0"/>
