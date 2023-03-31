@@ -208,7 +208,7 @@ def ui_tool_show(session, tool_name, _show=True):
     if tinst:
         for ti in tinst:
             ti.display(_show)
-        return
+        return tinst[0]
 
     # If showing the tool (as opposed to hiding it), look for
     # an installed tool whose name exactly matches tool_name.
@@ -216,8 +216,7 @@ def ui_tool_show(session, tool_name, _show=True):
         tools = ts.find_bundle_for_tool(tool_name, prefix_okay=False)
         if len(tools) == 1:
             bi, name = tools[0]
-            bi.start_tool(session, name)
-            return
+            return bi.start_tool(session, name)
         elif len(tools) > 1:
             from chimerax.core.errors import UserError
             raise UserError('Multiple installed tools named "%s"' % tool_name)
@@ -234,7 +233,7 @@ def ui_tool_show(session, tool_name, _show=True):
     if tinst:
         for ti in tinst:
             ti.display(_show)
-        return
+        return tinst[0]
 
     # Look for an installed tool whose tool name starts
     # with tool_name.
@@ -242,8 +241,7 @@ def ui_tool_show(session, tool_name, _show=True):
         tools = ts.find_bundle_for_tool(tool_name, prefix_okay=True)
         if len(tools) == 1:
             bi, name = tools[0]
-            bi.start_tool(session, name)
-            return
+            return bi.start_tool(session, name)
         elif len(tools) > 1:
             from chimerax.core.errors import UserError
             raise UserError('Multiple installed tools found: %s' %

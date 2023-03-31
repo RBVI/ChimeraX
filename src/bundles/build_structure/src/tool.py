@@ -53,9 +53,7 @@ class BuildStructureTool(ToolInstance):
             getattr(self, "_layout_" + category.lower().replace(' ', '_'))(widget)
             self.category_areas.addWidget(widget)
             cat_menu.addAction(category)
-        initial_category = "Start Structure"
-        self.category_button.setText(initial_category)
-        self.category_areas.setCurrentWidget(self.category_widgets[initial_category])
+        self.show_category("Start Structure")
 
         tw.manage(placement="side")
 
@@ -65,6 +63,10 @@ class BuildStructureTool(ToolInstance):
         for rotater in self.torsion_data.keys():
             self.session.bond_rotations.delete_rotation(rotater)
         super().delete()
+
+    def show_category(self, category):
+        self.category_button.setText(category)
+        self.category_areas.setCurrentWidget(self.category_widgets[category])
 
     def _ab_len_cb(self, opt):
         self.bond_len_slider.blockSignals(True)

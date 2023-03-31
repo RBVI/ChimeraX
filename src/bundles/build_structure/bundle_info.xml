@@ -1,5 +1,5 @@
 <BundleInfo name="ChimeraX-BuildStructure" version="2.9" package="chimerax.build_structure"
-  	    minSessionVersion="1" maxSessionVersion="1">
+  	    customInit="true" minSessionVersion="1" maxSessionVersion="1">
 
   <!-- Additional information about bundle source -->
   <Author>UCSF RBVI</Author>
