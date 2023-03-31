@@ -32,7 +32,6 @@ import sys
 
 def initialize_qt():
     initialize_qt_plugins_location()
-    initialize_qt_high_dpi_display_support()
     initialize_shared_opengl_contexts()
 
 def initialize_qt_plugins_location():
@@ -69,16 +68,6 @@ def initialize_qt_plugins_location():
                 os.environ["DYLD_FRAMEWORK_PATH"] = app_lib_dir + ":" + fw_path
             else:
                 os.environ["DYLD_FRAMEWORK_PATH"] = app_lib_dir
-
-def initialize_qt_high_dpi_display_support():
-    import sys
-    # Fix text and button sizes on high DPI displays in Windows 10
-    win = (sys.platform == 'win32')
-    if win:
-        from Qt.QtCore import QCoreApplication, Qt
-        if not hasattr(Qt, 'AA_EnableHighDpiScaling'):
-            return  # Qt6 does not have this setting
-        QCoreApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
 
 def initialize_shared_opengl_contexts():
     # Mono and stereo opengl contexts need to share vertex buffers
