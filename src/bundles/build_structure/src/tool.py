@@ -117,7 +117,7 @@ class BuildStructureTool(ToolInstance):
     def _at_add_torsion(self, rotater):
         # _at_activate notifies the user about bond rotations that can't be torsions,
         # we have to check here again to silently drop non-torsion rotations coming from other sources...
-        bond = rotater.rotation.bond
+        bond = rotater.bond
         self.at_no_torsions_label.hide()
         for header in self.at_header_widgets:
             header.show()
@@ -163,10 +163,18 @@ class BuildStructureTool(ToolInstance):
             single_widget.setHidden(show_multi)
             multi_widget.setHidden(not show_multi)
             widgets.extend([single_widget, multi_widget])
-        reversed = fixed == bond.atoms[1]
-        bond_label = QLabel(bond.string(minimal=True, reversed=reversed))
-        grid.addWidget(bond_label, row, 2, alignment=Qt.AlignCenter)
-        widgets.append(bond_label)
+        bond_widget = QPushButton(self._at_bond_text(rotater))
+        grid.addWidget(bond_widget, row, 2, alignment=Qt.AlignCenter)
+        bond_menu = QMenu(bond_widget)
+        bond_widget.setMenu(bond_menu)
+        reset = QAction("Reset to initial torsion angle", bond_menu)
+        reset.triggered.connect(lambda *args, rotater=rotater, f=self._at_log_command:
+            (setattr(rotater, 'angle', 0), f(rotater)))
+        bond_menu.addAction(reset)
+        swap = QAction("Swap moving/fixed sides", bond_menu)
+        swap.triggered.connect(lambda *args, rotater=rotater: rotater.swap_sides())
+        bond_menu.addAction(swap)
+        widgets.append(bond_widget)
         widgets.append(close_button)
         angle_text = QDoubleSpinBox()
         angle_text.setDecimals(1)
@@ -255,7 +263,11 @@ class BuildStructureTool(ToolInstance):
         for rotater in death_row:
             self.session.bond_rotations.delete_rotation(rotater)
 
-    def _at_change_torsion_atom(self, torsion_atom, rotater, torsion_index, text=None):
+    def _at_bond_text(self, rotater):
+        (row, bond, torsion_atoms, widgets) = self.torsion_data[rotater]
+        return bond.string(minimal=True, reversed=(rotater.moving_side == bond.atoms[0]))
+
+    def _at_change_torsion_atom(self, torsion_atom, rotater, torsion_index, text=None, update_value=True):
         (row, bond, torsion_atoms, widgets) = self.torsion_data[rotater]
         torsion_atoms[torsion_index] = torsion_atom
         offset = 2 * torsion_index
@@ -267,7 +279,7 @@ class BuildStructureTool(ToolInstance):
             text = torsion_atom.string(relative_to=end, minimal=True)
         for widget in widgets[offset:offset+2]:
             widget.setText(text)
-        if not torsion_atom[1-torsion_index].deleted:
+        if update_value and not torsion_atoms[1-torsion_index].deleted:
             self._at_update_torsion_value(rotater)
 
     def _at_compose_menu(self, menu, end_atom, bond, torsion_index, rotater):
@@ -288,10 +300,14 @@ class BuildStructureTool(ToolInstance):
             rotater.angle += delta
 
     def _at_issue_command(self, rotater, val):
-        self.session.logger.info(source)
         torsion_cmd_template = self._at_torsion_cmd(rotater)
         from chimerax.core.commands import run
         run(self.session, torsion_cmd_template % val)
+
+    def _at_log_command(self, rotater):
+        torsion_cmd_template = self._at_torsion_cmd(rotater)
+        from chimerax.core.commands import Command
+        Command(self.session).run(torsion_cmd_template % self._at_torsion_value(rotater), log_only=True)
 
     def _at_remove_torsion(self, rotater):
         for widget in self.torsion_data[rotater][-1]:
@@ -313,6 +329,22 @@ class BuildStructureTool(ToolInstance):
         for row, bond, torsion_atoms, widgets in self.torsion_data.values():
             widgets[-1].setFixedSize(dial_size, dial_size)
 
+    def _at_swap_sides(self, rotater):
+        (row, bond, torsion_atoms, widgets) = self.torsion_data[rotater]
+        torsion_atoms[:] = [torsion_atoms[1], torsion_atoms[0]]
+        fixed_widgets, moving_widgets = widgets[:2], widgets[2:4]
+        for widget in widgets[:4]:
+            self.at_torsions_layout.removeWidget(widget)
+        widgets[:2] = moving_widgets
+        widgets[2:4] = fixed_widgets
+        for col, torsion_widgets in [(3, fixed_widgets), (1, moving_widgets)]:
+            for torsion_widget in torsion_widgets:
+                self.at_torsions_layout.addWidget(torsion_widget, row, col, alignment=Qt.AlignCenter)
+
+        bond_widget = widgets[4]
+        bond_widget.setText(self._at_bond_text(rotater))
+        self._at_update_torsion_value(rotater)
+
     def _at_torsion_atoms(self, rotater):
         (row, bond, torsion_atoms, widgets) = self.torsion_data[rotater]
         moving = rotater.moving_side
@@ -327,6 +359,8 @@ class BuildStructureTool(ToolInstance):
             cmd += a.string(style="command", minimal=True, relative_to=prev)
             prev = a
         cmd += " %g"
+        if rotater.moving_side != rotater.bond.smaller_side:
+            cmd += " move large"
         return cmd
 
     def _at_torsion_value(self, rotater):
@@ -525,6 +559,8 @@ class BuildStructureTool(ToolInstance):
             lambda trig_name, rotator, f=self._at_remove_torsion: f(rotator)))
         self.handlers.append(manager.triggers.add_handler(manager.MODIFIED,
             lambda trig_name, rotator, f=self._at_update_torsion_value: f(rotator)))
+        self.handlers.append(manager.triggers.add_handler(manager.REVERSED,
+            lambda trig_name, rotator, f=self._at_swap_sides: f(rotator)))
         from chimerax.atomic import get_triggers
         self.handlers.append(get_triggers().add_handler('changes', self._at_atomic_changes_cb))
         from chimerax.core.models import MODEL_NAME_CHANGED, MODEL_ID_CHANGED, ADD_MODELS, REMOVE_MODELS
