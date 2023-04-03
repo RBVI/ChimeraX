@@ -38,6 +38,7 @@ nicknames = ["nrrd"]
 suffixes = [".nrrd"]
 allow-directory = false
 synopsis = "NRRD"
+reference-url = "https://teem.sourceforge.net/nrrd/format.html"
 
 [[chimerax.data-format."NRRD Medical Imaging".open]]
 batch = false
