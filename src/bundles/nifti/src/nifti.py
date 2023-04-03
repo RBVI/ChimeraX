@@ -31,14 +31,15 @@ class NifTI:
     def open(self):
         grids = []
         for image in self.nifti_images:
-            d = NiftiData(image)
+            d = NiftiData(self.session, image)
             g = NiftiGrid(d)
             grids.append(g)
         models, message = open_grids(self.session, grids, name="FOO")
         return models, message
 
 class NiftiData:
-    def __init__(self, data):
+    def __init__(self, session, data):
+        self.session = session
         self._raw_data = data
         # Data is often in x-y-z but we need z-y-x
         self.data_size = data.shape[::-1]
@@ -58,6 +59,15 @@ class NiftiData:
                 , [affine[2][0] / self.scale[0], affine[2][1] / self.scale[1], affine[2][2] / self.scale[2]]
             ]
         self.data_type = data.dataobj.dtype
+        self.slope, self.intercept = data.header.get_slope_inter()
+        if self.slope is None and self.intercept is None:
+            self.session.logger.warning("No scaling values provided for NIfTI data; volumes and planes may appear black.")
+            # TODO:
+            #Use the medical volume settings to adjust the slope and intercept of voxel scaling values if necessary.")
+        if self.slope is None:
+            self.slope = 1
+        if self.intercept is None:
+            self.intercept = 0
 
 
 class NiftiGrid(GridData):
@@ -69,6 +79,7 @@ class NiftiGrid(GridData):
             # , path = ???, name = ???
             , file_type = 'nifti' #, time, channel ???
         )
+        #self.initial_plane_display = True
 
     def read_matrix(self, ijk_origin = (0,0,0), ijk_size = None,
                   ijk_step = (1,1,1), progress = None):
