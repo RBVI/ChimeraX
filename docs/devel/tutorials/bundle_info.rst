@@ -711,6 +711,9 @@ These are the possible `Provider`_ attributes:
     *encoding*
         If the format is textual, the encoding for that text.  Binary formats should
         omit this attribute.  The most common encoding for text formats is "utf-8".
+        If the encoding is declared as "utf-8" and a file reader for the format throws
+        `UnicodeDecodeError <https://wiki.python.org/moin/UnicodeDecodeError>`_, then
+        utf-16 and utf-32 will also be tried.
 
     .. _nicknames:
 
