@@ -19,10 +19,11 @@ class BondRotationManager(StateManager):
     """Manager for bond rotations"""
     CREATED, MODIFIED, REVERSED, DELETED = trigger_names = ("created", "modified",
         "reversed", "deleted")
+    # so you don't have to know how to import it...
+    BondRotationError = BondRotationError
 
     def __init__(self, session, bundle_info):
         self.bond_rotations = {} # bond -> BondRotation
-        self.bond_rotaters = {} # ident -> BondRotater
         self.session = session
         from chimerax.core.triggerset import TriggerSet
         self.triggers = TriggerSet()
@@ -30,7 +31,6 @@ class BondRotationManager(StateManager):
             self.triggers.add_trigger(trig_name)
 
     def delete_rotation(self, rotater):
-        del self.bond_rotaters[rotater.ident]
         rotation = rotater.rotation
         rotation.rotaters.remove(rotater)
         if not rotation.rotaters:
@@ -42,29 +42,24 @@ class BondRotationManager(StateManager):
             self.triggers.activate_trigger(self.DELETED, rotater)
 
     def delete_all_rotations(self):
-        for rotater in self.bond_rotaters.values():
-            self.triggers.activate_trigger(self.DELETED, rotater)
+        for br in self.bond_rotations:
+            for rotater in br.rotaters:
+                self.triggers.activate_trigger(self.DELETED, rotater)
+            br.rotaters = []
         if self.bond_rotations:
             from chimerax.atomic import get_triggers
             get_triggers().remove_handler(self._handler_ID)
-            for rotation in self.bond_rotations.values():
-                # break reference loops
-                rotation.rotaters =  []
             self.bond_rotations.clear()
-            self.bond_rotaters.clear()
 
     clear = delete_all_rotations
 
-    def new_rotation(self, bond, ident=None, move_smaller_side=True, one_shot=True):
+    def new_rotation(self, bond, move_smaller_side=True, one_shot=True):
         """Create bond rotation for 'bond'
 
         Parameters
         ----------
         bond : Bond
             Bond to rotate
-        ident: an integer or None
-            Number used to refer to bond rotation in commands.  If None, automatically assign
-            one.
         move_smaller_side: bool
             If True, move the "smaller" side (side with fewer atoms attached) when the
             bond rotation moves.  Otherwise move the bigger side.
@@ -74,13 +69,6 @@ class BondRotationManager(StateManager):
 
         Returns the created BondRotater
         """
-        if ident is None:
-            ident = 1
-            while ident in self.bond_rotaters:
-                ident += 1
-        elif ident in self.bond_rotaters:
-            raise BondRotationError("Bond rotation identifier %s already in use" % ident)
-
         try:
             moving_side = bond.smaller_side
         except ValueError:
@@ -99,19 +87,11 @@ class BondRotationManager(StateManager):
             rotation = BondRotation(self.session, bond)
         self.bond_rotations[bond] = rotation
 
-        rotater = rotation.new_rotater(ident, moving_side, one_shot)
-        self.bond_rotaters[ident] = rotater
+        rotater = rotation.new_rotater(moving_side, one_shot)
 
         if not one_shot:
             self.triggers.activate_trigger(self.CREATED, rotater)
-            self.session.logger.status("Bond rotation identifier is %s" % ident, log=True)
         return rotater
-
-    def rotation_for_ident(self, ident):
-        try:
-            return self.bond_rotaters[ident]
-        except KeyError:
-            raise BondRotationError("No such bond rotation ident: %s" % ident)
 
     def _changes_cb(self, trig_name, changes):
         if changes.num_deleted_bonds() > 0:
@@ -135,9 +115,10 @@ class BondRotationManager(StateManager):
         if 'coord changed' in changes.atom_reasons():
             changed_structures.update(changes.modified_atoms().unique_structures)
         if changed_structures:
-            for br in self.bond_rotaters.values():
-                if not br.one_shot and br.rotation.bond.structure in changed_structures:
-                    self.triggers.activate_trigger(self.MODIFIED, br)
+            for bond, rotation in self.bond_rotations.items():
+                for rotater in rotation.rotaters:
+                    if not rotater.one_shot and bond.structure in changed_structures:
+                        self.triggers.activate_trigger(self.MODIFIED, rotater)
 
     def _delete_rotation(self, br):
         # delete a BondRotation rather than a BondRotater
@@ -157,10 +138,9 @@ class BondRotationManager(StateManager):
     def take_snapshot(self, session, flags):
         # viewer_info is "session independent"
         return {
-            'version': 1,
+            'version': 2,
 
             'rotations': self.bond_rotations,
-            'rotaters': self.bond_rotaters,
         }
 
     def _ses_restore(self, data):
@@ -172,7 +152,6 @@ class BondRotationManager(StateManager):
                     " skipping")
             return
         self.bond_rotations = data['rotations']
-        self.bond_rotaters = data['rotaters']
         if self.bond_rotations:
             from chimerax.atomic import get_triggers
             self._handler_ID = get_triggers().add_handler('changes', self._changes_cb)

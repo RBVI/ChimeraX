@@ -32,7 +32,6 @@ import sys
 
 def initialize_qt():
     initialize_qt_plugins_location()
-    initialize_qt_high_dpi_display_support()
     initialize_shared_opengl_contexts()
 
 def initialize_qt_plugins_location():
@@ -69,16 +68,6 @@ def initialize_qt_plugins_location():
                 os.environ["DYLD_FRAMEWORK_PATH"] = app_lib_dir + ":" + fw_path
             else:
                 os.environ["DYLD_FRAMEWORK_PATH"] = app_lib_dir
-
-def initialize_qt_high_dpi_display_support():
-    import sys
-    # Fix text and button sizes on high DPI displays in Windows 10
-    win = (sys.platform == 'win32')
-    if win:
-        from Qt.QtCore import QCoreApplication, Qt
-        if not hasattr(Qt, 'AA_EnableHighDpiScaling'):
-            return  # Qt6 does not have this setting
-        QCoreApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
 
 def initialize_shared_opengl_contexts():
     # Mono and stereo opengl contexts need to share vertex buffers
@@ -157,9 +146,11 @@ class UI(QApplication):
         from Qt.QtCore import qInstallMessageHandler
         def cx_qt_msg_handler(msg_type, msg_log_context, msg_string,
                               log_fatal_error = self._log_qt_fatal_error):
-            if msg_string.startswith('delivering touch release to same window') \
-            or msg_string.startswith('skipping QEventPoint'):
+            if (msg_string.startswith('delivering touch release to same window')
+                or msg_string.startswith('skipping QEventPoint')):
                 return	# Supress Qt 6.2 warnings
+            if 'QWindowsWindow::setDarkBorderToWindow' in msg_string:
+                return  # Supress Qt 6.4 warning, ChimeraX ticket #8541
             if msg_type == QtMsgType.QtFatalMsg:
                 log_fatal_error('Qt fatal error: %s\n' % msg_string)
             log_level = qt_to_cx_log_level_map[msg_type]

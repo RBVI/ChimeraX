@@ -16,7 +16,7 @@ from chimerax.core.errors import UserError
 from chimerax.core.commands import run
 from Qt.QtWidgets import QVBoxLayout, QPushButton, QMenu, QStackedWidget, QWidget, QLabel, QFrame
 from Qt.QtWidgets import QGridLayout, QRadioButton, QHBoxLayout, QLineEdit, QCheckBox, QGroupBox
-from Qt.QtWidgets import QButtonGroup, QAbstractButton
+from Qt.QtWidgets import QButtonGroup, QAbstractButton, QStyle, QToolButton, QDoubleSpinBox, QDial
 from Qt.QtGui import QAction
 from Qt.QtCore import Qt
 
@@ -45,23 +45,28 @@ class BuildStructureTool(ToolInstance):
 
         self.handlers = []
         self.category_widgets = {}
-        for category in ["Start Structure", "Modify Structure", "Adjust Bonds", "Join Models", "Invert"]:
+        for category in ["Start Structure", "Modify Structure", "Adjust Bonds", "Adjust Torsions",
+                "Join Models", "Invert"]:
             self.category_widgets[category] = widget = QFrame()
             widget.setLineWidth(2)
             widget.setFrameStyle(QFrame.Panel | QFrame.Sunken)
             getattr(self, "_layout_" + category.lower().replace(' ', '_'))(widget)
             self.category_areas.addWidget(widget)
             cat_menu.addAction(category)
-        initial_category = "Start Structure"
-        self.category_button.setText(initial_category)
-        self.category_areas.setCurrentWidget(self.category_widgets[initial_category])
+        self.show_category("Start Structure")
 
         tw.manage(placement="side")
 
     def delete(self):
         for handler in self.handlers:
             handler.remove()
+        for rotater in self.torsion_data.keys():
+            self.session.bond_rotations.delete_rotation(rotater)
         super().delete()
+
+    def show_category(self, category):
+        self.category_button.setText(category)
+        self.category_areas.setCurrentWidget(self.category_widgets[category])
 
     def _ab_len_cb(self, opt):
         self.bond_len_slider.blockSignals(True)
@@ -96,6 +101,287 @@ class BuildStructureTool(ToolInstance):
         self.bond_len_slider.blockSignals(True)
         self.bond_len_slider.setValue(val)
         self.bond_len_slider.blockSignals(False)
+
+    def _at_activate(self):
+        from chimerax.atomic import selected_bonds
+        sel_bonds = selected_bonds(self.session)
+        if len(sel_bonds) != 1:
+            raise UserError("Exactly one bond must be selected in graphics window")
+        bond = sel_bonds[0]
+        for end_pt in bond.atoms:
+            if len(end_pt.neighbors) == 1:
+                raise UserError("Bond must have other atoms bonded to both ends to form torsion")
+        try:
+            self.session.bond_rotations.new_rotation(bond, one_shot=False)
+        except self.session.bond_rotations.BondRotationError as e:
+            raise UserError(str(e))
+
+    def _at_add_torsion(self, rotater):
+        # _at_activate notifies the user about bond rotations that can't be torsions,
+        # we have to check here again to silently drop non-torsion rotations coming from other sources...
+        bond = rotater.bond
+        self.at_no_torsions_label.hide()
+        for header in self.at_header_widgets:
+            header.show()
+        moving = rotater.moving_side
+        fixed = bond.other_atom(moving)
+        torsion_atoms = []
+        for end1, end2 in [(fixed, moving), (moving, fixed)]:
+            for nb in end1.neighbors:
+                if nb != end2:
+                    torsion_atoms.append(nb)
+                    break
+        grid = self.at_torsions_layout
+        row = grid.rowCount()
+        widgets = []
+        self.torsion_data[rotater] = (row, bond, torsion_atoms, widgets)
+        close_button = QToolButton()
+        close_action = QAction(close_button)
+        close_action.triggered.connect(lambda *args, rotater=rotater, manager=self.session.bond_rotations:
+            manager.delete_rotation(rotater))
+        close_action.setIcon(self.session.ui.style().standardIcon(QStyle.SP_TitleBarCloseButton))
+        close_button.setDefaultAction(close_action)
+        grid.addWidget(close_button, row, 0)
+
+        def multi_name(terminus, bonded, excluded):
+            for nb in bonded.neighbors:
+                if nb == terminus or nb == excluded:
+                    continue
+                if nb.name == terminus.name:
+                    return terminus.string(relative_to=bonded)
+            return terminus.name
+        for col, torsion_index, bonded in [(1, 0, fixed), (3, 1, moving)]:
+            terminus = torsion_atoms[torsion_index]
+            single_widget = QLabel(terminus.name)
+            multi_widget = QPushButton(multi_name(terminus, bonded, bond.other_atom(bonded)))
+            multi_menu = QMenu(multi_widget)
+            multi_menu.aboutToShow.connect(lambda *args, menu=multi_menu, end=bonded, bond=bond,
+                torsion_atoms=torsion_atoms, index=torsion_index, rotater=rotater:
+                self._at_compose_menu(menu, end, bond, index, rotater))
+            multi_widget.setMenu(multi_menu)
+            show_multi = bonded.num_bonds > 2
+            grid.addWidget(single_widget, row, col, alignment=Qt.AlignCenter)
+            grid.addWidget(multi_widget, row, col, alignment=Qt.AlignCenter)
+            single_widget.setHidden(show_multi)
+            multi_widget.setHidden(not show_multi)
+            widgets.extend([single_widget, multi_widget])
+        bond_widget = QPushButton(self._at_bond_text(rotater))
+        grid.addWidget(bond_widget, row, 2, alignment=Qt.AlignCenter)
+        bond_menu = QMenu(bond_widget)
+        bond_widget.setMenu(bond_menu)
+        reset = QAction("Reset to initial torsion angle", bond_menu)
+        reset.triggered.connect(lambda *args, rotater=rotater, f=self._at_log_command:
+            (setattr(rotater, 'angle', 0), f(rotater)))
+        bond_menu.addAction(reset)
+        swap = QAction("Swap moving/fixed sides", bond_menu)
+        swap.triggered.connect(lambda *args, rotater=rotater: rotater.swap_sides())
+        bond_menu.addAction(swap)
+        widgets.append(bond_widget)
+        widgets.append(close_button)
+        angle_text = QDoubleSpinBox()
+        angle_text.setDecimals(1)
+        angle_text.setRange(-180.0, 180.0)
+        angle_text.setSingleStep(1.0)
+        angle_text.setWrapping(True)
+        angle_text.setAlignment(Qt.AlignRight)
+        angle_text.valueChanged.connect(
+            lambda val, *, rotater=rotater, f=self._at_issue_command: f(rotater, val))
+        angle_text.setKeyboardTracking(False) # don't get a signal for _every_ keystroke
+        grid.addWidget(angle_text, row, 4, alignment=Qt.AlignLeft)
+        widgets.append(angle_text)
+        # QDial is integer, so x10...
+        dial = QDial()
+        dial.setMinimum(-1800)
+        dial.setMaximum(1800)
+        dial.setSingleStep(10)
+        dial.setWrapping(True)
+        dial.valueChanged.connect(lambda val, *, rotater=rotater, f=self._at_dial_changed: f(rotater, val))
+        dial.sliderReleased.connect(
+            lambda *, rotater=rotater, dial=dial, f=self._at_issue_command: f(rotater, dial.value()/10))
+        grid.addWidget(dial, row, 5, alignment=Qt.AlignCenter)
+        self.session.dial = dial
+        widgets.append(dial)
+        self._at_resize_dials()
+
+        self._at_update_torsion_value(rotater)
+
+    def _at_atomic_changes_cb(self, trig_name, trig_data):
+        if trig_name == 'changes':
+            update_names = 'name changed' in trig_data.atom_reasons() \
+                or 'name changed' in trig_data.residue_reasons() \
+                or 'name changed' in trig_data.chain_reasons()
+            update_ends = trig_data.created_atoms() or trig_data.num_deleted_atoms() > 0
+        else:
+            from chimerax.core.models import ADD_MODELS, REMOVE_MODELS
+            if trig_name == ADD_MODELS:
+                update_names = (len(self.session.models) - len(trig_data)) < 2
+            elif trig_name == REMOVE_MODELS:
+                update_names = len(self.session.models)  < 2
+            else:
+                update_names = True
+            update_ends = False
+        if not update_names and not update_ends:
+            return
+
+        death_row = []
+        for rotater, data in self.torsion_data.items():
+            row, bond, torsion_atoms, widgets = data
+            if bond.deleted:
+                # torsion manager will call back to us for this
+                continue
+            bond_widget = widgets[4]
+            moving = rotater.moving_side
+            reversed = bond.atoms[0] == moving
+            if update_ends:
+                for end in bond.atoms:
+                    if len(end.neighbors) < 2:
+                        death_row.append(rotater)
+                        break
+                if rotater in death_row:
+                    continue
+                for torsion_index, torsion_atom in enumerate(torsion_atoms):
+                    end = moving if torsion_index == 1 else bond.other_atom(moving)
+                    if torsion_atom.deleted:
+                        for nb in end.neighbors:
+                            if nb != bond.other_atom(end):
+                                self._at_change_torsion_atom(nb, rotater, torsion_index)
+                                break
+                    offset = 2 * torsion_index
+                    single_widget, multi_widget = widgets[offset:offset+2]
+                    is_single = len(end.neighbors) == 2
+                    single_widget.setHidden(not is_single)
+                    multi_widget.setHidden(is_single)
+                if update_names:
+                    bond_widget.setText(bond.string(minimal=True, reversed=reversed))
+            elif update_names:
+                bond_widget.setText(bond.string(minimal=True, reversed=reversed))
+                for torsion_index, torsion_atom in enumerate(torsion_atoms):
+                    end = moving if torsion_index == 1 else bond.other_atom(moving)
+                    offset = 2 * torsion_index
+                    single_widget, multi_widget = widgets[offset:offset+2]
+                    text = torsion_atom.string(relative_to=end, minimal=True)
+                    single_widget.setText(text)
+                    multi_widget.setText(text)
+        for rotater in death_row:
+            self.session.bond_rotations.delete_rotation(rotater)
+
+    def _at_bond_text(self, rotater):
+        (row, bond, torsion_atoms, widgets) = self.torsion_data[rotater]
+        return bond.string(minimal=True, reversed=(rotater.moving_side == bond.atoms[0]))
+
+    def _at_change_torsion_atom(self, torsion_atom, rotater, torsion_index, text=None, update_value=True):
+        (row, bond, torsion_atoms, widgets) = self.torsion_data[rotater]
+        torsion_atoms[torsion_index] = torsion_atom
+        offset = 2 * torsion_index
+        if text is None:
+            if torsion_index == 0:
+                end = bond.other_atom(rotater.moving_side)
+            else:
+                end = rotater.moving_side
+            text = torsion_atom.string(relative_to=end, minimal=True)
+        for widget in widgets[offset:offset+2]:
+            widget.setText(text)
+        if update_value and not torsion_atoms[1-torsion_index].deleted:
+            self._at_update_torsion_value(rotater)
+
+    def _at_compose_menu(self, menu, end_atom, bond, torsion_index, rotater):
+        menu.clear()
+        other_atom = bond.other_atom(end_atom)
+        for nb in end_atom.neighbors:
+            if nb == other_atom:
+                continue
+            action = QAction(menu)
+            action.setText(nb.string(relative_to=end_atom, minimal=True))
+            action.triggered.connect(lambda *args, ta=nb, torsion_index=torsion_index, rotater=rotater,
+                text=action.text(), f=self._at_change_torsion_atom: f(ta, rotater, torsion_index, text))
+            menu.addAction(action)
+
+    def _at_dial_changed(self, rotater, val):
+        delta = val/10 - self._at_torsion_value(rotater)
+        if delta != 0:
+            rotater.angle += delta
+
+    def _at_issue_command(self, rotater, val):
+        torsion_cmd_template = self._at_torsion_cmd(rotater)
+        from chimerax.core.commands import run
+        run(self.session, torsion_cmd_template % val)
+
+    def _at_log_command(self, rotater):
+        torsion_cmd_template = self._at_torsion_cmd(rotater)
+        from chimerax.core.commands import Command
+        Command(self.session).run(torsion_cmd_template % self._at_torsion_value(rotater), log_only=True)
+
+    def _at_remove_torsion(self, rotater):
+        for widget in self.torsion_data[rotater][-1]:
+            widget.hide()
+        del self.torsion_data[rotater]
+        if not self.torsion_data:
+            self.at_no_torsions_label.show()
+            for header in self.at_header_widgets:
+                header.hide()
+        else:
+            self._at_resize_dials()
+
+    def _at_resize_dials(self):
+        if not self.torsion_data:
+            return
+        num_torsions = len(self.torsion_data)
+        target_height = 250 / num_torsions
+        dial_size = int(min(100, max(target_height, 30)))
+        for row, bond, torsion_atoms, widgets in self.torsion_data.values():
+            widgets[-1].setFixedSize(dial_size, dial_size)
+
+    def _at_swap_sides(self, rotater):
+        (row, bond, torsion_atoms, widgets) = self.torsion_data[rotater]
+        torsion_atoms[:] = [torsion_atoms[1], torsion_atoms[0]]
+        fixed_widgets, moving_widgets = widgets[:2], widgets[2:4]
+        for widget in widgets[:4]:
+            self.at_torsions_layout.removeWidget(widget)
+        widgets[:2] = moving_widgets
+        widgets[2:4] = fixed_widgets
+        for col, torsion_widgets in [(3, fixed_widgets), (1, moving_widgets)]:
+            for torsion_widget in torsion_widgets:
+                self.at_torsions_layout.addWidget(torsion_widget, row, col, alignment=Qt.AlignCenter)
+
+        bond_widget = widgets[4]
+        bond_widget.setText(self._at_bond_text(rotater))
+        self._at_update_torsion_value(rotater)
+
+    def _at_torsion_atoms(self, rotater):
+        (row, bond, torsion_atoms, widgets) = self.torsion_data[rotater]
+        moving = rotater.moving_side
+        fixed = bond.other_atom(moving)
+        t1, t2 = torsion_atoms
+        return t1, fixed, moving, t2
+
+    def _at_torsion_cmd(self, rotater):
+        cmd = "torsion "
+        prev = None
+        for a in self._at_torsion_atoms(rotater):
+            cmd += a.string(style="command", minimal=True, relative_to=prev)
+            prev = a
+        cmd += " %g"
+        if rotater.moving_side != rotater.bond.smaller_side:
+            cmd += " move large"
+        return cmd
+
+    def _at_torsion_value(self, rotater):
+        (row, bond, torsion_atoms, widgets) = self.torsion_data[rotater]
+        spin_box, dial = widgets[-2:]
+        t1, fixed, moving, t2 = self._at_torsion_atoms(rotater)
+        from chimerax.geometry import dihedral
+        return dihedral(t1.coord, fixed.coord, moving.coord, t2.coord)
+
+    def _at_update_torsion_value(self, rotater):
+        torsion_value = self._at_torsion_value(rotater)
+        (row, bond, torsion_atoms, widgets) = self.torsion_data[rotater]
+        spin_box, dial = widgets[-2:]
+        spin_box.blockSignals(True)
+        spin_box.setValue(torsion_value)
+        spin_box.blockSignals(False)
+        dial.blockSignals(True)
+        dial.setValue(10 * torsion_value)
+        dial.blockSignals(False)
 
     def _cat_menu_cb(self, action):
         self.category_areas.setCurrentWidget(self.category_widgets[action.text()])
@@ -224,6 +510,67 @@ class BuildStructureTool(ToolInstance):
         from chimerax.core.selection import SELECTION_CHANGED
         self.handlers.append(self.session.triggers.add_handler(SELECTION_CHANGED, self._ab_sel_changed))
         self._ab_sel_changed()
+
+    def _layout_adjust_torsions(self, parent):
+        layout = QVBoxLayout()
+        layout.setContentsMargins(0,0,0,0)
+        layout.setSpacing(0)
+        layout.addStretch(1)
+        parent.setLayout(layout)
+        activate_layout = QHBoxLayout()
+        activate_layout.addStretch(1)
+        activate_button = QPushButton("Activate")
+        activate_button.clicked.connect(self._at_activate)
+        activate_layout.addWidget(activate_button)
+        activate_layout.addWidget(QLabel(" selected bond as torsion"))
+        activate_layout.addStretch(1)
+        layout.addLayout(activate_layout)
+        layout.addStretch(1)
+        grid_layout = QHBoxLayout()
+        grid_layout.setSpacing(5)
+        grid_layout.addStretch(1)
+        self.at_torsions_layout = grid = QGridLayout()
+        self.at_header_widgets = []
+        for col, text in enumerate(["Fixed", "Bond", "Moving"]):
+            label = QLabel(text)
+            grid.addWidget(label, 0, col+1, alignment=Qt.AlignCenter)
+            label.hide()
+            self.at_header_widgets.append(label)
+        grid_layout.addLayout(grid)
+        grid_layout.addStretch(1)
+        layout.addLayout(grid_layout)
+        layout.addStretch(1)
+        self.at_no_torsions_label = QLabel("No torsions active")
+        self.at_no_torsions_label.setEnabled(False)
+        layout.addWidget(self.at_no_torsions_label, alignment=Qt.AlignCenter)
+        layout.addStretch(1)
+
+        manager = self.session.bond_rotations
+        self.torsion_data = {}
+        for bond, rotation in manager.bond_rotations.items():
+            for end_pt in bond.atoms:
+                if not end_pt.neighbors:
+                    break
+            else:
+                for rotater in rotation.rotaters:
+                    if not rotater.one_shot:
+                        self._at_add_torsion(rotater)
+        self.handlers.append(manager.triggers.add_handler(manager.CREATED,
+            lambda trig_name, rotator, f=self._at_add_torsion: f(rotator)))
+        self.handlers.append(manager.triggers.add_handler(manager.DELETED,
+            lambda trig_name, rotator, f=self._at_remove_torsion: f(rotator)))
+        self.handlers.append(manager.triggers.add_handler(manager.MODIFIED,
+            lambda trig_name, rotator, f=self._at_update_torsion_value: f(rotator)))
+        self.handlers.append(manager.triggers.add_handler(manager.REVERSED,
+            lambda trig_name, rotator, f=self._at_swap_sides: f(rotator)))
+        from chimerax.atomic import get_triggers
+        self.handlers.append(get_triggers().add_handler('changes', self._at_atomic_changes_cb))
+        from chimerax.core.models import MODEL_NAME_CHANGED, MODEL_ID_CHANGED, ADD_MODELS, REMOVE_MODELS
+        triggers = self.session.triggers
+        self.handlers.append(triggers.add_handler(MODEL_NAME_CHANGED, self._at_atomic_changes_cb))
+        self.handlers.append(triggers.add_handler(MODEL_ID_CHANGED, self._at_atomic_changes_cb))
+        self.handlers.append(triggers.add_handler(ADD_MODELS, self._at_atomic_changes_cb))
+        self.handlers.append(triggers.add_handler(REMOVE_MODELS, self._at_atomic_changes_cb))
 
     def _layout_invert(self, parent):
         layout = QVBoxLayout()
