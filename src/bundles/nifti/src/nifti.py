@@ -72,5 +72,10 @@ class NiftiGrid(GridData):
 
     def read_matrix(self, ijk_origin = (0,0,0), ijk_size = None,
                   ijk_step = (1,1,1), progress = None):
-        return self.nifti_data.images
-        # self.initial_plane_display = True ?
+        array = self.nifti_data.images[::ijk_step[0], ::ijk_step[1], ::ijk_step[2]]
+        return array
+        #if self.nifti_data.slope != 1:
+        #    array *= self.nifti_data.slope
+        #if self.nifti_data.intercept != 0:
+        #    array += self.nifti_data.intercept
+        #return array
