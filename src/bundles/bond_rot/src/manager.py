@@ -42,7 +42,7 @@ class BondRotationManager(StateManager):
             self.triggers.activate_trigger(self.DELETED, rotater)
 
     def delete_all_rotations(self):
-        for br in self.bond_rotations:
+        for br in self.bond_rotations.values():
             for rotater in br.rotaters:
                 self.triggers.activate_trigger(self.DELETED, rotater)
             br.rotaters = []
