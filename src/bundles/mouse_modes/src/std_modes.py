@@ -67,7 +67,7 @@ class SelectMouseMode(MouseMode):
         ses = self.session
         import inspect
         for entry in SelectMouseMode._menu_entry_info:
-            # SelectContextMenuAtion methods used to only take session arg, so subclasses of old
+            # SelectContextMenuAction methods used to only take session arg, so subclasses of old
             # definition might expect only session arg, therefore inspect the callable
             sig = inspect.signature(entry.criteria)
             args = (ses,) if len(sig.parameters) == 1 else (ses, event)

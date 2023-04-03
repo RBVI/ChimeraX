@@ -20,6 +20,12 @@ from chimerax.core.toolshed import BundleAPI
 class BuildStructureAPI(BundleAPI):
 
     @staticmethod
+    def initialize(session, bundle_info):
+        if session.ui.is_gui:
+            session.ui.triggers.add_handler('ready', lambda *args, ses=session:
+                BuildStructureAPI._add_gui_items(ses))
+
+    @staticmethod
     def register_command(command_name, logger):
         from . import cmd
         cmd.register_command(command_name, logger)
@@ -33,5 +39,10 @@ class BuildStructureAPI(BundleAPI):
     def start_tool(session, tool_name):
         from .tool import BuildStructureTool
         return BuildStructureTool(session, tool_name)
+
+    @staticmethod
+    def _add_gui_items(session):
+        from .contextmenu import add_selection_context_menu_items
+        add_selection_context_menu_items(session)
 
 bundle_api = BuildStructureAPI()
