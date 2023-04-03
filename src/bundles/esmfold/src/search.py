@@ -61,3 +61,6 @@ def _search_sequences_web(sequences, url = sequence_search_url):
                                       database = 'ESMFold', version = hit['db version'])
                 for seq, hit in zip(sequences, results['sequences']) if hit}
     return seq_uids
+
+class SearchError(RuntimeError):
+    pass
