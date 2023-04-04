@@ -79,7 +79,7 @@ class ToQuest(ToolInstance):
         f = QFrame(parent)
         from chimerax.ui.widgets import vertical_layout, EntriesRow
         layout = vertical_layout(f, margins = (5,0,0,0))
-        max_tri = 900000 if self._settings.quest_app_name == 'LookSee' else 300000
+        max_tri = 900000 if self._settings.quest_app_name == 'LookSee' else 600000
         tc = EntriesRow(f, '#', 'scene triangles',
                         '    ', True, 'Maximum', max_tri)
         self._triangle_count = tcount = tc.labels[0]
@@ -333,7 +333,7 @@ class ToQuest(ToolInstance):
             if set:
                 self._max_triangles.value = value
         sl.changed.connect(lambda checked: set_max_tri(checked, 900000))
-        slar.changed.connect(lambda checked: set_max_tri(checked, 300000))
+        slar.changed.connect(lambda checked: set_max_tri(checked, 600000))
         radio_buttons(*ut.values)
         if self._settings.quest_app_name == 'LookSeeAR':
             self._send_to_looksee_ar.value = True
