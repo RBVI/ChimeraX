@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-BondRot" version="2.0.3" package="chimerax.bond_rot"
+<BundleInfo name="ChimeraX-BondRot" version="2.0.4" package="chimerax.bond_rot"
   	    customInit="true" minSessionVersion="1" maxSessionVersion="1">
 
   <!-- Additional information about bundle source -->

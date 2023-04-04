@@ -141,6 +141,10 @@ class BondRotationManager(StateManager):
             'version': 2,
 
             'rotations': self.bond_rotations,
+            # need to save rotaters so that they get restored;
+            # the rotation doesn't save them to avoid circular dependency
+            'rotaters': [rotater for rotation in self.bond_rotations.values()
+                            for rotater in rotation.rotaters]
         }
 
     def _ses_restore(self, data):
