@@ -58,12 +58,8 @@ class NiftiData:
                 , [affine[1][0] / self.scale[0], affine[1][1] / self.scale[1], affine[1][2] / self.scale[2]]
                 , [affine[2][0] / self.scale[0], affine[2][1] / self.scale[1], affine[2][2] / self.scale[2]]
             ]
-        self.data_type = data.dataobj.dtype
+        self.data_type = self.images.dtype
         self.slope, self.intercept = data.header.get_slope_inter()
-        if self.slope is None and self.intercept is None:
-            self.session.logger.warning("No scaling values found in NIfTI data; volumes and planes may appear black.")
-            # TODO:
-            #Use the medical volume settings to adjust the slope and intercept of voxel scaling values if necessary.")
         if self.slope is None:
             self.slope = 1
         if self.intercept is None:
