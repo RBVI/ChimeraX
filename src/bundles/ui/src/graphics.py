@@ -51,7 +51,8 @@ class GraphicsWindow(QWindow):
         if self.handle_drag_and_drop(event):
             return True
         from Qt.QtCore import QEvent
-        if event.type() == QEvent.Type.Show:
+        if event.type() == QEvent.Type.Show and not getattr(self, '_first_show', False):
+            self._first_show = True
             self.session.ui.mouse_modes.set_graphics_window(self)
             self._check_opengl()
         return QWindow.event(self, event)

@@ -217,11 +217,13 @@ class Bond(State):
         f = c_function('bond_polymeric_start_atom', args = (ctypes.c_void_p,), ret = ctypes.py_object)
         return f(self._c_pointer)
 
-    def string(self, style = None):
+    def string(self, *, style=None, minimal=False, reversed=False):
         "Supported API.  Get text representation of Bond (also used by __str__ for printing)"
         a1, a2 = self.atoms
+        if reversed:
+            a1, a2 = a2, a1
         bond_sep = " \N{Left Right Arrow} "
-        return a1.string(style=style) + bond_sep + a2.string(style=style, relative_to=a1)
+        return a1.string(style=style, minimal=minimal) + bond_sep + a2.string(style=style, relative_to=a1)
 
     def take_snapshot(self, session, flags):
         data = {'structure': self.structure,

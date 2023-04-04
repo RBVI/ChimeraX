@@ -27,8 +27,9 @@ class="clRight" title="User Guide Index"/></a>
 <p>
 The <b>Build Structure</b> tool builds and modifies atomic structures.
 The equivalent commands are
-<a href="../commands/build.html"><b>build</b></a> and
-<a href="../commands/bond.html"><b>bond</b></a>.
+<a href="../commands/build.html"><b>build</b></a>,
+<a href="../commands/bond.html"><b>bond</b></a>, and
+<a href="../commands/torsion.html"><b>torsion</b></a>.
 See also:
 <a href="rotamers.html"><b>Rotamers</b></a>,
 <a href="modeller.html"><b>Modeller Comparative</b></a>,
@@ -37,10 +38,11 @@ See also:
 <a href="altlocexplorer.html"><b>Altloc Explorer</b></a>,
 <a href="renumber.html"><b>Renumber Residues</b></a>,
 <a href="changechains.html"><b>Change Chain IDs</b></a>,
+<a href="../commands/angle.html"><b>angle</b></a>,
 <a href="../commands/rna.html"><b>rna</b></a>,
-<a href="../commands/torsion.html"><b>torsion</b></a>,
 <a href="../commands/swapaa.html"><b>swapaa</b></a>,
-<a href="../commands/swapna.html"><b>swapna</b></a>
+<a href="../commands/swapna.html"><b>swapna</b></a>,
+<a href="../selection.html#context">selection context menus</a>
 </p><p>
 <b>Build Structure</b> can be opened from the 
 <b>Structure Editing</b> section of the <b>Tools</b> menu and 
@@ -55,6 +57,8 @@ Sections:
 build outward step-by-step from an existing structure
 <li><a href="#bonds"><b>Adjust Bonds</b></a>
 &ndash; add bonds, delete bonds, change bond lengths
+<li><a href="#adjust"><b>Adjust Torsions</b></a>
+&ndash;- rotate bonds (change dihedral angles)
 <li><a href="#join"><b>Join Models</b></a>
 &ndash; bond and merge two models, moving one of them to form the bond
 <li><a href="#invert"><b>Invert</b></a>
@@ -69,9 +73,7 @@ build outward step-by-step from an existing structure
 <p>
 The <b>Start Structure</b> section of <a href="#top"><b>Build Structure</b></a> 
 adds new atoms or molecules independent of any pre-existing atoms.
-See also: <a href="../commands/open.html#fetch"><b>open</b></a>,
-<a href="../commands/angle.html"><b>angle</b></a>,
-<a href="../commands/torsion.html"><b>torsion</b></a>
+See also: <a href="../commands/open.html#fetch"><b>open</b></a>
 </p><p>
 Options to <b>Add</b>:
 <ul>
@@ -366,6 +368,65 @@ to the value specified in the entry field or with the slider
 &ndash; restore the currently selected bonds to their lengths when the bonds 
 were selected (not necessarily their original lengths)
 </ul>
+
+<a name="adjust"></a>
+<p class="nav">
+[<a href="#top">back to top: Build Structure</a>]
+</p>
+<h3>Adjust Torsions</h3>
+<p>
+The <b>Adjust Torsions</b> section of <a href="#top"><b>Build Structure</b></a>
+is a table of active (rotatable) torsions with entry fields and dials
+for interactive adjustment. Clicking <b>Activate</b> adds the
+<a href="../selection.html">selected</a> bond to the list.
+A torsion can also be activated using the
+<a href="../selection.html#context">selection context menu</a> of a bond.
+An error message will appear if an attempt is made to activate a bond that is
+terminal (without further atoms attached) or within a ring.
+<!--
+Active torsions are
+saved in <a href="../../UsersGuide/sessions.html#sesdef">sessions</a>.
+-->
+See also: 
+<a href="angles.html"><b>Angles/Torsions</b></a>,
+<a href="../commands/angle.html"><b>angle</b></a>,
+<a href="../commands/torsion.html"><b>torsion</b></a>, the
+<b>bond rotation</b> <a href="../commands/ui.html#mousemode">mouse mode</a>
+<a href="mousemodes.html" title="Mouse Modes for Right Button...">
+<img class="icon" border=1 src="mouse-icons/bondrot.png"></a>
+</p>
+<table class="clRight">
+<tr><td><img class="outline" src="torsions.png" width="400px"
+alt="Adjust Torsions dialog"></td></tr>
+</table>
+<p>
+If the four atoms defining a torsion are called 1-2-3-4,
+atom 1 is <b>Fixed</b> and atom 4 is <b>Moving</b>,
+meaning that 4 and the side of the molecule bonded to 4
+will rotate when the bond is rotated.
+The bond can be rotated by entering a new angle value
+or by manipulating the associated dial.
+</p><p>
+The <b>Bond</b> column contains a pulldown menu for each torsion labeled with 
+the identifiers of atoms 2 &harr; 3 (those flanking the rotatable bond).
+This menu contains choices to:
+</p>
+<ul>
+<li><b>Reset to initial torsion angle</b>
+<li><b>Swap moving/fixed sides</b>
+</ul>
+<p>
+When atom 2 is bonded to more than two atoms, there is more than one
+possible <b>Fixed</b> atom to define the measurement, and 
+alternatives (if any) are available from a pulldown menu. 
+Similarly, when atom 3 is bonded to more than two atoms, there is more than one
+possible <b>Moving</b> atom, and alternatives (if any) are available
+from a pulldown menu.
+</p><p>
+The torsion can be deactivated by clicking the &ldquo;x&rdquo; button
+to its left. If preserving the original position is desired, 
+the bond should be reset before it is deactivated.
+</p>
 
 <a name="join"></a>
 <p class="nav">
