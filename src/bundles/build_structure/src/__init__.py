@@ -20,6 +20,12 @@ from chimerax.core.toolshed import BundleAPI
 class BuildStructureAPI(BundleAPI):
 
     @staticmethod
+    def get_class(class_name):
+        if class_name == 'BuildStructureTool':
+            from .tool import BuildStructureTool
+            return BuildStructureTool
+        return BundleAPI.getclass(class_name)
+    @staticmethod
     def initialize(session, bundle_info):
         if session.ui.is_gui:
             session.ui.triggers.add_handler('ready', lambda *args, ses=session:
