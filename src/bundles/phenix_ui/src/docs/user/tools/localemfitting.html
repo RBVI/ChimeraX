@@ -33,19 +33,28 @@ not found
 <a href="https://phenix-online.org/documentation/reference/emplace_local.html"
 target="_blank">
 -->
-to fit an atomic structure within a local region of cryo-EM density;
-the command implementation is 
+to fit an atomic structure within a local region of cryo-EM density.
+The command implementation is 
 <a href="../commands/phenix.html#emplaceLocal"><b>phenix emplaceLocal</b></a>.
 See also:
 <a href="fitmap.html"><b>Fit in Map</b></a>,
 <a href="waterplacement.html"><b>Water Placement</b></a>
 </p><p>
-Limiting the search space to a local region of the map can improve the
-signal-to-noise ratio and lead to success in cases where global search fails,
-in addition to being much faster. The method uses two &ldquo;half maps&rdquo;
+Limiting the search space to a local region of the map (subvolume)
+can improve the signal-to-noise ratio and lead to success in cases 
+where global search fails, in addition to being much faster.
+The method uses two &ldquo;half maps&rdquo;
 that cover the same spatial region but are each generated from half of the
-experimental data.
-</p><p>
+experimental data. The subvolume search is described in:
+</p>
+<blockquote>
+<a href="https://journals.iucr.org/d/issues/2023/04/00/vo5012/index.html" 
+target="_blank">
+Likelihood-based docking of models into cryo-EM maps.</a>
+Mill&aacute;n C, McCoy AJ, Terwilliger TC, Read RJ.
+<i>Acta Crystallogr D Struct Biol.</i> 2023 Apr 1;79(Pt 4):281-289.
+</blockquote>
+<p>
 <a href="https://phenix-online.org" target="_blank">Phenix</a>
 must be installed locally and the <b>PhenixUI</b> bundle installed in ChimeraX.
 The program location can be specified (saved in
@@ -118,5 +127,5 @@ in the <a href="helpviewer.html"><b>Help Viewer</b></a>.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-February 2023</address>
+April 2023</address>
 </body></html>
