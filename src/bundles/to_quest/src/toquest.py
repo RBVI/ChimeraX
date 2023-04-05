@@ -79,9 +79,8 @@ class ToQuest(ToolInstance):
         f = QFrame(parent)
         from chimerax.ui.widgets import vertical_layout, EntriesRow
         layout = vertical_layout(f, margins = (5,0,0,0))
-        max_tri = 900000 if self._settings.quest_app_name == 'LookSee' else 600000
-        tc = EntriesRow(f, '#', 'scene triangles',
-                        '    ', True, 'Maximum', max_tri)
+        max_tri = 700000 if self._settings.limit_for_room_view else 900000
+        tc = EntriesRow(f, '#', 'scene triangles', '    ', True, 'Maximum', max_tri)
         self._triangle_count = tcount = tc.labels[0]
         self._use_max_triangles, self._max_triangles = um, mt = tc.values
         mt.pixel_width = 70
@@ -275,8 +274,7 @@ class ToQuest(ToolInstance):
 
         # Transfer scene file to Quest using adb
         adb = self._adb_path.value
-        app = 'LookSee' if self._send_to_looksee.enabled else 'LookSeeAR'
-        scenes_dir = f'/sdcard/Android/data/com.UCSF.{app}/files'
+        scenes_dir = f'/sdcard/Android/data/com.UCSF.LookSee/files'
 
         # all output is on stderr, but Windows needs all standard I/O to
         # be redirected if one is, so stdout is a pipe too
@@ -304,7 +302,6 @@ class ToQuest(ToolInstance):
             self.session.logger.error('\n'.join(lines))
         else:
             self._settings.adb_executable_path = adb
-            self._settings.quest_app_name = app
             
     # ---------------------------------------------------------------------------
     #
@@ -318,26 +315,24 @@ class ToQuest(ToolInstance):
         self._options_panel = p = CollapsiblePanel(parent, title = None)
         f = p.content_area
 
-        from chimerax.ui.widgets import EntriesRow, radio_buttons
+        from chimerax.ui.widgets import EntriesRow
 
-        # Results directory
+        # Path to adb executable
         ac = EntriesRow(f, 'adb executable', '', ('Browse', self._choose_adb_path))
         self._adb_path = adb = ac.values[0]
         adb.pixel_width = 350
         adb.value = self._settings.adb_executable_path
 
-        # Use PDB structure templates option for prediction
-        ut = EntriesRow(f, 'Send to Quest application', True, 'LookSee', False, 'LookSeeAR')
-        self._send_to_looksee, self._send_to_looksee_ar = sl,slar = ut.values
-        def set_max_tri(set, value):
-            if set:
-                self._max_triangles.value = value
-        sl.changed.connect(lambda checked: set_max_tri(checked, 900000))
-        slar.changed.connect(lambda checked: set_max_tri(checked, 600000))
-        radio_buttons(*ut.values)
-        if self._settings.quest_app_name == 'LookSeeAR':
-            self._send_to_looksee_ar.value = True
-        
+        # Whether to limit triangles for pass-through or black background
+        # Black background can handle about 25% more triangles.
+        rv = EntriesRow(f, False, 'Reduce maximum triangles for room view')
+        self._room_view_max = rvm = rv.values[0]
+        def set_max_tri(room_view):
+            self._max_triangles.value = 700000 if room_view else 900000
+            self._settings.limit_for_room_view = room_view
+        rvm.changed.connect(set_max_tri)
+        rvm.value = self._settings.limit_for_room_view
+
         return p
         
     # ---------------------------------------------------------------------------
@@ -388,7 +383,7 @@ from chimerax.core.settings import Settings
 class _ToQuestSettings(Settings):
     AUTO_SAVE = {
         'adb_executable_path': '',
-        'quest_app_name': 'LookSee',
+        'limit_for_room_view': False,
     }
         
 def to_quest_panel(session, create = True):
