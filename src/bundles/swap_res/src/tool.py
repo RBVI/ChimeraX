@@ -314,7 +314,6 @@ class RotamerDialog(ToolInstance):
         return inst
 
     def take_snapshot(self, session, flags):
-        import sys
         data = {
             'ToolInstance': ToolInstance.take_snapshot(self, session, flags),
             'mgr': self.mgr,

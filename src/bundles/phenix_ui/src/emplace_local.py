@@ -56,13 +56,17 @@ class FitJob(Job):
         super().run()
 
     def monitor(self):
+        from chimerax.core.commands import plural_form
+        plural_seconds = lambda n: plural_form(n, "second")
+        plural_minutes = lambda n: plural_form(n, "minute")
         delta = int(time() - self.start_t + 0.5)
         if delta < 60:
-            time_info = "%d seconds" % delta
+            time_info = "%d %s" % (delta, plural_seconds(delta))
         elif delta < 3600:
             minutes = delta // 60
             seconds = delta % 60
-            time_info = "%d minutes and %d seconds" % (minutes, seconds)
+            time_info = "%d %s and %d %s" % (minutes, plural_minutes(minutes), seconds,
+                plural_seconds(seconds))
         else:
             hours = delta // 3600
             minutes = (delta % 3600) // 60
@@ -124,8 +128,8 @@ def phenix_local_fit(session, model, center=None, half_maps=None, *, resolution=
     # Run phenix.voyager.emplace_local
     # keep a reference to 'd' in the callback so that the temporary directory isn't removed before
     # the program runs
-    callback = lambda fit_model, sharpened_map, *args, session=session, half_maps=half_maps, shift=shift, d_ref=d: \
-        _process_results(session, fit_model, sharpened_map, model, half_maps, shift)
+    callback = lambda transform, sharpened_map, *args, session=session, half_maps=half_maps, shift=shift, d_ref=d: \
+        _process_results(session, transform, sharpened_map, model, half_maps, shift)
     #FitJob(session, exe_path, option_arg, "target_map.mrc", "half_map1.mrc", "half_map2.mrc", search_center,
     #    "model.pdb", position_arg, temp_dir, resolution, verbose, callback, block)
     FitJob(session, exe_path, option_arg, "half_map1.mrc", "half_map2.mrc", search_center,
@@ -193,17 +197,12 @@ def view_box(session, model):
         return (face_intercepts[0] + face_intercepts[1]) / 2
     raise ViewBoxError("Center of view does not intersect %s bounding box" % model)
 
-def _process_results(session, fit_model, sharpened_map, orig_model, half_maps, shift):
-    fit_model.position = half_maps[0].scene_position
-    if shift is not None:
-        fit_model.atoms.coords += shift
-    from chimerax.std_commands.align import align
-    xf = align(session, orig_model.atoms, fit_model.atoms, log_info=False)[-1]
-    fit_model.delete()
+def _process_results(session, transform, sharpened_map, orig_model, half_maps, shift):
+    from chimerax.geometry import Place
+    orig_model.scene_position = Place(transform) * orig_model.scene_position
     sharpened_map.name = "sharpened local map"
     session.models.add([sharpened_map])
     session.logger.status("Fitting job finished")
-    #session.logger.info("Fitted model opened as %s" % fit_model)
 
 def _fix_map_origin(map):
     '''
@@ -270,8 +269,6 @@ def _run_fit_subprocess(session, exe_path, optional_args, half_map1_file_name,
     with open(json_path, 'r') as f:
         info = json.load(f)
     model_path = path.join(temp_dir, info["model_filename"])
-    from chimerax.pdb import open_pdb
-    fitted_models, status = open_pdb(session, model_path, log_info=False)
     map_path = path.join(temp_dir, info["map_filename"])
     sharpened_maps, status = session.open_command.open_data(map_path)
     from chimerax.core.commands import plural_form
@@ -282,7 +279,8 @@ def _run_fit_subprocess(session, exe_path, optional_args, half_map1_file_name,
     tsafe(logger.info, "map CC %s: %s" % (plural_form(num_solutions, "value"),
         ', '.join(["%g" % v for v in info["mapCC"]])))
 
-    return fitted_models[0], sharpened_maps[0]
+    from numpy import array
+    return array(info['RT'][0]), sharpened_maps[0]
 
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register

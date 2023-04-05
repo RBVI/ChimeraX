@@ -23,6 +23,7 @@ from Qt.QtCore import Qt
 class BuildStructureTool(ToolInstance):
 
     help = "help:user/tools/buildstructure.html"
+    SESSION_SAVE = True
 
     def __init__(self, session, tool_name):
         ToolInstance.__init__(self, session, tool_name)
@@ -67,6 +68,20 @@ class BuildStructureTool(ToolInstance):
     def show_category(self, category):
         self.category_button.setText(category)
         self.category_areas.setCurrentWidget(self.category_widgets[category])
+
+    def take_snapshot(self, session, flags):
+        data = {
+            'ToolInstance': ToolInstance.take_snapshot(self, session, flags),
+            'tab': self.category_button.text()
+        }
+        return data
+
+    @classmethod
+    def restore_snapshot(cls, session, data):
+        inst = super().restore_snapshot(session, data['ToolInstance'])
+        if data['tab'] in inst.category_widgets:
+            inst.show_category(data['tab'])
+        return inst
 
     def _ab_len_cb(self, opt):
         self.bond_len_slider.blockSignals(True)
