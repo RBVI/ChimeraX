@@ -5,10 +5,14 @@ def open_mol2(session, path, file_name, auto_style, atomic):
     with open_input(path, encoding='utf-8') as stream:
         p = Mol2Parser(session, stream, file_name, auto_style, atomic)
     structures = p.structures
-    status = "Opened %s containing %d structures (%d atoms, %d bonds)" % (
-                    file_name, len(structures),
-                    sum([s.num_atoms for s in structures]),
-                    sum([s.num_bonds for s in structures]))
+    from chimerax.core.commands import plural_form
+    num_structures = len(structures)
+    num_atoms = sum([s.num_atoms for s in structures])
+    num_bonds = sum([s.num_bonds for s in structures])
+    status = "Opened %s containing %d %s (%d %s, %d %s)" % (
+                    file_name, num_structures, plural_form(num_structures, "structure"),
+                    num_atoms, plural_form(num_atoms, "atom"),
+                    num_bonds, plural_form(num_bonds, "bond"),)
     return structures, status
 
 
@@ -193,6 +197,9 @@ class Mol2Parser:
                 element = atom_data.atom_type
                 if '.' in element:
                     element = element.split('.')[0]
+                elif len(element) > 1 and element.islower():
+                    # probably GAFF atom type
+                    element = element[0].upper()
                 atom = s.new_atom(name, element)
                 atom.coord = array([atom_data.x, atom_data.y, atom_data.z],
                                    dtype=float64)
