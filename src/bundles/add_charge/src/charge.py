@@ -544,49 +544,66 @@ def nonstd_charge(session, residues, net_charge, method, *, status=None, temp_di
 
         ante_out = os.path.join(temp_dir, "ante.out.mol2")
         from chimerax.amber_info import amber_bin, amber_home
-        command = [amber_bin + "/antechamber"]
         if method.lower().startswith("am1"):
             mth = "bcc"
-            command.extend(["-ek", "qm_theory='AM1',"])
+            use_ek_flags = [True, False]
         elif method.lower().startswith("gas"):
             mth = "gas"
+            use_ek_flags = [False]
         else:
             raise ValueError("Unknown charge method: %s" % method)
 
-        command.extend([
-            "-i", ante_in,
-            "-fi", "mol2",
-            "-o", ante_out,
-            "-fo", "mol2",
-            "-c", mth,
-            "-nc", str(total_net_charge),
-            "-j", "5",
-            "-s", "2",
-            "-dr", "n"])
-        if status:
-            status("Running ANTECHAMBER for residue %s" % r.name)
-        from subprocess import Popen, STDOUT, PIPE
-        # For some reason in Windows, if shell==False then antechamber cannot run bondtype via system()
-        session.logger.info("Running ANTECHAMBER command: %s" % " ".join(command))
-        os.environ['AMBERHOME'] = amber_home
-        ante_messages = Popen(command, stdin=PIPE, stdout=PIPE, stderr=STDOUT, cwd=temp_dir, bufsize=1,
-            encoding="utf8").stdout
-        while True:
-            line = ante_messages.readline()
-            if not line:
-                break
+        # Using the -ek is significantly fasrer but slightly more likely to result in a convergence failure
+        # so try using the flag first and fall back to not using it if convergence fails.  This only
+        # applies to the AM1-BCC method.  See ticket #5729
+        for use_ek_flag in use_ek_flags:
+            command = [amber_bin + "/antechamber"]
+            if use_ek_flag:
+                command.extend(["-ek", "qm_theory='AM1',"])
+            rerun = mth == "bcc" and not use_ek_flag
+
+            command.extend([
+                "-i", ante_in,
+                "-fi", "mol2",
+                "-o", ante_out,
+                "-fo", "mol2",
+                "-c", mth,
+                "-nc", str(total_net_charge),
+                "-j", "5",
+                "-s", "2",
+                "-dr", "n"])
             if status:
-                status("(%s) %s" % (r.name, line.rstrip()))
-            # Using <code> avoids extra newlines
-            session.logger.status("(%s) <code>%s</code>" % (r.name, line.rstrip()), is_html=True, log=True)
-        ante_failure_msg = "Failure running ANTECHAMBER for residue %s\nCheck reply log for details" % r.name
-        if not os.path.exists(ante_out):
-            sqm_out = os.path.join(temp_dir, "sqm.out")
-            if os.path.exists(sqm_out) and os.stat(sqm_out).st_size > 0:
-                with open(sqm_out) as f:
-                    sqm_info = "<br><i>Contents of sqm.out:</i><pre>%s</pre>" % f.read()
-                session.logger.info(sqm_info, is_html=True)
-            raise ChargeError(ante_failure_msg)
+                status("%s ANTECHAMBER for residue %s"
+                    % (("Re-running" if rerun else "Running"), r.name))
+            from subprocess import Popen, STDOUT, PIPE
+            # For some reason in Windows, if shell==False then antechamber cannot run bondtype via system()
+            session.logger.info("Running ANTECHAMBER command: %s" % " ".join(command))
+            os.environ['AMBERHOME'] = amber_home
+            ante_messages = Popen(command, stdin=PIPE, stdout=PIPE, stderr=STDOUT, cwd=temp_dir, bufsize=1,
+                encoding="utf8").stdout
+            while True:
+                line = ante_messages.readline()
+                if not line:
+                    break
+                if status:
+                    status("(%s) %s" % (r.name, line.rstrip()))
+                # Using <code> avoids extra newlines
+                session.logger.status("(%s) <code>%s</code>" % (r.name, line.rstrip()),
+                    is_html=True, log=True)
+            ante_failure_msg = "Failure running ANTECHAMBER for residue %s\nCheck reply log for details" \
+                % r.name
+            if not os.path.exists(ante_out):
+                sqm_out = os.path.join(temp_dir, "sqm.out")
+                if os.path.exists(sqm_out) and os.stat(sqm_out).st_size > 0:
+                    with open(sqm_out) as f:
+                        sqm_info = "<br><i>Contents of sqm.out:</i><pre>%s</pre>" % f.read()
+                    if "No convergence in SCF" in sqm_info and mth == "bcc" and not rerun:
+                        session.logger.status("Charges failed to converge using fast method;"
+                            " re-running using slower more stable method", log=True)
+                        continue
+                    session.logger.info(sqm_info, is_html=True)
+                raise ChargeError(ante_failure_msg)
+            break
         if status:
             status("Reading ANTECHAMBER output for residue %s" % r.name)
         try:
