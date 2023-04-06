@@ -373,7 +373,7 @@ class ToQuest(ToolInstance):
     #
     def _help(self):
       from os.path import dirname, join
-      help_url = 'file://' + join(dirname(__file__), 'help.html')
+      help_url = 'file://' + join(dirname(__file__), 'sendtoquest.html')
       from chimerax.help_viewer import show_url
       show_url(self.session, help_url)
 
