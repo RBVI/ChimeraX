@@ -34,6 +34,24 @@ NPEXSpecies = {
 }
 
 class TCIADatabase:
+
+    data_usage_disclaimer = """\
+The data presented in the Download DICOM tool is provided by The Cancer Imaging Archive (TCIA), an effort of 
+Frederick National Laboratory. When using these datasets it is up to you to abide by TCIA's Data Usage Policy, 
+which is provided  
+<a href="https://wiki.cancerimagingarchive.net/display/Public/Data+Usage+Policies+and+Restrictions">here</a>.
+<br>
+<br>
+Please note that each collection carries its own citation and data usage policy, which you can find from ChimeraX.
+To see the citation and data usage policy of one or more collections: highlight the collection(s) you are interested
+in, then right click and click on "Load Webpage for Chosen Entries", or click on the "Load Webpage" button at the 
+bottom of the tool. ChimeraX's browser will open the collections' corresponding webpages on TCIA's website, where you
+can find the information you need.
+<br>
+<br>
+Please read the usage policy. If you agree to it and to abide by the citation and data usage policies of each collection 
+you use, hit 'OK' to close this dialog and continue. If you do not agree, please hit 'Cancel'.
+"""
     @staticmethod
     def get_collections(session = None):
         collections = nbia.getCollections()

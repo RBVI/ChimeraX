@@ -14,7 +14,7 @@ from enum import Enum
 from Qt.QtCore import QThread, QObject, Signal, Slot, Qt
 from Qt.QtWidgets import (
     QVBoxLayout, QHBoxLayout, QHeaderView
-    , QWidget, QLabel, QAbstractItemView
+    , QWidget, QLabel, QDialog, QDialogButtonBox
     , QPushButton, QAction, QComboBox
     , QStackedWidget, QSizePolicy
 )
@@ -23,6 +23,8 @@ from chimerax.core.tools import ToolInstance
 from chimerax.ui import MainToolWindow
 from chimerax.core.commands import run
 from chimerax.help_viewer import show_url
+from chimerax.core.settings import Settings
+from chimerax.ui.options import BooleanOption
 
 from ..databases import TCIADatabase
 from .widgets import DICOMTable
@@ -32,6 +34,11 @@ class Action(Enum):
     LOAD_STUDIES = 2
     LOAD_SERIES = 3
 
+class DICOMDatabasesSettings(Settings):
+    AUTO_SAVE = {
+        "user_accepted_tcia_tos": False
+    }
+
 class DICOMDatabases(ToolInstance):
 
     help = "help:user/tools/downloaddicom.html"
@@ -39,7 +46,38 @@ class DICOMDatabases(ToolInstance):
     def __init__(self, session = None, name = "Download DICOM"):
         """Bring up a tool to explore DICOM models open in the session."""
         super().__init__(session, name)
+        self.settings = DICOMDatabasesSettings(self.session, "dicom databases")
+        if not self.settings.user_accepted_tcia_tos:
+            self.accept_tos_dialog = QDialog()
+            self.data_usage_dialog_bbox = QDialogButtonBox(
+                QDialogButtonBox.StandardButton.Ok
+                | QDialogButtonBox.StandardButton.Cancel
+            )
+            self.tos = QLabel(TCIADatabase.data_usage_disclaimer)
+            self.tos_box_layout = QVBoxLayout()
+            self.tos_box_layout.addWidget(self.tos)
+            self.tos_box_layout.addWidget(self.data_usage_dialog_bbox)
+            self.accept_tos_dialog.setLayout(self.tos_box_layout)
+            self.tos.setTextFormat(Qt.TextFormat.RichText)
+            self.tos.setWordWrap(True)
+            self.tos.setTextInteractionFlags(Qt.TextInteractionFlag.LinksAccessibleByMouse | Qt.TextInteractionFlag.LinksAccessibleByKeyboard)
+            self.data_usage_dialog_bbox.accepted.connect(self._construct_ui)
+            self.data_usage_dialog_bbox.accepted.connect(self.accept_tos_dialog.close)
+            self.data_usage_dialog_bbox.accepted.connect(self._on_accept_tos)
+            self.data_usage_dialog_bbox.rejected.connect(self.accept_tos_dialog.close)
+            self.data_usage_dialog_bbox.rejected.connect(self.delete)
+            self.tos.linkActivated.connect(self._open_tos_link)
+            self.accept_tos_dialog.show()
+        else:
+            self._construct_ui()
 
+    def _open_tos_link(self, link):
+        show_url(self.session, link, new_tab=True)
+
+    def _on_accept_tos(self):
+        self.settings.user_accepted_tcia_tos = True
+
+    def _construct_ui(self):
         self._main_table_data = []
 
         # Construct the GUI
