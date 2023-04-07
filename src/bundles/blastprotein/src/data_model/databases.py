@@ -161,13 +161,11 @@ class NCBIDB(Database):
 
     @staticmethod
     def format_formulas(formulas):
+        import re
         temp_formulas = formulas.split(',')
         postprocessed_formulas = []
         for formula in temp_formulas:
-            postprocessed_formulas.append(formula.replace(' ', ''))
-            # TODO: Activate when Trac#5407 is complete
-            # Wrap the numbers in the formulas in <sub></sub> HTML tags
-            # postprocessed_formulas.append(re.sub(r"([1-9]+)", lambda x: "<sub>{}</sub>".format(x.group(0)), formula).rep    lace(' ', ''))
+            postprocessed_formulas.append(re.sub(r"([0-9]+)", lambda x: "<sub>{}</sub>".format(x.group(0)), formula).replace(' ', ''))
         return ", ".join(postprocessed_formulas)
 
     @staticmethod
