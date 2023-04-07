@@ -14,11 +14,7 @@
 from typing import Optional, Union
 
 from Qt.QtCore import Signal
-from Qt.QtWidgets import QMenu, QWidget, QApplication, QStyle, QStyleOptionViewItem, QAbstractItemView, QStyledItemDelegate
-from Qt.QtGui import QTextDocument, QAbstractTextDocumentLayout
-
-from Qt.QtGui import QTextDocument
-from Qt.QtCore import QSize
+from Qt.QtWidgets import QMenu, QWidget
 
 from chimerax.core.settings import Settings
 from chimerax.ui.widgets import ItemTable
@@ -56,59 +52,5 @@ class BlastResultsTable(ItemTable):
             if self.columnWidth(self._columns.index(col)) > max_size:
                 self.setColumnWidth(self._columns.index(col), max_size)
 
-    def launch(self, *, select_mode=QAbstractItemView.SelectionMode.ExtendedSelection, session_info=None, suppress_resize=False):
-        super().launch(select_mode=select_mode, session_info=session_info, suppress_resize=suppress_resize)
-        for index, col in enumerate(self._columns):
-            if col.title == "Ligand Formulas":
-                self.setItemDelegateForColumn(index, HTMLColumnDelegate())
-                break
-
 class BlastProteinResultsSettings(Settings):
     EXPLICIT_SAVE = {BlastResultsTable.DEFAULT_SETTINGS_ATTR: {}}
-
-
-# Modified from https://stackoverflow.com/a/44365155/12208118
-class HTMLColumnDelegate(QStyledItemDelegate):
-
-    def anchorAt(self, html, point):
-        doc = QTextDocument()
-        doc.setHtml(html)
-        textLayout = doc.documentLayout()
-        return textLayout.anchorAt(point)
-
-    def paint(self, painter, option, index):
-        options = QStyleOptionViewItem(option)
-        self.initStyleOption(options, index)
-
-        if options.widget:
-            style = options.widget.style()
-        else:
-            style = QApplication.style()
-
-        doc = QTextDocument()
-        doc.setHtml(options.text)
-        options.text = ''
-
-        style.drawControl(QStyle.ControlElement.CE_ItemViewItem, options, painter)
-        ctx = QAbstractTextDocumentLayout.PaintContext()
-
-        textRect = style.subElementRect(QStyle.SubElement.SE_ItemViewItemText, options)
-
-        painter.save()
-
-        painter.translate(textRect.topLeft())
-        painter.setClipRect(textRect.translated(-textRect.topLeft()))
-        painter.translate(0, 0.5 * (options.rect.height() - doc.size().height()))
-        doc.documentLayout().draw(painter, ctx)
-
-        painter.restore()
-
-    def sizeHint(self, option, index):
-        options = QStyleOptionViewItem(option)
-        self.initStyleOption(options, index)
-
-        doc = QTextDocument()
-        doc.setHtml(options.text)
-        doc.setTextWidth(options.rect.width())
-
-        return QSize(doc.idealWidth(), doc.size().height())
