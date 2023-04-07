@@ -12,6 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 import logging
 import os
+from pathlib import Path
 import string
 
 from collections import defaultdict
@@ -36,20 +37,20 @@ NPEXSpecies = {
 class TCIADatabase:
 
     data_usage_disclaimer = """\
-The data presented in the Download DICOM tool is provided by The Cancer Imaging Archive (TCIA), an effort of 
-Frederick National Laboratory. When using these datasets it is up to you to abide by TCIA's Data Usage Policy, 
-which is provided  
+The data presented in the Download DICOM tool is provided by The Cancer Imaging Archive (TCIA), an effort funded
+by the National Cancer Institute's Cancer Imaging Program. When using these datasets it is up to you to abide by
+TCIA's Data Usage Policy, which is provided
 <a href="https://wiki.cancerimagingarchive.net/display/Public/Data+Usage+Policies+and+Restrictions">here</a>.
 <br>
 <br>
 Please note that each collection carries its own citation and data usage policy, which you can find from ChimeraX.
 To see the citation and data usage policy of one or more collections: highlight the collection(s) you are interested
-in, then right click and click on "Load Webpage for Chosen Entries", or click on the "Load Webpage" button at the 
+in, then right click and click on "Load Webpage for Chosen Entries", or click on the "Load Webpage" button at the
 bottom of the tool. ChimeraX's browser will open the collections' corresponding webpages on TCIA's website, where you
 can find the information you need.
 <br>
 <br>
-Please read the usage policy. If you agree to it and to abide by the citation and data usage policies of each collection 
+Please read the usage policy. If you agree to it and to abide by the citation and data usage policies of each collection
 you use, hit 'OK' to close this dialog and continue. If you do not agree, please hit 'Cancel'.
 """
     @staticmethod
@@ -98,6 +99,8 @@ you use, hit 'OK' to close this dialog and continue. If you do not agree, please
     def getImages(session, studyUID, ignore_cache, **kw):
         old_cwd = os.getcwd()
         download_dir = cache_directories()[0]
+        if not os.path.exists(download_dir):
+            Path(download_dir).mkdir(parents=True, exist_ok=True)
         os.chdir(download_dir)
         # Unfortunately the return type of this function is a Pandas dataframe, but we can
         # predict where tcia_utils will put the images
