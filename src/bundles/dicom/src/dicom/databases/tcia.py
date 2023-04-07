@@ -36,9 +36,9 @@ NPEXSpecies = {
 class TCIADatabase:
 
     data_usage_disclaimer = """\
-The data presented in the Download DICOM tool is provided by The Cancer Imaging Archive (TCIA), an effort of 
-Frederick National Laboratory. When using these datasets it is up to you to abide by TCIA's Data Usage Policy, 
-which is provided  
+The data presented in the Download DICOM tool is provided by The Cancer Imaging Archive (TCIA), an effort funded
+by the National Cancer Institute's Cancer Imaging Program. When using these datasets it is up to you to abide by 
+TCIA's Data Usage Policy, which is provided  
 <a href="https://wiki.cancerimagingarchive.net/display/Public/Data+Usage+Policies+and+Restrictions">here</a>.
 <br>
 <br>
