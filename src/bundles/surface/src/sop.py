@@ -410,6 +410,8 @@ def surface_transform(session, surfaces, scale = None,
             move = csys.transform_vector(move)
             
     for surf in surfaces:
+        if surf.empty_drawing():
+            continue
         if need_center and c is None:
             b = surf.bounds()
             if b is not None:
