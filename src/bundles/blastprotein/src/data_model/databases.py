@@ -167,7 +167,7 @@ class NCBIDB(Database):
             postprocessed_formulas.append(formula.replace(' ', ''))
             # TODO: Activate when Trac#5407 is complete
             # Wrap the numbers in the formulas in <sub></sub> HTML tags
-            # postprocessed_formulas.append(re.sub(r"([1-9]+)", lambda x: "<sub>{}</sub>".format(x.group(0)), formula).rep    lace(' ', ''))
+            # postprocessed_formulas.append(re.sub(r"([0-9]+)", lambda x: "<sub>{}</sub>".format(x.group(0)), formula).rep    lace(' ', ''))
         return ", ".join(postprocessed_formulas)
 
     @staticmethod
