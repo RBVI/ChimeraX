@@ -36,9 +36,8 @@ see <a href="commands/graphics.html#selection"><b>set selection</b></a>)
   <li>can be <a href="commands/atomspec.html#builtin">specified</a> 
   as <b>sel</b> in <a href="index.html#commands">commands</a>, for example:
   <b><a href="commands/style.html">style</a> sel stick</b>
-  <li>can be listed in the <a href="tools/log.html"><b>Log</b></a>
-  with <a href="commands/info.html"><b>info</b></a>, for example:
-  <b><a href="commands/info.html#atoms">info atoms</a> sel</b>
+  <li>can be listed with 
+  <a href="commands/info.html#selection"><b>info selection</b></a>
   <li>can be named with menu: <a href="menu.html#named-selections"><b>Select... 
   Define Selector</b></a> or command
   <a href="commands/name.html"><b>name frozen</b></a>
@@ -67,6 +66,9 @@ see <a href="commands/graphics.html#selection"><b>set selection</b></a>)
   </ul>
 <li>can be created:
   <ul>
+  <li>with the <a href="menu.html#select"><b>Select</b> menu</a>: by chain ID,
+  residue name, element, type of structure, sequence, zone, <i>etc.</i> 
+  <li>with the <a href="commands/select.html"><b>select</b></a> command
   <li>by clicking with the mouse in the graphics window (...and 
   doubleclicking for a <a href="#context">selection context menu</a>),
   by default:
@@ -74,19 +76,16 @@ see <a href="commands/graphics.html#selection"><b>set selection</b></a>)
     <li>Ctrl-click to start selection (replace)
     <li>Shift-Ctrl-click to add/subtract (toggle)
     </ul>
-  The button assignment can be changed with
+  This button assignment can be changed with
   <a href="commands/ui.html#mousemode"><b>mousemode</b></a>
   <img src="tools/mouse-icons/select.png" class="icon">.
-<br><br>
+<br>
   <li>by clicking links in the <b>Chain information</b> and
   <b>Non-standard residues</b> tables
   shown in the <a href="tools/log.html"><b>Log</b></a>
   when a structure is opened
   (for example, see the <a href="tutorials/binding-sites.html">Protein-Ligand
   Binding Sites tutorial</a>)
-  <li>with the <a href="menu.html#select"><b>Select</b> menu</a>: by chain ID,
-  residue name, element, type of structure, sequence, zone, <i>etc.</i> 
-  <li>with the <a href="commands/select.html"><b>select</b></a> command
   <li>by dragging a box around residues in an
   <a href="tools/sequenceviewer.html#association">associated sequence</a>
   <li>with various other commands and tools
@@ -186,7 +185,7 @@ including <a href="commands/atomspec.html#combinations">logical operations</a>
 (and/or/not) and <a href="commands/atomspec.html#zones">zones</a>, can be given
 directly in commands, bypassing selection.
 However, <a href="commands/atomspec.html">target specification</a> may include
-<b>sel</b>, <b>selAtoms</b>, and <b>selMaps</b> to indicate the current selection,
+<b>sel</b> to indicate the current selection,
 and selections are useful in other contexts,
 such as defining the scope of action when an icon is clicked.
 </p>
