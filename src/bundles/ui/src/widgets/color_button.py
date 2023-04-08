@@ -142,10 +142,13 @@ class ColorButton(QPushButton):
         if t is not None:
             t.stop()
         from Qt.QtCore import QTimer
-        self._pause_timer = t = QTimer()
+        self._pause_timer = t = QTimer(self)
         t.setSingleShot(True)
-        t.timeout.connect(lambda *, p=self.color_pause, c=self._color: p.emit(c))
+        t.timeout.connect(self._emit_color_pause)
         t.start(int(1000*self._pause_delay))
+
+    def _emit_color_pause(self):
+        self.color_pause.emit(self._color)
 
 def color_to_numpy_rgba8(color):
     if isinstance(color, QColor):

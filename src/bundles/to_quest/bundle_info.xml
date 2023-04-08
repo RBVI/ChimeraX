@@ -10,7 +10,7 @@
   <Description>Copy scene as GLTF for Quest Lookie VR app</Description>
 
   <DataFiles>
-    <DataFile>help.html</DataFile>
+    <DataFile>sendtoquest.html</DataFile>
   </DataFiles>
 
   <Categories>

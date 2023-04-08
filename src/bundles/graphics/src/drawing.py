@@ -306,6 +306,7 @@ class Drawing:
         d.parent = self
         if d.inherit_graphics_exemptions:
             d._inherit_graphics_exemptions()
+        d._displayed_scene_positions = None
         if self.display:
             self.redraw_needed(shape_changed=True)
 
