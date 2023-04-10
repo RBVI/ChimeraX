@@ -22,7 +22,7 @@ from chimerax.core.tools import ToolInstance
 class ToQuest(ToolInstance):
     SESSION_ENDURING = True
 
-    # help = 'help:user/tools/markerplacement.html'
+    help = 'help:user/tools/sendtoquest.html'
 
     def __init__(self, session, tool_name):
         ToolInstance.__init__(self, session, tool_name)
@@ -372,10 +372,8 @@ class ToQuest(ToolInstance):
     # ---------------------------------------------------------------------------
     #
     def _help(self):
-      from os.path import dirname, join
-      help_url = 'file://' + join(dirname(__file__), 'sendtoquest.html')
-      from chimerax.help_viewer import show_url
-      show_url(self.session, help_url)
+        from chimerax.core.commands import run
+        run(self.session, 'help %s' % self.help)
 
 # -----------------------------------------------------------------------------
 #
