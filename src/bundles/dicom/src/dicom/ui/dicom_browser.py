@@ -248,7 +248,7 @@ class DICOMBrowserTool(ToolInstance):
         self.series_table.add_column("Description", lambda x: x.description)
         self.series_table.add_column("Modality", lambda x: x.modality)
         self.series_table.add_column("Size", lambda x: x.size)
-        self.series_table.add_column("Count", lambda x:  len(x.files))
+        self.series_table.add_column("Count", lambda x:  sum(len(y.files) for y in x.dicom_data))
 
 def _format_date(date):
     if date:
