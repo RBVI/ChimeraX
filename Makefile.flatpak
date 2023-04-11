@@ -20,13 +20,7 @@ clean:
 install:
 	# this is called indirectly by flatpak-builder via yaml/json manifest
 	mkdir -p /app
-	$(MAKE) install NO_PREBUILT=1 FLATPAK_DIST=22.08
-	install -Dm644 src/apps/ChimeraX/ChimeraX-icon.svg /app/share/icons/hicolor/scalable/apps/${APPNAME}.svg
-	install -Dm644 src/apps/ChimeraX/ChimeraX-icon512.png /app/share/icons/hicolor/512x512/apps/${APPNAME}.png
-	install -Dm644 src/apps/ChimeraX/ChimeraX-icon128.png /app/share/icons/hicolor/128x128/apps/${APPNAME}.png
-	install -Dm644 src/apps/ChimeraX/ChimeraX-icon64.png /app/share/icons/hicolor/64x64/apps/${APPNAME}.png
-	install -Dm644 src/apps/ChimeraX/ChimeraX-icon32.png /app/share/icons/hicolor/32x32/apps/${APPNAME}.png
-	install -Dm644 src/apps/ChimeraX/ChimeraX-icon16.png /app/share/icons/hicolor/16x16/apps/${APPNAME}.png
+	$(MAKE) install NO_PREBUILT=1 FLATPAK_DIST=22.08 FLATPAK_APPNAME=${APPNAME}
 	install -Dm644 -t /app/share/metainfo ${APPNAME}.metainfo.xml
 	install -Dm644 -t /app/share/applications ${APPNAME}.desktop
 
@@ -39,7 +33,7 @@ system-install:
 	flatpak-builder --export-only --system --install ${BUILD_DIR} ${APPNAME}.yaml
 
 export-flatpak:
-	# Create a single file that can be installed 
+	# Create a single file, ChimeraX.flatpak, that can be installed 
 	flatpak build-export export ${BUILD_DIR}
 	flatpak build-bundle export ChimeraX.flatpak ${APPNAME}
 

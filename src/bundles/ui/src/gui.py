@@ -2294,6 +2294,7 @@ class _Qt:
         auto_delete = self.dock_widget.testAttribute(Qt.WA_DeleteOnClose)
         is_floating = self.dock_widget.isFloating()
         self.main_window._tool_window_destroyed(self.tool_window)
+        self._prevent_half_docked_crash()
         self.main_window.removeDockWidget(self.dock_widget)
         # free up references
         self.tool_window = None
@@ -2317,6 +2318,32 @@ class _Qt:
             from Qt.QtWidgets import QDockWidget
             delattr(self.dock_widget, 'closeEvent')
             self.dock_widget.close()
+
+    def _prevent_half_docked_crash(self):
+        '''
+        Work-around ChimeraX crash described in ticket #8782
+        If the tool window being destroyed was dropped at the top of the screen
+        on Mac it sometimes is left undocked but showing a docking area.
+        If the tool is destroyed ChimeraX crashes because the ChimeraX main window
+        layout has two layout items with widget eqqual to the tool window and
+        the QLayout::removeWidget(w) code deletes both copies causing a crash.
+        Probably it is invalid to have a widget layout out twice.
+
+        Find extra layout items for the dock widget and remove them to avoid crash.
+        '''
+        layout = self.main_window.layout()
+        found = set()
+        duplicate_items = []
+        for i in range(layout.count()):
+            layout_item = layout.itemAt(i)
+            w = layout_item.widget()
+            if w == self.dock_widget:
+                if w in found:
+                    duplicate_items.append(layout_item)
+                else:
+                    found.add(w)
+        for layout_item in duplicate_items:
+            layout.removeItem(layout_item)
 
     @property
     def dockable(self):

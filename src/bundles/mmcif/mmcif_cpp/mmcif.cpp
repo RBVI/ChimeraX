@@ -878,7 +878,7 @@ ExtractMolecule::finished_parse()
             auto tr = find_template_residue(r->name(), start, stop);
             if (tr == nullptr || tr->atoms_map().size() == 0) {
                 if (model_num == first_model_num) {
-                    if (tr->atoms_map().size() == 0) {
+                    if (tr != nullptr && tr->atoms_map().size() == 0) {
                         if (empty_residue_templates.find(r->name()) == empty_residue_templates.end()) {
                             empty_residue_templates.insert(r->name());
                             logger::warning(_logger, "Empty ", r->name(),
