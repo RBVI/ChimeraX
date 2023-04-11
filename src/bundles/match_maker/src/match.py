@@ -183,7 +183,7 @@ def align(session, ref, match, matrix_name, algorithm, gap_open, gap_extend, dss
 
 def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend, *, cutoff_distance=None,
         show_alignment=defaults['show_alignment'], align=align, domain_residues=(None, None), bring=None,
-        verbose=defaults['verbose_logging'], always_raise_errors=False,
+        verbose=defaults['verbose_logging'], always_raise_errors=False, report_matrix=False,
         **align_kw):
     """Superimpose structures based on sequence alignment
 
@@ -588,7 +588,7 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
         initial_match, initial_ref = Atoms(match_atoms), Atoms(ref_atoms)
         try:
             final_match, final_ref, rmsd, full_rmsd, xf = align.align(session, initial_match, initial_ref,
-                                        cutoff_distance=cutoff_distance, log_info = (verbose is not None))
+                cutoff_distance=cutoff_distance, log_info=(verbose is not None), report_matrix=report_matrix)
         except align.IterationError:
             if always_raise_errors:
                 raise
@@ -648,7 +648,7 @@ def cmd_match(session, match_atoms, to=None, pairing=defaults["chain_pairing"],
         hgap=defaults["helix_open"], sgap=defaults["strand_open"], ogap=defaults["other_open"],
         cutoff_distance=defaults["iter_cutoff"], gap_extend=defaults["gap_extend"],
         show_alignment=defaults['show_alignment'], compute_s_s=defaults["compute_ss"],
-        keep_computed_s_s=defaults['overwrite_ss'],
+        keep_computed_s_s=defaults['overwrite_ss'], report_matrix=False,
         mat_h_h=default_ss_matrix[('H', 'H')],
         mat_s_s=default_ss_matrix[('S', 'S')],
         mat_o_o=default_ss_matrix[('O', 'O')],
@@ -731,7 +731,7 @@ def cmd_match(session, match_atoms, to=None, pairing=defaults["chain_pairing"],
         ss_fraction=ss_fraction, ss_matrix=ss_matrix,
         cutoff_distance=cutoff_distance, show_alignment=show_alignment, bring=bring,
         domain_residues=(ref_atoms.residues.unique(), match_atoms.residues.unique()),
-        gap_open_helix=hgap, gap_open_strand=sgap, gap_open_other=ogap,
+        gap_open_helix=hgap, gap_open_strand=sgap, gap_open_other=ogap, report_matrix=report_matrix,
         compute_ss=compute_s_s, keep_computed_ss=keep_computed_s_s, verbose=verbose)
     return ret_vals
 
@@ -795,7 +795,8 @@ def register_command(logger):
             ('cutoff_distance', Or(FloatArg, NoneArg)), ('gap_extend', FloatArg),
             ('bring', TopModelsArg), ('show_alignment', BoolArg), ('compute_s_s', BoolArg),
             ('mat_h_h', FloatArg), ('mat_s_s', FloatArg), ('mat_o_o', FloatArg), ('mat_h_s', FloatArg),
-            ('mat_h_o', FloatArg), ('mat_s_o', FloatArg), ('keep_computed_s_s', BoolArg)],
+            ('mat_h_o', FloatArg), ('mat_s_o', FloatArg), ('keep_computed_s_s', BoolArg),
+            ('report_matrix', BoolArg)],
         synopsis = 'Align atomic structures using sequence alignment'
     )
     register('matchmaker', desc, cmd_match, logger=logger)

@@ -81,8 +81,19 @@ install: $(PROG) $(ICONS) $(APP_NAME).1
 	$(RSYNC) $(ICONS) $(datadir)
 	if [ -d "$(app_prefix)" ]; then \
 		$(RSYNC) $(PROG) $(app_bindir); \
+	fi
+ifndef FLATPAK_APPNAME
+	if [ -d "$(app_prefix)" ]; then \
 		$(RSYNC) $(ICONS) $(app_datadir); \
 	fi
+else
+	icon_dir=/app/share/icons/hicolor ; \
+	mkdir -p $$icon_dir ; \
+	install -Dm644 ChimeraX-icon.svg $$icon_dir/scalable/apps/${FLATPAK_APPNAME}.svg ; \
+	for res in 16 32 64 128 512; do \
+		install -Dm644 ChimeraX-icon$$res.png $$icon_dir/$${res}x$${res}/apps/${FLATPAK_APPNAME}.png ; \
+	done
+endif
 	mkdir -p $(datadir)/man/man1
 	$(RSYNC) $(APP_NAME).1 $(datadir)/man/man1
 	-if [ -d "$(app_prefix)" ]; then \
