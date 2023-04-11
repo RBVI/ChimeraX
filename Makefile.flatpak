@@ -33,7 +33,7 @@ system-install:
 	flatpak-builder --export-only --system --install ${BUILD_DIR} ${APPNAME}.yaml
 
 export-flatpak:
-	# Create a single file that can be installed 
+	# Create a single file, ChimeraX.flatpak, that can be installed 
 	flatpak build-export export ${BUILD_DIR}
 	flatpak build-bundle export ChimeraX.flatpak ${APPNAME}
 

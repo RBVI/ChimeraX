@@ -91,7 +91,7 @@ else
 	mkdir -p $$icon_dir ; \
 	install -Dm644 ChimeraX-icon.svg $$icon_dir/scalable/apps/${FLATPAK_APPNAME}.svg ; \
 	for res in 16 32 64 128 512; do \
-		install -Dm644 ChimeraX-icon$$res.png $$icon_dir/$$resx$$res/apps/${FLATPAK_APPNAME}.png ; \
+		install -Dm644 ChimeraX-icon$$res.png $$icon_dir/$${res}x$${res}/apps/${FLATPAK_APPNAME}.png ; \
 	done
 endif
 	mkdir -p $(datadir)/man/man1
