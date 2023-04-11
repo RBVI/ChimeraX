@@ -82,7 +82,7 @@ def douse_needs_resolution(session, phenix_location=None):
     if _needs_resolution is None:
         # Find the phenix.douse executable
         from .locate import find_phenix_command
-        env_path = find_phenix_command(session, "phenix_env.sh", phenix_location, from_root=True)
+        env_path = find_phenix_command(session, "phenix_env.sh", phenix_location, verify_installation=True)
         version_path = find_phenix_command(session, 'phenix.version')
         import subprocess
         p = subprocess.run(". " + env_path + " ; " + version_path, capture_output=True, shell=True)
@@ -114,7 +114,17 @@ def douse_needs_resolution(session, phenix_location=None):
         if version is None or release is None:
             raise UserError("Could not identify version and/or release tag in phenix.version output "
                 "(running %s ; %s):%s" % (env_path, version_path, p.stdout.decode('utf-8')))
-        _needs_resolution = not version.startswith("1.")
+        if version.startswith("1."):
+            num_string = "1."
+            for c in version[2:]:
+                if c.isdigit():
+                    num_string += c
+                else:
+                    break
+            v_num = float(num_string)
+            _needs_resolution = v_num >= 1.21
+        else:
+            _needs_resolution = True
     return _needs_resolution
 
 command_defaults = {
