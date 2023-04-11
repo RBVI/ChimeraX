@@ -44,7 +44,7 @@ def empty_tag(name, end=None, file=None, **kw):
 def make_metainfo(session, info, verbose=False):
     from chimerax.core import buildinfo
     year = buildinfo.date.split('-', 1)[0]
-    filename = f"{info.ident}.metainfo.xml"
+    filename = f"{info.name}.metainfo.xml"
     if verbose:
         print("generating", filename)
     mime_types = xdg.get_mime_types(session)
@@ -53,7 +53,7 @@ def make_metainfo(session, info, verbose=False):
         print(f'<!-- Copyright {year} Regents of the University of California -->', file=f)
         with tag("component", type="desktop-application", file=f):
             with tag("id", end='', file=f):
-                print(f"{info.ident}", end='', file=f)
+                print(f"{info.name}", end='', file=f)
             with tag("metadata_license", end='', file=f):
                 print("CC0-1.0", end='', file=f)
             with tag("name", end='', file=f):
@@ -95,7 +95,7 @@ def make_metainfo(session, info, verbose=False):
             with tag("url", type="help", end='', file=f):
                 print("https://www.rbvi.ucsf.edu/chimerax/docs/contact.html", end='', file=f)
             with tag("launchable", type="desktop-id", end='', file=f):
-                print(f"{info.ident}.desktop", end='', file=f)
+                print(f"{info.name}.desktop", end='', file=f)
             with tag("releases", file=f):
                 empty_tag("release", version=buildinfo.version, date=buildinfo.date, file=f)
             with tag("provides", file=f):
@@ -133,8 +133,8 @@ def make_metainfo(session, info, verbose=False):
 def flatpak_files(session, ident, info=None, verbose=False):
     if not info:
         info = xdg.get_info(session, True, verbose=verbose)
-    info.ident = ident
-    info.desktop = f"{info.ident}.desktop"
+    info.name = ident
+    info.desktop = f"{info.name}.desktop"
     from chimerax.core.__main__ import localized_app_name
     xdg.make_desktop(session, info, localized_app_name, verbose=verbose)
     make_metainfo(session, info, verbose)
