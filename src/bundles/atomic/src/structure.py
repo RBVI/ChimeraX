@@ -1539,8 +1539,63 @@ class AtomicStructure(Structure):
     def _report_model_info(self, session):
         # report Model Archive info [#5601]
         from chimerax.mmcif import get_mmcif_tables_from_metadata
-        align_data, template_deets, template_segment = get_mmcif_tables_from_metadata(self,
-            ['ma_alignment', 'ma_template_ref_db_details', 'ma_template_poly_segment'])
+        align_data, template_deets, template_segment, scoring_metrics, local_scores = \
+            get_mmcif_tables_from_metadata(self, ['ma_alignment', 'ma_template_ref_db_details',
+            'ma_template_poly_segment', 'ma_qa_metric', 'ma_qa_metric_local'])
+        if local_scores and scoring_metrics:
+            from chimerax.core.attributes import string_to_attr
+            scoring_metric_cache = {}
+            chain_cache = {}
+            res_scoring = []
+            metric_names = scoring_metrics.mapping('id', 'name')
+            for chain_id, res_name, seq_id, metric_id, value in local_scores.fields(
+                    ['label_asym_id', 'label_comp_id', 'label_seq_id', 'metric_id', 'metric_value']):
+                try:
+                    chain = chain_cache[chain_id]
+                except KeyError:
+                    for chain in self.chains:
+                        if chain.chain_id == chain_id:
+                            chain_cache[chain_id] = chain
+                            break
+                    else:
+                        session.logger.warning("No chain in structure corresponds to chain ID given"
+                            " in local score info (chain '%s')" % chain_id)
+                        break
+                res = chain.residues[int(seq_id)-1]
+                if not res:
+                    continue
+                if res.name != res_name:
+                    session.logger.warning("Residue name for residue %s in chain %s (%s) does not correspond"
+                        " to name in local score info (%s)" % (seq_id, chain_id, res.name, res_name))
+                    break
+                try:
+                    metric_name, metric_attr = scoring_metric_cache[metric_id]
+                except KeyError:
+                    try:
+                        metric_name = metric_names[metric_id]
+                    except KeyError:
+                        session.logger.warning("No scoring metric with ID '%s'" % metric_id)
+                        break
+                    metric_attr = string_to_attr(metric_name) + '_score'
+                    scoring_metric_cache[metric_id] = (metric_name, metric_attr)
+                try:
+                    value = float(value)
+                except ValueError:
+                    session.logger.warning("Value for metric '%s' is non-numeric ('%s')"
+                        % (metric_name, value))
+                    break
+                res_scoring.append((res, metric_attr, value))
+            else:
+                # everything worked
+                for res, attr_name, value in res_scoring:
+                    setattr(res, attr_name, value)
+                from chimerax.atomic import Residue
+                for metric_name, metric_attr in scoring_metric_cache.values():
+                    Residue.register_attr(session, metric_attr, "Local model scoring", attr_type=float)
+                    session.logger.info('<a href="cxcmd:color byattribute r:%s %s palette red:yellow:green">'
+                        'Color</a> %s by residue' ' <a href="help:user/attributes.html">attribute</a> %s'
+                        % (metric_attr, self.atomspec, self.name, metric_attr), is_html=True)
+
         if not align_data:
             return
         template_names = {}
