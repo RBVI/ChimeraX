@@ -134,7 +134,7 @@ def align_atoms(patoms, pto_atoms, xyz_to, cutoff_distance,
             ' (across all %d pairs: %.3f)' % (np, rmsd, len(patoms), full_rmsd)
 
     if report_matrix and log:
-        log.info(matrix_text(tf, atoms, to_atoms))
+        log.info(matrix_text(tf, atoms.structures[0]))
 
     if log:
         log.status(msg, log=True)
@@ -262,9 +262,8 @@ def sequence_alignment_pairing(atoms, to_atoms, seq_name):
     pa, pra = atoms.subset(ai), to_atoms.subset(rai)
     return pa, pra
 
-def matrix_text(tf, atoms, to_atoms):
+def matrix_text(tf, m):
 
-    m = atoms.structures[0]
     mp = m.position
     mtf = mp.inverse() * tf * mp
     msg = ('Alignment matrix in structure %s coordinates\n%s' % (m.name, mtf.description()))
