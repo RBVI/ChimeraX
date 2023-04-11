@@ -147,6 +147,8 @@ class MatchMakerTool(ToolInstance):
         self._iterate_change(iter_opt)
         self.options.add_option("Fitting", BooleanOption("Verbose logging", None, None,
             attr_name="verbose_logging", settings=settings))
+        self.options.add_option("Fitting", BooleanOption("Log transformation matrix", None, None,
+            attr_name="log_transformation_matrix", settings=settings))
         bring_container, bring_options = self.options.add_option_group("Fitting",
             group_alignment=Qt.AlignHCenter|Qt.AlignTop)
         bring_layout = QVBoxLayout()
@@ -212,6 +214,10 @@ class MatchMakerTool(ToolInstance):
         verbose = settings.verbose_logging
         if verbose != defaults['verbose_logging']:
             cmd += ' verbose ' + BoolArg.unparse(verbose)
+
+        log_xf = settings.log_transformation_matrix
+        if log_xf != defaults['log_transformation_matrix']:
+            cmd += ' reportMatrix ' + BoolArg.unparse(log_xf)
 
         use_ss = settings.use_ss
         if use_ss:
