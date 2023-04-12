@@ -262,6 +262,100 @@ class ToQuest(ToolInstance):
         if self._too_many_triangles():
             return
 
+        if self._use_adb.enabled:
+            self._send_using_adb()
+        else:
+            self._send_using_socket()
+
+    # ---------------------------------------------------------------------------
+    #
+    def _send_using_socket(self):
+        ip_address = self._quest_ip_address.value.strip()
+        if len(ip_address) == 0:
+            self._need_quest_ip_address()
+            return
+
+        send_prefix = 'LookSeeFile'	# Set in LookSee code
+        filename = self._scene_filename
+        filename_bytes = bytes(filename, 'utf-8')
+        from chimerax.gltf import write_gltf
+        contents = write_gltf(self.session)
+        data = (bytes(send_prefix, 'utf-8')
+                + len(filename_bytes).to_bytes(4, 'little') + filename_bytes
+                + len(contents).to_bytes(4, 'little') + contents)
+
+        port = 21212	# Set in LookSee code
+
+        import socket
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        socket_connect_timeout = 10	# seconds
+        s.settimeout(socket_connect_timeout)
+        try:
+            s.connect((ip_address,port))
+        except (ConnectionRefusedError, TimeoutError, socket.timeout):
+            self._warn_connection_refused(ip_address)
+            s.close()
+            return
+
+        s.settimeout(None)	# Needed otherwise files can fail to transmit with no errors.
+        s.send(data)
+        s.close()
+
+        self.session.logger.info(f'Sent {filename}, {len(contents)} bytes, to Quest at {ip_address}')
+
+        # Remember IP address
+        settings = self._settings
+        settings.quest_ip_address = ip_address
+        settings.use_adb = False
+
+    # ---------------------------------------------------------------------------
+    #
+    def _need_quest_ip_address(self):
+        msg = (
+            '<h2>No Quest headset internet address specified</h2>'
+            '<p>'
+            'To transfer files to the Quest you need to provide the Quest headset '
+            'internet address.  To find the address start LookSee on the Quest '
+            'then enable <b>"Receive files from ChimeraX"</b>.  The checkbutton label '
+            'will then change to <b>"Receiving files at 192.168.0.157"</b>.  The 4 numbers '
+            'separated by periods are what you enter in the ChimeraX Options '
+            '<b>"Use Quest address"</b> entry field.'
+            '</p>'
+            )
+        self.session.logger.error(msg, is_html = True)
+        self._show_options()
+
+    # ---------------------------------------------------------------------------
+    #
+    def _warn_connection_refused(self, ip_address):
+        msg = (
+            '<h2>Not able to connect to Quest headset</h2>'
+            '<p>'
+            'ChimeraX was not able to connect to the Quest headset at IP address'
+            '</p>'
+            '<pre>'
+            f'    {ip_address}'
+            '</pre>'
+            '<p>'
+            'Check that receiving files is enabled in the LookSee application. '
+            'Press the A or X hand controller button to show the LookSee user interface '
+            f'and make sure <b>"Receiving files at {ip_address}"</b> is checked and the '
+            'address in the ChimeraX Send to Quest panel under Options matches '
+            'the address reported in LookSee.'
+            '</p>'
+            )
+        self.session.logger.error(msg, is_html = True)
+        self._show_options()
+        
+    # ---------------------------------------------------------------------------
+    #
+    def _show_options(self):
+        if not self._options_panel.shown:
+            self._options_panel.toggle_panel_display()
+
+    # ---------------------------------------------------------------------------
+    #
+    def _send_using_adb(self):
         if not self._have_adb_path():
             self._need_adb()
             return
@@ -301,7 +395,10 @@ class ToQuest(ToolInstance):
                 lines.extend(['stderr:', err])
             self.session.logger.error('\n'.join(lines))
         else:
-            self._settings.adb_executable_path = adb
+            # Remember adb settings
+            settings = self._settings
+            settings.adb_executable_path = adb
+            settings.use_adb = True
             
     # ---------------------------------------------------------------------------
     #
@@ -317,12 +414,6 @@ class ToQuest(ToolInstance):
 
         from chimerax.ui.widgets import EntriesRow
 
-        # Path to adb executable
-        ac = EntriesRow(f, 'adb executable', '', ('Browse', self._choose_adb_path))
-        self._adb_path = adb = ac.values[0]
-        adb.pixel_width = 350
-        adb.value = self._settings.adb_executable_path
-
         # Whether to limit triangles for pass-through or black background
         # Black background can handle about 25% more triangles.
         rv = EntriesRow(f, False, 'Reduce maximum triangles for room view')
@@ -333,6 +424,22 @@ class ToQuest(ToolInstance):
         rvm.changed.connect(set_max_tri)
         rvm.value = self._settings.limit_for_room_view
 
+        # Path to adb executable
+        qa = EntriesRow(f, True, 'Use Quest address', '')
+        self._send_to_socket, self._quest_ip_address = sts, qae = qa.values
+        qae.value = self._settings.quest_ip_address
+
+        # Path to adb executable
+        ac = EntriesRow(f, False, 'Use adb executable', '', ('Browse', self._choose_adb_path))
+        self._use_adb, self._adb_path = uadb, adb = ac.values
+        adb.pixel_width = 300
+        adb.value = self._settings.adb_executable_path
+
+        from chimerax.ui.widgets import radio_buttons
+        radio_buttons(sts, uadb)
+
+        uadb.value = self._settings.use_adb
+        
         return p
         
     # ---------------------------------------------------------------------------
@@ -380,6 +487,8 @@ class ToQuest(ToolInstance):
 from chimerax.core.settings import Settings
 class _ToQuestSettings(Settings):
     AUTO_SAVE = {
+        'quest_ip_address': '',
+        'use_adb': False,
         'adb_executable_path': '',
         'limit_for_room_view': False,
     }

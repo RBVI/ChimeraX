@@ -411,7 +411,7 @@ def colors_to_uint8(vc):
 
 # -----------------------------------------------------------------------------
 #
-def write_gltf(session, filename, models = None,
+def write_gltf(session, filename = None, models = None,
                center = True, size = None, short_vertex_indices = False,
                float_colors = False, preserve_transparency = True,
                texture_colors = False, instancing = False,
@@ -441,7 +441,14 @@ def write_gltf(session, filename, models = None,
             cs_node = center_and_size(top_nodes(nodes), bounds, center, size)
             nodes.append(cs_node)
 
-    encode_gltf(nodes, buffers, meshes, materials, filename)
+    glb = encode_gltf(nodes, buffers, meshes, materials)
+
+    if filename is not None:
+        file = open(filename, 'wb')
+        file.write(glb)
+        file.close()
+
+    return glb
         
 # -----------------------------------------------------------------------------
 #
@@ -468,7 +475,7 @@ def center_and_size(nodes, bounds, center, size):
 
 # -----------------------------------------------------------------------------
 #
-def encode_gltf(nodes, buffers, meshes, materials, filename):
+def encode_gltf(nodes, buffers, meshes, materials):
     
     # Write 80 character comment.
     from chimerax.core import version
@@ -512,10 +519,8 @@ def encode_gltf(nodes, buffers, meshes, materials, filename):
     version = to_bytes(2, uint32)
     length = to_bytes(12 + len(json_chunk) + len(bin_chunk), uint32)
 
-    file = open(filename, 'wb')
-    for b in (magic, version, length, json_chunk, bin_chunk):
-        file.write(b)
-    file.close()
+    glb = b''.join((magic, version, length, json_chunk, bin_chunk))
+    return glb
 
 # -----------------------------------------------------------------------------
 #
