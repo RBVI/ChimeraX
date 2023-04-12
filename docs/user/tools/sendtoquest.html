@@ -51,16 +51,33 @@ There may be up to a 5-second delay displaying a new file.
 -->
 <h3>Setup</h3>
 <p>
-To send the scene, the computer must have the adb (Android Debug Bridge)
-command-line program installed.
+To send the scene, the computer must know the Quest internet address.
+Start LookSee and enable "Receive files from ChimeraX" and it will
+show the address, for example, "Receive files from 192.168.0.157".
+Enter that address in the ChimeraX Send to Quest tool under Options.
+More detailed instructions are <a href="https://www.rbvi.ucsf.edu/chimerax/data/looksee-mar2023/looksee.html"
+target="_blank">available</a>.
+</p>
+
+<h3>Using a USB cable instead of WiFi</h3>
+<p>
+We don't recommend this method for sending scenes to the Quest unless a wifi connection is not available.
+To send a scene from ChimeraX using a USB cable connection,
+the computer must have the adb (Android Debug Bridge) command-line program installed
+(details <a href="https://www.rbvi.ucsf.edu/chimerax/data/looksee-mar2023/looksee.html" target="_blank">here</a>).
 </p><p>
-The scene shown in ChimeraX can be sent wirelessly or over a USB cable
-connecting the computer to the VR headset. To set up wireless transfer,
-follow these steps:
+After setting up a USB connection it is possible to switch to sending wirelessly using adb.
+To set up wireless transfer, follow these steps:
 </p>
   <ol>
   <li>Plug in Quest to computer with usb cable.
   <li>Click Allow Access in Quest headset.
+  <li>Select the "Use adb executable" option in under the Send to Quest Options.
+  </ol>
+
+<p>It is also possible to use adb with a wireless connection with these additional steps.</p>
+
+  <ol start=4>
   <li>Check Quest IP address in headset clicking the wifi symbol in the Quest,
     then clicking the connected wifi name, then scroll down and click Advanced.
   <li>Use adb command "adb tcpip 5555" from a shell on the computer.
