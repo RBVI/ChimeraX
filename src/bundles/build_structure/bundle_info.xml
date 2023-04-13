@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-BuildStructure" version="2.9.1" package="chimerax.build_structure"
+<BundleInfo name="ChimeraX-BuildStructure" version="2.10" package="chimerax.build_structure"
   	    customInit="true" minSessionVersion="1" maxSessionVersion="1">
 
   <!-- Additional information about bundle source -->
@@ -30,7 +30,7 @@
     <Dependency name="ChimeraX-BondRot" version="~=2.0"/>
     <Dependency name="ChimeraX-Geometry" version="~=1.0"/>
 	<Dependency name="ChimeraX-RotamerLibMgr" version="~=3.0"/>
-    <Dependency name="ChimeraX-StdCommands" version="~=1.0"/>
+    <Dependency name="ChimeraX-StdCommands" version="~=1.11"/>
     <Dependency name="ChimeraX-SwapRes" version="~=2.0"/>
     <Dependency name="ChimeraX-UI" version="~=1.13"/>
   </Dependencies>
