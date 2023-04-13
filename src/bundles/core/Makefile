@@ -12,7 +12,7 @@ TOP = ../../..
 include $(TOP)/mk/config.make
 PYTHON ?=PYTHONNOUSERSITE=1 $(APP_PYTHON_EXE)
 
-BUNDLE_VERSION = 1.6
+BUNDLE_VERSION = 1.7
 BUNDLE_VERSION := $(shell $(PYTHON) mkbuildinfo -v $(TOP) $(BUNDLE_VERSION) $(BUILD_TYPE))
 
 .PHONY: src/commands/_atomspec.py wheel src/buildinfo.py
