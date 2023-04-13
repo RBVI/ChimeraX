@@ -742,8 +742,12 @@ cdef class CyAtom:
                 # tautology for bonds, but this func is conscripted by pseudobonds, so test...
                 if style.startswith('serial'):
                     return self.string(atom_only=True, style=style)
-                chain_str = "" if  self.residue.chain_id == relative_to.residue.chain_id \
-                    else '/' + self.residue.chain_id + (' ' if style.startswith("simple") else "")
+                if self.residue.chain_id == relative_to.residue.chain_id:
+                    chain_str = ""
+                else:
+                    from chimerax.atomic import Chain
+                    chain_str = Chain.chain_id_to_atom_spec(self.residue.chain_id) + (
+                        ' ' if style.startswith("simple") else "")
                 res_str = "" if self.residue == relative_to.residue \
                     else self.residue.string(residue_only=True, style=style)
                 atom_str = self.string(atom_only=True, style=style)
