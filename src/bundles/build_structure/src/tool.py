@@ -458,15 +458,7 @@ class BuildStructureTool(ToolInstance):
         self._at_resize_dials()
         if len(self.torsion_data) == 1:
             # first torsion; add handlers
-            self.handlers['adjust torsion'] = handlers = []
-            handlers.append(manager.triggers.add_handler(manager.CREATED,
-                lambda trig_name, rotator, f=self._at_add_torsion: f(rotator)))
-            handlers.append(manager.triggers.add_handler(manager.DELETED,
-                lambda trig_name, rotator, f=self._at_remove_torsion: f(rotator)))
-            handlers.append(manager.triggers.add_handler(manager.MODIFIED,
-                lambda trig_name, rotator, f=self._at_update_torsion_value: f(rotator)))
-            handlers.append(manager.triggers.add_handler(manager.REVERSED,
-                lambda trig_name, rotator, f=self._at_swap_sides: f(rotator)))
+            self.handlers['adjust torsions: per torsion'] = handlers = []
             from chimerax.atomic import get_triggers
             handlers.append(get_triggers().add_handler('changes', self._at_atomic_changes_cb))
             from chimerax.core.models import MODEL_NAME_CHANGED, MODEL_ID_CHANGED, ADD_MODELS, REMOVE_MODELS
@@ -592,7 +584,7 @@ class BuildStructureTool(ToolInstance):
             self.at_no_torsions_label.show()
             for header in self.at_header_widgets:
                 header.hide()
-            handlers = self.handlers['adjust torsions']
+            handlers = self.handlers['adjust torsions: per torsion']
             for handler in handlers:
                 handler.remove()
             handlers.clear()
@@ -859,7 +851,16 @@ class BuildStructureTool(ToolInstance):
         layout.addWidget(self.at_no_torsions_label, alignment=Qt.AlignCenter)
         layout.addStretch(1)
 
+        self.handlers['adjust torsions: base'] = handlers = []
         manager = self.session.bond_rotations
+        handlers.append(manager.triggers.add_handler(manager.CREATED,
+            lambda trig_name, rotator, f=self._at_add_torsion: f(rotator)))
+        handlers.append(manager.triggers.add_handler(manager.DELETED,
+            lambda trig_name, rotator, f=self._at_remove_torsion: f(rotator)))
+        handlers.append(manager.triggers.add_handler(manager.MODIFIED,
+            lambda trig_name, rotator, f=self._at_update_torsion_value: f(rotator)))
+        handlers.append(manager.triggers.add_handler(manager.REVERSED,
+            lambda trig_name, rotator, f=self._at_swap_sides: f(rotator)))
         self.torsion_data = {}
         for bond, rotation in manager.bond_rotations.items():
             for end_pt in bond.atoms:
