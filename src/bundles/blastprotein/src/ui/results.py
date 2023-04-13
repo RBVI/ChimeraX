@@ -252,7 +252,7 @@ class BlastProteinResults(ToolInstance):
         self.load_buttons_widget.setLayout(self.load_button_container)
         self.show_best_matching_container = QWidget(parent=parent)
         self.show_best_matching_layout = QHBoxLayout()
-        self.only_best_matching = QCheckBox("Show Only Best Matching", parent=parent)
+        self.only_best_matching = QCheckBox("List only best chain per PDB", parent=parent)
         self.only_best_matching.stateChanged.connect(self._on_best_matching_state_changed)
         self.show_best_matching_layout.addStretch()
         self.show_best_matching_layout.addWidget(self.only_best_matching)
