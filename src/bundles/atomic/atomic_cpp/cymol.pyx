@@ -744,9 +744,10 @@ cdef class CyAtom:
                     return self.string(atom_only=True, style=style)
                 chain_str = "" if  self.residue.chain_id == relative_to.residue.chain_id \
                     else '/' + self.residue.chain_id + (' ' if style.startswith("simple") else "")
-                res_str = self.residue.string(residue_only=True)
+                res_str = "" if self.residue == relative_to.residue \
+                    else self.residue.string(residue_only=True, style=style)
                 atom_str = self.string(atom_only=True, style=style)
-                joiner = "" if res_str.startswith(":") else " "
+                joiner = "" if atom_str.startswith("@") else " "
                 return chain_str + res_str + joiner + atom_str
         if style.startswith("simple"):
             atom_str = self.name
