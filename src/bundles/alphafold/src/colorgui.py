@@ -57,10 +57,12 @@ class PredictedStructureColoringGUI(ToolInstance):
     #
     def _create_residues_menu(self, parent):
 
-        from chimerax.ui.widgets import ModelMenuButton
-        sm = ModelMenuButton(self.session)
+        from chimerax.atomic.widgets import AtomicStructureMenuButton
+        sm = AtomicStructureMenuButton(self.session)
         self._model_menu = sm
-        mlist = [m for m in self.session.models.list() if self.is_predicted_model(m)]
+        from chimerax.atomic import Structure
+        mlist = [m for m in self.session.models.list(type=Structure)
+                 if self.is_predicted_model(m)]
         if mlist:
             sm.value = mlist[0]
         
