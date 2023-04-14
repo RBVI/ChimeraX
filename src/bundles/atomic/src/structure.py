@@ -79,7 +79,6 @@ class Structure(Model, StructureData):
                     lambda *args, qual=ses_func: self._ses_call(qual)))
         from chimerax.core.models import MODEL_POSITION_CHANGED, MODEL_DISPLAY_CHANGED
         self._ses_handlers.append(t.add_handler(MODEL_POSITION_CHANGED, self._update_position))
-        self._ses_handlers.append(t.add_handler(MODEL_DISPLAY_CHANGED, self._notify_display_change))
         self.triggers.add_trigger("changes")
         _register_hover_trigger(session)
         
@@ -492,11 +491,17 @@ class Structure(Model, StructureData):
             self.session.models.close([pbg])
             self._chain_trace_pbgroup = None
 
-    def _notify_display_change(self, trig_name, model):
-        if model != self:
+    def _get_display(self):
+        return Model.display.fget(self)
+
+    def _set_display(self, display):
+        if display == self.display:
             return
+        Model.display.fset(self, display)
         # ensure that "display changed" trigger fires
-        StructureData.display.fset(self, self.display)
+        StructureData.display.fset(self, display)
+
+    display = property(_get_display, _set_display)
 
     def _update_level_of_detail(self, total_atoms):
         lod = self._level_of_detail
