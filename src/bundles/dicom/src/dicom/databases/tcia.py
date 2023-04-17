@@ -73,18 +73,24 @@ you use, hit 'OK' to close this dialog and continue. If you do not agree, please
         collections_dict["CTpred-Sunitinib-panNET"]['url'] = "https://doi.org/10.7937/spgk-0p94"
         # Now get modalities, species, etc
         num_collections = len(collections)
+        failed_to_fetch = False
         for index, collection in enumerate(collections_dict):
             if session:
                 session.ui.thread_safe(session.logger.status, f"Loading collection {index+1}/{num_collections}")
             data = nbia.getSimpleSearchWithModalityAndBodyPartPaged(collection=collection)
-            collections_dict[collection]['patients'] = data['totalPatients']
-            collections_dict[collection]['body_parts'] = [string.capwords(x['value']) for x in data['bodyParts']]
-            collections_dict[collection]['modalities'] = [m['value'] for m in data['modalities']]
-            species_list = []
-            for species in data['species']:
-                id = species['value']
-                species_list.append(NPEXSpecies.get(id, id))
-            collections_dict[collection]['species'] = species_list
+            if data:
+                collections_dict[collection]['patients'] = data['totalPatients']
+                collections_dict[collection]['body_parts'] = [string.capwords(x['value']) for x in data['bodyParts']]
+                collections_dict[collection]['modalities'] = [m['value'] for m in data['modalities']]
+                species_list = []
+                for species in data['species']:
+                    id = species['value']
+                    species_list.append(NPEXSpecies.get(id, id))
+                collections_dict[collection]['species'] = species_list
+            else:
+                failed_to_fetch = True
+        if failed_to_fetch:
+            session.ui.thread_safe(session.logger.warning, "Failed to fetch some collections' metadata")
         return collections_dict.values()
 
     @staticmethod
