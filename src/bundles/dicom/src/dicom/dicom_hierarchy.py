@@ -687,7 +687,14 @@ class DicomData:
             if not z_axis:
                 z_axis = cross(x_axis, y_axis)
         else:
-            z_axis = cross(x_axis, y_axis)
+            if hasattr(self.files[0], "frame_postions"):
+                z_axis = self._z_spacing_from_files(
+                    files[0].frame_positions[0]
+                    , files[0].frame_positions[-1]
+                    , int(len(files[0].frame_positions) / self.num_times)
+                )
+            else:
+                z_axis = cross(x_axis, y_axis)
         affine = [
               [x_space * x_axis[0], y_space * y_axis[0], z_space * z_axis[0], position[0]]
             , [x_space * x_axis[1], y_space * y_axis[1], z_space * z_axis[1], position[1]]
