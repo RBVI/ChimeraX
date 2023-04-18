@@ -68,9 +68,6 @@ you use, hit 'OK' to close this dialog and continue. If you do not agree, please
                 'name': name
                 , 'url': uris.get(name, '')
             }
-        # Workaround for the fact that this is the only entry in TCIA's dataset that doesn't have
-        # a link
-        collections_dict["CTpred-Sunitinib-panNET"]['url'] = "https://doi.org/10.7937/spgk-0p94"
         # Now get modalities, species, etc
         num_collections = len(collections)
         failed_to_fetch = False
