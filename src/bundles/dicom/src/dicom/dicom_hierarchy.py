@@ -687,7 +687,7 @@ class DicomData:
             if not z_axis:
                 z_axis = cross(x_axis, y_axis)
         else:
-            if hasattr(self.files[0], "frame_postions"):
+            if hasattr(self.files[0], "frame_postions") and getattr(self.files[0], "frame_positions", None) is not None:
                 z_axis = self._z_spacing_from_files(
                     files[0].frame_positions[0]
                     , files[0].frame_positions[-1]
