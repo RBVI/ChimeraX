@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 __version__ = "1.0"
-from .nrrd import NRRD
+from .nrrd import NRRD, NRRDData, NRRDGrid
 
 from chimerax.core.toolshed import BundleAPI
 from chimerax.open_command import OpenerInfo
