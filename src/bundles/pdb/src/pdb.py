@@ -194,8 +194,10 @@ def save_pdb(session, output, *, models=None, selected_only=False, displayed_onl
                 ['space_group_name_H-M'])[0]
         except TableMissingFieldsError:
             continue
+        if z.strip() == '?':
+            z = ""
         s.set_metadata_entry('CRYST1',
-            ["CRYST1%9s%9s%9s%7s%7s%7s%12s%4s" % (l_a, l_b, l_c, a_a, a_b, a_g, h_m, z)])
+            ["CRYST1%9s%9s%9s%7s%7s%7s %-11s%4s" % (l_a, l_b, l_c, a_a, a_b, a_g, h_m, z)])
     from . import _pdbio
     if polymeric_res_names is None:
         polymeric_res_names = _pdbio.standard_polymeric_res_names

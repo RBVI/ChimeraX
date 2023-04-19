@@ -1460,6 +1460,14 @@ class StructureData:
             self.session.triggers.remove_handler(self._ses_end_handler)
         c_function('structure_delete', args = (ctypes.c_void_p,))(self._c_pointer)
 
+    @staticmethod
+    def begin_destructor_batching(trig_name, trig_data):
+        c_function('structure_begin_destructor_batching', args = ())()
+
+    @staticmethod
+    def end_destructor_batching(trig_name, trig_data):
+        c_function('structure_end_destructor_batching', args = ())()
+
     active_coordset_change_notify = c_property('structure_active_coordset_change_notify', npy_bool,
     doc = '''Whether notifications are issued when the active coordset is changed.  Should only be
         set to true when temporarily changing the active coordset in a Python script. Boolean''')
