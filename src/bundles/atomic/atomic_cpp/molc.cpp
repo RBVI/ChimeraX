@@ -5182,6 +5182,29 @@ extern "C" EXPORT void structure_delete(void *mol)
     }
 }
 
+static DestructionBatcher* destruction_batcher = nullptr;
+extern "C" EXPORT void structure_begin_destructor_batching()
+{
+    try {
+        if (destruction_batcher == nullptr)
+            destruction_batcher = new DestructionBatcher(&destruction_batcher);
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void structure_end_destructor_batching()
+{
+    try {
+        if (destruction_batcher != nullptr) {
+            delete destruction_batcher;
+            destruction_batcher = nullptr;
+        }
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" EXPORT PyObject *structure_new_atom(void *mol, const char *atom_name, void *element)
 {
     Structure *m = static_cast<Structure *>(mol);

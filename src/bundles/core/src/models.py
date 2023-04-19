@@ -27,6 +27,11 @@ MODEL_POSITION_CHANGED = 'model position changed'
 MODEL_SELECTION_CHANGED = 'model selection changed'
 RESTORED_MODELS = 'restored models'
 RESTORED_MODEL_TABLE = 'restored model table'
+# One would normally use REMOVE_MODELS trigger above, BEGIN/END_CLOSE_MODELS
+# is for situations where specific code needs to be in effect as models are deleted
+# (e.g. atomic destructor batching for efficiency)
+BEGIN_DELETE_MODELS = "begin delete models"
+END_DELETE_MODELS = "end delete models"
 # TODO: register Model as data event type
 
 # If any of the *STATE_VERSIONs change, then increase the (maximum) core session
@@ -575,6 +580,8 @@ class Models(StateManager):
         t.add_trigger(MODEL_SELECTION_CHANGED)
         t.add_trigger(RESTORED_MODELS)
         t.add_trigger(RESTORED_MODEL_TABLE)
+        t.add_trigger(BEGIN_DELETE_MODELS)
+        t.add_trigger(END_DELETE_MODELS)
         self._models = {}				# Map id to Model
         self._scene_root_model = r = Model("root", session)
         r.id = ()
@@ -938,9 +945,14 @@ class Models(StateManager):
         '''
         mopen = [m for m in models if self.have_model(m)]
         self.remove(mopen)
-        for m in models:
-            if not Model.deleted.fget(m):
-                m.delete()
+        session = self._session()  # resolve back reference
+        session.triggers.activate_trigger(BEGIN_DELETE_MODELS, models)
+        try:
+            for m in models:
+                if not Model.deleted.fget(m):
+                    m.delete()
+        finally:
+            session.triggers.activate_trigger(END_DELETE_MODELS, models)
 
 
 def descendant_models(models):
