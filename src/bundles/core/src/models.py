@@ -27,9 +27,9 @@ MODEL_POSITION_CHANGED = 'model position changed'
 MODEL_SELECTION_CHANGED = 'model selection changed'
 RESTORED_MODELS = 'restored models'
 RESTORED_MODEL_TABLE = 'restored model table'
-# One would normally use REMOVE_MODELS trigger above, BEGIN/END_CLOSE_MODELS
+# One would normally use REMOVE_MODELS trigger above, BEGIN/END_DELETE_MODELS
 # is for situations where specific code needs to be in effect as models are deleted
-# (e.g. atomic destructor batching for efficiency)
+# (e.g. batching atomic Collection pointer updating for efficiency)
 BEGIN_DELETE_MODELS = "begin delete models"
 END_DELETE_MODELS = "end delete models"
 # TODO: register Model as data event type
