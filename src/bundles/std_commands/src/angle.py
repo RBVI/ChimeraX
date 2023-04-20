@@ -50,8 +50,9 @@ def set_angle(a1, a2, a3, degrees, *, move_smaller=True, prev_axis=None, undo_st
 
     amount = degrees - angle(fv, mv)
 
-    # actually rotate
-    xform = rotation(axis, amount, center=a2.scene_coord)
+    # actually rotate (about a2, but in 'moving's coordinate system)
+    center = moving.structure.position.inverse() * a2.scene_coord
+    xform = rotation(axis, amount, center=center)
     moved = xform.transform_points(moving_atoms.coords)
     if undo_state:
         undo_state.add(moving_atoms, "coords", moving_atoms.coords, moved)
