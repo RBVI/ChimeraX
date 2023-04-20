@@ -431,6 +431,9 @@ class MainWindow(QMainWindow, PlainTextLog):
             from chimerax.graphics import StereoCamera
             session.main_view.camera = StereoCamera()
         self.graphics_window = g = GraphicsWindow(self._stack, ui, stereo)
+        # Always remember the graphics window, so it can be restored later if consumers forget to
+        self._backup_main_view = g.widget
+        self._main_view = self._backup_main_view
         self._stack.addWidget(g.widget)
         self.rapid_access = QWidget(self._stack)
         ra_bg_color = "#B8B8B8"
@@ -518,6 +521,36 @@ class MainWindow(QMainWindow, PlainTextLog):
             self.showMaximized()
         else:
             self.show()
+
+    @property
+    def main_view(self):
+        """Return the widget that contains the graphics area"""
+        return self._main_view
+
+    @main_view.setter
+    def main_view(self, widget: QWidget):
+        """Set the second widget in the main window's stack. Must contain the widget
+        returned by self.graphicsArea()"""
+        if self.graphicsArea() not in widget.findChildren(QWidget) and widget is not self.graphicsArea():
+            self._main_view = self._backup_main_view
+            self.session.logger.error(
+                "The new main view does not contain the graphics window. "
+                "ChimeraX will not display anything without it! "
+                "Reparent the widget into your new layout."
+            )
+        else:
+            self._stack.removeWidget(self._main_view)
+            self._main_view = widget
+            self._stack.addWidget(self._main_view)
+        if self.rapid_access_shown:
+            self._stack.setCurrentWidget(self._main_view)
+            self.graphicsArea().show()
+
+    def restore_default_main_view(self):
+        self.main_view = self._backup_main_view
+
+    def graphicsArea(self) -> QWidget:
+        return self.graphics_window.widget
 
     def enable_stereo(self, stereo = True):
         '''
@@ -807,7 +840,7 @@ class MainWindow(QMainWindow, PlainTextLog):
             self._stack.setCurrentWidget(self.rapid_access)
         else:
             icon = self._ra_hidden_icon
-            self._stack.setCurrentWidget(self.graphics_window.widget)
+            self._stack.setCurrentWidget(self._main_view)
 
         but = self._rapid_access_button
         but.setChecked(show)

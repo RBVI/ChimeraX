@@ -65,6 +65,11 @@ def initialize_atomic(session):
     session._atomic_command_handler = session.triggers.add_handler("command finished",
         lambda *args: check_for_changes(session))
 
+    # for efficiency when destroying many structures, batch the updating of Collections
+    from chimerax.core.models import BEGIN_DELETE_MODELS, END_DELETE_MODELS
+    session.triggers.add_handler(BEGIN_DELETE_MODELS, Structure.begin_destructor_batching)
+    session.triggers.add_handler(END_DELETE_MODELS, Structure.end_destructor_batching)
+
     if session.ui.is_gui:
         session.ui.triggers.add_handler('ready', lambda *args, ses=session:
             _AtomicBundleAPI._add_gui_items(ses))
