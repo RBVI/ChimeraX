@@ -306,6 +306,7 @@ class Drawing:
         d.parent = self
         if d.inherit_graphics_exemptions:
             d._inherit_graphics_exemptions()
+        d._displayed_scene_positions = None
         if self.display:
             self.redraw_needed(shape_changed=True)
 
@@ -332,6 +333,18 @@ class Drawing:
 
     def remove_drawings(self, drawings, delete=True):
         '''Remove specified child drawings.'''
+
+        # Verify that drawings really are children.
+        cset = set(self._child_drawings)
+        for d in drawings:
+            if d not in cset:
+                raise ValueError('Drawing.remove_drawings() called on Drawing "%s" which is not a child of "%s"'
+                                 % (d.name, self.name))
+            if d.parent is not self:
+                pname = d.parent.name if d.parent else 'None'
+                raise ValueError('Drawing.remove_drawings() called on Drawing "%s" whose parent "%s" is not "%s"'
+                                 % (d.name, pname, self.name))
+                
         dset = set(drawings)
         self._child_drawings = [d for d in self._child_drawings
                                 if d not in dset]
@@ -378,7 +391,7 @@ class Drawing:
     def get_display_positions(self):
         dp = self._displayed_positions
         if dp is None:
-            from numpy import ones, bool
+            from numpy import ones
             dp = ones((len(self._positions),), bool)
             self._displayed_positions = dp
         return dp
@@ -655,7 +668,7 @@ class Drawing:
                 any_transparent = (oc < len(vc))
         return any_opaque, any_transparent
 
-    def showing_transparent(self):
+    def showing_transparent(self, include_children = True):
         '''Are any transparent objects being displayed. Includes all
         children.'''
         if self.display:
@@ -663,9 +676,10 @@ class Drawing:
                 any_opaque, any_transp = self._transparency()
                 if any_transp:
                     return True
-            for d in self.child_drawings():
-                if d.showing_transparent():
-                    return True
+            if include_children:
+                for d in self.child_drawings():
+                    if d.showing_transparent():
+                        return True
         return False
 
     def set_geometry(self, vertices, normals, triangles,
@@ -700,8 +714,11 @@ class Drawing:
         np = self.number_of_positions(displayed_only)
         if np == 0:
             return 0
-        t = self.triangles
-        tc = 0 if t is None else np * len(t)
+        if displayed_only:
+            tc = np * self.num_masked_triangles
+        else:
+            t = self.triangles
+            tc = 0 if t is None else np * len(t)
         for d in self.child_drawings():
             tc += np * d.number_of_triangles(displayed_only)
         return tc
@@ -1401,7 +1418,7 @@ class Drawing:
             print("%s<Appearance USE='%s'/>" % (tab, name), file=stream)
             return
 
-        from graphics.linetype import LineType
+        from .linetype import LineType
         print("%s<Appearance DEF='%s'>" % (tab, name), file=stream)
         if line_width != 1 or line_type != LineType.Solid:
             print("%s <LineProperties" % tab, end='', file=stream)
@@ -1546,7 +1563,8 @@ def draw_depth(renderer, drawings, opaque_only = True):
     r = renderer
     dc = r.disable_capabilities
     r.disable_shader_capabilities(r.SHADER_LIGHTING | r.SHADER_SHADOW | r.SHADER_MULTISHADOW |
-                                  r.SHADER_DEPTH_CUE | r.SHADER_TEXTURE_2D | r.SHADER_TEXTURE_3D)
+                                  r.SHADER_DEPTH_CUE | r.SHADER_TEXTURE_2D | r.SHADER_TEXTURE_3D |
+                                  r.SHADER_COLORMAP)
     draw_opaque(r, drawings)
     if not opaque_only:
         draw_transparent(r, drawings)
@@ -1908,6 +1926,8 @@ class Pick:
         '''Text description of the picked object.'''
         return None
 
+    # objects that contain a single drawing should return that in a drawing() method
+
     def specifier(self):
         '''Command specifier for the picked object.'''
         return None
@@ -2182,6 +2202,16 @@ def text_image_rgba(text, color, size, font, background_color = None, xpad = 0, 
     and the font is chosen to fit within this image height minus ypad pixels at top
     and bottom.
     '''
+    from Qt.QtCore import QCoreApplication
+    if QCoreApplication.instance() is None:
+        # In no gui mode with no QGuiApplication, QFontMetrics.boundingRect() crashes in Qt 6.3.0.
+        # ChimeraX ticket #6876.
+        # Return an all white image.
+        from numpy import empty, uint8
+        rgba = empty((10,10,4), uint8)
+        rgba[:] = 255
+        return rgba
+    
     from Qt.QtGui import QImage, QPainter, QFont, QFontMetrics, QColor, QBrush, QPen
 
     p = QPainter()

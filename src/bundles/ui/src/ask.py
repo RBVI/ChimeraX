@@ -19,7 +19,8 @@ UI-independent functions for asking users questions.
 """
 
 
-def ask(session, question, buttons=None, default=None, info=None, title=None, help_url=None):
+def ask(session, question, buttons=None, default=None, info=None, title=None, help_url=None, *,
+        show_icon=True):
     # Check/set button options
     if not buttons:
         buttons = ["yes", "no"]
@@ -27,7 +28,7 @@ def ask(session, question, buttons=None, default=None, info=None, title=None, he
         default = buttons[0]
     # Invoke the appropriate UI
     if session.ui.is_gui:
-        return _ask_gui(session, question, buttons, default, info, title, help_url)
+        return _ask_gui(session, question, buttons, default, info, title, help_url, show_icon)
     else:
         return _ask_nogui(session, question, buttons, default, info, title, help_url)
 
@@ -47,10 +48,11 @@ def _ask_nogui(session, question, buttons, default, info, title, help_url):
                 return b
 
 
-def _ask_gui(session, question, buttons, default, info, title, help_url):
+def _ask_gui(session, question, buttons, default, info, title, help_url, show_icon):
     from Qt.QtWidgets import QMessageBox
     msg = QMessageBox()
-    msg.setIcon(QMessageBox.Question)
+    if show_icon:
+        msg.setIcon(QMessageBox.Question)
     if title:
         msg.setWindowTitle(title)
     if info:

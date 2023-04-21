@@ -53,6 +53,9 @@ class _MyAPI(BundleAPI):
                 elif "Mol2" in name:
                     from .io import open_mol2
                     opener = open_mol2
+                elif _name == "SwissDock":
+                    from .io import open_swissdock
+                    opener = open_swissdock
                 else: # ZDOCK
                     from .io import open_zdock
                     opener = open_zdock

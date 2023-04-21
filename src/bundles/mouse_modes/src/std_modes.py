@@ -65,28 +65,33 @@ class SelectMouseMode(MouseMode):
         entries = []
         dangerous_entries = []
         ses = self.session
+        import inspect
         for entry in SelectMouseMode._menu_entry_info:
-            if entry.criteria(ses):
+            # SelectContextMenuAction methods used to only take session arg, so subclasses of old
+            # definition might expect only session arg, therefore inspect the callable
+            sig = inspect.signature(entry.criteria)
+            args = (ses,) if len(sig.parameters) == 1 else (ses, event)
+            if entry.criteria(*args):
                 if entry.dangerous:
-                    dangerous_entries.append(entry)
+                    dangerous_entries.append((entry, args))
                 else:
-                    entries.append(entry)
-        entries.sort(key = lambda e: e.label(ses))
-        dangerous_entries.sort(key = lambda e: e.label(ses))
+                    entries.append((entry, args))
+        entries.sort(key = lambda e: e[0].label(*e[1]))
+        dangerous_entries.sort(key = lambda e: e[0].label(*e[1]))
         from Qt.QtWidgets import QMenu
         from Qt.QtGui import QAction
         menu = QMenu(ses.ui.main_window)
         actions = []
         all_entries = entries
         if dangerous_entries:
-            all_entries = all_entries + [None] + dangerous_entries
+            all_entries = all_entries + [(None, None)] + dangerous_entries
         if all_entries:
-            for entry in all_entries:
+            for entry, args in all_entries:
                 if entry is None:
                     menu.addSeparator()
                     continue
-                action = QAction(entry.label(ses))
-                action.triggered.connect(lambda *, cb=entry.callback, sess=ses: cb(sess))
+                action = QAction(entry.label(*args))
+                action.triggered.connect(lambda *, cb=entry.callback, args=args: cb(*args))
                 menu.addAction(action)
                 actions.append(action) # keep reference
         else:
@@ -94,11 +99,8 @@ class SelectMouseMode(MouseMode):
         # this will prevent atom-spec balloons from showing up
         from Qt.QtCore import QPoint
         p = QPoint(*event.global_position())
-        if hasattr(menu, 'exec'):
-            menu.exec(p)	# PyQt6
-        else:
-            menu.exec_(p)	# PyQt5
-
+        ses.ui.post_context_menu(menu, p)
+        
     @staticmethod
     def register_menu_entry(menu_entry):
         '''Register a context-menu entry shown when double-clicking in select mode.
@@ -159,16 +161,16 @@ class SelectMouseMode(MouseMode):
 
 class SelectContextMenuAction:
     '''Methods implementing a context-menu entry shown when double-clicking in select mode.'''
-    def label(self, session):
+    def label(self, session, event):
         '''Returns the text of the menu entry.'''
         return 'unknown'
-    def criteria(self, session):
+    def criteria(self, session, event):
         '''
         Return a boolean that indicates whether the menu should include this entry
         (usually based on the current contents of the selection).
         '''
         return False
-    def callback(self, session):
+    def callback(self, session, event):
         '''Perform the entry's action.'''
         pass
     dangerous = False
@@ -463,7 +465,7 @@ class MoveMouseMode(MouseMode):
             self._starting_atom_scene_coords = self._atoms.scene_coords
         else:
             models = self.models()
-            self._starting_model_positions = None if models is None else [m.position for m in models]
+            self._starting_model_positions = None if models is None else [(m,m.position) for m in models]
         self._moved = False
 
     def _undo_save(self):
@@ -478,9 +480,11 @@ class MoveMouseMode(MouseMode):
             elif self._starting_model_positions is not None:
                 from chimerax.core.undo import UndoState
                 undo_state = UndoState('move models')
-                models = self.models()
+                smp = self._starting_model_positions
+                models = [m for m, pos in smp]
+                start_model_positions = [pos for m, pos in smp]
                 new_model_positions = [m.position for m in models]
-                undo_state.add(models, "position", self._starting_model_positions, new_model_positions,
+                undo_state.add(models, "position", start_model_positions, new_model_positions,
                                option='S')
                 self.session.undo.register(undo_state)
 
@@ -682,6 +686,11 @@ class MovePickedModelsMouseMode(TranslateMouseMode):
         self._pick_model(pick)
         TranslateMouseMode.vr_press(self, event)
 
+    def vr_release(self, event):
+        # Virtual reality hand controller button release.
+        TranslateMouseMode.vr_release(self, event)
+        self._picked_models = None
+        
 class TranslateSelectedAtomsMouseMode(TranslateMouseMode):
     '''
     Mouse mode to translate selected atoms.

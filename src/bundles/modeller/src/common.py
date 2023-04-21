@@ -541,7 +541,7 @@ class ModellerWebJob(CxServicesJob):
             if os.path.basename(entry[2]) == "ModellerScriptConfig.xml":
                 continue
             self.processed_input_file_map.append(entry[2])
-        self.start(self.service_name, self.params, self.processed_input_file_map)
+        self.start(self.service_name, self.params, self.processed_input_file_map, blocking=block)
 
     def monitor(self):
         super().monitor(poll_freq_override=5)
@@ -555,38 +555,40 @@ class ModellerWebJob(CxServicesJob):
 
     def on_finish(self):
         # Clean up the temporary directory
-        del self.temp_dir
+        if hasattr(self, 'temp_dir'):
+            delattr(self, 'temp_dir')
         logger = self.session.logger
-        logger.info("Modeller job ID %s finished" % self.job_id)
+        logger.info("Modeller job (ID %s) finished" % self.job_id)
         if not self.exited_normally():
             err = self.get_file("stderr.txt")
             if err:
-                raise RuntimeError("Modeller failure; standard error:\n" + err)
+                logger.error("Modeller failure; standard error:\n" + err)
             else:
-                raise RuntimeError("Modeller failure with no error output")
-        try:
-            model_info = self.get_file("ok_models.dat")
-        except KeyError:
+                logger.error("Modeller failure with no error output")
+        else:
             try:
-                stdout = self.get_file("stdout.txt")
-                stderr = self.get_file("stderr.txt")
+                model_info = self.get_file("ok_models.dat")
             except KeyError:
-                raise RuntimeError("No output from Modeller")
-            logger.info("<br><b>Modeller error output</b>", is_html=True)
-            logger.info(stderr)
-            logger.info("<br><b>Modeller run output</b>", is_html=True)
-            logger.info(stdout)
-            from chimerax.core.errors import NonChimeraError
-            raise NonChimeraError("No output models from Modeller; see log for Modeller text output.")
-        def get_pdb_model(fname):
-            from io import StringIO
-            try:
-                pdb_text = self.get_file(fname)
-            except KeyError:
-                raise RuntimeError("Could not find Modeller out PDB %s on server" % fname)
-            from chimerax.pdb import open_pdb
-            return open_pdb(self.session, StringIO(pdb_text), fname)[0][0]
-        self.caller.process_ok_models(model_info, get_pdb_model)
+                try:
+                    stdout = self.get_file("stdout.txt")
+                    stderr = self.get_file("stderr.txt")
+                except KeyError:
+                    logger.error("No output from Modeller")
+                else:
+                    logger.info("<br><b>Modeller error output</b>", is_html=True)
+                    logger.info(stderr)
+                    logger.info("<br><b>Modeller run output</b>", is_html=True)
+                    logger.info(stdout)
+                    logger.error("No output models from Modeller; see log for Modeller text output.")
+            def get_pdb_model(fname):
+                from io import StringIO
+                try:
+                    pdb_text = self.get_file(fname)
+                except KeyError:
+                    raise RuntimeError("Could not find Modeller out PDB %s on server" % fname)
+                from chimerax.pdb import open_pdb
+                return open_pdb(self.session, StringIO(pdb_text), fname)[0][0]
+            self.caller.process_ok_models(model_info, get_pdb_model)
         self.caller = None
 
 class ModellerLocal(RunModeller):

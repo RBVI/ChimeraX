@@ -53,34 +53,34 @@ coloring <a href="commands/colortables.html#autocolors">by model</a> for carbons
 and <a href="commands/colortables.html#element">by element</a> for heteroatoms,
 <a href="commands/lighting.html">simple lighting</a>
 <br><br>
-<li><b>1-4 chains and <200,000 atoms</b>: 
+<li><b>1-4 chains, <200,000 atoms, <5000 biopolymer residues</b>: 
 coloring <a href="commands/colortables.html#autocolors">by model</a>,
-<a href="commands/lighting.html">simple lighting</a>,
-atoms as <a href="commands/style.html">sticks</a>
-with <a href="commands/colortables.html#element">heteroatom</a> coloring
-<p>
-If there are 10-4999 biopolymer residues, they are shown as
-<a href="commands/cartoon.html">cartoons</a> and atoms are 
-hidden, except for:
-</p>
+<a href="commands/lighting.html">simple lighting</a>
   <ul>
-  <li><a href="commands/atomspec.html#surfcats">ligand</a> residues
-  <li>residues within 3.6 &Aring; of
-  <a href="commands/atomspec.html#surfcats">ions</a> (metals only) or
-  <a href="commands/atomspec.html#surfcats">ligand</a>,
-  with the ions shown as <a href="commands/style.html">spheres</a>
+  <li>if <10 biopolymer residues, all atoms are shown as 
+  <a href="commands/style.html">sticks</a>
+  with <a href="commands/colortables.html#element">heteroatom</a> coloring
+  <li>otherwise, chains are shown as 
+  <a href="commands/cartoon.html">cartoons</a> and atoms are hidden, except for:
+    <ul>
+    <li><a href="commands/atomspec.html#surfcats">ligand</a> residues
+    <li>residues within 3.6 &Aring; of
+    <a href="commands/atomspec.html#surfcats">ions</a> (metals only) or
+    <a href="commands/atomspec.html#surfcats">ligand</a>,
+    with the ions shown as <a href="commands/style.html">spheres</a>
+    </ul>
+  Any hydrogens on carbons, however, are kept hidden.
+  <p>
+  Nucleotide sidechains are 
+  colored by <a href="commands/colortables.html#residue">base type</a> and
+  shown as <a href="commands/nucleotides.html#tube">tube/slab</a> 
+  in models with &le;100 nucleic acid residues,
+  <a href="commands/nucleotides.html#ladder">ladder</a>
+  in those with 101-2000 nucleic acid residues.
+  </p>
   </ul>
-<p>
-Any hydrogens on carbons, however, are kept hidden.
-</p><p>
-Nucleotide sidechains are 
-colored by <a href="commands/colortables.html#residue">base type</a> and
-shown as <a href="commands/nucleotides.html#tube">tube/slab</a> 
-in models with &le;100 nucleic acid residues,
-<a href="commands/nucleotides.html#ladder">ladder</a>
-in those with 101-2000 nucleic acid residues.
-<br><br>
-<li><b>5-249 chains and/or 200,001-999,999 atoms</b>: 
+<li><b>5-249 chains, 5000+ biopolymer residues, 
+and/or 200,001-999,999 atoms</b>: 
 all atoms as <a href="commands/style.html">spheres</a> (space-filling)
 except sticks for <a href="commands/atomspec.html#surfcats">ligand</a> 
 and balls for <a href="commands/atomspec.html#surfcats">solvent</a>,
@@ -98,5 +98,5 @@ coloring <a href="commands/colortables.html#autocolors">by model</a>,
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-September 2021</address>
+September 2022</address>
 </body></html>

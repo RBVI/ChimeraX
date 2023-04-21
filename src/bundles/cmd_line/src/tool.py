@@ -324,7 +324,8 @@ class CommandLine(ToolInstance):
                 except errors.UserError as err:
                     logger.status(str(err), color="crimson")
                     from chimerax.core.logger import error_text_format
-                    logger.info(error_text_format % escape(str(err)), is_html=True)
+                    msg = error_text_format % escape(str(err)).replace('\n','<br>')
+                    logger.info(msg, is_html=True)
                 except BaseException:
                     raise
         self.set_focus()
@@ -446,7 +447,10 @@ class _HistoryDialog:
     def add(self, item, *, typed=False):
         if len(self._history) >= self.controller.settings.num_remembered:
             if not self.typed_only or self._history[0][1]:
+                # unless signals are blocked, this will clear partially entered text
+                self.listbox.blockSignals(True)
                 self.listbox.takeItem(0)
+                self.listbox.blockSignals(False)
         if typed or not self.typed_only:
             self.listbox.addItem(item)
         self._history.enqueue((item, typed))

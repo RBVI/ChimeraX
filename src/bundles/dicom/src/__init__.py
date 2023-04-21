@@ -10,24 +10,39 @@
 # including partial copies, of the software or any revisions
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
-
+__version__ = "1.2"
 from chimerax.core.toolshed import BundleAPI
+from chimerax.map import add_map_format
+from chimerax.core.tools import get_singleton
+
+from .dicom import (
+    DICOMMapFormat, DicomOpener, fetchers,
+    DICOMBrowserTool, DICOMDatabases
+)
+
 
 class _DICOMBundle(BundleAPI):
+    api_version = 1
+
     @staticmethod
     def initialize(session, bundle_info):
         """Register file formats, commands, and database fetch."""
-        from .dicom import register_dicom_format
-        register_dicom_format(session)
+        add_map_format(session, DICOMMapFormat())
+
+    @staticmethod
+    def start_tool(session, bi, ti):
+        if ti.name == "DICOM Browser":
+            return get_singleton(session, DICOMBrowserTool, "DICOM Browser")
+        else:
+            return DICOMDatabases(session)
 
     @staticmethod
     def run_provider(session, name, mgr, **kw):
-        from chimerax.open_command import OpenerInfo
-        class DicomOpenerInfo(OpenerInfo):
-            def open(self, session, data, file_name, **kw):
-                from . import dicom
-                return dicom.open_dicom(session, data)
-        return DicomOpenerInfo()
+        # return runners['name']
+        if name == "DICOM medical imaging":
+            return DicomOpener()
+        else:
+            return fetchers[name]()
 
 
 bundle_api = _DICOMBundle()

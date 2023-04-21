@@ -417,11 +417,19 @@ aromatic_geometry(const Ring& r)
         Coord c2 = b->atoms()[1]->coord();
         Real d = c1.distance(c2), delta;
 
+        // The first two parameter numbers carried over from Chimera and it is
+        // lost in the sands of time how they got that many digits of precision,
+        // though the numbers are close to the 3-digit precision numbers in the
+        // source material cited above.  The oxygen number comes directly from
+        // the source.
         if (e1 == Element::C && e2 == Element::C) {
             delta = d - 1.38586;
         } else if ((e1 == Element::C || e2 == Element::C) &&
           (e1 == Element::N || e2 == Element::N)) {
             delta = d - 1.34148;
+        } else if ((e1 == Element::C || e2 == Element::C) &&
+          (e1 == Element::O || e2 == Element::O)) {
+            delta = d - 1.265;
         } else
             continue;
         bonds++;
@@ -657,6 +665,19 @@ t0 = t1;
         untyped_atoms.push_back(h_n.first);
     std::set<const Atom*>
         untyped_set(untyped_atoms.begin(), untyped_atoms.end());
+    // since we need the heavy count for possibly-typed neighbor atoms in pass 5,
+    // get the heavy count for all atoms
+    for (auto a: atoms()) {
+        if (heavys.find(a) == heavys.end()) {
+            int heavy_count = 0;
+            for (auto bondee: a->neighbors()) {
+                if (bondee->element().number() > 1) {
+                    heavy_count++;
+                }
+            }
+            heavys[a] = heavy_count;
+        }
+    }
 #ifdef TIME_PASSES
 t1 = clock();
 std::cerr << "pass 1 took " << (t1 - t0) / (float)CLOCKS_PER_SEC << " seconds\n";
@@ -1919,7 +1940,7 @@ t0 = t1;
                 if (!remote_sp2) {
                     int hvys = heavys[a];
                     if (hvys > 1)
-                        a->set_computed_idatm_type("N2");
+                        a->set_computed_idatm_type(hvys > 2 ? "Npl" : "N2");
                     else if (hvys == 1)
                         a->set_computed_idatm_type(is_N3plus_okay(
                             a->neighbors()) ? "N3+" : "N3");

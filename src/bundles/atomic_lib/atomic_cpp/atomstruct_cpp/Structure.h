@@ -129,6 +129,7 @@ protected:
     bool  _active_coord_set_change_notify = true;
     CoordSet *  _active_coord_set;
     mutable bool  _alt_loc_change_notify = true;
+    mutable bool  _ss_change_notify = true;
     bool  _atom_types_notify = true;
     Atoms  _atoms;
     float  _ball_scale = 0.25;
@@ -172,6 +173,7 @@ protected:
     virtual void  _compute_atom_types() {}
     void  _compute_idatm_types() { _idatm_valid = true; _compute_atom_types(); }
     virtual void  _compute_structure_cats() const {}
+    void _coord_set_insert(CoordSets &coord_sets, CoordSet* cs, int index);
     void  _copy(Structure* s, PositionMatrix coord_adjust = nullptr,
         std::map<ChainID, ChainID>* chain_id_map = nullptr) const;
     void  _delete_atom(Atom* a);
@@ -221,6 +223,7 @@ public:
     bool  active_coord_set_change_notify() const { return _active_coord_set_change_notify; }
     CoordSet*  active_coord_set() const { return _active_coord_set; };
     bool  alt_loc_change_notify() const { return _alt_loc_change_notify; }
+    bool  ss_change_notify() const { return _ss_change_notify; }
     bool  asterisks_translated;
     const Atoms&  atoms() const { return _atoms; }
     float  ball_scale() const { return _ball_scale; }
@@ -268,7 +271,7 @@ public:
     CoordSet*  new_coord_set(int index);
     CoordSet*  new_coord_set(int index, int size);
     Residue*  new_residue(const ResName& name, const ChainID& chain,
-        int pos, char insert, Residue *neighbor=NULL, bool after=true);
+        int pos, char insert=' ', Residue *neighbor=NULL, bool after=true);
     std::set<ResName>  nonstd_res_names() const;
     virtual void  normalize_ss_ids() {}
     size_t  num_atoms() const { return atoms().size(); }
@@ -315,6 +318,7 @@ public:
     void  set_active_coord_set_change_notify(bool cn) { _active_coord_set_change_notify = cn; }
     void  set_active_coord_set(CoordSet *cs);
     void  set_alt_loc_change_notify(bool cn) const { _alt_loc_change_notify = cn; }
+    void  set_ss_change_notify(bool cn) const { _ss_change_notify = cn; }
     void  set_ball_scale(float bs) {
         if (bs == _ball_scale) return;
         set_gc_shape(); _ball_scale = bs;

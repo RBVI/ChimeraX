@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-SDF" version="2.0"
+<BundleInfo name="ChimeraX-SDF" version="2.0.1"
 	    package="chimerax.sdf"
   	    minSessionVersion="1" maxSessionVersion="1">
 

@@ -1,6 +1,6 @@
 include ../Makefile.bundle
 
-build wheel install app-install:	lib
+build wheel install install-editable app-install:	lib
 clean: lib-clean
 
 lib:

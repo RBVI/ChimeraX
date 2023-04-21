@@ -41,6 +41,9 @@ def split(session, structures = None, chains = None, ligands = False, connected 
     if chains is None and not ligands and not connected and atoms is None:
         chains = True
 
+    if atoms:
+        check_for_overlapping_atoms(atoms)
+        
     slist = []
     olist = []
     log = session.logger
@@ -270,6 +273,31 @@ def atom_bonds(atoms):
     blist = bt.keys()
     return blist
 
+# -----------------------------------------------------------------------------
+#
+def check_for_overlapping_atoms(atom_subsets):
+    if atom_subsets is None or len(atom_subsets) < 2:
+        return
+    from chimerax.atomic import concatenate
+    atoms = concatenate(atom_subsets, remove_duplicates = True)
+    na = sum(len(a) for a in atom_subsets)
+    if len(atoms) == na:
+        return
+
+    from chimerax.core.errors import UserError
+    have_spec = [a for a in atom_subsets if isinstance(getattr(a, 'spec', None), str)]
+    if len(have_spec) < len(atom_subsets):
+        raise UserError('The split command requires non-overlapping atoms, '
+                        '%d atoms are overlapping' % (na - len(atoms)))
+
+    olap = []
+    for i,a in enumerate(atom_subsets):
+        for a2 in atom_subsets[i+1:]:
+            ia = a.intersect(a2)
+            if len(ia) > 0:
+                olap.append(f'"{a.spec}" and "{a2.spec}" have {len(ia)} atoms in common')
+    raise UserError('The split command requires non-overlapping atoms, ' + ', '.join(olap))
+        
 # -----------------------------------------------------------------------------
 #
 def register_command(logger):

@@ -31,7 +31,8 @@ def align(session, ref, match, matrix_name, algorithm, gap_open, gap_extend, dss
                     gap_open_helix=defaults["helix_open"],
                     gap_open_strand=defaults["strand_open"],
                     gap_open_other=defaults["other_open"],
-                    compute_ss=defaults["compute_ss"]):
+                    compute_ss=defaults["compute_ss"],
+                    keep_computed_ss=defaults['overwrite_ss']):
     from chimerax import sim_matrices
     similarity_matrix = sim_matrices.matrix(matrix_name, session.logger)
     ssf = ss_fraction
@@ -55,13 +56,12 @@ def align(session, ref, match, matrix_name, algorithm, gap_open, gap_extend, dss
                         match.structure.residues.ss_types)
                     break
         if need_compute:
-            """TODO
-            from chimera.initprefs import ksdsspPrefs, \
-                    KSDSSP_ENERGY, KSDSSP_HELIX_LENGTH, \
-                    KSDSSP_STRAND_LENGTH
-            """
-            from chimerax.std_commands import dssp
-            dssp.compute_ss(session, need_compute)
+            from chimerax import dssp
+            for s in need_compute:
+                # keep_computed_ss is None in a recursive call
+                if not keep_computed_ss and keep_computed_ss is not None:
+                    s.ss_change_notify = False
+                dssp.compute_ss(s)
     if algorithm == "nw":
         from chimerax.alignment_algs import NeedlemanWunsch
         score, seqs = NeedlemanWunsch.nw(ref, match,
@@ -174,7 +174,7 @@ def align(session, ref, match, matrix_name, algorithm, gap_open, gap_extend, dss
         return align(session, clipped_ref, clipped_match, matrix_name, algorithm, gap_open,
             gap_extend, dssp_cache, ss_matrix=ss_matrix, ss_fraction=ss_fraction,
             gap_open_helix=gap_open_helix, gap_open_strand=gap_open_strand,
-            gap_open_other=gap_open_other, compute_ss=False)
+            gap_open_other=gap_open_other, compute_ss=False, keep_computed_ss=None)
     for orig, aligned in [(ref, gapped_ref), (match, gapped_match)]:
         if hasattr(orig, '_dm_rebuild_info'):
             aligned._dm_rebuild_info = orig._dm_rebuild_info
@@ -183,8 +183,8 @@ def align(session, ref, match, matrix_name, algorithm, gap_open, gap_extend, dss
 
 def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend, *, cutoff_distance=None,
         show_alignment=defaults['show_alignment'], align=align, domain_residues=(None, None), bring=None,
-        verbose=defaults['verbose_logging'], always_raise_errors=False,
-        keep_computed_ss=defaults['overwrite_ss'], **align_kw):
+        verbose=defaults['verbose_logging'], always_raise_errors=False, report_matrix=False,
+        **align_kw):
     """Superimpose structures based on sequence alignment
 
        Returns a list of dictionaries, one per chain pairing.  The dictionaries are:
@@ -247,22 +247,23 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
        failure in the log and continuing on to other pairings.
     """
     dssp_cache = {}
+    alg = alg.lower()
+    if alg == "nw" or alg.startswith("needle"):
+        alg = "nw"
+        alg_name = "Needleman-Wunsch"
+    elif alg =="sw" or alg.startswith("smith"):
+        alg = "sw"
+        alg_name = "Smith-Waterman"
+    else:
+        raise ValueError("Unknown sequence alignment algorithm: %s" % alg)
+    pairings = {}
+    small_mol_err_msg = "Reference and/or match model contains no nucleic or"\
+        " amino acid chains.\nUse the command-line 'align' command" \
+        " to superimpose small molecules/ligands."
+    logged_matrix = matrix
+    rd_res, md_res = domain_residues
+    from chimerax.sim_matrices import matrix_compatible, compatible_matrix_names, protein_matrix
     try:
-        alg = alg.lower()
-        if alg == "nw" or alg.startswith("needle"):
-            alg = "nw"
-            alg_name = "Needleman-Wunsch"
-        elif alg =="sw" or alg.startswith("smith"):
-            alg = "sw"
-            alg_name = "Smith-Waterman"
-        else:
-            raise ValueError("Unknown sequence alignment algorithm: %s" % alg)
-        pairings = {}
-        small_mol_err_msg = "Reference and/or match model contains no nucleic or"\
-            " amino acid chains.\nUse the command-line 'align' command" \
-            " to superimpose small molecules/ligands."
-        rd_res, md_res = domain_residues
-        from chimerax.sim_matrices import matrix_compatible
         if chain_pairing == CP_SPECIFIC_SPECIFIC:
             # specific chain(s) in each
 
@@ -273,25 +274,33 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
             match_chains = {}
             match_mols = {}
             ref_mols = {}
+            final_matrix_name = {}
             for ref, match in match_items:
-                if not matrix_compatible(ref, matrix, session.logger):
-                    raise UserError("Reference chain (%s) not"
-                        " compatible with %s similarity"
+                final_matrix_name[match] = matrix
+                ref_compatible = matrix_compatible(ref, matrix, session.logger)
+                match_compatible = matrix_compatible(match, matrix, session.logger)
+                if not ref_compatible and not match_compatible:
+                    compatible_names = compatible_matrix_names(match, session.logger)
+                    if len(compatible_names) == 1:
+                        logged_matrix = final_matrix_name[match] = compatible_names[0]
+                        session.logger.info("Using %s matrix instead of %s to match %s to %s"
+                            % (logged_matrix, matrix, match, ref))
+                        ref_compatible = match_compatible = True
+
+                if not ref_compatible:
+                    raise UserError("Reference chain (%s) not compatible with %s similarity"
                         " matrix" % (ref.full_name, matrix))
-                if not matrix_compatible(match, matrix, session.logger):
-                    raise UserError("Match chain (%s) not"
-                        " compatible with %s similarity"
+                if not match_compatible:
+                    raise UserError("Match chain (%s) not compatible with %s similarity"
                         " matrix" % (match.full_name, matrix))
                 if match in match_chains:
-                    raise UserError("Cannot match the same chain"
-                        " to multiple reference chains")
+                    raise UserError("Cannot match the same chain to multiple reference chains")
                 match_chains[match] = ref
                 if match.structure in ref_mols \
                 or ref.structure in match_mols \
                 or match.structure == ref.structure:
                     raise UserError("Cannot have same molecule"
-                        " model provide both reference and"
-                        " match chains")
+                        " model provide both reference and match chains")
                 match_mols[match.structure] = ref
                 ref_mols[ref.structure] = match
 
@@ -302,7 +311,7 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
             for match, ref in match_chains.items():
                 match, ref = [check_domain_matching([ch], dr)[0] for ch, dr in
                     ((match, md_res), (ref, rd_res))]
-                score, s1, s2 = align(session, ref, match, matrix, alg,
+                score, s1, s2 = align(session, ref, match, final_matrix_name[match], alg,
                             gap_open, gap_extend, dssp_cache, **align_kw)
                 pairings.setdefault(s2.structure, []).append((score, s1, s2))
 
@@ -313,8 +322,14 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
             if not ref or not matches:
                 raise UserError("Must select at least one reference and match item.\n")
             if not matrix_compatible(ref, matrix, session.logger):
-                raise UserError("Reference chain (%s) not compatible"
-                            " with %s similarity matrix" % (ref.full_name, matrix))
+                compatible_names = compatible_matrix_names(ref, session.logger)
+                if len(compatible_names) == 1:
+                    session.logger.info("Using %s matrix instead of %s to match to %s"
+                        % (compatible_names[0], matrix, ref))
+                    logged_matrix = matrix = compatible_names[0]
+                else:
+                    raise UserError("Reference chain (%s) not compatible"
+                                " with %s similarity matrix" % (ref.full_name, matrix))
             ref = check_domain_matching([ref], rd_res)[0]
             for match in matches:
                 best_score = None
@@ -341,22 +356,41 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
             if not ref or not matches:
                 raise UserError("Must select at least one reference"
                     " and match item in different models.\n")
-            rseqs = [s for s in check_domain_matching(ref.chains, rd_res)
-                        if matrix_compatible(s, matrix, session.logger)]
-            if not rseqs and ref.chains:
-                raise UserError("No chains in reference structure"
-                    " %s compatible with %s similarity"
-                    " matrix" % (ref, matrix))
+            # check chain/matrix compatibilty: for our own sanity only allow one matrix for all
+            # matching, not one per ref/match pairing
+            ref_data = []
+            matches_data = []
+            cross_compatible = set()
+            for domain_rseq in [s for s in check_domain_matching(ref.chains, rd_res)]:
+                compatible_names = compatible_matrix_names(domain_rseq, session.logger)
+                ref_data.append(domain_rseq)
+                cross_compatible.update(compatible_names)
             for match in matches:
+                match_data = []
+                match_compatible = set()
+                for domain_mseq in [s for s in check_domain_matching(match.chains, md_res)]:
+                    compatible_names = compatible_matrix_names(domain_mseq, session.logger)
+                    match_data.append(domain_mseq)
+                    match_compatible.update(compatible_names)
+                matches_data.append((match, match_data))
+                cross_compatible &= match_compatible
+            if not cross_compatible:
+                raise UserError(
+                    "No matrix compatible with both reference structure and all match structures")
+            if matrix not in cross_compatible:
+                if len(cross_compatible) == 1:
+                    compatible_matrix = compatible_names[0]
+                    session.logger.info("Using %s matrix instead of %s for matching"
+                        % (compatible_matrix, matrix))
+                    logged_matrix = matrix = compatible_matrix
+                else:
+                    raise UserError("Chains in reference structure and match structures not both compatible"
+                        "with %s similarity matrix" % matrix)
+
+            for match, match_data in matches_data:
                 best_score = None
-                mseqs = [s for s in check_domain_matching(match.chains, md_res)
-                            if matrix_compatible(s, matrix, session.logger)]
-                if not mseqs and match.chains:
-                    raise UserError("No chains in match structure"
-                        " %s compatible with %s similarity"
-                        " matrix" % (match, matrix))
-                for mseq in mseqs:
-                    for rseq in rseqs:
+                for mseq in match_data:
+                    for rseq in ref_data:
                         score, s1, s2 = align(session, rseq, mseq,
                             matrix, alg, gap_open, gap_extend, dssp_cache, **align_kw)
                         if best_score is None or score > best_score:
@@ -368,11 +402,12 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
         else:
             raise ValueError("No such chain-pairing method")
     finally:
-        if not keep_computed_ss:
+        if not align_kw.get('keep_computed_ss', defaults['overwrite_ss']):
             for s, ss_info in dssp_cache.items():
                 ss_ids, ss_types = ss_info
                 s.residues.ss_ids = ss_ids
                 s.residues.ss_types = ss_types
+                s.ss_change_notify = True
 
     logger = session.logger
     ret_vals = []
@@ -481,7 +516,7 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
                         %s
                         %s
                     </table>
-                """ % (html_table_params, chain_pairing, alg_name, matrix, ss_rows, iterate_row)
+                """ % (html_table_params, chain_pairing, alg_name, logged_matrix, ss_rows, iterate_row)
                 logger.info(param_table, is_html=True)
                 logged_params = True
             logger.status("Matchmaker %s (#%s) with %s (#%s),"
@@ -553,7 +588,7 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
         initial_match, initial_ref = Atoms(match_atoms), Atoms(ref_atoms)
         try:
             final_match, final_ref, rmsd, full_rmsd, xf = align.align(session, initial_match, initial_ref,
-                                        cutoff_distance=cutoff_distance, log_info = (verbose is not None))
+                cutoff_distance=cutoff_distance, log_info=(verbose is not None), report_matrix=report_matrix)
         except align.IterationError:
             if always_raise_errors:
                 raise
@@ -613,7 +648,7 @@ def cmd_match(session, match_atoms, to=None, pairing=defaults["chain_pairing"],
         hgap=defaults["helix_open"], sgap=defaults["strand_open"], ogap=defaults["other_open"],
         cutoff_distance=defaults["iter_cutoff"], gap_extend=defaults["gap_extend"],
         show_alignment=defaults['show_alignment'], compute_s_s=defaults["compute_ss"],
-        keep_computed_s_s=defaults['overwrite_ss'],
+        keep_computed_s_s=defaults['overwrite_ss'], report_matrix=False,
         mat_h_h=default_ss_matrix[('H', 'H')],
         mat_s_s=default_ss_matrix[('S', 'S')],
         mat_o_o=default_ss_matrix[('O', 'O')],
@@ -696,7 +731,7 @@ def cmd_match(session, match_atoms, to=None, pairing=defaults["chain_pairing"],
         ss_fraction=ss_fraction, ss_matrix=ss_matrix,
         cutoff_distance=cutoff_distance, show_alignment=show_alignment, bring=bring,
         domain_residues=(ref_atoms.residues.unique(), match_atoms.residues.unique()),
-        gap_open_helix=hgap, gap_open_strand=sgap, gap_open_other=ogap,
+        gap_open_helix=hgap, gap_open_strand=sgap, gap_open_other=ogap, report_matrix=report_matrix,
         compute_ss=compute_s_s, keep_computed_ss=keep_computed_s_s, verbose=verbose)
     return ret_vals
 
@@ -746,19 +781,22 @@ def register_command(logger):
     _registered = True
     from chimerax.core.commands import CmdDesc, register, FloatArg, StringArg, \
         BoolArg, NoneArg, TopModelsArg, create_alias, Or, DynamicEnum
-    from chimerax.atomic import AtomsArg
+    # use OrderedAtomsArg so that /A-F come out in the expected order even if not ordered that way
+    # internally [#7577]
+    from chimerax.atomic import OrderedAtomsArg
     from chimerax import sim_matrices
     desc = CmdDesc(
-        required = [('match_atoms', AtomsArg)],
+        required = [('match_atoms', OrderedAtomsArg)],
         required_arguments = ['to'],
-        keyword = [('to', AtomsArg), ('pairing', StringArg), ('alg', StringArg),
+        keyword = [('to', OrderedAtomsArg), ('pairing', StringArg), ('alg', StringArg),
             ('verbose', BoolArg), ('ss_fraction', Or(FloatArg, BoolArg)),
             ('matrix', DynamicEnum(lambda logger=logger: sim_matrices.matrices(logger).keys())),
             ('gap_open', FloatArg), ('hgap', FloatArg), ('sgap', FloatArg), ('ogap', FloatArg),
             ('cutoff_distance', Or(FloatArg, NoneArg)), ('gap_extend', FloatArg),
             ('bring', TopModelsArg), ('show_alignment', BoolArg), ('compute_s_s', BoolArg),
             ('mat_h_h', FloatArg), ('mat_s_s', FloatArg), ('mat_o_o', FloatArg), ('mat_h_s', FloatArg),
-            ('mat_h_o', FloatArg), ('mat_s_o', FloatArg), ('keep_computed_s_s', BoolArg)],
+            ('mat_h_o', FloatArg), ('mat_s_o', FloatArg), ('keep_computed_s_s', BoolArg),
+            ('report_matrix', BoolArg)],
         synopsis = 'Align atomic structures using sequence alignment'
     )
     register('matchmaker', desc, cmd_match, logger=logger)

@@ -37,7 +37,7 @@
 #               [play_range <fmin,fmax>]
 #               [add_mode true|false]
 #               [constant_volume true|false]
-#               [scale_factors <f1,f2,...>]
+#               [scale_factors "fromlevels"|<f1,f2,...>]
 #
 # where op is one of octant, ~octant, resample, add, zFlip, subtract, fourier,
 # laplacian, gaussian, permuteAxes, bin, median, scale, boxes, morph, cover,
@@ -50,9 +50,12 @@ def register_volume_filtering_subcommands(logger):
     from chimerax.core.commands import CmdDesc, register, BoolArg, StringArg, EnumOf, IntArg, Int3Arg
     from chimerax.core.commands import FloatArg, Float3Arg, FloatsArg, ModelIdArg
     from chimerax.core.commands import AxisArg, CenterArg, CoordSysArg
+    from chimerax.core.commands import Or, EnumOf
     from chimerax.atomic import AtomsArg
     from chimerax.map.mapargs import MapsArg, MapStepArg, MapRegionArg, Int1or3Arg, Float1or3Arg, ValueTypeArg
     from chimerax.map.mapargs import BoxArg, Float2Arg
+
+    ScaleFactorsArg = Or(EnumOf(['fromlevels']), FloatsArg)
 
     varg = [('volumes', MapsArg)]
     ssm_kw = [
@@ -71,7 +74,7 @@ def register_volume_filtering_subcommands(logger):
     ] + ssm_kw
     add_kw = resample_kw + [
         ('in_place', BoolArg),
-        ('scale_factors', FloatsArg),
+        ('scale_factors', ScaleFactorsArg),
     ]
     add_desc = CmdDesc(required = varg, keyword = add_kw,
                        synopsis = 'Add two or more maps')
@@ -177,7 +180,7 @@ def register_volume_filtering_subcommands(logger):
                                     ('slider', BoolArg),
                                     ('add_mode', BoolArg),
                                     ('constant_volume', BoolArg),
-                                    ('scale_factors', FloatsArg),
+                                    ('scale_factors', ScaleFactorsArg),
                                     ('hide_original_maps', BoolArg),
                                     ('interpolate_colors', BoolArg)] + ssm_kw,
                          synopsis = 'Linearly interpolate maps')
@@ -366,7 +369,7 @@ def combine_op(volumes, operation = 'add', on_grid = None, bounding_grid = None,
                subregion = 'all', step = 1,
                grid_subregion = 'all', grid_step = 1, spacing = None, value_type = None,
                in_place = False, scale_factors = None, model_id = None, session = None,
-               hide_maps = True):
+               hide_maps = True, open_model = True):
 
     if bounding_grid is None and not in_place:
         bounding_grid = (on_grid is None)
@@ -380,13 +383,12 @@ def combine_op(volumes, operation = 'add', on_grid = None, bounding_grid = None,
                 raise CommandError("Can't modify volume in place: %s" % gv.name)
             if not gv in volumes:
                 raise CommandError("Can't change grid in place")
-    if not scale_factors is None and len(scale_factors) != len(volumes):
-        raise CommandError('Number of scale factors does not match number of volumes')
+    scale_factors = _check_scale_factors(scale_factors, volumes)
 
     cv = [combine_operation(volumes, operation, subregion, step,
                             gv, grid_subregion, grid_step, spacing, value_type,
                             bounding_grid, in_place, scale_factors, model_id, session,
-                            hide_maps = hide_maps)
+                            hide_maps = hide_maps, open_model = open_model)
           for gv in on_grid]
 
     return _volume_or_list(cv)
@@ -396,7 +398,7 @@ def combine_op(volumes, operation = 'add', on_grid = None, bounding_grid = None,
 def combine_operation(volumes, operation, subregion, step,
                       gv, grid_subregion, grid_step, spacing, value_type,
                       bounding_grid, in_place, scale, model_id, session,
-                      hide_maps = True):
+                      hide_maps = True, open_model = True):
 
     if scale is None:
         scale = [1]*len(volumes)
@@ -438,14 +440,14 @@ def combine_operation(volumes, operation, subregion, step,
             rg.name = 'volume sum'
         from chimerax.map import volume_from_grid_data
         rv = volume_from_grid_data(rg, session, model_id = model_id,
-                                   show_dialog = False)
+                                   show_dialog = False, open_model = open_model)
         rv.position = gv.position
         for i,v in enumerate(volumes):
             op = 'add' if i == 0 else operation
             rv.combine_interpolated_values(v, op, subregion = subregion, step = step,
                                            scale = scale[i])
     rv.data.values_changed()
-    if volumes:
+    if volumes and not in_place:
         rv.copy_settings_from(v0, copy_region = False, copy_xform = False, copy_colors = False)
         if rv.data.name.endswith('difference'):
             rv.set_parameters(cap_faces = False)
@@ -456,6 +458,27 @@ def combine_operation(volumes, operation, subregion, step,
                 v.display = False
 
     return rv
+
+# -----------------------------------------------------------------------------
+#
+def _check_scale_factors(scale_factors, volumes):
+    if scale_factors is None:
+        return scale_factors
+
+    if scale_factors == 'fromlevels':
+        for v in volumes:
+            lev = v.maximum_surface_level
+            if lev is None:
+                raise CommandError('Scale factors "fromlevels" requires all maps have a surface level.  Map "%s" has no surface.' % v.name_with_id())
+            if lev == 0:
+                raise CommandError('Scale factors "fromlevels" requires all maps have a non-zero surface level.  Map "%s" has surface level 0.' % v.name_with_id())
+        sf = tuple(1/v.maximum_surface_level for v in volumes)
+        return sf
+        
+    if len(scale_factors) != len(volumes):
+        raise CommandError('Number of scale factors does not match number of volumes')
+
+    return scale_factors
 
 # -----------------------------------------------------------------------------
 #
@@ -687,9 +710,7 @@ def volume_morph(session, volumes, frames = 25, start = 0, play_step = 0.04,
     else:
         prange = play_range
 
-    if not scale_factors is None and len(volumes) != len(scale_factors):
-        raise CommandError('Number of scale factors (%d) doesn not match number of volumes (%d)'
-                           % (len(scale_factors), len(volumes)))
+    scale_factors = _check_scale_factors(scale_factors, volumes)
     vs = [tuple(v.matrix_size(step = step, subregion = subregion))
           for v in volumes]
     if len(set(vs)) > 1:
@@ -880,7 +901,7 @@ def volume_subtract(session, volumes, on_grid = None, bounding_grid = False,
                     subregion = 'all', step = 1,
                     grid_subregion = 'all', grid_step = 1, spacing = None, value_type = None,
                     in_place = False, scale_factors = None, min_rms = False,
-                    model_id = None, hide_maps = True):
+                    model_id = None, hide_maps = True, open_model = True):
     '''Subtract two maps.'''
     if len(volumes) != 2:
         raise CommandError('volume subtract operation requires exactly two volumes')
@@ -891,7 +912,7 @@ def volume_subtract(session, volumes, on_grid = None, bounding_grid = False,
     sv = combine_op(volumes, 'subtract', on_grid, bounding_grid, subregion, step,
                     grid_subregion, grid_step, spacing, value_type,
                     in_place, mult, model_id, session,
-                    hide_maps = hide_maps)
+                    hide_maps = hide_maps, open_model=open_model)
     return sv
 
 # -----------------------------------------------------------------------------
@@ -972,7 +993,7 @@ def axis_and_center(axis, center, coordinate_system, to_coords):
         a = to_coords.inverse().transform_vector(asc)
     if center:
         csc = center.scene_coordinates(coordinate_system or to_coords)
-        c = to_coords.position.inverse() * csc
+        c = to_coords.inverse() * csc
     return a, c
 
 # -----------------------------------------------------------------------------

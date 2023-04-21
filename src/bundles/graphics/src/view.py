@@ -29,17 +29,42 @@ class View:
         self._render = None
         self._opengl_initialized = False
 
+        self.set_default_parameters()
+
+        # Graphics overlays, used for example for crossfade
+        self._overlays = []
+
+        # Redrawing
+        self.frame_number = 1
+        self.redraw_needed = True
+        self._time_graphics = False
+        self.update_lighting = True
+
+        self._drawing_manager = dm = _RedrawNeeded()
+        if trigger_set:
+            self.drawing.set_redraw_callback(dm)
+
+    def set_default_parameters(self):
         # Lights and material properties
         from .opengl import Lighting, Material, Silhouette
-        self._lighting = Lighting()
-        self._material = Material()
+        self.lighting = Lighting()
+        self.material = Material()
+        if hasattr(self, '_silhouette'):
+            self._silhouette.delete()
         self._silhouette = Silhouette()
 
         # Red, green, blue, opacity, 0-1 range.
         self._background_rgba = (0, 0, 0, 0)
         self._highlight_color = (0, 1, 0, 1)
         self._highlight_width = 1	# pixels
-        
+
+        # Set silhouette and highlight thickness for retina displays
+        r = self._render
+        if r and r.opengl_context:
+            pscale = r.opengl_context.pixel_scale()
+            self.silhouette.thickness = pscale
+            self.highlight_thickness = pscale
+
         # Create camera
         from .camera import MonoCamera
         self._camera = MonoCamera()
@@ -52,24 +77,11 @@ class View:
         self._near_far_pad = 0.01		# Extra near-far clip plane spacing.
         self._min_near_fraction = 0.001		# Minimum near distance, fraction of depth
 
-        # Graphics overlays, used for example for crossfade
-        self._overlays = []
-
         # Center of rotation
         from numpy import array, float32
         self._center_of_rotation = array((0, 0, 0), float32)
         self._update_center_of_rotation = False
         self._center_of_rotation_method = 'front center'
-
-        # Redrawing
-        self.frame_number = 1
-        self.redraw_needed = True
-        self._time_graphics = False
-        self.update_lighting = True
-
-        self._drawing_manager = dm = _RedrawNeeded()
-        if trigger_set:
-            self.drawing.set_redraw_callback(dm)
 
     def delete(self):
         r = self._render
@@ -305,6 +317,9 @@ class View:
     def draw_xor_rectangle(self, x1, y1, x2, y2, color):
         if not self._use_opengl():
             return	# OpenGL not available
+        if not self.render.front_buffer_valid:
+            self.draw(check_for_changes = False)
+            self._use_opengl()
         d = getattr(self, '_rectangle_drawing', None)
         from .drawing import draw_xor_rectangle
         self._rectangle_drawing = draw_xor_rectangle(self._render, x1, y1, x2, y2, color, d)

@@ -451,11 +451,13 @@ class SplitStereoCamera(Camera):
 
     name = 'split stereo'
 
-    def __init__(self, layout = 'side-by-side'):
+    def __init__(self, layout = 'side-by-side', eye_separation_scene = 5.0, swap_eyes = False, convergence = 0):
 
         Camera.__init__(self)
         self.field_of_view = 30				# Horizontal field, degrees
-        self.eye_separation_scene = 5.0			# Angstroms
+        self.eye_separation_scene = eye_separation_scene # Angstroms
+        self.swap_eyes = swap_eyes			# Used for cross-eye stereo
+        self.convergence = convergence			# Used for cross-eye and wall-eye stereo
         self._framebuffer = {'left':None, 'right':None} # Framebuffer for rendering each eye
         self._drawing = {'left':None, 'right':None}	# Drawing of rectangle with cube map texture
         self.layout = layout			# Packing of left/right eye images: top-bottom or side-by-side
@@ -484,6 +486,9 @@ class SplitStereoCamera(Camera):
             from chimerax.geometry import place
             t = place.translation((s*0.5*es,0,0))
             v = camera_position * t
+            if self.convergence != 0:
+                r = place.rotation((0,1,0), s*self.convergence)
+                v = v * r
         return v
 
     def number_of_views(self):
@@ -531,7 +536,10 @@ class SplitStereoCamera(Camera):
         '''Set the OpenGL drawing buffer and viewport to render the scene.'''
         if view_num > 0:
             render.pop_framebuffer()	        # Pop left eye framebuffer
-        eye = 'left' if view_num == 0 else 'right'
+        if self.swap_eyes:
+            eye = 'right' if view_num == 0 else 'left'
+        else:
+            eye = 'left' if view_num == 0 else 'right'
         fb = self._eye_framebuffer(eye, render)
         render.push_framebuffer(fb)		# Push eye framebuffer
 

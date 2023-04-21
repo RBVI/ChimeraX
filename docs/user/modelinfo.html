@@ -78,7 +78,11 @@ the <a href="commands/sym.html#assembly"><b>sym</b></a> command)
 target="_blank">UniProt</a> identifier 
 <a href="commands/open.html#fetch">fetches</a> the corresponding protein 
 sequence and its <a href="tools/sequenceviewer.html#uniprot">sequence 
-feature annotations</a>
+feature annotations</a>, and clicking the residue number range 
+(with numbering according to the structure)
+<a href="selection.html">selects</a> the corresponding structure residues;
+multiple <a href="https://www.uniprot.org" target="_blank">UniProt</a> 
+identifiers and residue ranges may be given for a fusion protein
   </ul>
 </ul>
 <p>
@@ -91,8 +95,23 @@ For mmCIF files of comparative models from
 <li>model quality scores are not shown automatically, but can be reported 
 with <a href="commands/log.html#metadata"><b>log metadata</b></a>
 </ul>
+<p>
+<a href="dicom/dicom.html">DICOM files</a> also contain associated information 
+(metadata). This information is not shown automatically when the files are
+opened, but can be displayed with the following:
+</p>
+<ul>
+<li><a href="tools/dicombrowser.html"><b>DICOM Browser</b></a> 
+&ndash; patient&rarr;study&rarr;series hierarchy, shown by choosing a patient
+or study in the <a href="tools/modelpanel.html"><b>Model Panel</b></a>
+and clicking <b>Info</b>
+<li><a href="tools/dicommetadata.html"><b>DICOM Metadata</b></a> 
+&ndash; full list of DICOM attributes, shown by choosing a series
+in the <a href="tools/modelpanel.html"><b>Model Panel</b></a>
+and clicking <b>Info</b>
+</ul> 
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-February 2022</address>
+January 2023</address>
 </body></html>

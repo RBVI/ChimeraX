@@ -11,22 +11,58 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+from chimerax.atomic import Structure
+from chimerax.dist_monitor import SimpleMeasurable
+
+def simplified_string(a, style=None, **kw):
+    return a.structure.string(style=style)
+
+# to make it easy to identify centroid models...
+class CentroidModel(Structure, SimpleMeasurable):
+    @property
+    def coord(self):
+        return self.atoms[0].coord
+
+    @property
+    def radius(self):
+        return self.atoms[0].radius
+
+    @property
+    def scene_coord(self):
+        return self.atoms[0].scene_coord
+
+    def take_snapshot(self, session, flags):
+        return { 'base data': super().take_snapshot(session, flags) }
+
+    @classmethod
+    def restore_snapshot(cls, session, data):
+        inst = cls(session, auto_style=False, log_info=False)
+        if 'base data' in data:
+            restore_data = data['base data']
+        else:
+            restore_data = data
+        inst.set_state_from_snapshot(session, restore_data)
+        a = inst.atoms[0]
+        a.string = lambda a=a, **kw: simplified_string(a, **kw)
+        return inst
+
 from . import centroid
 
-def cmd_centroid(session, atoms=None, *, mass_weighting=False, name="centroid", color=None, radius=2.0):
+def cmd_centroid(session, atoms=None, *, mass_weighting=False, name="centroid", color=None, radius=2.0,
+        show_tool=True):
     """Wrapper to be called by command line.
 
        Use chimerax.centroids.centroid for other programming applications.
     """
     from chimerax.core.errors import UserError
 
-    from chimerax.atomic import AtomicStructure, concatenate, Structure
+    from chimerax.atomic import AtomicStructure, concatenate
     if atoms is None:
         structures_atoms = [m.atoms for m in session.models if isinstance(m, AtomicStructure)]
         if structures_atoms:
             atoms = concatenate(structures_atoms)
-        else:
-            raise UserError("Atom specifier selects no atoms")
+    if not atoms:
+        raise UserError("Atom specifier selects no atoms")
 
     structures = atoms.unique_structures
     if len(structures) > 1:
@@ -41,7 +77,7 @@ def cmd_centroid(session, atoms=None, *, mass_weighting=False, name="centroid", 
     else:
         weights = None
     xyz = centroid(crds, weights=weights)
-    s = Structure(session, name=name)
+    s = CentroidModel(session, name=name)
     r = s.new_residue('centroid', 'centroid', 1)
     from chimerax.atomic.struct_edit import add_atom
     a = add_atom(name, 'C', r, xyz)
@@ -55,12 +91,17 @@ def cmd_centroid(session, atoms=None, *, mass_weighting=False, name="centroid", 
         else:
             a.color = color
     a.radius = radius
+    # override string() to avoid 4(!) "centroid"s in the output
+    a.string = lambda a=a, **kw: simplified_string(a, **kw)
     if len(structures) > 1:
         session.models.add([s])
     else:
         structures[0].add([s])
 
     session.logger.info("Centroid '%s' placed at %s" % (name, xyz))
+    if show_tool and session.ui.is_gui and not session.in_script:
+        from chimerax.core.commands import run
+        run(session, "ui tool show Axes/Planes/Centroids", log=False)
     return a
 
 def register_command(command_name, logger):
@@ -69,7 +110,7 @@ def register_command(command_name, logger):
     from chimerax.atomic import AtomsArg
     desc = CmdDesc(required=[('atoms', Or(AtomsArg,EmptyArg))],
         keyword = [('mass_weighting', BoolArg), ('name', StringArg), ('color', ColorArg),
-            ('radius', FloatArg)],
+            ('radius', FloatArg), ('show_tool', BoolArg)],
         synopsis = 'Show centroid'
     )
     register('define centroid', desc, cmd_centroid, logger=logger)

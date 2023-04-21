@@ -67,7 +67,8 @@ and <a href="https://www.rbvi.ucsf.edu/chimerax/tutorials.html">Tutorials</a></l
 <li>Data Formats: see <a href="commands/open.html#formats"><b>open</b></a>
 and <a href="commands/save.html#formats"><b>save</b></a></li>
 <li>Manipulation: see 
-<a href="commands/ui.html#mousemode"><b>mousemode</b></a></li>
+<a href="commands/ui.html#mousemode"><b>mousemode</b></a>
+and <a href="commands/ui.html#selective">selective manipulation</li>
 <li><a href="selection.html">Selection</a></li>
 <li><a href="measurements.html">Measurements</a></li>
 <li><a href="images.html">Making Images</a></li>
@@ -84,6 +85,8 @@ and <a href="commands/save.html#formats"><b>save</b></a></li>
 src="triangled.png" width=10 height=10/>&nbsp;<b>Tools</b></li>
 <div id="tlist" class="expanded">
 <ul>
+<li><a href="tools/addcharges.html"><b>Add Charges</b></a></li>
+<li><a href="tools/addhydrogens.html"><b>Add Hydrogens</b></a></li>
 <li><a href="tools/alphafold.html"><b>AlphaFold</b></a>
 &ndash; get protein structures predicted by
 <a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold</a> 
@@ -94,10 +97,15 @@ artificial intelligence</li>
 estimated residue-residue distance errors</li>
 <li><a href="tools/altlocexplorer.html"><b>Altloc Explorer</b></a></li>
 <li><a href="tools/angles.html"><b>Angles/Torsions</b></a></li>
+<li><a href="tools/axesplanes.html"><b>Axes/Planes/Centroids</b></a></li>
 <li><a href="tools/basicactions.html"><b>Basic Actions</b></a></li>
 <li><a href="tools/blastprotein.html"><b>Blast Protein</b></a></li>
-<li><a href="tools/buildstructure.html"><b>Build Structure</b></a></li>
+<li><a href="tools/buildstructure.html"><b>Build Structure</b></a>
+&ndash; build atomic structures, adjust bonds and torsions,
+join models, invert chiral centers</li>
 <li><a href="tools/cagebuilder.html"><b>Cage Builder</b></a></li>
+<li><a href="tools/changechains.html"><b>Change Chain IDs</b></a></a>
+<li><a href="tools/checkwaters.html"><b>Check Waters</b></a></li>
 <li><a href="tools/clashes.html"><b>Clashes</b></a></li>
 <li><a href="tools/coloractions.html"><b>Color Actions</b></a></li>
 <li><a href="tools/colorkey.html"><b>Color Key</b></a>
@@ -107,7 +115,15 @@ estimated residue-residue distance errors</li>
 <li><a href="tools/cli.html"><b>Command Line Interface</b></a></li>
 <li><a href="tools/clashes.html"><b>Contacts</b></a></li>
 <li><a href="tools/crystalcontacts.html"><b>Crystal Contacts</b></a></li>
+<li><a href="tools/dicombrowser.html"><b>DICOM Browser</b></a></li>
+<li><a href="tools/dicommetadata.html"><b>DICOM Metadata</b></a></li>
 <li><a href="tools/distances.html"><b>Distances</b></a></li>
+<li><a href="tools/dockprep.html"><b>Dock Prep</b></a></li>
+<li><a href="tools/downloaddicom.html"><b>Download DICOM</b></a></li>
+<li><a href="tools/esmfold.html"><b>ESMFold</b></a>
+&ndash; get protein structures predicted by ESMFold artificial intelligence</li>
+<li><a href="tools/esmfold.html#pae"><b>ESMFold Error Plot</b></a>
+&ndash; plot ESMFold estimated residue-residue distance errors</li>
 <li><a href="tools/filehistory.html"><b>File History</b></a></li>
 <li><a href="tools/fitmap.html"><b>Fit in Map</b></a></li>
 <li><a href="tools/fitsegments.html"><b>Fit to Segments</b></a></li>
@@ -126,7 +142,8 @@ estimated residue-residue distance errors</li>
 min, max, mean, standard deviation, root-mean-square deviation from zero</li>
 <li><a href="tools/markerplacement.html"><b>Marker Placement</b></a>
 <img class="icon" src="tools/mouse-icons/marker.png"></li>
-<li><a href="tools/matchmaker.html"><b>Matchmaker</b></a></li>
+<li><a href="tools/matchmaker.html"><b>Matchmaker</b></a>
+&ndash; superimpose proteins or nucleic acids, guided by sequence alignment</li>
 <li><a href="tools/measureblobs.html"><b>Measure and Color Blobs</b></a>
 <img class="icon" src="tools/mouse-icons/pickblobs.png"></li>
 <li><a href="tools/measurevolume.html"><b>Measure Volume and Area</b></a></li>
@@ -142,6 +159,9 @@ of a protein structure with
 &ndash; interface to comparative modeling with
 <a href="https://www.salilab.org/modeller/" target="_blank">Modeller</a></li>
 <li><a href="tools/registration.html"><b>Registration</b></a></li>
+<li><a href="tools/render.html"><b>Render By Attribute</b></a>
+&ndash; color by <a href="attributes.html">attribute</a> values</li>
+<li><a href="tools/renumber.html"><b>Renumber Residues</b></a></li>
 <li><a href="tools/rotamers.html"><b>Rotamers</b></a>
 &ndash; view and evaluate amino acid rotamers; 
 &ldquo;mutate&rdquo; residues</li>
@@ -151,6 +171,8 @@ of a protein structure with
 <img class="icon" src="tools/toolbar-icons/magnifying-glass.png">
 &ndash; view/modify <a href="attributes.html">attributes</a> of the current 
 <a href="selection.html">selection</a></li>
+<li><a href="tools/sendtoquest.html"><b>Send to Quest</b></a>
+&ndash; send ChimeraX scene to Quest standalone VR headset</li>
 <li><a href="tools/sequenceviewer.html"><b>Sequence Viewer</b></a>
 &ndash; view sequences and sequence alignments,
 optionally structure-associated</li>
@@ -183,6 +205,8 @@ src="triangled.png" width=10 height=10/>&nbsp;<b>Commands</b></li>
 <li><a href="commands/2dlabels.html"><b>2dlabels</b></a>
 &ndash; add text, <a href="commands/symbols.html">symbols</a>,
 and straight arrows to the display for presentation images and movies</li>
+<li><a href="commands/addcharge.html"><b>addcharge</b></a>
+&ndash; assign atomic partial charges and Amber/GAFF atom types</li>
 <li><a href="commands/addh.html"><b>addh</b></a>
 &ndash; add hydrogens</li>
 <li><a href="commands/alias.html"><b>alias</b></a>
@@ -214,6 +238,8 @@ artificial intelligence</li>
 <a href="commands/cartoon.html#subcommands">styles</a></li>
 <li><a href="commands/cd.html"><b>cd</b></a>
 &ndash; change the working directory</li>
+<li><a href="commands/changechains.html"><b>changechains</b></a>
+&ndash; change chain IDs</li>
 <li><a href="commands/clashes.html"><b>clashes</b>, <b>contacts</b></a>
 &ndash; identify interatomic clashes or contacts</li>
 <li><a href="commands/clip.html"><b>clip</b></a>
@@ -246,8 +272,14 @@ by length, <i>etc.</i></li>
 Space Navigator<sup>&reg;</sup>, <i>etc.</i>)</li>
 <li><a href="commands/distance.html"><b>distance</b></a>
 &ndash; monitor atom-atom distances</li>
+<li><a href="commands/dockprep.html"><b>dockprep</b></a>
+&ndash; prepare atomic structures for other calculations</li>
 <li><a href="commands/dssp.html"><b>dssp</b></a>
 &ndash; define secondary structure of proteins using atomic coordinates</li>
+<li><a href="commands/esmfold.html"><b>esmfold</b></a>
+&ndash; get protein structures predicted by
+ESMFold (Evolutionary Scale Modeling)
+artificial intelligence</li>
 <li><a href="commands/exit.html"><b>exit</b> or <b>quit</b></a>
 &ndash; exit from ChimeraX</li>
 <li><a href="commands/fitmap.html"><b>fitmap</b></a>
@@ -339,6 +371,8 @@ display frame</li>
 &ndash; allow sending commands to ChimeraX using REST or XML-RPC</li>
 <li><a href="commands/rename.html"><b>rename</b></a>
 &ndash; change model name and/or ID number</li>
+<li><a href="commands/renumber.html"><b>renumber</b></a>
+&ndash; renumber residues</li>
 <li><a href="commands/resfit.html"><b>resfit</b></a>
 &ndash; show density fit of successive amino acid residues along a chain</li>
 <li><a href="commands/rmsd.html"><b>rmsd</b></a>
@@ -350,7 +384,7 @@ display frame</li>
 <li><a href="commands/roll.html"><b>roll</b></a>
 &ndash; rotate continuously</li>
 <li><a href="commands/runscript.html"><b>runscript</b></a>
-&ndash; run Python scripts with command-line arguments</li>
+&ndash; run Python or ChimeraX command scripts with command-line arguments</li>
 <li><a href="commands/save.html"><b>save</b></a>
 &ndash; save image, session, map, coordinates, sequences,
 or other data to a file</li>
@@ -391,7 +425,9 @@ and <a href="pseudobonds.html">pseudobonds</a></li>
 <li><a href="commands/surface.html"><b>surface</b></a>
 &ndash; create and show/hide molecular surfaces</li>
 <li><a href="commands/swapaa.html"><b>swapaa</b></a>
-&ndash; virtual mutation (change amino acid type)</li>
+&ndash; &ldquo;mutate&rdquo; amino acid residues</li>
+<li><a href="commands/swapna.html"><b>swapna</b></a>
+&ndash; &ldquo;mutate&rdquo; nucleic acid residues</li>
 <li><a href="commands/sym.html"><b>sym</b></a>
 &ndash; build multimers using assembly information</li>
 <li><a href="commands/tile.html"><b>tile</b></a>
@@ -400,6 +436,8 @@ and <a href="pseudobonds.html">pseudobonds</a></li>
 &ndash; install/update ChimeraX bundles from the
 <a href="https://cxtoolshed.rbvi.ucsf.edu/" target="_blank">Toolshed</a> 
 (web repository)</li>
+<li><a href="commands/topography.html"><b>topography</b></a>
+&ndash; plot values in a volume data plane as heights in a surface</li>
 <li><a href="commands/torsion.html"><b>torsion</b></a>
 &ndash; set or report torsion angles (rotate bonds)</li>
 <li><a href="commands/transparency.html"><b>transparency</b></a>
@@ -447,7 +485,7 @@ set camera and model positions with matrices</li>
 <hr>
 <p align="center">
 UCSF ChimeraX documentation is copyrighted &copy; by the
-Regents of the University of California, 2015-2022.
+Regents of the University of California, 2015-2023.
 All rights reserved.
 </p>
 </body></html> 

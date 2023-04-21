@@ -117,13 +117,16 @@ The command <b>open formats</b> command lists the possible formats and
 <a href="#formats" class="nounder"><b>&larr;</b></a>
 <b>Atomic Structures and Related Data</b></td>
 </tr><tr>
-<td align="center"><a href="https://www.rbvi.ucsf.edu/chimera/docs/UsersGuide/tutorials/framepdbintro.html" 
-target="_blank">PDB (Protein Data Bank)</a></td>
+<td align="center"><a href="../formats/pdbintro.html">PDB
+(Protein Data Bank)</a></td>
 <td align="center"><b>pdb</b></td>
 <td align="center">.pdb, .pdb1<br>.ent, .pqr
 <br><a href="#compressed">+&nbsp;compressed</td>
 <td align="center">atomic coordinates and associated annotations;
-if PQR, sets atomic <a href="../radii.html">radius</a>;
+<br>if &gt;99,999 atoms, <b>amber</b> or <b>h36</b>
+<a href="save.html#pdb">serial numbering</a> must be used;
+if <a href="../formats/pdbintro.html#PQR">PQR format</a>,
+atomic <a href="../radii.html">radius</a> is set;
 see also <a href="altlocs.html">alternate locations</a></td>
 </tr><tr>
 <td align="center"><a href="https://mmcif.wwpdb.org/docs/faqs/pdbx-mmcif-faq-general.html"
@@ -143,6 +146,25 @@ target="_blank">MMTF (Macromolecular Transmission Format)</a></td>
 <td align="center">.mmtf
 <br><a href="#compressed">+&nbsp;compressed</td>
 <td align="center">atomic coordinates and associated annotations</td>
+</tr><tr>
+<td align="center">
+<a href="http://ww1.iucr.org/iucr-top/cif/standard/cifstd1.html" 
+target="_blank">Crystallographic Information File (CIF)</td>
+<td align="center"><b>corecif<br>smallcif</b></td>
+<td align="center">.cif</td>
+<td align="center">atomic coordinates and crystallographic information</td>
+</tr><tr>
+<td align="center">SwissDock</td>
+<td align="center"><b>swissdock</b></td>
+<td align="center">.pdb</td>
+<td align="center" class="text">atomic coordinates of docked ligands
+and/or target receptor in the modified PDB format written by
+<a href="http://www.swissdock.ch/" target="_blank">SwissDock</a>
+<br>
+(see <a href="../tools/viewdockx.html"><b>ViewDockX</b></a>
+for analysis of docking results from
+<a href="http://www.swissdock.ch/" target="_blank">SwissDock</a>)
+</td>
 </tr><tr>
 <td align="center">Sybyl Mol2</td>
 <td align="center"><b>mol2</b></td>
@@ -498,6 +520,19 @@ and specifying a corresponding atomic model
 <br>(use <b>format netcdfmap</b> to disambiguate from 
 <a href="#trajectory">Amber NetCDF trajectories</a>)</td>
 </tr><tr>
+<td align="center"><a href="https://nifti.nimh.nih.gov/"
+target="_blank">Neuroimaging Informatics Technology Initiative (NIfTI)</a></td>
+<td align="center"><b>nifti</b></td>
+<td align="center">.nii
+<br><a href="#compressed">+&nbsp;compressed</td>
+<td align="center">medical image</td>
+</tr><tr>
+<td align="center"><a href="https://teem.sourceforge.net/nrrd/"
+target="_blank">Nearly Raw Raster Data (NRRD)</a></td>
+<td align="center"><b>nrrd</b></td>
+<td align="center">.nrrd</td>
+<td align="center">medical image</td>
+</tr><tr>
 <td align="center">Priism data</td>
 <td align="center"><b>priism</b></td>
 <td align="center">.xyzw<br>.xyzt</td>
@@ -618,6 +653,17 @@ target="_blank">GL Transmission Format</a></td>
 <br><a href="#compressed">+&nbsp;compressed</td>
 <td align="center">graphical objects</td>
 </tr><tr>
+<td align="center"><a href="https://mole.upol.cz/" 
+target="_blank">MOLEonline</a> channels</td>
+<td align="center"><b>mole</b></td>
+<td align="center">.json</td>
+<td align="center" class="text">channels in JSON format from
+<a href="https://mole.upol.cz/" target="_blank">MOLEonline</a>;
+shown as <a href="../markers.html">marker models</a> with
+the specified <a href="#transparency">transparency</a>
+and a <a href="mseries.html#slider">slider interface</a>
+for flipping through them</td>
+</tr><tr>
 <td align="center">Neuron trace
 <br>(<a href="http://www.neuronland.org/NLMorphologyConverter/MorphologyFormats/SWC/Spec.html" target="_blank">SWC</a>, see also the
 <a href="http://neuromorpho.org/myfaq.jsp#QS3"
@@ -659,7 +705,8 @@ target="_blank">Wavefront OBJ</a></td>
 <a name="sequence"></a>
 <a href="#formats" class="nounder"><b>&larr;</b></a>
 <b>Sequences</b> (associated tool: 
-<a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>)</td>
+<a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>,
+but see the <a href="#viewer"><b>viewer</b></a> option)</td>
 </tr><tr>
 <td align="center">Clustal ALN</td>
 <td align="center"><b>aln</b></td>
@@ -863,7 +910,8 @@ in a Terminal window.
 <b>alignment</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
 <br>
 Whether to interpret a multi-sequence file as an alignment 
-(default, all sequences in one <b>Multalign Viewer</b> window).
+(default, all sequences in one 
+<a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a> window).
 Otherwise, each sequence will be opened in a separate window. 
 If the sequences (including any gap characters) are of differing lengths,
 the option must be set to <b>false</b>. 
@@ -901,7 +949,8 @@ bypassing chemical perception steps like identifying
 <b>autoAssociate</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false
 <br>
 Whether structure-chain sequences should be compared to sequences in 
-<b>Multalign Viewer</b> and automatically associated if the number of
+<a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>
+and automatically associated if the number of
 mismatches is no more than 1/10 the number of residues in the structure chain.
 Unlike the other options of <b>open</b>, this sets a state that persists 
 within the ChimeraX session unless explicitly changed. 
@@ -1105,6 +1154,9 @@ For example, the following command would save 1a0m.png for input file 1a0m.pdb,
 </blockquote>
 Output files will be placed in the same directory as the data files
 unless the file-saving command gives a different pathname.
+See also: 
+<a href="alias.html"><b>alias</b></a>,
+<a href="runscript.html"><b>runscript</b></a>
 </blockquote>
 <blockquote>
 <a name="height"></a>
@@ -1217,6 +1269,30 @@ Whether to assign segment IDs in PDB format as the chain IDs in ChimeraX.
 <br>
 Method to use when <a href="#fetch">fetching</a> a map
 from a specific EMDB mirror site.
+</blockquote>
+<blockquote>
+<a name="transparency"></a>
+<b>transparency</b>&nbsp;&nbsp;<i>percent</i>
+<br>
+Assign the specified <i>percent</i> transparency to
+<a href="https://mole.upol.cz/" target="_blank">MOLEonline</a> 
+channels read from <a href="#object">JSON format</a>
+(default <b>0</b>, not transparent).
+See also the <a href="transparency.html"><b>transparency</b></a> command.
+</blockquote>
+<blockquote>
+<a name="viewer"></a>
+<b>viewer</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
+<br>
+Whether to show the 
+<a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>
+when opening <a href="#sequence">sequence data</a>.
+<!-- 
+also has option seqview = sv = view, meaning the Sequence Viewer,
+which will be relevant when an option is added for ProfileGrid instead.
+Then, true will mean whichever of the two was last used, if any, for 
+a single sequence or sequence alignment, which will be remembered separately 
+-->
 </blockquote>
 <blockquote>
 <a name="vseries"></a>
@@ -1408,8 +1484,14 @@ reading trajectories from multi-model mmCIF or PDB files.
 Whether to show a graphical interface for 
 <a href="../trajectories.html">trajectory</a> playback (default <b>true</b>).
 The slider can be dragged or a frame number entered directly.
-The interface also includes a play/pause button and another
-(marked with a red dot) for recording a movie.
+The interface also includes a play/pause button, a
+&nbsp;<img style="height:16px; margin: 1px -1px; vertical-align:top"
+src="../tools/ui-icons/snail.png">&nbsp; value to increase for slower playback,
+and a button for recording a movie
+(<img class="iconbar" src="../tools/ui-icons/record.png">).
+The movie will start at the current slider position, so
+to include the whole trajectory, place the slider at the far left
+before clicking the record button.
 See also: <a href="coordset.html#slider"><b>coordset slider</b></a>
 </blockquote>
 
@@ -1517,6 +1599,7 @@ The <b>alignTo</b> and <b>trim</b> options also apply only to
 See also: <a href="alphafold.html"><b>alphafold</b></a>
 </p><p>
 See also: 
+<a href="../tools/downloaddicom.html"><b>Download DICOM</b></a>,
 <a href="../preferences.html#webaccess"><b>Web Access</b> preferences</a>
 </p>
 
@@ -1659,6 +1742,19 @@ target="_blank">AlphaFold</a> and specified by
 name or accession number (<a href="alphafold.html#fetch">details...</a>)</td>
 <td align="center"><b>mmcif</b></td>
 </tr><tr>
+<td align="center"><a href="http://www.crystallography.net/cod/"
+target="_blank">Crystallography Open Database</a></td>
+<td align="center"><b>cod</b></td>
+<td align="center">crystal structures of small molecules and 
+inorganic compounds</td>
+<td align="center"><b>corecif</b></td>
+</tr><tr>
+<td align="center"><a href="http://www.crystallography.net/pcod/"
+target="_blank">Predicted Crystallography Open Database</a></td>
+<td align="center"><b>pcod</b></td>
+<td align="center">predicted structures of inorganic compounds</td>
+<td align="center"><b>corecif</b></td>
+</tr><tr>
 <td align="center"><a href="http://www.cellpack.org"
 target="_blank">cellPACK</a></td>
 <td align="center"><b>cellpack</b></td>
@@ -1771,7 +1867,7 @@ For example, myfile.pdb.gz is a gzipped PDB file.
 The file types that can be read by ChimeraX in compressed form
 (as well as uncompressed) are
 ALN, BILD, Collada, compiled Python code, directional FSC,
-FASTA, glTF, HSSP, MMTF, MSF, PDB, Pfam, PIR, pseudobonds, Python code,
+FASTA, glTF, HSSP, MMTF, MSF, NIfTI, PDB, Pfam, PIR, pseudobonds, Python code,
 RSF, STL, Stockholm, STORM, VTK PolyData, and Wavefront OBJ.
 </p>
 
@@ -1926,5 +2022,5 @@ only arrays with the specified <i>name</i>. Example:
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-February 2022</address>
+March 2023</address>
 </body></html>

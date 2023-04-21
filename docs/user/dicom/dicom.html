@@ -37,9 +37,16 @@ ChimeraX can read many but not all DICOM files.
 Errors may arise from trying to read types of data 
 that are not yet handled properly, such as screen captures, 
 non-axial series, and series encoded with 16-bit lossless jpeg.
+ChimeraX can also read the
+<a href="https://nifti.nimh.nih.gov/" target="_blank">NIfTI</a> (.nii)
+and <a href="https://teem.sourceforge.net/nrrd/" target="_blank">NRRD</a> (.nrrd)
+formats often used for medical images.
 </p><p>
 See also:
 <a href="../dicom-quickref.html">ChimeraX DICOM Reference</a>,
+<a href="../tools/downloaddicom.html"><b>Download DICOM</b></a>,
+<a href="../tools/dicombrowser.html"><b>DICOM Browser</b></a>,
+<a href="../tools/dicommetadata.html"><b>DICOM Metadata</b></a>,
 <a href="../tutorials/dicom-vr.html">DICOM in VR tutorial</a>,
 <a href="https://www.rbvi.ucsf.edu/chimerax/dicom/index.html"
 target="_blank">ChimeraX for Medical Image Analysis</a>
@@ -105,6 +112,12 @@ They can also be displayed as isosurfaces, for example:
 level 1 region all</b>
 </p><p>
 Radiotherapy structure set (RTSTRUCT) contours are also read and displayed.
+</p><p>
+DICOM files also contain associated information (metadata).
+This information is not shown automatically when the files are
+opened, but can be displayed with the 
+<a href="../tools/dicombrowser.html"><b>DICOM Browser</b></a>
+and <a href="../tools/dicommetadata.html"><b>DICOM Metadata</b></a> tools.
 </p>
 
 <a name="hierarchy"></a>
@@ -113,17 +126,21 @@ Radiotherapy structure set (RTSTRUCT) contours are also read and displayed.
 </p>
 <h3>DICOM Model Hierarchy</h3>
 <p>
-Models read from DICOM files are arranged in a hierarchy, as
+Models read from DICOM are arranged in a hierarchy, as
 shown in the <a href="../tools/modelpanel.html"><b>Model Panel</b></a>:
 </p>
 <ol>
-<li>directory
-<li>patient ID
-<li>study date
-<li>series description and number, if available, or body part and modality
-<li>segmentations or other image series-dependent annotations
-(for example, segmentations of a particular CT scan)
+<li>DICOM folder (if multiple patients)
+<li>patient (ID)
+<li>study (date)
+<li>series (description), each corresponding to a 
+<a href="tools/volumeviewer.html">volume model</a>, typically 3D imaging 
+(<i>e.g.</i> CT, MRI) and derivations thereof (<i>e.g.</i>, segmentations)
 </ol>
+<p>
+The <a href="../tools/dicombrowser.html"><b>DICOM Browser</b></a>
+also shows the hierarchy.
+</p>
 
 <a name="initial"></a>
 <p class="nav">
@@ -148,5 +165,5 @@ true</b></a>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-December 2019</address>
+March 2023</address>
 </body></html>

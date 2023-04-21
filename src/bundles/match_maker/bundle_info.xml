@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-MatchMaker" version="2.0.6"
+<BundleInfo name="ChimeraX-MatchMaker" version="2.1"
 	    package="chimerax.match_maker"
   	    minSessionVersion="1" maxSessionVersion="1">
 
@@ -16,7 +16,7 @@
   <Dependencies>
     <Dependency name="ChimeraX-Core" version="~=1.0"/>
     <Dependency name="ChimeraX-AlignmentAlgorithms" version="~=2.0"/>
-    <Dependency name="ChimeraX-AlignmentMatrices" version="~=2.0"/>
+    <Dependency name="ChimeraX-AlignmentMatrices" version="~=2.1"/>
   </Dependencies>
 
   <Classifiers>

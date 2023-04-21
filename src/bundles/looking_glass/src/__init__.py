@@ -10,6 +10,10 @@
 # including partial copies, of the software or any revisions
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
+import os
+
+def get_lib() -> str:
+    return os.path.join(__file__, "lib")
 
 from chimerax.core.toolshed import BundleAPI
 

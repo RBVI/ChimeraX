@@ -49,7 +49,7 @@ file_formats = [
   MapFileFormat('Amira mesh', 'amira', ['amira'], ['am']),
   MapFileFormat('APBS potential', 'apbs', ['apbs'], ['dx']),
   MapFileFormat('BRIX density map', 'brix', ['brix'], ['brix'], writable = True),
-  MapFileFormat('CCP4 density map', 'ccp4', ['ccp4'], ['ccp4','map']),
+  MapFileFormat('CCP4 density map', 'ccp4', ['ccp4'], ['ccp4','map'], writable = True),
   MapFileFormat('Chimera map', 'cmap', ['cmap'], ['cmap', 'cmp'], writable = True,
                 writer_options = ('subsamples', 'chunk_shapes', 'append',
                                   'compress', 'compress_method', 'compress_level', 'compress_shuffle',
@@ -148,8 +148,8 @@ def open_file(path, file_type = None, **kw):
   apath = absolute_path(path) if isinstance(path,str) else [absolute_path(p) for p in path]
 
   if kw:
-    from inspect import getargspec
-    args = getargspec(open_func).args
+    from inspect import getfullargspec
+    args = getfullargspec(open_func).args
     okw = {name:value for name, value in kw.items() if name in args}
   else:
     okw = {}

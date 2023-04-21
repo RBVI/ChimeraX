@@ -12,7 +12,9 @@
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.core.tools import ToolInstance
-
+from chimerax.core.errors import UserError
+from chimerax.core.commands import run, concise_model_spec
+from chimerax.core.settings import Settings
 
 class ModelPanel(ToolInstance):
 
@@ -92,10 +94,12 @@ class ModelPanel(ToolInstance):
         self.countdown = 1
         self.self_initiated = False
         from chimerax.core.models import ADD_MODELS, REMOVE_MODELS, \
-            MODEL_DISPLAY_CHANGED, MODEL_ID_CHANGED, MODEL_NAME_CHANGED
+            MODEL_COLOR_CHANGED, MODEL_DISPLAY_CHANGED, MODEL_ID_CHANGED, MODEL_NAME_CHANGED
         from chimerax.core.selection import SELECTION_CHANGED
         session.triggers.add_handler(SELECTION_CHANGED,
             lambda *args: self._initiate_fill_tree(*args, countdown=3))
+        session.triggers.add_handler(MODEL_COLOR_CHANGED,
+            lambda *args: self._initiate_fill_tree(*args, simple_change=True, countdown=(0,3)))
         session.triggers.add_handler(MODEL_DISPLAY_CHANGED,
             lambda *args: self._initiate_fill_tree(*args, simple_change=True, countdown=(0,3)))
         session.triggers.add_handler(ADD_MODELS,
@@ -200,6 +204,7 @@ class ModelPanel(ToolInstance):
         if not update:
             expanded_models = { i._model : i.isExpanded()
                                 for i in self._items if hasattr(i, '_model')}
+            scroll_position = self.tree.verticalScrollBar().sliderPosition()
             self.tree.clear()
             self._items = []
         all_selected_models = self.session.selection.models(all_selected=True)
@@ -211,6 +216,8 @@ class ModelPanel(ToolInstance):
         for model in self.models:
             model_id, model_id_string, bg_color, display, name, selected, part_selected = \
                 self._get_info(model, all_selected_models, part_selected_models)
+            if model_id is None:
+                continue
             len_id = len(model_id)
             if update:
                 if len_id == len(item_stack):
@@ -241,10 +248,8 @@ class ModelPanel(ToolInstance):
                             target_string = " models"
                         from chimerax.core.commands import run
                         from chimerax.core.colors import color_name
-                        c_name = color_name(rgba)
-                        need_transparency = (not c_name[0] == '#') or len(c_name) == 7
-                        cmd = "color #%s %s%s%s" % (m.id_string, color_name(rgba), target_string,
-                            " transparency 0" if need_transparency else "")
+                        cmd = "color #%s %s%s" % (m.id_string,
+                            color_name(rgba, always_include_hex_alpha=True), target_string)
                         run(ses, cmd, log=False)
                         but.delayed_cmd_text = cmd
                     but.color_changed.connect(set_model_color)
@@ -288,6 +293,8 @@ class ModelPanel(ToolInstance):
                 expand = expanded_models.get(model, expand_default)
                 if expand:
                     self.tree.expandItem(item)
+        if not update:
+            self.tree.verticalScrollBar().setSliderPosition(scroll_position)
         for i in range(1,self.tree.columnCount()):
             self.tree.resizeColumnToContents(i)
         self.tree.blockSignals(False)
@@ -359,7 +366,6 @@ class ModelPanel(ToolInstance):
                 ids = [int(x) for x in id_text.split('.')]
             except Exception:
                 self._initiate_fill_tree()
-                from chimerax.core.errors import UserError
                 raise UserError("ID must be one or more integers separated by '.' characters")
             self.self_initiated = True
             run(self.session, "rename %s id #%s" % (item._model.atomspec, id_text))
@@ -375,13 +381,11 @@ class ModelPanel(ToolInstance):
             run(self.session, "rename %s %s" % (item._model.atomspec, StringArg.unparse(new_name)))
 
 
-from chimerax.core.settings import Settings
 class ModelPanelSettings(Settings):
     AUTO_SAVE = {
         'last_use': None
     }
 
-from chimerax.core.commands import run, concise_model_spec
 def close(models, session):
     # ask for confirmation if multiple top-level models being closed without explicitly selecting them
     if len([m for m in models if '.' not in m.id_string]) > 1 and not _mp.tree.selectedItems():
@@ -402,20 +406,10 @@ def hide(models, session):
     run(session, "hide %s target m" % concise_model_spec(session, models))
 
 def info(models, session):
-    from chimerax.atomic import AtomicStructure
-    structures = [m for m in models if isinstance(m, AtomicStructure)]
-    if not structures:
-        from chimerax.core.errors import UserError
-        raise UserError("No atomic structure models chosen")
-    spec = concise_model_spec(session, structures, allow_empty_spec=False, relevant_types=AtomicStructure)
-    from chimerax.atomic.structure import assembly_html_table
-    for s in structures:
-        if assembly_html_table(s):
-            base_cmd = "sym %s; " % spec
-            break
-    else:
-        base_cmd = ""
-    run(session, base_cmd + "log metadata %s; log chains %s" % (spec, spec))
+    if not models:
+        raise UserError("No selection made")
+    for m in models:
+        m.show_info()
 
 _mp = None
 def model_panel(session, tool_name):

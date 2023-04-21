@@ -22,7 +22,7 @@ def fetch_uniprot(session, ident, ignore_cache=False):
         accession, entry = map_uniprot_ident(ident, return_value="both")
         if accession != entry:
             session.logger.info("UniProt identifier %s maps to entry %s" % (accession, entry))
-        seq_string, full_name, features = fetch_uniprot_accession_info(session, accession,
+        seq_string, full_name, features = fetch_uniprot_accession_info(session, entry,
             ignore_cache=ignore_cache)
     except InvalidAccessionError as e:
         raise UserError(str(e))
@@ -41,33 +41,64 @@ def fetch_uniprot(session, ident, ignore_cache=False):
 def map_uniprot_ident(ident, *, return_value="identifier"):
     from urllib.parse import urlencode
     params = {
-        'from': 'ACC+ID',
-        'to': 'ACC',
-        'format': 'tab',
-        'query': ident
+        'from': 'UniProtKB_AC-ID',
+        'to': 'UniProtKB',
+        'ids': ident
     }
     data = urlencode(params)
     from urllib.request import Request, urlopen
     from urllib.error import HTTPError
-    request = Request("https://www.uniprot.org/uploadlists/", bytes(data, 'utf-8'),
+    request = Request("https://rest.uniprot.org/idmapping/run", bytes(data, 'utf-8'),
         headers={ "User-Agent": "Python chimerax-bugs@cgl.ucsf.edu" })
+    from chimerax.core.errors import NonChimeraError
     try:
         response = urlopen(request)
     except HTTPError as e:
-        from chimerax.core.errors import NonChimeraError
-        raise NonChimeraError("Error from UniProt web server: %s\n\n"
+        raise NonChimeraError("Error from UniProt web server while submitting job: %s\n\n"
             "Try again later.  If you then still get the error, you could use"
             " Help->Report a Bug to report the error to the ChimeraX team."
             " They may be able to help you work around the problem." % e)
-    page = response.read().decode('utf-8')
-    if not page:
+    job_page = response.read().decode('utf-8')
+    if not job_page:
         raise InvalidAccessionError("Invalid UniProt entry name / accession number: %s" % ident)
-    lines = page.splitlines()
-    if len(lines) < 2:
+    import json
+    try:
+        job_info = json.loads(job_page)
+    except json.JSONDecodeError:
         raise InvalidAccessionError("Invalid UniProt entry name / accession number: %s" % ident)
-    if return_value == "both":
-        return lines[1].split()
-    return lines[1].split()[1 if return_value == "entry" else 0]
+    try:
+        job_id = job_info['jobId']
+    except KeyError:
+        raise ValueError("Unexpected response from UniProt ID-mapping server: %s" % job_info)
+    # wait for mapping job to finish...
+    while True:
+        try:
+            response = urlopen("https://rest.uniprot.org/idmapping/status/" + job_id)
+        except HTTPError as e:
+            raise NonChimeraError("Error from UniProt web server while checking job status: %s\n\n"
+                "Try again later.  If you then still get the error, you could use"
+                " Help->Report a Bug to report the error to the ChimeraX team."
+                " They may be able to help you work around the problem." % e)
+        status_page = response.read().decode('utf-8')
+        if not status_page:
+            raise InvalidAccessionError("Invalid UniProt entry name / accession number: %s" % ident)
+        try:
+            info = json.loads(status_page)
+        except json.JSONDecodeError:
+            raise InvalidAccessionError("Invalid UniProt entry name / accession number: %s" % ident)
+        if "jobStatus" in info:
+            import time
+            time.sleep(0.5)
+        elif "failedIds" in info:
+            raise InvalidAccessionError("Invalid UniProt entry name / accession number: %s" % ident)
+        else:
+            results = info['results'][0]
+            if return_value == "both":
+                return results['from'], results['to']['primaryAccession']
+            elif return_value == "entry":
+                return results['to']['primaryAccession']
+            else:
+                return results['from']
 
 def fetch_uniprot_accession_info(session, accession, ignore_cache=False):
     session.logger.status("Fetch UniProt accession code %s..." % accession)

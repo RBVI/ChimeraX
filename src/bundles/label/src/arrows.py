@@ -208,14 +208,15 @@ def arrow_under_window_position(session, win_x, win_y):
         return None, None
     best = None
     for arr in lm.all_arrows:
-        for x, y, part in [(arr.start[0], arr.start[1], "start"), (arr.end[0], arr.end[1], "end")]:
-            dist2 = (x-fx)*(x-fx) + (y-fy)*(y-fy)
-            if dist2 > 0.0025:  # 0.05 squared
-                continue
-            if best is None or dist2 < best:
-                best = dist2
-                best_arr = arr
-                best_part = part
+        if arr.drawing.display and arr.drawing.parents_displayed:
+            for x, y, part in [(arr.start[0], arr.start[1], "start"), (arr.end[0], arr.end[1], "end")]:
+                dist2 = (x-fx)*(x-fx) + (y-fy)*(y-fy)
+                if dist2 > 0.0025:  # 0.05 squared
+                    continue
+                if best is None or dist2 < best:
+                    best = dist2
+                    best_arr = arr
+                    best_part = part
     if best is None:
         return None, None
     return best_arr, best_part
@@ -307,6 +308,9 @@ class Arrows(Model):
         return tuple(self._named_arrows.keys())
 
     def delete_arrow(self, arrow):
+        if arrow not in self._arrows:
+            # in a script, it's possible for the model-removed trigger and a delete command to both call this
+            return
         if arrow.name:
             del self._named_arrows[arrow.name]
         self._arrows.remove(arrow)
@@ -322,7 +326,7 @@ class Arrows(Model):
 
     def _models_removed(self, trig_name, models):
         for m in models:
-            if isinstance(m, ArrowModel) and m in self._arrows:
+            if isinstance(m, ArrowModel) and m.arrow in self._arrows:
                 self.delete_arrow(m.arrow)
 
     SESSION_SAVE = True
@@ -389,9 +393,9 @@ class Arrow:
         self.weight = weight
         self.start = start
         self.end = end
-        self.visibility = visibility
         self.head_style = head_style
         self.drawing = d = ArrowModel(session, self)
+        self.visibility = d.display = visibility
         lb = session_arrows(session, create = True)
         lb.add_arrow(self)
 

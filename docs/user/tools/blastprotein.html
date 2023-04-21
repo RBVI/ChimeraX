@@ -31,14 +31,19 @@ using a <a href="#notes">BLAST</a> web service hosted by the
 Resource for Biocomputing, Visualization, and Informatics (RBVI)</a>.
 See also:
 <a href="alphafold.html"><b>AlphaFold</b></a>,
-<a href="../commands/matchmaker.html"><b>matchmaker</b></a>
+<a href="esmfold.html"><b>ESMFold</b></a>,
+<a href="matchmaker.html"><b>Matchmaker</b></a>
 </p><p>
-The <b>Blast Protein</b> tool
-can be opened from the <b>Sequence</b> section of the
-<b>Tools</b> menu and manipulated like other panels
+The <b>Blast Protein</b> tool can be started from the
+<b>Sequence</b> section of the <b>Tools</b> menu, or by using the
+<a href="sequenceviewer.html#context"><b>Sequence Viewer</b> context menu</a>.
+It can be manipulated like other panels
 (<a href="../window.html#panels">more...</a>).
 It is also implemented as the
 <a href="../commands/blastprotein.html"><b>blastprotein</b></a> command.
+See also:
+<a href="../commands/alphafold.html#search"><b>alphafold search</b></a>,
+<a href="../commands/esmfold.html#search"><b>esmfold search</b></a>
 </p>
 
 <a name="parameters"></a>
@@ -47,16 +52,45 @@ It is also implemented as the
 </p>
 <h3>Search Parameters</h3>
 
-<p>
-The first menu allows choosing a protein chain from the currently open 
-atomic structures to use as the query. Note: 
-the <a href="../commands/blastprotein.html"><b>blastprotein</b></a> command 
-additionally allows using a sequence (for which no structure may be available) 
-as the query, such as to find templates for 
-<a href="modeller.html">comparative modeling</a>. See also:
-<a href="../commands/alphafold.html#search"><b>alphafold search</b></a>
-</p>
 <ul class="none">
+<li><b>Matrix</b>
+&ndash; amino acid substitution matrix to use for alignment scoring:
+  <ul>
+  <li><b>BLOSUM45</b>
+  <li><b>BLOSUM50</b>
+  <li><b>BLOSUM62</b> (default)
+  <li><b>BLOSUM80</b>
+  <li><b>BLOSUM90</b>
+  <li><b>PAM30</b>
+  <li><b>PAM70</b>
+  <li><b>PAM250</b>
+  <li><b>IDENTITY</b>
+  </ul>
+<br>
+<li><b>Cutoff</b> (default <b>1e-3</b>) &ndash; significance cutoff;
+only hits with 
+<a href="https://blast.ncbi.nlm.nih.gov/Blast.cgi?CMD=Web&PAGE_TYPE=BlastDocs&DOC_TYPE=FAQ#expect" target="_blank">E-value</a>
+no larger than the specified value will be returned
+<br><br>
+<li><b># Sequences</b> (default <b>100</b>)
+&ndash; maximum number of unique sequences to return; more hits than this number
+may be obtained because multiple structures or other sequence-database entries
+may have the same sequence
+<br><br>
+<li><b>Query</b> &ndash; amino acid sequence with which to search the database,
+specified as one of the following:
+  <ul>
+  <li><b>UniProt ID</b> &ndash;
+  a <a href="https://www.uniprot.org/help/entry_name"
+  target="_blank">UniProt name</a> or
+  <a href="https://www.uniprot.org/help/accession_numbers"
+  target="_blank">accession number</a>
+  <li><b>Raw Sequence</b></a> &ndash; amino acid sequence as plain text
+  pasted into the entry field
+  <li>a single protein chain in an atomic structure currently open in ChimeraX
+  (available chains will be listed individually)
+  </ul>
+<br>
 <li><b>Database</b> &ndash; protein sequence database to search:
    <ul>
    <li><b>pdb</b> (default) &ndash; experimentally determined structures in the
@@ -73,28 +107,19 @@ is much larger than <b>PDB</b> alone and takes much longer to search
 &ndash; artificial-intelligence-predicted structures in the
 <a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold Database</a>
 (<a href="alphafold.html">more...</a>)
+   <li><b>uniref100</b> &ndash; 
+<a href="https://www.uniprot.org/help/uniref" 
+target="_blank">UniProt Reference (UniRef)</a> cluster at 100% identity
+(identical sequences and subfragments collapsed into a single entry)
+   <li><b>uniref90</b> &ndash; based on <b>uniref100</b>, but omitting
+sequences shorter than 11 residues and clustering at 90% identity
+   <li><b>uniref50</b> &ndash; based on <b>uniref100</b>, but omitting 
+sequences shorter than 11 residues and clustering at 50% identity
+  <li><b>esmfold</b> 
+&ndash; artificial-intelligence-predicted structures in the
+<a href="https://esmatlas.com/about#about_this_website" target="_blank">ESM
+Metagenomic Atlas</a> (<a href="esmfold.html">more...</a>)
    </ul>
-<li><b># Sequences</b> (default <b>100</b>)
-&ndash; maximum number of unique sequences to return; more hits than this number
-may be obtained because multiple structures or other sequence-database entries
-may have the same sequence
-<li><b>Matrix</b>
-&ndash; amino acid substitution matrix to use for alignment scoring:
-  <ul>
-  <li><b>BLOSUM45</b>
-  <li><b>BLOSUM50</b>
-  <li><b>BLOSUM62</b> (default)
-  <li><b>BLOSUM80</b>
-  <li><b>BLOSUM90</b>
-  <li><b>PAM30</b>
-  <li><b>PAM70</b>
-  <li><b>PAM250</b>
-  <li><b>IDENTITY</b>
-  </ul>
-<li><b>Cutoff</b> (default <b>1e-3</b>) &ndash; significance cutoff;
-only hits with 
-<a href="https://blast.ncbi.nlm.nih.gov/Blast.cgi?CMD=Web&PAGE_TYPE=BlastDocs&DOC_TYPE=FAQ#expect" target="_blank">E-value</a>
-no larger than the specified value will be returned
 </ul>
 <p>
 Clicking <b>Apply</b> (or <b>OK</b>, which also dismisses the dialog)
@@ -131,6 +156,12 @@ user <a href="../preferences.html#other">preference</a>
 <li><b>Toggle Controls</b> &ndash; show/hide the checkbox section
 </ul>
 <p>
+<b>List only best chain per PDB</b> &ndash; 
+searches of the PDB usually give multiple hits per PDB entry (to multiple chains 
+in that entry, typically redundant because the structure contains multiple copies 
+of the same protein). This option allows collapsing the results list to show 
+only a single hit per PDB entry, the best-matching chain from that entry.
+</p><p>
 Clicking a column header sorts by the values in that column.
 </p><p>
 Double-clicking a row with a corresponding structure 
@@ -140,18 +171,32 @@ automatically superimposes the hit onto the query
 using <a href="../commands/matchmaker.html"><b>matchmaker</b></a>.
 AlphaFold-predicted structures are
 <a href="../commands/alphafold.html#colorConfidence">colored by
-confidence value</a>.
+confidence 0-100</a>.
+ESMFold-predicted structures are 
+<a href="../commands/esmfold.html#colorConfidence">colored by
+confidence 0-1</a>.
 </p><p>
-One or more hits can be chosen (highlighted) in the list
+One or more hits can be <b><i>chosen</i></b> (highlighted) in the list
 by clicking and dragging with the left mouse button;
 <b>Ctrl</b>-click (or <b>command</b>-click if using a Mac)
 toggles whether a row is chosen.
 The result panel's <a href="../window.html#context-menu">context menu</a> 
-can be used to fetch and superimpose all of the corresponding structures, or to
-show their <a href="#notes">multiple sequence alignment</a> with the query
-in the <a href="sequenceviewer.html"><b>Sequence Viewer</b></a>.
-</p><p>
-Some columns are available no matter which database is searched:
+or the buttons across the bottom of the results dialog
+can be used to:
+</p>
+<ul>
+<li><b>Load Structures</b> 
+&ndash; fetch and superimpose all of the corresponding structures, if any,
+for the chosen hits
+<li><b>Show Sequence Alignment</b> 
+&ndash; show the <a href="#notes">multiple sequence alignment</a> of the
+chosen hits with the query in the 
+<a href="sequenceviewer.html"><b>Sequence Viewer</b></a>
+<li><b>Open Database Webpage</b> 
+&ndash; show sequence database webpages for the chosen hits
+</ul>
+<p>
+Some columns of data are available no matter which database is searched:
 </p>
 <ul>
 <li><b>Hit #</b> &ndash; hit number (sorted by most significant
@@ -159,7 +204,7 @@ Some columns are available no matter which database is searched:
 <li><b>Name</b>
   <ul>
   <li>for PDB sequences, the corresponding PDB identifier, including the chain 
-  <li>for AlphaFold predictions, the corresponding
+  <li>for AlphaFold predictions or UniRef entries, the corresponding
 <a href="https://www.uniprot.org/help/entry_name"
 target="_blank">UniProt entry name</a>
   <li>otherwise, sequence GI number
@@ -171,7 +216,10 @@ target="_blank">NCBI Protein</a> database -->
 <a href="https://blast.ncbi.nlm.nih.gov/Blast.cgi?CMD=Web&PAGE_TYPE=BlastDocs&DOC_TYPE=FAQ#expect" target="_blank">Expect value</a>
 <li><b>Score</b> &ndash; alignment score
 <li><b>Title</b> &ndash; a brief description of the sequence
-<li><b>Species</b> &ndash; source organism
+<li><b>Species</b> &ndash; source organism,
+or for UniRef entries, the taxonomic range of source organisms in the 
+<a href="https://www.uniprot.org/help/uniref" 
+target="_blank">UniRef cluster</a> (typically broader than a single species)
 <!--
 <li><b>Description</b> 
 (or for AlphaFold, separate <b>Title</b> and <b>Species</b> columns)
@@ -195,7 +243,8 @@ target="_blank">version number</a>
 target="_blank">NCBI taxid</a> of the source organism
 </ul>
 <p>
-Additional columns for PDB entries (from searching PDB or NR):
+Additional columns for PDB entries (from searching PDB or other databases
+that include it, such as NR):
 </p>
 <ul>
 <li><b># Atoms</b>
@@ -228,8 +277,22 @@ target="_blank"><b>SMILES</b></a> strings of ligand chemical components
 target="_blank">PubMed</a> identifier of literature reference, if any
 <li><b>Resolution</b> &ndash; crystallographic resolution
 <li><b>UniProt ID</b>
-&ndash; <a href="https://www.uniprot.org/" target="_blank">UniProt</a>
-identifier, if any, for the hit chain
+&ndash; <a href="https://www.uniprot.org/help/accession_numbers" 
+target="_blank">UniProt accession number</a>, if any, for the hit chain
+</ul>
+<p>
+Additional columns for UniRef entries:
+</p>
+<ul>
+<li><b>Cluster ID</b> 
+&ndash; ID number of the <a href="https://www.uniprot.org/help/uniref"
+target="_blank">UniRef cluster</a> represented by the hit 
+<li><b>Cluster Size</b> 
+&ndash; number of sequences in the <a href="https://www.uniprot.org/help/uniref"
+target="_blank">UniRef cluster</a> represented by the hit 
+<li><b>UniProt ID</b>
+&ndash; <a href="https://www.uniprot.org/help/accession_numbers" 
+target="_blank">UniProt accession number</a>, if any, for the hit chain
 </ul>
 
 <a name="notes"></a>
@@ -265,5 +328,5 @@ Altschul SF, Gish W, Miller W, Myers EW, Lipman DJ.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-November 2021</address>
+December 2022</address>
 </body></html>

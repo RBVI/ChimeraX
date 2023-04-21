@@ -288,8 +288,7 @@ def label_listfonts(session):
         from chimerax.core.errors import LimitationError
         raise LimitationError("Unable to do list fonts without being able to render images")
     from Qt.QtGui import QFontDatabase
-    fdb = QFontDatabase()
-    fnames = list(fdb.families())
+    fnames = list(QFontDatabase.families())
     fnames.sort()
     session.logger.info('%d fonts available:\n%s' % (len(fnames), '\n'.join(fnames)))
 
@@ -685,8 +684,11 @@ class LabelModel(Model):
                 bg = [255*r for r in l.session.main_view.background_color]
             else:
                 bg = l.background
-            light_bg = (sum(bg[:3]) > 1.5*255)
-            rgba8 = (0,0,0,255) if light_bg else (255,255,255,255)
+            from chimerax.core.colors import contrast_with
+            if contrast_with([c/255 for c in bg[:3]])[0] == 0.0:
+                rgba8 = (0, 0, 0, 255)
+            else:
+                rgba8 = (255, 255, 255, 255)
         else:
             rgba8 = tuple(l.color)
         return rgba8

@@ -473,6 +473,7 @@ class SequenceViewer(ToolInstance):
         elif note_name == alignment.NOTE_COMMAND:
             from .cmd import run
             run(self.session, self, note_data)
+
         self.seq_canvas.alignment_notification(note_name, note_data)
 
     @property
@@ -514,6 +515,7 @@ class SequenceViewer(ToolInstance):
         file_menu = menu.addMenu("File")
         save_as_menu = file_menu.addMenu("Save As")
         from chimerax.core.commands import run, StringArg
+        align_arg = "%s " % self.alignment if len(self.session.alignments.alignments) > 1 else ""
         fmts = [fmt for fmt in self.session.save_command.save_data_formats if fmt.category == "Sequence"]
         fmts.sort(key=lambda fmt: fmt.synopsis.casefold())
         for fmt in fmts:
@@ -530,15 +532,21 @@ class SequenceViewer(ToolInstance):
         copy_action = QAction("Copy Sequence...", edit_menu)
         copy_action.triggered.connect(self.show_copy_sequence_dialog)
         edit_menu.addAction(copy_action)
+        single_seq = len(self.alignment.seqs) == 1
         from chimerax.seqalign.cmd import alignment_program_name_args
         prog_to_arg = {}
         for arg, prog in alignment_program_name_args.items():
             prog_to_arg[prog] = arg
         for prog in sorted(prog_to_arg.keys()):
-            realign_action = QAction("Realign Sequences with %s" % prog, edit_menu)
-            realign_action.triggered.connect(lambda *args, arg=prog_to_arg[prog], unparse=StringArg.unparse:
-                run(self.session, "seq align %s program %s" % (unparse(self.alignment.ident), unparse(arg))))
-            edit_menu.addAction(realign_action)
+            prog_menu = edit_menu.addMenu("Realign Sequences with %s" % prog)
+            for menu_text, cmd_text in [("new", ""), ("this", " replace true")]:
+                realign_action = QAction("in %s window" % menu_text, prog_menu)
+                realign_action.triggered.connect(lambda *args, arg=prog_to_arg[prog],
+                    unparse=StringArg.unparse, cmd_text=cmd_text: run(self.session,
+                    "seq align %s program %s%s" % (unparse(self.alignment.ident), unparse(arg), cmd_text)))
+                prog_menu.addAction(realign_action)
+            if single_seq:
+                prog_menu.setEnabled(False)
 
         structure_menu = menu.addMenu("Structure")
         assoc_action = QAction("Associations...", structure_menu)
@@ -561,7 +569,6 @@ class SequenceViewer(ToolInstance):
             action.setChecked(hdr.shown)
             if not hdr.relevant:
                 action.setEnabled(False)
-            align_arg = "%s " % self.alignment if len(self.session.alignments.alignments) > 1 else ""
             action.triggered.connect(lambda *, action=action, hdr=hdr, align_arg=align_arg, self=self: run(
                 self.session, "seq header %s%s %s" % (align_arg, hdr.ident, "show" if action.isChecked() else "hide")))
             headers_menu.addAction(action)
@@ -571,10 +578,44 @@ class SequenceViewer(ToolInstance):
             if not hdr.relevant:
                 continue
             action = QAction(hdr.name, hdr_save_menu)
-            align_arg = "%s " % self.alignment if len(self.session.alignments.alignments) > 1 else ""
             action.triggered.connect(lambda *, hdr=hdr, align_arg=align_arg, self=self: run(
                 self.session, "seq header %s%s save browse" % (align_arg, hdr.ident)))
             hdr_save_menu.addAction(action)
+
+        numberings_menu = menu.addMenu("Numberings")
+        action = QAction("Overall", numberings_menu)
+        action.setCheckable(True)
+        action.setChecked(self.seq_canvas.show_ruler)
+        action.triggered.connect(lambda*, sc=self.seq_canvas, action=action:
+            setattr(sc, "show_ruler", action.isChecked()))
+        numberings_menu.addAction(action)
+        refseq_menu = numberings_menu.addMenu("Reference Sequence")
+        action = QAction("No Reference Sequence", refseq_menu)
+        action.setCheckable(True)
+        action.setChecked(self.alignment.reference_seq is None)
+        action.triggered.connect(lambda*, align_arg=align_arg, action=action, self=self:
+            run(self.session, "seq ref " + align_arg) if action.isChecked() else None)
+        refseq_menu.addAction(action)
+        for seq in self.alignment.seqs:
+            action = QAction(seq.name, refseq_menu)
+            action.setCheckable(True)
+            action.setChecked(self.alignment.reference_seq is seq)
+            action.triggered.connect(lambda*, seq_arg=StringArg.unparse(align_arg + ':' + seq.name),
+                action=action: run(self.session, "seq ref " + seq_arg) if action.isChecked() else None)
+            refseq_menu.addAction(action)
+        numberings_menu.addSeparator()
+        action = QAction("Left Sequence", numberings_menu)
+        action.setCheckable(True)
+        action.setChecked(self.seq_canvas.show_left_numbering)
+        action.triggered.connect(lambda*, sc=self.seq_canvas, action=action:
+            setattr(sc, "show_left_numbering", action.isChecked()))
+        numberings_menu.addAction(action)
+        action = QAction("Right Sequence", numberings_menu)
+        action.setCheckable(True)
+        action.setChecked(self.seq_canvas.show_right_numbering)
+        action.triggered.connect(lambda*, sc=self.seq_canvas, action=action:
+            setattr(sc, "show_right_numbering", action.isChecked()))
+        numberings_menu.addAction(action)
 
         tools_menu = menu.addMenu("Tools")
         comp_model_action = QAction("Modeller Comparative Modeling...", tools_menu)
@@ -590,17 +631,25 @@ class SequenceViewer(ToolInstance):
             loops_model_action.setEnabled(False)
         tools_menu.addAction(loops_model_action)
         if len(self.alignment.seqs) == 1:
+            from chimerax.blastprotein import BlastProteinTool
             blast_action = QAction("Blast Protein...", tools_menu)
-            blast_action.triggered.connect(lambda: run(self.session,
-                "blastprotein %s" % (StringArg.unparse("%s:1" % self.alignment.ident))))
+            blast_action.triggered.connect(
+                lambda: BlastProteinTool(self.session, sequences = StringArg.unparse("%s:1" % self.alignment.ident))
+            )
             tools_menu.addAction(blast_action)
         else:
+            from chimerax.blastprotein import BlastProteinTool
             blast_menu = tools_menu.addMenu("Blast Protein")
             for i, seq in enumerate(self.alignment.seqs):
                 blast_action = QAction(seq.name, blast_menu)
-                blast_action.triggered.connect(lambda: run(self.session,
-                    "blastprotein %s" % (StringArg.unparse("%s:%d" % (self.alignment.ident, i+1)))))
+                blast_action.triggered.connect(lambda *args, chars=seq.ungapped():
+                    BlastProteinTool(self.session, sequences=StringArg.unparse(chars)))
                 blast_menu.addAction(blast_action)
+        if len(self.alignment.seqs) > 1:
+            identity_action = QAction("Percent Identity...", menu)
+            identity_action.triggered.connect(self.show_percent_identity_dialog)
+            tools_menu.addAction(identity_action)
+
 
         # Whenever Region Browser and UniProt Annotations happen, the thought is to
         # put them in an "Annotations" menu (rather than "Info"); for now with only
@@ -620,11 +669,6 @@ class SequenceViewer(ToolInstance):
                     action.triggered.connect(lambda *args, seq=seq, show=self.show_feature_browser:
                         show(seq))
                     features_menu.addAction(action)
-
-        if len(self.alignment.seqs) > 1:
-            identity_action = QAction("Percent Identity...", menu)
-            identity_action.triggered.connect(self.show_percent_identity_dialog)
-            menu.addAction(identity_action)
 
         settings_action = QAction("Settings...", menu)
         settings_action.triggered.connect(self.show_settings)

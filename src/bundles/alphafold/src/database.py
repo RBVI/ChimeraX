@@ -18,10 +18,10 @@ from chimerax.core.settings import Settings
 class _AlphaFoldDatabaseSettings(Settings):
     EXPLICIT_SAVE = {
         'database_url': 'https://alphafold.ebi.ac.uk/files/AF-{uniprot_id}-F1-model_v{version}.cif',
-        'database_version': '2',
+        'database_version': '4',
         'last_update_time': 0.0,	# seconds since 1970 epoch
         'update_interval': 86400.0,	# seconds
-        'update_url': 'https://www.rbvi.ucsf.edu/chimerax/data/status/alphafold_database.json',
+        'update_url': 'https://www.rbvi.ucsf.edu/chimerax/data/status/alphafold_database3.json',
     }
 
 # -----------------------------------------------------------------------------
@@ -48,6 +48,12 @@ def uniprot_id_from_filename(filename):
     if len(fields) >= 4 and fields[0] == 'AF' and fields[2] == 'F1' and fields[3].startswith('model'):
         return fields[1]
     return None
+
+# -----------------------------------------------------------------------------
+#
+def default_database_version(session):
+    settings = _alphafold_database_settings(session)
+    return settings.database_version
 
 # -----------------------------------------------------------------------------
 #

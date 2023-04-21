@@ -56,7 +56,7 @@ class PrepRotamersDialog(ToolInstance):
         opts.add_option(self.rot_lib_option)
         layout.addWidget(opts, alignment=Qt.AlignCenter)
 
-        self.lib_description = QLabel(self.rot_lib.description)
+        self.lib_description = QLabel(session.rotamers.description(self.rot_lib.name))
         layout.addWidget(self.lib_description, alignment=Qt.AlignCenter)
 
         self.rot_description_box = QGroupBox("Unusual rotamer codes")
@@ -124,7 +124,7 @@ class PrepRotamersDialog(ToolInstance):
         self.res_type_option.remake_menu()
         if cur_val not in self.res_type_option.values:
             self.res_type_option.value = self._sel_res_type() or self.res_type_option.values[0]
-        self.lib_description.setText(self.rot_lib.description)
+        self.lib_description.setText(self.session.rotamers.description(self.rot_lib.name))
         prev_cite = self.citation_widgets['showing']
         if prev_cite:
             self.layout.removeWidget(prev_cite)
@@ -145,7 +145,8 @@ class PrepRotamersDialog(ToolInstance):
             return None
         from chimerax.ui.widgets import Citation
         return Citation(self.session, self.rot_lib.citation, prefix="Publications using %s rotamers should"
-            " cite:" % self.rot_lib.cite_name, pubmed_id=self.rot_lib.cite_pubmed_id)
+            " cite:" % self.session.rotamers.ui_name(self.rot_lib.name),
+            pubmed_id=self.rot_lib.cite_pubmed_id)
 
     def _sel_res_type(self):
         from chimerax.atomic import selected_residues
@@ -183,10 +184,10 @@ class RotamerDialog(ToolInstance):
             # being called directly rather than during session restore
             self.finalize_init(*args)
 
-    def finalize_init(self, mgr, res_type, rot_lib, *, table_info=None):
+    def finalize_init(self, mgr, res_type, rot_lib_name, *, table_info=None):
         self.mgr = mgr
         self.res_type = res_type
-        self.rot_lib = rot_lib
+        self.rot_lib_name = rot_lib_name
 
         self.subdialogs = {}
         from collections import OrderedDict
@@ -210,7 +211,7 @@ class RotamerDialog(ToolInstance):
         from Qt.QtCore import Qt
         self.layout = layout = QVBoxLayout()
         parent.setLayout(layout)
-        lib_display_name = self.session.rotamers.library(rot_lib).display_name
+        lib_display_name = self.session.rotamers.ui_name(rot_lib_name)
         layout.addWidget(QLabel("%s %s rotamers" % (lib_display_name, res_type)))
         column_disp_widget = QWidget()
         class RotamerTable(ItemTable):
@@ -298,24 +299,26 @@ class RotamerDialog(ToolInstance):
     @classmethod
     def restore_snapshot(cls, session, data):
         inst = super().restore_snapshot(session, data['ToolInstance'])
-        lib_display_name = data['lib_display_name']
-        for lib_name in session.rotamers.library_names(installed_only=True):
-            lib = session.rotamers.library(lib_name)
-            if lib.display_name == lib_display_name:
-                break
+        if "rot_lib_name" in data:
+            lib_name = data['rot_lib_name']
+            lib_names = session.rotamers.library_names(installed_only=True)
+            ui_name = session.rotamers.ui_name(lib_name)
         else:
+            lib_name = ui_name = data['lib_display_name']
+            lib_names = session.rotamers.library_names(installed_only=True, for_display=True)
+        if lib_name not in lib_names:
             raise RuntimeError("Cannot restore Rotamers tool because %s rotamer library is not installed"
-                % lib_display_name)
-        inst.finalize_init(data['mgr'], data['res_type'], lib_name, table_info=data['table info'])
+                % ui_name)
+        inst.finalize_init(data['mgr'], data['res_type'], session.rotamers.library(lib_name).name,
+            table_info=data['table info'])
         return inst
 
     def take_snapshot(self, session, flags):
-        import sys
         data = {
             'ToolInstance': ToolInstance.take_snapshot(self, session, flags),
             'mgr': self.mgr,
             'res_type': self.res_type,
-            'lib_display_name': session.rotamers.library(self.rot_lib).display_name,
+            'rot_lib_name': self.rot_lib_name,
             'table info': (self.table.session_info(), [(col_type, c.title, c.data_fetch, c.display_format)
                 for col_type, c in self.opt_columns.items()])
         }
@@ -335,7 +338,7 @@ class RotamerDialog(ToolInstance):
             self.mgr.base_residue.string(style="command"),
             self.res_type,
             ",".join(["%d" % rn for rn in rot_nums]),
-            self.rot_lib,
+            self.rot_lib_name,
         )
         if self.retain_side_chain:
             cmd += " retain %s" % str(self.retain_side_chain.isChecked()).lower()
@@ -343,6 +346,7 @@ class RotamerDialog(ToolInstance):
         self.delete()
 
     def _eval_vol(self, vol):
+        from chimerax.core.utils import round_off
         AtomicStructure.register_attr(self.session, "sum_density", self.registerer, attr_type=float)
         for rot in self.mgr.rotamers:
             values = vol.interpolated_values(rot.atoms.coords, point_xform=rot.scene_position)
@@ -351,7 +355,7 @@ class RotamerDialog(ToolInstance):
                 # 'is_side_chain' only works for actual polymers
                 if a.name not in a.residue.aa_max_backbone_names:
                     total += val
-            rot.sum_density = total
+            rot.sum_density = round_off(total, 3)
         sd_type = "Density"
         if sd_type in self.opt_columns:
             self.table.update_column(self.opt_columns[sd_type], data=True)

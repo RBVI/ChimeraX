@@ -22,6 +22,9 @@ from .mmcif import (  # noqa
     find_template_residue, load_mmCIF_templates,
     add_citation, add_software,
 )
+from .corecif import (  # noqa
+    open_corecif, fetch_cod, fetch_pcod,
+)
 
 from chimerax.core.toolshed import BundleAPI
 
@@ -59,6 +62,25 @@ class _mmCIFioAPI(BundleAPI):
                     def fetch(self, session, ident, format_name, ignore_cache,
                               fetcher=mmcif.fetch_ccd, **kw):
                         return fetcher(session, ident, ignore_cache=ignore_cache, **kw)
+            elif name == "Small Molecule CIF":
+                from chimerax.open_command import OpenerInfo
+                from . import corecif
+
+                class Info(OpenerInfo):
+                    def open(self, session, data, file_name, **kw):
+                        return corecif.open_corecif(session, data, file_name, **kw)
+            elif name in ("cod", "pcod"):
+                from chimerax.open_command import FetcherInfo
+                from . import corecif
+                fetcher = {
+                    "cod": corecif.fetch_cod,
+                    "pcod": corecif.fetch_pcod,
+                }[name]
+
+                class Info(FetcherInfo):
+                    def fetch(self, session, ident, format_name, ignore_cache,
+                              fetcher=fetcher, **kw):
+                        return fetcher(session, ident, ignore_cache=ignore_cache, **kw)
             else:
                 from chimerax.open_command import FetcherInfo
                 from . import mmcif
@@ -93,12 +115,14 @@ class _mmCIFioAPI(BundleAPI):
                 def save_args(self):
                     from chimerax.core.commands import BoolArg, ModelsArg, ModelArg
                     return {
+                        'all_coordsets': BoolArg,
                         'displayed_only': BoolArg,
                         'models': ModelsArg,
                         'rel_model': ModelArg,
                         'selected_only': BoolArg,
                         'fixed_width': BoolArg,
                         'best_guess': BoolArg,
+                        'computed_sheets': BoolArg,
                     }
 
                 def save_args_widget(self, session):

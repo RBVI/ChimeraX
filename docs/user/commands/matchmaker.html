@@ -30,7 +30,7 @@ class="clRight" title="User Guide Index"/></a>
 &nbsp;<a href="atomspec.html"><i>refstruct</i></a>&nbsp;
 [&nbsp;<b>bring</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>other-models</i></a>&nbsp;]
 &nbsp;<a href="#options"><i>options</i></a>&nbsp;
-&nbsp;<a href="#scoring"><i>scoring-options</i></a></h3>
+&nbsp;<a href="#scoring"><i>seq-align-scoring</i></a></h3>
 <p>
 The <b>matchmaker</b> (or <b>mmaker</b>) command
 superimposes protein or nucleic acid structures by first creating 
@@ -172,30 +172,20 @@ specified residues.
 <br>The <i>mode</i> controls which chain sequences are used 
 to construct the reference-match alignment:
 <ul>
-<li><b>bb</b> (default) - use the pair of chains,
+<li><b>bb</b> (default) &ndash; use the pair of chains,
  one from the match model and one from the reference model, 
  with the highest <a href="#scoring">alignment score</a>;
 <i>matchstruct</i> and <i>refstruct</i> 
 should each specify a model or part of a model
-<li><b>bs</b> - use the chain in the match model that gives the best 
+<li><b>bs</b> &ndash; use the chain in the match model that gives the best 
 <a href="#scoring">alignment score</a> with a specific chain in the reference model;
 <i>matchstruct</i> should specify a model or part of a model, and
 <i>refstruct</i> should specify a chain
-<li><b>ss</b> - pair specific chain(s) in the match model with
+<li><b>ss</b> &ndash; pair specific chain(s) in the match model with
 specific chain(s) in the reference model; 
 <i>matchstruct</i> and <i>refstruct</i> 
 should specify equal numbers of chains
 </ul>
-</blockquote>
-<blockquote>
-<a name="algorithm"><b>alg</b> &nbsp;<i>alignment-algorithm</i></a>
-<br>The <i>alignment-algorithm</i> can be:
-<ul>
-<li> <b>nw</b> (or <b>needle</b>; default) - Needleman-Wunsch, global
-<li> <b>sw</b> (or <b>smith</b>) - Smith-Waterman, local
-</ul>
-The <a href="#scoring">alignment scoring options</a>
-allow for fine-tuning, if needed.
 </blockquote>
 <blockquote>
 <a name="show"><b>showAlignment</b> &nbsp;true&nbsp;|&nbsp;<b>false</b></a>
@@ -211,9 +201,9 @@ border:solid orangered 1px;padding:1px 3px">
 An RMSD <a href="../tools/sequenceviewer.html#headers">header</a>
 is automatically shown above the sequences, with histogram bar heights
 representing the spatial variation among residues associated with a column.
-<p>
-*These sequence alignments are a by-product of superposition,
-and may not be entirely correct.
+  <blockquote>
+<table cellpadding="10px"><tr>
+<td class="shaded">
 Successful superposition only requires the sequence alignment to be partly
 correct, as incorrect portions tend to be excluded from the fit during
 <a href="#cutoffDistance">iteration</a>.
@@ -232,12 +222,14 @@ The structure-based sequence alignment will provide better
 statistics for describing structural similarity (RMSD, <i>etc.</i>)
 because more columns will be aligned correctly.
 -->
-</p><p>
-**When the fit has been <a href="#restrict">restricted</a> to specified residues,
-the remaining residues of matched chains will still appear in the alignment,
-but merely as a convenient compact representation; how they are aligned
-is not meaningful.
+<p>
+When the fit has been <a href="#restrict">restricted</a> 
+to specified residues, the remaining residues of matched chains 
+will still appear in the alignment, but merely as a convenient 
+compact representation; how they are aligned is not meaningful.
 </p>
+</td></tr></table>
+  </blockquote>
 </blockquote>
 <blockquote>
   <a name="cutoffDistance"><b>cutoffDistance</b> 
@@ -262,12 +254,17 @@ and conformationally dissimilar regions such as flexible
 loops are not included in the final fit, even though they may be aligned
 in the sequence alignment.
 </blockquote>
-
+<blockquote>
+  <b>reportMatrix</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>
+  <br>
+Whether to show the final-fit transformation matrix (or matrices) in the
+<a href="../tools/log.html"><b>Log</b></a>.
+</blockquote>
 <blockquote>
   <b>verbose</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>
   <br>
-  For each chain-chain pair, send additional information to the
-  <a href="../tools/log.html"><b>Log</b></a>:
+For each chain-chain pair, send additional information to the
+<a href="../tools/log.html"><b>Log</b></a>:
   <ul>
   <li><b>Sequences:</b> 
   followed by the pairwise sequence alignment, <i>i.e.</i>, two lines,
@@ -286,11 +283,20 @@ in the sequence alignment.
 <p class="nav">
 [<a href="#top">back to top: matchmaker</a>]
 </p>
-<h3>Alignment Scoring Options</h3>
+<h3>Sequence-Alignment Scoring Options</h3>
 <p>
 Sequence alignment scores can include a residue similarity term,
 a secondary structure term (if protein), and gap penalties.
+To display the resulting sequence alignment(s), see <a href="#show">above</a>.
 </p>
+<blockquote>
+<a name="algorithm"><b>alg</b> &nbsp;<i>alignment-algorithm</i></a>
+<br>The sequence <i>alignment-algorithm</i> can be:
+<ul>
+<li> <b>nw</b> (or <b>needle</b>; default) &ndash; Needleman-Wunsch, global
+<li> <b>sw</b> (or <b>smith</b>) &ndash; Smith-Waterman, local
+</ul>
+</blockquote>
 <blockquote>
   <a name="matrix"><b>matrix</b> &nbsp;<i>similarity-matrix</i></a>
     <br>The <i>similarity-matrix</i> can be any of:
@@ -450,5 +456,5 @@ that existed before the <b>matchmaker</b> command was used.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-May 2021</address>
+April 2023</address>
 </body></html>

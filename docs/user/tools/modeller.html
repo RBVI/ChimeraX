@@ -35,7 +35,8 @@ See also:
 <a href="modelloops.html"><b>Model Loops</b></a>,
 <a href="rotamers.html"><b>Rotamers</b></a>,
 <a href="buildstructure.html"><b>Build Structure</b></a>,
-<a href="alphafold.html"><b>AlphaFold</b></a>
+<a href="alphafold.html"><b>AlphaFold</b></a>,
+<a href="../commands/esmfold.html"><b>esmfold</b></a>
 </p><p>
 Comparative modeling (sometimes called &ldquo;homology modeling&rdquo;)
 generates theoretical models of a protein using one or more known related 
@@ -87,11 +88,13 @@ sequence to <a href="sequenceviewer.html#association">associate</a> with it
 (see an
 <a href="https://www.rbvi.ucsf.edu/chimerax/features.html#multichain-modeller"
 target="_blank">example</a>).
+Otherwise, it can be used as a query to search the PDB for possible template 
+structures using <a href="blastprotein.html"><b>Blast Protein</b></a>
+(which can be started from the 
+<a href="sequenceviewer.html#context"><b>Sequence Viewer</b> context menu</a>).
 Alternatively, a multiple sequence alignment of the target and template(s)
-can be opened from a <a href="../commands/open.html#sequence">file</a>,
-if available, or obtained by using the
-<a href="../commands/blastprotein.html"><b>blastprotein</b></a>
-command to search for templates with the target sequence as a query.
+can simply be opened from a <a href="../commands/open.html#sequence">file</a>,
+if available.
 </td></tr></table>
 </blockquote>
 <blockquote>
@@ -307,5 +310,5 @@ after making modifications that are expected to improve the scores.
 </p>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-November 2021</address>
+December 2022</address>
 </body></html>

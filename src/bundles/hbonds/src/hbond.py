@@ -687,8 +687,7 @@ def find_hbonds(session, structures, *, inter_model=True, intra_model=True, dono
                         return "other %s" % a.element.name
                     return "%2d" % (i+1)
                 descript = "geometry class 1: %s\n\ngeometry class 2: %s" % (repr(grp1), repr(grp2))
-                from chimerax.core.logger import report_exception
-                report_exception(error_description=
+                session.logger.report_exception(error_description=
     """At least one atom was classified into more than one acceptor or donor
     geometry class.  This indicates a problem in the
     donr/acceptor classification mechanism and we would appreciate it if you
@@ -808,6 +807,9 @@ def _find_acceptors(structure, a_params, limited_acceptors, generic_acc_info):
                     bonded_geom = type_info[atom.neighbors[0].idatm_type].geometry
                 except KeyError:
                     bonded_geom = single
+                except IndexError:
+                    # no neighbors
+                    continue
                 acc_func, args = acc_info[bonded_geom]
             elif isinstance(acc_info, list):
                 try:

@@ -111,6 +111,39 @@ class Plot(ToolInstance):
         e = MouseEvent('context menu', self.canvas, pr*x, pr*(h-y))
         return e
 
+    def save_plot_as(self):
+        fmts = [self.session.data_formats[fmt_name] for fmt_name in ('Portable Network Graphics',
+                                                                     'Scalable Vector Graphics',
+                                                                     'Portable Document Format')]
+        parent = self.tool_window.ui_area
+        from chimerax.ui.open_save import SaveDialog
+        save_dialog = SaveDialog(self.session, parent, "Save Plot", data_formats=fmts)
+        if not save_dialog.exec():
+            return
+        filename = save_dialog.selectedFiles()[0]
+        if not filename:
+            from chimerax.core.errors import UserError
+            raise UserError("No file specified for saving plot")
+        format = {'PDF document (*.pdf)':'pdf',
+                  'SVG image (*.svg)':'svg',
+                  'PNG image (*.png)':'png'}[save_dialog.selectedNameFilter()]
+        from os.path import splitext
+        if splitext(filename)[1] == '':
+            filename += '.' + format
+        self.save_plot(filename, format = format)
+
+    def save_plot(self, path, dpi = 300, pad_inches = 0.1, format = None):
+        self.figure.savefig(path, dpi = dpi, pad_inches = pad_inches, format = format)
+
+    def add_menu_entry(self, menu, text, callback, *args):
+        '''Add menu item to context menu'''
+        widget = self.tool_window.ui_area
+        from Qt.QtGui import QAction
+        a = QAction(text, widget)
+        #a.setStatusTip("Info about this menu entry")
+        a.triggered.connect(lambda *, cb=callback, args=args: cb(*args))
+        menu.addAction(a)
+
 # ------------------------------------------------------------------------------
 #
 class Graph(Plot):
@@ -408,17 +441,8 @@ class Graph(Plot):
         self.fill_context_menu(menu, item)
 
     def fill_context_menu(self, menu, item):
-        pass
-
-    def add_menu_entry(self, menu, text, callback, *args):
-        '''Add menu item to context menu'''
-        widget = self.tool_window.ui_area
-        from Qt.QtGui import QAction
-        a = QAction(text, widget)
-        #a.setStatusTip("Info about this menu entry")
-        a.triggered.connect(lambda *, cb=callback, args=args: cb(*args))
-        menu.addAction(a)
-
+        self.add_menu_entry(menu, 'Save Plot As...', self.save_plot_as)
+        
 # ------------------------------------------------------------------------------
 #
 class Node:

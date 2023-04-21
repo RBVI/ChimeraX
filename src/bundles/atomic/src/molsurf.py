@@ -144,7 +144,10 @@ class MolecularSurface(Surface):
             self.triangle_mask = self._calc_triangle_mask()
 
     def _clear_shape(self):
-        self.set_geometry(None, None, None)
+        from numpy import empty, float32, int32
+        va = na = empty((0,3),float32)
+        ta = empty((0,3),int32) 
+        self.set_geometry(va, na, ta)
         self.color = self._average_color()
         self.vertex_colors = None
         self._vertex_to_atom = None
@@ -218,7 +221,7 @@ class MolecularSurface(Surface):
     
     def calculate_surface_geometry(self):
         '''Recalculate the surface if parameters have been changed.'''
-        if not self.vertices is None:
+        if self.vertices is not None and len(self.vertices) > 0:
             return              # Geometry already computed
 
         atoms = self.atoms
@@ -302,9 +305,14 @@ class MolecularSurface(Surface):
             v2a[i1] = nearest1
             self._vertex_to_atom = v2a
             self._vertex_to_atom_count = len(self.atoms)
-        elif self._vertex_to_atom is not None and len(self.atoms) < self._vertex_to_atom_count:
-            # Atoms deleted
-            self._vertex_to_atom = None
+        elif self._vertex_to_atom is not None:
+            if len(self.atoms) < self._vertex_to_atom_count:
+                # Atoms deleted
+                self._vertex_to_atom = None
+            elif len(self._vertex_to_atom) != len(self.vertices):
+                # Some other code like color zone with sharp_edges = True
+                # changed the surface geometery.
+                self._vertex_to_atom = None
         return self._vertex_to_atom
 
     def _vertices_for_atoms(self, atoms):
@@ -543,25 +551,30 @@ class MolecularSurface(Surface):
         v = self.triangles[t,0]
         v2a = self.vertex_to_atom_map()
         if v2a is None:
-            pa = p
+            from chimerax.core.models import PickedModel
+            pa = PickedModel(self, p.distance)
         else:
             a = v2a[v]
             atom = self.atoms[a]
             from .structure import PickedAtom
             pa = PickedAtom(atom, p.distance)
-            if isinstance(p, PickedTriangle):
-                pa.triangle_pick = p	# Used by for reporting surface color value
+        if isinstance(p, PickedTriangle):
+            pa.triangle_pick = p	# Used by for reporting surface color value
         return pa
 
     def set_selected(self, sel, *, fire_trigger=True):
         self.atoms.selected = sel
         self.update_selection(fire_trigger=fire_trigger)
+        if not self.has_atom_patches():
+            Surface.set_selected(self, sel, fire_trigger=fire_trigger)
     selected = property(Surface.selected.fget, set_selected)
 
     def update_selection(self, *, fire_trigger=True):
         asel = self.atoms.selected
         tmask = self._atom_triangle_mask(asel)
         if tmask is None:
+            if not self.has_atom_patches():
+                return
             sel_val = False
         else:
             sel_val = (tmask.sum() > 0)
@@ -618,6 +631,20 @@ def surface_rgba(color, transparency, chain_id = None):
         else:
             from .colors import chain_rgba8
             rgba8 = chain_rgba8(chain_id)
+    else:
+        rgba8 = color.uint8x4()
+    if not transparency is None:
+        opacity = int(255*(100.0-transparency)/100.0)
+        rgba8[3] = opacity
+    return rgba8
+
+def surface_initial_color(color, transparency, atoms = None):
+    if color is None:
+        if atoms is None:
+            from numpy import array, uint8
+            rgba8 = array((180,180,180,255), uint8)
+        else:
+            rgba8 = atoms.average_ribbon_color
     else:
         rgba8 = color.uint8x4()
     if not transparency is None:

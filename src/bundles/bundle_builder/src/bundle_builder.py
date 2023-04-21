@@ -1,16 +1,16 @@
 # vim: set expandtab ts=4 sw=4:
 
-# Force import in a particular order since the latter two mess
-# with the contents of distutils, and we want Cython to win
-import distutils  # noqa
+# Force import in a particular order since both Cython and
+# setuptools patch distutils, and we want Cython to win
 import setuptools
+import setuptools._distutils as distutils
 from Cython.Build import cythonize
 from packaging.version import Version
+from setuptools.build_meta import suppress_known_deprecation # noqa import not in __all__
 
 # Always import this because it changes the behavior of setuptools
-from numpy.distutils.misc_util import get_numpy_include_dirs
+from numpy import get_include as get_numpy_include_dirs
 
-#
 # The compile process is initiated by setuptools and handled
 # by numpy.distutils, which eventually calls subprocess.
 # On Windows, subprocess invokes CreateProcess.  If a shell
@@ -59,13 +59,17 @@ class BundleBuilder:
         except ValueError as err:
             raise ValueError("%s: %s" % (info_file, err))
         self._make_paths()
-        self._make_setup_arguments()
+
+    @classmethod
+    def from_path(cls, logger, bundle_path):
+        return cls(logger, bundle_path)
 
     def make_wheel(self, debug=False):
         # HACK: distutils uses a cache to track created directories
         # for a single setup() run.  We want to run setup() multiple
         # times which can remove/create the same directories.
         # So we need to flush the cache before each run.
+        self._make_setup_arguments()
         import distutils.dir_util
         try:
             distutils.dir_util._path_created.clear()
@@ -89,17 +93,49 @@ class BundleBuilder:
             setup_args.extend(["--plat-name", self.tag.platform])
             if self.limited_api:
                 setup_args.extend(["--py-limited-api", self.tag.interpreter])
-        built = self._run_setup(setup_args)
+        dist, built = self._run_setup(setup_args)
         if not built or not os.path.exists(self.wheel_path):
             wheel = os.path.basename(self.wheel_path)
             raise RuntimeError(f"Building wheel failed: {wheel}")
         else:
             print("Distribution is in %s" % self.wheel_path)
+        return dist
 
-    def make_install(self, session, debug=False, user=None, no_deps=None):
-        self.make_wheel(debug=debug)
+    def make_editable_wheel(self, debug=False):
+        # HACK: distutils uses a cache to track created directories
+        # for a single setup() run.  We want to run setup() multiple
+        # times which can remove/create the same directories.
+        # So we need to flush the cache before each run.
+        self._make_setup_arguments()
+        import distutils.dir_util
+        try:
+            distutils.dir_util._path_created.clear()
+        except AttributeError:
+            pass
+        # Copy additional files into package source tree
+        self._copy_extrafiles(self.extrafiles)
+        # Build C libraries and executables
+        import os
+        for lib in self.c_libraries:
+            lib.compile(self.logger, self.dependencies, debug=debug)
+        for executable in self.c_executables:
+            executable.compile(self.logger, self.dependencies, debug=debug)
+        setup_args = ["build_ext", "--inplace", "editable_wheel"]
+        dist, built = self._run_setup(setup_args)
+        import glob
+        whl_path = glob.glob(os.path.join(self.path, 'dist', '*editable*.whl'))
+        if not built or not whl_path:
+            raise RuntimeError(f"Building editable wheel failed")
+        return whl_path[0]
+
+    def make_install(self, session, debug=False, user=None, no_deps=None, editable=False):
+        if editable:
+            whl_path = self.make_editable_wheel(debug=debug)
+        else:
+            _ = self.make_wheel(debug=debug)
+            whl_path = self.wheel_path
         from chimerax.core.commands import run, FileNameArg
-        cmd = "toolshed install %s" % FileNameArg.unparse(self.wheel_path)
+        cmd = "toolshed install %s" % FileNameArg.unparse(whl_path)
         if user is not None:
             if user:
                 cmd += " user true"
@@ -125,6 +161,9 @@ class BundleBuilder:
         self._rmtree(os.path.join(self.path, "src", "__pycache__"))
         self._rmtree(self.egg_info)
         for root, dirnames, filenames in os.walk("src"):
+            # Static libraries
+            for filename in fnmatch.filter(filenames, "*.a"):
+                os.remove(os.path.join(root, filename))
             # Linux, Mac
             for filename in fnmatch.filter(filenames, "*.o"):
                 os.remove(os.path.join(root, filename))
@@ -433,7 +472,8 @@ class BundleBuilder:
             if v < CHIMERAX1_0_PYTHON_VERSION:
                 v = CHIMERAX1_0_PYTHON_VERSION
             hex_version = (v.major << 24) | (v.minor << 16) | (v.micro << 8)
-            c.add_macro_define("Py_LIMITED_API", hex_version)
+            c.add_macro_define("Py_LIMITED_API", hex(hex_version))
+            c.add_macro_define("CYTHON_LIMITED_API", hex(hex_version))
 
     def _get_packages(self, bi):
         self.packages = []
@@ -669,12 +709,13 @@ class BundleBuilder:
             kw = self.setup_arguments.copy()
             kw["package_dir"], kw["packages"] = self._make_package_arguments()
             sys.argv = ["setup.py"] + cmd
-            setuptools.setup(**kw)
-            return True
+            with suppress_known_deprecation():
+                dist = setuptools.setup(**kw)
+            return dist, True
         except Exception:
             import traceback
             traceback.print_exc()
-            return False
+            return None, False
         finally:
             sys.argv = save
             os.chdir(cwd)
@@ -787,11 +828,11 @@ class _CompiledCode:
         # platform-specific
         # Assume Python executable is in ROOT/bin/python
         # and make include directory be ROOT/include
-        root = os.path.dirname(os.path.dirname(sys.executable))
+        root = os.path.dirname(os.path.dirname(os.path.realpath(sys.executable)))
         inc_dirs = [os.path.join(root, "include")]
         lib_dirs = [os.path.join(root, "lib")]
         if self.uses_numpy:
-            inc_dirs.extend(get_numpy_include_dirs())
+            inc_dirs.extend([get_numpy_include_dirs()])
         if sys.platform == "darwin":
             libraries = self.libraries
             # Unfortunately, clang on macOS (for now) exits
@@ -850,6 +891,16 @@ class _CompiledCode:
             return None, None
         inc = bundle.include_dir()
         lib = bundle.library_dir()
+        if not inc and not lib:
+            try:
+                import importlib
+                mod = importlib.import_module(bundle.package_name)
+                inc = mod.get_include()
+                lib = mod.get_lib()
+            # This code does not distinguish between build dependencies and
+            # regular dependencies, so must gracefully fail either way
+            except (AttributeError, ModuleNotFoundError):
+                return None, None
         return inc, lib
 
     def compile_objects(self, logger, dependencies, static, debug):
@@ -893,7 +944,7 @@ class _CompiledCode:
                 raise RuntimeError("Unsupported language for %s" % f)
         if cpp_files:
             compiler.compile(cpp_files,
-                             extra_preargs=cpp_flags+self.compile_arguments,
+                             extra_preargs=cpp_flags + self.compile_arguments,
                              macros=macros, debug=debug)
             self.target_lang = "c++"
         if c_files:
@@ -940,7 +991,7 @@ class _CModule(_CompiledCode):
             extra_link_args.append("-Wl,-rpath,@loader_path%s" % install_dir)
         return Extension(package + '.' + self.name,
                          define_macros=macros,
-                         extra_compile_args=cpp_flags+self.compile_arguments,
+                         extra_compile_args=cpp_flags + self.compile_arguments,
                          include_dirs=inc_dirs,
                          library_dirs=lib_dirs,
                          libraries=libraries,

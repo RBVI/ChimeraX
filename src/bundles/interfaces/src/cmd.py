@@ -11,8 +11,10 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def interfaces(session, atoms = None, probe_radius = 1.4, area_cutoff = 300,
-               interface_residue_area_cutoff = 15):
+from . import chain_area_default, residue_area_default
+
+def interfaces(session, atoms = None, probe_radius = 1.4, area_cutoff = chain_area_default,
+               interface_residue_area_cutoff = residue_area_default):
     '''
     Compute buried solvent accessible surface areas between chains
     and show a 2-dimensional network graph depicting the contacts.
@@ -42,19 +44,21 @@ def interfaces(session, atoms = None, probe_radius = 1.4, area_cutoff = 300,
     log.info(msg)
     log.status(msg)
 
+    plot = None
     if len(ba) == 0:
         pass
     elif session.ui.is_gui:
         from . import tool
-        tool.ContactPlot(session, sg, ba, interface_residue_area_cutoff)
+        plot = tool.ContactPlot(session, sg, ba, interface_residue_area_cutoff)
     else:
         log.warning("unable to show graph without GUI")
 
+    return plot
 
 def interfaces_select(session, atoms = None, contacting = None,
                       both_sides = False,
-                      probe_radius = 1.4, area_cutoff = 300,
-                      interface_residue_area_cutoff = 15):
+                      probe_radius = 1.4, area_cutoff = chain_area_default,
+                      interface_residue_area_cutoff = residue_area_default):
     '''
     Select residues from one chain in contact with residues from
     another chain using buried solvent accessible surface areas to

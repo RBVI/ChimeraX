@@ -10,54 +10,49 @@
 # === UCSF ChimeraX Copyright ===
 
 TOP = ../..
+-include $(TOP)/.makerc
 SUBDIR_SYNC = 1
 SUBDIR_BUILD = 1
 include $(TOP)/mk/config.make
 
 SYNC_DIR = $(wildcard $(TOP)/build/sync)
 
-BUNDLE_BUILDER_SUBDIR = bundle_builder
-TOOLSHED_UTILS_SUBDIR = toolshed_utils
-
-REST_SUBDIRS = add_charge addh align_algs alignment_hdrs \
-	  alignments alphafold altloc_explorer amber_info arrays atom_search \
+REST_SUBDIRS = add_charge addh alignment_algs alignment_headers \
+	  alphafold altloc_explorer amber_info arrays atom_search \
 	  atomic atomic_lib axes_planes basic_actions bild \
 	  blastprotein bond_rot bug_reporter build_structure \
 	  bumps buttons cage_builder \
-	  cellpack centroids chem_group clashes cmd_line color_actions \
+	  cellpack centroids change_chains check_waters chem_group \
+	  clashes cmd_line color_actions \
 	  color_globe color_key connect_structure core_formats \
 	  coulombic crosslinks crystal crystal_contacts data_formats \
-	  dicom dist_monitor dssp \
-	  exp_cmd file_history function_key \
+	  dicom dist_monitor dock_prep dssp \
+	  emdb_sff esmfold file_history function_key \
 	  geometry gltf graphics \
 	  hbonds help_viewer hkcage ihm image_formats imod \
 	  interfaces items_inspection io label list_info log looking_glass maestro \
 	  map map_data map_eraser map_filter map_fit map_series \
 	  markers mask match_maker md_crds \
 	  medical_toolbar meeting mlp model_series \
-	  mmcif mmtf model_panel modeller mol2 morph mouse_modes movie \
-	  neuron nucleotides open_command \
-	  pdb pdb_bio pdb_lib pdb_matrices pick_blobs positions preset_mgr pubchem \
-	  read_pbonds registration remote_control rest_server \
-	  residue_fit rna_layout rotamer_lib_mgr rotamer_libs save_command scheme_mgr \
-	  sdf sel_inspector segger segment seq_view shape \
-	  shell shortcuts show_attr show_sequences sideview sim_matrices smiles \
+	  mmcif mmtf model_panel modeller mol2 mole morph mouse_modes movie \
+	  neuron nifti nrrd nucleotides open_command pdb pdb_bio pdb_lib pdb_matrices \
+	  pick_blobs positions preset_mgr pubchem read_pbonds registration \
+	  remote_control render_by_attr renumber_residues rest_server \
+	  residue_fit rna_layout rotamers rotamer_libs \
+	  save_command scheme_mgr \
+	  sdf sel_inspector segger segment seqalign seq_view shape \
+	  shell shortcuts show_sequences sideview sim_matrices smiles \
 	  smooth_lines spacenavigator std_commands \
 	  stl storm struct_measure struts surface swapaa swap_res \
-	  tape_measure test toolbar tug ui uniprot unit_cell \
+	  tape_measure test toolbar topography to_quest tug ui uniprot unit_cell \
 	  viewdockx viperdb vive volume_menu vtk wavefront_obj \
 	  webcam webservices zone
-
-ifneq ($(OSARCH),DarwinArm64)
-# emdb_sff depends on h5py which is not available for Mac arm64 (July 2021)
-REST_SUBDIRS += emdb_sff
-endif
 
 ifeq ($(OS),Linux)
 REST_SUBDIRS += linux_support
 endif
 
-SUBDIRS = $(BUNDLE_BUILDER_SUBDIR) $(TOOLSHED_UTILS_SUBDIR) $(REST_SUBDIRS)
+SUBDIRS = $(REST_SUBDIRS)
 
 NO_SUBDIR_INSTALL = 1
 
@@ -70,10 +65,13 @@ dir:	Makefile.dependencies
 
 $(SUBDIR_BUILD): dir
 
-install:
+install: 
+	$(MAKE) -C bundle_builder build
+	$(MAKE) -C core build
+	$(MAKE) -C toolshed_utils build
 	$(MAKE) build
-	cd $(SYNC_DIR) && $(APP_BOOTSTRAP_PIP) install --upgrade --upgrade-strategy only-if-needed */*.whl
-	$(APP_EXE) --exit --nogui --silent --cmd "toolshed reload installed"
+	cd $(SYNC_DIR) && $(APP_BOOTSTRAP_PIP) install --upgrade --upgrade-strategy only-if-needed *.whl
+	$(APP_PYTHON_EXE) -m chimerax.core --exit --nogui --silent --cmd "toolshed reload installed"
 
 lint:
 ifneq (,$(PYSRCS))
@@ -81,10 +79,10 @@ ifneq (,$(PYSRCS))
 endif
 
 clean:
+	$(MAKE) -C core clean
+	$(MAKE) -C bundle_builder clean
+	$(MAKE) -C toolshed_utils clean
 	rm -rf __pycache__ Makefile.dependencies
-ifneq (,$(wildcard $(SYNC_DIR)))
-	cd $(SYNC_DIR) && rm -f */*.whl
-endif
 
 #
 # Build Time Dependencies
@@ -106,12 +104,12 @@ endif
 # bundle_info.xml files, and are placed in to the Makefile.dependencies file.
 #
 
-Makefile.dependencies: */bundle_info.xml* Make_dependencies.py
+Makefile.dependencies: */bundle_info.xml* */pyproject.toml* Make_dependencies.py
 ifneq ($(MAKECMDGOALS),clean)
 	$(APP_PYTHON_EXE) Make_dependencies.py
 
 # Make sure bundle_builder and toolshed bundles are installed before all others.
-$(REST_SUBDIRS:=.build): $(BUNDLE_BUILDER_SUBDIR).build $(TOOLSHED_UTILS_SUBDIR).build
+$(REST_SUBDIRS:=.build):
 
 include Makefile.dependencies
 endif

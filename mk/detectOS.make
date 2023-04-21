@@ -1,3 +1,4 @@
+# -*- mode: make -*- vim: set syntax=make:
 # === UCSF ChimeraX Copyright ===
 # Copyright 2016 Regents of the University of California.
 # All rights reserved.  This software provided pursuant to a
@@ -11,7 +12,14 @@
 
 # Detect Operating System and architecture
 
-OS	:= $(shell uname -s)
+OS=$(shell uname -s)
+# We're on Windows
+ifeq ($(filter $(OS),Linux Darwin),)
+OS=$(shell uname -o)
+ifneq ($(filter $(OS),Cygwin Msys),)
+OS=Windows
+endif
+endif
 
 # Linux
 ifeq ($(OS),Linux)
@@ -24,6 +32,18 @@ ifeq ($(OS),Linux)
 	else
 		# MACHINE is i686
 		OSARCH	= Linux
+	endif
+	DISTRO_NAME ?= $(shell . /etc/os-release && echo $$ID)
+	DISTRO_VER ?= $(shell . /etc/os-release && echo $$VERSION_ID)
+	# ID is "centos", "debian", "fedora", "rocky", or "ubuntu"
+	ifneq ($(filter $(DISTRO_NAME),centos rocky),)
+		CENTOS_DIST = $(DISTRO_VER)
+	else ifeq ($(DISTRO_NAME),debian)
+		DEBIAN_DIST = $(DISTRO_VER)
+	else ifeq ($(DISTRO_NAME),fedora)
+		FEDORA_DIST = $(DISTRO_VER)
+	else ifeq ($(DISTRO_NAME),ubuntu)
+		UBUNTU_DIST = $(DISTRO_VER)
 	endif
 endif
 
@@ -40,8 +60,7 @@ ifeq ($(OS),Darwin)
 endif
 
 # Cygwin environment on Windows, don't care if NT versus 2000 ...
-OS	:= $(patsubst CYGWIN_NT%,CYGWIN_NT,$(OS))
-ifeq ($(OS),CYGWIN_NT)
+ifeq ($(OS),Windows)
 	# Windows is what Python's platform.system() returns.
 	OS = Windows
 	#MACHINE	:= $(shell uname -m)

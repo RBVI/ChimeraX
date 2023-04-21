@@ -593,7 +593,7 @@ class EvenIntArg(Annotation):
 #
 def register_command(logger):
     from chimerax.core.commands import register, Or, CmdDesc
-    from chimerax.core.commands import Bounded, FloatArg, EnumOf, BoolArg, IntArg, TupleOf, NoArg
+    from chimerax.core.commands import Bounded, FloatArg, PositiveFloatArg, EnumOf, BoolArg, IntArg, TupleOf, NoArg
     from chimerax.atomic import AtomsArg, AtomicStructuresArg
     desc = CmdDesc(optional=[("atoms", AtomsArg)],
                    keyword=[("smooth", Or(Bounded(FloatArg, 0.0, 1.0),
@@ -615,20 +615,20 @@ def register_command(logger):
     register("cartoon tether", desc, cartoon_tether, logger=logger)
 
     desc = CmdDesc(optional=[("atoms", AtomsArg)],
-                   keyword=[("width", FloatArg),
-                            ("thickness", FloatArg),
+                   keyword=[("width", PositiveFloatArg),
+                            ("thickness", PositiveFloatArg),
                             ("arrows", BoolArg),
                             ("arrows_helix", BoolArg),
                             ("arrow_scale", Bounded(FloatArg, 1.0, 5.0)),
                             ("xsection", EnumOf(_XSectionMap.keys())),
                             ("sides", Bounded(EvenIntArg, 3, 24)),
                             ("divisions", Bounded(IntArg, 2, 40)),
-                            ("bar_scale", FloatArg),
+                            ("bar_scale", PositiveFloatArg),
                             ("bar_sides", Bounded(EvenIntArg, 3, 24)),
                             ("ss_ends", EnumOf(["default", "short", "long"])),
                             ("mode_helix", EnumOf(list(_ModeHelixMap.keys()))),
                             ("mode_strand", EnumOf(list(_ModeStrandMap.keys()))),
-                            ("radius", Or(FloatArg, EnumOf(["auto"]))),
+                            ("radius", Or(PositiveFloatArg, EnumOf(["auto"]))),
                             ("spline_normals", BoolArg),
                             ],
                    hidden=["ss_ends", "mode_strand", "spline_normals"],

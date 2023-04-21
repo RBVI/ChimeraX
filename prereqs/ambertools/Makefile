@@ -11,7 +11,7 @@ VERSION = 22
 USE_PREBUILT=false
 UPLOAD_PREBUILT=false
 ifeq ($(OS),Linux)
-SUPPORTED_DISTROS := Ubuntu CentOS Debian
+SUPPORTED_DISTROS := Ubuntu CentOS Debian Rocky Freedesktop
 # CentOS uses "CentOS Linux", hence the second awk in the following line
 LINUX_FLAVOR = $(shell egrep '^NAME=' /etc/os-release | awk -F= '{ print $$2 }' | awk '{ print $$1 }' | tr -d '"')
 LINUX_RELEASE = $(shell egrep '^VERSION_ID=' /etc/os-release | awk -F= '{ print $$2 }' | tr -d '"')
@@ -54,14 +54,18 @@ ifeq ($(OS),Windows)
 CMAKE_COMPILER_ARG = GNU
 ENV_OPTS = -u CC -u CXX FFLAGS=-fallow-argument-mismatch
 PATCHES += flex-cygwin.patch
-else
-ifeq ($(OS),Darwin)
-#CONFIG_ARGS = clang
-CMAKE_COMPILER_ARG = CLANG
-else
+else ifeq ($(OS),Linux)
 #CONFIG_ARGS = gnu
 CMAKE_COMPILER_ARG = GNU
+ENV_OPTS = FFLAGS=-fallow-argument-mismatch
+ifdef UBUNTU_DIST
+ifeq ($(shell expr $(UBUNTU_DIST) '>' 18.04),1)
+ENV_OPTS += CC=gcc-9 FC=gfortran-9
 endif
+endif
+else ifeq ($(OS),Darwin)
+#CONFIG_ARGS = clang
+CMAKE_COMPILER_ARG = CLANG
 endif
 
 ifeq ($(wildcard /usr/local/gfortran/*),)

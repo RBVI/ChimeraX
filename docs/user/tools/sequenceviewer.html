@@ -48,6 +48,7 @@ a specified sequence or sequence pattern, use
 <a href="../menu.html#selectseq"><b>Select... Sequence</b></a> in the menu
 or the <a href="../commands/select.html#new"><b>select</b></a> command.
 See also:
+<a href="../commands/sequence.html"><b>sequence</b></a>,
 <a href="../commands/modeller.html"><b>modeller</b></a>,
 <a href="https://www.rbvi.ucsf.edu/chimerax/data/conservation-coloring/conservation-coloring.html"
 target="_blank">Coloring by Sequence Conservation</a>
@@ -118,11 +119,7 @@ with choices including:
   <ul>
   <li><a name="copy"></a><b>Copy Sequence...</b>
 copy a sequence into the system text buffer so that it
-can be pasted into another application window.
-When mouse focus is in the sequence window, the system 
-&ldquo;copy&rdquo; shortcut (Ctrl-C on Windows/Linux,
-<img src="../icon-clover.png" width="12px">-C on Mac)
-will also bring up this copying dialog:
+can be pasted into another application window. Copying options:
   <ul>
   <li><b>Copy</b> [<i>sequence name</i>] <b>to system paste buffer</b>
   <li><b>Remove gaps from copy</b> (default <b>on</b>) 
@@ -135,8 +132,16 @@ even if they form disjoint segments
   </ul>
   <li><b>Realign Sequences with Clustal Omega</b>
 (<a href="../commands/sequence.html#clustal">details...</a>)
+    <ul>
+    <li><b>in new window</b>
+    <li><b>in this window</b> &ndash; replace existing alignment
+    </ul>
   <li><b>Realign Sequences with MUSCLE</b>
 (<a href="../commands/sequence.html#muscle">details...</a>)
+    <ul>
+    <li><b>in new window</b>
+    <li><b>in this window</b> &ndash; replace existing alignment
+    </ul>
   </ul>
 <li><b>Structure</b>
   <ul>
@@ -154,15 +159,48 @@ even if they form disjoint segments
   [choice of available headers]
   &ndash; save header information to file
   </ul>
+<li><b>Numberings</b>
+&ndash; which sequence numberings to display, if any
+  <ul>
+  <li><b>Overall</b> 
+&ndash; whether to show alignment numbering across the top 
+at positions 1, 11, 21, <i>etc.</i>;
+starts at 1 and includes gaps unless a reference sequence has been designated
+  <li><b>Reference Sequence</b> 
+&ndash; use the individual numbering of one of the sequences:
+    <ul>
+    <li>[<i>list of sequences in alignment</i>]
+    </ul>
+...as the overall numbering instead of the default; 
+when the reference sequence has a gap character at a position 
+where a number is to be shown (1, 11, 21, <i>etc.</i>), 
+how that position falls relative to the reference is shown in parentheses.
+For example, &ldquo;(<1)&rdquo; would be shown for alignment positions 
+before the reference's first residue, and &ldquo;(43/44)&rdquo; 
+for positions that fall between residues 43 and 44 of the reference.
+  <li><b>Left Sequence</b> 
+&ndash; whether to show individual sequence numberings on the left
+  <li><b>Right Sequence</b> 
+&ndash; whether to show individual sequence numberings on the right
+  </ul>
 <li><b>Tools</b>
   <ul>
   <li><b>Modeller Comparative Modeling...</b> 
 start <a href="modeller.html"><b>Modeller Comparative Modeling</b></a>
 (requires a structure to be <a href="#association">associated</a> 
 with any sequence in the alignment, for use as a template in modeling)
-  <li><b>Blast Protein...</b> 
-run <a href="blastprotein.html"><b>Blast Protein</b></a>
-with default parameters on the specified sequence
+  <li><b>Blast Protein</b> &nbsp;<font size="-1" color="dimgray">&#9654;</font>
+[if multiple alignment, choice of sequence name]
+&ndash; start <a href="blastprotein.html"><b>Blast Protein</b></a>
+with the specified sequence as the query
+<li><b>Percent Identity...</b> 
+calculate pairwise percent identities,
+the number of identical columns between two sequences as a percentage 
+of the specified denominator: length of the shorter sequence
+(default), or the length of the longer sequence, or the number of columns 
+where neither sequence has a gap.
+Results are given in the <a href="log.html"><b>Log</b></a>. See also:
+<a href="../commands/sequence.html#identity"><b>sequence identity</b></a>
   </ul>
 <li><b>Sequence Features...</b> for sequences
 <a href="../commands/open.html#fetch">fetched</a> from
@@ -188,6 +226,8 @@ can be controlled in the
 Headers for a specific window can be shown, hidden, or saved to a file 
 with the <a href="#context"><b>Sequence Viewer</b> context menu</a> or the
 <a href="../commands/sequence.html#header"><b>sequence header</b></a> command.
+Numbering can also be controlled using the
+<a href="#context"><b>Sequence Viewer</b> context menu</a>.
 </p><p>
 Per-column header values are assigned as 
 <a href="../attributes.html">attributes</a> of the structure residues
@@ -202,6 +242,9 @@ The structures can be
 to show the values of such numerical attributes, as in the tutorial:
 <a href="https://www.rbvi.ucsf.edu/chimerax/data/conservation-coloring/conservation-coloring.html"
 target="_blank">Coloring by Sequence Conservation</a>.
+See also the video
+<a href="https://youtu.be/usSDWOGjwhU" target="_blank">Coloring Aligned
+Proteins by C&alpha; RMSD</a>.
 </p>
 
 <a name="regions"></a>
@@ -561,7 +604,8 @@ PAM-150, PAM-250, SDM] &ndash; which residue similarity matrix to use
   <li><b>Atoms used for RMSD</b>
     <ul>
     <li><b>C&alpha;</b> (initial default)
-    <li><b>backbone</b>
+    <li><b>backbone</b> &ndash; peptide N, CA, C, O 
+    or nucleic acid phosphoribosyl backbone, not including any hydrogens
     </ul>
   </ul>
 <p>
@@ -662,5 +706,5 @@ style="display:inline-block; vertical-align:middle"><tr>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-March 2022</address>
+February 2023</address>
 </body></html>

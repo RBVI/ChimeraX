@@ -119,7 +119,7 @@ the <a href="../tools/log.html"><b>Log</b></a>
 &nbsp;<a href="#colorname"><i>colorname</i></a>&nbsp;
 [&nbsp;<b>target</b>&nbsp;&nbsp;<i>string</i>&nbsp;]
 [&nbsp;<b>halfbond</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
-[&nbsp;<b>transparency</b>&nbsp;&nbsp;<i>percent</i>&nbsp;]
+[&nbsp;<a href="#transparency"><b>transparency</b></a>&nbsp;&nbsp;<i>percent</i>&nbsp;]
 </blockquote>
 <p>
 Simple coloring applies to atomic models, including
@@ -140,8 +140,10 @@ molecular surfaces
 <li><a name="byhet"><b>byhet</b> or <b>byhetero</b></a>
 &ndash; same as <b>byelement</b>, except leaving carbon atoms unchanged
 <li><b>fromatoms</b>
-&ndash; color other <a href="#target">targets</a> in atomic models
-(molecular surface patches, <i>etc.</i>) to match the corresponding atoms
+&ndash; color molecular surface patches to match the corresponding atoms
+<li><b>fromcartoons</b> or <b>fromribbons</b>
+&ndash; color molecular surface patches to match the cartoon segments
+of the corresponding residues
 <li><a name="bynucleotide"><b>bynucleotide</b></a> 
 <a href="../tools/nucdisplay.html" title="Nucleotides Toolbar...">
 <img class="icon" border=1 src="../tools/nuc-icons/nuc-color.png"></a>
@@ -150,9 +152,7 @@ molecular surfaces
 <li><a name="bychain"><b>bychain</b></a>
 <a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/colorbychain.png"></a>
-&ndash; a built-in scheme <a href="colortables.html#autocolors">by chain ID</a>,
-also used for the initial colors of per-chain
-<a href="surface.html">molecular surfaces</a>
+&ndash; a built-in scheme <a href="colortables.html#autocolors">by chain ID</a>
 <li><a name="bypolymer"></a><b>byidentity</b> or <b>bypolymer</b>
 <a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/polymer.png"></a>
@@ -253,11 +253,8 @@ sets transparency to the specified <i>percent</i>,
 where 0% is completely opaque and 100% is completely transparent.
 Existing transparency is not changed unless this option is used or the
 <i>colorname</i> explicitly <a href="colornames.html">specifies</a> 
-alpha (opacity). An alpha value overrides this option if both are given.
-Note that the <a href="transparency.html"><b>transparency</b></a> command
-can be used to set transparency apart from color. There are
-<a href="colornames.html#transparency-limitations">limitations
-in rendering transparency</a>.
+alpha (opacity); if both, the <b>transparency</b> option wins out.
+See also: <a href="transparency.html"><b>transparency</b></a>
 </p>
 <h4>Examples (<a href="#simple">Simple</a>)</h4>
 Color chain D helices sky blue, cartoons only (not atoms, <i>etc.</i>):
@@ -299,14 +296,14 @@ Color map #4:
 [&nbsp;<i>level</i>&nbsp;]
 [&nbsp;<a href="#target"><b>target</b></a>&nbsp;&nbsp;<i>string</i>&nbsp;]
 [&nbsp;<a href="#palette-options"><b>palette</b></a>&nbsp;&nbsp;<i>palette</i>&nbsp;]
-[&nbsp;<a href="#transparency"><b>transparency</b></a>&nbsp;&nbsp;<i>percent</i>&nbsp;]
+[&nbsp;<a href="#rainbow-transparency"><b>transparency</b></a>&nbsp;&nbsp;<i>percent</i>&nbsp;]
 <br>&ndash; or &ndash;<br>
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>rainbow</b> &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
 [&nbsp;<i>level</i>&nbsp;]
 [&nbsp;<a href="#target"><b>target</b></a>&nbsp;&nbsp;<i>string</i>&nbsp;]
 [&nbsp;<a href="#palette-options"><b>palette</b></a>&nbsp;&nbsp;<i>palette</i>&nbsp;]
-[&nbsp;<a href="#transparency"><b>transparency</b></a>&nbsp;&nbsp;<i>percent</i>&nbsp;]
+[&nbsp;<a href="#rainbow-transparency"><b>transparency</b></a>&nbsp;&nbsp;<i>percent</i>&nbsp;]
 </blockquote>
 <p>
 The <b>color sequential</b> command (synonym <b>rainbow</b>)
@@ -339,11 +336,20 @@ style="display:inline-block; vertical-align:middle"><tr>
 <td bgcolor=lime width="10px" title="lime"></td>
 <td bgcolor=yellow width="10px" title="yellow"></td>
 <td bgcolor=red width="10px" title="red"></td>
-</tr></table>),
-and <a href="#transparency"><b>transparency</b></a> can be set independently.
+</tr></table>).
 If the scope of coloring is limited by giving an
 <a href="atomspec.html"><i>atom-spec</i></a> in the command,
 the full palette will be mapped to the specification only.
+<p>
+<a name="rainbow-transparency"></a>
+The <b>transparency</b> option
+sets transparency to the specified <i>percent</i>, 
+where 0% is completely opaque and 100% is completely transparent.
+Existing transparency is not changed unless this option is used or the
+<a href="#palette-options"><b>palette</b></a> is defined with transparency
+(any of its colors have alpha < 1); if both, the <b>transparency</b> 
+option wins out.
+See also: <a href="transparency.html"><b>transparency</b></a>
 </p>
 <h4>Examples (<a href="#sequential">Sequential</a>)</h4>
 Rainbow-color residues blue &rarr; red along each biopolymer chain:
@@ -460,7 +466,7 @@ target="_blank">Potassium Channel-Calmodulin Complex</a>
 [&nbsp;<a href="#target"><b>target</b></a>&nbsp;&nbsp;<i>string</i>&nbsp;]
 [&nbsp;<b>average</b>&nbsp;&nbsp;residues&nbsp;]
 &nbsp;<a href="#palette-options"><i>palette-options</i></a>&nbsp;
-[&nbsp;<a href="#transparency"><b>transparency</b></a>&nbsp;&nbsp;<i>percent</i>&nbsp;]
+[&nbsp;<a href="#transparency-bfactor"><b>transparency</b></a>&nbsp;&nbsp;<i>percent</i>&nbsp;]
 [&nbsp;<b>noValueColor</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
 </blockquote>
 <p>
@@ -478,9 +484,14 @@ For coloring by a user-defined attribute, see the
 <a href="../preferences.html#startup">custom preset example</a>.
 For coloring by segmentation region, 
 see <a href="segmentation.html"><b>segmentation</b></a>.
-See also the tutorial:
+The graphical interface to <b>color byattribute</b> is
+<a href="../tools/render.html"><b>Render by Attribute</b></a>.
+See also the tutorial
 <a href="https://www.rbvi.ucsf.edu/chimerax/data/conservation-coloring/conservation-coloring.html"
 target="_blank">Coloring by Sequence Conservation</a>
+and the video
+<a href="https://youtu.be/usSDWOGjwhU" target="_blank">Coloring Aligned
+Proteins by C&alpha; RMSD</a>.
 </p><p>
 An <b>a:</b>, <b>r:</b>, or <b>m:</b> immediately preceding the
 <a href="../attributes.html#attrnames">attribute name</a>
@@ -493,9 +504,16 @@ style="display:inline-block; vertical-align:middle"><tr>
 <td bgcolor=blue width="10px" title="blue"></td>
 <td bgcolor=white width="10px" title="white"></td>
 <td bgcolor=red width="10px" title="red"></td>
-</tr></table> over the full range),
-and <a href="#transparency"><b>transparency</b></a>
-can be set independently.
+</tr></table> over the full range).
+</p><p>
+<a name="transparency-bfactor"></a>
+Transparency (alpha < 1) can be inherent in the colors of the
+<a href="#palette">palette</a>, or the separate
+<b>transparency</b> option can be used to specify it as a <i>percent</i>,
+where 0% is completely opaque and 100% is completely transparent.
+If both, the <b>transparency</b> option wins out.
+See also: <a href="transparency.html"><b>transparency</b></a>
+</p><p>
 Items without an assignment for the specified attribute
 will be left unchanged unless another color is specified
 with the <b>noValueColor</b> option.
@@ -529,7 +547,7 @@ spreading blue-white-red coloring across value range 2-30:
 <b>color bfactor /A range 2,30</b>
 </blockquote>
 <p>
-Regardless of whether the <a href="palette-options">range</a> of values 
+Regardless of whether the <a href="#range">range</a> of values 
 over which to spread the coloring is specified, the full range of atomic
 values (or per-residue values if <b>average residue</b> is used) is reported
 in the <a href="../tools/log.html"><b>Log</b></a>.
@@ -578,9 +596,9 @@ to make the cap match the nearby atoms.
 [&nbsp;<b>offset</b>&nbsp;&nbsp;<i>d</i>&nbsp;]
 [&nbsp;<b>key</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>update</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
-[&nbsp;<a href="#palette-options"></a><b>palette</b></a>&nbsp;&nbsp;<i>palette</i>&nbsp;]
-[&nbsp;<b>range</b>&nbsp;&nbsp;<i>low</i>,<i>high</i>&nbsp;|&nbsp;<b>full</b>&nbsp;]
-[&nbsp;<a href="#transparency"><b>transparency</b></a>&nbsp;&nbsp;<i>percent</i>&nbsp;]
+[&nbsp;<a href="#palette"><b>palette</b></a>&nbsp;&nbsp;<i>palette</i>&nbsp;]
+[&nbsp;<b>range</b>&nbsp;&nbsp;<i>low</i>,<i>high</i>&nbsp;|&nbsp;full&nbsp;]
+[&nbsp;<a href="#transparency-bfactor"><b>transparency</b></a>&nbsp;&nbsp;<i>percent</i>&nbsp;]
 </blockquote>
 <p>
 The <b>sample</b>, <b>electrostatic</b>, and <b>gradient</b> coloring options
@@ -592,7 +610,7 @@ Surface coloring by map value is also implemented in the
 <a href="../tools/surfacecolor.html"><b>Surface Color</b></a> tool.
 The color-to-value mapping is specified
 with <a href="#palette-options">palette options</a>,
-where the <a href="#palette-options"><b>palette</b></a> 
+where the <a href="#palette"><b>palette</b></a> 
 default is <b>red-white-blue</b>
 <table border cellpadding="4" cellspacing="0"
 style="display:inline-block; vertical-align:middle"><tr>
@@ -601,7 +619,7 @@ style="display:inline-block; vertical-align:middle"><tr>
 <td bgcolor=blue width="10px" title="blue"></td>
 </tr></table> and the <a href="#range"><b>range</b></a> default depends on the 
 specific type of map coloring, explained below.
-The <a href="#transparency"><b>transparency</b></a> can be set independently. 
+</p><p>
 When the coloring command is run interactively (in gui mode and not via a
 <a href="usageconventions.html#cxc-files">script</a>),
 the <b>key true</b> option can be used to
@@ -662,7 +680,8 @@ and a zero or negative offset for coloring the surface of one structure
 by the potential from another.**
 <br><br>
 <li><b>color gradient</b> colors by map gradient norm with 
-default <b>offset</b> <b>0.0</b> &Aring; and default <b>range</b> <b>full</b>.
+default <b>offset</b> <b>0.0</b> &Aring; and default 
+<a href="#range"><b>range</b></a> <b>full</b>.
 The gradient at each volume grid point is
 computed by taking the difference in data values between the
 next and preceding grid points along each axis and dividing by twice
@@ -705,7 +724,8 @@ Same as previous except use royal blue instead of blue:
 [&nbsp;<b>key</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>update</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 &nbsp;<a href="#palette-options"><i>palette-options</i></a>&nbsp;
-<br>
+[&nbsp;<a href="#transparency-bfactor"><b>transparency</b></a>&nbsp;&nbsp;<i>percent</i>&nbsp;]
+<br><br>
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>color</b> (&nbsp;<b>cylindrical</b>&nbsp;|&nbsp;<b>height</b>&nbsp;)
 &nbsp;<a href="atomspec.html#othermodels"><i>surf-spec</i></a>&nbsp;
@@ -715,6 +735,7 @@ Same as previous except use royal blue instead of blue:
 [&nbsp;<b>key</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>update</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 &nbsp;<a href="#palette-options"><i>palette-options</i></a>&nbsp;
+[&nbsp;<a href="#transparency-bfactor"><b>transparency</b></a>&nbsp;&nbsp;<i>percent</i>&nbsp;]
 </blockquote>
 <p>
 Coloring by distance applies to surfaces only,
@@ -729,6 +750,7 @@ style="display:inline-block; vertical-align:middle"><tr>
 <td bgcolor=white width="10px" title="white"></td>
 <td bgcolor=blue width="10px" title="blue"></td>
 </tr></table> across the full range).
+</p><p>
 When the coloring command is run interactively (in gui mode and not via a
 <a href="usageconventions.html#cxc-files">script</a>),
 the <b>key true</b> option can be used to
@@ -917,6 +939,7 @@ or <a href="#byattribute">attribute</a>).
 See also: 
 <a href="coulombic.html"><b>coulombic</b></a>,
 <a href="mlp.html"><b>mlp</b></a>,
+<a href="alphafold.html#contacts"><b>alphafold contacts</b></a>,
 <a href="measure.html#convexity"><b>measure convexity</b></a>
 <blockquote>
 <a name="palette"></a><b>palette</b></a>&nbsp;&nbsp;<i>palette</i>
@@ -1008,7 +1031,46 @@ align="center"><font size="-1" color="white">100</font></td>
 <a href="https://alphafold.ebi.ac.uk/faq#faq-5" target="_blank">pLDDT
 confidence measure</a> in the B-factor field of
 <a href="../tools/alphafold.html">AlphaFold predictions</a>)
+<li><b>esmfold</b>
+<table border cellpadding="0" cellspacing="0"
+style="display:inline-block; vertical-align:top"><tr>
+<td bgcolor=red width="30px" title="red"
+align="center"><font size="-1" color="white">0.0</font></td>
+<td bgcolor=orange width="30px" title="orange"
+align="center"><font size="-1">0.5</font></td>
+<td bgcolor=yellow width="30px" title="yellow"
+align="center"><font size="-1">0.7</font></td>
+<td bgcolor=cornflowerblue width="30px" title="cornflowerblue"
+align="center"><font size="-1" color="white">0.9</font></td>
+<td bgcolor=blue width="30px" title="blue"
+align="center"><font size="-1" color="white">1.0</font></td>
+</tr></table>
+(used to show the
+<a href="https://alphafold.ebi.ac.uk/faq#faq-5" target="_blank">pLDDT
+confidence measure</a> in the B-factor field of
+<a href="esmfold.html">ESMFold predictions</a>)
 <li><b>pae</b>
+<table border cellpadding="0" cellspacing="0"
+style="display:inline-block; vertical-align:top"><tr>
+<td bgcolor="blue" width="30px" title="blue"
+align="center"><font size="-1" color="white">0</font></td>
+<td bgcolor="cornflowerblue" width="30px" title="cornflowerblue"
+align="center"><font size="-1" color="white">5</font></td>
+<td bgcolor="yellow" width="30px" title="yellow"
+align="center"><font size="-1">10</font></td>
+<td bgcolor="orange" width="30px" title="orange"
+align="center"><font size="-1">15</font></td>
+<td bgcolor="gray" width="30px" title="gray"
+align="center"><font size="-1" color="white">20</font></td>
+<td bgcolor="lightgray" width="30px" title="lightgray"
+align="center"><font size="-1">25</font></td>
+<td bgcolor="white" width="30px" title="white"
+align="center"><font size="-1">30</font></td>
+</tr></table>
+(the default for plotting PAE
+<a href="alphafold.html#pae">from AlphaFold</a>
+or <a href="esmfold.html#pae">from ESMFold</a>)
+<li><b>paegreen</b>
 <table border cellpadding="0" cellspacing="0"
 style="display:inline-block; vertical-align:top"><tr>
 <td bgcolor="#1e3546661e35" width="30px" title="#1e3546661e35"
@@ -1026,8 +1088,22 @@ align="center"><font size="-1">25</font></td>
 <td bgcolor=white width="30px" title="white"
 align="center"><font size="-1">30</font></td>
 </tr></table>
-(the default for plotting
-<a href="../commands/alphafold.html#pae">AlphaFold PAE</a>)
+<li><b>paecontacts</b>
+<table border cellpadding="0" cellspacing="0"
+style="display:inline-block; vertical-align:top"><tr>
+<td bgcolor="blue" width="30px" title="blue"
+align="center"><font size="-1" color="white">0</font></td>
+<td bgcolor="cornflowerblue" width="30px" title="cornflowerblue"
+align="center"><font size="-1" color="white">5</font></td>
+<td bgcolor="yellow" width="30px" title="yellow"
+align="center"><font size="-1">10</font></td>
+<td bgcolor="orange" width="30px" title="orange"
+align="center"><font size="-1">15</font></td>
+<td bgcolor="red" width="30px" title="red"
+align="center"><font size="-1">20</font></td>
+</tr></table>
+(the default for 
+<a href="alphafold.html#contacts"><b>alphafold contacts</b></a>)
   <li><a href="palettes.html#colorbrewer">ColorBrewer palettes</a> &ndash;
 a default number of colors will be used if the number is omitted from the name.
 Examples:
@@ -1215,5 +1291,5 @@ See also: <a href="palette.html#list"><b>palette list</b></a>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-March 2022</address>
+February 2023</address>
 </body></html>

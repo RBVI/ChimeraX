@@ -24,7 +24,7 @@ def measure_inertia(session, objects, show_ellipsoid = True, color = None, per_c
         mols = atoms.unique_structures
         mname = _molecules_name(mols)
         sname = ('ellipsoids ' if per_chain else 'ellipsoid ') + mname
-        surf = _surface_model(sname, mols[0].position, model_id, replace, session) if show_ellipsoid else None
+        surf = _surface_model(sname, mols[0].scene_position, model_id, replace, session) if show_ellipsoid else None
         if per_chain:
             catoms = atoms.by_chain
             for mol, cid, cat in catoms:
@@ -40,7 +40,7 @@ def measure_inertia(session, objects, show_ellipsoid = True, color = None, per_c
     surfs = [s for s in objects.models if isinstance(s, Surface) and not isinstance(s, VolumeSurface)]
     if surfs:
         sname = 'ellipsoid ' + (surfs[0].name if len(surfs) == 1 else ('%d surfaces' % len(surfs)))
-        surf = _surface_model(sname, surfs[0].position, model_id, replace, session) if show_ellipsoid else None
+        surf = _surface_model(sname, surfs[0].scene_position, model_id, replace, session) if show_ellipsoid else None
         info = surface_inertia_ellipsoid(surfs, color, surf)
         log.info('Inertia axes for %s\n%s' % (sname, info))
 
@@ -48,9 +48,12 @@ def measure_inertia(session, objects, show_ellipsoid = True, color = None, per_c
     maps = [v for v in objects.models if isinstance(v, Volume)]
     if maps:
         mname = 'ellipsoid ' + (maps[0].name if len(maps) == 1 else ('%d maps' % len(maps)))
-        surf = _surface_model(mname, maps[0].position, model_id, replace, session) if show_ellipsoid else None
+        surf = _surface_model(mname, maps[0].scene_position, model_id, replace, session) if show_ellipsoid else None
         info = density_map_inertia_ellipsoid(maps, color, surf)
         log.info('Inertia axes for %s\n%s' % (mname, info))
+
+    if not (atoms or surfs or maps):
+        log.info('No atoms, surfaces or volumes specified')
 
 # -----------------------------------------------------------------------------
 #
@@ -68,8 +71,8 @@ def _surface_model(name, place, model_id, replace, session):
 
     s = Surface(name, session)
     s.id = model_id
-    s.position = place
     session.models.add([s])
+    s.scene_position = place
     return s
 
 # ----------------------------------------------------------------------------
@@ -112,12 +115,13 @@ def atoms_inertia(atoms):
 #
 def map_inertia(maps):
 
-  vw = [map_points_and_weights(v) for v in maps]
+  vw = [map_points_and_weights(v, scene_coordinates = True) for v in maps]
   return moments_of_inertia(vw)
 
 # -----------------------------------------------------------------------------
 #
-def map_points_and_weights(v, level = None, step = None, subregion = None):
+def map_points_and_weights(v, level = None, step = None, subregion = None,
+                           scene_coordinates = False):
 
   if level is None:
     if len(v.surfaces) == 0:
@@ -134,6 +138,8 @@ def map_points_and_weights(v, level = None, step = None, subregion = None):
   from numpy import float32
   points = points_int.astype(float32)
   tf = v.matrix_indices_to_xyz_transform(step, subregion)
+  if scene_coordinates:
+      tf = v.scene_position * tf
   tf.transform_points(points, in_place = True)
   weights = m[points_int[:,2],points_int[:,1],points_int[:,0]]
 
@@ -185,7 +191,7 @@ def moments_of_inertia(vw):
 def ellipsoid_surface(axes, lengths, center, color, surface, submodel_name = None,
                       num_triangles = 1000):
 
-  xf = surface.position.inverse()
+  xf = surface.scene_position.inverse()
   sa, sc = transform_ellipsoid(axes, center, xf)
   varray, narray, tarray = ellipsoid_geometry(sc, sa, lengths, num_triangles = num_triangles)
   if submodel_name is None:
@@ -286,7 +292,7 @@ def surface_inertia_ellipsoid(surfs, color = None, surface = None):
   axes, d2, center = surface_inertia(surfs)
   elen = inertia_ellipsoid_size(d2, shell = True)
 
-  tf = surfs[0].position        # Axes reported relative to first surface
+  tf = surfs[0].scene_position        # Axes reported relative to first surface
   info = axes_info(axes, d2, elen, center, tf.inverse())
 
   if surface:
@@ -308,7 +314,7 @@ def atoms_inertia_ellipsoid(atoms, color = None, surface = None, submodel_name =
   elen = inertia_ellipsoid_size(d2)
 
   m0 = atoms[0].structure
-  pl = m0.position
+  pl = m0.scene_position
   info = axes_info(axes, d2, elen, center, pl.inverse())
 
   if surface:
@@ -335,12 +341,12 @@ def density_map_inertia_ellipsoid(maps, color = None, surface = None):
   if len(maps) == 0:
     return None
 
-  axes, d2, center = map_inertia(maps)
+  axes, d2, center = map_inertia(maps)	# Scene coordinates
   if axes is None:
     return None
   elen = inertia_ellipsoid_size(d2)
 
-  tf = maps[0].position        # Axes reported relative to first map
+  tf = maps[0].scene_position        # Report axes relative to first map
   info = axes_info(axes, d2, elen, center, tf.inverse())
 
   if surface:

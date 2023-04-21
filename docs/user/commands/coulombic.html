@@ -34,11 +34,7 @@ class="clRight" title="User Guide Index"/></a>
 [&nbsp;<b>chargeMethod</b>&nbsp;<b>am1-bcc</b>&nbsp;|&nbsp;gasteiger&nbsp;]
 [&nbsp;<b>key</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 &nbsp;<i><a href="#palette-options">palette-options</a></i>&nbsp;
-<!-- not yet implemented
-[&nbsp;<b>map</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
-[&nbsp;<b>spacing</b>&nbsp;&nbsp;<i>s</i>&nbsp;]
-[&nbsp;<b>padding</b>&nbsp;&nbsp;<i>p</i>&nbsp;]
--->
+&nbsp;<i><a href="#map-options">map-options</a></i>&nbsp;
 </h3>
 <p>
 The <b>coulombic</b> command calculates Coulombic electrostatic potential
@@ -50,37 +46,15 @@ to <b>blue</b> for positive potential
 <a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/esp.png"></a>.
 If the surfaces do not already exist, they will be generated.
-The calculation can handle structures with or without 
-explicit <a href="#hydrogens">hydrogens</a>.
-The <a href="#charges">atomic charges</a> are looked up for standard residues,
+</p><p>
+The calculation can handle structures with or without explicit hydrogens
+(<a href="#hydrogens">details...</a>).
+Partial atomic charges are looked up for standard residues,
 and in the rarer case they are needed for nonstandard residues, calculated 
 by <a href="https://ambermd.org/antechamber/antechamber.html"
 target="_blank"><b>Antechamber</b></a>
-according to the <b>chargeMethod</b> option (default <b>am1-bcc</b>).
-However, before the charge assignment, certain modified nucleic acid residues 
-will be mutated automatically to their unmodified counterparts as follows:
-<ul>
-<li><b>bromo-UMP (5BU) to UMP (U)</b> &ndash;
-5-bromouridine-5'-monophosphate (PDB chemical component
-<a href="https://www.rcsb.org/ligand/5BU" target="_blank">5BU</a>)
-to RNA residue uridine-5'-monophosphate (U)
-by deleting the bromine atom
-<li> <b>methylselenyl-dUMP (UMS) to UMP (U)</b> &ndash;
-2'-methylselenyl-2'-deoxyuridine-5'-phosphate (PDB chemical component
-<a href="https://www.rcsb.org/ligand/UMS" target="_blank">UMS</a>)
-to RNA residue uridine-5'-monophosphate (U)
-by replacing the methylselenyl moiety with an oxygen atom named O2'
-and adjusting the bond length to 1.430 &Aring;
-<li> <b>methylselenyl-dCMP (CSL) to CMP (C)</b> &ndash;
-2'-methylselenyl-2'-deoxycytidine-5'-phosphate (PDB chemical component
-<a href="https://www.rcsb.org/ligand/CSL" target="_blank">CSL</a>)
-to RNA residue cytidine-5'-monophosphate (C)
-by replacing the methylselenyl moiety with an oxygen atom named O2'
-and adjusting the bond length to 1.430 &Aring;
-</ul>
-<p>
-Selenomethionine residues (MSE) are simply assigned the charges for the 
-standard residue methionine (MET) without being mutated.
+according to the <b>chargeMethod</b> option (default <b>am1-bcc</b>)
+(<a href="#charges">details...</a>).
 </p>
 </blockquote>
 <!-- and a <a href="#volume">grid</a> of the values can be generated -->
@@ -152,12 +126,15 @@ style="display:inline-block; vertical-align:middle"><tr>
 <td bgcolor=white width="10px" title="white"></td>
 <td bgcolor=blue width="10px" title="blue"></td>
 </tr></table>:
-</p>
 <blockquote>
 <b><a href="color.html#palette">palette</a> red-white-blue 
 &nbsp;<a href="color.html#range">range</a> -10,10</b>
 </blockquote>
 <p>
+Transparency (alpha < 1) can be inherent in the colors of the
+<a href="color.html#palette-options">palette</a>.
+See also: <a href="transparency.html"><b>transparency</b></a>
+</p><p>
 When <b>coulombic</b> is run interactively (in gui mode and not via a
 <a href="usageconventions.html#cxc-files">script</a>),
 the <b>key true</b> option can be used to
@@ -193,11 +170,10 @@ the intended set of atoms (see <a href="#charges">atomic charges</a>, below).
 <p>
 The calculation requires charge assignments, which in turn require hydrogens.
 However, an existing structure lacking hydrogens is not changed;
-a copy is created in memory, <a href="addh.html">protonated</a>,
-and assigned charges from a lookup table. 
-</p><p>
-The <b>hisScheme</b> option indicates how to (implicitly) protonate
-residues named HIS in structures without hydrogens:
+a copy is created in memory, protonated, and <a href="#charges">assigned 
+charges</a>. The default settings of <a href="addh.html"><b>addh</b></a>
+are used, except that the <b>hisScheme</b> option allows different treatments 
+of HIS residues in structures without hydrogens:
 </p>
 <ul>
 <li>HID
@@ -221,23 +197,28 @@ will be protonated accordingly.
 </p>
 <h3>Atomic Charges</h3>
 <p>
-Currently there is no choice of different charge sets for standard residues.
-These charge values are taken from the following files in
-<a href="https://ambermd.org/AmberTools.php" target="_blank">AmberTools20</a>:
-all_amino03.in, amino12.in, nucleic10.in, aminont12.in, and aminoct12.in.
-These include standard amino acid and nucleic acid residues,
-MSE (selenomethionine), HOH (water),
-ACE, NH2, NME (peptide-capping residues),
-ADP, ATP, GDP, GTP, NDP, and NAD (common cofactors).
+The default settings of <a href="addcharge.html"><b>addcharge</b></a>
+are used for charge assignment. There is no choice of which force field 
+(which set of charges) to use for standard residues.
+Before charge assignment, the modified nucleic acid residues 5BU, CSL, and UMS 
+will be mutated automatically to their standard counterparts, whereas
+selenomethionine residues (MSE) will be assigned the charges for the 
+standard residue methionine (MET) without being mutated
+(<a href="addcharge.html#standardizeResidues">details...</a>).
+The <a href="../commands/dockprep.html"><b>dockprep</b></a> command
+can be used to repair truncated amino acid sidechains beforehand.
 </p><p>
-The presence of any other residues within the biopolymer surface
+Standard residues include water, standard amino acids, standard nucleic acids,
+ATP, ADP, GTP, GDP, NAD, NDP, certain lipids, and a few common variants 
+and capping groups. The presence of other residue types 
+(&ldquo;nonstandard&rdquo;) within the biopolymer surface
 will trigger a charge calculation with
 <a href="https://ambermd.org/antechamber/antechamber.html"
 target="_blank"><b>Antechamber</b></a>
 according to the <b>chargeMethod</b> option (default <b>am1-bcc</b>).
-Solvent, ligands, ions, and cofactors are normally
-not enclosed by <a href="surface.html">molecular surfaces</a>,
-so this situation should be relatively rare.
+Solvent, ligands, ions, and cofactors are normally not enclosed in the
+same <a href="surface.html">molecular surface</a> as the biopolymer
+of interest, however, so this situation should be relatively rare.
 </p><p>
 When the <b>surfaces</b> option is used, however,
 the calculation is not automatically
@@ -256,30 +237,41 @@ model ID and chain number:
 <b>coulombic #1/A & protein surfaces #2</b>
 </blockquote>
 
-<!--
-<a name="map"></a>
+<a name="map-options"></a>
 <p class="nav">
 [<a href="#top">back to top: coulombic</a>]
 </p>
-<h3>ESP Maps</h3>
-<p>
-With <b>map true</b> (default <b>false</b>), 
-each ESP map will be opened a volume model.
+<h3>ESP Map Options</h3>
+<blockquote>
+<a name="map"></a>
+<b>map</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>
+Whether to generate a <a href="../tools/volumeviewer.html">volume model</a>
+(with values at points on a 3D grid) for each computed ESP map.
 This allows <a href="save.html#map">saving the map</a> to a file and/or
 subsequently coloring surfaces by the map values using 
 <a href="color.html#map"><b>color electrostatic</b></a>
 without having to recalculate the map on the fly.
-</p><p>
-The <b>spacing</b> <i>s</i> of the map grid can be
-specified in the range 0.1&ndash;10.0 &Aring; (default <b>1.0</b>).
+The map will be displayed initially as red and blue isosurfaces at levels 
+-10 and +10, respectively, with 50% transparency.
+The isosurface display can be hidden or otherwise adjusted by using the 
+<a href="../tools/volumeviewer.html"><b>Volume Viewer</b></a>
+or the <a href="volume.html"><b>volume</b></a> command.
+</blockquote>
+<blockquote>
+<b>gspacing</b>&nbsp;&nbsp;<i>s</i>
+<br>
+Spacing between map grid points, with possible
+range 0.1&ndash;10.0 &Aring; (default <b>1.0</b> &Aring;).
 Decreasing the spacing increases map size and calculation time.
-</p><p>
-The <b>padding</b> <i>p</i> is how far the map grid should extend beyond
-the atoms in every direction (default <b>5.0</b> &Aring;).
-</p>
--->
+</blockquote><blockquote>
+<b>gpadding</b>&nbsp;&nbsp;<i>p</i>
+<br>
+How far the map grid should extend in every direction beyond the atoms 
+used to compute the ESP (default <b>5.0</b> &Aring;).
+</blockquote>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-September 2021</address>
+January 2023</address>
 </body></html>

@@ -30,10 +30,7 @@ class Option(metaclass=ABCMeta):
         if attr_name:
             self.attr_name = attr_name
         elif not hasattr(self, 'attr_name'):
-            if self.name:
-                self.attr_name = self.name
-            else:
-                self.attr_name = None
+            self.attr_name = None
 
         if settings is None:
             self.settings_handler = self.settings = None
@@ -45,10 +42,20 @@ class Option(metaclass=ABCMeta):
             # reference to settings for now; if that proves problematic then revisit.
             self.settings = settings
             from weakref import proxy
-            self.settings_handler = self.settings.triggers.add_handler('setting changed',
-                lambda trig_name, data, *, pself=proxy(self):
-                data[0] == pself.attr_name and (setattr(pself, "value", pself.get_attribute())
-                or (pself._callback and pself._callback(pself))))
+            def proxy_handler(trig_name, data, *, pself=proxy(self)):
+                # In case some bad code is holding onto the Python side of a dead tool,
+                # ignore AttributeErrors.
+                # Also, if the last error occurred in a tool, sys.last_traceback can be holding
+                # reference to the tool, so ignore RuntimeErrors too [#8554]
+                try:
+                    if data[0] == pself.attr_name:
+                        setattr(pself, "value", pself.get_attribute())
+                        if pself._callback:
+                            pself._callback(pself)
+                except (AttributeError, RuntimeError):
+                    from chimerax.core.triggerset import DEREGISTER
+                    return DEREGISTER
+            self.settings_handler = self.settings.triggers.add_handler('setting changed', proxy_handler)
         self.auto_set_attr = auto_set_attr
 
         if default is None and attr_name and settings:
@@ -176,7 +183,8 @@ class Option(metaclass=ABCMeta):
         pass
 
     # no "shown" property because the option is in a QFormLayout and there is no way to hide a row,
-    # not to mention that hiding our widget doesn't hide the corresponding label
+    # without access to the form.  Use the hide/show_option methods or set_option_shown method
+    # of the container widget.
 
     # In Python 3.7, abstract properties where the getter/setter funcs have the same name don't
     # work as expected in derived classes; use old-style property definition
@@ -382,21 +390,21 @@ class EnumBase(Option):
                     self.make_callback()
     remake_buttons = remake_menu
 
-    def _make_widget(self, *, as_radio_buttons=False, display_value=None, **kw):
-        from Qt.QtWidgets import QPushButton, QMenu, QWidget, QButtonGroup, QVBoxLayout
+    def _make_widget(self, *, as_radio_buttons=False, horizontal_radio_buttons=False, display_value=None,
+            **kw):
+        from Qt.QtWidgets import QPushButton, QMenu, QWidget, QButtonGroup, QVBoxLayout, QHBoxLayout
         self.__as_radio_buttons = as_radio_buttons
         if as_radio_buttons:
             self.widget = QWidget()
-            layout = QVBoxLayout()
+            if horizontal_radio_buttons:
+                layout = QHBoxLayout()
+            else:
+                layout = QVBoxLayout()
             self.widget.setLayout(layout)
             self.__button_group = QButtonGroup()
             self.remake_buttons()
             self.__button_group.button(self.values.index(self.default)).setChecked(True)
-            from Qt import using_pyqt6
-            if using_pyqt6:
-                self.__button_group.idClicked.connect(self.make_callback)
-            else:
-                self.__button_group.buttonClicked[int].connect(self.make_callback)
+            self.__button_group.idClicked.connect(self.make_callback)
         else:
             if display_value is not None:
                 button_label = display_value
@@ -549,8 +557,7 @@ class FontOption(EnumOption):
     def __init__(self, *args, **kw):
         if self.values is None:
             from Qt.QtGui import QFontDatabase
-            from Qt import using_qt5
-            fdb = QFontDatabase() if using_qt5 else QFontDatabase
+            fdb = QFontDatabase
             self.values = sorted(list(fdb.families()))
             super().__init__(*args, **kw)
 

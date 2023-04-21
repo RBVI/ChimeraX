@@ -1,0 +1,160 @@
+#!/bin/python3 -Es
+# vim: set expandtab shiftwidth=4 softtabstop=4:
+
+# === UCSF ChimeraX Copyright ===
+# Copyright 2016-2020 Regents of the University of California.
+# All rights reserved.  This software provided pursuant to a
+# license agreement containing restrictions on its disclosure,
+# duplication and use.  For details see:
+# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# This notice must be embedded in or attached to all copies,
+# including partial copies, of the software or any revisions
+# or derivations thereof.
+# === UCSF ChimeraX Copyright ===
+
+import sys
+import os
+# remove current directory from path, so importing of subprocess will work
+# (because subprocess imports selectors, and we have a selectors too).
+del sys.path[0]
+
+git_info = ["git", "show", "--summary", "--date=iso"]
+'''
+commit 245c04b9b45ec91a2772fc9d7c89d5ea0cb857af
+Merge: e9b4c21 1889ee2
+Author: Tom Goddard <goddard@sonic.net>
+Date:   2016-01-11 19:04:43 -0800
+
+    Merge branch 'develop' of plato.cgl.ucsf.edu:/usr/local/projects/chimerax/git/chimerax into develop
+
+
+'''
+
+
+def _extract(file, branch=None):
+    commit = None
+    daytime = None
+    daytime_number = None
+
+    for line in file:
+        if line.startswith('branch:'):
+            branch = line.split()[-1]
+            continue
+        if line.startswith('commit'):
+            commit = line.split()[-1]
+            continue
+        if line.startswith('Date:'):
+            tokens = line.split()
+            # 2012-01-31 16:49:23 -0800
+            # convert to UTC
+            from datetime import datetime, timedelta
+            d = datetime.strptime(' '.join(tokens[1:3]),
+                                  '%Y-%m-%d %H:%M:%S')
+            utfoffset = timedelta(0, int(tokens[3]) * 6 * 6)
+            d -= utfoffset  # convert to UTC time
+            daytime = d.strftime('%Y-%m-%d %H:%M:%S UTC')
+            daytime_number = d.strftime('%Y%m%d%H%M')
+            continue
+
+    if branch is None or commit is None or daytime is None:
+        print("error: unable to find branch, last commit, and/nor date",
+              file=sys.stderr)
+        raise SystemExit(1)
+    return branch, commit, daytime, daytime_number
+
+
+def extract_commit_info(directory):
+    gitinfo = os.path.join(directory, 'last-commit')
+    if os.path.exists(gitinfo):
+        return _extract(open(gitinfo, 'r'), branch=None)
+    else:
+        import subprocess
+        info = subprocess.Popen(git_info, stdout=subprocess.PIPE,
+                                universal_newlines=True)
+        return _extract(info.stdout, branch="modified develop")
+
+
+def extract_copyright():
+    cf = '../../../copyright.txt'
+    with open(cf) as f:
+        for line in f.readlines():
+            if not line.startswith(("Copyright", "\N{Copyright Sign}")):
+                continue
+            copyright = (line.strip().replace("Copyright", "\N{Copyright Sign}")
+                         + "  All rights reserved.")
+            break
+        else:
+            from datetime import datetime
+            copyright = "\N{Copyright Sign} %d" % datetime.today().year
+    return copyright
+
+
+def actual_version(version, build_type, daytime_number):
+    if build_type == 'production':
+        pass
+    elif build_type == 'candidate':
+        version = '%src%s' % (version, daytime_number)
+    else:
+        version = '%s.dev%s' % (version, daytime_number)
+    return version
+
+
+def write_buildinfo(version, branch, commit, daytime, copyright):
+    with open("buildinfo.py.in", 'r') as input:
+        with open("src/buildinfo.py", 'w', encoding="utf-8") as output:
+            for line in input:
+                line = line.replace('VERSION', version)
+                line = line.replace('BRANCH', branch)
+                line = line.replace('COMMIT', commit)
+                line = line.replace('DAYTIME', daytime)
+                line = line.replace('COPYRIGHT', copyright)
+                output.write(line)
+
+
+def usage(out=sys.stderr):
+    print(f"usage: {sys.argv[0]} [-v|--version] [-b|--buildinfo] topdir version [build_type]", file=out)
+    print("    --version combines verison and build_type into bundle version", file=out)
+    print("    --buildinfo generates buildinfo.py file", file=out)
+    print("One of --version or --buildinfo must be given.", file=out)
+
+
+def main():
+    import getopt
+
+    operation = None
+    try:
+        opts, args = getopt.getopt(sys.argv[1:], "hvb", ["--help", "--version", "--buildinfo"])
+    except getopt.GetOptError as err:
+        print(f"error: {err}", file=sys.stderr)
+        usage()
+        raise SystemExit(2)
+    for opt, arg in opts:
+        if opt in ["-v", "--version"]:
+            operation = "version"
+        elif opt in ["-b", "--buildinfo"]:
+            operation = "buildinfo"
+        elif opt in ["-h", "--help"]:
+            usage(sys.stdout)
+            raise SystemExit(0)
+    if len(args) == 3:
+        topdir, version, build_type = args
+    elif len(args) == 2:
+        topdir, version = args
+        build_type = ""
+    else:
+        print("error: wrong number of arguments", file=sys.stderr)
+        usage()
+        raise SystemExit(2)
+
+    branch, commit, daytime, daytime_number = extract_commit_info(topdir)
+    if operation == "version":
+        version = actual_version(version, build_type, daytime_number)
+        print(version)
+    else:
+        copyright = extract_copyright()
+        write_buildinfo(version, branch, commit, daytime, copyright)
+    raise SystemExit(0)
+
+
+if __name__ == '__main__':
+    main()

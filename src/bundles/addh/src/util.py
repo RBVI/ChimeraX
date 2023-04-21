@@ -40,20 +40,38 @@ def complete_terminal_carboxylate(session, cter):
     from chimerax.atomic.bond_geom import bond_positions
     from chimerax.atomic.struct_edit import add_atom
     from chimerax.atomic import Element
-    if cter.find_atom("OXT"):
-        return
     c = cter.find_atom("C")
-    if c:
-        if c.num_bonds != 2:
-            return
-        loc = bond_positions(c.coord, 3, 1.229, [n.coord for n in c.neighbors])[0]
-        oxt = add_atom("OXT", Element.get_element("O"), cter, loc, bonded_to=c)
-        from chimerax.atomic.colors import element_color
-        if c.color == element_color(c.element.number):
-            oxt.color = element_color(oxt.element.number)
+    if not c:
+        return
+    missing_O = missing_OXT = True
+    for nb in c.neighbors:
+        if nb.name == "O":
+            missing_O = False
+        elif nb.name == "OXT":
+            missing_OXT = False
         else:
-            oxt.color = c.color
-        session.logger.info("Missing OXT added to C-terminal residue %s" % str(cter))
+            continue
+        if len([nnb for nnb in nb.neighbors if nb.element.number > 1]) > 1:
+            session.logger.warning("C-terminal %s does not look like carboxylate oxygen;"
+                " cannot complete teminus" % str(nb))
+            return
+    if missing_O and missing_OXT:
+        session.logger.warning("Both O and OXT missing from C-terminal residue %s; cannot complete teminus"
+            % str(cter))
+        return
+    if not missing_O and not missing_OXT:
+        return
+    missing_name = "OXT" if missing_OXT else "O"
+    if c.num_bonds != 2:
+        return
+    loc = bond_positions(c.coord, 3, 1.229, [n.coord for n in c.neighbors])[0]
+    oxt = add_atom(missing_name, Element.get_element("O"), cter, loc, bonded_to=c)
+    from chimerax.atomic.colors import element_color
+    if c.color == element_color(c.element.number):
+        oxt.color = element_color(oxt.element.number)
+    else:
+        oxt.color = c.color
+    session.logger.info("Missing %s added to C-terminal residue %s" % (missing_name, str(cter)))
 
 def determine_termini(session, structs):
     real_N = []
@@ -61,16 +79,17 @@ def determine_termini(session, structs):
     fake_N = []
     fake_C = []
     fake_5p = []
+    fake_3p = []
     logger = session.logger
     for s in structs:
         sr_res = set()
         for chain in s.chains:
             if chain.from_seqres:
                 sr_res.update(chain.residues)
-                rn, rc, fn, fc, f5p = termini_from_seqres(chain)
+                rn, rc, fn, fc, f5p, f3p = termini_from_seqres(chain)
                 logger.info("Termini for %s determined from SEQRES records" % chain.full_name)
             else:
-                rn, rc, fn, fc, f5p = guess_termini(chain)
+                rn, rc, fn, fc, f5p, f3p = guess_termini(chain)
                 logger.info("No usable SEQRES records for %s; guessing termini instead"
                     % chain.full_name)
             real_N.extend(rn)
@@ -78,6 +97,7 @@ def determine_termini(session, structs):
             fake_N.extend(fn)
             fake_C.extend(fc)
             fake_5p.extend(f5p)
+            fake_3p.extend(f3p)
         if sr_res:
             # Look for peptide termini not in SEQRES records
             from chimerax.atomic import Sequence
@@ -99,7 +119,7 @@ def determine_termini(session, structs):
                         else:
                             termini.append(r)
 
-    return real_N, real_C, fake_N, fake_C, fake_5p
+    return real_N, real_C, fake_N, fake_C, fake_5p, fake_3p
 
 def termini_from_seqres(chain):
     real_N = []
@@ -107,6 +127,7 @@ def termini_from_seqres(chain):
     fake_N = []
     fake_C = []
     fake_5p = []
+    fake_3p = []
     if chain.polymer_type == Residue.PT_AMINO:
         if chain.residues[0]:
             real_N.append(chain.residues[0])
@@ -129,7 +150,13 @@ def termini_from_seqres(chain):
             if res != chain.residues[0]:
                 fake_5p.append(res)
             break
-    return real_N, real_C, fake_N, fake_C, fake_5p
+        for res in reversed(chain.residues):
+            if not res:
+                continue
+            if res != chain.residues[-1]:
+                fake_3p.append(res)
+            break
+    return real_N, real_C, fake_N, fake_C, fake_5p, fake_3p
 
 def guess_termini(seq):
     real_N = []
@@ -137,6 +164,7 @@ def guess_termini(seq):
     fake_N = []
     fake_C = []
     fake_5p = []
+    fake_3p = []
     if seq.polymer_type == Residue.PT_AMINO:
         residues = seq.residues
         existing_residues = seq.existing_residues
@@ -175,7 +203,7 @@ def guess_termini(seq):
             if res.number + 1 < next_res.number:
                 fake_C.append(res)
                 fake_N.append(next_res)
-    return real_N, real_C, fake_N, fake_C, fake_5p
+    return real_N, real_C, fake_N, fake_C, fake_5p, fake_3p
 
 def cross_residue(res, at_name):
     a = res.find_atom(at_name)

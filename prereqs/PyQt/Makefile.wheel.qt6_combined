@@ -1,0 +1,147 @@
+PREREQ_MAKE = 1
+TOP	= ../..
+include $(TOP)/mk/config.make
+include ../pips/Makefile.pip
+
+ifeq ($(OS),Windows)
+export PATH := $(bindir)/Scripts:$(PATH)
+else ifeq ($(OS),Darwin)
+export PATH := $(PYTHON_FRAMEWORK)/bin:$(PATH)
+else
+export PATH := $(bindir):$(PATH)
+endif
+
+# PYQT_LICENSE can be "commercial" for commercial version
+PYQT_LICENSE = gpl
+REMOTE_HOST = plato.cgl.ucsf.edu:
+REMOTE_DIR = $(REMOTE_HOST)/usr/local/src/PyQt6
+
+# BASE_VERSION is overriden by Makefile
+BASE_VERSION = 6.4
+QT_MINOR_VERSION = 2
+PYQT_MINOR_VERSION = 2
+PYQTWE_MINOR_VERSION = 0
+QT_VERSION = $(BASE_VERSION).$(QT_MINOR_VERSION)
+ifeq (,$(PYQT_MINOR_VERSION))
+PYQT_VERSION = $(BASE_VERSION)
+else
+PYQT_VERSION = $(BASE_VERSION).$(PYQT_MINOR_VERSION)
+endif
+ifeq (,$(PYQTWE_MINOR_VERSION))
+PYQTWE_VERSION = $(BASE_VERSION)
+else
+PYQTWE_VERSION = $(BASE_VERSION).$(PYQTWE_MINOR_VERSION)
+endif
+
+# Versions of Riverbank Computing Limited packages/programs from when
+# unlicensed wheels where built and presumably matches the gpl wheel in PyPI.
+SIP_VERSION = 13.4.1
+BUILDER_VERSION = 1.14.0
+
+PYTHON_TAGS = cp36
+WHEEL_ABI = abi3
+
+ifeq ($(OS),Darwin)
+BIN_PLATFORM = macos
+WHEEL_PLATFORM = macosx_10_14_universal2
+WE_WHEEL_PLATFORM = $(WHEEL_PLATFORM)
+QTDIR = $(HOME)/Qt/$(QT_VERSION)/macos
+else ifeq ($(OS),Linux)
+BIN_PLATFORM = linux
+WHEEL_PLATFORM = manylinux_2_28_x86_64
+WE_WHEEL_PLATFORM = $(WHEEL_PLATFORM)
+#QTDIR = $(HOME)/Qt$(QT_VERSION)/$(QT_VERSION)/gcc_64
+QTDIR = $(HOME)/Qt/$(QT_VERSION)/gcc_64
+else ifeq ($(OS),Windows)
+BIN_PLATFORM = win.exe
+WHEEL_PLATFORM = win_amd64
+WE_WHEEL_PLATFORM = $(WHEEL_PLATFORM)
+QTDIR = c:\\Qt\\$(QT_VERSION)\\msvc2019_64
+endif
+BUILD_TAGS = $(PYTHON_TAGS)-$(WHEEL_ABI)-$(WHEEL_PLATFORM)
+WE_BUILD_TAGS = $(PYTHON_TAGS)-$(WHEEL_ABI)-$(WE_WHEEL_PLATFORM)
+
+QT_WHEEL = PyQt6_$(PYQT_LICENSE)-$(PYQT_VERSION)-$(QT_VERSION)-$(BUILD_TAGS).whl
+WB_WHEEL = PyQt6_WebEngine_$(PYQT_LICENSE)-$(PYQTWE_VERSION)-$(QT_VERSION)-$(WE_BUILD_TAGS).whl
+
+BUNDLE_ARGS = --qt-dir $(QTDIR) --ignore-missing --no-openssl
+ifdef WIN32
+BUNDLE_ARGS += --no-msvc-runtime
+endif
+
+SIP_WHEEL := PyQt6-sip==$(SIP_VERSION)
+
+ifneq ($(PYQT_LICENSE),commercial)
+QT_WHEEL := PyQt6==$(PYQT_VERSION)
+WB_WHEEL := PyQt6_WebEngine==$(PYQTWE_VERSION)
+endif
+
+
+all:
+
+install: $(QT_WHEEL) $(WB_WHEEL)
+	$(PIP) install -U $(SIP_WHEEL) $(QT_WHEEL) $(WB_WHEEL)
+
+app-install: $(QT_WHEEL) $(WB_WHEEL)
+	$(APP_PIP) install -U $(SIP_WHEEL) $(QT_WHEEL) $(WB_WHEEL)
+
+prefetch: $(QT_WHEEL) $(WB_WHEEL)
+
+$(QT_WHEEL):
+ifeq ($(PYQT_LICENSE),commercial)
+	rsync -av $(REMOTE_DIR)/$(PYQT_VERSION)/$(QT_WHEEL) .
+endif
+
+$(WB_WHEEL):
+ifeq ($(PYQT_LICENSE),commercial)
+	rsync -av $(REMOTE_DIR)/$(PYQTWE_VERSION)/$(WB_WHEEL) .
+endif
+
+REMOTE_SOURCE =  \
+		$(REMOTE_DIR)/$(PYQT_VERSION)/PyQt6_commercial-$(PYQT_VERSION)-$(BUILD_TAGS).whl \
+		$(REMOTE_DIR)/$(PYQTWE_VERSION)/PyQt6_WebEngine_commercial-$(PYQTWE_VERSION)-$(WE_BUILD_TAGS).whl \
+		$(REMOTE_DIR)/pyqt-commercial.sip
+
+pyqt-commercial.sip:
+ifeq ($(OS),Darwin)
+	# Due to bug in macOS's rsync 2.6.9, fetch files individually
+	for file in $(REMOTE_SOURCE); do \
+		rsync -av --copy-links $$file . ;\
+	done
+else
+	rsync -av --copy-links $(REMOTE_SOURCE) .
+endif
+	# remove finished wheels
+	rm -f *-$(PYQT_VERSION)-$(QT_VERSION)-* *-$(PYQTWE_VERSION)-$(QT_VERSION)-*
+
+wheels: pyqt-commercial.sip
+	$(PYTHON_EXE) -m pip install PyQt-Builder==$(BUILDER_VERSION) $(SIP_WHEEL)
+ifeq ($(OS),Linux)
+	# patch chrpath in pyqtbuild to preserve RPATH
+	patch --merge -p1 -d $(shell $(PYTHON_EXE) -c  "import os, pyqtbuild; print(os.path.dirname(pyqtbuild.__file__))") < pyqtbuild.patch
+	# Only needed to fix rpath in icu libraries in Qt 5.11.1,
+	# but make sure all are correct.
+	cd $(QTDIR)/lib && $(bindir)/chrpath -C -r '$$ORIGIN' *.so
+	# make sure other parts of Qt use RPATH instead of RUNPATH
+	cd $(QTDIR)/plugins && find . -name \*.so | xargs $(bindir)/chrpath -C
+	cd $(QTDIR)/qml && find . -name \*.so | xargs $(bindir)/chrpath -C
+	$(bindir)/chrpath -C $(QTDIR)/libexec/QtWebEngineProcess
+endif
+	pyqt-bundle $(BUNDLE_ARGS) PyQt6_commercial-$(PYQT_VERSION)-$(BUILD_TAGS).whl
+	pyqt-bundle $(BUNDLE_ARGS) PyQt6_WebEngine_commercial-$(PYQTWE_VERSION)-$(WE_BUILD_TAGS).whl
+
+upload-commercial: wheels
+	rsync -av $(QT_WHEEL) $(REMOTE_DIR)/$(PYQT_VERSION)/.
+	rsync -av $(WB_WHEEL) $(REMOTE_DIR)/$(PYQTWE_VERSION)/.
+
+upload:
+	$(MAKE) -f Makefile.wheel PYQT_LICENSE=commercial upload-commercial
+
+clean:
+	rm -f pip.log
+ifeq ($(PYQT_LICENSE),commercial)
+	rm -f $(QT_WHEEL) $(WB_WHEEL)
+endif
+
+distclean: clean
+	rm -rf *commercial*

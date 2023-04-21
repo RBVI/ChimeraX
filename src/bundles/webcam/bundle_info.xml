@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-WebCam" version="1.0"
+<BundleInfo name="ChimeraX-WebCam" version="1.0.2"
 	    package="chimerax.webcam"
   	    minSessionVersion="1" maxSessionVersion="1">
 

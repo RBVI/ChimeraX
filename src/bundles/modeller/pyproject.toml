@@ -1,0 +1,54 @@
+[build-system]
+requires = ["setuptools", "ChimeraX-BundleBuilder"]
+build-backend = "chimerax.bundle_builder.cx_pep517"
+
+[project]
+name = "ChimeraX-Modeller"
+version = "1.5.9"
+license = { text = "Free for non-commercial use" }
+authors= [{name = "UCSF RBVI", email="chimerax@cgl.ucsf.edu"}]
+description = "Interface to Modeller"
+dependencies = [
+	"ChimeraX-Core ~= 1.0"
+	, "ChimeraX-Alignments ~= 2.0"
+	, "ChimeraX-PDB ~= 2.0"
+	, "ChimeraX-UI ~= 1.15"
+]
+dynamic = ["classifiers", "requires-python"]
+
+[project.readme]
+content-type = "text"
+text = "Perform comparitive or loop modeling."
+
+[project.urls]
+Home = "https://www.rbvi.ucsf.edu/chimerax/"
+
+[chimerax]
+min-session-version = 1
+max-session-version = 1
+categories = ["Sequence", "Structure Prediction"]
+classifiers = ["Development Status :: 2 - Pre-Alpha"]
+
+[chimerax.command."modeller comparative"]
+categories = ["Sequence", "Structure Prediction"]
+description = "Generate comparative models"
+
+[chimerax.command."modeller loops"]
+categories = ["Sequence", "Structure Prediction"]
+description = "Fill missing structure"
+
+[chimerax.command."modeller refine"]
+categories = ["Sequence", "Structure Prediction"]
+description = "Fill missing structure"
+
+[chimerax.command."modeller scores"]
+categories = ["Sequence", "Structure Prediction"]
+description = "Fetch Modeller scores for a model"
+
+[chimerax.tool."Modeller Comparative"]
+categories = ["Sequence", "Structure Prediction"]
+description = "Generate comparative models"
+
+[chimerax.tool."Model Loops"]
+categories = ["Sequence", "Structure Prediction"]
+description = "Model/remodel structure segments"

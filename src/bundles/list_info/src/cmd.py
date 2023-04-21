@@ -11,12 +11,12 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from chimerax.core.commands import CmdDesc, EmptyArg, EnumOf, Or, StringArg, AtomSpecArg, ModelsArg, ListOf, BoolArg
+from chimerax.core.commands import CmdDesc, EmptyArg, EnumOf, Or, StringArg, AtomSpecArg, ModelsArg, ListOf, BoolArg, SaveFileNameArg
 from .util import report_models, report_chains, report_polymers, report_residues
-from .util import report_residues, report_atoms, report_attr, report_distmat
+from .util import report_residues, report_atoms, report_attr, report_distmat, output
 
 
-def info(session, models=None, *, return_json=False):
+def info(session, models=None, *, return_json=False, save_file=None):
     '''
     Report state of models, such as whether they are displayed, color, number of children, number of instances, etc.
 
@@ -84,13 +84,14 @@ def info(session, models=None, *, return_json=False):
         import json
         return JSONResult(ArrayJSONEncoder().encode(model_infos), None)
     msg = '%d models\n' % len(models) + '\n'.join(lines)
-    session.logger.info(msg)
+    output(session.logger, save_file, msg)
 
 info_desc = CmdDesc(optional=[('models', ModelsArg)],
+                    keyword=[('save_file', SaveFileNameArg)],
                     synopsis='Report info about models')
 
 
-def info_bounds(session, models=None, *, return_json=False):
+def info_bounds(session, models=None, *, return_json=False, save_file=None):
     '''
     Report bounds of displayed parts of models in scene coordinates.
     If not models are given the bounds for the entire scene is reported.
@@ -117,17 +118,18 @@ def info_bounds(session, models=None, *, return_json=False):
             for m in models:
                 b = m.bounds()
                 bounds_info[m.atomspec] = None if b is None else (b.xyz_min, b.xyz_max)
-    session.logger.info(msg)
+    output(session.logger, save_file, msg)
     if return_json:
         from chimerax.core.commands import JSONResult, ArrayJSONEncoder
         import json
         return JSONResult(ArrayJSONEncoder().encode(bounds_info), None)
 
 info_bounds_desc = CmdDesc(optional=[('models', ModelsArg)],
+                    keyword=[('save_file', SaveFileNameArg)],
                            synopsis='Report scene bounding boxes for models')
 
 
-def info_models(session, atoms=None, type_=None, attribute="name", *, return_json=False):
+def info_models(session, atoms=None, type_=None, attribute="name", *, return_json=False, save_file=None):
     '''
     If 'return_json' is True, the returned JSON will be a list of JSON objects, one per model.  Each object
     will have the following name/value pairs:
@@ -147,14 +149,15 @@ def info_models(session, atoms=None, type_=None, attribute="name", *, return_jso
         type_ = type_.lower()
     models = [m for m in results.models
               if type_ is None or type(m).__name__.lower() == type_]
-    return report_models(session.logger, models, attribute, return_json=return_json)
+    return report_models(session.logger, models, attribute, return_json=return_json, save_file=save_file)
 info_models_desc = CmdDesc(required=[("atoms", Or(AtomSpecArg, EmptyArg))],
                            keyword=[("type_", StringArg),
+                                    ('save_file', SaveFileNameArg),
                                     ("attribute", StringArg),],
                            synopsis="Report model information")
 
 
-def info_chains(session, atoms=None, attribute="chain_id", *, return_json=False):
+def info_chains(session, atoms=None, attribute="chain_id", *, return_json=False, save_file=None):
     '''
     If 'return_json' is True, the returned JSON will be a list of JSON objects, one per chain.  Each object
     will have the following name/value pairs:
@@ -179,13 +182,13 @@ def info_chains(session, atoms=None, attribute="chain_id", *, return_json=False)
         except AttributeError:
             # No chains, no problem
             pass
-    return report_chains(session.logger, chains, attribute, return_json=return_json)
+    return report_chains(session.logger, chains, attribute, return_json=return_json, save_file=save_file)
 info_chains_desc = CmdDesc(required=[("atoms", Or(AtomSpecArg, EmptyArg))],
-                           keyword=[("attribute", StringArg),],
+                           keyword=[("attribute", StringArg), ('save_file', SaveFileNameArg)],
                            synopsis="Report chain information")
 
 
-def info_polymers(session, atoms=None, *, return_json=False):
+def info_polymers(session, atoms=None, *, return_json=False, save_file=None):
     '''
     If 'return_json' is True, the returned JSON will be a list of lists, one per polymer.  Each list
     will contain the atom specs that compose the polymer, in polymer order
@@ -205,12 +208,13 @@ def info_polymers(session, atoms=None, *, return_json=False):
         except AttributeError:
             # No chains, no problem
             pass
-    return report_polymers(session.logger, polymers, return_json=return_json)
+    return report_polymers(session.logger, polymers, return_json=return_json, save_file=save_file)
 info_polymers_desc = CmdDesc(required=[("atoms", Or(AtomSpecArg, EmptyArg))],
+                            keyword=[('save_file', SaveFileNameArg)],
                              synopsis="Report polymer information")
 
 
-def info_residues(session, atoms=None, attribute="name", *, return_json=False):
+def info_residues(session, atoms=None, attribute="name", *, return_json=False, save_file=None):
     '''
     If 'return_json' is True, the returned JSON will be a list of JSON objects, one per residue.  Each object
     will have the following name/value pairs:
@@ -226,25 +230,27 @@ def info_residues(session, atoms=None, attribute="name", *, return_json=False):
         atoms = atomspec.everything(session)
     results = atoms.evaluate(session)
     residues = results.atoms.unique_residues
-    return report_residues(session.logger, residues, attribute, return_json=return_json)
+    return report_residues(session.logger, residues, attribute, return_json=return_json, save_file=save_file)
 info_residues_desc = CmdDesc(required=[("atoms", Or(AtomSpecArg, EmptyArg))],
-                             keyword=[("attribute", StringArg),],
+                             keyword=[("attribute", StringArg),
+                                ('save_file', SaveFileNameArg)],
                              synopsis="Report residue information")
 
 
-def info_atoms(session, atoms=None, attribute="idatm_type", *, return_json=False):
+def info_atoms(session, atoms=None, attribute="idatm_type", *, return_json=False, save_file=None):
     if atoms is None:
         from chimerax.core.commands import atomspec
         atoms = atomspec.everything(session)
     results = atoms.evaluate(session)
     residues = results.atoms.unique_residues
-    return report_atoms(session.logger, results.atoms, attribute, return_json=return_json)
+    return report_atoms(session.logger, results.atoms, attribute, return_json=return_json, save_file=save_file)
 info_atoms_desc = CmdDesc(required=[("atoms", Or(AtomSpecArg, EmptyArg))],
-                          keyword=[("attribute", StringArg),],
+                          keyword=[("attribute", StringArg),
+                            ('save_file', SaveFileNameArg)],
                           synopsis="Report atom information")
 
 
-def info_selection(session, level=None, attribute=None, *, return_json=False):
+def info_selection(session, level=None, attribute=None, *, return_json=False, save_file=None):
     '''
     If 'return_json' is True, the returned JSON will correspond to the function appropriate for the 'level',
     namely, but restricted to selected items:
@@ -262,7 +268,8 @@ def info_selection(session, level=None, attribute=None, *, return_json=False):
         atoms = session.selection.items("atoms")
         if atoms:
             from chimerax.atomic import concatenate
-            json_info = report_atoms(session.logger, concatenate(atoms), attribute, return_json=return_json)
+            json_info = report_atoms(session.logger, concatenate(atoms), attribute, return_json=return_json,
+                save_file=save_file)
     elif level == "residue":
         if attribute is None:
             attribute = "name"
@@ -270,7 +277,8 @@ def info_selection(session, level=None, attribute=None, *, return_json=False):
         if atoms:
             from chimerax.atomic import concatenate
             residues = concatenate([a.unique_residues for a in atoms])
-            json_info = report_residues(session.logger, residues, attribute, return_json=return_json)
+            json_info = report_residues(session.logger, residues, attribute, return_json=return_json,
+                save_file=save_file)
     elif level == "chain":
         if attribute is None:
             attribute = "chain_id"
@@ -278,7 +286,8 @@ def info_selection(session, level=None, attribute=None, *, return_json=False):
         if atoms:
             from chimerax.atomic import concatenate
             chains = concatenate([a.residues.unique_chains for a in atoms])
-            json_info = report_chains(session.logger, chains, attribute, return_json=return_json)
+            json_info = report_chains(session.logger, chains, attribute, return_json=return_json,
+                save_file=save_file)
     elif level == "structure":
         if attribute is None:
             attribute = "name"
@@ -286,12 +295,13 @@ def info_selection(session, level=None, attribute=None, *, return_json=False):
         if atoms:
             from chimerax.atomic import concatenate
             mols = concatenate([a.unique_structures for a in atoms])
-            json_info = report_models(session.logger, mols, attribute, return_json=return_json)
+            json_info = report_models(session.logger, mols, attribute, return_json=return_json,
+                save_file=save_file)
     elif level == "model":
         if attribute is None:
             attribute = "name"
         json_info = report_models(session.logger, session.selection.models(), attribute,
-            return_json=return_json)
+            return_json=return_json, save_file=save_file)
     if return_json:
         return json_info
 info_selection_desc = CmdDesc(keyword=[("level", EnumOf(["atom",
@@ -299,56 +309,63 @@ info_selection_desc = CmdDesc(keyword=[("level", EnumOf(["atom",
                                                          "chain",
                                                          "structure",
                                                          "model"])),
-                                       ("attribute", StringArg),],
+                                       ("attribute", StringArg),
+                                       ('save_file', SaveFileNameArg)],
                               synopsis="Report selection information")
 
-def info_atomattr(session, *, return_json=False):
+def info_atomattr(session, *, return_json=False, save_file=None):
     '''
     If 'return_json' is True, the returned JSON will be a list of atom attribute names.
     '''
     from chimerax.core.attributes import type_attrs
     from chimerax.atomic import Atom
     attrs = type_attrs(Atom)
-    for a in attrs:
-        report_attr(session.logger, "atom", a)
+    for i, a in enumerate(attrs):
+        report_attr(session.logger, "atom", a, save_file=save_file, append=(i>0))
     if return_json:
         from chimerax.core.commands import JSONResult, ArrayJSONEncoder
         import json
         return JSONResult(ArrayJSONEncoder().encode(attrs), None)
-info_atomattr_desc = CmdDesc(synopsis="Report atom attribute information")
+info_atomattr_desc = CmdDesc(
+                    keyword=[('save_file', SaveFileNameArg)],
+                    synopsis="Report atom attribute information")
 
-def info_bondattr(session, *, return_json=False):
+def info_bondattr(session, *, return_json=False, save_file=None):
     '''
     If 'return_json' is True, the returned JSON will be a list of bond attribute names.
     '''
     from chimerax.core.attributes import type_attrs
     from chimerax.atomic import Bond
     attrs = type_attrs(Bond)
-    for a in attrs:
-        report_attr(session.logger, "bond", a)
+    for i, a in enumerate(attrs):
+        report_attr(session.logger, "bond", a, save_file=save_file, append=(i>0))
     if return_json:
         from chimerax.core.commands import JSONResult, ArrayJSONEncoder
         import json
         return JSONResult(ArrayJSONEncoder().encode(attrs), None)
-info_bondattr_desc = CmdDesc(synopsis="Report bond attribute information")
+info_bondattr_desc = CmdDesc(
+                    keyword=[('save_file', SaveFileNameArg)],
+                    synopsis="Report bond attribute information")
 
-def info_resattr(session, *, return_json=False):
+def info_resattr(session, *, return_json=False, save_file=None):
     '''
     If 'return_json' is True, the returned JSON will be a list of residue attribute names.
     '''
     from chimerax.core.attributes import type_attrs
     from chimerax.atomic import Residue
     attrs = type_attrs(Residue)
-    for a in attrs:
-        report_attr(session.logger, "res", a)
+    for i, a in enumerate(attrs):
+        report_attr(session.logger, "res", a, save_file=save_file, append=(i>0))
     if return_json:
         from chimerax.core.commands import JSONResult, ArrayJSONEncoder
         import json
         return JSONResult(ArrayJSONEncoder().encode(attrs), None)
-info_resattr_desc = CmdDesc(synopsis="Report residue attribute information")
+info_resattr_desc = CmdDesc(
+                    keyword=[('save_file', SaveFileNameArg)],
+                    synopsis="Report residue attribute information")
 
 
-def info_distmat(session, atoms, *, return_json=False):
+def info_distmat(session, atoms, *, return_json=False, save_file=None):
     '''
     If 'return_json' is True, the returned JSON will be a JSON object, with the following name/value pairs:
 
@@ -364,7 +381,7 @@ def info_distmat(session, atoms, *, return_json=False):
     atoms = results.atoms
     coords = atoms.scene_coords
     distmat = pdist(coords, "euclidean")
-    report_distmat(session.logger, atoms, distmat)
+    report_distmat(session.logger, atoms, distmat, save_file=save_file)
     if return_json:
         from chimerax.core.commands import JSONResult, ArrayJSONEncoder
         import json
@@ -373,6 +390,7 @@ def info_distmat(session, atoms, *, return_json=False):
             'distance matrix': distmat
         }), None)
 info_distmat_desc = CmdDesc(required=([("atoms", Or(AtomSpecArg, EmptyArg))]),
+                            keyword=[('save_file', SaveFileNameArg)],
                             synopsis="Report distance matrix information")
 
 from .util import Notifier
@@ -408,7 +426,7 @@ info_notify_resume_desc = CmdDesc(required=[("what", _WhatArg),
                                   synopsis="Resume notifications")
 
 
-def info_path(session, which="all", version="all", what=None, *, return_json=False):
+def info_path(session, which="all", version="all", what=None, *, return_json=False, save_file=None):
     '''
     If 'return_json' is True, the returned JSON will be a JSON object with one or two names (depending on
     the arguments given), namely "versioned" and/or "unversioned".  The value(s) will also be JSON objects
@@ -422,16 +440,20 @@ def info_path(session, which="all", version="all", what=None, *, return_json=Fal
         kw = { 'info_dict': info_dict }
     else:
         kw = {}
+    append = False
     if which in ["all", "system"]:
         if version in ["all", "versioned"]:
-            _info_path_show(logger, "system", "versioned", what, **kw)
+            _info_path_show(logger, save_file, append, "system", "versioned", what, **kw)
+            append = True
         if version in ["all", "unversioned"]:
-            _info_path_show(logger, "system", "unversioned", what, **kw)
+            _info_path_show(logger, save_file, append, "system", "unversioned", what, **kw)
+            append = True
     if which == "all" or which == "user":
         if version in ["all", "versioned"]:
-            _info_path_show(logger, "user", "versioned", what, **kw)
+            _info_path_show(logger, save_file, append, "user", "versioned", what, **kw)
+            append = True
         if version in ["all", "unversioned"]:
-            _info_path_show(logger, "user", "unversioned", what, **kw)
+            _info_path_show(logger, save_file, append, "user", "unversioned", what, **kw)
     if return_json:
         from chimerax.core.commands import JSONResult, ArrayJSONEncoder
         import json
@@ -445,10 +467,11 @@ info_path_desc = CmdDesc(optional=[("which", EnumOf(["all",
                                                          "unversioned"])),
                                      ("what", ListOf(path_names)),
                                     ],
-                           synopsis="Report directory paths")
+                            keyword=[('save_file', SaveFileNameArg)],
+                            synopsis="Report directory paths")
 
 
-def _info_path_show(logger, which, version, what, *, info_dict=None):
+def _info_path_show(logger, save_file, append, which, version, what, *, info_dict=None):
     if what is None:
         names = path_names.values
     else:
@@ -471,7 +494,7 @@ def _info_path_show(logger, which, version, what, *, info_dict=None):
                 logger.info("There is no %s %s %s directory" %
                             (which, version, n))
         else:
-            logger.info("%s %s %s directory: %s" %
-                        (which, version, n, attr_value))
+            output(logger, save_file, "%s %s %s directory: %s" % (which, version, n, attr_value),
+                append=append)
             if info_dict is not None:
                 info_dict.setdefault(version, {})[attr_name] = attr_value

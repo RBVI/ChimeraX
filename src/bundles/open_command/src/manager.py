@@ -173,16 +173,20 @@ class OpenManager(ProviderManager):
             # fetch-only type (e.g. cellPACK)
             args = {}
         args.update(provider_info.bundle_info.run_provider(self.session,
-            database_name, self).fetch_args)
+            database_name.lower(), self).fetch_args)
         return args
 
-    def open_data(self, path, **kw):
+    def open_data(self, path, *, in_file_history=False, **kw):
         """
         Given a file path and possibly format-specific keywords, return a (models, status message)
         tuple.  The models will not have been opened in the session.
 
         The format name can be provided with the 'format' keyword if the filename suffix of the path
         does not correspond to those for the desired format.
+
+        Since open_data() cannot know if you intend to add the returned models to the session later,
+        by default it does not put them in the file history.  If you do intend to add them to the
+        session and want them in the file history then specify in_file_history=True.
 
         The fact that the models have not been opened in the session can be an advantage if the models
         are essentially temporary or if you need to make modifications to the models before adding them
@@ -192,7 +196,7 @@ class OpenManager(ProviderManager):
         """
         from .cmd import provider_open
         return provider_open(self.session, [path], _return_status=True,
-            _add_models=False, **kw)
+            _add_models=False, _request_file_history=in_file_history, **kw)
 
     @property
     def open_data_formats(self):

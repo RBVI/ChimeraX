@@ -22,7 +22,7 @@ import platform
 from chimerax import app_dirs
 import sys
 
-WRITER_VERSION = 'v9'  # TODO: update after any change
+WRITER_VERSION = 'v10'  # TODO: update after any change
 
 MMCIF_PREAMBLE = "#\\#CIF_1.1\n" "# mmCIF\n"
 
@@ -84,7 +84,7 @@ def _same_chains(chain0, chain1):
     return c0 == c1
 
 
-def write_mmcif(session, path, *, models=None, rel_model=None, selected_only=False, displayed_only=False, fixed_width=True, best_guess=False):
+def write_mmcif(session, path, *, models=None, rel_model=None, selected_only=False, displayed_only=False, fixed_width=True, best_guess=False, all_coordsets=False, computed_sheets=False):
     from chimerax.atomic import Structure
     if models is None:
         models = session.models.list(type=Structure)
@@ -121,7 +121,7 @@ def write_mmcif(session, path, *, models=None, rel_model=None, selected_only=Fal
             file_name = path.replace("[ID]", m.id_string).replace("[NAME]", m.name)
             with open(file_name, 'w', encoding='utf-8', newline='\r\n') as f:
                 f.write(MMCIF_PREAMBLE)
-                save_structure(session, f, [m], [xforms[m]], used_data_names, selected_only, displayed_only, fixed_width, best_guess)
+                save_structure(session, f, [m], [xforms[m]], used_data_names, selected_only, displayed_only, fixed_width, best_guess, all_coordsets, computed_sheets)
         return
 
     # Need to figure out which ChimeraX models should be grouped together
@@ -129,13 +129,17 @@ def write_mmcif(session, path, *, models=None, rel_model=None, selected_only=Fal
     # "parent" id (other than blank) are a nmr ensemble.
     grouped = {}
     for m in models:
-        grouped.setdefault(m.id[:-1], []).append(m)
+        if m.id is None:
+            group = None
+        else:
+            group = m.id[:-1]
+        grouped.setdefault(group, []).append(m)
 
     # Go through grouped models and confirm they look like an NMR ensemble
     # This should catch fix for docking models and hierarchical models (IHM)
     is_ensemble = {}
     for g, models in grouped.items():
-        if len(models) == 1:
+        if len(models) == 1 or g is None:
             is_ensemble[g] = False
             continue
         chains = models[0].chains
@@ -146,10 +150,10 @@ def write_mmcif(session, path, *, models=None, rel_model=None, selected_only=Fal
         f.write(MMCIF_PREAMBLE)
         for g, models in grouped.items():
             if is_ensemble[g]:
-                save_structure(session, f, models, [xforms[m] for m in models], used_data_names, selected_only, displayed_only, fixed_width, best_guess)
+                save_structure(session, f, models, [xforms[m] for m in models], used_data_names, selected_only, displayed_only, fixed_width, best_guess, all_coordsets, computed_sheets)
             else:
                 for m in models:
-                    save_structure(session, f, [m], [xforms[m]], used_data_names, selected_only, displayed_only, fixed_width, best_guess)
+                    save_structure(session, f, [m], [xforms[m]], used_data_names, selected_only, displayed_only, fixed_width, best_guess, all_coordsets, computed_sheets)
 
 
 ChimeraX_audit_conform = mmcif.CIFTable(
@@ -195,6 +199,7 @@ ChimeraX_authors = (
 )
 
 _CHAIN_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+assert(len(_CHAIN_CHARS) == 62)
 
 system = platform.system()
 if system == 'Darwin':
@@ -233,6 +238,22 @@ def _mmcif_chain_id(i):
     return ''.join(output)
 
 
+def _chain_id_ordinal(chain_id):
+    value = 0
+    for char in chain_id:
+        ch = ord(char)
+        if ord('A') <= ch <= ord('Z'):
+            v = ch - ord('A')
+        elif ord('a') <= ch <= ord('z'):
+            v = ch - ord('a') + 26
+        elif ord('0') <= ch <= ord('9'):
+            v = ch - ord('0') + 52
+        else:
+            raise ValueError("not a legal chain id")
+        value = value * 62 + v
+    return value
+
+
 def _save_metadata(model, categories, file, metadata):
     tables = mmcif.get_mmcif_tables_from_metadata(model, categories, metadata=metadata)
     printed = False
@@ -244,7 +265,7 @@ def _save_metadata(model, categories, file, metadata):
     return printed
 
 
-def save_structure(session, file, models, xforms, used_data_names, selected_only, displayed_only, fixed_width, best_guess):
+def save_structure(session, file, models, xforms, used_data_names, selected_only, displayed_only, fixed_width, best_guess, all_coordsets, computed_sheets):
     # save mmCIF data section for a structure
     # 'models' should only have more than one model if NMR ensemble
     # All 'models' should have the same metadata.
@@ -312,21 +333,10 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
     _save_metadata(best_m, ['exptl'], file, best_metadata)
 
     from chimerax.atomic import Residue
-    old_entity, old_asym = mmcif.get_mmcif_tables_from_metadata(
-        best_m, ['entity', 'struct_asym'], metadata=best_metadata)
-    try:
-        if not old_entity or not old_asym:
-            raise ValueError
-        old_mmcif_chain_to_entity = old_asym.mapping('id', 'entity_id')
-        old_entity_to_description = old_entity.mapping('id', 'pdbx_description')
-    except ValueError:
-        old_mmcif_chain_to_entity = {}
-        old_entity_to_description = {}
-
     from collections import OrderedDict
     entity_info = {}     # { entity_id: (type, pdbx_description) }
-    asym_info = {}       # { auth_chain_id: (entity_id, label_asym_id) }
-    het_asym_info = {}   # { mmcif_chain_id: (entity_id, label_asym_id) }
+    asym_info = {}       # { (auth_chain_id, chain_chars): (entity_id, label_asym_id) }
+    het_asym_info = {}   # { (auth_chain_id, name): (entity_id, label_asym_id) }
     poly_info = []       # [(entity_id, type, one-letter-seq)]
     poly_seq_info = []   # [(entity_id, num, mon_id)]
     pdbx_poly_info = []  # [(entity_id, asym_id, mon_id, seq_id, pdb_strand_id, auth_seq_num, pdb_ins_code)]
@@ -336,37 +346,44 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
 
     seq_entities = OrderedDict()   # { chain.characters : (entity_id, _1to3, [chains]) }
     for c in best_m.chains:
+        eid = None
         chars = c.characters
         if chars in seq_entities:
             eid, _1to3, chains = seq_entities[chars]
-            chains.append(c)
-        else:
-            mcid = c.existing_residues[0].mmcif_chain_id
-            try:
-                descrip = old_entity_to_description[old_mmcif_chain_to_entity[mcid]]
-            except KeyError:
-                descrip = '?'
+            if _1to3 is not None or not c.from_seqres:
+                chains.append(c)
+                continue
+            # fallthrough when sequence wasn't authoratative, but is now
+        descrip = c.description
+        if not descrip:
+            descrip = '?'
+        if eid is None:
             eid = len(entity_info) + 1
-            entity_info[eid] = ('polymer', descrip)
-            names = set(c.existing_residues.names)
-            nstd = 'yes' if names.difference(_standard_residues) else 'no'
-            # _1to3 is reverse map to handle missing residues
-            if not best_guess and not c.from_seqres:
-                skipped_sequence_info = True
-                _1to3 = None
+        entity_info[eid] = ('polymer', descrip)
+        names = set(c.existing_residues.names)
+        nstd = 'yes' if names.difference(_standard_residues) else 'no'
+        # _1to3 is reverse map to handle missing residues
+        if not best_guess and not c.from_seqres:
+            skipped_sequence_info = True
+            _1to3 = None
+        else:
+            if c.polymer_type == Residue.PT_AMINO:
+                _1to3 = _protein1to3
+                poly_info.append((eid, nstd, 'polypeptide(L)', chars))  # TODO: or polypeptide(D)
+            elif names.isdisjoint(set(_rna1to3)):
+                # must be DNA
+                _1to3 = _dna1to3
+                poly_info.append((eid, nstd, 'polyribonucleotide', chars))
             else:
-                if c.polymer_type == Residue.PT_AMINO:
-                    _1to3 = _protein1to3
-                    poly_info.append((eid, nstd, 'polypeptide(L)', chars))  # TODO: or polypeptide(D)
-                elif names.isdisjoint(set(_rna1to3)):
-                    # must be DNA
-                    _1to3 = _dna1to3
-                    poly_info.append((eid, nstd, 'polyribonucleotide', chars))
-                else:
-                    # must be RNA
-                    _1to3 = _rna1to3
-                    poly_info.append((eid, nstd, 'polydeoxyribonucleotide', chars))
+                # must be RNA
+                _1to3 = _rna1to3
+                poly_info.append((eid, nstd, 'polydeoxyribonucleotide', chars))
+        if chars not in seq_entities:
             seq_entities[chars] = (eid, _1to3, [c])
+        else:
+            _, _, chains = seq_entities[chars]
+            chains.append(c)
+            seq_entities[chars] = (eid, _1to3, chains)
 
     if skipped_sequence_info:
         session.logger.warning("Not saving entity_poly_seq for non-authoritative sequences")
@@ -374,6 +391,8 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
     # use all chains of the same entity to figure out what the sequence's residues are named
     pdbx_poly_tmp = {}
     for chars, (eid, _1to3, chains) in seq_entities.items():
+        if _1to3 is None:
+            continue
         chains = [c for c in chains if c.from_seqres]
         pdbx_poly_tmp[eid] = []
         for seq_id, ch, residues in zip(range(1, sys.maxsize), chars, zip(*(c.residues for c in chains))):
@@ -397,9 +416,9 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
     used_mmcif_chain_ids = set()
     last_asym_id = 0
 
-    def get_asym_id(want_id):
+    def allocate_asym_id(want_id):
         nonlocal existing_mmcif_chain_ids, used_mmcif_chain_ids, last_asym_id
-        if want_id not in used_mmcif_chain_ids:
+        if want_id and want_id not in used_mmcif_chain_ids:
             used_mmcif_chain_ids.add(want_id)
             return want_id
         while True:
@@ -413,42 +432,47 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
     # assign label_asym_id's to each chain
     for c in best_m.chains:
         mcid = c.existing_residues[0].mmcif_chain_id
-        label_asym_id = get_asym_id(mcid)
+        label_asym_id = allocate_asym_id(mcid)
         chars = c.characters
         chain_id = c.chain_id
-        eid, _1to3, _ = seq_entities[chars]
+        eid, _, _ = seq_entities[chars]
         asym_info[(chain_id, chars)] = (label_asym_id, eid)
 
-        tmp = pdbx_poly_tmp[eid]
+        tmp = pdbx_poly_tmp.get(eid)
+        if tmp is None:
+            continue
         for name, label_seq_id, seq_num, ins_code in tmp:
             pdbx_poly_info.append((eid, label_asym_id, name, label_seq_id, chain_id, seq_num, ins_code))
     del pdbx_poly_tmp
 
-    het_entities = {}   # { het_name: { 'entity': entity_id, chain: (label_entity_id, label_asym_id) } }
+    het_entities = {}  # name: entity_id
     het_residues = concatenate(
         [m.residues.filter(m.residues.polymer_types == Residue.PT_NONE) for m in models])
     for r in het_residues:
-        mcid = r.mmcif_chain_id
         n = r.name
+        cid = r.chain_id
+        if (cid, n) in het_asym_info:
+            continue
         if n in het_entities:
-            eid = het_entities[n]['entity']
+            eid = het_entities[n]
         else:
             if n == 'HOH':
                 etype = 'water'
             else:
                 etype = 'non-polymer'
             try:
-                descrip = old_entity_to_description[old_mmcif_chain_to_entity[mcid]]
-            except KeyError:
+                tr = mmcif.find_template_residue(session, r.name)
+                descrip = tr.description
+                if not descrip:
+                    raise ValueError
+            except (ValueError, AttributeError):
                 descrip = '?'
             eid = len(entity_info) + 1
             entity_info[eid] = (etype, descrip)
-            het_entities[n] = {'entity': eid}
-        if mcid in het_entities[n]:
-            continue
-        label_asym_id = get_asym_id(mcid)
-        het_asym_info[mcid] = (label_asym_id, eid)
-        het_entities[n][mcid] = (eid, label_asym_id)
+            het_entities[n] = eid
+        mcid = r.mmcif_chain_id
+        label_asym_id = allocate_asym_id(mcid)
+        het_asym_info[(cid, n)] = (label_asym_id, eid)
 
     entity = mmcif.CIFTable('entity', ['id', 'type', 'pdbx_description'], flattened(entity_info.items()))
     entity.print(file, fixed_width=fixed_width)
@@ -457,9 +481,11 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
     entity_poly_seq = mmcif.CIFTable('entity_poly_seq', ['entity_id', 'num', 'mon_id'], flattened(poly_seq_info))
     entity_poly_seq.print(file, fixed_width=fixed_width)
     import itertools
+    info = list(itertools.chain(asym_info.values(), het_asym_info.values()))
+    info.sort(key=lambda x: _chain_id_ordinal(x[0]))
     struct_asym = mmcif.CIFTable(
-        'struct_asym', ['id', 'entity_id'],
-        flattened(itertools.chain(asym_info.values(), het_asym_info.values())))
+        'struct_asym', ['id', 'entity_id'], flattened(info))
+    del info
     struct_asym.print(file, fixed_width=fixed_width)
     pdbx_poly_seq = mmcif.CIFTable('pdbx_poly_seq_scheme', ['entity_id', 'asym_id', 'mon_id', 'seq_id', 'pdb_strand_id', 'pdb_seq_num', 'pdb_ins_code'], flattened(pdbx_poly_info))
     pdbx_poly_seq.print(file, fixed_width=fixed_width)
@@ -534,7 +560,7 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
             if alt_loc != '.':
                 atom.set_alt_loc(original_alt_loc, False)
 
-    for m, xform, model_num in zip(models, xforms, range(1, sys.maxsize)):
+    def do_atom_site_model(m, xform, model_num):
         residues = m.residues
         het_residues = residues.filter(residues.polymer_types == Residue.PT_NONE)
         for c in m.chains:
@@ -548,11 +574,21 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
             chain_het = het_residues.filter(het_residues.chain_ids == chain_id)
             het_residues -= chain_het
             for r in chain_het:
-                asym_id, entity_id = het_asym_info[r.mmcif_chain_id]
+                asym_id, entity_id = het_asym_info[(chain_id, r.name)]
                 atom_site_residue(r, '.', asym_id, entity_id, model_num, xform)
-        for r in het_residues:
-            asym_id, entity_id = het_asym_info[r.mmcif_chain_id]
+        info = [(r, het_asym_info[(r.chain_id, r.name)]) for r in het_residues]
+        for r, (asym_id, entity_id) in sorted(info, key=lambda x: _chain_id_ordinal(x[1][0])):
+            #asym_id, entity_id = het_asym_info[r.mmcif_chain_id]
             atom_site_residue(r, '.', asym_id, entity_id, model_num, xform)
+        del info
+
+    if all_coordsets and len(models) == 1 and best_m.num_coordsets > 1:
+        xform = xforms[0]
+        for model_num in range(1, best_m.num_coordsets + 1):
+            do_atom_site_model(best_m, xform, model_num)
+    else:
+        for m, xform, model_num in zip(models, xforms, range(1, sys.maxsize)):
+            do_atom_site_model(m, xform, model_num)
 
     atom_site_data[:] = flattened(atom_site_data)
     atom_site.print(file, fixed_width=fixed_width)
@@ -710,9 +746,11 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
         "end_label_comp_id",
         "end_label_asym_id",
         "end_label_seq_id",
+        "beg_auth_comp_id",
         "beg_auth_asym_id",
         "beg_auth_seq_id",
         "pdbx_beg_PDB_ins_code",
+        "end_auth_comp_id",
         "end_auth_asym_id",
         "end_auth_seq_id",
         "pdbx_end_PDB_ins_code",
@@ -745,8 +783,28 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
             id, ctype,
             beg_res.name, beg_asym, beg_seq,
             end_res.name, end_asym, end_seq,
-            beg_cid, beg_rnum, beg_rins,
-            end_cid, end_rnum, end_rins))
+            beg_res.name, beg_cid, beg_rnum, beg_rins,
+            end_res.name, end_cid, end_rnum, end_rins))
+
+    sheet_data = []
+    sheet = mmcif.CIFTable("struct_sheet", [
+        "id",
+        "number_strands"
+    ], sheet_data)
+
+    def sheet_entry(id, count):
+        sheet_data.append((id, count))
+
+    sheet_order_data = []
+    sheet_order = mmcif.CIFTable("struct_sheet_order", [
+        "sheet_id",
+        "range_id_1",
+        "range_id_2",
+        "sense",
+    ], sheet_order_data)
+
+    def sheet_order_entry(sheet_id, first, second, sense):
+        sheet_order_data.append((sheet_id, first, second, sense))
 
     sheet_range_data = []
     sheet_range = mmcif.CIFTable("struct_sheet_range", [
@@ -757,16 +815,17 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
         "end_label_comp_id",
         "end_label_asym_id",
         "end_label_seq_id",
-        "symmetry",
+        "beg_auth_comp_id",
         "beg_auth_asym_id",
         "beg_auth_seq_id",
         "pdbx_beg_PDB_ins_code",
+        "end_auth_comp_id",
         "end_auth_asym_id",
         "end_auth_seq_id",
         "pdbx_end_PDB_ins_code",
     ], sheet_range_data)
 
-    def sheet_range_entry(sheet_id, count, beg_res, end_res, symmetry="1_555"):
+    def sheet_range_entry(sheet_id, strand_num, beg_res, end_res):
         nonlocal sheet_range_data
         beg_asym, beg_seq = residue_info[beg_res]
         end_asym, end_seq = residue_info[end_res]
@@ -785,16 +844,17 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
         if not end_rins:
             end_rins = '?'
         sheet_range_data.append((
-            sheet_id, count,
+            sheet_id, strand_num,
             beg_res.name, beg_asym, beg_seq,
             end_res.name, end_asym, end_seq,
-            symmetry,
-            beg_cid, beg_rnum, beg_rins,
-            end_cid, end_rnum, end_rins))
+            beg_res.name, beg_cid, beg_rnum, beg_rins,
+            end_res.name, end_cid, end_rnum, end_rins))
 
     helix_count = 0
     strand_count = 0
     residues = best_m.residues
+    # use ChimeraX's secondary structure information
+    # which does not include sheets
     ssids = residues.secondary_structure_ids
     last_ssid = 0
     beg_res = None
@@ -812,7 +872,7 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
             elif beg_res.is_helix:
                 helix_count += 1
                 struct_conf_entry('HELX%d' % helix_count, "HELX_P", beg_res, end_res)
-            elif beg_res.is_strand:
+            elif not computed_sheets and beg_res.is_strand:
                 strand_count += 1
                 sheet_range_entry('?', strand_count, beg_res, end_res)
             beg_res = end_res = r
@@ -824,18 +884,50 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
         elif beg_res.is_helix:
             helix_count += 1
             struct_conf_entry('HELX%d' % helix_count, "HELX_P", beg_res, end_res)
-        elif beg_res.is_strand:
+        elif not computed_sheets and beg_res.is_strand:
             strand_count += 1
-            struct_conf_entry('STRN%d' % strand_count, "STRN_P", beg_res, end_res)
-
-    if helix_count:
-        struct_conf_type_data.append("HELX_P")
+            sheet_range_entry('?', strand_count, beg_res, end_res)
+    if computed_sheets:
+        # "best guess" case - guess at sheet information by running DSSP
+        with best_m.suppress_ss_change_notifications():
+            from chimerax.dssp import compute_ss
+            ss_data = compute_ss(best_m, return_values=True)
+            # helix_info = ss_data["helix_info"]
+            # if helix_info:
+            #     for (beg_res, end_res), htype in helix_info:
+            #         # Helix type is always HELX_P in current PDB entries
+            #         helix_count += 1
+            #         struct_conf_entry('HELX%d' % helix_count, "HELX_P", beg_res, end_res)
+            ss_sheets = ss_data["sheets"]
+            if ss_sheets:
+                ss_strands = ss_data["strands"]
+                strand_map = {}
+                for i, strands in enumerate(ss_sheets, start=1):
+                    sheet_id = f'S{i}'
+                    sheet_entry(sheet_id, len(strands))
+                    for j, strand in enumerate(strands, start=1):
+                        beg_res, end_res = ss_strands[strand]
+                        sheet_range_entry(sheet_id, j, beg_res, end_res)
+                        strand_map[strand] = (sheet_id, j)
+                ss_parallel = ss_data["strands_parallel"]
+                for (first, second) in ss_parallel:
+                    parallel = 'parallel' if ss_parallel[(first, second)] else 'anti-parallel'
+                    st1 = strand_map[first]
+                    st2 = strand_map[second]
+                    if st1[0] != st2[0]:
+                        print("old strand order:", st1, st2)
+                        continue
+                    sheet_order_entry(st1[0], st1[1], st2[1], parallel)
 
     struct_conf_data[:] = flattened(struct_conf_data)
     struct_conf.print(file, fixed_width=fixed_width)
     # struct_conf_type_data[:] = flattened(struct_conf_type_data)
     struct_conf_type.print(file, fixed_width=fixed_width)
     # del struct_conf_data, struct_conf, struct_conf_type_data, struct_conf_type  # not in cython
+    sheet_data[:] = flattened(sheet_data)
+    sheet.print(file, fixed_width=fixed_width)
+    sheet_order_data[:] = flattened(sheet_order_data)
+    sheet_order.print(file, fixed_width=fixed_width)
     sheet_range_data[:] = flattened(sheet_range_data)
     sheet_range.print(file, fixed_width=fixed_width)
     # del sheet_range_data, sheet_range  # not in cython
@@ -903,5 +995,5 @@ if 0:
     # models = open_cmd(session, pdb_id, format='pdb')
     # save_mmcif(session, '%s.cif' % pdb_id, models)
     with open('%s.cif' % pdb_id, 'w') as file:
-        save_structure(session, file, models, set(), False, False)  # noqa
+        save_structure(session, file, models, set(), False, False, False)  # noqa
     raise SystemExit(-1)

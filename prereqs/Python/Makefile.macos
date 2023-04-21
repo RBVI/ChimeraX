@@ -35,6 +35,10 @@ endif
 all : $(DISTRIBUTION)
 
 $(DISTRIBUTION):
+	# Move the user's Python directory so we can build relocatable Python cleanly
+	if [ -d ~/Library/Python/$(PYTHON_VERSION)/ ]; then \
+		mv ~/Library/Python/$(PYTHON_VERSION) ~/Library/Python/$(PYTHON_VERSION).backup; \
+	fi
 	git clone git@github.com:gregneagle/relocatable-python.git
 	# Create requirements.txt to pip install certifi
 	cd relocatable-python && \
@@ -51,3 +55,7 @@ $(DISTRIBUTION):
 	cd relocatable-python && \
 	tar jcf $(DISTRIBUTION) Python.framework
 	mv relocatable-python/$(DISTRIBUTION) .
+	# Restore the user's Python directory
+	if [ -d ~/Library/Python/$(PYTHON_VERSION).backup ]; then \
+		mv ~/Library/Python/$(PYTHON_VERSION).backup ~/Library/Python/$(PYTHON_VERSION); \
+	fi

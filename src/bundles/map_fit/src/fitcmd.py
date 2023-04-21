@@ -21,7 +21,7 @@ def fitmap(session, atoms_or_map, in_map = None, subtract_maps = None,
            cluster_angle = 6, cluster_shift = 3,
            asymmetric_unit = True, level_inside = 0.1, sequence = 0,
            max_steps = 2000, grid_step_min = 0.01, grid_step_max = 0.5,
-           list_fits = None, each_model = False):
+           list_fits = None, log_fits = None, each_model = False):
     '''
     Fit an atomic model or a map in a map using a rigid rotation and translation
     by locally optimizing correlation.  There are four modes: 1) fit all models into map
@@ -102,6 +102,8 @@ def fitmap(session, atoms_or_map, in_map = None, subtract_maps = None,
       Move entire molecules, or only the atoms that were specified.
     list_fits : bool
       Show the fits in a dialog.
+    log_fits : file path
+      Write tab separated values giving fit translation and rotation and metrics to a file.
     '''
     volume = in_map
     if metric is None:
@@ -145,6 +147,10 @@ def fitmap(session, atoms_or_map, in_map = None, subtract_maps = None,
             show_fit_list(fits, show_first, session)
         flist.extend(fits)
 
+    if log_fits is not None and len(flist) > 0:
+        from .search import save_fit_positions_and_metrics
+        save_fit_positions_and_metrics(flist, log_fits)
+        
     return flist
 
 # -----------------------------------------------------------------------------
@@ -546,7 +552,7 @@ def report_status(log):
 #
 def register_fitmap_command(logger):
 
-    from chimerax.core.commands import CmdDesc, register, BoolArg, IntArg, FloatArg, EnumOf, ObjectsArg
+    from chimerax.core.commands import CmdDesc, register, BoolArg, IntArg, FloatArg, EnumOf, ObjectsArg, SaveFileNameArg
     from chimerax.map.mapargs import MapArg
 
     fitmap_desc = CmdDesc(
@@ -585,6 +591,7 @@ def register_fitmap_command(logger):
 # Output options
             ('move_whole_molecules', BoolArg),
             ('list_fits', BoolArg),
+            ('log_fits', SaveFileNameArg),
         ],
         required_arguments = ['in_map'],
         synopsis = 'Optimize positions of atomic models or maps in maps'

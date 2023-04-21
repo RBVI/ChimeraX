@@ -44,6 +44,15 @@ class _AlphaFoldBundle(BundleAPI):
         elif command_name == 'alphafold pae':
             from . import pae
             pae.register_alphafold_pae_command(logger)
+        elif command_name == 'alphafold contacts':
+            from . import contacts
+            contacts.register_alphafold_contacts_command(logger)
+        elif command_name == 'alphafold covariation':
+            from . import msa
+            msa.register_alphafold_covariation_command(logger)
+        elif command_name == 'alphafold msa':
+            from . import msa
+            msa.register_alphafold_msa_command(logger)
 
     @staticmethod
     def run_provider(session, name, mgr):
@@ -53,7 +62,8 @@ class _AlphaFoldBundle(BundleAPI):
                 def fetch(self, session, ident, format_name, ignore_cache, **kw):
                     from .fetch import alphafold_fetch
                     return alphafold_fetch(session, ident, ignore_cache=ignore_cache,
-                                           add_to_session=False, **kw)
+                                           add_to_session=False, in_file_history=False,
+                                           **kw)
                 @property
                 def fetch_args(self):
                     from chimerax.core.commands import BoolArg, Or, EnumOf
@@ -64,5 +74,12 @@ class _AlphaFoldBundle(BundleAPI):
                         'trim': BoolArg,
                     }
             return Info()
+
+    @staticmethod
+    def get_class(class_name):
+        # 'get_class' is called by session code to get class saved in a session
+        if class_name == 'DatabaseEntryId':
+            from .search import DatabaseEntryId
+            return DatabaseEntryId
 
 bundle_api = _AlphaFoldBundle()

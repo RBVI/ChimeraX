@@ -34,22 +34,25 @@ _color_geom_args_doc = '''
 # -----------------------------------------------------------------------------
 #
 def color_radial(session, surfaces, center = None, coordinate_system = None,
-                 palette = None, range = None, key = False,
-                 update = True):
+                 palette = None, range = None, transparency = None,
+                 key = False, update = True):
     '''
     Color surfaces by distance from a center point to each surface vertex
     with distances mapped to colors by a color palette.
     '''
 
-    _color_geometry(session, surfaces, geometry = 'radial', center = center, coordinate_system = coordinate_system,
-                    palette = palette, range = range, key = key, auto_update = update)
+    _color_geometry(session, surfaces, geometry = 'radial',
+                    center = center, coordinate_system = coordinate_system,
+                    palette = palette, range = range, transparency = transparency,
+                    key = key, auto_update = update)
 
 color_radial.__doc__ += _color_geom_args_doc
 
 # -----------------------------------------------------------------------------
 #
 def color_cylindrical(session, surfaces, center = None, axis = None, coordinate_system = None,
-                      palette = None, range = None, key = False, update = True):
+                      palette = None, range = None, transparency = None,
+                      key = False, update = True):
     '''
     Color surfaces by distance from a cylinder axis to each surface vertex
     with distances mapped to colors by a color palette.
@@ -57,14 +60,16 @@ def color_cylindrical(session, surfaces, center = None, axis = None, coordinate_
 
     _color_geometry(session, surfaces, geometry = 'cylindrical',
                     center = center, axis = axis, coordinate_system = coordinate_system,
-                    palette = palette, range = range, key = key, auto_update = update)
+                    palette = palette, range = range, transparency = transparency,
+                    key = key, auto_update = update)
 
 color_cylindrical.__doc__ += _color_geom_args_doc
 
 # -----------------------------------------------------------------------------
 #
 def color_height(session, surfaces, center = None, axis = None, coordinate_system = None,
-                 palette = None, range = None, key = False, update = True):
+                 palette = None, range = None, transparency = None,
+                 key = False, update = True):
     '''
     Color surfaces by distance parallel an axis to each surface vertex
     with distances mapped to colors by a color palette.
@@ -72,7 +77,8 @@ def color_height(session, surfaces, center = None, axis = None, coordinate_syste
 
     _color_geometry(session, surfaces, geometry = 'height',
                     center = center, axis = axis, coordinate_system = coordinate_system,
-                    palette = palette, range = range, key = key, auto_update = update)
+                    palette = palette, range = range, transparency = transparency,
+                    key = key, auto_update = update)
 
 color_height.__doc__ += _color_geom_args_doc
 
@@ -80,8 +86,8 @@ color_height.__doc__ += _color_geom_args_doc
 #
 def _color_geometry(session, surfaces, geometry = 'radial',
                     center = None, axis = None, coordinate_system = None,
-                    palette = 'redblue', range = None, key = False,
-                    auto_update = True, caps_only = False):
+                    palette = 'redblue', range = None, transparency = None,
+                    key = False, auto_update = True, caps_only = False):
     surfs = [s for s in surfaces if s.vertices is not None]
 
     c0 = None
@@ -104,7 +110,8 @@ def _color_geometry(session, surfaces, geometry = 'radial',
             a = axis.scene_coordinates(coordinate_system, session.main_view.camera)
         else:
             a = surf.scene_position.z_axis()
-        cs = cclass(surf, palette, range, origin = c, axis = a, auto_recolor = auto_update)
+        cs = cclass(surf, palette, range, transparency = transparency,
+                    origin = c, axis = a, auto_recolor = auto_update)
         cs.set_vertex_colors()
         undo_state.add(surf, 'color_undo_state', cprev, surf.color_undo_state)
         if key:
@@ -118,11 +125,13 @@ def _color_geometry(session, surfaces, geometry = 'radial',
 from chimerax.core.state import State
 class GeometryColor(State):
 
-    def __init__(self, surface, palette, range, origin = (0,0,0), axis = (0,0,1),
+    def __init__(self, surface, palette, range, transparency = None,
+                 origin = (0,0,0), axis = (0,0,1),
                  auto_recolor = True):
 
         self.surface = surface
         self.colormap = None
+        self.transparency = transparency
         self.origin = origin
         self.axis = axis
 
@@ -161,6 +170,9 @@ class GeometryColor(State):
         values = self.values(va)
         cmap = self.colormap
         rgba8 = cmap.interpolated_rgba8(values)
+        if self.transparency is not None:
+            alpha = min(255, max(0, int(2.56 * (100 - self.transparency))))
+            rgba8[:,3] = alpha
         return rgba8
         
     # -------------------------------------------------------------------------
@@ -196,6 +208,7 @@ class GeometryColor(State):
         data = {
             'surface': self.surface,
             'colormap': self.colormap,
+            'transparency': self.transparency,
             'origin': self.origin,
             'axis': self.axis,
             'version': 1,
@@ -211,7 +224,7 @@ class GeometryColor(State):
             session.logger.warning('Could not restore coloring on surface %s because surface does not exist.'
                                    % '.'.join('%d' % i for i in id))
             return None
-        c = cls(surf, palette = data['colormap'], range = None,
+        c = cls(surf, palette = data['colormap'], range = None, transparency = data.get('transparency'),
                 origin = data['origin'], axis = data['axis'])
         c.set_vertex_colors()
         return c

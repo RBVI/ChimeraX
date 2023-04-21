@@ -26,6 +26,12 @@ class ItemsGenerator:
 
         super().__init__(**kw)
 
+    @property
+    def all_values(self):
+        values = list(self.value_map.keys())
+        values.sort(key=self.key_func)
+        return values
+
     def destroy(self):
         self.list_func = self.filter_func = self.key_func = self.item_text_func = None
         try:
@@ -190,31 +196,33 @@ class ItemListWidget(ItemsGenerator, ItemsUpdater, QListWidget):
                     else:
                         filtered_sel = item_names[-1:]
  
-        preblocked = self.signalsBlocked()
-        if not preblocked:
-            self.blockSignals(True)
-        self.clear()
-        self.addItems(item_names)
-        if self.selectionMode() == self.SingleSelection:
-            if filtered_sel:
-                next_value = self.item_map[filtered_sel[0]]
+        # avoid gratuitous updates, which screw up using up/down arrows in the list
+        if item_names != [self.item(i).text() for i in range(self.count())]:
+            preblocked = self.signalsBlocked()
+            if not preblocked:
+                self.blockSignals(True)
+            self.clear()
+            self.addItems(item_names)
+            if self.selectionMode() == self.SingleSelection:
+                if filtered_sel:
+                    next_value = self.item_map[filtered_sel[0]]
+                else:
+                    next_value = None
             else:
-                next_value = None
-        else:
-            next_value = [self.item_map[fs] for fs in filtered_sel]
-        if prev_value == next_value:
-            self._select_value(next_value)
-            if not preblocked:
-                self.blockSignals(False)
-        else:
-            if not preblocked:
-                self.blockSignals(False)
-            self.set_value(next_value, delayed=True)
-            # if items were deleted, then the current selection could be empty when the previous
-            # one was not, but the test in the value setter will think the value is unchanged
-            # and not emit the changed signal, so check for that here
-            if len(sel) > 0 and not next_value:
-                _when_all_updated(self, self.itemSelectionChanged.emit)
+                next_value = [self.item_map[fs] for fs in filtered_sel]
+            if prev_value == next_value:
+                self._select_value(next_value)
+                if not preblocked:
+                    self.blockSignals(False)
+            else:
+                if not preblocked:
+                    self.blockSignals(False)
+                self.set_value(next_value, delayed=True)
+                # if items were deleted, then the current selection could be empty when the previous
+                # one was not, but the test in the value setter will think the value is unchanged
+                # and not emit the changed signal, so check for that here
+                if len(sel) > 0 and not next_value:
+                    _when_all_updated(self, self.itemSelectionChanged.emit)
         if del_recursion:
             delattr(self, '_recursion')
 

@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-Surface" version="1.0"
+<BundleInfo name="ChimeraX-Surface" version="1.0.1"
 	    package="chimerax.surface" customInit="true"
   	    minSessionVersion="1" maxSessionVersion="1">
 
@@ -79,6 +79,8 @@
     <ChimeraXClassifier>Command :: surface cap :: Surfaces :: control surface caps when clipping</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: surface dust :: Surfaces :: hide small pieces of surfaces</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: surface undust :: Surfaces :: show small pieces of surfaces</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: surface invertShown :: Surfaces :: Show hidden part of surface and hide shown part</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: surface transform :: Surfaces :: Scale, rotate or move surfaces</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: surface zone :: Surfaces :: show surface near atoms</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: surface unzone :: Surfaces :: show all of surface</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: surface check :: Surfaces :: check surface topology</ChimeraXClassifier>

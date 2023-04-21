@@ -15,168 +15,101 @@ from chimerax.core.commands import EnumOf
 ChargeMethodArg = EnumOf(['am1-bcc', 'gasteiger'])
 ChargeMethodArg.default_value = 'am1-bcc'
 
-"""
 from chimerax.core.errors import UserError
-from chimerax.add_charge import ChargeMethodArg
+from .charge import default_standardized, add_charges, add_nonstandard_res_charges, ChargeError
 
-chargeable_residues = set(['ILE', 'DG', 'DC', 'DA', 'GLY', 'ATP', 'TRP', 'DT', 'GLU', 'NH2', 'ASP', 'NAD', 'LYS', 'PRO', 'ASN', 'A', 'CYS', 'C', 'G', 'THR', 'HOH', 'GTP', 'HIS', 'U', 'NDP', 'SER', 'GDP', 'PHE', 'ALA', 'MET', 'ACE', 'NME', 'ADP', 'LEU', 'ARG', 'VAL', 'TYR', 'GLN', 'HID', 'HIP', 'HIE', 'MSE'])
+# functions in .dock_prep may need updating if cmd_addcharge() call signature changes
+def cmd_addcharge(session, residues, *, method=ChargeMethodArg.default_value,
+        standardize_residues=default_standardized):
+    if residues is None:
+        from chimerax.atomic import all_residues
+        residues = all_residues(session)
+    if not residues:
+        raise UserError("No residues specified")
 
-def cmd_coulombic(session, atoms, *, surfaces=None, his_scheme=None, offset=1.4, spacing=1.0,
-        padding=5.0, map=False, palette=None, range=None, dist_dep=True, dielectric=4.0,
-        charge_method=ChargeMethodArg.default_value):
-    if map:
-        session.logger.warning("Computing electrostatic volume map not yet supported")
-    session.logger.status("Computing Coulombic potential%s" % (" map" if map else ""))
-    if palette is None:
-        from chimerax.core.colors import BuiltinColormaps
-        cmap = BuiltinColormaps["red-white-blue"]
-    else:
-        cmap = palette
-    if not cmap.values_specified:
-        rmin, rmax = (-10.0, 10.0) if range is None else range
-        cmap = cmap.linear_range(rmin, rmax)
-    session.logger.status("Matching atoms to surfaces", secondary=True)
-    atoms_per_surf = []
-    from chimerax.atomic import all_atomic_structures, MolecularSurface, all_atoms
-    if atoms is None:
-        if surfaces is None:
-            # surface all chains
-            for struct in all_atomic_structures(session):
-                # don't create surface until charges checked
-                if struct.num_chains == 0:
-                    atoms_per_surf.append((struct.atoms, None, None))
-                else:
-                    for chain in struct.chains:
-                        atoms_per_surf.append((chain.existing_residues.atoms, None, None))
-        else:
-            for srf in surfaces:
-                if isinstance(srf, MolecularSurface):
-                    atoms_per_surf.append((srf.atoms, None, srf))
-                else:
-                    atoms_per_surf.append((all_atoms(session), None, srf))
-    else:
-        if surfaces is None:
-            # on a per-structure basis, determine if the atoms contain any polymers, and if so then
-            # surface those chains (and not non-polymers); otherwise surface the atoms
-            by_chain = {}
-            for struct, chain_id, chain_atoms in atoms.by_chain:
-                chains = chain_atoms.unique_residues.unique_chains
-                if chains:
-                    by_chain.setdefault(struct, {})[chains[0]] = chain_atoms
-            for struct, struct_atoms in atoms.by_structure:
-                try:
-                    for chain, shown_atoms in by_chain[struct].items():
-                        chain_atoms = chain.existing_residues.atoms
-                        atoms_per_surf.append((chain_atoms, chain_atoms & shown_atoms, None))
-                except KeyError:
-                    atoms_per_surf.append((struct_atoms, None, None))
-        else:
-            for srf in surfaces:
-                atoms_per_surf.append((atoms, None, srf))
-
-    # check whether the atoms have charges, and if not, that we know how to assign charges
-    # to the requested atoms
-    problem_residues = set()
-    needs_assignment = set()
-    for surf_atoms, shown_atoms, srf in atoms_per_surf:
-        for r in surf_atoms.unique_residues:
-            if getattr(r, '_coulombic_his_scheme', his_scheme) != his_scheme:
-                # should only be set on HIS residues
-                needs_assignment.add(r)
+    if standardize_residues == "none":
+        standardize_residues = []
+    check_hydrogens(session, residues)
+    try:
+        add_charges(session, residues, method=method, status=session.logger.status,
+            standardize_residues=standardize_residues)
+    except ChargeError as e:
+        raise UserError(str(e))
+    from math import floor
+    def is_non_integral(val):
+        return abs(floor(val+0.5) - val) > 0.005
+    non_integral_info = {}
+    for s, s_residues in residues.by_structure:
+        non_integral = []
+        total_charge = 0.0
+        for r in s_residues:
+            res_charge = sum([a.charge for a in r.atoms])
+            if is_non_integral(res_charge):
+                non_integral.append((r, res_charge))
+            total_charge += res_charge
+        if non_integral and is_non_integral(total_charge):
+            non_integral_info[s] = non_integral
+    if non_integral_info:
+        from chimerax.core.commands import plural_form, commas
+        session.logger.warning("%d %s has non-integral total charge.\n"
+            "Details in log." % (len(non_integral_info), plural_form(non_integral_info, "structure")))
+        session.logger.info("Here are the structures will non-integral total charge along with the"
+            " particular residues from those structures with non-integral total charge:")
+        for s, res_info in non_integral_info.items():
+            if len(res_info) == len([r for r in s.residues if r.num_atoms > 1]):
+                res_info_text = "all residues"
             else:
-                for a in r.atoms:
-                    try:
-                        a.charge + 1.0
-                    except (AttributeError, TypeError):
-                        if r.name in chargeable_residues:
-                            needs_assignment.add(r)
-                        else:
-                            problem_residues.add(r.name)
-                        break
-    if problem_residues:
-        session.logger.status("")
-        from chimerax.core.commands import commas
-        raise UserError("Don't know how to assign charges to the following residue types: %s"
-            % commas(problem_residues, conjunction='and'))
+                res_info = commas(["%s: %g" % (r,c) for r, c in res_info], conjunction="and")
+            session.logger.info(f"{s}: {res_info}")
 
-    if needs_assignment:
-        session.logger.status("Assigning charges", secondary=True)
-        from .coulombic import assign_charges
-        from chimerax.add_charge import ChargeError
-        try:
-            assign_charges(session, needs_assignment, his_scheme)
-        except ChargeError as e:
-            session.logger.status("")
-            raise UserError(str(e))
+def cmd_addcharge_nonstd(session, residues, res_name, net_charge, *,
+        method=ChargeMethodArg.default_value):
+    if residues is None:
+        from chimerax.atomic import all_residues
+        residues = all_residues(session)
+    residues = residues.filter(residues.names == res_name)
+    if not residues:
+        raise UserError(f"No specified residues are named '{res_name}'")
 
-    # Since electrostatics are long range, unlike mlp, don't compute a map (with a distance cutoff)
-    # by default.  Instead, compute the values at the surface vertices directly.  Only compute a
-    # map afterward if requested.
-    from chimerax.core.undo import UndoState
-    undo_state = UndoState('coulombic')
-    undo_owners = []
-    undo_old_vals = []
-    undo_new_vals = []
-    for surf_atoms, shown_atoms, srf in atoms_per_surf:
-        if srf is None:
-            session.logger.status("Creating surface", secondary=True)
-            from chimerax.surface import surface
-            data = [(surf.atoms, surf)
-                for surf in surface(session, surf_atoms if shown_atoms is None else shown_atoms)]
-        else:
-            data = [(surf_atoms, srf)]
-        session.logger.status("Computing electrostatics", secondary=True)
-        for charged_atoms, target_surface in data:
-            undo_owners.append(target_surface)
-            undo_old_vals.append(target_surface.vertex_colors)
-            if target_surface.normals is None:
-                session.logger.warning("Surface %s has no vertex normals set, using distance from surface"
-                    " of 0 instead of %g" % (target_surface, offset))
-                target_points = target_surface.vertices
-            else:
-                target_points = target_surface.vertices + offset * target_surface.normals
-            import numpy, os
-            # Make sure _esp can runtime link shared library libarrays.
-            from chimerax import arrays ; arrays.load_libarrays()
-            from ._esp import potential_at_points
-            cpu_count = os.cpu_count()
-            vertex_values = potential_at_points(
-                target_surface.scene_position.transform_points(target_points), charged_atoms.scene_coords,
-                numpy.array([a.charge for a in charged_atoms], dtype=numpy.double), dist_dep, dielectric,
-                1 if cpu_count is None else cpu_count)
-            rgba = cmap.interpolated_rgba(vertex_values)
-            from numpy import uint8, amin, mean, amax
-            rgba8 = (255*rgba).astype(uint8)
-            target_surface.vertex_colors = rgba8
-            undo_new_vals.append(rgba8)
-            session.logger.info("Coulombic values for %s: minimum, %.2f, mean %.2f, maximum %.2f"
-                % (target_surface, amin(vertex_values), mean(vertex_values), amax(vertex_values)))
-    undo_state.add(undo_owners, "vertex_colors", undo_old_vals, undo_new_vals, option="S")
-    session.undo.register(undo_state)
+    check_hydrogens(session, residues)
+    add_nonstandard_res_charges(session, residues, net_charge, method=method, status=session.logger.status)
 
-    session.logger.status("", secondary=True)
-    session.logger.status("Finished computing Coulombic potential%s" % (" map" if map else ""))
+def check_hydrogens(session, residues):
+    atoms = residues.atoms
+    hyds = atoms.filter(atoms.element_numbers == 1)
+    if hyds:
+        return
+    if session.in_script:
+        return
+    from chimerax.ui.ask import ask
+    if ask(session, "Adding charges requires hydrogen atoms to be present.", show_icon=False,
+            info="The residues requested have no hydrogen atoms.\n"
+            "Add hydrogens to them now?") == "yes":
+        from chimerax.core.commands import run, StringArg
+        from chimerax.atomic import concise_residue_spec
+        run(session, "addh %s" % StringArg.unparse(concise_residue_spec(session, residues)))
 
 def register_command(logger):
-    from chimerax.core.commands import CmdDesc, register, Or, EmptyArg, SurfacesArg, EnumOf, FloatArg
-    from chimerax.core.commands import BoolArg, ColormapArg, ColormapRangeArg
-    from chimerax.atomic import AtomsArg
+    from chimerax.core.commands import CmdDesc, register, Or, EmptyArg, EnumOf, IntArg, StringArg, ListOf
+    from chimerax.core.commands import NoneArg
+    from chimerax.atomic import ResiduesArg
+    from chimerax.atomic.struct_edit import standardizable_residues
     desc = CmdDesc(
-        required = [('atoms', Or(AtomsArg, EmptyArg))],
+        required = [('residues', Or(ResiduesArg, EmptyArg))],
         keyword = [
-            ('surfaces', SurfacesArg),
-            ('his_scheme', EnumOf(['HIP', 'HIE', 'HID'])),
-            ('offset', FloatArg),
-            ('spacing', FloatArg),
-            ('padding', FloatArg),
-            ('map', BoolArg),
-            ('palette', ColormapArg),
-            ('range', ColormapRangeArg),
-            ('disp_dep', BoolArg),
-            ('dielectric', FloatArg),
-            ('charge_method', ChargeMethodArg),
+            ('method', ChargeMethodArg),
+            ('standardize_residues', Or(ListOf(EnumOf(standardizable_residues)),NoneArg)),
         ],
-        synopsis = 'Color surfaces by coulombic potential'
+        synopsis = 'Add charges'
     )
-    register("coulombic", desc, cmd_coulombic, logger=logger)
-"""
+    register("addcharge", desc, cmd_addcharge, logger=logger)
+
+    desc = CmdDesc(
+        required = [('residues', Or(ResiduesArg, EmptyArg)), ('res_name', StringArg),
+            ('net_charge', IntArg)],
+        keyword = [
+            ('method', ChargeMethodArg),
+        ],
+        synopsis = 'Add non-standard residue charges'
+    )
+    register("addcharge nonstd", desc, cmd_addcharge_nonstd, logger=logger)

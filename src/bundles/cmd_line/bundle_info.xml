@@ -1,27 +1,21 @@
-<BundleInfo name="ChimeraX-CommandLine" version="1.2.3"
-	    package="chimerax.cmd_line" customInit="true"
-  	    minSessionVersion="1" maxSessionVersion="1">
-
-  <Author>UCSF RBVI</Author>
-  <Email>chimerax@cgl.ucsf.edu</Email>
-  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
-
-  <Synopsis>Command line support</Synopsis>
-  <Description>Provide command line tool with command history.</Description>
-
-  <Categories>
-    <Category name="General"/>
-  </Categories>
-
-  <Dependencies>
-    <Dependency name="ChimeraX-Core" version="~=1.0"/>
-    <Dependency name="ChimeraX-UI" version="~=1.0"/>
-  </Dependencies>
-
-  <Classifiers>
-    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
-    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>Tool :: Command Line Interface :: General :: Command Line Interface</ChimeraXClassifier>
-  </Classifiers>
-
+<BundleInfo name="ChimeraX-CommandLine" version="1.2.5" package="chimerax.cmd_line" customInit="true" minSessionVersion="1" maxSessionVersion="1">
+	<Author>UCSF RBVI</Author>
+	<Email>chimerax@cgl.ucsf.edu</Email>
+	<URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+	<Synopsis>Command line support</Synopsis>
+	<Description>
+Provide command line tool with command history.
+	</Description>
+	<Categories>
+		<Category name="General"/>
+	</Categories>
+	<Dependencies>
+		<Dependency name="ChimeraX-Core" version="~=1.0"/>
+		<Dependency name="ChimeraX-UI" version="~=1.0"/>
+	</Dependencies>
+	<Classifiers>
+		<PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+		<PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+		<ChimeraXClassifier>Tool :: Command Line Interface :: General :: Command Line Interface</ChimeraXClassifier>
+	</Classifiers>
 </BundleInfo>

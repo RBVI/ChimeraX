@@ -43,6 +43,7 @@ class CrosslinksPlot(Graph):
         if item:
             add('Select ' + item.description(), lambda i=item: i.select())
         add('Lay Out to Match Structure', self.draw_graph)
+        add('Save Plot As...', self.save_plot_as)
 
 # ------------------------------------------------------------------------------
 #

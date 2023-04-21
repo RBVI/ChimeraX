@@ -26,7 +26,8 @@ def read_sff(session, path, max_surfaces = 100, debug = False):
     seg = SFFSegmentation.from_file(path)
 
     if debug:
-        report_segmentation_info(seg)
+        info = segmentation_info(seg)
+        session.logger.info(info)
     lmodels = lattice_models(session, seg, max_surfaces)
     mmodels = mesh_models(session, seg)
 
@@ -37,42 +38,47 @@ def read_sff(session, path, max_surfaces = 100, debug = False):
         msg += '\nSegmentation file contains no lattices or meshes.'
     return models, msg
 
-def report_segmentation_info(seg):
-    print ('seg name', seg.name)
-    print('software', [software.name for software in seg.software_list])
-    print('num transforms', len(seg.transforms))
-    print('num segments', len(seg.segments))
-    print('num lattices', len(seg.lattices))
-    print('sff version', seg.version)
-    
-    for tf in seg.transforms:
-        print('transform', tf.id, 'data', tf.data_array)
+def segmentation_info(seg, indent = '....'):
+    info = [
+        f'sff version {seg.version}',
+        f'seg name {seg.name}',
+        f'software {[software.name for software in seg.software_list]}',
+    ]
 
+    info.append(f'num transforms {len(seg.transforms)}')
+    info.extend([f'transform {tf.id}\ndata {tf.data_array}' for tf in seg.transforms])
+
+    info.append(f'num segments {len(seg.segments)}')
     for segment in seg.segments:
         v = segment.three_d_volume
-        print ('segment id', segment.id)
-        print('num meshes', len(segment.mesh_list))
-        print('descrip', segment.biological_annotation.name)
-        print('color', segment.colour)
-        print('num shapes', len(segment.shape_primitive_list))
-        print('parent', segment.parent_id)
+        info.extend(
+            [f'{indent}segment id {segment.id}',
+             f'{indent}descrip {segment.biological_annotation.name}',
+             f'{indent}color {segment.colour}',
+             f'{indent}num shapes {len(segment.shape_primitive_list)}',
+             f'{indent}parent {segment.parent_id}',
+             ])
         if v is None:
-            print ('no volume')
+            info.append(f'{indent}no volume')
         else:
-            print('lattice id', v.lattice_id)
-            print('transform id', v.transform_id)
-            print('value', v.value)
+            info.extend(
+                [f'{indent}volume lattice id {v.lattice_id}',
+                 f'{indent}volume transform id {v.transform_id}',
+                 f'{indent}volume value {v.value}',])
         if segment.mesh_list:
-            for i,m in enumerate(segment.mesh_list):
-                print('mesh', i+1)
-                print('nv', m.num_vertices)
-                print('npoly', m.num_polygons)
-                print('transf id', m.transform_id)
+            info.append(f'{indent}num meshes {len(segment.mesh_list)}')
+            info.extend(
+                [f'{indent}{indent}mesh {i+1}, num vertices {len(m.vertices)}, num triangles {len(m.triangles)}, transform id {m.transform_id}'
+                 for i,m in enumerate(segment.mesh_list)])
 
+    info.append(f'num lattices {len(seg.lattices)}')
     for lattice in seg.lattices:
-        print('lattice', lattice.id,
-              'shape', lattice.data_array.shape,
-              'value type', lattice.mode)
+        info.extend(
+            [f'{indent}lattice {lattice.id}',
+             f'{indent}shape {lattice.data_array.shape}',
+             f'{indent}value type {lattice.mode}',])
+
+    return '\n'.join(info)
 
 def lattice_models(session, seg, max_surfaces = 100):
     # Map lattice id to dictionary mapping segment index to (descrip, color)
@@ -202,67 +208,26 @@ def mesh_geometry(mesh, seg):
     # TODO: SFF format data structure mix vertices and normals, calling both vertices -- a nightmare.
     #   Semantics of which normal belong with which vertices unclear (consecutive in polygon?).
     #   Efficiency reading is horrible.  Ask Paul K to make separate vertex and normal lists.
-    nv = mesh.num_vertices // 2
-    from numpy import empty, float32
-    va = empty((nv,3), float32)
-    na = empty((nv,3), float32)
-    for i, v in enumerate(mesh.vertices):
-        vid = v.id
-        if vid != i:
-            raise ValueError('Require mesh vertices be numbers consecutively from 0, got vertex id %d in position %d' % (vid, i))
-        d = v.designation # 'surface' or 'normal'
-        if d == 'surface':
-            if vid % 2 == 1:
-                raise ValueError('Require odd mesh indices to be normals, got a vertex at position %d' % vid)
-            va[vid//2] = v.point
-        elif d == 'normal':
-            if vid % 2 == 0:
-                raise ValueError('Require even mesh indices to be vertices, got a normal at position %d' % vid)
-            na[vid//2] = v.point
-        else:
-            raise ValueError('Vertex %d designation "%s" is not "surface" or "normal"' % (v.id, d))
-
-    '''
-    vids = list(set(v.id for v in mesh.vertices if v.designation == 'surface'))
-    vids.sort()
-    print ('vertex ids', vids[:3], 'num', len(vids), 'last', vids[-1])
-    '''
-
-    if mesh.transform_id is None:
-        from chimerax.geometry import Place, scale
-#        transform = scale((160,160,160)) * Place(seg.transforms[0].data_array)
-        transform = Place(seg.transforms[0].data_array) * scale((160,160,160))
+    from numpy import int32
+    va,ta = mesh.vertices.data_array, mesh.triangles.data_array.astype(int32)
+    n = mesh.normals
+    if n is None:
+        from chimerax.surface import calculate_vertex_normals
+        na = calculate_vertex_normals(va, ta)
     else:
-        transform = transform_by_id(seg, mesh.transform_id)
-    transform.transform_points(va, in_place = True)
-    transform.transform_normals(na, in_place = True)
+        na = n.data_array
 
-    tri = []
-    for p in mesh.polygons:
-#        print ('poly', len(p.vertex_ids), p.vertex_ids[:6])
-        t = tuple(vid//2 for vid in p.vertices if vid % 2 == 0)
-        if len(t) != 3:
-            raise ValueError('Require polygons to be single triangles, got polygon with %d vertices' % len(t))
-        tri.append(t)
-        '''
-        last_vid = None
-        for vid in p.vertex_ids:
-            if vid % 2 == 0:
-                if last_vid is not None:
-#                    tri.append((vid//2,last_vid//2))
-                    tri.append((vid//2,last_vid//2,vid//2))
-                last_vid = vid
-        first_vid = p.vertex_ids[0]
-        tri.append((last_vid//2,first_vid//2,last_vid//2))
-        '''
-    from numpy import array, int32
-    ta = array(tri, int32)
-
+    tf_id = 0 if mesh.transform_id is None else mesh.transform_id
+    if tf_id is not None:
+        transform = transform_by_id(seg, tf_id)
+        transform.transform_points(va, in_place = True)
+        transform.transform_normals(na, in_place = True)
+        
     return va,na,ta
 
 def transform_by_id(seg, tf_id):
-    from chimerax.geometry import Place, scale
+    from chimerax.geometry import Place
     for tf in seg.transforms:
         if tf.id == tf_id:
-            return scale((160,160,160)) * Place(tf.data_array)
+            return Place(tf.data_array)
     return Place()

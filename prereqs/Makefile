@@ -20,7 +20,9 @@ all:
 #
 
 ifndef UBUNTU_DIST
+ifndef FLATPAK_DIST
 NEED_FFMPEG=1
+endif
 endif
 
 ifdef WIN32
@@ -29,28 +31,19 @@ endif
 
 ifeq ($(OS),Linux)
 NEED_CHRPATH=1
-ifdef UBUNTU_DIST
-ifeq ($(shell expr $(UBUNTU_DIST) '<' 18.04),1)
-NEED_MESA=1
-NEED_OSMESA=1
-endif
-endif
-ifdef CENTOS_DIST
-ifeq ($(shell expr $(CENTOS_DIST) '<' 8),1)
-NEED_MESA=1
-NEED_OSMESA=1
-endif
-endif
 ifndef UBUNTU_DIST
 ifndef CENTOS_DIST
-#NEED_EXPAT=1
+ifndef FLATPAK_DIST
 NEED_OPENSSL=1
 NEED_ZLIB=1
-#NEED_LLVM=1
-#NEED_MESA=1
-#NEED_OSMESA=1
 endif
 endif
+endif
+endif
+
+ifdef FLATPAK_DIST
+NEED_RSYNC=1
+NEED_LIBGLU=1
 endif
 
 ifdef NEED_CHRPATH
@@ -67,47 +60,6 @@ ffmpeg.install:
 ffmpeg.app-install:
 endif
 
-ifdef NEED_OSMESA
-SUBDIRS += osmesa
-else
-osmesa.install:
-osmesa.app-install:
-endif
-
-ifdef NEED_MESA
-SUBDIRS += mesa
-ifeq ($(OS),Darwin)
-NEED_PKGCONFIG=1
-endif
-else
-mesa.install:
-mesa.app-install:
-endif
-
-ifdef NEED_LLVM
-SUBDIRS += llvm
-ifeq ($(OS),Darwin)
-NEED_PKGCONFIG=1
-endif
-else
-llvm.install:
-llvm.app-install:
-endif
-
-ifdef NEED_PKGCONFIG
-SUBDIRS += pkgconfig
-else
-pkgconfig.install:
-pkgconfig.app-install:
-endif
-
-ifdef NEED_EXPAT
-SUBDIRS += expat
-else
-expat.install:
-expat.app-install:
-endif
-
 ifdef NEED_OPENSSL
 SUBDIRS += openssl
 else
@@ -122,11 +74,25 @@ zlib.install:
 zlib.app-install:
 endif
 
+ifdef NEED_RSYNC
+SUBDIRS += rsync
+else
+rsync.install:
+rsync.app-install:
+endif
+
+ifdef NEED_LIBGLU
+SUBDIRS += libGLU
+else
+libGLU.install:
+libGLU.app-install:
+endif
+
 # Python egg installation has a race condition updating easy-install.pth
 .NOTPARALLEL:
 
 # keep in alphabetical order, dependencies go below
-SUBDIRS	+= ambertools cxservices imex openmm pips PyQt Python qtshim
+SUBDIRS	+= ambertools cxservices openmm pips PyQt Python qtshim
 
 
 # All needed subdirectories must be set by now.
@@ -187,6 +153,9 @@ endif
 #ifdef UNIX
 #$(subst unix.install,,$(SUBDIR_INSTALL)): unix.install
 #endif
+ifdef FLATPAK_DIST
+$(subst rsync.install,,$(SUBDIR_INSTALL)): rsync.install
+endif
 
 # Please keep dependencies in alphabetical order.
 # All packages that have dependencies should depend on the .install
@@ -194,21 +163,11 @@ endif
 
 cxservices.install: pips.install
 cxservices.app-install: pips.app-install
-gdcm.app-install: Python.app-install
-gdcm.install: Python.install
-llvm.install: 
-mesa.install: llvm.install pkgconfig.install
 openmm.app-install: Python.app-install pips.app-install
 openmm.install: Python.install pips.install
 openssl.app-install: chrpath.app-install
-openssl.install: chrpath.install pkgconfig.install
-osmesa.app-install: Python.app-install
-osmesa.install: Python.install
-ifdef NEED_MESA
-osmesa.app-install: mesa.install
-osmesa.install: mesa.install
-endif
+openssl.install: chrpath.install
 pips.app-install: Python.app-install
 pips.install: Python.install
-Python.app-install: zlib.app-install openssl.app-install expat.app-install chrpath.app-install
-Python.install: zlib.install openssl.install expat.install chrpath.install
+Python.app-install: zlib.app-install openssl.app-install chrpath.app-install
+Python.install: zlib.install openssl.install chrpath.install

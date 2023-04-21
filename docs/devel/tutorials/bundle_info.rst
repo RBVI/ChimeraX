@@ -14,6 +14,9 @@
     or derivations thereof.
     === UCSF ChimeraX Copyright ===
 
+.. role:: raw-html(raw)
+    :format: html
+
 .. _Bundle Information XML Tags:
 
 Bundle Information XML Tags
@@ -440,7 +443,7 @@ of ``mac``.
     - **name**: name of manager.  If **autostart** is true (see below), the bundle
       must implement the ``init_manager`` method.  The two positional arguments to
       ``init_manager`` are the session instance and the manager name.
-    - **uiOnly**: set to ``true`` if manager should only be created
+    - **guiOnly**: set to ``true`` if manager should only be created
       when the graphical user interface is being used; omit otherwise
     - **autostart**: If true, the manager is started during Chimera startup.
       Defaults to true.
@@ -708,6 +711,9 @@ These are the possible `Provider`_ attributes:
     *encoding*
         If the format is textual, the encoding for that text.  Binary formats should
         omit this attribute.  The most common encoding for text formats is "utf-8".
+        If the encoding is declared as "utf-8" and a file reader for the format throws
+        `UnicodeDecodeError <https://wiki.python.org/moin/UnicodeDecodeError>`_, then
+        utf-16 and utf-32 will also be tried.
 
     .. _nicknames:
 
@@ -806,10 +812,11 @@ The other possible `Provider`_ attributes are:
         *want_path*\="true", you don't have to explicitly specify that).
 
     *is_default*
-        If your data format has suffixes that are the same as another format's suffixes, *is_default*
+        **Deprecated.**  Will be replaced by the scheme described `here <https://www.rbvi.ucsf.edu/trac/ChimeraX/ticket/7813#comment:2>`_.
+        :raw-html:`<font color="gray">` If your data format has suffixes that are the same as another format's suffixes, *is_default*
         will determine which format will be used when the open command's ``format`` keyword is omitted.
         *is_default* defaults to "true", so therefore typically lesser known/used formats supply this
-        attribute with a value of "false".
+        attribute with a value of "false". :raw-html:`</font>`
 
     *pregrouped_structures*
         If a provider returns multiple models, the open command will automatically group them

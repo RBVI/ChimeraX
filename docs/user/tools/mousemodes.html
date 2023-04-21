@@ -69,6 +69,7 @@ See also:
 <td align="center" class="text"><a href="../selection.html">select</a>
 items for subsequent operations, +<b>Shift</b> to toggle or add to selection;
 see also <a href="../commands/select.html"><b>select</b></a>
+and <a href="#vr">differences in VR</a>
 </td>
 </tr><tr>
 <td align="center"><img src="mouse-icons/rotate.png" width="35px"></td>
@@ -90,10 +91,12 @@ except if wheel, Z-translate;
 see also <a href="../commands/move.html"><b>move</b></a>;
 <br>assigned button + <b>Shift</b> switches to <b>rotate</b> instead</td>
 </tr><tr>
-<td align="center"><img src="mouse-icons/zoom.png" width="35px"></td>
+<td align="center"><a name="zoom"></a>
+<img src="mouse-icons/zoom.png" width="35px"></td>
 <td align="center"><b>zoom</b><br>(wheel)</td>
 <td align="center">zoom the view
-(slightly <a href="#vr">different in VR</a>);
+(slightly <a href="#vr">different in VR</a> and
+<a href="../commands/camera.html#stereozoom">in stereo</a>);
 see also <a href="../commands/zoom.html"><b>zoom</b></a>
 </td>
 </tr><tr>
@@ -273,8 +276,10 @@ see <a href="#multiwindowing">details</a>
 <td align="center"><img src="mouse-icons/bondrot.png" width="35px"></td>
 <td align="center"><b>bond rotation</b></td>
 <td align="center" class="text">adjust torsion angle (original position not 
-retained) by clicking a bond and dragging vertically;
-see also <a href="../commands/torsion.html"><b>torsion</b></a></td>
+retained) by clicking a bond and dragging vertically, <b>+Shift</b> to
+move the larger set of atoms in the molecule instead of the smaller;
+see also <a href="../commands/torsion.html"><b>torsion</b></a>,
+<a href="buildstructure.html#adjust"><b>Adjust Torsions</b></a></td>
 </tr><tr>
 <td align="center"><img src="mouse-icons/swapaa.png" width="35px"></td>
 <td align="center"><b>swapaa</b></td>
@@ -386,16 +391,26 @@ See also:
 <h3>OpenMM Dynamics</h3>
 <p>
 To work with the <b>tug</b> or <b>minimize</b> mouse modes,
-the entire atomic model must be parametrized in OpenMM.
+the entire atomic model must be parametrized in OpenMM,
+meaning that the structure:
+</p>
+<ol>
+<li>must be fully protonated (have all hydrogen atoms present).
+Hydrogen atoms can be added beforehand with 
+<a href="addhydrogens.html"><b>Add Hydrogens</b></a> or
+the command <a href="../commands/addh.html"><b>addh</b></a>.
+<li>must contain only standard residues and water,
 <!-- 
-uses the following from 
+parameters from 
 https://github.com/pandegroup/openmm/tree/master/wrappers/python/simtk/openmm/app/data/amber14 : protein.ff14SB.xml DNA.OL15.xml RNA.OL3.xml lipid17.xml tip3p.xml
 -->
-Currently, this requires a fully protonated structure
-containing only standard residues and/or water.
-Protons can be added beforehand with the command
-<a href="../commands/addh.html"><b>addh</b></a>.
-</p><p>
+unless the <a href="https://cxtoolshed.rbvi.ucsf.edu/apps/chimeraxtugligands"
+target="_blank"><b>TugLigands</b> bundle</a>, which contains
+parameters for &gt;21K additional residue types, has been installed from the
+<a href="https://cxtoolshed.rbvi.ucsf.edu/"
+target="_blank">ChimeraX Toolshed</a>.
+</ol>
+<p>
 The <b>tug</b> mode runs dynamics on the entire atomic model.
 A model named <b>Tug arrow</b> is added to show the location and direction
 of tugging.
@@ -491,7 +506,6 @@ and pressing the assigned button.
 Most modes that normally involve clicking and dragging
 are operated by clicking and moving the hand controller vertically.
 The <b>bond rotation</b> mode requires rotating the hand controller. 
-</p><p>
 Some of the mouse modes are modified in VR:
 </p>
 <ul>
@@ -499,8 +513,11 @@ Some of the mouse modes are modified in VR:
 the hand-controller cone tip (or the two-cone midpoint if zooming with a 
 two-handed gesture) if that point is inside the scene bounding box, 
 otherwise the center of the scene bounding box.
-Outside of VR, <a href="../commands/zoom.html">zooming</a>
+Outside of VR, <a href="#zoom">zooming</a>
 moves the camera toward or away from the scene.
+<li>in <b>select</b> mode, vertical drag broadens/narrows the selection
+(navigates the <a href="../selection.html#cascade">selection cascade</a>
+like using the keyboard up and down arrow keys)
 <li>the <b>label</b> mode makes labels
 <table border cellpadding="0" cellspacing="0"
 style="display:inline-block; vertical-align:middle"><tr>
@@ -518,5 +535,5 @@ both rotates and translates the volume-data slice in
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-March 2022</address>
+April 2023</address>
 </body></html>

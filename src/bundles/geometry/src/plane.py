@@ -77,6 +77,18 @@ class Plane(State):
         b = (s1 * n1n2dot - s2 * n1normsqr) / divisor
         return a * self._normal + b * plane._normal, v
 
+    plane_intersection = intersection
+
+    def line_intersection(self, origin, direction, *, epsilon=1e-6):
+        # Cribbed from https://rosettacode.org/wiki/Find_the_intersection_of_a_line_with_a_plane
+        n_dot_d = self.normal.dot(direction)
+        if abs(n_dot_d) < epsilon:
+            raise PlaneNoIntersectionError("Line does not intersect plane or lies in plane")
+
+        w = origin - self.origin
+        si = -self.normal.dot(w) / n_dot_d
+        return w + si * direction + self.origin
+
     def nearest(self, pt):
         return pt - self._normal * self.distance(pt)
 

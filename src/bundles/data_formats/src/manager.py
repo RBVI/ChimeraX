@@ -40,14 +40,25 @@ class FormatsManager(ProviderManager):
 
         def convert_arg(arg, default=None):
             if arg and isinstance(arg, str):
+                if arg == 'None':
+                    return None
+                if arg == 'true':
+                    return True
+                if arg == 'false':
+                    return False
                 return arg.split(',')
             return [] if default is None else default
         suffixes = convert_arg(suffixes)
         nicknames = convert_arg(nicknames, [name.lower()])
         mime_types = convert_arg(mime_types)
-        insecure = category == self.CAT_SCRIPT if insecure is None else insecure
+        allow_directory = convert_arg(allow_directory, default=False)
+        insecure = convert_arg(insecure, default=False)
+
+
+        insecure = category == self.CAT_SCRIPT if (insecure is None or insecure is False) else insecure
 
         logger = self.session.logger
+        update_bundle_only = False
         if name in self._formats:
             if not bundle_info.installed:
                 return
@@ -55,11 +66,18 @@ class FormatsManager(ProviderManager):
             if prev_bundle.installed:
                 logger.info("Replacing data format '%s' as defined by %s with definition"
                     " from %s" % (name, prev_bundle.name, bundle_info.name))
-        from .format import DataFormat
-        data_format = DataFormat(name, category, suffixes, nicknames, mime_types,
-            reference_url, insecure, encoding, synopsis, allow_directory)
-        for suffix in suffixes:
-            self._suffix_to_formats.setdefault(suffix.lower(), []).append(data_format)
+                del self._formats[name]
+            else:
+                # usually previously uninstalled bundle getting installed
+                update_bundle_only = prev_bundle.name == bundle_info.name
+        if update_bundle_only:
+            data_format = self._formats[name][1]
+        else:
+            from .format import DataFormat
+            data_format = DataFormat(name, category, suffixes, nicknames, mime_types,
+                reference_url, insecure, encoding, synopsis, allow_directory)
+            for suffix in suffixes:
+                self._suffix_to_formats.setdefault(suffix.lower(), []).append(data_format)
         self._formats[name] = (bundle_info, data_format)
         if raise_trigger:
             self.triggers.activate_trigger("data formats changed", self)

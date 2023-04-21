@@ -79,7 +79,6 @@ class Structure(Model, StructureData):
                     lambda *args, qual=ses_func: self._ses_call(qual)))
         from chimerax.core.models import MODEL_POSITION_CHANGED, MODEL_DISPLAY_CHANGED
         self._ses_handlers.append(t.add_handler(MODEL_POSITION_CHANGED, self._update_position))
-        self._ses_handlers.append(t.add_handler(MODEL_DISPLAY_CHANGED, self._notify_display_change))
         self.triggers.add_trigger("changes")
         _register_hover_trigger(session)
         
@@ -302,6 +301,7 @@ class Structure(Model, StructureData):
         return self.color
 
     def _set_model_color(self, color):
+        Model.model_color.fset(self, color)
         self.atoms.colors = color
         residues = self.residues
         residues.ribbon_colors = color
@@ -491,11 +491,17 @@ class Structure(Model, StructureData):
             self.session.models.close([pbg])
             self._chain_trace_pbgroup = None
 
-    def _notify_display_change(self, trig_name, model):
-        if model != self:
+    def _get_display(self):
+        return Model.display.fget(self)
+
+    def _set_display(self, display):
+        if display == self.display:
             return
+        Model.display.fset(self, display)
         # ensure that "display changed" trigger fires
-        StructureData.display.fset(self, self.display)
+        StructureData.display.fset(self, display)
+
+    display = property(_get_display, _set_display)
 
     def _update_level_of_detail(self, total_atoms):
         lod = self._level_of_detail
@@ -1024,6 +1030,7 @@ class Structure(Model, StructureData):
                 expand_by = atoms.filter(not_a()).full_structures.atoms
         if expand_by:
             results.add_atoms(expand_by)
+            results.add_model(self)
 
 class AtomsDrawing(Drawing):
     # can't have any child drawings
@@ -1269,7 +1276,8 @@ class AtomicStructure(Structure):
         if style is None:
             if self.num_chains == 0:
                 style = "non-polymer"
-            elif self.num_chains < 5 and len(self.atoms) < SMALL_THRESHOLD:
+            elif self.num_chains < 5 and len(self.atoms) < SMALL_THRESHOLD \
+            and len(self.chains.existing_residues) < MAX_RIBBON_THRESHOLD:
                 style = "small polymer"
             elif self.num_chains < 250 and len(self.atoms) < MEDIUM_THRESHOLD:
                 style = "medium polymer"
@@ -1296,7 +1304,7 @@ class AtomicStructure(Structure):
             het_atoms.colors = element_colors(het_atoms.element_numbers)
             ribbonable = self.chains.existing_residues
             # 10 residues or less is basically a trivial depiction if ribboned
-            if explicit_style or MIN_RIBBON_THRESHOLD < len(ribbonable) < MAX_RIBBON_THRESHOLD:
+            if explicit_style or MIN_RIBBON_THRESHOLD < len(ribbonable):
                 atoms.displays = False
                 ligand = atoms.filter(atoms.structure_categories == "ligand").residues
                 ribbonable -= ligand
@@ -1536,8 +1544,63 @@ class AtomicStructure(Structure):
     def _report_model_info(self, session):
         # report Model Archive info [#5601]
         from chimerax.mmcif import get_mmcif_tables_from_metadata
-        align_data, template_deets, template_segment = get_mmcif_tables_from_metadata(self,
-            ['ma_alignment', 'ma_template_ref_db_details', 'ma_template_poly_segment'])
+        align_data, template_deets, template_segment, scoring_metrics, local_scores = \
+            get_mmcif_tables_from_metadata(self, ['ma_alignment', 'ma_template_ref_db_details',
+            'ma_template_poly_segment', 'ma_qa_metric', 'ma_qa_metric_local'])
+        if local_scores and scoring_metrics:
+            from chimerax.core.attributes import string_to_attr
+            scoring_metric_cache = {}
+            chain_cache = {}
+            res_scoring = []
+            metric_names = scoring_metrics.mapping('id', 'name')
+            for chain_id, res_name, seq_id, metric_id, value in local_scores.fields(
+                    ['label_asym_id', 'label_comp_id', 'label_seq_id', 'metric_id', 'metric_value']):
+                try:
+                    chain = chain_cache[chain_id]
+                except KeyError:
+                    for chain in self.chains:
+                        if chain.chain_id == chain_id:
+                            chain_cache[chain_id] = chain
+                            break
+                    else:
+                        session.logger.warning("No chain in structure corresponds to chain ID given"
+                            " in local score info (chain '%s')" % chain_id)
+                        break
+                res = chain.residues[int(seq_id)-1]
+                if not res:
+                    continue
+                if res.name != res_name:
+                    session.logger.warning("Residue name for residue %s in chain %s (%s) does not correspond"
+                        " to name in local score info (%s)" % (seq_id, chain_id, res.name, res_name))
+                    break
+                try:
+                    metric_name, metric_attr = scoring_metric_cache[metric_id]
+                except KeyError:
+                    try:
+                        metric_name = metric_names[metric_id]
+                    except KeyError:
+                        session.logger.warning("No scoring metric with ID '%s'" % metric_id)
+                        break
+                    metric_attr = string_to_attr(metric_name) + '_score'
+                    scoring_metric_cache[metric_id] = (metric_name, metric_attr)
+                try:
+                    value = float(value)
+                except ValueError:
+                    session.logger.warning("Value for metric '%s' is non-numeric ('%s')"
+                        % (metric_name, value))
+                    break
+                res_scoring.append((res, metric_attr, value))
+            else:
+                # everything worked
+                for res, attr_name, value in res_scoring:
+                    setattr(res, attr_name, value)
+                from chimerax.atomic import Residue
+                for metric_name, metric_attr in scoring_metric_cache.values():
+                    Residue.register_attr(session, metric_attr, "Local model scoring", attr_type=float)
+                    session.logger.info('<a href="cxcmd:color byattribute r:%s %s palette red:yellow:green">'
+                        'Color</a> %s by residue' ' <a href="help:user/attributes.html">attribute</a> %s'
+                        % (metric_attr, self.atomspec, self.name, metric_attr), is_html=True)
+
         if not align_data:
             return
         template_names = {}
@@ -1610,9 +1673,10 @@ class AtomicStructure(Structure):
             return '<a title="Show sequence" href="cxcmd:sequence chain %s">%s</a>' % (
                 ''.join([chain.string(style="command", include_structure=True)
                     for chain in chains]), escape(description))
-        uids = {u.chain_id:u.uniprot_name for u in uniprot_ids(self)}
+        uids = uniprot_ids(self)
+        uchains = set(uid.chain_id for uid in uids)
         have_uniprot_ids = len([chain for chains in descripts.values()
-                                for chain in chains if chain.chain_id in uids]) > 0
+                                for chain in chains if chain.chain_id in uchains]) > 0
         from chimerax.core.logger import html_table_params
         struct_name = self.name if is_ensemble else str(self)
         lines = ['<table %s>' % html_table_params,
@@ -1634,10 +1698,7 @@ class AtomicStructure(Structure):
             cids = ' '.join([chain_text(chain) for chain in chains])
             cdescrip = descript_text(description, chains)
             if have_uniprot_ids:
-                uidset = set(uids.get(chain.chain_id) for chain in chains
-                             if chain.chain_id in uids)
-                ucmd = '<a title="Show annotations" href="cxcmd:open %s from uniprot">%s</a>'
-                cuids = ','.join(ucmd % (uname,uname) for uname in uidset)
+                cuids = uniprot_chain_descriptions(uids, chains)
             lines.extend([
                 '    <tr>',
                 '      <td style="text-align:center">' + cids + '</td>',
@@ -1657,6 +1718,16 @@ class AtomicStructure(Structure):
         html = assembly_html_table(self)
         if html:
             session.logger.info(html, is_html=True)
+
+    def show_info(self):
+        from chimerax.core.commands import run, concise_model_spec
+        spec = concise_model_spec(self.session, [self], allow_empty_spec=False, relevant_types=AtomicStructure)
+        if assembly_html_table(self):
+            base_cmd = "sym %s; " % spec
+        else:
+            base_cmd = ""
+        run(self.session, base_cmd + "log metadata %s; log chains %s" % (spec, spec))
+
 
 # also used by model panel to determine if its "Info" button should issue a "sym" command...
 def assembly_html_table(mol):
@@ -1715,6 +1786,38 @@ def chain_res_range(chain):
     ranges.append((start_res, end_res))
     return range_string(*ranges[0], first_res_only=False) + ',' + ','.join(
         [range_string(first, last, first_res_only=True)[1:] for first, last in ranges[1:]])
+
+def uniprot_chain_descriptions(uids, chains):
+
+    if len(chains) == 0:
+        return ''
+    
+    # Group uniport ids with different sequence ranges.
+    uranges = {}
+    chain_ids = set(chain.chain_id for chain in chains)
+    for uid in uids:
+        if uid.chain_id in chain_ids:
+            if uid.uniprot_id in uranges:
+                uranges[uid.uniprot_id].append(uid)
+            else:
+                uranges[uid.uniprot_id] = [uid]
+
+    # Make a link for each Uniprot id and list sequence ranges
+    descrips = []
+    ucmd = '<a title="Show annotations" href="cxcmd:open %s from uniprot">%s</a>'
+    cspec = f'#{chains[0].structure.id_string}/{",".join(sorted(chain_ids))}'
+    scmd = f'<a title="Select sequence" href="cxcmd:select {cspec}:%d-%d">%d-%d</a>'
+    for ruids in uranges.values():
+        uid = ruids[0]
+        utext = uid.uniprot_name if uid.uniprot_name else uid.uniprot_id
+        descrip = ucmd % (uid.uniprot_id, utext)
+        seq_ranges = set(tuple(uid.chain_sequence_range)
+                         for uid in ruids if uid.chain_sequence_range)
+        if seq_ranges:
+            descrip += ' ' + ' '.join(scmd % (s,e,s,e) for s,e in sorted(seq_ranges))
+        descrips.append(descrip)
+        
+    return ', '.join(descrips)
 
 
 # -----------------------------------------------------------------------------
@@ -1983,12 +2086,18 @@ class PromoteAtomSelection(SelectionPromotion):
         if s.deleted:
             return
         atoms = s.atoms
-        atoms.selected = asel = self._atom_sel_mask
+        asel = self._atom_sel_mask
+        if len(atoms) != len(asel):
+            return	# Atoms added or deleted
+        atoms.selected = asel
         atoms[asel].intra_bonds.selected = True
     def demote(self):
         s = self._structure
         if s.deleted:
             return
+        if (s.num_atoms != len(self._prev_atom_sel_mask) or
+            s.num_bonds != len(self._prev_bond_sel_mask)):
+            return   # Atoms or bonds deleted or added.
         s.atoms.selected = self._prev_atom_sel_mask
         s.bonds.selected = self._prev_bond_sel_mask
 
@@ -2180,6 +2289,8 @@ class PickedPseudobond(Pick):
     def description(self):
         dist_fmt = self.pbond.session.pb_dist_monitor.distance_format
         return str(self.pbond) + " " + dist_fmt % self.pbond.length
+    def drawing(self):
+        return self.pbond.group
     @property
     def residue(self):
         a1, a2 = self.pbond.atoms
@@ -2333,13 +2444,16 @@ def _has_structure_descendant(model):
 #
 def all_atomic_structures(session):
     '''List of all :class:`.AtomicStructure` objects.'''
-    return [m for m in session.models.list() if isinstance(m,AtomicStructure)]
+    from .molarray import AtomicStructures
+    return AtomicStructures([m for m in session.models.list() if isinstance(m,AtomicStructure)])
 
 # -----------------------------------------------------------------------------
 #
 def all_structures(session, atomic_only=False):
     '''List of all :class:`.Structure` objects.'''
-    return [m for m in session.models.list() if isinstance(m,Structure)]
+    from .molarray import Structures
+    class_obj = AtomicStructure if atomic_only else Structure
+    return Structures([m for m in session.models.list() if isinstance(m,class_obj)])
 
 # -----------------------------------------------------------------------------
 #

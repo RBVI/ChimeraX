@@ -27,6 +27,9 @@ class StdCommandsAPI(BundleAPI):
         if class_name in ['NamedView', 'NamedViews']:
             from . import view
             return getattr(view, class_name)
+        if class_name in ['CoordinateSetSlider']:
+            from . import coordset_gui
+            return getattr(coordset_gui, class_name)
 
     @staticmethod
     def register_command(command_name, logger):
@@ -125,7 +128,7 @@ class StdCommandsAPI(BundleAPI):
 bundle_api = StdCommandsAPI()
 
 def register_commands(session):
-    mod_names = ['alias', 'align', 'angle', 'camera', 'cartoon', 'cd', 'clip', 'close', 'cofr', 'colorname', 'color', 'coordset_gui', 'coordset', 'crossfade', 'defattr_gui', 'defattr', 'delete', 'dssp', 'exit', 'fly', 'graphics', 'hide', 'lighting', 'material', 'measure_buriedarea', 'measure_center', 'measure_convexity', 'measure_correlation', 'measure_inertia', 'measure_length', 'measure_rotation', 'measure_symmetry', 'move', 'palette', 'perframe', 'pwd', 'rainbow', 'rename', 'rmsd', 'rock', 'roll', 'runscript', 'select', 'setattr', 'set', 'show', 'size', 'split', 'stop', 'style', 'sym', 'tile', 'time', 'transparency', 'turn', 'undo', 'usage', 'version', 'view', 'wait', 'windowsize', 'wobble', 'zonesel', 'zoom']
+    mod_names = ['alias', 'align', 'angle', 'camera', 'cartoon', 'cd', 'clip', 'close', 'cofr', 'colorname', 'color', 'coordset_gui', 'coordset', 'crossfade', 'defattr_gui', 'defattr', 'delete', 'dssp', 'exit', 'fly', 'getcrd', 'graphics', 'hide', 'lighting', 'material', 'measure_buriedarea', 'measure_center', 'measure_convexity', 'measure_correlation', 'measure_inertia', 'measure_length', 'measure_rotation', 'measure_symmetry', 'move', 'palette', 'perframe', 'pwd', 'rainbow', 'rename', 'ribbon','rmsd', 'rock', 'roll', 'runscript', 'select', 'setattr', 'set', 'show', 'size', 'split', 'stop', 'style', 'sym', 'tile', 'time', 'transparency', 'turn', 'undo', 'usage', 'version', 'view', 'wait', 'windowsize', 'wobble', 'zonesel', 'zoom']
 
     if not session.ui.is_gui:
         # Remove commands that require Qt to import

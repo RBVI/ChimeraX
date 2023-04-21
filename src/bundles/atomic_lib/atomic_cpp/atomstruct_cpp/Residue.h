@@ -86,7 +86,7 @@ private:
     bool  _rings_are_thin;
     Rgba  _ring_rgba;
 public:
-    void  add_atom(Atom*);
+    void  add_atom(Atom*, bool copying_structure=false);
     const Atoms&  atoms() const { return _atoms; }
     AtomsMap  atoms_map() const;
     std::vector<Bond*>  bonds_between(const Residue* other_res, bool just_first=false) const;
@@ -406,9 +406,11 @@ Residue::set_ss_id(int ss_id)
 {
     if (ss_id == _ss_id)
         return;
-    change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_SS_ID);
+    if (_structure->ss_change_notify()) {
+        change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_SS_ID);
+        _structure->set_gc_ribbon();
+    }
     _ss_id = ss_id;
-    _structure->set_gc_ribbon();
 }
 
 inline void
@@ -416,10 +418,12 @@ Residue::set_ss_type(SSType sst)
 {
     if (sst == _ss_type)
         return;
-    _structure->set_ss_assigned(true);
-    change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_SS_TYPE);
+    if (_structure->ss_change_notify()) {
+        _structure->set_ss_assigned(true);
+        change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_SS_TYPE);
+        _structure->set_gc_ribbon();
+    }
     _ss_type = sst;
-    _structure->set_gc_ribbon();
 }
 
 }  // namespace atomstruct

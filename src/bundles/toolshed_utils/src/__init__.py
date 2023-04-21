@@ -19,6 +19,9 @@ for ease of updating outside of the core release cycle.
 
 Everything in here is considered private.
 """
+
+__version__ = "1.2.1"
+
 from chimerax.core.toolshed import (
     TOOLSHED_BUNDLE_INSTALLED, TOOLSHED_BUNDLE_UNINSTALLED,
     ToolshedInstalledError,
@@ -38,7 +41,7 @@ class _BootstrapAPI(BundleAPI):
 
         def show_updates(trigger_name, data, *, session=session):
             from . import tool
-            session.ui.thread_safe(tool.show, session, tool.DialogType.UPDATES_ONLY)
+            session.ui.thread_safe(tool.show, session, tool.OUT_OF_DATE)
         session.toolshed.triggers.add_handler(toolshed.TOOLSHED_OUT_OF_DATE_BUNDLES, show_updates)
 
     @staticmethod

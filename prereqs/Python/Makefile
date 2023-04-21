@@ -5,9 +5,9 @@ include $(TOP)/mk/config.make
 # PYTHON_VERSION is in config.make
 PYTHON_PATCH_LEVEL = $(PYTHON_VERSION).$(PYTHON_PATCH_VERSION)
 
-PIP_VERSION = 21.3.1
-WHEEL_VERSION = 0.37.1
-SETUPTOOLS_VERSION = 59.8.0
+PIP_VERSION = 23.0
+WHEEL_VERSION = 0.38.4
+SETUPTOOLS_VERSION = 67.4.0
 
 ifeq ($(OS),Windows)
 DISTRIBUTION = python-$(PYTHON_PATCH_LEVEL)-win-amd64.tar.bz2
@@ -118,18 +118,18 @@ else ifdef USE_MAC_FRAMEWORKS
 	tar xf $(DISTRIBUTION) -C $(frameworkdir)
 
 	# Link framework bin, lib, and include files to app directories
-	cd $(bindir) ; ln -s $(REL_PYTHON_FRAMEWORK)/bin/python* $(REL_PYTHON_FRAMEWORK)/bin/pip* .
-	ln -s $(REL_PYTHON_FRAMEWORK)/lib/python$(PYTHON_VERSION) $(libdir)
-	ln -s $(REL_PYTHON_FRAMEWORK)/include/python$(PYTHON_VERSION) $(includedir)
+	-cd $(bindir) ; ln -s $(REL_PYTHON_FRAMEWORK)/bin/python* $(REL_PYTHON_FRAMEWORK)/bin/pip* .
+	-ln -s $(REL_PYTHON_FRAMEWORK)/lib/python$(PYTHON_VERSION) $(libdir)
+	-ln -s $(REL_PYTHON_FRAMEWORK)/include/python$(PYTHON_VERSION) $(includedir)
 
 else
 	# Linux or Mac OS X without framework
 	cd $(SOURCE) && $(MAKE) && $(MAKE) install
 ifeq ($(OS),Linux)
 	-for lib in $(PYTHON_LIBRARY_DIR)/lib-dynload/*.so; do \
-		chrpath -d $$lib; \
+		$(bindir)/chrpath -d $$lib; \
 	done
-	chmod 755  $(libdir)/libpython*.so; chrpath -d $(libdir)/libpython*.so
+	chmod 755  $(libdir)/libpython*.so; $(bindir)/chrpath -d $(libdir)/libpython*.so
 	# convert to RPATH
 	if objdump -p $(PYTHON_BIN) | grep RUNPATH > /dev/null; then \
 	       $(bindir)/chrpath -C $(PYTHON_BIN); \
@@ -251,4 +251,4 @@ make_mac_distribution:
 	make -f Makefile.macos
 
 clean:
-	rm -rf $(SOURCE)
+	-rm -rf $(SOURCE) $(DISTRIBUTION)

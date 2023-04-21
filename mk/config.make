@@ -83,14 +83,33 @@ endif
 
 
 APP_NAME = ChimeraX
+ifdef FLATPAK_DIST
+APP_FILENAME = /app
+else
 APP_FILENAME = $(APP_NAME).app
+endif
+CHIMERAX_APP = $(wildcard $(TOP)/ChimeraX*.app)
+ifeq ($(OS),Windows)
+CHIMERAX_EXE = $(CHIMERAX_APP)/bin/ChimeraX.exe
+endif
+ifeq ($(OS),Darwin)
+CHIMERAX_EXE = $(CHIMERAX_APP)/Contents/bin/ChimeraX
+endif
+ifeq ($(OS),Linux)
+CHIMERAX_EXE = $(CHIMERAX_APP)/bin/ChimeraX
+endif
+
 
 ifeq ($(OS),Darwin)
 frameworkdir = $(build_prefix)/Library/Frameworks
 app_prefix = $(TOP)/$(APP_FILENAME)/Contents
 app_frameworkdir =  $(app_prefix)/Library/Frameworks
 else
+ifneq (,$(patsubst /%,,$(APP_FILENAME)))
 app_prefix = $(TOP)/$(APP_FILENAME)
+else
+app_prefix = $(APP_FILENAME)
+endif
 endif
 app_bindir = $(app_prefix)/bin
 app_includedir = $(app_prefix)/include
@@ -111,6 +130,9 @@ RSYNC = rsync -rltWv --executability
 else
 RSYNC = $(bindir)/rsync.convert -rlptWv
 endif
+ifdef FLATPAK_DIST
+RSYNC := $(bindir)/$(RSYNC)
+endif
 
 ifdef WIN32
 PYTHON_INCLUDE_DIRS = -I'$(shell cygpath -m '$(includedir)/python$(PYTHON_VERSION)$(PYTHON_ABI)')'
@@ -124,6 +146,7 @@ else ifdef USE_MAC_FRAMEWORKS
 PYTHON_INCLUDE_DIRS = $(shell $(bindir)/python$(PYTHON_VERSION)$(PYTHON_ABI)-config --includes)
 PYTHON_FRAMEWORK = $(frameworkdir)/Python.framework/Versions/$(PYTHON_VERSION)
 APP_PYTHON_FRAMEWORK = $(app_frameworkdir)/Python.framework/Versions/$(PYTHON_VERSION)
+APP_PYTHON_FRAMEWORK_LIBDIR = $(app_frameworkdir)/Python.framework/Versions/$(PYTHON_VERSION)/lib
 PYTHON_LIBRARY_DIR = $(libdir)/python$(PYTHON_VERSION)
 APP_PYTHON_LIBRARY_DIR = $(app_libdir)/python$(PYTHON_VERSION)
 PYTHON_BIN = $(bindir)/python$(PYTHON_VERSION)

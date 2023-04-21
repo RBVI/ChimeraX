@@ -120,10 +120,11 @@ def _structure_category_selector(cat, models, results):
 def _get_missing_structure(struct, atoms):
     pbg = struct.pseudobond_group("missing structure", create_type=None)
     pbs = []
+    ptr_set = set(atoms.pointers)
     if pbg:
         for pb in pbg.pseudobonds:
             a1, a2 = pb.atoms
-            if a1 in atoms and a2 in atoms:
+            if a1.cpp_pointer in ptr_set and a2.cpp_pointer in ptr_set:
                 pbs.append(pb)
     return pbs, pbg
 
@@ -342,7 +343,7 @@ def _update_select_residues_menu(session):
     nucleic = set()
     from . import Sequence
     for r in structures.residues:
-        if Sequence.rname3to1(r.name) == 'X':
+        if r.polymer_type == r.PT_NONE or Sequence.rname3to1(r.name) == 'X':
             nonstandard.add(r.name)
         elif Sequence.amino3to1(r.name) == 'X':
             nucleic.add(r.name)

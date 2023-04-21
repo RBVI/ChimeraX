@@ -1,5 +1,6 @@
 #include "_mmcif.h"
 #include "mmcif.h"
+#include "corecif.h"
 #include <stdlib.h>	/* for getenv() and atoi() */
 #include <string.h>
 #include <typeinfo>
@@ -12,10 +13,16 @@
 # define PY_STUPID (char *)
 #endif
 
+#ifdef Py_LIMITED_API
+#define PyTuple_SET_ITEM PyTuple_SetItem
+#define PyUnicode_GET_LENGTH PyUnicode_GetLength
+#endif
+
 namespace mmcif {
 
 PyObject* _mmcifErrorObj;
 int _mmcifDebug;
+PyTypeObject* Bonds_Type;
 
 void
 _mmcifError()
@@ -38,6 +45,8 @@ _mmcifError()
 		PyErr_Format(_mmcifErrorObj, "range_error: %s", e.what());
 	} catch (std::underflow_error& e) {
 		PyErr_Format(_mmcifErrorObj, "underflow_error: %s", e.what());
+	} catch (std::bad_function_call& e) {
+		PyErr_Format(_mmcifErrorObj, "empty function object: %s", e.what());
 	} catch (std::logic_error& e) {
 		PyErr_SetString(PyExc_ValueError, e.what());
 	} catch (std::ios_base::failure& e) {
@@ -131,25 +140,27 @@ _mmcif_parse_mmCIF_buffer(PyObject*, PyObject* _args, PyObject* _keywds)
 {
 	switch (PyTuple_Size(_args)) {
 	  default:
-		PyErr_SetString(PyExc_TypeError, "parse_mmCIF_buffer() expected 4 or 5 arguments");
+		PyErr_SetString(PyExc_TypeError, "parse_mmCIF_buffer() expected 5 or 6 arguments");
 		return NULL;
-	  case 4: {
+	  case 5: {
 		Py_buffer _ptArg1;
 		PyObject* _ptArg2;
 		int _ptArg3;
 		int _ptArg4;
+		int _ptArg5;
 		if (_keywds != NULL && PyDict_Size(_keywds) != 0) {
 			PyErr_SetString(PyExc_TypeError, "parse_mmCIF_buffer() expected no keyword arguments");
 			return NULL;
 		}
-		if (!PyArg_ParseTuple(_args, "s*Oii:parse_mmCIF_buffer", &_ptArg1, &_ptArg2, &_ptArg3, &_ptArg4))
+		if (!PyArg_ParseTuple(_args, "s*Oiii:parse_mmCIF_buffer", &_ptArg1, &_ptArg2, &_ptArg3, &_ptArg4, &_ptArg5))
 			return NULL;
 		try {
 			const unsigned char* cppArg1 = reinterpret_cast<unsigned char*>(_ptArg1.buf);
 			PyObject* cppArg2 = _ptArg2;
 			bool cppArg3(_ptArg3);
 			bool cppArg4(_ptArg4);
-			PyObject* _result = parse_mmCIF_buffer(cppArg1, cppArg2, cppArg3, cppArg4);
+			bool cppArg5(_ptArg5);
+			PyObject* _result = parse_mmCIF_buffer(cppArg1, cppArg2, cppArg3, cppArg4, cppArg5);
 			PyBuffer_Release(&_ptArg1);
 			return _result;
 		} catch (...) {
@@ -158,17 +169,18 @@ _mmcif_parse_mmCIF_buffer(PyObject*, PyObject* _args, PyObject* _keywds)
 		}
 		break;
 	  }
-	  case 5: {
+	  case 6: {
 		Py_buffer _ptArg1;
 		PyObject* _ptArg2;
 		PyObject* _ptArg3;
 		int _ptArg4;
 		int _ptArg5;
+		int _ptArg6;
 		if (_keywds != NULL && PyDict_Size(_keywds) != 0) {
 			PyErr_SetString(PyExc_TypeError, "parse_mmCIF_buffer() expected no keyword arguments");
 			return NULL;
 		}
-		if (!PyArg_ParseTuple(_args, "s*OOii:parse_mmCIF_buffer", &_ptArg1, &_ptArg2, &_ptArg3, &_ptArg4, &_ptArg5))
+		if (!PyArg_ParseTuple(_args, "s*OOiii:parse_mmCIF_buffer", &_ptArg1, &_ptArg2, &_ptArg3, &_ptArg4, &_ptArg5, &_ptArg6))
 			return NULL;
 		try {
 			const unsigned char* cppArg1 = reinterpret_cast<unsigned char*>(_ptArg1.buf);
@@ -178,7 +190,8 @@ _mmcif_parse_mmCIF_buffer(PyObject*, PyObject* _args, PyObject* _keywds)
 			PyObject* cppArg3 = _ptArg3;
 			bool cppArg4(_ptArg4);
 			bool cppArg5(_ptArg5);
-			PyObject* _result = parse_mmCIF_buffer(cppArg1, cppArg2, cppArg3, cppArg4, cppArg5);
+			bool cppArg6(_ptArg6);
+			PyObject* _result = parse_mmCIF_buffer(cppArg1, cppArg2, cppArg3, cppArg4, cppArg5, cppArg6);
 			PyBuffer_Release(&_ptArg1);
 			return _result;
 		} catch (...) {
@@ -199,18 +212,19 @@ _mmcif_parse_mmCIF_file(PyObject*, PyObject* _args, PyObject* _keywds)
 {
 	switch (PyTuple_Size(_args)) {
 	  default:
-		PyErr_SetString(PyExc_TypeError, "parse_mmCIF_file() expected 4 or 5 arguments");
+		PyErr_SetString(PyExc_TypeError, "parse_mmCIF_file() expected 5 or 6 arguments");
 		return NULL;
-	  case 4: {
+	  case 5: {
 		PyObject* _ptArg1;
 		PyObject* _ptArg2;
 		int _ptArg3;
 		int _ptArg4;
+		int _ptArg5;
 		if (_keywds != NULL && PyDict_Size(_keywds) != 0) {
 			PyErr_SetString(PyExc_TypeError, "parse_mmCIF_file() expected no keyword arguments");
 			return NULL;
 		}
-		if (!PyArg_ParseTuple(_args, "OOii:parse_mmCIF_file", &_ptArg1, &_ptArg2, &_ptArg3, &_ptArg4))
+		if (!PyArg_ParseTuple(_args, "OOiii:parse_mmCIF_file", &_ptArg1, &_ptArg2, &_ptArg3, &_ptArg4, &_ptArg5))
 			return NULL;
 		try {
 			if (!PyUnicode_Check(_ptArg1))
@@ -221,24 +235,26 @@ _mmcif_parse_mmCIF_file(PyObject*, PyObject* _args, PyObject* _keywds)
 			PyObject* cppArg2 = _ptArg2;
 			bool cppArg3(_ptArg3);
 			bool cppArg4(_ptArg4);
-			PyObject* _result = parse_mmCIF_file(cppArg1.c_str(), cppArg2, cppArg3, cppArg4);
+			bool cppArg5(_ptArg5);
+			PyObject* _result = parse_mmCIF_file(cppArg1.c_str(), cppArg2, cppArg3, cppArg4, cppArg5);
 			return _result;
 		} catch (...) {
 			_mmcifError();
 		}
 		break;
 	  }
-	  case 5: {
+	  case 6: {
 		PyObject* _ptArg1;
 		PyObject* _ptArg2;
 		PyObject* _ptArg3;
 		int _ptArg4;
 		int _ptArg5;
+		int _ptArg6;
 		if (_keywds != NULL && PyDict_Size(_keywds) != 0) {
 			PyErr_SetString(PyExc_TypeError, "parse_mmCIF_file() expected no keyword arguments");
 			return NULL;
 		}
-		if (!PyArg_ParseTuple(_args, "OOOii:parse_mmCIF_file", &_ptArg1, &_ptArg2, &_ptArg3, &_ptArg4, &_ptArg5))
+		if (!PyArg_ParseTuple(_args, "OOOiii:parse_mmCIF_file", &_ptArg1, &_ptArg2, &_ptArg3, &_ptArg4, &_ptArg5, &_ptArg6))
 			return NULL;
 		try {
 			if (!PyUnicode_Check(_ptArg1))
@@ -252,7 +268,8 @@ _mmcif_parse_mmCIF_file(PyObject*, PyObject* _args, PyObject* _keywds)
 			PyObject* cppArg3 = _ptArg3;
 			bool cppArg4(_ptArg4);
 			bool cppArg5(_ptArg5);
-			PyObject* _result = parse_mmCIF_file(cppArg1.c_str(), cppArg2, cppArg3, cppArg4, cppArg5);
+			bool cppArg6(_ptArg6);
+			PyObject* _result = parse_mmCIF_file(cppArg1.c_str(), cppArg2, cppArg3, cppArg4, cppArg5, cppArg6);
 			return _result;
 		} catch (...) {
 			_mmcifError();
@@ -339,9 +356,9 @@ _mmcif_non_standard_bonds(PyObject*, PyObject* _args)
 	if (!PyArg_ParseTuple(_args, "O|ii:non_standard_bonds", &_ptArg1, &_ptArg2, &_ptArg3))
 		return NULL;
 	try {
-		const char* tp_name = Py_TYPE(_ptArg1)->tp_name;
+		PyTypeObject* type1 = Py_TYPE(_ptArg1);
 		// chimerax.atomic.molarray.Bonds
-		if (strcmp(tp_name, "Bonds") != 0)
+		if (type1 != Bonds_Type)
 			throw std::invalid_argument("argument 1 should be a Bonds collection");
 		PyObject* pointers = PyObject_GetAttrString(_ptArg1, "_pointers");
 		if (pointers == NULL)
@@ -384,6 +401,130 @@ _mmcif_non_standard_bonds(PyObject*, PyObject* _args)
 
 static const char _mmcifnon_standard_bonds_doc[] = "non_standard_bonds(bonds: Bonds, selected_only: bool, displayed_only: bool) -> tuple[disulfide, covalent]";
 
+static PyObject*
+_mmcif_parse_coreCIF_buffer(PyObject*, PyObject* _args, PyObject* _keywds)
+{
+	switch (PyTuple_Size(_args)) {
+	  default:
+		PyErr_SetString(PyExc_TypeError, "parse_coreCIF_buffer() expected 2 or 3 arguments");
+		return NULL;
+	  case 2: {
+		Py_buffer _ptArg1;
+		PyObject* _ptArg2;
+		if (_keywds != NULL && PyDict_Size(_keywds) != 0) {
+			PyErr_SetString(PyExc_TypeError, "parse_coreCIF_buffer() expected no keyword arguments");
+			return NULL;
+		}
+		if (!PyArg_ParseTuple(_args, "s*O:parse_coreCIF_buffer", &_ptArg1, &_ptArg2))
+			return NULL;
+		try {
+			const unsigned char* cppArg1 = reinterpret_cast<unsigned char*>(_ptArg1.buf);
+			PyObject* cppArg2 = _ptArg2;
+			PyObject* _result = parse_coreCIF_buffer(cppArg1, cppArg2);
+			PyBuffer_Release(&_ptArg1);
+			return _result;
+		} catch (...) {
+			PyBuffer_Release(&_ptArg1);
+			_mmcifError();
+		}
+		break;
+	  }
+	  case 3: {
+		Py_buffer _ptArg1;
+		PyObject* _ptArg2;
+		PyObject* _ptArg3;
+		if (_keywds != NULL && PyDict_Size(_keywds) != 0) {
+			PyErr_SetString(PyExc_TypeError, "parse_coreCIF_buffer() expected no keyword arguments");
+			return NULL;
+		}
+		if (!PyArg_ParseTuple(_args, "s*OO:parse_coreCIF_buffer", &_ptArg1, &_ptArg2, &_ptArg3))
+			return NULL;
+		try {
+			const unsigned char* cppArg1 = reinterpret_cast<unsigned char*>(_ptArg1.buf);
+			std::vector<std::string> cppArg2;
+			if (!sequence_to_vector_string(_ptArg2, &cppArg2))
+				throw std::invalid_argument("argument 2 should be a sequence of str");
+			PyObject* cppArg3 = _ptArg3;
+			PyObject* _result = parse_coreCIF_buffer(cppArg1, cppArg2, cppArg3);
+			PyBuffer_Release(&_ptArg1);
+			return _result;
+		} catch (...) {
+			PyBuffer_Release(&_ptArg1);
+			_mmcifError();
+		}
+		break;
+	  }
+	}
+	return NULL;
+}
+
+static const char _mmcifparse_coreCIF_buffer_doc[] = "parse_coreCIF_buffer(buffer: bytes, logger: object) -> object\n\
+parse_coreCIF_buffer(buffer: bytes, extra_categories: list of str, logger: object) -> object";
+
+static PyObject*
+_mmcif_parse_coreCIF_file(PyObject*, PyObject* _args, PyObject* _keywds)
+{
+	switch (PyTuple_Size(_args)) {
+	  default:
+		PyErr_SetString(PyExc_TypeError, "parse_coreCIF_file() expected 2 or 3 arguments");
+		return NULL;
+	  case 2: {
+		PyObject* _ptArg1;
+		PyObject* _ptArg2;
+		if (_keywds != NULL && PyDict_Size(_keywds) != 0) {
+			PyErr_SetString(PyExc_TypeError, "parse_coreCIF_file() expected no keyword arguments");
+			return NULL;
+		}
+		if (!PyArg_ParseTuple(_args, "OO:parse_coreCIF_file", &_ptArg1, &_ptArg2))
+			return NULL;
+		try {
+			if (!PyUnicode_Check(_ptArg1))
+				throw std::invalid_argument("argument 1 should be a str");
+			Py_ssize_t size;
+			const char *data = PyUnicode_AsUTF8AndSize(_ptArg1, &size);
+			std::string cppArg1(data, size);
+			PyObject* cppArg2 = _ptArg2;
+			PyObject* _result = parse_coreCIF_file(cppArg1.c_str(), cppArg2);
+			return _result;
+		} catch (...) {
+			_mmcifError();
+		}
+		break;
+	  }
+	  case 3: {
+		PyObject* _ptArg1;
+		PyObject* _ptArg2;
+		PyObject* _ptArg3;
+		if (_keywds != NULL && PyDict_Size(_keywds) != 0) {
+			PyErr_SetString(PyExc_TypeError, "parse_coreCIF_file() expected no keyword arguments");
+			return NULL;
+		}
+		if (!PyArg_ParseTuple(_args, "OOO:parse_coreCIF_file", &_ptArg1, &_ptArg2, &_ptArg3))
+			return NULL;
+		try {
+			if (!PyUnicode_Check(_ptArg1))
+				throw std::invalid_argument("argument 1 should be a str");
+			Py_ssize_t size;
+			const char *data = PyUnicode_AsUTF8AndSize(_ptArg1, &size);
+			std::string cppArg1(data, size);
+			std::vector<std::string> cppArg2;
+			if (!sequence_to_vector_string(_ptArg2, &cppArg2))
+				throw std::invalid_argument("argument 2 should be a sequence of str");
+			PyObject* cppArg3 = _ptArg3;
+			PyObject* _result = parse_coreCIF_file(cppArg1.c_str(), cppArg2, cppArg3);
+			return _result;
+		} catch (...) {
+			_mmcifError();
+		}
+		break;
+	  }
+	}
+	return NULL;
+}
+
+static const char _mmcifparse_coreCIF_file_doc[] = "parse_coreCIF_file(filename: str, logger: object) -> object\n\
+parse_coreCIF_file(filename: str, extra_categories: list of str, logger: object) -> object";
+
 PyMethodDef _mmcifMethods[] = {
 	{
 		"extract_CIF_tables", (PyCFunction) _mmcif_extract_CIF_tables,
@@ -416,6 +557,14 @@ PyMethodDef _mmcifMethods[] = {
 	{
 		"non_standard_bonds", (PyCFunction) _mmcif_non_standard_bonds,
 		METH_VARARGS, _mmcifnon_standard_bonds_doc
+	},
+	{
+		"parse_coreCIF_buffer", (PyCFunction) _mmcif_parse_coreCIF_buffer,
+		METH_VARARGS | METH_KEYWORDS, _mmcifparse_coreCIF_buffer_doc
+	},
+	{
+		"parse_coreCIF_file", (PyCFunction) _mmcif_parse_coreCIF_file,
+		METH_VARARGS | METH_KEYWORDS, _mmcifparse_coreCIF_file_doc
 	},
 	{ NULL, NULL, 0, NULL }
 };
@@ -453,6 +602,16 @@ PyInit__mmcif()
 		return NULL;
 	Py_INCREF(mmcif::_mmcifErrorObj);
 	PyModule_AddObject(module, "error", mmcif::_mmcifErrorObj);
+
+	PyObject* atomic = PyImport_ImportModule("chimerax.atomic");
+	if (atomic == NULL)
+		return NULL;
+	PyObject* mod_dict = PyModule_GetDict(atomic);
+	mmcif::Bonds_Type = reinterpret_cast<PyTypeObject*>(PyDict_GetItemString(mod_dict, "Bonds"));
+	if (mmcif::Bonds_Type == NULL)
+		return NULL;
+	Py_INCREF(reinterpret_cast<PyObject*>(mmcif::Bonds_Type));
+	Py_DECREF(atomic);
 
 	return module;
 }

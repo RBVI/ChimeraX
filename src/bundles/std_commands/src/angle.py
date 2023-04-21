@@ -16,16 +16,21 @@ from chimerax.dist_monitor import SimpleMeasurable, ComplexMeasurable
 class SetAngleError(ValueError):
     pass
 
-def set_angle(a1, a2, a3, degrees, *, move_smaller=True, prev_axis=None, undo_state=None):
+def angle_atoms_check(a1, a2, a3, *, move_smaller=True):
     try:
         atoms1 = a1.side_atoms(a2, a3)
         atoms2 = a3.side_atoms(a2, a1)
     except ValueError:
-        raise SetAngleError("Cannot set the angle between atoms involved in a ring/cycle")
+        raise SetAngleError("Cannot set the angle if the end atoms have a connection that does not pass"
+            " through the center atom")
     if (len(atoms1) > len(atoms2) and move_smaller) or (len(atoms1) < len(atoms2) and not move_smaller):
         moving, fixed, moving_atoms = a3, a1, atoms2
     else:
         moving, fixed, moving_atoms = a1, a3, atoms1
+    return moving, fixed, moving_atoms
+
+def set_angle(a1, a2, a3, degrees, *, move_smaller=True, prev_axis=None, undo_state=None):
+    moving, fixed, moving_atoms = angle_atoms_check(a1, a2, a3, move_smaller=move_smaller)
     mv = moving.scene_coord - a2.scene_coord
     fv = fixed.scene_coord - a2.scene_coord
     # Due to numeric roundoff, an angle previously set to 180 degrees won't be exactly at 180,
@@ -50,8 +55,9 @@ def set_angle(a1, a2, a3, degrees, *, move_smaller=True, prev_axis=None, undo_st
 
     amount = degrees - angle(fv, mv)
 
-    # actually rotate
-    xform = rotation(axis, amount, center=a2.scene_coord)
+    # actually rotate (about a2, but in 'moving's coordinate system)
+    center = moving.structure.position.inverse() * a2.scene_coord
+    xform = rotation(axis, amount, center=center)
     moved = xform.transform_points(moving_atoms.coords)
     if undo_state:
         undo_state.add(moving_atoms, "coords", moving_atoms.coords, moved)

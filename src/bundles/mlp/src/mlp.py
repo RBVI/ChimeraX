@@ -12,7 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 def mlp(session, atoms=None, method="fauchere", spacing=1.0, max_distance=5.0, nexp=3.0,
-        color=True, palette=None, range=None, surfaces=[], map=False, key=False):
+        color=True, palette=None, range=None, transparency=None, surfaces=[], map=False, key=False):
     '''Display Molecular Lipophilic Potential for a single model.
 
     Parameters
@@ -34,6 +34,8 @@ def mlp(session, atoms=None, method="fauchere", spacing=1.0, max_distance=5.0, n
         Default is lipophilicity colormap (orange lipophilic, blue lipophobic).
     range : 2-tuple of float
         Range of lipophilicity values defining ends of color map.  Default is -20,20
+    transparency : float
+        Percent transparency to use.  If not specified then palette transparency values used.
     surfaces : list of Surface models
         If the color options is true then these surfaces are colored instead of computing surfaces.
     map : bool
@@ -67,19 +69,23 @@ def mlp(session, atoms=None, method="fauchere", spacing=1.0, max_distance=5.0, n
         from chimerax.core.undo import UndoState
         undo_state = UndoState('mlp')
         for s in surfs:
-            surf_has_atoms = hasattr(s, 'atoms')
+            surf_has_atoms = hasattr(s, 'atoms') and len(s.atoms.intersect(patoms)) > 0
             satoms = s.atoms if surf_has_atoms else patoms
             name = 'mlp ' + s.name.split(maxsplit=1)[0]
             v = mlp_map(session, satoms, method, spacing,
                         max_distance, nexp, name, open_map = map)
             if surf_has_atoms:
+                if transparency is None:
+                    opacity = None
+                else:
+                    opacity = min(255, max(0, int(2.56 * (100 - transparency))))
                 from chimerax.surface import color_surfaces_by_map_value
                 color_surfaces_by_map_value(satoms, map = v, palette = cmap, range = range,
-                                            undo_state = undo_state)
+                                            opacity = opacity, undo_state = undo_state)
             else:
                 from chimerax.surface import color_sample
                 color_sample(session, [s], v, palette = cmap, range = range,
-                             undo_state = undo_state)
+                             transparency = transparency, undo_state = undo_state)
         session.undo.register(undo_state)
     else:
         name = 'mlp map'
@@ -103,6 +109,7 @@ def register_mlp_command(logger):
                             ('color', BoolArg),
                             ('palette', ColormapArg),
                             ('range', ColormapRangeArg),
+                            ('transparency', FloatArg),
                             ('surfaces', SurfacesArg),
                             ('map', BoolArg),
                             ('key', BoolArg),
@@ -395,7 +402,7 @@ def calculatefimap(atoms, method, spacing, max_dist, nexp):
     from numpy import zeros, float32
     pot = zeros((nzgrid+1, nygrid+1, nxgrid+1), float32)
     # Make sure _mlp can runtime link shared library libarrays.
-    from chimerax import arrays ; arrays.load_libarrays()
+    import chimerax.arrays
     from ._mlp import mlp_sum
     mlp_sum(xyz, fi, origin, spacing, max_dist, method, nexp, pot)
                  
