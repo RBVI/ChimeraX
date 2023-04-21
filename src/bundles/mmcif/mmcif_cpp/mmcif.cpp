@@ -12,7 +12,7 @@
  * or derivations thereof.
  * === UCSF ChimeraX Copyright ===
  */
-
+#define PY_SSIZE_T_CLEAN
 #include "_mmcif.h"
 #include "mmcif.h"
 #include <atomstruct/AtomicStructure.h>
@@ -37,10 +37,15 @@
 #include <algorithm>
 #include <unordered_map>
 #include <set>
+#include <cstddef>
 
 #undef CLOCK_PROFILING
 #ifdef CLOCK_PROFILING
 #include <ctime>
+#endif
+
+#ifdef Py_LIMITED_API
+#define PyTuple_SET_ITEM PyTuple_SetItem
 #endif
 
 // The PDB has a limited form of struct_sheet_hbond called
@@ -192,13 +197,13 @@ struct ExtractMolecule: public readcif::CIFFile
     static const char* builtin_categories[];
     PyObject* _logger;
     ExtractMolecule(PyObject* logger, const StringVector& generic_categories, bool coordsets,
-        bool atomic);
+        bool atomic, bool ignore_styling);
     ~ExtractMolecule();
     virtual void data_block(const string& name);
     virtual void reset_parse();
     virtual void finished_parse();
     void connect_polymer_pair(Residue* r0, Residue* r1, bool gap, bool nstd_okay, int model_num);
-    void connect_residue_by_template(Residue* r, const tmpl::Residue* tr, int model_num);
+    void connect_residue_by_template(Residue* r, const tmpl::Residue* tr, int model_num, bool *has_metal);
     const tmpl::Residue* find_template_residue(const ResName& name, bool start = false, bool stop = false);
     void parse_audit_conform();
     void parse_audit_syntax();
@@ -288,6 +293,7 @@ struct ExtractMolecule: public readcif::CIFFile
     set<ResName> missing_residue_templates;
     bool coordsets;  // use coordsets (trajectory) instead of separate models (NMR)
     bool atomic;  // use AtomicStructure if true, else Structure
+    bool ignore_styling;  // ignore any information about PDBx/mmCIF styling
     bool guess_fixed_width_categories;
     bool verbose;  // whether to give extra warning messages
     int hydrogens_missing_in_template;
@@ -314,10 +320,11 @@ const char* ExtractMolecule::builtin_categories[] = {
 };
 #define MIXED_CASE_BUILTIN_CATEGORIES 0
 
-ExtractMolecule::ExtractMolecule(PyObject* logger, const StringVector& generic_categories, bool coordsets, bool atomic):
+ExtractMolecule::ExtractMolecule(PyObject* logger, const StringVector& generic_categories, bool coordsets, bool atomic, bool ignore_styling):
     _logger(logger), first_model_num(INT_MAX), my_templates(nullptr),
     found_missing_poly_seq(false), coordsets(coordsets), atomic(atomic),
-    guess_fixed_width_categories(false), verbose(false), hydrogens_missing_in_template(0)
+    guess_fixed_width_categories(false), verbose(false), hydrogens_missing_in_template(0),
+    ignore_styling(ignore_styling)
 {
     empty_residue_templates.insert("UNL");  // Unknown ligand
     empty_residue_templates.insert("UNX");  // Unknown atom or ion
@@ -620,56 +627,53 @@ ExtractMolecule::connect_polymer_pair(Residue* r0, Residue* r1, bool gap, bool n
 //    Connect bonds in residue according to the given template.  Takes into
 //    account alternate atom locations.
 void
-ExtractMolecule::connect_residue_by_template(Residue* r, const tmpl::Residue* tr, int model_num)
+ExtractMolecule::connect_residue_by_template(Residue* r, const tmpl::Residue* tr, int model_num, bool *has_metal)
 {
     auto& atoms = r->atoms();
     if (atoms.size() <= 1)
         return;
 
-    // Confirm all atoms in residue are in template, if not connect by distance
+    // Confirm all atoms in residue are in template.  If not, connect by distance.
     for (auto&& a: atoms) {
         tmpl::Atom *ta = tr->find_atom(a->name());
-        if (!ta) {
-            if (tr->atoms_map().size() == 0) {
-                if (model_num == first_model_num
-                && empty_residue_templates.find(r->name()) == empty_residue_templates.end()) {
-                    empty_residue_templates.insert(r->name());
-                    logger::warning(_logger, "Empty ", r->name(),
-                                    " residue template");
-                }
-                // Fill in missing connectivity
-                pdb_connect::connect_residue_by_distance(r);
-                return;
+        if (ta)
+            continue;
+
+        bool connected = false;
+        auto bonds = a->bonds();
+        for (auto&& b: bonds) {
+            if (b->other_atom(a)->residue() == r) {
+                connected = true;
             }
-            bool connected = false;
-            auto bonds = a->bonds();
-            for (auto&& b: bonds) {
-                if (b->other_atom(a)->residue() == r) {
-                    connected = true;
-                }
-            }
-            // TODO: worth checking if there is a metal coordination bond?
-            if (!connected) {
-                if (model_num == first_model_num) {
-                    bool show_message = true;
-                    if (a->element().number() == Element::H) {
-                        const int threshold = 10;
-                        hydrogens_missing_in_template += 1;
-                        show_message = threshold > hydrogens_missing_in_template;
-                        if (threshold == hydrogens_missing_in_template) {
-                            logger::warning(_logger, "Too many hydrogens missing from "
-                                            " residue template(s) to warn about ");
-                        }
-                    }
-                    if (show_message)
-                        logger::warning(_logger, "Atom ", a->name(),
-                                        " is not in the residue template for ", r->str());
-                }
-                pdb_connect::connect_residue_by_distance(r);
-                return;
-            }
-            // atom is connected, so assume template is still appropriate
         }
+        if (connected)
+            continue;
+
+        if (model_num == first_model_num) {
+            bool show_message = true;
+            if (a->element().number() == Element::H) {
+                const int threshold = 10;
+                hydrogens_missing_in_template += 1;
+                show_message = threshold > hydrogens_missing_in_template;
+                if (threshold == hydrogens_missing_in_template) {
+                    logger::warning(_logger, "Too many hydrogens missing from "
+                                    " residue template(s) to warn about ");
+                }
+            }
+            if (show_message)
+                logger::warning(_logger, "Atom ", a->name(),
+                                " is not in the residue template for ", r->str());
+        }
+        if (!*has_metal) {
+            for (auto&& atom: r->atoms()) {
+                if (atom->element().is_metal()) {
+                    *has_metal = true;
+                    break;
+                }
+            }
+        }
+        pdb_connect::connect_residue_by_distance(r);
+        return;
     }
 
     // foreach atom in residue
@@ -872,16 +876,28 @@ ExtractMolecule::finished_parse()
             bool start = start_residues.find(r) != start_residues.end();
             bool stop = stop_residues.find(r) != stop_residues.end();
             auto tr = find_template_residue(r->name(), start, stop);
-            if (tr == nullptr) {
+            if (tr == nullptr || tr->atoms_map().size() == 0) {
                 if (model_num == first_model_num) {
-                    // Warning already given about missing template
-                    // logger::warning(_logger, "Missing or invalid residue template for ", r->str());
-                    has_metal = true;   // it's okay to do extra work
+                    if (tr != nullptr && tr->atoms_map().size() == 0) {
+                        if (empty_residue_templates.find(r->name()) == empty_residue_templates.end()) {
+                            empty_residue_templates.insert(r->name());
+                            logger::warning(_logger, "Empty ", r->name(),
+                                            " residue template");
+                        }
+                    }
+                    if (!has_metal) {
+                        for (auto&& atom: r->atoms()) {
+                            if (atom->element().is_metal()) {
+                                has_metal = true;
+                                break;
+                            }
+                        }
+                    }
                 }
                 pdb_connect::connect_residue_by_distance(r);
             } else {
                 has_metal = has_metal || tr->has_metal();
-                connect_residue_by_template(r, tr, model_num);
+                connect_residue_by_template(r, tr, model_num, &has_metal);
             }
         }
 
@@ -1156,6 +1172,8 @@ ExtractMolecule::parse_chem_comp_bond()
 void
 ExtractMolecule::parse_audit_conform()
 {
+    if (ignore_styling)
+        return;
     // Looking for a way to tell if the mmCIF file was written
     // in the PDBx/mmCIF stylized format.  The following technique
     // is not guaranteed to work, but we'll use it for now.
@@ -1189,6 +1207,8 @@ ExtractMolecule::parse_audit_conform()
 void
 ExtractMolecule::parse_audit_syntax()
 {
+    if (ignore_styling)
+        return;
     // Looking for a way to tell if the mmCIF file was written
     // in the PDBx/mmCIF stylized format.  The following technique
     // is not guaranteed to work, but we'll use it for now.
@@ -2648,47 +2668,47 @@ structure_pointers(ExtractMolecule &e)
 }
 
 PyObject*
-parse_mmCIF_file(const char *filename, PyObject* logger, bool coordsets, bool atomic)
+parse_mmCIF_file(const char *filename, PyObject* logger, bool coordsets, bool atomic, bool ignore_styling)
 {
 #ifdef CLOCK_PROFILING
     ClockProfile p("parse_mmCIF_file");
 #endif
-    ExtractMolecule extract(logger, StringVector(), coordsets, atomic);
+    ExtractMolecule extract(logger, StringVector(), coordsets, atomic, ignore_styling);
     extract.parse_file(filename);
     return structure_pointers(extract);
 }
 
 PyObject*
 parse_mmCIF_file(const char *filename, const StringVector& generic_categories,
-                 PyObject* logger, bool coordsets, bool atomic)
+                 PyObject* logger, bool coordsets, bool atomic, bool ignore_styling)
 {
 #ifdef CLOCK_PROFILING
     ClockProfile p("parse_mmCIF_file2");
 #endif
-    ExtractMolecule extract(logger, generic_categories, coordsets, atomic);
+    ExtractMolecule extract(logger, generic_categories, coordsets, atomic, ignore_styling);
     extract.parse_file(filename);
     return structure_pointers(extract);
 }
 
 PyObject*
-parse_mmCIF_buffer(const unsigned char *whole_file, PyObject* logger, bool coordsets, bool atomic)
+parse_mmCIF_buffer(const unsigned char *whole_file, PyObject* logger, bool coordsets, bool atomic, bool ignore_styling)
 {
 #ifdef CLOCK_PROFILING
     ClockProfile p("parse_mmCIF_buffer");
 #endif
-    ExtractMolecule extract(logger, StringVector(), coordsets, atomic);
+    ExtractMolecule extract(logger, StringVector(), coordsets, atomic, ignore_styling);
     extract.parse(reinterpret_cast<const char *>(whole_file));
     return structure_pointers(extract);
 }
 
 PyObject*
 parse_mmCIF_buffer(const unsigned char *whole_file,
-   const StringVector& generic_categories, PyObject* logger, bool coordsets, bool atomic)
+   const StringVector& generic_categories, PyObject* logger, bool coordsets, bool atomic, bool ignore_styling)
 {
 #ifdef CLOCK_PROFILING
     ClockProfile p("parse_mmCIF_buffer2");
 #endif
-    ExtractMolecule extract(logger, generic_categories, coordsets, atomic);
+    ExtractMolecule extract(logger, generic_categories, coordsets, atomic, ignore_styling);
     extract.parse(reinterpret_cast<const char *>(whole_file));
     return structure_pointers(extract);
 }
@@ -2902,7 +2922,7 @@ non_standard_bonds(const Bond **bonds, size_t num_bonds, bool selected_only, boo
             // should never happen because residues are in same chain
             continue;
         }
-        if (std::abs((ssize_t) (p1 - p0)) != 1) {
+        if (std::abs((std::ptrdiff_t) (p1 - p0)) != 1) {
             // not adjacent (circular)
             covalent.push_back(b);
             continue;
@@ -2935,15 +2955,24 @@ quote_value(PyObject* value, int max_len)
     if (PyBool_Check(value) || PyLong_Check(value) || PyFloat_Check(value))
         return str;
 
+#ifdef Py_LIMITED_API
+    Py_ssize_t len = PyUnicode_GetLength(str);
+#else
     Py_ssize_t len = PyUnicode_GET_LENGTH(str);
+#endif
     if (len == 0) {
         Py_DECREF(str);
         return PyUnicode_FromString("''");
     }
 
     Py_UCS4 ch;
+#ifdef Py_LIMITED_API
+    Py_UCS4* data = PyUnicode_AsUCS4Copy(str);
+# define PyUnicode_READ(kind, data, index) data[index]
+#else
     int kind = PyUnicode_KIND(str);
     void* data = PyUnicode_DATA(str);
+#endif
     ch = PyUnicode_READ(kind, data, 0);
     bool sing_quote = ch == '\'';
     bool dbl_quote = ch == '"';
@@ -3056,6 +3085,9 @@ quote_value(PyObject* value, int max_len)
                 special = true;
         }
     }
+#ifdef Py_LIMITED_API
+    PyMem_Free(data);
+#endif
     PyObject* result;
     if (line_break || (sing_quote && dbl_quote) || (max_len && len > max_len))
         result = PyUnicode_FromFormat("\n;%U\n;\n", str);

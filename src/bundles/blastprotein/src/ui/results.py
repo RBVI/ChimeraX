@@ -10,6 +10,7 @@
 #  including partial copies, of the software or any revisions
 #  or derivations thereof.
 #  === UCSF ChimeraX Copyright ===
+from collections import defaultdict
 from string import capwords
 from typing import Dict
 
@@ -77,6 +78,7 @@ class BlastProteinResults(ToolInstance):
 
         # from_snapshot
         self._hits = kw.pop('hits', None)
+        self._best_hits = None
         self._sequences: Dict[int, Match] = kw.pop('sequences', None)
         self._table_session_data = kw.pop('table_session_data', None)
         self.tool_window = None
@@ -195,7 +197,10 @@ class BlastProteinResults(ToolInstance):
         except AttributeError: # There won't be a selected chain either
             chain = None
         if model_no:
-            model_formatted = ''.join([str(self.session.models._models[(model_no,)]), chain])
+            try:
+                model_formatted = ''.join([self.job.model_name, chain])
+            except (KeyError, AttributeError):
+                model_formatted = None
         else:
             model_formatted = None
         values[0] = model_formatted
@@ -219,6 +224,7 @@ class BlastProteinResults(ToolInstance):
         self.load_buttons_widget = QWidget(parent)
         self.load_button_container = QHBoxLayout()
         self.load_button_container.addWidget(self.buttons_label)
+        self.load_button_container.addStretch()
 
         param_str = self._format_param_str()
         self.param_report = QLabel(" ".join(["Query:", param_str]), parent)
@@ -244,7 +250,20 @@ class BlastProteinResults(ToolInstance):
         self.main_layout.addWidget(self.table)
         self.main_layout.addWidget(self.control_widget)
         self.load_buttons_widget.setLayout(self.load_button_container)
+        self.show_best_matching_container = QWidget(parent=parent)
+        self.show_best_matching_layout = QHBoxLayout()
+        self.only_best_matching = QCheckBox("List only best chain per PDB", parent=parent)
+        self.only_best_matching.stateChanged.connect(self._on_best_matching_state_changed)
+        self.show_best_matching_layout.addStretch()
+        self.show_best_matching_layout.addWidget(self.only_best_matching)
+        self.show_best_matching_container.setLayout(self.show_best_matching_layout)
+        self.show_best_matching_container.setVisible(False)
+        self.main_layout.addWidget(self.show_best_matching_container)
         self.main_layout.addWidget(self.load_buttons_widget)
+
+        for layout in [self.main_layout, self.show_best_matching_layout]:
+            layout.setContentsMargins(2, 2, 2, 2)
+            layout.setSpacing(2)
 
         if self._from_restore:
             self._on_report_hits_signal(self._hits)
@@ -267,6 +286,27 @@ class BlastProteinResults(ToolInstance):
 
         self.tool_window.ui_area.closeEvent = self.closeEvent
         self.tool_window.ui_area.setLayout(self.main_layout)
+
+    def _on_best_matching_state_changed(self):
+        state = self.only_best_matching.checkState()
+        if state.name == "Checked":
+            if self._best_hits is None:
+                chains = defaultdict(str)
+                for hit in self._hits:
+                    chain, homotetramer = hit["name"].split('_')
+                    if chain not in chains:
+                        chains[chain] = hit
+                    else:
+                        old_homotetramer = chains[chain]["name"].split('_')[1]
+                        best_homotetramer = sorted([homotetramer, old_homotetramer])[0]
+                        if best_homotetramer == homotetramer:
+                            chains[chain] = hit
+                self._best_hits = list(chains.values())
+                self.table.data = [BlastResultsRow(item) for item in self._best_hits]
+            else:
+                self.table.data = [BlastResultsRow(item) for item in self._best_hits]
+        else:
+            self.table.data = [BlastResultsRow(item) for item in self._hits]
 
     def closeEvent(self, event):
         if self.worker is not None:
@@ -342,6 +382,8 @@ class BlastProteinResults(ToolInstance):
                         self.table.launch(suppress_resize=True)
                     self.table.resizeColumns(max_size = 100) # pixels
                     self.control_widget.setVisible(True)
+                    if db.name == "pdb":
+                        self.show_best_matching_container.setVisible(True)
             except RuntimeError:
                 # The user closed the window before the results came back.
                 # TODO: Investigate the layer of abstraction in ui/src/gui.py that makes
@@ -397,7 +439,7 @@ class BlastProteinResults(ToolInstance):
         from chimerax.alphafold.match import _similarity_table_html
         for m in models:
             # TODO: Would be nice if all models were in one log table.
-            msg = _similarity_table_html(m, query_seq, m.database.id)
+            msg = _similarity_table_html(m.chains[0], query_seq, m.database.id)
             m.session.logger.info(msg, is_html = True)
 
     # Code for displaying matches as multiple sequence alignment

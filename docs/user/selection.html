@@ -36,9 +36,8 @@ see <a href="commands/graphics.html#selection"><b>set selection</b></a>)
   <li>can be <a href="commands/atomspec.html#builtin">specified</a> 
   as <b>sel</b> in <a href="index.html#commands">commands</a>, for example:
   <b><a href="commands/style.html">style</a> sel stick</b>
-  <li>can be listed in the <a href="tools/log.html"><b>Log</b></a>
-  with <a href="commands/info.html"><b>info</b></a>, for example:
-  <b><a href="commands/info.html#atoms">info atoms</a> sel</b>
+  <li>can be listed with 
+  <a href="commands/info.html#selection"><b>info selection</b></a>
   <li>can be named with menu: <a href="menu.html#named-selections"><b>Select... 
   Define Selector</b></a> or command
   <a href="commands/name.html"><b>name frozen</b></a>
@@ -67,6 +66,9 @@ see <a href="commands/graphics.html#selection"><b>set selection</b></a>)
   </ul>
 <li>can be created:
   <ul>
+  <li>with the <a href="menu.html#select"><b>Select</b> menu</a>: by chain ID,
+  residue name, element, type of structure, sequence, zone, <i>etc.</i> 
+  <li>with the <a href="commands/select.html"><b>select</b></a> command
   <li>by clicking with the mouse in the graphics window (...and 
   doubleclicking for a <a href="#context">selection context menu</a>),
   by default:
@@ -74,19 +76,16 @@ see <a href="commands/graphics.html#selection"><b>set selection</b></a>)
     <li>Ctrl-click to start selection (replace)
     <li>Shift-Ctrl-click to add/subtract (toggle)
     </ul>
-  The button assignment can be changed with
+  This button assignment can be changed with
   <a href="commands/ui.html#mousemode"><b>mousemode</b></a>
   <img src="tools/mouse-icons/select.png" class="icon">.
-<br><br>
+<br>
   <li>by clicking links in the <b>Chain information</b> and
   <b>Non-standard residues</b> tables
   shown in the <a href="tools/log.html"><b>Log</b></a>
   when a structure is opened
   (for example, see the <a href="tutorials/binding-sites.html">Protein-Ligand
   Binding Sites tutorial</a>)
-  <li>with the <a href="menu.html#select"><b>Select</b> menu</a>: by chain ID,
-  residue name, element, type of structure, sequence, zone, <i>etc.</i> 
-  <li>with the <a href="commands/select.html"><b>select</b></a> command
   <li>by dragging a box around residues in an
   <a href="tools/sequenceviewer.html#association">associated sequence</a>
   <li>with various other commands and tools
@@ -156,15 +155,24 @@ and/or <a href="../pseudobonds.html">pseudobonds</a>.
 <img class="icon" border=1 src="tools/shortcut-icons/atomshow.png"></a> icon,
 and all types of hidden items shown with the
 <a href="commands/show.html"><b>show</b></a> command.)
-If exactly two atoms are selected, the selection context menu will include 
+</p>
+<ul>
+<li>If exactly two atoms are selected, the selection context menu will include 
 a <b>Distance</b> option to add a
 <a href="tools/distances.html">distance monitor</a> between them.
-If the selection contains part of a single amino acid, the context menu
+<li>If a bond is selected, the selection context menu will include an option to
+<b>Adjust Torsion</b> (activate the torsion and show the
+<a href="tools/buildstructure.html#adjust"><b>Adjust Torsions</b></a>
+interface for setting it interactively).
+<li>If the selection contains part of a single amino acid, the context menu
 will include a choice to <b>Mutate Residue</b>
 with the <a href="tools/rotamers.html"><b>Rotamers</b></a> tool.
+</ul>
+<p>
 See also:
 <a href="window.html#context-menu">context menus</a>,
 <a href="tools/distances.html"><b>Distances</b></a>
+</p>
 
 <a name="sel-vs-spec"></a>
 <p class="nav">
@@ -177,12 +185,12 @@ including <a href="commands/atomspec.html#combinations">logical operations</a>
 (and/or/not) and <a href="commands/atomspec.html#zones">zones</a>, can be given
 directly in commands, bypassing selection.
 However, <a href="commands/atomspec.html">target specification</a> may include
-<b>sel</b>, <b>selAtoms</b>, and <b>selMaps</b> to indicate the current selection,
+<b>sel</b> to indicate the current selection,
 and selections are useful in other contexts,
 such as defining the scope of action when an icon is clicked.
 </p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-February 2022</address>
+April 2023</address>
 </body></html>

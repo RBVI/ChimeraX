@@ -1,0 +1,50 @@
+APPNAME = edu.ucsf.rbvi.ChimeraX
+BUILD_DIR = fp-build.tmp
+
+all:
+	# by default, do nothing
+
+preqreqs-rhel:
+	dnf install flatpak flatpak-builder
+
+prereqs-ubuntu:
+	apt install flatpak flatpak-builder gnome-software-plugin-flatpak
+
+build-flatpak:
+	flatpak-builder --force-clean ${BUILD_DIR} ${APPNAME}.yaml
+
+clean:
+	rm -f ${APPNAME}.metainfo.xml ${APPNAME}.desktop
+	rm -rf ${BUILD_DIR}
+
+install:
+	# this is called indirectly by flatpak-builder via yaml/json manifest
+	mkdir -p /app
+	$(MAKE) install NO_PREBUILT=1 FLATPAK_DIST=22.08 FLATPAK_APPNAME=${APPNAME}
+	install -Dm644 -t /app/share/metainfo ${APPNAME}.metainfo.xml
+	install -Dm644 -t /app/share/applications ${APPNAME}.desktop
+
+user-install:
+	# assume it has been built already
+	flatpak-builder --export-only --user --install ${BUILD_DIR} ${APPNAME}.yaml
+
+system-install:
+	# assume it has been built already
+	flatpak-builder --export-only --system --install ${BUILD_DIR} ${APPNAME}.yaml
+
+export-flatpak:
+	# Create a single file, ChimeraX.flatpak, that can be installed 
+	flatpak build-export export ${BUILD_DIR}
+	flatpak build-bundle export ChimeraX.flatpak ${APPNAME}
+
+run:
+	flatpak run ${APPNAME}
+
+explore:
+	flatpak run --command=sh ${APPNAME}
+
+explore-sdk:
+	flatpak run $(shell grep ^sdk ${APPNAME}.yaml | cut -d ' ' -s -f 2)
+
+validate-metainfo:
+	appstream-util validate-relax ${APPNAME}.metainfo.xml

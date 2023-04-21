@@ -12,7 +12,7 @@ TOP = ../../..
 include $(TOP)/mk/config.make
 PYTHON ?=PYTHONNOUSERSITE=1 $(APP_PYTHON_EXE)
 
-BUNDLE_VERSION = 1.6
+BUNDLE_VERSION = 1.7
 BUNDLE_VERSION := $(shell $(PYTHON) mkbuildinfo -v $(TOP) $(BUNDLE_VERSION) $(BUILD_TYPE))
 
 .PHONY: src/commands/_atomspec.py wheel src/buildinfo.py
@@ -38,7 +38,7 @@ wheel: clean src/buildinfo.py src/commands/_atomspec.py
 	$(PYTHON) -m build --no-isolation --wheel
 
 sync:
-	rsync -av dist/*.whl $(build_prefix)/sync/
+	cp -av dist/*.whl $(build_prefix)/sync/
 
 src/buildinfo.py: buildinfo.py.in mkbuildinfo
 	rm -f src/buildinfo.py

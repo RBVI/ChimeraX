@@ -22,7 +22,7 @@ import platform
 from chimerax import app_dirs
 import sys
 
-WRITER_VERSION = 'v9'  # TODO: update after any change
+WRITER_VERSION = 'v10'  # TODO: update after any change
 
 MMCIF_PREAMBLE = "#\\#CIF_1.1\n" "# mmCIF\n"
 
@@ -199,6 +199,7 @@ ChimeraX_authors = (
 )
 
 _CHAIN_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+assert(len(_CHAIN_CHARS) == 62)
 
 system = platform.system()
 if system == 'Darwin':
@@ -235,6 +236,22 @@ def _mmcif_chain_id(i):
         i //= num_chars
     output.reverse()
     return ''.join(output)
+
+
+def _chain_id_ordinal(chain_id):
+    value = 0
+    for char in chain_id:
+        ch = ord(char)
+        if ord('A') <= ch <= ord('Z'):
+            v = ch - ord('A')
+        elif ord('a') <= ch <= ord('z'):
+            v = ch - ord('a') + 26
+        elif ord('0') <= ch <= ord('9'):
+            v = ch - ord('0') + 52
+        else:
+            raise ValueError("not a legal chain id")
+        value = value * 62 + v
+    return value
 
 
 def _save_metadata(model, categories, file, metadata):
@@ -318,8 +335,8 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
     from chimerax.atomic import Residue
     from collections import OrderedDict
     entity_info = {}     # { entity_id: (type, pdbx_description) }
-    asym_info = {}       # { auth_chain_id: (entity_id, label_asym_id) }
-    het_asym_info = {}   # { mmcif_chain_id: (entity_id, label_asym_id) }
+    asym_info = {}       # { (auth_chain_id, chain_chars): (entity_id, label_asym_id) }
+    het_asym_info = {}   # { (auth_chain_id, name): (entity_id, label_asym_id) }
     poly_info = []       # [(entity_id, type, one-letter-seq)]
     poly_seq_info = []   # [(entity_id, num, mon_id)]
     pdbx_poly_info = []  # [(entity_id, asym_id, mon_id, seq_id, pdb_strand_id, auth_seq_num, pdb_ins_code)]
@@ -329,36 +346,44 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
 
     seq_entities = OrderedDict()   # { chain.characters : (entity_id, _1to3, [chains]) }
     for c in best_m.chains:
+        eid = None
         chars = c.characters
         if chars in seq_entities:
             eid, _1to3, chains = seq_entities[chars]
-            chains.append(c)
-        else:
-            mcid = c.existing_residues[0].mmcif_chain_id
-            descrip = c.description
-            if not descrip:
-                descrip = '?'
+            if _1to3 is not None or not c.from_seqres:
+                chains.append(c)
+                continue
+            # fallthrough when sequence wasn't authoratative, but is now
+        descrip = c.description
+        if not descrip:
+            descrip = '?'
+        if eid is None:
             eid = len(entity_info) + 1
-            entity_info[eid] = ('polymer', descrip)
-            names = set(c.existing_residues.names)
-            nstd = 'yes' if names.difference(_standard_residues) else 'no'
-            # _1to3 is reverse map to handle missing residues
-            if not best_guess and not c.from_seqres:
-                skipped_sequence_info = True
-                _1to3 = None
+        entity_info[eid] = ('polymer', descrip)
+        names = set(c.existing_residues.names)
+        nstd = 'yes' if names.difference(_standard_residues) else 'no'
+        # _1to3 is reverse map to handle missing residues
+        if not best_guess and not c.from_seqres:
+            skipped_sequence_info = True
+            _1to3 = None
+        else:
+            if c.polymer_type == Residue.PT_AMINO:
+                _1to3 = _protein1to3
+                poly_info.append((eid, nstd, 'polypeptide(L)', chars))  # TODO: or polypeptide(D)
+            elif names.isdisjoint(set(_rna1to3)):
+                # must be DNA
+                _1to3 = _dna1to3
+                poly_info.append((eid, nstd, 'polyribonucleotide', chars))
             else:
-                if c.polymer_type == Residue.PT_AMINO:
-                    _1to3 = _protein1to3
-                    poly_info.append((eid, nstd, 'polypeptide(L)', chars))  # TODO: or polypeptide(D)
-                elif names.isdisjoint(set(_rna1to3)):
-                    # must be DNA
-                    _1to3 = _dna1to3
-                    poly_info.append((eid, nstd, 'polyribonucleotide', chars))
-                else:
-                    # must be RNA
-                    _1to3 = _rna1to3
-                    poly_info.append((eid, nstd, 'polydeoxyribonucleotide', chars))
+                # must be RNA
+                _1to3 = _rna1to3
+                poly_info.append((eid, nstd, 'polydeoxyribonucleotide', chars))
+        if chars not in seq_entities:
             seq_entities[chars] = (eid, _1to3, [c])
+        else:
+            _, _, chains = seq_entities[chars]
+            chains.append(c)
+            seq_entities[chars] = (eid, _1to3, chains)
 
     if skipped_sequence_info:
         session.logger.warning("Not saving entity_poly_seq for non-authoritative sequences")
@@ -366,6 +391,8 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
     # use all chains of the same entity to figure out what the sequence's residues are named
     pdbx_poly_tmp = {}
     for chars, (eid, _1to3, chains) in seq_entities.items():
+        if _1to3 is None:
+            continue
         chains = [c for c in chains if c.from_seqres]
         pdbx_poly_tmp[eid] = []
         for seq_id, ch, residues in zip(range(1, sys.maxsize), chars, zip(*(c.residues for c in chains))):
@@ -389,9 +416,9 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
     used_mmcif_chain_ids = set()
     last_asym_id = 0
 
-    def get_asym_id(want_id):
+    def allocate_asym_id(want_id):
         nonlocal existing_mmcif_chain_ids, used_mmcif_chain_ids, last_asym_id
-        if want_id not in used_mmcif_chain_ids:
+        if want_id and want_id not in used_mmcif_chain_ids:
             used_mmcif_chain_ids.add(want_id)
             return want_id
         while True:
@@ -405,25 +432,29 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
     # assign label_asym_id's to each chain
     for c in best_m.chains:
         mcid = c.existing_residues[0].mmcif_chain_id
-        label_asym_id = get_asym_id(mcid)
+        label_asym_id = allocate_asym_id(mcid)
         chars = c.characters
         chain_id = c.chain_id
-        eid, _1to3, _ = seq_entities[chars]
+        eid, _, _ = seq_entities[chars]
         asym_info[(chain_id, chars)] = (label_asym_id, eid)
 
-        tmp = pdbx_poly_tmp[eid]
+        tmp = pdbx_poly_tmp.get(eid)
+        if tmp is None:
+            continue
         for name, label_seq_id, seq_num, ins_code in tmp:
             pdbx_poly_info.append((eid, label_asym_id, name, label_seq_id, chain_id, seq_num, ins_code))
     del pdbx_poly_tmp
 
-    het_entities = {}   # { het_name: { 'entity': entity_id, chain: (label_entity_id, label_asym_id) } }
+    het_entities = {}  # name: entity_id
     het_residues = concatenate(
         [m.residues.filter(m.residues.polymer_types == Residue.PT_NONE) for m in models])
     for r in het_residues:
-        mcid = r.mmcif_chain_id
         n = r.name
+        cid = r.chain_id
+        if (cid, n) in het_asym_info:
+            continue
         if n in het_entities:
-            eid = het_entities[n]['entity']
+            eid = het_entities[n]
         else:
             if n == 'HOH':
                 etype = 'water'
@@ -438,12 +469,10 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
                 descrip = '?'
             eid = len(entity_info) + 1
             entity_info[eid] = (etype, descrip)
-            het_entities[n] = {'entity': eid}
-        if mcid in het_entities[n]:
-            continue
-        label_asym_id = get_asym_id(mcid)
-        het_asym_info[mcid] = (label_asym_id, eid)
-        het_entities[n][mcid] = (eid, label_asym_id)
+            het_entities[n] = eid
+        mcid = r.mmcif_chain_id
+        label_asym_id = allocate_asym_id(mcid)
+        het_asym_info[(cid, n)] = (label_asym_id, eid)
 
     entity = mmcif.CIFTable('entity', ['id', 'type', 'pdbx_description'], flattened(entity_info.items()))
     entity.print(file, fixed_width=fixed_width)
@@ -452,9 +481,11 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
     entity_poly_seq = mmcif.CIFTable('entity_poly_seq', ['entity_id', 'num', 'mon_id'], flattened(poly_seq_info))
     entity_poly_seq.print(file, fixed_width=fixed_width)
     import itertools
+    info = list(itertools.chain(asym_info.values(), het_asym_info.values()))
+    info.sort(key=lambda x: _chain_id_ordinal(x[0]))
     struct_asym = mmcif.CIFTable(
-        'struct_asym', ['id', 'entity_id'],
-        flattened(itertools.chain(asym_info.values(), het_asym_info.values())))
+        'struct_asym', ['id', 'entity_id'], flattened(info))
+    del info
     struct_asym.print(file, fixed_width=fixed_width)
     pdbx_poly_seq = mmcif.CIFTable('pdbx_poly_seq_scheme', ['entity_id', 'asym_id', 'mon_id', 'seq_id', 'pdb_strand_id', 'pdb_seq_num', 'pdb_ins_code'], flattened(pdbx_poly_info))
     pdbx_poly_seq.print(file, fixed_width=fixed_width)
@@ -543,11 +574,13 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
             chain_het = het_residues.filter(het_residues.chain_ids == chain_id)
             het_residues -= chain_het
             for r in chain_het:
-                asym_id, entity_id = het_asym_info[r.mmcif_chain_id]
+                asym_id, entity_id = het_asym_info[(chain_id, r.name)]
                 atom_site_residue(r, '.', asym_id, entity_id, model_num, xform)
-        for r in het_residues:
-            asym_id, entity_id = het_asym_info[r.mmcif_chain_id]
+        info = [(r, het_asym_info[(r.chain_id, r.name)]) for r in het_residues]
+        for r, (asym_id, entity_id) in sorted(info, key=lambda x: _chain_id_ordinal(x[1][0])):
+            #asym_id, entity_id = het_asym_info[r.mmcif_chain_id]
             atom_site_residue(r, '.', asym_id, entity_id, model_num, xform)
+        del info
 
     if all_coordsets and len(models) == 1 and best_m.num_coordsets > 1:
         xform = xforms[0]

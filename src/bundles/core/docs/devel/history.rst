@@ -12,6 +12,10 @@
     or derivations thereof.
     === UCSF ChimeraX Copyright ===
 
+====================================
+history: Application history support
+====================================
+
 .. automodule:: chimerax.core.history
     :members:
     :show-inheritance:

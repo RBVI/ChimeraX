@@ -386,6 +386,7 @@ A <b><i>ChimeraX session file</i></b> encodes most aspects of a
 modeling session in ChimeraX:
 <ul>
 <li>atomic and other models
+<li><a href="../tools/buildstructure.html#adjust">active torsions</a>
 <li>sequences and sequence alignments
 <li><a href="../tools/axesplanes.html">axis, plane, and centroid objects</a>
 <li>lighting, display styles, coloring,
@@ -730,6 +731,9 @@ when saving a PDB file, or only the selected
 <a href="../pseudobonds.html">pseudobonds</a> when saving a 
 <a href="../pseudobonds.html#pbfiles">pseudobond file</a>
 (in addition to any restriction by <b>models</b>).
+To simply list the selection contents (<i>e.g.</i>, atom identifiers)
+in the <a href="../tools/log.html"><b>Log</b></a> or to save that list to
+a file, see <a href="info.html#selection"><b>info selection</b></a> instead.
 </blockquote>
 <blockquote>
 <b>displayedOnly</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
@@ -925,6 +929,7 @@ The <b>attrName</b> keyword and
 An <b>a:</b>, <b>r:</b>, or <b>m:</b> immediately preceding the attribute name
 can be used to indicate the attribute level as atom, residue, or (atomic) model,
 but this is only needed when the name exists at multiple levels.
+See also: <a href="info.html"><b>info</b></a>
 </p><p>
 Options:
 </p>
@@ -1005,6 +1010,8 @@ Example:
 [&nbsp;<b>textureColors</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>preserveTransparency</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>instancing</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>metallicFactor</b>&nbsp;&nbsp;<i>f<sub>m</sub></i>&nbsp;]
+[&nbsp;<b>roughnessFactor</b>&nbsp;&nbsp;<i>f<sub>r</sub></i>&nbsp;]
 </blockquote>
 <p>
 Several options apply only to saving <a href="https://www.khronos.org/gltf" 
@@ -1073,8 +1080,20 @@ file smaller. The meaning for bonds is analogous to that for atoms.
 Instancing is always used for <a href="sym.html#copies">graphical clones</a>
 created with <a href="sym.html"><b>sym</b></a> regardless of this option.
 </blockquote>
+<blockquote>
+<b>metallicFactor</b>&nbsp;&nbsp;<i>f<sub>m</sub></i>
+<br>
+Write the specified metallic factor <i>f<sub>m</sub></i>
+(range 0.0-1.0, default <b>0.0</b>) into the output file. 
+</blockquote>
+<blockquote>
+<b>roughnessFactor</b>&nbsp;&nbsp;<i>f<sub>r</sub></i>
+<br>
+Write the specified roughness factor <i>f<sub>r</sub></i>
+(range 0.0-1.0, default <b>1.0</b>) into the output file. 
+</blockquote>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-January 2023</address>
+April 2023</address>
 </body></html>

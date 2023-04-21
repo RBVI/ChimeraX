@@ -41,6 +41,7 @@ defaults = {
     'compute_ss': True,
     'overwrite_ss': False,
     'verbose_logging': False,
+    'log_transformation_matrix': False,
 }
 
 from  chimerax.core.settings import Settings

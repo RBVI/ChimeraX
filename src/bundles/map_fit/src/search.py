@@ -332,12 +332,19 @@ def save_fits(session, fits, path = None):
         path = base + '_fit%d' + suf
 
     from chimerax.pdb import save_pdb
+    deleted = 0
     for i, fit in enumerate(fits):
         p = path if len(fits) == 1 else path % (i+1)
         fit.place_models(session)
-        save_pdb(session, p, models = fit.fit_molecules(),
-                 rel_model = fit.volume)
+        models = fit.fit_molecules()
+        mfits = [m for m in models if not m.deleted]
+        deleted += len(models) - len(mfits)
+        if mfits:
+            save_pdb(session, p, models = mfits, rel_model = fit.volume)
 
+    if deleted:
+        session.logger.warning(f'{deleted} fit molecules were deleted and cannot be saved')
+        
 # -----------------------------------------------------------------------------
 #
 def save_fit_positions_and_metrics(fit_list, path, delimiter = ' ', float_precision = 5):

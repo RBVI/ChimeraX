@@ -727,7 +727,7 @@ cdef class CyAtom:
         import numpy
         return Atoms(numpy.array([<ptr_type>r for r in tmp], dtype=numpy.uintp))
 
-    def string(self, atom_only = False, style = None, relative_to=None, omit_structure=None):
+    def string(self, *, atom_only=False, style=None, relative_to=None, omit_structure=None, minimal=False):
         '''Supported API.  Get text representation of Atom
            (also used by __str__ for printing); if omit_structure is None, the the structure
            will be omitted if only one structure is open
@@ -742,11 +742,16 @@ cdef class CyAtom:
                 # tautology for bonds, but this func is conscripted by pseudobonds, so test...
                 if style.startswith('serial'):
                     return self.string(atom_only=True, style=style)
-                chain_str = "" if  self.residue.chain_id == relative_to.residue.chain_id \
-                    else '/' + self.residue.chain_id + (' ' if style.startswith("simple") else "")
-                res_str = self.residue.string(residue_only=True)
+                if self.residue.chain_id == relative_to.residue.chain_id:
+                    chain_str = ""
+                else:
+                    from chimerax.atomic import Chain
+                    chain_str = Chain.chain_id_to_atom_spec(self.residue.chain_id) + (
+                        ' ' if style.startswith("simple") else "")
+                res_str = "" if self.residue == relative_to.residue \
+                    else self.residue.string(residue_only=True, style=style)
                 atom_str = self.string(atom_only=True, style=style)
-                joiner = "" if res_str.startswith(":") else " "
+                joiner = "" if atom_str.startswith("@") else " "
                 return chain_str + res_str + joiner + atom_str
         if style.startswith("simple"):
             atom_str = self.name
@@ -765,9 +770,19 @@ cdef class CyAtom:
             atom_str = str(self.serial_number)
         if atom_only:
             return atom_str
+        if minimal and self.structure.num_residues == 1:
+            if omit_structure is None:
+                from .structure import Structure
+                omit_structure = len([s for s in self.structure.session.models.list()
+                    if isinstance(s, Structure)]) == 1
+            if omit_structure:
+                return atom_str
+            return self.structure.string(style=style) + (" " if style.startswith("simple") else "") + atom_str
         if not style.startswith('simple'):
-            return '%s%s' % (self.residue.string(style=style, omit_structure=omit_structure), atom_str)
-        return '%s %s' % (self.residue.string(style=style, omit_structure=omit_structure), atom_str)
+            return '%s%s' % (self.residue.string(
+                style=style, omit_structure=omit_structure, minimal=minimal), atom_str)
+        return '%s %s' % (self.residue.string(style=style, omit_structure=omit_structure, minimal=minimal),
+            atom_str)
 
     def use_default_radius(self):
         '''Supported API.  If an atom's radius has previously been explicitly set,
@@ -1699,7 +1714,7 @@ cdef class CyResidue:
         "Supported API.  Remove the atom from this residue."
         self.cpp_res.remove_atom(atom.cpp_atom)
 
-    def string(self, *, residue_only=False, omit_structure=None, style=None):
+    def string(self, *, residue_only=False, omit_structure=None, style=None, minimal=False):
         '''Supported API.  Get text representation of Residue
            If 'omit_structure' is None, the structure will be omitted only if exactly one structure is open
         '''
@@ -1713,8 +1728,17 @@ cdef class CyResidue:
             res_str = ":" + str(self.number) + ic
         if residue_only:
             return res_str
-        from chimerax.atomic import Chain
-        chain_str = Chain.chain_id_to_atom_spec(self.chain_id)
+        if minimal:
+            omit_chain = len(set(self.structure.residues.chain_ids)) ==  1
+        else:
+            omit_chain = False
+        if omit_chain:
+            chain_str = ""
+        else:
+            from chimerax.atomic import Chain
+            chain_str = Chain.chain_id_to_atom_spec(self.chain_id)
+        if omit_chain and omit_structure:
+            return res_str
         if omit_structure is None:
             from .structure import Structure
             omit_structure = len([s for s in self.structure.session.models.list()

@@ -27,8 +27,9 @@ class="clRight" title="User Guide Index"/></a>
 <p>
 The <b>Build Structure</b> tool builds and modifies atomic structures.
 The equivalent commands are
-<a href="../commands/build.html"><b>build</b></a> and
-<a href="../commands/bond.html"><b>bond</b></a>.
+<a href="../commands/build.html"><b>build</b></a>,
+<a href="../commands/bond.html"><b>bond</b></a>, and
+<a href="../commands/torsion.html"><b>torsion</b></a>.
 See also:
 <a href="rotamers.html"><b>Rotamers</b></a>,
 <a href="modeller.html"><b>Modeller Comparative</b></a>,
@@ -37,10 +38,11 @@ See also:
 <a href="altlocexplorer.html"><b>Altloc Explorer</b></a>,
 <a href="renumber.html"><b>Renumber Residues</b></a>,
 <a href="changechains.html"><b>Change Chain IDs</b></a>,
+<a href="../commands/angle.html"><b>angle</b></a>,
 <a href="../commands/rna.html"><b>rna</b></a>,
-<a href="../commands/torsion.html"><b>torsion</b></a>,
 <a href="../commands/swapaa.html"><b>swapaa</b></a>,
-<a href="../commands/swapna.html"><b>swapna</b></a>
+<a href="../commands/swapna.html"><b>swapna</b></a>,
+<a href="../selection.html#context">selection context menus</a>
 </p><p>
 <b>Build Structure</b> can be opened from the 
 <b>Structure Editing</b> section of the <b>Tools</b> menu and 
@@ -49,9 +51,18 @@ Sections:
 </p>
 <ul>
 <li><a href="#start"><b>Start Structure</b></a>
+&ndash; add an atom, fragment, or molecule not bonded to existing atoms
 <li><a href="#modify"><b>Modify Structure</b></a>
+&ndash; change or delete existing atoms,
+build outward step-by-step from an existing structure
 <li><a href="#bonds"><b>Adjust Bonds</b></a>
+&ndash; add bonds, delete bonds, change bond lengths
+<li><a href="#adjust"><b>Adjust Torsions</b></a>
+&ndash;- rotate bonds (change dihedral angles)
 <li><a href="#join"><b>Join Models</b></a>
+&ndash; bond and merge two models, moving one of them to form the bond
+<li><a href="#invert"><b>Invert</b></a>
+&ndash; swap substituents, potentially changing chirality
 </ul>
 
 <p class="nav">
@@ -62,9 +73,7 @@ Sections:
 <p>
 The <b>Start Structure</b> section of <a href="#top"><b>Build Structure</b></a> 
 adds new atoms or molecules independent of any pre-existing atoms.
-See also: <a href="../commands/open.html#fetch"><b>open</b></a>,
-<a href="../commands/angle.html"><b>angle</b></a>,
-<a href="../commands/torsion.html"><b>torsion</b></a>
+See also: <a href="../commands/open.html#fetch"><b>open</b></a>
 </p><p>
 Options to <b>Add</b>:
 <ul>
@@ -360,6 +369,63 @@ to the value specified in the entry field or with the slider
 were selected (not necessarily their original lengths)
 </ul>
 
+<a name="adjust"></a>
+<p class="nav">
+[<a href="#top">back to top: Build Structure</a>]
+</p>
+<h3>Adjust Torsions</h3>
+<p>
+The <b>Adjust Torsions</b> section of <a href="#top"><b>Build Structure</b></a>
+is a table of active (rotatable) torsions with entry fields and dials
+for interactive adjustment. Clicking <b>Activate</b> adds the
+<a href="../selection.html">selected</a> bond to the list.
+A torsion can also be activated using the
+<a href="../selection.html#context">selection context menu</a> of a bond.
+An error message will appear if an attempt is made to activate a bond that is
+terminal (without further atoms attached) or within a ring.
+Active torsions are saved in 
+<a href="../commands/save.html#session">sessions</a>.
+See also: 
+<a href="angles.html"><b>Angles/Torsions</b></a>,
+<a href="../commands/angle.html"><b>angle</b></a>,
+<a href="../commands/torsion.html"><b>torsion</b></a>, the
+<b>bond rotation</b> <a href="../commands/ui.html#mousemode">mouse mode</a>
+<a href="mousemodes.html" title="Mouse Modes for Right Button...">
+<img class="icon" border=1 src="mouse-icons/bondrot.png"></a>
+</p>
+<table class="clRight">
+<tr><td><img class="outline" src="torsions.png" width="400px"
+alt="Adjust Torsions dialog"></td></tr>
+</table>
+<p>
+If the four atoms defining a torsion are called 1-2-3-4,
+atom 1 is <b>Fixed</b> and atom 4 is <b>Moving</b>,
+meaning that 4 and the side of the molecule bonded to 4
+will rotate when the bond is rotated.
+The bond can be rotated by entering a new angle value
+or by manipulating the associated dial.
+</p><p>
+The <b>Bond</b> column contains a pulldown menu for each torsion labeled with 
+the identifiers of atoms 2 &harr; 3 (those flanking the rotatable bond).
+This menu contains choices to:
+</p>
+<ul>
+<li><b>Reset to initial torsion angle</b>
+<li><b>Swap moving/fixed sides</b>
+</ul>
+<p>
+When atom 2 is bonded to more than two atoms, there is more than one
+possible <b>Fixed</b> atom to define the measurement, and 
+alternatives (if any) are available from a pulldown menu. 
+Similarly, when atom 3 is bonded to more than two atoms, there is more than one
+possible <b>Moving</b> atom, and alternatives (if any) are available
+from a pulldown menu.
+</p><p>
+The torsion can be deactivated by clicking the &ldquo;x&rdquo; button
+to its left. If preserving the original position is desired, 
+the bond should be reset before it is deactivated.
+</p>
+
 <a name="join"></a>
 <p class="nav">
 [<a href="#top">back to top: Build Structure</a>]
@@ -408,6 +474,36 @@ other peptide torsion angles are <a href="../attributes.html">attributes</a>
 of the amino acid residue containing the newly bonded N.
 </p>
 
+<p class="nav">
+<a name="invert"></a>
+[<a href="#top">back to top: Build Structure</a>]
+</p>
+<h3>Invert</h3>
+<p>
+The <b>Invert</b> section of <a href="#top"><b>Build Structure</b></a> 
+allows exchanging the positions of two substituents of an atom,
+potentially inverting a chiral center.
+Substituents of atoms that are not chiral centers can also be swapped.
+</p>
+<ul>
+<li>If a single atom is <a href="../selection.html">selected</a>,
+clicking <b>Swap</b> exchanges the positions of its two smallest substituents
+based on number of atoms, or if those are the same, the atomic weights of
+the atoms directly bonded to the selected atom.
+Implicit hydrogens on the selected atom are considered, but not those
+on its substituents.
+These rules are not meant to reproduce the much more complex
+&ldquo;priority&rdquo; calculations used in chirality determination.
+<li>If two atoms directly bonded to the same central atom are
+<a href="../selection.html">selected</a>,
+clicking <b>Swap</b> will exchange the positions of the substituents
+rooted at those atoms.
+</ul>
+<p>
+Any unintended results can be reversed by clicking <b>Swap</b> again
+without changing the <a href="../selection.html">selection</a>.
+</p>
+
 <a name="covrad"></a>
 <p class="nav">
 [<a href="#top">back to top: Build Structure</a>]
@@ -450,5 +546,5 @@ states from heavy atom coordinates.</a> Meng EC, Lewis RA.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-December 2022</address>
+February 2023</address>
 </body></html>

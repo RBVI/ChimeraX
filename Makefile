@@ -52,6 +52,10 @@ ifeq ($(OS),Darwin)
 	# update Info.plist with data formats provided by bundles
 	$(MAKE) -C src/apps/ChimeraX install-plist
 endif
+ifdef FLATPAK_DIST
+	-${APP_PYTHON_EXE} -m compileall -d CHIMERAX ${app_libdir}
+	${APP_EXE} --exit --nogui --silent --cmd 'linux flatpak-files edu.ucsf.rbvi.ChimeraX'
+endif
 	@echo 'Finished install at' `date`
 
 install-rbvi:

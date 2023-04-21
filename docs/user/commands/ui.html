@@ -597,8 +597,10 @@ see <a href="../tools/mousemodes.html#multiwindowing">details</a>
 </tr><tr>
 <td align="center"><b>bond rotation</b></td>
 <td align="center" class="text">adjust torsion angle (original position 
-not retained) by clicking a bond and dragging vertically;
-see also <a href="torsion.html"><b>torsion</b></a></td>
+not retained) by clicking a bond and dragging vertically, <b>+Shift</b> to
+move the larger set of atoms in the molecule instead of the smaller;
+see also <a href="torsion.html"><b>torsion</b></a>,
+<a href="../tools/buildstructure.html#adjust"><b>Adjust Torsions</b></a></td>
 <td align="center"><img src="../tools/mouse-icons/bondrot.png" width="35px"></td>
 </tr><tr>
 <td align="center"><b>swapaa</b></td>
@@ -768,7 +770,54 @@ with a &ldquo;precision touchpad,&rdquo; a two-finger tap is also
 interpreted as right-click, but a two-finger drag still performs scrolling.
 </ul>
 
+<a name="selective"></a>
+<h3><a href="#mousemode" class="nounder"><b>&larr;</b></a>
+Selective Manipulation</h3>
+<p>
+The mouse or touchpad can be used to move only specific models or atoms,
+leaving the others frozen in place.
+In Chimera, this is done by deactivating/activating models for motion.
+In ChimeraX, however, specific mouse modes are used instead:
+</p>
+<ul>
+<li>modes that move only the <a href="../selection.html">selected</a> models:
+  <ul>
+  <li><b>translate selected models</b>
+<a href="../tools/mousemodes.html" title="Mouse Modes for Right Button...">
+<img class="icon" border=1 src="../tools/mouse-icons/move_h2o.png"></a>
+(+Shift to rotate)
+  <li><b>rotate selected models</b>
+<a href="../tools/mousemodes.html" title="Mouse Modes for Right Button...">
+<img class="icon" border=1 src="../tools/mouse-icons/rotate_h2o.png"></a>
+(+Shift to translate)
+  <li><b>translate xy selected models</b>
+  <li><b>rotate z selected models</b>
+  </ul>
+<li>move only the clicked model: <b>move picked model</b>
+<a href="../tools/mousemodes.html" title="Mouse Modes for Right Button...">
+<img class="icon" border=1 src="../tools/mouse-icons/move_picked_model.png"></a>
+<li>move only the <a href="../selection.html">selected</a> atoms:
+  <ul>
+  <li><b>translate selected atoms</b>
+<a href="../tools/mousemodes.html" title="Mouse Modes for Right Button...">
+<img class="icon" border=1 src="../tools/mouse-icons/move_atoms.png"></a>
+ (+Shift to rotate)
+  <li><b>rotate selected atoms</b> (+Shift to translate)
+  </ul>
+</ul>
+<p>
+Details on how each mode works are given <a href="#functions">above</a>.
+A mouse mode can be assigned to the right mouse button 
+(= trackpad + <b>Alt</b> on Windows,
+trackpad + <img src="../icon-clover.png" width="12px"> on Mac)
+by clicking its icon
+in the <a href="../tools/mousemodes.html"><b>Right Mouse</b></a> tab
+of the <a href="../tools/toolbar.html"><b>Toolbar</b></a>, or
+to any mouse button alone or in combination with a modifier key
+by using the <a href="#mousemode"><b>mousemode</b></a> command.
+</p>
+
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-October 2022</address>
+April 2023</address>
 </body></html>

@@ -129,7 +129,7 @@ class DicomGrid(GridData):
         self.multichannel = (channel is not None)
         self.initial_plane_display = True
         s = d.dicom_series
-        if s.attributes.get('BitsAllocated') == 1 or s.dicom_class == 'Segmentation Storage':
+        if s.bits_allocated == 1 or s.dicom_class == 'Segmentation Storage':
             self.binary = True  # Use initial thresholds for binary segmentation
             self.initial_image_thresholds = [(0.5, 0), (1.5, 1)]
         else:

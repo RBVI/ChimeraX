@@ -1,12 +1,11 @@
-#!/usr/bin/env python
 # vim: set expandtab shiftwidth=4 softtabstop=4 fileencoding=utf-8:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
+# Copyright 2016-2023 Regents of the University of California.
 # All rights reserved.  This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
 # duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
 # This notice must be embedded in or attached to all copies,
 # including partial copies, of the software or any revisions
 # or derivations thereof.
@@ -20,9 +19,9 @@
 #    XDG stands for X Desktop Group, the name formerly used by
 #    freedesktop.org.  freedesktop.org is the organization which publishes
 #    the Linux Desktop Entry specification,
-#    http://www.freedesktop.org/wiki/Specifications/desktop-entry-spec/,
+#    https://www.freedesktop.org/wiki/Specifications/desktop-entry-spec/,
 #    and a set of shell script that implement it, xdg-utils, at
-#    http://portland.freedesktop.org/.
+#    https://www.freedesktop.org/wiki/Software/xdg-utils/.
 #
 #   A .desktop file for the desktop icon and a .mime.types file for the
 #   MIME types are needed.  The .mime.types file can be distributed with
@@ -41,6 +40,12 @@
 import os
 import subprocess
 import sys
+
+CATEGORIES = [
+    "Education", "Science",
+    "Biology", "Chemistry", "DataVisualization",
+    "Graphics", "3DGraphics"
+]
 
 # From Desktop Entry Specification 1.0:
 #
@@ -210,12 +215,10 @@ def make_desktop(session, info, localized_app_name={}, verbose=False):
                            info.app_author, localized_app_name[lo], info.version))
         desktop_string(f, "GenericName", "Molecular Visualization")
         desktop_string(f, "Comment",
-                       "A extensible molecular modeling system, "
-                       "http://www.rbvi.ucsf.edu/chimerax/")
+                       "An extensible molecular modeling system, "
+                       "https://www.rbvi.ucsf.edu/chimerax/")
         desktop_string(f, "Icon", info.name)
-        desktop_stringlist(f, "Categories", [
-                           "Education", "Science", "Biology", "Chemistry",
-                           "Graphics", "2DGraphics", "DataVisualization"])
+        desktop_stringlist(f, "Categories", CATEGORIES)
         desktop_stringlist(f, "MimeType", mime_types)
         # Don't set StartupWMClass because is shared with all releases
         # and Gnome picks the last .desktop for showing the version of

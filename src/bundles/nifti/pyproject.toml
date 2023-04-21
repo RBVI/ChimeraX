@@ -6,7 +6,7 @@ build-backend = "chimerax.bundle_builder.cx_pep517"
 name = "ChimeraX-Nifti"
 license = { text = "Free for non-commercial use" }
 authors= [{name = "UCSF RBVI", email="chimerax@cgl.ucsf.edu"}]
-description = "Read medical images in Nifti format"
+description = "Read medical images in NIfTI format"
 dependencies = [
 	"ChimeraX-Core ~=1.0"
 	, "ChimeraX-DataFormats ~=1.0"
@@ -21,7 +21,7 @@ losslessjpeg = ["python-gdcm"]
 
 [project.readme]
 content-type = "text"
-text = "Read medical imaging and segmentations in DICOM format."
+text = "Read medical imaging and segmentations in NIfTI format."
 
 [project.urls]
 Home = "https://www.rbvi.ucsf.edu/chimerax/"
@@ -35,16 +35,18 @@ max-session-version = 1
 categories = ["Volume Data"]
 classifiers = ["Development Status :: 2 - Pre-Alpha"]
 
-[chimerax.data-format."NifTI Medical Imaging"]
+[chimerax.data-format."NIfTI Medical Imaging"]
 category = "Volume Data"
 nicknames = ["nifti"]
 suffixes = [".nii", ".nii.gz"]
 allow-directory = false
+synopsis = "NIfTI"
+reference-url = "https://nifti.nimh.nih.gov/"
 
-[[chimerax.data-format."NifTI Medical Imaging".open]]
+[[chimerax.data-format."NIfTI Medical Imaging".open]]
 batch = false
 
-[[chimerax.data-format."NifTI Medical Imaging".open]]
+[[chimerax.data-format."NIfTI Medical Imaging".open]]
 type = "fetch"
 name = "tcia"
 format-name = "nifti"

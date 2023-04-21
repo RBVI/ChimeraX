@@ -51,6 +51,8 @@ class _gltfBundle(BundleAPI):
                         'preserve_transparency': BoolArg,
                         'short_vertex_indices': BoolArg,
                         'texture_colors': BoolArg,
+                        'metallic_factor': FloatArg,
+                        'roughness_factor': FloatArg,
                         'instancing': BoolArg,
                         'size': FloatArg,
                     }

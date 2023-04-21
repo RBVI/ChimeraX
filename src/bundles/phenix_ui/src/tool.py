@@ -158,14 +158,12 @@ class LaunchDouseTool(ToolInstance):
         self.delete()
 
 class LaunchEmplaceLocalTool(ToolInstance):
-    #help = "help:user/tools/waterplacement.html"
-    help = None
+    help = "help:user/tools/loaclemfitting.html"
 
-    CENTER_HALF_MAPS = "center of half maps"
     CENTER_MODEL = "center of model..."
     CENTER_VIEW = "center of view"
     CENTER_XYZ = "specified xyz position..."
-    CENTERING_METHODS = [CENTER_HALF_MAPS, CENTER_MODEL, CENTER_VIEW, CENTER_XYZ]
+    CENTERING_METHODS = [CENTER_MODEL, CENTER_VIEW, CENTER_XYZ]
 
     def __init__(self, session, tool_name):
         super().__init__(session, tool_name)
@@ -208,8 +206,9 @@ class LaunchEmplaceLocalTool(ToolInstance):
         from chimerax.ui.options import OptionsPanel, FloatOption
         res_options = OptionsPanel(scrolled=False, contents_margins=(0,0,0,0))
         layout.addWidget(res_options, alignment=Qt.AlignCenter)
-        self.res_option = FloatOption("Map resolution:", None, None, min="positive", decimal_places=2,
-            step=0.1, max=99.99)
+        self.res_option = FloatOption("Map resolution:", None, None, min=0.0, decimal_places=2,
+            step=0.1, max=99.99, balloon="Full map resolution.  If unknown, providing a value"
+            " of zero will cause an estimated resolution to be used.")
         res_options.add_option(self.res_option)
 
         centering_widget = QWidget()
@@ -217,8 +216,23 @@ class LaunchEmplaceLocalTool(ToolInstance):
         centering_layout = QHBoxLayout()
         centering_layout.setSpacing(1)
         centering_widget.setLayout(centering_layout)
-        centering_layout.addWidget(QLabel("Center search at"), alignment=Qt.AlignRight)
+        centering_tip = '''How to specify the center of the fitting search.  Choices are:
+
+%s — If the center of rotation is being displayed ("cofr showPivot true") use that.  Otherwise,
+    if the center of rotation is a fixed point ("cofr fixed") use that.  If neither of those is
+    true, use the midpoint of where the center of the window intersects the front and back of
+    the bounding box of the map.
+
+%s — The center of a particular model, frequently the map, or the structure to be fitted once
+    it has been approximately positioned.
+
+%s — A specific X/Y/Z position, given in angstroms relative to the origin of the map.
+        ''' % (self.CENTER_VIEW.rstrip('.'), self.CENTER_MODEL.rstrip('.'), self.CENTER_XYZ.rstrip('.'))
+        centering_label = QLabel("Center search at")
+        centering_label.setToolTip(centering_tip)
+        centering_layout.addWidget(centering_label, alignment=Qt.AlignRight)
         self.centering_button = QPushButton()
+        self.centering_button.setToolTip(centering_tip)
         centering_layout.addWidget(self.centering_button)
         centering_menu = QMenu(self.centering_button)
         for method in self.CENTERING_METHODS:
@@ -268,8 +282,6 @@ class LaunchEmplaceLocalTool(ToolInstance):
         maps = self.half_map_list.value
         if len(maps) != 2:
             raise UserError("Must specify exactly two half maps for fitting")
-        if float(self.res_option.widget.text()) <= 0.0:
-            raise UserError("Need to set map resolution value")
         res = self.res_option.value
         method = self.centering_button.text()
         if method == self.CENTER_XYZ:
@@ -285,20 +297,34 @@ class LaunchEmplaceLocalTool(ToolInstance):
             for o, xyz in zip(maps[0].data.origin, bnds.center()):
                 center.append(xyz - o)
         elif method == self.CENTER_VIEW:
-            from .emplace_local import view_box, ViewBoxError
-            try:
-                box_center = view_box(self.session, maps[0])
-            except ViewBoxError as e:
-                raise UserError(str(e))
+            # If pivot point shown or using fixed center of rotation, use that.
+            # Otherwise, midpoint where center ow window intersects front and back of halfmap bounding box.
+            view_center = None
+            mv = self.session.main_view
+            for d in mv.drawing.child_drawings():
+                if d.__class__.__name__ == "PivotIndicator":
+                    view_center = d.position.origin()
+                    break
+            else:
+                if mv.center_of_rotation_method == "fixed":
+                    view_center = mv.center_of_rotation
+            if view_center is None:
+                from chimerax.map import Volume
+                shown_vols = [v for v in self.session.models if isinstance(v, Volume) and v.display]
+                if len(shown_vols) == 1:
+                    view_map = shown_vols[0]
+                else:
+                    view_map = maps[0]
+                from .emplace_local import view_box, ViewBoxError
+                try:
+                    view_center = view_box(self.session, view_map)
+                except ViewBoxError as e:
+                    raise UserError(str(e))
             center =[]
-            for o, xyz in zip(maps[0].data.origin, box_center):
+            for o, xyz in zip(maps[0].data.origin, view_center):
                 center.append(xyz - o)
         else:
-            # center of half-map
-            data = maps[0].data
-            center =[]
-            for limit, o in zip(data.ijk_to_xyz(data.size), data.origin):
-                center.append((limit - o) / 2)
+            raise AssertionError("Unknown centering method")
         self.settings.search_center = method
         if self.verify_center_checkbox.isChecked():
             VerifyCenterDialog(self.session, structure, maps, res, center)
@@ -330,8 +356,8 @@ class VerifyCenterDialog(QDialog):
         adjusted_center = [ic+o for ic,o in zip(initial_center, maps[0].data.origin)]
         marker_set_id = session.models.next_id()[0]
         from chimerax.core.commands import run
-        self.marker = run(session, "marker #%d position %g,%g,%g radius 2 color green"
-            % (marker_set_id, *adjusted_center))
+        self.marker = run(session, "marker #%d position %g,%g,%g radius %g color 100,65,0,50"
+            % (marker_set_id, *adjusted_center, self.find_search_radius()))
 
         from chimerax.core.models import REMOVE_MODELS
         self.handler = session.triggers.add_handler(REMOVE_MODELS, self._check_still_valid)
@@ -340,11 +366,13 @@ class VerifyCenterDialog(QDialog):
         self.setLayout(layout)
         search_button_label = "Start search"
         instructions = QLabel(
-            "The search center is depicted as a green marker (model #%d).  "
-            "You may have to adjust the maps' visibility to see it (hide / use mesh / set transparency).  "
-            "You can use all the normal means to move markers / models to adjust the marker position, "
-            'e.g. the "Move" right mouse mode in the Markers section of the toolbar.  '
-            'When satisfied with the marker position, use the "%s" button to start the fitting.'
+            "A transparent orange marker (model #%d) has been drawn to show the search volume and location. "
+            "  Fits that place any part of the atomic structure within the marker sphere will be evaluated."
+            "  The size of the search volume is based on the size of the structure and cannot be adjusted, "
+            "but the search center can be moved by moving the marker, "
+            "using any ChimeraX method for moving markers or models "
+            '(e.g. the "move markers" right mouse mode in the Markers section of the toolbar).'
+            '  When the position is satisfactory, click "%s."'
              % (marker_set_id, search_button_label)
         )
         instructions.setWordWrap(True)
@@ -366,6 +394,14 @@ class VerifyCenterDialog(QDialog):
             self.session.models.close([self.marker.structure])
         self.handler.remove()
         super().closeEvent(event)
+
+    def find_search_radius(self):
+        import numpy
+        crds = self.structure.atoms.coords
+        crd_min = numpy.amin(crds, axis=0)
+        crd_max = numpy.amax(crds, axis=0)
+        mid = (crd_min + crd_max) / 2
+        return max(numpy.linalg.norm(crds-mid, axis=1))
 
     def launch_emplace_local(self):
         center = self.marker.scene_coord

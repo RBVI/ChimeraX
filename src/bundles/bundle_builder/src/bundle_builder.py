@@ -472,7 +472,8 @@ class BundleBuilder:
             if v < CHIMERAX1_0_PYTHON_VERSION:
                 v = CHIMERAX1_0_PYTHON_VERSION
             hex_version = (v.major << 24) | (v.minor << 16) | (v.micro << 8)
-            c.add_macro_define("Py_LIMITED_API", hex_version)
+            c.add_macro_define("Py_LIMITED_API", hex(hex_version))
+            c.add_macro_define("CYTHON_LIMITED_API", hex(hex_version))
 
     def _get_packages(self, bi):
         self.packages = []
@@ -827,7 +828,7 @@ class _CompiledCode:
         # platform-specific
         # Assume Python executable is in ROOT/bin/python
         # and make include directory be ROOT/include
-        root = os.path.dirname(os.path.dirname(sys.executable))
+        root = os.path.dirname(os.path.dirname(os.path.realpath(sys.executable)))
         inc_dirs = [os.path.join(root, "include")]
         lib_dirs = [os.path.join(root, "lib")]
         if self.uses_numpy:

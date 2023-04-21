@@ -410,6 +410,8 @@ def surface_transform(session, surfaces, scale = None,
             move = csys.transform_vector(move)
             
     for surf in surfaces:
+        if surf.empty_drawing():
+            continue
         if need_center and c is None:
             b = surf.bounds()
             if b is not None:
@@ -421,9 +423,13 @@ def surface_transform(session, surfaces, scale = None,
         tf = _transform_matrix(scale, rotate, a, c, move)
         sp = surf.scene_position
         stf = sp.inverse() * tf * sp
+        vcolors = surf.vertex_colors	# Preserve vertex colors
         surf.set_geometry(stf.transform_points(surf.vertices),
                           stf.transform_vectors(surf.normals),
-                          surf.triangles)
+                          surf.triangles,
+                          edge_mask = surf.edge_mask,
+                          triangle_mask = surf.triangle_mask)
+        surf.vertex_colors = vcolors
 
 # -----------------------------------------------------------------------------
 #

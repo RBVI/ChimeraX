@@ -12,6 +12,10 @@
     or derivations thereof.
     === UCSF ChimeraX Copyright ===
 
+===================================
+tasks: Task creation and monitoring
+===================================
+
 .. automodule:: chimerax.core.tasks
     :members:
     :show-inheritance:

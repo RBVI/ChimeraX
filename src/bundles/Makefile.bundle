@@ -9,7 +9,11 @@
 
 TOP ?= ../../..
 -include $(TOP)/.makerc
+ifeq (,$(wildcard /app))
 CHIMERAX_APP = $(wildcard $(TOP)/ChimeraX*.app)
+else
+CHIMERAX_APP = $(wildcard /app)
+endif
 SYNC_DIR = $(wildcard $(TOP)/build/sync)
 
 # These can be overridden by bundles for customization
@@ -43,7 +47,7 @@ PYMOD_EXT = so
 endif
 ifeq ($(OS),Linux)
 APP_PYTHON_EXE = $(CHIMERAX_APP)/bin/python3.9
-CX_BIN = $(CHIMERAX_APP)/bin/chimerax
+CX_BIN = $(CHIMERAX_APP)/bin/ChimeraX
 PYMOD_EXT = so
 endif
 PYTHON ?= $(APP_PYTHON_EXE) -I
@@ -86,11 +90,11 @@ ifeq ($(OS),Darwin)
 	open -n $(CHIMERAX_APP)
 endif
 ifeq ($(OS),Linux)
-	nohup ./$(CHIMERAX_EXE) >> /dev/null & 2>&1
+	nohup $(CX_BIN) >> /dev/null & 2>&1
 endif
 
 sync:
-	rsync -av dist/*.whl $(SYNC_DIR)
+	cp -av dist/*.whl $(SYNC_DIR)
 
 ifdef BUILD_AND_INSTALL
 INSTALL_ARGS = noDeps true
@@ -106,7 +110,7 @@ test:
 	done
 
 debug:
-	$(CHIMERAX_EXE) --debug
+	$(CX_BIN) --debug
 
 clean:
 	if [ -x $(CX_BIN) -a -e bundle_info.xml ]; then \
@@ -119,7 +123,7 @@ clean:
 	fi
 
 pylint:
-	$(CHIMERAX_EXE) -m flake8 $(filter %.py, $(PYSRCS))
+	$(CX_BIN) -m flake8 $(filter %.py, $(PYSRCS))
 
 test-pyproject-converter:
 	$(MAKE) -C $(TOP) $@

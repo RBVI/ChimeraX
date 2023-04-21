@@ -306,6 +306,7 @@ class Drawing:
         d.parent = self
         if d.inherit_graphics_exemptions:
             d._inherit_graphics_exemptions()
+        d._displayed_scene_positions = None
         if self.display:
             self.redraw_needed(shape_changed=True)
 
@@ -667,7 +668,7 @@ class Drawing:
                 any_transparent = (oc < len(vc))
         return any_opaque, any_transparent
 
-    def showing_transparent(self):
+    def showing_transparent(self, include_children = True):
         '''Are any transparent objects being displayed. Includes all
         children.'''
         if self.display:
@@ -675,9 +676,10 @@ class Drawing:
                 any_opaque, any_transp = self._transparency()
                 if any_transp:
                     return True
-            for d in self.child_drawings():
-                if d.showing_transparent():
-                    return True
+            if include_children:
+                for d in self.child_drawings():
+                    if d.showing_transparent():
+                        return True
         return False
 
     def set_geometry(self, vertices, normals, triangles,
@@ -712,8 +714,11 @@ class Drawing:
         np = self.number_of_positions(displayed_only)
         if np == 0:
             return 0
-        t = self.triangles
-        tc = 0 if t is None else np * len(t)
+        if displayed_only:
+            tc = np * self.num_masked_triangles
+        else:
+            t = self.triangles
+            tc = 0 if t is None else np * len(t)
         for d in self.child_drawings():
             tc += np * d.number_of_triangles(displayed_only)
         return tc

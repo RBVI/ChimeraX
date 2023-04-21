@@ -968,7 +968,21 @@ class RegionBrowser:
                 self.seq_canvas.sv.status("Use delete/backspace key to remove regions")
         interior = get_rgba(fill)
         border = get_rgba(outline)
-        region = Region(self, init_blocks=blocks, name=name, name_prefix=name_prefix,
+        clipped_blocks = []
+        warn = self.tool_window.session.logger.warning
+        seqs = self.seq_canvas.alignment.seqs
+        target = "sequence" if len(seqs) == 1 else "alignment"
+        for seq1, seq2, start, end in blocks:
+            if start < 0:
+                warn("Region %s starts before start of %s; truncating"
+                    % (("dragged region" if name is None else name), target))
+                start = 0
+            if end >= len(seqs[0]):
+                warn("Region '%s' extends past end of %s; truncating"
+                    % (("(dragged)" if name is None else name), target))
+                end = len(seqs[0]) - 1
+            clipped_blocks.append((seq1, seq2, start, end))
+        region = Region(self, init_blocks=clipped_blocks, name=name, name_prefix=name_prefix,
                 border_rgba=border, interior_rgba=interior, cover_gaps=cover_gaps, **kw)
         if isinstance(after, Region):
             insert_index = self.regions.index(after) + 1

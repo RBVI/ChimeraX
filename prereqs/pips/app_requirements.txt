@@ -7,6 +7,7 @@
 # TODO: Deprecate conda version when pip gets arm64 ports
 #
 appdirs==1.4.4
+beautifulsoup4==4.11.2
 build==0.10.0
 colorama==0.4.6
 Cython==0.29.33
@@ -15,18 +16,19 @@ grako==3.16.5
 html2text==2020.1.16
 ihm==0.35
 imagecodecs==2022.9.26 ; platform_machine != 'arm64'
-#ipykernel==6.19.2
+ipykernel==6.21.1
 # if ipython updated, make sure autocompletion still works (e.g. "mi<tab>" becomes min) and if not then
 # try a newer version of jedi
-#ipython==8.7.0
+ipython==8.10.0
 # the version of jedi that works with ipython
 jedi==0.18.2
-#jupyter-client==7.4.8
+jupyter-client==8.0.2
 line_profiler==4.0.2
 lxml==4.9.2
 lz4==4.3.2
 matplotlib==3.6.3
 msgpack==1.0.4
+nibabel == 5.0.1
 netCDF4==1.6.2
 networkx==2.8.8
 numpy==1.23.5
@@ -39,7 +41,8 @@ pkginfo==1.9.6
 psutil==5.9.4
 pycollada==0.7.2
 pydicom==2.3.0
-tcia_utils==1.0.2
+pynrrd==1.0.0
+tcia_utils==1.2.0
 # PyOpenGL handled in app_pyopengl_requirements.txt
 python-dateutil==2.8.2
 # PyQt handled in prereqs/PyQt
@@ -79,5 +82,5 @@ distro==1.7.0; sys_platform == 'linux'
 #
 # Indirect dependencies listed here to pin the version number
 #
-#traitlets==5.9.0
+traitlets==5.9.0
 

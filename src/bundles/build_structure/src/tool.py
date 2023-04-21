@@ -16,13 +16,14 @@ from chimerax.core.errors import UserError
 from chimerax.core.commands import run
 from Qt.QtWidgets import QVBoxLayout, QPushButton, QMenu, QStackedWidget, QWidget, QLabel, QFrame
 from Qt.QtWidgets import QGridLayout, QRadioButton, QHBoxLayout, QLineEdit, QCheckBox, QGroupBox
-from Qt.QtWidgets import QButtonGroup, QAbstractButton
+from Qt.QtWidgets import QButtonGroup, QAbstractButton, QStyle, QToolButton, QDoubleSpinBox, QDial
 from Qt.QtGui import QAction
 from Qt.QtCore import Qt
 
 class BuildStructureTool(ToolInstance):
 
     help = "help:user/tools/buildstructure.html"
+    SESSION_SAVE = True
 
     def __init__(self, session, tool_name):
         ToolInstance.__init__(self, session, tool_name)
@@ -43,25 +44,283 @@ class BuildStructureTool(ToolInstance):
         self.category_areas = QStackedWidget()
         layout.addWidget(self.category_areas)
 
-        self.handlers = []
+        self.handlers = {}
         self.category_widgets = {}
-        for category in ["Start Structure", "Modify Structure", "Adjust Bonds", "Join Models"]:
+        for category in ["Start Structure", "Modify Structure", "Adjust Bonds", "Adjust Torsions",
+                "Join Models", "Invert", "Adjust Angles"]:
             self.category_widgets[category] = widget = QFrame()
             widget.setLineWidth(2)
             widget.setFrameStyle(QFrame.Panel | QFrame.Sunken)
             getattr(self, "_layout_" + category.lower().replace(' ', '_'))(widget)
             self.category_areas.addWidget(widget)
             cat_menu.addAction(category)
-        initial_category = "Start Structure"
-        self.category_button.setText(initial_category)
-        self.category_areas.setCurrentWidget(self.category_widgets[initial_category])
+        self.show_category("Start Structure")
 
         tw.manage(placement="side")
 
     def delete(self):
-        for handler in self.handlers:
-            handler.remove()
+        for handler_list in self.handlers.values():
+            for handler in handler_list:
+                handler.remove()
+        for rotater in self.torsion_data.keys():
+            self.session.bond_rotations.delete_rotation(rotater)
         super().delete()
+
+    def show_category(self, category):
+        self.category_button.setText(category)
+        self.category_areas.setCurrentWidget(self.category_widgets[category])
+
+    def take_snapshot(self, session, flags):
+        data = {
+            'ToolInstance': ToolInstance.take_snapshot(self, session, flags),
+            'tab': self.category_button.text()
+        }
+        return data
+
+    @classmethod
+    def restore_snapshot(cls, session, data):
+        inst = super().restore_snapshot(session, data['ToolInstance'])
+        if data['tab'] in inst.category_widgets:
+            inst.show_category(data['tab'])
+        return inst
+
+    def _aa_add_angle(self):
+        from chimerax.atomic import selected_atoms
+        sel_atoms = selected_atoms(self.session)
+        if len(sel_atoms) != 3:
+            raise UserError("Must select exactly 3 atoms in graphics window")
+        from chimerax.std_commands.angle import angle_atoms_check, SetAngleError
+        try:
+            moving, fixed, moving_atoms = angle_atoms_check(*sel_atoms)
+        except SetAngleError as e:
+            raise UserError(str(e))
+        center = sel_atoms[1]
+        canonical = (fixed, center, moving)
+        if canonical in self.angle_data:
+            raise UserError("The angle formed by the 3 selected atoms is already active.")
+
+        self.aa_no_angles_label.hide()
+        for header in self.aa_header_widgets:
+            header.show()
+        grid = self.aa_angles_layout
+        row = grid.rowCount()
+        widgets = []
+        initial_angle = self._aa_angle_value(canonical)
+        self.angle_data[canonical] = [row, fixed, center, moving, initial_angle, None, widgets]
+        close_button = QToolButton()
+        close_action = QAction(close_button)
+        close_action.triggered.connect(lambda *args, angle=canonical, f=self._aa_remove_angle: f(angle))
+        close_action.setIcon(self.session.ui.style().standardIcon(QStyle.SP_TitleBarCloseButton))
+        close_button.setDefaultAction(close_action)
+        grid.addWidget(close_button, row, 0)
+        widgets.append(close_button)
+
+        for i, atom in enumerate(canonical):
+            relative_to = None if i == 0 else canonical[i-1]
+            text = atom.string(minimal=True, relative_to=relative_to)
+            if i == 1:
+                widget = QPushButton(text)
+                menu = QMenu(widget)
+                widget.setMenu(menu)
+                reset = QAction("Reset to initial angle", menu)
+                reset.triggered.connect(lambda *args, angle=canonical, f=self._aa_reset_angle: f(angle))
+                menu.addAction(reset)
+                swap = QAction("Swap moving/fixed sides", menu)
+                swap.triggered.connect(lambda *args, angle=canonical, f=self._aa_swap_angle_sides: f(angle))
+                menu.addAction(swap)
+            else:
+                widget = QLabel(text)
+            grid.addWidget(widget, row, i+1, alignment=Qt.AlignCenter)
+            widgets.append(widget)
+        self._aa_set_widget_texts(canonical)
+        angle_text = QDoubleSpinBox()
+        angle_text.setDecimals(1)
+        angle_text.setRange(0.0, 180.0)
+        angle_text.setSingleStep(1.0)
+        angle_text.setAlignment(Qt.AlignRight)
+        angle_text.setValue(initial_angle)
+        angle_text.valueChanged.connect(
+            lambda val, *, angle=canonical, f=self._aa_issue_command: f(angle, val))
+        angle_text.setKeyboardTracking(False) # don't get a signal for _every_ keystroke
+        grid.addWidget(angle_text, row, 4, alignment=Qt.AlignLeft)
+        widgets.append(angle_text)
+        # QDial is integer, so x10...
+        dial = QDial()
+        dial.setMinimum(0)
+        dial.setMaximum(1800)
+        dial.setSingleStep(10)
+        dial.setValue(int(initial_angle * 10 + 0.5))
+        dial.valueChanged.connect(lambda val, *, angle=canonical, f=self._aa_dial_changed: f(angle, val))
+        dial.sliderReleased.connect(
+            lambda *, angle=canonical, dial=dial, f=self._aa_issue_command: f(angle, dial.value()/10))
+        grid.addWidget(dial, row, 5, alignment=Qt.AlignCenter)
+        self.session.dial = dial
+        widgets.append(dial)
+        self._aa_resize_dials()
+        if len(self.angle_data) == 1:
+            self.handlers['adjust angles'] = handlers = []
+            from chimerax.atomic import get_triggers
+            handlers.append(get_triggers().add_handler('changes', self._aa_atomic_changes_cb))
+            from chimerax.core.models import MODEL_NAME_CHANGED, MODEL_ID_CHANGED, ADD_MODELS, \
+                REMOVE_MODELS, MODEL_POSITION_CHANGED
+            triggers = self.session.triggers
+            handlers.append(triggers.add_handler(MODEL_NAME_CHANGED, self._aa_atomic_changes_cb))
+            handlers.append(triggers.add_handler(MODEL_ID_CHANGED, self._aa_atomic_changes_cb))
+            handlers.append(triggers.add_handler(ADD_MODELS, self._aa_atomic_changes_cb))
+            handlers.append(triggers.add_handler(REMOVE_MODELS, self._aa_atomic_changes_cb))
+            handlers.append(triggers.add_handler(MODEL_POSITION_CHANGED, self._aa_atomic_changes_cb))
+
+    def _aa_angle_cmd(self, canonical):
+        cmd = "angle "
+        atoms = self.angle_data[canonical][1:4]
+        prev = None
+        for a in atoms:
+            cmd += a.string(style="command", minimal=True, relative_to=prev)
+            prev = a
+        cmd += " %g"
+        if atoms[0] != canonical[0]:
+            cmd += " move large"
+        return cmd
+
+    def _aa_angle_value(self, canonical):
+        from chimerax import geometry
+        return geometry.angle(*[x.scene_coord for x in canonical])
+
+    def _aa_atomic_changes_cb(self, trig_name, trig_data):
+        update_values = False
+        check_legal = False
+        changed_structures = set()
+        if trig_name == 'changes':
+            update_names = 'name changed' in trig_data.atom_reasons() \
+                or 'name changed' in trig_data.residue_reasons() \
+                or 'name changed' in trig_data.chain_reasons()
+            check_death = trig_data.num_deleted_atoms() > 0
+            check_legal = trig_data.created_bonds(include_new_structures=False)
+
+            if 'active_coordset changed' in trig_data.structure_reasons():
+                changed_structures.update(trig_data.modified_structures())
+            if 'coordset changed' in trig_data.coordset_reasons():
+                changed_structures.update(trig_data.modified_coordsets().unique_structures)
+            if 'coord changed' in trig_data.atom_reasons():
+                changed_structures.update(trig_data.modified_atoms().unique_structures)
+        else:
+            from chimerax.core.models import ADD_MODELS, REMOVE_MODELS, MODEL_POSITION_CHANGED
+            if trig_name == ADD_MODELS:
+                update_names = (len(self.session.models) - len(trig_data)) < 2
+                check_death = False
+            elif trig_name == REMOVE_MODELS:
+                update_names = len(self.session.models)  < 2
+                check_death = True
+            elif trig_name == MODEL_POSITION_CHANGED:
+                update_names = False
+                check_death = False
+                changed_structures.add(trig_data)
+            else:
+                update_names = True
+                check_death = False
+
+        death_row = []
+        for canonical in self.angle_data.keys():
+            if check_death:
+                execute = False
+                for atom in canonical:
+                    if atom.deleted:
+                        execute = True
+                        break
+                if execute:
+                    death_row.append(canonical)
+                    continue
+            if check_legal:
+                from chimera.std_commands.angle import angle_atoms_check, SetAngleError
+                try:
+                    angle_atoms_check(*canonical)
+                except SetAngleError:
+                    death_row.append(canonical)
+                    continue
+            if update_names:
+                self._aa_set_widget_texts(canonical)
+        for canonical in death_row:
+            self._aa_remove_angle(canonical)
+        if changed_structures:
+            for canonical in self.angle_data.keys():
+                for a in canonical:
+                    if a.structure in changed_structures:
+                        self._aa_update_angle_value(canonical)
+                        break
+
+    def _aa_dial_changed(self, canonical, val):
+        dial_val = val/10
+        from chimerax import geometry
+        cur_angle = geometry.angle(*[x.scene_coord for x in canonical])
+        if dial_val == cur_angle:
+            return
+        data = self.angle_data[canonical]
+        atoms = data[1:4]
+        move_smaller = atoms[0] == canonical[0]
+        axis = data[-2]
+        from chimerax.std_commands.angle import set_angle
+        axis = set_angle(*atoms, dial_val, move_smaller=move_smaller, prev_axis=axis)
+        data[-2] = axis
+
+    def _aa_issue_command(self, canonical, val):
+        angle_cmd_template = self._aa_angle_cmd(canonical)
+        from chimerax.core.commands import run
+        run(self.session, angle_cmd_template % val)
+
+    def _aa_remove_angle(self, canonical):
+        for widget in self.angle_data[canonical][-1]:
+            widget.hide()
+        del self.angle_data[canonical]
+        if not self.angle_data:
+            self.aa_no_angles_label.show()
+            for header in self.aa_header_widgets:
+                header.hide()
+            handlers = self.handlers['adjust angles']
+            for handler in handlers:
+                handler.remove()
+            handlers.clear()
+        else:
+            self._aa_resize_dials()
+
+    def _aa_resize_dials(self):
+        if not self.angle_data:
+            return
+        num_angles = len(self.angle_data)
+        target_height = 250 / num_angles
+        dial_size = int(min(100, max(target_height, 30)))
+        for *args, widgets in self.torsion_data.values():
+            widgets[-1].setFixedSize(dial_size, dial_size)
+
+    def _aa_reset_angle(self, canonical):
+        initial_angle = self.angle_data[canonical][-3]
+        self._aa_issue_command(canonical, initial_angle)
+
+    def _aa_swap_angle_sides(self, canonical):
+        row, fixed, center, moving, start_angle, axis, widgets = self.angle_data[canonical]
+        self.angle_data[canonical] = [row, moving, center, fixed, start_angle, axis, widgets]
+        self._aa_set_widget_texts(canonical)
+
+    def _aa_set_widget_texts(self, canonical):
+        row, fixed, center, moving, start_angle, axis, widgets = self.angle_data[canonical]
+        atoms = (fixed, center, moving)
+        for i, atom in enumerate(atoms):
+            relative_to = None if i == 0 else atoms[i-1]
+            text = atom.string(minimal=True, relative_to=relative_to)
+            widgets[i+1].setText(text)
+
+    def _aa_update_angle_value(self, canonical, value=None):
+        if value is None:
+            angle_value = self._aa_angle_value(canonical)
+        else:
+            angle_value = value
+        widgets = self.angle_data[canonical][-1]
+        spin_box, dial = widgets[-2:]
+        spin_box.blockSignals(True)
+        spin_box.setValue(angle_value)
+        spin_box.blockSignals(False)
+        dial.blockSignals(True)
+        dial.setValue(int(10 * angle_value + 0.5))
+        dial.blockSignals(False)
 
     def _ab_len_cb(self, opt):
         self.bond_len_slider.blockSignals(True)
@@ -97,6 +356,302 @@ class BuildStructureTool(ToolInstance):
         self.bond_len_slider.setValue(val)
         self.bond_len_slider.blockSignals(False)
 
+    def _at_activate(self):
+        from chimerax.atomic import selected_bonds
+        sel_bonds = selected_bonds(self.session)
+        if len(sel_bonds) != 1:
+            raise UserError("Exactly one bond must be selected in graphics window")
+        bond = sel_bonds[0]
+        for end_pt in bond.atoms:
+            if len(end_pt.neighbors) == 1:
+                raise UserError("Bond must have other atoms bonded to both ends to form torsion")
+        try:
+            self.session.bond_rotations.new_rotation(bond, one_shot=False)
+        except self.session.bond_rotations.BondRotationError as e:
+            raise UserError(str(e))
+
+    def _at_add_torsion(self, rotater):
+        # _at_activate notifies the user about bond rotations that can't be torsions,
+        # we have to check here again to silently drop non-torsion rotations coming from other sources...
+        bond = rotater.bond
+        self.at_no_torsions_label.hide()
+        for header in self.at_header_widgets:
+            header.show()
+        moving = rotater.moving_side
+        fixed = bond.other_atom(moving)
+        torsion_atoms = []
+        for end1, end2 in [(fixed, moving), (moving, fixed)]:
+            for nb in end1.neighbors:
+                if nb != end2:
+                    torsion_atoms.append(nb)
+                    break
+        grid = self.at_torsions_layout
+        row = grid.rowCount()
+        widgets = []
+        self.torsion_data[rotater] = (row, bond, torsion_atoms, widgets)
+        close_button = QToolButton()
+        close_action = QAction(close_button)
+        close_action.triggered.connect(lambda *args, rotater=rotater, manager=self.session.bond_rotations:
+            manager.delete_rotation(rotater))
+        close_action.setIcon(self.session.ui.style().standardIcon(QStyle.SP_TitleBarCloseButton))
+        close_button.setDefaultAction(close_action)
+        grid.addWidget(close_button, row, 0)
+
+        def multi_name(terminus, bonded, excluded):
+            for nb in bonded.neighbors:
+                if nb == terminus or nb == excluded:
+                    continue
+                if nb.name == terminus.name:
+                    return terminus.string(relative_to=bonded)
+            return terminus.name
+        for col, torsion_index, bonded in [(1, 0, fixed), (3, 1, moving)]:
+            terminus = torsion_atoms[torsion_index]
+            single_widget = QLabel(terminus.name)
+            multi_widget = QPushButton(multi_name(terminus, bonded, bond.other_atom(bonded)))
+            multi_menu = QMenu(multi_widget)
+            multi_menu.aboutToShow.connect(lambda *args, menu=multi_menu, end=bonded, bond=bond,
+                torsion_atoms=torsion_atoms, index=torsion_index, rotater=rotater:
+                self._at_compose_menu(menu, end, bond, index, rotater))
+            multi_widget.setMenu(multi_menu)
+            show_multi = bonded.num_bonds > 2
+            grid.addWidget(single_widget, row, col, alignment=Qt.AlignCenter)
+            grid.addWidget(multi_widget, row, col, alignment=Qt.AlignCenter)
+            single_widget.setHidden(show_multi)
+            multi_widget.setHidden(not show_multi)
+            widgets.extend([single_widget, multi_widget])
+        bond_widget = QPushButton(self._at_bond_text(rotater))
+        grid.addWidget(bond_widget, row, 2, alignment=Qt.AlignCenter)
+        bond_menu = QMenu(bond_widget)
+        bond_widget.setMenu(bond_menu)
+        reset = QAction("Reset to initial torsion angle", bond_menu)
+        reset.triggered.connect(lambda *args, rotater=rotater, f=self._at_log_command:
+            (setattr(rotater, 'angle', 0), f(rotater)))
+        bond_menu.addAction(reset)
+        swap = QAction("Swap moving/fixed sides", bond_menu)
+        swap.triggered.connect(lambda *args, rotater=rotater: rotater.swap_sides())
+        bond_menu.addAction(swap)
+        widgets.append(bond_widget)
+        widgets.append(close_button)
+        angle_text = QDoubleSpinBox()
+        angle_text.setDecimals(1)
+        angle_text.setRange(-180.0, 180.0)
+        angle_text.setSingleStep(1.0)
+        angle_text.setWrapping(True)
+        angle_text.setAlignment(Qt.AlignRight)
+        angle_text.valueChanged.connect(
+            lambda val, *, rotater=rotater, f=self._at_issue_command: f(rotater, val))
+        angle_text.setKeyboardTracking(False) # don't get a signal for _every_ keystroke
+        grid.addWidget(angle_text, row, 4, alignment=Qt.AlignLeft)
+        widgets.append(angle_text)
+        # QDial is integer, so x10...
+        dial = QDial()
+        dial.setMinimum(-1800)
+        dial.setMaximum(1800)
+        dial.setSingleStep(10)
+        dial.setWrapping(True)
+        dial.valueChanged.connect(lambda val, *, rotater=rotater, f=self._at_dial_changed: f(rotater, val))
+        dial.sliderReleased.connect(
+            lambda *, rotater=rotater, dial=dial, f=self._at_issue_command: f(rotater, dial.value()/10))
+        grid.addWidget(dial, row, 5, alignment=Qt.AlignCenter)
+        self.session.dial = dial
+        widgets.append(dial)
+        self._at_resize_dials()
+        if len(self.torsion_data) == 1:
+            # first torsion; add handlers
+            self.handlers['adjust torsions: per torsion'] = handlers = []
+            from chimerax.atomic import get_triggers
+            handlers.append(get_triggers().add_handler('changes', self._at_atomic_changes_cb))
+            from chimerax.core.models import MODEL_NAME_CHANGED, MODEL_ID_CHANGED, ADD_MODELS, REMOVE_MODELS
+            triggers = self.session.triggers
+            handlers.append(triggers.add_handler(MODEL_NAME_CHANGED, self._at_atomic_changes_cb))
+            handlers.append(triggers.add_handler(MODEL_ID_CHANGED, self._at_atomic_changes_cb))
+            handlers.append(triggers.add_handler(ADD_MODELS, self._at_atomic_changes_cb))
+            handlers.append(triggers.add_handler(REMOVE_MODELS, self._at_atomic_changes_cb))
+
+        self._at_update_torsion_value(rotater)
+
+    def _at_atomic_changes_cb(self, trig_name, trig_data):
+        if trig_name == 'changes':
+            update_names = 'name changed' in trig_data.atom_reasons() \
+                or 'name changed' in trig_data.residue_reasons() \
+                or 'name changed' in trig_data.chain_reasons()
+            update_ends = trig_data.created_atoms() or trig_data.num_deleted_atoms() > 0
+        else:
+            from chimerax.core.models import ADD_MODELS, REMOVE_MODELS
+            if trig_name == ADD_MODELS:
+                update_names = (len(self.session.models) - len(trig_data)) < 2
+            elif trig_name == REMOVE_MODELS:
+                update_names = len(self.session.models)  < 2
+            else:
+                update_names = True
+            update_ends = False
+        if not update_names and not update_ends:
+            return
+
+        death_row = []
+        for rotater, data in self.torsion_data.items():
+            row, bond, torsion_atoms, widgets = data
+            if bond.deleted:
+                # torsion manager will call back to us for this
+                continue
+            bond_widget = widgets[4]
+            moving = rotater.moving_side
+            reversed = bond.atoms[0] == moving
+            if update_ends:
+                for end in bond.atoms:
+                    if len(end.neighbors) < 2:
+                        death_row.append(rotater)
+                        break
+                if rotater in death_row:
+                    continue
+                for torsion_index, torsion_atom in enumerate(torsion_atoms):
+                    end = moving if torsion_index == 1 else bond.other_atom(moving)
+                    if torsion_atom.deleted:
+                        for nb in end.neighbors:
+                            if nb != bond.other_atom(end):
+                                self._at_change_torsion_atom(nb, rotater, torsion_index)
+                                break
+                    offset = 2 * torsion_index
+                    single_widget, multi_widget = widgets[offset:offset+2]
+                    is_single = len(end.neighbors) == 2
+                    single_widget.setHidden(not is_single)
+                    multi_widget.setHidden(is_single)
+                if update_names:
+                    bond_widget.setText(bond.string(minimal=True, reversed=reversed))
+            elif update_names:
+                bond_widget.setText(bond.string(minimal=True, reversed=reversed))
+                for torsion_index, torsion_atom in enumerate(torsion_atoms):
+                    end = moving if torsion_index == 1 else bond.other_atom(moving)
+                    offset = 2 * torsion_index
+                    single_widget, multi_widget = widgets[offset:offset+2]
+                    text = torsion_atom.string(relative_to=end, minimal=True)
+                    single_widget.setText(text)
+                    multi_widget.setText(text)
+        for rotater in death_row:
+            self.session.bond_rotations.delete_rotation(rotater)
+
+    def _at_bond_text(self, rotater):
+        (row, bond, torsion_atoms, widgets) = self.torsion_data[rotater]
+        return bond.string(minimal=True, reversed=(rotater.moving_side == bond.atoms[0]))
+
+    def _at_change_torsion_atom(self, torsion_atom, rotater, torsion_index, text=None, update_value=True):
+        (row, bond, torsion_atoms, widgets) = self.torsion_data[rotater]
+        torsion_atoms[torsion_index] = torsion_atom
+        offset = 2 * torsion_index
+        if text is None:
+            if torsion_index == 0:
+                end = bond.other_atom(rotater.moving_side)
+            else:
+                end = rotater.moving_side
+            text = torsion_atom.string(relative_to=end, minimal=True)
+        for widget in widgets[offset:offset+2]:
+            widget.setText(text)
+        if update_value and not torsion_atoms[1-torsion_index].deleted:
+            self._at_update_torsion_value(rotater)
+
+    def _at_compose_menu(self, menu, end_atom, bond, torsion_index, rotater):
+        menu.clear()
+        other_atom = bond.other_atom(end_atom)
+        for nb in end_atom.neighbors:
+            if nb == other_atom:
+                continue
+            action = QAction(menu)
+            action.setText(nb.string(relative_to=end_atom, minimal=True))
+            action.triggered.connect(lambda *args, ta=nb, torsion_index=torsion_index, rotater=rotater,
+                text=action.text(), f=self._at_change_torsion_atom: f(ta, rotater, torsion_index, text))
+            menu.addAction(action)
+
+    def _at_dial_changed(self, rotater, val):
+        delta = val/10 - self._at_torsion_value(rotater)
+        if delta != 0:
+            rotater.angle += delta
+
+    def _at_issue_command(self, rotater, val):
+        torsion_cmd_template = self._at_torsion_cmd(rotater)
+        from chimerax.core.commands import run
+        run(self.session, torsion_cmd_template % val)
+
+    def _at_log_command(self, rotater):
+        torsion_cmd_template = self._at_torsion_cmd(rotater)
+        from chimerax.core.commands import Command
+        Command(self.session).run(torsion_cmd_template % self._at_torsion_value(rotater), log_only=True)
+
+    def _at_remove_torsion(self, rotater):
+        for widget in self.torsion_data[rotater][-1]:
+            widget.hide()
+        del self.torsion_data[rotater]
+        if not self.torsion_data:
+            self.at_no_torsions_label.show()
+            for header in self.at_header_widgets:
+                header.hide()
+            handlers = self.handlers['adjust torsions: per torsion']
+            for handler in handlers:
+                handler.remove()
+            handlers.clear()
+        else:
+            self._at_resize_dials()
+
+    def _at_resize_dials(self):
+        if not self.torsion_data:
+            return
+        num_torsions = len(self.torsion_data)
+        target_height = 250 / num_torsions
+        dial_size = int(min(100, max(target_height, 30)))
+        for row, bond, torsion_atoms, widgets in self.torsion_data.values():
+            widgets[-1].setFixedSize(dial_size, dial_size)
+
+    def _at_swap_sides(self, rotater):
+        (row, bond, torsion_atoms, widgets) = self.torsion_data[rotater]
+        torsion_atoms[:] = [torsion_atoms[1], torsion_atoms[0]]
+        fixed_widgets, moving_widgets = widgets[:2], widgets[2:4]
+        for widget in widgets[:4]:
+            self.at_torsions_layout.removeWidget(widget)
+        widgets[:2] = moving_widgets
+        widgets[2:4] = fixed_widgets
+        for col, torsion_widgets in [(3, fixed_widgets), (1, moving_widgets)]:
+            for torsion_widget in torsion_widgets:
+                self.at_torsions_layout.addWidget(torsion_widget, row, col, alignment=Qt.AlignCenter)
+
+        bond_widget = widgets[4]
+        bond_widget.setText(self._at_bond_text(rotater))
+        self._at_update_torsion_value(rotater)
+
+    def _at_torsion_atoms(self, rotater):
+        (row, bond, torsion_atoms, widgets) = self.torsion_data[rotater]
+        moving = rotater.moving_side
+        fixed = bond.other_atom(moving)
+        t1, t2 = torsion_atoms
+        return t1, fixed, moving, t2
+
+    def _at_torsion_cmd(self, rotater):
+        cmd = "torsion "
+        prev = None
+        for a in self._at_torsion_atoms(rotater):
+            cmd += a.string(style="command", minimal=True, relative_to=prev)
+            prev = a
+        cmd += " %g"
+        if rotater.moving_side != rotater.bond.smaller_side:
+            cmd += " move large"
+        return cmd
+
+    def _at_torsion_value(self, rotater):
+        (row, bond, torsion_atoms, widgets) = self.torsion_data[rotater]
+        spin_box, dial = widgets[-2:]
+        t1, fixed, moving, t2 = self._at_torsion_atoms(rotater)
+        from chimerax.geometry import dihedral
+        return dihedral(t1.coord, fixed.coord, moving.coord, t2.coord)
+
+    def _at_update_torsion_value(self, rotater):
+        torsion_value = self._at_torsion_value(rotater)
+        (row, bond, torsion_atoms, widgets) = self.torsion_data[rotater]
+        spin_box, dial = widgets[-2:]
+        spin_box.blockSignals(True)
+        spin_box.setValue(torsion_value)
+        spin_box.blockSignals(False)
+        dial.blockSignals(True)
+        dial.setValue(10 * torsion_value)
+        dial.blockSignals(False)
+
     def _cat_menu_cb(self, action):
         self.category_areas.setCurrentWidget(self.category_widgets[action.text()])
         self.category_button.setText(action.text())
@@ -121,6 +676,13 @@ class BuildStructureTool(ToolInstance):
                 % (length, omega, phi, side))
         except BindError as e:
             raise UserError(e)
+
+    def _invert_swap_cb(self):
+        from chimerax.atomic import selected_atoms
+        sel_atoms = selected_atoms(self.session)
+        if len(sel_atoms) not in [1,2]:
+            raise UserError("You must select 1 or 2 atoms; you selected %d" % len(sel_atoms))
+        run(self.session, "build invert sel")
 
     def _layout_adjust_bonds(self, parent):
         layout = QVBoxLayout()
@@ -215,8 +777,113 @@ class BuildStructureTool(ToolInstance):
         revert_layout.addWidget(QLabel("lengths"), alignment=Qt.AlignLeft)
 
         from chimerax.core.selection import SELECTION_CHANGED
-        self.handlers.append(self.session.triggers.add_handler(SELECTION_CHANGED, self._ab_sel_changed))
+        self.handlers['adjust bonds'] = [
+            self.session.triggers.add_handler(SELECTION_CHANGED, self._ab_sel_changed)]
         self._ab_sel_changed()
+
+    def _layout_adjust_angles(self, parent):
+        layout = QVBoxLayout()
+        layout.setContentsMargins(0,0,0,0)
+        layout.setSpacing(0)
+        layout.addStretch(1)
+        parent.setLayout(layout)
+        activate_layout = QHBoxLayout()
+        activate_layout.addStretch(1)
+        activate_button = QPushButton("Adjust")
+        activate_button.clicked.connect(self._aa_add_angle)
+        activate_layout.addWidget(activate_button)
+        activate_layout.addWidget(QLabel(" angle formed by 3 selected atoms"))
+        activate_layout.addStretch(1)
+        layout.addLayout(activate_layout)
+        layout.addStretch(1)
+        grid_layout = QHBoxLayout()
+        grid_layout.setSpacing(5)
+        grid_layout.addStretch(1)
+        self.aa_angles_layout = grid = QGridLayout()
+        self.aa_header_widgets = []
+        for col, text in enumerate(["Fixed", "Middle", "Moving"]):
+            label = QLabel(text)
+            grid.addWidget(label, 0, col+1, alignment=Qt.AlignCenter)
+            label.hide()
+            self.aa_header_widgets.append(label)
+        grid_layout.addLayout(grid)
+        grid_layout.addStretch(1)
+        layout.addLayout(grid_layout)
+        layout.addStretch(1)
+        self.aa_no_angles_label = QLabel("No angles active")
+        self.aa_no_angles_label.setEnabled(False)
+        layout.addWidget(self.aa_no_angles_label, alignment=Qt.AlignCenter)
+        layout.addStretch(1)
+
+        self.angle_data = {}
+
+    def _layout_adjust_torsions(self, parent):
+        layout = QVBoxLayout()
+        layout.setContentsMargins(0,0,0,0)
+        layout.setSpacing(0)
+        layout.addStretch(1)
+        parent.setLayout(layout)
+        activate_layout = QHBoxLayout()
+        activate_layout.addStretch(1)
+        activate_button = QPushButton("Activate")
+        activate_button.clicked.connect(self._at_activate)
+        activate_layout.addWidget(activate_button)
+        activate_layout.addWidget(QLabel(" selected bond as torsion"))
+        activate_layout.addStretch(1)
+        layout.addLayout(activate_layout)
+        layout.addStretch(1)
+        grid_layout = QHBoxLayout()
+        grid_layout.setSpacing(5)
+        grid_layout.addStretch(1)
+        self.at_torsions_layout = grid = QGridLayout()
+        self.at_header_widgets = []
+        for col, text in enumerate(["Fixed", "Bond", "Moving"]):
+            label = QLabel(text)
+            grid.addWidget(label, 0, col+1, alignment=Qt.AlignCenter)
+            label.hide()
+            self.at_header_widgets.append(label)
+        grid_layout.addLayout(grid)
+        grid_layout.addStretch(1)
+        layout.addLayout(grid_layout)
+        layout.addStretch(1)
+        self.at_no_torsions_label = QLabel("No torsions active")
+        self.at_no_torsions_label.setEnabled(False)
+        layout.addWidget(self.at_no_torsions_label, alignment=Qt.AlignCenter)
+        layout.addStretch(1)
+
+        self.handlers['adjust torsions: base'] = handlers = []
+        manager = self.session.bond_rotations
+        handlers.append(manager.triggers.add_handler(manager.CREATED,
+            lambda trig_name, rotator, f=self._at_add_torsion: f(rotator)))
+        handlers.append(manager.triggers.add_handler(manager.DELETED,
+            lambda trig_name, rotator, f=self._at_remove_torsion: f(rotator)))
+        handlers.append(manager.triggers.add_handler(manager.MODIFIED,
+            lambda trig_name, rotator, f=self._at_update_torsion_value: f(rotator)))
+        handlers.append(manager.triggers.add_handler(manager.REVERSED,
+            lambda trig_name, rotator, f=self._at_swap_sides: f(rotator)))
+        self.torsion_data = {}
+        for bond, rotation in manager.bond_rotations.items():
+            for end_pt in bond.atoms:
+                if not end_pt.neighbors:
+                    break
+            else:
+                for rotater in rotation.rotaters:
+                    if not rotater.one_shot:
+                        self._at_add_torsion(rotater)
+
+    def _layout_invert(self, parent):
+        layout = QVBoxLayout()
+        parent.setLayout(layout)
+
+        instructions = QLabel("Select one atom to swap the two smallest subsituents bonded to that atom,"
+            " or select two atoms bonded to the same atom to swap those specific substituents",
+            alignment=Qt.AlignCenter)
+        instructions.setWordWrap(True)
+        layout.addWidget(instructions)
+
+        swap_button = QPushButton("Swap")
+        swap_button.clicked.connect(lambda checked: self._invert_swap_cb())
+        layout.addWidget(swap_button, alignment=Qt.AlignHCenter|Qt.AlignTop, stretch=1)
 
     def _layout_join_models(self, parent):
         layout = QVBoxLayout()
@@ -374,7 +1041,8 @@ class BuildStructureTool(ToolInstance):
         self.ms_res_mod.setChecked(True)
 
         from chimerax.core.selection import SELECTION_CHANGED
-        self.handlers.append(self.session.triggers.add_handler(SELECTION_CHANGED, self._ms_sel_changed))
+        self.handlers['modify structure'] = [
+            self.session.triggers.add_handler(SELECTION_CHANGED, self._ms_sel_changed)]
         self._ms_sel_changed()
 
         sep = QFrame()

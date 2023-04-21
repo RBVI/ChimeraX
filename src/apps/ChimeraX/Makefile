@@ -22,6 +22,8 @@ BINMODE	= 755
 
 ICONS	= ChimeraX-icon.svg ChimeraX-icon512.png
 ifeq ($(OS),Linux)
+# ffmpeg might be in $(bindir)
+export PATH:=$(bindir):$(PATH)
 LINUX_ICONS = ChimeraX-icon128.png ChimeraX-icon64.png ChimeraX-icon32.png ChimeraX-icon16.png
 ICONS	+= $(LINUX_ICONS)
 endif
@@ -79,8 +81,19 @@ install: $(PROG) $(ICONS) $(APP_NAME).1
 	$(RSYNC) $(ICONS) $(datadir)
 	if [ -d "$(app_prefix)" ]; then \
 		$(RSYNC) $(PROG) $(app_bindir); \
+	fi
+ifndef FLATPAK_APPNAME
+	if [ -d "$(app_prefix)" ]; then \
 		$(RSYNC) $(ICONS) $(app_datadir); \
 	fi
+else
+	icon_dir=/app/share/icons/hicolor ; \
+	mkdir -p $$icon_dir ; \
+	install -Dm644 ChimeraX-icon.svg $$icon_dir/scalable/apps/${FLATPAK_APPNAME}.svg ; \
+	for res in 16 32 64 128 512; do \
+		install -Dm644 ChimeraX-icon$$res.png $$icon_dir/$${res}x$${res}/apps/${FLATPAK_APPNAME}.png ; \
+	done
+endif
 	mkdir -p $(datadir)/man/man1
 	$(RSYNC) $(APP_NAME).1 $(datadir)/man/man1
 	-if [ -d "$(app_prefix)" ]; then \
@@ -151,16 +164,16 @@ install: $(LINUX_ICONS)
 endif
 
 ChimeraX-icon128.png:
-	convert ChimeraX-icon512.png -geometry 128x128 ChimeraX-icon128.png
+	ffmpeg -loglevel warning -i ChimeraX-icon512.png -vf scale=128:128 ChimeraX-icon128.png
 
 ChimeraX-icon64.png:
-	convert ChimeraX-icon512.png -geometry 64x64 ChimeraX-icon64.png
+	ffmpeg -loglevel warning -i ChimeraX-icon512.png -vf scale=64:64 ChimeraX-icon64.png
 
 ChimeraX-icon32.png:
-	convert ChimeraX-icon512.png -geometry 32x32 ChimeraX-icon32.png
+	ffmpeg -loglevel warning -i ChimeraX-icon512.png -vf scale=32:32 ChimeraX-icon32.png
 
 ChimeraX-icon16.png:
-	convert ChimeraX-icon512.png -geometry 16x16 ChimeraX-icon16.png
+	ffmpeg -loglevel warning -i ChimeraX-icon512.png -vf scale=16:16 ChimeraX-icon16.png
 
 #
 # For Windows

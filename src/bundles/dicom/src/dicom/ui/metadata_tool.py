@@ -62,7 +62,7 @@ class MetadataRow:
 
 
 class DICOMMetadata(ToolInstance):
-    
+
     help = "help:user/tools/dicommetadata.html"
 
     def __init__(self, session = None, name = "DICOM Metadata"):
@@ -163,8 +163,9 @@ class DICOMMetadata(ToolInstance):
             for series_ in series:
                 self.add_series(series_)
         else:
-            for file in series.files:
-                self.add_dicom_file(file)
+            for data in series.dicom_data:
+                for file in data.files:
+                    self.add_dicom_file(file)
 
     def add_dicom_file(self, file) -> None:
         self.files.append(file)

@@ -12,6 +12,10 @@
     or derivations thereof.
     === UCSF ChimeraX Copyright ===
 
+==========================================================
+utils: Generically useful stuff that doesn't fit elsewhere
+==========================================================
+
 .. automodule:: chimerax.core.utils
     :members:
     :show-inheritance:

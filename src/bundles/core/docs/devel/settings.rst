@@ -12,6 +12,10 @@
     or derivations thereof.
     === UCSF ChimeraX Copyright ===
 
+===========================================
+settings: Save/access tool interface values
+===========================================
+
 .. automodule:: chimerax.core.settings
     :members:
     :show-inheritance:

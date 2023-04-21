@@ -1573,7 +1573,7 @@ class MouseTracking(PointerModels):
         c = self._session.main_view.camera
         axis = c.position.transform_vector((-0.707, 0.707, 0))
         msg = {'name': self._participant._name,
-               'color': tuple(self._participant._color),
+               'color': tuple(int(r) for r in self._participant._color),
                'mouse': (tuple(xyz), tuple(axis)),
                }
 

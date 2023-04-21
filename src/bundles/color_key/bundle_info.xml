@@ -22,7 +22,7 @@
     <Dependency name="ChimeraX-Graphics" version="~=1.0"/>
     <Dependency name="ChimeraX-Label" version="~=1.0"/>
     <Dependency name="ChimeraX-MouseModes" version="~=1.1"/>
-    <Dependency name="ChimeraX-UI" version="~=1.7"/>
+    <Dependency name="ChimeraX-UI" version="~=1.28"/>
   </Dependencies>
 
   <Providers manager="toolbar">

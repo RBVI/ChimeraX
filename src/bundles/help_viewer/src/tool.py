@@ -286,7 +286,7 @@ class HelpUI(ToolInstance):
                 return super().accept()
 
         p = PasswordDialog(requestUrl, auth)
-        p.exec_()
+        p.exec()
 
     def intercept(self, request_info, *args):
         # check for help:user and generate the index page if need be

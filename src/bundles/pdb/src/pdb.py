@@ -180,6 +180,24 @@ def save_pdb(session, output, *, models=None, selected_only=False, displayed_onl
                 else:
                     xforms.append((s.scene_position * inv).matrix)
 
+    # If model came from mmCIF, try to generate CRYST1 record if we can
+    for s in models:
+        if not hasattr(s, "metadata") or 'CRYST1' in s.metadata:
+            continue
+        from chimerax.mmcif import TableMissingFieldsError, get_mmcif_tables_from_metadata as get_tables
+        tables = get_tables(s, ['cell', 'symmetry'])
+        if None in tables:
+            continue
+        try:
+            l_a, l_b, l_c, a_a, a_b, a_g, z, h_m = tables[0].fields(['length_a', 'length_b', 'length_c',
+                'angle_alpha', 'angle_beta', 'angle_gamma', 'Z_PDB'])[0] + tables[1].fields(
+                ['space_group_name_H-M'])[0]
+        except TableMissingFieldsError:
+            continue
+        if z.strip() == '?':
+            z = ""
+        s.set_metadata_entry('CRYST1',
+            ["CRYST1%9s%9s%9s%7s%7s%7s %-11s%4s" % (l_a, l_b, l_c, a_a, a_b, a_g, h_m, z)])
     from . import _pdbio
     if polymeric_res_names is None:
         polymeric_res_names = _pdbio.standard_polymeric_res_names

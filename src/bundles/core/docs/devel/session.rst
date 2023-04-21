@@ -12,6 +12,10 @@
     or derivations thereof.
     === UCSF ChimeraX Copyright ===
 
+====================================
+session: Application session support
+====================================
+
 .. automodule:: chimerax.core.session
     :members:
     :show-inheritance:

@@ -217,11 +217,13 @@ class Bond(State):
         f = c_function('bond_polymeric_start_atom', args = (ctypes.c_void_p,), ret = ctypes.py_object)
         return f(self._c_pointer)
 
-    def string(self, style = None):
+    def string(self, *, style=None, minimal=False, reversed=False):
         "Supported API.  Get text representation of Bond (also used by __str__ for printing)"
         a1, a2 = self.atoms
+        if reversed:
+            a1, a2 = a2, a1
         bond_sep = " \N{Left Right Arrow} "
-        return a1.string(style=style) + bond_sep + a2.string(style=style, relative_to=a1)
+        return a1.string(style=style, minimal=minimal) + bond_sep + a2.string(style=style, relative_to=a1)
 
     def take_snapshot(self, session, flags):
         data = {'structure': self.structure,
@@ -1458,6 +1460,14 @@ class StructureData:
             self.session.triggers.remove_handler(self._ses_end_handler)
         c_function('structure_delete', args = (ctypes.c_void_p,))(self._c_pointer)
 
+    @staticmethod
+    def begin_destructor_batching(trig_name, trig_data):
+        c_function('structure_begin_destructor_batching', args = ())()
+
+    @staticmethod
+    def end_destructor_batching(trig_name, trig_data):
+        c_function('structure_end_destructor_batching', args = ())()
+
     active_coordset_change_notify = c_property('structure_active_coordset_change_notify', npy_bool,
     doc = '''Whether notifications are issued when the active coordset is changed.  Should only be
         set to true when temporarily changing the active coordset in a Python script. Boolean''')
@@ -1863,7 +1873,13 @@ class StructureData:
         f = c_function('structure_pseudobond_group',
                        args = (ctypes.c_void_p, ctypes.c_char_p, ctypes.c_int),
                        ret = ctypes.py_object)
-        return f(self._c_pointer, name.encode('utf-8'), create_arg)
+        # if the group is being created, the C++ layer will call the Python constructor, which
+        # in turn will add the group to the open models.  Depending on what trigger handlers
+        # do, this could result in a loop of the C++ layer trying to create Python instances,
+        # so suppress the trigger until the C++ call returns.
+        from chimerax.core.models import ADD_MODELS
+        with self.session.triggers.block_trigger(ADD_MODELS):
+            return f(self._c_pointer, name.encode('utf-8'), create_arg)
 
     def _delete_pseudobond_group(self, pbg):
         f = c_function('structure_delete_pseudobond_group',

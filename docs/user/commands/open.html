@@ -520,6 +520,19 @@ and specifying a corresponding atomic model
 <br>(use <b>format netcdfmap</b> to disambiguate from 
 <a href="#trajectory">Amber NetCDF trajectories</a>)</td>
 </tr><tr>
+<td align="center"><a href="https://nifti.nimh.nih.gov/"
+target="_blank">Neuroimaging Informatics Technology Initiative (NIfTI)</a></td>
+<td align="center"><b>nifti</b></td>
+<td align="center">.nii
+<br><a href="#compressed">+&nbsp;compressed</td>
+<td align="center">medical image</td>
+</tr><tr>
+<td align="center"><a href="https://teem.sourceforge.net/nrrd/"
+target="_blank">Nearly Raw Raster Data (NRRD)</a></td>
+<td align="center"><b>nrrd</b></td>
+<td align="center">.nrrd</td>
+<td align="center">medical image</td>
+</tr><tr>
 <td align="center">Priism data</td>
 <td align="center"><b>priism</b></td>
 <td align="center">.xyzw<br>.xyzt</td>
@@ -692,7 +705,8 @@ target="_blank">Wavefront OBJ</a></td>
 <a name="sequence"></a>
 <a href="#formats" class="nounder"><b>&larr;</b></a>
 <b>Sequences</b> (associated tool: 
-<a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>)</td>
+<a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>,
+but see the <a href="#viewer"><b>viewer</b></a> option)</td>
 </tr><tr>
 <td align="center">Clustal ALN</td>
 <td align="center"><b>aln</b></td>
@@ -896,7 +910,8 @@ in a Terminal window.
 <b>alignment</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
 <br>
 Whether to interpret a multi-sequence file as an alignment 
-(default, all sequences in one <b>Multalign Viewer</b> window).
+(default, all sequences in one 
+<a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a> window).
 Otherwise, each sequence will be opened in a separate window. 
 If the sequences (including any gap characters) are of differing lengths,
 the option must be set to <b>false</b>. 
@@ -934,7 +949,8 @@ bypassing chemical perception steps like identifying
 <b>autoAssociate</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false
 <br>
 Whether structure-chain sequences should be compared to sequences in 
-<b>Multalign Viewer</b> and automatically associated if the number of
+<a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>
+and automatically associated if the number of
 mismatches is no more than 1/10 the number of residues in the structure chain.
 Unlike the other options of <b>open</b>, this sets a state that persists 
 within the ChimeraX session unless explicitly changed. 
@@ -1265,6 +1281,20 @@ channels read from <a href="#object">JSON format</a>
 See also the <a href="transparency.html"><b>transparency</b></a> command.
 </blockquote>
 <blockquote>
+<a name="viewer"></a>
+<b>viewer</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
+<br>
+Whether to show the 
+<a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>
+when opening <a href="#sequence">sequence data</a>.
+<!-- 
+also has option seqview = sv = view, meaning the Sequence Viewer,
+which will be relevant when an option is added for ProfileGrid instead.
+Then, true will mean whichever of the two was last used, if any, for 
+a single sequence or sequence alignment, which will be remembered separately 
+-->
+</blockquote>
+<blockquote>
 <a name="vseries"></a>
 <b>vseries</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false
 <br>
@@ -1569,6 +1599,7 @@ The <b>alignTo</b> and <b>trim</b> options also apply only to
 See also: <a href="alphafold.html"><b>alphafold</b></a>
 </p><p>
 See also: 
+<a href="../tools/downloaddicom.html"><b>Download DICOM</b></a>,
 <a href="../preferences.html#webaccess"><b>Web Access</b> preferences</a>
 </p>
 
@@ -1836,7 +1867,7 @@ For example, myfile.pdb.gz is a gzipped PDB file.
 The file types that can be read by ChimeraX in compressed form
 (as well as uncompressed) are
 ALN, BILD, Collada, compiled Python code, directional FSC,
-FASTA, glTF, HSSP, MMTF, MSF, PDB, Pfam, PIR, pseudobonds, Python code,
+FASTA, glTF, HSSP, MMTF, MSF, NIfTI, PDB, Pfam, PIR, pseudobonds, Python code,
 RSF, STL, Stockholm, STORM, VTK PolyData, and Wavefront OBJ.
 </p>
 
@@ -1991,5 +2022,5 @@ only arrays with the specified <i>name</i>. Example:
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-February 2023</address>
+March 2023</address>
 </body></html>

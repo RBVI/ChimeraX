@@ -532,6 +532,7 @@ class SequenceViewer(ToolInstance):
         copy_action = QAction("Copy Sequence...", edit_menu)
         copy_action.triggered.connect(self.show_copy_sequence_dialog)
         edit_menu.addAction(copy_action)
+        single_seq = len(self.alignment.seqs) == 1
         from chimerax.seqalign.cmd import alignment_program_name_args
         prog_to_arg = {}
         for arg, prog in alignment_program_name_args.items():
@@ -544,6 +545,8 @@ class SequenceViewer(ToolInstance):
                     unparse=StringArg.unparse, cmd_text=cmd_text: run(self.session,
                     "seq align %s program %s%s" % (unparse(self.alignment.ident), unparse(arg), cmd_text)))
                 prog_menu.addAction(realign_action)
+            if single_seq:
+                prog_menu.setEnabled(False)
 
         structure_menu = menu.addMenu("Structure")
         assoc_action = QAction("Associations...", structure_menu)

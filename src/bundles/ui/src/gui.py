@@ -32,7 +32,6 @@ import sys
 
 def initialize_qt():
     initialize_qt_plugins_location()
-    initialize_qt_high_dpi_display_support()
     initialize_shared_opengl_contexts()
 
 def initialize_qt_plugins_location():
@@ -69,16 +68,6 @@ def initialize_qt_plugins_location():
                 os.environ["DYLD_FRAMEWORK_PATH"] = app_lib_dir + ":" + fw_path
             else:
                 os.environ["DYLD_FRAMEWORK_PATH"] = app_lib_dir
-
-def initialize_qt_high_dpi_display_support():
-    import sys
-    # Fix text and button sizes on high DPI displays in Windows 10
-    win = (sys.platform == 'win32')
-    if win:
-        from Qt.QtCore import QCoreApplication, Qt
-        if not hasattr(Qt, 'AA_EnableHighDpiScaling'):
-            return  # Qt6 does not have this setting
-        QCoreApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
 
 def initialize_shared_opengl_contexts():
     # Mono and stereo opengl contexts need to share vertex buffers
@@ -157,9 +146,11 @@ class UI(QApplication):
         from Qt.QtCore import qInstallMessageHandler
         def cx_qt_msg_handler(msg_type, msg_log_context, msg_string,
                               log_fatal_error = self._log_qt_fatal_error):
-            if msg_string.startswith('delivering touch release to same window') \
-            or msg_string.startswith('skipping QEventPoint'):
+            if (msg_string.startswith('delivering touch release to same window')
+                or msg_string.startswith('skipping QEventPoint')):
                 return	# Supress Qt 6.2 warnings
+            if 'QWindowsWindow::setDarkBorderToWindow' in msg_string:
+                return  # Supress Qt 6.4 warning, ChimeraX ticket #8541
             if msg_type == QtMsgType.QtFatalMsg:
                 log_fatal_error('Qt fatal error: %s\n' % msg_string)
             log_level = qt_to_cx_log_level_map[msg_type]
@@ -354,14 +345,6 @@ class UI(QApplication):
 
     def remove_tool(self, tool_instance):
         self.main_window.remove_tool(tool_instance)
-        # get garbage collection to break callback loops in deleted tools
-        # that might be triggered by live tools (e.g. settings changes)
-        # particularly since WA_DeleteOnClose can nuke the Qt side
-        def _cleanup(s=self):
-            import gc
-            gc.collect()
-            delattr(s, '_kludge_cleanup_timer')
-        self._kludge_cleanup_timer = self.timer(100, _cleanup)
 
     def set_tool_shown(self, tool_instance, shown):
         self.main_window.set_tool_shown(tool_instance, shown)
@@ -448,6 +431,9 @@ class MainWindow(QMainWindow, PlainTextLog):
             from chimerax.graphics import StereoCamera
             session.main_view.camera = StereoCamera()
         self.graphics_window = g = GraphicsWindow(self._stack, ui, stereo)
+        # Always remember the graphics window, so it can be restored later if consumers forget to
+        self._backup_main_view = g.widget
+        self._main_view = self._backup_main_view
         self._stack.addWidget(g.widget)
         self.rapid_access = QWidget(self._stack)
         ra_bg_color = "#B8B8B8"
@@ -535,6 +521,36 @@ class MainWindow(QMainWindow, PlainTextLog):
             self.showMaximized()
         else:
             self.show()
+
+    @property
+    def main_view(self):
+        """Return the widget that contains the graphics area"""
+        return self._main_view
+
+    @main_view.setter
+    def main_view(self, widget: QWidget):
+        """Set the second widget in the main window's stack. Must contain the widget
+        returned by self.graphicsArea()"""
+        if self.graphicsArea() not in widget.findChildren(QWidget) and widget is not self.graphicsArea():
+            self._main_view = self._backup_main_view
+            self.session.logger.error(
+                "The new main view does not contain the graphics window. "
+                "ChimeraX will not display anything without it! "
+                "Reparent the widget into your new layout."
+            )
+        else:
+            self._stack.removeWidget(self._main_view)
+            self._main_view = widget
+            self._stack.addWidget(self._main_view)
+        if self.rapid_access_shown:
+            self._stack.setCurrentWidget(self._main_view)
+            self.graphicsArea().show()
+
+    def restore_default_main_view(self):
+        self.main_view = self._backup_main_view
+
+    def graphicsArea(self) -> QWidget:
+        return self.graphics_window.widget
 
     def enable_stereo(self, stereo = True):
         '''
@@ -824,7 +840,7 @@ class MainWindow(QMainWindow, PlainTextLog):
             self._stack.setCurrentWidget(self.rapid_access)
         else:
             icon = self._ra_hidden_icon
-            self._stack.setCurrentWidget(self.graphics_window.widget)
+            self._stack.setCurrentWidget(self._main_view)
 
         but = self._rapid_access_button
         but.setChecked(show)
@@ -2311,6 +2327,7 @@ class _Qt:
         auto_delete = self.dock_widget.testAttribute(Qt.WA_DeleteOnClose)
         is_floating = self.dock_widget.isFloating()
         self.main_window._tool_window_destroyed(self.tool_window)
+        self._prevent_half_docked_crash()
         self.main_window.removeDockWidget(self.dock_widget)
         # free up references
         self.tool_window = None
@@ -2334,6 +2351,32 @@ class _Qt:
             from Qt.QtWidgets import QDockWidget
             delattr(self.dock_widget, 'closeEvent')
             self.dock_widget.close()
+
+    def _prevent_half_docked_crash(self):
+        '''
+        Work-around ChimeraX crash described in ticket #8782
+        If the tool window being destroyed was dropped at the top of the screen
+        on Mac it sometimes is left undocked but showing a docking area.
+        If the tool is destroyed ChimeraX crashes because the ChimeraX main window
+        layout has two layout items with widget eqqual to the tool window and
+        the QLayout::removeWidget(w) code deletes both copies causing a crash.
+        Probably it is invalid to have a widget layout out twice.
+
+        Find extra layout items for the dock widget and remove them to avoid crash.
+        '''
+        layout = self.main_window.layout()
+        found = set()
+        duplicate_items = []
+        for i in range(layout.count()):
+            layout_item = layout.itemAt(i)
+            w = layout_item.widget()
+            if w == self.dock_widget:
+                if w in found:
+                    duplicate_items.append(layout_item)
+                else:
+                    found.add(w)
+        for layout_item in duplicate_items:
+            layout.removeItem(layout_item)
 
     @property
     def dockable(self):
@@ -2694,6 +2737,8 @@ class SelZoneDialog(QDialog):
             QCheckBox, QDoubleSpinBox, QPushButton, QMenu, QWidget, QTabWidget
         from Qt.QtCore import Qt
         layout = QVBoxLayout()
+        layout.setSpacing(1)
+        layout.setContentsMargins(5,3,5,3)
         target_area = QWidget()
         target_layout = QHBoxLayout()
         target_layout.setContentsMargins(0,0,0,0)
@@ -2710,6 +2755,7 @@ class SelZoneDialog(QDialog):
         target_layout.addWidget(QLabel(":"))
         layout.addWidget(target_area, alignment=Qt.AlignLeft)
         less_layout = QHBoxLayout()
+        less_layout.setSpacing(5)
         self.less_checkbox = QCheckBox("<")
         self.less_checkbox.setChecked(True)
         self.less_checkbox.stateChanged.connect(self._update_button_states)
@@ -2723,6 +2769,7 @@ class SelZoneDialog(QDialog):
         less_layout.addWidget(QLabel("from the currently selected atoms"))
         layout.addLayout(less_layout)
         more_layout = QHBoxLayout()
+        more_layout.setSpacing(5)
         self.more_checkbox = QCheckBox(">")
         self.more_checkbox.stateChanged.connect(self._update_button_states)
         more_layout.addWidget(self.more_checkbox, alignment=Qt.AlignRight)
@@ -2734,6 +2781,10 @@ class SelZoneDialog(QDialog):
         more_layout.addWidget(self.more_spinbox)
         more_layout.addWidget(QLabel("from the currently selected atoms"))
         layout.addLayout(more_layout)
+        self.exclude_checkbox = QCheckBox("Also deselect current selection")
+        self.exclude_checkbox.setChecked(False)
+        layout.addWidget(self.exclude_checkbox, alignment=Qt.AlignCenter)
+        layout.addSpacing(3)
 
         self.bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
         self.bbox.accepted.connect(self.zone)
@@ -2756,6 +2807,12 @@ class SelZoneDialog(QDialog):
                 cmd += ' & '
         if self.more_checkbox.isChecked():
             cmd += "sel %s> %g" % (char, self.more_spinbox.value())
+        if self.exclude_checkbox.isChecked():
+            if cmd:
+                cmd += ' & '
+            else:
+                cmd = 'sel '
+            cmd += "~sel"
         self.session.ui.main_window.select_by_mode(cmd)
 
     def _update_button_states(self, *args):
