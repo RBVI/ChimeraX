@@ -98,6 +98,7 @@ using the bounding box of one of the half maps used in the fitting calculation
   <li><b>specified xyz position...</b> X, Y, and Z coordinates (&Aring;)
 relative to the origin of the map and in the coordinate system of the map
   </ul>
+<a name="adjust"></a>
 <li><b>Interactively verify/adjust center before searching</b>
 (initial default <b>on</b>)
 &ndash; whether to generate a transparent orange
@@ -112,6 +113,16 @@ moving the marker, using any ChimeraX method for moving markers or models
 in the <a href="markers.html"><b>Markers</b></a> toolbar to assign the mode to 
 the right mouse button, then using right-mouse click-drag to move the marker).
 Clicking <b>Start search</b> starts the local fitting calculation.
+<li><b>Make maps opaque while verifying center</b>
+(only available when <a href="#adjust">interactive verification</a> is turned on;
+initial default <b>on</b>)
+&ndash; since ChimeraX only shows a single layer of transparency, 
+the transparent orange sphere used to verify/adjust the search center 
+will obscure any map surfaces or meshes that are also transparent.
+This option temporarily makes map surfaces and meshes opaque
+to prevent them from &ldquo;disappearing&rdquo; inside the orange sphere.
+When the search is initiated and the sphere is removed, map surfaces 
+are automatically reset to their previous transparency levels, if any.
 </ul>
 <p>
 If the above option to interactively adjust the center was not used,
