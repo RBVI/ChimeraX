@@ -789,7 +789,7 @@ class BuildStructureTool(ToolInstance):
         parent.setLayout(layout)
         activate_layout = QHBoxLayout()
         activate_layout.addStretch(1)
-        activate_button = QPushButton("Adjust")
+        activate_button = QPushButton("Activate")
         activate_button.clicked.connect(self._aa_add_angle)
         activate_layout.addWidget(activate_button)
         activate_layout.addWidget(QLabel(" angle formed by 3 selected atoms"))
