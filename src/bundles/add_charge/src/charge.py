@@ -569,8 +569,21 @@ def nonstd_charge(session, residues, net_charge, method, *, status=None, temp_di
         # For some reason in Windows, if shell==False then antechamber cannot run bondtype via system()
         session.logger.info("Running ANTECHAMBER command: %s" % " ".join(command))
         os.environ['AMBERHOME'] = amber_home
-        ante_messages = Popen(command, stdin=PIPE, stdout=PIPE, stderr=STDOUT, cwd=temp_dir, bufsize=1,
-            encoding="utf8").stdout
+        try:
+            ante_messages = Popen(command, stdin=PIPE, stdout=PIPE, stderr=STDOUT, cwd=temp_dir, bufsize=1,
+                encoding="utf8").stdout
+        except OSError as e:
+            import sys
+            if sys.platform == "darwin" and "Bad CPU type in executable" in str(e):
+                from chimerax.core.errors import LimitationError
+                raise LimitationError(
+                    "The executable used to compute charges is an Intel executable, which needs the\n"
+                    " Rosetta 2 emulator to be installed in order to run.  To install the emulator,\n"
+                    " open Terminal.app (found in the Utilities sub-folder of the system Applications\n"
+                    " folder) and type or paste the following command and hit Return:\n\n"
+                    "    softwareupdate --install-rosetta")
+            raise
+
         while True:
             line = ante_messages.readline()
             if not line:
