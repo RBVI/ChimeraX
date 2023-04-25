@@ -58,11 +58,13 @@ build outward step-by-step from an existing structure
 <li><a href="#bonds"><b>Adjust Bonds</b></a>
 &ndash; add bonds, delete bonds, change bond lengths
 <li><a href="#adjust"><b>Adjust Torsions</b></a>
-&ndash;- rotate bonds (change dihedral angles)
+&ndash; rotate bonds (change dihedral angles)
 <li><a href="#join"><b>Join Models</b></a>
 &ndash; bond and merge two models, moving one of them to form the bond
 <li><a href="#invert"><b>Invert</b></a>
 &ndash; swap substituents, potentially changing chirality
+<li><a href="#angles"><b>Adjust Angles</b></a>
+&ndash; modify angles defined by three atoms
 </ul>
 
 <p class="nav">
@@ -504,6 +506,46 @@ Any unintended results can be reversed by clicking <b>Swap</b> again
 without changing the <a href="../selection.html">selection</a>.
 </p>
 
+<a name="angles"></a>
+<p class="nav">
+[<a href="#top">back to top: Build Structure</a>]
+</p>
+<h3>Adjust Angles</h3>
+<p>
+The <b>Adjust Angles</b> section of <a href="#top"><b>Build Structure</b></a>
+is a table of active (currently adjustable) angles with entry fields and dials
+for interactive adjustment. Clicking <b>Activate</b> adds the angle defined by
+the three currently <a href="../selection.html">selected</a> atoms to the list.
+Although the atoms need not be connected through consecutive bonds, there are 
+<a href="../commands/angle.html#rules">other rules</a> for which atoms
+can be used to define an active angle.
+Active angles are saved in <a href="../commands/save.html#session">sessions</a>.
+See also: 
+<a href="angles.html"><b>Angles/Torsions</b></a>,
+<a href="../commands/angle.html"><b>angle</b></a>,
+<a href="../commands/torsion.html"><b>torsion</b></a>
+</p><p>
+If the three atoms defining an active angle are 1-2-3,
+atom 1 is <b>Fixed</b>, atom 2 is <b>Middle</b>, and atom 3 is <b>Moving</b>,
+meaning that 3 and the side of the molecule bonded to it
+will move when the angle is adjusted.
+The angle can be adjusted by entering a new angle value
+or by manipulating the associated dial. 
+Only values 0.0-180.0&deg; are allowed.
+</p><p>
+The <b>Middle</b> column contains a pulldown menu labeled with the
+identifier of atom 2. This menu contains choices to:
+</p>
+<ul>
+<li><b>Reset to initial angle</b>
+<li><b>Swap moving/fixed sides</b>
+</ul>
+<p>
+The angle can be deactivated by clicking the &ldquo;x&rdquo; button
+to its left. If preserving the original position is desired, 
+the angle should be reset before swapping sides or deactivation.
+</p>
+
 <a name="covrad"></a>
 <p class="nav">
 [<a href="#top">back to top: Build Structure</a>]
@@ -546,5 +588,5 @@ states from heavy atom coordinates.</a> Meng EC, Lewis RA.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-February 2023</address>
+April 2023</address>
 </body></html>
