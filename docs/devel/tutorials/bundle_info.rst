@@ -750,6 +750,20 @@ These are the possible `Provider`_ attributes:
         opening this format from individual files (in which case *suffixes* would matter).
         The default is "false".
 
+    .. _default_for:
+
+    *default_for*
+        Declares that this format should be considered the default when opening files with
+        the given suffix(es).  Therefore has to be the same as or a subset of the *suffixes*
+        attribute.  This attribute is not normally specified because the file opening/saving machinery
+        will query the user when there is more than one format that corresponds to a particular
+        file suffix, and allow the user to designate a format as the default.  It is typically
+        used as a convenience when it seems likely that a large majority of users will intend
+        to open/save one specific format despite there being multiple possibilities.  For
+        instance, the main PDB open/save bundle declares PDB format as default for .pdb (but not
+        .ent, *etc.*) despite SwissDock and ZDOCK formats also using the .pdb suffix.  Users
+        having SwissDock/ZDOCK PDB files would have to use the ``format`` open/save keyword.
+
     *insecure*
         If opening this format's data could cause arbitrary code to execute, then *insecure*
         should be specified as "true".  Formats in the "Command script" *category* default
@@ -812,8 +826,8 @@ The other possible `Provider`_ attributes are:
         *want_path*\="true", you don't have to explicitly specify that).
 
     *is_default*
-        **Deprecated.**  Will be replaced by the scheme described `here <https://www.rbvi.ucsf.edu/trac/ChimeraX/ticket/7813#comment:2>`_.
-        :raw-html:`<font color="gray">` If your data format has suffixes that are the same as another format's suffixes, *is_default*
+        **Obsolete.**  Use `default_for`_ instead.
+        :raw-html:`<font color="lightgray">` If your data format has suffixes that are the same as another format's suffixes, *is_default*
         will determine which format will be used when the open command's ``format`` keyword is omitted.
         *is_default* defaults to "true", so therefore typically lesser known/used formats supply this
         attribute with a value of "false". :raw-html:`</font>`
@@ -908,14 +922,15 @@ The other possible `Provider`_ attributes are:
             be bad to compress it again (likely slower with no space savings).
 
     *is_default*
-        If your data format has suffixes that are the same as another format's suffixes, *is_default*
+        **Obsolete.**  Use `default_for`_ instead.
+        :raw-html:`<font color="lightgray">` If your data format has suffixes that are the same as another format's suffixes, *is_default*
         will determine which format will be used when the save command's ``format`` keyword is omitted.
         *is_default* defaults to "true", so therefore typically lesser known/used formats supply this
         attribute with a value of "false".  For example, ChimeraX can save both image TIFF files and
         `ImageJ TIFF stacks <https://imagej.net/TIFF>`_, which both use the suffixes .tif and .tiff.
         The ImageJ TIFF stack uses ``is_default="false"`` so that the command ``save image.tif``
         produces the more commonly desired image file.  To get an ImageJ stack, the user would have
-        to add ``format imagej`` to the save command.
+        to add ``format imagej`` to the save command :raw-html:`</font>`.
 
 For example::
 
