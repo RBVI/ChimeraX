@@ -35,7 +35,7 @@ def cmd_save(session, file_name, rest_of_line, *, log=True):
     try:
         from .manager import NoSaverError, SaverNotInstalledError
         mgr = session.save_command
-        data_format = file_format(session, file_name, format_name)
+        data_format = file_format(session, file_name, format_name, True, False)
         try:
             provider_args = mgr.save_args(data_format)
         except SaverNotInstalledError as e:
@@ -76,7 +76,7 @@ def cmd_save(session, file_name, rest_of_line, *, log=True):
 
 def provider_save(session, file_name, format=None, **provider_kw):
     mgr = session.save_command
-    data_format = file_format(session, file_name, format)
+    data_format = file_format(session, file_name, format, False, True)
     provider_info = mgr.provider_info(data_format)
     path = _get_path(file_name, provider_info.compression_okay)
 
@@ -119,7 +119,7 @@ def _get_path(file_name, compression_okay):
                 " '%s' implies compression" % file_name)
     return expanded
 
-def file_format(session, file_name, format_name):
+def file_format(session, file_name, format_name, clear_before, clear_after):
     if format_name:
         try:
             return session.data_formats[format_name]
@@ -128,7 +128,8 @@ def file_format(session, file_name, format_name):
 
     from chimerax.data_formats import NoFormatError
     try:
-        return session.data_formats.save_format_from_file_name(file_name)
+        return session.data_formats.save_format_from_file_name(file_name, clear_cache_before=clear_before,
+            cache_user_responses=True, clear_cache_after=clear_after)
     except NoFormatError as e:
         raise UserError(str(e))
 

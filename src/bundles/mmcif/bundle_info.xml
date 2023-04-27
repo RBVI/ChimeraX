@@ -62,7 +62,7 @@
   </Dependencies>
 
   <Providers manager="data formats">
-    <Provider name="mmCIF" category="Molecular structure" suffixes=".cif,.mmcif"
+    <Provider name="mmCIF" category="Molecular structure" suffixes=".cif,.mmcif" default_for=".mmcif"
 	    encoding="utf-8" mime_types="chemical/x-mmcif" reference_url="http://mmcif.wwpdb.org/" />
     <Provider name="Chemical Component Dictionary" category="Molecular structure"
 	    nicknames="ccd" suffixes=".cif"
