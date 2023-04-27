@@ -24,10 +24,10 @@ from .dicom import (
 class _DICOMBundle(BundleAPI):
     api_version = 1
 
-    @staticmethod
-    def initialize(session, bundle_info):
-        """Register file formats, commands, and database fetch."""
-        add_map_format(session, DICOMMapFormat())
+    #@staticmethod
+    #def initialize(session, bundle_info):
+    #    """Register file formats, commands, and database fetch."""
+    #    add_map_format(session, DICOMMapFormat())
 
     @staticmethod
     def start_tool(session, bi, ti):
@@ -35,6 +35,15 @@ class _DICOMBundle(BundleAPI):
             return get_singleton(session, DICOMBrowserTool, "DICOM Browser")
         else:
             return DICOMDatabases(session)
+
+    @staticmethod
+    def register_command(bi, ci, logger):
+        if ci.name == "dicom view":
+            from .ui.view import register_cmds
+            register_cmds(logger)
+        #elif ci.name == "monailabel":
+        #    from .monailabel import register_cmds
+        #    register_cmds(logger)
 
     @staticmethod
     def run_provider(session, name, mgr, **kw):
