@@ -65,8 +65,8 @@ UCSF DOCK output in PDB and mol2 formats are supported.
   <Providers manager="open command">
     <Provider name="AutoDock PDBQT" want_path="true" />
     <Provider name="Sybyl Mol2" want_path="true" />
-    <Provider name="ZDOCK" is_default="false" />
-    <Provider name="SwissDock" is_default="false" />
+    <Provider name="ZDOCK" />
+    <Provider name="SwissDock" />
   </Providers>
 
   <Classifiers>

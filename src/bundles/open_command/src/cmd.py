@@ -73,7 +73,7 @@ def cmd_open(session, file_names, rest_of_line, *, log=True, return_json=False):
             except NoOpenerError as e:
                 raise LimitationError(str(e))
         else:
-            data_format = file_format(session, files[0], format_name)
+            data_format = file_format(session, files[0], format_name, True, False)
             if data_format is None:
                 # let provider_open raise the error, which will show the command
                 provider_args = {}
@@ -129,7 +129,7 @@ def provider_open(session, names, format=None, from_database=None, ignore_cache=
     mgr = session.open_command
     # since the "file names" may be globs, need to preprocess them...
     fetches, file_names = fetches_vs_files(mgr, names, format, from_database)
-    file_infos = [FileInfo(session, fn, format) for fn in file_names]
+    file_infos = [FileInfo(session, fn, format, False, fn is file_names[-1]) for fn in file_names]
     formats = set([fi.data_format for fi in file_infos])
     databases = set([f[1:] for f in fetches])
     homogeneous = len(formats) +  len(databases) == 1
@@ -432,7 +432,7 @@ def model_name_from_path(path):
         name = basename(dirname(path))
     return name
 
-def file_format(session, file_name, format_name):
+def file_format(session, file_name, format_name, clear_before, clear_after):
     if format_name:
         try:
             return session.data_formats[format_name]
@@ -441,7 +441,8 @@ def file_format(session, file_name, format_name):
 
     from chimerax.data_formats import NoFormatError
     try:
-        return session.data_formats.open_format_from_file_name(file_name)
+        return session.data_formats.open_format_from_file_name(file_name, clear_cache_before=clear_before,
+            cache_user_responses=True, clear_cache_after=clear_after)
     except NoFormatError as e:
         return None
 
@@ -483,9 +484,9 @@ def collated_open(session, database_name, data, data_format, main_opener, log_er
     return remember_data_format()
 
 class FileInfo:
-    def __init__(self, session, file_name, format_name):
+    def __init__(self, session, file_name, format_name, clear_before, clear_after):
         self.file_name = file_name
-        self.data_format = file_format(session, file_name, format_name)
+        self.data_format = file_format(session, file_name, format_name, clear_before, clear_after)
         if self.data_format is None:
             from os.path import splitext
             from chimerax import io

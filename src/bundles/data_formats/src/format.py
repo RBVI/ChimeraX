@@ -107,12 +107,20 @@ class DataFormat(State):
         True if the format is opened/saved as a directory.  This is the only case where
         'suffixes' can be empty.
 
+    ..attribute:: default_for
+
+        The suffixes that this format should be considered the default for.  Should only be
+        specified if it expected that there will be other lesser-known formats using the same
+        file suffix (in which case opening those other formats would require the 'format' keyword).
+        If multiple formats support the same file suffix and none of the formats declare themselves
+        as 'default_for' that suffix, then the user will be queried for what format to use.
+
     """
     attr_names = ['name', 'category', 'suffixes', 'nicknames', 'mime_types', 'reference_url', 'insecure',
-        'encoding', 'synopsis', 'allow_directory']
+        'encoding', 'synopsis', 'allow_directory', 'default_for']
 
     def __init__(self, format_name, category, suffixes, nicknames, mime_types,
-            reference_url, insecure, encoding, synopsis, allow_directory):
+            reference_url, insecure, encoding, synopsis, allow_directory, default_for):
         self.name = format_name
         self.category = category
         self.suffixes = suffixes
@@ -122,6 +130,7 @@ class DataFormat(State):
         self.encoding = encoding
         self.synopsis = synopsis if synopsis else format_name
         self.allow_directory = allow_directory
+        self.default_for = default_for
 
         if reference_url and reference_url != "None":
             # sanitize URL
@@ -138,5 +147,6 @@ class DataFormat(State):
 
     @classmethod
     def restore_snapshot(class_obj, session, data):
-        return class_obj(*[data[attr_name] for attr_name in class_obj.attr_names])
+        # 'default_for' may not exist in old sessions...
+        return class_obj(*[data.get(attr_name, []) for attr_name in class_obj.attr_names])
 
