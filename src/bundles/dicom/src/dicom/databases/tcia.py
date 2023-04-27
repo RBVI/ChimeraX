@@ -80,9 +80,10 @@ you use, hit 'OK' to close this dialog and continue. If you do not agree, please
                 collections_dict[collection]['body_parts'] = [string.capwords(x['value']) for x in data['bodyParts']]
                 collections_dict[collection]['modalities'] = [m['value'] for m in data['modalities']]
                 species_list = []
-                for species in data['species']:
-                    id = species['value']
-                    species_list.append(NPEXSpecies.get(id, id))
+                if data.get('species', []) is not None:
+                    for species in data.get('species', []):
+                        id = species['value']
+                        species_list.append(NPEXSpecies.get(id, id))
                 collections_dict[collection]['species'] = species_list
             else:
                 failed_to_fetch = True
