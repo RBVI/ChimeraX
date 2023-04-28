@@ -500,7 +500,7 @@ class Render:
     @property
     def front_buffer_valid(self):
         return self._front_buffer_valid
-    
+
     def wait_for_vsync(self, wait):
         '''
         Control whether OpenGL synchronizes to the display vertical refresh.
@@ -3170,7 +3170,7 @@ class Texture:
         GL.glGetTexImage(gl_target, level, format, tdtype, data)
         GL.glBindTexture(gl_target, 0)
         return data
-    
+
     def normalization(self):
         '''
         Scale factor for converting texture values to normalized values,
