@@ -14,31 +14,31 @@
 #
 # Command to fit loops guided by cryoEM maps using Phenix fit_loops.
 #
-"""
 from chimerax.core.tasks import Job
 from time import time
 
-class DouseJob(Job):
+class FitLoopsJob(Job):
 
     SESSION_SAVE = False
 
     def __init__(self, session, executable_location, optional_args, map_file_name, model_file_name,
-            positional_args, temp_dir, keep_input_water, verbose, callback, block):
+            positional_args, temp_dir, start_res_number, chain_id, verbose, callback, block):
         super().__init__(session)
         self._running = False
         self._monitor_time = 0
         self._monitor_interval = 10
         self.start(session, executable_location, optional_args, map_file_name, model_file_name,
-            positional_args, temp_dir, keep_input_water, verbose, callback, blocking=block)
+            positional_args, temp_dir, start_res_number, chain_id, verbose, callback, blocking=block)
 
     def run(self, session, executable_location, optional_args, map_file_name, model_file_name,
-            positional_args, temp_dir, keep_input_water, verbose, callback, **kw):
+            positional_args, temp_dir, start_res_number, chain_id, verbose, callback, **kw):
         self._running = True
         self.start_t = time()
         def threaded_run(self=self):
             try:
-                results = _run_douse_subprocess(session, executable_location, optional_args, map_file_name,
-                    model_file_name, positional_args, temp_dir, keep_input_water, verbose)
+                results = _run_fit_loops_subprocess(session, executable_location, optional_args,
+                    map_file_name, model_file_name, positional_args, temp_dir, start_res_number,
+                    chain_id, verbose)
             finally:
                 self._running = False
             self.session.ui.thread_safe(callback, results)
@@ -61,7 +61,7 @@ class DouseJob(Job):
             seconds = delta % 60
             time_info = "%d:%02d:%02d" % (hours, minutes, seconds)
         ses = self.session
-        ses.ui.thread_safe(ses.logger.status, "Douse job still running (%s)" % time_info)
+        ses.ui.thread_safe(ses.logger.status, "Fit loops job still running (%s)" % time_info)
 
     def next_check(self):
         return self._monitor_interval
@@ -71,90 +71,31 @@ class DouseJob(Job):
     def running(self):
         return self._running
 
-
-_needs_resolution = None
-def douse_needs_resolution(session, phenix_location=None):
-    # We could run "douse --show-defaults 3" to determine if the resolution parameter
-    # is needed, but unfortunately douse takes a minimum of 2 seconds to start up
-    # (and frequenty considerably longer on its first execution) due to overhead of
-    # the Phenix execution environment.  So, instead rely on phenix.version, which 
-    # only requires shell script execution, which is fast
-    global _needs_resolution
-    if _needs_resolution is None:
-        # Find the phenix.douse executable
-        from .locate import find_phenix_command
-        env_path = find_phenix_command(session, "phenix_env.sh", phenix_location, verify_installation=True)
-        version_path = find_phenix_command(session, 'phenix.version')
-        import subprocess
-        p = subprocess.run(". " + env_path + " ; " + version_path, capture_output=True, shell=True)
-        if p.returncode != 0:
-            cmd = " ".join(args)
-            out, err = p.stdout.decode("utf-8"), p.stderr.decode("utf-8")
-            msg = (f'phenix.version exited with error code {p.returncode}\n\n' +
-                   f'Command: {cmd}\n\n' +
-                   f'stdout:\n{out}\n\n' +
-                   f'stderr:\n{err}')
-            from chimerax.core.errors import UserError
-            raise UserError(msg)
-        from chimerax.core.errors import UserError
-        version = release = None
-        for line in p.stdout.decode("utf-8").splitlines():
-            fields = line.strip().lower().split()
-            if len(fields) == 2 and fields[0] == "version:":
-                if version is None:
-                    version = fields[1]
-                else:
-                    raise UserError("Multiple 'version' fields in phenix.version output:\n%s"
-                        % p.stdout.decode())
-            if len(fields) == 3 and fields[0] == "release" and fields[1] == "tag:":
-                if release is None:
-                    release = fields[2]
-                else:
-                    raise UserError("Multiple 'release tag' fields in phenix.version output:\n%s"
-                        % p.stdout.decode())
-        if version is None or release is None:
-            raise UserError("Could not identify version and/or release tag in phenix.version output "
-                "(running %s ; %s):%s" % (env_path, version_path, p.stdout.decode('utf-8')))
-        if version.startswith("1."):
-            num_string = "1."
-            for c in version[2:]:
-                if c.isdigit():
-                    num_string += c
-                else:
-                    break
-            v_num = float(num_string)
-            _needs_resolution = v_num >= 1.21
-        else:
-            _needs_resolution = True
-    return _needs_resolution
-
 command_defaults = {
-    'far_water': False,
-    'keep_input_water': True,
-    'map_range': 8,
-    'residue_range': 5,
+    'processors': None,
+    'replace': True,
     'verbose': False
 }
-def phenix_douse(session, map, near_model, *, block=None, phenix_location=None,
-        far_water=command_defaults['far_water'],
-        keep_input_water=command_defaults['keep_input_water'],
-        map_range=command_defaults['map_range'],
-        residue_range=command_defaults['residue_range'],
+def phenix_fit_loops(session, structure, map, *, block=None, phenix_location=None,
+        chain_id=None,
+        processors=command_defaults['processors'],
+        replace=command_defaults['replace'],
+        start_res_number=None,
+        sequence_file=None,
         verbose=command_defaults['verbose'],
-        resolution=None,
         option_arg=[], position_arg=[]):
 
-    # Find the phenix.douse executable
+    # Find the phenix.fit_loops executable
     from .locate import find_phenix_command
-    exe_path = find_phenix_command(session, 'phenix.douse', phenix_location)
+    exe_path = find_phenix_command(session, 'phenix.fit_loops', phenix_location)
 
     # if blocking not explicitly specified, block if in a script or in nogui mode
     if block is None:
         block = session.in_script or not session.ui.is_gui
 
-    # Setup temporary directory to run phenix.douse.
+    # Setup temporary directory to run phenix.fit_loops.
     from tempfile import TemporaryDirectory
-    d = TemporaryDirectory(prefix = 'phenix_douse_')  # Will be cleaned up when object deleted.
+    d = TemporaryDirectory(prefix = 'phenix_fit_loops_')  # Will be cleaned up when object deleted.
     temp_dir = d.name
 
     # Save map to file
@@ -162,35 +103,30 @@ def phenix_douse(session, map, near_model, *, block=None, phenix_location=None,
     from chimerax.map_data import save_grid_data
     save_grid_data([map.data], path.join(temp_dir,'map.mrc'), session)
 
-    # Douse ignores the MRC file origin so if it is non-zero
+    # Guessing that like douse, fit_loops ignores the MRC file origin so if it is non-zero
     # shift the atom coordinates so they align with the origin 0 map.
     map_0, shift = _fix_map_origin(map)
 
-    # Save model to file.
+    # Save structure to file.
     from chimerax.pdb import save_pdb
-    save_pdb(session, path.join(temp_dir,'model.pdb'),
-             models = [near_model], rel_model = map_0)
+    save_pdb(session, path.join(temp_dir,'model.pdb'), models=[structure], rel_model=map_0)
 
-    # Run phenix.douse
-    douse_keep_input_water = (keep_input_water and far_water)
-    if resolution is not None:
-        position_arg.append("resolution=%g" % resolution)
+    # Run phenix.fit_loops
     # keep a reference to 'd' in the callback so that the temporary directory isn't removed before
-    # douse runs
-    callback = lambda douse_model, *args, session=session, shift=shift, near_model=near_model, \
-        keep_input_water=keep_input_water, far_water=far_water, map=map, residue_range=residue_range, \
-        map_range=map_range, d_ref=d: _process_results(session, douse_model, shift, near_model,
-        keep_input_water, far_water, map, residue_range, map_range)
-    DouseJob(session, exe_path, option_arg, "map.mrc", "model.pdb", position_arg, temp_dir,
-        douse_keep_input_water, verbose, callback, block)
+    # fit_loops runs
+    callback = lambda fit_loops_model, *args, session=session, shift=shift, structure=structure, \
+        map=map, start_res_number=start_res_number, replace=replace, chain_id=chain_id, d_ref=d:\
+        _process_results(session, fit_loops_model, map, shift, structure, start_res_number, replace,
+        chain_id)
+    FitLoopsJob(session, exe_path, option_arg, "map.mrc", "model.pdb", position_arg, temp_dir,
+        start_res_number, chain_id, verbose, callback, block)
 
-
-def _process_results(session, douse_model, shift, near_model, keep_input_water, far_water, map,
-        residue_range, map_range):
-    douse_model.position = map.scene_position
+def _process_results(session, fit_loops_model, map, shift, structure, start_res_number, replace, chain_id):
+    fit_loops_model.position = map.scene_position
     if shift is not None:
-        douse_model.atoms.coords += shift
+        fit_loops_model.atoms.coords += shift
 
+    #TODO
     # Copy new waters
     model, msg, nwaters, compared_waters = _copy_new_waters(douse_model, near_model, keep_input_water,
         far_water, map.name)
@@ -205,7 +141,6 @@ def _process_results(session, douse_model, shift, near_model, keep_input_water, 
         if session.ui.is_gui:
             from .tool import DouseResultsViewer
             DouseResultsViewer(session, "Water Placement Results", near_model, model, compared_waters, map)
-
 
 def _fix_map_origin(map):
     '''
@@ -224,14 +159,17 @@ def _fix_map_origin(map):
     return map_0, shift
 
 
-def _run_douse_subprocess(session, exe_path, optional_args, map_filename, model_filename, positional_args,
-        temp_dir, keep_input_water, verbose):
+def _run_fit_loops_subprocess(session, exe_path, optional_args, map_filename, model_filename,
+        positional_args, temp_dir, start_res_number, chain_id, verbose):
     '''
-    Run douse in a subprocess and return the model with predicted waters.
+    Run fit_loops in a subprocess and return the model with predicted waters.
     '''
-    args = [exe_path] + optional_args + [map_filename, model_filename] + positional_args
-    if keep_input_water:
-        args.append('keep_input_water=true')
+    args = [exe_path] + optional_args + [f"map_in={map_filename}", f"pdb_in={model_filename}"] \
+        + positional_args
+    if start_res_number is not None:
+        args += [f"start={start_res_number}"]
+    if chain_id is not None:
+        args += [f"chain_id={chain_id}"]
     tsafe=session.ui.thread_safe
     logger = session.logger
     tsafe(logger.status, f'Running {exe_path} in directory {temp_dir}')
@@ -240,14 +178,14 @@ def _run_douse_subprocess(session, exe_path, optional_args, map_filename, model_
     if p.returncode != 0:
         cmd = " ".join(args)
         out, err = p.stdout.decode("utf-8"), p.stderr.decode("utf-8")
-        msg = (f'phenix.douse exited with error code {p.returncode}\n\n' +
+        msg = (f'phenix.fit_loops exited with error code {p.returncode}\n\n' +
                f'Command: {cmd}\n\n' +
                f'stdout:\n{out}\n\n' +
                f'stderr:\n{err}')
         from chimerax.core.errors import UserError
         raise UserError(msg)
 
-    # Log phenix douse command output
+    # Log phenix fit_loops command output
     if verbose:
         cmd = " ".join(args)
         out, err = p.stdout.decode("utf-8"), p.stderr.decode("utf-8")
@@ -257,14 +195,15 @@ def _run_douse_subprocess(session, exe_path, optional_args, map_filename, model_
         msg += '</pre>'
         tsafe(logger.info, msg, is_html=True)
 
-    # Open new model with added waters
+    # Open new model with added loops
     from os import path
-    output_path = path.join(temp_dir,'douse_000.pdb')
+    output_path = path.join(temp_dir,'connect.pdb')
     from chimerax.pdb import open_pdb
     models, info = open_pdb(session, output_path, log_info = False)
 
     return models[0]
 
+"""
 def _copy_new_waters(douse_model, near_model, keep_input_water, far_water, map_name):
     model = near_model.copy()
     model.position = douse_model.position
@@ -359,23 +298,22 @@ def _show_waters(input_model, douse_model, residue_range, map, map_range):
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register
     from chimerax.core.commands import OpenFolderNameArg, OpenFileNameArg, BoolArg, FloatArg, RepeatOf
-    from chimerax.core.commands import StringArg, IntArg
+    from chimerax.core.commands import StringArg, IntArg, TupleOF
     from chimerax.map import MapArg
     from chimerax.atomic import AtomicStructureArg
     desc = CmdDesc(
         required = [('structure', AtomicStructureArg), ('map', MapArg)],
         keyword = [('block', BoolArg),
-                   ('chain_ids', StringArg),
-                   ('num_processors', IntArg),
+                   ('chain_id', StringArg),
+                   ('processors', IntArg),
                    ('replace', BoolArg),
                    ('sequence_file', OpenFileNameArg),
                    ('start_res_number', IntArg),
-                   ('end_res_number', IntArg),
-                   ('phenix_location', OpenFolderNameArg),
                    ('verbose', BoolArg),
+                   ('phenix_location', OpenFolderNameArg),
                    ('option_arg', RepeatOf(StringArg)),
                    ('position_arg', RepeatOf(StringArg)),
         ],
         synopsis = 'Fit loop(s) into density'
     )
-    register('phenix fitLoops', desc, phenix_douse, logger=logger)
+    register('phenix fitLoops', desc, phenix_fit_loops, logger=logger)
