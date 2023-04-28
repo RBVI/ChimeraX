@@ -1386,7 +1386,7 @@ class Drawing:
         from chimerax.core import x3d
         # x3d_scene.need(x3d.Components.Core, 2)  # Prototyping
         x3d_scene.need(x3d.Components.Grouping, 1)  # Group, Transform
-        if any_transp and self.vertex_colors:
+        if any_transp and self.vertex_colors is not None:
             x3d_scene.need(x3d.Components.Rendering, 4)  # ColorRGBA
         else:
             x3d_scene.need(x3d.Components.Rendering, 3)  # IndexedTriangleSet
@@ -1396,7 +1396,7 @@ class Drawing:
         # x3d_scene.need(x3d.Components.Shape, 3)  # FillProperties
         # x3d_scene.need(x3d.Components.Geometry3D, 1)  # Cylinder, Sphere
         # x3d_scene.need(x3d.Components.Geometry3D, 4)  # Extrusion
-        if self.texture or self.multitexture:
+        if self.texture is not None or self.multitexture is not None:
             x3d_scene.need(x3d.Components.Texturing, 1)  # PixelTexture
 
     def write_x3d(self, stream, x3d_scene, indent, place):
