@@ -427,6 +427,9 @@ sequences = 'Paste a sequences separated by commas here'  #@param {type:"string"
 # Remove options from list of sequences
 seq_list = [seq.strip() for seq in sequences.split(',')]
 dont_minimize = remove_from_list(seq_list, 'dont_minimize')		# Energy minimization
+if not dont_minimize:
+    dont_minimize = True
+    print('*** Energy minimization was broken by a Google Colab update from Python 3.9 to 3.10 on April 28, 2023.  Expect fix by May 10, 2023 ***')
 use_templates = remove_from_list(seq_list, 'use_pdb_templates')
 remove_from_list(seq_list, 'prokaryote')  # Obsolete "prokaryote" flag
 
