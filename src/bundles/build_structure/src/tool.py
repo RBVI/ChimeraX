@@ -27,8 +27,38 @@ class BuildStructureTool(ToolInstance):
 
     def __init__(self, session, tool_name):
         ToolInstance.__init__(self, session, tool_name)
+        if not hasattr(self.__class__, 'settings'):
+            self.__class__.settings = BuildStructureSettings(session, "build structure tool")
         from chimerax.ui import MainToolWindow
-        self.tool_window = tw = MainToolWindow(self)
+        class BSToolWindow(MainToolWindow):
+            def confirm_close(self):
+                if not self.tool_instance.angle_data and not self.tool_instance.torsion_data:
+                    return True
+                if not self.tool_instance.__class__.settings.confirm_close:
+                    return True
+                if self.tool_instance.angle_data:
+                    if self.tool_instance.torsion_data:
+                        text = "angles and torsions"
+                    else:
+                        text = "angles"
+                else:
+                    text = "torsions"
+                from Qt.QtWidgets import QMessageBox
+                msg_box = QMessageBox()
+                msg_box.setWindowTitle("Confirm Close")
+                msg_box.setText(f"There are active {text}")
+                msg_box.setInformativeText(f"Closing Build Structure will deactivate these {text}.\n"
+                    "Really close?" )
+                msg_box.setStandardButtons(QMessageBox.No | QMessageBox.Yes)
+                msg_box.setDefaultButton(QMessageBox.Yes)
+                cb = QCheckBox("Don't ask in the future")
+                msg_box.setCheckBox(cb)
+                choice = msg_box.exec()
+                if cb.isChecked():
+                    self.tool_instance.__class__.settings.confirm_close = False
+                return choice == QMessageBox.Yes
+
+        self.tool_window = tw = BSToolWindow(self)
         parent = tw.ui_area
         layout = QVBoxLayout()
         layout.setContentsMargins(0,0,0,0)
@@ -152,7 +182,7 @@ class BuildStructureTool(ToolInstance):
         dial.setValue(int(initial_angle * 10 + 0.5))
         dial.valueChanged.connect(lambda val, *, angle=canonical, f=self._aa_dial_changed: f(angle, val))
         dial.sliderReleased.connect(
-            lambda *, angle=canonical, dial=dial, f=self._aa_issue_command: f(angle, dial.value()/10))
+            lambda *, angle=canonical, dial=dial, f=self._aa_dial_released: f(angle, dial.value()/10))
         grid.addWidget(dial, row, 5, alignment=Qt.AlignCenter)
         self.session.dial = dial
         widgets.append(dial)
@@ -257,15 +287,28 @@ class BuildStructureTool(ToolInstance):
         data = self.angle_data[canonical]
         atoms = data[1:4]
         move_smaller = atoms[0] == canonical[0]
-        axis = data[-2]
+        undo = data[-2]
+        if undo is None:
+            from chimerax.core.undo import UndoState
+            data[-2] = undo = UndoState("Adjust Angles dial")
         from chimerax.std_commands.angle import set_angle
-        axis = set_angle(*atoms, dial_val, move_smaller=move_smaller, prev_axis=axis)
-        data[-2] = axis
+        set_angle(*atoms, dial_val, move_smaller=move_smaller, undo_state=undo)
 
-    def _aa_issue_command(self, canonical, val):
+    def _aa_dial_released(self, canonical, val):
+        self._aa_issue_command(canonical, val, log_only=True)
+        data = self.angle_data[canonical]
+        undo = data[-2]
+        if undo is not None:
+            data[-2] = None
+            self.session.undo.register(undo)
+
+    def _aa_issue_command(self, canonical, val, *, log_only=False):
         angle_cmd_template = self._aa_angle_cmd(canonical)
-        from chimerax.core.commands import run
-        run(self.session, angle_cmd_template % val)
+        from chimerax.core.commands import run, Command
+        if log_only:
+            Command(self.session).run(angle_cmd_template % val, log_only=True)
+        else:
+            run(self.session, angle_cmd_template % val)
 
     def _aa_remove_angle(self, canonical):
         for widget in self.angle_data[canonical][-1]:
@@ -451,7 +494,7 @@ class BuildStructureTool(ToolInstance):
         dial.setWrapping(True)
         dial.valueChanged.connect(lambda val, *, rotater=rotater, f=self._at_dial_changed: f(rotater, val))
         dial.sliderReleased.connect(
-            lambda *, rotater=rotater, dial=dial, f=self._at_issue_command: f(rotater, dial.value()/10))
+            lambda *, rotater=rotater, dial=dial, f=self._at_dial_released: f(rotater, dial.value()/10))
         grid.addWidget(dial, row, 5, alignment=Qt.AlignCenter)
         self.session.dial = dial
         widgets.append(dial)
@@ -562,14 +605,24 @@ class BuildStructureTool(ToolInstance):
             menu.addAction(action)
 
     def _at_dial_changed(self, rotater, val):
+        if rotater.undo_state is None:
+            from chimerax.core.undo import UndoState
+            rotater.undo_state = UndoState("Adjust Torsions dial")
         delta = val/10 - self._at_torsion_value(rotater)
         if delta != 0:
             rotater.angle += delta
 
-    def _at_issue_command(self, rotater, val):
+    def _at_dial_released(self, rotater, val):
+        self._at_issue_command(rotater, val, log_only=True)
+        rotater.undo_state = None
+
+    def _at_issue_command(self, rotater, val, *, log_only=False):
         torsion_cmd_template = self._at_torsion_cmd(rotater)
-        from chimerax.core.commands import run
-        run(self.session, torsion_cmd_template % val)
+        from chimerax.core.commands import run, Command
+        if log_only:
+            Command(self.session).run(torsion_cmd_template % val, log_only=True)
+        else:
+            run(self.session, torsion_cmd_template % val)
 
     def _at_log_command(self, rotater):
         torsion_cmd_template = self._at_torsion_cmd(rotater)
@@ -1307,3 +1360,10 @@ class BuildStructureTool(ToolInstance):
         show = self.ss_struct_menu.value == "new model"
         self.ss_model_name_label.setHidden(not show)
         self.ss_model_name_edit.setHidden(not show)
+
+from chimerax.core.settings import Settings
+
+class BuildStructureSettings(Settings):
+    AUTO_SAVE = {
+        "confirm_close": True,
+    }
