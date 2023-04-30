@@ -666,6 +666,9 @@ class MainWindow(QMainWindow, PlainTextLog):
             if close_event:
                 close_event.accept()
             return
+        if not tool_window.confirm_close():
+            close_event.ignore()
+            return
         tool_instance = tool_window.tool_instance
         all_windows = self.tool_instance_to_windows[tool_instance]
         is_main_window = tool_window is all_windows[0]
@@ -2005,6 +2008,13 @@ class ToolWindow(StatusLogger):
         Override this method to perform additional actions needed when
         the window is destroyed"""
         pass
+
+    def confirm_close(self):
+        """Supported API. Confirm that window can be closed.
+
+        Override this if the window contains important data that may be lost if inadvertently closed.
+        Return False to keep the window open"""
+        return True
 
     def destroy(self):
         """Supported API. Called to destroy the window (from non-UI code)

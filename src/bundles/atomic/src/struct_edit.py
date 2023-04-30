@@ -262,7 +262,7 @@ def gen_atom_name(element, residue):
         n += 1
     return name
 
-def set_bond_length(bond, bond_length, *, move_smaller_side=True, status=None):
+def set_bond_length(bond, bond_length, *, move_smaller_side=True, status=None, undo_state=None):
     bond.structure.idatm_valid = False
     try:
         smaller = bond.smaller_side
@@ -289,7 +289,10 @@ def set_bond_length(bond, bond_length, *, move_smaller_side=True, status=None):
     v1 *= bond_length / v1_len
     delta = v1 - (mp - fp)
     moving_atoms = bond.side_atoms(moving)
-    moving_atoms.coords = moving_atoms.coords + delta
+    new_coords = moving_atoms.coords + delta
+    if undo_state:
+        undo_state.add(moving_atoms, "coords", moving_atoms.coords, new_coords)
+    moving_atoms.coords = new_coords
 
 standardization_info = { "5BU": "U", "CSL": "C", "MSE": "MET", "UMS": "U" }
 standardizable_residues = list(standardization_info.keys())
