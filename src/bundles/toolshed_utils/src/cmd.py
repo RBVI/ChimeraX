@@ -11,21 +11,17 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from chimerax.core.commands import CmdDesc, EnumOf
-from . import tool
-
-DialogTypeArg = EnumOf(*zip(*((dt, dt.name.lower()) for dt in tool.DialogType)))
-
-
-def toolshed_updates(session, dialog_type=None):
-    tool.show(session, dialog_type)
-
-
-toolshed_updates_desc = CmdDesc(
-    optional=[('dialog_type', DialogTypeArg)],
-    synopsis='show updates for installed bundles')
-
-
 def register_command(logger):
-    from chimerax.core.commands import register
+    from chimerax.core.commands import register, CmdDesc, EnumOf
+    from . import tool
+
+    DialogTypeArg = EnumOf(*zip(*((dt, dt.name.lower()) for dt in tool.DialogType)))
+
+    toolshed_updates_desc = CmdDesc(
+        optional=[('dialog_type', DialogTypeArg)],
+        synopsis='show updates for installed bundles')
+
+    def toolshed_updates(session, dialog_type=None):
+        tool.show(session, dialog_type)
+
     register("toolshed updates", toolshed_updates_desc, toolshed_updates, logger=logger)
