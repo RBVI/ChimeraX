@@ -53,7 +53,7 @@ class Drawing:
 
     Rendering of drawings is done with OpenGL.
     '''
-   
+
     def __init__(self, name):
 
         self._redraw_needed = None
@@ -63,7 +63,7 @@ class Drawing:
         "Name of this drawing."
 
         self.parent = None
-        
+
         from chimerax.geometry import Places
         # Copies of drawing are placed at these positions:
         self._positions = Places()
@@ -170,12 +170,12 @@ class Drawing:
 
         self.inherit_graphics_exemptions = True
         '''Whether disabled lighting and clipping in parent will be copied to child when drawing is added.'''
-        
+
         self.on_top = False
         '''
         Whether to draw on top of everything else.  Used for text labels.
         '''
-        
+
         # OpenGL drawing
         self._draw_shape = None
         self._draw_highlight = None
@@ -226,7 +226,7 @@ class Drawing:
         Read-only.  Set using set_geometry() method.
         '''
         return self._triangles
-    
+
     def _get_shape_changed(self):
         rn = self._redraw_needed
         return rn.shape_changed if rn else False
@@ -235,7 +235,7 @@ class Drawing:
             self.redraw_needed(shape_changed = True)
     shape_changed = property(_get_shape_changed, _set_shape_changed)
     '''Did this drawing or any drawing in the same tree change shape since the last redraw.'''
-    
+
     def __setattr__(self, key, value):
         if key in self._effects_shader:
             self._shader_opt = None       # Cause shader update
@@ -322,7 +322,7 @@ class Drawing:
             if value == False:
                 # Only propagate disabling settings.
                 setattr(self, attr, value)
-            
+
     def remove_drawing(self, d, delete=True):
         '''Remove a specified child drawing.'''
         self._child_drawings.remove(d)
@@ -344,7 +344,7 @@ class Drawing:
                 pname = d.parent.name if d.parent else 'None'
                 raise ValueError('Drawing.remove_drawings() called on Drawing "%s" whose parent "%s" is not "%s"'
                                  % (d.name, pname, self.name))
-                
+
         dset = set(drawings)
         self._child_drawings = [d for d in self._child_drawings
                                 if d not in dset]
@@ -531,7 +531,7 @@ class Drawing:
         self._cached_position_bounds = None
         for c in self.child_drawings():
             c._scene_positions_changed()
-        
+
     def get_positions(self, displayed_only=False):
         if displayed_only and self.num_displayed_positions < len(self._positions):
             return self._positions.masked(self.display_positions)
@@ -758,7 +758,7 @@ class Drawing:
 
         for d in self.child_drawings():
             d.drawings_for_each_pass(pass_drawings)
-            
+
     def draw(self, renderer, draw_pass):
         '''Draw this drawing using the given draw pass. Does not draw child drawings'''
 
@@ -792,7 +792,7 @@ class Drawing:
             return
 
         self._opengl_context = renderer.opengl_context
-        
+
         if len(self._vertex_buffers) == 0:
             self._create_vertex_buffers()
 
@@ -990,7 +990,7 @@ class Drawing:
 
         # Combine child and self bounds
         b = pb if cb is None else union_bounds((pb, cb))
-        
+
         return b
 
     def geometry_bounds(self):
@@ -1058,7 +1058,7 @@ class Drawing:
         p = self.first_intercept_children(self.child_drawings(), mxyz1, mxyz2, exclude=exclude)
         if p and (pclosest is None or p.distance < pclosest.distance):
             pclosest = p
-            
+
         return pclosest
 
     def first_intercept_children(self, child_drawings, mxyz1, mxyz2, exclude=None):
@@ -1106,7 +1106,7 @@ class Drawing:
         This is to optimize picking so that positions where no intercept occurs do not
         need to be checked to see what is picked.
         '''
-        # Only check objects with bounding box close to line. 
+        # Only check objects with bounding box close to line.
         b = bounds
         if b is None:
             return []
@@ -1204,7 +1204,7 @@ class Drawing:
         if not self.was_deleted:
             # Release opengl resources.
             self.delete()
-            
+
     def delete(self):
         '''
         Delete drawing and all child drawings.
@@ -1264,7 +1264,7 @@ class Drawing:
         self._draw_highlight = None
 
         self._opengl_context = None
-        
+
     def _create_vertex_buffers(self):
         from . import opengl
         vbufs = (
@@ -1299,7 +1299,7 @@ class Drawing:
         self._triangle_mask = tmask
         self.redraw_needed(shape_changed=True)
         self.auto_remask_triangles = None
-        
+
     triangle_mask = property(get_triangle_mask, set_triangle_mask)
     '''
     The triangle mask is a 1-dimensional bool numpy array of
@@ -1386,7 +1386,7 @@ class Drawing:
         from chimerax.core import x3d
         # x3d_scene.need(x3d.Components.Core, 2)  # Prototyping
         x3d_scene.need(x3d.Components.Grouping, 1)  # Group, Transform
-        if any_transp and self.vertex_colors:
+        if any_transp and self.vertex_colors is not None:
             x3d_scene.need(x3d.Components.Rendering, 4)  # ColorRGBA
         else:
             x3d_scene.need(x3d.Components.Rendering, 3)  # IndexedTriangleSet
@@ -1396,7 +1396,7 @@ class Drawing:
         # x3d_scene.need(x3d.Components.Shape, 3)  # FillProperties
         # x3d_scene.need(x3d.Components.Geometry3D, 1)  # Cylinder, Sphere
         # x3d_scene.need(x3d.Components.Geometry3D, 4)  # Extrusion
-        if self.texture or self.multitexture:
+        if self.texture is not None or self.multitexture is not None:
             x3d_scene.need(x3d.Components.Texturing, 1)  # PixelTexture
 
     def write_x3d(self, stream, x3d_scene, indent, place):
@@ -1622,7 +1622,7 @@ def draw_on_top(renderer, drawings):
     renderer.enable_blending(False)
     renderer.enable_depth_test(True)
 
-    
+
 def draw_xor_rectangle(renderer, x1, y1, x2, y2, color, drawing = None):
     '''Draw rectangle outline on front buffer using xor mode.'''
 
@@ -1686,7 +1686,7 @@ class _DrawShape:
     def __init__(self, name, vertex_buffers):
 
         self._name = name			# Use for debbugging
-        
+
         # Arrays derived from positions, colors and geometry
         self.instance_shift_and_scale = None   # N by 4 array, (x, y, z, scale)
         self.instance_matrices = None	    # matrices for displayed instances
@@ -1711,7 +1711,7 @@ class _DrawShape:
 
     def __del__(self):
         self.delete()
-            
+
     def delete(self):
 
         self._masked_edges = None
@@ -2160,7 +2160,7 @@ def match_aspect_ratio(texture_drawing, window_size):
     from numpy import array, float32
     tc = array(((xtrim, ytrim), (1-xtrim, ytrim), (1-xtrim, 1-ytrim), (xtrim, 1-ytrim)), float32)
     texture_drawing.texture_coordinates = tc
-    
+
 def resize_rgba_drawing(drawing, pos = (-1,-1), size = (2,2)):
     x, y = pos
     sx, sy = size
@@ -2170,12 +2170,12 @@ def resize_rgba_drawing(drawing, pos = (-1,-1), size = (2,2)):
                     (x + sx, y + sy, 0),
                     (x, y + sy, 0)), float32)
     drawing.set_geometry(varray, drawing.normals, drawing.triangles)
-    
+
 def _draw_texture(texture, renderer):
     d = _texture_drawing(texture)
     d.opaque_texture = True
     draw_overlays([d], renderer)
-    
+
 def qimage_to_numpy(qi):
     from Qt.QtGui import QImage
     if qi.format() != QImage.Format.Format_ARGB32:
@@ -2211,7 +2211,7 @@ def text_image_rgba(text, color, size, font, background_color = None, xpad = 0, 
         rgba = empty((10,10,4), uint8)
         rgba[:] = 255
         return rgba
-    
+
     from Qt.QtGui import QImage, QPainter, QFont, QFontMetrics, QColor, QBrush, QPen
 
     p = QPainter()
@@ -2243,9 +2243,9 @@ def text_image_rgba(text, color, size, font, background_color = None, xpad = 0, 
         iw = 1
     if ih == 0:
         ih = 1
-        
+
     ti = QImage(iw, ih, QImage.Format.Format_ARGB32)
-    
+
     # Paint background
     bg = (0,0,0,0) if background_color is None else tuple(background_color)
     if outline_width > 0:
@@ -2283,9 +2283,9 @@ def text_image_rgba(text, color, size, font, background_color = None, xpad = 0, 
     # Convert to numpy rgba array.
     from chimerax.graphics import qimage_to_numpy
     rgba = qimage_to_numpy(ti)
-    
+
     p.end()
-    
+
     return rgba
 
 # -----------------------------------------------------------------------------

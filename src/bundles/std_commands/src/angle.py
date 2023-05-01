@@ -111,7 +111,7 @@ def angle(session, objects, degrees=None, *, move="small"):
     if len(atoms) != 3:
         raise UserError("To set the bond angle you must specify exactly 3 bonded atoms")
     from chimerax.core.undo import UndoState
-    undo_state = UndoState("set angle")
+    undo_state = UndoState("angle")
     try:
         set_angle(*atoms, degrees, move_smaller=(move == "small"), undo_state=undo_state)
     except SetAngleError as e:

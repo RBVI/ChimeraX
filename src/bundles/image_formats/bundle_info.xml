@@ -23,15 +23,17 @@
     <Provider name="Bitmap image" synopsis="BMP image" nicknames="bmp" category="Image" suffixes=".bmp"
 		reference_url="https://en.wikipedia.org/wiki/BMP_file_format" />
     <Provider name="Graphics Interchange Format" synopsis="GIF image" nicknames="gif" category="Image"
-		suffixes=".gif" reference_url="https://en.wikipedia.org/wiki/GIF" />
+		suffixes=".gif" default_for=".gif" reference_url="https://en.wikipedia.org/wiki/GIF" />
     <Provider name="Joint Photographic Experts Group image" synopsis="JPEG image" nicknames="jpeg"
-		category="Image" suffixes=".jpg,.jpeg" reference_url="https://en.wikipedia.org/wiki/JPEG" />
+		category="Image" suffixes=".jpg,.jpeg" default_for=".jpg"
+		reference_url="https://en.wikipedia.org/wiki/JPEG" />
     <Provider name="Portable Network Graphics" synopsis="PNG image" nicknames="png" category="Image"
-		suffixes=".png" reference_url="https://en.wikipedia.org/wiki/Portable_Network_Graphics" />
+		suffixes=".png" default_for=".png"
+		reference_url="https://en.wikipedia.org/wiki/Portable_Network_Graphics" />
     <Provider name="Portable Pixmap format" synopsis="PPM image" nicknames="ppm" category="Image"
 		suffixes=".ppm" reference_url="https://en.wikipedia.org/wiki/Netpbm" />
     <Provider name="Tagged Image File format" synopsis="TIFF image" nicknames="tiff" category="Image"
-		suffixes=".tif,.tiff" reference_url="https://en.wikipedia.org/wiki/TIFF" />
+		suffixes=".tif,.tiff" default_for=".tif,.tiff" reference_url="https://en.wikipedia.org/wiki/TIFF" />
     <Provider name="photo" category="Image" suffixes=".jpg"
 		reference_url="https://en.wikipedia.org/wiki/JPEG" />
   </Providers>

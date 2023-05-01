@@ -272,8 +272,8 @@ def download_results(energy_minimize):
   use_utf8_encoding()	# Work around preferred encoding bug.
 
   relax = 'relaxed' if energy_minimize else 'unrelaxed'
-  !cp -p *_{relax}_rank_1_model_*.pdb best_model.pdb
-  !cp -p *_unrelaxed_rank_1_model_*_scores.json best_model_pae.json
+  !cp -p *_{relax}_rank_001_*.pdb best_model.pdb
+  !cp -p *_scores_rank_001_*.json best_model_pae.json
 
   # Make a zip file of the predictions
   !zip -q -r results.zip query.fasta *.csv *.json *.a3m *.pdb cite.bibtex *.png
@@ -349,7 +349,7 @@ def install(use_amber = False, use_templates = False, install_log = 'install_log
     cmds = f'''
 set -e
 # We have to use "--no-warn-conflicts" because colab already has a lot preinstalled with requirements different to ours
-pip install --no-warn-conflicts "colabfold[alphafold-minus-jax] @ git+https://github.com/sokrypton/ColabFold@d7d34f8b1523bfd606b147178fcb6d1cd862d3cc"
+pip install --no-warn-conflicts "colabfold[alphafold-minus-jax] @ git+https://github.com/sokrypton/ColabFold@5b3fc193e880cd9599f91cd16fcb1fe69f7759f2"
 # high risk high gain
 pip uninstall jaxlib -y
 pip install "jax[cuda11_cudnn805]==0.3.24" jaxlib==0.3.24+cuda11.cudnn805 -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
@@ -427,6 +427,9 @@ sequences = 'Paste a sequences separated by commas here'  #@param {type:"string"
 # Remove options from list of sequences
 seq_list = [seq.strip() for seq in sequences.split(',')]
 dont_minimize = remove_from_list(seq_list, 'dont_minimize')		# Energy minimization
+if not dont_minimize:
+    dont_minimize = True
+    print('*** Energy minimization was broken by a Google Colab update from Python 3.9 to 3.10 on April 28, 2023.  Expect fix by May 10, 2023 ***')
 use_templates = remove_from_list(seq_list, 'use_pdb_templates')
 remove_from_list(seq_list, 'prokaryote')  # Obsolete "prokaryote" flag
 

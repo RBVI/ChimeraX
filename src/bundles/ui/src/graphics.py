@@ -107,7 +107,7 @@ class GraphicsWindow(QWindow):
                        'titlebars and edges black.  Hopefully newer '
                        'Intel graphics drivers will fix this.' % build)
                 self.session.logger.warning(msg)
-                                            
+
     def handle_drag_and_drop(self, event):
         from Qt.QtCore import QEvent
         t = event.type()
@@ -131,7 +131,7 @@ class GraphicsWindow(QWindow):
         return self.widget.width()
     def height(self):
         return self.widget.height()
-    
+
     def resizeEvent(self, event):
         s = self.size()
         w, h = s.width(), s.height()
@@ -159,7 +159,7 @@ class GraphicsWindow(QWindow):
         False until window has been created by the native window toolkit.
         '''
         return self.isExposed()
-        
+
     def exposeEvent(self, event):
         self.view.redraw_needed = True
 
