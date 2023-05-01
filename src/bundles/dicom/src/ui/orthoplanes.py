@@ -59,13 +59,21 @@ class OrthoplaneGraphicsWindow(QWindow):
         self.session = session
         self.axis = axis
         self.overlays = []
-        p2d = list(self.session.models)[-1]
+        self.slider_moved = False
         self.widget = QWidget.createWindowContainer(self, parent)
         self.setSurfaceType(QSurface.SurfaceType.OpenGLSurface)
-        self.view = OrthoplaneView(p2d, window_size = (0, 0), axis = self.axis.value)
+        self.view = OrthoplaneView(Drawing("placeholder"), window_size = (0, 0), axis = self.axis.value)
         self.view.initialize_rendering(session.main_view.render.opengl_context)
         # TODO: from chimerax.graphics.camera import OrthographicCamera
         self.view.camera = MonoCamera()
+        if self.axis == Axis.AXIAL:
+            self.axes = [[-1, 0, 0], [0, -1, 0], [0, 0, 1]]
+        elif self.axis == Axis.CORONAL:
+            self.axes = [[1, 0, 0], [0, 0, 1], [0, -1, 0]]
+        else:
+            self.axes = [[0, 1, 0], [0, 0, 1], [1, 0, 0]]
+        camera = self.view.camera
+        camera.position = Place(origin = (0,0,0), axes = self.axes)
         self.view.background_color = (255, 255, 255, 255)
         self.panel = panel
         self.main_view = session.main_view
@@ -73,22 +81,11 @@ class OrthoplaneGraphicsWindow(QWindow):
         self.camera_offset = 0
         self.label = Label(self.session, self.view, str(axis), str(axis), size=16, xpos=0, ypos=0)
 
-        max_slider_vals = self.view.drawing._region[1]
-        max_x, max_y, max_z = max_slider_vals
+        max_x, max_y, max_z = 2, 2, 2
 
         self.slider = QSlider(Qt.Orientation.Horizontal, parent)
-        self.orthoplane_positions = self.view.drawing._rendering_options.orthoplane_positions
-        if axis == Axis.AXIAL:
-            self.slider.setMaximum(max_z)
-            self.slider.setValue(self.orthoplane_positions[2])
-        if axis == Axis.CORONAL:
-            self.slider.setMaximum(max_y)
-            self.slider.setValue(self.orthoplane_positions[1])
-        if axis == Axis.SAGGITAL:
-            self.slider.setMaximum(max_x)
-            self.slider.setValue(self.orthoplane_positions[0])
         self.old_pos = 0
-        self.pos = self.slider.value()
+        self.pos = 0
         self.slider.sliderMoved.connect(self._on_slider_moved)
 
         class _PixelLocations:
@@ -110,13 +107,14 @@ class OrthoplaneGraphicsWindow(QWindow):
     def _on_slider_moved(self):
         self.old_pos = self.pos
         self.pos = self.slider.sliderPosition()
-        diff = self.pos - self.old_pos
-        if self.axis == Axis.AXIAL:
-            self.camera_offset -= diff * self.view.drawing.parent.data.step[2]
-        if self.axis == Axis.CORONAL:
-            self.camera_offset += diff * self.view.drawing.parent.data.step[1]
-        if self.axis == Axis.SAGGITAL:
-            self.camera_offset -= diff * self.view.drawing.parent.data.step[0]
+        self.slider_moved = True
+        #diff = self.pos - self.old_pos
+        #if self.axis == Axis.AXIAL:
+        #    self.camera_offset -= diff * self.view.drawing.parent.data.step[2]
+        #if self.axis == Axis.CORONAL:
+        #    self.camera_offset += diff * self.view.drawing.parent.data.step[1]
+        #if self.axis == Axis.SAGGITAL:
+        #    self.camera_offset -= diff * self.view.drawing.parent.data.step[0]
         self._redraw()
 
     def close(self):
@@ -166,14 +164,16 @@ class OrthoplaneGraphicsWindow(QWindow):
             # TODO: Set the clip planes for the camera to be very far away. Some DICOMs are huge
             # and require large zoom-outs to get them into view
             old_disp_val = self.view.drawing.display
-            new_orthoplane_positions = old_orthoplane_positions = self.view.drawing._rendering_options.orthoplane_positions
-            if self.axis == Axis.AXIAL:
-                new_orthoplane_positions = old_orthoplane_positions[0], old_orthoplane_positions[1], self.pos
-            if self.axis == Axis.CORONAL:
-                new_orthoplane_positions = old_orthoplane_positions[0], self.pos, old_orthoplane_positions[2]
-            if self.axis == Axis.SAGGITAL:
-                new_orthoplane_positions = self.pos, old_orthoplane_positions[1], old_orthoplane_positions[2]
-            self.view.drawing.parent.set_parameters(orthoplane_positions=new_orthoplane_positions)
+            if self.slider_moved:
+                new_orthoplane_positions = old_orthoplane_positions = self.view.drawing._rendering_options.orthoplane_positions
+                if self.axis == Axis.AXIAL:
+                    new_orthoplane_positions = old_orthoplane_positions[0], old_orthoplane_positions[1], self.pos
+                if self.axis == Axis.CORONAL:
+                    new_orthoplane_positions = old_orthoplane_positions[0], self.pos, old_orthoplane_positions[2]
+                if self.axis == Axis.SAGGITAL:
+                    new_orthoplane_positions = self.pos, old_orthoplane_positions[1], old_orthoplane_positions[2]
+                self.view.drawing.parent.set_parameters(orthoplane_positions=new_orthoplane_positions)
+                self.slider_moved = False
             bounds = self.view.drawing.bounds()
             # We use these offsets to align the camera to the actual center of the orthoplanes
             x_offset, y_offset, z_offset = bounds.center()
@@ -191,18 +191,14 @@ class OrthoplaneGraphicsWindow(QWindow):
             # TODO: Make the initial calculation for the magic number (700) depend on the size of the DICOM file
             if self.axis == Axis.AXIAL:
                 self.origin = self.view.drawing.position.origin() + [x_offset, y_offset, z_offset + z_apparent - self.camera_offset]
-                axes = [[-1, 0, 0], [0, -1, 0], [0, 0, 1]]
             elif self.axis == Axis.CORONAL:
                 self.origin = self.view.drawing.position.origin() + [x_offset, -y_offset - (y_apparent - self.camera_offset), z_offset]
-                axes = [[1, 0, 0], [0, 0, 1], [0, -1, 0]]
             else:
                 self.origin = self.view.drawing.position.origin() + [x_offset + x_apparent - self.camera_offset, y_offset, z_offset]
-                axes = [[0, 1, 0], [0, 0, 1], [1, 0, 0]]
             self.x = self.origin[0]
             self.y = self.origin[1]
             camera = self.view.camera
-            camera_pos = Place(axes=axes, origin=self.origin)
-            camera.position = camera_pos
+            camera.position = Place(axes=self.axes, origin=self.origin)
             if not old_disp_val:
                 self.view.drawing.display = True
             self.view.prepare_scene_for_drawing()
@@ -213,6 +209,10 @@ class OrthoplaneGraphicsWindow(QWindow):
             #     string_marker.glStringMarkerGREMEDY(len(text), text)
             self.view.drawing.display = old_disp_val
             # self.view.drawing._rendering_options.orthoplanes_shown = (True, True, True)
+        except Exception as e:
+            # This line is here so you can set a breakpoint on it and figure out what's going wrong
+            # because ChimeraX's interface will not tell you.
+            pass
         finally:
             # Target opengl context back to main graphics window.
             self.main_view.render.use_shared_context(mvwin)
@@ -303,7 +303,17 @@ class OrthoplaneGraphicsWindow(QWindow):
             self.view.drawing = new_drawing
             self.label.text = d.parent.name
             self.label.update_drawing()
-
+            max_x, max_y, max_z = max_slider_vals = self.view.drawing._region[1]
+            self.orthoplane_positions = self.view.drawing._rendering_options.orthoplane_positions
+            if self.axis == Axis.AXIAL:
+                self.slider.setMaximum(max_z)
+                self.slider.setValue(self.orthoplane_positions[2])
+            if self.axis == Axis.CORONAL:
+                self.slider.setMaximum(max_y)
+                self.slider.setValue(self.orthoplane_positions[1])
+            if self.axis == Axis.SAGGITAL:
+                self.slider.setMaximum(max_x)
+                self.slider.setValue(self.orthoplane_positions[0])
 
 
 class SegmentationOverlay(Drawing):
