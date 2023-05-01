@@ -20,9 +20,9 @@ from Qt.QtWidgets import (
 from Qt.QtGui import QWindow, QSurface
 from chimerax.geometry import Place
 from ..graphics import OrthoplaneView
-from chimerax.graphics import MonoCamera
+from chimerax.graphics import MonoCamera, Drawing
 from chimerax.core.models import Surface
-from chimerax.map import Volume, VolumeSurface
+from chimerax.map import Volume, VolumeSurface, VolumeImage
 from chimerax.ui.widgets import ModelMenu
 from .label import Label
 from enum import Enum
@@ -47,29 +47,31 @@ class Axis(Enum):
 class OrthoplaneGraphicsWindow(QWindow):
 
     EyeSize = 4     # half size really
-    TOP_SIDE = 1
-    RIGHT_SIDE = 2
 
     ON_NOTHING = 0
     ON_EYE = 1
     ON_NEAR = 2
     ON_FAR = 3
 
-    def __init__(self, parent, view, session, panel, side=RIGHT_SIDE, axis = Axis.AXIAL):
+    def __init__(self, parent, session, panel, axis = Axis.AXIAL):
         QWindow.__init__(self)
         from Qt.QtWidgets import QWidget
-        self.initial = True
+        self.session = session
+        self.axis = axis
+        self.overlays = []
+        p2d = list(self.session.models)[-1]
         self.widget = QWidget.createWindowContainer(self, parent)
         self.setSurfaceType(QSurface.SurfaceType.OpenGLSurface)
-        self.view = view
+        self.view = OrthoplaneView(p2d, window_size = (0, 0), axis = self.axis.value)
+        self.view.initialize_rendering(session.main_view.render.opengl_context)
+        # TODO: from chimerax.graphics.camera import OrthographicCamera
+        self.view.camera = MonoCamera()
         self.view.background_color = (255, 255, 255, 255)
-        self.session = session
         self.panel = panel
         self.main_view = session.main_view
-        self.side = side
         self.moving = self.ON_NOTHING
         self.camera_offset = 0
-        self.axis = axis
+        self.label = Label(self.session, self.view, str(axis), str(axis), size=16, xpos=0, ypos=0)
 
         max_slider_vals = self.view.drawing._region[1]
         max_x, max_y, max_z = max_slider_vals
@@ -85,7 +87,8 @@ class OrthoplaneGraphicsWindow(QWindow):
         if axis == Axis.SAGGITAL:
             self.slider.setMaximum(max_x)
             self.slider.setValue(self.orthoplane_positions[0])
-
+        self.old_pos = 0
+        self.pos = self.slider.value()
         self.slider.sliderMoved.connect(self._on_slider_moved)
 
         class _PixelLocations:
@@ -105,27 +108,32 @@ class OrthoplaneGraphicsWindow(QWindow):
         self.widget.setMinimumSize(QSize(20, 20))
 
     def _on_slider_moved(self):
-        orthoplane_positions = self.view.drawing._rendering_options.orthoplane_positions
-        pos = self.slider.sliderPosition()
+        self.old_pos = self.pos
+        self.pos = self.slider.sliderPosition()
+        diff = self.pos - self.old_pos
         if self.axis == Axis.AXIAL:
-            self.orthoplane_positions = orthoplane_positions[0], orthoplane_positions[1], pos
+            self.camera_offset -= diff * self.view.drawing.parent.data.step[2]
         if self.axis == Axis.CORONAL:
-            self.orthoplane_positions = orthoplane_positions[0], pos, orthoplane_positions[2]
+            self.camera_offset += diff * self.view.drawing.parent.data.step[1]
         if self.axis == Axis.SAGGITAL:
-            self.orthoplane_positions = pos, orthoplane_positions[1], orthoplane_positions[2]
+            self.camera_offset -= diff * self.view.drawing.parent.data.step[0]
         self._redraw()
 
     def close(self):
         self.session.triggers.remove_handler(self.handler)
         # TODO: why does this call make it crash?
         # self.setParent(None)
+        self.label.delete()
+        del self.label
+        self.view.delete()
         QWindow.destroy(self)
 
     def add_overlay(self, overlay):
-        self.view.add_overlay(overlay)
+        self.overlays.append(overlay)
 
     def delete_overlay(self, overlay):
-        self.view.remove_overlays([overlay])
+        self.overlays.remove(overlay)
+        overlay.delete()
 
     def _redraw(self, *_):
         self.render()
@@ -158,16 +166,13 @@ class OrthoplaneGraphicsWindow(QWindow):
             # TODO: Set the clip planes for the camera to be very far away. Some DICOMs are huge
             # and require large zoom-outs to get them into view
             old_disp_val = self.view.drawing.display
-            if not old_disp_val:
-                self.view.drawing.display = True
             new_orthoplane_positions = old_orthoplane_positions = self.view.drawing._rendering_options.orthoplane_positions
-            pos = self.slider.sliderPosition()
             if self.axis == Axis.AXIAL:
-                new_orthoplane_positions = old_orthoplane_positions[0], old_orthoplane_positions[1], pos
+                new_orthoplane_positions = old_orthoplane_positions[0], old_orthoplane_positions[1], self.pos
             if self.axis == Axis.CORONAL:
-                new_orthoplane_positions = old_orthoplane_positions[0], pos, old_orthoplane_positions[2]
+                new_orthoplane_positions = old_orthoplane_positions[0], self.pos, old_orthoplane_positions[2]
             if self.axis == Axis.SAGGITAL:
-                new_orthoplane_positions = pos, old_orthoplane_positions[1], old_orthoplane_positions[2]
+                new_orthoplane_positions = self.pos, old_orthoplane_positions[1], old_orthoplane_positions[2]
             self.view.drawing.parent.set_parameters(orthoplane_positions=new_orthoplane_positions)
             bounds = self.view.drawing.bounds()
             # We use these offsets to align the camera to the actual center of the orthoplanes
@@ -181,24 +186,16 @@ class OrthoplaneGraphicsWindow(QWindow):
                 , y_size * cameraDistance / cameraView
                 , z_size * cameraDistance / cameraView
             ]
-            #camera_offset_diffs = [
-            #    (old_orthoplane_positions[0] - new_orthoplane_positions[0]) * self.view.drawing.parent.data.step[0]
-            #    , (old_orthoplane_positions[1] - new_orthoplane_positions[1]) * self.view.drawing.parent.data.step[1]
-            #    , (old_orthoplane_positions[2] - new_orthoplane_positions[2]) * self.view.drawing.parent.data.step[2]
-            #]
             # Set initial camera view
             # TODO: Why does this break if the volume style is switched to, say, surface and back to orthoplanes?
             # TODO: Make the initial calculation for the magic number (700) depend on the size of the DICOM file
             if self.axis == Axis.AXIAL:
-                #self.camera_offset += camera_offset_diffs[2]
                 self.origin = self.view.drawing.position.origin() + [x_offset, y_offset, z_offset + z_apparent - self.camera_offset]
                 axes = [[-1, 0, 0], [0, -1, 0], [0, 0, 1]]
             elif self.axis == Axis.CORONAL:
-                #self.camera_offset -= camera_offset_diffs[1]
                 self.origin = self.view.drawing.position.origin() + [x_offset, -y_offset - (y_apparent - self.camera_offset), z_offset]
                 axes = [[1, 0, 0], [0, 0, 1], [0, -1, 0]]
             else:
-                #self.camera_offset += camera_offset_diffs[0]
                 self.origin = self.view.drawing.position.origin() + [x_offset + x_apparent - self.camera_offset, y_offset, z_offset]
                 axes = [[0, 1, 0], [0, 0, 1], [1, 0, 0]]
             self.x = self.origin[0]
@@ -206,6 +203,8 @@ class OrthoplaneGraphicsWindow(QWindow):
             camera = self.view.camera
             camera_pos = Place(axes=axes, origin=self.origin)
             camera.position = camera_pos
+            if not old_disp_val:
+                self.view.drawing.display = True
             self.view.prepare_scene_for_drawing()
             self.view._draw_scene(self.view.camera, [self.view.drawing])
             self.view.finalize_draw()
@@ -295,6 +294,31 @@ class OrthoplaneGraphicsWindow(QWindow):
     def keyPressEvent(self, event):  # noqa
         return self.session.ui.forward_keystroke(event)
 
+    def _surface_chosen(self, *args):
+        new_drawing = None
+        for d in self.panel.model_menu.value._child_drawings:
+            if type(d) is VolumeImage:
+                new_drawing = d
+        if new_drawing is not None:
+            self.view.drawing = new_drawing
+            self.label.text = d.parent.name
+            self.label.update_drawing()
+
+
+
+class SegmentationOverlay(Drawing):
+    def draw(renderer, draw_pass):
+        r = renderer
+        ww, wh = r.render_size()
+        from chimerax.graphics.camera import ortho
+        projection = ortho(0, ww, 0, wh, -1, 1)
+        r.set_projection_matrix(projection)
+        Drawing.draw(self, renderer, draw_pass)
+        r.set_projection_matrix(
+            ((1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0),
+             (0, 0, 0, 1))
+            )
+
 
 class PlaneViewer(QWidget):
 
@@ -312,13 +336,7 @@ class PlaneViewer(QWidget):
             name = "BADAXIS"
         self.name = name
         self.axis = axis
-        p2d = list(self.session.models)[-1]
-        self.view = v = OrthoplaneView(p2d, window_size = (0, 0), axis = self.axis.value)
-        v.initialize_rendering(session.main_view.render.opengl_context)
-        # TODO: from chimerax.graphics.camera import OrthographicCamera
-        v.camera = MonoCamera()
-        side = OrthoplaneGraphicsWindow.RIGHT_SIDE
-        self.opengl_canvas = OrthoplaneGraphicsWindow(parent, v, session, self, side=side, axis = self.axis)
+        self.opengl_canvas = OrthoplaneGraphicsWindow(parent, session, self, axis = self.axis)
 
         # From surface/areagui.py
         def _not_volume_surface(m):
@@ -328,7 +346,7 @@ class PlaneViewer(QWidget):
             self.session, parent, label = 'Model',
             model_types = [Volume, Surface],
             model_filter = _not_volume_surface,
-            model_chosen_cb = self._surface_chosen
+            model_chosen_cb = self.opengl_canvas._surface_chosen
         )
 
         button_layout = QHBoxLayout()
@@ -351,13 +369,7 @@ class PlaneViewer(QWidget):
 
         layout.addWidget(self.container, stretch=1)
         self.setLayout(layout)
-        self.overlays = [Label(self.session, self.view, str(axis), str(axis), xpos=0, ypos=0)]
 
-    def _surface_chosen(self):
-        # self.slider.setRange(v.
-        ...
 
     def delete(self):
         self.opengl_canvas.close()
-        self.view.delete()
-        self.view = None
