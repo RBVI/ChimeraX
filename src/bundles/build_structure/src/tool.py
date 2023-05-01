@@ -47,8 +47,8 @@ class BuildStructureTool(ToolInstance):
                 msg_box = QMessageBox()
                 msg_box.setWindowTitle("Confirm Close")
                 msg_box.setText(f"There are active {text}")
-                msg_box.setInformativeText(f"Closing Build Structure will deactivate these {text}.\n"
-                    "Really close?" )
+                msg_box.setInformativeText(f"Closing Build Structure will deactivate these {text}"
+                    " md forget their orignal values.\nReally close?" )
                 msg_box.setStandardButtons(QMessageBox.No | QMessageBox.Yes)
                 msg_box.setDefaultButton(QMessageBox.Yes)
                 cb = QCheckBox("Don't ask in the future")
