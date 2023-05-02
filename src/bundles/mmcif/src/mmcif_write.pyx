@@ -867,6 +867,12 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
             end_res = r
         else:
             skip = False
+            if restricted:
+                # TODO: shorten range to what is selected/displayed
+                if selected_only and (not beg_res.selected or not end_res.selected):
+                    skip = True
+                if displayed_only and (not beg_res.display or not end_res.display):
+                    skip = True
             if skip:
                 pass
             elif beg_res.is_helix:
@@ -879,6 +885,12 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
             last_ssid = ssid
     if last_ssid:
         skip = False
+        if restricted:
+            # TODO: shorten range to what is selected/displayed
+            if selected_only and (not beg_res.selected or not end_res.selected):
+                skip = True
+            if displayed_only and (not beg_res.display or not end_res.display):
+                skip = True
         if skip:
             pass
         elif beg_res.is_helix:
