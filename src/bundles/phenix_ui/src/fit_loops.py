@@ -15,30 +15,37 @@
 # Command to fit loops guided by cryoEM maps using Phenix fit_loops.
 #
 from chimerax.core.tasks import Job
+from chimerax.core.errors import UserError
 from time import time
+
+class NoSeqInfoError(UserError):
+    pass
 
 class FitLoopsJob(Job):
 
     SESSION_SAVE = False
 
     def __init__(self, session, executable_location, optional_args, map_file_name, model_file_name,
-            positional_args, temp_dir, start_res_number, chain_id, verbose, callback, block):
+            sequence_file_name, positional_args, temp_dir, start_res_number, chain_id, processors, verbose,
+            callback, block):
         super().__init__(session)
         self._running = False
         self._monitor_time = 0
         self._monitor_interval = 10
         self.start(session, executable_location, optional_args, map_file_name, model_file_name,
-            positional_args, temp_dir, start_res_number, chain_id, verbose, callback, blocking=block)
+            sequence_file_name, positional_args, temp_dir, start_res_number, chain_id, processors,
+            verbose, callback, blocking=block)
 
     def run(self, session, executable_location, optional_args, map_file_name, model_file_name,
-            positional_args, temp_dir, start_res_number, chain_id, verbose, callback, **kw):
+            sequence_file_name, positional_args, temp_dir, start_res_number, chain_id, processors,
+            verbose, callback, **kw):
         self._running = True
         self.start_t = time()
         def threaded_run(self=self):
             try:
                 results = _run_fit_loops_subprocess(session, executable_location, optional_args,
-                    map_file_name, model_file_name, positional_args, temp_dir, start_res_number,
-                    chain_id, verbose)
+                    map_file_name, model_file_name, sequence_file_name, positional_args, temp_dir,
+                    start_res_number, chain_id, processors, verbose)
             finally:
                 self._running = False
             self.session.ui.thread_safe(callback, results)
@@ -76,7 +83,7 @@ command_defaults = {
     'replace': True,
     'verbose': False
 }
-def phenix_fit_loops(session, structure, map, *, block=None, phenix_location=None,
+def phenix_fit_loops(session, structure, in_map, *, block=None, phenix_location=None,
         chain_id=None,
         processors=command_defaults['processors'],
         replace=command_defaults['replace'],
@@ -101,46 +108,59 @@ def phenix_fit_loops(session, structure, map, *, block=None, phenix_location=Non
     # Save map to file
     from os import path
     from chimerax.map_data import save_grid_data
-    save_grid_data([map.data], path.join(temp_dir,'map.mrc'), session)
+    save_grid_data([in_map.data], path.join(temp_dir,'map.mrc'), session)
 
     # Guessing that like douse, fit_loops ignores the MRC file origin so if it is non-zero
     # shift the atom coordinates so they align with the origin 0 map.
-    map_0, shift = _fix_map_origin(map)
+    map_0, shift = _fix_map_origin(in_map)
 
     # Save structure to file.
     from chimerax.pdb import save_pdb
     save_pdb(session, path.join(temp_dir,'model.pdb'), models=[structure], rel_model=map_0)
 
+    seqf_path = path.join(temp_dir, "sequences")
+    if sequence_file is None:
+        with open(seqf_path, "w") as f:
+            for chain in structure.chains:
+                if not chain.from_seqres:
+                    raise NoSeqInfoError("Structure file does not contain complete sequence information."
+                        f" Please provide that information via the '{seq_keyword}' keyword argument.")
+                print(chain.characters, file=f)
+    else:
+        import shutil
+        shutil.copyfile(sequence_file, seqf_path)
+
+    if processors is None:
+        import os
+        if hasattr(os, 'sched_getaffinity'):
+            processors = max(1, len(os.sched_getaffinity(0)))
+        else:
+            processors = os.cpu_count()
+            if processors is None:
+                processors = 1
+    from chimerax.core.commands import plural_form
+    session.logger.info("Using %d %s" % (processors, plural_form(processors, "CPU")))
+
     # Run phenix.fit_loops
     # keep a reference to 'd' in the callback so that the temporary directory isn't removed before
     # fit_loops runs
     callback = lambda fit_loops_model, *args, session=session, shift=shift, structure=structure, \
-        map=map, start_res_number=start_res_number, replace=replace, chain_id=chain_id, d_ref=d:\
+        map=in_map, start_res_number=start_res_number, replace=replace, chain_id=chain_id, d_ref=d:\
         _process_results(session, fit_loops_model, map, shift, structure, start_res_number, replace,
         chain_id)
-    FitLoopsJob(session, exe_path, option_arg, "map.mrc", "model.pdb", position_arg, temp_dir,
-        start_res_number, chain_id, verbose, callback, block)
+    FitLoopsJob(session, exe_path, option_arg, "map.mrc", "model.pdb", "sequences", position_arg, temp_dir,
+        start_res_number, chain_id, processors, verbose, callback, block)
 
 def _process_results(session, fit_loops_model, map, shift, structure, start_res_number, replace, chain_id):
     fit_loops_model.position = map.scene_position
     if shift is not None:
         fit_loops_model.atoms.coords += shift
 
-    #TODO
-    # Copy new waters
-    model, msg, nwaters, compared_waters = _copy_new_waters(douse_model, near_model, keep_input_water,
-        far_water, map.name)
-    douse_model.delete()
-
-    # Report predicted waters and input waters
-    session.logger.info(msg, is_html=True)
-
-    # Show only waters and nearby residues and transparent map near waters.
-    if nwaters > 0:
-        _show_waters(near_model, model, residue_range, map, map_range)
-        if session.ui.is_gui:
-            from .tool import DouseResultsViewer
-            DouseResultsViewer(session, "Water Placement Results", near_model, model, compared_waters, map)
+    if replace:
+        #TODO
+        raise NotImplementedError("'replace' option not implemented yet")
+    else:
+        session.models.add([fit_loops_model])
 
 def _fix_map_origin(map):
     '''
@@ -159,13 +179,13 @@ def _fix_map_origin(map):
     return map_0, shift
 
 
-def _run_fit_loops_subprocess(session, exe_path, optional_args, map_filename, model_filename,
-        positional_args, temp_dir, start_res_number, chain_id, verbose):
+def _run_fit_loops_subprocess(session, exe_path, optional_args, map_filename, model_filename, seq_filename,
+        positional_args, temp_dir, start_res_number, chain_id, processors, verbose):
     '''
     Run fit_loops in a subprocess and return the model with predicted waters.
     '''
-    args = [exe_path] + optional_args + [f"map_in={map_filename}", f"pdb_in={model_filename}"] \
-        + positional_args
+    args = [exe_path] + optional_args + [f"map_in={map_filename}", f"pdb_in={model_filename}",
+        f"seq_file={seq_filename}", f"nproc={processors}"] + positional_args
     if start_res_number is not None:
         args += [f"start={start_res_number}"]
     if chain_id is not None:
@@ -182,7 +202,6 @@ def _run_fit_loops_subprocess(session, exe_path, optional_args, map_filename, mo
                f'Command: {cmd}\n\n' +
                f'stdout:\n{out}\n\n' +
                f'stderr:\n{err}')
-        from chimerax.core.errors import UserError
         raise UserError(msg)
 
     # Log phenix fit_loops command output
@@ -197,7 +216,7 @@ def _run_fit_loops_subprocess(session, exe_path, optional_args, map_filename, mo
 
     # Open new model with added loops
     from os import path
-    output_path = path.join(temp_dir,'connect.pdb')
+    output_path = path.join(temp_dir, 'fit_loops_1.pdb')
     from chimerax.pdb import open_pdb
     models, info = open_pdb(session, output_path, log_info = False)
 
@@ -295,25 +314,29 @@ def _show_waters(input_model, douse_model, residue_range, map, map_range):
     run(douse_model.session, cmd, log=False)
 """
 
+seq_keyword = 'sequence_file'
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register
     from chimerax.core.commands import OpenFolderNameArg, OpenFileNameArg, BoolArg, FloatArg, RepeatOf
-    from chimerax.core.commands import StringArg, IntArg, TupleOF
+    from chimerax.core.commands import StringArg, IntArg, PositiveIntArg
     from chimerax.map import MapArg
     from chimerax.atomic import AtomicStructureArg
     desc = CmdDesc(
-        required = [('structure', AtomicStructureArg), ('map', MapArg)],
-        keyword = [('block', BoolArg),
+        required = [('structure', AtomicStructureArg)],
+        keyword = [('in_map', MapArg),
+                   ('block', BoolArg),
                    ('chain_id', StringArg),
-                   ('processors', IntArg),
+                   ('processors', PositiveIntArg),
                    ('replace', BoolArg),
-                   ('sequence_file', OpenFileNameArg),
+                   (seq_keyword, OpenFileNameArg),
+                   #TODO: need an end_res_number in case replacing existing structure
                    ('start_res_number', IntArg),
                    ('verbose', BoolArg),
                    ('phenix_location', OpenFolderNameArg),
                    ('option_arg', RepeatOf(StringArg)),
                    ('position_arg', RepeatOf(StringArg)),
         ],
+        required_arguments = ['in_map'],
         synopsis = 'Fit loop(s) into density'
     )
     register('phenix fitLoops', desc, phenix_fit_loops, logger=logger)
