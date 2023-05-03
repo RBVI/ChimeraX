@@ -26,29 +26,30 @@ class FitLoopsJob(Job):
     SESSION_SAVE = False
 
     def __init__(self, session, executable_location, optional_args, map_file_name, model_file_name,
-            sequence_file_name, positional_args, temp_dir, start_res_number, chain_id, processors, verbose,
-            callback, block):
+            sequence_file_name, positional_args, temp_dir, start_res_number, end_res_number, chain_id,
+            processors, verbose, callback, block):
         super().__init__(session)
         self._running = False
         self._monitor_time = 0
         self._monitor_interval = 10
         self.start(session, executable_location, optional_args, map_file_name, model_file_name,
-            sequence_file_name, positional_args, temp_dir, start_res_number, chain_id, processors,
-            verbose, callback, blocking=block)
+            sequence_file_name, positional_args, temp_dir, start_res_number, end_res_number, chain_id,
+            processors, verbose, callback, blocking=block)
 
     def run(self, session, executable_location, optional_args, map_file_name, model_file_name,
-            sequence_file_name, positional_args, temp_dir, start_res_number, chain_id, processors,
-            verbose, callback, **kw):
+            sequence_file_name, positional_args, temp_dir, start_res_number, end_res_number, chain_id,
+            processors, verbose, callback, **kw):
         self._running = True
         self.start_t = time()
         def threaded_run(self=self):
             try:
                 results = _run_fit_loops_subprocess(session, executable_location, optional_args,
                     map_file_name, model_file_name, sequence_file_name, positional_args, temp_dir,
-                    start_res_number, chain_id, processors, verbose)
+                    start_res_number, end_res_number, chain_id, processors, verbose)
             finally:
                 self._running = False
-            self.session.ui.thread_safe(callback, results)
+            if results:
+                self.session.ui.thread_safe(callback, results)
         import threading
         thread = threading.Thread(target=threaded_run, daemon=True)
         thread.start()
@@ -56,12 +57,14 @@ class FitLoopsJob(Job):
 
     def monitor(self):
         delta = int(time() - self.start_t + 0.5)
+        from chimerax.core.commands import plural_form
         if delta < 60:
-            time_info = "%d seconds" % delta
+            time_info = "%d %s" % (delta, plural_form(delta, "second"))
         elif delta < 3600:
             minutes = delta // 60
             seconds = delta % 60
-            time_info = "%d minutes and %d seconds" % (minutes, seconds)
+            time_info = "%d %s and %d %s" % (minutes, plural_form(minutes, "minute"), seconds,
+                plural_form(seconds, "second"))
         else:
             hours = delta // 3600
             minutes = (delta % 3600) // 60
@@ -85,6 +88,7 @@ command_defaults = {
 }
 def phenix_fit_loops(session, structure, in_map, *, block=None, phenix_location=None,
         chain_id=None,
+        end_res_number=None,
         processors=command_defaults['processors'],
         replace=command_defaults['replace'],
         start_res_number=None,
@@ -145,21 +149,58 @@ def phenix_fit_loops(session, structure, in_map, *, block=None, phenix_location=
     # keep a reference to 'd' in the callback so that the temporary directory isn't removed before
     # fit_loops runs
     callback = lambda fit_loops_model, *args, session=session, shift=shift, structure=structure, \
-        map=in_map, start_res_number=start_res_number, replace=replace, chain_id=chain_id, d_ref=d:\
-        _process_results(session, fit_loops_model, map, shift, structure, start_res_number, replace,
-        chain_id)
+        map=in_map, start_res_number=start_res_number, end_res_number=end_res_number, replace=replace, \
+        chain_id=chain_id, d_ref=d:_process_results(session, fit_loops_model, map, shift, structure,
+        start_res_number, end_res_number, replace, chain_id)
     FitLoopsJob(session, exe_path, option_arg, "map.mrc", "model.pdb", "sequences", position_arg, temp_dir,
-        start_res_number, chain_id, processors, verbose, callback, block)
+        start_res_number, end_res_number, chain_id, processors, verbose, callback, block)
 
-def _process_results(session, fit_loops_model, map, shift, structure, start_res_number, replace, chain_id):
+def _process_results(session, fit_loops_model, map, shift, structure, start_res_number, end_res_number,
+        replace, chain_id):
     fit_loops_model.position = map.scene_position
     if shift is not None:
         fit_loops_model.atoms.coords += shift
 
     if replace:
-        #TODO
-        raise NotImplementedError("'replace' option not implemented yet")
+        orig_atom_map = dict([(a.string(style="simple", omit_structure=True), a) for a in structure.atoms])
+        orig_res_map = dict([(r.string(style="simple", omit_structure=True), r) for r in structure.residues])
+        fit_res_indices = dict([(r, i) for i, r in enumerate(fit_loops_model.residues)])
+        new_atoms = []
+        from chimerax.atomic.struct_edit import add_atom, add_bond
+        for fit_atom in fit_loops_model.atoms:
+            key = fit_atom.string(style="simple", omit_structure=True)
+            try:
+                orig_atom = orig_atom_map[key]
+            except KeyError:
+                fit_res = fit_atom.residue
+                r_key = fit_res.string(style="simple", omit_structure=True)
+                try:
+                    orig_res = orig_res_map[r_key]
+                except KeyError:
+                    for follower in fit_loops_model.residues[fit_res_indices[fit_res]+1:]:
+                        try:
+                            precedes = orig_res_map[follower.string(style="simple", omit_structure=True)]
+                        except KeyError:
+                            continue
+                        break
+                    else:
+                        precedes = None
+                    orig_res = orig_res_map[r_key] = structure.new_residue(fit_res.name, fit_res.chain_id,
+                        fit_res.number, insert=fit_res.insertion_code, precedes=precedes)
+                orig_atom_map[key] = add_atom(fit_atom.name, fit_atom.element, orig_res, fit_atom.coord,
+                    bfactor=fit_atom.bfactor)
+                new_atoms.append((fit_atom, orig_atom_map[key]))
+            else:
+                orig_atom.coord = fit_atom.coord
+        # add bonds
+        for fit_atom, orig_atom in new_atoms:
+            for fnb, fb in zip(fit_atom.neighbors, fit_atom.bonds):
+                onb = orig_atom_map[fnb.string(style="simple", omit_structure=True)]
+                if onb not in orig_atom.neighbors:
+                    add_bond(orig_atom, onb)
+        fit_loops_model.delete()
     else:
+        fit_loops_model.position = structure.scene_position
         session.models.add([fit_loops_model])
 
 def _fix_map_origin(map):
@@ -180,7 +221,7 @@ def _fix_map_origin(map):
 
 
 def _run_fit_loops_subprocess(session, exe_path, optional_args, map_filename, model_filename, seq_filename,
-        positional_args, temp_dir, start_res_number, chain_id, processors, verbose):
+        positional_args, temp_dir, start_res_number, end_res_number, chain_id, processors, verbose):
     '''
     Run fit_loops in a subprocess and return the model with predicted waters.
     '''
@@ -188,6 +229,8 @@ def _run_fit_loops_subprocess(session, exe_path, optional_args, map_filename, mo
         f"seq_file={seq_filename}", f"nproc={processors}"] + positional_args
     if start_res_number is not None:
         args += [f"start={start_res_number}"]
+    if end_res_number is not None:
+        args += [f"end={end_res_number}"]
     if chain_id is not None:
         args += [f"chain_id={chain_id}"]
     tsafe=session.ui.thread_safe
@@ -215,10 +258,37 @@ def _run_fit_loops_subprocess(session, exe_path, optional_args, map_filename, mo
         tsafe(logger.info, msg, is_html=True)
 
     # Open new model with added loops
-    from os import path
-    output_path = path.join(temp_dir, 'fit_loops_1.pdb')
+    from os import path, listdir
+    for suffix in range(1,10):
+        output_file = f'fit_loops_{suffix}.pdb'
+        output_path = path.join(temp_dir, output_file)
+        if path.exists(output_path):
+            break
+    else:
+        cmd = " ".join(args)
+        out, err = p.stdout.decode("utf-8"), p.stderr.decode("utf-8")
+        msg = f'<pre><b>Command</b>:\n\n{cmd}\n\n<b>stdout</b>:\n\n{out}'
+        if err:
+            msg += f'\n\n<b>stderr</b>:\n\n{err}'
+        msg += '</pre>'
+        tsafe(logger.info, msg, is_html=True)
+        def raise_in_main_thread():
+            from chimerax.core.errors import NonChimeraXError
+            raise NonChimeraXError("fit_loops did not find viable loop(s); see log for details")
+        tsafe(raise_in_main_thread)
+        return None
+    from chimerax.core.logger import PlainTextLog
+    class IgnoreBlankLinesLog(PlainTextLog):
+        excludes_other_logs = True
+        def log(self, level, msg):
+            return msg.startswith("Ignored bad PDB record")
+    log = IgnoreBlankLinesLog()
+    session.logger.add_log(log)
     from chimerax.pdb import open_pdb
-    models, info = open_pdb(session, output_path, log_info = False)
+    try:
+        models, info = open_pdb(session, output_path, log_info = False)
+    finally:
+        session.logger.remove_log(log)
 
     return models[0]
 
@@ -326,10 +396,10 @@ def register_command(logger):
         keyword = [('in_map', MapArg),
                    ('block', BoolArg),
                    ('chain_id', StringArg),
+                   ('end_res_number', IntArg),
                    ('processors', PositiveIntArg),
                    ('replace', BoolArg),
                    (seq_keyword, OpenFileNameArg),
-                   #TODO: need an end_res_number in case replacing existing structure
                    ('start_res_number', IntArg),
                    ('verbose', BoolArg),
                    ('phenix_location', OpenFolderNameArg),
