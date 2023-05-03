@@ -55,7 +55,7 @@ class NRRD:
 
 class NRRDData:
     """A wrapper over nrrd."""
-    def __init__(self, session: Session, header: nrrd.NRRDHeader, data: np.ndarray, path = None):
+    def __init__(self, session: Session, header, data: np.ndarray, path = None):
         self.session = session
         self._path = path
         self._raw_header = header
