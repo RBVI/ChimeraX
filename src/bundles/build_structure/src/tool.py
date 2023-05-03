@@ -136,7 +136,7 @@ class BuildStructureTool(ToolInstance):
         row = grid.rowCount()
         widgets = []
         initial_angle = self._aa_angle_value(canonical)
-        self.angle_data[canonical] = [row, fixed, center, moving, initial_angle, None, widgets]
+        self.angle_data[canonical] = [row, fixed, center, moving, None, initial_angle, None, widgets]
         close_button = QToolButton()
         close_action = QAction(close_button)
         close_action.triggered.connect(lambda *args, angle=canonical, f=self._aa_remove_angle: f(angle))
@@ -291,8 +291,9 @@ class BuildStructureTool(ToolInstance):
         if undo is None:
             from chimerax.core.undo import UndoState
             data[-2] = undo = UndoState("Adjust Angles dial")
+        axis = data[-4]
         from chimerax.std_commands.angle import set_angle
-        set_angle(*atoms, dial_val, move_smaller=move_smaller, undo_state=undo)
+        data[-4] = set_angle(*atoms, dial_val, move_smaller=move_smaller, undo_state=undo, prev_axis=axis)
 
     def _aa_dial_released(self, canonical, val):
         self._aa_issue_command(canonical, val, log_only=True)
@@ -339,12 +340,12 @@ class BuildStructureTool(ToolInstance):
         self._aa_issue_command(canonical, initial_angle)
 
     def _aa_swap_angle_sides(self, canonical):
-        row, fixed, center, moving, start_angle, axis, widgets = self.angle_data[canonical]
-        self.angle_data[canonical] = [row, moving, center, fixed, start_angle, axis, widgets]
+        row, fixed, center, moving, axis, start_angle, undo, widgets = self.angle_data[canonical]
+        self.angle_data[canonical] = [row, moving, center, fixed, axis, start_angle, undo, widgets]
         self._aa_set_widget_texts(canonical)
 
     def _aa_set_widget_texts(self, canonical):
-        row, fixed, center, moving, start_angle, axis, widgets = self.angle_data[canonical]
+        row, fixed, center, moving, undo, start_angle, undo, widgets = self.angle_data[canonical]
         atoms = (fixed, center, moving)
         for i, atom in enumerate(atoms):
             relative_to = None if i == 0 else atoms[i-1]

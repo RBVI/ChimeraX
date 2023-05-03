@@ -352,7 +352,11 @@ class Series:
 
     @property
     def number(self):
-        return self.sample_file.get("SeriesNumber", "Unknown Series Number")
+        if self.sample_file.get('SeriesNumber', None) is None:
+            self.session.logger.warning("SeriesNumber not specified; setting to 0")
+            return 0
+        else:
+            return int(self.sample_file.get("SeriesNumber", 0))
 
     @property
     def description(self):
