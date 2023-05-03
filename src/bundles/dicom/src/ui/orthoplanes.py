@@ -10,6 +10,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 import math
+from numpy import array, float32, uint8, int32
 
 from Qt.QtCore import Qt
 from Qt.QtWidgets import (
@@ -56,6 +57,7 @@ class OrthoplaneGraphicsWindow(QWindow):
     def __init__(self, parent, session, panel, axis = Axis.AXIAL):
         QWindow.__init__(self)
         from Qt.QtWidgets import QWidget
+        self.moving = self.ON_NOTHING
         self.session = session
         self.axis = axis
         self.overlays = []
@@ -83,6 +85,22 @@ class OrthoplaneGraphicsWindow(QWindow):
 
         max_x, max_y, max_z = 2, 2, 2
 
+        class _PixelLocations():
+            pass
+
+        self.locations = loc = _PixelLocations()
+        loc.eye = 0, 0, 0   # x, y coordinates of eye
+        loc.near = 0        # X coordinate of near plane
+        loc.far = 0         # Y coordinate of near plane
+        loc.bottom = 0      # bottom of clipping planes
+        loc.top = 0         # top of clipping planes
+        loc.far_bottom = 0  # right clip intersect far
+        loc.far_top = 0     # left clip intersect far
+
+
+        self.segmentation_overlay = SegmentationOverlay("seg_overlay")
+        self.view.add_overlay(self.segmentation_overlay)
+        self.segmentation_radius = 10
         self.slider = QSlider(Qt.Orientation.Horizontal, parent)
         self.old_pos = 0
         self.pos = 0
@@ -99,18 +117,6 @@ class OrthoplaneGraphicsWindow(QWindow):
             self.slider.setValue(1)
 
         self.slider.sliderMoved.connect(self._on_slider_moved)
-
-        class _PixelLocations:
-            pass
-
-        self.locations = loc = _PixelLocations()
-        loc.eye = 0, 0, 0   # x, y coordinates of eye
-        loc.near = 0        # X coordinate of near plane
-        loc.far = 0         # Y coordinate of near plane
-        loc.bottom = 0      # bottom of clipping planes
-        loc.top = 0         # top of clipping planes
-        loc.far_bottom = 0  # right clip intersect far
-        loc.far_top = 0     # left clip intersect far
 
         self.handler = session.triggers.add_handler('frame drawn', self._redraw)
         from Qt.QtCore import QSize
@@ -215,6 +221,43 @@ class OrthoplaneGraphicsWindow(QWindow):
                 self.origin = self.view.drawing.position.origin() + [x_offset + x_apparent - self.camera_offset, y_offset, z_offset]
             camera = self.view.camera
             camera.position = Place(axes=self.axes, origin=self.origin)
+            loc = self.locations
+            loc.bottom = .05 * height
+            loc.top = .95 * height
+            ratio = math.tan(0.5 * 30)
+            #if self.moving:
+            #    eye = self.view.win_coord(0, 0, 0)
+            #    eye[2] = 0
+            #    loc.eye = eye
+            #elif ratio * width / 1.1 < .45 * height:
+            #    loc.eye = array(
+            #        [.05 / 1.1 * width, height / 2, 0],
+            #        dtype=float32
+            #        )
+            #else:
+            loc.eye = array(loc.eye)
+
+            vc = array([[255, 0, 0, 255]] * 4, dtype=uint8)
+            vc[0:4, :] = [255, 0, 0, 255]
+            vc[0] = vc[1] = vc[2] = vc[3] = [0, 255, 0, 255]
+            es = self.segmentation_radius
+            old_vertices = self.segmentation_overlay.vertices
+            v = array(
+                [
+                    loc.eye + [-es, -es, 0], loc.eye + [-es, es, 0],
+                    loc.eye + [es, es, 0], loc.eye + [es, -es, 0],
+                ], dtype=float32
+            )
+            ps = self.view.render.pixel_scale()
+            v *= ps
+            t = array(
+                [
+                    [0, 1], [1, 2], [2, 3], [3, 0],  # eye box
+                ], dtype=int32
+            )
+            self.segmentation_overlay.set_geometry(v, None, t)
+            self.segmentation_overlay.vertex_colors = vc
+
             self.view.prepare_scene_for_drawing()
             self.view._draw_scene(self.view.camera, [self.view.drawing])
             self.view.finalize_draw()
@@ -254,7 +297,10 @@ class OrthoplaneGraphicsWindow(QWindow):
     def wheelEvent(self, event):
         modifier = event.modifiers()
         if modifier == Qt.KeyboardModifier.ShiftModifier:
-            pass
+            if event.angleDelta().x() < 0:
+                self.segmentation_radius += 1
+            elif event.angleDelta().x() > 0:
+                self.segmentation_radius -= 1
         elif modifier == Qt.KeyboardModifier.NoModifier:
             old_offset = self.camera_offset
             if event.angleDelta().y() < 0:
@@ -269,6 +315,10 @@ class OrthoplaneGraphicsWindow(QWindow):
     def mouseMoveEvent(self, event):  # noqa
         b = event.button() | event.buttons()
         # Level or segment
+        if b == Qt.MouseButton.NoButton:
+            self.locations.eye = (event.position().x(), self.view.window_size[1] - event.position().y(), 0)
+            self.view.camera.redraw_needed = True
+            return
         if b & Qt.MouseButton.LeftButton:
             return
         # Zoom
@@ -312,7 +362,12 @@ class OrthoplaneGraphicsWindow(QWindow):
 
 
 class SegmentationOverlay(Drawing):
-    def draw(renderer, draw_pass):
+    def __init__(self, name):
+        super().__init__(name)
+        self.display_style = Drawing.Mesh
+        self.use_lighting = False
+
+    def draw(self, renderer, draw_pass):
         r = renderer
         ww, wh = r.render_size()
         from chimerax.graphics.camera import ortho
