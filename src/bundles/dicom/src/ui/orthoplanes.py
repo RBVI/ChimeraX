@@ -60,6 +60,7 @@ class OrthoplaneGraphicsWindow(QWindow):
         self.axis = axis
         self.overlays = []
         self.slider_moved = False
+        self.last_mouse_position = None
         self.widget = QWidget.createWindowContainer(self, parent)
         self.setSurfaceType(QSurface.SurfaceType.OpenGLSurface)
         self.view = OrthoplaneView(Drawing("placeholder"), window_size = (0, 0), axis = self.axis.value)
@@ -77,7 +78,6 @@ class OrthoplaneGraphicsWindow(QWindow):
         self.view.background_color = (255, 255, 255, 255)
         self.panel = panel
         self.main_view = session.main_view
-        self.moving = self.ON_NOTHING
         self.camera_offset = 0
         self.label = Label(self.session, self.view, str(axis), str(axis), size=16, xpos=0, ypos=0)
 
@@ -86,6 +86,18 @@ class OrthoplaneGraphicsWindow(QWindow):
         self.slider = QSlider(Qt.Orientation.Horizontal, parent)
         self.old_pos = 0
         self.pos = 0
+        self.x = 0
+        self.y = 0
+        if axis == Axis.AXIAL:
+            self.slider.setMaximum(max_z)
+            self.slider.setValue(1)
+        if axis == Axis.CORONAL:
+            self.slider.setRange(-max_y, 0)
+            self.slider.setValue(-1)
+        if axis == Axis.SAGGITAL:
+            self.slider.setMaximum(max_x)
+            self.slider.setValue(1)
+
         self.slider.sliderMoved.connect(self._on_slider_moved)
 
         class _PixelLocations:
@@ -105,8 +117,12 @@ class OrthoplaneGraphicsWindow(QWindow):
         self.widget.setMinimumSize(QSize(20, 20))
 
     def _on_slider_moved(self):
-        self.old_pos = self.pos
-        self.pos = self.slider.sliderPosition()
+        if self.axis == Axis.CORONAL:
+            self.old_pos = -self.pos
+            self.pos = -self.slider.sliderPosition()
+        else:
+            self.old_pos = self.pos
+            self.pos = self.slider.sliderPosition()
         self.slider_moved = True
         #diff = self.pos - self.old_pos
         #if self.axis == Axis.AXIAL:
@@ -115,7 +131,7 @@ class OrthoplaneGraphicsWindow(QWindow):
         #    self.camera_offset += diff * self.view.drawing.parent.data.step[1]
         #if self.axis == Axis.SAGGITAL:
         #    self.camera_offset -= diff * self.view.drawing.parent.data.step[0]
-        self._redraw()
+        self.view.camera.redraw_needed = True
 
     def close(self):
         self.session.triggers.remove_handler(self.handler)
@@ -164,6 +180,8 @@ class OrthoplaneGraphicsWindow(QWindow):
             # TODO: Set the clip planes for the camera to be very far away. Some DICOMs are huge
             # and require large zoom-outs to get them into view
             old_disp_val = self.view.drawing.display
+            if not old_disp_val:
+                self.view.drawing.display = True
             if self.slider_moved:
                 new_orthoplane_positions = old_orthoplane_positions = self.view.drawing._rendering_options.orthoplane_positions
                 if self.axis == Axis.AXIAL:
@@ -195,12 +213,8 @@ class OrthoplaneGraphicsWindow(QWindow):
                 self.origin = self.view.drawing.position.origin() + [x_offset, -y_offset - (y_apparent - self.camera_offset), z_offset]
             else:
                 self.origin = self.view.drawing.position.origin() + [x_offset + x_apparent - self.camera_offset, y_offset, z_offset]
-            self.x = self.origin[0]
-            self.y = self.origin[1]
             camera = self.view.camera
             camera.position = Place(axes=self.axes, origin=self.origin)
-            if not old_disp_val:
-                self.view.drawing.display = True
             self.view.prepare_scene_for_drawing()
             self.view._draw_scene(self.view.camera, [self.view.drawing])
             self.view.finalize_draw()
@@ -221,6 +235,7 @@ class OrthoplaneGraphicsWindow(QWindow):
     def mousePressEvent(self, event):  # noqa
         b = event.button() | event.buttons()
         if b & Qt.MouseButton.RightButton:
+            # p = event.position() if hasattr(event, 'position') else event.pos()  # PyQt6 / PyQt5
             from Qt.QtGui import QContextMenuEvent
             e = QContextMenuEvent(QContextMenuEvent.Mouse, event.pos())
             self.widget.parent().parent().contextMenuEvent(e)
@@ -230,40 +245,26 @@ class OrthoplaneGraphicsWindow(QWindow):
         if b & Qt.MouseButton.LeftButton:
             p = event.position() if hasattr(event, 'position') else event.pos()  # PyQt6 / PyQt5
             x, y = p.x(), p.y()
-            eye_x, eye_y = self.locations.eye[0:2]
-            near = self.locations.near
-            far = self.locations.far
-            es = self.EyeSize
-            if eye_x - es <= x <= eye_x + es and eye_y - es <= y <= eye_y + es:
-                self.moving = self.ON_EYE
-            elif near - es <= x <= near + es:
-                self.moving = self.ON_NEAR
-            elif far - es <= x <= far + es:
-                self.moving = self.ON_FAR
-            else:
-                return
             self.x, self.y = x, y
             return
 
     def mouseReleaseEvent(self, event):  # noqa
-        if not self.moving:
-            return
-        from Qt.QtCore import Qt
-        b = event.button() | event.buttons()
-        if b & Qt.LeftButton:
-            self.moving = self.ON_NOTHING
-            self.exposeEvent(None)
+        self.last_mouse_position = None
 
     def wheelEvent(self, event):
-        old_offset = self.camera_offset
-        if event.angleDelta().y() < 0:
-            self.camera_offset -= 10
-        elif event.angleDelta().y() > 0:
-            self.camera_offset += 10
-        diff_z = old_offset - self.camera_offset
-        shift = self.view.camera.position.transform_vector((0, 0, diff_z * 4 * self.view.pixel_size()))
-        self.view.translate(shift)
-        self.render()
+        modifier = event.modifiers()
+        if modifier == Qt.KeyboardModifier.ShiftModifier:
+            pass
+        elif modifier == Qt.KeyboardModifier.NoModifier:
+            old_offset = self.camera_offset
+            if event.angleDelta().y() < 0:
+                self.camera_offset -= 15
+            elif event.angleDelta().y() > 0:
+                self.camera_offset += 15
+            diff_z = old_offset - self.camera_offset
+            shift = self.view.camera.position.transform_vector((0, 0, diff_z * 4 * self.view.pixel_size()))
+            self.view.translate(shift)
+        self.view.camera.redraw_needed = True
 
     def mouseMoveEvent(self, event):  # noqa
         b = event.button() | event.buttons()
@@ -271,25 +272,19 @@ class OrthoplaneGraphicsWindow(QWindow):
         if b & Qt.MouseButton.LeftButton:
             return
         # Zoom
-        if b & Qt.MouseButton.RightButton:
-            p = event.position()
-            y = p.y()
-            diff_y = y - self.y
-            self.y = y
+        if b & Qt.MouseButton.RightButton or b & Qt.MouseButton.MiddleButton:
+            x, y = event.position().x(), event.position().y()
+            if not self.last_mouse_position:
+                dy = 0
+            else:
+                dy = y - self.last_mouse_position[1]
             psize = self.view.pixel_size()
-            shift = self.view.camera.position.transform_vector((0, 0, -diff_y * psize))
-            self.view.translate(shift)
-        # Translate
-        if b & Qt.MouseButton.MiddleButton:
-            p = event.position()
-            x, y = p.x(), p.y()
-            diff_x = x - self.x
-            diff_y = y - self.y
-            self.x, self.y = x, y
-            psize = self.view.pixel_size()
-            shift = self.view.camera.position.transform_vector((diff_x * psize, -diff_y * psize, 0))
-            self.view.translate(shift)
-        self.render()
+            self.last_mouse_position = [x, y]
+            self.camera_offset += (-dy * psize) * 3
+            self.view.camera.redraw_needed = True
+
+    # def touchEvent(self, event):
+    #     pass
 
     def keyPressEvent(self, event):  # noqa
         return self.session.ui.forward_keystroke(event)
@@ -309,8 +304,8 @@ class OrthoplaneGraphicsWindow(QWindow):
                 self.slider.setMaximum(max_z)
                 self.slider.setValue(self.orthoplane_positions[2])
             if self.axis == Axis.CORONAL:
-                self.slider.setMaximum(max_y)
-                self.slider.setValue(self.orthoplane_positions[1])
+                self.slider.setRange(-max_y, 0)
+                self.slider.setValue(-self.orthoplane_positions[1])
             if self.axis == Axis.SAGGITAL:
                 self.slider.setMaximum(max_x)
                 self.slider.setValue(self.orthoplane_positions[0])
