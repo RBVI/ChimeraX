@@ -42,6 +42,7 @@ class DICOMDatabasesSettings(Settings):
 class DICOMDatabases(ToolInstance):
 
     help = "help:user/tools/downloaddicom.html"
+    SESSION_ENDURING = True
 
     def __init__(self, session = None, name = "Download DICOM"):
         """Bring up a tool to explore DICOM models open in the session."""
@@ -81,7 +82,7 @@ class DICOMDatabases(ToolInstance):
         self._main_table_data = []
 
         # Construct the GUI
-        self.tool_window = MainToolWindow(self, close_destroys=False)
+        self.tool_window = MainToolWindow(self)
         self.parent = self.tool_window.ui_area
         self.main_layout = QVBoxLayout()
 
@@ -273,6 +274,11 @@ class DICOMDatabases(ToolInstance):
                 , x['url']
             ) for x in entries
         ]
+
+    def delete(self):
+        if self.thread is not None and self.thread.isRunning():
+            self.thread.terminate()
+        super().delete()
 
     def _on_main_table_double_clicked(self, items):
         self._allocate_thread_and_worker(Action.LOAD_STUDIES)
