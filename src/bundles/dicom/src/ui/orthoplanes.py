@@ -237,24 +237,24 @@ class OrthoplaneGraphicsWindow(QWindow):
             #else:
             loc.eye = array(loc.eye)
 
-            vc = array([[255, 0, 0, 255]] * 4, dtype=uint8)
-            vc[0:4, :] = [255, 0, 0, 255]
-            vc[0] = vc[1] = vc[2] = vc[3] = [0, 255, 0, 255]
-            es = self.segmentation_radius
-            old_vertices = self.segmentation_overlay.vertices
-            v = array(
-                [
-                    loc.eye + [-es, -es, 0], loc.eye + [-es, es, 0],
-                    loc.eye + [es, es, 0], loc.eye + [es, -es, 0],
-                ], dtype=float32
-            )
+            sr = self.segmentation_radius
+            #v = array(
+            #    [
+            #        loc.eye + [-sr, -sr, 0],
+            #        loc.eye + [-sr, sr, 0],
+            #        loc.eye + [sr, sr, 0],
+            #        loc.eye + [sr, -sr, 0],
+            #    ], dtype=float32
+            #)
+            v, t = self._circle_geometry()
+            vc = array([[255, 0, 0, 255]] * len(v), dtype=uint8)
             ps = self.view.render.pixel_scale()
             v *= ps
-            t = array(
-                [
-                    [0, 1], [1, 2], [2, 3], [3, 0],  # eye box
-                ], dtype=int32
-            )
+            #t = array(
+            #    [
+            #        [0, 1], [1, 2], [2, 3], [3, 0],  # eye box
+            #    ], dtype=int32
+            #)
             self.segmentation_overlay.set_geometry(v, None, t)
             self.segmentation_overlay.vertex_colors = vc
 
@@ -275,6 +275,33 @@ class OrthoplaneGraphicsWindow(QWindow):
             self.main_view.render.use_shared_context(mvwin)
         self.view.render.done_current()
 
+    def _circle_geometry(self):
+        def mirror_points_8(x, y):
+            return [(x, y), (y, x), (-x, y), (-y, x), (x, -y), (y, -x), (-x, -y), (-y, -x)]
+        sr = self.segmentation_radius
+        v = [None]*(8*(sr+1))
+        for x in range(sr + 1):
+            y = math.isqrt((sr * sr) - (x * x))
+            points = mirror_points_8(x, y)
+            v[x] = points[0]
+            v[x + ((sr + 1) * 1)] = points[1]
+            v[x + ((sr + 1) * 2)] = points[2]
+            v[x + ((sr + 1) * 3)] = points[3]
+            v[x + ((sr + 1) * 4)] = points[4]
+            v[x + ((sr + 1) * 5)] = points[5]
+            v[x + ((sr + 1) * 6)] = points[6]
+            v[x + ((sr + 1) * 7)] = points[7]
+        fv = [self.locations.eye + [vt[0], vt[1], 0] for vt in v]
+        t = []
+        for i in range(0, len(v)):
+            t.append([i, i + 1])
+        t[0][1] = 0
+        t[-1][1] = 0
+        fv = array(fv, dtype=float32)
+        t = array(t, dtype=int32)
+        return fv, t
+
+
     def mousePressEvent(self, event):  # noqa
         b = event.button() | event.buttons()
         if b & Qt.MouseButton.RightButton:
@@ -286,12 +313,14 @@ class OrthoplaneGraphicsWindow(QWindow):
         if b & Qt.MouseButton.MiddleButton:
             return
         if b & Qt.MouseButton.LeftButton:
-            p = event.position() if hasattr(event, 'position') else event.pos()  # PyQt6 / PyQt5
-            x, y = p.x(), p.y()
-            self.x, self.y = x, y
+            # Whatever is needed to start segmenting
             return
 
-    def mouseReleaseEvent(self, event):  # noqa
+    def mouseReleaseEvent(self, event): # noqa
+        b = event.button() | event.buttons()
+        if b & Qt.MouseButton.LeftButton:
+            self.locations.eye = (event.position().x(), self.view.window_size[1] - event.position().y(), 0)
+            self.view.camera.redraw_needed = True
         self.last_mouse_position = None
 
     def wheelEvent(self, event):
@@ -315,11 +344,9 @@ class OrthoplaneGraphicsWindow(QWindow):
     def mouseMoveEvent(self, event):  # noqa
         b = event.button() | event.buttons()
         # Level or segment
-        if b == Qt.MouseButton.NoButton:
+        if b == Qt.MouseButton.NoButton or b == Qt.MouseButton.LeftButton:
             self.locations.eye = (event.position().x(), self.view.window_size[1] - event.position().y(), 0)
             self.view.camera.redraw_needed = True
-            return
-        if b & Qt.MouseButton.LeftButton:
             return
         # Zoom
         if b & Qt.MouseButton.RightButton or b & Qt.MouseButton.MiddleButton:
@@ -364,7 +391,7 @@ class OrthoplaneGraphicsWindow(QWindow):
 class SegmentationOverlay(Drawing):
     def __init__(self, name):
         super().__init__(name)
-        self.display_style = Drawing.Mesh
+        self.display_style = Drawing.Dot
         self.use_lighting = False
 
     def draw(self, renderer, draw_pass):
