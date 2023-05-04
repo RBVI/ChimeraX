@@ -15,25 +15,16 @@ MEMORIZE_USE = "use"
 MEMORIZE_SAVE = "save"
 MEMORIZE_NONE = "none"
 
-def prep(session, state, callback, memo_type, memo_name, structures, keywords, *, tool_settings=None):
+def prep(session, state, callback, memo_type, memo_name, structures, keywords):
+    session.logger.status("Starting dock prep", log=True)
+
     if isinstance(structures, list):
         from chimerax.atomic import AtomicStructures
         structures = AtomicStructures(structures)
-    if tool_settings is None and not state['nogui'] and memo_type != MEMORIZE_USE:
-        # run tool that calls back to this routine with tool_settings specified
-        from .tool import DockPrepTool
-        DockPrepTool(session, dock_prep_info={
-            'process name': memo_name,
-            'structures': structures,
-            'callback': lambda used_structures, args1=[session, state, callback, memo_type, memo_name],
-                keywords=keywords, tool_settings=None:
-                prep(*tuple(args1+[used_structures, keywords]), tool_settings=tool_settings)
-        })
-        return
 
     from .settings import defaults
     active_settings = handle_memorization(session, memo_type, memo_name, "base", keywords,
-        defaults, tool_settings)
+        defaults, None)
 
     if active_settings['del_solvent']:
         session.logger.status("Deleting solvent", log=True)
@@ -92,7 +83,7 @@ def prep(session, state, callback, memo_type, memo_name, structures, keywords, *
                     swap_aa(session, [r], res_type)
             else:
                 swap_aa(session, targets, "same", rot_lib=style)
-    def postscript(session=session, mol2=tool_settings and tool_settings['write_mol2']):
+    def postscript(session=session, mol2=keywords.get('write_mol2', False)):
         session.logger.status("Dock prep finished", log=True)
         if mol2:
             from chimerax.save_command import show_save_file_dialog
