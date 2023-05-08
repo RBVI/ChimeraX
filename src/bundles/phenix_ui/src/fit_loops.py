@@ -238,6 +238,9 @@ def _run_fit_loops_subprocess(session, exe_path, optional_args, map_filename, mo
     tsafe(logger.status, f'Running {exe_path} in directory {temp_dir}')
     import subprocess
     p = subprocess.run(args, capture_output = True, cwd = temp_dir)
+    def raise_in_main_thread(msg):
+        from chimerax.core.errors import NonChimeraXError
+        raise NonChimeraXError(msg)
     if p.returncode != 0:
         cmd = " ".join(args)
         out, err = p.stdout.decode("utf-8"), p.stderr.decode("utf-8")
@@ -245,7 +248,14 @@ def _run_fit_loops_subprocess(session, exe_path, optional_args, map_filename, mo
                f'Command: {cmd}\n\n' +
                f'stdout:\n{out}\n\n' +
                f'stderr:\n{err}')
-        raise UserError(msg)
+        msg = f'phenix.fit_loops exited with error code {p.returncode}<br><br>'
+        msg += f'<pre><b>Command</b>:\n\n{cmd}\n\n<b>stdout</b>:\n\n{out}'
+        if err:
+            msg += f'\n\n<b>stderr</b>:\n\n{err}'
+        msg += '</pre>'
+        tsafe(logger.info, msg, is_html=True)
+        tsafe(raise_in_main_thread, "phenix.fit_loops failed; see log for details")
+        return None
 
     # Log phenix fit_loops command output
     if verbose:
@@ -272,10 +282,7 @@ def _run_fit_loops_subprocess(session, exe_path, optional_args, map_filename, mo
             msg += f'\n\n<b>stderr</b>:\n\n{err}'
         msg += '</pre>'
         tsafe(logger.info, msg, is_html=True)
-        def raise_in_main_thread():
-            from chimerax.core.errors import NonChimeraXError
-            raise NonChimeraXError("fit_loops did not find viable loop(s); see log for details")
-        tsafe(raise_in_main_thread)
+        tsafe(raise_in_main_thread, "fit_loops did not find viable loop(s); see log for details")
         return None
     from chimerax.core.logger import PlainTextLog
     class IgnoreBlankLinesLog(PlainTextLog):
