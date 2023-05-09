@@ -644,6 +644,8 @@ class DicomData:
             self.files.sort(key=lambda x: x.ImageIndex)
         elif hasattr(reference_file, "AcquisitionNumber") and reference_file.get("AcquisitionNumber", None):
             self.files.sort(key=lambda x: x.AcquisitionNumber)
+        else:
+            self.files.sort(key=lambda x: x.position[2])
 
     def grid_size(self):
         xsize, ysize = self.columns, self.rows
