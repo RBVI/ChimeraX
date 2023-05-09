@@ -512,6 +512,8 @@ class DicomData:
             suffixes = [' red', ' green', ' blue']
             for channel in (0, 1, 2):
                 g = DicomGrid(self, channel=channel)
+                if self.dicom_series.modality == "SEG":
+                    g.initial_plane_display = False
                 g.name += suffixes[channel]
                 g.rgba = colors[channel]
                 cgrids.append(g)
@@ -521,12 +523,16 @@ class DicomData:
             tgrids = []
             for t in range(self.num_times):
                 g = DicomGrid(self, time=t)
+                if self.dicom_series.modality == "SEG":
+                    g.initial_plane_display = False
                 g.series_index = t
                 tgrids.append(g)
             grids.extend(tgrids)
         else:
             # Create single channel, single time series.
             g = DicomGrid(self)
+            if self.dicom_series.modality == "SEG":
+                g.initial_plane_display = False
             rs = getattr(self, 'refers_to_series', None)
             if rs:
                 # If this associated with another series (e.g. is a segmentation), make
