@@ -19,8 +19,17 @@ class DockPrepTool(ToolInstance):
     help ="help:user/tools/dockprep.html"
     tool_name = "Dock Prep"
 
-    def __init__(self, session, dock_prep_info):
+    def __init__(self, session, *, dock_prep_info=None):
         ToolInstance.__init__(self, session, self.tool_name)
+        if dock_prep_info is None:
+            def callback(structures, tool_settings, *, session=session):
+                from . import dock_prep_caller
+                dock_prep_caller(session, structures, _from_tool=True, **tool_settings)
+            dock_prep_info = {
+                'structures': None,
+                'process name': 'dock prep',
+                'callback': callback
+            }
         self.dock_prep_info = dock_prep_info
 
         from chimerax.ui import MainToolWindow
@@ -62,6 +71,9 @@ class DockPrepTool(ToolInstance):
         self.del_ions_button = QCheckBox("Delete non-complexed ions")
         self.del_ions_button.setChecked(settings.del_ions)
         layout.addWidget(self.del_ions_button, alignment=Qt.AlignLeft)
+        self.del_alt_locs_button = QCheckBox("Delete non-current alternate locations")
+        self.del_alt_locs_button.setChecked(settings.del_alt_locs)
+        layout.addWidget(self.del_alt_locs_button, alignment=Qt.AlignLeft)
         self.standardize_button = QCheckBox('"Standardize" certain residue types:')
         self.standardize_button.setChecked(bool(settings.standardize_residues))
         layout.addWidget(self.standardize_button)
@@ -137,6 +149,7 @@ class DockPrepTool(ToolInstance):
         params = {
             'del_solvent': self.del_solvent_button.isChecked(),
             'del_ions': self.del_ions_button.isChecked(),
+            'del_alt_locs': self.del_alt_locs_button.isChecked(),
             'standardize_residues': standardizable_residues if self.standardize_button.isChecked() else [],
             'complete_side_chains': sc_val,
             'ah': self.add_hyds_button.isChecked(),
