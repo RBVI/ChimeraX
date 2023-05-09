@@ -1,5 +1,4 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
-
 # === UCSF ChimeraX Copyright ===
 # Copyright 2023 Regents of the University of California.
 # All rights reserved.  This software provided pursuant to a
@@ -12,8 +11,10 @@
 # === UCSF ChimeraX Copyright ===
 import logging
 import os
+import json
 from pathlib import Path
 import string
+import datetime
 
 from collections import defaultdict
 from typing import List, Dict
@@ -55,40 +56,68 @@ you use, hit 'OK' to close this dialog and continue. If you do not agree, please
 """
     @staticmethod
     def get_collections(session = None):
-        collections = nbia.getCollections()
-        collection_descs = nbia.getCollectionDescriptions()
+        from chimerax import app_dirs # noqa
+        tcia_cache_dir = os.path.join(app_dirs.user_cache_dir, "dicom")
+        if not os.path.exists(tcia_cache_dir):
+            Path(tcia_cache_dir).mkdir(parents=True, exist_ok=True)
+        collections_cache_file = os.path.join(tcia_cache_dir, "tcia_collections")
+        need_to_cache = False
+        if not os.path.exists(collections_cache_file):
+            need_to_cache = True
+        else:
+            time = os.path.getmtime(collections_cache_file)
+            last_mod_date = datetime.datetime.fromtimestamp(time).strftime("%Y/%m/%d")
+            today = datetime.datetime.now().strftime("%Y/%m/%d")
+            last_mod_date_is_today = (last_mod_date == today)
+            if not last_mod_date_is_today:
+                new_collections = nbia.getUpdatedSeries(last_mod_date)
+                if new_collections and not last_mod_date_is_today:
+                    need_to_cache = True
+        if not need_to_cache:
+            with open(collections_cache_file, "r") as f:
+                collections_dict = json.loads(f.read())
+            session.ui.thread_safe(session.logger.status, f"Loaded TCIA collections using cached data")
+        else:
+            collections = nbia.getCollections()
+            collection_descs = nbia.getCollectionDescriptions()
 
-        uris = defaultdict(str)
-        collections_dict = defaultdict(dict)
-        for entry in collection_descs:
-            uris[entry['collectionName']] = entry['descriptionURI']
-        for entry in collections:
-            name = entry['Collection']
-            collections_dict[name] = {
-                'name': name
-                , 'url': uris.get(name, '')
-            }
-        # Now get modalities, species, etc
-        num_collections = len(collections)
-        failed_to_fetch = False
-        for index, collection in enumerate(collections_dict):
-            if session:
-                session.ui.thread_safe(session.logger.status, f"Loading collection {index+1}/{num_collections}")
-            data = nbia.getSimpleSearchWithModalityAndBodyPartPaged(collection=collection)
-            if data:
-                collections_dict[collection]['patients'] = data['totalPatients']
-                collections_dict[collection]['body_parts'] = [string.capwords(x['value']) for x in data['bodyParts']]
-                collections_dict[collection]['modalities'] = [m['value'] for m in data['modalities']]
-                species_list = []
-                if data.get('species', []) is not None:
-                    for species in data.get('species', []):
-                        id = species['value']
-                        species_list.append(NPEXSpecies.get(id, id))
-                collections_dict[collection]['species'] = species_list
+            uris = defaultdict(str)
+            collections_dict = defaultdict(dict)
+            for entry in collection_descs:
+                uris[entry['collectionName']] = entry['descriptionURI']
+            for entry in collections:
+                name = entry['Collection']
+                collections_dict[name] = {
+                    'name': name
+                    , 'url': uris.get(name, '')
+                }
+            # Now get modalities, species, etc
+            num_collections = len(collections)
+            failed_to_fetch = False
+            for index, collection in enumerate(collections_dict):
+                if session:
+                    session.ui.thread_safe(session.logger.status, f"Loading collection {index+1}/{num_collections}")
+                data = nbia.getSimpleSearchWithModalityAndBodyPartPaged(collection=collection)
+                if data:
+                    try:
+                        collections_dict[collection]['patients'] = data['totalPatients']
+                        collections_dict[collection]['body_parts'] = [string.capwords(x['value']) for x in data['bodyParts']]
+                        collections_dict[collection]['modalities'] = [m['value'] for m in data['modalities']]
+                        species_list = []
+                        if data.get('species', []) is not None:
+                            for species in data.get('species', []):
+                                id = species['value']
+                                species_list.append(NPEXSpecies.get(id, id))
+                        collections_dict[collection]['species'] = species_list
+                    except KeyError:
+                        failed_to_fetch = True
+                else:
+                    failed_to_fetch = True
+            if failed_to_fetch:
+                session.ui.thread_safe(session.logger.warning, "Failed to fetch some collections' metadata; won't cache these results.")
             else:
-                failed_to_fetch = True
-        if failed_to_fetch:
-            session.ui.thread_safe(session.logger.warning, "Failed to fetch some collections' metadata")
+                with open(collections_cache_file, 'w') as f:
+                    f.write(json.dumps(collections_dict))
         return collections_dict.values()
 
     @staticmethod
