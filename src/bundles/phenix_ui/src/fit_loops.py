@@ -225,8 +225,9 @@ def _run_fit_loops_subprocess(session, exe_path, optional_args, map_filename, mo
     '''
     Run fit_loops in a subprocess and return the model with predicted waters.
     '''
+    output_file = "fl_out.pdb"
     args = [exe_path] + optional_args + [f"map_in={map_filename}", f"pdb_in={model_filename}",
-        f"seq_file={seq_filename}", f"nproc={processors}"] + positional_args
+        f"seq_file={seq_filename}", f"nproc={processors}", f"pdb_out={output_file}"] + positional_args
     if start_res_number is not None:
         args += [f"start={start_res_number}"]
     if end_res_number is not None:
@@ -269,12 +270,8 @@ def _run_fit_loops_subprocess(session, exe_path, optional_args, map_filename, mo
 
     # Open new model with added loops
     from os import path, listdir
-    for suffix in range(1,10):
-        output_file = f'fit_loops_{suffix}.pdb'
-        output_path = path.join(temp_dir, output_file)
-        if path.exists(output_path):
-            break
-    else:
+    output_path = path.join(temp_dir, output_file)
+    if not path.exists(output_path):
         cmd = " ".join(args)
         out, err = p.stdout.decode("utf-8"), p.stderr.decode("utf-8")
         msg = f'<pre><b>Command</b>:\n\n{cmd}\n\n<b>stdout</b>:\n\n{out}'
