@@ -254,9 +254,9 @@ class DICOMDatabases(ToolInstance):
         self.worker = DatabaseWorker(self.session, self.available_dbs.currentText(), action)
         self.worker.moveToThread(self.thread)
         self.thread.started.connect(self.worker.run)
+        self.thread.finished.connect(self.thread.deleteLater)
         self.worker.finished.connect(self.thread.quit)
-        self.worker.finished.connect(self.thread.deleteLater)
-        self.thread.finished.connect(self.worker.deleteLater)
+        self.worker.finished.connect(self.worker.deleteLater)
 
     def _on_database_changed(self):
         self._allocate_thread_and_worker(Action.LOAD_COLLECTIONS)
