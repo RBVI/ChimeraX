@@ -311,6 +311,8 @@ class PseudobondGroup(PseudobondGroupData, Model):
     def restore_snapshot(session, data):
         if data['structure'] is not None:
             grp = data['structure'].pseudobond_group(data['category'], create_type=None)
+            # Handle case where the pseudobond group is not a child of the structure. Ticket #8853
+            data['structure'].remove_drawing(grp, delete=False)
         else:
             grp = session.pb_manager.get_group(data['category'], create=False)
         if 'model state' in data:
