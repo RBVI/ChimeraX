@@ -108,6 +108,7 @@ class DICOMDatabases(ToolInstance):
         self.control_layout.addStretch()
         self.dataset_highlighted_label = QLabel("For chosen entries:")
         self.load_webpage_button = QPushButton("Load Webpage")
+        self.load_webpage_button.setEnabled(False)
         self.refine_dataset_button = QPushButton("Drill Down to Studies")
         self.control_layout.addWidget(self.dataset_highlighted_label)
         self.control_layout.addWidget(self.load_webpage_button)
@@ -132,6 +133,7 @@ class DICOMDatabases(ToolInstance):
         self.database_entries.add_column("Body Parts", lambda x: x.body_parts, show_tooltips = True)
         self.database_entries.add_column("Species", lambda x: x.species, show_tooltips = True)
         self.database_entries.add_column("Modalities", lambda x: x.modalities, show_tooltips = True)
+        self.database_entries.selection_changed.connect(self._on_main_table_selections_changed)
 
         self.interface_stack.addWidget(self.database_entries_container)
 
@@ -248,6 +250,11 @@ class DICOMDatabases(ToolInstance):
         for selection in selections:
             if selection.url is not None:
                 show_url(self.session, selection.url, new_tab=True)
+
+    def _on_main_table_selections_changed(self, *args):
+        selections, _ = args
+        if len(selections) > 0:
+            self.load_webpage_button.setEnabled(True)
 
     def _allocate_thread_and_worker(self, action: Action):
         self.thread = QThread()
