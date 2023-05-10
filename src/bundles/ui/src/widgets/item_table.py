@@ -70,7 +70,7 @@ class QCxTableModel(QAbstractTableModel):
                 return Qt.Checked if val else Qt.Unchecked
             return None
         if role == Qt.ItemDataRole.ToolTipRole and col.show_tooltips:
-            return col.data_fetch(item)
+            return col.display_value(item)
         return None
 
     def flags(self, index):
