@@ -283,8 +283,15 @@ class DICOMDatabases(ToolInstance):
         ]
 
     def delete(self):
-        if self.thread is not None and self.thread.isRunning():
-            self.thread.terminate()
+        try:
+            self.worker.blockSignals(True)
+        except RuntimeError:
+            pass  # The underlying C++ object has already been deleted by DeleteLater
+        try:
+            if self.thread is not None and self.thread.isRunning():
+                self.thread.exit()
+        except RuntimeError:
+            pass # The underlying C++ object has already been deleted by DeleteLater
         super().delete()
 
     def _on_main_table_double_clicked(self, items):
