@@ -198,8 +198,11 @@ class ImageJ_Pixels:
         with TiffFile(self.path) as tif:
             a = tif.asarray(key = plist)
 
-        if a.ndim == 4:
-            a = a[:,:,:,color_component]
+        if self.ncolors > 1:
+            if a.ndim == 4:
+                a = a[:,:,:,color_component]
+            elif a.ndim == 3 and len(plist) == 1:
+                a = a[:,:,color_component].reshape((1,) + tuple(a.shape[:2]))
         elif a.ndim == 2:
             a = a.reshape((1,) + tuple(a.shape))	# Make single-plane 3d
             
