@@ -69,6 +69,8 @@ class QCxTableModel(QAbstractTableModel):
                 val = col.display_value(item)
                 return Qt.Checked if val else Qt.Unchecked
             return None
+        if role == Qt.ItemDataRole.ToolTipRole and col.show_tooltips:
+            return col.data_fetch(item)
         return None
 
     def flags(self, index):
@@ -333,7 +335,7 @@ class ItemTable(QTableView):
 
     def add_column(self, title, data_fetch, *, format="%s", data_set=None, display=None, title_display=True,
             justification="center", balloon=None, font=None, refresh=True, color=None,
-            header_justification=None, icon=None, editable=False, validator=None, sort_func=None):
+            header_justification=None, icon=None, editable=False, validator=None, sort_func=None, show_tooltips=False):
         """ Add a column who's header text is 'title'.  It is allowable to add a column with the
             same title multiple times.  The duplicative additions will be ignored.
 
@@ -427,7 +429,7 @@ class ItemTable(QTableView):
             header_justification = justification if justification != "decimal" else "right"
 
         c = _ItemColumn(title, data_fetch, format, data_set, title_display, justification, font, color,
-            header_justification, balloon, icon, self._session, editable, validator, sort_func)
+            header_justification, balloon, icon, self._session, editable, validator, sort_func, show_tooltips)
 
         if self._column_control_info:
             self._add_column_control_entry(c)
@@ -729,7 +731,7 @@ class ItemTable(QTableView):
 
 class _ItemColumn:
     def __init__(self, title, data_fetch, display_format, data_set, title_display, justification, font,
-            color, header_justification, balloon, icon, session, editable, validator, sort_func):
+            color, header_justification, balloon, icon, session, editable, validator, sort_func, show_tooltips):
         # set all args to corresponding 'self' attributes...
         import inspect
         args, varargs, keywords, locals = inspect.getargvalues(inspect.currentframe())
