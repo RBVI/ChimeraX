@@ -197,6 +197,7 @@ class OrthoplaneGraphicsWindow(QWindow):
                 if self.axis == Axis.SAGGITAL:
                     new_orthoplane_positions = self.pos, old_orthoplane_positions[1], old_orthoplane_positions[2]
                 self.view.drawing.parent.set_parameters(orthoplane_positions=new_orthoplane_positions)
+                self.view.drawing.parent.update_drawings()
                 self.slider_moved = False
             bounds = self.view.drawing.bounds()
             # We use these offsets to align the camera to the actual center of the orthoplanes
