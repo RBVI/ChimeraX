@@ -126,17 +126,18 @@ class OrthoplaneGraphicsWindow(QWindow):
         if self.axis == Axis.CORONAL:
             self.old_pos = -self.pos
             self.pos = -self.slider.sliderPosition()
+            diff = self.old_pos + self.pos
         else:
             self.old_pos = self.pos
             self.pos = self.slider.sliderPosition()
+            diff = self.pos - self.old_pos
         self.slider_moved = True
-        #diff = self.pos - self.old_pos
-        #if self.axis == Axis.AXIAL:
-        #    self.camera_offset -= diff * self.view.drawing.parent.data.step[2]
-        #if self.axis == Axis.CORONAL:
-        #    self.camera_offset += diff * self.view.drawing.parent.data.step[1]
-        #if self.axis == Axis.SAGGITAL:
-        #    self.camera_offset -= diff * self.view.drawing.parent.data.step[0]
+        if self.axis == Axis.AXIAL:
+            self.camera_offset -= diff * self.view.drawing.parent.data.step[2]
+        if self.axis == Axis.CORONAL:
+            self.camera_offset += diff * self.view.drawing.parent.data.step[1]
+        if self.axis == Axis.SAGGITAL:
+            self.camera_offset -= diff * self.view.drawing.parent.data.step[0]
         self.view.camera.redraw_needed = True
 
     def close(self):
@@ -226,47 +227,20 @@ class OrthoplaneGraphicsWindow(QWindow):
             loc.bottom = .05 * height
             loc.top = .95 * height
             ratio = math.tan(0.5 * 30)
-            #if self.moving:
-            #    eye = self.view.win_coord(0, 0, 0)
-            #    eye[2] = 0
-            #    loc.eye = eye
-            #elif ratio * width / 1.1 < .45 * height:
-            #    loc.eye = array(
-            #        [.05 / 1.1 * width, height / 2, 0],
-            #        dtype=float32
-            #        )
-            #else:
             loc.eye = array(loc.eye)
 
             sr = self.segmentation_radius
-            #v = array(
-            #    [
-            #        loc.eye + [-sr, -sr, 0],
-            #        loc.eye + [-sr, sr, 0],
-            #        loc.eye + [sr, sr, 0],
-            #        loc.eye + [sr, -sr, 0],
-            #    ], dtype=float32
-            #)
             v, t = self._circle_geometry()
             vc = array([[255, 0, 0, 255]] * len(v), dtype=uint8)
             ps = self.view.render.pixel_scale()
             v *= ps
-            #t = array(
-            #    [
-            #        [0, 1], [1, 2], [2, 3], [3, 0],  # eye box
-            #    ], dtype=int32
-            #)
             self.segmentation_overlay.set_geometry(v, None, t)
             self.segmentation_overlay.vertex_colors = vc
 
             self.view.prepare_scene_for_drawing()
             self.view._draw_scene(self.view.camera, [self.view.drawing])
             self.view.finalize_draw()
-            # if has_string_marker:
-            #     text = b"End SideView"
-            #     string_marker.glStringMarkerGREMEDY(len(text), text)
             self.view.drawing.display = old_disp_val
-            # self.view.drawing._rendering_options.orthoplanes_shown = (True, True, True)
         except Exception as e:
             # This line is here so you can set a breakpoint on it and figure out what's going wrong
             # because ChimeraX's interface will not tell you.
