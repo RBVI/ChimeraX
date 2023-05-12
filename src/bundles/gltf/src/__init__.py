@@ -49,6 +49,7 @@ class _gltfBundle(BundleAPI):
                         'float_colors': BoolArg,
                         'models': ModelsArg,
                         'preserve_transparency': BoolArg,
+                        'prune_vertex_colors': BoolArg,
                         'short_vertex_indices': BoolArg,
                         'texture_colors': BoolArg,
                         'metallic_factor': FloatArg,

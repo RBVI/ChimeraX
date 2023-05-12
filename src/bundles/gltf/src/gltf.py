@@ -414,7 +414,8 @@ def colors_to_uint8(vc):
 def write_gltf(session, filename = None, models = None,
                center = True, size = None, short_vertex_indices = False,
                float_colors = False, preserve_transparency = True,
-               texture_colors = False, instancing = False,
+               texture_colors = False, prune_vertex_colors = True,
+               instancing = False,
                metallic_factor = 0, roughness_factor = 1):
     if models is None:
         models = session.models.list()
@@ -425,7 +426,7 @@ def write_gltf(session, filename = None, models = None,
     materials = Materials(buffers, preserve_transparency, float_colors,
                           texture_colors, metallic_factor, roughness_factor)
     nodes, meshes = nodes_and_meshes(drawings, buffers, materials,
-                                     short_vertex_indices,
+                                     short_vertex_indices, prune_vertex_colors,
                                      instancing)
 
     if center is True:
@@ -575,14 +576,14 @@ def any_triangles_shown(d, drawings, ts):
 # Expand drawing instances into nodes and meshes.
 #
 def nodes_and_meshes(drawings, buffers, materials,
-                     short_vertex_indices = False,
+                     short_vertex_indices = False, prune_vertex_colors = True,
                      leaf_instancing = False):
 
     # Create tree of nodes with children and matrices set.
     nodes, drawing_nodes = node_tree(drawings, leaf_instancing)
 
     # Create meshes for nodes.
-    meshes = Meshes(buffers, materials, short_vertex_indices, leaf_instancing)
+    meshes = Meshes(buffers, materials, short_vertex_indices, prune_vertex_colors, leaf_instancing)
     for drawing, dnodes in drawing_nodes.items():
         if meshes.has_mesh(drawing):
             for node in dnodes:
@@ -671,10 +672,12 @@ def gltf_transform(place):
 # -----------------------------------------------------------------------------
 #
 class Meshes:
-    def __init__(self, buffers, materials, short_vertex_indices = False, leaf_instancing = False):
+    def __init__(self, buffers, materials, short_vertex_indices = False,
+                 prune_vertex_colors = True, leaf_instancing = False):
         self._buffers = buffers
         self._materials = materials
         self._short_vertex_indices = short_vertex_indices
+        self._prune_vertex_colors = prune_vertex_colors
         self._leaf_instancing = leaf_instancing
         self._meshes = {}	# Map Drawing to Mesh.
         self._mesh_specs = []	# List of all mesh specifications
@@ -688,7 +691,8 @@ class Meshes:
         mesh = self._meshes.get(drawing)
         if mesh is None:
             mesh = Mesh(drawing, self._buffers, self._materials,
-                        self._short_vertex_indices, self._leaf_instancing)
+                        self._short_vertex_indices, self._prune_vertex_colors,
+                        self._leaf_instancing)
             self._meshes[drawing] = mesh
         mi = len(self._mesh_specs)
         spec = mesh.specification(instance_color)
@@ -703,12 +707,13 @@ class Meshes:
 #
 class Mesh:
     def __init__(self, drawing, buffers, materials,
-                 short_vertex_indices = False,
+                 short_vertex_indices = False, prune_vertex_colors = True,
                  leaf_instancing = False):
         self._drawing = drawing
         self._buffers = buffers
         self._materials = materials
         self._short_vertex_indices = short_vertex_indices
+        self._prune_vertex_colors = prune_vertex_colors
         self._leaf_instancing = leaf_instancing
         
         self._primitives = None
@@ -736,7 +741,8 @@ class Mesh:
         tex_images = self._texture_images
         for p, prim in enumerate(prims):
             texture_image = tex_images[p % len(tex_images)] if tex_images else None
-            material = materials.material(instance_color, texture_image,
+            material_color = prim.pop('single_vertex_color', instance_color)
+            material = materials.material(material_color, texture_image,
                                           transparent = transparent,
                                           twosided_lighting = twosided_lighting)
             prim['material'] = material.index
@@ -751,11 +757,13 @@ class Mesh:
             return prims
         
         self._primitives = prims = []
-        for vi,ni,ci,tci,ti,mode in self._geometry_buffers():
+        for vi,ni,ci,tci,ti,mode,single_vertex_color in self._geometry_buffers():
             attr = {'POSITION': vi}
             prim = {'attributes': attr,
                     'indices': ti,
                     'mode': mode}
+            if single_vertex_color is not None:
+                prim['single_vertex_color'] = single_vertex_color
             if ni is not None:
                 attr['NORMAL'] = ni
             if ci is not None:
@@ -831,22 +839,34 @@ class Mesh:
         
         vi = b.add_array(va.astype(float32, copy=False), bounds=True)
         ni = b.add_array(na) if na is not None else None
-        if vc is None:
-            ci = None
-        else:
+        ci = None
+        single_vertex_color = None
+        if vc is not None:
             if not mat._preserve_transparency:
                 vc = vc[:,:3]
             if mat._float_vertex_colors:
                 vc = vc.astype(float32)
                 vc /= 255
-            ci = b.add_array(vc, normalized = not mat._float_vertex_colors)
+            if self._prune_vertex_colors:
+                single_vertex_color = _single_vertex_color(vc)
+            if single_vertex_color is None:
+                ci = b.add_array(vc, normalized = not mat._float_vertex_colors)
         tci = b.add_array(tc) if tc is not None else None
         ne = len(ta)
         etype = uint16 if self._short_vertex_indices else uint32
         ea = ta.astype(etype, copy=False).reshape((ta.size,))
         ti = b.add_array(ea)
         mode = _mesh_style(ta)
-        return (vi,ni,ci,tci,ti,mode)
+        return (vi,ni,ci,tci,ti,mode,single_vertex_color)
+    
+# -----------------------------------------------------------------------------
+#
+def _single_vertex_color(vertex_colors):
+    if len(vertex_colors) > 0:
+        color = vertex_colors[0]
+        if (vertex_colors == color).all():
+            return tuple(color)
+    return None
     
 # -----------------------------------------------------------------------------
 #
