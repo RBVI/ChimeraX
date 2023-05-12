@@ -22,6 +22,7 @@ from Qt.QtGui import QWindow, QSurface
 from chimerax.geometry import Place
 from ..graphics import OrthoplaneView
 from chimerax.graphics import MonoCamera, Drawing
+from chimerax.graphics.opengl import GL
 from chimerax.core.models import Surface
 from chimerax.map import Volume, VolumeSurface, VolumeImage
 from chimerax.ui.widgets import ModelMenu
@@ -186,6 +187,8 @@ class OrthoplaneGraphicsWindow(QWindow):
         try:
             # TODO: Set the clip planes for the camera to be very far away. Some DICOMs are huge
             # and require large zoom-outs to get them into view
+            if any(x.devicePixelRatio() >= 2.0 for x in self.session.ui.screens()):
+                GL.glPointSize(3)
             old_disp_val = self.view.drawing.display
             if not old_disp_val:
                 self.view.drawing.display = True
@@ -241,6 +244,7 @@ class OrthoplaneGraphicsWindow(QWindow):
             self.view._draw_scene(self.view.camera, [self.view.drawing])
             self.view.finalize_draw()
             self.view.drawing.display = old_disp_val
+            GL.glPointSize(1)
         except Exception as e:
             # This line is here so you can set a breakpoint on it and figure out what's going wrong
             # because ChimeraX's interface will not tell you.
@@ -251,22 +255,24 @@ class OrthoplaneGraphicsWindow(QWindow):
         self.view.render.done_current()
 
     def _circle_geometry(self):
+        # Bresenham's Algorithm
         def mirror_points_8(x, y):
             return [(x, y), (y, x), (-x, y), (-y, x), (x, -y), (y, -x), (-x, -y), (-y, -x)]
-        sr = self.segmentation_radius
-        v = [None]*(8*(sr+1))
-        for x in range(sr + 1):
-            y = math.isqrt((sr * sr) - (x * x))
-            points = mirror_points_8(x, y)
-            v[x] = points[0]
-            v[x + ((sr + 1) * 1)] = points[1]
-            v[x + ((sr + 1) * 2)] = points[2]
-            v[x + ((sr + 1) * 3)] = points[3]
-            v[x + ((sr + 1) * 4)] = points[4]
-            v[x + ((sr + 1) * 5)] = points[5]
-            v[x + ((sr + 1) * 6)] = points[6]
-            v[x + ((sr + 1) * 7)] = points[7]
+        x = 0
+        y = self.segmentation_radius
+        d = 1 - y
+        v = []
+        v.extend(mirror_points_8(x, y))
+        while y > x:
+            if d < 0:
+                d += 2*x + 3
+            else:
+                d += 2*(x - y) + 5
+                y -= 1
+            x += 1
+            v.extend(mirror_points_8(x, y))
         fv = [self.locations.eye + [vt[0], vt[1], 0] for vt in v]
+        # We don't use this but we must pass t along so compute it anyway
         t = []
         for i in range(0, len(v)):
             t.append([i, i + 1])
