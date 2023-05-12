@@ -357,16 +357,20 @@ class OrthoplaneGraphicsWindow(QWindow):
             self.label.text = d.parent.name
             self.label.update_drawing()
             max_x, max_y, max_z = max_slider_vals = self.view.drawing._region[1]
-            self.orthoplane_positions = self.view.drawing._rendering_options.orthoplane_positions
+            orthoplane_positions = self.view.drawing._rendering_options.orthoplane_positions
             if self.axis == Axis.AXIAL:
                 self.slider.setMaximum(max_z)
-                self.slider.setValue(self.orthoplane_positions[2])
+                self.slider.setValue(orthoplane_positions[2])
+                self.pos = orthoplane_positions[2]
             if self.axis == Axis.CORONAL:
                 self.slider.setRange(-max_y, 0)
-                self.slider.setValue(-self.orthoplane_positions[1])
+                self.slider.setValue(-orthoplane_positions[1])
+                self.pos = orthoplane_positions[1]
             if self.axis == Axis.SAGGITAL:
                 self.slider.setMaximum(max_x)
-                self.slider.setValue(self.orthoplane_positions[0])
+                self.slider.setValue(orthoplane_positions[0])
+                self.pos = orthoplane_positions[0]
+            self.view.camera.redraw_needed = True
 
 
 class SegmentationOverlay(Drawing):
