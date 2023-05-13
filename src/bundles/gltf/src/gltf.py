@@ -838,8 +838,8 @@ class Mesh:
         mat = self._materials
         from numpy import float32, uint32, uint16
         
-        vi = b.add_array(va.astype(float32, copy=False), bounds=True)
-        ni = b.add_array(na) if na is not None and not self._materials.flat_lighting else None
+        vi = b.add_array(va.astype(float32, copy=False), bounds=True, target=b.GLTF_ARRAY_BUFFER)
+        ni = b.add_array(na, target=b.GLTF_ARRAY_BUFFER) if na is not None and not self._materials.flat_lighting else None
         ci = None
         single_vertex_color = None
         if vc is not None:
@@ -851,12 +851,12 @@ class Mesh:
             if self._prune_vertex_colors:
                 single_vertex_color = _single_vertex_color(vc)
             if single_vertex_color is None:
-                ci = b.add_array(vc, normalized = not mat._float_vertex_colors)
+                ci = b.add_array(vc, normalized = not mat._float_vertex_colors, target=b.GLTF_ARRAY_BUFFER)
         tci = b.add_array(tc) if tc is not None else None
         ne = len(ta)
         etype = uint16 if self._short_vertex_indices else uint32
         ea = ta.astype(etype, copy=False).reshape((ta.size,))
-        ti = b.add_array(ea)
+        ti = b.add_array(ea, target=b.GLTF_ELEMENT_ARRAY_BUFFER)
         mode = _mesh_style(ta)
         return (vi,ni,ci,tci,ti,mode,single_vertex_color)
     
@@ -1016,7 +1016,7 @@ class Buffers:
 
     # -----------------------------------------------------------------------------
     #
-    def add_array(self, array, bounds=False, normalized=False):
+    def add_array(self, array, bounds=False, normalized=False, target=None):
 
         a = {}
         a['count'] = array.shape[0]
@@ -1047,19 +1047,29 @@ class Buffers:
         self.accessors.append(a)
 
         b = array.tobytes()
-        a['bufferView'] = self.add_buffer(b)
+        a['bufferView'] = self.add_buffer(b, target=target)
 
         return len(self.accessors) - 1
 
     # -----------------------------------------------------------------------------
+    # Possible bufferView targets.
+    # This is not required by the GLTF spec, but BabylonJS warns when target is not
+    # specified.
     #
-    def add_buffer(self, bytes):
+    GLTF_ARRAY_BUFFER = 34962
+    GLTF_ELEMENT_ARRAY_BUFFER = 34963
+    
+    # -----------------------------------------------------------------------------
+    #
+    def add_buffer(self, bytes, target=None):
         bvi = len(self.buffer_views)
         nb = len(bytes)
         if nb % 4 != 0:
             bytes += b'\0' * (4 - (nb%4))  # byteOffset is required to be multiple of 4
         self.buffer_bytes.append(bytes)
         bv = {"byteLength": nb, "byteOffset": self.nbytes, "buffer": 0}
+        if target is not None:
+            bv["target"] = target
         self.buffer_views.append(bv)
         self.nbytes += len(bytes)
         return bvi
