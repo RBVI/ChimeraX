@@ -416,7 +416,7 @@ def write_gltf(session, filename = None, models = None,
                float_colors = False, preserve_transparency = True,
                texture_colors = False, prune_vertex_colors = True,
                instancing = False,
-               metallic_factor = 0, roughness_factor = 1):
+               metallic_factor = 0, roughness_factor = 1, flat_lighting = False):
     if models is None:
         models = session.models.list()
 
@@ -424,7 +424,8 @@ def write_gltf(session, filename = None, models = None,
 
     buffers = Buffers()
     materials = Materials(buffers, preserve_transparency, float_colors,
-                          texture_colors, metallic_factor, roughness_factor)
+                          texture_colors, metallic_factor, roughness_factor,
+                          flat_lighting)
     nodes, meshes = nodes_and_meshes(drawings, buffers, materials,
                                      short_vertex_indices, prune_vertex_colors,
                                      instancing)
@@ -838,7 +839,7 @@ class Mesh:
         from numpy import float32, uint32, uint16
         
         vi = b.add_array(va.astype(float32, copy=False), bounds=True)
-        ni = b.add_array(na) if na is not None else None
+        ni = b.add_array(na) if na is not None and not self._materials.flat_lighting else None
         ci = None
         single_vertex_color = None
         if vc is not None:
@@ -1073,13 +1074,14 @@ class Buffers:
 class Materials:
     def __init__(self, buffers, preserve_transparency = True, float_vertex_colors = False,
                  convert_vertex_to_texture_colors = False,
-                 metallic_factor = 0, roughness_factor = 1):
+                 metallic_factor = 0, roughness_factor = 1, flat_lighting = False):
         self._materials = []
         self._preserve_transparency = preserve_transparency
         self._float_vertex_colors = float_vertex_colors
         self._convert_vertex_to_texture_colors = convert_vertex_to_texture_colors
         self._metallic_factor = metallic_factor;
         self._roughness_factor = roughness_factor;
+        self.flat_lighting = flat_lighting
         self.textures = Textures(buffers)
 
         self._single_color_materials = {}	# (rgba, transparent, twosided) -> Material, reuse these
