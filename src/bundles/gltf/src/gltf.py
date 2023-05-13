@@ -416,7 +416,8 @@ def write_gltf(session, filename = None, models = None,
                float_colors = False, preserve_transparency = True,
                texture_colors = False, prune_vertex_colors = True,
                instancing = False,
-               metallic_factor = 0, roughness_factor = 1, flat_lighting = False):
+               metallic_factor = 0, roughness_factor = 1,
+               flat_lighting = False, backface_culling = True):
     if models is None:
         models = session.models.list()
 
@@ -425,7 +426,7 @@ def write_gltf(session, filename = None, models = None,
     buffers = Buffers()
     materials = Materials(buffers, preserve_transparency, float_colors,
                           texture_colors, metallic_factor, roughness_factor,
-                          flat_lighting)
+                          flat_lighting, backface_culling)
     nodes, meshes = nodes_and_meshes(drawings, buffers, materials,
                                      short_vertex_indices, prune_vertex_colors,
                                      instancing)
@@ -1084,7 +1085,8 @@ class Buffers:
 class Materials:
     def __init__(self, buffers, preserve_transparency = True, float_vertex_colors = False,
                  convert_vertex_to_texture_colors = False,
-                 metallic_factor = 0, roughness_factor = 1, flat_lighting = False):
+                 metallic_factor = 0, roughness_factor = 1,
+                 flat_lighting = False, backface_culling = True):
         self._materials = []
         self._preserve_transparency = preserve_transparency
         self._float_vertex_colors = float_vertex_colors
@@ -1092,6 +1094,7 @@ class Materials:
         self._metallic_factor = metallic_factor;
         self._roughness_factor = roughness_factor;
         self.flat_lighting = flat_lighting
+        self._backface_culling = backface_culling
         self.textures = Textures(buffers)
 
         self._single_color_materials = {}	# (rgba, transparent, twosided) -> Material, reuse these
@@ -1102,6 +1105,8 @@ class Materials:
         if not self._preserve_transparency:
             a = 255
         c = (r,g,b,a)
+        if not self._backface_culling:
+            twosided_lighting = True
         if texture_image is None:
             ctt = (c, transparent, twosided_lighting)
             m = self._single_color_materials.get(ctt, None)

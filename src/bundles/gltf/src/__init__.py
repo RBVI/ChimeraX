@@ -55,6 +55,7 @@ class _gltfBundle(BundleAPI):
                         'metallic_factor': FloatArg,
                         'roughness_factor': FloatArg,
                         'flat_lighting': BoolArg,
+                        'backface_culling': BoolArg,
                         'instancing': BoolArg,
                         'size': FloatArg,
                     }
