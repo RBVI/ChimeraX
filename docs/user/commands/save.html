@@ -1008,9 +1008,12 @@ Example:
 [&nbsp;<b>size</b>&nbsp;&nbsp;<i>s</i>&nbsp;]
 [&nbsp;<b>shortVertexIndices</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>floatColors</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>pruneVertexColors</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>textureColors</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>preserveTransparency</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>instancing</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>backfaceCulling</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>flatLighting</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>metallicFactor</b>&nbsp;&nbsp;<i>f<sub>m</sub></i>&nbsp;]
 [&nbsp;<b>roughnessFactor</b>&nbsp;&nbsp;<i>f<sub>r</sub></i>&nbsp;]
 </blockquote>
@@ -1049,6 +1052,16 @@ Whether vertex indices in the exported file must fit within 16 bits
 Whether to use floating-point color values.
 </blockquote>
 <blockquote>
+<b>pruneVertexColors</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
+<br>
+Whether to omit vertex colors from the file if an object is all in one color.
+Specifically, if <b>true</b> (default): if all ribbon segments of
+an atomic model are the same color, the ribbons object will not have vertex
+colors; similarly, if all bonds (or atoms, or all parts of a surface, <i>etc.</i>)
+are the same color, the bonds (or atoms, or surface, <i>etc.</i>) object 
+will not have vertex colors.
+</blockquote>
+<blockquote>
 <b>textureColors</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
 <br>
 Whether to write texture colors instead of vertex colors. 
@@ -1082,6 +1095,18 @@ Instancing is always used for <a href="sym.html#copies">graphical clones</a>
 created with <a href="sym.html"><b>sym</b></a> regardless of this option.
 </blockquote>
 <blockquote>
+<b>backfaceCulling</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
+<br>
+Whether to omit the back sides of surfaces for smaller file size and faster 
+rendering. Setting this to <b>false</b> allows viewing surfaces from the inside.
+</blockquote>
+<blockquote>
+<b>flatLighting</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>
+Whether to omit vertex normal vectors from the file. Omitting the normal vectors 
+results in each triangle being flat-shaded, giving a faceted appearance.
+</blockquote>
+<blockquote>
 <b>metallicFactor</b>&nbsp;&nbsp;<i>f<sub>m</sub></i>
 <br>
 Write the specified metallic factor <i>f<sub>m</sub></i>
@@ -1096,5 +1121,5 @@ Write the specified roughness factor <i>f<sub>r</sub></i>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-April 2023</address>
+May 2023</address>
 </body></html>
