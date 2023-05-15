@@ -11,6 +11,7 @@
 # === UCSF ChimeraX Copyright ===
 import math
 from numpy import array, float32, uint8, int32
+import numpy as np
 
 from Qt.QtCore import Qt
 from Qt.QtWidgets import (
@@ -81,7 +82,7 @@ class OrthoplaneGraphicsWindow(QWindow):
         self.view.background_color = (255, 255, 255, 255)
         self.panel = panel
         self.main_view = session.main_view
-        self.camera_offset = 0
+        self.camera_offsets = [0, 0, 0]
         self.label = Label(self.session, self.view, str(axis), str(axis), size=16, xpos=0, ypos=0)
         self.segmentation_slices = {}
 
@@ -121,16 +122,16 @@ class OrthoplaneGraphicsWindow(QWindow):
             diff = self.pos - self.old_pos
         self.slider_moved = True
         if self.axis == Axis.AXIAL:
-            # TODO:
-            # Should be += for
-            # TCIA 1.3.6.1.4.1.14519.5.2.1.9823.8001.261945230427010055188145090112
-            # and -= for RIDER CT
-            # Why?
-            self.camera_offset += diff * self.view.drawing.parent.data.step[2]
+            # TODO: Convert this object to use the Volume and not the VolumeImage?
+            # TODO: Add an API to Volume and Grid to get underlying data?
+            # TODO: DICOM, NRRD, and NIfTI need mutually compatible methods
+            if self.view.drawing.parent.data.dicom_data.inferior_to_superior:
+                diff = -diff
+            self.camera_offsets[2] += diff * self.view.drawing.parent.data.step[2]
         if self.axis == Axis.CORONAL:
-            self.camera_offset += diff * self.view.drawing.parent.data.step[1]
+            self.camera_offsets[1] += diff * self.view.drawing.parent.data.step[1]
         if self.axis == Axis.SAGGITAL:
-            self.camera_offset -= diff * self.view.drawing.parent.data.step[0]
+            self.camera_offsets[0] -= diff * self.view.drawing.parent.data.step[0]
         self.view.camera.redraw_needed = True
 
     def close(self):
@@ -187,19 +188,14 @@ class OrthoplaneGraphicsWindow(QWindow):
             # TODO: If the user selects 'surface' then 'orthoplanes' in the volume viewer we should
             # override the default plane locations somehow
             if self.slider_moved:
-                new_orthoplane_positions = old_orthoplane_positions = self.view.drawing._rendering_options.orthoplane_positions
-                if self.axis == Axis.AXIAL:
-                    new_orthoplane_positions = old_orthoplane_positions[0], old_orthoplane_positions[1], self.pos
-                if self.axis == Axis.CORONAL:
-                    new_orthoplane_positions = old_orthoplane_positions[0], self.pos, old_orthoplane_positions[2]
-                if self.axis == Axis.SAGGITAL:
-                    new_orthoplane_positions = self.pos, old_orthoplane_positions[1], old_orthoplane_positions[2]
-                self.view.drawing.parent.set_parameters(orthoplane_positions=new_orthoplane_positions)
+                orthoplane_positions = list(self.view.drawing._rendering_options.orthoplane_positions)
+                orthoplane_positions[self.axis.value] = self.pos
+                self.view.drawing.parent.set_parameters(orthoplane_positions=orthoplane_positions)
                 self.view.drawing.parent.update_drawings()
                 self.slider_moved = False
             bounds = self.view.drawing.bounds()
             # We use these offsets to align the camera to the actual center of the orthoplanes
-            x_offset, y_offset, z_offset = bounds.center()
+            model_x_offset, model_y_offset, model_z_offset = bounds.center()
             x_size, y_size, z_size = bounds.size()
             x_max, y_max, z_max = bounds.xyz_max
             cameraView = 2 * math.tan(0.5 * math.radians(self.view.camera.field_of_view))
@@ -216,24 +212,29 @@ class OrthoplaneGraphicsWindow(QWindow):
                 , z_size * cameraDistance / cameraView
             ]
             # Set initial camera view
+            camera_x_offset, camera_y_offset, camera_z_offset = self.camera_offsets
+            self.origin = self.view.drawing.position.origin()
             if self.axis == Axis.AXIAL:
-                self.origin = self.view.drawing.position.origin() + [x_offset, y_offset, z_offset + z_apparent - self.camera_offset]
+                self.origin += [
+                     model_x_offset + camera_x_offset
+                    , model_y_offset + camera_y_offset
+                    , model_z_offset + (z_apparent - camera_z_offset)
+                ]
             elif self.axis == Axis.CORONAL:
-                self.origin = self.view.drawing.position.origin() + [x_offset, -y_offset - (y_apparent - self.camera_offset), z_offset]
+                self.origin += [
+                    model_x_offset + camera_x_offset
+                    , model_y_offset - (y_apparent - camera_y_offset)
+                    , model_z_offset + camera_z_offset
+                ]
             else:
-                self.origin = self.view.drawing.position.origin() + [x_offset + x_apparent - self.camera_offset, y_offset, z_offset]
+                self.origin += [
+                     model_x_offset + (x_apparent - camera_x_offset)
+                    , model_y_offset + camera_y_offset
+                    , model_z_offset + camera_z_offset
+                ]
             camera = self.view.camera
             camera.position = Place(axes=self.axes, origin=self.origin)
-            #loc = self.locations
-            #loc.eye = array(loc.eye)
-
-            #v, t = self._circle_geometry()
-            #vc = array([[255, 0, 0, 255]] * len(v), dtype=uint8)
-            #ps = self.view.render.pixel_scale()
-            #v *= ps
-            #self.segmentation_overlay.set_geometry(v, None, t)
-            #self.segmentation_overlay.vertex_colors = vc
-            self.segmentation_overlay._update()
+            self.segmentation_overlay.update()
 
             self.view.prepare_scene_for_drawing()
             self.view._draw_scene(self.view.camera, [self.view.drawing])
@@ -248,35 +249,6 @@ class OrthoplaneGraphicsWindow(QWindow):
             # Target opengl context back to main graphics window.
             self.main_view.render.use_shared_context(mvwin)
         self.view.render.done_current()
-
-    def _circle_geometry(self):
-        # Bresenham's Algorithm
-        def mirror_points_8(x, y):
-            return [(x, y), (y, x), (-x, y), (-y, x), (x, -y), (y, -x), (-x, -y), (-y, -x)]
-        x = 0
-        y = self.segmentation_overlay.radius
-        d = 1 - y
-        v = []
-        v.extend(mirror_points_8(x, y))
-        while y > x:
-            if d < 0:
-                d += 2*x + 3
-            else:
-                d += 2*(x - y) + 5
-                y -= 1
-            x += 1
-            v.extend(mirror_points_8(x, y))
-        fv = [self.locations.eye + [vt[0], vt[1], 0] for vt in v]
-        # We don't use this but we must pass t along so compute it anyway
-        t = []
-        for i in range(0, len(v)):
-            t.append([i, i + 1])
-        t[0][1] = 0
-        t[-1][1] = 0
-        fv = array(fv, dtype=float32)
-        t = array(t, dtype=int32)
-        return fv, t
-
 
     def mousePressEvent(self, event):  # noqa
         b = event.button() | event.buttons()
@@ -296,26 +268,16 @@ class OrthoplaneGraphicsWindow(QWindow):
         b = event.button() | event.buttons()
         if b & Qt.MouseButton.LeftButton:
             self.segmentation_overlay.center = (2 * event.position().x(), 2*(self.view.window_size[1] - event.position().y()), 0)
-            self.segmentation_overlay._update()
+            self.segmentation_overlay.update()
             self.view.camera.redraw_needed = True
         self.last_mouse_position = None
 
     def wheelEvent(self, event):
         modifier = event.modifiers()
         if modifier == Qt.KeyboardModifier.ShiftModifier:
-            if event.angleDelta().x() < 0:
-                self.segmentation_overlay.radius += 1
-            elif event.angleDelta().x() > 0:
-                self.segmentation_overlay.radius -= 1
+            self.segmentation_overlay.radius += 1 * np.sign(event.angleDelta().y())
         elif modifier == Qt.KeyboardModifier.NoModifier:
-            old_offset = self.camera_offset
-            if event.angleDelta().y() < 0:
-                self.camera_offset -= 15
-            elif event.angleDelta().y() > 0:
-                self.camera_offset += 15
-            diff_z = old_offset - self.camera_offset
-            shift = self.view.camera.position.transform_vector((0, 0, diff_z * 4 * self.view.pixel_size()))
-            self.view.translate(shift)
+            self.camera_offsets[self.axis.value] += 15 * np.sign(event.angleDelta().y())
         self.view.camera.redraw_needed = True
 
     def mouseMoveEvent(self, event):  # noqa
@@ -323,11 +285,11 @@ class OrthoplaneGraphicsWindow(QWindow):
         # Level or segment
         if b == Qt.MouseButton.NoButton or b == Qt.MouseButton.LeftButton:
             self.segmentation_overlay.center = (2 * event.position().x(), 2* (self.view.window_size[1] - event.position().y()), 0)
-            self.segmentation_overlay._update()
+            self.segmentation_overlay.update()
             self.view.camera.redraw_needed = True
             return
-        # Zoom
-        if b & Qt.MouseButton.RightButton or b & Qt.MouseButton.MiddleButton:
+        # Zoom / Dolly
+        if b & Qt.MouseButton.RightButton:
             x, y = event.position().x(), event.position().y()
             if not self.last_mouse_position:
                 dy = 0
@@ -335,8 +297,26 @@ class OrthoplaneGraphicsWindow(QWindow):
                 dy = y - self.last_mouse_position[1]
             psize = self.view.pixel_size()
             self.last_mouse_position = [x, y]
-            self.camera_offset += (-dy * psize) * 3
+            self.camera_offsets[self.axis.value] += (-dy * psize) * 3
             self.view.camera.redraw_needed = True
+        # Truck & Pedestal
+        if b & Qt.MouseButton.MiddleButton:
+            x, y = event.position().x(), event.position().y()
+            psize = self.view.pixel_size()
+            if not self.last_mouse_position:
+                dx = 0
+                dy = 0
+            else:
+                dx = (x - self.last_mouse_position[0]) * psize
+                dy = (y - self.last_mouse_position[1]) * psize
+            self.last_mouse_position = [x, y]
+            x, y, z = self.camera_offsets
+            if self.axis == Axis.AXIAL:
+                self.camera_offsets = [x + dx, y - dy, z]
+            if self.axis == Axis.CORONAL:
+                self.camera_offsets = [x - dx, y, z + dy]
+            if self.axis == Axis.SAGGITAL:
+                self.camera_offsets = [x, y - dx, z + dy]
 
     # def touchEvent(self, event):
     #     pass
@@ -406,7 +386,7 @@ class SegmentationOverlay(Drawing):
     def radius(self, radius):
         self._radius = radius
 
-    def _update(self):
+    def update(self):
         vc, v, _, t = self._geometry()
         self.set_geometry(v, _, t)
         self.vertex_colors = vc

@@ -731,6 +731,17 @@ class DicomData:
             z_axis[2] = 1
         return z_axis
 
+    @property
+    def inferior_to_superior(self):
+        if len(self.files) == 1:
+            return False
+        # neg1 < neg2 < 0
+        if self.files[0].position[2] > self.files[1].position[2]:
+            return False
+        # 0 < pos1 < pos 2
+        else:
+            return True
+
     def pixel_spacing(self):
         affine = self.affine
         x_vector = [affine[0][0], affine[1][0], affine[2][0]]
