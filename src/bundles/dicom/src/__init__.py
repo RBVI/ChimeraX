@@ -14,12 +14,10 @@ __version__ = "1.2"
 from chimerax.core.toolshed import BundleAPI
 from chimerax.map import add_map_format
 from chimerax.core.tools import get_singleton
-
 from .dicom import (
     DICOMMapFormat, DicomOpener, fetchers,
     DICOMBrowserTool, DICOMDatabases
 )
-
 
 class _DICOMBundle(BundleAPI):
     api_version = 1
@@ -33,6 +31,9 @@ class _DICOMBundle(BundleAPI):
     def start_tool(session, bi, ti):
         if ti.name == "DICOM Browser":
             return get_singleton(session, DICOMBrowserTool, "DICOM Browser")
+        elif ti.name == "Segmentations":
+            from .ui.segmentations import SegmentationTool
+            return SegmentationTool(session)
         else:
             return DICOMDatabases(session)
 

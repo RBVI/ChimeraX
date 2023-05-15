@@ -60,6 +60,10 @@ description = "View the metadata of a patient's DICOM files"
 category = "Medical Imaging"
 description = "View the contents of public DICOM datasets from within ChimeraX"
 
+[chimerax.tool."Segmentations"]
+category = "Medical Imaging"
+description = "Interactively segment medical images"
+
 [chimerax.command."dicom view"]
 category = "Medical Imaging"
 description = "See medical images in a 4-panel viewer"
