@@ -436,6 +436,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         self._main_view = self._backup_main_view
         self._stack.addWidget(g.widget)
         self.rapid_access = QWidget(self._stack)
+        self.view_layout = "default"
         ra_bg_color = "#B8B8B8"
         font_size = 96
         new_user_text = [
@@ -548,6 +549,7 @@ class MainWindow(QMainWindow, PlainTextLog):
 
     def restore_default_main_view(self):
         self.main_view = self._backup_main_view
+        self.view_layout = "default"
 
     def graphicsArea(self) -> QWidget:
         return self.graphics_window.widget
