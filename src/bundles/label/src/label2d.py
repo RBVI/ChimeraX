@@ -577,7 +577,8 @@ class LabelModel(Model):
         self.label.delete()
         
     def draw(self, renderer, draw_pass):
-        self._update_graphics(renderer)
+        if self._update_graphics(renderer):
+            self.session.main_view.clear_drawing_changes()  # Avoid redrawing every frame.
         Model.draw(self, renderer, draw_pass)
 
     def _update_graphics(self, renderer):
@@ -618,6 +619,10 @@ class LabelModel(Model):
             self._position_label_image()
         elif self.label.is_scalebar:
             self._position_label_image()
+        else:
+            return False
+
+        return True
 
     def _update_label_image(self):
         l = self.label
