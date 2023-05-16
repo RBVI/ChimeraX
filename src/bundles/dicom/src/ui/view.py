@@ -4,7 +4,7 @@ from chimerax.map import Volume
 from chimerax.nifti import NiftiGrid
 from chimerax.nrrd import NRRDGrid
 from ..dicom import DicomGrid
-from .orthoplanes import PlaneViewer, orthoplane_triggers, Axis
+from .orthoplanes import PlaneViewer, PlaneViewerManager, orthoplane_triggers, Axis
 
 medical_types = [DicomGrid, NiftiGrid, NRRDGrid]
 
@@ -19,14 +19,16 @@ class FourUpView(QWidget):
 
         self._newMWLayout = QGridLayout(parent=self)
 
-        self._orthoplane_top_left = PlaneViewer(session, Axis.AXIAL, parent=self)
-        self._orthoplane_bottom_left = PlaneViewer(session, Axis.CORONAL, parent=self)
-        self._orthoplane_bottom_right = PlaneViewer(session, Axis.SAGGITAL, parent=self)
+        self._orthoplane_manager = PlaneViewerManager(session)
 
-        self._newMWLayout.addWidget(self._orthoplane_top_left, 0, 0)
+        self._orthoplane_top_left = PlaneViewer(self, self._orthoplane_manager, session, Axis.AXIAL)
+        self._orthoplane_bottom_left = PlaneViewer(self, self._orthoplane_manager, session, Axis.CORONAL)
+        self._orthoplane_bottom_right = PlaneViewer(self, self._orthoplane_manager, session, Axis.SAGGITAL)
+
+        self._newMWLayout.addWidget(self._orthoplane_top_left.container, 0, 0)
         self._newMWLayout.addWidget(session.ui.main_window.graphicsArea(), 0, 1)
-        self._newMWLayout.addWidget(self._orthoplane_bottom_left, 1, 0)
-        self._newMWLayout.addWidget(self._orthoplane_bottom_right, 1, 1)
+        self._newMWLayout.addWidget(self._orthoplane_bottom_left.container, 1, 0)
+        self._newMWLayout.addWidget(self._orthoplane_bottom_right.container, 1, 1)
 
         self._newMWLayout.setContentsMargins(0, 0, 0, 0)
         self._newMWLayout.setSpacing(0)

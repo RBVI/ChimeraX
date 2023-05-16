@@ -47,7 +47,18 @@ class Axis(Enum):
     def __str__(self):
         return self.name.lower()
 
-class OrthoplaneGraphicsWindow(QWindow):
+class PlaneViewerManager:
+    def __init__(self, session):
+        self.session = session
+        self.axes = {}
+
+    def register(self, viewer, axis):
+        self.axes[axis] = viewer
+
+    def update(self):
+        pass
+
+class PlaneViewer(QWindow):
 
     EyeSize = 4     # half size really
 
@@ -56,9 +67,12 @@ class OrthoplaneGraphicsWindow(QWindow):
     ON_NEAR = 2
     ON_FAR = 3
 
-    def __init__(self, parent, session, panel, axis = Axis.AXIAL):
+    def __init__(self, parent, manager, session, axis = Axis.AXIAL):
         QWindow.__init__(self)
         from Qt.QtWidgets import QWidget
+        self.manager = manager
+        self.manager.register(self, axis)
+
         self.moving = self.ON_NOTHING
         self.session = session
         self.axis = axis
@@ -80,16 +94,29 @@ class OrthoplaneGraphicsWindow(QWindow):
         camera = self.view.camera
         camera.position = Place(origin = (0,0,0), axes = self.axes)
         self.view.background_color = (255, 255, 255, 255)
-        self.panel = panel
         self.main_view = session.main_view
         self.camera_offsets = [0, 0, 0]
         self.label = Label(self.session, self.view, str(axis), str(axis), size=16, xpos=0, ypos=0)
         self.segmentation_slices = {}
 
+        def _not_volume_surface(m):
+            return not isinstance(m, VolumeSurface)
+
+        self.model_menu = ModelMenu(
+            self.session, parent, label = 'Model',
+            model_types = [Volume, Surface],
+            model_filter = _not_volume_surface,
+            model_chosen_cb = self._surface_chosen
+        )
+
         max_x, max_y, max_z = 2, 2, 2
 
         self.segmentation_overlay = SegmentationOverlay("seg_overlay", radius=10)
+        self.horizontal_slice_overlay = OrthoplaneLocationOverlay("horiz_overlay", slice=10)
+        #self.vertical_slice_overlay = OrthoplaneLocationOverlay("vert_overlay", slice=10)
         self.view.add_overlay(self.segmentation_overlay)
+        self.view.add_overlay(self.horizontal_slice_overlay)
+        #self.view.add_overlay(self.vertical_slice_overlay)
         self.slider = QSlider(Qt.Orientation.Horizontal, parent)
         self.old_pos = 0
         self.pos = 0
@@ -110,6 +137,27 @@ class OrthoplaneGraphicsWindow(QWindow):
         self.handler = session.triggers.add_handler('frame drawn', self._redraw)
         from Qt.QtCore import QSize
         self.widget.setMinimumSize(QSize(20, 20))
+
+        button_layout = QHBoxLayout()
+        button_layout.setContentsMargins(0, 0, 0, 0)
+        button_layout.setSpacing(0)
+        button_layout.addStretch(1)
+        button_layout.addWidget(self.model_menu.frame)
+
+        layout = QVBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+        layout.addLayout(button_layout)
+        self.container = QWidget(parent)
+        container_layout = QVBoxLayout()
+        container_layout.setContentsMargins(0, 0, 0, 0)
+        container_layout.setSpacing(0)
+        container_layout.addWidget(self.widget, stretch=1)
+        container_layout.addWidget(self.slider)
+        self.container.setLayout(container_layout)
+
+        layout.addWidget(self.container, stretch=1)
+        self.container.setLayout(layout)
 
     def _on_slider_moved(self):
         if self.axis == Axis.CORONAL:
@@ -235,6 +283,7 @@ class OrthoplaneGraphicsWindow(QWindow):
             camera = self.view.camera
             camera.position = Place(axes=self.axes, origin=self.origin)
             self.segmentation_overlay.update()
+            self.horizontal_slice_overlay.update()
 
             self.view.prepare_scene_for_drawing()
             self.view._draw_scene(self.view.camera, [self.view.drawing])
@@ -326,7 +375,7 @@ class OrthoplaneGraphicsWindow(QWindow):
 
     def _surface_chosen(self, *args):
         new_drawing = None
-        for d in self.panel.model_menu.value._child_drawings:
+        for d in self.model_menu.value._child_drawings:
             if type(d) is VolumeImage:
                 new_drawing = d
         if new_drawing is not None:
@@ -350,6 +399,49 @@ class OrthoplaneGraphicsWindow(QWindow):
             self.view.camera.redraw_needed = True
 
 
+class OrthoplaneLocationOverlay(Drawing):
+    def __init__(self, name, slice):
+        super().__init__(name)
+        self.display_style = Drawing.Mesh
+        self.use_lighting = False
+        self._slice = slice
+        self._center = [0, 0, 0]
+
+    def draw(self, renderer, draw_pass):
+        r = renderer
+        ww, wh = r.render_size()
+        from chimerax.graphics.camera import ortho
+        projection = ortho(0, ww, 0, wh, -1, 1)
+        r.set_projection_matrix(projection)
+        Drawing.draw(self, renderer, draw_pass)
+        r.set_projection_matrix(
+            ((1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0),
+             (0, 0, 0, 1))
+            )
+
+    @property
+    def slice(self):
+        return self._slice
+
+    @slice.setter
+    def slice(self, slice):
+        self._slice = slice
+
+    def update(self):
+        vc, v, _, t = self._geometry()
+        self.set_geometry(v, _, t)
+        self.vertex_colors = vc
+
+    # TODO: Depend on the slice location
+    def _geometry(self):
+        v = [[100, 100, 0], [100,200,0], [101,200,0], [101,100,0], [102,100,0], [102,200,0]]
+        t = [[0, 1], [1,2], [2,3], [3,4], [4,5]]
+        v = array(v, dtype=float32)
+        t = array(t, dtype=int32)
+        c = array([[255, 0, 0, 255]] * len(v), dtype=uint8)
+        return c, v, None, t
+
+
 class SegmentationOverlay(Drawing):
     def __init__(self, name, radius):
         super().__init__(name)
@@ -368,7 +460,8 @@ class SegmentationOverlay(Drawing):
         r.set_projection_matrix(
             ((1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0),
              (0, 0, 0, 1))
-            )
+        )
+
 
     @property
     def center(self):
@@ -419,57 +512,3 @@ class SegmentationOverlay(Drawing):
         t = array(t, dtype=int32)
         vc = array([[255, 0, 0, 255]] * len(v), dtype=uint8)
         return vc, fv, None, t
-
-class PlaneViewer(QWidget):
-
-    def __init__(self, session, axis, parent):
-        self.session = session
-        super().__init__(parent)
-        # UI content code
-        if axis == Axis.AXIAL:
-            name = "axial orthoplane"
-        elif axis == Axis.CORONAL:
-            name = "coronal orthoplane"
-        elif axis == Axis.SAGGITAL:
-            name = "saggital orthoplane"
-        else:
-            name = "BADAXIS"
-        self.name = name
-        self.axis = axis
-        self.opengl_canvas = OrthoplaneGraphicsWindow(parent, session, self, axis = self.axis)
-
-        # From surface/areagui.py
-        def _not_volume_surface(m):
-            return not isinstance(m, VolumeSurface)
-
-        self.model_menu = ModelMenu(
-            self.session, parent, label = 'Model',
-            model_types = [Volume, Surface],
-            model_filter = _not_volume_surface,
-            model_chosen_cb = self.opengl_canvas._surface_chosen
-        )
-
-        button_layout = QHBoxLayout()
-        button_layout.setContentsMargins(0, 0, 0, 0)
-        button_layout.setSpacing(0)
-        button_layout.addStretch(1)
-        button_layout.addWidget(self.model_menu.frame)
-
-        layout = QVBoxLayout()
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(0)
-        layout.addLayout(button_layout)
-        self.container = QWidget(parent)
-        container_layout = QVBoxLayout()
-        container_layout.setContentsMargins(0, 0, 0, 0)
-        container_layout.setSpacing(0)
-        container_layout.addWidget(self.opengl_canvas.widget, stretch = 1)
-        container_layout.addWidget(self.opengl_canvas.slider)
-        self.container.setLayout(container_layout)
-
-        layout.addWidget(self.container, stretch=1)
-        self.setLayout(layout)
-
-
-    def delete(self):
-        self.opengl_canvas.close()
