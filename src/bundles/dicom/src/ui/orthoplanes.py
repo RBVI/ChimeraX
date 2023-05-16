@@ -14,13 +14,16 @@ from numpy import array, float32, uint8, int32
 import numpy as np
 
 from Qt.QtCore import Qt
+from Qt.QtCore import QSize
 from Qt.QtWidgets import (
     QVBoxLayout, QHBoxLayout
     , QWidget, QSlider
 )
 
+from Qt.QtGui import QContextMenuEvent
 from Qt.QtGui import QWindow, QSurface
 from chimerax.geometry import Place
+from chimerax.graphics.camera import ortho
 from ..graphics import OrthoplaneView
 from chimerax.graphics import MonoCamera, Drawing
 from chimerax.graphics.opengl import GL
@@ -47,6 +50,20 @@ class Axis(Enum):
     def __str__(self):
         return self.name.lower()
 
+    @property
+    def transform(self):
+        if self.value == 2:
+            return [[-1, 0, 0], [0, -1, 0], [0, 0, 1]]
+        elif self.value == 1:
+            return [[1, 0, 0], [0, 0, 1], [0, -1, 0]]
+        else:
+            return [[0, 1, 0], [0, 0, 1], [1, 0, 0]]
+
+    @property
+    def positive_direction(self):
+        return [-1,1][self.value != 1]
+
+
 class PlaneViewerManager:
     def __init__(self, session):
         self.session = session
@@ -60,37 +77,22 @@ class PlaneViewerManager:
 
 class PlaneViewer(QWindow):
 
-    EyeSize = 4     # half size really
-
-    ON_NOTHING = 0
-    ON_EYE = 1
-    ON_NEAR = 2
-    ON_FAR = 3
-
     def __init__(self, parent, manager, session, axis = Axis.AXIAL):
         QWindow.__init__(self)
-        from Qt.QtWidgets import QWidget
+        self.session = session
         self.manager = manager
         self.manager.register(self, axis)
 
-        self.moving = self.ON_NOTHING
-        self.session = session
+        self.hidpi_screen = any(x.devicePixelRatio() >= 2.0 for x in session.ui.screens())
         self.axis = axis
-        self.overlays = []
         self.slider_moved = False
         self.last_mouse_position = None
         self.widget = QWidget.createWindowContainer(self, parent)
         self.setSurfaceType(QSurface.SurfaceType.OpenGLSurface)
         self.view = OrthoplaneView(Drawing("placeholder"), window_size = (0, 0), axis = self.axis.value)
         self.view.initialize_rendering(session.main_view.render.opengl_context)
-        # TODO: from chimerax.graphics.camera import OrthographicCamera
         self.view.camera = MonoCamera()
-        if self.axis == Axis.AXIAL:
-            self.axes = [[-1, 0, 0], [0, -1, 0], [0, 0, 1]]
-        elif self.axis == Axis.CORONAL:
-            self.axes = [[1, 0, 0], [0, 0, 1], [0, -1, 0]]
-        else:
-            self.axes = [[0, 1, 0], [0, 0, 1], [1, 0, 0]]
+        self.axes = axis.transform
         camera = self.view.camera
         camera.position = Place(origin = (0,0,0), axes = self.axes)
         self.view.background_color = (255, 255, 255, 255)
@@ -135,7 +137,6 @@ class PlaneViewer(QWindow):
         self.slider.sliderMoved.connect(self._on_slider_moved)
 
         self.handler = session.triggers.add_handler('frame drawn', self._redraw)
-        from Qt.QtCore import QSize
         self.widget.setMinimumSize(QSize(20, 20))
 
         button_layout = QHBoxLayout()
@@ -173,11 +174,11 @@ class PlaneViewer(QWindow):
             # TODO: Convert this object to use the Volume and not the VolumeImage?
             # TODO: Add an API to Volume and Grid to get underlying data?
             # TODO: DICOM, NRRD, and NIfTI need mutually compatible methods
-            if self.view.drawing.parent.data.dicom_data.inferior_to_superior:
+            if not self.view.drawing.parent.data.dicom_data.inferior_to_superior:
                 diff = -diff
-            self.camera_offsets[2] += diff * self.view.drawing.parent.data.step[2]
+            self.camera_offsets[2] -= diff * self.view.drawing.parent.data.step[2]
         if self.axis == Axis.CORONAL:
-            self.camera_offsets[1] += diff * self.view.drawing.parent.data.step[1]
+            self.camera_offsets[1] -= diff * self.view.drawing.parent.data.step[1]
         if self.axis == Axis.SAGGITAL:
             self.camera_offsets[0] -= diff * self.view.drawing.parent.data.step[0]
         self.view.camera.redraw_needed = True
@@ -190,13 +191,6 @@ class PlaneViewer(QWindow):
         del self.label
         self.view.delete()
         QWindow.destroy(self)
-
-    def add_overlay(self, overlay):
-        self.overlays.append(overlay)
-
-    def delete_overlay(self, overlay):
-        self.overlays.remove(overlay)
-        overlay.delete()
 
     def _redraw(self, *_):
         self.render()
@@ -243,7 +237,7 @@ class PlaneViewer(QWindow):
                 self.slider_moved = False
             bounds = self.view.drawing.bounds()
             # We use these offsets to align the camera to the actual center of the orthoplanes
-            model_x_offset, model_y_offset, model_z_offset = bounds.center()
+            model_center_offsets = bounds.center()
             x_size, y_size, z_size = bounds.size()
             x_max, y_max, z_max = bounds.xyz_max
             cameraView = 2 * math.tan(0.5 * math.radians(self.view.camera.field_of_view))
@@ -254,32 +248,10 @@ class PlaneViewer(QWindow):
                 cameraDistance = 1.5
             if self.axis == Axis.SAGGITAL:
                 cameraDistance = 1.5
-            x_apparent, y_apparent, z_apparent = [
-                x_size * cameraDistance / cameraView
-                , y_size * cameraDistance / cameraView
-                , z_size * cameraDistance / cameraView
-            ]
-            # Set initial camera view
-            camera_x_offset, camera_y_offset, camera_z_offset = self.camera_offsets
-            self.origin = self.view.drawing.position.origin()
-            if self.axis == Axis.AXIAL:
-                self.origin += [
-                     model_x_offset + camera_x_offset
-                    , model_y_offset + camera_y_offset
-                    , model_z_offset + (z_apparent - camera_z_offset)
-                ]
-            elif self.axis == Axis.CORONAL:
-                self.origin += [
-                    model_x_offset + camera_x_offset
-                    , model_y_offset - (y_apparent - camera_y_offset)
-                    , model_z_offset + camera_z_offset
-                ]
-            else:
-                self.origin += [
-                     model_x_offset + (x_apparent - camera_x_offset)
-                    , model_y_offset + camera_y_offset
-                    , model_z_offset + camera_z_offset
-                ]
+            _model_size_offsets = [x_size * cameraDistance / cameraView, y_size * cameraDistance / cameraView, z_size * cameraDistance / cameraView]
+            model_size_offsets = [0, 0, 0]
+            model_size_offsets[self.axis.value] = _model_size_offsets[self.axis.value] * self.axis.positive_direction
+            self.origin = self.view.drawing.position.origin() + model_center_offsets + model_size_offsets - self.camera_offsets
             camera = self.view.camera
             camera.position = Place(axes=self.axes, origin=self.origin)
             self.segmentation_overlay.update()
@@ -303,7 +275,6 @@ class PlaneViewer(QWindow):
         b = event.button() | event.buttons()
         if b & Qt.MouseButton.RightButton:
             # p = event.position() if hasattr(event, 'position') else event.pos()  # PyQt6 / PyQt5
-            from Qt.QtGui import QContextMenuEvent
             e = QContextMenuEvent(QContextMenuEvent.Mouse, event.pos())
             self.widget.parent().parent().contextMenuEvent(e)
             return
@@ -326,7 +297,7 @@ class PlaneViewer(QWindow):
         if modifier == Qt.KeyboardModifier.ShiftModifier:
             self.segmentation_overlay.radius += 1 * np.sign(event.angleDelta().y())
         elif modifier == Qt.KeyboardModifier.NoModifier:
-            self.camera_offsets[self.axis.value] += 15 * np.sign(event.angleDelta().y())
+            self.camera_offsets[self.axis.value] += 15 * np.sign(event.angleDelta().y()) * self.axis.positive_direction
         self.view.camera.redraw_needed = True
 
     def mouseMoveEvent(self, event):  # noqa
@@ -346,7 +317,7 @@ class PlaneViewer(QWindow):
                 dy = y - self.last_mouse_position[1]
             psize = self.view.pixel_size()
             self.last_mouse_position = [x, y]
-            self.camera_offsets[self.axis.value] += (-dy * psize) * 3
+            self.camera_offsets[self.axis.value] += (-dy * psize) * 3 * self.axis.positive_direction
             self.view.camera.redraw_needed = True
         # Truck & Pedestal
         if b & Qt.MouseButton.MiddleButton:
@@ -361,11 +332,11 @@ class PlaneViewer(QWindow):
             self.last_mouse_position = [x, y]
             x, y, z = self.camera_offsets
             if self.axis == Axis.AXIAL:
-                self.camera_offsets = [x + dx, y - dy, z]
+                self.camera_offsets = [x - dx, y + dy, z]
             if self.axis == Axis.CORONAL:
-                self.camera_offsets = [x - dx, y, z + dy]
+                self.camera_offsets = [x + dx, y, z - dy]
             if self.axis == Axis.SAGGITAL:
-                self.camera_offsets = [x, y - dx, z + dy]
+                self.camera_offsets = [x, y + dx, z - dy]
 
     # def touchEvent(self, event):
     #     pass
@@ -408,9 +379,10 @@ class OrthoplaneLocationOverlay(Drawing):
         self._center = [0, 0, 0]
 
     def draw(self, renderer, draw_pass):
+        # if glLineWidth is supported:
+        # GL.glLineWidth(3)
         r = renderer
         ww, wh = r.render_size()
-        from chimerax.graphics.camera import ortho
         projection = ortho(0, ww, 0, wh, -1, 1)
         r.set_projection_matrix(projection)
         Drawing.draw(self, renderer, draw_pass)
@@ -434,6 +406,7 @@ class OrthoplaneLocationOverlay(Drawing):
 
     # TODO: Depend on the slice location
     def _geometry(self):
+        # if glLineWidth is not supported:
         v = [[100, 100, 0], [100,200,0], [101,200,0], [101,100,0], [102,100,0], [102,200,0]]
         t = [[0, 1], [1,2], [2,3], [3,4], [4,5]]
         v = array(v, dtype=float32)
@@ -453,7 +426,6 @@ class SegmentationOverlay(Drawing):
     def draw(self, renderer, draw_pass):
         r = renderer
         ww, wh = r.render_size()
-        from chimerax.graphics.camera import ortho
         projection = ortho(0, ww, 0, wh, -1, 1)
         r.set_projection_matrix(projection)
         Drawing.draw(self, renderer, draw_pass)
@@ -461,7 +433,6 @@ class SegmentationOverlay(Drawing):
             ((1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0),
              (0, 0, 0, 1))
         )
-
 
     @property
     def center(self):
