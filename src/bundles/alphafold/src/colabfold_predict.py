@@ -96,7 +96,7 @@ def run_prediction(sequences,
       rank_by="auto",
       pair_mode=pair_mode,
       stop_at_score=100.0,
-      prediction_callback=prediction_callback(minimized_only=use_amber),
+      prediction_callback=prediction_callback,
       dpi=dpi
     )
 
@@ -162,24 +162,19 @@ def plot_msa(input_features, query_sequence_len_array, dpi=200):
 
 # ================================================================================================
 #
-class prediction_callback:
-    def __init__(self, minimized_only = False):
-        self._minimized_only = minimized_only
-    def __call__(self, unrelaxed_protein, query_sequence_len_array,
-                 prediction_result, input_features, type):
-        if self._minimized_only and not type[1]:
-            return  # Don't show unminimized.
-        import matplotlib.pyplot as plt
-        multimer = (len(query_sequence_len_array) > 1)
-        nplots = 3 if multimer else 2
-        fig, axes = plt.subplots(1,nplots,figsize=(9,3), dpi=150)
-        plot_protein(unrelaxed_protein, axes[0], coloring = 'plddt')
-        plot_pae(prediction_result["predicted_aligned_error"], axes[1], query_sequence_len_array)
-        if multimer:
-            plot_protein(unrelaxed_protein, axes[2], coloring = 'chain',
-                         query_sequence_len_array=query_sequence_len_array)
-        plt.show()
-        plt.close()
+def prediction_callback(unrelaxed_protein, query_sequence_len_array,
+                        prediction_result, input_features, type):
+  import matplotlib.pyplot as plt
+  multimer = (len(query_sequence_len_array) > 1)
+  nplots = 3 if multimer else 2
+  fig, axes = plt.subplots(1,nplots,figsize=(9,3), dpi=150)
+  plot_protein(unrelaxed_protein, axes[0], coloring = 'plddt')
+  plot_pae(prediction_result["predicted_aligned_error"], axes[1], query_sequence_len_array)
+  if multimer:
+      plot_protein(unrelaxed_protein, axes[2], coloring = 'chain',
+                   query_sequence_len_array=query_sequence_len_array)
+  plt.show()
+  plt.close()
 
 # ================================================================================================
 #
