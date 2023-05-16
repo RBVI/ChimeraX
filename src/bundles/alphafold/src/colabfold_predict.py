@@ -48,10 +48,12 @@ def run_prediction(sequences,
     # Write sequences, used only for inclusion in returned results.
     with open('query.fasta', 'w') as seqs_file:
         seqs_file.write(''.join(f'>{i+1}\n{seq}\n' for i,seq in enumerate(sequences)))
-                        
-    from colabfold.utils import setup_logging
+
     from pathlib import Path
-    setup_logging(Path(".").joinpath("log.txt"))
+    from colabfold import utils
+    if not hasattr(utils, 'setup_logging_done'):
+        utils.setup_logging(Path(".").joinpath("log.txt"))
+        utils.setup_logging_done = True
 
     # Avoid various FutureWarning message from deprecated jax features
     import warnings
@@ -94,7 +96,7 @@ def run_prediction(sequences,
       rank_by="auto",
       pair_mode=pair_mode,
       stop_at_score=100.0,
-      prediction_callback=prediction_callback(minimized_only=use_amber),
+      prediction_callback=prediction_callback,
       dpi=dpi
     )
 
@@ -160,24 +162,19 @@ def plot_msa(input_features, query_sequence_len_array, dpi=200):
 
 # ================================================================================================
 #
-class prediction_callback:
-    def __init__(self, minimized_only = False):
-        self._minimized_only = minimized_only
-    def __call__(self, unrelaxed_protein, query_sequence_len_array,
-                 prediction_result, input_features, type):
-        if self._minimized_only and not type[1]:
-            return  # Don't show unminimized.
-        import matplotlib.pyplot as plt
-        multimer = (len(query_sequence_len_array) > 1)
-        nplots = 3 if multimer else 2
-        fig, axes = plt.subplots(1,nplots,figsize=(9,3), dpi=150)
-        plot_protein(unrelaxed_protein, axes[0], coloring = 'plddt')
-        plot_pae(prediction_result["predicted_aligned_error"], axes[1], query_sequence_len_array)
-        if multimer:
-            plot_protein(unrelaxed_protein, axes[2], coloring = 'chain',
-                         query_sequence_len_array=query_sequence_len_array)
-        plt.show()
-        plt.close()
+def prediction_callback(unrelaxed_protein, query_sequence_len_array,
+                        prediction_result, input_features, type):
+  import matplotlib.pyplot as plt
+  multimer = (len(query_sequence_len_array) > 1)
+  nplots = 3 if multimer else 2
+  fig, axes = plt.subplots(1,nplots,figsize=(9,3), dpi=150)
+  plot_protein(unrelaxed_protein, axes[0], coloring = 'plddt')
+  plot_pae(prediction_result["predicted_aligned_error"], axes[1], query_sequence_len_array)
+  if multimer:
+      plot_protein(unrelaxed_protein, axes[2], coloring = 'chain',
+                   query_sequence_len_array=query_sequence_len_array)
+  plt.show()
+  plt.close()
 
 # ================================================================================================
 #
@@ -291,14 +288,10 @@ def use_utf8_encoding():
   # https://www.rbvi.ucsf.edu/trac/ChimeraX/ticket/8313
   import locale
   if locale.getpreferredencoding() != 'UTF-8':
-      try:
-          import _locale
-          _locale.nl_langinfo_orig = _locale.nl_langinfo
-          def nl_langinfo_always_utf8(i):
-              return 'UTF-8' if i == _locale.CODESET else _locale.nl_langinfo_orig(i)
-          _locale.nl_langinfo = nl_langinfo_always_utf8
-      except:
-          pass  # Probably Python newer than 3.8 where private _locale changed.
+      locale.getpreferredencoding_orig = locale.getpreferredencoding
+      def get_preferred_encoding_utf8(do_setlocale=True):
+          return 'UTF-8'
+      locale.getpreferredencoding = get_preferred_encoding_utf8
     
 # ================================================================================================
 #
@@ -349,7 +342,7 @@ def install(use_amber = False, use_templates = False, install_log = 'install_log
     cmds = f'''
 set -e
 # We have to use "--no-warn-conflicts" because colab already has a lot preinstalled with requirements different to ours
-pip install --no-warn-conflicts "colabfold[alphafold-minus-jax] @ git+https://github.com/sokrypton/ColabFold@5b3fc193e880cd9599f91cd16fcb1fe69f7759f2"
+pip install --no-warn-conflicts "colabfold[alphafold-minus-jax] @ git+https://github.com/sokrypton/ColabFold@dc9fc3d03379d23784e796f4c7fd31d173bafaa2"
 # high risk high gain
 pip uninstall jaxlib -y
 pip install "jax[cuda11_cudnn805]==0.3.24" jaxlib==0.3.24+cuda11.cudnn805 -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
@@ -384,9 +377,10 @@ touch HH_READY
     cmds = f'''  
 # setup openmm for amber refinement
 set -e
-conda install -y -q -c conda-forge openmm=7.5.1 python={python_version} pdbfixer 2>&1 1>/dev/null
+conda install -y -q -c conda-forge openmm=7.7.0 python={python_version} pdbfixer 2>&1 1>/dev/null
 # Make colab python find conda openmm and pdbfixer
 ln -s /usr/local/lib/python{python_version}/site-packages/simtk .
+ln -s /usr/local/lib/python{python_version}/site-packages/openmm .
 ln -s /usr/local/lib/python{python_version}/site-packages/pdbfixer .
 touch AMBER_READY
 '''
@@ -427,9 +421,6 @@ sequences = 'Paste a sequences separated by commas here'  #@param {type:"string"
 # Remove options from list of sequences
 seq_list = [seq.strip() for seq in sequences.split(',')]
 dont_minimize = remove_from_list(seq_list, 'dont_minimize')		# Energy minimization
-if not dont_minimize:
-    dont_minimize = True
-    print('*** Energy minimization was broken by a Google Colab update from Python 3.9 to 3.10 on April 28, 2023.  Expect fix by May 10, 2023 ***')
 use_templates = remove_from_list(seq_list, 'use_pdb_templates')
 remove_from_list(seq_list, 'prokaryote')  # Obsolete "prokaryote" flag
 

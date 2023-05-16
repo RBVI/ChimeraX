@@ -570,6 +570,7 @@ class LabelModel(Model):
         self._texture_size = None	# Label image size in render pixels
         self._texture_pixel_scale = 1	# Converts label.size from logical pixels to render pixels
         self._aspect = 1		# Scale y label positioning for image saving at non-screen aspect ratio
+        self._last_placement = None	# Last location for scalebar, used for updating
         self.needs_update = True
 
     def delete(self):
@@ -577,7 +578,8 @@ class LabelModel(Model):
         self.label.delete()
         
     def draw(self, renderer, draw_pass):
-        self._update_graphics(renderer)
+        if self._update_graphics(renderer):
+            self.session.main_view.clear_drawing_changes()  # Avoid redrawing every frame.
         Model.draw(self, renderer, draw_pass)
 
     def _update_graphics(self, renderer):
@@ -616,8 +618,13 @@ class LabelModel(Model):
             self._update_label_image()
         elif win_size_changed:
             self._position_label_image()
-        elif self.label.is_scalebar:
+        elif self.label.is_scalebar and self._placement != self._last_placement:
             self._position_label_image()
+            self._last_placement = self._placement
+        else:
+            return False
+
+        return True
 
     def _update_label_image(self):
         l = self.label
