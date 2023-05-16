@@ -1729,15 +1729,14 @@ class StructureData:
         f = c_function('structure_delete_bond', args = (ctypes.c_void_p, ctypes.c_void_p))
         f(self._c_pointer, bond._c_pointer)
 
-    """
-    # Deleting atoms will delete residues as needed, so there probably is no need to expose this
-    # method, particularly since ported Chimera1 code -- which had to delete empty residues "by
-    # hand" -- may wind up deleting an already-deleted residue
-    def delete_residue(self, res):
-        '''Supported API. Delete the specified Residue.'''
+    def delete_residue(self, residue):
+        '''Supported API.  Delete the specified Residue.
+           *Rarely* needed, since deleting atoms will delete empty residues automatically.  Can be needed
+           when moving atoms from one residue to another, leaving an empty residue that needs deletion.
+        '''
         f = c_function('structure_delete_residue', args = (ctypes.c_void_p, ctypes.c_void_p))
-        f(self._c_pointer, res._c_pointer)
-    """
+        f(self._c_pointer, residue._c_pointer)
+
     def find_residue(self, chain_id, pos, insert=' '):
         """Supported API.  Find a residue in the structure.  Returns None if none match."""
         f = c_function('structure_find_residue',

@@ -308,6 +308,10 @@ CIFFile::parse_file(const char* filename)
 	}
 	if (size.QuadPart == 0)
 		return;
+	if (size.QuadPart < 0 || size.QuadPart > 2147483647) {
+		err_msg << "Unreasonable CIF file size: " << size.QuadPart;
+		throw std::runtime_error(err_msg.str());
+	}
 	SYSTEM_INFO sys_info;
 	GetSystemInfo(&sys_info);
 
