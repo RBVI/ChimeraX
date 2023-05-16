@@ -76,7 +76,7 @@ vassign(Vector u, const Vector v)
 }
 
 inline void
-vaverage(Vector u, const Vector* vs, ssize_t n)
+vaverage(Vector u, const Vector* vs, Py_ssize_t n)
 {
     vzero(u);
     for (auto i = 0; i != n; ++i) {
@@ -182,7 +182,7 @@ Plane::Plane(const Vector* verts, Py_ssize_t nverts)
     // See Foley, van Dam, Feiner, and Hughes (pp. 476-477)
     // Implementation copied from Filippo Tampieri from Graphics Gems
     //
-    ssize_t i;
+    Py_ssize_t i;
     Point refpt;
     Normal normal;
     const float *u, *v;
