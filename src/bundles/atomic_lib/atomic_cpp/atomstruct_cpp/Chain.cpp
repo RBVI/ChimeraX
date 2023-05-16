@@ -30,6 +30,7 @@ Chain::Chain(const ChainID& chain_id, Structure* s, PolymerType pt): StructureSe
 
 Chain::~Chain()
 {
+    DestructionUser(this);
     // demote_to_sequence may have already called this
     if (is_chain())
         _structure->change_tracker()->add_deleted(_structure, this);
