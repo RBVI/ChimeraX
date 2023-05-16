@@ -5624,7 +5624,7 @@ extern "C" EXPORT void pointer_array_freed(void *numpy_array)
 
 // -------------------------------------------------------------------------
 // pointer array functions
-extern "C" EXPORT ssize_t pointer_index(void *pointer_array, size_t n, void *pointer)
+extern "C" EXPORT Py_ssize_t pointer_index(void *pointer_array, size_t n, void *pointer)
 {
     void **pa = static_cast<void **>(pointer_array);
     try {
