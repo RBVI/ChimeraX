@@ -46,7 +46,9 @@ class AvailableBundleCache(list):
         from ..fetch import html_user_agent
         headers = {"User-Agent": html_user_agent(app_dirs)}
         request = Request(url, unverifiable=True, headers=headers)
-        with urlopen(request) as f:
+        # pick short timeout because it limits how quickly ChimeraX can exit
+        # when the toolshed can't be contacted
+        with urlopen(request, timeout=3) as f:
             import json
             data = json.loads(f.read())
         data.insert(0, ['toolshed_url', toolshed_url])
