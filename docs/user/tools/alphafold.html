@@ -331,13 +331,15 @@ Shorter sequences are not accepted because they cannot be used to generate
 a reliable multiple sequence alignment.
 <br><br>
 <li><b>Total sequence length cannot be very large</b>.
-AlphaFold runs out of graphics memory for long sequences (~800 amino acids
+AlphaFold runs out of graphics memory for long sequences (~1200 amino acids
 on old Google Colab GPUs with 16 GB memory).
 Multimer predictions face the same limit on the total number of residues,
 so <b>only smaller complexes can be predicted</b>. 
 As mentioned above, paid <a href="https://colab.research.google.com/signup"
 target="_blank">Colab plans</a> provide more computational resources
-than the free plan.
+than the free plan.  Structures with up to 3000 amino acids can be predicted
+using an Nvidia A100 GPU on Google Colab, costing about $1.50 for a 2000 residue
+prediction (May 2023), this <a href="https://youtu.be/H-pDs9rZtkw">video</a> explains how.
 <p>
 </ul>
 <b>Coloring</b> 
