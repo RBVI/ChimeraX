@@ -110,7 +110,6 @@ class PlaneViewer(QWindow):
         self.axis = axis
         self.manager.register(self)
 
-        self.hidpi_screen = any(x.devicePixelRatio() >= 2.0 for x in session.ui.screens())
         self.slider_moved = False
         self.last_mouse_position = None
         self.widget = QWidget.createWindowContainer(self, parent)
@@ -118,7 +117,7 @@ class PlaneViewer(QWindow):
         self.view = OrthoplaneView(Drawing("placeholder"), window_size = (0, 0), axis = self.axis.value)
         self.view.initialize_rendering(session.main_view.render.opengl_context)
         self.view.camera = OrthoCamera()
-        self.view.camera.field_width = 760
+        self.view.camera.field_width = 758
         self.axes = axis.transform
         camera = self.view.camera
         camera.position = Place(origin = (0,0,0), axes = self.axes)
@@ -254,7 +253,9 @@ class PlaneViewer(QWindow):
             # and require large zoom-outs to get them into view
             # TODO: Turn on when overlay calculations are correct
             # self.view.background_color = self.main_view.background_color
+
             old_disp_val = self.view.drawing.display
+            self.scale = mvwin.opengl_context.pixel_scale()
             if not old_disp_val:
                 self.view.drawing.display = True
             # TODO: If the user selects 'surface' then 'orthoplanes' in the volume viewer we should
@@ -270,35 +271,35 @@ class PlaneViewer(QWindow):
             so_x_size, so_y_size, so_z_size = bounds.size() / psize
             x_size, y_size, z_size = bounds.size()
             if self.axis == Axis.SAGGITAL:
-                self.horizontal_slice_overlay.bottom = (width - so_x_size)
-                self.horizontal_slice_overlay.top = width + (so_x_size)
-                self.horizontal_slice_overlay.offset = (height - so_z_size)
-                self.horizontal_slice_overlay.tick_thickness = so_z_size / 106
+                self.horizontal_slice_overlay.bottom = (0.5 * (width - so_x_size)) * self.scale
+                self.horizontal_slice_overlay.top = (0.5 * (width + so_x_size)) * self.scale
+                self.horizontal_slice_overlay.offset = (0.5 * (height - so_z_size)) * self.scale
+                self.horizontal_slice_overlay.tick_thickness = so_z_size / (212 / self.scale)
 
-                self.vertical_slice_overlay.bottom = height - so_z_size
-                self.vertical_slice_overlay.top = height + so_z_size
-                self.vertical_slice_overlay.offset = (width - so_y_size)
-                self.vertical_slice_overlay.tick_thickness = so_y_size / 256
+                self.vertical_slice_overlay.bottom = self.scale * (0.5 * (height - so_z_size))
+                self.vertical_slice_overlay.top = self.scale * (0.5 * (height + so_z_size))
+                self.vertical_slice_overlay.offset = self.scale * (0.5 * (width - so_y_size))
+                self.vertical_slice_overlay.tick_thickness = so_y_size / (512 / self.scale)
             elif self.axis == Axis.CORONAL:
-                self.horizontal_slice_overlay.bottom = width - so_y_size
-                self.horizontal_slice_overlay.top = width + so_y_size
-                self.horizontal_slice_overlay.offset = (height - so_z_size)
-                self.horizontal_slice_overlay.tick_thickness = so_z_size / 106
+                self.horizontal_slice_overlay.bottom = self.scale * (0.5 * (width - so_y_size))
+                self.horizontal_slice_overlay.top = self.scale * (0.5 * (width + so_y_size))
+                self.horizontal_slice_overlay.offset = self.scale * (0.5 * (height - so_z_size))
+                self.horizontal_slice_overlay.tick_thickness = so_z_size / (212 / self.scale)
 
-                self.vertical_slice_overlay.bottom = height - so_z_size
-                self.vertical_slice_overlay.top = height + so_z_size
-                self.vertical_slice_overlay.offset = (width - so_x_size)
-                self.vertical_slice_overlay.tick_thickness = so_x_size / 256
+                self.vertical_slice_overlay.bottom = (0.5 * (height - so_z_size)) * self.scale
+                self.vertical_slice_overlay.top = (0.5 * (height + so_z_size)) * self.scale
+                self.vertical_slice_overlay.offset = (0.5 * (width - so_x_size)) * self.scale
+                self.vertical_slice_overlay.tick_thickness = so_x_size / (512 / self.scale)
             else:
-                self.horizontal_slice_overlay.bottom = width - so_x_size
-                self.horizontal_slice_overlay.top = width + so_x_size
-                self.horizontal_slice_overlay.offset = (height + so_x_size)
-                self.horizontal_slice_overlay.tick_thickness = so_x_size / 256
+                self.horizontal_slice_overlay.bottom = (0.5 * (width - so_x_size)) * self.scale
+                self.horizontal_slice_overlay.top = (0.5 * (width + so_x_size)) * self.scale
+                self.horizontal_slice_overlay.offset = (0.5 * (height + so_x_size)) * self.scale
+                self.horizontal_slice_overlay.tick_thickness = so_x_size / (512 / self.scale)
 
-                self.vertical_slice_overlay.bottom = height - so_y_size
-                self.vertical_slice_overlay.top = height + so_y_size
-                self.vertical_slice_overlay.offset = (width + so_y_size)
-                self.vertical_slice_overlay.tick_thickness = so_y_size / 256
+                self.vertical_slice_overlay.bottom = (0.5 * (height - so_y_size)) * self.scale
+                self.vertical_slice_overlay.top = (0.5 * (height + so_y_size)) * self.scale
+                self.vertical_slice_overlay.offset = (0.5 * (width + so_y_size)) * self.scale
+                self.vertical_slice_overlay.tick_thickness = so_y_size / (512 / self.scale)
 
             #radius_z = 0.5 * math.sqrt(x_size**2 + y_size**2)
             #radius_y = 0.5 * math.sqrt(x_size**2 + z_size**2)
@@ -314,8 +315,8 @@ class PlaneViewer(QWindow):
             #model_size_offsets = [0, 0, 0]
             ## Axial offset: -105
             #model_size_offsets[self.axis.value] = _model_size_offsets[self.axis.value] * self.axis.positive_direction
-            test_c_offsets = [100,100,150]
-            self.origin = self.view.drawing.position.origin() + model_center_offsets - self.camera_offsets # + model_size_offsets - self.camera_offsets + test_c_offsets
+            test_c_offsets = [0, 0, 0]
+            self.origin = self.view.drawing.position.origin() + model_center_offsets - self.camera_offsets + test_c_offsets # + model_size_offsets - self.camera_offsets + test_c_offsets
             camera = self.view.camera
             camera.position = Place(axes=self.axes, origin=self.origin)
             self.segmentation_overlay.update()
@@ -326,7 +327,6 @@ class PlaneViewer(QWindow):
             self.view._draw_scene(self.view.camera, [self.view.drawing])
             self.view.finalize_draw()
             self.view.drawing.display = old_disp_val
-            GL.glPointSize(1)
         except Exception as e:
             # This line is here so you can set a breakpoint on it and figure out what's going wrong
             # because ChimeraX's interface will not tell you.
@@ -486,14 +486,21 @@ class PlaneViewer(QWindow):
                 self.slider.setMaximum(max_z)
                 self.slider.setValue(orthoplane_positions[2])
                 self.pos = orthoplane_positions[2]
+                self._plane_indices[self.axis.value] = self.pos
+                self.manager.update_location(self)
             if self.axis == Axis.CORONAL:
                 self.slider.setRange(-max_y, 0)
                 self.slider.setValue(-orthoplane_positions[1])
                 self.pos = orthoplane_positions[1]
+                self._plane_indices[self.axis.value] = self.pos
+                self.manager.update_location(self)
             if self.axis == Axis.SAGGITAL:
                 self.slider.setMaximum(max_x)
                 self.slider.setValue(orthoplane_positions[0])
                 self.pos = orthoplane_positions[0]
+                self._plane_indices[self.axis.value] = self.pos
+                self.manager.update_location(self)
+
             self.view.camera.redraw_needed = True
 
 
@@ -558,14 +565,15 @@ class OrthoplaneLocationOverlay(Drawing):
 class SegmentationOverlay(Drawing):
     def __init__(self, name, radius, thickness):
         super().__init__(name)
+        self.max_point_size = GL.glGetIntegerv(GL.GL_POINT_SIZE_RANGE)[1]
         self.display_style = Drawing.Dot
         self.use_lighting = False
         self._radius = radius
         self._center = [0, 0, 0]
-        self.thickness = thickness
+        self._thickness = thickness
 
     def draw(self, renderer, draw_pass):
-        GL.glPointSize(min(64, self.thickness))
+        GL.glPointSize(min(self.max_point_size, self.thickness))
         r = renderer
         ww, wh = r.render_size()
         projection = ortho(0, ww, 0, wh, -1, 1)
@@ -576,6 +584,17 @@ class SegmentationOverlay(Drawing):
              (0, 0, 0, 1))
             )
         GL.glPointSize(1)
+
+    @property
+    def thickness(self):
+        return self._thickness
+
+    @thickness.setter
+    def thickness(self, thickness):
+        if self.max_point_size > thickness > 0:
+            self._thickness = thickness
+        else:
+            raise ValueError("Thickness exceeds OpenGL limit")
 
     @property
     def center(self):
