@@ -1092,7 +1092,7 @@ class _RedrawNeeded:
     def __init__(self):
         self.redraw_needed = False
         self.shape_changed = True
-        self.shape_changed_drawings = set()
+        self.shadow_shape_change = False
         self.transparency_changed = False
         self.cached_drawing_bounds = None
         self.cached_any_part_highlighted = None
@@ -1101,7 +1101,8 @@ class _RedrawNeeded:
         self.redraw_needed = True
         if shape_changed:
             self.shape_changed = True
-            self.shape_changed_drawings.add(drawing)
+            if drawing.casts_shadows:
+                self.shadow_shape_change = True
             if not getattr(drawing, 'skip_bounds', False):
                 self.cached_drawing_bounds = None
         if transparency_changed:
@@ -1112,13 +1113,10 @@ class _RedrawNeeded:
     def shadows_changed(self):
         if self.transparency_changed:
             return True
-        for d in self.shape_changed_drawings:
-            if d.casts_shadows:
-                return True
-        return False
+        return self.shadow_shape_change
 
     def clear_changes(self):
         self.redraw_needed = False
         self.shape_changed = False
-        self.shape_changed_drawings.clear()
+        self.shadow_shape_change = False
         self.transparency_changed = False
