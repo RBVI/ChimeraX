@@ -110,19 +110,13 @@ class BugReporter(ToolInstance):
         gil.setAlignment(align_right)
         layout.addWidget(gil, row, 1)
         self.gathered_info = gi = TextEdit('', 3)
-        import sys
-        info = self.opengl_info()
+        info = opengl_info(self._ses)
         import platform
         info += f"\n\nPython: {platform.python_version()}\n"
         my_locale = [x for x in locale.getdefaultlocale() if x is not None]
         info += f"Locale: {'.'.join(my_locale)}\n"
         info += _qt_info(session)
-        if sys.platform == 'win32':
-            info += _win32_info()
-        elif sys.platform == 'linux':
-            info += _linux_info()
-        elif sys.platform == 'darwin':
-            info += _darwin_info()
+        info += system_summary()
         info += _package_info()
         gi.setText(info)
         layout.addWidget(gi, row, 2)
@@ -337,19 +331,6 @@ class BugReporter(ToolInstance):
         path,type = QFileDialog.getOpenFileName()
         if path:
             self.attachment.setText(path)
-
-    def opengl_info(self):
-        r = self._ses.main_view.render
-        try:
-            r.make_current()
-            lines = ['OpenGL version: ' + r.opengl_version(),
-                     'OpenGL renderer: ' + r.opengl_renderer(),
-                     'OpenGL vendor: ' + r.opengl_vendor()]
-            r.done_current()
-        except Exception:
-            lines = ['OpenGL version: unknown',
-                     'Could not make opengl context current']
-        return '\n'.join(lines)
 
     def chimerax_version(self):
         from chimerax.core.buildinfo import version, date
@@ -611,6 +592,30 @@ OS_LANGUAGES = {
     58380: "fr-015",
 }
 
+def opengl_info(session):
+    r = session.main_view.render
+    try:
+        r.make_current()
+        lines = ['OpenGL version: ' + r.opengl_version(),
+                 'OpenGL renderer: ' + r.opengl_renderer(),
+                 'OpenGL vendor: ' + r.opengl_vendor()]
+        r.done_current()
+    except Exception:
+        lines = ['OpenGL version: unknown',
+                 'Could not make opengl context current']
+    return '\n'.join(lines)
+
+def system_summary():
+    from sys import platform
+    if platform == 'win32':
+        info = _win32_info()
+    elif platform == 'linux':
+        info = _linux_info()
+    elif platform == 'darwin':
+        info = _darwin_info()
+    else:
+        info = ''
+    return info
 
 def _win32_info():
     try:

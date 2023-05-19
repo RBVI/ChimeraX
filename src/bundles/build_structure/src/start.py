@@ -193,7 +193,7 @@ def place_nucleic_acid(structure, sequence, *, form='B', type="dna", position=No
         type2 = complement[let]
         if type != "rna":
             type1 = "D" + type1
-        if type == "DNA":
+        if type == "dna":
             type2 = "D" + type2
         r1 = structure.new_residue(type1, chain_id1, i+1)
         r2 = structure.new_residue(type2, chain_id2, len(sequence)-i)

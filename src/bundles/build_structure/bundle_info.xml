@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-BuildStructure" version="2.10.2" package="chimerax.build_structure"
+<BundleInfo name="ChimeraX-BuildStructure" version="2.10.3" package="chimerax.build_structure"
   	    customInit="true" minSessionVersion="1" maxSessionVersion="1">
 
   <!-- Additional information about bundle source -->

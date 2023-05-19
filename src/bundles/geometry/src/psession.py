@@ -43,7 +43,7 @@ class PlacesState:
     @staticmethod
     def take_snapshot(places, session, flags):
         sas = places.shift_and_scale_array()
-        data = {'shift_and_scale': sas} if sas else {'array': places.array()}
+        data = {'shift_and_scale': sas} if sas is not None else {'array': places.array()}
         data['version'] = PlacesState.version
         return data
 

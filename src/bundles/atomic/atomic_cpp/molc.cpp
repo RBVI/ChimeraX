@@ -5335,6 +5335,8 @@ extern "C" EXPORT void metadata(void *mols, size_t n, pyobject_t *headers)
                 for (size_t i = 0; i != count; ++i)
                     PyList_SetItem(values, i, unicode_from_string(headers[i]));
                 PyDict_SetItem(header_map, key, values);
+                Py_DECREF(key);
+                Py_DECREF(values);
             }
             headers[i] = header_map;
             header_map = NULL;

@@ -328,6 +328,9 @@ class View:
     def shape_changed(self):
         return self._drawing_manager.shape_changed
 
+    def clear_drawing_changes(self):
+        return self._drawing_manager.clear_changes()
+
     def get_background_color(self):
         return self._background_rgba
 
