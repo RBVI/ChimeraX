@@ -3123,7 +3123,9 @@ extern "C" EXPORT PyObject *residue_unique_sequences(void *residues, size_t n, i
                       {
                         int next_id = smap.size()+1;
                         si = cmap[c] = smap[seq] = next_id;
-                        PyList_Append(seqs, unicode_from_string(seq));
+                        auto py_seq = unicode_from_string(seq);
+                        PyList_Append(seqs, py_seq);
+                        Py_DECREF(py_seq);
                       }
                     else
                       si = cmap[c] = seqi->second;

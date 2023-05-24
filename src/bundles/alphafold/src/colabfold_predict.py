@@ -70,12 +70,6 @@ def run_prediction(sequences,
 
     from colabfold.download import download_alphafold_params
     download_alphafold_params(model_type, Path("."))
-
-    # Hack to plot the MSA coverage before making structure predictions.
-    from colabfold import batch
-    if not hasattr(batch, 'generate_input_feature_orig'):
-      batch.generate_input_feature_orig = batch.generate_input_feature
-      batch.generate_input_feature = generate_input_feature_wrapper
     
     from colabfold.batch import run
     run(
@@ -96,6 +90,7 @@ def run_prediction(sequences,
       rank_by="auto",
       pair_mode=pair_mode,
       stop_at_score=100.0,
+      feature_dict_callback=plot_msa,
       prediction_callback=prediction_callback,
       dpi=dpi
     )
@@ -119,46 +114,12 @@ def start_logging():
     import datetime
     logger.info('Starting prediction on %s UTC time'
                 % datetime.datetime.utcnow().strftime('%Y-%m-%d'))
-
-# ================================================================================================
-#
-def generate_input_feature_wrapper(*args, **kw):
-  '''Hack to be able plot the MSA coverage before predicting structures.'''
-  from colabfold import batch
-  (input_features, domain_names) = batch.generate_input_feature_orig(*args, **kw)
-
-  # Plot MSA coverage
-  query_seqs_unique, query_seqs_cardinality = args[:2]
-  query_sequence_len_array = [
-    len(query_seqs_unique[i])
-    for i, cardinality in enumerate(query_seqs_cardinality)
-    for _ in range(0, cardinality)
-  ]
-  plot_msa(input_features, query_sequence_len_array)
-
-  return (input_features, domain_names)
     
 # ================================================================================================
 #
-def plot_msa(input_features, query_sequence_len_array, dpi=200):
-  '''
-  Copied from colabfold.batch run() routine, in order to show MSA coverage plot
-  before structure predictions are made.
-  '''
-  na = input_features["num_alignments"]
-  num_alignment = int(na) if na.ndim == 0 else na[0]  # Monomer pipeline has nres length array
-  msa = input_features["msa"]
-  query_sequence_len = sum(query_sequence_len_array)
-  from colabfold.plot import plot_msa
-  msa_plot = plot_msa(
-          msa[0:num_alignment],
-          msa[0],
-          query_sequence_len_array,
-          query_sequence_len,
-          dpi=dpi,
-      )
-  msa_plot.show()
-  msa_plot.close()
+def plot_msa(input_features, dpi=200):
+    from colabfold.plot import plot_msa_v2
+    plot_msa_v2(input_features, dpi=dpi)
 
 # ================================================================================================
 #
@@ -169,7 +130,10 @@ def prediction_callback(unrelaxed_protein, query_sequence_len_array,
   nplots = 3 if multimer else 2
   fig, axes = plt.subplots(1,nplots,figsize=(9,3), dpi=150)
   plot_protein(unrelaxed_protein, axes[0], coloring = 'plddt')
-  plot_pae(prediction_result["predicted_aligned_error"], axes[1], query_sequence_len_array)
+  from colabfold.colabfold import plot_pae
+  plot_pae(prediction_result["predicted_aligned_error"], axes[1],
+           Ls = query_sequence_len_array, colorkey_size = 0.9)
+  axes[1].set_title("Predicted aligned error", pad=20)  # Add some padding to the caption.
   if multimer:
       plot_protein(unrelaxed_protein, axes[2], coloring = 'chain',
                    query_sequence_len_array=query_sequence_len_array)
@@ -180,88 +144,19 @@ def prediction_callback(unrelaxed_protein, query_sequence_len_array,
 #
 def plot_protein(protein, plot_axis, coloring='plddt', query_sequence_len_array = None,
                  best_view=True, line_w=2.0):
-  '''
-  Copied from colabfold.colabfold plot_protein() to allow combining with pae plot figure.
-  '''
   import numpy as np
   pos = np.asarray(protein.atom_positions[:,1,:])
   plddt = np.asarray(protein.b_factors[:,0])
 
-  # get best view
-  if best_view:
-    weights = plddt/100
-    pos = pos - (pos * weights[:,None]).sum(0,keepdims=True) / weights.sum()
-    from colabfold.colabfold import kabsch
-    pos = pos @ kabsch(pos, pos, weights, return_v=True)
-    
-  xy_min = pos[...,:2].min() - line_w
-  xy_max = pos[...,:2].max() + line_w
-  plot_axis.set_xlim(xy_min, xy_max)
-  plot_axis.set_ylim(xy_min, xy_max)
-  plot_axis.axis(False)
+  from colabfold import colabfold
+  colabfold.plot_protein_backbone(protein = protein, pos = pos, plddt = plddt,
+                                  axes = plot_axis, coloring = coloring, Ls = query_sequence_len_array,
+                                  best_view = best_view, line_w = line_w)
 
-  from colabfold.colabfold import plot_pseudo_3D
   if coloring == 'plddt':
-    # color by pLDDT
-    plot_pseudo_3D(pos, c=plddt, cmin=50, cmax=90, line_w=line_w, ax=plot_axis)
     plot_axis.set_title('Colored by pLDDT')
   elif coloring == 'chain':
-    # color by chain
-    c = np.concatenate([[n]*L for n,L in enumerate(query_sequence_len_array)])
-    nchain = len(query_sequence_len_array)
-    if nchain > 40:   plot_pseudo_3D(pos, c=c, line_w=line_w, ax=plot_axis)
-    else:             plot_pseudo_3D(pos, c=c, cmap=chain_colormap(), cmin=0, cmax=39,
-                                     line_w=line_w, ax=plot_axis)
     plot_axis.set_title('Colored by chain')
-    
-# ================================================================================================
-#
-def add_text(text, ax):
-  return ax.text(0.5, 1.01, text, horizontalalignment='center',
-                  verticalalignment='bottom', transform=ax.transAxes)
-    
-# ================================================================================================
-#
-def chain_colormap():
-  pymol_color_list = ["#33ff33","#00ffff","#ff33cc","#ffff00","#ff9999","#e5e5e5","#7f7fff","#ff7f00",
-                    "#7fff7f","#199999","#ff007f","#ffdd5e","#8c3f99","#b2b2b2","#007fff","#c4b200",
-                    "#8cb266","#00bfbf","#b27f7f","#fcd1a5","#ff7f7f","#ffbfdd","#7fffff","#ffff7f",
-                    "#00ff7f","#337fcc","#d8337f","#bfff3f","#ff7fff","#d8d8ff","#3fffbf","#b78c4c",
-                    "#339933","#66b2b2","#ba8c84","#84bf00","#b24c66","#7f7f7f","#3f3fa5","#a5512b"]
-  import matplotlib.colors
-  pymol_cmap = matplotlib.colors.ListedColormap(pymol_color_list)
-  return pymol_cmap
-    
-# ================================================================================================
-#
-def plot_pae(pae, plot_axis, query_sequence_len_array, caption = 'Predicted aligned error'):
-  # Code taken from colabfold.colabfold plot_paes() to allow specifying which plot
-  plot_axis.set_title(f"{caption}", pad=20)
-  Ln = pae.shape[0]
-  image = plot_axis.imshow(pae,cmap="bwr",vmin=0,vmax=30,extent=(0, Ln, Ln, 0))
-  if len(query_sequence_len_array) > 1:
-    plot_chain_names(query_sequence_len_array, plot_axis)
-  import matplotlib.pyplot as plt
-  plt.colorbar(mappable = image, ax = plot_axis, shrink = 0.9)
-
-# ================================================================================================
-#
-def plot_chain_names(Ls, plot_axis):
-  # Copied from colabfold.colabfold plot_ticks() to allow specifying the plot
-  Ln = sum(Ls)
-  L_prev = 0
-  for L_i in Ls[:-1]:
-    L = L_prev + L_i
-    L_prev += L_i
-    plot_axis.plot([0,Ln],[L,L],color="black")
-    plot_axis.plot([L,L],[0,Ln],color="black")
-  import numpy
-  ticks = numpy.cumsum([0]+Ls)
-  ticks = (ticks[1:] + ticks[:-1])/2
-  from string import ascii_uppercase,ascii_lowercase
-  alphabet_list = list(ascii_uppercase+ascii_lowercase)
-  plot_axis.set_yticks(ticks)
-  plot_axis.set_yticklabels(alphabet_list[:len(ticks)])
     
 # ================================================================================================
 #
