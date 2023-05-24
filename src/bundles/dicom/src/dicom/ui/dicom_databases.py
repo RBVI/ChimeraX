@@ -281,6 +281,7 @@ class DICOMDatabases(ToolInstance):
                 , x['url']
             ) for x in entries
         ]
+        self.database_entries.sortByColumn(0, Qt.SortOrder.AscendingOrder)
 
     def delete(self):
         try:
