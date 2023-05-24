@@ -355,7 +355,7 @@ class PlaneViewer(QWindow):
     def mouseReleaseEvent(self, event): # noqa
         b = event.button() | event.buttons()
         if b & Qt.MouseButton.LeftButton:
-            self.segmentation_overlay.center = (2 * event.position().x(), 2*(self.view.window_size[1] - event.position().y()), 0)
+            self.segmentation_overlay.center = (self.scale * event.position().x(), self.scale * (self.view.window_size[1] - event.position().y()), 0)
             self.segmentation_overlay.update()
             self.view.camera.redraw_needed = True
         self.last_mouse_position = None
@@ -376,7 +376,7 @@ class PlaneViewer(QWindow):
         # Level or segment
         if b == Qt.MouseButton.NoButton or b == Qt.MouseButton.LeftButton:
             pos = event.position()
-            self.segmentation_overlay.center = (2 * pos.x(), 2* (self.view.window_size[1] - pos.y()), 0)
+            self.segmentation_overlay.center = (self.scale * pos.x(), self.scale * (self.view.window_size[1] - pos.y()), 0)
             self.segmentation_overlay.update()
             self.view.camera.redraw_needed = True
             return
