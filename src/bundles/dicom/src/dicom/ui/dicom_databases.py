@@ -142,7 +142,6 @@ class DICOMDatabases(ToolInstance):
         # self.available_dbs.addItem("Choose a Database")
         self.available_dbs.addItem("TCIA")
         self.database_entries.launch()
-        self.database_entries.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
         self.interface_stack.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
         self.database_entries.get_selection.connect(self._on_main_table_double_clicked)
 
