@@ -36,7 +36,6 @@ ifeq ($(OS),Darwin)
 TINYARRAY_WHEEL = tinyarray-1.2.4-cp311-cp311-macosx_10_9_universal2.whl
 PYOPENGL_ACCELERATE_WHEEL = PyOpenGL_accelerate-3.1.6-cp311-cp311-macosx_10_9_universal2.whl
 ifeq ($(OSARCH),DarwinArm64)
-IMAGECODECS_WHEEL = $(PREREQS_ARCHIVE)/imagecodecs/imagecodecs-2023.1.23-cp311-cp311-macosx_12_0_arm64.whl
 PYTABLES_WHEEL = $(PREREQS_ARCHIVE)/pytables/tables-3.8.0-cp311-cp311-macosx_11_0_arm64.whl
 else
 ifeq ($(OSARCH),DarwinIntel64)
@@ -58,8 +57,8 @@ ifeq ($(OS),Linux)
 else
 ifeq ($(OS),Darwin)
 ifeq ($(OSARCH),DarwinArm64)
-PLATO_PREREQS += $(IMAGECODECS_PREREQ) $(PYTABLES_PREREQ)
-PLATO_WHEELS += $(IMAGECODECS_WHEEL) $(PYTABLES_WHEEL)
+PLATO_PREREQS += $(PYTABLES_PREREQ)
+PLATO_WHEELS += $(PYTABLES_WHEEL)
 else
 ifeq ($(OSARCH),DarwinIntel64)
 endif
@@ -132,7 +131,6 @@ app-upgrade:
 
 clean:
 	-rm -f pip.log $(PYTABLES_DYLIBS) \
-		imagecodecs-2022.2.22-cp39-cp39-macosx_12_0_arm64.whl \
 		tables-3.7.0-cp39-cp39-macosx_12_0_arm64.whl
 	make -C package_checker clean	
 
