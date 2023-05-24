@@ -59,9 +59,11 @@ def dicom_view(session, arg, force = False):
 
 def _check_rapid_access(*args):
     session = args[1][0].session
-    if session.ui.main_window.view_layout != "default":
-        # TODO: Only do this if all the models have been removed.
-        dicom_view(session, "default", force=True)
+    if (
+        session.ui.main_window.view_layout != "default"
+        and not any(type(v) == Volume for v in session.models)
+    ):
+        session.ui.main_window.restore_default_main_view()
 
 dicom_view_desc = CmdDesc(
     required = [("arg", StringArg)],
