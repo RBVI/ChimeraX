@@ -33,11 +33,13 @@ class="clRight" title="User Guide Index"/></a>
 <p>
 The <b>mcopy</b> command copies display styles and other attributes 
 from an atomic model to the corresponding part(s) of another atomic model.
-It does not create new models.  To copy an existing atomic model
+It does not act on molecular surface models, and
+it does not create new models. To copy an existing atomic model
 (along with its settings) to create a new model,
 use the command <a href="combine.html"><b>combine</b></a> instead.
 See also: <a href="volume.html#copy"><b>volume copy</b></a>,
-<a href="preset.html"><b>preset</b></a>
+<a href="preset.html"><b>preset</b></a>,
+<a href="dssp.html"><b>dssp</b></a>
 </p><p>
 The <a href="atomspec.html"><i>source</i></a>
 may include part or all of a single atomic model, and the
@@ -63,14 +65,15 @@ Characters after the <b>settings</b> keyword (default <b>csv</b>)
 control which attributes are copied:
 </p>
 <ul>
-<li><b>c</b> &ndash; atom and residue coloring
+<li><b>c</b> &ndash; atom and cartoon coloring
 <li><b>s</b> &ndash; <a href="style.html">atom/bond styles</a> and 
 <a href="cartoon.html#style">cartoon styles</a>
 <li><b>v</b> 
 &ndash; visibility; whether display is enabled at the model level
 (see <a href="../hierarchy.html">hierarchy</a>), as well as which
 residue cartoon segments and atoms are shown
-<li><b>h</b> &ndash; protein secondary structure assignments (helix, strand, turn)
+<li><b>h</b> &ndash; protein secondary structure assignments
+(helix, strand, turn)
 <li><b>l</b> &ndash; atom and residue <a href="label.html">labels</a>
 <li><b>x</b> &ndash; atomic coordinates, untransformed
 <li><b>p</b> &ndash; placement (overall model transformation)
