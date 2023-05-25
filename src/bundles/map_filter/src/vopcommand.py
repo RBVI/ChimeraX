@@ -97,7 +97,7 @@ def register_volume_filtering_subcommands(logger):
 
     copy_desc = CmdDesc(required = varg,
                          keyword = [('value_type', ValueTypeArg)] + ssm_kw,
-                         synopsis = 'Copy a map or a map subregio')
+                         synopsis = 'Copy a map or a map subregion')
     register('volume copy', copy_desc, volume_copy, logger=logger)
 
     cover_desc = CmdDesc(required = varg,

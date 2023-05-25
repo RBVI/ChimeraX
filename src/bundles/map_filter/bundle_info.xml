@@ -23,6 +23,38 @@
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    <ChimeraXClassifier>Command :: volume add :: Volume data :: Add two or more maps</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: volume bin :: Volume data :: Average map values over bins to reduce map size</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: volume boxes :: Volume data :: Extract maps for boxes around selected atoms</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: volume copy :: Volume data :: Copy a map or a map subregion</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: volume cover :: Volume data :: Use symmetry to extend a map to cover a region</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: volume falloff :: Volume data :: Smooth map values where map falls to zero</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: volume flatten :: Volume data :: Flatten map gradients</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: volume flip :: Volume data :: Reverse axis directions</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: volume fourier :: Volume data :: Fourier transform a map</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: volume gaussian :: Volume data :: Convolve map with a Gaussian for smoothing</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: volume laplacian :: Volume data :: Laplace filter a map to enhance edges</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: volume localCorrelation :: Volume data :: Compute correlation between maps over a slid</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: volume maximum :: Volume data :: Maximum pointwise values of 2 or more maps</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: volume minimum :: Volume data :: Minimum pointwise values of 2 or more maps</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: volume median :: Volume data :: Median map value over a sliding window</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: volume morph :: Volume data :: Linearly interpolate maps</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: volume multiply :: Volume data :: Multiply maps pointwise</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: volume new :: Volume data :: Create a new map with zero values</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: volume octant :: Volume data :: Zero all but an octant of a map</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: volume ~octant :: Volume data :: Zero an octant of a map</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: volume permuteAxes :: Volume data :: Permute map axes</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: volume resample :: Volume data :: Resample a map on the grid of another map</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: volume ridges :: Volume data :: Filter to detect map ridges</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: volume scale :: Volume data :: Scale and shift map values</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: volume subtract :: Volume data :: Subtract maps pointwise</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: volume threshold :: Volume data :: Set map values below a threshold to zero</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: volume tile :: Volume data :: Create a single plane map by tiling planes of a map</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: volume unbend :: Volume data :: Unwarp a map along a curved rectangular tube</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: volume unroll :: Volume data :: Unroll a cylindrical shell to form a new map</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: volume zone :: Volume data :: Zero map values beyond a distance range from atoms</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: volume unzone :: Volume data :: Show full map with no surface masking</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: vop :: Volume data :: Synonym for volume command for backward compatibility with Chimera</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>
