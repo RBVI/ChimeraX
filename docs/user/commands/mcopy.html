@@ -27,7 +27,7 @@ class="clRight" title="User Guide Index"/></a>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>mcopy</b> &nbsp;<a href="atomspec.html"><i>source</i></a>&nbsp;
 <b>toAtoms</b> &nbsp;<a href="atomspec.html"><i>target</i></a>&nbsp;
-[&nbsp;<b>settings</b>&nbsp;[<b>c</b>][<b>s</b>][<b>v</b>][<b>l</b>][<b>x</b>][<b>y</b>][<b>p</b>]&nbsp;|&nbsp;<b>a</b>&nbsp;]
+[&nbsp;<b>settings</b>&nbsp;[<b>c</b>][<b>s</b>][<b>v</b>][<b>h</b>][<b>l</b>][<b>x</b>][<b>y</b>][<b>p</b>]&nbsp;|&nbsp;<b>a</b>&nbsp;]
 [&nbsp;<b>matchResidues</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 </h3>
 <p>
@@ -52,8 +52,7 @@ requires identical residue numbers, residue names, and chain identifiers.
 With <b>matchResidues false</b>, residues are simply paired in the order
 they are given in the <a href="atomspec.html"><i>source</i></a>
 and <a href="atomspec.html"><i>target</i></a> specifications.
-Either way, pairing atoms within the residues requires
-identical atom names and alternate location identifiers.
+Either way, pairing atoms within the residues requires identical atom names.
 Any unmatched atoms and residues
 (those in <a href="atomspec.html"><i>target</i></a> but not in 
 <a href="atomspec.html"><i>source</i></a>)
@@ -64,19 +63,20 @@ Characters after the <b>settings</b> keyword (default <b>csv</b>)
 control which attributes are copied:
 </p>
 <ul>
-<li><b>c</b> &ndash; coloring
+<li><b>c</b> &ndash; atom and residue coloring
 <li><b>s</b> &ndash; <a href="style.html">atom/bond styles</a> and 
 <a href="cartoon.html#style">cartoon styles</a>
 <li><b>v</b> 
 &ndash; visibility; whether display is enabled at the model level
 (see <a href="../hierarchy.html">hierarchy</a>), as well as which
 residue cartoon segments and atoms are shown
+<li><b>h</b> &ndash; protein secondary structure assignments (helix, strand, turn)
 <li><b>l</b> &ndash; atom and residue <a href="label.html">labels</a>
 <li><b>x</b> &ndash; atomic coordinates, untransformed
-<li><b>y</b> &ndash; atomic coordinates, transformed relative to
-<a href="atomspec.html"><i>target</i></a>
 <li><b>p</b> &ndash; placement (overall model transformation)
-<li><b>a</b> &ndash; all of the above, except <b>y</b>
+<li><b>y</b> &ndash; atomic coordinates in the 
+<a href="view.html#scenecoords">scene coordinate system</a>
+<li><b>a</b> &ndash; all of the above, except <b>h</b> and <b>y</b>
 </ul>
 <p>
 Examples:
