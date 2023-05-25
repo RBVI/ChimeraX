@@ -1050,14 +1050,18 @@ def volume_flip(session, volumes, axis = 'z', subregion = 'all', step = 1,
 #
 def flip_operation(v, axes, subregion, step, in_place, model_id):
 
-    g = v.grid_data(subregion = subregion, step = step, mask_zone = False)
     from . import flip
     if in_place:
-        m = g.full_matrix()
+        if not v.data.writable:
+            raise CommandError("Can't flip volume opened from a file in-place: %s" % v.name)
+        if subregion != 'all' or step != 1:
+            raise CommandError("Can't flip a subregion of a volume in-place: %s" % v.name)
+        m = v.data.full_matrix()
         flip.flip_in_place(m, axes)
         v.data.values_changed()
         return v
     else:
+        g = v.grid_data(subregion = subregion, step = step, mask_zone = False)
         fg = flip.FlipGrid(g, axes)
         from chimerax.map import volume_from_grid_data
         fv = volume_from_grid_data(fg, v.session, model_id = model_id)
