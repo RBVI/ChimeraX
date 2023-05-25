@@ -1,0 +1,88 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: mcopy</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#commands">Command</a>: mcopy</h3>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>mcopy</b> &nbsp;<a href="atomspec.html"><i>source</i></a>&nbsp;
+&nbsp;<a href="atomspec.html"><i>target</i></a>&nbsp;
+[&nbsp;<b>settings</b>&nbsp;[<b>c</b>][<b>s</b>][<b>v</b>][<b>l</b>][<b>x</b>][<b>y</b>][<b>p</b>]&nbsp;|&nbsp;<b>a</b>&nbsp;]
+[&nbsp;<b>matchResidues</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+</h3>
+<p>
+The <b>mcopy</b> command copies display styles and other attributes 
+from one atomic model to the corresponding parts of another atomic model.
+It does not create new models. To copy an existing model (along with its 
+settings) to create a new model, use the command
+<a href="combine.html"><b>combine</b></a> instead.
+See also: <a href="preset.html"><b>preset</b></a>
+</p><p>
+The <a href="atomspec.html"><i>source</i></a>
+may include part or all of a single atomic model, and the
+<a href="atomspec.html"><i>target</i></a>
+may include part or all of one or more atomic models other than the source.
+Model attributes, the attributes of any paired residues, and the
+attributes of any paired atoms (and the bonds between them) 
+will be copied from the source to each target.
+</p><p>
+Residue pairing with <b>matchResidues true</b> (default)
+requires identical residue numbers, residue names, and chain identifiers.
+With <b>matchResidues false</b>, residues are simply paired in the order
+they are given in the <i>source</i> and <i>target</i> specifications.
+Either way, pairing atoms within the residues requires
+identical atom names and alternate location identifiers.
+Any unmatched atoms and residues
+(those in <i>target</i> but not in <i>source</i>)
+will be ignored, but their existence noted in the
+<a href="../window.html">status line</a>.
+</p><p>
+Characters after the <b>settings</b> keyword (default <b>csv</b>)
+control which attributes are copied:
+</p>
+<ul>
+<li><b>c</b> &ndash; coloring
+<li><b>s</b> &ndash; <a href="style.html">atom/bond styles</a> and 
+<a href="cartoon.html#style">cartoon styles</a>
+<li><b>v</b> 
+&ndash; visibility; whether display is enabled at the model level
+(see <a href="../hierarchy.html">hierarchy</a>), as well as which
+residue cartoon segments and atoms are shown
+<li><b>l</b> &ndash; atom and residue <a href="label.html">labels</a>
+<li><b>x</b> &ndash; atomic coordinates, untransformed
+<li><b>y</b> &ndash; atomic coordinates, transformed relative to <i>target</i>
+<li><b>p</b> &ndash; placement (overall model transformation)
+<li><b>a</b> &ndash; all of the above, except <b>y</b>
+</ul>
+<p>
+Examples:
+</p>
+<blockquote>
+<b>mcopy #1 #2 settings a</b>
+<br>
+<b>mcopy #1 #2-10 set csvl</b>
+</blockquote>
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+May 2023</address>
+</body></html>

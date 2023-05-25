@@ -365,7 +365,7 @@ class ObjectLabels(Model):
 
     def labels(self, objects = None):
         if objects is None:
-            self._labels
+            return self._labels
         ol = self._object_label
         return [ol[o] for o in objects if o in ol]
     
