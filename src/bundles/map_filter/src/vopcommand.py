@@ -646,7 +646,7 @@ def volume_gaussian(session, volumes, s_dev = (1.0,1.0,1.0), bfactor = None,
     '''Smooth maps by Gaussian convolution.'''
     if bfactor is not None:
         if bfactor < 0:
-            invert = True
+            invert = not invert
         from math import pi, sqrt
         # Calculates sd according to https://www3.cmbi.umcn.nl/bdb/theory/
         sd = sqrt(abs(bfactor)/(3*8*pi**2))
