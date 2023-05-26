@@ -665,6 +665,8 @@ def volume_sharpen(session, volumes, s_dev = (1.0,1.0,1.0), bfactor = None,
     '''Sharpen map by amplifying high-frequencies using bfactor.'''
     if bfactor is not None:
         bfactor = -bfactor
+    else:
+        invert = not invert	# s_dev specified
     return volume_gaussian(session, volumes, s_dev = s_dev, bfactor = bfactor,
                            subregion = subregion, step = step, value_type = value_type,
                            invert = invert, model_id = model_id)
