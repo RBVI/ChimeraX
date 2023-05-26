@@ -47,6 +47,7 @@
     <ChimeraXClassifier>Command :: volume resample :: Volume data :: Resample a map on the grid of another map</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: volume ridges :: Volume data :: Filter to detect map ridges</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: volume scale :: Volume data :: Scale and shift map values</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: volume sharpen :: Volume data :: Sharpen map by amplifying high-frequencies using bfactor</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: volume subtract :: Volume data :: Subtract maps pointwise</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: volume threshold :: Volume data :: Set map values below a threshold to zero</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: volume tile :: Volume data :: Create a single plane map by tiling planes of a map</ChimeraXClassifier>

@@ -137,11 +137,12 @@ def register_volume_filtering_subcommands(logger):
                            synopsis = 'Fourier transform a map')
     register('volume fourier', fourier_desc, volume_fourier, logger=logger)
 
+    gauss_kw = [('s_dev', Float1or3Arg),
+                 ('bfactor', FloatArg),
+                 ('value_type', ValueTypeArg),
+                 ('invert', BoolArg)] + ssm_kw
     gaussian_desc = CmdDesc(required = varg,
-                            keyword = [('s_dev', Float1or3Arg),
-                                       ('bfactor', FloatArg),
-                                       ('value_type', ValueTypeArg),
-                                       ('invert', BoolArg)] + ssm_kw,
+                            keyword = gauss_kw,
                             synopsis = 'Convolve map with a Gaussian for smoothing'
     )
     register('volume gaussian', gaussian_desc, volume_gaussian, logger=logger)
@@ -239,6 +240,12 @@ def register_volume_filtering_subcommands(logger):
                                     ] + ssm_kw,
                          synopsis = 'Scale and shift map values')
     register('volume scale', scale_desc, volume_scale, logger=logger)
+
+    sharpen_desc = CmdDesc(required = varg,
+                           keyword = gauss_kw,
+                           synopsis = 'Sharpen map by amplifying high-frequencies using bfactor'
+    )
+    register('volume sharpen', sharpen_desc, volume_sharpen, logger=logger)
 
     subtract_desc = CmdDesc(required = varg,
                             keyword = add_kw + [('min_rms', BoolArg)],
@@ -649,7 +656,19 @@ def volume_gaussian(session, volumes, s_dev = (1.0,1.0,1.0), bfactor = None,
     gv = [gaussian_convolve(v, s_dev, step, subregion, value_type, invert, model_id, session = session)
           for v in volumes]
     return _volume_or_list(gv)
-
+                   
+# -----------------------------------------------------------------------------
+#
+def volume_sharpen(session, volumes, s_dev = (1.0,1.0,1.0), bfactor = None,
+                   subregion = 'all', step = 1, value_type = None, invert = False,
+                   model_id = None):
+    '''Sharpen map by amplifying high-frequencies using bfactor.'''
+    if bfactor is not None:
+        bfactor = -bfactor
+    return volume_gaussian(session, volumes, s_dev = s_dev, bfactor = bfactor,
+                           subregion = subregion, step = step, value_type = value_type,
+                           invert = invert, model_id = model_id)
+                   
 # -----------------------------------------------------------------------------
 #
 def volume_laplacian(session, volumes, subregion = 'all', step = 1, model_id = None):
