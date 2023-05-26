@@ -312,7 +312,7 @@ class BugReporter(ToolInstance):
         
         oops = ("<font color=red><h3>Error while submitting feedback.</h3></font>"
                 + detail +
-                "<p>An error occured when trying to submit your feedback."
+                "<p>An error occurred when trying to submit your feedback."
                 "  No information was received by the Computer Graphics Lab."
                 "  This could be due to network problems, but more likely,"
                 " there is a problem with Computer Graphics Lab's server."
