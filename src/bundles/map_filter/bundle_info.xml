@@ -56,6 +56,7 @@
     <ChimeraXClassifier>Command :: volume zone :: Volume data :: Zero map values beyond a distance range from atoms</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: volume unzone :: Volume data :: Show full map with no surface masking</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: vop :: Volume data :: Synonym for volume command for backward compatibility with Chimera</ChimeraXClassifier>
+    <ChimeraXClassifier>Tool :: Map Filter :: Volume Data :: Apply filters to maps</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

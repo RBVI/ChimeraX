@@ -23,6 +23,12 @@ from chimerax.core.toolshed import BundleAPI
 class _MapFilterBundle(BundleAPI):
 
     @staticmethod
+    def start_tool(session, tool_name):
+        if tool_name == 'Map Filter':
+            from .filtergui import show_map_filter_panel
+            return show_map_filter_panel(session)
+
+    @staticmethod
     def register_command(command_name, logger):
         from .vopcommand import register_volume_filtering_subcommands
         register_volume_filtering_subcommands(logger)
