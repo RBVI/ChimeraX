@@ -49,8 +49,9 @@ def gaussian_grid(volume, sdev, step = 1, subregion = None, region = None,
 
   from chimerax.map_data import ArrayGridData
   d = v.data
-  if v.name.endswith('gaussian'): name = v.name
-  else:                           name = '%s gaussian' % v.name
+  suffix = 'sharpen' if invert else 'gaussian'
+  if v.name.endswith(suffix): name = v.name
+  else:                       name = '%s %s' % (v.name, suffix)
   gg = ArrayGridData(gm, origin, step, d.cell_angles, d.rotation,
                      name = name)
   return gg
