@@ -4,11 +4,10 @@ from chimerax.map import Volume
 from chimerax.nifti import NiftiGrid
 from chimerax.nrrd import NRRDGrid
 from ..dicom import DicomGrid
-from .orthoplanes import PlaneViewer, PlaneViewerManager, orthoplane_triggers, Axis
+from .orthoplanes import PlaneViewer, PlaneViewerManager, Axis
+from Qt.QtWidgets import QWidget, QGridLayout
 
 medical_types = [DicomGrid, NiftiGrid, NRRDGrid]
-
-from Qt.QtWidgets import QWidget, QGridLayout
 
 
 class FourUpView(QWidget):
@@ -39,6 +38,12 @@ class FourUpView(QWidget):
     def graphics_area(self):
         return self._graphics_area
 
+    def register_segmentation_tool(self, tool):
+        self._orthoplane_manager.register_segmentation_tool(tool)
+
+    def clear_segmentation_tool(self):
+        self._orthoplane_manager.clear_segmentation_tool()
+
 
 def dicom_view(session, arg, force = False):
     # TODO: Enable for NIfTI and NRRD as well
@@ -49,13 +54,16 @@ def dicom_view(session, arg, force = False):
         return
     if arg == "default" and session.ui.main_window.view_layout != "default":
         session.ui.main_window.restore_default_main_view()
-        for trigger in orthoplane_triggers:
-            session.triggers.delete_trigger(trigger)
     elif arg == "orthoplanes" and session.ui.main_window.view_layout != "fourup":
-        for trigger in orthoplane_triggers:
-            session.triggers.add_trigger(trigger)
         session.ui.main_window.main_view = FourUpView(session)
         session.ui.main_window.view_layout = "fourup"
+
+
+dicom_view_desc = CmdDesc(
+    required = [("arg", StringArg)],
+    optional = [("force", BoolArg)],
+    synopsis = "Set the view window to a grid of orthoplanes or back to the default"
+)
 
 def _check_rapid_access(*args):
     session = args[1][0].session
@@ -64,12 +72,6 @@ def _check_rapid_access(*args):
         and not any(type(v) == Volume for v in session.models)
     ):
         session.ui.main_window.restore_default_main_view()
-
-dicom_view_desc = CmdDesc(
-    required = [("arg", StringArg)],
-    optional = [("force", BoolArg)],
-    synopsis = "Set the view window to a grid of orthoplanes or back to the default"
-)
 
 def register_cmds(logger):
     register("dicom view", dicom_view_desc, dicom_view, logger=logger)
