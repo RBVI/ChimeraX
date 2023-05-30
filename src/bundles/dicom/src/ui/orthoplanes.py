@@ -9,64 +9,21 @@
 # including partial copies, of the software or any revisions
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
-import math
-from numpy import array, float32, uint8, int32
 import numpy as np
 
-from Qt.QtCore import Qt, QEvent
-from Qt.QtCore import QSize
-from Qt.QtWidgets import (
-    QVBoxLayout, QHBoxLayout
-    , QWidget, QSlider
-)
+from Qt.QtCore import Qt, QEvent, QSize
+from Qt.QtGui import QContextMenuEvent, QWindow, QSurface
+from Qt.QtWidgets import QVBoxLayout, QHBoxLayout, QWidget, QSlider
 
-from Qt.QtGui import QContextMenuEvent, QEnterEvent
-from Qt.QtGui import QWindow, QSurface
-from chimerax.geometry import Place
-from chimerax.graphics.camera import ortho
-from ..graphics import OrthoplaneView, OrthoCamera
-from chimerax.graphics import MonoCamera, Drawing
-from chimerax.graphics.opengl import GL
 from chimerax.core.models import Surface
+from chimerax.geometry import Place, translation
+from chimerax.graphics import Drawing
 from chimerax.map import Volume, VolumeSurface, VolumeImage
 from chimerax.ui.widgets import ModelMenu
+
+from ..graphics import OrthoplaneView, OrthoCamera, SegmentationOverlay, OrthoplaneLocationOverlay
+from ..types import Direction, Axis
 from .label import Label
-from enum import IntEnum
-
-AXIAL_PLANE_MOVED = "axial plane moved"
-CORONAL_PLANE_MOVED = "coronal plane moved"
-SAGGITAL_PLANE_MOVED = "saggital plane moved"
-# ORTHO_MODEL_CHANGED = "ortho model changed"
-
-orthoplane_triggers = [
-    AXIAL_PLANE_MOVED, CORONAL_PLANE_MOVED, SAGGITAL_PLANE_MOVED
-]
-
-class Direction(IntEnum):
-    HORIZONTAL = 0
-    VERTICAL = 1
-
-class Axis(IntEnum):
-    AXIAL = 2
-    CORONAL = 1
-    SAGGITAL = 0
-
-    def __str__(self):
-        return self.name.lower()
-
-    @property
-    def transform(self):
-        if self.value == 2:
-            return [[-1, 0, 0], [0, -1, 0], [0, 0, 1]]
-        elif self.value == 1:
-            return [[1, 0, 0], [0, 0, 1], [0, -1, 0]]
-        else:
-            return [[0, 1, 0], [0, 0, 1], [1, 0, 0]]
-
-    @property
-    def positive_direction(self):
-        return [-1,1][self.value != 1]
-
 
 class PlaneViewerManager:
     def __init__(self, session):
@@ -91,6 +48,22 @@ class PlaneViewerManager:
         for axis in self.axes.values():
             axis.update_dimensions(dimensions)
 
+    def register_segmentation_tool(self, tool):
+        for viewer in self.axes.values():
+            viewer.segmentation_tool = tool
+
+    def clear_segmentation_tool(self):
+        for viewer in self.axes.values():
+            viewer.segmentation_tool = None
+
+    def show_guidelines(self):
+        for viewer in self.axes.values():
+            viewer.set_guideline_visibility(True)
+
+    def hide_guidelines(self):
+        for viewer in self.axes.values():
+            viewer.set_guideline_visibility(False)
+
      #def update_volume(self, viewer):
      #   if viewer.axis == Axis.AXIAL:
      #       self.axes[Axis.CORONAL].
@@ -113,6 +86,7 @@ class PlaneViewer(QWindow):
         self.view.initialize_rendering(session.main_view.render.opengl_context)
         self.view.camera = OrthoCamera()
         self.view.camera.field_width = 500
+        self._segmentation_tool = None
         self.axes = axis.transform
         camera = self.view.camera
         camera.position = Place(origin = (0,0,0), axes = self.axes)
@@ -138,6 +112,8 @@ class PlaneViewer(QWindow):
         self.segmentation_overlay = SegmentationOverlay("seg_overlay", radius=10, thickness=3)
         self.horizontal_slice_overlay = OrthoplaneLocationOverlay("horiz_overlay", slice=10, direction=Direction.HORIZONTAL)
         self.vertical_slice_overlay = OrthoplaneLocationOverlay("vertical_overlay", slice=11)
+        self.horizontal_slice_overlay.display = False
+        self.horizontal_slice_overlay.display = False
         self.view.add_overlay(self.segmentation_overlay)
         self.view.add_overlay(self.horizontal_slice_overlay)
         self.view.add_overlay(self.vertical_slice_overlay)
@@ -182,6 +158,21 @@ class PlaneViewer(QWindow):
         layout.addWidget(self.container, stretch=1)
         self.container.setLayout(layout)
 
+    @property
+    def segmentation_tool(self):
+        return self._segmentation_tool
+
+    @segmentation_tool.setter
+    def segmentation_tool(self, tool):
+        self._segmentation_tool = tool
+        self._segmentation_tool.segmentation_cursors[self.axis].radius = self.segmentation_overlay.radius
+        # TODO:
+        # Set the segmentation pucks' locations based on the current slice location
+        # self._segmentation_tool.segmentation_cursors[self.axis].
+        self._segmentation_tool.model_menu.value = self.model_menu.value
+        # Set their radii to the current selected models' thickness
+        # Synchronize the tool's model menu value to our model menu value
+
     def _on_slider_moved(self):
         if self.axis == Axis.CORONAL:
             self.old_pos = -self.pos
@@ -199,6 +190,13 @@ class PlaneViewer(QWindow):
             if not self.view.drawing.parent.data.dicom_data.inferior_to_superior:
                 diff = -diff
         self.camera_offsets[self.axis] -= diff * self.view.drawing.parent.data.step[self.axis]
+        # TODO: Set the segmentation drawing's position to coincide with the new slice
+        if self.segmentation_tool:
+            offset_from_origin = self.pos * self.view.drawing.parent.data.step[self.axis]
+            old_origin = self.segmentation_tool.segmentation_cursors[self.axis].origin
+            origin = old_origin
+            origin[self.axis] = self.view.drawing.parent.data.dicom_data.origin()[self.axis] + offset_from_origin
+            self.segmentation_tool.segmentation_cursors[self.axis].origin = old_origin
         self._plane_indices[self.axis] = self.pos
         self.manager.update_location(self)
         self.view.camera.redraw_needed = True
@@ -320,12 +318,25 @@ class PlaneViewer(QWindow):
             self.main_view.render.use_shared_context(mvwin)
         self.view.render.done_current()
 
+    def camera_space_drawing_bounds(self):
+        top, bottom, left, right = (
+            self.horizontal_slice_overlay.top
+            , self.horizontal_slice_overlay.bottom
+            , self.vertical_slice_overlay.bottom
+            , self.vertical_slice_overlay.top
+        )
+        return top, bottom, left, right
+
     def event(self, event):
         if event.type() == QEvent.Type.Enter:
             self.enterEvent()
         if event.type() == QEvent.Type.Leave:
             self.leaveEvent()
         return QWindow.event(self, event)
+
+    def set_guideline_visibility(self, visibility: bool):
+        self.horizontal_slice_overlay.display = visibility
+        self.horizontal_slice_overlay.display = visibility
 
     def enableSegmentationOverlay(self):
         self.segmentation_overlay.display = True
@@ -365,7 +376,9 @@ class PlaneViewer(QWindow):
         delta = event.angleDelta()
         x_dir, y_dir = np.sign(delta.x()), np.sign(delta.y())
         if modifier == Qt.KeyboardModifier.ShiftModifier:
-            self.segmentation_overlay.radius += 1 * x_dir
+            self.segmentation_overlay.radius += self.scale * 0.5 * x_dir
+            if self.segmentation_tool:
+                self.segmentation_tool.segmentation_cursors[self.axis].radius += 1 * x_dir
         elif modifier == Qt.KeyboardModifier.NoModifier:
             self.camera_offsets[self.axis] += 15 * y_dir * self.axis.positive_direction
             self.view.camera.field_width += 1 * y_dir
@@ -378,8 +391,24 @@ class PlaneViewer(QWindow):
             pos = event.position()
             self.segmentation_overlay.center = (self.scale * pos.x(), self.scale * (self.view.window_size[1] - pos.y()), 0)
             self.segmentation_overlay.update()
+            # TODO: Take the center of the segmentation overlay and map it to the location on the shown slice
+            if self.segmentation_tool:
+                top, bottom, left, right = self.camera_space_drawing_bounds()
+                if not left <= pos.x() <= right and bottom <= pos.y() <= top:
+                    return
+                old_origin = self.segmentation_tool.segmentation_cursors[self.axis].origin
+                offset_left = pos.x() - bottom
+                offset_bottom = pos.y() - bottom
+                drawing_origin = self.view.drawing.parent.data.dicom_data.origin()
+                origin = old_origin
+                if self.axis == Axis.AXIAL:
+                    origin[0], origin[1] = drawing_origin[0] + pos.x(), drawing_origin[1] + pos.y()
+                if self.axis == Axis.CORONAL:
+                    origin[0], origin[2] = drawing_origin[0] + pos.x(), drawing_origin[2] + pos.y()
+                if self.axis == Axis.SAGGITAL:
+                    origin[1], origin[2] = drawing_origin[1] - pos.x(), drawing_origin[2] - pos.y()
+                self.segmentation_tool.segmentation_cursors[self.axis].origin = origin
             self.view.camera.redraw_needed = True
-            return
         # Zoom / Dolly
         if b & Qt.MouseButton.RightButton:
             pos = event.position()
@@ -417,6 +446,7 @@ class PlaneViewer(QWindow):
 
     def update_dimensions(self, dimensions):
         self.dimensions = dimensions
+
 
     @property
     def axial_index(self):
@@ -490,143 +520,3 @@ class PlaneViewer(QWindow):
         if self.model_menu.value == new_volume:
             return
         ...
-
-
-class OrthoplaneLocationOverlay(Drawing):
-    def __init__(self, name, slice, direction = Direction.VERTICAL):
-        super().__init__(name)
-        self.max_line_width = max(GL.glGetIntegerv(GL.GL_LINE_WIDTH_RANGE)[1], 1)
-        self.display_style = Drawing.Mesh
-        self.use_lighting = False
-        self.direction = direction
-        self._slice = slice
-        self.bottom = 0
-        self.offset = 0
-        self.top = 0
-        self.tick_thickness = 1
-
-    def draw(self, renderer, draw_pass):
-        r = renderer
-        ww, wh = r.render_size()
-        projection = ortho(0, ww, 0, wh, -1, 1)
-        r.set_projection_matrix(projection)
-        Drawing.draw(self, renderer, draw_pass)
-        r.set_projection_matrix((
-            (1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0), (0, 0, 0, 1)
-        ))
-
-    @property
-    def slice(self):
-        return self._slice
-
-    @slice.setter
-    def slice(self, slice):
-        self._slice = slice
-
-    def update(self):
-        vc, v, _, t = self._geometry()
-        self.set_geometry(v, _, t)
-        self.vertex_colors = vc
-
-    # TODO: Depend on the slice location
-    def _geometry(self):
-        if self.direction == Direction.VERTICAL:
-            ofs = (self.slice * self.tick_thickness) + self.offset
-            v = [[ofs-1, self.bottom, 0], [ofs-1, self.top, 0], [ofs, self.top, 0], [ofs, self.bottom, 0], [ofs+1, self.bottom, 0], [ofs+1, self.top, 0]]
-            t = [[0, 1], [1,2], [2,3], [3,4], [4,5], [5,0]]
-            v = array(v, dtype=float32)
-            t = array(t, dtype=int32)
-            c = array([[255, 0, 0, 255]] * len(v), dtype=uint8)
-        else:
-            ofs = (self.slice * self.tick_thickness) + self.offset
-            v = [[self.bottom, ofs, 0], [self.top, ofs, 0], [self.top ,ofs + 1,0], [self.bottom,ofs+1,0]]
-            t = [[0, 1], [1, 2], [2, 3], [3, 0]]
-            v = array(v, dtype=float32)
-            t = array(t, dtype=int32)
-            c = array([[255, 0, 0, 255]] * len(v), dtype=uint8)
-        return c, v, None, t
-
-
-class SegmentationOverlay(Drawing):
-    def __init__(self, name, radius, thickness):
-        super().__init__(name)
-        self.max_point_size = GL.glGetIntegerv(GL.GL_POINT_SIZE_RANGE)[1]
-        self.display_style = Drawing.Dot
-        self.use_lighting = False
-        self._radius = radius
-        self._center = [0, 0, 0]
-        self._thickness = thickness
-
-    def draw(self, renderer, draw_pass):
-        GL.glPointSize(min(self.max_point_size, self.thickness))
-        r = renderer
-        ww, wh = r.render_size()
-        projection = ortho(0, ww, 0, wh, -1, 1)
-        r.set_projection_matrix(projection)
-        Drawing.draw(self, renderer, draw_pass)
-        r.set_projection_matrix(
-            ((1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0),
-             (0, 0, 0, 1))
-            )
-        GL.glPointSize(1)
-
-    @property
-    def thickness(self):
-        return self._thickness
-
-    @thickness.setter
-    def thickness(self, thickness):
-        if self.max_point_size > thickness > 0:
-            self._thickness = thickness
-        else:
-            raise ValueError("Thickness exceeds OpenGL limit")
-
-    @property
-    def center(self):
-        return self._center
-
-    @center.setter
-    def center(self, center):
-        self._center = center
-
-    @property
-    def radius(self):
-        return self._radius
-
-    @radius.setter
-    def radius(self, radius):
-        self._radius = radius
-
-    def update(self):
-        vc, v, _, t = self._geometry()
-        self.set_geometry(v, _, t)
-        self.vertex_colors = vc
-
-    def _geometry(self):
-        # Bresenham's Algorithm
-        def mirror_points_8(x, y):
-            return [(x, y), (y, x), (-x, y), (-y, x), (x, -y), (y, -x), (-x, -y), (-y, -x)]
-        x = 0
-        y = self.radius
-        d = 1 - y
-        v = []
-        v.extend(mirror_points_8(x, y))
-        while y > x:
-            if d < 0:
-                d += 2*x + 3
-            else:
-                d += 2*(x - y) + 5
-                y -= 1
-            x += 1
-            v.extend(mirror_points_8(x, y))
-        fv = [[self.center[0] + vt[0], self.center[1] + vt[1], 0] for vt in v]
-        # We don't use this but we must pass t along so compute it anyway
-        t = []
-        for i in range(0, len(v)):
-            t.append([i, i + 1])
-        t[0][1] = 0
-        t[-1][1] = 0
-        fv = array(fv, dtype=float32)
-        t = array(t, dtype=int32)
-        vc = array([[255, 0, 0, 255]] * len(v), dtype=uint8)
-        return vc, fv, None, t
