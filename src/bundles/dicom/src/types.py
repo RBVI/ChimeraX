@@ -26,3 +26,10 @@ class Axis(IntEnum):
     @property
     def positive_direction(self):
         return [-1, 1][self.value != 1]
+
+    @property
+    def vertical(self):
+        if self.value == 2:
+            return 0
+        else:
+            return 2
