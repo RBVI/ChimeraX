@@ -98,7 +98,7 @@ class PlaneViewer(QWindow):
         self.view = OrthoplaneView(Drawing("placeholder"), window_size = (0, 0), axis = self.axis)
         self.view.initialize_rendering(session.main_view.render.opengl_context)
         self.view.camera = OrthoCamera()
-        self.view.camera.field_width = 500
+        self.field_width_offset = 0
 
         camera = self.view.camera
         camera.position = Place(origin = (0,0,0), axes = self.axes)
@@ -278,6 +278,11 @@ class PlaneViewer(QWindow):
                 self.view.drawing.parent.update_drawings()
                 self.slider_moved = False
             model_center_offsets = self.view.drawing.bounds().center()
+            model_sizes = self.view.drawing.bounds().size()
+            this_axis_size = model_sizes[::-1][self.axis]
+            initial_needed_fov = this_axis_size / height * width
+            self.view.camera.field_width = initial_needed_fov + self.field_width_offset
+
             self.calculateSliceOverlays()
             test_c_offsets = [[15, 0, 0], [0,15,0],[0,0,15]][self.axis]
             self.origin = self.view.drawing.position.origin() + model_center_offsets - self.camera_offsets + test_c_offsets
@@ -447,12 +452,12 @@ class PlaneViewer(QWindow):
         delta = event.angleDelta()
         x_dir, y_dir = np.sign(delta.x()), np.sign(delta.y())
         if modifier == Qt.KeyboardModifier.ShiftModifier:
-            self.segmentation_overlay.absolute_radius += 1 * x_dir
+            self.segmentation_overlay.absolute_radius += 1 * (x_dir | y_dir)
             self.segmentation_overlay.pixel_size = self.view.pixel_size()
             self.resize3DSegmentationCursor()
         elif modifier == Qt.KeyboardModifier.NoModifier:
             self.segmentation_overlay.pixel_size = self.view.pixel_size()
-            self.view.camera.field_width += 1 * y_dir
+            self.field_width_offset += 1 * y_dir
             self.resize3DSegmentationCursor()
         self.view.camera.redraw_needed = True
 
@@ -519,7 +524,7 @@ class PlaneViewer(QWindow):
             else:
                 dy = y - self.last_mouse_position[1]
             self.last_mouse_position = [x, y]
-            self.view.camera.field_width += 1 * np.sign(dy) # offsets[self.axis] += (-dy * psize) * 3 * self.axis.positive_direction
+            self.field_width_offset += 1 * np.sign(dy) # offsets[self.axis] += (-dy * psize) * 3 * self.axis.positive_direction
             #self.resize3DSegmentationCursor()
             self.view.camera.redraw_needed = True
         # Truck & Pedestal
