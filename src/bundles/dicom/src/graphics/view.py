@@ -102,7 +102,7 @@ class OrthoplaneView(View):
                         pd.update_region()
                         pd._update_region = False
                     pd._update_coloring()
-                    d._planes_2d._draw_geometry(self._render, face = self.axis)
+                    d._planes_2d._draw_geometry(self._render)
             if highlight_drawings:
                 self._render.outline.set_outline_mask()       # copy depth to outline framebuffer
             if transparent_drawings:
