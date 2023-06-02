@@ -259,51 +259,9 @@ class PlaneViewer(QWindow):
                 self.view.drawing.parent.set_parameters(orthoplane_positions=tuple(self._plane_indices))
                 self.view.drawing.parent.update_drawings()
                 self.slider_moved = False
-            bounds = self.view.drawing.bounds()
-            # We use these offsets to align the camera to the actual center of the orthoplanes
-            model_center_offsets = bounds.center()
-            psize = self.view.pixel_size()
-            axis_sizes = (bounds.size() / psize)[::-1]
-
-            # TODO: Use the difference between the camera center and the object offsets to compensate for moving the
-            # camera around
-            if self.axis == Axis.SAGGITAL:
-                x_offset, y_offset = self.camera_offsets[Axis.CORONAL] * self.scale / psize, self.camera_offsets[Axis.AXIAL] * self.scale / psize
-                self.horizontal_slice_overlay.bottom = 0.5 * self.scale * ((width + x_offset) - axis_sizes[Axis.AXIAL])
-                self.horizontal_slice_overlay.top =    0.5 * self.scale * ((width + x_offset) + axis_sizes[Axis.AXIAL])
-                self.horizontal_slice_overlay.offset = 0.5 * self.scale * ((height + y_offset) - axis_sizes[Axis.SAGGITAL])
-                self.horizontal_slice_overlay.tick_thickness = axis_sizes[Axis.SAGGITAL] / (self.dimensions[Axis.AXIAL] / self.scale)
-
-                self.vertical_slice_overlay.bottom = 0.5 * self.scale * ((height + y_offset) - axis_sizes[Axis.SAGGITAL])
-                self.vertical_slice_overlay.top =    0.5 * self.scale * ((height + y_offset) + axis_sizes[Axis.SAGGITAL])
-                self.vertical_slice_overlay.offset = 0.5 * self.scale * ((width + x_offset) - axis_sizes[Axis.CORONAL])
-                self.vertical_slice_overlay.tick_thickness = axis_sizes[Axis.CORONAL] / (self.dimensions[Axis.CORONAL] / self.scale)
-
-            elif self.axis == Axis.CORONAL:
-                x_offset, y_offset = self.camera_offsets[Axis.SAGGITAL] * self.scale / psize, self.camera_offsets[Axis.AXIAL] * self.scale / psize
-                self.horizontal_slice_overlay.bottom = 0.5 * self.scale * ((width + x_offset) - axis_sizes[Axis.CORONAL])
-                self.horizontal_slice_overlay.top =    0.5 * self.scale * ((width + x_offset) + axis_sizes[Axis.CORONAL])
-                self.horizontal_slice_overlay.offset = 0.5 * self.scale * ((height + y_offset) - axis_sizes[Axis.SAGGITAL])
-                self.horizontal_slice_overlay.tick_thickness = axis_sizes[Axis.SAGGITAL] / (self.dimensions[Axis.AXIAL] / self.scale)
-
-                self.vertical_slice_overlay.bottom = 0.5 * self.scale * ((height + y_offset) - axis_sizes[Axis.SAGGITAL])
-                self.vertical_slice_overlay.top =    0.5 * self.scale * ((height + y_offset) + axis_sizes[Axis.SAGGITAL])
-                self.vertical_slice_overlay.offset = 0.5 * self.scale * ((width + x_offset) - axis_sizes[Axis.AXIAL])
-                self.vertical_slice_overlay.tick_thickness = axis_sizes[Axis.AXIAL] / (self.dimensions[Axis.SAGGITAL] / self.scale)
-
-            else:
-                x_offset, y_offset = self.camera_offsets[Axis.SAGGITAL] * self.scale / psize, self.camera_offsets[Axis.CORONAL] * self.scale / psize
-                self.horizontal_slice_overlay.bottom = 0.5 * self.scale * ((width - x_offset) - axis_sizes[Axis.AXIAL])
-                self.horizontal_slice_overlay.top =    0.5 * self.scale * ((width - x_offset) + axis_sizes[Axis.AXIAL])
-                self.horizontal_slice_overlay.offset = 0.5 * self.scale * ((height - y_offset) + axis_sizes[Axis.AXIAL])
-                self.horizontal_slice_overlay.tick_thickness = axis_sizes[Axis.AXIAL] / (self.dimensions[Axis.CORONAL] / self.scale)
-
-                self.vertical_slice_overlay.bottom = 0.5 * self.scale * ((height - y_offset) - axis_sizes[Axis.CORONAL])
-                self.vertical_slice_overlay.top =    0.5 * self.scale * ((height - y_offset) + axis_sizes[Axis.CORONAL])
-                self.vertical_slice_overlay.offset = 0.5 * self.scale * ((width - x_offset) + axis_sizes[Axis.CORONAL])
-                self.vertical_slice_overlay.tick_thickness = axis_sizes[Axis.CORONAL] / (self.dimensions[Axis.SAGGITAL] / self.scale)
-
-            test_c_offsets = [0, 0, 0]
+            model_center_offsets = self.view.drawing.bounds().center()
+            self.calculateSliceOverlays()
+            test_c_offsets = [[15, 0, 0], [0,15,0],[0,0,15]][self.axis]
             self.origin = self.view.drawing.position.origin() + model_center_offsets - self.camera_offsets + test_c_offsets
             camera = self.view.camera
             camera.position = Place(axes=self.axes, origin=self.origin)
@@ -323,6 +281,46 @@ class PlaneViewer(QWindow):
             # Target opengl context back to main graphics window.
             self.main_view.render.use_shared_context(mvwin)
         self.view.render.done_current()
+
+
+    def calculateSliceOverlays(self):
+        width, height = self.view.window_size
+        bounds = self.view.drawing.bounds()
+        psize = self.view.pixel_size()
+        axis_sizes = (bounds.size() / psize)[::-1]
+        x_offset, y_offset = self.cameraSpaceDrawingOffsets()
+        if self.axis == Axis.SAGGITAL:
+            self.horizontal_slice_overlay.bottom = 0.5 * self.scale * ((width + x_offset) - axis_sizes[Axis.AXIAL])
+            self.horizontal_slice_overlay.top =    0.5 * self.scale * ((width + x_offset) + axis_sizes[Axis.AXIAL])
+            self.horizontal_slice_overlay.offset = 0.5 * self.scale * ((height + y_offset) - axis_sizes[Axis.SAGGITAL])
+            self.horizontal_slice_overlay.tick_thickness = axis_sizes[Axis.SAGGITAL] / (self.dimensions[Axis.AXIAL] / self.scale)
+
+            self.vertical_slice_overlay.bottom = 0.5 * self.scale * ((height + y_offset) - axis_sizes[Axis.SAGGITAL])
+            self.vertical_slice_overlay.top =    0.5 * self.scale * ((height + y_offset) + axis_sizes[Axis.SAGGITAL])
+            self.vertical_slice_overlay.offset = 0.5 * self.scale * ((width + x_offset) - axis_sizes[Axis.CORONAL])
+            self.vertical_slice_overlay.tick_thickness = axis_sizes[Axis.CORONAL] / (self.dimensions[Axis.CORONAL] / self.scale)
+
+        elif self.axis == Axis.CORONAL:
+            self.horizontal_slice_overlay.bottom = 0.5 * self.scale * ((width + x_offset) - axis_sizes[Axis.CORONAL])
+            self.horizontal_slice_overlay.top =    0.5 * self.scale * ((width + x_offset) + axis_sizes[Axis.CORONAL])
+            self.horizontal_slice_overlay.offset = 0.5 * self.scale * ((height + y_offset) - axis_sizes[Axis.SAGGITAL])
+            self.horizontal_slice_overlay.tick_thickness = axis_sizes[Axis.SAGGITAL] / (self.dimensions[Axis.AXIAL] / self.scale)
+
+            self.vertical_slice_overlay.bottom = 0.5 * self.scale * ((height + y_offset) - axis_sizes[Axis.SAGGITAL])
+            self.vertical_slice_overlay.top =    0.5 * self.scale * ((height + y_offset) + axis_sizes[Axis.SAGGITAL])
+            self.vertical_slice_overlay.offset = 0.5 * self.scale * ((width + x_offset) - axis_sizes[Axis.AXIAL])
+            self.vertical_slice_overlay.tick_thickness = axis_sizes[Axis.AXIAL] / (self.dimensions[Axis.SAGGITAL] / self.scale)
+
+        else:
+            self.horizontal_slice_overlay.bottom = 0.5 * self.scale * ((width - x_offset) - axis_sizes[Axis.AXIAL])
+            self.horizontal_slice_overlay.top =    0.5 * self.scale * ((width - x_offset) + axis_sizes[Axis.AXIAL])
+            self.horizontal_slice_overlay.offset = 0.5 * self.scale * ((height - y_offset) + axis_sizes[Axis.AXIAL])
+            self.horizontal_slice_overlay.tick_thickness = axis_sizes[Axis.AXIAL] / (self.dimensions[Axis.CORONAL] / self.scale)
+
+            self.vertical_slice_overlay.bottom = 0.5 * self.scale * ((height - y_offset) - axis_sizes[Axis.CORONAL])
+            self.vertical_slice_overlay.top =    0.5 * self.scale * ((height - y_offset) + axis_sizes[Axis.CORONAL])
+            self.vertical_slice_overlay.offset = 0.5 * self.scale * ((width - x_offset) + axis_sizes[Axis.CORONAL])
+            self.vertical_slice_overlay.tick_thickness = axis_sizes[Axis.CORONAL] / (self.dimensions[Axis.SAGGITAL] / self.scale)
 
     def camera_space_drawing_bounds(self):
         top, bottom, left, right = (
