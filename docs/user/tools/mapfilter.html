@@ -142,16 +142,18 @@ instead of the full resolution of the current set
 &ndash; adjust the contour level on
 the result to enclose the same volume as the contour surface of the input map
 <li><b>Immediate update</b> &ndash; update the result as soon as
-a slider parameter (Gaussian width or median iterations) is changed;
+a numerical parameter (<i>e.g.</i>, Gaussian width) is changed;
 only applies when the chosen map
 is the result of a previous application of the same type of filtering
-<li><b>Value type</b> &ndash; value type to use for the output map,
-with choices: <b>same</b> type as the input map,
+<li><b>Value type</b> &ndash; output value type for Gaussian, sharpening,
+and scaling operations, with choices: <b>same</b> type as the input map,
 8-, 16-, or 32-bit signed integer
 (<b>int8</b>, <b>int16</b>, or <b>int32</b>),
 8-, 16-, or 32-bit unsigned integer
 (<b>uint8</b>, <b>uint16</b>, or <b>uint32</b>),
-or 32- or 64-bit floating-point (<b>float32</b> or <b>float64</b>)
+or 32- or 64-bit floating-point (<b>float32</b> or <b>float64</b>).
+The median and binning filters always generate the same value type as the
+input map, whereas Fourier and Laplacian operations always generate float32.
 </ul>
 
 <hr>
