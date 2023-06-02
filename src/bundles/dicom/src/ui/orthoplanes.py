@@ -83,29 +83,35 @@ class PlaneViewer(QWindow):
 
     def __init__(self, parent, manager, session, axis = Axis.AXIAL):
         QWindow.__init__(self)
-        self.session = session
+        self.parent = parent
         self.manager = manager
+        self.session = session
         self.axis = axis
+        self.axes = axis.transform
+        self._segmentation_tool = None
         self.manager.register(self)
 
-        self.slider_moved = False
         self.last_mouse_position = None
+
         self.widget = QWidget.createWindowContainer(self, parent)
         self.setSurfaceType(QSurface.SurfaceType.OpenGLSurface)
         self.view = OrthoplaneView(Drawing("placeholder"), window_size = (0, 0), axis = self.axis)
         self.view.initialize_rendering(session.main_view.render.opengl_context)
         self.view.camera = OrthoCamera()
         self.view.camera.field_width = 500
-        self._segmentation_tool = None
-        self.axes = axis.transform
+
         camera = self.view.camera
         camera.position = Place(origin = (0,0,0), axes = self.axes)
+
+        # TODO: Set to main_view background color and update it in render loop
         self.view.background_color = (255, 255, 255, 255)
+
         self.main_view = session.main_view
+
         self.camera_offsets = [0, 0, 0]
         self._plane_indices = [0, 0, 0]
+
         self.label = Label(self.session, self.view, str(axis), str(axis), size=16, xpos=0, ypos=0)
-        self.segmentation_slices = {}
 
         def _not_volume_surface(m):
             return not isinstance(m, VolumeSurface)
@@ -117,21 +123,23 @@ class PlaneViewer(QWindow):
             model_chosen_cb = self._surface_chosen
         )
 
-        max_x, max_y, max_z = 2, 2, 2
-
         self.segmentation_overlay = SegmentationOverlay("seg_overlay", radius=10, thickness=3)
         self.horizontal_slice_overlay = OrthoplaneLocationOverlay("horiz_overlay", slice=10, direction=Direction.HORIZONTAL)
         self.vertical_slice_overlay = OrthoplaneLocationOverlay("vertical_overlay", slice=11)
         self.horizontal_slice_overlay.display = False
-        self.horizontal_slice_overlay.display = False
+        self.vertical_slice_overlay.display = False
+        self.segmentation_overlay.display = False
+        self.segmentation_cursor_enabled = False
         self.view.add_overlay(self.segmentation_overlay)
         self.view.add_overlay(self.horizontal_slice_overlay)
         self.view.add_overlay(self.vertical_slice_overlay)
-        self.slider = QSlider(Qt.Orientation.Horizontal, parent)
+
+        # Used to move the camera when slices are moved
         self.old_pos = 0
         self.pos = 0
-        self.x = 0
-        self.y = 0
+
+        self.slider = QSlider(Qt.Orientation.Horizontal, parent)
+        max_x, max_y, max_z = 2, 2, 2
         if axis == Axis.AXIAL:
             self.slider.setMaximum(max_z)
             self.slider.setValue(1)
@@ -143,30 +151,31 @@ class PlaneViewer(QWindow):
             self.slider.setValue(1)
 
         self.slider.sliderMoved.connect(self._on_slider_moved)
+        self.slider_moved = False
 
         self.handler = session.triggers.add_handler('frame drawn', self._redraw)
         self.widget.setMinimumSize(QSize(20, 20))
 
+        self.button_container = QWidget()
         button_layout = QHBoxLayout()
         button_layout.setContentsMargins(0, 0, 0, 0)
         button_layout.setSpacing(0)
         button_layout.addStretch(1)
         button_layout.addWidget(self.model_menu.frame)
+        self.button_container.setLayout(button_layout)
 
-        layout = QVBoxLayout()
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(0)
         self.container = QWidget(parent)
         container_layout = QVBoxLayout()
-        container_layout.addLayout(button_layout)
         container_layout.setContentsMargins(0, 0, 0, 0)
         container_layout.setSpacing(0)
+        container_layout.addWidget(self.button_container)
         container_layout.addWidget(self.widget, stretch=1)
         container_layout.addWidget(self.slider)
         self.container.setLayout(container_layout)
 
-        layout.addWidget(self.container, stretch=1)
-        self.container.setLayout(layout)
+        self.context_menu = None
+        self.context_menu_coords = None
+        self.mouse_moved_during_right_click = False
 
     @property
     def segmentation_tool(self):
@@ -241,10 +250,11 @@ class PlaneViewer(QWindow):
     def render(self):
         ww, wh = self.main_view.window_size
         width, height = self.view.window_size
-        if ww <= 0 or wh <= 0 or width <= 0 or height <= 0:
-            return
-        # temporary workaround for #2162
-        if self.view is None or self.view.render is None:
+        if (
+                ww <= 0 or wh <= 0 or width <= 0 or height <= 0
+                # below: temporary workaround for #2162
+                or self.view is None or self.view.render is None
+        ):
             return
         mvwin = self.view.render.use_shared_context(self)
         try:
@@ -252,7 +262,6 @@ class PlaneViewer(QWindow):
             # and require large zoom-outs to get them into view
             # TODO: Turn on when overlay calculations are correct
             # self.view.background_color = self.main_view.background_color
-
             old_disp_val = self.view.drawing.display
             self.scale = mvwin.opengl_context.pixel_scale()
             if not old_disp_val:
@@ -357,43 +366,89 @@ class PlaneViewer(QWindow):
         self.segmentation_overlay.display = False
 
     def enterEvent(self):
-        self.enableSegmentationOverlay()
+        if self.shouldEnableSegmentationCursor():
+            self.enableSegmentationOverlay()
 
     def leaveEvent(self):
         self.disableSegmentationOverlay()
 
+    # Context Menu Requirements:
+    # -- Should open at the site of the original right click
+    # -- Should not open if the mouse has been moved since the right click,
+    #    as the user was probably zooming in and out
+    # -- The leaveEvent from going into the context menu shouldn't hide the
+    #    segmentation overlay; at least, if it's unavoidable triggering it,
+    #    then it should turn back on after the context menu closes
+
+    def shouldEnableSegmentationCursor(self):
+        return self.segmentation_cursor_enabled
+
+    def shouldOpenContextMenu(self):
+        return (
+            self.context_menu_coords is not None
+            and not self.mouse_moved_during_right_click
+        )
+
     def mousePressEvent(self, event):  # noqa
         b = event.button() | event.buttons()
         if b & Qt.MouseButton.RightButton:
-            # p = event.position() if hasattr(event, 'position') else event.pos()  # PyQt6 / PyQt5
-            e = QContextMenuEvent(QContextMenuEvent.Mouse, event.pos())
-            self.widget.parent().parent().contextMenuEvent(e)
-            return
+            self.context_menu_coords = self.widget.mapToGlobal(event.pos())
         if b & Qt.MouseButton.MiddleButton:
-            return
+            pass
         if b & Qt.MouseButton.LeftButton:
-            # Whatever is needed to start segmenting
-            return
+            # No idea why but if we don't hide it by ourselves here the event system won't take
+            # care of it for us
+            pass
 
     def mouseReleaseEvent(self, event): # noqa
         b = event.button() | event.buttons()
+        if b & Qt.MouseButton.RightButton:
+            #if self.shouldOpenContextMenu():
+            #    from Qt.QtWidgets import QMenu, QAction
+            #    if not self.context_menu:
+            #        self.context_menu = QMenu(parent=self.parent)
+            #        toggle_guidelines_action = QAction("Toggle Guidelines")
+            #        self.context_menu.addAction(toggle_guidelines_action)
+            #        toggle_guidelines_action.triggered.connect(lambda: self.manager.toggle_guidelines())
+            #        self.context_menu.aboutToHide.connect(self.enterEvent)
+            #    self.context_menu.exec(self.context_menu_coords)
+            #    self.mouse_moved_during_right_click = False
+            #self.mouse_moved_during_right_click = False
+            pass
         if b & Qt.MouseButton.LeftButton:
             self.segmentation_overlay.center = (self.scale * event.position().x(), self.scale * (self.view.window_size[1] - event.position().y()), 0)
             self.segmentation_overlay.update()
             self.view.camera.redraw_needed = True
         self.last_mouse_position = None
 
+    def resize3DSegmentationCursor(self):
+        if self.segmentation_tool:
+            ww, wh = self.main_view.window_size
+            ps = self.main_view.pixel_size()
+            width, height = self.view.window_size
+            psize = self.view.pixel_size()
+            radius = self.segmentation_overlay.absolute_radius
+            rel_size = (radius / width) * psize
+            needed_rad = (rel_size / psize) * ww
+            self.segmentation_tool.segmentation_cursors[self.axis].radius = self.segmentation_overlay.radius * psize / ps # 0.5 * needed_rad
+
     def wheelEvent(self, event):
+        # Looked like the same size with:
+        # self.view.pixel_size = 0.14930555555555
+        # self.segmentation_overlay.absolute_radius = 80
+        # self.segmentation_tool.segmentation_cursor.radius = 5.9722222222
+        #
         modifier = event.modifiers()
         delta = event.angleDelta()
         x_dir, y_dir = np.sign(delta.x()), np.sign(delta.y())
         if modifier == Qt.KeyboardModifier.ShiftModifier:
-            self.segmentation_overlay.radius += self.scale * 0.5 * x_dir
-            if self.segmentation_tool:
-                self.segmentation_tool.segmentation_cursors[self.axis].radius += 1 * x_dir
+            self.segmentation_overlay.absolute_radius += 1 * x_dir
+            self.segmentation_overlay.pixel_size = self.view.pixel_size()
+            self.resize3DSegmentationCursor()
         elif modifier == Qt.KeyboardModifier.NoModifier:
-            self.camera_offsets[self.axis] += 15 * y_dir * self.axis.positive_direction
+            self.segmentation_overlay.pixel_size = self.view.pixel_size()
             self.view.camera.field_width += 1 * y_dir
+            self.resize3DSegmentationCursor()
         self.view.camera.redraw_needed = True
 
     def mousePercentOffsetsFromEdges(self, x, y):
@@ -423,37 +478,44 @@ class PlaneViewer(QWindow):
         # Level or segment
         if b == Qt.MouseButton.NoButton or b == Qt.MouseButton.LeftButton:
             pos = event.position()
-            self.segmentation_overlay.center = (self.scale * pos.x(), self.scale * (self.view.window_size[1] - pos.y()), 0)
+            x, y = pos.x(), pos.y()
+            self.segmentation_overlay.center = (self.scale * x, self.scale * (self.view.window_size[1] - y), 0)
             self.segmentation_overlay.update()
-            # TODO: Take the center of the segmentation overlay and map it to the location on the shown slice
             if self.segmentation_tool:
                 top, bottom, left, right = self.camera_space_drawing_bounds()
-                if not left <= pos.x() <= right and bottom <= pos.y() <= top:
-                    return
-                old_origin = self.segmentation_tool.segmentation_cursors[self.axis].origin
-                offset_left = pos.x() - bottom
-                offset_bottom = pos.y() - bottom
-                drawing_origin = self.view.drawing.parent.data.dicom_data.origin()
-                origin = old_origin
-                if self.axis == Axis.AXIAL:
-                    origin[0], origin[1] = drawing_origin[0] + pos.x(), drawing_origin[1] + pos.y()
-                if self.axis == Axis.CORONAL:
-                    origin[0], origin[2] = drawing_origin[0] + pos.x(), drawing_origin[2] + pos.y()
-                if self.axis == Axis.SAGGITAL:
-                    origin[1], origin[2] = drawing_origin[1] - pos.x(), drawing_origin[2] - pos.y()
-                self.segmentation_tool.segmentation_cursors[self.axis].origin = origin
+                rel_top, rel_bottom, rel_left, rel_right = self.mousePercentOffsetsFromEdges(x, y)
+                x_offset, y_offset = self.cameraSpaceDrawingOffsets()
+                # TODO Why did I have to add the y-offset here but not the x-offset?
+                if left <= self.scale * x <= right and bottom <= (self.scale * (y + y_offset)) <= top:
+                    old_origin = self.segmentation_tool.segmentation_cursors[self.axis].origin
+                    drawing_origin = self.view.drawing.parent.data.dicom_data.origin()
+                    origin = old_origin
+                    if self.axis == Axis.AXIAL:
+                        absolute_offset_left = rel_right * self.dimensions[0] * self.view.drawing.parent.data.step[0]
+                        absolute_offset_bottom = rel_top * self.dimensions[1] * self.view.drawing.parent.data.step[1]
+                        origin[0], origin[1] = absolute_offset_left + drawing_origin[0], absolute_offset_bottom + drawing_origin[1]
+                    if self.axis == Axis.CORONAL:
+                        absolute_offset_left = rel_left * self.dimensions[0] * self.view.drawing.parent.data.step[0]
+                        absolute_offset_bottom = rel_bottom * self.dimensions[2] * self.view.drawing.parent.data.step[2]
+                        origin[0], origin[2] = drawing_origin[0] + absolute_offset_left, drawing_origin[2] + absolute_offset_bottom
+                    if self.axis == Axis.SAGGITAL:
+                        absolute_offset_left = rel_left * self.dimensions[1] * self.view.drawing.parent.data.step[1]
+                        absolute_offset_bottom = rel_bottom * self.dimensions[2] * self.view.drawing.parent.data.step[2]
+                        origin[1], origin[2] = drawing_origin[1] + absolute_offset_left, drawing_origin[2] + absolute_offset_bottom
+                    self.segmentation_tool.segmentation_cursors[self.axis].origin = origin
             self.view.camera.redraw_needed = True
         # Zoom / Dolly
         if b & Qt.MouseButton.RightButton:
+            self.mouse_moved_during_right_click = True
             pos = event.position()
             x, y = pos.x(), pos.y()
             if not self.last_mouse_position:
                 dy = 0
             else:
                 dy = y - self.last_mouse_position[1]
-            psize = self.view.pixel_size()
             self.last_mouse_position = [x, y]
-            self.view.camera.field_width -= 1 # offsets[self.axis] += (-dy * psize) * 3 * self.axis.positive_direction
+            self.view.camera.field_width += 1 * np.sign(dy) # offsets[self.axis] += (-dy * psize) * 3 * self.axis.positive_direction
+            #self.resize3DSegmentationCursor()
             self.view.camera.redraw_needed = True
         # Truck & Pedestal
         if b & Qt.MouseButton.MiddleButton:
