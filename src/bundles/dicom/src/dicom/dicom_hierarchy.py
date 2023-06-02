@@ -705,6 +705,8 @@ class DicomData:
                     , files[0].frame_positions[-1]
                     , int(len(files[0].frame_positions) / self.num_times)
                 )
+                if not z_axis:
+                    z_axis = cross(x_axis, y_axis)
             else:
                 z_axis = cross(x_axis, y_axis)
         affine = [
