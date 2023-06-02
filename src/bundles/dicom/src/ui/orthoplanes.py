@@ -388,6 +388,28 @@ class PlaneViewer(QWindow):
             self.view.camera.field_width += 1 * y_dir
         self.view.camera.redraw_needed = True
 
+    def mousePercentOffsetsFromEdges(self, x, y):
+        top, bottom, left, right = self.camera_space_drawing_bounds()
+        percent_offset_from_bottom = (((self.scale * (self.view.window_size[1] - y)) - bottom) / (top - bottom))
+        percent_offset_from_top = 1 - percent_offset_from_bottom
+        percent_offset_from_left = (((self.scale * x) - left) / (right - left))
+        percent_offset_from_right = 1 - percent_offset_from_left
+        return percent_offset_from_top, percent_offset_from_bottom, percent_offset_from_left, percent_offset_from_right
+
+    def cameraSpaceDrawingOffsets(self):
+        psize = self.view.pixel_size()
+        if self.axis == Axis.SAGGITAL:
+            # TODO: Why does this need a constant scale of 2 regardless of self.scale?
+            x_offset = self.camera_offsets[Axis.CORONAL] * 2 / psize
+            y_offset = self.camera_offsets[Axis.AXIAL] * 2 / psize
+        elif self.axis == Axis.CORONAL:
+            x_offset = self.camera_offsets[Axis.SAGGITAL] * 2 / psize
+            y_offset = self.camera_offsets[Axis.AXIAL] * 2 / psize
+        else:
+            x_offset = self.camera_offsets[Axis.SAGGITAL] * 2 / psize
+            y_offset = self.camera_offsets[Axis.CORONAL] * 2 / psize
+        return x_offset, y_offset
+
     def mouseMoveEvent(self, event):  # noqa
         b = event.button() | event.buttons()
         # Level or segment
