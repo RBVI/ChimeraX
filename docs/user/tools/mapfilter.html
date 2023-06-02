@@ -89,8 +89,8 @@ Different bin sizes along the different axes can be specified by
 entering three numbers separated by spaces.
 <br><br>
 <li><b>Scale</b> &ndash; change data values (not grid point locations).
-Shifting and scaling are applied in that order,
-using the 32-bit floating-point value type to avoid truncation problems.
+When values are both shifted and scaled, the <b>Shift</b> value is applied
+before the <b>Scale</b> factor.
 <br><br>
 <li><b>Fourier Transform</b> &ndash; only
 the magnitudes of the complex Fourier components are included in the
@@ -122,7 +122,9 @@ zero out the first moments of the resulting map
 (make its mass balance at the center of the grid)
 </ul>
 Clicking <b>Filter</b> performs the filtering
-and creates a new volume model with the result.
+and creates a new volume model with the result, except if the
+same type of filtering is applied repeatedly on the same input, the
+output map is simply replaced.
 <b>Close</b> simply dismisses the dialog, and <b>Help</b> shows this page
 in the <a href="helpviewer.html"><b>Help Viewer</b></a>.
 </p><p>
@@ -142,9 +144,7 @@ instead of the full resolution of the current set
 &ndash; adjust the contour level on
 the result to enclose the same volume as the contour surface of the input map
 <li><b>Immediate update</b> &ndash; update the result as soon as
-a numerical parameter (<i>e.g.</i>, Gaussian width) is changed;
-only applies when the chosen map
-is the result of a previous application of the same type of filtering
+a slider parameter (Gaussian width or sharpening B-factor) is changed
 <li><b>Value type</b> &ndash; output value type for Gaussian, sharpening,
 and scaling operations, with choices: <b>same</b> type as the input map,
 8-, 16-, or 32-bit signed integer
