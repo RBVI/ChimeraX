@@ -589,14 +589,30 @@ class PlaneViewer(QWindow):
             self.vertical_slice_overlay.slice = index
 
     def _surface_chosen(self, *args):
+        # TODO: Create a copy of the parent study just for rendering in the orthoplane windows?
+        # Would need to create a copy of each segmentation created, too, one for the orthoplane
+        # windows and one for the
+        # then modify the segmentation tool to
+        v = self.model_menu.value
         new_drawing = None
-        for d in self.model_menu.value._child_drawings:
-            if type(d) is VolumeImage:
+        middle = tuple((imin + imax) // 2 for imin, imax in zip(v.region[0], v.region[1]))
+        v.set_parameters(
+            image_mode='orthoplanes',
+            orthoplanes_shown=(True, True, True),
+            orthoplane_positions=middle,
+            color_mode='opaque8',
+            show_outline_box=False
+        )
+        v.set_display_style('image')
+        v.expand_single_plane()
+        v.set_display_style('surface')
+        for d in v._child_drawings:
+            if type(d) == VolumeImage:
                 new_drawing = d
         #self.manager.update_drawing(self.model_menu.value)
         if new_drawing is not None:
             self.view.drawing = new_drawing
-            self.set_label_text(d.parent.name)
+            self.set_label_text(new_drawing.parent.name)
             max_x, max_y, max_z = max_slider_vals = self.view.drawing._region[1]
             self.manager.update_dimensions([max_x, max_y, max_z])
             orthoplane_positions = self.view.drawing._rendering_options.orthoplane_positions
