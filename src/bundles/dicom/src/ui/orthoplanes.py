@@ -184,13 +184,22 @@ class PlaneViewer(QWindow):
     @segmentation_tool.setter
     def segmentation_tool(self, tool):
         self._segmentation_tool = tool
+        self.model_menu.value = self._segmentation_tool.model_menu.value
+        self._surface_chosen()
         self._segmentation_tool.segmentation_cursors[self.axis].radius = self.segmentation_overlay.radius
+        self._segmentation_tool.setCursorOffsetFromOrigin(
+            self.axis, self.mvSegmentationCursorOffsetFromOrigin()
+        )
         # TODO:
         # Set the segmentation pucks' locations based on the current slice location
         # self._segmentation_tool.segmentation_cursors[self.axis].
-        self._segmentation_tool.model_menu.value = self.model_menu.value
+        self.segmentation_cursor_enabled = True
+        self.view.redraw_needed = True
         # Set their radii to the current selected models' thickness
         # Synchronize the tool's model menu value to our model menu value
+
+    def mvSegmentationCursorOffsetFromOrigin(self):
+        return self.view.drawing.parent.data.dicom_data.origin()[self.axis] + (self.pos * self.view.drawing.parent.data.step[self.axis])
 
     def _on_slider_moved(self):
         if self.axis == Axis.CORONAL:
@@ -211,11 +220,7 @@ class PlaneViewer(QWindow):
         self.camera_offsets[self.axis] -= diff * self.view.drawing.parent.data.step[self.axis]
         # TODO: Set the segmentation drawing's position to coincide with the new slice
         if self.segmentation_tool:
-            offset_from_origin = self.pos * self.view.drawing.parent.data.step[self.axis]
-            old_origin = self.segmentation_tool.segmentation_cursors[self.axis].origin
-            origin = old_origin
-            origin[self.axis] = self.view.drawing.parent.data.dicom_data.origin()[self.axis] + offset_from_origin
-            self.segmentation_tool.segmentation_cursors[self.axis].origin = old_origin
+            self.segmentation_tool.setCursorOffsetFromOrigin(self.axis, self.mvSegmentationCursorOffsetFromOrigin()) #self.pos * self.view.drawing.parent.data.step[self.axis]
         self._plane_indices[self.axis] = self.pos
         self.manager.update_location(self)
         self.view.camera.redraw_needed = True
@@ -337,10 +342,10 @@ class PlaneViewer(QWindow):
 
     def camera_space_drawing_bounds(self):
         top, bottom, left, right = (
-            self.horizontal_slice_overlay.top
-            , self.horizontal_slice_overlay.bottom
+            self.vertical_slice_overlay.top
             , self.vertical_slice_overlay.bottom
-            , self.vertical_slice_overlay.top
+            , self.horizontal_slice_overlay.bottom
+            , self.horizontal_slice_overlay.top
         )
         return top, bottom, left, right
 

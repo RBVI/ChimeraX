@@ -45,7 +45,10 @@ class SegmentationTool(ToolInstance):
 
         self.view_dropdown = QComboBox(self.parent)
         self.view_dropdown.addItem("Default")
+        dicom_view(self.session, "orthoplanes")
         self.view_dropdown.addItem("Orthoplanes")
+        if self.session.ui.main_window.view_layout == "fourup":
+            self.view_dropdown.setCurrentIndex(1)
         self.view_dropdown.currentIndexChanged.connect(self._on_view_changed)
 
         def _not_volume_surface(m):
