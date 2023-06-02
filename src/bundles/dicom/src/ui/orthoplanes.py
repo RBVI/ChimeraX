@@ -62,13 +62,17 @@ class PlaneViewerManager:
         for viewer in self.axes.values():
             viewer.segmentation_tool = None
 
+    def toggle_guidelines(self):
+        for viewer in self.axes.values():
+            viewer.setGuidelineVisibility(not viewer.guidelines_visible)
+
     def show_guidelines(self):
         for viewer in self.axes.values():
-            viewer.set_guideline_visibility(True)
+            viewer.setGuidelineVisibility(True)
 
     def hide_guidelines(self):
         for viewer in self.axes.values():
-            viewer.set_guideline_visibility(False)
+            viewer.setGuidelineVisibility(False)
 
      #def update_volume(self, viewer):
      #   if viewer.axis == Axis.AXIAL:
@@ -338,9 +342,13 @@ class PlaneViewer(QWindow):
             self.leaveEvent()
         return QWindow.event(self, event)
 
-    def set_guideline_visibility(self, visibility: bool):
+    @property
+    def guidelines_visible(self):
+        return self.vertical_slice_overlay.display
+
+    def setGuidelineVisibility(self, visibility: bool):
         self.horizontal_slice_overlay.display = visibility
-        self.horizontal_slice_overlay.display = visibility
+        self.vertical_slice_overlay.display = visibility
 
     def enableSegmentationOverlay(self):
         self.segmentation_overlay.display = True

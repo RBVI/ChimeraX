@@ -44,6 +44,9 @@ class FourUpView(QWidget):
     def clear_segmentation_tool(self):
         self._orthoplane_manager.clear_segmentation_tool()
 
+    def toggle_guidelines(self):
+        self._orthoplane_manager.toggle_guidelines()
+
 
 def dicom_view(session, arg, force = False):
     # TODO: Enable for NIfTI and NRRD as well
