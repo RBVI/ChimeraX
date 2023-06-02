@@ -35,14 +35,20 @@ class PlaneViewerManager:
 
     def update_location(self, viewer):
         if viewer.axis == Axis.AXIAL:
-            self.axes[Axis.CORONAL].axial_index = viewer.axial_index
-            self.axes[Axis.SAGGITAL].axial_index = viewer.axial_index
+            if Axis.CORONAL in self.axes:
+                self.axes[Axis.CORONAL].axial_index = viewer.axial_index
+            if Axis.SAGGITAL in self.axes:
+                self.axes[Axis.SAGGITAL].axial_index = viewer.axial_index
         if viewer.axis == Axis.CORONAL:
-            self.axes[Axis.AXIAL].coronal_index = viewer.coronal_index
-            self.axes[Axis.SAGGITAL].coronal_index = viewer.coronal_index
+            if Axis.AXIAL in self.axes:
+                self.axes[Axis.AXIAL].coronal_index = viewer.coronal_index
+            if Axis.SAGGITAL in self.axes:
+                self.axes[Axis.SAGGITAL].coronal_index = viewer.coronal_index
         if viewer.axis == Axis.SAGGITAL:
-            self.axes[Axis.AXIAL].saggital_index = viewer.saggital_index
-            self.axes[Axis.CORONAL].saggital_index = viewer.saggital_index
+            if Axis.AXIAL in self.axes:
+                self.axes[Axis.AXIAL].saggital_index = viewer.saggital_index
+            if Axis.CORONAL in self.axes:
+                self.axes[Axis.CORONAL].saggital_index = viewer.saggital_index
 
     def update_dimensions(self, dimensions):
         for axis in self.axes.values():
