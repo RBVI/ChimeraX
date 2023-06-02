@@ -28,7 +28,7 @@ class SegmentationDisk(Model):
         self._height = height # set to the slice thickness of whatever DICOM is being observed
         self._divisions = divisions
         self._slice = 1
-        self.position = Place(axes = axis.transform, origin = self.origin)
+        self.position = Place(axes = axis.transform, origin = [0,0,0])
         self.update_geometry()
 
     @property
