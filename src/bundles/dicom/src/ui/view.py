@@ -69,12 +69,17 @@ dicom_view_desc = CmdDesc(
 )
 
 def _check_rapid_access(*args):
-    session = args[1][0].session
-    if (
-        session.ui.main_window.view_layout != "default"
-        and not any(type(v) == Volume for v in session.models)
-    ):
-        session.ui.main_window.restore_default_main_view()
+    try:
+        # This trigger fires many times, and on the last firing there is no model
+        # we can pull the session out of, so we just have to catch the error here
+        session = args[1][0].session
+        if (
+            session.ui.main_window.view_layout != "default"
+            and not any(type(v) == Volume for v in session.models)
+        ):
+            session.ui.main_window.restore_default_main_view()
+    except IndexError:
+        pass
 
 def register_cmds(logger):
     register("dicom view", dicom_view_desc, dicom_view, logger=logger)
