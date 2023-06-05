@@ -199,7 +199,9 @@ class PlaneViewer(QWindow):
         # Synchronize the tool's model menu value to our model menu value
 
     def mvSegmentationCursorOffsetFromOrigin(self):
-        return self.view.drawing.parent.data.dicom_data.origin()[self.axis] + (self.pos * self.view.drawing.parent.data.step[self.axis])
+        origin = self.drawingOrigin()
+        dir = -np.sign(origin[self.axis])
+        return self.drawingOrigin()[self.axis] + (dir * self.pos * self.drawingVolumeStep()[self.axis])
 
     def _on_slider_moved(self):
         if self.axis == Axis.CORONAL:
@@ -217,7 +219,7 @@ class PlaneViewer(QWindow):
             # TODO: DICOM, NRRD, and NIfTI need mutually compatible methods
             if not self.view.drawing.parent.data.dicom_data.inferior_to_superior:
                 diff = -diff
-        self.camera_offsets[self.axis] -= diff * self.view.drawing.parent.data.step[self.axis]
+        self.camera_offsets[self.axis] -= diff * self.drawingVolumeStep()[self.axis]
         # TODO: Set the segmentation drawing's position to coincide with the new slice
         if self.segmentation_tool:
             self.segmentation_tool.setCursorOffsetFromOrigin(self.axis, self.mvSegmentationCursorOffsetFromOrigin()) #self.pos * self.view.drawing.parent.data.step[self.axis]
@@ -236,6 +238,21 @@ class PlaneViewer(QWindow):
 
     def _redraw(self, *_):
         self.render()
+
+    def drawingOrigin(self):
+        return self.drawingParentVolume().data.dicom_data.origin()
+
+    def drawingParentVolume(self):
+        return self.view.drawing.parent
+
+    def drawingVolumeStep(self):
+        return self.drawingParentVolume().data.step
+
+    def drawingPosition(self):
+        return self.view.drawing.position
+
+    def drawingBounds(self):
+        return self.view.drawing.bounds()
 
     def exposeEvent(self, event):
         if self.isExposed() and not self.session.update_loop.blocked():
@@ -274,11 +291,11 @@ class PlaneViewer(QWindow):
             # TODO: If the user selects 'surface' then 'orthoplanes' in the volume viewer we should
             # override the default plane locations somehow
             if self.slider_moved:
-                self.view.drawing.parent.set_parameters(orthoplane_positions=tuple(self._plane_indices))
-                self.view.drawing.parent.update_drawings()
+                self.drawingParentVolume().set_parameters(orthoplane_positions=tuple(self._plane_indices))
+                self.drawingParentVolume().update_drawings()
                 self.slider_moved = False
-            model_center_offsets = self.view.drawing.bounds().center()
-            model_sizes = self.view.drawing.bounds().size()
+            model_center_offsets = self.drawingBounds().center()
+            model_sizes = self.drawingBounds().size()
             this_axis_vertical_size = model_sizes[self.axis.vertical]
             initial_needed_fov = this_axis_vertical_size / height  * width
             margin = 24
@@ -287,7 +304,7 @@ class PlaneViewer(QWindow):
             # TODO: Calculate this from the model somehow
             test_c_offsets = [0, 0, 0]
             test_c_offsets[self.axis] = 20 * self.axis.positive_direction
-            self.origin = self.view.drawing.position.origin() + model_center_offsets - self.camera_offsets + test_c_offsets
+            self.origin = self.drawingPosition().origin() + model_center_offsets - self.camera_offsets + test_c_offsets
             camera = self.view.camera
             camera.position = Place(axes=self.axes, origin=self.origin)
             self.segmentation_overlay.update()
@@ -500,19 +517,19 @@ class PlaneViewer(QWindow):
                 # TODO Why did I have to add the y-offset here but not the x-offset?
                 if left <= self.scale * x <= right and bottom <= (self.scale * (y + y_offset)) <= top:
                     old_origin = self.segmentation_tool.segmentation_cursors[self.axis].origin
-                    drawing_origin = self.view.drawing.parent.data.dicom_data.origin()
+                    drawing_origin = self.drawingOrigin()
                     origin = old_origin
                     if self.axis == Axis.AXIAL:
-                        absolute_offset_left = rel_right * self.dimensions[0] * self.view.drawing.parent.data.step[0]
-                        absolute_offset_bottom = rel_top * self.dimensions[1] * self.view.drawing.parent.data.step[1]
+                        absolute_offset_left = rel_right * self.dimensions[0] * self.drawingVolumeStep()[0]
+                        absolute_offset_bottom = rel_top * self.dimensions[1] * self.drawingVolumeStep()[1]
                         origin[0], origin[1] = absolute_offset_left + drawing_origin[0], absolute_offset_bottom + drawing_origin[1]
                     if self.axis == Axis.CORONAL:
-                        absolute_offset_left = rel_left * self.dimensions[0] * self.view.drawing.parent.data.step[0]
-                        absolute_offset_bottom = rel_bottom * self.dimensions[2] * self.view.drawing.parent.data.step[2]
+                        absolute_offset_left = rel_left * self.dimensions[0] * self.drawingVolumeStep()[0]
+                        absolute_offset_bottom = rel_bottom * self.dimensions[2] * self.drawingVolumeStep()[2]
                         origin[0], origin[2] = drawing_origin[0] + absolute_offset_left, drawing_origin[2] + absolute_offset_bottom
                     if self.axis == Axis.SAGGITAL:
-                        absolute_offset_left = rel_left * self.dimensions[1] * self.view.drawing.parent.data.step[1]
-                        absolute_offset_bottom = rel_bottom * self.dimensions[2] * self.view.drawing.parent.data.step[2]
+                        absolute_offset_left = rel_left * self.dimensions[1] * self.drawingVolumeStep()[1]
+                        absolute_offset_bottom = rel_bottom * self.dimensions[2] * self.drawingVolumeStep()[2]
                         origin[1], origin[2] = drawing_origin[1] + absolute_offset_left, drawing_origin[2] + absolute_offset_bottom
                     self.segmentation_tool.segmentation_cursors[self.axis].origin = origin
             self.view.camera.redraw_needed = True
