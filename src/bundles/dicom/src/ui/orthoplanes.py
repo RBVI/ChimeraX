@@ -612,7 +612,10 @@ class PlaneViewer(QWindow):
         )
         v.set_display_style('image')
         v.expand_single_plane()
+        v.update_drawings()
         v.set_display_style('surface')
+
+        self.main_view.camera.redraw_needed = True
         for d in v._child_drawings:
             if type(d) == VolumeImage:
                 new_drawing = d
