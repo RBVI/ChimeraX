@@ -436,6 +436,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         self._main_view = self._backup_main_view
         self._stack.addWidget(g.widget)
         self.rapid_access = QWidget(self._stack)
+        self.view_layout = "default"
         ra_bg_color = "#B8B8B8"
         font_size = 96
         new_user_text = [
@@ -548,6 +549,7 @@ class MainWindow(QMainWindow, PlainTextLog):
 
     def restore_default_main_view(self):
         self.main_view = self._backup_main_view
+        self.view_layout = "default"
 
     def graphicsArea(self) -> QWidget:
         return self.graphics_window.widget
@@ -665,6 +667,9 @@ class MainWindow(QMainWindow, PlainTextLog):
         if self._is_quitting:
             if close_event:
                 close_event.accept()
+            return
+        if not tool_window.confirm_close():
+            close_event.ignore()
             return
         tool_instance = tool_window.tool_instance
         all_windows = self.tool_instance_to_windows[tool_instance]
@@ -1014,6 +1019,7 @@ class MainWindow(QMainWindow, PlainTextLog):
             from Qt.QtCore import Qt
             self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, dw)
             dw.setFloating(True)
+            dw.setAllowedAreas(Qt.DockWidgetArea.NoDockWidgetArea)
             dw.hide()
             self._settings_ui_widget = dw
         return self._settings_ui_widget
@@ -2005,6 +2011,13 @@ class ToolWindow(StatusLogger):
         Override this method to perform additional actions needed when
         the window is destroyed"""
         pass
+
+    def confirm_close(self):
+        """Supported API. Confirm that window can be closed.
+
+        Override this if the window contains important data that may be lost if inadvertently closed.
+        Return False to keep the window open"""
+        return True
 
     def destroy(self):
         """Supported API. Called to destroy the window (from non-UI code)

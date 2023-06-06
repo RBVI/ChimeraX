@@ -352,7 +352,11 @@ class Series:
 
     @property
     def number(self):
-        return self.sample_file.get("SeriesNumber", "Unknown Series Number")
+        if self.sample_file.get('SeriesNumber', None) is None:
+            self.session.logger.warning("SeriesNumber not specified; setting to 0")
+            return 0
+        else:
+            return int(self.sample_file.get("SeriesNumber", 0))
 
     @property
     def description(self):
@@ -508,6 +512,8 @@ class DicomData:
             suffixes = [' red', ' green', ' blue']
             for channel in (0, 1, 2):
                 g = DicomGrid(self, channel=channel)
+                if self.dicom_series.modality == "SEG":
+                    g.initial_plane_display = False
                 g.name += suffixes[channel]
                 g.rgba = colors[channel]
                 cgrids.append(g)
@@ -517,12 +523,16 @@ class DicomData:
             tgrids = []
             for t in range(self.num_times):
                 g = DicomGrid(self, time=t)
+                if self.dicom_series.modality == "SEG":
+                    g.initial_plane_display = False
                 g.series_index = t
                 tgrids.append(g)
             grids.extend(tgrids)
         else:
             # Create single channel, single time series.
             g = DicomGrid(self)
+            if self.dicom_series.modality == "SEG":
+                g.initial_plane_display = False
             rs = getattr(self, 'refers_to_series', None)
             if rs:
                 # If this associated with another series (e.g. is a segmentation), make
@@ -640,6 +650,8 @@ class DicomData:
             self.files.sort(key=lambda x: x.ImageIndex)
         elif hasattr(reference_file, "AcquisitionNumber") and reference_file.get("AcquisitionNumber", None):
             self.files.sort(key=lambda x: x.AcquisitionNumber)
+        else:
+            self.files.sort(key=lambda x: x.position[2])
 
     def grid_size(self):
         xsize, ysize = self.columns, self.rows
@@ -693,6 +705,8 @@ class DicomData:
                     , files[0].frame_positions[-1]
                     , int(len(files[0].frame_positions) / self.num_times)
                 )
+                if not z_axis:
+                    z_axis = cross(x_axis, y_axis)
             else:
                 z_axis = cross(x_axis, y_axis)
         affine = [

@@ -39,7 +39,7 @@ sources = ["al2co/al2co.c"]
 libraries = ["m"]
 
 [chimerax.executable.al2co.platform.mac]
-extra-compile-args = ["-Wno-logical-op-parentheses"]
+extra-compile-args = ["-Wno-logical-op-parentheses", "-Wno-implicit-int"]
 
 [chimerax.provider.Consensus]
 manager = "alignments"

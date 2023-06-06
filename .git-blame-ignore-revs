@@ -14,3 +14,4 @@ f2c53ce407384e608cb5ac0daa56fd78d7e30784 # Lint the DICOM bundle
 4786ad5813a72389d796d13f7fb16cfa418fa1d6 # Remove whitespace in opengl/opengl.py
 3eedbb7aa610cee0484d16ab6ed4cadfa0e8e89c # CRLF -> LF conversion in lots of files
 83c60ffbc1d6cde5669cbf530c14d504697a999f # CRLF -> LF conversion in mixed file
+732d1474ece932fa8c94432518332ec221e79ac7 # Remove trailing/blank line whitespace

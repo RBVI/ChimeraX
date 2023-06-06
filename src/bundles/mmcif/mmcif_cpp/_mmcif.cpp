@@ -32,7 +32,7 @@ _mmcifError()
 		// rethrow exception to look at it
 		throw;
 	} catch (std::bad_alloc&) {
-		PyErr_SetString(PyExc_MemoryError, "not enough memory");
+		PyErr_SetString(PyExc_MemoryError, "not enough memory!");
 	} catch (std::invalid_argument& e) {
 		PyErr_SetString(PyExc_TypeError, e.what());
 	} catch (std::length_error& e) {

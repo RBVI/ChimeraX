@@ -64,7 +64,7 @@ def dock_prep_arg_info(session):
     info['standardize_residues'] = ListOf(EnumOf(standardizable_residues))
     return info
 
-def dock_prep_steps(session, memorization, memorize_name, **kw):
+def dock_prep_steps(session, memorization, memorize_name, *, from_tool=False, **kw):
     if memorization == MEMORIZE_USE:
         from .prep import handle_memorization
         active_settings = handle_memorization(session, memorization, memorize_name, "base", kw,
@@ -92,7 +92,7 @@ def dock_prep_steps(session, memorization, memorize_name, **kw):
     return steps
 
 def dock_prep_caller(session, structures, *, memorization=MEMORIZE_NONE, memorize_name=None, nogui=None,
-        callback=None, **kw):
+        callback=None, _from_tool=False, **kw):
     """Supply 'memorize_name' if you want settings for your workflow to be separately memorizable from
        generic Dock Prep.  It should be a string descriptive of your workflow ("minimization", tool name,
        etc.) since it will also be used in dialog titles.  if 'structures' is None, the user can choose
@@ -108,6 +108,20 @@ def dock_prep_caller(session, structures, *, memorization=MEMORIZE_NONE, memoriz
         process_name = memorize_name
     else:
         final_memorize_name = process_name = "dock prep"
+    if not nogui and not _from_tool:
+        def callback2(structures, tool_settings, *, session=session, dpc_kw={
+                'memorization': memorization, 'memorize_name': memorize_name,
+                'nogui': nogui, 'callback': callback}):
+            dpc_kw.update(tool_settings)
+            dock_prep_caller(session, structures, _from_tool=True, **dpc_kw)
+        dock_prep_info = {
+            'structures': structures,
+            'process name': process_name,
+            'callback': callback2
+        }
+        from .tool import DockPrepTool
+        DockPrepTool(session, dock_prep_info=dock_prep_info)
+        return
     state = {
         'steps': dock_prep_steps(session, memorization, final_memorize_name, **kw),
         'memorization': memorization,

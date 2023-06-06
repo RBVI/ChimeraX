@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 __version__ = "1.0"
-from .nifti import NifTI
+from .nifti import NifTI, NiftiData, NiftiGrid
 
 from chimerax.core.toolshed import BundleAPI
 from chimerax.open_command import OpenerInfo

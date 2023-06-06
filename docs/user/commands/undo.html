@@ -31,9 +31,9 @@ class="clRight" title="User Guide Index"/></a>
 <br><b>redo</b> 
 </h3>
 <p>
-The <b>undo</b> and <b>redo</b> commands navigate a stack of actions 
-from a limited set of commands (and the corresponding
-<a href="../tools/toolbar.html"><b>Toolbar</b></a> icons):
+The <b>undo</b> and <b>redo</b> commands (and their
+<a href="../menu.html#edit"><b>Edit</b> menu</a> equivalents)
+navigate a stack of actions from a limited set of commands and manipulations:
 </p>
 <ul>
 <li><a href="show.html"><b>show</b>, <b>hide</b></a> 
@@ -47,6 +47,10 @@ except for subparts (atom/residue patches) of
 <li><a href="style.html"><b>style</b></a>
 <li><a href="cartoon.html"><b>cartoon</b></a>
 <li><a href="nucleotides.html"><b>nucleotides</b></a>
+<li><a href="angle.html"><b>angle</b></a>,
+<a href="torsion.html"><b>torsion</b></a>,
+and <a href="bond.html#length"><b>bond length</b></a>
+changes in atomic structure
 <li><a href="select.html"><b>select</b></a>,
 selection <a href="ui.html#mousemode">with the mouse</a>,
 and arrow-key navigation of the 
@@ -65,6 +69,9 @@ with <a href="ui.html#mousemode">mouse modes</a>:
   <li><b>rotate selected models</b>
   <a href="../tools/mousemodes.html" title="Right Mouse Toolbar...">
   <img class="icon" border=1 src="../tools/mouse-icons/rotate_h2o.png"></a>
+  <li><b>move picked model</b>
+  <a href="../tools/mousemodes.html" title="Right Mouse Toolbar...">
+  <img class="icon" border=1 src="../tools/mouse-icons/move_picked_model.png"></a>
   <li><b>translate selected atoms</b>
   <a href="../tools/mousemodes.html" title="Right Mouse Toolbar...">
   <img class="icon" border=1 src="../tools/mouse-icons/move_atoms.png"></a>
@@ -74,16 +81,13 @@ with <a href="ui.html#mousemode">mouse modes</a>:
   </ul>
 </ul>
 <p>
-Up to 10 undo/redo actions are remembered.
-Other actions/commands cannot be undone, including 
-<a href="surface.html"><b>surface</b></a>,
-<a href="volume.html"><b>volume</b></a>,
-<a href="label.html"><b>label</b></a>, and many others.
-In addition, after a <a href="../selection.html">selection</a> change is undone,
-using <a href="select.html#modify"><b>select down</b></a> or the keyboard down
-arrow to navigate the <a href="../selection.html#cascade">selection cascade</a>
-may not work as expected, although <b>undo/redo</b> can still be used to
-navigate the previous <a href="../selection.html">selection</a> states.
+Actions performed with graphical interfaces (menus, icons, and tools)
+will also be undoable if they use the commands listed above.
+Examples include 
+<a href="../tools/buildstructure.html"><b>Build Structure</b></a>
+bond rotations and most of the 
+<a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
+<b>Molecule Display</b></a> icon actions.
 </p><p>
 The same stack of actions can be navigated by using the
 <a href="../menu.html#edit"><b>Edit</b> menu</a> or
@@ -98,9 +102,20 @@ border=1 src="../tools/toolbar-icons/redo-variant.png"></a>.
 The <a href="../menu.html#edit"><b>Edit</b> menu</a>
 also shows the type of action that would be next undone,
 with entries grayed out when no actions are available to undo or redo.
+</p><p>
+Up to 10 undo/redo actions are remembered.
+Other actions/commands cannot be undone, including 
+<a href="surface.html"><b>surface</b></a>,
+<a href="volume.html"><b>volume</b></a>,
+<a href="label.html"><b>label</b></a>, and many others.
+In addition, after a <a href="../selection.html">selection</a> change is undone,
+using <a href="select.html#modify"><b>select down</b></a> or the keyboard down
+arrow to navigate the <a href="../selection.html#cascade">selection cascade</a>
+may not work as expected, although <b>undo/redo</b> can still be used to
+navigate the previous <a href="../selection.html">selection</a> states.
 </p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-April 2020</address>
+May 2023</address>
 </body></html>

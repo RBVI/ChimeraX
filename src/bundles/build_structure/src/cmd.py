@@ -27,8 +27,11 @@ def cmd_bond_length(session, bond, length=None, *, move="small"):
         session.logger.info(("Bond length for %s is " + session.pb_dist_monitor.distance_format)
             % (bond, bond.length))
     else:
+        from chimerax.core.undo import UndoState
         from chimerax.atomic.struct_edit import set_bond_length
-        set_bond_length(bond, length, move_smaller_side=(move=="small"))
+        undo_state = UndoState("bond length")
+        set_bond_length(bond, length, move_smaller_side=(move=="small"), undo_state=undo_state)
+        session.undo.register(undo_state)
 
 def cmd_invert(session, atoms):
     if len(atoms) not in [1,2]:

@@ -23,9 +23,10 @@ def material(session, preset = None, reflectivity = None,
     Parameters
     ----------
     preset : string
-      Can be "default", "shiny" or "dull".  Default sets all material
+      Can be "default", "shiny", "dull", or "chimera".  Default sets all material
       properties to there default values.  Shiny sets specular reflectivity to 1.
-      Dull sets specular reflectivity to 0.
+      Dull sets specular reflectivity to 0.  Chimera sets specular reflectivity
+      and exponent to try to emulate UCSF Chimera.
     reflectivity : float
       Fraction of directional light reflected diffusely (reflected equally in
       all directions). Initial value 0.8.
@@ -72,6 +73,9 @@ def material(session, preset = None, reflectivity = None,
         m.specular_reflectivity = 1
     elif preset == 'dull':
         m.specular_reflectivity = 0
+    elif preset == 'chimera':
+        m.specular_reflectivity = 1
+        m.specular_exponent = 6
 
     if not reflectivity is None:
         m.diffuse_reflectivity = reflectivity
@@ -91,7 +95,7 @@ def material(session, preset = None, reflectivity = None,
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, EnumOf, FloatArg, BoolArg, register
     _material_desc = CmdDesc(
-        optional = [('preset', EnumOf(('default', 'shiny', 'dull')))],
+        optional = [('preset', EnumOf(('default', 'shiny', 'dull', 'chimera')))],
         keyword = [
             ('reflectivity', FloatArg),
             ('specular_reflectivity', FloatArg),

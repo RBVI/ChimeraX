@@ -49,8 +49,9 @@ def gaussian_grid(volume, sdev, step = 1, subregion = None, region = None,
 
   from chimerax.map_data import ArrayGridData
   d = v.data
-  if v.name.endswith('gaussian'): name = v.name
-  else:                           name = '%s gaussian' % v.name
+  suffix = 'sharpen' if invert else 'gaussian'
+  if v.name.endswith(suffix): name = v.name
+  else:                       name = '%s %s' % (v.name, suffix)
   gg = ArrayGridData(gm, origin, step, d.cell_angles, d.rotation,
                      name = name)
   return gg
@@ -132,7 +133,7 @@ def ceil_power_of_2(n):
 
 # -----------------------------------------------------------------------------
 #
-fast_fft_sizes = [2, 3, 4, 5, 6, 8, 9, 10, 12, 16, 18, 20, 21, 25, 32, 33, 36, 40, 48, 50, 54, 55, 64, 65, 72, 80, 81, 90, 96, 100, 108, 120, 128, 144, 150, 160, 162, 180, 192, 200, 216, 256, 270, 300, 320, 324, 325, 336, 360, 400, 432, 450, 480, 500, 512, 540, 576, 600, 640, 648, 720, 750, 800, 810, 864, 900, 960, 1024, 1080, 1152, 1200, 1280, 1296, 1350, 1440, 1500, 1536, 1600, 1620, 1728, 1800, 1920, 2048, 2160, 2250, 2304, 2400, 2560, 2700, 2880, 3000, 3072, 3200, 3240, 3600, 3840, 4096, 4160, 4176, 4180, 4186, 4187, 4192]
+fast_fft_sizes = [2, 4, 6, 8, 10, 12, 16, 20, 24, 32, 36, 40, 48, 50, 64, 72, 80, 90, 96, 128, 144, 150, 160, 192, 200, 256, 260, 320, 336, 340, 400, 408, 448, 512, 560, 576, 640, 648, 768, 832, 1024, 1040, 1056, 1088, 1152, 1250, 1280, 1344, 1536, 1600, 1620, 1664, 2048, 2304, 2560, 2816, 3000, 3072, 3200, 3250, 3840, 4000, 4096, 4176, 4180, 4182, 4186, 4192]
 
 def efficient_fft_size(n):
 
@@ -157,24 +158,22 @@ def efficient_fft_size(n):
 # some larger size.  This is useful when we can zero pad the array to any
 # amount for example in Gaussian filtering.
 #
-def find_fast_fft_sizes(max_size = 4192, array_size = 1024*1024):
+def find_fast_fft_sizes(max_size = 4192, array_size = 1024*1024, even_only = True):
 
     from numpy.fft import rfft, irfft
-    from time import clock
+    from time import process_time
     from numpy import ones, single
     a = ones((array_size,), single)
     tl = []
-    for s in range(2, max_size+1):
+    step = 2 if even_only else 1
+    for s in range(2, max_size+1, step):
         n = array_size//s
         b = a[:s*n].reshape((n, s))
-        c0 = clock()
+        c0 = process_time()
         f = rfft(b)
         g = irfft(f)
-        c1 = clock()
+        c1 = process_time()
         t = (c1-c0)/n           # Average time for one fft
-        if t < 0:
-          # Python clock() wraps after 4295 seconds on 32-bit systems. Ugh.
-          t += (256.0**4/1e6)/n
         tl.append((t,s))
         print (s, '%.4g' % (1e6*t))
     tl.reverse()

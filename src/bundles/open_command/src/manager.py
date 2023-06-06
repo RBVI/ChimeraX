@@ -18,13 +18,12 @@ class OpenerNotInstalledError(NoOpenerError):
     pass
 
 class OpenerProviderInfo:
-    def __init__(self, bundle_info, name, want_path, check_path, batch, is_default, pregrouped_structures):
+    def __init__(self, bundle_info, name, want_path, check_path, batch, pregrouped_structures):
         self.bundle_info = bundle_info
         self.name = name
         self.want_path = want_path
         self.check_path = check_path
         self.batch = batch
-        self.is_default = is_default
         self.pregrouped_structures = pregrouped_structures
 
 class FetcherProviderInfo:
@@ -82,7 +81,7 @@ class OpenManager(ProviderManager):
                     " %s bundle" % (data_format.name, _readable_bundle_name(
                     self._openers[data_format].bundle_info), bundle_name))
             self._openers[data_format] = OpenerProviderInfo(bundle_info, ui_name, want_path,
-                check_path, batch, is_default, pregrouped_structures)
+                check_path, batch, pregrouped_structures)
         elif type == "fetch":
             if not name:
                 raise ValueError("Database fetch in bundle %s has empty name" % bundle_name)

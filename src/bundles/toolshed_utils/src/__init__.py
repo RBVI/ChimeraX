@@ -20,7 +20,7 @@ for ease of updating outside of the core release cycle.
 Everything in here is considered private.
 """
 
-__version__ = "1.2.1"
+__version__ = "1.2.2"
 
 from chimerax.core.toolshed import (
     TOOLSHED_BUNDLE_INSTALLED, TOOLSHED_BUNDLE_UNINSTALLED,

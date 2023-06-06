@@ -261,6 +261,16 @@ class LaunchEmplaceLocalTool(ToolInstance):
         self.verify_center_checkbox = QCheckBox("Interactively verify/adjust center before searching")
         self.verify_center_checkbox.setChecked(True)
         layout.addWidget(self.verify_center_checkbox, alignment=Qt.AlignCenter)
+        self.opaque_maps_checkbox = QCheckBox("Make maps opaque while verifying center")
+        self.opaque_maps_checkbox.setToolTip(
+            "ChimeraX cannot show multiple transparent objects correctly, so make maps opaque\n"
+            "while transparent interactive search-center sphere is being displayed"
+        )
+        self.opaque_maps_checkbox.setChecked(self.settings.opaque_maps)
+        self.verify_center_checkbox.clicked.connect(lambda checked, b=self.opaque_maps_checkbox:
+            b.setHidden(not checked))
+        layout.addWidget(self.opaque_maps_checkbox, alignment=Qt.AlignCenter)
+        layout.addStretch(1)
 
         from Qt.QtWidgets import QDialogButtonBox as qbbox
         self.bbox = bbox = qbbox(qbbox.Ok | qbbox.Close | qbbox.Help)
@@ -327,7 +337,8 @@ class LaunchEmplaceLocalTool(ToolInstance):
             raise AssertionError("Unknown centering method")
         self.settings.search_center = method
         if self.verify_center_checkbox.isChecked():
-            VerifyCenterDialog(self.session, structure, maps, res, center)
+            self.settings.opaque_maps = self.opaque_maps_checkbox.isChecked()
+            VerifyCenterDialog(self.session, structure, maps, res, center, self.settings.opaque_maps)
         else:
             _run_emplace_local_command(self.session, structure, maps, res, center)
         self.delete()
@@ -346,12 +357,13 @@ class LaunchEmplaceLocalTool(ToolInstance):
             self.model_menu.setHidden(False)
 
 class VerifyCenterDialog(QDialog):
-    def __init__(self, session, structure, maps, resolution, initial_center):
+    def __init__(self, session, structure, maps, resolution, initial_center, opaque_maps):
         super().__init__()
         self.session = session
         self.structure = structure
         self.maps = maps
         self.resolution = resolution
+        self.opaque_maps = opaque_maps
 
         adjusted_center = [ic+o for ic,o in zip(initial_center, maps[0].data.origin)]
         marker_set_id = session.models.next_id()[0]
@@ -387,6 +399,16 @@ class VerifyCenterDialog(QDialog):
         bbox.rejected.connect(self.close)
         layout.addWidget(bbox)
 
+        if opaque_maps:
+            from chimerax.map import VolumeSurface
+            self.opaque_data = {}
+            for m in session.models:
+                if isinstance(m, VolumeSurface) and m.rgba[-1] < 1.0:
+                    self.opaque_data[m] = m.rgba[-1]
+                    rgba = list(m.rgba)
+                    rgba[-1] = 1.0
+                    m.rgba = tuple(rgba)
+
         self.show()
 
     def closeEvent(self, event):
@@ -404,6 +426,12 @@ class VerifyCenterDialog(QDialog):
         return max(numpy.linalg.norm(crds-mid, axis=1))
 
     def launch_emplace_local(self):
+        if self.opaque_maps:
+            for m, alpha in self.opaque_data.items():
+                if not m.deleted:
+                    rgba = list(m.rgba)
+                    rgba[-1] = alpha
+                    m.rgba = tuple(rgba)
         center = self.marker.scene_coord
         _run_emplace_local_command(self.session, self.structure, self.maps, self.resolution,
             [c-o for c, o in zip(center, self.maps[0].data.origin)])
@@ -417,6 +445,7 @@ class VerifyCenterDialog(QDialog):
 class LaunchEmplaceLocalSettings(Settings):
     AUTO_SAVE = {
         'search_center': LaunchEmplaceLocalTool.CENTER_MODEL,
+        'opaque_maps': True
     }
 
 def _run_emplace_local_command(session, structure, maps, resolution, center):

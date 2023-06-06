@@ -67,6 +67,7 @@ class BondRotater(State):
         self.moving_side = moving_side
         self.one_shot = one_shot
         self._angle = 0.0
+        self._undo_state = None
 
     def get_angle(self):
         return self._angle
@@ -84,6 +85,8 @@ class BondRotater(State):
         coords = side_atoms.coords
         # avoid a copy...
         update.transform_points(coords, in_place=True)
+        if self._undo_state:
+            self._undo_state.add(side_atoms, "coords", side_atoms.coords, coords)
         side_atoms.coords = coords
         self.rotation._rotater_update(self, delta)
         # manager listening on changes will fire 'modified' trigger...
@@ -106,6 +109,16 @@ class BondRotater(State):
         if not self.one_shot:
             manager = self.session.bond_rotations
             manager.triggers.activate_trigger(manager.REVERSED, self)
+
+    @property
+    def undo_state(self):
+        return self._undo_state
+
+    @undo_state.setter
+    def undo_state(self, undo_state):
+        if self._undo_state is not None:
+            self.session.undo.register(self._undo_state)
+        self._undo_state = undo_state
 
     # session methods
     def reset_state(self, session):

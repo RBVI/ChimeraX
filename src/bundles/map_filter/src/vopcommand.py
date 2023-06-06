@@ -97,7 +97,7 @@ def register_volume_filtering_subcommands(logger):
 
     copy_desc = CmdDesc(required = varg,
                          keyword = [('value_type', ValueTypeArg)] + ssm_kw,
-                         synopsis = 'Copy a map or a map subregio')
+                         synopsis = 'Copy a map or a map subregion')
     register('volume copy', copy_desc, volume_copy, logger=logger)
 
     cover_desc = CmdDesc(required = varg,
@@ -137,11 +137,12 @@ def register_volume_filtering_subcommands(logger):
                            synopsis = 'Fourier transform a map')
     register('volume fourier', fourier_desc, volume_fourier, logger=logger)
 
+    gauss_kw = [('s_dev', Float1or3Arg),
+                 ('bfactor', FloatArg),
+                 ('value_type', ValueTypeArg),
+                 ('invert', BoolArg)] + ssm_kw
     gaussian_desc = CmdDesc(required = varg,
-                            keyword = [('s_dev', Float1or3Arg),
-                                       ('bfactor', FloatArg),
-                                       ('value_type', ValueTypeArg),
-                                       ('invert', BoolArg)] + ssm_kw,
+                            keyword = gauss_kw,
                             synopsis = 'Convolve map with a Gaussian for smoothing'
     )
     register('volume gaussian', gaussian_desc, volume_gaussian, logger=logger)
@@ -239,6 +240,12 @@ def register_volume_filtering_subcommands(logger):
                                     ] + ssm_kw,
                          synopsis = 'Scale and shift map values')
     register('volume scale', scale_desc, volume_scale, logger=logger)
+
+    sharpen_desc = CmdDesc(required = varg,
+                           keyword = gauss_kw,
+                           synopsis = 'Sharpen map by amplifying high-frequencies using bfactor'
+    )
+    register('volume sharpen', sharpen_desc, volume_sharpen, logger=logger)
 
     subtract_desc = CmdDesc(required = varg,
                             keyword = add_kw + [('min_rms', BoolArg)],
@@ -639,7 +646,7 @@ def volume_gaussian(session, volumes, s_dev = (1.0,1.0,1.0), bfactor = None,
     '''Smooth maps by Gaussian convolution.'''
     if bfactor is not None:
         if bfactor < 0:
-            invert = True
+            invert = not invert
         from math import pi, sqrt
         # Calculates sd according to https://www3.cmbi.umcn.nl/bdb/theory/
         sd = sqrt(abs(bfactor)/(3*8*pi**2))
@@ -649,7 +656,21 @@ def volume_gaussian(session, volumes, s_dev = (1.0,1.0,1.0), bfactor = None,
     gv = [gaussian_convolve(v, s_dev, step, subregion, value_type, invert, model_id, session = session)
           for v in volumes]
     return _volume_or_list(gv)
-
+                   
+# -----------------------------------------------------------------------------
+#
+def volume_sharpen(session, volumes, s_dev = (1.0,1.0,1.0), bfactor = None,
+                   subregion = 'all', step = 1, value_type = None, invert = False,
+                   model_id = None):
+    '''Sharpen map by amplifying high-frequencies using bfactor.'''
+    if bfactor is not None:
+        bfactor = -bfactor
+    else:
+        invert = not invert	# s_dev specified
+    return volume_gaussian(session, volumes, s_dev = s_dev, bfactor = bfactor,
+                           subregion = subregion, step = step, value_type = value_type,
+                           invert = invert, model_id = model_id)
+                   
 # -----------------------------------------------------------------------------
 #
 def volume_laplacian(session, volumes, subregion = 'all', step = 1, model_id = None):
@@ -1050,14 +1071,18 @@ def volume_flip(session, volumes, axis = 'z', subregion = 'all', step = 1,
 #
 def flip_operation(v, axes, subregion, step, in_place, model_id):
 
-    g = v.grid_data(subregion = subregion, step = step, mask_zone = False)
     from . import flip
     if in_place:
-        m = g.full_matrix()
+        if not v.data.writable:
+            raise CommandError("Can't flip volume opened from a file in-place: %s" % v.name)
+        if subregion != 'all' or step != 1:
+            raise CommandError("Can't flip a subregion of a volume in-place: %s" % v.name)
+        m = v.data.full_matrix()
         flip.flip_in_place(m, axes)
         v.data.values_changed()
         return v
     else:
+        g = v.grid_data(subregion = subregion, step = step, mask_zone = False)
         fg = flip.FlipGrid(g, axes)
         from chimerax.map import volume_from_grid_data
         fv = volume_from_grid_data(fg, v.session, model_id = model_id)

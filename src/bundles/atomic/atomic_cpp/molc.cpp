@@ -3123,7 +3123,9 @@ extern "C" EXPORT PyObject *residue_unique_sequences(void *residues, size_t n, i
                       {
                         int next_id = smap.size()+1;
                         si = cmap[c] = smap[seq] = next_id;
-                        PyList_Append(seqs, unicode_from_string(seq));
+                        auto py_seq = unicode_from_string(seq);
+                        PyList_Append(seqs, py_seq);
+                        Py_DECREF(py_seq);
                       }
                     else
                       si = cmap[c] = seqi->second;
@@ -5335,6 +5337,8 @@ extern "C" EXPORT void metadata(void *mols, size_t n, pyobject_t *headers)
                 for (size_t i = 0; i != count; ++i)
                     PyList_SetItem(values, i, unicode_from_string(headers[i]));
                 PyDict_SetItem(header_map, key, values);
+                Py_DECREF(key);
+                Py_DECREF(values);
             }
             headers[i] = header_map;
             header_map = NULL;
@@ -5622,7 +5626,7 @@ extern "C" EXPORT void pointer_array_freed(void *numpy_array)
 
 // -------------------------------------------------------------------------
 // pointer array functions
-extern "C" EXPORT ssize_t pointer_index(void *pointer_array, size_t n, void *pointer)
+extern "C" EXPORT Py_ssize_t pointer_index(void *pointer_array, size_t n, void *pointer)
 {
     void **pa = static_cast<void **>(pointer_array);
     try {

@@ -40,7 +40,10 @@ def cmd_torsion(session, atoms, value=None, *, move="small"):
     except BondRotationError as e:
         raise UserError(str(e))
 
+    from chimerax.core.undo import UndoState
+    rotater.undo_state = UndoState("torsion")
     rotater.angle += value - cur_torsion
+    rotater.undo_state = None
     mgr.delete_rotation(rotater)
 
 

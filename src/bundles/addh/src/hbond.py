@@ -669,7 +669,7 @@ def add_hydrogens(session, atom_list, *args):
                     protonate.append(pos)
             # ... and the "roomiest" remaining positions.
             needed = hyds_to_position - len(protonate)
-            if needed:
+            if needed and remaining:
                 rooms = roomiest(remaining, a, _room_dist, bonding_info)
                 protonate.extend(rooms[:needed])
             altloc_hpos_info.append((alt_loc, a.occupancy, protonate))

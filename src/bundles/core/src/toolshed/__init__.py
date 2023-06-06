@@ -455,13 +455,15 @@ class Toolshed:
         try:
             abc.load(logger, self.remote_url)
         except URLError as e:
-            logger.info("Updating list of available bundles failed: %s"
-                        % str(e.reason))
+            if _session is not None and _session.ui.is_gui:
+                logger.info("Updating list of available bundles failed: %s"
+                            % str(e.reason))
             with self._abc_lock:
                 self._abc_updating = False
         except Exception as e:
-            logger.info("Updating list of available bundles failed: %s"
-                        % str(e))
+            if _session is not None and _session.ui.is_gui:
+                logger.info("Updating list of available bundles failed: %s"
+                            % str(e))
             with self._abc_lock:
                 self._abc_updating = False
         else:

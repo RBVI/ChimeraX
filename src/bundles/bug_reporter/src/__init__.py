@@ -35,4 +35,4 @@ class _BugReporterAPI(BundleAPI):
 
 bundle_api = _BugReporterAPI()
 
-from .bug_reporter_gui import show_bug_reporter
+from .bug_reporter_gui import show_bug_reporter, system_summary, opengl_info
