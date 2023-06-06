@@ -415,7 +415,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         elif sizing_scheme == "fixed":
             width, height = size_data
         if sizing_scheme not in ["full screen", "maximized"]:
-            self.resize(width, height)
+            self.resize(int(width + 0.5), int(height + 0.5))
         # going into full screen / maximized causes events to happen, so delay until we're more
         # fully initialized
 
@@ -3127,7 +3127,7 @@ class InitWindowSizeOption(Option):
             w_pr_val, h_pr_val = size_data
         elif size_scheme == "fixed":
             w_px_val, h_px_val = size_data
-        from Qt.QtWidgets import QSpinBox, QWidget, QLabel
+        from Qt.QtWidgets import QSpinBox, QWidget, QLabel, QDoubleSpinBox
         self.nonmenu_widgets = QWidget()
         layout.addWidget(self.nonmenu_widgets)
         nonmenu_layout = QVBoxLayout()
@@ -3140,9 +3140,10 @@ class InitWindowSizeOption(Option):
         w_widgets.setLayout(w_layout)
         w_layout.setContentsMargins(0,0,0,0)
         w_layout.setSpacing(2)
-        self.w_proportional_spin_box = QSpinBox()
+        self.w_proportional_spin_box = QDoubleSpinBox()
         self.w_proportional_spin_box.setMinimum(1)
         self.w_proportional_spin_box.setMaximum(100)
+        self.w_proportional_spin_box.setDecimals(1)
         self.w_proportional_spin_box.setValue(w_pr_val)
         self.w_proportional_spin_box.valueChanged.connect(lambda val, *, s=self: s.make_callback())
         w_layout.addWidget(self.w_proportional_spin_box)
@@ -3166,9 +3167,10 @@ class InitWindowSizeOption(Option):
         h_widgets.setLayout(h_layout)
         h_layout.setContentsMargins(0,0,0,0)
         h_layout.setSpacing(2)
-        self.h_proportional_spin_box = QSpinBox()
+        self.h_proportional_spin_box = QDoubleSpinBox()
         self.h_proportional_spin_box.setMinimum(1)
         self.h_proportional_spin_box.setMaximum(100)
+        self.h_proportional_spin_box.setDecimals(1)
         self.h_proportional_spin_box.setValue(h_pr_val)
         self.h_proportional_spin_box.valueChanged.connect(lambda val, *, s=self: s.make_callback())
         h_layout.addWidget(self.h_proportional_spin_box)
