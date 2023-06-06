@@ -8,5 +8,6 @@
 # Version 3.1.6 does not have source distribution for PyOpenGL-accelerate
 # and only has Windows binary distributions.  So staying at 3.1.5.
 #
-PyOpenGL==3.1.5
-PyOpenGL-accelerate==3.1.5
+PyOpenGL==3.1.6
+# See Makefile for installing PyOpenGL-accelerate 3.1.6 from Plato
+#PyOpenGL-accelerate==3.1.5

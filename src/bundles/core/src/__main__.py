@@ -340,7 +340,7 @@ def parse_arguments(argv):
         "--nousedefaults",
     ]
 
-    # This used to simply import pip, but this breaks new versions of setuptools. 
+    # This used to simply import pip, but this breaks new versions of setuptools.
     # See Trac#7159
     import site
     import os
@@ -464,7 +464,7 @@ def init(argv, event_loop=True):
     dn = os.path.dirname
     rootdir = dn(dn(os.path.realpath(sys.executable)))
     # On Linux, don't create user directories if root (the installer uid)
-    is_root = False 
+    is_root = False
     if sys.platform.startswith('linux'):
         os.environ['XDG_CONFIG_DIRS'] = rootdir
         is_root = os.getuid() == 0
@@ -576,6 +576,7 @@ def init(argv, event_loop=True):
         if os.environ.get("WAYLAND_DISPLAY", ""):
             # ChimeraX needs to use XWayland for now
             os.environ["QT_QPA_PLATFORM"] = "xcb"
+            os.environ["PYOPENGL_PLATFORM"] = "x11"
         from chimerax.ui import initialize_qt
         initialize_qt()
 

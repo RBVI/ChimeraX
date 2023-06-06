@@ -27,6 +27,7 @@ from chimerax.core.commands import run
 from chimerax.core.errors import UserError
 from chimerax.core.tools import ToolInstance
 from chimerax.ui.gui import MainToolWindow
+from chimerax.ui.open_save import SaveDialog
 from chimerax.help_viewer import show_url
 
 from ..data_model import AvailableDBsDict, Match, parse_blast_results
@@ -261,7 +262,16 @@ class BlastProteinResults(ToolInstance):
         self.main_layout.addWidget(self.show_best_matching_container)
         self.main_layout.addWidget(self.load_buttons_widget)
 
-        for layout in [self.main_layout, self.show_best_matching_layout]:
+        self.save_button_container = QWidget(parent=parent)
+        self.save_button_layout = QHBoxLayout()
+        self.save_button = QPushButton("Save Results as TSV")
+        self.save_button_layout.addStretch()
+        self.save_button_layout.addWidget(self.save_button)
+        self.save_button_container.setLayout(self.save_button_layout)
+        self.save_button.clicked.connect(self.save_as_tsv)
+        self.main_layout.addWidget(self.save_button_container)
+
+        for layout in [self.main_layout, self.show_best_matching_layout, self.save_button_layout]:
             layout.setContentsMargins(2, 2, 2, 2)
             layout.setSpacing(2)
 
@@ -318,12 +328,33 @@ class BlastProteinResults(ToolInstance):
         seq_action = QAction("Load Structures", menu)
         seq_view_action = QAction("Show Sequence Alignment", menu)
         load_from_db_action = QAction("Open Database Webpage", menu)
+        save_as_tsv_action = QAction("Save as TSV", menu)
         seq_action.triggered.connect(lambda: self.load(self.table.selected))
         seq_view_action.triggered.connect(lambda: self._show_mav(self.table.selected))
         load_from_db_action.triggered.connect(lambda: self.load_sequence(self.table.selected))
+        save_as_tsv_action.triggered.connect(lambda: self.save_as_tsv())
         menu.addAction(seq_action)
         menu.addAction(seq_view_action)
         menu.addAction(load_from_db_action)
+        menu.addAction(save_as_tsv_action)
+
+    def save_as_tsv(self):
+        sd = SaveDialog(self.session, parent=self.tool_window.ui_area)
+        sd.setNameFilter("Tab-Separated Values (*.tsv)")
+        if not sd.exec():
+            return
+        filename = sd.selectedFiles()[0]
+        if not filename.endswith(".tsv"):
+            filename += ".tsv"
+        if len(self.table.data) > 0:
+            rows = []
+            # Get the header row
+            rows.append("\t".join([str(val) for val in self.table.data[0]._internal_dict.keys()]))
+            for row in self.table.data:
+                rows.append('\t'.join([str(val).replace('\n','') for val in row._internal_dict.values()]))
+            with open(filename, "w") as f:
+                # chop up all the table data by tabs
+                f.write("\n".join(rows))
 
     #
     # Worker Callbacks

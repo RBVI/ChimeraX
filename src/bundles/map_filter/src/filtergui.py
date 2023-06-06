@@ -35,7 +35,7 @@ class MapFilterPanel(ToolInstance):
 
     from chimerax.ui.widgets import vertical_layout, EntriesRow
 
-    layout = vertical_layout(parent)
+    layout = vertical_layout(parent, margins = (5,0,5,0))
 
     ft = EntriesRow(parent, 'Filter type',
                     ('Gaussian', 'Sharpen', 'Median 3x3x3', 'Bin', 'Scale',
@@ -172,7 +172,11 @@ class MapFilterPanel(ToolInstance):
         pwidgets.setVisible(True)
       self._displayed_filter_widget = pwidgets
       self._last_filter_map = None
-    
+
+    # Gray out value type for filters that don't support it.
+    supports_value_type = ftype in ('Gaussian', 'Sharpen', 'Scale')
+    self._value_type_frame.setEnabled(supports_value_type)
+
   # ---------------------------------------------------------------------------
   #
   def _filter(self):
@@ -390,6 +394,7 @@ class MapFilterPanel(ToolInstance):
 
     vt = EntriesRow(f, 'Value type', ('same', 'int8', 'uint8', 'int16', 'uint16',
                                       'int32', 'uint32', 'float32', 'float64'))
+    self._value_type_frame = vt.frame
     self._value_type = vt.values[0]
 
     return p

@@ -1019,6 +1019,7 @@ class MainWindow(QMainWindow, PlainTextLog):
             from Qt.QtCore import Qt
             self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, dw)
             dw.setFloating(True)
+            dw.setAllowedAreas(Qt.DockWidgetArea.NoDockWidgetArea)
             dw.hide()
             self._settings_ui_widget = dw
         return self._settings_ui_widget
