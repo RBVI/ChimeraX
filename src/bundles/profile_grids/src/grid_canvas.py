@@ -118,6 +118,9 @@ class GridCanvas:
         from Qt.QtGui import QColor, QBrush
         from chimerax.core.colors import contrast_with
         y = 0
+        # adjust for rectangle outline width + inter-line spacing
+        y_adjust = 2
+        adjustments = set()
         for i in range(rows):
             if i in self.empty_rows:
                 continue
@@ -133,10 +136,17 @@ class GridCanvas:
                     text_val = str(int(100  * fraction + 0.5))
                     cell_text = self.main_scene.addSimpleText(text_val, self.font)
                     cell_text.moveBy(x, y)
+                    bbox = cell_text.boundingRect()
+                    # The additional 1 is for the rectangle outline width
+                    cell_text.moveBy(1 + (width - bbox.width())/2, y_adjust + (height - bbox.height())/2)
+                    if text_val not in adjustments:
+                        adjustments.add(text_val)
+                        print("Adjustment for %s:" % text_val, (width - bbox.width())/2, (height - bbox.height())/2)
+
                     cell_text.setBrush(QBrush(QColor(*[int(255 * channel + 0.5) for channel in text_rgb])))
             label_text = self.main_label_scene.addSimpleText(self.row_labels[i], self.font)
             label_width = self.font_metrics.horizontalAdvance(self.row_labels[i] + ' ')
-            label_text.moveBy((self.max_label_width - label_width) / 2, y)
+            label_text.moveBy((self.max_label_width - label_width) / 2, y + y_adjust)
             y += height
         self._update_scene_rects()
         #TODO: everything else
@@ -229,3 +239,4 @@ class GridCanvas:
         #self.header_scene.setSceneRect(mr.x(), hbr.y(), mr.width(), hbr.height())
         msr = self.main_scene.sceneRect()
         lsr = self.main_label_scene.sceneRect()
+        #self.pg.session._debug_grid = self
