@@ -1822,31 +1822,32 @@ class Histogram_Pane:
       menu = QMenu(self.frame)
       ro = v.rendering_options
       add = self.add_menu_entry
+      x,y = event.x(), event.y()
       add(menu, 'Show Outline Box', self.show_outline_box, checked = ro.show_outline_box)
-      add(menu, 'Show Full Region', lambda checked, e=event, self=self: self.show_full_region(log=True))
-      add(menu, 'New Threshold', lambda checked, e=event, self=self: self.add_threshold(e.x(), e.y()))
-      add(menu, 'Delete Threshold', lambda checked, e=event, self=self: self.delete_threshold(e.x(), e.y()))
-
-      if hasattr(menu, 'exec'):
-          menu.exec(event.globalPos())	# PyQt6
-      else:
-          menu.exec_(event.globalPos())	# PyQt5
+      add(menu, 'Show Full Region', lambda: self.show_full_region(log=True))
+      add(menu, 'New Threshold', lambda: self.add_threshold(x,y))
+      add(menu, 'Delete Threshold', lambda: self.delete_threshold(x,y))
+      pos = event.globalPos()
+      # If event is not release then Qt/PyQt errors in Python shell arise.
+      # Work around this bug by setting event to None. ChimeraX ticket #9068
+      event = None
+      # Posting menu only returns after menu is dismissed.
+      v.session.ui.post_context_menu(menu, pos)
 
   # ---------------------------------------------------------------------------
   #
-  def add_menu_entry(self, menu, text, callback, *args, checked = None):
+  def add_menu_entry(self, menu, text, callback, checked = None):
       '''Add menu item to context menu'''
       from Qt.QtGui import QAction
       a = QAction(text, self.frame)
       if checked is not None:
           a.setCheckable(True)
           a.setChecked(checked)
-      def cb(*, a=a, callback=callback, args=args):
-          checked = a.isChecked()
+      def cb(now_checked, *, checked=checked, callback=callback):
           if checked is None:
-              callback(*args)
+              callback()
           else:
-              callback(checked, *args)
+              callback(now_checked)
       #a.setStatusTip("Info about this menu entry")
       a.triggered.connect(cb)
       menu.addAction(a)

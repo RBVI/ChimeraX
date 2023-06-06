@@ -55,7 +55,7 @@ Please read the usage policy. If you agree to it and to abide by the citation an
 you use, hit 'OK' to close this dialog and continue. If you do not agree, please hit 'Cancel'.
 """
     @staticmethod
-    def get_collections(session = None):
+    def get_collections(worker = None):
         from chimerax import app_dirs # noqa
         tcia_cache_dir = os.path.join(app_dirs.user_cache_dir, "dicom")
         if not os.path.exists(tcia_cache_dir):
@@ -76,7 +76,8 @@ you use, hit 'OK' to close this dialog and continue. If you do not agree, please
         if not need_to_cache:
             with open(collections_cache_file, "r") as f:
                 collections_dict = json.loads(f.read())
-            session.ui.thread_safe(session.logger.status, f"Loaded TCIA collections using cached data")
+            if worker:
+                worker.session.ui.thread_safe(worker.session.logger.status, f"Loaded TCIA collections using cached data")
         else:
             collections = nbia.getCollections()
             collection_descs = nbia.getCollectionDescriptions()
@@ -95,8 +96,8 @@ you use, hit 'OK' to close this dialog and continue. If you do not agree, please
             num_collections = len(collections)
             failed_to_fetch = False
             for index, collection in enumerate(collections_dict):
-                if session:
-                    session.ui.thread_safe(session.logger.status, f"Loading collection {index+1}/{num_collections}")
+                if worker:
+                    worker.collection_fetched.emit(index+1, num_collections)
                 data = nbia.getSimpleSearchWithModalityAndBodyPartPaged(collection=collection)
                 if data:
                     try:
@@ -113,8 +114,8 @@ you use, hit 'OK' to close this dialog and continue. If you do not agree, please
                         failed_to_fetch = True
                 else:
                     failed_to_fetch = True
-            if failed_to_fetch:
-                session.ui.thread_safe(session.logger.warning, "Failed to fetch some collections' metadata; won't cache these results.")
+            if failed_to_fetch and worker:
+                worker.session.ui.thread_safe(worker.session.logger.warning, "Failed to fetch some collections' metadata; won't cache these results.")
             else:
                 with open(collections_cache_file, 'w') as f:
                     f.write(json.dumps(collections_dict))
