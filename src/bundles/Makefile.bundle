@@ -41,13 +41,13 @@ CX_BIN = $(CHIMERAX_APP)/bin/ChimeraX-console.exe
 PYMOD_EXT = pyd
 endif
 ifeq ($(OS),Darwin)
-APP_PYTHON_EXE = $(CHIMERAX_APP)/Contents/bin/python3.9
+APP_PYTHON_EXE = $(CHIMERAX_APP)/Contents/bin/python3.11
 CX_BIN = $(CHIMERAX_APP)/Contents/bin/ChimeraX
 PYMOD_EXT = so
 endif
 ifeq ($(OS),Linux)
-APP_PYTHON_EXE = $(CHIMERAX_APP)/bin/python3.9
-CX_BIN = $(CHIMERAX_APP)/bin/ChimeraX
+APP_PYTHON_EXE = $(CHIMERAX_APP)/bin/python3.11
+CX_BIN = $(CHIMERAX_APP)/bin/chimerax
 PYMOD_EXT = so
 endif
 PYTHON ?= $(APP_PYTHON_EXE) -I
