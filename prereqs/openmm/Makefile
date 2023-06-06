@@ -8,9 +8,9 @@ VERSION = 8.0.0
 ifeq ($(OS),Darwin)
 PLATFORM = mac
 ifeq ($(MACOS_ARCH),arm64)
-DISTRIBUTION = openmm-8.0.0-mac-py39ha14061b_0_apple.tar.bz2
+DISTRIBUTION = openmm-8.0.0-py311h68ae2cc_1_apple.tar.bz2
 else
-DISTRIBUTION = openmm-8.0.0-mac-py39hc22aeb8_0_apple.tar.bz2
+DISTRIBUTION = openmm-8.0.0-py311h7cbf384_0_apple.tar.bz2
 endif
 endif
 ifeq ($(OS),Linux)
@@ -18,12 +18,12 @@ PLATFORM = linux
 # The Linux distribution comes from Tristan Croll
 # compiled Oct 31, 2022 with the same compiler as ChimeraX.
 # Using CUDA 11.2
-DISTRIBUTION = openmm-8.0.0-linux-py39_cuda112.tar.bz2
+DISTRIBUTION = openmm-8.0.0-linux-py311_cuda112.tar.bz2
 endif
 ifeq ($(OS),Windows)
 PLATFORM = windows
 # Using CUDA 11.2
-DISTRIBUTION = openmm-8.0.0-win-py39h98f037e_0.tar.bz2
+DISTRIBUTION = openmm-8.0.0-win-py311h9957787_1.tar.bz2
 endif
 
 SOURCE = $(tmpdir)/OpenMM-$(VERSION)-$(PLATFORM)
