@@ -111,6 +111,8 @@ class PlaneViewer(QWindow):
         self.camera_offsets = [0, 0, 0]
         self._plane_indices = [0, 0, 0]
 
+        self.drawings = []
+
         self.label = Label(self.session, self.view, str(axis), str(axis), size=16, xpos=0, ypos=0)
 
         def _not_volume_surface(m):
@@ -120,7 +122,7 @@ class PlaneViewer(QWindow):
             self.session, parent, label = 'Model',
             model_types = [Volume, Surface],
             model_filter = _not_volume_surface,
-            model_chosen_cb = self._surface_chosen
+            model_chosen_cb = self._surfaceChosen
         )
 
         self.segmentation_overlay = SegmentationOverlay("seg_overlay", radius=10, thickness=3)
@@ -150,7 +152,7 @@ class PlaneViewer(QWindow):
             self.slider.setMaximum(max_x)
             self.slider.setValue(1)
 
-        self.slider.sliderMoved.connect(self._on_slider_moved)
+        self.slider.sliderMoved.connect(self._onSliderMoved)
         self.slider_moved = False
 
         self.handler = session.triggers.add_handler('frame drawn', self._redraw)
@@ -185,7 +187,7 @@ class PlaneViewer(QWindow):
     def segmentation_tool(self, tool):
         self._segmentation_tool = tool
         self.model_menu.value = self._segmentation_tool.model_menu.value
-        self._surface_chosen()
+        self._surfaceChosen()
         self._segmentation_tool.segmentation_cursors[self.axis].radius = self.segmentation_overlay.radius
         self._segmentation_tool.setCursorOffsetFromOrigin(
             self.axis, self.mvSegmentationCursorOffsetFromOrigin()
@@ -203,7 +205,7 @@ class PlaneViewer(QWindow):
         dir = -np.sign(origin[self.axis])
         return self.drawingOrigin()[self.axis] + (dir * self.pos * self.drawingVolumeStep()[self.axis])
 
-    def _on_slider_moved(self):
+    def _onSliderMoved(self):
         if self.axis == Axis.CORONAL:
             self.old_pos = -self.pos
             self.pos = -self.slider.sliderPosition()
@@ -242,7 +244,9 @@ class PlaneViewer(QWindow):
     def drawingOrigin(self):
         return self.drawingParentVolume().data.dicom_data.origin()
 
-    def drawingParentVolume(self):
+    def drawingParentVolume(self, drawing = None):
+        if drawing:
+            return drawing.parent
         return self.view.drawing.parent
 
     def drawingVolumeStep(self):
@@ -262,9 +266,9 @@ class PlaneViewer(QWindow):
         size = event.size()
         width = size.width()
         height = size.height()
-        self.set_viewport(width, height)
+        self.setViewport(width, height)
 
-    def set_viewport(self, width, height):
+    def setViewport(self, width, height):
         # Don't need make_current, since OpenGL isn't used
         # until rendering
         self.view.resize(width, height)
@@ -284,15 +288,17 @@ class PlaneViewer(QWindow):
             # and require large zoom-outs to get them into view
             # TODO: Turn on when overlay calculations are correct
             # self.view.background_color = self.main_view.background_color
-            old_disp_val = self.view.drawing.display
+            old_disp_vals = []
+            for d in self.drawings:
+                old_disp_vals.append(d.display)
+                d.display = True
             self.scale = mvwin.opengl_context.pixel_scale()
-            if not old_disp_val:
-                self.view.drawing.display = True
             # TODO: If the user selects 'surface' then 'orthoplanes' in the volume viewer we should
             # override the default plane locations somehow
             if self.slider_moved:
-                self.drawingParentVolume().set_parameters(orthoplane_positions=tuple(self._plane_indices))
-                self.drawingParentVolume().update_drawings()
+                for d in self.drawings:
+                    self.drawingParentVolume(d).set_parameters(orthoplane_positions=tuple(self._plane_indices))
+                    self.drawingParentVolume(d).update_drawings()
                 self.slider_moved = False
             model_center_offsets = self.drawingBounds().center()
             model_sizes = self.drawingBounds().size()
@@ -314,7 +320,8 @@ class PlaneViewer(QWindow):
             self.view.prepare_scene_for_drawing()
             self.view._draw_scene(self.view.camera, [self.view.drawing])
             self.view.finalize_draw()
-            self.view.drawing.display = old_disp_val
+            for index, d in enumerate(self.drawings):
+                d.display = old_disp_vals[index]
         except Exception as e: # noqa
             # This line is here so you can set a breakpoint on it and figure out what's going wrong
             # because ChimeraX's interface will not tell you.
@@ -324,6 +331,12 @@ class PlaneViewer(QWindow):
             self.main_view.render.use_shared_context(mvwin)
         self.view.render.done_current()
 
+
+    def addDrawing(self, drawing):
+        self.drawings.append(drawing)
+
+    def removeDrawing(self, drawing):
+        self.drawings.remove(drawing)
 
     def calculateSliceOverlays(self):
         width, height = self.view.window_size
@@ -401,14 +414,6 @@ class PlaneViewer(QWindow):
     def leaveEvent(self):
         self.disableSegmentationOverlay()
 
-    # Context Menu Requirements:
-    # -- Should open at the site of the original right click
-    # -- Should not open if the mouse has been moved since the right click,
-    #    as the user was probably zooming in and out
-    # -- The leaveEvent from going into the context menu shouldn't hide the
-    #    segmentation overlay; at least, if it's unavoidable triggering it,
-    #    then it should turn back on after the context menu closes
-
     def shouldEnableSegmentationCursor(self):
         return self.segmentation_cursor_enabled
 
@@ -451,27 +456,28 @@ class PlaneViewer(QWindow):
         self.last_mouse_position = None
 
     def resize3DSegmentationCursor(self):
+        """Resize the 3D segmentation cursor based on the size of the 2D segmentation overlay."""
+        # Does not depend on the pixel size in the main window
         if self.segmentation_tool:
             ww, wh = self.main_view.window_size
-            ps = self.main_view.pixel_size()
             width, height = self.view.window_size
             psize = self.view.pixel_size()
-            radius = self.segmentation_overlay.absolute_radius
+            radius = self.segmentation_overlay.radius
             rel_size = (radius / width) * psize
             needed_rad = (rel_size / psize) * ww
-            self.segmentation_tool.segmentation_cursors[self.axis].radius = self.segmentation_overlay.radius * psize / ps # 0.5 * needed_rad
+            self.segmentation_tool.segmentation_cursors[self.axis].radius = self.segmentation_overlay.radius * psize
 
     def wheelEvent(self, event):
         # Looked like the same size with:
         # self.view.pixel_size = 0.14930555555555
-        # self.segmentation_overlay.absolute_radius = 80
+        # self.segmentation_overlay.radius = 80
         # self.segmentation_tool.segmentation_cursor.radius = 5.9722222222
         #
         modifier = event.modifiers()
         delta = event.angleDelta()
         x_dir, y_dir = np.sign(delta.x()), np.sign(delta.y())
         if modifier == Qt.KeyboardModifier.ShiftModifier:
-            self.segmentation_overlay.absolute_radius += 1 * (x_dir | y_dir)
+            self.segmentation_overlay.radius += 1 * (x_dir | y_dir)
             self.segmentation_overlay.pixel_size = self.view.pixel_size()
             self.resize3DSegmentationCursor()
         elif modifier == Qt.KeyboardModifier.NoModifier:
@@ -532,6 +538,8 @@ class PlaneViewer(QWindow):
                         absolute_offset_bottom = rel_bottom * self.dimensions[2] * self.drawingVolumeStep()[2]
                         origin[1], origin[2] = drawing_origin[1] + absolute_offset_left, drawing_origin[2] + absolute_offset_bottom
                     self.segmentation_tool.segmentation_cursors[self.axis].origin = origin
+                    if b == Qt.MouseButton.LeftButton:
+                        self.segmentation_tool.addRegionToSegment(self.axis, origin)
             self.view.camera.redraw_needed = True
         # Zoom / Dolly
         if b & Qt.MouseButton.RightButton:
@@ -572,7 +580,6 @@ class PlaneViewer(QWindow):
     def update_dimensions(self, dimensions):
         self.dimensions = dimensions
 
-
     @property
     def axial_index(self):
         return self._plane_indices[Axis.AXIAL]
@@ -612,7 +619,7 @@ class PlaneViewer(QWindow):
         if self.axis == Axis.CORONAL:
             self.vertical_slice_overlay.slice = index
 
-    def _surface_chosen(self, *args):
+    def _surfaceChosen(self, *args):
         # TODO: Create a copy of the parent study just for rendering in the orthoplane windows?
         # Would need to create a copy of each segmentation created, too, one for the orthoplane
         # windows and one for the
@@ -638,7 +645,9 @@ class PlaneViewer(QWindow):
                 new_drawing = d
         #self.manager.update_drawing(self.model_menu.value)
         if new_drawing is not None:
+            # Set the view's root drawing, and our ground truth drawing, to the new one
             self.view.drawing = new_drawing
+            self.addDrawing(new_drawing)
             self.set_label_text(new_drawing.parent.name)
             max_x, max_y, max_z = max_slider_vals = self.view.drawing._region[1]
             self.manager.update_dimensions([max_x, max_y, max_z])
