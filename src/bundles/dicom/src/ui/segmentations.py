@@ -43,14 +43,22 @@ class SegmentationTool(ToolInstance):
         self.parent = self.tool_window.ui_area
         self.main_layout = QVBoxLayout()
 
+        self.view_dropdown_container = QWidget(self.parent)
+        self.view_dropdown_layout = QHBoxLayout()
+        self.view_dropdown_label = QLabel("View Layout")
         self.view_dropdown = QComboBox(self.parent)
-        self.view_dropdown.addItem("Default")
+        self.view_dropdown.addItem("Default (VR)")
         dicom_view(self.session, "orthoplanes")
-        self.view_dropdown.addItem("Orthoplanes")
+        self.view_dropdown.addItem("Orthoplanes (Desktop)")
         if self.session.ui.main_window.view_layout == "fourup":
             self.view_dropdown.setCurrentIndex(1)
         self.view_dropdown.currentIndexChanged.connect(self._on_view_changed)
+        self.view_dropdown_layout.addWidget(self.view_dropdown_label)
+        self.view_dropdown_layout.addWidget(self.view_dropdown, 1)
+        self.view_dropdown_container.setLayout(self.view_dropdown_layout)
 
+        self.view_dropdown_layout.setContentsMargins(0, 0, 0, 0)
+        self.view_dropdown_layout.setSpacing(0)
         def _not_volume_surface(m):
             return not isinstance(m, VolumeSurface)
 
@@ -70,9 +78,15 @@ class SegmentationTool(ToolInstance):
         self.guidelines_checkbox.stateChanged.connect(self._on_show_guidelines_checkbox_changed)
         self.control_checkbox_container.setLayout(self.control_checkbox_layout)
 
-        self.main_layout.addWidget(self.view_dropdown)
+        self.control_checkbox_layout.setContentsMargins(0, 0, 0, 0)
+        self.control_checkbox_layout.setSpacing(0)
+
+        self.main_layout.addWidget(self.view_dropdown_container)
         self.main_layout.addWidget(self.control_checkbox_container)
         self.main_layout.addStretch()
+        self.main_layout.setContentsMargins(6, 0, 6, 0)
+        self.main_layout.setSpacing(0)
+
         self.parent.setLayout(self.main_layout)
         self.tool_window.manage('side')
         self.segmentation_cursors = {
@@ -80,6 +94,8 @@ class SegmentationTool(ToolInstance):
             , Axis.CORONAL:  SegmentationDisk(self.session, Axis.CORONAL, height=5)
             , Axis.SAGGITAL: SegmentationDisk(self.session, Axis.SAGGITAL, height=5)
         }
+        self.segmentations = {}
+        self.current_segmentation = None
 
         self.session.models.add(self.segmentation_cursors.values())
         # TODO: Maybe just force the view to fourup when this tool opens?
@@ -87,6 +103,9 @@ class SegmentationTool(ToolInstance):
             self.session.ui.main_window.main_view.register_segmentation_tool(self)
 
     def _surface_chosen(self, *args):
+        # If we're in the 2D view, we need to tell the orthoplane views to display
+        # something new, but if we're in the 3D view, we may not need to do anything
+        # except redefine the constraints of our segmentation e.g. size, spacing
         # TODO: When does this get called from the event loop / why?
         try:
             new_model = self.model_menu.value
@@ -101,15 +120,23 @@ class SegmentationTool(ToolInstance):
                         puck.height = medical_image_data.pixel_spacing()[axis]
                         # Set by orthoplanes.py
                         #puck.origin = [x for x in medical_image_data.origin()]
-
         except AttributeError: # No more volumes!
             pass
+
+    def addRegionToSegment(self, axis, origin):
+        pass
 
     def _on_view_changed(self):
         if self.view_dropdown.currentIndex() == 0:
             run(self.session, "dicom view default")
         else:
             run(self.session, "dicom view orthoplanes")
+            self.session.ui.main_window.main_view.register_segmentation_tool(self)
+            if self.guidelines_checkbox.isChecked():
+                self.session.ui.main_window.main_view.toggle_guidelines()
+
+    def setPuckHeight(self, axis, height):
+        self.segmentation_cursors[axis].height = height
 
     def _on_show_guidelines_checkbox_changed(self):
         if self.session.ui.main_window.view_layout == "fourup":
