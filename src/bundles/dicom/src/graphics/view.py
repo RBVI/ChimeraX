@@ -97,6 +97,12 @@ class OrthoplaneView(View):
                 for d in drawings:
                     # d.draw(self._render, Drawing.OPAQUE_DRAW_PASS)
                     d._update_blend_groups()
+                    bi = d._blend_image
+                    if bi:
+                        if d is bi.master_image:
+                            bi.draw(self._render, Drawing.OPAQUE_DRAW_PASS)
+                        continue
+
                     pd = d._update_planes(self._render)
                     if pd._update_region:
                         pd.update_region()
