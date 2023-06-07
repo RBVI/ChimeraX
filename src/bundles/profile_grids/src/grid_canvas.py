@@ -67,6 +67,9 @@ class GridCanvas:
         """
         self.main_view = QGraphicsView(self.main_scene)
         self.main_view.setAttribute(Qt.WA_AlwaysShowToolTips)
+        #self.main_view.setViewportMargins(0, 0, 0, -20)
+        #from Qt.QtWidgets import QFrame
+        #self.main_view.setFrameStyle(QFrame.NoFrame)
         #self.main_view.setMouseTracking(True)
         main_vsb = self.main_view.verticalScrollBar()
         label_vsb = self.main_label_view.verticalScrollBar()
@@ -90,8 +93,8 @@ class GridCanvas:
         layout.setContentsMargins(0,0,0,0)
         layout.setSpacing(0)
         layout.addWidget(self.header_view, 0, 1)
-        layout.addWidget(self.main_label_view, 1, 0, alignment=Qt.AlignRight)
-        layout.addWidget(self.main_view, 1, 1)
+        layout.addWidget(self.main_label_view, 1, 0, alignment=Qt.AlignRight | Qt.AlignTop)
+        layout.addWidget(self.main_view, 1, 1, alignment=Qt.AlignLeft | Qt.AlignTop)
         layout.setColumnStretch(0, 0)
         layout.setColumnStretch(1, 1)
         layout.setRowStretch(0, 0)
@@ -227,16 +230,18 @@ class GridCanvas:
     def _update_scene_rects(self):
         #NOTE: scrolling doesn't work right for sequence viewer either if not wrapped, docked,
         # and labels don't need horizontal scrollbar
+        # have to play with setViewportMargins to get correct scrolling...
+        #self.main_view.setViewportMargins(0, 0, 0, -20)
         mbr = self.main_scene.itemsBoundingRect()
         self.main_scene.setSceneRect(self.main_scene.itemsBoundingRect())
         # For scrolling to work right, ensure that vertical size of main_label_scene is the same as main_scene
         # and that the horizontal size of the header_scene is the same as the main_scene
         lbr = self.main_label_scene.itemsBoundingRect()
+        mbr = self.main_scene.itemsBoundingRect()
+        y = min(lbr.y(), mbr.y())
+        height = max(lbr.y() + lbr.height() - y, mbr.y() + mbr.height() - y)
         mr = self.main_scene.sceneRect()
         #hbr = self.header_scene.itemsBoundingRect()
-        #self.main_label_scene.setSceneRect(lbr.x(), mr.y(), lbr.width(), mr.height() + hbr.height())
-        self.main_label_scene.setSceneRect(lbr.x(), mr.y(), lbr.width(), mr.height())
+        self.main_label_scene.setSceneRect(lbr.x(), y, lbr.width(), height)
+        self.main_scene.setSceneRect(mbr.x(), y, mbr.width(), height)
         #self.header_scene.setSceneRect(mr.x(), hbr.y(), mr.width(), hbr.height())
-        msr = self.main_scene.sceneRect()
-        lsr = self.main_label_scene.sceneRect()
-        #self.pg.session._debug_grid = self
