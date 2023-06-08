@@ -472,7 +472,7 @@ class PlaneViewer(QWindow):
             radius = self.segmentation_overlay.radius
             rel_size = (radius / width) * psize
             needed_rad = (rel_size / psize) * ww
-            self.segmentation_tool.segmentation_cursors[self.axis].radius = self.segmentation_overlay.radius * psize
+            self.segmentation_tool.segmentation_cursors[self.axis].radius = self.segmentation_overlay.radius * psize / self.scale
 
     def wheelEvent(self, event):
         # Looked like the same size with:
