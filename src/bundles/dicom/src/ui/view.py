@@ -47,6 +47,9 @@ class FourUpView(QWidget):
     def toggle_guidelines(self):
         self._orthoplane_manager.toggle_guidelines()
 
+    def add_segmentation(self, seg):
+        self._orthoplane_manager.add_segmentation(seg)
+
 
 def dicom_view(session, arg, force = False):
     # TODO: Enable for NIfTI and NRRD as well

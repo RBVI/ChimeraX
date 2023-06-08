@@ -74,6 +74,10 @@ class PlaneViewerManager:
         for viewer in self.axes.values():
             viewer.setGuidelineVisibility(False)
 
+    def add_segmentation(self, seg):
+        for viewer in self.axes.values():
+            viewer.addDrawing(seg)
+
      #def update_volume(self, viewer):
      #   if viewer.axis == Axis.AXIAL:
      #       self.axes[Axis.CORONAL].

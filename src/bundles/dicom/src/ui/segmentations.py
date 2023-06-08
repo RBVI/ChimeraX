@@ -19,6 +19,7 @@ from Qt.QtWidgets import (
 
 from chimerax.ui.widgets import ModelMenu
 from chimerax.map import Volume, VolumeSurface, VolumeImage
+from chimerax.map.volume import open_grids
 from chimerax.core.tools import ToolInstance
 from chimerax.ui import MainToolWindow
 from chimerax.core.commands import run
@@ -26,6 +27,7 @@ from chimerax.core.models import Surface
 from .view import dicom_view
 from ..ui.orthoplanes import Axis
 from ..graphics.cylinder import SegmentationDisk
+from ..dicom.dicom_models import DicomSegmentation
 
 class SegmentationTool(ToolInstance):
 
@@ -81,8 +83,24 @@ class SegmentationTool(ToolInstance):
         self.control_checkbox_layout.setContentsMargins(0, 0, 0, 0)
         self.control_checkbox_layout.setSpacing(0)
 
+        self.add_remove_container = QWidget()
+        self.add_remove_layout = QHBoxLayout()
+        self.add_seg_button = QPushButton("Add Segmentation")
+        self.remove_seg_button = QPushButton("Remove Segmentation")
+
+        self.add_remove_layout.addWidget(self.add_seg_button)
+        self.add_remove_layout.addWidget(self.remove_seg_button)
+        self.add_remove_container.setLayout(self.add_remove_layout)
+        self.add_seg_button.clicked.connect(self.addSegment)
+        self.remove_seg_button.clicked.connect(self.removeSegment)
+
+        self.add_remove_layout.setContentsMargins(0, 0, 0, 0)
+        self.add_remove_layout.setSpacing(0)
+
         self.main_layout.addWidget(self.view_dropdown_container)
         self.main_layout.addWidget(self.control_checkbox_container)
+        self.main_layout.addWidget(self.add_remove_container)
+
         self.main_layout.addStretch()
         self.main_layout.setContentsMargins(6, 0, 6, 0)
         self.main_layout.setSpacing(0)
@@ -96,11 +114,13 @@ class SegmentationTool(ToolInstance):
         }
         self.segmentations = {}
         self.current_segmentation = None
+        self.reference_model = None
 
         self.session.models.add(self.segmentation_cursors.values())
         # TODO: Maybe just force the view to fourup when this tool opens?
         if self.session.ui.main_window.view_layout == "fourup":
             self.session.ui.main_window.main_view.register_segmentation_tool(self)
+        self._surface_chosen()
 
     def _surface_chosen(self, *args):
         # If we're in the 2D view, we need to tell the orthoplane views to display
@@ -115,16 +135,43 @@ class SegmentationTool(ToolInstance):
                     if type(d) is VolumeImage:
                         new_drawing = d
                     medical_image_data = new_model.data.dicom_data
-                    ortho_pos = new_drawing._rendering_options.orthoplane_positions
                     for axis, puck in self.segmentation_cursors.items():
                         puck.height = medical_image_data.pixel_spacing()[axis]
                         # Set by orthoplanes.py
                         #puck.origin = [x for x in medical_image_data.origin()]
+            self.reference_model = new_drawing
         except AttributeError: # No more volumes!
             pass
 
-    def addRegionToSegment(self, axis, origin):
+    def addMarkersToSegment(self, axis, slice, positions):
+        # TODO: Go to the active segmentation
+        # TODO: Then, go to the slice in that segmentation's volume data
+        # TODO: Run the Bresenham's filled circle algorithm on that slice of data
+        # TODO: Update it so that it shows live
+        # X and Y slices will be easy, but Z slices will take some clever work...
+        original_slice = slice
+        for position in positions:
+            if axis == Axis.AXIAL:
+                pass
+            elif axis == Axis.CORONAL:
+                pass
+            else:
+                pass
+        #self.active_seg.clear_cache()
         pass
+
+    def addSegment(self):
+        # TODO: Create an empty DICOM Volume and add it to both
+        # the reference_model's child drawings and the
+        new_seg = DicomSegmentation(self.reference_model.parent.data.dicom_data)
+        new_seg_model = open_grids(self.session, [new_seg], name = "new segmentation")[0]
+        self.active_seg = new_seg
+        self.session.models.add(new_seg_model)
+        # TODO: This forces the orthoplanes to be visible for some reason??
+        #self.session.ui.main_window.main_view.add_segmentation(new_seg_model)
+
+    def removeSegment(self, segment = None):
+        print("Clicked!")
 
     def _on_view_changed(self):
         if self.view_dropdown.currentIndex() == 0:
