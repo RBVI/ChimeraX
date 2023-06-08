@@ -113,6 +113,8 @@ class PlaneViewer(QWindow):
         self._plane_indices = [0, 0, 0]
 
         self.drawings = []
+        self.should_record_segmentations = False
+        self.current_segmentation_overlays = []
 
         self.label = Label(self.session, self.view, str(axis), str(axis), size=16, xpos=0, ypos=0)
 
@@ -433,9 +435,8 @@ class PlaneViewer(QWindow):
         if b & Qt.MouseButton.MiddleButton:
             pass
         if b & Qt.MouseButton.LeftButton:
-            # No idea why but if we don't hide it by ourselves here the event system won't take
-            # care of it for us
-            pass
+            if self.segmentation_tool:
+                self.should_record_segmentations = True
 
     def mouseReleaseEvent(self, event): # noqa
         b = event.button() | event.buttons()
@@ -455,6 +456,9 @@ class PlaneViewer(QWindow):
         if b & Qt.MouseButton.LeftButton:
             self.segmentation_overlay.center = (self.scale * event.position().x(), self.scale * (self.view.window_size[1] - event.position().y()), 0)
             self.segmentation_overlay.update()
+            self.segmentation_tool.addMarkersToSegment(self.axis, self.pos, self.current_segmentation_overlays)
+            self.view.remove_overlays(self.current_segmentation_overlays)
+            self.should_record_segmentations = False
             self.view.camera.redraw_needed = True
         self.last_mouse_position = None
 
@@ -542,7 +546,11 @@ class PlaneViewer(QWindow):
                         origin[1], origin[2] = drawing_origin[1] + absolute_offset_left, drawing_origin[2] + absolute_offset_bottom
                     self.segmentation_tool.segmentation_cursors[self.axis].origin = origin
                     if b == Qt.MouseButton.LeftButton:
-                        self.segmentation_tool.addRegionToSegment(self.axis, origin)
+                        thisSegment = SegmentationOverlay("seg_overlay_" + str(len(self.current_segmentation_overlays)), radius = self.segmentation_overlay.radius, thickness = 3)
+                        thisSegment.center = self.segmentation_overlay.center
+                        self.current_segmentation_overlays.append(thisSegment)
+                        thisSegment.update()
+                        self.view.add_overlay(thisSegment)
             self.view.camera.redraw_needed = True
         # Zoom / Dolly
         if b & Qt.MouseButton.RightButton:
