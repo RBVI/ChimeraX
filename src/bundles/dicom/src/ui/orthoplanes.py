@@ -658,7 +658,8 @@ class PlaneViewer(QWindow):
         if new_drawing is not None:
             # Set the view's root drawing, and our ground truth drawing, to the new one
             self.view.drawing = new_drawing
-            self.addDrawing(new_drawing)
+            if new_drawing not in self.drawings:
+                self.addDrawing(new_drawing)
             self.set_label_text(new_drawing.parent.name)
             max_x, max_y, max_z = max_slider_vals = self.view.drawing._region[1]
             self.manager.update_dimensions([max_x, max_y, max_z])
