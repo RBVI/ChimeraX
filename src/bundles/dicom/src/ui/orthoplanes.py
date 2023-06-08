@@ -95,7 +95,8 @@ class PlaneViewer(QWindow):
 
         self.widget = QWidget.createWindowContainer(self, parent)
         self.setSurfaceType(QSurface.SurfaceType.OpenGLSurface)
-        self.view = OrthoplaneView(Drawing("placeholder"), window_size = (0, 0), axis = self.axis)
+        placeholder_drawing = Drawing("placeholder")
+        self.view = OrthoplaneView(placeholder_drawing, window_size = (0, 0), axis = self.axis)
         self.view.initialize_rendering(session.main_view.render.opengl_context)
         self.view.camera = OrthoCamera()
         self.field_width_offset = 0
@@ -178,6 +179,8 @@ class PlaneViewer(QWindow):
         self.context_menu = None
         self.context_menu_coords = None
         self.mouse_moved_during_right_click = False
+        if self.view.drawing is placeholder_drawing:
+            self._surfaceChosen()
 
     @property
     def segmentation_tool(self):
