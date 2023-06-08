@@ -27,6 +27,7 @@ class SegmentationDisk(Model):
         self._radius = radius
         self._height = height # set to the slice thickness of whatever DICOM is being observed
         self._divisions = divisions
+        self.color = [255, 85, 0, 255]
         self._slice = 1
         self.position = Place(axes = axis.transform, origin = [0,0,0])
         self.update_geometry()
