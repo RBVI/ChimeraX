@@ -78,6 +78,7 @@ class SegmentationOverlay(Drawing):
         self.max_point_size = GL.glGetIntegerv(GL.GL_POINT_SIZE_RANGE)[1]
         self.display_style = Drawing.Dot
         self.use_lighting = False
+        self.drawing_center = [0, 0]
         self._radius = radius
         self._center = [0, 0, 0]
         self._thickness = thickness

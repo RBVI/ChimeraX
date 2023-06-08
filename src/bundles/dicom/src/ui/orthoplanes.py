@@ -462,6 +462,7 @@ class PlaneViewer(QWindow):
             self.segmentation_overlay.update()
             self.segmentation_tool.addMarkersToSegment(self.axis, self.pos, self.current_segmentation_overlays)
             self.view.remove_overlays(self.current_segmentation_overlays)
+            self.current_segmentation_overlays = []
             self.should_record_segmentations = False
             self.view.camera.redraw_needed = True
         self.last_mouse_position = None
@@ -540,11 +541,11 @@ class PlaneViewer(QWindow):
                         absolute_offset_left = rel_right * self.dimensions[0] * self.drawingVolumeStep()[0]
                         absolute_offset_bottom = rel_top * self.dimensions[1] * self.drawingVolumeStep()[1]
                         origin[0], origin[1] = absolute_offset_left + drawing_origin[0], absolute_offset_bottom + drawing_origin[1]
-                    if self.axis == Axis.CORONAL:
+                    elif self.axis == Axis.CORONAL:
                         absolute_offset_left = rel_left * self.dimensions[0] * self.drawingVolumeStep()[0]
                         absolute_offset_bottom = rel_bottom * self.dimensions[2] * self.drawingVolumeStep()[2]
                         origin[0], origin[2] = drawing_origin[0] + absolute_offset_left, drawing_origin[2] + absolute_offset_bottom
-                    if self.axis == Axis.SAGGITAL:
+                    else: # self.axis == Axis.SAGGITAL:
                         absolute_offset_left = rel_left * self.dimensions[1] * self.drawingVolumeStep()[1]
                         absolute_offset_bottom = rel_bottom * self.dimensions[2] * self.drawingVolumeStep()[2]
                         origin[1], origin[2] = drawing_origin[1] + absolute_offset_left, drawing_origin[2] + absolute_offset_bottom
@@ -552,6 +553,7 @@ class PlaneViewer(QWindow):
                     if b == Qt.MouseButton.LeftButton:
                         thisSegment = SegmentationOverlay("seg_overlay_" + str(len(self.current_segmentation_overlays)), radius = self.segmentation_overlay.radius, thickness = 3)
                         thisSegment.center = self.segmentation_overlay.center
+                        thisSegment.drawing_center = [absolute_offset_left, absolute_offset_bottom]
                         self.current_segmentation_overlays.append(thisSegment)
                         thisSegment.update()
                         self.view.add_overlay(thisSegment)

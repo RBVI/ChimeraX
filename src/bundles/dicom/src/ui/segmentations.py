@@ -150,13 +150,14 @@ class SegmentationTool(ToolInstance):
         # TODO: Update it so that it shows live
         # X and Y slices will be easy, but Z slices will take some clever work...
         original_slice = slice
-        for position in positions:
-            if axis == Axis.AXIAL:
-                pass
-            elif axis == Axis.CORONAL:
-                pass
-            else:
-                pass
+        if axis == Axis.AXIAL:
+            for position in positions:
+                center_y, center_x = position.drawing_center
+                self.active_seg.segment_array[slice][int(center_x)][int(center_y)] = 1
+        elif axis == Axis.CORONAL:
+            pass
+        else:
+            pass
         #self.active_seg.clear_cache()
         pass
 
