@@ -296,6 +296,10 @@ class UI(QApplication):
             from chimerax.core.commands import run
             run(self.session, 'select down')
             return
+        elif k in (Qt.Key.Key_Right, Qt.Key.Key_Left):
+            from chimerax.core.commands import run
+            run(self.session, 'select ~sel')
+            return
         if self._keystroke_sinks:
             self._keystroke_sinks[-1].forwarded_keystroke(event)
             # accepting the event prevents both the main Ui and tools from forwarding the same keystrokes
