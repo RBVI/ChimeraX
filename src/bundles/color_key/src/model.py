@@ -508,8 +508,7 @@ class ColorKeyModel(Model):
         from Qt.QtGui import QImage, QPainter, QColor, QBrush, QPen, QLinearGradient, QFontMetrics, QFont
         from Qt.QtCore import Qt, QRectF, QPointF
 
-        font = QFont(self.font, self.font_size * self._texture_pixel_scale,
-            (QFont.Bold if self.bold else QFont.Normal), self.italic)
+        font = QFont(self.font, int(self.font_size * self._texture_pixel_scale), (QFont.Bold if self.bold else QFont.Normal), self.italic)
         fm = QFontMetrics(font)
         top_label_y_offset = font_height = fm.ascent()
         font_descender = fm.descent()
@@ -585,7 +584,7 @@ class ColorKeyModel(Model):
             (start_offset if layout == "vertical" else end_offset)[long_index] += extra
             pixels[long_index] += extra
 
-        image = QImage(max(pixels[0], 1), max(pixels[1], 1), QImage.Format_ARGB32)
+        image = QImage(max(int(pixels[0]), 1), max(int(pixels[1]), 1), QImage.Format_ARGB32)
         image.fill(QColor(0,0,0,0))    # Set background transparent
 
         from chimerax.core.colors import contrast_with_background
@@ -693,7 +692,7 @@ class ColorKeyModel(Model):
                     else:
                         y = pixels[1] - font_descender
                     x = start_offset[0] + pos - (rect.width() - rect.x())/2
-                p.drawText(x, y, label)
+                p.drawText(int(x), int(y), label)
 
                 if tick_length:
                     tick_thickness = self._tick_thickness
