@@ -255,7 +255,7 @@ class SeqCanvas:
             seq.color_func = cf
             if cf != self._cfBlack:
                 self.recolor(seq)
-        
+
     def addSeqs(self, seqs):
         #TODO: need to see if adding sequences changes wrap_okay;
         # if it doesn't, does it change line_width (due to numberings
@@ -275,7 +275,7 @@ class SeqCanvas:
     def adjustScrolling(self):
         self._resizescrollregion()
         self._recomputeScrollers()
-        
+
     def _arrowCB(self, event):
         if event.state & 4 != 4:
             if event.keysym == "Up":
@@ -401,7 +401,7 @@ class SeqCanvas:
             left, right = gapPos, end-2-motion
         else:
             left, right = end+2-motion, gapPos
-            
+
         self._editRefresh(seqs, left, right, region=region,
             lastBlock=[line1, line2, pos1+motion, pos2+motion])
         self._checkPoint(offset=offset, left=left, right=right)
@@ -594,7 +594,7 @@ class SeqCanvas:
             self.sv.triggers.deleteHandler(MOD_ASSOC,
                         self._residueHandlers[1])
         self.lead_block.destroy()
-        
+
     def _editHdrCB(self):
         left, right = self._editBounds
         self._editBounds = None
@@ -687,7 +687,7 @@ class SeqCanvas:
         self.lead_block.hide_header(header)
         self.sv.region_browser.redraw_regions()
         self._update_scene_rects()
-        
+
     def layout_alignment(self):
         """
         from chimerax.alignment_headers import registered_headers, DynamicStructureHeaderSequence
@@ -889,7 +889,7 @@ class SeqCanvas:
                 return
         self.mainCanvas.yview_moveto(float(numBlocks - 1) / numBlocks)
         self.labelCanvas.yview_moveto(float(numBlocks - 1) / numBlocks)
-    
+
     def realign(self, seqs, handleRegions=True):
         rb = self.sv.region_browser
         if handleRegions:
@@ -1258,7 +1258,7 @@ class SeqCanvas:
                                 *blocks[0])[0]
         cx = (minx + maxx) / 2
         cy = (miny + maxy) / 2
-        
+
         x1, y1, x2, y2 = map(int,
             self.mainCanvas.cget('scrollregion').split())
         totalWidth = float(x2 - x1 + 1)
@@ -1282,7 +1282,7 @@ class SeqCanvas:
         minx, miny, maxx, maxy = self.bbox_list(seq, seq, 0, 0)[0]
         viewHeight = float(self.mainCanvas.cget('height'))
         cy = (miny + maxy) / 2
-        
+
         x1, y1, x2, y2 = map(int,
             self.mainCanvas.cget('scrollregion').split())
         totalHeight = float(y2 - y1 + 1)
@@ -1472,7 +1472,7 @@ class SeqCanvas:
                 self.label_view.show()
                 #self._vdivider.show()
         return label_scene
-            
+
     """
     def _undoRedo(self, undo):
         # up/down == redo/undo
@@ -1738,7 +1738,7 @@ class SeqBlock:
         """
         if self.next_block:
             self.next_block.assoc_mod(aseq)
-        
+
     def base_layout_info(self):
         half_x = self.font_pixels[0] / 2
         left_rect_off = 0 - half_x
@@ -1849,7 +1849,7 @@ class SeqBlock:
     def _brush(self, color):
         from Qt.QtGui import QBrush, QColor
         if not isinstance(color, QColor):
-            color = QColor(color)
+            color = QColor(*[int(c) for c in color])
         rgb = color.rgb()
         try:
             return self._brushes[rgb]
@@ -1932,7 +1932,7 @@ class SeqBlock:
                     color = numpy.sum(colors, axis=0) / len(colors)
             from Qt.QtCore import Qt
             from Qt.QtGui import QPen, QBrush
-            brush = QBrush(QColor(*color), Qt.SolidPattern)
+            brush = QBrush(QColor(*color.astype(int)), Qt.SolidPattern)
             if 255 == color[0] == color[1] == color[2]:
                 pen = QPen(QColor(216, 216, 216))
             else:
