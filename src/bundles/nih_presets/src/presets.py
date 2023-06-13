@@ -158,10 +158,10 @@ def palette(num_chains):
     return ':'.join(palette[:num_chains])
 
 def print_prep(session=None, *, pb_radius=0.4, ion_size_increase=0.0):
-    always_cmds = {
+    always_cmds = [
         "size stickRadius 0.8",
         "style dashes 0"
-    }
+    ]
     if session is None:
         # not a ribbon preset
         cmds = always_cmds
