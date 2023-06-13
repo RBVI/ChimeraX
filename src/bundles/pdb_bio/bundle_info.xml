@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-PDBBio" version="1.0"
+<BundleInfo name="ChimeraX-PDBBio" version="1.0.1"
 	    package="chimerax.pdb_bio"
   	    minSessionVersion="1" maxSessionVersion="1">
 
