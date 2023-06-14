@@ -143,22 +143,60 @@ class SegmentationTool(ToolInstance):
         except AttributeError: # No more volumes!
             pass
 
-    def addMarkersToSegment(self, axis, slice, positions):
-        # TODO: Go to the active segmentation
-        # TODO: Then, go to the slice in that segmentation's volume data
-        # TODO: Run the Bresenham's filled circle algorithm on that slice of data
-        # TODO: Update it so that it shows live
-        # X and Y slices will be easy, but Z slices will take some clever work...
-        original_slice = slice
+    def _set_data_in_puck(self, grid, axis, slice, left_offset: int, bottom_offset: int, radius: int) -> None:
+        # TODO: Preserve the happiest path. If the radius of the segmentation overlay is
+        #  less than the radius of one voxel, there's no need to go through all the rigamarole.
+        #  grid.data.segment_array[slice][left_offset][bottom_offset] = 1
+        x_max, y_max, z_max = grid.data.size
         if axis == Axis.AXIAL:
-            for position in positions:
-                center_y, center_x = position.drawing_center
-                self.active_seg.segment_array[slice][int(center_x)][int(center_y)] = 1
+            slice = grid.data.segment_array[slice]
+            vertical_max = y_max - 1
+            horizontal_max = x_max - 1
         elif axis == Axis.CORONAL:
-            pass
+            slice = grid.data.segment_array[:, slice, :]
+            vertical_max = z_max - 1
+            horizontal_max = x_max - 1
         else:
-            pass
-        #self.active_seg.clear_cache()
+            slice = grid.data.segment_array[:, :, slice]
+            vertical_max = z_max - 1
+            horizontal_max = y_max - 1
+        x = 0
+        y = radius
+        d = 1 - y
+        while y > x:
+            if d < 0:
+                d += 2 * x + 3
+            else:
+                d += 2 * (x - y) + 5
+                y -= 1
+            x += 1
+            x_start = max(left_offset - x, 0)
+            x_end = min(left_offset + x, horizontal_max)
+            y_start = max(bottom_offset - round(y), 0)
+            y_end = min(bottom_offset + round(y), vertical_max)
+            slice[y_start][x_start:x_end] = 1
+            slice[y_end][x_start:x_end] = 1
+            x_start = max(left_offset - round(y), 0)
+            x_end = min(left_offset + round(y), horizontal_max)
+            y_start = max(bottom_offset - x, 0)
+            y_end = min(bottom_offset + x, vertical_max)
+            slice[y_start][x_start:x_end] = 1
+            slice[y_end][x_start:x_end] = 1
+
+    def addMarkersToSegment(self, axis, slice, positions):
+        # I wasn't able to recycle code from Map Eraser here, unfortunately. Map Eraser uses
+        # numpy.putmask(), which for whatever reason only wanted to work once before I had to call
+        # VolumeSurface.update_surface() on the data's surface. This resulted in an expensive recalculation
+        # on every loop, and it made the interface much slower -- it had to hang while the surface did many
+        # redundant recalculations.
+        # I can already see this becoming a massive PITA when 3D spheres get involved.
+        for position in positions:
+            center_x, center_y = position.drawing_center
+            radius = self.segmentation_cursors[axis].radius
+            self._set_data_in_puck(self.active_seg, axis, slice, round(center_x), round(center_y), radius)
+        self.active_seg.data.values_changed()
+
+    def removeMarkersFromSegment(self, axis, slice, positions):
         pass
 
     def addSegment(self):
@@ -166,13 +204,17 @@ class SegmentationTool(ToolInstance):
         # the reference_model's child drawings and the
         new_seg = DicomSegmentation(self.reference_model.parent.data.dicom_data)
         new_seg_model = open_grids(self.session, [new_seg], name = "new segmentation")[0]
-        self.active_seg = new_seg
+        self.active_seg = new_seg_model[0]
         self.session.models.add(new_seg_model)
         # TODO: This forces the orthoplanes to be visible for some reason??
         #self.session.ui.main_window.main_view.add_segmentation(new_seg_model)
 
-    def removeSegment(self, segment = None):
-        print("Clicked!")
+    def removeSegment(self, segments = None):
+        if segments is None:
+            # TODO: Get the currently highlighted segment from the table
+            pass
+        if segments:
+            self.session.models.remove(segments)
 
     def _on_view_changed(self):
         if self.view_dropdown.currentIndex() == 0:
