@@ -148,7 +148,7 @@ class SegmentationTool(ToolInstance):
         except AttributeError: # No more volumes!
             pass
 
-    def _set_data_in_puck(self, grid, axis, slice, left_offset: int, bottom_offset: int, radius: int) -> None:
+    def _set_data_in_puck(self, grid, axis, slice, left_offset: int, bottom_offset: int, radius: int, value: int) -> None:
         # TODO: Preserve the happiest path. If the radius of the segmentation overlay is
         #  less than the radius of one voxel, there's no need to go through all the rigamarole.
         #  grid.data.segment_array[slice][left_offset][bottom_offset] = 1
@@ -180,15 +180,17 @@ class SegmentationTool(ToolInstance):
             x_end = min(left_offset + x, horizontal_max)
             y_start = max(bottom_offset - round(y), 0)
             y_end = min(bottom_offset + round(y), vertical_max)
-            slice[y_start][x_start:x_end] = 1
-            slice[y_end][x_start:x_end] = 1
+            slice[y_start][x_start:x_end] = value
+            slice[y_end][x_start:x_end] = value
             x_start = max(left_offset - round(y), 0)
             x_end = min(left_offset + round(y), horizontal_max)
             y_start = max(bottom_offset - x, 0)
             y_end = min(bottom_offset + x, vertical_max)
-            slice[y_start][x_start:x_end] = 1
-            slice[y_end][x_start:x_end] = 1
-        slice[bottom_offset][left_offset - round(radius):left_offset + round(radius)] = 1
+            slice[y_start][x_start:x_end] = value
+            slice[y_end][x_start:x_end] = value
+        slice[bottom_offset][left_offset - round(radius):left_offset + round(radius)] = value
+
+
     def addMarkersToSegment(self, axis, slice, positions):
         # I wasn't able to recycle code from Map Eraser here, unfortunately. Map Eraser uses
         # numpy.putmask(), which for whatever reason only wanted to work once before I had to call
@@ -203,11 +205,18 @@ class SegmentationTool(ToolInstance):
         for position in positions:
             center_x, center_y = position.drawing_center
             radius = self.segmentation_cursors[axis].radius
-            self._set_data_in_puck(self.active_seg, axis, slice, round(center_x), round(center_y), radius)
+            self._set_data_in_puck(self.active_seg, axis, slice, round(center_x), round(center_y), radius, 1)
         self.active_seg.data.values_changed()
 
     def removeMarkersFromSegment(self, axis, slice, positions):
-        pass
+        if not self.active_seg:
+            self.session.logger.error("No active segmentation!")
+            return
+        for position in positions:
+            center_x, center_y = position.drawing_center
+            radius = self.segmentation_cursors[axis].radius
+            self._set_data_in_puck(self.active_seg, axis, slice, round(center_x), round(center_y), radius, 0)
+        self.active_seg.data.values_changed()
 
     def addSegment(self):
         # TODO: Create an empty DICOM Volume and add it to both

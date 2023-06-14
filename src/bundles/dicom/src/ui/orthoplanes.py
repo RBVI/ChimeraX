@@ -28,6 +28,7 @@ from .label import Label
 class PlaneViewerManager:
     def __init__(self, session):
         self.session = session
+        self.have_seg_tool = False
         self.axes = {}
 
     def register(self, viewer):
@@ -57,10 +58,12 @@ class PlaneViewerManager:
     def register_segmentation_tool(self, tool):
         for viewer in self.axes.values():
             viewer.segmentation_tool = tool
+        self.have_seg_tool = True
 
     def clear_segmentation_tool(self):
         for viewer in self.axes.values():
             viewer.segmentation_tool = None
+        self.have_seg_tool = False
 
     def toggle_guidelines(self):
         for viewer in self.axes.values():
@@ -457,10 +460,14 @@ class PlaneViewer(QWindow):
             #self.mouse_moved_during_right_click = False
             pass
         if b & Qt.MouseButton.LeftButton:
+            modifier = event.modifiers()
             self.segmentation_overlay.center = (self.scale * event.position().x(), self.scale * (self.view.window_size[1] - event.position().y()), 0)
             self.segmentation_overlay.update()
             if self.segmentation_tool:
-                self.segmentation_tool.addMarkersToSegment(self.axis, self.pos, self.current_segmentation_overlays)
+                if modifier == Qt.KeyboardModifier.ShiftModifier:
+                    self.segmentation_tool.removeMarkersFromSegment(self.axis, self.pos, self.current_segmentation_overlays)
+                else:
+                    self.segmentation_tool.addMarkersToSegment(self.axis, self.pos, self.current_segmentation_overlays)
                 self.view.remove_overlays(self.current_segmentation_overlays)
                 self.current_segmentation_overlays = []
             self.view.camera.redraw_needed = True
