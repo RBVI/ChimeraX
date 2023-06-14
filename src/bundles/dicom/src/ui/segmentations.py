@@ -122,6 +122,11 @@ class SegmentationTool(ToolInstance):
             self.session.ui.main_window.main_view.register_segmentation_tool(self)
         self._surface_chosen()
 
+    def delete(self):
+        self.session.ui.main_window.main_view.clear_segmentation_tool()
+        self.session.models.remove(self.segmentation_cursors.values())
+        super().delete()
+
     def _surface_chosen(self, *args):
         # If we're in the 2D view, we need to tell the orthoplane views to display
         # something new, but if we're in the 3D view, we may not need to do anything
