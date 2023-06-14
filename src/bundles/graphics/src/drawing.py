@@ -10,7 +10,7 @@
 # including partial copies, of the software or any revisions
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
-from typing import Optional
+
 '''
 Drawing
 =======
@@ -785,7 +785,7 @@ class Drawing:
             self._draw_geometry(renderer)
 
     def _draw_geometry(self, renderer, highlighted_only=False,
-                       transparent_only=False, opaque_only=False, face: Optional[int] = None):
+                       transparent_only=False, opaque_only=False):
         ''' Draw the geometry.'''
 
         if self.vertices is None:
@@ -836,7 +836,7 @@ class Drawing:
             # Draw triangles
             mtex = self.multitexture
             if mtex:
-                ds.draw_multitexture(self.display_style, mtex, self.multitexture_reverse_order, face)
+                ds.draw_multitexture(self.display_style, mtex, self.multitexture_reverse_order)
             else:
                 ds.draw(self.display_style)
 
@@ -1613,7 +1613,7 @@ def draw_highlight_outline(renderer, drawings, color=(0,1,0,1), pixel_width=1):
     _draw_multiple(drawings, r, Drawing.HIGHLIGHT_DRAW_PASS)
     r.outline.finish_rendering_outline(color=color, pixel_width=pixel_width)
 
-
+    
 def draw_on_top(renderer, drawings):
     '''Draws the specified drawings but not their children.'''
     renderer.enable_depth_test(False)
@@ -1740,7 +1740,7 @@ class _DrawShape:
         if ni > 0:
             eb.draw_elements(etype, ni)
 
-    def draw_multitexture(self, display_style, textures, reverse_order, face: Optional[int] = None):
+    def draw_multitexture(self, display_style, textures, reverse_order):
 
         eb = self.element_buffer
         if eb is None:
@@ -1750,17 +1750,13 @@ class _DrawShape:
         if ni > 0:
             nt = len(textures)
             ne = eb.size() // nt
-            if face is not None:
-                textures[face].bind_texture()
-                eb.draw_elements(etype, ni, count=ne, offset=face * ne)
-            else:
-                torder = range(nt-1,-1,-1) if reverse_order else range(nt)
-                for ti in torder:
-                    textures[ti].bind_texture()
-                    eb.draw_elements(etype, ni, count=ne, offset=ti*ne)
-                # TODO: I put unbind outside loop for better efficiency.  But if textures use
-                # multiple texture units, this will only unbind the last one.
-                textures[nt-1].unbind_texture()
+            torder = range(nt-1,-1,-1) if reverse_order else range(nt)
+            for ti in torder:
+                textures[ti].bind_texture()
+                eb.draw_elements(etype, ni, count=ne, offset=ti*ne)
+            # TODO: I put unbind outside loop for better efficiency.  But if textures use
+            # multiple texture units, this will only unbind the last one.
+            textures[nt-1].unbind_texture()
 
     def update_vertex_buffer(self, b, data):
 
