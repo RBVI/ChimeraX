@@ -24,7 +24,7 @@ from chimerax.core.tools import ToolInstance
 from chimerax.ui import MainToolWindow
 from chimerax.core.commands import run
 from chimerax.core.models import Surface
-from .view import dicom_view
+from ..cmd.view import dicom_view
 from ..ui.orthoplanes import Axis
 from ..graphics.cylinder import SegmentationDisk
 from ..dicom.dicom_models import DicomSegmentation

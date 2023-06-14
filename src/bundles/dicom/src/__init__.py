@@ -12,7 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 __version__ = "1.2"
 from chimerax.core.toolshed import BundleAPI
-from chimerax.map import add_map_format
+# from chimerax.map import add_map_format
 from chimerax.core.tools import get_singleton
 from .dicom import (
     DICOMMapFormat, DicomOpener, fetchers,
@@ -40,8 +40,11 @@ class _DICOMBundle(BundleAPI):
     @staticmethod
     def register_command(bi, ci, logger):
         if ci.name == "dicom view":
-            from .ui.view import register_cmds
-            register_cmds(logger)
+            from .cmd.view import register_view_cmds
+            register_view_cmds(logger)
+        elif ci.name == "dicom segmentations":
+            from .cmd.segmentations import register_seg_cmds
+            register_seg_cmds(logger)
         #elif ci.name == "monailabel":
         #    from .monailabel import register_cmds
         #    register_cmds(logger)

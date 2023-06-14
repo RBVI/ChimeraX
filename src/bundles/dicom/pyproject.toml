@@ -68,6 +68,10 @@ description = "Interactively segment medical images"
 category = "Medical Imaging"
 description = "See medical images in a 4-panel viewer"
 
+[chimerax.command."dicom segmentations"]
+category = "Medical Imaging"
+description = "Create or destory segmentations"
+
 # TL;DR Do not modify monailabel.py to register this command
 # ----
 # This has to be here or else ChimeraX complains that the next three commands are
