@@ -34,6 +34,7 @@ import glob
 import importlib
 import itertools
 import os
+import platform
 import distutils.ccompiler
 import distutils.sysconfig
 import distutils.log
@@ -1277,7 +1278,15 @@ class _CExecutable(_CompiledCode):
         if sys.platform == "darwin":
             extra_link_args.extend(["-Wl,-rpath,@loader_path"])
             if 'universal2' in sysconfig.get_platform():
-                extra_link_args.extend(["-arch", "arm64", "-arch", "x86_64"])
+                # Don't try to compile ARM binaries on versions of macOS that aren't
+                # compatible with Xcode >= 12, the first version that had universal2
+                # support, even though universal2 Python can run on macOS as old as
+                # 10.9
+                mac_ver = platform.mac_ver()[0].split('.')
+                mac_ver_major = int(mac_ver[0])
+                mac_ver_minor = int(mac_ver[1])
+                if (mac_ver_major == 10 and mac_ver_minor > 14) or mac_ver_major > 10:
+                    extra_link_args.extend(["-arch", "arm64", "-arch", "x86_64"])
         elif sys.platform == "win32":
             # Remove .exe suffix because it will be added
             if self.name.endswith(".exe"):

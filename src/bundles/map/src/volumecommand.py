@@ -123,10 +123,6 @@ def register_volume_command(logger):
     # Register volume channels command
     from . import channels
     channels.register_volume_channels_command(logger)
-    
-    # Register volume subcommands for filtering operations.
-    from chimerax import map_filter
-    map_filter.register_volume_filtering_subcommands(logger)
 
     
 # -----------------------------------------------------------------------------

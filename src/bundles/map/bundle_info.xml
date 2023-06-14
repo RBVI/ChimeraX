@@ -110,7 +110,6 @@
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
     
     <ChimeraXClassifier>Command :: volume :: Volume data :: control volume data display</ChimeraXClassifier>
-    <ChimeraXClassifier>Command :: vop :: Volume data :: filter volume data</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: molmap :: Volume data :: create density map for molecule</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: measure mapstats :: Volume data :: report map statistics</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: measure mapvalues :: Volume data :: Intepolate map at atom positions</ChimeraXClassifier>

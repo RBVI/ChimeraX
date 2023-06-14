@@ -9,7 +9,7 @@ LANG	= en_US.UTF-8
 
 # tcia_utils.patch: Fix needless import of x86_64 zmq on macOS, see Trac#8638
 # Remove if tcia_utils removes those imports
-PATCHES = tcia_utils.patch tcia_utils_metadata.patch
+PATCHES = tcia_utils.patch tcia_utils_metadata.patch pyopengl.patch
 PYTABLES_DYLIBS = libblosc.1.dylib libhdf5.200.dylib libsnappy.1.dylib \
 				  libc++.1.dylib libcrypto.3.dylib libssl.3.dylib
 
@@ -21,10 +21,58 @@ PYSIDE2_MACOS_REMOVE = PySide2/pyside2-lupdate \
 			PySide2/Qt/plugins/sqldrivers/libqsqlodbc.dylib \
 			PySide2/Qt/plugins/sqldrivers/libqsqlpsql.dylib
 
+
+GRAKO_WHEEL = grako-3.16.5-py2.py3-none-any.whl
+GRAKO_PREREQ = $(PREREQS_ARCHIVE)/grako/$(GRAKO_WHEEL)
+ifeq ($(OS),Windows)
+TINYARRAY_WHEEL = tinyarray-1.2.4-cp311-cp311-win_amd64.whl
+PYOPENGL_ACCELERATE_WHEEL = PyOpenGL_accelerate-3.1.6-cp311-cp311-win_amd64.whl
+else
+ifeq ($(OS),Linux)
+TINYARRAY_WHEEL = tinyarray-1.2.4-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+PYOPENGL_ACCELERATE_WHEEL = PyOpenGL_accelerate-3.1.6-cp311-cp311-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_28_x86_64.whl
+else
+ifeq ($(OS),Darwin)
+TINYARRAY_WHEEL = tinyarray-1.2.4-cp311-cp311-macosx_10_9_universal2.whl
+PYOPENGL_ACCELERATE_WHEEL = PyOpenGL_accelerate-3.1.6-cp311-cp311-macosx_10_9_universal2.whl
+ifeq ($(OSARCH),DarwinArm64)
+PYTABLES_WHEEL = $(PREREQS_ARCHIVE)/pytables/tables-3.8.0-cp311-cp311-macosx_11_0_arm64.whl
+else
+ifeq ($(OSARCH),DarwinIntel64)
+endif
+endif
+endif
+endif
+endif
+
+TINYARRAY_PREREQ = $(PREREQS_ARCHIVE)/tinyarray/$(TINYARRAY_WHEEL)
+PYOPENGL_ACCELERATE_PREREQ = $(PREREQS_ARCHIVE)/pyopengl/$(PYOPENGL_ACCELERATE_WHEEL)
+
+PLATO_PREREQS = $(TINYARRAY_PREREQ) $(PYOPENGL_ACCELERATE_PREREQ)
+PLATO_WHEELS = $(TINYARRAY_WHEEL) $(PYOPENGL_ACCELERATE_WHEEL)
+
+ifeq ($(OS),Windows)
+else
+ifeq ($(OS),Linux)
+else
+ifeq ($(OS),Darwin)
+ifeq ($(OSARCH),DarwinArm64)
+PLATO_PREREQS += $(PYTABLES_PREREQ)
+PLATO_WHEELS += $(PYTABLES_WHEEL)
+else
+ifeq ($(OSARCH),DarwinIntel64)
+endif
+endif
+endif
+endif
+endif
+
 all:
 
 install:
 	LANG=$(LANG) $(PIP_INSTALL) --no-build-isolation -r build_requirements.txt
+	$(FETCH_PREREQ) $(GRAKO_PREREQ)
+	$(PIP_INSTALL) $(GRAKO_WHEEL)
 ifeq ($(OS),Darwin)
 	# Link cython in Python framework to build/bin, used compiling core/serialize.pyx.
 	ln -s ../Library/Frameworks/Python.Framework/Versions/$(PYTHON_VERSION)/bin/cython $(bindir)
@@ -41,29 +89,16 @@ upgrade:
 
 app-install:
 	$(APP_PIP_INSTALL) --no-build-isolation -r app_requirements.txt
+	# Will be downloaded from install step
+	$(APP_PIP_INSTALL) $(GRAKO_WHEEL)
 ifdef DEV_DEPENDENCIES
 	$(APP_PIP_INSTALL) --no-build-isolation -r dev_requirements.txt
 endif
-ifeq ($(OSARCH),DarwinArm64)
-	# Install the Conda versions of Python wheels for arm64 Mac
-	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/imagecodecs/imagecodecs-2022.2.22-cp39-cp39-macosx_12_0_arm64.whl
-	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/pytables/tables-3.7.0-cp39-cp39-macosx_12_0_arm64.whl
-	for l in $(PYTABLES_DYLIBS); do \
-		$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/pytables/$$l.arm64 ; \
+	for prereq in $(PLATO_PREREQS); do \
+		$(FETCH_PREREQ) $$prereq; \
 	done
-	for l in $(PYTABLES_DYLIBS); do \
-		mv $$l.arm64 $$l ; \
-		chmod +x $$l ; \
-	done
-	$(APP_PIP_INSTALL) tables-3.7.0-cp39-cp39-macosx_12_0_arm64.whl \
-		imagecodecs-2022.2.22-cp39-cp39-macosx_12_0_arm64.whl
-ifdef USE_MAC_FRAMEWORKS
-	$(RSYNC) *.dylib $(APP_PYTHON_FRAMEWORK_LIBDIR)
-else
-	$(RSYNC) *.dylib $(app_shlibdir)
-endif
-endif
 	$(APP_PIP_INSTALL) -r app_pyopengl_requirements.txt
+	$(APP_PIP_INSTALL) $(PLATO_WHEELS)
 	-for p in $(PATCHES); do \
 		patch --ignore-whitespace -d $(APP_PYSITEDIR) -N -p0 < $$p ; \
 	done
@@ -96,7 +131,6 @@ app-upgrade:
 
 clean:
 	-rm -f pip.log $(PYTABLES_DYLIBS) \
-		imagecodecs-2022.2.22-cp39-cp39-macosx_12_0_arm64.whl \
 		tables-3.7.0-cp39-cp39-macosx_12_0_arm64.whl
 	make -C package_checker clean	
 

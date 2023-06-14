@@ -31,9 +31,9 @@ def fetch_smiles(session, smiles_string, *, res_name=None, **kw):
         session.logger.warning("Removed %d blank/non-printable characters from SMILES string"
             % diff)
         smiles_string = "".join(printables)
-    # triple-bond characters (#) and the '/' stereo-chemistry indicator get mangled by the
-    # http protocol, so switch to http-friendly equivalent
-    web_smiles = smiles_string.replace('#', "%23").replace('/', "%2F")
+    # many SMILES characters get mangled by the http protocol, so switch to http-friendly equivalent
+    from urllib.parse import quote
+    web_smiles = quote(smiles_string)
     for fetcher, moniker, ack_name, info_url in fetcher_info:
         try:
             path = fetcher(session, smiles_string, web_smiles)

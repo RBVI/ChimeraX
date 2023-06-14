@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from chimerax.atomic import all_atomic_structures, Residue
+from chimerax.atomic import all_atomic_structures, Residue, Structure
 
 ball_and_stick = [
     "style ball",
@@ -90,9 +90,13 @@ print_ribbon = [
     "~select"
 ]
 
+p3ms_pbg_name = "3D-printable missing structure"
+
 undo_printable = [
     "~struts",
     "~hbonds",
+    "close ##name='%s'" % p3ms_pbg_name,
+    "show ##name='%s' models" % Structure.PBG_MISSING_STRUCTURE,
     "size atomRadius default stickRadius 0.2 pseudobondRadius 0.2",
     "style dashes 7"
 ]
@@ -153,11 +157,45 @@ def palette(num_chains):
         palette += base_palette
     return ':'.join(palette[:num_chains])
 
-def print_prep(*, pb_radius=0.4, ion_size_increase=0.0):
-    cmds = [
+def print_prep(session=None, *, pb_radius=0.4, ion_size_increase=0.0):
+    always_cmds = [
         "size stickRadius 0.8",
         "style dashes 0"
     ]
+    if session is None:
+        # not a ribbon preset
+        cmds = always_cmds
+    else:
+        # So that they connect to ribbon ends, have missing structure pseudobonds go from CA->CA [#8388]
+        cmds = []
+        from chimerax.atomic import all_atomic_structures, all_pseudobond_groups
+        for pbg in all_pseudobond_groups(session)[:]:
+            if pbg.name == p3ms_pbg_name:
+                session.models.close([pbg])
+        pb_file = None
+        for s in all_atomic_structures(session):
+            ms_pbg = s.pseudobond_group(s.PBG_MISSING_STRUCTURE, create_type=None)
+            if ms_pbg is None:
+                continue
+            if pb_file is None:
+                import tempfile
+                pb_file = tempfile.NamedTemporaryFile(mode='w', suffix='.pb', delete=False)
+                import atexit, os
+                atexit.register(os.unlink, pb_file.name)
+                cmds += [
+                    "open " + pb_file.name,
+                    "rename ##name=%s '%s'" % (os.path.basename(pb_file.name), p3ms_pbg_name)
+                ]
+            cmds.append("hide %s models" % ms_pbg.atomspec)
+            for pb in ms_pbg.pseudobonds:
+                a1, a2 = pb.atoms
+                ca1 = a1.residue.find_atom("CA") or a1
+                ca2 = a2.residue.find_atom("CA") or a2
+                print("%s %s" % (ca1.string(style="command"), ca2.string(style="command")), file=pb_file)
+        if pb_file is not None:
+            pb_file.close()
+
+        cmds += always_cmds
     if pb_radius is not None:
         cmds += [ "size pseudobondRadius %g" % pb_radius ]
     if ion_size_increase:
@@ -172,7 +210,8 @@ def run_preset(session, name, mgr):
     if name == "ribbon by secondary structure":
         cmd = undo_printable + base_setup + base_macro_model + base_ribbon
     elif name == "ribbon by secondary structure (printable)":
-        cmd = base_setup + base_macro_model + base_ribbon + print_ribbon + print_prep(pb_radius=None)
+        cmd = base_setup + base_macro_model + base_ribbon + print_ribbon + print_prep(
+            session, pb_radius=None)
     elif name == "ribbon by chain":
         cmd = undo_printable + base_setup + base_macro_model + base_ribbon + [
             rainbow_cmd(s) for s in all_atomic_structures(session)
@@ -180,17 +219,17 @@ def run_preset(session, name, mgr):
     elif name == "ribbon by chain (printable)":
         cmd = base_setup + base_macro_model + base_ribbon + [
             rainbow_cmd(s) for s in all_atomic_structures(session)
-        ] + print_ribbon + print_prep(pb_radius=None)
+        ] + print_ribbon + print_prep(session, pb_radius=None)
     elif name == "ribbon rainbow":
         cmd = undo_printable + base_setup + base_macro_model + base_ribbon + [ "rainbow @CA target r" ]
     elif name == "ribbon rainbow (printable)":
         cmd = base_setup + base_macro_model + base_ribbon + [
             "rainbow @CA"
-        ] + print_ribbon + print_prep(pb_radius=None)
+        ] + print_ribbon + print_prep(session, pb_radius=None)
     elif name == "ribbon by polymer (printable)":
         cmd = base_setup + base_macro_model + base_ribbon + print_ribbon + [
             "color bypolymer"
-        ] + print_prep(pb_radius=None)
+        ] + print_prep(session, pb_radius=None)
     elif name == "ribbon monochrome":
         cmd = undo_printable + base_setup + base_macro_model + base_ribbon + [
             "color nih_blue",
@@ -200,7 +239,7 @@ def run_preset(session, name, mgr):
         cmd = base_setup + base_macro_model + base_ribbon + print_ribbon + [
             "color nih_blue",
             "setattr p color nih_blue"
-        ] + print_prep(pb_radius=None)
+        ] + print_prep(session, pb_radius=None)
     elif name == "surface monochrome":
         cmd = undo_printable + base_setup + base_surface + addh_cmds(session) + surface_cmds(session) \
             + [ "color nih_blue" ]

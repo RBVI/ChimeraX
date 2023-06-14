@@ -79,8 +79,6 @@ class DICOMDatabases(ToolInstance):
         self.settings.user_accepted_tcia_tos = True
 
     def _construct_ui(self):
-        self._main_table_data = []
-
         # Construct the GUI
         self.tool_window = MainToolWindow(self)
         self.parent = self.tool_window.ui_area
@@ -110,6 +108,7 @@ class DICOMDatabases(ToolInstance):
         self.load_webpage_button = QPushButton("Load Webpage")
         self.load_webpage_button.setEnabled(False)
         self.refine_dataset_button = QPushButton("Drill Down to Studies")
+        self.refine_dataset_button.setEnabled(False)
         self.control_layout.addWidget(self.dataset_highlighted_label)
         self.control_layout.addWidget(self.load_webpage_button)
         self.control_layout.addWidget(self.refine_dataset_button)
@@ -267,7 +266,11 @@ class DICOMDatabases(ToolInstance):
     def _on_database_changed(self):
         self._allocate_thread_and_worker(Action.LOAD_COLLECTIONS)
         self.worker.collections_ready.connect(self._on_collection_entries_returned_from_worker)
+        self.worker.collection_fetched.connect(self._on_collection_fetched)
         self.thread.start()
+
+    def _on_collection_fetched(self, curr, total):
+        self.refine_dataset_button.setText(f"Loading collection {curr}/{total}")
 
     def _on_collection_entries_returned_from_worker(self, entries):
         self.database_entries.data = [
@@ -281,6 +284,8 @@ class DICOMDatabases(ToolInstance):
             ) for x in entries
         ]
         self.database_entries.sortByColumn(0, Qt.SortOrder.AscendingOrder)
+        self.refine_dataset_button.setText("Drill Down to Studies")
+        self.refine_dataset_button.setEnabled(True)
 
     def delete(self):
         try:
@@ -406,14 +411,15 @@ class DatabaseWorker(QObject):
     studies_ready = Signal(list)
     series_ready = Signal(list)
     finished = Signal()
+    collection_fetched = Signal(int, int)
 
     def __init__(self, session, database: str, action: Action):
         super().__init__()
         self.session = session
         self.database = database
         self.action = action
-        self.requested_studies = None
-        self.requested_series = None
+        self.requested_studies = []
+        self.requested_series = []
 
     @Slot()
     def run(self):
@@ -429,7 +435,7 @@ class DatabaseWorker(QObject):
         entries = None
         self.session.ui.thread_safe(self.session.logger.status, f"Loading collections from {self.database}")
         if self.database == "TCIA":
-            entries = TCIADatabase.get_collections(self.session)
+            entries = TCIADatabase.get_collections(self)
         self.collections_ready.emit(entries)
 
     def _fetch_studies(self):

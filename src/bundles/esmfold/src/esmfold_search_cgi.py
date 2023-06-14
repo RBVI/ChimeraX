@@ -1,4 +1,4 @@
-#!/usr/local/bin/python3
+#!/usr/bin/python3
 
 # CGI script to read list of sequences and search an ESMFold sequence
 # database using k-mer search.
