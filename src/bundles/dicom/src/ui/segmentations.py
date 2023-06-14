@@ -166,7 +166,7 @@ class SegmentationTool(ToolInstance):
             vertical_max = z_max - 1
             horizontal_max = y_max - 1
         x = 0
-        y = radius
+        y = round(radius)
         d = 1 - y
         while y > x:
             if d < 0:
@@ -187,7 +187,7 @@ class SegmentationTool(ToolInstance):
             y_end = min(bottom_offset + x, vertical_max)
             slice[y_start][x_start:x_end] = 1
             slice[y_end][x_start:x_end] = 1
-
+        slice[bottom_offset][left_offset - round(radius):left_offset + round(radius)] = 1
     def addMarkersToSegment(self, axis, slice, positions):
         # I wasn't able to recycle code from Map Eraser here, unfortunately. Map Eraser uses
         # numpy.putmask(), which for whatever reason only wanted to work once before I had to call
