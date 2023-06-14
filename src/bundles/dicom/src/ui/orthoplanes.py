@@ -480,11 +480,6 @@ class PlaneViewer(QWindow):
             self.segmentation_tool.segmentation_cursors[self.axis].radius = self.segmentation_overlay.radius * psize / self.scale
 
     def wheelEvent(self, event):
-        # Looked like the same size with:
-        # self.view.pixel_size = 0.14930555555555
-        # self.segmentation_overlay.radius = 80
-        # self.segmentation_tool.segmentation_cursor.radius = 5.9722222222
-        #
         modifier = event.modifiers()
         delta = event.angleDelta()
         x_dir, y_dir = np.sign(delta.x()), np.sign(delta.y())
@@ -520,6 +515,46 @@ class PlaneViewer(QWindow):
             y_offset = self.camera_offsets[Axis.CORONAL] * 2 / psize
         return x_offset, y_offset
 
+    def recordSegment(self, x, y):
+        thisSegment = SegmentationOverlay(
+            "seg_overlay_" + str(len(self.current_segmentation_overlays)),
+            radius=self.segmentation_overlay.radius, thickness=3
+        )
+        thisSegment.drawing_center = [x, y]
+        thisSegment.center = self.segmentation_overlay.center
+        self.current_segmentation_overlays.append(thisSegment)
+        thisSegment.update()
+        self.view.add_overlay(thisSegment)
+
+    def moveSegmentationPuck(self, x, y, record_seg):
+        top, bottom, left, right = self.camera_space_drawing_bounds()
+        rel_top, rel_bottom, rel_left, rel_right = self.mousePercentOffsetsFromEdges(x, y)
+        x_offset, y_offset = self.cameraSpaceDrawingOffsets()
+        # TODO Why did I have to add the y-offset here but not the x-offset?
+        if left <= self.scale * x <= right and bottom <= (self.scale * (y + y_offset)) <= top:
+            old_origin = self.segmentation_tool.segmentation_cursors[self.axis].origin
+            drawing_origin = self.drawingOrigin()
+            origin = old_origin
+            volume_steps = self.drawingVolumeStep()
+            if self.axis == Axis.AXIAL:
+                absolute_offset_left = rel_right * self.dimensions[0]
+                absolute_offset_bottom = rel_top * self.dimensions[1]
+                origin[0] = absolute_offset_left * volume_steps[0] + drawing_origin[0]
+                origin[1] = absolute_offset_bottom * volume_steps[1] + drawing_origin[1]
+            elif self.axis == Axis.CORONAL:
+                absolute_offset_left = rel_left * self.dimensions[0]
+                absolute_offset_bottom = rel_bottom * self.dimensions[2]
+                origin[0] = drawing_origin[0] + absolute_offset_left * volume_steps[0]
+                origin[2] = drawing_origin[2] + absolute_offset_bottom * volume_steps[2]
+            else:  # self.axis == Axis.SAGGITAL:
+                absolute_offset_left = rel_left * self.dimensions[1]
+                absolute_offset_bottom = rel_bottom * self.dimensions[2]
+                origin[1] = drawing_origin[1] + absolute_offset_left * volume_steps[0]
+                origin[2] = drawing_origin[2] + absolute_offset_bottom * volume_steps[2]
+            self.segmentation_tool.segmentation_cursors[self.axis].origin = origin
+            if record_seg:
+                self.recordSegment(absolute_offset_left, absolute_offset_bottom)
+
     def mouseMoveEvent(self, event):  # noqa
         b = event.button() | event.buttons()
         # Level or segment
@@ -529,34 +564,7 @@ class PlaneViewer(QWindow):
             self.segmentation_overlay.center = (self.scale * x, self.scale * (self.view.window_size[1] - y), 0)
             self.segmentation_overlay.update()
             if self.segmentation_tool:
-                top, bottom, left, right = self.camera_space_drawing_bounds()
-                rel_top, rel_bottom, rel_left, rel_right = self.mousePercentOffsetsFromEdges(x, y)
-                x_offset, y_offset = self.cameraSpaceDrawingOffsets()
-                # TODO Why did I have to add the y-offset here but not the x-offset?
-                if left <= self.scale * x <= right and bottom <= (self.scale * (y + y_offset)) <= top:
-                    old_origin = self.segmentation_tool.segmentation_cursors[self.axis].origin
-                    drawing_origin = self.drawingOrigin()
-                    origin = old_origin
-                    if self.axis == Axis.AXIAL:
-                        absolute_offset_left = rel_right * self.dimensions[0] * self.drawingVolumeStep()[0]
-                        absolute_offset_bottom = rel_top * self.dimensions[1] * self.drawingVolumeStep()[1]
-                        origin[0], origin[1] = absolute_offset_left + drawing_origin[0], absolute_offset_bottom + drawing_origin[1]
-                    elif self.axis == Axis.CORONAL:
-                        absolute_offset_left = rel_left * self.dimensions[0] * self.drawingVolumeStep()[0]
-                        absolute_offset_bottom = rel_bottom * self.dimensions[2] * self.drawingVolumeStep()[2]
-                        origin[0], origin[2] = drawing_origin[0] + absolute_offset_left, drawing_origin[2] + absolute_offset_bottom
-                    else: # self.axis == Axis.SAGGITAL:
-                        absolute_offset_left = rel_left * self.dimensions[1] * self.drawingVolumeStep()[1]
-                        absolute_offset_bottom = rel_bottom * self.dimensions[2] * self.drawingVolumeStep()[2]
-                        origin[1], origin[2] = drawing_origin[1] + absolute_offset_left, drawing_origin[2] + absolute_offset_bottom
-                    self.segmentation_tool.segmentation_cursors[self.axis].origin = origin
-                    if b == Qt.MouseButton.LeftButton:
-                        thisSegment = SegmentationOverlay("seg_overlay_" + str(len(self.current_segmentation_overlays)), radius = self.segmentation_overlay.radius, thickness = 3)
-                        thisSegment.center = self.segmentation_overlay.center
-                        thisSegment.drawing_center = [absolute_offset_left, absolute_offset_bottom]
-                        self.current_segmentation_overlays.append(thisSegment)
-                        thisSegment.update()
-                        self.view.add_overlay(thisSegment)
+                self.moveSegmentationPuck(x, y, record_seg = (b == Qt.MouseButton.LeftButton))
             self.view.camera.redraw_needed = True
         # Zoom / Dolly
         if b & Qt.MouseButton.RightButton:
