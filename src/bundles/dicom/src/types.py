@@ -9,7 +9,7 @@ class Direction(IntEnum):
 class Axis(IntEnum):
     AXIAL = 2
     CORONAL = 1
-    SAGGITAL = 0
+    SAGITTAL = 0
 
     def __str__(self):
         return self.name.lower()

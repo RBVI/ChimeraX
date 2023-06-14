@@ -37,18 +37,18 @@ class PlaneViewerManager:
         if viewer.axis == Axis.AXIAL:
             if Axis.CORONAL in self.axes:
                 self.axes[Axis.CORONAL].axial_index = viewer.axial_index
-            if Axis.SAGGITAL in self.axes:
-                self.axes[Axis.SAGGITAL].axial_index = viewer.axial_index
+            if Axis.SAGITTAL in self.axes:
+                self.axes[Axis.SAGITTAL].axial_index = viewer.axial_index
         if viewer.axis == Axis.CORONAL:
             if Axis.AXIAL in self.axes:
                 self.axes[Axis.AXIAL].coronal_index = viewer.coronal_index
-            if Axis.SAGGITAL in self.axes:
-                self.axes[Axis.SAGGITAL].coronal_index = viewer.coronal_index
-        if viewer.axis == Axis.SAGGITAL:
+            if Axis.SAGITTAL in self.axes:
+                self.axes[Axis.SAGITTAL].coronal_index = viewer.coronal_index
+        if viewer.axis == Axis.SAGITTAL:
             if Axis.AXIAL in self.axes:
-                self.axes[Axis.AXIAL].saggital_index = viewer.saggital_index
+                self.axes[Axis.AXIAL].sagittal_index = viewer.sagittal_index
             if Axis.CORONAL in self.axes:
-                self.axes[Axis.CORONAL].saggital_index = viewer.saggital_index
+                self.axes[Axis.CORONAL].sagittal_index = viewer.sagittal_index
 
     def update_dimensions(self, dimensions):
         for axis in self.axes.values():
@@ -154,7 +154,7 @@ class PlaneViewer(QWindow):
         if axis == Axis.CORONAL:
             self.slider.setRange(-max_y, 0)
             self.slider.setValue(-1)
-        if axis == Axis.SAGGITAL:
+        if axis == Axis.SAGITTAL:
             self.slider.setMaximum(max_x)
             self.slider.setValue(1)
 
@@ -353,27 +353,27 @@ class PlaneViewer(QWindow):
         psize = self.view.pixel_size()
         axis_sizes = (bounds.size() / psize)[::-1]
         x_offset, y_offset = self.cameraSpaceDrawingOffsets()
-        if self.axis == Axis.SAGGITAL:
+        if self.axis == Axis.SAGITTAL:
             self.horizontal_slice_overlay.bottom = 0.5 * self.scale * ((width + x_offset) - axis_sizes[Axis.AXIAL])
             self.horizontal_slice_overlay.top =    0.5 * self.scale * ((width + x_offset) + axis_sizes[Axis.AXIAL])
-            self.horizontal_slice_overlay.offset = 0.5 * self.scale * ((height + y_offset) - axis_sizes[Axis.SAGGITAL])
-            self.horizontal_slice_overlay.tick_thickness = axis_sizes[Axis.SAGGITAL] / (self.dimensions[Axis.AXIAL] / self.scale)
+            self.horizontal_slice_overlay.offset = 0.5 * self.scale * ((height + y_offset) - axis_sizes[Axis.SAGITTAL])
+            self.horizontal_slice_overlay.tick_thickness = axis_sizes[Axis.SAGITTAL] / (self.dimensions[Axis.AXIAL] / self.scale)
 
-            self.vertical_slice_overlay.bottom = 0.5 * self.scale * ((height + y_offset) - axis_sizes[Axis.SAGGITAL])
-            self.vertical_slice_overlay.top =    0.5 * self.scale * ((height + y_offset) + axis_sizes[Axis.SAGGITAL])
+            self.vertical_slice_overlay.bottom = 0.5 * self.scale * ((height + y_offset) - axis_sizes[Axis.SAGITTAL])
+            self.vertical_slice_overlay.top =    0.5 * self.scale * ((height + y_offset) + axis_sizes[Axis.SAGITTAL])
             self.vertical_slice_overlay.offset = 0.5 * self.scale * ((width + x_offset) - axis_sizes[Axis.CORONAL])
             self.vertical_slice_overlay.tick_thickness = axis_sizes[Axis.CORONAL] / (self.dimensions[Axis.CORONAL] / self.scale)
 
         elif self.axis == Axis.CORONAL:
             self.horizontal_slice_overlay.bottom = 0.5 * self.scale * ((width + x_offset) - axis_sizes[Axis.CORONAL])
             self.horizontal_slice_overlay.top =    0.5 * self.scale * ((width + x_offset) + axis_sizes[Axis.CORONAL])
-            self.horizontal_slice_overlay.offset = 0.5 * self.scale * ((height + y_offset) - axis_sizes[Axis.SAGGITAL])
-            self.horizontal_slice_overlay.tick_thickness = axis_sizes[Axis.SAGGITAL] / (self.dimensions[Axis.AXIAL] / self.scale)
+            self.horizontal_slice_overlay.offset = 0.5 * self.scale * ((height + y_offset) - axis_sizes[Axis.SAGITTAL])
+            self.horizontal_slice_overlay.tick_thickness = axis_sizes[Axis.SAGITTAL] / (self.dimensions[Axis.AXIAL] / self.scale)
 
-            self.vertical_slice_overlay.bottom = 0.5 * self.scale * ((height + y_offset) - axis_sizes[Axis.SAGGITAL])
-            self.vertical_slice_overlay.top =    0.5 * self.scale * ((height + y_offset) + axis_sizes[Axis.SAGGITAL])
+            self.vertical_slice_overlay.bottom = 0.5 * self.scale * ((height + y_offset) - axis_sizes[Axis.SAGITTAL])
+            self.vertical_slice_overlay.top =    0.5 * self.scale * ((height + y_offset) + axis_sizes[Axis.SAGITTAL])
             self.vertical_slice_overlay.offset = 0.5 * self.scale * ((width + x_offset) - axis_sizes[Axis.AXIAL])
-            self.vertical_slice_overlay.tick_thickness = axis_sizes[Axis.AXIAL] / (self.dimensions[Axis.SAGGITAL] / self.scale)
+            self.vertical_slice_overlay.tick_thickness = axis_sizes[Axis.AXIAL] / (self.dimensions[Axis.SAGITTAL] / self.scale)
 
         else:
             self.horizontal_slice_overlay.bottom = 0.5 * self.scale * ((width - x_offset) - axis_sizes[Axis.AXIAL])
@@ -384,7 +384,7 @@ class PlaneViewer(QWindow):
             self.vertical_slice_overlay.bottom = 0.5 * self.scale * ((height - y_offset) - axis_sizes[Axis.CORONAL])
             self.vertical_slice_overlay.top =    0.5 * self.scale * ((height - y_offset) + axis_sizes[Axis.CORONAL])
             self.vertical_slice_overlay.offset = 0.5 * self.scale * ((width - x_offset) + axis_sizes[Axis.CORONAL])
-            self.vertical_slice_overlay.tick_thickness = axis_sizes[Axis.CORONAL] / (self.dimensions[Axis.SAGGITAL] / self.scale)
+            self.vertical_slice_overlay.tick_thickness = axis_sizes[Axis.CORONAL] / (self.dimensions[Axis.SAGITTAL] / self.scale)
 
     def camera_space_drawing_bounds(self):
         top, bottom, left, right = (
@@ -502,15 +502,15 @@ class PlaneViewer(QWindow):
 
     def cameraSpaceDrawingOffsets(self):
         psize = self.view.pixel_size()
-        if self.axis == Axis.SAGGITAL:
+        if self.axis == Axis.SAGITTAL:
             # TODO: Why does this need a constant scale of 2 regardless of self.scale?
             x_offset = self.camera_offsets[Axis.CORONAL] * 2 / psize
             y_offset = self.camera_offsets[Axis.AXIAL] * 2 / psize
         elif self.axis == Axis.CORONAL:
-            x_offset = self.camera_offsets[Axis.SAGGITAL] * 2 / psize
+            x_offset = self.camera_offsets[Axis.SAGITTAL] * 2 / psize
             y_offset = self.camera_offsets[Axis.AXIAL] * 2 / psize
         else:
-            x_offset = self.camera_offsets[Axis.SAGGITAL] * 2 / psize
+            x_offset = self.camera_offsets[Axis.SAGITTAL] * 2 / psize
             y_offset = self.camera_offsets[Axis.CORONAL] * 2 / psize
         return x_offset, y_offset
 
@@ -545,7 +545,7 @@ class PlaneViewer(QWindow):
                 absolute_offset_bottom = rel_bottom * self.dimensions[2]
                 origin[0] = drawing_origin[0] + absolute_offset_left * volume_steps[0]
                 origin[2] = drawing_origin[2] + absolute_offset_bottom * volume_steps[2]
-            else:  # self.axis == Axis.SAGGITAL:
+            else:  # self.axis == Axis.SAGITTAL:
                 absolute_offset_left = rel_left * self.dimensions[1]
                 absolute_offset_bottom = rel_bottom * self.dimensions[2]
                 origin[1] = drawing_origin[1] + absolute_offset_left * volume_steps[0]
@@ -595,7 +595,7 @@ class PlaneViewer(QWindow):
                 self.camera_offsets = [x - dx, y + dy, z]
             if self.axis == Axis.CORONAL:
                 self.camera_offsets = [x + dx, y, z - dy]
-            if self.axis == Axis.SAGGITAL:
+            if self.axis == Axis.SAGITTAL:
                 self.camera_offsets = [x, y + dx, z - dy]
 
     def keyPressEvent(self, event):  # noqa
@@ -613,8 +613,8 @@ class PlaneViewer(QWindow):
         return self._plane_indices[Axis.CORONAL]
 
     @property
-    def saggital_index(self):
-        return self._plane_indices[Axis.SAGGITAL]
+    def sagittal_index(self):
+        return self._plane_indices[Axis.SAGITTAL]
 
     @axial_index.setter
     def axial_index(self, index):
@@ -622,7 +622,7 @@ class PlaneViewer(QWindow):
         # TODO: Have the overlay get this itself?
         if self.axis == Axis.CORONAL:
             self.horizontal_slice_overlay.slice = index
-        if self.axis == Axis.SAGGITAL:
+        if self.axis == Axis.SAGITTAL:
             self.horizontal_slice_overlay.slice = index
 
     @coronal_index.setter
@@ -631,12 +631,12 @@ class PlaneViewer(QWindow):
         # TODO: Have the overlay get this itself?
         if self.axis == Axis.AXIAL:
             self.horizontal_slice_overlay.slice = -index
-        if self.axis == Axis.SAGGITAL:
+        if self.axis == Axis.SAGITTAL:
             self.vertical_slice_overlay.slice = index
 
-    @saggital_index.setter
-    def saggital_index(self, index):
-        self._plane_indices[Axis.SAGGITAL] = index
+    @sagittal_index.setter
+    def sagittal_index(self, index):
+        self._plane_indices[Axis.SAGITTAL] = index
         # TODO: Have the overlay get this itself?
         if self.axis == Axis.AXIAL:
             self.vertical_slice_overlay.slice = -index
@@ -682,7 +682,7 @@ class PlaneViewer(QWindow):
                 self.slider.setMaximum(max_z)
             if self.axis == Axis.CORONAL:
                 self.slider.setRange(-max_y, 0)
-            if self.axis == Axis.SAGGITAL:
+            if self.axis == Axis.SAGITTAL:
                 self.slider.setMaximum(max_x)
             self.slider.setValue(orthoplane_positions[self.axis] * self.axis.positive_direction)
             self.pos = orthoplane_positions[self.axis]

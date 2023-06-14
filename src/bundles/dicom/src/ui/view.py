@@ -22,7 +22,7 @@ class FourUpView(QWidget):
 
         self._orthoplane_top_left = PlaneViewer(self, self._orthoplane_manager, session, Axis.AXIAL)
         self._orthoplane_bottom_left = PlaneViewer(self, self._orthoplane_manager, session, Axis.CORONAL)
-        self._orthoplane_bottom_right = PlaneViewer(self, self._orthoplane_manager, session, Axis.SAGGITAL)
+        self._orthoplane_bottom_right = PlaneViewer(self, self._orthoplane_manager, session, Axis.SAGITTAL)
 
         self._newMWLayout.addWidget(self._orthoplane_top_left.container, 0, 0)
         self._newMWLayout.addWidget(session.ui.main_window.graphicsArea(), 0, 1)

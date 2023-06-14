@@ -110,7 +110,7 @@ class SegmentationTool(ToolInstance):
         self.segmentation_cursors = {
             Axis.AXIAL:    SegmentationDisk(self.session, Axis.AXIAL, height=5)
             , Axis.CORONAL:  SegmentationDisk(self.session, Axis.CORONAL, height=5)
-            , Axis.SAGGITAL: SegmentationDisk(self.session, Axis.SAGGITAL, height=5)
+            , Axis.SAGITTAL: SegmentationDisk(self.session, Axis.SAGITTAL, height=5)
         }
         self.segmentations = {}
         self.current_segmentation = None
@@ -175,6 +175,7 @@ class SegmentationTool(ToolInstance):
                 d += 2 * (x - y) + 5
                 y -= 1
             x += 1
+            # TODO: Why are the coronal and sagittal circles actually ovals?
             x_start = max(left_offset - x, 0)
             x_end = min(left_offset + x, horizontal_max)
             y_start = max(bottom_offset - round(y), 0)
@@ -195,6 +196,10 @@ class SegmentationTool(ToolInstance):
         # on every loop, and it made the interface much slower -- it had to hang while the surface did many
         # redundant recalculations.
         # I can already see this becoming a massive PITA when 3D spheres get involved.
+        # TODO: Many segmentations
+        if not self.active_seg:
+            self.session.logger.error("No active segmentation!")
+            return
         for position in positions:
             center_x, center_y = position.drawing_center
             radius = self.segmentation_cursors[axis].radius
