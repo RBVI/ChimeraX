@@ -82,11 +82,11 @@ Additional settings:
 </p>
 <ul>
 <li><b>Local map resolution</b> 
-&ndash; initially <b>0.0</b>; a suitable nonzero value should be specified
-by the user, if possible, to indicate the approximate resolution of the
-part of the map within the search space.
-If the value is left as 0.0, however,
-a nonzero value will be estimated and used in the calculation. 
+&ndash; approximate resolution of the map within the search space.
+Although the local resolution is initially set to <b>0.0</b> &Aring;,
+a positive value is required and must be supplied if a full map is used.
+If half maps are used but no positive value is supplied,
+the local resolution will be estimated from the half maps.
 <li><b>Center search at</b>
   <ul>
   <li><b>center of model...</b> center of the bounding box of the chosen model
