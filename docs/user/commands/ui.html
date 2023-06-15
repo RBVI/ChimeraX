@@ -238,7 +238,16 @@ Given without arguments, the <b>mousemode</b> command reports the current
 assignments in the <a href="../tools/log.html"><b>Log</b></a>. 
 The analogous command for <a href="../vr.html">virtual reality</a> 
 hand controllers is <a href="device.html#vr-button"><b>vr button</b></a>.
-</p><p>
+</p>
+<blockquote style="background-color:#f0f0f0; border:solid black 1px; padding:5px">
+<a name="mac-issue"></a>
+<font size="+2"><b>*</b></font>
+On a Mac, Ctrl-right click is not usable because the Qt windowing toolkit
+always reports Ctrl-left click as Ctrl-right click, making the two
+impossible to distinguish. ChimeraX interprets both as Ctrl-left click,
+which by default is used for <a href="../selection.html">selection</a>.
+</blockquote>
+<p>
 The right-mouse assignment can also be changed by clicking an icon in the
 <a href="../tools/mousemodes.html"><b>Right Mouse</b></a> tab of the
 <a href="../tools/toolbar.html"><b>Toolbar</b></a>.
@@ -274,7 +283,7 @@ Summary of mouse and trackpad default assignments:
 </tr><tr>
 <td align="center" rowspan="2"><b>translate</b>
 <br><img src="../tools/mouse-icons/translate.png" class="icon3"></td>
-<td>middle mouse button</td>
+<td>middle mouse button, right mouse button</td>
 </tr><tr>
 <td class="text">
 Mac: trackpad + <b>Alt</b>, 3-finger drag if
@@ -459,6 +468,13 @@ see also
 bond, ribbon segment, or surface point;
 see also <a href="cofr.html"><b>cofr</b></a></td>
 <td align="center"><img src="../tools/mouse-icons/pivot.png" width="35px"></td>
+</tr><tr>
+<td align="center"><b>center</b></td>
+<td align="center" class="text">set center of view (animated over 10 frames)
+and center of rotation to clicked atom, bond, ribbon segment, or surface point;
+see also <a href="view.html"><b>view</b></a>,
+<a href="cofr.html"><b>cofr</b></a></td>
+<td align="center"></td>
 </tr><tr>
 <td align="center"><b>distance</b></td>
 <td align="center" class="text"><a name="distance"></a>
@@ -819,5 +835,5 @@ by using the <a href="#mousemode"><b>mousemode</b></a> command.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-April 2023</address>
+June 2023</address>
 </body></html>
