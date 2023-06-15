@@ -1849,7 +1849,7 @@ class SeqBlock:
     def _brush(self, color):
         from Qt.QtGui import QBrush, QColor
         if not isinstance(color, QColor):
-            color = QColor(*[int(c) for c in color])
+            color = QColor(color)
         rgb = color.rgb()
         try:
             return self._brushes[rgb]

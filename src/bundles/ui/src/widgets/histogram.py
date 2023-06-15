@@ -182,7 +182,7 @@ class MarkedHistogram(QWidget):
         self._hist_scene.mouseReleaseEvent = self._button_up_cb
         self._redraw_timer = QTimer()
         self._redraw_timer.timeout.connect(self._redraw_cb)
-        self._redraw_timer.start(1000 * redraw_delay)
+        self._redraw_timer.start(int(1000 * redraw_delay + 0.5))
         self._redraw_timer.stop()
         self._data_widgets.addWidget(self._hist_view)
 
