@@ -22,30 +22,26 @@ class FitJob(Job):
 
     SESSION_SAVE = False
 
-    #def __init__(self, session, executable_location, optional_args, map_file_name, half_map1_file_name,
-    def __init__(self, session, executable_location, optional_args, half_map1_file_name,
-            half_map2_file_name, search_center, model_file_name,
+    def __init__(self, session, executable_location, optional_args, map1_file_name,
+            map2_file_name, search_center, model_file_name,
             positional_args, temp_dir, resolution, verbose, callback, block):
         super().__init__(session)
         self._running = False
         self._monitor_time = 0
         self._monitor_interval = 10
-        #self.start(session, executable_location, optional_args, map_file_name, half_map1_file_name,
-        self.start(session, executable_location, optional_args, half_map1_file_name,
-            half_map2_file_name, search_center, model_file_name, positional_args, temp_dir, resolution,
+        self.start(session, executable_location, optional_args, map1_file_name,
+            map2_file_name, search_center, model_file_name, positional_args, temp_dir, resolution,
             verbose, callback, blocking=block)
 
-    #def run(self, session, executable_location, optional_args, map_file_name, half_map1_file_name,
-    def run(self, session, executable_location, optional_args, half_map1_file_name,
-            half_map2_file_name, search_center, model_file_name, positional_args, temp_dir, resolution,
+    def run(self, session, executable_location, optional_args, map1_file_name,
+            map2_file_name, search_center, model_file_name, positional_args, temp_dir, resolution,
             verbose, callback, **kw):
         self._running = True
         self.start_t = time()
         def threaded_run(self=self):
             try:
-                #results = _run_fit_subprocess(session, executable_location, optional_args, map_file_name,
                 results = _run_fit_subprocess(session, executable_location, optional_args,
-                    half_map1_file_name, half_map2_file_name, search_center, model_file_name,
+                    map1_file_name, map2_file_name, search_center, model_file_name,
                     positional_args, temp_dir, resolution, verbose)
             finally:
                 self._running = False
@@ -86,7 +82,7 @@ class FitJob(Job):
 command_defaults = {
     'verbose': False
 }
-def phenix_local_fit(session, model, center=None, half_maps=None, *, resolution=0.0,
+def phenix_local_fit(session, model, center=None, map_data=None, *, resolution=0.0,
         block=None, phenix_location=None, verbose=command_defaults['verbose'],
         option_arg=[], position_arg=[]):
 
@@ -101,25 +97,31 @@ def phenix_local_fit(session, model, center=None, half_maps=None, *, resolution=
     # some keywords are just to avoid adjacent atom specs, so reassign to more natural names
     search_center = center
 
-    if len(half_maps) != 2:
-        raise UserError("Please specify exactly two half maps.  You specified %d" % (len(half_maps)))
-
     # Setup temporary directory to run phenix.voyager.emplace_local.
     from tempfile import TemporaryDirectory
     d = TemporaryDirectory(prefix = 'phenix_emis_')  # Will be cleaned up when object deleted.
     temp_dir = d.name
 
-    # Save maps to files
+    # Check map_data arg and save map data
     from os import path
     from chimerax.map_data import save_grid_data
-    #save_grid_data([target_map.data], path.join(temp_dir,'target_map.mrc'), session)
-    save_grid_data([half_maps[0].data], path.join(temp_dir,'half_map1.mrc'), session)
-    save_grid_data([half_maps[1].data], path.join(temp_dir,'half_map2.mrc'), session)
+    if len(map_data) == 1:
+        if resolution == 0.0:
+            raise UserError("When fitting into a full map, the map resolution must be specified")
+        map_arg1, map_arg2 = 'full_map.mrc', None
+        save_grid_data([map_data[0].data], path.join(temp_dir, map_arg1), session)
+    elif len(map_data) == 2:
+        map_arg1, map_arg2 = 'half_map1.mrc', 'half_map2.mrc'
+        save_grid_data([map_data[0].data], path.join(temp_dir, map_arg1), session)
+        save_grid_data([map_data[1].data], path.join(temp_dir, map_arg2), session)
+    else:
+        raise UserError("Please specify two half maps or one full map.  You specified %d maps"
+            % (len(map_data)))
 
     # Emplace_local ignores the MRC file origin so if it is non-zero
     # shift the atom coordinates so they align with the origin 0 map.
     #map_0, shift = _fix_map_origin(target_map)
-    map_0, shift = _fix_map_origin(half_maps[0])
+    map_0, shift = _fix_map_origin(map_data[0])
 
     # Save model to file.
     from chimerax.pdb import save_pdb
@@ -128,11 +130,9 @@ def phenix_local_fit(session, model, center=None, half_maps=None, *, resolution=
     # Run phenix.voyager.emplace_local
     # keep a reference to 'd' in the callback so that the temporary directory isn't removed before
     # the program runs
-    callback = lambda transform, sharpened_map, *args, session=session, half_maps=half_maps, shift=shift, d_ref=d: \
-        _process_results(session, transform, sharpened_map, model, half_maps, shift)
-    #FitJob(session, exe_path, option_arg, "target_map.mrc", "half_map1.mrc", "half_map2.mrc", search_center,
-    #    "model.pdb", position_arg, temp_dir, resolution, verbose, callback, block)
-    FitJob(session, exe_path, option_arg, "half_map1.mrc", "half_map2.mrc", search_center,
+    callback = lambda transform, sharpened_map, *args, session=session, map_data=map_data, shift=shift, d_ref=d: \
+        _process_results(session, transform, sharpened_map, model, map_data, shift)
+    FitJob(session, exe_path, option_arg, map_arg1, map_arg2, search_center,
         "model.pdb", position_arg, temp_dir, resolution, verbose, callback, block)
 
 class ViewBoxError(ValueError):
@@ -197,7 +197,7 @@ def view_box(session, model):
         return (face_intercepts[0] + face_intercepts[1]) / 2
     raise ViewBoxError("Center of view does not intersect %s bounding box" % model)
 
-def _process_results(session, transform, sharpened_map, orig_model, half_maps, shift):
+def _process_results(session, transform, sharpened_map, orig_model, map_data, shift):
     from chimerax.geometry import Place
     orig_model.scene_position = Place(transform) * orig_model.scene_position
     sharpened_map.name = "sharpened local map"
@@ -222,17 +222,20 @@ def _fix_map_origin(map):
 
 #NOTE: We don't use a REST server; reference code retained in douse.py
 
-#def _run_fit_subprocess(session, exe_path, optional_args, map_file_name, half_map1_file_name,
-def _run_fit_subprocess(session, exe_path, optional_args, half_map1_file_name,
-        half_map2_file_name, search_center, model_file_name, positional_args, temp_dir, resolution, verbose):
+def _run_fit_subprocess(session, exe_path, optional_args, map1_file_name,
+        map2_file_name, search_center, model_file_name, positional_args, temp_dir, resolution, verbose):
     '''
     Run emplace_local in a subprocess and return the model.
     '''
     from chimerax.core.commands import StringArg
-    args = [exe_path] + optional_args + [
-            #"map=%s" % StringArg.unparse(map_file_name),
-            "map1=%s" % StringArg.unparse(half_map1_file_name),
-            "map2=%s" % StringArg.unparse(half_map2_file_name),
+    if map2_file_name is None:
+        map_args = ["map=%s" % StringArg.unparse(map1_file_name)]
+    else:
+        map_args = [
+            "map1=%s" % StringArg.unparse(map1_file_name),
+            "map2=%s" % StringArg.unparse(map2_file_name),
+        ]
+    args = [exe_path] + optional_args + map_args + [
             "d_min=%g" % resolution,
             "model_file=%s" % StringArg.unparse(model_file_name),
             "sphere_center=(%g,%g,%g)" % tuple(search_center.scene_coordinates()),
@@ -284,21 +287,22 @@ def _run_fit_subprocess(session, exe_path, optional_args, half_map1_file_name,
 
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register
-    from chimerax.core.commands import CenterArg, OpenFolderNameArg, BoolArg, FloatArg, RepeatOf, StringArg
+    from chimerax.core.commands import (CenterArg, OpenFolderNameArg, BoolArg, NonNegativeFloatArg,
+        RepeatOf, StringArg)
     from chimerax.map import MapArg, MapsArg
     from chimerax.atomic import AtomicStructureArg, AtomicStructuresArg
     desc = CmdDesc(
         required = [('model', AtomicStructureArg),
         ],
-        required_arguments = ['center', 'half_maps'],
+        required_arguments = ['center', 'map_data'],
         keyword = [('block', BoolArg),
                    ('center', CenterArg),
-                   ('half_maps', MapsArg),
+                   ('map_data', MapsArg),
                    ('phenix_location', OpenFolderNameArg),
                    ('verbose', BoolArg),
                    ('option_arg', RepeatOf(StringArg)),
                    ('position_arg', RepeatOf(StringArg)),
-                   ('resolution', FloatArg),
+                   ('resolution', NonNegativeFloatArg),
         ],
         synopsis = 'Place structure in map'
     )

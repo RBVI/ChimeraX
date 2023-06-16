@@ -175,7 +175,7 @@ class LaunchEmplaceLocalTool(ToolInstance):
             self.__class__.settings = LaunchEmplaceLocalSettings(session, "launch emplace local")
 
         from Qt.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel, QWidget, QPushButton, QMenu, QLineEdit
-        from Qt.QtWidgets import QCheckBox
+        from Qt.QtWidgets import QCheckBox, QGridLayout
         from Qt.QtGui import QDoubleValidator
         from Qt.QtCore import Qt
         layout = QVBoxLayout()
@@ -185,15 +185,34 @@ class LaunchEmplaceLocalTool(ToolInstance):
 
         centering_widget = QWidget()
         layout.addWidget(centering_widget, alignment=Qt.AlignCenter, stretch=1)
-        structure_layout = QHBoxLayout()
+        structure_layout = QGridLayout()
         structure_layout.setSpacing(1)
         centering_widget.setLayout(structure_layout)
-        structure_layout.addWidget(QLabel("Fit "), alignment=Qt.AlignRight)
+        structure_layout.addWidget(QLabel("Fit "), 0, 0, alignment=Qt.AlignRight)
         from chimerax.atomic.widgets import AtomicStructureMenuButton
         self.structure_menu = AtomicStructureMenuButton(session)
-        structure_layout.addWidget(self.structure_menu)
-        structure_layout.addWidget(QLabel(" using half maps "))
+        structure_layout.addWidget(self.structure_menu, 0, 1)
+        structure_layout.addWidget(QLabel(" using "), 0, 2)
+        self.HALF_MAPS, self.FULL_MAP = self.menu_items = ["half maps", "full map"]
+        self.mt_explanations = {
+            self.HALF_MAPS: "Using half maps is recommended if available.  If local resolution is not specified (i.e. is zero) then it will be estimated from the half maps.",
+            self.FULL_MAP: "Using only the full map is less reliable than using half maps, so use half maps if available.  If using a full map, then specifying a (non-zero) resolution is mandatory."
+        }
+        assert len(self.menu_items) == len(self.mt_explanations)
+        self.map_type_mb = QPushButton(self.HALF_MAPS)
+        structure_layout.addWidget(self.map_type_mb, 0, 3)
+        mt_menu = QMenu(self.map_type_mb)
+        mt_menu.triggered.connect(self._map_type_changed)
+        for item in self.menu_items:
+            mt_menu.addAction(item)
+        self.map_type_mb.setMenu(mt_menu)
         from chimerax.ui.widgets import ModelListWidget, ModelMenuButton
+        ex_lab = self.mt_explanation_label = QLabel(self.mt_explanations[self.HALF_MAPS])
+        ex_lab.setWordWrap(True)
+        ex_lab.setAlignment(Qt.AlignCenter)
+        from chimerax.ui import shrink_font
+        shrink_font(ex_lab, fraction=0.85)
+        structure_layout.addWidget(ex_lab, 1, 0, 1, 4)
         class ShortMLWidget(ModelListWidget):
             def sizeHint(self):
                 hint = super().sizeHint()
@@ -201,14 +220,17 @@ class LaunchEmplaceLocalTool(ToolInstance):
                 return hint
         from chimerax.map import Volume
         self.half_map_list = ShortMLWidget(session, class_filter=Volume)
-        structure_layout.addWidget(self.half_map_list, alignment=Qt.AlignLeft, stretch=1)
+        structure_layout.addWidget(self.half_map_list, 0, 4, 2, 1, alignment=Qt.AlignLeft)
+        structure_layout.setRowStretch(1, 1)
+        structure_layout.setColumnStretch(4, 1)
 
         from chimerax.ui.options import OptionsPanel, FloatOption
         res_options = OptionsPanel(scrolled=False, contents_margins=(0,0,0,0))
         layout.addWidget(res_options, alignment=Qt.AlignCenter)
-        self.res_option = FloatOption("Map resolution:", None, None, min=0.0, decimal_places=2,
-            step=0.1, max=99.99, balloon="Full map resolution.  If unknown, providing a value"
-            " of zero will cause an estimated resolution to be used.")
+        self.res_option = FloatOption("Local map resolution:", None, None, min=0.0, decimal_places=2,
+            step=0.1, max=99.99, balloon="Map resolution in the search region.\n"
+            "If unknown, and using half maps, providing a value of zero will cause an estimated\n"
+            "resolution to be used.  For full maps, providing the resolution is mandatory.")
         res_options.add_option(self.res_option)
 
         centering_widget = QWidget()
@@ -289,10 +311,17 @@ class LaunchEmplaceLocalTool(ToolInstance):
         structure = self.structure_menu.value
         if not structure:
             raise UserError("Must specify a structure to fit")
+        map_type = self.map_type_mb.text()
         maps = self.half_map_list.value
-        if len(maps) != 2:
-            raise UserError("Must specify exactly two half maps for fitting")
         res = self.res_option.value
+        if map_type == self.HALF_MAPS:
+            if len(maps) != 2:
+                raise UserError("Must specify exactly two half maps for fitting")
+        else:
+            if len(maps) != 1:
+                raise UserError("Must specify exactly one full map for fitting")
+            if res == 0.0:
+                raise UserError("Must specify a resolution value for the full map")
         method = self.centering_button.text()
         if method == self.CENTER_XYZ:
             center = [float(widget.text()) for widget in self.xyz_widgets]
@@ -342,6 +371,10 @@ class LaunchEmplaceLocalTool(ToolInstance):
         else:
             _run_emplace_local_command(self.session, structure, maps, res, center)
         self.delete()
+
+    def _map_type_changed(self, action):
+        self.map_type_mb.setText(action.text())
+        self.mt_explanation_label.setText(self.mt_explanations[action.text()])
 
     def _set_centering_method(self, method=None):
         if method is None:
@@ -451,7 +484,7 @@ class LaunchEmplaceLocalSettings(Settings):
 def _run_emplace_local_command(session, structure, maps, resolution, center):
     from chimerax.core.commands import run, concise_model_spec
     from chimerax.map import Volume
-    cmd = "phenix emplaceLocal %s halfMaps %s resolution %g center %g,%g,%g" % (structure.atomspec,
+    cmd = "phenix emplaceLocal %s mapData %s resolution %g center %g,%g,%g" % (structure.atomspec,
         concise_model_spec(session, maps, relevant_types=Volume, allow_empty_spec=False),
         resolution, *center)
     run(session, cmd)

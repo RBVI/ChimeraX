@@ -14,7 +14,7 @@
 class InvalidAccessionError(ValueError):
     pass
 
-def fetch_uniprot(session, ident, ignore_cache=False):
+def fetch_uniprot(session, ident, ignore_cache=False, *, associate=None):
     'Fetch UniProt data'
 
     from chimerax.core.errors import UserError, CancelOperation
@@ -35,7 +35,10 @@ def fetch_uniprot(session, ident, ignore_cache=False):
     seq.accession_id["UniProt"] = accession
     seq.set_features("UniProt", expand_features(features))
     session.logger.status("Opening UniProt %s" % ident)
-    session.alignments.new_alignment([seq], ident)
+    aln = session.alignments.new_alignment([seq], ident, auto_associate=(associate is None))
+    if associate is not None:
+        for chain in associate:
+            aln.associate(chain, min_length=2)
     return [], "Opened UniProt %s" % ident
 
 def map_uniprot_ident(ident, *, return_value="identifier"):
