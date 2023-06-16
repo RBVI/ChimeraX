@@ -606,7 +606,25 @@ class PlaneViewer(QWindow):
                 self.camera_offsets = [x, y + dx, z - dy]
 
     def keyPressEvent(self, event):  # noqa
-        return self.session.ui.forward_keystroke(event)
+        key = event.key()
+        modifier = event.modifiers
+        diff = 1
+        if event.modifiers() & Qt.KeyboardModifier.ShiftModifier:
+            diff = 10
+        if key == Qt.Key_Right or key == Qt.Key_D:
+            event.accept()
+            self.slider.setSliderDown(True)
+            self.slider.setSliderPosition(self.pos + diff)
+            self.slider.setSliderDown(False)
+            return
+        if key == Qt.Key_Left or key == Qt.Key_A:
+            event.accept()
+            self.slider.setSliderDown(True)
+            self.slider.setSliderPosition(self.pos - diff)
+            self.slider.setSliderDown(False)
+            return
+        else:
+            return self.session.ui.forward_keystroke(event)
 
     def update_dimensions(self, dimensions):
         self.dimensions = dimensions
