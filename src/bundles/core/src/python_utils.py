@@ -57,9 +57,11 @@ def migrate_site_packages():
     from chimerax import app_dirs
     user_site_packages = os.path.join(app_dirs.user_data_dir, "site-packages")
     lib = "lib"
+    python = "python"
     if sys.platform == "win32":
         lib = ""
-    real_site_dir = os.path.join(app_dirs.user_data_dir, lib, "python", "site-packages")
+        python = "Python311"
+    real_site_dir = os.path.join(app_dirs.user_data_dir, lib, python, "site-packages")
     if os.path.exists(user_site_packages):
         if not os.path.islink(user_site_packages):
             if os.path.exists(real_site_dir):

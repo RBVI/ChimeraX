@@ -33,9 +33,9 @@ def pip(
         from chimerax import app_dirs
         site_packages = os.path.join(app_dirs.user_data_dir, "site-packages")
         if not os.path.islink(site_packages):
-        #    # #8927 -- check if there's an existing site-packages directory and, if so,
-        #    # move it to user_data_dir/lib/python3.x/site-packages, then symbolically
-        #    # link it back to its old location
+            # #8927 -- check if there's an existing site-packages directory and, if so,
+            # move it to user_data_dir/lib/python3.x/site-packages, then symbolically
+            # link it back to its old location
             migrate_site_packages()
         pip_cmd = [chimerax_python_executable(), "-m", "pip"]
         if action == 'install':
