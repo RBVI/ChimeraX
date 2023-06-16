@@ -1810,10 +1810,9 @@ def uniprot_chain_descriptions(uids, chains):
     for ruids in uranges.values():
         uid = ruids[0]
         utext = uid.uniprot_name if uid.uniprot_name else uid.uniprot_id
-        # Have to use chain.string() to ensure including the model number, since there may only
-        # be one model open when this table is created, but multiple when the table is used
-        descrip = ucmd % (uid.uniprot_id, ''.join(
-            [c.string(style="command", include_structure=True) for c in chains]), utext)
+        # ensure chain specifier alway includes model ID
+        descrip = ucmd % (uid.uniprot_id, chains[0].structure.atomspec + '/' + ','.join(
+            [c.chain_id for c in chains]), utext)
         seq_ranges = set(tuple(uid.chain_sequence_range)
                          for uid in ruids if uid.chain_sequence_range)
         if seq_ranges:
