@@ -802,27 +802,61 @@ class CenterOfRotationMode(MouseMode):
 
     def mouse_down(self, event):
         MouseMode.mouse_down(self, event)
-        x,y = event.position()
-        view = self.session.main_view
-        pick = view.picked_object(x, y)
-        from chimerax.atomic import PickedResidue, PickedBond, PickedPseudobond
-        from chimerax.map import PickedMap
-        from chimerax.graphics import PickedTriangle
-        if hasattr(pick, 'atom'):
-            xyz = pick.atom.scene_coord
-        elif isinstance(pick, PickedResidue):
-            r = pick.residue
-            xyz = sum([a.scene_coord for a in r.atoms]) / r.num_atoms
-        elif isinstance(pick, PickedBond):
-            b = pick.bond
-            xyz = sum([a.scene_coord for a in b.atoms]) / 2
-        elif isinstance(pick, PickedPseudobond):
-            b = pick.pbond
-            xyz = sum([a.scene_coord for a in b.atoms]) / 2
-        elif isinstance(pick, (PickedMap, PickedTriangle)) and hasattr(pick, 'position'):
-            xyz = pick.position
-        else:
+        xyz = _picked_xyz(event, self.session)
+        if xyz is not None:
+            from chimerax.std_commands import cofr
+            cofr.cofr(self.session, pivot=xyz)
+
+def _picked_xyz(event, session):
+    x,y = event.position()
+    view = session.main_view
+    pick = view.picked_object(x, y)
+    from chimerax.atomic import PickedResidue, PickedBond, PickedPseudobond
+    from chimerax.map import PickedMap
+    from chimerax.graphics import PickedTriangle
+    if hasattr(pick, 'atom'):
+        xyz = pick.atom.scene_coord
+    elif isinstance(pick, PickedResidue):
+        r = pick.residue
+        xyz = sum([a.scene_coord for a in r.atoms]) / r.num_atoms
+    elif isinstance(pick, PickedBond):
+        b = pick.bond
+        xyz = sum([a.scene_coord for a in b.atoms]) / 2
+    elif isinstance(pick, PickedPseudobond):
+        b = pick.pbond
+        xyz = sum([a.scene_coord for a in b.atoms]) / 2
+    elif isinstance(pick, (PickedMap, PickedTriangle)) and hasattr(pick, 'position'):
+        xyz = pick.position
+    else:
+        xyz = None
+    return xyz
+
+class MoveToCenterMode(MouseMode):
+    '''
+    Clicking on an atom, bond, ribbon, pseudobond or volume surface
+    centers the view on that point and sets the center of rotation at that position.
+    '''
+    name = 'center'
+
+    frames = 10		# Animate motion over this number of frames
+    
+    def mouse_down(self, event):
+        MouseMode.mouse_down(self, event)
+        xyz = _picked_xyz(event, self.session)
+        if xyz is None:
             return
+
+        # Move camera so it is centered on picked point.
+        c = self.session.main_view.camera
+        cx,cy,cz = c.position.inverse() * xyz
+        steps = self.frames
+        from chimerax.core.commands import Axis
+        mxy = (-cx/steps, -cy/steps, 0)
+        axis = Axis(coords = mxy)
+        from chimerax.std_commands.move import move
+        move(self.session, axis, frames = steps)
+
+        # Set center of rotation
         from chimerax.std_commands import cofr
         cofr.cofr(self.session, pivot=xyz)
 
@@ -1104,6 +1138,7 @@ def standard_mouse_mode_classes():
         ClipRotateMouseMode,
         ObjectIdMouseMode,
         CenterOfRotationMode,
+        MoveToCenterMode,
         SwipeAsScrollMouseMode,
         NullMouseMode,
     ]
