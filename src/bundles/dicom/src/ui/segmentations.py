@@ -153,18 +153,26 @@ class SegmentationTool(ToolInstance):
         #  less than the radius of one voxel, there's no need to go through all the rigamarole.
         #  grid.data.segment_array[slice][left_offset][bottom_offset] = 1
         x_max, y_max, z_max = grid.data.size
+        x_step, y_step, z_step = grid.data.step
         if axis == Axis.AXIAL:
             slice = grid.data.segment_array[slice]
             vertical_max = y_max - 1
+            vertical_step = y_step
             horizontal_max = x_max - 1
+            horizontal_step = x_step
         elif axis == Axis.CORONAL:
             slice = grid.data.segment_array[:, slice, :]
             vertical_max = z_max - 1
+            vertical_step = z_step
             horizontal_max = x_max - 1
+            horizontal_step = x_step
         else:
             slice = grid.data.segment_array[:, :, slice]
             vertical_max = z_max - 1
+            vertical_step = z_step
             horizontal_max = y_max - 1
+            horizontal_step = y_step
+        scaled_radius = round(radius / horizontal_step)
         x = 0
         y = round(radius)
         d = 1 - y
@@ -176,19 +184,32 @@ class SegmentationTool(ToolInstance):
                 y -= 1
             x += 1
             # TODO: Why are the coronal and sagittal circles actually ovals?
-            x_start = max(left_offset - x, 0)
-            x_end = min(left_offset + x, horizontal_max)
-            y_start = max(bottom_offset - round(y), 0)
-            y_end = min(bottom_offset + round(y), vertical_max)
+
+            scaled_horiz_x = round(x / horizontal_step)
+            scaled_vert_x = round(x / vertical_step)
+            scaled_horiz_y = round(y / horizontal_step)
+            scaled_vert_y = round(y / vertical_step)
+            x_start = max(left_offset - scaled_horiz_x, 0)
+            x_end = min(left_offset + scaled_horiz_x, horizontal_max)
+            y_start = max(bottom_offset - scaled_vert_y, 0)
+            y_end = min(bottom_offset + scaled_vert_y, vertical_max)
             slice[y_start][x_start:x_end] = value
             slice[y_end][x_start:x_end] = value
-            x_start = max(left_offset - round(y), 0)
-            x_end = min(left_offset + round(y), horizontal_max)
-            y_start = max(bottom_offset - x, 0)
-            y_end = min(bottom_offset + x, vertical_max)
+            # Try to account for the fact that with spacings < 1 some lines get skipped, even if it
+            # causes redundant writes
+            slice[y_start + 1][x_start:x_end] = value
+            slice[y_end - 1][x_start:x_end] = value
+            x_start = max(left_offset - scaled_horiz_y, 0)
+            x_end = min(left_offset + scaled_horiz_y, horizontal_max)
+            y_start = max(bottom_offset - scaled_vert_x, 0)
+            y_end = min(bottom_offset + scaled_vert_x, vertical_max)
             slice[y_start][x_start:x_end] = value
             slice[y_end][x_start:x_end] = value
-        slice[bottom_offset][left_offset - round(radius):left_offset + round(radius)] = value
+            # Try to account for the fact that with spacings < 1 some lines get skipped, even if it
+            # causes redundant writes
+            slice[y_start + 1][x_start:x_end] = value
+            slice[y_end - 1][x_start:x_end] = value
+        slice[bottom_offset][left_offset - scaled_radius:left_offset + scaled_radius] = value
 
 
     def addMarkersToSegment(self, axis, slice, positions):
