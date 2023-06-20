@@ -276,6 +276,6 @@ class SegmentationTool(ToolInstance):
         # and on change enable it?
 
     def setCursorOffsetFromOrigin(self, axis, offset):
-        offsets = [0, 0, 0]
+        offsets = self.segmentation_cursors[axis].origin
         offsets[axis] = offset
         self.segmentation_cursors[axis].origin = offsets
