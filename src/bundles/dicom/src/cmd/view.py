@@ -1,4 +1,4 @@
-from chimerax.core.commands import StringArg, CmdDesc, register, BoolArg
+from chimerax.core.commands import StringArg, CmdDesc, register, BoolArg, EnumOf
 from chimerax.core.models import REMOVE_MODELS
 
 from chimerax.map import Volume
@@ -6,11 +6,11 @@ from chimerax.nifti import NiftiGrid
 from chimerax.nrrd import NRRDGrid
 
 from ..dicom import DicomGrid
-from ..ui.view import FourUpView
+from ..ui.view import views, FourPanelView
 
 medical_types = [DicomGrid, NiftiGrid, NRRDGrid]
 
-def dicom_view(session, arg, force = False):
+def dicom_view(session, arg, layout: str = None, force = False):
     # TODO: Enable for NIfTI and NRRD as well
     open_volumes = [v for v in session.models if type(v) is Volume]
     medical_volumes = [m for m in open_volumes if type(m.data) in medical_types]
@@ -20,12 +20,18 @@ def dicom_view(session, arg, force = False):
     if arg == "default" and session.ui.main_window.view_layout != "default":
         session.ui.main_window.restore_default_main_view()
     elif arg == "orthoplanes" and session.ui.main_window.view_layout != "fourup":
-        session.ui.main_window.main_view = FourUpView(session)
+        if not layout:
+            session.ui.main_window.main_view = FourPanelView(session)
+        else:
+            session.ui.main_window.main_view = FourPanelView(session, layout)
         session.ui.main_window.view_layout = "fourup"
+    elif arg == "orthoplanes" and session.ui.main_window.view_layout == "fourup":
+        session.ui.main_window.main_view.convert_to_layout(layout)
 
 
 dicom_view_desc = CmdDesc(
     required = [("arg", StringArg)],
+    keyword = [("layout", EnumOf(views))],
     optional = [("force", BoolArg)],
     synopsis = "Set the view window to a grid of orthoplanes or back to the default"
 )
