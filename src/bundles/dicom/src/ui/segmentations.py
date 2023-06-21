@@ -92,19 +92,22 @@ class SegmentationTool(ToolInstance):
         self.control_checkbox_layout.setContentsMargins(0, 0, 0, 0)
         self.control_checkbox_layout.setSpacing(0)
 
-        self.add_remove_container = QWidget()
-        self.add_remove_layout = QHBoxLayout()
+        self.add_remove_save_container = QWidget()
+        self.add_remove_save_layout = QHBoxLayout()
         self.add_seg_button = QPushButton("Add Segmentation")
         self.remove_seg_button = QPushButton("Remove Segmentation")
+        self.save_seg_button = QPushButton("Save Segmentation")
 
-        self.add_remove_layout.addWidget(self.add_seg_button)
-        self.add_remove_layout.addWidget(self.remove_seg_button)
-        self.add_remove_container.setLayout(self.add_remove_layout)
+        self.add_remove_save_layout.addWidget(self.add_seg_button)
+        self.add_remove_save_layout.addWidget(self.remove_seg_button)
+        self.add_remove_save_layout.addWidget(self.save_seg_button)
+        self.add_remove_save_container.setLayout(self.add_remove_save_layout)
         self.add_seg_button.clicked.connect(self.addSegment)
         self.remove_seg_button.clicked.connect(self.removeSegment)
+        self.save_seg_button.clicked.connect(self.saveSegment)
 
-        self.add_remove_layout.setContentsMargins(0, 0, 0, 0)
-        self.add_remove_layout.setSpacing(0)
+        self.add_remove_save_layout.setContentsMargins(0, 0, 0, 0)
+        self.add_remove_save_layout.setSpacing(0)
 
         self.main_layout.addWidget(self.view_dropdown_container)
         self.main_layout.addWidget(self.control_checkbox_container)
@@ -113,7 +116,7 @@ class SegmentationTool(ToolInstance):
         self.segmentation_list = QListWidget(parent = self.parent)
         self.segmentation_list.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.MinimumExpanding)
         self.segmentation_list.currentItemChanged.connect(self._on_active_segmentation_changed)
-        self.main_layout.addWidget(self.add_remove_container)
+        self.main_layout.addWidget(self.add_remove_save_container)
         self.main_layout.addWidget(self.segmentation_list_label)
         self.main_layout.addWidget(self.segmentation_list)
 
