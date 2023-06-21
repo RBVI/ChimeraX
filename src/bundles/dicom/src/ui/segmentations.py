@@ -300,8 +300,10 @@ class SegmentationTool(ToolInstance):
         self.active_seg = segment
 
     def _on_active_segmentation_changed(self, new, prev):
-        self.setActiveSegment(new.segmentation)
-
+        if new:
+            self.setActiveSegment(new.segmentation)
+        else:
+            self.setActiveSegment(None)
     def _on_view_changed(self):
         if self.view_dropdown.currentIndex() == 0:
             run(self.session, "dicom view default")
