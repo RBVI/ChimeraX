@@ -172,12 +172,13 @@ class DicomSegmentation(GridData):
         'full_region_on_gpu': True
     }
 
-    def __init__(self, d, time=None, channel=None):
+    def __init__(self, d, time=None, channel=None, number = 1):
         self.reference_data = d
+        name = " ".join(["segmentation", str(number)])
         GridData.__init__(
             self, d.data_size, d.value_type,
             d.data_origin, d.data_step, rotation=d.data_rotation,
-            name = "segmentation",
+            name = name,
             file_type='dicom', time=time, channel=channel
         )
         self.segment_array = zeros(d.data_size[::-1], dtype=uint8)

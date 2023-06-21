@@ -15,6 +15,7 @@ from Qt.QtWidgets import (
     , QWidget, QLabel, QDialog, QDialogButtonBox
     , QPushButton, QAction, QComboBox
     , QStackedWidget, QSizePolicy, QCheckBox
+    , QListWidget, QListWidgetItem
 )
 
 from chimerax.ui.widgets import ModelMenu
@@ -22,6 +23,7 @@ from chimerax.map import Volume, VolumeSurface, VolumeImage
 from chimerax.map.volume import open_grids
 from chimerax.core.tools import ToolInstance
 from chimerax.ui import MainToolWindow
+from chimerax.ui.open_save import SaveDialog
 from chimerax.core.commands import run
 from chimerax.core.models import Surface
 from ..cmd.view import dicom_view
@@ -29,10 +31,17 @@ from ..ui.orthoplanes import Axis
 from ..graphics.cylinder import SegmentationDisk
 from ..dicom.dicom_models import DicomSegmentation
 
+class SegmentationListItem(QListWidgetItem):
+    def __init__(self, parent, segmentation):
+        super().__init__(parent)
+        self.segmentation = segmentation
+        self.setText(self.segmentation.name)
+
 class SegmentationTool(ToolInstance):
 
     help = "help:user/tools/segmentations.html"
     SESSION_ENDURING = True
+    num_segmentations_created = 0
 
     def __init__(self, session = None, name = "Segmentations"):
         super().__init__(session, name)
@@ -99,10 +108,17 @@ class SegmentationTool(ToolInstance):
 
         self.main_layout.addWidget(self.view_dropdown_container)
         self.main_layout.addWidget(self.control_checkbox_container)
+
+        self.segmentation_list_label = QLabel("Segmentations")
+        self.segmentation_list = QListWidget(parent = self.parent)
+        self.segmentation_list.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.MinimumExpanding)
+        self.segmentation_list.currentItemChanged.connect(self._on_active_segmentation_changed)
         self.main_layout.addWidget(self.add_remove_container)
+        self.main_layout.addWidget(self.segmentation_list_label)
+        self.main_layout.addWidget(self.segmentation_list)
 
         self.main_layout.addStretch()
-        self.main_layout.setContentsMargins(6, 0, 6, 0)
+        self.main_layout.setContentsMargins(6, 0, 6, 6)
         self.main_layout.setSpacing(0)
 
         self.parent.setLayout(self.main_layout)
@@ -242,19 +258,46 @@ class SegmentationTool(ToolInstance):
     def addSegment(self):
         # TODO: Create an empty DICOM Volume and add it to both
         # the reference_model's child drawings and the
-        new_seg = DicomSegmentation(self.reference_model.parent.data.dicom_data)
+        new_seg = DicomSegmentation(self.reference_model.parent.data.dicom_data, number = self.num_segmentations_created + 1)
+        self.num_segmentations_created += 1
         new_seg_model = open_grids(self.session, [new_seg], name = "new segmentation")[0]
-        self.active_seg = new_seg_model[0]
         self.session.models.add(new_seg_model)
-        # TODO: This forces the orthoplanes to be visible for some reason??
-        #self.session.ui.main_window.main_view.add_segmentation(new_seg_model)
+        self.segmentation_list.addItem(SegmentationListItem(parent = self.segmentation_list, segmentation = new_seg_model[0]))
+        num_items = self.segmentation_list.count()
+        self.segmentation_list.setCurrentItem(self.segmentation_list.item(num_items - 1))
 
     def removeSegment(self, segments = None):
+        if type(segments) is bool:
+            # We got here from clicking the button...
+            segments = None
         if segments is None:
-            # TODO: Get the currently highlighted segment from the table
-            pass
-        if segments:
-            self.session.models.remove(segments)
+            seg_item = self.segmentation_list.takeItem(self.segmentation_list.currentRow())
+            segments = [seg_item.segmentation]
+            seg_item.segmentation = None
+            del seg_item
+        self.session.models.remove(segments)
+
+    def saveSegment(self, segments = None):
+        if segments is None:
+            segments = self.segmentation_list.selectedItems()
+        if len(segments) == 1:
+            sd = SaveDialog(self.session, parent=self.tool_window.ui_area)
+            sd.setNameFilter("DICOM (*.dcm)")
+            if not sd.exec():
+                return
+            filename = sd.selectedFiles()[0]
+            if not filename.endswith(".dcm"):
+                filename += ".dcm"
+            #self.active_seg.data
+        else:
+            # Pick a directory, programmatically save names
+            ...
+
+    def setActiveSegment(self, segment):
+        self.active_seg = segment
+
+    def _on_active_segmentation_changed(self, new, prev):
+        self.setActiveSegment(new.segmentation)
 
     def _on_view_changed(self):
         if self.view_dropdown.currentIndex() == 0:
