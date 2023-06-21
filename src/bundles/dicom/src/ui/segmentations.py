@@ -265,6 +265,7 @@ class SegmentationTool(ToolInstance):
         self.num_segmentations_created += 1
         new_seg_model = open_grids(self.session, [new_seg], name = "new segmentation")[0]
         self.session.models.add(new_seg_model)
+        new_seg_model[0].set_parameters(surface_levels=[0.501])
         self.segmentation_list.addItem(SegmentationListItem(parent = self.segmentation_list, segmentation = new_seg_model[0]))
         num_items = self.segmentation_list.count()
         self.segmentation_list.setCurrentItem(self.segmentation_list.item(num_items - 1))
