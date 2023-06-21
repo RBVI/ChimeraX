@@ -78,8 +78,9 @@ def _cactus_fetch(session, smiles, web_smiles):
 def _indiana_fetch(session, smiles, web_smiles):
     from chimerax.core.fetch import fetch_file
     import os
+    # use only first 128 characters of SMILES for file name due to Windows file-name size limitations [#9170]
     filename = fetch_file(session, "http://cheminfov.informatics.indiana.edu/rest/thread/d3.py/"
-        "SMILES/%s" % smiles, 'SMILES %s' % smiles, web_smiles, None)
+        "SMILES/%s" % smiles, 'SMILES %s' % smiles, web_smiles[:128], None)
     return filename
 
 fetcher_info = [
