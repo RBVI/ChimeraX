@@ -20,7 +20,7 @@ for ease of updating outside of the core release cycle.
 Everything in here is considered private.
 """
 
-__version__ = "1.2.3"
+__version__ = "1.2.4"
 
 from chimerax.core.toolshed import (
     TOOLSHED_BUNDLE_INSTALLED, TOOLSHED_BUNDLE_UNINSTALLED,
@@ -173,10 +173,19 @@ def _install_bundle(toolshed, bundles, logger, *, per_user=True, reinstall=False
     A :py:const:`TOOLSHED_BUNDLE_INSTALLED` trigger is fired after installation.
     """
     _debug("install_bundle", bundles)
+    from chimerax import app_dirs
+    import os
+    site_packages = os.path.join(app_dirs.user_data_dir, "site-packages")
+    if not os.path.islink(site_packages):
+        # #8927 -- check if there's an existing site-packages directory and, if so,
+        # move it to user_data_dir/lib/python3.x/site-packages, then symbolically
+        # link it back to its old location
+        from chimerax.core.python_utils import migrate_site_packages
+        migrate_site_packages()
+
     # Make sure that our install location is on chimerax module.__path__
     # so that newly installed modules may be found
     import importlib
-    import os.path
     import re
     if per_user is None:
         per_user = True
