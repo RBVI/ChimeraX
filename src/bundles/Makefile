@@ -30,7 +30,8 @@ REST_SUBDIRS = add_charge addh alignment_algs alignment_headers \
 	  emdb_sff esmfold file_history function_key \
 	  geometry gltf graphics \
 	  hbonds help_viewer hkcage ihm image_formats imod \
-	  interfaces items_inspection io label list_info log looking_glass maestro \
+	  interfaces items_inspection io label iupac \
+	  list_info log looking_glass maestro \
 	  map map_data map_eraser map_filter map_fit map_series \
 	  markers mask match_maker mcopy md_crds \
 	  medical_toolbar meeting mlp model_series \
