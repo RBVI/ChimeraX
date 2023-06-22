@@ -123,9 +123,9 @@ The <b>~select</b> command can be used to deselect specified items
 (like <b>select subtract</b>) or with a blank specification
 to deselect everything (like <b>select clear</b>). The selection can be
 inverted with <b>select ~sel</b>
-(in command-line specification, the symbol <b>~</b> indicates 
-<a href="atomspec.html#combinations">negation</a>
-and the word <a href="atomspec.html#built-in"><b>sel</b></a>
+(in <a href="atomspec.html">command-line specification</a>,
+the symbol <b>~</b> indicates <a href="atomspec.html#combinations">negation</a>
+and the word <a href="atomspec.html#builtin"><b>sel</b></a>
 indicates the current selection; to invert the selection within 
 only the models containing a selection, the command would be
 <b>select ~sel & ##selected</b> instead).

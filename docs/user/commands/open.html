@@ -932,6 +932,25 @@ and last aligned positions in the sequence alignment calculated by
 as part of the superposition step.
 </blockquote>
 <blockquote>
+<a name="associate"></a>
+<b>associate</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>chain-spec</i></a>
+<br>
+When <a href="#fetch">fetching</a> a sequence from
+<a href="https://www.uniprot.org" target="_blank">UniProt</a>,
+<a href="../tools/sequenceviewer.html#association">associate</a> it
+with the specified structure chain(s) only. Normally,
+<a href="../tools/sequenceviewer.html#association">association</a> 
+will occur automatically; however, this option handles cases in which
+the desired chain does not associated automatically due to a high number of 
+sequence mismatches, truncations, large insertions, <i>etc.</i>,
+and/or one wishes to exclude some of the associations that would otherwise
+occur automatically.
+After a sequence is opened, its associations can also be adjusted with
+the <a href="../tools/sequenceviewer.html#context"><b>Sequence Viewer</b>
+context menu</a> or the
+<a href="sequence.html#associate"><b>sequence associate</b></a> command.
+</blockquote>
+<blockquote>
 <a name="atomic"></a>
 <b>atomic</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
 <br>
@@ -1658,7 +1677,7 @@ target="_blank">PDB Chemical Component Dictionary (CCD)</a>
 </td>
 <td align="center"><b>ccd</b></td>
 <td align="center">idealized structure of PDB chemical component 
-(residue type)</td>
+specified by CCD ID (residue name)</td>
 <td align="center"><b>ccd</b></td>
 </tr><tr>
 <td align="center" rowspan="2"><a href="https://www.ebi.ac.uk/pdbe/eds/"
@@ -1781,6 +1800,22 @@ compound identifier (CID);
 </td>
 <td align="center"><b>sdf</b></td>
 </tr><tr>
+<td align="center">IUPAC &rarr; SMILES &rarr; 3D translator</td>
+<td align="center"><b>iupac</b></td>
+<td align="center"><a name="iupac"></a>
+modeled atomic coordinates specified by
+IUPAC name, first translated to
+a <a href="https://www.daylight.com/dayhtml/doc/theory/theory.smiles.html"
+target="_blank">SMILES</a> string using the
+<a href="https://opsin.ch.cam.ac.uk/index.html" target="_blank">OPSIN
+web service</a> provided by the <a href="https://www-cmi.ch.cam.ac.uk/"
+target="_blank">Centre for Molecular Informatics</a>
+at the University of Cambridge, followed by the process
+described <a href="#smiles">below</a> for SMILES; see also
+<a href="../tools/buildstructure.html"><b>Build Structure</b></a>
+</td>
+<td align="center"><b>iupac</b></td>
+</tr><tr>
 <td align="center">SMILES &rarr; 3D translator</td>
 <td align="center"><b>smiles</b></td>
 <td align="center"><a name="smiles"></a>
@@ -1801,6 +1836,9 @@ cheminformatics group at Indiana University; see also
 target="_blank">UniProt</a></td>
 <td align="center"><b>uniprot</b></td>
 <td align="center">protein sequence
+<br>
+(command option <a href="#associate"><b>associate</b></a>)
+<br>
 (associated tool: 
 <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>;
 see <a href="../tools/sequenceviewer.html#uniprot">UniProt
@@ -2022,5 +2060,5 @@ only arrays with the specified <i>name</i>. Example:
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-March 2023</address>
+June 2023</address>
 </body></html>

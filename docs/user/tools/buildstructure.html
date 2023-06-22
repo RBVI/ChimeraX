@@ -98,10 +98,26 @@ adds the atom(s) with the specified <b>Residue name</b>, in either
 <a name="startmodel">an existing molecule model</a>
 or a <b>new model</b> with a specified name.
 </p>
+<li><b>CCD ID</b> 
+&ndash; idealized structure of a chemical component 
+from the <a href="https://www.wwpdb.org/data/ccd"
+target="_blank">PDB Chemical Component Dictionary (CCD)</a>,
+specified by ID (residue name) 
+<br><br>
 <li><b>fragment</b> 
 &ndash; the specified fragment, placed in the center of view.
 Several planar ring systems are available; a small diagram of the
-chosen fragment is displayed.
+chosen fragment is displayed in the dialog.
+<br><br>
+<li><b>IUPAC name</b> 
+&ndash; compound specified by IUPAC name; first the name is translated to
+a <a href="https://www.daylight.com/dayhtml/doc/theory/theory.smiles.html"
+target="_blank">SMILES</a> string using the
+<a href="https://opsin.ch.cam.ac.uk/index.html" target="_blank">OPSIN
+web service</a> provided by the <a href="https://www-cmi.ch.cam.ac.uk/" 
+target="_blank">Centre for Molecular Informatics</a> 
+at the University of Cambridge, and then the process
+described <a href="#smiles">below</a> for SMILES is used.
 <br><br>
 <li><b>nucleic double helix</b> 
 &ndash; a DNA, RNA, or DNA/RNA double helix specified by the sequence 
@@ -191,6 +207,7 @@ may be necessary to <a href="../commands/addh.html">add</a> or
 <a href="#deletion">delete</a> hydrogens
 to generate the desired protonation state.
 <br><br>
+<a name="smiles"></a>
 <li><b>SMILES string</b> &ndash; a 3D structure for the specified
 <a href="https://www.daylight.com/dayhtml/doc/theory/theory.smiles.html"
 target="_blank">SMILES</a> string. The structure is generated using the
@@ -589,5 +606,5 @@ states from heavy atom coordinates.</a> Meng EC, Lewis RA.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-May 2023</address>
+June 2023</address>
 </body></html>
