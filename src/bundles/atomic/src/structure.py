@@ -1804,13 +1804,15 @@ def uniprot_chain_descriptions(uids, chains):
 
     # Make a link for each Uniprot id and list sequence ranges
     descrips = []
-    ucmd = '<a title="Show annotations" href="cxcmd:open %s from uniprot">%s</a>'
+    ucmd = '<a title="Show annotations" href="cxcmd:open %s from uniprot associate %s">%s</a>'
     cspec = f'#{chains[0].structure.id_string}/{",".join(sorted(chain_ids))}'
     scmd = f'<a title="Select sequence" href="cxcmd:select {cspec}:%d-%d">%d-%d</a>'
     for ruids in uranges.values():
         uid = ruids[0]
         utext = uid.uniprot_name if uid.uniprot_name else uid.uniprot_id
-        descrip = ucmd % (uid.uniprot_id, utext)
+        # ensure chain specifier alway includes model ID
+        descrip = ucmd % (uid.uniprot_id, chains[0].structure.atomspec + '/' + ','.join(
+            [c.chain_id for c in chains]), utext)
         seq_ranges = set(tuple(uid.chain_sequence_range)
                          for uid in ruids if uid.chain_sequence_range)
         if seq_ranges:

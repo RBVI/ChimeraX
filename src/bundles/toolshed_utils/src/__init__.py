@@ -20,7 +20,7 @@ for ease of updating outside of the core release cycle.
 Everything in here is considered private.
 """
 
-__version__ = "1.2.2"
+__version__ = "1.2.3"
 
 from chimerax.core.toolshed import (
     TOOLSHED_BUNDLE_INSTALLED, TOOLSHED_BUNDLE_UNINSTALLED,
@@ -549,9 +549,11 @@ def _run_pip(command):
     # prog = python_executable()
     # pip_cmd = [prog] + subprocess._args_from_interpreter() + ["-m", "pip"]
     pip_cmd = [sys.executable, "-m", "pip"]
-    cp = subprocess.run(pip_cmd + command,
-                        stdout=subprocess.PIPE,
-                        stderr=subprocess.PIPE)
+    from chimerax.core.python_utils import chimerax_user_base
+    with chimerax_user_base():
+        cp = subprocess.run(pip_cmd + command,
+                            stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE)
     return cp
 
 

@@ -1132,32 +1132,40 @@ def color_by_attr(session, attr_name, atoms=None, what=None, target=None, averag
         attr_objs = atoms.structures
     from chimerax.core.commands import plural_of
     attr_names = plural_of(attr_name)
+    needs_none_processing = True
+    attr_vals = None
     if hasattr(attr_objs, attr_names):
-        # attribute found in Collection; assume non-None values
-        # and try to maximize efficiency
+        # attribute found in Collection; try to maximize efficiency
+        needs_none_processing = False
         if average == 'residues' and class_obj == Atom:
             residues = atoms.unique_residues
             res_average = { r: getattr(r.atoms, attr_names).mean() for r in residues }
             attr_vals = [res_average[r] for r in atoms.residues]
         else:
+            import numpy
             attr_vals = getattr(attr_objs, attr_names)
-        acolors = _value_colors(palette, range, attr_vals)
-        if 'c' in target or 'f' in target:
-            if class_obj == Atom:
-                if average != 'residues':
-                    # these vars already computed if average == 'residues'...
-                    residues = atoms.unique_residues
-                    res_average = { r: getattr(r.atoms, attr_names).mean() for r in residues }
-                res_attr_vals = [res_average[r] for r in residues]
-            else:
-                residues = atoms.unique_residues
-                if class_obj == Residue:
-                    res_attr_vals = getattr(residues, attr_names)
+            if not isinstance(attr_vals, numpy.ndarray):
+                # might have Nones
+                needs_none_processing = True
+        if not needs_none_processing:
+            acolors = _value_colors(palette, range, attr_vals)
+            if 'c' in target or 'f' in target:
+                if class_obj == Atom:
+                    if average != 'residues':
+                        # these vars already computed if average == 'residues'...
+                        residues = atoms.unique_residues
+                        res_average = { r: getattr(r.atoms, attr_names).mean() for r in residues }
+                    res_attr_vals = [res_average[r] for r in residues]
                 else:
-                    res_attr_vals = getattr(residues.structures, attr_names)
-            rib_colors = ring_colors = _value_colors(palette, range, res_attr_vals)
-    else:
-        attr_vals = [getattr(o, attr_name, None) for o in attr_objs]
+                    residues = atoms.unique_residues
+                    if class_obj == Residue:
+                        res_attr_vals = getattr(residues, attr_names)
+                    else:
+                        res_attr_vals = getattr(residues.structures, attr_names)
+                rib_colors = ring_colors = _value_colors(palette, range, res_attr_vals)
+    if needs_none_processing:
+        if attr_vals is None:
+            attr_vals = [getattr(o, attr_name, None) for o in attr_objs]
         has_none = None in attr_vals
         if has_none:
             if average == 'residues' and class_obj == Atom:

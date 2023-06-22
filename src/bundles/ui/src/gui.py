@@ -298,7 +298,10 @@ class UI(QApplication):
             return
         elif k in (Qt.Key.Key_Right, Qt.Key.Key_Left):
             from chimerax.core.commands import run
-            run(self.session, 'select ~sel')
+            if event.modifiers() & Qt.ShiftModifier:
+                run(self.session, 'select ~sel')
+            else:
+                run(self.session, 'select ~sel & ##selected')
             return
         if self._keystroke_sinks:
             self._keystroke_sinks[-1].forwarded_keystroke(event)
@@ -1560,10 +1563,21 @@ class MainWindow(QMainWindow, PlainTextLog):
         select_menu.addAction(sel_contacts_action)
         sel_contacts_action.triggered.connect(self.show_select_contacts_dialog)
         from chimerax.core.commands import run
-        for menu_label, cmd_args in [("&Clear", "clear"), ("&Invert", "~sel"), ("&All", ""),
-                ("&Broaden", "up"), ("&Narrow", "down")]:
+        submenus = {}
+        for menu_label, cmd_args in [("&Clear", "clear"),
+                (("Invert", "&Selected Models"), "~sel & ##selected"), (("Invert", "A&ll Models"), "~sel"),
+                ("&All", ""), ("&Broaden", "up"), ("&Narrow", "down")]:
+            if isinstance(menu_label, tuple):
+                submenu_name, menu_label = menu_label
+                try:
+                    target_menu = submenus[submenu_name]
+                except KeyError:
+                    from Qt.QtWidgets import QMenu
+                    target_menu = submenus[submenu_name] = select_menu.addMenu(submenu_name)
+            else:
+                target_menu = select_menu
             action = QAction(menu_label, self)
-            select_menu.addAction(action)
+            target_menu.addAction(action)
             action.triggered.connect(lambda *, run=run, ses=self.session, cmd="sel " + cmd_args:
                 run(ses, cmd))
 
