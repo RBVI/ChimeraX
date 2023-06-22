@@ -144,8 +144,22 @@ use <a href="selectcontacts.html"><b>Select Contacts</b></a>
 to select atomic or chain-chain contacts based on specified criteria
 (<a href="selectcontacts.html">details...</a>)
   <li><b>Clear</b> &ndash; deselect any existing selection
-  <li><b>Invert</b> &ndash; select all items that are currently unselected,
+  <li><b>Invert</b> 
+    <ul>
+    <li><b>Selected Models</b> 
+&ndash; within model(s) that contain a selection,
+select items that are currently unselected and
+deselect items that are currently selected
+<!-- 
+<a href="commands/select.html"><b>select</b></a> <b>~sel & ##selected</b>
+-->
+    <li><b>All Models</b> 
+&ndash; select all items that are currently unselected and
 deselect all items that are currently selected
+<!--
+<a href="commands/select.html"><b>select</b></a> <b>~sel</b>
+-->
+    </ul>
   <li><b>All</b> &ndash; select all models and their parts 
   <li><b>Broaden</b> &ndash; expand the current selection up a
 level in the <a href="selection.html#cascade">selection cascade</a> 
@@ -523,5 +537,5 @@ target="_blank"><b>Tutorials</b></a>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-February 2023</address>
+June 2023</address>
 </body></html> 
