@@ -21,14 +21,12 @@
     <Dependency name="ChimeraX-Smiles" version="~=2.1"/>
   </Dependencies>
 
-  <!--
   <Providers manager="start structure">
-    <Provider name="smiles" ui_name="SMILES string" new_model_only="true"/>
+    <Provider name="iupac" ui_name="IUPAC name" new_model_only="true"/>
   </Providers>
-  -->
 
   <Providers manager="data formats">
-    <Provider name="IUPAC" synopsis="IUPAC identifier" category="Molecular structure" 
+    <Provider name="IUPAC" synopsis="IUPAC name" category="Molecular structure" 
 		reference_url="https://iupac.org/what-we-do/nomenclature/" />
   </Providers>
 

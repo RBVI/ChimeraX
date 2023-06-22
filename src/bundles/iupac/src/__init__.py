@@ -30,7 +30,7 @@ class _IupacAPI(BundleAPI):
                     return { 'res_name': StringArg }
             return IupacFetcherInfo()
 
-        #from .build_ui import IupacProvider
-        #return IupacProvider(session)
+        from .build_ui import IupacProvider
+        return IupacProvider(session)
 
 bundle_api = _IupacAPI()

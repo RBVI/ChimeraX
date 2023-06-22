@@ -20,36 +20,36 @@ from chimerax.core.errors import LimitationError
 class IupacTranslationError(LimitationError):
     pass
 
-def fetch_iupac(session, iupac_string, *, res_name=None, **kw):
+def fetch_iupac(session, iupac_name, *, res_name=None, **kw):
 
     printables = []
-    for char in iupac_string:
+    for char in iupac_name:
         #if char.isprintable() and not char.isspace():
         if char.isprintable():
             printables.append(char)
-    diff = len(iupac_string) - len(printables)
+    diff = len(iupac_name) - len(printables)
     if diff > 0:
-        session.logger.warning("Removed %d blank/non-printable characters from IUPAC string"
+        session.logger.warning("Removed %d blank/non-printable characters from IUPAC name"
             % diff)
-        iupac_string = "".join(printables)
+        iupac_name = "".join(printables)
     # prevent IUPAC characters from getting mangled by the http protocol
     from urllib.parse import quote
-    web_iupac = quote(iupac_string)
+    web_iupac = quote(iupac_name)
     for fetcher, moniker, ack_name, info_url, user_url in fetcher_info:
         try:
-            smiles = fetcher(session, iupac_string, web_iupac)
+            smiles = fetcher(session, iupac_name, web_iupac)
         except IupacTranslationError:
             pass
         else:
             from chimerax.smiles import fetch_smiles
             structures, status = fetch_smiles(session, smiles, res_name=res_name)
             for s in structures:
-                s.name = "iupac:" + iupac_string
-            return structures, "Translated IUPAC to SMILES string via %s web service (IUPAC: %s)\n" % (
-                moniker, iupac_string) + status
+                s.name = "iupac:" + iupac_name
+            return structures, "Translated IUPAC name to SMILES string via %s web service (IUPAC: %s)\n" % (
+                moniker, iupac_name) + status
     raise IupacTranslationError(
-        "Web services failed to translate IUPAC string to SMILES string.\n"
-        "For more information about the failure, go to %s and input the IUPAC string by hand." % user_url
+        "Web services failed to translate IUPAC name to SMILES string.\n"
+        "For more information about the failure, go to %s and input the IUPAC name by hand." % user_url
         )
 
 def _cambridge_fetch(session, iupac, web_iupac):
