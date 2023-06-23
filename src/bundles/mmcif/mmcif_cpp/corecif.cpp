@@ -500,7 +500,7 @@ SmallMolecule::parse_generic_category()
     colinfo.reserve(colnames.size() + 1);
     colinfo.push_back(category);
     colinfo.insert(colinfo.end(), colnames.begin(), colnames.end());
-    StringVector& data = parse_whole_category();
+    StringVector data = parse_whole_category();
     bool existing = generic_tables.find(category_ci) != generic_tables.end();
     if (!existing) {
         generic_tables[category_ci] = colinfo;
