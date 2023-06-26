@@ -9,8 +9,13 @@
 # including partial copies, of the software or any revisions
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
+
+# TODO: Don't rely on the frame drawn trigger to redraw this view. Although
+# more convenient, the constant passing around of the context results in the
+# ChimeraX UI flickering. 
 import numpy as np
 
+from Qt import qt_object_is_deleted
 from Qt.QtCore import Qt, QEvent, QSize
 from Qt.QtGui import QContextMenuEvent, QWindow, QSurface
 from Qt.QtWidgets import QVBoxLayout, QHBoxLayout, QWidget, QSlider
@@ -435,6 +440,10 @@ class PlaneViewer(QWindow):
 
     def mousePressEvent(self, event):  # noqa
         b = event.button() | event.buttons()
+        if self.context_menu:
+            if not qt_object_is_deleted(self.context_menu):
+                self.context_menu.close()
+                self.context_menu = None
         if b & Qt.MouseButton.RightButton:
             self.context_menu_coords = self.widget.mapToGlobal(event.pos())
         if b & Qt.MouseButton.MiddleButton:
@@ -447,18 +456,17 @@ class PlaneViewer(QWindow):
     def mouseReleaseEvent(self, event): # noqa
         b = event.button() | event.buttons()
         if b & Qt.MouseButton.RightButton:
-            #if self.shouldOpenContextMenu():
-            #    from Qt.QtWidgets import QMenu, QAction
-            #    if not self.context_menu:
-            #        self.context_menu = QMenu(parent=self.parent)
-            #        toggle_guidelines_action = QAction("Toggle Guidelines")
-            #        self.context_menu.addAction(toggle_guidelines_action)
-            #        toggle_guidelines_action.triggered.connect(lambda: self.manager.toggle_guidelines())
-            #        self.context_menu.aboutToHide.connect(self.enterEvent)
-            #    self.context_menu.exec(self.context_menu_coords)
-            #    self.mouse_moved_during_right_click = False
-            #self.mouse_moved_during_right_click = False
-            pass
+            if self.shouldOpenContextMenu():
+                from Qt.QtWidgets import QMenu, QAction
+                if not self.context_menu:
+                    self.context_menu = QMenu(parent=self.parent)
+                    toggle_guidelines_action = QAction("Toggle Guidelines")
+                    self.context_menu.addAction(toggle_guidelines_action)
+                    toggle_guidelines_action.triggered.connect(lambda: self.manager.toggle_guidelines())
+                    self.context_menu.aboutToHide.connect(self.enterEvent)
+                self.context_menu.exec(self.context_menu_coords)
+                self.mouse_moved_during_right_click = False
+            self.mouse_moved_during_right_click = False
         if b & Qt.MouseButton.LeftButton:
             modifier = event.modifiers()
             self.segmentation_overlay.center = (self.scale * event.position().x(), self.scale * (self.view.window_size[1] - event.position().y()), 0)

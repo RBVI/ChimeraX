@@ -26,7 +26,6 @@ from chimerax.ui import MainToolWindow
 from chimerax.ui.open_save import SaveDialog
 from chimerax.core.commands import run
 from chimerax.core.models import Surface
-from ..cmd.view import dicom_view
 from ..ui.orthoplanes import Axis
 from ..graphics.cylinder import SegmentationDisk
 from ..dicom.dicom_models import DicomSegmentation
@@ -292,6 +291,9 @@ class SegmentationTool(ToolInstance):
         self.session.models.remove(segments)
 
     def saveSegment(self, segments = None):
+        if type(segments) is bool:
+            # Why in world would this be a bool?? Go home Qt, you're drunk.
+            segments = None
         if segments is None:
             segments = self.segmentation_list.selectedItems()
         if len(segments) == 1:
@@ -302,7 +304,7 @@ class SegmentationTool(ToolInstance):
             filename = sd.selectedFiles()[0]
             if not filename.endswith(".dcm"):
                 filename += ".dcm"
-            #self.active_seg.data
+            self.active_seg.data.save(filename)
         else:
             # Pick a directory, programmatically save names
             ...
