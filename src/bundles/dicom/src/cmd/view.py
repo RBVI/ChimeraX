@@ -7,6 +7,7 @@ from chimerax.nrrd import NRRDGrid
 
 from ..dicom import DicomGrid
 from ..ui.view import views, FourPanelView
+from ..ui.segmentations import SegmentationTool
 
 medical_types = [DicomGrid, NiftiGrid, NRRDGrid]
 
@@ -25,8 +26,16 @@ def dicom_view(session, arg, layout: str = None, force = False):
         else:
             session.ui.main_window.main_view = FourPanelView(session, layout)
         session.ui.main_window.view_layout = "fourup"
+        st = None
+        for tool in session.tools:
+            if type(tool) == SegmentationTool:
+                st = tool
+                break
+        if st:
+            session.ui.main_window.main_view.register_segmentation_tool(st)
     elif arg == "orthoplanes" and session.ui.main_window.view_layout == "fourup":
-        session.ui.main_window.main_view.convert_to_layout(layout)
+        if layout:
+            session.ui.main_window.main_view.convert_to_layout(layout)
 
 
 dicom_view_desc = CmdDesc(
