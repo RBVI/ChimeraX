@@ -1,4 +1,5 @@
 from enum import IntEnum
+from typing import Protocol
 
 class Direction(IntEnum):
     """Used by the SliceOverlay class to control whether to draw
@@ -33,3 +34,7 @@ class Axis(IntEnum):
             return 0
         else:
             return 2
+
+class Segmentation(Protocol):
+    def save(filename) -> None:
+        raise NotImplementedError
