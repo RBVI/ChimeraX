@@ -20,6 +20,7 @@ from Qt.QtCore import Qt, QEvent, QSize
 from Qt.QtGui import QContextMenuEvent, QWindow, QSurface
 from Qt.QtWidgets import QVBoxLayout, QHBoxLayout, QWidget, QSlider
 
+from chimerax.core.commands import log_equivalent_command
 from chimerax.core.models import Surface
 from chimerax.geometry import Place, translation
 from chimerax.graphics import Drawing
@@ -71,6 +72,10 @@ class PlaneViewerManager:
         self.have_seg_tool = False
 
     def toggle_guidelines(self):
+        if self.axes[Axis.AXIAL].guidelines_visible:
+            log_equivalent_command(self.session, "dicom view orthoplanes guidelines false")
+        else:
+            log_equivalent_command(self.session, "dicom view orthoplanes guidelines true")
         for viewer in self.axes.values():
             viewer.setGuidelineVisibility(not viewer.guidelines_visible)
 
@@ -140,7 +145,7 @@ class PlaneViewer(QWindow):
         )
 
         # TODO: Create these on demand when the segmentation tool gets registered
-        self.segmentation_overlay = SegmentationOverlay("seg_overlay", radius=10, thickness=3)
+        self.segmentation_overlay = SegmentationOverlay("seg_overlay", radius=20, thickness=3)
         self.horizontal_slice_overlay = OrthoplaneLocationOverlay("horiz_overlay", slice=10, direction=Direction.HORIZONTAL)
         self.vertical_slice_overlay = OrthoplaneLocationOverlay("vertical_overlay", slice=11)
         self.horizontal_slice_overlay.display = False
@@ -348,6 +353,11 @@ class PlaneViewer(QWindow):
             self.main_view.render.use_shared_context(mvwin)
         self.view.render.done_current()
 
+    def toggle_guidelines(self): 
+        if self.segmentation_tool:
+            self.segmentation_tool.setGuidelineCheckboxValue(not self.guidelines_visible)
+        else:
+            self.manager.toggle_guidelines()
 
     def addDrawing(self, drawing):
         self.drawings.append(drawing)
@@ -427,10 +437,13 @@ class PlaneViewer(QWindow):
     def enterEvent(self):
         if self.segmentation_tool:
             self.enableSegmentationOverlay()
+            self.resize3DSegmentationCursor()
+            self.segmentation_tool.make_puck_visible(self.axis)
 
     def leaveEvent(self):
         if self.segmentation_tool:
             self.disableSegmentationOverlay()
+            self.segmentation_tool.make_puck_invisible(self.axis)
 
     def shouldOpenContextMenu(self):
         return (
@@ -462,7 +475,7 @@ class PlaneViewer(QWindow):
                     self.context_menu = QMenu(parent=self.parent)
                     toggle_guidelines_action = QAction("Toggle Guidelines")
                     self.context_menu.addAction(toggle_guidelines_action)
-                    toggle_guidelines_action.triggered.connect(lambda: self.manager.toggle_guidelines())
+                    toggle_guidelines_action.triggered.connect(lambda: self.toggle_guidelines())
                     self.context_menu.aboutToHide.connect(self.enterEvent)
                 self.context_menu.exec(self.context_menu_coords)
                 self.mouse_moved_during_right_click = False

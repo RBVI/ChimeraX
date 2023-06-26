@@ -85,7 +85,7 @@ class SegmentationTool(ToolInstance):
         self.control_checkbox_container = QWidget()
         self.control_checkbox_layout = QHBoxLayout()
 
-        self.guidelines_checkbox = QCheckBox("Toggle Plane Guidelines")
+        self.guidelines_checkbox = QCheckBox("Plane Guidelines")
         self.control_checkbox_layout.addWidget(self.model_menu.frame)
         self.control_checkbox_layout.addWidget(self.guidelines_checkbox)
         self.guidelines_checkbox.stateChanged.connect(self._on_show_guidelines_checkbox_changed)
@@ -128,13 +128,8 @@ class SegmentationTool(ToolInstance):
 
         self.parent.setLayout(self.main_layout)
         self.tool_window.manage('side')
-        self.segmentation_cursors = {
-            Axis.AXIAL:    SegmentationDisk(self.session, Axis.AXIAL, height=5)
-            , Axis.CORONAL:  SegmentationDisk(self.session, Axis.CORONAL, height=5)
-            , Axis.SAGITTAL: SegmentationDisk(self.session, Axis.SAGITTAL, height=5)
-        }
-        for cursor in self.segmentation_cursors.values():
-            cursor.display = False
+        self.segmentation_cursors = {}
+        self._create_2d_segmentation_pucks()
         self.segmentations = {}
         self.current_segmentation = None
         self.reference_model = None
@@ -171,6 +166,15 @@ class SegmentationTool(ToolInstance):
         except AttributeError: # No more volumes!
             pass
 
+    def _create_2d_segmentation_pucks(self, initial_display = False) -> None:
+        self.segmentation_cursors = {
+            Axis.AXIAL:    SegmentationDisk(self.session, Axis.AXIAL, height=5)
+            , Axis.CORONAL:  SegmentationDisk(self.session, Axis.CORONAL, height=5)
+            , Axis.SAGITTAL: SegmentationDisk(self.session, Axis.SAGITTAL, height=5)
+        }
+        for cursor in self.segmentation_cursors.values():
+            cursor.display = initial_display
+ 
     def _set_data_in_puck(self, grid, axis, slice, left_offset: int, bottom_offset: int, radius: int, value: int) -> None:
         # TODO: Preserve the happiest path. If the radius of the segmentation overlay is
         #  less than the radius of one voxel, there's no need to go through all the rigamarole.
@@ -239,6 +243,13 @@ class SegmentationTool(ToolInstance):
     def make_puck_invisible(self, axis):
         if axis in self.segmentation_cursors:
             self.segmentation_cursors[axis].display = False
+
+    def setGuidelineCheckboxValue(self, visible):
+        if visible:
+            state = Qt.CheckState.Checked
+        else:
+            state = Qt.CheckState.Unchecked
+        self.guidelines_checkbox.setCheckState(state)
 
     def addMarkersToSegment(self, axis, slice, positions):
         # I wasn't able to recycle code from Map Eraser here, unfortunately. Map Eraser uses
