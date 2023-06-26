@@ -46,23 +46,26 @@ class SegmentationTool(ToolInstance):
     def __init__(self, session = None, name = "Segmentations"):
         super().__init__(session, name)
         self._construct_ui()
-        # self.settings = DICOMDatabasesSettings(self.session, "dicom databases")
 
     def _construct_ui(self):
         # Construct the GUI
         self.tool_window = MainToolWindow(self)
         self.parent = self.tool_window.ui_area
         self.main_layout = QVBoxLayout()
+        self.active_seg: Volume | None = None
 
         self.view_dropdown_container = QWidget(self.parent)
         self.view_dropdown_layout = QHBoxLayout()
         self.view_dropdown_label = QLabel("View Layout")
         self.view_dropdown = QComboBox(self.parent)
-        self.view_dropdown.addItem("Default (VR)")
-        dicom_view(self.session, "orthoplanes")
-        self.view_dropdown.addItem("Orthoplanes (Desktop)")
-        if self.session.ui.main_window.view_layout == "fourup":
-            self.view_dropdown.setCurrentIndex(1)
+        # TODO: Decide what to do when the tool starts up and VR isn't on, or 
+        # orthoplanes aren't shown
+        self.view_dropdown.addItem("4 x 4 (Desktop)")
+        self.view_dropdown.addItem("3D Over Orthoplanes (Desktop)")
+        self.view_dropdown.addItem("3D Beside Orthoplanes (Desktop)")
+        self.view_dropdown.addItem("3D Only (VR)")
+        #if self.session.ui.main_window.view_layout == "fourup":
+        #    self.view_dropdown.setCurrentIndex(1)
         self.view_dropdown.currentIndexChanged.connect(self._on_view_changed)
         self.view_dropdown_layout.addWidget(self.view_dropdown_label)
         self.view_dropdown_layout.addWidget(self.view_dropdown, 1)
@@ -131,6 +134,8 @@ class SegmentationTool(ToolInstance):
             , Axis.CORONAL:  SegmentationDisk(self.session, Axis.CORONAL, height=5)
             , Axis.SAGITTAL: SegmentationDisk(self.session, Axis.SAGITTAL, height=5)
         }
+        for cursor in self.segmentation_cursors.values():
+            cursor.display = False
         self.segmentations = {}
         self.current_segmentation = None
         self.reference_model = None
@@ -202,8 +207,6 @@ class SegmentationTool(ToolInstance):
                 d += 2 * (x - y) + 5
                 y -= 1
             x += 1
-            # TODO: Why are the coronal and sagittal circles actually ovals?
-
             scaled_horiz_x = round(x / horizontal_step)
             scaled_vert_x = round(x / vertical_step)
             scaled_horiz_y = round(y / horizontal_step)
@@ -230,6 +233,13 @@ class SegmentationTool(ToolInstance):
             slice[y_end - 1][x_start:x_end] = value
         slice[bottom_offset][left_offset - scaled_radius:left_offset + scaled_radius] = value
 
+    def make_puck_visible(self, axis):
+        if axis in self.segmentation_cursors:
+            self.segmentation_cursors[axis].display = True
+
+    def make_puck_invisible(self, axis):
+        if axis in self.segmentation_cursors:
+            self.segmentation_cursors[axis].display = False
 
     def addMarkersToSegment(self, axis, slice, positions):
         # I wasn't able to recycle code from Map Eraser here, unfortunately. Map Eraser uses
@@ -305,11 +315,21 @@ class SegmentationTool(ToolInstance):
             self.setActiveSegment(new.segmentation)
         else:
             self.setActiveSegment(None)
+            
     def _on_view_changed(self):
+        need_to_register = False
         if self.view_dropdown.currentIndex() == 0:
-            run(self.session, "dicom view default")
+            run(self.session, "dicom view orthoplanes layout fourup")
+            need_to_register = True
+        elif self.view_dropdown.currentIndex() == 1:
+            run(self.session, "dicom view orthoplanes layout overunder")
+            need_to_register = True
+        elif self.view_dropdown.currentIndex() == 2:
+            run(self.session, "dicom view orthoplanes layout sidebyside")
+            need_to_register = True
         else:
             run(self.session, "dicom view orthoplanes")
+        if need_to_register:
             self.session.ui.main_window.main_view.register_segmentation_tool(self)
             if self.guidelines_checkbox.isChecked():
                 self.session.ui.main_window.main_view.toggle_guidelines()
