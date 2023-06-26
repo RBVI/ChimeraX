@@ -65,12 +65,12 @@ class OrderedSet(collections.abc.MutableSet):
         return OrderedSet(self)
 
     def __eq__(self, other):
-        if isinstance(other, collections.Set):
+        if isinstance(other, collections.abc.Set):
             return collections.abc.MutableSet.__eq__(self, other)
         return False
 
     def __ne__(self, other):
-        if isinstance(other, collections.Set):
+        if isinstance(other, collections.abc.Set):
             return collections.abc.MutableSet.__ne__(self, other)
         return True
 

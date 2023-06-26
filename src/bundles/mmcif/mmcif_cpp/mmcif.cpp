@@ -1018,7 +1018,7 @@ ExtractMolecule::parse_generic_category()
     colinfo.push_back(category);
     colinfo.insert(colinfo.end(), colnames.begin(), colnames.end());
     generic_tables[category_ci] = colinfo;
-    StringVector& data = parse_whole_category();
+    StringVector data = parse_whole_category();
     generic_tables[category_ci + " data"].swap(data);
 }
 

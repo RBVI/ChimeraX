@@ -558,6 +558,45 @@ class SequenceViewer(ToolInstance):
         else:
             assoc_action.setEnabled(False)
         structure_menu.addAction(assoc_action)
+        view_targets = []
+        # bounded_by expects the scene coordinate system...
+        from Qt.QtCore import QPointF
+        global_xy = self.tool_window.ui_area.mapToGlobal(QPointF(x, y))
+        view_xy = self.seq_canvas.main_view.mapFromGlobal(global_xy)
+        scene_xy = self.seq_canvas.main_view.mapToScene(view_xy.toPoint())
+        x, y = scene_xy.x(), scene_xy.y()
+
+        seq, seq, index, index = self.seq_canvas.bounded_by(x, y, x, y, exclude_headers=True)
+        if seq is not None:
+            for chain, mm in seq.match_maps.items():
+                try:
+                    view_targets.append(mm[seq.gapped_to_ungapped(index)])
+                except KeyError:
+                    continue
+        if view_targets:
+            if len(view_targets) == 1:
+                view_action = QAction("View %s" % view_targets[0], structure_menu)
+                view_action.triggered.connect(lambda *args, cmd_text="view %s" % view_targets[0].atomspec:
+                    run(self.session, cmd_text))
+                structure_menu.addAction(view_action)
+            else:
+                view_menu = structure_menu.addMenu("View Residue")
+                view_targets.sort()
+                specs = [vt.atomspec for vt in view_targets]
+                for target, spec in zip(view_targets, specs):
+                    view_action = QAction(str(target), view_menu)
+                    view_action.triggered.connect(lambda *args, cmd_text="view %s" % spec:
+                        run(self.session, cmd_text))
+                    view_menu.addAction(view_action)
+                view_menu.addSeparator()
+                view_action = QAction("All The Above", view_menu)
+                view_action.triggered.connect(lambda *args, cmd_text="view %s" % ' '.join(specs):
+                    run(self.session, cmd_text))
+                view_menu.addAction(view_action)
+        else:
+            view_action = QAction("View Residue", structure_menu)
+            view_action.setEnabled(False)
+            structure_menu.addAction(view_action)
 
         headers_menu = menu.addMenu("Headers")
         headers = self.alignment.headers

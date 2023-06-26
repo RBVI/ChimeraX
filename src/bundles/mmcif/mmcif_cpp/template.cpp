@@ -466,7 +466,7 @@ ExtractTemplate::parse_generic_residue_category()
     colinfo.reserve(colnames.size() + 1);
     colinfo.push_back(category);
     colinfo.insert(colinfo.end(), colnames.begin(), colnames.end());
-    StringVector& data = parse_whole_category();
+    StringVector data = parse_whole_category();
     residue->metadata[category_ci] = colinfo;
     residue->metadata[category_ci + " data"].swap(data);
 }
