@@ -632,16 +632,16 @@ class PlaneViewer(QWindow):
         diff = 1
         if event.modifiers() & Qt.KeyboardModifier.ShiftModifier:
             diff = 10
-        if key == Qt.Key_Right or key == Qt.Key_D:
+        if key == Qt.Key.Key_Right or key == Qt.Key.Key_D:
             event.accept()
             self.slider.setSliderDown(True)
-            self.slider.setSliderPosition(self.pos + diff)
+            self.slider.setSliderPosition(self.pos * self.axis.positive_direction + diff)
             self.slider.setSliderDown(False)
             return
-        if key == Qt.Key_Left or key == Qt.Key_A:
+        if key == Qt.Key.Key_Left or key == Qt.Key.Key_A:
             event.accept()
             self.slider.setSliderDown(True)
-            self.slider.setSliderPosition(self.pos - diff)
+            self.slider.setSliderPosition(self.pos * self.axis.positive_direction - diff)
             self.slider.setSliderDown(False)
             return
         else:
