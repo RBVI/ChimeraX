@@ -10,15 +10,20 @@
 # including partial copies, of the software or any revisions
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
+import datetime
+import math
+import os
+
 from collections import defaultdict
 from functools import cached_property
-import datetime
-import os
+
+import pydicom.uid
+
 from numpy import (
     cross, dot, float32
     , uint8, int8, uint16, int16
 )
-import math
+
 from pydicom import dcmread
 from typing import Optional
 
@@ -242,11 +247,6 @@ class Study(Model):
 
 class Series:
     """Set of DICOM files (.dcm suffix) that have the same series unique identifier (UID)."""
-    #
-    # Code assumes each file for the same SeriesInstanceUID will have the same
-    # value for these parameters.  So they are only read for the first file.
-    # Not sure if this is a valid assumption.
-    #
     def __init__(self, session, parent, files):
         self.session = session
         self.parent_study = parent
@@ -272,7 +272,8 @@ class Series:
         # Python Image Library cannot read 16-bit lossless jpeg.
         keep = []
         for f in files:
-            if f.file_meta.TransferSyntaxUID == '1.2.840.10008.1.2.4.70' and f.get('BitsAllocated') == 16:
+            if (f.file_meta.TransferSyntaxUID == pydicom.uid.JPEGLosslessSV1
+                and f.get('BitsAllocated') == 16):
                 warning = 'Could not read DICOM %s because Python Image Library cannot read 16-bit lossless jpeg ' \
                           'images. This functionality can be enabled by installing python-gdcm'
                 self.session.logger.warning(warning % f.filename)
