@@ -57,7 +57,7 @@ class SegmentationTool(ToolInstance):
         self.view_dropdown_layout = QHBoxLayout()
         self.view_dropdown_label = QLabel("View Layout")
         self.view_dropdown = QComboBox(self.parent)
-        # TODO: Decide what to do when the tool starts up and VR isn't on, or 
+        # TODO: Decide what to do when the tool starts up and VR isn't on, or
         # orthoplanes aren't shown
         self.view_dropdown.addItem("4 x 4 (Desktop)")
         self.view_dropdown.addItem("3D Over Orthoplanes (Desktop)")
@@ -174,7 +174,7 @@ class SegmentationTool(ToolInstance):
         }
         for cursor in self.segmentation_cursors.values():
             cursor.display = initial_display
- 
+
     def _set_data_in_puck(self, grid, axis, slice, left_offset: int, bottom_offset: int, radius: int, value: int) -> None:
         # TODO: Preserve the happiest path. If the radius of the segmentation overlay is
         #  less than the radius of one voxel, there's no need to go through all the rigamarole.
@@ -277,6 +277,7 @@ class SegmentationTool(ToolInstance):
             radius = self.segmentation_cursors[axis].radius
             self._set_data_in_puck(self.active_seg, axis, slice, round(center_x), round(center_y), radius, 0)
         self.active_seg.data.values_changed()
+        # self.active_seg.update_drawings()
 
     def addSegment(self):
         # TODO: Create an empty DICOM Volume and add it to both
@@ -328,7 +329,7 @@ class SegmentationTool(ToolInstance):
             self.setActiveSegment(new.segmentation)
         else:
             self.setActiveSegment(None)
-            
+
     def _on_view_changed(self):
         need_to_register = False
         if self.view_dropdown.currentIndex() == 0:
