@@ -174,11 +174,12 @@ class NRRDGrid(GridData):
 
 
 class NRRDSegmentation(GridData, Segmentation):
-    def __init__(self, nrrd, time = None, channel = None):
+    def __init__(self, nrrd, time = None, channel = None, number = 0):
         self.nrrd_data = nrrd
         GridData.__init__(
             self, nrrd.shape, nrrd.data_type, origin = nrrd.origin
             , rotation = nrrd.rotation
+            , name = "segmentation %d" % number
             , step = nrrd.pixel_spacing, file_type = 'nrrd'
         )
         self.segment_array = np.zeros(nrrd.shape, dtype = np.uint8)

@@ -104,7 +104,8 @@ class NiftiSegmentation(GridData, Segmentation):
         GridData.__init__(
             self, nifti.data_size, nifti.data_type
             , nifti.center, rotation=nifti.data_rotation, step = nifti.scale
-            # , path = ???, name = ???
+            # , path = ???
+            , name = "segmentation %d" % number
             , file_type = 'nifti' #, time, channel ???
         )
         self.segment_array = zeros(self.reference_data.data_size[::-1], dtype=uint8)
