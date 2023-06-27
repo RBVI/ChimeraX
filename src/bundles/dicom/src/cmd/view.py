@@ -11,7 +11,7 @@ from ..ui.segmentations import SegmentationTool
 
 medical_types = [DicomGrid, NiftiGrid, NRRDGrid]
 
-def dicom_view(session, arg, layout: str = None, force = False):
+def dicom_view(session, arg, layout: str = None, guidelines: bool = None, force = False) -> None:
     # TODO: Enable for NIfTI and NRRD as well
     open_volumes = [v for v in session.models if type(v) is Volume]
     medical_volumes = [m for m in open_volumes if type(m.data) in medical_types]
@@ -36,12 +36,17 @@ def dicom_view(session, arg, layout: str = None, force = False):
     elif arg == "orthoplanes" and session.ui.main_window.view_layout == "fourup":
         if layout:
             session.ui.main_window.main_view.convert_to_layout(layout)
+        if guidelines is not None:
+            session.ui.main_window.main_view.set_guideline_visibility(guidelines)
 
 
 dicom_view_desc = CmdDesc(
     required = [("arg", StringArg)],
-    keyword = [("layout", EnumOf(views))],
-    optional = [("force", BoolArg)],
+    keyword = [
+        ("layout", EnumOf(views))
+        , ("guidelines", BoolArg)
+    ]
+    , optional = [("force", BoolArg)],
     synopsis = "Set the view window to a grid of orthoplanes or back to the default"
 )
 
