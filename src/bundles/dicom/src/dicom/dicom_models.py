@@ -147,6 +147,12 @@ class DicomGrid(GridData):
             self.initial_image_thresholds = [(-1000, 0.0), (300, 0.9), (3000, 1.0)]
         self.ignore_pad_value = d.pad_value
 
+    def pixel_spacing(self) -> tuple[float, float, float]:
+        return self.dicom_data.pixel_spacing()
+    
+    def inferior_to_superior(self) -> bool:
+        return self.dicom_data.inferior_to_superior()
+
     # ---------------------------------------------------------------------------
     # If GridData.read_xy_plane() uses this method then whole planes are cached
     # even when a partial plane is requested.  The whole DICOM planes are always
@@ -170,6 +176,9 @@ class DicomGrid(GridData):
             self.time, c, m, progress
             )
         return m
+    
+    def segment(self, number) -> 'DicomSegmentation':
+        return DicomSegmentation(self.dicom_data, self.time, self.channel, number)
 
     @requires_gui
     def show_info(self):
@@ -214,7 +223,13 @@ class DicomSegmentation(GridData, Segmentation):
     def read_matrix(self, ijk_origin=(0, 0, 0), ijk_size=None, ijk_step=(1, 1, 1), progress=None):
         array = self.segment_array[::ijk_step[0], ::ijk_step[1], ::ijk_step[2]]
         return array
-
+    
+    def pixel_spacing(self) -> tuple[float, float, float]:
+        return self.reference_data.pixel_spacing()
+  
+    def inferior_to_superior(self) -> bool:
+        return self.reference_data.inferior_to_superior()
+  
     def save(self, filename = None) -> None:
         header = FileMetaDataset()
 
