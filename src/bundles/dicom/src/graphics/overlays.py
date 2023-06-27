@@ -71,6 +71,31 @@ class OrthoplaneLocationOverlay(Drawing):
             c = array([[255, 0, 0, 255]] * len(v), dtype=uint8)
         return c, v, None, t
 
+class SegCursorOnOtherAxisOverlay(Drawing):
+    """This is the chord formed by the intersection of the segmentation cursor overlay and the
+    guideline overlay for some other axis."""
+    def __init__(self, name):
+        super().__init__(name)
+        self.display_style = Drawing.Mesh
+
+    def draw(self, renderer, draw_pass):
+        r = renderer
+        ww, wh = r.render_size()
+        projection = ortho(0, ww, 0, wh, -1, 1)
+        r.set_projection_matrix(projection)
+        Drawing.draw(self, renderer, draw_pass)
+        r.set_projection_matrix(
+            ((1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0),
+             (0, 0, 0, 1))
+        )
+
+    def update(self):
+        vc, v, _, t = self._geometry()
+        self.set_geometry(v, _, t)
+        self.vertex_colors = vc
+
+    def _geometry(self):
+        ...
 
 class SegmentationOverlay(Drawing):
     def __init__(self, name, radius, thickness):
