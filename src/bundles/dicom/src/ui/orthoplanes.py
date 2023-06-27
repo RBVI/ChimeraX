@@ -263,6 +263,7 @@ class PlaneViewer(QWindow):
     def _redraw(self, *_):
         self.render()
 
+    #region drawing info
     def drawingOrigin(self):
         return self.drawingParentVolume().data.dicom_data.origin()
 
@@ -279,6 +280,7 @@ class PlaneViewer(QWindow):
 
     def drawingBounds(self):
         return self.view.drawing.bounds()
+    #endregion 
 
     def exposeEvent(self, event):
         if self.isExposed() and not self.session.update_loop.blocked():
@@ -650,6 +652,7 @@ class PlaneViewer(QWindow):
     def update_dimensions(self, dimensions):
         self.dimensions = dimensions
 
+    #region index getters and setters
     @property
     def axial_index(self):
         return self._plane_indices[Axis.AXIAL]
@@ -688,6 +691,7 @@ class PlaneViewer(QWindow):
             self.vertical_slice_overlay.slice = -index
         if self.axis == Axis.CORONAL:
             self.vertical_slice_overlay.slice = index
+    #endregion
 
     def _surfaceChosen(self, *args):
         # TODO: Create a copy of the parent study just for rendering in the orthoplane windows?
