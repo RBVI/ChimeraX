@@ -262,6 +262,8 @@ touch CONDA_READY
     cmds = f'''  
 # setup template search
 set -e
+# Avoid updating conda since it can break openmm install. ChimeraX bug #9265.
+conda config --set auto_update_conda false
 conda install -y -q -c conda-forge -c bioconda kalign2=2.04 hhsuite=3.3.0 python={python_version} 2>&1 1>/dev/null
 touch HH_READY
 '''
