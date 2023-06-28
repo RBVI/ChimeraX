@@ -259,6 +259,8 @@ class ModelPanel(ToolInstance):
                     but.color_pause.connect(log_delayed_cmd)
                     but.set_color(bg_color)
                     self.tree.setItemWidget(item, self.COLOR_COLUMN, but)
+            if len(name) > 30:
+                item.setToolTip(self.NAME_COLUMN, name)
                 
                     
                 
@@ -299,6 +301,8 @@ class ModelPanel(ToolInstance):
             self.tree.resizeColumnToContents(i)
         self.tree.blockSignals(False)
         self.simply_changed_models = set()
+        name_width = self.tree.sizeHintForColumn(self.NAME_COLUMN)
+        self.tree.setColumnWidth(self.NAME_COLUMN, min(max(200, name_width), 400))
 
         self._frame_drawn_handler = None
         from chimerax.core.triggerset import DEREGISTER
