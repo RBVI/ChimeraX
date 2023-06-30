@@ -344,11 +344,8 @@ def surface_cmds(session):
     import math
     cmds = []
     for s in all_atomic_structures(session):
-        if s.num_atoms < 250000:
-            grid_size = min(2.5, max(0.5, math.log10(s.num_atoms) - 2.5))
-            cmds.append("surface %s enclose %s grid %g sharp true" % (s.atomspec, s.atomspec, grid_size))
-        else:
-            cmds.append("surface %s enclose %s resolution 18 grid 6" % (s.atomspec, s.atomspec))
+        grid_size = min(2.0, max(0.3, math.log10(s.num_atoms) - 3.2))
+        cmds.append("surface %s enclose %s grid %g sharp true" % (s.atomspec, s.atomspec, grid_size))
     return cmds
 
 def volume_cleanup_cmds(session, contour_cmds=None):
