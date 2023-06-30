@@ -71,6 +71,11 @@ class PlaneViewerManager:
             viewer.segmentation_tool = None
         self.have_seg_tool = False
 
+    def segmentation_tool(self):
+        if not self.have_seg_tool:
+            return None
+        return self.axes[Axis.AXIAL].segmentation_tool
+
     def toggle_guidelines(self):
         if self.axes[Axis.AXIAL].guidelines_visible:
             log_equivalent_command(self.session, "dicom view orthoplanes guidelines false")

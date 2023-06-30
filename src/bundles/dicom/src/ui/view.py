@@ -54,6 +54,9 @@ class FourPanelView(QWidget):
 
     def segmentation_tool_open(self):
         return self._orthoplane_manager.have_seg_tool
+    
+    def segmentation_tool(self):
+        return self._orthoplane_manager.segmentation_tool()
 
     def convert_to_layout(self, layout: str = None):
         if self._view_layout == layout:
@@ -162,3 +165,8 @@ class FourPanelView(QWidget):
         self._main_widget.addWidget(self._viewContainerWidget)
         self._main_widget.setSizes([100,2])
         self.setLayout(self._main_layout)
+
+    def clean_up(self) -> None:
+        """Get everything back to normal before we go back to the default view."""
+        if self.segmentation_tool_open():
+            self.segmentation_tool().delete()
