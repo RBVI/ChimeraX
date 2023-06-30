@@ -2233,6 +2233,10 @@ def text_image_rgba(text, color, size, font, background_color = None, xpad = 0, 
     #       Right bearing of rightmost character was positive, so does not extend right.
     #       Use pad option to add some pixels to avoid clipped text.
     tw, th = r.width(), r.height()  # pixels
+    from sys import platform
+    if platform == 'linux':
+        tw += 4  # With Qt 6.4 on Linux text width is too small.  ChimeraX bug #9263
+
     if pixels:
         iw, ih = tw+2*xbuf, size
     else:

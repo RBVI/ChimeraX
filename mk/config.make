@@ -89,6 +89,12 @@ else
 APP_FILENAME = $(APP_NAME).app
 endif
 CHIMERAX_APP = $(wildcard $(TOP)/ChimeraX*.app)
+ifeq ($(CHIMERAX_APP),)
+# If automatic discovery fails, use a default value so that other 
+# rules that depend on subdir existence checks don't point at 
+# say /bin/chimerax instead
+CHIMERAX_APP = $(TOP)/ChimeraX.app
+endif
 ifeq ($(OS),Windows)
 CHIMERAX_EXE = $(CHIMERAX_APP)/bin/ChimeraX.exe
 endif
