@@ -241,7 +241,7 @@ class PlaneViewer(QWindow):
             # TODO: Convert this object to use the Volume and not the VolumeImage?
             # TODO: Add an API to Volume and Grid to get underlying data?
             # TODO: DICOM, NRRD, and NIfTI need mutually compatible methods
-            if not self.view.drawing.parent.data.dicom_data.inferior_to_superior:
+            if not self.view.drawing.parent.data.inferior_to_superior():
                 diff = -diff
         self.camera_offsets[self.axis] -= diff * self.drawingVolumeStep()[self.axis]
         # TODO: Set the segmentation drawing's position to coincide with the new slice
@@ -265,7 +265,7 @@ class PlaneViewer(QWindow):
 
     #region drawing info
     def drawingOrigin(self):
-        return self.drawingParentVolume().data.dicom_data.origin()
+        return self.drawingParentVolume().data.origin
 
     def drawingParentVolume(self, drawing = None):
         if drawing:

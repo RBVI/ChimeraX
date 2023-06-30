@@ -437,7 +437,7 @@ class DicomData:
         self._num_times = None
         self.image_series = True
         self.contour_series = False
-        if any([f.SOPClassUID == '1.2.840.10008.5.1.4.1.1.481.3' for f in files]):
+        if any([f.SOPClassUID == pydicom.uid.RTStructureSetStorage for f in files]):
             self.image_series = False
             self.contour_series = True
         if not any([f.get("PixelData") for f in files]):

@@ -15,7 +15,8 @@ from Qt.QtWidgets import (
     , QWidget, QLabel, QDialog, QDialogButtonBox
     , QPushButton, QAction, QComboBox
     , QStackedWidget, QSizePolicy, QCheckBox
-    , QListWidget, QListWidgetItem
+    , QListWidget, QListWidgetItem, QFileDialog
+    , QAbstractItemView
 )
 
 from chimerax.ui.widgets import ModelMenu
@@ -37,6 +38,7 @@ class SegmentationListItem(QListWidgetItem):
         self.setText(self.segmentation.name)
 
 class SegmentationTool(ToolInstance):
+    # TODO: Sphere cursor for 2D, extend to VR
 
     help = "help:user/tools/segmentations.html"
     SESSION_ENDURING = True
@@ -57,14 +59,10 @@ class SegmentationTool(ToolInstance):
         self.view_dropdown_layout = QHBoxLayout()
         self.view_dropdown_label = QLabel("View Layout")
         self.view_dropdown = QComboBox(self.parent)
-        # TODO: Decide what to do when the tool starts up and VR isn't on, or
-        # orthoplanes aren't shown
         self.view_dropdown.addItem("4 x 4 (Desktop)")
         self.view_dropdown.addItem("3D Over Orthoplanes (Desktop)")
         self.view_dropdown.addItem("3D Beside Orthoplanes (Desktop)")
         self.view_dropdown.addItem("3D Only (VR)")
-        #if self.session.ui.main_window.view_layout == "fourup":
-        #    self.view_dropdown.setCurrentIndex(1)
         self.view_dropdown.currentIndexChanged.connect(self._on_view_changed)
         self.view_dropdown_layout.addWidget(self.view_dropdown_label)
         self.view_dropdown_layout.addWidget(self.view_dropdown, 1)
@@ -96,17 +94,24 @@ class SegmentationTool(ToolInstance):
 
         self.add_remove_save_container = QWidget()
         self.add_remove_save_layout = QHBoxLayout()
-        self.add_seg_button = QPushButton("Add Segmentation")
-        self.remove_seg_button = QPushButton("Remove Segmentation")
-        self.save_seg_button = QPushButton("Save Segmentation")
+        self.add_seg_button = QPushButton("Add")
+        self.remove_seg_button = QPushButton("Remove")
+        self.edit_seg_metadata_button = QPushButton("Edit")
+        self.save_seg_button = QPushButton("Save")
+        self.help_button = QPushButton("Help")
 
         self.add_remove_save_layout.addWidget(self.add_seg_button)
         self.add_remove_save_layout.addWidget(self.remove_seg_button)
+        self.add_remove_save_layout.addWidget(self.edit_seg_metadata_button)
         self.add_remove_save_layout.addWidget(self.save_seg_button)
+        self.add_remove_save_layout.addStretch()
+        self.add_remove_save_layout.addWidget(self.help_button)
         self.add_remove_save_container.setLayout(self.add_remove_save_layout)
         self.add_seg_button.clicked.connect(self.addSegment)
         self.remove_seg_button.clicked.connect(self.removeSegment)
         self.save_seg_button.clicked.connect(self.saveSegment)
+        self.edit_seg_metadata_button.clicked.connect(self.editSegmentMetadata)
+        self.help_button.clicked.connect(self.showHelp)
 
         self.add_remove_save_layout.setContentsMargins(0, 0, 0, 0)
         self.add_remove_save_layout.setSpacing(0)
@@ -118,8 +123,8 @@ class SegmentationTool(ToolInstance):
         self.segmentation_list = QListWidget(parent = self.parent)
         self.segmentation_list.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.MinimumExpanding)
         self.segmentation_list.currentItemChanged.connect(self._on_active_segmentation_changed)
-        self.main_layout.addWidget(self.add_remove_save_container)
         self.main_layout.addWidget(self.segmentation_list_label)
+        self.main_layout.addWidget(self.add_remove_save_container)
         self.main_layout.addWidget(self.segmentation_list)
 
         self.main_layout.addStretch()
@@ -136,6 +141,9 @@ class SegmentationTool(ToolInstance):
 
         self.session.models.add(self.segmentation_cursors.values())
         # TODO: Maybe just force the view to fourup when this tool opens?
+        # TODO: if session.ui.vr_active or something, do this
+        if not self.session.ui.main_window.view_layout == "fourup":
+            run(self.session, "dicom view orthoplanes")
         if self.session.ui.main_window.view_layout == "fourup":
             self.session.ui.main_window.main_view.register_segmentation_tool(self)
         self._surface_chosen()
@@ -157,9 +165,8 @@ class SegmentationTool(ToolInstance):
                 for d in self.model_menu.value._child_drawings:
                     if type(d) is VolumeImage:
                         new_drawing = d
-                    medical_image_data = new_model.data.dicom_data
                     for axis, puck in self.segmentation_cursors.items():
-                        puck.height = medical_image_data.pixel_spacing()[axis]
+                        puck.height = new_model.data.pixel_spacing()[axis]
                         # Set by orthoplanes.py
                         #puck.origin = [x for x in medical_image_data.origin()]
             self.reference_model = new_drawing
@@ -282,7 +289,7 @@ class SegmentationTool(ToolInstance):
     def addSegment(self):
         # TODO: Create an empty DICOM Volume and add it to both
         # the reference_model's child drawings and the
-        new_seg = DicomSegmentation(self.reference_model.parent.data.dicom_data, number = self.num_segmentations_created + 1)
+        new_seg = self.reference_model.parent.data.segment(number = self.num_segmentations_created + 1)
         self.num_segmentations_created += 1
         new_seg_model = open_grids(self.session, [new_seg], name = "new segmentation")[0]
         self.session.models.add(new_seg_model)
@@ -308,18 +315,13 @@ class SegmentationTool(ToolInstance):
             segments = None
         if segments is None:
             segments = self.segmentation_list.selectedItems()
-        if len(segments) == 1:
-            sd = SaveDialog(self.session, parent=self.tool_window.ui_area)
-            sd.setNameFilter("DICOM (*.dcm)")
-            if not sd.exec():
-                return
-            filename = sd.selectedFiles()[0]
-            if not filename.endswith(".dcm"):
-                filename += ".dcm"
-            self.active_seg.data.save(filename)
-        else:
-            # Pick a directory, programmatically save names
-            ...
+        sd = SaveDialog(self.session, parent=self.tool_window.ui_area)
+        sd.setNameFilter("DICOM (*.dcm)")
+        sd.setDefaultSuffix("dcm")
+        if not sd.exec():
+            return
+        filename = sd.selectedFiles()[0]
+        self.active_seg.data.save(filename)
 
     def setActiveSegment(self, segment):
         self.active_seg = segment
@@ -362,3 +364,12 @@ class SegmentationTool(ToolInstance):
         offsets = self.segmentation_cursors[axis].origin
         offsets[axis] = offset
         self.segmentation_cursors[axis].origin = offsets
+
+    def showHelp(self, _) -> None:
+        run(self.session, "help segmentations")
+    
+    def _on_edit_window_ok(self) -> None:
+        pass
+
+    def editSegmentMetadata(self, _) -> None:
+        pass
