@@ -59,8 +59,8 @@ def alphafold_contacts(session, residues, to_residues = None, distance = 3,
         palette = BuiltinColormaps['paecontacts']
 
     # Adjust palette range
-    if range is not None and range != 'full':
-        palette = palette.rescale_range(range[0], range[1], full = True)
+    from chimerax.core.colors import colormap_with_range
+    palette = colormap_with_range(palette, range, full_range = (0,30))
 
     g = s.pseudobond_group(name)
     if replace:
