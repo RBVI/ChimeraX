@@ -466,8 +466,11 @@ class PlaneViewer(QWindow):
                 self.context_menu = None
         if b & Qt.MouseButton.RightButton:
             self.context_menu_coords = self.widget.mapToGlobal(event.pos())
+            if self.segmentation_tool and self.segmentation_overlay.display:
+                self.segmentation_overlay.display = False
         if b & Qt.MouseButton.MiddleButton:
-            pass
+            if self.segmentation_tool and self.segmentation_overlay.display:
+                self.segmentation_overlay.display = False
         if b & Qt.MouseButton.LeftButton:
             if self.segmentation_tool:
                 x, y = event.position().x(), event.position().y()
@@ -475,6 +478,9 @@ class PlaneViewer(QWindow):
 
     def mouseReleaseEvent(self, event): # noqa
         b = event.button() | event.buttons()
+        modifier = event.modifiers()
+        self.segmentation_overlay.center = (self.scale * event.position().x(), self.scale * (self.view.window_size[1] - event.position().y()), 0)
+        self.segmentation_overlay.update()
         if b & Qt.MouseButton.RightButton:
             if self.shouldOpenContextMenu():
                 from Qt.QtWidgets import QMenu, QAction
@@ -488,9 +494,6 @@ class PlaneViewer(QWindow):
                 self.mouse_moved_during_right_click = False
             self.mouse_moved_during_right_click = False
         if b & Qt.MouseButton.LeftButton:
-            modifier = event.modifiers()
-            self.segmentation_overlay.center = (self.scale * event.position().x(), self.scale * (self.view.window_size[1] - event.position().y()), 0)
-            self.segmentation_overlay.update()
             if self.segmentation_tool:
                 if modifier == Qt.KeyboardModifier.ShiftModifier:
                     self.segmentation_tool.removeMarkersFromSegment(self.axis, self.pos, self.current_segmentation_overlays)
@@ -500,6 +503,8 @@ class PlaneViewer(QWindow):
                 self.current_segmentation_overlays = []
             self.view.camera.redraw_needed = True
         self.last_mouse_position = None
+        if self.segmentation_tool:
+            self.segmentation_overlay.display = True
 
     def resize3DSegmentationCursor(self):
         """Resize the 3D segmentation cursor based on the size of the 2D segmentation overlay."""
