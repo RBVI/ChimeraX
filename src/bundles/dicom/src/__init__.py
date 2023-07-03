@@ -12,29 +12,42 @@
 # === UCSF ChimeraX Copyright ===
 __version__ = "1.2"
 from chimerax.core.toolshed import BundleAPI
-from chimerax.map import add_map_format
+# from chimerax.map import add_map_format
 from chimerax.core.tools import get_singleton
-
 from .dicom import (
     DICOMMapFormat, DicomOpener, fetchers,
     DICOMBrowserTool, DICOMDatabases
 )
 
-
 class _DICOMBundle(BundleAPI):
     api_version = 1
 
-    @staticmethod
-    def initialize(session, bundle_info):
-        """Register file formats, commands, and database fetch."""
-        add_map_format(session, DICOMMapFormat())
+    #@staticmethod
+    #def initialize(session, bundle_info):
+    #    """Register file formats, commands, and database fetch."""
+    #    add_map_format(session, DICOMMapFormat())
 
     @staticmethod
     def start_tool(session, bi, ti):
         if ti.name == "DICOM Browser":
             return get_singleton(session, DICOMBrowserTool, "DICOM Browser")
+        elif ti.name == "Segmentations":
+            from .ui.segmentations import SegmentationTool
+            return SegmentationTool(session)
         else:
             return DICOMDatabases(session)
+
+    @staticmethod
+    def register_command(bi, ci, logger):
+        if ci.name == "dicom view":
+            from .cmd.view import register_view_cmds
+            register_view_cmds(logger)
+        elif ci.name == "dicom segmentations":
+            from .cmd.segmentations import register_seg_cmds
+            register_seg_cmds(logger)
+        #elif ci.name == "monailabel":
+        #    from .monailabel import register_cmds
+        #    register_cmds(logger)
 
     @staticmethod
     def run_provider(session, name, mgr, **kw):

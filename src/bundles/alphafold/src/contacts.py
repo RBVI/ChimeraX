@@ -13,7 +13,7 @@
 
 # -----------------------------------------------------------------------------
 #
-def alphafold_contacts(session, residues, to_residues = None, distance = 3,
+def alphafold_contacts(session, residues, to_residues = None, distance = 3, max_pae = None,
                        flip = False, palette = None, range = None, radius = 0.2, dashes = 1,
                        name = 'PAE Contacts', replace = True, output_file = None,
                        method = 'alphafold'):
@@ -59,17 +59,30 @@ def alphafold_contacts(session, residues, to_residues = None, distance = 3,
         palette = BuiltinColormaps['paecontacts']
 
     # Adjust palette range
-    if range is not None and range != 'full':
-        palette = palette.rescale_range(range[0], range[1], full = True)
+    from chimerax.core.colors import colormap_with_range
+    palette = colormap_with_range(palette, range, full_range = (0,30))
 
     g = s.pseudobond_group(name)
     if replace:
         # Delete old pseudobonds
         g.pseudobonds.delete()
     g.dashes = dashes
+
+    # Get pairs of close residues
+    rpairs = _close_residue_pairs(residues, to_residues, distance)
+
+    # Get pae values
+    if flip:
+        pae_values = [pae.value(r2,r1) for r1, r2 in rpairs]
+    else:
+        pae_values = [pae.value(r1,r2) for r1, r2 in rpairs]
+
+    # Show only contacts below max pae value.
+    if max_pae != None:
+        rpairs = [rpairs[i] for i,pae in enumerate(pae_values) if pae <= max_pae]
+        pae_values = [pae for pae in pae_values if pae <= max_pae]
         
     # Create pseudobonds between close residues
-    rpairs = _close_residue_pairs(residues, to_residues, distance)
     pblist = []
     for r1, r2 in rpairs:
         a1, a2 = r1.find_atom('CA'), r2.find_atom('CA')
@@ -80,10 +93,6 @@ def alphafold_contacts(session, residues, to_residues = None, distance = 3,
     pbonds = Pseudobonds(pblist)
 
     # Color pseudobonds
-    if flip:
-        pae_values = [pae.value(r2,r1) for r1, r2 in rpairs]
-    else:
-        pae_values = [pae.value(r1,r2) for r1, r2 in rpairs]
     pbonds.colors = palette.interpolated_rgba8(pae_values)
 
     if output_file is not None:
@@ -121,6 +130,7 @@ def contacts_command_description():
         required = [('residues', ResiduesArg)],
         keyword = [('to_residues', ResiduesArg),
                    ('distance', FloatArg),
+                   ('max_pae', FloatArg),
                    ('flip', BoolArg),
                    ('palette', ColormapArg),
                    ('range', ColormapRangeArg),

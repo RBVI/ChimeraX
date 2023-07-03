@@ -30,6 +30,7 @@ Thumbs.db
 # Test files
 .coverage
 *htmlcov
+debugging_scripts
 #
 errs*
 build

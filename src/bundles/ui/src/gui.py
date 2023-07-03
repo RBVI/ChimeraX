@@ -555,6 +555,8 @@ class MainWindow(QMainWindow, PlainTextLog):
             self.graphicsArea().show()
 
     def restore_default_main_view(self):
+        if hasattr(self.main_view, "clean_up"):
+            self.main_view.clean_up()
         self.main_view = self._backup_main_view
         self.view_layout = "default"
 

@@ -142,15 +142,14 @@ class _BaseTool(HtmlToolInstance):
                     numeric_list.append(None)
                 else:
                     try:
-                        numeric_list.append(int(datum))
+                        if int(datum) == datum:
+                            numeric_list.append(int(datum))
+                        else:
+                            numeric_list.append(float(datum))
                         num_numeric += 1
                     except ValueError:
-                        try:
-                            numeric_list.append(float(datum))
-                            num_numeric += 1
-                        except ValueError:
-                            numeric_list.append(None)
-                            num_text += 1
+                        numeric_list.append(None)
+                        num_text += 1
                 text_list.append(datum)
             if num_numeric > num_text:
                 numeric_data[category] = numeric_list
