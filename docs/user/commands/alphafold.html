@@ -752,6 +752,12 @@ align="center"><font size="-1">25</font></td>
 align="center"><font size="-1">30</font></td>
 </tr></table>
 <p>
+Although these palettes include value-color pairs, it may be helpful
+to give a value <a href="color.html#range"><b>range</b></a>
+if a colors-only palette is used instead (default <b>0,30</b>).
+A range can also be used to override the values in a value-color palette,
+instead spacing the colors evenly across the specified range.
+</p><p>
 The plot window has a 
 <a href="../tools/alphafold.html#context">context menu</a>
 with options for recoloring the plot and 
@@ -800,6 +806,7 @@ Residue-residue <a href="#pae">PAE values</a> can also be shown with colored
 [&nbsp;<b>toResidues</b>&nbsp;&nbsp;<a href="atomspec.html"><i>res-spec2</i></a>&nbsp;
 [&nbsp;<b>flip</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>distance</b>&nbsp;&nbsp;<i>d</i>&nbsp;]
+[&nbsp;<b>maxPae</b>&nbsp;&nbsp;<i>max-error</i>&nbsp;]
 [&nbsp;<a href="color.html#palette-options"><b>palette</b></a>&nbsp;&nbsp;<i>palette</i>&nbsp;]
 [&nbsp;<a href="color.html#palette-options"><b>range</b></a>&nbsp;&nbsp;<i>low,high</i>&nbsp;|&nbsp;full&nbsp;]
 [&nbsp;<b>radius</b>&nbsp;&nbsp;<i>r</i>&nbsp;]
@@ -843,11 +850,14 @@ includes all residues in the plot,
 <a href="atomspec.html"><i>res-spec2</i></a>
 will also be defined as all residues in the plot.
 </p><p>
-The <b>distance</b> option allows limiting the number of 
+The <b>distance</b> option limits the number of 
 <a href="../pseudobonds.html">pseudobonds</a> by 
 only drawing them between pairs of residues with any interresidue distance
 &le; <i>d</i> &Aring; (default <b>3.0</b>). These pseudobonds are drawn between
 &alpha;-carbons regardless of which atoms were within the distance cutoff.
+The <b>maxPae</b> option can be used to further limit the pseudobonds
+to only those representing PAE values &le; <i>max-error</i>
+(no default value; if the option is omitted, there is no restriction by PAE).
 </p><p>
 The default <a href="color.html#palette-options"><b>palette</b></a> for
 coloring the pseudobonds by <a href="#pae">PAE value</a> is <b>paecontacts</b>,
@@ -869,7 +879,7 @@ align="center"><font size="-1">20</font></td>
 <p>
 Although this palette includes value-color pairs, it may be helpful
 to give a value <a href="color.html#range"><b>range</b></a>
-if a colors-only palette is used instead.
+if a colors-only palette is used instead (default <b>0,30</b>).
 A range can also be used to override the values in a value-color palette,
 instead spacing the colors evenly across the specified range.
 </p><p>
@@ -909,5 +919,5 @@ numbers of the residues that they connect:
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-May 2023</address>
+July 2023</address>
 </body></html>
