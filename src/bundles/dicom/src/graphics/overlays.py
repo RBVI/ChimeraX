@@ -146,6 +146,8 @@ class SegmentationOverlay(Drawing):
 
     @radius.setter
     def radius(self, radius):
+        if radius <= 0:
+            radius = 1
         self._radius = radius
 
     def update(self):
