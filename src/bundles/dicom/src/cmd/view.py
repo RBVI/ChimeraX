@@ -11,21 +11,21 @@ from ..ui.segmentations import SegmentationTool
 
 medical_types = [DicomGrid, NiftiGrid, NRRDGrid]
 
-def dicom_view(session, arg, layout: str = None, guidelines: bool = None, force = False) -> None:
+def dicom_view(session, layout: str = None, guidelines: bool = None, force = False) -> None:
     # TODO: Enable for NIfTI and NRRD as well
     open_volumes = [v for v in session.models if type(v) is Volume]
     medical_volumes = [m for m in open_volumes if type(m.data) in medical_types]
     if not force and not medical_volumes:
         session.logger.error("No medical images open")
         return
-    if arg == "default" and session.ui.main_window.view_layout != "default":
+    if layout == "default" and session.ui.main_window.view_layout != "default":
         session.ui.main_window.restore_default_main_view()
-    elif arg == "orthoplanes" and session.ui.main_window.view_layout != "fourup":
+    elif layout in views and session.ui.main_window.view_layout != "orothoplanes":
         if not layout:
             session.ui.main_window.main_view = FourPanelView(session)
         else:
             session.ui.main_window.main_view = FourPanelView(session, layout)
-        session.ui.main_window.view_layout = "fourup"
+        session.ui.main_window.view_layout = "orothoplanes"
         st = None
         for tool in session.tools:
             if type(tool) == SegmentationTool:
@@ -33,7 +33,7 @@ def dicom_view(session, arg, layout: str = None, guidelines: bool = None, force 
                 break
         if st:
             session.ui.main_window.main_view.register_segmentation_tool(st)
-    elif arg == "orthoplanes" and session.ui.main_window.view_layout == "fourup":
+    elif layout in views and session.ui.main_window.view_layout == "orothoplanes":
         if layout:
             session.ui.main_window.main_view.convert_to_layout(layout)
         if guidelines is not None:
@@ -41,10 +41,9 @@ def dicom_view(session, arg, layout: str = None, guidelines: bool = None, force 
 
 
 dicom_view_desc = CmdDesc(
-    required = [("arg", StringArg)],
+    required = [("layout", EnumOf(["default", *views]))],
     keyword = [
-        ("layout", EnumOf(views))
-        , ("guidelines", BoolArg)
+        ("guidelines", BoolArg)
     ]
     , optional = [("force", BoolArg)],
     synopsis = "Set the view window to a grid of orthoplanes or back to the default"

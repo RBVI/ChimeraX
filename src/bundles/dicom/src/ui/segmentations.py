@@ -142,9 +142,10 @@ class SegmentationTool(ToolInstance):
         self.session.models.add(self.segmentation_cursors.values())
         # TODO: Maybe just force the view to fourup when this tool opens?
         # TODO: if session.ui.vr_active or something, do this
-        if not self.session.ui.main_window.view_layout == "fourup":
-            run(self.session, "dicom view orthoplanes")
-        if self.session.ui.main_window.view_layout == "fourup":
+        if not self.session.ui.main_window.view_layout == "orthoplanes":
+        # TODO: Get this from some user preference
+            run(self.session, "dicom view fourup")
+        if self.session.ui.main_window.view_layout == "orthoplanes":
             self.session.ui.main_window.main_view.register_segmentation_tool(self)
         self._surface_chosen()
 
@@ -335,16 +336,16 @@ class SegmentationTool(ToolInstance):
     def _on_view_changed(self):
         need_to_register = False
         if self.view_dropdown.currentIndex() == 0:
-            run(self.session, "dicom view orthoplanes layout fourup")
+            run(self.session, "dicom view fourup")
             need_to_register = True
         elif self.view_dropdown.currentIndex() == 1:
-            run(self.session, "dicom view orthoplanes layout overunder")
+            run(self.session, "dicom view overunder")
             need_to_register = True
         elif self.view_dropdown.currentIndex() == 2:
-            run(self.session, "dicom view orthoplanes layout sidebyside")
+            run(self.session, "dicom view sidebyside")
             need_to_register = True
         else:
-            run(self.session, "dicom view orthoplanes")
+            run(self.session, "dicom view fourup")
         if need_to_register:
             self.session.ui.main_window.main_view.register_segmentation_tool(self)
             if self.guidelines_checkbox.isChecked():
@@ -354,7 +355,7 @@ class SegmentationTool(ToolInstance):
         self.segmentation_cursors[axis].height = height
 
     def _on_show_guidelines_checkbox_changed(self):
-        if self.session.ui.main_window.view_layout == "fourup":
+        if self.session.ui.main_window.view_layout == "orthoplanes":
             self.session.ui.main_window.main_view.register_segmentation_tool(self)
             self.session.ui.main_window.main_view.toggle_guidelines()
         # else if it's just the main window, save that the user wanted it to be displayed
@@ -367,7 +368,7 @@ class SegmentationTool(ToolInstance):
 
     def showHelp(self, _) -> None:
         run(self.session, "help segmentations")
-    
+
     def _on_edit_window_ok(self) -> None:
         pass
 
