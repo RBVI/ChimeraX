@@ -76,7 +76,7 @@ vassign(Vector u, const Vector v)
 }
 
 inline void
-vaverage(Vector u, const Vector* vs, Py_ssize_t n)
+vaverage(Vector u, const Vector* vs, size_t n)
 {
     vzero(u);
     for (auto i = 0; i != n; ++i) {
@@ -152,7 +152,7 @@ class Plane
 {
 public:
     Plane(Point origin, Normal normal);
-    Plane(const Vector* xyz, Py_ssize_t n);
+    Plane(const Vector* xyz, size_t n);
     float distance(const float xyz[3]);
 private:
     float plane[4];
@@ -174,7 +174,7 @@ Plane::distance(const float xyz[3])
     return plane[X] * xyz[X] + plane[Y] * xyz[Y] + plane[Z] * xyz[Z] + plane[D];
 }
 
-Plane::Plane(const Vector* verts, Py_ssize_t nverts)
+Plane::Plane(const Vector* verts, size_t nverts)
 {
     //
     // Constructor when given a set of points
@@ -182,7 +182,7 @@ Plane::Plane(const Vector* verts, Py_ssize_t nverts)
     // See Foley, van Dam, Feiner, and Hughes (pp. 476-477)
     // Implementation copied from Filippo Tampieri from Graphics Gems
     //
-    Py_ssize_t i;
+    size_t i;
     Point refpt;
     Normal normal;
     const float *u, *v;
@@ -247,7 +247,7 @@ offset_fill(float offset, VertexList* vertices, VertexList* normals, IndexList* 
 }
 
 static void
-fill_small_ring(const Vector* pts, Py_ssize_t n, float offset, VertexList* vertices, VertexList* normals, IndexList* triangles)
+fill_small_ring(const Vector* pts, size_t n, float offset, VertexList* vertices, VertexList* normals, IndexList* triangles)
 {
     // normals are per-vertex in ChimeraX so replicate vertex for each triangle it is in
 
@@ -509,7 +509,7 @@ fill_small_ring(PyObject *, PyObject *args, PyObject *keywds)
     IndexList triangles;
     Py_BEGIN_ALLOW_THREADS
     fill_small_ring(reinterpret_cast<const Vector*>(cvertices_in.values()),
-	    cvertices_in.size() / 3, offset, &vertices, &normals, &triangles);
+	    static_cast<size_t>(cvertices_in.size()) / 3, offset, &vertices, &normals, &triangles);
     Py_END_ALLOW_THREADS
 
     return python_tuple(

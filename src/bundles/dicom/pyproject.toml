@@ -30,7 +30,7 @@ Home = "https://www.rbvi.ucsf.edu/chimerax/"
 version = { attr = "src.__version__" }
 
 [chimerax]
-custom-init = true
+#custom-init = true
 min-session-version = 1
 max-session-version = 1
 categories = ["Medical Imaging"]
@@ -59,3 +59,37 @@ description = "View the metadata of a patient's DICOM files"
 [chimerax.tool."Download DICOM"]
 category = "Medical Imaging"
 description = "View the contents of public DICOM datasets from within ChimeraX"
+
+[chimerax.tool."Segmentations"]
+category = "Medical Imaging"
+description = "Interactively segment medical images"
+
+[chimerax.command."dicom view"]
+category = "Medical Imaging"
+description = "See medical images in a 4-panel viewer"
+
+[chimerax.command."dicom segmentations"]
+category = "Medical Imaging"
+description = "Create or destory segmentations"
+
+# TL;DR Do not modify monailabel.py to register this command
+# ----
+# This has to be here or else ChimeraX complains that the next three commands are
+# 'incomplete', but it is not intended to be registered as the logic for that command
+# would be very complex, with many arguments that would have to be listed but couldn't
+# be concisely shown to be mutually exclusive (blame the CLI from the tool).
+#[chimerax.command."monailabel"]
+#category = "Medical Imaging"
+#description = "Work with monailabel from within ChimeraX"
+#
+#[chimerax.command."monailabel apps"]
+#category = "Medical Imaging"
+#description = "Work with monailabel apps from within ChimeraX"
+#
+#[chimerax.command."monailabel datasets"]
+#category = "Medical Imaging"
+#description = "Work with monailabel apps from within ChimeraX"
+#
+#[chimerax.command."monailabel server"]
+#category = "Medical Imaging"
+#description = "Start or stop a monailabel server"
