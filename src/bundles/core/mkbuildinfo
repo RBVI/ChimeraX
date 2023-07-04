@@ -18,14 +18,15 @@ import os
 # (because subprocess imports selectors, and we have a selectors too).
 del sys.path[0]
 
-git_info = ["git", "show", "--summary", "--date=iso"]
+git_info = ["git", "show", "--summary", "--date=iso", "--pretty=fuller"]
 '''
-commit 245c04b9b45ec91a2772fc9d7c89d5ea0cb857af
-Merge: e9b4c21 1889ee2
-Author: Tom Goddard <goddard@sonic.net>
-Date:   2016-01-11 19:04:43 -0800
+commit 3f139c4ae58e2393bfea57ce1ff22c010f6c28bf (HEAD -> develop, origin/develop)
+Author:     Zach Pearson <zjp@cgl.ucsf.edu>
+AuthorDate: 2023-07-03 11:17:54 -0700
+Commit:     Zach Pearson <zjp@cgl.ucsf.edu>
+CommitDate: 2023-07-03 11:17:54 -0700
 
-    Merge branch 'develop' of plato.cgl.ucsf.edu:/usr/local/projects/chimerax/git/chimerax into develop
+    Hide the seg brush overlay if we're zooming in/out or moving the slice
 
 
 '''
@@ -43,7 +44,7 @@ def _extract(file, branch=None):
         if line.startswith('commit'):
             commit = line.split()[-1]
             continue
-        if line.startswith('Date:'):
+        if line.startswith('CommitDate:'):
             tokens = line.split()
             # 2012-01-31 16:49:23 -0800
             # convert to UTC
