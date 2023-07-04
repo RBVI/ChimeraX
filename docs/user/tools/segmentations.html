@@ -50,18 +50,43 @@ See also:
 <a href="../dicom-quickref.html">ChimeraX DICOM Reference</a>,
 <a href="https://www.rbvi.ucsf.edu/chimerax/dicom/index.html"
 target="_blank">ChimeraX for Medical Image Analysis</a>
+</p><p>
+The <b>Segmentations</b> tool can be started
+from the <b>Medical Imaging</b> section of the <b>Tools</b> menu
+(<a href="../window.html#panels">more...</a>). The medical-image
+display is automatically changed to a four-panel view with axial,
+coronal, and sagittal slices along with a 3D rendering (see 
+<a href="../commands/dicom.html#navigation">slice navigation</a>).
+</p>
+
+<a name="editing"></a>
+<p class="nav">
+[<a href="#top">back to top: Segmentations</a>]
+</p>
+<h3>Creating and Editing Segmentations</h3>
+<p>
+Segmentation models (if any) are listed in the dialog. 
+Clicking <b>Add</b> creates a new segmentation model, and any
+segmentation in the list can be can be chosen (highlighted) by mouseclick.
+The currently highlighted segmentation is the one that will be populated
+using the segmentation cursor in the slice views. 
+</p><p>
+Clicking <b>Remove</b> deletes the chosen segmentation. <b>Edit</b> allows
+editing the metadata associated with the segmentation model, and <b>Save</b>
+saves it as <a href="../dicom/dicom.html">DICOM</a> with the SEG modality.
+</p><p>
+The segmentation cursor is shown as a red circle; 
+left mouse click-drag sweeps out an area in the currently displayed 
+data plane, whereas additionally pressing Shift erases the corresponding area 
+from the segmentation. Shift-scroll adjusts the segmentation cursor size.
 </p>
 
 <a name="dialog"></a>
 <p class="nav">
 [<a href="#top">back to top: Segmentations</a>]
 </p>
-<h3>Dialog</h3>
+<h3>Dialog Settings</h3>
 <p>
-<b>Segmentations</b> can be started
-from the <b>Medical Imaging</b> section of the <b>Tools</b> menu
-(<a href="../window.html#panels">more...</a>).
-</p><p>
 [under construction]
 </p>
 
