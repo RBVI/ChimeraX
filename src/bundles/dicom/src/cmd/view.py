@@ -33,6 +33,8 @@ def dicom_view(session, layout: str = None, guidelines: bool = None, force = Fal
                 break
         if st:
             session.ui.main_window.main_view.register_segmentation_tool(st)
+        if guidelines:
+            session.ui.main_window.main_view.set_guideline_visibility(guidelines)
     elif layout in views and session.ui.main_window.view_layout == "orothoplanes":
         if layout:
             session.ui.main_window.main_view.convert_to_layout(layout)
