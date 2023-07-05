@@ -170,7 +170,7 @@ class SegmentationTool(ToolInstance):
                         puck.height = new_model.data.pixel_spacing()[axis]
                         # Set by orthoplanes.py
                         #puck.origin = [x for x in medical_image_data.origin()]
-            self.reference_model = new_drawing
+                self.reference_model = new_drawing
         except AttributeError: # No more volumes!
             pass
 
