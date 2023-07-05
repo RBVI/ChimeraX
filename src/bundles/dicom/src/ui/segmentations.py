@@ -150,7 +150,8 @@ class SegmentationTool(ToolInstance):
         self._surface_chosen()
 
     def delete(self):
-        self.session.ui.main_window.main_view.clear_segmentation_tool()
+        if self.session.ui.main_window.view_layout == "orthoplanes":
+            self.session.ui.main_window.main_view.clear_segmentation_tool()
         self.session.models.remove(self.segmentation_cursors.values())
         super().delete()
 
