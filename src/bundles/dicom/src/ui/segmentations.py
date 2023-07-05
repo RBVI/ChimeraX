@@ -152,7 +152,12 @@ class SegmentationTool(ToolInstance):
     def delete(self):
         if self.session.ui.main_window.view_layout == "orthoplanes":
             self.session.ui.main_window.main_view.clear_segmentation_tool()
-        self.session.models.remove(self.segmentation_cursors.values())
+        # When a session is closed, models are deleted before tools, so we need to
+        # fail gracefully if the models have already been deleted
+        try:
+            self.session.models.remove(self.segmentation_cursors.values())
+        except TypeError:
+            pass
         super().delete()
 
     def _surface_chosen(self, *args):
