@@ -39,7 +39,8 @@ The <b>dicom</b> command has two subcommands:
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br>
 <b>dicom &nbsp;view</b>
-(&nbsp;<b>default</b>&nbsp;|&nbsp;fourup&nbsp;|&nbsp;overunder&nbsp;|&nbsp;sidebyside&nbsp;]
+(&nbsp;<b>default</b>&nbsp;|&nbsp;fourup&nbsp;|&nbsp;overunder&nbsp;|&nbsp;sidebyside&nbsp;)
+[&nbsp;<b>guidelines</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 </h3>
 <p>
 The command <b>dicom view</b> sets the layout of medical image display,
@@ -60,6 +61,10 @@ views arranged horizontally across the bottom
 <li><b>sidebyside</b> &ndash; 3D view on the left, the three orthogonal slice
 views arranged vertically on the right
 </ul>
+<p>
+The <b>guidelines</b> option controls whether each slice view should
+contain crosshairs showing the positions of the other slice views.
+</p>
 
 <a name="navigation"></a>
 <p class="nav">
@@ -75,7 +80,7 @@ optionally + Shift for faster movement:
 <li>letters A and D
 <li>left and right arrow keys
 </ul>
-<!-- slice zoom/trans should honor zoom/trans mousemode assignments -->
+<!-- tickets #9147 #9303 honor zoom + translation mousemode assignments -->
 
 <p>
 See also: 
