@@ -77,10 +77,11 @@ class PlaneViewerManager:
         return self.axes[Axis.AXIAL].segmentation_tool
 
     def toggle_guidelines(self):
+        layout = self.session.ui.main_window.main_view.view_layout()
         if self.axes[Axis.AXIAL].guidelines_visible:
-            log_equivalent_command(self.session, "dicom view orthoplanes guidelines false")
+            log_equivalent_command(self.session, f"dicom view {layout} guidelines false")
         else:
-            log_equivalent_command(self.session, "dicom view orthoplanes guidelines true")
+            log_equivalent_command(self.session, f"dicom view {layout} guidelines true")
         for viewer in self.axes.values():
             viewer.setGuidelineVisibility(not viewer.guidelines_visible)
 
