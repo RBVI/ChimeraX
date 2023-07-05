@@ -348,9 +348,12 @@ class SegmentationTool(ToolInstance):
         else:
             run(self.session, "dicom view fourup")
         if need_to_register:
-            self.session.ui.main_window.main_view.register_segmentation_tool(self)
-            if self.guidelines_checkbox.isChecked():
-                self.session.ui.main_window.main_view.toggle_guidelines()
+            if self.session.ui.main_window.view_layout == "orthoplanes":
+                # If no models are open we will not successfully change the view, so 
+                # we need to check the view layout before continuing! 
+                self.session.ui.main_window.main_view.register_segmentation_tool(self)
+                if self.guidelines_checkbox.isChecked():
+                    self.session.ui.main_window.main_view.toggle_guidelines()
 
     def setPuckHeight(self, axis, height):
         self.segmentation_cursors[axis].height = height
