@@ -70,7 +70,7 @@ contain crosshairs showing the positions of the other slice views.
 <p class="nav">
 [<a href="#top">back to top: dicom</a>]
 </p>
-<h3>Slice Navigation</h3>
+<h3>Slice Navigation and Manipulation</h3>
 <p>
 Each slice view has a slider for navigating through the data planes
 along the corresponding axis. Alternatively, the following keys can be used,
@@ -80,7 +80,14 @@ optionally + Shift for faster movement:
 <li>letters A and D
 <li>left and right arrow keys
 </ul>
-<!-- tickets #9147 #9303 honor zoom + translation mousemode assignments -->
+<p>
+The 3D view occupies the regular graphics window, and uses the
+current <a href="ui.html#mousemode">mousemode assignments</a>.
+The three slice views do not rotate,
+but their zooming and translation also follow the 
+current <a href="ui.html#mousemode">mousemode assignments</a>.
+</p>
+<!-- #9147 #9303 honor zoom/trans mousemodes, make trackpad equivalents work -->
 
 <p>
 See also: 
