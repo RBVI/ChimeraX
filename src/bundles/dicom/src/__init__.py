@@ -12,20 +12,28 @@
 # === UCSF ChimeraX Copyright ===
 __version__ = "1.2"
 from chimerax.core.toolshed import BundleAPI
-# from chimerax.map import add_map_format
+from chimerax.map import add_map_format
 from chimerax.core.tools import get_singleton
 from .dicom import (
     DICOMMapFormat, DicomOpener, fetchers,
-    DICOMBrowserTool, DICOMDatabases
+    DICOMBrowserTool, DICOMDatabases, Patient, Study
 )
 
 class _DICOMBundle(BundleAPI):
     api_version = 1
 
-    #@staticmethod
-    #def initialize(session, bundle_info):
-    #    """Register file formats, commands, and database fetch."""
-    #    add_map_format(session, DICOMMapFormat())
+    @staticmethod
+    def initialize(session, bundle_info):
+        """Register file formats, commands, and database fetch."""
+        add_map_format(session, DICOMMapFormat())
+
+    @staticmethod
+    def get_class(class_name):
+        class_names = {
+            'Patient': Patient
+            , 'Study': Study
+        }
+        return class_names.get(class_name, None)
 
     @staticmethod
     def start_tool(session, bi, ti):

@@ -51,7 +51,15 @@ class DICOM:
         return [], ""
 
     def dicom_grids(self, paths, log=None) -> list[Any]:
-        return [s._to_grids() for s in series]
+        # A special opener that gets called by the session restore code
+        self.patients_by_id = defaultdict(list)
+        self.patients = {}
+        if log:
+            self.session = log.session
+        self.paths = paths
+        self.find_dicom_series(self.paths)
+        self.merge_patients_by_id()
+        return self.open()[0]
 
     def find_dicom_series(
         self, paths, search_directories: bool = True, search_subdirectories: bool = True,
@@ -156,8 +164,8 @@ class DICOMMapFormat(MapFileFormat, DICOM):
     def open_func(self):
         return self.open_dicom_grids
 
-    def open_dicom_grids(self, paths):
+    def open_dicom_grids(self, paths, log):
         if isinstance(paths, str):
             paths = [paths]
-        grids = self.dicom_grids(paths)
+        grids = self.dicom_grids(paths, log)
         return grids

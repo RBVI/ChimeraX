@@ -30,7 +30,7 @@ Home = "https://www.rbvi.ucsf.edu/chimerax/"
 version = { attr = "src.__version__" }
 
 [chimerax]
-#custom-init = true
+custom-init = true
 min-session-version = 1
 max-session-version = 1
 categories = ["Medical Imaging"]
