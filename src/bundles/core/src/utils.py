@@ -15,6 +15,8 @@
 utils: Generically useful stuff that doesn't fit elsewhere
 ==========================================================
 """
+import os
+import subprocess
 import sys
 
 
@@ -210,3 +212,12 @@ def round_off(val, significant_digits):
         return val
     from math import log10, floor
     return round(val, significant_digits - 1 - int(floor(log10(abs(val)))))
+
+def make_link(target, source) -> None:
+    """An OS-agnostic way to make a symbolic link that does not require permissions
+    on Windows to use."""
+    if sys.platform == "win32":
+        subprocess.run('mklink /J "%s" "%s"' % (source, target), shell = True)
+    else:
+        os.symlink(target, source)
+ 
