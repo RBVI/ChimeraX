@@ -168,7 +168,7 @@ def download_results(energy_minimize):
   !cp -p *_scores_rank_001_*.json best_model_pae.json
 
   # Make a zip file of the predictions
-  !zip -q -r results.zip query.fasta *.csv *.json *.a3m *.pdb cite.bibtex *.png
+  !zip -q -r results.zip query.fasta *.csv *.json *.a3m *.pdb cite.bibtex *.png *log.txt
 
   # Download predictions.
   from google.colab import files
@@ -218,7 +218,7 @@ def remove_old_files():
   Also need to remove model_ and model_env directories otherwise errors
   occur if different sequences are run when computing MSA.
   '''
-  !rm -rf *.pdb *.json *_ *_env *.zip *.csv *.png *.a3m *.fasta
+  !rm -rf *.pdb *.json *_ *_env *.zip *.csv *.png *.a3m *.fasta log.txt
 
 # ================================================================================================
 #
