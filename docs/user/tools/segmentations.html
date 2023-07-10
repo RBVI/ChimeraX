@@ -39,24 +39,54 @@ Multiple segmentation models can be defined from the same image dataset.
 </p><p>
 For semiautomated segmentation of cryo-electron microscopy density maps,
 see the <a href="segment.html"><b>Segment Map</b></a> tool instead.
+</p><p>
+The <b>Segmentations</b> tool can be started
+from the <b>Medical Imaging</b> section of the <b>Tools</b> menu
+(<a href="../window.html#panels">more...</a>). 
+Several of its options are implemented as the 
+<a href="../commands/dicom.html"><b>dicom</b></a> command. 
 See also:
 <a href="downloaddicom.html"><b>Download DICOM</b></a>,
 <a href="volumeviewer.html"><b>Volume Viewer</b></a>,
 <a href="maperaser.html"><b>Map Eraser</b></a>,
-<a href="../commands/dicom.html"><b>dicom</b></a>,
 <a href="../commands/color.html#zone"><b>color zone</b></a>,
 <a href="../commands/volume.html#mask"><b>volume mask</b></a>,
 <a href="../commands/segmentation.html"><b>segmentation</b></a>,
 <a href="../dicom-quickref.html">ChimeraX DICOM Reference</a>,
 <a href="https://www.rbvi.ucsf.edu/chimerax/dicom/index.html"
 target="_blank">ChimeraX for Medical Image Analysis</a>
+</p>
+
+<a name="dialog"></a>
+<p class="nav">
+[<a href="#top">back to top: Segmentations</a>]
+</p>
+<h3>Dialog Settings</h3>
+<p>
+Starting the <b>Segmentations</b> tool automatically sets the view layout
+to four panels: axial, coronal, and sagittal slices along with a 3D rendering
 </p><p>
-The <b>Segmentations</b> tool can be started
-from the <b>Medical Imaging</b> section of the <b>Tools</b> menu
-(<a href="../window.html#panels">more...</a>). The medical-image
-display is automatically changed to a four-panel view with axial,
-coronal, and sagittal slices along with a 3D rendering (see 
-<a href="../commands/dicom.html#navigation">slice navigation</a>).
+The <b>View Layout</b> can be switched among:
+</p>
+<ul>
+<li><b>4 x 4 (Desktop)</b> 
+&ndash; axial and 3D on the top, coronal and sagittal on the bottom
+<li><b>3D Over Orthoplanes (Desktop)</b>
+&ndash; 3D across the top, the three slice views across the bottom
+<li><b>3D Beside Orthoplanes (Desktop)</b>
+&ndash; the three slice views on the left, 3D on the right
+<li><b>3D Only (VR)</b>
+</ul>
+<p>
+The <b>Model</b> of interest (the medical image to segment and thus to
+show in the slice views) should be chosen from the list of currently open models.
+Choosing a different model does not change the 3D view;  
+models can be shown/hidden there using any of the usual mechanisms,
+namely the <a href="modelpanel.html"><b>Model Panel</b></a> and/or 
+<a href="../commands/show.html"><b>show/hide</b></a> commands.
+</p><p>
+The <b>Plane Guidelines</b> option controls whether each slice view should
+contain crosshairs showing the positions of the other slice views.
 </p>
 
 <a name="editing"></a>
@@ -67,9 +97,11 @@ coronal, and sagittal slices along with a 3D rendering (see
 <p>
 Segmentation models (if any) are listed in the dialog. 
 Clicking <b>Add</b> creates a new segmentation model, and any
-segmentation in the list can be can be chosen (highlighted) by mouseclick.
+segmentation in the list can be can be chosen (highlighted) with the mouse.
 The currently highlighted segmentation is the one that will be populated
 using the segmentation cursor in the slice views. 
+See <a href="../commands/dicom.html#navigation">slice navigation</a>
+for how to scroll through, zoom, and translate the slice views.
 </p><p>
 Clicking <b>Remove</b> deletes the chosen segmentation. <b>Edit</b> allows
 editing the metadata associated with the segmentation model, and <b>Save</b>
@@ -79,15 +111,9 @@ The segmentation cursor is shown as a red circle;
 left mouse click-drag sweeps out an area in the currently displayed 
 data plane, whereas additionally pressing Shift erases the corresponding area 
 from the segmentation. Shift-scroll adjusts the segmentation cursor size.
-</p>
-
-<a name="dialog"></a>
-<p class="nav">
-[<a href="#top">back to top: Segmentations</a>]
-</p>
-<h3>Dialog Settings</h3>
-<p>
-[under construction]
+</p><p>
+Clicking <b>Help</b> opens
+this page in the <a href="helpviewer.html"><b>Help Viewer</b></a>.
 </p>
 
 <hr>
