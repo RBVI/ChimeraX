@@ -1,5 +1,81 @@
---- tcia_utils/nbia.py.orig	2023-07-07 15:28:39
-+++ tcia_utils/nbia.py	2023-07-07 15:38:09
+Common subdirectories: tcia_utils.orig/__pycache__ and tcia_utils/__pycache__
+diff --color -u tcia_utils.orig/datacite.py tcia_utils/datacite.py
+--- tcia_utils.orig/datacite.py	2023-07-10 10:51:38
++++ tcia_utils/datacite.py	2023-07-10 10:52:38
+@@ -1,4 +1,3 @@
+-import pandas as pd
+ import requests
+ from datetime import datetime
+ import logging
+@@ -24,6 +23,7 @@
+            license = "",
+            format = ""):
+ 
++    import pandas as pd
+     datacite_url = "https://api.datacite.org/dois/"
+     datacite_headers = {"accept": "application/vnd.api+json"}
+     df = pd.DataFrame()
+@@ -106,25 +106,25 @@
+                     citation_count = item["attributes"]["citationCount"]
+                     reference_count = item["attributes"]["referenceCount"]
+                     related = f"{relation_type}: {related_identifier}" if relation_type and related_identifier else None
+-                    dois.append({"DOI": doi, 
+-                                "Identifier": identifier, 
++                    dois.append({"DOI": doi,
++                                "Identifier": identifier,
+                                 "CreatorNames": ", ".join(creator_names),
+-                                "Title": title, 
+-                                "Created": created, 
+-                                "Updated": updated, 
+-                                "Related": related, 
+-                                "Version": version, 
+-                                "Rights": rights, 
+-                                "RightsURI": rights_uri, 
+-                                "Description": description, 
+-                                "FundingReferences": funding_references, 
+-                                "URL": url, 
+-                                "CitationCount": citation_count, 
++                                "Title": title,
++                                "Created": created,
++                                "Updated": updated,
++                                "Related": related,
++                                "Version": version,
++                                "Rights": rights,
++                                "RightsURI": rights_uri,
++                                "Description": description,
++                                "FundingReferences": funding_references,
++                                "URL": url,
++                                "CitationCount": citation_count,
+                                 "ReferenceCount": reference_count})
+ 
+-                df = pd.DataFrame(dois, columns=["DOI", "Identifier", "CreatorNames", "Title", "Created", "Updated", "Related", 
+-                                                  "Version", "Rights", "RightsURI", "Description", "FundingReferences", "URL", 
+-                                                  "CitationCount", "ReferenceCount"])  
++                df = pd.DataFrame(dois, columns=["DOI", "Identifier", "CreatorNames", "Title", "Created", "Updated", "Related",
++                                                  "Version", "Rights", "RightsURI", "Description", "FundingReferences", "URL",
++                                                  "CitationCount", "ReferenceCount"])
+                 if format == "csv":
+                     now = datetime.now()
+                     dt_string = now.strftime("%Y-%m-%d_%H%M")
+@@ -135,7 +135,7 @@
+                 return data
+         else:
+             _log.info(f'No results found.')
+-            
++
+     # handle errors
+     except requests.exceptions.HTTPError as errh:
+         _log.error(f'Error: {errh}')
+@@ -144,4 +144,4 @@
+     except requests.exceptions.Timeout as errt:
+         _log.error(f'Error: {errt}')
+     except requests.exceptions.RequestException as err:
+-        _log.error(f'Error: {err}')
+\ No newline at end of file
++        _log.error(f'Error: {err}')
+diff --color -u tcia_utils.orig/nbia.py tcia_utils/nbia.py
+--- tcia_utils.orig/nbia.py	2023-07-10 10:51:38
++++ tcia_utils/nbia.py	2023-07-10 10:50:52
 @@ -1,7 +1,6 @@
  ####### setup
  import logging
@@ -147,15 +223,16 @@
          https://github.com/kirbyju/TCIA_Notebooks/blob/main/TCIA_Linux_Data_Retriever_App.ipynb
      """
      # set user name and password
-@@ -396,7 +394,7 @@
+@@ -396,8 +394,8 @@
          _log.error(errt)
      except requests.exceptions.RequestException as err:
          _log.error(err)
 -    
-+
  
++
  def getCollections(api_url = "",
                     format = ""):
+     """
 @@ -822,7 +820,7 @@
  
      # get base URL
@@ -218,3 +295,75 @@
      # set path where downloadSeries() saves the data if seriesUid is provided
      if seriesUid != "":
          path = "tciaDownload/" + seriesUid
+diff --color -u tcia_utils.orig/pathdb.py tcia_utils/pathdb.py
+--- tcia_utils.orig/pathdb.py	2023-07-10 10:51:38
++++ tcia_utils/pathdb.py	2023-07-10 10:53:08
+@@ -1,4 +1,3 @@
+-import pandas as pd
+ import requests
+ from datetime import datetime
+ import logging
+@@ -19,6 +18,7 @@
+ 
+ def getCollections(query = "", format = ""):
+ 
++    import pandas as pd
+     extracted_data = []
+     url = base_url + 'collections?_format=json'
+     _log.info(f'Calling... {url}')
+@@ -57,7 +57,7 @@
+         _log.info(f"File saved to {filename}.")
+     else:
+         return extracted_data
+-        
++
+ ###################
+ # getImages()
+ # use "query" parameter to search collection names or enter a specific collection ID
+@@ -65,12 +65,13 @@
+ #    or "csv" to save it to a file
+ 
+ def getImages(query, format=""):
+-    
++
+     collectionList = []  # for queries that match multiple collection names
++    import pandas as pd
+     extracted_data = []
+ 
+     def getPaginatedResults(id):
+-        page = 0  
++        page = 0
+ 
+         while True:
+             url = base_url + 'listofimages/' + str(id) + '?page=' + str(page) + '&_format=json'
+@@ -80,7 +81,7 @@
+                 data = response.json()
+                 if len(data) == 0:
+                     break  # No more pages, exit the loop
+-                
++
+                 # Extract desired fields from the JSON data
+                 for item in data:
+                     extracted_item = {}
+@@ -99,12 +100,12 @@
+                 return None
+             page += 1
+         return extracted_data
+-    
++
+     # if query was a collection ID (integer)
+     if isinstance(query,int):
+         extracted_data = getPaginatedResults(query)
+     # if query is a string, look for matching collection names
+-    else:  
++    else:
+         collections = getCollections(query=query)
+         # iterate through all collections that matched query
+         for x in collections:
+@@ -121,4 +122,4 @@
+         filename = f"pathologyImages-{today}.csv"
+         df.to_csv(filename, index=False)
+     else:
+-        return extracted_data
+\ No newline at end of file
++        return extracted_data
