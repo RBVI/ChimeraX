@@ -98,7 +98,7 @@ you use, hit 'OK' to close this dialog and continue. If you do not agree, please
             for index, collection in enumerate(collections_dict):
                 if worker:
                     worker.collection_fetched.emit(index+1, num_collections)
-                data = nbia.getSimpleSearchWithModalityAndBodyPartPaged(collection=collection)
+                data = nbia.getSimpleSearchWithModalityAndBodyPartPaged(collections=[collection])
                 if data:
                     try:
                         collections_dict[collection]['patients'] = data['totalPatients']
