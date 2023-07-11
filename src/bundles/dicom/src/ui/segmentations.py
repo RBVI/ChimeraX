@@ -274,8 +274,7 @@ class SegmentationTool(ToolInstance):
         # I can already see this becoming a massive PITA when 3D spheres get involved.
         # TODO: Many segmentations
         if not self.active_seg:
-            self.session.logger.error("No active segmentation!")
-            return
+            self.addSegment()
         for position in positions:
             center_x, center_y = position.drawing_center
             radius = self.segmentation_cursors[axis].radius
