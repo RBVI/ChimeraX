@@ -351,7 +351,7 @@ class SegmentationTool(ToolInstance):
             run(self.session, "dicom view sidebyside")
             need_to_register = True
         else:
-            run(self.session, "dicom view fourup")
+            run(self.session, "dicom view default")
         if need_to_register:
             if self.session.ui.main_window.view_layout == "orthoplanes":
                 # If no models are open we will not successfully change the view, so 
