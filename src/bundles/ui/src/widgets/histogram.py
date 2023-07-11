@@ -637,20 +637,29 @@ class MarkedHistogram(QWidget):
         if self._draw_max != None:
             empty_ranges[1] = self._draw_max - self._max_val
             self._max_val = self._draw_max
+        def handle_list(left, bins, right):
+            # can't '+' a list to a numpy array (#9328)...
+            bins = list(bins)
+            if left:
+                bins = left + bins
+            if right:
+                bins = bins + right
+            import numpy
+            return numpy.array(bins)
         if callable(self._bins):
             if empty_ranges[0] or empty_ranges[1]:
                 full_range = filled_range + empty_ranges[0] + empty_ranges[1]
                 filled_bins = self._bins(int(hist_width * filled_range / full_range))
                 left = [0] * int(hist_width * empty_ranges[0] / full_range)
                 right = [0] * (hist_width - len(filled_bins) - len(left))
-                self._bins = left + filled_bins + right
+                self._bins = handle_list(left, filled_bins, right)
             else:
                 self._bins = self._bins(hist_width)
         elif empty_ranges[0] or empty_ranges[1]:
             full_range = filled_range + empty_ranges[0] + empty_ranges[1]
             left = [0] * int(len(self._bins) * empty_ranges[0] / full_range)
             right = [0] * int(len(self._bins) * empty_ranges[1] / full_range)
-            self._bins = left + self._bins + right
+            self._bins = handle_list(left, self._bins, right)
         if self._min_label:
             self._min_label.setText(self._str_val(self._min_val))
         if self._max_label:

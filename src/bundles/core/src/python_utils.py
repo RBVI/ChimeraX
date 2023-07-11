@@ -65,7 +65,7 @@ def migrate_site_packages():
         python = "Python311"
     real_site_dir = os.path.join(app_dirs.user_data_dir, lib, python, "site-packages")
     if os.path.exists(user_site_packages):
-        if not os.path.islink(user_site_packages):
+        if not is_link(user_site_packages):
             if os.path.exists(real_site_dir):
                 if not os.listdir(user_site_packages):
                     shutil.rmtree(user_site_packages)
@@ -85,3 +85,13 @@ def migrate_site_packages():
     else:
         os.makedirs(real_site_dir, exist_ok=True)
         make_link(real_site_dir, user_site_packages)
+
+def is_link(path):
+    # Account for junctions on Windows
+    if sys.platform == "win32":
+        try:
+            return bool(os.readlink(path))
+        except OSError:
+            return False
+    else:
+        return os.path.islink(path)

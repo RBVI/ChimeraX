@@ -1,12 +1,25 @@
 Common subdirectories: tcia_utils.orig/__pycache__ and tcia_utils/__pycache__
 diff --color -u tcia_utils.orig/datacite.py tcia_utils/datacite.py
---- tcia_utils.orig/datacite.py	2023-07-10 10:51:38
-+++ tcia_utils/datacite.py	2023-07-10 10:52:38
-@@ -1,4 +1,3 @@
+--- tcia_utils.orig/datacite.py	2023-07-10 14:54:52
++++ tcia_utils/datacite.py	2023-07-10 14:55:39
+@@ -1,13 +1,12 @@
 -import pandas as pd
  import requests
  from datetime import datetime
  import logging
+ 
+ _log = logging.getLogger(__name__)
+-logging.basicConfig(
+-    format='%(asctime)s:%(levelname)s:%(message)s'
+-    , level=logging.INFO
+-)
++#logging.basicConfig(
++#    format='%(asctime)s:%(levelname)s:%(message)s'
++#    , level=logging.INFO
++#)
+ 
+ ####### getDoi function
+ # Gets metadata for one or more DOIs
 @@ -24,6 +23,7 @@
             license = "",
             format = ""):
@@ -74,8 +87,8 @@ diff --color -u tcia_utils.orig/datacite.py tcia_utils/datacite.py
 \ No newline at end of file
 +        _log.error(f'Error: {err}')
 diff --color -u tcia_utils.orig/nbia.py tcia_utils/nbia.py
---- tcia_utils.orig/nbia.py	2023-07-10 10:51:38
-+++ tcia_utils/nbia.py	2023-07-10 10:50:52
+--- tcia_utils.orig/nbia.py	2023-07-10 14:54:52
++++ tcia_utils/nbia.py	2023-07-10 14:55:34
 @@ -1,7 +1,6 @@
  ####### setup
  import logging
@@ -84,7 +97,7 @@ diff --color -u tcia_utils.orig/nbia.py tcia_utils/nbia.py
  import getpass
  import json
  import zipfile
-@@ -13,7 +12,6 @@
+@@ -13,17 +12,16 @@
  import matplotlib.pyplot as plt
  import pydicom
  import numpy as np
@@ -92,6 +105,20 @@ diff --color -u tcia_utils.orig/nbia.py tcia_utils/nbia.py
  
  class StopExecution(Exception):
      def _render_traceback_(self):
+         pass
+ 
+ _log = logging.getLogger(__name__)
+-logging.basicConfig(
+-    format='%(asctime)s:%(levelname)s:%(message)s'
+-    , level=logging.INFO
+-)
++#logging.basicConfig(
++#    format='%(asctime)s:%(levelname)s:%(message)s'
++#    , level=logging.INFO
++#)
+ 
+ # Used by functions that accept parameters used in GUI Simple Search
+ # e.g. getSimpleSearchWithModalityAndBodyPartPaged()
 @@ -50,14 +48,14 @@
  def setApiUrl(endpoint, api_url):
      """
@@ -296,13 +323,26 @@ diff --color -u tcia_utils.orig/nbia.py tcia_utils/nbia.py
      if seriesUid != "":
          path = "tciaDownload/" + seriesUid
 diff --color -u tcia_utils.orig/pathdb.py tcia_utils/pathdb.py
---- tcia_utils.orig/pathdb.py	2023-07-10 10:51:38
-+++ tcia_utils/pathdb.py	2023-07-10 10:53:08
-@@ -1,4 +1,3 @@
+--- tcia_utils.orig/pathdb.py	2023-07-10 14:54:52
++++ tcia_utils/pathdb.py	2023-07-10 14:55:45
+@@ -1,13 +1,12 @@
 -import pandas as pd
  import requests
  from datetime import datetime
  import logging
+ 
+ _log = logging.getLogger(__name__)
+-logging.basicConfig(
+-    format='%(asctime)s:%(levelname)s:%(message)s'
+-    , level=logging.INFO
+-)
++#logging.basicConfig(
++#    format='%(asctime)s:%(levelname)s:%(message)s'
++#    , level=logging.INFO
++#)
+ 
+ base_url = 'https://pathdb.cancerimagingarchive.net/'
+ 
 @@ -19,6 +18,7 @@
  
  def getCollections(query = "", format = ""):

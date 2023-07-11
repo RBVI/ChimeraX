@@ -150,8 +150,9 @@ class DicomGrid(GridData):
     def pixel_spacing(self) -> tuple[float, float, float]:
         return self.dicom_data.pixel_spacing()
 
+    @property
     def inferior_to_superior(self) -> bool:
-        return self.dicom_data.inferior_to_superior()
+        return self.dicom_data.inferior_to_superior
 
     # ---------------------------------------------------------------------------
     # If GridData.read_xy_plane() uses this method then whole planes are cached
