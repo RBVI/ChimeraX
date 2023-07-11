@@ -30,6 +30,9 @@ class FourPanelView(QWidget):
         else:
             self._construct_fourup()
 
+    def view_layout(self):
+        return self._view_layout
+    
     @property
     def graphics_area(self):
         return self._graphics_area
