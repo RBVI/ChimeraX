@@ -14,6 +14,7 @@
 """Header sequence to show RMSD of associated structures"""
 
 carbon_alpha = "C\N{GREEK SMALL LETTER ALPHA}"
+principal_atom = carbon_alpha + "/C4'"
 
 from .header_sequence import DynamicStructureHeaderSequence
 
@@ -32,6 +33,7 @@ class RMSD(DynamicStructureHeaderSequence):
             self.settings.triggers.add_handler('setting changed', self._setting_changed_cb),
             get_triggers().add_handler('changes', self._atomic_changes_cb)
         ]
+        self._polymer_type = None
         self._set_name()
 
     @property
@@ -97,7 +99,7 @@ class RMSD(DynamicStructureHeaderSequence):
         name, defaults = super().settings_info()
         from chimerax.core.commands import EnumOf
         defaults.update({
-            'atoms': (EnumOf(RmsdDomainOption.values), carbon_alpha),
+            'atoms': (EnumOf(RmsdDomainOption.values), principal_atom),
         })
         return "RMSD sequence header", defaults
 
@@ -156,8 +158,8 @@ class RMSD(DynamicStructureHeaderSequence):
         super().reevaluate(pos1, pos2)
 
     def _gather_coords(self, pos):
-        if self.atoms == carbon_alpha:
-            bb_names = ["CA"]
+        if self.atoms == principal_atom:
+            bb_names = ["CA", "C4'"]
         else:
             bb_names = None
         residues = []
@@ -173,6 +175,10 @@ class RMSD(DynamicStructureHeaderSequence):
                 continue
             if r:
                 residues.append(r)
+                if not self._polymer_type:
+                    if r.polymer_type != r.PT_NONE:
+                        self._polymer_type = r.polymer_type
+                        self._set_name()
                 if not bb_names:
                     if r.polymer_type == r.PT_AMINO:
                         bb_names = r.aa_max_backbone_names
@@ -201,8 +207,13 @@ class RMSD(DynamicStructureHeaderSequence):
                 break
 
     def _set_name(self):
-        if self.atoms == carbon_alpha:
-            self.name = carbon_alpha + " RMSD"
+        if self.atoms == principal_atom:
+            from chimerax.atomic import Residue
+            if self._polymer_type == Residue.PT_NUCLEIC:
+                prefix = "C4'"
+            else:
+                prefix = carbon_alpha
+            self.name = prefix + " RMSD"
         else:
             self.name = "Backbone RMSD"
 
@@ -215,4 +226,4 @@ class RMSD(DynamicStructureHeaderSequence):
 
 from chimerax.ui.options import EnumOption
 class RmsdDomainOption(EnumOption):
-    values = [carbon_alpha, "backbone"]
+    values = [principal_atom, "backbone"]
