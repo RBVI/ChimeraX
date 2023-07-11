@@ -43,7 +43,7 @@ class MatrixValueStatistics:
   def __init__(self, matrix, bins = 10000, ignore_pad_value = None):
 
     matrices = matrix if isinstance(matrix, (list, tuple)) else [matrix]
-      
+
     # Determine minimum and maximum data values.
     from chimerax.map import _map
     if ignore_pad_value is None:
@@ -51,6 +51,12 @@ class MatrixValueStatistics:
     else:
       mm = [_map.minimum_and_maximum(m, ignore_pad_value=ignore_pad_value)
             for m in matrices]
+    if ignore_pad_value is not None:
+      for (mn,mx),m in zip(mm, matrices):
+        if mn > mx:
+          raise ValueError(f'Computing histogram of matrix {m.shape} '
+                           f'that contains only the pad value {ignore_pad_value}')
+        
     self.minimum = min(mn for mn,mx in mm)
     self.maximum = max(mx for mn,mx in mm)
 

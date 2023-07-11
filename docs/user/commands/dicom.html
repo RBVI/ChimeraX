@@ -39,7 +39,8 @@ The <b>dicom</b> command has two subcommands:
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br>
 <b>dicom &nbsp;view</b>
-(&nbsp;<b>default</b>&nbsp;|&nbsp;fourup&nbsp;|&nbsp;overunder&nbsp;|&nbsp;sidebyside&nbsp;]
+(&nbsp;<b>default</b>&nbsp;|&nbsp;fourup&nbsp;|&nbsp;overunder&nbsp;|&nbsp;sidebyside&nbsp;)
+[&nbsp;<b>guidelines</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 </h3>
 <p>
 The command <b>dicom view</b> sets the layout of medical image display,
@@ -61,11 +62,35 @@ views arranged horizontally across the bottom
 views arranged vertically on the right
 </ul>
 <p>
+The <b>guidelines</b> option controls whether each slice view should
+contain crosshairs showing the positions of the other slice views.
+</p>
+
+<a name="navigation"></a>
+<p class="nav">
+[<a href="#top">back to top: dicom</a>]
+</p>
+<h3>Slice Navigation and Manipulation</h3>
+<p>
 Each slice view has a slider for navigating through the data planes
-along the corresponding axis.
-</p><p>
+along the corresponding axis. Alternatively, the following keys can be used,
+optionally + Shift for faster movement:
+</p>
+<ul>
+<li>letters A and D
+<li>left and right arrow keys
+</ul>
+<p>
+The three slice views do not rotate,
+but their zooming and translation follow the current 
+<a href="ui.html#mousemode">mousemode assignments</a>.
+</p>
+<!-- #9147 #9303 honor zoom/trans mousemodes, make trackpad equivalents work -->
+
+<p>
 See also: 
 <a href="view.html"><b>view</b></a>,
+<a href="volume.html#planes"><b>volume planes</b></a>,
 the <a href="../tools/medicalimage.html"><b>Medical&nbsp;Image</b> toolbar</a>,
 <a href="../tools/downloaddicom.html"><b>Download DICOM</b></a>,
 <a href="../tools/segmentations.html"><b>Segmentations</b></a>,

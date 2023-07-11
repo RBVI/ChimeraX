@@ -1362,6 +1362,15 @@ class AtomicStructure(Structure):
             solvent_atoms.draw_modes = Atom.BALL_STYLE
             solvent_atoms.colors = element_colors(solvent_atoms.element_numbers)
         else:
+            residues = self.residues
+            nseq = len(residues.unique_sequences[0])
+            if nseq > 2:
+                # More than one sequence (sequence 0 is for non-polymers)
+                from .colors import polymer_colors
+                rcolors = polymer_colors(residues)[0]
+                acolors = polymer_colors(atoms.residues)[0]
+                residues.ribbon_colors = residues.ring_colors = rcolors
+                atoms.colors = acolors
             # since this is now available as a preset, allow for possibly a smaller number of atoms
             lighting = {'preset': 'soft'}
             if self.num_atoms >= MULTI_SHADOW_THRESHOLD:

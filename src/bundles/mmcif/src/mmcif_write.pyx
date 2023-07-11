@@ -249,7 +249,7 @@ def _chain_id_ordinal(chain_id):
         elif ord('0') <= ch <= ord('9'):
             v = ch - ord('0') + 52
         else:
-            raise ValueError("not a legal chain id")
+            raise ValueError(f"not a legal chain id {chain_id}, only a-z, A-Z, 0-9 allowed")
         value = value * 62 + v
     return value
 

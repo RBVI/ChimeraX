@@ -150,8 +150,14 @@ class SegmentationTool(ToolInstance):
         self._surface_chosen()
 
     def delete(self):
-        self.session.ui.main_window.main_view.clear_segmentation_tool()
-        self.session.models.remove(self.segmentation_cursors.values())
+        if self.session.ui.main_window.view_layout == "orthoplanes":
+            self.session.ui.main_window.main_view.clear_segmentation_tool()
+        # When a session is closed, models are deleted before tools, so we need to
+        # fail gracefully if the models have already been deleted
+        try:
+            self.session.models.remove(self.segmentation_cursors.values())
+        except TypeError:
+            pass
         super().delete()
 
     def _surface_chosen(self, *args):
@@ -170,7 +176,7 @@ class SegmentationTool(ToolInstance):
                         puck.height = new_model.data.pixel_spacing()[axis]
                         # Set by orthoplanes.py
                         #puck.origin = [x for x in medical_image_data.origin()]
-            self.reference_model = new_drawing
+                self.reference_model = new_drawing
         except AttributeError: # No more volumes!
             pass
 
@@ -268,8 +274,7 @@ class SegmentationTool(ToolInstance):
         # I can already see this becoming a massive PITA when 3D spheres get involved.
         # TODO: Many segmentations
         if not self.active_seg:
-            self.session.logger.error("No active segmentation!")
-            return
+            self.addSegment()
         for position in positions:
             center_x, center_y = position.drawing_center
             radius = self.segmentation_cursors[axis].radius
@@ -345,11 +350,14 @@ class SegmentationTool(ToolInstance):
             run(self.session, "dicom view sidebyside")
             need_to_register = True
         else:
-            run(self.session, "dicom view fourup")
+            run(self.session, "dicom view default")
         if need_to_register:
-            self.session.ui.main_window.main_view.register_segmentation_tool(self)
-            if self.guidelines_checkbox.isChecked():
-                self.session.ui.main_window.main_view.toggle_guidelines()
+            if self.session.ui.main_window.view_layout == "orthoplanes":
+                # If no models are open we will not successfully change the view, so 
+                # we need to check the view layout before continuing! 
+                self.session.ui.main_window.main_view.register_segmentation_tool(self)
+                if self.guidelines_checkbox.isChecked():
+                    self.session.ui.main_window.main_view.toggle_guidelines()
 
     def setPuckHeight(self, axis, height):
         self.segmentation_cursors[axis].height = height

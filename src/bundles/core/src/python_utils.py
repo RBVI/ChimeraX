@@ -8,6 +8,8 @@ import sys
 
 from contextlib import contextmanager
 
+from .utils import make_link
+
 """Utilities for managing the Python executable ChimeraX depends on."""
 
 def chimerax_python_executable():
@@ -63,19 +65,33 @@ def migrate_site_packages():
         python = "Python311"
     real_site_dir = os.path.join(app_dirs.user_data_dir, lib, python, "site-packages")
     if os.path.exists(user_site_packages):
-        if not os.path.islink(user_site_packages):
+        if not is_link(user_site_packages):
             if os.path.exists(real_site_dir):
-                # This path should be unreachable, since a user will always either transition
-                # from the old scheme and hit the else clause here or neither site-packages
-                # will exist and they'll hit the else clause of the outer if
-                ...
-            else:
-                os.makedirs(os.path.dirname(real_site_dir))
-                shutil.move(user_site_packages, real_site_dir)
-                if sys.platform == "win32":
-                    subprocess.run('mklink /J "%s" "%s"' % (user_site_packages, real_site_dir), shell = True)
+                if not os.listdir(user_site_packages):
+                    shutil.rmtree(user_site_packages)
+                    make_link(real_site_dir, user_site_packages)
+                elif not os.listdir(real_site_dir):
+                    shutil.move(user_site_packages, real_site_dir)
+                    make_link(real_site_dir, user_site_packages)
                 else:
-                    os.symlink(real_site_dir, user_site_packages)
+                    # This path should be unreachable, since a user will always either transition
+                    # from the old scheme and hit the else clause here or neither site-packages
+                    # will exist and they'll hit the else clause of the outer if                      
+                    raise RuntimeError("Populated ChimeraX site packages and Python site packages. Please report this bug!")
+            else:
+                os.makedirs(os.path.dirname(real_site_dir), exist_ok = True)
+                shutil.move(user_site_packages, real_site_dir)
+                make_link(real_site_dir, user_site_packages)
     else:
-        os.makedirs(real_site_dir)
-        os.symlink(real_site_dir, user_site_packages)
+        os.makedirs(real_site_dir, exist_ok=True)
+        make_link(real_site_dir, user_site_packages)
+
+def is_link(path):
+    # Account for junctions on Windows
+    if sys.platform == "win32":
+        try:
+            return bool(os.readlink(path))
+        except OSError:
+            return False
+    else:
+        return os.path.islink(path)

@@ -20,12 +20,12 @@ def dicom_view(session, layout: str = None, guidelines: bool = None, force = Fal
         return
     if layout == "default" and session.ui.main_window.view_layout != "default":
         session.ui.main_window.restore_default_main_view()
-    elif layout in views and session.ui.main_window.view_layout != "orothoplanes":
+    elif layout in views and session.ui.main_window.view_layout != "orthoplanes":
         if not layout:
             session.ui.main_window.main_view = FourPanelView(session)
         else:
             session.ui.main_window.main_view = FourPanelView(session, layout)
-        session.ui.main_window.view_layout = "orothoplanes"
+        session.ui.main_window.view_layout = "orthoplanes"
         st = None
         for tool in session.tools:
             if type(tool) == SegmentationTool:
@@ -33,7 +33,9 @@ def dicom_view(session, layout: str = None, guidelines: bool = None, force = Fal
                 break
         if st:
             session.ui.main_window.main_view.register_segmentation_tool(st)
-    elif layout in views and session.ui.main_window.view_layout == "orothoplanes":
+        if guidelines:
+            session.ui.main_window.main_view.set_guideline_visibility(guidelines)
+    elif layout in views and session.ui.main_window.view_layout == "orthoplanes":
         if layout:
             session.ui.main_window.main_view.convert_to_layout(layout)
         if guidelines is not None:

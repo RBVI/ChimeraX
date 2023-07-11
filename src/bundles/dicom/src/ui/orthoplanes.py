@@ -77,10 +77,11 @@ class PlaneViewerManager:
         return self.axes[Axis.AXIAL].segmentation_tool
 
     def toggle_guidelines(self):
+        layout = self.session.ui.main_window.main_view.view_layout()
         if self.axes[Axis.AXIAL].guidelines_visible:
-            log_equivalent_command(self.session, "dicom view orthoplanes guidelines false")
+            log_equivalent_command(self.session, f"dicom view {layout} guidelines false")
         else:
-            log_equivalent_command(self.session, "dicom view orthoplanes guidelines true")
+            log_equivalent_command(self.session, f"dicom view {layout} guidelines true")
         for viewer in self.axes.values():
             viewer.setGuidelineVisibility(not viewer.guidelines_visible)
 
@@ -229,8 +230,7 @@ class PlaneViewer(QWindow):
 
     def mvSegmentationCursorOffsetFromOrigin(self):
         origin = self.drawingOrigin()
-        dir = -np.sign(origin[self.axis])
-        return self.drawingOrigin()[self.axis] + (dir * self.pos * self.drawingVolumeStep()[self.axis])
+        return self.drawingOrigin()[self.axis] + (self.pos * self.drawingVolumeStep()[self.axis])
 
     def _onSliderMoved(self):
         if self.axis == Axis.CORONAL:
