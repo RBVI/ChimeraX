@@ -168,8 +168,3 @@ class FourPanelView(QWidget):
         self._main_widget.addWidget(self._viewContainerWidget)
         self._main_widget.setSizes([100,2])
         self.setLayout(self._main_layout)
-
-    def clean_up(self) -> None:
-        """Get everything back to normal before we go back to the default view."""
-        if self.segmentation_tool_open():
-            self.segmentation_tool().delete()
