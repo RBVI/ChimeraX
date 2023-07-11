@@ -50,7 +50,7 @@ python-dateutil==2.8.2
 #PySide2==5.15.2
 qtconsole==5.4.3
 requests==2.31.0
-scipy==1.9.3
+scipy==1.11.1
 six==1.16.0
 sortedcontainers==2.4.0
 tables==3.8.0 ; platform_machine != 'arm64'
