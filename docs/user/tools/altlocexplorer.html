@@ -24,14 +24,21 @@ or derivations thereof.
 class="clRight" title="User Guide Index"/></a>
 
 <h3><a href="../index.html#tools">Tool</a>: Altloc Explorer</h3>
+<table class="clRight">
+<tr><td><img class="outline" width="400px" src="altloc-explorer.png"
+alt="Altloc Explorer"></td></tr>
+</table>
 <p>
 <b>Altloc Explorer</b> lists and manages <b><i>alternate locations</i></b>,
 where an atomic structure contains multiple different positions for the
 same set of atoms. In PDB format, for example, alternate locations are
 indicated by a character identifier in column 17 of ATOM and HETATM records.
-<!-- examples 1hf4, 1crc, 1a0m, 5nn8, 4ez4 -->
-ChimeraX uses only one of the alternate locations at a time for display
-and for any calculations. For each contiguous (through-bond) set of atoms
+<!-- examples 1hf4, 1crc, 1a0m, 5nn8, 4ez4, 7qll, 6zx4 has many -->
+</p><p>
+For a given atom,
+<b><i>ChimeraX uses only one of the alternate locations at a time</b></i>
+for display and for any calculations. 
+For each contiguous (through-bond) set of atoms
 with alternate locations, the location used initially is that with
 the highest average atomic occupancy, then as a tie-breaker, the lowest
 average atomic B-factor, and if a  tie-breaker is still needed,
@@ -56,6 +63,8 @@ Choosing a specific model lists any residues with alternate locations
 that it contains. Clicking the identifier of a residue with alternate
 locations focuses on that residue and displays its atoms, and the adjacent
 buttons can be used to change which ID (which location) is being used.
+The <b>Set all to</b> checkboxes on the right allow changing all of the
+individual residue settings to a specific ID (if available) with a single click.
 </p><p>
 <a name="hbonds"></a>
 H-bonds are displayed as
@@ -69,5 +78,5 @@ clicking <b>Apply</b> recalculates the H-bonds accordingly.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-November 2022</address>
+July 2023</address>
 </body></html>
