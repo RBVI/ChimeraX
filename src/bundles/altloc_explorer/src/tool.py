@@ -105,13 +105,17 @@ class AltlocExplorerTool(ToolInstance):
                     but = self._all_layout.itemAt(i).widget()
                     if but.isChecked():
                         all_loc = but.text()
-                        all_but = but
             changed_residues = set()
             for r, but_map in self._button_lookup.items():
                 r_al = r.alt_loc
                 if r_al != all_loc and all_loc in but_map:
                     all_loc = None
-                    all_but.setChecked(False)
+                    # to uncheck all buttons, have to turn auto-exclusvity off tempoarily
+                    for i in range(1, self._all_layout.count()):
+                        but = self._all_layout.itemAt(i).widget()
+                        but.setAutoExclusive(False)
+                        but.setChecked(False)
+                        but.setAutoExclusive(True)
                 for al, but in but_map.items():
                     if but.isChecked() and al != r_al:
                         but.setChecked(False)
@@ -217,8 +221,8 @@ class AltlocExplorerTool(ToolInstance):
             self._changes_handler.remove()
             self._changes_handler = None
             self._button_lookup.clear()
-            while self.all_layout.count() > 1:
-                but = self.all_layout.takeAt(self.all_layout.count()-1)
+            while self._all_layout.count() > 1:
+                but = self._all_layout.takeAt(self._all_layout.count()-1).widget()
                 but.hide()
                 but.destroy()
 

@@ -63,6 +63,8 @@ def migrate_site_packages():
     if sys.platform == "win32":
         lib = ""
         python = "Python311"
+    if sys.platform == "linux":
+        python = "python3.11"
     real_site_dir = os.path.join(app_dirs.user_data_dir, lib, python, "site-packages")
     if os.path.exists(user_site_packages):
         if not is_link(user_site_packages):
