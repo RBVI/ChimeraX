@@ -179,12 +179,11 @@ class BuildStructureTool(ToolInstance):
         dial.setMinimum(0)
         dial.setMaximum(1800)
         dial.setSingleStep(10)
-        dial.setValue(int(initial_angle * 10 + 0.5))
+        dial.setValue(round(initial_angle * 10))
         dial.valueChanged.connect(lambda val, *, angle=canonical, f=self._aa_dial_changed: f(angle, val))
         dial.sliderReleased.connect(
             lambda *, angle=canonical, dial=dial, f=self._aa_dial_released: f(angle, dial.value()/10))
         grid.addWidget(dial, row, 5, alignment=Qt.AlignCenter)
-        self.session.dial = dial
         widgets.append(dial)
         self._aa_resize_dials()
         if len(self.angle_data) == 1:
@@ -363,7 +362,7 @@ class BuildStructureTool(ToolInstance):
         spin_box.setValue(angle_value)
         spin_box.blockSignals(False)
         dial.blockSignals(True)
-        dial.setValue(int(10 * angle_value + 0.5))
+        dial.setValue(round(10 * angle_value))
         dial.blockSignals(False)
 
     def _ab_len_cb(self, opt):
@@ -497,7 +496,6 @@ class BuildStructureTool(ToolInstance):
         dial.sliderReleased.connect(
             lambda *, rotater=rotater, dial=dial, f=self._at_dial_released: f(rotater, dial.value()/10))
         grid.addWidget(dial, row, 5, alignment=Qt.AlignCenter)
-        self.session.dial = dial
         widgets.append(dial)
         self._at_resize_dials()
         if len(self.torsion_data) == 1:
@@ -703,7 +701,7 @@ class BuildStructureTool(ToolInstance):
         spin_box.setValue(torsion_value)
         spin_box.blockSignals(False)
         dial.blockSignals(True)
-        dial.setValue(10 * torsion_value)
+        dial.setValue(round(10 * torsion_value))
         dial.blockSignals(False)
 
     def _cat_menu_cb(self, action):
