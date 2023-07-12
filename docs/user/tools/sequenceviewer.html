@@ -156,8 +156,9 @@ even if they form disjoint segments
   <ul>
   <li><b>Consensus</b>
   <li><b>Conservation</b> 
-  <li><b>RMSD</b> (<b>C&alpha;</b> or <b>backbone</b> as per
-   the <a href="#settings-headers"><b>Headers</b> settings</a>)
+  <li><b>RMSD</b> &ndash; either single atom per residue (<b>C&alpha;</b>
+  for peptides, <b>C4'</b> for nucleic acids) or <b>backbone</b> as per the 
+  <a href="#settings-headers"><b>Headers</b> settings</a>
   <li><b>Save</b> &nbsp;<font size="-1" color="dimgray">&#9654;</font>
   [choice of available headers]
   &ndash; save header information to file
@@ -246,7 +247,7 @@ to show the values of such numerical attributes, as in the tutorial:
 <a href="https://www.rbvi.ucsf.edu/chimerax/data/conservation-coloring/conservation-coloring.html"
 target="_blank">Coloring by Sequence Conservation</a>.
 See also the video
-<a href="https://youtu.be/usSDWOGjwhU" target="_blank">Coloring Aligned
+<a href="https://youtu.be/XaTpB-UIxnU" target="_blank">Coloring Aligned
 Proteins by C&alpha; RMSD</a>.
 </p>
 
@@ -606,7 +607,8 @@ PAM-150, PAM-250, SDM] &ndash; which residue similarity matrix to use
   <li><b>Show initially</b> (initial default <b>off</b>)
   <li><b>Atoms used for RMSD</b>
     <ul>
-    <li><b>C&alpha;</b> (initial default)
+    <li><b>C&alpha;/C4'</b> (initial default) 
+     &ndash; C&alpha; for peptides, C4' for nucleic acids
     <li><b>backbone</b> &ndash; peptide N, CA, C, O 
     or nucleic acid phosphoribosyl backbone, not including any hydrogens
     </ul>
@@ -709,5 +711,5 @@ style="display:inline-block; vertical-align:middle"><tr>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-June 2023</address>
+July 2023</address>
 </body></html>
