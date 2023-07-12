@@ -15,6 +15,13 @@ def dicom_view(session, layout: str = None, guidelines: bool = None, force = Fal
     # TODO: Enable for NIfTI and NRRD as well
     open_volumes = [v for v in session.models if type(v) is Volume]
     medical_volumes = [m for m in open_volumes if type(m.data) in medical_types]
+    st = None
+    for tool in session.tools:
+        if type(tool) == SegmentationTool:
+            st = tool
+            break
+    if st:
+        st.set_view_dropdown(layout)
     if not force and not medical_volumes:
         session.logger.error("No medical images open")
         return
@@ -26,11 +33,6 @@ def dicom_view(session, layout: str = None, guidelines: bool = None, force = Fal
         else:
             session.ui.main_window.main_view = FourPanelView(session, layout)
         session.ui.main_window.view_layout = "orthoplanes"
-        st = None
-        for tool in session.tools:
-            if type(tool) == SegmentationTool:
-                st = tool
-                break
         if st:
             session.ui.main_window.main_view.register_segmentation_tool(st)
         if guidelines:

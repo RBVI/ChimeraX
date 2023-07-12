@@ -359,6 +359,16 @@ class SegmentationTool(ToolInstance):
                 if self.guidelines_checkbox.isChecked():
                     self.session.ui.main_window.main_view.toggle_guidelines()
 
+    def set_view_dropdown(self, layout):
+        if layout == "default":
+            self.view_dropdown.setCurrentIndex(3)
+        elif layout == "sidebyside":
+            self.view_dropdown.setCurrentIndex(2)
+        elif layout == "overunder":
+            self.view_dropdown.setCurrentIndex(1)
+        else:
+            self.view_dropdown.setCurrentIndex(0)
+
     def setPuckHeight(self, axis, height):
         self.segmentation_cursors[axis].height = height
 
