@@ -14,11 +14,11 @@ from .utils import make_link
 
 def chimerax_python_executable():
     """Find the Python executable that comes with ChimeraX"""
-    using_chimerax = "chimerax" in sys.executable.split(os.sep)[-1].lower()
+    using_chimerax = "chimerax" in os.path.realpath(sys.executable).split(os.sep)[-1].lower()
     if not using_chimerax:
         exe = sys.executable
     else:
-        exe_parted_out = sys.executable.split(os.sep)[:-1]
+        exe_parted_out = os.path.realpath(sys.executable).split(os.sep)[:-1]
         exe_prefix = os.sep.join(["", os.path.join(*exe_parted_out)])
         if sys.version_info.minor < 11:
             old_cwd = os.getcwd()
