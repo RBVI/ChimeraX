@@ -49,7 +49,8 @@ a specified sequence or sequence pattern, use
 or the <a href="../commands/select.html#new"><b>select</b></a> command.
 See also:
 <a href="../commands/sequence.html"><b>sequence</b></a>,
-<a href="../commands/modeller.html"><b>modeller</b></a>,
+<a href="modeller.html"><b>Modeller Comparative</b></a>,
+<a href="modelloops.html"><b>Model Loops</b></a>,
 <a href="https://www.rbvi.ucsf.edu/chimerax/data/conservation-coloring/conservation-coloring.html"
 target="_blank">Coloring by Sequence Conservation</a>
 </p><p>
@@ -190,14 +191,19 @@ for positions that fall between residues 43 and 44 of the reference.
 <li><b>Tools</b>
   <ul>
   <li><b>Modeller Comparative Modeling...</b> 
-start <a href="modeller.html"><b>Modeller Comparative Modeling</b></a>
-(requires a structure to be <a href="#association">associated</a> 
-with any sequence in the alignment, for use as a template in modeling)
+start <a href="modeller.html"><b>Modeller Comparative</b></a>
+(requires a structure to be <a href="#association">associated</a> with any
+sequence in the alignment, for use as a template for comparative modeling)
+  <li><b>Model Loops...</b> 
+start <a href="modelloops.html"><b>Model Loops</b></a>
+to build missing segments or generate additional conformations of
+existing segments (requires the structure of interest to be 
+<a href="#association">associated</a> with a sequence)
   <li><b>Blast Protein</b> &nbsp;<font size="-1" color="dimgray">&#9654;</font>
 [if multiple alignment, choice of sequence name]
 &ndash; start <a href="blastprotein.html"><b>Blast Protein</b></a>
 with the specified sequence as the query
-<li><b>Percent Identity...</b> 
+<li>[if multiple alignment] <b>Percent Identity...</b>
 calculate pairwise percent identities,
 the number of identical columns between two sequences as a percentage 
 of the specified denominator: length of the shorter sequence
