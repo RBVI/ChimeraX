@@ -20,7 +20,6 @@ from ..types import Direction
 class OrthoplaneLocationOverlay(Drawing):
     def __init__(self, name, slice, direction = Direction.VERTICAL):
         super().__init__(name)
-        self.max_line_width = max(GL.glGetIntegerv(GL.GL_LINE_WIDTH_RANGE)[1], 1)
         self.display_style = Drawing.Mesh
         self.use_lighting = False
         self.direction = direction
@@ -100,7 +99,7 @@ class SegCursorOnOtherAxisOverlay(Drawing):
 class SegmentationOverlay(Drawing):
     def __init__(self, name, radius, thickness):
         super().__init__(name)
-        self.max_point_size = GL.glGetIntegerv(GL.GL_POINT_SIZE_RANGE)[1]
+        self.max_point_size = None
         self.display_style = Drawing.Dot
         self.use_lighting = False
         self.drawing_center = [0, 0]
@@ -109,6 +108,8 @@ class SegmentationOverlay(Drawing):
         self._thickness = thickness
 
     def draw(self, renderer, draw_pass):
+        if not self.max_point_size:
+            self.max_point_size = GL.glGetIntegerv(GL.GL_POINT_SIZE_RANGE)[1]
         GL.glPointSize(min(self.max_point_size, self.thickness))
         r = renderer
         ww, wh = r.render_size()
