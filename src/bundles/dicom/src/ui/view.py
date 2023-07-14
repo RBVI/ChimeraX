@@ -168,3 +168,13 @@ class FourPanelView(QWidget):
         self._main_widget.addWidget(self._viewContainerWidget)
         self._main_widget.setSizes([100,2])
         self.setLayout(self._main_layout)
+
+    def clean_up(self) -> None:
+        for orthoplane in [self._axial_orthoplane, self._coronal_orthoplane, self._sagittal_orthoplane]:
+            orthoplane.close()
+        if self._view_layout == "fourup":
+            self._clean_fourup()
+        elif self._view_layout == "overunder":
+            self._clean_over_under()
+        elif self._view_layout == "sidebyside":
+            self._clean_side_by_side()
