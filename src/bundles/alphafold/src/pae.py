@@ -895,6 +895,10 @@ class AlphaFoldPAE:
         if m is None:
             return
 
+        if m.num_residues != self.matrix_size:
+            from chimerax.core.errors import UserError
+            raise UserError(f'The structure {m} has {m.num_residues} residues which does not equal the PAE matrix size {self.matrix_size}, so domains cannot be colored')
+
         self.set_default_domain_clustering(cluster_max_pae, cluster_clumping,
                                            cluster_min_size)
 
