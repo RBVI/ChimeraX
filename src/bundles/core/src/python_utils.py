@@ -3,7 +3,6 @@
 import glob
 import os
 import shutil
-import subprocess
 import sys
 
 from contextlib import contextmanager
@@ -11,7 +10,6 @@ from contextlib import contextmanager
 from .utils import make_link
 
 """Utilities for managing the Python executable ChimeraX depends on."""
-
 def chimerax_python_executable():
     """Find the Python executable that comes with ChimeraX"""
     using_chimerax = "chimerax" in os.path.realpath(sys.executable).split(os.sep)[-1].lower()
@@ -78,7 +76,7 @@ def migrate_site_packages():
                 else:
                     # This path should be unreachable, since a user will always either transition
                     # from the old scheme and hit the else clause here or neither site-packages
-                    # will exist and they'll hit the else clause of the outer if                      
+                    # will exist and they'll hit the else clause of the outer if
                     raise RuntimeError("Populated ChimeraX site packages and Python site packages. Please report this bug!")
             else:
                 os.makedirs(os.path.dirname(real_site_dir), exist_ok = True)
