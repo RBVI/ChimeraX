@@ -3,7 +3,6 @@
 import glob
 import os
 import shutil
-import subprocess
 import sys
 
 from contextlib import contextmanager
@@ -11,14 +10,13 @@ from contextlib import contextmanager
 from .utils import make_link
 
 """Utilities for managing the Python executable ChimeraX depends on."""
-
 def chimerax_python_executable():
     """Find the Python executable that comes with ChimeraX"""
-    using_chimerax = "chimerax" in sys.executable.split(os.sep)[-1].lower()
+    using_chimerax = "chimerax" in os.path.realpath(sys.executable).split(os.sep)[-1].lower()
     if not using_chimerax:
         exe = sys.executable
     else:
-        exe_parted_out = sys.executable.split(os.sep)[:-1]
+        exe_parted_out = os.path.realpath(sys.executable).split(os.sep)[:-1]
         exe_prefix = os.sep.join(["", os.path.join(*exe_parted_out)])
         if sys.version_info.minor < 11:
             old_cwd = os.getcwd()
@@ -63,6 +61,8 @@ def migrate_site_packages():
     if sys.platform == "win32":
         lib = ""
         python = "Python311"
+    if sys.platform == "linux":
+        python = "python3.11"
     real_site_dir = os.path.join(app_dirs.user_data_dir, lib, python, "site-packages")
     if os.path.exists(user_site_packages):
         if not is_link(user_site_packages):
@@ -76,7 +76,7 @@ def migrate_site_packages():
                 else:
                     # This path should be unreachable, since a user will always either transition
                     # from the old scheme and hit the else clause here or neither site-packages
-                    # will exist and they'll hit the else clause of the outer if                      
+                    # will exist and they'll hit the else clause of the outer if
                     raise RuntimeError("Populated ChimeraX site packages and Python site packages. Please report this bug!")
             else:
                 os.makedirs(os.path.dirname(real_site_dir), exist_ok = True)

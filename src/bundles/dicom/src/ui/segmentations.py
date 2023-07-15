@@ -96,7 +96,7 @@ class SegmentationTool(ToolInstance):
         self.add_remove_save_layout = QHBoxLayout()
         self.add_seg_button = QPushButton("Add")
         self.remove_seg_button = QPushButton("Remove")
-        self.edit_seg_metadata_button = QPushButton("Edit")
+        self.edit_seg_metadata_button = QPushButton("Edit Metadata")
         self.save_seg_button = QPushButton("Save")
         self.help_button = QPushButton("Help")
 
@@ -333,6 +333,10 @@ class SegmentationTool(ToolInstance):
         self.active_seg = segment
 
     def _on_active_segmentation_changed(self, new, prev):
+        if type(new.segmentation.data) is not DicomSegmentation:
+            self.edit_seg_metadata_button.setEnabled(False)
+        else:
+            self.edit_seg_metadata_button.setEnabled(True)
         if new:
             self.setActiveSegment(new.segmentation)
         else:
@@ -358,6 +362,16 @@ class SegmentationTool(ToolInstance):
                 self.session.ui.main_window.main_view.register_segmentation_tool(self)
                 if self.guidelines_checkbox.isChecked():
                     self.session.ui.main_window.main_view.toggle_guidelines()
+
+    def set_view_dropdown(self, layout):
+        if layout == "default":
+            self.view_dropdown.setCurrentIndex(3)
+        elif layout == "sidebyside":
+            self.view_dropdown.setCurrentIndex(2)
+        elif layout == "overunder":
+            self.view_dropdown.setCurrentIndex(1)
+        else:
+            self.view_dropdown.setCurrentIndex(0)
 
     def setPuckHeight(self, axis, height):
         self.segmentation_cursors[axis].height = height
