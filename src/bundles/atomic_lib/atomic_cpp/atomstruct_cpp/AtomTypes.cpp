@@ -1592,7 +1592,7 @@ t0 = t1;
                     }
                     if (bond_sum == 2)
                         a->set_computed_idatm_type("Npl");
-                    else
+                    else {
                         bool N2_okay = true;
                         Bond* car_b = nullptr;
                         Bond* c2_b = nullptr;
@@ -1613,6 +1613,7 @@ t0 = t1;
                         if (car_b != nullptr && c2_b != nullptr)
                             N2_okay = false;
                         a->set_computed_idatm_type(N2_okay ? "N2" : "Npl");
+                    }
                     ring_assigned_Ns.insert(a);
                 }
             }
