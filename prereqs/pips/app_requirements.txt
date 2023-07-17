@@ -14,8 +14,8 @@ Cython==0.29.33
 filelock==3.9.0
 # grako==3.16.5 # See the Makefile; need patched Grako for 3.11
 html2text==2020.1.16
-ihm==0.35
-imagecodecs==2023.3.16
+ihm==0.38
+imagecodecs==2023.7.10
 ipykernel==6.23.2
 # if ipython updated, make sure autocompletion still works (e.g. "mi<tab>" becomes min) and if not then
 # try a newer version of jedi
@@ -26,19 +26,19 @@ jupyter-client==8.2.0
 line_profiler==4.0.2
 lxml==4.9.2
 lz4==4.3.2
-matplotlib==3.6.3
+matplotlib==3.7.2
 msgpack==1.0.4
 nibabel == 5.0.1
 netCDF4==1.6.2
-networkx==2.8.8
-numpy==1.23.5
+networkx==3.1
+numpy==1.25.1
 openvr==1.23.701
 # as per Tristan's request in ticket #3055
 ParmEd==3.4.3
 pep517==0.13.0
-Pillow==9.3.0
+Pillow==10.0.0
 pkginfo==1.9.6
-psutil==5.9.4
+psutil==5.9.5
 pycollada==0.7.2
 pydicom==2.3.0
 pynrrd==1.0.0
@@ -54,7 +54,7 @@ scipy==1.11.1
 six==1.16.0
 sortedcontainers==2.4.0
 tables==3.8.0 ; platform_machine != 'arm64'
-tifffile==2022.10.10
+tifffile==2023.7.10
 # tinyarray==1.2.4 # 3.11 requires getting this from Plato
 tomli==2.0.1
 webcolors==1.12
