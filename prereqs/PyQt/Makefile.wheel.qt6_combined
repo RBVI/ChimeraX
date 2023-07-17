@@ -35,7 +35,7 @@ endif
 
 # Versions of Riverbank Computing Limited packages/programs from when
 # unlicensed wheels where built and presumably matches the gpl wheel in PyPI.
-SIP_VERSION = 13.4.1
+SIP_VERSION = 13.5.1
 BUILDER_VERSION = 1.14.0
 
 PYTHON_TAGS = cp36
