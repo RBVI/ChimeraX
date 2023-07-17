@@ -346,7 +346,7 @@ def structure_color(id, bg_color):
         # as well as white and black and green (highlight), and hope...
         avoid = [BuiltinColors[cn].rgba[:3] for cn in atomic_color_names]
         avoid.extend([(0,0,0), (0,1,0), (1,1,1), bg_color[:3]])
-        model_color = Color(distinguish_from(avoid, num_candidates=7, seed=14))
+        model_color = Color(distinguish_from(avoid, num_candidates=7, seed=id[0]))
     return model_color
 
 def _displayed_colors(atoms):
