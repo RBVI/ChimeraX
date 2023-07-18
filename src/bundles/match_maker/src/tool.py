@@ -177,6 +177,15 @@ class MatchMakerTool(ToolInstance):
         self._pairing_change(cp_opt)
         tw.manage(placement=None)
 
+    def delete(self):
+        super().delete()
+        self.ref_structure_list.destroy()
+        self.match_structure_structure_list.destroy()
+        self.match_chain_structure_list.destroy()
+        self.ref_chain_list.destroy()
+        self.ref_chains_list.destroy()
+        self.match_chain_lists.destroy()
+
     def run_matchmaker(self, apply=False):
         from chimerax.core.commands import StringArg, BoolArg, FloatArg, DynamicEnum, NoneArg
         from .settings import defaults, get_settings
@@ -473,6 +482,12 @@ class ChainListsWidget(QWidget):
         self.__empty_label.setWordWrap(True)
         self.__shown_widget = None
         self.__show_widget(self.__empty_label)
+
+    def destroy(self):
+        super().destroy()
+        for widgets in self.__chain_list_mapping.values():
+            for widget in widgets:
+                widget.destroy()
 
     def update(self, ref_chains):
         if not ref_chains:
