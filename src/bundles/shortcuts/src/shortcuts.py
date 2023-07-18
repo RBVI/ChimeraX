@@ -1223,7 +1223,7 @@ def undisplay_half_model(m):
             if (mp[0]*c)[2] > 0:
                 m.display = False
         else:
-            from numpy import array, bool
+            from numpy import array
             pmask = array([(pl*c)[2] <= 0 for pl in mp], bool)
             m.display_positions = pmask
             print('uh', m.name, pmask.sum())

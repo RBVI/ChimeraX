@@ -50,7 +50,6 @@ def tube_triangle_mask(segmask, segment_subdivisions, circle_subdivisions,
     from . import _surface
     tmask = _surface.tube_triangle_mask(segmask, segment_subdivisions, circle_subdivisions,
                                         start_divisions, end_divisions)
-    from numpy import bool
     return tmask.view(bool)
 
 # -----------------------------------------------------------------------------

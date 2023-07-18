@@ -395,7 +395,7 @@ def hidden_structures(structures):
     vis = set(s for s in us if s.visible)
     if len(vis) == len(us):
         return None
-    from numpy import array, bool
+    from numpy import array
     hs = array([(s not in vis) for s in structures], bool)
     return hs
 

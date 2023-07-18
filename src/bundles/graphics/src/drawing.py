@@ -434,7 +434,7 @@ class Drawing:
         if sel:
             sp = self._highlighted_positions
             if sp is None:
-                from numpy import ones, bool
+                from numpy import ones
                 self._highlighted_positions = ones(len(self.positions), bool)
             else:
                 sp[:] = True
@@ -1989,7 +1989,7 @@ class PickedTriangle(Pick):
         d = self.drawing()
         pmask = d.highlighted_positions
         if pmask is None:
-            from numpy import zeros, bool
+            from numpy import zeros
             pmask = zeros((len(d.positions),), bool)
         c = self._copy
         if mode == 'add':

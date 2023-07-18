@@ -174,7 +174,7 @@ class Blob_Masker:
         if ts is None:
             tmask = mask
         else:
-            from numpy import zeros, bool
+            from numpy import zeros
             tmask = zeros((len(ts),), bool)
             tmask[ts.nonzero()[0]] = mask
         return tmask
@@ -268,6 +268,6 @@ class Blob_Masker:
 
     def mask_array(self):
         if self.tmask is None:
-            from numpy  import empty, bool
+            from numpy import empty
             self.tmask = empty((self.triangle_count,), bool)
         return self.tmask
