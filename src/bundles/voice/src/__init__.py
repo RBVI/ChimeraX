@@ -12,6 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 __version__ = "1.0"
 from chimerax.core.toolshed import BundleAPI
+from chimerax.core.tools import get_singleton
 from .tool import VoiceCommandTool
 
 class _VoiceBundle(BundleAPI):
@@ -19,7 +20,7 @@ class _VoiceBundle(BundleAPI):
 
     @staticmethod
     def start_tool(session, bi, ti):
-        if ti.name == "Voice Commands":
-            return get_singleton(session, VoiceCommandTool, "Voice Commands")
+        if ti.name == "Voice Control":
+            return get_singleton(session, VoiceCommandTool, "Voice Control")
 
 bundle_api = _VoiceBundle()
