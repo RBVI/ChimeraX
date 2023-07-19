@@ -23,7 +23,7 @@ class Slider(ToolInstance):
         ToolInstance.__init__(self, session, tool_name)
 
         self.value_range = value_range
-        self.loop = loop
+        self._loop = loop
         self.pause_frames = pause_frames
         self.pause_when_recording = pause_when_recording
         self._pause_count = 0
@@ -39,6 +39,7 @@ class Slider(ToolInstance):
 
         from chimerax.ui import MainToolWindow
         tw = MainToolWindow(self)
+        tw.fill_context_menu = self.fill_context_menu
         self.tool_window = tw
         parent = tw.ui_area
 
@@ -54,6 +55,7 @@ class Slider(ToolInstance):
         self.value_box = vb = QSpinBox()
         vb.setRange(value_range[0], value_range[1])
         vb.valueChanged.connect(self.value_changed_cb)
+        vb.setWrapping(loop)
         layout.addWidget(vb)
         self.slider = sl = QSlider(Qt.Horizontal)
         sl.setRange(value_range[0], value_range[1])
@@ -195,13 +197,32 @@ class Slider(ToolInstance):
             run(ses, 'movie encode ~/Desktop/%s framerate %.1f'
                 % (self.movie_filename, self.movie_framerate))
 
-    # Override ToolInstance method
+    @property
+    def loop(self):
+        return self._loop
+
+    @loop.setter
+    def loop(self, loop):
+        if loop != self._loop:
+            self._loop = loop
+            self.value_box.setWrapping(loop)
+
+    # Override ToolInstance methods
     def delete(self):
         t = self.session.triggers
         if self._play_handler:
             t.remove_handler(self._play_handler)
             self._play_handler = None
         super().delete()
+
+    def fill_context_menu(self, menu, x, y):
+        from Qt.QtGui import QAction
+        action = QAction("Loop playback", menu)
+        action.setCheckable(True)
+        action.setChecked(self.loop)
+        action.triggered.connect(lambda*, self=self, action=action:
+            setattr(self, 'loop', action.isChecked()))
+        menu.addAction(action)
 
     
 # -----------------------------------------------------------------------------
