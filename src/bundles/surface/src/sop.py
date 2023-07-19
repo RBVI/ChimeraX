@@ -354,7 +354,7 @@ def surface_invert_shown(session, surfaces):
     for surface in surfaces:
         m = surface.triangle_mask
         if m is None:
-            from numpy import ones, bool
+            from numpy import ones
             m = ones((len(surface.triangles),), bool)
         from numpy import logical_not
         surface.triangle_mask = logical_not(m)

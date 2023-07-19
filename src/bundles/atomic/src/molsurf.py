@@ -354,7 +354,7 @@ class MolecularSurface(Surface):
             return None
         shown_vertices = atom_mask[v2a]
         t = self.triangles
-        from numpy import logical_and, empty, bool
+        from numpy import logical_and, empty
         shown_triangles = empty((len(t),), bool)
         logical_and(shown_vertices[t[:,0]], shown_vertices[t[:,1]], shown_triangles)
         logical_and(shown_triangles, shown_vertices[t[:,2]], shown_triangles)
@@ -476,7 +476,7 @@ class MolecularSurface(Surface):
 
     def _remember_atom_patch_colors(self, atom_colors):
         self._atom_patch_colors = atom_colors
-        from numpy import ones, bool
+        from numpy import ones
         self._atom_patch_color_mask = ones((len(atom_colors),), bool)
 
     def _update_atom_patch_colors(self, atoms, color, per_atom_colors, vertex_colors):
@@ -496,7 +496,7 @@ class MolecularSurface(Surface):
         apc = self._atom_patch_colors
         if apc is None or len(apc) != len(self.atoms):
             na = len(self.atoms)
-            from numpy import empty, uint8, bool
+            from numpy import empty, uint8
             self._atom_patch_colors = c = empty((na,4), uint8)
             c[ai] = acolors
             self._atom_patch_color_mask = ai

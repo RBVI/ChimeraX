@@ -192,11 +192,7 @@ class Graph(Plot):
     def _make_graph(self):
         import networkx as nx
         # Keep graph nodes in order so we can reproduce the same layout.
-        from collections import OrderedDict
-        class OrderedGraph(nx.Graph):
-            node_dict_factory = OrderedDict
-            adjlist_dict_factory = OrderedDict
-        G = nx.OrderedGraph()
+        G = nx.Graph()
         G.add_nodes_from(self.nodes)
         edges = self.edges
         if edges:

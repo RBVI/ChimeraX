@@ -247,6 +247,23 @@ class Log(ToolInstance, HtmlLog):
         self.settings.exec_cmd_links = checked
         self._show()
 
+    def show_error_message(self, msg, bug = False):
+        ed = self.error_dialog
+        if bug:
+            ed.report_bug_button.show()
+        else:
+            ed.report_bug_button.hide()
+        from sys import platform
+        if platform == 'darwin':
+            # To show the Report Bug button we need a non-native dialog on Mac.
+            # ChimeraX bug #9392
+            from Qt.QtCore import Qt
+            self.session.ui.setAttribute(Qt.AA_DontUseNativeDialogs)
+            ed.showMessage(msg)
+            self.session.ui.setAttribute(Qt.AA_DontUseNativeDialogs, False)
+        else:
+            ed.showMessage(msg)
+
     def _add_report_bug_button(self):
         '''
         Add "Report a Bug" button to the error dialog.
@@ -320,12 +337,8 @@ class Log(ToolInstance, HtmlLog):
                         link, search_text = text_plus.split('</a>', 1)
                         dlg_msg += link
                     dlg_msg += search_text
-                if level == self.LEVEL_BUG:
-                    f = lambda dlg=self.error_dialog, msg=dlg_msg: (dlg.report_bug_button.show(),
-                        dlg.showMessage(msg))
-                else:
-                    f = lambda dlg=self.error_dialog, msg=dlg_msg: (dlg.report_bug_button.hide(),
-                        dlg.showMessage(msg))
+                bug = (level == self.LEVEL_BUG)
+                f = lambda self=self, msg=dlg_msg: self.show_error_message(msg, bug=bug)
                 self.session.ui.thread_safe(f)
             if not is_html:
                 from html import escape

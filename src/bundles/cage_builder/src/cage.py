@@ -596,7 +596,7 @@ def selected_edges(session):
 
     from chimerax.atomic import selected_bonds
     bonds = selected_bonds(session)
-    from numpy import array, bool
+    from numpy import array
     cbonds = bonds.filter(array([hasattr(b, 'polygon') for b in bonds], bool))
     return cbonds
 
@@ -606,7 +606,7 @@ def selected_vertices(session):
 
     from chimerax.atomic import selected_atoms
     atoms = selected_atoms(session)
-    from numpy import array, bool
+    from numpy import array
     catoms = atoms.filter(array([hasattr(a, 'polygon') for a in atoms], bool))
     return catoms
 

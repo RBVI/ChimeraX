@@ -1592,8 +1592,28 @@ t0 = t1;
                     }
                     if (bond_sum == 2)
                         a->set_computed_idatm_type("Npl");
-                    else
-                        a->set_computed_idatm_type("N2");
+                    else {
+                        bool N2_okay = true;
+                        Bond* car_b = nullptr;
+                        Bond* c2_b = nullptr;
+                        for (auto b: a->bonds()) {
+                            // if double-bonded to Car and single-bonded to C2, then we are in a
+                            // non-aromatic ring and that double bond assignment is wrong;
+                            auto nb = b->other_atom(a);
+                            if ((*best_assignment)[b] == 2) {
+                                if (nb->idatm_type() == "Car")
+                                    car_b = b;
+                                else
+                                    break;
+                            } else if (nb->idatm_type() == "C2")
+                                c2_b = b;
+                            else
+                                break;
+                        }
+                        if (car_b != nullptr && c2_b != nullptr)
+                            N2_okay = false;
+                        a->set_computed_idatm_type(N2_okay ? "N2" : "Npl");
+                    }
                     ring_assigned_Ns.insert(a);
                 }
             }

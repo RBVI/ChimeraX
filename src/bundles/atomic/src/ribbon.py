@@ -632,7 +632,6 @@ class RibbonsDrawing(Drawing):
         if sel_tranges:
             tmask = self.highlighted_triangles_mask
             if tmask is None:
-                from numpy import bool
                 tmask = zeros((len(self.triangles),), bool)
             else:
                 tmask[:] = False

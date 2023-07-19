@@ -42,7 +42,7 @@ def measure_motion(session, surface, to_map = None, scale = 1, color = None,
         step_size = min(to_map.data.step)
         level = to_map.minimum_surface_level
         n = len(va)
-        from numpy import ones, bool, zeros, float32, logical_and
+        from numpy import ones, zeros, float32, logical_and
         vinside = ones((n,), bool)
         vlen = zeros((n,), float32)
         for step in range(steps):

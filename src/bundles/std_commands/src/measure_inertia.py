@@ -151,9 +151,9 @@ def map_points_and_weights(v, level = None, step = None, subregion = None,
 #
 def moments_of_inertia(vw):
 
-  from numpy import zeros, float, array, dot, outer, argsort, linalg, identity
-  i = zeros((3,3), float)
-  c = zeros((3,), float)
+  from numpy import zeros, float64, array, dot, outer, argsort, linalg, identity
+  i = zeros((3,3), float64)
+  c = zeros((3,), float64)
   w = 0
   for xyz, weights in vw:
     xyz, weights = array(xyz), array(weights)

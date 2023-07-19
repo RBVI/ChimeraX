@@ -536,13 +536,13 @@ def hk2_to_xyz(hklist):
 #
 def triangle_map(tri1, tri2):
 
-    from numpy import zeros, subtract, dot as matrix_multiply, float, float64
+    from numpy import zeros, subtract, dot as matrix_multiply, float64
 
-    f1 = zeros((3,3), float)
+    f1 = zeros((3,3), float64)
     f1[:,0], f1[:,1] = subtract(tri1[1], tri1[0]), subtract(tri1[2], tri1[0])
     f1[:,2] = cross_product(f1[:,0], f1[:,1])
 
-    f2 = zeros((3,3), float)
+    f2 = zeros((3,3), float64)
     f2[:,0], f2[:,1] = subtract(tri2[1], tri2[0]), subtract(tri2[2], tri2[0])
     f2[:,2] = cross_product(f2[:,0], f2[:,1])
     

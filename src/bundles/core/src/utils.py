@@ -19,6 +19,8 @@ import os
 import subprocess
 import sys
 
+from contextlib import contextmanager
+
 
 # Based on Mike C. Fletcher's BasicTypes library
 # https://sourceforge.net/projects/basicproperty/ and comments in
@@ -220,4 +222,21 @@ def make_link(target, source) -> None:
         subprocess.run('mklink /J "%s" "%s"' % (source, target), shell = True)
     else:
         os.symlink(target, source)
- 
+
+def chimerax_binary_directory():
+    """Find the ChimeraX.app/Contents/bin directory."""
+    using_chimerax = "chimerax" in os.path.realpath(sys.executable).split(os.sep)[-1].lower()
+    if using_chimerax or sys.platform != "darwin":
+        return os.path.dirname(os.path.realpath(sys.executable))
+    # /path/to/ChimeraX.app/Contents/Library/Frameworks/Python.Framework/Versions/3.11/bin/python3.11
+    # So we need to trim off everything after 'Contents' and add 'bin'
+    return os.sep.join([*os.path.realpath(sys.executable).split(os.sep)[:-7], "bin"])
+
+@contextmanager
+def chimerax_bin_dir_first_in_path():
+    """Put ChimeraX's bin directory first on the PATH. This is useful to override some library's call to
+    a system binary, ensuring the system finds the binary shipped with ChimeraX first."""
+    oldpath = os.environ['PATH']
+    os.environ['PATH'] = ":".join([chimerax_binary_directory(), oldpath])
+    yield
+    os.environ['PATH'] = oldpath or ''
