@@ -317,7 +317,7 @@ def binary_string(values, type):
 #
 def volume_data_type(type):
 
-    from numpy import float, float32, float64
+    from numpy import float32, float64
     from numpy import int, int8, int16, int32, int64, character
     from numpy import uint, uint8, uint16, uint32, uint64
 
