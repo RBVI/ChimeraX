@@ -4,9 +4,12 @@ include $(TOP)/mk/config.make
 include ../pips/Makefile.pip
 
 # For PyQt6
-SIP_VERSION = 13.5.1
-PYQT_VERSION = 6.5.1
-WB_PYQT_VERSION = 6.5.0
+#SIP_VERSION = 13.5.1
+#PYQT_VERSION = 6.5.1
+#WB_PYQT_VERSION = 6.5.0
+SIP_VERSION = 13.4.1
+PYQT_VERSION = 6.4.2
+WB_PYQT_VERSION = 6.4.0
 SIP_WHEEL := PyQt6-sip==$(SIP_VERSION)
 QT_WHEEL := PyQt6==$(PYQT_VERSION)
 WB_WHEEL := PyQt6-WebEngine==$(WB_PYQT_VERSION)
