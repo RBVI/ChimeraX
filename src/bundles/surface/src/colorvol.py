@@ -454,7 +454,7 @@ def _inside_values(values, outside):
     if len(outside) == n:
         return ()
 
-    from numpy import zeros, int, array, put, subtract, nonzero, take
+    from numpy import zeros, array, put, subtract, nonzero, take
     m = zeros(n, int)
     one = array(1, int)
     put(m, outside, one)
