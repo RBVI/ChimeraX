@@ -168,7 +168,7 @@ class LaunchEmplaceLocalTool(ToolInstance):
     def __init__(self, session, tool_name):
         super().__init__(session, tool_name)
         from chimerax.ui import MainToolWindow
-        self.tool_window = tw = MainToolWindow(self)
+        self.tool_window = tw = MainToolWindow(self, close_destroys=False)
         parent = tw.ui_area
 
         if not hasattr(self.__class__, 'settings'):
@@ -295,8 +295,9 @@ class LaunchEmplaceLocalTool(ToolInstance):
         layout.addStretch(1)
 
         from Qt.QtWidgets import QDialogButtonBox as qbbox
-        self.bbox = bbox = qbbox(qbbox.Ok | qbbox.Close | qbbox.Help)
+        self.bbox = bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
         bbox.accepted.connect(self.launch_emplace_local)
+        bbox.button(qbbox.Apply).clicked.connect(lambda *args: self.launch_emplace_local(apply=True))
         bbox.rejected.connect(self.delete)
         if self.help:
             from chimerax.core.commands import run
@@ -307,7 +308,7 @@ class LaunchEmplaceLocalTool(ToolInstance):
 
         tw.manage(placement=None)
 
-    def launch_emplace_local(self):
+    def launch_emplace_local(self, apply=False):
         structure = self.structure_menu.value
         if not structure:
             raise UserError("Must specify a structure to fit")
@@ -332,12 +333,10 @@ class LaunchEmplaceLocalTool(ToolInstance):
             bnds = centering_model.bounds()
             if bnds is None:
                 raise UserError("No part of model for specifying search center is displayed")
-            center =[]
-            for o, xyz in zip(maps[0].data.origin, bnds.center()):
-                center.append(xyz - o)
+            center = bnds.center()
         elif method == self.CENTER_VIEW:
             # If pivot point shown or using fixed center of rotation, use that.
-            # Otherwise, midpoint where center ow window intersects front and back of halfmap bounding box.
+            # Otherwise, midpoint where center of window intersects front and back of halfmap bounding box.
             view_center = None
             mv = self.session.main_view
             for d in mv.drawing.child_drawings():
@@ -359,9 +358,7 @@ class LaunchEmplaceLocalTool(ToolInstance):
                     view_center = view_box(self.session, view_map)
                 except ViewBoxError as e:
                     raise UserError(str(e))
-            center =[]
-            for o, xyz in zip(maps[0].data.origin, view_center):
-                center.append(xyz - o)
+            center = view_center
         else:
             raise AssertionError("Unknown centering method")
         self.settings.search_center = method
@@ -370,7 +367,8 @@ class LaunchEmplaceLocalTool(ToolInstance):
             VerifyCenterDialog(self.session, structure, maps, res, center, self.settings.opaque_maps)
         else:
             _run_emplace_local_command(self.session, structure, maps, res, center)
-        self.delete()
+        if not apply:
+            self.display(False)
 
     def _map_type_changed(self, action):
         self.map_type_mb.setText(action.text())
@@ -398,7 +396,9 @@ class VerifyCenterDialog(QDialog):
         self.resolution = resolution
         self.opaque_maps = opaque_maps
 
-        adjusted_center = [ic+o for ic,o in zip(initial_center, maps[0].data.origin)]
+        # adjusted_center used to compensate for map origin, but improvements to emplace_local
+        # have made that adjustment unnecessary
+        adjusted_center = initial_center
         marker_set_id = session.models.next_id()[0]
         from chimerax.core.commands import run
         self.marker = run(session, "marker #%d position %g,%g,%g radius %g color 100,65,0,50"
@@ -466,8 +466,7 @@ class VerifyCenterDialog(QDialog):
                     rgba[-1] = alpha
                     m.rgba = tuple(rgba)
         center = self.marker.scene_coord
-        _run_emplace_local_command(self.session, self.structure, self.maps, self.resolution,
-            [c-o for c, o in zip(center, self.maps[0].data.origin)])
+        _run_emplace_local_command(self.session, self.structure, self.maps, self.resolution, center)
 
     def _check_still_valid(self, trig_name, removed_models):
         for rm in removed_models:
