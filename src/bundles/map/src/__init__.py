@@ -209,6 +209,8 @@ class _MapBundle(BundleAPI):
                             'compress_level': IntArg,
                             'subsamples': RepeatOf(Int1or3Arg),
                         })
+                    if _name == "MRC density map":
+                        args.update({'value_type': EnumOf(('int8', 'int16', 'uint16','float16', 'float32'))})
                     return args
 
                 def save_args_widget(self, session):

@@ -53,7 +53,10 @@
 def write_mrc2000_grid_data(grid_data, path, options = {}, progress = None):
 
     mtype = grid_data.value_type.type
-    type = closest_mrc2000_type(mtype)
+    if options.get('value_type'):
+        type = mrc_value_type_from_name(options.get('value_type'))
+    else:
+        type = closest_mrc2000_type(mtype)
 
     ccp4_format = options.get('ccp4_format')
     header = mrc2000_header(grid_data, type, ccp4_format = ccp4_format)
@@ -88,10 +91,12 @@ def mrc2000_header(grid_data, value_type, stats = None, ccp4_format = False):
 
     size = grid_data.size
 
-    from numpy import float32, int16, int8, int32
+    from numpy import float16, float32, int16, int8, int32, uint16
     if value_type == float32:         mode = 2
     elif value_type == int16:         mode = 1
     elif value_type == int8:          mode = 0
+    elif value_type == uint16:        mode = 6
+    elif value_type == float16:       mode = 12
 
     if ccp4_format:
         origin = (0,0,0)
@@ -220,16 +225,29 @@ def binary_string(values, type):
 #
 def closest_mrc2000_type(type):
 
-    from numpy import float32, float64
+    from numpy import float16, float32, float64
     from numpy import int8, int16, int32, int64, character
     from numpy import uint, uint8, uint16, uint32, uint64
-    if type in (float32, float64, float, int32, int64, int, uint, uint16, uint32, uint64):
+    if type in (float32, float64, float, int32, int64, int, uint, uint32, uint64):
         ctype = float32
     elif type in (int16, uint8):
         ctype = int16
     elif type in (int8, character):
         ctype = int8
+    elif type in (uint16,):
+        ctype = uint16
+    elif type in (float16,):
+        ctype = float16
     else:
         raise TypeError('Volume data has unrecognized type %s' % type)
 
     return ctype
+
+# -----------------------------------------------------------------------------
+#
+def mrc_value_type_from_name(type_name):
+    from numpy import float16, float32, int8,int16, uint16
+    t = {'float16':float16, 'float32':float32, 'int8': int8, 'int16':int16, 'uint16':uint16}
+    if type_name not in t:
+        raise TypeError(f'Cannot write MRC type "{type_name}", must be int8, int16, uint16, float16 or float32')
+    return t[type_name]
