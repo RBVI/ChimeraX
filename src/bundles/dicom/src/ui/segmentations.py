@@ -339,13 +339,11 @@ class SegmentationTool(ToolInstance):
         self.active_seg = segment
 
     def _on_active_segmentation_changed(self, new, prev):
-        if type(new.segmentation.data) is not DicomSegmentation:
-            self.edit_seg_metadata_button.setEnabled(False)
-        else:
-            self.edit_seg_metadata_button.setEnabled(True)
         if new:
+            self.edit_seg_metadata_button.setEnabled(True)
             self.setActiveSegment(new.segmentation)
         else:
+            self.edit_seg_metadata_button.setEnabled(False)
             self.setActiveSegment(None)
 
     def _on_view_changed(self):
