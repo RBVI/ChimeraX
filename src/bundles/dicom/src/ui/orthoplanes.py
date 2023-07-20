@@ -140,13 +140,19 @@ class PlaneViewer(QWindow):
 
         self.label = Label(self.session, self.view, str(axis), str(axis), size=16, xpos=0, ypos=0)
 
-        def _not_volume_surface(m):
-            return not isinstance(m, VolumeSurface)
+        def _not_volume_surface_or_segmentation(m):
+            ok_to_list = not isinstance(m, VolumeSurface)
+            # This will run over all models which may not have DICOM data...
+            try:
+                ok_to_list &= not hasattr(m.data, "reference_data")
+            except AttributeError:
+                pass
+            return ok_to_list
 
         self.model_menu = ModelMenu(
             self.session, parent, label = 'Model',
             model_types = [Volume, Surface],
-            model_filter = _not_volume_surface,
+            model_filter = _not_volume_surface_or_segmentation,
             model_chosen_cb = self._surfaceChosen
         )
 
