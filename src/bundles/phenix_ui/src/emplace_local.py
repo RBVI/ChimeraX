@@ -82,7 +82,7 @@ class FitJob(Job):
 command_defaults = {
     'verbose': False
 }
-def phenix_local_fit(session, model, center=None, map_data=None, *, resolution=0.0,
+def phenix_local_fit(session, model, center=None, map_data=None, *, resolution=0.0, show_sharpened_map=False,
         block=None, phenix_location=None, verbose=command_defaults['verbose'],
         option_arg=[], position_arg=[]):
 
@@ -118,20 +118,17 @@ def phenix_local_fit(session, model, center=None, map_data=None, *, resolution=0
         raise UserError("Please specify two half maps or one full map.  You specified %d maps"
             % (len(map_data)))
 
-    # Emplace_local ignores the MRC file origin so if it is non-zero
-    # shift the atom coordinates so they align with the origin 0 map.
-    #map_0, shift = _fix_map_origin(target_map)
-    map_0, shift = _fix_map_origin(map_data[0])
+    # Emplace_local handles non-zero origins, so don't have to write an adjusted map
 
     # Save model to file.
     from chimerax.pdb import save_pdb
-    save_pdb(session, path.join(temp_dir,'model.pdb'), models=[model], rel_model=map_0)
+    save_pdb(session, path.join(temp_dir,'model.pdb'), models=[model], rel_model=map_data[0])
 
     # Run phenix.voyager.emplace_local
     # keep a reference to 'd' in the callback so that the temporary directory isn't removed before
     # the program runs
-    callback = lambda transform, sharpened_map, *args, session=session, map_data=map_data, shift=shift, d_ref=d: \
-        _process_results(session, transform, sharpened_map, model, map_data, shift)
+    callback = lambda transform, sharpened_map, *args, session=session, ssm=show_sharpened_map, d_ref=d: \
+        _process_results(session, transform, sharpened_map, model, ssm)
     FitJob(session, exe_path, option_arg, map_arg1, map_arg2, search_center,
         "model.pdb", position_arg, temp_dir, resolution, verbose, callback, block)
 
@@ -197,28 +194,13 @@ def view_box(session, model):
         return (face_intercepts[0] + face_intercepts[1]) / 2
     raise ViewBoxError("Center of view does not intersect %s bounding box" % model)
 
-def _process_results(session, transform, sharpened_map, orig_model, map_data, shift):
+def _process_results(session, transform, sharpened_map, orig_model, show_sharpened_map):
     from chimerax.geometry import Place
     orig_model.scene_position = Place(transform) * orig_model.scene_position
     sharpened_map.name = "sharpened local map"
+    sharpened_map.display = show_sharpened_map
     session.models.add([sharpened_map])
     session.logger.status("Fitting job finished")
-
-def _fix_map_origin(map):
-    '''
-    Douse ignores the MRC file origin so if it is non-zero take the
-    atom coordinates relative to the map assuming zero origin.
-    '''
-    if tuple(map.data.origin) != (0,0,0):
-        from chimerax.geometry import translation
-        shift = map.data.origin
-        from chimerax.core.models import Model
-        map_0 = Model('douse shift coords', map.session)
-        map_0.position = map.scene_position * translation(shift)
-    else:
-        shift = None
-        map_0 = map
-    return map_0, shift
 
 #NOTE: We don't use a REST server; reference code retained in douse.py
 
@@ -303,6 +285,7 @@ def register_command(logger):
                    ('option_arg', RepeatOf(StringArg)),
                    ('position_arg', RepeatOf(StringArg)),
                    ('resolution', NonNegativeFloatArg),
+                   ('show_sharpened_map', BoolArg),
         ],
         synopsis = 'Place structure in map'
     )

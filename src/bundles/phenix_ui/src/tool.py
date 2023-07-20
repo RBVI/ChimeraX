@@ -158,17 +158,18 @@ class LaunchDouseTool(ToolInstance):
         self.delete()
 
 class LaunchEmplaceLocalTool(ToolInstance):
-    help = "help:user/tools/loaclemfitting.html"
+    help = "help:user/tools/localemfitting.html"
 
     CENTER_MODEL = "center of model..."
+    CENTER_SELECTION = "center of selection"
     CENTER_VIEW = "center of view"
     CENTER_XYZ = "specified xyz position..."
-    CENTERING_METHODS = [CENTER_MODEL, CENTER_VIEW, CENTER_XYZ]
+    CENTERING_METHODS = [CENTER_MODEL, CENTER_SELECTION, CENTER_VIEW, CENTER_XYZ]
 
     def __init__(self, session, tool_name):
         super().__init__(session, tool_name)
         from chimerax.ui import MainToolWindow
-        self.tool_window = tw = MainToolWindow(self)
+        self.tool_window = tw = MainToolWindow(self, close_destroys=False)
         parent = tw.ui_area
 
         if not hasattr(self.__class__, 'settings'):
@@ -248,8 +249,11 @@ class LaunchEmplaceLocalTool(ToolInstance):
 %s — The center of a particular model, frequently the map, or the structure to be fitted once
     it has been approximately positioned.
 
+%s - The center of the bounding box enclosing currently selected objects.
+
 %s — A specific X/Y/Z position, given in angstroms relative to the origin of the map.
-        ''' % (self.CENTER_VIEW.rstrip('.'), self.CENTER_MODEL.rstrip('.'), self.CENTER_XYZ.rstrip('.'))
+        ''' % (self.CENTER_VIEW.rstrip('.'), self.CENTER_MODEL.rstrip('.'),
+            self.CENTER_SELECTION.rstrip('.'), self.CENTER_XYZ.rstrip('.'))
         centering_label = QLabel("Center search at")
         centering_label.setToolTip(centering_tip)
         centering_layout.addWidget(centering_label, alignment=Qt.AlignRight)
@@ -292,11 +296,21 @@ class LaunchEmplaceLocalTool(ToolInstance):
         self.verify_center_checkbox.clicked.connect(lambda checked, b=self.opaque_maps_checkbox:
             b.setHidden(not checked))
         layout.addWidget(self.opaque_maps_checkbox, alignment=Qt.AlignCenter)
+        self.show_sharpened_map_checkbox = QCheckBox("Show locally sharpened map computed by Phenix")
+        self.show_sharpened_map_checkbox.setChecked(self.settings.show_sharpened_map)
+        self.show_sharpened_map_checkbox.setToolTip(
+            "Phenix.emplace_local computes a sharpened map for the region being searched.\n"
+            "This sharpened map is what is actually used for the fitting.  This checkbox\n"
+            "controls whether the sharpened map is initially shown in ChimeraX once the\n"
+            "calculation completes.  Even if not checked, the map will be opened (but hidden)."
+        )
+        layout.addWidget(self.show_sharpened_map_checkbox, alignment=Qt.AlignCenter)
         layout.addStretch(1)
 
         from Qt.QtWidgets import QDialogButtonBox as qbbox
-        self.bbox = bbox = qbbox(qbbox.Ok | qbbox.Close | qbbox.Help)
+        self.bbox = bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
         bbox.accepted.connect(self.launch_emplace_local)
+        bbox.button(qbbox.Apply).clicked.connect(lambda *args: self.launch_emplace_local(apply=True))
         bbox.rejected.connect(self.delete)
         if self.help:
             from chimerax.core.commands import run
@@ -307,7 +321,7 @@ class LaunchEmplaceLocalTool(ToolInstance):
 
         tw.manage(placement=None)
 
-    def launch_emplace_local(self):
+    def launch_emplace_local(self, apply=False):
         structure = self.structure_menu.value
         if not structure:
             raise UserError("Must specify a structure to fit")
@@ -332,12 +346,10 @@ class LaunchEmplaceLocalTool(ToolInstance):
             bnds = centering_model.bounds()
             if bnds is None:
                 raise UserError("No part of model for specifying search center is displayed")
-            center =[]
-            for o, xyz in zip(maps[0].data.origin, bnds.center()):
-                center.append(xyz - o)
+            center = bnds.center()
         elif method == self.CENTER_VIEW:
             # If pivot point shown or using fixed center of rotation, use that.
-            # Otherwise, midpoint where center ow window intersects front and back of halfmap bounding box.
+            # Otherwise, midpoint where center of window intersects front and back of halfmap bounding box.
             view_center = None
             mv = self.session.main_view
             for d in mv.drawing.child_drawings():
@@ -359,18 +371,31 @@ class LaunchEmplaceLocalTool(ToolInstance):
                     view_center = view_box(self.session, view_map)
                 except ViewBoxError as e:
                     raise UserError(str(e))
-            center =[]
-            for o, xyz in zip(maps[0].data.origin, view_center):
-                center.append(xyz - o)
+            center = view_center
+        elif method == self.CENTER_SELECTION:
+            if self.session.selection.empty():
+                raise UserError("Nothing selected")
+            from chimerax.atomic import selected_atoms
+            sel_atoms = selected_atoms(self.session)
+            from chimerax.geometry import point_bounds, union_bounds
+            atom_bbox = point_bounds(sel_atoms.scene_coords)
+            atom_models = set(sel_atoms.unique_structures)
+            bbox = union_bounds([atom_bbox]
+                + [m.bounds() for m in self.session.selection.models() if m not in atom_models])
+            if bbox is None:
+                raise UserError("No bounding box for selected items")
+            center = bbox.center()
         else:
             raise AssertionError("Unknown centering method")
         self.settings.search_center = method
+        self.settings.show_sharpened_map = ssm = self.show_sharpened_map_checkbox.isChecked()
         if self.verify_center_checkbox.isChecked():
             self.settings.opaque_maps = self.opaque_maps_checkbox.isChecked()
-            VerifyCenterDialog(self.session, structure, maps, res, center, self.settings.opaque_maps)
+            VerifyCenterDialog(self.session, structure, maps, res, center, self.settings.opaque_maps, ssm)
         else:
-            _run_emplace_local_command(self.session, structure, maps, res, center)
-        self.delete()
+            _run_emplace_local_command(self.session, structure, maps, res, center, ssm)
+        if not apply:
+            self.display(False)
 
     def _map_type_changed(self, action):
         self.map_type_mb.setText(action.text())
@@ -390,15 +415,19 @@ class LaunchEmplaceLocalTool(ToolInstance):
             self.model_menu.setHidden(False)
 
 class VerifyCenterDialog(QDialog):
-    def __init__(self, session, structure, maps, resolution, initial_center, opaque_maps):
+    def __init__(self, session, structure, maps, resolution, initial_center, opaque_maps,
+            show_sharpened_map):
         super().__init__()
         self.session = session
         self.structure = structure
         self.maps = maps
         self.resolution = resolution
         self.opaque_maps = opaque_maps
+        self.show_sharpened_map = show_sharpened_map
 
-        adjusted_center = [ic+o for ic,o in zip(initial_center, maps[0].data.origin)]
+        # adjusted_center used to compensate for map origin, but improvements to emplace_local
+        # have made that adjustment unnecessary
+        adjusted_center = initial_center
         marker_set_id = session.models.next_id()[0]
         from chimerax.core.commands import run
         self.marker = run(session, "marker #%d position %g,%g,%g radius %g color 100,65,0,50"
@@ -466,8 +495,8 @@ class VerifyCenterDialog(QDialog):
                     rgba[-1] = alpha
                     m.rgba = tuple(rgba)
         center = self.marker.scene_coord
-        _run_emplace_local_command(self.session, self.structure, self.maps, self.resolution,
-            [c-o for c, o in zip(center, self.maps[0].data.origin)])
+        _run_emplace_local_command(self.session, self.structure, self.maps, self.resolution, center,
+            self.show_sharpened_map)
 
     def _check_still_valid(self, trig_name, removed_models):
         for rm in removed_models:
@@ -478,13 +507,14 @@ class VerifyCenterDialog(QDialog):
 class LaunchEmplaceLocalSettings(Settings):
     AUTO_SAVE = {
         'search_center': LaunchEmplaceLocalTool.CENTER_MODEL,
-        'opaque_maps': True
+        'opaque_maps': True,
+        'show_sharpened_map': False
     }
 
-def _run_emplace_local_command(session, structure, maps, resolution, center):
-    from chimerax.core.commands import run, concise_model_spec
+def _run_emplace_local_command(session, structure, maps, resolution, center, show_sharpened_map):
+    from chimerax.core.commands import run, concise_model_spec, BoolArg
     from chimerax.map import Volume
-    cmd = "phenix emplaceLocal %s mapData %s resolution %g center %g,%g,%g" % (structure.atomspec,
-        concise_model_spec(session, maps, relevant_types=Volume, allow_empty_spec=False),
-        resolution, *center)
+    cmd = "phenix emplaceLocal %s mapData %s resolution %g center %g,%g,%g showSharpenedMap %s" % (
+        structure.atomspec, concise_model_spec(session, maps, relevant_types=Volume, allow_empty_spec=False),
+        resolution, *center, BoolArg.unparse(show_sharpened_map))
     run(session, cmd)
