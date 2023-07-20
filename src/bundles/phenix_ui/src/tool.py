@@ -158,7 +158,7 @@ class LaunchDouseTool(ToolInstance):
         self.delete()
 
 class LaunchEmplaceLocalTool(ToolInstance):
-    help = "help:user/tools/loaclemfitting.html"
+    help = "help:user/tools/localemfitting.html"
 
     CENTER_MODEL = "center of model..."
     CENTER_VIEW = "center of view"
@@ -292,6 +292,15 @@ class LaunchEmplaceLocalTool(ToolInstance):
         self.verify_center_checkbox.clicked.connect(lambda checked, b=self.opaque_maps_checkbox:
             b.setHidden(not checked))
         layout.addWidget(self.opaque_maps_checkbox, alignment=Qt.AlignCenter)
+        self.show_sharpened_map_checkbox = QCheckBox("Show locally sharpened map computed by Phenix")
+        self.show_sharpened_map_checkbox.setChecked(self.settings.show_sharpened_map)
+        self.show_sharpened_map_checkbox.setToolTip(
+            "Phenix.emplace_local computes a sharpened map for the region being searched.\n"
+            "This sharpened map is what is actually used for the fitting.  This checkbox\n"
+            "controls whether the sharpened map is initially shown in ChimeraX once the\n"
+            "calculation completes.  Even if not checked, the map will be opened (but hidden)."
+        )
+        layout.addWidget(self.show_sharpened_map_checkbox, alignment=Qt.AlignCenter)
         layout.addStretch(1)
 
         from Qt.QtWidgets import QDialogButtonBox as qbbox
@@ -362,11 +371,12 @@ class LaunchEmplaceLocalTool(ToolInstance):
         else:
             raise AssertionError("Unknown centering method")
         self.settings.search_center = method
+        self.settings.show_sharpened_map = ssm = self.show_sharpened_map_checkbox.isChecked()
         if self.verify_center_checkbox.isChecked():
             self.settings.opaque_maps = self.opaque_maps_checkbox.isChecked()
-            VerifyCenterDialog(self.session, structure, maps, res, center, self.settings.opaque_maps)
+            VerifyCenterDialog(self.session, structure, maps, res, center, self.settings.opaque_maps, ssm)
         else:
-            _run_emplace_local_command(self.session, structure, maps, res, center)
+            _run_emplace_local_command(self.session, structure, maps, res, center, ssm)
         if not apply:
             self.display(False)
 
@@ -388,13 +398,15 @@ class LaunchEmplaceLocalTool(ToolInstance):
             self.model_menu.setHidden(False)
 
 class VerifyCenterDialog(QDialog):
-    def __init__(self, session, structure, maps, resolution, initial_center, opaque_maps):
+    def __init__(self, session, structure, maps, resolution, initial_center, opaque_maps,
+            show_sharpened_map):
         super().__init__()
         self.session = session
         self.structure = structure
         self.maps = maps
         self.resolution = resolution
         self.opaque_maps = opaque_maps
+        self.show_sharpened_map = show_sharpened_map
 
         # adjusted_center used to compensate for map origin, but improvements to emplace_local
         # have made that adjustment unnecessary
@@ -466,7 +478,8 @@ class VerifyCenterDialog(QDialog):
                     rgba[-1] = alpha
                     m.rgba = tuple(rgba)
         center = self.marker.scene_coord
-        _run_emplace_local_command(self.session, self.structure, self.maps, self.resolution, center)
+        _run_emplace_local_command(self.session, self.structure, self.maps, self.resolution, center,
+            self.show_sharpened_map)
 
     def _check_still_valid(self, trig_name, removed_models):
         for rm in removed_models:
@@ -477,13 +490,14 @@ class VerifyCenterDialog(QDialog):
 class LaunchEmplaceLocalSettings(Settings):
     AUTO_SAVE = {
         'search_center': LaunchEmplaceLocalTool.CENTER_MODEL,
-        'opaque_maps': True
+        'opaque_maps': True,
+        'show_sharpened_map': False
     }
 
-def _run_emplace_local_command(session, structure, maps, resolution, center):
-    from chimerax.core.commands import run, concise_model_spec
+def _run_emplace_local_command(session, structure, maps, resolution, center, show_sharpened_map):
+    from chimerax.core.commands import run, concise_model_spec, BoolArg
     from chimerax.map import Volume
-    cmd = "phenix emplaceLocal %s mapData %s resolution %g center %g,%g,%g" % (structure.atomspec,
-        concise_model_spec(session, maps, relevant_types=Volume, allow_empty_spec=False),
-        resolution, *center)
+    cmd = "phenix emplaceLocal %s mapData %s resolution %g center %g,%g,%g showSharpenedMap %s" % (
+        structure.atomspec, concise_model_spec(session, maps, relevant_types=Volume, allow_empty_spec=False),
+        resolution, *center, BoolArg.unparse(show_sharpened_map))
     run(session, cmd)

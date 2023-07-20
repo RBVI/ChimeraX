@@ -82,7 +82,7 @@ class FitJob(Job):
 command_defaults = {
     'verbose': False
 }
-def phenix_local_fit(session, model, center=None, map_data=None, *, resolution=0.0,
+def phenix_local_fit(session, model, center=None, map_data=None, *, resolution=0.0, show_sharpened_map=False,
         block=None, phenix_location=None, verbose=command_defaults['verbose'],
         option_arg=[], position_arg=[]):
 
@@ -127,8 +127,8 @@ def phenix_local_fit(session, model, center=None, map_data=None, *, resolution=0
     # Run phenix.voyager.emplace_local
     # keep a reference to 'd' in the callback so that the temporary directory isn't removed before
     # the program runs
-    callback = lambda transform, sharpened_map, *args, session=session, d_ref=d: \
-        _process_results(session, transform, sharpened_map, model)
+    callback = lambda transform, sharpened_map, *args, session=session, ssm=show_sharpened_map, d_ref=d: \
+        _process_results(session, transform, sharpened_map, model, ssm)
     FitJob(session, exe_path, option_arg, map_arg1, map_arg2, search_center,
         "model.pdb", position_arg, temp_dir, resolution, verbose, callback, block)
 
@@ -194,10 +194,11 @@ def view_box(session, model):
         return (face_intercepts[0] + face_intercepts[1]) / 2
     raise ViewBoxError("Center of view does not intersect %s bounding box" % model)
 
-def _process_results(session, transform, sharpened_map, orig_model):
+def _process_results(session, transform, sharpened_map, orig_model, show_sharpened_map):
     from chimerax.geometry import Place
     orig_model.scene_position = Place(transform) * orig_model.scene_position
     sharpened_map.name = "sharpened local map"
+    sharpened_map.display = show_sharpened_map
     session.models.add([sharpened_map])
     session.logger.status("Fitting job finished")
 
@@ -284,6 +285,7 @@ def register_command(logger):
                    ('option_arg', RepeatOf(StringArg)),
                    ('position_arg', RepeatOf(StringArg)),
                    ('resolution', NonNegativeFloatArg),
+                   ('show_sharpened_map', BoolArg),
         ],
         synopsis = 'Place structure in map'
     )
