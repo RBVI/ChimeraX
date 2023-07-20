@@ -161,9 +161,10 @@ class LaunchEmplaceLocalTool(ToolInstance):
     help = "help:user/tools/localemfitting.html"
 
     CENTER_MODEL = "center of model..."
+    CENTER_SELECTION = "center of selection"
     CENTER_VIEW = "center of view"
     CENTER_XYZ = "specified xyz position..."
-    CENTERING_METHODS = [CENTER_MODEL, CENTER_VIEW, CENTER_XYZ]
+    CENTERING_METHODS = [CENTER_MODEL, CENTER_SELECTION, CENTER_VIEW, CENTER_XYZ]
 
     def __init__(self, session, tool_name):
         super().__init__(session, tool_name)
@@ -248,8 +249,11 @@ class LaunchEmplaceLocalTool(ToolInstance):
 %s — The center of a particular model, frequently the map, or the structure to be fitted once
     it has been approximately positioned.
 
+%s - The center of the bounding box enclosing currently selected objects.
+
 %s — A specific X/Y/Z position, given in angstroms relative to the origin of the map.
-        ''' % (self.CENTER_VIEW.rstrip('.'), self.CENTER_MODEL.rstrip('.'), self.CENTER_XYZ.rstrip('.'))
+        ''' % (self.CENTER_VIEW.rstrip('.'), self.CENTER_MODEL.rstrip('.'),
+            self.CENTER_SELECTION.rstrip('.'), self.CENTER_XYZ.rstrip('.'))
         centering_label = QLabel("Center search at")
         centering_label.setToolTip(centering_tip)
         centering_layout.addWidget(centering_label, alignment=Qt.AlignRight)
@@ -368,6 +372,19 @@ class LaunchEmplaceLocalTool(ToolInstance):
                 except ViewBoxError as e:
                     raise UserError(str(e))
             center = view_center
+        elif method == self.CENTER_SELECTION:
+            if self.session.selection.empty():
+                raise UserError("Nothing selected")
+            from chimerax.atomic import selected_atoms
+            sel_atoms = selected_atoms(self.session)
+            from chimerax.geometry import point_bounds, union_bounds
+            atom_bbox = point_bounds(sel_atoms.scene_coords)
+            atom_models = set(sel_atoms.unique_structures)
+            bbox = union_bounds([atom_bbox]
+                + [m.bounds() for m in self.session.selection.models() if m not in atom_models])
+            if bbox is None:
+                raise UserError("No bounding box for selected items")
+            center = bbox.center()
         else:
             raise AssertionError("Unknown centering method")
         self.settings.search_center = method
