@@ -34,6 +34,7 @@ class Slider(ToolInstance):
         self._play_handler = None
         self.recording = False
         self._block_update = False
+        self._loop_once = False
 
         self.display_name = title	# Text shown on panel title-bar
 
@@ -122,19 +123,21 @@ class Slider(ToolInstance):
         if self.recording:
             return
         if self._play_handler:
-            self.set_button_icon(play=True)
             self.stop()
         else:
-            self.set_button_icon(play=False)
             self.play()
 
     def play(self):
         if self._play_handler is None:
+            self.set_button_icon(play=False)
             t = self.session.triggers
             self._play_handler = t.add_handler('new frame', self.next_value_cb)
+            v = self._last_shown_value
+            self._loop_once = (not self.loop) and v is not None and v >= self.value_range[1]
 
     def stop(self):
         if self._play_handler:
+            self.set_button_icon(play=True)
             t = self.session.triggers
             t.remove_handler(self._play_handler)
             self._play_handler = None
@@ -153,9 +156,10 @@ class Slider(ToolInstance):
                 return
         v = self._last_shown_value
         if v is None or v >= self.value_range[1]:
-            if self.recording or not self.loop:
+            if self.recording or (not self.loop and not self._loop_once):
                 self.stop()
                 return
+            self._loop_once = False
             v = self.value_range[0]
         else:
             v += 1
@@ -217,7 +221,7 @@ class Slider(ToolInstance):
 
     def fill_context_menu(self, menu, x, y):
         from Qt.QtGui import QAction
-        action = QAction("Loop playback", menu)
+        action = QAction("Loop Playback", menu)
         action.setCheckable(True)
         action.setChecked(self.loop)
         action.triggered.connect(lambda*, self=self, action=action:
