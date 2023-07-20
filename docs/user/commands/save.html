@@ -467,6 +467,7 @@ but compression is recognized automatically when the file is read.
 [&nbsp;<b>step</b>&nbsp;&nbsp;<i>N</i>&nbsp;|&nbsp;<i>Nx,Ny,Nz</i>&nbsp;]
 [&nbsp;<b>region</b>&nbsp;&nbsp;all&nbsp;|&nbsp;<i>name</i>&nbsp;|&nbsp;<i>i1,j1,k1,i2,j2,k2</i>&nbsp;]
 [&nbsp;<b>maskZone</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>valueType</b>&nbsp;&nbsp;<i>value-type</i>&nbsp;]
 &nbsp;<a href="#chimap-options"><i>chimera-map-options</i></a>
 <!--
 [&nbsp;<b>append</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
@@ -562,6 +563,23 @@ and the <b>Zone</b></a> feature in <b>Volume Viewer</b>
 whether to write out data for a region enclosing the zone,
 with values outside the zone set to zero.
 See also: <a href="volume.html#zone"><b>volume zone</b></a>
+</blockquote>
+<a name="valueType"></a>
+The following option applies only to saving maps in MRC format:
+<blockquote>
+<b>valueType</b>&nbsp;&nbsp;<i>value-type</i>
+<br>
+The <i>value-type</i> of an output MRC map
+can be specified as 8- or 16-bit signed integer
+(<b>int8</b> or <b>int16</b>), 16-bit unsigned integer (<b>uint16</b>),
+or 16- or 32-bit floating-point (<b>float16</b> or <b>float32</b>).
+If the actual map values are outside the range of the requested type,
+the resulting saved values will be undefined rather than
+clamped to the minimum and maximum values of the requested type.
+If the value type is not specified, it defaults to the same type as the input
+map if among the possibilities listed above, otherwise to an available
+type that can accommodate the range of map values. For example, a map
+read as 8-bit unsigned integer would be saved as 16-bit integer.
 </blockquote>
 <a name="chimap-options"></a>
 Further options are specific to <a href="#chimap">Chimera map</a> format:
