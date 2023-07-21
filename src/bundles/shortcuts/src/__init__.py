@@ -13,7 +13,7 @@
 
 from chimerax.core.toolshed import BundleAPI
 
-class _MyAPI(BundleAPI):
+class _ShortcutsAPI(BundleAPI):
 
     @staticmethod
     def start_tool(session, tool_name):
@@ -28,7 +28,10 @@ class _MyAPI(BundleAPI):
     def register_command(command_name, logger):
         # 'register_command' is lazily called when command is referenced
         from . import shortcuts
-        shortcuts.register_shortcut_command(logger)
+        if command_name == 'ks':
+            shortcuts.register_shortcut_command(logger)
+        elif command_name == 'snapshot':
+            shortcuts.register_snapshot_command(logger)
 
     @staticmethod
     def register_selector(selector_name, logger):
@@ -52,4 +55,4 @@ class _MyAPI(BundleAPI):
         shortcuts.run_provider(session, name)
 
 
-bundle_api = _MyAPI()
+bundle_api = _ShortcutsAPI()
