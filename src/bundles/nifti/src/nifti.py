@@ -56,11 +56,19 @@ class NiftiData:
             , math.sqrt(affine[0][2] ** 2 + affine[1][2] ** 2 + affine[2][2] ** 2)
         ]
         self.center = [affine[0][3], affine[1][3], affine[2][3]]
-        self.data_rotation =[
-                    [affine[0][0] / self.scale[0], affine[0][1] / self.scale[1], affine[0][2] / self.scale[2]]
-                , [affine[1][0] / self.scale[0], affine[1][1] / self.scale[1], affine[1][2] / self.scale[2]]
-                , [affine[2][0] / self.scale[0], affine[2][1] / self.scale[1], affine[2][2] / self.scale[2]]
-            ]
+        #self.data_rotation =[
+        #            [affine[0][0] / self.scale[0], affine[0][1] / self.scale[1], affine[0][2] / self.scale[2]]
+        #        , [affine[1][0] / self.scale[0], affine[1][1] / self.scale[1], affine[1][2] / self.scale[2]]
+        #        , [affine[2][0] / self.scale[0], affine[2][1] / self.scale[1], affine[2][2] / self.scale[2]]
+        #    ]
+        # We previously respected the rotation and that code is commented out above, but
+        # respecting the rotation breaks the segmentation viewer and causes the 3D cursors
+        # to appear in the wrong place.  So we just use the identity matrix for the rotation.
+        self.data_rotation = [
+            [1, 0, 0]
+            , [0, 1, 0]
+            , [0, 0, 1]
+        ]
         self.data_type = self.images.dtype
         self.slope, self.intercept = data.header.get_slope_inter()
         if self.slope is None:
