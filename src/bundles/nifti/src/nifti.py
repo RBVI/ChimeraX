@@ -13,7 +13,7 @@
 import math
 
 import nibabel
-from numpy import zeros, uint8
+from numpy import zeros, uint8, transpose
 
 from chimerax.map.volume import open_grids
 from chimerax.map_data import GridData, allocate_array
@@ -43,9 +43,10 @@ class NiftiData:
     def __init__(self, session, data):
         self.session = session
         self._raw_data = data
-        # Data is often in x-y-z but we need z-y-x
-        self.data_size = data.shape[::-1]
-        self.images = data.get_fdata()
+        self.data_size = data.shape
+        # Data is in x-y-z but we need z-y-x
+        darray = data.get_fdata().transpose()
+        self.images = darray
         # TODO: Get the rotation from the NifTI file
         affine = data.affine
         self.coordinate_system = get_coordinate_system("".join(nibabel.orientations.aff2axcodes(affine)))
@@ -81,7 +82,11 @@ class NiftiGrid(GridData):
 
     def read_matrix(self, ijk_origin = (0,0,0), ijk_size = None,
                   ijk_step = (1,1,1), progress = None):
-        array = self.nifti_data.images[::ijk_step[0], ::ijk_step[1], ::ijk_step[2]]
+        array = self.nifti_data.images[
+            ijk_origin[2]:ijk_origin[2]+ijk_size[2]:ijk_step[2]
+            , ijk_origin[1]:ijk_origin[1]+ijk_size[1]:ijk_step[1]
+            , ijk_origin[0]:ijk_origin[0]+ijk_size[0]:ijk_step[0]
+        ]
         return array
         #if self.nifti_data.slope != 1:
         #    array *= self.nifti_data.slope
