@@ -198,9 +198,10 @@ class MRC_Data:
     MODE_char   = 0
     MODE_short  = 1
     MODE_float  = 2
-    MODE_ushort  = 6            # Non-standard
+    MODE_ushort  = 6
+    MODE_float16 = 12
     
-    from numpy import uint8, int8, int16, uint16, float32, dtype
+    from numpy import uint8, int8, int16, uint16, float32, float16, dtype
     if mode == MODE_char:
       if unsigned_8_bit:
         t = dtype(uint8)
@@ -212,9 +213,11 @@ class MRC_Data:
       t = dtype(uint16)
     elif mode == MODE_float:
       t = dtype(float32)
+    elif mode == MODE_float16:
+      t = dtype(float16)
     else:
       raise SyntaxError(('MRC data value type (%d) ' % mode +
-                         'is not 8 or 16 bit integers or 32 bit floats'))
+                         'is not 8 or 16 bit integers or 16 or 32 bit floats'))
 
     return t
 

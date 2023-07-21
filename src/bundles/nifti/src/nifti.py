@@ -13,7 +13,7 @@
 import math
 
 import nibabel
-from numpy import zeros, uint8
+from numpy import zeros, uint8, transpose
 
 from chimerax.map.volume import open_grids
 from chimerax.map_data import GridData, allocate_array
@@ -43,9 +43,10 @@ class NiftiData:
     def __init__(self, session, data):
         self.session = session
         self._raw_data = data
-        # Data is often in x-y-z but we need z-y-x
-        self.data_size = data.shape[::-1]
-        self.images = data.get_fdata()
+        self.data_size = data.shape
+        # Data is in x-y-z but we need z-y-x
+        darray = data.get_fdata().transpose()
+        self.images = darray
         # TODO: Get the rotation from the NifTI file
         affine = data.affine
         self.coordinate_system = get_coordinate_system("".join(nibabel.orientations.aff2axcodes(affine)))
@@ -55,11 +56,19 @@ class NiftiData:
             , math.sqrt(affine[0][2] ** 2 + affine[1][2] ** 2 + affine[2][2] ** 2)
         ]
         self.center = [affine[0][3], affine[1][3], affine[2][3]]
-        self.data_rotation =[
-                    [affine[0][0] / self.scale[0], affine[0][1] / self.scale[1], affine[0][2] / self.scale[2]]
-                , [affine[1][0] / self.scale[0], affine[1][1] / self.scale[1], affine[1][2] / self.scale[2]]
-                , [affine[2][0] / self.scale[0], affine[2][1] / self.scale[1], affine[2][2] / self.scale[2]]
-            ]
+        #self.data_rotation =[
+        #            [affine[0][0] / self.scale[0], affine[0][1] / self.scale[1], affine[0][2] / self.scale[2]]
+        #        , [affine[1][0] / self.scale[0], affine[1][1] / self.scale[1], affine[1][2] / self.scale[2]]
+        #        , [affine[2][0] / self.scale[0], affine[2][1] / self.scale[1], affine[2][2] / self.scale[2]]
+        #    ]
+        # We previously respected the rotation and that code is commented out above, but
+        # respecting the rotation breaks the segmentation viewer and causes the 3D cursors
+        # to appear in the wrong place.  So we just use the identity matrix for the rotation.
+        self.data_rotation = [
+            [1, 0, 0]
+            , [0, 1, 0]
+            , [0, 0, 1]
+        ]
         self.data_type = self.images.dtype
         self.slope, self.intercept = data.header.get_slope_inter()
         if self.slope is None:
@@ -81,7 +90,11 @@ class NiftiGrid(GridData):
 
     def read_matrix(self, ijk_origin = (0,0,0), ijk_size = None,
                   ijk_step = (1,1,1), progress = None):
-        array = self.nifti_data.images[::ijk_step[0], ::ijk_step[1], ::ijk_step[2]]
+        array = self.nifti_data.images[
+            ijk_origin[2]:ijk_origin[2]+ijk_size[2]:ijk_step[2]
+            , ijk_origin[1]:ijk_origin[1]+ijk_size[1]:ijk_step[1]
+            , ijk_origin[0]:ijk_origin[0]+ijk_size[0]:ijk_step[0]
+        ]
         return array
         #if self.nifti_data.slope != 1:
         #    array *= self.nifti_data.slope

@@ -3854,7 +3854,7 @@ class MultiChannelSeries(Model):
 def save_map(session, path, format_name, models = None, region = None, step = (1,1,1),
              mask_zone = True, subsamples = None, chunk_shapes = None, append = None,
              compress = None, compress_method = None, compress_level = None, compress_shuffle = None,
-             base_index = 1, **kw):
+             base_index = 1, value_type = None, **kw):
     '''
     Supported API.
     Save a density map file having any of the known density map formats.
@@ -3915,6 +3915,13 @@ def save_map(session, path, format_name, models = None, region = None, step = (1
             Higher compression levels take longer.  Not all compression methods use level.
         compress_shuffle: bool
             Option to blosc compression.  Default False.
+
+    Parameters below only supported for MRC format (\*.mrc)
+
+    Parameters:
+        value_type: string
+            Numeric value type to save in MRC file.  Can be int8, int16, uint16, float16, float32.
+            If not specified then the closest type holding the actual map value type is used.
     '''
     if models is None:
         vlist = session.models.list(type = Volume)
@@ -3963,6 +3970,8 @@ def save_map(session, path, format_name, models = None, region = None, step = (1
     if compress_shuffle is not None:
         options['compress_shuffle'] = compress_shuffle
         options['compress'] = True
+    if value_type is not None:
+        options['value_type'] = value_type
     if path in ('browse', 'browser'):
         from chimerax.map_data import select_save_path
         path, format_name = select_save_path()
