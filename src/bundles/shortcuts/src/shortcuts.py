@@ -1249,12 +1249,24 @@ def minimize_crosslinks(atoms, session):
     from chimerax.core.crosslinks import crosslink
     crosslink(session, minimize = atoms.unique_structures, frames = 30)
 
+def snapshot(session, directory = None):
+    save_image(session, directory)
+    if directory is not None:
+        from .settings import settings
+        settings(session).snapshot_directory = directory
+
 def save_image(session, directory = None, basename = 'image', suffix = '.png'):
+    if directory is None:
+        from .settings import settings
+        directory = settings(session).snapshot_directory
     path = unused_file_name(directory, basename, suffix)
     cmd = 'save %s supersample 3' % path
     run(session, cmd)
 
 def save_spin_movie(session, directory = None, basename = 'movie', suffix = '.mp4'):
+    if directory is None:
+        from .settings import settings
+        directory = settings(session).snapshot_directory
     cmd = ('movie record ; turn y 2 180 ; wait 180 ; movie encode %s'
            % unused_file_name(directory, basename, suffix))
     run(session, cmd)
@@ -1269,6 +1281,8 @@ def unused_file_name(directory, basename, suffix):
         directory = default_save_directory()
     from os import path, listdir
     dir = path.expanduser(directory)
+    if not path.isdir(dir):
+        directory = dir = default_save_directory()
     from os import listdir
     try:
         files = listdir(dir)
@@ -1326,6 +1340,12 @@ def register_shortcut_command(logger):
     desc = CmdDesc(optional = [('shortcut', StringArg)],
                    synopsis = 'Run keyboard a shortcut')
     register('ks', desc, ks, logger=logger)
+
+def register_snapshot_command(logger):
+    from chimerax.core.commands import CmdDesc, SaveFolderNameArg, register
+    desc = CmdDesc(keyword = [('directory', SaveFolderNameArg)],
+                   synopsis = 'Save an image')
+    register('snapshot', desc, snapshot, logger=logger)
 
 def run_provider(session, name):
     # run shortcut chosen via bundle provider interface
