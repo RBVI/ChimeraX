@@ -19,6 +19,8 @@ from chimerax.graphics import Drawing
 from chimerax.geometry import Place
 
 class SegmentationDisk(Model):
+    SESSION_ENDURING = True
+    SESSION_SAVE = False
     def __init__(self, session, axis, radius = 10, height = 10, divisions = 50):
         super().__init__(" ".join([str(axis), "segmentation cursor"]), session)
         self.display_style = Drawing.Solid

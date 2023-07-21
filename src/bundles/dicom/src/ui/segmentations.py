@@ -70,13 +70,19 @@ class SegmentationTool(ToolInstance):
 
         self.view_dropdown_layout.setContentsMargins(0, 0, 0, 0)
         self.view_dropdown_layout.setSpacing(0)
-        def _not_volume_surface(m):
-            return not isinstance(m, VolumeSurface)
+        def _not_volume_surface_or_segmentation(m):
+            ok_to_list = not isinstance(m, VolumeSurface)
+            # This will run over all models which may not have DICOM data...
+            try:
+                ok_to_list &= not hasattr(m.data, "reference_data")
+            except AttributeError:
+                pass
+            return ok_to_list
 
         self.model_menu = ModelMenu(
             self.session, self.parent, label = 'Model',
             model_types = [Volume, Surface],
-            model_filter = _not_volume_surface,
+            model_filter = _not_volume_surface_or_segmentation,
             model_chosen_cb = self._surface_chosen
         )
 
@@ -333,13 +339,11 @@ class SegmentationTool(ToolInstance):
         self.active_seg = segment
 
     def _on_active_segmentation_changed(self, new, prev):
-        if type(new.segmentation.data) is not DicomSegmentation:
-            self.edit_seg_metadata_button.setEnabled(False)
-        else:
-            self.edit_seg_metadata_button.setEnabled(True)
         if new:
+            self.edit_seg_metadata_button.setEnabled(True)
             self.setActiveSegment(new.segmentation)
         else:
+            self.edit_seg_metadata_button.setEnabled(False)
             self.setActiveSegment(None)
 
     def _on_view_changed(self):
