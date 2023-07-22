@@ -173,6 +173,7 @@ class SequenceViewer(ToolInstance):
                     self.seq_canvas.assoc_mod(aseq)
         from .region_browser import RegionBrowser
         rb_window = self.tool_window.create_child_window("Regions", close_destroys=False)
+        rb_window.fill_context_menu = self.fill_context_menu
         self.region_browser = RegionBrowser(rb_window, self.seq_canvas)
         self._seq_rename_handlers = {}
         for seq in self.alignment.seqs:
@@ -439,6 +440,7 @@ class SequenceViewer(ToolInstance):
             parent.after_idle(lambda: self._loadStructures(auto=1))
         """
         self.tool_window.manage('side')
+        rb_window.manage(self.tool_window, initially_hidden=True)
 
     @property
     def active_region(self):
@@ -688,6 +690,12 @@ class SequenceViewer(ToolInstance):
             identity_action = QAction("Percent Identity...", menu)
             identity_action.triggered.connect(self.show_percent_identity_dialog)
             tools_menu.addAction(identity_action)
+        rb_action = QAction("Regions", tools_menu)
+        rb_action.setCheckable(True)
+        rb_action.setChecked(self.region_browser.shown)
+        rb_action.triggered.connect(lambda*, rb=self.region_browser, action=rb_action:
+            setattr(rb, "shown", action.isChecked()))
+        tools_menu.addAction(rb_action)
 
 
         # Whenever Region Browser and UniProt Annotations happen, the thought is to

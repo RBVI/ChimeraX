@@ -1186,6 +1186,15 @@ class RegionBrowser:
         sel_region.add_blocks(blocks)
         self.raise_region(sel_region)
 
+    @property
+    def shown(self):
+        return self.tool_window.shown
+
+    @shown.setter
+    def shown(self, shown):
+        if shown != self.tool_window.shown:
+            self.tool_window.shown = shown
+
     def showPredictedSS(self, show):
         """show predicted secondary structure"""
         from gor import gorI
