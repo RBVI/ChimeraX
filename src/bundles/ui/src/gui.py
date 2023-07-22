@@ -2478,6 +2478,7 @@ class _Qt:
         self.ui_area.updateGeometry()
         mw = self.main_window
         if isinstance(placement, ToolWindow):
+            mw.addDockWidget(mw.dockWidgetArea(placement._dock_widget), self.dock_widget)
             mw.tabifyDockWidget(placement._dock_widget, self.dock_widget)
         else:
             mw.addDockWidget(side, self.dock_widget)
