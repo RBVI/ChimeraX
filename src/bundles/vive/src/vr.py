@@ -1132,7 +1132,13 @@ class SteamVRCamera(Camera, StateManager):
     @classmethod
     def restore_snapshot(cls, session, data):
         """Create object using snapshot data."""
-        c = vr_camera(session)
+        try:
+            c = vr_camera(session)
+        except Exception as e:
+            # Probably failed to import openvr on Mac ARM.  Bug #9431
+            session.logger.info(str(e))
+            return None
+            
         c.room_to_scene = data['room_to_scene']
         for hc, ba in zip(c._hand_controllers, data['button_assignments']):
             hc.button_assignments = ba
