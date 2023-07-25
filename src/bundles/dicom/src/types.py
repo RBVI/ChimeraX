@@ -34,7 +34,15 @@ class Axis(IntEnum):
             return 0
         else:
             return 2
-
+        
+    @property
+    def horizontal(self):
+        if self.value == 2:
+            return 1
+        else:
+            return 0
+        
+        
 class Segmentation(Protocol):
     def save(filename) -> None:
         raise NotImplementedError

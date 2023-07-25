@@ -337,8 +337,12 @@ class PlaneViewer(QWindow):
                 self.slider_moved = False
             model_center_offsets = self.drawingBounds().center()
             model_sizes = self.drawingBounds().size()
-            this_axis_vertical_size = model_sizes[self.axis.vertical]
-            initial_needed_fov = this_axis_vertical_size / height  * width
+            if model_sizes[self.axis.vertical] > model_sizes[self.axis.horizontal]:
+                # Make the vertical axis fit the vertical size of the window
+                initial_needed_fov = model_sizes[self.axis.vertical] / height * width
+            else:
+                # Make the horizontal axis fit the horizontal size of the window
+                initial_needed_fov = model_sizes[self.axis.horizontal]
             margin = 24
             self.view.camera.field_width = initial_needed_fov + margin + self.field_width_offset
             self.calculateSliceOverlays()
