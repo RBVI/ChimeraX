@@ -144,7 +144,10 @@ def rotamers(session, residues, res_type, *, rot_lib=None, log=True):
             r_type = r.name
         else:
             r_type = res_type.upper()
-        rotamers = swap_res.get_rotamers(session, r, res_type=r_type, rot_lib=rot_lib, log=log)
+        try:
+            rotamers = swap_res.get_rotamers(session, r, res_type=r_type, rot_lib=rot_lib, log=log)
+        except swap_res.NoResidueRotamersError:
+            raise UserError("No rotamers for %s in %s rotamer library" % (r_type, rot_lib))
         mgr = _RotamerStateManager(session, r, rotamers)
         if session.ui.is_gui:
             from .tool import RotamerDialog

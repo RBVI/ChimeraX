@@ -93,13 +93,16 @@ class BlastProteinJob(CxServicesJob):
         logger = self.session.logger
         logger.status("BlastProtein finished.")
         if self.session.ui.is_gui:
-            from .ui import BlastProteinResults
-            BlastProteinResults.from_job(
+            if self.exited_normally():
+                from .ui import BlastProteinResults
+                BlastProteinResults.from_job(
                     session = self.session
                     , tool_name = self.tool_inst_name
                     , params=self._params()
                     , job=self
-            )
+                )
+            else:
+                self.session.logger.error("BLAST job failed")
         else:
             if self.exited_normally():
                 results = self.get_results()

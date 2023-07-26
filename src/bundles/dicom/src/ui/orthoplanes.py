@@ -140,13 +140,19 @@ class PlaneViewer(QWindow):
 
         self.label = Label(self.session, self.view, str(axis), str(axis), size=16, xpos=0, ypos=0)
 
-        def _not_volume_surface(m):
-            return not isinstance(m, VolumeSurface)
+        def _not_volume_surface_or_segmentation(m):
+            ok_to_list = not isinstance(m, VolumeSurface)
+            # This will run over all models which may not have DICOM data...
+            try:
+                ok_to_list &= not hasattr(m.data, "reference_data")
+            except AttributeError:
+                pass
+            return ok_to_list
 
         self.model_menu = ModelMenu(
             self.session, parent, label = 'Model',
             model_types = [Volume, Surface],
-            model_filter = _not_volume_surface,
+            model_filter = _not_volume_surface_or_segmentation,
             model_chosen_cb = self._surfaceChosen
         )
 
@@ -331,8 +337,12 @@ class PlaneViewer(QWindow):
                 self.slider_moved = False
             model_center_offsets = self.drawingBounds().center()
             model_sizes = self.drawingBounds().size()
-            this_axis_vertical_size = model_sizes[self.axis.vertical]
-            initial_needed_fov = this_axis_vertical_size / height  * width
+            if model_sizes[self.axis.vertical] > model_sizes[self.axis.horizontal]:
+                # Make the vertical axis fit the vertical size of the window
+                initial_needed_fov = model_sizes[self.axis.vertical] / height * width
+            else:
+                # Make the horizontal axis fit the horizontal size of the window
+                initial_needed_fov = model_sizes[self.axis.horizontal]
             margin = 24
             self.view.camera.field_width = initial_needed_fov + margin + self.field_width_offset
             self.calculateSliceOverlays()
