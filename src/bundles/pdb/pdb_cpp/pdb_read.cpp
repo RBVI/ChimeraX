@@ -457,7 +457,7 @@ atomqr:
 
     case SEQRES:
         if (0 > sscanf(buf,
-        "%7 %3d %c %4d  %4s%4s%4s%4s%4s%4s%4s%4s%4s%4s%4s%4s%4s",
+        "%7 %3d%2s %4d  %4s%4s%4s%4s%4s%4s%4s%4s%4s%4s%4s%4s%4s",
                 &seqres.ser_num, &seqres.chain_id,
                 &seqres.num_res, seqres.res_name[0],
                 seqres.res_name[1], seqres.res_name[2],

@@ -178,7 +178,8 @@ class Region:
                     break
             self.blocks.append((new_line1, new_line2, pos1, pos2))
 
-    def destroy(self, rebuild_table=True):
+    def _destroy(self, rebuild_table=True):
+        # In most circumstances, use region_browser.delete_region() instead
         for item in self._items:
             self.scene.removeItem(item)
         self.blocks = []
@@ -296,7 +297,7 @@ class Region:
                 self.scene.removeItem(item)
             self._items = self._items[:0-len(prev_bboxes)]
         if destroy_if_empty and not self.blocks:
-            self.destroy()
+            self.region_browser.delete_region(self)
         elif make_cb:
             self.region_browser._region_size_changed_cb(self)
 
@@ -471,7 +472,7 @@ class RegionBrowser:
     def clear_regions(self, do_single_seq_regions=True):
         if do_single_seq_regions:
             for region in self.regions[:]:
-                region.destroy()
+                region._destroy()
             self.associated_regions.clear()
             self.sequence_regions = { None: set() }
         else:
@@ -481,7 +482,7 @@ class RegionBrowser:
                     single_seq_regions.update(regions)
             for region in self.regions[:]:
                 if region not in single_seq_regions:
-                    region.destroy()
+                    self.delete_regions(region)
 
     def copyRegion(self, region, name=None, **kw):
         if not region:
@@ -529,7 +530,7 @@ class RegionBrowser:
             seq = region.sequence
             regions = self.sequence_regions[seq]
             regions.remove(region)
-            region.destroy(rebuild_table=rebuild_table)
+            region._destroy(rebuild_table=rebuild_table)
             if seq and not regions:
                 del self.sequence_regions[seq]
                 """
@@ -967,7 +968,21 @@ class RegionBrowser:
                 self.seq_canvas.sv.status("Use delete/backspace key to remove regions")
         interior = get_rgba(fill)
         border = get_rgba(outline)
-        region = Region(self, init_blocks=blocks, name=name, name_prefix=name_prefix,
+        clipped_blocks = []
+        warn = self.tool_window.session.logger.warning
+        seqs = self.seq_canvas.alignment.seqs
+        target = "sequence" if len(seqs) == 1 else "alignment"
+        for seq1, seq2, start, end in blocks:
+            if start < 0:
+                warn("Region %s starts before start of %s; truncating"
+                    % (("dragged region" if name is None else name), target))
+                start = 0
+            if end >= len(seqs[0]):
+                warn("Region '%s' extends past end of %s; truncating"
+                    % (("(dragged)" if name is None else name), target))
+                end = len(seqs[0]) - 1
+            clipped_blocks.append((seq1, seq2, start, end))
+        region = Region(self, init_blocks=clipped_blocks, name=name, name_prefix=name_prefix,
                 border_rgba=border, interior_rgba=interior, cover_gaps=cover_gaps, **kw)
         if isinstance(after, Region):
             insert_index = self.regions.index(after) + 1
@@ -1032,7 +1047,7 @@ class RegionBrowser:
             region.redraw()
             if cull_empty and not region.blocks \
             and region != self.get_region("ChimeraX selection"):
-                region.destroy()
+                self.delete_region(region)
 
     def region_residues(self, region=None):
         if not region:
@@ -1462,7 +1477,8 @@ class RegionBrowser:
         pos = event.scenePos()
         canvas_x, canvas_y = pos.x(), pos.y()
         if abs(canvas_x - self._start_x) > 1 or abs(canvas_y - self._start_y) > 1:
-            block = self.seq_canvas.bounded_by(canvas_x, canvas_y, self._start_x, self._start_y)
+            block = self.seq_canvas.bounded_by(canvas_x, canvas_y, self._start_x, self._start_y,
+                exclude_headers=True)
             if block[0] is None:
                 self._clear_drag()
                 return
@@ -1766,7 +1782,7 @@ class RegionBrowser:
             self._sel_change_handler = None
             sel_region = self.get_region("ChimeraX selection")
             if sel_region:
-                sel_region.destroy()
+                sel_region._destroy()
 
     def _toggle_active(self, region, select_on_structures=True, destroyed=False):
         if self._cur_region is not None and self._cur_region == region:

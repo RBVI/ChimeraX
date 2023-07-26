@@ -1,0 +1,42 @@
+<BundleInfo name="ChimeraX-IUPAC" version="1.0"
+	    package="chimerax.iupac"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>IUPAC fetch</Synopsis>
+  <Description>This bundle provides the abiility to get 3D structures for IUPAC identifiers.</Description>
+
+  <Categories>
+    <Category name="Molecular structure"/>
+  </Categories>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version="~=1.6"/>
+    <Dependency name="ChimeraX-BuildStructure" version="~=2.10"/>
+    <Dependency name="ChimeraX-DataFormats" version="~=1.2"/>
+    <Dependency name="ChimeraX-OpenCommand" version="~=1.10"/>
+    <Dependency name="ChimeraX-Smiles" version="~=2.1"/>
+  </Dependencies>
+
+  <Providers manager="start structure">
+    <Provider name="iupac" ui_name="IUPAC name" new_model_only="true"/>
+  </Providers>
+
+  <Providers manager="data formats">
+    <Provider name="IUPAC" synopsis="IUPAC name" category="Molecular structure" 
+		reference_url="https://iupac.org/what-we-do/nomenclature/" />
+  </Providers>
+
+  <Providers manager="open command">
+    <Provider name="iupac" type="fetch" format_name="IUPAC"/>
+  </Providers>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+  </Classifiers>
+
+</BundleInfo>

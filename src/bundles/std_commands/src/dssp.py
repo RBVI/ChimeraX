@@ -34,7 +34,8 @@ def compute_ss(session, structures=None, *,
         residues = struct.residues
         ss_types = residues.ss_types
         ss_ids = residues.ss_ids
-        compute_ss(struct._c_pointer.value, energy_cutoff, min_helix_len, min_strand_len, report)
+        compute_ss(struct, energy_cutoff=energy_cutoff, min_helix_len=min_helix_len,
+                   min_strand_len=min_strand_len, report=report)
         undo_state.add(residues, "ss_types", ss_types, residues.ss_types)
         undo_state.add(residues, "ss_ids", ss_ids, residues.ss_ids)
 
@@ -47,9 +48,9 @@ def register_command(logger):
     desc = CmdDesc(
         optional=[('structures', StructuresArg)],
         keyword=[('min_helix_len', IntArg),
-                   ('min_strand_len', IntArg),
-                   ('energy_cutoff', FloatArg),
-                   ('report', BoolArg)],
+                 ('min_strand_len', IntArg),
+                 ('energy_cutoff', FloatArg),
+                 ('report', BoolArg)],
         synopsis="compute/assign secondary structure using Kabsch & Sander DSSP algorithm"
     )
     register('dssp', desc, compute_ss, logger=logger)

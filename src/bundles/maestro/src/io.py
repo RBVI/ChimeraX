@@ -114,7 +114,7 @@ class MaestroParser:
             try:
                 r = residue_map[res_key]
             except KeyError:
-                res_name = attrs.get("s_m_pdb_residue_name", "UNK")
+                res_name = attrs.get("s_m_pdb_residue_name", "UNK").strip()
                 r = s.new_residue(res_name, chain_id, res_seq, insert_code)
                 residue_map[res_key] = r
             rgb = attrs.get("s_m_ribbon_color_rgb", None)
@@ -123,11 +123,14 @@ class MaestroParser:
 
             # Get atom data and create
             try:
-                name = attrs["s_m_pdb_atom_name"]
+                name = attrs["s_m_pdb_atom_name"].strip()
             except KeyError:
-                name = attrs.get("s_m_atom_name", "")
+                name = attrs.get("s_m_atom_name", "").strip()
             name = name.strip()
             atomic_number = attrs.get("i_m_atomic_number", 6)
+            if atomic_number < 1:
+                # Negative element number in bug #5087 that causes delayed crash.
+                atomic_number = 1
             element = Element.get_element(atomic_number)
             if not name:
                 name = element.name

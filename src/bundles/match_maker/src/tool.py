@@ -147,6 +147,8 @@ class MatchMakerTool(ToolInstance):
         self._iterate_change(iter_opt)
         self.options.add_option("Fitting", BooleanOption("Verbose logging", None, None,
             attr_name="verbose_logging", settings=settings))
+        self.options.add_option("Fitting", BooleanOption("Log transformation matrix", None, None,
+            attr_name="log_transformation_matrix", settings=settings))
         bring_container, bring_options = self.options.add_option_group("Fitting",
             group_alignment=Qt.AlignHCenter|Qt.AlignTop)
         bring_layout = QVBoxLayout()
@@ -166,8 +168,7 @@ class MatchMakerTool(ToolInstance):
         from Qt.QtWidgets import QDialogButtonBox as qbbox
         bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
         bbox.accepted.connect(self.run_matchmaker)
-        bbox.button(qbbox.Apply).clicked.connect(self.run_matchmaker)
-        bbox.accepted.connect(self.delete) # slots executed in the order they are connected
+        bbox.button(qbbox.Apply).clicked.connect(lambda *args: self.run_matchmaker(apply=True))
         bbox.rejected.connect(self.delete)
         from chimerax.core.commands import run
         bbox.helpRequested.connect(lambda *, run=run, ses=session: run(ses, "help " + self.help))
@@ -176,7 +177,16 @@ class MatchMakerTool(ToolInstance):
         self._pairing_change(cp_opt)
         tw.manage(placement=None)
 
-    def run_matchmaker(self):
+    def delete(self):
+        super().delete()
+        self.ref_structure_list.destroy()
+        self.match_structure_structure_list.destroy()
+        self.match_chain_structure_list.destroy()
+        self.ref_chain_list.destroy()
+        self.ref_chains_list.destroy()
+        self.match_chain_lists.destroy()
+
+    def run_matchmaker(self, apply=False):
         from chimerax.core.commands import StringArg, BoolArg, FloatArg, DynamicEnum, NoneArg
         from .settings import defaults, get_settings
         settings = get_settings(self.session)
@@ -213,6 +223,10 @@ class MatchMakerTool(ToolInstance):
         verbose = settings.verbose_logging
         if verbose != defaults['verbose_logging']:
             cmd += ' verbose ' + BoolArg.unparse(verbose)
+
+        log_xf = settings.log_transformation_matrix
+        if log_xf != defaults['log_transformation_matrix']:
+            cmd += ' reportMatrix ' + BoolArg.unparse(log_xf)
 
         use_ss = settings.use_ss
         if use_ss:
@@ -287,6 +301,8 @@ class MatchMakerTool(ToolInstance):
                     cmd += ' mat' + let1 + let2 + ' ' + FloatArg.unparse(val)
 
         run(self.session, cmd)
+        if not apply:
+            self.delete()
 
     def _compute_ss_change(self, opt):
         if opt.value:
@@ -467,12 +483,19 @@ class ChainListsWidget(QWidget):
         self.__shown_widget = None
         self.__show_widget(self.__empty_label)
 
+    def destroy(self):
+        super().destroy()
+        for widgets in self.__chain_list_mapping.values():
+            for widget in widgets:
+                widget.destroy()
+
     def update(self, ref_chains):
         if not ref_chains:
             for widgets in self.__chain_list_mapping.values():
                 for widget in widgets:
                     self.__work_layout.removeWidget(widget)
                     widget.destroy()
+            self.__chain_list_mapping.clear()
             self.__show_widget(self.__empty_label)
             self.value_changed.emit()
             return
@@ -502,6 +525,7 @@ class ChainListsWidget(QWidget):
             next_mapping[chain] = (label, chain_list)
         for widgets in self.__chain_list_mapping.values():
             for widget in widgets:
+                widget.hide()
                 widget.destroy()
         self.__chain_list_mapping = next_mapping
         self.__container_layout.takeAt(0)

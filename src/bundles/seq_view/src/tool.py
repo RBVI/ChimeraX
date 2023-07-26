@@ -146,14 +146,8 @@ class SequenceViewer(ToolInstance):
         self._blastAnnotationServices = {}
         ModelessDialog.__init__(self)
         """
-        words = self.alignment.description.split()
-        capped_words = []
-        for word in words:
-            if word.islower() and word.isalpha():
-                capped_words.append(word.capitalize())
-            else:
-                capped_words.append(word)
-        self.display_name = " ".join(capped_words) + " [ID: %s]" % self.alignment.ident
+        from chimerax.core.utils import titleize
+        self.display_name = titleize(self.alignment.description) + " [ID: %s]" % self.alignment.ident
         from chimerax.ui import MainToolWindow
         self.tool_window = MainToolWindow(self, close_destroys=True, statusbar=True)
         self.tool_window._dock_widget.setMouseTracking(True)
@@ -446,6 +440,10 @@ class SequenceViewer(ToolInstance):
         """
         self.tool_window.manage('side')
 
+    @property
+    def active_region(self):
+        return self.region_browser.cur_region()
+
     def alignment_notification(self, note_name, note_data):
         alignment = self.alignment
         if note_name == alignment.NOTE_MOD_ASSOC:
@@ -475,6 +473,7 @@ class SequenceViewer(ToolInstance):
         elif note_name == alignment.NOTE_COMMAND:
             from .cmd import run
             run(self.session, self, note_data)
+
         self.seq_canvas.alignment_notification(note_name, note_data)
 
     @property
@@ -512,10 +511,11 @@ class SequenceViewer(ToolInstance):
         ToolInstance.delete(self)
 
     def fill_context_menu(self, menu, x, y):
-        from Qt.QtWidgets import QAction
+        from Qt.QtGui import QAction
         file_menu = menu.addMenu("File")
         save_as_menu = file_menu.addMenu("Save As")
         from chimerax.core.commands import run, StringArg
+        align_arg = "%s " % self.alignment if len(self.session.alignments.alignments) > 1 else ""
         fmts = [fmt for fmt in self.session.save_command.save_data_formats if fmt.category == "Sequence"]
         fmts.sort(key=lambda fmt: fmt.synopsis.casefold())
         for fmt in fmts:
@@ -528,6 +528,26 @@ class SequenceViewer(ToolInstance):
         scf_action.triggered.connect(lambda: self.load_scf_file(None))
         file_menu.addAction(scf_action)
 
+        edit_menu = menu.addMenu("Edit")
+        copy_action = QAction("Copy Sequence...", edit_menu)
+        copy_action.triggered.connect(self.show_copy_sequence_dialog)
+        edit_menu.addAction(copy_action)
+        single_seq = len(self.alignment.seqs) == 1
+        from chimerax.seqalign.cmd import alignment_program_name_args
+        prog_to_arg = {}
+        for arg, prog in alignment_program_name_args.items():
+            prog_to_arg[prog] = arg
+        for prog in sorted(prog_to_arg.keys()):
+            prog_menu = edit_menu.addMenu("Realign Sequences with %s" % prog)
+            for menu_text, cmd_text in [("new", ""), ("this", " replace true")]:
+                realign_action = QAction("in %s window" % menu_text, prog_menu)
+                realign_action.triggered.connect(lambda *args, arg=prog_to_arg[prog],
+                    unparse=StringArg.unparse, cmd_text=cmd_text: run(self.session,
+                    "seq align %s program %s%s" % (unparse(self.alignment.ident), unparse(arg), cmd_text)))
+                prog_menu.addAction(realign_action)
+            if single_seq:
+                prog_menu.setEnabled(False)
+
         structure_menu = menu.addMenu("Structure")
         assoc_action = QAction("Associations...", structure_menu)
         assoc_action.triggered.connect(self.show_associations)
@@ -538,6 +558,45 @@ class SequenceViewer(ToolInstance):
         else:
             assoc_action.setEnabled(False)
         structure_menu.addAction(assoc_action)
+        view_targets = []
+        # bounded_by expects the scene coordinate system...
+        from Qt.QtCore import QPointF
+        global_xy = self.tool_window.ui_area.mapToGlobal(QPointF(x, y))
+        view_xy = self.seq_canvas.main_view.mapFromGlobal(global_xy)
+        scene_xy = self.seq_canvas.main_view.mapToScene(view_xy.toPoint())
+        x, y = scene_xy.x(), scene_xy.y()
+
+        seq, seq, index, index = self.seq_canvas.bounded_by(x, y, x, y, exclude_headers=True)
+        if seq is not None:
+            for chain, mm in seq.match_maps.items():
+                try:
+                    view_targets.append(mm[seq.gapped_to_ungapped(index)])
+                except KeyError:
+                    continue
+        if view_targets:
+            if len(view_targets) == 1:
+                view_action = QAction("View %s" % view_targets[0], structure_menu)
+                view_action.triggered.connect(lambda *args, cmd_text="view %s" % view_targets[0].atomspec:
+                    run(self.session, cmd_text))
+                structure_menu.addAction(view_action)
+            else:
+                view_menu = structure_menu.addMenu("View Residue")
+                view_targets.sort()
+                specs = [vt.atomspec for vt in view_targets]
+                for target, spec in zip(view_targets, specs):
+                    view_action = QAction(str(target), view_menu)
+                    view_action.triggered.connect(lambda *args, cmd_text="view %s" % spec:
+                        run(self.session, cmd_text))
+                    view_menu.addAction(view_action)
+                view_menu.addSeparator()
+                view_action = QAction("All The Above", view_menu)
+                view_action.triggered.connect(lambda *args, cmd_text="view %s" % ' '.join(specs):
+                    run(self.session, cmd_text))
+                view_menu.addAction(view_action)
+        else:
+            view_action = QAction("View Residue", structure_menu)
+            view_action.setEnabled(False)
+            structure_menu.addAction(view_action)
 
         headers_menu = menu.addMenu("Headers")
         headers = self.alignment.headers
@@ -549,7 +608,6 @@ class SequenceViewer(ToolInstance):
             action.setChecked(hdr.shown)
             if not hdr.relevant:
                 action.setEnabled(False)
-            align_arg = "%s " % self.alignment if len(self.session.alignments.alignments) > 1 else ""
             action.triggered.connect(lambda *, action=action, hdr=hdr, align_arg=align_arg, self=self: run(
                 self.session, "seq header %s%s %s" % (align_arg, hdr.ident, "show" if action.isChecked() else "hide")))
             headers_menu.addAction(action)
@@ -559,10 +617,44 @@ class SequenceViewer(ToolInstance):
             if not hdr.relevant:
                 continue
             action = QAction(hdr.name, hdr_save_menu)
-            align_arg = "%s " % self.alignment if len(self.session.alignments.alignments) > 1 else ""
             action.triggered.connect(lambda *, hdr=hdr, align_arg=align_arg, self=self: run(
                 self.session, "seq header %s%s save browse" % (align_arg, hdr.ident)))
             hdr_save_menu.addAction(action)
+
+        numberings_menu = menu.addMenu("Numberings")
+        action = QAction("Overall", numberings_menu)
+        action.setCheckable(True)
+        action.setChecked(self.seq_canvas.show_ruler)
+        action.triggered.connect(lambda*, sc=self.seq_canvas, action=action:
+            setattr(sc, "show_ruler", action.isChecked()))
+        numberings_menu.addAction(action)
+        refseq_menu = numberings_menu.addMenu("Reference Sequence")
+        action = QAction("No Reference Sequence", refseq_menu)
+        action.setCheckable(True)
+        action.setChecked(self.alignment.reference_seq is None)
+        action.triggered.connect(lambda*, align_arg=align_arg, action=action, self=self:
+            run(self.session, "seq ref " + align_arg) if action.isChecked() else None)
+        refseq_menu.addAction(action)
+        for seq in self.alignment.seqs:
+            action = QAction(seq.name, refseq_menu)
+            action.setCheckable(True)
+            action.setChecked(self.alignment.reference_seq is seq)
+            action.triggered.connect(lambda*, seq_arg=StringArg.unparse(align_arg + ':' + seq.name),
+                action=action: run(self.session, "seq ref " + seq_arg) if action.isChecked() else None)
+            refseq_menu.addAction(action)
+        numberings_menu.addSeparator()
+        action = QAction("Left Sequence", numberings_menu)
+        action.setCheckable(True)
+        action.setChecked(self.seq_canvas.show_left_numbering)
+        action.triggered.connect(lambda*, sc=self.seq_canvas, action=action:
+            setattr(sc, "show_left_numbering", action.isChecked()))
+        numberings_menu.addAction(action)
+        action = QAction("Right Sequence", numberings_menu)
+        action.setCheckable(True)
+        action.setChecked(self.seq_canvas.show_right_numbering)
+        action.triggered.connect(lambda*, sc=self.seq_canvas, action=action:
+            setattr(sc, "show_right_numbering", action.isChecked()))
+        numberings_menu.addAction(action)
 
         tools_menu = menu.addMenu("Tools")
         comp_model_action = QAction("Modeller Comparative Modeling...", tools_menu)
@@ -571,18 +663,32 @@ class SequenceViewer(ToolInstance):
         if not self.alignment.associations:
             comp_model_action.setEnabled(False)
         tools_menu.addAction(comp_model_action)
+        loops_model_action = QAction("Model Loops...", tools_menu)
+        loops_model_action.triggered.connect(lambda: run(self.session,
+            "ui tool show 'Model Loops'"))
+        if not self.alignment.associations:
+            loops_model_action.setEnabled(False)
+        tools_menu.addAction(loops_model_action)
         if len(self.alignment.seqs) == 1:
+            from chimerax.blastprotein import BlastProteinTool
             blast_action = QAction("Blast Protein...", tools_menu)
-            blast_action.triggered.connect(lambda: run(self.session,
-                "blastprotein %s" % (StringArg.unparse("%s:1" % self.alignment.ident))))
+            blast_action.triggered.connect(
+                lambda: BlastProteinTool(self.session, sequences = StringArg.unparse("%s:1" % self.alignment.ident))
+            )
             tools_menu.addAction(blast_action)
         else:
+            from chimerax.blastprotein import BlastProteinTool
             blast_menu = tools_menu.addMenu("Blast Protein")
             for i, seq in enumerate(self.alignment.seqs):
                 blast_action = QAction(seq.name, blast_menu)
-                blast_action.triggered.connect(lambda: run(self.session,
-                    "blastprotein %s" % (StringArg.unparse("%s:%d" % (self.alignment.ident, i+1)))))
+                blast_action.triggered.connect(lambda *args, chars=seq.ungapped():
+                    BlastProteinTool(self.session, sequences=StringArg.unparse(chars)))
                 blast_menu.addAction(blast_action)
+        if len(self.alignment.seqs) > 1:
+            identity_action = QAction("Percent Identity...", menu)
+            identity_action.triggered.connect(self.show_percent_identity_dialog)
+            tools_menu.addAction(identity_action)
+
 
         # Whenever Region Browser and UniProt Annotations happen, the thought is to
         # put them in an "Annotations" menu (rather than "Info"); for now with only
@@ -646,6 +752,14 @@ class SequenceViewer(ToolInstance):
             self.associations_tool.tool_window.manage(None)
         self.associations_tool.tool_window.shown = True
 
+    def show_copy_sequence_dialog(self):
+        if not hasattr(self, "copy_sequence_dialog"):
+            from .copy_seq import CopySeqDialog
+            self.copy_sequence_dialog = CopySeqDialog(self,
+                self.tool_window.create_child_window("Copy Sequence", close_destroys=False))
+            self.copy_sequence_dialog.tool_window.manage(None)
+        self.copy_sequence_dialog.tool_window.shown = True
+
     def show_feature_browser(self, seq, *, state=None):
         if seq not in self._feature_browsers:
             from .feature_browser import FeatureBrowser
@@ -653,6 +767,14 @@ class SequenceViewer(ToolInstance):
                 self.tool_window.create_child_window("%s Features" % seq.name, close_destroys=False))
             self._feature_browsers[seq].tool_window.manage(None)
         self._feature_browsers[seq].tool_window.shown = True
+
+    def show_percent_identity_dialog(self):
+        if not hasattr(self, "percent_identity_dialog"):
+            from .identity import PercentIdentityDialog
+            self.percent_identity_dialog = PercentIdentityDialog(self,
+                self.tool_window.create_child_window("Percent Identity", close_destroys=False))
+            self.percent_identity_dialog.tool_window.manage(None)
+        self.percent_identity_dialog.tool_window.shown = True
 
     def show_settings(self):
         if not hasattr(self, "settings_tool"):

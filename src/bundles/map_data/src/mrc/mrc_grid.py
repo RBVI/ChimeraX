@@ -25,7 +25,13 @@ class MRCGrid(GridData):
 
     self.mrc_data = d
 
-    GridData.__init__(self, d.data_size, d.element_type,
+    # Read float16 as float32 since C++ routines can't handle float16.
+    element_type = d.element_type
+    from numpy import float16, float32
+    if element_type == float16:
+      element_type = float32
+      
+    GridData.__init__(self, d.data_size, element_type,
                       d.data_origin, d.data_step, d.cell_angles, d.rotation,
                       path = path, file_type = file_type)
 
@@ -41,7 +47,13 @@ class MRCGrid(GridData):
   #
   def read_matrix(self, ijk_origin, ijk_size, ijk_step, progress):
 
-    return self.mrc_data.read_matrix(ijk_origin, ijk_size, ijk_step, progress)
+    m = self.mrc_data.read_matrix(ijk_origin, ijk_size, ijk_step, progress)
+
+    from numpy import float16, float32
+    if m.dtype == float16:
+      m = m.astype(float32)
+
+    return m
 
   # ---------------------------------------------------------------------------
   # MRC format does not support unsigned 8-bit integers although it is

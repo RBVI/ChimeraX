@@ -128,6 +128,9 @@ class Play_Series:
           self.step = -1
       elif t == ts:
         self.step = 1
+        if not self.loop:
+          self.stop()
+          return
 
     tn = t + self.step
     if self.loop:

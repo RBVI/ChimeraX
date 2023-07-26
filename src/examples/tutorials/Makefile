@@ -17,7 +17,7 @@ NO_SUBDIR_ALL = 1
 
 include $(TOP)/mk/config.make
 
-SUBDIRS	+= hello_world tut_cmd tut_fetch tut_tool_html tut_tool_qt tut_read tut_save tut_sel
+SUBDIRS	+= hello_world tut_cmd tut_fetch tut_tool_html tut_tool_qt tut_read tut_save tut_sel tut_preset
 
 # All needed subdirectories must be set by now.
 include $(TOP)/mk/subdir.make

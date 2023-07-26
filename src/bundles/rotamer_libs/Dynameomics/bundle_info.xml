@@ -23,7 +23,8 @@
   </Dependencies>
 
   <Providers>
-    <Provider name="Dynameomics" manager="rotamers"/>
+    <Provider name="Dynameomics" manager="rotamers"
+		description="Dynameomics backbone-independent rotamer library -- March '12"/>
   </Providers>
 
   <Classifiers>

@@ -516,7 +516,7 @@ class MouseModes:
 
     def _mouse_buttons_down(self):
         from Qt.QtCore import Qt
-        return self.session.ui.mouseButtons() != Qt.NoButton
+        return self.session.ui.mouseButtons() != Qt.MouseButton.NoButton
 
     def _dispatch_mouse_event(self, event, action):
         button, modifiers = self._event_type(event)
@@ -530,6 +530,7 @@ class MouseModes:
                 # Another button was pressed so release current mouse mode.
                 lm.mouse_up(MouseEvent(event, modifiers=modifiers))
             self._last_mode = m
+            self.session.ui.dismiss_context_menu()	# Work around Qt 6.4 bug.
         else:
             m = self._last_mode	     # Stay with same mode until button up even if modifier keys change.
         if m and hasattr(m, action):
@@ -544,11 +545,11 @@ class MouseModes:
         # button() gives press/release buttons; buttons() gives move buttons
         from Qt.QtCore import Qt
         b = event.button() | event.buttons()
-        if b & Qt.LeftButton:
+        if b & Qt.MouseButton.LeftButton:
             button = 'left'
-        elif b & Qt.MiddleButton:
+        elif b & Qt.MouseButton.MiddleButton:
             button = 'middle'
-        elif b & Qt.RightButton:
+        elif b & Qt.MouseButton.RightButton:
             button = 'right'
         else:
             button = None
@@ -670,7 +671,7 @@ class MouseEvent:
             return 'shift' in self._modifiers
         if self._event is not None:
             from Qt.QtCore import Qt
-            return bool(self._event.modifiers() & Qt.ShiftModifier)
+            return bool(self._event.modifiers() & Qt.KeyboardModifier.ShiftModifier)
         return False
 
     def alt_down(self):
@@ -682,7 +683,7 @@ class MouseEvent:
             return 'alt' in self._modifiers
         if self._event is not None:
             from Qt.QtCore import Qt
-            return bool(self._event.modifiers() & Qt.AltModifier)
+            return bool(self._event.modifiers() & Qt.KeyboardModifier.AltModifier)
         return False
 
     def position(self):
@@ -695,7 +696,10 @@ class MouseEvent:
             return self._position
         e = self._event
         if e is not None:
-            if hasattr(e, 'localPos'):	# QMouseEvent
+            if hasattr(e, 'position'): # Qt 6
+                p = e.position()
+                return p.x(), p.y()
+            elif hasattr(e, 'localPos'):	# QMouseEvent
                 p = e.localPos()
                 return p.x(), p.y()
             elif hasattr(e, 'posF'):	# QWheelEvent
@@ -703,6 +707,17 @@ class MouseEvent:
                 return p.x(), p.y()
         return 0,0
 
+    def global_position(self):
+        e = self._event
+        if e is not None:
+            if hasattr(e, 'globalPosition'):
+                p = e.globalPosition().toPoint()		# PyQt6
+                return (p.x(), p.y())
+            elif hasattr(e, 'globalPos'):
+                p = e.globalPos()			# PyQt5
+                return (p.x(), p.y())
+        return (0,0)
+    
     def wheel_value(self):
         '''
         Supported API.
@@ -722,9 +737,10 @@ def mod_key_info(key_function):
     """Qt swaps control/meta on Mac, so centralize that knowledge here.
     The possible "key_functions" are: alt, control, command, and shift
 
-    Returns the Qt modifier bit (e.g. Qt.AltModifier) and name of the actual key
+    Returns the Qt modifier bit (e.g. Qt.KeyboardModifier.AltModifier) and name of the actual key
     """
     from Qt.QtCore import Qt
+    mod = Qt.KeyboardModifier
     import sys
     if sys.platform == "win32" or sys.platform == "linux":
         command_name = "windows"
@@ -733,17 +749,17 @@ def mod_key_info(key_function):
         command_name = "command"
         alt_name = "option"
     if key_function == "shift":
-        return Qt.ShiftModifier, "shift"
+        return mod.ShiftModifier, "shift"
     elif key_function == "alt":
-        return Qt.AltModifier, alt_name
+        return mod.AltModifier, alt_name
     elif key_function == "control":
         if sys.platform == "darwin":
-            return Qt.MetaModifier, command_name
-        return Qt.ControlModifier, "control"
+            return mod.MetaModifier, command_name
+        return mod.ControlModifier, "control"
     elif key_function == "command":
         if sys.platform == "darwin":
-            return Qt.ControlModifier, "control"
-        return Qt.MetaModifier, command_name
+            return mod.ControlModifier, "control"
+        return mod.MetaModifier, command_name
 
 def key_modifiers(event):
     return decode_modifier_bits(event.modifiers())
@@ -760,17 +776,18 @@ def decode_modifier_bits(mod):
 
 def keyboard_modifier_names(qt_keyboard_modifiers):
     from Qt.QtCore import Qt
+    mod = Qt.KeyboardModifier
     import sys
     if sys.platform == 'darwin':
-        modifiers = [(Qt.ShiftModifier, 'shift'),
-                     (Qt.ControlModifier, 'command'),
-                     (Qt.AltModifier, 'option'),
-                     (Qt.AltModifier, 'alt'),
-                     (Qt.MetaModifier, 'control')]
+        modifiers = [(mod.ShiftModifier, 'shift'),
+                     (mod.ControlModifier, 'command'),
+                     (mod.AltModifier, 'option'),
+                     (mod.AltModifier, 'alt'),
+                     (mod.MetaModifier, 'control')]
     else:
-        modifiers = [(Qt.ShiftModifier, 'shift'),
-                     (Qt.ControlModifier, 'control'),
-                     (Qt.AltModifier, 'alt'),
-                     (Qt.MetaModifier, 'windows')]
+        modifiers = [(mod.ShiftModifier, 'shift'),
+                     (mod.ControlModifier, 'control'),
+                     (mod.AltModifier, 'alt'),
+                     (mod.MetaModifier, 'windows')]
     mnames = [mname for mflag, mname in modifiers if mflag & qt_keyboard_modifiers]
     return mnames

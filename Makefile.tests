@@ -1,0 +1,2 @@
+test-pyproject-converter:
+	pytest -vv utils/tests/test_pyproject2binfo.py

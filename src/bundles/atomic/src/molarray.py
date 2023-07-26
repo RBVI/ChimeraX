@@ -47,7 +47,8 @@ can be altered is if C++ objects they hold are deleted in which case those objec
 are automatically removed from the collection.  Because they are mutable they
 cannot be used as keys in dictionary or added to sets.
 '''
-from numpy import uint8, int32, uint32, float64, float32, uintp, byte, bool as npy_bool, integer, empty, array
+from numpy import uint8, int32, uint32, float64, float32, uintp, byte, integer, empty, array
+npy_bool = bool
 from .molc import string, cptr, pyobject, set_cvec_pointer, pointer, size_t
 from . import molobject
 from .molobject import c_function, c_array_function, cvec_property, Atom
@@ -98,7 +99,7 @@ class Collection(State):
     Collection is immutable except that deleted items are automatically
     removed.
     '''
-    def __init__(self, items, object_class, objects_class):
+    def __init__(self, items, object_class):
         import numpy
         if items is None:
             # Empty
@@ -118,7 +119,6 @@ class Collection(State):
         self._pointers = pointers
         self._lookup = None		# LookupTable for optimized intersections
         self._object_class = object_class
-        self._objects_class = objects_class
         set_cvec_pointer(self, pointers)
         remove_deleted_pointers(pointers)
 
@@ -155,9 +155,7 @@ class Collection(State):
         if isinstance(i,(int,integer)):
             v = self._object_class.c_ptr_to_py_inst(self._pointers[i])
         elif isinstance(i, (slice, numpy.ndarray)):
-            # Copy pointers array slice since C++ code assumes array is contiguous.
-            ptrs = self._pointers[i].copy()
-            v = self._objects_class(ptrs)
+            v = self.__class__(self._pointers[i])
         else:
             raise IndexError('Only integer indices allowed for %s, got %s'
                 % (self.__class__.__name__, str(type(i))))
@@ -179,7 +177,7 @@ class Collection(State):
         return self._object_class
     @property
     def objects_class(self):
-        return self._objects_class
+        return self.__class__
     @property
     def pointers(self):
         return self._pointers
@@ -196,6 +194,12 @@ class Collection(State):
     def __and__(self, objects):
         '''The and operator & takes the intersection of two collections removing duplicates.'''
         return self.intersect(objects)
+    def __add__(self, objects):
+        '''The addition operator "+" returns a new collection containing all the items
+        from the collections being added.  Duplicates are not removed.'''
+        if self.__class__ != objects.__class__:
+            raise TypeError("Cannot add different Collection subclasses")
+        return concatenate((self, objects))
     def __sub__(self, objects):
         '''The subtract operator "-" subtracts one collection from another as sets,
         eliminating all duplicates.'''
@@ -203,12 +207,12 @@ class Collection(State):
 
     def copy(self):
         '''Shallow copy, since Collections are immutable.'''
-        return self._objects_class(self._pointers)
+        return self.__class__(self._pointers)
 
     def intersect(self, objects):
         '''Return a new collection that is the intersection with the *objects* :class:`.Collection`.'''
         pointers = self.pointers[self.mask(objects)]
-        return self._objects_class(pointers)
+        return self.__class__(pointers)
     def intersects(self, objects):
         '''Whether this collection has any element in common
         with the *objects* :class:`.Collection`. Returns bool.'''
@@ -235,7 +239,7 @@ class Collection(State):
           Bool length must match the length of the collection and filters out items where
           the bool array is False.
         '''
-        return self._objects_class(self._pointers[mask_or_indices])
+        return self.__class__(self._pointers[mask_or_indices])
     def mask(self, objects):
         '''Return bool array indicating for each object in current set whether that
         object appears in the argument objects.'''
@@ -244,15 +248,15 @@ class Collection(State):
         '''Return a new collection combining this one with the *objects* :class:`.Collection`.
         All duplicates are removed.'''
         import numpy
-        return self._objects_class(numpy.union1d(self._pointers, objects._pointers))
+        return self.__class__(numpy.union1d(self._pointers, objects._pointers))
     def subtract(self, objects):
         '''Return a new collection subtracting the *objects* :class:`.Collection` from this one.
         All duplicates are removed.  Currently does not preserve order'''
         import numpy
-        return self._objects_class(numpy.setdiff1d(self._pointers, objects._pointers))
+        return self.__class__(numpy.setdiff1d(self._pointers, objects._pointers))
     def unique(self):
         '''Return a new collection containing the unique elements from this one, preserving order.'''
-        return self.objects_class(unique_ordered(self._pointers))
+        return self.__class__(unique_ordered(self._pointers))
     def instances(self, instantiate=True):
         '''Returns a list of the Python instances.  If 'instantiate' is False, then for
         those items that haven't yet been instantiated, None will be returned.'''
@@ -346,7 +350,7 @@ def concatenate(collections, object_class = None, remove_duplicates = False):
         p = numpy.concatenate([a._pointers for a in collections])
         if remove_duplicates:
             p = unique_ordered(p)    # Preserve order when duplicates are removed.
-        cl = collections[0]._objects_class if object_class is None else object_class
+        cl = collections[0].__class__ if object_class is None else object_class
         c = cl(p)
     return c
 
@@ -373,11 +377,14 @@ class StructureDatas(Collection):
     Collection of C++ atomic structure objects.
     '''
     def __init__(self, mol_pointers):
-        Collection.__init__(self, mol_pointers, molobject.StructureData, StructureDatas)
+        Collection.__init__(self, mol_pointers, molobject.StructureData)
 
     alt_loc_change_notifies = cvec_property('structure_alt_loc_change_notify', npy_bool)
     '''Whether notifications are issued when altlocs are changed.  Should only be
     set to true when temporarily changing alt locs in a Python script. Numpy bool array.'''
+    ss_change_notifies = cvec_property('structure_ss_change_notify', npy_bool)
+    '''Whether notifications are issued when secondary structure is changed.  Should only be
+    set to true when temporarily changing secondary structure in a Python script. Numpy bool array.'''
     active_coordsets = cvec_property('structure_active_coordset', cptr, astype = _coordsets,
         read_only = True,
         doc="Returns a :class:`CoordSets` of the active coordset of each structure. Read only.")
@@ -455,6 +462,16 @@ class StructureDatas(Collection):
         for s in self:
             s.name = nm
 
+    # res_numbering can be int or string, so go through Python layer
+    @property
+    def res_numberings(self):
+        return array([s.res_numbering for s in self])
+
+    @res_numberings.setter
+    def res_numberings(self, rn):
+        for s in self:
+            s.res_numbering = rn
+
 # -----------------------------------------------------------------------------
 #
 class AtomicStructures(StructureDatas):
@@ -463,7 +480,7 @@ class AtomicStructures(StructureDatas):
     '''
     def __init__(self, mol_pointers):
         from . import AtomicStructure
-        Collection.__init__(self, mol_pointers, AtomicStructure, AtomicStructures)
+        Collection.__init__(self, mol_pointers, AtomicStructure)
 
     # so setattr knows that attr exists (used by selection inspector);
     # also, don't want to directly set Structure.display, want to go through Model.display
@@ -474,6 +491,10 @@ class AtomicStructures(StructureDatas):
     def displays(self, d):
         for s in self:
             s.display = d
+
+    @property
+    def visibles(self):
+        return array([s.visible for s in self])
 
     @classmethod
     def session_restore_pointers(cls, session, data):
@@ -525,6 +546,13 @@ class Atoms(Collection):
     colors = cvec_property('atom_color', uint8, 4,
         doc="Returns a :mod:`numpy` Nx4 array of uint8 RGBA values. Can be set "
         "with such an array (or equivalent sequence), or with a single RGBA value.")
+    @property
+    def average_ribbon_color(self):
+        "Average ribbon color as length 4 unit8 RGBA values."
+        f = c_function('atom_average_ribbon_color',
+                       args = [ctypes.c_void_p, ctypes.c_size_t],
+                       ret = ctypes.py_object)
+        return f(self._c_pointers, len(self))
     coords = cvec_property('atom_coord', float64, 3,
         doc="Returns a :mod:`numpy` Nx3 array of XYZ values. Can be set.")
     coord_indices = cvec_property('atom_coord_index', uint32, read_only = True,
@@ -765,7 +793,7 @@ class Atoms(Collection):
                          doc='Returns current alternate location indicators')
 
     def __init__(self, atom_pointers = None):
-        Collection.__init__(self, atom_pointers, molobject.Atom, Atoms)
+        Collection.__init__(self, atom_pointers, molobject.Atom)
 
     def delete(self):
         '''Delete the C++ Atom objects'''
@@ -819,7 +847,7 @@ class Atoms(Collection):
         containing (u11, u22, u33, u12, u13, u23) for each atom.'''
         n = len(self)
         if u6 is None:
-            f = c_function('clear_atom_aniso_u6', args = (ctypes.c_void_p,))
+            f = c_function('clear_atom_aniso_u6', args = (ctypes.c_void_p, ctypes.c_size_t))
             f(self._c_pointers, n)
             return
         f = c_function('set_atom_aniso_u6', args = (ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p))
@@ -852,7 +880,7 @@ class Bonds(Collection):
     Collection of C++ bonds.
     '''
     def __init__(self, bond_pointers = None):
-        Collection.__init__(self, bond_pointers, molobject.Bond, Bonds)
+        Collection.__init__(self, bond_pointers, molobject.Bond)
 
     atoms = cvec_property('bond_atoms', cptr, 2, astype = _atoms_pair, read_only = True)
     '''
@@ -980,7 +1008,7 @@ class Elements(Collection):
     their attributes.  Used for the same reasons as the :class:`Atoms` class.
     '''
     def __init__(self, element_pointers):
-        Collection.__init__(self, element_pointers, molobject.Element, Elements)
+        Collection.__init__(self, element_pointers, molobject.Element)
 
     names = cvec_property('element_name', string, read_only = True)
     '''Returns a numpy array of chemical element names. Read only.'''
@@ -1021,7 +1049,7 @@ class Pseudobonds(Collection):
     :class:`Bonds` class and works in an analogous fashion.
     '''
     def __init__(self, pbond_pointers = None):
-        Collection.__init__(self, pbond_pointers, molobject.Pseudobond, Pseudobonds)
+        Collection.__init__(self, pbond_pointers, molobject.Pseudobond)
 
     atoms = cvec_property('pseudobond_atoms', cptr, 2, astype = _atoms_pair, read_only = True)
     '''
@@ -1146,7 +1174,7 @@ class Residues(Collection):
     Collection of C++ residue objects.
     '''
     def __init__(self, residue_pointers = None):
-        Collection.__init__(self, residue_pointers, molobject.Residue, Residues)
+        Collection.__init__(self, residue_pointers, molobject.Residue)
 
     atoms = cvec_property('residue_atoms', cptr, 'num_atoms', astype = _atoms, read_only = True, per_object = False, doc =
     '''Return :class:`.Atoms` belonging to each residue all as a single collection. Read only.''')
@@ -1172,11 +1200,11 @@ class Residues(Collection):
     '''Returns a numpy array of residue names.''')
     num_atoms = cvec_property('residue_num_atoms', size_t, read_only = True, doc =
     '''Returns a numpy integer array of the number of atoms in each residue. Read only.''')
-    numbers = cvec_property('residue_number', int32, read_only = True, doc =
+    numbers = cvec_property('residue_number', int32, doc =
     '''
     Returns a :mod:`numpy` array of residue sequence numbers, as provided by
     whatever data source the structure came from, so not necessarily consecutive,
-    or starting from 1, *etc.* Read only.
+    or starting from 1, *etc.*.
     ''')
     polymer_types = cvec_property('residue_polymer_type', uint8, read_only = True, doc =
     '''Returns a numpy int array of residue types. Read only.''')
@@ -1398,16 +1426,11 @@ class Rings(Collection):
         if rings is not None:
             # Extract C pointers from list of Python Ring objects.
             ring_pointers = array([r._c_pointer.value for r in rings], cptr)
-        Collection.__init__(self, ring_pointers, molobject.Ring, Rings)
-
-    aromatics = cvec_property('ring_aromatic', npy_bool, read_only = True, doc =
-    '''A numpy bool array whether corresponding ring is aromatic.''')
-    atoms = cvec_property('ring_atoms', cptr, 'size', astype = _atoms, read_only = True, per_object = False, doc =
-    '''Return :class:`.Atoms` belonging to each ring all as a single collection. Read only.''')
-    bonds = cvec_property('ring_bonds', cptr, 'size', astype = _bonds, read_only = True, per_object = False, doc =
-    '''Return :class:`.Bonds` belonging to each ring all as a single collection. Read only.''')
-    sizes = cvec_property('ring_size', size_t, read_only = True, doc =
-    '''Returns a numpy integer array of the size of each ring. Read only.''')
+        Collection.__init__(self, ring_pointers, molobject.Ring)
+        # Create the list of Rings immediately, so that their info gets cached before they
+        # possibly get destroyed by other calls
+        c = self._object_class
+        self._object_list = [c.c_ptr_to_py_inst(p) for p in self._pointers]
 
 
 # -----------------------------------------------------------------------------
@@ -1418,7 +1441,7 @@ class Chains(Collection):
     '''
 
     def __init__(self, chain_pointers):
-        Collection.__init__(self, chain_pointers, molobject.Chain, Chains)
+        Collection.__init__(self, chain_pointers, molobject.Chain)
 
     chain_ids = cvec_property('sseq_chain_id', string)
     '''A numpy array of string chain ids for each chain.'''
@@ -1450,8 +1473,7 @@ class PseudobondGroupDatas(Collection):
     Collection of C++ pseudobond group objects.
     '''
     def __init__(self, pbg_pointers):
-        Collection.__init__(self, pbg_pointers, molobject.PseudobondGroupData,
-                            PseudobondGroupDatas)
+        Collection.__init__(self, pbg_pointers, molobject.PseudobondGroupData)
 
     colors = cvec_property('pseudobond_group_color', uint8, 4,
         doc="Returns a :mod:`numpy` Nx4 array of uint8 RGBA values. Can be set "
@@ -1494,7 +1516,7 @@ class PseudobondGroups(PseudobondGroupDatas):
     '''
     def __init__(self, pbg_pointers):
         from . import pbgroup
-        Collection.__init__(self, pbg_pointers, pbgroup.PseudobondGroup, PseudobondGroups)
+        Collection.__init__(self, pbg_pointers, pbgroup.PseudobondGroup)
 
     @property
     def dashes(self):
@@ -1522,7 +1544,7 @@ class CoordSets(Collection):
     Collection of C++ coordsets.
     '''
     def __init__(self, cs_pointers = None):
-        Collection.__init__(self, cs_pointers, molobject.CoordSet, CoordSets)
+        Collection.__init__(self, cs_pointers, molobject.CoordSet)
 
     ids = cvec_property('coordset_id', uint32, read_only = True,
         doc="ID numbers of coordsets")
@@ -1542,7 +1564,7 @@ class Structures(StructureDatas):
     '''
     def __init__(self, mol_pointers):
         from . import Structure
-        Collection.__init__(self, mol_pointers, Structure, Structures)
+        Collection.__init__(self, mol_pointers, Structure)
 
     # so setattr knows that attr exists (used by selection inspector);
     # also, don't want to directly set Structure.display, want to go through Model.display
@@ -1554,6 +1576,9 @@ class Structures(StructureDatas):
         for s in self:
             s.display = d
 
+    @property
+    def visibles(self):
+        return array([s.visible for s in self])
 
     @classmethod
     def session_restore_pointers(cls, session, data):

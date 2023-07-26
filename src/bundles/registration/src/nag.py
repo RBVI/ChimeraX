@@ -23,9 +23,9 @@ RegistrationFile = "registration"
 UsageFile = "preregistration"
 TimeFormat = "%a %b %d %H:%M:%S %Y"
 GracePeriod = 14
-NagMessage = """You have used ChimeraX %d times over %d days.  Please register your copy by using the Registration tool or the "register" command.
+NagMessage = """You have used ChimeraX %d times over %d days.  Please register your copy by using the Registration tool or the "register" command."""
 
-Registration is optional and free.  Registration helps us document the impact of ChimeraX on the scientific community. The information you supply will only be used for reporting summary statistics; no individual data will be released.
+NagInfo = """Registration is optional and free.  Registration helps us document the impact of ChimeraX on the scientific community. The information you supply will only be used for reporting summary statistics; no individual data will be released.
 """
 
 _registration_lock = threading.Lock()
@@ -207,20 +207,22 @@ def _check_usage(session):
     if not nagged and days > GracePeriod and session is not None:
         _ask_to_register(session, usage["count"], days)
 
-def _ask_to_register(session, times_used, days_used, wait_for_main_window = True):
+
+def _ask_to_register(session, times_used, days_used, wait_for_main_window=True):
     if wait_for_main_window:
         def _delayed_ask(*args, session=session, times_used=times_used, days_used=days_used):
-            _ask_to_register(session, times_used, days_used, wait_for_main_window = False)
+            _ask_to_register(session, times_used, days_used, wait_for_main_window=False)
             from chimerax.core.triggerset import DEREGISTER
             return DEREGISTER
         session.triggers.add_handler('new frame', _delayed_ask)
         return
     from chimerax.ui.ask import ask
     answer = ask(session, NagMessage % (times_used, days_used),
-                 buttons=["Dismiss", "Register"])
+                 buttons=["Dismiss", "Register"], info=NagInfo)
     if answer == "Register":
         from chimerax.core.commands import run
         run(session, 'ui tool show Registration')
+
 
 def _get_usage():
     usage_file = _usage_file()
@@ -230,9 +232,18 @@ def _get_usage():
         # and dates (first usage datetime on any day)
         with open(usage_file, encoding='utf-8') as f:
             for line in f:
+                if ':' not in line:
+                    # protect against corrupted files
+                    continue
                 key, value = [s.strip() for s in line.split(':', 1)]
                 if key == "date":
-                    usage["dates"].append(_strptime(value))
+                    try:
+                        date = _strptime(value)
+                    except ValueError:
+                        # protect against corrupted files
+                        from datetime import datetime
+                        date = datetime(1, 1, 1)
+                    usage["dates"].append(date)
                 elif key == "count":
                     usage["count"] = int(value)
     except IOError:

@@ -29,6 +29,7 @@ class="clRight" title="User Guide Index"/></a>
 &nbsp;<a href="atomspec.html"><i>object1</i></a>&nbsp;
 &nbsp;<a href="atomspec.html"><i>object2</i></a>&nbsp;
 [&nbsp;<b>signed</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>monitor</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<a href="#options"><i>display-options</i></a>&nbsp;]
 </h3>
 <a name="delete"></a>
@@ -53,11 +54,15 @@ The <b>distance</b> command measures distances between two objects,
 which can be:
 <ul>
 <li>two atoms 
-(where a <a href="../markers.html">marker</a> is equivalent to an atom)
-<li>an atom and a plane created previously with
-<a href="define.html#plane"><b>define plane</b></a>;
-the plane can be specified by model number
-<li>two planes
+(where a <a href="../markers.html">marker</a> or a previously defined 
+<a href="../tools/axesplanes.html#define-centroid">centroid</a>
+is equivalent to an atom)
+<li>an atom and a previously defined 
+<a href="../tools/axesplanes.html#define-axes">axis</a>
+or <a href="../tools/axesplanes.html#define-plane">plane</a>;
+for distance measurements, planes but not axes are treated as infinite
+<li>any two axes and/or planes; however, the distance between two planes
+will always be zero unless they are exactly parallel
 </ul>
 <p>
 The current distance is reported in the 
@@ -73,6 +78,7 @@ adds a different type of distance measurement
 with <a href="../markers.html">markers and links</a>
 (<a href="../tools/mousemodes.html#tapemeasure">details...</a>).
 See also: 
+<a href="angle.html"><b>angle</b></a>,
 <a href="bond.html"><b>bond</b></a>,
 <a href="getcrd.html"><b>getcrd</b></a>,
 <a href="color.html"><b>color</b></a>,
@@ -83,9 +89,10 @@ See also:
 <a href="hbonds.html"><b>hbonds</b></a>,
 <a href="crosslinks.html#histogram"><b>crosslinks histogram</b></a>,
 <a href="select.html#new"><b>select</b> by pseudobond length</a>,
+<a href="../tools/axesplanes.html"><b>Axes/Planes/Centroids</b></a>,
 <a href="../measurements.html">measurements</a>
 </p><p>
-In the case of two atoms, 
+In the case of two atoms, unless <b>monitor false</b> is given,
 a <b><i>distance monitor</i></b> <a href="../pseudobonds.html">pseudobond</a>
 (see also the <a href="../tools/distances.html"><b>Distances</b></a>
 graphical interface) is added and labeled according to the
@@ -95,7 +102,7 @@ distance labels on a distance monitor and the values shown in
 the <a href="../tools/distances.html"><b>Distances</b></a> tool 
 will update automatically.
 </p><p>
-No distance monitors are added for distances to planes.
+No distance monitors are added for distances to axes or planes.
 The <b>signed</b> option (default <b>false</b>) allows reporting 
 positive and negative distances for objects on opposite sides of a plane.
 </p><p>
@@ -170,8 +177,19 @@ Whether to show the angstrom symbol &Aring; (initial default <b>true</b>);
 affects all distance monitors and is instantly saved as the default.
 Distances are assumed to be in &Aring;.
 </blockquote>
+<p>
+Distance-monitor <a href="../pseudobonds.html">pseudobonds</a>
+can also be adjusted with the commands
+<a href="color.html"><b>color</b></a>, <a href="style.html"><b>style</b></a>,
+and <a href="size.html"><b>size</b></a>,
+and distance labels can also be adjusted with
+<a href="color.html"><b>color</b></a> and <a href="label.html"><b>label</b></a>.
+For smoother distance-label text in high-resolution images, see the
+<a href="label.html"><b>label</b></a> command
+<a href="label.html#size"><b>size</b> option</a>.
+</p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-September 2020</address>
+March 2023</address>
 </body></html>

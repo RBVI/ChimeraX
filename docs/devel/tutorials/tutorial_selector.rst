@@ -29,7 +29,7 @@ The steps in implementing the bundle are:
 #. Create a ``bundle_info.xml`` containing information
    about the bundle,
 #. Create a Python package that interfaces with ChimeraX
-   and implements the file-reading functionality, and
+   and implements the atom-selection functionality, and
 #. Install and test the bundle in ChimeraX.
 
 The final step builds a Python wheel that ChimeraX uses
@@ -93,7 +93,8 @@ there is one chemical subgroup selector named ``endres`` in
 the bundle.  The last field is a short description for
 the selector.  If ``endres`` appears in the target specification
 of a ChimeraX command, the bundle function associated with
-``endres`` will be invoked to find the atoms of interest.
+``endres`` will be invoked to find the atoms of interest,
+*e.g.* the command ``sel endres`` will select the ending residues of chains.
 
 
 ``src``
@@ -181,3 +182,4 @@ What's Next
 - :doc:`tutorial_save_format`
 - :doc:`tutorial_fetch` (previous topic)
 - :doc:`tutorial_selector` (current topic)
+- :doc:`tutorial_presets` (next topic)

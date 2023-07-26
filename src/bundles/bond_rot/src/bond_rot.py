@@ -27,8 +27,8 @@ class BondRotation(State):
     def delete_rotater(self, rotater):
         self.rotaters.remove(rotater)
 
-    def new_rotater(self, ident, moving_side, one_shot):
-        rotater = BondRotater(self.session, self, ident, moving_side, one_shot)
+    def new_rotater(self, moving_side, one_shot):
+        rotater = BondRotater(self.session, self, moving_side, one_shot)
         self.rotaters.append(rotater)
         return rotater
 
@@ -61,13 +61,13 @@ class BondRotation(State):
 
 class BondRotater(State):
     # instances given to API users; works in conjunction with BondRotation
-    def __init__(self, session, rotation, ident, moving_side, one_shot):
+    def __init__(self, session, rotation, moving_side, one_shot):
         self.session = session
         self.rotation = rotation
-        self.ident = ident
         self.moving_side = moving_side
         self.one_shot = one_shot
         self._angle = 0.0
+        self._undo_state = None
 
     def get_angle(self):
         return self._angle
@@ -85,6 +85,8 @@ class BondRotater(State):
         coords = side_atoms.coords
         # avoid a copy...
         update.transform_points(coords, in_place=True)
+        if self._undo_state:
+            self._undo_state.add(side_atoms, "coords", side_atoms.coords, coords)
         side_atoms.coords = coords
         self.rotation._rotater_update(self, delta)
         # manager listening on changes will fire 'modified' trigger...
@@ -102,6 +104,22 @@ class BondRotater(State):
     def bond(self):
         return self.rotation.bond
 
+    def swap_sides(self):
+        self.moving_side = self.bond.other_atom(self.moving_side)
+        if not self.one_shot:
+            manager = self.session.bond_rotations
+            manager.triggers.activate_trigger(manager.REVERSED, self)
+
+    @property
+    def undo_state(self):
+        return self._undo_state
+
+    @undo_state.setter
+    def undo_state(self, undo_state):
+        if self._undo_state is not None:
+            self.session.undo.register(self._undo_state)
+        self._undo_state = undo_state
+
     # session methods
     def reset_state(self, session):
         # manager will nuke everything
@@ -109,8 +127,7 @@ class BondRotater(State):
 
     @staticmethod
     def restore_snapshot(session, data):
-        rotater = BondRotater(session, data['rotation'], data['ident'],
-            data['moving_side'], data['one_shot'])
+        rotater = BondRotater(session, data['rotation'], data['moving_side'], data['one_shot'])
         # to avoid circularity, BondRotation doesn't save the rotaters,
         # so add the rotater to BondRotation...
         data['rotation'].rotaters.append(rotater)
@@ -118,10 +135,9 @@ class BondRotater(State):
 
     def take_snapshot(self, session, flags):
         return {
-            'version': 1,
+            'version': 2,
 
             'rotation': self.rotation,
-            'ident': self.ident,
             'moving_side': self.moving_side,
             'one_shot': self.one_shot,
             'angle': self._angle,

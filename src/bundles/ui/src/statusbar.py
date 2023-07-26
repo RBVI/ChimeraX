@@ -61,7 +61,7 @@ class _StatusBarOpenGL:
     def _make_widget(self):
         from Qt.QtWidgets import QStatusBar, QSizePolicy
         sb = QStatusBar()
-        sb.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
+        sb.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
         w = StatusOpenGLWindow(parent = sb,
                                expose_cb = self._expose_event,
                                resize_cb = self._resize_event,
@@ -208,7 +208,7 @@ class StatusOpenGLWindow(QWindow):
         from Qt.QtWidgets import QWidget
         self._widget = QWidget.createWindowContainer(self, parent)
         from Qt.QtGui import QSurface
-        self.setSurfaceType(QSurface.OpenGLSurface)
+        self.setSurfaceType(QSurface.SurfaceType.OpenGLSurface)
         parent.addWidget(self._widget, stretch = 1)
 
     # Override QWindow size(), width() and height() to use widget values.

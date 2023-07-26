@@ -12,14 +12,28 @@
 # === UCSF ChimeraX Copyright ===
 
 from .util import complete_terminal_carboxylate, determine_termini, bond_with_H_length
+from .dock_prep import dock_prep_arg_info, run_for_dock_prep
 
 from chimerax.core.toolshed import BundleAPI
 
 class AddH_API(BundleAPI):
 
     @staticmethod
+    def get_class(class_name):
+        if class_name == "AddHTool":
+            from .tool import AddHTool
+            return AddHTool
+        else:
+            raise ValueError(f"Don't know how to get class {class_name}")
+
+    @staticmethod
     def register_command(command_name, logger):
         from . import cmd
         cmd.register_command(command_name, logger)
+
+    @staticmethod
+    def start_tool(session, tool_name):
+        from .tool import AddHTool
+        return AddHTool(session, tool_name)
 
 bundle_api = AddH_API()

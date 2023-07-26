@@ -80,7 +80,8 @@ def segmentHingeSame(m0, m1, fraction=0.5, min_hinge_spacing=6, log=None):
                         if _residue_atom_pairing_same_name(r0, r1, atomMap):
                                 curRList0.append(r0)
                                 curRList1.append(r1)
-                parts.append((curRList0, curRList1))
+                if curRList0 and curRList1:
+                        parts.append((curRList0, curRList1))
 
         #
         # Split each part on hinges and collate results
@@ -168,7 +169,10 @@ def segmentHingeApproximate(m0, m1, fraction=0.5, min_hinge_spacing=6, matrix="B
         from chimerax.sim_matrices import matrix_compatible
         from chimerax.match_maker.settings import defaults
         from chimerax.match_maker.match import align
-        ksdsspCache = set([m0, m1])
+        ksdsspCache = {
+				m0: (m0.residues.ss_ids, m0.residues.ss_types),
+				m1: (m1.residues.ss_ids, m1.residues.ss_types),
+		}
         parts = []
         atomMap = {}
         matrices = [

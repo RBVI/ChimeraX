@@ -5,35 +5,38 @@ authors:
   -
     affiliation: "Department of Pharmaceutical Chemistry, University of California San Francisco, San Francisco, California, USA"
     family-names: Pettersen
-    given-names: Eric
+    given-names: "Eric F."
   -
     affiliation: "Department of Pharmaceutical Chemistry, University of California San Francisco, San Francisco, California, USA"
     family-names: Goddard
-    given-names: Thomas
+    given-names: "Thomas D."
   -
     affiliation: "Department of Pharmaceutical Chemistry, University of California San Francisco, San Francisco, California, USA"
     family-names: Huang
-    given-names: Conrad
+    given-names: "Conrad C."
   -
     affiliation: "Department of Pharmaceutical Chemistry, University of California San Francisco, San Francisco, California, USA"
     family-names: Meng
-    given-names: Elaine
+    given-names: "Elaine C."
   -
     affiliation: "Department of Pharmaceutical Chemistry, University of California San Francisco, San Francisco, California, USA"
     family-names: Couch
-    given-names: Gregory
+    given-names: "Gregory S."
   -
     affiliation: "Cambridge Institute for Medical Research, Department of Haematology, University of Cambridge, Cambridge, UK"
     family-names: Croll
-    given-names: Tristan
+    given-names: "Tristan I."
+    orcid: https://orcid.org/0000-0002-3514-8377
   -
     affiliation: "Department of Pharmaceutical Chemistry, University of California San Francisco, San Francisco, California, USA"
     family-names: Morris
-    given-names: John
+    given-names: "John H."
+    orcid: https://orcid.org/0000-0003-0290-7979
   -
     affiliation: "Department of Pharmaceutical Chemistry, University of California San Francisco, San Francisco, California, USA"
     family-names: Ferrin
-    given-names: Thomas
+    given-names: "Thomas E."
+    orcid: https://orcid.org/0000-0001-6227-0637
 cff-version: "1.1.0"
 date-released: 2021-01-01
 doi: "10.1002/pro.3943"
@@ -47,4 +50,4 @@ keywords:
   - "virtual reality"
 message: "If you use this software, please cite it using these metadata."
 title: "UCSF ChimeraX: Structure visualization for researchers, educators, and developers"
-version: "1.2.5"
+version: "development"

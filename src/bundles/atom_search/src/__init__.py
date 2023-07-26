@@ -11,9 +11,6 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-# make sure the shared lib we need is loaded
-import chimerax.atom_search_lib
-
 from .ast import AtomSearchTree
 
 from chimerax.core.toolshed import BundleAPI

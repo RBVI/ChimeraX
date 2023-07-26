@@ -141,7 +141,7 @@ class MarkerMouseMode(MouseMode):
     def picked_marker_or_link(self, event, select = False):
         xyz1, xyz2 = self._view_line(event)
         view = self.session.main_view
-        pick = view.picked_object_on_segment(xyz1, xyz2)
+        pick = view.picked_object_on_segment(xyz1, xyz2, exclude = _exclude_transparent_surfaces)
         m = l = None
         from chimerax.atomic import PickedAtom, PickedBond
         from .markers import MarkerSet
@@ -264,6 +264,18 @@ class MarkerMouseMode(MouseMode):
     def vr_release(self, event):
         # Virtual reality hand controller button release.
         self.mouse_up()
+
+def _exclude_transparent_surfaces(drawing):
+    if not drawing.pickable:
+        return True
+    from chimerax.core.models import Surface
+    if isinstance(drawing, Surface):
+        if drawing.display_style != drawing.Solid:
+            return True
+        any_opaque, any_transparent = drawing._transparency()
+        if any_transparent:
+            return True
+    return False
 
 # -----------------------------------------------------------------------------
 #

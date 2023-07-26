@@ -118,9 +118,11 @@ def lighting(session, preset = None, direction = None, intensity = None, color =
         return
 
     ms_directions = lighting_settings(session).lighting_multishadow_directions
+    sil = v.silhouette
     if preset == 'default' or preset == 'simple':
         lp.shadows = False
         lp.multishadow = 0
+        sil.depth_jump = 0.03
         lp.set_default_parameters(v.background_color)
     elif preset == 'full':
         lp.shadows = True
@@ -130,6 +132,7 @@ def lighting(session, preset = None, direction = None, intensity = None, color =
         lp.ambient_light_intensity = 0.8
         lp.multishadow_depth_bias = 0.01
         lp.multishadow_map_size = 1024
+        sil.depth_jump = 0.03
     elif preset == 'soft':
         lp.shadows = False
         lp.multishadow = ms_directions
@@ -138,6 +141,7 @@ def lighting(session, preset = None, direction = None, intensity = None, color =
         lp.ambient_light_intensity = 1.5
         lp.multishadow_depth_bias = 0.01
         lp.multishadow_map_size = 1024
+        sil.depth_jump = 0.03
     elif preset == 'gentle':
         lp.shadows = False
         lp.multishadow = ms_directions
@@ -146,13 +150,13 @@ def lighting(session, preset = None, direction = None, intensity = None, color =
         lp.ambient_light_intensity = 1.5
         lp.multishadow_depth_bias = 0.05
         lp.multishadow_map_size = 128
+        sil.depth_jump = 0.03
     elif preset == 'flat':
         lp.shadows = False
         lp.multishadow = 0
         lp.key_light_intensity = 0
         lp.fill_light_intensity = 0
         lp.ambient_light_intensity = 1.45
-        sil = v.silhouette
         sil.enabled = True
         sil.depth_jump = 0.01
 

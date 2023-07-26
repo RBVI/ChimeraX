@@ -25,18 +25,28 @@ class="clRight" title="User Guide Index"/></a>
 
 <h3><a href="../index.html#commands">Command</a>: runscript</h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
-<br><b>runscript</b> &nbsp;<i>script.py</i>&nbsp;&nbsp;<i>arguments</i>
+<br><b>runscript</b> &nbsp;<i>script</i>&nbsp;&nbsp;<i>arguments</i>
 </h3>
 <p>
-The <b>runscript</b> command allows running a Python script 
-with pathname <i>script.py</i>&nbsp; and one or more command-line arguments.
+The <b>runscript</b> command allows running a Python script (.py)
+or <a href="usageconventions.html#cxc-files">ChimeraX command script</a>
+(.cxc) with file pathname <i>script</i> and any needed command-line arguments.
 Substituting the word <a href="usageconventions.html#browse"><b>browse</b></a>
 for the pathname brings up a file browser window for choosing the
-name and location interactively.
-See also: <a href="open.html"><b>open</b></a>
+name and location of the script interactively.
+The arguments are passed to the Python script as sys.argv[1], sys.argv[2],
+<i>etc.</i>,
+or substituted into the ChimeraX command script for $1, $2, <i>etc.</i>
+The <a href="../options.html#script"><b>--script</b></a>
+startup option calls this command.
+</p><p>
+See also: 
+<a href="alias.html"><b>alias</b></a>,
+<a href="open.html"><b>open</b></a> and its
+<a href="open.html#forEachFile"><b>forEachFile</b></a> option
 </p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-August 2019</address>
+June 2022</address>
 </body></html>

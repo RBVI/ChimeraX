@@ -365,7 +365,7 @@ class ResiduePsiOption(AngleOption):
 
 class ResidueFilledRingOption(BooleanOption):
     attr_name = "ring_display"
-    balloon = "Whether ring fill should be thick or thin"
+    balloon = "Whether rings should be depicted as filled"
     default = False
     name = "Fill rings"
     @property

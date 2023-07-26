@@ -179,6 +179,7 @@ def standard_shortcuts(session):
 
 #        ('c1', color_one_color, 'Color molecule one color', molcat, molarg, mlmenu),
         ('cc', run_on_atoms('color %s bychain'), 'Color chains', molcat, sesarg, mlmenu, sep),
+        ('cp', run_on_atoms('color %s bypolymer'), 'Color polymers', molcat, sesarg, mlmenu, sep),
         ('ce', run_on_atoms('color %s byhet'), 'Color non-carbon atoms by element', molcat, sesarg, mlmenu),
         ('rc', run_on_atoms('color %s random'), 'Random color atoms and residues', molcat, sesarg, mlmenu),
         ('bf', run_on_atoms('color bfactor %s'), 'Color by bfactor', molcat, sesarg, mlmenu),
@@ -308,7 +309,7 @@ class Shortcut:
         if self.atoms_arg:
             f(shortcut_atoms(s))
         elif self.each_map:
-            for m in shortcut_maps(s):
+            for m in shortcut_maps(s, undisplayed=False):
                 f(m)
         elif self.each_molecule:
             for m in shortcut_molecules(s):
@@ -470,10 +471,11 @@ def shortcut_atoms(session):
         atoms = Atoms()
     return atoms
 
-def shortcut_surfaces(session):
+def shortcut_surfaces(session, include_undisplayed_selected = False):
     sel = session.selection
     from chimerax.core.models import Surface
-    surfs = [m for m in sel.models() if isinstance(m, Surface)]
+    surfs = [m for m in sel.models()
+             if isinstance(m, Surface) and (m.visible or include_undisplayed_selected)]
     if surfs:
         return surfs
     surfs = [m for m in session.models.list(type = Surface) if m.visible]
@@ -483,7 +485,7 @@ def shortcut_surfaces_and_maps(session):
     sel = session.selection
     from chimerax.map import Volume
     from chimerax.core.models import Surface
-    sm = [m for m in sel.models() if isinstance(m,(Surface, Volume))]
+    sm = [m for m in sel.models() if isinstance(m,(Surface, Volume)) and m.visible]
     if sm:
         return sm
     sm = [m for m in session.models.list(type = (Surface, Volume)) if m.visible]
@@ -910,7 +912,7 @@ def show_asymmetric_unit(m, session):
         m.positions = Places([m.positions[0]])
 
 def display_surface(session):
-    surfs = shortcut_surfaces(session)
+    surfs = shortcut_surfaces(session, include_undisplayed_selected = True)
     if len(surfs) == 0 or session.selection.empty():
         surfs = [m for m in session.models.list() if not m.empty_drawing()]
     for m in surfs:
@@ -1221,7 +1223,7 @@ def undisplay_half_model(m):
             if (mp[0]*c)[2] > 0:
                 m.display = False
         else:
-            from numpy import array, bool
+            from numpy import array
             pmask = array([(pl*c)[2] <= 0 for pl in mp], bool)
             m.display_positions = pmask
             print('uh', m.name, pmask.sum())
@@ -1247,12 +1249,24 @@ def minimize_crosslinks(atoms, session):
     from chimerax.core.crosslinks import crosslink
     crosslink(session, minimize = atoms.unique_structures, frames = 30)
 
+def snapshot(session, directory = None):
+    save_image(session, directory)
+    if directory is not None:
+        from .settings import settings
+        settings(session).snapshot_directory = directory
+
 def save_image(session, directory = None, basename = 'image', suffix = '.png'):
+    if directory is None:
+        from .settings import settings
+        directory = settings(session).snapshot_directory
     path = unused_file_name(directory, basename, suffix)
     cmd = 'save %s supersample 3' % path
     run(session, cmd)
 
 def save_spin_movie(session, directory = None, basename = 'movie', suffix = '.mp4'):
+    if directory is None:
+        from .settings import settings
+        directory = settings(session).snapshot_directory
     cmd = ('movie record ; turn y 2 180 ; wait 180 ; movie encode %s'
            % unused_file_name(directory, basename, suffix))
     run(session, cmd)
@@ -1267,6 +1281,8 @@ def unused_file_name(directory, basename, suffix):
         directory = default_save_directory()
     from os import path, listdir
     dir = path.expanduser(directory)
+    if not path.isdir(dir):
+        directory = dir = default_save_directory()
     from os import listdir
     try:
         files = listdir(dir)
@@ -1324,6 +1340,12 @@ def register_shortcut_command(logger):
     desc = CmdDesc(optional = [('shortcut', StringArg)],
                    synopsis = 'Run keyboard a shortcut')
     register('ks', desc, ks, logger=logger)
+
+def register_snapshot_command(logger):
+    from chimerax.core.commands import CmdDesc, SaveFolderNameArg, register
+    desc = CmdDesc(keyword = [('directory', SaveFolderNameArg)],
+                   synopsis = 'Save an image')
+    register('snapshot', desc, snapshot, logger=logger)
 
 def run_provider(session, name):
     # run shortcut chosen via bundle provider interface

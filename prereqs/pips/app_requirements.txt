@@ -1,76 +1,86 @@
 #
 # Application runtime
 #
-# Some packages are not available on macOS arm64 cpu, marked below with platform_machine != 'arm64'.
+# Some PIP packages are not available on macOS arm64 cpu
+# We install them from the prereqs archive using wheels from Conda
+# They are marked below with platform_machine != 'arm64'.
+# TODO: Deprecate conda version when pip gets arm64 ports
 #
 appdirs==1.4.4
-colorama==0.4.4
-comtypes==1.1.10
-Cython==0.29.23
-distlib==0.3.1
-filelock==3.0.12
-grako==3.16.5
+beautifulsoup4==4.11.2
+build==0.10.0
+colorama==0.4.6
+Cython==0.29.33
+filelock==3.9.0
+# grako==3.16.5 # See the Makefile; need patched Grako for 3.11
 html2text==2020.1.16
-ihm==0.20
-imagecodecs==2021.4.28 ; platform_machine != 'arm64'
-ipykernel==5.5.5
+ihm==0.38
+imagecodecs==2023.7.10
+ipykernel==6.23.2
 # if ipython updated, make sure autocompletion still works (e.g. "mi<tab>" becomes min) and if not then
 # try a newer version of jedi
-ipython==7.23.1
+ipython==8.14.0
 # the version of jedi that works with ipython
-jedi==0.18.0
-jupyter-client==6.1.12
-lxml==4.6.3
-lz4==3.1.3
-matplotlib==3.4.2 ; platform_machine != 'arm64'
-msgpack==1.0.2
-netCDF4==1.5.6 ; platform_machine != 'arm64'
-networkx==2.6.2
-numpy==1.21.0
-openvr==1.16.801
+jedi==0.18.2
+jupyter-client==8.2.0
+line_profiler==4.0.2
+lxml==4.9.2
+lz4==4.3.2
+matplotlib==3.7.2
+msgpack==1.0.4
+nibabel == 5.0.1
+netCDF4==1.6.2
+networkx==3.1
+numpy==1.25.1
+openvr==1.23.701
 # as per Tristan's request in ticket #3055
-ParmEd==3.2.0
-Pillow==8.2.0
-pkginfo==1.7.0
-psutil==5.8.0
-pycollada==0.7.1
-pydicom==2.1.2
+ParmEd==3.4.3
+pep517==0.13.0
+Pillow==10.0.0
+pkginfo==1.9.6
+psutil==5.9.5
+pycollada==0.7.2
+pydicom==2.3.0
+pynrrd==1.0.0
+tcia_utils==1.5.1
 # PyOpenGL handled in app_pyopengl_requirements.txt
-#PyOpenGL==3.1.5
-#PyOpenGL-accelerate==3.1.5
-python-dateutil==2.8.1
+python-dateutil==2.8.2
+# PyQt handled in prereqs/PyQt
+# sip handled in prereqs/PyQt
 #PySide2==5.15.2
-qtconsole==5.1.0
-requests==2.25.1
-scipy==1.6.3 ; platform_machine != 'arm64'
+qtconsole==5.4.3
+requests==2.31.0
+scipy==1.11.1
 six==1.16.0
 sortedcontainers==2.4.0
-suds-jurko==0.6
-# No binary wheels for Windows and Mac for PyTables in Python 3.9.
-#tables==3.6.1
-tifffile==2021.4.8
-tinyarray==1.2.3
-webcolors==1.11.1
-wheel-filename==1.3.0
+tables==3.8.0 ; platform_machine != 'arm64'
+tifffile==2023.7.10
+# tinyarray==1.2.4 # 3.11 requires getting this from Plato
+tomli==2.0.1
+webcolors==1.12
+wheel-filename==1.4.1
 #
 # Documentation
 #
-blockdiag==2.0.1
-docutils==0.17.1
-Jinja2==2.11.3
-numpydoc==1.1.0
-Pygments==2.9.0
-Sphinx==4.0.1
-sphinxcontrib-blockdiag==2.0.0
+blockdiag==3.0.0
+docutils==0.19
+Jinja2==3.1.2
+Pygments==2.14.0
+Sphinx==6.1.3
+sphinxcontrib-blockdiag==3.0.0
+sphinx_autodoc_typehints==1.22
 #
 # Windows
 #
-pywin32==228; sys_platform == 'win32'
+pywin32==305; sys_platform == 'win32'
 WMI==1.5.1; sys_platform == 'win32'
+comtypes==1.1.14; sys_platform == 'win32'
 #
 # Linux
 #
-distro==1.5.0; sys_platform == 'linux'
-# There are only line_profiler binaries for Linux,
-# and it is hard to compile elsewhere
-line_profiler==3.3.0; sys_platform == 'linux'
+distro==1.7.0; sys_platform == 'linux'
+#
+# Indirect dependencies listed here to pin the version number
+#
+traitlets==5.9.0
+

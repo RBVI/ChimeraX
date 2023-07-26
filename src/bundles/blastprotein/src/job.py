@@ -1,7 +1,7 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
+# Copyright 2021 Regents of the University of California.
 # All rights reserved.  This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
 # duplication and use.  For details see:
@@ -10,149 +10,125 @@
 # including partial copies, of the software or any revisions
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
+from urllib3.exceptions import MaxRetryError
 
-from chimerax.webservices.opal_job import OpalJob
+from chimerax.core.tasks import JobError
 from chimerax.webservices.cxservices_job import CxServicesJob
-from cxservices.rest import ApiException
 
+from .data_model import get_database, CurrentDBVersions
+from .utils import BlastParams, make_instance_name
 
-class CCDJob(OpalJob):
+class BlastProteinJob(CxServicesJob):
+    inet_error = "Could not start BLAST job. Please check your internet connection and try again."
+    service_name = "blast"
 
-    OPAL_SERVICE = "CCDService"
-
-    def __init__(self, session, name):
+    def __init__(self, session, seq, atomspec, **kw):
         super().__init__(session)
-        self.start(self.OPAL_SERVICE, name)
 
-    def on_finish(self):
-        self.session.logger.info("Standard output:\n" + self.get_stdout())
+        if 'tool_inst_name' not in kw:
+            kw['tool_inst_name'] = make_instance_name()
+        if kw['tool_inst_name'] is None:
+            kw['tool_inst_name'] = make_instance_name()
 
+        try:
+            self.setup(seq, atomspec, **kw)
+        except JobError as e:
+            session.logger.warning(" ".join(["Cannot submit job:", str(e)]))
+            return
 
-class BlastProteinBase:
+        self.params = {
+            "db": self.database,
+            "evalue": str(self.cutoff),
+            "matrix": self.matrix,
+            "blimit": str(self.max_seqs),
+            "input_seq": self.seq,
+            "version": self.version
+        }
 
-    QUERY_FILENAME = "query.fa"
-    RESULTS_FILENAME = "results.txt"
+        try:
+            model_no = int(atomspec.split('/')[0].split('#')[1])
+            self.model_name = session.models._models[(model_no,)]._name
+        except (ValueError, KeyError, AttributeError):
+            self.model_name = None
 
-    def setup(self, seq, atomspec, database="pdb", cutoff=1.0e-3,
-              matrix="BLOSUM62", max_seqs=500, log=None, tool_inst_name=None):
-        from . import tool
-        self.seq = seq.replace('?', 'X')        # string
-        self.atomspec = atomspec                # string (atom specifier)
-        self.database = database                # string
-        self.cutoff = cutoff                    # float
-        self.matrix = matrix                    # string
-        self.max_seqs = max_seqs                # int
+        try:
+            self.start(self.service_name, self.params)
+        except MaxRetryError:
+            session.logger.warning(self.inet_error)
+
+    def setup(self, seq, atomspec, database: str = "pdb", cutoff: float = 1.0e-3,
+              matrix: str = "BLOSUM62", max_seqs: int = 100, log = None,
+              version = None, tool_inst_name = None, sequence_name = None):
+        self.seq = seq.replace('?', 'X')                  # string
+        if self.seq.count('X') == len(self.seq):
+            raise JobError("Sequence consists entirely of unknown amino acids.")
+        # if self.seq.count('X') > len(self.seq) // 2:
+        #     self.thread_safe_warn("Attempting to run BLAST job with a high occurrence of unknown sequences.")
+        self.sequence_name = sequence_name                # string
+        self.atomspec = atomspec                          # string (atom specifier)
+        self.database = database                          # string
+        self.cutoff = cutoff                              # float
+        self.matrix = matrix                              # string
+        self.max_seqs = max_seqs                          # int
+        if version is None:
+            version = CurrentDBVersions[self.database]
+        self.version = version                            # DB Version
         self.log = log
         self.tool_inst_name = tool_inst_name
-        self.tool = tool.find(tool_inst_name)
 
     def _seq_to_fasta(self, seq, title):
         data = ["> %s\n" % title]
         block_size = 60
         for i in range(0, len(seq), block_size):
-            data.append("%s\n" % seq[i:i+block_size])
+            data.append("%s\n" % seq[i:i + block_size])
         return ''.join(data)
 
     def _params(self):
-        # Keys must match HTML element ids
-        return [
-            ( "chain", self.atomspec ),
-            ( "database", self.database ),
-            ( "cutoff", self.cutoff ),
-            ( "maxSeqs", self.max_seqs ),
-            ( "matrix", self.matrix ),
-        ]
+        return BlastParams(
+            self.atomspec, self.database, self.cutoff
+            , self.max_seqs, self.matrix, self.version
+        )
 
     def on_finish(self):
         logger = self.session.logger
-        logger.info("BlastProtein finished.")
-        out = self.get_stdout()
-        if out:
-            logger.error("Standard output:\n" + out)
-        if not self.exited_normally():
-            err = self.get_stderr()
-            if self.tool:
-                self.tool.job_failed(self, err)
+        logger.status("BlastProtein finished.")
+        if self.session.ui.is_gui:
+            if self.exited_normally():
+                from .ui import BlastProteinResults
+                BlastProteinResults.from_job(
+                    session = self.session
+                    , tool_name = self.tool_inst_name
+                    , params=self._params()
+                    , job=self
+                )
             else:
-                if err:
-                    logger.bug("Standard error:\n" + err)
+                self.session.logger.error("BLAST job failed")
         else:
-            from .blastp_parser import Parser
-            results = self.get_file(self.RESULTS_FILENAME)
-            try:
-                p = Parser("query", self.seq, results)
-            except Exception as e:
-                if self.tool:
-                    err = self.get_stderr()
-                    self.tool.job_failed(self, err + str(e))
-                else:
-                    logger.bug("BLAST output parsing error: %s" % str(e))
+            if self.exited_normally():
+                results = self.get_results()
+                parse_blast_results_nogui(self.session, self._params(), self.seq, results, self.log)
             else:
-                if self.tool:
-                    self.tool.job_finished(self, p, self._params())
-                else:
-                    if self.session.ui.is_gui:
-                        from .tool import ToolUI
-                        ToolUI(self.session, "BlastProtein",
-                               blast_results=p, params=self._params(),
-                               instance_name=self.tool_inst_name)
-                if self.log or (self.log is None and
-                                not self.session.ui.is_gui):
-                    msgs = ["BLAST results for:"]
-                    for name, value in self._params():
-                        msgs.append("  %s: %s" % (name, value))
-                    for m in p.matches:
-                        name = m.pdb if m.pdb else m.name
-                        msgs.append('\t'.join([name, "%.1e" % m.evalue,
-                                               str(m.score),
-                                               m.description]))
-                    logger.info('\n'.join(msgs))
+                self.session.logger.error("BLAST job failed")
+
+    def __str__(self):
+        return "BlastProtein Job, ID %s" % self.id
 
 
-class OpalBlastProteinJob(BlastProteinBase, OpalJob):
-    # Must inherit from BlastProteinBase first to get the right on_finish()
-
-    OPAL_SERVICE = "BlastProtein2Service"
-
-    def __init__(self, session, seq, atomspec, **kw):
-        super().__init__(session)
-        self.setup(seq, atomspec, **kw)
-        options = ["-d", self.database,
-                   "-e", str(self.cutoff),
-                   "-M", self.matrix,
-                   "-b", str(self.max_seqs),
-                   "-i", self.QUERY_FILENAME,
-                   "-o", self.RESULTS_FILENAME]
-        cmd = ' '.join(options)
-        fasta = self._seq_to_fasta(self.seq, "query")
-        input_file_map = [(self.QUERY_FILENAME, "bytes", fasta.encode("utf-8"))]
-        self.start(self.OPAL_SERVICE, cmd, input_file_map=input_file_map)
-
-
-class RestBlastProteinJob(BlastProteinBase, CxServicesJob):
-    # Must inherit from BlastProteinBase first to get the right on_finish()
-
-    def __init__(self, session, seq, atomspec, **kw):
-        super().__init__(session)
-        self.setup(seq, atomspec, **kw)
-        params = {"db": self.database,
-                  "evalue": str(self.cutoff),
-                  "matrix": self.matrix,
-                  "blimit": str(self.max_seqs),
-                  "input_seq": self.seq,
-                  "output_file": self.RESULTS_FILENAME}
-        self.start("blast", params)
-
-
-ServiceMap = {
-    "opal": OpalBlastProteinJob,
-    "rest": RestBlastProteinJob
-}
-
-
-def BlastProteinJob(session, seq, atomspec, **kw):
-    service = kw.get("service", "opal")
+def parse_blast_results_nogui(session, params, sequence, results, log=None):
+    blast_results = get_database(params.database)
     try:
-        return ServiceMap[service](session, seq, atomspec, **kw)
-    except KeyError:
-        raise ValueError("unknown service type: %s" % service)
+        session.logger.info("Parsing BLAST results.")
+        blast_results.parse("query", sequence, results)
+    except Exception as e:
+        session.logger.bug("BLAST output parsing error: %s" % str(e))
+    else:
+        if log or (log is None and not session.ui.is_gui):
+            msgs = ["BLAST results for:"]
+            for name, value in params._asdict().items():
+                msgs.append("  %s: %s" % (name, value))
+            for m in blast_results.parser.matches:
+                name = m.match if m.match else m.name
+                msgs.append('\t'.join([name, "%.1e" % m.evalue,
+                                       str(m.score),
+                                       m.description]))
+            session.logger.info('\n'.join(msgs))

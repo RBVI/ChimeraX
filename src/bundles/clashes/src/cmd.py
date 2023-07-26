@@ -62,6 +62,7 @@ def _cmd(session, test_atoms, name, hbond_allowance, overlap_cutoff, test_type, 
         continuous=False,
         dashes=None,
         distance_only=None,
+        ignore_hidden_models=defaults["ignore_hidden_models"],
         inter_model=True,
         inter_submodel=False,
         intra_model=True,
@@ -121,11 +122,11 @@ def _cmd(session, test_atoms, name, hbond_allowance, overlap_cutoff, test_type, 
         get_triggers().remove_handler(getattr(session, _continuous_attr))
         delattr(session, _continuous_attr)
     from .clashes import find_clashes
-    clashes = find_clashes(session, test_atoms, attr_name=attr_name,
-        bond_separation=bond_separation, clash_threshold=overlap_cutoff,
-        distance_only=distance_only, hbond_allowance=hbond_allowance, inter_model=inter_model,
-        inter_submodel=inter_submodel, intra_model=intra_model, intra_res=intra_res,
-        intra_mol=intra_mol, res_separation=res_separation, restrict=restrict)
+    clashes = find_clashes(session, test_atoms, attr_name=attr_name, bond_separation=bond_separation,
+        clash_threshold=overlap_cutoff, distance_only=distance_only, hbond_allowance=hbond_allowance,
+        ignore_hidden_models=ignore_hidden_models, inter_model=inter_model, inter_submodel=inter_submodel,
+        intra_model=intra_model, intra_res=intra_res, intra_mol=intra_mol, res_separation=res_separation,
+        restrict=restrict)
     if select:
         session.selection.clear()
         for a in clashes.keys():
@@ -231,7 +232,12 @@ def _file_output(file_name, info, naming_style):
                         clashes, output_grouping, test_type, res_separation = info
     from chimerax.io import open_output
     out_file = open_output(file_name, 'utf-8')
-    if test_type != "distances":
+    if test_type == "distances":
+        overlap_title = ""
+        data_fmt = "%*s  %*s    %5.3f"
+    else:
+        overlap_title = "  overlap"
+        data_fmt = "%*s  %*s   %5.3f    %5.3f"
         print("Allowed overlap: %g" % overlap_cutoff, file=out_file)
         print("H-bond overlap reduction: %g" % hbond_allowance, file=out_file)
     print("Ignore %s between atoms separated by %d bonds or less" % (test_type, bond_separation),
@@ -261,11 +267,14 @@ def _file_output(file_name, info, naming_style):
     field_width1 = max([len(l1) for v, l1, l2, d in data] + [5])
     field_width2 = max([len(l2) for v, l1, l2, d in data] + [5])
     #print("%*s  %*s  overlap  distance" % (0-field_width1, "atom1", 0-field_width2, "atom2"),
-    print(f"{'atom1':^{field_width1}}  {'atom2':^{field_width2}}  overlap  distance",
+    print(f"{'atom1':^{field_width1}}  {'atom2':^{field_width2}}{overlap_title}  distance",
         file=out_file)
     for v, l1, l2, d in data:
-        print(f"%*s  %*s   %5.3f    %5.3f" % (0-field_width1, l1, 0-field_width2, l2, v, d),
-            file=out_file)
+        if overlap_title:
+            data = (0-field_width1, l1, 0-field_width2, l2, v, d)
+        else:
+            data = (0-field_width1, l1, 0-field_width2, l2, d)
+        print(data_fmt % data, file=out_file)
     if file_name != out_file:
         # only close file if we opened it...
         out_file.close()
@@ -301,10 +310,11 @@ def register_command(command_name, logger):
         kw = { 'required': [('test_atoms', Or(AtomsArg,EmptyArg))],
             'keyword': [('name', StringArg), ('hbond_allowance', FloatArg), ('overlap_cutoff', FloatArg),
                 ('attr_name', AttrNameArg), ('bond_separation', NonNegativeIntArg), ('continuous', BoolArg),
-                ('distance_only', FloatArg), ('inter_model', BoolArg), ('inter_submodel', BoolArg),
-                ('intra_model', BoolArg), ('intra_mol', BoolArg), ('intra_res', BoolArg), ('log', BoolArg),
-                ('make_pseudobonds', BoolArg), ('naming_style', EnumOf(('simple', 'command', 'serial'))),
-                ('color', Or(NoneArg,ColorArg)), ('radius', FloatArg), ('res_separation', PositiveIntArg),
+                ('distance_only', FloatArg), ('ignore_hidden_models', BoolArg), ('inter_model', BoolArg),
+                ('inter_submodel', BoolArg), ('intra_model', BoolArg), ('intra_mol', BoolArg),
+                ('intra_res', BoolArg), ('log', BoolArg), ('make_pseudobonds', BoolArg),
+                ('naming_style', EnumOf(('simple', 'command', 'serial'))), ('color', Or(NoneArg,ColorArg)),
+                ('radius', FloatArg), ('res_separation', PositiveIntArg),
                 ('restrict', Or(EnumOf(('cross', 'both', 'any')), AtomsArg)), ('reveal', BoolArg),
                 ('save_file', SaveFileNameArg), ('set_attrs', BoolArg), ('select', BoolArg),
                 ('show_dist', BoolArg), ('dashes', NonNegativeIntArg), ('summary', BoolArg)], }

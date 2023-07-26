@@ -262,7 +262,7 @@ def gen_atom_name(element, residue):
         n += 1
     return name
 
-def set_bond_length(bond, bond_length, *, move_smaller_side=True, status=None):
+def set_bond_length(bond, bond_length, *, move_smaller_side=True, status=None, undo_state=None):
     bond.structure.idatm_valid = False
     try:
         smaller = bond.smaller_side
@@ -289,9 +289,13 @@ def set_bond_length(bond, bond_length, *, move_smaller_side=True, status=None):
     v1 *= bond_length / v1_len
     delta = v1 - (mp - fp)
     moving_atoms = bond.side_atoms(moving)
-    moving_atoms.coords = moving_atoms.coords + delta
+    new_coords = moving_atoms.coords + delta
+    if undo_state:
+        undo_state.add(moving_atoms, "coords", moving_atoms.coords, new_coords)
+    moving_atoms.coords = new_coords
 
-standardizable_residues = ["MSE", "5BU", "UMS", "CSL"]
+standardization_info = { "5BU": "U", "CSL": "C", "MSE": "MET", "UMS": "U" }
+standardizable_residues = list(standardization_info.keys())
 
 def standardize_residues(session, residues, *, res_types=standardizable_residues, verbose=True):
     from . import Residues
@@ -301,28 +305,27 @@ def standardize_residues(session, residues, *, res_types=standardizable_residues
         target_residues = residues.filter(residues.names == res_type)
         if not target_residues:
             continue
+        target_type = standardization_info[res_type]
         results = {}
-        exec('func = standardize_%s' % res_type, globals(), results)
+        exec('func = _standardize_%s' % res_type, globals(), results)
         func = results['func']
         for r in target_residues:
             func(session, r, verbose=verbose)
+            r.name = target_type
+            if verbose:
+                session.logger.info("Residue %s changed %s\N{RIGHTWARDS ARROW}%s"
+                    % (r, res_type, target_type))
 
-def standardize_CSL(session, r, *, verbose=True):
+def _standardize_CSL(session, r, *, verbose=True):
     _mutate_sugar_Se(session, r)
-    if verbose:
-        session.logger.info("Residue %s changed to C" % r)
-    r.name = "C"
 
-def standardize_5BU(session, r, *, verbose=True):
+def _standardize_5BU(session, r, *, verbose=True):
     for a in r.atoms:
         if a.element == "Br":
             r.structure.delete_atom(a)
             break
-    if verbose:
-        session.logger.info("Residue %s changed to U" % r)
-    r.name = "U"
 
-def standardize_MSE(session, r, *, verbose=True):
+def _standardize_MSE(session, r, *, verbose=True):
     for a in r.atoms:
         if a.element != "Se":
             continue
@@ -334,15 +337,9 @@ def standardize_MSE(session, r, *, verbose=True):
                 set_bond_length(b, 1.78, status=session.logger.status)
             elif nb.name == "CG":
                 set_bond_length(b, 1.81, status=session.logger.status)
-    if verbose:
-        session.logger.info("Residue %s changed to MET" % r)
-    r.name = "MET"
 
-def standardize_UMS(session, r, *, verbose=True):
+def _standardize_UMS(session, r, *, verbose=True):
     _mutate_sugar_Se(session, r)
-    if verbose:
-        session.logger.info("Residue %s changed to U" % r)
-    r.name = "U"
 
 def _mutate_sugar_Se(session, r):
     for a in r.atoms:

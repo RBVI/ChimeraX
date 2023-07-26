@@ -5,7 +5,7 @@
 # All rights reserved.  This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
 # duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
 # This notice must be embedded in or attached to all copies,
 # including partial copies, of the software or any revisions
 # or derivations thereof.
@@ -33,6 +33,11 @@ def check_for_crash_on_mac(session):
 
     report = recent_chimera_crash(last)
 
+    if report and report.find('sip_api_visit_wrappers') != -1:
+        # Suppress reporting this common crash on exit, PyQt bug,
+        # ChimeraX ticket #5225
+        report = None
+        
     return report
 
 # -----------------------------------------------------------------------------

@@ -23,7 +23,7 @@ __all__ = [
 ]
 
 # Make sure _graphics can runtime link shared library libarrays.
-from chimerax import arrays ; arrays.load_libarrays()
+import chimerax.arrays
 
 from .drawing import Drawing, Pick, PickedTriangle, PickedTriangles
 from .drawing import text_image_rgba, qimage_to_numpy

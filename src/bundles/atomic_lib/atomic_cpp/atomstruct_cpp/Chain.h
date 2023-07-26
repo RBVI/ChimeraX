@@ -27,7 +27,7 @@ public:
     Chain(const ChainID& chain_id, Structure* as, PolymerType pt = PT_NONE);
     virtual ~Chain();
 
-    bool  is_chain() const { return !is_sequence(); }
+    bool  is_chain() const { return !is_sequence() && _is_chain; }
     void  set_chain_id(ChainID chain_id);
 };
 

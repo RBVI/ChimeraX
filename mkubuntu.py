@@ -74,6 +74,7 @@ UBUNTU_DEPENDENCIES = {
         "libx11-6": "1.6.3",
         "libx11-xcb1": "1.6.3",
         "libxcb-glx0": "1.11.1",
+        "libxcb-util1": "0.4.0",
         "libxcb-xfixes0": "1.11.1",
         "libxcb-xinerama0": "1.11.1",
         "libxcb1": "1.11.1",
@@ -114,10 +115,10 @@ UBUNTU_DEPENDENCIES = {
         "libgstreamer-plugins-base1.0-0": "1.14.1",
         "libgstreamer1.0-0": "1.14.1",
         "libgtk-3-0": "3.22.30",
-        "libllvm6.0": "6.0",
         "liblzma5": "5.2.2",
         "libnspr4": "4.18",
         "libnss3": "3.35",
+        "libosmesa6": "18.0.0",
         "libpango-1.0-0": "1.40.14",
         "libpangocairo-1.0-0": "1.40.14",
         "libpulse-mainloop-glib0": "11.1",
@@ -128,6 +129,7 @@ UBUNTU_DEPENDENCIES = {
         "libx11-6": "1.6.4",
         "libx11-xcb1": "1.6.4",
         "libxcb-glx0": "1.13",
+        "libxcb-util1": "0.4.0",
         "libxcb-xfixes0": "1.13",
         "libxcb-xinerama0": "1.13",
         "libxcb1": "1.13",
@@ -144,68 +146,142 @@ UBUNTU_DEPENDENCIES = {
         "zlib1g": "1.2.11.dfsg",
     },
     "20.04": {
-       "libasound2": "1.2.2",
-       "libatk1.0-0": "2.35.1",
-       "libbz2-1.0": "1.0.8",
-       "libc6": "2.31",
-       "libcairo-gobject2": "1.16.0",
-       "libcairo2": "1.16.0",
-       "libcrypt1": "4.4.10",
-       "libcups2": "2.3.1",
-       "libdbus-1-3": "1.12.16",
-       "libdrm2": "2.4.101",
-       "libegl1": "1.3.1",
-       "libexpat1": "2.2.9",
-       "libffi7": "3.3",
-       "libfftw3-single3": "3.3.8",
-       "libfontconfig1": "2.13.1",
-       "libfreetype6": "2.10.1",
-       "libgcc-s1": "10-20200411",
-       "libgdk-pixbuf2.0-0": "2.40.0+dfsg",
-       "libgfortran5": "10-20200411",
-       "libgl1": "1.3.1",
-       "libglib2.0-0": "2.64.2",
-       "libglu1-mesa": "9.0.1",
-       "libgstreamer-plugins-base1.0-0": "1.16.2",
-       "libgstreamer1.0-0": "1.16.2",
-       "libgtk-3-0": "3.24.18",
-       "libllvm10": "10.0.0",
-       "liblzma5": "5.2.4",
-       "libncursesw6": "6.2",
-       "libnspr4": "4.25",
-       "libnss3": "3.49.1",
-       "libopenjp2-7": "2.3.1",
-       "libosmesa6-dev": "20.0.4",
-       "libpango-1.0-0": "1.44.7",
-       "libpangocairo-1.0-0": "1.44.7",
-       "libpulse-mainloop-glib0": "13.99.1",
-       "libpulse0": "13.99.1",
-       "libsqlite3-0": "3.31.1",
-       "libssl1.1": "1.1.1f",
-       "libstdc++6": "10-20200411",
-       "libtinfo6": "6.2",
-       "libuuid1": "2.34",
-       "libwayland-client0": "1.18.0",
-       "libwayland-cursor0": "1.18.0",
-       "libwayland-egl1": "1.18.0",
-       "libwayland-server0": "1.18.0",
-       "libx11-6": "1.6.9",
-       "libx11-xcb1": "1.6.9",
-       "libxcb-glx0": "1.14",
-       "libxcb-xinerama0": "1.14",
-       "libxcb1": "1.14",
-       "libxcomposite1": "0.4.5",
-       "libxcursor1": "1.2.0",
-       "libxdamage1": "1.1.5",
-       "libxext6": "1.3.4",
-       "libxfixes3": "5.0.3",
-       "libxi6": "1.7.10",
-       "libxkbcommon0": "0.10.0",
-       "libxrender1": "0.9.10",
-       "libxtst6": "1.2.3",
-       "xdg-utils": "1.1.3",
-       "zlib1g": "1.2.11.dfsg",
-    }
+        "libasound2": "1.2.2",
+        "libatk1.0-0": "2.35.1",
+        "libbz2-1.0": "1.0.8",
+        "libc6": "2.31",
+        "libcairo-gobject2": "1.16.0",
+        "libcairo2": "1.16.0",
+        "libcrypt1": "4.4.10",
+        "libcups2": "2.3.1",
+        "libdbus-1-3": "1.12.16",
+        "libdrm2": "2.4.101",
+        "libegl1": "1.3.1",
+        "libexpat1": "2.2.9",
+        "libffi7": "3.3",
+        "libfftw3-single3": "3.3.8",
+        "libfontconfig1": "2.13.1",
+        "libfreetype6": "2.10.1",
+        "libgcc-s1": "10-20200411",
+        "libgdk-pixbuf2.0-0": "2.40.0+dfsg",
+        "libgfortran5": "10-20200411",
+        "libgl1": "1.3.1",
+        "libglib2.0-0": "2.64.2",
+        "libglu1-mesa": "9.0.1",
+        "libgstreamer-plugins-base1.0-0": "1.16.2",
+        "libgstreamer1.0-0": "1.16.2",
+        "libgtk-3-0": "3.24.18",
+        "liblzma5": "5.2.4",
+        "libncursesw6": "6.2",
+        "libnspr4": "4.25",
+        "libnss3": "3.49.1",
+        "libopenjp2-7": "2.3.1",
+        "libosmesa6": "20.0.4",
+        "libpango-1.0-0": "1.44.7",
+        "libpangocairo-1.0-0": "1.44.7",
+        "libpulse-mainloop-glib0": "13.99.1",
+        "libpulse0": "13.99.1",
+        "libsqlite3-0": "3.31.1",
+        "libssl1.1": "1.1.1f",
+        "libstdc++6": "10-20200411",
+        "libtinfo6": "6.2",
+        "libuuid1": "2.34",
+        "libwayland-client0": "1.18.0",
+        "libwayland-cursor0": "1.18.0",
+        "libwayland-egl1": "1.18.0",
+        "libwayland-server0": "1.18.0",
+        "libx11-6": "1.6.9",
+        "libx11-xcb1": "1.6.9",
+        "libxcb-glx0": "1.14",
+        "libxcb-icccm4": None,
+        "libxcb-image0": None,
+        "libxcb-keysyms1": None,
+        "libxcb-render-util0": None,
+        "libxcb-util1": "0.4.0",
+        "libxcb-xinerama0": "1.14",
+        "libxcb1": "1.14",
+        "libxcomposite1": "0.4.5",
+        "libxcursor1": "1.2.0",
+        "libxdamage1": "1.1.5",
+        "libxext6": "1.3.4",
+        "libxfixes3": "5.0.3",
+        "libxi6": "1.7.10",
+        "libxkbcommon0": "0.10.0",
+        "libxkbcommon-x11-0": None,
+        "libxrender1": "0.9.10",
+        "libxtst6": "1.2.3",
+        "xdg-utils": "1.1.3",
+        "zlib1g": "1.2.11.dfsg",
+    },
+    "22.04": {
+        # TODO: update versions
+        "libasound2": "1.2.6.1",
+        "libatk1.0-0": "2.36.0",
+        "libbz2-1.0": "1.0.8",
+        "libc6": "2.35",
+        "libcairo-gobject2": "1.16.0",
+        "libcairo2": "1.16.0",
+        "libcrypt1": "1:4.4.17",
+        "libcups2": "2.3.1",
+        "libdbus-1-3": "1.12.16",
+        "libdrm2": "2.4.101",
+        "libegl1": "1.3.1",
+        "libexpat1": "2.2.9",
+        "libffi7": "3.3",
+        "libfftw3-single3": "3.3.8",
+        "libfontconfig1": "2.13.1",
+        "libfreetype6": "2.10.1",
+        "libgcc-s1": "10-20200411",
+        "libgdk-pixbuf2.0-0": "2.40.0+dfsg",
+        "libgfortran5": "10-20200411",
+        "libgl1": "1.3.1",
+        "libglib2.0-0": "2.64.2",
+        "libglu1-mesa": "9.0.1",
+        "libgstreamer-plugins-base1.0-0": "1.16.2",
+        "libgstreamer1.0-0": "1.16.2",
+        "libgtk-3-0": "3.24.18",
+        "liblzma5": "5.2.4",
+        "libncursesw6": "6.2",
+        "libnspr4": "4.25",
+        "libnss3": "3.49.1",
+        "libopenjp2-7": "2.3.1",
+        "libosmesa6": "20.0.4",
+        "libpango-1.0-0": "1.44.7",
+        "libpangocairo-1.0-0": "1.44.7",
+        "libpulse-mainloop-glib0": "13.99.1",
+        "libpulse0": "13.99.1",
+        "libsqlite3-0": "3.31.1",
+        "libssl3": "3.0.2",
+        "libstdc++6": "10-20200411",
+        "libtinfo6": "6.2",
+        "libuuid1": "2.34",
+        "libwayland-client0": "1.18.0",
+        "libwayland-cursor0": "1.18.0",
+        "libwayland-egl1": "1.18.0",
+        "libwayland-server0": "1.18.0",
+        "libx11-6": "1.6.9",
+        "libx11-xcb1": "1.6.9",
+        "libxcb-glx0": "1.14",
+        "libxcb-icccm4": None,
+        "libxcb-image0": None,
+        "libxcb-keysyms1": None,
+        "libxcb-render-util0": None,
+        "libxcb-util1": "0.4.0",
+        "libxcb-xinerama0": "1.14",
+        "libxcb1": "1.14",
+        "libxcomposite1": "0.4.5",
+        "libxcursor1": "1.2.0",
+        "libxdamage1": "1.1.5",
+        "libxext6": "1.3.4",
+        "libxfixes3": "5.0.3",
+        "libxi6": "1.7.10",
+        "libxkbcommon0": "0.10.0",
+        "libxkbcommon-x11-0": None,
+        "libxrender1": "0.9.10",
+        "libxtst6": "1.2.3",
+        "xdg-utils": "1.1.3",
+        "zlib1g": "1.2.11.dfsg",
+    },
 }
 
 
@@ -221,7 +297,7 @@ def main():
         error = True
     if len(sys.argv) >= 3:
         build = sys.argv[2]
-        if build not in ['release', 'candidate', 'daily']:
+        if build not in ['release', 'candidate', 'daily', 'techpreview']:
             error = True
     if error or len(sys.argv) > 3 or os_version not in UBUNTU_DEPENDENCIES:
         print(f'Usage: {sys.argv[0]} ubuntu-version [build-type]', file=sys.stderr)
@@ -248,13 +324,18 @@ def main():
         version = version_date
         pkg_name += "-daily"
         bin_name += "-daily"
+    elif build == 'techpreview':
+        # like daily build, version is date
+        version = version_date
+        pkg_name += "-techpreview"
+        bin_name += "-techpreview"
     elif build == 'release':
         # release build
         version = version.base_version
     else:
         # candidate build
-        # version = f"{version.base_version}+rc{version_date}"
-        version = version.base_version
+        version = f"{version.base_version}+rc{version_date}"
+    version = f"{version}ubuntu{os_version}"
     deb_name = f"{pkg_name}-{version}"  # name of .deb file
 
     # print('full_version:', repr(full_version))
@@ -265,7 +346,7 @@ def main():
     # print('bin_name:', bin_name)
 
     os.umask(0o22)  # turn off group and other writability
-    pkg_root = f"{deb_name}-{os_version}"
+    pkg_root = f"{deb_name}"
     os.mkdir(pkg_root)
     debian_dir = f"{pkg_root}/DEBIAN"
     os.mkdir(debian_dir)
@@ -317,7 +398,7 @@ def copy_app(pkg_root, pkg_name):
     dst_dir = f'{pkg_root}/{INST_DIR}'
     dst = f'{pkg_root}/{INST_DIR}/{pkg_name}'
     os.makedirs(dst_dir)
-    shutil.copytree(src, dst)
+    shutil.copytree(src, dst, symlinks=True)
 
     # cleanup -- remove __pycache__ directories
     cache_dirs = subprocess.check_output([

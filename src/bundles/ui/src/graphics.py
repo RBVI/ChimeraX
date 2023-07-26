@@ -26,7 +26,7 @@ class GraphicsWindow(QWindow):
         from Qt.QtWidgets import QWidget
         self.widget = w = QWidget.createWindowContainer(self, parent)
         w.setAcceptDrops(True)
-        self.setSurfaceType(QSurface.OpenGLSurface)
+        self.setSurfaceType(QSurface.SurfaceType.OpenGLSurface)
 
         if opengl_context is None:
             from chimerax.graphics import OpenGLContext
@@ -51,7 +51,8 @@ class GraphicsWindow(QWindow):
         if self.handle_drag_and_drop(event):
             return True
         from Qt.QtCore import QEvent
-        if event.type() == QEvent.Show:
+        if event.type() == QEvent.Type.Show and not getattr(self, '_first_show', False):
+            self._first_show = True
             self.session.ui.mouse_modes.set_graphics_window(self)
             self._check_opengl()
         return QWindow.event(self, event)
@@ -60,6 +61,8 @@ class GraphicsWindow(QWindow):
         r = self.view.render
         log = self.session.logger
         from chimerax.graphics import OpenGLVersionError, OpenGLError
+        from chimerax.graphics import remember_current_opengl_context, restore_current_opengl_context
+        cc = remember_current_opengl_context()
         try:
             mc = r.make_current()
         except (OpenGLVersionError, OpenGLError) as e:
@@ -74,6 +77,8 @@ class GraphicsWindow(QWindow):
                 log.error(msg)
 
             self._check_for_bad_intel_driver()
+
+        restore_current_opengl_context(cc)
 
     def _check_for_bad_intel_driver(self):
         import sys
@@ -94,7 +99,7 @@ class GraphicsWindow(QWindow):
                 # GUI becomes blank with some 2019 Intel graphics drivers.
 
                 # TODO: This fix may fail if HtmlView widgets are created
-                #       before the graphisc is checked.  Worked in tests on one machine.
+                #       before the graphics is checked.  Worked in tests on one machine.
                 HtmlView.require_native_window = True
                 msg = ('Your computer has Intel graphics driver %d with a known bug '
                        'that causes all Qt user interface panels to be blank. '
@@ -102,17 +107,17 @@ class GraphicsWindow(QWindow):
                        'titlebars and edges black.  Hopefully newer '
                        'Intel graphics drivers will fix this.' % build)
                 self.session.logger.warning(msg)
-                                            
+
     def handle_drag_and_drop(self, event):
         from Qt.QtCore import QEvent
         t = event.type()
         ui = self.session.ui
         if hasattr(ui, 'main_window'):
             mw = ui.main_window
-            if t == QEvent.DragEnter:
+            if t == QEvent.Type.DragEnter:
                 mw.dragEnterEvent(event)
                 return True
-            elif t == QEvent.Drop:
+            elif t == QEvent.Type.Drop:
                 mw.dropEvent(event)
                 return True
 
@@ -126,7 +131,7 @@ class GraphicsWindow(QWindow):
         return self.widget.width()
     def height(self):
         return self.widget.height()
-    
+
     def resizeEvent(self, event):
         s = self.size()
         w, h = s.width(), s.height()
@@ -154,7 +159,7 @@ class GraphicsWindow(QWindow):
         False until window has been created by the native window toolkit.
         '''
         return self.isExposed()
-        
+
     def exposeEvent(self, event):
         self.view.redraw_needed = True
 
@@ -172,9 +177,9 @@ class Popup(QLabel):
             # These flags also cause problems on Mac if ChimeraX is fullscreen, the
             # balloon replaces the entire gui, ChimeraX bug #2210.
 #            win_flags = Qt.FramelessWindowHint | Qt.WindowTransparentForInput | Qt.WindowDoesNotAcceptFocus
-            win_flags = Qt.ToolTip
+            win_flags = Qt.WindowType.ToolTip
         else:
-            win_flags = Qt.ToolTip
+            win_flags = Qt.WindowType.ToolTip
         self.setWindowFlags(self.windowFlags() | win_flags)
         self.graphics_window = graphics_window
 

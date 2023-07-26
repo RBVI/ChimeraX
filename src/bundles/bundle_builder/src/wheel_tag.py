@@ -46,6 +46,12 @@ def tag(pure, limited=None):
             # savvy developers can handle default of all versions of Python 3
             tag = tags.Tag(f"py{vi.major}", "none", "any")
     else:
+        target = None
+        if sys.platform == "darwin":
+            import os
+            target = os.environ.get("MACOSX_DEPLOYMENT_TARGET", None)
+            if target:
+                target = f"_{target.replace('.', '_')}_"
         # use most specific tag, e.g., manylinux2014_x86_64 instead of linux_x86_64
         if limited:
             abi = f"abi{limited.major}"
@@ -55,6 +61,8 @@ def tag(pure, limited=None):
                 version = ''.join(str(v) for v in limited.release[:2])
             interpreter = f"{tags.interpreter_name()}{version}"
         for tag in tags.sys_tags():
+            if target and target not in tag.platform:
+                continue
             if not limited:
                 break
             if tag.abi == abi and tag.interpreter == interpreter:

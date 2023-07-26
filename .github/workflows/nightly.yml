@@ -1,0 +1,78 @@
+name: Nightly Build
+on:
+  schedule:
+    - cron: '30 10 * * *' # 2:30AM PT/10:30AM UTC
+
+jobs:
+  build-ubuntu:
+    strategy:
+      matrix:
+        os: [ubuntu-22.04, ubuntu-20.04]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v3
+      - run: sudo apt-get update && sudo apt-get upgrade -y && ${PWD}/utils/set_up_ubuntu.sh
+      - run: make install
+        #      - run: tar -cvzf ChimeraX.tar.gz ChimeraX.app
+        #      - name: Upload the Built ChimeraX
+        #        uses: actions/upload-artifact@v3.1.0
+        #        with:
+        #          name: ChimeraX-${{matrix.os}}.tar.gz
+        #          path: ./ChimeraX.tar.gz
+  build-rocky8-docker:
+    runs-on: ubuntu-20.04
+    container:
+      image: rockylinux:8
+    env:
+      SHELL: /bin/bash
+      LANG: en_US.UTF-8
+      PATH: /usr/bin:/usr/sbin:/bin:/sbin
+    steps:
+      - run: export GIT_DISCOVERY_ACROSS_FILESYSTEM=1
+      - run: dnf update -y
+      - run: dnf install -y git-all
+      - uses: actions/checkout@v3
+      - run: ${PWD}/utils/set_up_centos.sh
+      - run: source /opt/rh/gcc-toolset-10/enable && make -f Makefile.centos install
+  build-rocky9-docker:
+    runs-on: ubuntu-20.04
+    container:
+      image: rockylinux:9
+    env:
+      SHELL: /bin/bash
+      LANG: en_US.UTF-8
+      PATH: /usr/bin:/usr/sbin:/bin:/sbin
+    steps:
+      - run: export GIT_DISCOVERY_ACROSS_FILESYSTEM=1
+      - run: dnf update -y
+      - run: dnf install -y git-all
+      - uses: actions/checkout@v3
+      - run: ${PWD}/utils/set_up_centos.sh
+      - run: make -f Makefile.centos install
+  # TODO: Build Generic Linux
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v3
+      - run: make install
+        # TODO: Notarize
+        #      - run: tar -Jcvf ChimeraX.tar.xz ChimeraX.app
+        #      - name: Upload the Built ChimeraX
+        #        uses: actions/upload-artifact@v3.1.0
+        #        with:
+        #          name: ChimeraX-macOS.tar.xz
+        #          path: ./ChimeraX.tar.xz
+  build-windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: git mingw-w64-x86_64-imagemagick mingw-w64-x86_64-binutils mingw-w64-x86_64-gcc mingw-w64-x86_64-gcc-objc mingw-w64-x86_64-gcc-fortran rsync patch unzip openssh make
+      # TODO: Freeze version to the production ChimeraX compiler
+      - run: GITHUB_ACTIONS_CI=1 . ./vsvars.sh && make install

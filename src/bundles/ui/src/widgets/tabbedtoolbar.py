@@ -22,9 +22,9 @@ TODO: documnentation!
 from Qt.QtCore import Qt
 from Qt.QtWidgets import (
     QWidget, QTabWidget, QToolBar, QWidgetAction,
-    QGridLayout, QLabel, QToolButton, QAction
+    QGridLayout, QLabel, QToolButton
 )
-from Qt.QtGui import QPainter, QIcon, QColor, QPixmap
+from Qt.QtGui import QPainter, QIcon, QColor, QPixmap, QAction
 
 _debug = False   # DEBUG
 
@@ -126,14 +126,14 @@ class _Section(QWidgetAction):
                 b.vr_mode = button_info.vr_mode
             b.setAutoRaise(True)
             if icon is None:
-                style = Qt.ToolButtonTextOnly
+                style = Qt.ToolButtonStyle.ToolButtonTextOnly
             else:
                 if not self.show_button_titles:
-                    style = Qt.ToolButtonIconOnly
+                    style = Qt.ToolButtonStyle.ToolButtonIconOnly
                 elif self.compact:
-                    style = Qt.ToolButtonTextBesideIcon
+                    style = Qt.ToolButtonStyle.ToolButtonTextBesideIcon
                 else:
-                    style = Qt.ToolButtonTextUnderIcon
+                    style = Qt.ToolButtonStyle.ToolButtonTextUnderIcon
             b.setToolButtonStyle(style)
         if icon is None:
             action = QAction(title)
@@ -145,8 +145,8 @@ class _Section(QWidgetAction):
             action.triggered.connect(button_info.callback)
         if not button_info.enabled:
             action.setEnabled(False)
-        actions = self._actions.setdefault(orig_title, [])
-        actions.append(action)
+        actions = self._actions.setdefault(orig_title, {})
+        actions[parent] = action
         if group_follow:
             button = self._groups[parent][button_info.group]
             button.addAction(action)
@@ -154,7 +154,7 @@ class _Section(QWidgetAction):
             if not group_first:
                 b.setDefaultAction(action)
             else:
-                b.setPopupMode(b.MenuButtonPopup)
+                b.setPopupMode(b.ToolButtonPopupMode.MenuButtonPopup)
                 b.triggered.connect(lambda action, b=b: self._update_button_action(b, action))
                 self._groups[parent][button_info.group] = b
                 b.addAction(action)
@@ -200,9 +200,11 @@ class _Section(QWidgetAction):
         size = len(self._buttons)
         if self.compact:
             span = (size + self.compact_height - 1) // self.compact_height
-            w._layout.addWidget(w._title, self.compact_height, 0, 1, span, Qt.AlignHCenter | Qt.AlignBottom)
+            w._layout.addWidget(w._title, self.compact_height, 0, 1, span,
+                                Qt.AlignHCenter | Qt.AlignBottom)
         else:
-            w._layout.addWidget(w._title, 1, 0, 1, size, Qt.AlignHCenter | Qt.AlignBottom)
+            w._layout.addWidget(w._title, 1, 0, 1, size,
+                                Qt.AlignHCenter | Qt.AlignBottom)
 
     def createWidget(self, parent):
         w = QWidget(parent)
@@ -268,8 +270,11 @@ class _Section(QWidgetAction):
             self.compact_height = 2
         self._redo_layout()
 
-    def get_qt_button_action(self, title):
-        return self._actions.get(title, None)
+    def get_qt_button_action(self, parent, title):
+        actions = self._actions.get(title, None)
+        if actions:
+            return actions.get(parent)
+        return None
 
     def add_button_highlight(self, title, redo=True):
         for button_info in self._buttons:
@@ -290,7 +295,7 @@ class _Section(QWidgetAction):
             p = None
             try:
                 p = QPainter(pm)
-                p.setCompositionMode(QPainter.CompositionMode_DestinationOver)
+                p.setCompositionMode(QPainter.CompositionMode.CompositionMode_DestinationOver)
                 if 1:
                     # draw filled
                     p.fillRect(pm.rect(), self.highlight_color)
@@ -326,21 +331,42 @@ class _Section(QWidgetAction):
         for button_info in self._buttons:
             if button_info.highlight_icon is None:
                 continue
-            print("REDO:", button_info.title)
             self.add_button_highlight(button_info.title, redo=False)
         self._redo_layout()
 
-    def set_enabled(self, enabled, title, redo=True):
+    def set_enabled(self, enabled, button_title, redo=True):
         for button_info in self._buttons:
-            if button_info.title == title:
+            if button_info.title == button_title:
                 break
         else:
-            raise ValueError(f"Didn't find button '{title}'")
+            raise ValueError(f"Didn't find button '{button_title}'")
         if button_info.enabled == enabled:
             return
         button_info.enabled = enabled
         if redo:
-            self._redo_layout()
+            existing_widgets = self.createdWidgets()
+            for parent in existing_widgets:
+                action = self.get_qt_button_action(parent, button_title)
+                if action is None:
+                    continue
+                action.setEnabled(enabled)
+
+    def show_group_button(self, button_title):
+        for button_info in self._buttons:
+            if button_info.title == button_title:
+                break
+        else:
+            return
+        group = button_info.group
+        if group is None:
+            return
+        existing_widgets = self.createdWidgets()
+        for parent in existing_widgets:
+            action = self.get_qt_button_action(parent, button_title)
+            if action is None:
+                continue
+            b = self._groups[parent][group]
+            b.setDefaultAction(action)
 
 
 class TabbedToolbar(QTabWidget):
@@ -495,6 +521,11 @@ class TabbedToolbar(QTabWidget):
                     continue
                 section.set_highlight_color(qcolor)
 
+    def show_group_button(self, tab_title, section_title, button_title):
+        section = self._get_section(tab_title, section_title, create=False)
+        if section is None:
+            raise ValueError(f"Didn't find section '{section_title}' in tab '{tab_title}'")
+        section.show_group_button(button_title)
 
 if __name__ == "__main__":
     import sys
@@ -531,4 +562,4 @@ if __name__ == "__main__":
     layout.addWidget(QTextEdit())
     window.setLayout(layout)
     window.show()
-    sys.exit(app.exec_())
+    sys.exit(app.exec())

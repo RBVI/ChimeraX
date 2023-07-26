@@ -94,7 +94,8 @@ def register_struts_command(logger):
     register('struts', desc, struts, logger=logger)
 
     desc = CmdDesc(optional = [('atoms', AtomsArg)],
-                   synopsis = 'Delete bonds created with the struts command')
+        keyword = [('reset_ribbon', BoolArg)],
+        synopsis = 'Delete bonds created with the struts command')
     register('struts delete', desc, struts_delete, logger=logger)
     create_alias('~struts', 'struts delete $*')
 
@@ -232,7 +233,6 @@ def thick_ribbon(atoms):
     sw,sh = 1.5,.75
     abw,abh,atw,ath = 2.5,.75,.75,.75
     nw,nh = 2.5,1.5
-    dw,dh = .75,.75
     mols = atoms.unique_structures
     for m in mols:
         xsm = m.ribbon_xs_mgr
@@ -243,7 +243,23 @@ def thick_ribbon(atoms):
         xsm.set_sheet_arrow_scale(abw,abh,atw,ath)
         xsm.set_nucleic_scale(nw, nh)
 
-def struts_delete(session, atoms = None):
+def thin_ribbon(atoms):
+    tw,th = .2,.2
+    hw,hh = 1.0,0.2
+    sw,sh = 1.0,.2
+    abw,abh,atw,ath = 2.0,0.2,0.2,0.2
+    nw,nh = 0.2,1.0
+    mols = atoms.unique_structures
+    for m in mols:
+        xsm = m.ribbon_xs_mgr
+        xsm.set_helix_scale(hw,hh)
+        xsm.set_helix_arrow_scale(abw,abh,atw,ath)
+        xsm.set_coil_scale(tw,th)
+        xsm.set_sheet_scale(sw,sh)
+        xsm.set_sheet_arrow_scale(abw,abh,atw,ath)
+        xsm.set_nucleic_scale(nw, nh)
+
+def struts_delete(session, atoms = None, reset_ribbon = True):
     '''
     Delete struts between the specified atoms.
     '''
@@ -267,6 +283,11 @@ def struts_delete(session, atoms = None):
                     sclose.append(s)
         if sclose:
             session.models.close(sclose)
+    if reset_ribbon:
+        if atoms is None:
+            from chimerax.atomic import all_atoms
+            atoms = all_atoms(session)
+        thin_ribbon(atoms)
 
 def strut_models(session, model_id = None):
     from chimerax import atomic 

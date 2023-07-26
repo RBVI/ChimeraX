@@ -75,8 +75,10 @@ class SaveOptionsWidget(QFrame):
             options_layout.addLayout(rel_layout)
             self.rel_models = QCheckBox('Save relative to model:')
             rel_layout.addWidget(self.rel_models, alignment=Qt.AlignLeft)
+            from chimerax.atomic import PseudobondGroup
             from chimerax.ui.widgets import ModelMenuButton
-            self.rel_model_menu = ModelMenuButton(session)
+            self.rel_model_menu = ModelMenuButton(session, filter_func=lambda m, PBG=PseudobondGroup:
+                not isinstance(m, PBG) or not m.structure)
             self.rel_model_menu.value_changed.connect(lambda *args, rm=self.rel_models: rm.setChecked(True))
             rel_layout.addWidget(self.rel_model_menu, alignment=Qt.AlignLeft)
             self.rel_models.setChecked(False)

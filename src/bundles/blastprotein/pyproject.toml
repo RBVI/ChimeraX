@@ -1,0 +1,59 @@
+[build-system]
+requires = ["setuptools", "ChimeraX-BundleBuilder"]
+build-backend = "chimerax.bundle_builder.cx_pep517"
+
+[project]
+name = "ChimeraX-BlastProtein"
+license = { text = "Free for non-commercial use" }
+authors= [{name = "UCSF RBVI", email="chimerax@cgl.ucsf.edu"}]
+description = "Search PDB/NR/AlphaFold using BLAST"
+dependencies = [
+	"ChimeraX-Core ~=1.0"
+	, "ChimeraX-UI ~=1.0"
+	, "ChimeraX-Help ~=1.0"
+	, "ChimeraX-WebServices ~=1.0"
+	, "ChimeraX-Alignments ~=2.0"
+	, "ChimeraX-AlphaFold ~=1.0"
+]
+
+# TODO:
+# [project.optional-dependencies]
+# ui = ["ChimeraX-UI ~= 1.0", "ChimeraX-Help ~= 1.0"]
+# alignments = ["ChimeraX-Alignments ~= 2.0"]
+# alphafold = ["ChimeraX-AlphaFold ~= 1.0"]
+
+dynamic = ["classifiers", "requires-python", "version"]
+
+[project.readme]
+content-type = "text"
+text = """Interface to the RBVI web service to search the PDB, NR, or AlphaFold
+databases using BLAST. Results are shown in a tool when a graphical
+interface is available; otherwise, the results are logged."""
+	
+[project.urls]
+Home = "https://www.rbvi.ucsf.edu/chimerax/"
+
+[tool.setuptools.dynamic]
+version = { attr = "src.__version__" }
+
+[chimerax]
+min-session-version = 1
+max-session-version = 1
+categories = ["Sequence"]
+classifiers = ["Development Status :: 2 - Pre-Alpha"]
+
+[chimerax.tool."Blast Protein"]
+category = "Sequence"
+description = "Search PDB/NR/AlphaFold using BLAST"
+
+[chimerax.command.blastprotein]
+category = "Sequence"
+description = "Search PDB/NR/AlphaFold using BLAST"
+
+[chimerax.command.blastpdb]
+category = "Sequence"
+description = "Search PDB/NR/AlphaFold using BLAST"
+
+[chimerax.command."blastprotein pull"]
+category = "Sequence" 
+description = "Get results for a finished BlastProtein job"

@@ -117,7 +117,8 @@ class Turner:
         else:
             if models is not None:
                 for m in models:
-                    m.positions = r * m.positions
+                    if not m.deleted:
+                        m.positions = r * m.positions
             if atoms is not None:
                 atoms.scene_coords = r * atoms.scene_coords
 

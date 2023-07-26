@@ -19,9 +19,9 @@ class _RichardsonLibBundleAPI(BundleAPI):
     def run_provider(session, name, mgr, **kw):
         if name.endswith("common"):
             from .lib import RichardsonCommonRotamerLibrary
-            return RichardsonCommonRotamerLibrary()
+            return RichardsonCommonRotamerLibrary(name)
         from .lib import RichardsonModeRotamerLibrary
-        return RichardsonModeRotamerLibrary()
+        return RichardsonModeRotamerLibrary(name)
 
 
 bundle_api = _RichardsonLibBundleAPI()

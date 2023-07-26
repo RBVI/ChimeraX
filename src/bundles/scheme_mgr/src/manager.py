@@ -12,10 +12,13 @@
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.core.toolshed import ProviderManager
+
+
 class SchemesManager(ProviderManager):
     """Manager for html schemes used by all bundles"""
 
     def __init__(self, session, name):
+        self.session = session
         self.schemes = set()
         from chimerax.core.triggerset import TriggerSet
         self.triggers = TriggerSet()
@@ -32,41 +35,55 @@ class SchemesManager(ProviderManager):
 
         from Qt import qt_have_web_engine
         if not qt_have_web_engine():
-            return # macOS arm64 does not have QtWebEngine
-    
+            return  # macOS arm64 does not have QtWebEngine
+
         from Qt.QtWebEngineCore import QWebEngineUrlScheme
         scheme = QWebEngineUrlScheme(name.encode('utf-8'))
         port = kw.get('defaultPort', None)
         if port is not None:
+            del kw['defaultPort']
             scheme.setDefaultPort(int(port))
         syntax = kw.get('syntax', None)
-        if syntax == "Path":
-            scheme.setSyntax(QWebEngineUrlScheme.Syntax.Path)
-        elif syntax == "Host":
-            scheme.setSyntax(QWebEngineUrlScheme.Syntax.Host)
-        elif syntax == "HostAndPort":
-            scheme.setSyntax(QWebEngineUrlScheme.Syntax.HostAndPort)
-        elif syntax == "HostPortAndUserInformation":
-            scheme.setSyntax(QWebEngineUrlScheme.Syntax.HostPortAndUserInformation)
-        flags = 0
+        if syntax is not None:
+            del kw['syntax']
+            if syntax == "Path":
+                scheme.setSyntax(QWebEngineUrlScheme.Syntax.Path)
+            elif syntax == "Host":
+                scheme.setSyntax(QWebEngineUrlScheme.Syntax.Host)
+            elif syntax == "HostAndPort":
+                scheme.setSyntax(QWebEngineUrlScheme.Syntax.HostAndPort)
+            elif syntax == "HostPortAndUserInformation":
+                scheme.setSyntax(QWebEngineUrlScheme.Syntax.HostPortAndUserInformation)
+        flags = QWebEngineUrlScheme.Flag(0)
         if is_true(kw.get("SecureScheme", None)):
-            flags |= QWebEngineUrlScheme.SecureScheme
+            del kw["SecureScheme"]
+            flags |= QWebEngineUrlScheme.Flag.SecureScheme
         if is_true(kw.get("LocalScheme", None)):
-            flags |= QWebEngineUrlScheme.LocalScheme
+            del kw["LocalScheme"]
+            flags |= QWebEngineUrlScheme.Flag.LocalScheme
         if is_true(kw.get("LocalAccessAllowed", None)):
-            flags |= QWebEngineUrlScheme.LocalAccessAllowed
+            del kw["LocalAccessAllowed"]
+            flags |= QWebEngineUrlScheme.Flag.LocalAccessAllowed
         if is_true(kw.get("NoAccessAllowed", None)):
-            flags |= QWebEngineUrlScheme.NoAccessAllowed
+            del kw["NoAccessAllowed"]
+            flags |= QWebEngineUrlScheme.Flag.NoAccessAllowed
         if is_true(kw.get("ServiceWorkersAllowed", None)):
-            flags |= QWebEngineUrlScheme.ServiceWorkersAllowed
+            del kw["ServiceWorkersAllowed"]
+            flags |= QWebEngineUrlScheme.Flag.ServiceWorkersAllowed
         if is_true(kw.get("ViewSourceAllowed", None)):
-            flags |= QWebEngineUrlScheme.ViewSourceAllowed
+            del kw["ViewSourceAllowed"]
+            flags |= QWebEngineUrlScheme.Flag.ViewSourceAllowed
         if is_true(kw.get("ContentSecurityPolicyIgnored", None)):
-            flags |= QWebEngineUrlScheme.ContentSecurityPolicyIgnored
+            del kw["ContentSecurityPolicyIgnored"]
+            flags |= QWebEngineUrlScheme.Flag.ContentSecurityPolicyIgnored
         if is_true(kw.get("CorsEnabled", None)):
-            flags |= QWebEngineUrlScheme.CorsEnabled
+            del kw["CorsEnabled"]
+            flags |= QWebEngineUrlScheme.Flag.CorsEnabled
         if flags:
             scheme.setFlags(flags)
+        if kw:
+            self.session.logger.warning(
+                f"unknown keywords for {self.name}'s {name}: {' '.join(kw)}")
         QWebEngineUrlScheme.registerScheme(scheme)
 
     def end_providers(self):

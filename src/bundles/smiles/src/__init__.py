@@ -11,6 +11,8 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+from .smiles import fetch_smiles
+
 from chimerax.core.toolshed import BundleAPI
 
 class _SmilesAPI(BundleAPI):
@@ -21,7 +23,7 @@ class _SmilesAPI(BundleAPI):
             from chimerax.open_command import FetcherInfo
             class SmilesFetcherInfo(FetcherInfo):
                 def fetch(self, session, ident, format_name, ignore_cache, *, res_name=None, **kw):
-                    from .import smiles
+                    from . import smiles
                     return smiles.fetch_smiles(session, ident, ignore_cache=ignore_cache, res_name=res_name)
 
                 @property

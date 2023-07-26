@@ -493,6 +493,7 @@ PyObject *atom_spline_positions(PyObject *, PyObject *args, PyObject *keywds)
 static std::map<std::string, float> _tether_positions = {
    // Amino acid
    {"N", -1/3.},
+   {"H", -1/3.},
    {"CA", 0.},
    {"C",    1/3.},
    {"OXT",  1/3.},

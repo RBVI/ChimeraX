@@ -14,11 +14,9 @@
 from chimerax.core.errors import UserError
 from chimerax.add_charge import ChargeMethodArg
 
-def cmd_coulombic(session, atoms, *, surfaces=None, his_scheme=None, offset=1.4, spacing=1.0,
-        padding=5.0, map=False, palette=None, range=None, dist_dep=True, dielectric=4.0,
+def cmd_coulombic(session, atoms, *, surfaces=None, his_scheme=None, offset=1.4, gspacing=None,
+        gpadding=None, map=None, palette=None, range=None, dist_dep=True, dielectric=4.0,
         charge_method=ChargeMethodArg.default_value, key=False):
-    if map:
-        session.logger.warning("Computing electrostatic volume map not yet supported")
     session.logger.status("Computing Coulombic potential%s" % (" map" if map else ""))
     if palette is None:
         from chimerax.core.colors import BuiltinColormaps
@@ -101,6 +99,7 @@ def cmd_coulombic(session, atoms, *, surfaces=None, his_scheme=None, offset=1.4,
     undo_owners = []
     undo_old_vals = []
     undo_new_vals = []
+    grid_data = []
     for surf_atoms, shown_atoms, srf in atoms_per_surf:
         if srf is None:
             session.logger.status("Creating surface", secondary=True)
@@ -109,6 +108,7 @@ def cmd_coulombic(session, atoms, *, surfaces=None, his_scheme=None, offset=1.4,
                 for surf in surface(session, surf_atoms if shown_atoms is None else shown_atoms)]
         else:
             data = [(surf_atoms, srf)]
+        grid_data.extend(data)
         session.logger.status("Computing electrostatics", secondary=True)
         for charged_atoms, target_surface in data:
             for clip_surface in [cs for cs in target_surface.child_models()
@@ -126,7 +126,44 @@ def cmd_coulombic(session, atoms, *, surfaces=None, his_scheme=None, offset=1.4,
         show_key(session, cmap)
 
     session.logger.status("", secondary=True)
-    session.logger.status("Finished computing Coulombic potential%s" % (" map" if map else ""))
+    session.logger.status("Finished coloring surfaces")
+    if map is None:
+        map = gspacing is not None or gpadding is not None
+    if not map:
+        return
+    session.logger.status("Computing Coulombic potential grids")
+    if gspacing is None:
+        gspacing = 1.0
+    if gpadding is None:
+        gpadding = 5.0
+    import numpy, os
+    import chimerax.arrays # Make sure _esp can runtime link shared library libarrays.
+    from ._esp import potential_at_points
+    from chimerax.map import volume_from_grid_data
+    from chimerax.map_data import ArrayGridData
+    cpu_count = os.cpu_count()
+    for atoms, surf in grid_data:
+        coords = atoms.coords
+        min_xyz = numpy.min(coords, axis=0) - [gpadding+gspacing/2.0]*3
+        max_xyz = numpy.max(coords, axis=0) + [gpadding+gspacing/2.0]*3
+        x_range = numpy.arange(min_xyz[0], max_xyz[0], gspacing)
+        y_range = numpy.arange(min_xyz[1], max_xyz[1], gspacing)
+        z_range = numpy.arange(min_xyz[2], max_xyz[2], gspacing)
+        grid_vertices = numpy.array([(x,y,z) for x in x_range for y in y_range for z in z_range])
+        grid_potentials = potential_at_points(grid_vertices,
+            atoms.coords, numpy.array([a.charge for a in atoms], dtype=numpy.double),
+            dist_dep, dielectric, 1 if cpu_count is None else cpu_count)
+        grid_potentials.shape = (len(x_range), len(y_range), len(z_range))
+        agd = ArrayGridData(grid_potentials.transpose(), min_xyz, [gspacing]*3)
+        agd.polar_values = True
+        v = volume_from_grid_data(agd, session, open_model=False)
+        v.set_parameters(surface_levels=[-10, 10],
+            surface_colors=[(1.0, 0.0, 0.0, 0.5), (0.0, 0.0, 1.0, 0.5)], cap_faces=False)
+        v.update_drawings() # for surfaces to show so that volume viewer doesn't override them
+        v.name = "coulombic grid for " + surf.name
+        surf.parent.add([v])
+        surf.display = False
+    session.logger.status("Finished computing Coulombic potential grids")
 
 def color_vertices(session, surface, offset, charged_atoms, dist_dep, dielectric, cmap, *, log=True,
         undo_info=None):
@@ -145,8 +182,7 @@ def color_vertices(session, surface, offset, charged_atoms, dist_dep, dielectric
         target_points = surface.vertices + offset * surface.normals
     arv = surface.auto_recolor_vertices
     import numpy, os
-    # Make sure _esp can runtime link shared library libarrays.
-    from chimerax import arrays ; arrays.load_libarrays()
+    import chimerax.arrays # Make sure _esp can runtime link shared library libarrays.
     from ._esp import potential_at_points
     cpu_count = os.cpu_count()
     vertex_values = potential_at_points(surface.scene_position.transform_points(target_points),
@@ -162,25 +198,20 @@ def color_vertices(session, surface, offset, charged_atoms, dist_dep, dielectric
     if log:
         session.logger.info("Coulombic values for %s: minimum, %.2f, mean %.2f, maximum %.2f"
             % (surface, amin(vertex_values), mean(vertex_values), amax(vertex_values)))
-"""
-def coulombic_map(session, charged_atoms, target_surface, offset, spacing, padding, vol_name):
-    data, bounds = calculate_map(target_surface, charged_atoms, spacing, offset + padding)
-    #TODO
-"""
 
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register, Or, EmptyArg, SurfacesArg, EnumOf, FloatArg
-    from chimerax.core.commands import BoolArg, ColormapArg, ColormapRangeArg
+    from chimerax.core.commands import BoolArg, ColormapArg, ColormapRangeArg, StringArg
     from chimerax.atomic import AtomsArg
     desc = CmdDesc(
         required = [('atoms', Or(AtomsArg, EmptyArg))],
         keyword = [
             ('surfaces', SurfacesArg),
+            ('gpadding', FloatArg),
+            ('map', BoolArg),
+            ('gspacing', FloatArg),
             ('his_scheme', EnumOf(['HIP', 'HIE', 'HID'])),
             ('offset', FloatArg),
-            ('spacing', FloatArg),
-            ('padding', FloatArg),
-            ('map', BoolArg),
             ('palette', ColormapArg),
             ('range', ColormapRangeArg),
             ('dist_dep', BoolArg),

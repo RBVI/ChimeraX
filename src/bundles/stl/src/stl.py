@@ -111,7 +111,7 @@ def stl_is_ascii(path):
 
 # -----------------------------------------------------------------------------
 #
-def read_binary_stl_geometry(path):
+def read_binary_stl_geometry(path, replace_zero_normals = True):
     input = open(path, 'rb')
     comment = input.read(80)
     
@@ -129,6 +129,11 @@ def read_binary_stl_geometry(path):
 
     from .stl_cpp import stl_unpack
     va, na, ta = stl_unpack(geom)    # vertices, normals, triangles
+
+    if replace_zero_normals and len(na) > 0 and (na[0] == (0,0,0)).all():
+        from chimerax.surface import calculate_vertex_normals
+        na = calculate_vertex_normals(va, ta)
+
     return va, na, ta
 
 # -----------------------------------------------------------------------------

@@ -70,6 +70,8 @@ public:
     const AtomsMap &atoms_map() const { return _atoms; }
     bool        pdbx_ambiguous;      // for mmCIF ambiguous chemistry
     bool        has_metal() const { return _has_metal; }
+
+    std::map<std::string, std::vector<std::string>> metadata;
 private:
     Residue(Molecule *, const char *t);
     ResName     _name;

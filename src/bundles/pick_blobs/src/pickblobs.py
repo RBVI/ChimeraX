@@ -275,7 +275,7 @@ class PickBlobSettings(ToolInstance):
         cb.setCheckState(Qt.Checked)
         clayout.addWidget(cb)
         from chimerax.ui.widgets import ColorButton
-        self._blob_color = cbut = ColorButton(cf, max_size = (16,16))
+        self._blob_color = cbut = ColorButton(cf, max_size = (16,16), has_alpha_channel = True)
         cbut.color = self._default_color
         clayout.addWidget(cbut)
         clayout.addSpacing(10)
@@ -296,7 +296,7 @@ class PickBlobSettings(ToolInstance):
         self._show_box = bb = QCheckBox('Show principal axes box', af)
         bb.setCheckState(Qt.Checked)
         aflayout.addWidget(bb)
-        self._box_color = bc = ColorButton(af, max_size = (16,16))
+        self._box_color = bc = ColorButton(af, max_size = (16,16), has_alpha_channel = True)
         bc.color = self._default_box_color
         aflayout.addWidget(bc)
         aflayout.addSpacing(10)

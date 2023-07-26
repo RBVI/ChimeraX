@@ -11,6 +11,9 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+chain_area_default = 300
+residue_area_default = 15
+
 from chimerax.core.toolshed import BundleAPI
 
 class _MyAPI(BundleAPI):

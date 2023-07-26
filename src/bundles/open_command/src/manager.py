@@ -18,20 +18,21 @@ class OpenerNotInstalledError(NoOpenerError):
     pass
 
 class OpenerProviderInfo:
-    def __init__(self, bundle_info, name, want_path, check_path, batch, is_default):
+    def __init__(self, bundle_info, name, want_path, check_path, batch, pregrouped_structures):
         self.bundle_info = bundle_info
         self.name = name
         self.want_path = want_path
         self.check_path = check_path
         self.batch = batch
-        self.is_default = is_default
+        self.pregrouped_structures = pregrouped_structures
 
 class FetcherProviderInfo:
-    def __init__(self, bundle_info, is_default, example_ids, synopsis):
+    def __init__(self, bundle_info, is_default, example_ids, synopsis, pregrouped_structures):
         self.bundle_info = bundle_info
         self.is_default = is_default
         self.example_ids = example_ids
         self.synopsis = synopsis
+        self.pregrouped_structures = pregrouped_structures
 
 from chimerax.core.toolshed import ProviderManager
 class OpenManager(ProviderManager):
@@ -47,9 +48,9 @@ class OpenManager(ProviderManager):
         self.triggers.add_trigger("open command changed")
         super().__init__(name)
 
-    def add_provider(self, bundle_info, name, *, type="open", want_path=False,
-            check_path=True, batch=False, format_name=None,
-            is_default=True, synopsis=None, example_ids=None, **kw):
+    def add_provider(self, bundle_info, name, *, type="open", want_path=False, check_path=True,
+            batch=False, format_name=None, is_default=True, synopsis=None, example_ids=None,
+            pregrouped_structures=False, **kw):
         logger = self.session.logger
         self._ui_names[name.lower()] = ui_name = name
         name = name.lower()
@@ -58,6 +59,8 @@ class OpenManager(ProviderManager):
         is_default = bool_cvt(is_default, ui_name, bundle_name, "is_default")
         want_path = bool_cvt(want_path, ui_name, bundle_name, "want_path")
         check_path = bool_cvt(check_path, ui_name, bundle_name, "check_path")
+        pregrouped_structures = bool_cvt(pregrouped_structures, ui_name, bundle_name,
+            "pregrouped_structures")
         if batch or not check_path:
             want_path = True
         type_description = "Open-command" if type == "open" else type.capitalize()
@@ -78,7 +81,7 @@ class OpenManager(ProviderManager):
                     " %s bundle" % (data_format.name, _readable_bundle_name(
                     self._openers[data_format].bundle_info), bundle_name))
             self._openers[data_format] = OpenerProviderInfo(bundle_info, ui_name, want_path,
-                check_path, batch, is_default)
+                check_path, batch, pregrouped_structures)
         elif type == "fetch":
             if not name:
                 raise ValueError("Database fetch in bundle %s has empty name" % bundle_name)
@@ -105,7 +108,7 @@ class OpenManager(ProviderManager):
             if synopsis is None:
                 synopsis = "%s (%s)" % (name.capitalize(), format_name)
             self._fetchers.setdefault(name, {})[format_name] = FetcherProviderInfo(
-                bundle_info, is_default, example_ids, synopsis)
+                bundle_info, is_default, example_ids, synopsis, pregrouped_structures)
             if is_default and len([fmt for fmt, info in self._fetchers[name].items()
                     if info.is_default]) > 1:
                 logger.warning("Multiple default formats declared for database fetch"
@@ -169,16 +172,20 @@ class OpenManager(ProviderManager):
             # fetch-only type (e.g. cellPACK)
             args = {}
         args.update(provider_info.bundle_info.run_provider(self.session,
-            database_name, self).fetch_args)
+            database_name.lower(), self).fetch_args)
         return args
 
-    def open_data(self, path, **kw):
+    def open_data(self, path, *, in_file_history=False, **kw):
         """
         Given a file path and possibly format-specific keywords, return a (models, status message)
         tuple.  The models will not have been opened in the session.
 
         The format name can be provided with the 'format' keyword if the filename suffix of the path
         does not correspond to those for the desired format.
+
+        Since open_data() cannot know if you intend to add the returned models to the session later,
+        by default it does not put them in the file history.  If you do intend to add them to the
+        session and want them in the file history then specify in_file_history=True.
 
         The fact that the models have not been opened in the session can be an advantage if the models
         are essentially temporary or if you need to make modifications to the models before adding them
@@ -188,7 +195,7 @@ class OpenManager(ProviderManager):
         """
         from .cmd import provider_open
         return provider_open(self.session, [path], _return_status=True,
-            _add_models=False, **kw)
+            _add_models=False, _request_file_history=in_file_history, **kw)
 
     @property
     def open_data_formats(self):

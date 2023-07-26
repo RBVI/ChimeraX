@@ -50,9 +50,15 @@ class _MyAPI(BundleAPI):
                 if _name == "AutoDock PDBQT":
                     from .pdbqt import open_pdbqt
                     opener = open_pdbqt
-                else:
+                elif "Mol2" in name:
                     from .io import open_mol2
                     opener = open_mol2
+                elif _name == "SwissDock":
+                    from .io import open_swissdock
+                    opener = open_swissdock
+                else: # ZDOCK
+                    from .io import open_zdock
+                    opener = open_zdock
                 return opener(session, data, file_name, True, True)
         return ViewDockOpenerInfo()
 

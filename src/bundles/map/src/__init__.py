@@ -29,7 +29,7 @@ from .volume import VolumeSurface, VolumeImage
 # Map contouring and distance maps.
 #
 # Make sure _map can runtime link shared library libarrays.
-from chimerax import arrays ; arrays.load_libarrays()
+import chimerax.arrays
 
 from ._map import contour_surface, sphere_surface_distance
 from ._map import interpolate_colormap, set_outside_volume_colors
@@ -129,19 +129,37 @@ class _MapBundle(BundleAPI):
     @staticmethod
     def run_provider(session, name, mgr):
         if mgr == session.open_command:
-            fetches = ['eds', 'edsdiff', 'emdb']
-            if name in fetches:
-                from . import eds_fetch, emdb_fetch
+            if name in ['eds', 'edsdiff']:
+                from . import eds_fetch
                 fetcher = {
                     'eds': eds_fetch.fetch_eds_map,
                     'edsdiff': eds_fetch.fetch_edsdiff_map,
-                    'emdb': emdb_fetch.fetch_emdb
                 }[name]
                 from chimerax.open_command import FetcherInfo
                 class Info(FetcherInfo):
                     def fetch(self, session, ident, format_name, ignore_cache,
                             fetcher=fetcher, **kw):
                         return fetcher(session, ident, ignore_cache=ignore_cache, **kw)
+            elif name in ['emdb', 'emdb_europe', 'emdb_us', 'emdb_japan', 'emdb_china']:
+                from . import emdb_fetch
+                fetcher = {
+                    'emdb': emdb_fetch.fetch_emdb,
+                    'emdb_europe': emdb_fetch.fetch_emdb_europe,
+                    'emdb_us': emdb_fetch.fetch_emdb_us,
+                    'emdb_japan': emdb_fetch.fetch_emdb_japan,
+                    'emdb_china': emdb_fetch.fetch_emdb_china,
+                }[name]
+                from chimerax.open_command import FetcherInfo
+                class Info(FetcherInfo):
+                    def fetch(self, session, ident, format_name, ignore_cache,
+                            fetcher=fetcher, **kw):
+                        return fetcher(session, ident, ignore_cache=ignore_cache, **kw)
+                    @property
+                    def fetch_args(self):
+                        from chimerax.core.commands import EnumOf
+                        return {
+                            'transfer_method': EnumOf(['ftp', 'https']),
+                        }
             else:
                 from chimerax.open_command import OpenerInfo
                 class Info(OpenerInfo):
@@ -191,10 +209,12 @@ class _MapBundle(BundleAPI):
                             'compress_level': IntArg,
                             'subsamples': RepeatOf(Int1or3Arg),
                         })
+                    if _name == "MRC density map":
+                        args.update({'value_type': EnumOf(('int8', 'int16', 'uint16','float16', 'float32'))})
                     return args
 
                 def save_args_widget(self, session):
-                    from chimerax.save_command import SaveModelOptionWidget
+                    from chimerax.save_command.widgets import SaveModelOptionWidget
                     return SaveModelOptionWidget(session, 'Map', Volume)
 
                 def save_args_string_from_widget(self, widget):

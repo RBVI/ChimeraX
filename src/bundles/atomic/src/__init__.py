@@ -10,6 +10,11 @@
 # including partial copies, of the software or any revisions
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
+import os
+
+# Atomic sticks its library in the same directory as other files
+def get_lib() -> str:
+    return os.path.dirname(__file__)
 
 # ensure atomic_libs C++ shared libs are linkable by us
 import chimerax.atomic_lib
@@ -34,16 +39,18 @@ from .changes import check_for_changes
 from .pdbmatrices import biological_unit_matrices
 from .triggers import get_triggers
 from .shapedrawing import AtomicShapeDrawing, AtomicShapeInfo
-from .args import SymmetryArg, AtomArg, AtomsArg, ResiduesArg, UniqueChainsArg, AtomicStructuresArg
-from .args import StructureArg, StructuresArg, ElementArg, OrderedAtomsArg, ChainArg
-from .args import BondArg, BondsArg, PseudobondsArg, PseudobondGroupsArg, concise_residue_spec
+from .args import ElementArg, AtomArg, AtomsArg, OrderedAtomsArg, ResiduesArg
+from .args import BondArg, BondsArg, PseudobondsArg, PseudobondGroupsArg
+from .args import UniqueChainsArg, ChainArg, SequencesArg, SequenceArg, UniProtIdArg
+from .args import AtomicStructureArg, AtomicStructuresArg, StructureArg, StructuresArg
+from .args import SymmetryArg, concise_residue_spec
 from .cytmpl import TmplResidue
 
 def initialize_atomic(session):
     from . import settings
     settings.settings = settings._AtomicSettings(session, "atomic")
 
-    from chimerax import atomic_lib
+    from chimerax import atomic_lib, pdb_lib # ensure libs we need are linked
     import os.path
     res_templates_dir = os.path.join(atomic_lib.__path__[0], 'data')
     Residue.set_templates_dir(res_templates_dir)
@@ -57,6 +64,11 @@ def initialize_atomic(session):
 
     session._atomic_command_handler = session.triggers.add_handler("command finished",
         lambda *args: check_for_changes(session))
+
+    # for efficiency when destroying many structures, batch the updating of Collections
+    from chimerax.core.models import BEGIN_DELETE_MODELS, END_DELETE_MODELS
+    session.triggers.add_handler(BEGIN_DELETE_MODELS, Structure.begin_destructor_batching)
+    session.triggers.add_handler(END_DELETE_MODELS, Structure.end_destructor_batching)
 
     if session.ui.is_gui:
         session.ui.triggers.add_handler('ready', lambda *args, ses=session:
@@ -88,8 +100,11 @@ class _AtomicBundleAPI(BundleAPI):
             if class_name == "_NoDefault":
                 from chimerax.core.attributes import _NoDefault
                 return _NoDefault
-            from chimerax.core.session import State
-            class Fake(State):
+            from chimerax.core.session import State, StateManager
+            base_class = StateManager if class_name.endswith("Manager") else State
+            class Fake(base_class):
+                def clear(self):
+                    pass
                 def reset_state(self, session):
                     pass
                 def take_snapshot(self, session, flags):
@@ -123,9 +138,76 @@ class _AtomicBundleAPI(BundleAPI):
         if mgr == session.presets:
             from .presets import run_preset
             run_preset(session, name, mgr, **kw)
-        else:
+        elif mgr.name == "items inspection":
             from .inspectors import item_options
             return item_options(session, name, **kw)
+        else:
+            class_obj = {'atoms': Atom, 'residues': Residue, 'structures': Structure }[name]
+            from chimerax.render_by_attr import RenderAttrInfo
+            class Info(RenderAttrInfo):
+                _class_obj = class_obj
+                @property
+                def class_object(self):
+                    return self._class_obj
+                def model_filter(self, model):
+                    return isinstance(model, Structure)
+                def render(self, session, attr_name, models, method, params, sel_only):
+                    prefix = { Atom: 'a', Residue: 'r', Structure: 'm' }[self.class_object]
+                    from chimerax.core.commands import run, concise_model_spec, StringArg
+                    spec = concise_model_spec(session, models)
+                    if sel_only:
+                        if not session.selection.empty():
+                            if spec:
+                                spec += " & sel"
+                            else:
+                                spec = "sel"
+                    targets, spectrum = params
+                    letters = ""
+                    for target in targets:
+                        if target == "atoms":
+                            letters += "ab"
+                        elif target == "cartoons":
+                            letters += "c"
+                        elif target == "surfaces":
+                            letters += "s"
+                    from chimerax.core.colors import color_name
+                    no_val_string = ""
+                    palette_vals = []
+                    for val, rgba in spectrum:
+                        cname = color_name([int(v*255 + 0.5) for v in rgba])
+                        if val is None:
+                            no_val_string = " noValueColor %s" % StringArg.unparse(cname)
+                        else:
+                            palette_vals.append((val,cname))
+                    if palette_vals:
+                        if len(palette_vals) == 1:
+                            palette_vals.append(palette_vals[0])
+                        palette_string = "palette %s" % StringArg.unparse(":".join(["%g,%s" % (v,c)
+                            for v, c in palette_vals]))
+                    else:
+                        palette_string = ""
+                    run(session, "color byattr %s:%s %s target %s %s%s" % (prefix, attr_name, spec, letters,
+                        palette_string, no_val_string))
+                def values(self, attr_name, models):
+                    if self._class_obj == Atom:
+                        collections = [m.atoms for m in models]
+                    elif self._class_obj == Residue:
+                        collections = [m.residues for m in models]
+                    else:
+                        collections = [Structures(models)]
+                    from chimerax.core.commands import plural_of
+                    collections = concatenate(collections)
+                    plural_attr = plural_of(attr_name)
+                    try:
+                        all_vals = getattr(concatenate(collections), plural_of(attr_name))
+                    except AttributeError:
+                        all_vals = [getattr(item, attr_name, None) for item in collections]
+                    import numpy
+                    if not isinstance(all_vals, numpy.ndarray):
+                        all_vals = numpy.array(all_vals)
+                    non_none_vals = all_vals[all_vals != None]
+                    return non_none_vals, len(non_none_vals) < len(all_vals)
+            return Info(session)
 
     @staticmethod
     def finish(session, bundle_info):

@@ -1,7 +1,7 @@
 # -----------------------------------------------------------------------------
 #
-from chimerax.core.state import State
-class SurfaceUpdaters(State):
+from chimerax.core.state import StateManager
+class SurfaceUpdaters(StateManager):
     '''
     Keep track of the surface auto update routines so they can be saved in sessions.
     '''
@@ -28,7 +28,7 @@ class SurfaceUpdaters(State):
         updaters = [u for u in data['updaters'] if u is not None]
         return SurfaceUpdaters(updaters)
 
-    def clear(self):
+    def reset_state(self, session):
         self._updaters.clear()
 
 # -----------------------------------------------------------------------------
@@ -48,8 +48,9 @@ def _updater_active(u):
 def add_updater_for_session_saving(session, updater):
     '''
     An updater is a callable instance taking no arguments that updates a surface.
-    It must inherit from State and have take_snapshot() and restore_snapshot()
-    methods used by session saving.
+    It must inherit from StateManager and have take_snapshot(), restore_snapshot(),
+    and include_state() methods used by session saving, and reset_state() for
+    session restoring.
     '''
     if not hasattr(session, '_surface_updaters'):
         session._surface_updaters = su = SurfaceUpdaters()

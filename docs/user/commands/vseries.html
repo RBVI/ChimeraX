@@ -144,7 +144,12 @@ when <a href="#loop">looping</a> is on
 <b>loop</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>
 <br>
 Whether to loop playback continuously until it is halted with
-<b>vseries stop</b>.
+<b>vseries stop</b>. By default, the surface (or other rendering)
+for each <a href="#time">time</a> is deleted immediately when it is
+no longer shown, and recomputed later as needed. 
+To avoid losing any custom coloring of the initial displays,
+increase <a href="#cacheFrames"><b>cacheFrames</b></a>
+to at least as many frames as there are volumes in the series.
 </blockquote>
 <blockquote>
 <b>normalize</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>
@@ -200,7 +205,7 @@ By default, playback is as fast as possible, which can be fairly slow
 for large data. This option can be used to slow playback when it is too fast;
 however, the number of image frames per <a href="#time">time</a> step 
 will still depend on the speed of graphics rendering.
-The <a href="pauseFrames"><b>pauseFrames</b></a> option 
+The <a href="#pauseFrames"><b>pauseFrames</b></a> option 
 slows playback more reproducibly and may be preferred.
 </blockquote>
 <blockquote>
@@ -218,9 +223,9 @@ Ignore <a href="#maxFrameRate"><b>maxFrameRate</b></a> if also given.
 Whether to store volume rendering (<b>surface/mesh</b> triangle 
 or <b>solid</b> voxel)
 information for the <i>K</i> most recent displays (default <b>1</b>).
-This can speed playback because less time is
-spent recalculating display information.
-There is no hard limit to the memory used to cache rendering information.
+Increasing the number of cached frames can speed playback because less time is
+spent recalculating display information, but it uses more memory.
+There is no hard limit to the amount of memory used.
 Surface renderings use memory proportional to the number of triangles
 composing the surface. Solid renderings use memory proportional to the
 number of data voxels displayed, and it is generally
@@ -244,10 +249,29 @@ the slider; however, it allows assigning the same slider to
 two or more series (different channels/wavelengths) even if the series
 are not the same sizes. 
 <p>
-In the interface, the slider can be dragged
-or a <a href="#time">time</a> value entered directly. The interface also
-includes a play/pause button and another that toggles between the full 
-data (step 1) and every-other-point subsampling (step 2).
+The slider can be dragged or a <a href="#time">time</a> value entered directly. 
+The interface also includes a play/pause button, a
+&nbsp;<img style="height:16px; margin: 1px -1px; vertical-align:top"
+src="../tools/ui-icons/snail.png">&nbsp; value to increase for slower playback
+(<a href="#pauseFrames"><b>pauseFrames</b></a> as described above),
+and a button for recording a movie
+(<img class="iconbar" src="../tools/ui-icons/record.png">).
+The movie will start at the current slider position, so
+to include the whole series, place the slider at the far left
+before clicking the record button.
+The button on the far right
+<span class="nowrap">(&nbsp;<img style="height:18px; margin: 1px -1px;
+vertical-align:top" src="../tools/ui-icons/half.png">&nbsp;)</span>
+toggles between the full data
+(<a href="volume.html#step">step</a> 1)
+and every-other-point subsampling
+(<a href="volume.html#step">step</a> 2).
+The <b>Loop Playback</b> setting in the slider
+<a href="../window.html#context-menu">context menu</a> controls whether 
+interactive playback should automatically wrap around from the end
+to the beginning (initially on).
+See also: <a href="movie.html"><b>movie</b></a>,
+<a href="coordset.html#slider"><b>coordset slider</b></a>
 </p><p>
 Volume series playback can also be assigned to
 a <a href="ui.html#mousemode">mouse mode</a> such as scrolling.
@@ -425,5 +449,5 @@ Compress the output file (<a href="save.html#chimap">Chimera map format</a>).
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-October 2020</address>
+July 2023</address>
 </body></html>

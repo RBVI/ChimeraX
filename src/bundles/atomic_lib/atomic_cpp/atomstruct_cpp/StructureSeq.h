@@ -50,17 +50,19 @@ protected:
     ChainID  _chain_id;
     std::string  _description;
     bool  _from_seqres;
+    bool  _is_chain;
     PolymerType  _polymer_type;
     ResMap  _res_map;
     Residues  _residues;
     Structure*  _structure;
 
     static int  SESSION_NUM_INTS(int version=CURRENT_SESSION_VERSION) {
-        return version < 10 ? 3 : 4;
+        return version < 10 ? 3 : (version < 18 ? 4 : 5);
     }
     static int  SESSION_NUM_FLOATS(int /*version*/=CURRENT_SESSION_VERSION) { return 0; }
 
     void  demote_to_sequence();
+    void  demote_to_structure_sequence();
     bool  no_structure_left() const {
         for (auto r: _residues) {
             if (r != nullptr)

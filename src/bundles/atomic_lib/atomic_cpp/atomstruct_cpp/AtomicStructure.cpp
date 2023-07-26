@@ -486,7 +486,7 @@ AtomicStructure::make_chains() const
                     // need to check more closely
                     Real cutoff = r1->polymer_type() == PT_AMINO ?
                         Residue::TRACE_PROTEIN_DISTSQ_CUTOFF : Residue::TRACE_NUCLEIC_DISTSQ_CUTOFF;
-                    if (pb->sqlength() <= cutoff)
+                    if (std::abs(r2->number() - r1->number()) < 2 && pb->sqlength() <= cutoff)
                         pb->set_shown_when_atoms_hidden(false);
                 }
             }

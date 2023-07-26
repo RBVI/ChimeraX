@@ -23,7 +23,8 @@
   </Dependencies>
 
   <Providers>
-    <Provider name="Dunbrack" manager="rotamers"/>
+    <Provider name="Dunbrack" manager="rotamers"
+		description="Dunbrack 2010 backbone-dependent rotamer library -- 5% stepdown"/>
   </Providers>
 
   <Classifiers>

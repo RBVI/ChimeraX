@@ -30,10 +30,7 @@ class Option(metaclass=ABCMeta):
         if attr_name:
             self.attr_name = attr_name
         elif not hasattr(self, 'attr_name'):
-            if self.name:
-                self.attr_name = self.name
-            else:
-                self.attr_name = None
+            self.attr_name = None
 
         if settings is None:
             self.settings_handler = self.settings = None
@@ -45,9 +42,20 @@ class Option(metaclass=ABCMeta):
             # reference to settings for now; if that proves problematic then revisit.
             self.settings = settings
             from weakref import proxy
-            self.settings_handler = self.settings.triggers.add_handler('setting changed',
-                lambda trig_name, data, *, pself=proxy(self):
-                data[0] == pself.attr_name and setattr(pself, "value", pself.get_attribute()))
+            def proxy_handler(trig_name, data, *, pself=proxy(self)):
+                # In case some bad code is holding onto the Python side of a dead tool,
+                # ignore AttributeErrors.
+                # Also, if the last error occurred in a tool, sys.last_traceback can be holding
+                # reference to the tool, so ignore RuntimeErrors too [#8554]
+                try:
+                    if data[0] == pself.attr_name:
+                        setattr(pself, "value", pself.get_attribute())
+                        if pself._callback:
+                            pself._callback(pself)
+                except (AttributeError, RuntimeError):
+                    from chimerax.core.triggerset import DEREGISTER
+                    return DEREGISTER
+            self.settings_handler = self.settings.triggers.add_handler('setting changed', proxy_handler)
         self.auto_set_attr = auto_set_attr
 
         if default is None and attr_name and settings:
@@ -175,7 +183,8 @@ class Option(metaclass=ABCMeta):
         pass
 
     # no "shown" property because the option is in a QFormLayout and there is no way to hide a row,
-    # not to mention that hiding our widget doesn't hide the corresponding label
+    # without access to the form.  Use the hide/show_option methods or set_option_shown method
+    # of the container widget.
 
     # In Python 3.7, abstract properties where the getter/setter funcs have the same name don't
     # work as expected in derived classes; use old-style property definition
@@ -194,8 +203,9 @@ class Option(metaclass=ABCMeta):
     def make_callback(self):
         """Supported API. Called (usually by GUI) to propagate changes back to program"""
         if self.attr_name and self.settings and self.auto_set_attr:
+            # the attr-set callback will call _callback()
             self.set_attribute()
-        if self._callback:
+        elif self._callback:
             self._callback(self)
 
     @abstractmethod
@@ -349,7 +359,8 @@ class EnumBase(Option):
             self.widget.setText(self.multiple_value)
 
     def remake_menu(self, *, make_callback=True):
-        from Qt.QtWidgets import QAction, QRadioButton
+        from Qt.QtWidgets import QRadioButton
+        from Qt.QtGui import QAction
         from Qt.QtCore import Qt
         if isinstance(self, SymbolicEnumOption):
             labels = self.labels
@@ -379,17 +390,21 @@ class EnumBase(Option):
                     self.make_callback()
     remake_buttons = remake_menu
 
-    def _make_widget(self, *, as_radio_buttons=False, display_value=None, **kw):
-        from Qt.QtWidgets import QPushButton, QMenu, QWidget, QButtonGroup, QVBoxLayout
+    def _make_widget(self, *, as_radio_buttons=False, horizontal_radio_buttons=False, display_value=None,
+            **kw):
+        from Qt.QtWidgets import QPushButton, QMenu, QWidget, QButtonGroup, QVBoxLayout, QHBoxLayout
         self.__as_radio_buttons = as_radio_buttons
         if as_radio_buttons:
             self.widget = QWidget()
-            layout = QVBoxLayout()
+            if horizontal_radio_buttons:
+                layout = QHBoxLayout()
+            else:
+                layout = QVBoxLayout()
             self.widget.setLayout(layout)
             self.__button_group = QButtonGroup()
             self.remake_buttons()
             self.__button_group.button(self.values.index(self.default)).setChecked(True)
-            self.__button_group.buttonClicked[int].connect(self.make_callback)
+            self.__button_group.idClicked.connect(self.make_callback)
         else:
             if display_value is not None:
                 button_label = display_value
@@ -542,9 +557,66 @@ class FontOption(EnumOption):
     def __init__(self, *args, **kw):
         if self.values is None:
             from Qt.QtGui import QFontDatabase
-            fdb = QFontDatabase()
+            fdb = QFontDatabase
             self.values = sorted(list(fdb.families()))
             super().__init__(*args, **kw)
+
+class FileOption(Option):
+    """base class for specifying a file """
+
+    @classmethod
+    def browse_func(cls, *args, **kw):
+        from Qt.QtWidgets import QFileDialog
+        if cls == InputFileOption:
+            return QFileDialog.getOpenFileName(*args, **kw)
+        return QFileDialog.getSaveFileName(*args, **kw)
+
+    def get_value(self):
+        return self.line_edit.text()
+
+    def set_value(self, value):
+        self.line_edit.setText(value)
+
+    value = property(get_value, set_value)
+
+    def set_multiple(self):
+        self.line_edit.setText(self.multiple_value)
+
+    def _make_widget(self, initial_text_width="10em", start_folder=None, browser_title="Choose File", **kw):
+        """initial_text_width should be a string holding a "stylesheet-friendly"
+           value, (e.g. '10em' or '7ch') or None"""
+        from Qt.QtWidgets import QWidget, QHBoxLayout, QLineEdit, QPushButton
+        self.widget = QWidget()
+        self.widget.setContentsMargins(0,0,0,0)
+        layout = QHBoxLayout()
+        layout.setContentsMargins(0,0,0,0)
+        self.widget.setLayout(layout)
+        self.line_edit = QLineEdit()
+        self.line_edit.returnPressed.connect(self.make_callback)
+        if initial_text_width:
+            self.line_edit.setStyleSheet("* { width: %s }" % initial_text_width)
+        layout.addWidget(self.line_edit, stretch=1)
+        self.start_folder = start_folder
+        self.browser_title = browser_title
+        button = QPushButton("Browse")
+        button.clicked.connect(self._launch_browser)
+        layout.addWidget(button)
+
+    def _launch_browser(self, *args):
+        import os
+        if self.start_folder is None or not os.path.exists(self.start_folder):
+            start_folder = os.getcwd()
+        else:
+            start_folder = self.start_folder
+        file, filter = self.browse_func(self.widget, self.browser_title, start_folder)
+        if file:
+            self.line_edit.setText(file)
+            self.line_edit.returnPressed.emit()
+
+class InputFileOption(FileOption):
+    pass
+class OutputFileOption(FileOption):
+    pass
 
 class InputFolderOption(Option):
     """Option for specifying an existing folder for input"""
@@ -870,7 +942,7 @@ class StringsOption(Option):
         from Qt.QtWidgets import QTextEdit
         self.widget = QTextEdit(**kw)
         self.widget.setAcceptRichText(False)
-        self.widget.setLineWrapMode(QTextEdit.NoWrap)
+        self.widget.setLineWrapMode(QTextEdit.LineWrapMode.NoWrap)
         sheet_info = ""
         if initial_text_width:
             sheet_info = "width: %s" % initial_text_width
@@ -906,97 +978,6 @@ class SymbolicEnumOption(EnumOption):
 
 OptionalSymbolicEnumOption = make_optional(SymbolicEnumOption)
 
-from Qt.QtWidgets import QWidget
-from Qt.QtCore import Qt, Signal
-
-class FloatSlider(QWidget):
-
-    valueChanged = Signal(float)
-
-    def __init__(self, minimum, maximum, step, decimal_places, continuous_callback, *,
-            ignore_wheel_event=False, **kw):
-        from Qt.QtWidgets import QGridLayout, QSlider, QLabel, QSizePolicy
-        super().__init__()
-        layout = QGridLayout()
-        layout.setContentsMargins(0,0,0,0)
-        layout.setSpacing(0)
-        self.setLayout(layout)
-        if ignore_wheel_event:
-            class Slider(QSlider):
-                def wheelEvent(self, event):
-                    event.ignore()
-        else:
-            Slider = QSlider
-        self._slider = Slider(**kw)
-        self._slider.setOrientation(Qt.Horizontal)
-        self._slider.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        self._minimum = minimum
-        self._maximum = maximum
-        self._continuous = continuous_callback
-        # slider are only integer, so have to do conversions
-        self._slider.setMinimum(0)
-        self._slider.setMaximum(5000)
-        int_step = max(1, int(5000 * step / (maximum - minimum)))
-        self._slider.setSingleStep(int_step)
-        layout.addWidget(self._slider, 0, 0, 1, 3)
-        # for word-wrapped text, set the alignment within the label widget itself (instead of the layout)
-        # so that the label is given the full width of the layout to work with, otherwise you get unneeded
-        # line wrapping
-        from chimerax.ui import shrink_font
-        self._left_text = QLabel()
-        self._left_text.setWordWrap(True)
-        self._left_text.setAlignment(Qt.AlignLeft | Qt.AlignTop)
-        shrink_font(self._left_text)
-        layout.addWidget(self._left_text, 1, 0)
-        self._value_text = QLabel()
-        self._value_text.setAlignment(Qt.AlignCenter | Qt.AlignTop)
-        layout.addWidget(self._value_text, 1, 1, alignment=Qt.AlignCenter | Qt.AlignTop)
-        self._right_text = QLabel()
-        self._right_text.setWordWrap(True)
-        self._right_text.setAlignment(Qt.AlignRight | Qt.AlignTop)
-        shrink_font(self._right_text)
-        layout.addWidget(self._right_text, 1, 2)
-        self._format = "%%.%df" % decimal_places
-        self._slider.valueChanged.connect(self._slider_value_changed)
-        self._slider.sliderReleased.connect(self._slider_released)
-        layout.setColumnStretch(0, 1)
-        layout.setColumnStretch(1, 1)
-        layout.setColumnStretch(2, 1)
-
-    def set_left_text(self, text):
-        self._left_text.setText(text)
-
-    def set_right_text(self, text):
-        self._right_text.setText(text)
-
-    def set_text(self, text):
-        self._value_text.setText(text)
-
-    def setValue(self, float_val):
-        fract = (float_val - self._minimum) / (self._maximum - self._minimum)
-        self._slider.setValue(int(5000 * fract + 0.5))
-
-    def special_value_shown(self):
-        # effectively always False, unlike a SpinBox, the option's value is always accurate
-        return False
-
-    def value(self):
-        return self._int_val_to_float(self._slider.value())
-
-    def _int_val_to_float(self, int_val):
-        fract = int_val / 5000
-        return (1-fract) * self._minimum + fract * self._maximum
-
-    def _slider_released(self):
-        if not self._continuous:
-            self.valueChanged.emit(self.value())
-
-    def _slider_value_changed(self, int_val):
-        float_val = self._int_val_to_float(int_val)
-        self._value_text.setText(self._format % float_val)
-        if self._continuous:
-            self.valueChanged.emit(float_val)
-
 def _make_float_widget(min, max, step, decimal_places, *, as_slider=False, continuous_callback=False, **kw):
     def compute_bound(bound, default_bound):
         if bound is None:
@@ -1012,7 +993,7 @@ def _make_float_widget(min, max, step, decimal_places, *, as_slider=False, conti
         step = 10 ** (0 - (decimal_places-1))
 
     if as_slider:
-        from Qt.QtWidgets import QSlider
+        from chimerax.ui.widgets import FloatSlider
         return FloatSlider(minimum, maximum, step, decimal_places, continuous_callback, **kw)
     # as spinbox...
     from Qt.QtWidgets import QDoubleSpinBox
@@ -1029,14 +1010,14 @@ def _make_float_widget(min, max, step, decimal_places, *, as_slider=False, conti
 
         def event(self, event):
             ret = super().event(event)
-            if event.type() in [event.KeyPress, event.KeyRelease]:
+            if event.type() in [event.Type.KeyPress, event.Type.KeyRelease]:
                 event.accept()
                 return True
             return ret
 
         def eventFilter(self, source, event):
             # prevent scroll wheel from changing value (usually accidentally)
-            if event.type() == event.Wheel and source is self:
+            if event.type() == event.Type.Wheel and source is self:
                 event.ignore()
                 return True
             return super().eventFilter(source, event)
@@ -1051,6 +1032,9 @@ def _make_float_widget(min, max, step, decimal_places, *, as_slider=False, conti
             return self.specialValueText() != ""
 
         def stepBy(self, *args, **kw):
+            if self.special_value_shown():
+                from chimerax.core.errors import LimitationError
+                raise LimitationError("Cannot increment value")
             super().stepBy(*args, **kw)
             self.editingFinished.emit()
 
@@ -1061,7 +1045,7 @@ def _make_float_widget(min, max, step, decimal_places, *, as_slider=False, conti
     spin_box.setMaximum(maximum)
     spin_box.setSingleStep(step)
     from Qt.QtCore import Qt
-    spin_box.setFocusPolicy(Qt.StrongFocus)
+    spin_box.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
     spin_box.installEventFilter(spin_box)
     return spin_box
 
@@ -1070,19 +1054,22 @@ def _make_int_spinbox(min, max, **kw):
     class NoScrollSpinBox(QSpinBox):
         def event(self, event):
             ret = super().event(event)
-            if event.type() in [event.KeyPress, event.KeyRelease]:
+            if event.type() in [event.Type.KeyPress, event.Type.KeyRelease]:
                 event.accept()
                 return True
             return ret
 
         def eventFilter(self, source, event):
             # prevent scroll wheel from changing value (usually accidentally)
-            if event.type() == event.Wheel and source is self:
+            if event.type() == event.Type.Wheel and source is self:
                 event.ignore()
                 return True
             return super().eventFilter(source, event)
 
         def stepBy(self, *args, **kw):
+            if self.specialValueText() != "":
+                from chimerax.core.errors import LimitationError
+                raise LimitationError("Cannot increment value")
             super().stepBy(*args, **kw)
             self.editingFinished.emit()
 
@@ -1092,6 +1079,6 @@ def _make_int_spinbox(min, max, **kw):
     spin_box.setMinimum(default_minimum if min is None else min)
     spin_box.setMaximum(default_maximum if max is None else max)
     from Qt.QtCore import Qt
-    spin_box.setFocusPolicy(Qt.StrongFocus)
+    spin_box.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
     spin_box.installEventFilter(spin_box)
     return spin_box

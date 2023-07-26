@@ -146,6 +146,9 @@ class ContactPlot(Graph):
         if item is None:
             add('Lay Out to Match Structure', self.draw_graph)
             add('Orient Structure to Match Layout', self._orient)
+
+        menu.addSeparator()
+        add('Save Plot As...', self.save_plot_as)
                     
     def _select_nodes(self, nodes):
         self._clear_selection()
@@ -239,7 +242,8 @@ class ContactPlot(Graph):
         g = c.group1 if flip else c.group2
         self._show_interface_residues(c, g)
         from .resplot import ResiduePlot
-        ResiduePlot(self._session(), c, flip, self.interface_residue_area_cutoff)
+        plot = ResiduePlot(self._session(), c, flip, self.interface_residue_area_cutoff)
+        return plot
         
     def _explode_all(self, scale = 2):
         gc = [(g,g.centroid()) for g in self.groups if g.shown()]

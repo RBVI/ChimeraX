@@ -20,9 +20,13 @@ def measure_center(session, objects, level = None, mark = False, color = None,
     from chimerax.map import Volume
     vlist = [m for m in mlist if isinstance(m, Volume)]
     atoms = objects.atoms
-    if len(vlist) == 0 and len(atoms) == 0:
+    from chimerax.core.models import Surface
+    from chimerax.map.volume import VolumeSurface
+    surfs = [s for s in objects.models
+             if isinstance(s, Surface) and not isinstance(s, VolumeSurface)]
+    if len(vlist) == 0 and len(atoms) == 0 and len(surfs) == 0:
         from chimerax.core.errors import UserError
-        raise UserError('No volume or atoms specified')
+        raise UserError('No volume or atoms or surfaces specified')
 
     rgba = (180,180,180,255) if color is None else color.uint8x4()
     log = session.logger
@@ -33,10 +37,14 @@ def measure_center(session, objects, level = None, mark = False, color = None,
         msg = ('Center of mass grid index for %s = (%.2f, %.2f, %.2f)'
                % (v.name, ijk[0], ijk[1], ijk[2]))
         log.status(msg, log = True)
+        txyz = v.scene_position * xyz
+        msg = ('Center of mass xyz scene coordinates for %s = (%.2f, %.2f, %.2f)'
+               % (v.name, txyz[0], txyz[1], txyz[2]))
+        log.status(msg, log = True)
         if mark:
             r = max(v.data.step) if radius is None else radius
             mname = v.name + ' center' if name is None else name
-            place_marker(session, xyz, rgba, r, mname, model_id)
+            place_marker(session, txyz, rgba, r, mname, model_id)
 
     if len(atoms) > 0:
         xyz = atoms_center_of_mass(atoms)
@@ -47,6 +55,25 @@ def measure_center(session, objects, level = None, mark = False, color = None,
             r = atoms[0].radius if radius is None else radius
             mname = atoms_center_model_name(atoms) if name is None else name
             place_marker(session, xyz, rgba, r, mname, model_id)
+
+    for surf in surfs:
+        from chimerax.surface import vertex_areas
+        areas = vertex_areas(surf.vertices, surf.triangles)
+        area = areas.sum()
+        if area == 0:
+            msg = 'Surface %s has zero area' % surf
+            log.status(msg, log = True)
+        else:
+            sxyz = (surf.vertices * areas.reshape((len(areas),1))).sum(axis = 0) / area
+            xyz = surf.scene_position * sxyz
+            msg = ('Center of area of surface %s = (%.2f, %.2f, %.2f)'
+                   % (surf, xyz[0], xyz[1], xyz[2]))
+            log.status(msg, log = True)
+            if mark:
+                from math import sqrt
+                r = (0.01*sqrt(area)) if radius is None else radius
+                mname = surf.name + ' center' if name is None else name
+                place_marker(session, xyz, rgba, r, mname, model_id)
 
 # -----------------------------------------------------------------------------
 # Compute center of mass of a map for the region above a specifie contour level.
@@ -62,13 +89,14 @@ def volume_center_of_mass(v, level = None):
     m = v.data.full_matrix()
 
     # Find indices of map values above displayed threshold.
-    kji = (m >= level).nonzero()
+    kji = m.nonzero() if level is None else (m >= level).nonzero()
 
     # Compute total mass above threshold.
-    msum = m[kji].sum()
+    values = m[kji]
+    msum = values.sum()
 
     # Compute mass-weighted center
-    center = [(i*m[kji]).sum()/msum for i in kji]
+    center = [(i*values).sum()/msum for i in kji]
     center.reverse()        # k,j,i -> i,j,k index order
 
     return center

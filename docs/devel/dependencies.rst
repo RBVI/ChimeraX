@@ -1,5 +1,7 @@
 ..  vim: set expandtab shiftwidth=4 softtabstop=4:
 
+:orphan:
+
 .. 
     === UCSF ChimeraX Copyright ===
     Copyright 2017 Regents of the University of California.
@@ -59,7 +61,6 @@ Packages from PyPi Python package manager
 * scipy - math/science library used to compute helix tubes
 * six -	compatibility module for Python 2 and 3, used by numpy/matplotlib and more
 * sortedcontainers - use sorted dictionary SortedDict for color and command managers
-* suds-jurko - SOAP library, used for Opal web services
 * tables - read HDF5 files, usually volume data
 * tifffile - read TIFF image stacks for 3D light microscopy, high performance, 16-bit format support
 * tinyarray - efficient small C arrays, used for atom coordinates, numpy is much less efficient
@@ -107,7 +108,6 @@ such as compilers, rsync, cygwin on Windows.  The needed build tools are listed 
 * chrpath - used for setting RPATH in linux ChimeraX executable
 * imex - boilerplate for exporting symbols from C/C++ libraries
 * libtool - used when building Qt from source (only done for debugging)
-* p7zip - used to unpack *.xz source distributions Python, libtheora, libogg, libvpx, x264 on Mac
 
 Packages from PyPi used to do builds
 ------------------------------------

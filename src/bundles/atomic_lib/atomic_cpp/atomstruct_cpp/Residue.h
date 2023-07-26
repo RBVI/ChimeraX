@@ -27,6 +27,7 @@
 #include "imex.h"
 #include "polymer.h"
 #include "Real.h"
+#include "res_numbering.h"
 #include "Rgba.h"
 #include "session.h"
 #include "string_types.h"
@@ -73,6 +74,7 @@ private:
     ChainID  _mmcif_chain_id;
     ResName  _name;
     int  _number;
+    int  _numberings[NUM_RES_NUMBERINGS];
     float  _ribbon_adjust;
     bool  _ribbon_display;
     bool  _ribbon_hide_backbone;
@@ -84,15 +86,13 @@ private:
     bool  _rings_are_thin;
     Rgba  _ring_rgba;
 public:
-    void  add_atom(Atom*);
+    void  add_atom(Atom*, bool copying_structure=false);
     const Atoms&  atoms() const { return _atoms; }
     AtomsMap  atoms_map() const;
     std::vector<Bond*>  bonds_between(const Residue* other_res, bool just_first=false) const;
     Chain*  chain() const;
     const ChainID&  chain_id() const;
-    bool  connects_to(const Residue* other_res) const {
-        return !bonds_between(other_res, true).empty();
-    }
+    bool  connects_to(const Residue* other_res, bool check_pseudobonds=false) const;
     void  clean_alt_locs();
     int  count_atom(const AtomName&) const;
     void  delete_alt_loc(char al);
@@ -134,12 +134,8 @@ public:
     void  set_ss_id(int ssid);
     void  set_ss_type(SSType sst);
     void  set_mmcif_chain_id(const ChainID &cid) { _mmcif_chain_id = cid; }
-    void  set_number(int number) {
-        if (number != _number) {
-            _number = number;
-            change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_NUMBER);
-        }
-    }
+    void  set_number(int number);
+    void  set_number(ResNumbering rn, int number) { _numberings[rn] = number; }
     static void  set_templates_dir(const std::string&);
     static void  set_user_templates_dir(const std::string&);
     int  ss_id() const;
@@ -410,9 +406,11 @@ Residue::set_ss_id(int ss_id)
 {
     if (ss_id == _ss_id)
         return;
-    change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_SS_ID);
+    if (_structure->ss_change_notify()) {
+        change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_SS_ID);
+        _structure->set_gc_ribbon();
+    }
     _ss_id = ss_id;
-    _structure->set_gc_ribbon();
 }
 
 inline void
@@ -420,10 +418,12 @@ Residue::set_ss_type(SSType sst)
 {
     if (sst == _ss_type)
         return;
-    _structure->set_ss_assigned(true);
-    change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_SS_TYPE);
+    if (_structure->ss_change_notify()) {
+        _structure->set_ss_assigned(true);
+        change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_SS_TYPE);
+        _structure->set_gc_ribbon();
+    }
     _ss_type = sst;
-    _structure->set_gc_ribbon();
 }
 
 }  // namespace atomstruct

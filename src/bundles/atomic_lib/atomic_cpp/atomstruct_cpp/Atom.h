@@ -226,9 +226,11 @@ public:
     void  set_coord_index(unsigned int);
     void  set_computed_idatm_type(const char* it);
     void  set_draw_mode(DrawMode dm);
-    void  set_idatm_type(const char* it);
     void  set_element(const Element& e);
+    void  set_idatm_type(const char* it);
     void  set_idatm_type(const std::string& it) { set_idatm_type(it.c_str()); }
+    void  set_implicit_idatm_type(const char* it);
+    void  set_implicit_idatm_type(const std::string& it) { set_implicit_idatm_type(it.c_str()); }
     void  set_name(const AtomName& name);
     void  set_occupancy(float);
     void  set_radius(float);
@@ -292,7 +294,7 @@ Atom::_set_structure_category(Atom::StructCat sc) const
 
 inline void
 Atom::set_computed_idatm_type(const char* it) {
-    if (!idatm_is_explicit() && _computed_idatm_type != it) {
+    if (structure()->_atom_types_notify && !idatm_is_explicit() && _computed_idatm_type != it) {
         change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_IDATM_TYPE);
     }
     _computed_idatm_type =  it;
@@ -317,6 +319,30 @@ Atom::set_idatm_type(const char* it) {
         structure()->set_idatm_valid(false);
     }
     _explicit_idatm_type = it;
+}
+
+inline void
+Atom::set_implicit_idatm_type(const char* it) {
+    // used for setting the IDATM type but allowing it to be overridden by later recomputations
+    // (usually after a modification)
+
+    // run the computation first if it hasn't been run
+    structure()->ready_idatm_types();
+
+    // make sure it actually is effectively different before doing anything
+    if (_explicit_idatm_type == it) {
+        _explicit_idatm_type.clear();
+        _computed_idatm_type = it;
+        return;
+    }
+    if (_explicit_idatm_type.empty()) {
+        if (_computed_idatm_type == it)
+            return;
+    } else {
+        _explicit_idatm_type.clear();
+    }
+    _computed_idatm_type = it;
+    change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_IDATM_TYPE);
 }
 
 inline void

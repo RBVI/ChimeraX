@@ -36,10 +36,20 @@ class FitList(ToolInstance):
         vb = QVBoxLayout()
         vb.setContentsMargins(0,0,0,0)          # No border padding
         vb.setSpacing(0)                # Spacing between list and button row
+
         class ListBox(QListWidget):
             def sizeHint(self):
                 from Qt import QtCore
                 return QtCore.QSize(500,50)
+            def keyPressEvent(self, event):
+                # Handle copy shortcut to copy list lines to clipboard.
+                from Qt.QtGui import QKeySequence, QGuiApplication
+                if event.matches(QKeySequence.StandardKey.Copy):
+                    lines = [item.text() for item in self.selectedItems()]
+                    QGuiApplication.clipboard().setText('\n'.join(lines))
+                else:
+                    QListWidget.keyPressEvent(self, event)  # Handle non-copy keys like arrows
+
         self.list_box = lb = ListBox(w)
         lb.setSelectionMode(QAbstractItemView.ExtendedSelection)
         lb.itemSelectionChanged.connect(self.fit_selection_cb)

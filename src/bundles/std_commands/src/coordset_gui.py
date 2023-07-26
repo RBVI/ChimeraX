@@ -1,3 +1,5 @@
+# vim: set expandtab ts=4 sw=4:
+
 # === UCSF ChimeraX Copyright ===
 # Copyright 2016 Regents of the University of California.
 # All rights reserved.  This software provided pursuant to a
@@ -29,7 +31,7 @@ class CoordinateSetSlider(Slider):
         self._player = CoordinateSetPlayer(structure, id_start, id_end, istep = 1,
                                            pause_frames = pause_frames, loop = 1,
                                            compute_ss = compute_ss, steady_atoms = steady_atoms)
-        self.update_value(structure.active_coordset_id)
+        self.set_slider(structure.active_coordset_id)
 
         from chimerax import atomic
         t = atomic.get_triggers(session)
@@ -74,6 +76,28 @@ class CoordinateSetSlider(Slider):
 
         super().delete()
         self.structure = None
+
+    SESSION_SAVE = True
+    version = 1
+    def take_snapshot(self, session, flags):
+        data = {
+            'structure': self.structure,
+            'pause_frames': self.pause_frames,
+            'movie_framerate': self.movie_framerate,
+            'steady_atoms': self._player.steady_atoms,
+            'compute_ss': self._player.compute_ss,
+            'version': self.version
+        }
+        return data
+
+    @staticmethod
+    def restore_snapshot(session, data):
+        css = CoordinateSetSlider(session, data['structure'],
+                                  pause_frames = data['pause_frames'],
+                                  movie_framerate = data['movie_framerate'],
+                                  steady_atoms = data['steady_atoms'],
+                                  compute_ss = data['compute_ss'])
+        return css
 
 # -----------------------------------------------------------------------------
 #

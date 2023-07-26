@@ -18,11 +18,6 @@ subcommand_name = "viewer"
 class _SeqViewerBundleAPI(BundleAPI):
 
     @staticmethod
-    def finish(session, bundle_info):
-        """De-register sequence viewer from alignments manager"""
-        session.alignments.deregister_viewer("Sequence Viewer")
-
-    @staticmethod
     def get_class(class_name):
         if class_name == "SequenceViewer":
             from .tool import SequenceViewer

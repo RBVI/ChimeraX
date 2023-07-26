@@ -46,7 +46,8 @@ def scalebar(session, *, length = None, thickness = None, color = None, xpos = N
         label.scalebar_width = length
     if thickness is not None:
         label.scalebar_height = thickness
-    if color is not None or xpos is not None or ypos is not None:
+    if (length is not None or thickness is not None or
+        color is not None or xpos is not None or ypos is not None):
         from .label2d import _update_label
         _update_label(session, label, color=color, xpos=xpos, ypos=ypos)
 

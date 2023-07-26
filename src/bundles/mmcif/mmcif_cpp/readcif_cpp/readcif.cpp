@@ -306,29 +306,60 @@ CIFFile::parse_file(const char* filename)
 		CloseHandle(file);
 		throw_windows_error(err_num, "getting file size");
 	}
-	HANDLE mapping = CreateFileMapping(file, NULL, PAGE_READONLY, 0, 0, NULL);
-	if (mapping == INVALID_HANDLE_VALUE) {
-		DWORD err_num = GetLastError();
-		CloseHandle(file);
-		throw_windows_error(err_num, "creating file mapping");
+	if (size.QuadPart == 0)
+		return;
+	if (size.QuadPart < 0 || size.QuadPart > 2147483647) {
+		err_msg << "Unreasonable CIF file size: " << size.QuadPart;
+		throw std::runtime_error(err_msg.str());
 	}
-	void *buffer = MapViewOfFile(mapping, FILE_MAP_READ, 0, 0, size.QuadPart /*+ 1*/);
-	if (buffer == NULL) {
-		DWORD err_num = GetLastError();
-		CloseHandle(file);
-		CloseHandle(mapping);
-		throw_windows_error(err_num, "creating file view");
+	SYSTEM_INFO sys_info;
+	GetSystemInfo(&sys_info);
+
+	bool used_mmap = false;
+	char* buffer = NULL;
+	HANDLE mapping;
+
+	if (size.QuadPart % sys_info.dwPageSize != 0) {
+		mapping = CreateFileMapping(file, NULL, PAGE_READONLY, 0, 0, NULL);
+		if (mapping == INVALID_HANDLE_VALUE) {
+			DWORD err_num = GetLastError();
+			CloseHandle(file);
+			throw_windows_error(err_num, "creating file mapping");
+		}
+		buffer = (char*) MapViewOfFile(mapping, FILE_MAP_READ, 0, 0, size.QuadPart /*+ 1*/);
+		if (buffer == NULL) {
+			DWORD err_num = GetLastError();
+			CloseHandle(file);
+			CloseHandle(mapping);
+			throw_windows_error(err_num, "creating file view");
+		}
+		used_mmap = true;
+	} else {
+		buffer = new char [size.QuadPart + 1];
+		DWORD bytes_read;
+		if (!ReadFile(file, buffer, size.QuadPart, &bytes_read, 0)) {
+			DWORD err_num = GetLastError();
+			CloseHandle(file);
+			throw_windows_error(err_num, "reading file");
+		}
+		buffer[size.QuadPart] = '\0';
 	}
 	try {
 		parse(reinterpret_cast<char*>(buffer));
 	} catch (...) {
-		UnmapViewOfFile(buffer);
-		CloseHandle(mapping);
+		if (used_mmap) {
+			UnmapViewOfFile(buffer);
+			CloseHandle(mapping);
+		} else
+			delete [] buffer;
 		CloseHandle(file);
 		throw;
 	}
-	UnmapViewOfFile(buffer);
-	CloseHandle(mapping);
+	if (used_mmap) {
+		UnmapViewOfFile(buffer);
+		CloseHandle(mapping);
+	} else
+		delete [] buffer;
 	CloseHandle(file);
 #else
 	int fd = open(filename, O_RDONLY);
@@ -500,11 +531,6 @@ CIFFile::internal_parse(bool one_table)
 #endif
 					cii = categories.find(current_category);
 					if (cii != categories.end()) {
-						// if already seen, then
-						// category is a prefix
-						if (seen.find(current_category)
-								!= seen.end())
-							cii = categories.end();
 						break;
 					}
 				}
@@ -635,14 +661,7 @@ CIFFile::internal_parse(bool one_table)
 					for (auto& c: category)
 						c = tolower(c);
 #endif
-					sep = current_category.size();
-					if (category.substr(0, sep) == current_category
-					&& category[sep] == '_') {
-						category = current_category;
-#ifdef CASE_INSENSITIVE
-						category_cp = current_category_cp;
-#endif
-					} else for (;;) {
+					for (;;) {
 						sep = category.rfind('_');
 						if (sep == string::npos)
 							break;
@@ -650,13 +669,7 @@ CIFFile::internal_parse(bool one_table)
 #ifdef CASE_INSENSITIVE
 						category_cp.resize(sep);
 #endif
-						if (categories.find(category)
-								!= categories.end()) {
-							// if already seen, then
-							// category is a prefix
-							if (seen.find(current_category)
-									!= seen.end())
-								cii = categories.end();
+						if (categories.find(category) != categories.end()) {
 							break;
 						}
 					}
@@ -1209,6 +1222,8 @@ CIFFile::parse_row(ParseValues& pv)
 	if (!values.empty()) {
 		// values were given per-tag
 		// assert(current_colnames.size() == values.size())
+		auto save_current_value_start = current_value_start;
+		auto save_current_value_end = current_value_end;
 		for (; pvi != pve; ++pvi) {
 			const char* buf = values[pvi->column].c_str();
 			current_value_start = buf;
@@ -1221,6 +1236,8 @@ CIFFile::parse_row(ParseValues& pv)
 		current_colnames.clear();
 		current_colnames_cp.clear();
 		values.clear();
+		current_value_start = save_current_value_start;
+		current_value_end = save_current_value_end;
 		return true;
 	}
 	if (current_token != T_VALUE) {
@@ -1343,7 +1360,7 @@ CIFFile::parse_row(ParseValues& pv)
 	return true;
 }
 
-StringVector&
+StringVector
 CIFFile::parse_whole_category()
 {
 	if (current_category.empty())
@@ -1360,8 +1377,7 @@ CIFFile::parse_whole_category()
 		return values;
 	}
 
-	//values.reserve(current_colnames.size());
-	values.reserve(4000000);
+	values.reserve(current_colnames.size());
 	while (current_token == T_VALUE) {
 		//values.push_back(current_value());
 		values.emplace_back(current_value_start,

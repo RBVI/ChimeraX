@@ -48,6 +48,11 @@ class OpenerInfo:
         """
         return {}
 
+    @property
+    def in_file_history(self):
+        "Set this to False in the rare case that the file should not appear in the file history"
+        return True
+
 class FetcherInfo:
     """
     Bundles that can fetch files must implement a subclass of this class, and return it
@@ -92,6 +97,13 @@ class FetcherInfo:
         keywords specific to the fetching itself.
         """
         return {}
+
+    @property
+    def in_file_history(self):
+        """
+        Set this to False in the rare case that the file should not appear in the file history.
+        """
+        return True
 
 from .manager import NoOpenerError
 from .dialog import show_open_file_dialog, set_use_native_open_file_dialog, show_open_folder_dialog

@@ -11,10 +11,15 @@ VERSION = 20
 USE_PREBUILT=true
 UPLOAD_PREBUILT=false
 ifeq ($(OS),Linux)
+SUPPORTED_DISTROS := Ubuntu CentOS Debian Rocky Freedesktop
 # CentOS uses "CentOS Linux", hence the second awk in the following line
 LINUX_FLAVOR = $(shell egrep '^NAME=' /etc/os-release | awk -F= '{ print $$2 }' | awk '{ print $$1 }' | tr -d '"')
 LINUX_RELEASE = $(shell egrep '^VERSION_ID=' /etc/os-release | awk -F= '{ print $$2 }' | tr -d '"')
 AMBERTOOLS_PREBUILT = ambertools-$(VERSION)-$(OS)-$(LINUX_FLAVOR)-$(LINUX_RELEASE).tar.bz2
+ifneq ($(filter $(LINUX_FLAVOR),$(SUPPORTED_DISTROS)),)
+else
+USE_PREBUILT=false
+endif
 else
 AMBERTOOLS_PREBUILT = ambertools-$(VERSION)-$(OS).tar.bz2
 ifeq ($(OS),Darwin)
@@ -30,8 +35,12 @@ TOOL_SRC = $(AMBERHOME)/AmberTools/src
 AMBERBIN_SRC = $(AMBERHOME)/bin
 AMBERBIN_DST_HOME = $(app_bindir)/amber$(VERSION)
 AMBERBIN_DST = $(AMBERBIN_DST_HOME)/bin
-AMBERDAT_SRC = $(AMBERHOME)/dat/antechamber
-AMBERDAT_DST = $(AMBERBIN_DST_HOME)/dat/antechamber
+AMBERDAT_SRC = $(AMBERHOME)/dat
+AMBERDAT_DST = $(AMBERBIN_DST_HOME)/dat
+AMBERDAT_ANTECHAMBER_SRC = $(AMBERDAT_SRC)/antechamber
+AMBERDAT_ANTECHAMBER_DST = $(AMBERDAT_DST)/antechamber
+AMBERDAT_PARM_SRC = $(AMBERDAT_SRC)/leap/parm
+AMBERDAT_PARM_DST = $(AMBERDAT_DST)/leap/parm
 
 PATCHES	= $(wildcard AmberTools-*.patch)
 
@@ -42,12 +51,16 @@ ifeq ($(OS),Windows)
 CONFIG_ARGS = -cygwin gnu
 ENV_OPTS = -u CC -u CXX FFLAGS=-fallow-argument-mismatch
 PATCHES += flex-cygwin.patch
-else
-ifeq ($(OS),Darwin)
-CONFIG_ARGS = clang
-else
+else ifeq ($(OS),Linux)
 CONFIG_ARGS = gnu
+ENV_OPTS = FFLAGS=-fallow-argument-mismatch
+ifdef UBUNTU_DIST
+ifeq ($(shell expr $(UBUNTU_DIST) '>' 18.04),1)
+ENV_OPTS += CC=gcc-9 FC=gfortran-9
 endif
+endif
+else ifeq ($(OS),Darwin)
+CONFIG_ARGS = clang
 endif
 
 ifeq ($(wildcard /usr/local/gfortran/*),)
@@ -61,6 +74,10 @@ install:
 
 app-install: $(AMBERTOOLS_PREBUILT)
 	-mkdir -p $(AMBERBIN_DST_HOME)
+ifeq ($(OS),Windows)
+	# Antechamber complains bitterly about a missing tmp directory otherwise
+	-mkdir -p $(AMBERBIN_DST_HOME)/tmp
+endif
 	 tar xf $(AMBERTOOLS_PREBUILT) -C $(AMBERBIN_DST_HOME)
 ifeq ($(OS),Darwin)
 	tar xf $(AMBERTOOLS_FLIBS_PREBUILT) -C $(app_libdir)
@@ -81,17 +98,18 @@ install: $(SOURCE)
 	cd $(TOOL_SRC)/antechamber && env AMBERHOME='$(AMBERHOME)' $(MAKE) install
 
 app-install: install
-	-mkdir -p $(AMBERBIN_DST) $(AMBERDAT_DST)
+	-mkdir -p $(AMBERBIN_DST) $(AMBERDAT_ANTECHAMBER_DST) $(AMBERDAT_PARM_DST)
 	# Excluded files are because they reference netcdf and we do not need them
 	$(RSYNC) $(AMBERBIN_SRC)/* --exclude nccopy --exclude ncdump --exclude ncgen --exclude ncgen3 --exclude to_be_dispatched $(AMBERBIN_DST)
 	# Some executables live directly in bin, but many are shell scripts whose
 	# executables are in the "to_be_dispatched" subdir; overwrite those...
 	$(RSYNC) $(AMBERBIN_SRC)/to_be_dispatched/* --exclude nccopy --exclude ncdump --exclude ncgen --exclude ncgen3 $(AMBERBIN_DST)
 ifeq ($(OS),Windows)
-	$(RSYNC) /usr/bin/cygwin1.dll /usr/bin/cyggcc_s-seh*.dll /usr/bin/cyggfortran*.dll /usr/bin/cygquadmath*.dll /bin/sh.exe $(AMBERBIN_DST)
+	$(RSYNC) /usr/bin/cygwin1.dll /usr/bin/cyggcc_s-seh*.dll /usr/bin/cyggfortran*.dll /usr/bin/cygquadmath*.dll /usr/bin/cygreadline*.dll /usr/bin/cygintl*.dll /usr/bin/cygncursesw*.dll /usr/bin/cygiconv*.dll /bin/sh.exe $(AMBERBIN_DST)
 endif
-	$(RSYNC) $(AMBERDAT_SRC)/* $(AMBERDAT_DST)
-	#$(RSYNC) heme-iron.frcmod $(AMBERDAT_DST)/leap/parm
+	$(RSYNC) $(AMBERDAT_ANTECHAMBER_SRC)/* $(AMBERDAT_ANTECHAMBER_DST)
+	$(RSYNC) $(AMBERDAT_PARM_SRC)/gaff2.dat $(AMBERDAT_PARM_DST)
+	#$(RSYNC) heme-iron.frcmod $(AMBERDAT_PARM_DST)
 ifeq ($(OS),Darwin)
 	# copy the shared libraries needed by the fortran executables and fix up their paths
 	cat /dev/null > $(FLIB_NAMES_FILE)
@@ -150,4 +168,7 @@ ifeq ($(OS),Darwin)
 endif
 
 clean:
-	rm -rf $(SOURCE)
+	rm -rf $(SOURCE) $(AMBERTOOLS_PREBUILT)
+ifeq ($(OS),Darwin)
+	rm -rf $(AMBERTOOLS_FLIBS_PREBUILT)
+endif

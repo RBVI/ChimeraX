@@ -83,7 +83,9 @@ def defattr(session, data, *, log=False, restriction=None, file_name=None, summa
     with open_input(data, encoding="utf-8") as f:
         data = []
         attrs = {}
+        empty_file = True
         for lnum, raw_line in enumerate(f):
+            empty_file = False
             # spaces in values could be significant, so instead of stripping just drop the '\n'
             # (which all line endings are translated to if newline=None [default] for open())
             line = raw_line[:-1]
@@ -127,7 +129,10 @@ def defattr(session, data, *, log=False, restriction=None, file_name=None, summa
             else:
                 final_value = value
             attrs[name] = final_value
-        append_all_info(attrs, data, lnum+1)
+        if empty_file:
+            raise SyntaxError("%s is empty" % file_name)
+        else:
+            append_all_info(attrs, data, lnum+1)
 
     for attr_info, data_info in all_info:
         num_assignments = 0
@@ -292,7 +297,19 @@ def parse_attribute_name(session, attr_name, *, allowable_types=None):
             if attr_name in allowable_attrs:
                 break
         else:
-            raise UserError("No known/registered attribute %s" % attr_name)
+            adjective = ""
+            if allowable_types:
+                if allowable_types == [bool]:
+                    adjective = "boolean "
+                elif allowable_types == [str]:
+                    adjective = "string "
+                elif allowable_types == [int]:
+                    adjective = "integer "
+                elif allowable_types == [float]:
+                    adjective = "floating-point "
+                elif set(allowable_types) == set([int, float]):
+                    adjective = "numeric "
+            raise UserError("No known/registered %sattribute %s" % (adjective, attr_name))
     return attr_name, class_obj
 
 def write_defattr(session, output, *, models=None, attr_name=None, match_mode="1-to-1", model_ids=None,
@@ -366,12 +383,16 @@ def write_defattr(session, output, *, models=None, attr_name=None, match_mode="1
                         none_handling = "string"
                 else:
                     val = '"%s"' % val
-            elif not isinstance(val, (int, float)):
-                if not type_warning_issued:
-                    session.logger.warning("One or more attribute values aren't integer, floating-point,"
-                        " string or None (e.g. %s); skipping those" % repr(val))
-                    type_warning_issued = True
-                continue
+            else:
+                # Can't just "not isinstance(val, (int, float))" because of numpy
+                try:
+                    float(str(val))
+                except ValueError:
+                    if not type_warning_issued:
+                        session.logger.warning("One or more attribute values aren't integer, floating-point,"
+                            " string or None (e.g. %s); skipping those" % repr(val))
+                        type_warning_issued = True
+                    continue
             if recipient == "structures":
                 spec = source.atomspec
             else:

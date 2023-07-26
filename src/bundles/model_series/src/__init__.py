@@ -20,4 +20,10 @@ class _ModelSeriesAPI(BundleAPI):
         from . import mseries
         mseries.register_mseries_command(logger)
 
+    @staticmethod
+    def get_class(class_name):
+        if class_name in ['ModelSequenceSlider']:
+            from . import mseries
+            return getattr(mseries, class_name)
+
 bundle_api = _ModelSeriesAPI()

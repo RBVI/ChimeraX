@@ -15,9 +15,10 @@ NO_SUBDIR_ALL=1
 NO_SUBDIR_INSTALL=1
 NO_SUBDIR_TEST=1
 SUBDIRS = prereqs src
-
+-include .makerc
 include $(TOP)/mk/config.make
 include $(TOP)/mk/subdir.make
+include $(TOP)/mk/detectOS.make
 
 all:
 	@echo "'make install' to build everything" && exit 1
@@ -40,15 +41,25 @@ endif
 	$(MAKE) -C docs install
 ifndef WIN32
 	# Admin privileges are needed on Windows 10
+	# To enable, follow the instructions at
+	# https://stackoverflow.com/a/65504258/12208118
+	# then you can make -C vdocs by hand if you like
 	$(MAKE) -C vdocs install
 endif
 	$(APP_PYTHON_EXE) clean_app.py
 	$(APP_PYTHON_EXE) -m pip check
 ifeq ($(OS),Darwin)
 	# update Info.plist with data formats provided by bundles
-	$(MAKE) -C src/apps/ChimeraX reinstall-plist
+	$(MAKE) -C src/apps/ChimeraX install-plist
+endif
+ifdef FLATPAK_DIST
+	-${APP_PYTHON_EXE} -m compileall -d CHIMERAX ${app_libdir}
+	${APP_EXE} --exit --nogui --silent --cmd 'linux flatpak-files edu.ucsf.rbvi.ChimeraX'
 endif
 	@echo 'Finished install at' `date`
+
+install-rbvi:
+	$(MAKE) PYQT_LICENSE=commercial install
 
 test src.test: testimports
 	$(MAKE) -C src test
@@ -57,8 +68,25 @@ testimports:
 	$(APP_EXE) --exit --nogui --silent cxtestimports.py
 
 sync:
-	mkdir -p $(build_prefix)/sync/{python-only,binary}
+	mkdir -p $(build_prefix)/sync/
 	$(MAKE) -C src/bundles sync
+
+.PHONY: venv
+venv:
+	if [ -x $(APP_PYTHON_BIN) ] && [ ! -x .venv ]; then \
+		$(APP_PYTHON_BIN) -m venv .venv --system-site-packages ; \
+		echo 'Virtual environment created in .venv' ; \
+		echo 'source .venv/bin/activate to activate it on Linux or macOS' ; \
+		echo 'or source .venv/Scripts/activate to activate it on Windows' ; \
+		exit ; \
+	else \
+		if [ -x .venv ]; then \
+			echo '.venv already exists' ; \
+			exit ; \
+		fi ; \
+		echo 'Build ChimeraX before creating your virtual environment'; \
+		exit ; \
+	fi
 
 ifdef WIN32
 vsdefined:
@@ -77,7 +105,7 @@ vdocs.install:
 
 build-dirs:
 	-mkdir -p $(build_prefix) $(bindir) $(libdir) $(includedir) $(datadir) \
-		$(webdir) $(wheelhouse) $(build_prefix)/sync/{python-only,binary}
+		$(build_prefix)/sync/
 ifndef WIN32
 	-cd $(build_prefix) && ln -nfs lib lib64
 endif
@@ -90,8 +118,10 @@ ifeq ($(OS),Darwin)
 endif
 
 build-app-dirs:
-	-mkdir -p $(app_prefix) $(app_bindir) $(app_libdir) $(app_datadir) \
-		$(app_includedir)
+	-mkdir -p $(app_prefix) $(app_bindir) $(app_datadir)
+ifneq ($(OS),Windows)
+	-mkdir -p $(app_libdir) $(app_includedir)
+endif
 ifeq ($(OS),Darwin)
 	-mkdir -p $(app_prefix)/MacOS $(app_prefix)/Resources \
 		$(app_frameworkdir)
@@ -100,16 +130,27 @@ else
 endif
 
 distclean: clean
+	-$(MAKE) -C src clean
+	-$(MAKE) -C docs clean
 	-$(MAKE) -C vdocs clean
-	rm -rf $(build_prefix) $(app_prefix) prereqs/prebuilt-*.tar.bz2
-	$(MAKE) -C docs clean
+	-rm -rf prereqs/prebuilt-*.tar.bz2
+	-$(MAKE) -C prereqs/cxservices clean
+
+reallyclean:
+	rm -rf $$(git status --short --ignored --porcelain=v1 | sed -e '/^!!/!d' -e 's/^!! //')
+	# for linux:
+	rm -rf .cache .config
 
 clean:
-	rm -rf $(build_prefix)/sync
+	-rm -rf $(APP_FILENAME)
+	-rm -rf $(build_prefix)
 
-build-from-scratch:
-	$(MAKE) distclean
+build-from-scratch: distclean
+ifdef INSTALL_RBVI
+	$(MAKE) install-rbvi
+else
 	$(MAKE) install
+endif
 
 # Linux debugging:
 
@@ -129,5 +170,7 @@ ifeq (,$(SNAPSHOT_DIR))
 endif
 	mkdir $(SNAPSHOT_DIR)
 	echo "branch: $(SNAPSHOT_TAG)" > $(SNAPSHOT_DIR)/last-commit
-	git show --summary --date=iso $(SNAPSHOT_TAG) >> $(SNAPSHOT_DIR)/last-commit
+	git show --summary --date=iso --pretty=fuller $(SNAPSHOT_TAG) >> $(SNAPSHOT_DIR)/last-commit
 	git archive $(SNAPSHOT_TAG) | tar -C $(SNAPSHOT_DIR) -xf -
+
+include $(TOP)/Makefile.tests

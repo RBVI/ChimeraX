@@ -494,6 +494,36 @@ extern "C" EXPORT void set_atom_color(void *atoms, size_t n, uint8_t *rgba)
     }
 }
 
+extern "C" EXPORT PyObject *atom_average_ribbon_color(void *atoms, size_t n)
+{
+    Atom **aa = static_cast<Atom **>(atoms);
+    try {
+      unsigned char *rgba;
+      PyObject *color = python_uint8_array(4, &rgba);
+      if (n > 0)
+	{
+	  double r = 0, g = 0, b = 0, a = 0;
+	  for (size_t i = 0; i < n; ++i) {
+	    const Rgba &c = aa[i]->residue()->ribbon_color();
+	    r += c.r;
+	    g += c.g;
+	    b += c.b;
+	    a += c.a;
+	  }
+	  rgba[0] = (int)(r/n + .5);
+	  rgba[1] = (int)(g/n + .5);
+	  rgba[2] = (int)(b/n + .5);
+	  rgba[3] = (int)(a/n + .5);
+	}
+      else
+	{ rgba[0] = rgba[1] = rgba[2] = 180; rgba[3] = 255; }
+      return color;
+    } catch (...) {
+        molc_error();
+        return 0;
+    }
+}
+
 extern "C" EXPORT bool atom_connects_to(pyobject_t atom1, pyobject_t atom2)
 {
     Atom *a1 = static_cast<Atom *>(atom1), *a2 = static_cast<Atom *>(atom2);
@@ -1468,6 +1498,46 @@ extern "C" EXPORT PyObject *atom_intra_bonds(void *atoms, size_t n)
         molc_error();
         return 0;
     }
+}
+
+extern "C" EXPORT PyObject *structure_frag_sel(void *mol)
+{
+    Structure *m = static_cast<Structure *>(mol);
+    PyObject *o = NULL;
+    std::set<Atom *> current_sel;
+    std::set<Atom *> next_layer, prev_layer;
+    try {
+        for (auto a: m->atoms()) {
+            if (a->selected()) {
+                current_sel.insert(a);
+                prev_layer.insert(a);
+            }
+        }
+        do {
+            // lacks the Chimera 1 logic where selected chain-trace pseudobonds
+            // select their residues; not sure it's necessary (and can be added if so)
+            next_layer.clear();
+            for (auto la: prev_layer) {
+                for (auto nb: la->neighbors()) {
+                    if (la->residue()->chain_id() != nb->residue()->chain_id())
+                        continue;
+                    if (current_sel.find(nb) != current_sel.end())
+                        continue;
+                    next_layer.insert(nb);
+                }
+            }
+            current_sel.insert(next_layer.begin(), next_layer.end());
+            prev_layer = next_layer;
+        } while (!next_layer.empty());
+
+        unsigned char *sels;
+        o = python_bool_array(m->atoms().size(), &sels);
+        for (auto a: m->atoms())
+            *sels++ = current_sel.find(a) != current_sel.end();
+    } catch (...) {
+        molc_error();
+    }
+    return o;
 }
 
 // -------------------------------------------------------------------------
@@ -2938,6 +3008,12 @@ extern "C" EXPORT void residue_number(void *residues, size_t n, int32_t *nums)
     error_wrap_array_get(r, n, &Residue::number, nums);
 }
 
+extern "C" EXPORT void set_residue_number(void *residues, size_t n, int32_t *num)
+{
+    Residue **r = static_cast<Residue **>(residues);
+    error_wrap_array_set(r, n, &Residue::set_number, num);
+}
+
 extern "C" EXPORT void residue_str(void *residues, size_t n, pyobject_t *strs)
 {
     Residue **r = static_cast<Residue **>(residues);
@@ -3047,7 +3123,9 @@ extern "C" EXPORT PyObject *residue_unique_sequences(void *residues, size_t n, i
                       {
                         int next_id = smap.size()+1;
                         si = cmap[c] = smap[seq] = next_id;
-                        PyList_Append(seqs, unicode_from_string(seq));
+                        auto py_seq = unicode_from_string(seq);
+                        PyList_Append(seqs, py_seq);
+                        Py_DECREF(py_seq);
                       }
                     else
                       si = cmap[c] = seqi->second;
@@ -4079,6 +4157,18 @@ extern "C" EXPORT void set_structure_alt_loc_change_notify(void *structures, siz
     error_wrap_array_set_mutable(s, n, &Structure::set_alt_loc_change_notify, alcn);
 }
 
+extern "C" EXPORT void structure_ss_change_notify(void *structures, size_t n, npy_bool *alcn)
+{
+    Structure **s = static_cast<Structure **>(structures);
+    error_wrap_array_get(s, n, &Structure::ss_change_notify, alcn);
+}
+
+extern "C" EXPORT void set_structure_ss_change_notify(void *structures, size_t n, npy_bool *alcn)
+{
+    Structure **s = static_cast<Structure **>(structures);
+    error_wrap_array_set_mutable(s, n, &Structure::set_ss_change_notify, alcn);
+}
+
 extern "C" EXPORT void structure_idatm_valid(void *structures, size_t n, npy_bool *valid)
 {
     Structure **s = static_cast<Structure **>(structures);
@@ -4385,6 +4475,27 @@ extern "C" EXPORT void structure_change_tracker(void *mols, size_t n, pyobject_t
     }
 }
 
+extern "C" EXPORT bool structure_res_numbering_valid(void *mol, int res_numbering)
+{
+    Structure *m = static_cast<Structure *>(mol);
+    try {
+        return m->res_numbering_valid(static_cast<atomstruct::ResNumbering>(res_numbering));
+    } catch (...) {
+        molc_error();
+        return false;
+    }
+}
+
+extern "C" EXPORT void set_structure_res_numbering_valid(void *mol, int res_numbering, bool valid)
+{
+    Structure *m = static_cast<Structure *>(mol);
+    try {
+        m->set_res_numbering_valid(static_cast<atomstruct::ResNumbering>(res_numbering), valid);
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" EXPORT void structure_ribbon_tether_scale(void *mols, size_t n, float32_t *ribbon_tether_scale)
 {
     Structure **m = static_cast<Structure **>(mols);
@@ -4600,6 +4711,23 @@ extern "C" EXPORT void structure_ring_display_count(void *mols, size_t n, int32_
 {
     Structure **m = static_cast<Structure **>(mols);
     error_wrap_array_get(m, n, &Structure::ring_display_count, ring_display_count);
+}
+
+extern "C" EXPORT void structure_res_numbering(void *mols, size_t n, int32_t *res_numbering)
+{
+    Structure **m = static_cast<Structure **>(mols);
+    error_wrap_array_get(m, n, &Structure::res_numbering, res_numbering);
+}
+
+extern "C" EXPORT void set_structure_res_numbering(void *mols, size_t n, int32_t *res_numbering)
+{
+    Structure **m = static_cast<Structure **>(mols);
+    try {
+        for (size_t i = 0; i < n; ++i)
+            m[i]->set_res_numbering(static_cast<atomstruct::ResNumbering>(res_numbering[i]));
+    } catch (...) {
+        molc_error();
+    }
 }
 
 extern "C" EXPORT void structure_pbg_map(void *mols, size_t n, pyobject_t *pbgs)
@@ -5056,6 +5184,29 @@ extern "C" EXPORT void structure_delete(void *mol)
     }
 }
 
+static DestructionBatcher* destruction_batcher = nullptr;
+extern "C" EXPORT void structure_begin_destructor_batching()
+{
+    try {
+        if (destruction_batcher == nullptr)
+            destruction_batcher = new DestructionBatcher(&destruction_batcher);
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void structure_end_destructor_batching()
+{
+    try {
+        if (destruction_batcher != nullptr) {
+            delete destruction_batcher;
+            destruction_batcher = nullptr;
+        }
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" EXPORT PyObject *structure_new_atom(void *mol, const char *atom_name, void *element)
 {
     Structure *m = static_cast<Structure *>(mol);
@@ -5186,6 +5337,8 @@ extern "C" EXPORT void metadata(void *mols, size_t n, pyobject_t *headers)
                 for (size_t i = 0; i != count; ++i)
                     PyList_SetItem(values, i, unicode_from_string(headers[i]));
                 PyDict_SetItem(header_map, key, values);
+                Py_DECREF(key);
+                Py_DECREF(values);
             }
             headers[i] = header_map;
             header_map = NULL;
@@ -5473,7 +5626,7 @@ extern "C" EXPORT void pointer_array_freed(void *numpy_array)
 
 // -------------------------------------------------------------------------
 // pointer array functions
-extern "C" EXPORT ssize_t pointer_index(void *pointer_array, size_t n, void *pointer)
+extern "C" EXPORT Py_ssize_t pointer_index(void *pointer_array, size_t n, void *pointer)
 {
     void **pa = static_cast<void **>(pointer_array);
     try {

@@ -36,6 +36,7 @@ class CommandLine(ToolInstance):
         from Qt.QtWidgets import QComboBox, QHBoxLayout, QLabel
         label = QLabel(parent)
         label.setText("Command:")
+        import sys
         class CmdText(QComboBox):
             def __init__(self, parent, tool):
                 self.tool = tool
@@ -43,25 +44,53 @@ class CommandLine(ToolInstance):
                 self._processing_key = False
                 from Qt.QtCore import Qt
                 # defer context menu to parent
-                self.setContextMenuPolicy(Qt.NoContextMenu)
+                self.setContextMenuPolicy(Qt.ContextMenuPolicy.NoContextMenu)
                 self.setAcceptDrops(True)
                 self._out_selection = None
+                # horrible hack needed for Linux...
+                self._drop_hack = False
 
             def dragEnterEvent(self, event):
                 if event.mimeData().text():
                     event.acceptProposedAction()
+                    if sys.platform == "linux" and not self._drop_hack:
+                        if "file://" not in self.lineEdit().text():
+                            self._drop_hack = True
+                            self.editTextChanged.connect(self._drop_hack_cb)
+
+            # On Linux, not only do you not get the drop event, but
+            # dragLeaveEvent is called immediately after dragEnterEvent,
+            # before the release for the drop has even happened, so can't
+            # depend on dragLeaveEvent to make the hack more reliable
+            """
+            def dragLeaveEvent(self, event):
+                if self._drop_hack:
+                    self._drop_hack = False
+                    self.editTextChanged.disconnect(self._drop_hack_cb)
+            """
 
             def dropEvent(self, event):
-                text = event.mimeData().text()
+                from urllib.parse import unquote
+                text = unquote(event.mimeData().text())
                 if text.startswith("file://"):
                     text = text[7:]
-                    import sys
                     if sys.platform.startswith("win") and text.startswith('/'):
                         # Windows seems to provide /C:/...
                         text = text[1:]
                 from chimerax.core.commands import StringArg
                 self.lineEdit().insert(StringArg.unparse(text))
                 event.acceptProposedAction()
+
+            def _drop_hack_cb(self, new_text):
+                self._drop_hack = False
+                self.editTextChanged.disconnect(self._drop_hack_cb)
+                if "file://" in new_text:
+                    # Since we are getting the text of the entire line
+                    # rather than just the dropped text, we have no
+                    # ability to quotes spaces properly if needed
+                    fixed_up = "".join([c for c in new_text.replace(
+                        "file://", "") if c.isprintable()])
+                    self.lineEdit().setText(fixed_up)
 
             def focusInEvent(self, event):
                 self._out_selection = None
@@ -83,32 +112,32 @@ class CommandLine(ToolInstance):
                 if session.ui.key_intercepted(event.key()):
                     return
                 
-                want_focus = forwarded and event.key() not in [Qt.Key_Control,
-                                                               Qt.Key_Shift,
-                                                               Qt.Key_Meta,
-                                                               Qt.Key_Alt]
+                want_focus = forwarded and event.key() not in [Qt.Key.Key_Control,
+                                                               Qt.Key.Key_Shift,
+                                                               Qt.Key.Key_Meta,
+                                                               Qt.Key.Key_Alt]
                 import sys
-                control_key = Qt.MetaModifier if sys.platform == "darwin" else Qt.ControlModifier
-                shifted = event.modifiers() & Qt.ShiftModifier
-                if event.key() == Qt.Key_Up:  # up arrow
+                control_key = Qt.KeyboardModifier.MetaModifier if sys.platform == "darwin" else Qt.KeyboardModifier.ControlModifier
+                shifted = event.modifiers() & Qt.KeyboardModifier.ShiftModifier
+                if event.key() == Qt.Key.Key_Up:  # up arrow
                     self.tool.history_dialog.up(shifted)
-                elif event.key() == Qt.Key_Down:  # down arrow
+                elif event.key() == Qt.Key.Key_Down:  # down arrow
                     self.tool.history_dialog.down(shifted)
-                elif event.matches(QKeySequence.Undo):
+                elif event.matches(QKeySequence.StandardKey.Undo):
                     want_focus = False
                     session.undo.undo()
-                elif event.matches(QKeySequence.Redo):
+                elif event.matches(QKeySequence.StandardKey.Redo):
                     want_focus = False
                     session.undo.redo()
                 elif event.modifiers() & control_key:
-                    if event.key() == Qt.Key_N:
+                    if event.key() == Qt.Key.Key_N:
                         self.tool.history_dialog.down(shifted)
-                    elif event.key() == Qt.Key_P:
+                    elif event.key() == Qt.Key.Key_P:
                         self.tool.history_dialog.up(shifted)
-                    elif event.key() == Qt.Key_U:
+                    elif event.key() == Qt.Key.Key_U:
                         self.tool.cmd_clear()
                         self.tool.history_dialog.search_reset()
-                    elif event.key() == Qt.Key_K:
+                    elif event.key() == Qt.Key.Key_K:
                         self.tool.cmd_clear_to_end_of_line()
                         self.tool.history_dialog.search_reset()
                     else:
@@ -165,14 +194,23 @@ class CommandLine(ToolInstance):
         session.ui.register_for_keystrokes(self.text)
         self.history_dialog.populate()
         self._just_typed_command = None
-        self._command_started_handler = session.triggers.add_handler("command started",
-            self._command_started_cb)
+        self._in_open_command = 0
+        self._handlers = []
+        self._handlers.append(session.triggers.add_handler("command started", self._command_started_cb))
+        self._handlers.append(session.triggers.add_handler("command failed", self._command_ended_cb))
+        self._handlers.append(session.triggers.add_handler("command finished", self._command_ended_cb))
         self.tool_window.manage(placement="bottom")
         self._in_init = False
         self._processing_command = False
         if self.settings.startup_commands:
             # prevent the startup command output from being summarized into 'startup messages' table
-            session.ui.triggers.add_handler('ready', self._run_startup_commands)
+            self._handlers.append(session.ui.triggers.add_handler('ready', self._run_startup_commands))
+        # on Windows Qt6, the descender of 'g' is cut off unless we make
+        # the line edit slightly taller
+        if sys.platform.startswith("win"):
+            from Qt.QtCore import QTimer
+            QTimer.singleShot(0, lambda *args, le=self.text.lineEdit():
+                    le.setMinimumHeight(le.height()+1))
 
     def cmd_clear(self):
         self.text.lineEdit().clear()
@@ -189,13 +227,14 @@ class CommandLine(ToolInstance):
 
     def delete(self):
         self.session.ui.deregister_for_keystrokes(self.text)
-        self.session.triggers.remove_handler(self._command_started_handler)
+        for handler in self._handlers:
+            handler.remove()
         super().delete()
 
     def fill_context_menu(self, menu, x, y):
         # avoid having actions destroyed when this routine returns
         # by stowing a reference in the menu itself
-        from Qt.QtWidgets import QAction
+        from Qt.QtGui import QAction
         filter_action = QAction("Typed Commands Only", menu)
         filter_action.setCheckable(True)
         filter_action.setChecked(self.settings.typed_only)
@@ -285,14 +324,15 @@ class CommandLine(ToolInstance):
                 except errors.UserError as err:
                     logger.status(str(err), color="crimson")
                     from chimerax.core.logger import error_text_format
-                    logger.info(error_text_format % escape(str(err)), is_html=True)
+                    msg = error_text_format % escape(str(err)).replace('\n','<br>')
+                    logger.info(msg, is_html=True)
                 except BaseException:
                     raise
         self.set_focus()
 
     def set_focus(self):
         from Qt.QtCore import Qt
-        self.text.lineEdit().setFocus(Qt.OtherFocusReason)
+        self.text.lineEdit().setFocus(Qt.FocusReason.OtherFocusReason)
 
     @classmethod
     def get_singleton(cls, session, **kw):
@@ -304,11 +344,18 @@ class CommandLine(ToolInstance):
         # separated by semicolons are typed in order to prevent putting the 
         # second and later commands into the command history, since we will get 
         # triggers for each command in the line
-        if self._just_typed_command or not self._processing_command:
+        if cmd_text.startswith("open ") and ".cxc" in cmd_text:
+            # Kludge to try to just put commands from .cxc scripts into the command history.
+            self._in_open_command += 1
+        if self._just_typed_command or not self._processing_command or self._in_open_command:
             self.history_dialog.add(self._just_typed_command or cmd_text,
                 typed=self._just_typed_command is not None)
             self.text.lineEdit().selectAll()
             self._just_typed_command = None
+
+    def _command_ended_cb(self, trig_name, cmd_text):
+        if cmd_text.startswith("open ") and ".cxc" in cmd_text:
+            self._in_open_command -= 1
 
     def _run_startup_commands(self, *args):
         # log the commands; but prevent them from going into command history...
@@ -350,7 +397,7 @@ class _HistoryDialog:
         parent = self.window.ui_area
         from Qt.QtWidgets import QListWidget, QVBoxLayout, QFrame, QHBoxLayout, QPushButton, QLabel
         self.listbox = QListWidget(parent)
-        self.listbox.setSelectionMode(QListWidget.ExtendedSelection)
+        self.listbox.setSelectionMode(QListWidget.SelectionMode.ExtendedSelection)
         self.listbox.itemSelectionChanged.connect(self.select)
         main_layout = QVBoxLayout(parent)
         main_layout.setContentsMargins(0,0,0,0)
@@ -373,7 +420,7 @@ class _HistoryDialog:
                 return str(val)
 
         spin_box = ShorterQSpinBox()
-        spin_box.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
+        spin_box.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
         spin_box.setRange(100, spin_box.max_val)
         spin_box.setSingleStep(100)
         spin_box.setValue(controller.settings.num_remembered)
@@ -400,7 +447,10 @@ class _HistoryDialog:
     def add(self, item, *, typed=False):
         if len(self._history) >= self.controller.settings.num_remembered:
             if not self.typed_only or self._history[0][1]:
+                # unless signals are blocked, this will clear partially entered text
+                self.listbox.blockSignals(True)
                 self.listbox.takeItem(0)
+                self.listbox.blockSignals(False)
         if typed or not self.typed_only:
             self.listbox.addItem(item)
         self._history.enqueue((item, typed))
@@ -528,7 +578,7 @@ class _HistoryDialog:
     def fill_context_menu(self, menu, x, y):
         # avoid having actions destroyed when this routine returns
         # by stowing a reference in the menu itself
-        from Qt.QtWidgets import QAction
+        from Qt.QtGui import QAction
         filter_action = QAction("Typed commands only", menu)
         filter_action.setCheckable(True)
         filter_action.setChecked(self.controller.settings.typed_only)

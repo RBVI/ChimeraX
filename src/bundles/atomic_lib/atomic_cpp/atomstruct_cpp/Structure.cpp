@@ -336,6 +336,7 @@ void Structure::_copy(Structure* s, PositionMatrix coord_adjust,
     for (auto h = metadata.begin() ; h != metadata.end() ; ++h)
         s->metadata[h->first] = h->second;
     s->pdb_version = pdb_version;
+    s->_polymers_computed = true;
     if (chain_id_map == nullptr) {
         s->lower_case_chains = lower_case_chains;
         s->set_ss_assigned(ss_assigned());
@@ -372,10 +373,10 @@ void Structure::_copy(Structure* s, PositionMatrix coord_adjust,
                 cid = r->chain_id();
             else
                 cid = cid_i->second;
-            if (s->lower_case_chains) {
+            if (!s->lower_case_chains) {
                 for (auto c: cid) {
-                    if (isupper(c)) {
-                        s->lower_case_chains = false;
+                    if (islower(c)) {
+                        s->lower_case_chains = true;
                         break;
                     }
                 }
@@ -422,9 +423,16 @@ void Structure::_copy(Structure* s, PositionMatrix coord_adjust,
             for (decltype(_coord_sets)::size_type i = 0; i < coord_sets().size(); ++i) {
                 auto s_cs = s->coord_sets()[i];
                 auto c_cs = coord_sets()[i];
-                if (coord_adjust != nullptr)
-                    c_cs->xform(coord_adjust);
-                s_cs->add_coords(c_cs);
+                if (coord_adjust != nullptr) {
+                    // c_cs.xform() would overwrite coords rather than produce a new copy
+                    CoordSet::Coords tmp = c_cs->coords();
+                    size_t nc = tmp.size();
+                    for (size_t i = 0 ; i < nc ; ++i)
+                        tmp[i].xform(coord_adjust);
+                    s_cs->_coords.insert(s_cs->_coords.end(), tmp.begin(), tmp.end());
+                } else {
+                    s_cs->add_coords(c_cs);
+                }
                 cs_map[c_cs] = s_cs;
             }
         }
@@ -442,7 +450,7 @@ void Structure::_copy(Structure* s, PositionMatrix coord_adjust,
     for (auto a: atoms()) {
         Atom* ca = s->new_atom(a->name().c_str(), a->element());
         Residue *cr = rmap[a->residue()];
-        cr->add_atom(ca);	// Must set residue before setting alt locs
+        cr->add_atom(ca, true);	// Must set residue before setting alt locs
         ca->_coord_index = coord_base + a->coord_index();
         std::set<char> alocs = a->alt_locs();
         if (!alocs.empty()) {
@@ -475,7 +483,7 @@ void Structure::_copy(Structure* s, PositionMatrix coord_adjust,
     
     for (auto b: bonds()) {
         const Bond::Atoms& a = b->atoms();
-        Bond* cb = s->new_bond(amap[a[0]], amap[a[1]]);
+        Bond* cb = s->_new_bond(amap[a[0]], amap[a[1]], true);
         cb->set_display(b->display());
         cb->set_color(b->color());
         cb->set_halfbond(b->halfbond());
@@ -483,7 +491,8 @@ void Structure::_copy(Structure* s, PositionMatrix coord_adjust,
     }
 
     if (_chains != nullptr) {
-        s->_chains = new Chains();
+        if (chain_id_map == nullptr)
+            s->_chains = new Chains();
         for (auto c: chains()) {
             ChainID cid;
             if (chain_id_map == nullptr)
@@ -565,25 +574,8 @@ void
 Structure::delete_alt_locs()
 {
     // make current alt locs into "regular" atoms and remove other alt locs
-    for (auto a: _atoms) {
-        if (a->alt_loc() == ' ')
-            continue;
-        auto aniso_u = a->aniso_u();
-        auto bfactor = a->bfactor();
-        auto coord = a->coord();
-        auto occupancy = a->occupancy();
-        auto serial_number = a->serial_number();
-        a->_alt_loc = ' ';
-        change_tracker()->add_modified(this, a, ChangeTracker::REASON_ALT_LOC);
-        a->_alt_loc_map.clear();
-        if (aniso_u != nullptr)
-            a->set_aniso_u((*aniso_u)[0], (*aniso_u)[1], (*aniso_u)[2],
-                (*aniso_u)[3], (*aniso_u)[4], (*aniso_u)[5]);
-        a->set_bfactor(bfactor);
-        a->set_coord(coord);
-        a->set_occupancy(occupancy);
-        a->set_serial_number(serial_number);
-    }
+    for (auto a: _atoms)
+        a->clean_alt_locs();
 }
 
 void
@@ -740,7 +732,16 @@ Structure::_delete_atoms(const std::set<Atom*>& atoms, bool verify)
                     " AtomicStructure/Structure");
             }
     if (atoms.size() == _atoms.size()) {
-        delete this;
+        // if there's a Python instance call its delete(), else directly delete
+        auto inst = py_instance(false);
+        // py_instance() returns new reference, so ...
+        Py_DECREF(inst);
+        if (inst == Py_None) {
+            delete this;
+        } else {
+            auto ret = py_call_method("delete");
+            Py_XDECREF(ret);
+        }
         return;
     }
     // want to put missing-structure pseudobonds across new mid-chain gaps,
@@ -974,6 +975,7 @@ Structure::_form_chain_check(Atom* a1, Atom* a2, Bond* b)
             }
         }
     }
+    set_gc_ribbon();
 }
 
 void
@@ -1044,6 +1046,8 @@ Structure::delete_bond(Bond *b)
         throw std::invalid_argument("delete_bond called for Bond not in Structure");
     auto db = DestructionBatcher(this);
     // for backbone bonds, create missing-structure pseudobonds
+    // if the criteria for adding the pseudobond is changed, the code in pdb_lib/connect_cpp/connect.cpp
+    // in find_missing_structure_bonds for deleting bonds will have to be changed
     if (b->is_backbone()) {
         auto pbg = _pb_mgr.get_group(PBG_MISSING_STRUCTURE, AS_PBManager::GRP_NORMAL);
         pbg->new_pseudobond(b->atoms()[0], b->atoms()[1]);
@@ -1173,11 +1177,13 @@ follow_backbone(Atom* bb1, Atom* bb2, Atom* goal, std::set<Atom*>& seen)
 }
 
 Bond *
-Structure::new_bond(Atom *a1, Atom *a2)
+Structure::_new_bond(Atom *a1, Atom *a2, bool bond_only)
 {
-    Bond *b = new Bond(this, a1, a2);
+    Bond *b = new Bond(this, a1, a2, bond_only);
     b->finish_construction(); // virtual calls work now
     add_bond(b);
+    if (bond_only)
+        return b;
     _idatm_valid = false;
     auto inst = py_instance(false);
     Py_DECREF(inst);
@@ -1250,8 +1256,8 @@ Structure::new_coord_set()
     return new_coord_set(_coord_sets.back()->id()+1);
 }
 
-static void
-_coord_set_insert(Structure::CoordSets &coord_sets, CoordSet* cs, int index)
+void
+Structure::_coord_set_insert(Structure::CoordSets &coord_sets, CoordSet* cs, int index)
 {
     if (coord_sets.empty() || coord_sets.back()->id() < index) {
         coord_sets.emplace_back(cs);
@@ -1263,8 +1269,11 @@ _coord_set_insert(Structure::CoordSets &coord_sets, CoordSet* cs, int index)
             return;
         } else if (index == (*csi)->id()) {
             auto pos = csi - coord_sets.begin();
+            bool update_active = (*csi == active_coord_set());
             delete *csi;
             coord_sets[pos] = cs;
+            if (update_active)
+                set_active_coord_set(cs);
             return;
         }
     }
@@ -1315,7 +1324,7 @@ Structure::nonstd_res_names() const
 {
     std::set<ResName> nonstd;
     for (auto r: residues()) {
-        if (Sequence::rname3to1(r->name()) == 'X'
+        if ((r->polymer_type() == PT_NONE || Sequence::rname3to1(r->name()) == 'X')
         && Residue::std_solvent_names.find(r->name()) == Residue::std_solvent_names.end())
             nonstd.insert(r->name());
     }
@@ -1472,6 +1481,7 @@ Structure::session_info(PyObject* ints, PyObject* floats, PyObject* misc) const
     // pb manager version number remembered later
     if (PyList_Append(ints, npy_array) < 0)
         throw std::runtime_error("Couldn't append to int list");
+    Py_DECREF(npy_array);
 
     float* float_array;
     npy_array = python_float_array(SESSION_NUM_FLOATS(), &float_array);
@@ -1483,12 +1493,14 @@ Structure::session_info(PyObject* ints, PyObject* floats, PyObject* misc) const
             *float_array++ = _position[i][j];
     if (PyList_Append(floats, npy_array) < 0)
         throw std::runtime_error("Couldn't append to floats list");
+    Py_DECREF(npy_array);
 
     PyObject* attr_list = PyList_New(SESSION_NUM_MISC());
     if (attr_list == nullptr)
         throw std::runtime_error("Cannot create Python list for misc info");
     if (PyList_Append(misc, attr_list) < 0)
         throw std::runtime_error("Couldn't append to misc list");
+    Py_DECREF(attr_list);
     // input_seq_info
     PyList_SET_ITEM(attr_list, 0, cmap_of_chars_to_pydict(_input_seq_info,
         "residue chain ID", "residue name"));
@@ -1511,6 +1523,7 @@ Structure::session_info(PyObject* ints, PyObject* floats, PyObject* misc) const
         throw std::runtime_error("Cannot create Python list for atom misc info");
     if (PyList_Append(misc, atoms_misc) < 0)
         throw std::runtime_error("Couldn't append atom misc list to misc list");
+    Py_DECREF(atoms_misc);
     PyObject* atom_names = PyList_New(num_atoms);
     if (atom_names == nullptr)
         throw std::runtime_error("Cannot create Python list for atom names");
@@ -1530,10 +1543,12 @@ Structure::session_info(PyObject* ints, PyObject* floats, PyObject* misc) const
     }
     if (PyList_Append(ints, atom_npy_ints) < 0)
         throw std::runtime_error("Couldn't append atom ints to int list");
+    Py_DECREF(atom_npy_ints);
     float* atom_floats;
     PyObject* atom_npy_floats = python_float_array(num_floats, &atom_floats);
     if (PyList_Append(floats, atom_npy_floats) < 0)
         throw std::runtime_error("Couldn't append atom floats to float list");
+    Py_DECREF(atom_npy_floats);
     i = 1;
     for (auto a: atoms()) {
         PyObject* empty_list = PyList_New(0);
@@ -1555,6 +1570,7 @@ Structure::session_info(PyObject* ints, PyObject* floats, PyObject* misc) const
         throw std::runtime_error("Cannot create Python list for bond misc info");
     if (PyList_Append(misc, bonds_misc) < 0)
         throw std::runtime_error("Couldn't append bond misc list to misc list");
+    Py_DECREF(bonds_misc);
     int* bond_ints;
     PyObject* bond_npy_ints = python_int_array(num_ints, &bond_ints);
     *bond_ints++ = num_bonds;
@@ -1564,10 +1580,12 @@ Structure::session_info(PyObject* ints, PyObject* floats, PyObject* misc) const
     }
     if (PyList_Append(ints, bond_npy_ints) < 0)
         throw std::runtime_error("Couldn't append bond ints to int list");
+    Py_DECREF(bond_npy_ints);
     float* bond_floats;
     PyObject* bond_npy_floats = python_float_array(num_floats, &bond_floats);
     if (PyList_Append(floats, bond_npy_floats) < 0)
         throw std::runtime_error("Couldn't append bond floats to float list");
+    Py_DECREF(bond_npy_floats);
     for (auto b: bonds()) {
         b->session_save(&bond_ints, &bond_floats);
     }
@@ -1585,6 +1603,7 @@ Structure::session_info(PyObject* ints, PyObject* floats, PyObject* misc) const
         throw std::runtime_error("Cannot create Python list for coord set misc info");
     if (PyList_Append(misc, cs_misc) < 0)
         throw std::runtime_error("Couldn't append coord set misc list to misc list");
+    Py_DECREF(cs_misc);
     int* cs_ints;
     PyObject* cs_npy_ints = python_int_array(num_ints, &cs_ints);
     *cs_ints++ = num_cs;
@@ -1593,10 +1612,12 @@ Structure::session_info(PyObject* ints, PyObject* floats, PyObject* misc) const
     }
     if (PyList_Append(ints, cs_npy_ints) < 0)
         throw std::runtime_error("Couldn't append coord set ints to int list");
+    Py_DECREF(cs_npy_ints);
     float* cs_floats;
     PyObject* cs_npy_floats = python_float_array(num_floats, &cs_floats);
     if (PyList_Append(floats, cs_npy_floats) < 0)
         throw std::runtime_error("Couldn't append coord set floats to float list");
+    Py_DECREF(cs_npy_floats);
     for (auto cs: coord_sets()) {
         cs->session_save(&cs_ints, &cs_floats);
     }
@@ -1610,10 +1631,13 @@ Structure::session_info(PyObject* ints, PyObject* floats, PyObject* misc) const
     *int_array = _pb_mgr.session_info(&pb_ints, &pb_floats, &pb_misc);
     if (PyList_Append(ints, pb_ints) < 0)
         throw std::runtime_error("Couldn't append pseudobond ints to int list");
+    Py_DECREF(pb_ints);
     if (PyList_Append(floats, pb_floats) < 0)
         throw std::runtime_error("Couldn't append pseudobond floats to float list");
+    Py_DECREF(pb_floats);
     if (PyList_Append(misc, pb_misc) < 0)
         throw std::runtime_error("Couldn't append pseudobond misc info to misc list");
+    Py_DECREF(pb_misc);
 
     // residues
     int num_residues = residues().size();
@@ -1628,14 +1652,17 @@ Structure::session_info(PyObject* ints, PyObject* floats, PyObject* misc) const
         throw std::runtime_error("Cannot create Python list for residue misc info");
     if (PyList_Append(misc, res_misc) < 0)
         throw std::runtime_error("Couldn't append residue misc list to misc list");
+    Py_DECREF(res_misc);
     int* res_ints;
     PyObject* res_npy_ints = python_int_array(num_ints, &res_ints);
     if (PyList_Append(ints, res_npy_ints) < 0)
         throw std::runtime_error("Couldn't append residue ints to int list");
+    Py_DECREF(res_npy_ints);
     float* res_floats;
     PyObject* res_npy_floats = python_float_array(num_floats, &res_floats);
     if (PyList_Append(floats, res_npy_floats) < 0)
         throw std::runtime_error("Couldn't append residue floats to float list");
+    Py_DECREF(res_npy_floats);
     PyObject* py_res_names = PyList_New(num_residues);
     if (py_res_names == nullptr)
         throw std::runtime_error("Cannot create Python list for residue names");
@@ -1670,6 +1697,7 @@ Structure::session_info(PyObject* ints, PyObject* floats, PyObject* misc) const
         throw std::runtime_error("Cannot create Python list for chain misc info");
     if (PyList_Append(misc, chain_misc) < 0)
         throw std::runtime_error("Couldn't append chain misc list to misc list");
+    Py_DECREF(chain_misc);
     PyObject* chain_ids = PyList_New(num_chains);
     if (chain_ids == nullptr)
         throw std::runtime_error("Cannot create Python list for chain IDs");
@@ -1693,10 +1721,12 @@ Structure::session_info(PyObject* ints, PyObject* floats, PyObject* misc) const
     PyObject* chain_npy_ints = python_int_array(num_ints, &chain_ints);
     if (PyList_Append(ints, chain_npy_ints) < 0)
         throw std::runtime_error("Couldn't append chain ints to int list");
+    Py_DECREF(chain_npy_ints);
     float* chain_floats;
     PyObject* chain_npy_floats = python_float_array(num_floats, &chain_floats);
     if (PyList_Append(floats, chain_npy_floats) < 0)
         throw std::runtime_error("Couldn't append chain floats to float list");
+    Py_DECREF(chain_npy_floats);
     *chain_ints++ = num_chains;
     if (_chains != nullptr) {
         for (auto ch: *_chains) {
@@ -1951,6 +1981,8 @@ Structure::session_restore(int version, PyObject* ints, PyObject* floats, PyObje
     for (decltype(res_names)::size_type i = 0; i < res_names.size(); ++i) {
         auto& res_name = res_names[i];
         auto& chain_id = res_chain_ids[i];
+        if (version < 17 && chain_id.size() == 0) // empty chain IDs used to be legal; now they aren't
+            chain_id = " ";
         auto pos = *res_ints++;
         auto insert = *res_ints++;
         auto r = new_residue(res_name, chain_id, pos, insert);
@@ -2164,6 +2196,21 @@ Structure::set_position_matrix(double* pos)
     for (int i=0; i<12; ++i)
         *_pos++ = *pos++;
     change_tracker()->add_modified(this, this, ChangeTracker::REASON_SCENE_COORD);
+}
+
+void
+Structure::set_res_numbering(ResNumbering rn)
+{
+    if (rn == _res_numbering)
+        return;
+    _res_numbering = rn;
+    for (auto r: residues()) {
+        auto new_number = r->_numberings[rn];
+        if (new_number != r->number()) {
+            r->_number = new_number;
+            change_tracker()->add_modified(this, r, ChangeTracker::REASON_NUMBER);
+        }
+    }
 }
 
 void

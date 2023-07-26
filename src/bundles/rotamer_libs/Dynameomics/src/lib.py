@@ -18,14 +18,6 @@ from chimerax.rotamers import RotamerLibrary, RotamerParams, UnsupportedResTypeE
 class DynameomicsRotamerLibrary(RotamerLibrary):
 
     @property
-    def display_name(self):
-        return "Dynameomics"
-
-    @property
-    def description(self):
-        return "Dynameomics backbone-independent rotamer library -- March '12"
-
-    @property
     def citation(self):
         return """A.D. Scouras and V. Daggett (2011)
 The dynameomics rotamer library:

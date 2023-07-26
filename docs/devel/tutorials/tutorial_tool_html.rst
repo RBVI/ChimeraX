@@ -75,7 +75,7 @@ The files in the ``tut_tool_html`` folder are:
     - ``src`` - source code to Python package for bundle
         - ``__init__.py`` - package initializer and interface to ChimeraX
         - ``tool.py`` - source code to implement the ``Tutorial (HTML)`` tool
-        - ``docs/users/commands/tutorial.html`` - help file describing
+        - ``docs/user/commands/tutorial.html`` - help file describing
           the graphical tool
 
 The file contents are shown below.

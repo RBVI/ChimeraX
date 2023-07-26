@@ -54,8 +54,8 @@ private:
     ResToPos  _res_to_pos;
 
 public:
-    Sequence*  aseq;
-    StructureSeq*  mseq;
+    const Sequence*  aseq;
+    const StructureSeq*  mseq;
     Residue*&  operator[](StructureSeq::SeqPos pos) { return _pos_to_res[pos]; }
     StructureSeq::SeqPos&  operator[](Residue* r) { return _res_to_pos[r]; }
     const PosToRes&  pos_to_res() const { return _pos_to_res; }

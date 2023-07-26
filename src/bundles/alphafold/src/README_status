@@ -1,0 +1,26 @@
+The files in this directory on server plato are to handle updates to web services.
+
+Directory: /usr/local/projects/chimerax/www/data/status/
+URL: https://www.rbvi.ucsf.edu/chimerax/data/status/xxx.html
+
+AlphaFold prediction Colab broken
+---------------------------------
+The presence of the following files
+
+alphafold21.html   (Dec 2021)
+alphafold_v2.html  (Oct 2021)
+alphafold_v1.html  (Sep 2021)
+
+will cause ChimeraX to present the html as an error message and not run AlphaFold.  Th\
+is is to handle changes to Google Colab that cause the ChimeraX IPython notebooks alph\
+fold_predict_colab.py or alphafold21_predict_colab.py to no longer function.
+
+AlphaFold database version
+--------------------------
+To handle updates of the EBI AlphaFold database version this file
+
+alphafold_database.json
+
+lists the URL to fetch AlphaFold models and the version of the database ChimeraX shoul\
+d use and how often ChimeraX should check for new versions.
+

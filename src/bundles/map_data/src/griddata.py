@@ -138,7 +138,11 @@ class GridData:
 
     self.update_transform()
 
-    
+
+  # Intended to be abstract; should be defined in subclasses of GridData
+  def show_info(self):
+    pass
+
   # ---------------------------------------------------------------------------
   # Return dictionary of options for GridData constructor used to initialize
   # a new GridData.  Keyword options replace the specified settings.

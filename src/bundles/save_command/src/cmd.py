@@ -35,7 +35,7 @@ def cmd_save(session, file_name, rest_of_line, *, log=True):
     try:
         from .manager import NoSaverError, SaverNotInstalledError
         mgr = session.save_command
-        data_format = file_format(session, file_name, format_name)
+        data_format = file_format(session, file_name, format_name, True, False)
         try:
             provider_args = mgr.save_args(data_format)
         except SaverNotInstalledError as e:
@@ -76,18 +76,19 @@ def cmd_save(session, file_name, rest_of_line, *, log=True):
 
 def provider_save(session, file_name, format=None, **provider_kw):
     mgr = session.save_command
-    data_format = file_format(session, file_name, format)
+    data_format = file_format(session, file_name, format, False, True)
     provider_info = mgr.provider_info(data_format)
     path = _get_path(file_name, provider_info.compression_okay)
 
     # TODO: The following line does a graphics update so that if the save command is
     # exporting data in a script (e.g. scene export) the graphics is up to date.  Does
     # not seem like the ideal solution to put this update here.
-    session.update_loop.update_graphics_now()
+    if data_format.category == "Generic 3D objects":
+        session.update_loop.update_graphics_now()
     try:
-        provider_info.bundle_info.run_provider(session, provider_info.format_name,
-            mgr).save(session, path, **provider_kw)
-    except (IOError, PermissionError) as e:
+        saver_info = provider_info.bundle_info.run_provider(session, provider_info.format_name, mgr)
+        saver_info.save(session, path, **provider_kw)
+    except (IOError, PermissionError, OSError) as e:
         raise UserError("Cannot save '%s': %s" % (file_name, e))
 
     # remember in file history if appropriate
@@ -97,7 +98,7 @@ def provider_save(session, file_name, format=None, **provider_kw):
         pass
     else:
         from os.path import isfile
-        if data_format.category != "Image" and isfile(path):
+        if saver_info.in_file_history and isfile(path):
             from chimerax.core.filehistory import remember_file
             remember_file(session, path, data_format.nicknames[0],
                 provider_kw.get('models', 'all models'), file_saved=True)
@@ -118,7 +119,7 @@ def _get_path(file_name, compression_okay):
                 " '%s' implies compression" % file_name)
     return expanded
 
-def file_format(session, file_name, format_name):
+def file_format(session, file_name, format_name, clear_before, clear_after):
     if format_name:
         try:
             return session.data_formats[format_name]
@@ -127,7 +128,8 @@ def file_format(session, file_name, format_name):
 
     from chimerax.data_formats import NoFormatError
     try:
-        return session.data_formats.save_format_from_file_name(file_name)
+        return session.data_formats.save_format_from_file_name(file_name, clear_cache_before=clear_before,
+            cache_user_responses=True, clear_cache_after=clear_after)
     except NoFormatError as e:
         raise UserError(str(e))
 

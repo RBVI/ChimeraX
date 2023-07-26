@@ -28,7 +28,8 @@ class OpenInputArg(OpenFileNamesArg):
 import os.path
 def likely_pdb_id(text, format_name):
     return not exists_locally(text, format_name) \
-        and len(text) == 4 and text[0].isdigit() and text[1:].isalnum()
+        and ((len(text) == 4 and text[0].isdigit() and text[1:].isalnum())
+            or (len(text) == 8 and text[:5].isdigit() and text[5:].isalnum()))
 
 def exists_locally(text, format):
     # does that name exist on the file system, and if it does but has no suffix, is there a format?
@@ -72,7 +73,7 @@ def cmd_open(session, file_names, rest_of_line, *, log=True, return_json=False):
             except NoOpenerError as e:
                 raise LimitationError(str(e))
         else:
-            data_format = file_format(session, files[0], format_name)
+            data_format = file_format(session, files[0], format_name, True, False)
             if data_format is None:
                 # let provider_open raise the error, which will show the command
                 provider_args = {}
@@ -123,12 +124,12 @@ def cmd_open(session, file_names, rest_of_line, *, log=True, return_json=False):
         return JSONResult(JSONEncoder().encode(open_data), models)
     return models
 
-def provider_open(session, names, format=None, from_database=None, ignore_cache=False,
-        name=None, _return_status=False, _add_models=True, log_errors=True, **provider_kw):
+def provider_open(session, names, format=None, from_database=None, ignore_cache=False, name=None,
+        _return_status=False, _add_models=True, _request_file_history=False, log_errors=True, **provider_kw):
     mgr = session.open_command
     # since the "file names" may be globs, need to preprocess them...
     fetches, file_names = fetches_vs_files(mgr, names, format, from_database)
-    file_infos = [FileInfo(session, fn, format) for fn in file_names]
+    file_infos = [FileInfo(session, fn, format, False, fn is file_names[-1]) for fn in file_names]
     formats = set([fi.data_format for fi in file_infos])
     databases = set([f[1:] for f in fetches])
     homogeneous = len(formats) +  len(databases) == 1
@@ -139,11 +140,14 @@ def provider_open(session, names, format=None, from_database=None, ignore_cache=
     opened_models = []
     ungrouped_models = []
     statuses = []
+    from chimerax.atomic import Structure
     if homogeneous:
         data_format = formats.pop() if formats else None
         database_name, format = databases.pop() if databases else (None, format)
         if database_name:
-            fetcher_info, default_format_name = _fetch_info(mgr, database_name, format)
+            fetcher_info, default_format_name, pregrouped_structures = _fetch_info(
+                mgr, database_name, format)
+            in_file_history = fetcher_info.in_file_history
             for ident, database_name, format_name in fetches:
                 if format_name is None:
                     format_name = default_format_name
@@ -154,11 +158,17 @@ def provider_open(session, names, format=None, from_database=None, ignore_cache=
                     statuses.append(status)
                 if models:
                     opened_models.append(name_and_group_models(models, name, [ident]))
-                    ungrouped_models.extend(models)
+                    if pregrouped_structures:
+                        for model in models:
+                            ungrouped_models.extend([m for m in model.all_models()
+                                if isinstance(m, Structure)])
+                    else:
+                        ungrouped_models.extend(models)
         else:
             opener_info = mgr.opener_info(data_format)
             if opener_info is None:
                 raise NotImplementedError("Don't know how to open uninstalled format %s" % data_format.name)
+            in_file_history = opener_info.in_file_history
             provider_info = mgr.provider_info(data_format)
             if provider_info.batch:
                 paths = [_get_path(mgr, fi.file_name, provider_info.check_path)
@@ -169,29 +179,56 @@ def provider_open(session, names, format=None, from_database=None, ignore_cache=
                     statuses.append(status)
                 if models:
                     opened_models.append(name_and_group_models(models, name, paths))
-                    ungrouped_models.extend(models)
+                    if provider_info.pregrouped_structures:
+                        for model in models:
+                            ungrouped_models.extend([m for m in model.all_models()
+                                if isinstance(m, Structure)])
+                    else:
+                        ungrouped_models.extend(models)
             else:
                 for fi in file_infos:
                     if provider_info.want_path:
                         data = _get_path(mgr, fi.file_name, provider_info.check_path)
                     else:
                         data = _get_stream(mgr, fi.file_name, data_format.encoding)
-                    models, status = collated_open(session, None, [data], data_format, _add_models,
-                        log_errors, opener_info.open, (session, data,
-                        name or model_name_from_path(fi.file_name)), provider_kw)
+                    try:
+                        models, status = collated_open(session, None, [data], data_format, _add_models,
+                            log_errors, opener_info.open, (session, data,
+                            name or model_name_from_path(fi.file_name)), provider_kw)
+                    except UnicodeDecodeError:
+                        if not provider_info.want_path and data_format.encoding == "utf-8":
+                            # try utf-16/32 (see #8746)
+                            for encoding in ['utf-16', 'utf-32']:
+                                data.close()
+                                try:
+                                    data = _get_stream(mgr, fi.file_name, encoding)
+                                    models, status = collated_open(session, None, [data], data_format,
+                                        _add_models, log_errors, opener_info.open, (session, data,
+                                        name or model_name_from_path(fi.file_name)), provider_kw)
+                                except UnicodeDecodeError:
+                                    continue
+                                break
+                            else:
+                                raise
+                        else:
+                            raise
                     if status:
                         statuses.append(status)
                     if models:
-                        opened_models.append(name_and_group_models(models, name,
-                            [fi.file_name]))
-                        ungrouped_models.extend(models)
+                        opened_models.append(name_and_group_models(models, name, [fi.file_name]))
+                        if provider_info.pregrouped_structures:
+                            for model in models:
+                                ungrouped_models.extend([m for m in model.all_models()
+                                    if isinstance(m, Structure)])
+                        else:
+                            ungrouped_models.extend(models)
     else:
         for fi in file_infos:
-
             opener_info = mgr.opener_info(fi.data_format)
             if opener_info is None:
                 raise NotImplementedError("Don't know how to fetch uninstalled format %s"
                     % fi.data_format.name)
+            in_file_history = opener_info.in_file_history
             provider_info = mgr.provider_info(fi.data_format)
             if provider_info.want_path:
                 data = _get_path(mgr, fi.file_name, provider_info.check_path)
@@ -203,9 +240,15 @@ def provider_open(session, names, format=None, from_database=None, ignore_cache=
                 statuses.append(status)
             if models:
                 opened_models.append(name_and_group_models(models, name, [fi.file_name]))
-                ungrouped_models.extend(models)
+                if provider_info.pregrouped_structures:
+                    for model in models:
+                        ungrouped_models.extend([m for m in model.all_models() if isinstance(m, Structure)])
+                else:
+                    ungrouped_models.extend(models)
         for ident, database_name, format_name in fetches:
-            fetcher_info, default_format_name = _fetch_info(mgr, database_name, format)
+            fetcher_info, default_format_name, pregrouped_structures = _fetch_info(
+                mgr, database_name, format)
+            in_file_history = fetcher_info.in_file_history
             if format_name is None:
                 format_name = default_format_name
             models, status = collated_open(session, database_name, ident, session.data_formats[format_name],
@@ -215,19 +258,19 @@ def provider_open(session, names, format=None, from_database=None, ignore_cache=
                 statuses.append(status)
             if models:
                 opened_models.append(name_and_group_models(models, name, [ident]))
-                ungrouped_models.extend(models)
+                if pregrouped_structures:
+                    for model in models:
+                        ungrouped_models.extend([m for m in model.all_models() if isinstance(m, Structure)])
+                else:
+                    ungrouped_models.extend(models)
     if opened_models and _add_models:
         session.models.add(opened_models)
-    if _add_models and len(names) == 1:
+    if (_add_models or _request_file_history) and len(names) == 1 and in_file_history:
         # TODO: Handle lists of file names in history
         from chimerax.core.filehistory import remember_file
         if fetches:
-            # Files opened in the help browser are done asynchronously and might have
-            # been misspelled and can't be deleted from file history.  So skip them.
-            if not statuses or not statuses[-1].endswith(" in browser"):
-                remember_file(session, names[0], session.data_formats[format_name].nicknames[0],
-                    opened_models or 'all models', database=database_name,
-                    open_options=provider_kw)
+            remember_file(session, names[0], session.data_formats[format_name].nicknames[0],
+                opened_models or 'all models', database=database_name, open_options=provider_kw)
         else:
             remember_file(session, names[0], file_infos[0].data_format.nicknames[0],
                 opened_models or 'all models', open_options=provider_kw)
@@ -257,7 +300,7 @@ def _fetch_info(mgr, database_name, default_format_name):
             raise UserError("No default format for database '%s'.  Possible formats are:"
                 " %s" % (database_name, commas(db_info.keys())))
     return (provider_info.bundle_info.run_provider(mgr.session, database_name, mgr),
-        default_format_name)
+        default_format_name, provider_info.pregrouped_structures)
 
 def _get_path(mgr, file_name, check_path, check_compression=True):
     from os.path import expanduser, expandvars, exists
@@ -276,7 +319,12 @@ def _get_path(mgr, file_name, check_path, check_compression=True):
 def _get_stream(mgr, file_name, encoding):
     path = _get_path(mgr, file_name, True, check_compression=False)
     from chimerax import io
-    return io.open_input(path, encoding)
+    try:
+        return io.open_input(path, encoding)
+    except IsADirectoryError:
+        raise UserError("'%s' is a folder, not a file" % path)
+    except (IOError, PermissionError) as e:
+        raise UserError("Cannot open '%s': %s" % (path, e))
 
 def fetches_vs_files(mgr, names, format_name, database_name):
     fetches = []
@@ -320,6 +368,7 @@ def fetch_info(mgr, file_arg, format_name, database_name):
         ident = file_arg
     else:
         return None
+    db_name = db_name.lower()
     from .manager import NoOpenerError
     try:
         db_formats = list(mgr.database_info(db_name).keys())
@@ -383,7 +432,7 @@ def model_name_from_path(path):
         name = basename(dirname(path))
     return name
 
-def file_format(session, file_name, format_name):
+def file_format(session, file_name, format_name, clear_before, clear_after):
     if format_name:
         try:
             return session.data_formats[format_name]
@@ -392,7 +441,8 @@ def file_format(session, file_name, format_name):
 
     from chimerax.data_formats import NoFormatError
     try:
-        return session.data_formats.open_format_from_file_name(file_name)
+        return session.data_formats.open_format_from_file_name(file_name, clear_cache_before=clear_before,
+            cache_user_responses=True, clear_cache_after=clear_after)
     except NoFormatError as e:
         return None
 
@@ -434,9 +484,9 @@ def collated_open(session, database_name, data, data_format, main_opener, log_er
     return remember_data_format()
 
 class FileInfo:
-    def __init__(self, session, file_name, format_name):
+    def __init__(self, session, file_name, format_name, clear_before, clear_after):
         self.file_name = file_name
-        self.data_format = file_format(session, file_name, format_name)
+        self.data_format = file_format(session, file_name, format_name, clear_before, clear_after)
         if self.data_format is None:
             from os.path import splitext
             from chimerax import io
@@ -592,7 +642,7 @@ def cmd_open_formats(session):
         else:
             session.logger.info(title)
             session.logger.info('File format, Short name(s), Suffixes:')
-        formats.sort(key = lambda f: f.name.lower())
+        formats.sort(key = lambda f: f.synopsis.lower())
         some_uninstalled = False
         for f in formats:
             bundle_info = session.open_command.provider_info(f).bundle_info
@@ -656,10 +706,11 @@ def cmd_open_formats(session):
         session.logger.info(msg, is_html=True)
 
 def format_names(session):
-    fmt_names = set([ fmt.nicknames[0] for fmt in session.open_command.open_data_formats ])
+    fmt_names = set([ nick for fmt in session.open_command.open_data_formats for nick in fmt.nicknames ])
     for db_name in session.open_command.database_names:
         for fmt_name in session.open_command.database_info(db_name).keys():
-            fmt_names.add(session.data_formats[fmt_name].nicknames[0])
+            for nick in session.data_formats[fmt_name].nicknames:
+                fmt_names.add(nick)
     return fmt_names
 
 _main_open_CmdDesc = None

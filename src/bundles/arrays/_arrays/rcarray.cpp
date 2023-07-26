@@ -286,6 +286,9 @@ Untyped_Array Untyped_Array::subarray(int axis, int64_t i_min, int64_t i_max)
 //
 bool Untyped_Array::is_contiguous() const
 {
+  if (size() == 0)
+    // Numpy 1.23 started using strides all 0 for 0-length arrays.  Bug #7384
+    return true;
   int64_t contig_stride = 1;
   for (int a = dim-1 ; a >= 0 ; contig_stride *= size(a), --a)
     if (stride_size[a] != contig_stride)

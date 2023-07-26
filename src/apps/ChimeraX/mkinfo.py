@@ -22,7 +22,7 @@ import os
 import sys
 import plistlib
 import datetime
-from distlib.version import NormalizedVersion as Version
+from packaging.version import Version
 from chimerax.core import configfile
 
 configfile.only_use_defaults = True
@@ -109,6 +109,7 @@ def dump_format(f):
 if 'session' in locals() or 'session' in globals():
     formats = session.open_command.open_data_formats  # NOQA
     chimera_types = [f.name for f in formats if f.name.startswith('Chimera')]
+# TODO: Dead code?
 else:
     sys.path.insert(0, '')
     from ChimeraX_main import init
@@ -121,7 +122,7 @@ else:
 year = datetime.datetime.now().year
 
 # extract chimerax.core version
-f = open('../../core/Makefile')
+f = open('../../bundles/core/Makefile')
 for line in f.readlines():
     if line.startswith('BUNDLE_VERSION'):
         break
@@ -130,7 +131,7 @@ else:
     raise SystemExit(1)
 
 version = line.split()[2]
-epoch, release, *_ = Version(version).parse(version)
+release = Version(version).release
 if len(release) == 1:
     release += (0,)
 if len(release) < 4:

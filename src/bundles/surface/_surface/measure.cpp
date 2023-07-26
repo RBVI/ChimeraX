@@ -36,7 +36,6 @@ static float enclosed_volume(FArray &varray, const IArray &tarray,
 			     int *hole_count);
 static float tetrahedron_signed_volume(float v0[3], float v1[3], float v2[3],
 				       float v3[3]);
-static bool is_surface_closed(const IArray &tarray);
 static Edge_Set *boundary_edge_set(const IArray &tarray);
 static Vertex_Loops *boundary_loops(const IArray &tarray);
 static float cap_volume(float *v, const Vertex_Loops &vloops);

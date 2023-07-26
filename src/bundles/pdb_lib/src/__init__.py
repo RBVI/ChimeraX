@@ -10,7 +10,18 @@
 # including partial copies, of the software or any revisions
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
+import os
 
+def path_to_src() -> str:
+    return os.path.dirname(__file__)
+
+def get_lib() -> str:
+    return os.path.join(path_to_src(), 'lib')
+
+def get_include() -> str:
+    return os.path.join(path_to_src(), 'include')
+
+import chimerax.atomic_lib
 from chimerax.core.toolshed import BundleAPI
 
 class _PdbLibAPI(BundleAPI):

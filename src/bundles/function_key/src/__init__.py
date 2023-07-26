@@ -22,12 +22,12 @@ class _FunctionKeyBundleAPI(BundleAPI):
             return
         def fkey_press(session, key):
             from Qt.QtCore import Qt
-            key_num = key - Qt.Key_F1 + 1
+            key_num = key - Qt.Key.Key_F1 + 1
             from . import fkey
             fkey.function_key_pressed(session, key_num)
 
         from Qt.QtCore import Qt
-        for k in range(Qt.Key_F1, Qt.Key_F15):
+        for k in range(Qt.Key.Key_F1, Qt.Key.Key_F15):
             session.ui.intercept_key(k, fkey_press)
 
     @staticmethod

@@ -13,7 +13,6 @@
 
 # ensure C++ shared libs are linkable by us
 import chimerax.atomic_lib
-import chimerax.atom_search_lib
 
 from chimerax.core.toolshed import BundleAPI
 

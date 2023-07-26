@@ -33,16 +33,20 @@ resname_remap = { 'NHE': 'NH2' }
 for na in "ACGU":
     for suffix in ('', '3', '5', 'N'):
         resname_remap[na+suffix] = "R"+na+suffix
-heavy_synonyms = {'op1': ['o1p'], 'op2': ['o2p'], 'op3': ['o3p'],
-    'c7': ['c5m'], 'o': ['ot1'], 'oxt': ['ot2']}
+heavy_synonyms = {'op1': ['o1p'], 'op2': ['o2p'], 'op3': ['o3p'], 'c7': ['c5m']}
+cterm_heavy_synonyms = {'o': ['ot1', '1oct'], 'oxt': ['ot2', '2oct']}
 def get_heavy_synonyms(resid, heavy):
     if resid.endswith('MET') and heavy == 'sd':
         # so MSE also works
         return ['se']
+    if resid.endswith('ILE') and heavy == 'cd1':
+        # non-standard variant name
+        return ['cd']
+    if len(resid) == 4 and resid[0] == 'C':
+        return cterm_heavy_synonyms.get(heavy, [])
     return heavy_synonyms.get(heavy, [])
 
-heavy_data = {}
-hyd_data = {}
+from .5p_data import heavy_data, hyd_data
 for lib in sys.argv[1:]:
     f = open(lib, "r")
     seen = set()

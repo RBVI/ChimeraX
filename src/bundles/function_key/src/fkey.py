@@ -39,7 +39,8 @@ def functionkey(session, key_name = None, command = None):
         session.logger.status(msg, log = True)
         return
 
-    _set_function_key_command(session, key_num, command)
+    cmd = None if command == 'none' else command
+    _set_function_key_command(session, key_num, cmd)
 
 from chimerax.core.commands import Annotation
 class CommandArg(Annotation):
@@ -74,7 +75,10 @@ def _set_function_key_command(session, key_num, command):
     settings = _function_key_settings(session)
     fkc = settings.function_key_commands
     d = fkc.copy()	# Need to make a copy or Settings does not save new value.
-    d[key_num] = command
+    if command is None:
+        del d[key_num]
+    else:
+        d[key_num] = command
     settings.function_key_commands = d
     settings.save()
 

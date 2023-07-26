@@ -60,6 +60,7 @@ def _fetch_pdbe_assemblies(session, pdb_id, *,
                                max_assemblies=max_assemblies,
                                ignore_cache=ignore_cache,
                                transmit_compressed = False,  # PDBe assemblies are twice gzip compressed (July 2020)
+                               format="mmcif", # disambiguate from small-molecule .cif
                                **kw)
     return models
 

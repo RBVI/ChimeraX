@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ChimeraX"
+license = { text = "Free for non-commercial use" }
+authors= [{name = "UCSF RBVI", email="chimerax@cgl.ucsf.edu"}]
+description = "Analysis and visualization of molecular structures and 3D microscopy"
+dependencies = [
+  NO_GUI_DEPENDENCIES
+]
+classifiers = [
+    'Development Status :: 5 - Production/Stable',
+    'License :: Other/Proprietary License',
+    'Intended Audience :: Science/Research',
+    'Programming Language :: Python :: 3.9',
+]
+dynamic = ["version"]
+
+[project.urls]
+Home = "https://www.rbvi.ucsf.edu/chimerax/"
+
+[tool.setuptools.dynamic]
+version = { attr = "chimerax.core.buildinfo.version" }

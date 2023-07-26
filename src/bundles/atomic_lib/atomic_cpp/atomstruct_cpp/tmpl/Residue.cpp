@@ -42,7 +42,8 @@ Residue::template_assign(void (*assign_func)(Atom *, const char *),
 }
 #endif
 
-// returns atoms that received assignments from the template.
+// returns atoms that RECEIVED assignments from the template.  Note that that is different
+// from Residue::template_assign in the parent directory
 // can throw exceptions if:
 //     template syntax error: TA_TemplateSyntax
 //    no template found: TA_NoTemplate

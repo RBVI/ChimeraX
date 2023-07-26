@@ -65,34 +65,42 @@ class SelectMouseMode(MouseMode):
         entries = []
         dangerous_entries = []
         ses = self.session
+        import inspect
         for entry in SelectMouseMode._menu_entry_info:
-            if entry.criteria(ses):
+            # SelectContextMenuAction methods used to only take session arg, so subclasses of old
+            # definition might expect only session arg, therefore inspect the callable
+            sig = inspect.signature(entry.criteria)
+            args = (ses,) if len(sig.parameters) == 1 else (ses, event)
+            if entry.criteria(*args):
                 if entry.dangerous:
-                    dangerous_entries.append(entry)
+                    dangerous_entries.append((entry, args))
                 else:
-                    entries.append(entry)
-        entries.sort(key = lambda e: e.label(ses))
-        dangerous_entries.sort(key = lambda e: e.label(ses))
-        from Qt.QtWidgets import QMenu, QAction
+                    entries.append((entry, args))
+        entries.sort(key = lambda e: e[0].label(*e[1]))
+        dangerous_entries.sort(key = lambda e: e[0].label(*e[1]))
+        from Qt.QtWidgets import QMenu
+        from Qt.QtGui import QAction
         menu = QMenu(ses.ui.main_window)
         actions = []
         all_entries = entries
         if dangerous_entries:
-            all_entries = all_entries + [None] + dangerous_entries
+            all_entries = all_entries + [(None, None)] + dangerous_entries
         if all_entries:
-            for entry in all_entries:
+            for entry, args in all_entries:
                 if entry is None:
                     menu.addSeparator()
                     continue
-                action = QAction(entry.label(ses))
-                action.triggered.connect(lambda *, cb=entry.callback, sess=ses: cb(sess))
+                action = QAction(entry.label(*args))
+                action.triggered.connect(lambda *, cb=entry.callback, args=args: cb(*args))
                 menu.addAction(action)
                 actions.append(action) # keep reference
         else:
             menu.addAction("No applicable actions")
         # this will prevent atom-spec balloons from showing up
-        menu.exec_(event._event.globalPos())
-
+        from Qt.QtCore import QPoint
+        p = QPoint(*event.global_position())
+        ses.ui.post_context_menu(menu, p)
+        
     @staticmethod
     def register_menu_entry(menu_entry):
         '''Register a context-menu entry shown when double-clicking in select mode.
@@ -153,16 +161,16 @@ class SelectMouseMode(MouseMode):
 
 class SelectContextMenuAction:
     '''Methods implementing a context-menu entry shown when double-clicking in select mode.'''
-    def label(self, session):
+    def label(self, session, event):
         '''Returns the text of the menu entry.'''
         return 'unknown'
-    def criteria(self, session):
+    def criteria(self, session, event):
         '''
         Return a boolean that indicates whether the menu should include this entry
         (usually based on the current contents of the selection).
         '''
         return False
-    def callback(self, session):
+    def callback(self, session, event):
         '''Perform the entry's action.'''
         pass
     dangerous = False
@@ -259,6 +267,7 @@ class MoveMouseMode(MouseMode):
         MouseMode.__init__(self, session)
         self.speed = 1
         self._z_rotate = False
+        self._independent_model_rotation = False  # Rotate each model about its center
         self._moved = False
 
         # Restrict rotation to this axis using coordinate system of first model.
@@ -364,6 +373,12 @@ class MoveMouseMode(MouseMode):
         if self._moving_atoms:
             from chimerax.geometry import rotation
             self._move_atoms(rotation(saxis, angle, center = self._atoms_center()))
+        elif self._independent_model_rotation:
+            for model in self.models():
+                self.view.rotate(saxis, angle, [model])
+            # Make sure rotation shown before another mouse event causes another rotation.
+            # Otherwise dozens of mouse events can be handled with no redrawing.
+            self.session.update_loop.update_graphics_now()
         else:
             self.view.rotate(saxis, angle, self.models())
 
@@ -450,7 +465,7 @@ class MoveMouseMode(MouseMode):
             self._starting_atom_scene_coords = self._atoms.scene_coords
         else:
             models = self.models()
-            self._starting_model_positions = None if models is None else [m.position for m in models]
+            self._starting_model_positions = None if models is None else [(m,m.position) for m in models]
         self._moved = False
 
     def _undo_save(self):
@@ -465,9 +480,11 @@ class MoveMouseMode(MouseMode):
             elif self._starting_model_positions is not None:
                 from chimerax.core.undo import UndoState
                 undo_state = UndoState('move models')
-                models = self.models()
+                smp = self._starting_model_positions
+                models = [m for m, pos in smp]
+                start_model_positions = [pos for m, pos in smp]
                 new_model_positions = [m.position for m in models]
-                undo_state.add(models, "position", self._starting_model_positions, new_model_positions,
+                undo_state.add(models, "position", start_model_positions, new_model_positions,
                                option='S')
                 self.session.undo.register(undo_state)
 
@@ -485,7 +502,7 @@ class MoveMouseMode(MouseMode):
 
     def _move_command(self):
         models = self.models()
-        if models:
+        if models and not self._independent_model_rotation:
             from chimerax.std_commands.view import model_positions_string
             cmd = 'view matrix models %s' % model_positions_string(models)
         else:
@@ -566,6 +583,27 @@ class RotateZSelectedModelsMouseMode(RotateSelectedModelsMouseMode):
         RotateSelectedModelsMouseMode.__init__(self, session)
         self._restrict_to_axis = (0,0,1)
         self._restrict_to_plane = (0,0,1)
+
+class RotateIndependentMouseMode(MoveMouseMode):
+    '''
+    Mouse mode to rotate each displayed model about its own center.
+    '''
+    name = 'rotate independent'
+    icon_file = None  # TODO: Make icon
+    mouse_action = 'rotate'
+    def __init__(self, session):
+        MoveMouseMode.__init__(self, session)
+        self._independent_model_rotation = True
+    def models(self):
+        models = [m for m in self.session.models.list()
+                  if m.visible and len(m.id) == 1]
+        if len(models) == 1:
+            # If we have one grouping model then tile the child models.
+            m = models[0]
+            from chimerax.core.models import Model
+            if m.empty_drawing() and type(m) is Model and len(m.child_models()) > 1:
+                models = m.child_models()
+        return models
 
 def top_selected(session):
     # Don't include parents of selected models.
@@ -648,6 +686,11 @@ class MovePickedModelsMouseMode(TranslateMouseMode):
         self._pick_model(pick)
         TranslateMouseMode.vr_press(self, event)
 
+    def vr_release(self, event):
+        # Virtual reality hand controller button release.
+        TranslateMouseMode.vr_release(self, event)
+        self._picked_models = None
+        
 class TranslateSelectedAtomsMouseMode(TranslateMouseMode):
     '''
     Mouse mode to translate selected atoms.
@@ -759,27 +802,61 @@ class CenterOfRotationMode(MouseMode):
 
     def mouse_down(self, event):
         MouseMode.mouse_down(self, event)
-        x,y = event.position()
-        view = self.session.main_view
-        pick = view.picked_object(x, y)
-        from chimerax.atomic import PickedResidue, PickedBond, PickedPseudobond
-        from chimerax.map import PickedMap
-        from chimerax.graphics import PickedTriangle
-        if hasattr(pick, 'atom'):
-            xyz = pick.atom.scene_coord
-        elif isinstance(pick, PickedResidue):
-            r = pick.residue
-            xyz = sum([a.scene_coord for a in r.atoms]) / r.num_atoms
-        elif isinstance(pick, PickedBond):
-            b = pick.bond
-            xyz = sum([a.scene_coord for a in b.atoms]) / 2
-        elif isinstance(pick, PickedPseudobond):
-            b = pick.pbond
-            xyz = sum([a.scene_coord for a in b.atoms]) / 2
-        elif isinstance(pick, (PickedMap, PickedTriangle)) and hasattr(pick, 'position'):
-            xyz = pick.position
-        else:
+        xyz = _picked_xyz(event, self.session)
+        if xyz is not None:
+            from chimerax.std_commands import cofr
+            cofr.cofr(self.session, pivot=xyz)
+
+def _picked_xyz(event, session):
+    x,y = event.position()
+    view = session.main_view
+    pick = view.picked_object(x, y)
+    from chimerax.atomic import PickedResidue, PickedBond, PickedPseudobond
+    from chimerax.map import PickedMap
+    from chimerax.graphics import PickedTriangle
+    if hasattr(pick, 'atom'):
+        xyz = pick.atom.scene_coord
+    elif isinstance(pick, PickedResidue):
+        r = pick.residue
+        xyz = sum([a.scene_coord for a in r.atoms]) / r.num_atoms
+    elif isinstance(pick, PickedBond):
+        b = pick.bond
+        xyz = sum([a.scene_coord for a in b.atoms]) / 2
+    elif isinstance(pick, PickedPseudobond):
+        b = pick.pbond
+        xyz = sum([a.scene_coord for a in b.atoms]) / 2
+    elif isinstance(pick, (PickedMap, PickedTriangle)) and hasattr(pick, 'position'):
+        xyz = pick.position
+    else:
+        xyz = None
+    return xyz
+
+class MoveToCenterMode(MouseMode):
+    '''
+    Clicking on an atom, bond, ribbon, pseudobond or volume surface
+    centers the view on that point and sets the center of rotation at that position.
+    '''
+    name = 'center'
+
+    frames = 10		# Animate motion over this number of frames
+    
+    def mouse_down(self, event):
+        MouseMode.mouse_down(self, event)
+        xyz = _picked_xyz(event, self.session)
+        if xyz is None:
             return
+
+        # Move camera so it is centered on picked point.
+        c = self.session.main_view.camera
+        cx,cy,cz = c.position.inverse() * xyz
+        steps = self.frames
+        from chimerax.core.commands import Axis
+        mxy = (-cx/steps, -cy/steps, 0)
+        axis = Axis(coords = mxy)
+        from chimerax.std_commands.move import move
+        move(self.session, axis, frames = steps)
+
+        # Set center of rotation
         from chimerax.std_commands import cofr
         cofr.cofr(self.session, pivot=xyz)
 
@@ -1047,19 +1124,21 @@ def standard_mouse_mode_classes():
         SelectToggleMouseMode,
         RotateMouseMode,
         RotateAndSelectMouseMode,
+        RotateSelectedModelsMouseMode,
+        RotateZSelectedModelsMouseMode,
+        RotateSelectedAtomsMouseMode,
+        RotateIndependentMouseMode,
         TranslateMouseMode,
-        ZoomMouseMode,
         TranslateSelectedModelsMouseMode,
         TranslateXYSelectedModelsMouseMode,
         MovePickedModelsMouseMode,
         TranslateSelectedAtomsMouseMode,
-        RotateSelectedModelsMouseMode,
-        RotateZSelectedModelsMouseMode,
-        RotateSelectedAtomsMouseMode,
+        ZoomMouseMode,
         ClipMouseMode,
         ClipRotateMouseMode,
         ObjectIdMouseMode,
         CenterOfRotationMode,
+        MoveToCenterMode,
         SwipeAsScrollMouseMode,
         NullMouseMode,
     ]

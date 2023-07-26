@@ -42,7 +42,7 @@ class SaveManager(ProviderManager):
         bundle_name = _readable_bundle_name(bundle_info)
         if kw:
             logger.warning("Save-command provider '%s' supplied unknown keywords in"
-                " provider description: %s" % (name, repr(kw)))
+                " provider description: %s" % (bundle_name, repr(kw)))
         try:
             data_format = self.session.data_formats[format_name]
         except KeyError:

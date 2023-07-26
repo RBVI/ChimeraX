@@ -19,10 +19,6 @@ from chimerax.rotamers import RotamerLibrary, RotamerParams, UnsupportedResTypeE
 class RichardsonBase(RotamerLibrary):
 
     @property
-    def description(self):
-        return "Richardson lab backbone-independent rotamer library"
-
-    @property
     def citation(self):
         return """SC Lovell, JM Word, JS Richardson and DC Richardson (2000)
 The penultimate rotamer library
@@ -70,18 +66,10 @@ Proteins: Structure Function and Genetics 40: 389-408."""
 
 class RichardsonCommonRotamerLibrary(RichardsonBase):
 
-    @property
-    def display_name(self):
-        return "Richardson (common-atom)"
-
     def rotamer_params(self, res_name, phi, psi, *, cis=False):
         return self._get_params(res_name, res_name, cis, _common_cache, "common.zip")
 
 class RichardsonModeRotamerLibrary(RichardsonBase):
-
-    @property
-    def display_name(self):
-        return "Richardson (mode)"
 
     def rotamer_params(self, res_name, phi, psi, *, cis=False):
         return self._get_params(res_name, res_name, cis, _mode_cache, "mode.zip")

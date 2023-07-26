@@ -61,7 +61,7 @@ class Plane(State):
         return numpy.array(list(self._normal) + [self._offset])
 
     def intersection(self, plane):
-        """Returns (origin, normal); throws PlaneNoIntersectionError if parallel"""
+        """Returns a line in the form (origin, vector); throws PlaneNoIntersectionError if parallel"""
 
         v = numpy.cross(self._normal, plane._normal)
         if sqlength(v) == 0.0:
@@ -76,6 +76,18 @@ class Plane(State):
         a = (s2 * n1n2dot - s1 * n2normsqr) / divisor
         b = (s1 * n1n2dot - s2 * n1normsqr) / divisor
         return a * self._normal + b * plane._normal, v
+
+    plane_intersection = intersection
+
+    def line_intersection(self, origin, direction, *, epsilon=1e-6):
+        # Cribbed from https://rosettacode.org/wiki/Find_the_intersection_of_a_line_with_a_plane
+        n_dot_d = self.normal.dot(direction)
+        if abs(n_dot_d) < epsilon:
+            raise PlaneNoIntersectionError("Line does not intersect plane or lies in plane")
+
+        w = origin - self.origin
+        si = -self.normal.dot(w) / n_dot_d
+        return w + si * direction + self.origin
 
     def nearest(self, pt):
         return pt - self._normal * self.distance(pt)

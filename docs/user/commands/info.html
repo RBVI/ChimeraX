@@ -26,6 +26,7 @@ class="clRight" title="User Guide Index"/></a>
 <h3><a href="../index.html#commands">Command</a>: info</h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>info</b> &nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
+[&nbsp;<a href="#saveFile"><b>saveFile</b></a>&nbsp;&nbsp;<i>file</i>&nbsp;]
 </h3>
 <p>
 The top-level <b>info</b> command shows information about the 
@@ -36,6 +37,15 @@ and includes the numbers of atoms, bonds, residues, and chains in an
 atomic model, the number of coordinate sets in a trajectory model, 
 and the size, voxel dimensions, value range, and current contour level(s) of a 
 <a href="../tools/volumeviewer.html">volume</a> model.
+</p><p>
+<a name="saveFile"></a>
+The <b>saveFile</b> option saves the information to a text file
+(instead of to the <a href="../tools/log.html"><b>Log</b></a>),
+where <i>file</i> is the output file pathname,
+enclosed in quotation marks if it includes spaces,
+or the word <a href="usageconventions.html#browse"><b>browse</b></a>
+to specify it interactively in a file browser window.
+</p><p>
 See also: 
 <a href="open.html"><b>open</b></a>,
 <a href="sym.html"><b>sym</b></a>,
@@ -43,6 +53,8 @@ See also:
 <a href="log.html#chains"><b>log chains</b></a>,
 <a href="setattr.html"><b>setattr</b></a>,
 <a href="volume.html#settings"><b>volume settings</b></a>,
+<a href="../modelinfo.html">model information</a>,
+<a href="save.html#attributes">save attribute values</a>,
 <a href="../formats/defattr.html">attribute assignment files</a>
 </p><p>
 Various subcommands of <b>info</b> report 
@@ -79,6 +91,7 @@ See also: <a href="setattr.html"><b>setattr</b></a>
 <a name="atoms"><b>info atoms</b></a>
 &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
 [&nbsp;<b>attribute</b>&nbsp;<i>attribute-name</i>&nbsp;]
+[&nbsp;<a href="#saveFile"><b>saveFile</b></a>&nbsp;&nbsp;<i>file</i>&nbsp;]
 <blockquote>
 Report values of an <a href="../attributes.html">attribute</a>
 of atoms.
@@ -90,12 +103,14 @@ can be listed with <a href="#atomattr"><b>info atomattr</b></a>.
 
 <a href="#top" class="nounder">&bull;</a>
 <a name="atomattr"><b>info atomattr</b></a>
+[&nbsp;<a href="#saveFile"><b>saveFile</b></a>&nbsp;&nbsp;<i>file</i>&nbsp;]
 <blockquote>
 List the names of atom <a href="../attributes.html">attributes</a>.
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
 <a name="bondattr"><b>info bondattr</b></a>
+[&nbsp;<a href="#saveFile"><b>saveFile</b></a>&nbsp;&nbsp;<i>file</i>&nbsp;]
 <blockquote>
 List the names of bond <a href="../attributes.html">attributes</a>.
 </blockquote>
@@ -104,6 +119,7 @@ List the names of bond <a href="../attributes.html">attributes</a>.
 <a name="residues"><b>info residues</b></a>
 &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
 [&nbsp;<b>attribute</b>&nbsp;<i>attribute-name</i>&nbsp;]
+[&nbsp;<a href="#saveFile"><b>saveFile</b></a>&nbsp;&nbsp;<i>file</i>&nbsp;]
 <blockquote>
 Report values of an <a href="../attributes.html">attribute</a>
 of residues.
@@ -118,6 +134,7 @@ index of a residue within its chain, starting with 0.
 
 <a href="#top" class="nounder">&bull;</a>
 <a name="resattr"><b>info resattr</b></a>
+[&nbsp;<a href="#saveFile"><b>saveFile</b></a>&nbsp;&nbsp;<i>file</i>&nbsp;]
 <blockquote>
 List the names of residue <a href="../attributes.html">attributes</a>.
 </blockquote>
@@ -126,6 +143,7 @@ List the names of residue <a href="../attributes.html">attributes</a>.
 <a name="chains"><b>info chains</b></a>
 &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
 [&nbsp;<b>attribute</b>&nbsp;<i>attribute-name</i>&nbsp;]
+[&nbsp;<a href="#saveFile"><b>saveFile</b></a>&nbsp;&nbsp;<i>file</i>&nbsp;]
 <blockquote>
 Report values of an <a href="../attributes.html">attribute</a>
 of chains.
@@ -137,6 +155,7 @@ If <b>attribute</b> is given, values of <i>attribute-name</i> are reported inste
 <a href="#top" class="nounder">&bull;</a>
 <a name="polymers"><b>info polymers</b></a>
 &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
+[&nbsp;<a href="#saveFile"><b>saveFile</b></a>&nbsp;&nbsp;<i>file</i>&nbsp;]
 <blockquote>
 Report the starting and ending residues of the
 physically connected chains containing the specified atoms.
@@ -147,6 +166,7 @@ physically connected chains containing the specified atoms.
 &nbsp;<a href="atomspec.html"><i>model-spec</i></a>&nbsp;
 [&nbsp;<b>type</b>&nbsp;<i>model-type</i>&nbsp;]
 [&nbsp;<b>attribute</b>&nbsp;<i>attribute-name</i>&nbsp;]
+[&nbsp;<a href="#saveFile"><b>saveFile</b></a>&nbsp;&nbsp;<i>file</i>&nbsp;]
 <blockquote>
 Report values of an <a href="../attributes.html">attribute</a>
 of the specified model(s), optionally restricted by model <b>type</b>.
@@ -160,6 +180,7 @@ values shown in the default report, without truncation.
 <a name="selection"><b>info selection</b></a>
 [&nbsp;<b>level</b>&nbsp;&nbsp;<i>level</i>&nbsp;]
 [&nbsp;<b>attribute</b>&nbsp;<i>attribute-name</i>&nbsp;]
+[&nbsp;<a href="#saveFile"><b>saveFile</b></a>&nbsp;&nbsp;<i>file</i>&nbsp;]
 <blockquote>
 Report <a href="../attributes.html">attribute</a>
 values for items that are currently
@@ -169,11 +190,13 @@ The <i>level</i> of reporting can be
 (atomic model), or <b>model</b> (any type of model).
 If <b>attribute</b> is given, values are reported for <i>attribute-name</i> 
 instead of the default attribute for the level.
+See also: <a href="save.html#pdb">save PDB</a>
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
 <a name="bounds"><b>info bounds</b></a>
 &nbsp;<a href="atomspec.html"><i>model-spec</i></a>
+[&nbsp;<a href="#saveFile"><b>saveFile</b></a>&nbsp;&nbsp;<i>file</i>&nbsp;]
 <blockquote>
 Report the bounds for the specified model(s), or if none are specified,
 the scene bounds. Bounds are reported as the coordinates of the
@@ -183,6 +206,7 @@ front lower left and the back upper right of a rectangular box.
 <a href="#top" class="nounder">&bull;</a>
 <a name="distmat"><b>info distmat</b></a>
 &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>
+[&nbsp;<a href="#saveFile"><b>saveFile</b></a>&nbsp;&nbsp;<i>file</i>&nbsp;]
 <blockquote>
 Report all pairwise distances among the specified atoms.
 The <a href="atomspec.html"><i>atom-spec</i></a> cannot be blank. 
@@ -197,6 +221,7 @@ with atoms in the order (if any) in which they were specified.
 [&nbsp;<b>all</b>&nbsp;|&nbsp;system&nbsp;|&nbsp;user
 [&nbsp;<b>all</b>&nbsp;|&nbsp;versioned&nbsp;|&nbsp;unversioned
 [&nbsp;cache&nbsp;|&nbsp;config&nbsp;|&nbsp;data&nbsp;|&nbsp;log&nbsp;|&nbsp;state&nbsp;]]]
+[&nbsp;<a href="#saveFile"><b>saveFile</b></a>&nbsp;&nbsp;<i>file</i>&nbsp;]
 <blockquote>
 Report local paths for ChimeraX-related files; default is <b>all</b> files,
 but reporting can be limited to those which are <b>system</b> or
@@ -261,5 +286,5 @@ the given URL with the message encoded as parameter
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-July 2021</address>
+April 2023</address>
 </body></html>

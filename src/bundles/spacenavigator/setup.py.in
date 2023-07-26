@@ -13,10 +13,6 @@
 
 # import distutils.core
 # distutils.core.DEBUG = True
-# TODO: remove distlib monkey patch when the wheel package
-# implements PEP 426's pydist.json
-from distlib import metadata
-metadata.METADATA_FILENAME = "metadata.json"
 from setuptools import setup, Extension
 import os, os.path, sys
 

@@ -29,17 +29,42 @@ class View:
         self._render = None
         self._opengl_initialized = False
 
+        self.set_default_parameters()
+
+        # Graphics overlays, used for example for crossfade
+        self._overlays = []
+
+        # Redrawing
+        self.frame_number = 1
+        self.redraw_needed = True
+        self._time_graphics = False
+        self.update_lighting = True
+
+        self._drawing_manager = dm = _RedrawNeeded()
+        if trigger_set:
+            self.drawing.set_redraw_callback(dm)
+
+    def set_default_parameters(self):
         # Lights and material properties
         from .opengl import Lighting, Material, Silhouette
-        self._lighting = Lighting()
-        self._material = Material()
+        self.lighting = Lighting()
+        self.material = Material()
+        if hasattr(self, '_silhouette'):
+            self._silhouette.delete()
         self._silhouette = Silhouette()
 
         # Red, green, blue, opacity, 0-1 range.
         self._background_rgba = (0, 0, 0, 0)
         self._highlight_color = (0, 1, 0, 1)
         self._highlight_width = 1	# pixels
-        
+
+        # Set silhouette and highlight thickness for retina displays
+        r = self._render
+        if r and r.opengl_context:
+            pscale = r.opengl_context.pixel_scale()
+            self.silhouette.thickness = pscale
+            self.highlight_thickness = pscale
+
         # Create camera
         from .camera import MonoCamera
         self._camera = MonoCamera()
@@ -52,24 +77,11 @@ class View:
         self._near_far_pad = 0.01		# Extra near-far clip plane spacing.
         self._min_near_fraction = 0.001		# Minimum near distance, fraction of depth
 
-        # Graphics overlays, used for example for crossfade
-        self._overlays = []
-
         # Center of rotation
         from numpy import array, float32
         self._center_of_rotation = array((0, 0, 0), float32)
         self._update_center_of_rotation = False
         self._center_of_rotation_method = 'front center'
-
-        # Redrawing
-        self.frame_number = 1
-        self.redraw_needed = True
-        self._time_graphics = False
-        self.update_lighting = True
-
-        self._drawing_manager = dm = _RedrawNeeded()
-        if trigger_set:
-            self.drawing.set_redraw_callback(dm)
 
     def delete(self):
         r = self._render
@@ -195,6 +207,8 @@ class View:
         offscreen = r.offscreen if r.offscreen.enabled else None
         if highlight_drawings and r.outline.offscreen_outline_needed:
             offscreen = r.offscreen
+        if offscreen and r.current_framebuffer() is not r.default_framebuffer():
+            offscreen = None  # Already using an offscreen framebuffer
             
         silhouette = self.silhouette
 
@@ -303,6 +317,9 @@ class View:
     def draw_xor_rectangle(self, x1, y1, x2, y2, color):
         if not self._use_opengl():
             return	# OpenGL not available
+        if not self.render.front_buffer_valid:
+            self.draw(check_for_changes = False)
+            self._use_opengl()
         d = getattr(self, '_rectangle_drawing', None)
         from .drawing import draw_xor_rectangle
         self._rectangle_drawing = draw_xor_rectangle(self._render, x1, y1, x2, y2, color, d)
@@ -310,6 +327,9 @@ class View:
     @property
     def shape_changed(self):
         return self._drawing_manager.shape_changed
+
+    def clear_drawing_changes(self):
+        return self._drawing_manager.clear_changes()
 
     def get_background_color(self):
         return self._background_rgba
@@ -410,6 +430,23 @@ class View:
               transparent_background=False, camera=None, drawings=None):
         '''Capture an image of the current scene. A PIL image is returned.'''
 
+        rgba = self.image_rgba(width=width, height=height, supersample=supersample,
+                               transparent_background=transparent_background,
+                               camera=camera, drawings=drawings)
+        ncomp = 4 if transparent_background else 3
+        from PIL import Image
+        # Flip y-axis since PIL image has row 0 at top,
+        # opengl has row 0 at bottom.
+        pi = Image.fromarray(rgba[::-1, :, :ncomp])
+        return pi
+
+    def image_rgba(self, width=None, height=None, supersample=None,
+                   transparent_background=False, camera=None, drawings=None):
+        '''
+        Capture an image of the current scene.
+        A numpy uint8 rgba array is returned.
+        '''
+
         if not self._use_opengl():
             return	# OpenGL not available
 
@@ -417,7 +454,8 @@ class View:
 
         # TODO: For recording videos would be useful not to recreate framebuffer on every frame.
         from .opengl import Framebuffer
-        fb = Framebuffer('image capture', self.render.opengl_context, w, h, alpha = transparent_background)
+        fb = Framebuffer('image capture', self.render.opengl_context, w, h,
+                         alpha = transparent_background)
         if not fb.activate():
             fb.delete()
             return None         # Image size exceeds framebuffer limits
@@ -463,13 +501,8 @@ class View:
         fb.delete()
 
         delattr(r, 'image_save')
-        
-        ncomp = 4 if transparent_background else 3
-        from PIL import Image
-        # Flip y-axis since PIL image has row 0 at top,
-        # opengl has row 0 at bottom.
-        pi = Image.fromarray(rgba[::-1, :, :ncomp])
-        return pi
+
+        return rgba
 
     def frame_buffer_rgba(self):
         '''
@@ -1059,7 +1092,7 @@ class _RedrawNeeded:
     def __init__(self):
         self.redraw_needed = False
         self.shape_changed = True
-        self.shape_changed_drawings = set()
+        self.shadow_shape_change = False
         self.transparency_changed = False
         self.cached_drawing_bounds = None
         self.cached_any_part_highlighted = None
@@ -1068,7 +1101,8 @@ class _RedrawNeeded:
         self.redraw_needed = True
         if shape_changed:
             self.shape_changed = True
-            self.shape_changed_drawings.add(drawing)
+            if drawing.casts_shadows:
+                self.shadow_shape_change = True
             if not getattr(drawing, 'skip_bounds', False):
                 self.cached_drawing_bounds = None
         if transparency_changed:
@@ -1079,13 +1113,10 @@ class _RedrawNeeded:
     def shadows_changed(self):
         if self.transparency_changed:
             return True
-        for d in self.shape_changed_drawings:
-            if d.casts_shadows:
-                return True
-        return False
+        return self.shadow_shape_change
 
     def clear_changes(self):
         self.redraw_needed = False
         self.shape_changed = False
-        self.shape_changed_drawings.clear()
+        self.shadow_shape_change = False
         self.transparency_changed = False

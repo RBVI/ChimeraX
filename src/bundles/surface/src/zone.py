@@ -68,7 +68,7 @@ class ZoneMask(State):
         i1, i2 = find_close_points(v, self.points, self.distance)
 
         nv = len(v)
-        from numpy import zeros, bool, put, logical_and
+        from numpy import zeros, put, logical_and
         mask = zeros((nv,), bool)
         put(mask, i1, 1)
         tmask = logical_and(mask[t[:,0]], mask[t[:,1]])

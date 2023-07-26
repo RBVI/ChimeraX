@@ -23,7 +23,7 @@ class Slider(ToolInstance):
         ToolInstance.__init__(self, session, tool_name)
 
         self.value_range = value_range
-        self.loop = loop
+        self._loop = loop
         self.pause_frames = pause_frames
         self.pause_when_recording = pause_when_recording
         self._pause_count = 0
@@ -34,11 +34,13 @@ class Slider(ToolInstance):
         self._play_handler = None
         self.recording = False
         self._block_update = False
+        self._loop_once = False
 
         self.display_name = title	# Text shown on panel title-bar
 
         from chimerax.ui import MainToolWindow
         tw = MainToolWindow(self)
+        tw.fill_context_menu = self.fill_context_menu
         self.tool_window = tw
         parent = tw.ui_area
 
@@ -48,11 +50,13 @@ class Slider(ToolInstance):
         layout = QHBoxLayout()
         layout.setContentsMargins(0,0,0,0)
         layout.setSpacing(4)
+        self.value_name = value_name
         vl = QLabel(value_name)
         layout.addWidget(vl)
         self.value_box = vb = QSpinBox()
         vb.setRange(value_range[0], value_range[1])
         vb.valueChanged.connect(self.value_changed_cb)
+        vb.setWrapping(loop)
         layout.addWidget(vb)
         self.slider = sl = QSlider(Qt.Horizontal)
         sl.setRange(value_range[0], value_range[1])
@@ -62,6 +66,18 @@ class Slider(ToolInstance):
         pb.setCheckable(True)
         pb.pressed.connect(self.play_cb)
         layout.addWidget(pb)
+        tool_tip = "Number of frames to show before advancing to next image"
+        rl = QLabel()
+        from chimerax.ui.icons import get_icon_path
+        rl.setPixmap(QPixmap(get_icon_path("snail")).scaledToHeight(19))
+        rl.setToolTip(tool_tip)
+        layout.addWidget(rl)
+        self.rate_box = rb = QSpinBox()
+        rb.setMinimum(1)
+        rb.setValue(pause_frames)
+        rb.valueChanged.connect(self.rate_changed_cb)
+        rb.setToolTip(tool_tip)
+        layout.addWidget(rb)
         self.record_button = rb = QPushButton()
         rb.setCheckable(True)
         rb.clicked.connect(self.record_cb)
@@ -85,6 +101,9 @@ class Slider(ToolInstance):
         v = self.value_box.value()
         self.slider.setValue(v)
 
+    def rate_changed_cb(self, event):
+        self.pause_frames = self.rate_box.value()
+
     def slider_moved_cb(self, event):
         v = self.slider.value()
         self.value_box.setValue(v)
@@ -104,19 +123,21 @@ class Slider(ToolInstance):
         if self.recording:
             return
         if self._play_handler:
-            self.set_button_icon(play=True)
             self.stop()
         else:
-            self.set_button_icon(play=False)
             self.play()
 
     def play(self):
         if self._play_handler is None:
+            self.set_button_icon(play=False)
             t = self.session.triggers
             self._play_handler = t.add_handler('new frame', self.next_value_cb)
+            v = self._last_shown_value
+            self._loop_once = (not self.loop) and v is not None and v >= self.value_range[1]
 
     def stop(self):
         if self._play_handler:
+            self.set_button_icon(play=True)
             t = self.session.triggers
             t.remove_handler(self._play_handler)
             self._play_handler = None
@@ -135,9 +156,10 @@ class Slider(ToolInstance):
                 return
         v = self._last_shown_value
         if v is None or v >= self.value_range[1]:
-            if self.recording or not self.loop:
+            if self.recording or (not self.loop and not self._loop_once):
                 self.stop()
                 return
+            self._loop_once = False
             v = self.value_range[0]
         else:
             v += 1
@@ -179,13 +201,32 @@ class Slider(ToolInstance):
             run(ses, 'movie encode ~/Desktop/%s framerate %.1f'
                 % (self.movie_filename, self.movie_framerate))
 
-    # Override ToolInstance method
+    @property
+    def loop(self):
+        return self._loop
+
+    @loop.setter
+    def loop(self, loop):
+        if loop != self._loop:
+            self._loop = loop
+            self.value_box.setWrapping(loop)
+
+    # Override ToolInstance methods
     def delete(self):
         t = self.session.triggers
         if self._play_handler:
             t.remove_handler(self._play_handler)
             self._play_handler = None
         super().delete()
+
+    def fill_context_menu(self, menu, x, y):
+        from Qt.QtGui import QAction
+        action = QAction("Loop Playback", menu)
+        action.setCheckable(True)
+        action.setChecked(self.loop)
+        action.triggered.connect(lambda*, self=self, action=action:
+            setattr(self, 'loop', action.isChecked()))
+        menu.addAction(action)
 
     
 # -----------------------------------------------------------------------------
@@ -291,3 +332,104 @@ class LogSlider:
         from math import log10, pow
         value = vmin * pow(10, f * log10(vmax/vmin))
         return value
+
+from Qt.QtWidgets import QWidget
+from Qt.QtCore import Qt, Signal
+
+class FloatSlider(QWidget):
+
+    valueChanged = Signal(float)
+
+    def __init__(self, minimum, maximum, step, decimal_places, continuous_callback, *,
+            ignore_wheel_event=False, **kw):
+        from Qt.QtWidgets import QGridLayout, QSlider, QLabel, QSizePolicy
+        super().__init__()
+        layout = QGridLayout()
+        layout.setContentsMargins(0,0,0,0)
+        layout.setSpacing(0)
+        self.setLayout(layout)
+        if ignore_wheel_event:
+            class Slider(QSlider):
+                def wheelEvent(self, event):
+                    event.ignore()
+        else:
+            Slider = QSlider
+        self._slider = Slider(**kw)
+        self._slider.setOrientation(Qt.Horizontal)
+        self._slider.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self._minimum = minimum
+        self._maximum = maximum
+        self._continuous = continuous_callback
+        # slider are only integer, so have to do conversions
+        self._slider.setMinimum(0)
+        self._slider.setMaximum(5000)
+        int_step = max(1, int(5000 * step / (maximum - minimum)))
+        self._slider.setSingleStep(int_step)
+        layout.addWidget(self._slider, 0, 0, 1, 3)
+        # for word-wrapped text, set the alignment within the label widget itself (instead of the layout)
+        # so that the label is given the full width of the layout to work with, otherwise you get unneeded
+        # line wrapping
+        from chimerax.ui import shrink_font
+        self._left_text = QLabel()
+        self._left_text.setWordWrap(True)
+        self._left_text.setAlignment(Qt.AlignLeft | Qt.AlignTop)
+        shrink_font(self._left_text)
+        layout.addWidget(self._left_text, 1, 0)
+        self._value_text = QLabel()
+        self._value_text.setAlignment(Qt.AlignCenter | Qt.AlignTop)
+        layout.addWidget(self._value_text, 1, 1, alignment=Qt.AlignCenter | Qt.AlignTop)
+        self._right_text = QLabel()
+        self._right_text.setWordWrap(True)
+        self._right_text.setAlignment(Qt.AlignRight | Qt.AlignTop)
+        shrink_font(self._right_text)
+        layout.addWidget(self._right_text, 1, 2)
+        self._decimal_places = decimal_places
+        self._slider.valueChanged.connect(self._slider_value_changed)
+        self._slider.sliderReleased.connect(self._slider_released)
+        layout.setColumnStretch(0, 1)
+        layout.setColumnStretch(1, 1)
+        layout.setColumnStretch(2, 1)
+
+    def blockSignals(self, *args):
+        self._slider.blockSignals(*args)
+
+    def set_left_text(self, text):
+        self._left_text.setText(text)
+
+    def set_right_text(self, text):
+        self._right_text.setText(text)
+
+    def set_text(self, text):
+        self._value_text.setText(text)
+
+    def setValue(self, float_val):
+        fract = (float_val - self._minimum) / (self._maximum - self._minimum)
+        self._slider.setValue(int(5000 * fract + 0.5))
+        if self._slider.signalsBlocked():
+            self.set_text(self._value_to_text(float_val))
+
+    def special_value_shown(self):
+        # effectively always False, unlike a SpinBox, the option's value is always accurate
+        return False
+
+    def value(self):
+        return self._int_val_to_float(self._slider.value())
+
+    def _int_val_to_float(self, int_val):
+        fract = int_val / 5000
+        return (1-fract) * self._minimum + fract * self._maximum
+
+    def _slider_released(self):
+        if not self._continuous:
+            self.valueChanged.emit(self.value())
+
+    def _slider_value_changed(self, int_val):
+        float_val = self._int_val_to_float(int_val)
+        self._value_text.setText(self._value_to_text(float_val))
+        if self._continuous:
+            self.valueChanged.emit(float_val)
+
+    def _value_to_text(self, val):
+        std_text = "%.*f" % (self._decimal_places, val)
+        # for %.Xg, X is the total number of significant digits, both before and after the decimal
+        return "%.*g" % (len(std_text)-1, val)

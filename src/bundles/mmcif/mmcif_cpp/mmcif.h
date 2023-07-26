@@ -35,15 +35,15 @@ using atomstruct::ResName;
 using atomstruct::Bond;
 
 PyObject*   parse_mmCIF_file(const char* filename, PyObject* logger,
-                             bool coordsets, bool atomic);
+                             bool coordsets, bool atomic, bool ignore_styling);
 PyObject*   parse_mmCIF_file(const char* filename,
                              const std::vector<std::string> &extra_categories,
-                             PyObject* logger, bool coordsets, bool atomic);
+                             PyObject* logger, bool coordsets, bool atomic, bool ignore_styling);
 PyObject*   parse_mmCIF_buffer(const unsigned char* buffer, PyObject* logger,
-                               bool coordsets, bool atomic);
+                               bool coordsets, bool atomic, bool ignore_styling);
 PyObject*   parse_mmCIF_buffer(const unsigned char* buffer,
                              const std::vector<std::string> &extra_categories,
-                             PyObject* logger, bool coordsets, bool atomic);
+                             PyObject* logger, bool coordsets, bool atomic, bool ignore_styling);
 void        load_mmCIF_templates(const char* filename);
 void        set_Python_locate_function(PyObject* function);
 

@@ -393,6 +393,7 @@ class FitMapDialog(ToolInstance):
       return
 
     smap = self._simulated_map()
+    self._log_fitmap_command(fatoms, fmap, bmap, smap, opt_r, opt_t)
     if fatoms and smap is None:
       self._fit_atoms_in_map(fatoms, bmap, opt_r, opt_t)
     elif fmap:
@@ -543,6 +544,38 @@ class FitMapDialog(ToolInstance):
 
   # ---------------------------------------------------------------------------
   #
+  def _log_fitmap_command(self, fatoms, fmap, bmap, smap, opt_r, opt_t):
+    f = self._object_menu.value
+    fspec = 'sel' if f == 'selected atoms' else f.atomspec
+    mspec = bmap.atomspec
+    cmd = 'fitmap %s in %s' % (fspec, mspec)
+    opts = []
+    if smap:
+      opts.append('resolution %.5g' % self._simulate_resolution.value)
+    if smap or fmap:
+      mname = {'sum product':'overlap',
+                'correlation':'correlation',
+                'correlation about mean':'cam'}
+      metric = mname[self._metric()]
+      if metric != 'overlap':
+        opts.append('metric %s' % metric)
+      use_threshold = self._above_threshold.value
+      if not use_threshold:
+        opts.append('envelope false')
+    mwm = self._move_whole_molecules.value
+    if fatoms and not mwm:
+      opts.append('moveWholeMolecules false')
+    if not opt_r:
+      opts.append('rotate false')
+    if not opt_t:
+      opts.append('shift false')
+    if opts:
+      cmd += ' ' + ' '.join(opts)
+    from chimerax.core.commands import log_equivalent_command
+    log_equivalent_command(self.session, cmd)
+
+  # ---------------------------------------------------------------------------
+  #
   def _allow_halt(self, allow):
 
     if allow:
@@ -605,15 +638,10 @@ class FitMapDialog(ToolInstance):
 
     self._report_average(amv)
 
-    if log:
-      msg = 'Average map value = %.4g for %d atoms' % (amv, npts)
-      if not aoc is None:
+    msg = 'Average map value = %.4g for %d atoms' % (amv, npts)
+    if aoc is not None:
         msg += ', %d outside contour' % (aoc,)
-      self.session.logger.info(msg)
-
-    if not aoc is None:
-      msg = '%d of %d atoms outside contour' % (aoc, npts)
-    self.status(msg)
+    self.status(msg, log=log)
     
   # ---------------------------------------------------------------------------
   #

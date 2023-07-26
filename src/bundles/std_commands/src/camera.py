@@ -12,7 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 def camera(session, type=None, field_of_view=None,
-           eye_separation=None, pixel_eye_separation=None,
+           eye_separation=None, pixel_eye_separation=None, convergence=None,
            cube_pixels=1024):
     '''Change camera parameters.
 
@@ -61,6 +61,10 @@ def camera(session, type=None, field_of_view=None,
         elif type == 'ortho':
             w = view.camera.view_width(view.center_of_rotation)
             camera = graphics.OrthographicCamera(w)
+        elif type == 'crosseye':
+            camera = graphics.SplitStereoCamera(swap_eyes = True, convergence = 10, eye_separation_scene = 50)
+        elif type == 'walleye':
+            camera = graphics.SplitStereoCamera(convergence = -5)
         elif type == '360':
             camera = graphics.Mono360Camera(cube_face_size = cube_pixels)
         elif type == 'dome':
@@ -95,7 +99,7 @@ def camera(session, type=None, field_of_view=None,
         cam.eye_separation_scene = eye_separation
         cam.redraw_needed = True
     if pixel_eye_separation is not None:
-        if camera.name != 'stereo':
+        if cam.name != 'stereo':
             from chimerax.core.errors import UserError
             raise UserError('camera pixelEyeSeparation option only applies to stereo camera mode.')
         has_arg = True
@@ -104,7 +108,11 @@ def camera(session, type=None, field_of_view=None,
         b = view.drawing_bounds()
         if b:
             cam.set_focus_depth(b.center(), view.window_size[0])
-
+    if convergence is not None:
+        has_arg = True
+        cam.convergence = convergence
+        cam.redraw_needed = True
+        
     if not has_arg:
         lines = [
             'Camera parameters:',
@@ -120,6 +128,8 @@ def camera(session, type=None, field_of_view=None,
             lines.append('    eye separation in scene: %.5g' % cam.eye_separation_scene)
         if hasattr(cam, 'eye_separation_pixels'):
             lines.append('    eye separation in screen pixels: %.5g' % cam.eye_separation_pixels)
+        if hasattr(cam, 'convergence'):
+            lines.append('    convergence (degrees): %.5g' % cam.convergence)
         session.logger.info('\n'.join(lines))
 
         fields = ['%s camera' % cam.name]
@@ -130,12 +140,13 @@ def camera(session, type=None, field_of_view=None,
 
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register, FloatArg, EnumOf, IntArg
-    types = EnumOf(('mono', 'ortho', '360', 'dome', '360tb', '360sbs', 'stereo', 'sbs', 'tb'))
+    types = EnumOf(('mono', 'ortho', 'crosseye', 'walleye', '360', 'dome', '360tb', '360sbs', 'stereo', 'sbs', 'tb'))
     desc = CmdDesc(
         optional = [('type', types)],
         keyword = [('field_of_view', FloatArg),
                    ('eye_separation', FloatArg),
                    ('pixel_eye_separation', FloatArg),
+                   ('convergence', FloatArg),
                    ('cube_pixels', IntArg)],
         synopsis='adjust camera parameters'
     )

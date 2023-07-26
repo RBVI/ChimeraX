@@ -43,7 +43,7 @@ class MatrixValueStatistics:
   def __init__(self, matrix, bins = 10000, ignore_pad_value = None):
 
     matrices = matrix if isinstance(matrix, (list, tuple)) else [matrix]
-      
+
     # Determine minimum and maximum data values.
     from chimerax.map import _map
     if ignore_pad_value is None:
@@ -51,6 +51,12 @@ class MatrixValueStatistics:
     else:
       mm = [_map.minimum_and_maximum(m, ignore_pad_value=ignore_pad_value)
             for m in matrices]
+    if ignore_pad_value is not None:
+      for (mn,mx),m in zip(mm, matrices):
+        if mn > mx:
+          raise ValueError(f'Computing histogram of matrix {m.shape} '
+                           f'that contains only the pad value {ignore_pad_value}')
+        
     self.minimum = min(mn for mn,mx in mm)
     self.maximum = max(mx for mn,mx in mm)
 
@@ -63,15 +69,15 @@ class MatrixValueStatistics:
     # TODO: Should use 64 bit integer to avoid wrapping when counting
     #  values in density maps larger than 2 Gvoxels.  Currently C++ array
     #  parsing does not support 64-bit int.
-    from numpy import zeros, int32
-    counts = zeros((bins,), int32)
+    from numpy import zeros, float64
+    counts = zeros((bins,), float64)
     if ignore_pad_value is None:
       for m in matrices:
-        _map.bin_counts(m, bins_start, bins_end, counts)
+        _map.bin_counts_float64(m, bins_start, bins_end, counts)
     else:
       for m in matrices:
-        _map.bin_counts(m, bins_start, bins_end, counts,
-                        ignore_pad_value=ignore_pad_value)
+        _map.bin_counts_float64(m, bins_start, bins_end, counts,
+                                ignore_pad_value=ignore_pad_value)
     self.counts = counts
     self.bins = bins
     self.ccounts = None         # Cumulative counts

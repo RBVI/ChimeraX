@@ -27,7 +27,7 @@ Atomic Structures
 
 Commands and Tools
 
- * :class:`.Command` - user command
+ * :class:`.CommandInfo` - user command
  * :class:`.ToolInfo` - information about an available tool
  * :class:`.ToolInstance` - running tools
  * :class:`.Toolshed` - manages tool updates

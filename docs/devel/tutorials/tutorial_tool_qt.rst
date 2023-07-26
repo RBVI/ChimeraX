@@ -75,7 +75,7 @@ The files in the ``tut_tool_qt`` folder are:
     - ``src`` - source code to Python package for bundle
         - ``__init__.py`` - package initializer and interface to ChimeraX
         - ``tool.py`` - source code to implement the ``Tutorial (Qt)`` tool
-        - ``docs/users/commands/tutorial.html`` - help file describing
+        - ``docs/user/commands/tutorial.html`` - help file describing
           the graphical tool
 
 The file contents are shown below.
@@ -326,6 +326,34 @@ Some tools may use multiple windows (created via the :py:class:`~chimerax.ui.Mai
 the tool window will start out tabbed with the other window.
 
 
+A Useful Aside
+++++++++++++++
+
+In addition to the wealth of generic UI widgets provided by the Qt library, ChimeraX provides some
+special-purpose widgets useful for leveraging ChimeraX's capabilities easily.  They are:
+
+Data lists/menus
+    Used for choosing one or more models, structures, chains, etc.  Basic classes (:py:class:`~chimerax.ui.widgets.item_chooser.ModelListWidget`
+    *et al*.) described in :py:mod:`chimerax.ui.widgets.item_chooser`, and atomic-model specific classes in :py:mod:`chimerax.atomic.widgets`.  Can be extended to volumes
+    and other data types by using the :py:attr:`class_filter` contructor keyword.
+
+Remember-able options
+    The :ref:`chimera.ui.options <option_widgets>` module provides interface widgets for specifiying numbers,
+    strings, file names, passwords, colors, and more.  These options can interoperate with a
+    :py:class:`~chimerax.core.settings.Settings` object to remember those settings, and will react to changes to that Settings object
+    to always display the up-to-date value.  These options are designed to placed in "container"
+    classes (*e.g.* :py:class:`~chimerax.ui.options.containers.SettingsPanel`, also in the :py:mod:`~chimerax.ui.options` module) that
+    lay out the options into columns that align their labels and their value widgets.
+
+Python-data tables
+    The :ref:`chimera.ui.widgets <python_data_tables>` module provides an :py:class:`~chimerax.ui.widgets.item_table.ItemTable` class for showing Python objects as rows of a table and columns that show values derived from those objects (frequently attributes) as columns.
+    The table columns are sortable and table cells are optionally editable.
+    Balloon help can be shown for column headers and columns can be hidden/shown as needed.
+    A signal is emitted when the selection in the table changes so that other widgets in your
+    interface can be updated.  Querying the table for its current selection (:py:attr:`selected` attribute) will return the
+    Python objects corresponding to the selected rows rather than row numbers.
+
+
 .. _context-menu:
 
 Context Menu
@@ -552,7 +580,12 @@ current text
 
 Note that the :py:meth:`~chimerax.core.state.State.take_snapshot` method could return any type
 of data, but a dictionary is very flexible, in case additional state needs to be stored in later
-versions of the tool.
+versions of the tool.  In the rare event that you have to make a change to the data that is not
+backwards compatible with previous versions of the bundle, you will need to bump
+the ``maxSessionVersion`` number in the :ref:`BundleInfo <BundleInfo>` tag of your bundle's
+bundle_info.xml file.
+Similarly, if your bundle can no longer handle session data from old versions of your bundle, you
+would need to increase the ``minSessionVersion``.
 
 The `flags` argument of :py:meth:`~chimerax.core.state.State.take_snapshot` can be ignored.
 It is intended for use in the future to distinguish between snapshots saved for sessions vs. those

@@ -332,12 +332,48 @@ def save_fits(session, fits, path = None):
         path = base + '_fit%d' + suf
 
     from chimerax.pdb import save_pdb
+    deleted = 0
     for i, fit in enumerate(fits):
         p = path if len(fits) == 1 else path % (i+1)
         fit.place_models(session)
-        save_pdb(session, p, models = fit.fit_molecules(),
-                 rel_model = fit.volume)
+        models = fit.fit_molecules()
+        mfits = [m for m in models if not m.deleted]
+        deleted += len(models) - len(mfits)
+        if mfits:
+            save_pdb(session, p, models = mfits, rel_model = fit.volume)
+
+    if deleted:
+        session.logger.warning(f'{deleted} fit molecules were deleted and cannot be saved')
         
+# -----------------------------------------------------------------------------
+#
+def save_fit_positions_and_metrics(fit_list, path, delimiter = ' ', float_precision = 5):
+    lines = []
+    metrics = ('correlation', 'correlation about mean', 'overlap', 'average map value', 'points', 'atoms outside contour', 'clash', 'contour level', 'steps', 'shift', 'angle')
+    ntf = 1
+    for fit in fit_list:
+        ntf = len(fit.transforms)
+        values = []
+        for tf in fit.transforms:
+            (r00,r01,r02,t0),(r10,r11,r12,t1),(r20,r21,r22,t2) = tf.matrix
+            values.extend((r00,r01,r02,r10,r11,r12,r20,r21,r22,t0,t1,t2))
+        values.extend([fit.stats.get(attr, None) for attr in metrics])
+        if float_precision is not None:
+            format = f'%.{float_precision}g'
+            values =  [(format % v if isinstance(v, float) else v) for v in values]
+        lines.append(delimiter.join(str(v) for v in values))
+
+    tf_fields = ('Rxx','Rxy','Rxz','Ryx','Ryy','Ryz','Rzx','Rzy','Rzz','Tx','Ty','Tz')
+    headings = []
+    for i in range(ntf):
+        headings.extend(tf_fields)
+    headings.extend(metrics)
+    fields = delimiter.join(h.replace(' ','_') for h in headings)
+
+    text = fields + '\n' + '\n'.join(lines)
+    with open(path, 'w') as f:
+        f.write(text)
+    
 # -----------------------------------------------------------------------------
 #
 def fit_order(f):

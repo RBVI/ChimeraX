@@ -74,7 +74,7 @@ potential_at_points(PyObject*, PyObject* args)
     int64_t num_threads = num_cpus > 1 ? num_cpus : 1;
     // divvy up atoms evenly among the threads;
     // since we anticipate computations taking approximately the same time for every atom, no need
-    // to deal with the lock contention inherit with the threads grabbing from a global pool
+    // to deal with the lock contention inherent with the threads grabbing from a global pool
     num_threads = std::min(num_threads, n);
     std::vector<std::thread> threads;
     auto tp_ptr = tp_array;

@@ -199,7 +199,7 @@ bin_counts(PyObject *, PyObject *args, PyObject *keywds)
   if (seq.dimension() < 1 || seq.dimension() > 3)
     {
       PyErr_SetString(PyExc_TypeError,
-		      "minimum_and_maximum(): array must be 1, 2, or 3 dimensional");
+		      "bin_counts(): array must be 1, 2, or 3 dimensional");
       return NULL;
     }
 
@@ -211,6 +211,104 @@ bin_counts(PyObject *, PyObject *args, PyObject *keywds)
     }
 
   call_template_function(bin_counts, seq.value_type(), (seq, min, max, counts, ignore_pad_value));
+
+  return python_none();
+}
+
+// ----------------------------------------------------------------------------
+// Return a Numeric array of integers that counts the number of data values
+// in a series of bins.
+//
+template<class T>
+static void bin_counts_float64(const Reference_Counted_Array::Array<T> &seq,
+			       float min, float max, DArray &counts, double ignore_pad_value)
+{
+  int64_t bins = counts.size();
+  double *c = counts.values();
+
+  float range = max - min;
+  if (range == 0)
+    return;
+
+  T *data = seq.values();
+  float scale = bins / range;
+
+  int dim = seq.dimension();
+  int64_t m0 = 1, m1 = 1, m2 = 1;
+  int64_t s0 = 0, s1 = 0, s2 = 0;
+  if (dim == 1)
+    { m2 = seq.size(0); s2 = seq.stride(0); }
+  else if (dim == 2)
+    { s1 = seq.stride(0); s2 = seq.stride(1);
+      m1 = seq.size(0); m2 = seq.size(1); }
+  else if (dim == 3)
+    { s0 = seq.stride(0); s1 = seq.stride(1); s2 = seq.stride(2);
+      m0 = seq.size(0); m1 = seq.size(1); m2 = seq.size(2); }
+
+  if (ignore_pad_value == NO_PAD_VALUE)
+    {
+      int64_t i = 0;
+      for (int64_t i0 = 0 ; i0 < m0 ; ++i0, i += s0 - m1*s1)
+        for (int64_t i1 = 0 ; i1 < m1 ; ++i1, i += s1 - m2*s2)
+          for (int64_t i2 = 0 ; i2 < m2 ; ++i2, i += s2)
+            {
+              int64_t b = static_cast<int> (scale * (data[i] - min));
+              if (b >= 0 && b < bins)
+                c[b] += 1;
+            }
+    }
+  else
+    {
+      int64_t i = 0;
+      for (int64_t i0 = 0 ; i0 < m0 ; ++i0, i += s0 - m1*s1)
+        for (int64_t i1 = 0 ; i1 < m1 ; ++i1, i += s1 - m2*s2)
+          for (int64_t i2 = 0 ; i2 < m2 ; ++i2, i += s2)
+            {
+              double v = static_cast<double> (data[i]);
+              if (v == NO_PAD_VALUE)
+                continue;
+              int64_t b = static_cast<int> (scale * (v - min));
+              if (b >= 0 && b < bins)
+                c[b] += 1;
+            }
+    }
+}
+
+// ----------------------------------------------------------------------------
+// Return a Numeric array of integers that counts the number of data values
+// in a series of bins.
+//
+extern "C" PyObject *
+bin_counts_float64(PyObject *, PyObject *args, PyObject *keywds)
+{
+  Numeric_Array seq;
+  DArray counts;
+  float min, max;
+  double ignore_pad_value = NO_PAD_VALUE;
+  const char *kwlist[] = {"array", "min", "max", "counts", "ignore_pad_value", NULL};
+  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&ffO&|$d"),
+				   (char **)kwlist,
+				   parse_array, &seq,
+				   &min, &max,
+				   parse_writable_double_n_array, &counts,
+                                   &ignore_pad_value))
+    return NULL;
+
+  if (seq.dimension() < 1 || seq.dimension() > 3)
+    {
+      PyErr_SetString(PyExc_TypeError,
+		      "bin_counts_float64(): array must be 1, 2, or 3 dimensional");
+      return NULL;
+    }
+
+  if (!counts.is_contiguous())
+    {
+      PyErr_SetString(PyExc_TypeError,
+		      "bin_counts_float64(): output array must be contiguous");
+      return NULL;
+    }
+
+  call_template_function(bin_counts_float64, seq.value_type(), (seq, min, max, counts, ignore_pad_value));
 
   return python_none();
 }

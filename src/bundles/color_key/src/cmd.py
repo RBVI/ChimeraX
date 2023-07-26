@@ -17,7 +17,7 @@ from chimerax.core.errors import UserError
 def key_cmd(session, colors_and_labels=None, *, pos=None, size=None, font_size=None, bold=None, italic=None,
         color_treatment=None, justification=None, label_side=None, numeric_label_spacing=None,
         label_color=None, label_offset=None, font=None, border=None, border_color=None, border_width=None,
-        ticks=None, tick_length=None, tick_thickness=None):
+        show_tool=False, ticks=None, tick_length=None, tick_thickness=None):
     if colors_and_labels is not None:
         # list of (color, label) and/or (colormap, label1, label2...) items.  Convert...
         from chimerax.core.colors import Colormap
@@ -40,6 +40,11 @@ def key_cmd(session, colors_and_labels=None, *, pos=None, size=None, font_size=N
         key.pos = pos
     if size is not None:
         key.size = size
+    else:
+        # prevent "key" command from apparently doing nothing [#4902]
+        x, y = key.size
+        if x == 0 or y == 0:
+            key.size = key.DEFAULT_SIZE
     if font_size is not None:
         key.font_size = font_size
     if bold is not None:
@@ -84,6 +89,9 @@ def key_cmd(session, colors_and_labels=None, *, pos=None, size=None, font_size=N
             session.logger.warning("Key is partially or completely offscreen")
     if colors_and_labels is not None:
         key.rgbas_and_labels = rgbas_and_labels
+    if show_tool and session.ui.is_gui:
+        from chimerax.core.commands import run
+        run(session,"ui tool show 'Color Key'", log=False)
     return key
 
 def key_delete_cmd(session):
@@ -91,28 +99,6 @@ def key_delete_cmd(session):
     key = get_model(session, create=False)
     if key is not None:
         key.delete()
-
-def palette_equal(p1, p2):
-    if len(p1) != len(p2):
-        return False
-    tolerance = 1 / 512
-    def len4(c):
-        if len(c) == 4:
-            return c
-        else:
-            return [x for x in c] + [1.0]
-    for c1, c2 in zip(p1, p2):
-        for v1, v2 in zip(len4(c1), len4(c2)):
-            if abs(v1 - v2) > tolerance:
-                return False
-    return True
-
-def palette_name(rgbas):
-    from chimerax.core.colors import BuiltinColormaps
-    for name, cm in BuiltinColormaps.items():
-        if palette_equal(cm.colors, rgbas):
-            return name
-    return None
 
 def _precision_values(values, precision):
     if precision is None:
@@ -151,7 +137,7 @@ def _precision_values(values, precision):
 def show_key(session, color_map, *, show_tool=True, precision=3):
     """If precision is None, use full precision"""
     from chimerax.core.commands import run, StringArg
-    from chimerax.core.colors import color_name, rgba_to_rgba8
+    from chimerax.core.colors import color_name, rgba_to_rgba8, palette_name
     palette = palette_name(color_map.colors)
     v_fmt, values = _precision_values(color_map.data_values, precision)
     if palette is None:
@@ -159,9 +145,9 @@ def show_key(session, color_map, *, show_tool=True, precision=3):
             for c, dv in zip(color_map.colors, values)])
     else:
         key_arg = "%s %s" % (StringArg.unparse(palette), " ".join([(':' + v_fmt) % dv for dv in values]))
+    if show_tool:
+        key_arg += " showTool true"
     run(session, "key " + key_arg)
-    if show_tool and session.ui.is_gui and not session.in_script:
-        run(session,"ui tool show 'Color Key'")
 
 from chimerax.core.commands import Annotation, ColorArg, StringArg, AnnotationError, next_token, \
     ColormapArg, Or
@@ -173,16 +159,19 @@ class ColorLabelPairArg(Annotation):
         if not text:
             raise AnnotationError("Expected %s" % ColorLabelPairArg.name)
         token, text, rest = next_token(text)
-        if ':' in token:
-            color_token, label_token = token.split(':', 1)
-            if not color_token:
-                raise AnnotationError("No color before ':' in %s" % ColorLabelPairArg.name)
-            if label_token:
-                label = label_token
-            else:
-                label = None
+        while ':' not in token:
+            if not rest.lstrip():
+                raise AnnotationError("No ':' found")
+            token2, text2, rest = next_token(rest.lstrip())
+            token += ' ' + token2
+            text += ' ' + text2
+
+        color_token, label_token = token.split(':', 1)
+        if not color_token:
+            raise AnnotationError("No color before ':' in %s" % ColorLabelPairArg.name)
+        if label_token:
+            label = label_token
         else:
-            color_token = token
             label = None
         color, ignore, color_rest = ColorArg.parse(color_token, session)
         if color_rest:
@@ -213,11 +202,17 @@ class PaletteLabelsArg(Annotation):
         num_labels = len(cmap.colors)
         for i in range(num_labels):
             if not rest.lstrip():
+                if len(vals) == 1:
+                    vals.extend([''] * len(cmap.colors))
+                    return vals, final_text, rest
                 raise AnnotationError("Need at least %d labels to match palette" % num_labels)
             label_token, text, rest = next_token(rest.lstrip(), session)
-            final_text += ' ' + text
             if not label_token.startswith(':'):
+                if len(vals) == 1:
+                    vals.extend([''] * len(cmap.colors))
+                    return vals, final_text, text + ' ' + rest
                 raise AnnotationError("Each label must be prefixed with ':'")
+            final_text += ' ' + text
             vals.append(label_token[1:])
         return vals, final_text, rest
 
@@ -253,6 +248,7 @@ def register_command(logger):
             ('label_side', EnumOf([x.split()[0] for x in ColorKeyModel.label_sides])),
             ('numeric_label_spacing', EnumOf([x.split()[0] for x in ColorKeyModel.numeric_label_spacings])),
             ('pos', Float2Arg),
+            ('show_tool', BoolArg),
             ('size', TupleOf(NonNegativeFloatArg,2)),
             ('ticks', BoolArg),
             ('tick_length', NonNegativeFloatArg),

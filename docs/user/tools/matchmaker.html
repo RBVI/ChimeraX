@@ -84,7 +84,7 @@ parameter settings without changing any preferences
 Clicking <b>OK</b> or <b>Apply</b> will start the calculations
 with or without closing the dialog, respectively.
 <b>Close</b> simply closes the dialog, while <b>Help</b> opens
-this manual page in a browser window.
+this page in the <a href="helpviewer.html"><b>Help Viewer</b></a>.
 </p><p>
 Sequence alignment scores, parameter values, and root-mean-square deviations
 (RMSD values) will be reported in the <a href="log.html"><b>Log</b></a>
@@ -161,7 +161,7 @@ reference-match sequence alignments; each will be shown in a separate
 <a href="sequenceviewer.html"><b>Sequence Viewer</b></a> window.
 When <a href="#iterate">fit iteration</a> is employed,
 the pairs used in the final fit will be shown in the alignment as a
-<a href="../tools/sequenceviewer.html#regions">region</a> named
+<a href="sequenceviewer.html#regions">region</a> named
 <font style="background:rgb(255,224,204);
 border:solid orangered 1px;padding:1px 3px">
 <b>matched&nbsp;residues</b></font>.
@@ -281,7 +281,7 @@ best-matching "core" regions.
 (initial default <b>2.0</b> &Aring;)
 <li><a name="verbose"><b>Verbose logging</b></a> (initial default <b>off</b>)
 &ndash; whether to send additional information to the 
-  <a href="../tools/log.html"><b>Log</b></a> for each chain-chain pair:
+  <a href="log.html"><b>Log</b></a> for each chain-chain pair:
   <ul>
   <li><b>Sequences:</b>
   followed by the pairwise sequence alignment, <i>i.e.</i>, two lines,
@@ -294,6 +294,10 @@ best-matching "core" regions.
   followed by two lines, each a comma-separated list of zeros and ones,
   indicating which structure residues were used in the final fit
   </ul>
+<li><a name="matrix"><b>Log transformation matrix</b></a>
+(initial default <b>off</b>) 
+&ndash; whether to show the final-fit transformation matrix (or matrices)
+in the <a href="log.html"><b>Log</b></a>
 <li><a name="bring"></a>
 <b>If one model being matched, also move these models along with it</b>
 &ndash; if only one match model is designated in the top section
@@ -303,5 +307,5 @@ can be chosen from the model list
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-May 2021</address>
+April 2023</address>
 </body></html>

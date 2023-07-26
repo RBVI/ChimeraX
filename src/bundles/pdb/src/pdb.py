@@ -20,7 +20,7 @@ Read Protein DataBank (PDB) files.
 
 def open_pdb(session, stream, file_name=None, *, auto_style=True, coordsets=False, atomic=True,
              max_models=None, log_info=True, combine_sym_atoms=True, segid_chains=False,
-             missing_coordsets="renumber"):
+             slider=True, missing_coordsets="renumber"):
     """Read PDB data from a file or stream and return a list of models and status information.
 
     ``stream`` is either a string a string with a file system path to a PDB file, or an open input
@@ -50,12 +50,16 @@ def open_pdb(session, stream, file_name=None, *, auto_style=True, coordsets=Fals
     ``segid_chains`` controls whether the chain ID should come from the normal chain ID columns or from
     the "segment ID" columns.
 
+    ``slider`` controls whether a slider tool is shown when a multi-model PDB file is opened as a
+    trajectory.
+
     ``missing_coordsets`` is for the rare case where MODELs are being collated into a trajectory and the
     MODEL numbers are not consecutive.  The possible values are 'fill' (fill in the missing with copies
-    of the preceding coord set), 'skip' (don't fill in; use MODEL number as is for coordset ID), and
-    'compact' (don't fill in and use the next available coordset ID).
+    of the preceding coord set), 'ignore' (don't fill in; use MODEL number as is for coordset ID), and
+    'renumber' (don't fill in and use the next available coordset ID).
     """
 
+    from chimerax.core.errors import UserError
     if isinstance(stream, str):
         path = stream
         stream = open(stream, 'r')
@@ -75,7 +79,6 @@ def open_pdb(session, stream, file_name=None, *, auto_style=True, coordsets=Fals
             ['fill', 'ignore', 'renumber'].index(missing_coordsets))
     except ValueError as e:
         if 'non-ASCII' in str(e):
-            from chimerax.core.errors import UserError
             raise UserError(str(e))
         raise
     finally:
@@ -87,6 +90,12 @@ def open_pdb(session, stream, file_name=None, *, auto_style=True, coordsets=Fals
         from chimerax.atomic.structure import Structure as StructureClass
     models = [StructureClass(session, name=file_name, c_pointer=p, auto_style=auto_style, log_info=log_info)
         for p in pointers]
+    from numpy import isnan
+    for m in models:
+        if isnan(m.atoms.coords).any():
+            for dm in models:
+                dm.delete()
+            raise UserError("Some X/Y/Z coordinate values in the '%s' PDB file are not numbers" % file_name)
 
     if max_models is not None:
         for m in models[max_models:]:
@@ -106,22 +115,14 @@ def open_pdb(session, stream, file_name=None, *, auto_style=True, coordsets=Fals
         for m in models:
             num_cs += m.num_coordsets
         info = '%s has %d coordinate sets' % (file_name, num_cs)
-        if session.ui.is_gui:
+        if slider and session.ui.is_gui:
             mc = [m for m in models if m.num_coordsets > 1]
             if mc:
                 from chimerax.std_commands.coordset import coordset_slider
                 coordset_slider(session, mc)
     if models:
         m = models[0]
-        title_recs = m.metadata.get('TITLE', None)
-        if title_recs:
-            text = collate_records_text(title_recs)
-            m.html_title = process_chem_name(text.strip(), sentences=True)
-            m.has_formatted_metadata = lambda ses: True
-            from types import MethodType
-            from weakref import proxy
-            m.get_formatted_metadata = MethodType(_get_formatted_metadata, proxy(m))
-            m.get_formatted_res_info = MethodType(_get_formatted_res_info, proxy(m))
+        set_logging_info(m)
 
     return models, info
 
@@ -179,6 +180,24 @@ def save_pdb(session, output, *, models=None, selected_only=False, displayed_onl
                 else:
                     xforms.append((s.scene_position * inv).matrix)
 
+    # If model came from mmCIF, try to generate CRYST1 record if we can
+    for s in models:
+        if not hasattr(s, "metadata") or 'CRYST1' in s.metadata:
+            continue
+        from chimerax.mmcif import TableMissingFieldsError, get_mmcif_tables_from_metadata as get_tables
+        tables = get_tables(s, ['cell', 'symmetry'])
+        if None in tables:
+            continue
+        try:
+            l_a, l_b, l_c, a_a, a_b, a_g, z, h_m = tables[0].fields(['length_a', 'length_b', 'length_c',
+                'angle_alpha', 'angle_beta', 'angle_gamma', 'Z_PDB'])[0] + tables[1].fields(
+                ['space_group_name_H-M'])[0]
+        except TableMissingFieldsError:
+            continue
+        if z.strip() == '?':
+            z = ""
+        s.set_metadata_entry('CRYST1',
+            ["CRYST1%9s%9s%9s%7s%7s%7s %-11s%4s" % (l_a, l_b, l_c, a_a, a_b, a_g, h_m, z)])
     from . import _pdbio
     if polymeric_res_names is None:
         polymeric_res_names = _pdbio.standard_polymeric_res_names
@@ -188,11 +207,11 @@ def save_pdb(session, output, *, models=None, selected_only=False, displayed_onl
             file_name = output.replace("[ID]", m.id_string).replace("[NAME]", m.name)
             _pdbio.write_pdb_file([m.cpp_pointer], file_name, selected_only,
                 displayed_only, [xform], all_coordsets,
-                pqr, (serial_numbering == "h36"), polymeric_res_names)
+                pqr, (serial_numbering == "h36"), polymeric_res_names, session.logger)
     else:
         _pdbio.write_pdb_file([m.cpp_pointer for m in models], output, selected_only,
             displayed_only, xforms, all_coordsets, pqr,
-            (serial_numbering == "h36"), polymeric_res_names)
+            (serial_numbering == "h36"), polymeric_res_names, session.logger)
 
 _pdb_sources = {
 #    "rcsb": "http://www.pdb.org/pdb/files/%s.pdb",
@@ -370,6 +389,9 @@ def format_source_name(common_name, scientific_name, genus, species, ncbi_id):
     if common_name:
         if text:
             common_name = process_chem_name(common_name.lower())
+            if not ncbi_id:
+                from html import escape
+                text = escape(text)
             text = text + ' (%s)' % common_name
         else:
             common_name = process_chem_name(common_name.lower(), sentences=True)
@@ -419,7 +441,8 @@ def process_chem_name(name, use_greek=True, probable_abbrs=False, sentences=Fals
             text = " ".join(processed_words)
         else:
             text = name
-    return text
+    from html import escape
+    return escape(text)
 
 greek_letters = {
     'alpha': u'\N{GREEK SMALL LETTER ALPHA}',
@@ -481,6 +504,18 @@ def _process_chem_word(word, use_greek, probable_abbrs):
         else:
             segs.append(word)
     return '-'.join(segs)
+
+def set_logging_info(m):
+    # also used by Chimera->ChimeraX exporter
+    title_recs = m.metadata.get('TITLE', None)
+    if title_recs:
+        text = collate_records_text(title_recs)
+        m.html_title = process_chem_name(text.strip(), sentences=True)
+        m.has_formatted_metadata = lambda ses: True
+        from types import MethodType
+        from weakref import proxy
+        m.get_formatted_metadata = MethodType(_get_formatted_metadata, proxy(m))
+        m.get_formatted_res_info = MethodType(_get_formatted_res_info, proxy(m))
 
 def _get_formatted_metadata(model, session, *, verbose=False):
     from chimerax.core.logger import html_table_params

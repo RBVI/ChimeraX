@@ -19,6 +19,9 @@ for ease of updating outside of the core release cycle.
 
 Everything in here is considered private.
 """
+
+__version__ = "1.2.4"
+
 from chimerax.core.toolshed import (
     TOOLSHED_BUNDLE_INSTALLED, TOOLSHED_BUNDLE_UNINSTALLED,
     ToolshedInstalledError,
@@ -38,7 +41,7 @@ class _BootstrapAPI(BundleAPI):
 
         def show_updates(trigger_name, data, *, session=session):
             from . import tool
-            session.ui.thread_safe(tool.show, session, tool.DialogType.UPDATES_ONLY)
+            session.ui.thread_safe(tool.show, session, tool.OUT_OF_DATE)
         session.toolshed.triggers.add_handler(toolshed.TOOLSHED_OUT_OF_DATE_BUNDLES, show_updates)
 
     @staticmethod
@@ -170,10 +173,19 @@ def _install_bundle(toolshed, bundles, logger, *, per_user=True, reinstall=False
     A :py:const:`TOOLSHED_BUNDLE_INSTALLED` trigger is fired after installation.
     """
     _debug("install_bundle", bundles)
+    from chimerax import app_dirs
+    import os
+    site_packages = os.path.join(app_dirs.user_data_dir, "site-packages")
+    if not os.path.islink(site_packages):
+        # #8927 -- check if there's an existing site-packages directory and, if so,
+        # move it to user_data_dir/lib/python3.x/site-packages, then symbolically
+        # link it back to its old location
+        from chimerax.core.python_utils import migrate_site_packages
+        migrate_site_packages()
+
     # Make sure that our install location is on chimerax module.__path__
     # so that newly installed modules may be found
     import importlib
-    import os.path
     import re
     if per_user is None:
         per_user = True
@@ -278,6 +290,7 @@ def _install_bundle(toolshed, bundles, logger, *, per_user=True, reinstall=False
                 logger.warning("%s: manager initialization failed" % name)
 
             # providers
+            ends_needed = set()
             for name, version in new_bundles.items():
                 bi = toolshed.find_bundle(name, logger, version=version)
                 if bi:
@@ -286,6 +299,9 @@ def _install_bundle(toolshed, bundles, logger, *, per_user=True, reinstall=False
                         mgr = toolshed._manager_instances.get(mgr_name, None)
                         if mgr:
                             mgr.add_provider(bi, pvdr_name, **kw)
+                            ends_needed.add(mgr)
+            for mgr in ends_needed:
+                mgr.end_providers()
 
             # custom inits
             failed = []
@@ -542,9 +558,11 @@ def _run_pip(command):
     # prog = python_executable()
     # pip_cmd = [prog] + subprocess._args_from_interpreter() + ["-m", "pip"]
     pip_cmd = [sys.executable, "-m", "pip"]
-    cp = subprocess.run(pip_cmd + command,
-                        stdout=subprocess.PIPE,
-                        stderr=subprocess.PIPE)
+    from chimerax.core.python_utils import chimerax_user_base
+    with chimerax_user_base():
+        cp = subprocess.run(pip_cmd + command,
+                            stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE)
     return cp
 
 

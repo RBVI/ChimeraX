@@ -24,6 +24,8 @@ extern "C" {
 
 PyObject *bgra_to_rgba(PyObject *s, PyObject *args, PyObject *keywds);
 PyObject *yuyv_to_rgba(PyObject *s, PyObject *args, PyObject *keywds);
+PyObject *uyvy_to_rgba(PyObject *s, PyObject *args, PyObject *keywds);
+PyObject *nv12_to_rgba(PyObject *s, PyObject *args, PyObject *keywds);
 PyObject *set_color_alpha(PyObject *s, PyObject *args, PyObject *keywds);
 
 }

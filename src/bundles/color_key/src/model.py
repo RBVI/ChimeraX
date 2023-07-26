@@ -44,6 +44,8 @@ class ColorKeyModel(Model):
     NLS_PROPORTIONAL = "proportional to value"
     numeric_label_spacings = (NLS_EQUAL, NLS_PROPORTIONAL)
 
+    LC_FRACT = 4/5
+    DEFAULT_SIZE = (0.25, 0.05)
 
     def __init__(self, session):
         super().__init__("Color key", session)
@@ -60,7 +62,7 @@ class ColorKeyModel(Model):
         self.triggers.add_trigger("key closed")
 
         self._position = (0.7, 0.08)
-        self._size = (0.25, 0.05)
+        self._size = self.DEFAULT_SIZE
         self._rgbas_and_labels = [((0,0,1,1), "min"), ((1,1,1,1), ""), ((1,0,0,1), "max")]
         self._numeric_label_spacing = self.NLS_PROPORTIONAL
         self._color_treatment = self.CT_BLENDED
@@ -224,7 +226,6 @@ class ColorKeyModel(Model):
 
     @property
     def label_offset(self):
-        # None means contrast with background
         return self._label_offset
 
     @label_offset.setter
@@ -507,8 +508,7 @@ class ColorKeyModel(Model):
         from Qt.QtGui import QImage, QPainter, QColor, QBrush, QPen, QLinearGradient, QFontMetrics, QFont
         from Qt.QtCore import Qt, QRectF, QPointF
 
-        font = QFont(self.font, self.font_size * self._texture_pixel_scale,
-            (QFont.Bold if self.bold else QFont.Normal), self.italic)
+        font = QFont(self.font, int(self.font_size * self._texture_pixel_scale), (QFont.Bold if self.bold else QFont.Normal), self.italic)
         fm = QFontMetrics(font)
         top_label_y_offset = font_height = fm.ascent()
         font_descender = fm.descent()
@@ -522,8 +522,8 @@ class ColorKeyModel(Model):
             bounds = fm.boundingRect(labels[0])
             xywh = bounds.getRect()
             # Qt seemingly will not return the actual height of a text string; estimate all lower case
-            # to be 2/3 height
-            label_height = (font_height * 2/3) if labels[0].islower() else font_height
+            # to be LC_FRACT height
+            label_height = (font_height * self.LC_FRACT) if labels[0].islower() else font_height
             label_size = label_height if layout == "vertical" else xywh[long_index+2]
             extra = max(label_size / 2 - label_positions[0] - border, 0)
             (end_offset if layout == "vertical" else start_offset)[long_index] += extra
@@ -554,13 +554,13 @@ class ColorKeyModel(Model):
                 extra = max([fm.boundingRect(lab).getRect()[3-long_index] for lab in labels]) + label_offset
             else:
                 # Qt seemingly will not return the actual height of a text string; estimate all lower case
-                # to be 2/3 height
+                # to be LC_FRACT height
                 for label in labels:
                     if label and not label.islower():
                         label_height = font_height
                         break
                 else:
-                    label_height = top_label_y_offset = font_height * 2/3
+                    label_height = top_label_y_offset = font_height * self.LC_FRACT
                 extra = label_height + label_offset
             decimal_widths = [(None, None)] * len(labels)
         if self._label_side == self.LS_LEFT_TOP:
@@ -577,14 +577,14 @@ class ColorKeyModel(Model):
             bounds = fm.boundingRect(labels[-1])
             xywh = bounds.getRect()
             # Qt seemingly will not return the actual height of a text string; estimate all lower case
-            # to be 2/3 height
-            label_height = (font_height * 2/3) if labels[-1].islower() else font_height
+            # to be LC_FRACT height
+            label_height = (font_height * self.LC_FRACT) if labels[-1].islower() else font_height
             label_size = label_height if layout == "vertical" else xywh[long_index+2]
             extra = max(label_size / 2 - (rect_pixels[long_index] - label_positions[-1]) - border, 0)
             (start_offset if layout == "vertical" else end_offset)[long_index] += extra
             pixels[long_index] += extra
 
-        image = QImage(max(pixels[0], 1), max(pixels[1], 1), QImage.Format_ARGB32)
+        image = QImage(max(int(pixels[0]), 1), max(int(pixels[1]), 1), QImage.Format_ARGB32)
         image.fill(QColor(0,0,0,0))    # Set background transparent
 
         from chimerax.core.colors import contrast_with_background
@@ -683,8 +683,8 @@ class ColorKeyModel(Model):
                         else:
                             x = pixels[0] - (rect.width() - rect.x())
                     # Qt seemingly will not return the actual height of a text string; estimate all
-                    # lower case to be 2/3 height
-                    label_height = (font_height * 2/3) if label.islower() else font_height
+                    # lower case to be LC_FRACT height
+                    label_height = (font_height * self.LC_FRACT) if label.islower() else font_height
                     y = pixels[1] - end_offset[1] - pos + label_height / 2
                 else:
                     if self._label_side == self.LS_LEFT_TOP:
@@ -692,7 +692,7 @@ class ColorKeyModel(Model):
                     else:
                         y = pixels[1] - font_descender
                     x = start_offset[0] + pos - (rect.width() - rect.x())/2
-                p.drawText(x, y, label)
+                p.drawText(int(x), int(y), label)
 
                 if tick_length:
                     tick_thickness = self._tick_thickness
@@ -750,6 +750,8 @@ class ColorKeyModel(Model):
                         if values == sorted(values):
                             proportional = True
                         values.reverse()
+                    if proportional and values[0] == values[-1]:
+                        proportional = False
             finally:
                 if restore_locale:
                     locale.setlocale(locale.LC_NUMERIC, local_numeric)

@@ -1,7 +1,7 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
+# Copyright 2021 Regents of the University of California.
 # All rights reserved.  This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
 # duplication and use.  For details see:
@@ -11,19 +11,22 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from chimerax.core.commands import CmdDesc, AtomSpecArg
-from chimerax.core.commands import StringArg, BoolArg, FloatArg, IntArg, EnumOf, Or
+from chimerax.core.commands import (
+    StringArg, BoolArg, FloatArg, IntArg, EnumOf, Or,
+    CmdDesc, AtomSpecArg, atomspec
+)
+from chimerax.atomic import SequenceArg, Sequence, Chain
+from chimerax.core.errors import UserError
 from chimerax.seqalign import AlignSeqPairArg
 
-DBs = ["pdb", "nr"]
-Matrices = ["BLOSUM45", "BLOSUM50", "BLOSUM62", "BLOSUM80", "BLOSUM90",
-            "PAM30", "PAM70", "PAM250", "IDENTITY"]
+from .data_model import AvailableDBs, AvailableMatrices
+from .job import BlastProteinJob
 
 # Use camel-case variable names for displaying keywords in help/usage
-
 def blastprotein(session, atoms=None, database="pdb", cutoff=1.0e-3,
-                 matrix="BLOSUM62", maxSeqs=500, log=None, *, name=None):
-    from .job import BlastProteinJob
+                 matrix="BLOSUM62", maxSeqs=100, version=None, log=None,
+                 *, name=None):
+    str_chain = None
     if isinstance(atoms, tuple):
         # Must be alignment:seq
         alignment, chain = atoms
@@ -32,17 +35,17 @@ def blastprotein(session, atoms=None, database="pdb", cutoff=1.0e-3,
             if c is chain:
                 str_chain = sc
                 break
+    elif isinstance(atoms, Sequence):
+        chain = atoms
     else:
         if atoms is None:
             atoms = atomspec.everything(session)
         results = atoms.evaluate(session)
         chains = results.atoms.residues.unique_chains
         if len(chains) == 0:
-            from chimerax.core.errors import UserError
-            raise UserError("no chain was specified")
+            raise UserError("Cannot start BLAST job: no chain was specified or no model is open.")
         elif len(chains) > 1:
-            from chimerax.core.errors import UserError
-            raise UserError("please choose exactly one chain (%d were specified)" %
+            raise UserError("Cannot start BLAST job: please choose exactly one chain (%d were specified)" %
                             len(chains))
         str_chain = chain = chains[0]
     if not str_chain:
@@ -55,28 +58,19 @@ def blastprotein(session, atoms=None, database="pdb", cutoff=1.0e-3,
             chain_spec = str_chain.structure.atomspec + chain_spec
     BlastProteinJob(session, chain.ungapped(), chain_spec,
                     database=database, cutoff=cutoff, matrix=matrix,
-                    max_seqs=maxSeqs, log=log, tool_inst_name=name)
-blastprotein_desc = CmdDesc(required=[("atoms", Or(AtomSpecArg,
-                                                   AlignSeqPairArg))],
-                        keyword=[("database", EnumOf(DBs)),
+                    max_seqs=maxSeqs, version=version, log=log,
+                    tool_inst_name=name)
+
+
+blastprotein_desc = CmdDesc(
+                        required=[("atoms", Or(AtomSpecArg, AlignSeqPairArg, SequenceArg))],
+                        keyword=[("database", EnumOf(AvailableDBs)),
                                  ("cutoff", FloatArg),
-                                 ("matrix", EnumOf(Matrices)),
+                                 ("matrix", EnumOf(AvailableMatrices)),
                                  ("maxSeqs", IntArg),
+                                 ("version", StringArg),
                                  ("log", BoolArg),
                                  ("name", StringArg),
                                  ],
-                        synopsis="Search PDB/NR using BLAST")
-
-
-def blastprotein_mav(session, name=None, selected=True):
-    from . import tool
-    tool.find_match(name).show_mav_cmd(selected)
-blastprotein_mav_desc = CmdDesc(optional=[("name", StringArg)],
-                                keyword=[("selected", BoolArg)])
-
-
-def ccd(session, name):
-    from .job import CCDJob
-    CCDJob(session, name)
-ccd_desc = CmdDesc(required=[("name", StringArg),],
-                   synopsis="Get Chemical Component Dictionary template")
+                        synopsis="Search PDB/NR using BLAST"
+                    )

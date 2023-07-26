@@ -51,6 +51,9 @@ cdef extern from "<atomstruct/Residue.h>" namespace "atomstruct":
     ctypedef enum PolymerType:
         PT_NONE, PT_AMINO, PT_NUCLEIC
 
+    ctypedef enum ResNumbering:
+        RN_AUTHOR, RN_CANONICAL, RN_UNIPROT
+
     cdef cppclass Residue:
         ctypedef enum SSType:
             SS_COIL, SS_HELIX, SS_STRAND
@@ -89,6 +92,8 @@ cdef extern from "<atomstruct/Residue.h>" namespace "atomstruct":
         void set_is_helix(bool)
         void set_is_strand(bool)
         void set_name(const char*)
+        void set_number(int)
+        void set_number(ResNumbering, int)
         void set_ribbon_adjust(float)
         void set_ribbon_color(Rgba.Channel, Rgba.Channel, Rgba.Channel, Rgba.Channel)
         void set_ribbon_display(bool)
@@ -189,6 +194,7 @@ cdef extern from "<atomstruct/Atom.h>" namespace "atomstruct":
         void set_hide(int)
         void set_hide_bits(int)
         void set_idatm_type(const char*)
+        void set_implicit_idatm_type(const char*)
         void set_in_ribbon(bool)
         void set_name(const char*)
         void set_occupancy(float)

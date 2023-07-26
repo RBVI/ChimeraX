@@ -49,7 +49,7 @@ class VolumeViewer(ToolInstance):
 #        self.default_settings.add_change_callback(self.default_settings_changed_cb)
 
         tw.manage(placement="side")
-    
+
         # Add any data sets opened prior to volume dialog being created.
         self.volume_opened_cb(volume_list(session))
 
@@ -69,11 +69,11 @@ class VolumeViewer(ToolInstance):
         # Replace vertical panel layout
         while layout.count() > 0:
             layout.removeItem(layout.takeAt(0))
-            
+
         for p in self.gui_panels:
             if p.name in pnames:
                 layout.addWidget(p.frame)
-    
+
     # ---------------------------------------------------------------------------
     #
     def message(self, text, append = False):
@@ -112,7 +112,7 @@ class VolumeViewer(ToolInstance):
                 v.remove_volume_change_callback(self.data_region_changed)
                 v._volume_viewer_tracking = False
         super().delete()
-      
+
     def make_panels(self, parent):
         # Order of panel_classes determines top to bottom location in dialog.
         # panel_classes = (Hybrid.Feature_Buttons_Panel,
@@ -137,7 +137,7 @@ class VolumeViewer(ToolInstance):
 #    sorted_panels = list(self.gui_panels)
 #    sorted_panels.sort(lambda p1, p2: cmp(p1.name, p2.name))
 #    self.feature_buttons_panel.set_panels(sorted_panels)
-    
+
     # Make data panel expand vertically when dialog resized
 #    data_list_panel_row = self.data_list_panel.panel_row
 #    parent.rowconfigure(data_list_panel_row, weight = 1)
@@ -170,7 +170,7 @@ class VolumeViewer(ToolInstance):
             # Add data values changed callback.
             v.add_volume_change_callback(self.data_region_changed)
             v._volume_viewer_tracking = True
-            
+
             if hasattr(v, 'series') and v is not v.series.first_map():
                 continue
 
@@ -221,7 +221,7 @@ class VolumeViewer(ToolInstance):
         for p in self.gui_panels:
             if hasattr(p, 'update_panel_widgets'):
                 p.update_panel_widgets(volume)
-  
+
     # ---------------------------------------------------------------------------
     #
     def data_region_changed(self, v, type):
@@ -277,7 +277,7 @@ class VolumeViewer(ToolInstance):
         #     for p in (self.display_options_panel, self.surface_options_panel,
         #               self.image_options_panel, self.orthoplane_panel):
         #       p.update_panel_widgets(v)
-      
+
     # ---------------------------------------------------------------------------
     # Notify all panels that volume display style changed so they can update gui if
     # it depends on the display style.
@@ -324,7 +324,7 @@ class VolumeViewer(ToolInstance):
           self.redisplay_in_progress = False
           raise
         self.redisplay_in_progress = False
-    
+
     # ---------------------------------------------------------------------------
     # Update display even if immediate redisplay mode is off.
     # This is used when the pressing return in entry fields.
@@ -340,7 +340,7 @@ class VolumeViewer(ToolInstance):
       #
       if self.active_volume:
         self.show_using_dialog_settings(self.active_volume)
-    
+
     # ---------------------------------------------------------------------------
     #
     def show_using_dialog_settings(self, data_region):
@@ -367,7 +367,7 @@ def show_viewer_on_open(session):
         session._registered_volume_viewer = True
         from chimerax.core.models import ADD_MODELS
         session.triggers.add_handler(ADD_MODELS, lambda name, m, s=session: models_added_cb(m, s))
-    
+
 
 def models_added_cb(models, session):
     # Show volume viewer when a map is opened.
@@ -383,9 +383,9 @@ def models_added_cb(models, session):
 # Chimera 1 volume dialog
 #
 class Volume_Dialog:
-    
+
   buttons = ('Update', 'Center', 'Orient', 'Close',)
-  
+
   def fillInUI(self, parent):
 
     self.gui_panels = []
@@ -419,7 +419,7 @@ class Volume_Dialog:
     ub.pack_forget()
 
     volume.add_session_save_callback(self.save_session_cb)
-      
+
   # ---------------------------------------------------------------------------
   #
   def make_menus(self, parent):
@@ -456,7 +456,7 @@ class Volume_Dialog:
 
     from chimera.tkgui import aquaMenuBar
     aquaMenuBar(menubar, parent, row = 0)
-      
+
   # ---------------------------------------------------------------------------
   #
   def find_gui_panel(self, name):
@@ -488,7 +488,7 @@ class Volume_Dialog:
 
     from volume import default_settings
     self.show_panels(default_settings['shown_panels'])
-    
+
   # ---------------------------------------------------------------------------
   #
   def default_settings_changed_cb(self, default_settings, changes):
@@ -505,7 +505,7 @@ class Volume_Dialog:
     from volume import default_settings as ds
     ds.set_defaults_from_gui(self, panel_settings = False)
     ds.save_to_preferences_file(panel_settings = False)
-    
+
   # ---------------------------------------------------------------------------
   #
   def save_default_panels_cb(self):
@@ -537,7 +537,7 @@ class Volume_Dialog:
                          if e.name() != 'Volume Viewer']
     from CGLtk import Hybrid
     Hybrid.add_menu_entries(m, tool_menu_entries)
-    
+
   # ---------------------------------------------------------------------------
   #
   def save_session_cb(self, file):
@@ -548,7 +548,7 @@ class Volume_Dialog:
   # ---------------------------------------------------------------------------
   #
   def open_cb(self):
-      
+
     show_volume_file_browser('Open Volume Files', show_data = True)
 
   # ---------------------------------------------------------------------------
@@ -594,11 +594,11 @@ class Volume_Dialog:
   # Notify user interface panels of region bounds change.
   #
   def update_region_in_panels(self, ijk_min, ijk_max, ijk_step):
-    
+
     for p in self.gui_panels:
       if hasattr(p, 'update_panel_ijk_bounds'):
         p.update_panel_ijk_bounds(ijk_min, ijk_max, ijk_step)
-    
+
   # ---------------------------------------------------------------------------
   #
   def rendering_options_from_gui(self):
@@ -648,7 +648,7 @@ class Volume_Dialog:
 
     v.setViewSizeAndScaleFactor(view_radius, 1)
     v.clipping = False
-      
+
   # ---------------------------------------------------------------------------
   #
   def Orient(self):
@@ -662,7 +662,7 @@ class Volume_Dialog:
     data_region = self.active_volume
     if data_region == None:
       return
-    
+
     xform = data_region.model_transform()
     if xform == None:
       return
@@ -687,7 +687,7 @@ class Volume_Dialog:
     active_ostates = filter(lambda ostate: ostate.active, ostates.keys())
     for ostate in active_ostates:
       ostate.globalXform(xf)
-      
+
   # ---------------------------------------------------------------------------
   #
   def unshow_cb(self):
@@ -727,20 +727,20 @@ class Volume_Dialog:
     dr = r.copy()
     self.display_volume_info(dr)
     dr.show()
-  
+
   # ---------------------------------------------------------------------------
   #
   def CloseData(self):
 
     self.close_data_cb()
-      
+
   # ---------------------------------------------------------------------------
   #
   def close_data_cb(self):
 
     import volume
     volume.remove_volumes(self.selected_regions())
-    
+
   # ---------------------------------------------------------------------------
   #
   def remove_surface_cb(self):
@@ -765,7 +765,7 @@ class PopupPanel:
     self.close_button = None
     self.show_close_button = True
     self.resize_dialog = resize_dialog
-    
+
   # ---------------------------------------------------------------------------
   #
   def show_panel_cb(self):
@@ -783,7 +783,7 @@ class PopupPanel:
 
     if self.resize_dialog:
       self.frame.winfo_toplevel().geometry('')    # Allow toplevel resize.
-    
+
   # ---------------------------------------------------------------------------
   #
   def shown(self):
@@ -865,7 +865,7 @@ def bitmap(name):
 class Data_List_Panel(PopupPanel):
 
   name = 'Data set list'           # Used in feature menu.
-  
+
   def __init__(self, dialog, parent):
 
     self.dialog = dialog
@@ -881,13 +881,13 @@ class Data_List_Panel(PopupPanel):
     hf.grid(row = row, column = 0, sticky = 'ew')
     hf.columnconfigure(1, weight = 1)
     row += 1
-    
+
     h = Tkinter.Label(hf, text = 'Data Sets')
     h.grid(row = 0, column = 0, sticky = 'w')
-    
+
     b = self.make_close_button(hf)
     b.grid(row = 0, column = 1, sticky = 'e')
-    
+
     rl = Hybrid.Scrollable_List(frame, None, 3, self.region_selection_cb)
     self.region_listbox = rl.listbox
     rl.frame.grid(row = row, column = 0, sticky = 'news')
@@ -942,7 +942,7 @@ class Data_List_Panel(PopupPanel):
 class Precomputed_Subsamples_Panel(PopupPanel):
 
   name = 'Precomputed subsamples'           # Used in feature menu.
-  
+
   def __init__(self, dialog, parent):
 
     self.dialog = dialog
@@ -951,7 +951,7 @@ class Precomputed_Subsamples_Panel(PopupPanel):
 
     frame = self.frame
     frame.columnconfigure(2, weight = 1)
-    
+
     pss = Hybrid.Option_Menu(frame, 'Precomputed subsamplings ')
     pss.frame.grid(row = 0, column = 0, sticky = 'w')
     pss.add_callback(self.subsample_menu_cb)
@@ -960,10 +960,10 @@ class Precomputed_Subsamples_Panel(PopupPanel):
     oss = Tkinter.Button(frame, text = 'Open...',
                          command = self.open_subsamplings_cb)
     oss.grid(row = 0, column = 1, sticky = 'w')
-    
+
     b = self.make_close_button(frame)
     b.grid(row = 0, column = 2, sticky = 'e')
-    
+
   # ---------------------------------------------------------------------------
   #
   def update_panel_widgets(self, data_region):
@@ -972,7 +972,7 @@ class Precomputed_Subsamples_Panel(PopupPanel):
       self.subsampling_menu.remove_all_entries()
     else:
       self.update_subsample_menu(data_region)
-    
+
   # ---------------------------------------------------------------------------
   #
   def open_subsamplings_cb(self):
@@ -999,7 +999,7 @@ class Precomputed_Subsamples_Panel(PopupPanel):
   # ---------------------------------------------------------------------------
   #
   def open_subsamples(self, data, grid_object, cell_size):
-    
+
     from VolumeData import SubsampledGrid
     if isinstance(data, SubsampledGrid):
       ssdata = data
@@ -1007,7 +1007,7 @@ class Precomputed_Subsamples_Panel(PopupPanel):
       ssdata = SubsampledGrid(data)
       import volume
       volume.replace_data(data, ssdata)
-    
+
     ssdata.add_subsamples(grid_object, cell_size)
 
     data_region = active_volume()
@@ -1030,7 +1030,7 @@ class Precomputed_Subsamples_Panel(PopupPanel):
           if tuple(subsampling) != (1,1,1):
             ssm.add_entry(step_text(subsampling))
       self.set_subsample_menu(data_region)
-    
+
   # ---------------------------------------------------------------------------
   #
   def set_subsample_menu(self, data_region):
@@ -1044,7 +1044,7 @@ class Precomputed_Subsamples_Panel(PopupPanel):
       text = step_text(subsampling)
 
     self.subsampling_menu.variable.set(text, invoke_callbacks = 0)
-    
+
   # ---------------------------------------------------------------------------
   # Currently don't do anything when subsample menu selection is changed.
   #
@@ -1122,7 +1122,7 @@ def vector_value_text(vsize, precision = 5):
 class Coordinates_Panel(PopupPanel):
 
   name = 'Coordinates'           # Used in feature menu.
-  
+
   def __init__(self, dialog, parent):
 
     self.dialog = dialog
@@ -1142,10 +1142,10 @@ class Coordinates_Panel(PopupPanel):
     ostext = 'Placement of data array in x,y,z coordinate space:'
     osh = Tkinter.Label(hf, text = ostext)
     osh.grid(row = 0, column = 0, sticky = 'w')
-    
+
     b = self.make_close_button(hf)
     b.grid(row = 0, column = 1, sticky = 'e')
-    
+
     osf = Tkinter.Frame(frame)
     osf.grid(row = row, column = 0, sticky = 'w')
     row += 1
@@ -1389,7 +1389,7 @@ class Coordinates_Panel(PopupPanel):
 class Thresholds_Panel(PopupPanel):
 
   name = 'Threshold and Color'           # Used in feature menu.
-  
+
   def __init__(self, dialog, parent):
 
     self.dialog = dialog
@@ -1402,7 +1402,7 @@ class Thresholds_Panel(PopupPanel):
         from Qt.QtWidgets import QStyleFactory
         style = QStyleFactory.create("Windows")
         self.frame.verticalScrollBar().setStyle(style)
-    
+
     self.histogram_height = 64
     self.histogram_panes = []
     self.histogram_table = {}           # maps Volume to Histogram_Pane
@@ -1415,7 +1415,7 @@ class Thresholds_Panel(PopupPanel):
     frame.resizeEvent = lambda e, self=self: self.panel_resized(e)
     frame.setWidgetResizable(True)
     self._allow_panel_height_increase = False
-    
+
     from Qt.QtWidgets import QVBoxLayout, QFrame, QSizePolicy
 
     # Histograms frame
@@ -1423,14 +1423,14 @@ class Thresholds_Panel(PopupPanel):
     hf.resizeEvent = lambda e, self=self: self.resize_panel()
 
     self.histograms_layout = hl = QVBoxLayout(hf)
-    hl.setSizeConstraint(QVBoxLayout.SetMinAndMaxSize)
+    hl.setSizeConstraint(QVBoxLayout.SizeConstraint.SetMinAndMaxSize)
     right_margin = left_margin = 5
     hl.setContentsMargins(left_margin,0,right_margin,0)
     hl.setSpacing(0)
     hl.addStretch(1)
     frame.setWidget(hf)	# Set scrollable child.
-    hf.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
-    
+    hf.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Expanding)
+
 #    b = self.make_close_button(frame)
 #    b.grid(row = row, column = 1, sticky = 'e')
 
@@ -1438,7 +1438,7 @@ class Thresholds_Panel(PopupPanel):
     self.display_style_changed('surface')
 
     self.update_panel_widgets(None)
-    
+
     self._volume_close_handler = add_volume_closed_callback(self.dialog.session, self.data_closed_cb)
 
   # ---------------------------------------------------------------------------
@@ -1462,7 +1462,7 @@ class Thresholds_Panel(PopupPanel):
                        if vp is not None and hasattr(vp, 'series') and vp.series == v.series]
     else:
         same_series = []
-        
+
     if same_series:
       # Replace entry with same id number, for volume series
       vs = same_series[0]
@@ -1496,10 +1496,10 @@ class Thresholds_Panel(PopupPanel):
       hf = self.histograms_frame
       if hf.width() != vp.width():
           hf.resize(vp.width(), hf.height())
-      
+
       from Qt.QtWidgets import QScrollArea
       QScrollArea.resizeEvent(self.frame, e)
-      
+
   # ---------------------------------------------------------------------------
   # Resize thresholds panel to fit more histograms up to 350 pixels total height.
   #
@@ -1508,7 +1508,7 @@ class Thresholds_Panel(PopupPanel):
     if not self._allow_panel_height_increase:
         return
     self._allow_panel_height_increase = False
-    
+
     hpanes = self.histogram_panes
     n = len(hpanes)
     if n == 0:
@@ -1526,8 +1526,12 @@ class Thresholds_Panel(PopupPanel):
     f.setMinimumHeight(h)
 
     # Allow resizing panel smaller with mouse
+    def set_min_height(f=f):
+        import Qt
+        if not Qt.qt_object_is_deleted(f):
+            f.setMinimumHeight(50)
     from Qt.QtCore import QTimer
-    QTimer.singleShot(200, lambda f=f: f.setMinimumHeight(50))
+    QTimer.singleShot(200, set_min_height)
 
   # ---------------------------------------------------------------------------
   # Switch histogram threshold markers between vertical
@@ -1540,7 +1544,7 @@ class Thresholds_Panel(PopupPanel):
       hp = self.histogram_table.get(v, None)
       if hp:
         hp.image_mode(style == 'image')
-  
+
   # ---------------------------------------------------------------------------
   #
   def data_closed_cb(self, volumes):
@@ -1549,7 +1553,7 @@ class Thresholds_Panel(PopupPanel):
     for v in tuple(volumes):
       if v in hptable:
         self.close_histogram_pane(hptable[v])
-  
+
   # ---------------------------------------------------------------------------
   #
   def close_histogram_pane(self, hp):
@@ -1558,7 +1562,7 @@ class Thresholds_Panel(PopupPanel):
     del self.histogram_table[hp.volume]
     self.histograms_layout.removeWidget(hp.frame)
     hp.close()
-    
+
     if self.active_hist == hp:
       self.active_hist = None
     if hp in self.active_order:
@@ -1655,7 +1659,7 @@ class Thresholds_Panel(PopupPanel):
 
     hp = self.histogram_table.get(data_region, None)
     return hp and hp.histogram_shown
-    
+
   # ---------------------------------------------------------------------------
   #
   def use_gui_settings(self, volume):
@@ -1665,7 +1669,7 @@ class Thresholds_Panel(PopupPanel):
         if hp.histogram_shown:
             hp.set_threshold_parameters_from_gui()
         volume.set_display_style(hp.display_style)
-  
+
 # -----------------------------------------------------------------------------
 # Manages histogram and heading with data name, step size, shown indicator,
 # and map close button.
@@ -1687,7 +1691,7 @@ class Histogram_Pane:
     from Qt.QtCore import Qt, QSize
 
     self.frame = f = QFrame(parent)
-    f.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
+    f.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
     self._layout = flayout = QVBoxLayout(f)
     flayout.setContentsMargins(0,0,0,0)
     flayout.setSpacing(0)
@@ -1696,11 +1700,11 @@ class Histogram_Pane:
     self.data_name = nm = QLabel(f)
     flayout.addWidget(nm)
     nm.mousePressEvent = self.select_data_cb
-    
+
     # Create frame for step, color, level controls.
     df = QFrame(f)
-    df.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
-#    df.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Minimum)
+    df.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+#    df.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Minimum)
     flayout.addWidget(df)
     layout = QHBoxLayout(df)
     layout.setContentsMargins(0,0,0,0)
@@ -1728,12 +1732,12 @@ class Histogram_Pane:
     self._color_button = cl
     cl.color_changed.connect(self._color_chosen)
     cl.color_pause.connect(self._log_color_command)
-    layout.addWidget(cl)    
+    layout.addWidget(cl)
 
     self.data_id = did = QLabel(df)
     layout.addWidget(did)
     did.mousePressEvent = self.select_data_cb
-    
+
     self.size = sz = QLabel(df)
     layout.addWidget(sz)
     sz.mousePressEvent = self.select_data_cb
@@ -1805,7 +1809,7 @@ class Histogram_Pane:
     # Create planes slider below histogram if requested.
     self._planes_slider_shown = False
     self._planes_slider_frame = None
-    
+
 
   # ---------------------------------------------------------------------------
   #
@@ -1813,37 +1817,41 @@ class Histogram_Pane:
       v = self.volume
       if v is None:
           return
-      
-      from Qt.QtWidgets import QMenu, QAction
+
+      from Qt.QtWidgets import QMenu
       menu = QMenu(self.frame)
       ro = v.rendering_options
       add = self.add_menu_entry
+      x,y = event.x(), event.y()
       add(menu, 'Show Outline Box', self.show_outline_box, checked = ro.show_outline_box)
-      add(menu, 'Show Full Region', lambda checked, e=event, self=self: self.show_full_region(log=True))
-      add(menu, 'New Threshold', lambda checked, e=event, self=self: self.add_threshold(e.x(), e.y()))
-      add(menu, 'Delete Threshold', lambda checked, e=event, self=self: self.delete_threshold(e.x(), e.y()))
-
-      menu.exec_(event.globalPos())
+      add(menu, 'Show Full Region', lambda: self.show_full_region(log=True))
+      add(menu, 'New Threshold', lambda: self.add_threshold(x,y))
+      add(menu, 'Delete Threshold', lambda: self.delete_threshold(x,y))
+      pos = event.globalPos()
+      # If event is not release then Qt/PyQt errors in Python shell arise.
+      # Work around this bug by setting event to None. ChimeraX ticket #9068
+      event = None
+      # Posting menu only returns after menu is dismissed.
+      v.session.ui.post_context_menu(menu, pos)
 
   # ---------------------------------------------------------------------------
   #
-  def add_menu_entry(self, menu, text, callback, *args, checked = None):
+  def add_menu_entry(self, menu, text, callback, checked = None):
       '''Add menu item to context menu'''
-      from Qt.QtWidgets import QAction
+      from Qt.QtGui import QAction
       a = QAction(text, self.frame)
       if checked is not None:
           a.setCheckable(True)
           a.setChecked(checked)
-      def cb(*, a=a, callback=callback, args=args):
-          checked = a.isChecked()
+      def cb(now_checked, *, checked=checked, callback=callback):
           if checked is None:
-              callback(*args)
+              callback()
           else:
-              callback(checked, *args)
+              callback(now_checked)
       #a.setStatusTip("Info about this menu entry")
       a.triggered.connect(cb)
       menu.addAction(a)
-      
+
   # ---------------------------------------------------------------------------
   #
   def show_outline_box(self, show):
@@ -1853,14 +1861,14 @@ class Histogram_Pane:
               v.rendering_options.show_outline_box = show
               v.show()
               self._log_outline_box(v, show)
-      
+
   # ---------------------------------------------------------------------------
   #
   def _log_outline_box(self, v, show):
       cmd = 'volume %s showOutlineBox %s' % (v.atomspec, show)
       from chimerax.core.commands import log_equivalent_command
       log_equivalent_command(v.session, cmd)
-      
+
   # ---------------------------------------------------------------------------
   # Show slider below histogram to control which plane of data is shown.
   #
@@ -1963,7 +1971,7 @@ class Histogram_Pane:
       ps.setRange(0,nz-1)
       ps.valueChanged.connect(self._planes_slider_moved_cb)
       layout.addWidget(ps)
-      
+
       # Close button to right of plane slider
       from Qt.QtWidgets import QPushButton
       from Qt.QtCore import Qt, QSize
@@ -1986,7 +1994,7 @@ class Histogram_Pane:
   def _plane_changed_cb(self, event):
       k = self._planes_spinbox.value()
       self._update_plane(k)
-      
+
   # ---------------------------------------------------------------------------
   #
   def _planes_slider_moved_cb(self, event):
@@ -1999,7 +2007,7 @@ class Histogram_Pane:
   #
   def _update_plane(self, k, axis = 2):
       self._update_plane_slider(k)
-      
+
       v = self.volume
       ijk_min, ijk_max, ijk_step = v.region
       if ijk_min[axis] == k and ijk_max[axis] == k:
@@ -2050,7 +2058,7 @@ class Histogram_Pane:
               markers.delete_marker(m)
               self.dialog.redisplay_needed_cb()
               self._log_level_add_or_delete(markers)
-    
+
   # ---------------------------------------------------------------------------
   #
   def set_data_region(self, volume):
@@ -2088,7 +2096,7 @@ class Histogram_Pane:
 #    if len(name) > 10:
     if len(name) >= 0:
         self.data_name.show()
-        
+
         self.data_name.setText(name)
         self.data_id.setText('#%s' % v.id_string)
     else:
@@ -2155,14 +2163,14 @@ class Histogram_Pane:
             self._drag(event)
 
     self.canvas = gv = Canvas(frame)
-    gv.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-    gv.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-    gv.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+    gv.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+    gv.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+    gv.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
 
     self.scene = gs = QGraphicsScene(gv)
     gs.setSceneRect(0, 0, 500, 50)
     gv.setScene(gs)
-    
+
 #    c = Tkinter.Canvas(frame, height = histogram_height,
 #                       borderwidth = cborder, relief = 'sunken',
 #                       highlightthickness = 0)
@@ -2247,7 +2255,7 @@ class Histogram_Pane:
         vc.new_region(ijk_step = ijk_step, adjust_step = False)
 
     self._log_step_command(v, ijk_step)
-    
+
     d = self.dialog
     if v != d.active_volume:
       d.display_volume_info(v)
@@ -2283,7 +2291,7 @@ class Histogram_Pane:
         if not b.isChecked():
             # Shift click on shown map leaves the map shown.
             b.setChecked(True)
-            
+
     show = self.shown.isChecked()
     v.display = show
 
@@ -2310,7 +2318,7 @@ class Histogram_Pane:
         self.update_shown_icon()
     elif trigger == openModels.ADDMODEL:
       self.update_shown_icon()
-      
+
   # ---------------------------------------------------------------------------
   #
   def update_shown_icon(self):
@@ -2354,7 +2362,7 @@ class Histogram_Pane:
           mstyle = style
       self.style.setText(mstyle)
   display_style = property(_get_style, _set_style)
-  
+
   # ---------------------------------------------------------------------------
   # Notify all panels that display style changed so they can update gui if
   # it depends on the display style.
@@ -2364,7 +2372,7 @@ class Histogram_Pane:
       v = self.volume
       if v is None:
           return
-      
+
       self.style.setText(style)
 
       settings_before = self._record_settings(v)
@@ -2385,10 +2393,10 @@ class Histogram_Pane:
               self.show_plane(False, show_volume = False)
           if v.showing_one_plane:
               self.show_full_region(v, show_volume = False)
-              
+
       if style != 'maximum':
           v.set_parameters(maximum_intensity_projection = False)
-          
+
       if style in ('surface', 'mesh'):
           v.set_display_style(style)
       elif style == 'volume':
@@ -2436,21 +2444,21 @@ class Histogram_Pane:
           from .tiltedslab import set_initial_tilted_slab
           set_initial_tilted_slab(v)
           self.enable_rotate_slab()
-      
+
   # ---------------------------------------------------------------------------
   #
   def enable_move_planes(self):
       # Bind move planes mouse mode
       mm = self.dialog.session.ui.mouse_modes
       mm.bind_mouse_mode('right', [], mm.named_mode('move planes'))
-      
+
   # ---------------------------------------------------------------------------
   #
   def enable_crop_box(self):
       # Bind crop box mouse mode
       mm = self.dialog.session.ui.mouse_modes
       mm.bind_mouse_mode('right', [], mm.named_mode('crop volume'))
-      
+
   # ---------------------------------------------------------------------------
   #
   def enable_rotate_slab(self):
@@ -2505,11 +2513,11 @@ class Histogram_Pane:
           extra_opts.append('tiltedSlabSpacing %.4g' % aro.tilted_slab_spacing)
       if aro.tilted_slab_plane_count != bro.tilted_slab_plane_count:
           extra_opts.append('tiltedSlabPlaneCount %d' % aro.tilted_slab_plane_count)
-      
+
       cmd = 'volume %s %s' % (_channel_volumes_spec(v), ' '.join(extra_opts))
       from chimerax.core.commands import log_equivalent_command
       log_equivalent_command(v.session, cmd)
-  
+
   # ---------------------------------------------------------------------------
   #
   def image_mode(self, image):
@@ -2594,7 +2602,7 @@ class Histogram_Pane:
     if rgba is not None:
         from chimerax.core.colors import rgba_to_rgba8
         self._color_button.color = rgba_to_rgba8(rgba)
-      
+
   # ---------------------------------------------------------------------------
   #
   def _color_chosen(self, color):
@@ -2645,7 +2653,7 @@ class Histogram_Pane:
     self.image_mode(style == 'image')
 
     self.set_threshold_and_color_widgets()
-    
+
   # ---------------------------------------------------------------------------
   #
   def update_size_and_step(self, region = None):
@@ -2669,7 +2677,7 @@ class Histogram_Pane:
     # TODO: Block step change callback.
     if step != ds.text():
         ds.setText(step)
-    
+
   # ---------------------------------------------------------------------------
   #
   def plot_surface_levels(self):
@@ -2685,7 +2693,7 @@ class Histogram_Pane:
     # So set volume_surface attribute for actual markers.
     for m,s in zip(self.surface_thresholds.markers, v.surfaces):
         m.volume_surface = s
-    
+
   # ---------------------------------------------------------------------------
   #
   def plot_image_levels(self):
@@ -2700,7 +2708,7 @@ class Histogram_Pane:
     ro = v.rendering_options
     imt.set_markers(image_markers, extend_left = ro.colormap_extend_left,
                     extend_right = ro.colormap_extend_right)
-    
+
   # ---------------------------------------------------------------------------
   #
   def update_histogram(self, read_matrix, message_cb, resize = False, delay = 0.5):
@@ -2753,7 +2761,7 @@ class Histogram_Pane:
     self.surface_thresholds.set_user_x_range(first_bin_center, last_bin_center)
 
     self.update_data_range()
-  
+
   # ---------------------------------------------------------------------------
   #
   def histogram_bins(self):
@@ -2811,7 +2819,7 @@ class Histogram_Pane:
 
     if log:
         self._log_surface_change(v, surf_levels_changed, surf_colors_changed)
-    
+
     image_levels_changed = image_colors_changed = False
     markers = self.image_thresholds.markers
     ilevels = [m.xy for m in markers]
@@ -2827,7 +2835,7 @@ class Histogram_Pane:
 
     if log:
         self._log_image_change(v, image_levels_changed, image_colors_changed)
-        
+
     if show and v.shown():
         v.show()
 
@@ -2844,7 +2852,7 @@ class Histogram_Pane:
       if self._surface_levels_changed:
           levels_changed = True
           self._surface_levels_changed = False
-          
+
       if not levels_changed and not colors_changed:
           return
 
@@ -2876,7 +2884,7 @@ class Histogram_Pane:
       if self._image_levels_changed:
           levels_changed = True
           self._image_levels_changed = False
-          
+
       if not levels_changed and not colors_changed:
           return
 
@@ -2905,7 +2913,7 @@ class Histogram_Pane:
               self._log_surface_change(v, True, True, on_mouse_release = False)
           elif markers is self.image_thresholds:
               self._log_image_change(v, True, True, on_mouse_release = False)
-          
+
   # ---------------------------------------------------------------------------
   # Delete widgets and references to other objects.
   #
@@ -2946,20 +2954,20 @@ def _volumes_spec(volumes):
     spec = concise_model_spec(volumes[0].session, volumes, relevant_types = Volume,
                               allow_empty_spec = False)
     return spec
-    
+
 # -----------------------------------------------------------------------------
 # User interface for adjusting brightness and transparency.
 #
 class Brightness_Transparency_Panel(PopupPanel):
 
   name = 'Brightness and Transparency'           # Used in feature menu.
-  
+
   def __init__(self, dialog, parent):
 
     self.dialog = dialog
 
     PopupPanel.__init__(self, parent)
-    
+
     frame = self.frame
     frame.columnconfigure(0, weight = 1)
     row = 0
@@ -2994,7 +3002,7 @@ class Brightness_Transparency_Panel(PopupPanel):
     self.transparency_depth = tds
 
     self.display_style_changed('surface')
-    
+
   # ---------------------------------------------------------------------------
   # Show brightness and transparency sliders appropriate for surface or image.
   # Image uses logarithmic transparency depth slider and surface uses linear
@@ -3007,11 +3015,11 @@ class Brightness_Transparency_Panel(PopupPanel):
     place_in_grid(self.surface_brightness_factor.frame, not image)
     place_in_grid(self.transparency_depth.frame, image)
     place_in_grid(self.image_brightness_factor.frame, image)
-  
+
   # ---------------------------------------------------------------------------
   #
   def update_panel_widgets(self, data_region):
-    
+
     dr = data_region
     if dr == None:
       return
@@ -3046,13 +3054,13 @@ class Brightness_Transparency_Panel(PopupPanel):
 class Named_Region_Panel(PopupPanel):
 
   name = 'Named regions'           # Used in feature menu.
-  
+
   def __init__(self, dialog, parent):
 
     self.dialog = dialog
 
     PopupPanel.__init__(self, parent)
-    
+
     frame = self.frame
     frame.columnconfigure(3, weight = 1)
 
@@ -3072,7 +3080,7 @@ class Named_Region_Panel(PopupPanel):
                             ('Delete', self.delete_named_region_cb),
                             ))
     rb.frame.grid(row = 0, column = 2, sticky = 'w')
-    
+
     b = self.make_close_button(frame)
     b.grid(row = 0, column = 3, sticky = 'e')
 
@@ -3089,20 +3097,20 @@ class Named_Region_Panel(PopupPanel):
     self.update_region_name_menu(data_region)
     if data_region and data_region.region:
       self.update_panel_ijk_bounds(*data_region.region)
-    
+
   # ---------------------------------------------------------------------------
   #
   def update_panel_ijk_bounds(self, ijk_min, ijk_max, ijk_step):
 
     self.show_region_name(ijk_min, ijk_max)
-    
+
   # ---------------------------------------------------------------------------
   #
   def region_name_cb(self, event):
 
     name = self.region_name.get()
     self.show_named_region(name)
-    
+
   # ---------------------------------------------------------------------------
   #
   def add_named_region_cb(self):
@@ -3124,7 +3132,7 @@ class Named_Region_Panel(PopupPanel):
 
     cb = lambda show=self.show_named_region, nm=name: show(name)
     self.region_name_menu.add_entry(name, cb)
-    
+
   # ---------------------------------------------------------------------------
   #
   def show_named_region(self, name):
@@ -3132,7 +3140,7 @@ class Named_Region_Panel(PopupPanel):
     dr = active_volume()
     if dr == None:
       return
-    
+
     self.region_name.set(name)
     ijk_min, ijk_max = dr.region_list.named_region_bounds(name)
     if ijk_min == None or ijk_max == None:
@@ -3151,7 +3159,7 @@ class Named_Region_Panel(PopupPanel):
       if name == None:
         name = ''
       self.region_name.set(name)
-    
+
   # ---------------------------------------------------------------------------
   #
   def delete_named_region_cb(self):
@@ -3172,7 +3180,7 @@ class Named_Region_Panel(PopupPanel):
     i0 = base_menu_index(rnm)
     rnm.remove_entry(index+i0)
     self.region_name.set('')
-    
+
   # ---------------------------------------------------------------------------
   #
   def update_region_name_menu(self, data_region):
@@ -3193,19 +3201,19 @@ class Named_Region_Panel(PopupPanel):
 class Plane_Panel(PopupPanel):
 
   name = 'Planes'           # Used in feature menu.
-  
+
   def __init__(self, dialog, parent):
 
     self.dialog = dialog
 
     PopupPanel.__init__(self, parent)
-    
+
     frame = self.frame
 
     self.last_axis = 2
     self.data_size = (1,1,1)
     self.change_plane_in_progress = False
-    
+
     frame.columnconfigure(0, weight = 1)       # Let scale width expand
     row = 0
 
@@ -3254,7 +3262,7 @@ class Plane_Panel(PopupPanel):
     mpf.grid(row = row, column = 0, sticky = 'ew')
     mpf.columnconfigure(2, weight = 1)
     row += 1
-    
+
     mp = Hybrid.Checkbutton(mpf, 'Move planes using ', 0)
     mp.button.grid(row = 0, column = 0, sticky = 'w')
     self.move_planes = mp.variable
@@ -3285,7 +3293,7 @@ class Plane_Panel(PopupPanel):
         self.data_size = volume.data.size
         self.update_axis(*r)
         self.update_panel_ijk_bounds(*r)
-    
+
   # ---------------------------------------------------------------------------
   #
   def update_panel_ijk_bounds(self, ijk_min, ijk_max, ijk_step):
@@ -3309,7 +3317,7 @@ class Plane_Panel(PopupPanel):
     if not self.change_plane_in_progress:
       p = dict(v.shown_orthoplanes()).get(a, ijk_min[a])
       self.plane.set_value(p, invoke_callbacks = False)
-    
+
   # ---------------------------------------------------------------------------
   #
   def update_axis(self, ijk_min, ijk_max, ijk_step):
@@ -3327,7 +3335,7 @@ class Plane_Panel(PopupPanel):
       axis = -size[0][1]
     self.axis.set(self.axis_names[axis], invoke_callbacks = False)
     self.last_axis = axis
-    
+
   # ---------------------------------------------------------------------------
   #
   def set_scale_range(self, size, step):
@@ -3413,7 +3421,7 @@ class Plane_Panel(PopupPanel):
 
     d = integer_variable_value(self.depth_var, 1)
     return d
-    
+
   # ---------------------------------------------------------------------------
   #
   def preload_cb(self, event = None):
@@ -3435,7 +3443,7 @@ class Plane_Panel(PopupPanel):
 
       # Load data
       v.full_matrix(step = step)
-  
+
   # ---------------------------------------------------------------------------
   #
   def change_plane_cb(self, event = None, extend_axes = []):
@@ -3467,7 +3475,7 @@ class Plane_Panel(PopupPanel):
     max = v.data.size[a]
     step = v.region[2][a]
     self.set_scale_range(max, step) # Update scale range.
-  
+
   # ---------------------------------------------------------------------------
   #
   def move_planes_cb(self):
@@ -3485,13 +3493,13 @@ class Plane_Panel(PopupPanel):
 class Orthoplane_Panel(PopupPanel):
 
   name = 'Orthogonal planes'           # Used in feature menu.
-  
+
   def __init__(self, dialog, parent):
 
     self.dialog = dialog
 
     PopupPanel.__init__(self, parent)
-    
+
     frame = self.frame
     frame.columnconfigure(0, weight = 1)       # Let scale width expand
     row = 0
@@ -3529,7 +3537,7 @@ class Orthoplane_Panel(PopupPanel):
   def use_gui_settings(self, volume):
 
     pass
-  
+
   # ---------------------------------------------------------------------------
   #
   def update_panel_widgets(self, volume):
@@ -3548,7 +3556,7 @@ class Orthoplane_Panel(PopupPanel):
 
     box = bool(image and box_faces)
     self.box_faces.set(box, invoke_callbacks = False)
-    
+
   # ---------------------------------------------------------------------------
   # If region changes to single plane, activate plane checkbutton.
   #
@@ -3604,7 +3612,7 @@ class Orthoplane_Panel(PopupPanel):
                             show_outline_box = True)
       volume.set_display_style('image')
     volume.show()
-    
+
   # ---------------------------------------------------------------------------
   #
   def box_faces_cb(self):
@@ -3632,13 +3640,13 @@ class Orthoplane_Panel(PopupPanel):
 class Region_Size_Panel(PopupPanel):
 
   name = 'Region bounds'           # Used in feature menu.
-  
+
   def __init__(self, dialog, parent):
 
     self.dialog = dialog
 
     PopupPanel.__init__(self, parent)
-    
+
     frame = self.frame
 
     rl = Tkinter.Label(frame, text = 'Region min max step ')
@@ -3652,7 +3660,7 @@ class Region_Size_Panel(PopupPanel):
       col += 1
       self.region_bounds.append(rb.variable)
       rb.entry.bind('<KeyPress-Return>', self.changed_region_text_cb)
-    
+
     b = self.make_close_button(frame)
     b.grid(row = 0, column = col, sticky = 'e')
 
@@ -3679,14 +3687,14 @@ class Region_Size_Panel(PopupPanel):
         rb.set('')
     else:
       self.update_panel_ijk_bounds(*data_region.region)
-      
+
   # ---------------------------------------------------------------------------
   #
   def update_panel_ijk_bounds(self, ijk_min, ijk_max, ijk_step):
 
     self.set_region_gui_min_max(ijk_min, ijk_max)
     self.set_region_gui_step(ijk_step)
-    
+
   # ---------------------------------------------------------------------------
   # User typed new region bounds in entry field.
   #
@@ -3696,7 +3704,7 @@ class Region_Size_Panel(PopupPanel):
     if dr:
       ijk_min, ijk_max, ijk_step = self.grid_region()
       dr.new_region(ijk_min, ijk_max, ijk_step, adjust_step = False)
-      
+
   # ---------------------------------------------------------------------------
   #
   def set_region_gui_min_max(self, ijk_min, ijk_max):
@@ -3705,7 +3713,7 @@ class Region_Size_Panel(PopupPanel):
       rb = self.region_bounds[a]
       minmax, step = split_fields(rb.get(), 2)
       rb.set('%d %d %s' % (ijk_min[a], ijk_max[a], step))
-      
+
   # ---------------------------------------------------------------------------
   #
   def set_region_gui_step(self, ijk_step):
@@ -3714,7 +3722,7 @@ class Region_Size_Panel(PopupPanel):
       rb = self.region_bounds[a]
       minmax, step = split_fields(rb.get(), 2)
       rb.set('%s %d' % (minmax, ijk_step[a]))
-  
+
   # ---------------------------------------------------------------------------
   #
   def grid_region(self):
@@ -3738,13 +3746,13 @@ class Region_Size_Panel(PopupPanel):
 class Atom_Box_Panel(PopupPanel):
 
   name = 'Atom box'           # Used in feature menu.
-  
+
   def __init__(self, dialog, parent):
 
     self.dialog = dialog
 
     PopupPanel.__init__(self, parent)
-    
+
     frame = self.frame
     frame.columnconfigure(2, weight = 1)
 
@@ -3755,7 +3763,7 @@ class Atom_Box_Panel(PopupPanel):
     pe.frame.grid(row = 0, column = 1, sticky = 'w')
     self.box_padding = pe.variable
     pe.entry.bind('<KeyPress-Return>', self.atom_box_cb)
-    
+
     b = self.make_close_button(frame)
     b.grid(row = 0, column = 2, sticky = 'e')
 
@@ -3770,14 +3778,14 @@ class Atom_Box_Panel(PopupPanel):
   def update_panel_widgets(self, data_region):
 
     pass
-    
+
   # ---------------------------------------------------------------------------
   #
   def atom_box_cb(self, event = None):
 
     pad = float(self.box_padding.get())
     self.set_region_to_atom_box(pad)
-    
+
   # ---------------------------------------------------------------------------
   #
   def set_region_to_atom_box(self, pad):
@@ -3812,7 +3820,7 @@ class Atom_Box_Panel(PopupPanel):
 class Subregion_Panel(PopupPanel):
 
   name = 'Subregion selection'           # Used in feature menu.
-  
+
   def __init__(self, dialog, parent):
 
     self.dialog = dialog
@@ -3820,7 +3828,7 @@ class Subregion_Panel(PopupPanel):
     self.last_subregion = (None, None)
 
     PopupPanel.__init__(self, parent)
-    
+
     frame = self.frame
     frame.columnconfigure(0, weight = 1)
     row = 0
@@ -3829,7 +3837,7 @@ class Subregion_Panel(PopupPanel):
     srf.grid(row = row, column = 0, sticky = 'ew')
     srf.columnconfigure(2, weight = 1)
     row += 1
-    
+
     sr = Hybrid.Checkbutton(srf, 'Select subregions using ', 0)
     sr.button.grid(row = 0, column = 0, sticky = 'w')
     self.selectable_subregions = sr.variable
@@ -3843,7 +3851,7 @@ class Subregion_Panel(PopupPanel):
 
     srl = Tkinter.Label(srf, text = ' mouse button')
     srl.grid(row = 0, column = 2, sticky = 'w')
-    
+
     b = self.make_close_button(srf)
     b.grid(row = 0, column = 2, sticky = 'e')
 
@@ -3853,7 +3861,7 @@ class Subregion_Panel(PopupPanel):
 
     cb = Hybrid.Button_Row(cf, '', (('Crop', self.crop_cb),))
     cb.frame.grid(row = 0, column = 0, sticky = 'nw')
-    
+
     aus = Hybrid.Checkbutton(cf, 'auto', False)
     aus.button.grid(row = 0, column = 1, sticky = 'w')
     self.auto_show_subregion = aus.variable
@@ -3888,7 +3896,7 @@ class Subregion_Panel(PopupPanel):
   def use_gui_settings(self, data_region):
 
     pass
-    
+
   # ---------------------------------------------------------------------------
   #
   def default_settings_changed(self, default_settings, changes):
@@ -3899,7 +3907,7 @@ class Subregion_Panel(PopupPanel):
   # ---------------------------------------------------------------------------
   #
   def update_panel_widgets(self, data_region):
-      
+
     self.activate_back_forward(data_region)
     if data_region:
       self.resample_voxel_size.set(vector_value_text(data_region.data.step))
@@ -3938,7 +3946,7 @@ class Subregion_Panel(PopupPanel):
       self.forward_button['state'] = 'normal'
     else:
       self.forward_button['state'] = 'disabled'
-      
+
   # ---------------------------------------------------------------------------
   #
   def crop_cb(self):
@@ -3958,11 +3966,11 @@ class Subregion_Panel(PopupPanel):
       from math import ceil
       ijk_max = [max(ijk_max[a], ceil(ijk_min[a])) for a in (0,1,2)]
       v.new_region(ijk_min, ijk_max)
-      
+
   # ---------------------------------------------------------------------------
   #
   def subregion_box_bounds(self):
-    
+
     ss = self.subregion_selector
     v = active_volume()
     if ss == None or v == None:
@@ -3970,19 +3978,19 @@ class Subregion_Panel(PopupPanel):
 
     return ss.ijk_box_bounds(v.model_transform(),
                              v.data.ijk_to_xyz_transform)
-      
+
   # ---------------------------------------------------------------------------
   #
   def back_cb(self):
 
     self.switch_region(-1)
-      
+
   # ---------------------------------------------------------------------------
   #
   def forward_cb(self):
 
     self.switch_region(1)
-      
+
   # ---------------------------------------------------------------------------
   #
   def switch_region(self, offset):
@@ -3996,7 +4004,7 @@ class Subregion_Panel(PopupPanel):
       return
 
     dr.new_region(ijk_min, ijk_max)
-    
+
   # ---------------------------------------------------------------------------
   #
   def zoom_full_cb(self):
@@ -4008,7 +4016,7 @@ class Subregion_Panel(PopupPanel):
     ijk_min = [0, 0, 0]
     ijk_max = map(lambda n: n-1, dr.data.size)
     dr.new_region(ijk_min, ijk_max)
-    
+
   # ---------------------------------------------------------------------------
   #
   def zoom(self, factor):
@@ -4031,7 +4039,7 @@ class Subregion_Panel(PopupPanel):
         zoom_ijk_min[a] = mid - 0.5
 
     dr.new_region(zoom_ijk_min, zoom_ijk_max)
-  
+
   # ---------------------------------------------------------------------------
   #
   def selectable_subregions_cb(self):
@@ -4049,7 +4057,7 @@ class Subregion_Panel(PopupPanel):
         ss.box_model.delete_box()
         self.last_subregion = (None, None)
       self.rotate_box.set(False)
-    
+
   # ---------------------------------------------------------------------------
   #
   def subregion_button_cb(self):
@@ -4123,7 +4131,7 @@ class Subregion_Panel(PopupPanel):
     except ValueError:
       self.dialog.message('Invalid resample voxel size "%s"' % rvsize)
       return
-    
+
     if len(rstep) == 1:
       rstep *= 3
     if len(rstep) != 3:
@@ -4159,20 +4167,20 @@ class Subregion_Panel(PopupPanel):
       sv.subregion_of_volume = v
       sv.show()
       v.display = False
-    
+
 # -----------------------------------------------------------------------------
 # User interface for zones.
 #
 class Zone_Panel(PopupPanel):
 
   name = 'Zone'           # Used in feature menu.
-  
+
   def __init__(self, dialog, parent):
 
     self.dialog = dialog
 
     PopupPanel.__init__(self, parent)
-    
+
     frame = self.frame
     frame.columnconfigure(0, weight = 1)
     row = 0
@@ -4193,7 +4201,7 @@ class Zone_Panel(PopupPanel):
 
     mb = Tkinter.Button(zf, text = 'Mask', command = self.mask_cb)
     mb.grid(row = 0, column = 3, sticky = 'w')
-    
+
     b = self.make_close_button(zf)
     b.grid(row = 0, column = 4, sticky = 'e')
 
@@ -4209,14 +4217,14 @@ class Zone_Panel(PopupPanel):
   def use_gui_settings(self, data_region):
 
     pass
-  
+
   # ---------------------------------------------------------------------------
   #
   def update_panel_widgets(self, data_region):
 
     if data_region:
       self.set_zone_radius_slider_range(data_region)
-    
+
   # ---------------------------------------------------------------------------
   #
   def zone_cb(self, event = None, mask = False):
@@ -4247,11 +4255,11 @@ class Zone_Panel(PopupPanel):
         surface_zone(surface, points, radius, auto_update = True)
     else:
       self.dialog.message('No atoms are selected for zone')
-    
+
   # ---------------------------------------------------------------------------
   #
   def mask_cb(self, event = None):
-      
+
     self.zone_cb(mask = True)
 
   # ---------------------------------------------------------------------------
@@ -4279,7 +4287,7 @@ class Zone_Panel(PopupPanel):
         points, old_radius = SurfaceZone.zone_points_and_distance(surface)
         self.resize_region_for_zone(points, radius)
         SurfaceZone.surface_zone(surface, points, radius, auto_update = True)
-      
+
   # ---------------------------------------------------------------------------
   #
   def zone_radius_from_gui(self):
@@ -4291,7 +4299,7 @@ class Zone_Panel(PopupPanel):
     else:
       self.dialog.message('')
     return radius
-      
+
   # ---------------------------------------------------------------------------
   #
   def zone_surface(self):
@@ -4340,7 +4348,7 @@ class Zone_Panel(PopupPanel):
     # a scale range 0 to 101.
 
     self.zone_radius.set_range(0, r, step)
-  
+
 # -----------------------------------------------------------------------------
 #
 def smaller_power_of_ten(x):
@@ -4355,16 +4363,16 @@ def smaller_power_of_ten(x):
 class Display_Options_Panel(PopupPanel):
 
   name = 'Data display options'           # Used in feature menu.
-  
+
   def __init__(self, dialog, parent):
 
     self.dialog = dialog
 
     PopupPanel.__init__(self, parent)
-    
+
     frame = self.frame
     frame.columnconfigure(0, weight = 1)
-    
+
     row = 0
 
     obf = Tkinter.Frame(frame)
@@ -4387,7 +4395,7 @@ class Display_Options_Panel(PopupPanel):
     lw.frame.grid(row = 0, column = 2, sticky = 'w')
     self.outline_width = lw.variable
     lw.entry.bind('<KeyPress-Return>', dialog.redisplay_needed_cb)
-    
+
     b = self.make_close_button(obf)
     b.grid(row = 0, column = 2, sticky = 'e')
 
@@ -4407,7 +4415,7 @@ class Display_Options_Panel(PopupPanel):
     icb.button.grid(row = 0, column = 0, sticky = 'w')
     self.use_initial_colors = icb.variable
     self.use_initial_colors.add_callback(self.update_global_defaults)
-    
+
     self.initial_colors = []
     for c in range(10):
       from CGLtk.color import ColorWell
@@ -4442,7 +4450,7 @@ class Display_Options_Panel(PopupPanel):
     self.show_plane, self.voxel_limit_for_plane = spl.variables
     self.show_plane.add_callback(self.update_global_defaults)
     sop.entries[0].bind('<KeyPress-Return>', self.update_global_defaults)
-    
+
     ssb = Hybrid.Checkbutton_Entries(frame, True,
                                      'Adjust step to show at most',
                                      (4, '1'),
@@ -4466,7 +4474,7 @@ class Display_Options_Panel(PopupPanel):
 
     cu = Tkinter.Button(vc, text = 'Current use', command = self.cache_use_cb)
     cu.grid(row = 0, column = 1, sticky = 'w')
-    
+
     ac = Hybrid.Checkbutton(frame,
                             'Zoom and center camera when region changes', 0)
     ac.button.grid(row = row, column = 0, sticky = 'w')
@@ -4501,20 +4509,20 @@ class Display_Options_Panel(PopupPanel):
     if size_mb:
       from VolumeData import data_cache
       data_cache.resize(size_mb * (2**20))
-        
+
   # ---------------------------------------------------------------------------
   #
   def cache_use_cb(self):
 
     from VolumeData import memoryuse
     memoryuse.show_memory_use_dialog()
-    
+
   # ---------------------------------------------------------------------------
   #
   def default_settings_changed(self, default_settings, changes):
 
     self.set_gui_state(changes)
-    
+
   # ---------------------------------------------------------------------------
   #
   def set_gui_state(self, settings):
@@ -4539,7 +4547,7 @@ class Display_Options_Panel(PopupPanel):
       icolors = settings['initial_colors']
       for c in range(10):
         self.initial_colors[c].showColor(icolors[c], doCallback = False)
-    
+
   # ---------------------------------------------------------------------------
   #
   def get_gui_state(self, settings):
@@ -4558,11 +4566,11 @@ class Display_Options_Panel(PopupPanel):
 
     colors = tuple([c.rgba for c in self.initial_colors])
     settings['initial_colors'] = colors
-        
+
   # ---------------------------------------------------------------------------
   #
   def ijk_step_for_voxel_limit(self, ijk_min, ijk_max, ijk_step):
-    
+
     mvoxels = float_variable_value(self.voxel_limit)
     import volume
     step = volume.ijk_step_for_voxel_limit(ijk_min, ijk_max, ijk_step,
@@ -4576,7 +4584,7 @@ class Display_Options_Panel(PopupPanel):
 
     if data_region == None:
       return
-    
+
     ro = data_region.rendering_options
     if ro:
       self.set_gui_from_rendering_options(ro)
@@ -4608,7 +4616,7 @@ class Display_Options_Panel(PopupPanel):
   # ---------------------------------------------------------------------------
   #
   def rendering_options_from_gui(self, ro):
-    
+
     ro.show_outline_box = self.show_outline_box.get()
     ro.outline_box_rgb = self.outline_box_color.rgb
     ro.outline_box_linewidth = float_variable_value(self.outline_width, 1)
@@ -4621,13 +4629,13 @@ class Display_Options_Panel(PopupPanel):
 class Image_Options_Panel(PopupPanel):
 
   name = 'Image rendering options'           # Used in feature menu.
-  
+
   def __init__(self, dialog, parent):
 
     self.dialog = dialog
 
     PopupPanel.__init__(self, parent)
-    
+
     frame = self.frame
     frame.columnconfigure(0, weight = 1)
 
@@ -4637,7 +4645,7 @@ class Image_Options_Panel(PopupPanel):
     cmf.grid(row = row, column = 0, sticky = 'new')
     cmf.columnconfigure(2, weight=1)
     row += 1
-    
+
     b = self.make_close_button(cmf)
     b.grid(row = 0, column = 2, sticky = 'e')
 
@@ -4675,7 +4683,7 @@ class Image_Options_Panel(PopupPanel):
     pm.add_callback(dialog.redisplay_needed_cb)
     self.proj_mode_name = dict(pmodes)
     self.proj_mode_from_name = dict([(n,m) for m,n in pmodes])
-    
+
     mipd = 'Maximum intensity projection'
     import _volume
     if not _volume.maximum_intensity_projection_supported():
@@ -4691,19 +4699,19 @@ class Image_Options_Panel(PopupPanel):
     row += 1
     self.dim_transparent_voxels = dt.variable
     self.dim_transparent_voxels.add_callback(dialog.redisplay_needed_cb)
-    
+
     bt = Hybrid.Checkbutton(frame, 'Image brightness correction', 0)
     bt.button.grid(row = row, column = 0, sticky = 'nw')
     row += 1
     self.bt_correction = bt.variable
     self.bt_correction.add_callback(dialog.redisplay_needed_cb)
-    
+
     mt = Hybrid.Checkbutton(frame, 'Minimize texture memory use', 0)
     mt.button.grid(row = row, column = 0, sticky = 'nw')
     row += 1
     self.minimal_texture_memory = mt.variable
     self.minimal_texture_memory.add_callback(dialog.redisplay_needed_cb)
-    
+
     vli = Hybrid.Checkbutton(frame, 'Image linear interpolation', 0)
     vli.button.grid(row = row, column = 0, sticky = 'nw')
     row += 1
@@ -4716,7 +4724,7 @@ class Image_Options_Panel(PopupPanel):
 
     if data_region == None:
       return
-    
+
     ro = data_region.rendering_options
     if ro:
       self.set_gui_from_rendering_options(ro)
@@ -4749,7 +4757,7 @@ class Image_Options_Panel(PopupPanel):
   # ---------------------------------------------------------------------------
   #
   def rendering_options_from_gui(self, ro):
-    
+
     ro.color_mode = self.color_mode_name()
     ro.projection_mode = self.proj_mode_from_name[self.projection_mode.get()]
     ro.maximum_intensity_projection = self.maximum_intensity_projection.get()
@@ -4784,23 +4792,23 @@ class Image_Options_Panel(PopupPanel):
 class Surface_Options_Panel(PopupPanel):
 
   name = 'Surface and Mesh options'           # Used in feature menu.
-  
+
   def __init__(self, dialog, parent):
 
     self.dialog = dialog
 
     PopupPanel.__init__(self, parent)
-    
+
     frame = self.frame
     frame.columnconfigure(0, weight = 1)
-    
+
     row = 0
 
     smf = Tkinter.Frame(frame)
     smf.grid(row = row, column = 0, sticky = 'new')
     smf.columnconfigure(4, weight = 1)
     row += 1
-    
+
     ssm = Hybrid.Checkbutton_Entries(smf, False,
                                      'Surface smoothing iterations', (2, ''),
                                      ' factor', (4,''))
@@ -4809,10 +4817,10 @@ class Surface_Options_Panel(PopupPanel):
     self.surface_smoothing.add_callback(dialog.redisplay_needed_cb)
     for e in ssm.entries:
       e.bind('<KeyPress-Return>', dialog.redisplay_cb)
-    
+
     b = self.make_close_button(smf)
     b.grid(row = 0, column = 4, sticky = 'e')
-    
+
     sd = Hybrid.Checkbutton_Entries(frame, False,
                                     'Subdivide surface',
                                     (2, '1'),
@@ -4822,13 +4830,13 @@ class Surface_Options_Panel(PopupPanel):
     self.subdivide_surface, self.subdivision_levels = sd.variables
     self.subdivide_surface.add_callback(dialog.redisplay_needed_cb)
     sd.entries[0].bind('<KeyPress-Return>', dialog.redisplay_cb)
-    
+
     sl = Hybrid.Checkbutton(frame, 'Smooth mesh lines', 0)
     sl.button.grid(row = row, column = 0, sticky = 'nw')
     row += 1
     self.smooth_lines = sl.variable
     self.smooth_lines.add_callback(dialog.redisplay_needed_cb)
-    
+
     sm = Hybrid.Checkbutton(frame, 'Square mesh', False)
     sm.button.grid(row = row, column = 0, sticky = 'nw')
     row += 1
@@ -4843,31 +4851,31 @@ class Surface_Options_Panel(PopupPanel):
     lt.frame.grid(row = 0, column = 0, sticky = 'w')
     lt.entry.bind('<KeyPress-Return>', dialog.redisplay_cb)
     self.line_thickness = lt.variable
-    
+
     ds = Hybrid.Checkbutton(frame, 'Dim transparent surface/mesh', 0)
     ds.button.grid(row = row, column = 0, sticky = 'nw')
     row += 1
     self.dim_transparency = ds.variable
     self.dim_transparency.add_callback(dialog.redisplay_needed_cb)
-    
+
     ml = Hybrid.Checkbutton(frame, 'Mesh lighting', 1)
     ml.button.grid(row = row, column = 0, sticky = 'nw')
     row += 1
     self.mesh_lighting = ml.variable
     self.mesh_lighting.add_callback(dialog.redisplay_needed_cb)
-    
+
     l2 = Hybrid.Checkbutton(frame, 'Two-sided surface lighting', 1)
     l2.button.grid(row = row, column = 0, sticky = 'nw')
     row += 1
     self.two_sided_lighting = l2.variable
     self.two_sided_lighting.add_callback(dialog.redisplay_needed_cb)
-    
+
     fn = Hybrid.Checkbutton(frame, 'Light flip side for thresholds < 0', 1)
     fn.button.grid(row = row, column = 0, sticky = 'nw')
     row += 1
     self.flip_normals = fn.variable
     self.flip_normals.add_callback(dialog.redisplay_needed_cb)
-    
+
     cp = Hybrid.Checkbutton(frame, 'Cap high values at box faces', True)
     cp.button.grid(row = row, column = 0, sticky = 'nw')
     row += 1
@@ -4880,7 +4888,7 @@ class Surface_Options_Panel(PopupPanel):
 
     if data_region == None:
       return
-    
+
     ro = data_region.rendering_options
     if ro:
       self.set_gui_from_rendering_options(ro)
@@ -4953,7 +4961,7 @@ def non_bold_font(frame):
     nbfont = e['font']
     e.destroy()
   return nbfont
-  
+
 # -----------------------------------------------------------------------------
 #
 def place_in_grid(widget, place):
@@ -4962,7 +4970,7 @@ def place_in_grid(widget, place):
     widget.grid()
   else:
     widget.grid_remove()
-      
+
 # ---------------------------------------------------------------------------
 #
 mouse_button_names = ('left', 'middle', 'right',
@@ -4992,7 +5000,7 @@ def integer_variable_value(v, default = None):
     return int(v.get())
   except Exception:
     return default
-  
+
 # -----------------------------------------------------------------------------
 #
 def integer_variable_values(v, default = None):
@@ -5006,13 +5014,13 @@ def integer_variable_values(v, default = None):
       value = default
     values.append(value)
   return values
-    
+
 # -----------------------------------------------------------------------------
 #
 def float_variable_value(v, default = None):
 
   return string_to_float(v.get(), default)
-    
+
 # -----------------------------------------------------------------------------
 #
 def string_to_float(v, default = None):
@@ -5021,7 +5029,7 @@ def string_to_float(v, default = None):
     return float(v)
   except Exception:
     return default
-    
+
 # -----------------------------------------------------------------------------
 # Format a number using %g but do not use scientific notation for large
 # values if the number can be represented more compactly without it.
@@ -5030,7 +5038,7 @@ def float_format(value, precision):
 
   if value is None:
     return ''
-  
+
   import math
 
   if (abs(value) >= math.pow(10.0, precision) and
@@ -5045,7 +5053,7 @@ def float_format(value, precision):
   text = format % value
 
   return text
-    
+
 # -----------------------------------------------------------------------------
 #
 def saturate_rgba(rgba):
@@ -5121,7 +5129,7 @@ def remove_volume_closed_callback(session, h):
 def volume_list(session):
     from chimerax.map import Volume
     return session.models.list(type = Volume)
-    
+
 # -----------------------------------------------------------------------------
 #
 def active_volume(session):
@@ -5135,7 +5143,7 @@ def set_active_volume(session, v):
     vv = volume_dialog(session)
     if vv:
         vv.display_volume_info(v)
-    
+
 # -----------------------------------------------------------------------------
 #
 def volume_dialog(session, create=False):

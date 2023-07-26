@@ -74,6 +74,7 @@ class ResiduePlot(Graph):
         add('Show Interface', self._show_interface)
         if r:
             add('Select Residue', self._select_residue, r)
+        add('Save Plot As...', self.save_plot_as)
 
     def _residue_name(self, r):
         return '%s %d' % (r.name, r.number)

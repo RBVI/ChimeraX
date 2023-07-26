@@ -23,7 +23,7 @@ class MutateMenuEntry(SelectContextMenuAction):
 
     def callback(self, session):
         from chimerax.core.commands import run
-        run(session, "ui tool show Rotamers")
+        tool = run(session, "ui tool show Rotamers")
 
 def add_selection_context_menu_items(session):
     from chimerax.mouse_modes import SelectMouseMode

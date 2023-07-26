@@ -1,0 +1,37 @@
+<BundleInfo name="ChimeraX-VIPERdb" version="1.0"
+	    package="chimerax.viperdb"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>Read Virus Particle Explorer .vdb files</Synopsis>
+  <Description>Opens VIPERdb .vdb files and applies 60-fold icosahedral symmetry.</Description>
+
+  <Categories>
+    <Category name="Structure Analysis"/>
+  </Categories>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version="~=1.0"/>
+    <Dependency name="ChimeraX-DataFormats" version="~=1.0"/>
+    <Dependency name="ChimeraX-OpenCommand" version="~=1.0"/>
+  </Dependencies>
+
+  <Providers manager="data formats">
+    <Provider name="VIPERdb" category="Molecular structure"
+		nicknames="viperdb" suffixes=".vdb"
+		reference_url="http://viperdb.scripps.edu" />
+  </Providers>
+
+  <Providers manager="open command">
+    <Provider name="VIPERdb" />
+  </Providers>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+  </Classifiers>
+
+</BundleInfo>

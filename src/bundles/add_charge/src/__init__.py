@@ -13,16 +13,20 @@
 
 from .charge import estimate_net_charge, ChargeError, add_charges, default_standardized
 from .cmd import ChargeMethodArg
+from .dock_prep import dock_prep_arg_info, run_for_dock_prep
 
 from chimerax.core.toolshed import BundleAPI
 
 class AddCharge_API(BundleAPI):
 
-    """
     @staticmethod
     def register_command(command_name, logger):
         from . import cmd
-        cmd.register_command(command_name, logger)
-    """
+        cmd.register_command(logger)
+
+    @staticmethod
+    def start_tool(session, tool_name):
+        from .tool import AddChargeTool
+        return AddChargeTool(session, tool_name)
 
 bundle_api = AddCharge_API()

@@ -75,6 +75,10 @@ def transparency(session, objects, percent, what=None, target=None):
         residues.ribbon_colors = c
         what.append('%d residues' % len(residues))
 
+    if 'm' in target:
+        models = _set_model_transparency(objects.models, session, alpha)
+        what.append('%d models' % len(models))
+
     if not what:
         what.append('nothing')
 
@@ -130,6 +134,11 @@ def _set_surface_transparency(atoms, models, session, alpha):
             
     return surfs
 
+def _set_model_transparency(models, session, alpha):
+    for m in models:
+        r,g,b,a = m.color
+        m.color = (r,g,b,alpha)
+    return models
 
 # -----------------------------------------------------------------------------
 #

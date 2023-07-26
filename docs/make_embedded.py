@@ -134,7 +134,15 @@ def find_license_file(pkg):
             with open(fn) as f:
                 top_levels = [x.strip() for x in f.readlines()]
         elif license_re.match(filename):
-            license_file = os.path.join(dirname, filename)
+            entry = os.path.join(dirname, filename)
+            if os.path.isdir(entry):
+                files = os.listdir(entry)
+                if len(files) != 1:
+                    raise AssertionError("License-file directory (%s) for %s does not contain exactly"
+                        " one file" % (entry, pkg.project_name))
+                license_file = os.path.join(entry, files[0])
+            else:
+                license_file = entry
 
     # scan modules provided by egg/wheel for a license
     if not license_file and top_levels:

@@ -9,7 +9,7 @@
 
 def show_hk_lattice(session, h, k, radius, orientation='222',
                     color=(255, 255, 255, 255), sphere_factor=0,
-                    edge_radius=None, mesh=False, replace=True, alpha=1):
+                    edge_radius=None, mesh=False, replace=True, alpha='hexagonal'):
 
     varray, tarray, hex_edges = hk_icosahedron_lattice(h, k, radius, orientation, alpha)
     interpolate_with_sphere(varray, radius, sphere_factor)
@@ -81,7 +81,7 @@ def _cage_surface(session, name, replace):
 
 # -----------------------------------------------------------------------------
 #
-def hk_icosahedron_lattice(h, k, radius, orientation, alpha):
+def hk_icosahedron_lattice(h, k, radius, orientation = '222', alpha = 'hexagonal'):
     # Find triangles for the hk lattice covering one asymmetric unit equilateral triangle.
     # The asym unit triangle (corners) and hk lattice triangles are in the xy plane in 3-d.
     if alpha == 'hexagonal':
@@ -536,13 +536,13 @@ def hk2_to_xyz(hklist):
 #
 def triangle_map(tri1, tri2):
 
-    from numpy import zeros, subtract, dot as matrix_multiply, float, float64
+    from numpy import zeros, subtract, dot as matrix_multiply, float64
 
-    f1 = zeros((3,3), float)
+    f1 = zeros((3,3), float64)
     f1[:,0], f1[:,1] = subtract(tri1[1], tri1[0]), subtract(tri1[2], tri1[0])
     f1[:,2] = cross_product(f1[:,0], f1[:,1])
 
-    f2 = zeros((3,3), float)
+    f2 = zeros((3,3), float64)
     f2[:,0], f2[:,1] = subtract(tri2[1], tri2[0]), subtract(tri2[2], tri2[0])
     f2[:,2] = cross_product(f2[:,0], f2[:,1])
     

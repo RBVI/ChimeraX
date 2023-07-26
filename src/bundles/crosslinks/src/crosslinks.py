@@ -63,7 +63,8 @@ def crosslinks_network(session, pbonds):
     cnodes, edges = chains_and_edges(pbonds)
     CrosslinksPlot(session, cnodes, edges)
 
-def crosslinks_histogram(session, pbonds, coordsets = None):
+def crosslinks_histogram(session, pbonds, coordsets = None, bins = 50,
+                         max_length = None, min_length = None, height = None):
     '''
     Show histogram of crosslink lengths.
 
@@ -83,13 +84,16 @@ def crosslinks_histogram(session, pbonds, coordsets = None):
     if coordsets:
         if len(pbonds) == 1:
             from .lengths import EnsemblePlot
-            EnsemblePlot(session, pbonds[0], coordsets)
+            plot = EnsemblePlot(session, pbonds[0], coordsets,
+                                bins=bins, max_length=max_length, min_length=min_length, height=height)
         else:
             from chimerax.core.errors import UserError        
             raise UserError('Plotting coordset lengths requires exactly one crosslink, got %d.' % len(pbonds))
     else:
         from .lengths import LengthsPlot
-        LengthsPlot(session, pbonds)
+        plot = LengthsPlot(session, pbonds,
+                           bins=bins, max_length=max_length, min_length=min_length, height=height)
+    return plot
 
 def crosslinks_minimize(session, pbonds, move_models = None, iterations = 10, frames = None):
     '''
@@ -213,7 +217,11 @@ def register_command(logger):
     register('crosslinks network', desc, crosslinks_network, logger=logger)
 
     desc = CmdDesc(required = [('pbonds', PseudobondsArg)],
-                   keyword = [('coordsets', StructureArg)],
+                   keyword = [('coordsets', StructureArg),
+                              ('bins', IntArg),
+                              ('max_length', FloatArg),
+                              ('min_length', FloatArg),
+                              ('height', FloatArg)],
                    synopsis = 'Show histogram of crosslink lengths')
     register('crosslinks histogram', desc, crosslinks_histogram, logger=logger)
 

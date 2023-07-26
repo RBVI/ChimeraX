@@ -88,6 +88,9 @@ Structure::_per_residue_rings(unsigned int all_size_threshold, std::set<const Re
     typedef std::MAP<Atom*, SpanningBonds > Atom2SpanningBonds;
     rings->clear();
     for (auto& res: residues()) {
+        if (ignore != nullptr && ignore->find(res) != ignore->end())
+            continue;
+
         // very big residues cause fits; just skip them
         if (res->atoms().size() > 2500)
             continue;

@@ -41,7 +41,7 @@ cdef extern from "<element/Element.h>" namespace "element":
         float bond_radius(Element&)
 
         @staticmethod
-        const Element& get_element(int)
+        const Element& get_element(int) except +
 
         @staticmethod
         const Element& get_named_element "get_element"(const char*)

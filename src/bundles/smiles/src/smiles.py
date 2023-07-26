@@ -31,9 +31,9 @@ def fetch_smiles(session, smiles_string, *, res_name=None, **kw):
         session.logger.warning("Removed %d blank/non-printable characters from SMILES string"
             % diff)
         smiles_string = "".join(printables)
-    # triple-bond characters (#) and the '/' stereo-chemistry indicator get mangled by the
-    # http protocol, so switch to http-friendly equivalent
-    web_smiles = smiles_string.replace('#', "%23").replace('/', "%2F")
+    # many SMILES characters get mangled by the http protocol, so switch to http-friendly equivalent
+    from urllib.parse import quote
+    web_smiles = quote(smiles_string)
     for fetcher, moniker, ack_name, info_url in fetcher_info:
         try:
             path = fetcher(session, smiles_string, web_smiles)
@@ -78,8 +78,9 @@ def _cactus_fetch(session, smiles, web_smiles):
 def _indiana_fetch(session, smiles, web_smiles):
     from chimerax.core.fetch import fetch_file
     import os
+    # use only first 128 characters of SMILES for file name due to Windows file-name size limitations [#9170]
     filename = fetch_file(session, "http://cheminfov.informatics.indiana.edu/rest/thread/d3.py/"
-        "SMILES/%s" % smiles, 'SMILES %s' % smiles, web_smiles, None)
+        "SMILES/%s" % smiles, 'SMILES %s' % smiles, web_smiles[:128], None)
     return filename
 
 fetcher_info = [

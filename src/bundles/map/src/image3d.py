@@ -104,7 +104,10 @@ class Image3d(Model):
   #
   def _need_color_update(self):
     self._color_tables.clear()
-    self._c_mode = self._auto_color_mode()
+    cmode = self._auto_color_mode()
+    if cmode != self._c_mode:
+      self._c_mode = cmode
+      self._remove_planes()  # Have to change opaque_texture attribute of planes.
     self._mod_rgba = self._luminance_color()
     mc = self._modulation_color
     for d in self._planes_drawings:

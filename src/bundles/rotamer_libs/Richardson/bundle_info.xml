@@ -23,8 +23,10 @@
   </Dependencies>
 
   <Providers>
-    <Provider name="Richardson.common" manager="rotamers"/>
-    <Provider name="Richardson.mode" manager="rotamers"/>
+    <Provider name="Richardson.common" manager="rotamers" ui_name="Richardson (common-atom)"
+		description="Richardson lab backbone-independent rotamer library"/>
+    <Provider name="Richardson.mode" manager="rotamers" ui_name="Richardson (mode)"
+		description="Richardson lab backbone-independent rotamer library"/>
   </Providers>
 
   <Classifiers>
