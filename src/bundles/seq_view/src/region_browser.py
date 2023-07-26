@@ -235,6 +235,10 @@ class Region:
     def set_name(self, val):
         if val == self._name:
             return
+        if self.read_only:
+            self.region_browser.tool_window.session.logger.error(
+                "Cannot rename %s region" % self.name)
+            return
         if val == None:
             for item in self._items:
                 item.setToolTip("")
@@ -437,6 +441,7 @@ class RegionBrowser:
     ACTUAL_STRANDS_REG_NAME = "structure strands"
     ACTUAL_SS_REG_NAMES = [ACTUAL_HELICES_REG_NAME, ACTUAL_STRANDS_REG_NAME]
     SS_REG_NAMES = PRED_SS_REG_NAMES + ACTUAL_SS_REG_NAMES
+    ENTIRE_ALIGNMENT_REGIONS = "entire alignment"
 
     def __init__(self, tool_window, seq_canvas):
         self.tool_window = tool_window
@@ -459,15 +464,38 @@ class RegionBrowser:
         self.sequence_regions = { None: set() }
         self._cur_region = None
         self._sel_change_handler = None
-        """
-        ModelessDialog.__init__(self)
-        """
         seq_canvas.main_scene.keyPressEvent = self._key_press_cb
         settings = seq_canvas.sv.settings
         self._sel_change_from_self = False
         self._first_sel_region_show = True
         if settings.show_sel:
             self._show_sel_cb()
+
+        from Qt.QtCore import Qt
+        from Qt.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QMenu
+        ui_area = tool_window.ui_area
+        layout = QVBoxLayout()
+        layout.setSpacing(2)
+        ui_area.setLayout(layout)
+
+        menu_layout = QHBoxLayout()
+        layout.addLayout(menu_layout)
+        menu_layout.addWidget(QLabel("Regions applicable to: "), alignment=Qt.AlignRight)
+        self.seq_region_menubutton = mb = QPushButton(self.ENTIRE_ALIGNMENT_REGIONS)
+        menu_layout.addWidget(mb, alignment=Qt.AlignLeft)
+        menu = QMenu(mb)
+        mb.setMenu(menu)
+        menu.triggered.connect(self._seq_menu_cb)
+        menu.aboutToShow.connect(self._fill_seq_region_menu)
+
+        from chimerax.ui.widgets import ItemTable
+        self.region_table = table = ItemTable(allow_user_sorting=False, session=tool_window.session)
+        table.add_column("Name", "name", editable=True)
+        self._set_table_data(resize_columns=False)
+        table.launch()
+        layout.addWidget(table, stretch=1)
+
+
 
     def clear_regions(self, do_single_seq_regions=True):
         if do_single_seq_regions:
@@ -1344,12 +1372,24 @@ class RegionBrowser:
         for r in self.selected():
             r.set_cover_gaps(opt.get())
 
+    """
     def _delAssocCB(self, trigName, myData, delMatchMaps):
         for matchMap in delMatchMaps:
             key = (matchMap['mseq'], matchMap['aseq'])
             if key in self.associated_regions:
                 self.deleteRegion(self.associated_regions[key][:])
-                
+    """
+
+    def _fill_seq_region_menu(self):
+        menu = self.seq_region_menubutton.menu()
+        menu.clear()
+        from Qt.QtWidgets import QAction
+        for i, label in enumerate([self.ENTIRE_ALIGNMENT_REGIONS]
+                + [seq.name for seq in self.seq_canvas.alignment.seqs]):
+            action = QAction(label, menu)
+            action.setData(i)
+            menu.addAction(action)
+
     def _focus_cb(self, event, pref=None):
         if pref == "residue":
             funcs = [self._residueCB, self._regionResiduesCB]
@@ -1379,6 +1419,7 @@ class RegionBrowser:
             scene = self.seq_canvas.main_scene
             scene.update(scene.sceneRect())
 
+    """
     def _listingCB(self, val=None):
         regions = self.selected()
         self.cover_gapsOption.display(regions)
@@ -1395,6 +1436,7 @@ class RegionBrowser:
                         hr.name.startswith(self.seq_canvas.sv.GAP_REG_NAME_START)
                         or hr == self.get_region("ChimeraX selection")):
                             hr.shown = False
+    """
 
     def _mouse_down_cb(self, event):
         from Qt.QtCore import Qt
@@ -1765,6 +1807,10 @@ class RegionBrowser:
         else:
             self.show_chimerax_selection()
 
+    def _seq_menu_cb(self, action):
+        self.seq_region_menubutton.setText(action.text())
+        self._set_table_data(action)
+
     def _seq_renamed_cb(self, _1, trig_data):
         seq, old_name = trig_data
         if seq not in self.sequence_regions:
@@ -1777,6 +1823,20 @@ class RegionBrowser:
             newItem = prevItem
         self.seqRegionMenu.setitems(self._regMenuOrder(), index=newItem)
         """
+
+    def _set_table_data(self, menu_action=None, *, resize_columns=True):
+        if menu_action is None:
+            source = None
+        else:
+            index = menu_action.data()
+            if index == 0:
+                source = None
+            else:
+                source = self.seq_canvas.alignment.seqs[index-1]
+        regions = [reg for reg in self.regions if reg.sequence == source]
+        self.region_table.data = regions
+        if resize_columns:
+            self.region_table.resizeColumnsToContents()
 
     def _show_sel_cb(self):
         # also called from settings dialog

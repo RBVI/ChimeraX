@@ -569,7 +569,7 @@ class SequenceViewer(ToolInstance):
         x, y = scene_xy.x(), scene_xy.y()
 
         seq, seq, index, index = self.seq_canvas.bounded_by(x, y, x, y, exclude_headers=True)
-        if seq is not None:
+        if seq is not None and seq in self.alignment.seqs:
             for chain, mm in seq.match_maps.items():
                 try:
                     view_targets.append(mm[seq.gapped_to_ungapped(index)])
