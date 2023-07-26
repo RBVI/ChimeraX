@@ -456,7 +456,7 @@ class DicomData:
         if rsi == int(rsi):
             rsi = int(rsi)
         self.rescale_intercept = rsi
-        self.rescale_slope = self.dicom_series.rescale_slope
+        self.rescale_slope = int(self.dicom_series.rescale_slope)
         if not self.contour_series:
             bits = self.sample_file.get("BitsAllocated")
             rep = self.sample_file.get('PixelRepresentation')
