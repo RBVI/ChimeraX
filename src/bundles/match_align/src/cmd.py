@@ -29,7 +29,7 @@ def make_alignment(session, chains, *, circular=defaults['circular'],
 
     col_all = column_criteria == "all"
     from ._msa3d import match_to_align
-    seqs = match_to_align(list(chains.pointers), dist_cutoff, col_all, gap_char, circular)
+    seqs = match_to_align([int(x) for x in chains.pointers], dist_cutoff, col_all, gap_char, circular)
     #TODO: lots
 
 def register_command(cmd_name, logger):
