@@ -55,6 +55,9 @@ class FourPanelView(QWidget):
     def add_segmentation(self, seg):
         self._orthoplane_manager.add_segmentation(seg)
 
+    def update_displayed_model(self, model):
+        self._orthoplane_manager.update_displayed_model(model)
+
     def segmentation_tool_open(self):
         return self._orthoplane_manager.have_seg_tool
     

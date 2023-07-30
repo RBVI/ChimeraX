@@ -93,6 +93,10 @@ class PlaneViewerManager:
         for viewer in self.axes.values():
             viewer.setGuidelineVisibility(False)
 
+    def update_displayed_model(self, model):
+        for viewer in self.axes.values():
+            viewer.model_menu._menu.set_value(model)
+
     def add_segmentation(self, seg):
         for viewer in self.axes.values():
             viewer.addDrawing(seg)
