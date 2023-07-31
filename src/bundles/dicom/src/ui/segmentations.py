@@ -74,6 +74,8 @@ class SegmentationTool(ToolInstance):
             ok_to_list = not isinstance(m, VolumeSurface)
             # This will run over all models which may not have DICOM data...
             try:
+                if hasattr(m.data, "dicom_data"):
+                    ok_to_list &= not m.data.dicom_data.dicom_series.modality == "SEG"
                 ok_to_list &= not hasattr(m.data, "reference_data")
             except AttributeError:
                 pass
@@ -183,6 +185,10 @@ class SegmentationTool(ToolInstance):
                         # Set by orthoplanes.py
                         #puck.origin = [x for x in medical_image_data.origin()]
                 self.reference_model = new_drawing
+            # Keep the orthoplanes in sync with this menu, but don't require this menu to 
+            # be in sync with them
+            if self.session.ui.main_window.view_layout == "orthoplanes":
+                self.session.ui.main_window.main_view.update_displayed_model(self.model_menu.value)
         except AttributeError: # No more volumes!
             pass
 
