@@ -1377,6 +1377,8 @@ class Volume(Model):
     if type == 'values changed':
       self.data.clear_cache()
       self.matrix_changed()
+      if self._image:
+        self._image.map_values_changed()
       self._drawings_need_update()
       self.call_change_callbacks('data values changed')
       # TODO: should this automatically update the data display?

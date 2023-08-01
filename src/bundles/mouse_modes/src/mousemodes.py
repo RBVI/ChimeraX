@@ -511,7 +511,8 @@ class MouseModes:
 
     def _cursor_position(self):
         from Qt.QtGui import QCursor
-        p = self.graphics_window.mapFromGlobal(QCursor.pos())
+        gp = QCursor.pos()
+        p = self.graphics_window.mapFromGlobal(gp)
         return p.x(), p.y()
 
     def _mouse_buttons_down(self):
