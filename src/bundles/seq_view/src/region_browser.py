@@ -441,10 +441,8 @@ class RegionBrowser:
     ACTUAL_STRANDS_REG_NAME = "structure strands"
     ACTUAL_SS_REG_NAMES = [ACTUAL_HELICES_REG_NAME, ACTUAL_STRANDS_REG_NAME]
     SS_REG_NAMES = PRED_SS_REG_NAMES + ACTUAL_SS_REG_NAMES
-    ENTIRE_ALIGNMENT_REGIONS = "entire alignment"
 
-    def __init__(self, tool_window, seq_canvas):
-        self.tool_window = tool_window
+    def __init__(self, seq_canvas):
         self.seq_canvas = seq_canvas
         seq_canvas.main_scene.mousePressEvent = self._mouse_down_cb
         seq_canvas.main_scene.mouseReleaseEvent = self._mouse_up_cb
@@ -470,31 +468,6 @@ class RegionBrowser:
         self._first_sel_region_show = True
         if settings.show_sel:
             self._show_sel_cb()
-
-        from Qt.QtCore import Qt
-        from Qt.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QMenu
-        ui_area = tool_window.ui_area
-        layout = QVBoxLayout()
-        layout.setSpacing(2)
-        ui_area.setLayout(layout)
-
-        menu_layout = QHBoxLayout()
-        layout.addLayout(menu_layout)
-        menu_layout.addWidget(QLabel("Regions applicable to: "), alignment=Qt.AlignRight)
-        self.seq_region_menubutton = mb = QPushButton(self.ENTIRE_ALIGNMENT_REGIONS)
-        menu_layout.addWidget(mb, alignment=Qt.AlignLeft)
-        menu = QMenu(mb)
-        mb.setMenu(menu)
-        menu.triggered.connect(self._seq_menu_cb)
-        menu.aboutToShow.connect(self._fill_seq_region_menu)
-
-        from chimerax.ui.widgets import ItemTable
-        self.region_table = table = ItemTable(allow_user_sorting=False, session=tool_window.session)
-        table.add_column("Name", "name", editable=True)
-        self._set_table_data(resize_columns=False)
-        table.launch()
-        layout.addWidget(table, stretch=1)
-
 
 
     def clear_regions(self, do_single_seq_regions=True):
@@ -1380,16 +1353,6 @@ class RegionBrowser:
                 self.deleteRegion(self.associated_regions[key][:])
     """
 
-    def _fill_seq_region_menu(self):
-        menu = self.seq_region_menubutton.menu()
-        menu.clear()
-        from Qt.QtWidgets import QAction
-        for i, label in enumerate([self.ENTIRE_ALIGNMENT_REGIONS]
-                + [seq.name for seq in self.seq_canvas.alignment.seqs]):
-            action = QAction(label, menu)
-            action.setData(i)
-            menu.addAction(action)
-
     def _focus_cb(self, event, pref=None):
         if pref == "residue":
             funcs = [self._residueCB, self._regionResiduesCB]
@@ -1807,10 +1770,6 @@ class RegionBrowser:
         else:
             self.show_chimerax_selection()
 
-    def _seq_menu_cb(self, action):
-        self.seq_region_menubutton.setText(action.text())
-        self._set_table_data(action)
-
     def _seq_renamed_cb(self, _1, trig_data):
         seq, old_name = trig_data
         if seq not in self.sequence_regions:
@@ -1862,6 +1821,51 @@ class RegionBrowser:
             self._cur_region = region
             if not destroyed:
                 self.highlight(region, select_on_structures=select_on_structures)
+
+class RegionsTool:
+    ENTIRE_ALIGNMENT_REGIONS = "entire alignment"
+
+    def __init__(self, sv, tool_window):
+        self.sv = sv
+        self.tool_window = tool_window
+
+        from Qt.QtCore import Qt
+        from Qt.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QMenu
+        ui_area = tool_window.ui_area
+        layout = QVBoxLayout()
+        layout.setSpacing(2)
+        ui_area.setLayout(layout)
+
+        menu_layout = QHBoxLayout()
+        layout.addLayout(menu_layout)
+        menu_layout.addWidget(QLabel("Regions applicable to: "), alignment=Qt.AlignRight)
+        self.seq_region_menubutton = mb = QPushButton(self.ENTIRE_ALIGNMENT_REGIONS)
+        menu_layout.addWidget(mb, alignment=Qt.AlignLeft)
+        menu = QMenu(mb)
+        mb.setMenu(menu)
+        menu.triggered.connect(self._seq_menu_cb)
+        menu.aboutToShow.connect(self._fill_seq_region_menu)
+
+        from chimerax.ui.widgets import ItemTable
+        self.region_table = table = ItemTable(allow_user_sorting=False, session=tool_window.session)
+        table.add_column("Name", "name", editable=True)
+        self._set_table_data(resize_columns=False)
+        table.launch()
+        layout.addWidget(table, stretch=1)
+
+    def _fill_seq_region_menu(self):
+        menu = self.seq_region_menubutton.menu()
+        menu.clear()
+        from Qt.QtWidgets import QAction
+        for i, label in enumerate([self.ENTIRE_ALIGNMENT_REGIONS]
+                + [seq.name for seq in self.seq_canvas.alignment.seqs]):
+            action = QAction(label, menu)
+            action.setData(i)
+            menu.addAction(action)
+
+    def _seq_menu_cb(self, action):
+        self.seq_region_menubutton.setText(action.text())
+        self._set_table_data(action)
 
 """
 from OpenSave import OpenModeless
