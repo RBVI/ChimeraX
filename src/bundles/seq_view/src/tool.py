@@ -171,10 +171,9 @@ class SequenceViewer(ToolInstance):
             for aseq in self.alignment.seqs:
                 if aseq.match_maps:
                     self.seq_canvas.assoc_mod(aseq)
+        self._regions_tool = None
         from .region_browser import RegionBrowser
-        rb_window = self.tool_window.create_child_window("Regions", close_destroys=False)
-        rb_window.fill_context_menu = self.fill_context_menu
-        self.region_browser = RegionBrowser(rb_window, self.seq_canvas)
+        self.region_browser = RegionBrowser(self.seq_canvas)
         self._seq_rename_handlers = {}
         for seq in self.alignment.seqs:
             self._seq_rename_handlers[seq] = seq.triggers.add_handler("rename",
@@ -440,7 +439,6 @@ class SequenceViewer(ToolInstance):
             parent.after_idle(lambda: self._loadStructures(auto=1))
         """
         self.tool_window.manage('side')
-        rb_window.manage(self.tool_window, initially_hidden=True)
 
     @property
     def active_region(self):
@@ -690,26 +688,23 @@ class SequenceViewer(ToolInstance):
             identity_action = QAction("Percent Identity...", menu)
             identity_action.triggered.connect(self.show_percent_identity_dialog)
             tools_menu.addAction(identity_action)
-        rb_action = QAction("Regions", tools_menu)
+
+        annotations_menu = menu.addMenu("Annotations")
+        rb_action = QAction("Regions", annotations_menu)
         rb_action.setCheckable(True)
-        rb_action.setChecked(self.region_browser.shown)
-        rb_action.triggered.connect(lambda*, rb=self.region_browser, action=rb_action:
-            setattr(rb, "shown", action.isChecked()))
-        tools_menu.addAction(rb_action)
-
-
-        # Whenever Region Browser and UniProt Annotations happen, the thought is to
-        # put them in an "Annotations" menu (rather than "Info"); for now with only
-        # sequence features available, use "Features"
+        rb_action.setChecked(self.regions_tool_shown)
+        rb_action.triggered.connect(lambda*, self=self, action=rb_action:
+            setattr(self, "regions_tool_shown", action.isChecked()))
+        annotations_menu.addAction(rb_action)
         feature_seqs = [ seq for seq in self.alignment.seqs if seq.features(fetch=False) ]
         if feature_seqs:
             if len(self.alignment.seqs) == 1:
-                action = QAction("Sequence Features...", menu)
+                action = QAction("Sequence Features...", annotations_menu)
                 action.triggered.connect(lambda *args, seq=feature_seqs[0], show=self.show_feature_browser:
                     show(seq))
-                menu.addAction(action)
+                annotations_menu.addAction(action)
             else:
-                features_menu = menu.addMenu("Sequence Features")
+                features_menu = annotations_menu.addMenu("Sequence Features")
                 from .seq_canvas import _seq_name as seq_name
                 for seq in feature_seqs:
                     action = QAction(seq_name(seq), features_menu)
@@ -803,6 +798,20 @@ class SequenceViewer(ToolInstance):
                 return
             show = hreg.shown
         rb.show_ss(show)
+
+    @property
+    def regions_tool_shown(self):
+        return self._regions_tool is not None and self._regions_tool.shown
+
+    @regions_tool_shown.setter(self, shown):
+        if self._regions_tool is None:
+            from .region_browser import RegionsTool
+            rt_window = self.tool_window.create_child_window("Regions", close_destroys=False, statusbar=True)
+            self._regions_tool = RegionsTool(self, rt_window)
+            self._feature_browsers[seq].tool_window.manage(None)
+            rt_window.fill_context_menu = self.fill_context_menu
+            rt_window.manage(self.tool_window)
+        self._regions_tool.shown = shown
 
     @classmethod
     def restore_snapshot(cls, session, data):
