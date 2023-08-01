@@ -227,7 +227,8 @@ def _run_fit_loops_subprocess(session, exe_path, optional_args, map_filename, mo
     '''
     output_file = "fl_out.pdb"
     args = [exe_path] + optional_args + [f"map_in={map_filename}", f"pdb_in={model_filename}",
-        f"seq_file={seq_filename}", f"nproc={processors}", f"pdb_out={output_file}"] + positional_args
+        f"seq_file={seq_filename}", f"nproc={processors}", f"pdb_out={output_file}",
+        "results_as_json=/var/tmp/fit_loops.json"] + positional_args
     if start_res_number is not None:
         args += [f"start={start_res_number}"]
     if end_res_number is not None:
