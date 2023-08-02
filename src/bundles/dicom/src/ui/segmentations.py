@@ -387,9 +387,6 @@ class SegmentationTool(ToolInstance):
         else:
             self.view_dropdown.setCurrentIndex(0)
 
-    def setPuckHeight(self, axis, height):
-        self.segmentation_cursors[axis].height = height
-
     def _on_show_guidelines_checkbox_changed(self):
         if self.session.ui.main_window.view_layout == "orthoplanes":
             self.session.ui.main_window.main_view.register_segmentation_tool(self)
