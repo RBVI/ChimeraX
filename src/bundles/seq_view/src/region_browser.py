@@ -31,13 +31,13 @@ from prefs import RB_LAST_USE
 """
 
 class Region:
-    def __init__(self, region_browser, name=None, init_blocks=[], shown=True,
+    def __init__(self, region_manager, name=None, init_blocks=[], shown=True,
             border_rgba=None, interior_rgba=None, name_prefix="",
             cover_gaps=False, source=None, read_only=False):
         self._name = name
         self.name_prefix = name_prefix
-        self.region_browser = region_browser
-        self.seq_canvas = self.region_browser.seq_canvas
+        self.region_manager = region_manager
+        self.seq_canvas = self.region_manager.seq_canvas
         self.scene = self.seq_canvas.main_scene
         self._border_rgba = border_rgba
         self._interior_rgba = interior_rgba
@@ -56,7 +56,7 @@ class Region:
     def set_active(self, val):
         if val == self.highlighted:
             return
-        self.region_browser._toggle_active(self)
+        self.region_manager._toggle_active(self)
 
     def get_active(self):
         return self.highlighted
@@ -69,7 +69,7 @@ class Region:
     def add_blocks(self, block_list, make_cb=True):
         self.blocks.extend(block_list)
         if make_cb:
-            self.region_browser._region_size_changed_cb(self)
+            self.region_manager._region_size_changed_cb(self)
         if not self.shown:
             return
         kw = self._rect_kw()
@@ -91,7 +91,7 @@ class Region:
                     self._items[-1].setZValue(self._items[-2].zValue()-0.001)
                     continue
 
-                regions = self.region_browser.regions
+                regions = self.region_manager.regions
                 above = below = None
                 if self in regions:
                     index = regions.index(self)
@@ -140,7 +140,7 @@ class Region:
                 self.scene.removeItem(item)
             self._items = []
             if make_cb:
-                self.region_browser._region_size_changed_cb(self)
+                self.region_manager._region_size_changed_cb(self)
 
     def contains(self, x, y):
         from Qt.QtCore import QPointF
@@ -155,7 +155,7 @@ class Region:
         self.highlighted = False
         self.redraw()
         """TODO
-        rb = self.region_browser
+        rb = self.region_manager
         rb.update_table_cell(self, rb.active_column, contents=False)
         """
 
@@ -179,12 +179,12 @@ class Region:
             self.blocks.append((new_line1, new_line2, pos1, pos2))
 
     def _destroy(self, rebuild_table=True):
-        # In most circumstances, use region_browser.delete_region() instead
+        # In most circumstances, use region_manager.delete_region() instead
         for item in self._items:
             self.scene.removeItem(item)
         self.blocks = []
         self.sequence = self.associated_with = None
-        self.region_browser._region_destroyed_cb(self, rebuild_table=rebuild_table)
+        self.region_manager._region_destroyed_cb(self, rebuild_table=rebuild_table)
 
     def _disp_border_rgba(self):
         # account for highlighting
@@ -198,7 +198,7 @@ class Region:
         self.highlighted = True
         self.redraw()
         """TODO
-        rb = self.region_browser
+        rb = self.region_manager
         rb.update_table_cell(self, rb.active_column, contents=True)
         """
 
@@ -236,7 +236,7 @@ class Region:
         if val == self._name:
             return
         if self.read_only:
-            self.region_browser.tool_window.session.logger.error(
+            self.region_manager.seq_canvas.sv.session.logger.error(
                 "Cannot rename %s region" % self.name)
             return
         if val == None:
@@ -246,6 +246,7 @@ class Region:
         if val:
             for item in self._items:
                 item.setToolTip(str(self))
+        self.region_manager.seq_canvas.sv._regions_tool_notification('name', self)
 
     def get_name(self):
         return self._name
@@ -301,9 +302,9 @@ class Region:
                 self.scene.removeItem(item)
             self._items = self._items[:0-len(prev_bboxes)]
         if destroy_if_empty and not self.blocks:
-            self.region_browser.delete_region(self)
+            self.region_manager.delete_region(self)
         elif make_cb:
-            self.region_browser._region_size_changed_cb(self)
+            self.region_manager._region_size_changed_cb(self)
 
     def restore_state(self, state):
         self._name = state['_name']
@@ -398,7 +399,7 @@ class Region:
         self._shown = bool(val)
         self.redraw()
         """TODO
-        rb = self.region_browser
+        rb = self.region_manager
         rb.update_table_cell(self, rb.shown_column, contents=self.shown)
         """
 
@@ -432,7 +433,7 @@ class Region:
         self.remove_last_block(make_cb=False)
         self.add_blocks([block])
 
-class RegionBrowser:
+class RegionManager:
 
     PRED_HELICES_REG_NAME = "predicted helices"
     PRED_STRANDS_REG_NAME = "predicted strands"
@@ -566,7 +567,7 @@ class RegionBrowser:
         ModelessDialog.destroy(self)
         """
 
-    """TODO: also change _mouse_up_cb handling of double-click to raise the region browser
+    """TODO: also change _mouse_up_cb handling of double-click to raise the region manager
     def fillInUI(self, parent):
         self.Close()
         row = 0
@@ -811,7 +812,7 @@ class RegionBrowser:
     def load_scf_file(self, path, color_structures=None):
         if path is None:
             from chimerax.ui.open_save import OpenDialog
-            dlg = OpenDialog(self.tool_window.ui_area, caption="Load Sequence Coloring File")
+            dlg = OpenDialog(self.seq_canvas.main_view, caption="Load Sequence Coloring File")
             dlg.setNameFilter("SCF files (*.scf *.seqsel)")
             from Qt.QtWidgets import QCheckBox
             cbox = QCheckBox("Also color associated structures")
@@ -828,7 +829,7 @@ class RegionBrowser:
             settings.scf_colors_structures = cbox.isChecked()
             from chimerax.core.commands import quote_path_if_necessary as q_if, run
             from . import subcommand_name
-            run(self.tool_window.session, "sequence %s %s scfLoad %s color %s"
+            run(self.seq_canvas.sv.session, "sequence %s %s scfLoad %s color %s"
                 % (subcommand_name, q_if(sv.alignment.ident),
                 q_if(path), settings.scf_colors_structures))
             return
@@ -971,7 +972,7 @@ class RegionBrowser:
         interior = get_rgba(fill)
         border = get_rgba(outline)
         clipped_blocks = []
-        warn = self.tool_window.session.logger.warning
+        warn = self.seq_canvas.sv.session.logger.warning
         seqs = self.seq_canvas.alignment.seqs
         target = "sequence" if len(seqs) == 1 else "alignment"
         for seq1, seq2, start, end in blocks:
@@ -1161,7 +1162,7 @@ class RegionBrowser:
         sel_region.clear()
 
         from chimerax.atomic import selected_residues
-        sel_residues = set(selected_residues(self.tool_window.session))
+        sel_residues = set(selected_residues(self.seq_canvas.sv.session))
         blocks = []
         for aseq in self.seq_canvas.alignment.seqs:
             for match_map in aseq.match_maps.values():
@@ -1187,15 +1188,6 @@ class RegionBrowser:
                 follow_with="Settings..Regions controls this display.")
         sel_region.add_blocks(blocks)
         self.raise_region(sel_region)
-
-    @property
-    def shown(self):
-        return self.tool_window.shown
-
-    @shown.setter
-    def shown(self, shown):
-        if shown != self.tool_window.shown:
-            self.tool_window.shown = shown
 
     def showPredictedSS(self, show):
         """show predicted secondary structure"""
@@ -1576,7 +1568,7 @@ class RegionBrowser:
                 if col is not None:
                     residues = self._residues_in_block((self.seq_canvas.alignment.seqs[0],
                         self.seq_canvas.alignment.seqs[-1], col, col))
-                    self.tool_window.session.ui.main_window.select_by_mode(
+                    self.seq_canvas.sv.session.ui.main_window.select_by_mode(
                         " ".join([r.string(style="command") for r in sorted(residues)]))
         else:
             self._select_on_structures()
@@ -1754,7 +1746,7 @@ class RegionBrowser:
     def _select_on_structures(self, region=None):
         # highlight on chimerax structures
         self._sel_change_from_self = True
-        session = self.tool_window.session
+        session = self.seq_canvas.sv.session
         sel_residues = self.region_residues(region)
         if sel_residues:
             from chimerax.atomic import concise_residue_spec
@@ -1788,27 +1780,13 @@ class RegionBrowser:
         self.seqRegionMenu.setitems(self._regMenuOrder(), index=newItem)
         """
 
-    def _set_table_data(self, menu_action=None, *, resize_columns=True):
-        if menu_action is None:
-            source = None
-        else:
-            index = menu_action.data()
-            if index == 0:
-                source = None
-            else:
-                source = self.seq_canvas.alignment.seqs[index-1]
-        regions = [reg for reg in self.regions if reg.sequence == source]
-        self.region_table.data = regions
-        if resize_columns:
-            self.region_table.resizeColumnsToContents()
-
     def _show_sel_cb(self):
         # also called from settings dialog
         from chimerax import atomic
         if self.seq_canvas.sv.settings.show_sel:
             self.show_chimerax_selection()
             from chimerax.core.selection import SELECTION_CHANGED
-            self._sel_change_handler = self.tool_window.session.triggers.add_handler(
+            self._sel_change_handler = self.seq_canvas.sv.session.triggers.add_handler(
                 SELECTION_CHANGED, self._sel_change_cb)
         else:
             self._sel_change_handler.remove()
@@ -1853,17 +1831,23 @@ class RegionsTool:
 
         from chimerax.ui.widgets import ItemTable
         self.region_table = table = ItemTable(allow_user_sorting=False, session=tool_window.session)
-        table.add_column("Name", "name", editable=True)
+        self.columns = {
+            "name": table.add_column("Name", "name", editable=True),
+        }
         self._set_table_data(resize_columns=False)
         table.launch()
         layout.addWidget(table, stretch=1)
+
+    def region_notification(self, category, region):
+        if region in self.region_table.data:
+            self.region_table.update_column(self.columns[category], data=True)
 
     def _fill_seq_region_menu(self):
         menu = self.seq_region_menubutton.menu()
         menu.clear()
         from Qt.QtWidgets import QAction
         for i, label in enumerate([self.ENTIRE_ALIGNMENT_REGIONS]
-                + [seq.name for seq in self.seq_canvas.alignment.seqs]):
+                + [seq.name for seq in self.sv.alignment.seqs]):
             action = QAction(label, menu)
             action.setData(i)
             menu.addAction(action)
@@ -1871,6 +1855,20 @@ class RegionsTool:
     def _seq_menu_cb(self, action):
         self.seq_region_menubutton.setText(action.text())
         self._set_table_data(action)
+
+    def _set_table_data(self, menu_action=None, *, resize_columns=True):
+        if menu_action is None:
+            source = None
+        else:
+            index = menu_action.data()
+            if index == 0:
+                source = None
+            else:
+                source = self.sv.alignment.seqs[index-1]
+        regions = [reg for reg in self.sv.region_manager.regions if reg.sequence == source]
+        self.region_table.data = regions
+        if resize_columns:
+            self.region_table.resizeColumnsToContents()
 
 """
 from OpenSave import OpenModeless
@@ -1897,10 +1895,10 @@ class RenameDialog(ModelessDialog):
     buttons = ('OK', 'Cancel')
     default = 'OK'
 
-    def __init__(self, region_browser, region):
+    def __init__(self, region_manager, region):
         self.title = "Rename '%s' Region" % region_name(region,
-                region_browser.seq_canvas.sv.prefs)
-        self.region_browser = region_browser
+                region_manager.seq_canvas.sv.prefs)
+        self.region_manager = region_manager
         self.region = region
         ModelessDialog.__init__(self)
 
@@ -1918,11 +1916,11 @@ class RenameDialog(ModelessDialog):
             from chimera import UserError
             raise UserError("Must supply a new region name or "
                             "click Cancel")
-        self.region_browser.renameRegion(self.region, newName)
+        self.region_manager.renameRegion(self.region, newName)
 
     def destroy(self):
         self.region = None
-        self.region_browser = None
+        self.region_manager = None
         ModelessDialog.destroy(self)
         
 from SeqCanvas import ellipsisName
