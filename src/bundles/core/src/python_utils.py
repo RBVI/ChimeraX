@@ -16,8 +16,7 @@ def chimerax_python_executable():
     if not using_chimerax:
         exe = sys.executable
     else:
-        exe_parted_out = os.path.realpath(sys.executable).split(os.sep)[:-1]
-        exe_prefix = os.sep.join(["", os.path.join(*exe_parted_out)])
+        exe_prefix = os.path.dirname(os.path.realpath(sys.executable))
         if sys.version_info.minor < 11:
             old_cwd = os.getcwd()
             os.chdir(exe_prefix)
@@ -25,7 +24,7 @@ def chimerax_python_executable():
             os.chdir(old_cwd)
         else:
             cx_py_exe = glob.glob("[Pp]ython*", root_dir = exe_prefix)[0]
-        exe = os.sep.join([exe_prefix, cx_py_exe])
+        exe = os.path.join(exe_prefix, cx_py_exe)
     return exe
 
 @contextmanager
