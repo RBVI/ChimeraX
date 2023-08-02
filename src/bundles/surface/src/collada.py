@@ -100,6 +100,7 @@ def geometry_node_surfaces(primitives, place, color, materials, colors, session)
         name = '%d' % (len(splist) + 1)
         from chimerax.core.models import Surface
         sp = Surface(name, session)
+        sp.SESSION_SAVE_DRAWING = True	# Save triangles in .cxs session files
         sp.set_geometry(v, vn, t)
         sp.color_list = [c]
         sp.position_list = [place]

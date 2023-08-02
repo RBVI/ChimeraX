@@ -120,6 +120,11 @@ class Image3d(Model):
 
   # ---------------------------------------------------------------------------
   #
+  def map_values_changed(self):
+    self._remove_planes()
+    
+  # ---------------------------------------------------------------------------
+  #
   def set_options(self, rendering_options):
 # TODO: Detect changes in grid data ijk_to_xyz_transform, matrix value changes...
 
