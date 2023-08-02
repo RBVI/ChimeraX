@@ -240,6 +240,9 @@ class ModellerLauncher(ToolInstance):
         bbox.helpRequested.connect(lambda *, run=run, ses=session: run(ses, "help " + self.help))
         interface_layout.addWidget(bbox)
         self.tool_window.manage(None)
+        # following hack needed because something in the main window raises it above this tool
+        from Qt.QtCore import QTimer
+        QTimer.singleShot(0, lambda *arg, tw=self.tool_window: setattr(tw, 'shown', True))
 
     def delete(self):
         ToolInstance.delete(self)

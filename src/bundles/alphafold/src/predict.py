@@ -17,6 +17,10 @@ def alphafold_predict(session, sequences, minimize = False, templates = False, d
     if not _is_alphafold_available(session):
         return
 
+    if len(sequences) == 0:
+        from chimerax.core.errors import UserError
+        raise UserError(f'No sequences specified')
+    
     if not hasattr(session, '_cite_colabfold'):
         msg = 'Please cite <a href="https://www.nature.com/articles/s41592-022-01488-1">ColabFold: Making protein folding accessible to all. Nature Methods (2022)</a> if you use these predictions.'
         session.logger.info(msg, is_html = True)
