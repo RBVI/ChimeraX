@@ -268,9 +268,9 @@ class SeqCanvas:
                     self.sv.status(self.seqInfoText(s)),
                 '<Double-Button>': lambda e, s=seq: self.sv._editSeqName(s)
             }
-        self.sv.region_browser._preAddLines(seqs)
+        self.sv.region_manager._preAddLines(seqs)
         self.lead_block.addSeqs(seqs)
-        self.sv.region_browser.redraw_regions()
+        self.sv.region_manager.redraw_regions()
 
     def adjustScrolling(self):
         self._resizescrollregion()
@@ -279,10 +279,10 @@ class SeqCanvas:
     def _arrowCB(self, event):
         if event.state & 4 != 4:
             if event.keysym == "Up":
-                self.sv.region_browser.raiseRegion(
+                self.sv.region_manager.raiseRegion(
                         self.sv.currentRegion())
             elif event.keysym == "Down":
-                self.sv.region_browser.lowerRegion(
+                self.sv.region_manager.lowerRegion(
                         self.sv.currentRegion())
             else:
                 self.sv.status(
@@ -638,7 +638,7 @@ class SeqCanvas:
                             updateAttrs=False)
         if region:
             region.updateLastBlock(lastBlock)
-        self.sv.region_browser.redraw_regions(just_gapping=True)
+        self.sv.region_manager.redraw_regions(just_gapping=True)
         if not self._editBounds:
             if self._delayedAttrsHandler:
                 self.mainCanvas.after_cancel(
@@ -685,7 +685,7 @@ class SeqCanvas:
 
     def hide_header(self, header):
         self.lead_block.hide_header(header)
-        self.sv.region_browser.redraw_regions()
+        self.sv.region_manager.redraw_regions()
         self._update_scene_rects()
 
     def layout_alignment(self):
@@ -848,7 +848,7 @@ class SeqCanvas:
                     % (fontsize, fontname), blankAfter=0)
         self.lead_block.fontChange(self.font)
         self.refreshTree()
-        self.sv.region_browser.redraw_regions()
+        self.sv.region_manager.redraw_regions()
         self.sv.status("Font changed")
 
     def _newWrap(self):
@@ -891,7 +891,7 @@ class SeqCanvas:
         self.labelCanvas.yview_moveto(float(numBlocks - 1) / numBlocks)
 
     def realign(self, seqs, handleRegions=True):
-        rb = self.sv.region_browser
+        rb = self.sv.region_manager
         if handleRegions:
             # do what we can; move single-seq regions that begin and end
             # over non-gap characters, delete others
@@ -1028,7 +1028,7 @@ class SeqCanvas:
             else:
                 self.lead_block.treeNodeMap = {'active': activeNode }
         """
-        self.sv.region_browser.redraw_regions(cull_empty=cull_empty)
+        self.sv.region_manager.redraw_regions(cull_empty=cull_empty)
         self.main_scene.update()
         self.label_scene.update()
         self._update_scene_rects()
@@ -1048,7 +1048,7 @@ class SeqCanvas:
                 self.refresh(note_data)
             elif note_name == self.alignment.NOTE_REALIGNMENT:
                 # headers are notified before us, so they should be "ready to go"
-                self.sv.region_browser.clear_regions()
+                self.sv.region_manager.clear_regions()
                 self._reformat()
             if note_name not in (self.alignment.NOTE_HDR_SHOWN, self.alignment.NOTE_HDR_VALUES,
                     self.alignment.NOTE_HDR_NAME):
@@ -1183,7 +1183,7 @@ class SeqCanvas:
 
     def show_header(self, header):
         self.lead_block.show_header(header)
-        self.sv.region_browser.redraw_regions()
+        self.sv.region_manager.redraw_regions()
         self._update_scene_rects()
 
     @property
@@ -1201,7 +1201,7 @@ class SeqCanvas:
         self.lead_block.show_left_numbering(show)
         if not show:
             self.numbering_widths[:] = new_widths
-        self.sv.region_browser.redraw_regions()
+        self.sv.region_manager.redraw_regions()
         self._update_scene_rects()
 
     @property
@@ -1231,7 +1231,7 @@ class SeqCanvas:
             return
         self._show_ruler = show_ruler
         self.lead_block.set_ruler_display(show_ruler)
-        self.sv.region_browser.redraw_regions()
+        self.sv.region_manager.redraw_regions()
         self._update_scene_rects()
 
     def state(self):
