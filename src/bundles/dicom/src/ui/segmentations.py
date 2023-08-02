@@ -185,7 +185,7 @@ class SegmentationTool(ToolInstance):
                         # Set by orthoplanes.py
                         #puck.origin = [x for x in medical_image_data.origin()]
                 self.reference_model = new_drawing
-            # Keep the orthoplanes in sync with this menu, but don't require this menu to 
+            # Keep the orthoplanes in sync with this menu, but don't require this menu to
             # be in sync with them
             if self.session.ui.main_window.view_layout == "orthoplanes":
                 self.session.ui.main_window.main_view.update_displayed_model(self.model_menu.value)
@@ -315,6 +315,8 @@ class SegmentationTool(ToolInstance):
         self.segmentation_list.addItem(SegmentationListItem(parent = self.segmentation_list, segmentation = new_seg_model[0]))
         num_items = self.segmentation_list.count()
         self.segmentation_list.setCurrentItem(self.segmentation_list.item(num_items - 1))
+        if self.session.ui.main_window.view_layout == "orthoplanes":
+            self.session.ui.main_window.main_view.add_segmentation(new_seg_model[0])
 
     def removeSegment(self, segments = None):
         if type(segments) is bool:
@@ -325,6 +327,8 @@ class SegmentationTool(ToolInstance):
             segments = [seg_item.segmentation]
             seg_item.segmentation = None
             del seg_item
+        if self.session.ui.main_window.view_layout == "orthoplanes":
+            self.session.ui.main_window.main_view.remove_segmentation(segments[0])
         self.session.models.remove(segments)
 
     def saveSegment(self, segments = None):
@@ -367,8 +371,8 @@ class SegmentationTool(ToolInstance):
             run(self.session, "dicom view default")
         if need_to_register:
             if self.session.ui.main_window.view_layout == "orthoplanes":
-                # If no models are open we will not successfully change the view, so 
-                # we need to check the view layout before continuing! 
+                # If no models are open we will not successfully change the view, so
+                # we need to check the view layout before continuing!
                 self.session.ui.main_window.main_view.register_segmentation_tool(self)
                 if self.guidelines_checkbox.isChecked():
                     self.session.ui.main_window.main_view.toggle_guidelines()
