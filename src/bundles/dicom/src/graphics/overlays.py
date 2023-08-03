@@ -216,6 +216,10 @@ class SegmentationOverlay(Drawing):
         super().__init__(name)
         self.display_style = Drawing.Solid
         self.segmentation = segmentation
+        for child in self.segmentation._child_drawings:
+            if type(child) == VolumeSurface:
+                self.segmentation_surface = child
+                self._color = child.color
         self.axis = axis
         self.slice = 0
         self._window_size = None
@@ -246,23 +250,27 @@ class SegmentationOverlay(Drawing):
 
     @x_min.setter
     def x_min(self, x_min):
-        self._x_min = x_min
-        self.needs_update = True
+        if x_min != self._x_min:
+            self._x_min = x_min
+            self.needs_update = True
 
     @x_max.setter
     def x_max(self, x_max):
-        self._x_max = x_max
-        self.needs_update = True
+        if x_max != self._x_max:
+            self._x_max = x_max
+            self.needs_update = True
 
     @y_min.setter
     def y_min(self, y_min):
-        self._y_min = y_min
-        self.needs_update = True
+        if y_min != self._y_min:
+            self._y_min = y_min
+            self.needs_update = True
 
     @y_max.setter
     def y_max(self, y_max):
-        self._y_max = y_max
-        self.needs_update = True
+        if y_max != self._y_max:
+            self._y_max = y_max
+            self.needs_update = True
 
     def draw(self, renderer, draw_pass):
         r = renderer
@@ -292,7 +300,8 @@ class SegmentationOverlay(Drawing):
             self._texture_pixel_scale = pscale
             self._aspect = aspect
             self.needs_update = True
-        if not array_equal(self.segmentation.color, self._color):
+        if not array_equal(self.segmentation_surface.color, self._color):
+            self._color = self.segmentation_surface.color
             self.needs_update = True
         if self.needs_update:
             if self.axis == Axis.AXIAL:
@@ -306,9 +315,6 @@ class SegmentationOverlay(Drawing):
             tx, ty = slice_data.shape
             # The volume itself for some reason does not take on the color of its
             # VolumeImage/VolumeSurface
-            for child in self.segmentation._child_drawings:
-                if type(child) == VolumeSurface:
-                    self._color = child.color
             zero = zeros((tx,ty,4), dtype=uint8)
             expanded_slice_data = expand_dims(slice_data, -1)
             rgba = where(expanded_slice_data == 0, zero, self._color)
