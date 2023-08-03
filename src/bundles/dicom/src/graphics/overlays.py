@@ -221,7 +221,7 @@ class SegmentationOverlay(Drawing):
                 self.segmentation_surface = child
                 self._color = child.color
         self.axis = axis
-        self.slice = 0
+        self._slice = 0
         self._window_size = None
         self._texture_size = None
         self._texture_pixel_scale = None
@@ -231,6 +231,16 @@ class SegmentationOverlay(Drawing):
         self._x_max = 0
         self._y_min = 0
         self._y_max = 0
+
+    @property
+    def slice(self):
+        return self._slice
+
+    @slice.setter
+    def slice(self, slice):
+        if slice != self._slice:
+            self._slice = slice
+            self.needs_update = True
 
     @property
     def x_min(self):
