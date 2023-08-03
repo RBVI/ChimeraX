@@ -192,6 +192,21 @@ class Region:
             return (0.0, 0.0, 0.0, 1.0)
         return self.border_rgba
 
+    @property
+    def display_name(self):
+        return str(self)
+        # seemed like using ellipsis wasn't really necessary...
+        """
+        if self.name:
+            return str(self)
+        from .seq_canvas import ellipsis_name
+        return ellipsis_name(str(self), self.region_manager.seq_canvas.sv.settings.region_name_ellipsis)
+        """
+
+    @display_name.setter
+    def display_name(self, val):
+        self.name = val
+
     def highlight(self):
         if self.highlighted:
             return
@@ -232,7 +247,12 @@ class Region:
         for i in range(1, len(self._items)):
             self._items[i].setZValue(self._items[i-1].zValue()-0.001)
 
-    def set_name(self, val):
+    @property
+    def name(self):
+        return self._name
+
+    @name.setter
+    def name(self, val):
         if val == self._name:
             return
         if self.read_only:
@@ -247,11 +267,6 @@ class Region:
             for item in self._items:
                 item.setToolTip(str(self))
         self.region_manager.seq_canvas.sv._regions_tool_notification('name', self)
-
-    def get_name(self):
-        return self._name
-
-    name = property(get_name, set_name)
 
     def raise_above(self, other_region):
         if not self._items or not other_region._items:
@@ -536,6 +551,8 @@ class RegionManager:
             region._destroy(rebuild_table=rebuild_table)
             if seq and not regions:
                 del self.sequence_regions[seq]
+                if rebuild_table:
+                    self.seq_canvas.sv._regions_tool_notification('delete', region)
                 """
                 self.seqRegionMenu.setitems(self._regMenuOrder())
                 if rebuild_table:
@@ -1019,6 +1036,7 @@ class RegionManager:
             except KeyError:
                 self.associated_regions[assoc_with] = [region]
             region.associated_with = assoc_with
+        self.seq_canvas.sv._regions_tool_notification('new', region)
         return region
 
     def raise_region(self, region, rebuild_table=True):
@@ -1832,14 +1850,27 @@ class RegionsTool:
         from chimerax.ui.widgets import ItemTable
         self.region_table = table = ItemTable(allow_user_sorting=False, session=tool_window.session)
         self.columns = {
-            "name": table.add_column("Name", "name", editable=True),
+            "name": table.add_column("Name", "display_name", editable=True, show_tooltips=True),
         }
         self._set_table_data(resize_columns=False)
         table.launch()
         layout.addWidget(table, stretch=1)
 
     def region_notification(self, category, region):
-        if region in self.region_table.data:
+        if category in ("new", "delete"):
+            cur_text = self.seq_region_menubutton.text()
+            if cur_text == self.ENTIRE_ALIGNMENT_REGIONS:
+                source = None
+            else:
+                for seq in self.sv.alignment.seqs:
+                    if seq.name == cur_text:
+                        source = seq
+                        break
+                    else:
+                        self.seq_region_menubutton.setText(self.ENTIRE_ALIGNMENT_REGIONS)
+                        source = None
+            self._set_table_data(source=source)
+        elif region in self.region_table.data:
             self.region_table.update_column(self.columns[category], data=True)
 
     def _fill_seq_region_menu(self):
@@ -1856,15 +1887,16 @@ class RegionsTool:
         self.seq_region_menubutton.setText(action.text())
         self._set_table_data(action)
 
-    def _set_table_data(self, menu_action=None, *, resize_columns=True):
-        if menu_action is None:
-            source = None
-        else:
-            index = menu_action.data()
-            if index == 0:
+    def _set_table_data(self, menu_action=None, *, source=None, resize_columns=True):
+        if source is None:
+            if menu_action is None:
                 source = None
             else:
-                source = self.sv.alignment.seqs[index-1]
+                index = menu_action.data()
+                if index == 0:
+                    source = None
+                else:
+                    source = self.sv.alignment.seqs[index-1]
         regions = [reg for reg in self.sv.region_manager.regions if reg.sequence == source]
         self.region_table.data = regions
         if resize_columns:
@@ -1922,12 +1954,6 @@ class RenameDialog(ModelessDialog):
         self.region = None
         self.region_manager = None
         ModelessDialog.destroy(self)
-        
-from SeqCanvas import ellipsisName
-def region_name(region, prefs):
-    if region.name:
-        return unicode(region)
-    return ellipsisName(unicode(region), prefs[REGION_NAME_ELLIPSIS])
 """
 
 def get_rgba(color_info):

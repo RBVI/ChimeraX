@@ -405,6 +405,9 @@ class ItemTable(QTableView):
             If the column should sort on something other than numeric values or alphabetized text, you
             can supply a 'sort_func' function which takes two items as arguments and returns whether the
             first item is "less than" the second item based on those items' values in this column.
+
+            If 'show_tooltips' is True, then hovering over cells in that column will show the cell contents
+            in a tooltip.  Useful in cases where cell values might exceed the width of the column.
         """
         titles = [c.title for c in self._columns]
         if title in titles:

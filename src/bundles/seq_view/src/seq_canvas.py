@@ -2864,7 +2864,7 @@ class SeqBlock:
             self.next_block.updateNumberings()
 """
 
-def _ellipsis_name(name, ellipsis_threshold):
+def ellipsis_name(name, ellipsis_threshold):
     if len(name) > ellipsis_threshold:
         half = int(ellipsis_threshold/2)
         return name[0:half-1] + "..." + name[len(name)-half:]
@@ -2881,9 +2881,9 @@ def _find_label_width(lines, settings, font_metrics, emphasis_font_metrics, labe
 
 def _seq_name(seq, settings):
     """TODO
-    return _ellipsis_name(seq.name, prefs[SEQ_NAME_ELLIPSIS])
+    return ellipsis_name(seq.name, prefs[SEQ_NAME_ELLIPSIS])
     """
-    return _ellipsis_name(seq.name, 30)
+    return ellipsis_name(seq.name, 30)
 
 def _wrap_okay(num_seqs, settings):
     if num_seqs == 1:
