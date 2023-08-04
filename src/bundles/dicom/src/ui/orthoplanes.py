@@ -119,6 +119,9 @@ class PlaneViewerManager:
         for viewer in self.axes.values():
             viewer.remove_segmentation(seg)
 
+    def update_segmentation_overlay_for_segmentation(self, segmentation):
+        for viewer in self.axes.values():
+            viewer.segmentation_overlays[segmentation].needs_update = True
 
      #def update_volume(self, viewer):
      #   if viewer.axis == Axis.AXIAL:
@@ -560,8 +563,8 @@ class PlaneViewer(QWindow):
                     self.segmentation_tool.addMarkersToSegment(self.axis, self.pos, self.current_segmentation_cursor_overlays)
                 self.view.remove_cursor_overlays(self.current_segmentation_cursor_overlays)
                 self.current_segmentation_cursor_overlays = []
-                for overlay in self.segmentation_overlays.values():
-                    overlay.needs_update = True
+                active_seg = self.segmentation_tool.active_seg
+                self.manager.update_segmentation_overlay_for_segmentation(active_seg)
             self.view.camera.redraw_needed = True
         self.last_mouse_position = None
         if self.segmentation_tool:
