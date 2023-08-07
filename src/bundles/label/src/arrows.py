@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from chimerax.core.errors import UserError
+from chimerax.core.errors import UserError, LimitationError
 
 def arrow(session, arrows=None, *, start=None, end=None, color=None, weight=None,
         visibility=None, head_style=None, frames=None):
@@ -36,6 +36,9 @@ def arrow(session, arrows=None, *, start=None, end=None, color=None, weight=None
             for arg in ('start', 'end'):
                 if arg in cmd_kw:
                     del cmd_kw[arg]
+            if abs(start[0] - end[0]) > 1 or abs(start[1] - end[1]) > 1:
+                raise LimitationError("To avoid excessive memory use, arrow lengths are limited to the"
+                    " size of the ChimeraX graphics window")
             return arrow_create(session, start, end, **cmd_kw)
     if not arrows:
         raise UserError("No 2D arrows in session")

@@ -74,6 +74,8 @@ class SegmentationTool(ToolInstance):
             ok_to_list = not isinstance(m, VolumeSurface)
             # This will run over all models which may not have DICOM data...
             try:
+                if hasattr(m.data, "dicom_data"):
+                    ok_to_list &= not m.data.dicom_data.dicom_series.modality == "SEG"
                 ok_to_list &= not hasattr(m.data, "reference_data")
             except AttributeError:
                 pass
@@ -183,6 +185,10 @@ class SegmentationTool(ToolInstance):
                         # Set by orthoplanes.py
                         #puck.origin = [x for x in medical_image_data.origin()]
                 self.reference_model = new_drawing
+            # Keep the orthoplanes in sync with this menu, but don't require this menu to
+            # be in sync with them
+            if self.session.ui.main_window.view_layout == "orthoplanes":
+                self.session.ui.main_window.main_view.update_displayed_model(self.model_menu.value)
         except AttributeError: # No more volumes!
             pass
 
@@ -306,9 +312,15 @@ class SegmentationTool(ToolInstance):
         new_seg_model = open_grids(self.session, [new_seg], name = "new segmentation")[0]
         self.session.models.add(new_seg_model)
         new_seg_model[0].set_parameters(surface_levels=[0.501])
+        ijk_min = new_seg_model[0].region[0]
+        ijk_max = new_seg_model[0].region[1]
+        ijk_step = [1, 1, 1]
+        new_seg_model[0].new_region(ijk_min, ijk_max, ijk_step, adjust_step = False)
         self.segmentation_list.addItem(SegmentationListItem(parent = self.segmentation_list, segmentation = new_seg_model[0]))
         num_items = self.segmentation_list.count()
         self.segmentation_list.setCurrentItem(self.segmentation_list.item(num_items - 1))
+        if self.session.ui.main_window.view_layout == "orthoplanes":
+            self.session.ui.main_window.main_view.add_segmentation(new_seg_model[0])
 
     def removeSegment(self, segments = None):
         if type(segments) is bool:
@@ -319,6 +331,8 @@ class SegmentationTool(ToolInstance):
             segments = [seg_item.segmentation]
             seg_item.segmentation = None
             del seg_item
+        if self.session.ui.main_window.view_layout == "orthoplanes":
+            self.session.ui.main_window.main_view.remove_segmentation(segments[0])
         self.session.models.remove(segments)
 
     def saveSegment(self, segments = None):
@@ -361,8 +375,8 @@ class SegmentationTool(ToolInstance):
             run(self.session, "dicom view default")
         if need_to_register:
             if self.session.ui.main_window.view_layout == "orthoplanes":
-                # If no models are open we will not successfully change the view, so 
-                # we need to check the view layout before continuing! 
+                # If no models are open we will not successfully change the view, so
+                # we need to check the view layout before continuing!
                 self.session.ui.main_window.main_view.register_segmentation_tool(self)
                 if self.guidelines_checkbox.isChecked():
                     self.session.ui.main_window.main_view.toggle_guidelines()
@@ -376,9 +390,6 @@ class SegmentationTool(ToolInstance):
             self.view_dropdown.setCurrentIndex(1)
         else:
             self.view_dropdown.setCurrentIndex(0)
-
-    def setPuckHeight(self, axis, height):
-        self.segmentation_cursors[axis].height = height
 
     def _on_show_guidelines_checkbox_changed(self):
         if self.session.ui.main_window.view_layout == "orthoplanes":

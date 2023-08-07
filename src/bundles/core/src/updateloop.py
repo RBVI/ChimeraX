@@ -29,7 +29,7 @@ class UpdateLoop:
                                                    # of time since start of last drawing
         self._last_timer_start_time = self._last_timer_finish_time = 0
         self._timer = None
-        
+
     def draw_new_frame(self):
         '''
         Draw the scene if it has changed or camera or rendering options have changed.
@@ -103,7 +103,7 @@ class UpdateLoop:
 
     def blocked(self):
         return self._block_redraw_count > 0
-        
+
     def set_redraw_interval(self, msec):
         '''
         A redraw interval of 0 is allowed and means redraw will
@@ -112,7 +112,7 @@ class UpdateLoop:
         self.redraw_interval = msec  # milliseconds
         t = self._timer
         if t is not None:
-            t.start(self.redraw_interval)
+            t.start(int(self.redraw_interval))
 
     def start_redraw_timer(self):
         if self._timer is not None or not self.session.ui.is_gui:
@@ -147,7 +147,7 @@ class UpdateLoop:
             t.stop()
             self._timer = None
         self.block_redraw()
-            
+
     def update_graphics_now(self):
         '''
         Redraw graphics now if there are any changes.  This is typically only used by

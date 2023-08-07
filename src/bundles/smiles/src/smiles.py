@@ -85,6 +85,4 @@ def _indiana_fetch(session, smiles, web_smiles):
 
 fetcher_info = [
     (_cactus_fetch, "NCI", "NCI CADD Group", "http://cactus.nci.nih.gov"),
-    (_indiana_fetch, "Indiana University", "CICC@iu",
-        "http://www.soic.indiana.edu/faculty-research/chemical-informatics-center.html"),
 ]

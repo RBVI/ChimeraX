@@ -12,8 +12,18 @@
 
 # TODO: Don't rely on the frame drawn trigger to redraw this view. Although
 # more convenient, the constant passing around of the context results in the
-# ChimeraX UI flickering. 
+# ChimeraX UI flickering.
+# TODO: There are a lot of little hacks that would go away entirely if we
+# could base the currently displayed orthoplane slice on the GridData directly
+# instead of abusing the model system's Texture2DPlanes code to get orthoplanes
+# generated.
+# We would no longer have to coordinate hiding the orthoplanes model in the 3D view
+#     then showing it in the 2D viewports.
+# We would no longer have to move the camera in and out when the current slice changes
+# We could display more than one model's orthoplane at a time, say if a physician wanted
+#     to compare two different CT scans.
 import numpy as np
+from math import sqrt
 
 from Qt import qt_object_is_deleted
 from Qt.QtCore import Qt, QEvent, QSize
@@ -27,7 +37,11 @@ from chimerax.graphics import Drawing
 from chimerax.map import Volume, VolumeSurface, VolumeImage
 from chimerax.ui.widgets import ModelMenu
 
-from ..graphics import OrthoplaneView, OrthoCamera, SegmentationOverlay, OrthoplaneLocationOverlay
+from ..graphics import (
+    OrthoplaneView, OrthoCamera
+    , SegmentationOverlay, SegmentationCursorOverlay, SegmentationCursorOnOtherAxisOverlay
+    , OrthoplaneLocationOverlay
+)
 from ..types import Direction, Axis
 from .label import Label
 
@@ -93,9 +107,21 @@ class PlaneViewerManager:
         for viewer in self.axes.values():
             viewer.setGuidelineVisibility(False)
 
+    def update_displayed_model(self, model):
+        for viewer in self.axes.values():
+            viewer.model_menu._menu.set_value(model)
+
     def add_segmentation(self, seg):
         for viewer in self.axes.values():
-            viewer.addDrawing(seg)
+            viewer.add_segmentation(seg)
+
+    def remove_segmentation(self, seg):
+        for viewer in self.axes.values():
+            viewer.remove_segmentation(seg)
+
+    def update_segmentation_overlay_for_segmentation(self, segmentation):
+        for viewer in self.axes.values():
+            viewer.segmentation_overlays[segmentation].needs_update = True
 
      #def update_volume(self, viewer):
      #   if viewer.axis == Axis.AXIAL:
@@ -103,7 +129,6 @@ class PlaneViewerManager:
 
 
 class PlaneViewer(QWindow):
-
     def __init__(self, parent, manager, session, axis = Axis.AXIAL):
         QWindow.__init__(self)
         self.parent = parent
@@ -136,7 +161,7 @@ class PlaneViewer(QWindow):
         self._plane_indices = [0, 0, 0]
 
         self.drawings = []
-        self.current_segmentation_overlays = []
+        self.current_segmentation_cursor_overlays = []
 
         self.label = Label(self.session, self.view, str(axis), str(axis), size=16, xpos=0, ypos=0)
 
@@ -144,6 +169,8 @@ class PlaneViewer(QWindow):
             ok_to_list = not isinstance(m, VolumeSurface)
             # This will run over all models which may not have DICOM data...
             try:
+                if hasattr(m.data, "dicom_data"):
+                    ok_to_list &= not m.data.dicom_data.dicom_series.modality == "SEG"
                 ok_to_list &= not hasattr(m.data, "reference_data")
             except AttributeError:
                 pass
@@ -157,15 +184,22 @@ class PlaneViewer(QWindow):
         )
 
         # TODO: Create these on demand when the segmentation tool gets registered
-        self.segmentation_overlay = SegmentationOverlay("seg_overlay", radius=20, thickness=3)
+        self.segmentation_cursor_overlay = SegmentationCursorOverlay("seg_overlay", radius=20, thickness=3)
         self.horizontal_slice_overlay = OrthoplaneLocationOverlay("horiz_overlay", slice=10, direction=Direction.HORIZONTAL)
         self.vertical_slice_overlay = OrthoplaneLocationOverlay("vertical_overlay", slice=11)
+        self.segmentation_cursor_other_axis_horizontal_overlay = SegmentationCursorOnOtherAxisOverlay("seg_cursor_other_axis_horizontal", direction=Direction.HORIZONTAL)
+        self.segmentation_cursor_other_axis_vertical_overlay = SegmentationCursorOnOtherAxisOverlay("seg_cursor_other_axis_vertical", direction=Direction.VERTICAL)
         self.horizontal_slice_overlay.display = False
         self.vertical_slice_overlay.display = False
-        self.segmentation_overlay.display = False
-        self.view.add_overlay(self.segmentation_overlay)
-        self.view.add_overlay(self.horizontal_slice_overlay)
-        self.view.add_overlay(self.vertical_slice_overlay)
+        self.segmentation_cursor_other_axis_horizontal_overlay.display = False
+        self.segmentation_cursor_other_axis_vertical_overlay.display = False
+        self.segmentation_cursor_overlay.display = False
+        self.view.add_cursor_overlay(self.segmentation_cursor_overlay)
+        self.view.add_guideline_overlay(self.horizontal_slice_overlay)
+        self.view.add_guideline_overlay(self.vertical_slice_overlay)
+        self.view.add_guideline_overlay(self.segmentation_cursor_other_axis_horizontal_overlay)
+        self.view.add_guideline_overlay(self.segmentation_cursor_other_axis_vertical_overlay)
+        self.segmentation_overlays: dict[Volume, SegmentationOverlay] = {}
 
         # Used to move the camera when slices are moved
         self.old_pos = 0
@@ -222,14 +256,14 @@ class PlaneViewer(QWindow):
         if tool is not None:
             self.model_menu.value = self._segmentation_tool.model_menu.value
             self._surfaceChosen()
-            self._segmentation_tool.segmentation_cursors[self.axis].radius = self.segmentation_overlay.radius
+            self._segmentation_tool.segmentation_cursors[self.axis].radius = self.segmentation_cursor_overlay.radius
             self._segmentation_tool.setCursorOffsetFromOrigin(
                 self.axis, self.mvSegmentationCursorOffsetFromOrigin()
             )
             # TODO:
             # Set the segmentation pucks' locations based on the current slice location
             # self._segmentation_tool.segmentation_cursors[self.axis].
-            self.segmentation_overlay.display = True
+            self.segmentation_cursor_overlay.display = True
             self.view.redraw_needed = True
             # Set their radii to the current selected models' thickness
             # Synchronize the tool's model menu value to our model menu value
@@ -259,6 +293,9 @@ class PlaneViewer(QWindow):
         if self.segmentation_tool:
             self.segmentation_tool.setCursorOffsetFromOrigin(self.axis, self.mvSegmentationCursorOffsetFromOrigin()) #self.pos * self.view.drawing.parent.data.step[self.axis]
         self._plane_indices[self.axis] = self.pos
+        if self.segmentation_tool:
+            for segmentation in self.segmentation_overlays.values():
+                segmentation.slice = self.pos
         self.manager.update_location(self)
         self.view.camera.redraw_needed = True
 
@@ -291,7 +328,7 @@ class PlaneViewer(QWindow):
 
     def drawingBounds(self):
         return self.view.drawing.bounds()
-    #endregion 
+    #endregion
 
     def exposeEvent(self, event):
         if self.isExposed() and not self.session.update_loop.blocked():
@@ -352,7 +389,7 @@ class PlaneViewer(QWindow):
             self.origin = self.drawingPosition().origin() + model_center_offsets - self.camera_offsets + test_c_offsets
             camera = self.view.camera
             camera.position = Place(axes=self.axes, origin=self.origin)
-            self.segmentation_overlay.update()
+            self.segmentation_cursor_overlay.update()
             self.horizontal_slice_overlay.update()
             self.vertical_slice_overlay.update()
 
@@ -370,11 +407,20 @@ class PlaneViewer(QWindow):
             self.main_view.render.use_shared_context(mvwin)
         self.view.render.done_current()
 
-    def toggle_guidelines(self): 
+    def toggle_guidelines(self):
         if self.segmentation_tool:
             self.segmentation_tool.setGuidelineCheckboxValue(not self.guidelines_visible)
         else:
             self.manager.toggle_guidelines()
+
+    def add_segmentation(self, segmentation):
+        self.segmentation_overlays[segmentation] = SegmentationOverlay(segmentation.name + "_overlay", segmentation, self.axis)
+        self.view.add_overlay(self.segmentation_overlays[segmentation])
+        self.segmentation_overlays[segmentation].slice = self.pos
+
+    def remove_segmentation(self, segmentation):
+        self.view.remove_overlays([self.segmentation_overlays[segmentation]])
+        del self.segmentation_overlays[segmentation]
 
     def addDrawing(self, drawing):
         self.drawings.append(drawing)
@@ -420,6 +466,12 @@ class PlaneViewer(QWindow):
             self.vertical_slice_overlay.top =    0.5 * self.scale * ((height - y_offset) + axis_sizes[Axis.CORONAL])
             self.vertical_slice_overlay.offset = 0.5 * self.scale * ((width - x_offset) + axis_sizes[Axis.CORONAL])
             self.vertical_slice_overlay.tick_thickness = axis_sizes[Axis.CORONAL] / (self.dimensions[Axis.SAGITTAL] / self.scale)
+        # Update the segmentation overlays
+        for overlay in self.segmentation_overlays.values():
+            overlay.y_min = self.vertical_slice_overlay.bottom
+            overlay.y_max = self.vertical_slice_overlay.top
+            overlay.x_min = self.horizontal_slice_overlay.bottom
+            overlay.x_max = self.horizontal_slice_overlay.top
 
     def camera_space_drawing_bounds(self):
         top, bottom, left, right = (
@@ -445,21 +497,21 @@ class PlaneViewer(QWindow):
         self.horizontal_slice_overlay.display = visibility
         self.vertical_slice_overlay.display = visibility
 
-    def enableSegmentationOverlay(self):
-        self.segmentation_overlay.display = True
+    def enableSegmentationOverlays(self):
+        self.segmentation_cursor_overlay.display = True
 
-    def disableSegmentationOverlay(self):
-        self.segmentation_overlay.display = False
+    def disableSegmentationOverlays(self):
+        self.segmentation_cursor_overlay.display = False
 
     def enterEvent(self):
         if self.segmentation_tool:
-            self.enableSegmentationOverlay()
+            self.enableSegmentationOverlays()
             self.resize3DSegmentationCursor()
             self.segmentation_tool.make_puck_visible(self.axis)
 
     def leaveEvent(self):
         if self.segmentation_tool:
-            self.disableSegmentationOverlay()
+            self.disableSegmentationOverlays()
             self.segmentation_tool.make_puck_invisible(self.axis)
 
     def shouldOpenContextMenu(self):
@@ -476,11 +528,11 @@ class PlaneViewer(QWindow):
                 self.context_menu = None
         if b & Qt.MouseButton.RightButton:
             self.context_menu_coords = self.widget.mapToGlobal(event.pos())
-            if self.segmentation_tool and self.segmentation_overlay.display:
-                self.segmentation_overlay.display = False
+            if self.segmentation_tool and self.segmentation_cursor_overlay.display:
+                self.segmentation_cursor_overlay.display = False
         if b & Qt.MouseButton.MiddleButton:
-            if self.segmentation_tool and self.segmentation_overlay.display:
-                self.segmentation_overlay.display = False
+            if self.segmentation_tool and self.segmentation_cursor_overlay.display:
+                self.segmentation_cursor_overlay.display = False
         if b & Qt.MouseButton.LeftButton:
             if self.segmentation_tool:
                 x, y = event.position().x(), event.position().y()
@@ -489,8 +541,8 @@ class PlaneViewer(QWindow):
     def mouseReleaseEvent(self, event): # noqa
         b = event.button() | event.buttons()
         modifier = event.modifiers()
-        self.segmentation_overlay.center = (self.scale * event.position().x(), self.scale * (self.view.window_size[1] - event.position().y()), 0)
-        self.segmentation_overlay.update()
+        self.segmentation_cursor_overlay.center = (self.scale * event.position().x(), self.scale * (self.view.window_size[1] - event.position().y()), 0)
+        self.segmentation_cursor_overlay.update()
         if b & Qt.MouseButton.RightButton:
             if self.shouldOpenContextMenu():
                 from Qt.QtWidgets import QMenu, QAction
@@ -506,15 +558,17 @@ class PlaneViewer(QWindow):
         if b & Qt.MouseButton.LeftButton:
             if self.segmentation_tool:
                 if modifier == Qt.KeyboardModifier.ShiftModifier:
-                    self.segmentation_tool.removeMarkersFromSegment(self.axis, self.pos, self.current_segmentation_overlays)
+                    self.segmentation_tool.removeMarkersFromSegment(self.axis, self.pos, self.current_segmentation_cursor_overlays)
                 else:
-                    self.segmentation_tool.addMarkersToSegment(self.axis, self.pos, self.current_segmentation_overlays)
-                self.view.remove_overlays(self.current_segmentation_overlays)
-                self.current_segmentation_overlays = []
+                    self.segmentation_tool.addMarkersToSegment(self.axis, self.pos, self.current_segmentation_cursor_overlays)
+                self.view.remove_cursor_overlays(self.current_segmentation_cursor_overlays)
+                self.current_segmentation_cursor_overlays = []
+                active_seg = self.segmentation_tool.active_seg
+                self.manager.update_segmentation_overlay_for_segmentation(active_seg)
             self.view.camera.redraw_needed = True
         self.last_mouse_position = None
         if self.segmentation_tool:
-            self.segmentation_overlay.display = True
+            self.segmentation_cursor_overlay.display = True
 
     def resize3DSegmentationCursor(self):
         """Resize the 3D segmentation cursor based on the size of the 2D segmentation overlay."""
@@ -523,21 +577,19 @@ class PlaneViewer(QWindow):
             ww, wh = self.main_view.window_size
             width, height = self.view.window_size
             psize = self.view.pixel_size()
-            radius = self.segmentation_overlay.radius
+            radius = self.segmentation_cursor_overlay.radius
             rel_size = (radius / width) * psize
             needed_rad = (rel_size / psize) * ww
-            self.segmentation_tool.segmentation_cursors[self.axis].radius = self.segmentation_overlay.radius * psize / self.scale
+            self.segmentation_tool.segmentation_cursors[self.axis].radius = self.segmentation_cursor_overlay.radius * psize / self.scale
 
     def wheelEvent(self, event):
         modifier = event.modifiers()
         delta = event.angleDelta()
         x_dir, y_dir = np.sign(delta.x()), np.sign(delta.y())
         if modifier == Qt.KeyboardModifier.ShiftModifier:
-            self.segmentation_overlay.radius += 1 * (x_dir | y_dir)
-            self.segmentation_overlay.pixel_size = self.view.pixel_size()
+            self.segmentation_cursor_overlay.radius += 1 * (x_dir | y_dir)
             self.resize3DSegmentationCursor()
         elif modifier == Qt.KeyboardModifier.NoModifier:
-            self.segmentation_overlay.pixel_size = self.view.pixel_size()
             self.field_width_offset += 1 * y_dir
             self.resize3DSegmentationCursor()
         self.view.camera.redraw_needed = True
@@ -565,15 +617,15 @@ class PlaneViewer(QWindow):
         return x_offset, y_offset
 
     def recordSegment(self, x, y):
-        thisSegment = SegmentationOverlay(
-            "seg_overlay_" + str(len(self.current_segmentation_overlays)),
-            radius=self.segmentation_overlay.radius, thickness=3
+        thisSegment = SegmentationCursorOverlay(
+            "seg_overlay_" + str(len(self.current_segmentation_cursor_overlays)),
+            radius=self.segmentation_cursor_overlay.radius, thickness=3
         )
         thisSegment.drawing_center = [x, y]
-        thisSegment.center = self.segmentation_overlay.center
-        self.current_segmentation_overlays.append(thisSegment)
+        thisSegment.center = self.segmentation_cursor_overlay.center
+        self.current_segmentation_cursor_overlays.append(thisSegment)
         thisSegment.update()
-        self.view.add_overlay(thisSegment)
+        self.view.add_cursor_overlay(thisSegment)
 
     def moveSegmentationPuck(self, x, y, record_seg):
         top, bottom, left, right = self.camera_space_drawing_bounds()
@@ -610,8 +662,8 @@ class PlaneViewer(QWindow):
         if b == Qt.MouseButton.NoButton or b == Qt.MouseButton.LeftButton:
             pos = event.position()
             x, y = pos.x(), pos.y()
-            self.segmentation_overlay.center = (self.scale * x, self.scale * (self.view.window_size[1] - y), 0)
-            self.segmentation_overlay.update()
+            self.segmentation_cursor_overlay.center = (self.scale * x, self.scale * (self.view.window_size[1] - y), 0)
+            self.segmentation_cursor_overlay.update()
             if self.segmentation_tool:
                 self.moveSegmentationPuck(x, y, record_seg = (b == Qt.MouseButton.LeftButton))
             self.view.camera.redraw_needed = True

@@ -32,11 +32,11 @@ class FourPanelView(QWidget):
 
     def view_layout(self):
         return self._view_layout
-    
+
     @property
     def graphics_area(self):
         return self._graphics_area
-    
+
     def set_guideline_visibility(self, visible: bool) -> None:
         if visible:
             self._orthoplane_manager.show_guidelines()
@@ -55,9 +55,15 @@ class FourPanelView(QWidget):
     def add_segmentation(self, seg):
         self._orthoplane_manager.add_segmentation(seg)
 
+    def remove_segmentation(self, seg):
+        self._orthoplane_manager.remove_segmentation(seg)
+
+    def update_displayed_model(self, model):
+        self._orthoplane_manager.update_displayed_model(model)
+
     def segmentation_tool_open(self):
         return self._orthoplane_manager.have_seg_tool
-    
+
     def segmentation_tool(self):
         return self._orthoplane_manager.segmentation_tool()
 
