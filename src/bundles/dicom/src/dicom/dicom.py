@@ -16,6 +16,7 @@ import os
 import warnings
 
 from pydicom import dcmread
+from pydicom.errors import InvalidDicomError
 from typing import Any, Dict, TypeVar, Union
 
 from chimerax.core.session import Session
@@ -36,7 +37,7 @@ class DICOM:
             self.paths = [data]
         else:
             self.paths = data
-        self.find_dicom_series(self.paths)
+        self.find_dicom_files(self.paths)
         self.merge_patients_by_id()
 
     @classmethod
@@ -61,66 +62,53 @@ class DICOM:
         self.merge_patients_by_id()
         return self.open()[0]
 
-    def find_dicom_series(
+    def find_dicom_files(
         self, paths, search_directories: bool = True, search_subdirectories: bool = True,
     ) -> None:
-        """Look through directories to find dicom files (.dcm) and group the ones
+        """Look through directories to find dicom files and group the ones
         that belong to the same study and image series.  Also determine the order
         of the 2D images (one per file) in the 3D stack.  A series must be in a single
         directory.  If the same study and series is found in two directories, they
         are treated as two different series.
         """
-        dfiles = self.files_by_directory(
-            paths, search_directories=search_directories,
-            search_subdirectories=search_subdirectories
-        )
-        nseries = len(dfiles)
-        nfiles = sum(len(dpaths) for dpaths in list(dfiles.values()))
-        nsfiles = 0
-        for dpaths in list(dfiles.values()):
-            nsfiles += len(dpaths)
-            self.session.logger.status('Reading DICOM series %d of %d files in %d series' % (nsfiles, nfiles, nseries))
-            patients = self.dicom_patients(dpaths)
-            for patient in patients:
-                self.patients_by_id[patient.pid].append(patient)
+        dfiles = []
+        for path in paths:
+            if os.path.isfile(path):
+                dfiles.append(dcmread(path))
+            elif os.path.isdir(path):
+                dfiles.extend(self._find_dicom_files_in_directory_recursively(path))
+        patients = self.dicom_patients(dfiles)
+        for patient in patients:
+            self.patients_by_id[patient.pid].append(patient)
 
-    def dicom_patients(self, paths) -> list['Patient']:
+    def _find_dicom_files_in_directory_recursively(self, path):
+        dfiles = []
+        for root, dirs, files in os.walk(path):
+            for f in files:
+                if f in ('.DS_Store', 'Thumbs.db', 'desktop.ini'):
+                    continue
+                try:
+                    dfiles.append(dcmread(os.path.join(root, f)))
+                except InvalidDicomError:
+                    self.session.logger.info('Pydicom could not read invalid or non-DICOM file %s; skipping.' % f)
+        for d in dirs:
+            dfiles.extend(self._find_dicom_files_in_directory_recursively(d))
+        return dfiles
+
+    def dicom_patients(self, files) -> list['Patient']:
         """Group DICOM files into series"""
         series = defaultdict(list)
         patients = []
-        for path in paths:
-            d = dcmread(path)
-            if hasattr(d, 'PatientID'):
-                series[d.PatientID].append(d)
+        for f in files:
+            if hasattr(f, 'PatientID'):
+                series[f.PatientID].append(f)
             else:
-                series["Unknown Patient"].append(d)
+                series["Unknown Patient"].append(f)
         for key, series in list(series.items()):
             patient = Patient(self.session, key)
             patient.studies_from_files(series)
             patients.append(patient)
         return patients
-
-    def files_by_directory(
-        self, paths, search_directories=True, search_subdirectories=True,
-        suffix='.dcm', _dfiles=None
-    ) -> Dict[str, list[str]]:
-        """Find all dicom files (suffix .dcm) in directories and subdirectories
-        and group them by directory"""
-        dfiles = {} if _dfiles is None else _dfiles
-        for p in paths:
-            if os.path.isfile(p) and p.endswith(suffix):
-                d = os.path.dirname(p)
-                if d in dfiles:
-                    dfiles[d].add(p)
-                else:
-                    dfiles[d] = set([p])
-            elif search_directories and os.path.isdir(p):
-                ppaths = [os.path.join(p, fname) for fname in os.listdir(p)]
-                self.files_by_directory(
-                    ppaths, search_directories=search_subdirectories,
-                    search_subdirectories=search_subdirectories, _dfiles=dfiles
-                )
-        return dfiles
 
     def merge_patients_by_id(self):
         """Iterate over the patients dictionary and merge all that have the same pid"""
