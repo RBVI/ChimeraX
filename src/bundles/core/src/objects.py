@@ -300,8 +300,8 @@ def _displayed_objects(objects):
     from .orderedset import OrderedSet
     dmodels = OrderedSet(m for m in o.models if m.display and m.parents_displayed)
     bonds, pbonds = o.bonds, o.pseudobonds
-    d = Objects(atoms = o.atoms.shown_atoms, bonds = bonds[bonds.displays],
-                pseudobonds = pbonds[pbonds.displays], models = dmodels)
+    d = Objects(atoms = o.atoms.shown_atoms, bonds = bonds[bonds.showns],
+                pseudobonds = pbonds[pbonds.showns], models = dmodels)
     from numpy import logical_and
     for m, minst in o.model_instances.items():
         shown = logical_and(minst, m.display_positions)

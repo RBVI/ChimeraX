@@ -10,7 +10,30 @@ class OrthoplaneView(View):
     control over how draw() and _draw_scene() works."""
     def __init__(self, drawing, axis, *, window_size = (256, 256), trigger_set = None):
         super().__init__(drawing, window_size = window_size, trigger_set = trigger_set)
+        self.segmentation_overlays = []
+        self.cursor_overlays = []
+        self.guideline_overlays = []
         self.axis = axis
+
+    def add_guideline_overlay(self, overlay):
+        self.guideline_overlays.append(overlay)
+
+    def remove_guideline_overlays(self, overlays):
+        for overlay in overlays:
+            self.guideline_overlays.remove(overlay)
+
+    def add_segmentation_overlay(self, overlay):
+        self.segmentation_overlays.append(overlay)
+
+    def add_cursor_overlay(self, overlay):
+        self.cursor_overlays.append(overlay)
+
+    def remove_cursor_overlays(self, overlays):
+        for overlay in overlays:
+            self.cursor_overlays.remove(overlay)
+
+    def remove_segmentation_overlay(self, overlay):
+        self.segmentation_overlays.remove(overlay)
 
     def prepare_scene_for_drawing(self, camera = None, check_for_changes = True):
         if not self._use_opengl():
@@ -36,8 +59,16 @@ class OrthoplaneView(View):
             camera = self.camera
         camera.combine_rendered_camera_views(self._render)
 
+        # We want to draw the overlays in a specific order: segmentations first, then the guidelines, then the cursor
+        #
         if self._overlays:
             odrawings = sum([o.all_drawings(displayed_only = True) for o in self._overlays], [])
+            draw_overlays(odrawings, self._render)
+            odrawings = sum([o.all_drawings(displayed_only = True) for o in self.segmentation_overlays], [])
+            draw_overlays(odrawings, self._render)
+            odrawings = sum([o.all_drawings(displayed_only = True) for o in self.guideline_overlays], [])
+            draw_overlays(odrawings, self._render)
+            odrawings = sum([o.all_drawings(displayed_only = True) for o in self.cursor_overlays], [])
             draw_overlays(odrawings, self._render)
 
         if swap_buffers:

@@ -312,6 +312,10 @@ class SegmentationTool(ToolInstance):
         new_seg_model = open_grids(self.session, [new_seg], name = "new segmentation")[0]
         self.session.models.add(new_seg_model)
         new_seg_model[0].set_parameters(surface_levels=[0.501])
+        ijk_min = new_seg_model[0].region[0]
+        ijk_max = new_seg_model[0].region[1]
+        ijk_step = [1, 1, 1]
+        new_seg_model[0].new_region(ijk_min, ijk_max, ijk_step, adjust_step = False)
         self.segmentation_list.addItem(SegmentationListItem(parent = self.segmentation_list, segmentation = new_seg_model[0]))
         num_items = self.segmentation_list.count()
         self.segmentation_list.setCurrentItem(self.segmentation_list.item(num_items - 1))
@@ -386,9 +390,6 @@ class SegmentationTool(ToolInstance):
             self.view_dropdown.setCurrentIndex(1)
         else:
             self.view_dropdown.setCurrentIndex(0)
-
-    def setPuckHeight(self, axis, height):
-        self.segmentation_cursors[axis].height = height
 
     def _on_show_guidelines_checkbox_changed(self):
         if self.session.ui.main_window.view_layout == "orthoplanes":

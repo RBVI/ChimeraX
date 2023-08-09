@@ -2096,12 +2096,12 @@ def _encode_vr_room_position(p):
     Shift resolution is 0.5 mm with range  +/- 16 meters.
     Rotation resolution is 0.005 degree (= 180 / 32000).
     '''
-    from numpy import empty, int16, clip
-    v = empty((6,), int16)
+    from numpy import empty, float64, int16, clip
+    v = empty((6,), float64)
     clip(2000*p.origin(), -32768, 32767, out = v[3:6])
     axis, angle = p.rotation_axis_and_angle()
     v[0:3] = (32000 * angle/180) * axis
-    bytes = v.tobytes()
+    bytes = v.astype(int16).tobytes()
     return bytes
 
 def _decode_vr_room_position(bytes):
