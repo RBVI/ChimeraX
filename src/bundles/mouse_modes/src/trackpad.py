@@ -206,23 +206,17 @@ class MultitouchTrackpad:
         macOS generates mouse wheel events in response to a two-finger drag on trackpad.
         We discard those if we have multitouch trackpad support enabled so that 2-finger
         drag should be rotation.  But we don't want to discard wheel events that come
-        from a non-trackpad device.  Unfortunately macOS and Qt5 provides no way to distinguish
-        magic mouse scroll from a trackpad scroll, both are reported as synthesized events
-        and there is no source device id available.  If there are any trackpad devices and
-        multitouch is enabled then the magic mouse wheel events are thrown away.  This
-        is ChimeraX bug #1474.  We used to instead see if we recently received a touch event
-        and in that case throw away any wheel event.  Unfortunately on macOS we sometimes
-        don't get touch events after clicking in the Log or other windows and then moving
-        back to the graphics window, until the second multitouch drag is done.
-        '''
+        from a non-trackpad device.  ChimeraX ticket #1474 and #9534'''
         if self._touch_handler is None:
             return False	# Multi-touch disabled
 
-        from Qt.QtGui import QPointingDevice
-        using_mouse = (event.pointingDevice() == QPointingDevice.PointerType.Generic)
-        if using_mouse:
+        d = event.pointingDevice()
+        if d.type() == d.DeviceType.Mouse:
             return False	# Event is from a real mouse.
 
+        if d.capabilities() & d.Capability.Scroll:
+            return False	# Magic mouse and generic mouse has Scroll but Magic Trackpad does not
+        
         from Qt.QtGui import QInputDevice
         touch_devices = [d for d in QInputDevice.devices() if d.type() == d.DeviceType.TouchPad]
         if len(touch_devices) == 0:
