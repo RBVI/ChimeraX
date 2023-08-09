@@ -101,7 +101,7 @@ class DICOMVolume(Volume):
 
     def segment(self, number):
         new_grid = DicomGrid(
-            None, self.data.size, self.data.value_type
+            None, self.data.size, 'uint8'
             , self.data.origin, self.data.step, self.data.rotation
             , "", name = "segmentation %d" % number, time = None, channel = None
         )
