@@ -22,7 +22,7 @@ from typing import Any, Dict, TypeVar, Union
 from chimerax.core.session import Session
 from chimerax.map_data import MapFileFormat
 
-from .dicom_hierarchy import Patient
+from .dicom_hierarchy import Patient, SeriesFile
 
 Path = TypeVar("Path", os.PathLike, str, bytes, None)
 
@@ -74,7 +74,7 @@ class DICOM:
         dfiles = []
         for path in paths:
             if os.path.isfile(path):
-                dfiles.append(dcmread(path))
+                dfiles.append(SeriesFile(dcmread(path)))
             elif os.path.isdir(path):
                 dfiles.extend(self._find_dicom_files_in_directory_recursively(path))
         patients = self.dicom_patients(dfiles)
@@ -88,7 +88,7 @@ class DICOM:
                 if f in ('.DS_Store', 'Thumbs.db', 'desktop.ini') or any(f.startswith(s) for s in ['._']):
                     continue
                 try:
-                    dfiles.append(dcmread(os.path.join(root, f)))
+                    dfiles.append(SeriesFile(dcmread(os.path.join(root, f))))
                 except InvalidDicomError:
                     self.session.logger.info('Pydicom could not read invalid or non-DICOM file %s; skipping.' % f)
         for d in dirs:

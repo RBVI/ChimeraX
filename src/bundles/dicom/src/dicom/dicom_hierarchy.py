@@ -250,13 +250,12 @@ class Series:
     def __init__(self, session, parent, files):
         self.session = session
         self.parent_study = parent
-        self._raw_files = self.filter_unreadable(files)
-        self.sample_file = self._raw_files[0]
+        self.files = self.filter_unreadable(files)
+        self.sample_file = self.files[0]
         self.files_by_size = defaultdict(list)
         self.dicom_data = []
-        for f in self._raw_files:
-            sf = SeriesFile(f)
-            self.files_by_size[sf.size].append(SeriesFile(f))
+        for f in self.files:
+            self.files_by_size[f.size].append(f)
         for file_list in self.files_by_size.values():
             self.dicom_data.append(DicomData(self.session, self, file_list))
         #plane_ids = {s.plane_uids: s for s in self.series}
