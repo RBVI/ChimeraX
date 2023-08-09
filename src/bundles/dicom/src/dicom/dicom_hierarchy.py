@@ -37,13 +37,6 @@ from .errors import MismatchedUIDError, UnrenderableSeriesError
 from .dicom_models import DicomContours, DicomGrid
 from .dicom_volumes import open_dicom_grids
 
-try:
-    import gdcm # noqa import used elsewhere
-except ModuleNotFoundError:
-    _has_gdcm = False
-else:
-    _has_gdcm = True
-
 class Patient(Model):
     """A set of DICOM files that have the same Patient ID"""
     def __init__(self, session: Session, pid: str):
@@ -250,7 +243,7 @@ class Series:
     def __init__(self, session, parent, files):
         self.session = session
         self.parent_study = parent
-        self.files = self.filter_unreadable(files)
+        self.files = files
         self.sample_file = self.files[0]
         self.files_by_size = defaultdict(list)
         self.dicom_data = []
@@ -263,22 +256,6 @@ class Series:
         #    ref = s.ref_plane_uids
         #    if ref and ref in plane_ids:
         #        s.refers_to_series = plane_ids[ref]
-
-    def filter_unreadable(self, files):
-        if _has_gdcm:
-            return files  # PyDicom will use gdcm to read 16-bit lossless jpeg
-
-        # Python Image Library cannot read 16-bit lossless jpeg.
-        keep = []
-        for f in files:
-            if (f.file_meta.TransferSyntaxUID == pydicom.uid.JPEGLosslessSV1
-                and f.get('BitsAllocated') == 16):
-                warning = 'Could not read DICOM %s because Python Image Library cannot read 16-bit lossless jpeg ' \
-                          'images. This functionality can be enabled by installing python-gdcm'
-                self.session.logger.warning(warning % f.filename)
-            else:
-                keep.append(f)
-        return keep
 
     def to_models(self):
         models = []

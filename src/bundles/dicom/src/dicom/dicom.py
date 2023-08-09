@@ -10,14 +10,23 @@
 # including partial copies, of the software or any revisions
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
-from collections import defaultdict
-
 import os
 import warnings
 
+from collections import defaultdict
+from typing import Any, Dict, TypeVar, Union
+
+try:
+    import gdcm # noqa import used elsewhere
+except ModuleNotFoundError:
+    _has_gdcm = False
+else:
+    _has_gdcm = True
+
+import pydicom.uid
+
 from pydicom import dcmread
 from pydicom.errors import InvalidDicomError
-from typing import Any, Dict, TypeVar, Union
 
 from chimerax.core.session import Session
 from chimerax.map_data import MapFileFormat
@@ -25,7 +34,6 @@ from chimerax.map_data import MapFileFormat
 from .dicom_hierarchy import Patient, SeriesFile
 
 Path = TypeVar("Path", os.PathLike, str, bytes, None)
-
 
 class DICOM:
     # TODO: Make a singleton
@@ -77,9 +85,26 @@ class DICOM:
                 dfiles.append(SeriesFile(dcmread(path)))
             elif os.path.isdir(path):
                 dfiles.extend(self._find_dicom_files_in_directory_recursively(path))
+        dfiles = self.filter_unreadable(dfiles)
         patients = self.dicom_patients(dfiles)
         for patient in patients:
             self.patients_by_id[patient.pid].append(patient)
+
+    def filter_unreadable(self, files):
+        if _has_gdcm:
+            return files  # PyDicom will use gdcm to read 16-bit lossless jpeg
+
+        # Python Image Library cannot read 16-bit lossless jpeg.
+        keep = []
+        for f in files:
+            if (f.file_meta.TransferSyntaxUID == pydicom.uid.JPEGLosslessSV1
+                and f.get('BitsAllocated') == 16):
+                warning = 'Could not read DICOM %s because Python Image Library cannot read 16-bit lossless jpeg ' \
+                          'images. This functionality can be enabled by installing python-gdcm'
+                self.session.logger.warning(warning % f.filename)
+            else:
+                keep.append(f)
+        return keep
 
     def _find_dicom_files_in_directory_recursively(self, path):
         dfiles = []
