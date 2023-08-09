@@ -66,7 +66,7 @@ class DICOM:
         if log:
             self.session = log.session
         self.paths = paths
-        self.find_dicom_series(self.paths)
+        self.find_dicom_files(self.paths)
         self.merge_patients_by_id()
         return self.open()[0]
 
