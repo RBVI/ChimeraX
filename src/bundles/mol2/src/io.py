@@ -234,7 +234,7 @@ def write_mol2(session, file_name, *, models=None, atoms=None, status=None, anch
         if hasattr(structures[-1], 'substructure_names'):
             substructure_names = structures[-1].substructure_names
             delattr(structures[-1], 'substructure_names')
-        sort_key_func = lambda a: (a.structure.id,) + serial_sort(a)
+        sort_key_func = lambda a: (a.structure.id,) + serial_sort_key(a)
 
     # write out structures
     for struct in structures:
