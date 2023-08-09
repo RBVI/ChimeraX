@@ -1,16 +1,8 @@
-from chimerax.core.commands import CmdDesc, ModelIdArg, StringArg, EnumOf, register
-from ..dicom.dicom_models import DicomGrid, DicomSegmentation
+from chimerax.core.commands import CmdDesc, ModelIdArg, EnumOf, register
 from ..ui.segmentations import SegmentationTool
 from chimerax.ui.cmd import ui_tool_show
 
-segmentable_types = {
-    DicomGrid: DicomSegmentation
-}
-
 actions = ["add", "remove"]
-
-def register_segmentable_type(grid, seg_grid):
-    pass
 
 def dicom_segmentations(session, action, specifier = None):
     tlist = [t for t in session.tools if type(t) is SegmentationTool]

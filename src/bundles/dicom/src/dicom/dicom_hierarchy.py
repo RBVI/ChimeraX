@@ -32,10 +32,10 @@ from chimerax.core.models import Model
 from chimerax.core.tools import get_singleton
 from chimerax.core.session import Session
 
-from chimerax.map.volume import open_grids
 
 from .errors import MismatchedUIDError, UnrenderableSeriesError
 from .dicom_models import DicomContours, DicomGrid
+from .dicom_volumes import open_dicom_grids
 
 try:
     import gdcm # noqa import used elsewhere
@@ -512,7 +512,7 @@ class DicomData:
             colors = [(1, 0, 0, 1), (0, 1, 0, 1), (0, 0, 1, 1)]
             suffixes = [' red', ' green', ' blue']
             for channel in (0, 1, 2):
-                g = DicomGrid(self, channel=channel)
+                g = DicomGrid.from_series(self, channel=channel)
                 if self.dicom_series.modality == "SEG":
                     g.initial_plane_display = False
                 g.name += suffixes[channel]
@@ -523,7 +523,7 @@ class DicomData:
             # Create time series for series containing multiple times as frames
             tgrids = []
             for t in range(self.num_times):
-                g = DicomGrid(self, time=t)
+                g = DicomGrid.from_series(self, time=t)
                 if self.dicom_series.modality == "SEG":
                     g.initial_plane_display = False
                 g.series_index = t
@@ -531,7 +531,7 @@ class DicomData:
             grids.extend(tgrids)
         else:
             # Create single channel, single time series.
-            g = DicomGrid(self)
+            g = DicomGrid.from_series(self)
             if self.dicom_series.modality == "SEG":
                 g.initial_plane_display = False
             rs = getattr(self, 'refers_to_series', None)
@@ -564,7 +564,7 @@ class DicomData:
         if self.contour_series:
             return [DicomContours(self.session, s, self.name) for s in self.files]
         elif self.image_series:
-            return open_grids(self.session, self._to_grids(), name=self.name)[0]
+            return open_dicom_grids(self.session, self._to_grids(), name=self.name)[0]
         else:
             raise UnrenderableSeriesError("No model created for Series #%s from patient %s because "
                                           "it had no pixel data. Metadata will still "
@@ -846,6 +846,10 @@ class DicomData:
         if (bits_allocated, pixel_representation) in types:
             return types[(bits_allocated, pixel_representation)]
         raise ValueError('Unsupported value type, bits_allocated = %d' % bits_allocated)
+
+    @property
+    def modality(self):
+        return self.dicom_series.modality
 
 
 class SeriesFile:
