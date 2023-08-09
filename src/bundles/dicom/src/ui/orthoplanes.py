@@ -13,6 +13,15 @@
 # TODO: Don't rely on the frame drawn trigger to redraw this view. Although
 # more convenient, the constant passing around of the context results in the
 # ChimeraX UI flickering.
+# TODO: There are a lot of little hacks that would go away entirely if we
+# could base the currently displayed orthoplane slice on the GridData directly
+# instead of abusing the model system's Texture2DPlanes code to get orthoplanes
+# generated.
+# We would no longer have to coordinate hiding the orthoplanes model in the 3D view
+#     then showing it in the 2D viewports.
+# We would no longer have to move the camera in and out when the current slice changes
+# We could display more than one model's orthoplane at a time, say if a physician wanted
+#     to compare two different CT scans.
 import numpy as np
 from math import sqrt
 
@@ -110,6 +119,9 @@ class PlaneViewerManager:
         for viewer in self.axes.values():
             viewer.remove_segmentation(seg)
 
+    def update_segmentation_overlay_for_segmentation(self, segmentation):
+        for viewer in self.axes.values():
+            viewer.segmentation_overlays[segmentation].needs_update = True
 
      #def update_volume(self, viewer):
      #   if viewer.axis == Axis.AXIAL:
@@ -182,11 +194,11 @@ class PlaneViewer(QWindow):
         self.segmentation_cursor_other_axis_horizontal_overlay.display = False
         self.segmentation_cursor_other_axis_vertical_overlay.display = False
         self.segmentation_cursor_overlay.display = False
-        self.view.add_overlay(self.segmentation_cursor_overlay)
-        self.view.add_overlay(self.horizontal_slice_overlay)
-        self.view.add_overlay(self.vertical_slice_overlay)
-        self.view.add_overlay(self.segmentation_cursor_other_axis_horizontal_overlay)
-        self.view.add_overlay(self.segmentation_cursor_other_axis_vertical_overlay)
+        self.view.add_cursor_overlay(self.segmentation_cursor_overlay)
+        self.view.add_guideline_overlay(self.horizontal_slice_overlay)
+        self.view.add_guideline_overlay(self.vertical_slice_overlay)
+        self.view.add_guideline_overlay(self.segmentation_cursor_other_axis_horizontal_overlay)
+        self.view.add_guideline_overlay(self.segmentation_cursor_other_axis_vertical_overlay)
         self.segmentation_overlays: dict[Volume, SegmentationOverlay] = {}
 
         # Used to move the camera when slices are moved
@@ -549,10 +561,10 @@ class PlaneViewer(QWindow):
                     self.segmentation_tool.removeMarkersFromSegment(self.axis, self.pos, self.current_segmentation_cursor_overlays)
                 else:
                     self.segmentation_tool.addMarkersToSegment(self.axis, self.pos, self.current_segmentation_cursor_overlays)
-                self.view.remove_overlays(self.current_segmentation_cursor_overlays)
+                self.view.remove_cursor_overlays(self.current_segmentation_cursor_overlays)
                 self.current_segmentation_cursor_overlays = []
-                for overlay in self.segmentation_overlays.values():
-                    overlay.needs_update = True
+                active_seg = self.segmentation_tool.active_seg
+                self.manager.update_segmentation_overlay_for_segmentation(active_seg)
             self.view.camera.redraw_needed = True
         self.last_mouse_position = None
         if self.segmentation_tool:
@@ -613,7 +625,7 @@ class PlaneViewer(QWindow):
         thisSegment.center = self.segmentation_cursor_overlay.center
         self.current_segmentation_cursor_overlays.append(thisSegment)
         thisSegment.update()
-        self.view.add_overlay(thisSegment)
+        self.view.add_cursor_overlay(thisSegment)
 
     def moveSegmentationPuck(self, x, y, record_seg):
         top, bottom, left, right = self.camera_space_drawing_bounds()
