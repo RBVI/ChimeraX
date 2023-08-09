@@ -103,7 +103,7 @@ class DICOMVolume(Volume):
         new_grid = DicomGrid(
             None, self.data.size, self.data.value_type
             , self.data.origin, self.data.step, self.data.rotation
-            , None, name = "segmentation %d" % number, time = None, channel = None
+            , "", name = "segmentation %d" % number, time = None, channel = None
         )
         new_grid.reference_data = self.data
         new_seg_model = open_dicom_grids(self.session, [new_grid], name = "new segmentation")[0]
