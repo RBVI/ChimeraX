@@ -171,7 +171,7 @@ class PlaneViewer(QWindow):
             try:
                 if hasattr(m.data, "dicom_data"):
                     ok_to_list &= not m.data.dicom_data.dicom_series.modality == "SEG"
-                ok_to_list &= not hasattr(m.data, "reference_data")
+                    ok_to_list &= not m.data.reference_data
             except AttributeError:
                 pass
             return ok_to_list

@@ -10,22 +10,30 @@
 # including partial copies, of the software or any revisions
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
-from collections import defaultdict
-
 import os
 import warnings
 
+from collections import defaultdict
+from typing import Any, Dict, TypeVar, Union
+
+try:
+    import gdcm # noqa import used elsewhere
+except ModuleNotFoundError:
+    _has_gdcm = False
+else:
+    _has_gdcm = True
+
+import pydicom.uid
+
 from pydicom import dcmread
 from pydicom.errors import InvalidDicomError
-from typing import Any, Dict, TypeVar, Union
 
 from chimerax.core.session import Session
 from chimerax.map_data import MapFileFormat
 
-from .dicom_hierarchy import Patient
+from .dicom_hierarchy import Patient, SeriesFile
 
 Path = TypeVar("Path", os.PathLike, str, bytes, None)
-
 
 class DICOM:
     # TODO: Make a singleton
@@ -58,7 +66,7 @@ class DICOM:
         if log:
             self.session = log.session
         self.paths = paths
-        self.find_dicom_series(self.paths)
+        self.find_dicom_files(self.paths)
         self.merge_patients_by_id()
         return self.open()[0]
 
@@ -74,21 +82,38 @@ class DICOM:
         dfiles = []
         for path in paths:
             if os.path.isfile(path):
-                dfiles.append(dcmread(path))
+                dfiles.append(SeriesFile(dcmread(path)))
             elif os.path.isdir(path):
                 dfiles.extend(self._find_dicom_files_in_directory_recursively(path))
+        dfiles = self.filter_unreadable(dfiles)
         patients = self.dicom_patients(dfiles)
         for patient in patients:
             self.patients_by_id[patient.pid].append(patient)
+
+    def filter_unreadable(self, files):
+        if _has_gdcm:
+            return files  # PyDicom will use gdcm to read 16-bit lossless jpeg
+
+        # Python Image Library cannot read 16-bit lossless jpeg.
+        keep = []
+        for f in files:
+            if (f.file_meta.TransferSyntaxUID == pydicom.uid.JPEGLosslessSV1
+                and f.get('BitsAllocated') == 16):
+                warning = 'Could not read DICOM %s because Python Image Library cannot read 16-bit lossless jpeg ' \
+                          'images. This functionality can be enabled by installing python-gdcm'
+                self.session.logger.warning(warning % f.filename)
+            else:
+                keep.append(f)
+        return keep
 
     def _find_dicom_files_in_directory_recursively(self, path):
         dfiles = []
         for root, dirs, files in os.walk(path):
             for f in files:
-                if f in ('.DS_Store', 'Thumbs.db', 'desktop.ini'):
+                if f in ('.DS_Store', 'Thumbs.db', 'desktop.ini') or any(f.startswith(s) for s in ['._']):
                     continue
                 try:
-                    dfiles.append(dcmread(os.path.join(root, f)))
+                    dfiles.append(SeriesFile(dcmread(os.path.join(root, f))))
                 except InvalidDicomError:
                     self.session.logger.info('Pydicom could not read invalid or non-DICOM file %s; skipping.' % f)
         for d in dirs:

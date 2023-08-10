@@ -6,6 +6,7 @@ from chimerax.nifti import NiftiGrid
 from chimerax.nrrd import NRRDGrid
 
 from ..dicom import DicomGrid
+from ..dicom.dicom_volumes import DICOMVolume
 from ..ui.view import views, FourPanelView
 from ..ui.segmentations import SegmentationTool
 
@@ -13,7 +14,7 @@ medical_types = [DicomGrid, NiftiGrid, NRRDGrid]
 
 def dicom_view(session, layout: str = None, guidelines: bool = None, force = False) -> None:
     # TODO: Enable for NIfTI and NRRD as well
-    open_volumes = [v for v in session.models if type(v) is Volume]
+    open_volumes = [v for v in session.models if type(v) is Volume or type(v) is DICOMVolume]
     medical_volumes = [m for m in open_volumes if type(m.data) in medical_types]
     st = None
     for tool in session.tools:
@@ -61,7 +62,7 @@ def _check_rapid_access(*args):
         if session.ui.is_gui:
             if (
                 session.ui.main_window.view_layout != "default"
-                and not any(type(v) == Volume for v in session.models)
+                and not any(type(v) == DICOMVolume or type(v) == Volume for v in session.models)
             ):
                 session.ui.main_window.restore_default_main_view()
     except IndexError:
