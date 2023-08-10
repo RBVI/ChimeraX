@@ -241,7 +241,7 @@ class ItemTable(QTableView):
     SORT_DESCENDING = Qt.SortOrder.DescendingOrder
 
     def __init__(self, *, auto_multiline_headers: bool=True, column_control_info=None,
-             allow_user_sorting=True, settings_attr=None, parent=None, session=None):
+             allow_user_sorting=True, settings_attr=None, parent=None, session=None, color_column_width=32):
         """
         Parameters:
             auto_multiline_headers: controls whether header titles can be split into multiple
@@ -290,6 +290,7 @@ class ItemTable(QTableView):
         self._column_control_info = column_control_info
         self._settings_attr = self.DEFAULT_SETTINGS_ATTR if settings_attr is None else settings_attr
         self._session = session
+        self._color_column_width = color_column_width
         self._pending_columns = []
         if column_control_info:
             self._checkables = {}
@@ -605,6 +606,11 @@ class ItemTable(QTableView):
         else:
             sort_info = None
         return (version, selected, column_display, highlighted, sort_info)
+
+    def sizeHintForColumn(self, col_index):
+        if self._columns[col_index].display_format in self.color_formats:
+            return self._color_column_width
+        return super().sizeHintForColumn(col_index)
 
     def sort_by(self, column, order):
         if not self._allow_user_sorting:

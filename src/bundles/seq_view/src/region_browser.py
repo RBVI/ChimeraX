@@ -1852,7 +1852,8 @@ class RegionsTool:
         menu.aboutToShow.connect(self._fill_seq_region_menu)
 
         from chimerax.ui.widgets import ItemTable
-        self.region_table = table = ItemTable(allow_user_sorting=False, session=tool_window.session)
+        self.region_table = table = ItemTable(allow_user_sorting=False, session=tool_window.session,
+            color_column_width=16)
         last = self.sv.settings.regions_tool_last_use
         from time import time
         now = self.sv.settings.regions_tool_last_use = time()
@@ -1941,7 +1942,6 @@ class RegionsTool:
     def _set_edge_color(self, region, color):
         region.border_rgba = color
         self.region_table.update_cell(self.columns["edge"], region)
-        self.region_table.resizeColumnsToContents()
 
     def _set_fill(self, region, fill):
         if fill:
@@ -1953,7 +1953,6 @@ class RegionsTool:
     def _set_fill_color(self, region, color):
         region.interior_rgba = color
         self.region_table.update_cell(self.columns["fill"], region)
-        self.region_table.resizeColumnsToContents()
 
     def _set_table_data(self, menu_action=None, *, source=None, resize_columns=True):
         if source is None:
