@@ -461,6 +461,8 @@ class SequenceViewer(ToolInstance):
                 self.show_ss(True)
             if hasattr(self, 'associations_tool'):
                 self.associations_tool._assoc_mod(note_data)
+            if self._regions_tool:
+                self._regions_tool.associations_modified()
         elif note_name == alignment.NOTE_PRE_DEL_SEQS:
             self.region_manager._pre_remove_lines(note_data)
             for seq in note_data:
@@ -758,7 +760,7 @@ class SequenceViewer(ToolInstance):
             self._regions_tool = RegionsTool(self, rt_window)
             rt_window.fill_context_menu = self.fill_context_menu
             rt_window.manage(self.tool_window)
-            self.status("Double click on region name cell to edit name")
+            self.status("Double click on region name cell to edit name", color="forest green")
         self._regions_tool.shown = shown
 
     def show_associations(self):
@@ -847,6 +849,8 @@ class SequenceViewer(ToolInstance):
     def _atomic_changes_cb(self, trig_name, changes):
         if "ss_type changed" in changes.residue_reasons():
             self.show_ss(show=None)
+        if self._regions_tool:
+            self._regions_tool._atomic_changes_cb(changes)
 
     def _regions_tool_notification(self, category, region):
         if self._regions_tool:

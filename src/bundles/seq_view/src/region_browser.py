@@ -70,6 +70,8 @@ class Region:
         self.blocks.extend(block_list)
         if make_cb:
             self.region_manager._region_size_changed_cb(self)
+        if self._name is None:
+            self._notify_tool('name')
         if not self.shown:
             return
         kw = self._rect_kw()
@@ -154,10 +156,7 @@ class Region:
             return
         self.highlighted = False
         self.redraw()
-        """TODO
-        rb = self.region_manager
-        rb.update_table_cell(self, rb.active_column, contents=False)
-        """
+        self._notify_tool('active')
 
     def _del_lines(self, lines):
         blocks = self.blocks
@@ -212,10 +211,7 @@ class Region:
             return
         self.highlighted = True
         self.redraw()
-        """TODO
-        rb = self.region_manager
-        rb.update_table_cell(self, rb.active_column, contents=True)
-        """
+        self._notify_tool('active')
 
     def get_interior_rgba(self):
         return self._interior_rgba
@@ -229,14 +225,15 @@ class Region:
             return
         brush = self._items[0].brush()
         from Qt.QtCore import Qt
-        if rgba:
+        if rgba is not None:
             from Qt.QtGui import QColor
-            brush.setColor(QColor(*[int(x*255.0 + 0.5) for x in rgba]))
             brush.setStyle(Qt.SolidPattern)
+            brush.setColor(QColor(*[int(x*255.0 + 0.5) for x in rgba]))
         else:
             brush.setStyle(Qt.NoBrush)
         for item in self._items:
             item.setBrush(brush)
+        self.redraw()
 
     interior_rgba = property(get_interior_rgba, set_interior_rgba)
 
@@ -266,7 +263,11 @@ class Region:
         if val:
             for item in self._items:
                 item.setToolTip(str(self))
-        self.region_manager.seq_canvas.sv._regions_tool_notification('name', self)
+        self._notify_tool('name')
+
+    def _notify_tool(self, category):
+        sv = self.region_manager.seq_canvas.sv
+        sv._regions_tool_notification(category, self)
 
     def raise_above(self, other_region):
         if not self._items or not other_region._items:
@@ -320,6 +321,8 @@ class Region:
             self.region_manager.delete_region(self)
         elif make_cb:
             self.region_manager._region_size_changed_cb(self)
+            if self._name is None:
+                self._notify_tool('name')
 
     def restore_state(self, state):
         self._name = state['_name']
@@ -413,10 +416,7 @@ class Region:
             return
         self._shown = bool(val)
         self.redraw()
-        """TODO
-        rb = self.region_manager
-        rb.update_table_cell(self, rb.shown_column, contents=self.shown)
-        """
+        self._notify_tool("shown")
 
     def get_shown(self):
         return self._shown
@@ -551,13 +551,13 @@ class RegionManager:
             region._destroy(rebuild_table=rebuild_table)
             if seq and not regions:
                 del self.sequence_regions[seq]
-                if rebuild_table:
-                    self.seq_canvas.sv._regions_tool_notification('delete', region)
                 """
                 self.seqRegionMenu.setitems(self._regMenuOrder())
                 if rebuild_table:
                     self.seqRegionMenu.invoke(0)
                 """
+            if rebuild_table:
+                self.seq_canvas.sv._regions_tool_notification('delete', region)
 
     def destroy(self):
         """
@@ -1343,6 +1343,9 @@ class RegionManager:
             self._bboxes = []
             if self._drag_region:
                 self._drag_region.remove_last_block()
+        if self._drag_region and not self._drag_region.blocks:
+            self.delete_region(self._drag_region)
+            self._drag_region = None
 
     def _column_pick(self, event):
         pos = event.scenePos()
@@ -1705,6 +1708,7 @@ class RegionManager:
         return residues
 
     def _region_size_changed_cb(self, region):
+        self.seq_canvas.sv._regions_tool_notification("rmsd", region)
         """TODO
         if region.name is None and self.seqRegionMenu.index(Pmw.SELECT) == 0:
             self._rebuildListing()
@@ -1849,12 +1853,32 @@ class RegionsTool:
 
         from chimerax.ui.widgets import ItemTable
         self.region_table = table = ItemTable(allow_user_sorting=False, session=tool_window.session)
+        last = self.sv.settings.regions_tool_last_use
+        from time import time
+        now = self.sv.settings.regions_tool_last_use = time()
+        short_titles = last != None and now - last < 777700 # about 3 months
         self.columns = {
+            "active": table.add_column("A" if short_titles else "Active", "active",
+                format=table.COL_FORMAT_BOOLEAN),
+            "shown": table.add_column("S" if short_titles else "Shown", "shown",
+                format=table.COL_FORMAT_BOOLEAN),
+            "fill": table.add_column("F" if short_titles else "Fill", self._get_fill,
+                data_set=self._set_fill, format=table.COL_FORMAT_BOOLEAN),
+            "fill color": table.add_column("\N{BLACK MEDIUM SQUARE}", self._get_fill_color,
+                data_set=self._set_fill_color, format=table.COL_FORMAT_OPAQUE_COLOR, color="purple"),
+            "edge": table.add_column("E" if short_titles else "Edge", self._get_edge,
+                data_set=self._set_edge, format=table.COL_FORMAT_BOOLEAN),
+            "edge color": table.add_column("\N{BALLOT BOX}", self._get_edge_color,
+                data_set=self._set_edge_color, format=table.COL_FORMAT_OPAQUE_COLOR, color="forest green"),
             "name": table.add_column("Name", "display_name", editable=True, show_tooltips=True),
+            "rmsd": table.add_column("RMSD", "rmsd", format="%.3f"),
         }
         self._set_table_data(resize_columns=False)
         table.launch()
         layout.addWidget(table, stretch=1)
+
+    def associations_modified(self):
+        self.region_table.update_column(self.columns["rmsd"], data=True)
 
     def region_notification(self, category, region):
         if category in ("new", "delete"):
@@ -1871,7 +1895,27 @@ class RegionsTool:
                         source = None
             self._set_table_data(source=source)
         elif region in self.region_table.data:
-            self.region_table.update_column(self.columns[category], data=True)
+            self.region_table.update_cell(self.columns[category], region)
+
+    def _atomic_changes_cb(self, changes):
+        if 'scene_coord changed' not in changes.structure_reasons():
+            return
+        for chain in self.sv.alignment.associations:
+            if chain.structure in changes.modified_structures():
+                self.region_table.update_column(self.columns["rmsd"], data=True)
+                break
+
+    def _get_edge(self, region):
+        return region.border_rgba is not None
+
+    def _get_edge_color(self, region):
+        return (0.5, 0.5, 0.5, 1.0) if region.border_rgba is None else region.border_rgba
+
+    def _get_fill(self, region):
+        return region.interior_rgba is not None
+
+    def _get_fill_color(self, region):
+        return (0.5, 0.5, 0.5, 1.0) if region.interior_rgba is None else region.interior_rgba
 
     def _fill_seq_region_menu(self):
         menu = self.seq_region_menubutton.menu()
@@ -1886,6 +1930,30 @@ class RegionsTool:
     def _seq_menu_cb(self, action):
         self.seq_region_menubutton.setText(action.text())
         self._set_table_data(action)
+
+    def _set_edge(self, region, edge):
+        if fill:
+            region.border_rgba = self._get_edge_color(region)
+        else:
+            region.border_rgba = None
+            self.region_table.update_cell(self.columns["edge color"], region)
+
+    def _set_edge_color(self, region, color):
+        region.border_rgba = color
+        self.region_table.update_cell(self.columns["edge"], region)
+        self.region_table.resizeColumnsToContents()
+
+    def _set_fill(self, region, fill):
+        if fill:
+            region.interior_rgba = self._get_fill_color(region)
+        else:
+            region.interior_rgba = None
+            self.region_table.update_cell(self.columns["fill color"], region)
+
+    def _set_fill_color(self, region, color):
+        region.interior_rgba = color
+        self.region_table.update_cell(self.columns["fill"], region)
+        self.region_table.resizeColumnsToContents()
 
     def _set_table_data(self, menu_action=None, *, source=None, resize_columns=True):
         if source is None:

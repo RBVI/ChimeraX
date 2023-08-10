@@ -37,7 +37,10 @@ class QCxTableModel(QAbstractTableModel):
             if isinstance(val, bool):
                 return None
             elif col.display_format in ItemTable.color_formats:
-                sorted_index = self._item_table.model().mapFromSource(index)
+                if self._item_table._allow_user_sorting:
+                    sorted_index = self._item_table.model().mapFromSource(index)
+                else:
+                    sorted_index = index
                 widget = self._item_table.indexWidget(sorted_index)
                 if not widget:
                     has_alpha = col.display_format == ItemTable.COL_FORMAT_TRANSPARENT_COLOR

@@ -69,6 +69,7 @@ from copy import deepcopy
 class _SVSettings(Settings):
     EXPLICIT_SAVE = { k: v[-1] for k, v in defaults.items() }
     AUTO_SAVE = {
+        "regions_tool_last_use": None,
         "scf_colors_structures": True,
     }
 
