@@ -16,8 +16,10 @@ from Qt.QtWidgets import (
     , QPushButton, QAction, QComboBox
     , QStackedWidget, QSizePolicy, QCheckBox
     , QListWidget, QListWidgetItem, QFileDialog
-    , QAbstractItemView
+    , QAbstractItemView, QSlider, QSpinBox
 )
+
+from superqt import QRangeSlider
 
 from chimerax.core.commands import run
 from chimerax.core.models import Surface, ADD_MODELS, REMOVE_MODELS
@@ -138,6 +140,24 @@ class SegmentationTool(ToolInstance):
         self.main_layout.addWidget(self.segmentation_list_label)
         self.main_layout.addWidget(self.add_remove_save_container)
         self.main_layout.addWidget(self.segmentation_list)
+        self.slider_container = QWidget(self.parent)
+        self.slider_layout = QHBoxLayout()
+
+        self.intensity_range_label = QLabel("Intensity Range")
+        self.range_slider = QRangeSlider(Qt.Orientation.Horizontal)
+        self.lower_intensity_spinbox = QSpinBox(self.slider_container)
+        self.upper_intensity_spinbox = QSpinBox(self.slider_container)
+        self.lower_intensity_spinbox.valueChanged.connect(self._on_spinbox_lower_intensity_range_changed)
+        self.upper_intensity_spinbox.valueChanged.connect(self._on_spinbox_upper_intensity_range_changed)
+        self.range_slider.sliderMoved.connect(self._on_slider_moved)
+        self.slider_layout.addWidget(self.lower_intensity_spinbox)
+        self.slider_layout.addWidget(self.range_slider)
+        self.slider_layout.addWidget(self.upper_intensity_spinbox)
+        self.slider_layout.setContentsMargins(0, 0, 0, 0)
+        self.slider_container.setLayout(self.slider_layout)
+        self.main_layout.addWidget(self.intensity_range_label)
+        self.main_layout.addWidget(self.slider_container)
+
 
         self.main_layout.addStretch()
         self.main_layout.setContentsMargins(6, 0, 6, 6)
@@ -150,6 +170,8 @@ class SegmentationTool(ToolInstance):
         self.segmentations = {}
         self.current_segmentation = None
         self.reference_model = None
+        self.threshold_max = 0
+        self.threshold_min = 0
 
         self.session.models.add(self.segmentation_cursors.values())
         self.session.triggers.add_handler(ADD_MODELS, self._on_model_added_to_session)
@@ -169,6 +191,21 @@ class SegmentationTool(ToolInstance):
                     self.session.ui.main_window.main_view.add_segmentation(model)
         self.segmentations_by_model = {}
         self._surface_chosen()
+
+    def _on_spinbox_lower_intensity_range_changed(self, value):
+        self.threshold_min = value
+        self.range_slider.setSliderPosition([value, self.threshold_max])
+
+    def _on_spinbox_upper_intensity_range_changed(self, value):
+        self.threshold_max = value
+        self.range_slider.setSliderPosition([self.threshold_min, value])
+
+    def _on_slider_moved(self, values):
+        min_, max_ = values
+        self.threshold_min = int(min_)
+        self.lower_intensity_spinbox.setValue(int(min_))
+        self.threshold_max = int(max_)
+        self.upper_intensity_spinbox.setValue(int(max_))
 
     def _on_model_added_to_session(self, *args):
         # If this model is a DICOM segmentation, add it to the list of segmentations
@@ -202,6 +239,17 @@ class SegmentationTool(ToolInstance):
                 puck.height = self.reference_model.data.pixel_spacing()[axis]
             # Keep the orthoplanes in sync with this menu, but don't require this menu to
             # be in sync with them
+            min_ = self.reference_model.data.pixel_array.min()
+            max_ = self.reference_model.data.pixel_array.max()
+            self.lower_intensity_spinbox.setRange(min_, max_)
+            self.upper_intensity_spinbox.setRange(min_, max_)
+            self.lower_intensity_spinbox.setValue(min_)
+            self.upper_intensity_spinbox.setValue(max_)
+            self.range_slider.setRange(min_, max_)
+            self.range_slider.setSliderPosition([min_, max_])
+            self.threshold_min = min_
+            self.threshold_max = max_
+            self.range_slider.setTickInterval((max_ - min_) // 12)
             if self.session.ui.main_window.view_layout == "orthoplanes":
                 self.session.ui.main_window.main_view.update_displayed_model(self.model_menu.value)
         except AttributeError: # No more volumes!
@@ -246,7 +294,11 @@ class SegmentationTool(ToolInstance):
             center_x, center_y = marker.drawing_center
             radius = self.segmentation_cursors[axis].radius
             positions.append((center_x, center_y, radius))
-        self.active_seg.set_segment_data(axis, slice, positions, value)
+        # TODO: Add a checkbox
+        if True:
+            self.active_seg.set_segment_data(axis, slice, positions, value, self.threshold_min, self.threshold_max)
+        else:
+            self.active_seg.set_segment_data(axis, slice, positions, value)
 
     def addMarkersToSegment(self, axis, slice, markers):
         self.setMarkerRegionsToValue(axis, slice, markers, 1)
