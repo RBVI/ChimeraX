@@ -252,6 +252,8 @@ class ItemTable(QTableView):
                 entries or check boxes (respectively) to control which columns are displayed.
             session: for backwards compatibility, this parameter is optional, but is in fact required if the
                 table adds columns whose 'data_set' attribute is a string (since it will be run as command).
+            color_column_width: Columns containing color buttons will be this wide.  Some tables for
+                practical or esthetic reasons may prefer a narrower value (e.g. 16).
 
         Notes:
             For a menu the value of column_control_info should be:
