@@ -239,8 +239,8 @@ class SegmentationTool(ToolInstance):
                 puck.height = self.reference_model.data.pixel_spacing()[axis]
             # Keep the orthoplanes in sync with this menu, but don't require this menu to
             # be in sync with them
-            min_ = self.reference_model.data.pixel_array.min()
-            max_ = self.reference_model.data.pixel_array.max()
+            min_ = int(self.reference_model.data.pixel_array.min())
+            max_ = int(self.reference_model.data.pixel_array.max())
             self.lower_intensity_spinbox.setRange(min_, max_)
             self.upper_intensity_spinbox.setRange(min_, max_)
             self.lower_intensity_spinbox.setValue(min_)
