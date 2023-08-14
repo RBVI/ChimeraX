@@ -174,7 +174,7 @@ class SegmentationTool(ToolInstance):
         self.threshold_min = 0
 
         self.session.models.add(self.segmentation_cursors.values())
-        self.session.triggers.add_handler(ADD_MODELS, self._on_model_added_to_session)
+        self.model_added_handler = self.session.triggers.add_handler(ADD_MODELS, self._on_model_added_to_session)
         # TODO: Maybe just force the view to fourup when this tool opens?
         # TODO: if session.ui.vr_active or something, do this
         if not self.session.ui.main_window.view_layout == "orthoplanes":
@@ -210,14 +210,15 @@ class SegmentationTool(ToolInstance):
     def _on_model_added_to_session(self, *args):
         # If this model is a DICOM segmentation, add it to the list of segmentations
         _, model_list = args
-        for model in model_list:
-            if type(model) is DICOMVolume and model.is_segmentation():
-                self.segmentation_list.addItem(SegmentationListItem(parent = self.segmentation_list, segmentation = model))
-                if self.session.ui.main_window.view_layout == "orthoplanes":
-                    self.session.ui.main_window.main_view.add_segmentation(model)
+        if model_list:
+            for model in model_list:
+                if type(model) is DICOMVolume and model.is_segmentation():
+                    self.segmentation_list.addItem(SegmentationListItem(parent = self.segmentation_list, segmentation = model))
+                    if self.session.ui.main_window.view_layout == "orthoplanes":
+                        self.session.ui.main_window.main_view.add_segmentation(model)
 
     def delete(self):
-        self.session.triggers.remove_handler(self._on_model_added_to_session())
+        self.session.triggers.remove_handler(self.model_added_handler)
         if self.session.ui.main_window.view_layout == "orthoplanes":
             self.session.ui.main_window.main_view.clear_segmentation_tool()
         # When a session is closed, models are deleted before tools, so we need to
