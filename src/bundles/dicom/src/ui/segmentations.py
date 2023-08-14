@@ -402,7 +402,7 @@ class SegmentationTool(ToolInstance):
         self.segmentation_cursors[axis].origin = offsets
 
     def showHelp(self, _) -> None:
-        run(self.session, "help segmentations")
+        run(self.session, "help %s" % self.help)
 
     def _on_edit_window_ok(self) -> None:
         pass
