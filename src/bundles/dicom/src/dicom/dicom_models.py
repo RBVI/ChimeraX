@@ -121,31 +121,63 @@ class DicomGrid(GridData):
         'full_region_on_gpu': True
     }
 
-    def __init__(self, d, time=None, channel=None):
-        self.dicom_data = d
+    def __init__(
+        self, dicom_data = None, size = None, value_type = None
+        , origin = None, step = None, rotation = None, paths = None
+        , name = None, time=None, channel=None
+    ):
+        self.dicom_data = dicom_data
+        self.reference_data = None
         GridData.__init__(
-            self, d.data_size, d.value_type,
-            d.data_origin, d.data_step, rotation=d.data_rotation,
-            path=d.paths, name=d.name,
+            self, size, value_type,
+            origin, step, rotation=rotation,
+            path=paths, name=name,
             file_type='dicom', time=time, channel=channel
-            )
-        if d.files_are_3d:
-            # For fast access of multiple planes this reading method avoids
-            # opening same dicom file many times to read planes.  50x faster in tests.
-            self.read_matrix = self.dicom_read_matrix
-        else:
-            # For better caching if we read the whole plane, this method caches the
-            # whole plane even if only part of the plane is needed.
-            self.read_xy_plane = self.dicom_read_xy_plane
+        )
+        #if d.files_are_3d:
+        #    # For fast access of multiple planes this reading method avoids
+        #    # opening same dicom file many times to read planes.  50x faster in tests.
+        #self.read_matrix = self.dicom_read_matrix
+        #else:
+        #    # For better caching if we read the whole plane, this method caches the
+        #    # whole plane even if only part of the plane is needed.
+        self.read_xy_plane = self.dicom_read_xy_plane
         self.multichannel = (channel is not None)
-        self.initial_plane_display = True
-        s = d.dicom_series
-        if s.bits_allocated == 1 or s.dicom_class == 'Segmentation Storage':
-            self.binary = True  # Use initial thresholds for binary segmentation
-            self.initial_image_thresholds = [(0.5, 0), (1.5, 1)]
-        else:
-            self.initial_image_thresholds = [(-1000, 0.0), (300, 0.9), (3000, 1.0)]
-        self.ignore_pad_value = d.pad_value
+        self.initial_plane_display = False
+        self.pixel_array = None
+        if dicom_data:
+            s = dicom_data.dicom_series
+            if s.bits_allocated == 1 or s.dicom_class == 'Segmentation Storage':
+                self.binary = True  # Use initial thresholds for binary segmentation
+                self.initial_image_thresholds = [(0.5, 0), (1.5, 1)]
+            else:
+                self.initial_image_thresholds = [(-1000, 0.0), (300, 0.9), (3000, 1.0)]
+            self.ignore_pad_value = dicom_data.pad_value
+
+        # TODO: None of this, nor the save function, really belongs here. This should be part of
+        # a Series class or something, and that class should understand a Volume+Grid and save it
+        self.content_creator_name = None
+        self.content_description = None
+        self.content_label = None
+        self.referring_pysician = None
+        self.frame_of_reference_uid = None
+        self.series_number = None
+
+    @classmethod
+    def from_series(cls, dicom_series, time = None, channel = None):
+        g = DicomGrid(
+            dicom_series
+            , dicom_series.data_size
+            , dicom_series.value_type
+            , dicom_series.data_origin
+            , dicom_series.data_step
+            , dicom_series.data_rotation
+            , dicom_series.paths
+            , dicom_series.name
+            , time = time
+            , channel = channel
+        )
+        return g
 
     def pixel_spacing(self) -> tuple[float, float, float]:
         return self.dicom_data.pixel_spacing()
@@ -178,65 +210,28 @@ class DicomGrid(GridData):
             )
         return m
 
-    def segment(self, number) -> 'DicomSegmentation':
-        return DicomSegmentation(self.dicom_data, self.time, self.channel, number)
+    def read_matrix(self, ijk_origin, ijk_size, ijk_step, progress=None):
+        if self.pixel_array is None:
+            if self.dicom_data:
+                m = allocate_array(self.size, self.value_type, (1,1,1), progress)
+                c = self.channel if self.multichannel else None
+                self.dicom_data.read_matrix(
+                    ijk_origin, self.dicom_data.data_size, (1,1,1),
+                    self.time, c, m, progress
+                )
+                self.pixel_array = m
+            else:
+                self.pixel_array = zeros(self.size[::-1], dtype=uint8)
+        return self.pixel_array[
+            ijk_origin[2]:ijk_origin[2]+ijk_size[2]:ijk_step[2]
+            , ijk_origin[1]:ijk_origin[1]+ijk_size[1]:ijk_step[1]
+            , ijk_origin[0]:ijk_origin[0]+ijk_size[0]:ijk_step[0]
+        ]
 
     @requires_gui
     def show_info(self):
         from .ui import DICOMMetadata
         return DICOMMetadata.from_series(self.dicom_data.dicom_series.session, self.dicom_data.dicom_series)
-
-class DicomSegmentation(GridData, Segmentation):
-    initial_rendering_options = {
-        'projection_mode':    '3d',
-        'colormap_on_gpu':    True,
-        'full_region_on_gpu': True
-    }
-
-    def __init__(self, d, time=None, channel=None, number = 1):
-        self.reference_data = d
-        name = " ".join(["segmentation", str(number)])
-        GridData.__init__(
-            self, d.data_size, d.value_type,
-            d.data_origin, d.data_step, rotation=d.data_rotation,
-            name = name,
-            file_type='dicom', time=time, channel=channel
-        )
-        self.segment_array = zeros(d.data_size[::-1], dtype=uint8)
-        #if d.files_are_3d:
-        #    # For fast access of multiple planes this reading method avoids
-        #    # opening same dicom file many times to read planes.  50x faster in tests.
-        #    self.read_matrix = self.dicom_read_matrix
-        #else:
-        #    # For better caching if we read the whole plane, this method caches the
-        #    # whole plane even if only part of the plane is needed.
-        #    self.read_xy_plane = self.dicom_read_xy_plane
-        self.multichannel = (channel is not None)
-        self.initial_plane_display = False
-        s = d.dicom_series
-        if s.bits_allocated == 1 or s.dicom_class == 'Segmentation Storage':
-            self.binary = True  # Use initial thresholds for binary segmentation
-            self.initial_image_thresholds = [(0.5, 0), (1.5, 1)]
-        else:
-            self.initial_image_thresholds = [(-1000, 0.0), (300, 0.9), (3000, 1.0)]
-        # TODO It's starting to look like this should be encapsulated so as not to pollute
-        # GridData with DICOM-specific attributes.
-        self.content_creator_name = None
-        self.content_description = None
-        self.content_label = None
-        self.referring_pysician = None
-        self.frame_of_reference_uid = None
-        self.series_number = None
-
-    def read_matrix(self, ijk_origin=(0, 0, 0), ijk_size=None, ijk_step=(1, 1, 1), progress=None):
-        array = self.segment_array[::ijk_step[0], ::ijk_step[1], ::ijk_step[2]]
-        return array
-
-    def pixel_spacing(self) -> tuple[float, float, float]:
-        return self.reference_data.pixel_spacing()
-
-    def inferior_to_superior(self) -> bool:
-        return self.reference_data.inferior_to_superior()
 
     def save(self, filename = None) -> None:
         # I anticipate there will be many edge cases to deal with when this is released in the wild.
@@ -257,11 +252,11 @@ class DicomSegmentation(GridData, Segmentation):
         if not self.content_label:
             ...
 
-        sample_file = self.reference_data.dicom_series.sample_file
+        sample_file = self.reference_data.dicom_data.sample_file
         dt = datetime.datetime.now()
         date = dt.strftime('%Y%m%d')
         time = dt.strftime('%H%M%S.%f')
-        pixel_spacing = list(self.reference_data.pixel_spacing()[:2])
+        pixel_spacing = list(self.reference_data.dicom_data.pixel_spacing()[:2])
 
         header = FileMetaDataset()
         ds = Dataset()
@@ -330,7 +325,7 @@ class DicomSegmentation(GridData, Segmentation):
         # endregion
 
         # region Frame of Reference
-        ds.FrameOfReferenceUID = sample_file["FrameOfReferenceUID"].value
+        ds.FrameOfReferenceUID = sample_file.get("FrameOfReferenceUID", "")
         ds.PositionReferenceIndicator = sample_file.get("PositionReferenceIndicator", "")
         # endregion
 
@@ -370,10 +365,10 @@ class DicomSegmentation(GridData, Segmentation):
         derivation_image = Dataset()
         source_image_sequence = Sequence()
         derivation_image.SourceImageSequence = source_image_sequence
-        for index, frame in enumerate(self.segment_array):
+        for index, frame in enumerate(self.pixel_array):
             source_image = Dataset()
             source_image.ReferencedSOPClassUID = sample_file.SOPClassUID
-            source_image.ReferenceSOPInstanceUID = self.reference_data.files[index].SOPInstanceUID
+            source_image.ReferenceSOPInstanceUID = self.reference_data.dicom_data.files[index].SOPInstanceUID
             source_image.ReferencedFrameNumber = '1'
 
             purpose_of_ref_code_sequence = Sequence()
@@ -391,9 +386,9 @@ class DicomSegmentation(GridData, Segmentation):
         # region Image Pixel
         ds.SamplesPerPixel = 1
         ds.PhotometricInterpretation = "MONOCHROME2"
-        ds.NumberOfFrames = str(self.segment_array.shape[0])
-        ds.Rows = self.segment_array.shape[1]
-        ds.Columns = self.segment_array.shape[2]
+        ds.NumberOfFrames = str(self.pixel_array.shape[0])
+        ds.Rows = self.pixel_array.shape[1]
+        ds.Columns = self.pixel_array.shape[2]
         ds.BitsAllocated = 1
         ds.BitsStored = 1
         ds.HighBit = 0
@@ -483,7 +478,7 @@ class DicomSegmentation(GridData, Segmentation):
         per_frame_functional_groups_sequence = Sequence()
         ds.PerFrameFunctionalGroupsSequence = per_frame_functional_groups_sequence
 
-        for index, frame in enumerate(self.segment_array):
+        for index, frame in enumerate(self.pixel_array):
             frame_content_sequence = Sequence()
 
             per_frame_functional_groups = Dataset()
@@ -500,7 +495,7 @@ class DicomSegmentation(GridData, Segmentation):
             per_frame_functional_groups.PlanePositionSequence = plane_position_sequence
 
             plane_position = Dataset()
-            plane_position.ImagePositionPatient = self.reference_data.files[index].get("ImagePositionPatient", "")
+            plane_position.ImagePositionPatient = self.reference_data.dicom_data.files[index].get("ImagePositionPatient", "")
             plane_position_sequence.append(plane_position)
             per_frame_functional_groups_sequence.append(per_frame_functional_groups)
 
@@ -541,8 +536,8 @@ class DicomSegmentation(GridData, Segmentation):
         referenced_instance_sequence = Sequence()
         referenced_series.ReferencedInstanceSequence = referenced_instance_sequence
 
-        for index, _ in enumerate(self.segment_array):
-            referenced_file = self.reference_data.files[index]
+        for index, _ in enumerate(self.pixel_array):
+            referenced_file = self.reference_data.dicom_data.files[index]
             referenced_instance = Dataset()
             referenced_instance.ReferencedSOPClassUID = referenced_file.get("SOPClassUID", "")
             referenced_instance.ReferencedSOPInstanceUID = referenced_file.get("SOPInstanceUID", "")
@@ -561,8 +556,8 @@ class DicomSegmentation(GridData, Segmentation):
         referenced_instance_sequence = Sequence()
         referenced_series.ReferenceInstanceSequence = referenced_instance_sequence
 
-        for index, _ in enumerate(self.segment_array):
-            referenced_file = self.reference_data.files[index]
+        for index, _ in enumerate(self.pixel_array):
+            referenced_file = self.reference_data.dicom_data.files[index]
             referenced_instance = Dataset()
             referenced_instance.ReferencedSOPClassUID = referenced_file.get("SOPClassUID", "")
             referenced_instance.ReferencedSOPInstanceUID = referenced_file.get("SOPInstanceUID", "")
@@ -595,6 +590,6 @@ class DicomSegmentation(GridData, Segmentation):
 
         # TODO Ensure this is correct
         from pydicom.pixel_data_handlers.util import pack_bits
-        ds.PixelData = pack_bits(self.segment_array)
+        ds.PixelData = pack_bits(self.pixel_array)
         ds.file_meta = header
         ds.save_as(filename, write_like_original=False)

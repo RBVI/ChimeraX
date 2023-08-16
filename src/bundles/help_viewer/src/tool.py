@@ -276,7 +276,7 @@ class HelpUI(ToolInstance):
 
             def reject(self):
                 from Qt.QtNetwork import QAuthenticator
-                import sip
+                from pyqt import sip
                 sip.assign(auth, QAuthenticator())
                 return super().reject()
 
