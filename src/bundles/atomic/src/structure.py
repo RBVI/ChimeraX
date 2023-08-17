@@ -1252,6 +1252,7 @@ class AtomicStructure(Structure):
         super().added_to_session(session)
 
         if self._log_info:
+            #self._report_emdb_info(session)
             # don't report models in an NMR ensemble individually...
             if len(self.id) > 1:
                 sibs = [m for m in session.models
@@ -1533,6 +1534,25 @@ class AtomicStructure(Structure):
             return '<a title="Select chain" href="cxcmd:select %s">%s</a>' % (
                chain_res_range(chain), (chain.chain_id if not chain.chain_id.isspace() else '?'))
         self._report_chain_summary(session, descripts, chain_text, False)
+
+    def _report_emdb_info(self, session):
+        from chimerax.mmcif import get_mmcif_tables_from_metadata
+        for table_name, field_names in [
+                ('database_2', ['database_id', 'database_code']),
+                ('pdbx_database_related', ['db_name', 'db_id'])]:
+            db_info = get_mmcif_tables_from_metadata(self, [table_name])[0]
+            if db_info:
+                for db_name, entry_code in db_info.fields(field_names):
+                    if db_name.lower() != "emdb":
+                        continue
+                    prefix = "emd-"
+                    if entry_code.lower().startswith(prefix):
+                        num_code = entry_code[len(prefix):]
+                        if num_code.isdigit():
+                            print("From", table_name, "table")
+                            session.logger.info('EMDB: <a href="cxcmd:open emdb:%s">open map</a>&nbsp;&nbsp;<a href="https://www.ebi.ac.uk/emdb/%s">show page</a>' % (num_code, entry_code), is_html=True)
+                            return
+                    session.logger.warning("Could not parse structure's EMDB entry code '%s'" % entry_code)
 
     def _report_ensemble_chain_descriptions(self, session, ensemble):
         from .molarray import AtomicStructures

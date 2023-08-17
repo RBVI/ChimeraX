@@ -16,20 +16,26 @@ from Qt.QtWidgets import (
     , QPushButton, QAction, QComboBox
     , QStackedWidget, QSizePolicy, QCheckBox
     , QListWidget, QListWidgetItem, QFileDialog
-    , QAbstractItemView
+    , QAbstractItemView, QSlider, QSpinBox
 )
 
-from chimerax.ui.widgets import ModelMenu
+from superqt import QRangeSlider
+
+from chimerax.core.commands import run
+from chimerax.core.models import Surface, ADD_MODELS, REMOVE_MODELS
+from chimerax.core.tools import ToolInstance
+
 from chimerax.map import Volume, VolumeSurface, VolumeImage
 from chimerax.map.volume import open_grids
-from chimerax.core.tools import ToolInstance
+
 from chimerax.ui import MainToolWindow
 from chimerax.ui.open_save import SaveDialog
-from chimerax.core.commands import run
-from chimerax.core.models import Surface
+from chimerax.ui.widgets import ModelMenu
+
 from ..ui.orthoplanes import Axis
 from ..graphics.cylinder import SegmentationDisk
-from ..dicom.dicom_models import DicomSegmentation
+from ..dicom import modality
+from ..dicom.dicom_volumes import open_dicom_grids, DICOMVolume
 
 class SegmentationListItem(QListWidgetItem):
     def __init__(self, parent, segmentation):
@@ -71,12 +77,12 @@ class SegmentationTool(ToolInstance):
         self.view_dropdown_layout.setContentsMargins(0, 0, 0, 0)
         self.view_dropdown_layout.setSpacing(0)
         def _not_volume_surface_or_segmentation(m):
-            ok_to_list = not isinstance(m, VolumeSurface)
+            ok_to_list = isinstance(m, DICOMVolume)
             # This will run over all models which may not have DICOM data...
             try:
                 if hasattr(m.data, "dicom_data"):
                     ok_to_list &= not m.data.dicom_data.dicom_series.modality == "SEG"
-                ok_to_list &= not hasattr(m.data, "reference_data")
+                    ok_to_list &= not m.data.reference_data
             except AttributeError:
                 pass
             return ok_to_list
@@ -134,6 +140,24 @@ class SegmentationTool(ToolInstance):
         self.main_layout.addWidget(self.segmentation_list_label)
         self.main_layout.addWidget(self.add_remove_save_container)
         self.main_layout.addWidget(self.segmentation_list)
+        self.slider_container = QWidget(self.parent)
+        self.slider_layout = QHBoxLayout()
+
+        self.intensity_range_label = QLabel("Intensity Range")
+        self.range_slider = QRangeSlider(Qt.Orientation.Horizontal)
+        self.lower_intensity_spinbox = QSpinBox(self.slider_container)
+        self.upper_intensity_spinbox = QSpinBox(self.slider_container)
+        self.lower_intensity_spinbox.valueChanged.connect(self._on_spinbox_lower_intensity_range_changed)
+        self.upper_intensity_spinbox.valueChanged.connect(self._on_spinbox_upper_intensity_range_changed)
+        self.range_slider.sliderMoved.connect(self._on_slider_moved)
+        self.slider_layout.addWidget(self.lower_intensity_spinbox)
+        self.slider_layout.addWidget(self.range_slider)
+        self.slider_layout.addWidget(self.upper_intensity_spinbox)
+        self.slider_layout.setContentsMargins(0, 0, 0, 0)
+        self.slider_container.setLayout(self.slider_layout)
+        self.main_layout.addWidget(self.intensity_range_label)
+        self.main_layout.addWidget(self.slider_container)
+
 
         self.main_layout.addStretch()
         self.main_layout.setContentsMargins(6, 0, 6, 6)
@@ -146,8 +170,11 @@ class SegmentationTool(ToolInstance):
         self.segmentations = {}
         self.current_segmentation = None
         self.reference_model = None
+        self.threshold_max = 0
+        self.threshold_min = 0
 
         self.session.models.add(self.segmentation_cursors.values())
+        self.model_added_handler = self.session.triggers.add_handler(ADD_MODELS, self._on_model_added_to_session)
         # TODO: Maybe just force the view to fourup when this tool opens?
         # TODO: if session.ui.vr_active or something, do this
         if not self.session.ui.main_window.view_layout == "orthoplanes":
@@ -155,9 +182,43 @@ class SegmentationTool(ToolInstance):
             run(self.session, "dicom view fourup")
         if self.session.ui.main_window.view_layout == "orthoplanes":
             self.session.ui.main_window.main_view.register_segmentation_tool(self)
+
+        # Do the initial population of the segmentation list
+        for model in self.session.models:
+            if type(model) is DICOMVolume and model.is_segmentation():
+                self.segmentation_list.addItem(SegmentationListItem(parent = self.segmentation_list, segmentation = model))
+                if self.session.ui.main_window.view_layout == "orthoplanes":
+                    self.session.ui.main_window.main_view.add_segmentation(model)
+        self.segmentations_by_model = {}
         self._surface_chosen()
 
+    def _on_spinbox_lower_intensity_range_changed(self, value):
+        self.threshold_min = value
+        self.range_slider.setSliderPosition([value, self.threshold_max])
+
+    def _on_spinbox_upper_intensity_range_changed(self, value):
+        self.threshold_max = value
+        self.range_slider.setSliderPosition([self.threshold_min, value])
+
+    def _on_slider_moved(self, values):
+        min_, max_ = values
+        self.threshold_min = int(min_)
+        self.lower_intensity_spinbox.setValue(int(min_))
+        self.threshold_max = int(max_)
+        self.upper_intensity_spinbox.setValue(int(max_))
+
+    def _on_model_added_to_session(self, *args):
+        # If this model is a DICOM segmentation, add it to the list of segmentations
+        _, model_list = args
+        if model_list:
+            for model in model_list:
+                if type(model) is DICOMVolume and model.is_segmentation():
+                    self.segmentation_list.addItem(SegmentationListItem(parent = self.segmentation_list, segmentation = model))
+                    if self.session.ui.main_window.view_layout == "orthoplanes":
+                        self.session.ui.main_window.main_view.add_segmentation(model)
+
     def delete(self):
+        self.session.triggers.remove_handler(self.model_added_handler)
         if self.session.ui.main_window.view_layout == "orthoplanes":
             self.session.ui.main_window.main_view.clear_segmentation_tool()
         # When a session is closed, models are deleted before tools, so we need to
@@ -174,19 +235,22 @@ class SegmentationTool(ToolInstance):
         # except redefine the constraints of our segmentation e.g. size, spacing
         # TODO: When does this get called from the event loop / why?
         try:
-            new_model = self.model_menu.value
-            if new_model is not None:
-                new_drawing = None
-                for d in self.model_menu.value._child_drawings:
-                    if type(d) is VolumeImage:
-                        new_drawing = d
-                    for axis, puck in self.segmentation_cursors.items():
-                        puck.height = new_model.data.pixel_spacing()[axis]
-                        # Set by orthoplanes.py
-                        #puck.origin = [x for x in medical_image_data.origin()]
-                self.reference_model = new_drawing
+            self.reference_model = self.model_menu.value
+            for axis, puck in self.segmentation_cursors.items():
+                puck.height = self.reference_model.data.pixel_spacing()[axis]
             # Keep the orthoplanes in sync with this menu, but don't require this menu to
             # be in sync with them
+            min_ = int(self.reference_model.data.pixel_array.min())
+            max_ = int(self.reference_model.data.pixel_array.max())
+            self.lower_intensity_spinbox.setRange(min_, max_)
+            self.upper_intensity_spinbox.setRange(min_, max_)
+            self.lower_intensity_spinbox.setValue(min_)
+            self.upper_intensity_spinbox.setValue(max_)
+            self.range_slider.setRange(min_, max_)
+            self.range_slider.setSliderPosition([min_, max_])
+            self.threshold_min = min_
+            self.threshold_max = max_
+            self.range_slider.setTickInterval((max_ - min_) // 12)
             if self.session.ui.main_window.view_layout == "orthoplanes":
                 self.session.ui.main_window.main_view.update_displayed_model(self.model_menu.value)
         except AttributeError: # No more volumes!
@@ -200,67 +264,6 @@ class SegmentationTool(ToolInstance):
         }
         for cursor in self.segmentation_cursors.values():
             cursor.display = initial_display
-
-    def _set_data_in_puck(self, grid, axis, slice, left_offset: int, bottom_offset: int, radius: int, value: int) -> None:
-        # TODO: Preserve the happiest path. If the radius of the segmentation overlay is
-        #  less than the radius of one voxel, there's no need to go through all the rigamarole.
-        #  grid.data.segment_array[slice][left_offset][bottom_offset] = 1
-        x_max, y_max, z_max = grid.data.size
-        x_step, y_step, z_step = grid.data.step
-        if axis == Axis.AXIAL:
-            slice = grid.data.segment_array[slice]
-            vertical_max = y_max - 1
-            vertical_step = y_step
-            horizontal_max = x_max - 1
-            horizontal_step = x_step
-        elif axis == Axis.CORONAL:
-            slice = grid.data.segment_array[:, slice, :]
-            vertical_max = z_max - 1
-            vertical_step = z_step
-            horizontal_max = x_max - 1
-            horizontal_step = x_step
-        else:
-            slice = grid.data.segment_array[:, :, slice]
-            vertical_max = z_max - 1
-            vertical_step = z_step
-            horizontal_max = y_max - 1
-            horizontal_step = y_step
-        scaled_radius = round(radius / horizontal_step)
-        x = 0
-        y = round(radius)
-        d = 1 - y
-        while y > x:
-            if d < 0:
-                d += 2 * x + 3
-            else:
-                d += 2 * (x - y) + 5
-                y -= 1
-            x += 1
-            scaled_horiz_x = round(x / horizontal_step)
-            scaled_vert_x = round(x / vertical_step)
-            scaled_horiz_y = round(y / horizontal_step)
-            scaled_vert_y = round(y / vertical_step)
-            x_start = max(left_offset - scaled_horiz_x, 0)
-            x_end = min(left_offset + scaled_horiz_x, horizontal_max)
-            y_start = max(bottom_offset - scaled_vert_y, 0)
-            y_end = min(bottom_offset + scaled_vert_y, vertical_max)
-            slice[y_start][x_start:x_end] = value
-            slice[y_end][x_start:x_end] = value
-            # Try to account for the fact that with spacings < 1 some lines get skipped, even if it
-            # causes redundant writes
-            slice[y_start + 1][x_start:x_end] = value
-            slice[y_end - 1][x_start:x_end] = value
-            x_start = max(left_offset - scaled_horiz_y, 0)
-            x_end = min(left_offset + scaled_horiz_y, horizontal_max)
-            y_start = max(bottom_offset - scaled_vert_x, 0)
-            y_end = min(bottom_offset + scaled_vert_x, vertical_max)
-            slice[y_start][x_start:x_end] = value
-            slice[y_end][x_start:x_end] = value
-            # Try to account for the fact that with spacings < 1 some lines get skipped, even if it
-            # causes redundant writes
-            slice[y_start + 1][x_start:x_end] = value
-            slice[y_end - 1][x_start:x_end] = value
-        slice[bottom_offset][left_offset - scaled_radius:left_offset + scaled_radius] = value
 
     def make_puck_visible(self, axis):
         if axis in self.segmentation_cursors:
@@ -277,7 +280,7 @@ class SegmentationTool(ToolInstance):
             state = Qt.CheckState.Unchecked
         self.guidelines_checkbox.setCheckState(state)
 
-    def addMarkersToSegment(self, axis, slice, positions):
+    def setMarkerRegionsToValue(self, axis, slice, markers, value=1):
         # I wasn't able to recycle code from Map Eraser here, unfortunately. Map Eraser uses
         # numpy.putmask(), which for whatever reason only wanted to work once before I had to call
         # VolumeSurface.update_surface() on the data's surface. This resulted in an expensive recalculation
@@ -287,42 +290,37 @@ class SegmentationTool(ToolInstance):
         # TODO: Many segmentations
         if not self.active_seg:
             self.addSegment()
-        for position in positions:
-            center_x, center_y = position.drawing_center
+        positions = []
+        for marker in markers:
+            center_x, center_y = marker.drawing_center
             radius = self.segmentation_cursors[axis].radius
-            self._set_data_in_puck(self.active_seg, axis, slice, round(center_x), round(center_y), radius, 1)
-        self.active_seg.data.values_changed()
+            positions.append((center_x, center_y, radius))
+        # TODO: Add a checkbox
+        if True:
+            self.active_seg.set_segment_data(axis, slice, positions, value, self.threshold_min, self.threshold_max)
+        else:
+            self.active_seg.set_segment_data(axis, slice, positions, value)
 
-    def removeMarkersFromSegment(self, axis, slice, positions):
-        if not self.active_seg:
-            self.session.logger.error("No active segmentation!")
-            return
-        for position in positions:
-            center_x, center_y = position.drawing_center
-            radius = self.segmentation_cursors[axis].radius
-            self._set_data_in_puck(self.active_seg, axis, slice, round(center_x), round(center_y), radius, 0)
-        self.active_seg.data.values_changed()
-        # self.active_seg.update_drawings()
+    def addMarkersToSegment(self, axis, slice, markers):
+        self.setMarkerRegionsToValue(axis, slice, markers, 1)
+
+    def removeMarkersFromSegment(self, axis, slice, markers):
+        self.setMarkerRegionsToValue(axis, slice, markers, 0)
 
     def addSegment(self):
-        # TODO: Create an empty DICOM Volume and add it to both
-        # the reference_model's child drawings and the
-        new_seg = self.reference_model.parent.data.segment(number = self.num_segmentations_created + 1)
+        # When the DICOMVolume creates its segmentation model, it will trigger a
+        # ADD_MODEL event that we listen to above. Concerns are separated here so
+        # that segmentations from files still show up in the menu.
         self.num_segmentations_created += 1
-        new_seg_model = open_grids(self.session, [new_seg], name = "new segmentation")[0]
-        self.session.models.add(new_seg_model)
-        new_seg_model[0].set_parameters(surface_levels=[0.501])
-        ijk_min = new_seg_model[0].region[0]
-        ijk_max = new_seg_model[0].region[1]
-        ijk_step = [1, 1, 1]
-        new_seg_model[0].new_region(ijk_min, ijk_max, ijk_step, adjust_step = False)
-        self.segmentation_list.addItem(SegmentationListItem(parent = self.segmentation_list, segmentation = new_seg_model[0]))
+        new_seg = self.reference_model.segment(number = self.num_segmentations_created)
         num_items = self.segmentation_list.count()
         self.segmentation_list.setCurrentItem(self.segmentation_list.item(num_items - 1))
         if self.session.ui.main_window.view_layout == "orthoplanes":
-            self.session.ui.main_window.main_view.add_segmentation(new_seg_model[0])
+            self.session.ui.main_window.main_view.add_segmentation(new_seg)
 
     def removeSegment(self, segments = None):
+        # We don't need to listen to the REMOVE_MODEL trigger because we're going
+        # to be the ones triggering it, here.
         if type(segments) is bool:
             # We got here from clicking the button...
             segments = None
@@ -404,7 +402,7 @@ class SegmentationTool(ToolInstance):
         self.segmentation_cursors[axis].origin = offsets
 
     def showHelp(self, _) -> None:
-        run(self.session, "help segmentations")
+        run(self.session, "help %s" % self.help)
 
     def _on_edit_window_ok(self) -> None:
         pass

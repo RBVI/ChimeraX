@@ -315,11 +315,11 @@ class SegmentationOverlay(Drawing):
             self.needs_update = True
         if self.needs_update:
             if self.axis == Axis.AXIAL:
-                slice_data = rot90(self.segmentation.data.segment_array[self.slice], 2)
+                slice_data = rot90(self.segmentation.data.pixel_array[self.slice], 2)
             elif self.axis == Axis.CORONAL:
-                slice_data = self.segmentation.data.segment_array[:, self.slice, :]
+                slice_data = self.segmentation.data.pixel_array[:, self.slice, :]
             else:
-                slice_data = self.segmentation.data.segment_array[:, :, self.slice]
+                slice_data = self.segmentation.data.pixel_array[:, :, self.slice]
 
             # Convert the segmentation slice into an RGBA array.
             tx, ty = slice_data.shape

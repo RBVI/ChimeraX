@@ -2153,7 +2153,6 @@ class ToolWindow(StatusLogger):
         if initially_hidden:
             self.shown = False
         else:
-            self.shown = True # to guarantee it is also raised
             ui.triggers.activate_trigger('tool window show', self)
 
     @property

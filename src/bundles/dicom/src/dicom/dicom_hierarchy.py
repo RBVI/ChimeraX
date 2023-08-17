@@ -32,17 +32,10 @@ from chimerax.core.models import Model
 from chimerax.core.tools import get_singleton
 from chimerax.core.session import Session
 
-from chimerax.map.volume import open_grids
 
 from .errors import MismatchedUIDError, UnrenderableSeriesError
 from .dicom_models import DicomContours, DicomGrid
-
-try:
-    import gdcm # noqa import used elsewhere
-except ModuleNotFoundError:
-    _has_gdcm = False
-else:
-    _has_gdcm = True
+from .dicom_volumes import open_dicom_grids
 
 class Patient(Model):
     """A set of DICOM files that have the same Patient ID"""
@@ -250,13 +243,12 @@ class Series:
     def __init__(self, session, parent, files):
         self.session = session
         self.parent_study = parent
-        self._raw_files = self.filter_unreadable(files)
-        self.sample_file = self._raw_files[0]
+        self.files = files
+        self.sample_file = self.files[0]
         self.files_by_size = defaultdict(list)
         self.dicom_data = []
-        for f in self._raw_files:
-            sf = SeriesFile(f)
-            self.files_by_size[sf.size].append(SeriesFile(f))
+        for f in self.files:
+            self.files_by_size[f.size].append(f)
         for file_list in self.files_by_size.values():
             self.dicom_data.append(DicomData(self.session, self, file_list))
         #plane_ids = {s.plane_uids: s for s in self.series}
@@ -264,22 +256,6 @@ class Series:
         #    ref = s.ref_plane_uids
         #    if ref and ref in plane_ids:
         #        s.refers_to_series = plane_ids[ref]
-
-    def filter_unreadable(self, files):
-        if _has_gdcm:
-            return files  # PyDicom will use gdcm to read 16-bit lossless jpeg
-
-        # Python Image Library cannot read 16-bit lossless jpeg.
-        keep = []
-        for f in files:
-            if (f.file_meta.TransferSyntaxUID == pydicom.uid.JPEGLosslessSV1
-                and f.get('BitsAllocated') == 16):
-                warning = 'Could not read DICOM %s because Python Image Library cannot read 16-bit lossless jpeg ' \
-                          'images. This functionality can be enabled by installing python-gdcm'
-                self.session.logger.warning(warning % f.filename)
-            else:
-                keep.append(f)
-        return keep
 
     def to_models(self):
         models = []
@@ -512,7 +488,7 @@ class DicomData:
             colors = [(1, 0, 0, 1), (0, 1, 0, 1), (0, 0, 1, 1)]
             suffixes = [' red', ' green', ' blue']
             for channel in (0, 1, 2):
-                g = DicomGrid(self, channel=channel)
+                g = DicomGrid.from_series(self, channel=channel)
                 if self.dicom_series.modality == "SEG":
                     g.initial_plane_display = False
                 g.name += suffixes[channel]
@@ -523,7 +499,7 @@ class DicomData:
             # Create time series for series containing multiple times as frames
             tgrids = []
             for t in range(self.num_times):
-                g = DicomGrid(self, time=t)
+                g = DicomGrid.from_series(self, time=t)
                 if self.dicom_series.modality == "SEG":
                     g.initial_plane_display = False
                 g.series_index = t
@@ -531,7 +507,7 @@ class DicomData:
             grids.extend(tgrids)
         else:
             # Create single channel, single time series.
-            g = DicomGrid(self)
+            g = DicomGrid.from_series(self)
             if self.dicom_series.modality == "SEG":
                 g.initial_plane_display = False
             rs = getattr(self, 'refers_to_series', None)
@@ -564,7 +540,7 @@ class DicomData:
         if self.contour_series:
             return [DicomContours(self.session, s, self.name) for s in self.files]
         elif self.image_series:
-            return open_grids(self.session, self._to_grids(), name=self.name)[0]
+            return open_dicom_grids(self.session, self._to_grids(), name=self.name)[0]
         else:
             raise UnrenderableSeriesError("No model created for Series #%s from patient %s because "
                                           "it had no pixel data. Metadata will still "
@@ -646,15 +622,22 @@ class DicomData:
             return
         reference_file = self.files[0]
         if hasattr(reference_file, "ImagePositionPatient") and reference_file.get("ImagePositionPatient", None):
-            self.files.sort(key=lambda x: x.ImagePositionPatient[2])
-        elif hasattr(reference_file, "SliceLocation") and reference_file.get("SliceLocation", None):
-            self.files.sort(key=lambda x: (x.get("TriggerTime", 1), x.SliceLocation))
-        elif hasattr(reference_file, "ImageIndex") and reference_file.get("ImageIndex", None):
+            z_values = [f.ImagePositionPatient[2] for f in self.files]
+            if len(set(z_values)) == len(z_values):
+                self.files.sort(key=lambda x: x.ImagePositionPatient[2])
+                return
+        if hasattr(reference_file, "SliceLocation") and reference_file.get("SliceLocation", None):
+            z_values = [f.SliceLocation for f in self.files]
+            if len(set(z_values)) == len(z_values):
+                self.files.sort(key=lambda x: (x.get("TriggerTime", 1), x.SliceLocation))
+                return
+        if hasattr(reference_file, "ImageIndex") and reference_file.get("ImageIndex", None):
             self.files.sort(key=lambda x: x.ImageIndex)
-        elif hasattr(reference_file, "AcquisitionNumber") and reference_file.get("AcquisitionNumber", None):
+            return
+        if hasattr(reference_file, "AcquisitionNumber") and reference_file.get("AcquisitionNumber", None):
             self.files.sort(key=lambda x: x.AcquisitionNumber)
-        else:
-            self.files.sort(key=lambda x: x.position[2])
+            return
+        self.files.sort(key=lambda x: x.position[2])
 
     def grid_size(self):
         xsize, ysize = self.columns, self.rows
@@ -847,6 +830,10 @@ class DicomData:
             return types[(bits_allocated, pixel_representation)]
         raise ValueError('Unsupported value type, bits_allocated = %d' % bits_allocated)
 
+    @property
+    def modality(self):
+        return self.dicom_series.modality
+
 
 class SeriesFile:
     def __init__(self, data):
@@ -932,7 +919,9 @@ class SeriesFile:
 
     @property
     def trigger_time(self):
-        return getattr(self.data, 'TriggerTime', None)
+        time = getattr(self.data, 'TriggerTime', None)
+        time = time or getattr(self.data, 'ContentTime', None)
+        return time
 
     @property
     def slice_location(self):

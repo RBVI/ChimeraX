@@ -18,6 +18,7 @@ from .dicom import (
     DICOMMapFormat, DicomOpener, fetchers,
     DICOMBrowserTool, DICOMDatabases, Patient, Study
 )
+from .dicom.dicom_volumes import DICOMVolume
 
 class _DICOMBundle(BundleAPI):
     api_version = 1
@@ -32,6 +33,7 @@ class _DICOMBundle(BundleAPI):
         class_names = {
             'Patient': Patient
             , 'Study': Study
+            , 'DICOMVolume': DICOMVolume
         }
         return class_names.get(class_name, None)
 
