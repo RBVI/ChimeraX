@@ -43,13 +43,13 @@ class FitLoopsJob(Job):
         self.start_t = time()
         def threaded_run(self=self):
             try:
-                results = _run_fit_loops_subprocess(session, executable_location, optional_args,
+                results = info = _run_fit_loops_subprocess(session, executable_location, optional_args,
                     map_file_name, model_file_name, sequence_file_name, positional_args, temp_dir,
                     start_res_number, end_res_number, chain_id, processors, verbose)
             finally:
                 self._running = False
             if results:
-                self.session.ui.thread_safe(callback, results)
+                self.session.ui.thread_safe(callback, *results)
         import threading
         thread = threading.Thread(target=threaded_run, daemon=True)
         thread.start()
@@ -148,15 +148,16 @@ def phenix_fit_loops(session, structure, in_map, *, block=None, phenix_location=
     # Run phenix.fit_loops
     # keep a reference to 'd' in the callback so that the temporary directory isn't removed before
     # fit_loops runs
-    callback = lambda fit_loops_model, *args, session=session, shift=shift, structure=structure, \
+    callback = lambda fit_loops_model, info, *args, session=session, shift=shift, structure=structure, \
         map=in_map, start_res_number=start_res_number, end_res_number=end_res_number, replace=replace, \
         chain_id=chain_id, d_ref=d:_process_results(session, fit_loops_model, map, shift, structure,
-        start_res_number, end_res_number, replace, chain_id)
+        start_res_number, end_res_number, replace, chain_id, info)
     FitLoopsJob(session, exe_path, option_arg, "map.mrc", "model.pdb", "sequences", position_arg, temp_dir,
         start_res_number, end_res_number, chain_id, processors, verbose, callback, block)
 
 def _process_results(session, fit_loops_model, map, shift, structure, start_res_number, end_res_number,
-        replace, chain_id):
+        replace, chain_id, info):
+    print("info:", info)
     fit_loops_model.position = map.scene_position
     if shift is not None:
         fit_loops_model.atoms.coords += shift
@@ -226,9 +227,10 @@ def _run_fit_loops_subprocess(session, exe_path, optional_args, map_filename, mo
     Run fit_loops in a subprocess and return the model with predicted waters.
     '''
     output_file = "fl_out.pdb"
+    json_file = "fit_loops.json"
     args = [exe_path] + optional_args + [f"map_in={map_filename}", f"pdb_in={model_filename}",
         f"seq_file={seq_filename}", f"nproc={processors}", f"pdb_out={output_file}",
-        "results_as_json=/var/tmp/fit_loops.json"] + positional_args
+        "results_as_json=" + json_file] + positional_args
     if start_res_number is not None:
         args += [f"start={start_res_number}"]
     if end_res_number is not None:
@@ -269,8 +271,14 @@ def _run_fit_loops_subprocess(session, exe_path, optional_args, map_filename, mo
         msg += '</pre>'
         tsafe(logger.info, msg, is_html=True)
 
-    # Open new model with added loops
+    # gather JSON info
     from os import path, listdir
+    json_path = path.join(temp_dir, json_file)
+    import json
+    with open(json_path, 'r') as f:
+        info = json.load(f)
+
+    # Open new model with added loops
     output_path = path.join(temp_dir, output_file)
     if not path.exists(output_path):
         cmd = " ".join(args)
@@ -295,7 +303,7 @@ def _run_fit_loops_subprocess(session, exe_path, optional_args, map_filename, mo
     finally:
         session.logger.remove_log(log)
 
-    return models[0]
+    return models[0], info
 
 """
 def _copy_new_waters(douse_model, near_model, keep_input_water, far_water, map_name):
