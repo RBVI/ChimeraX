@@ -868,9 +868,14 @@ class _AttrTest:
                             return False
                     except AttributeError:
                         return False
-                    v = str(v)
-                    if not case_sensitive:
-                        v = v.lower()
+                    try:
+                        v = str(v)
+                    except TypeError:
+                        # "fake" attribute, such as Chain.identity
+                        pass
+                    else:
+                        if not case_sensitive:
+                            v = v.lower()
                     matches = fnmatchcase(v, attr_value)
                     return not matches if invert else matches
             else:
@@ -881,9 +886,14 @@ class _AttrTest:
                             return False
                     except AttributeError:
                         return False
-                    v = str(v)
-                    if not case_sensitive and isinstance(v, str):
-                        v = v.lower()
+                    try:
+                        v = str(v)
+                    except TypeError:
+                        # "fake" attribute, such as Chain.identity
+                        pass
+                    else:
+                        if not case_sensitive:
+                            v = v.lower()
                     matches = v == attr_value
                     return not matches if invert else matches
         else:
