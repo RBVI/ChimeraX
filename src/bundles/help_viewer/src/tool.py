@@ -184,7 +184,17 @@ class HelpUI(ToolInstance):
         self.search_terms.returnPressed.connect(self.page_search)
         tb.addWidget(self.search_terms)
 
-        self.tabs = QTabWidget(parent)
+        class SizedTabs(QTabWidget):
+            allow_smaller = False
+            def minimumSizeHint(self):
+                from Qt.QtCore import QSize, QTimer
+                if not self.allow_smaller:
+                    QTimer.singleShot(10, lambda *args, s=self: setattr(s, 'allow_smaller', True))
+                if self.allow_smaller:
+                    return super().minimumSizeHint()
+                return QSize(840, 800)
+
+        self.tabs = SizedTabs(parent)
         self.tabs.setTabsClosable(True)
         self.tabs.setUsesScrollButtons(True)
         self.tabs.setTabBarAutoHide(True)
