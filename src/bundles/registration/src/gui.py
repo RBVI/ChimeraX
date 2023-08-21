@@ -22,6 +22,8 @@ class RegistrationUI(HtmlToolInstance):
     SESSION_SAVE = False
     CUSTOM_SCHEME = "cxreg"
 
+    PLACEMENT = None
+
     def __init__(self, session, ti):
         # Standard template stuff
         self.display_name = "ChimeraX Registration"
