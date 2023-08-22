@@ -240,9 +240,15 @@ class ModellerLauncher(ToolInstance):
         bbox.helpRequested.connect(lambda *, run=run, ses=session: run(ses, "help " + self.help))
         interface_layout.addWidget(bbox)
         self.tool_window.manage(None)
-        # following hack needed because something in the main window raises it above this tool
+        # following hack needed because something in the main window raises it above this tool,
+        # seemingly only when launched from viewer context menu instead of main menu
         from Qt.QtCore import QTimer
-        QTimer.singleShot(0, lambda *arg, tw=self.tool_window: setattr(tw, 'shown', True))
+        def cb(*args, tw=self.tool_window):
+            # since this is such a hack, not yet adding direct access raise() from ToolWindow
+            tw._dock_widget.raise_()
+        def cb2(*args, cb=cb):
+            QTimer.singleShot(0, cb)
+        QTimer.singleShot(0, cb2)
 
     def delete(self):
         ToolInstance.delete(self)
