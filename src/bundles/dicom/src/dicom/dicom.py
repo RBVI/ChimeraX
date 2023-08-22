@@ -110,7 +110,7 @@ class DICOM:
         dfiles = []
         for root, dirs, files in os.walk(path):
             for f in files:
-                if f in ('.DS_Store', 'Thumbs.db', 'desktop.ini') or any(f.startswith(s) for s in ['._']):
+                if f in ('.DS_Store', 'Thumbs.db', 'desktop.ini', 'LICENSE') or any(f.startswith(s) for s in ['._']):
                     continue
                 try:
                     dfiles.append(SeriesFile(dcmread(os.path.join(root, f))))

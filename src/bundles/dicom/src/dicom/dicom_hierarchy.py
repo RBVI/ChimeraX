@@ -622,15 +622,22 @@ class DicomData:
             return
         reference_file = self.files[0]
         if hasattr(reference_file, "ImagePositionPatient") and reference_file.get("ImagePositionPatient", None):
-            self.files.sort(key=lambda x: x.ImagePositionPatient[2])
-        elif hasattr(reference_file, "SliceLocation") and reference_file.get("SliceLocation", None):
-            self.files.sort(key=lambda x: (x.get("TriggerTime", 1), x.SliceLocation))
-        elif hasattr(reference_file, "ImageIndex") and reference_file.get("ImageIndex", None):
+            z_values = [f.ImagePositionPatient[2] for f in self.files]
+            if len(set(z_values)) == len(z_values):
+                self.files.sort(key=lambda x: x.ImagePositionPatient[2])
+                return
+        if hasattr(reference_file, "SliceLocation") and reference_file.get("SliceLocation", None):
+            z_values = [f.SliceLocation for f in self.files]
+            if len(set(z_values)) == len(z_values):
+                self.files.sort(key=lambda x: (x.get("TriggerTime", 1), x.SliceLocation))
+                return
+        if hasattr(reference_file, "ImageIndex") and reference_file.get("ImageIndex", None):
             self.files.sort(key=lambda x: x.ImageIndex)
-        elif hasattr(reference_file, "AcquisitionNumber") and reference_file.get("AcquisitionNumber", None):
+            return
+        if hasattr(reference_file, "AcquisitionNumber") and reference_file.get("AcquisitionNumber", None):
             self.files.sort(key=lambda x: x.AcquisitionNumber)
-        else:
-            self.files.sort(key=lambda x: x.position[2])
+            return
+        self.files.sort(key=lambda x: x.position[2])
 
     def grid_size(self):
         xsize, ysize = self.columns, self.rows
@@ -912,7 +919,9 @@ class SeriesFile:
 
     @property
     def trigger_time(self):
-        return getattr(self.data, 'TriggerTime', None)
+        time = getattr(self.data, 'TriggerTime', None)
+        time = time or getattr(self.data, 'ContentTime', None)
+        return time
 
     @property
     def slice_location(self):
