@@ -17,7 +17,7 @@ class _MouseModesSettings(Settings):
     EXPLICIT_SAVE = {
         'trackpad_multitouch': True,
         'trackpad_sensitivity': 1.0,
-        'trackpad_twist_speed': 6.0,
+        'trackpad_twist_speed': 2.0,
     }
 
 # 'settings' and 'clip_settings' module attributes will be set by the initialization of the bundle API

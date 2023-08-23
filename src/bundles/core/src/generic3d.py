@@ -31,6 +31,11 @@ class Generic3DModel(Surface):
             'drawing state': DrawingState().take_snapshot(self, session, flags),
             'version': GENERIC3D_STATE_VERSION,
         }
+        # TODO: Saving the drawing state without "include_children = False"
+        #       causes a session save error due to cyclic references if the
+        #       Generic3DModel has any child models because it saves references
+        #       to the child models and the child models reference their parent
+        #       model.  This was the cause of bug #9594 for GLTF models.
         return data
 
     @classmethod
