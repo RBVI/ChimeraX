@@ -1018,14 +1018,17 @@ class View:
         r = rotation(axis, angle, center)
         self.move(r, drawings)
 
-    def translate(self, shift, drawings=None):
+    def translate(self, shift, drawings=None, move_near_far_clip_planes = False):
         '''Move camera to simulate a translation of drawings.  Translation
         is in scene coordinates.'''
         if shift[0] == 0 and shift[1] == 0 and shift[2] == 0:
             return
         if self._center_of_rotation_method in ('front center', 'center of view'):
             self._update_center_of_rotation = True
-        self._shift_near_far_clip_planes(shift)
+        if not move_near_far_clip_planes:
+            # Near and far clip planes are fixed to camera.
+            # Move them so they stay fixed relative to models.
+            self._shift_near_far_clip_planes(shift)
         from chimerax.geometry import translation
         t = translation(shift)
         self.move(t, drawings)

@@ -130,6 +130,7 @@ class MultitouchTrackpad:
             self._mouse_mode_mgr._dispatch_touch_event(event)
 
     def _process_touches(self, touches):
+        min_pinch = 0.1
         pinch = twist = scroll = None
         two_swipe = None
         three_swipe = None
@@ -146,19 +147,23 @@ class MultitouchTrackpad:
             from math import sqrt, exp, atan2, pi
             l0,l1 = sqrt(dx0*dx0 + dy0*dy0),sqrt(dx1*dx1 + dy1*dy1)
             d12 = dx0*dx1+dy0*dy1
-            if d12 < 0:
+            if l0 >= min_pinch and l1 >= min_pinch and d12 < -0.7*l0*l1:
                 # Finger moving in opposite directions: pinch/twist
                 (x0,y0),(x1,y1) = [(t.x,t.y) for t in touches[:2]]
                 sx,sy = x1-x0,y1-y0
                 sn = sqrt(sx*sx + sy*sy)
                 sd0,sd1 = sx*dx0 + sy*dy0, sx*dx1 + sy*dy1
-                zf = 1 + speed * self._zoom_scaling * (l0+l1) / self._full_width_translation_distance
-                if sd1 < 0:
-                    zf = 1/zf
-                pinch = zf
-                rot = atan2(-sy*dx1+sx*dy1,sn*sn) + atan2(sy*dx0-sx*dy0,sn*sn)
-                a = -speed * self._twist_scaling * rot * 180 / pi
-                twist = a
+                if abs(sd0) > 0.5*sn*l0 and abs(sd1) > 0.5*sn*l1:
+                    # pinch
+                    zf = 1 + speed * self._zoom_scaling * (l0+l1) / self._full_width_translation_distance
+                    if sd1 < 0:
+                        zf = 1/zf
+                    pinch = zf
+                else:
+                    # twist
+                    rot = atan2(-sy*dx1+sx*dy1,sn*sn) + atan2(sy*dx0-sx*dy0,sn*sn)
+                    a = -speed * self._twist_scaling * rot * 180 / pi
+                    twist = a
             else:
                 two_swipe = tuple([d/self._full_width_translation_distance for d in (dx, dy)])
                 scroll = speed * dy / self._wheel_click_pixels

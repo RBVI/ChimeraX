@@ -23,6 +23,9 @@ class ModellerAPI(BundleAPI):
         elif class_name == "ModellerLauncher":
             from .tool import ModellerLauncher
             return ModellerLauncher
+        elif class_name == "ModellerWebJob":
+            from .common import ModellerWebJob
+            return ModellerWebJob
         from . import comparative
         return getattr(comparative, class_name)
 

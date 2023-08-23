@@ -2480,6 +2480,8 @@ class _Qt:
         if isinstance(placement, ToolWindow):
             mw.addDockWidget(mw.dockWidgetArea(placement._dock_widget), self.dock_widget)
             mw.tabifyDockWidget(placement._dock_widget, self.dock_widget)
+            from Qt.QtCore import QTimer
+            QTimer.singleShot(0, self.dock_widget.raise_)
         else:
             mw.addDockWidget(side, self.dock_widget)
             if placement is None or allowed_areas == Qt.DockWidgetArea.NoDockWidgetArea:

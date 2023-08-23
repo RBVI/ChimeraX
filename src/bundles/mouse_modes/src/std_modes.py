@@ -422,7 +422,7 @@ class MoveMouseMode(MouseMode):
             from chimerax.geometry import translation
             self._move_atoms(translation(step))
         else:
-            self.view.translate(step, self.models())
+            self.view.translate(step, self.models(), move_near_far_clip_planes = True)
 
     def _translation(self, event):
         '''Returned shift is in camera coordinates.'''
