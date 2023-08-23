@@ -26,8 +26,9 @@ class OBJError(UserError):
 
 # -----------------------------------------------------------------------------
 #
-from chimerax.core import generic3d
-class WavefrontOBJ(generic3d.Generic3DModel):
+from chimerax.core.models import Surface
+class WavefrontOBJ(Surface):
+    SESSION_SAVE_DRAWING = True
     clip_cap = True
 
 # -----------------------------------------------------------------------------
