@@ -342,6 +342,7 @@ class Region:
 
     def get_rmsd(self):
         num_d = sum_d2 = 0
+        rmsd_chains = set(self.seq_canvas.alignment.rmsd_chains)
         from chimerax.geometry import distance_squared
         for block in self.blocks:
             line1, line2, pos1, pos2 = block
@@ -358,14 +359,9 @@ class Region:
             seqs = all_seqs[si1:si2+1]
             structs = set()
             for seq in seqs:
-                for match_map in seq.match_maps.values():
-                    match_info.append((seq, match_map))
-                    struct = match_map.struct_seq.structure
-                    if struct in structs:
-                        # Don't want RMSD involving different
-                        # chains of same structure...
-                        return None
-                    structs.add(struct)
+                for chain, match_map in seq.match_maps.items():
+                    if chain in rmsd_chains:
+                        match_info.append((seq, match_map))
             if len(match_info) < 2:
                 continue
             for pos in range(pos1, pos2+1):
@@ -1878,7 +1874,7 @@ class RegionsTool:
         table.launch()
         layout.addWidget(table, stretch=1)
 
-    def associations_modified(self):
+    def alignment_rmsd_update(self):
         self.region_table.update_column(self.columns["rmsd"], data=True)
 
     def region_notification(self, category, region):

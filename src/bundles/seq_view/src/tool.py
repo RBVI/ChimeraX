@@ -461,8 +461,6 @@ class SequenceViewer(ToolInstance):
                 self.show_ss(True)
             if hasattr(self, 'associations_tool'):
                 self.associations_tool._assoc_mod(note_data)
-            if self._regions_tool:
-                self._regions_tool.associations_modified()
         elif note_name == alignment.NOTE_PRE_DEL_SEQS:
             self.region_manager._pre_remove_lines(note_data)
             for seq in note_data:
@@ -474,6 +472,9 @@ class SequenceViewer(ToolInstance):
         elif note_name == alignment.NOTE_COMMAND:
             from .cmd import run
             run(self.session, self, note_data)
+        elif note_name == alignment.NOTE_RMSD_UPDATE:
+            if self._regions_tool:
+                self._regions_tool.alignment_rmsd_update()
 
         self.seq_canvas.alignment_notification(note_name, note_data)
 
