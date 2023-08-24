@@ -158,6 +158,7 @@ def standard_shortcuts(session):
         ('st', run_on_atoms('style %s stick'), 'Display atoms in stick style', molcat, sesarg, mlmenu, sep),
 
         ('rb', run_on_atoms('show %s cartoon'), 'Display ribbon', molcat, sesarg, mlmenu),
+        ('ri', select_residue_interval, 'Select residue interval', molcat, sesarg, mlmenu),
         ('hr', run_on_atoms('hide %s cartoon'), 'Undisplay ribbon', molcat, sesarg, mlmenu),
 #        ('r+', fatter_ribbons, 'Thicker ribbons', molcat, molarg, mlmenu),
 #        ('r-', thinner_ribbons, 'Thinner ribbons', molcat, molarg, mlmenu, sep),
@@ -1030,6 +1031,19 @@ def molecule_bonds(m, session):
         log.info(msg)
         if missing:
             log.info('Missing %d templates: %s' % (len(missing), ', '.join(missing)))
+          
+def select_residue_interval(session):
+    specs = []
+    from chimerax.atomic import selected_residues
+    for struct, cid, res in selected_residues(session).by_chain:
+        if len(res) >= 2:
+            rnum = res.numbers
+            rmin, rmax = rnum.min(), rnum.max()
+            specs.append(f'#{struct.id_string}/{cid}:{rmin}-{rmax}')
+    if specs:
+        cmd = 'select ' + ' '.join(specs)
+        from chimerax.core.commands import run
+        run(session, cmd)
 
 def show_sequence(atoms):
     chains = atoms.residues.unique_chains
