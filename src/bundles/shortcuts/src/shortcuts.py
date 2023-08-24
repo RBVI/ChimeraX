@@ -247,7 +247,7 @@ def standard_shortcuts(session):
 
         # Help
 #        ('mn', show_manual, 'Show manual', gcat, sesarg, hmenu),
-#        ('ks', list_keyboard_shortcuts, 'List keyboard shortcuts', gcat, sesarg, hmenu),
+        ('Ls', list_keyboard_shortcuts, 'List keyboard shortcuts', gcat, sesarg, hmenu),
         ]
 
 #    from ..molecule.blastpdb import blast_shortcuts
@@ -1061,12 +1061,8 @@ def show_sequence(atoms):
         run(session, 'sequence chain %s' % seq_chain_spec, log = False)
 
 def list_keyboard_shortcuts(session):
-    m = session.main_window
-    if m.showing_text() and m.text_id == 'keyboard shortcuts':
-        m.show_graphics()
-    else:
-        t = shortcut_descriptions(session.keyboard_shortcuts, html = True)
-        m.show_text(t, html = True, id = "keyboard shortcuts")
+    t = shortcut_descriptions(session.keyboard_shortcuts, html = True)
+    session.logger.info(t, is_html = True)
 
 def shortcut_descriptions(ks, html = False):
   ksc = {}
