@@ -357,7 +357,6 @@ class Region:
                 continue
             match_info = []
             seqs = all_seqs[si1:si2+1]
-            structs = set()
             for seq in seqs:
                 for chain, match_map in seq.match_maps.items():
                     if chain in rmsd_chains:
@@ -1876,6 +1875,7 @@ class RegionsTool:
 
     def alignment_rmsd_update(self):
         self.region_table.update_column(self.columns["rmsd"], data=True)
+        self.region_table.resizeColumnToContents(self.region_table.columns.index(self.columns["rmsd"]))
 
     def region_notification(self, category, region):
         if category in ("new", "delete"):
@@ -1891,8 +1891,11 @@ class RegionsTool:
                         self.seq_region_menubutton.setText(self.ENTIRE_ALIGNMENT_REGIONS)
                         source = None
             self._set_table_data(source=source)
+            self.region_table.resizeColumnsToContents()
         elif region in self.region_table.data:
-            self.region_table.update_cell(self.columns[category], region)
+            col = self.columns[category]
+            self.region_table.update_cell(col, region)
+            self.region_table.resizeColumnToContents(self.region_table.columns.index(col))
 
     def _atomic_changes_cb(self, changes):
         if 'scene_coord changed' not in changes.structure_reasons():

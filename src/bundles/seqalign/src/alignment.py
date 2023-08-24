@@ -741,9 +741,14 @@ class Alignment(State):
         self._notify_observers(self.NOTE_COMMAND, subcommand_text, viewer_criteria=viewer_keyword)
 
     def _eval_rmsd(self, chains):
-        pa_name = self._principal_atom_name(chains)
-        if not pa_name:
+        chain_types = set([c.polymer_type for c in chains])
+        if len(chain_types) > 1:
             return None
+        ct = chain_types.pop()
+        from chimerax.atomic import Residue
+        if ct == Residue.PT_NONE:
+            return None
+        pa_name = { Residue.PT_AMINO: "CA", Residue.PT_NUCLEIC: "C4'" }[ct]
         total = 0.0
         n = 0
         from chimerax.geometry import distance_squared
@@ -761,14 +766,14 @@ class Alignment(State):
         coord_lists = []
         seqs = [self.associations[chain] for chain in chains]
         match_maps = [self.associations[chain].match_maps[chain] for chain in chains]
-        for pos in len(self.seqs[0]):
+        for pos in range(len(self.seqs[0])):
             crd_list = []
             for seq, mmap in zip(seqs, match_maps):
                 ungapped = seq.gapped_to_ungapped(pos)
                 if ungapped is None:
                     continue
                 try:
-                    r = match_map[ungapped]
+                    r = mmap[ungapped]
                 except KeyError:
                     continue
                 if r:
@@ -812,26 +817,8 @@ class Alignment(State):
         if self._rmsd_chains is None:
             # no one currently interested in RMSD
             return
+        self._rmsd_chains = None # force recomputation of relevant chains
         self._notify_observers(self.NOTE_RMSD_UPDATE, None)
-
-    def _principal_atom_name(self, chains):
-        std_pa_names = ["CA", "C4'"]
-        pa_name = None
-        for chain in chains:
-            seq = self.associations[chain]
-            match_map = seq.match_maps[chain]
-            for r in match_map.res_to_pos.keys():
-                for std_name in std_pa_names:
-                    if r.find_atom(std_name):
-                        if pa_name is None:
-                            pa_name = std_name
-                            break
-                        else:
-                            return None
-                else:
-                    continue
-                break
-        return pa_name
 
     @staticmethod
     def restore_snapshot(session, data):
