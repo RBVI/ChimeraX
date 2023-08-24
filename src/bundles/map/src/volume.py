@@ -56,7 +56,7 @@ class Volume(Model):
     self.region = clamp_region(region, data.size)
 
     if rendering_options is None:
-      rendering_options = RenderingOptions()
+      rendering_options = ds.rendering_option_defaults()
     self.rendering_options = rendering_options
 
     self.message_cb = session.logger.status
@@ -3334,7 +3334,7 @@ def open_volume_file(path, session, format = None, name = None, style = 'auto',
 def default_settings(session):
   if not hasattr(session, 'volume_defaults'):
     from . import defaultsettings
-    session.volume_defaults = defaultsettings.VolumeDefaultSettings()
+    session.volume_defaults = defaultsettings.VolumeDefaultSettings(session)
   return session.volume_defaults
 
 # -----------------------------------------------------------------------------
