@@ -19,12 +19,12 @@ def vr(session, enable = None, room_position = None, mirror = None,
        near_clip_distance = None, far_clip_distance = None,
        multishadow_allowed = False, simplify_graphics = True):
     '''
-    Enable stereo viewing and head motion tracking with virtual reality headsets using SteamVR.
+    Enable stereo viewing and head motion tracking with virtual reality headsets using OpenXR.
 
     Parameters
     ----------
     enable : bool
-      Enable or disable use of an HTC Vive headset or Oculus Rift headset using SteamVR.
+      Enable or disable use of an HTC Vive headset or Oculus Rift headset using OpenXR.
       The device must be connected
       and powered on to enable it. Graphics will not be updated in the main
       ChimeraX window because the different rendering rates of the headset and a
@@ -94,6 +94,7 @@ def vr(session, enable = None, room_position = None, mirror = None,
     if mirror:
         if not wait_for_vsync(session, False):
             session.logger.warning('Graphics on desktop display may cause VR to flicker.')
+
     if c is not None and mirror is not None:
         c.mirror = mirror
 
@@ -146,25 +147,25 @@ def vr_button(session, button, mode = None, hand = None, command = None):
         from chimerax.core.errors import UserError
         raise UserError('Hand controller is not enabled.')
 
-    from openvr import \
-        k_EButton_Grip as grip, \
-        k_EButton_ApplicationMenu as menu, \
-        k_EButton_SteamVR_Trigger as trigger, \
-        k_EButton_SteamVR_Touchpad as touchpad, \
-        k_EButton_A as a
-    button_names = { grip: 'grip', menu: 'menu', trigger: 'trigger', touchpad: 'thumbstick', a: 'a' }
+    # TODO: Get rid of all the mapping between button names and ids.  Just use names.
+    b = button_ids()
+    button_names = { b.grip: 'grip',
+                     b.menu: 'menu',
+                     b.trigger: 'trigger',
+                     b.touchpad: 'thumbstick',
+                     b.A: 'A' }
 
     openvr_button_ids = {
-        'grip': [grip],
-        'menu': [menu],
-        'trigger': [trigger],
-        'touchpad': [touchpad],
-        'thumbstick': [touchpad],
-        'A': [a],
-        'B': [menu],
-        'X': [a],
-        'Y': [menu],
-        'all': [grip, menu, trigger, touchpad, a],
+        'grip': [b.grip],
+        'menu': [b.menu],
+        'trigger': [b.trigger],
+        'touchpad': [b.touchpad],
+        'thumbstick': [b.touchpad],
+        'A': [b.A],
+        'B': [b.menu],
+        'X': [b.A],
+        'Y': [b.menu],
+        'all': [b.grip, b.menu, b.trigger, b.touchpad, b.A],
     }
     openvr_buttons = openvr_button_ids[button]
 
@@ -194,6 +195,26 @@ def vr_button(session, button, mode = None, hand = None, command = None):
         modes = ('\n' + '\n'.join(mode_names)) if len(mode_names) > 1 else ', '.join(mode_names)
         msg = 'Current VR button modes: ' + modes
         session.logger.info(msg)
+
+def button_ids():
+    return ButtonIds()
+
+class ButtonIds:
+    def __init__(self):
+        '''
+        import openvr
+        self.grip = openvr.k_EButton_Grip
+        self.menu = openvr.k_EButton_ApplicationMenu
+        self.trigger = openvr.k_EButton_SteamVR_Trigger
+        self.touchpad = openvr.k_EButton_SteamVR_Touchpad
+        self.A = openvr.k_EButton_A
+        '''
+        # Use id number from openvr for VR meeting compatiblity
+        self.grip = 2
+        self.menu = 1
+        self.trigger = 33
+        self.touchpad = 32
+        self.A = 7
         
 # -----------------------------------------------------------------------------
 #
@@ -275,10 +296,10 @@ def register_vr_command(logger):
                               ('multishadow_allowed', BoolArg),
                               ('simplify_graphics', BoolArg),
                    ],
-                   synopsis = 'Start SteamVR virtual reality rendering',
+                   synopsis = 'Start OpenXR virtual reality rendering',
                    url = 'help:user/commands/device.html#vr')
-    register('vr', desc, vr, logger=logger)
-    create_alias('device vr', 'vr $*', logger=logger,
+    register('xr', desc, vr, logger=logger)
+    create_alias('device xr', 'xr $*', logger=logger,
                  url='help:user/commands/device.html#vr')
 
     button_name = EnumOf(('trigger', 'grip', 'touchpad', 'thumbstick', 'menu', 'A', 'B', 'X', 'Y', 'all'))
@@ -288,8 +309,8 @@ def register_vr_command(logger):
                               ('command', StringArg)],
                    synopsis = 'Assign VR hand controller buttons',
                    url = 'help:user/commands/device.html#vr-button')
-    register('vr button', desc, vr_button, logger=logger)
-    create_alias('device vr button', 'vr button $*', logger=logger,
+    register('xr button', desc, vr_button, logger=logger)
+    create_alias('device xr button', 'xr button $*', logger=logger,
                  url='help:user/commands/device.html#vr-button')
 
     ToggleArg = Or(EnumOf(['toggle']), BoolArg)
@@ -304,8 +325,8 @@ def register_vr_command(logger):
                               ('save_tracker_mount', BoolArg)],
                    synopsis = 'Control VR room camera',
                    url = 'help:user/commands/device.html#vr-roomCamera')
-    register('vr roomCamera', desc, vr_room_camera, logger=logger)
-    create_alias('device vr roomCamera', 'vr roomCamera $*', logger=logger,
+    register('xr roomCamera', desc, vr_room_camera, logger=logger)
+    create_alias('device xr roomCamera', 'xr roomCamera $*', logger=logger,
                  url='help:user/commands/device.html#vr-roomCamera')
 
 # -----------------------------------------------------------------------------
@@ -369,31 +390,16 @@ def start_vr(session, multishadow_allowed = False, simplify_graphics = True,
         return
 
     try:
-        import openvr
+        import xr
     except Exception as e:
         from chimerax.core.errors import UserError
-        raise UserError('Failed to import OpenVR module: %s' % str(e)) from e
-
-    import sys
-    if sys.platform == 'darwin':
-        # SteamVR on Mac is older then what PyOpenVR expects.
-        openvr.IVRSystem_Version = "IVRSystem_019"
-        openvr.IVRCompositor_Version = "IVRCompositor_022"
+        raise UserError('Failed to import OpenXR module: %s' % str(e)) from e
         
     try:
         c.start_vr()
-    except openvr.OpenVRError as e:
-        if 'error number 108' in str(e):
-            msg = ('The VR headset was not detected.\n' +
-                   'Possibly a cable to the VR headset is not plugged in.\n' +
-                   'If the headset is a Vive Pro, the link box may be turned off.\n' +
-                   'If using a Vive Pro wireless adapter it may not be powered on.')
-        elif 'InterfaceNotFound' in str(e):
-            msg = ('Your installed SteamVR runtime does not support the requested version.\n' +
-                   'You probably need to update SteamVR by starting the Steam application.\n')
-        else:
-            msg = ('Failed to initialize OpenVR.\n' +
-                   'Possibly SteamVR is not installed or it failed to start.')
+    except xr.XrException as e:
+        raise
+        msg = 'Failed to initialize OpenXR.\n'
         from chimerax.core.errors import UserError
         raise UserError('%s\n%s' % (msg, str(e))) from e
 
@@ -406,18 +412,20 @@ def start_vr(session, multishadow_allowed = False, simplify_graphics = True,
     # Set redraw timer to redraw as soon as Qt events processsed to minimize dropped frames.
     session.update_loop.set_redraw_interval(0)
 
-    msg = 'started SteamVR rendering'
+    msg = 'started OpenXR rendering'
     log = session.logger
     log.status(msg)
     log.info(msg)
-        
+
+#    direct_render_loop(c)
+
 # -----------------------------------------------------------------------------
 #
 def vr_camera(session, create = True):
-    c = getattr(session, '_steamvr_camera', None)
+    c = getattr(session, '_openxr_camera', None)
     if c is None and create:
-        session._steamvr_camera = c = SteamVRCamera(session)
-        session.add_state_manager('_steamvr_camera', c)	# For session saving
+        session._openxr_camera = c = OpenXRCamera(session)
+        session.add_state_manager('_openxr_camera', c)	# For session saving
     return c
 
 # -----------------------------------------------------------------------------
@@ -460,9 +468,27 @@ def wait_for_vsync(session, wait):
 
 # -----------------------------------------------------------------------------
 #
+def direct_render_loop(camera):
+    view = camera._session.main_view
+    view._use_opengl()
+    render = view.render
+    from time import sleep
+    colors = ((1,0,0,1),(1,1,0,1),(0,1,0,1),(0,1,1,1),(0,0,1,1),(1,1,1,1))
+    for i in range(30):
+        for eye_num in (0,1):
+            camera.set_render_target(eye_num, render)
+            view._update_projection(camera, eye_num)
+            from chimerax.graphics.opengl import GL
+            GL.glClearColor(*colors[i % len(colors)])
+            GL.glClear(GL.GL_COLOR_BUFFER_BIT)
+        camera.combine_rendered_camera_views(render)
+        sleep(0.5)
+    
+# -----------------------------------------------------------------------------
+#
 from chimerax.graphics import Camera
 from chimerax.core.state import StateManager	# For session saving
-class SteamVRCamera(Camera, StateManager):
+class OpenXRCamera(Camera, StateManager):
 
     always_draw = True	# Draw even if main window iconified.
     
@@ -495,43 +521,36 @@ class SteamVRCamera(Camera, StateManager):
         self._z_far = 500.0		# Meters, far clip plane distance
         # TODO: Scaling models to be huge causes clipping at far clip plane.
 
-        self._vr_system = None		# openvr.IVRSystem instance
+        self._xr = None			# XR instance wraps all OpenXR API calls
         self._new_frame_handler = None
         self._app_quit_handler = None
 
-    def start_vr(self):
-        if self._vr_system is not None:
-            return	# VR is already started
-        
-        import openvr
-        self._vr_system = vrs = openvr.init(openvr.VRApplication_Scene)
-        # The init() call raises OpenVRError if SteamVR is not installed.
-        # Handle this in the code that tries to create the camera.
+        self._last_fov = [None, None]
+        self._projection_matrix = [None, None]
 
-        self._render_size = vrs.getRecommendedRenderTargetSize()
-        self._compositor = c = openvr.VRCompositor()
-        if c is None:
-            raise RuntimeError("Unable to create compositor") 
+    def start_vr(self):
+        if self._xr is not None:
+            return	# VR is already started
+
+        render = self._session.main_view.render
+        render.make_current()  # Creating OpenXR session requires OpenGL context is current
+
+        # Create OpenXR manager
+        from .openxr import XR
+        self._xr = xr = XR()
+        xr.start_session()
+        # For vive pro runtime is "SteamVR/OpenXR", system is "SteamVR/OpenXR: lighthouse"
+        # For quest 2 runtime is "Oculus", system is "Oculus Quest 2"
+        print('OpenXR runtime:', xr.runtime_name())
+        print('OpenXR system:', xr.system_name())  # For vive pro this 
 
         # Compute projection and eye matrices, units in meters
-
-        # Left and right projections are different. OpenGL 4x4.
-        self._set_projection_matrices()
-
-        # Eye shifts from hmd pose.
-        vl = vrs.getEyeToHeadTransform(openvr.Eye_Left)
-        self._eye_shift_left = hmd34_to_position(vl)
-        vr = vrs.getEyeToHeadTransform(openvr.Eye_Right)
-        self._eye_shift_right = hmd34_to_position(vr)
 
         # Map ChimeraX scene coordinates to OpenVR room coordinates
         if self._room_to_scene is None:
             self.fit_scene_to_room()
 
         # Update camera position every frame.
-        self._frame_started = False
-        poses_t = openvr.TrackedDevicePose_t * openvr.k_unMaxTrackedDeviceCount
-        self._poses = poses_t()
         t = self._session.triggers
         self._new_frame_handler = t.add_handler('new frame', self._next_frame)
 
@@ -576,14 +595,30 @@ class SteamVRCamera(Camera, StateManager):
     room_to_scene = property(_get_room_to_scene, _set_room_to_scene)
     '''Transformation from room coordinates to scene coordinates.'''
 
-    def _set_projection_matrices(self):
+    def _set_projection_matrices(self, eye):
+        # Left and right projections are different. OpenGL 4x4.
         z_near, z_far = self._z_near, self._z_far
-        vrs = self._vr_system
-        import openvr
-        pl = vrs.getProjectionMatrix(openvr.Eye_Left, z_near, z_far)
-        self._projection_left = hmd44_to_opengl44(pl)
-        pr = vrs.getProjectionMatrix(openvr.Eye_Right, z_near, z_far)
-        self._projection_right = hmd44_to_opengl44(pr)
+        xr = self._xr
+        # TODO: Use xr.field_of_view.  But it is not set until a frame is started.
+        xr_fov = xr.field_of_view[eye]
+        if xr_fov is not None:
+            fov4 = (xr_fov.angle_left, xr_fov.angle_right, xr_fov.angle_down, xr_fov.angle_up)
+        else:
+            fov4 = (-.8, .8, -.8, .8)  # Headset not yet ready to render but desktop window rendering
+        debug('fov', fov4)   # The projection is not symmetrical.
+        self._last_fov[eye] = fov4
+        p = create_projection_fov(fov4, z_near, z_far)
+        from numpy import array, float64
+        p = array(p, float64)
+        self._projection_matrix[eye] = p
+
+    def _update_projection(self, eye):
+        if self._last_fov[eye] is not None:
+            xr_fov = self._xr.field_of_view[eye]
+            fov4 = (xr_fov.angle_left, xr_fov.angle_right, xr_fov.angle_down, xr_fov.angle_up)
+            if fov4 == self._last_fov[eye]:
+                return
+        self._set_projection_matrices(eye)
 
     def _get_near_clip_distance(self):
         return self._z_near
@@ -638,23 +673,15 @@ class SteamVRCamera(Camera, StateManager):
     @property
     def have_tracker(self):
         return (self._tracker_device_index is not None
-                or self._find_tracker() is not None)
+                or self._xr.find_tracker() is not None)
     
     def tracker_room_position(self):
         i = self._tracker_device_index
         if i is None:
-            i = self._find_tracker()
+            i = self._xr.find_tracker()
             if i is None:
                 return None
-        return self.device_position(i)
-
-    def _find_tracker(self):
-        import openvr
-        for device_id in range(openvr.k_unMaxTrackedDeviceCount):
-            if self._device_type(device_id) == 'tracker' and self._device_connected(device_id):
-                self._tracker_device_index = device_id
-                return device_id
-        return None
+        return self._xr.device_position(i)
         
     def fit_scene_to_room(self,
                           scene_bounds = None,
@@ -736,20 +763,18 @@ class SteamVRCamera(Camera, StateManager):
             td.delete()
             self._texture_drawing = None
 
-        import openvr
-        openvr.shutdown()
-        self._vr_system = None
-        self._compositor = None
+        xr = self._xr
+        if xr is not None:
+            self._xr.shutdown()
+            self._xr = None
+
         self._delete_framebuffers()
 
         self._session.main_view.redraw_needed = True
     
     def _app_quit(self, tname, tdata):
-        # On Linux (Ubuntu 18.04) the ChimeraX process does not exit
-        # if VR has not been shutdown.
-        self._compositor = None
-        import openvr
-        openvr.shutdown()
+        self._xr.shutdown()
+        self._xr = None
 
     def _delete_framebuffers(self):
         fbs = self._framebuffers
@@ -770,21 +795,9 @@ class SteamVRCamera(Camera, StateManager):
     def render(self):
         return self._session.main_view.render
     
-    def _start_frame(self):
-        c = self._compositor
-        if c is None:
-            return
-        c.waitGetPoses(renderPoseArray = self._poses, gamePoseArray = None)
-        self._frame_started = True
-
-    def device_position(self, device_index):
-        p = self._poses[device_index]
-        if not p.bPoseIsValid:
-            return None
-        dp = p.mDeviceToAbsoluteTracking
-        return hmd34_to_position(dp)
-    
     def _next_frame(self, *_):
+#        self._session.main_view.redraw_needed = True  # Make sure to continuously draw
+
         if not self.active:
             # If the session camera is changed from the VR camera
             # without calling the VR camera close method (should
@@ -794,21 +807,29 @@ class SteamVRCamera(Camera, StateManager):
             self.close()
             return
         
-        c = self._compositor
-        if c is None:
+        if self._xr is None:
             return
-
-        self._start_frame()
 
         self.process_controller_events()
         self.user_interface.update_if_needed()
 
-        # Get current headset position in room.
-        import openvr
-        hmd_pose0 = self._poses[openvr.k_unTrackedDeviceIndex_Hmd]
-        if not hmd_pose0.bPoseIsValid:
+        self._session.triggers.activate_trigger('vr update', self)
+    
+    def _start_rendering(self):
+        xr = self._xr
+        if xr is None:
             return
-        H = hmd34_to_position(hmd_pose0.mDeviceToAbsoluteTracking) # head to room coordinates.
+        
+        if not xr.start_frame():
+            return
+
+        self._update_camera_position()
+
+    def _update_camera_position(self):
+        # Get current headset position in room.
+        H = self._xr.hmd_pose()   # head to room coordinates.
+        if H is None:
+            return
         
         # Compute camera scene position from HMD position in room
         from chimerax.geometry import scale
@@ -816,8 +837,6 @@ class SteamVRCamera(Camera, StateManager):
         self.room_position = rp = H * S	# ChimeraX camera coordinates to room coordinates
         Cnew = self.room_to_scene * rp
         self._move_camera_in_room(Cnew)
-
-        self._session.triggers.activate_trigger('vr update', self)
 
     @property
     def scene_scale(self):
@@ -834,41 +853,31 @@ class SteamVRCamera(Camera, StateManager):
     def process_controller_buttons(self):
         
         # Check for button press
-        vrs = self._vr_system
-        import openvr
-        e = openvr.VREvent_t()
-        while vrs.pollNextEvent(e):
-            type = e.eventType
-            if type == openvr.VREvent_TrackedDeviceActivated:
+        xr = self._xr
+        while True:
+            e = xr.poll_next_event()
+            if e is None:
+                break
+            '''
+            type = e.state
+            if type == xr.TrackedDeviceActivated:
                 i = e.trackedDeviceIndex
-                dtype = self._device_type(i)
+                dtype = xr.device_type(i)
                 if dtype == 'controller':
                     self._hand_controller_enabled(i)
                 elif dtype == 'tracker':
                     self._tracker_device_index = i
-            elif type == openvr.VREvent_TrackedDeviceDeactivated:
+            elif type == xr.TrackedDeviceDeactivated:
                 i = e.trackedDeviceIndex
-                dtype = self._device_type(i)
+                dtype = xr.device_type(i)
                 if dtype == 'controller':
                     self._hand_controller_disabled(e.trackedDeviceIndex)
                 elif dtype == 'tracker':
                     self._tracker_device_index = None
             else:
-                for hc in self.hand_controllers():
-                    hc.process_event(e)
-
-    def _device_type(self, device_index):
-        vrs = self._vr_system
-        c = vrs.getTrackedDeviceClass(device_index)
-        import openvr
-        tmap = {openvr.TrackedDeviceClass_Controller: 'controller',
-                openvr.TrackedDeviceClass_GenericTracker: 'tracker',
-                openvr.TrackedDeviceClass_HMD: 'hmd'}
-        return tmap.get(c, 'unknown')
-
-    def _device_connected(self, device_index):
-        vrs = self._vr_system
-        return vrs.isTrackedDeviceConnected(device_index)
+            '''
+            for hc in self.hand_controllers():
+                hc.process_event(e)
 
     def process_controller_motion(self):
 
@@ -892,14 +901,24 @@ class SteamVRCamera(Camera, StateManager):
             v = self._room_camera.camera_position
         else:
             # Stereo eyes view in same direction with position shifted along x.
-            es = self._eye_shift_left if view_num == 0 else self._eye_shift_right
             ss = self.scene_scale
             if ss == 0:
                 v = camera_position
             else:
-                t = es.scale_translation(1/ss)
-                v = camera_position * t
+                # In tests with SteamVR Vive Pro both left and right eyes have
+                # same rotation, and different translation.
+                rv = self._xr.eye_pose[view_num]
+                if rv is None:
+                    v = camera_position
+                else:
+                    # Convert room camera to scene camera
+                    r2s = self.room_to_scene
+                    sorigin = r2s * rv.origin()
+                    srot = (r2s * rv).zero_translation().remove_scale()
+                    from chimerax.geometry import translation
+                    v = translation(sorigin) * srot
         return v
+
 
     def number_of_views(self):
         '''Number of views rendered by camera.'''
@@ -929,50 +948,39 @@ class SteamVRCamera(Camera, StateManager):
             nf = (self._z_near/ss, self._z_far/ss) if ss > 0 else near_far_clip
             p = self._room_camera.projection_matrix(nf, view_num, window_size)
             return p
-        elif view_num == 0:
-            p = self._projection_left
-        elif view_num == 1:
-            p = self._projection_right
+        elif view_num == 0 or view_num == 1:
+            self._update_projection(view_num)
+            p = self._projection_matrix[view_num]
         pm = p.copy()
         pm[:3,:] *= self.scene_scale
         return pm
 
     def set_render_target(self, view_num, render):
         '''Set the OpenGL drawing buffer and viewport to render the scene.'''
-        if not self._frame_started:
-            self._start_frame()	# Window resize causes draw without new frame trigger.
-        left_fb, right_fb = self._eye_framebuffers(render)
+        debug ('setting xr render target for eye', view_num)
+#        if not self._frame_started:
+#            self._start_frame()	# Window resize causes draw without new frame trigger.
+#        left_fb, right_fb = self._eye_framebuffers(render)
+        xr = self._xr
+        if view_num == 0:
+            self._start_rendering()
         if view_num == 0:  # VR left-eye
-            render.push_framebuffer(left_fb)
+            xr.set_opengl_render_target(render, 'left')
         elif view_num == 1:  # VR right-eye
             # Submit left eye texture (view 0) before rendering right eye (view 1)
-            self._submit_eye_image('left', left_fb.openvr_texture, render)
-            render.pop_framebuffer()
-            render.push_framebuffer(right_fb)
+#            if self._session.main_view.frame_number % 2 == 0:
+#             from chimerax.graphics.opengl import GL
+#             GL.glClearColor(0,0,0,1)
+#             GL.glClear(GL.GL_COLOR_BUFFER_BIT)
+            xr.release_opengl_render_target(render, 'left')
+            xr.set_opengl_render_target(render, 'right')
         elif view_num == 2: # independent camera desktop view
             # Submit right eye texture (view 1) before rendering desktop (view 2)
-            self._submit_eye_image('right', right_fb.openvr_texture, render)
-            render.pop_framebuffer()
+            xr.release_opengl_render_target(render, 'right')
             self._room_camera.start_rendering(render)
-
-    def _submit_eye_image(self, side, texture, render):
-        '''Side is "left" or "right".'''
-        import openvr
-        eye = openvr.Eye_Left if side == 'left' else openvr.Eye_Right
-        # Caution: compositor.submit() changes the OpenGL read framebuffer binding to 0.
-        result = self._compositor.submit(eye, texture)
-        if self._use_opengl_flush:
-            render.flush()
-        self._check_for_compositor_error(side, result, render)
-
-    def _check_for_compositor_error(self, eye, result, render):
-        if result is not None:
-            self._session.logger.info('SteamVR compositor submit for %s eye returned error %d'
-                                      % (eye, result))
-        err_msg = render.check_for_opengl_errors()
-        if err_msg:
-            self._session.logger.info('SteamVR compositor submit for %s eye produced an OpenGL error "%s"'
-                                      % (eye, err_msg))
+        msg = render.check_for_opengl_errors()
+        if msg:
+            error('OpenGL error after set_render_target, eye', eye, msg)
 
     def combine_rendered_camera_views(self, render):
         '''
@@ -980,26 +988,32 @@ class SteamVRCamera(Camera, StateManager):
         by set_render_target() when render target switched to right eye.
         '''
         if self.number_of_views() == 2:
-            rtex = render.current_framebuffer().openvr_texture
-            self._submit_eye_image('right', rtex, render)
+            self._xr.release_opengl_render_target(render, 'right')
+        else:
+            render.pop_framebuffer()	# ChimeraX window rendering
 
-        render.pop_framebuffer()
-        
         if self.mirror:
             # Render right eye to ChimeraX window.
             drawing = self._desktop_drawing()
             from chimerax.graphics.drawing import draw_overlays
             draw_overlays([drawing], render)
 
+#        msg = render.check_for_opengl_errors()
+#        if msg:
+#            error('OpenGL error before xr.end_frame(): ', msg)
+        self._xr.end_frame()
+#        msg = render.check_for_opengl_errors()
+#        if msg:
+#            error('OpenGL error after xr.end_frame(): ', msg)
+
+
         rc = self._room_camera
         if rc:
             rc.finish_rendering(render)
             
-        self._frame_started = False
-
     def _eye_framebuffers(self, render):
 
-        tw,th = self._render_size
+        tw,th = self._xr.render_size
         fbs = self._framebuffers
         if not fbs or fbs[0].width != tw or fbs[0].height != th:
             self._delete_framebuffers()
@@ -1009,13 +1023,6 @@ class SteamVRCamera(Camera, StateManager):
                 t.initialize_rgba((tw,th))
                 fb = opengl.Framebuffer('VR %s eye' % eye, render.opengl_context, color_texture = t)
                 fbs.append(fb)
-                # OpenVR texture id object
-                import openvr
-                fb.openvr_texture = ovrt = openvr.Texture_t()
-                from ctypes import c_void_p
-                ovrt.handle = c_void_p(int(t.id))
-                ovrt.eType = openvr.TextureType_OpenGL
-                ovrt.eColorSpace = openvr.ColorSpace_Gamma
         return fbs
 
     def _desktop_drawing(self):
@@ -1024,7 +1031,7 @@ class SteamVRCamera(Camera, StateManager):
         if rc:
             texture = rc.framebuffer(self.render).color_texture
         else:
-            texture = self._framebuffers[1].color_texture
+            texture = self._xr._framebuffers[1].color_texture
         td = self._texture_drawing
         if td is None:
             # Drawing object for rendering to ChimeraX window
@@ -1033,9 +1040,9 @@ class SteamVRCamera(Camera, StateManager):
             td.opaque_texture = True
         else:
             td.texture = texture
-        window_size = self.render.render_size()
-        from chimerax.graphics.drawing import match_aspect_ratio
-        match_aspect_ratio(td, window_size)
+            window_size = self.render.render_size()
+            from chimerax.graphics.drawing import match_aspect_ratio
+            match_aspect_ratio(td, window_size)
         return td
 
     def do_swap_buffers(self):
@@ -1045,63 +1052,34 @@ class SteamVRCamera(Camera, StateManager):
         return self._hand_controllers
 
     def _hand_controller_enabled(self, device_id):
-        self._assign_hand_controller(device_id)
+        side = self._xr.controller_left_or_right(device_id)
+        self._assign_hand_controller(device_id, side)
 
     def _hand_controller_disabled(self, device_id):
         for hc in self._hand_controllers:
             if hc.device_index == device_id:
                 hc.device_index = None
-        
+                
     def _find_hand_controllers(self):
         # Find hand controllers that are turned on.
-        import openvr
-        for device_id in range(openvr.k_unMaxTrackedDeviceCount):
-            self._assign_hand_controller(device_id)
+        for device_id, side in self._xr.hand_controllers():
+            self._assign_hand_controller(device_id, side)
 
-    def _assign_hand_controller(self, device_id):
-        d = device_id
-        if self._device_type(d) != 'controller':
-            return
-        vrs = self._vr_system
-        if not vrs.isTrackedDeviceConnected(d):
-            return
-        left_or_right = self._controller_left_or_right(d)
+    def _assign_hand_controller(self, device_id, side):
         assigned = False
         for hc in self._hand_controllers:
-            if hc.left_or_right == left_or_right:
+            if hc.left_or_right == side:
                 if hc.device_index is None:
-                    hc.device_index = d
+                    hc.device_index = device_id
                     assigned = True
         if not assigned:
             # This happens when a second right or left controller activates.
             # In this case don't believe its purported right/left.
             for hc in self._hand_controllers:
                 if hc.device_index is None:
-                    hc.device_index = d
+                    hc.device_index = device_id
                     assigned = True
 
-    def _controller_left_or_right(self, device_index):
-        vrs = self._vr_system
-
-        import openvr
-        left_id = vrs.getTrackedDeviceIndexForControllerRole(openvr.TrackedControllerRole_LeftHand)
-        if device_index == left_id:
-            return 'left'
-        right_id = vrs.getTrackedDeviceIndexForControllerRole(openvr.TrackedControllerRole_RightHand)
-        if device_index == right_id:
-            return 'right'
-
-        # Above left and right role are 2**32-1 for Oculus when first started.
-        # Try looking at the controller name.
-        model_name = vrs.getStringTrackedDeviceProperty(device_index,
-                                                        openvr.Prop_RenderModelName_String)
-        if model_name.endswith('right'):
-            return 'right'
-        if model_name.endswith('left'):
-            return 'left'
-
-        # Don't know whether left or right.
-        return 'right'
 
     def _vr_control_model_group(self):
         g = self._vr_model_group
@@ -1113,7 +1091,7 @@ class SteamVRCamera(Camera, StateManager):
             session.models.add([g], minimum_id = self._vr_model_group_id)
             self._vr_model_group = g
         return g
-        
+    
     def other_controller(self, controller):
         for hc in self.hand_controllers():
             if hc != controller and hc.on:
@@ -1136,10 +1114,9 @@ class SteamVRCamera(Camera, StateManager):
         try:
             c = vr_camera(session)
         except Exception as e:
-            # Probably failed to import openvr on Mac ARM.  Bug #9431
             session.logger.info(str(e))
             return None
-            
+        
         c.room_to_scene = data['room_to_scene']
         for hc, ba in zip(c._hand_controllers, data['button_assignments']):
             hc.button_assignments = ba
@@ -1151,7 +1128,7 @@ class SteamVRCamera(Camera, StateManager):
                 except Exception as e:
                     # Failed to start VR.
                     session.logger.info(str(e))
-                from chimerax.core.triggerset import DEREGISTER
+                    from chimerax.core.triggerset import DEREGISTER
                 return DEREGISTER
             session.triggers.add_handler('end restore session', start_vr)
         return c
@@ -1364,7 +1341,7 @@ class RoomCameraModel(Model):
     def delete(self):
         cam = self.session.main_view.camera
         Model.delete(self)
-        if isinstance(cam, SteamVRCamera):
+        if isinstance(cam, OpenXRCamera):
             cam.enable_room_camera(False)
             
     def _get_room_position(self):
@@ -1412,7 +1389,7 @@ class RoomCameraModel(Model):
         This is used to suppress screen drawing so it does not block the view.
         '''
         c = self.session.main_view.camera
-        if isinstance(c, SteamVRCamera):
+        if isinstance(c, OpenXRCamera):
             rc = c.room_camera
             return rc and rc.is_rendering
         return False
@@ -1458,9 +1435,8 @@ class UserInterface:
         self._tool_hide_handler = None
 
         # Buttons that can be pressed on user interface.
-        import openvr
-        self.buttons = (openvr.k_EButton_SteamVR_Trigger, openvr.k_EButton_Grip, openvr.k_EButton_SteamVR_Touchpad,
-                        openvr.k_EButton_A)
+        b = button_ids()
+        self.buttons = (b.trigger, b.grip, b.touchpad, b.A)
         
     def close(self):
         ui = self._ui_model
@@ -2451,7 +2427,7 @@ class PanelDrawing(Drawing):
         and the GUI panels are to be hidden.
         '''
         c = self.parent.session.main_view.camera
-        if isinstance(c, SteamVRCamera):
+        if isinstance(c, OpenXRCamera):
             rc = c.room_camera
             return rc and rc.is_rendering and not rc.show_gui_panels
         return False
@@ -2484,7 +2460,7 @@ class HandController:
         self._length = length
         self._radius = radius
 
-        self._device_index = None
+        self._device_name = left_or_right
         self._hand_model = None
         
         # Assign actions bound to controller buttons
@@ -2493,22 +2469,7 @@ class HandController:
 
     @property
     def on(self):
-        return self._device_index is not None
-
-    def _get_device_index(self):
-        return self._device_index
-    def _set_device_index(self, device_index):
-        if device_index == self._device_index:
-            return
-        self._device_index = device_index
-        if device_index is not None:
-            self._set_controller_type()
-            if self.hand_model is None:
-                self._create_hand_model()
-            self._set_initial_button_assignments()
-        else:
-            self._close_hand_model()
-    device_index = property(_get_device_index, _set_device_index)
+        return self._camera._xr.device_active(self._device_name)
 
     @property
     def hand_model(self):
@@ -2516,34 +2477,25 @@ class HandController:
         if hm and hm.deleted:
             self._hand_model = hm = None
         return hm
-    
-    @property
-    def _vr_system(self):
-        return self._camera._vr_system
 
     def _set_controller_type(self):
-        vrs = self._camera._vr_system
-        from openvr import Prop_RenderModelName_String
-        model_name = vrs.getStringTrackedDeviceProperty(self._device_index,
-                                                        Prop_RenderModelName_String)
-        # 'vr_controller_vive_1_5' for vive pro
-        # 'oculus_cv1_controller_right', 'oculus_cv1_controller_left'
-        # 'oculus_rifts_controller_right', 'oculus_rifts_controller_left'
+#        model_name = self._camera._xr.controller_model_name(self._device_name)
+        runtime = self._camera._xr.runtime_name()
+        if runtime.startswith('Oculus'):
+            model_name = f'oculus {self._side}'
+        elif runtime.startswith('SteamVR'):
+            model_name = 'htc vive'
+        else:
+            model_name = 'unknown'
         self._controller_type = model_name
-
         self._is_oculus = model_name.startswith('oculus')
 
     def _initial_button_modes(self):
 
         if not hasattr(self, '_is_oculus'):
             return {}	# VR not started yet, so we don't know controller type.
-        
-        from openvr import \
-            k_EButton_Grip as grip, \
-            k_EButton_ApplicationMenu as menu, \
-            k_EButton_SteamVR_Trigger as trigger, \
-            k_EButton_SteamVR_Touchpad as touchpad, \
-            k_EButton_A as a
+
+        b = button_ids()
         
         if self._is_oculus:
             # Oculus touch controller left and right buttons:
@@ -2556,18 +2508,18 @@ class HandController:
             thumbstick_mode = ZoomMode() if right else MoveSceneMode()
             ax_mode = ZoomMode() if right else RecenterMode()
             initial_modes = {
-                menu: ShowUIMode(),
-                trigger: MoveSceneMode(),
-                grip: MoveSceneMode(),
-                a: ax_mode,
-                touchpad: thumbstick_mode
+                b.menu: ShowUIMode(),
+                b.trigger: MoveSceneMode(),
+                b.grip: MoveSceneMode(),
+                b.A: ax_mode,
+                b.touchpad: thumbstick_mode
             }
         else:
             initial_modes = {
-                menu: ShowUIMode(),
-                trigger: MoveSceneMode(),
-                grip: RecenterMode(),
-                touchpad: ZoomMode()
+                b.menu: ShowUIMode(),
+                b.trigger: MoveSceneMode(),
+                b.grip: RecenterMode(),
+                b.touchpad: ZoomMode()
             }
 
         return initial_modes
@@ -2581,6 +2533,7 @@ class HandController:
     def _create_hand_model(self):
         # Create hand model
         name = '%s hand' % self.left_or_right
+        self._set_controller_type()
         c = self._camera
         self._hand_model = hm = HandModel(c._session, name,
                                           length=self._length, radius=self._radius,
@@ -2590,8 +2543,7 @@ class HandController:
         parent.add([hm])
 
         # Set icons for buttons
-        for button, mode in self._modes.items():
-            hm._set_button_icon(button, mode.icon_path)
+        self._set_initial_button_assignments()
 
         return hm
     
@@ -2627,7 +2579,6 @@ class HandController:
         return self._side
     
     def close(self):
-        self._device_index = None
         self._active_drag_modes.clear()
         self._close_hand_model()
 
@@ -2641,8 +2592,7 @@ class HandController:
     def _update_position(self):
         '''Move hand controller model to new position.
         Keep size constant in physical room units.'''
-        di = self._device_index
-        if di is None:
+        if not self.on:
             return
 
         hm = self.hand_model
@@ -2650,7 +2600,7 @@ class HandController:
             # Hand model was delete by user, so recreate it.
             hm = self._create_hand_model()
 
-        hpos = self._camera.device_position(di)
+        hpos = self._camera._xr.device_position(self._device_name)
         if hpos is not None:
             hm.room_position = hpos
         self.update_scene_position()
@@ -2661,23 +2611,30 @@ class HandController:
             hm.position = self._camera.room_to_scene * hm.room_position
             
     def process_event(self, e):
-        if e.trackedDeviceIndex != self._device_index:
+        if e.device_name != self._device_name:
             return
 
         # Handle trackpad touch events.  This is diffent from a button press.
         if self._process_touch_event(e):
             return
 
+        from .openxr import XYEvent, ButtonEvent
+        if isinstance(e, XYEvent):
+            self._process_thumbstick_event(e)
+        elif isinstance(e, ButtonEvent):
+            self._process_button_event(e)
+
+    def _process_button_event(self, e):
         # Handle button press events.
-        t = e.eventType
-        import openvr
-        pressed = (t == openvr.VREvent_ButtonPress)
-        released = (t == openvr.VREvent_ButtonUnpress)
+        t = e.state
+        xr = self._camera._xr
+        pressed = (t == e.BUTTON_PRESSED)
+        released = (t == e.BUTTON_RELEASED)
         if not pressed and not released:
             return
 
         # Check for click on user interface panel.
-        b = e.data.controller.button
+        b = e.button
         hm = self.hand_model
         if hm:
             hm._show_button_down(b, pressed)
@@ -2691,11 +2648,26 @@ class HandController:
         # Call HandMode event callback.
         if m:
             event = HandButtonEvent(self, b, pressed = pressed, released = released)
-            if b == openvr.k_EButton_SteamVR_Touchpad:
+            if b == button_ids().touchpad:
                 x, y = self._touchpad_position()
                 if x is not None and y is not None:
                     event.touchpad_position = (x,y)
             self._dispatch_event(m, event)
+
+    def _process_thumbstick_event(self, e):
+        ts_mode = self._thumbstick_mode()
+        if ts_mode is None or not ts_mode.uses_thumbstick():
+            return
+        x,y = e.xy
+        min_tilt = .1
+        if abs(x) < min_tilt and abs(y) < min_tilt:
+            return
+
+        event = HandThumbstickEvent(self, x, y)
+        ts_mode.thumbstick(event)
+        
+        if event.took_step:
+            self._update_ui(ts_mode)
 
     def _dispatch_event(self, mode, hand_event):
         if hand_event.pressed:
@@ -2742,20 +2714,20 @@ class HandController:
     
     def _thumbstick_mode(self):
         if self._is_oculus:
-            import openvr
-            mode = self._modes.get(openvr.k_EButton_SteamVR_Touchpad)
+            mode = self._modes.get(button_ids().touchpad)
         else:
             mode = None
         return mode
     
     def _process_touch_event(self, e):
-        t = e.eventType
-        import openvr
-        if ((t == openvr.VREvent_ButtonTouch or t == openvr.VREvent_ButtonUntouch)
-            and e.data.controller.button == openvr.k_EButton_SteamVR_Touchpad):
-            m = self._modes.get(openvr.k_EButton_SteamVR_Touchpad)
+        return False
+        t = e.state
+        xr = self._camera._xr
+        if ((t == xr.ButtonTouchEvent or t == xr.ButtonUntouchEvent)
+            and e.data.controller.button == button_ids().touchpad):
+            m = self._modes.get(button_id().touchpad)
             if m:
-                if t == openvr.VREvent_ButtonTouch:
+                if t == xr.ButtonTouchEvent:
                     m.touch()
                 else:
                     m.untouch()
@@ -2763,8 +2735,7 @@ class HandController:
         return False
 
     def uses_touch_motion(self):
-        import openvr
-        m = self._modes.get(openvr.k_EButton_SteamVR_Touchpad)
+        m = self._modes.get(button_ids().touchpad)
         return m.uses_touch_motion if m else False
         
     def process_motion(self):
@@ -2787,45 +2758,17 @@ class HandController:
             for m in self._active_drag_modes:
                 m.drag(HandMotionEvent(self, m._button_down, previous_pose, pose))
 
-        # Check for Oculus thumbstick position
-        self._send_thumbstick_events()
-
-    def _send_thumbstick_events(self):
-        ts_mode = self._thumbstick_mode()
-        if ts_mode is None or not ts_mode.uses_thumbstick():
-            return
-        x,y = self._thumbstick_position()
-        if x is None or y is None:
-            return
-        min_tilt = .1
-        if abs(x) < min_tilt and abs(y) < min_tilt:
-            return
-
-        event = HandThumbstickEvent(self, x, y)
-        ts_mode.thumbstick(event)
-        
-        if event.took_step:
-            self._update_ui(ts_mode)
-
-    def _thumbstick_position(self):
-        # Position range is -1 to 1 on each axis.
-        success, cstate = self._vr_system.getControllerState(self._device_index)
-        if success:
-            # On Oculus Rift S, axis 0=thumbstick, 1=trigger, 2=grip
-            astate = cstate.rAxis[0]
-            return astate.x, astate.y
-        return None, None
-
     def _touchpad_position(self):
-        return self._thumbstick_position()
+        return (0,0)
+#        return self._thumbstick_position()
 
     def _check_for_missing_button_release(self):
         '''Cancel drag modes if button has been released even if we didn't get a button up event.'''
         adm = self._active_drag_modes
         if len(adm) == 0:
             return
-        success, cstate = self._vr_system.getControllerState(self._device_index)
-        if success:
+        cstate = self._camera._xr.controller_state(self._device_name)
+        if cstate is not None:
             pressed_mask = cstate.ulButtonPressed
             for m in tuple(adm):
                 b = m._button_down
@@ -2911,7 +2854,7 @@ class HandModel(Model):
         and the hand models are to be hidden.
         '''
         c = self.session.main_view.camera
-        if isinstance(c, SteamVRCamera):
+        if isinstance(c, OpenXRCamera):
             rc = c.room_camera
             hide = (rc and rc.is_rendering and not rc.show_hands)
             return hide
@@ -2920,27 +2863,25 @@ class HandModel(Model):
 class HandButtons:
     def __init__(self, controller_type = 'htc vive'):
         # Cone buttons
-        import openvr
-        buttons = [
-        ]
+        b = button_ids()
         if controller_type.startswith('oculus'):
             right_hand = controller_type.endswith('right')
             side, thumb_side, menu_side, stick_side = (180,110,140,80) if right_hand else (0,70,40,100)
             buttons = [
-                ButtonGeometry(openvr.k_EButton_SteamVR_Trigger, z=.4, radius=.01, azimuth=270, tex_range=(.167,.333)),
-                ButtonGeometry(openvr.k_EButton_SteamVR_Touchpad, z=.35, radius=.008, azimuth=stick_side, tex_range=(.333,.5)),
-                ButtonGeometry(openvr.k_EButton_A, z=.47, radius=.006, azimuth=thumb_side, tex_range=(.5,.667)),
-                ButtonGeometry(openvr.k_EButton_Grip, z=.6, radius=.01, azimuth=side, tex_range=(.667,.833)),
-                ButtonGeometry(openvr.k_EButton_ApplicationMenu, z=.4, radius=.006, azimuth=menu_side, tex_range=(.833,1)),
+                ButtonGeometry(b.trigger, z=.4, radius=.01, azimuth=270, tex_range=(.167,.333)),
+                ButtonGeometry(b.touchpad, z=.35, radius=.008, azimuth=stick_side, tex_range=(.333,.5)),
+                ButtonGeometry(b.A, z=.47, radius=.006, azimuth=thumb_side, tex_range=(.5,.667)),
+                ButtonGeometry(b.grip, z=.6, radius=.01, azimuth=side, tex_range=(.667,.833)),
+                ButtonGeometry(b.menu, z=.4, radius=.006, azimuth=menu_side, tex_range=(.833,1)),
             ]
         else:
             # Vive controllers
             buttons = [
-                ButtonGeometry(openvr.k_EButton_SteamVR_Trigger, z=.5, radius=.01, azimuth=270, tex_range=(.2,.4)),
-                ButtonGeometry(openvr.k_EButton_SteamVR_Touchpad, z=.5, radius=.01, azimuth=90, tex_range=(.4,.6)),
-                ButtonGeometry(openvr.k_EButton_Grip, z=.7, radius=.01, azimuth=0, tex_range=(.6,.8)),
-                ButtonGeometry(openvr.k_EButton_Grip, z=.7, radius=.01, azimuth=180, tex_range=(.6,.8)),
-                ButtonGeometry(openvr.k_EButton_ApplicationMenu, z=.35, radius=.006, azimuth=90, tex_range=(.8,1)),
+                ButtonGeometry(b.trigger, z=.5, radius=.01, azimuth=270, tex_range=(.2,.4)),
+                ButtonGeometry(b.touchpad, z=.5, radius=.01, azimuth=90, tex_range=(.4,.6)),
+                ButtonGeometry(b.grip, z=.7, radius=.01, azimuth=0, tex_range=(.6,.8)),
+                ButtonGeometry(b.grip, z=.7, radius=.01, azimuth=180, tex_range=(.6,.8)),
+                ButtonGeometry(b.menu, z=.35, radius=.006, azimuth=90, tex_range=(.8,1)),
             ]
                 
         self._buttons = buttons
@@ -3115,8 +3056,7 @@ class HandEvent:
         return self._button
     @property
     def is_touchpad(self):
-        import openvr
-        return self._button == openvr.k_EButton_SteamVR_Touchpad
+        return self._button == button_ids().touchpad
     def _get_touchpad_position(self):
         return self._touchpad_position
     def _set_touchpad_position(self, xy):
@@ -3207,8 +3147,7 @@ class HandMotionEvent(HandEvent):
 
 class HandThumbstickEvent(HandEvent):
     def __init__(self, hand_controller, x, y):
-        import openvr
-        button = openvr.k_EButton_SteamVR_Touchpad
+        button = button_ids().touchpad
         HandEvent.__init__(self, hand_controller, button)
         self._x = x
         self._y = y
@@ -3638,4 +3577,52 @@ def hmd34_to_position(hmat34):
     from numpy import array, float32
     p = Place(array(hmat34.m, float32))
     return p
+
+def error(*args):
+    print(*args)
     
+def debug(*args):
+    pass
+#    print(*args)
+
+def create_projection_fov(fov4, near_z, far_z):
+    """
+    Creates a projection matrix based on the specified non-symmetrical FOV.
+    Angles in radians.  Returns numpy 4x4 matrix suitable for OpenGL.
+    """
+    angle_left, angle_right, angle_down, angle_up = fov4
+    from math import tan
+    tan_left = tan(angle_left)
+    tan_right = tan(angle_right)
+    tan_down = tan(angle_down)
+    tan_up = tan(angle_up)
+
+    tan_width = tan_right - tan_left
+    tan_height = (tan_up - tan_down)
+    offset_z = near_z
+
+    m00 = 2.0 / tan_width
+    m10 = 0.0
+    m20 = (tan_right + tan_left) / tan_width
+    m30 = 0.0
+
+    m01 = 0.0
+    m11 = 2.0 / tan_height
+    m21 = (tan_up + tan_down) / tan_height
+    m31 = 0.0
+
+    m02 = 0.0
+    m12 = 0.0
+    m22 = -(far_z + offset_z) / (far_z - near_z)
+    m32 = -(far_z * (near_z + offset_z)) / (far_z - near_z)
+
+    m03 = 0.0
+    m13 = 0.0
+    m23 = -1.0
+    m33 = 0.0
+
+    m = ((m00, m01, m02, m03),
+         (m10, m11, m12, m13),
+         (m20, m21, m22, m23),
+         (m30, m31, m32, m33))
+    return m
