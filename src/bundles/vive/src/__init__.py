@@ -18,8 +18,12 @@ class _VRAPI(BundleAPI):
     @staticmethod
     def register_command(command_name, logger):
         # 'register_command' is lazily called when the command is referenced
-        from . import vr
-        vr.register_vr_command(logger)
+        if command_name == 'vr':
+            from . import vr
+            vr.register_vr_command(logger)
+        elif command_name == 'xr':
+            from . import xr
+            xr.register_vr_command(logger)
 
     @staticmethod
     def initialize(session, bundle_info):

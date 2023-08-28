@@ -1252,7 +1252,7 @@ class AtomicStructure(Structure):
         super().added_to_session(session)
 
         if self._log_info:
-            #self._report_emdb_info(session)
+            @self._report_emdb_info(session)
             # don't report models in an NMR ensemble individually...
             if len(self.id) > 1:
                 sibs = [m for m in session.models
