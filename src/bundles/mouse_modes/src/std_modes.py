@@ -100,7 +100,7 @@ class SelectMouseMode(MouseMode):
         from Qt.QtCore import QPoint
         p = QPoint(*event.global_position())
         ses.ui.post_context_menu(menu, p)
-        
+
     @staticmethod
     def register_menu_entry(menu_entry):
         '''Register a context-menu entry shown when double-clicking in select mode.
@@ -701,7 +701,7 @@ class MovePickedModelsMouseMode(TranslateMouseMode):
         # Virtual reality hand controller button release.
         TranslateMouseMode.vr_release(self, event)
         self._picked_models = None
-        
+
 class TranslateSelectedAtomsMouseMode(TranslateMouseMode):
     '''
     Mouse mode to translate selected atoms.
@@ -850,7 +850,7 @@ class MoveToCenterMode(MouseMode):
     name = 'center'
 
     frames = 10		# Animate motion over this number of frames
-    
+
     def mouse_down(self, event):
         MouseMode.mouse_down(self, event)
         xyz = _picked_xyz(event, self.session)
