@@ -495,7 +495,7 @@ class SegmentationTool(ToolInstance):
         self.slider_container = QWidget(self.parent)
         self.slider_layout = QHBoxLayout()
 
-        self.intensity_range_label = QLabel("Intensity Range")
+        self.intensity_range_checkbox = QCheckBox("Restrict Intensity Range")
         self.range_slider = QRangeSlider(Qt.Orientation.Horizontal)
         self.lower_intensity_spinbox = QSpinBox(self.slider_container)
         self.upper_intensity_spinbox = QSpinBox(self.slider_container)
@@ -507,7 +507,7 @@ class SegmentationTool(ToolInstance):
         self.slider_layout.addWidget(self.upper_intensity_spinbox)
         self.slider_layout.setContentsMargins(0, 0, 0, 0)
         self.slider_container.setLayout(self.slider_layout)
-        self.main_layout.addWidget(self.intensity_range_label)
+        self.main_layout.addWidget(self.intensity_range_checkbox)
         self.main_layout.addWidget(self.slider_container)
 
         self.main_layout.addStretch()
@@ -713,7 +713,7 @@ class SegmentationTool(ToolInstance):
             radius = self.segmentation_cursors[axis].radius
             positions.append((center_x, center_y, radius))
         # TODO: Add a checkbox
-        if True:
+        if self.intensity_range_checkbox.isChecked():
             self.active_seg.set_2d_segment_data(axis, slice, positions, value, self.threshold_min, self.threshold_max)
         else:
             self.active_seg.set_2d_segment_data(axis, slice, positions, value)
