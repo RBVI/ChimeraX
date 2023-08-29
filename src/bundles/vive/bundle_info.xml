@@ -28,7 +28,8 @@
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>Command :: vr :: General :: Render to virtual reality headsets</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: vr :: General :: Render to virtual reality headsets using SteamVR</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: xr :: General :: Render to virtual reality headsets using OpenXR</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: device vr :: General :: Render to virtual reality headsets</ChimeraXClassifier>
   </Classifiers>
 

@@ -9,7 +9,7 @@ LANG	= en_US.UTF-8
 
 # tcia_utils.patch: Fix needless import of x86_64 zmq on macOS, see Trac#8638
 # Remove if tcia_utils removes those imports
-PATCHES = tcia_utils.patch tcia_utils_metadata.patch pyopengl.patch
+PATCHES = tcia_utils.patch tcia_utils_metadata.patch pyopengl.patch pyopenxr.patch
 PYTABLES_DYLIBS = libblosc.1.dylib libhdf5.200.dylib libsnappy.1.dylib \
 				  libc++.1.dylib libcrypto.3.dylib libssl.3.dylib
 
@@ -94,6 +94,7 @@ endif
 		$(FETCH_PREREQ) $$prereq; \
 	done
 	$(APP_PIP_INSTALL) -r app_pyopengl_requirements.txt
+	$(APP_PIP_INSTALL) --no-dependencies -r app_pyopenxr_requirements.txt
 	$(APP_PIP_INSTALL) $(PLATO_WHEELS)
 	-for p in $(PATCHES); do \
 		patch --ignore-whitespace -d $(APP_PYSITEDIR) -N -p0 < $$p ; \
