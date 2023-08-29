@@ -15,7 +15,7 @@ from .segmentations import SegmentationTool
 
 class Segmentation3DMouseMode(MouseMode):
     name = 'vr segmentations'
-    icon_file = 'segmentations.png'
+    icon_file = 'segmentation.png'
     passively_follows_mouse = False
     # TODO: pasively_follows_hands = True
 

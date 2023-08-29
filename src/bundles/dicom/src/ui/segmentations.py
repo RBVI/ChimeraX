@@ -167,6 +167,7 @@ class SegmentationTool(ToolInstance):
         self.parent.setLayout(self.main_layout)
         self.tool_window.manage('side')
         self.segmentation_cursors = {}
+        self.segmentation_sphere = None
         self._create_2d_segmentation_pucks()
         self.segmentations = {}
         self.current_segmentation = None
