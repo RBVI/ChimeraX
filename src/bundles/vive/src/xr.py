@@ -511,7 +511,7 @@ class OpenXRCamera(Camera, StateManager):
         self._vr_model_group = None	# Grouping model for hand controllers and UI models
         self._vr_model_group_id = 100	# Keep VR model group at bottom of model panel
 
-        self._mirror = True		# Whether to render to desktop graphics window.
+        self._mirror = False		# Whether to render to desktop graphics window.
         self._room_camera = None	# RoomCamera, fixed view camera independent of VR headset
 
         from chimerax.geometry import Place
