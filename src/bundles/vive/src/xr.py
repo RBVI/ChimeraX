@@ -995,8 +995,9 @@ class OpenXRCamera(Camera, StateManager):
         if self.mirror:
             # Render right eye to ChimeraX window.
             drawing = self._desktop_drawing()
-            from chimerax.graphics.drawing import draw_overlays
-            draw_overlays([drawing], render)
+            if drawing is not None:
+                from chimerax.graphics.drawing import draw_overlays
+                draw_overlays([drawing], render)
 
 #        msg = render.check_for_opengl_errors()
 #        if msg:
@@ -1031,7 +1032,11 @@ class OpenXRCamera(Camera, StateManager):
         if rc:
             texture = rc.framebuffer(self.render).color_texture
         else:
-            texture = self._xr._framebuffers[1].color_texture
+            xr_framebuffers = self._xr._framebuffers
+            if len(xr_framebuffers) >= 2:
+                texture = xr_framebuffers[1].color_texture
+            else:
+                return None	# VR headset rendering has not yet started.
         td = self._texture_drawing
         if td is None:
             # Drawing object for rendering to ChimeraX window
