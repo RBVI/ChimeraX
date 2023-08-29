@@ -34,6 +34,7 @@ from chimerax.ui.widgets import ModelMenu
 
 from ..ui.orthoplanes import Axis
 from ..graphics.cylinder import SegmentationDisk
+from ..graphics.sphere import SegmentationSphere
 from ..dicom import modality
 from ..dicom.dicom_volumes import open_dicom_grids, DICOMVolume
 
@@ -224,7 +225,7 @@ class SegmentationTool(ToolInstance):
         # When a session is closed, models are deleted before tools, so we need to
         # fail gracefully if the models have already been deleted
         try:
-            self.session.models.remove(self.segmentation_cursors.values())
+            self._destroy_2d_segmentation_pucks()
         except TypeError:
             pass
         super().delete()
@@ -265,6 +266,21 @@ class SegmentationTool(ToolInstance):
         for cursor in self.segmentation_cursors.values():
             cursor.display = initial_display
 
+    def _destroy_2d_segmentation_pucks(self) -> None:
+        self.session.models.remove(self.segmentation_cursors.values())
+        self.segmentation_cursors = {}
+
+    def _create_3d_segmentation_sphere(self) -> None:
+        self.segmentation_sphere = SegmentationSphere(
+            "Segmentation Sphere"
+            , self.session
+            ,
+        )
+
+    def _destroy_3d_segmentation_sphere(self) -> None:
+        self.session.models.remove([self.segmentation_sphere])
+        self.segmentation_sphere = None
+
     def make_puck_visible(self, axis):
         if axis in self.segmentation_cursors:
             self.segmentation_cursors[axis].display = True
@@ -297,9 +313,9 @@ class SegmentationTool(ToolInstance):
             positions.append((center_x, center_y, radius))
         # TODO: Add a checkbox
         if True:
-            self.active_seg.set_segment_data(axis, slice, positions, value, self.threshold_min, self.threshold_max)
+            self.active_seg.set_2d_segment_data(axis, slice, positions, value, self.threshold_min, self.threshold_max)
         else:
-            self.active_seg.set_segment_data(axis, slice, positions, value)
+            self.active_seg.set_2d_segment_data(axis, slice, positions, value)
 
     def addMarkersToSegment(self, axis, slice, markers):
         self.setMarkerRegionsToValue(axis, slice, markers, 1)
@@ -364,17 +380,31 @@ class SegmentationTool(ToolInstance):
     def _on_view_changed(self):
         need_to_register = False
         if self.view_dropdown.currentIndex() == 0:
+            if self.segmentation_sphere:
+                self._destroy_3d_segmentation_sphere()
             run(self.session, "dicom view fourup")
             need_to_register = True
         elif self.view_dropdown.currentIndex() == 1:
+            if self.segmentation_sphere:
+                self._destroy_3d_segmentation_sphere()
             run(self.session, "dicom view overunder")
             need_to_register = True
         elif self.view_dropdown.currentIndex() == 2:
+            if self.segmentation_sphere:
+                self._destroy_3d_segmentation_sphere()
             run(self.session, "dicom view sidebyside")
             need_to_register = True
         else:
             run(self.session, "dicom view default")
+            if self.segmentation_cursors:
+                self._destroy_2d_segmentation_pucks()
+            if not self.segmentation_sphere:
+                self._create_3d_segmentation_sphere()
+            #if self.autostart_vr_checkbox.isChecked():
+            #    run(self.session, "vr on")
         if need_to_register:
+            if not self.segmentation_cursors:
+                self._create_2d_segmentation_pucks()
             if self.session.ui.main_window.view_layout == "orthoplanes":
                 # If no models are open we will not successfully change the view, so
                 # we need to check the view layout before continuing!
@@ -412,3 +442,28 @@ class SegmentationTool(ToolInstance):
 
     def editSegmentMetadata(self, _) -> None:
         pass
+
+    def move_sphere(self, delta_xyz):
+        sm = self.segmentation_sphere
+        dxyz = sm.scene_position.inverse().transform_vector(delta_xyz)	# Transform to sphere local coords.
+        from chimerax.geometry import translation
+        sm.position = sm.position * translation(dxyz)
+
+    def setSphereRegionToValue(self, origin, radius, value=1):
+        # I wasn't able to recycle code from Map Eraser here, unfortunately. Map Eraser uses
+        # numpy.putmask(), which for whatever reason only wanted to work once before I had to call
+        # VolumeSurface.update_surface() on the data's surface. This resulted in an expensive recalculation
+        # on every loop, and it made the interface much slower -- it had to hang while the surface did many
+        # redundant recalculations.
+        # I can already see this becoming a massive PITA when 3D spheres get involved.
+        # TODO: Many segmentations
+        if not self.active_seg:
+            self.addSegment()
+        # TODO: Make this respect the intensity range
+        self.active_seg.set_sphere_data(origin, radius, value)
+
+    def addSphereToSegment(self, origin, radius):
+        self.setSphereRegionToValue(origin, radius, 1)
+
+    def removeSphereFromSegment(self, origin, radius):
+        self.setSphereRegionToValue(origin, radius, 0)

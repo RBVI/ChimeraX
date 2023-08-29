@@ -27,10 +27,34 @@ class DICOMVolume(Volume):
             # in a segmentation
             return True
 
-    def set_segment_data(self, axis: Axis, slice: int, positions, value: int, min_threshold: Optional[float] = None, max_threshold: Optional[float] = None) -> None:
+    def set_2d_segment_data(self, axis: Axis, slice: int, positions, value: int, min_threshold: Optional[float] = None, max_threshold: Optional[float] = None) -> None:
         for position in positions:
             center_x, center_y, radius = position
             self.set_data_in_puck(axis, slice, round(center_x), round(center_y), radius, value, min_threshold, max_threshold)
+        self.data.values_changed()
+
+    def _sphere_grid_bounds(self, center, radius):
+        ijk_center = self.data.xyz_to_ijk(center)
+        spacings = self.data.plane_spacings()
+        ijk_size = [radius/s for s in spacings]
+        from math import floor, ceil
+        ijk_min = [max(int(floor(c-s)), 0) for c,s in zip(ijk_center,ijk_size)]
+        ijk_max = [min(int(ceil(c+s)), m-1) for c, s, m in zip(ijk_center, ijk_size, self.data.size)]
+        return ijk_min, ijk_max
+
+    def set_sphere_data(self, center: tuple, radius: int, value: int) -> None:
+        # Optimization: Mask only subregion containing sphere.
+        ijk_min, ijk_max = self._sphere_grid_bounds(center, radius)
+        from chimerax.map_data import GridSubregion, zone_mask
+        subgrid = GridSubregion(self.data, ijk_min, ijk_max)
+
+        mask = zone_mask(subgrid, [center], radius)
+
+        dmatrix = subgrid.full_matrix()
+
+        from numpy import putmask
+        putmask(dmatrix, mask, value)
+
         self.data.values_changed()
 
     def set_data_in_puck(self, axis: Axis, slice_number: int, left_offset: int, bottom_offset: int, radius: int, value: int, min_threshold: Optional[float] = None, max_threshold: Optional[float] = None) -> None:
@@ -144,9 +168,6 @@ class DICOMVolume(Volume):
         #    if min_threshold <= reference_slice[bottom_offset][i] <= max_threshold:
         #        slice[bottom_offset][i] = value
         slice[bottom_offset][left_offset - scaled_radius:left_offset + scaled_radius][np.where(mask == 1)] = value
-
-    def set_data_in_sphere(self, center: tuple, radius: int, value: int) -> None:
-        ...
 
     def set_step(self, step: int) -> None:
         ijk_min = self.region[0]
