@@ -313,6 +313,18 @@ def write_mol2(session, file_name, *, models=None, atoms=None, status=None, anch
         res_indices = {}
         for i, r in enumerate(residues):
             res_indices[r] = i+1
+        # only output Mol2 type based on mol2_type attribute if _all_ the heavy atoms
+        # have that attribute, and the type corresponds to the current element [#9604]
+        for a in atoms:
+            if hasattr(a, 'mol2_type'):
+                if not a.mol2_type.startswith(a.element.name):
+                    types_valid = False
+                    break
+            elif a.element.number > 1:
+                types_valid = False
+                break
+        else:
+            types_valid = True
         for i, atom in enumerate(atoms):
             # atom ID, starting from 1
             print("%7d" % (i+1), end=" ", file=f)
@@ -337,7 +349,7 @@ def write_mol2(session, file_name, *, models=None, atoms=None, status=None, anch
                         raise
                     raise gaff_fail_error("%s has no Amber/GAFF type assigned.\n"
                         "Use the AddCharge tool to assign Amber/GAFF types." % atom)
-            elif hasattr(atom, 'mol2_type'):
+            elif hasattr(atom, 'mol2_type') and types_valid:
                 atom_type = atom.mol2_type
             elif atom in amide_Ns:
                 atom_type = "N.am"

@@ -9,11 +9,18 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def read_collada_surfaces(session, path, name = None, color = (200,200,200,255), **kw):
+def read_collada_surfaces(session, path_or_stream, name = None, color = (200,200,200,255), **kw):
     '''Open a collada file.'''
 
     from collada import Collada
-    c = Collada(path)
+    if hasattr(path_or_stream, 'read'):
+        stream = path_or_stream
+        path = stream.name
+        c = Collada(stream)
+    else:
+        path = path_or_stream
+        c = Collada(path)
+
     if name is None:
         from os.path import basename
         name = basename(path)

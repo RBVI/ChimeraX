@@ -377,20 +377,23 @@ def write_defattr(session, output, *, models=None, attr_name=None, match_mode="1
                 try:
                     float(val)
                 except ValueError:
+                    if val.lower() in ("true", "false"):
+                        # Could be mis-interpreted as bool
+                        val = '"%s"' % val
                     # string can't be misinterpreted as numeric, check for none/None
-                    if (val == "none" or val == "None") and none_handling != "string":
+                    elif (val == "none" or val == "None") and none_handling != "string":
                         print("none handling: string", file=stream)
                         none_handling = "string"
                 else:
                     val = '"%s"' % val
-            else:
+            elif type(val) != bool:
                 # Can't just "not isinstance(val, (int, float))" because of numpy
                 try:
                     float(str(val))
                 except ValueError:
                     if not type_warning_issued:
                         session.logger.warning("One or more attribute values aren't integer, floating-point,"
-                            " string or None (e.g. %s); skipping those" % repr(val))
+                            " boolean, string or None (e.g. %s); skipping those" % repr(val))
                         type_warning_issued = True
                     continue
             if recipient == "structures":
