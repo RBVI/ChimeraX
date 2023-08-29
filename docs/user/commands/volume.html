@@ -87,6 +87,11 @@ See also:
 <b>vol channels #2-8</b>
 <br>
 <b>vol settings #1</b>
+<br>
+<b><a href="#defaultvalues">vol defaultvalues</a>
+limitVoxelCount false saveSettings true</b>
+<br>
+<b><a href="#defaultvalues">vol default</a> reset true</b>
 </blockquote>
 <p>
 <a name="channels"></a>
@@ -157,6 +162,7 @@ here grouped into categories:
 <img class="icon" border=1 src="../tools/shortcut-icons/brain.png"></a>
 <a href="../tools/medicalimage.html" title="Medical Image Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/initialcurve.png"></a>
+<br><a href="#defaultvalues">Setting Defaults for New Maps</a>
 <br><a href="#vop">Volume Operations (Map Editing)</a>
 <a href="../tools/mousemodes.html" title="Right Mouse Toolbar...">
 <img class="icon" border=1 src="../tools/mouse-icons/eraser.png"></a>
@@ -1334,6 +1340,93 @@ see <a href="#appearance">above</a>) can be redefined, but
 will revert to their built-in definitions.
 </blockquote>
 
+<a name="defaultvalues"></a>
+<p class="nav">
+[<a href="#top">back to top: volume</a>]
+</p>
+<h3>Setting Defaults for New Maps</h3>
+
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>volume defaultvalues</b> 
+[&nbsp;<b>saveSettings</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>reset</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+&nbsp;<i>map-options</i>
+</blockquote>
+<p>
+The <b>volume defaultvalues</b> commmand allows users to set default options
+for subsequently opened maps. Maps that are already open, if any, will
+not be affected. The defaults apply only within the current ChimeraX
+session unless <b>saveSettings true</b> is used to save them as user
+<a href="../preferences.html#other">preferences</a>.
+Using <b>reset true</b> returns all of the relevant settings
+to their factory defaults.
+Giving <b>volume defaultvalues</b> without arguments
+reports the current set of user defaults in the 
+<a href="../tools/log.html"><b>Log</b></a>.
+</p><p>
+The possible <i>map-options</i> are numerous and described in 
+detail in their respective sections:
+</p>
+<ul>
+<li><a href="#general"><b>General Display Options</b></a>:
+ <ul>
+ <li>showOutlineBox
+ <li>OutlineBoxRgb
+ </ul>
+<li><a href="#sampling"><b>Sampling and Size Options</b></a>
+ <ul>
+ <li>limitVoxelCount
+ <li>voxelLimit
+ <li>showOnOpen
+ <li>voxelLimitForOpen
+ <li>showPlane
+ <li>voxelLimitForPlane
+ <li>dataCacheSize
+ </ul>
+<li><a href="#planes"><b>Planes</b></a>
+ <ul>
+ <li>orthoplanes 
+ <li>positionPlanes
+ </ul>
+<li><a href="#dispsurf"><b>Surface and Mesh Display</b></a>
+(all options in section)
+ <ul>
+ <li>surfaceSmoothing
+ <li>smoothingIterations
+ <li>smoothingFactor
+ <li>subdivideSurface
+ <li>subdivisionLevels
+ <li>smoothLines
+ <li>squareMesh
+ <li>dimTransparency
+ <li>meshLighting
+ <li>twoSidedLighting
+ <li>flipNormals
+ <li>capFaces
+ </ul>
+<li><a href="#dispsolid"><b>Image Display</b></a>
+ <ul>
+ <li>imageMode</b> with sub-options 
+tiltedSlabAxis, tiltedSlabOffset, tiltedSlabPlaneCount, tiltedSlabSpacing
+ <li>backingColor
+ <li>colorMode
+ <li>projectionMode
+ <li>planeSpacing
+ <li>dimTransparentVoxels
+ <li>colormapExtendRight
+ <li>colormapExtendLeft
+ <li>colormapOnGpu
+ <li>colormapSize
+ <li>fullRegionOnGpu
+ <li>blendOnGpu
+ <li>maximumIntensityProjection
+ <li>btCorrection
+ <li>minimalTextureMemory
+ <li>linearInterpolation
+ </ul>
+</ul>
+
 <a name="vop"></a>
 <p class="nav">
 [<a href="#top">back to top: volume</a>]
@@ -2011,9 +2104,19 @@ to include the whole morph, place the slider at the far left
 before clicking the record button.
 </p><p>
 The morph is created as a new map (volume) model. However, if the
-<a href="#vop-options"><b>modelId</b></a> of an existing morph map is given,
-the existing morph will be used instead of a new one being calculated.
-</p><p>
+<a href="#vop-options"><b>modelId</b></a> of an existing map is given,
+the existing map model will be reused instead of a new one being added.
+In other words, to &ldquo;replay&rdquo; a morph without losing its coloring,
+zoning, or transparency settings: 
+</p>
+<ol>
+<li>use <b>volume morph</b> an initial time to create the morph model
+<li>apply coloring, zoning, <i>etc.</i> as desired to that model
+<li>use <b>volume morph</b> again, but this time specifying the
+<a href="#vop-options"><b>modelId</b></a> of the existing model so that
+its properties will be retained during playback
+</ol>
+<p>
 See also:
 <a href="vseries.html"><b>vseries</b></a>,
 <a href="morph.html"><b>morph</b></a>,
@@ -2683,5 +2786,5 @@ the original volume, if any.
 </p>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-June 2023</address>
+August 2023</address>
 </body></html>
