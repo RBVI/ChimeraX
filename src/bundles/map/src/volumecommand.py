@@ -394,7 +394,7 @@ def volume(session,
             'symmetry', 'center', 'center_index', 'axis', 'coordinate_system', 'dump_header', 'pickable')
     dsettings = dict((n,loc[n]) for n in dopt if not loc[n] is None)
 
-    rsettings = _render_settings(locals())
+    rsettings = _render_settings(loc)
 
     for v in vlist:
         apply_volume_options(v, dsettings, rsettings, session)
