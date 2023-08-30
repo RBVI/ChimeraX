@@ -66,13 +66,11 @@ def register_volume_command(logger):
                ('smoothing_factor', FloatArg),
                ('square_mesh', BoolArg),
                ('cap_faces', BoolArg),
-               ('orthoplanes', EnumOf(('xyz', 'xy', 'xz', 'yz', 'off'))),
                ('position_planes', Int3Arg),
                ('tilted_slab_axis', AxisArg),
                ('tilted_slab_offset', FloatArg),
                ('tilted_slab_spacing', FloatArg),
                ('tilted_slab_plane_count', IntArg),
-               ('image_mode', EnumOf(('full region', 'orthoplanes', 'box faces', 'tilted slab'))),
                ('backing_color', Or(ColorArg, EnumOf(['none']))),
         ]
     
@@ -108,7 +106,9 @@ def register_volume_command(logger):
                ('pickable', BoolArg),
                ('calculate_surfaces', BoolArg),
                ('box_faces', BoolArg),
+               ('orthoplanes', EnumOf(('xyz', 'xy', 'xz', 'yz', 'off'))),
                ('tilted_slab', BoolArg),
+               ('image_mode', EnumOf(('full region', 'orthoplanes', 'box faces', 'tilted slab'))),
 # Symmetry assignment.
                ('symmetry', SymmetryArg),
                ('center', CenterArg),
@@ -394,7 +394,7 @@ def volume(session,
             'symmetry', 'center', 'center_index', 'axis', 'coordinate_system', 'dump_header', 'pickable')
     dsettings = dict((n,loc[n]) for n in dopt if not loc[n] is None)
 
-    rsettings = _render_settings(locals())
+    rsettings = _render_settings(loc)
 
     for v in vlist:
         apply_volume_options(v, dsettings, rsettings, session)
@@ -417,10 +417,10 @@ def _render_settings(options):
         'two_sided_lighting', 'flip_normals', 'subdivide_surface',
         'subdivision_levels', 'surface_smoothing', 'smoothing_iterations',
         'smoothing_factor', 'square_mesh', 'cap_faces',
-        'tilted_slab', 'tilted_slab_axis', 'tilted_slab_offset',
+        'tilted_slab_axis', 'tilted_slab_offset',
         'tilted_slab_spacing', 'tilted_slab_plane_count', 'image_mode', 'backing_color')
-    rsettings = dict((n,options[n]) for n in ropt if not options[n] is None)
-    if options['orthoplanes'] is not None:
+    rsettings = dict((n,options[n]) for n in ropt if options.get(n) is not None)
+    if options.get('orthoplanes') is not None:
         orthoplanes = options['orthoplanes']
         rsettings['orthoplanes_shown'] = ('x' in orthoplanes,
                                           'y' in orthoplanes,
@@ -832,13 +832,11 @@ def volume_default_values(session,
            smoothing_factor = None,
            square_mesh = None,
            cap_faces = None,
-           orthoplanes = None,
            position_planes = None,
            tilted_slab_axis = None,
            tilted_slab_spacing = None,
            tilted_slab_offset = None,
            tilted_slab_plane_count = None,
-           image_mode = None,
 # Save to preferences file or reset
            save_settings = None,
            reset = None,
