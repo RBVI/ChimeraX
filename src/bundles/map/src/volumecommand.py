@@ -417,7 +417,7 @@ def _render_settings(options):
         'two_sided_lighting', 'flip_normals', 'subdivide_surface',
         'subdivision_levels', 'surface_smoothing', 'smoothing_iterations',
         'smoothing_factor', 'square_mesh', 'cap_faces',
-        'tilted_slab', 'tilted_slab_axis', 'tilted_slab_offset',
+        'tilted_slab_axis', 'tilted_slab_offset',
         'tilted_slab_spacing', 'tilted_slab_plane_count', 'image_mode', 'backing_color')
     rsettings = dict((n,options[n]) for n in ropt if not options[n] is None)
     if options['orthoplanes'] is not None:
