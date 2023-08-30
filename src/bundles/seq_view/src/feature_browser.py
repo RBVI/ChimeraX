@@ -87,9 +87,8 @@ class FeatureBrowser:
                 # to explicitly set it (_and_ return it)
                 if self.checkState() == Qt.Checked:
                     self.setCheckState(Qt.Unchecked)
-                    return Qt.Unchecked
-                self.setCheckState(Qt.Checked)
-                return Qt.Checked
+                else:
+                    self.setCheckState(Qt.Checked)
         from chimerax.ui.widgets import MultiColorButton
         for label_text, attr_name in [("Region colors: border", "border_rgba"),
                 ("interior", "interior_rgba")]:

@@ -195,6 +195,10 @@ class XR:
 
         return swapchains
 
+    @property
+    def framebuffers(self):
+        return self._framebuffers
+    
     def _create_framebuffers(self, opengl_context):
         if len(self._swapchains) == 0:
             self._swapchains = self._create_swapchains()
