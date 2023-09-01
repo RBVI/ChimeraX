@@ -784,7 +784,6 @@ def init(argv, event_loop=True):
     if opts.module or opts.run_path:
         import runpy
         import warnings
-        sys.argv = ['argv0'] + args
         exit = SystemExit(os.EX_OK)
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=BytesWarning)
@@ -793,12 +792,12 @@ def init(argv, event_loop=True):
             }
             try:
                 if opts.module:
-                    sys.argv[0] = opts.module
+                    sys.argv = [opts.module] + args
                     runpy.run_module(opts.module, init_globals=global_dict,
                                      run_name='__main__', alter_sys=True)
                 else:
-                    sys.argv[0] = opts.run_path
-                    runpy.run_path(opts.run_path)
+                    sys.argv = args
+                    runpy.run_path(opts.run_path, run_name='__main__')
             except SystemExit as e:
                 exit = e
         if opts.module == 'pip' and exit.code == os.EX_OK:

@@ -1060,7 +1060,12 @@ class StructureSeq(Sequence):
             return self.chain_id < other.chain_id
         if self is other: # optimization to avoid comparing residue lists if possible
             return False
-        return self.residues < other.residues
+        # only happens for different chains in the same structure but with the same ID
+        s_exist = self.existing_residues
+        if not s_exist: return True
+        o_exist = other.existing_residues
+        if not o_exist: return False
+        return s_exist[0] < o_exist[0]
 
     chain_id = c_property('sseq_chain_id', string)
     '''Chain identifier. Read only string.'''
