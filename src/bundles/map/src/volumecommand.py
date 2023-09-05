@@ -360,7 +360,7 @@ def volume(session,
     elif tilted_slab or image_mode == 'tilted slab':
         defaults = (('style', 'image'), ('image_mode', 'tilted slab'), ('color_mode', 'auto8'),
                     ('show_outline_box', True), ('expand_single_plane', True))
-    elif image_mode == 'full region' or box_faces is not None or orthoplanes is not None:
+    elif image_mode == 'full region':
         defaults = (('color_mode', 'auto8'),)
     else:
         defaults = ()
@@ -396,8 +396,17 @@ def volume(session,
 
     rsettings = _render_settings(loc)
 
+    if box_faces is False:
+        image_mode_off = 'box faces'
+    elif tilted_slab is False:
+        image_mode_off = 'tilted slab'
+    elif orthoplanes == 'off':
+        image_mode_off = 'orthoplanes'
+    else:
+        image_mode_off = None
+
     for v in vlist:
-        apply_volume_options(v, dsettings, rsettings, session)
+        apply_volume_options(v, dsettings, rsettings, image_mode_off, session)
 
     if calculate_surfaces:
         for v in vlist:
@@ -454,7 +463,7 @@ def apply_global_settings(session, gsettings):
     
 # -----------------------------------------------------------------------------
 #
-def apply_volume_options(v, doptions, roptions, session):
+def apply_volume_options(v, doptions, roptions, image_mode_off, session):
 
     if 'close' in doptions:
         si = doptions['close']
@@ -468,6 +477,13 @@ def apply_volume_options(v, doptions, roptions, session):
 
     kw = level_and_color_settings(v, doptions)
     kw.update(roptions)
+
+    if image_mode_off and v.rendering_options.image_mode == image_mode_off:
+        if 'image_mode' not in kw:
+            kw['image_mode'] = 'full region'
+            if 'color_mode' not in kw:
+                kw['color_mode'] = 'auto8'
+                
     if kw:
         v.set_parameters(**kw)
 
