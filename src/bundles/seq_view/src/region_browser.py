@@ -1853,6 +1853,11 @@ class RegionsTool:
         from time import time
         now = self.sv.settings.regions_tool_last_use = time()
         short_titles = last != None and now - last < 777700 # about 3 months
+        def blocks_to_val(region, index, func):
+            blocks = region.blocks
+            if not blocks:
+                return None
+            return func([b[index] for b in blocks])+1
         self.columns = {
             "active": table.add_column("A" if short_titles else "Active", "active",
                 format=table.COL_FORMAT_BOOLEAN),
@@ -1868,6 +1873,8 @@ class RegionsTool:
                 data_set=self._set_edge_color, format=table.COL_FORMAT_OPAQUE_COLOR, color="forest green"),
             "name": table.add_column("Name", "display_name", editable=True, show_tooltips=True),
             "rmsd": table.add_column("RMSD", "rmsd", format="%.3f"),
+            "start": table.add_column("Start", lambda r: blocks_to_val(r, 2, min), format="%d"),
+            "end": table.add_column("End", lambda r: blocks_to_val(r, 3, max), format="%d"),
         }
         self._set_table_data(resize_columns=False)
         table.launch()
@@ -1887,9 +1894,9 @@ class RegionsTool:
                     if seq.name == cur_text:
                         source = seq
                         break
-                    else:
-                        self.seq_region_menubutton.setText(self.ENTIRE_ALIGNMENT_REGIONS)
-                        source = None
+                else:
+                    self.seq_region_menubutton.setText(self.ENTIRE_ALIGNMENT_REGIONS)
+                    source = None
             self._set_table_data(source=source)
             self.region_table.resizeColumnsToContents()
         elif region in self.region_table.data:
@@ -1963,6 +1970,9 @@ class RegionsTool:
                     source = None
                 else:
                     source = self.sv.alignment.seqs[index-1]
+        self.region_table.update_column(self.columns["rmsd"], display=(source is None))
+        self.region_table.update_column(self.columns["start"], display=(source is not None))
+        self.region_table.update_column(self.columns["end"], display=(source is not None))
         regions = [reg for reg in self.sv.region_manager.regions if reg.sequence == source]
         self.region_table.data = regions
         if resize_columns:

@@ -74,6 +74,9 @@ class QCxTableModel(QAbstractTableModel):
             return None
         if role == Qt.ItemDataRole.ToolTipRole and col.show_tooltips:
             return col.display_value(item)
+        if role == Qt.SizeHintRole:
+            if col.display_format == self._item_table.COL_FORMAT_BOOLEAN:
+                return QSize(25, 25)
         return None
 
     def flags(self, index):
@@ -129,9 +132,6 @@ class QCxTableModel(QAbstractTableModel):
                 else:
                     icon = col.icon
                 return icon
-        elif role == Qt.SizeHintRole:
-            if col.display_format == self._item_table.COL_FORMAT_BOOLEAN:
-                return QSize(25, 25)
 
         return None
 
@@ -568,6 +568,7 @@ class ItemTable(QTableView):
         self.verticalHeader().setVisible(False)
         if not suppress_resize:
             self.resizeColumnsToContents()
+
         if scroll_to is not None:
             QTimer.singleShot(10, lambda s=self, i=scroll_to: s.scrollTo(i))
 
