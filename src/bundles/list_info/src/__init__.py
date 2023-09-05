@@ -48,12 +48,18 @@ class _InfoAPI(BundleAPI):
         register("info atomattr",
                  cmd.info_atomattr_desc,
                  cmd.info_atomattr, logger=logger)
+        register("info atomcolor",
+                 cmd.info_atomcolor_desc,
+                 cmd.info_atomcolor, logger=logger)
         register("info bondattr",
                  cmd.info_bondattr_desc,
                  cmd.info_bondattr, logger=logger)
         register("info resattr",
                  cmd.info_resattr_desc,
                  cmd.info_resattr, logger=logger)
+        register("info rescolor",
+                 cmd.info_rescolor_desc,
+                 cmd.info_rescolor, logger=logger)
         register("info distmat",
                  cmd.info_distmat_desc,
                  cmd.info_distmat, logger=logger)

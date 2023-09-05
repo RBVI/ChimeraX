@@ -108,9 +108,21 @@ does not match that of the graphics window, the movie will show more or
 less of the scene vertically than is visible in the graphics window.
 </blockquote>
 <blockquote>
+<a name="format"></a>
 <b>format</b> &nbsp;jpeg&nbsp;|&nbsp;png&nbsp;|&nbsp;<b>ppm</b>
 <br>
 The format of saved image files. 
+</blockquote>
+<blockquote>
+<b>transparentBackground</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>
+Whether to save image files with a transparent background.
+This option applies only to images saved in the <b>png</b> 
+<a href="#format">format</a>.
+Regardless of this option, images saved in other formats and
+the resulting movie file (even if encoded from png images with
+a transparent background) will not have a transparent background
+because their formats do not support it.
 </blockquote>
 <blockquote>
 <b>directory</b> &nbsp;<i>image-directory</i>
@@ -328,5 +340,5 @@ script (movie content) development.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-January 2023</address>
+August 2023</address>
 </body></html>

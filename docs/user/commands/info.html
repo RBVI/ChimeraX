@@ -63,11 +63,15 @@ Various subcommands of <b>info</b> report
 </p>
 <ul>
 <li><a href="#atoms"><b>info atoms</b></a>
+<li><a href="#atomcolor"><b>info atomcolor</b></a>
+&ndash; list atom colors as hex codes
 <li><a href="#atomattr"><b>info atomattr</b></a>
 &ndash; list names of atom attributes
 <li><a href="#bondattr"><b>info bondattr</b></a>
 &ndash; list names of bond attributes
 <li><a href="#residues"><b>info residues</b></a>
+<li><a href="#rescolor"><b>info rescolor</b></a>
+&ndash; list (per-residue) cartoon colors as hex codes
 <li><a href="#resattr"><b>info resattr</b></a>
 &ndash; list names of residue attributes
 <li><a href="#chains"><b>info chains</b></a>
@@ -102,6 +106,14 @@ can be listed with <a href="#atomattr"><b>info atomattr</b></a>.
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
+<a name="atomcolor"><b>info atomcolor</b></a>
+&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
+[&nbsp;<a href="#saveFile"><b>saveFile</b></a>&nbsp;&nbsp;<i>file</i>&nbsp;]
+<blockquote>
+Report atom colors as hex codes.
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
 <a name="atomattr"><b>info atomattr</b></a>
 [&nbsp;<a href="#saveFile"><b>saveFile</b></a>&nbsp;&nbsp;<i>file</i>&nbsp;]
 <blockquote>
@@ -130,6 +142,14 @@ The names of residue attributes
 can be listed with <a href="#resattr"><b>info resattr</b></a>.
 The reported <b>index</b> is not an attribute, but simply the 
 index of a residue within its chain, starting with 0.
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="rescolor"><b>info rescolor</b></a>
+&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
+[&nbsp;<a href="#saveFile"><b>saveFile</b></a>&nbsp;&nbsp;<i>file</i>&nbsp;]
+<blockquote>
+Report residue cartoon colors as hex codes.
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
@@ -286,5 +306,5 @@ the given URL with the message encoded as parameter
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-April 2023</address>
+September 2023</address>
 </body></html>

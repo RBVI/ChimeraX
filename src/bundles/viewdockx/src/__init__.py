@@ -71,9 +71,10 @@ class _MyAPI(BundleAPI):
                         show_dock = False
                     if show_dock:
                         from Qt.QtCore import QTimer
-                        from chimerax.core.commands import run
+                        from chimerax.core.commands import run, concise_model_spec
                         QTimer.singleShot(0,
-                            lambda *args, run=run, ses=session: run(ses, "ui tool show ViewDockX"))
+                            lambda *args, run=run, ses=session, spec=concise_model_spec, models=models:
+                                run(ses, "viewdockx %s" % spec(ses, models)))
                 return models, status
 
             @property

@@ -344,7 +344,12 @@ def surface_cmds(session):
     import math
     cmds = []
     for s in all_atomic_structures(session):
-        grid_size = min(2.0, max(0.3, math.log10(s.num_atoms) - 3.2))
+        # AddH won't actually run until after this command is generated, so base the grid value
+        # on the number of heavy atoms involved in the surface for consistency
+        import numpy
+        num_heavys = len(s.atoms.filter(
+            numpy.logical_and(s.atoms.elements.numbers != 1, s.atoms.structure_categories == "main")))
+        grid_size = min(2.0, max(0.3, math.log10(num_heavys) - 3.2))
         cmds.append("surface %s enclose %s grid %g sharp true" % (s.atomspec, s.atomspec, grid_size))
     return cmds
 
