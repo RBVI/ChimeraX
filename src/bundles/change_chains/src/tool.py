@@ -108,6 +108,10 @@ class ChangeChainIDsDialog(ToolInstance):
                 spec_present = True
         if self.tabs.tabText(self.tabs.currentIndex()) == self.single_text:
             cid = self.single_id.value
+            # Some chain IDs (e.g. C) look like element names.
+            from chimerax.atomic import Element
+            if not spec_present and Element.get_element(cid).number > 0:
+                cmd += "#* "
             if not cid:
                 raise UserError("Cannot change to empty ID")
             cmd += cid
@@ -129,7 +133,7 @@ class ChangeChainIDsDialog(ToolInstance):
             from_list = ','.join([StringArg.unparse(cid) for cid in from_ids])
             # the atom spec parser coughs up a hair ball for some quoted strings, so
             # prevent the atom spec parser from seeing such a thing
-            if not from_list[0].isalnum() and not spec_present:
+            if not spec_present and not from_list[0].isalnum():
                 cmd += "#* "
             cmd += from_list
             cmd += ' '

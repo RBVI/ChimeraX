@@ -209,6 +209,8 @@ class XR:
             import xr
             images = xr.enumerate_swapchain_images(sc, xr.SwapchainImageOpenGLKHR)
             tex_id = images[0].image
+            # TODO: This is a misuse of the Texture class.  It is supposed to allocate
+            #   the texture and it will delete it when the Texture is deleted.
             t = Texture()
             t.id = tex_id
             t.size = (w,h)
@@ -219,6 +221,7 @@ class XR:
 
     def _delete_framebuffers(self):
         for fb in self._framebuffers:
+            fb.color_texture.id = None  # Avoid deleting the swapchain texture.
             fb.delete(make_current = True)
         self._framebuffers.clear()
 
@@ -234,9 +237,11 @@ class XR:
                                                      acquire_info=xr.SwapchainImageAcquireInfo())
         xr.wait_swapchain_image(swapchain=swapchain,
                                 wait_info=xr.SwapchainImageWaitInfo(xr.INFINITE_DURATION))
-        render.push_framebuffer(self._framebuffers[ei])
+        fb = self._framebuffers[ei]
+        render.push_framebuffer(fb)
         images = xr.enumerate_swapchain_images(swapchain, xr.SwapchainImageOpenGLKHR)
         tex_id = images[swapchain_index].image
+        fb.color_texture.id = tex_id
         from chimerax.graphics.opengl import GL
         GL.glFramebufferTexture(GL.GL_FRAMEBUFFER, GL.GL_COLOR_ATTACHMENT0, tex_id, 0)
         # The swap chains consist of 3 images, probably to pipeline the rendering,
