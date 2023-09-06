@@ -796,7 +796,9 @@ class OpenXRCamera(Camera, StateManager):
         return self._session.main_view.render
     
     def _next_frame(self, *_):
-#        self._session.main_view.redraw_needed = True  # Make sure to continuously draw
+        # Make sure to continuously draw
+        # If headset sleeps then awakes it won't draw without this.
+        self._session.main_view.redraw_needed = True
 
         if not self.active:
             # If the session camera is changed from the VR camera
