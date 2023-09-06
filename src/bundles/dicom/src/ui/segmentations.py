@@ -330,6 +330,8 @@ class SegmentationTool(ToolInstance):
         # that segmentations from files still show up in the menu.
         self.num_segmentations_created += 1
         new_seg = self.reference_model.segment(number = self.num_segmentations_created)
+        new_seg.set_parameters(surface_levels=[0.501])
+        new_seg.set_step(1)
         num_items = self.segmentation_list.count()
         self.segmentation_list.setCurrentItem(self.segmentation_list.item(num_items - 1))
         if self.session.ui.main_window.view_layout == "orthoplanes":
