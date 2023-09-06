@@ -615,11 +615,10 @@ class OpenXRCamera(Camera, StateManager):
     def _update_projection(self, eye):
         if self._last_fov[eye] is not None:
             xr_fov = self._xr.field_of_view[eye]
-            if xr_fov is None:
-                return
-            fov4 = (xr_fov.angle_left, xr_fov.angle_right, xr_fov.angle_down, xr_fov.angle_up)
-            if fov4 == self._last_fov[eye]:
-                return
+            if xr_fov is not None:
+                fov4 = (xr_fov.angle_left, xr_fov.angle_right, xr_fov.angle_down, xr_fov.angle_up)
+                if fov4 == self._last_fov[eye]:
+                    return
         self._set_projection_matrices(eye)
 
     def _get_near_clip_distance(self):
