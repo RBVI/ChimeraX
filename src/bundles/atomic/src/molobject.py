@@ -1060,7 +1060,12 @@ class StructureSeq(Sequence):
             return self.chain_id < other.chain_id
         if self is other: # optimization to avoid comparing residue lists if possible
             return False
-        return self.residues < other.residues
+        # only happens for different chains in the same structure but with the same ID
+        s_exist = self.existing_residues
+        if not s_exist: return True
+        o_exist = other.existing_residues
+        if not o_exist: return False
+        return s_exist[0] < o_exist[0]
 
     chain_id = c_property('sseq_chain_id', string)
     '''Chain identifier. Read only string.'''
@@ -1315,7 +1320,7 @@ class Chain(StructureSeq):
 
     # also used by Residue
     @staticmethod
-    def chain_id_to_atom_spec(chain_id):
+    def chain_id_to_atom_spec(chain_id): 
         if chain_id:
             if chain_id.isspace():
                 id_text = "?"
@@ -1332,7 +1337,7 @@ class Chain(StructureSeq):
     @property
     def identity(self):
         """'Fake' attribute to allow for //identity="/A" tests"""
-        class IdentityTester:
+        class IdentityTester():
             def __init__(self, chain):
                 self.chain = chain
 
@@ -1342,9 +1347,9 @@ class Chain(StructureSeq):
             def __ne__(self, chain_spec):
                 return self.chain.characters not in self._get_test_set(chain_spec)
 
-            def lower(self, *args, **kw):
-                # needed to fool attribute-testing code
-                return self
+            def __str__(self):
+                # raise TypeError so that the attribute-testing code can catch it and do the right thing
+                raise TypeError("fake attribute")
 
             def _get_test_set(self, chain_spec):
                 from chimerax.atomic import UniqueChainsArg

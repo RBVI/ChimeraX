@@ -1473,7 +1473,7 @@ cdef class CyResidue:
         "Ribbon color RGBA length 4 sequence/array. Values in range 0-255"
         if self._deleted: raise RuntimeError("Residue already deleted")
         color = self.cpp_res.ribbon_color()
-        return array([color.r, color.g, color.b, color.a])
+        return (color.r, color.g, color.b, color.a)
 
     @ribbon_color.setter
     @cython.boundscheck(False)  # turn off bounds checking
@@ -1500,7 +1500,7 @@ cdef class CyResidue:
         "Ring color RGBA length 4 sequence/array. Values in range 0-255"
         if self._deleted: raise RuntimeError("Residue already deleted")
         color = self.cpp_res.ring_color()
-        return array([color.r, color.g, color.b, color.a])
+        return (color.r, color.g, color.b, color.a)
 
     @ring_color.setter
     @cython.boundscheck(False)  # turn off bounds checking

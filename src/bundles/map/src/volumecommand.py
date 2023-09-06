@@ -22,9 +22,58 @@ def register_volume_command(logger):
     from .mapargs import MapsArg, MapRegionArg, MapStepArg, Float1or3Arg, Int1or3Arg
     from .colortables import AppearanceArg
 
+    global_options = [
+               ('data_cache_size', FloatArg),
+               ('show_on_open', BoolArg),
+               ('voxel_limit_for_open', FloatArg),
+               ('show_plane', BoolArg),
+               ('voxel_limit_for_plane', FloatArg),
+        ]
+
     from .volume import RenderingOptions
     ro = RenderingOptions()
 
+    rendering_options = [
+               ('show_outline_box', BoolArg),
+               ('outline_box_rgb', ColorArg),
+#               ('outline_box_linewidth', FloatArg),
+               ('limit_voxel_count', BoolArg),
+               ('voxel_limit', FloatArg),
+               ('colormap_on_gpu', BoolArg),
+               ('color_mode', EnumOf(ro.color_modes)),
+               ('colormap_size', IntArg),
+               ('colormap_extend_left', BoolArg),
+               ('colormap_extend_right', BoolArg),
+               ('blend_on_gpu', BoolArg),
+               ('projection_mode', EnumOf(ro.projection_modes)),
+               ('plane_spacing', Or(EnumOf(('min', 'max', 'mean')), FloatArg)),
+               ('full_region_on_gpu', BoolArg),
+               ('bt_correction', BoolArg),
+               ('minimal_texture_memory', BoolArg),
+               ('maximum_intensity_projection', BoolArg),
+               ('linear_interpolation', BoolArg),
+               ('dim_transparency', BoolArg),
+               ('dim_transparent_voxels', BoolArg),
+#               ('line_thickness', FloatArg),
+               ('smooth_lines', BoolArg),
+               ('mesh_lighting', BoolArg),
+               ('two_sided_lighting', BoolArg),
+               ('flip_normals', BoolArg),
+               ('subdivide_surface', BoolArg),
+               ('subdivision_levels', IntArg),
+               ('surface_smoothing', BoolArg),
+               ('smoothing_iterations', IntArg),
+               ('smoothing_factor', FloatArg),
+               ('square_mesh', BoolArg),
+               ('cap_faces', BoolArg),
+               ('position_planes', Int3Arg),
+               ('tilted_slab_axis', AxisArg),
+               ('tilted_slab_offset', FloatArg),
+               ('tilted_slab_spacing', FloatArg),
+               ('tilted_slab_plane_count', IntArg),
+               ('backing_color', Or(ColorArg, EnumOf(['none']))),
+        ]
+    
     volume_desc = CmdDesc(
         optional = [('volumes', MapsArg)],
         keyword = [
@@ -55,63 +104,18 @@ def register_volume_command(logger):
                ('planes', PlanesArg),
                ('dump_header', BoolArg),
                ('pickable', BoolArg),
+               ('calculate_surfaces', BoolArg),
+               ('box_faces', BoolArg),
+               ('orthoplanes', EnumOf(('xyz', 'xy', 'xz', 'yz', 'off'))),
+               ('tilted_slab', BoolArg),
+               ('image_mode', EnumOf(('full region', 'orthoplanes', 'box faces', 'tilted slab'))),
 # Symmetry assignment.
                ('symmetry', SymmetryArg),
                ('center', CenterArg),
                ('center_index', Float1or3Arg),
                ('axis', AxisArg),
                ('coordinate_system', CoordSysArg),
-# Global options.
-               ('data_cache_size', FloatArg),
-               ('show_on_open', BoolArg),
-               ('voxel_limit_for_open', FloatArg),
-               ('show_plane', BoolArg),
-               ('voxel_limit_for_plane', FloatArg),
-# Rendering options.
-               ('show_outline_box', BoolArg),
-               ('outline_box_rgb', ColorArg),
-#               ('outline_box_linewidth', FloatArg),
-               ('limit_voxel_count', BoolArg),
-               ('voxel_limit', FloatArg),
-               ('color_mode', EnumOf(ro.color_modes)),
-               ('colormap_on_gpu', BoolArg),
-               ('colormap_size', IntArg),
-               ('colormap_extend_left', BoolArg),
-               ('colormap_extend_right', BoolArg),
-               ('backing_color', Or(ColorArg, EnumOf(['none']))),
-               ('blend_on_gpu', BoolArg),
-               ('projection_mode', EnumOf(ro.projection_modes)),
-               ('plane_spacing', Or(EnumOf(('min', 'max', 'mean')), FloatArg)),
-               ('full_region_on_gpu', BoolArg),
-               ('bt_correction', BoolArg),
-               ('minimal_texture_memory', BoolArg),
-               ('maximum_intensity_projection', BoolArg),
-               ('linear_interpolation', BoolArg),
-               ('dim_transparency', BoolArg),
-               ('dim_transparent_voxels', BoolArg),
-#               ('line_thickness', FloatArg),
-               ('smooth_lines', BoolArg),
-               ('mesh_lighting', BoolArg),
-               ('two_sided_lighting', BoolArg),
-               ('flip_normals', BoolArg),
-               ('subdivide_surface', BoolArg),
-               ('subdivision_levels', IntArg),
-               ('surface_smoothing', BoolArg),
-               ('smoothing_iterations', IntArg),
-               ('smoothing_factor', FloatArg),
-               ('square_mesh', BoolArg),
-               ('cap_faces', BoolArg),
-               ('box_faces', BoolArg),
-               ('orthoplanes', EnumOf(('xyz', 'xy', 'xz', 'yz', 'off'))),
-               ('position_planes', Int3Arg),
-               ('tilted_slab', BoolArg),
-               ('tilted_slab_axis', AxisArg),
-               ('tilted_slab_offset', FloatArg),
-               ('tilted_slab_spacing', FloatArg),
-               ('tilted_slab_plane_count', IntArg),
-               ('image_mode', EnumOf(('full region', 'orthoplanes', 'box faces', 'tilted slab'))),
-               ('calculate_surfaces', BoolArg),
-        ],
+        ] + global_options + rendering_options,
         synopsis = 'set volume model parameters, display style and colors')
     register('volume', volume_desc, volume, logger=logger)
 
@@ -119,6 +123,11 @@ def register_volume_command(logger):
     vsettings_desc = CmdDesc(optional = [('volumes', MapsArg)],
                              synopsis = 'report volume display settings')
     register('volume settings', vsettings_desc, volume_settings, logger=logger)
+
+    # Register volume defaultvalues command
+    dsettings_desc = CmdDesc(keyword = [('save_settings', BoolArg), ('reset', BoolArg)] + global_options + rendering_options,
+                             synopsis = 'set or report volume default values')
+    register('volume defaultvalues', dsettings_desc, volume_default_values, logger=logger)
 
     # Register volume channels command
     from . import channels
@@ -351,7 +360,7 @@ def volume(session,
     elif tilted_slab or image_mode == 'tilted slab':
         defaults = (('style', 'image'), ('image_mode', 'tilted slab'), ('color_mode', 'auto8'),
                     ('show_outline_box', True), ('expand_single_plane', True))
-    elif image_mode == 'full region' or box_faces is not None or orthoplanes is not None:
+    elif image_mode == 'full region':
         defaults = (('color_mode', 'auto8'),)
     else:
         defaults = ()
@@ -384,6 +393,28 @@ def volume(session,
             'origin_index', 'voxel_size', 'planes',
             'symmetry', 'center', 'center_index', 'axis', 'coordinate_system', 'dump_header', 'pickable')
     dsettings = dict((n,loc[n]) for n in dopt if not loc[n] is None)
+
+    rsettings = _render_settings(loc)
+
+    if box_faces is False:
+        image_mode_off = 'box faces'
+    elif tilted_slab is False:
+        image_mode_off = 'tilted slab'
+    elif orthoplanes == 'off':
+        image_mode_off = 'orthoplanes'
+    else:
+        image_mode_off = None
+
+    for v in vlist:
+        apply_volume_options(v, dsettings, rsettings, image_mode_off, session)
+
+    if calculate_surfaces:
+        for v in vlist:
+            v._update_surfaces()
+
+# -----------------------------------------------------------------------------
+#
+def _render_settings(options):
     ropt = (
         'show_outline_box', 'outline_box_rgb', 'outline_box_linewidth',
         'limit_voxel_count', 'voxel_limit', 'color_mode', 'colormap_on_gpu',
@@ -395,25 +426,25 @@ def volume(session,
         'two_sided_lighting', 'flip_normals', 'subdivide_surface',
         'subdivision_levels', 'surface_smoothing', 'smoothing_iterations',
         'smoothing_factor', 'square_mesh', 'cap_faces',
-        'tilted_slab', 'tilted_slab_axis', 'tilted_slab_offset',
+        'tilted_slab_axis', 'tilted_slab_offset',
         'tilted_slab_spacing', 'tilted_slab_plane_count', 'image_mode', 'backing_color')
-    rsettings = dict((n,loc[n]) for n in ropt if not loc[n] is None)
-    if not orthoplanes is None:
+    rsettings = dict((n,options[n]) for n in ropt if options.get(n) is not None)
+    if options.get('orthoplanes') is not None:
+        orthoplanes = options['orthoplanes']
         rsettings['orthoplanes_shown'] = ('x' in orthoplanes,
                                           'y' in orthoplanes,
                                           'z' in orthoplanes)
-    if not position_planes is None:
-        rsettings['orthoplane_positions'] = position_planes
-    if outline_box_rgb:
-        rsettings['outline_box_rgb'] = tuple(outline_box_rgb.rgba[:3])
+    if options['position_planes'] is not None:
+        rsettings['orthoplane_positions'] = options['position_planes']
+    if options['outline_box_rgb'] is not None:
+        rsettings['outline_box_rgb'] = tuple(options['outline_box_rgb'].rgba[:3])
+    if options['tilted_slab_axis'] is not None:
+        rsettings['tilted_slab_axis'] = options['tilted_slab_axis'].coords
+    if options['backing_color'] is not None:
+        bc = options['backing_color']
+        rsettings['backing_color'] = (None if bc == 'none' else tuple(bc.uint8x4()))
+    return rsettings
 
-    for v in vlist:
-        apply_volume_options(v, dsettings, rsettings, session)
-
-    if calculate_surfaces:
-        for v in vlist:
-            v._update_surfaces()
-            
 # -----------------------------------------------------------------------------
 #
 def apply_global_settings(session, gsettings):
@@ -432,7 +463,7 @@ def apply_global_settings(session, gsettings):
     
 # -----------------------------------------------------------------------------
 #
-def apply_volume_options(v, doptions, roptions, session):
+def apply_volume_options(v, doptions, roptions, image_mode_off, session):
 
     if 'close' in doptions:
         si = doptions['close']
@@ -446,11 +477,13 @@ def apply_volume_options(v, doptions, roptions, session):
 
     kw = level_and_color_settings(v, doptions)
     kw.update(roptions)
-    if 'tilted_slab_axis' in roptions:
-        kw['tilted_slab_axis'] = roptions['tilted_slab_axis'].coords
-    if 'backing_color' in kw:
-        bc = kw['backing_color']
-        kw['backing_color'] = (None if bc == 'none' else tuple(bc.uint8x4()))
+
+    if image_mode_off and v.rendering_options.image_mode == image_mode_off:
+        if 'image_mode' not in kw:
+            kw['image_mode'] = 'full region'
+            if 'color_mode' not in kw:
+                kw['color_mode'] = 'auto8'
+                
     if kw:
         v.set_parameters(**kw)
 
@@ -737,17 +770,26 @@ def volume_settings_text(v):
              'image colors = ' + ', '.join(hex_color(rgba_to_rgba8(c)) for c in v.image_colors),
              'image brightness factor = %.5g' % v.image_brightness_factor,
              'image transparency depth = %.5g' % v.transparency_depth,
-             ]
-    ro = v.rendering_options
+             ] + rendering_option_strings(v.session, v.rendering_options)
+    return '\n'.join(lines)
+
+# -----------------------------------------------------------------------------
+#
+def rendering_option_strings(session, ro = None):
     from .volume import default_settings
-    ds = default_settings(v.session)
+    ds = default_settings(session)
+    if ro is None:
+        ro = ds.rendering_option_defaults()
     attrs = list(ds.rendering_option_names())
     attrs.sort()
+    lines = []
     for attr in attrs:
         value = getattr(ro, attr)
+        if attr == 'outline_box_rgb':
+            value = tuple(100*r for r in value)		# Internally uses 0-1 values, but command line uses 0-100.
         lines.append('%s = %s' % (camel_case(attr), value))
-    return '\n'.join(lines)
-    
+    return lines
+
 # -----------------------------------------------------------------------------
 #
 def camel_case(string):
@@ -762,4 +804,101 @@ def camel_case(string):
             cc.append(c.upper() if up else c)
             up = False
     return ''.join(cc)
+    
+# -----------------------------------------------------------------------------
+#
+def volume_default_values(session,
+# Global options.
+           data_cache_size = None,
+           show_on_open = None,
+           voxel_limit_for_open = None,
+           show_plane = None,
+           voxel_limit_for_plane = None,
+# Rendering options.
+           show_outline_box = None,
+           outline_box_rgb = None,
+           outline_box_linewidth = None,
+           limit_voxel_count = None,          # auto-adjust step size
+           voxel_limit = None,               # Mvoxels
+           color_mode = None,                # image rendering pixel formats
+           colormap_on_gpu = None,           # image colormapping on gpu or cpu
+           colormap_size = None,             # image colormapping
+           colormap_extend_left = None,
+           colormap_extend_right = None,
+           backing_color = None,
+           blend_on_gpu = None,		     # image blending on gpu or cpu
+           projection_mode = None,           # auto, 2d-xyz, 2d-x, 2d-y, 2d-z, 3d
+           plane_spacing = None,	     # min, max, or numeric value
+           full_region_on_gpu = None,	     # for fast cropping with image rendering
+           bt_correction = None,             # brightness and transparency
+           minimal_texture_memory = None,
+           maximum_intensity_projection = None,
+           linear_interpolation = None,
+           dim_transparency = None,          # for surfaces
+           dim_transparent_voxels = None,     # for image rendering
+           line_thickness = None,
+           smooth_lines = None,
+           mesh_lighting = None,
+           two_sided_lighting = None,
+           flip_normals = None,
+           subdivide_surface = None,
+           subdivision_levels = None,
+           surface_smoothing = None,
+           smoothing_iterations = None,
+           smoothing_factor = None,
+           square_mesh = None,
+           cap_faces = None,
+           position_planes = None,
+           tilted_slab_axis = None,
+           tilted_slab_spacing = None,
+           tilted_slab_offset = None,
+           tilted_slab_plane_count = None,
+# Save to preferences file or reset
+           save_settings = None,
+           reset = None,
+           ):
+    '''Report or set default volume values.'''
+
+    gopt = ('data_cache_size', 'show_on_open', 'voxel_limit_for_open',
+            'show_plane', 'voxel_limit_for_plane')
+    loc = locals()
+    gsettings = dict((n,loc[n]) for n in gopt if not loc[n] is None)
+    if gsettings:
+        apply_global_settings(session, gsettings)
+    
+    rsettings = _render_settings(locals())
+    if rsettings:
+        from .volume import default_settings
+        default_settings(session).update(rsettings)
+
+    if reset:
+        from .volume import default_settings
+        ds = default_settings(session)
+        ds.restore_factory_defaults()
+        
+    if save_settings:
+        from .volume import default_settings
+        ds = default_settings(session)
+        ds.save_to_preferences_file()
+        session.logger.info('Saved volume settings')
+        
+    if len(gsettings) == 0 and len(rsettings) == 0 and not save_settings and not reset:
+        msg = default_settings_text(session)
+        session.logger.info(msg)
+
+# -----------------------------------------------------------------------------
+#
+def default_settings_text(session):
+    from .volume import default_settings
+    ds = default_settings(session)
+    lines = ['Default volume settings',
+             'data cache size = %.3g Mbytes' % ds['data_cache_size'],
+             'show on open = %s' % ds['show_on_open'],
+             'show plane = %s' % ds['show_plane'],
+             'voxel limit for open = %.3g Mvoxels' % ds['voxel_limit_for_open'],
+             'voxel limit for plane = %.3g Mvoxels' % ds['voxel_limit_for_plane'],
+             ]
+    lines += ['Default rendering settings'] + rendering_option_strings(session)
+    return '\n'.join(lines)
+    
 

@@ -309,9 +309,10 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
                                     " chain.\n")
 
             for match, ref in match_chains.items():
+                matrix_name = final_matrix_name[match]
                 match, ref = [check_domain_matching([ch], dr)[0] for ch, dr in
                     ((match, md_res), (ref, rd_res))]
-                score, s1, s2 = align(session, ref, match, final_matrix_name[match], alg,
+                score, s1, s2 = align(session, ref, match, matrix_name, alg,
                             gap_open, gap_extend, dssp_cache, **align_kw)
                 pairings.setdefault(s2.structure, []).append((score, s1, s2))
 

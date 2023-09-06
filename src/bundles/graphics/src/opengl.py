@@ -110,6 +110,7 @@ class OpenGLContext:
         w = self.window if window is None else window
         if not qc.makeCurrent(w):
             raise OpenGLError("Could not make graphics context current")
+
         return True
 
     def _initialize_context(self, mode = None, window = None):
@@ -180,8 +181,9 @@ class OpenGLContext:
             fmt.setProfile(QSurfaceFormat.OpenGLContextProfile.CoreProfile)
         fmt.setRenderableType(QSurfaceFormat.RenderableType.OpenGL)
         if not self._wait_for_vsync:
-            # Don't wait for vsync, tested on Mac OS 10.13 Nvidia graphics working.
-            # Has no effect on Windows 10, Nvidia GTX 1080.
+            # Don't wait for vsync.
+            # Works on Mac OS 10.13 Nvidia graphics with Qt 5.
+            # Works on Windows 10, Nvidia P6000 with Qt 6.5.
             fmt.setSwapInterval(0)
         if mode == 'stereo':
             fmt.setStereo(True)
@@ -233,6 +235,36 @@ class OpenGLContext:
         '''Swap back and front OpenGL buffers.'''
         w = self.window if window is None else window
         self._qopengl_context.swapBuffers(w)
+
+    def swap_interval(self):
+        from OpenGL.WGL.EXT.swap_control import wglGetSwapIntervalEXT
+        return wglGetSwapIntervalEXT()
+
+    def wait_for_vsync(self, wait):
+        '''
+        Control whether OpenGL synchronizes to the display vertical refresh.
+        Currently this call is only supported on Windows. Returns true if
+        the setting can be changed, otherwise false.
+        '''
+        results = False
+        from sys import platform
+        if platform == 'win32':
+            wfmt = self.window.format()
+            wfmt.setSwapInterval(1 if wait else 0)
+            self.window.setFormat(wfmt)
+            self._wait_for_vsync = wait
+            success = True
+            # succes = _set_windows_swap_interval(wait)
+        elif platform == 'darwin':
+            sync = 1 if wait else 0
+            from ._graphics import set_mac_swap_interval
+            success = set_mac_swap_interval(sync)
+        elif platform == 'linux':
+            sync = 1 if wait else 0
+            from ._graphics import set_linux_swap_interval
+            success = set_linux_swap_interval(sync)
+
+        return success
 
     def pixel_scale(self):
         '''
@@ -292,6 +324,19 @@ class OpenGLContext:
             for fb in tuple(self._framebuffers):
                 fb.set_color_bits(bits)
             self.done_current()
+
+def _set_windows_swap_interval(wait):
+    # Qt 6 on Windows overrides the swap interval each time makeCurrent()
+    # is called.  So this code is not useful and instead it is necessary
+    # to change the QSurfaceFormat assigned to the QWindow.
+    try:
+        from OpenGL.WGL.EXT.swap_control import wglSwapIntervalEXT
+        i = 1 if wait else 0
+        success = wglSwapIntervalEXT(i)
+        success = True if success else False
+    except Exception:
+        success = False
+    return success
 
 _initialized_pyopengl = False
 def _initialize_pyopengl(log_opengl_calls = False, offscreen = False):
@@ -501,33 +546,11 @@ class Render:
     def front_buffer_valid(self):
         return self._front_buffer_valid
 
-    def wait_for_vsync(self, wait):
-        '''
-        Control whether OpenGL synchronizes to the display vertical refresh.
-        Currently this call is only supported on Windows. Returns true if
-        the setting can be changed, otherwise false.
-        '''
-        from sys import platform
-        if platform == 'win32':
-            try:
-                from OpenGL.WGL.EXT.swap_control import wglSwapIntervalEXT
-                i = 1 if wait else 0
-                success = wglSwapIntervalEXT(i)
-                return True if success else False
-            except Exception:
-                return False
-        elif platform == 'darwin':
-            sync = 1 if wait else 0
-            from ._graphics import set_mac_swap_interval
-            success = set_mac_swap_interval(sync)
-            return success
-        elif platform == 'linux':
-            sync = 1 if wait else 0
-            from ._graphics import set_linux_swap_interval
-            success = set_linux_swap_interval(sync)
-            return success
+    def swap_interval(self):
+        return self._opengl_context.swap_interval()
 
-        return False
+    def wait_for_vsync(self, wait):
+        return self._opengl_context.wait_for_vsync(wait)
 
     def use_shared_context(self, window):
         '''

@@ -385,7 +385,7 @@ def _fetch_colormap(session, palette_id):
 
 
 def _colourlovers_fetch_by_id(session, palette_id):
-    url = 'http://www.colourlovers.com/api/palette/%d?format=json' % palette_id
+    url = 'https://www.colourlovers.com/api/palette/%d?format=json' % palette_id
     from ..fetch import fetch_file
     filename = fetch_file(session, url, 'palette %d' % palette_id, '%d.json' % palette_id, 'COLOURlovers')
     f = open(filename, 'r')
@@ -410,7 +410,7 @@ def _colourlovers_fetch_by_name(session, palette_name):
     else:
         name, author = palette_name, None
     from urllib.parse import quote
-    url = 'http://www.colourlovers.com/api/palettes?keywords=%s&format=json&numResults=100' % quote(name)
+    url = 'https://www.colourlovers.com/api/palettes?keywords=%s&format=json&numResults=100' % quote(name)
     from ..fetch import fetch_file
     try:
         # fetch_file potentially raises OSError

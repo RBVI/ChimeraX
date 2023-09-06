@@ -34,8 +34,9 @@ GLTF_TRIANGLES = 4
 
 # -----------------------------------------------------------------------------
 #
-from chimerax.core import generic3d
-class gltfModel(generic3d.Generic3DModel):
+from chimerax.core.models import Surface
+class gltfModel(Surface):
+    SESSION_SAVE_DRAWING = True
     clip_cap = True
 
 # -----------------------------------------------------------------------------
