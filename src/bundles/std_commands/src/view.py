@@ -16,7 +16,7 @@ from chimerax.core.errors import UserError
 
 
 def view(session, objects=None, frames=None, clip=True, cofr=True,
-         orient=False, zalign=None, pad=0.05, need_undo=True):
+         orient=False, zalign=None, in_front_of=None, pad=0.05, need_undo=True):
     '''
     Move camera so the displayed models fill the graphics window.
     Also camera and model positions can be saved and restored.
@@ -41,6 +41,10 @@ def view(session, objects=None, frames=None, clip=True, cofr=True,
       axis with the first atom in front.  Exactly two atoms must be specified.
       Alternatively an AxisModel or a PlaneModel can be specified, in which
       case the axis or plane normal will be aligned.
+    in_front_of : Atoms
+      Used only with zalign option.  If specified the geometric center of the
+      zalign atoms and the geometric center of the in_front_of atoms are aligned
+      perpendicular to the screen.
     pad : float
       When making objects fit in window use a window size reduced by this fraction.
       Default value is 0.05.  Pad is ignored when restoring named views.
@@ -57,7 +61,7 @@ def view(session, objects=None, frames=None, clip=True, cofr=True,
         if orient:
             v.initial_camera_view(set_pivot = cofr)
         if zalign:
-            _z_align_view(session.main_view.camera, zalign)
+            _z_align_view(session.main_view.camera, zalign, in_front_of)
         if objects is None:
             v.view_all(pad = pad)
             if cofr:
@@ -122,7 +126,7 @@ def _remove_molecular_surfaces(objects):
             o.add_model_instances(m, minst)
     return o
     
-def _z_align_view(camera, objects):
+def _z_align_view(camera, objects, in_front_of = None):
     '''
     Rotate camera so axis/plane/two atoms is/are along view direction (if atoms, first atom in front).
     Rotation is about midpoint between the two atoms, or center of axis/plane.
@@ -142,14 +146,21 @@ def _z_align_view(camera, objects):
 
     atoms = objects.atoms
     if atoms:
-        if len(atoms) != 2:
-            raise UserError('view: Must specify two atoms with zalign option, got %d' % len(atoms))
-        elif align_pts:
+        if align_pts:
             raise UserError("Must specify one axis or plane or two atoms for 'zalign'; you specified"
-                " both an axis/plane and atoms")
-        else:
+                            " both an axis/plane and atoms")
+        if in_front_of is not None:
+            if len(atoms) == 0:
+                raise UserError('view: zAlign option specified no atoms')
+            if len(in_front_of) == 0:
+                raise UserError('view: inFrontOf option specified no atoms')
+            align_pts = atoms.scene_coords.mean(axis = 0), in_front_of.scene_coords.mean(axis = 0)
+        elif len(atoms) == 2:
             align_pts = atoms.scene_coords
-    elif align_pts is None:
+        else:
+            raise UserError('view: Must specify two atoms with zalign option, got %d' % len(atoms))
+
+    if align_pts is None:
         raise UserError("Must specify one axis or plane or two atoms for 'zalign' option")
 
     xyz_front, xyz_back = align_pts
@@ -634,6 +645,7 @@ def register_command(logger):
                  ('cofr', BoolArg),
                  ('orient', NoArg),
                  ('zalign', ObjectsArg),
+                 ('in_front_of', AtomsArg),
                  ('pad', FloatArg)],
         synopsis='adjust camera so everything is visible')
     register('view', desc, view, logger=logger)

@@ -511,7 +511,7 @@ class OpenXRCamera(Camera, StateManager):
         self._vr_model_group = None	# Grouping model for hand controllers and UI models
         self._vr_model_group_id = 100	# Keep VR model group at bottom of model panel
 
-        self._mirror = False		# Whether to render to desktop graphics window.
+        self._mirror = True		# Whether to render to desktop graphics window.
         self._room_camera = None	# RoomCamera, fixed view camera independent of VR headset
 
         from chimerax.geometry import Place
@@ -615,9 +615,10 @@ class OpenXRCamera(Camera, StateManager):
     def _update_projection(self, eye):
         if self._last_fov[eye] is not None:
             xr_fov = self._xr.field_of_view[eye]
-            fov4 = (xr_fov.angle_left, xr_fov.angle_right, xr_fov.angle_down, xr_fov.angle_up)
-            if fov4 == self._last_fov[eye]:
-                return
+            if xr_fov is not None:
+                fov4 = (xr_fov.angle_left, xr_fov.angle_right, xr_fov.angle_down, xr_fov.angle_up)
+                if fov4 == self._last_fov[eye]:
+                    return
         self._set_projection_matrices(eye)
 
     def _get_near_clip_distance(self):
@@ -796,7 +797,9 @@ class OpenXRCamera(Camera, StateManager):
         return self._session.main_view.render
     
     def _next_frame(self, *_):
-#        self._session.main_view.redraw_needed = True  # Make sure to continuously draw
+        # Make sure to continuously draw
+        # If headset sleeps then awakes it won't draw without this.
+        self._session.main_view.redraw_needed = True
 
         if not self.active:
             # If the session camera is changed from the VR camera
