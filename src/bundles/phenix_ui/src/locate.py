@@ -68,8 +68,13 @@ def find_phenix_command(session, program_name, phenix_location=None, *, verify_i
         return cmd
 
 def phenix_location(session, phenix_location=None):
+    import sys
+    if sys.platform == "win32":
+        suffix = ".bat"
+    else:
+        suffix = ".sh"
     try:
-        cmd = find_phenix_command(session, "phenix_env.sh", phenix_location=phenix_location,
+        cmd = find_phenix_command(session, "phenix_env" + suffix, phenix_location=phenix_location,
             verify_installation=True)
     except UserError:
         msg = "No Phenix installation found"
