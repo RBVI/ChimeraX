@@ -43,7 +43,7 @@ class FitLoopsJob(Job):
         self.start_t = time()
         def threaded_run(self=self):
             try:
-                results = info = _run_fit_loops_subprocess(session, executable_location, optional_args,
+                results = _run_fit_loops_subprocess(session, executable_location, optional_args,
                     map_file_name, model_file_name, sequence_file_name, positional_args, temp_dir,
                     start_res_number, end_res_number, chain_id, processors, verbose)
             finally:
@@ -157,7 +157,6 @@ def phenix_fit_loops(session, structure, in_map, *, block=None, phenix_location=
 
 def _process_results(session, fit_loops_model, map, shift, structure, start_res_number, end_res_number,
         replace, chain_id, info):
-    print("info:", info)
     fit_loops_model.position = map.scene_position
     if shift is not None:
         fit_loops_model.atoms.coords += shift
@@ -203,6 +202,11 @@ def _process_results(session, fit_loops_model, map, shift, structure, start_res_
     else:
         fit_loops_model.position = structure.scene_position
         session.models.add([fit_loops_model])
+    if session.ui.is_gui:
+        from .tool import FitLoopsResultsViewer
+        FitLoopsResultsViewer(session, structure if replace else fit_loops_model, info, map)
+    else:
+        print("Fit loops JSON output:", info)
 
 def _fix_map_origin(map):
     '''
@@ -299,7 +303,7 @@ def _run_fit_loops_subprocess(session, exe_path, optional_args, map_filename, mo
     session.logger.add_log(log)
     from chimerax.pdb import open_pdb
     try:
-        models, info = open_pdb(session, output_path, log_info = False)
+        models, status_info = open_pdb(session, output_path, log_info = False)
     finally:
         session.logger.remove_log(log)
 

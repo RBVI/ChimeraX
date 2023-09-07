@@ -518,3 +518,110 @@ def _run_emplace_local_command(session, structure, maps, resolution, center, sho
         structure.atomspec, concise_model_spec(session, maps, relevant_types=Volume, allow_empty_spec=False),
         resolution, *center, BoolArg.unparse(show_sharpened_map))
     run(session, cmd)
+
+class FitLoopsResultsViewer(ToolInstance):
+
+    #help = "help:user/tools/waterplacement.html#waterlist"
+
+    def __init__(self, session, model=None, fit_info=None, map=None):
+        # if 'model' is None, we are being restored from a session and _finalize_init() will be called later
+        super().__init__(session, "Fit Loops Results")
+        if model is None:
+            return
+        self._finalize_init(model, fit_info, map)
+
+    def _finalize_init(self, model, fit_info, map, *, session_info=None):
+        self.model = model
+        self.fit_info = fit_info
+        self.map = map
+
+        from chimerax.core.models import REMOVE_MODELS
+        from chimerax.atomic import get_triggers
+        self.handlers = [
+            self.session.triggers.add_handler(REMOVE_MODELS, self._models_removed_cb),
+        ]
+
+        # change any sphere representations into stick
+        if not session_info:
+            check_atoms = self.model.atoms
+            check_spheres = check_atoms.filter(check_atoms.draw_modes == check_atoms.SPHERE_STYLE)
+            check_spheres.draw_modes = check_atoms.STICK_STYLE
+
+        from chimerax.ui import MainToolWindow
+        self.tool_window = tw = MainToolWindow(self, close_destroys=False)
+        parent = tw.ui_area
+
+        from Qt.QtWidgets import QHBoxLayout, QButtonGroup, QVBoxLayout, QRadioButton, QCheckBox
+        from Qt.QtWidgets import QPushButton, QLabel, QToolButton, QGridLayout
+        layout = QVBoxLayout()
+        layout.setContentsMargins(2,2,2,2)
+        layout.setSpacing(0)
+        parent.setLayout(layout)
+
+        self.table = self._build_table()
+        layout.addWidget(self.table, stretch=1)
+
+        self.tool_window.manage('side')
+
+    def delete(self):
+        for handler in self.handlers:
+            handler.remove()
+        self.model = self.map = None
+        super().delete()
+
+    def _build_table(self):
+        class FLInfo:
+            def __init__(self, info, model):
+                for k, v in info.items():
+                    setattr(self, k, v)
+                if self.successful:
+                    self.successful = "\N{CHECK MARK}"
+                    res_offset = 0
+                else:
+                    self.cc = None
+                    self.successful = ""
+                    res_offset = 1
+                residues = []
+                for chain in model.chains:
+                    if chain.chain_id == self.chain_id:
+                        for r in chain.existing_residues:
+                            if r.number >= self.start_residue - res_offset \
+                            and r.number <= self.end_residue + res_offset:
+                                residues.append(r)
+                from chimerax.atomic import Residues
+                self.residues = Residues(residues)
+        from chimerax.ui.widgets import ItemTable
+        table = ItemTable()
+        chain_col = table.add_column("Chain", "chain_id")
+        table.add_column("Start", "start_residue")
+        table.add_column("End", "end_residue")
+        table.add_column("Success", "successful")
+        table.add_column("CC", "cc", format="%.3f", balloon="Correlation coefficient with map")
+        table.add_column("Gap Sequence", "gap_sequence")
+        table.data = [FLInfo(info, self.model)
+            for info in self.fit_info if info['segment_number'] is not None]
+        table.launch(select_mode=table.SelectionMode.SingleSelection)
+        table.sort_by(chain_col, table.SORT_ASCENDING)
+        table.selection_changed.connect(self._new_selection)
+        return table
+
+    def _models_removed_cb(self, trig_name, trig_data):
+        if self.model in trig_data:
+            self.delete()
+
+    def _new_selection(self, selected, unselected):
+        if selected:
+            residues = selected[0].residues
+            if residues:
+                from chimerax.core.commands import run
+                from chimerax.atomic import concise_residue_spec
+                # display things if necessary
+                if not residues.ribbon_displays.any() and not residues.atoms.displays.any():
+                    if self.model.residues.ribbon_displays.any():
+                        run(self.session, "cartoon %s" % spec)
+                    else:
+                        run(self.session, "display %s" % spec)
+                spec = concise_residue_spec(self.session, residues)
+                run(self.session, "sel %s; view sel" % spec)
+            else:
+                self.session.logger.status("No residues to view for this row")
