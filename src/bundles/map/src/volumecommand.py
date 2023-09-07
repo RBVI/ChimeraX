@@ -356,12 +356,12 @@ def volume(session,
                     ('orthoplanes', 'off'), ('tilted_slab', False))
     elif (orthoplanes is not None and orthoplanes != 'off') or image_mode == 'orthoplanes':
         defaults = (('style', 'image'), ('image_mode', 'orthoplanes'), ('color_mode', 'opaque8'),
-                    ('show_outline_box', True), ('expand_single_plane', True))
+                    ('orthoplanes', 'xyz'), ('show_outline_box', True), ('expand_single_plane', True))
     elif tilted_slab or image_mode == 'tilted slab':
         defaults = (('style', 'image'), ('image_mode', 'tilted slab'), ('color_mode', 'auto8'),
                     ('show_outline_box', True), ('expand_single_plane', True))
     elif image_mode == 'full region':
-        defaults = (('color_mode', 'auto8'),)
+        defaults = (('style', 'image'), ('color_mode', 'auto8'),)
     else:
         defaults = ()
     loc = locals()
