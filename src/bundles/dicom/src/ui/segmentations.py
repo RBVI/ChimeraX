@@ -10,6 +10,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 import os
+import sys
 
 from enum import IntEnum
 
@@ -81,7 +82,7 @@ class ImageFormat(IntEnum):
         if self.name == "NIFTI":
             return "NIfTI"
         return self.name
-    
+
 class MouseAction(IntEnum):
     NONE = 0
     CREATE_SEGMENT = 1
@@ -106,7 +107,7 @@ class _SegmentationToolSettings(Settings):
         'start_vr_automatically': False
         , 'set_mouse_modes_automatically': False
         , 'set_hand_modes_automatically': False
-        , 'default_view': 0 # 4 x 4 
+        , 'default_view': 0 # 4 x 4
         , 'default_file_format': 0 # DICOM
         , 'default_segmentation_opacity': 80 # %
         , 'mouse_3d_right_click': MouseAction.CREATE_SEGMENT
@@ -124,7 +125,7 @@ class SegmentationToolControlsDialog(QDialog):
     right_hand_image = QImage(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "icons", "right_controller.png"))
     # left_hand_image = QImage(os.path.join(os.path.dirname(os.path.abspath(__file__)), "right_controller.png"))
     mouse_image = QImage(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "icons", "mouse.png"))
- 
+
     def __init__(self, parent, settings):
         super().__init__(parent)
         self.cx_settings = settings
@@ -186,7 +187,7 @@ class SegmentationToolControlsDialog(QDialog):
         self.default_view_dropdown_layout.addSpacing(8)
         self.default_view_dropdown_layout.addWidget(self.default_view_dropdown)
         self.default_view_dropdown_layout.addStretch()
-        
+
         self.file_format_dropdown_container = QWidget(self.settings_container)
         self.file_format_dropdown_layout = QHBoxLayout()
         self.file_format_dropdown_container.setLayout(self.file_format_dropdown_layout)
@@ -201,7 +202,7 @@ class SegmentationToolControlsDialog(QDialog):
         self.file_format_dropdown_layout.addSpacing(8)
         self.file_format_dropdown_layout.addWidget(self.file_format_dropdown)
         self.file_format_dropdown_layout.addStretch()
-        
+
         self.default_opacity_spinbox_container = QWidget(self.settings_container)
         self.default_opacity_spinbox_layout = QHBoxLayout()
         self.default_opacity_spinbox_container.setLayout(self.default_opacity_spinbox_layout)
@@ -219,7 +220,13 @@ class SegmentationToolControlsDialog(QDialog):
 
         self.settings_container.layout().addWidget(self.start_vr_checkbox)
         self.settings_container.layout().addWidget(self.set_mouse_modes_checkbox)
+        self.explanatory_mouse_mode_text = QLabel("When this is checked, replaced mouse modes will be restored when the tool closes or the view is changed.")
+        self.explanatory_mouse_mode_text.setWordWrap(True)
+        self.settings_container.layout().addWidget(self.explanatory_mouse_mode_text)
         self.settings_container.layout().addWidget(self.set_hand_modes_checkbox)
+        self.explanatory_hand_mode_text = QLabel("When this is checked, replaced hand modes will be restored when the tool closes.")
+        self.explanatory_hand_mode_text.setWordWrap(True)
+        self.settings_container.layout().addWidget(self.explanatory_hand_mode_text)
         self.settings_container.layout().addWidget(self.default_view_dropdown_container)
         self.settings_container.layout().addWidget(self.file_format_dropdown_container)
         self.settings_container.layout().addWidget(QLabel("DICOM metadata will be lost when saving DICOM segmentations in NIfTI or NRRD format."))
@@ -228,28 +235,49 @@ class SegmentationToolControlsDialog(QDialog):
         self.tab_widget.addTab(self.settings_container, "General Settings")
 
     def _add_mouse_2d_tab(self):
-        self.mouse_2d_widget = QWidget(self)
-        self.mouse_2d_layout = QHBoxLayout()
-        self.mouse_2d_widget.setLayout(self.mouse_2d_layout)
+        self.mouse_2d_outer_widget = QWidget(self)
+        self.mouse_2d_outer_layout = QHBoxLayout()
+        self.mouse_2d_outer_widget.setLayout(self.mouse_2d_outer_layout)
+
         self.mouse_2d_image_widget = QLabel(self)
         self.mouse_2d_image_widget.setPixmap(QPixmap.fromImage(self.mouse_image.scaledToWidth(350, Qt.TransformationMode.SmoothTransformation)))
-        self.mouse_2d_layout.addWidget(self.mouse_2d_image_widget)
+
+        self.mouse_2d_image_container = QWidget()
+        self.mouse_2d_image_container_layout = QVBoxLayout()
+        self.mouse_2d_image_container_layout.setSpacing(0)
+        self.mouse_2d_image_container_layout.setContentsMargins(0, 0, 0, 0)
+        self.mouse_2d_image_container.setLayout(self.mouse_2d_image_container_layout)
+        self.mouse_2d_image_container_layout.addWidget(self.mouse_2d_image_widget)
+        self.mouse_2d_image_container_layout.addStretch(1)
+        self.mouse_2d_outer_layout.addWidget(self.mouse_2d_image_container)
+
         self.mouse_control_2d_dropdown_container = QWidget()
         self.mouse_control_2d_dropdown_container_layout = QVBoxLayout()
         self.mouse_control_2d_dropdown_container.setLayout(self.mouse_control_2d_dropdown_container_layout)
-        self.mouse_control_2d_dropdown_container_layout.addSpacing(98)
-        self.mouse_control_2d_dropdown_container_layout.addWidget(QLabel("Zoom on Slice"))
-        self.mouse_control_2d_dropdown_container_layout.addSpacing(12)
-        self.mouse_control_2d_dropdown_container_layout.addWidget(QLabel("Pan Around Slice"))
-        self.mouse_control_2d_dropdown_container_layout.addSpacing(12)
-        self.mouse_control_2d_dropdown_container_layout.addWidget(QLabel("Zoom on Slice\n(Holding Shift) Resize Cursor"))
-        self.mouse_control_2d_dropdown_container_layout.addSpacing(12)
-        self.mouse_control_2d_dropdown_container_layout.addWidget(QLabel("Create Segmentation\n(Holding Shift) Erase Segmentation"))
+        windows_spacings = [98, 12, 12, 12]
+        mac_spacings = [50, 12, 12, 12]
+        linux_spacings = [98, 12, 12, 12]
+        if sys.platform == "win32":
+            spacings = windows_spacings
+        elif sys.platform == "darwin":
+            spacings = mac_spacings
+        else:
+            spacings = linux_spacings
+        control_labels = [
+            QLabel("Zoom on Slice")
+            , QLabel("Pan Around Slice")
+            , QLabel("Zoom on Slice\n(Holding Shift) Resize Cursor")
+            , QLabel("Create Segmentation\n(Holding Shift) Erase Segmentation")
+        ]
+        for i in range(4):
+            self.mouse_control_2d_dropdown_container_layout.addSpacing(spacings[i])
+            self.mouse_control_2d_dropdown_container_layout.addWidget(control_labels[i])
         self.mouse_control_2d_dropdown_container_layout.addStretch()
-        self.mouse_control_2d_dropdown_container_layout.setContentsMargins(10, 0, 0, 0)
+        self.mouse_control_2d_dropdown_container_layout.setContentsMargins(6, 0, 0, 0)
         self.mouse_control_2d_dropdown_container_layout.setSpacing(0)
-        self.mouse_2d_layout.addWidget(self.mouse_control_2d_dropdown_container)
-        self.tab_widget.addTab(self.mouse_2d_widget, "Mouse (2D Slices)")
+        self.mouse_2d_outer_layout.addWidget(self.mouse_control_2d_dropdown_container)
+        self.mouse_2d_outer_layout.addStretch(1)
+        self.tab_widget.addTab(self.mouse_2d_outer_widget, "Mouse (2D Slices)")
 
     def _add_mouse_3d_tab(self):
         self.mouse_3d_widget = QWidget(self)
@@ -259,6 +287,7 @@ class SegmentationToolControlsDialog(QDialog):
 
         self.mouse_3d_image_controls_container = QWidget(self)
         self.mouse_3d_image_controls_container_layout = QHBoxLayout()
+        self.mouse_3d_image_controls_container_layout.setContentsMargins(0, 0, 0, 0)
         self.mouse_3d_image_controls_container_layout.setSpacing(0)
         self.mouse_3d_image_controls_container.setLayout(self.mouse_3d_image_controls_container_layout)
 
@@ -267,34 +296,43 @@ class SegmentationToolControlsDialog(QDialog):
         self.mouse_controls_3d_dropdown_list_container = QWidget()
         self.mouse_controls_3d_dropdown_list_container_layout = QVBoxLayout()
         self.mouse_controls_3d_dropdown_list_container_layout.setContentsMargins(10, 0, 0, 0)
+        self.mouse_controls_3d_dropdown_list_container_layout.setSpacing(0)
         self.mouse_controls_3d_dropdown_list_container.setLayout(self.mouse_controls_3d_dropdown_list_container_layout)
 
- 
+
         self.mouse_3d_image_widget = QLabel(self)
         self.mouse_3d_image_widget.setPixmap(QPixmap.fromImage(self.mouse_image.scaledToWidth(350, Qt.TransformationMode.SmoothTransformation)))
-        
+
         self.mouse_3d_image_controls_container_layout.addWidget(self.mouse_3d_image_widget)
         self.mouse_3d_image_controls_container_layout.addWidget(self.mouse_controls_3d_dropdown_list_container)
-        
+
         self.mouse_3d_image_controls_container_layout.addWidget(self.mouse_controls_3d_dropdown_list_container)
         self.mouse_3d_image_controls_container_layout.addStretch(1)
 
-        self.mouse_3d_layout.addWidget(QLabel(
-        "Whatever is assigned to 'Scroll' will activate when the Shift key is held, so zooming in and out on your model will still work."
-        ))
-        self.mouse_3d_layout.addWidget(QLabel("Whatever is assigned to")) 
+        self.explanatory_mouse_3d_text = QLabel(
+            "Whatever is assigned to 'Scroll' will activate when the Shift key is held, so zooming in and out on your model will still work."
+        )
+        self.explanatory_mouse_3d_text.setWordWrap(True)
+        self.mouse_3d_layout.addWidget(self.explanatory_mouse_3d_text)
+        self.mouse_3d_layout.addWidget(QLabel("Whatever is assigned to"))
         self.mouse_3d_layout.addStretch(1)
 
         self.right_click_3d_dropdown = QComboBox(self)
         self.middle_click_3d_dropdown = QComboBox(self)
         self.scroll_3d_dropdown = QComboBox(self)
         self.left_click_3d_dropdown = QComboBox(self)
-        for dropdown, spacing in [
-            (self.right_click_3d_dropdown, 50)
-            , (self.middle_click_3d_dropdown, 2)
-            , (self.scroll_3d_dropdown, 6)
-            , (self.left_click_3d_dropdown, 16)
-        ]:
+        windows_spacings = [50, 2, 6, 16]
+        mac_spacings = [48, 0, 6, 16]
+        linux_spacings = [50, 2, 6, 16]
+        if sys.platform == "win32":
+            spacings = windows_spacings
+        elif sys.platform == "darwin":
+            spacings = mac_spacings
+        else:
+            spacings = linux_spacings
+        for dropdown, spacing in zip(
+            [self.right_click_3d_dropdown, self.middle_click_3d_dropdown, self.scroll_3d_dropdown, self.left_click_3d_dropdown], spacings
+        ):
             for option in MouseAction:
                 dropdown.addItem(str(option))
             self.mouse_controls_3d_dropdown_list_container_layout.addSpacing(spacing)
@@ -307,31 +345,47 @@ class SegmentationToolControlsDialog(QDialog):
         self.tab_widget.addTab(self.mouse_3d_widget, "Mouse (3D)")
 
     def _add_vr_tab(self):
-        self.vr_widget = QWidget(self)
-        self.vr_layout = QHBoxLayout()
-        self.vr_widget.setLayout(self.vr_layout)
+        self.vr_outer_widget = QWidget(self)
+        self.vr_outer_layout = QHBoxLayout()
+        self.vr_outer_widget.setLayout(self.vr_outer_layout)
+
         self.control_dropdown_container = QWidget()
         self.control_dropdown_container_layout = QVBoxLayout()
         self.control_dropdown_container.setLayout(self.control_dropdown_container_layout)
+
+        self.vr_controller_container = QWidget()
+        self.vr_controller_container_layout = QVBoxLayout()
+        self.vr_controller_container.setLayout(self.vr_controller_container_layout)
+
         self.vr_controller_picture = QLabel(self)
         self.vr_controller_picture.setPixmap(QPixmap.fromImage(self.right_hand_image.scaledToWidth(350, Qt.TransformationMode.SmoothTransformation)))
-        self.vr_layout.addWidget(self.vr_controller_picture)
-        self.vr_layout.addWidget(self.control_dropdown_container)
- 
+        self.vr_controller_container_layout.addWidget(self.vr_controller_picture)
+        self.vr_controller_container_layout.setContentsMargins(0, 0, 0, 0)
+        self.vr_controller_container_layout.addStretch(1)
+        self.vr_outer_layout.addWidget(self.vr_controller_container)
+        self.vr_outer_layout.addWidget(self.control_dropdown_container)
+        self.vr_outer_layout.addStretch(1)
         self.thumbstick_dropdown = QComboBox(self)
         self.menu_button_dropdown = QComboBox(self)
         self.trigger_dropdown = QComboBox(self)
         self.grip_dropdown = QComboBox(self)
         self.a_button_dropdown = QComboBox(self)
         self.b_button_dropdown = QComboBox(self)
-        for dropdown, spacing, assignable in [
-            (self.thumbstick_dropdown, 88, True)
-            , (self.menu_button_dropdown, 46, False)
-            , (self.trigger_dropdown, 10, True)
-            , (self.grip_dropdown, 18, True)
-            , (self.a_button_dropdown, 72, True)
-            , (self.b_button_dropdown, 36, True)
-        ]:
+        windows_spacings = [88, 46, 10, 18, 72, 36]
+        mac_spacings = [88, 38, 2, 10, 66, 28]
+        linux_spacings = [88, 46, 10, 18, 72, 36]
+        assignable = [True, False, True, True, True, True]
+        if sys.platform == "win32":
+            spacings = windows_spacings
+        elif sys.platform == "darwin":
+            spacings = mac_spacings
+        else:
+            spacings = linux_spacings
+        for dropdown, spacing, assignable in zip(
+            [self.thumbstick_dropdown, self.menu_button_dropdown, self.trigger_dropdown, self.grip_dropdown, self.a_button_dropdown, self.b_button_dropdown]
+            , spacings
+            , assignable
+        ):
             if not assignable:
                 dropdown.addItem(str(HandAction.NONE))
                 dropdown.setEnabled(False)
@@ -345,11 +399,11 @@ class SegmentationToolControlsDialog(QDialog):
         self.grip_dropdown.setCurrentIndex(self.cx_settings.vr_grip)
         self.a_button_dropdown.setCurrentIndex(self.cx_settings.vr_a_button)
         self.b_button_dropdown.setCurrentIndex(self.cx_settings.vr_b_button)
-        self.control_dropdown_container_layout.addStretch()
-        self.control_dropdown_container_layout.setContentsMargins(10, 0, 0, 0)
+        self.control_dropdown_container_layout.setContentsMargins(6, 0, 0, 0)
         self.control_dropdown_container_layout.setSpacing(0)
-        self.tab_widget.addTab(self.vr_widget, "VR Controller")
-    
+        self.control_dropdown_container_layout.addStretch()
+        self.tab_widget.addTab(self.vr_outer_widget, "VR Controller")
+
 
 class SegmentationTool(ToolInstance):
     # TODO: Sphere cursor for 2D, extend to VR
@@ -606,7 +660,7 @@ class SegmentationTool(ToolInstance):
         run(self.session, "ui mousemode right 'vr segmentations'")
         run(self.session, "ui mousemode shift middle 'vr segmentations'")
         self.mouse_modes_changed = True
-        
+
     def _reset_3d_mouse_modes(self):
         """Set mouse modes back to what they were but only if we changed them automatically.
         If you set the mode by hand, or in between the change and restore you're on your own!"""
@@ -625,9 +679,9 @@ class SegmentationTool(ToolInstance):
         if self.hand_modes_changed:
             ...
         self.hand_modes_changed = False
-        
+
     def _start_vr(self):
-        if self.settings.set_hand_modes_automatically: 
+        if self.settings.set_hand_modes_automatically:
             self._set_vr_mouse_modes()
 
     def _surface_chosen(self, *args):
@@ -733,7 +787,7 @@ class SegmentationTool(ToolInstance):
         new_seg.set_parameters(surface_levels=[0.501])
         new_seg.set_step(1)
         new_seg.set_transparency(int((self.settings.default_segmentation_opacity / 100) * 255))
- 
+
         num_items = self.segmentation_list.count()
         self.segmentation_list.setCurrentItem(self.segmentation_list.item(num_items - 1))
         if self.session.ui.main_window.view_layout == "orthoplanes":
