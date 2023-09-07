@@ -283,7 +283,8 @@ See also: <a href="#dispsurf">surface and mesh display options</a>,
   Same as <a href="#level"><b>level</b></a>, except with <i>threshold-level</i>
   specified in units of root-mean-square (RMS) deviations from zero
   or standard deviations (SD) from the mean, respectively, 
-  calculated for the <a href="#dimensions">current display region</a>
+  calculated for the 
+  current <a href="../tools/volumeviewer.html#region">display region</a>
   and <a href="#sampling">step size</a>.
   See also: <a href="#scale"><b>volume scale</b></a>,
 <a href="measure.html#mapstats"><b>measure mapstats</b></a>
@@ -408,7 +409,7 @@ the setting applies to whichever style is currently shown.
   <a href="#top" class="nounder">&bull;</a>
   <a name="outline"><b>showOutlineBox</b> &nbsp;true | <b>false</b></a>
   <br>Outline the bounding box of the 
-  <a href="#dimensions">current display region</a>.
+  current <a href="../tools/volumeviewer.html#region">display region</a>.
   <a href="../tools/densitymaps.html" title="Map Toolbar...">
   <img class="icon" border=1 src="../tools/shortcut-icons/outlinebox.png"></a>
 </blockquote>
@@ -753,7 +754,8 @@ the <b>crop volume</b> <a href="ui.html#mousemode">mouse mode</a>
   exceed <i>end</i>. 
   The indices refer to the first displayed plane along the axis.
   If only the axis is given, a single plane at the center of the 
-  <a href="#dimensions">current region</a> will be shown.
+  current <a href="../tools/volumeviewer.html#region">display region</a>
+  will be shown.
   If no <i>end</i> is supplied, only a single slab will be shown.  
   The default <i>increment</i> and <i>depth</i> are both <b>1</b>.
   Only planes that are multiples of the <a href="#sampling">step size</a>
@@ -794,13 +796,13 @@ and data value in a pop-up balloon.
   <a name="orthoplanes"><b>orthoplanes</b></a>
   &nbsp;xyz&nbsp;|&nbsp;xy&nbsp;|&nbsp;yz&nbsp;|&nbsp;xz&nbsp;|&nbsp;off
   [&nbsp;<b>positionPlanes</b>&nbsp;&nbsp;<i>i,j,k</i>&nbsp;]
-  <br>Display planes perpendicular to the X, Y, and/or Z data axes
-  within the <a href="#dimensions">current region</a>.
+  <br>Display planes perpendicular to the X, Y, and/or Z data axes within the
+  current <a href="../tools/volumeviewer.html#region">display region</a>.
   If only a single plane is shown beforehand, it will be
   <a href="#expandSinglePlane">expanded</a> to define the region.
   The <b>positionPlanes</b> option specifies plane locations along the axes 
   by integer grid indices (default <b>0,0,0</b> or the lowest indices in the
-  <a href="#dimensions">current region</a>).
+  current <a href="../tools/volumeviewer.html#region">display region</a>).
   Orthogonal planes automatically use the 
   <b>image</b> <a href="#style">display style</a>,
   opaque <a href="#dispsolid">color mode</a>, 
@@ -818,8 +820,8 @@ and data value in a pop-up balloon.
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
   <a name="boxfaces"><b>boxFaces</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false</a>
-  <br>Display orthogonal planes as the six box faces of the
-  <a href="#dimensions">current region</a>.
+  <br>Show data values on the six box faces of the
+  current <a href="../tools/volumeviewer.html#region">display region</a>.
   If only a single plane is shown beforehand, it will be
   <a href="#expandSinglePlane">expanded</a> to define the region.
   Box-face planes automatically use the
@@ -987,11 +989,11 @@ See also: <a href="material.html"><b>material</b></a>
 <br>
 The <i>mode</i> can be any of the following:
 <ul>
-<li><b>full region</b> &ndash; <a href="#dimensions">full region</a>
 <li><b>orthoplanes</b> &ndash; <a href="#orthoplanes">orthoplanes</a>
 <a href="../tools/densitymaps.html" title="Map Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/orthoplanes.png"></a>
-<li><b>box faces</b> &ndash; <a href="#boxfaces">box faces</a>
+<li><b>box faces</b> &ndash; <a href="#boxfaces">box faces</a> of the 
+current <a href="../tools/volumeviewer.html#region">display region</a>
 <li><a name="tiltedslab"><b>tilted slab</b></a>
 &ndash; a slab of the data 
 <a href="../tools/densitymaps.html" title="Map Toolbar...">
@@ -1008,6 +1010,9 @@ and the axis vector: <i>d</i> = (<i>p</i>,<i>axis</i>)
   slab thickness in number of planes
   <li><b>tiltedSlabSpacing</b> <i>s</i> &ndash; plane spacing in &Aring;
   </ul>
+<li><b>full region</b> &ndash; return to showing the full contents of the 
+current <a href="../tools/volumeviewer.html#region">display region</a>
+after showing orthoplanes, box faces, or a tilted slab
 </ul>
 Typically, the graphical interface would be used rather than commands:
 <a href="../tools/densitymaps.html"><b>Map</b></a> icons or
@@ -1030,9 +1035,11 @@ In <a href="../vr.html">virtual reality</a>, the <b>rotate slab</b> mode
 <img class="icon" border=1 src="../tools/mouse-icons/rotateslab.png"></a>
 can both rotate the tilted slab and translate it along its axis.
 The initial tilted slab is perpendicular to the line of sight, 
-with center at the center of the <a href="#dimensions">current region</a>,
-thickness set to 1/5 of the planes in the 
-<a href="#dimensions">current region</a> along X, Y, or Z (whichever is least),
+with center at the center of the
+current <a href="../tools/volumeviewer.html#region">display region</a>,
+thickness set to 1/5 of the planes in the
+current <a href="../tools/volumeviewer.html#region">display region</a>
+along X, Y, or Z (whichever is least),
 and spacing equal to the smallest of the X, Y, or Z spacing of the data grid.
 </blockquote>
 <blockquote>
@@ -2595,8 +2602,8 @@ If <b>newMap</b> is <b>false</b> (default),
 limit the surface display to a zone within <b>range</b> <i>r</i> 
 (default <b>3.0</b> &Aring;) of any atom in 
 <a href="atomspec.html"><i>atom-spec</i></a> and restrict the
-<a href="#dimensions">current display region</a> of the map
-to the box containing the zoned surface. The corresponding
+current <a href="../tools/volumeviewer.html#region">display region</a>
+of the map to the box containing the zoned surface. The corresponding
 <a href="../tools/densitymaps.html"><b>Map</b></a> icon
 <img class="icon" border=1 src="../tools/shortcut-icons/volzone.png">
 uses a <b>range</b> value six times the grid spacing of the map.
@@ -2784,5 +2791,5 @@ the original volume, if any.
 </p>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-August 2023</address>
+September 2023</address>
 </body></html>
