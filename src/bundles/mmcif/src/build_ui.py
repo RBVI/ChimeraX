@@ -43,3 +43,7 @@ class CCDProvider(StartStructureProvider):
         hint.setOpenExternalLinks(True)
         layout.addWidget(hint, 2, 0, 1, 2, alignment=Qt.AlignCenter)
         layout.setRowStretch(3, 1)
+
+    def execute_command(self, structure, args):
+        raise UserError('There is no "build start ccd" command.'
+            '  Use "open ccd:<CCD identifier>" instead.')
