@@ -408,6 +408,13 @@ def init(argv, event_loop=True):
     if not opts.devel:
         import warnings
         warnings.filterwarnings("ignore", category=DeprecationWarning)
+    if not opts.gui and not opts.offscreen and sys.argv[-1] != 'cxtestimports.py':
+        # Disable importing Qt in nogui mode to ensure that -m pip works
+        sys.modules['qtpy'] = None
+        sys.modules['Qt'] = None
+        sys.modules['PyQt'] = None
+        sys.modules['PySide6'] = None
+        sys.modules['PySide2'] = None
 
     # install line_profile decorator, and install it before
     # initialize_ssl_cert_dir() in case the line profiling is in the
