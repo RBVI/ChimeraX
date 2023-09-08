@@ -18,7 +18,7 @@ from chimerax.core.settings import Settings
 from chimerax.mouse_modes import MouseMode
 
 from .segmentations import SegmentationTool
-   
+
 
 class CreateSegmentation3DMouseMode(MouseMode):
     """Use the segmentation sphere to mark off regions of data in 3D."""
@@ -42,7 +42,17 @@ class CreateSegmentation3DMouseMode(MouseMode):
 
     def mouse_down(self, event):
         MouseMode.mouse_down(self, event)
-        #self.segmentation_tool = ...
+        if self.segmentation_tool is None:
+            self.segmentation_tool = self._find_segmentation_tool()
+        if self.segmentation_tool is None:
+            return
+        self.segmentation_tool.setSphereRegionToValue(
+            self.segmentation_tool.segmentation_sphere.scene_position.origin()
+            , self.segmentation_tool.segmentation_sphere.radius
+            , 1
+        )
+
+       #self.segmentation_tool = ...
 
     def wheel(self, event):
         d = event.wheel_value()
@@ -90,9 +100,49 @@ class Move3DSegmentationSphereMouseMode(MouseMode):
         MouseMode.__init__(self, session)
         self.segmentation_tool = None
 
+    def _find_segmentation_tool(self):
+        for tool in self.session.tools:
+            if isinstance(tool, SegmentationTool):
+                return tool
+        return None
+
+    def mouse_drag(self, event):
+        if self.segmentation_tool is None:
+            self.segmentation_tool = self._find_segmentation_tool()
+        if self.segmentation_tool is None:
+            return
+        dx, dy = self.mouse_motion(event)
+        #settings = self.settings
+        ## Compute motion in scene coords of sphere center.
+        c = self.segmentation_tool.segmentation_sphere.scene_position.origin()
+        v = self.session.main_view
+        s = v.pixel_size(c)
+        shift = (s*dx, -s*dy, 0)
+        dxyz = v.camera.position.transform_vector(shift)
+        shift = (s*dx, -s*dy, 0)
+        self.segmentation_tool.move_sphere(dxyz)
+
+
 class Resize3DSegmentationSphereMouseMode(MouseMode):
     name = 'resize segmentation cursor'
     icon_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'icons', 'resize_cursor.png')
     def __init__(self, session):
         MouseMode.__init__(self, session)
         self.segmentation_tool = None
+
+    def _find_segmentation_tool(self):
+        for tool in self.session.tools:
+            if isinstance(tool, SegmentationTool):
+                return tool
+        return None
+
+    def wheel(self, event):
+        if self.segmentation_tool is None:
+            self.segmentation_tool = self._find_segmentation_tool()
+        if self.segmentation_tool is None:
+            return
+        d = event.wheel_value()
+        if d > 0:
+            self.segmentation_tool.segmentation_sphere.radius += 1
+        elif d < 0:
+            self.segmentation_tool.segmentation_sphere.radius -= 1
