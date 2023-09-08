@@ -13,7 +13,7 @@
 
 from .mod import modify_atom, cn_peptide_bond
 from .start import place_fragment, place_helium, place_peptide, PeptideError
-from .providers import StartStructureProvider
+from .provider_api import StartStructureProvider
 
 from chimerax.core.toolshed import BundleAPI
 
@@ -25,6 +25,7 @@ class BuildStructureAPI(BundleAPI):
             from .tool import BuildStructureTool
             return BuildStructureTool
         return BundleAPI.getclass(class_name)
+
     @staticmethod
     def initialize(session, bundle_info):
         if session.ui.is_gui:
