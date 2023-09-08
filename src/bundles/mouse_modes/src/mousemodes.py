@@ -675,6 +675,18 @@ class MouseEvent:
             return bool(self._event.modifiers() & Qt.KeyboardModifier.ShiftModifier)
         return False
 
+    def ctrl_down(self):
+        '''
+        Supported API.
+        Does the mouse event have the shift key down.
+        '''
+        if self._modifiers is not None:
+            return 'control' in self._modifiers
+        if self._event is not None:
+            from Qt.QtCore import Qt
+            return bool(self._event.modifiers() & Qt.KeyboardModifier.CtrlModifier)
+        return False
+
     def alt_down(self):
         '''
         Supported API.
