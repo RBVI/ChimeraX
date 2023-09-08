@@ -20,7 +20,7 @@ then
   echo "${PULL_OUTPUT}"
   exit 0;
 fi
-BUNDLES=$(echo "${PULL_OUTPUT}" | grep "src/bundles" | trim | sed -e )
+BUNDLES=$(echo "${PULL_OUTPUT}" | grep "src/bundles" | cut -d\/ -f3 | uniq)
 for bundle in $BUNDLES
 do
   make -C src/bundles/"${bundle}" install

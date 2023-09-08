@@ -45,3 +45,7 @@ class SmilesProvider(StartStructureProvider):
         acknowledgement.setOpenExternalLinks(True)
         layout.addWidget(acknowledgement, 2, 0, 1, 2, alignment=Qt.AlignCenter)
         layout.setRowStretch(3, 1)
+
+    def execute_command(self, structure, args):
+        raise UserError('There is no "build start smiles" command.'
+            '  Use "open smiles:<SMILES string>" instead.')
