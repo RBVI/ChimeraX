@@ -647,6 +647,8 @@ class SegmentationTool(ToolInstance):
             self._destroy_2d_segmentation_pucks()
         except TypeError:
             pass
+        self._reset_3d_mouse_modes()
+        self._reset_vr_hand_modes()
         super().delete()
 
     def _set_3d_mouse_modes(self):
@@ -656,9 +658,9 @@ class SegmentationTool(ToolInstance):
             else:
                 for modifier in binding.modifiers:
                     self.old_mouse_bindings[binding.button][modifier] = binding.mode.name
-        run(self.session, "ui mousemode shift wheel 'vr segmentations'")
-        run(self.session, "ui mousemode right 'vr segmentations'")
-        run(self.session, "ui mousemode shift middle 'vr segmentations'")
+        run(self.session, "ui mousemode shift wheel 'resize segmentation cursor'")
+        run(self.session, "ui mousemode right 'create segmentations'")
+        run(self.session, "ui mousemode shift middle 'move segmentation cursor'")
         self.mouse_modes_changed = True
 
     def _reset_3d_mouse_modes(self):
@@ -670,10 +672,11 @@ class SegmentationTool(ToolInstance):
             run(self.session, "ui mousemode shift middle '" + self.old_mouse_bindings['middle']['shift'] + "'" if self.old_mouse_bindings['middle']['shift'] else "ui mousemode shift middle 'none'")
         self.mouse_modes_changed = False
 
-    def _set_vr_mouse_modes(self):
+    def _set_vr_hand_modes(self):
         self.hand_modes_changed = True
+        for binding in
 
-    def _reset_vr_mouse_modes(self):
+    def _reset_vr_hand_modes(self):
         """Set hand modes back to what they were but only if we changed them automatically.
         If you set the mode by hand, or in between the change and restore you're on your own!"""
         if self.hand_modes_changed:
@@ -682,7 +685,7 @@ class SegmentationTool(ToolInstance):
 
     def _start_vr(self):
         if self.settings.set_hand_modes_automatically:
-            self._set_vr_mouse_modes()
+            self._set_vr_hand_modes()
 
     def _surface_chosen(self, *args):
         # If we're in the 2D view, we need to tell the orthoplane views to display
