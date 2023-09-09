@@ -541,6 +541,9 @@ class SteamVRCamera(Camera, StateManager):
         # Exit cleanly
         self._app_quit_handler = t.add_handler('app quit', self._app_quit)
 
+        # Notify other tools that VR has started
+        self._session.triggers.activate_trigger('vr started', self)
+
     @property
     def active(self):
         return self is self._session.main_view.camera
@@ -741,6 +744,9 @@ class SteamVRCamera(Camera, StateManager):
         self._vr_system = None
         self._compositor = None
         self._delete_framebuffers()
+
+        # Notify other tools that VR has stopped
+        self._session.triggers.activate_trigger('vr stopped', self)
 
         self._session.main_view.redraw_needed = True
     

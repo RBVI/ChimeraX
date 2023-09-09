@@ -16,7 +16,7 @@ from chimerax.map import add_map_format
 from chimerax.core.tools import get_singleton
 from .dicom import (
     DICOMMapFormat, DicomOpener, fetchers,
-    DICOMBrowserTool, DICOMDatabases, Patient, Study
+    Patient, Study
 )
 from .dicom.dicom_volumes import DICOMVolume
 
@@ -40,11 +40,13 @@ class _DICOMBundle(BundleAPI):
     @staticmethod
     def start_tool(session, bi, ti):
         if ti.name == "DICOM Browser":
+            from .dicom.ui import DICOMBrowserTool
             return get_singleton(session, DICOMBrowserTool, "DICOM Browser")
         elif ti.name == "Segmentations":
             from .ui.segmentations import SegmentationTool
             return SegmentationTool(session)
         else:
+            from .dicom.ui import DICOMDatabases
             return DICOMDatabases(session)
 
     @staticmethod

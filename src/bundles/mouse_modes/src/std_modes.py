@@ -286,19 +286,20 @@ class MoveMouseMode(MouseMode):
 
     def mouse_down(self, event):
         MouseMode.mouse_down(self, event)
-        if self.action(event) == 'rotate':
-            self._set_z_rotation(event)
+        a = self.action(event)
+        self._set_z_rotation(event)
         if self.move_atoms:
             from chimerax.atomic import selected_atoms
             self._atoms = selected_atoms(self.session)
         self._undo_start()
 
     def mouse_drag(self, event):
-        if self.action(event) == 'rotate':
-            axis, angle = self._rotation_axis_angle(event)
+        a = self.action(event)
+        if a == 'rotate' or a == 'rotate z':
+            axis, angle = self._rotation_axis_angle(event, z_rotate = (a == 'rotate z'))
             self._rotate(axis, angle)
-        else:
-            shift = self._translation(event)
+        elif a == 'translate' or a == 'translate z':
+            shift = self._translation(event, z_translate = (a == 'translate z'))
             self._translate(shift)
         self._moved = True
         self._log_motion()
@@ -321,16 +322,25 @@ class MoveMouseMode(MouseMode):
         if self.move_atoms:
             from chimerax.atomic import selected_atoms
             self._atoms = selected_atoms(self.session)
-        if self.action(event) == 'rotate':
+        a = self.action(event)
+        if a == 'rotate':
             self._rotate((0,1,0), 10*d)
-        else:
+        elif a == 'translate':
             self._translate((0,0,100*d))
 
     def action(self, event):
         a = self.mouse_action
         if event.shift_down():
             # Holding shift key switches between rotation and translation
-            a = 'translate' if a == 'rotate' else 'rotate'
+             if a == 'rotate':
+                 a = 'translate'
+             elif a == 'translate':
+                 a = 'rotate'
+        if event.ctrl_down():
+            # Holding control restricts to z-axis rotation or translation
+            a = a + ' z'
+        if self._z_rotate and a == 'rotate':
+            a = 'rotate z'
         return a
 
     def touchpad_two_finger_trans(self, event):
@@ -355,7 +365,6 @@ class MoveMouseMode(MouseMode):
         angle = event.two_finger_twist
         if self.mouse_action=='rotate':
             self._rotate((0,0,1), angle)
-
 
     def _set_z_rotation(self, event):
         x,y = event.position()
@@ -382,7 +391,7 @@ class MoveMouseMode(MouseMode):
         else:
             self.view.rotate(saxis, angle, self.models())
 
-    def _rotation_axis_angle(self, event):
+    def _rotation_axis_angle(self, event, z_rotate = False):
         '''Returned axis is in camera coordinate system.'''
         dx, dy = self.mouse_motion(event)
         import math
@@ -391,7 +400,7 @@ class MoveMouseMode(MouseMode):
             axis = self._restricted_axis()
             if dy*axis[0]+dx*axis[1] < 0:
                 angle = -angle
-        elif self._z_rotate:
+        elif z_rotate:
             # z-rotation
             axis = (0,0,1)
             w, h = self.view.window_size
@@ -424,12 +433,14 @@ class MoveMouseMode(MouseMode):
         else:
             self.view.translate(step, self.models(), move_near_far_clip_planes = True)
 
-    def _translation(self, event):
+    def _translation(self, event, z_translate = False):
         '''Returned shift is in camera coordinates.'''
         dx, dy = self.mouse_motion(event)
         shift = (dx, -dy, 0)
         if self._restrict_to_plane is not None:
             shift = self._restricted_shift(shift)
+        elif z_translate:
+            shift = (0, 0, dy)
         return shift
 
     def _restricted_shift(self, shift):

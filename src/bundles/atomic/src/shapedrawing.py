@@ -214,11 +214,12 @@ class AtomicShapeDrawing(Drawing, State):
         # description is what shows up when hovered over
         asarray = numpy.asarray
         concat = numpy.concatenate
+        if not hasattr(color, 'shape'):
+            color = asarray(color, dtype=numpy.uint8)
         if color.ndim == 1 or color.shape[0] == 1:
             colors = numpy.empty((vertices.shape[0], 4), dtype=numpy.uint8)
             colors[:] = color
         else:
-            colors = asarray(color, dtype=numpy.uint8)
             assert colors.shape[1] == 4 and colors.shape[0] == vertices.shape[0]
         if self.vertices is None:
             if atoms is not None:
@@ -264,11 +265,12 @@ class AtomicShapeDrawing(Drawing, State):
             all_vertices[i] = vertices
             all_normals[i] = normals
             all_triangles[i] = triangles + num_vertices
+            if not hasattr(color, 'shape'):
+                color = numpy.asarray(color, dtype=numpy.uint8)
             if color.ndim == 1 or color.shape[0] == 1:
                 colors = empty((vertices.shape[0], 4), dtype=uint8)
                 colors[:] = color
             else:
-                colors = numpy.asarray(color, dtype=uint8)
                 assert colors.shape[1] == 4 and colors.shape[0] == vertices.shape[0]
             all_colors[i] = colors
             has_atoms = has_atoms or (atoms is not None)
@@ -306,6 +308,8 @@ class AtomicShapeDrawing(Drawing, State):
             raise ValueError("no shape to extend")
         asarray = numpy.asarray
         concat = numpy.concatenate
+        if color is not None and not hasattr(color, 'shape'):
+            color = asarray(color, dtype=numpy.uint8)
         if color is None or color.ndim == 1 or color.shape[0] == 1:
             colors = numpy.empty((vertices.shape[0], 4), dtype=numpy.uint8)
             if color is None:
@@ -313,7 +317,6 @@ class AtomicShapeDrawing(Drawing, State):
             else:
                 colors[:] = color
         else:
-            colors = color.asarray(color, dtype=numpy.uint8)
             assert colors.shape[1] == 4 and colors.shape[0] == vertices.shape[0]
         offset = self.vertices.shape[0]
         new_vertex_colors = concat((self.vertex_colors, colors))

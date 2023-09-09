@@ -44,3 +44,7 @@ class PubChemProvider(StartStructureProvider):
         acknowledgement.setOpenExternalLinks(True)
         layout.addWidget(acknowledgement, 2, 0, 1, 2)
         layout.setRowStretch(3, 1)
+
+    def execute_command(self, structure, args):
+        raise UserError('There is no "build start pubchem" command.'
+            '  Use "open pubchem:<PubChem CID>" instead.')
