@@ -287,8 +287,7 @@ class MoveMouseMode(MouseMode):
     def mouse_down(self, event):
         MouseMode.mouse_down(self, event)
         a = self.action(event)
-        if a == 'rotate':
-            self._set_z_rotation(event)
+        self._set_z_rotation(event)
         if self.move_atoms:
             from chimerax.atomic import selected_atoms
             self._atoms = selected_atoms(self.session)
