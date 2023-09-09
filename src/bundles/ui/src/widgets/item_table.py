@@ -510,8 +510,11 @@ class ItemTable(QTableView):
                 self._data.extend(data[i:])
                 self._table_model.endInsertRows()
             elif self._data[i] != datum:
+                self._table_model.beginRemoveRows(QModelIndex(), i, i)
+                self._data = self._data[:i] + self._data[i+1:]
+                self._table_model.endRemoveRows()
                 self._table_model.beginInsertRows(QModelIndex(), i, i)
-                self._data = self._data[:i] + [datum] + self._data[i+1:]
+                self._data = self._data[:i] + [datum] + self._data[i:]
                 self._table_model.endInsertRows()
         final_selection = set([d for d in self._data if d in initial_selection])
         self.selected = final_selection

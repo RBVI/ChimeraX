@@ -240,7 +240,7 @@ class Region:
     def lower_below(self, other_region):
         if not self._items or not other_region._items:
             return
-        self._items[0].setZValue(other_region.zValue()-1)
+        self._items[0].setZValue(other_region._items[0].zValue()-1)
         for i in range(1, len(self._items)):
             self._items[i].setZValue(self._items[i-1].zValue()-0.001)
 
@@ -469,7 +469,6 @@ class RegionManager:
         self._highlighted_region = None
         self.regions = []
         self.associated_regions = {}
-        self.rename_dialogs = {}
         self._mod_assoc_handler_id = self._motion_stop_handler_id = None
         self.sequence_regions = { None: set() }
         self._cur_region = None
@@ -572,12 +571,6 @@ class RegionManager:
         """
         if self._sel_change_handler:
             self._sel_change_handler.remove()
-        """
-        for rd in self.rename_dialogs.values():
-            rd.destroy()
-        self.rename_dialogs.clear()
-        ModelessDialog.destroy(self)
-        """
 
     """TODO: also change _mouse_up_cb handling of double-click to raise the region manager
     def fillInUI(self, parent):
@@ -922,28 +915,27 @@ class RegionManager:
                     a.color = rgba
         self.seq_canvas.sv.status("%d scf regions created" % len(region_info))
 
-    """
-    def lowerRegion(self, region, rebuild_table=True):
+    def lower_region(self, region, rebuild_table=True):
         if not region:
-            self.seq_canvas.sv.status("No active region",
-                                color="red")
+            self.seq_canvas.sv.status("No active region", color="red")
             return
         if not isinstance(region, Region):
-            for r in region:
-                self.lowerRegion(r)
+            for r in region[::-1]:
+                self.lower_region(r)
             return
         index = self.regions.index(region)
         if index == len(self.regions) - 1:
             return
         self.regions.remove(region)
         self.regions.append(region)
-        for higherRegion in self.regions[-2::-1]:
-            if higherRegion.blocks and higherRegion.shown:
-                region.lower_below(higherRegion)
+        for higher_region in self.regions[-2::-1]:
+            if higher_region.blocks and higher_region.shown:
+                region.lower_below(higher_region)
                 break
         if rebuild_table:
-            self._rebuildListing()
+            self.seq_canvas.sv._regions_tool_notification('lower', region)
 
+    """
     def map(self, *args):
         refreshRMSD = lambda *args: self.regionListing.refresh()
         self._mod_assoc_handler_id = self.seq_canvas.sv.triggers.addHandler(
@@ -1019,10 +1011,6 @@ class RegionManager:
             self.sequence_regions[sequence].add(region)
         region.sequence = sequence
 
-        """TODO
-        if rebuild_table:
-            self._rebuildListing()
-        """
         if select:
             self._toggle_active(region, select_on_structures=not session_restore)
         if assoc_with:
@@ -1031,7 +1019,8 @@ class RegionManager:
             except KeyError:
                 self.associated_regions[assoc_with] = [region]
             region.associated_with = assoc_with
-        self.seq_canvas.sv._regions_tool_notification('new', region)
+        if rebuild_table:
+            self.seq_canvas.sv._regions_tool_notification('new', region)
         return region
 
     def raise_region(self, region, rebuild_table=True):
@@ -1051,10 +1040,8 @@ class RegionManager:
             if lower_region.blocks and lower_region.shown:
                 region.raise_above(lower_region)
                 break
-        """TODO
         if rebuild_table:
-            self._rebuildListing()
-        """
+            self.seq_canvas.sv._regions_tool_notification('raise', region)
 
     def redraw_regions(self, just_gapping=False, cull_empty=False):
         for region in self.regions[:]:
@@ -1074,36 +1061,6 @@ class RegionManager:
         for block in region.blocks:
             sel_residues.extend(self._residues_in_block(block))
         return sel_residues
-
-    """TODO
-    def renameRegion(self, region, name=None):
-        if not region:
-            self.seq_canvas.sv.status("No active region",
-                                color="red")
-            return
-        if not isinstance(region, Region):
-            for r in region:
-                self.renameRegion(r)
-            return
-        if region.read_only:
-            self.seq_canvas.sv.status(
-                "Cannot rename %s region" % region.name, color="red")
-            return
-        if name == "ChimeraX selection":
-            self.seq_canvas.sv.status("Cannot rename region as '%s'"
-                % "ChimeraX selection", color="red")
-            return
-        if name is not None:
-            region.name = name
-            self._rebuildListing()
-            if region in self.rename_dialogs:
-                self.rename_dialogs[region].destroy()
-                del self.rename_dialogs[region]
-            return
-        if region not in self.rename_dialogs:
-            self.rename_dialogs[region] = RenameDialog(self, region)
-        self.rename_dialogs[region].enter()
-    """
 
     def restore_state(self, state):
         self.clear_regions()
@@ -1689,9 +1646,6 @@ class RegionManager:
             self._drag_region = None
         if region == self._highlighted_region:
             self._highlighted_region = None
-        if region in self.rename_dialogs:
-            self.rename_dialogs[region].destroy()
-            del self.rename_dialogs[region]
 
     def _regionResiduesCB(self, event):
         region = self._region(event)
@@ -1834,6 +1788,7 @@ class RegionsTool:
         ui_area = tool_window.ui_area
         layout = QVBoxLayout()
         layout.setSpacing(2)
+        layout.setContentsMargins(5,5,5,5)
         ui_area.setLayout(layout)
 
         menu_layout = QHBoxLayout()
@@ -1879,6 +1834,17 @@ class RegionsTool:
         self._set_table_data(resize_columns=False)
         table.launch()
         layout.addWidget(table, stretch=1)
+        buttons_layout = QHBoxLayout()
+        layout.addLayout(buttons_layout)
+        for button_name, tool_tip in [
+                ('Raise', "Raise region to top of drawing order"),
+                ('Lower', "Lower region to bottom of drawing order"),
+                ]:
+            button = QPushButton(button_name)
+            if tool_tip:
+                button.setToolTip(tool_tip)
+            button.clicked.connect(lambda *args, f=self._button_cb, name=button_name: f(name))
+            buttons_layout.addWidget(button, alignment=Qt.AlignCenter)
 
     def alignment_rmsd_update(self):
         self.region_table.update_column(self.columns["rmsd"], data=True)
@@ -1899,6 +1865,10 @@ class RegionsTool:
                     source = None
             self._set_table_data(source=source)
             self.region_table.resizeColumnsToContents()
+        elif category in ("raise", "lower"):
+            table_regions = self.region_table.data
+            all_regions = self.sv.region_manager.regions
+            self.region_table.data = [r for r in all_regions if r in table_regions]
         elif region in self.region_table.data:
             col = self.columns[category]
             self.region_table.update_cell(col, region)
@@ -1912,6 +1882,26 @@ class RegionsTool:
                 self.region_table.update_column(self.columns["rmsd"], data=True)
                 break
 
+    def _button_cb(self, button_name):
+        sel = self.region_table.selected
+        if not sel:
+            self.sv.status("No region chosen in table", color="red")
+            return
+        region = sel[0]
+        mgr = self.sv.region_manager
+        if button_name in ("Raise", "Lower"):
+            getattr(mgr, button_name.lower() + "_region")(region)
+
+    def _fill_seq_region_menu(self):
+        menu = self.seq_region_menubutton.menu()
+        menu.clear()
+        from Qt.QtWidgets import QAction
+        for i, label in enumerate([self.ENTIRE_ALIGNMENT_REGIONS]
+                + [seq.name for seq in self.sv.alignment.seqs]):
+            action = QAction(label, menu)
+            action.setData(i)
+            menu.addAction(action)
+
     def _get_edge(self, region):
         return region.border_rgba is not None
 
@@ -1923,16 +1913,6 @@ class RegionsTool:
 
     def _get_fill_color(self, region):
         return (0.5, 0.5, 0.5, 1.0) if region.interior_rgba is None else region.interior_rgba
-
-    def _fill_seq_region_menu(self):
-        menu = self.seq_region_menubutton.menu()
-        menu.clear()
-        from Qt.QtWidgets import QAction
-        for i, label in enumerate([self.ENTIRE_ALIGNMENT_REGIONS]
-                + [seq.name for seq in self.sv.alignment.seqs]):
-            action = QAction(label, menu)
-            action.setData(i)
-            menu.addAction(action)
 
     def _seq_menu_cb(self, action):
         self.seq_region_menubutton.setText(action.text())
@@ -1946,7 +1926,7 @@ class RegionsTool:
             self.region_table.update_cell(self.columns["edge color"], region)
 
     def _set_edge_color(self, region, color):
-        region.border_rgba = color
+        region.border_rgba = [ c/255.0 for c in color]
         self.region_table.update_cell(self.columns["edge"], region)
 
     def _set_fill(self, region, fill):
@@ -1957,7 +1937,7 @@ class RegionsTool:
             self.region_table.update_cell(self.columns["fill color"], region)
 
     def _set_fill_color(self, region, color):
-        region.interior_rgba = color
+        region.interior_rgba = [ c/255.0 for c in color]
         self.region_table.update_cell(self.columns["fill"], region)
 
     def _set_table_data(self, menu_action=None, *, source=None, resize_columns=True):
@@ -1998,38 +1978,6 @@ class ScfDialog(OpenModeless):
         Tkinter.Checkbutton(self.clientArea,
                 text="Color structures also",
                 variable=self.colorStructureVar).grid()
-
-class RenameDialog(ModelessDialog):
-    buttons = ('OK', 'Cancel')
-    default = 'OK'
-
-    def __init__(self, region_manager, region):
-        self.title = "Rename '%s' Region" % region_name(region,
-                region_manager.seq_canvas.sv.prefs)
-        self.region_manager = region_manager
-        self.region = region
-        ModelessDialog.__init__(self)
-
-    def map(self, e=None):
-        self.renameOpt._option.focus_set()
-
-    def fillInUI(self, parent):
-        from chimera.tkoptions import StringOption
-        self.renameOpt = StringOption(parent, 0, "Rename region to",
-                                "", None)
-    def Apply(self):
-        newName = self.renameOpt.get().strip()
-        if not newName:
-            self.enter()
-            from chimera import UserError
-            raise UserError("Must supply a new region name or "
-                            "click Cancel")
-        self.region_manager.renameRegion(self.region, newName)
-
-    def destroy(self):
-        self.region = None
-        self.region_manager = None
-        ModelessDialog.destroy(self)
 """
 
 def get_rgba(color_info):
