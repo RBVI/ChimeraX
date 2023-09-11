@@ -76,6 +76,7 @@ print_ribbon = [
     # make missing-structure pseudobonds bigger relative to upcoming hbonds
     "size min-backbone pseudobondRadius 1.1",
     "size ions atomRadius +0.8",
+    "cartoon style sides 16",
     "select backbone & protein | nucleic-acid & min-backbone | ions | ligand"
         " | ligand :< 5 & ~nucleic-acid",
     "hbonds sel color white restrict both",
@@ -98,7 +99,9 @@ undo_printable = [
     "close ##name='%s'" % p3ms_pbg_name,
     "show ##name='%s' models" % Structure.PBG_MISSING_STRUCTURE,
     "size atomRadius default stickRadius 0.2 pseudobondRadius 0.2",
-    "style dashes 7"
+    "style dashes 7",
+    "graphics quality bondTriangles default",
+    "cartoon style sides 12",
 ]
 
 def addh_cmds(session):
@@ -157,10 +160,11 @@ def palette(num_chains):
         palette += base_palette
     return ':'.join(palette[:num_chains])
 
-def print_prep(session=None, *, pb_radius=0.4, ion_size_increase=0.0):
+def print_prep(session=None, *, pb_radius=0.4, ion_size_increase=0.0, bond_sides=16):
     always_cmds = [
         "size stickRadius 0.8",
-        "style dashes 0"
+        "style dashes 0",
+        "graphics quality bondTriangles %d" % (bond_sides * 2)
     ]
     if session is None:
         # not a ribbon preset
@@ -291,7 +295,7 @@ def run_preset(session, name, mgr):
             "~nuc",
             "~ribbon",
             "disp"
-        ] + print_prep(ion_size_increase=0.35)
+        ] + print_prep(ion_size_increase=0.35, bond_sides=32)
     elif name == "sticks monochrome":
         cmd = undo_printable + base_setup + [
             "style stick",
@@ -307,7 +311,7 @@ def run_preset(session, name, mgr):
             "~ribbon",
             "disp",
             "color nih_blue",
-        ] + print_prep(ion_size_increase=0.35)
+        ] + print_prep(ion_size_increase=0.35, bond_sides=32)
     elif name == "CPK":
         cmd = undo_printable + base_setup + color_by_het + [
             "style sphere",
@@ -350,7 +354,7 @@ def surface_cmds(session):
         num_heavys = len(s.atoms.filter(
             numpy.logical_and(s.atoms.elements.numbers != 1, s.atoms.structure_categories == "main")))
         grid_size = min(2.0, max(0.3, math.log10(num_heavys) - 3.2))
-        cmds.append("surface %s enclose %s grid %g sharp true" % (s.atomspec, s.atomspec, grid_size))
+        cmds.append("surface %s enclose %s grid %g sharp false" % (s.atomspec, s.atomspec, grid_size))
     return cmds
 
 def volume_cleanup_cmds(session, contour_cmds=None):
