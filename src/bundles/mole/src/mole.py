@@ -80,7 +80,8 @@ def channel_models(session, channel_json, transparency):
             spheres = channel['Profile']
             for sphere in spheres:
                 r,x,y,z = [sphere[attr] for attr in ('Radius', 'X', 'Y', 'Z')]
-                ms.create_marker((x,y,z), color, r)
+                if r > 0:
+                    ms.create_marker((x,y,z), color, r)
             models.append(ms)
 
     return models
