@@ -36,7 +36,7 @@ Proteins: Structure Function and Genetics 40: 389-408."""
             pass
         if res_name not in self.residue_names:
             raise UnsupportedResTypeError(
-                "%s library does not support residue type '%s'" % (self.display_name, res_name))
+                "%s library does not support residue type '%s'" % (self.ui_name, res_name))
         if res_name == "PRO":
             if cis:
                 file_name = file_name + '-cis'
@@ -50,7 +50,7 @@ Proteins: Structure Function and Genetics 40: 389-408."""
             data = zf.read(file_name)
         except KeyError:
             raise NoResidueRotamersError(
-                "'%s' library has no rotamers for '%s'" % (self.display_name, file_name))
+                "'%s' library has no rotamers for '%s'" % (self.ui_name, file_name))
         from struct import unpack, calcsize
         sz1 = calcsize("!ii")
         num_rotamers, num_params, = unpack("!ii", data[:sz1])

@@ -35,9 +35,10 @@ class RotamerLibrary:
        "lazy" (i.e. on demand) manner if possible to minimize startup time.
     """
 
-    def __init__(self, name):
+    def __init__(self, name, ui_name):
         # name as given in Provider tag
         self.name = name
+        self.ui_name = ui_name
 
     @property
     def citation(self):
@@ -183,7 +184,7 @@ class RotamerLibrary:
         base_name = self._non_cistrans_res_name(res_name)
         if base_name not in self.residue_names:
             raise UnsupportedResTypeError(
-                "%s library does not support residue type '%s'" % (self.display_name, base_name))
+                "%s library does not support residue type '%s'" % (self.ui_name, base_name))
         import os.path, inspect
         my_dir = os.path.split(inspect.getfile(self.__class__))[0]
         from zipfile import ZipFile
@@ -192,7 +193,7 @@ class RotamerLibrary:
             data = zf.read(file_name)
         except KeyError:
             raise NoResidueRotamersError(
-                "'%s' library has no rotamers for '%s'" % (self.display_name, file_name))
+                "'%s' library has no rotamers for '%s'" % (self.ui_name, file_name))
         from struct import unpack, calcsize
         sz1 = calcsize("!ii")
         num_rotamers, num_params, = unpack("!ii", data[:sz1])
