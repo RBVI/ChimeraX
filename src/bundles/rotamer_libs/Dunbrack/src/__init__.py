@@ -18,7 +18,7 @@ class _DunbrackLibBundleAPI(BundleAPI):
     @staticmethod
     def run_provider(session, name, mgr, **kw):
         from .lib import DunbrackRotamerLibrary
-        return DunbrackRotamerLibrary(name)
+        return DunbrackRotamerLibrary(name, session.rotamers.ui_name(name))
 
 
 bundle_api = _DunbrackLibBundleAPI()
