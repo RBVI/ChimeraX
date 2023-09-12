@@ -78,17 +78,21 @@ from the <b>Volume Data</b> section of the <b>Tools</b> menu.
 The <b>Volume Viewer</b> window can be manipulated
 like other panels in ChimeraX (<a href="../window.html#panels">more...</a>).
 </p><p>
-By default, a data set will be displayed automatically if it does not
-exceed a certain size
-(<a href="../commands/volume.html"><b>volume</b></a> command option
-<a href="../commands/volume.html#dispopen"><b>showOnOpen</b></a>), 
-although it may be subsampled
-(<a href="../commands/volume.html"><b>volume</b></a> command option
-<a href="../commands/volume.html#autostep"><b>limitVoxelCount</b></a>).
+<a name="initial-display"></a>
+By default, a data set will be displayed automatically if it does not exceed
+a certain size, and the initial display may be as an isosurface or as a 
+single plane (<a href="../commands/volume.html#sampling">details...</a>).
+Many settings for newly opened data, including the size limits 
+controlling these behaviors, can be customized with the
+<a href="../commands/volume.html#defaultvalues"><b>volume defaultvalues</b></a>
+command.
+The initial contour level of an isosurface is set to enclose 1% of grid points.
+For single-plane display, the middle plane along Z is shown initially with a
+linear ramp in grayscale from the 10th (black) to 99th (white) percentile 
+of values. 
 </p><p>
 A histogram of values with moveable <a href="#threshold">thresholds</a>
-(contour levels) is shown for each data set.
-Above the histogram are:
+(contour levels) is shown for each data set. Above the histogram are:
 </p>
 <ul>
 <li>the model name 
