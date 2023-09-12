@@ -363,8 +363,8 @@ class RESTTransaction(Task):
 
     def on_finish(self):
         # in main thread
-        from chimerax.core.tasks import TERMINATED
-        if self.state == TERMINATED:
+        from chimerax.core.tasks import TaskState
+        if self.state == TaskState.TERMINATED:
             logger = self.session.logger
             try:
                 Notifier.Destroy(self.notifier)
