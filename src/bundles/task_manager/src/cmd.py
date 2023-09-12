@@ -10,7 +10,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 from chimerax.core.session import Session
-from chimerax.core.commands import StringArg, CmdDesc
+from chimerax.core.commands import StringArg, CmdDesc, EnumOf
 from chimerax.core.errors import UserError
 
 __all__ = ['taskman', 'taskman_desc']
@@ -24,13 +24,12 @@ def taskman(session: Session, action: str, job: str = None) -> None:
     elif action == 'kill':
         if not job:
             raise UserError("Job keyword required for command 'kill'")
-    elif action == 'pause':
-        pass
     else:
-        raise UserError("Unsupported action. Please use one of [list, kill, pause].")
+        raise UserError("Unsupported action. Please use one of [list, kill].")
+
 
 taskman_desc: CmdDesc = CmdDesc(
-    required = [("action", StringArg)],
+    required = [("action", EnumOf(["list", "kill"]))],
     optional = [("job", StringArg)],
     synopsis = "Manage tasks on the ChimeraX command line"
 )

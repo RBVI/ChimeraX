@@ -473,6 +473,8 @@ class ItemTable(QTableView):
         if not self._table_model:
             self._data = data[:]
             return
+        if data == self._data:
+            return
         old_data_set = set(self._data)
         new_data_set = set(data)
         if old_data_set.isdisjoint(new_data_set):
@@ -483,6 +485,7 @@ class ItemTable(QTableView):
             if emit_signal:
                 self.selection_changed.emit([], emit_signal)
             return
+        initial_selection = set(self.selected)
         while True:
             for i, datum in enumerate(self._data):
                 if datum not in new_data_set:
@@ -492,22 +495,19 @@ class ItemTable(QTableView):
                     break
             else:
                 break
-        done = False
-        while not done:
-            for i, datum in enumerate(data):
-                if i >= len(self._data):
-                    self._table_model.beginInsertRows(QModelIndex(), i, len(data)-1)
-                    self._data.extend(data[i:])
-                    self._table_model.endInsertRows()
-                    done = True
-                    break
-                if self._data[i] != datum:
-                    self._table_model.beginInsertRows(QModelIndex(), i, i)
-                    self._data = self._data[:i] + [datum] + self._data[i:]
-                    self._table_model.endInsertRows()
-                    break
-            else:
-                done = True
+        for i, datum in enumerate(data):
+            if i >= len(self._data):
+                self._table_model.beginInsertRows(QModelIndex(), i, len(data)-1)
+                self._data.extend(data[i:])
+                self._table_model.endInsertRows()
+            elif self._data[i] != datum:
+                self._table_model.beginInsertRows(QModelIndex(), i, i)
+                self._data = self._data[:i] + [datum] + self._data[i+1:]
+                self._table_model.endInsertRows()
+        final_selection = set([d for d in self._data if d in initial_selection])
+        self.selected = final_selection
+        if len(final_selection) != len(initial_selection):
+            self.selection_changed.emit([], list(initial_selection - final_selection))
 
     def destroy(self):
         self._data = []

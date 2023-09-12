@@ -50,11 +50,14 @@ and ``session.trigger.remove_handler``.
 """
 
 import abc
+import datetime
 import itertools
 import sys
 import threading
 import time
 import weakref
+
+from enum import StrEnum
 
 from .state import State, StateManager
 
@@ -70,12 +73,33 @@ END_TASK = 'end task'
 task_triggers = [ADD_TASK, REMOVE_TASK, UPDATE_TASK, END_TASK]
 
 # Possible task states
-PENDING = "pending"         # Initialized but not running
-RUNNING = "running"         # Running
-TERMINATING = "terminating" # Termination requested
-TERMINATED = "terminated"   # Termination requested
-FINISHED = "finished"       # Finished
+class TaskState(StrEnum):
+    PENDING = "pending"         # Initialized but not running
+    RUNNING = "running"         # Running
+    TERMINATING = "terminating" # Termination requested
+    TERMINATED = "terminated"   # Termination requested
+    FINISHED = "finished"       # Finished
+    UNDEFINED = "undefined"     # Undefined
 
+    @classmethod
+    def from_str(cls, value):
+        ret = getattr(cls, value, None)
+        ret = ret or getattr(cls, value.upper(), None)
+        ret = ret or getattr(cls, value.title(), None)
+        if not ret:
+            raise NotImplementedError("Unknown TaskState: %s" % value)
+        return ret
+
+def _deprecated_state_warning(value):
+    import warnings
+    warnings.warn("The top level task state %s is deprecated. Use the TaskState enum instead." % (value))
+    return value
+
+PENDING = TaskState.PENDING
+RUNNING = TaskState.RUNNING
+TERMINATING = TaskState.TERMINATING
+TERMINATED = TaskState.TERMINATED
+FINISHED = TaskState.FINISHED
 
 class Task(State):
     """Base class for instances of tasks.
@@ -92,7 +116,7 @@ class Task(State):
     id : readonly int
         ``id`` is a unique identifier among Task instances
         registered with the session state manager.
-    state : readonly str
+    state : readonly TaskState
         ``state`` is one of ``PENDING``, ``RUNNING``, ``TERMINATING``
         ``TERMINATED``, and ``FINISHED``.
     SESSION_ENDURING : bool, class-level optional
@@ -117,7 +141,9 @@ class Task(State):
         self._session = weakref.ref(session)
         self._thread = None
         self._terminate = None
-        self.state = PENDING
+        self.state = TaskState.PENDING
+        self.start_time = None
+        self.end_time = None
         if session:
             session.tasks.add(self)
 
@@ -133,6 +159,16 @@ class Task(State):
 
         """
         return self.__class__.__name__
+
+    def runtime(self):
+        if self.status == TaskState.RUNNING:
+            return datetime.datetime.now() - self.start_time
+        else:
+            return self.end_time - self.start_time
+
+    def str_runtime(self):
+        rt = self.runtime()
+        return str(rt.hours) + ":" + str(rt.minutes) + ":" + str(rt.seconds)
 
     # TODO: @session_trigger(UPDATE_TASK, self)
     def update_state(self, state):
@@ -153,9 +189,10 @@ class Task(State):
 
         """
         self.session.tasks.remove(self)
+        self.end_time = datetime.datetime.now()
         if self._terminate is not None:
             self._terminate.set()
-        self.update_state(TERMINATING)
+        self.update_state(TaskState.TERMINATING)
 
     def terminating(self):
         """Return whether user has requested termination of this task.
@@ -169,7 +206,7 @@ class Task(State):
         """Return whether task has finished.
 
         """
-        return self.state in [TERMINATED, FINISHED]
+        return self.state in [TaskState.TERMINATED, TaskState.FINISHED]
 
     def start(self, *args, **kw):
         """Start task running.
@@ -182,17 +219,18 @@ class Task(State):
         derived classes will see it.
 
         """
-        if self.state != PENDING:
+        if self.state != TaskState.PENDING:
             raise RuntimeError("starting task multiple times")
         blocking = kw.get("blocking", False) # since _run_thread will pop() it
         self._thread = threading.Thread(target=self._run_thread,
                                         daemon=True, args=args, kwargs=kw)
         self._thread.start()
-        self.update_state(RUNNING)
+        self.start_time = datetime.datetime.now()
+        self.update_state(TaskState.RUNNING)
         self._terminate = threading.Event()
         if blocking:
             self._thread.join()
-            self.update_state(FINISHED)
+            self.update_state(TaskState.FINISHED)
             # the non-blocking code path also has an on_finish()
             # call that executes asynchronously
             if self.launched_successfully:
@@ -212,9 +250,9 @@ class Task(State):
         blocking = kw.pop("blocking", False)
         self.run(*args, **kw)
         if self.terminating():
-            self.update_state(TERMINATED)
+            self.update_state(TaskState.TERMINATED)
         else:
-            self.update_state(FINISHED)
+            self.update_state(TaskState.FINISHED)
         if not blocking and self.launched_successfully:
             # the blocking code path also has an on_finish() call that executes immediately
             self.session.ui.thread_safe(self.on_finish)
@@ -439,7 +477,7 @@ class Tasks(StateManager):
             self.session.triggers.activate_trigger(ADD_TASK, task)
 
     # TODO: @session_trigger(REMOVE_TASK, task)
-    def __delitem__(self, task):
+    def __delitem__(self, key):
         """Deregister task with state manager.
 
         Parameters
@@ -448,18 +486,15 @@ class Tasks(StateManager):
             List of registered tasks.
 
         """
-        tid = task.id
-        if tid is None:
-            # Not registered in a session
-            return
-        task.id = None
+        task = self._tasks[key]
         try:
-            del self._tasks[tid]
+            del self._tasks[key]
         except KeyError:
             # Maybe we had reset and there were still old
             # tasks finishing up
             pass
         self.session.triggers.activate_trigger(REMOVE_TASK, task)
+        del task
 
     def remove(self, task: Task) -> None:
         self.__delitem__(task)
@@ -503,7 +538,7 @@ class Tasks(StateManager):
         tasks = {}
         for tid, task in self._tasks.items():
             assert(isinstance(task, Task))
-            if task.state == RUNNING and task.SESSION_SAVE:
+            if task.state == TaskState.RUNNING and task.SESSION_SAVE:
                 tasks[tid] = task
         data = {'tasks': tasks,
                 'version': TASKS_STATE_VERSION}

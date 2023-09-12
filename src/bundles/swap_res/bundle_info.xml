@@ -23,7 +23,7 @@
     <Dependency name="ChimeraX-Clashes" version="~=2.0"/>
     <Dependency name="ChimeraX-Geometry" version="~=1.0"/>
     <Dependency name="ChimeraX-Hbonds" version="~=2.0"/>
-    <Dependency name="ChimeraX-RotamerLibMgr" version="~=3.0"/>
+    <Dependency name="ChimeraX-RotamerLibMgr" version="~=4.0"/>
     <Dependency name="ChimeraX-UI" version="~=1.0"/>
   </Dependencies>
 

@@ -1,0 +1,131 @@
+# vim: set expandtab shiftwidth=4 softtabstop=4:
+
+# === UCSF ChimeraX Copyright ===
+# Copyright 2021 Regents of the University of California.
+# All rights reserved. This software provided pursuant to a
+# license agreement containing restrictions on its disclosure,
+# duplication and use. For details see:
+# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# This notice must be embedded in or attached to all copies,
+# including partial copies, of the software or any revisions
+# or derivations thereof.
+# === UCSF ChimeraX Copyright ===
+import string
+from typing import Dict, Optional, Union
+
+from Qt.QtWidgets import (
+    QPushButton, QSizePolicy
+    , QVBoxLayout, QHBoxLayout, QComboBox
+    , QWidget, QSpinBox, QAbstractSpinBox
+    , QStackedWidget, QPlainTextEdit
+    , QLineEdit, QPushButton, QMenu
+)
+
+from chimerax.core.commands import run
+from chimerax.core.settings import Settings
+from chimerax.core.tasks import TaskState
+from chimerax.core.tools import ToolInstance
+
+from chimerax.ui import MainToolWindow
+from chimerax.ui.widgets import ItemTable
+
+
+class TaskManagerTable(ItemTable):
+    def __init__(self, control_widget: Union[QMenu, QWidget], default_cols, settings: 'TaskManagerTableSettings', parent = Optional[QWidget]):
+        super().__init__(
+            column_control_info=(
+                control_widget
+                , settings
+                , default_cols
+                , False        # fallback default for column display
+                , None         # display callback
+                , None         # number of checkbox columns
+                , True         # Whether to show global buttons
+            )
+            , parent=parent)
+
+
+class TaskManagerTableSettings(Settings):
+    EXPLICIT_SAVE = {TaskManagerTable.DEFAULT_SETTINGS_ATTR: {}}
+
+
+class TaskManager(ToolInstance):
+    SESSION_ENDURING = False
+    SESSION_SAVE = False
+    help = "help:user/tools/taskmanager.html"
+
+    def __init__(self, session, name = "Task Manager"):
+        super().__init__(session, name)
+        self._build_ui()
+
+    def _build_ui(self):
+        self.tool_window = MainToolWindow(self)
+        self.parent = self.tool_window.ui_area
+        self.clear_finished_button = QPushButton("Clear Finished")
+        self.close_button = QPushButton("Close")
+        self.help_button = QPushButton("Help")
+
+        self.main_layout = QVBoxLayout()
+        self.main_layout.setContentsMargins(0, 0, 0, 0)
+        self.main_layout.setSpacing(0)
+
+        self.button_container = QWidget()
+        self.button_container_layout = QHBoxLayout()
+        self.button_container.setLayout(self.button_container_layout)
+        self.button_container_layout.setContentsMargins(0, 0, 0, 0)
+        self.button_container_layout.setSpacing(0)
+        self.button_container_layout.addStretch()
+        self.button_container_layout.addWidget(self.clear_finished_button)
+        self.button_container_layout.addWidget(self.close_button)
+        self.button_container_layout.addWidget(self.help_button)
+
+        self.help_button.clicked.connect(self.show_help)
+        self.clear_finished_button.clicked.connect(self._clear_finished)
+
+        self.parent.setLayout(self.main_layout)
+        self.parent.layout().addWidget(self.button_container)
+        # ID, Task, Status, Started, Run Time, State
+        self.control_widget = QWidget(self.parent)
+        self.table = TaskManagerTable(self.control_widget, {"ID": True, "Task": True}, None, self.parent)
+        self.table.data = [task for task in self.session.tasks.values()]
+        self.table.add_column("ID (Local)", data_fetch=lambda x: x.id)
+        self.table.add_column("ID (Webservices)", data_fetch=lambda x: getattr(x, "job_id", None))
+        self.table.add_column("Task", data_fetch=lambda x: x.display_name())
+        self.table.add_column("Started", data_fetch=lambda x: x.start_time.strftime("%H:%M:%S%p"))
+        self.table.add_column("Runtime", data_fetch=lambda x: x.str_runtime())
+        self.table.add_column("Status", data_fetch=lambda x: x.state)
+        self.table.launch(suppress_resize=True)
+        self.control_widget.setVisible(True)
+        self.parent.layout().addWidget(self.table)
+        self.parent.layout().addWidget(self.control_widget)
+        self.parent.layout().addWidget(self.button_container)
+        self.session.triggers.add_handler("add task", self._refresh_table)
+        self.session.triggers.add_handler("remove task", self._refresh_table)
+        self.session.triggers.add_handler("update task", self._refresh_table)
+        self.session.triggers.add_handler("end task", self._refresh_table)
+        self.tool_window.manage('side')
+
+    def _refresh_table(self, *args):
+        self.table.data = [task for task in self.session.tasks.values()]
+
+    def _clear_finished(self):
+        tasks_to_delete = []
+        for id, task in self.session.tasks.items():
+            if task.state == TaskState.FINISHED:
+                # Can't change the size of a dict during iteration
+                tasks_to_delete.append(id)
+        for id in tasks_to_delete:
+            del self.session.tasks[id]
+        self._refresh_table()
+
+    def _format_column_title(self, s):
+        return string.capwords(s.replace('_', ' '))
+
+    def show_help(self):
+        run("help 'Task Manager'")
+
+    def kill_task(self, id):
+        run("taskman kill %s" % id)
+
+    def pause_task(self, id):
+        run("taskman pause %s" % id)
