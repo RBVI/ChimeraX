@@ -164,7 +164,7 @@ def print_prep(session=None, *, pb_radius=0.4, ion_size_increase=0.0, bond_sides
     always_cmds = [
         "size stickRadius 0.8",
         "style dashes 0",
-        "graphics quality bondTriangles %d" % (bond_sides * 2)
+        "graphics quality bondTriangles %d" % (bond_sides * 4) # 2 triangles per side, plus half-bond mode
     ]
     if session is None:
         # not a ribbon preset
