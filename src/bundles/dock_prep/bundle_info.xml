@@ -18,7 +18,7 @@
     <Dependency name="ChimeraX-AddCharge" version="~=1.4"/>
     <Dependency name="ChimeraX-AddH" version="~=2.2"/>
     <Dependency name="ChimeraX-Mol2" version="~=2.0"/>
-	<Dependency name="ChimeraX-RotamerLibMgr" version="~=3.0"/>
+	<Dependency name="ChimeraX-RotamerLibMgr" version="~=4.0"/>
     <Dependency name="ChimeraX-SwapRes" version="~=2.1"/>
     <Dependency name="ChimeraX-UI" version="~=1.10"/>
   </Dependencies>

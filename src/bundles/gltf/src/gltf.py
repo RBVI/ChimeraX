@@ -216,9 +216,12 @@ def meshes_as_models(session, meshes, material_colors, material_textures,
             va = ba[pa['POSITION']]
             if 'NORMAL' in pa:
                 na = ba[pa['NORMAL']]
-            else:
+            elif ta.shape[1] == 3:
+                # Compute triangle normals
                 from chimerax import surface
                 na = surface.calculate_vertex_normals(va, ta)
+            else:
+                na = None	# No computed normals for mesh or dots.
             if 'COLOR_0' in pa:
                 vc = ba[pa['COLOR_0']]
             else:
