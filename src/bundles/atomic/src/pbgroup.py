@@ -194,12 +194,10 @@ class PseudobondGroup(PseudobondGroupData, Model):
         d = self._pbond_drawing
         if d is None:
             from .structure import BondsDrawing, PickedPseudobond, PickedPseudobonds
-            d = self._pbond_drawing = BondsDrawing(
-                'pbonds', PickedPseudobond, PickedPseudobonds)
+            d = self._pbond_drawing = BondsDrawing('pbonds', PickedPseudobond, PickedPseudobonds)
+            self.update_cylinder_sides()
             self.add_drawing(d)
             d._visible_atoms = None
-            va, na, ta = _pseudobond_geometry(self._dashes//2)
-            d.set_geometry(va, na, ta)
             changes = self._ALL_CHANGE
         elif self.num_pseudobonds == 0:
             self.remove_drawing(d)
@@ -227,6 +225,17 @@ class PseudobondGroup(PseudobondGroupData, Model):
             from . import structure as s
             d.highlighted_positions = s._selected_bond_cylinders(pbonds)
 
+    def update_cylinder_sides(self):
+        sides = self._cylinder_sides
+        d = self._pbond_drawing
+        if sides == getattr(d, '_current_cylinder_sides', None):
+            return False
+        va, na, ta = _pseudobond_geometry(self._dashes//2, sides)
+        d.set_geometry(va, na, ta)
+        d._current_cylinder_sides = sides
+        self._graphics_changed |= self._SHAPE_CHANGE
+        return True
+
     def _update_positions(self, pbonds, bond_atoms):
         ba1, ba2 = bond_atoms
         if self._global_group:
@@ -248,6 +257,11 @@ class PseudobondGroup(PseudobondGroupData, Model):
                     logical_and(dpb, ~hs, dpb)
         return pbonds[dpb]
 
+    @property
+    def _cylinder_sides(self):
+        from .structure import level_of_detail
+        return level_of_detail(self.session).pseudobond_sides
+    
     def first_intercept(self, mxyz1, mxyz2, exclude=None):
         if not self.display or (exclude and exclude(self)):
             return None
@@ -401,6 +415,6 @@ def hidden_structures(structures):
 
 # -----------------------------------------------------------------------------
 #
-def _pseudobond_geometry(segments = 9):
+def _pseudobond_geometry(segments = 9, sides = 10):
     from chimerax import surface
-    return surface.dashed_cylinder_geometry(segments, height = 0.5)
+    return surface.dashed_cylinder_geometry(segments, height = 0.5, nc = sides)
