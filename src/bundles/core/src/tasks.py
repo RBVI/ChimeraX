@@ -79,6 +79,9 @@ class TaskState(StrEnum):
     TERMINATING = "terminating" # Termination requested
     TERMINATED = "terminated"   # Termination requested
     FINISHED = "finished"       # Finished
+    FAILED = "failed"
+    DELETED = "deleted"
+    CANCELED = "canceled"
     UNDEFINED = "undefined"     # Undefined
 
     @classmethod
@@ -89,11 +92,6 @@ class TaskState(StrEnum):
         if not ret:
             raise NotImplementedError("Unknown TaskState: %s" % value)
         return ret
-
-def _deprecated_state_warning(value):
-    import warnings
-    warnings.warn("The top level task state %s is deprecated. Use the TaskState enum instead." % (value))
-    return value
 
 PENDING = TaskState.PENDING
 RUNNING = TaskState.RUNNING
