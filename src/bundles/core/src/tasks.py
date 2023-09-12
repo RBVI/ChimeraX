@@ -439,7 +439,7 @@ class Tasks(StateManager):
             self.session.triggers.activate_trigger(ADD_TASK, task)
 
     # TODO: @session_trigger(REMOVE_TASK, task)
-    def __delitem__(self, task):
+    def __delitem__(self, key):
         """Deregister task with state manager.
 
         Parameters
@@ -448,18 +448,15 @@ class Tasks(StateManager):
             List of registered tasks.
 
         """
-        tid = task.id
-        if tid is None:
-            # Not registered in a session
-            return
-        task.id = None
+        task = self._tasks[key]
         try:
-            del self._tasks[tid]
+            del self._tasks[key]
         except KeyError:
             # Maybe we had reset and there were still old
             # tasks finishing up
             pass
         self.session.triggers.activate_trigger(REMOVE_TASK, task)
+        del task
 
     def remove(self, task: Task) -> None:
         self.__delitem__(task)
