@@ -10,8 +10,11 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 # from chimerax.core
+__version__ = "1.0"
+
 from chimerax.core.commands import register
 from chimerax.core.toolshed import BundleAPI
+from chimerax.core.tools import get_singleton
 from .cmd import *
 
 
@@ -24,9 +27,10 @@ class _MyAPI(BundleAPI):
         pass
 
     @staticmethod
-    def start_tool(session):
-        #return TaskManager(session)
-        pass
+    def start_tool(session, bi, ti):
+        if ti.name == "Task Manager":
+            from .tool import TaskManager
+            return get_singleton(session, TaskManager, "Task Manager")
 
     @staticmethod
     def register_command(bi, ci, logger):
