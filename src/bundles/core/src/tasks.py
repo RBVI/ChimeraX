@@ -50,6 +50,7 @@ and ``session.trigger.remove_handler``.
 """
 
 import abc
+import datetime
 import itertools
 import sys
 import threading
@@ -118,6 +119,8 @@ class Task(State):
         self._thread = None
         self._terminate = None
         self.state = PENDING
+        self.start_time = None
+        self.end_time = None
         if session:
             session.tasks.add(self)
 
@@ -133,6 +136,16 @@ class Task(State):
 
         """
         return self.__class__.__name__
+
+    def runtime(self):
+        if self.status == RUNNING:
+            return datetime.datetime.now() - self.start_time
+        else:
+            return self.end_time - self.start_time
+
+    def str_runtime(self):
+        rt = self.runtime()
+        return str(rt.hours) + ":" + str(rt.minutes) + ":" + str(rt.seconds)
 
     # TODO: @session_trigger(UPDATE_TASK, self)
     def update_state(self, state):
@@ -153,6 +166,7 @@ class Task(State):
 
         """
         self.session.tasks.remove(self)
+        self.end_time = datetime.datetime.now()
         if self._terminate is not None:
             self._terminate.set()
         self.update_state(TERMINATING)
@@ -188,6 +202,7 @@ class Task(State):
         self._thread = threading.Thread(target=self._run_thread,
                                         daemon=True, args=args, kwargs=kw)
         self._thread.start()
+        self.start_time = datetime.datetime.now()
         self.update_state(RUNNING)
         self._terminate = threading.Event()
         if blocking:
