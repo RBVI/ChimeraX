@@ -711,6 +711,8 @@ class Models(StateManager):
                 if model.id is None:
                     # Assign a new model id.
                     model.id = self.next_id(parent = p, minimum_id = minimum_id)
+                else:
+                    self._reset_next_id(parent = p)
                 self._models[model.id] = model
 
                 # Add child models
@@ -883,6 +885,11 @@ class Models(StateManager):
         id = parent.id + (nid,)
         return id
 
+    def _reset_next_id(self, parent=None):
+        if parent is None:
+            parent = self.scene_root_model
+        parent._next_unused_id = None
+        
     def add_group(self, models, name=None, id=None, parent=None):
         if name is None:
             names = set([m.name for m in models])
