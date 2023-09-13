@@ -52,9 +52,9 @@ class TaskManagerTableSettings(Settings):
 
 
 class TaskManager(ToolInstance):
-    SESSION_ENDURING = False
+    SESSION_ENDURING = True
     SESSION_SAVE = False
-    help = "help:user/tools/taskmanager.html"
+    #help = "help:user/tools/taskmanager.html"
 
     def __init__(self, session, name = "Task Manager"):
         super().__init__(session, name)
