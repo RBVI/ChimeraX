@@ -162,7 +162,12 @@ class Task(State):
         return self.__class__.__name__
 
     def runtime(self):
-        if self.status == TaskState.RUNNING:
+        if self.state == TaskState.PENDING:
+            return datetime.timedelta(0)
+        if self.state not in [
+            TaskState.TERMINATED, TaskState.FINISHED, TaskState.UNDEFINED
+            , TaskState.FAILED, TaskState.DELETED, TaskState.CANCELED
+        ]:
             return datetime.datetime.now() - self.start_time
         else:
             return self.end_time - self.start_time
