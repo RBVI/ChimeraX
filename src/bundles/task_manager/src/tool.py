@@ -11,8 +11,10 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 import string
+import datetime
 from typing import Dict, Optional, Union
 
+from Qt.QtCore import QThread, QObject, Signal, Slot, Qt
 from Qt.QtWidgets import (
     QPushButton, QSizePolicy
     , QVBoxLayout, QHBoxLayout, QComboBox
@@ -92,21 +94,42 @@ class TaskManager(ToolInstance):
         self.table.add_column("ID (Webservices)", data_fetch=lambda x: getattr(x, "job_id", None))
         self.table.add_column("Task", data_fetch=lambda x: x.display_name())
         self.table.add_column("Started", data_fetch=lambda x: x.start_time.strftime("%H:%M:%S%p"))
-        self.table.add_column("Runtime", data_fetch=lambda x: x.str_runtime())
+        self.table.add_column("Runtime", data_fetch=lambda x: self._get_runtime(x.runtime()))
         self.table.add_column("Status", data_fetch=lambda x: x.state)
         self.table.launch(suppress_resize=True)
         self.control_widget.setVisible(True)
         self.parent.layout().addWidget(self.table)
         self.parent.layout().addWidget(self.control_widget)
         self.parent.layout().addWidget(self.button_container)
-        self.session.triggers.add_handler("add task", self._refresh_table)
-        self.session.triggers.add_handler("remove task", self._refresh_table)
-        self.session.triggers.add_handler("update task", self._refresh_table)
-        self.session.triggers.add_handler("end task", self._refresh_table)
+        self.thread = QThread()
+        self.worker = TaskManagerWorker(self)
+        self.worker.moveToThread(self.thread)
+        self.thread.started.connect(self.worker.run)
+        self.worker.update_table.connect(self._refresh_table)
+        self.thread.start()
         self.tool_window.manage('side')
+
+    def delete(self):
+        try:
+            self.worker.blockSignals(True)
+        except RuntimeError:
+            pass  # The underlying C++ object has already been deleted by DeleteLater
+        try:
+            if self.thread is not None and self.thread.isRunning():
+                self.thread.exit()
+        except RuntimeError:
+            pass # The underlying C++ object has already been deleted by DeleteLater
+        super().delete()
 
     def _refresh_table(self, *args):
         self.table.data = [task for task in self.session.tasks.values()]
+        self.table.viewport().update()
+
+    def _get_runtime(self, timedelta: datetime.timedelta) -> str:
+        hours = timedelta.seconds // 3600
+        minutes = (timedelta.seconds // 60) % 60
+        seconds = timedelta.seconds - (60 * minutes)
+        return "%sh %sm %ss" % (hours, minutes, seconds)
 
     def _clear_finished(self):
         tasks_to_delete = []
@@ -129,3 +152,17 @@ class TaskManager(ToolInstance):
 
     def pause_task(self, id):
         run("taskman pause %s" % id)
+
+
+class TaskManagerWorker(QObject):
+    update_table = Signal()
+
+    def __init__(self, tool):
+        super().__init__()
+        self.tool = tool
+
+    @Slot()
+    def run(self) -> None:
+        while True:
+            self.update_table.emit()
+            QThread.sleep(1)
