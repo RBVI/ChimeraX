@@ -169,8 +169,8 @@ class UI:
         session = self._session()  # resolve back reference
         input = _Input(session)
         input.start()
-        from .tasks import FINISHED, TERMINATED
-        while input.state not in [FINISHED, TERMINATED]:
+        from .tasks import TaskState
+        while input.state not in [TaskState.FINISHED, TaskState.TERMINATED]:
             func, args, kw = self._queue.get()
             try:
                 func(*args, **kw)

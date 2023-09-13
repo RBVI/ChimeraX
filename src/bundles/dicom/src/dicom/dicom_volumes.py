@@ -160,6 +160,7 @@ class DICOMVolume(Volume):
             , "", name = "segmentation %d" % number, time = None, channel = None
         )
         new_grid.reference_data = self.data
+        new_grid.initial_plane_display = False
         new_seg_model = open_dicom_grids(self.session, [new_grid], name = "new segmentation")[0]
         self.session.models.add(new_seg_model)
         new_seg_model[0].set_parameters(surface_levels=[0.501])

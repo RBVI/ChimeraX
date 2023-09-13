@@ -1988,6 +1988,9 @@ class LevelOfDetail(State):
         self.bond_fixed_triangles = None	# If not None use fixed number of triangles
         self._cylinder_geometries = {}	# Map ntri to (va,na,ta)
 
+        # Number of cylinder sides for pseudobonds
+        self._pseudobond_sides = 10
+        
         # Number of bands between two residues along the length of a ribbon.
         self._ribbon_min_divisions = 2
         self._ribbon_max_divisions = 20
@@ -2010,6 +2013,12 @@ class LevelOfDetail(State):
         self._bond_max_total_triangles = ntri
     total_bond_triangles = property(_get_total_bond_triangles, _set_total_bond_triangles)
 
+    def _get_pseudobond_sides(self):
+        return self._pseudobond_sides
+    def _set_pseudobond_sides(self, sides):
+        self._pseudobond_sides = sides
+    pseudobond_sides = property(_get_pseudobond_sides, _set_pseudobond_sides)
+    
     @staticmethod
     def restore_snapshot(session, data):
         lod = LevelOfDetail()
@@ -2063,7 +2072,9 @@ class LevelOfDetail(State):
         ntri = self.bond_cylinder_triangles(nbonds)
         ta = drawing.triangles
         if ta is None or len(ta) != ntri//2:
-            # Update instanced sphere triangulation
+            # Update instanced cylinder triangulation.
+            # Since halfbond mode makes two cylinders per bond we use ntri/2
+            # per cylinder, or ntri/4 cylinder sides.
             w = len(ta) if ta is not None else 0
             va, na, ta = self.cylinder_geometry(div = ntri//4)
             drawing.set_geometry(va, na, ta)

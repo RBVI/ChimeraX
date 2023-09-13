@@ -448,6 +448,12 @@ See: <a href="usageconventions#cxc-files">ChimeraX command files</a>
 </p>
 <h3 class="usage"><b>Sampling and Size Options</b> &nbsp;&nbsp;&nbsp;
 (Usage:&nbsp;<a href="#top"><b>volume</b></a>&nbsp;&nbsp;<i>model-spec</i>&nbsp;&nbsp;<i>options</i>)</h3>
+<p>
+The initial contour level of an isosurface is set to enclose 1% of grid points.
+For single-plane display, the middle plane along Z is shown initially with a 
+linear ramp in grayscale from the 10th (black) to 99th (white) percentile
+of values. See also: <a href="#defaultvalues"><b>volume defaultvalues</b></a>
+</p>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
   <b>step</b> &nbsp;<i>N</i> | <i>Nx,Ny,Nz</i>
@@ -1372,6 +1378,8 @@ to their factory defaults.
 Giving <b>volume defaultvalues</b> without arguments
 reports the current set of user defaults in the 
 <a href="../tools/log.html"><b>Log</b></a>.
+See also:
+<a href="../tools/volumeviewer.html#initial-display">initial map display</a>
 </p><p>
 The possible <i>map-options</i> are numerous and described in 
 detail in their respective sections:

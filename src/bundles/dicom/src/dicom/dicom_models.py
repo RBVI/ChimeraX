@@ -143,12 +143,13 @@ class DicomGrid(GridData):
         #    # whole plane even if only part of the plane is needed.
         self.read_xy_plane = self.dicom_read_xy_plane
         self.multichannel = (channel is not None)
-        self.initial_plane_display = False
+        self.initial_plane_display = True
         self.pixel_array = None
         if dicom_data:
             s = dicom_data.dicom_series
             if s.bits_allocated == 1 or s.dicom_class == 'Segmentation Storage':
                 self.binary = True  # Use initial thresholds for binary segmentation
+                self.initial_plane_display = False
                 self.initial_image_thresholds = [(0.5, 0), (1.5, 1)]
             else:
                 self.initial_image_thresholds = [(-1000, 0.0), (300, 0.9), (3000, 1.0)]
@@ -216,7 +217,7 @@ class DicomGrid(GridData):
                 m = allocate_array(self.size, self.value_type, (1,1,1), progress)
                 c = self.channel if self.multichannel else None
                 self.dicom_data.read_matrix(
-                    ijk_origin, self.dicom_data.data_size, (1,1,1),
+                    (0,0,0), self.dicom_data.data_size, (1,1,1),
                     self.time, c, m, progress
                 )
                 self.pixel_array = m

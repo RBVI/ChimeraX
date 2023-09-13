@@ -19,14 +19,13 @@ CxServicesJob is a class that runs a web service via
 the ChimeraX REST server and monitors its status.
 """
 import json
-import time
 import logging
+import datetime
 from urllib3.exceptions import MaxRetryError, NewConnectionError
-from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Union
 from urllib.error import URLError
 
-from chimerax.core.tasks import Job, JobError, JobLaunchError, JobMonitorError
+from chimerax.core.tasks import TaskState, Job, JobError, JobLaunchError, JobMonitorError
 
 from cxservices.rest import ApiException
 from cxservices.api import default_api
@@ -84,6 +83,7 @@ class CxServicesJob(Job):
         super().__init__(*args, **kw)
         # Initialize ChimeraX REST request state
         self.reset_state()
+        self.state = TaskState.PENDING
         # Prefer the HTTPS proxy
         self.chimerax_api = None
         if settings.https_proxy:
@@ -97,14 +97,6 @@ class CxServicesJob(Job):
         if not self.chimerax_api:
             self.chimerax_api = default_api.DefaultApi()
         self.job_id = None
-
-    @property
-    def status(self) -> str:
-        return self._status
-
-    @status.setter
-    def status(self, value) -> None:
-        self._status = value
 
     def run(self, service_name: str
             , params: Dict[str, Any] = None
@@ -134,7 +126,7 @@ class CxServicesJob(Job):
             processed_files_to_upload = {"job_files": files_to_upload}
         if self.launch_time is not None:
             raise JobError("REST job has already been launched")
-        self.launch_time = time.time()
+        self.launch_time = datetime.datetime.now()
         # Launch job
         try:
             result = self.chimerax_api.submit_job(
@@ -143,15 +135,15 @@ class CxServicesJob(Job):
                 , filepaths = processed_files_to_upload
             )
         except ApiException as e:
-            self.status = "failed"
-            self.end_time = time.time()
+            self.state = TaskState.FAILED
+            self.end_time = datetime.datetime.now()
             reason = json.loads(e.body)['description']
             self.thread_safe_error(
                 "Error launching job: %s" % reason
             )
         except (URLError, MaxRetryError, NewConnectionError) as e:
-            self.status = "failed"
-            self.end_time = time.time()
+            self.state = TaskState.FAILED
+            self.end_time = datetime.datetime.now()
             self.thread_safe_error(
                 "Error launching job: ChimeraX Web Services unavailable. Please try again soon."
             )
@@ -187,23 +179,23 @@ class CxServicesJob(Job):
         try:
             # Not sure why, but we have to specify job_id by name here
             result = self.chimerax_api.get_status(job_id = self.job_id)
-            status = result.status
+            status = TaskState.from_str(result.status)
             next_poll = result.next_poll
         except ApiException as e:
             raise JobMonitorError(str(e))
-        self.status = status
+        self.state = status
         if poll_freq_override is None and next_poll is not None:
             self.next_poll = int(next_poll)
         else:
             self.next_poll = poll_freq_override
-        if status in ["finished","failed","deleted","canceled"] and self.end_time is None:
-            self.end_time = time.time()
+        if status in [TaskState.FINISHED, TaskState.FAILED, TaskState.DELETED, TaskState.CANCELED] and self.end_time is None:
+            self.end_time = datetime.datetime.now()
 
     def exited_normally(self) -> bool:
         """Return whether background process terminated normally.
 
         """
-        return self._status == "finished"
+        return self._status == TaskState.FINISHED
 
     def get_results(self) -> Optional[Union[bytes,str]]:
         """Expects JSON."""
@@ -293,8 +285,6 @@ class CxServicesJob(Job):
 
     def __str__(self) -> str:
         return "CxServicesJob (ID: %s)" % self.id
-
-
 
     @classmethod
     def from_snapshot(cls, session, data):
