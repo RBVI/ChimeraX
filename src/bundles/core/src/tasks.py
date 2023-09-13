@@ -255,7 +255,9 @@ class Task(State):
             self.update_state(TaskState.TERMINATED)
         else:
             self.update_state(TaskState.FINISHED)
-        if not blocking and self.launched_successfully:
+        if not blocking and self.launched_successfully and not self.state in [
+            TaskState.CANCELED, TaskState.DELETED, TaskState.FAILED, TaskState.TERMINATED
+        ]:
             # the blocking code path also has an on_finish() call that executes immediately
             self.session.ui.thread_safe(self.on_finish)
 
@@ -499,7 +501,7 @@ class Tasks(StateManager):
         del task
 
     def remove(self, task: Task) -> None:
-        self.__delitem__(task)
+        self.__delitem__(task.id)
 
     def find_by_class(self, cls):
         """Return a list of tasks of the given class.
