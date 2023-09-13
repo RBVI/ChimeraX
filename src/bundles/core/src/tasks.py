@@ -79,9 +79,12 @@ class TaskState(StrEnum):
     TERMINATING = "terminating" # Termination requested
     TERMINATED = "terminated"   # Termination requested
     FINISHED = "finished"       # Finished
+    # Webservices states
+    STARTED = "started"
     FAILED = "failed"
     DELETED = "deleted"
     CANCELED = "canceled"
+    # Unknown state?
     UNDEFINED = "undefined"     # Undefined
 
     @classmethod
