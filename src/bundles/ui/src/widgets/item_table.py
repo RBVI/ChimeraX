@@ -525,6 +525,20 @@ class ItemTable(QTableView):
         self._data = []
         super().destroy()
 
+    def edit_cell(self, col_info, datum):
+        if isinstance(col_info, str):
+            for col in self._columns:
+                if col.title == col_info:
+                    break
+            else:
+                raise ValueError("No column with title '%s'" % col_info)
+        else:
+            col = col_info
+        col_index = self._columns.index(col)
+        row_index = self._data.index(datum)
+        cell_index = self._table_model.index(row_index, col_index)
+        self.edit(cell_index)
+
     def highlight(self, highlight_data):
         new = set(highlight_data)
         if new == self._highlighted:

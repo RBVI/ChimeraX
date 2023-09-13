@@ -3958,6 +3958,16 @@ extern "C" EXPORT void set_sequence_name(void *seqs, size_t n, pyobject_t *names
     }
 }
 
+extern "C" EXPORT char sequence_is_gap_character(const char *c)
+{
+    try {
+        return Sequence::is_gap_character(c[0]);
+    } catch (...) {
+        molc_error();
+        return true;
+    }
+}
+
 extern "C" EXPORT char sequence_nucleic3to1(const char *rname)
 {
     try {

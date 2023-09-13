@@ -914,6 +914,14 @@ class Sequence(State):
     def __hash__(self):
         return id(self)
 
+    @staticmethod
+    def is_gap_character(c):
+        if len(c) != 1:
+            raise ValueError("Argument to is_gap_character must be single-character string, not %s"
+                % repr(c))
+        return c_function('sequence_is_gap_character', args = (ctypes.c_char_p,),
+            ret = ctypes.c_bool)(c.encode('utf-8'))
+
     def __len__(self):
         """Supported API. Sequence length"""
         f = c_function('sequence_len', args = (ctypes.c_void_p,), ret = ctypes.c_size_t)

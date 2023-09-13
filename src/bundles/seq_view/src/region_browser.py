@@ -496,27 +496,24 @@ class RegionManager:
                 if region not in single_seq_regions:
                     self.delete_regions(region)
 
-    def copyRegion(self, region, name=None, **kw):
+    def copy_region(self, region, name=None, **kw):
         if not region:
-            self.seq_canvas.sv.status("No active region",
-                                color="red")
+            self.seq_canvas.sv.status("No active region", color="red")
             return
         if not isinstance(region, Region):
             for r in region:
-                self.copyRegion(r)
+                self.copy_region(r)
             return
         if name is None:
-            initialName = "Copy of " + unicode(region)
+            initial_name = "Copy of " + str(region)
         else:
-            initialName = name
+            initial_name = name
         seq = region.sequence
-        copy = self.new_region(name=initialName,
+        copy = self.new_region(name=initial_name,
                 blocks=region.blocks, fill=region.interior_rgba,
                 outline=region.border_rgba, sequence=seq,
                 cover_gaps=region.cover_gaps, **kw)
-        self.regionListing.select([copy])
-        if name is None:
-            self.renameRegion(copy)
+        self.seq_canvas.sv._regions_tool_notification('select', copy)
         return copy
 
     def cur_region(self):
@@ -718,98 +715,6 @@ class RegionManager:
         self._highlighted_region = region
 
     """
-    def infoRegion(self, region):
-        if not region:
-            self.seq_canvas.sv.status("No active region",
-                                color="red")
-            return
-        if not isinstance(region, Region):
-            for r in region:
-                self.infoRegion(r)
-            return
-
-        # gapped
-        info = unicode(region) + \
-            " region covers positions:\n"
-        info += "\talignment numbering: " + ", ".join(
-            ["%d-%d" % (b[-2]+1, b[-1]+1) for b in region.blocks]) + "\n"
-
-        # ungapped
-        seqs = self.seq_canvas.seqs
-        structInfo = {}
-        for i, seq in enumerate(seqs):
-            blocks = []
-            for line1, line2, pos1, pos2 in region.blocks:
-                try:
-                    index1 = seqs.index(line1)
-                except ValueError:
-                    index1 = -1
-                try:
-                    index2 = seqs.index(line2)
-                except ValueError:
-                    index2 = -1
-                if index1 <= i <= index2:
-                    for p1 in range(pos1, pos2+1):
-                        if not seq.isGap(p1):
-                            break
-                    else:
-                        continue
-                    for p2 in range(pos2, pos1-1, -1):
-                        if not seq.isGap(p2):
-                            break
-                    else:
-                        continue
-                    u1, u2 = [seq.gapped2ungapped(p) for p in (p1, p2)]
-                    blocks.append((u1, u2))
-                    for mol, matches in seq.match_maps.items():
-                        for r1 in range(u1, u2+1):
-                            try:
-                                m1 = matches[r1]
-                            except KeyError:
-                                continue
-                            if m1:
-                                break
-                        else:
-                            continue
-                        for r2 in range(u2, u1-1, -1):
-                            try:
-                                m2 = matches[r2]
-                            except KeyError:
-                                continue
-                            if m2:
-                                break
-                        else:
-                            continue
-                        residues = (m1, m2)
-                        if mol in structInfo:
-                            structInfo[mol][-1].append(residues)
-                        else:
-                            structInfo[mol] = (i, [residues])
-            if blocks:
-                if seq.numberingStart is None:
-                    off = 1
-                else:
-                    off = seq.numberingStart
-                info += "\t" + seq.name + ": " + ", ".join(
-                    ["%d-%d" % (p1+off, p2+off) for p1, p2 in blocks]) + "\n"
-
-        # associated structures
-        if structInfo:
-            sortableRanges = structInfo.values()
-            sortableRanges.sort()
-            info += unicode(region) + " region's associated structures:\n"
-            for i, resRanges in sortableRanges:
-                info += "\t%s: " % resRanges[0][0].molecule + ", ".join(
-                    [u"%s \N{LEFT RIGHT ARROW} %s" % (r1, r2)
-                    for r1, r2 in resRanges]) + "\n"
-            info += "\n"
-        else:
-            info += unicode(region) + " region has no associated structures\n\n"
-        replyobj.info(info)
-        self.seq_canvas.sv.status("Region info reported in reply log")
-        from chimera import dialogs
-        dialogs.display("reply")
-
     def lastDrag(self):
         return self._prev_drag
     """
@@ -1051,6 +956,101 @@ class RegionManager:
             if cull_empty and not region.blocks \
             and region != self.get_region("ChimeraX selection"):
                 self.delete_region(region)
+
+    def region_info(self, region):
+        if not region:
+            self.seq_canvas.sv.status("No active region", color="red")
+            return
+        if not isinstance(region, Region):
+            for r in region:
+                self.region_info(r)
+            return
+
+        from html import escape
+        from chimerax.core.logger import html_table_params
+        lines = [
+            '<table %s>' % html_table_params,
+            '  <thead>',
+            '    <tr>',
+            '      <th colspan="2">Position Coverage for &quot;%s&quot;</th>' % escape(str(region)),
+            '    </tr>',
+            '  </thead>',
+            '  <tbody>',
+        ]
+
+        # gapped
+        if region.blocks:
+            coverage_value =  ",".join(["%d-%d" % (b[-2]+1, b[-1]+1) for b in region.blocks])
+        else:
+            coverage_value = "empty region"
+        lines.extend([
+            '    <tr>',
+            '      <td style="text-align:center">Alignment</td>',
+            '      <td style="text-align:center">%s</td>' % coverage_value,
+        ])
+
+        # ungapped
+        seqs = self.seq_canvas.alignment.seqs
+        chain_info = {}
+        for seq1, seq2, pos1, pos2 in region.blocks:
+            for seq in seqs[seqs.index(seq1):seqs.index(seq2)+1]:
+                # find edges that aren't in gaps
+                for p1 in range(pos1, pos2+1):
+                    if not seq.is_gap_character(seq[p1]):
+                        break
+                else: # all gap
+                    continue
+                for p2 in range(pos2, pos1-1, -1):
+                    if not seq.is_gap_character(seq[p2]):
+                        break
+                u1, u2 = [seq.ungapped_to_gapped(p) for p in (p1, p2)]
+                for chain, mmap in seq.match_maps.items():
+                    start = None
+                    for u in range(u1, u2+1):
+                        try:
+                            r = mmap[u]
+                        except KeyError:
+                            continue
+                        start = r
+                        break
+                    if start is None:
+                        continue
+                    for u in range(u2, u1-1, -1):
+                        try:
+                            r = mmap[u]
+                        except KeyError:
+                            continue
+                        end = r
+                        break
+                    chain_info.setdefault(chain, []).append((start, end))
+
+        if chain_info:
+            rstr = lambda r: r.string(omit_structure=True, omit_chain=True)
+            for chain in sorted(list(chain_info.keys())):
+                ranges = []
+                for start, end in chain_info[chain]:
+                    if start == end:
+                        ranges.append(rstr(start))
+                    else:
+                        ranges.append(rstr(start) + '-' + rstr(end))
+                lines.extend([
+                    '    <tr>',
+                    '      <td style="text-align:center">%s</td>' % chain,
+                    '      <td style="text-align:center">%s</td>' % ",".join(ranges),
+                ])
+        else:
+            lines.extend([
+                '    <tr>',
+                '      <td style="text-align:center" colspan="2">Region has no associated structure</td>',
+                '    </tr>',
+            ])
+
+        lines.extend([
+            '  </tbody>',
+            '</table>',
+        ])
+        self.seq_canvas.sv.session.logger.info('\n'.join(lines), is_html=True)
+        self.seq_canvas.sv.status("Region info reported in log")
 
     def region_residues(self, region=None):
         if not region:
@@ -1839,6 +1839,10 @@ class RegionsTool:
         for button_name, tool_tip in [
                 ('Raise', "Raise region to top of drawing order"),
                 ('Lower', "Lower region to bottom of drawing order"),
+                ('Duplicate', None),
+                ('Rename', None),
+                ('Delete', None),
+                ('Info', "Log info about region"),
                 ]:
             button = QPushButton(button_name)
             if tool_tip:
@@ -1869,6 +1873,8 @@ class RegionsTool:
             table_regions = self.region_table.data
             all_regions = self.sv.region_manager.regions
             self.region_table.data = [r for r in all_regions if r in table_regions]
+        elif category == "select":
+            self.region_table.selected = [r for r in self.region_table.data if r == region]
         elif region in self.region_table.data:
             col = self.columns[category]
             self.region_table.update_cell(col, region)
@@ -1891,6 +1897,14 @@ class RegionsTool:
         mgr = self.sv.region_manager
         if button_name in ("Raise", "Lower"):
             getattr(mgr, button_name.lower() + "_region")(region)
+        elif button_name == "Duplicate":
+            mgr.copy_region(region)
+        elif button_name == "Rename":
+            self.region_table.edit_cell("Name", region)
+        elif button_name == "Delete":
+            mgr.delete_region(region)
+        elif button_name == "Info":
+            mgr.region_info(region)
 
     def _fill_seq_region_menu(self):
         menu = self.seq_region_menubutton.menu()

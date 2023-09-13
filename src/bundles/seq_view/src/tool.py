@@ -761,7 +761,6 @@ class SequenceViewer(ToolInstance):
             self._regions_tool = RegionsTool(self, rt_window)
             rt_window.fill_context_menu = self.fill_context_menu
             rt_window.manage(self.tool_window)
-            self.status("Double click on region name cell to edit name", color="forest green")
         self._regions_tool.shown = shown
 
     def show_associations(self):
