@@ -172,10 +172,6 @@ class Task(State):
         else:
             return self.end_time - self.start_time
 
-    def str_runtime(self):
-        rt = self.runtime()
-        return str(rt.hours) + ":" + str(rt.minutes) + ":" + str(rt.seconds)
-
     # TODO: @session_trigger(UPDATE_TASK, self)
     def update_state(self, state):
         self.state = state
