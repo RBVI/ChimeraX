@@ -193,11 +193,20 @@ def _process_results(session, fit_loops_model, map, shift, structure, start_res_
             else:
                 orig_atom.coord = fit_atom.coord
         # add bonds
+        bonded_residues = set()
+        gap_residues = set()
         for fit_atom, orig_atom in new_atoms:
+            gap_residues.add(orig_atom.residue)
             for fnb, fb in zip(fit_atom.neighbors, fit_atom.bonds):
                 onb = orig_atom_map[fnb.string(style="simple", omit_structure=True)]
+                bonded_residues.add(onb.residue)
                 if onb not in orig_atom.neighbors:
                     add_bond(orig_atom, onb)
+        # show residues adjacent to the gap as stick
+        for nbr in bonded_residues - gap_residues:
+            nbr.ribbon_display = False
+            nbr.atoms.displays = True
+            nbr.atoms.draw_modes = nbr.atoms[0].STICK_STYLE
         fit_loops_model.delete()
     else:
         fit_loops_model.position = structure.scene_position
