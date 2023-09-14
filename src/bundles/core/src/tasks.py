@@ -79,6 +79,12 @@ class TaskState(StrEnum):
     TERMINATING = "terminating" # Termination requested
     TERMINATED = "terminated"   # Termination requested
     FINISHED = "finished"       # Finished
+    # Webservices states
+    STARTED = "started"
+    FAILED = "failed"
+    DELETED = "deleted"
+    CANCELED = "canceled"
+    # Unknown state?
     UNDEFINED = "undefined"     # Undefined
 
     @classmethod
@@ -89,11 +95,6 @@ class TaskState(StrEnum):
         if not ret:
             raise NotImplementedError("Unknown TaskState: %s" % value)
         return ret
-
-def _deprecated_state_warning(value):
-    import warnings
-    warnings.warn("The top level task state %s is deprecated. Use the TaskState enum instead." % (value))
-    return value
 
 PENDING = TaskState.PENDING
 RUNNING = TaskState.RUNNING
@@ -161,14 +162,15 @@ class Task(State):
         return self.__class__.__name__
 
     def runtime(self):
-        if self.status == TaskState.RUNNING:
+        if self.state == TaskState.PENDING:
+            return datetime.timedelta(0)
+        if self.state not in [
+            TaskState.TERMINATED, TaskState.FINISHED, TaskState.UNDEFINED
+            , TaskState.FAILED, TaskState.DELETED, TaskState.CANCELED
+        ]:
             return datetime.datetime.now() - self.start_time
         else:
             return self.end_time - self.start_time
-
-    def str_runtime(self):
-        rt = self.runtime()
-        return str(rt.hours) + ":" + str(rt.minutes) + ":" + str(rt.seconds)
 
     # TODO: @session_trigger(UPDATE_TASK, self)
     def update_state(self, state):
@@ -253,7 +255,9 @@ class Task(State):
             self.update_state(TaskState.TERMINATED)
         else:
             self.update_state(TaskState.FINISHED)
-        if not blocking and self.launched_successfully:
+        if not blocking and self.launched_successfully and not self.state in [
+            TaskState.CANCELED, TaskState.DELETED, TaskState.FAILED, TaskState.TERMINATED
+        ]:
             # the blocking code path also has an on_finish() call that executes immediately
             self.session.ui.thread_safe(self.on_finish)
 
@@ -497,7 +501,7 @@ class Tasks(StateManager):
         del task
 
     def remove(self, task: Task) -> None:
-        self.__delitem__(task)
+        self.__delitem__(task.id)
 
     def find_by_class(self, cls):
         """Return a list of tasks of the given class.

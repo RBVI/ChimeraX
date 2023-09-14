@@ -83,6 +83,7 @@ class CxServicesJob(Job):
         super().__init__(*args, **kw)
         # Initialize ChimeraX REST request state
         self.reset_state()
+        self.state = TaskState.PENDING
         # Prefer the HTTPS proxy
         self.chimerax_api = None
         if settings.https_proxy:
@@ -96,14 +97,6 @@ class CxServicesJob(Job):
         if not self.chimerax_api:
             self.chimerax_api = default_api.DefaultApi()
         self.job_id = None
-
-    @property
-    def status(self) -> str:
-        return self._status
-
-    @status.setter
-    def status(self, value) -> None:
-        self._status = value
 
     def run(self, service_name: str
             , params: Dict[str, Any] = None
@@ -142,14 +135,14 @@ class CxServicesJob(Job):
                 , filepaths = processed_files_to_upload
             )
         except ApiException as e:
-            self.status = TaskState.FAILED
+            self.state = TaskState.FAILED
             self.end_time = datetime.datetime.now()
             reason = json.loads(e.body)['description']
             self.thread_safe_error(
                 "Error launching job: %s" % reason
             )
         except (URLError, MaxRetryError, NewConnectionError) as e:
-            self.status = TaskState.FAILED
+            self.state = TaskState.FAILED
             self.end_time = datetime.datetime.now()
             self.thread_safe_error(
                 "Error launching job: ChimeraX Web Services unavailable. Please try again soon."
@@ -190,7 +183,7 @@ class CxServicesJob(Job):
             next_poll = result.next_poll
         except ApiException as e:
             raise JobMonitorError(str(e))
-        self.status = status
+        self.state = status
         if poll_freq_override is None and next_poll is not None:
             self.next_poll = int(next_poll)
         else:
