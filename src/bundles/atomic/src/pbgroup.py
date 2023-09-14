@@ -226,8 +226,10 @@ class PseudobondGroup(PseudobondGroupData, Model):
             d.highlighted_positions = s._selected_bond_cylinders(pbonds)
 
     def update_cylinder_sides(self):
-        sides = self._cylinder_sides
         d = self._pbond_drawing
+        if d is None:
+            return False
+        sides = self._cylinder_sides
         if sides == getattr(d, '_current_cylinder_sides', None):
             return False
         va, na, ta = _pseudobond_geometry(self._dashes//2, sides)
