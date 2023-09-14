@@ -50,7 +50,8 @@ class FeatureBrowser:
                 used_colors.append(color)
                 for feature in features:
                     self.feature_region[feature] = sv.new_region(ftype, outline=color, shown=False,
-                        read_only=True, assoc_with=seq, fill=[(x+1)/2 for x in color],
+                        read_only=True, sequence=seq, fill=[(x+1)/2 for x in color],
+                        source=self.data_source,
                         blocks=[(seq, seq, start-1, end-1) for start, end in feature.positions])
             self._selection = None
         else:
@@ -58,7 +59,7 @@ class FeatureBrowser:
             ftypes = list(self.feature_map.keys())
             ftypes.sort()
             category_chooser.addItems(ftypes)
-            self.feature_region = { feat: sv.region_browser.regions[reg_index]
+            self.feature_region = { feat: sv.region_manager.regions[reg_index]
                 for feat, reg_index in state['feature_region'].items() }
             self._selection = state['selection']
             if self._selection:
@@ -144,7 +145,7 @@ class FeatureBrowser:
         return {
             'shown': self.tool_window.shown,
             'feature_chooser': self.feature_chooser.state(),
-            'feature_region': { feat: self.sv.region_browser.regions.index(reg)
+            'feature_region': { feat: self.sv.region_manager.regions.index(reg)
                 for feat, reg in self.feature_region.items() },
             'feature_map': self.feature_map,
             'selection': self._selection
@@ -202,13 +203,13 @@ class FeatureBrowser:
             run(self.sv.session, "~sel")
         # have to wait 1 otherwise selection will show _after_ we clear it...
         run(self.sv.session, "wait 1", log=False)
-        sel_region = self.sv.region_browser.get_region("ChimeraX selection")
+        sel_region = self.sv.region_manager.get_region("ChimeraX selection")
         sel_region.clear()
 
     def _sel_spec(self):
         residues=[]
         for region in self.selected_regions:
-            residues.extend(self.sv.region_browser.region_residues(region))
+            residues.extend(self.sv.region_manager.region_residues(region))
         from chimerax.atomic import concise_residue_spec
         return concise_residue_spec(self.sv.session, residues)
 

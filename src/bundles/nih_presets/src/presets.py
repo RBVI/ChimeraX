@@ -100,7 +100,8 @@ undo_printable = [
     "show ##name='%s' models" % Structure.PBG_MISSING_STRUCTURE,
     "size atomRadius default stickRadius 0.2 pseudobondRadius 0.2",
     "style dashes 7",
-    "graphics quality bondTriangles default",
+    "graphics quality bondSides default",
+    "graphics quality pseudobondSides default",
     "cartoon style sides 12",
 ]
 
@@ -160,11 +161,12 @@ def palette(num_chains):
         palette += base_palette
     return ':'.join(palette[:num_chains])
 
-def print_prep(session=None, *, pb_radius=0.4, ion_size_increase=0.0, bond_sides=16):
+def print_prep(session=None, *, pb_radius=0.4, ion_size_increase=0.0, bond_sides="default", pb_sides=16):
     always_cmds = [
         "size stickRadius 0.8",
         "style dashes 0",
-        "graphics quality bondTriangles %d" % (bond_sides * 4) # 2 triangles per side, plus half-bond mode
+        "graphics quality bondSides %s" % bond_sides,
+        "graphics quality pseudobondSides %s" % pb_sides,
     ]
     if session is None:
         # not a ribbon preset

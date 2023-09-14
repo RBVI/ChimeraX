@@ -1734,10 +1734,6 @@ class RegionManager:
         else:
             self.show_chimerax_selection()
 
-    def _seq_menu_cb(self, action):
-        self.seq_region_menubutton.setText(action.text())
-        self._set_table_data(action)
-
     def _seq_renamed_cb(self, _1, trig_data):
         seq, old_name = trig_data
         if seq not in self.sequence_regions:
@@ -1784,7 +1780,7 @@ class RegionsTool:
         self.tool_window = tool_window
 
         from Qt.QtCore import Qt
-        from Qt.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QMenu
+        from Qt.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QMenu, QGroupBox
         ui_area = tool_window.ui_area
         layout = QVBoxLayout()
         layout.setSpacing(2)
@@ -1800,6 +1796,7 @@ class RegionsTool:
         mb.setMenu(menu)
         menu.triggered.connect(self._seq_menu_cb)
         menu.aboutToShow.connect(self._fill_seq_region_menu)
+        self.seq = None
 
         from chimerax.ui.widgets import ItemTable
         self.region_table = table = ItemTable(allow_user_sorting=False, session=tool_window.session,
@@ -1831,6 +1828,19 @@ class RegionsTool:
             "start": table.add_column("Start", lambda r: blocks_to_val(r, 2, min), format="%d"),
             "end": table.add_column("End", lambda r: blocks_to_val(r, 3, max), format="%d"),
         }
+
+        self.source_info = {}
+        self.source_box = QGroupBox("Data source")
+        source_layout = QVBoxLayout()
+        source_layout.setContentsMargins(0,0,0,0)
+        self.source_box.setLayout(source_layout)
+        info = QLabel("List these kinds of regions...")
+        from chimerax.ui import shrink_font
+        shrink_font(info)
+        source_layout.addWidget(info)
+        self.sources_layout = QHBoxLayout()
+        source_layout.addLayout(self.sources_layout)
+
         self._set_table_data(resize_columns=False)
         table.launch()
         layout.addWidget(table, stretch=1)
@@ -1850,25 +1860,15 @@ class RegionsTool:
             button.clicked.connect(lambda *args, f=self._button_cb, name=button_name: f(name))
             buttons_layout.addWidget(button, alignment=Qt.AlignCenter)
 
+        layout.addWidget(self.source_box, alignment=Qt.AlignCenter)
+
     def alignment_rmsd_update(self):
         self.region_table.update_column(self.columns["rmsd"], data=True)
         self.region_table.resizeColumnToContents(self.region_table.columns.index(self.columns["rmsd"]))
 
     def region_notification(self, category, region):
         if category in ("new", "delete"):
-            cur_text = self.seq_region_menubutton.text()
-            if cur_text == self.ENTIRE_ALIGNMENT_REGIONS:
-                source = None
-            else:
-                for seq in self.sv.alignment.seqs:
-                    if seq.name == cur_text:
-                        source = seq
-                        break
-                else:
-                    self.seq_region_menubutton.setText(self.ENTIRE_ALIGNMENT_REGIONS)
-                    source = None
-            self._set_table_data(source=source)
-            self.region_table.resizeColumnsToContents()
+            self._set_table_data()
         elif category in ("raise", "lower"):
             table_regions = self.region_table.data
             all_regions = self.sv.region_manager.regions
@@ -1930,7 +1930,7 @@ class RegionsTool:
 
     def _seq_menu_cb(self, action):
         self.seq_region_menubutton.setText(action.text())
-        self._set_table_data(action)
+        self._set_table_data(menu_action=action)
 
     def _set_edge(self, region, edge):
         if fill:
@@ -1954,20 +1954,47 @@ class RegionsTool:
         region.interior_rgba = [ c/255.0 for c in color]
         self.region_table.update_cell(self.columns["fill"], region)
 
-    def _set_table_data(self, menu_action=None, *, source=None, resize_columns=True):
-        if source is None:
-            if menu_action is None:
-                source = None
+    def _set_table_data(self, *, menu_action=None, resize_columns=True):
+        if menu_action:
+            index = menu_action.data()
+            if index == 0:
+                self.seq = None
             else:
-                index = menu_action.data()
-                if index == 0:
-                    source = None
+                self.seq = self.sv.alignment.seqs[index-1]
+        regions = [r for r in self.sv.region_manager.regions if r.sequence == self.seq]
+
+        # filter based on source (builtin, UniProt, etc.)
+        all_sources = set([r.source for r in self.sv.region_manager.regions])
+        sources = set([r.source for r in regions])
+        for prev_source in list(self.source_info.keys()):
+            if prev_source not in sources:
+                if prev_source not in all_sources:
+                    self.sources_layout.removeWidget(self.source_info[prev_source])
+                    del self.source_info[prev_source]
                 else:
-                    source = self.sv.alignment.seqs[index-1]
-        self.region_table.update_column(self.columns["rmsd"], display=(source is None))
-        self.region_table.update_column(self.columns["start"], display=(source is not None))
-        self.region_table.update_column(self.columns["end"], display=(source is not None))
-        regions = [reg for reg in self.sv.region_manager.regions if reg.sequence == source]
+                    self.source_info[prev_source].setHidden(True)
+        from Qt.QtWidgets import QCheckBox
+        for source in sources:
+            if source in self.source_info:
+                continue
+            text = "built-in" if source is None else source
+            cb = self.source_info[source] = QCheckBox(text)
+            cb.setChecked(True)
+            cb.clicked.connect(lambda *args, f=self._set_table_data: f())
+            self.sources_layout.addWidget(cb)
+        # if multiple sources, or if the single source is set to be hidden,
+        # show the controls (and filter the regions)
+        if sources and (len(sources) > 1 or not self.source_info[list(sources)[0]].isChecked()):
+            for source, cb in self.source_info.items():
+                cb.setHidden(source not in sources)
+            self.source_box.setHidden(False)
+            regions = [r for r in regions if r.source in sources and self.source_info[r.source].isChecked()]
+        else:
+            self.source_box.setHidden(True)
+
+        self.region_table.update_column(self.columns["rmsd"], display=(self.seq is None))
+        self.region_table.update_column(self.columns["start"], display=(self.seq is not None))
+        self.region_table.update_column(self.columns["end"], display=(self.seq is not None))
         self.region_table.data = regions
         if resize_columns:
             self.region_table.resizeColumnsToContents()
