@@ -195,7 +195,7 @@ class CxServicesJob(Job):
         """Return whether background process terminated normally.
 
         """
-        return self._status == TaskState.FINISHED
+        return self.state == TaskState.FINISHED
 
     def get_results(self) -> Optional[Union[bytes,str]]:
         """Expects JSON."""
