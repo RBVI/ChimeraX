@@ -15,7 +15,7 @@
 # Command to fit loops guided by cryoEM maps using Phenix fit_loops.
 #
 from chimerax.core.tasks import Job
-from chimerax.core.errors import UserError
+from chimerax.core.errors import UserError, LimitationError
 from time import time
 
 class NoSeqInfoError(UserError):
@@ -86,15 +86,16 @@ command_defaults = {
     'replace': True,
     'verbose': False
 }
-def phenix_fit_loops(session, structure, in_map, *, block=None, phenix_location=None,
-        chain_id=None,
-        end_res_number=None,
-        processors=command_defaults['processors'],
-        replace=command_defaults['replace'],
-        start_res_number=None,
-        sequence_file=None,
-        verbose=command_defaults['verbose'],
-        option_arg=[], position_arg=[]):
+def phenix_fit_loops(session, residues, in_map, *, block=None, phenix_location=None,
+        processors=command_defaults['processors'], replace=command_defaults['replace'],
+        sequence_file=None, verbose=command_defaults['verbose'], option_arg=[], position_arg=[]):
+
+    from chimerax.atomic import Residue
+    residues = residues.filter(residues.polymer_types == Residue.PT_AMINO)
+    if not residues:
+        raise UserError(
+            "No protein residues specfied. Make sure your atom specifier includes *existing* residues,\n"
+            "so if filling in missing structure, you need to specify the residues adjacent to the gap.")
 
     # Find the phenix.fit_loops executable
     from .locate import find_phenix_command
@@ -103,36 +104,6 @@ def phenix_fit_loops(session, structure, in_map, *, block=None, phenix_location=
     # if blocking not explicitly specified, block if in a script or in nogui mode
     if block is None:
         block = session.in_script or not session.ui.is_gui
-
-    # Setup temporary directory to run phenix.fit_loops.
-    from tempfile import TemporaryDirectory
-    d = TemporaryDirectory(prefix = 'phenix_fit_loops_')  # Will be cleaned up when object deleted.
-    temp_dir = d.name
-
-    # Save map to file
-    from os import path
-    from chimerax.map_data import save_grid_data
-    save_grid_data([in_map.data], path.join(temp_dir,'map.mrc'), session)
-
-    # Guessing that like douse, fit_loops ignores the MRC file origin so if it is non-zero
-    # shift the atom coordinates so they align with the origin 0 map.
-    map_0, shift = _fix_map_origin(in_map)
-
-    # Save structure to file.
-    from chimerax.pdb import save_pdb
-    save_pdb(session, path.join(temp_dir,'model.pdb'), models=[structure], rel_model=map_0)
-
-    seqf_path = path.join(temp_dir, "sequences")
-    if sequence_file is None:
-        with open(seqf_path, "w") as f:
-            for chain in structure.chains:
-                if not chain.from_seqres:
-                    raise NoSeqInfoError("Structure file does not contain complete sequence information."
-                        f" Please provide that information via the '{seq_keyword}' keyword argument.")
-                print(chain.characters, file=f)
-    else:
-        import shutil
-        shutil.copyfile(sequence_file, seqf_path)
 
     if processors is None:
         import os
@@ -145,15 +116,118 @@ def phenix_fit_loops(session, structure, in_map, *, block=None, phenix_location=
     from chimerax.core.commands import plural_form
     session.logger.info("Using %d %s" % (processors, plural_form(processors, "CPU")))
 
-    # Run phenix.fit_loops
-    # keep a reference to 'd' in the callback so that the temporary directory isn't removed before
-    # fit_loops runs
-    callback = lambda fit_loops_model, info, *args, session=session, shift=shift, structure=structure, \
-        map=in_map, start_res_number=start_res_number, end_res_number=end_res_number, replace=replace, \
-        chain_id=chain_id, d_ref=d:_process_results(session, fit_loops_model, map, shift, structure,
-        start_res_number, end_res_number, replace, chain_id, info)
-    FitLoopsJob(session, exe_path, option_arg, "map.mrc", "model.pdb", "sequences", position_arg, temp_dir,
-        start_res_number, end_res_number, chain_id, processors, verbose, callback, block)
+    def seq_num(r):
+        if r.insertion_code:
+            raise LimitationError("phenix.fit_loops cannot handles residues with insertion codes"
+                " (i.e. %s)" % r)
+        return r.number
+    # process the residues into phenix-fit-friendly units
+    for structure, s_residues in residues.by_structure:
+        # look for embedded missing structure
+        atoms = set(s_residues.atoms)
+        requested_gaps = []
+        other_gaps = []
+        try:
+            pbs = structure.pbg_map[structure.PBG_MISSING_STRUCTURE].pseudobonds
+        except KeyError:
+            pbs = []
+        for pb in pbs:
+            a1, a2 = pb.atoms
+            r1, r2 = (a1.residue, a2.residue) if a1 < a2 else (a2.residue, a1.residue)
+            if r1 == r2:
+                continue
+            if a1 in atoms and a2 in atoms:
+                requested_gaps.append((r1, r2))
+            else:
+                other_gaps.append((r1, r2))
+        job_info = []
+        if requested_gaps:
+            if len(requested_gaps) == 1:
+                r1, r2 = requested_gaps[0]
+                job_info.append((seq_num(r1), seq_num(r2), r1.chain_id))
+            elif not other_gaps:
+                job_info.append((None, None, None))
+            else:
+                # multiple requested gaps, but not all gaps requested
+                requested_chains = set([r1.chain_id for r1, r2 in requested_gaps])
+                other_chains = set([r1.chain_id for r1, r2 in other_gaps])
+                for chain in requested_chains:
+                    if chain not in other_chains:
+                        job_info.append((None, None, chain))
+                    else:
+                        requested_residues = set([r for r1, r2 in requested_gaps for r in (r1, r2)
+                            if r.chain_id == chain])
+                        other_residues = set([r for r1, r2 in other_gaps for r in (r1, r2)
+                            if r.chain_id == chain])
+                        if max(requested_residues) < min(other_residues) \
+                        or min(requested_residues) > max(other_residues):
+                            job_info.append((seq_num(min(requested_residues)),
+                                seq_num(max(requested_residues)), chain))
+                        else:
+                            for r1, r2 in requested_gaps:
+                                if r1.chain_id == chain:
+                                    job_info.append((seq_num(r1), seq_num(r2), chain))
+        else:
+            # remodelling; figure out runs of residues in the same chain
+            raise NotImplementedError("Remodeling not implemented")
+
+        session.logger.info("Running %d %s" % (len(job_info), plural_form(job_info, "job")))
+
+        if block:
+            procs_per_job = [processors] * len(job_info)
+        else:
+            per_job = int(processors / len(job_info))
+            if per_job <= 1:
+                procs_per_job = [1] * len(job_info)
+            elif len(job_info) == 1:
+                procs_per_job = [processors]
+            else:
+                procs_per_job = [per_job] * (len(job_info)-1)
+                procs_per_job.append(processors - sum(procs_per_job))
+
+        for start_res_number, end_res_number, chain_id in job_info:
+            # Setup temporary directory to run phenix.fit_loops.
+            from tempfile import TemporaryDirectory
+            d = TemporaryDirectory(prefix = 'phenix_fit_loops_')  # Will be cleaned up when object deleted.
+            temp_dir = d.name
+
+            # Save map to file
+            from os import path
+            from chimerax.map_data import save_grid_data
+            save_grid_data([in_map.data], path.join(temp_dir,'map.mrc'), session)
+
+            # Guessing that like douse, fit_loops ignores the MRC file origin so if it is non-zero
+            # shift the atom coordinates so they align with the origin 0 map.
+            map_0, shift = _fix_map_origin(in_map)
+
+            # Save structure to file.
+            from chimerax.pdb import save_pdb
+            save_pdb(session, path.join(temp_dir,'model.pdb'), models=[structure], rel_model=map_0)
+
+            seqf_path = path.join(temp_dir, "sequences")
+            if sequence_file is None:
+                with open(seqf_path, "w") as f:
+                    for chain in structure.chains:
+                        if not chain.from_seqres:
+                            raise NoSeqInfoError("Structure file does not contain complete sequence"
+                                f" information.  Please provide that information via the '{seq_keyword}'"
+                                " keyword argument.")
+                        print(chain.characters, file=f)
+            else:
+                import shutil
+                shutil.copyfile(sequence_file, seqf_path)
+
+            # Run phenix.fit_loops
+            # keep a reference to 'd' in the callback so that the temporary directory isn't removed before
+            # fit_loops runs
+            callback = lambda fit_loops_model, info, *args, session=session, shift=shift, \
+                structure=structure, map=in_map, start_res_number=start_res_number, \
+                end_res_number=end_res_number, replace=replace, chain_id=chain_id, d_ref=d: \
+                _process_results(session, fit_loops_model, map, shift, structure, start_res_number, \
+                end_res_number, replace, chain_id, info)
+            FitLoopsJob(session, exe_path, option_arg, "map.mrc", "model.pdb", "sequences", position_arg,
+                temp_dir, start_res_number, end_res_number, chain_id, procs_per_job.pop(), verbose,
+                callback, block)
 
 def _process_results(session, fit_loops_model, map, shift, structure, start_res_number, end_res_number,
         replace, chain_id, info):
@@ -318,115 +392,20 @@ def _run_fit_loops_subprocess(session, exe_path, optional_args, map_filename, mo
 
     return models[0], info
 
-"""
-def _copy_new_waters(douse_model, near_model, keep_input_water, far_water, map_name):
-    model = near_model.copy()
-    model.position = douse_model.position
-    model.name = near_model.name + ' douse'
-
-    # Add found water molecules to copy of input molecule.
-    if keep_input_water:
-        from chimerax.check_waters import compare_waters
-        input_waters, douse_only_waters, douse_both_waters, input_both_waters = compare_waters(near_model,
-            douse_model)
-        # since the douse model will be closed, translate its "both" waters to the new model's waters
-        res_map =  { r:i for i, r in enumerate(near_model.residues) }
-        from chimerax.atomic import Residues
-        both_waters = Residues([model.residues[res_map[r]] for r in input_both_waters])
-    else:
-        douse_only_waters = _water_residues(douse_model)
-        _water_residues(model).delete()
-        compared_waters = None
-    added_wat_res = _add_waters(model, douse_only_waters)
-    if keep_input_water:
-        compared_waters = (input_waters, added_wat_res, both_waters, input_both_waters)
-
-    model.session.models.add([model])	# Need to assign id number for use in log message
-
-    # Create log message describing found waters with links
-    # to select them.
-    sel_new, nnew = _select_command(model, added_wat_res)
-    long_message = keep_input_water and len(input_waters) > 0 and not far_water
-    msg = (f'Placed <a href="cxcmd:{sel_new}">{nnew}%s waters</a>'
-           f' in map "{map_name}" near model "{near_model.name}"') % (" new" if long_message else "")
-    if long_message:
-        sel_dup, ndup = _select_command(model, input_both_waters)
-        sel_xtra, nxtra = _select_command(model, input_waters - input_both_waters)
-        msg += (
-            f'<br>Also, of the waters existing in the input, douse <a href="cxcmd:{sel_dup}">found {ndup}</a>'
-            f' and <a href="cxcmd:{sel_xtra}">did not find {nxtra}</a>')
-
-    return model, msg, nnew, compared_waters
-
-# also used in tool.py
-def _water_residues(model):
-    res = model.residues
-    water_res = res[res.names == 'HOH']
-    return water_res
-
-
-def _select_command(model, residues):
-    # model to select in is not necessarily the same as the residues
-    if len(residues) > 0:
-        from chimerax.atomic import concise_residue_spec
-        spec = concise_residue_spec(model.session, residues)
-        for i, c in enumerate(spec):
-            if c not in '#.' and not c.isdigit():
-                break
-        spec = model.string(style="command") + spec[i:]
-    cmd = f'select {spec}' if len(residues) > 0 else 'select clear'
-    return cmd, len(residues)
-
-
-def _add_waters(model, new_wat_res):
-    rnum = model.residues.numbers.max(initial = 0) + 1
-    res = []
-    for r in new_wat_res:
-        rc = model.new_residue(r.name, r.chain_id, rnum)
-        for a in r.atoms:
-            ac = model.new_atom(a.name, a.element)
-            ac.coord = a.coord
-            ac.draw_mode = ac.STICK_STYLE
-            ac.color = (255,0,0,255)
-            rc.add_atom(ac)
-        res.append(rc)
-        rnum += 1
-    from chimerax.atomic import Residues
-    return Residues(res)
-
-
-def _show_waters(input_model, douse_model, residue_range, map, map_range):
-    m_id = douse_model.id_string
-    commands = [f'hide #{m_id} atoms,ribbons',
-                f'show #{m_id}:HOH',
-                f'transparency #{map.id_string} 50',
-                f'hide #{input_model.id_string} model']
-    if residue_range > 0:
-        commands.append(f'show #{m_id}:HOH :< {residue_range}')
-    if map_range > 0:
-        commands.append(f'volume zone #{map.id_string} near #{m_id}:HOH range {map_range}')
-    cmd = ' ; '.join(commands)
-    from chimerax.core.commands import run
-    run(douse_model.session, cmd, log=False)
-"""
-
 seq_keyword = 'sequence_file'
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register
     from chimerax.core.commands import OpenFolderNameArg, OpenFileNameArg, BoolArg, FloatArg, RepeatOf
-    from chimerax.core.commands import StringArg, IntArg, PositiveIntArg
+    from chimerax.core.commands import StringArg, PositiveIntArg
     from chimerax.map import MapArg
-    from chimerax.atomic import AtomicStructureArg
+    from chimerax.atomic import ResiduesArg
     desc = CmdDesc(
-        required = [('structure', AtomicStructureArg)],
+        required = [('residues', ResiduesArg)],
         keyword = [('in_map', MapArg),
                    ('block', BoolArg),
-                   ('chain_id', StringArg),
-                   ('end_res_number', IntArg),
                    ('processors', PositiveIntArg),
                    ('replace', BoolArg),
                    (seq_keyword, OpenFileNameArg),
-                   ('start_res_number', IntArg),
                    ('verbose', BoolArg),
                    ('phenix_location', OpenFolderNameArg),
                    ('option_arg', RepeatOf(StringArg)),
