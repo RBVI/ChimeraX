@@ -169,7 +169,22 @@ def phenix_fit_loops(session, residues, in_map, *, block=None, phenix_location=N
                                     job_info.append((seq_num(r1), seq_num(r2), chain))
         else:
             # remodelling; figure out runs of residues in the same chain
-            raise NotImplementedError("Remodeling not implemented")
+            for chain_id in residues.unique_chain_ids:
+                res_list = residues.filter(residues.chain_ids == chain_id)
+                req_chain_residues = set(res_list)
+                start = end = None
+                for r in res_list[0].chain.existing_residues:
+                    if r in req_chain_residues:
+                        if start is None:
+                            start = end = r
+                        else:
+                            end = r
+                    else:
+                        if start is not None:
+                            job_info.append((seq_num(start), seq_num(end), chain_id))
+                            start = end = None
+                if start is not None:
+                    job_info.append((seq_num(start), seq_num(end), chain_id))
 
         session.logger.info("Running %d %s" % (len(job_info), plural_form(job_info, "job")))
 
