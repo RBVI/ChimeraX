@@ -525,7 +525,7 @@ def init(argv, event_loop=True):
     # app_dirs_unversioned is primarily for caching data files that will
     # open in any version
     # app_dirs_unversioned.user_* directories are parents of those in app_dirs
-    chimerax.app_dirs_unversioned = adu = appdirs.AppDirs(app_name, appauthor=app_author)
+    chimerax.app_dirs_unversioned = appdirs.AppDirs(app_name, appauthor=app_author)
 
     # update "site" user variables to use ChimeraX instead of Python paths
     # NB: USER_SITE is used by both pip and the toolshed, so
@@ -533,8 +533,15 @@ def init(argv, event_loop=True):
     # will go in the right place.
     import site
     if not is_root:
-        site.USER_BASE = adu.user_data_dir
-        site.USER_SITE = os.path.join(ad.user_data_dir, "site-packages")
+        site.USER_BASE = ad.user_data_dir
+        lib = "lib"
+        python = "python"
+        if sys.platform == "win32":
+            lib = ""
+            python = f"Python{sys.version_info.major}{sys.version_info.minor}"
+        if sys.platform == "linux":
+            python = f"python{sys.version_info.major}.{sys.version_info.minor}"
+        site.USER_SITE = os.path.join(site.USER_BASE, lib, python, "site-packages")
     else:
         import sysconfig
         site.USER_SITE = sysconfig.get_paths()['platlib']
@@ -887,9 +894,9 @@ def init(argv, event_loop=True):
     # By this point the GUI module will have redirected stdout if it's going to
     if bool(os.getenv("DEBUG")):
         logging.basicConfig(
-            level = logging.INFO
-            , format = "%(levelname)s:%(message)s"
-            , handlers = [logging.StreamHandler(sys.stdout)]
+            level=logging.INFO,
+            format="%(levelname)s:%(message)s",
+            handlers=[logging.StreamHandler(sys.stdout)]
         )
 
     # Allow the event_loop to be disabled, so we can be embedded in
