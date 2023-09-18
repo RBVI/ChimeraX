@@ -58,7 +58,7 @@ class CxServicesJob(Job):
         Time when job was launched
     end_time : int (seconds since epoch)
         Time when job terminated
-    status : str
+    state : str
     outputs : List[str]
     next_poll : time
     """

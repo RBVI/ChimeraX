@@ -58,6 +58,7 @@ import time
 import weakref
 
 from enum import StrEnum
+from typing import Optional
 
 from .state import State, StateManager
 
@@ -96,6 +97,7 @@ class TaskState(StrEnum):
             raise NotImplementedError("Unknown TaskState: %s" % value)
         return ret
 
+
 PENDING = TaskState.PENDING
 RUNNING = TaskState.RUNNING
 TERMINATING = TaskState.TERMINATING
@@ -129,7 +131,7 @@ class Task(State):
     SESSION_ENDURING = False
     SESSION_SAVE = False
 
-    def __init__(self, session, id=None):
+    def __init__(self, session, id: int = None):
         """Initialize a Task.
 
         Parameters
@@ -139,12 +141,12 @@ class Task(State):
 
         """
         self.id = id
-        self._session = weakref.ref(session)
-        self._thread = None
+        self._session: weakref.ref['Session'] = weakref.ref(session)
+        self._thread: threading.Thread = None
         self._terminate = None
-        self.state = TaskState.PENDING
-        self.start_time = None
-        self.end_time = None
+        self._state: TaskState = TaskState.PENDING
+        self.start_time: Optional[datetime.datetime] = None
+        self.end_time: Optional[datetime.datetime] = None
         if session:
             session.tasks.add(self)
 
@@ -153,17 +155,10 @@ class Task(State):
         """Read-only property for session that contains this task."""
         return self._session()
 
-    def display_name(self):
-        """Name to display to user for this task.
-
-        This method should be overridden to return a task-specific name.
-
-        """
-        return self.__class__.__name__
-
+    @property
     def runtime(self):
         if self.state == TaskState.PENDING:
-            return datetime.timedelta(0)
+            return datetime.timedelta()
         if self.state not in [
             TaskState.TERMINATED, TaskState.FINISHED, TaskState.UNDEFINED
             , TaskState.FAILED, TaskState.DELETED, TaskState.CANCELED
@@ -173,8 +168,14 @@ class Task(State):
             return self.end_time - self.start_time
 
     # TODO: @session_trigger(UPDATE_TASK, self)
-    def update_state(self, state):
-        self.state = state
+
+    @property
+    def state(self):
+        return self._state
+
+    @state.setter
+    def state(self, state: TaskState):
+        self._state = state
         if self.terminated():
             self._cleanup()
             self.session.triggers.activate_trigger(END_TASK, self)
@@ -194,7 +195,7 @@ class Task(State):
         self.end_time = datetime.datetime.now()
         if self._terminate is not None:
             self._terminate.set()
-        self.update_state(TaskState.TERMINATING)
+        self.state = TaskState.TERMINATING
 
     def terminating(self):
         """Return whether user has requested termination of this task.
@@ -228,11 +229,11 @@ class Task(State):
                                         daemon=True, args=args, kwargs=kw)
         self._thread.start()
         self.start_time = datetime.datetime.now()
-        self.update_state(TaskState.RUNNING)
+        self.state = TaskState.RUNNING
         self._terminate = threading.Event()
         if blocking:
             self._thread.join()
-            self.update_state(TaskState.FINISHED)
+            self.state = TaskState.FINISHED
             # the non-blocking code path also has an on_finish()
             # call that executes asynchronously
             if self.launched_successfully:
@@ -252,9 +253,9 @@ class Task(State):
         blocking = kw.pop("blocking", False)
         self.run(*args, **kw)
         if self.terminating():
-            self.update_state(TaskState.TERMINATED)
+            self.state = TaskState.TERMINATED
         else:
-            self.update_state(TaskState.FINISHED)
+            self.state = TaskState.FINISHED
         if not blocking and self.launched_successfully and not self.state in [
             TaskState.CANCELED, TaskState.DELETED, TaskState.FAILED, TaskState.TERMINATED
         ]:
@@ -290,29 +291,46 @@ class Task(State):
     def __str__(self):
         return ("ChimeraX Task, ID %s" % self.id)
 
-    def thread_safe_status(self, message):
+    def thread_safe_status(self, message: str):
         if self.session:
             status = self.session.logger.status
             tsafe = self.session.ui.thread_safe
             tsafe(status, message)
 
-    def thread_safe_log(self, message):
+    def thread_safe_log(self, message: str):
         if self.session:
             status = self.session.logger.info
             tsafe = self.session.ui.thread_safe
             tsafe(status, message)
 
-    def thread_safe_warning(self, message):
+    def thread_safe_warning(self, message: str):
         if self.session:
             status = self.session.logger.warning
             tsafe = self.session.ui.thread_safe
             tsafe(status, message)
 
-    def thread_safe_error(self, message):
+    def thread_safe_error(self, message: str):
         if self.session:
             status = self.session.logger.error
             tsafe = self.session.ui.thread_safe
             tsafe(status, message)
+
+
+    def from_snapshot(self, session, data):
+        pass
+
+    def take_snapshot(self, session, flags) -> dict[any, any]:
+        data = {
+            "id": self.id
+            , "state": self.state
+            , "start_time": self.start_time
+            , "end_time": self.end_time
+        }
+        return data
+
+    @classmethod
+    def restore_snapshot(cls, session, data):
+        pass
 
 class Job(Task):
     """
@@ -384,8 +402,8 @@ class Job(Task):
     def monitor(self):
         """Check the status of the background process.
 
-        The task should be marked as terminated (using
-        'update_state') when the background process is done
+        The task should be marked as terminated
+        when the background process is done
 
         """
         pass
