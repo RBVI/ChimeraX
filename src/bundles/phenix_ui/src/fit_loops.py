@@ -144,16 +144,16 @@ def phenix_fit_loops(session, residues, in_map, *, block=None, phenix_location=N
         if requested_gaps:
             if len(requested_gaps) == 1:
                 r1, r2 = requested_gaps[0]
-                job_info.append((seq_num(r1), seq_num(r2), r1.chain_id))
+                job_info.append((seq_num(r1), seq_num(r2), r1.chain_id, False))
             elif not other_gaps:
-                job_info.append((None, None, None))
+                job_info.append((None, None, None, False))
             else:
                 # multiple requested gaps, but not all gaps requested
                 requested_chains = set([r1.chain_id for r1, r2 in requested_gaps])
                 other_chains = set([r1.chain_id for r1, r2 in other_gaps])
                 for chain in requested_chains:
                     if chain not in other_chains:
-                        job_info.append((None, None, chain))
+                        job_info.append((None, None, chain, False))
                     else:
                         requested_residues = set([r for r1, r2 in requested_gaps for r in (r1, r2)
                             if r.chain_id == chain])
@@ -162,11 +162,11 @@ def phenix_fit_loops(session, residues, in_map, *, block=None, phenix_location=N
                         if max(requested_residues) < min(other_residues) \
                         or min(requested_residues) > max(other_residues):
                             job_info.append((seq_num(min(requested_residues)),
-                                seq_num(max(requested_residues)), chain))
+                                seq_num(max(requested_residues)), chain, False))
                         else:
                             for r1, r2 in requested_gaps:
                                 if r1.chain_id == chain:
-                                    job_info.append((seq_num(r1), seq_num(r2), chain))
+                                    job_info.append((seq_num(r1), seq_num(r2), chain, False))
         else:
             # remodelling; figure out runs of residues in the same chain
             for chain_id in residues.unique_chain_ids:
@@ -181,10 +181,10 @@ def phenix_fit_loops(session, residues, in_map, *, block=None, phenix_location=N
                             end = r
                     else:
                         if start is not None:
-                            job_info.append((seq_num(start), seq_num(end), chain_id))
+                            job_info.append((seq_num(start), seq_num(end), chain_id, True))
                             start = end = None
                 if start is not None:
-                    job_info.append((seq_num(start), seq_num(end), chain_id))
+                    job_info.append((seq_num(start), seq_num(end), chain_id, True))
 
         session.logger.info("Running %d %s" % (len(job_info), plural_form(job_info, "job")))
 
@@ -200,7 +200,7 @@ def phenix_fit_loops(session, residues, in_map, *, block=None, phenix_location=N
                 procs_per_job = [per_job] * (len(job_info)-1)
                 procs_per_job.append(processors - sum(procs_per_job))
 
-        for start_res_number, end_res_number, chain_id in job_info:
+        for start_res_number, end_res_number, chain_id, remove_loops in job_info:
             # Setup temporary directory to run phenix.fit_loops.
             from tempfile import TemporaryDirectory
             d = TemporaryDirectory(prefix = 'phenix_fit_loops_')  # Will be cleaned up when object deleted.
@@ -240,9 +240,9 @@ def phenix_fit_loops(session, residues, in_map, *, block=None, phenix_location=N
                 end_res_number=end_res_number, replace=replace, chain_id=chain_id, d_ref=d: \
                 _process_results(session, fit_loops_model, map, shift, structure, start_res_number, \
                 end_res_number, replace, chain_id, info)
-            FitLoopsJob(session, exe_path, option_arg, "map.mrc", "model.pdb", "sequences", position_arg,
-                temp_dir, start_res_number, end_res_number, chain_id, procs_per_job.pop(), verbose,
-                callback, block)
+            FitLoopsJob(session, exe_path, option_arg + (["remove_loops=True"] if remove_loops else []),
+                "map.mrc", "model.pdb", "sequences", position_arg, temp_dir, start_res_number,
+                end_res_number, chain_id, procs_per_job.pop(), verbose, callback, block)
 
 def _process_results(session, fit_loops_model, map, shift, structure, start_res_number, end_res_number,
         replace, chain_id, info):
