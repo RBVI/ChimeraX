@@ -100,7 +100,8 @@ undo_printable = [
     "show ##name='%s' models" % Structure.PBG_MISSING_STRUCTURE,
     "size atomRadius default stickRadius 0.2 pseudobondRadius 0.2",
     "style dashes 7",
-    "graphics quality bondTriangles default",
+    "graphics quality bondSides default",
+    "graphics quality pseudobondSides 10",
     "cartoon style sides 12",
 ]
 
@@ -160,11 +161,12 @@ def palette(num_chains):
         palette += base_palette
     return ':'.join(palette[:num_chains])
 
-def print_prep(session=None, *, pb_radius=0.4, ion_size_increase=0.0, bond_sides=16):
+def print_prep(session=None, *, pb_radius=0.4, ion_size_increase=0.0, bond_sides="default", pb_sides=16):
     always_cmds = [
         "size stickRadius 0.8",
         "style dashes 0",
-        "graphics quality bondTriangles %d" % (bond_sides * 4) # 2 triangles per side, plus half-bond mode
+        "graphics quality bondSides %s" % bond_sides,
+        "graphics quality pseudobondSides %s" % pb_sides,
     ]
     if session is None:
         # not a ribbon preset
@@ -349,11 +351,12 @@ def surface_cmds(session):
     cmds = []
     for s in all_atomic_structures(session):
         # AddH won't actually run until after this command is generated, so base the grid value
-        # on the number of heavy atoms involved in the surface for consistency
+        # on the number of heavy atoms involved in the surface for consistency, but then multiply
+        # by 2 to account for probable amount of hydrogens
         import numpy
         num_heavys = len(s.atoms.filter(
             numpy.logical_and(s.atoms.elements.numbers != 1, s.atoms.structure_categories == "main")))
-        grid_size = min(2.0, max(0.3, math.log10(num_heavys) - 3.2))
+        grid_size = min(2.0, max(0.3, math.log10(2 *num_heavys) - 3.2))
         cmds.append("surface %s enclose %s grid %g sharp false" % (s.atomspec, s.atomspec, grid_size))
     return cmds
 
