@@ -113,6 +113,7 @@ class Opts:
         self.get_available_bundles = True
         self.safe_mode = False
         self.toolshed = None
+        self.disable_qt = False
 
 
 def _parse_python_args(argv, usage):
@@ -270,6 +271,8 @@ def _parse_chimerax_args(argv, arguments, usage):
             opts.version += 1
         elif opt == "--toolshed":
             opts.toolshed = optarg
+        elif opt == "--disable-qt":
+            opts.disable_qt = True
         else:
             print("Unknown option: ", opt)
             opts.help = True
@@ -317,6 +320,7 @@ def parse_arguments(argv):
         "--version",
         "--qtscalefactor <factor>",
         "--toolshed preview|<url>",
+        "--disable-qt",
     ]
     if sys.platform.startswith("win"):
         arguments += ["--console", "--noconsole"]
@@ -408,11 +412,13 @@ def init(argv, event_loop=True):
     if not opts.devel:
         import warnings
         warnings.filterwarnings("ignore", category=DeprecationWarning)
-    if not opts.gui and not opts.offscreen and sys.argv[-1] != 'cxtestimports.py':
-        # Disable importing Qt in nogui mode to ensure that -m pip works
+    if not opts.gui and opts.disable_qt:
+        # Disable importing Qt in nogui mode to catch imports that
+        # would affect that would break ChimeraX pypi library
         sys.modules['qtpy'] = None
         sys.modules['Qt'] = None
-        sys.modules['PyQt'] = None
+        sys.modules['PyQt5'] = None
+        sys.modules['PyQt6'] = None
         sys.modules['PySide6'] = None
         sys.modules['PySide2'] = None
 
@@ -525,7 +531,7 @@ def init(argv, event_loop=True):
     # app_dirs_unversioned is primarily for caching data files that will
     # open in any version
     # app_dirs_unversioned.user_* directories are parents of those in app_dirs
-    chimerax.app_dirs_unversioned = adu = appdirs.AppDirs(app_name, appauthor=app_author)
+    chimerax.app_dirs_unversioned = appdirs.AppDirs(app_name, appauthor=app_author)
 
     # update "site" user variables to use ChimeraX instead of Python paths
     # NB: USER_SITE is used by both pip and the toolshed, so
@@ -533,8 +539,15 @@ def init(argv, event_loop=True):
     # will go in the right place.
     import site
     if not is_root:
-        site.USER_BASE = adu.user_data_dir
-        site.USER_SITE = os.path.join(ad.user_data_dir, "site-packages")
+        site.USER_BASE = ad.user_data_dir
+        lib = "lib"
+        python = "python"
+        if sys.platform == "win32":
+            lib = ""
+            python = f"Python{sys.version_info.major}{sys.version_info.minor}"
+        if sys.platform == "linux":
+            python = f"python{sys.version_info.major}.{sys.version_info.minor}"
+        site.USER_SITE = os.path.join(site.USER_BASE, lib, python, "site-packages")
     else:
         import sysconfig
         site.USER_SITE = sysconfig.get_paths()['platlib']
@@ -887,9 +900,9 @@ def init(argv, event_loop=True):
     # By this point the GUI module will have redirected stdout if it's going to
     if bool(os.getenv("DEBUG")):
         logging.basicConfig(
-            level = logging.INFO
-            , format = "%(levelname)s:%(message)s"
-            , handlers = [logging.StreamHandler(sys.stdout)]
+            level=logging.INFO,
+            format="%(levelname)s:%(message)s",
+            handlers=[logging.StreamHandler(sys.stdout)]
         )
 
     # Allow the event_loop to be disabled, so we can be embedded in

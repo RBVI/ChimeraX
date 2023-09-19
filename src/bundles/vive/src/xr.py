@@ -147,27 +147,11 @@ def vr_button(session, button, mode = None, hand = None, command = None):
         from chimerax.core.errors import UserError
         raise UserError('Hand controller is not enabled.')
 
-    # TODO: Get rid of all the mapping between button names and ids.  Just use names.
     b = button_ids()
-    button_names = { b.grip: 'grip',
-                     b.menu: 'menu',
-                     b.trigger: 'trigger',
-                     b.touchpad: 'thumbstick',
-                     b.A: 'A' }
-
-    openvr_button_ids = {
-        'grip': [b.grip],
-        'menu': [b.menu],
-        'trigger': [b.trigger],
-        'touchpad': [b.touchpad],
-        'thumbstick': [b.touchpad],
-        'A': [b.A],
-        'B': [b.menu],
-        'X': [b.A],
-        'Y': [b.menu],
-        'all': [b.grip, b.menu, b.trigger, b.touchpad, b.A],
-    }
-    openvr_buttons = openvr_button_ids[button]
+    if button == 'all':
+        button_ids = [b.grip, b.menu, b.trigger, b.touchpad, b.A]
+    else:
+        button_ids = [b.button_name_to_id(button)]
 
     if command is not None:
         if mode is not None:
@@ -179,7 +163,7 @@ def vr_button(session, button, mode = None, hand = None, command = None):
     
     mode_names = []
     for hc in hclist:
-        for button_id in openvr_buttons:
+        for button_id in button_ids:
             if report_modes:
                 if hc.on:
                     bname = button_names[button_id] if button == 'all' else button
@@ -200,6 +184,10 @@ def button_ids():
     return ButtonIds()
 
 class ButtonIds:
+    '''
+    Mapping between button names and button id numbers, originally from SteamVR.
+    TODO: Should just use button names through-out the code.
+    '''
     def __init__(self):
         '''
         import openvr
@@ -215,7 +203,33 @@ class ButtonIds:
         self.trigger = 33
         self.touchpad = 32
         self.A = 7
-        
+
+        self._button_id_to_name = {
+            self.grip: 'grip',
+            self.menu: 'menu',
+            self.trigger: 'trigger',
+            self.touchpad: 'thumbstick',
+            self.A: 'A',
+        }
+
+        self._button_name_to_id = {
+            'grip': self.grip,
+            'menu': self.menu,
+            'trigger': self.trigger,
+            'touchpad': self.touchpad,
+            'thumbstick': self.touchpad,
+            'A': self.A,
+            'B': self.menu,
+            'X': self.A,
+            'Y': self.menu,
+        }
+
+    def button_id_to_name(self, button_id):
+        return self._button_id_to_name[button_id]
+
+    def button_name_to_id(self, button_name):
+        return self._button_name_to_id[button_name]
+    
 # -----------------------------------------------------------------------------
 #
 def vr_room_camera(session, enable = True, field_of_view = None, width = None,
@@ -397,11 +411,13 @@ def start_vr(session, multishadow_allowed = False, simplify_graphics = True,
         
     try:
         c.start_vr()
-    except xr.XrException as e:
-        raise
-        msg = 'Failed to initialize OpenXR.\n'
+    except RuntimeError as e:
         from chimerax.core.errors import UserError
-        raise UserError('%s\n%s' % (msg, str(e))) from e
+        raise UserError(str(e))
+    except xr.XrException as e:
+        msg = f'Failed to initialize OpenXR.\n\n{str(e)}'
+        from chimerax.core.errors import UserError
+        raise UserError(msg) from e
 
     session.main_view.camera = c
 
@@ -538,7 +554,13 @@ class OpenXRCamera(Camera, StateManager):
         # Create OpenXR manager
         from .openxr import XR
         self._xr = xr = XR()
-        xr.start_session()
+        try:
+            xr.start_session()
+        except Exception:
+            xr.shutdown()
+            self._xr = None
+            raise
+
         # For vive pro runtime is "SteamVR/OpenXR", system is "SteamVR/OpenXR: lighthouse"
         # For quest 2 runtime is "Oculus", system is "Oculus Quest 2"
         print('OpenXR runtime:', xr.runtime_name())
@@ -602,7 +624,6 @@ class OpenXRCamera(Camera, StateManager):
         # Left and right projections are different. OpenGL 4x4.
         z_near, z_far = self._z_near, self._z_far
         xr = self._xr
-        # TODO: Use xr.field_of_view.  But it is not set until a frame is started.
         xr_fov = xr.field_of_view[eye]
         if xr_fov is not None:
             fov4 = (xr_fov.angle_left, xr_fov.angle_right, xr_fov.angle_down, xr_fov.angle_up)
@@ -1913,9 +1934,7 @@ class Panel:
     def __init__(self, tool_or_widget, drawing_parent, ui,
                  tool_name = None, pixel_size = 0.001, add_titlebar = False):
         from chimerax.ui.gui import ToolWindow
-        if isinstance(tool_or_widget, ToolWindow) or hasattr(tool_or_widget, 'tool_instance'):
-            # TODO: Remove test for tool_instance attribute
-            # needed to work around bug #2875
+        if isinstance(tool_or_widget, ToolWindow):
             tw = tool_or_widget
             self._tool_window = tw
             self._widget = tw.ui_area
@@ -2131,10 +2150,6 @@ class Panel:
         w = self.widget
         if w is None:
             return None
-        # TODO: grab() does not include the Windows title bar in the image returned.
-        #  We want the title bar because it gives the name of the tool.
-        #  Looks like Qt can't get the title bar.  I may want to add a title to the
-        #  top of the grabbed image.
         pixmap = w.grab()
         size = pixmap.size()
         if size.width() == 0 or size.height() == 0:
@@ -2142,6 +2157,7 @@ class Panel:
         im = pixmap.toImage()
         from chimerax.graphics.drawing import qimage_to_numpy
         rgba = qimage_to_numpy(im)
+        # QtWidget.grab() does not include the title bar in the returned image so add it.
         trgba = self._add_titlebar(rgba)
         return trgba
 
@@ -2494,10 +2510,12 @@ class HandController:
 
     def _set_controller_type(self):
 #        model_name = self._camera._xr.controller_model_name(self._device_name)
-        runtime = self._camera._xr.runtime_name()
-        if runtime.startswith('Oculus'):
+        xr = self._camera._xr
+        runtime = xr.runtime_name()
+        sysname = xr.system_name()
+        if runtime.startswith('Oculus') or sysname.endswith('oculus'):
             model_name = f'oculus {self._side}'
-        elif runtime.startswith('SteamVR'):
+        elif runtime.startswith('SteamVR') and sysname.endswith('lighthouse'):
             model_name = 'htc vive'
         else:
             model_name = 'unknown'
@@ -2541,8 +2559,9 @@ class HandController:
     def _set_initial_button_assignments(self):
         im = self._initial_button_modes()
         for button, mode in im.items():
-            if button not in self._modes:
-                self.set_hand_mode(button, mode)
+            if button in self._modes:
+                mode = self._modes[button]
+            self.set_hand_mode(button, mode)
 
     def _create_hand_model(self):
         # Create hand model
@@ -3039,7 +3058,8 @@ class ButtonGeometry:
                 qi = qi.scaled(s,s)
             from chimerax.graphics import qimage_to_numpy
             rgba = qimage_to_numpy(qi)
-            # TODO: Need to alpha blend with button background.
+            # TODO: Would like to alpha blend with button background.
+            #       But for now just make transparent part white.
             transp = (rgba[:,:,3] == 0)
             from numpy import putmask
             for c in range(4):

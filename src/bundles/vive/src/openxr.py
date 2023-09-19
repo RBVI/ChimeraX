@@ -20,6 +20,8 @@ class XR:
         self._framebuffers = []				# Framebuffers for left and right eyes
         self.render_size = (1000,1000)
         self._ready_to_render = False
+        self._scene_space = None			# XrSpace instance reference coordinate space
+        self._hand_space = {}				# XrSpace instances for left and right hands
 
         self._frame_started = False
         self._frame_count = 0
@@ -48,20 +50,7 @@ class XR:
         iinfo = xr.InstanceCreateInfo(application_info = app_info,
                                       enabled_extension_names = requested_extensions)
         if self._debug:
-            dumci = xr.DebugUtilsMessengerCreateInfoEXT()
-            dumci.message_severities = (xr.DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT
-                                        | xr.DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT
-                                        | xr.DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT
-                                        | xr.DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
-            dumci.message_types = (xr.DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT
-                                   | xr.DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT
-                                   | xr.DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT
-                                   | xr.DEBUG_UTILS_MESSAGE_TYPE_CONFORMANCE_BIT_EXT)
-            dumci.user_data = None  # TODO
-            self._debug_cb = xr.PFN_xrDebugUtilsMessengerCallbackEXT(self._debug_callback)
-            dumci.user_callback = self._debug_cb
-            import ctypes
-            iinfo.next = ctypes.cast(ctypes.pointer(dumci), ctypes.c_void_p)  # TODO: yuck
+            self._debug_cb = _enable_openxr_debugging(iinfo)
 
         instance = xr.create_instance(iinfo)
 
@@ -75,10 +64,39 @@ class XR:
         '''Find headset.'''
         import xr
         get_info = xr.SystemGetInfo(xr.FormFactor.HEAD_MOUNTED_DISPLAY)
-        system_id = xr.get_system(self._instance, get_info)
+        try:
+            system_id = xr.get_system(self._instance, get_info)
+        except xr.exception.FormFactorUnavailableError:
+            rt = self.runtime_name()
+            msg = 'Could not find VR headset.\n\n'
+            msg += f'The active OpenXR runtime is {rt}.\n\n'
+            if 'Oculus' in rt:
+                msg += ('Perhaps the Oculus application is not running, '
+                        'or the headset is not connected by Quest Link (cable) or Air Link (wifi). '
+                        'Check in the "Devices" section of the Oculus application to see if the headset is connected. '
+                        'If you want instead to use SteamVR then press "Set SteamVR as OpenXR Runtime" '
+                        'in the SteamVR application under Settings / OpenXR.')
+            elif 'SteamVR' in rt:
+                msg += ('Perhaps the SteamVR application is not running, '
+                        'or the headset is not detected (e.g. Vive link box turned off).'
+                        'If you want instead to use Oculus then press "Set Oculus as Active" '
+                        'in the Oculus application under Settings / General / OpenXR Runtime.')
+            else:
+                msg += ('Perhaps the Oculus or SteamVR application is not running, '
+                        'or the headset is not detected, or you have not set the OpenXR runtime to use. '
+                        'If you want to use Oculus then press "Set Oculus as Active" '
+                        'in the Oculus application under Settings / General / OpenXR Runtime. '
+                        'If you want to use SteamVR then press "Set SteamVR as OpenXR Runtime" '
+                        'in the SteamVR application under Settings / OpenXR.')
+            raise RuntimeError(msg)
         return system_id
 
     def system_name(self):
+        '''
+        SteamVR runtime with Valve Index headset reports "SteamVR/OpenXR: lighthouse".
+        With Oculus headset it reports "SteamVR/OpenXR: lighthouse".
+        Oculus runtime reports "Oculus"
+        '''
         import xr
         return xr.get_system_properties(instance=self._instance, system_id=self._system_id).system_name.decode('utf-8')
 
@@ -117,8 +135,8 @@ class XR:
         return session
 
     def _get_graphics_requirements(self):
-        # Have to call this before xrCreateSession() otherwise OpenXR generates an error.
-        # TODO: pythonic wrapper
+        # Have to request graphics requirements before xrCreateSession()
+        # otherwise OpenXR generates an error.
         import ctypes, xr
         pxrGetOpenGLGraphicsRequirementsKHR = ctypes.cast(
             xr.get_instance_proc_addr(
@@ -130,14 +148,16 @@ class XR:
         graphics_requirements = xr.GraphicsRequirementsOpenGLKHR()
         result = pxrGetOpenGLGraphicsRequirementsKHR(
             self._instance, self._system_id,
-            ctypes.byref(graphics_requirements))  # TODO: pythonic wrapper
+            ctypes.byref(graphics_requirements))
         result = xr.exception.check_result(xr.Result(result))
         if result.is_exception():
             raise result
 
         min_ver = graphics_requirements.min_api_version_supported
         max_ver = graphics_requirements.max_api_version_supported
-        debug (f'OpenXR requires OpenGL minimum version {min_ver >> 48}.{(min_ver >> 32) & 0xffff}, maximum version {max_ver >> 48}.{(max_ver >> 32) & 0xffff}')
+        min_opengl_version = '%d.%d' % (min_ver >> 48, (min_ver >> 32) & 0xffff)
+        max_opengl_version = '%d.%d' % (max_ver >> 48, (max_ver >> 32) & 0xffff)
+        debug (f'OpenXR requires OpenGL version min {min_opengl_version}, max {max_opengl_version}')
 
     def _create_projection_layer(self):
         '''Set projection mode'''
@@ -327,12 +347,10 @@ class XR:
 
     def _on_session_state_changed(self, session_state_changed_event):
         import xr
-        # TODO: it would be nice to avoid this horrible cast...
         import ctypes
         event = ctypes.cast(
             ctypes.byref(session_state_changed_event),
             ctypes.POINTER(xr.EventDataSessionStateChanged)).contents
-        # TODO: enum property
         self._session_state = state = xr.SessionState(event.state)
         debug('Session state', state)
         if state == xr.SessionState.READY:
@@ -630,26 +648,6 @@ class XR:
             return None
 
         return self._xr_pose_to_place(space_location.pose)
-
-    def _debug_callback(self, severity, _type, data, _user_data):
-        d = data.contents
-        # TODO structure properties to return unicode strings
-        sev = self._debug_severity_string(severity)
-        fname = d.function_name.decode()
-        msg = d.message.decode()
-        debug( f"{sev}: {fname}: {msg}")
-        return True
-
-    def _debug_severity_string(self, severity_flags):
-        if severity_flags & 0x0001:
-            return 'Verbose'
-        if severity_flags & 0x0010:
-            return 'Info'
-        if severity_flags & 0x0100:
-            return 'Warning'
-        if severity_flags & 0x1000:
-            return 'Error'
-        return 'Critical'
         
     def shutdown(self):
         import xr
@@ -667,14 +665,21 @@ class XR:
         for swapchain in self._swapchains:
             xr.destroy_swapchain(swapchain)
         self._swapchains = []
+
 #        self._projection_layer.destroy()  # Destroy method is missing
         self._projection_layer = None
-        xr.destroy_space(self._scene_space)
-        self._scene_space = None
-        xr.destroy_session(self._session)
-        self._session = None
-        xr.destroy_instance(self._instance)
-        self._instance = None
+
+        if self._scene_space is not None:
+            xr.destroy_space(self._scene_space)
+            self._scene_space = None
+
+        if self._session is not None:
+            xr.destroy_session(self._session)
+            self._session = None
+
+        if self._instance is not None:
+            xr.destroy_instance(self._instance)
+            self._instance = None
 
 
     def hmd_pose(self):
@@ -809,6 +814,43 @@ class XYEvent:
         self.button = button
         self.xy = xy
         self.device_name = device_name
+
+def _enable_openxr_debugging(iinfo):
+    import xr
+    dumci = xr.DebugUtilsMessengerCreateInfoEXT()
+    dumci.message_severities = (xr.DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT
+                                | xr.DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT
+                                | xr.DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT
+                                | xr.DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
+    dumci.message_types = (xr.DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT
+                           | xr.DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT
+                           | xr.DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT
+                           | xr.DEBUG_UTILS_MESSAGE_TYPE_CONFORMANCE_BIT_EXT)
+    dumci.user_data = None
+    _debug_cb = xr.PFN_xrDebugUtilsMessengerCallbackEXT(_debug_callback)
+    dumci.user_callback = _debug_cb
+    import ctypes
+    iinfo.next = ctypes.cast(ctypes.pointer(dumci), ctypes.c_void_p)
+    return _debug_cb  # Need to keep a Python reference to this so it is not deleted.
+
+def _debug_callback(severity, _type, data, _user_data):
+    d = data.contents
+    sev = _debug_severity_string(severity)
+    fname = d.function_name.decode()
+    msg = d.message.decode()
+    debug( f"{sev}: {fname}: {msg}")
+    return True
+
+def _debug_severity_string(severity_flags):
+    if severity_flags & 0x0001:
+        return 'Verbose'
+    if severity_flags & 0x0010:
+        return 'Info'
+    if severity_flags & 0x0100:
+        return 'Warning'
+    if severity_flags & 0x1000:
+        return 'Error'
+    return 'Critical'
 
 def error(*args):
     print(*args)

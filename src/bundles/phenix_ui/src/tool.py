@@ -603,6 +603,8 @@ class FitLoopsResultsViewer(ToolInstance):
         table.launch(select_mode=table.SelectionMode.SingleSelection)
         table.sort_by(chain_col, table.SORT_ASCENDING)
         table.selection_changed.connect(self._new_selection)
+        if len(table.data) == 1:
+            table.selected = table.data
         return table
 
     def _models_removed_cb(self, trig_name, trig_data):
