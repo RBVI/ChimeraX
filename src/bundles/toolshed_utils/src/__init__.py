@@ -487,7 +487,7 @@ def _pip_install(toolshed, bundles, logger, per_user=True, reinstall=False, no_d
     # output as string.  If there was an error, raise RuntimeError
     # with stderr as parameter.
     command = [
-        "install", "--extra-index-url", toolshed.remote_url + "/pypi/",
+        "install", "-qq", "--extra-index-url", toolshed.remote_url + "/pypi/",
         "--upgrade-strategy", "only-if-needed", "--no-warn-script-location",
         # "--only-binary", ":all:"   # msgpack-python is not binary
     ]

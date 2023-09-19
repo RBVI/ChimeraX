@@ -39,7 +39,7 @@ def pip(
                     _ = Requirement(package)
                 except InvalidRequirement:
                     raise UserError("Can't install package: invalid requirement specified.")
-            pip_cmd.extend(["install" , "--user"])
+            pip_cmd.extend(["install" , "--user", "-qq"])
             if upgrade:
                 pip_cmd.extend(["--upgrade"])
             # If we don't add this flag then pip complains that distutils and sysconfig
