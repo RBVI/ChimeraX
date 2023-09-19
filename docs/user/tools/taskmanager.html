@@ -1,0 +1,107 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Tool: Task Manager</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#tools">Tool</a>: Task Manager</h3>
+<p>
+The <b>Task Manager</b> interface lists background calculations 
+(also called jobs or tasks) launched from ChimeraX, such as a
+<a href="blastprotein.html"><b>Blast Protein</b></a> sequence search.
+The <b>Task Manager</b> can be started from the <b>Utilities</b> section 
+of the <b>Tools</b> menu and manipulated like other panels
+(<a href="../window.html#panels">more...</a>).
+Jobs can also be listed and killed with the
+<a href="../commands/taskman.html"><b>taskman</b></a> command.
+See also:
+<a href="modeller.html"><b>Modeller Comparative</b></a>,
+<a href="modelloops.html"><b>Model Loops</b></a>
+<!--
+<a href="../commands/sequence.html#align"><b>sequence align</b></a>
+-->
+</p><p>
+Checkboxes in the bottom section of the panel control which columns of 
+information are shown in the table of jobs, with buttons:
+</p>
+<ul>
+<li><b>All</b> &ndash; show all columns
+<li><b>Default</b> &ndash; restore the previously saved
+<a href="../preferences.html#other">preference</a> for which columns are shown
+<li><b>Standard</b> &ndash; use &ldquo;factory default&rdquo; set of 
+initially displayed columns
+<li><b>Set Default</b> &ndash; save the currently shown set as a 
+user <a href="../preferences.html#other">preference</a>
+<li><b>Toggle Controls</b> &ndash; show/hide the checkbox section
+</ul>
+<p>
+Clicking a column header sorts by the values in that column.
+</p><p>
+<!--
+One or more jobs can be <b><i>chosen</i></b> (highlighted) in the list
+by clicking and dragging with the left mouse button;
+<b>Ctrl</b>-click (or <b>command</b>-click if using a Mac)
+toggles whether a row is chosen.
+The panel's <a href="../window.html#context-menu">context menu</a> 
+or the buttons across the bottom of the dialog can be used to:
+</p>
+<ul>
+<li><b>Load Structures</b> 
+&ndash; fetch and superimpose all of the corresponding structures, if any,
+for the chosen hits
+<li><b>Show Sequence Alignment</b> 
+&ndash; show the <a href="#notes">multiple sequence alignment</a> of the
+chosen hits with the query in the 
+<a href="sequenceviewer.html"><b>Sequence Viewer</b></a>
+<li><b>Open Database Webpage</b> 
+&ndash; show sequence database webpages for the chosen hits
+</ul>
+<p>
+Regardless of which jobs are chosen and which columns are shown,
+-->
+Clicking <b>Clear Finished</b> removes the completed 
+<!-- and/or killed? -->
+jobs from the list. 
+<b>Close</b> dismisses the tool, whereas <b>Help</b> opens this page in the
+<a href="helpviewer.html"><b>Help Viewer</b></a>.
+</p><p>
+Available columns of information:
+</p>
+<ul>
+<li><b>ID (Local)</b> 
+&ndash; job ID on the local machine, used to specify a job to the 
+<a href="../commands/taskman.html"><b>taskman</b></a> command
+<li><b>ID (Webservices)</b> 
+&ndash; unique string assigned to a job running as a 
+<a href="../../webservices.html">web service</a> hosted by the
+<a href="https://www.cgl.ucsf.edu/Overview/index.html" 
+target="_blank">UCSF RBVI</a>
+<li><b>Task</b> &ndash; job name
+<li><b>Started</b> &ndash; job start time
+<li><b>Runtime</b> &ndash; time since start
+<li><b>Status</b> &ndash; job status
+</ul>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics /
+September 2023</address>
+</body></html>
