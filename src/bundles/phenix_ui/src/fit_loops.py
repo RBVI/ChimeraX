@@ -153,7 +153,7 @@ def phenix_fit_loops(session, residues, in_map, *, block=None, phenix_location=N
                 other_chains = set([r1.chain_id for r1, r2 in other_gaps])
                 for chain in requested_chains:
                     if chain not in other_chains:
-                        job_info.append((None, None, chain))
+                        job_info.append((None, None, chain, False))
                     else:
                         requested_residues = set([r for r1, r2 in requested_gaps for r in (r1, r2)
                             if r.chain_id == chain])

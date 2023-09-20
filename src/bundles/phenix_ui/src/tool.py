@@ -414,6 +414,186 @@ class LaunchEmplaceLocalTool(ToolInstance):
         elif method == self.CENTER_MODEL:
             self.model_menu.setHidden(False)
 
+class LaunchFitLoopsTool(ToolInstance):
+    #help = "help:user/tools/localemfitting.html"
+
+    GAPS_TAB, REMODEL_TAB = TAB_NAMES = ("Fill Gaps", "Remodel")
+
+    def __init__(self, session, tool_name):
+        super().__init__(session, tool_name)
+        from chimerax.ui import MainToolWindow
+        self.tool_window = tw = MainToolWindow(self, close_destroys=False)
+        parent = tw.ui_area
+
+        #if not hasattr(self.__class__, 'settings'):
+        #    self.__class__.settings = LaunchEmplaceLocalSettings(session, "launch emplace local")
+
+        from Qt.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel, QWidget, QTabWidget
+        from Qt.QtCore import Qt
+        layout = QVBoxLayout()
+        parent.setLayout(layout)
+        #layout.setContentsMargins(0,0,0,0)
+        layout.setSpacing(1)
+
+        centering_widget = QWidget()
+        layout.addWidget(centering_widget, alignment=Qt.AlignCenter, stretch=1)
+        data_layout = QHBoxLayout()
+        data_layout.setSpacing(1)
+        centering_widget.setLayout(data_layout)
+        data_layout.addWidget(QLabel("Structure: "), alignment=Qt.AlignRight)
+        from chimerax.atomic.widgets import AtomicStructureMenuButton
+        self.structure_menu = AtomicStructureMenuButton(session)
+        self.structure_menu.value_changed.connect(self._structure_changed)
+        data_layout.addWidget(self.structure_menu, alignment=Qt.AlignLeft)
+        data_layout.setStretch(data_layout.count(), 1)
+        data_layout.addWidget(QLabel("  Map: "), alignment=Qt.AlignRight)
+        from chimerax.ui.widgets import ModelMenuButton
+        from chimerax.map import Volume
+        self.map_menu = ModelMenuButton(session, class_filter=Volume)
+        data_layout.addWidget(self.map_menu, alignment=Qt.AlignLeft)
+        data_layout.setStretch(data_layout.count(), 1)
+        layout.setStretch(layout.count(), 1)
+
+        self.tabs = QTabWidget()
+        for tab_name in self.TAB_NAMES:
+            tab_widget = getattr(self, '_' + tab_name.lower().replace(' ', '_') + '_widget')()
+            self.tabs.addTab(tab_widget, tab_name)
+        layout.addWidget(self.tabs, alignment=Qt.AlignCenter)
+        self.tabs.setCurrentIndex(self.TAB_NAMES.index(self.GAPS_TAB))
+
+        from Qt.QtWidgets import QDialogButtonBox as qbbox
+        self.bbox = bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
+        bbox.accepted.connect(self.launch_fit_loops)
+        bbox.button(qbbox.Apply).clicked.connect(lambda *args: self.launch_fit_loops(apply=True))
+        bbox.rejected.connect(self.delete)
+        if self.help:
+            from chimerax.core.commands import run
+            bbox.helpRequested.connect(lambda *, run=run, ses=session: run(ses, "help " + self.help))
+        else:
+            bbox.button(qbbox.Help).setEnabled(False)
+        layout.addWidget(bbox)
+
+        tw.manage(placement=None)
+
+    def launch_fit_loops(self, apply=False):
+        structure = self.structure_menu.value
+        gap_filling = self.tabs.currentIndex() == self.TAB_NAMES.index(self.GAPS_TAB)
+        if not structure:
+            raise UserError("Must specify a structure to %s"
+                % ("fill gaps in" if gap_filling else "remodel"))
+        map = self.map_menu.value
+        if not map:
+            raise UserError("Must specify a volume/map to guide %s"
+                % ("gap filling" if gap_filling else "remodeling"))
+        if gap_filling:
+            gap_residues = []
+            for r1, r2, cb in self.fg_gap_widget_info:
+                if cb.isChecked() and not r1.deleted and not r2.deleted:
+                    gap_residues.extend([r1, r2])
+            if gap_residues:
+                from chimerax.atomic import concise_residue_spec
+                from chimerax.core.commands import run
+                run(self.session, "phenix fitLoops %s in %s"
+                    % (concise_residue_spec(self.session, gap_residues), map.atomspec))
+        else:
+            #TODO
+            raise NotImplemntedError("Remodeling not yet implemented")
+        if not apply:
+            self.display(False)
+
+    def _fill_gaps_widget(self):
+        from Qt.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel, QWidget, QPushButton, QScrollArea
+        from Qt.QtCore import Qt
+        fg_area = QWidget()
+        fg_layout = QVBoxLayout()
+        fg_layout.setSpacing(1)
+        fg_layout.setContentsMargins(0,0,0,0)
+        fg_area.setLayout(fg_layout)
+        self.fg_message = QLabel("No structure chosen")
+        fg_layout.addWidget(self.fg_message, alignment=Qt.AlignCenter)
+        self.fg_gap_widget_info = []
+        self.fg_gap_area = QScrollArea()
+        scrolled = QWidget()
+        self.fg_gap_area.setWidget(scrolled)
+        self.fg_gap_area.setWidgetResizable(True)
+        self.fg_gap_area.setAlignment(Qt.AlignCenter)
+        self.fg_gap_layout = QVBoxLayout()
+        scrolled.setLayout(self.fg_gap_layout)
+        fg_layout.addWidget(self.fg_gap_area, alignment=Qt.AlignCenter)
+        self.fg_gap_area.setHidden(True)
+        self.fg_select_area = QWidget()
+        select_layout = QHBoxLayout()
+        select_layout.setContentsMargins(0,0,0,0)
+        select_layout.setSpacing(1)
+        self.fg_select_area.setLayout(select_layout)
+        fg_layout.addWidget(self.fg_select_area, alignment=Qt.AlignCenter)
+        sel_but = QPushButton("Select")
+        sel_but.clicked.connect(lambda *args, f=self._sel_cb: f(True))
+        select_layout.addWidget(sel_but)
+        select_layout.addWidget(QLabel("/"))
+        desel_but = QPushButton("Deselect")
+        desel_but.clicked.connect(lambda *args, f=self._sel_cb: f(False))
+        select_layout.addWidget(desel_but)
+        select_layout.addWidget(QLabel(" all above"))
+        self.fg_select_area.setHidden(True)
+
+        return fg_area
+
+    def _find_gaps(self, structure):
+        try:
+            pbs = structure.pbg_map[structure.PBG_MISSING_STRUCTURE].pseudobonds
+        except KeyError:
+            return []
+        gaps = []
+        for pb in pbs:
+            a1, a2 = pb.atoms
+            r1, r2 = (a1.residue, a2.residue) if a1 < a2 else (a2.residue, a1.residue)
+            if r1 == r2:
+                continue
+            if r1.polymer_type == r1.PT_AMINO:
+                gaps.append((r1, r2))
+        gaps.sort()
+        return gaps
+
+    def _remodel_widget(self):
+        from Qt.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel, QWidget, QTabWidget
+        from Qt.QtCore import Qt
+        return QLabel("Remodel tab contents")
+
+    def _sel_cb(self, sel):
+        for r1, r2, cb in self.fg_gap_widget_info:
+            cb.setChecked(sel)
+
+    def _structure_changed(self):
+        structure = self.structure_menu.value
+        for r1, r2, widget in self.fg_gap_widget_info:
+            self.fg_gap_layout.removeWidget(widget)
+        self.fg_gap_widget_info.clear()
+        show_sel_widgets = False
+        if structure:
+            gap_info = self._find_gaps(structure)
+            if gap_info:
+                from Qt.QtWidgets import QCheckBox
+                from Qt.QtCore import Qt
+                for r1, r2 in gap_info:
+                    cb = QCheckBox(f"Chain {r1.chain_id}, {r1.number+1}-{r2.number-1}")
+                    cb.setChecked(True)
+                    self.fg_gap_layout.addWidget(cb, alignment=Qt.AlignLeft)
+                    self.fg_gap_widget_info.append((r1, r2, cb))
+                #self.fg_gap_area.widget().resize()
+                self.fg_message.setHidden(True)
+                self.fg_gap_area.setHidden(False)
+                show_sel_widgets = len(gap_info) > 1
+            else:
+                self.fg_message.setText(f"{structure} has no missing-structure gaps in amino-acid chains")
+                self.fg_gap_area.setHidden(True)
+                self.fg_message.setHidden(False)
+        else:
+            self.fg_message.setText("No structure chosen")
+            self.fg_gap_area.setHidden(True)
+            self.fg_message.setHidden(False)
+        self.fg_select_area.setHidden(not show_sel_widgets)
+
 class VerifyCenterDialog(QDialog):
     def __init__(self, session, structure, maps, resolution, initial_center, opaque_maps,
             show_sharpened_map):
