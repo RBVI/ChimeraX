@@ -150,6 +150,16 @@ class CxServicesJob(Job):
             self.next_poll = int(result.next_poll)
             self.thread_safe_log("Webservices job id: %s" % self.job_id)
             super().run()
+    
+    def _relaunch(self):
+        """Relaunch the background process. Used to restore the job."""
+        if self.state not in [
+            TaskState.FINISHED
+            , TaskState.FAILED
+            , TaskState.DELETED
+            , TaskState.CANCELED
+        ]:
+            super().run()
 
     def running(self) -> bool:
         """Return whether background process is still running.

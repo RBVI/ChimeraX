@@ -227,8 +227,25 @@ class Task(State):
         if self.state != TaskState.PENDING:
             raise RuntimeError("starting task multiple times")
         blocking = kw.get("blocking", False) # since _run_thread will pop() it
-        self._thread = threading.Thread(target=self._run_thread,
-                                        daemon=True, args=args, kwargs=kw)
+        self._thread = threading.Thread(target=self._run_function,
+                                        daemon=True, args=(self.run, *args), kwargs=kw)
+        self._thread.start()
+        self.start_time = datetime.datetime.now()
+        self.state = TaskState.RUNNING
+        self._terminate = threading.Event()
+        if blocking:
+            self._thread.join()
+            self.state = TaskState.FINISHED
+            # the non-blocking code path also has an on_finish()
+            # call that executes asynchronously
+            if self.launched_successfully:
+                self.session.ui.thread_safe(self.on_finish)
+
+    def restore(self, *args, **kw):
+        """Like start, but for restoring a task from a snapshot."""
+        blocking = kw.get("blocking", False) # since _run_thread will pop() it
+        self._thread = threading.Thread(target=self._run_function,
+                                        daemon=True, args=(self._relaunch, *args), kwargs=kw)
         self._thread.start()
         self.start_time = datetime.datetime.now()
         self.state = TaskState.RUNNING
@@ -251,9 +268,9 @@ class Task(State):
         self._thread = None
         self._terminate = None
 
-    def _run_thread(self, *args, **kw):
+    def _run_function(self, func: callable, *args, **kw):
         blocking = kw.pop("blocking", False)
-        self.run(*args, **kw)
+        func(*args, **kw)
         if self.terminating():
             self.state = TaskState.TERMINATED
         else:

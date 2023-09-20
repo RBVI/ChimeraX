@@ -135,6 +135,7 @@ class BlastProteinJob(CxServicesJob):
         tmp.id = data['id']
         tmp.job_id = data['job_id']
         tmp.state = data['state']
+        tmp.restore()
         return tmp
 
     def take_snapshot(self, session, flags) -> Dict:
