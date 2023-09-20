@@ -4,7 +4,7 @@ def open_mae(session, path, file_name, auto_style, atomic):
     import os.path
     extension = os.path.splitext(path)[1]
     if extension == ".mae":
-        with open(path) as stream:
+        with open(path, encoding="utf-8") as stream:
             p = MaestroParser(session, stream, file_name, auto_style, atomic)
     elif extension == ".maegz":
         import gzip

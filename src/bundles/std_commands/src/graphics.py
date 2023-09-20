@@ -145,15 +145,15 @@ def graphics_quality(session, quality = None, subdivision = None,
         lod.total_bond_triangles = total_bond_triangles
         change = True
     if pseudobond_sides is not None:
-        if isinstance(pseudobond_sides, int) and pseudobond_sides != 0 and pseudobond_sides < 3:
+        if pseudobond_sides < 3:
             raise UserError('Minimum number of pseudobond sides is 3')
-        lod.pseudobond_sides = 10 if pseudobond_sides in ('default', 0) else pseudobond_sides
+        lod.pseudobond_sides = pseudobond_sides
         from chimerax.atomic import all_pseudobond_groups
         for pbg in all_pseudobond_groups(session):
             pbg.update_cylinder_sides()
         change = True
     if ribbon_divisions is not None:
-        if isinstance(ribbon_divisions, int) and ribbon_divisions < 2:
+        if isinstance(ribbon_divisions, int) and ribbon_divisions != 0 and ribbon_divisions < 2:
             raise UserError('Minimum number of ribbon divisions is 2')
         div = None if ribbon_divisions in (0, 'default') else ribbon_divisions
         gu.set_ribbon_divisions(div)
@@ -296,7 +296,7 @@ def register_command(logger):
                  ('total_atom_triangles', IntArg),
                  ('total_bond_triangles', IntArg),
                  ('bond_sides', IntOrDefaultArg),
-                 ('pseudobond_sides', IntOrDefaultArg),
+                 ('pseudobond_sides', IntArg),
                  ('ribbon_divisions', IntOrDefaultArg),
                  ('ribbon_sides', IntArg),
                  ('color_depth', IntArg),

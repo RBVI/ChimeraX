@@ -141,33 +141,21 @@ def vr_button(session, button, mode = None, hand = None, command = None):
         hand = 'right'
     elif button in ('X', 'Y'):
         hand = 'left'
+        if button == 'X':
+            button = 'A'     # Use button names A/B for both hands
+        elif button == 'Y':
+            button = 'B'
         
-    hclist = [hc for hc in c.hand_controllers() if hand is None or hc.left_or_right == hand]
+    hclist = [hc for hc in c.hand_controllers()
+              if hand is None or hc.left_or_right == hand]
     if len(hclist) == 0:
         from chimerax.core.errors import UserError
         raise UserError('Hand controller is not enabled.')
 
-    # TODO: Get rid of all the mapping between button names and ids.  Just use names.
-    b = button_ids()
-    button_names = { b.grip: 'grip',
-                     b.menu: 'menu',
-                     b.trigger: 'trigger',
-                     b.touchpad: 'thumbstick',
-                     b.A: 'A' }
-
-    openvr_button_ids = {
-        'grip': [b.grip],
-        'menu': [b.menu],
-        'trigger': [b.trigger],
-        'touchpad': [b.touchpad],
-        'thumbstick': [b.touchpad],
-        'A': [b.A],
-        'B': [b.menu],
-        'X': [b.A],
-        'Y': [b.menu],
-        'all': [b.grip, b.menu, b.trigger, b.touchpad, b.A],
-    }
-    openvr_buttons = openvr_button_ids[button]
+    if button == 'all':
+        buttons = ['grip', 'menu', 'trigger', 'touchpad', 'A']
+    else:
+        buttons = [button]
 
     if command is not None:
         if mode is not None:
@@ -179,42 +167,21 @@ def vr_button(session, button, mode = None, hand = None, command = None):
     
     mode_names = []
     for hc in hclist:
-        for button_id in openvr_buttons:
+        for button_name in buttons:
             if report_modes:
                 if hc.on:
-                    bname = button_names[button_id] if button == 'all' else button
-                    bmode = hc.current_hand_mode(button_id)
+                    bmode = hc.current_hand_mode(button_name)
                     mname = (bmode.name if bmode else 'none')
-                    mode_names.append('%s %s = %s' % (hc.left_or_right, bname, mname))
+                    mode_names.append('%s %s = %s' % (hc.left_or_right, button_name, mname))
             elif mode == 'default':
-                hc.set_default_hand_mode(button_id)
+                hc.set_default_hand_mode(button_name)
             else:
-                hc.set_hand_mode(button_id, mode)
+                hc.set_hand_mode(button_name, mode)
 
     if report_modes:
         modes = ('\n' + '\n'.join(mode_names)) if len(mode_names) > 1 else ', '.join(mode_names)
         msg = 'Current VR button modes: ' + modes
         session.logger.info(msg)
-
-def button_ids():
-    return ButtonIds()
-
-class ButtonIds:
-    def __init__(self):
-        '''
-        import openvr
-        self.grip = openvr.k_EButton_Grip
-        self.menu = openvr.k_EButton_ApplicationMenu
-        self.trigger = openvr.k_EButton_SteamVR_Trigger
-        self.touchpad = openvr.k_EButton_SteamVR_Touchpad
-        self.A = openvr.k_EButton_A
-        '''
-        # Use id number from openvr for VR meeting compatiblity
-        self.grip = 2
-        self.menu = 1
-        self.trigger = 33
-        self.touchpad = 32
-        self.A = 7
         
 # -----------------------------------------------------------------------------
 #
@@ -397,11 +364,13 @@ def start_vr(session, multishadow_allowed = False, simplify_graphics = True,
         
     try:
         c.start_vr()
-    except xr.XrException as e:
-        raise
-        msg = 'Failed to initialize OpenXR.\n'
+    except RuntimeError as e:
         from chimerax.core.errors import UserError
-        raise UserError('%s\n%s' % (msg, str(e))) from e
+        raise UserError(str(e))
+    except xr.XrException as e:
+        msg = f'Failed to initialize OpenXR.\n\n{str(e)}'
+        from chimerax.core.errors import UserError
+        raise UserError(msg) from e
 
     session.main_view.camera = c
 
@@ -412,12 +381,10 @@ def start_vr(session, multishadow_allowed = False, simplify_graphics = True,
     # Set redraw timer to redraw as soon as Qt events processsed to minimize dropped frames.
     session.update_loop.set_redraw_interval(0)
 
-    msg = 'started OpenXR rendering'
+    msg = f'started OpenXR rendering {c.openxr_system_name}'
     log = session.logger
     log.status(msg)
     log.info(msg)
-
-#    direct_render_loop(c)
 
 # -----------------------------------------------------------------------------
 #
@@ -465,24 +432,6 @@ def wait_for_vsync(session, wait):
     r = session.main_view.render
     r.make_current()
     return r.wait_for_vsync(wait)
-
-# -----------------------------------------------------------------------------
-#
-def direct_render_loop(camera):
-    view = camera._session.main_view
-    view._use_opengl()
-    render = view.render
-    from time import sleep
-    colors = ((1,0,0,1),(1,1,0,1),(0,1,0,1),(0,1,1,1),(0,0,1,1),(1,1,1,1))
-    for i in range(30):
-        for eye_num in (0,1):
-            camera.set_render_target(eye_num, render)
-            view._update_projection(camera, eye_num)
-            from chimerax.graphics.opengl import GL
-            GL.glClearColor(*colors[i % len(colors)])
-            GL.glClear(GL.GL_COLOR_BUFFER_BIT)
-        camera.combine_rendered_camera_views(render)
-        sleep(0.5)
     
 # -----------------------------------------------------------------------------
 #
@@ -498,7 +447,6 @@ class OpenXRCamera(Camera, StateManager):
         StateManager.__init__(self)
 
         self._session = session
-        self._framebuffers = []		# For rendering each eye view to a texture
         self._texture_drawing = None	# For desktop graphics display
         from sys import platform
         self._use_opengl_flush = (platform == 'darwin')	# On macOS 10.14.1 flickers without glFlush().
@@ -538,11 +486,12 @@ class OpenXRCamera(Camera, StateManager):
         # Create OpenXR manager
         from .openxr import XR
         self._xr = xr = XR()
-        xr.start_session()
-        # For vive pro runtime is "SteamVR/OpenXR", system is "SteamVR/OpenXR: lighthouse"
-        # For quest 2 runtime is "Oculus", system is "Oculus Quest 2"
-        print('OpenXR runtime:', xr.runtime_name())
-        print('OpenXR system:', xr.system_name())  # For vive pro this 
+        try:
+            xr.start_session()
+        except Exception:
+            xr.shutdown()
+            self._xr = None
+            raise
 
         # Compute projection and eye matrices, units in meters
 
@@ -562,6 +511,10 @@ class OpenXRCamera(Camera, StateManager):
 
         # Notify other tools that VR has started
         self._session.triggers.activate_trigger('vr started', self)
+
+    @property
+    def openxr_system_name(self):
+        return self._xr.system_name()
 
     @property
     def active(self):
@@ -602,7 +555,6 @@ class OpenXRCamera(Camera, StateManager):
         # Left and right projections are different. OpenGL 4x4.
         z_near, z_far = self._z_near, self._z_far
         xr = self._xr
-        # TODO: Use xr.field_of_view.  But it is not set until a frame is started.
         xr_fov = xr.field_of_view[eye]
         if xr_fov is not None:
             fov4 = (xr_fov.angle_left, xr_fov.angle_right, xr_fov.angle_down, xr_fov.angle_up)
@@ -772,8 +724,6 @@ class OpenXRCamera(Camera, StateManager):
             self._xr.shutdown()
             self._xr = None
 
-        self._delete_framebuffers()
-
         # Notify other tools that VR has stopped
         self._session.triggers.activate_trigger('vr stopped', self)
 
@@ -782,14 +732,6 @@ class OpenXRCamera(Camera, StateManager):
     def _app_quit(self, tname, tdata):
         self._xr.shutdown()
         self._xr = None
-
-    def _delete_framebuffers(self):
-        fbs = self._framebuffers
-        if fbs:
-            self.render.make_current()
-            for fb in fbs:
-                fb.delete()
-            self._framebuffers.clear()
 
     name = 'vr'
     '''Name of camera.'''
@@ -836,7 +778,7 @@ class OpenXRCamera(Camera, StateManager):
 
     def _update_camera_position(self):
         # Get current headset position in room.
-        H = self._xr.hmd_pose()   # head to room coordinates.
+        H = self._xr.headset_pose()   # head to room coordinates.
         if H is None:
             return
         
@@ -969,7 +911,6 @@ class OpenXRCamera(Camera, StateManager):
         debug ('setting xr render target for eye', view_num)
 #        if not self._frame_started:
 #            self._start_frame()	# Window resize causes draw without new frame trigger.
-#        left_fb, right_fb = self._eye_framebuffers(render)
         xr = self._xr
         if view_num == 0:
             self._start_rendering()
@@ -977,19 +918,12 @@ class OpenXRCamera(Camera, StateManager):
             xr.set_opengl_render_target(render, 'left')
         elif view_num == 1:  # VR right-eye
             # Submit left eye texture (view 0) before rendering right eye (view 1)
-#            if self._session.main_view.frame_number % 2 == 0:
-#             from chimerax.graphics.opengl import GL
-#             GL.glClearColor(0,0,0,1)
-#             GL.glClear(GL.GL_COLOR_BUFFER_BIT)
             xr.release_opengl_render_target(render, 'left')
             xr.set_opengl_render_target(render, 'right')
         elif view_num == 2: # independent camera desktop view
             # Submit right eye texture (view 1) before rendering desktop (view 2)
             xr.release_opengl_render_target(render, 'right')
             self._room_camera.start_rendering(render)
-        msg = render.check_for_opengl_errors()
-        if msg:
-            error('OpenGL error after set_render_target, eye', eye, msg)
 
     def combine_rendered_camera_views(self, render):
         '''
@@ -1008,32 +942,11 @@ class OpenXRCamera(Camera, StateManager):
                 from chimerax.graphics.drawing import draw_overlays
                 draw_overlays([drawing], render)
 
-#        msg = render.check_for_opengl_errors()
-#        if msg:
-#            error('OpenGL error before xr.end_frame(): ', msg)
         self._xr.end_frame()
-#        msg = render.check_for_opengl_errors()
-#        if msg:
-#            error('OpenGL error after xr.end_frame(): ', msg)
-
 
         rc = self._room_camera
         if rc:
             rc.finish_rendering(render)
-            
-    def _eye_framebuffers(self, render):
-
-        tw,th = self._xr.render_size
-        fbs = self._framebuffers
-        if not fbs or fbs[0].width != tw or fbs[0].height != th:
-            self._delete_framebuffers()
-            from chimerax.graphics import Texture, opengl
-            for eye in ('left', 'right'):
-                t = Texture()
-                t.initialize_rgba((tw,th))
-                fb = opengl.Framebuffer('VR %s eye' % eye, render.opengl_context, color_texture = t)
-                fbs.append(fb)
-        return fbs
 
     def _desktop_drawing(self):
         '''Used  to render ChimeraX desktop graphics window.'''
@@ -1449,8 +1362,7 @@ class UserInterface:
         self._tool_hide_handler = None
 
         # Buttons that can be pressed on user interface.
-        b = button_ids()
-        self.buttons = (b.trigger, b.grip, b.touchpad, b.A)
+        self.buttons = ('trigger', 'grip', 'touchpad', 'A')
         
     def close(self):
         ui = self._ui_model
@@ -1665,12 +1577,13 @@ class UserInterface:
     def set_gui_panels(self, tool_names):
         self._gui_tool_names = tool_names
 
-    def process_hand_controller_button_event(self, hand_controller, button, pressed, released):
+    def process_hand_controller_button_event(self, hand_controller, button_name,
+                                             pressed, released):
         '''
         Returns true if button event was on UI panel, otherwise
         false indicating hand controller assigned button mode should be used.
         '''
-        b = button
+        b = button_name
         if b not in self.buttons:
             return False
 
@@ -1730,11 +1643,11 @@ class UserInterface:
 
         return False
 
-    def _enable_mouse_mode(self, hand_mode, hand_controller, button, window_xy, panel):
+    def _enable_mouse_mode(self, hand_mode, hand_controller, button_name, window_xy, panel):
         if isinstance(hand_mode, MouseMode) and not hand_mode.has_vr_support:
             msg = 'No VR support for mouse mode %s' % hand_mode.name
         else:
-            hand_controller.set_hand_mode(button, hand_mode)
+            hand_controller.set_hand_mode(button_name, hand_mode)
             msg = 'VR mode %s' % hand_mode.name
         self._session.logger.info(msg)
         panel._show_pressed(window_xy)
@@ -1913,9 +1826,7 @@ class Panel:
     def __init__(self, tool_or_widget, drawing_parent, ui,
                  tool_name = None, pixel_size = 0.001, add_titlebar = False):
         from chimerax.ui.gui import ToolWindow
-        if isinstance(tool_or_widget, ToolWindow) or hasattr(tool_or_widget, 'tool_instance'):
-            # TODO: Remove test for tool_instance attribute
-            # needed to work around bug #2875
+        if isinstance(tool_or_widget, ToolWindow):
             tw = tool_or_widget
             self._tool_window = tw
             self._widget = tw.ui_area
@@ -2131,10 +2042,6 @@ class Panel:
         w = self.widget
         if w is None:
             return None
-        # TODO: grab() does not include the Windows title bar in the image returned.
-        #  We want the title bar because it gives the name of the tool.
-        #  Looks like Qt can't get the title bar.  I may want to add a title to the
-        #  top of the grabbed image.
         pixmap = w.grab()
         size = pixmap.size()
         if size.width() == 0 or size.height() == 0:
@@ -2142,6 +2049,7 @@ class Panel:
         im = pixmap.toImage()
         from chimerax.graphics.drawing import qimage_to_numpy
         rgba = qimage_to_numpy(im)
+        # QtWidget.grab() does not include the title bar in the returned image so add it.
         trgba = self._add_titlebar(rgba)
         return trgba
 
@@ -2483,7 +2391,8 @@ class HandController:
 
     @property
     def on(self):
-        return self._camera._xr.device_active(self._device_name)
+        xr = self._camera._xr
+        return xr is not None and xr.device_active(self._device_name)
 
     @property
     def hand_model(self):
@@ -2493,14 +2402,7 @@ class HandController:
         return hm
 
     def _set_controller_type(self):
-#        model_name = self._camera._xr.controller_model_name(self._device_name)
-        runtime = self._camera._xr.runtime_name()
-        if runtime.startswith('Oculus'):
-            model_name = f'oculus {self._side}'
-        elif runtime.startswith('SteamVR'):
-            model_name = 'htc vive'
-        else:
-            model_name = 'unknown'
+        model_name = self._camera._xr.controller_model_name(self._device_name)
         self._controller_type = model_name
         self._is_oculus = model_name.startswith('oculus')
 
@@ -2509,8 +2411,6 @@ class HandController:
         if not hasattr(self, '_is_oculus'):
             return {}	# VR not started yet, so we don't know controller type.
 
-        b = button_ids()
-        
         if self._is_oculus:
             # Oculus touch controller left and right buttons:
             #    trigger = k_EButton_Axis1 = 33 = k_EButton_SteamVR_Trigger
@@ -2522,27 +2422,28 @@ class HandController:
             thumbstick_mode = ZoomMode() if right else MoveSceneMode()
             ax_mode = ZoomMode() if right else RecenterMode()
             initial_modes = {
-                b.menu: ShowUIMode(),
-                b.trigger: MoveSceneMode(),
-                b.grip: MoveSceneMode(),
-                b.A: ax_mode,
-                b.touchpad: thumbstick_mode
+                'menu': ShowUIMode(),
+                'trigger': MoveSceneMode(),
+                'grip': MoveSceneMode(),
+                'A': ax_mode,
+                'touchpad': thumbstick_mode
             }
         else:
             initial_modes = {
-                b.menu: ShowUIMode(),
-                b.trigger: MoveSceneMode(),
-                b.grip: RecenterMode(),
-                b.touchpad: ZoomMode()
+                'menu': ShowUIMode(),
+                'trigger': MoveSceneMode(),
+                'grip': RecenterMode(),
+                'touchpad': ZoomMode()
             }
 
         return initial_modes
     
     def _set_initial_button_assignments(self):
         im = self._initial_button_modes()
-        for button, mode in im.items():
-            if button not in self._modes:
-                self.set_hand_mode(button, mode)
+        for button_name, mode in im.items():
+            if button_name in self._modes:
+                mode = self._modes[button_name]
+            self.set_hand_mode(button_name, mode)
 
     def _create_hand_model(self):
         # Create hand model
@@ -2642,27 +2543,27 @@ class HandController:
         # Handle button press events.
         t = e.state
         xr = self._camera._xr
-        pressed = (t == e.BUTTON_PRESSED)
-        released = (t == e.BUTTON_RELEASED)
+        pressed = (t == 'pressed')
+        released = (t == 'released')
         if not pressed and not released:
             return
 
         # Check for click on user interface panel.
-        b = e.button
+        button_name = e.button_name
         hm = self.hand_model
         if hm:
-            hm._show_button_down(b, pressed)
-        m = self._modes.get(b)
+            hm._show_button_down(button_name, pressed)
+        m = self._modes.get(button_name)
         if not isinstance(m, ShowUIMode):
             # Check for click on UI panel.
             ui = self._camera.user_interface
-            if ui.process_hand_controller_button_event(self, b, pressed, released):
+            if ui.process_hand_controller_button_event(self, button_name, pressed, released):
                 return
         
         # Call HandMode event callback.
         if m:
-            event = HandButtonEvent(self, b, pressed = pressed, released = released)
-            if b == button_ids().touchpad:
+            event = HandButtonEvent(self, button_name, pressed = pressed, released = released)
+            if button_name == 'touchpad':
                 x, y = self._touchpad_position()
                 if x is not None and y is not None:
                     event.touchpad_position = (x,y)
@@ -2686,7 +2587,7 @@ class HandController:
     def _dispatch_event(self, mode, hand_event):
         if hand_event.pressed:
             mode.pressed(hand_event)
-            mode._button_down = hand_event.button		# Used for detecting missing button release events
+            mode._button_down = hand_event.button_name	# Used for detecting missing button release events
             self._active_drag_modes.add(mode)
         elif hand_event.released:
             mode.released(hand_event)
@@ -2698,37 +2599,38 @@ class HandController:
             f = mode.update_ui_delay_frames
             self._camera.user_interface.redraw_ui(delay_frames = f)
 
-    def current_hand_mode(self, button):
-        return self._modes.get(button)
+    def current_hand_mode(self, button_name):
+        return self._modes.get(button_name)
     
-    def set_hand_mode(self, button, hand_mode):
-        self._modes[button] = hand_mode
+    def set_hand_mode(self, button_name, hand_mode):
+        self._modes[button_name] = hand_mode
         hm = self.hand_model
         if hm:
-            hm._set_button_icon(button, hand_mode.icon_path)
+            hm._set_button_icon(button_name, hand_mode.icon_path)
 
-    def set_default_hand_mode(self, button):
-        hand_mode = self._initial_button_modes().get(button) if self.on else None
+    def set_default_hand_mode(self, button_name):
+        hand_mode = self._initial_button_modes().get(button_name) if self.on else None
         if hand_mode:
-            self.set_hand_mode(button, hand_mode)
+            self.set_hand_mode(button_name, hand_mode)
         elif button in self._modes:
-            del self._modes[button]
+            del self._modes[button_name]
 
     def _get_button_assignments(self):
-        return tuple((button, hand_mode.name) for button, hand_mode in self._modes.items())
+        return tuple((button_name, hand_mode.name)
+                     for button_name, hand_mode in self._modes.items())
     def _set_button_assignments(self, button_assignments):
         ui = self._camera.user_interface
-        for button, hand_mode_name in button_assignments:
+        for button_name, hand_mode_name in button_assignments:
             hm = ui._hand_mode_from_name(hand_mode_name)
             if hm:
-                self.set_hand_mode(button, hm)
+                self.set_hand_mode(button_name, hm)
                 
     button_assignments = property(_get_button_assignments, _set_button_assignments)
     '''Used for saving button assignments in sessions.'''
     
     def _thumbstick_mode(self):
         if self._is_oculus:
-            mode = self._modes.get(button_ids().touchpad)
+            mode = self._modes.get('touchpad')
         else:
             mode = None
         return mode
@@ -2738,8 +2640,8 @@ class HandController:
         t = e.state
         xr = self._camera._xr
         if ((t == xr.ButtonTouchEvent or t == xr.ButtonUntouchEvent)
-            and e.data.controller.button == button_ids().touchpad):
-            m = self._modes.get(button_id().touchpad)
+            and e.button_name == 'touchpad'):
+            m = self._modes.get('touchpad')
             if m:
                 if t == xr.ButtonTouchEvent:
                     m.touch()
@@ -2749,7 +2651,7 @@ class HandController:
         return False
 
     def uses_touch_motion(self):
-        m = self._modes.get(button_ids().touchpad)
+        m = self._modes.get('touchpad')
         return m.uses_touch_motion if m else False
         
     def process_motion(self):
@@ -2849,14 +2751,14 @@ class HandModel(Model):
             self._cone_color = color
             self._buttons.set_cone_color(color)
         
-    def _show_button_down(self, b, pressed):
+    def _show_button_down(self, button_name, pressed):
         cv = self._cone_vertices
         vbuttons = cv[self._num_cone_vertices:]
-        self._buttons.button_vertices(b, pressed, vbuttons)
+        self._buttons.button_vertices(button_name, pressed, vbuttons)
         self.set_geometry(cv, self.normals, self.triangles)
         
-    def _set_button_icon(self, button, icon_path):
-        self._buttons.set_button_icon(button, icon_path)
+    def _set_button_icon(self, button_name, icon_path):
+        self._buttons.set_button_icon(button_name, icon_path)
 
     def draw(self, renderer, draw_pass):
         if not self._hide_hand():
@@ -2877,25 +2779,24 @@ class HandModel(Model):
 class HandButtons:
     def __init__(self, controller_type = 'htc vive'):
         # Cone buttons
-        b = button_ids()
         if controller_type.startswith('oculus'):
             right_hand = controller_type.endswith('right')
             side, thumb_side, menu_side, stick_side = (180,110,140,80) if right_hand else (0,70,40,100)
             buttons = [
-                ButtonGeometry(b.trigger, z=.4, radius=.01, azimuth=270, tex_range=(.167,.333)),
-                ButtonGeometry(b.touchpad, z=.35, radius=.008, azimuth=stick_side, tex_range=(.333,.5)),
-                ButtonGeometry(b.A, z=.47, radius=.006, azimuth=thumb_side, tex_range=(.5,.667)),
-                ButtonGeometry(b.grip, z=.6, radius=.01, azimuth=side, tex_range=(.667,.833)),
-                ButtonGeometry(b.menu, z=.4, radius=.006, azimuth=menu_side, tex_range=(.833,1)),
+                ButtonGeometry('trigger', z=.4, radius=.01, azimuth=270, tex_range=(.167,.333)),
+                ButtonGeometry('touchpad', z=.35, radius=.008, azimuth=stick_side, tex_range=(.333,.5)),
+                ButtonGeometry('A', z=.47, radius=.006, azimuth=thumb_side, tex_range=(.5,.667)),
+                ButtonGeometry('grip', z=.6, radius=.01, azimuth=side, tex_range=(.667,.833)),
+                ButtonGeometry('menu', z=.4, radius=.006, azimuth=menu_side, tex_range=(.833,1)),
             ]
         else:
             # Vive controllers
             buttons = [
-                ButtonGeometry(b.trigger, z=.5, radius=.01, azimuth=270, tex_range=(.2,.4)),
-                ButtonGeometry(b.touchpad, z=.5, radius=.01, azimuth=90, tex_range=(.4,.6)),
-                ButtonGeometry(b.grip, z=.7, radius=.01, azimuth=0, tex_range=(.6,.8)),
-                ButtonGeometry(b.grip, z=.7, radius=.01, azimuth=180, tex_range=(.6,.8)),
-                ButtonGeometry(b.menu, z=.35, radius=.006, azimuth=90, tex_range=(.8,1)),
+                ButtonGeometry('trigger', z=.5, radius=.01, azimuth=270, tex_range=(.2,.4)),
+                ButtonGeometry('touchpad', z=.5, radius=.01, azimuth=90, tex_range=(.4,.6)),
+                ButtonGeometry('grip', z=.7, radius=.01, azimuth=0, tex_range=(.6,.8)),
+                ButtonGeometry('grip', z=.7, radius=.01, azimuth=180, tex_range=(.6,.8)),
+                ButtonGeometry('menu', z=.35, radius=.006, azimuth=90, tex_range=(.8,1)),
             ]
                 
         self._buttons = buttons
@@ -2906,7 +2807,7 @@ class HandButtons:
         return [b.cone_button_geometry(length, radius) for b in self._buttons]
 
     def texture(self, cone_color, button_color, tex_size):
-        nb = len(set([b.button for b in self._buttons]))
+        nb = len(set([b.button_name for b in self._buttons]))
         from numpy import empty, uint8
         self._button_rgba = rgba = empty((tex_size, tex_size*(nb + 1),4), uint8)
         rgba[:,0:tex_size,:] = cone_color
@@ -2923,30 +2824,30 @@ class HandButtons:
             rgba[:,0:tex_size,:] = color
             t.reload_texture(rgba)
             
-    def _button_geometry(self, button):
+    def _button_geometry(self, button_name):
         for b in self._buttons:
-            if b.button == button:
+            if b.button_name == button_name:
                 return b
         return None
     
-    def set_button_icon(self, button, icon_path):
-        bg = self._button_geometry(button)
+    def set_button_icon(self, button_name, icon_path):
+        bg = self._button_geometry(button_name)
         if bg:
             rgba = self._button_rgba
             icon_size = int(self._icon_scale * rgba.shape[0])
             bg.set_icon_image(self._button_rgba, icon_path, icon_size)
             self._texture.reload_texture(rgba)
 
-    def button_vertices(self, button, lowered, vertices):
+    def button_vertices(self, button_name, lowered, vertices):
         voffset = 0
         for b in self._buttons:
-            if b.button == button:
+            if b.button_name == button_name:
                 v = b.vertices_lowered if lowered else b.vertices_raised
                 vertices[voffset:voffset+len(v)] = v
             voffset += b.num_vertices
     
 class ButtonGeometry:
-    def __init__(self, button, z, radius, azimuth, tex_range, rise = 0.002,
+    def __init__(self, button_name, z, radius, azimuth, tex_range, rise = 0.002,
                  circle_divisions = 30):
         '''
         z is button center position from cone tip at 0 to base at 1.
@@ -2955,7 +2856,7 @@ class ButtonGeometry:
         tex_range is u texture coordinate range for mapping icon onto button.
         rise is height above cone surface in meters.
         '''
-        self.button = button
+        self.button_name = button_name
         self.z = z
         self.radius = radius
         self.azimuth = azimuth
@@ -3039,7 +2940,8 @@ class ButtonGeometry:
                 qi = qi.scaled(s,s)
             from chimerax.graphics import qimage_to_numpy
             rgba = qimage_to_numpy(qi)
-            # TODO: Need to alpha blend with button background.
+            # TODO: Would like to alpha blend with button background.
+            #       But for now just make transparent part white.
             transp = (rgba[:,:,3] == 0)
             from numpy import putmask
             for c in range(4):
@@ -3058,19 +2960,19 @@ class ButtonGeometry:
         tex_rgba[i0:i1,j0:j1,:] = rgba
 
 class HandEvent:
-    def __init__(self, hand_controller, button):
+    def __init__(self, hand_controller, button_name):
         self._hand_controller = hand_controller
-        self._button = button
+        self._button_name = button_name
         self._touchpad_position = (None,None)
     @property
     def hand_controller(self):
         return self._hand_controller
     @property
-    def button(self):
-        return self._button
+    def button_name(self):
+        return self._button_name
     @property
     def is_touchpad(self):
-        return self._button == button_ids().touchpad
+        return self._button_name == 'touchpad'
     def _get_touchpad_position(self):
         return self._touchpad_position
     def _set_touchpad_position(self, xy):
@@ -3101,8 +3003,8 @@ class HandEvent:
         return self.camera.user_interface._mouse_mode_click_range
 
 class HandButtonEvent(HandEvent):
-    def __init__(self, hand_controller, button, pressed = False, released = False):
-        HandEvent.__init__(self, hand_controller, button)
+    def __init__(self, hand_controller, button_name, pressed = False, released = False):
+        HandEvent.__init__(self, hand_controller, button_name)
         self._pressed = pressed
         self._released = released
     @property
@@ -3118,8 +3020,8 @@ class HandButtonEvent(HandEvent):
         return pick
     
 class HandMotionEvent(HandEvent):
-    def __init__(self, hand_controller, button, previous_pose, current_pose):
-        HandEvent.__init__(self, hand_controller, button)
+    def __init__(self, hand_controller, button_name, previous_pose, current_pose):
+        HandEvent.__init__(self, hand_controller, button_name)
         self._previous_pose = previous_pose
         self._current_pose = current_pose
         self._last_drag_room_position = None	# May be from earlier than previous HandMotionEvent
@@ -3161,8 +3063,7 @@ class HandMotionEvent(HandEvent):
 
 class HandThumbstickEvent(HandEvent):
     def __init__(self, hand_controller, x, y):
-        button = button_ids().touchpad
-        HandEvent.__init__(self, hand_controller, button)
+        HandEvent.__init__(self, hand_controller, 'touchpad')
         self._x = x
         self._y = y
 
