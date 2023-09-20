@@ -118,7 +118,6 @@ class BlastProteinJob(CxServicesJob):
 
     @classmethod
     def from_snapshot(cls, session, data):
-        from chimerax.webservices.cxservices_job import job_restore_helper
         params = data['params']
         atomspec = data['atomspec']
         seq = params['input_seq']
@@ -131,7 +130,11 @@ class BlastProteinJob(CxServicesJob):
                   , database=database, cutoff=cutoff, matrix=matrix
                   , max_seqs = maxSeqs, version = version, log = None
                   , tool_inst_name = data.get('tool_inst_name', None))
-        job_restore_helper(tmp, data)
+        tmp.start_time = data['start_time']
+        tmp.end_time = data['end_time']
+        tmp.id = data['id']
+        tmp.job_id = data['job_id']
+        tmp.state = data['state']
         return tmp
 
     def take_snapshot(self, session, flags) -> Dict:
