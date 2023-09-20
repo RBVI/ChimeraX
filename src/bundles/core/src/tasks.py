@@ -58,7 +58,7 @@ import time
 import weakref
 
 from enum import StrEnum
-from typing import Optional
+from typing import Optional, Union
 
 from .state import State, StateManager
 
@@ -174,7 +174,9 @@ class Task(State):
         return self._state
 
     @state.setter
-    def state(self, state: TaskState):
+    def state(self, state: Union[str, TaskState]):
+        if isinstance(state, str):
+            state = TaskState.from_str(state)
         self._state = state
         if self.terminated():
             self._cleanup()
@@ -322,7 +324,10 @@ class Task(State):
     def take_snapshot(self, session, flags) -> dict[any, any]:
         data = {
             "id": self.id
-            , "state": self.state
+            # msgpack is schizophrenic about enums and can't 
+            # decide whether it can or can't serialize them
+            # so we'll just use strings
+            , "state": str(self.state)
             , "start_time": self.start_time
             , "end_time": self.end_time
         }
