@@ -58,18 +58,12 @@ class CxServicesJob(Job):
         Time when job was launched
     end_time : int (seconds since epoch)
         Time when job terminated
-    status : str
+    state : str
     outputs : List[str]
     next_poll : time
     """
-    save_attrs = ('job_id', 'launch_time', 'end_time', 'status', 'outputs', 'next_poll')
     # Ticket #6187, set urllib3 not to log messages to the general ChimeraX log
     logging.getLogger("urllib3").setLevel(100)
-
-    def reset_state(self) -> None:
-        """Reset state to data-less state"""
-        for a in self.save_attrs:
-            setattr(self, a, None)
 
     def __init__(self, *args, **kw) -> None:
         """Initialize CxServicesJob instance.
@@ -82,9 +76,9 @@ class CxServicesJob(Job):
         """
         super().__init__(*args, **kw)
         # Initialize ChimeraX REST request state
-        self.reset_state()
         self.state = TaskState.PENDING
         # Prefer the HTTPS proxy
+        self.launch_time = None
         self.chimerax_api = None
         if settings.https_proxy:
             url, port = settings.https_proxy
@@ -155,6 +149,16 @@ class CxServicesJob(Job):
             }
             self.next_poll = int(result.next_poll)
             self.thread_safe_log("Webservices job id: %s" % self.job_id)
+            super().run()
+    
+    def _relaunch(self):
+        """Relaunch the background process. Used to restore the job."""
+        if self.state not in [
+            TaskState.FINISHED
+            , TaskState.FAILED
+            , TaskState.DELETED
+            , TaskState.CANCELED
+        ]:
             super().run()
 
     def running(self) -> bool:
@@ -289,7 +293,13 @@ class CxServicesJob(Job):
     @classmethod
     def from_snapshot(cls, session, data):
         tmp = cls(session)
-        job_restore_helper(tmp, data)
+        tmp.job_id = data['job_id']
+        tmp.launch_time = data['launch_time']
+        tmp.end_time = data['end_time']
+        tmp.start_time = data['start_time']
+        tmp.id = data['id']
+        tmp.state = data['state']
+        tmp._relaunch()
         return tmp
 
     #
@@ -300,16 +310,12 @@ class CxServicesJob(Job):
 
         The semantics of the data is unknown to the caller.
         Returns None if should be skipped."""
-        data = {a:getattr(self,a) for a in self.save_attrs}
+        data = super().take_snapshot(session, flags)
+        data['job_id'] = self.job_id
+        data['launch_time'] = self.launch_time
         return data
 
     @staticmethod
     def restore_snapshot(session, data) -> 'CxServicesJob':
         """Restore data snapshot creating instance."""
         return CxServicesJob.from_snapshot(session, data)
-
-
-def job_restore_helper(job, attrs):
-    for a in CxServicesJob.save_attrs:
-        if a in attrs:
-            setattr(job, a, attrs[a])
