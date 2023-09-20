@@ -235,6 +235,8 @@ class SegmentationOverlay(Drawing):
     def all_drawings(self, displayed_only = False):
         # Iteratively check parents to see if they are displayed. If any parent model is hidden, 
         # return an empty list.
+        if not self.segmentation_surface.parent.active:
+            return []
         dlist = super().all_drawings(displayed_only = displayed_only)
         parent = self.segmentation_surface
         while parent:
