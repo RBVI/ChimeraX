@@ -232,6 +232,17 @@ class SegmentationOverlay(Drawing):
         self._y_min = 0
         self._y_max = 0
 
+    def all_drawings(self, displayed_only = False):
+        # Iteratively check parents to see if they are displayed. If any parent model is hidden, 
+        # return an empty list.
+        dlist = super().all_drawings(displayed_only = displayed_only)
+        parent = self.segmentation_surface
+        while parent:
+            if not parent.display:
+                return []
+            parent = getattr(parent, 'parent', None)
+        return dlist
+
     @property
     def slice(self):
         return self._slice
