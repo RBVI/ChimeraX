@@ -82,21 +82,12 @@ class FeatureBrowser:
         wells_layout.setContentsMargins(0,0,0,0)
         wells_layout.setSpacing(0)
         self.wells_widgets = {}
-        class TwoThreeStateCheckBox(QCheckBox):
-            def nextCheckState(self):
-                # it seems that just returning the next check state is insuffient, you also have
-                # to explicitly set it (_and_ return it)
-                if self.checkState() == Qt.Checked:
-                    self.setCheckState(Qt.Unchecked)
-                else:
-                    self.setCheckState(Qt.Checked)
-        from chimerax.ui.widgets import MultiColorButton
+        from chimerax.ui.widgets import MultiColorButton, TwoThreeStateCheckBox
         for label_text, attr_name in [("Region colors: border", "border_rgba"),
                 ("interior", "interior_rgba")]:
             label = QLabel(label_text)
             wells_layout.addWidget(label, alignment=Qt.AlignLeft)
             check_box = TwoThreeStateCheckBox()
-            check_box.setTristate(True)
             check_box.setAttribute(Qt.WA_LayoutUsesWidgetRect)
             check_box.clicked.connect(lambda *args, part=attr_name: self._show_region_color(part))
             wells_layout.addWidget(check_box, alignment=Qt.AlignRight | Qt.AlignVCenter)

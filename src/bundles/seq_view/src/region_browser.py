@@ -1719,10 +1719,12 @@ class RegionManager:
         self._sel_change_from_self = True
         session = self.seq_canvas.sv.session
         sel_residues = self.region_residues(region)
+        from chimerax.core.commands import run
         if sel_residues:
             from chimerax.atomic import concise_residue_spec
-            from chimerax.core.commands import run
             run(session, "sel " + concise_residue_spec(session, sel_residues))
+        else:
+            run(session, "sel clear")
         self._sel_change_from_self = False
 
     def _sel_change_cb(self, _, changes):
@@ -1781,6 +1783,7 @@ class RegionsTool:
 
         from Qt.QtCore import Qt
         from Qt.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QMenu, QGroupBox
+        from Qt.QtWidgets import QGridLayout, QCheckBox
         ui_area = tool_window.ui_area
         layout = QVBoxLayout()
         layout.setSpacing(2)
@@ -1843,6 +1846,7 @@ class RegionsTool:
 
         self._set_table_data(resize_columns=False)
         table.launch()
+        table.selection_changed.connect(self._selection_changed)
         layout.addWidget(table, stretch=1)
         buttons_layout = QHBoxLayout()
         layout.addLayout(buttons_layout)
@@ -1862,6 +1866,35 @@ class RegionsTool:
 
         layout.addWidget(self.source_box, alignment=Qt.AlignCenter)
 
+        activities_layout = QHBoxLayout()
+        layout.addLayout(activities_layout)
+
+        actions_group = QGroupBox("Choosing in table")
+        actions_layout = QHBoxLayout()
+        actions_layout.setContentsMargins(0,0,0,0)
+        actions_group.setLayout(actions_layout)
+        self.activates_button = QCheckBox("activates  ")
+        self.activates_button.setChecked(True)
+        actions_layout.addWidget(self.activates_button)
+        self.shows_button = QCheckBox("shows  ")
+        self.shows_button.setChecked(True)
+        actions_layout.addWidget(self.shows_button)
+        self.hides_button = QCheckBox("hides others")
+        self.hides_button.setChecked(True)
+        actions_layout.addWidget(self.hides_button)
+        disclaimer = QLabel(" (except missing structure,\n ChimeraX selection)")
+        shrink_font(disclaimer)
+        actions_layout.addWidget(disclaimer)
+        activities_layout.addWidget(actions_group)
+
+        activities_layout.addStretch(1)
+
+        from chimerax.ui.widgets import TwoThreeStateCheckBox
+        self.gaps_checkbox = TwoThreeStateCheckBox("Include gaps")
+        self.gaps_checkbox.clicked.connect(self._gaps_cb)
+        self.gaps_checkbox.setEnabled(False)
+        activities_layout.addWidget(self.gaps_checkbox)
+
     def alignment_rmsd_update(self):
         self.region_table.update_column(self.columns["rmsd"], data=True)
         self.region_table.resizeColumnToContents(self.region_table.columns.index(self.columns["rmsd"]))
@@ -1879,6 +1912,14 @@ class RegionsTool:
             col = self.columns[category]
             self.region_table.update_cell(col, region)
             self.region_table.resizeColumnToContents(self.region_table.columns.index(col))
+
+    @property
+    def shown(self):
+        return self.tool_window.shown
+
+    @shown.setter
+    def shown(self, show):
+        self.tool_window.shown = show
 
     def _atomic_changes_cb(self, changes):
         if 'scene_coord changed' not in changes.structure_reasons():
@@ -1916,6 +1957,11 @@ class RegionsTool:
             action.setData(i)
             menu.addAction(action)
 
+    def _gaps_cb(self, *args):
+        for region in self.region_table.selected:
+            region.set_cover_gaps(self.gaps_checkbox.isChecked())
+        self.gaps_checkbox.setChecked(bool(self.gaps_checkbox.isChecked()))
+
     def _get_edge(self, region):
         return region.border_rgba is not None
 
@@ -1927,6 +1973,30 @@ class RegionsTool:
 
     def _get_fill_color(self, region):
         return (0.5, 0.5, 0.5, 1.0) if region.interior_rgba is None else region.interior_rgba
+
+    def _selection_changed(self, *args):
+        covers = set()
+        sel = self.region_table.selected
+        for region in sel:
+            covers.add(region.cover_gaps)
+            if self.shows_button.isChecked():
+                region.shown = True
+            if self.activates_button.isChecked():
+                region.active = True
+            if self.hides_button.isChecked():
+                for r in self.sv.region_manager.regions:
+                    if r not in sel and r.name and not (
+                    r.name.startswith(self.sv.GAP_REGION_STRING) or r.name == "ChimeraX selection"):
+                        r.shown = False
+        if covers:
+            self.gaps_checkbox.setEnabled(True)
+            if len(covers) == 1:
+                self.gaps_checkbox.setChecked(covers.pop())
+            else:
+                from Qt.QtCore import Qt
+                self.gaps_checkbox.setCheckState(Qt.CheckState.PartiallyChecked)
+        else:
+            self.gaps_checkbox.setEnabled(False)
 
     def _seq_menu_cb(self, action):
         self.seq_region_menubutton.setText(action.text())

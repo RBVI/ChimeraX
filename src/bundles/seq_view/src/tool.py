@@ -760,7 +760,7 @@ class SequenceViewer(ToolInstance):
             rt_window = self.tool_window.create_child_window("Regions", close_destroys=False, statusbar=True)
             self._regions_tool = RegionsTool(self, rt_window)
             rt_window.fill_context_menu = self.fill_context_menu
-            rt_window.manage(self.tool_window)
+            rt_window.manage(None)
         self._regions_tool.shown = shown
 
     def show_associations(self):
