@@ -153,7 +153,7 @@ def vr_button(session, button, mode = None, hand = None, command = None):
         raise UserError('Hand controller is not enabled.')
 
     if button == 'all':
-        buttons = ['grip', 'menu', 'trigger', 'touchpad', 'A']
+        buttons = ['grip', 'menu', 'trigger', 'touchpad', 'thumbstick', 'A']
     else:
         buttons = [button]
 
@@ -1362,7 +1362,7 @@ class UserInterface:
         self._tool_hide_handler = None
 
         # Buttons that can be pressed on user interface.
-        self.buttons = ('trigger', 'grip', 'touchpad', 'A')
+        self.buttons = ('trigger', 'grip', 'touchpad', 'thumbstick', 'A')
         
     def close(self):
         ui = self._ui_model
@@ -2426,7 +2426,7 @@ class HandController:
                 'trigger': MoveSceneMode(),
                 'grip': MoveSceneMode(),
                 'A': ax_mode,
-                'touchpad': thumbstick_mode
+                'thumbstick': thumbstick_mode
             }
         else:
             initial_modes = {
@@ -2630,7 +2630,7 @@ class HandController:
     
     def _thumbstick_mode(self):
         if self._is_oculus:
-            mode = self._modes.get('touchpad')
+            mode = self._modes.get('thumbstick')
         else:
             mode = None
         return mode
@@ -2675,8 +2675,9 @@ class HandController:
                 m.drag(HandMotionEvent(self, m._button_down, previous_pose, pose))
 
     def _touchpad_position(self):
-        return (0,0)
+        # TODO: Get current touchpad position for a button press.
 #        return self._thumbstick_position()
+        return (0,0)
 
     def _check_for_missing_button_release(self):
         '''Cancel drag modes if button has been released even if we didn't get a button up event.'''
@@ -2784,7 +2785,7 @@ class HandButtons:
             side, thumb_side, menu_side, stick_side = (180,110,140,80) if right_hand else (0,70,40,100)
             buttons = [
                 ButtonGeometry('trigger', z=.4, radius=.01, azimuth=270, tex_range=(.167,.333)),
-                ButtonGeometry('touchpad', z=.35, radius=.008, azimuth=stick_side, tex_range=(.333,.5)),
+                ButtonGeometry('thumbstick', z=.35, radius=.008, azimuth=stick_side, tex_range=(.333,.5)),
                 ButtonGeometry('A', z=.47, radius=.006, azimuth=thumb_side, tex_range=(.5,.667)),
                 ButtonGeometry('grip', z=.6, radius=.01, azimuth=side, tex_range=(.667,.833)),
                 ButtonGeometry('menu', z=.4, radius=.006, azimuth=menu_side, tex_range=(.833,1)),
