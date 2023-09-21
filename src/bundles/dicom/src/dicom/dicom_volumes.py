@@ -17,6 +17,7 @@ from .dicom_models import DicomGrid
 class DICOMVolume(Volume):
     def __init__(self, session, grid_data, rendering_options = None):
         Volume.__init__(self, session, grid_data, rendering_options=rendering_options)
+        self.active = False
 
     def is_segmentation(self):
         try:

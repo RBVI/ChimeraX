@@ -60,7 +60,7 @@ class CopySeqDialog:
         if seq is None:
             raise UserError("No sequence chosen for copying")
         if self.active_region_option.value:
-            cur_region = self.sv.region_browser.cur_region()
+            cur_region = self.sv.region_manager.cur_region()
             if cur_region is None:
                 raise UserError("No active region")
             get_index = self.sv.alignment.seqs.index

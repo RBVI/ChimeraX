@@ -49,6 +49,8 @@ defaults = {
     "new_region_border": (REGIONS, "New-region border", 1, OptionalRGBAOption, {}, None),
     "new_region_interior": (REGIONS, "New-region interior", 2, OptionalRGBAOption, {},
         [chan/255.0 for chan in (233, 218, 198, 255)]),
+    "region_name_ellipsis": (REGIONS, "Use ellipsis for region names longer than", 12, IntOption,
+        {'min': 2}, 25),
     "sel_region_border": (REGIONS, "Selected-structure border", 4,
         OptionalRGBAOption, {}, None),
     "sel_region_interior": (REGIONS, "Selected-structure interior", 5,
@@ -67,6 +69,7 @@ from copy import deepcopy
 class _SVSettings(Settings):
     EXPLICIT_SAVE = { k: v[-1] for k, v in defaults.items() }
     AUTO_SAVE = {
+        "regions_tool_last_use": None,
         "scf_colors_structures": True,
     }
 

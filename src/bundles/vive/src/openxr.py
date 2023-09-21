@@ -466,6 +466,8 @@ class XR:
             ('/user/hand/right/input/squeeze/value', 'grip_value'),
             ('/user/hand/left/input/thumbstick', 'thumbstick'),
             ('/user/hand/right/input/thumbstick', 'thumbstick'),
+            ('/user/hand/left/input/thumbstick/click', 'thumbstick_press'),
+            ('/user/hand/right/input/thumbstick/click', 'thumbstick_press'),
             ('/user/hand/left/input/x/click', 'A'),
             ('/user/hand/right/input/a/click', 'A'),
             ('/user/hand/left/input/y/click', 'menu'),
@@ -546,6 +548,7 @@ class XR:
                 ('touchpad', both_hands, t.BOOLEAN_INPUT),
                 ('A', both_hands, t.BOOLEAN_INPUT),
                 ('thumbstick', both_hands, t.VECTOR2F_INPUT),
+                ('thumbstick_press', both_hands, t.BOOLEAN_INPUT),
         ):
             action = xr.create_action(
                 action_set=action_set,
@@ -736,6 +739,8 @@ class Action:
     def button_name(self):
         b = self.button
         if b.endswith('_value'):
+            return b[:-6]
+        elif b.endswith('_press'):
             return b[:-6]
         return b
     
