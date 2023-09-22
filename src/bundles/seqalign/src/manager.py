@@ -277,8 +277,13 @@ class AlignmentsManager(StateManager, ProviderManager):
         }
 
     def _ses_restore(self, data):
-        for am in self._alignments.values():
-            am.close()
+        if self.session.restore_options['combine']:
+            for ident in data.keys():
+                try:
+                    existing = self._alignments[ident]
+                except KeyError:
+                    continue
+                existing._destroy()
         self._alignments = data['alignments']
 
 def _register_viewer_subcommands(logger):
