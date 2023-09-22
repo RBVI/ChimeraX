@@ -26,6 +26,11 @@ class DICOMVolume(Volume):
             # TODO: This is a hack to get around the fact that there is no DICOM data
             # in a segmentation
             return True
+        
+    def copy(self):
+        v = dicom_volume_from_grid_data(self.data, self.session, open_model = False, style = None, show_dialog = False)
+        v.copy_settings_from(self)
+        return v
 
     def set_2d_segment_data(self, axis: Axis, slice: int, positions, value: int, min_threshold: Optional[float] = None, max_threshold: Optional[float] = None) -> None:
         for position in positions:
