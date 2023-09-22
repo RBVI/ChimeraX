@@ -37,7 +37,10 @@ class QCxTableModel(QAbstractTableModel):
             if isinstance(val, bool):
                 return None
             elif col.display_format in ItemTable.color_formats:
-                sorted_index = self._item_table.model().mapFromSource(index)
+                if self._item_table._allow_user_sorting:
+                    sorted_index = self._item_table.model().mapFromSource(index)
+                else:
+                    sorted_index = index
                 widget = self._item_table.indexWidget(sorted_index)
                 if not widget:
                     has_alpha = col.display_format == ItemTable.COL_FORMAT_TRANSPARENT_COLOR
@@ -71,6 +74,9 @@ class QCxTableModel(QAbstractTableModel):
             return None
         if role == Qt.ItemDataRole.ToolTipRole and col.show_tooltips:
             return col.display_value(item)
+        if role == Qt.SizeHintRole:
+            if col.display_format == self._item_table.COL_FORMAT_BOOLEAN:
+                return QSize(25, 25)
         return None
 
     def flags(self, index):
@@ -126,9 +132,6 @@ class QCxTableModel(QAbstractTableModel):
                 else:
                     icon = col.icon
                 return icon
-        elif role == Qt.SizeHintRole:
-            if col.display_format == self._item_table.COL_FORMAT_BOOLEAN:
-                return QSize(25, 25)
 
         return None
 
@@ -238,7 +241,7 @@ class ItemTable(QTableView):
     SORT_DESCENDING = Qt.SortOrder.DescendingOrder
 
     def __init__(self, *, auto_multiline_headers: bool=True, column_control_info=None,
-             allow_user_sorting=True, settings_attr=None, parent=None, session=None):
+             allow_user_sorting=True, settings_attr=None, parent=None, session=None, color_column_width=32):
         """
         Parameters:
             auto_multiline_headers: controls whether header titles can be split into multiple
@@ -249,6 +252,8 @@ class ItemTable(QTableView):
                 entries or check boxes (respectively) to control which columns are displayed.
             session: for backwards compatibility, this parameter is optional, but is in fact required if the
                 table adds columns whose 'data_set' attribute is a string (since it will be run as command).
+            color_column_width: Columns containing color buttons will be this wide.  Some tables for
+                practical or esthetic reasons may prefer a narrower value (e.g. 16).
 
         Notes:
             For a menu the value of column_control_info should be:
@@ -287,6 +292,7 @@ class ItemTable(QTableView):
         self._column_control_info = column_control_info
         self._settings_attr = self.DEFAULT_SETTINGS_ATTR if settings_attr is None else settings_attr
         self._session = session
+        self._color_column_width = color_column_width
         self._pending_columns = []
         if column_control_info:
             self._checkables = {}
@@ -405,6 +411,9 @@ class ItemTable(QTableView):
             If the column should sort on something other than numeric values or alphabetized text, you
             can supply a 'sort_func' function which takes two items as arguments and returns whether the
             first item is "less than" the second item based on those items' values in this column.
+
+            If 'show_tooltips' is True, then hovering over cells in that column will show the cell contents
+            in a tooltip.  Useful in cases where cell values might exceed the width of the column.
         """
         titles = [c.title for c in self._columns]
         if title in titles:
@@ -501,8 +510,11 @@ class ItemTable(QTableView):
                 self._data.extend(data[i:])
                 self._table_model.endInsertRows()
             elif self._data[i] != datum:
+                self._table_model.beginRemoveRows(QModelIndex(), i, i)
+                self._data = self._data[:i] + self._data[i+1:]
+                self._table_model.endRemoveRows()
                 self._table_model.beginInsertRows(QModelIndex(), i, i)
-                self._data = self._data[:i] + [datum] + self._data[i+1:]
+                self._data = self._data[:i] + [datum] + self._data[i:]
                 self._table_model.endInsertRows()
         final_selection = set([d for d in self._data if d in initial_selection])
         self.selected = final_selection
@@ -512,6 +524,20 @@ class ItemTable(QTableView):
     def destroy(self):
         self._data = []
         super().destroy()
+
+    def edit_cell(self, col_info, datum):
+        if isinstance(col_info, str):
+            for col in self._columns:
+                if col.title == col_info:
+                    break
+            else:
+                raise ValueError("No column with title '%s'" % col_info)
+        else:
+            col = col_info
+        col_index = self._columns.index(col)
+        row_index = self._data.index(datum)
+        cell_index = self._table_model.index(row_index, col_index)
+        self.edit(cell_index)
 
     def highlight(self, highlight_data):
         new = set(highlight_data)
@@ -559,6 +585,7 @@ class ItemTable(QTableView):
         self.verticalHeader().setVisible(False)
         if not suppress_resize:
             self.resizeColumnsToContents()
+
         if scroll_to is not None:
             QTimer.singleShot(10, lambda s=self, i=scroll_to: s.scrollTo(i))
 
@@ -599,6 +626,11 @@ class ItemTable(QTableView):
         else:
             sort_info = None
         return (version, selected, column_display, highlighted, sort_info)
+
+    def sizeHintForColumn(self, col_index):
+        if self._columns[col_index].display_format in self.color_formats:
+            return self._color_column_width
+        return super().sizeHintForColumn(col_index)
 
     def sort_by(self, column, order):
         if not self._allow_user_sorting:

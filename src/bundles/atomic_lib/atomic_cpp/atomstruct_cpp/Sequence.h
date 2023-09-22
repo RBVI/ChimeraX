@@ -16,6 +16,7 @@
 #ifndef atomstruct_Sequence
 #define atomstruct_Sequence
 
+#include <cctype>
 #include <map>
 #include <pyinstance/PythonInstance.declare.h>
 #include <stdexcept>
@@ -71,6 +72,7 @@ private:
 public:
     static void  assign_rname3to1(const ResName& rname, char let,
         bool protein);
+    static bool is_gap_character(char c) { return !(std::isalpha(c) || c == '?'); }
     static char  nucleic3to1(const ResName& rn);
     static PolymerType  rname_polymer_type(const ResName& rn) {
         if (protein3to1(rn) != 'X') return PT_AMINO;

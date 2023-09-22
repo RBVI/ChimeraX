@@ -92,9 +92,9 @@ class TaskManager(ToolInstance):
         self.table.data = [task for task in self.session.tasks.values()]
         self.table.add_column("ID (Local)", data_fetch=lambda x: x.id)
         self.table.add_column("ID (Webservices)", data_fetch=lambda x: getattr(x, "job_id", None))
-        self.table.add_column("Task", data_fetch=lambda x: x.display_name())
-        self.table.add_column("Started", data_fetch=lambda x: x.start_time.strftime("%H:%M:%S%p"))
-        self.table.add_column("Runtime", data_fetch=lambda x: self._get_runtime(x.runtime()))
+        self.table.add_column("Task", data_fetch=lambda x: str(x))
+        self.table.add_column("Start Time", data_fetch=lambda x: x.start_time.strftime("%H:%M:%S%p"))
+        self.table.add_column("Runtime", data_fetch=lambda x: self._get_runtime(x.runtime))
         self.table.add_column("Status", data_fetch=lambda x: x.state)
         self.table.launch(suppress_resize=True)
         self.control_widget.setVisible(True)

@@ -348,7 +348,10 @@ class SegmentationTool(ToolInstance):
         self.active_seg.data.save(filename)
 
     def setActiveSegment(self, segment):
+        if self.active_seg:
+            self.active_seg.active = False
         self.active_seg = segment
+        self.active_seg.active = True
 
     def _on_active_segmentation_changed(self, new, prev):
         if new:
