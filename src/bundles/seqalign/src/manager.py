@@ -284,7 +284,9 @@ class AlignmentsManager(StateManager, ProviderManager):
                 except KeyError:
                     continue
                 existing._destroy()
-        self._alignments = data['alignments']
+            self._alignments.update(data['alignments'])
+        else:
+            self._alignments = data['alignments']
 
 def _register_viewer_subcommands(logger):
     global _commands_registered

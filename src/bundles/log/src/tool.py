@@ -517,7 +517,7 @@ class Log(ToolInstance, HtmlLog):
             % (contents, date), summary= 'Log from %s' % date, background_color="#ebf5fb")
         if self.settings.session_restore_clears and session.restore_options['clear log']:
             def clear_log_unless_error(trig_name, session, *, self=self, prev_ses_html=prev_ses_html):
-                if session.restore_options['error encountered']:
+                if session.restore_options['error encountered'] or session.restore_options['combine']:
                     # if the session did't restore successfully, don't clear the log
                     self._append_message(prev_ses_html)
                 else:
