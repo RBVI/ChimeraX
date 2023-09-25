@@ -314,7 +314,9 @@ class SegmentationToolControlsDialog(QDialog):
         )
         self.explanatory_mouse_3d_text.setWordWrap(True)
         self.mouse_3d_layout.addWidget(self.explanatory_mouse_3d_text)
-        self.mouse_3d_layout.addWidget(QLabel("Whatever is assigned to"))
+        self.explanatory_mouse_3d_text_middle_click = QLabel("Whatever is assigned to 'Middle Click' will activate when the Shift key is held, so panning the camera around your model will still work.")
+        self.explanatory_mouse_3d_text_middle_click.setWordWrap(True)
+        self.mouse_3d_layout.addWidget(self.explanatory_mouse_3d_text_middle_click)
         self.mouse_3d_layout.addStretch(1)
 
         self.right_click_3d_dropdown = QComboBox(self)
@@ -674,7 +676,6 @@ class SegmentationTool(ToolInstance):
 
     def _set_vr_hand_modes(self):
         self.hand_modes_changed = True
-        for binding in
 
     def _reset_vr_hand_modes(self):
         """Set hand modes back to what they were but only if we changed them automatically.
