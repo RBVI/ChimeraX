@@ -54,7 +54,7 @@ class TaskManagerTableSettings(Settings):
 class TaskManager(ToolInstance):
     SESSION_ENDURING = True
     SESSION_SAVE = False
-    #help = "help:user/tools/taskmanager.html"
+    help = "help:user/tools/taskmanager.html"
 
     def __init__(self, session, name = "Task Manager"):
         super().__init__(session, name)
@@ -145,7 +145,7 @@ class TaskManager(ToolInstance):
         return string.capwords(s.replace('_', ' '))
 
     def show_help(self):
-        run("help 'Task Manager'")
+        run(self.session, "help 'Task Manager'")
 
     def kill_task(self, id):
         run("taskman kill %s" % id)
