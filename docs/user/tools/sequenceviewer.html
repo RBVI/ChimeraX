@@ -89,6 +89,7 @@ and they can be manipulated like other panels in ChimeraX
 <a href="#context">Context Menu</a>
 <br><a href="#headers">Headers</a>
 <br><a href="#regions">Regions</a>
+<br>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#regionbrowser">Region Browser</a>
 <br>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#uniprot">UniProt Sequence Features</a>
 <br><a href="#association">Sequence-Structure Association</a>
 <br><a href="#settings">Settings</a>
@@ -286,11 +287,102 @@ Backspace/delete deletes the active region. Clicking the active region
 deactivates it, and clicking a different region deactivates the
 former active region and makes the new region active.
 A region with no interior color is only responsive to clicks on its borders.
-<!--
 Where regions <a href="#overlap">overlap</a>,
 only the highest is responsive to clicks.
--->
 </p>
+
+<table class="clRight">
+<tr><td><img class="outline" src="regionbrowser.png"
+alt="apoe_human regions" width="350px"></td></tr>
+</table>
+<a name="regionbrowser"></a>
+<p><a href="#regions" class="nounder"><b>&larr;</b></a>
+<b>Region Browser</b>
+</p><p>
+The <b>Region Browser</b></a> can be opened by choosing 
+<b>Annotations... Regions...</b> from the <a href="#context">context menu</a>.
+</p><p>
+Regions applicable to the <b>entire alignment</b> or to any of the
+individual sequences in the alignment can be listed using the pulldown menu
+near the top of the dialog. Regions applicable to the entire alignment
+include the <b>ChimeraX selection</b> and any hand-drawn regions,
+even if they only enclose parts of a single sequence.
+Regions applicable to an individual sequence include
+<a href="#uniprot">UniProt sequence features</a>
+and regions created by <a href="#association">structure association</a>.
+<!--
+If <a href="#uniprot">UniProt sequence features</a> have been added,
+checkboxes under <b>Data source</b> allow including/excluding specific sets
+of regions from the listing.
+-->
+</p><p>
+<b>Region Browser</b> columns:
+<ul>
+<li><b>A</b>ctive &ndash; whether the region is the
+<a href="#active">active region</a>
+<li><b>S</b>hown &ndash; whether the region is shown
+in the sequence window (however, it could
+still be obscured by <a href="#overlap">overlapping</a> regions)
+<li><b>F</b>ill &ndash; whether the region interior color is shown
+<li>region interior color
+<li><b>E</b>dge &ndash; whether the region border color is shown
+<li>region border color
+<li><b>Name</b> &ndash; region name
+<li><b>RMSD</b> (entire-alignment regions only) 
+&ndash; region overall RMSD, if applicable, calculated 
+using <a href="matchmaker.html#matchatom">one point per residue</a>.
+An overall RMSD is calculated
+for each region in which a block encloses at least one column
+<a href="#association">associated</a> with at least two structure residues.
+All pairwise within-column distances are included in the calculation of the
+overall RMSD, and all distances are weighted equally (columns may not be
+weighted equally, as they may be associated with differing numbers of
+structure residues).
+<li><b>Start</b> (individual-sequence regions only)
+&ndash; position in alignment numbering of the first residue in the region 
+<li><b>End</b> (individual-sequence regions only)
+&ndash; position in alignment numbering of the last residue in the region 
+</ul>
+<a name="chosenregions">
+Clicking a row in the <b>Region Browser</b> highlights the line
+and <b><i>chooses</i></b> the region</a>.
+More than one region can be chosen at a time, and checkbox settings
+specify whether <b>Choosing in table</b>
+shows all chosen regions, hides other regions, and/or makes the last chosen
+region the <a href="#active">active region</a>.
+</p><p>
+If <b>Include gaps</b> is false,
+the <a href="#chosenregions">chosen region(s)</a> will be drawn
+to enclose only residues, not gap positions.
+Although a given region may then appear as disjoint blocks,
+it will still be a single region.
+</p><p>
+<a name="overlap">
+Since regions may overlap, a region can be considered higher or
+lower than another.</a> When the mouse focus is in the
+sequence window, the <b>up arrow</b> and
+<b>down arrow</b> keys can be used to raise and lower the
+<a href="#active">active region</a>, respectively,
+and pressing the <b>Delete</b> key will delete the
+<a href="#active">active region</a>. Alternatively,
+<b>Region Browser</b> buttons can be used to act on the
+<a href="#chosenregions">chosen region(s)</a>:
+<ul>
+<li><b>Raise</b> &ndash; place region on top (in front) of any overlapping
+regions in the sequence window and move it
+to the top of the list in the <b>Region Browser</b>
+<li><b>Lower</b> &ndash; place region below (behind) any overlapping regions
+regions in the sequence window and move it
+to the bottom of the list in the <b>Region Browser</b>
+<li><b>Duplicate</b> &ndash; create a copy of the region with a new name
+<li><b>Rename</b> &ndash; change region name
+<li><b>Delete</b> &ndash; remove region; the <b>ChimeraX selection</b> region
+cannot be deleted, but can contain zero residues
+<li><b>Info</b> &ndash; report region contents in the
+<a href="log.html"><b>Log</b></a>, in terms of alignment numbering
+<!-- individual-sequence numbering -->
+and residue numbers within any associated structures
+</ul>
 
 <table class="clRight">
 <tr><td><img class="outline" src="uniprot-features.png"
@@ -305,8 +397,9 @@ Sequences <a href="../commands/open.html#fetch">fetched</a> from
 several annotations. These &ldquo;sequence features&rdquo; are automatically
 assigned as <a href="#regions">regions</a> in the sequence window.
 The features are hidden by default, but a dialog for browsing and 
-displaying them appears when the sequence is first opened. This dialog
-can be reshown at any time by choosing <b>Sequence Features...</b>
+displaying them appears when the sequence is first opened. 
+This dialog can be reshown at any time by choosing
+<b>Annotations... Sequence Features...</b>
 from the <a href="#context">context menu</a>.
 </p><p>
 Choosing a feature type on the left side of the dialog shows the regions
@@ -717,5 +810,5 @@ style="display:inline-block; vertical-align:middle"><tr>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-July 2023</address>
+September 2023</address>
 </body></html>
