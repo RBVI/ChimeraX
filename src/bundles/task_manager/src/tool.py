@@ -64,6 +64,7 @@ class TaskManager(ToolInstance):
         self.tool_window = MainToolWindow(self)
         self.parent = self.tool_window.ui_area
         self.clear_finished_button = QPushButton("Clear Finished")
+        self.kill_task_button = QPushButton("Kill Task(s)")
         self.close_button = QPushButton("Close")
         self.help_button = QPushButton("Help")
 
@@ -77,10 +78,12 @@ class TaskManager(ToolInstance):
         self.button_container_layout.setContentsMargins(0, 0, 0, 0)
         self.button_container_layout.setSpacing(0)
         self.button_container_layout.addStretch()
+        self.button_container_layout.addWidget(self.kill_task_button)
         self.button_container_layout.addWidget(self.clear_finished_button)
         self.button_container_layout.addWidget(self.close_button)
         self.button_container_layout.addWidget(self.help_button)
 
+        self.kill_task_button.clicked.connect(lambda: self.kill_task(self.table.selected))
         self.help_button.clicked.connect(self.show_help)
         self.close_button.clicked.connect(self.delete)
         self.clear_finished_button.clicked.connect(self._clear_finished)
@@ -148,11 +151,9 @@ class TaskManager(ToolInstance):
     def show_help(self):
         run(self.session, "help 'Task Manager'")
 
-    def kill_task(self, id):
-        run("taskman kill %s" % id)
-
-    def pause_task(self, id):
-        run("taskman pause %s" % id)
+    def kill_task(self, tasks):
+        for task in tasks:
+            run(self.session, "taskman kill %s" % task.id)
 
 
 class TaskManagerWorker(QObject):
