@@ -82,6 +82,7 @@ class TaskManager(ToolInstance):
         self.button_container_layout.addWidget(self.help_button)
 
         self.help_button.clicked.connect(self.show_help)
+        self.close_button.clicked.connect(self.delete)
         self.clear_finished_button.clicked.connect(self._clear_finished)
 
         self.parent.setLayout(self.main_layout)
