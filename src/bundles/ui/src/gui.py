@@ -1475,7 +1475,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         action.triggered.connect(self.show_set_label_height_dialog)
 
         # misc...
-        action = QAction("View", self)
+        action = QAction("Focus", self)
         actions_menu.addAction(action)
         action.triggered.connect(lambda *, run=run, ses=self.session:
             run(ses, "view" + ("" if ses.selection.empty() else " sel")))
