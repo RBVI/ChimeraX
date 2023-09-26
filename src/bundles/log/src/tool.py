@@ -515,7 +515,8 @@ class Log(ToolInstance, HtmlLog):
         from chimerax.ui.html import disclosure
         prev_ses_html = disclosure('%s<p>&mdash;&mdash;&mdash; End of log from %s &mdash;&mdash;&mdash;</p>'
             % (contents, date), summary= 'Log from %s' % date, background_color="#ebf5fb")
-        if self.settings.session_restore_clears and session.restore_options['clear log']:
+        if (self.settings.session_restore_clears and session.restore_options['clear log']
+                and not session.restore_options['combine']):
             def clear_log_unless_error(trig_name, session, *, self=self, prev_ses_html=prev_ses_html):
                 if session.restore_options['error encountered']:
                     # if the session did't restore successfully, don't clear the log
