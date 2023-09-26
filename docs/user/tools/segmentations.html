@@ -90,8 +90,8 @@ The <b>View Layout</b> can be switched among:
 <li><b>3D Only (VR)</b>
 </ul>
 <p>
-The <b>Model</b> of interest (the medical image to segment and thus to
-show in the slice views) should be chosen from the list of currently open models.
+The <b>Model</b> of interest (the medical image to segment and thus to show
+in the slice views) should be chosen from the list of currently open models.
 Choosing a different model does not change the 3D view;  
 models can be shown/hidden there using any of the usual mechanisms,
 namely the <a href="modelpanel.html"><b>Model Panel</b></a> and/or 
@@ -99,6 +99,12 @@ namely the <a href="modelpanel.html"><b>Model Panel</b></a> and/or
 </p><p>
 The <b>Plane Guidelines</b> option controls whether each slice view should
 contain crosshairs showing the positions of the other slice views.
+</p><p>
+<a name="range"></a>
+Min and max sliders set the <b>Intensity Range</b> that can be added 
+to a segmentation model during <a href="#editing">interactive editing</a>;
+only those pixels with data values within the specified range will be
+added even when a larger area is swept out by the segmentation cursor.
 </p>
 
 <a name="editing"></a>
@@ -124,6 +130,9 @@ The segmentation cursor is shown as a red circle;
 left mouse click-drag sweeps out an area in the currently displayed 
 data plane, whereas additionally pressing Shift erases the corresponding area 
 from the segmentation. Shift-scroll adjusts the segmentation cursor size.
+The area swept out by the segmentation cursor in a slice view will be added
+to the current segmentation, unless further restricted by
+<a href="#range">intensity range</a>.
 </p><p>
 Clicking <b>Help</b> opens
 this page in the <a href="helpviewer.html"><b>Help Viewer</b></a>.
@@ -131,5 +140,5 @@ this page in the <a href="helpviewer.html"><b>Help Viewer</b></a>.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-July 2023</address>
+September 2023</address>
 </body></html>
