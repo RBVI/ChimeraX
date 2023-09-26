@@ -39,8 +39,8 @@ class Region:
         self.region_manager = region_manager
         self.seq_canvas = self.region_manager.seq_canvas
         self.scene = self.seq_canvas.main_scene
-        self._border_rgba = border_rgba
-        self._interior_rgba = interior_rgba
+        self._border_rgba = self._prev_border_rgba = border_rgba
+        self._interior_rgba = self._prev_interior_rgba = interior_rgba
         self.cover_gaps = cover_gaps
         self.source = source
         self.read_only = read_only
@@ -129,11 +129,16 @@ class Region:
         import numpy
         if numpy.array_equal(self.border_rgba, rgba):
             return
+        self._prev_border_rgba = self._border_rgba
         self._border_rgba = rgba
         # kind of complicated due to highlighting; just redraw
         self.redraw()
 
     border_rgba = property(get_border_rgba, set_border_rgba)
+
+    @property
+    def prev_border_rgba(self):
+        return self._prev_border_rgba
 
     def clear(self, make_cb=True):
         if self.blocks:
@@ -220,6 +225,7 @@ class Region:
         import numpy
         if numpy.array_equal(self.interior_rgba, rgba):
             return
+        self._prev_interior_rgba = self._interior_rgba
         self._interior_rgba = rgba
         if not self._items:
             return
@@ -236,6 +242,10 @@ class Region:
         self.redraw()
 
     interior_rgba = property(get_interior_rgba, set_interior_rgba)
+
+    @property
+    def prev_interior_rgba(self):
+        return self._prev_interior_rgba
 
     def lower_below(self, other_region):
         if not self._items or not other_region._items:
@@ -329,6 +339,8 @@ class Region:
         self.name_prefix = state['name_prefix']
         self._border_rgba = state['_border_rgba']
         self._interior_rgba = state['_interior_rgba']
+        self._prev_border_rgba = state.get('_prev_border_rgba', self._border_rgba)
+        self._prev_interior_rgba = state.get('_prev_interior_rgba', self._interior_rgba)
         self.cover_gaps = state['cover_gaps']
         self.source = state['source']
         self.highlighted = state['highlighted']
@@ -390,6 +402,8 @@ class Region:
         state['name_prefix'] = self.name_prefix
         state['_border_rgba'] = self._border_rgba
         state['_interior_rgba'] = self._interior_rgba
+        state['_prev_border_rgba'] = self._prev_border_rgba
+        state['_prev_interior_rgba'] = self._prev_interior_rgba
         state['cover_gaps'] = self.cover_gaps
         state['source'] = self.source
         state['highlighted'] = self.highlighted
@@ -1966,13 +1980,21 @@ class RegionsTool:
         return region.border_rgba is not None
 
     def _get_edge_color(self, region):
-        return (0.5, 0.5, 0.5, 1.0) if region.border_rgba is None else region.border_rgba
+        if region.border_rgba is not None:
+            return region.border_rgba
+        if region.prev_border_rgba is not None:
+            return region.prev_border_rgba
+        return (0.5, 0.5, 0.5, 1.0)
 
     def _get_fill(self, region):
         return region.interior_rgba is not None
 
     def _get_fill_color(self, region):
-        return (0.5, 0.5, 0.5, 1.0) if region.interior_rgba is None else region.interior_rgba
+        if region.interior_rgba is not None:
+            return region.interior_rgba
+        if region.prev_interior_rgba is not None:
+            return region.prev_interior_rgba
+        return (0.5, 0.5, 0.5, 1.0)
 
     def _selection_changed(self, *args):
         covers = set()
