@@ -2003,7 +2003,7 @@ class RegionsTool:
         self._set_table_data(menu_action=action)
 
     def _set_edge(self, region, edge):
-        if fill:
+        if edge:
             region.border_rgba = self._get_edge_color(region)
         else:
             region.border_rgba = None
