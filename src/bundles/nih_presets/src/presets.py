@@ -348,7 +348,7 @@ def run_preset(session, name, mgr):
 
 def surface_cmds(session):
     import math
-    cmds = []
+    cmds = ["size atomRadius default"]
     for s in all_atomic_structures(session):
         # AddH won't actually run until after this command is generated, so base the grid value
         # on the number of heavy atoms involved in the surface for consistency, but then multiply
