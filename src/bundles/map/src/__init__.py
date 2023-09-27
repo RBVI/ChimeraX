@@ -140,7 +140,7 @@ class _MapBundle(BundleAPI):
                     def fetch(self, session, ident, format_name, ignore_cache,
                             fetcher=fetcher, **kw):
                         return fetcher(session, ident, ignore_cache=ignore_cache, **kw)
-            elif name in ['emdb', 'emdb_europe', 'emdb_us', 'emdb_japan', 'emdb_china']:
+            elif name in ['emdb', 'emdb_europe', 'emdb_us', 'emdb_japan', 'emdb_china', 'emdb_fit']:
                 from . import emdb_fetch
                 fetcher = {
                     'emdb': emdb_fetch.fetch_emdb,
@@ -148,6 +148,7 @@ class _MapBundle(BundleAPI):
                     'emdb_us': emdb_fetch.fetch_emdb_us,
                     'emdb_japan': emdb_fetch.fetch_emdb_japan,
                     'emdb_china': emdb_fetch.fetch_emdb_china,
+                    'emdb_fit': emdb_fetch.fetch_emdb_fit,
                 }[name]
                 from chimerax.open_command import FetcherInfo
                 class Info(FetcherInfo):
@@ -156,9 +157,10 @@ class _MapBundle(BundleAPI):
                         return fetcher(session, ident, ignore_cache=ignore_cache, **kw)
                     @property
                     def fetch_args(self):
-                        from chimerax.core.commands import EnumOf
+                        from chimerax.core.commands import EnumOf, BoolArg
                         return {
                             'transfer_method': EnumOf(['ftp', 'https']),
+                            'fits': BoolArg,
                         }
             else:
                 from chimerax.open_command import OpenerInfo

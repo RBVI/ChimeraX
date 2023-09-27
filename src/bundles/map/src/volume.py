@@ -146,6 +146,10 @@ class Volume(Model):
     step = '%d' % sx if sy == sx and sz == sx else '%d,%d,%d' % (sx,sy,sz)
     info += 'step %s' % step
     info += ', values %s' % self.data.value_type.name
+    if hasattr(self, 'fit_pdb_ids') and self.fit_pdb_ids:
+      pdb_links = ', '.join(f'<a href="cxcmd: open {pdb_id}">{pdb_id}</a>'
+                            for pdb_id in self.fit_pdb_ids)
+      info += f', fit PDB {pdb_links}'
     return info
 
   # ---------------------------------------------------------------------------
@@ -165,7 +169,7 @@ class Volume(Model):
   def added_to_session(self, session):
     if getattr(self, 'series', None) is None and self._channels is None:
       msg = 'Opened %s as #%s, %s' % (self.name, self.id_string, self.info_string())
-      session.logger.info(msg)
+      session.logger.info(msg, is_html = ('cxcmd' in msg))
 
     # Use full lighting for initial map display
     if len(session.models.list()) == 1:
