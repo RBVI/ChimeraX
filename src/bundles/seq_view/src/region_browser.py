@@ -1874,6 +1874,8 @@ class RegionsTool:
         self._set_table_data(resize_columns=False)
         table.launch()
         table.selection_changed.connect(self._selection_changed)
+        # make rows as narrow as possible
+        table.verticalHeader().setDefaultSectionSize(10)
         layout.addWidget(table, stretch=1)
         buttons_layout = QHBoxLayout()
         layout.addLayout(buttons_layout)
