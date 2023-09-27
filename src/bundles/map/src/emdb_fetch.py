@@ -75,6 +75,10 @@ def fetch_emdb(session, emdb_id, mirror = None, transfer_method = None, fits = F
     except Exception as e:
         session.logger.warning(f'Could not read metadata for EMDB {emdb_id}: {str(e)}')
         meta_data = None
+        
+    # Set initial contour level
+    if meta_data and meta_data.contour_levels:
+        kw['initial_surface_level'] = meta_data.contour_levels[0]
 
     model_name = 'emdb %s' % emdb_id
     models, status = session.open_command.open_data(filename, format = 'ccp4',
@@ -132,6 +136,8 @@ class _emdb_meta_data:
         d = parse(xml_filename)
         # Look for fit PDB files.
         self.pdb_ids = _get_xml_tree_values(d, ('emd', 'crossreferences', 'pdb_list', 'pdb_reference', 'pdb_id'))
+        self.contour_levels = _get_xml_tree_values(d, ('emd', 'map', 'contour_list', 'contour', 'level'),
+                                                   as_type = float)
 
 def _get_xml_tree_values(node, path, as_type = str):
     if len(path) == 0:

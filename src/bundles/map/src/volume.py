@@ -581,13 +581,20 @@ class Volume(Model):
   # ---------------------------------------------------------------------------
   #
   def initial_surface_levels(self, mstats = None, vfrac = (0.01, 0.90), mfrac = None):
+    d = self.data
+    rgba = self.default_rgba
+    if hasattr(d, 'initial_surface_level'):
+      levels = [d.initial_surface_level]
+      colors = [rgba]
+      return levels, colors
+
     if mstats is None:
       mstats = self.matrix_value_statistics()
     if mfrac is None:
       v = mstats.rank_data_value(1-vfrac[0], estimate = 'high')
     else:
       v = mstats.mass_rank_data_value(1-mfrac[0], estimate = 'high')
-    rgba = self.default_rgba
+
     binary = getattr(self.data, 'binary', False)
     polar = getattr(self.data, 'polar_values', False)
     if polar:
@@ -3610,6 +3617,11 @@ def open_map(session, path, name = None, format = None, **kw):
 # -----------------------------------------------------------------------------
 #
 def open_grids(session, grids, name, **kw):
+
+    level = kw.get('initial_surface_level', None)
+    if level is not None:
+      for g in grids:
+        g.initial_surface_level = level
 
     if kw.get('polar_values', False):
       for g in grids:
