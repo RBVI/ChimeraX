@@ -146,6 +146,10 @@ class Volume(Model):
     step = '%d' % sx if sy == sx and sz == sx else '%d,%d,%d' % (sx,sy,sz)
     info += 'step %s' % step
     info += ', values %s' % self.data.value_type.name
+    if hasattr(self, 'fit_pdb_ids') and self.fit_pdb_ids:
+      pdb_links = ', '.join(f'<a href="cxcmd: open {pdb_id}">{pdb_id}</a>'
+                            for pdb_id in self.fit_pdb_ids)
+      info += f', fit PDB {pdb_links}'
     return info
 
   # ---------------------------------------------------------------------------
@@ -165,7 +169,7 @@ class Volume(Model):
   def added_to_session(self, session):
     if getattr(self, 'series', None) is None and self._channels is None:
       msg = 'Opened %s as #%s, %s' % (self.name, self.id_string, self.info_string())
-      session.logger.info(msg)
+      session.logger.info(msg, is_html = ('cxcmd' in msg))
 
     # Use full lighting for initial map display
     if len(session.models.list()) == 1:
@@ -577,13 +581,20 @@ class Volume(Model):
   # ---------------------------------------------------------------------------
   #
   def initial_surface_levels(self, mstats = None, vfrac = (0.01, 0.90), mfrac = None):
+    d = self.data
+    rgba = self.default_rgba
+    if hasattr(d, 'initial_surface_level'):
+      levels = [d.initial_surface_level]
+      colors = [rgba]
+      return levels, colors
+
     if mstats is None:
       mstats = self.matrix_value_statistics()
     if mfrac is None:
       v = mstats.rank_data_value(1-vfrac[0], estimate = 'high')
     else:
       v = mstats.mass_rank_data_value(1-mfrac[0], estimate = 'high')
-    rgba = self.default_rgba
+
     binary = getattr(self.data, 'binary', False)
     polar = getattr(self.data, 'polar_values', False)
     if polar:
@@ -3606,6 +3617,11 @@ def open_map(session, path, name = None, format = None, **kw):
 # -----------------------------------------------------------------------------
 #
 def open_grids(session, grids, name, **kw):
+
+    level = kw.get('initial_surface_level', None)
+    if level is not None:
+      for g in grids:
+        g.initial_surface_level = level
 
     if kw.get('polar_values', False):
       for g in grids:

@@ -692,11 +692,9 @@ class SequenceViewer(ToolInstance):
             tools_menu.addAction(identity_action)
 
         annotations_menu = menu.addMenu("Annotations")
-        rt_action = QAction("Regions", annotations_menu)
-        rt_action.setCheckable(True)
-        rt_action.setChecked(self.regions_tool_shown)
+        rt_action = QAction("Regions...", annotations_menu)
         rt_action.triggered.connect(lambda*, self=self, action=rt_action:
-            setattr(self, "regions_tool_shown", action.isChecked()))
+            setattr(self, "regions_tool_shown", True))
         annotations_menu.addAction(rt_action)
         feature_seqs = [ seq for seq in self.alignment.seqs if seq.features(fetch=False) ]
         if feature_seqs:
