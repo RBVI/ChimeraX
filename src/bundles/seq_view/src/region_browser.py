@@ -1006,8 +1006,11 @@ class RegionManager:
         # ungapped
         seqs = self.seq_canvas.alignment.seqs
         chain_info = {}
-        for seq1, seq2, pos1, pos2 in region.blocks:
-            for seq in seqs[seqs.index(seq1):seqs.index(seq2)+1]:
+        for i, seq in enumerate(seqs):
+            blocks = []
+            for seq1, seq2, pos1, pos2 in region.blocks:
+                if i < seqs.index(seq1) or i > seqs.index(seq2):
+                    continue
                 # find edges that aren't in gaps
                 for p1 in range(pos1, pos2+1):
                     if not seq.is_gap_character(seq[p1]):
@@ -1017,7 +1020,8 @@ class RegionManager:
                 for p2 in range(pos2, pos1-1, -1):
                     if not seq.is_gap_character(seq[p2]):
                         break
-                u1, u2 = [seq.ungapped_to_gapped(p) for p in (p1, p2)]
+                u1, u2 = [seq.gapped_to_ungapped(p) for p in (p1, p2)]
+                blocks.append((u1, u2))
                 for chain, mmap in seq.match_maps.items():
                     start = None
                     for u in range(u1, u2+1):
@@ -1037,7 +1041,16 @@ class RegionManager:
                         end = r
                         break
                     chain_info.setdefault(chain, []).append((start, end))
+            if blocks:
+                off = 1 if seq.numbering_start is None else seq.numbering_start
+                lines.extend([
+                    '    <tr>',
+                    '      <td style="text-align:center">%s</td>' % seq.name,
+                    '      <td style="text-align:center">%s</td>' % ",".join(
+                        ["%d-%d" % (u1+off, u2+off) for u1, u2 in blocks]),
+                ])
 
+        # asspciated structures
         if chain_info:
             rstr = lambda r: r.string(omit_structure=True, omit_chain=True)
             for chain in sorted(list(chain_info.keys())):
@@ -1832,11 +1845,11 @@ class RegionsTool:
                 format=table.COL_FORMAT_BOOLEAN),
             "shown": table.add_column("S" if short_titles else "Shown", "shown",
                 format=table.COL_FORMAT_BOOLEAN),
-            "fill": table.add_column("F" if short_titles else "Fill", self._get_fill,
+            "fill": table.add_column("I" if short_titles else "Interior", self._get_fill,
                 data_set=self._set_fill, format=table.COL_FORMAT_BOOLEAN),
             "fill color": table.add_column("\N{BLACK MEDIUM SQUARE}", self._get_fill_color,
                 data_set=self._set_fill_color, format=table.COL_FORMAT_OPAQUE_COLOR, color="purple"),
-            "edge": table.add_column("E" if short_titles else "Edge", self._get_edge,
+            "edge": table.add_column("B" if short_titles else "Border", self._get_edge,
                 data_set=self._set_edge, format=table.COL_FORMAT_BOOLEAN),
             "edge color": table.add_column("\N{BALLOT BOX}", self._get_edge_color,
                 data_set=self._set_edge_color, format=table.COL_FORMAT_OPAQUE_COLOR, color="forest green"),
