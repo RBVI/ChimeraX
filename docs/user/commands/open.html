@@ -1163,6 +1163,16 @@ Whether to fetch ensembles associated with an IHM dataset
 (default <b>false</b>, as these can be quite large).
 </blockquote>
 <blockquote>
+<a name="fits"></a>
+<b>fits</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>
+When <a href="#fetch">fetching</a> a map from the EMDB, whether to 
+additionally fetch associated atomic structures, if any, from the PDB.
+Alternatively, specifying the <a href="#fetch-table">data source</a>
+as <b>emdb_fits</b> (rather than <b>emdb</b>) will automatically
+fetch both types of data without the use of this option.
+</blockquote>
+<blockquote>
 <a name="forEachFile"></a>
 <b>forEachFile</b>&nbsp;&nbsp;<i>input-files</i>
 <br>
@@ -1735,6 +1745,10 @@ target="_blank">Electron Microscopy Data Bank (EMDB)</a></td>
 Japanese mirror to .jp hosts, otherwise ebi.ac.uk; 
 Japanese site uses https, others
 <a href="ftp://ftp.wwpdb.org/pub/emdb/README" target="_blank">ftp</a>)
+<br>
+(for associated atomic structures, if any,
+see command option <a href="#fits"><b>fits</b></a> or
+data source <b>emdb_fits</b>, below)
 </td>
 <td align="center" rowspan="5"><b>ccp4</b></td>
 </tr><tr>
@@ -1772,6 +1786,13 @@ target="_blank">EMDB</a> wwpdb.org</td>
 (command option <a href="#transferMethod"><b>transferMethod</b></a>
 can be <b>https</b> or <b>ftp</b>)
 </td>
+</tr><tr>
+<td align="center" class="text">
+<a href="https://www.ebi.ac.uk/emdb/" target="_blank">EMDB</a> and PDB</td>
+<td align="center"><b>emdb_fits</b></td>
+<td align="center">electron density map and associated atomic models, if any
+</td>
+<td align="center"><b>ccp4</b> and <b>mmcif</b></td>
 </tr><tr>
 <td align="center"><a href="https://pdb-dev.wwpdb.org/"
 target="_blank">PDB-Dev</a></td>
@@ -2028,6 +2049,9 @@ target="_blank"><b>Clipper</b> bundle</a> from the
 target="_blank">ChimeraX Toolshed</a> allows
 <a href="#top">opening</a> and <a href="save.html">saving</a>
 crystallographic reflection files in MTZ format.
+See also: 
+<a href="https://tristanic.github.io/chimerax-clipper/commands/clipper.html"
+target="_blank"><b>clipper</b> commands</a>
 </p><p>
 <a href="#top">Opening</a>
 an MTZ file requires specifying an already-open atomic structure
