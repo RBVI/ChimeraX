@@ -127,7 +127,7 @@ def _emdb_meta_data_xml_file(session, emdb_id, url_base, ignore_cache = False):
 
     from chimerax.core.fetch import fetch_file
     xml_filename = fetch_file(session, xml_url, 'map header %s' % emdb_id, xml_name, 'EMDB',
-                              uncompress = True, ignore_cache=ignore_cache)
+                              ignore_cache=ignore_cache)
     return xml_filename
 
 class _emdb_meta_data:
