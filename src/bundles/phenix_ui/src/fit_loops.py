@@ -143,7 +143,7 @@ def phenix_fit_loops(session, structure, in_map, *, block=None, phenix_location=
             if processors is None:
                 processors = 1
     from chimerax.core.commands import plural_form
-    session.logger.info("Using %d %s" % (processors, plural_form(processors, "CPU")))
+    session.logger.info("Using %d %s" % (processors, plural_form(processors, "processor")))
 
     # Run phenix.fit_loops
     # keep a reference to 'd' in the callback so that the temporary directory isn't removed before
