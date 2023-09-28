@@ -116,7 +116,7 @@ def fetch_emdb_us(session, emdb_id, transfer_method = None, fits = False, ignore
     return fetch_emdb(session, emdb_id, mirror = 'united states', transfer_method = transfer_method,
                       fits = fits, ignore_cache = ignore_cache, **kw)
 
-def fetch_emdb_fit(session, emdb_id, transfer_method = None, fits = True, ignore_cache=False, **kw):
+def fetch_emdb_fits(session, emdb_id, transfer_method = None, fits = True, ignore_cache=False, **kw):
     return fetch_emdb(session, emdb_id, mirror = 'united states', transfer_method = transfer_method,
                       fits = fits, ignore_cache = ignore_cache, **kw)
 
