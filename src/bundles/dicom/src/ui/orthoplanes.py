@@ -37,6 +37,7 @@ from chimerax.geometry import Place, translation
 from chimerax.graphics import Drawing
 from chimerax.map import Volume, VolumeSurface, VolumeImage
 from chimerax.map.volume import show_planes
+from chimerax.map.volume_viewer import VolumeViewer, Histogram_Pane
 from chimerax.map.volumecommand import apply_volume_options
 from chimerax.ui.widgets import ModelMenu
 
@@ -340,6 +341,10 @@ class PlaneViewer(QWindow):
         QWindow.destroy(self)
 
     def _redraw(self, *_):
+        self.render()
+
+    def update_and_rerender(self):
+        self.view.drawing.parent.update_drawings()
         self.render()
 
     #region drawing info
@@ -835,7 +840,11 @@ class PlaneViewer(QWindow):
         v.update_drawings()
         v.allow_style_changes = False
         # Add our new volume to the volume menu with our custom widget
-        self.session.models.add([v])
+        t = None
+        for tool in self.session.tools:
+            if type(tool) == VolumeViewer:
+                t = tool
+        self._add_axis_to_volume_viewer(t, v)
 
         self.main_view.camera.redraw_needed = True
         for d in v._child_drawings:
@@ -875,3 +884,215 @@ class PlaneViewer(QWindow):
         if self.model_menu.value == new_volume:
             return
         ...
+
+    def _add_axis_to_volume_viewer(self, volume_viewer, volume):
+        v = volume
+        tp = volume_viewer.thresholds_panel
+        hptable = tp.histogram_table
+        if v in hptable:
+          return
+
+        if hasattr(v, 'series'):
+            same_series = [vp for vp in hptable.keys()
+                           if vp is not None and hasattr(vp, 'series') and vp.series == v.series]
+        else:
+            same_series = []
+
+        if same_series:
+          # Replace entry with same id number, for volume series
+          vs = same_series[0]
+          hp = hptable[vs]
+          del hptable[vs]
+        elif None in hptable:
+          hp = hptable[None]                # Reuse unused histogram
+          del hptable[None]
+        elif len(hptable) >= tp.maximum_histograms():
+          hp = tp.active_order[-1]        # Reuse least recently active histogram
+          del hptable[hp.volume]
+        else:
+          # Make new histogram
+          hp = SegmentationVolumePanel(self, tp.dialog, tp.histograms_frame, tp.histogram_height)
+          hl = tp.histograms_layout
+          hl.insertWidget(hl.count()-1, hp.frame)
+          tp.histogram_panes.append(hp)
+
+        hp.set_data_region(v)
+        hptable[v] = hp
+        tp.set_active_histogram(hp)
+        tp._allow_panel_height_increase = True
+
+
+
+class SegmentationVolumePanel(Histogram_Pane):
+    """When a volume is added to a session it typically spawns the Volume Viewer, which
+    gets populated with a panel allowing the user to control how the volume is rendered,
+    which plane is shown if it's a plane, etc. This class is a wrapper around that panel
+    that disables certain features."""
+    def __init__(self, plane_viewer, dialog, parent, histogram_height):
+        self.plane_viewer = plane_viewer
+        self.dialog = dialog
+        self.volume = None
+        self.histogram_data = None
+        self.histogram_size = None
+        self._surface_levels_changed = False
+        self._image_levels_changed = False
+        self._log_moved_marker = False
+        self.update_timer = None
+
+        from Qt.QtWidgets import QVBoxLayout, QHBoxLayout, QFrame, QLabel, QPushButton, QMenu, QLineEdit, QSizePolicy
+        from Qt.QtCore import Qt, QSize
+
+        self.frame = f = QFrame(parent)
+        f.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+        self._layout = flayout = QVBoxLayout(f)
+        flayout.setContentsMargins(0,0,0,0)
+        flayout.setSpacing(0)
+
+        # Put volume name on separate line.
+        self.data_name = nm = QLabel(f)
+        flayout.addWidget(nm)
+        nm.mousePressEvent = self.select_data_cb
+
+        # Create frame for step, color, level controls.
+        df = QFrame(f)
+        df.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+#        df.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Minimum)
+        flayout.addWidget(df)
+        layout = QHBoxLayout(df)
+        layout.setContentsMargins(0,0,0,0)
+        layout.setSpacing(10)
+
+        # Display / hide map button
+        self.shown = sh = QPushButton(df)
+        sh.setAttribute(Qt.WA_LayoutUsesWidgetRect) # Avoid extra padding on Mac
+        sh.setMaximumSize(20,20)
+        sh.setCheckable(True)
+        sh.setFlat(True)
+        sh.setStyleSheet('QPushButton {background-color: transparent;}')
+        from chimerax.ui.icons import get_qt_icon
+        sh_icon = get_qt_icon('shown')
+        sh.setIcon(sh_icon)
+        sh.setIconSize(QSize(20,20))
+        sh.clicked.connect(self.show_cb)
+        layout.addWidget(sh)
+        sh.setToolTip('Display or undisplay data')
+        self.shown_handlers = []
+
+        # Color button
+        from chimerax.ui.widgets import ColorButton
+        cl = ColorButton(df, max_size = (16,16), has_alpha_channel = True, pause_delay = 1.0)
+        self._color_button = cl
+        cl.color_changed.connect(self._color_chosen)
+        cl.color_pause.connect(self._log_color_command)
+        layout.addWidget(cl)
+
+        self.data_id = did = QLabel(df)
+        layout.addWidget(did)
+        did.mousePressEvent = self.select_data_cb
+
+        self.size = sz = QLabel(df)
+        layout.addWidget(sz)
+        sz.mousePressEvent = self.select_data_cb
+
+        # Subsampling step menu
+        sl = QLabel('step', df)
+        layout.addWidget(sl)
+        import sys
+        if sys.platform == 'darwin':
+            # Setting padding cam make layout more compact on macOS 10.15 but makes clicking
+            # on menu button down arrow do nothing.  So use default style on Mac.
+            menu_button_style = None
+        else:
+            # Reduce button width and height on Windows and Linux
+            menu_button_style = 'padding-left: 6px; padding-right: 6px; padding-top: 3px; padding-bottom: 3px'
+        layout.addSpacing(-8)	# Put step menu closer to step label.
+        self.data_step = dsm = QPushButton(df)
+        if menu_button_style:
+            dsm.setStyleSheet(menu_button_style)
+        sm = QMenu(df)
+        for step in (1,2,4,8,16):
+            sm.addAction('%d' % step, lambda s=step: self.data_step_cb(s))
+        dsm.setMenu(sm)
+        layout.addWidget(dsm)
+
+        # Threshold level entry
+        lh = QLabel('Level', df)
+        layout.addWidget(lh)
+        layout.addSpacing(-5)	# Reduce padding to following entry field
+
+        self.threshold = le = QLineEdit('', df)
+        le.setMaximumWidth(40)
+        le.returnPressed.connect(self.threshold_entry_enter_cb)
+        layout.addWidget(le)
+
+        self.data_range = rn = QLabel('? - ?', df)
+        layout.addWidget(rn)
+
+        # Display style menu
+        self.style = stm = QPushButton(df)
+        if menu_button_style:
+            stm.setStyleSheet(menu_button_style)
+        sm = QMenu(df)
+        for style in ('surface', 'mesh', 'volume', 'maximum', 'plane', 'orthoplanes', 'box', 'tilted slab'):
+            sm.addAction(style, lambda s=style: self.display_style_changed_cb(s))
+        stm.setMenu(sm)
+        layout.addWidget(stm)
+        stm.setEnabled(False)
+        stm.setVisible(False)
+
+        layout.addStretch(1)
+
+        # Close map button
+        cb = QPushButton(df)
+        cb.setAttribute(Qt.WA_LayoutUsesWidgetRect) # Avoid extra padding on Mac
+        cb.setMaximumSize(20,20)
+        cb.setFlat(True)
+        layout.addWidget(cb)
+        from chimerax.ui.icons import get_qt_icon
+        cb_icon = get_qt_icon('minus')
+        cb.setIcon(cb_icon)
+        cb.setIconSize(QSize(20,20))
+        cb.clicked.connect(self.close_map_cb)
+        cb.setToolTip('Close data set')
+
+        # Add histogram below row of controls
+        h = self.make_histogram(f, histogram_height, new_marker_color = (1,1,1,1))
+        flayout.addWidget(h)
+        h.contextMenuEvent = self.show_context_menu
+
+        # Create planes slider below histogram if requested.
+        self._planes_slider_shown = False
+        self._planes_slider_frame = None
+
+    def show_plane_slider(self, show, axis = 2):
+        pass
+
+    def data_step_cb(self, step):
+        self.data_step.setText('%d' % step)
+
+        v = self.volume
+        if v is None or v.region is None:
+          return
+
+        ijk_step = [step]
+        if len(ijk_step) == 1:
+          ijk_step = ijk_step * 3
+
+        if tuple(ijk_step) == tuple(v.region[2]):
+          return
+
+        v.new_region(ijk_step = ijk_step, adjust_step = False)
+        for vc in v.other_channels():
+            vc.new_region(ijk_step = ijk_step, adjust_step = False)
+
+        d = self.dialog
+        if v != d.active_volume:
+          d.display_volume_info(v)
+        self.plane_viewer.update_and_rerender()
+
+    def moved_marker_cb(self, marker):
+        self.select_data_cb()	# Causes redisplay using GUI settings
+        self.set_threshold_and_color_widgets()
+        # Redraw graphics before more mouse drag events occur.
+        self.plane_viewer.update_and_rerender()
+
