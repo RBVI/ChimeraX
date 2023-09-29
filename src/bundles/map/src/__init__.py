@@ -140,7 +140,7 @@ class _MapBundle(BundleAPI):
                     def fetch(self, session, ident, format_name, ignore_cache,
                             fetcher=fetcher, **kw):
                         return fetcher(session, ident, ignore_cache=ignore_cache, **kw)
-            elif name in ['emdb', 'emdb_europe', 'emdb_us', 'emdb_japan', 'emdb_china', 'emdb_fit']:
+            elif name in ['emdb', 'emdb_europe', 'emdb_us', 'emdb_japan', 'emdb_china', 'emdb_fits']:
                 from . import emdb_fetch
                 fetcher = {
                     'emdb': emdb_fetch.fetch_emdb,
@@ -148,7 +148,7 @@ class _MapBundle(BundleAPI):
                     'emdb_us': emdb_fetch.fetch_emdb_us,
                     'emdb_japan': emdb_fetch.fetch_emdb_japan,
                     'emdb_china': emdb_fetch.fetch_emdb_china,
-                    'emdb_fit': emdb_fetch.fetch_emdb_fit,
+                    'emdb_fits': emdb_fetch.fetch_emdb_fits,
                 }[name]
                 from chimerax.open_command import FetcherInfo
                 class Info(FetcherInfo):
