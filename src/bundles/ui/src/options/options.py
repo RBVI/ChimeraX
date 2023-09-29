@@ -936,24 +936,15 @@ class StringsOption(Option):
     def set_multiple(self):
         self.widget.setText(self.multiple_value)
 
-    def _make_widget(self, initial_text_width="10em", initial_text_height="4em", **kw):
-        """initial_text_width/height should be a string holding a "stylesheet-friendly"
-           value, (e.g. '10em' or '7ch') or None"""
+    def _make_widget(self, **kw):
+        """Specifying initial width/height seems less necessary since QTextEdit inherits from
+           QScrollArea, and specifying such values via a stylesheet produces weird scrolling
+           behavior [#9823].  If needed in the future, could perhaps be provided by defining
+           a sizeHint() for an inline QTextEdit subclass."""
         from Qt.QtWidgets import QTextEdit
         self.widget = QTextEdit(**kw)
         self.widget.setAcceptRichText(False)
         self.widget.setLineWrapMode(QTextEdit.LineWrapMode.NoWrap)
-        sheet_info = ""
-        if initial_text_width:
-            sheet_info = "width: %s" % initial_text_width
-        else:
-            sheet_info = ""
-        if initial_text_height:
-            if sheet_info:
-                sheet_info += "; "
-            sheet_info += "height: %s" % initial_text_height
-        if sheet_info:
-            self.widget.setStyleSheet("* { " + sheet_info + " }")
 
 class HostPortOption(StringIntOption):
     """Supported API. Option for a host name or address and a TCP port number (as a 2-tuple)"""

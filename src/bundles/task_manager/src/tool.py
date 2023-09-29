@@ -54,7 +54,7 @@ class TaskManagerTableSettings(Settings):
 class TaskManager(ToolInstance):
     SESSION_ENDURING = True
     SESSION_SAVE = False
-    #help = "help:user/tools/taskmanager.html"
+    help = "help:user/tools/taskmanager.html"
 
     def __init__(self, session, name = "Task Manager"):
         super().__init__(session, name)
@@ -64,6 +64,7 @@ class TaskManager(ToolInstance):
         self.tool_window = MainToolWindow(self)
         self.parent = self.tool_window.ui_area
         self.clear_finished_button = QPushButton("Clear Finished")
+        self.kill_task_button = QPushButton("Kill Task(s)")
         self.close_button = QPushButton("Close")
         self.help_button = QPushButton("Help")
 
@@ -77,11 +78,14 @@ class TaskManager(ToolInstance):
         self.button_container_layout.setContentsMargins(0, 0, 0, 0)
         self.button_container_layout.setSpacing(0)
         self.button_container_layout.addStretch()
+        self.button_container_layout.addWidget(self.kill_task_button)
         self.button_container_layout.addWidget(self.clear_finished_button)
         self.button_container_layout.addWidget(self.close_button)
         self.button_container_layout.addWidget(self.help_button)
 
+        self.kill_task_button.clicked.connect(lambda: self.kill_task(self.table.selected))
         self.help_button.clicked.connect(self.show_help)
+        self.close_button.clicked.connect(self.delete)
         self.clear_finished_button.clicked.connect(self._clear_finished)
 
         self.parent.setLayout(self.main_layout)
@@ -92,9 +96,9 @@ class TaskManager(ToolInstance):
         self.table.data = [task for task in self.session.tasks.values()]
         self.table.add_column("ID (Local)", data_fetch=lambda x: x.id)
         self.table.add_column("ID (Webservices)", data_fetch=lambda x: getattr(x, "job_id", None))
-        self.table.add_column("Task", data_fetch=lambda x: x.display_name())
-        self.table.add_column("Started", data_fetch=lambda x: x.start_time.strftime("%H:%M:%S%p"))
-        self.table.add_column("Runtime", data_fetch=lambda x: self._get_runtime(x.runtime()))
+        self.table.add_column("Task", data_fetch=lambda x: str(x))
+        self.table.add_column("Start Time", data_fetch=lambda x: x.start_time.strftime("%H:%M:%S%p"))
+        self.table.add_column("Runtime", data_fetch=lambda x: self._get_runtime(x.runtime))
         self.table.add_column("Status", data_fetch=lambda x: x.state)
         self.table.launch(suppress_resize=True)
         self.control_widget.setVisible(True)
@@ -145,13 +149,11 @@ class TaskManager(ToolInstance):
         return string.capwords(s.replace('_', ' '))
 
     def show_help(self):
-        run("help 'Task Manager'")
+        run(self.session, "help 'Task Manager'")
 
-    def kill_task(self, id):
-        run("taskman kill %s" % id)
-
-    def pause_task(self, id):
-        run("taskman pause %s" % id)
+    def kill_task(self, tasks):
+        for task in tasks:
+            run(self.session, "taskman kill %s" % task.id)
 
 
 class TaskManagerWorker(QObject):

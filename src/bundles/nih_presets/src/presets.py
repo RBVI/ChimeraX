@@ -263,8 +263,8 @@ def run_preset(session, name, mgr):
         elif "HIS" in incomplete_residues.names:
             session.logger.warning("Incomplete HIS residue; coulombic will likely fail")
     elif name == "surface hydrophobicity":
-        cmd = undo_printable + base_setup + base_surface + addh_cmds(session) + surface_cmds(session) \
-            + color_by_hydrophobicity_cmds(session)
+        cmd = undo_printable + base_setup + base_surface + addh_cmds(session) \
+            + surface_cmds(session, sharp=True) + color_by_hydrophobicity_cmds(session)
     elif name == "surface by chain":
         cmd = undo_printable + base_setup + base_surface + addh_cmds(session) + surface_cmds(session) \
             + by_chain_cmds(session, rainbow=True, target_atoms=True)
@@ -346,9 +346,9 @@ def run_preset(session, name, mgr):
     cmd = " ; ".join(cmd)
     mgr.execute(cmd)
 
-def surface_cmds(session):
+def surface_cmds(session, *, sharp=False):
     import math
-    cmds = []
+    cmds = ["size atomRadius default"]
     for s in all_atomic_structures(session):
         # AddH won't actually run until after this command is generated, so base the grid value
         # on the number of heavy atoms involved in the surface for consistency, but then multiply
@@ -357,7 +357,8 @@ def surface_cmds(session):
         num_heavys = len(s.atoms.filter(
             numpy.logical_and(s.atoms.elements.numbers != 1, s.atoms.structure_categories == "main")))
         grid_size = min(2.0, max(0.3, math.log10(2 *num_heavys) - 3.2))
-        cmds.append("surface %s enclose %s grid %g sharp false" % (s.atomspec, s.atomspec, grid_size))
+        cmds.append("surface %s enclose %s grid %g sharp %s"
+            % (s.atomspec, s.atomspec, grid_size, "true" if sharp else "false"))
     return cmds
 
 def volume_cleanup_cmds(session, contour_cmds=None):

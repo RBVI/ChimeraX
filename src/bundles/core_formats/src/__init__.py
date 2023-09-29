@@ -28,7 +28,7 @@ class _SessionAPI(BundleAPI):
                     @property
                     def open_args(self):
                         from chimerax.core.commands import BoolArg
-                        return { 'resize_window': BoolArg }
+                        return { 'resize_window': BoolArg, 'combine': BoolArg }
 
             elif name == "ChimeraX commands":
                 class Info(OpenerInfo):

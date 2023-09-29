@@ -536,13 +536,13 @@ class BlastResultsWorker(QThread):
     @Slot()
     def run(self):
         if self.job:
-            if self.job.status == 'failed':
+            if self.job.state == 'failed':
                 self.job_failed.emit('failed')
                 self.exit(1)
-            if self.job.status == 'deleted':
+            if self.job.state == 'deleted':
                 self.job_failed.emit('deleted')
                 self.exit(1)
-            if self.job.status == 'canceled':
+            if self.job.state == 'canceled':
                 self.job_failed.emit('canceled')
                 self.exit(1)
             try:

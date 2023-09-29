@@ -834,14 +834,19 @@ The other possible `Provider`_ attributes are:
 
     *pregrouped_structures*
         If a provider returns multiple models, the open command will automatically group them
-        so that the entire set of models can be referenced with one model number (the individual
-        models can be referenced with submodel numbers).  The provider *could* pre-group them in
-        order to give the group a name other the default (which is based on the file name; the user can
-        still override that with the ``name`` keyword of the open command).  In the specific case
-        where the provider is pre-grouping atomic structures, it should specify *pregrouped_structures*
-        as "true" so the the open command's return value can be the actual list of structures rather
-        than a grouping model.  This greatly simplifies scripts trying to handle return values
-        from various kinds of structure-opening commands.
+        (see ``group_multiple_models`` attribute, next) so that the entire set of models can be referenced
+        with one model number (the individual models can be referenced with submodel numbers).
+        The provider *could* pre-group them in order to give the group a name other the default
+        (which is based on the file name; the user can still override that with the ``name`` keyword
+        of the open command).  In the specific case where the provider is pre-grouping atomic structures,
+        it should specify *pregrouped_structures* as "true" so the the open command's return value can be
+        the actual list of structures rather than a grouping model.  This greatly simplifies scripts trying
+        to handle return values from various kinds of structure-opening commands.
+
+    *group_multiple_models*
+        By default, if a provider returns multiple models they will be grouped for ease of reference
+        in commands.  If it is desired that the returned models each be separate top-level models,
+        specify a value of "false" for this attribute.
 
     *type*
         If you are providing information about opening a file rather than fetching from a
@@ -1025,14 +1030,19 @@ The other possible `Provider`_ attributes are:
 
     *pregrouped_structures*
         If a provider returns multiple models, the open command will automatically group them
-        so that the entire set of models can be referenced with one model number (the individual
-        models can be referenced with submodel numbers).  The provider *could* pre-group them in
-        order to give the group a name other the default (which is based on the database entry ID;
-        the user can still override that with the ``name`` keyword of the open command).
-        In the specific case where the provider is pre-grouping atomic structures, it should specify
-        *pregrouped_structures* as "true" so the the open command's return value can be the actual list
-        of structures rather than a grouping model.  This greatly simplifies scripts trying to handle
-        return values from various kinds of structure-opening commands.
+        (see ``group_multiple_models`` attribute, next) so that the entire set of models can be referenced
+        with one model number (the individual models can be referenced with submodel numbers).
+        The provider *could* pre-group them in order to give the group a name other the default
+        (which is based on the database entry ID; the user can still override that with the ``name``
+        keyword of the open command).  In the specific case where the provider is pre-grouping atomic
+        structures, it should specify *pregrouped_structures* as "true" so the the open command's
+        return value can be the actual list of structures rather than a grouping model.  This greatly
+        simplifies scripts trying to handle return values from various kinds of structure-opening commands.
+
+    *group_multiple_models*
+        By default, if a provider returns multiple models they will be grouped for ease of reference
+        in commands.  If it is desired that the returned models each be separate top-level models,
+        specify a value of "false" for this attribute.
 
 For example::
 

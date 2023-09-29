@@ -1,3 +1,15 @@
+# vim: set expandtab shiftwidth=4 softtabstop=4:
+
+# === UCSF ChimeraX Copyright ===
+# Copyright 2016 Regents of the University of California.
+# All rights reserved.  This software provided pursuant to a
+# license agreement containing restrictions on its disclosure,
+# duplication and use.  For details see:
+# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# This notice must be embedded in or attached to all copies,
+# including partial copies, of the software or any revisions
+# or derivations thereof.
+# === UCSF ChimeraX Copyright ===
 
 class XR:
     '''
@@ -57,8 +69,14 @@ class XR:
         return instance
 
     def runtime_name(self):
+        '''
+        Oculus runtime reports "Oculus"
+        SteamVR runtime reports "SteamVR/OpenXR".
+        '''
         import xr
-        return xr.get_instance_properties(instance=self._instance).runtime_name.decode('utf-8')
+        props = xr.get_instance_properties(instance=self._instance)
+        rt_name = props.runtime_name.decode('utf-8')
+        return rt_name
     
     def _create_system(self):
         '''Find headset.'''
@@ -67,38 +85,44 @@ class XR:
         try:
             system_id = xr.get_system(self._instance, get_info)
         except xr.exception.FormFactorUnavailableError:
-            rt = self.runtime_name()
-            msg = 'Could not find VR headset.\n\n'
-            msg += f'The active OpenXR runtime is {rt}.\n\n'
-            if 'Oculus' in rt:
-                msg += ('Perhaps the Oculus application is not running, '
-                        'or the headset is not connected by Quest Link (cable) or Air Link (wifi). '
-                        'Check in the "Devices" section of the Oculus application to see if the headset is connected. '
-                        'If you want instead to use SteamVR then press "Set SteamVR as OpenXR Runtime" '
-                        'in the SteamVR application under Settings / OpenXR.')
-            elif 'SteamVR' in rt:
-                msg += ('Perhaps the SteamVR application is not running, '
-                        'or the headset is not detected (e.g. Vive link box turned off).'
-                        'If you want instead to use Oculus then press "Set Oculus as Active" '
-                        'in the Oculus application under Settings / General / OpenXR Runtime.')
-            else:
-                msg += ('Perhaps the Oculus or SteamVR application is not running, '
-                        'or the headset is not detected, or you have not set the OpenXR runtime to use. '
-                        'If you want to use Oculus then press "Set Oculus as Active" '
-                        'in the Oculus application under Settings / General / OpenXR Runtime. '
-                        'If you want to use SteamVR then press "Set SteamVR as OpenXR Runtime" '
-                        'in the SteamVR application under Settings / OpenXR.')
-            raise RuntimeError(msg)
+            raise RuntimeError(self._headset_not_found_message())
         return system_id
+
+    def _headset_not_found_message(self):
+         rt = self.runtime_name()
+         msg = 'Could not find VR headset.\n\n'
+         msg += f'The active OpenXR runtime is {rt}.\n\n'
+         if 'Oculus' in rt:
+             msg += ('Perhaps the Oculus application is not running, '
+                     'or the headset is not connected by Quest Link (cable) or Air Link (wifi). '
+                     'Check in the "Devices" section of the Oculus application to see if the headset is connected. '
+                     'If you want instead to use SteamVR then press "Set SteamVR as OpenXR Runtime" '
+                     'in the SteamVR application under Settings / OpenXR.')
+         elif 'SteamVR' in rt:
+             msg += ('Perhaps the SteamVR application is not running, '
+                     'or the headset is not detected (e.g. Vive link box turned off).'
+                     'If you want instead to use Oculus then press "Set Oculus as Active" '
+                     'in the Oculus application under Settings / General / OpenXR Runtime.')
+         else:
+             msg += ('Perhaps the Oculus or SteamVR application is not running, '
+                     'or the headset is not detected, or you have not set the OpenXR runtime to use. '
+                     'If you want to use Oculus then press "Set Oculus as Active" '
+                     'in the Oculus application under Settings / General / OpenXR Runtime. '
+                     'If you want to use SteamVR then press "Set SteamVR as OpenXR Runtime" '
+                     'in the SteamVR application under Settings / OpenXR.')
+         return msg
 
     def system_name(self):
         '''
+        Oculus runtime with Quest 2 reports "Oculus Quest 2"
         SteamVR runtime with Valve Index headset reports "SteamVR/OpenXR: lighthouse".
-        With Oculus headset it reports "SteamVR/OpenXR: lighthouse".
-        Oculus runtime reports "Oculus"
+        SteamVR runtime with Oculus headset reports "SteamVR/OpenXR: oculus".
         '''
         import xr
-        return xr.get_system_properties(instance=self._instance, system_id=self._system_id).system_name.decode('utf-8')
+        props = xr.get_system_properties(instance=self._instance,
+                                         system_id=self._system_id)
+        sys_name = props.system_name.decode('utf-8')
+        return sys_name
 
     def _recommended_render_size(self):
         '''Width and height of single eye framebuffer.'''
@@ -267,44 +291,11 @@ class XR:
         # The swap chains consist of 3 images, probably to pipeline the rendering,
         # so each frame the next image is used.
         debug('render target', eye, 'texture', tex_id)
-
-        '''
-        miplevel = 0
-        GL.glBindTexture(GL.GL_TEXTURE_2D, tex_id)
-        w = GL.glGetTexLevelParameteriv(GL.GL_TEXTURE_2D, miplevel, GL.GL_TEXTURE_WIDTH)
-        h = GL.glGetTexLevelParameteriv(GL.GL_TEXTURE_2D, miplevel, GL.GL_TEXTURE_HEIGHT)
-        GL.glBindTexture(GL.GL_TEXTURE_2D, 0)
-        debug('texture size', w, h)
-        '''
-
-        '''
-        fbo_status = GL.glCheckFramebufferStatus(GL.GL_FRAMEBUFFER)
-        if fbo_status != GL.GL_FRAMEBUFFER_COMPLETE:
-            error('Framebuffer is not complete', fbo_status)
-            """
-    36054 GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT is generated when:
-
-    Not all framebuffer attachment points are framebuffer attachment complete. This means that at least one attachment point with a renderbuffer or texture attached has its attached object no longer in existence or has an attached image with a width or height of zero, or the color attachment point has a non-color-renderable image attached, or the depth attachment point has a non-depth-renderable image attached, or the stencil attachment point has a non-stencil-renderable image attached.
-            """
-            GL.glFramebufferTexture(GL.GL_FRAMEBUFFER, GL.GL_COLOR_ATTACHMENT0, 0, 0)
-            fbo_status = GL.glCheckFramebufferStatus(GL.GL_FRAMEBUFFER)
-            if fbo_status == GL.GL_FRAMEBUFFER_COMPLETE:
-                debug('After removing framebuffer color attachment it is complete')
-            else:
-                error('After removing framebuffer color attachment still is not complete', fbo_status)
-        '''
         
     def release_opengl_render_target(self, render, eye):
         if not self._frame_started:
             return
-        # The gl_example.py code unbinds the color texture from the framebuffer
-        # after rendering.  Maybe this is needed so that xr.end_frame() can use the
-        # color texture.  Not sure.
-#        from chimerax.graphics.opengl import GL
-#        GL.glFramebufferTexture(GL.GL_FRAMEBUFFER, GL.GL_COLOR_ATTACHMENT0, 0, 0)
         render.pop_framebuffer()
-#        from chimerax.graphics.opengl import GL        
-#        GL.glFinish()
         ei = 0 if eye == 'left' else 1
         swapchain = self._swapchains[ei]
         import xr
@@ -386,9 +377,6 @@ class XR:
         return False
 
     def _end_xr_frame(self):
-#        from chimerax.graphics.opengl import GL        
-#        GL.glFinish()
-
         layers = []
         if self._frame_state.should_render:
             for eye_index in range(2):
@@ -416,8 +404,8 @@ class XR:
                                       display_time=self._frame_state.predicted_display_time,
                                       space=self._projection_layer.space))
         vsf = vs.view_state_flags
-        if (vsf & xr.VIEW_STATE_POSITION_VALID_BIT == 0
-            or vsf & xr.VIEW_STATE_ORIENTATION_VALID_BIT == 0):
+        if (vsf & xr.VIEW_STATE_POSITION_VALID_BIT == 0 or
+            vsf & xr.VIEW_STATE_ORIENTATION_VALID_BIT == 0):
             return False  # There are no valid tracking poses for the views.
     
         self._eye_view_states = evs
@@ -465,8 +453,8 @@ class XR:
             ('/user/hand/right/input/squeeze/click', 'grip'),
             ('/user/hand/left/input/menu/click', 'menu'),
             ('/user/hand/right/input/menu/click', 'menu'),
-            ('/user/hand/left/input/trackpad/click', 'trackpad'),
-            ('/user/hand/right/input/trackpad/click', 'trackpad'),
+            ('/user/hand/left/input/trackpad/click', 'touchpad'),
+            ('/user/hand/right/input/trackpad/click', 'touchpad'),
         ])
         self._suggest_bindings(pose_bindings + vive_bindings,
                                "/interaction_profiles/htc/vive_controller")
@@ -478,6 +466,8 @@ class XR:
             ('/user/hand/right/input/squeeze/value', 'grip_value'),
             ('/user/hand/left/input/thumbstick', 'thumbstick'),
             ('/user/hand/right/input/thumbstick', 'thumbstick'),
+            ('/user/hand/left/input/thumbstick/click', 'thumbstick_press'),
+            ('/user/hand/right/input/thumbstick/click', 'thumbstick_press'),
             ('/user/hand/left/input/x/click', 'A'),
             ('/user/hand/right/input/a/click', 'A'),
             ('/user/hand/left/input/y/click', 'menu'),
@@ -555,9 +545,10 @@ class XR:
                 ('grip', both_hands, t.BOOLEAN_INPUT),
                 ('grip_value', both_hands, t.FLOAT_INPUT),
                 ('menu', both_hands, t.BOOLEAN_INPUT),
-                ('trackpad', both_hands, t.BOOLEAN_INPUT),
+                ('touchpad', both_hands, t.BOOLEAN_INPUT),
                 ('A', both_hands, t.BOOLEAN_INPUT),
                 ('thumbstick', both_hands, t.VECTOR2F_INPUT),
+                ('thumbstick_press', both_hands, t.BOOLEAN_INPUT),
         ):
             action = xr.create_action(
                 action_set=action_set,
@@ -592,32 +583,8 @@ class XR:
             ),
         )
 
-    def _button_events(self):
-        if not self._sync_actions():
-            return []
-        
-        events = []
-        for a in self._actions.values():
-            events.extend(a.events(self._session))
-                
-        return events
-
-    def _sync_actions(self):
-        import xr
-        if self._session_state != xr.SessionState.FOCUSED:
-            return False
-        active_action_set = xr.ActiveActionSet(self._action_set, xr.NULL_PATH)
-        from ctypes import pointer
-        xr.sync_actions(
-            self._session,
-            xr.ActionsSyncInfo(
-                count_active_action_sets=1,
-                active_action_sets=pointer(active_action_set)
-            ),
-        )
-        return True
-
     def device_active(self, device_name):
+        '''device_name is "left" or "right"'''
         import xr
         if self._session_state != xr.SessionState.FOCUSED:
             return False
@@ -633,6 +600,7 @@ class XR:
         return pose_state.is_active
 
     def device_position(self, device_name):
+        '''device_name is "left" or "right"'''
         if not self.device_active(device_name):
             return None
 
@@ -648,6 +616,17 @@ class XR:
             return None
 
         return self._xr_pose_to_place(space_location.pose)
+
+    def controller_model_name(self, device_name):
+        runtime = self.runtime_name()
+        sysname = self.system_name()
+        if runtime.startswith('Oculus') or sysname.endswith('oculus'):
+            model_name = f'oculus {device_name}'
+        elif runtime.startswith('SteamVR') and sysname.endswith('lighthouse'):
+            model_name = 'htc vive'
+        else:
+            model_name = 'unknown'
+        return model_name
         
     def shutdown(self):
         import xr
@@ -681,31 +660,54 @@ class XR:
             xr.destroy_instance(self._instance)
             self._instance = None
 
-
-    def hmd_pose(self):
+    def headset_pose(self):
         # head to room coordinates.  None if not available
         e0, e1 = self.eye_pose
         shift = 0.5 * (e1.origin() - e0.origin())
         from chimerax.geometry import translation
         return translation(shift) * e0
-    def eye_to_head_transform(self, eye):
-        pass
-    def projection_matrix(self, eye, z_near, z_far):
-        pass
-    def submit(self, eye, texture):
-        # eye = 'left' or 'right'
-        pass
+
+    def poll_next_event(self):
+        self._poll_xr_events()	# Update self._session_state to detect headset has lost focus
+        q = self._event_queue
+        q.extend(self._button_events())
+        if len(q) == 0:
+            return None
+        e = q[0]
+        del q[0]
+        return e
+
+    def _button_events(self):
+        if not self._sync_actions():
+            return []
+        
+        events = []
+        for a in self._actions.values():
+            events.extend(a.events(self._session))
+                
+        return events
+
+    def _sync_actions(self):
+        import xr
+        if self._session_state != xr.SessionState.FOCUSED:
+            return False
+        active_action_set = xr.ActiveActionSet(self._action_set, xr.NULL_PATH)
+        from ctypes import pointer
+        xr.sync_actions(
+            self._session,
+            xr.ActionsSyncInfo(
+                count_active_action_sets=1,
+                active_action_sets=pointer(active_action_set)
+            ),
+        )
+        return True
+
     def hand_controllers(self):
         # Return list of (device_id, 'left' or 'right')
         return []
     def controller_left_or_right(self, device_index):
         # Return 'left' or 'right'
         return 'right'
-    def controller_model_name(self, device_name):
-        # 'vr_controller_vive_1_5' for vive pro
-        # 'oculus_cv1_controller_right', 'oculus_cv1_controller_left'
-        # 'oculus_rifts_controller_right', 'oculus_rifts_controller_left'
-        return 'unknown'
     def controller_state(self, device_name):
         return None
     def device_type(self, device_index):
@@ -718,15 +720,6 @@ class XR:
     TrackedDeviceDeactivated = 1
     ButtonTouchEvent = 4
     ButtonUntouchEvent = 5
-    def poll_next_event(self):
-        self._poll_xr_events()	# Update self._session_state to detect headset has lost focus
-        q = self._event_queue
-        q.extend(self._button_events())
-        if len(q) == 0:
-            return None
-        e = q[0]
-        del q[0]
-        return e
 
 class Action:
     def __init__(self, action, button, sides, type, hand_paths):
@@ -741,7 +734,16 @@ class Action:
         self._float_state = {'left':0, 'right':0}
 
         self._xy_minimum = 0.1		# Minimum thumbstick value to generate an event
-        
+
+    @property
+    def button_name(self):
+        b = self.button
+        if b.endswith('_value'):
+            return b[:-6]
+        elif b.endswith('_press'):
+            return b[:-6]
+        return b
+    
     def events(self, session):
         import xr
         if self.type == xr.ActionType.BOOLEAN_INPUT:
@@ -760,8 +762,8 @@ class Action:
                 get_info=xr.ActionStateGetInfo(action = self.action,
                                                subaction_path=self._hand_path[side]))
             if b_state.is_active and b_state.changed_since_last_sync:
-                state = ButtonEvent.BUTTON_PRESSED if b_state.current_state else ButtonEvent.BUTTON_RELEASED
-                events.append(ButtonEvent(ButtonEvent.BUTTON_ID[self.button], state, side))
+                state = 'pressed' if b_state.current_state else 'released'
+                events.append(ButtonEvent(self.button_name, state, side))
         return events
 
     def _float_events(self, session):
@@ -776,12 +778,10 @@ class Action:
                 value = f_state.current_state
                 if value > self._float_press:
                     if self._float_state[side] < self._float_press:
-                        events.append(ButtonEvent(ButtonEvent.BUTTON_ID[self.button],
-                                                  ButtonEvent.BUTTON_PRESSED, side))
+                        events.append(ButtonEvent(self.button_name, 'pressed', side))
                 elif value < self._float_release:
                     if self._float_state[side] > self._float_release:
-                        events.append(ButtonEvent(ButtonEvent.BUTTON_ID[self.button],
-                                                  ButtonEvent.BUTTON_RELEASED, side))
+                        events.append(ButtonEvent(self.button_name, 'released', side))
                 self._float_state[side] = value
         return events
 
@@ -796,22 +796,19 @@ class Action:
             if xy_state.is_active and xy_state.changed_since_last_sync:
                 value = xy_state.current_state
                 if abs(value.x) >= self._xy_minimum or abs(value.y) >= self._xy_minimum:
-                    events.append(XYEvent(ButtonEvent.BUTTON_ID[self.button], (value.x,value.y), side))
+                    xy_event = XYEvent(self.button_name, (value.x,value.y), side)
+                    events.append(xy_event)
         return events
     
 class ButtonEvent:
-    BUTTON_PRESSED = 'pressed'
-    BUTTON_RELEASED = 'released'
-    BUTTON_ID = {'menu':1, 'grip':2, 'grip_value':2, 'trigger': 33, 'trigger_value':33,
-                 'trackpad':32, 'thumbstick':32, 'A':7}  # SteamVR ids
-    def __init__(self, button, state, device_name):
-        self.button = button
-        self.state = state	# BUTTON_PRESSED or BUTTON_RELEASED
+    def __init__(self, button_name, state, device_name):
+        self.button_name = button_name
+        self.state = state	# "pressed" or "released"
         self.device_name = device_name
     
 class XYEvent:
-    def __init__(self, button, xy, device_name):
-        self.button = button
+    def __init__(self, button_name, xy, device_name):
+        self.button_name = button_name
         self.xy = xy
         self.device_name = device_name
 

@@ -1714,7 +1714,7 @@ cdef class CyResidue:
         "Supported API.  Remove the atom from this residue."
         self.cpp_res.remove_atom(atom.cpp_atom)
 
-    def string(self, *, residue_only=False, omit_structure=None, style=None, minimal=False):
+    def string(self, *, residue_only=False, omit_structure=None, style=None, minimal=False, omit_chain=None):
         '''Supported API.  Get text representation of Residue
            If 'omit_structure' is None, the structure will be omitted only if exactly one structure is open
         '''
@@ -1728,10 +1728,11 @@ cdef class CyResidue:
             res_str = ":" + str(self.number) + ic
         if residue_only:
             return res_str
-        if minimal:
-            omit_chain = len(set(self.structure.residues.chain_ids)) ==  1
-        else:
-            omit_chain = False
+        if omit_chain is None:
+            if minimal:
+                omit_chain = len(set(self.structure.residues.chain_ids)) ==  1
+            else:
+                omit_chain = False
         if omit_chain:
             chain_str = ""
         else:

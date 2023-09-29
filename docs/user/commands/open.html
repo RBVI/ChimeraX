@@ -775,7 +775,9 @@ target="_blank">Stockholm</a></td>
 <td align="center"><a href="save.html#session">ChimeraX session file</a></td>
 <td align="center"><b>session</b></td>
 <td align="center">.cxs</td>
-<td align="center">ChimeraX session; see the
+<td align="center">ChimeraX session; see the <b>open</b> command options
+<a href="#combine"><b>combine</b></a> and
+<a href="#resizeWindow"><b>resizeWindow</b></a>; see also the
 <a href="../preferences.html#window"><b>Window</b> preferences</a> and
 <a href="../preferences.html#log"><b>Log</b> preferences</a></td>
 </tr><tr>
@@ -1120,6 +1122,17 @@ can be used to draw a corresponding color key, for example:
   </blockquote>
 </blockquote>
 <blockquote>
+<a name="combine"></a>
+<b>combine</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>
+When opening a <a href="save.html#session">session</a> file,
+whether to retain the current session (existing models and other data)
+or to close the current session first (default, <b>combine false</b>).
+The model numbers of the incoming session will be changed as needed
+to avoid duplicate model numbers.
+See also the <a href="#resizeWindow"><b>resizeWindow</b></a> option.
+</blockquote>
+<blockquote>
 <b>combineSymAtoms</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
 <br>
 Nonstandard PDB or mmCIF files may contain duplicate copies of atoms
@@ -1148,6 +1161,16 @@ Whether to send verbose information to the
 <br>
 Whether to fetch ensembles associated with an IHM dataset 
 (default <b>false</b>, as these can be quite large).
+</blockquote>
+<blockquote>
+<a name="fits"></a>
+<b>fits</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>
+When <a href="#fetch">fetching</a> a map from the EMDB, whether to 
+additionally fetch associated atomic structures, if any, from the PDB.
+Alternatively, specifying the <a href="#fetch-table">data source</a>
+as <b>emdb_fits</b> (rather than <b>emdb</b>) will automatically
+fetch both types of data without the use of this option.
 </blockquote>
 <blockquote>
 <a name="forEachFile"></a>
@@ -1277,8 +1300,7 @@ When opening a <a href="save.html#session">session</a>,
 whether to restore its window size along with its contents; 
 overrides the corresponding
 <a href="../preferences.html#window"><b>Window</b> preference</a>.
-Opening a ChimeraX <a href="save.html#session">session</a>
-automatically runs <a href="close.html"><b>close session</b></a> first.
+See also the <a href="#combine"><b>combine</b></a> option.
 </blockquote>
 <blockquote>
 <a name="segidChains"></a>
@@ -1723,6 +1745,10 @@ target="_blank">Electron Microscopy Data Bank (EMDB)</a></td>
 Japanese mirror to .jp hosts, otherwise ebi.ac.uk; 
 Japanese site uses https, others
 <a href="ftp://ftp.wwpdb.org/pub/emdb/README" target="_blank">ftp</a>)
+<br>
+(for associated atomic structures, if any,
+see command option <a href="#fits"><b>fits</b></a> or
+data source <b>emdb_fits</b>, below)
 </td>
 <td align="center" rowspan="5"><b>ccp4</b></td>
 </tr><tr>
@@ -1760,6 +1786,13 @@ target="_blank">EMDB</a> wwpdb.org</td>
 (command option <a href="#transferMethod"><b>transferMethod</b></a>
 can be <b>https</b> or <b>ftp</b>)
 </td>
+</tr><tr>
+<td align="center" class="text">
+<a href="https://www.ebi.ac.uk/emdb/" target="_blank">EMDB</a> and PDB</td>
+<td align="center"><b>emdb_fits</b></td>
+<td align="center">electron density map and associated atomic models, if any
+</td>
+<td align="center"><b>ccp4</b> and <b>mmcif</b></td>
 </tr><tr>
 <td align="center"><a href="https://pdb-dev.wwpdb.org/"
 target="_blank">PDB-Dev</a></td>
@@ -2016,6 +2049,9 @@ target="_blank"><b>Clipper</b> bundle</a> from the
 target="_blank">ChimeraX Toolshed</a> allows
 <a href="#top">opening</a> and <a href="save.html">saving</a>
 crystallographic reflection files in MTZ format.
+See also: 
+<a href="https://tristanic.github.io/chimerax-clipper/commands/clipper.html"
+target="_blank"><b>clipper</b> commands</a>
 </p><p>
 <a href="#top">Opening</a>
 an MTZ file requires specifying an already-open atomic structure
@@ -2085,5 +2121,5 @@ only arrays with the specified <i>name</i>. Example:
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-August 2023</address>
+September 2023</address>
 </body></html>

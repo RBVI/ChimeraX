@@ -13,7 +13,6 @@
  * === UCSF ChimeraX Copyright ===
  */
 
-#include <cctype>
 #include <exception>
 #include <iostream>
 #include <Python.h>
@@ -270,7 +269,7 @@ Sequence::ungapped() const
         auto gi = begin();
         for (unsigned int i = 0; gi != end(); ++gi, ++i) {
             auto c = *gi;
-            if (std::isalpha(c) || c == '?') {
+            if (!is_gap_character(c)) {
                 _cache_ungapped.push_back(c);
                 _cache_g2ug[i] = ug_index;
                 _cache_ug2g[ug_index] = i;

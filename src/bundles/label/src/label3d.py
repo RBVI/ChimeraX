@@ -266,7 +266,7 @@ def register_label_command(logger):
     otype = EnumOf(('atoms','residues','pseudobonds','bonds'))
     desc = CmdDesc(required = [('objects', Or(ObjectsArg, EmptyArg))],
                    optional = [('object_type', otype)],
-                   keyword = [('text', Or(DefArg, StringArg)),
+                   keyword = [('text', Or(EnumOf(['default'],abbreviations=False), StringArg)),
                               ('offset', Or(DefArg, Float3Arg)),
                               ('color', Or(EnumOf(['default', 'auto']), Color8Arg)),
                               ('bg_color', Or(NoneArg, Color8Arg)),

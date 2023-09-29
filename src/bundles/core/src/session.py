@@ -634,7 +634,7 @@ class Session:
             self.triggers.activate_trigger("end save session", self)
 
     def restore(self, stream, path=None, resize_window=None, restore_camera=True,
-                clear_log=True, metadata_only=False):
+                clear_log=True, metadata_only=False, combine=False):
         """Deserialize session from binary stream."""
         from . import serialize
         if hasattr(stream, 'peek'):
@@ -692,12 +692,14 @@ class Session:
         self.restore_options['restore camera'] = restore_camera
         self.restore_options['clear log'] = clear_log
         self.restore_options['error encountered'] = False
+        self.restore_options['combine'] = combine
 
         self.triggers.activate_trigger("begin restore session", self)
         is_gui = hasattr(self, 'ui') and self.ui.is_gui
         from .tools import ToolInstance
         try:
-            self.reset()
+            if not combine:
+                self.reset()
             self.session_file_path = path
             self.metadata.update(metadata)
             attr_info = self.metadata.pop('attr_info', {})
@@ -981,7 +983,7 @@ def sdump(session, session_file, output=None):
             pprint(data, stream=output)
 
 
-def open(session, path, resize_window=None):
+def open(session, path, resize_window=None, combine=False):
     if hasattr(path, 'read'):
         # Given a stream instead of a file name.
         fname = path.name
@@ -1001,7 +1003,7 @@ def open(session, path, resize_window=None):
     # current session
     session.session_file_path = path
     try:
-        session.restore(stream, path=path, resize_window=resize_window)
+        session.restore(stream, path=path, resize_window=resize_window, combine=combine)
     except UserError as ue:
         raise UserError(f"Unable to restore session: {ue}")
     return [], "opened ChimeraX session"

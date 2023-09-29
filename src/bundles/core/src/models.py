@@ -614,13 +614,28 @@ class Models(StateManager):
     def restore_snapshot(session, data):
         mdict = data['models']
         session.triggers.activate_trigger(RESTORED_MODEL_TABLE, mdict)
-        m = session.models
+        sm = session.models
+        if session.restore_options['combine']:
+            existing_ids = set([m.id for m in sm])
+            requested_ids = set(mdict.keys())
+            if existing_ids.isdisjoint(requested_ids):
+                id_offset = 0
+            else:
+                id_offset = max([id[0] for id in existing_ids])
+        else:
+            id_offset = 0
         for id, model in mdict.items():
             if model:        # model can be None if it could not be restored, eg Volume w/o map file
-                if model.parent is None and not m.have_id(id):
-                    m.add([model], _from_session=True)
+                if id_offset and model.parent is None:
+                    for am in model.all_models():
+                        am.id = (am.id[0] + id_offset,) + am.id[1:]
+                    test_id = model.id
+                else:
+                    test_id = id
+                if model.parent is None and not sm.have_id(test_id):
+                    sm.add([model], _from_session=True)
         session.triggers.activate_trigger(RESTORED_MODELS, session)
-        return m
+        return sm
 
     def reset_state(self, session):
         self.close([m for m in self.list() if not m.SESSION_ENDURING])

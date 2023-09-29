@@ -114,7 +114,7 @@ def phenix_fit_loops(session, residues, in_map, *, block=None, phenix_location=N
             if processors is None:
                 processors = 1
     from chimerax.core.commands import plural_form
-    session.logger.info("Using %d %s" % (processors, plural_form(processors, "CPU")))
+    session.logger.info("Using %d %s" % (processors, plural_form(processors, "processor")))
 
     def seq_num(r):
         if r.insertion_code:
