@@ -81,8 +81,8 @@ def douse_needs_resolution(session, phenix_location=None):
     global _needs_resolution
     if _needs_resolution is None:
         # Find the phenix.douse executable
-        from .locate import find_phenix_command
-        env_path = find_phenix_command(session, "phenix_env.sh", phenix_location, verify_installation=True)
+        from .locate import find_phenix_command, env_file_name
+        env_path = find_phenix_command(session, env_file_name(), phenix_location, verify_installation=True)
         version_path = find_phenix_command(session, 'phenix.version')
         import subprocess
         p = subprocess.run(". " + env_path + " ; " + version_path, capture_output=True, shell=True)
