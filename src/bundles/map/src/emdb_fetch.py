@@ -116,7 +116,7 @@ def fetch_emdb_us(session, emdb_id, transfer_method = None, fits = False, ignore
     return fetch_emdb(session, emdb_id, mirror = 'united states', transfer_method = transfer_method,
                       fits = fits, ignore_cache = ignore_cache, **kw)
 
-def fetch_emdb_fit(session, emdb_id, transfer_method = None, fits = True, ignore_cache=False, **kw):
+def fetch_emdb_fits(session, emdb_id, transfer_method = None, fits = True, ignore_cache=False, **kw):
     return fetch_emdb(session, emdb_id, mirror = 'united states', transfer_method = transfer_method,
                       fits = fits, ignore_cache = ignore_cache, **kw)
 
@@ -127,7 +127,7 @@ def _emdb_meta_data_xml_file(session, emdb_id, url_base, ignore_cache = False):
 
     from chimerax.core.fetch import fetch_file
     xml_filename = fetch_file(session, xml_url, 'map header %s' % emdb_id, xml_name, 'EMDB',
-                              uncompress = True, ignore_cache=ignore_cache)
+                              ignore_cache=ignore_cache)
     return xml_filename
 
 class _emdb_meta_data:

@@ -94,7 +94,7 @@
     <Provider name="emdb_us" type="fetch" format_name="CCP4 density map" group_multiple_models="false"/>
     <Provider name="emdb_japan" type="fetch" format_name="CCP4 density map" group_multiple_models="false"/>
     <Provider name="emdb_china" type="fetch" format_name="CCP4 density map" group_multiple_models="false"/>
-    <Provider name="emdb_fit" type="fetch" format_name="CCP4 density map" group_multiple_models="false"/>
+    <Provider name="emdb_fits" type="fetch" format_name="CCP4 density map" group_multiple_models="false"/>
   </Providers>
 
   <Providers manager="save command">

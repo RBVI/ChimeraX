@@ -56,6 +56,19 @@ Volume data can be opened with the command
 <a href="open.html"><b>open</b></a> (which automatically starts 
 <a href="../tools/volumeviewer.html"><b>Volume Viewer</b></a>)
 and saved to a file with <a href="save.html"><b>save</b></a>.
+By default, a data set will be displayed automatically if it does not exceed
+a certain size, and the initial display may be as an isosurface or as a
+single plane (<a href="#sampling">details...</a>).
+Many settings for newly opened data, including the size limits
+controlling these behaviors, can be customized with the
+<a href="#defaultvalues"><b>volume defaultvalues</b></a> command.
+</p><p>
+The initial contour level of an isosurface is set to enclose 1% of grid points,
+except for maps opened by <a href="open.html#fetch">EMDB fetch</a>,
+which will be shown at the depositor-recommended contour level, if any. 
+For single-plane display, the middle plane along Z is shown initially with a 
+linear ramp in grayscale from the 10th (black) to 99th (white) percentile
+of values. 
 </p><p>
 Data set statistics, isosurface-enclosed volumes, and map-map correlation
 values can be reported with <a href="measure.html"><b>measure</b></a>.
@@ -173,6 +186,7 @@ here grouped into categories:
 <a href="../tools/densitymaps.html" title="Map Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/volzone.png"></a>
 </b></blockquote>
+
 
 <a name="general"></a>
 <p class="nav">
@@ -448,12 +462,6 @@ See: <a href="usageconventions#cxc-files">ChimeraX command files</a>
 </p>
 <h3 class="usage"><b>Sampling and Size Options</b> &nbsp;&nbsp;&nbsp;
 (Usage:&nbsp;<a href="#top"><b>volume</b></a>&nbsp;&nbsp;<i>model-spec</i>&nbsp;&nbsp;<i>options</i>)</h3>
-<p>
-The initial contour level of an isosurface is set to enclose 1% of grid points.
-For single-plane display, the middle plane along Z is shown initially with a 
-linear ramp in grayscale from the 10th (black) to 99th (white) percentile
-of values. See also: <a href="#defaultvalues"><b>volume defaultvalues</b></a>
-</p>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
   <b>step</b> &nbsp;<i>N</i> | <i>Nx,Ny,Nz</i>

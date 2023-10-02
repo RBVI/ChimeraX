@@ -1845,14 +1845,14 @@ class RegionsTool:
                 format=table.COL_FORMAT_BOOLEAN),
             "shown": table.add_column("S" if short_titles else "Shown", "shown",
                 format=table.COL_FORMAT_BOOLEAN),
-            "fill": table.add_column("I" if short_titles else "Interior", self._get_fill,
-                data_set=self._set_fill, format=table.COL_FORMAT_BOOLEAN),
-            "fill color": table.add_column("\N{BLACK MEDIUM SQUARE}", self._get_fill_color,
-                data_set=self._set_fill_color, format=table.COL_FORMAT_OPAQUE_COLOR, color="purple"),
             "edge": table.add_column("B" if short_titles else "Border", self._get_edge,
                 data_set=self._set_edge, format=table.COL_FORMAT_BOOLEAN),
             "edge color": table.add_column("\N{BALLOT BOX}", self._get_edge_color,
                 data_set=self._set_edge_color, format=table.COL_FORMAT_OPAQUE_COLOR, color="forest green"),
+            "fill": table.add_column("I" if short_titles else "Interior", self._get_fill,
+                data_set=self._set_fill, format=table.COL_FORMAT_BOOLEAN),
+            "fill color": table.add_column("\N{BLACK MEDIUM SQUARE}", self._get_fill_color,
+                data_set=self._set_fill_color, format=table.COL_FORMAT_OPAQUE_COLOR, color="purple"),
             "name": table.add_column("Name", "display_name", editable=True, show_tooltips=True),
             "rmsd": table.add_column("RMSD", "rmsd", format="%.3f"),
             "start": table.add_column("Start", lambda r: blocks_to_val(r, 2, min), format="%d"),
@@ -1874,6 +1874,8 @@ class RegionsTool:
         self._set_table_data(resize_columns=False)
         table.launch()
         table.selection_changed.connect(self._selection_changed)
+        # make rows as narrow as possible
+        table.verticalHeader().setDefaultSectionSize(10)
         layout.addWidget(table, stretch=1)
         buttons_layout = QHBoxLayout()
         layout.addLayout(buttons_layout)

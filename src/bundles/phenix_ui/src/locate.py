@@ -17,7 +17,10 @@ def find_phenix_command(session, program_name, phenix_location=None, *, verify_i
     if verify_installation:
         bin_dirs = ['.']
     else:
-        bin_dirs = ['bin', 'build/bin'] # for Python 3 / Python 2 Phenix respectively
+        bin_dirs = ['phenix_bin', 'bin', 'build/bin'] # for Python 3 / Python 2 Phenix respectively
+    import sys
+    if sys.platform == 'win32':
+        bin_dirs += ['Library', 'Library\\bin']
     from .settings import get_settings
     settings = get_settings(session)
     from os.path import isfile, isdir, join, expanduser
@@ -25,12 +28,13 @@ def find_phenix_command(session, program_name, phenix_location=None, *, verify_i
         if settings.phenix_location:
             for bin_dir in bin_dirs:
                 cmd = join(settings.phenix_location, bin_dir, program_name)
+                if sys.platform == 'win32' and not verify_installation:
+                    cmd += '.bat'
                 if isfile(cmd):
                     return cmd
 
         phenix_dirs = []
         search_dirs = [expanduser("~")]
-        import sys
         if sys.platform == 'darwin':
             search_dirs.append('/Applications')
         for search_dir in search_dirs:
@@ -67,14 +71,17 @@ def find_phenix_command(session, program_name, phenix_location=None, *, verify_i
         settings.save()
         return cmd
 
-def phenix_location(session, phenix_location=None):
+def env_file_name():
     import sys
     if sys.platform == "win32":
         suffix = ".bat"
     else:
         suffix = ".sh"
+    return "phenix_env" + suffix
+
+def phenix_location(session, phenix_location=None):
     try:
-        cmd = find_phenix_command(session, "phenix_env" + suffix, phenix_location=phenix_location,
+        cmd = find_phenix_command(session, env_file_name(), phenix_location=phenix_location,
             verify_installation=True)
     except UserError:
         msg = "No Phenix installation found"
