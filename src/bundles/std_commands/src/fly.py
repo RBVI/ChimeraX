@@ -213,6 +213,8 @@ def _position_to_parameters(pos, center, params, prev_params):
 #
 def _parameters_to_position(params):
     rotq = params[0:4]
+    from chimerax.geometry import length
+    rotq = rotq / length(rotq)	# Normalize quaternion since cubic spline produces non-unit length.
     rotc = params[4:7]
     trans = params[7:10]
     return _transform_from_parameters(rotq, rotc, trans)
@@ -255,7 +257,7 @@ class FlyPlayback:
         cpos = _parameters_to_position(params)
         c = self._session.main_view.camera
         c.position = cpos
-                    
+
         # Set model positions
         pos_num = 0
         from chimerax.geometry import Places
