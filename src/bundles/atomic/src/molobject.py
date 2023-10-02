@@ -1682,6 +1682,9 @@ class StructureData:
         '''Add coordinate sets.  If 'replace' is True, clear out existing coordinate sets first'''
         if len(xyzs.shape) != 3:
             raise ValueError('add_coordsets(): array must be (frames)x(atoms)x3-dimensional')
+        if not xyzs.flags.c_contiguous:
+            # molc.cpp code doesn't know about strides...
+            xyzs = xyzs.copy()
         cs_size = self.coordset_size
         if cs_size > 0:
             dim_check = cs_size
