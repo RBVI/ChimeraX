@@ -830,7 +830,8 @@ class SegmentationTool(ToolInstance):
         if self.active_seg:
             self.active_seg.active = False
         self.active_seg = segment
-        self.active_seg.active = True
+        if self.active_seg:
+            self.active_seg.active = True
 
     def _on_active_segmentation_changed(self, new, prev):
         if new:
