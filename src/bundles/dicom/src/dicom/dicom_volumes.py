@@ -42,13 +42,17 @@ class DICOMVolume(Volume):
         ijk_max = [min(int(ceil(c+s)), m-1) for c, s, m in zip(ijk_center, ijk_size, self.data.size)]
         return ijk_min, ijk_max
 
-    def set_sphere_data(self, center: tuple, radius: int, value: int) -> None:
+    def set_sphere_data(self, center: tuple, radius: int, value: int, min_threshold: Optional[float] = None, max_threshold: Optional[float] = None) -> None:
         # Optimization: Mask only subregion containing sphere.
         ijk_min, ijk_max = self._sphere_grid_bounds(center, radius)
         from chimerax.map_data import GridSubregion, zone_mask
         subgrid = GridSubregion(self.data, ijk_min, ijk_max)
+        reference_subgrid = GridSubregion(self.data.reference_data, ijk_min, ijk_max)
 
-        mask = zone_mask(subgrid, [center], radius)
+        if min_threshold and max_threshold:
+            mask = zone_mask_clamped_by_referenced_grid(subgrid, reference_subgrid, [center], radius, min_threshold, max_threshold)
+        else:
+            mask = zone_mask(subgrid, [center], radius)
 
         dmatrix = subgrid.full_matrix()
 
@@ -350,3 +354,54 @@ def open_dicom_grids(session, grids, name, **kw):
             v.update_drawings()
 
     return models, msg
+
+def zone_mask_clamped_by_referenced_grid(grid_data, referenced_grid, zone_points, zone_radius,
+              min_value, max_value,
+              invert_mask = False):
+    """Like zone_mask from the map_data bundle, but with min/max value filtering"""
+    from numpy import single as floatc, array, ndarray, zeros, int8, intc, where
+
+    if not isinstance(zone_points, ndarray):
+        zone_points = array(zone_points, floatc)
+
+    shape = tuple(reversed(grid_data.size))
+    mask_3d = zeros(shape, int8)
+    mask_1d = mask_3d.ravel()
+
+    if invert_mask:
+        mask_value = 0
+        mask_1d[:] = 1
+    else:
+        mask_value = 1
+
+    from chimerax.map_data import grid_indices
+    from chimerax.geometry import find_closest_points
+
+    size_limit = 2 ** 22          # 4 Mvoxels
+    if mask_3d.size > size_limit:
+    # Calculate plane by plane to save memory with grid point array
+        xsize, ysize, zsize = grid_data.size
+        grid_points = grid_indices((xsize,ysize,1), floatc)
+        grid_data.ijk_to_xyz_transform.transform_points(grid_points, in_place = True)
+        flat_reference = referenced_grid.full_matrix().ravel()
+        zstep = [grid_data.ijk_to_xyz_transform.matrix[a][2] for a in range(3)]
+        for z in range(zsize):
+            i1, i2, n1 = find_closest_points(grid_points, zone_points, zone_radius)
+            offset = xsize*ysize*z
+            if min_value and max_value:
+                mask = where((min_value <= flat_reference[i1 + offset]) & (flat_reference[i1 + offset] <= max_value), 1, 0)
+                mask_1d[i1 + offset] = mask
+            else:
+                mask_1d[i1 + offset] = mask_value
+            grid_points[:,:] += zstep
+    else:
+        grid_points = grid_indices(grid_data.size, floatc)
+        grid_data.ijk_to_xyz_transform.transform_points(grid_points, in_place = True)
+        flat_reference = referenced_grid.full_matrix().ravel()
+        i1, _, n1 = find_closest_points(grid_points, zone_points, zone_radius)
+        if min_value and max_value:
+            mask = where((min_value <= flat_reference[i1]) & (flat_reference[i1] <= max_value), 1, 0)
+            mask_1d[i1] = mask
+        else:
+            mask_1d[i1] = mask_value
+    return mask_3d

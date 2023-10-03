@@ -926,17 +926,12 @@ class SegmentationTool(ToolInstance):
         sm.position = sm.position * translation(dxyz)
 
     def setSphereRegionToValue(self, origin, radius, value=1):
-        # I wasn't able to recycle code from Map Eraser here, unfortunately. Map Eraser uses
-        # numpy.putmask(), which for whatever reason only wanted to work once before I had to call
-        # VolumeSurface.update_surface() on the data's surface. This resulted in an expensive recalculation
-        # on every loop, and it made the interface much slower -- it had to hang while the surface did many
-        # redundant recalculations.
-        # I can already see this becoming a massive PITA when 3D spheres get involved.
-        # TODO: Many segmentations
         if not self.active_seg:
             self.addSegment()
-        # TODO: Make this respect the intensity range
-        self.active_seg.set_sphere_data(origin, radius, value)
+        if self.intensity_range_checkbox.isChecked() and value != 0:
+            self.active_seg.set_sphere_data(origin, radius, value, self.threshold_min, self.threshold_max)
+        else:
+            self.active_seg.set_sphere_data(origin, radius, value)
 
     def addSphereToSegment(self, origin, radius):
         self.setSphereRegionToValue(origin, radius, 1)
