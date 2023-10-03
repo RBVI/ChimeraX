@@ -20,15 +20,22 @@ class AssociationsTool:
         self.tool_window = tool_window
         tool_window.help = "help:user/tools/sequenceviewer.html#association"
 
-        from Qt.QtWidgets import QHBoxLayout, QVBoxLayout, QLabel
+        from Qt.QtWidgets import QHBoxLayout, QVBoxLayout, QLabel, QWidget
         layout = QHBoxLayout()
+
+        # Widgets for multi-sequence alignment
+        multi_seq_area = QWidget()
+        layout.addWidget(multi_seq_area)
+        ms_layout = QHBoxLayout()
+        multi_seq_area.setLayout(ms_layout)
+
         from chimerax.atomic.widgets import ChainListWidget
         self.chain_list = ChainListWidget(sv.session, autoselect='single')
         self.chain_list.value_changed.connect(self._chain_changed)
-        layout.addWidget(self.chain_list)
+        ms_layout.addWidget(self.chain_list)
 
         menu_layout = QVBoxLayout()
-        layout.addLayout(menu_layout)
+        ms_layout.addLayout(menu_layout)
 
         self.pick_a_chain = QLabel("Choose one or more\nchains from the left")
         menu_layout.addWidget(self.pick_a_chain)
