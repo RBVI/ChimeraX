@@ -52,8 +52,6 @@ class CreateSegmentation3DMouseMode(MouseMode):
             , 1
         )
 
-       #self.segmentation_tool = ...
-
     def wheel(self, event):
         d = event.wheel_value()
         if d > 0:

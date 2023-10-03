@@ -770,8 +770,7 @@ class SegmentationTool(ToolInstance):
             center_x, center_y = marker.drawing_center
             radius = self.segmentation_cursors[axis].radius
             positions.append((center_x, center_y, radius))
-        # TODO: Add a checkbox
-        if self.intensity_range_checkbox.isChecked():
+        if self.intensity_range_checkbox.isChecked() and value != 0:
             self.active_seg.set_2d_segment_data(axis, slice, positions, value, self.threshold_min, self.threshold_max)
         else:
             self.active_seg.set_2d_segment_data(axis, slice, positions, value)
