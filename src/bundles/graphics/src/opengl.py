@@ -489,6 +489,9 @@ class Render:
         # Camera origin, y, and xshift for SHADER_STEREO_360 mode
         self._stereo_360_params = ((0,0,0),(0,1,0),0)
 
+        # OpenGL texture size limit
+        self._max_3d_texture_size = None
+        
     def delete(self):
         if self._opengl_context._deleted:
             raise RuntimeError('Render.delete(): OpenGL context deleted before Render instance')
@@ -626,6 +629,11 @@ class Render:
         max_size = min(max_rb_size, max_tex_size)
         return max_size
 
+    def max_3d_texture_size(self):
+        if self._max_3d_texture_size is None:
+            self._max_3d_texture_size = GL.glGetInteger(GL.GL_MAX_3D_TEXTURE_SIZE)
+        return self._max_3d_texture_size
+    
     def framebuffer_rgba_bits(self):
         # This is only valid for default framebuffer.
         # Need to use GL_COLOR_ATTACHMENT0 for offscreen framebuffers.
