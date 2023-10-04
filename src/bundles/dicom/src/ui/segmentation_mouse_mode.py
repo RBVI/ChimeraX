@@ -90,6 +90,12 @@ class CreateSegmentation3DMouseMode(MouseMode):
         c = self.segmentation_tool.segmentation_sphere.scene_position.origin()
         delta_xyz = event.motion*c - c
         self.segmentation_tool.move_sphere(delta_xyz)
+        self.segmentation_tool.setSphereRegionToValue(
+            self.segmentation_tool.segmentation_sphere.scene_position.origin()
+            , self.segmentation_tool.segmentation_sphere.radius
+            , 1
+        )
+
 
 class Move3DSegmentationSphereMouseMode(MouseMode):
     name = 'move segmentation cursor'
