@@ -142,6 +142,10 @@ class Resize3DSegmentationSphereMouseMode(MouseMode):
         MouseMode.__init__(self, session)
         self.segmentation_tool = None
 
+    def enable(self):
+        self.segmentation_tool = self._find_segmentation_tool()
+
+
     def _find_segmentation_tool(self):
         for tool in self.session.tools:
             if isinstance(tool, SegmentationTool):
@@ -158,3 +162,8 @@ class Resize3DSegmentationSphereMouseMode(MouseMode):
             self.segmentation_tool.segmentation_sphere.radius += 1
         elif d < 0:
             self.segmentation_tool.segmentation_sphere.radius -= 1
+
+    def vr_motion(self, event):
+        c = self.segmentation_tool.segmentation_sphere.scene_position.origin()
+        delta_xyz = event.motion*c - c
+        self.segmentation_tool.move_sphere(delta_xyz)
