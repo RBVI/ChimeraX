@@ -102,6 +102,13 @@ class HandAction(IntEnum):
     def __str__(self):
         return " ".join(self.name.split('_')).lower().title()
 
+class Handedness(IntEnum):
+    LEFT = 0
+    RIGHT = 1
+
+    def __str__(self):
+        return self.name.title()
+
 class _SegmentationToolSettings(Settings):
     EXPLICIT_SAVE = {
         'start_vr_automatically': False
@@ -119,6 +126,7 @@ class _SegmentationToolSettings(Settings):
         , 'vr_grip': HandAction.MOVE_CURSOR
         , 'vr_a_button': HandAction.SWAP_CREATE_ERASE_MODE
         , 'vr_b_button': HandAction.NONE
+        , 'vr_handedness': Handedness.RIGHT
     }
 
 class SegmentationToolControlsDialog(QDialog):
