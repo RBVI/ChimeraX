@@ -33,5 +33,8 @@ class _PhenixBundle(BundleAPI):
         if tool_name == 'Local EM Fitting':
             from .tool import LaunchEmplaceLocalTool
             return LaunchEmplaceLocalTool(session, tool_name)
+        if tool_name == 'Fit Loops':
+            from .tool import LaunchFitLoopsTool
+            return LaunchFitLoopsTool(session, tool_name)
 
 bundle_api = _PhenixBundle()

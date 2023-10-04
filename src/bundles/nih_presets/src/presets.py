@@ -246,12 +246,14 @@ def run_preset(session, name, mgr):
             "color nih_blue",
             "setattr p color nih_blue"
         ] + print_prep(session, pb_radius=None)
-    elif name == "surface monochrome":
-        cmd = undo_printable + base_setup + base_surface + addh_cmds(session) + surface_cmds(session) \
-            + [ "color nih_blue" ]
-    elif name == "surface coulombic":
-        cmd = undo_printable + base_setup + base_surface + addh_cmds(session) + surface_cmds(session) \
-            + [ "color white", "coulombic surfaces #* chargeMethod gasteiger" ]
+    elif name.startswith("surface monochrome"):
+        printable = "printable" in name
+        cmd = undo_printable + base_setup + base_surface + addh_cmds(session) + surface_cmds(session,
+            printable) + [ "color nih_blue" ]
+    elif name.startswith("surface coulombic"):
+        printable = "printable" in name
+        cmd = undo_printable + base_setup + base_surface + addh_cmds(session) + surface_cmds(session,
+            printable) + [ "color white", "coulombic surfaces #* chargeMethod gasteiger" ]
         from chimerax.atomic import AtomicStructures
         structures = AtomicStructures(all_atomic_structures(session))
         main_atoms = structures.atoms.filter(structures.atoms.structure_categories == "main")
@@ -262,15 +264,18 @@ def run_preset(session, name, mgr):
                 " electrostatics probably inaccurate")
         elif "HIS" in incomplete_residues.names:
             session.logger.warning("Incomplete HIS residue; coulombic will likely fail")
-    elif name == "surface hydrophobicity":
-        cmd = undo_printable + base_setup + base_surface + addh_cmds(session) + surface_cmds(session) \
-            + color_by_hydrophobicity_cmds(session)
-    elif name == "surface by chain":
-        cmd = undo_printable + base_setup + base_surface + addh_cmds(session) + surface_cmds(session) \
-            + by_chain_cmds(session, rainbow=True, target_atoms=True)
-    elif name == "surface by polymer":
-        cmd = undo_printable + base_setup + base_surface + addh_cmds(session) + surface_cmds(session) \
-            + [ "color bypolymer target ar" ] + by_chain_cmds(session)
+    elif name.startswith("surface hydrophobicity"):
+        printable = "printable" in name
+        cmd = undo_printable + base_setup + base_surface + addh_cmds(session) \
+            + surface_cmds(session, printable, sharp=True) + color_by_hydrophobicity_cmds(session)
+    elif name.startswith("surface by chain"):
+        printable = "printable" in name
+        cmd = undo_printable + base_setup + base_surface + addh_cmds(session) + surface_cmds(session,
+            printable) + by_chain_cmds(session, rainbow=True, target_atoms=True)
+    elif name.startswith("surface by polymer"):
+        printable = "printable" in name
+        cmd = undo_printable + base_setup + base_surface + addh_cmds(session) + surface_cmds(session,
+            printable) + [ "color bypolymer target ar" ] + by_chain_cmds(session)
     elif name == "surface blob by chain":
         cmd = undo_printable + base_setup + base_surface + addh_cmds(session) + [
                 "surf %s%s resolution 18 grid 6; %s" % (s.atomspec,
@@ -346,9 +351,9 @@ def run_preset(session, name, mgr):
     cmd = " ; ".join(cmd)
     mgr.execute(cmd)
 
-def surface_cmds(session):
+def surface_cmds(session, printable, *, sharp=False):
     import math
-    cmds = []
+    cmds = ["size atomRadius default"]
     for s in all_atomic_structures(session):
         # AddH won't actually run until after this command is generated, so base the grid value
         # on the number of heavy atoms involved in the surface for consistency, but then multiply
@@ -356,8 +361,12 @@ def surface_cmds(session):
         import numpy
         num_heavys = len(s.atoms.filter(
             numpy.logical_and(s.atoms.elements.numbers != 1, s.atoms.structure_categories == "main")))
-        grid_size = min(2.0, max(0.3, math.log10(2 *num_heavys) - 3.2))
-        cmds.append("surface %s enclose %s grid %g sharp false" % (s.atomspec, s.atomspec, grid_size))
+        if printable:
+            grid_size = min(2.0, max(0.3, math.log10(2*num_heavys) - 3.2))
+        else:
+            grid_size = min(2.5, max(0.5, math.log10(2*num_heavys) - 2.5))
+        cmds.append("surface %s enclose %s grid %g sharp %s"
+            % (s.atomspec, s.atomspec, grid_size, "true" if sharp else "false"))
     return cmds
 
 def volume_cleanup_cmds(session, contour_cmds=None):

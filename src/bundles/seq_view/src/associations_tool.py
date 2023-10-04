@@ -20,15 +20,22 @@ class AssociationsTool:
         self.tool_window = tool_window
         tool_window.help = "help:user/tools/sequenceviewer.html#association"
 
-        from Qt.QtWidgets import QHBoxLayout, QVBoxLayout, QLabel
+        from Qt.QtWidgets import QHBoxLayout, QVBoxLayout, QLabel, QWidget
         layout = QHBoxLayout()
+
+        # Widgets for multi-sequence alignment
+        self.multi_seq_area = QWidget()
+        layout.addWidget(self.multi_seq_area)
+        ms_layout = QHBoxLayout()
+        self.multi_seq_area.setLayout(ms_layout)
+
         from chimerax.atomic.widgets import ChainListWidget
-        self.chain_list = ChainListWidget(sv.session, autoselect='single')
+        self.chain_list = ChainListWidget(sv.session, autoselect=ChainListWidget.AUTOSELECT_SINGLE)
         self.chain_list.value_changed.connect(self._chain_changed)
-        layout.addWidget(self.chain_list)
+        ms_layout.addWidget(self.chain_list)
 
         menu_layout = QVBoxLayout()
-        layout.addLayout(menu_layout)
+        ms_layout.addLayout(menu_layout)
 
         self.pick_a_chain = QLabel("Choose one or more\nchains from the left")
         menu_layout.addWidget(self.pick_a_chain)
@@ -52,6 +59,23 @@ class AssociationsTool:
         self.assoc_button.value_changed.connect(self._seq_changed)
         menu_layout.addWidget(self.assoc_button)
 
+        # Widgets for single sequence
+        self.single_seq_area = QWidget()
+        layout.addWidget(self.single_seq_area)
+        ss_layout = QVBoxLayout()
+        self.single_seq_area.setLayout(ss_layout)
+
+        ss_layout.addWidget(
+            QLabel("Chains chosen/unchosen below will be associated/disassocated with sequence"))
+
+        from chimerax.atomic.widgets import ChainListWidget
+        self.ss_chain_list = ChainListWidget(sv.session, autoselect=ChainListWidget.AUTOSELECT_NONE)
+        self.ss_chain_list.value_changed.connect(self._ss_chain_changed)
+        ss_layout.addWidget(self.ss_chain_list)
+        self._processing_ss_list = False
+
+        self._choose_widgets()
+
         tool_window.ui_area.setLayout(layout)
 
         # get initial assoc info correct
@@ -61,9 +85,18 @@ class AssociationsTool:
         self.chain_list.blockSignals(False)
         self.assoc_button.blockSignals(False)
 
+        self._set_ss_data()
+
+    def _align_arg(self):
+        if len(self.sv.session.alignments) > 1:
+            return ' ' + self.sv.alignment.ident
+        return ''
+
     def _assoc_mod(self, note_data):
         # called from sequence viewer if associations modified
         self._chain_changed()
+        if not self._processing_ss_list:
+            self._set_ss_data()
 
     def _chain_changed(self):
         self.assoc_button.blockSignals(True)
@@ -91,6 +124,12 @@ class AssociationsTool:
         self.pick_a_chain.setHidden(show_button)
         self.assoc_button.blockSignals(False)
 
+    def _choose_widgets(self):
+        # also called from sequence viewer if sequences added/deleted
+        show_single = len(self.sv.alignment.seqs) == 1
+        self.multi_seq_area.setHidden(show_single)
+        self.single_seq_area.setHidden(not show_single)
+
     def _seq_changed(self):
         # this can also get called if sequences get deleted, so try to do some checking
         chains = self.chain_list.value
@@ -108,13 +147,37 @@ class AssociationsTool:
                 continue
             from chimerax.core.commands import run
             if not req_assoc:
-                run(self.sv.session, "sequence disassoc %s" % chain.string(style="command"))
+                run(self.sv.session, "sequence disassoc %s%s" % (chain.string(style="command"),
+                    self._align_arg()))
             elif req_assoc == self.best_assoc_label:
-                run(self.sv.session, "sequence assoc %s %s" % (chain.string(style="command"),
-                    self.sv.alignment.ident))
+                run(self.sv.session, "sequence assoc %s%s" % (chain.string(style="command"),
+                    self._align_arg()))
             else:
                 run(self.sv.session, "sequence assoc %s %s:%d" % (chain.string(style="command"),
                     self.sv.alignment.ident, self.sv.alignment.seqs.index(req_assoc)+1))
         self.chain_list.blockSignals(False)
         self.assoc_button.blockSignals(False)
         self._chain_changed()
+
+    def _set_ss_data(self):
+        self.ss_chain_list.blockSignals(True)
+        self.ss_chain_list.value = self.sv.alignment.associations.keys()
+        self.ss_chain_list.blockSignals(False)
+
+    def _ss_chain_changed(self):
+        self._processing_ss_list = True
+        chosen = set(self.ss_chain_list.value)
+        for chain in self.ss_chain_list.all_values:
+            is_associated = chain in self.sv.alignment.associations
+            want_association = chain in chosen
+            if is_associated == want_association:
+                continue
+            from chimerax.core.commands import run
+            if want_association:
+                run(self.sv.session, "sequence assoc %s%s" % (chain.string(style="command"),
+                    self._align_arg()))
+            else:
+                run(self.sv.session, "sequence disassoc %s%s" % (chain.string(style="command"),
+                    self._align_arg()))
+        self._processing_ss_list = False
+        self._set_ss_data()

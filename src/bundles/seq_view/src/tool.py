@@ -475,6 +475,9 @@ class SequenceViewer(ToolInstance):
         elif note_name == alignment.NOTE_RMSD_UPDATE:
             if self._regions_tool:
                 self._regions_tool.alignment_rmsd_update()
+        elif note_name == alignment.NOTE_ADD_DEL_SEQS:
+            if self._associations_tool:
+                self._associations_tool._choose_widgets()
 
         self.seq_canvas.alignment_notification(note_name, note_data)
 
