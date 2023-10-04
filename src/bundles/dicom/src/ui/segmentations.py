@@ -40,6 +40,13 @@ from chimerax.ui import MainToolWindow
 from chimerax.ui.open_save import SaveDialog
 from chimerax.ui.widgets import ModelMenu
 
+from chimerax.vive.vr import vr_camera as steamvr_camera
+from chimerax.vive.vr import vr_button as steamvr_button
+from chimerax.vive.vr import SteamVRCamera
+from chimerax.vive.xr import vr_camera as openxr_camera
+from chimerax.vive.xr import vr_button as openxr_button
+from chimerax.vive.xr import OpenXRCamera
+
 from ..ui.orthoplanes import Axis
 from ..graphics.cylinder import SegmentationDisk
 from ..graphics.sphere import SegmentationSphere
@@ -424,6 +431,7 @@ class SegmentationTool(ToolInstance):
 
     def __init__(self, session = None, name = "Segmentations"):
         super().__init__(session, name)
+        self.is_vr = False
         self._construct_ui()
 
     def _construct_ui(self):
@@ -487,6 +495,17 @@ class SegmentationTool(ToolInstance):
                 , 'command': None
                 , 'alt': None
             }
+        }
+        self.old_hand_bindings = {
+            'trigger': None,
+            'grip': None,
+            'touchpad': None,
+            'thumbstick': None,
+            'menu': None,
+            'a': None,
+            'b': None,
+            'x': None,
+            'y': None
         }
         self.view_dropdown_layout.setContentsMargins(0, 0, 0, 0)
         self.view_dropdown_layout.setSpacing(0)
@@ -684,15 +703,42 @@ class SegmentationTool(ToolInstance):
 
     def _set_vr_hand_modes(self):
         self.hand_modes_changed = True
+        if type(self.session.main_view.camera) is SteamVRCamera:
+            vr_camera = steamvr_camera
+            vr_button = steamvr_button
+            from openvr import \
+                k_EButton_Grip as grip, \
+                k_EButton_ApplicationMenu as menu, \
+                k_EButton_SteamVR_Trigger as trigger, \
+                k_EButton_SteamVR_Touchpad as touchpad, \
+                k_EButton_A as a
+            button_names = { grip: 'grip', menu: 'menu', trigger: 'trigger', touchpad: 'thumbstick', a: 'a' }
+            c = vr_camera(self.session)
+            hclist = [hc for hc in c.hand_controllers() if hc._side == str(self.settings.vr_handedness).lower()]
+            if not hclist:
+                ... # error
+            hc = hclist[0]
+            for button, binding in hc._modes.items():
+                self.old_hand_bindings[button_names[button]] = binding.name
+        elif type(self.session.main_view.camera) is OpenXRCamera:
+            # TODO
+            vr_camera = openxr_camera
+            vr_button = openxr_button
+        run(self.session, f'vr button trigger \'create segmentations\' hand { str(self.settings.vr_handedness).lower() }')
+        run(self.session, f'vr button thumbstick \'resize segmentation cursor\' hand { str(self.settings.vr_handedness).lower() }')
+        run(self.session, f'vr button grip \'move segmentation cursor\' hand { str(self.settings.vr_handedness).lower() }')
 
     def _reset_vr_hand_modes(self):
         """Set hand modes back to what they were but only if we changed them automatically.
         If you set the mode by hand, or in between the change and restore you're on your own!"""
         if self.hand_modes_changed:
-            ...
+            run(self.session, f'vr button trigger {self.old_hand_modes["trigger"]}')
+            run(self.session, f'vr button thumbstick {self.old_hand_modes["thumbstick"]}')
+            run(self.session, f'vr button grip {self.old_hand_modes["grip"]}')
         self.hand_modes_changed = False
 
     def _start_vr(self):
+        run(self.session, "vr on")
         if self.settings.set_hand_modes_automatically:
             self._set_vr_hand_modes()
 
@@ -851,6 +897,9 @@ class SegmentationTool(ToolInstance):
     def _on_view_changed(self):
         need_to_register = False
         if self.view_dropdown.currentIndex() == ViewMode.FOUR_UP:
+            if self.is_vr:
+                self.is_vr = False
+                run(self.session, "vr off")
             self._reset_3d_mouse_modes()
             if self.segmentation_sphere:
                 self._destroy_3d_segmentation_sphere()
@@ -859,6 +908,9 @@ class SegmentationTool(ToolInstance):
             run(self.session, "dicom view fourup")
             need_to_register = True
         elif self.view_dropdown.currentIndex() == ViewMode.ORTHOPLANES_OVER_3D:
+            if self.is_vr:
+                self.is_vr = False
+                run(self.session, "vr off")
             self._reset_3d_mouse_modes()
             if self.segmentation_sphere:
                 self._destroy_3d_segmentation_sphere()
@@ -867,6 +919,9 @@ class SegmentationTool(ToolInstance):
             run(self.session, "dicom view overunder")
             need_to_register = True
         elif self.view_dropdown.currentIndex() == ViewMode.ORTHOPLANES_BESIDE_3D:
+            if self.is_vr:
+                self.is_vr = False
+                run(self.session, "vr off")
             self._reset_3d_mouse_modes()
             if self.segmentation_sphere:
                 self._destroy_3d_segmentation_sphere()
@@ -875,7 +930,10 @@ class SegmentationTool(ToolInstance):
             run(self.session, "dicom view sidebyside")
             need_to_register = True
         else:
-            # TODO: If VR...
+            if self.view_dropdown.currentIndex() == ViewMode.DEFAULT_VR:
+                self.is_vr = True
+            else:
+                self.is_vr = False
             run(self.session, "dicom view default")
             if self.segmentation_cursors:
                 self._destroy_2d_segmentation_pucks()
@@ -883,8 +941,12 @@ class SegmentationTool(ToolInstance):
                 self._create_3d_segmentation_sphere()
             #if self.autostart_vr_checkbox.isChecked():
             #    run(self.session, "vr on")
-            if self.settings.set_mouse_modes_automatically:
-                self._set_3d_mouse_modes()
+            if self.view_dropdown.currentIndex() == ViewMode.DEFAULT_DESKTOP:
+                if self.settings.set_mouse_modes_automatically:
+                    self._set_3d_mouse_modes()
+            if self.view_dropdown.currentIndex() == ViewMode.DEFAULT_VR:
+                if self.settings.start_vr_automatically:
+                    self._start_vr()
         if need_to_register:
             if not self.segmentation_cursors:
                 self._create_2d_segmentation_pucks()
@@ -897,8 +959,10 @@ class SegmentationTool(ToolInstance):
 
     def set_view_dropdown(self, layout):
         if layout == "default":
-            # TODO: if VR...
-            self.view_dropdown.setCurrentIndex(ViewMode.DEFAULT_DESKTOP)
+            if self.is_vr:
+                self.view_dropdown.setCurrentIndex(ViewMode.DEFAULT_VR)
+            else:
+                self.view_dropdown.setCurrentIndex(ViewMode.DEFAULT_DESKTOP)
         elif layout == "sidebyside":
             self.view_dropdown.setCurrentIndex(ViewMode.ORTHOPLANES_BESIDE_3D)
         elif layout == "overunder":
