@@ -416,6 +416,7 @@ class LaunchEmplaceLocalTool(ToolInstance):
 
 class LaunchFitLoopsTool(ToolInstance):
     #help = "help:user/tools/localemfitting.html"
+    #NOTES: 1oed (all failures), 3j5p
 
     GAPS_TAB, REMODEL_TAB = TAB_NAMES = ("Fill Gaps", "Remodel")
 
@@ -485,19 +486,44 @@ class LaunchFitLoopsTool(ToolInstance):
         if not map:
             raise UserError("Must specify a volume/map to guide %s"
                 % ("gap filling" if gap_filling else "remodeling"))
+        from chimerax.atomic import concise_residue_spec
+        from chimerax.core.commands import run
         if gap_filling:
             gap_residues = []
+            all_checked = True
             for r1, r2, cb in self.fg_gap_widget_info:
                 if cb.isChecked() and not r1.deleted and not r2.deleted:
                     gap_residues.extend([r1, r2])
+                else:
+                    all_checked = False
             if gap_residues:
-                from chimerax.atomic import concise_residue_spec
-                from chimerax.core.commands import run
-                run(self.session, "phenix fitLoops %s in %s"
-                    % (concise_residue_spec(self.session, gap_residues), map.atomspec))
+                if all_checked:
+                    spec = structure.atomspec
+                else:
+                    spec = concise_residue_spec(self.session, gap_residues)
+                run(self.session, "phenix fitLoops %s in %s" % (spec, map.atomspec))
         else:
-            #TODO
-            raise NotImplemntedError("Remodeling not yet implemented")
+            from chimerax.atomic import selected_residues
+            residues = selected_residues(self.session)
+            if not residues:
+                run(self.session, "help help:user/selection.html")
+                raise UserError("No residues selected.  Showing help page for selecting residues.")
+            from chimerax.atomic import Residue
+            chain_residues = residues.filter(residues.polymer_types == Residue.PT_AMINO)
+            if not chain_residues:
+                raise UserError("No amino-acid residues selected")
+            chains = chain_residues.unique_chains
+            if len(chains) > 1:
+                raise UserError("Selected residues must be in the same chain")
+            chain = chains[0]
+            res_mapping = {}
+            for i, r in enumerate(chain.residues):
+                res_mapping[r] = i
+            indices = set([res_mapping[r] for r in chain_residues])
+            if max(indices) - min(indices) != len(chain_residues) - 1:
+                raise UserError("Selected residues must be consecutive")
+            run(self.session, "phenix fitLoops %s in %s"
+                % (concise_residue_spec(self.session, chain_residues), map.atomspec))
         if not apply:
             self.display(False)
 
@@ -556,9 +582,12 @@ class LaunchFitLoopsTool(ToolInstance):
         return gaps
 
     def _remodel_widget(self):
-        from Qt.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel, QWidget, QTabWidget
+        from Qt.QtWidgets import QLabel
         from Qt.QtCore import Qt
-        return QLabel("Remodel tab contents")
+        label = QLabel("Select residues in main graphics window that you wish to remodel")
+        label.setWordWrap(True)
+        label.setAlignment(Qt.AlignCenter)
+        return label
 
     def _sel_cb(self, sel):
         for r1, r2, cb in self.fg_gap_widget_info:
