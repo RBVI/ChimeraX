@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from chimerax.core.commands import Annotation, AnnotationError, next_token
+from chimerax.core.commands import Annotation, AnnotationError, next_token, DynamicEnum
 class SeqArg(Annotation):
     '''A single sequence (in a single alignment)
 
@@ -147,6 +147,24 @@ class AlignmentArg(Annotation):
         alignment = get_alignment_by_id(session, token)
         return alignment, text, rest
 
+class BaseViewerArg(DynamicEnum):
+    def __init__(self, session, viewer_type):
+        def viewer_names(mgr, viewer_type):
+            names = set()
+            for vname, nicknames in mgr.viewer_info[viewer_type].items():
+                names.add(vname)
+                names.update(nicknames)
+            return names
+        super().__init__(lambda mgr=session.alignments, f=viewer_names, t=viewer_type: f(mgr, t))
+
+class AlignmentViewerArg(BaseViewerArg):
+    def __init__(self, session):
+        super().__init__(session, "alignment")
+
+class SequenceViewerArg(BaseViewerArg):
+    def __init__(self, session):
+        super().__init__(session, "sequence")
+
 class MissingSequence(AnnotationError):
     pass
 def get_alignment_sequence(alignment, seq_id):
@@ -196,7 +214,7 @@ def get_alignment_by_id(session, align_id, *, multiple_okay=False):
 
 from chimerax.core.errors import UserError
 
-def seqalign_chain(session, chains):
+def seqalign_chain(session, chains, *, viewer=True):
     '''
     Show chain sequence(s)
 
@@ -209,7 +227,8 @@ def seqalign_chain(session, chains):
     if len(chains) == 1:
         chain = chains[0]
         ident = ".".join([str(part) for part in chain.structure.id]) + "/" + chain.chain_id
-        alignment = session.alignments.new_alignment([chain], ident, auto_associate=None, intrinsic=True)
+        alignment = session.alignments.new_alignment([chain], ident, auto_associate=None, intrinsic=True,
+            viewer=viewer)
     else:
         # all chains have to have the same sequence, and they will all be associated with
         # that sequence
@@ -229,7 +248,7 @@ def seqalign_chain(session, chains):
         if len(starts) == 1:
             seq.numbering_start = starts.pop()
         alignment = session.alignments.new_alignment([seq], None, auto_associate=False,
-            name=chains[0].description, intrinsic=True)
+            name=chains[0].description, intrinsic=True, viewer=viewer)
         alignment.suspend_notify_observers()
         for chain in chains:
             alignment.associate(chain, keep_intrinsic=True)
@@ -365,6 +384,7 @@ def register_seqalign_command(logger):
 
     desc = CmdDesc(
         required = [('chains', UniqueChainsArg)],
+        keyword = [('viewer', Or(BoolArg, SequenceViewerArg(logger.session)))],
         synopsis = 'show structure chain sequence'
     )
     register('sequence chain', desc, seqalign_chain, logger=logger)
