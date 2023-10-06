@@ -27,6 +27,10 @@ class _DICOMBundle(BundleAPI):
     def initialize(session, bundle_info):
         """Register file formats, commands, and database fetch."""
         add_map_format(session, DICOMMapFormat())
+        if session.ui.is_gui:
+            from .ui.segmentation_mouse_mode import CreateSegmentation3DMouseMode, Move3DSegmentationSphereMouseMode, Resize3DSegmentationSphereMouseMode
+            for mode in [CreateSegmentation3DMouseMode, Move3DSegmentationSphereMouseMode, Resize3DSegmentationSphereMouseMode]:
+                session.ui.mouse_modes.add_mode(mode(session))
 
     @staticmethod
     def get_class(class_name):
