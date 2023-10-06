@@ -36,6 +36,9 @@ max-session-version = 1
 categories = ["Medical Imaging"]
 classifiers = ["Development Status :: 2 - Pre-Alpha"]
 
+[chimerax.extra-files]
+"src/icons" = ["*.png"]
+
 [chimerax.initializations.manager]
 bundles = ["ChimeraX-MedicalToolbar", "ChimeraX-MouseModes"]
 
