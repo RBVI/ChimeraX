@@ -894,6 +894,11 @@ class SegmentationTool(ToolInstance):
             self.edit_seg_metadata_button.setEnabled(False)
             self.setActiveSegment(None)
 
+    def set_segmentation_step(self, step):
+        if not self.active_seg:
+            self.addSegment()
+        self.active_seg.set_step(step)
+
     def _on_view_changed(self):
         need_to_register = False
         if self.view_dropdown.currentIndex() == ViewMode.FOUR_UP:
