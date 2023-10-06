@@ -37,6 +37,7 @@ from chimerax.map import Volume, VolumeSurface, VolumeImage
 from chimerax.map.volume import open_grids
 
 from chimerax.ui import MainToolWindow
+from chimerax.ui.font import shrink_font
 from chimerax.ui.open_save import SaveDialog
 from chimerax.ui.widgets import ModelMenu
 
@@ -235,16 +236,15 @@ class SegmentationToolControlsDialog(QDialog):
 
         self.settings_container.layout().addWidget(self.start_vr_checkbox)
         self.settings_container.layout().addWidget(self.set_mouse_modes_checkbox)
-        self.explanatory_mouse_mode_text = QLabel("When this is checked, replaced mouse modes will be restored when the tool closes or the view is changed.")
-        self.explanatory_mouse_mode_text.setWordWrap(True)
-        self.settings_container.layout().addWidget(self.explanatory_mouse_mode_text)
+        self.set_mouse_modes_checkbox.setToolTip("Replaced mouse modes will be restored when the tool closes or the view is changed.")
         self.settings_container.layout().addWidget(self.set_hand_modes_checkbox)
-        self.explanatory_hand_mode_text = QLabel("When this is checked, replaced hand modes will be restored when the tool closes.")
-        self.explanatory_hand_mode_text.setWordWrap(True)
-        self.settings_container.layout().addWidget(self.explanatory_hand_mode_text)
+        self.set_hand_modes_checkbox.setToolTip("Replaced hand modes will be restored when the tool closes.")
         self.settings_container.layout().addWidget(self.default_view_dropdown_container)
         self.settings_container.layout().addWidget(self.file_format_dropdown_container)
-        self.settings_container.layout().addWidget(QLabel("DICOM metadata will be lost when saving DICOM segmentations in NIfTI or NRRD format."))
+        self.dicom_format_explanatory_text = QLabel("DICOM metadata will be lost when saving DICOM segmentations in NIfTI or NRRD format.")
+        self.dicom_format_explanatory_text.setWordWrap(True)
+        shrink_font(self.dicom_format_explanatory_text, 0.9)
+        self.settings_container.layout().addWidget(self.dicom_format_explanatory_text)
         self.settings_container.layout().addWidget(self.default_opacity_spinbox_container)
         self.settings_container.layout().addStretch()
         self.tab_widget.addTab(self.settings_container, "General Settings")
