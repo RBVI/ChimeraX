@@ -452,7 +452,7 @@ class SegmentationTool(ToolInstance):
         self.view_dropdown.setCurrentIndex(self.settings.default_view)
         self.view_dropdown.currentIndexChanged.connect(self._on_view_changed)
         self.control_information_button = QPushButton()
-        self.control_information_button.setIcon(self.parent.style().standardIcon(QStyle.StandardPixmap(QStyle.SP_MessageBoxInformation)))
+        self.control_information_button.setText("\u2699") # Unicode gear
         self.control_information_button.setToolTip("View Tool Settings")
         self.control_information_button.clicked.connect(self.showControlsDialog)
         self.view_dropdown_layout.addWidget(self.view_dropdown_label)
