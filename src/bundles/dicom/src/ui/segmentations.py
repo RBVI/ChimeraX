@@ -9,6 +9,11 @@
 # including partial copies, of the software or any revisions
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
+import os
+import sys
+
+from enum import IntEnum
+
 from Qt.QtCore import QThread, QObject, Signal, Slot, Qt
 from Qt.QtWidgets import (
     QVBoxLayout, QHBoxLayout, QHeaderView
@@ -17,13 +22,16 @@ from Qt.QtWidgets import (
     , QStackedWidget, QSizePolicy, QCheckBox
     , QListWidget, QListWidgetItem, QFileDialog
     , QAbstractItemView, QSlider, QSpinBox
+    , QStyle, QTabWidget
 )
+from Qt.QtGui import QImage, QPixmap
 
 from superqt import QRangeSlider
 
 from chimerax.core.commands import run
 from chimerax.core.models import Surface, ADD_MODELS, REMOVE_MODELS
 from chimerax.core.tools import ToolInstance
+from chimerax.core.settings import Settings
 
 from chimerax.map import Volume, VolumeSurface, VolumeImage
 from chimerax.map.volume import open_grids
@@ -32,8 +40,16 @@ from chimerax.ui import MainToolWindow
 from chimerax.ui.open_save import SaveDialog
 from chimerax.ui.widgets import ModelMenu
 
+from chimerax.vive.vr import vr_camera as steamvr_camera
+from chimerax.vive.vr import vr_button as steamvr_button
+from chimerax.vive.vr import SteamVRCamera
+from chimerax.vive.xr import vr_camera as openxr_camera
+from chimerax.vive.xr import vr_button as openxr_button
+from chimerax.vive.xr import OpenXRCamera
+
 from ..ui.orthoplanes import Axis
 from ..graphics.cylinder import SegmentationDisk
+from ..graphics.sphere import SegmentationSphere
 from ..dicom import modality
 from ..dicom.dicom_volumes import open_dicom_grids, DICOMVolume
 
@@ -42,6 +58,369 @@ class SegmentationListItem(QListWidgetItem):
         super().__init__(parent)
         self.segmentation = segmentation
         self.setText(self.segmentation.name)
+
+# Use these enums to populate the dropdowns so that the order is consistent
+class ViewMode(IntEnum):
+    FOUR_UP = 0
+    ORTHOPLANES_OVER_3D = 1
+    ORTHOPLANES_BESIDE_3D = 2
+    DEFAULT_DESKTOP = 3
+    DEFAULT_VR = 4
+
+    def __str__(self):
+        if self.name == "FOUR_UP":
+            return "4 x 4 (Desktop)"
+        elif self.name == "ORTHOPLANES_OVER_3D":
+            return "3D Over Orthoplanes (Desktop)"
+        elif self.name == "ORTHOPLANES_BESIDE_3D":
+            return "3D Beside Orthoplanes (Desktop)"
+        elif self.name == "DEFAULT_DESKTOP":
+            return "Default (Desktop)"
+        elif self.name == "DEFAULT_VR":
+            return "Default (VR)"
+        return "%s: Set a value to return for the name of this EnumItem" % self.name
+
+class ImageFormat(IntEnum):
+    DICOM = 0
+    NIFTI = 1
+    NRRD = 2
+
+    def __str__(self):
+        if self.name == "NIFTI":
+            return "NIfTI"
+        return self.name
+
+class MouseAction(IntEnum):
+    NONE = 0
+    CREATE_SEGMENT = 1
+    MOVE_SPHERE = 2
+    RESIZE_SPHERE = 3
+
+    def __str__(self):
+        return " ".join(self.name.split('_')).lower().title()
+
+class HandAction(IntEnum):
+    NONE = 0
+    RESIZE_CURSOR = 1
+    MOVE_CURSOR = 2
+    CREATE_SEGMENT = 3
+    SWAP_CREATE_ERASE_MODE = 4
+
+    def __str__(self):
+        return " ".join(self.name.split('_')).lower().title()
+
+class Handedness(IntEnum):
+    LEFT = 0
+    RIGHT = 1
+
+    def __str__(self):
+        return self.name.title()
+
+class _SegmentationToolSettings(Settings):
+    EXPLICIT_SAVE = {
+        'start_vr_automatically': False
+        , 'set_mouse_modes_automatically': False
+        , 'set_hand_modes_automatically': False
+        , 'default_view': 0 # 4 x 4
+        , 'default_file_format': 0 # DICOM
+        , 'default_segmentation_opacity': 80 # %
+        , 'mouse_3d_right_click': MouseAction.CREATE_SEGMENT
+        , 'mouse_3d_middle_click': MouseAction.MOVE_SPHERE
+        , 'mouse_3d_scroll': MouseAction.RESIZE_SPHERE
+        , 'mouse_3d_left_click': MouseAction.NONE
+        , 'vr_thumbstick': HandAction.RESIZE_CURSOR
+        , 'vr_trigger': HandAction.CREATE_SEGMENT
+        , 'vr_grip': HandAction.MOVE_CURSOR
+        , 'vr_a_button': HandAction.SWAP_CREATE_ERASE_MODE
+        , 'vr_b_button': HandAction.NONE
+        , 'vr_handedness': Handedness.RIGHT
+    }
+
+class SegmentationToolControlsDialog(QDialog):
+    right_hand_image = QImage(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "icons", "right_controller.png"))
+    # left_hand_image = QImage(os.path.join(os.path.dirname(os.path.abspath(__file__)), "right_controller.png"))
+    mouse_image = QImage(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "icons", "mouse.png"))
+
+    def __init__(self, parent, settings):
+        super().__init__(parent)
+        self.cx_settings = settings
+        self.setWindowTitle("Segmentation Tool Settings")
+        self.setLayout(QVBoxLayout())
+        self.tab_widget = QTabWidget(self)
+        self.layout().addWidget(self.tab_widget)
+        self._add_settings_tab()
+        self._add_mouse_2d_tab()
+        self._add_mouse_3d_tab()
+        self._add_vr_tab()
+        self.button_widget = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
+            , self
+        )
+        self.button_widget.accepted.connect(self.accept)
+        self.button_widget.accepted.connect(self._on_accept)
+        self.button_widget.rejected.connect(self.reject)
+        self.layout().addWidget(self.button_widget)
+
+    def _on_accept(self):
+        self.cx_settings.mouse_3d_right_click = self.right_click_3d_dropdown.currentIndex()
+        self.cx_settings.mouse_3d_middle_click = self.middle_click_3d_dropdown.currentIndex()
+        self.cx_settings.mouse_3d_scroll = self.scroll_3d_dropdown.currentIndex()
+        self.cx_settings.mouse_3d_left_click = self.left_click_3d_dropdown.currentIndex()
+        self.cx_settings.vr_thumbstick = self.thumbstick_dropdown.currentIndex()
+        self.cx_settings.vr_trigger = self.trigger_dropdown.currentIndex()
+        self.cx_settings.vr_grip = self.grip_dropdown.currentIndex()
+        self.cx_settings.vr_a_button = self.a_button_dropdown.currentIndex()
+        self.cx_settings.vr_b_button = self.b_button_dropdown.currentIndex()
+        self.cx_settings.start_vr_automatically = self.start_vr_checkbox.isChecked()
+        self.cx_settings.set_mouse_modes_automatically = self.set_mouse_modes_checkbox.isChecked()
+        self.cx_settings.set_hand_modes_automatically = self.set_hand_modes_checkbox.isChecked()
+        self.cx_settings.default_file_format = self.file_format_dropdown.currentIndex()
+        self.cx_settings.default_view = self.default_view_dropdown.currentIndex()
+        self.cx_settings.default_segmentation_opacity = self.default_opacity_spinbox.value()
+        self.cx_settings.save()
+
+    def _add_settings_tab(self):
+        self.settings_container = QWidget(self)
+        self.settings_container.setLayout(QVBoxLayout())
+        self.start_vr_checkbox = QCheckBox("Start VR Automatically when 3D VR view mode chosen")
+        self.start_vr_checkbox.setChecked(self.cx_settings.start_vr_automatically)
+        self.set_mouse_modes_checkbox = QCheckBox("Set 3D Mouse Modes Automatically when 3D Desktop View Chosen")
+        self.set_mouse_modes_checkbox.setChecked(self.cx_settings.set_mouse_modes_automatically)
+        self.set_hand_modes_checkbox = QCheckBox("Set VR Hand Modes Automatically when 3D VR View Chosen")
+        self.set_hand_modes_checkbox.setChecked(self.cx_settings.set_hand_modes_automatically)
+        self.default_view_dropdown_container = QWidget(self.settings_container)
+        self.default_view_dropdown_layout = QHBoxLayout()
+        self.default_view_dropdown_container.setLayout(self.default_view_dropdown_layout)
+        self.default_view_dropdown_layout.setContentsMargins(0, 0, 0, 0)
+        self.default_view_dropdown_layout.setSpacing(0)
+        self.default_view_dropdown_label = QLabel("Default View:")
+        self.default_view_dropdown = QComboBox(self)
+        for view in ViewMode:
+            self.default_view_dropdown.addItem(str(view))
+        self.default_view_dropdown.setCurrentIndex(self.cx_settings.default_view)
+        self.default_view_dropdown_layout.addWidget(self.default_view_dropdown_label)
+        self.default_view_dropdown_layout.addSpacing(8)
+        self.default_view_dropdown_layout.addWidget(self.default_view_dropdown)
+        self.default_view_dropdown_layout.addStretch()
+
+        self.file_format_dropdown_container = QWidget(self.settings_container)
+        self.file_format_dropdown_layout = QHBoxLayout()
+        self.file_format_dropdown_container.setLayout(self.file_format_dropdown_layout)
+        self.file_format_dropdown_layout.setContentsMargins(0, 0, 0, 0)
+        self.file_format_dropdown_layout.setSpacing(0)
+        self.file_format_dropdown_label = QLabel("Image Format for Saving DICOM Segmentations:")
+        self.file_format_dropdown = QComboBox(self)
+        for format in ImageFormat:
+            self.file_format_dropdown.addItem(str(format))
+        self.file_format_dropdown.setCurrentIndex(self.cx_settings.default_file_format)
+        self.file_format_dropdown_layout.addWidget(self.file_format_dropdown_label)
+        self.file_format_dropdown_layout.addSpacing(8)
+        self.file_format_dropdown_layout.addWidget(self.file_format_dropdown)
+        self.file_format_dropdown_layout.addStretch()
+
+        self.default_opacity_spinbox_container = QWidget(self.settings_container)
+        self.default_opacity_spinbox_layout = QHBoxLayout()
+        self.default_opacity_spinbox_container.setLayout(self.default_opacity_spinbox_layout)
+        self.default_opacity_spinbox_layout.setContentsMargins(0, 0, 0, 0)
+        self.default_opacity_spinbox_layout.setSpacing(0)
+        self.default_opacity_spinbox_label = QLabel("Default Segmentation Opacity:")
+        self.default_opacity_spinbox = QSpinBox(self.settings_container)
+        self.default_opacity_spinbox.setRange(0, 100)
+        self.default_opacity_spinbox.setSuffix("%")
+        self.default_opacity_spinbox.setValue(self.cx_settings.default_segmentation_opacity or 70)
+        self.default_opacity_spinbox_layout.addWidget(self.default_opacity_spinbox_label)
+        self.default_opacity_spinbox_layout.addSpacing(8)
+        self.default_opacity_spinbox_layout.addWidget(self.default_opacity_spinbox)
+        self.default_opacity_spinbox_layout.addStretch()
+
+        self.settings_container.layout().addWidget(self.start_vr_checkbox)
+        self.settings_container.layout().addWidget(self.set_mouse_modes_checkbox)
+        self.explanatory_mouse_mode_text = QLabel("When this is checked, replaced mouse modes will be restored when the tool closes or the view is changed.")
+        self.explanatory_mouse_mode_text.setWordWrap(True)
+        self.settings_container.layout().addWidget(self.explanatory_mouse_mode_text)
+        self.settings_container.layout().addWidget(self.set_hand_modes_checkbox)
+        self.explanatory_hand_mode_text = QLabel("When this is checked, replaced hand modes will be restored when the tool closes.")
+        self.explanatory_hand_mode_text.setWordWrap(True)
+        self.settings_container.layout().addWidget(self.explanatory_hand_mode_text)
+        self.settings_container.layout().addWidget(self.default_view_dropdown_container)
+        self.settings_container.layout().addWidget(self.file_format_dropdown_container)
+        self.settings_container.layout().addWidget(QLabel("DICOM metadata will be lost when saving DICOM segmentations in NIfTI or NRRD format."))
+        self.settings_container.layout().addWidget(self.default_opacity_spinbox_container)
+        self.settings_container.layout().addStretch()
+        self.tab_widget.addTab(self.settings_container, "General Settings")
+
+    def _add_mouse_2d_tab(self):
+        self.mouse_2d_outer_widget = QWidget(self)
+        self.mouse_2d_outer_layout = QHBoxLayout()
+        self.mouse_2d_outer_widget.setLayout(self.mouse_2d_outer_layout)
+
+        self.mouse_2d_image_widget = QLabel(self)
+        self.mouse_2d_image_widget.setPixmap(QPixmap.fromImage(self.mouse_image.scaledToWidth(350, Qt.TransformationMode.SmoothTransformation)))
+
+        self.mouse_2d_image_container = QWidget()
+        self.mouse_2d_image_container_layout = QVBoxLayout()
+        self.mouse_2d_image_container_layout.setSpacing(0)
+        self.mouse_2d_image_container_layout.setContentsMargins(0, 0, 0, 0)
+        self.mouse_2d_image_container.setLayout(self.mouse_2d_image_container_layout)
+        self.mouse_2d_image_container_layout.addWidget(self.mouse_2d_image_widget)
+        self.mouse_2d_image_container_layout.addStretch(1)
+        self.mouse_2d_outer_layout.addWidget(self.mouse_2d_image_container)
+
+        self.mouse_control_2d_dropdown_container = QWidget()
+        self.mouse_control_2d_dropdown_container_layout = QVBoxLayout()
+        self.mouse_control_2d_dropdown_container.setLayout(self.mouse_control_2d_dropdown_container_layout)
+        windows_spacings = [98, 12, 12, 12]
+        mac_spacings = [50, 12, 12, 12]
+        linux_spacings = [98, 12, 12, 12]
+        if sys.platform == "win32":
+            spacings = windows_spacings
+        elif sys.platform == "darwin":
+            spacings = mac_spacings
+        else:
+            spacings = linux_spacings
+        control_labels = [
+            QLabel("Zoom on Slice")
+            , QLabel("Pan Around Slice")
+            , QLabel("Zoom on Slice\n(Holding Shift) Resize Cursor")
+            , QLabel("Create Segmentation\n(Holding Shift) Erase Segmentation")
+        ]
+        for i in range(4):
+            self.mouse_control_2d_dropdown_container_layout.addSpacing(spacings[i])
+            self.mouse_control_2d_dropdown_container_layout.addWidget(control_labels[i])
+        self.mouse_control_2d_dropdown_container_layout.addStretch()
+        self.mouse_control_2d_dropdown_container_layout.setContentsMargins(6, 0, 0, 0)
+        self.mouse_control_2d_dropdown_container_layout.setSpacing(0)
+        self.mouse_2d_outer_layout.addWidget(self.mouse_control_2d_dropdown_container)
+        self.mouse_2d_outer_layout.addStretch(1)
+        self.tab_widget.addTab(self.mouse_2d_outer_widget, "Mouse (2D Slices)")
+
+    def _add_mouse_3d_tab(self):
+        self.mouse_3d_widget = QWidget(self)
+        self.mouse_3d_layout = QVBoxLayout()
+        self.mouse_3d_layout.setSpacing(0)
+        self.mouse_3d_widget.setLayout(self.mouse_3d_layout)
+
+        self.mouse_3d_image_controls_container = QWidget(self)
+        self.mouse_3d_image_controls_container_layout = QHBoxLayout()
+        self.mouse_3d_image_controls_container_layout.setContentsMargins(0, 0, 0, 0)
+        self.mouse_3d_image_controls_container_layout.setSpacing(0)
+        self.mouse_3d_image_controls_container.setLayout(self.mouse_3d_image_controls_container_layout)
+
+        self.mouse_3d_layout.addWidget(self.mouse_3d_image_controls_container)
+
+        self.mouse_controls_3d_dropdown_list_container = QWidget()
+        self.mouse_controls_3d_dropdown_list_container_layout = QVBoxLayout()
+        self.mouse_controls_3d_dropdown_list_container_layout.setContentsMargins(10, 0, 0, 0)
+        self.mouse_controls_3d_dropdown_list_container_layout.setSpacing(0)
+        self.mouse_controls_3d_dropdown_list_container.setLayout(self.mouse_controls_3d_dropdown_list_container_layout)
+
+
+        self.mouse_3d_image_widget = QLabel(self)
+        self.mouse_3d_image_widget.setPixmap(QPixmap.fromImage(self.mouse_image.scaledToWidth(350, Qt.TransformationMode.SmoothTransformation)))
+
+        self.mouse_3d_image_controls_container_layout.addWidget(self.mouse_3d_image_widget)
+        self.mouse_3d_image_controls_container_layout.addWidget(self.mouse_controls_3d_dropdown_list_container)
+
+        self.mouse_3d_image_controls_container_layout.addWidget(self.mouse_controls_3d_dropdown_list_container)
+        self.mouse_3d_image_controls_container_layout.addStretch(1)
+
+        self.explanatory_mouse_3d_text = QLabel(
+            "Whatever is assigned to 'Scroll' will activate when the Shift key is held, so zooming in and out on your model will still work."
+        )
+        self.explanatory_mouse_3d_text.setWordWrap(True)
+        self.mouse_3d_layout.addWidget(self.explanatory_mouse_3d_text)
+        self.explanatory_mouse_3d_text_middle_click = QLabel("Whatever is assigned to 'Middle Click' will activate when the Shift key is held, so panning the camera around your model will still work.")
+        self.explanatory_mouse_3d_text_middle_click.setWordWrap(True)
+        self.mouse_3d_layout.addWidget(self.explanatory_mouse_3d_text_middle_click)
+        self.mouse_3d_layout.addStretch(1)
+
+        self.right_click_3d_dropdown = QComboBox(self)
+        self.middle_click_3d_dropdown = QComboBox(self)
+        self.scroll_3d_dropdown = QComboBox(self)
+        self.left_click_3d_dropdown = QComboBox(self)
+        windows_spacings = [50, 2, 6, 16]
+        mac_spacings = [48, 0, 6, 16]
+        linux_spacings = [50, 2, 6, 16]
+        if sys.platform == "win32":
+            spacings = windows_spacings
+        elif sys.platform == "darwin":
+            spacings = mac_spacings
+        else:
+            spacings = linux_spacings
+        for dropdown, spacing in zip(
+            [self.right_click_3d_dropdown, self.middle_click_3d_dropdown, self.scroll_3d_dropdown, self.left_click_3d_dropdown], spacings
+        ):
+            for option in MouseAction:
+                dropdown.addItem(str(option))
+            self.mouse_controls_3d_dropdown_list_container_layout.addSpacing(spacing)
+            self.mouse_controls_3d_dropdown_list_container_layout.addWidget(dropdown)
+        self.right_click_3d_dropdown.setCurrentIndex(self.cx_settings.mouse_3d_right_click)
+        self.middle_click_3d_dropdown.setCurrentIndex(self.cx_settings.mouse_3d_middle_click)
+        self.scroll_3d_dropdown.setCurrentIndex(self.cx_settings.mouse_3d_scroll)
+        self.left_click_3d_dropdown.setCurrentIndex(self.cx_settings.mouse_3d_left_click)
+        self.mouse_controls_3d_dropdown_list_container_layout.addStretch()
+        self.tab_widget.addTab(self.mouse_3d_widget, "Mouse (3D)")
+
+    def _add_vr_tab(self):
+        self.vr_outer_widget = QWidget(self)
+        self.vr_outer_layout = QHBoxLayout()
+        self.vr_outer_widget.setLayout(self.vr_outer_layout)
+
+        self.control_dropdown_container = QWidget()
+        self.control_dropdown_container_layout = QVBoxLayout()
+        self.control_dropdown_container.setLayout(self.control_dropdown_container_layout)
+
+        self.vr_controller_container = QWidget()
+        self.vr_controller_container_layout = QVBoxLayout()
+        self.vr_controller_container.setLayout(self.vr_controller_container_layout)
+
+        self.vr_controller_picture = QLabel(self)
+        self.vr_controller_picture.setPixmap(QPixmap.fromImage(self.right_hand_image.scaledToWidth(350, Qt.TransformationMode.SmoothTransformation)))
+        self.vr_controller_container_layout.addWidget(self.vr_controller_picture)
+        self.vr_controller_container_layout.setContentsMargins(0, 0, 0, 0)
+        self.vr_controller_container_layout.addStretch(1)
+        self.vr_outer_layout.addWidget(self.vr_controller_container)
+        self.vr_outer_layout.addWidget(self.control_dropdown_container)
+        self.vr_outer_layout.addStretch(1)
+        self.thumbstick_dropdown = QComboBox(self)
+        self.menu_button_dropdown = QComboBox(self)
+        self.trigger_dropdown = QComboBox(self)
+        self.grip_dropdown = QComboBox(self)
+        self.a_button_dropdown = QComboBox(self)
+        self.b_button_dropdown = QComboBox(self)
+        windows_spacings = [88, 46, 10, 18, 72, 36]
+        mac_spacings = [88, 38, 2, 10, 66, 28]
+        linux_spacings = [88, 46, 10, 18, 72, 36]
+        assignable = [True, False, True, True, True, True]
+        if sys.platform == "win32":
+            spacings = windows_spacings
+        elif sys.platform == "darwin":
+            spacings = mac_spacings
+        else:
+            spacings = linux_spacings
+        for dropdown, spacing, assignable in zip(
+            [self.thumbstick_dropdown, self.menu_button_dropdown, self.trigger_dropdown, self.grip_dropdown, self.a_button_dropdown, self.b_button_dropdown]
+            , spacings
+            , assignable
+        ):
+            if not assignable:
+                dropdown.addItem(str(HandAction.NONE))
+                dropdown.setEnabled(False)
+            else:
+                for option in HandAction:
+                    dropdown.addItem(str(option))
+            self.control_dropdown_container_layout.addSpacing(spacing)
+            self.control_dropdown_container_layout.addWidget(dropdown)
+        self.thumbstick_dropdown.setCurrentIndex(self.cx_settings.vr_thumbstick)
+        self.trigger_dropdown.setCurrentIndex(self.cx_settings.vr_trigger)
+        self.grip_dropdown.setCurrentIndex(self.cx_settings.vr_grip)
+        self.a_button_dropdown.setCurrentIndex(self.cx_settings.vr_a_button)
+        self.b_button_dropdown.setCurrentIndex(self.cx_settings.vr_b_button)
+        self.control_dropdown_container_layout.setContentsMargins(6, 0, 0, 0)
+        self.control_dropdown_container_layout.setSpacing(0)
+        self.control_dropdown_container_layout.addStretch()
+        self.tab_widget.addTab(self.vr_outer_widget, "VR Controller")
+
 
 class SegmentationTool(ToolInstance):
     # TODO: Sphere cursor for 2D, extend to VR
@@ -52,12 +431,15 @@ class SegmentationTool(ToolInstance):
 
     def __init__(self, session = None, name = "Segmentations"):
         super().__init__(session, name)
+        self.is_vr = False
         self._construct_ui()
 
     def _construct_ui(self):
         # Construct the GUI
         self.tool_window = MainToolWindow(self)
+        self.settings = _SegmentationToolSettings(self.session, "Segmentation Tool")
         self.parent = self.tool_window.ui_area
+        self.controls_dialog = SegmentationToolControlsDialog(self.parent, self.settings)
         self.main_layout = QVBoxLayout()
         self.active_seg: Volume | None = None
 
@@ -65,15 +447,66 @@ class SegmentationTool(ToolInstance):
         self.view_dropdown_layout = QHBoxLayout()
         self.view_dropdown_label = QLabel("View Layout")
         self.view_dropdown = QComboBox(self.parent)
-        self.view_dropdown.addItem("4 x 4 (Desktop)")
-        self.view_dropdown.addItem("3D Over Orthoplanes (Desktop)")
-        self.view_dropdown.addItem("3D Beside Orthoplanes (Desktop)")
-        self.view_dropdown.addItem("3D Only (VR)")
+        for view in ViewMode:
+            self.view_dropdown.addItem(str(view))
+        self.view_dropdown.setCurrentIndex(self.settings.default_view)
         self.view_dropdown.currentIndexChanged.connect(self._on_view_changed)
+        self.control_information_button = QPushButton()
+        self.control_information_button.setIcon(self.parent.style().standardIcon(QStyle.StandardPixmap(QStyle.SP_MessageBoxInformation)))
+        self.control_information_button.setToolTip("View Tool Settings")
+        self.control_information_button.clicked.connect(self.showControlsDialog)
         self.view_dropdown_layout.addWidget(self.view_dropdown_label)
         self.view_dropdown_layout.addWidget(self.view_dropdown, 1)
+        self.view_dropdown_layout.addWidget(self.control_information_button)
         self.view_dropdown_container.setLayout(self.view_dropdown_layout)
-
+        self.old_mouse_bindings = {
+            'left': {
+                'none': None
+                , 'shift': None
+                , 'ctrl': None
+                , 'command': None
+                , 'alt': None
+            }
+            , 'right': {
+                'none': None
+                , 'shift': None
+                , 'ctrl': None
+                , 'command': None
+                , 'alt': None
+            }
+            , 'middle': {
+                'none': None
+                , 'shift': None
+                , 'ctrl': None
+                , 'command': None
+                , 'alt': None
+            }
+            , 'wheel': {
+                'none': None
+                , 'shift': None
+                , 'ctrl': None
+                , 'command': None
+                , 'alt': None
+            }
+            , 'pause': {
+                'none': None
+                , 'shift': None
+                , 'ctrl': None
+                , 'command': None
+                , 'alt': None
+            }
+        }
+        self.old_hand_bindings = {
+            'trigger': None,
+            'grip': None,
+            'touchpad': None,
+            'thumbstick': None,
+            'menu': None,
+            'a': None,
+            'b': None,
+            'x': None,
+            'y': None
+        }
         self.view_dropdown_layout.setContentsMargins(0, 0, 0, 0)
         self.view_dropdown_layout.setSpacing(0)
         def _not_volume_surface_or_segmentation(m):
@@ -94,6 +527,8 @@ class SegmentationTool(ToolInstance):
             model_chosen_cb = self._surface_chosen
         )
 
+        self.mouse_modes_changed = False
+        self.hand_modes_changed = False
         self.control_checkbox_container = QWidget()
         self.control_checkbox_layout = QHBoxLayout()
 
@@ -143,7 +578,7 @@ class SegmentationTool(ToolInstance):
         self.slider_container = QWidget(self.parent)
         self.slider_layout = QHBoxLayout()
 
-        self.intensity_range_label = QLabel("Intensity Range")
+        self.intensity_range_checkbox = QCheckBox("Restrict Intensity Range")
         self.range_slider = QRangeSlider(Qt.Orientation.Horizontal)
         self.lower_intensity_spinbox = QSpinBox(self.slider_container)
         self.upper_intensity_spinbox = QSpinBox(self.slider_container)
@@ -155,9 +590,8 @@ class SegmentationTool(ToolInstance):
         self.slider_layout.addWidget(self.upper_intensity_spinbox)
         self.slider_layout.setContentsMargins(0, 0, 0, 0)
         self.slider_container.setLayout(self.slider_layout)
-        self.main_layout.addWidget(self.intensity_range_label)
+        self.main_layout.addWidget(self.intensity_range_checkbox)
         self.main_layout.addWidget(self.slider_container)
-
 
         self.main_layout.addStretch()
         self.main_layout.setContentsMargins(6, 0, 6, 6)
@@ -166,6 +600,7 @@ class SegmentationTool(ToolInstance):
         self.parent.setLayout(self.main_layout)
         self.tool_window.manage('side')
         self.segmentation_cursors = {}
+        self.segmentation_sphere = None
         self._create_2d_segmentation_pucks()
         self.segmentations = {}
         self.current_segmentation = None
@@ -173,13 +608,23 @@ class SegmentationTool(ToolInstance):
         self.threshold_max = 0
         self.threshold_min = 0
 
-        self.session.models.add(self.segmentation_cursors.values())
         self.model_added_handler = self.session.triggers.add_handler(ADD_MODELS, self._on_model_added_to_session)
-        # TODO: Maybe just force the view to fourup when this tool opens?
-        # TODO: if session.ui.vr_active or something, do this
+        # TODO: VR started trigger
         if not self.session.ui.main_window.view_layout == "orthoplanes":
-        # TODO: Get this from some user preference
-            run(self.session, "dicom view fourup")
+            # TODO: if session.ui.vr_active...
+            # else: ...
+            if self.settings.default_view == ViewMode.FOUR_UP:
+                run(self.session, "dicom view fourup")
+            elif self.settings.default_view == ViewMode.ORTHOPLANES_OVER_3D:
+                run(self.session, "dicom view overunder")
+            elif self.settings.default_view == ViewMode.ORTHOPLANES_BESIDE_3D:
+                run(self.session, "dicom view sidebyside")
+            elif self.settings.default_view == ViewMode.DEFAULT_DESKTOP:
+                if self.settings.set_mouse_modes_automatically:
+                    self._set_3d_mouse_modes()
+            else:
+                if self.settings.start_vr_automatically:
+                    self._start_vr()
         if self.session.ui.main_window.view_layout == "orthoplanes":
             self.session.ui.main_window.main_view.register_segmentation_tool(self)
 
@@ -191,6 +636,9 @@ class SegmentationTool(ToolInstance):
                     self.session.ui.main_window.main_view.add_segmentation(model)
         self.segmentations_by_model = {}
         self._surface_chosen()
+
+    def showControlsDialog(self):
+        self.controls_dialog.show()
 
     def _on_spinbox_lower_intensity_range_changed(self, value):
         self.threshold_min = value
@@ -219,15 +667,80 @@ class SegmentationTool(ToolInstance):
 
     def delete(self):
         self.session.triggers.remove_handler(self.model_added_handler)
+        # TODO: Restore old mouse modes if necessary
         if self.session.ui.main_window.view_layout == "orthoplanes":
             self.session.ui.main_window.main_view.clear_segmentation_tool()
         # When a session is closed, models are deleted before tools, so we need to
         # fail gracefully if the models have already been deleted
         try:
-            self.session.models.remove(self.segmentation_cursors.values())
+            self._destroy_2d_segmentation_pucks()
         except TypeError:
             pass
+        self._reset_3d_mouse_modes()
+        self._reset_vr_hand_modes()
         super().delete()
+
+    def _set_3d_mouse_modes(self):
+        for binding in self.session.ui.mouse_modes.bindings:
+            if not binding.modifiers:
+                self.old_mouse_bindings[binding.button]['none'] = binding.mode.name
+            else:
+                for modifier in binding.modifiers:
+                    self.old_mouse_bindings[binding.button][modifier] = binding.mode.name
+        run(self.session, "ui mousemode shift wheel 'resize segmentation cursor'")
+        run(self.session, "ui mousemode right 'create segmentations'")
+        run(self.session, "ui mousemode shift middle 'move segmentation cursor'")
+        self.mouse_modes_changed = True
+
+    def _reset_3d_mouse_modes(self):
+        """Set mouse modes back to what they were but only if we changed them automatically.
+        If you set the mode by hand, or in between the change and restore you're on your own!"""
+        if self.mouse_modes_changed:
+            run(self.session, "ui mousemode shift wheel '" + self.old_mouse_bindings['wheel']['shift'] + "'" if self.old_mouse_bindings['wheel']['shift'] else "ui mousemode shift wheel 'none'")
+            run(self.session, "ui mousemode right '" + self.old_mouse_bindings['right']['none'] + "'" if self.old_mouse_bindings['right']['none'] else "ui mousemode right 'none'")
+            run(self.session, "ui mousemode shift middle '" + self.old_mouse_bindings['middle']['shift'] + "'" if self.old_mouse_bindings['middle']['shift'] else "ui mousemode shift middle 'none'")
+        self.mouse_modes_changed = False
+
+    def _set_vr_hand_modes(self):
+        self.hand_modes_changed = True
+        if type(self.session.main_view.camera) is SteamVRCamera:
+            vr_camera = steamvr_camera
+            vr_button = steamvr_button
+            from openvr import \
+                k_EButton_Grip as grip, \
+                k_EButton_ApplicationMenu as menu, \
+                k_EButton_SteamVR_Trigger as trigger, \
+                k_EButton_SteamVR_Touchpad as touchpad, \
+                k_EButton_A as a
+            button_names = { grip: 'grip', menu: 'menu', trigger: 'trigger', touchpad: 'thumbstick', a: 'a' }
+            c = vr_camera(self.session)
+            hclist = [hc for hc in c.hand_controllers() if hc._side == str(self.settings.vr_handedness).lower()]
+            if not hclist:
+                ... # error
+            hc = hclist[0]
+            for button, binding in hc._modes.items():
+                self.old_hand_bindings[button_names[button]] = binding.name
+        elif type(self.session.main_view.camera) is OpenXRCamera:
+            # TODO
+            vr_camera = openxr_camera
+            vr_button = openxr_button
+        run(self.session, f'vr button trigger \'create segmentations\' hand { str(self.settings.vr_handedness).lower() }')
+        run(self.session, f'vr button thumbstick \'resize segmentation cursor\' hand { str(self.settings.vr_handedness).lower() }')
+        run(self.session, f'vr button grip \'move segmentation cursor\' hand { str(self.settings.vr_handedness).lower() }')
+
+    def _reset_vr_hand_modes(self):
+        """Set hand modes back to what they were but only if we changed them automatically.
+        If you set the mode by hand, or in between the change and restore you're on your own!"""
+        if self.hand_modes_changed:
+            run(self.session, f'vr button trigger {self.old_hand_modes["trigger"]}')
+            run(self.session, f'vr button thumbstick {self.old_hand_modes["thumbstick"]}')
+            run(self.session, f'vr button grip {self.old_hand_modes["grip"]}')
+        self.hand_modes_changed = False
+
+    def _start_vr(self):
+        run(self.session, "vr on")
+        if self.settings.set_hand_modes_automatically:
+            self._set_vr_hand_modes()
 
     def _surface_chosen(self, *args):
         # If we're in the 2D view, we need to tell the orthoplane views to display
@@ -257,6 +770,7 @@ class SegmentationTool(ToolInstance):
             pass
 
     def _create_2d_segmentation_pucks(self, initial_display = False) -> None:
+        # TODO: Set the height to the thickness in that direction
         self.segmentation_cursors = {
             Axis.AXIAL:    SegmentationDisk(self.session, Axis.AXIAL, height=5)
             , Axis.CORONAL:  SegmentationDisk(self.session, Axis.CORONAL, height=5)
@@ -264,6 +778,21 @@ class SegmentationTool(ToolInstance):
         }
         for cursor in self.segmentation_cursors.values():
             cursor.display = initial_display
+        self.session.models.add(self.segmentation_cursors.values())
+
+    def _destroy_2d_segmentation_pucks(self) -> None:
+        self.session.models.remove(self.segmentation_cursors.values())
+        self.segmentation_cursors = {}
+
+    def _create_3d_segmentation_sphere(self) -> None:
+        self.segmentation_sphere = SegmentationSphere(
+            "Segmentation Sphere"
+            , self.session
+        )
+
+    def _destroy_3d_segmentation_sphere(self) -> None:
+        self.session.models.remove([self.segmentation_sphere])
+        self.segmentation_sphere = None
 
     def make_puck_visible(self, axis):
         if axis in self.segmentation_cursors:
@@ -295,11 +824,10 @@ class SegmentationTool(ToolInstance):
             center_x, center_y = marker.drawing_center
             radius = self.segmentation_cursors[axis].radius
             positions.append((center_x, center_y, radius))
-        # TODO: Add a checkbox
-        if True:
-            self.active_seg.set_segment_data(axis, slice, positions, value, self.threshold_min, self.threshold_max)
+        if self.intensity_range_checkbox.isChecked() and value != 0:
+            self.active_seg.set_2d_segment_data(axis, slice, positions, value, self.threshold_min, self.threshold_max)
         else:
-            self.active_seg.set_segment_data(axis, slice, positions, value)
+            self.active_seg.set_2d_segment_data(axis, slice, positions, value)
 
     def addMarkersToSegment(self, axis, slice, markers):
         self.setMarkerRegionsToValue(axis, slice, markers, 1)
@@ -313,6 +841,10 @@ class SegmentationTool(ToolInstance):
         # that segmentations from files still show up in the menu.
         self.num_segmentations_created += 1
         new_seg = self.reference_model.segment(number = self.num_segmentations_created)
+        new_seg.set_parameters(surface_levels=[0.501])
+        new_seg.set_step(1)
+        new_seg.set_transparency(int((self.settings.default_segmentation_opacity / 100) * 255))
+
         num_items = self.segmentation_list.count()
         self.segmentation_list.setCurrentItem(self.segmentation_list.item(num_items - 1))
         if self.session.ui.main_window.view_layout == "orthoplanes":
@@ -351,7 +883,8 @@ class SegmentationTool(ToolInstance):
         if self.active_seg:
             self.active_seg.active = False
         self.active_seg = segment
-        self.active_seg.active = True
+        if self.active_seg:
+            self.active_seg.active = True
 
     def _on_active_segmentation_changed(self, new, prev):
         if new:
@@ -363,18 +896,60 @@ class SegmentationTool(ToolInstance):
 
     def _on_view_changed(self):
         need_to_register = False
-        if self.view_dropdown.currentIndex() == 0:
+        if self.view_dropdown.currentIndex() == ViewMode.FOUR_UP:
+            if self.is_vr:
+                self.is_vr = False
+                run(self.session, "vr off")
+            self._reset_3d_mouse_modes()
+            if self.segmentation_sphere:
+                self._destroy_3d_segmentation_sphere()
+            if not self.segmentation_cursors:
+                self._create_2d_segmentation_pucks()
             run(self.session, "dicom view fourup")
             need_to_register = True
-        elif self.view_dropdown.currentIndex() == 1:
+        elif self.view_dropdown.currentIndex() == ViewMode.ORTHOPLANES_OVER_3D:
+            if self.is_vr:
+                self.is_vr = False
+                run(self.session, "vr off")
+            self._reset_3d_mouse_modes()
+            if self.segmentation_sphere:
+                self._destroy_3d_segmentation_sphere()
+            if not self.segmentation_cursors:
+                self._create_2d_segmentation_pucks()
             run(self.session, "dicom view overunder")
             need_to_register = True
-        elif self.view_dropdown.currentIndex() == 2:
+        elif self.view_dropdown.currentIndex() == ViewMode.ORTHOPLANES_BESIDE_3D:
+            if self.is_vr:
+                self.is_vr = False
+                run(self.session, "vr off")
+            self._reset_3d_mouse_modes()
+            if self.segmentation_sphere:
+                self._destroy_3d_segmentation_sphere()
+            if not self.segmentation_cursors:
+                self._create_2d_segmentation_pucks()
             run(self.session, "dicom view sidebyside")
             need_to_register = True
         else:
+            if self.view_dropdown.currentIndex() == ViewMode.DEFAULT_VR:
+                self.is_vr = True
+            else:
+                self.is_vr = False
             run(self.session, "dicom view default")
+            if self.segmentation_cursors:
+                self._destroy_2d_segmentation_pucks()
+            if not self.segmentation_sphere:
+                self._create_3d_segmentation_sphere()
+            #if self.autostart_vr_checkbox.isChecked():
+            #    run(self.session, "vr on")
+            if self.view_dropdown.currentIndex() == ViewMode.DEFAULT_DESKTOP:
+                if self.settings.set_mouse_modes_automatically:
+                    self._set_3d_mouse_modes()
+            if self.view_dropdown.currentIndex() == ViewMode.DEFAULT_VR:
+                if self.settings.start_vr_automatically:
+                    self._start_vr()
         if need_to_register:
+            if not self.segmentation_cursors:
+                self._create_2d_segmentation_pucks()
             if self.session.ui.main_window.view_layout == "orthoplanes":
                 # If no models are open we will not successfully change the view, so
                 # we need to check the view layout before continuing!
@@ -384,13 +959,16 @@ class SegmentationTool(ToolInstance):
 
     def set_view_dropdown(self, layout):
         if layout == "default":
-            self.view_dropdown.setCurrentIndex(3)
+            if self.is_vr:
+                self.view_dropdown.setCurrentIndex(ViewMode.DEFAULT_VR)
+            else:
+                self.view_dropdown.setCurrentIndex(ViewMode.DEFAULT_DESKTOP)
         elif layout == "sidebyside":
-            self.view_dropdown.setCurrentIndex(2)
+            self.view_dropdown.setCurrentIndex(ViewMode.ORTHOPLANES_BESIDE_3D)
         elif layout == "overunder":
-            self.view_dropdown.setCurrentIndex(1)
+            self.view_dropdown.setCurrentIndex(ViewMode.ORTHOPLANES_OVER_3D)
         else:
-            self.view_dropdown.setCurrentIndex(0)
+            self.view_dropdown.setCurrentIndex(ViewMode.FOUR_UP)
 
     def _on_show_guidelines_checkbox_changed(self):
         if self.session.ui.main_window.view_layout == "orthoplanes":
@@ -412,3 +990,23 @@ class SegmentationTool(ToolInstance):
 
     def editSegmentMetadata(self, _) -> None:
         pass
+
+    def move_sphere(self, delta_xyz):
+        sm = self.segmentation_sphere
+        dxyz = sm.scene_position.inverse().transform_vector(delta_xyz)	# Transform to sphere local coords.
+        from chimerax.geometry import translation
+        sm.position = sm.position * translation(dxyz)
+
+    def setSphereRegionToValue(self, origin, radius, value=1):
+        if not self.active_seg:
+            self.addSegment()
+        if self.intensity_range_checkbox.isChecked() and value != 0:
+            self.active_seg.set_sphere_data(origin, radius, value, self.threshold_min, self.threshold_max)
+        else:
+            self.active_seg.set_sphere_data(origin, radius, value)
+
+    def addSphereToSegment(self, origin, radius):
+        self.setSphereRegionToValue(origin, radius, 1)
+
+    def removeSphereFromSegment(self, origin, radius):
+        self.setSphereRegionToValue(origin, radius, 0)

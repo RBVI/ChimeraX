@@ -11,7 +11,8 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from .cmd import get_alignment_sequence, SeqArg, AlignmentArg, AlignSeqPairArg, SeqRegionArg
+from .cmd import (get_alignment_sequence, SeqArg, AlignmentArg, AlignSeqPairArg, SeqRegionArg,
+                    AlignmentViewerArg, SequenceViewerArg)
 from .alignment import clustal_strong_groups, clustal_weak_groups
 
 from chimerax.core.toolshed import BundleAPI
@@ -67,20 +68,12 @@ class _AlignmentsBundleAPI(BundleAPI):
 
                 @property
                 def open_args(self, *, session=session):
-                    from chimerax.core.commands import BoolArg, StringArg, Or, DynamicEnum
-                    def viewer_names(mgr):
-                        names = set()
-                        for type_viewers in mgr.viewer_info.values():
-                            for vname, nicknames in type_viewers.items():
-                                names.add(vname)
-                                names.update(nicknames)
-                        return names
+                    from chimerax.core.commands import BoolArg, StringArg, Or
                     return {
                         'alignment': BoolArg,
                         'auto_associate': BoolArg,
                         'ident': StringArg,
-                        'viewer': Or(BoolArg,
-                                    DynamicEnum(lambda mgr=session.alignments, f=viewer_names: f(mgr))),
+                        'viewer': Or(BoolArg, AlignmentViewerArg(session), SequenceViewerArg(session)),
                     }
         else:
             from chimerax.save_command import SaverInfo
