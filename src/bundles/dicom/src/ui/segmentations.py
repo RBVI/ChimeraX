@@ -961,6 +961,8 @@ class SegmentationTool(ToolInstance):
                 self.session.ui.main_window.main_view.register_segmentation_tool(self)
                 if self.guidelines_checkbox.isChecked():
                     self.session.ui.main_window.main_view.toggle_guidelines()
+            for i in range(self.segmentation_list.count()):
+                self.session.ui.main_window.main_view.add_segmentation(self.segmentation_list.item(i).segmentation)
 
     def set_view_dropdown(self, layout):
         if layout == "default":
