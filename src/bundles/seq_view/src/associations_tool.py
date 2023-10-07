@@ -21,12 +21,14 @@ class AssociationsTool:
         tool_window.help = "help:user/tools/sequenceviewer.html#association"
 
         from Qt.QtWidgets import QHBoxLayout, QVBoxLayout, QLabel, QWidget
+        from Qt.QtCore import Qt
         layout = QHBoxLayout()
 
         # Widgets for multi-sequence alignment
         self.multi_seq_area = QWidget()
         layout.addWidget(self.multi_seq_area)
         ms_layout = QHBoxLayout()
+        ms_layout.setSpacing(2)
         self.multi_seq_area.setLayout(ms_layout)
 
         from chimerax.atomic.widgets import ChainListWidget
@@ -37,9 +39,13 @@ class AssociationsTool:
         menu_layout = QVBoxLayout()
         ms_layout.addLayout(menu_layout)
 
+        menu_layout.addStretch(1)
+
         self.pick_a_chain = QLabel("Choose one or more\nchains from the left")
         menu_layout.addWidget(self.pick_a_chain)
 
+        self.assoc_button_header = QLabel("Associated sequence")
+        menu_layout.addWidget(self.assoc_button_header, alignment=Qt.AlignBottom|Qt.AlignHCenter)
         from chimerax.seqalign.widgets import AlignSeqMenuButton
         not_associated_text = "Not associated"
         class AllowMultiASMB(AlignSeqMenuButton):
@@ -57,7 +63,9 @@ class AssociationsTool:
         self.assoc_button = AllowMultiASMB(sv.alignment, no_value_button_text=not_associated_text,
             no_value_menu_text="(none)", special_items=[self.best_assoc_label])
         self.assoc_button.value_changed.connect(self._seq_changed)
-        menu_layout.addWidget(self.assoc_button)
+        menu_layout.addWidget(self.assoc_button, alignment=Qt.AlignTop|Qt.AlignHCenter)
+
+        menu_layout.addStretch(3)
 
         # Widgets for single sequence
         self.single_seq_area = QWidget()
@@ -120,6 +128,7 @@ class AssociationsTool:
             else:
                 self.assoc_button.setText(self.multiseq_text)
             show_button = True
+        self.assoc_button_header.setHidden(not show_button)
         self.assoc_button.setHidden(not show_button)
         self.pick_a_chain.setHidden(show_button)
         self.assoc_button.blockSignals(False)
