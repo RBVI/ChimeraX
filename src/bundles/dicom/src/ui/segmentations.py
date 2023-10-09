@@ -93,7 +93,7 @@ class ImageFormat(IntEnum):
 
 class MouseAction(IntEnum):
     NONE = 0
-    CREATE_SEGMENT = 1
+    ADD_TO_SEGMENTATION = 1
     MOVE_SPHERE = 2
     RESIZE_SPHERE = 3
 
@@ -104,8 +104,8 @@ class HandAction(IntEnum):
     NONE = 0
     RESIZE_CURSOR = 1
     MOVE_CURSOR = 2
-    CREATE_SEGMENT = 3
-    SWAP_CREATE_ERASE_MODE = 4
+    ADD_TO_SEGMENTATION = 3
+    ERASE_FROM_SEGMENTATION = 4
 
     def __str__(self):
         return " ".join(self.name.split('_')).lower().title()
@@ -125,14 +125,14 @@ class _SegmentationToolSettings(Settings):
         , 'default_view': 0 # 4 x 4
         , 'default_file_format': 0 # DICOM
         , 'default_segmentation_opacity': 80 # %
-        , 'mouse_3d_right_click': MouseAction.CREATE_SEGMENT
+        , 'mouse_3d_right_click': MouseAction.ADD_TO_SEGMENTATION
         , 'mouse_3d_middle_click': MouseAction.MOVE_SPHERE
         , 'mouse_3d_scroll': MouseAction.RESIZE_SPHERE
         , 'mouse_3d_left_click': MouseAction.NONE
         , 'vr_thumbstick': HandAction.RESIZE_CURSOR
-        , 'vr_trigger': HandAction.CREATE_SEGMENT
+        , 'vr_trigger': HandAction.ADD_TO_SEGMENTATION
         , 'vr_grip': HandAction.MOVE_CURSOR
-        , 'vr_a_button': HandAction.SWAP_CREATE_ERASE_MODE
+        , 'vr_a_button': HandAction.ERASE_FROM_SEGMENTATION
         , 'vr_b_button': HandAction.NONE
         , 'vr_handedness': Handedness.RIGHT
     }
