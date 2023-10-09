@@ -46,6 +46,7 @@ class CreateSegmentation3DMouseMode(MouseMode):
             self.segmentation_tool = self._find_segmentation_tool()
         if self.segmentation_tool is None:
             return
+        self.segmentation_tool.set_segmentation_step(2)
         self.segmentation_tool.setSphereRegionToValue(
             self.segmentation_tool.segmentation_sphere.scene_position.origin()
             , self.segmentation_tool.segmentation_sphere.radius
@@ -85,6 +86,7 @@ class CreateSegmentation3DMouseMode(MouseMode):
 
     def mouse_up(self, event):
         MouseMode.mouse_up(self, event)
+        self.segmentation_tool.set_segmentation_step(1)
 
     def vr_motion(self, event):
         c = self.segmentation_tool.segmentation_sphere.scene_position.origin()

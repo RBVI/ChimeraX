@@ -37,6 +37,7 @@ from chimerax.map import Volume, VolumeSurface, VolumeImage
 from chimerax.map.volume import open_grids
 
 from chimerax.ui import MainToolWindow
+from chimerax.ui.font import shrink_font
 from chimerax.ui.open_save import SaveDialog
 from chimerax.ui.widgets import ModelMenu
 
@@ -92,7 +93,7 @@ class ImageFormat(IntEnum):
 
 class MouseAction(IntEnum):
     NONE = 0
-    CREATE_SEGMENT = 1
+    ADD_TO_SEGMENTATION = 1
     MOVE_SPHERE = 2
     RESIZE_SPHERE = 3
 
@@ -103,8 +104,8 @@ class HandAction(IntEnum):
     NONE = 0
     RESIZE_CURSOR = 1
     MOVE_CURSOR = 2
-    CREATE_SEGMENT = 3
-    SWAP_CREATE_ERASE_MODE = 4
+    ADD_TO_SEGMENTATION = 3
+    ERASE_FROM_SEGMENTATION = 4
 
     def __str__(self):
         return " ".join(self.name.split('_')).lower().title()
@@ -124,14 +125,14 @@ class _SegmentationToolSettings(Settings):
         , 'default_view': 0 # 4 x 4
         , 'default_file_format': 0 # DICOM
         , 'default_segmentation_opacity': 80 # %
-        , 'mouse_3d_right_click': MouseAction.CREATE_SEGMENT
+        , 'mouse_3d_right_click': MouseAction.ADD_TO_SEGMENTATION
         , 'mouse_3d_middle_click': MouseAction.MOVE_SPHERE
         , 'mouse_3d_scroll': MouseAction.RESIZE_SPHERE
         , 'mouse_3d_left_click': MouseAction.NONE
         , 'vr_thumbstick': HandAction.RESIZE_CURSOR
-        , 'vr_trigger': HandAction.CREATE_SEGMENT
+        , 'vr_trigger': HandAction.ADD_TO_SEGMENTATION
         , 'vr_grip': HandAction.MOVE_CURSOR
-        , 'vr_a_button': HandAction.SWAP_CREATE_ERASE_MODE
+        , 'vr_a_button': HandAction.ERASE_FROM_SEGMENTATION
         , 'vr_b_button': HandAction.NONE
         , 'vr_handedness': Handedness.RIGHT
     }
@@ -235,16 +236,15 @@ class SegmentationToolControlsDialog(QDialog):
 
         self.settings_container.layout().addWidget(self.start_vr_checkbox)
         self.settings_container.layout().addWidget(self.set_mouse_modes_checkbox)
-        self.explanatory_mouse_mode_text = QLabel("When this is checked, replaced mouse modes will be restored when the tool closes or the view is changed.")
-        self.explanatory_mouse_mode_text.setWordWrap(True)
-        self.settings_container.layout().addWidget(self.explanatory_mouse_mode_text)
+        self.set_mouse_modes_checkbox.setToolTip("Replaced mouse modes will be restored when the tool closes or the view is changed.")
         self.settings_container.layout().addWidget(self.set_hand_modes_checkbox)
-        self.explanatory_hand_mode_text = QLabel("When this is checked, replaced hand modes will be restored when the tool closes.")
-        self.explanatory_hand_mode_text.setWordWrap(True)
-        self.settings_container.layout().addWidget(self.explanatory_hand_mode_text)
+        self.set_hand_modes_checkbox.setToolTip("Replaced hand modes will be restored when the tool closes.")
         self.settings_container.layout().addWidget(self.default_view_dropdown_container)
         self.settings_container.layout().addWidget(self.file_format_dropdown_container)
-        self.settings_container.layout().addWidget(QLabel("DICOM metadata will be lost when saving DICOM segmentations in NIfTI or NRRD format."))
+        self.dicom_format_explanatory_text = QLabel("DICOM metadata will be lost when saving DICOM segmentations in NIfTI or NRRD format.")
+        self.dicom_format_explanatory_text.setWordWrap(True)
+        shrink_font(self.dicom_format_explanatory_text, 0.9)
+        self.settings_container.layout().addWidget(self.dicom_format_explanatory_text)
         self.settings_container.layout().addWidget(self.default_opacity_spinbox_container)
         self.settings_container.layout().addStretch()
         self.tab_widget.addTab(self.settings_container, "General Settings")
@@ -894,6 +894,11 @@ class SegmentationTool(ToolInstance):
             self.edit_seg_metadata_button.setEnabled(False)
             self.setActiveSegment(None)
 
+    def set_segmentation_step(self, step):
+        if not self.active_seg:
+            self.addSegment()
+        self.active_seg.set_step(step)
+
     def _on_view_changed(self):
         need_to_register = False
         if self.view_dropdown.currentIndex() == ViewMode.FOUR_UP:
@@ -956,6 +961,8 @@ class SegmentationTool(ToolInstance):
                 self.session.ui.main_window.main_view.register_segmentation_tool(self)
                 if self.guidelines_checkbox.isChecked():
                     self.session.ui.main_window.main_view.toggle_guidelines()
+            for i in range(self.segmentation_list.count()):
+                self.session.ui.main_window.main_view.add_segmentation(self.segmentation_list.item(i).segmentation)
 
     def set_view_dropdown(self, layout):
         if layout == "default":
