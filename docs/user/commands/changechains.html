@@ -34,6 +34,11 @@ class="clRight" title="User Guide Index"/></a>
 &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
 &nbsp;<i>current-ID-list</i> &nbsp;<i>new-ID-list</i>
 </h3>
+<a name="glycosylation"></a>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>changechains glycosylations</b>
+&nbsp;<a href="atomspec.html#hierarchy"><i>chain-spec</i></a>&nbsp;
+</h3>
 <p>
 The command <b>changechains</b> changes the chain identifiers (IDs) of
 residues containing the specified atoms. 
@@ -58,9 +63,37 @@ The same ID may appear in both lists; the first list is only evaluated before
 the changes are made.
 </p><p>
 Capitalization of the IDs is important and will be used exactly as entered.
+</p><p>
+The command <b>changechains glycosylations</b> will look for HET chains
+(typically glycosylations)
+that are covalently bonded to the specified (non-HET) biopolymer chains
+and change their IDs as needed to match the corresponding bonded chain. 
+As per the usual convention, a blank specification means &ldquo;all.&rdquo;
+</p><p>
+For example, PDB entry <a href="https://www.rcsb.org/structure/6OEJ"
+target="_blank">6oej</a> has glycosylation chain D on protein chain H 
+and glycosylation chain E on protein chain B. The other glycosylations 
+in the structure are single-residue and already have the same chain IDs as 
+their attached proteins (A and G). The following would change D to H
+and E to B in 6oej, making all glycosylations in the structure have
+the same chain IDs as their attached proteins:
 </p>
+<blockquote>
+<b>
+<!-- another example 5v8m is too complicated -->
+open 6oej
+<br>
+preset licorice
+<br>
+label ~(protein&nbsp;|&nbsp;solvent) attribute chain_id height 3
+<br>
+view /D,E
+<br>
+changechain glyco 
+</b>
+</blockquote>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-July 2022</address>
+October 2023</address>
 </body></html>
