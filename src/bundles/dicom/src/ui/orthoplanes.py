@@ -632,6 +632,8 @@ class PlaneViewer(QWindow):
         rel_top, rel_bottom, rel_left, rel_right = self.mousePercentOffsetsFromEdges(x, y)
         x_offset, y_offset = self.cameraSpaceDrawingOffsets()
         # TODO Why did I have to add the y-offset here but not the x-offset?
+        if self.axis == Axis.AXIAL:
+            y_offset = -y_offset
         if left <= self.scale * x <= right and bottom <= (self.scale * (y + y_offset)) <= top:
             old_origin = self.segmentation_tool.segmentation_cursors[self.axis].origin
             drawing_origin = self.drawingOrigin()
@@ -640,8 +642,8 @@ class PlaneViewer(QWindow):
             if self.axis == Axis.AXIAL:
                 absolute_offset_left = rel_right * self.dimensions[0]
                 absolute_offset_bottom = rel_top * self.dimensions[1]
-                origin[0] = absolute_offset_left * volume_steps[0] + drawing_origin[0]
-                origin[1] = absolute_offset_bottom * volume_steps[1] + drawing_origin[1]
+                origin[0] = drawing_origin[0] + absolute_offset_left * volume_steps[0]
+                origin[1] = drawing_origin[1] - absolute_offset_bottom * volume_steps[1]
             elif self.axis == Axis.CORONAL:
                 absolute_offset_left = rel_left * self.dimensions[0]
                 absolute_offset_bottom = rel_bottom * self.dimensions[2]
