@@ -48,7 +48,13 @@ def open_file(session, stream, fname, format_name="FASTA", return_vals=None,
                 s.circular = True
     if return_vals == "seqs":
         return seqs
-    from chimerax.core.errors import UserError
+    from chimerax.core.errors import UserError, CancelOperation
+    crazy_long_seq = 100000
+    if max([len(seq) for seq in seqs]) > crazy_long_seq and session.ui.is_gui:
+        from chimerax.ui.ask import ask
+        if ask(session, "One or more sequences are more than %d characters long.  Really open?"
+                % crazy_long_seq, default="no", title="Long Sequences") == "no":
+            raise CancelOperation("Sequences too long")
     if alignment:
         if not uniform_length:
             raise UserError("Sequence '%s' differs in length from preceding sequences, and"
