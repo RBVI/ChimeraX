@@ -279,13 +279,9 @@ class PlaneViewer(QWindow):
     def segmentation_tool(self, tool):
         self._segmentation_tool = tool
         if tool is not None:
-            if self.model_menu.value != self._segmentation_tool.model_menu.value:
+            if self.model_menu.value != self._segmentation_tool.model_menu.value or self.view.drawing is self.placeholder_drawing:
                 self.model_menu.value = self._segmentation_tool.model_menu.value
-                self._surfaceChosen()
             self._segmentation_tool.segmentation_cursors[self.axis].radius = self.segmentation_cursor_overlay.radius
-            self._segmentation_tool.setCursorOffsetFromOrigin(
-                self.axis, self.mvSegmentationCursorOffsetFromOrigin()
-            )
             # TODO:
             # Set the segmentation pucks' locations based on the current slice location
             # self._segmentation_tool.segmentation_cursors[self.axis].
@@ -340,7 +336,7 @@ class PlaneViewer(QWindow):
             if type(tool) == VolumeViewer:
                 volume_viewer = tool
                 break
-        v = self.view.drawing.parent 
+        v = self.view.drawing.parent
         if self.view.drawing is not self.placeholder_drawing:
             self._remove_axis_from_volume_viewer(volume_viewer, v)
         self.view.delete()
@@ -829,7 +825,7 @@ class PlaneViewer(QWindow):
         for tool in self.session.tools:
             if type(tool) == VolumeViewer:
                 volume_viewer = tool
-        v = self.view.drawing 
+        v = self.view.drawing
         if self.view.drawing is not self.placeholder_drawing:
             self._remove_axis_from_volume_viewer(volume_viewer, v)
 
@@ -896,7 +892,7 @@ class PlaneViewer(QWindow):
         for v in tuple([volume]):
             if v in hptable:
                 volume_viewer.thresholds_panel.close_histogram_pane(hptable[v])
-    
+
     def _add_axis_to_volume_viewer(self, volume_viewer, volume):
         v = volume
         tp = volume_viewer.thresholds_panel
@@ -1107,4 +1103,3 @@ class SegmentationVolumePanel(Histogram_Pane):
         self.set_threshold_and_color_widgets()
         # Redraw graphics before more mouse drag events occur.
         self.plane_viewer.update_and_rerender()
-
