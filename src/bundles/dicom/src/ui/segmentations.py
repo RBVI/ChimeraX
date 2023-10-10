@@ -22,7 +22,7 @@ from Qt.QtWidgets import (
     , QStackedWidget, QSizePolicy, QCheckBox
     , QListWidget, QListWidgetItem, QFileDialog
     , QAbstractItemView, QSlider, QSpinBox
-    , QStyle, QTabWidget
+    , QStyle, QTabWidget, QToolButton
 )
 from Qt.QtGui import QImage, QPixmap
 
@@ -40,6 +40,7 @@ from chimerax.ui import MainToolWindow
 from chimerax.ui.font import shrink_font
 from chimerax.ui.open_save import SaveDialog
 from chimerax.ui.widgets import ModelMenu
+from chimerax.ui.icons import get_qt_icon
 
 from chimerax.vive.vr import vr_camera as steamvr_camera
 from chimerax.vive.vr import vr_button as steamvr_button
@@ -451,8 +452,10 @@ class SegmentationTool(ToolInstance):
             self.view_dropdown.addItem(str(view))
         self.view_dropdown.setCurrentIndex(self.settings.default_view)
         self.view_dropdown.currentIndexChanged.connect(self._on_view_changed)
-        self.control_information_button = QPushButton()
-        self.control_information_button.setText("\u2699") # Unicode gear
+        self.control_information_button = QToolButton()
+        self.control_information_button.setMinimumWidth(1)
+        self.control_information_button.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
+        self.control_information_button.setIcon(get_qt_icon("gear"))
         self.control_information_button.setToolTip("View Tool Settings")
         self.control_information_button.clicked.connect(self.showControlsDialog)
         self.view_dropdown_layout.addWidget(self.view_dropdown_label)

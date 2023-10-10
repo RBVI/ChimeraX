@@ -13,6 +13,7 @@ dependencies = [
 	, "ChimeraX-Geometry ~= 1.0"
 	, "ChimeraX-MapData ~= 2.0"
 	, "ChimeraX-OpenCommand ~= 1.0"
+  , "ChimeraX-UI >= 1.33"
 ]
 dynamic = ["classifiers", "requires-python", "version"]
 
