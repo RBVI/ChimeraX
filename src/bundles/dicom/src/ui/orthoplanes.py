@@ -671,7 +671,7 @@ class PlaneViewer(QWindow):
                 absolute_offset_left = rel_right * self.dimensions[0]
                 absolute_offset_bottom = rel_top * self.dimensions[1]
                 origin[0] = drawing_origin[0] + absolute_offset_left * volume_steps[0]
-                origin[1] = drawing_origin[1] - absolute_offset_bottom * volume_steps[1]
+                origin[1] = drawing_origin[1] + absolute_offset_bottom * volume_steps[1]
             elif self.axis == Axis.CORONAL:
                 absolute_offset_left = rel_left * self.dimensions[0]
                 absolute_offset_bottom = rel_bottom * self.dimensions[2]
