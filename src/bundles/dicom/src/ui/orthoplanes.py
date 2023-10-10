@@ -245,7 +245,6 @@ class PlaneViewer(QWindow):
         self.slider.sliderMoved.connect(self._onSliderMoved)
         self.slider_moved = False
 
-        self.handler = session.triggers.add_handler('frame drawn', self._redraw)
         self.widget.setMinimumSize(QSize(20, 20))
 
         self.button_container = QWidget()
@@ -326,7 +325,6 @@ class PlaneViewer(QWindow):
         self._redraw()
 
     def close(self):
-        self.session.triggers.remove_handler(self.handler)
         # TODO: why does this call make it crash?
         # self.setParent(None)
         self.label.delete()
