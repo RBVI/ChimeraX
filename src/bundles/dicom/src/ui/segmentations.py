@@ -71,15 +71,15 @@ class ViewMode(IntEnum):
 
     def __str__(self):
         if self.name == "FOUR_UP":
-            return "4 x 4 (Desktop)"
+            return "2 x 2 (Desktop)"
         elif self.name == "ORTHOPLANES_OVER_3D":
-            return "3D Over Orthoplanes (Desktop)"
+            return "3D over slices (desktop)"
         elif self.name == "ORTHOPLANES_BESIDE_3D":
-            return "3D Beside Orthoplanes (Desktop)"
+            return "3D beside slices (Desktop)"
         elif self.name == "DEFAULT_DESKTOP":
-            return "Default (Desktop)"
+            return "3D only (Desktop)"
         elif self.name == "DEFAULT_VR":
-            return "Default (VR)"
+            return "3D only (VR)"
         return "%s: Set a value to return for the name of this EnumItem" % self.name
 
 class ImageFormat(IntEnum):
@@ -99,7 +99,7 @@ class MouseAction(IntEnum):
     RESIZE_SPHERE = 3
 
     def __str__(self):
-        return " ".join(self.name.split('_')).lower().title()
+        return " ".join(self.name.split('_')).lower()
 
 class HandAction(IntEnum):
     NONE = 0
@@ -109,7 +109,7 @@ class HandAction(IntEnum):
     ERASE_FROM_SEGMENTATION = 4
 
     def __str__(self):
-        return " ".join(self.name.split('_')).lower().title()
+        return " ".join(self.name.split('_')).lower()
 
 class Handedness(IntEnum):
     LEFT = 0
@@ -210,7 +210,7 @@ class SegmentationToolControlsDialog(QDialog):
         self.file_format_dropdown_container.setLayout(self.file_format_dropdown_layout)
         self.file_format_dropdown_layout.setContentsMargins(0, 0, 0, 0)
         self.file_format_dropdown_layout.setSpacing(0)
-        self.file_format_dropdown_label = QLabel("Image Format for Saving DICOM Segmentations:")
+        self.file_format_dropdown_label = QLabel("Format for saving segmentations:")
         self.file_format_dropdown = QComboBox(self)
         for format in ImageFormat:
             self.file_format_dropdown.addItem(str(format))
@@ -225,7 +225,7 @@ class SegmentationToolControlsDialog(QDialog):
         self.default_opacity_spinbox_container.setLayout(self.default_opacity_spinbox_layout)
         self.default_opacity_spinbox_layout.setContentsMargins(0, 0, 0, 0)
         self.default_opacity_spinbox_layout.setSpacing(0)
-        self.default_opacity_spinbox_label = QLabel("Default Segmentation Opacity:")
+        self.default_opacity_spinbox_label = QLabel("Segmentation opacity:")
         self.default_opacity_spinbox = QSpinBox(self.settings_container)
         self.default_opacity_spinbox.setRange(0, 100)
         self.default_opacity_spinbox.setSuffix("%")
@@ -280,10 +280,10 @@ class SegmentationToolControlsDialog(QDialog):
         else:
             spacings = linux_spacings
         control_labels = [
-            QLabel("Zoom on Slice")
-            , QLabel("Pan Around Slice")
-            , QLabel("Zoom on Slice\n(Holding Shift) Resize Cursor")
-            , QLabel("Create Segmentation\n(Holding Shift) Erase Segmentation")
+            QLabel("Zoom slice")
+            , QLabel("Pan slice")
+            , QLabel("Zoom slice\n(+Shift) Resize segmentation circle")
+            , QLabel("Add to segmentation\n(+Shift) Erase from segmentation")
         ]
         for i in range(4):
             self.mouse_control_2d_dropdown_container_layout.addSpacing(spacings[i])
@@ -456,7 +456,7 @@ class SegmentationTool(ToolInstance):
         self.control_information_button.setMinimumWidth(1)
         self.control_information_button.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
         self.control_information_button.setIcon(get_qt_icon("gear"))
-        self.control_information_button.setToolTip("View Tool Settings")
+        self.control_information_button.setToolTip("Segmentation Settings")
         self.control_information_button.clicked.connect(self.showControlsDialog)
         self.view_dropdown_layout.addWidget(self.view_dropdown_label)
         self.view_dropdown_layout.addWidget(self.view_dropdown, 1)
@@ -581,7 +581,7 @@ class SegmentationTool(ToolInstance):
         self.slider_container = QWidget(self.parent)
         self.slider_layout = QHBoxLayout()
 
-        self.intensity_range_checkbox = QCheckBox("Restrict Intensity Range")
+        self.intensity_range_checkbox = QCheckBox("Restrict segmentation to intensity range")
         self.range_slider = QRangeSlider(Qt.Orientation.Horizontal)
         self.lower_intensity_spinbox = QSpinBox(self.slider_container)
         self.upper_intensity_spinbox = QSpinBox(self.slider_container)
