@@ -15,7 +15,7 @@
 # for opening files, since that will have native look and feel.  The OpenDialog below is for
 # those situations where you do need to add widgets.
 try:
-    from Qt.QtWidgets import QFileDialog
+    from Qt.QtWidgets import QFileDialog, QDialog
     from Qt.QtCore import Qt
 except ImportError:
     # nogui
@@ -98,6 +98,29 @@ else:
             cmd = 'open %s format %s' % (FileNameArg.unparse(dir), fmt.nicknames[0])
             run(session, cmd)
 
+    class FetchDialog(QDialog):
+        def __init__(self, session):
+            from Qt.QtWidgets import QVBoxLayout, QTableWidget, QTableWidgetItem, QDialogButtonBox as qbbox
+            super().__init__()
+            self.handler = session.open_command.triggers.add_handler("open command changed", self.reject)
+            layout = QVBoxLayout()
+            self.setLayout(layout)
+            database_names = session.open_command.database_names
+            database_names.sort(key=lambda key: key.lower())
+            self.table = QTableWidget(len(database_names), 3)
+            self.table.setHorizontalHeaderLabels(["Database", "ID", "Example"])
+            self.table.verticalHeader().setVisible(False)
+            for row, db_name in enumerate(database_names):
+                self.table.setItem(row, 0, QTableWidgetItem(db_name))
+            layout.addWidget(self.table)
+
+        def reject(self):
+            super().reject()
+            global _fetch_by_id_dialog
+            _fetch_by_id_dialog = None
+            self.handler.remove()
+            self.destroy()
+
 def create_menu_entry(session):
     # only folder format right now is DICOM, so use hard coded menu entry for now
     session.ui.main_window.add_menu_entry(["File"], "Open DICOM Folder...",
@@ -120,6 +143,17 @@ def make_qt_name_filters(session, *, no_filter="All files (*)"):
     if no_filter is not None:
         file_filters = [no_filter] + file_filters
     return file_filters, openable_formats, no_filter
+
+_fetch_by_id_dialog = None
+def show_fetch_by_id_dialog(session, format_name=None):
+    global _fetch_by_id_dialog
+    if _fetch_by_id_dialog is None:
+        _fetch_by_id_dialog = FetchDialog(session)
+
+    if format_name is not None:
+        pass
+    _fetch_by_id_dialog.show()
+    _fetch_by_id_dialog.raise_()
 
 def show_open_file_dialog(session, initial_directory=None, format_name=None):
     if initial_directory is None:
