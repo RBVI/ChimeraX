@@ -337,6 +337,7 @@ class PlaneViewer(QWindow):
         v = self.view.drawing.parent
         if self.view.drawing is not self.placeholder_drawing:
             self._remove_axis_from_volume_viewer(volume_viewer, v)
+        self.view.drawing.delete()
         self.view.delete()
         QWindow.destroy(self)
 
