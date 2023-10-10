@@ -481,6 +481,7 @@ class SegmentationTool(ToolInstance):
         self.control_information_button.clicked.connect(self.showControlsDialog)
         self.view_dropdown_layout.addWidget(self.view_dropdown_label)
         self.view_dropdown_layout.addWidget(self.view_dropdown, 1)
+        self.view_dropdown_layout.addStretch(2)
         self.view_dropdown_layout.addWidget(self.control_information_button)
         self.view_dropdown_container.setLayout(self.view_dropdown_layout)
         self.old_mouse_bindings = {

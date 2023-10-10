@@ -162,8 +162,8 @@ class PlaneViewer(QWindow):
         self.widget = QWidget.createWindowContainer(self, parent)
         self.level_label = LevelLabel(self.widget)
         self.setSurfaceType(QSurface.SurfaceType.OpenGLSurface)
-        placeholder_drawing = Drawing("placeholder")
-        self.view = OrthoplaneView(placeholder_drawing, window_size = (0, 0), axis = self.axis)
+        self.placeholder_drawing = Drawing("placeholder")
+        self.view = OrthoplaneView(self.placeholder_drawing, window_size = (0, 0), axis = self.axis)
         self.view.initialize_rendering(session.main_view.render.opengl_context)
         self.view.camera = OrthoCamera()
         self.field_width_offset = 0
@@ -327,8 +327,6 @@ class PlaneViewer(QWindow):
             self.manager.redraw_all()
         else:
             self.render()
-
-
         self._redraw()
 
     def close(self):
@@ -337,6 +335,14 @@ class PlaneViewer(QWindow):
         # self.setParent(None)
         self.label.delete()
         del self.label
+        volume_viewer = None
+        for tool in self.session.tools:
+            if type(tool) == VolumeViewer:
+                volume_viewer = tool
+                break
+        v = self.view.drawing.parent 
+        if self.view.drawing is not self.placeholder_drawing:
+            self._remove_axis_from_volume_viewer(volume_viewer, v)
         self.view.delete()
         QWindow.destroy(self)
 
@@ -561,6 +567,7 @@ class PlaneViewer(QWindow):
             if self.segmentation_tool:
                 x, y = event.position().x(), event.position().y()
                 self.moveSegmentationPuck(x, y, record_seg = True)
+        self._redraw()
 
     def mouseReleaseEvent(self, event): # noqa
         b = event.button() | event.buttons()
@@ -746,6 +753,7 @@ class PlaneViewer(QWindow):
                 self.camera_offsets = [x + dx, y, z - dy]
             if self.axis == Axis.SAGITTAL:
                 self.camera_offsets = [x, y + dx, z - dy]
+        self._redraw()
 
     def keyPressEvent(self, event):  # noqa
         key = event.key()
@@ -817,7 +825,14 @@ class PlaneViewer(QWindow):
         # Would need to create a copy of each segmentation created, too, one for the orthoplane
         # windows and one for the
         # then modify the segmentation tool to
-        from chimerax.map.volumecommand import apply_volume_options
+        volume_viewer = None
+        for tool in self.session.tools:
+            if type(tool) == VolumeViewer:
+                volume_viewer = tool
+        v = self.view.drawing 
+        if self.view.drawing is not self.placeholder_drawing:
+            self._remove_axis_from_volume_viewer(volume_viewer, v)
+
         v = self.model_menu.value.copy()
         self.model_menu.value.expand_single_plane()
         self.model_menu.value.set_display_style('surface')
@@ -840,11 +855,7 @@ class PlaneViewer(QWindow):
         v.update_drawings()
         v.allow_style_changes = False
         # Add our new volume to the volume menu with our custom widget
-        t = None
-        for tool in self.session.tools:
-            if type(tool) == VolumeViewer:
-                t = tool
-        self._add_axis_to_volume_viewer(t, v)
+        self._add_axis_to_volume_viewer(volume_viewer, v)
 
         self.main_view.camera.redraw_needed = True
         for d in v._child_drawings:
@@ -880,11 +891,12 @@ class PlaneViewer(QWindow):
         self.label.text = text
         self.label.update_drawing()
 
-    def set_volume(self, new_volume):
-        if self.model_menu.value == new_volume:
-            return
-        ...
-
+    def _remove_axis_from_volume_viewer(self, volume_viewer, volume):
+        hptable = volume_viewer.thresholds_panel.histogram_table
+        for v in tuple([volume]):
+            if v in hptable:
+                volume_viewer.thresholds_panel.close_histogram_pane(hptable[v])
+    
     def _add_axis_to_volume_viewer(self, volume_viewer, volume):
         v = volume
         tp = volume_viewer.thresholds_panel
