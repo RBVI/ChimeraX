@@ -411,10 +411,10 @@ class PlaneViewer(QWindow):
             margin = 24
             self.view.camera.field_width = initial_needed_fov + margin + self.field_width_offset
             self.calculateSliceOverlays()
-            # TODO: Calculate this from the model somehow
-            test_c_offsets = [0, 0, 0]
-            test_c_offsets[self.axis] = 20 * self.axis.positive_direction
-            self.origin = self.drawingPosition().origin() + model_center_offsets - self.camera_offsets + test_c_offsets
+            # The camera and the model can't share the same origin, so back it off a little bit
+            camera_offsets = [0, 0, 0]
+            camera_offsets[self.axis] = 20 * self.axis.positive_direction
+            self.origin = self.drawingPosition().origin() + model_center_offsets - self.camera_offsets + camera_offsets
             camera = self.view.camera
             camera.position = Place(axes=self.axes, origin=self.origin)
             self.segmentation_cursor_overlay.update()
