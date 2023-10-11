@@ -81,10 +81,11 @@
 
   <Providers manager="open command">
     <Provider name="mmCIF" want_path="true" />
-    <Provider name="pdb" type="fetch" format_name="mmcif" />
+    <Provider name="pdb" type="fetch" format_name="mmcif" synopsis="PDB" example_ids="2GBP" />
     <Provider name="pdbe" type="fetch" format_name="mmcif" />
     <Provider name="pdbj" type="fetch" format_name="mmcif" />
-    <Provider name="ccd" type="fetch" format_name="Chemical Component Dictionary" />
+    <Provider name="ccd" type="fetch" format_name="Chemical Component Dictionary"
+		synopsis="PDB Chemical Component" example_ids="FMN" />
     <Provider name="Small Molecule CIF" want_path="true" />
     <Provider name="cod" type="fetch" format_name="Crystallography Open Database" />
     <Provider name="pcod" type="fetch" format_name="Predicted Crystallography Open Database" />

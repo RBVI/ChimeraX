@@ -108,11 +108,11 @@ class OpenManager(ProviderManager):
                     _readable_bundle_name(self._fetchers[name][format_name].bundle_info),
                     bundle_name))
             if example_ids:
-                example_ids = ",".split(example_ids)
+                example_ids = example_ids.split(';')
             else:
                 example_ids = []
-            if synopsis is None:
-                synopsis = "%s (%s)" % (name.capitalize(), format_name)
+            #if synopsis is None:
+            #    synopsis = "%s (%s)" % (name.capitalize() if ui_name.lower() else ui_name, format_name)
             self._fetchers.setdefault(name, {})[format_name] = FetcherProviderInfo(
                 bundle_info, is_default, example_ids, synopsis, pregrouped_structures, group_multiple_models)
             if is_default and len([fmt for fmt, info in self._fetchers[name].items()
