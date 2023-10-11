@@ -311,10 +311,12 @@ class DICOMDatabases(ToolInstance):
         super().delete()
 
     def _on_main_table_double_clicked(self, items):
-        self._allocate_thread_and_worker(Action.LOAD_STUDIES)
-        self.worker.studies_ready.connect(self._on_studies_returned_from_worker)
-        self.worker.requested_studies = items
-        self.thread.start()
+        if self.refine_dataset_button.isEnabled():
+            self.refine_dataset_button.setEnabled(False)
+            self._allocate_thread_and_worker(Action.LOAD_STUDIES)
+            self.worker.studies_ready.connect(self._on_studies_returned_from_worker)
+            self.worker.requested_studies = items
+            self.thread.start()
 
     def _on_studies_returned_from_worker(self, entries):
         self.study_entries.data = [
@@ -332,6 +334,7 @@ class DICOMDatabases(ToolInstance):
         ]
         self.study_entries.sortByColumn(0, Qt.SortOrder.AscendingOrder)
         self.interface_stack.setCurrentIndex(1)
+        self.refine_dataset_button.setEnabled(True)
 
     def _on_back_to_search_button_clicked(self):
         self.interface_stack.setCurrentIndex(0)
@@ -340,10 +343,12 @@ class DICOMDatabases(ToolInstance):
         self.interface_stack.setCurrentIndex(1)
 
     def _on_study_table_double_clicked(self, items):
-        self._allocate_thread_and_worker(Action.LOAD_SERIES)
-        self.worker.series_ready.connect(self._on_series_returned_from_worker)
-        self.worker.requested_series = items
-        self.thread.start()
+        if self.refine_study_button.isEnabled():
+            self.refine_study_button.setEnabled(False)
+            self._allocate_thread_and_worker(Action.LOAD_SERIES)
+            self.worker.series_ready.connect(self._on_series_returned_from_worker)
+            self.worker.requested_series = items
+            self.thread.start()
 
     def _on_series_returned_from_worker(self, entries):
         self.series_entries.data = [
@@ -362,6 +367,7 @@ class DICOMDatabases(ToolInstance):
         ]
         self.series_entries.sortByColumn(0, Qt.SortOrder.AscendingOrder)
         self.interface_stack.setCurrentIndex(2)
+        self.refine_study_button.setEnabled(True)
 
     def _on_drill_down_clicked(self):
         self._on_study_table_double_clicked(self.study_entries.selected)
