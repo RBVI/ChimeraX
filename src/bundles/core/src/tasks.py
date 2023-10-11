@@ -341,7 +341,7 @@ class Task(State):
     def take_snapshot(self, session, flags) -> dict[any, any]:
         data = {
             "id": self.id
-            # msgpack is schizophrenic about enums and can't 
+            # msgpack is schizophrenic about enums and can't
             # decide whether it can or can't serialize them
             # so we'll just use strings
             , "state": str(self.state)
@@ -582,8 +582,8 @@ class Tasks(StateManager):
         tasks = {}
         for tid, task in self._tasks.items():
             assert(isinstance(task, Task))
-            # if task.state == TaskState.RUNNING and task.SESSION_SAVE:
-            tasks[tid] = task
+            if task.SESSION_SAVE:
+                tasks[tid] = task
             # tasks[tid] = task.take_snapshot(session, flags)
         data = {'tasks': tasks,
                 'version': TASKS_STATE_VERSION,
