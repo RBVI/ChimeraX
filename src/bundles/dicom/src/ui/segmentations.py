@@ -22,7 +22,7 @@ from Qt.QtWidgets import (
     , QStackedWidget, QSizePolicy, QCheckBox
     , QListWidget, QListWidgetItem, QFileDialog
     , QAbstractItemView, QSlider, QSpinBox
-    , QStyle, QTabWidget
+    , QStyle, QTabWidget, QToolButton
 )
 from Qt.QtGui import QImage, QPixmap
 
@@ -40,6 +40,7 @@ from chimerax.ui import MainToolWindow
 from chimerax.ui.font import shrink_font
 from chimerax.ui.open_save import SaveDialog
 from chimerax.ui.widgets import ModelMenu
+from chimerax.ui.icons import get_qt_icon
 
 from chimerax.vive.vr import vr_camera as steamvr_camera
 from chimerax.vive.vr import vr_button as steamvr_button
@@ -70,15 +71,15 @@ class ViewMode(IntEnum):
 
     def __str__(self):
         if self.name == "FOUR_UP":
-            return "4 x 4 (Desktop)"
+            return "2 x 2 (Desktop)"
         elif self.name == "ORTHOPLANES_OVER_3D":
-            return "3D Over Orthoplanes (Desktop)"
+            return "3D over slices (desktop)"
         elif self.name == "ORTHOPLANES_BESIDE_3D":
-            return "3D Beside Orthoplanes (Desktop)"
+            return "3D beside slices (Desktop)"
         elif self.name == "DEFAULT_DESKTOP":
-            return "Default (Desktop)"
+            return "3D only (Desktop)"
         elif self.name == "DEFAULT_VR":
-            return "Default (VR)"
+            return "3D only (VR)"
         return "%s: Set a value to return for the name of this EnumItem" % self.name
 
 class ImageFormat(IntEnum):
@@ -98,7 +99,7 @@ class MouseAction(IntEnum):
     RESIZE_SPHERE = 3
 
     def __str__(self):
-        return " ".join(self.name.split('_')).lower().title()
+        return " ".join(self.name.split('_')).lower()
 
 class HandAction(IntEnum):
     NONE = 0
@@ -108,7 +109,7 @@ class HandAction(IntEnum):
     ERASE_FROM_SEGMENTATION = 4
 
     def __str__(self):
-        return " ".join(self.name.split('_')).lower().title()
+        return " ".join(self.name.split('_')).lower()
 
 class Handedness(IntEnum):
     LEFT = 0
@@ -116,6 +117,25 @@ class Handedness(IntEnum):
 
     def __str__(self):
         return self.name.title()
+
+DEFAULT_SETTINGS = {
+    'start_vr_automatically': False
+    , 'set_mouse_modes_automatically': False
+    , 'set_hand_modes_automatically': False
+    , 'default_view': 0 # 4 x 4
+    , 'default_file_format': 0 # DICOM
+    , 'default_segmentation_opacity': 80 # %
+    , 'mouse_3d_right_click': MouseAction.ADD_TO_SEGMENTATION
+    , 'mouse_3d_middle_click': MouseAction.MOVE_SPHERE
+    , 'mouse_3d_scroll': MouseAction.RESIZE_SPHERE
+    , 'mouse_3d_left_click': MouseAction.NONE
+    , 'vr_thumbstick': HandAction.RESIZE_CURSOR
+    , 'vr_trigger': HandAction.ADD_TO_SEGMENTATION
+    , 'vr_grip': HandAction.MOVE_CURSOR
+    , 'vr_a_button': HandAction.ERASE_FROM_SEGMENTATION
+    , 'vr_b_button': HandAction.NONE
+    , 'vr_handedness': Handedness.RIGHT
+}
 
 class _SegmentationToolSettings(Settings):
     EXPLICIT_SAVE = {
@@ -209,7 +229,7 @@ class SegmentationToolControlsDialog(QDialog):
         self.file_format_dropdown_container.setLayout(self.file_format_dropdown_layout)
         self.file_format_dropdown_layout.setContentsMargins(0, 0, 0, 0)
         self.file_format_dropdown_layout.setSpacing(0)
-        self.file_format_dropdown_label = QLabel("Image Format for Saving DICOM Segmentations:")
+        self.file_format_dropdown_label = QLabel("Format for saving segmentations:")
         self.file_format_dropdown = QComboBox(self)
         for format in ImageFormat:
             self.file_format_dropdown.addItem(str(format))
@@ -224,7 +244,7 @@ class SegmentationToolControlsDialog(QDialog):
         self.default_opacity_spinbox_container.setLayout(self.default_opacity_spinbox_layout)
         self.default_opacity_spinbox_layout.setContentsMargins(0, 0, 0, 0)
         self.default_opacity_spinbox_layout.setSpacing(0)
-        self.default_opacity_spinbox_label = QLabel("Default Segmentation Opacity:")
+        self.default_opacity_spinbox_label = QLabel("Segmentation opacity:")
         self.default_opacity_spinbox = QSpinBox(self.settings_container)
         self.default_opacity_spinbox.setRange(0, 100)
         self.default_opacity_spinbox.setSuffix("%")
@@ -244,7 +264,9 @@ class SegmentationToolControlsDialog(QDialog):
         self.dicom_format_explanatory_text = QLabel("DICOM metadata will be lost when saving DICOM segmentations in NIfTI or NRRD format.")
         self.dicom_format_explanatory_text.setWordWrap(True)
         shrink_font(self.dicom_format_explanatory_text, 0.9)
+        self.settings_container.layout().addSpacing(-10)
         self.settings_container.layout().addWidget(self.dicom_format_explanatory_text)
+        self.settings_container.layout().addSpacing(2)
         self.settings_container.layout().addWidget(self.default_opacity_spinbox_container)
         self.settings_container.layout().addStretch()
         self.tab_widget.addTab(self.settings_container, "General Settings")
@@ -279,10 +301,10 @@ class SegmentationToolControlsDialog(QDialog):
         else:
             spacings = linux_spacings
         control_labels = [
-            QLabel("Zoom on Slice")
-            , QLabel("Pan Around Slice")
-            , QLabel("Zoom on Slice\n(Holding Shift) Resize Cursor")
-            , QLabel("Create Segmentation\n(Holding Shift) Erase Segmentation")
+            QLabel("Zoom slice")
+            , QLabel("Pan slice")
+            , QLabel("Zoom slice\n(+Shift) Resize segmentation circle")
+            , QLabel("Add to segmentation\n(+Shift) Erase from segmentation")
         ]
         for i in range(4):
             self.mouse_control_2d_dropdown_container_layout.addSpacing(spacings[i])
@@ -451,9 +473,11 @@ class SegmentationTool(ToolInstance):
             self.view_dropdown.addItem(str(view))
         self.view_dropdown.setCurrentIndex(self.settings.default_view)
         self.view_dropdown.currentIndexChanged.connect(self._on_view_changed)
-        self.control_information_button = QPushButton()
-        self.control_information_button.setText("\u2699") # Unicode gear
-        self.control_information_button.setToolTip("View Tool Settings")
+        self.control_information_button = QToolButton()
+        self.control_information_button.setMinimumWidth(1)
+        self.control_information_button.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
+        self.control_information_button.setIcon(get_qt_icon("gear"))
+        self.control_information_button.setToolTip("Segmentation Settings")
         self.control_information_button.clicked.connect(self.showControlsDialog)
         self.view_dropdown_layout.addWidget(self.view_dropdown_label)
         self.view_dropdown_layout.addWidget(self.view_dropdown, 1)
@@ -578,7 +602,7 @@ class SegmentationTool(ToolInstance):
         self.slider_container = QWidget(self.parent)
         self.slider_layout = QHBoxLayout()
 
-        self.intensity_range_checkbox = QCheckBox("Restrict Intensity Range")
+        self.intensity_range_checkbox = QCheckBox("Restrict segmentation to intensity range")
         self.range_slider = QRangeSlider(Qt.Orientation.Horizontal)
         self.lower_intensity_spinbox = QSpinBox(self.slider_container)
         self.upper_intensity_spinbox = QSpinBox(self.slider_container)

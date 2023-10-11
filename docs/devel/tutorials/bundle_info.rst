@@ -1010,15 +1010,17 @@ The other possible `Provider`_ attributes are:
 
 - **Frequently-Used** Attributes
 
-    *example_ids*
-        A list of one or more valid example identifiers for your database.  For use in
-        graphical user interfaces.
-
     *synopsis*
         The description of the fetcher used by user-interface widgets that list fetchers
-        (like the Fetch By ID dialog in Chimera), so typically somewhat more verbose than *name*.
-        The first word should be capitalized unless that word is mixed case (*e.g.* mmCIF).
-        Defaults to a capitalized *name* followed by the *format_name* in parentheses.
+        (such as the Fetch By ID dialog), so typically somewhat more verbose than *name*.
+        Words should be capitalized unless that word is mixed case (*e.g.* mmCIF).
+        Omitting *synopsis* means that the fetcher will not be listed in user-interface widgets.
+        The ';' character can be used to separate lines of a multi-line description.
+
+    *example_ids*
+        A list of one or more valid example identifiers for your database.  For use in
+        graphical user interfaces (see *synopsis* attribute).
+        The ';' character can be used to separate multiple example IDs.
 
 - **Infrequently-Used** Attributes
 
