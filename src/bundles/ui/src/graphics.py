@@ -26,6 +26,9 @@ class GraphicsWindow(QWindow):
         from Qt.QtWidgets import QWidget
         self.widget = w = QWidget.createWindowContainer(self, parent)
         w.setAcceptDrops(True)
+        # If Vulkan or Metal were to be supported this would have to change
+        # and then maybe the multitouch code would also have to change if
+        # NSView* no longer accepted the surface type
         self.setSurfaceType(QSurface.SurfaceType.OpenGLSurface)
 
         if opengl_context is None:

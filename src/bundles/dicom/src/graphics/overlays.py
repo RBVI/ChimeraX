@@ -15,7 +15,6 @@ from chimerax.map import VolumeSurface
 from chimerax.graphics import Drawing
 from chimerax.graphics.drawing import rgba_drawing, position_rgba_drawing
 from chimerax.graphics.camera import ortho
-from chimerax.graphics.opengl import GL
 from ..types import Direction, Axis
 
 class SegmentationCursorOverlay(Drawing):
@@ -30,6 +29,7 @@ class SegmentationCursorOverlay(Drawing):
         self._thickness = thickness
 
     def draw(self, renderer, draw_pass):
+        from chimerax.graphics.opengl import GL
         if not self.max_point_size:
             self.max_point_size = GL.glGetIntegerv(GL.GL_POINT_SIZE_RANGE)[1]
         GL.glPointSize(min(self.max_point_size, self.thickness))
@@ -233,7 +233,7 @@ class SegmentationOverlay(Drawing):
         self._y_max = 0
 
     def all_drawings(self, displayed_only = False):
-        # Iteratively check parents to see if they are displayed. If any parent model is hidden, 
+        # Iteratively check parents to see if they are displayed. If any parent model is hidden,
         # return an empty list.
         if not self.segmentation_surface.parent.active:
             return []

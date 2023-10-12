@@ -1874,8 +1874,6 @@ class RegionsTool:
         self._set_table_data(resize_columns=False)
         table.launch()
         table.selection_changed.connect(self._selection_changed)
-        # make rows as narrow as possible
-        table.verticalHeader().setDefaultSectionSize(10)
         layout.addWidget(table, stretch=1)
         buttons_layout = QHBoxLayout()
         layout.addLayout(buttons_layout)
@@ -2105,6 +2103,7 @@ class RegionsTool:
         self.region_table.data = regions
         if resize_columns:
             self.region_table.resizeColumnsToContents()
+        self.region_table.resizeRowsToContents()
 
 """
 from OpenSave import OpenModeless
