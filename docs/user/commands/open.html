@@ -927,7 +927,8 @@ the option must be set to <b>false</b>.
 <b>alignTo</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>chain-spec</i></a>&nbsp;[&nbsp;<b>trim</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 <br>
 When <a href="#fetch">fetching</a>
-an <a href="alphafold.html#fetch">AlphaFold prediction</a>, 
+an <a href="alphafold.html#fetch">AlphaFold prediction</a>
+or <a href="esmfold.html#fetch">ESMFold prediction</a>, 
 superimpose the predicted structure onto the specified chain using 
 <a href="matchmaker.html"><b>matchmaker</b></a> defaults, and make the
 chain ID of the prediction the same as the specified chain's.
@@ -1050,7 +1051,8 @@ allowing them to follow their parent models.
 <b>colorConfidence</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
 <br>
 When <a href="#fetch">fetching</a>
-an <a href="alphafold.html#fetch">AlphaFold prediction</a>, 
+an <a href="alphafold.html#fetch">AlphaFold prediction</a>
+or <a href="esmfold.html#fetch">ESMFold prediction</a>, 
 whether to <a href="color.html#byattribute">color</a> it by the
 <a href="https://alphafold.ebi.ac.uk/faq#faq-5" target="_blank">pLDDT
 confidence measure</a> in the B-factor field (default <b>true</b>):
@@ -1620,6 +1622,10 @@ can be specified with the <b>format</b> option.
 Specifying multiple identifiers is equivalent to using the <b>open</b> command
 multiple times with the same options for each identifier.
 </p><p>
+See also: 
+<a href="../tools/downloaddicom.html"><b>Download DICOM</b></a>,
+<a href="../preferences.html#webaccess"><b>Web Access</b> preferences</a>
+</p><p>
 <a name="ignoreCache"></a>
 Web-fetched data are stored locally in <b>~/Downloads/ChimeraX/</b> 
 (where ~ indicates a user's home directory), with subdirectories
@@ -1654,15 +1660,13 @@ three-character residue names consisting of uppercase letters
 and possibly numbers are recommended. 
 </p><p>
 The <b>colorConfidence</b> option (default <b>true</b>) applies only to 
-<b>alphafold</b> fetch and specifies whether to color the predicted structures
+<b>alphafold</b> or <b>esmfold</b>
+fetch and specifies whether to color the predicted structures
 by a confidence value (<a href="#colorConfidence">details...</a>).
 The <b>alignTo</b> and <b>trim</b> options also apply only to 
-<b>alphafold</b> fetch (<a href="#alignTo">details...</a>).
-See also: <a href="alphafold.html"><b>alphafold</b></a>
-</p><p>
-See also: 
-<a href="../tools/downloaddicom.html"><b>Download DICOM</b></a>,
-<a href="../preferences.html#webaccess"><b>Web Access</b> preferences</a>
+<b>alphafold</b> or <b>esmfold</b> fetch (<a href="#alignTo">details...</a>).
+See also: <a href="alphafold.html"><b>alphafold</b></a>,
+<a href="esmfold.html"><b>esmfold</b></a>
 </p>
 
 <center>
@@ -1814,6 +1818,16 @@ target="_blank">AlphaFold</a> and specified by
 <a href="https://www.uniprot.org/" target="_blank">UniProt</a>
 name or accession number (<a href="alphafold.html#fetch">details...</a>)</td>
 <td align="center"><b>mmcif</b></td>
+</tr><tr>
+<td align="center">
+<a href="https://esmatlas.com/about#about_this_website"
+target="_blank">ESM Metagenomic Atlas</a></td>
+<td align="center"><b>esmfold</b></td>
+<td align="center">theoretical protein structure modeled by
+<a href="https://github.com/facebookresearch/esm" target="_blank">ESMFold</a>
+(Evolutionary Scale Modeling) and specified by its MGnify identifier
+(<a href="esmfold.html#fetch">details...</a>)</td>
+<td align="center"><b>pdb</b></td>
 </tr><tr>
 <td align="center"><a href="http://www.crystallography.net/cod/"
 target="_blank">Crystallography Open Database</a></td>
@@ -2121,5 +2135,5 @@ only arrays with the specified <i>name</i>. Example:
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-September 2023</address>
+October 2023</address>
 </body></html>
