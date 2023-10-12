@@ -20,7 +20,7 @@
   </Dependencies>
 
   <Providers manager="open command">
-    <Provider name="pdbe_bio" type="fetch" format_name="mmcif" example_ids="6ts0"
+    <Provider name="pdbe_bio" type="fetch" format_name="mmcif" synopsis="PDB (biounit)" example_ids="6ts0"
 		pregrouped_structures="true" />
     <Provider name="rcsb_bio" type="fetch" format_name="mmcif" example_ids="6ts0"
 		pregrouped_structures="true" />

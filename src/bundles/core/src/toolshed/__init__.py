@@ -1478,6 +1478,9 @@ class NewerVersionQuery(Task):
     # asynchonously check for newer version of ChimeraX
 
     SERVICE_NAME = "chimerax/newer"
+    # This is the default for Task, but just so there's
+    # no ambiguity...
+    SESSION_SAVE = False
 
     def __init__(self, session):
         super().__init__(session)

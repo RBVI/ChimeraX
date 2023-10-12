@@ -32,7 +32,7 @@
   </Providers>
 
   <Providers manager="open command">
-    <Provider name="smiles" type="fetch" format_name="SMILES"/>
+    <Provider name="smiles" type="fetch" format_name="SMILES" synopsis="SMILES" example_ids="c1ccccc1"/>
   </Providers>
 
   <Classifiers>

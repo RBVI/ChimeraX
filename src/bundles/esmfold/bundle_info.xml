@@ -19,7 +19,8 @@
   </Dependencies>
 
   <Providers manager="open command">
-      <Provider name="esmfold" type="fetch" format_name="PDB"/>
+      <Provider name="esmfold" type="fetch" format_name="PDB"
+	  	synopsis="ESMFold" example_ids="MGYP000542242899" />
   </Providers>
 
   <Classifiers>

@@ -15,7 +15,7 @@ filelock==3.9.0
 # grako==3.16.5 # See the Makefile; need patched Grako for 3.11
 html2text==2020.1.16
 ihm==0.38
-imagecodecs==2023.7.10
+imagecodecs==2023.9.18
 ipykernel==6.23.2
 # if ipython updated, make sure autocompletion still works (e.g. "mi<tab>" becomes min) and if not then
 # try a newer version of jedi
@@ -36,7 +36,7 @@ openvr==1.23.701
 # as per Tristan's request in ticket #3055
 ParmEd==3.4.3
 pep517==0.13.0
-Pillow==10.0.0
+Pillow==10.0.1
 pkginfo==1.9.6
 psutil==5.9.5
 pycollada==0.7.2

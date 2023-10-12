@@ -28,7 +28,8 @@ from math import sqrt
 from Qt import qt_object_is_deleted
 from Qt.QtCore import Qt, QEvent, QSize
 from Qt.QtGui import QContextMenuEvent, QWindow, QSurface
-from Qt.QtWidgets import QVBoxLayout, QHBoxLayout, QWidget, QSlider
+from Qt.QtWidgets import QVBoxLayout, QHBoxLayout, QWidget, QSlider, QLabel
+from Qt.QtCore import QTimer, QPoint
 
 from chimerax.core.commands import log_equivalent_command
 from chimerax.core.models import Surface
@@ -44,6 +45,17 @@ from ..graphics import (
 )
 from ..types import Direction, Axis
 from .label import Label
+
+class LevelLabel(QLabel):
+    def __init__(self, graphics_window):
+        super().__init__()
+        self.setWindowFlags(self.windowFlags() | Qt.WindowType.ToolTip)
+        self.graphics_window = graphics_window
+
+    def show_text(self, text, x, y):
+        self.setText(text)
+        self.move(self.graphics_window.mapToGlobal(QPoint(int(x)+10, int(y))))
+        self.show()
 
 class PlaneViewerManager:
     def __init__(self, session):
@@ -142,6 +154,7 @@ class PlaneViewer(QWindow):
         self.last_mouse_position = None
 
         self.widget = QWidget.createWindowContainer(self, parent)
+        self.level_label = LevelLabel(self.widget)
         self.setSurfaceType(QSurface.SurfaceType.OpenGLSurface)
         placeholder_drawing = Drawing("placeholder")
         self.view = OrthoplaneView(placeholder_drawing, window_size = (0, 0), axis = self.axis)
@@ -201,6 +214,12 @@ class PlaneViewer(QWindow):
         self.view.add_guideline_overlay(self.segmentation_cursor_other_axis_vertical_overlay)
         self.segmentation_overlays: dict[Volume, SegmentationOverlay] = {}
 
+        self.mouse_move_timer = QTimer()
+        self.mouse_move_timer.setInterval(500);
+        self.mouse_move_timer.setSingleShot(True);
+        self.mouse_move_timer.timeout.connect(self.mouseStoppedMoving)
+        self.mouse_x = 0
+        self.mouse_y = 0
         # Used to move the camera when slices are moved
         self.old_pos = 0
         self.pos = 0
@@ -374,12 +393,7 @@ class PlaneViewer(QWindow):
                 self.slider_moved = False
             model_center_offsets = self.drawingBounds().center()
             model_sizes = self.drawingBounds().size()
-            if model_sizes[self.axis.vertical] > model_sizes[self.axis.horizontal]:
-                # Make the vertical axis fit the vertical size of the window
-                initial_needed_fov = model_sizes[self.axis.vertical] / height * width
-            else:
-                # Make the horizontal axis fit the horizontal size of the window
-                initial_needed_fov = model_sizes[self.axis.horizontal]
+            initial_needed_fov = model_sizes[self.axis.vertical] / height * width
             margin = 24
             self.view.camera.field_width = initial_needed_fov + margin + self.field_width_offset
             self.calculateSliceOverlays()
@@ -513,6 +527,7 @@ class PlaneViewer(QWindow):
         if self.segmentation_tool:
             self.disableSegmentationOverlays()
             self.segmentation_tool.make_puck_invisible(self.axis)
+        self.mouse_move_timer.stop()
 
     def shouldOpenContextMenu(self):
         return (
@@ -658,22 +673,44 @@ class PlaneViewer(QWindow):
             if record_seg:
                 self.recordSegment(absolute_offset_left, absolute_offset_bottom)
 
+    def mouseStoppedMoving(self):
+        # TODO: Look at the pixel under the mouse and report what the level is
+        rel_top, rel_bottom, rel_left, rel_right = self.mousePercentOffsetsFromEdges(self.mouse_x, self.mouse_y)
+        if any([rel_top < 0, rel_bottom < 0, rel_left < 0, rel_right < 0]) or any([rel_top > 1, rel_bottom > 1, rel_left > 1, rel_right > 1]):
+            return
+        if self.axis == Axis.AXIAL:
+            absolute_offset_left = rel_right * self.dimensions[0]
+            absolute_offset_bottom = rel_top * self.dimensions[1]
+            level = self.drawingParentVolume().data.matrix()[self.pos, int(absolute_offset_bottom), int(absolute_offset_left)]
+        elif self.axis == Axis.CORONAL:
+            absolute_offset_left = rel_left * self.dimensions[0]
+            absolute_offset_bottom = rel_bottom * self.dimensions[2]
+            level = self.drawingParentVolume().data.matrix()[int(absolute_offset_bottom), self.pos, int(absolute_offset_left)]
+        else:  # self.axis == Axis.SAGITTAL:
+            absolute_offset_left = rel_left * self.dimensions[1]
+            absolute_offset_bottom = rel_bottom * self.dimensions[2]
+            level = self.drawingParentVolume().data.matrix()[int(absolute_offset_bottom), int(absolute_offset_left), self.pos]
+        self.level_label.show_text("Level: " + str(level), self.mouse_x, self.mouse_y)
+
     def mouseMoveEvent(self, event):  # noqa
+        self.level_label.hide()
         b = event.button() | event.buttons()
         # Level or segment
+        pos = event.position()
+        x, y = pos.x(), pos.y()
+        self.mouse_x = x
+        self.mouse_y = y
         if b == Qt.MouseButton.NoButton or b == Qt.MouseButton.LeftButton:
-            pos = event.position()
-            x, y = pos.x(), pos.y()
             self.segmentation_cursor_overlay.center = (self.scale * x, self.scale * (self.view.window_size[1] - y), 0)
             self.segmentation_cursor_overlay.update()
             if self.segmentation_tool:
                 self.moveSegmentationPuck(x, y, record_seg = (b == Qt.MouseButton.LeftButton))
             self.view.camera.redraw_needed = True
+            self.mouse_move_timer.start();
+
         # Zoom / Dolly
         if b & Qt.MouseButton.RightButton:
             self.mouse_moved_during_right_click = True
-            pos = event.position()
-            x, y = pos.x(), pos.y()
             if not self.last_mouse_position:
                 dy = 0
             else:
@@ -684,8 +721,6 @@ class PlaneViewer(QWindow):
             self.view.camera.redraw_needed = True
         # Truck & Pedestal
         if b & Qt.MouseButton.MiddleButton:
-            pos = event.position()
-            x, y = pos.x(), pos.y()
             p_size = self.view.pixel_size()
             if not self.last_mouse_position:
                 dx = 0
