@@ -551,6 +551,7 @@ def init(argv, event_loop=True):
     else:
         import sysconfig
         site.USER_SITE = sysconfig.get_paths()['platlib']
+    site.ENABLE_USER_SITE = True
 
     # Find the location of "share" directory so that we can inform
     # the C++ layer.  Assume it's a sibling of the directory that
@@ -805,7 +806,8 @@ def init(argv, event_loop=True):
         import runpy
         import warnings
         exit = SystemExit(os.EX_OK)
-        with warnings.catch_warnings():
+        from chimerax.core.python_utils import chimerax_user_base
+        with warnings.catch_warnings(), chimerax_user_base():
             warnings.filterwarnings("ignore", category=BytesWarning)
             global_dict = {
                 'session': sess
