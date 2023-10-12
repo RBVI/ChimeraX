@@ -469,7 +469,7 @@ def open_swissdock(session, stream, file_name, auto_style, atomic):
         if line.startswith("ATOM  ") or line.startswith("HETATM"):
             line = line[:55]
             atom_name = line[12:16]
-            if atom_name[-1] == ' ':
+            if atom_name[-1] == ' ' and not atom_name.startswith("CL"):
                 line = line[:12] + ' ' + atom_name[:3] + line[16:]
             chain_id = line[21]
             if not is_ligands:
