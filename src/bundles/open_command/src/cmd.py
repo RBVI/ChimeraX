@@ -12,7 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.core.commands import CmdDesc, register, Command, OpenFileNamesArg, RestOfLine, next_token, \
-    FileNameArg, BoolArg, StringArg, DynamicEnum
+    FileNameArg, BoolArg, StringArg, DynamicEnum, ModelIdArg
 from chimerax.core.commands.cli import RegisteredCommandInfo, log_command
 from chimerax.core.errors import UserError, LimitationError
 
@@ -98,6 +98,7 @@ def cmd_open(session, file_names, rest_of_line, *, log=True, return_json=False):
         keywords = {
             'format': DynamicEnum(lambda ses=session:format_names(ses)),
             'from_database': DynamicEnum(database_names),
+            'id': ModelIdArg,
             'ignore_cache': BoolArg,
             'name': StringArg
         }
@@ -124,7 +125,7 @@ def cmd_open(session, file_names, rest_of_line, *, log=True, return_json=False):
         return JSONResult(JSONEncoder().encode(open_data), models)
     return models
 
-def provider_open(session, names, format=None, from_database=None, ignore_cache=False, name=None,
+def provider_open(session, names, format=None, from_database=None, ignore_cache=False, name=None, id=None,
         _return_status=False, _add_models=True, _request_file_history=False, log_errors=True, **provider_kw):
     mgr = session.open_command
     # since the "file names" may be globs, need to preprocess them...
@@ -280,6 +281,9 @@ def provider_open(session, names, format=None, from_database=None, ignore_cache=
                     ungrouped_models.extend(models)
     if opened_models and _add_models:
         session.models.add(opened_models)
+        if id is not None:
+            from chimerax.std_commands.rename import rename
+            rename(session, opened_models, id=id)
     if (_add_models or _request_file_history) and len(names) == 1 and in_file_history:
         # TODO: Handle lists of file names in history
         from chimerax.core.filehistory import remember_file
