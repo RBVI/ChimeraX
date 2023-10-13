@@ -108,7 +108,7 @@ def _fetch_assemblies(session, pdb_id, url_template, file_template, *,
         try:
             path = fetch_file(session, url, status_name, save_name, 'PDB',
                               uncompress=uncompress, transmit_compressed=transmit_compressed,
-                              ignore_cache=ignore_cache)
+                              ignore_cache=ignore_cache, error_status=False)
         except UserError:
             break
         model_name = status_name
