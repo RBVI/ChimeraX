@@ -461,10 +461,15 @@ def nonstd_charge(session, residues, net_charge, method, *, status=None, temp_di
     # create a fake Structure that we can write to a Mol2 file
     from chimerax.atomic import AtomicStructure
     s = AtomicStructure(session)
-    s.name = r.name
+    # Antechamber/sqm misbehaves for empty residue names [#9597], so use a real name if needed
+    if not r.name:
+        r_name = "UNL"
+    else:
+        r_name = r.name
+    s.name = r_name
 
     # write out the residue's atoms first, since those are the ones we will be caring about
-    nr = s.new_residue(r.name, ' ', 1)
+    nr = s.new_residue(r_name, ' ', 1)
     atom_map = {}
     # use same ordering of atoms as they had in input, to improve consistency of antechamber charges
     r_atoms = sorted(r.atoms, key=lambda a: a.coord_index)
