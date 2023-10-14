@@ -1511,8 +1511,10 @@ class StructureData:
     display = c_property('structure_display', npy_bool, doc =
         "Don't call this directly.  Use Model's 'display' attribute instead.  Only exposed so that "
         "Model's 'display' attribute can call it so that 'display changed' shows up in triggers.")
+    idatm_failed = c_property('structure_idatm_failed', npy_bool, read_only = True,
+        doc = "Supported API. Whether the IDATM computation failed for this structure. Boolean")
     idatm_valid = c_property('structure_idatm_valid', npy_bool,
-        doc = "Supported API. Whether atoms have vaid IDATM types set. Boolean")
+        doc = "Supported API. Whether atoms have valid IDATM types set. Boolean")
     lower_case_chains = c_property('structure_lower_case_chains', npy_bool,
         doc = "Supported API. Structure has lower case chain ids. Boolean")
     num_atoms = c_property('structure_num_atoms', size_t, read_only = True,

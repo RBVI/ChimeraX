@@ -138,6 +138,7 @@ protected:
     ChangeTracker*  _change_tracker;
     CoordSets  _coord_sets;
     bool  _display = true;
+    bool  _idatm_failed;
     bool  _idatm_valid;
     InputSeqInfo  _input_seq_info;
     PyObject*  _logger;
@@ -257,6 +258,7 @@ public:
     Residue*  find_residue(const ChainID& chain_id, int pos, char insert) const;
     Residue*  find_residue(const ChainID& chain_id, int pos, char insert,
         ResName& name) const;
+    bool  idatm_failed() { ready_idatm_types(); return _idatm_failed; }
     bool  idatm_valid() const { return _idatm_valid; }
     const InputSeqInfo&  input_seq_info() const { return _input_seq_info; }
     std::string  input_seq_source;

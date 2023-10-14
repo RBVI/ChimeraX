@@ -4179,6 +4179,17 @@ extern "C" EXPORT void set_structure_ss_change_notify(void *structures, size_t n
     error_wrap_array_set_mutable(s, n, &Structure::set_ss_change_notify, alcn);
 }
 
+extern "C" EXPORT void structure_idatm_failed(void *structures, size_t n, npy_bool *failed)
+{
+    Structure **s = static_cast<Structure **>(structures);
+    try {
+        for (size_t i = 0; i < n; ++i)
+            failed[i] = s[i]->idatm_failed();
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" EXPORT void structure_idatm_valid(void *structures, size_t n, npy_bool *valid)
 {
     Structure **s = static_cast<Structure **>(structures);

@@ -519,6 +519,7 @@ clock_t t0 = clock();
             ~SuspendNotification() { as->_atom_types_notify = true; }
     };
     SuspendNotification suspender(this);
+    _idatm_failed = false;
 
     const Atom::IdatmInfoMap& info_map = Atom::get_idatm_info_map();
 #ifdef TIME_PASSES
@@ -1376,6 +1377,7 @@ t0 = t1;
             logger::warning(_logger, "Cannot find consistent set of bond"
                 " orders for ring system containing atom ", a->name(),
                 " in residue ", a->residue()->str());
+            _idatm_failed = true;
             continue;
         }
 
