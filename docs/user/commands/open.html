@@ -40,7 +40,8 @@ The command <b>open</b> reads data in several
 <ul>
 <li><a href="#local">local files</a>
 <li><a href="#url">URLs</a>
-<li><a href="#fetch">online sources</a>
+<li><a href="#fetch">online sources</a>;
+see also <a href="../fetch.html"><b>Fetch by ID</b></a>
 </ul>
 <p>
 Input files may contain data to be displayed or commands or code to be executed.
@@ -1214,6 +1215,20 @@ Height in physical units of distance (&Aring;) for the
 <a href="#photo">photo</a> (single image) being opened.
 </blockquote>
 <blockquote>
+<a name="id"></a>
+<b>id</b>&nbsp;&nbsp;<i>model-id</i>
+<br>
+A model identifier (model number, as shown in the 
+<a href="../tools/modelpanel.html"><b>Model Panel</b></a>) 
+will be assigned automatically, starting with the lowest available number,
+unless another identifier is given with the <b>id</b> option.
+If the same command opens multiple models or the <i>model-id</i>
+is already &ldquo;taken,&rdquo; submodel numbers will be used.
+The <a href="#name"><b>name</b></a> option can be used to specify the
+model name. The name and/or number of an existing (already open) model
+can be changed with the <a href="rename.html"><b>rename</b></a> command.
+</blockquote>
+<blockquote>
 <a name="log"></a>
 <b>log</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
 <br>
@@ -1270,15 +1285,19 @@ Whether to read the meshes from an
 Limit <a href="#defattr">attribute assignment</a> to the specified models.
 </blockquote>
 <blockquote>
+<a name="name"></a>
 <b>name</b>&nbsp;&nbsp;<i>model-name</i>
 <br>
-The name of the model (shown in the <b>Model Panel</b>) will be generated 
+The name of a model 
+(as shown in the <a href="../tools/modelpanel.html"><b>Model Panel</b></a>) 
+will be generated 
 automatically from the input <i>filename</i> or database <i>identifier</i>
 unless another name is given with the <b>name</b> option.
 If <i>model-name</i> contains spaces, it should be enclosed in quotation marks.
-Model number is also assigned automatically, starting with the lowest available
-number. Model name and number can be changed with the
-<a href="rename.html"><b>rename</b></a> command.
+The <a href="#id"><b>id</b></a> option can be used to specify the
+model identifier (model number).
+The name and/or number of an existing (already open) model
+can be changed with the <a href="rename.html"><b>rename</b></a> command.
 </blockquote>
 <blockquote>
 <b>newTab</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
@@ -1621,6 +1640,8 @@ for that database is <b>mmcif</b>, although <b>pdb</b> or <b>mmtf</b>
 can be specified with the <b>format</b> option.
 Specifying multiple identifiers is equivalent to using the <b>open</b> command
 multiple times with the same options for each identifier.
+As an alternative to the command, <a href="../fetch.html"><b>Fetch by ID</b></a>
+provides a graphical interface to many common fetch types.
 </p><p>
 See also: 
 <a href="../tools/downloaddicom.html"><b>Download DICOM</b></a>,
@@ -1629,10 +1650,7 @@ See also:
 <a name="ignoreCache"></a>
 Web-fetched data are stored locally in <b>~/Downloads/ChimeraX/</b> 
 (where ~ indicates a user's home directory), with subdirectories
-<b>PDB</b> for atomic coordinates from the Protein Data Bank,
-<b>EMDB</b> for density maps from the
-<a href="https://www.ebi.ac.uk/emdb/"
-target="_blank">Electron Microscopy Data Bank</a>, <i>etc.</i>
+<b>PDB</b>, <b>EMDB</b>, <i>etc.</i>
 For caching, no distinction is made among the different Protein Data Bank sites.
 If a data file specified for opening is not found in this local cache or 
 <b>ignoreCache</b> is set to <b>true</b>, the file will be fetched and cached.
@@ -1643,13 +1661,6 @@ By default, fetching from <b>rcsb_bio</b> or <b>pdbe_bio</b>
 will return every assembly available for that entry in that database.
 The <b>maxAssemblies</b> option limits fetching to the
 first <i>N</i> assemblies.
-A single assembly from <b>pdbe_bio</b> will be opened as a single model, but
-even a single assembly from <b>rcsb_bio</b> may be composed of multiple models
-(opened as submodels of the assembly model).
-<!-- 
-details in ticket #3515
-RCSB says that in 2021 all will be mmCIF and as one model per assembly
--->
 </p><p>
 <a name="resName"></a>
 The <b>resName</b> option applies only to <a href="#pubchem">PubChem3D</a>
@@ -1727,8 +1738,9 @@ target="_blank">PDB Chemical Component Dictionary (CCD)</a>
 specified by CCD ID (residue name)</td>
 <td align="center"><b>ccd</b></td>
 </tr><tr>
-<td align="center" rowspan="2"><a href="https://www.ebi.ac.uk/pdbe/eds/"
-target="_blank">PDBe Electron Density Server (EDS)</a>
+<td align="center" rowspan="2">
+<a href="https://www.ebi.ac.uk/pdbe/" target="_blank">PDBe</a>
+Electron Density Server (EDS)
 </td>
 <td align="center"><b>eds</b></td>
 <td align="center">(2Fo-Fc) electron density map for a PDB entry;
@@ -1813,7 +1825,7 @@ accession code PDBDEV_00000001 can be opened with command:
 target="_blank">AlphaFold</a></td>
 <td align="center"><b>alphafold</b></td>
 <td align="center">theoretical protein structure modeled by
-<a href="https://alphafold.ebi.ac.uk/"
+<a href="https://www.nature.com/articles/s41586-021-03819-2"
 target="_blank">AlphaFold</a> and specified by
 <a href="https://www.uniprot.org/" target="_blank">UniProt</a>
 name or accession number (<a href="alphafold.html#fetch">details...</a>)</td>
@@ -1824,7 +1836,7 @@ name or accession number (<a href="alphafold.html#fetch">details...</a>)</td>
 target="_blank">ESM Metagenomic Atlas</a></td>
 <td align="center"><b>esmfold</b></td>
 <td align="center">theoretical protein structure modeled by
-<a href="https://github.com/facebookresearch/esm" target="_blank">ESMFold</a>
+<a href="https://pubmed.ncbi.nlm.nih.gov/36927031/" target="_blank">ESMFold</a>
 (Evolutionary Scale Modeling) and specified by its MGnify identifier
 (<a href="esmfold.html#fetch">details...</a>)</td>
 <td align="center"><b>pdb</b></td>
