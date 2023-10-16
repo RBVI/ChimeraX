@@ -141,6 +141,7 @@ class PlaneViewerManager:
     def update_segmentation_overlay_for_segmentation(self, segmentation):
         for viewer in self.axes.values():
             viewer.segmentation_overlays[segmentation].needs_update = True
+            viewer.render()
 
     def redraw_all(self):
         for viewer in self.axes.values():
