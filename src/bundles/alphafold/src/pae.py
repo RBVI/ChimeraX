@@ -148,7 +148,7 @@ class OpenPredictedAlignedError(ToolInstance):
     #
     def _choose_pae_file(self):
         s = self._structure_menu.value
-        if s and hasattr(s, 'filename'):
+        if s and hasattr(s, 'filename') and s.filename is not None:
             from os import path
             dir = path.split(s.filename)[0]
         elif self._pae_file.text():
