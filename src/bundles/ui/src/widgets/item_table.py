@@ -458,6 +458,7 @@ class ItemTable(QTableView):
             self._table_model.endInsertColumns()
             self._pending_columns = []
             self.resizeColumnsToContents()
+            self.resizeRowsToContents()
         return c
 
     @property
@@ -585,6 +586,7 @@ class ItemTable(QTableView):
         self.verticalHeader().setVisible(False)
         if not suppress_resize:
             self.resizeColumnsToContents()
+            self.resizeRowsToContents()
 
         if scroll_to is not None:
             QTimer.singleShot(10, lambda s=self, i=scroll_to: s.scrollTo(i))

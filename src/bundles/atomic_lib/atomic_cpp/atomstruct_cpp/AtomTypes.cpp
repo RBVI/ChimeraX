@@ -2,14 +2,20 @@
 
 /*
  * === UCSF ChimeraX Copyright ===
- * Copyright 2016 Regents of the University of California.
- * All rights reserved.  This software provided pursuant to a
- * license agreement containing restrictions on its disclosure,
- * duplication and use.  For details see:
- * http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
- * This notice must be embedded in or attached to all copies,
- * including partial copies, of the software or any revisions
- * or derivations thereof.
+ * Copyright 2022 Regents of the University of California. All rights reserved.
+ * This software is provided pursuant to the ChimeraX license agreement, which
+ * covers academic and commercial uses. For more information, see
+ * <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+ *
+ * This file is part of the ChimeraX library. You can also redistribute and/or
+ * modify it under the GNU Lesser General Public License version 2.1 as
+ * published by the Free Software Foundation. For more details, see
+ * <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+ *
+ * This file is distributed WITHOUT ANY WARRANTY; without even the implied
+ * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. This notice
+ * must be embedded in or attached to all copies, including partial copies, of
+ * the software or any revisions or derivations thereof.
  * === UCSF ChimeraX Copyright ===
  */
 
@@ -519,6 +525,7 @@ clock_t t0 = clock();
             ~SuspendNotification() { as->_atom_types_notify = true; }
     };
     SuspendNotification suspender(this);
+    _idatm_failed = false;
 
     const Atom::IdatmInfoMap& info_map = Atom::get_idatm_info_map();
 #ifdef TIME_PASSES
@@ -1376,6 +1383,7 @@ t0 = t1;
             logger::warning(_logger, "Cannot find consistent set of bond"
                 " orders for ring system containing atom ", a->name(),
                 " in residue ", a->residue()->str());
+            _idatm_failed = true;
             continue;
         }
 

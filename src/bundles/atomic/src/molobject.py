@@ -1,14 +1,20 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# This software is provided pursuant to the ChimeraX license agreement, which
+# covers academic and commercial uses. For more information, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This file is part of the ChimeraX library. You can also redistribute and/or
+# modify it under the GNU Lesser General Public License version 2.1 as
+# published by the Free Software Foundation. For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# This file is distributed WITHOUT ANY WARRANTY; without even the implied
+# warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. This notice
+# must be embedded in or attached to all copies, including partial copies, of
+# the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.core.state import State, StateManager
@@ -1511,8 +1517,10 @@ class StructureData:
     display = c_property('structure_display', npy_bool, doc =
         "Don't call this directly.  Use Model's 'display' attribute instead.  Only exposed so that "
         "Model's 'display' attribute can call it so that 'display changed' shows up in triggers.")
+    idatm_failed = c_property('structure_idatm_failed', npy_bool, read_only = True,
+        doc = "Supported API. Whether the IDATM computation failed for this structure. Boolean")
     idatm_valid = c_property('structure_idatm_valid', npy_bool,
-        doc = "Supported API. Whether atoms have vaid IDATM types set. Boolean")
+        doc = "Supported API. Whether atoms have valid IDATM types set. Boolean")
     lower_case_chains = c_property('structure_lower_case_chains', npy_bool,
         doc = "Supported API. Structure has lower case chain ids. Boolean")
     num_atoms = c_property('structure_num_atoms', size_t, read_only = True,
