@@ -18,6 +18,9 @@ dependencies = []
 ignored_gui_dependencies = {
     "qtconsole"
     , "openvr"
+    , "line_profiler"
+    , "PyOpenGL"
+    , "PyOpenGL-accelerate"
 }
 ignored_prefixes = ["app_pyopengl", "build", "dev"]
 dependency_files = [
