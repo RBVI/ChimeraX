@@ -910,6 +910,8 @@ class SegmentationTool(ToolInstance):
         self.active_seg = segment
         if self.active_seg:
             self.active_seg.active = True
+        if self.session.ui.main_window.view_layout == "orthoplanes":
+            self.session.ui.main_window.main_view.redraw_all()
 
     def _on_active_segmentation_changed(self, new, prev):
         if new:
