@@ -157,10 +157,7 @@ class AlphaFoldRun(ToolInstance):
             self._results_directory = dir = self._unique_results_directory()
         item.setDownloadDirectory(dir)
         if  filename == 'results.zip':
-            if hasattr(item, 'finished'):
-                item.finished.connect(self._unzip_results)		# Qt 5
-            else:
-                item.isFinishedChanged.connect(self._unzip_results)	# Qt 6
+            item.isFinishedChanged.connect(self._unzip_results)	# Qt 6
         item.accept()
 
     def _unique_results_directory(self):
@@ -237,8 +234,10 @@ class AlphaFoldRun(ToolInstance):
             import zipfile
             with zipfile.ZipFile(path, 'r') as z:
                 z.extractall(dir)
-        self.session.logger.info(f'AlphaFold prediction finished\nResults in {dir}')
-        self._open_prediction()
+            self.session.logger.info(f'AlphaFold prediction finished\nResults in {dir}')
+            self._open_prediction()
+        else:
+            self.session.logger.warning(f'AlphaFold prediction completed but downloading the results failed.  You can try manually downloading the results.zip file by clicking in the AlphaFold Run panel on the folder icon on the left side, then click on the "..." to the right of the results.zip file and choose Download.  It will not ask for a location to save the file, but will show a message in the ChimeraX Log panel if it succeeds or fails.  You can also try using any web browser, go to Google Colab use menu Runtime / Manage Sessions... to rejoin your ChimeraX AlphaFold session and download the results.zip file.')
 
 # ------------------------------------------------------------------------------
 #
