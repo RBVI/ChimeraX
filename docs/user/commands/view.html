@@ -196,9 +196,16 @@ moved separately, as in matching or fitting.
 </blockquote>
 <p>
 The <b>name</b> option assigns <i>view-name</i> to the current view,
-including the positions of any models that have been moved separately.
+including the positions of <a href="clip.html">active clipping planes</a>
+and any models that have been moved separately from the others.
 Subsequently, that view can be restored over a specified number of 
 image update <i>frames</i> (default <b>1</b> frame).
+A clipping plane will only transition smoothly if present 
+(active) in both the starting and ending views.
+If a clipping plane is not active, it does not have a
+position, even though vertical lines are always shown in the
+<a href="../tools/sideview.html"><b>Side View</b></a>.
+</p><p>
 The <b>delete</b> option can be used to &ldquo;forget&rdquo; a specific
 view or <b>all</b> views. 
 The <b>list</b> option reports the names of all currently saved 
@@ -315,5 +322,5 @@ later applied from such a file. See also:
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-September 2023</address>
+October 2023</address>
 </body></html>
