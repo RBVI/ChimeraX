@@ -418,11 +418,11 @@ def _interpolate_clip_planes(v1, v2, f, view):
     p1 = {p.name: p for p in v1.clip_planes}
     p2 = {p.name: p for p in v2.clip_planes}
     pv = {p.name: p for p in view.clip_planes.planes()}
-    from numpy import array_equal
+    from chimerax.geometry import angle
     for name in p1:
         if name in p2 and name in pv:
             p1n, p2n, pvn = p1[name], p2[name], pv[name]
-            if array_equal(p1n.normal, p2n.normal):
+            if angle(p1n.normal, p2n.normal) < 0.01:  # degrees
                 pvn.normal = p1n.normal
                 pvn.plane_point = (1 - f) * p1n.plane_point + f * p2n.plane_point
                 # TODO: Update pv._last_distance
