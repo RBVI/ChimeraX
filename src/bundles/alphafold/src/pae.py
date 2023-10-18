@@ -255,6 +255,11 @@ class OpenPredictedAlignedError(ToolInstance):
 #	7qfc_efb9b_unrelaxed_rank_1_model_4.pdb
 #	7qfc_efb9b_unrelaxed_rank_1_model_4_scores.json
 #
+# Colabfold 1.5.0
+#
+#	af182_unrelaxed_rank_001_alphafold2_multimer_v3_model_1_seed_000.pdb
+#	af182_scores_rank_001_alphafold2_multimer_v3_model_1_seed_000.json
+#
 # AlphaFold database files
 #
 #	AF-P01445-F1-model_v2.cif
@@ -277,10 +282,15 @@ def _matching_pae_file(structure_path):
         return None
     if len(pfiles) == 1:
         return join(dir, pfiles[0])
-    
-    mfile = _longest_matching_prefix(filename, pfiles, min_length = 6)
+
+    from os.path import splitext
+    min_length = min(6, len(splitext(filename)[0]))
+    mfile = _longest_matching_prefix(filename, pfiles, min_length = min_length)
+    if mfile is None and '_unrelaxed_' in filename:
+        mfile = _longest_matching_prefix(filename.replace('_unrelaxed_', '_scores_'),
+                                         pfiles, min_length = min_length)
     if mfile is None:
-        mfile = _longest_matching_suffix(filename, pfiles, min_length = 6)
+        mfile = _longest_matching_suffix(filename, pfiles, min_length = min_length)
     if mfile is None:
         return None
     return join(dir, mfile)
