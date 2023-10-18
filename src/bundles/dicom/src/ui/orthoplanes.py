@@ -1099,7 +1099,73 @@ class SegmentationVolumePanel(Histogram_Pane):
         self.plane_viewer.update_and_rerender()
 
     def moved_marker_cb(self, marker):
+        self._log_moved_marker = False
         self.select_data_cb()	# Causes redisplay using GUI settings
         self.set_threshold_and_color_widgets()
         # Redraw graphics before more mouse drag events occur.
         self.plane_viewer.update_and_rerender()
+
+    def add_threshold(self, x, y):
+        # Exactly like the superclass except we don't report to the log
+        markers = self.shown_markers()
+        if markers:
+            markers.add_marker(x, y)
+            self.dialog.redisplay_needed_cb()
+
+    def delete_threshold(self, x, y):
+        # Exactly like the superclass except we don't report to the log
+        markers = self.shown_markers()
+        if markers:
+            m = markers.clicked_marker(x, y)
+            if m:
+                markers.delete_marker(m)
+                self.dialog.redisplay_needed_cb()
+    
+    def set_threshold_parameters_from_gui(self, show = False, log = True):
+        v = self.volume
+        if v is None:
+          return
+    
+        # Update surface levels and colors
+        surf_levels_changed = surf_colors_changed = False
+        markers = self.surface_thresholds.markers
+        for m in markers:
+            level, color = m.xy[0], m.rgba
+            if not hasattr(m, 'volume_surface') or m.volume_surface.deleted:
+                m.volume_surface = v.add_surface(level, color)
+                surf_levels_changed = surf_colors_changed = True
+            else:
+                s = m.volume_surface
+                if level != s.level:
+                    s.level = level
+                    surf_levels_changed = True
+                if tuple(s.rgba) != tuple(color):
+                    s.rgba = color
+                    s.vertex_colors = None
+                    surf_colors_changed = True
+    
+        # Delete surfaces when marker has been deleted.
+        msurfs = set(m.volume_surface for m in markers)
+        dsurfs = [s for s in v.surfaces if s not in msurfs]
+        if dsurfs:
+            v.remove_surfaces(dsurfs)
+            surf_levels_changed = surf_colors_changed = True
+    
+        image_levels_changed = image_colors_changed = False
+        markers = self.image_thresholds.markers
+        ilevels = [m.xy for m in markers]
+        if ilevels != v.image_levels:
+            v.image_levels = ilevels
+            image_levels_changed = True
+    
+        icolors = [m.rgba for m in markers]
+        from numpy import array_equal
+        if not array_equal(icolors, v.image_colors):
+            v.image_colors = icolors
+            image_colors_changed = True
+    
+    
+        if show and v.shown():
+            v.show()
+        
+        
