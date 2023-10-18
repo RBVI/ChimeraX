@@ -3193,13 +3193,14 @@ class Texture:
             raise TypeError('Texture value type %s not supported' % str(dtype))
         return format, iformat, tdtype, ncomp
 
-    def read_texture_data(self):
+    def read_texture_data(self, numpy_data_type = None):
         '''
         The data is read back to a numpy array as uint8 values using the
         same array shape used to fill the texture.
         '''
-        from numpy import zeros, uint8
-        data = zeros(self._array_shape, uint8)
+        dtype = self._numpy_dtype if numpy_data_type is None else numpy_data_type
+        from numpy import zeros
+        data = zeros(self._array_shape, dtype)
         format, iformat, tdtype, ncomp = self.texture_format(data)
         gl_target = self.gl_target
         GL.glBindTexture(gl_target, self.id)

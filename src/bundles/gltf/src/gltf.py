@@ -911,17 +911,30 @@ def _element_size_for_gltf_mode(gltf_mode):
 def _read_texture_images(drawing):
     d = drawing
     if d.texture and d.texture.dimension == 2:
-        d._opengl_context.make_current()
-        ti = [d.texture.read_texture_data()]
-        d._opengl_context.done_current()
+        ti = [_texture_colors(d.texture, d)]
     elif d.multitexture:
-        d._opengl_context.make_current()
-        ti = [t.read_texture_data() for t in d.multitexture]
-        d._opengl_context.done_current()
+        ti = [_texture_colors(t, d) for t in d.multitexture]
     else:
         ti = []
-
     return ti
+
+# -----------------------------------------------------------------------------
+#
+def _texture_colors(texture, drawing):
+    drawing._opengl_context.make_current()
+    data = texture.read_texture_data()
+    if drawing.colormap and drawing.colormap_range:
+        colormap = drawing.colormap.read_texture_data()
+        dmin, dmax = drawing.colormap_range
+        from numpy import empty
+        colors = empty(data.shape[:2] + (colormap.shape[1],), colormap.dtype)
+        extend_left = extend_right = True
+        from chimerax.map._map import data_to_colors
+        data_to_colors(data, dmin, dmax, colormap, extend_left, extend_right, colors)
+    else:
+        colors = data
+    drawing._opengl_context.done_current()
+    return colors
 
 # -----------------------------------------------------------------------------
 #
@@ -1196,12 +1209,17 @@ class Textures:
         self._array_image_id[a_id] = im_id
         return im_id
 
-    def _texture_buffer(self, rgba_array):
-        '''Make a PNG image and save as a buffer.'''
-        # Ut oh, Texture does not keep data after filling OpenGL texture, to save memory
-        # for large volume data.
+    def _texture_buffer(self, color_array):
+        '''
+        Make a PNG image from a numpy array of colors and save as a buffer.
+        The array can have size (h,w,c) where color components c can be
+        1 (lumosity), 2 (luminosity + alpha), 3 (RGB), 4 (RGBA).
+        '''
+        if color_array.ndim == 3 and color_array.shape[2] == 1:
+            # Image.fromarray() won't except (h,w,1) array, wants (h,w).
+            color_array = color_array.reshape(color_array.shape[:2])
         from PIL import Image
-        pi = Image.fromarray(rgba_array)
+        pi = Image.fromarray(color_array)
         from io import BytesIO
         image_bytes = BytesIO()
         pi.save(image_bytes, format='PNG')
