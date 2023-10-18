@@ -42,7 +42,12 @@ class Axis(IntEnum):
         else:
             return 0
         
-        
+    @property
+    def cartesian(self):
+        return ["x", "y", "z"][self.value]
+
+
 class Segmentation(Protocol):
     def save(filename) -> None:
         raise NotImplementedError
+

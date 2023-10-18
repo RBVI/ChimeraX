@@ -481,6 +481,7 @@ class SegmentationTool(ToolInstance):
         self.control_information_button.clicked.connect(self.showControlsDialog)
         self.view_dropdown_layout.addWidget(self.view_dropdown_label)
         self.view_dropdown_layout.addWidget(self.view_dropdown, 1)
+        self.view_dropdown_layout.addStretch(2)
         self.view_dropdown_layout.addWidget(self.control_information_button)
         self.view_dropdown_container.setLayout(self.view_dropdown_layout)
         self.old_mouse_bindings = {
@@ -909,6 +910,8 @@ class SegmentationTool(ToolInstance):
         self.active_seg = segment
         if self.active_seg:
             self.active_seg.active = True
+        if self.session.ui.main_window.view_layout == "orthoplanes":
+            self.session.ui.main_window.main_view.redraw_all()
 
     def _on_active_segmentation_changed(self, new, prev):
         if new:
