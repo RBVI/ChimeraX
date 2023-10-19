@@ -590,7 +590,6 @@ class Tasks(StateManager):
             assert(isinstance(task, Task))
             if task.SESSION_SAVE:
                 tasks[tid] = task
-            # tasks[tid] = task.take_snapshot(session, flags)
         data = {'tasks': tasks,
                 'version': TASKS_STATE_VERSION,
                 'counter': next(self._id_counter) - 1}
@@ -615,7 +614,6 @@ class Tasks(StateManager):
         t = session.tasks
         for tid, task in data['tasks'].items():
             t._tasks[tid] = task
-        # TODO: t._id_counter?
         return t
 
     def reset_state(self, session):
