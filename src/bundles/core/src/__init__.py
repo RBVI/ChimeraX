@@ -99,6 +99,9 @@ _class_class_init = {
     "_NoDefault": '.attributes',
     "RegAttrManager": '.attributes',
     "XSectionManager": 'chimerax.atomic.ribbon',
+    # For a while sessions were saved with these even though
+    # we really didn't want them to be restored
+    "NewerVersionQuery": '.toolshed'
 }
 
 

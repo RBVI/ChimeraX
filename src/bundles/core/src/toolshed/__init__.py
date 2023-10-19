@@ -1664,3 +1664,10 @@ class NewerVersionQuery(Task):
         d = NewerDialog(self.session.ui.main_window)
         self.newer_dialog = d
         d.show()
+
+    def take_snapshot(self, session, flags) -> dict[any, any]:
+        return {}
+
+    @classmethod
+    def restore_snapshot(cls, session, data):
+        return cls(session)
