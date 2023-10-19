@@ -1,40 +1,50 @@
 #!/usr/bin/env python3
-
 # This is NOT THIS FILE'S LICENSE. It's here to make it easy to copy and paste
-# for any files the script may have missed. 
+# for any files the script may have missed.
 # === UCSF ChimeraX Copyright ===
 # Copyright 2022 Regents of the University of California. All rights reserved.
-# This software is provided pursuant to the ChimeraX license agreement, which
-# covers academic and commercial uses. For more information, see
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
 # <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
-# This file is part of the ChimeraX library. You can also redistribute and/or
-# modify it under the GNU Lesser General Public License version 2.1 as
-# published by the Free Software Foundation. For more details, see
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
 # <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
 #
-# This file is distributed WITHOUT ANY WARRANTY; without even the implied
-# warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. This notice
-# must be embedded in or attached to all copies, including partial copies, of
-# the software or any revisions or derivations thereof."""
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 import os
 
 new_license_text = """{comment} Copyright 2022 Regents of the University of California. All rights reserved.
-{comment} This software is provided pursuant to the ChimeraX license agreement, which
-{comment} covers academic and commercial uses. For more information, see
+{comment} The ChimeraX application is provided pursuant to the ChimeraX license
+{comment} agreement, which covers academic and commercial uses. For more details, see
 {comment} <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 {comment}
-{comment} This file is part of the ChimeraX library. You can also redistribute and/or
-{comment} modify it under the GNU Lesser General Public License version 2.1 as
-{comment} published by the Free Software Foundation. For more details, see
+{comment} This particular file is part of the ChimeraX library. You can also
+{comment} redistribute and/or modify it under the terms of the GNU Lesser General
+{comment} Public License version 2.1 as published by the Free Software Foundation.
+{comment} For more details, see
 {comment} <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
 {comment}
-{comment} This file is distributed WITHOUT ANY WARRANTY; without even the implied
-{comment} warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. This notice
-{comment} must be embedded in or attached to all copies, including partial copies, of
-{comment} the software or any revisions or derivations thereof."""
+{comment} THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+{comment} EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+{comment} OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+{comment} LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+{comment} VERSION 2.1
+{comment}
+{comment} This notice must be embedded in or attached to all copies, including partial
+{comment} copies, of the software or any revisions or derivations thereof."""
+
 
 new_license_text_python = new_license_text.format(comment = "#")
 new_license_text_cpp = new_license_text.format(comment = " *")
@@ -141,6 +151,7 @@ folders_to_skip = [
     , "ui"
     , "doc"
     , "docs"
+    , "gromacs" # submodule of md_crds
 ]
 
 skipped_files = [
@@ -196,15 +207,15 @@ chimerax_main = os.path.join(chimerax_repo_root, "src", "bundles", "core", "src"
 problematic_files = [
     chimerax_main
     , os.path.join(chimerax_repo_root, "src", "bundles", "map_data", "src", "ims", "ims_format.py")
-    ,     
+    ,
 ]
 
 modified_files = []
 for dirpath, dirnames, filenames in os.walk(chimerax_bundle_root, topdown = True):
-    # I did this with a really nice list comprehension at first, I promise. 
+    # I did this with a really nice list comprehension at first, I promise.
     # Python proceeded to take the result of that comprehension, completely
     # throw it away and ignore it, and recurse into unwanted directories anyway.
-    # If you can mutate something you might as well be able to reassign it. 
+    # If you can mutate something you might as well be able to reassign it.
     # One day language authors will learn this basic truth!
     if dirpath == chimerax_bundle_root:
         for dir in bundle_blacklist:
@@ -220,6 +231,8 @@ for dirpath, dirnames, filenames in os.walk(chimerax_bundle_root, topdown = True
                 dirnames.remove(dir)
     # OK, now we can do the actual work.
     for file in filenames:
+        if file.startswith('.'):
+            continue
         if file in skipped_files:
             continue
         if file.split('.')[0].endswith('gui') or file.split('.')[0].endswith('cgi'):
