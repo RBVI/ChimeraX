@@ -571,6 +571,7 @@ class SegmentationTool(ToolInstance):
         self.add_seg_button = QPushButton("Add")
         self.remove_seg_button = QPushButton("Remove")
         self.edit_seg_metadata_button = QPushButton("Edit Metadata")
+        self.edit_seg_metadata_button.setVisible(False)
         self.save_seg_button = QPushButton("Save")
         self.help_button = QPushButton("Help")
 
