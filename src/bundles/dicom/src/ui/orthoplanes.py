@@ -292,7 +292,8 @@ class PlaneViewer(QWindow):
 
     def mvSegmentationCursorOffsetFromOrigin(self):
         origin = self.drawingOrigin()
-        return self.drawingOrigin()[self.axis] + (self.pos * self.drawingVolumeStep()[self.axis])
+        dir = -np.sign(origin[self.axis])
+        return self.drawingOrigin()[self.axis] + (dir * self.pos * self.drawingVolumeStep()[self.axis])
 
     def _onSliderMoved(self):
         if self.axis == Axis.CORONAL:

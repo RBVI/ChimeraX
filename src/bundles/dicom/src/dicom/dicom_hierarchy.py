@@ -621,9 +621,7 @@ class DicomData:
         if len(self.files) <= 1:
             return
         reference_file = self.files[0]
-        if hasattr(reference_file, "ImagePositionPatient") and reference_file.get("ImagePositionPatient", None):
-            self.files.sort(key=lambda x: x.ImagePositionPatient[2])
-        elif hasattr(reference_file, "SliceLocation") and reference_file.get("SliceLocation", None):
+        if hasattr(reference_file, "SliceLocation") and reference_file.get("SliceLocation", None):
             self.files.sort(key=lambda x: (x.get("TriggerTime", 1), x.SliceLocation))
         elif hasattr(reference_file, "ImageIndex") and reference_file.get("ImageIndex", None):
             self.files.sort(key=lambda x: x.ImageIndex)
