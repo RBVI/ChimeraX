@@ -189,6 +189,7 @@ class _MapBundle(BundleAPI):
                             'channel': IntArg,
                             'verbose': BoolArg,
                             'vseries': BoolArg,
+                            'difference': BoolArg,
                         }
         else:
             from chimerax.save_command import SaverInfo

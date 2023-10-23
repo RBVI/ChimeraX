@@ -3634,7 +3634,8 @@ def open_grids(session, grids, name, **kw):
       for g in grids:
         g.initial_surface_level = level
 
-    if kw.get('polar_values', False):
+    print ('open kw', kw)
+    if kw.get('polar_values', False) or kw.get('difference', False):
       for g in grids:
         g.polar_values = True
         if g.rgba is None:
