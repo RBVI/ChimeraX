@@ -327,7 +327,8 @@ target="_blank">MDTools</a>)</td>
 <a name="volume"></a>
 <a href="#formats" class="nounder"><b>&larr;</b></a>
 <b>Volume Data and Related</b> (associated tool: 
-<a href="../tools/volumeviewer.html"><b>Volume Viewer</b></a>)</td>
+<a href="../tools/volumeviewer.html"><b>Volume Viewer</b></a>;
+see also the <a href="#difference"><b>difference</b></a> option)</td>
 </tr><tr>
 <td align="center">
 <a href="https://www.fei.com/software/amira-for-life-sciences/"
@@ -1158,6 +1159,16 @@ Whether to read the contours from an
 Whether to send verbose information to the 
 <a href="../tools/log.html"><b>Log</b></a> when opening a
 <a href="../formats/sff.html">EMDB segmentation file</a>.
+</blockquote>
+<blockquote>
+<a name="difference"></a>
+<b>difference</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false
+<br>
+When opening a <a href="#volume">density map</a>, whether to display it
+as a difference map, <i>i.e.</i>, showing positive and negative contour surfaces
+and turning off <a href="volume.html#capFaces">capping at box faces</a>
+(default <b>false</b>, except <b>true</b> when <a href="#fetch">fetching</a>
+from <b>edsdiff</b>).
 </blockquote>
 <blockquote>
 <b>ensembles</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
