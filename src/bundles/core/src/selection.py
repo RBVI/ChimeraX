@@ -234,8 +234,11 @@ class ModelSelectionPromotion(SelectionPromotion):
         spos = model.selected_positions
         self._prev_selected = None if spos is None else spos.copy()
     def promote(self):
-        self.model.selected = True
+        m = self.model
+        if not m.deleted:
+            m.selected = True
     def demote(self):
         m = self.model
-        m.selected = False	# This may clear child drawing selections.
-        m.selected_positions = self._prev_selected
+        if not m.deleted:
+            m.selected = False	# This may clear child drawing selections.
+            m.selected_positions = self._prev_selected
