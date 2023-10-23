@@ -437,6 +437,8 @@ class DicomData:
 
         npaths = len(self.paths)  # noqa assigned but not accessed
         self.name = series.name
+        if self.mask_number is not None:
+            self.name += " (Mask %d)" % (self.mask_number + 1)
         rsi = self.dicom_series.rescale_intercept
         if rsi == int(rsi):
             rsi = int(rsi)
