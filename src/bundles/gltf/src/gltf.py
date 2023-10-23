@@ -2,19 +2,24 @@
 
 # === UCSF ChimeraX Copyright ===
 # Copyright 2022 Regents of the University of California. All rights reserved.
-# This software is provided pursuant to the ChimeraX license agreement, which
-# covers academic and commercial uses. For more information, see
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
 # <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
-# This file is part of the ChimeraX library. You can also redistribute and/or
-# modify it under the GNU Lesser General Public License version 2.1 as
-# published by the Free Software Foundation. For more details, see
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
 # <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
 #
-# This file is distributed WITHOUT ANY WARRANTY; without even the implied
-# warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. This notice
-# must be embedded in or attached to all copies, including partial copies, of
-# the software or any revisions or derivations thereof.
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 """
@@ -911,17 +916,30 @@ def _element_size_for_gltf_mode(gltf_mode):
 def _read_texture_images(drawing):
     d = drawing
     if d.texture and d.texture.dimension == 2:
-        d._opengl_context.make_current()
-        ti = [d.texture.read_texture_data()]
-        d._opengl_context.done_current()
+        ti = [_texture_colors(d.texture, d)]
     elif d.multitexture:
-        d._opengl_context.make_current()
-        ti = [t.read_texture_data() for t in d.multitexture]
-        d._opengl_context.done_current()
+        ti = [_texture_colors(t, d) for t in d.multitexture]
     else:
         ti = []
-
     return ti
+
+# -----------------------------------------------------------------------------
+#
+def _texture_colors(texture, drawing):
+    drawing._opengl_context.make_current()
+    data = texture.read_texture_data()
+    if drawing.colormap and drawing.colormap_range:
+        colormap = drawing.colormap.read_texture_data()
+        dmin, dmax = drawing.colormap_range
+        from numpy import empty
+        colors = empty(data.shape[:2] + (colormap.shape[1],), colormap.dtype)
+        extend_left = extend_right = True
+        from chimerax.map._map import data_to_colors
+        data_to_colors(data, dmin, dmax, colormap, extend_left, extend_right, colors)
+    else:
+        colors = data
+    drawing._opengl_context.done_current()
+    return colors
 
 # -----------------------------------------------------------------------------
 #
@@ -1196,12 +1214,17 @@ class Textures:
         self._array_image_id[a_id] = im_id
         return im_id
 
-    def _texture_buffer(self, rgba_array):
-        '''Make a PNG image and save as a buffer.'''
-        # Ut oh, Texture does not keep data after filling OpenGL texture, to save memory
-        # for large volume data.
+    def _texture_buffer(self, color_array):
+        '''
+        Make a PNG image from a numpy array of colors and save as a buffer.
+        The array can have size (h,w,c) where color components c can be
+        1 (lumosity), 2 (luminosity + alpha), 3 (RGB), 4 (RGBA).
+        '''
+        if color_array.ndim == 3 and color_array.shape[2] == 1:
+            # Image.fromarray() won't except (h,w,1) array, wants (h,w).
+            color_array = color_array.reshape(color_array.shape[:2])
         from PIL import Image
-        pi = Image.fromarray(rgba_array)
+        pi = Image.fromarray(color_array)
         from io import BytesIO
         image_bytes = BytesIO()
         pi.save(image_bytes, format='PNG')

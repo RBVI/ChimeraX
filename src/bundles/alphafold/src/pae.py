@@ -2,19 +2,24 @@
 
 # === UCSF ChimeraX Copyright ===
 # Copyright 2022 Regents of the University of California. All rights reserved.
-# This software is provided pursuant to the ChimeraX license agreement, which
-# covers academic and commercial uses. For more information, see
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
 # <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
-# This file is part of the ChimeraX library. You can also redistribute and/or
-# modify it under the GNU Lesser General Public License version 2.1 as
-# published by the Free Software Foundation. For more details, see
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
 # <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
 #
-# This file is distributed WITHOUT ANY WARRANTY; without even the implied
-# warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. This notice
-# must be embedded in or attached to all copies, including partial copies, of
-# the software or any revisions or derivations thereof.
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 # -----------------------------------------------------------------------------
@@ -255,6 +260,11 @@ class OpenPredictedAlignedError(ToolInstance):
 #	7qfc_efb9b_unrelaxed_rank_1_model_4.pdb
 #	7qfc_efb9b_unrelaxed_rank_1_model_4_scores.json
 #
+# Colabfold 1.5.0
+#
+#	af182_unrelaxed_rank_001_alphafold2_multimer_v3_model_1_seed_000.pdb
+#	af182_scores_rank_001_alphafold2_multimer_v3_model_1_seed_000.json
+#
 # AlphaFold database files
 #
 #	AF-P01445-F1-model_v2.cif
@@ -277,10 +287,15 @@ def _matching_pae_file(structure_path):
         return None
     if len(pfiles) == 1:
         return join(dir, pfiles[0])
-    
-    mfile = _longest_matching_prefix(filename, pfiles, min_length = 6)
+
+    from os.path import splitext
+    min_length = min(6, len(splitext(filename)[0]))
+    mfile = _longest_matching_prefix(filename, pfiles, min_length = min_length)
+    if mfile is None and '_unrelaxed_' in filename:
+        mfile = _longest_matching_prefix(filename.replace('_unrelaxed_', '_scores_'),
+                                         pfiles, min_length = min_length)
     if mfile is None:
-        mfile = _longest_matching_suffix(filename, pfiles, min_length = 6)
+        mfile = _longest_matching_suffix(filename, pfiles, min_length = min_length)
     if mfile is None:
         return None
     return join(dir, mfile)
