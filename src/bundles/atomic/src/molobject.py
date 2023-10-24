@@ -44,14 +44,16 @@ def python_instances_of_class(inst_class, *, open_only=True):
     instances = f(inst_class)
     if not open_only:
         return instances
+    def open_structure(s):
+        return s.session is not None and s.session.models.have_model(s)
     if issubclass(inst_class, PseudobondGroupData):
-        filt = lambda x: (not x.structure) or x.structure.id
+        filt = lambda x: (not x.structure) or open_structure(x.structure)
     elif hasattr(inst_class, 'structure'):
-        filt = lambda x: x.structure.id
+        filt = lambda x: open_structure(x.structure)
     elif issubclass(inst_class, StructureData):
-        filt = lambda x: x.id
+        filt = lambda x: open_structure(x)
     elif issubclass(inst_class, Pseudobond):
-        filt = lambda x: (not x.group.structure) or x.group.structure.id
+        filt = lambda x: (not x.group.structure) or open_structure(x.group.structure)
     elif issubclass(inst_class, (PseudobondManager, Sequence)):
         filt = lambda x: True
     else:

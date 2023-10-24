@@ -127,6 +127,8 @@ class ViewState:
 
     @staticmethod
     def reset_state(view, session):
+        if not session.restore_options.get('restore camera'):
+            return
         view.set_default_parameters()
         from chimerax.surface.settings import settings as surf_settings
         surf_settings.reset() # Reset clip cap settings

@@ -1146,11 +1146,15 @@ class SteamVRCamera(Camera, StateManager):
             session.logger.info(str(e))
             return None
             
+        if not session.restore_options.get('restore camera'):
+            return c
+        
         c.room_to_scene = data['room_to_scene']
         for hc, ba in zip(c._hand_controllers, data['button_assignments']):
             hc.button_assignments = ba
         if data['active']:
-            # Try to start VR if it was active when session saved.
+            # Try to start VR if it was active when session saved
+            # and we are not already using a VR camera.
             def start_vr(trigger_name, session):
                 try:
                     vr(session, enable = True)
