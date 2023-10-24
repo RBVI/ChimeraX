@@ -95,7 +95,8 @@ class ScaledGrid(GridData):
           dti = iinfo(dt.dtype)
           dmin = max(dti.min, dmin)
           dmax = min(dti.max, dmax)
-        dt.clip(dmin, dmax, d)
+        dt.clip(dmin, dmax, dt)
+        d[:] = dt[:]
       else:
         d = dt.astype(t)
 

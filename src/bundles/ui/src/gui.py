@@ -421,6 +421,11 @@ class MainWindow(QMainWindow, PlainTextLog):
             width, height = main_screen_geom.width()*wf, main_screen_geom.height()*hf
         elif sizing_scheme == "fixed":
             width, height = size_data
+        max_size = 8192		# Avoid Qt 6.4 crash on large resize, bug #10012
+        if width > max_size:
+            width = max_size
+        if height > max_size:
+            height = max_size
         if sizing_scheme not in ["full screen", "maximized"]:
             self.resize(int(width + 0.5), int(height + 0.5))
         # going into full screen / maximized causes events to happen, so delay until we're more

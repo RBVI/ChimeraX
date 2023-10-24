@@ -2,19 +2,24 @@
 
 # === UCSF ChimeraX Copyright ===
 # Copyright 2022 Regents of the University of California. All rights reserved.
-# This software is provided pursuant to the ChimeraX license agreement, which
-# covers academic and commercial uses. For more information, see
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
 # <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
-# This file is part of the ChimeraX library. You can also redistribute and/or
-# modify it under the GNU Lesser General Public License version 2.1 as
-# published by the Free Software Foundation. For more details, see
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
 # <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
 #
-# This file is distributed WITHOUT ANY WARRANTY; without even the implied
-# warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. This notice
-# must be embedded in or attached to all copies, including partial copies, of
-# the software or any revisions or derivations thereof.
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 default_results_directory = '~/Downloads/ChimeraX/AlphaFold/prediction_[N]'
@@ -157,10 +162,7 @@ class AlphaFoldRun(ToolInstance):
             self._results_directory = dir = self._unique_results_directory()
         item.setDownloadDirectory(dir)
         if  filename == 'results.zip':
-            if hasattr(item, 'finished'):
-                item.finished.connect(self._unzip_results)		# Qt 5
-            else:
-                item.isFinishedChanged.connect(self._unzip_results)	# Qt 6
+            item.isFinishedChanged.connect(self._unzip_results)	# Qt 6
         item.accept()
 
     def _unique_results_directory(self):
@@ -237,8 +239,10 @@ class AlphaFoldRun(ToolInstance):
             import zipfile
             with zipfile.ZipFile(path, 'r') as z:
                 z.extractall(dir)
-        self.session.logger.info(f'AlphaFold prediction finished\nResults in {dir}')
-        self._open_prediction()
+            self.session.logger.info(f'AlphaFold prediction finished\nResults in {dir}')
+            self._open_prediction()
+        else:
+            self.session.logger.warning(f'AlphaFold prediction completed but downloading the results failed.  You can try manually downloading the results.zip file by clicking in the AlphaFold Run panel on the folder icon on the left side, then click on the "..." to the right of the results.zip file and choose Download.  It will not ask for a location to save the file, but will show a message in the ChimeraX Log panel if it succeeds or fails.  You can also try using any web browser, go to Google Colab use menu Runtime / Manage Sessions... to rejoin your ChimeraX AlphaFold session and download the results.zip file.')
 
 # ------------------------------------------------------------------------------
 #

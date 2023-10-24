@@ -2,19 +2,24 @@
 
 # === UCSF ChimeraX Copyright ===
 # Copyright 2022 Regents of the University of California. All rights reserved.
-# This software is provided pursuant to the ChimeraX license agreement, which
-# covers academic and commercial uses. For more information, see
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
 # <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
-# This file is part of the ChimeraX library. You can also redistribute and/or
-# modify it under the GNU Lesser General Public License version 2.1 as
-# published by the Free Software Foundation. For more details, see
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
 # <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
 #
-# This file is distributed WITHOUT ANY WARRANTY; without even the implied
-# warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. This notice
-# must be embedded in or attached to all copies, including partial copies, of
-# the software or any revisions or derivations thereof.
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.core.state import State, StateManager
@@ -39,14 +44,16 @@ def python_instances_of_class(inst_class, *, open_only=True):
     instances = f(inst_class)
     if not open_only:
         return instances
+    def open_structure(s):
+        return s.session is not None and s.session.models.have_model(s)
     if issubclass(inst_class, PseudobondGroupData):
-        filt = lambda x: (not x.structure) or x.structure.id
+        filt = lambda x: (not x.structure) or open_structure(x.structure)
     elif hasattr(inst_class, 'structure'):
-        filt = lambda x: x.structure.id
+        filt = lambda x: open_structure(x.structure)
     elif issubclass(inst_class, StructureData):
-        filt = lambda x: x.id
+        filt = lambda x: open_structure(x)
     elif issubclass(inst_class, Pseudobond):
-        filt = lambda x: (not x.group.structure) or x.group.structure.id
+        filt = lambda x: (not x.group.structure) or open_structure(x.group.structure)
     elif issubclass(inst_class, (PseudobondManager, Sequence)):
         filt = lambda x: True
     else:

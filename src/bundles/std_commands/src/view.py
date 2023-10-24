@@ -2,19 +2,24 @@
 
 # === UCSF ChimeraX Copyright ===
 # Copyright 2022 Regents of the University of California. All rights reserved.
-# This software is provided pursuant to the ChimeraX license agreement, which
-# covers academic and commercial uses. For more information, see
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
 # <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
 #
-# This file is part of the ChimeraX library. You can also redistribute and/or
-# modify it under the GNU Lesser General Public License version 2.1 as
-# published by the Free Software Foundation. For more details, see
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
 # <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
 #
-# This file is distributed WITHOUT ANY WARRANTY; without even the implied
-# warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. This notice
-# must be embedded in or attached to all copies, including partial copies, of
-# the software or any revisions or derivations thereof.
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.core.commands import Annotation, AnnotationError
@@ -418,11 +423,11 @@ def _interpolate_clip_planes(v1, v2, f, view):
     p1 = {p.name: p for p in v1.clip_planes}
     p2 = {p.name: p for p in v2.clip_planes}
     pv = {p.name: p for p in view.clip_planes.planes()}
-    from numpy import array_equal
+    from chimerax.geometry import angle
     for name in p1:
         if name in p2 and name in pv:
             p1n, p2n, pvn = p1[name], p2[name], pv[name]
-            if array_equal(p1n.normal, p2n.normal):
+            if angle(p1n.normal, p2n.normal) < 0.01:  # degrees
                 pvn.normal = p1n.normal
                 pvn.plane_point = (1 - f) * p1n.plane_point + f * p2n.plane_point
                 # TODO: Update pv._last_distance

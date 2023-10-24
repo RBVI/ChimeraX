@@ -866,7 +866,10 @@ class MeetingParticipant:
     def _encode_session(self):
         from io import BytesIO
         stream = BytesIO()
+        from chimerax.vive import xr
+        xr.save_camera_in_session(self._session, False)
         self._session.save(stream, version=3, include_maps=True)
+        xr.save_camera_in_session(self._session, True)
         from lz4.frame import compress
         sbytes = compress(stream.getbuffer())
         return sbytes
@@ -881,7 +884,8 @@ class MeetingParticipant:
         from io import BytesIO
         stream = BytesIO(sbytes)
         restore_camera = (ses.main_view.camera.name != 'vr')
-        ses.restore(stream, resize_window = False, restore_camera = restore_camera,
+        ses.restore(stream, resize_window = False,
+                    restore_camera = restore_camera,
                     clear_log = False)
         self._received_scene = True
 
@@ -1791,6 +1795,10 @@ class VRTracking(PointerModels):
                 h._meeting_button_modes = last_mode = {}
             hm = []
             for button, mode in h.button_modes.items():
+                if isinstance(button, str):
+                    button = self._button_name_to_index(button)
+                    if button is None:
+                        continue
                 if mode != last_mode.get(button):
                     last_mode[button] = mode
                     hm.append((button, mode.name))
@@ -1798,6 +1806,19 @@ class VRTracking(PointerModels):
             bu.append(hm)
         return bu if update else None
 
+    def _button_name_to_index(self, name):
+        # Convert OpenXR button name to SteamVR button index
+        # for compatibility.
+        n2i = {
+            'trigger': 33,
+            'touchpad': 32,
+            'thumbstick': 32,
+            'grip': 2,
+            'menu': 1,
+            'A': 7,
+        }
+        return n2i.get(name, None)
+    
     def _gui_updates(self, vr_camera):
         msg = {}
         c = vr_camera
@@ -2065,8 +2086,8 @@ class VRGUIPanel(Drawing):
 
 def _vr_camera(session):
     c = session.main_view.camera
-    from chimerax.vive.vr import SteamVRCamera
-    return c if isinstance(c, SteamVRCamera) else None
+    from chimerax.vive import vr, xr
+    return c if isinstance(c, (vr.SteamVRCamera, xr.OpenXRCamera)) else None
 
 def _place_matrix(p, encoding = 'float32 matrix'):
     '''Encode Place as bytes for sending over socket.'''

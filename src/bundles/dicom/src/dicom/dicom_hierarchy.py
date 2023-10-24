@@ -250,7 +250,15 @@ class Series:
         for f in self.files:
             self.files_by_size[f.size].append(f)
         for file_list in self.files_by_size.values():
-            self.dicom_data.append(DicomData(self.session, self, file_list))
+            if len(file_list) == 1:
+                file = file_list[0]
+                if file.is_multimask:
+                    for i in range(file.number_of_masks):
+                        self.dicom_data.append(DicomData(self.session, self, file_list, mask_number = i))
+                else:
+                    self.dicom_data.append(DicomData(self.session, self, file_list))
+            else:
+                self.dicom_data.append(DicomData(self.session, self, file_list))
         #plane_ids = {s.plane_uids: s for s in self.series}
         #for s in self.series:
         #    ref = s.ref_plane_uids
@@ -401,8 +409,9 @@ class Series:
 
 
 class DicomData:
-    def __init__(self, session, series, files: list['SeriesFile']):
+    def __init__(self, session, series, files: list['SeriesFile'], mask_number: Optional[int] = None):
         self.session = session
+        self.mask_number = mask_number
         self.dicom_series = series
         self.files = files
         self.order_slices()
@@ -428,6 +437,8 @@ class DicomData:
 
         npaths = len(self.paths)  # noqa assigned but not accessed
         self.name = series.name
+        if self.mask_number is not None:
+            self.name += " (Mask %d)" % (self.mask_number + 1)
         rsi = self.dicom_series.rescale_intercept
         if rsi == int(rsi):
             rsi = int(rsi)
@@ -621,30 +632,24 @@ class DicomData:
         if len(self.files) <= 1:
             return
         reference_file = self.files[0]
-        if hasattr(reference_file, "ImagePositionPatient") and reference_file.get("ImagePositionPatient", None):
-            z_values = [f.ImagePositionPatient[2] for f in self.files]
-            if len(set(z_values)) == len(z_values):
-                self.files.sort(key=lambda x: x.ImagePositionPatient[2])
-                return
         if hasattr(reference_file, "SliceLocation") and reference_file.get("SliceLocation", None):
-            z_values = [f.SliceLocation for f in self.files]
-            if len(set(z_values)) == len(z_values):
-                self.files.sort(key=lambda x: (x.get("TriggerTime", 1), x.SliceLocation))
-                return
-        if hasattr(reference_file, "ImageIndex") and reference_file.get("ImageIndex", None):
+            self.files.sort(key=lambda x: (x.get("TriggerTime", 1), x.SliceLocation))
+        elif hasattr(reference_file, "ImageIndex") and reference_file.get("ImageIndex", None):
             self.files.sort(key=lambda x: x.ImageIndex)
-            return
-        if hasattr(reference_file, "AcquisitionNumber") and reference_file.get("AcquisitionNumber", None):
+        elif hasattr(reference_file, "AcquisitionNumber") and reference_file.get("AcquisitionNumber", None):
             self.files.sort(key=lambda x: x.AcquisitionNumber)
-            return
-        self.files.sort(key=lambda x: x.position[2])
+        else:
+            self.files.sort(key=lambda x: x.position[2])
 
     def grid_size(self):
         xsize, ysize = self.columns, self.rows
         files = self.files
         if self.multiframe:
             if len(files) == 1:
-                zsize = self.files[0]._num_frames
+                if self.mask_number is not None:
+                    zsize = self.files[0].mask_length
+                else:
+                    zsize = self.files[0]._num_frames
             else:
                 maxf = max(fi._num_frames for fi in files)
                 raise ValueError(
@@ -652,10 +657,10 @@ class DicomData:
                     % (len(self.paths), maxf, files[0].path)
                     )  # noqa npaths not defined
         else:
-            zsize = len(files) // self.num_times
-
-
-
+            if self.mask_number is not None:
+                zsize = self.files[0].mask_length
+            else:
+                zsize = len(files) // self.num_times
         return xsize, ysize, zsize
 
     @cached_property
@@ -685,12 +690,20 @@ class DicomData:
             if not z_axis:
                 z_axis = cross(x_axis, y_axis)
         else:
-            if hasattr(self.files[0], "frame_postions") and getattr(self.files[0], "frame_positions", None) is not None:
-                z_axis = self._z_spacing_from_files(
-                    files[0].frame_positions[0]
-                    , files[0].frame_positions[-1]
-                    , int(len(files[0].frame_positions) / self.num_times)
-                )
+            if hasattr(self.files[0], "frame_postions") and bool(getattr(self.files[0], "frame_positions", [])):
+                if len(self.files) == 1:
+                    if self.files[0].is_multimask:
+                        z_axis = self._z_spacing_from_files(
+                            files[0].frame_positions[0]
+                            , files[0].frame_positions[-1]
+                            , self.files[0].mask_length
+                        )
+                else:
+                    z_axis = self._z_spacing_from_files(
+                        files[0].frame_positions[0]
+                        , files[0].frame_positions[-1]
+                        , int(len(files[0].frame_positions) / self.num_times)
+                    )
                 if not z_axis:
                     z_axis = cross(x_axis, y_axis)
             else:
@@ -802,9 +815,11 @@ class DicomData:
         return a
 
     def read_frames(self, time=None, channel=None):
-        # TODO: Get the pixel array from the SeriesFiles
-        d = dcmread(self.paths[0])
+        d = self.files[0]
         data = d.pixel_array
+        if self.mask_number is not None:
+            size_of_masks = self.files[0].mask_length
+            data = data[self.mask_number * size_of_masks:(self.mask_number + 1) * size_of_masks, :, :]
         if channel is not None:
             data = data[:, :, :, channel]
         return data
@@ -877,6 +892,27 @@ class SeriesFile:
             return self._time < im._time
 
     @property
+    def is_multimask(self):
+        if self.modality != "SEG":
+            return False
+        if self._num_frames == 1:
+            return False
+        if hasattr(self.data, 'ReferencedSeriesSequence'):
+            if len(self.data.ReferencedSeriesSequence[0].ReferencedInstanceSequence) == 1:
+                return False
+            if len(self.data.ReferencedSeriesSequence[0].ReferencedInstanceSequence) < self._num_frames:
+                return True
+        return False
+
+    @property
+    def mask_length(self):
+        return len(self.data.ReferencedSeriesSequence[0].ReferencedInstanceSequence)
+
+    @property
+    def number_of_masks(self):
+        return self._num_frames // self.mask_length
+
+    @property
     def pixel_spacing(self):
         if self._num_frames is not None:
             if x := self._sequence_elements(
@@ -919,9 +955,7 @@ class SeriesFile:
 
     @property
     def trigger_time(self):
-        time = getattr(self.data, 'TriggerTime', None)
-        time = time or getattr(self.data, 'ContentTime', None)
-        return time
+        return getattr(self.data, 'TriggerTime', None)
 
     @property
     def slice_location(self):
@@ -931,6 +965,10 @@ class SeriesFile:
     def multiframe(self):
         nf = self._num_frames
         return nf is not None and nf > 1
+
+    @property
+    def modality(self):
+        return self.data.get("Modality", None)
 
     def __getattr__(self, item):
         # For any field that we don't override just return the pydicom attr

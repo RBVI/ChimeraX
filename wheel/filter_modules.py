@@ -20,6 +20,7 @@ module_blacklist = set([
     , "chimerax.webservices" # needs cxservices
     , "chimerax.blastprotein" # needs webservices
     , "chimerax.build_structure" # needs Qt
+    , "chimerax.bug_reporter" # imports a GUI / not needed
     , "chimerax.dicom" # tries to import its .ui submodule in __init__
     , "chimerax.nifti" # tries to import dicom
     , "chimerax.nrrd" # tries to import dicom
