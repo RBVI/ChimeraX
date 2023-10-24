@@ -392,9 +392,19 @@ def vr_camera(session, create = True):
     c = getattr(session, '_openxr_camera', None)
     if c is None and create:
         session._openxr_camera = c = OpenXRCamera(session)
-        session.add_state_manager('_openxr_camera', c)	# For session saving
+        save_camera_in_session(session)
     return c
-
+            
+# -----------------------------------------------------------------------------
+#
+def save_camera_in_session(session, save = True):
+    c = getattr(session, '_openxr_camera', None)
+    if c:
+        if save:
+            session.add_state_manager('_openxr_camera', c)
+        else:
+            session.remove_state_manager('_openxr_camera')
+            
 # -----------------------------------------------------------------------------
 #
 def stop_vr(session, simplify_graphics = True):
@@ -1055,7 +1065,7 @@ class OpenXRCamera(Camera, StateManager):
                 except Exception as e:
                     # Failed to start VR.
                     session.logger.info(str(e))
-                    from chimerax.core.triggerset import DEREGISTER
+                from chimerax.core.triggerset import DEREGISTER
                 return DEREGISTER
             session.triggers.add_handler('end restore session', start_vr)
         return c

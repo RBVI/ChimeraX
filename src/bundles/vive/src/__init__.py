@@ -44,6 +44,9 @@ class _VRAPI(BundleAPI):
         if class_name == 'SteamVRCamera':
             from . import vr
             return vr.SteamVRCamera
+        if class_name == 'OpenXRCamera':
+            from . import xr
+            return xr.OpenXRCamera
         return None
 
 bundle_api = _VRAPI()
