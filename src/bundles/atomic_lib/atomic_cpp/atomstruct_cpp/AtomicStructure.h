@@ -33,19 +33,19 @@ namespace atomstruct {
 
 class ATOMSTRUCT_IMEX AtomicStructure: public Structure {
     friend class Atom; // for IDATM stuff and structure categories
-    friend class Bond; // for checking if make_chains() has been run yet, struct categories
+    friend class Bond; // struct categories
     friend class Residue; // for _polymers_computed
     friend class StructureSeq; // for remove_chain()
 private:
     void  _compute_atom_types();
     void  _compute_structure_cats() const;
+    void  _make_chains() const;
 public:
     AtomicStructure(PyObject* logger = nullptr) : Structure(logger) {}
 
     void  compute_secondary_structure(float energy_cutoff = -0.5, int min_helix_length = 3,
         int min_strand_length = 3, bool = false, CompSSInfo* = nullptr);
     AtomicStructure*  copy() const;
-    void  make_chains() const;
     void  normalize_ss_ids();
     std::vector<std::pair<Chain::Residues,PolymerType>>  polymers(
         PolymerMissingStructure missing_structure_treatment = PMS_ALWAYS_CONNECTS,
