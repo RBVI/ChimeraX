@@ -469,7 +469,7 @@ but compression is recognized automatically when the file is read.
 [&nbsp;<b>format</b>&nbsp;&nbsp;<a href="#mapformats"><i>format-name</i></a>&nbsp;]
 [&nbsp;<b>models</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
 [&nbsp;<b>step</b>&nbsp;&nbsp;<i>N</i>&nbsp;|&nbsp;<i>Nx,Ny,Nz</i>&nbsp;]
-[&nbsp;<b>region</b>&nbsp;&nbsp;all&nbsp;|&nbsp;<i>name</i>&nbsp;|&nbsp;<i>i1,j1,k1,i2,j2,k2</i>&nbsp;]
+[&nbsp;<b>region</b>&nbsp;&nbsp;all&nbsp;|&nbsp;<i>i1,j1,k1,i2,j2,k2</i>&nbsp;]
 [&nbsp;<b>maskZone</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>valueType</b>&nbsp;&nbsp;<i>value-type</i>&nbsp;]
 &nbsp;<a href="#chimap-options"><i>chimera-map-options</i></a>
@@ -486,6 +486,11 @@ Older MRC-reading programs or programs expecting CCP4 format will read such
 files successfully but may not align the data correctly with other data sets.
 See also: <a href="segger.html#exportmask"><b>segger&nbsp;exportmask</b></a>,
 <a href="#afterfitting">saving maps after fitting</a>
+</p><p>
+If the map is cropped, the current
+<a href="../tools/volumeviewer.html#region">display region</a>
+will be written unless different extents are specified
+with <a href="#region"><b>region</b></a>.
 </p><p>
 Only the <a name="chimap">Chimera map</a> (<b>cmap</b>) format 
 can accommodate multiple data sets in a single file, 
@@ -542,18 +547,17 @@ used along all three axes; if three numbers are supplied
 are used along the X, Y, and Z axes, respectively.
 </blockquote>
 <blockquote>
-<b>region</b>&nbsp;&nbsp;all&nbsp;|&nbsp;<i>name</i>&nbsp;|&nbsp;<i>i1,j1,k1,i2,j2,k2</i>
+<a name="region"></a>
+<b>region</b>&nbsp;&nbsp;all&nbsp;|&nbsp;<i>i1,j1,k1,i2,j2,k2</i>
 <br>Whether to write
 the full extents of the data (<b>all</b>, default) or a specified subregion.
-A subregion can be specified by <i>name</i>
-(previously <a href="volume.html#dimensions">assigned</a> with 
-<a href="volume.html"><b>volume</b></a>) or by grid indices
+A subregion can be specified by grid indices
 <i>i1&ndash;i2</i> along the X axis,
 <i>j1&ndash;j2</i> along the Y axis, and
 <i>k1&ndash;k2</i> along the Z axis.
 Grid indices must be integers separated by commas but not spaces.
 If the <b>region</b> option is not supplied, the currently displayed
-subregion will be written.
+<a href="../tools/volumeviewer.html#region">subregion</a> will be written.
 In this context, a zone is not considered a subregion.
 </blockquote>
 <blockquote>
@@ -1146,5 +1150,5 @@ Write the specified roughness factor <i>f<sub>r</sub></i>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-September 2023</address>
+October 2023</address>
 </body></html>
