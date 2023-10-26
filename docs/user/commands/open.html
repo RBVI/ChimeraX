@@ -712,7 +712,8 @@ target="_blank">Wavefront OBJ</a></td>
 <a href="#formats" class="nounder"><b>&larr;</b></a>
 <b>Sequences</b> (associated tool: 
 <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>,
-but see the <a href="#viewer"><b>viewer</b></a> option)</td>
+but see the <a href="#viewer"><b>viewer</b></a> option;
+see also <a href="#ident"><b>ident</b></a>)</td>
 </tr><tr>
 <td align="center">Clustal ALN</td>
 <td align="center"><b>aln</b></td>
@@ -1240,6 +1241,18 @@ the model name. The name and/or number of an existing (already open) model
 can be changed with the <a href="rename.html"><b>rename</b></a> command.
 </blockquote>
 <blockquote>
+<a name="ident"></a>
+<b>ident</b>&nbsp;&nbsp;<i>alignment-ID</i>
+<br>
+When opening <a href="#sequence">sequence data</a>, assign the specified text
+as the sequence alignment identifier. If this option is not used,
+an identifier will be generated automatically. This identifier is used to 
+<a href="seqspec.html">specify</a> the sequence alignment in other commands
+and appears in the title bar of
+the <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a> window,
+if shown. See also the <a href="#viewer"><b>viewer</b></a> option.
+</blockquote>
+<blockquote>
 <a name="log"></a>
 <b>log</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
 <br>
@@ -1381,6 +1394,7 @@ See also the <a href="transparency.html"><b>transparency</b></a> command.
 Whether to show the 
 <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>
 when opening <a href="#sequence">sequence data</a>.
+See also the <a href="#ident"><b>ident</b></a> option.
 <!-- 
 also has option seqview = sv = view, meaning the Sequence Viewer,
 which will be relevant when an option is added for ProfileGrid instead.

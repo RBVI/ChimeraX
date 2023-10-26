@@ -558,7 +558,7 @@ def cmd_usage_open(session):
     arg_syntax.append("%s: %s" % (arg_fmt % "names", get_name(OpenFileNamesArg)))
     for kw_name, arg in [('format', DynamicEnum(lambda ses=session: format_names(ses))),
             ('fromDatabase', DynamicEnum(lambda ses=session: ses.open_command.database_names)),
-            ('name', StringArg)]:
+            ('name', StringArg), ('id', ModelIdArg)]:
         if isinstance(arg, type):
             # class, not instance
             syntax += kw_fmt % (kw_name, get_name(arg))

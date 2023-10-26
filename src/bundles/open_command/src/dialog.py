@@ -110,7 +110,7 @@ else:
             run(session, cmd)
 
     class FetchDialog(QDialog):
-        help = None
+        help = "help:user/fetch.html"
 
         def __init__(self, session, *, debug=False):
             from Qt.QtWidgets import QAbstractItemView, QVBoxLayout, QLabel, QDialogButtonBox as qbbox
