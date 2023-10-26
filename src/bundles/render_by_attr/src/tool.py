@@ -13,6 +13,7 @@
 
 from chimerax.core.tools import ToolInstance
 from chimerax.core.errors import UserError
+from chimerax.atomic import Atom
 
 from Qt.QtCore import Qt
 
@@ -21,6 +22,9 @@ class RenderByAttrTool(ToolInstance):
     help = "help:user/tools/render.html"
 
     NO_ATTR_TEXT = "choose attr"
+
+    RENDER_COLORS = "Colors"
+    RENDER_RADII = "Radii"
 
     def __init__(self, session, tool_name):
         ToolInstance.__init__(self, session, tool_name)
@@ -88,16 +92,20 @@ class RenderByAttrTool(ToolInstance):
         render_tab_layout.setSpacing(1)
         self.render_histogram = rh = MarkedHistogram(min_label=True, max_label=True, status_line=tw.status)
         render_tab_layout.addWidget(rh)
+        self.render_markers = {}
         self.render_color_markers = rh.add_markers(activate=True, coord_type='relative',
             move_callback=self._render_marker_moved,
             color_change_callback=lambda mrk, cb=self._update_palettes: cb())
         self.render_color_markers.extend([((0.0, 0.0), "blue"), ((0.5, 0.0), "white"), ((1.0, 0.0), "red")])
         self.render_color_markers.add_del_callback = self._update_palettes
+        self.render_markers[self.RENDER_COLORS] = self.render_color_markers
         self.render_radius_markers = rh.add_markers(new_color='slate gray', activate=False,
             coord_type='relative')
         self.render_radius_markers.extend([((0.0, 0.0), None), ((1.0, 0.0), None)])
+        self.render_markers[self.RENDER_RADII] = self.render_radius_markers
         self.render_type_widget = QTabWidget()
         self.render_type_widget.setTabBarAutoHide(True)
+        self.render_type_widget.currentChanged.connect(self._render_mode_changed)
         render_tab_layout.addWidget(self.render_type_widget)
 
         color_render_tab = QWidget()
@@ -151,7 +159,24 @@ class RenderByAttrTool(ToolInstance):
         key_layout.addWidget(QLabel(" corresponding color key"), alignment=Qt.AlignLeft)
         key_layout.addStretch(1)
         crt_layout.addLayout(key_layout)
-        self.render_type_widget.addTab(color_render_tab, "Colors")
+        self.render_type_widget.addTab(color_render_tab, self.RENDER_COLORS)
+
+        from chimerax.ui.options import OptionsPanel, SymbolicEnumOption, BooleanOption, FloatOption
+        radii_render_tab = QWidget()
+        radii_render_tab_layout = rrt_layout = QVBoxLayout()
+        radii_render_tab.setLayout(radii_render_tab_layout)
+        self.radii_options = OptionsPanel(sorting=False, scrolled=False)
+        self.radii_style_option = SymbolicEnumOption("Atom style", Atom.SPHERE_STYLE, None,
+            values=[Atom.SPHERE_STYLE, Atom.BALL_STYLE], labels=["sphere", "ball"])
+        self.radii_options.add_option(self.radii_style_option)
+        self.radii_affect_nv = BooleanOption("Affect no-value atoms", False, None)
+        self.radii_options.add_option(self.radii_affect_nv)
+        self.radii_nv_radius = FloatOption("No-value radius", 0.5, None, min="positive")
+        self.radii_options.add_option(self.radii_nv_radius)
+        rrt_layout.addWidget(self.radii_options, alignment=Qt.AlignCenter)
+        self.radii_na = QLabel("Choose an atom attribute")
+        rrt_layout.addWidget(self.radii_na, alignment=Qt.AlignCenter)
+        self.render_type_widget.addTab(radii_render_tab, self.RENDER_RADII)
 
         self.sel_restrict = QCheckBox("Restrict to selection")
         self.sel_restrict.setChecked(False)
@@ -280,8 +305,8 @@ class RenderByAttrTool(ToolInstance):
             else:
                 self._update_histogram(attr_name)
             self._update_palettes()
+        self._update_radii_tab()
         self.attr_menu_button.setEnabled(enabled)
-
 
     def _new_classes(self):
         self._update_target_menu()
@@ -304,6 +329,9 @@ class RenderByAttrTool(ToolInstance):
     def _render_marker_moved(self, move_info):
         if move_info == "end":
             self._update_palettes()
+
+    def _render_mode_changed(self, tab_index):
+        self.render_histogram.activate(self.render_markers[self.render_type_widget.tabText(tab_index)])
 
     def _reverse_colors(self):
         if len(self.render_color_markers) < 2:
@@ -343,6 +371,8 @@ class RenderByAttrTool(ToolInstance):
                 # number of bins based on histogram pixel width...
                 self.render_histogram.data_source = (min_val, max_val, lambda num_bins:
                     numpy.histogram(values, bins=num_bins, range=(min_val, max_val), density=False)[0])
+        self.radii_options.set_option_shown(self.radii_affect_nv, any_None)
+        self.radii_options.set_option_shown(self.radii_nv_radius, any_None)
 
     def _update_palettes(self):
         if type(self.render_histogram.data_source) == str:
@@ -352,6 +382,11 @@ class RenderByAttrTool(ToolInstance):
         self.reverse_colors_button.setEnabled(len(rgbas) > 1)
         self.key_button.setEnabled(len(rgbas) > 1)
         self.palette_chooser.rgbas = rgbas
+
+    def _update_radii_tab(self):
+        is_atom_target = self._cur_attr_info().class_object == Atom
+        self.radii_options.setHidden(not is_atom_target)
+        self.radii_na.setHidden(is_atom_target)
 
     def _update_target_menu(self):
         from .manager import get_manager
