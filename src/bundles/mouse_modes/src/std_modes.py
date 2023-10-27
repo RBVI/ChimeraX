@@ -865,22 +865,42 @@ class MoveToCenterMode(MouseMode):
     def mouse_down(self, event):
         MouseMode.mouse_down(self, event)
         xyz = _picked_xyz(event, self.session)
-        if xyz is None:
-            return
+        if xyz is not None:
+            _move_to_center(self.session, xyz, steps=self.frames)
 
-        # Move camera so it is centered on picked point.
-        c = self.session.main_view.camera
-        cx,cy,cz = c.position.inverse() * xyz
-        steps = self.frames
-        from chimerax.core.commands import Axis
-        mxy = (-cx/steps, -cy/steps, 0)
-        axis = Axis(coords = mxy)
-        from chimerax.std_commands.move import move
-        move(self.session, axis, frames = steps)
+def _move_to_center(session, xyz, steps = 10):
+    '''Move camera so it is centered on picked point.'''
+    c = session.main_view.camera
+    cx,cy,cz = c.position.inverse() * xyz
+    from chimerax.core.commands import Axis
+    mxy = (-cx/steps, -cy/steps, 0)
+    axis = Axis(coords = mxy)
+    from chimerax.std_commands.move import move
+    move(session, axis, frames = steps)
 
-        # Set center of rotation
-        from chimerax.std_commands import cofr
-        cofr.cofr(self.session, pivot=xyz)
+    # Set center of rotation
+    from chimerax.std_commands import cofr
+    cofr.cofr(session, pivot=xyz)
+
+class MoveToCenterOrTranslateMode(MoveMouseMode):
+    '''
+    Clicking on an atom, bond, ribbon, pseudobond or volume surface
+    centers the view on that point and sets the center of rotation at that position
+    on mouse release if no drag has been done.  Drag translates models.
+    '''
+    name = 'center or translate'
+    mouse_action = 'translate'
+    frames = 10		# Animate motion over this number of frames
+    min_drag = 5	# Pixels.  Smaller drags do a centering.
+
+    def mouse_up(self, event):
+        dx,dy = self.mouse_down_position
+        MoveMouseMode.mouse_up(self, event)
+        ux,uy = event.position()
+        if abs(dx-ux) < self.min_drag or abs(dy-uy) < self.min_drag:
+            xyz = _picked_xyz(event, self.session)
+            if xyz is not None:
+                _move_to_center(self.session, xyz, steps=self.frames)
 
 class NullMouseMode(MouseMode):
     '''Used to assign no mode to a mouse button.'''
@@ -1161,6 +1181,7 @@ def standard_mouse_mode_classes():
         ObjectIdMouseMode,
         CenterOfRotationMode,
         MoveToCenterMode,
+        MoveToCenterOrTranslateMode,
         SwipeAsScrollMouseMode,
         NullMouseMode,
     ]
