@@ -294,15 +294,17 @@ AtomicStructure::normalize_ss_ids()
 }
 
 void
-AtomicStructure::make_chains() const
+AtomicStructure::_make_chains() const
 {
-    if (_chains != nullptr) {
-        for (auto c: *_chains)
-            delete c;
-        delete _chains;
+    std::set<ChainID> pre_existing;
+    if (_chains == nullptr) {
+        _chains = new Chains();
+    } else {
+        for (auto chain: *_chains)
+            pre_existing.insert(chain->chain_id());
     }
+    _chains_made = true; // prevent resursion
 
-    _chains = new Chains();
     auto polys = polymers();
 
     // In an ideal world there would be a one-to-one correspondence between
@@ -321,6 +323,8 @@ AtomicStructure::make_chains() const
     for (auto key_polys: id_to_polys) {
         auto id_type = key_polys.first;
         auto chain_id = id_type.first;
+        if (pre_existing.find(chain_id) != pre_existing.end())
+            continue;
         auto pt_type = id_type.second;
         auto& chain_polys = key_polys.second;
         std::vector<Residue*> res_list;

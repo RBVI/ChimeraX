@@ -883,10 +883,10 @@ Structure::_delete_atoms(const std::set<Atom*>& atoms, bool verify)
 void
 Structure::_form_chain_check(Atom* a1, Atom* a2, Bond* b)
 {
-    // If initial construction is over (i.e. Python instance exists) and make_chains()
-    // has been called (i.e. _chains is not null), then need to check if new bond
+    // If initial construction is over (i.e. Python instance exists) and _make_chains()
+    // has been called (i.e. _chain_made is true), then need to check if new bond
     // or missing-structure pseudobond creates a chain or coalesces chain fragments
-    if (_chains == nullptr)
+    if (!_chains_made)
         return;
     auto inst = py_instance(false);
     Py_DECREF(inst);
@@ -1134,16 +1134,11 @@ Structure::find_residue(const ChainID& chain_id, int num, char insert, ResName& 
 }
 
 void
-Structure::make_chains() const
+Structure::_make_chains() const
 {
-    // since Graphs don't have sequences, they don't have chains
-    if (_chains != nullptr) {
-        for (auto c: *_chains)
-            delete c;
-        delete _chains;
-    }
-
+    // since non-atomic Structures don't have sequences, they don't have chains
     _chains = new Chains();
+    _chains_made = true;
 }
 
 Atom *

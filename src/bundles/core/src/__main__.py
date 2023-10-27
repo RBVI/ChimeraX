@@ -806,8 +806,8 @@ def init(argv, event_loop=True):
         import runpy
         import warnings
         exit = SystemExit(os.EX_OK)
-        from chimerax.core.python_utils import chimerax_user_base
-        with warnings.catch_warnings(), chimerax_user_base():
+        from chimerax.core.python_utils import chimerax_environment
+        with warnings.catch_warnings(), chimerax_environment():
             warnings.filterwarnings("ignore", category=BytesWarning)
             global_dict = {
                 'session': sess
