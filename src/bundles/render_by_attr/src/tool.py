@@ -32,7 +32,8 @@ class RenderByAttrTool(ToolInstance):
         self.tool_window = tw = MainToolWindow(self, statusbar=True)
         parent = tw.ui_area
         from Qt.QtWidgets import QVBoxLayout, QHBoxLayout, QDialogButtonBox, QPushButton, QMenu, QLabel
-        from Qt.QtWidgets import QTabWidget, QWidget, QCheckBox
+        from Qt.QtWidgets import QTabWidget, QWidget, QCheckBox, QLineEdit
+        from Qt.QtGui import QDoubleValidator
         from Qt.QtCore import Qt
         overall_layout = QVBoxLayout()
         overall_layout.setContentsMargins(3,0,3,0)
@@ -105,7 +106,6 @@ class RenderByAttrTool(ToolInstance):
         self.render_markers[self.RENDER_RADII] = self.render_radius_markers
         self.render_type_widget = QTabWidget()
         self.render_type_widget.setTabBarAutoHide(True)
-        self.render_type_widget.currentChanged.connect(self._render_mode_changed)
         render_tab_layout.addWidget(self.render_type_widget)
 
         color_render_tab = QWidget()
@@ -161,27 +161,29 @@ class RenderByAttrTool(ToolInstance):
         crt_layout.addLayout(key_layout)
         self.render_type_widget.addTab(color_render_tab, self.RENDER_COLORS)
 
-        from chimerax.ui.options import OptionsPanel, SymbolicEnumOption, BooleanOption, FloatOption
-        radii_render_tab = QWidget()
-        radii_render_tab_layout = rrt_layout = QVBoxLayout()
-        radii_render_tab.setLayout(radii_render_tab_layout)
-        self.radii_options = OptionsPanel(sorting=False, scrolled=False)
-        self.radii_style_option = SymbolicEnumOption("Atom style", Atom.SPHERE_STYLE, None,
-            values=[Atom.SPHERE_STYLE, Atom.BALL_STYLE], labels=["sphere", "ball"])
+        from chimerax.ui.options import OptionsPanel, EnumOption, BooleanOption, FloatOption
+        radii_render_tab = self.radii_options = OptionsPanel(sorting=False, scrolled=False)
+        from chimerax.std_commands.size import AtomRadiiStyleArg as radii_arg
+        self.radii_style_option = EnumOption("Atom style", radii_arg.values[1], None,
+            values=radii_arg.values)
         self.radii_options.add_option(self.radii_style_option)
         self.radii_affect_nv = BooleanOption("Affect no-value atoms", False, None)
         self.radii_options.add_option(self.radii_affect_nv)
         self.radii_nv_radius = FloatOption("No-value radius", 0.5, None, min="positive")
         self.radii_options.add_option(self.radii_nv_radius)
-        rrt_layout.addWidget(self.radii_options, alignment=Qt.AlignCenter)
-        self.radii_na = QLabel("Choose an atom attribute")
-        rrt_layout.addWidget(self.radii_na, alignment=Qt.AlignCenter)
+        self.radius_value_entry = QLineEdit()
+        self.radius_value_entry.setValidator(QDoubleValidator())
+        self.radius_value_entry.setHidden(True)
+        rh.add_custom_widget(self.radius_value_entry, left_side=False)
         self.render_type_widget.addTab(radii_render_tab, self.RENDER_RADII)
 
         self.sel_restrict = QCheckBox("Restrict to selection")
         self.sel_restrict.setChecked(False)
         render_tab_layout.addWidget(self.sel_restrict, alignment=Qt.AlignCenter)
         self.mode_widget.addTab(render_tab, "Render")
+
+        # wait until tab contents are completely filled before connecting this
+        self.render_type_widget.currentChanged.connect(self._render_mode_changed)
 
         sel_tab = QWidget()
         sel_layout = QVBoxLayout()
@@ -305,7 +307,6 @@ class RenderByAttrTool(ToolInstance):
             else:
                 self._update_histogram(attr_name)
             self._update_palettes()
-        self._update_radii_tab()
         self.attr_menu_button.setEnabled(enabled)
 
     def _new_classes(self):
@@ -331,7 +332,11 @@ class RenderByAttrTool(ToolInstance):
             self._update_palettes()
 
     def _render_mode_changed(self, tab_index):
-        self.render_histogram.activate(self.render_markers[self.render_type_widget.tabText(tab_index)])
+        render_type = self.render_type_widget.tabText(tab_index)
+        self.render_histogram.activate(self.render_markers[render_type])
+        render_radii = render_type == self.RENDER_RADII
+        self.render_histogram.color_button = not render_radii
+        self.radius_value_entry.setHidden(not render_radii)
 
     def _reverse_colors(self):
         if len(self.render_color_markers) < 2:
@@ -382,11 +387,6 @@ class RenderByAttrTool(ToolInstance):
         self.reverse_colors_button.setEnabled(len(rgbas) > 1)
         self.key_button.setEnabled(len(rgbas) > 1)
         self.palette_chooser.rgbas = rgbas
-
-    def _update_radii_tab(self):
-        is_atom_target = self._cur_attr_info().class_object == Atom
-        self.radii_options.setHidden(not is_atom_target)
-        self.radii_na.setHidden(is_atom_target)
 
     def _update_target_menu(self):
         from .manager import get_manager

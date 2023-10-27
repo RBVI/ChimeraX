@@ -14,7 +14,7 @@
 from Qt.QtWidgets import QWidget, QLabel, QStackedWidget, QGraphicsView, QGraphicsScene, QFrame
 from Qt.QtWidgets import QVBoxLayout, QHBoxLayout, QLineEdit
 from Qt.QtCore import QSize, Qt, QTimer, QRectF
-from Qt.QtGui import QBrush, QColor, QPen
+from Qt.QtGui import QBrush, QColor, QPen, QDoubleValidator
 from chimerax.mouse_modes import mod_key_info
 from chimerax.core.colors import Color
 
@@ -225,6 +225,7 @@ class MarkedHistogram(QWidget):
 
         # Create value widget
         self._value_entry = QLineEdit()
+        self._value_entry.setValidator(QDoubleValidator())
         self._value_entry.setEnabled(False)
         self._value_entry.returnPressed.connect(self._set_value_cb)
         self.value_width = value_width
@@ -291,7 +292,7 @@ class MarkedHistogram(QWidget):
                 self._prev_marker = None
 
     def add_custom_widget(self, widget, left_side=True):
-        self._widget_layout.addWidget(0 if left_side else -1, widget)
+        self._widget_layout.insertWidget(0 if left_side else -1, widget)
 
     def add_markers(self, activate=True, **kw):
         """Create and return a new set of markers.

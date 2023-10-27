@@ -152,8 +152,8 @@ def size(session, objects=None, atom_radius=None,
 
 # -----------------------------------------------------------------------------
 #
+from chimerax.core.commands import register, CmdDesc, ObjectsArg, EmptyArg, EnumOf, Or, FloatOrDeltaArg
 def register_command(logger):
-    from chimerax.core.commands import register, CmdDesc, ObjectsArg, EmptyArg, EnumOf, Or, FloatOrDeltaArg
     desc = CmdDesc(required = [('objects', Or(ObjectsArg, EmptyArg))],
                    keyword = [('atom_radius', Or(EnumOf(['default']), FloatOrDeltaArg)),
                               ('stick_radius', FloatOrDeltaArg),
@@ -161,3 +161,6 @@ def register_command(logger):
                               ('ball_scale', FloatOrDeltaArg)],
                    synopsis='change atom and bond sizes')
     register('size', desc, size, logger=logger)
+
+AtomRadiiStyleArg = EnumOf(['sphere', 'ball'])
+#TODO: revise tool to use same default as command
