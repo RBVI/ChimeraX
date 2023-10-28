@@ -32,21 +32,57 @@ def chimerax_python_executable():
 
 
 @contextmanager
-def chimerax_user_base():
-    """Make pip install packages to ChimeraX's customary PYTHONUSERBASE.
+def chimerax_environment():
+    """Setup environment for Python to match ChimeraX setup
 
-    Without this context manager, Python will install packages in the traditional
-    user directory at, on macOS, ~/Library/Python/(version)/lib/python/site-packages
-    instead of our location at ~/Library/Application Support/ChimeraX/(cx_version)
+    In particular, set PYTHONUSERBASE so pip will install/uninstall packages
+    in the ChimeraX "user" location.  Also remove from environment any
+    variables that would alter ChimeraX's behaviour.
     """
     from chimerax import app_dirs
-    old_pythonuserbase = os.environ.get('PYTHONUSERBASE', None)
-    os.environ['PYTHONUSERBASE'] = app_dirs.user_data_dir
+    PROTECT = {
+        'PYTHONDONTWRITEBYTECODE': None,
+        # 'PYTHONDEBUG': None,
+        # 'PYTHONINSPECT': None,
+        # 'PYTHONOPTIMIZE': None,
+        'PYTHONNOUSERSITE': None,
+        # 'PYTHONUNBUFFERED': None,
+        # 'PYTHONVERBOSE': None,
+        # 'PYTHONWARNINGS': None,
+        'PYTHONSTARTUP': None,
+        'PYTHONPATH': None,
+        'PYTHONHOME': None,
+        'PYTHONPLATLIBDIR': None,
+        'PYTHONCASEOK': None,
+        'PYTHONUTF8': None,
+        'PYTHONIOENCODING': None,
+        'PYTHONFAULTHANDLER': None,
+        # 'PYTHONHASHSEED': None,
+        'PYTHONINTMAXSTRDIGITS': None,
+        # 'PYTHONMALLOC': None,
+        'PYTHONCOERCECLOCALE': None,
+        # 'PYTHONBREAKPOINT': None,
+        # 'PYTHONDEVMODE': None,
+        'PYTHONPYCACHEPREFIX': None,
+        'PYTHONWARNDEFAULTENCODING': None,
+        'PYTHONUSERBASE': app_dirs.user_data_dir,
+    }
+    old_environ = {}
+    for var, new_value in PROTECT.items():
+        old_value = os.environ.get(var, None)
+        if old_value is None and new_value is None:
+            continue
+        old_environ[var] = old_value
+        if new_value is None:
+            del os.environ[var]
+        else:
+            os.environ[var] = new_value
     yield
-    if old_pythonuserbase is None:
-        del os.environ['PYTHONUSERBASE']
-    else:
-        os.environ['PYTHONUSERBASE'] = old_pythonuserbase
+    for var, value in old_environ.items():
+        if value is None:
+            del os.environ[var]
+        else:
+            os.environ[var] = value
 
 
 def is_link(path):
@@ -83,10 +119,9 @@ def run_pip(command):
     # the user site directory is the ChimeraX application location.
     import subprocess
     prog = chimerax_python_executable()
-    pip_cmd = [prog] + subprocess._args_from_interpreter_flags() + ["-m", "pip"]
+    pip_cmd = [prog] + ["-m", "pip"]
     # pip_cmd = [sys.executable, "-m", "pip"]
-    from chimerax.core.python_utils import chimerax_user_base
-    with chimerax_user_base():
+    with chimerax_environment():
         cp = subprocess.run(pip_cmd + command, capture_output=True)
     return cp
 

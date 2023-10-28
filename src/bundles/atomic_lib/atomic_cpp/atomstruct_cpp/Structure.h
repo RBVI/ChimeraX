@@ -146,6 +146,7 @@ protected:
     float  _ball_scale = 0.25;
     Bonds  _bonds;
     mutable Chains*  _chains;
+    mutable bool  _chains_made = false;
     ChangeTracker*  _change_tracker;
     CoordSets  _coord_sets;
     bool  _display = true;
@@ -202,6 +203,7 @@ protected:
             std::set<Atom*>& left_missing_structure_atoms,
             std::set<Atom*>& right_missing_structure_atoms,
             const std::set<Atom*>* deleted_atoms = nullptr) const;
+    virtual void  _make_chains() const;
     Bond*  _new_bond(Atom* a1, Atom* a2, bool bond_only);
     Chain*  _new_chain(const ChainID& chain_id, PolymerType pt = PT_NONE) const {
         auto chain = new Chain(chain_id, const_cast<Structure*>(this), pt);
@@ -243,7 +245,7 @@ public:
     void  bonded_groups(std::vector<std::vector<Atom*>>* groups,
         bool consider_missing_structure) const;
     const Bonds&  bonds() const { return _bonds; }
-    const Chains&  chains() const { if (_chains == nullptr) make_chains(); return *_chains; }
+    const Chains&  chains() const { if (!_chains_made) _make_chains(); return *_chains; }
     void  change_chain_ids(const std::vector<StructureSeq*>, const std::vector<ChainID>,
         bool /*non-polymeric*/=true);
     ChangeTracker*  change_tracker() { return _change_tracker; }
@@ -276,7 +278,6 @@ public:
     bool  is_traj;
     PyObject*  logger() const { return _logger; }
     bool  lower_case_chains;
-    virtual void  make_chains() const;
     std::map<std::string, std::vector<std::string>> metadata;
     Atom*  new_atom(const char* name, const Element& e);
     Bond*  new_bond(Atom* a1, Atom* a2) { return _new_bond(a1, a2, false); }

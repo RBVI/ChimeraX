@@ -1101,6 +1101,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         self.tools_menu = mb.addMenu("&Tools")
         self.tools_menu.setToolTipsVisible(True)
         self.update_tools_menu(session)
+        self.tools_menu.aboutToShow.connect(self._update_running_tools)
 
         self._settings_ui_widget = None
         self._accumulated_settings_options = []
@@ -1682,8 +1683,8 @@ class MainWindow(QMainWindow, PlainTextLog):
         self._checkbutton_tools = {}
         from Qt.QtWidgets import QMenu
         from Qt.QtGui import QAction
-        tools_menu = QMenu("&Tools", self.menuBar())
-        tools_menu.setToolTipsVisible(True)
+        tools_menu = self.tools_menu
+        tools_menu.clear()
         categories = {}
         self._tools_cache = set()
         for bi in session.toolshed.bundle_info(session.logger):
@@ -1726,12 +1727,6 @@ class MainWindow(QMainWindow, PlainTextLog):
         tools_menu.addAction(more_tools)
         # running tools will go below this...
         self._tools_menu_separator = tools_menu.addSection("Running Tools")
-        tools_menu.aboutToShow.connect(self._update_running_tools)
-        mb = self.menuBar()
-        old_action = self.tools_menu.menuAction()
-        mb.insertMenu(old_action, tools_menu)
-        mb.removeAction(old_action)
-        self.tools_menu = tools_menu
 
     def _update_running_tools(self, *args):
         # clear out old running tools

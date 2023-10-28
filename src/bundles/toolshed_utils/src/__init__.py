@@ -261,11 +261,12 @@ def _install_bundle(toolshed, bundles, logger, *, per_user=True, reinstall=False
         logger.error("You do not have permission to install %s for %s" %
                      (bundle_name, who))
         return
-    installed = re.findall(r"^\s*Successfully installed.*$", results, re.M)
-    if installed:
-        logger.info('\n'.join(installed))
-    else:
-        logger.info('No bundles were installed')
+    # `result` is empty giving -qq, depend on toolshed.reload to report installation
+    # installed = re.findall(r"^\s*Successfully installed.*$", results, re.M)
+    # if installed:
+    #    logger.info('\n'.join(installed))
+    # else:
+    #     logger.info('No bundles were installed')
     toolshed.set_install_timestamp(per_user)
     changes = toolshed.reload(logger, rebuild_cache=True, report=True)
 

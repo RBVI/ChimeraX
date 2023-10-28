@@ -480,9 +480,11 @@ class NucleotideState(StateManager):
 
     @classmethod
     def restore_snapshot(cls, session, data):
+        nuc = _nucleotides(session)
+        if data is None:
+            return nuc
         if data['version'] != 1:
             raise RestoreError("unknown nucleotide session state version")
-        nuc = _nucleotides(session)
         infos = data['infos']
         for mol, (info, params) in infos.items():
             if info is None:

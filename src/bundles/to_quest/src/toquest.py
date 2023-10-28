@@ -348,6 +348,8 @@ class ToQuest(ToolInstance):
             f'    {ip_address}'
             '</pre>'
             '<p>'
+            'This will happen if the Quest headset is sleeping or the LookSee Quest '
+            'application is not running. '
             'Check that receiving files is enabled in the LookSee application. '
             'Press the A or X hand controller button to show the LookSee user interface '
             f'and make sure <b>"Receiving files at {ip_address}"</b> is checked and the '
