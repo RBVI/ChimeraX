@@ -261,7 +261,7 @@ class SegmentationToolControlsDialog(QDialog):
         self.set_hand_modes_checkbox.setToolTip("Replaced hand modes will be restored when the tool closes.")
         self.settings_container.layout().addWidget(self.default_view_dropdown_container)
         self.settings_container.layout().addWidget(self.file_format_dropdown_container)
-        self.dicom_format_explanatory_text = QLabel("DICOM metadata will be lost when saving DICOM segmentations in NIfTI or NRRD format.")
+        self.dicom_format_explanatory_text = QLabel("DICOM metadata will be lost if NIfTI or NRRD format is used.")
         self.dicom_format_explanatory_text.setWordWrap(True)
         shrink_font(self.dicom_format_explanatory_text, 0.9)
         self.settings_container.layout().addSpacing(-10)
