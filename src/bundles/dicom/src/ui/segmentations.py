@@ -661,7 +661,13 @@ class SegmentationTool(ToolInstance):
                 if self.session.ui.main_window.view_layout == "orthoplanes":
                     self.session.ui.main_window.main_view.add_segmentation(model)
         self.segmentations_by_model = {}
+        self.tool_window.fill_context_menu = self.fill_context_menu
         self._surface_chosen()
+
+    def fill_context_menu(self, menu, x, y):
+        show_settings_action = QAction("Settings...", menu)
+        show_settings_action.triggered.connect(self.showControlsDialog)
+        menu.addAction(show_settings_action)
 
     def showControlsDialog(self):
         self.controls_dialog.show()
