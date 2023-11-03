@@ -700,6 +700,7 @@ class SegmentationTool(ToolInstance):
         # fail gracefully if the models have already been deleted
         try:
             self._destroy_2d_segmentation_pucks()
+            self._destroy_3d_segmentation_sphere()
         except TypeError:
             pass
         self._reset_3d_mouse_modes()
