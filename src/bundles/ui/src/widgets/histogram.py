@@ -146,6 +146,8 @@ class MarkedHistogram(QWidget):
             self._prev_marker = None
 
         overall_layout = QVBoxLayout()
+        overall_layout.setSpacing(2)
+        overall_layout.setContentsMargins(2,0,2,4)
         self.setLayout(overall_layout)
 
         # Create the add/delete marker help
@@ -195,6 +197,8 @@ class MarkedHistogram(QWidget):
         # Create range label(s)
         self._widget_area = QWidget()
         self._widget_layout = QHBoxLayout()
+        self._widget_layout.setSpacing(2)
+        self._widget_layout.setContentsMargins(1,1,1,1)
         self._min_label = self._max_label = None
         if min_label or max_label:
             min_max_layout = QHBoxLayout()
@@ -291,8 +295,8 @@ class MarkedHistogram(QWidget):
                 self._prev_markers = None
                 self._prev_marker = None
 
-    def add_custom_widget(self, widget, left_side=True):
-        self._widget_layout.insertWidget(0 if left_side else -1, widget)
+    def add_custom_widget(self, widget, *, left_side=True, alignment=Qt.AlignCenter):
+        self._widget_layout.insertWidget(0 if left_side else -1, widget, alignment=alignment)
 
     def add_markers(self, activate=True, **kw):
         """Create and return a new set of markers.
@@ -416,12 +420,8 @@ class MarkedHistogram(QWidget):
     @value_width.setter
     def value_width(self, vw):
         self._value_width = vw
-        ve = self._value_entry
-        fm = ve.fontMetrics()
-        tm = ve.textMargins()
-        cm = ve.contentsMargins()
-        w = vw*fm.averageCharWidth() + tm.left() + tm.right() + cm.left() + cm.right() + 8
-        ve.setMaximumWidth(w)
+        from chimerax.ui import set_line_edit_width
+        set_line_edit_width(self._value_entry, vw)
 
     def _abs2rel(self, abs_xy):
         x, y = abs_xy
@@ -810,8 +810,9 @@ class HistogramMarkers:
        Options are:
 
         add_del_callback == function to call when one or more markers
-            are added or deleted.  The function is called with no
-            arguments.
+            are added or deleted.  The function is called once per added
+            or deleted marker, with the marker as an argument for added
+            markers and no arguments for deleted markers
             default: None
 
         box_radius -- the radius in pixels of boxes drawn when the
@@ -901,7 +902,7 @@ class HistogramMarkers:
         self._markers.append(marker)
         self._update_plot()
         if self._add_del_callback:
-            self._add_del_callback()
+            self._add_del_callback(marker)
         return marker
 
     @property
@@ -964,7 +965,7 @@ class HistogramMarkers:
         self._markers.extend(markers)
         self._update_plot()
         if self._add_del_callback:
-            self._add_del_callback()
+            self._add_del_callback(marker)
         return markers
 
     def __getitem__(self, i):
@@ -982,7 +983,7 @@ class HistogramMarkers:
         self._markers.insert(i, marker)
         self._update_plot()
         if self._add_del_callback:
-            self._add_del_callback()
+            self._add_del_callback(marker)
         return marker
 
     def __iter__(self):
