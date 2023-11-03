@@ -269,7 +269,7 @@ class SegmentationToolControlsDialog(QDialog):
         self.settings_container.layout().addSpacing(2)
         self.settings_container.layout().addWidget(self.default_opacity_spinbox_container)
         self.settings_container.layout().addStretch()
-        self.tab_widget.addTab(self.settings_container, "General Settings")
+        self.tab_widget.addTab(self.settings_container, "General")
 
     def _add_mouse_2d_tab(self):
         self.mouse_2d_outer_widget = QWidget(self)
