@@ -467,7 +467,7 @@ class SegmentationTool(ToolInstance):
 
         self.view_dropdown_container = QWidget(self.parent)
         self.view_dropdown_layout = QHBoxLayout()
-        self.view_dropdown_label = QLabel("View Layout")
+        self.view_dropdown_label = QLabel("View layout")
         self.view_dropdown = QComboBox(self.parent)
         for view in ViewMode:
             self.view_dropdown.addItem(str(view))
@@ -557,7 +557,7 @@ class SegmentationTool(ToolInstance):
         self.control_checkbox_container = QWidget()
         self.control_checkbox_layout = QHBoxLayout()
 
-        self.guidelines_checkbox = QCheckBox("Plane Guidelines")
+        self.guidelines_checkbox = QCheckBox("Plane guidelines")
         self.control_checkbox_layout.addWidget(self.model_menu.frame)
         self.control_checkbox_layout.addWidget(self.guidelines_checkbox)
         self.guidelines_checkbox.stateChanged.connect(self._on_show_guidelines_checkbox_changed)
