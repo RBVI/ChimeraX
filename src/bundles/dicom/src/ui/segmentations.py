@@ -71,13 +71,13 @@ class ViewMode(IntEnum):
 
     def __str__(self):
         if self.name == "FOUR_UP":
-            return "2 x 2 (Desktop)"
+            return "2 x 2 (desktop)"
         elif self.name == "ORTHOPLANES_OVER_3D":
             return "3D over slices (desktop)"
         elif self.name == "ORTHOPLANES_BESIDE_3D":
-            return "3D beside slices (Desktop)"
+            return "3D beside slices (desktop)"
         elif self.name == "DEFAULT_DESKTOP":
-            return "3D only (Desktop)"
+            return "3D only (desktop)"
         elif self.name == "DEFAULT_VR":
             return "3D only (VR)"
         return "%s: Set a value to return for the name of this EnumItem" % self.name
