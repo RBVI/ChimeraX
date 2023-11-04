@@ -174,12 +174,12 @@ class SegmentationToolControlsDialog(QDialog):
         self._add_mouse_3d_tab()
         self._add_vr_tab()
         self.button_widget = QDialogButtonBox(
-            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
+            QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Reset | QDialogButtonBox.StandardButton.RestoreDefaults
             , self
         )
-        self.button_widget.accepted.connect(self.accept)
         self.button_widget.accepted.connect(self._on_accept)
-        self.button_widget.rejected.connect(self.reject)
+        self.button_widget.button(QDialogButtonBox.StandardButton.Reset).clicked.connect(self._on_reset)
+        self.button_widget.button(QDialogButtonBox.StandardButton.RestoreDefaults).clicked.connect(self._on_restore_defaults)
         self.layout().addWidget(self.button_widget)
 
     def _on_accept(self):
@@ -199,6 +199,25 @@ class SegmentationToolControlsDialog(QDialog):
         self.cx_settings.default_view = self.default_view_dropdown.currentIndex()
         self.cx_settings.default_segmentation_opacity = self.default_opacity_spinbox.value()
         self.cx_settings.save()
+
+    def _on_reset(self):
+        self.default_view_dropdown.setCurrentIndex(self.cx_settings.default_view)
+        self.file_format_dropdown.setCurrentIndex(self.cx_settings.default_file_format)
+        self.default_opacity_spinbox.setValue(self.cx_settings.default_segmentation_opacity)
+        self.set_mouse_modes_checkbox.setChecked(self.cx_settings.set_mouse_modes_automatically)
+        self.set_hand_modes_checkbox.setChecked(self.cx_settings.set_hand_modes_automatically)
+        self.start_vr_checkbox.setChecked(self.cx_settings.start_vr_automatically)
+
+    def _on_restore_defaults(self):
+        for key, value in DEFAULT_SETTINGS.items():
+            setattr(self.cx_settings, key, value)
+        self.cx_settings.save()
+        self.default_view_dropdown.setCurrentIndex(self.cx_settings.default_view)
+        self.file_format_dropdown.setCurrentIndex(self.cx_settings.default_file_format)
+        self.default_opacity_spinbox.setValue(self.cx_settings.default_segmentation_opacity)
+        self.set_mouse_modes_checkbox.setChecked(self.cx_settings.set_mouse_modes_automatically)
+        self.set_hand_modes_checkbox.setChecked(self.cx_settings.set_hand_modes_automatically)
+        self.start_vr_checkbox.setChecked(self.cx_settings.start_vr_automatically)
 
     def _add_settings_tab(self):
         self.settings_container = QWidget(self)
@@ -248,7 +267,7 @@ class SegmentationToolControlsDialog(QDialog):
         self.default_opacity_spinbox = QSpinBox(self.settings_container)
         self.default_opacity_spinbox.setRange(0, 100)
         self.default_opacity_spinbox.setSuffix("%")
-        self.default_opacity_spinbox.setValue(self.cx_settings.default_segmentation_opacity or 70)
+        self.default_opacity_spinbox.setValue(self.cx_settings.default_segmentation_opacity)
         self.default_opacity_spinbox_layout.addWidget(self.default_opacity_spinbox_label)
         self.default_opacity_spinbox_layout.addSpacing(8)
         self.default_opacity_spinbox_layout.addWidget(self.default_opacity_spinbox)
