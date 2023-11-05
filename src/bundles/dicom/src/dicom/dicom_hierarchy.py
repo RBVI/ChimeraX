@@ -153,7 +153,11 @@ class Study(Model):
             else:
                 self.name = '%s Study (Unknown Date)' % (self.body_part)
             self.series.sort(key=lambda s: s.sort_key)
-
+        plane_ids = {s.plane_uids: s for s in self.series}
+        for s in self.series:
+            ref = s.ref_plane_uids
+            if ref and ref in plane_ids:
+                s.refers_to_series = plane_ids[ref]
 
     @requires_gui
     def show_info(self):
@@ -179,10 +183,13 @@ class Study(Model):
 
     def open_series_as_models(self):
         if self.series:
+            derived = []
+            sgrids = {}
             for s in self.series:
                 try:
                     if s.uid not in self._drawn_series:
-                        self.add(s.to_models())
+                        models = s.to_models(derived, sgrids)
+                        self.add(models)
                         self._drawn_series.add(s.uid)
                 except UnrenderableSeriesError as e:
                     self.session.logger.warning(str(e))
@@ -245,6 +252,7 @@ class Series:
         self.parent_study = parent
         self.files = files
         self.sample_file = self.files[0]
+        self._refers_to_series = None
         self.files_by_size = defaultdict(list)
         self.dicom_data = []
         for f in self.files:
@@ -259,17 +267,23 @@ class Series:
                     self.dicom_data.append(DicomData(self.session, self, file_list))
             else:
                 self.dicom_data.append(DicomData(self.session, self, file_list))
-        #plane_ids = {s.plane_uids: s for s in self.series}
-        #for s in self.series:
-        #    ref = s.ref_plane_uids
-        #    if ref and ref in plane_ids:
-        #        s.refers_to_series = plane_ids[ref]
 
-    def to_models(self):
+    def to_models(self, derived, sgrids):
         models = []
         for data in self.dicom_data:
-            models.extend(data.to_models())
+            grids = data.to_models(derived, sgrids)
+            models.extend(grids)
         return models
+
+    @property
+    def refers_to_series(self):
+        return self._refers_to_series
+
+    @refers_to_series.setter
+    def refers_to_series(self, series):
+        self._refers_to_series = series
+        for data in self.dicom_data:
+            data.refers_to_series = series
 
     @property
     def name(self):
@@ -377,21 +391,21 @@ class Series:
 
     @property
     def plane_uids(self):
-        uids = set()
+        uids = []
         for data in self.dicom_data:
-            uids.add(fi.instance_uid for fi in data.files)
+            uids.extend([fi.instance_uid for fi in data.files])
         return tuple(uids)
 
     @property
     def ref_plane_uids(self):
-        uids = set()
+        uids = []
         for data in self.dicom_data:
             if len(data.files) == 1 and hasattr(data.sample_file, 'ref_instance_uids'):
                 _uids = data.files[0].ref_instance_uids
                 if _uids:
                     for uid in _uids:
-                        uids.add(uid)
-        return uids if uids else None
+                        uids.append(uid)
+        return tuple(uids) if uids else None
 
 
     @property
@@ -417,6 +431,7 @@ class DicomData:
         self.order_slices()
         self.sample_file = files[0]
         self.paths = tuple(file.path for file in files)
+        self._refers_to_series = None
         self.transfer_syntax = None
         self._multiframe = None
         self._num_times = None
@@ -434,7 +449,6 @@ class DicomData:
         #    self.z_plane_spacing()
         # Check that time series images all have time value, and all times are found
         self._validate_time_series()
-
         npaths = len(self.paths)  # noqa assigned but not accessed
         self.name = series.name
         if self.mask_number is not None:
@@ -489,10 +503,10 @@ class DicomData:
         # Check that time series images all have time value, and all times are found
         self._validate_time_series()
 
-    def _to_grids(self) -> list['DicomGrid']:
+    def _to_grids(self, derived, sgrids) -> list['DicomGrid']:
         grids = []
-        derived = []  # For grouping derived series with original series
-        sgrids = {}
+        # derived = []  # For grouping derived series with original series
+        # sgrids = {}
         if self.mode == 'RGB':
             # Create 3-channels for RGB series
             cgrids = []
@@ -525,33 +539,41 @@ class DicomData:
             if rs:
                 # If this associated with another series (e.g. is a segmentation), make
                 # it a channel together with that associated series.
-                derived.append((g, rs))
+                # the bool is whether it's been opened
+                derived.append([g, rs, False])
             else:
-                sgrids[self] = gg = [g]
+                sgrids[self.dicom_series] = gg = [g]
                 grids.extend(gg)
         # Group derived series with the original series
-        # channel_colors = [(1, 0, 0, 1), (0, 1, 0, 1), (0, 0, 1, 1)]
-        # for g, rs in derived:
-        #    sg = self.
-        #    if len(sg) == 1:
-        #        sg[0].channel = 1
-        #    sg.append(g)
-        #    g.channel = len(sg)
-        #    g.rgba = channel_colors[(g.channel - 2) % len(channel_colors)]
-        #    if not g.dicom_data.origin_specified:
-        #        # Segmentation may not have specified an origin
-        #        g.set_origin(sg[0].origin)
+        channel_colors = [(1, 0, 0, 1), (0, 1, 0, 1), (0, 0, 1, 1)]
+        for index, (g, rs, _) in enumerate(derived):
+            #open_series = set([s.dicom_series for s in sgrids.keys()])
+            if rs in sgrids:
+                source_grid = sgrids[rs]
+                #if len(sg) == 1:
+                #    sg[0].channel = 1
+                #sg.append(g)
+                #g.channel = len(sg)
+                #g.rgba = channel_colors[(g.channel - 2) % len(channel_colors)]
+                #if not g.dicom_data.origin_specified:
+                #    # Segmentation may not have specified an origin
+                #    g.set_origin(sg[0].origin)
+                g.reference_data = source_grid[0]
+            if not derived[index][2]:
+                grids.append(g)
+                derived[index][2] = True
         # Show only first group of grids
         # for gg in grids[1:]:
         #    for g in gg:
         #        g.show_on_open = False
         return grids
 
-    def to_models(self):
+    def to_models(self, derived, sgrids):
         if self.contour_series:
             return [DicomContours(self.session, s, self.name) for s in self.files]
         elif self.image_series:
-            return open_dicom_grids(self.session, self._to_grids(), name=self.name)[0]
+            grids = self._to_grids(derived, sgrids)
+            return open_dicom_grids(self.session, grids, name=self.name)[0]
         else:
             raise UnrenderableSeriesError("No model created for Series #%s from patient %s because "
                                           "it had no pixel data. Metadata will still "

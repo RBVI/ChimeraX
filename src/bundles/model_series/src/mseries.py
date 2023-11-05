@@ -112,7 +112,7 @@ class ModelSequencePlayer:
 
   def start(self):
 
-    self.inext = 0 if self.step > 0 else len(models)-1
+    self.inext = 0 if self.step > 0 else len(self.models)-1
     t = self.models[0].session.triggers
     self._handler = t.add_handler('new frame', self.frame_cb)
 

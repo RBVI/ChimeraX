@@ -71,13 +71,13 @@ class ViewMode(IntEnum):
 
     def __str__(self):
         if self.name == "FOUR_UP":
-            return "2 x 2 (Desktop)"
+            return "2 x 2 (desktop)"
         elif self.name == "ORTHOPLANES_OVER_3D":
             return "3D over slices (desktop)"
         elif self.name == "ORTHOPLANES_BESIDE_3D":
-            return "3D beside slices (Desktop)"
+            return "3D beside slices (desktop)"
         elif self.name == "DEFAULT_DESKTOP":
-            return "3D only (Desktop)"
+            return "3D only (desktop)"
         elif self.name == "DEFAULT_VR":
             return "3D only (VR)"
         return "%s: Set a value to return for the name of this EnumItem" % self.name
@@ -174,12 +174,12 @@ class SegmentationToolControlsDialog(QDialog):
         self._add_mouse_3d_tab()
         self._add_vr_tab()
         self.button_widget = QDialogButtonBox(
-            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
+            QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Reset | QDialogButtonBox.StandardButton.RestoreDefaults
             , self
         )
-        self.button_widget.accepted.connect(self.accept)
         self.button_widget.accepted.connect(self._on_accept)
-        self.button_widget.rejected.connect(self.reject)
+        self.button_widget.button(QDialogButtonBox.StandardButton.Reset).clicked.connect(self._on_reset)
+        self.button_widget.button(QDialogButtonBox.StandardButton.RestoreDefaults).clicked.connect(self._on_restore_defaults)
         self.layout().addWidget(self.button_widget)
 
     def _on_accept(self):
@@ -200,21 +200,40 @@ class SegmentationToolControlsDialog(QDialog):
         self.cx_settings.default_segmentation_opacity = self.default_opacity_spinbox.value()
         self.cx_settings.save()
 
+    def _on_reset(self):
+        self.default_view_dropdown.setCurrentIndex(self.cx_settings.default_view)
+        self.file_format_dropdown.setCurrentIndex(self.cx_settings.default_file_format)
+        self.default_opacity_spinbox.setValue(self.cx_settings.default_segmentation_opacity)
+        self.set_mouse_modes_checkbox.setChecked(self.cx_settings.set_mouse_modes_automatically)
+        self.set_hand_modes_checkbox.setChecked(self.cx_settings.set_hand_modes_automatically)
+        self.start_vr_checkbox.setChecked(self.cx_settings.start_vr_automatically)
+
+    def _on_restore_defaults(self):
+        for key, value in DEFAULT_SETTINGS.items():
+            setattr(self.cx_settings, key, value)
+        self.cx_settings.save()
+        self.default_view_dropdown.setCurrentIndex(self.cx_settings.default_view)
+        self.file_format_dropdown.setCurrentIndex(self.cx_settings.default_file_format)
+        self.default_opacity_spinbox.setValue(self.cx_settings.default_segmentation_opacity)
+        self.set_mouse_modes_checkbox.setChecked(self.cx_settings.set_mouse_modes_automatically)
+        self.set_hand_modes_checkbox.setChecked(self.cx_settings.set_hand_modes_automatically)
+        self.start_vr_checkbox.setChecked(self.cx_settings.start_vr_automatically)
+
     def _add_settings_tab(self):
         self.settings_container = QWidget(self)
         self.settings_container.setLayout(QVBoxLayout())
-        self.start_vr_checkbox = QCheckBox("Start VR Automatically when 3D VR view mode chosen")
+        self.start_vr_checkbox = QCheckBox("Start VR when the VR layout is chosen")
         self.start_vr_checkbox.setChecked(self.cx_settings.start_vr_automatically)
-        self.set_mouse_modes_checkbox = QCheckBox("Set 3D Mouse Modes Automatically when 3D Desktop View Chosen")
+        self.set_mouse_modes_checkbox = QCheckBox("Set 3D mouse modes when the desktop 3D-only layout is chosen")
         self.set_mouse_modes_checkbox.setChecked(self.cx_settings.set_mouse_modes_automatically)
-        self.set_hand_modes_checkbox = QCheckBox("Set VR Hand Modes Automatically when 3D VR View Chosen")
+        self.set_hand_modes_checkbox = QCheckBox("Set VR controller modes when the VR layout is chosen")
         self.set_hand_modes_checkbox.setChecked(self.cx_settings.set_hand_modes_automatically)
         self.default_view_dropdown_container = QWidget(self.settings_container)
         self.default_view_dropdown_layout = QHBoxLayout()
         self.default_view_dropdown_container.setLayout(self.default_view_dropdown_layout)
         self.default_view_dropdown_layout.setContentsMargins(0, 0, 0, 0)
         self.default_view_dropdown_layout.setSpacing(0)
-        self.default_view_dropdown_label = QLabel("Default View:")
+        self.default_view_dropdown_label = QLabel("Default layout:")
         self.default_view_dropdown = QComboBox(self)
         for view in ViewMode:
             self.default_view_dropdown.addItem(str(view))
@@ -248,28 +267,28 @@ class SegmentationToolControlsDialog(QDialog):
         self.default_opacity_spinbox = QSpinBox(self.settings_container)
         self.default_opacity_spinbox.setRange(0, 100)
         self.default_opacity_spinbox.setSuffix("%")
-        self.default_opacity_spinbox.setValue(self.cx_settings.default_segmentation_opacity or 70)
+        self.default_opacity_spinbox.setValue(self.cx_settings.default_segmentation_opacity)
         self.default_opacity_spinbox_layout.addWidget(self.default_opacity_spinbox_label)
         self.default_opacity_spinbox_layout.addSpacing(8)
         self.default_opacity_spinbox_layout.addWidget(self.default_opacity_spinbox)
         self.default_opacity_spinbox_layout.addStretch()
 
-        self.settings_container.layout().addWidget(self.start_vr_checkbox)
+        self.settings_container.layout().addWidget(self.default_view_dropdown_container)
         self.settings_container.layout().addWidget(self.set_mouse_modes_checkbox)
         self.set_mouse_modes_checkbox.setToolTip("Replaced mouse modes will be restored when the tool closes or the view is changed.")
+        self.settings_container.layout().addWidget(self.start_vr_checkbox)
         self.settings_container.layout().addWidget(self.set_hand_modes_checkbox)
         self.set_hand_modes_checkbox.setToolTip("Replaced hand modes will be restored when the tool closes.")
-        self.settings_container.layout().addWidget(self.default_view_dropdown_container)
+        self.settings_container.layout().addWidget(self.default_opacity_spinbox_container)
+        self.settings_container.layout().addSpacing(-2)
         self.settings_container.layout().addWidget(self.file_format_dropdown_container)
-        self.dicom_format_explanatory_text = QLabel("DICOM metadata will be lost when saving DICOM segmentations in NIfTI or NRRD format.")
+        self.dicom_format_explanatory_text = QLabel("DICOM metadata will be lost if NIfTI or NRRD format is used.")
         self.dicom_format_explanatory_text.setWordWrap(True)
         shrink_font(self.dicom_format_explanatory_text, 0.9)
         self.settings_container.layout().addSpacing(-10)
         self.settings_container.layout().addWidget(self.dicom_format_explanatory_text)
-        self.settings_container.layout().addSpacing(2)
-        self.settings_container.layout().addWidget(self.default_opacity_spinbox_container)
         self.settings_container.layout().addStretch()
-        self.tab_widget.addTab(self.settings_container, "General Settings")
+        self.tab_widget.addTab(self.settings_container, "General")
 
     def _add_mouse_2d_tab(self):
         self.mouse_2d_outer_widget = QWidget(self)
@@ -467,7 +486,7 @@ class SegmentationTool(ToolInstance):
 
         self.view_dropdown_container = QWidget(self.parent)
         self.view_dropdown_layout = QHBoxLayout()
-        self.view_dropdown_label = QLabel("View Layout")
+        self.view_dropdown_label = QLabel("View layout")
         self.view_dropdown = QComboBox(self.parent)
         for view in ViewMode:
             self.view_dropdown.addItem(str(view))
@@ -557,7 +576,7 @@ class SegmentationTool(ToolInstance):
         self.control_checkbox_container = QWidget()
         self.control_checkbox_layout = QHBoxLayout()
 
-        self.guidelines_checkbox = QCheckBox("Plane Guidelines")
+        self.guidelines_checkbox = QCheckBox("Plane guidelines")
         self.control_checkbox_layout.addWidget(self.model_menu.frame)
         self.control_checkbox_layout.addWidget(self.guidelines_checkbox)
         self.guidelines_checkbox.stateChanged.connect(self._on_show_guidelines_checkbox_changed)
@@ -661,7 +680,13 @@ class SegmentationTool(ToolInstance):
                 if self.session.ui.main_window.view_layout == "orthoplanes":
                     self.session.ui.main_window.main_view.add_segmentation(model)
         self.segmentations_by_model = {}
+        self.tool_window.fill_context_menu = self.fill_context_menu
         self._surface_chosen()
+
+    def fill_context_menu(self, menu, x, y):
+        show_settings_action = QAction("Settings...", menu)
+        show_settings_action.triggered.connect(self.showControlsDialog)
+        menu.addAction(show_settings_action)
 
     def showControlsDialog(self):
         self.controls_dialog.show()
@@ -700,6 +725,7 @@ class SegmentationTool(ToolInstance):
         # fail gracefully if the models have already been deleted
         try:
             self._destroy_2d_segmentation_pucks()
+            self._destroy_3d_segmentation_sphere()
         except TypeError:
             pass
         self._reset_3d_mouse_modes()
