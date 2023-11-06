@@ -97,6 +97,7 @@ class MouseAction(IntEnum):
     ADD_TO_SEGMENTATION = 1
     MOVE_SPHERE = 2
     RESIZE_SPHERE = 3
+    ERASE_FROM_SEGMENTATION = 4
 
     def __str__(self):
         return " ".join(self.name.split('_')).lower()
@@ -741,6 +742,7 @@ class SegmentationTool(ToolInstance):
                     self.old_mouse_bindings[binding.button][modifier] = binding.mode.name
         run(self.session, "ui mousemode shift wheel 'resize segmentation cursor'")
         run(self.session, "ui mousemode right 'create segmentations'")
+        run(self.session, "ui mousemode shift right 'erase segmentations'")
         run(self.session, "ui mousemode shift middle 'move segmentation cursor'")
         self.mouse_modes_changed = True
 
@@ -750,6 +752,7 @@ class SegmentationTool(ToolInstance):
         if self.mouse_modes_changed:
             run(self.session, "ui mousemode shift wheel '" + self.old_mouse_bindings['wheel']['shift'] + "'" if self.old_mouse_bindings['wheel']['shift'] else "ui mousemode shift wheel 'none'")
             run(self.session, "ui mousemode right '" + self.old_mouse_bindings['right']['none'] + "'" if self.old_mouse_bindings['right']['none'] else "ui mousemode right 'none'")
+            run(self.session, "ui mousemode shift right '" + self.old_mouse_bindings['right']['shift'] + "'" if self.old_mouse_bindings['right']['shift'] else "ui mousemode shift right 'none'")
             run(self.session, "ui mousemode shift middle '" + self.old_mouse_bindings['middle']['shift'] + "'" if self.old_mouse_bindings['middle']['shift'] else "ui mousemode shift middle 'none'")
         self.mouse_modes_changed = False
 
@@ -777,6 +780,7 @@ class SegmentationTool(ToolInstance):
             vr_camera = openxr_camera
             vr_button = openxr_button
         run(self.session, f'vr button trigger \'create segmentations\' hand { str(self.settings.vr_handedness).lower() }')
+        run(self.session, f'vr button a \'erase segmentations\' hand { str(self.settings.vr_handedness).lower() }')
         run(self.session, f'vr button thumbstick \'resize segmentation cursor\' hand { str(self.settings.vr_handedness).lower() }')
         run(self.session, f'vr button grip \'move segmentation cursor\' hand { str(self.settings.vr_handedness).lower() }')
 
@@ -787,6 +791,7 @@ class SegmentationTool(ToolInstance):
             run(self.session, f'vr button trigger {self.old_hand_modes["trigger"]}')
             run(self.session, f'vr button thumbstick {self.old_hand_modes["thumbstick"]}')
             run(self.session, f'vr button grip {self.old_hand_modes["grip"]}')
+            run(self.session, f'vr button a {self.old_hand_modes["a"]}')
         self.hand_modes_changed = False
 
     def _start_vr(self):
