@@ -843,8 +843,9 @@ class SegmentationTool(ToolInstance):
         )
 
     def _destroy_3d_segmentation_sphere(self) -> None:
-        self.session.models.remove([self.segmentation_sphere])
-        self.segmentation_sphere = None
+        if self.segmentation_sphere:
+            self.session.models.remove([self.segmentation_sphere])
+            self.segmentation_sphere = None
 
     def make_puck_visible(self, axis):
         if axis in self.segmentation_cursors:
