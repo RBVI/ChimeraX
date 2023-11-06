@@ -184,15 +184,6 @@ class SegmentationToolControlsDialog(QDialog):
         self.layout().addWidget(self.button_widget)
 
     def _on_accept(self):
-        self.cx_settings.mouse_3d_right_click = self.right_click_3d_dropdown.currentIndex()
-        self.cx_settings.mouse_3d_middle_click = self.middle_click_3d_dropdown.currentIndex()
-        self.cx_settings.mouse_3d_scroll = self.scroll_3d_dropdown.currentIndex()
-        self.cx_settings.mouse_3d_left_click = self.left_click_3d_dropdown.currentIndex()
-        self.cx_settings.vr_thumbstick = self.thumbstick_dropdown.currentIndex()
-        self.cx_settings.vr_trigger = self.trigger_dropdown.currentIndex()
-        self.cx_settings.vr_grip = self.grip_dropdown.currentIndex()
-        self.cx_settings.vr_a_button = self.a_button_dropdown.currentIndex()
-        self.cx_settings.vr_b_button = self.b_button_dropdown.currentIndex()
         self.cx_settings.start_vr_automatically = self.start_vr_checkbox.isChecked()
         self.cx_settings.set_mouse_modes_automatically = self.set_mouse_modes_checkbox.isChecked()
         self.cx_settings.set_hand_modes_automatically = self.set_hand_modes_checkbox.isChecked()
@@ -350,38 +341,30 @@ class SegmentationToolControlsDialog(QDialog):
 
         self.mouse_3d_layout.addWidget(self.mouse_3d_image_controls_container)
 
-        self.mouse_controls_3d_dropdown_list_container = QWidget()
-        self.mouse_controls_3d_dropdown_list_container_layout = QVBoxLayout()
-        self.mouse_controls_3d_dropdown_list_container_layout.setContentsMargins(10, 0, 0, 0)
-        self.mouse_controls_3d_dropdown_list_container_layout.setSpacing(0)
-        self.mouse_controls_3d_dropdown_list_container.setLayout(self.mouse_controls_3d_dropdown_list_container_layout)
+        self.mouse_controls_3d_label_list_container = QWidget()
+        self.mouse_controls_3d_label_list_container_layout = QVBoxLayout()
+        self.mouse_controls_3d_label_list_container_layout.setContentsMargins(10, 0, 0, 0)
+        self.mouse_controls_3d_label_list_container_layout.setSpacing(0)
+        self.mouse_controls_3d_label_list_container.setLayout(self.mouse_controls_3d_label_list_container_layout)
 
 
         self.mouse_3d_image_widget = QLabel(self)
         self.mouse_3d_image_widget.setPixmap(QPixmap.fromImage(self.mouse_image.scaledToWidth(350, Qt.TransformationMode.SmoothTransformation)))
 
         self.mouse_3d_image_controls_container_layout.addWidget(self.mouse_3d_image_widget)
-        self.mouse_3d_image_controls_container_layout.addWidget(self.mouse_controls_3d_dropdown_list_container)
+        self.mouse_3d_image_controls_container_layout.addWidget(self.mouse_controls_3d_label_list_container)
 
-        self.mouse_3d_image_controls_container_layout.addWidget(self.mouse_controls_3d_dropdown_list_container)
+        self.mouse_3d_image_controls_container_layout.addWidget(self.mouse_controls_3d_label_list_container)
         self.mouse_3d_image_controls_container_layout.addStretch(1)
 
-        self.explanatory_mouse_3d_text = QLabel(
-            "Whatever is assigned to 'Scroll' will activate when the Shift key is held, so zooming in and out on your model will still work."
-        )
-        self.explanatory_mouse_3d_text.setWordWrap(True)
-        self.mouse_3d_layout.addWidget(self.explanatory_mouse_3d_text)
-        self.explanatory_mouse_3d_text_middle_click = QLabel("Whatever is assigned to 'Middle Click' will activate when the Shift key is held, so panning the camera around your model will still work.")
-        self.explanatory_mouse_3d_text_middle_click.setWordWrap(True)
-        self.mouse_3d_layout.addWidget(self.explanatory_mouse_3d_text_middle_click)
         self.mouse_3d_layout.addStretch(1)
 
-        self.right_click_3d_dropdown = QComboBox(self)
-        self.middle_click_3d_dropdown = QComboBox(self)
-        self.scroll_3d_dropdown = QComboBox(self)
-        self.left_click_3d_dropdown = QComboBox(self)
+        self.right_click_3d_label = QLabel(str(MouseAction.ADD_TO_SEGMENTATION) + " ((+shift) erase)")
+        self.middle_click_3d_label = QLabel("(+shift) " + str(MouseAction.MOVE_SPHERE))
+        self.scroll_3d_label = QLabel("(+shift) " + str(MouseAction.RESIZE_SPHERE))
+        self.left_click_3d_label = QLabel('n/a')
         windows_spacings = [50, 2, 6, 16]
-        mac_spacings = [48, 0, 6, 16]
+        mac_spacings = [50, 12, 20, 24]
         linux_spacings = [50, 2, 6, 16]
         if sys.platform == "win32":
             spacings = windows_spacings
@@ -389,18 +372,12 @@ class SegmentationToolControlsDialog(QDialog):
             spacings = mac_spacings
         else:
             spacings = linux_spacings
-        for dropdown, spacing in zip(
-            [self.right_click_3d_dropdown, self.middle_click_3d_dropdown, self.scroll_3d_dropdown, self.left_click_3d_dropdown], spacings
+        for label, spacing in zip(
+            [self.right_click_3d_label, self.middle_click_3d_label, self.scroll_3d_label, self.left_click_3d_label], spacings
         ):
-            for option in MouseAction:
-                dropdown.addItem(str(option))
-            self.mouse_controls_3d_dropdown_list_container_layout.addSpacing(spacing)
-            self.mouse_controls_3d_dropdown_list_container_layout.addWidget(dropdown)
-        self.right_click_3d_dropdown.setCurrentIndex(self.cx_settings.mouse_3d_right_click)
-        self.middle_click_3d_dropdown.setCurrentIndex(self.cx_settings.mouse_3d_middle_click)
-        self.scroll_3d_dropdown.setCurrentIndex(self.cx_settings.mouse_3d_scroll)
-        self.left_click_3d_dropdown.setCurrentIndex(self.cx_settings.mouse_3d_left_click)
-        self.mouse_controls_3d_dropdown_list_container_layout.addStretch()
+            self.mouse_controls_3d_label_list_container_layout.addSpacing(spacing)
+            self.mouse_controls_3d_label_list_container_layout.addWidget(label)
+        self.mouse_controls_3d_label_list_container_layout.addStretch()
         self.tab_widget.addTab(self.mouse_3d_widget, "Mouse (3D)")
 
     def _add_vr_tab(self):
@@ -408,9 +385,9 @@ class SegmentationToolControlsDialog(QDialog):
         self.vr_outer_layout = QHBoxLayout()
         self.vr_outer_widget.setLayout(self.vr_outer_layout)
 
-        self.control_dropdown_container = QWidget()
-        self.control_dropdown_container_layout = QVBoxLayout()
-        self.control_dropdown_container.setLayout(self.control_dropdown_container_layout)
+        self.control_label_container = QWidget()
+        self.control_label_container_layout = QVBoxLayout()
+        self.control_label_container.setLayout(self.control_label_container_layout)
 
         self.vr_controller_container = QWidget()
         self.vr_controller_container_layout = QVBoxLayout()
@@ -422,45 +399,32 @@ class SegmentationToolControlsDialog(QDialog):
         self.vr_controller_container_layout.setContentsMargins(0, 0, 0, 0)
         self.vr_controller_container_layout.addStretch(1)
         self.vr_outer_layout.addWidget(self.vr_controller_container)
-        self.vr_outer_layout.addWidget(self.control_dropdown_container)
+        self.vr_outer_layout.addWidget(self.control_label_container)
         self.vr_outer_layout.addStretch(1)
-        self.thumbstick_dropdown = QComboBox(self)
-        self.menu_button_dropdown = QComboBox(self)
-        self.trigger_dropdown = QComboBox(self)
-        self.grip_dropdown = QComboBox(self)
-        self.a_button_dropdown = QComboBox(self)
-        self.b_button_dropdown = QComboBox(self)
+        self.thumbstick_label = QLabel(str(HandAction.RESIZE_CURSOR))
+        self.menu_button_label = QLabel("n/a")
+        self.trigger_label = QLabel(str(HandAction.ADD_TO_SEGMENTATION))
+        self.grip_label = QLabel(str(HandAction.MOVE_CURSOR))
+        self.a_button_label = QLabel(str(HandAction.ERASE_FROM_SEGMENTATION))
+        self.b_button_label = QLabel("n/a")
         windows_spacings = [88, 46, 10, 18, 72, 36]
-        mac_spacings = [88, 38, 2, 10, 66, 28]
+        mac_spacings = [90, 50, 16, 20, 80, 40]
         linux_spacings = [88, 46, 10, 18, 72, 36]
-        assignable = [True, False, True, True, True, True]
         if sys.platform == "win32":
             spacings = windows_spacings
         elif sys.platform == "darwin":
             spacings = mac_spacings
         else:
             spacings = linux_spacings
-        for dropdown, spacing, assignable in zip(
-            [self.thumbstick_dropdown, self.menu_button_dropdown, self.trigger_dropdown, self.grip_dropdown, self.a_button_dropdown, self.b_button_dropdown]
+        for label, spacing in zip(
+            [self.thumbstick_label, self.menu_button_label, self.trigger_label, self.grip_label, self.a_button_label, self.b_button_label]
             , spacings
-            , assignable
         ):
-            if not assignable:
-                dropdown.addItem(str(HandAction.NONE))
-                dropdown.setEnabled(False)
-            else:
-                for option in HandAction:
-                    dropdown.addItem(str(option))
-            self.control_dropdown_container_layout.addSpacing(spacing)
-            self.control_dropdown_container_layout.addWidget(dropdown)
-        self.thumbstick_dropdown.setCurrentIndex(self.cx_settings.vr_thumbstick)
-        self.trigger_dropdown.setCurrentIndex(self.cx_settings.vr_trigger)
-        self.grip_dropdown.setCurrentIndex(self.cx_settings.vr_grip)
-        self.a_button_dropdown.setCurrentIndex(self.cx_settings.vr_a_button)
-        self.b_button_dropdown.setCurrentIndex(self.cx_settings.vr_b_button)
-        self.control_dropdown_container_layout.setContentsMargins(6, 0, 0, 0)
-        self.control_dropdown_container_layout.setSpacing(0)
-        self.control_dropdown_container_layout.addStretch()
+            self.control_label_container_layout.addSpacing(spacing)
+            self.control_label_container_layout.addWidget(label)
+        self.control_label_container_layout.setContentsMargins(6, 0, 0, 0)
+        self.control_label_container_layout.setSpacing(0)
+        self.control_label_container_layout.addStretch()
         self.tab_widget.addTab(self.vr_outer_widget, "VR Controller")
 
 
