@@ -238,9 +238,11 @@ def install(use_amber = False, use_templates = False, install_log = 'install_log
 set -e
 # We have to use "--no-warn-conflicts" because colab already has a lot preinstalled with requirements different to ours
 pip install --no-warn-conflicts "colabfold[alphafold-minus-jax] @ git+https://github.com/sokrypton/ColabFold@dc9fc3d03379d23784e796f4c7fd31d173bafaa2"
-# high risk high gain
-pip uninstall jax jaxlib -y
-pip install "jax[cuda]==0.3.25" -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
+# We use the Google Colab system jaxlib since it needs to be compatible with CUDA.
+# Haiku works with jax and we need an updated version to work with jax newer than 0.3.25
+pip install --upgrade dm-haiku
+#pip uninstall jax jaxlib -y
+#pip install "jax[cuda]==0.3.25" -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
 touch COLABFOLD_READY
 '''
     run_shell_commands(cmds, 'install_colabfold.sh', install_log)
