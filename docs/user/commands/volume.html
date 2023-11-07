@@ -310,7 +310,8 @@ See also: <a href="#dispsurf">surface and mesh display options</a>,
   <br>Assign <a href="#level">threshold</a> color.
 Can be given multiple times in the same command if multiple 
 <a href="#level">threshold levels</a> are also specified.
-See also: <a href="colortables.html#autocolors">initial colors</a>
+To specify initial colors for maps that have not yet been opened,
+see the <a href="#initialColors"><b>initialColors</b></a> option.
 </blockquote>
 Multiple <a href="#level">level</a> and <a href="#color">color</a>
 specifications can be included in a single command.
@@ -328,6 +329,22 @@ but they do not need to be interleaved;
 only the ordering of each type of specification (levels or colors)
 is significant. If multiple colors are specified for multiple pre-existing
 levels, they are paired in order of increasing level value.
+<blockquote>
+  <a href="#top" class="nounder">&bull;</a>
+  <a name="initialColors"></a>
+  <b>initialColors</b> &nbsp;<i>color-list</i>
+  <br>
+Specify initial colors for subsequently opened maps as a list of
+<a href="colornames.html">color specifications</a> separated by commas only.
+Applies to the current session only, but can be used with
+<a href="#defaultvalues"><b>volume defaultvalues</b></a>
+to customize future sessions, for example:
+  <blockquote>
+ <b>volume defaultvalues initialColors salmon,lime,#ff805c save true</b>
+ </blockquote>
+The factory defaults are <img src="mapcolors.png">.
+See also: <a href="colortables.html#map">initial colors</a>
+</blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
   <a name="brightness"><b>brightness</b> &nbsp;<i>value</i></a>&nbsp;
@@ -1395,6 +1412,7 @@ detail in their respective sections:
 <ul>
 <li><a href="#general"><b>General Display Options</b></a>:
  <ul>
+ <li>initialColors
  <li>showOutlineBox
  <li>OutlineBoxRgb
  </ul>
@@ -2808,5 +2826,5 @@ the original volume, if any.
 </p>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-September 2023</address>
+November 2023</address>
 </body></html>
