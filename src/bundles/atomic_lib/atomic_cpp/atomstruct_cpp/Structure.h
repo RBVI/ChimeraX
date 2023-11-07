@@ -149,8 +149,9 @@ protected:
     mutable bool  _chains_made = false;
     ChangeTracker*  _change_tracker;
     CoordSets  _coord_sets;
+    bool  _copying_or_restoring = false;
     bool  _display = true;
-    bool  _idatm_failed;
+    bool  _idatm_failed = false;
     bool  _idatm_valid;
     InputSeqInfo  _input_seq_info;
     PyObject*  _logger;
@@ -222,7 +223,8 @@ protected:
         return version < 5 ? 1 : (version < 13 ? 3: 15);
     }
     static int  SESSION_NUM_INTS(int version=CURRENT_SESSION_VERSION) {
-        return version == 1 ? 9 : (version < 5 ? 10 : (version < 12 ? 16 : (version < 16 ? 17 : 18)));
+        return version == 1 ? 9 : (version < 5 ? 10 : (version < 12 ? 16 : (version < 16 ? 17 :
+            (version < 19 ? 18 : 20))));
     }
     static int  SESSION_NUM_MISC(int version=CURRENT_SESSION_VERSION) {
         return version > 7 ? 3 : 4;
