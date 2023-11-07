@@ -198,10 +198,10 @@ def apply_command_script_to_files(session, path, script_name, for_each_file, log
         paths.extend(glob(expanduser(path)))
 
     from os.path import basename, dirname, splitext
-    from .commands import run
+    from .commands import run, quote_path_if_necessary
     for i, data_path in enumerate(paths):
         run(session, 'close', log = log)
-        run(session, 'open %s' % data_path, log = log)
+        run(session, 'open %s' % quote_path_if_necessary(data_path), log = log)
         session.logger.status('Executing script %s on file %s (%d of %d)'
                               % (basename(script_name), basename(data_path), i+1, len(paths)))
         fprefix = splitext(basename(data_path))[0]
