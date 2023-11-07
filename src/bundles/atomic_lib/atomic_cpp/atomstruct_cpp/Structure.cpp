@@ -344,6 +344,7 @@ void Structure::_copy(Structure* s, PositionMatrix coord_adjust,
 {
     // if chain_id_map is not nullptr, then we are combining this structure into existing
     // structure s
+    s->_copying_or_restoring = true;
     for (auto h = metadata.begin() ; h != metadata.end() ; ++h)
         s->metadata[h->first] = h->second;
     s->pdb_version = pdb_version;
@@ -362,9 +363,12 @@ void Structure::_copy(Structure* s, PositionMatrix coord_adjust,
         for (int i = 0; i < 3; ++i)
             for (int j = 0; j < 4; ++j)
                 s->_position[i][j] = _position[i][j];
+        s->_chains_made = _chains_made;
+        s->_idatm_failed = _idatm_failed;
     } else {
         if (s->ss_assigned())
             s->set_ss_assigned(ss_assigned());
+        s->_idatm_failed |= _idatm_failed;
     }
 
     if (chain_id_map == nullptr) {
@@ -550,6 +554,7 @@ void Structure::_copy(Structure* s, PositionMatrix coord_adjust,
             }
         }
     }
+    s->_copying_or_restoring = false;
 }
 
 void
@@ -883,6 +888,8 @@ Structure::_delete_atoms(const std::set<Atom*>& atoms, bool verify)
 void
 Structure::_form_chain_check(Atom* a1, Atom* a2, Bond* b)
 {
+    if (_copying_or_restoring)
+        return;
     // If initial construction is over (i.e. Python instance exists) and _make_chains()
     // has been called (i.e. _chain_made is true), then need to check if new bond
     // or missing-structure pseudobond creates a chain or coalesces chain fragments
@@ -1484,6 +1491,8 @@ Structure::session_info(PyObject* ints, PyObject* floats, PyObject* misc) const
     *int_array++ = _ribbon_mode_strand;
     *int_array++ = ss_ids_normalized;
     *int_array++ = _ring_display_count;
+    *int_array++ = _idatm_failed;
+    *int_array++ = _chains_made;
     // pb manager version number remembered later
     if (PyList_Append(ints, npy_array) < 0)
         throw std::runtime_error("Couldn't append to int list");
@@ -1747,6 +1756,7 @@ void
 Structure::session_restore(int version, PyObject* ints, PyObject* floats, PyObject* misc)
 {
     // restore the stuff saved by session_info()
+    _copying_or_restoring = true;
 
     if (version > CURRENT_SESSION_VERSION)
         throw std::invalid_argument("Don't know how to restore new session data; update your"
@@ -1798,6 +1808,10 @@ Structure::session_restore(int version, PyObject* ints, PyObject* floats, PyObje
         ss_ids_normalized = *int_array++;
     if (version >= 16)
         _ring_display_count = *int_array++;
+    if (version >= 19) {
+        _idatm_failed = *int_array++;
+        _chains_made = *int_array++;
+    }
     auto pb_manager_version = *int_array++;
     // if more added, change the array dimension check above
 
@@ -2033,6 +2047,7 @@ Structure::session_restore(int version, PyObject* ints, PyObject* floats, PyObje
                 chain->set_description(chain_descriptions[i++]);
         }
     }
+    _copying_or_restoring = false;
 }
 
 void
