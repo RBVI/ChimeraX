@@ -525,7 +525,7 @@ ExtractMolecule::find_template_residue(const ResName& name, bool start, bool sto
     if (tr == nullptr) {
         // skipped warning if already given for this molecule
         logger::warning(_logger,
-            "Unable to fetch template for '", name, "': might have incorrect bonds");
+            "Unable to fetch template for '", name, "': will connect using distance criteria");
         missing_residue_templates.insert(name);
     }
     return tr;
@@ -913,7 +913,7 @@ ExtractMolecule::finished_parse()
         }
 
         if (found_missing_poly_seq && !no_polymer && model_num == first_model_num)
-            logger::warning(_logger, "Missing or incomplete entity_poly_seq table.  Inferred polymer connectivity.");
+            logger::warning(_logger, "Missing or incomplete <a='https://mmcif.wwpdb.org/dictionaries/mmcif_std.dic/Categories/entity_poly_seq.html'>sequence information</a>.  Inferred polymer connectivity.", true);
         if (has_metal)
             pdb_connect::find_and_add_metal_coordination_bonds(mol);
         if (found_missing_poly_seq)

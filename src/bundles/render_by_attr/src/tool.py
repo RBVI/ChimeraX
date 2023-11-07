@@ -13,6 +13,7 @@
 
 from chimerax.core.tools import ToolInstance
 from chimerax.core.errors import UserError
+from chimerax.atomic import Atom
 
 from Qt.QtCore import Qt
 
@@ -22,13 +23,17 @@ class RenderByAttrTool(ToolInstance):
 
     NO_ATTR_TEXT = "choose attr"
 
+    RENDER_COLORS = "Colors"
+    RENDER_RADII = "Radii"
+
     def __init__(self, session, tool_name):
         ToolInstance.__init__(self, session, tool_name)
         from chimerax.ui import MainToolWindow
         self.tool_window = tw = MainToolWindow(self, statusbar=True)
         parent = tw.ui_area
         from Qt.QtWidgets import QVBoxLayout, QHBoxLayout, QDialogButtonBox, QPushButton, QMenu, QLabel
-        from Qt.QtWidgets import QTabWidget, QWidget, QCheckBox
+        from Qt.QtWidgets import QTabWidget, QWidget, QCheckBox, QLineEdit
+        from Qt.QtGui import QDoubleValidator
         from Qt.QtCore import Qt
         overall_layout = QVBoxLayout()
         overall_layout.setContentsMargins(3,0,3,0)
@@ -86,16 +91,21 @@ class RenderByAttrTool(ToolInstance):
         render_tab_layout = QVBoxLayout()
         render_tab.setLayout(render_tab_layout)
         render_tab_layout.setSpacing(1)
-        self.render_histogram = rh = MarkedHistogram(min_label=True, max_label=True, status_line=tw.status)
+        self.render_histogram = rh = MarkedHistogram(min_label=True, max_label=True, status_line=tw.status,
+            select_callback=self._render_sel_marker_cb)
         render_tab_layout.addWidget(rh)
+        self.render_markers = {}
         self.render_color_markers = rh.add_markers(activate=True, coord_type='relative',
             move_callback=self._render_marker_moved,
             color_change_callback=lambda mrk, cb=self._update_palettes: cb())
         self.render_color_markers.extend([((0.0, 0.0), "blue"), ((0.5, 0.0), "white"), ((1.0, 0.0), "red")])
         self.render_color_markers.add_del_callback = self._update_palettes
+        self.render_markers[self.RENDER_COLORS] = self.render_color_markers
         self.render_radius_markers = rh.add_markers(new_color='slate gray', activate=False,
-            coord_type='relative')
-        self.render_radius_markers.extend([((0.0, 0.0), None), ((1.0, 0.0), None)])
+            coord_type='relative', add_del_callback=self._radius_marker_add_del)
+        for pos, radius in [(0.0, 1.0), (1.0, 4.0)]:
+            self.render_radius_markers.append(((pos, 0.0), None)).radius = radius
+        self.render_markers[self.RENDER_RADII] = self.render_radius_markers
         self.render_type_widget = QTabWidget()
         self.render_type_widget.setTabBarAutoHide(True)
         render_tab_layout.addWidget(self.render_type_widget)
@@ -151,12 +161,48 @@ class RenderByAttrTool(ToolInstance):
         key_layout.addWidget(QLabel(" corresponding color key"), alignment=Qt.AlignLeft)
         key_layout.addStretch(1)
         crt_layout.addLayout(key_layout)
-        self.render_type_widget.addTab(color_render_tab, "Colors")
+        self.render_type_widget.addTab(color_render_tab, self.RENDER_COLORS)
+
+        from chimerax.ui.options import OptionsPanel, EnumOption, BooleanOption, FloatOption
+        radii_render_tab = self.radii_options = OptionsPanel(sorting=False, scrolled=False,
+            contents_margins=(0,0,0,0))
+        from chimerax.std_commands.size import AtomRadiiStyleArg as radii_arg
+        self.radii_style_option = EnumOption("Atom style", radii_arg.default, None,
+            values=radii_arg.values)
+        self.radii_options.add_option(self.radii_style_option)
+        self.radii_affect_nv = BooleanOption("Affect no-value atoms", False, None)
+        self.radii_options.add_option(self.radii_affect_nv)
+        self.radii_nv_radius = FloatOption("No-value radius", 0.5, None, min="positive")
+        self.radii_options.add_option(self.radii_nv_radius)
+        #self.radius_value_area = QWidget()
+        #self.radius_value_area.setHidden(True)
+        #rva_layout = QHBoxLayout()
+        #rva_layout.setContentsMargins(0,0,0,0)
+        #self.radius_value_area.setLayout(rva_layout)
+        #rva_layout.addWidget(QLabel("Atom radius"), alignment=Qt.AlignRight)
+        radius_label = QLabel("Atom radius")
+        rh.add_custom_widget(radius_label, left_side=False, alignment=Qt.AlignRight)
+        self.radius_value_entry = QLineEdit()
+        validator = QDoubleValidator()
+        validator.setBottom(0.001)
+        self.radius_value_entry.setValidator(validator)
+        from chimerax.ui import set_line_edit_width
+        set_line_edit_width(self.radius_value_entry, 5)
+        #rva_layout.addWidget(self.radius_value_entry, alignment=Qt.AlignLeft)
+        rh.add_custom_widget(self.radius_value_entry, left_side=False, alignment=Qt.AlignLeft)
+        #rh.add_custom_widget(self.radius_value_area, left_side=False)
+        self.radius_value_widgets = [radius_label, self.radius_value_entry]
+        for rv_widget in self.radius_value_widgets:
+            rv_widget.setHidden(True)
+        self.render_type_widget.addTab(radii_render_tab, self.RENDER_RADII)
 
         self.sel_restrict = QCheckBox("Restrict to selection")
         self.sel_restrict.setChecked(False)
         render_tab_layout.addWidget(self.sel_restrict, alignment=Qt.AlignCenter)
         self.mode_widget.addTab(render_tab, "Render")
+
+        # wait until tab contents are completely filled before connecting this
+        self.render_type_widget.currentChanged.connect(self._render_mode_changed)
 
         sel_tab = QWidget()
         sel_layout = QVBoxLayout()
@@ -192,6 +238,12 @@ class RenderByAttrTool(ToolInstance):
         tabs = self.render_type_widget
         tab_text = tabs.tabText(tabs.currentIndex()).lower()
         method = tab_text[:-1] if tab_text[-1] == 's' else "radius"
+        markers = getattr(self, "render_" + method + "_markers")
+        vals = []
+        markers.coord_type = "absolute"
+        for marker in markers:
+            vals.append((marker.xy[0], getattr(marker, "rgba" if method == "color" else "radius")))
+        markers.coord_type = "relative"
         if method == "color":
             targets = set()
             for target in ["atoms", "cartoons", "surfaces"]:
@@ -201,17 +253,17 @@ class RenderByAttrTool(ToolInstance):
             if not targets:
                 raise UserError("No coloring targets specified")
             # histograms values + possibly None
-            markers = getattr(self, "render_" + method + "_markers")
-            vals = []
-            markers.coord_type = "absolute"
-            for marker in markers:
-                vals.append((marker.xy[0], marker.rgba))
-            markers.coord_type = "relative"
             if self.color_no_value.isChecked():
                 vals.append((None, [v/255.0 for v in self.no_value_color.color]))
             if not vals:
                 raise UserError("No coloring values specified")
             params = (targets, vals)
+        elif method == "radius":
+            if not self.radii_affect_nv.widget.isHidden() and self.radii_affect_nv.value:
+                vals.append((None, self.radii_nv_radius.value))
+            if not vals:
+                raise UserError("No radius values specified")
+            params = (self.radii_style_option.value, vals)
         else:
             raise NotImplemented("Don't know how to get parameters for '%s' method" % method)
         self._cur_attr_info().render(self.session, attr_name, models, method, params,
@@ -282,7 +334,6 @@ class RenderByAttrTool(ToolInstance):
             self._update_palettes()
         self.attr_menu_button.setEnabled(enabled)
 
-
     def _new_classes(self):
         self._update_target_menu()
 
@@ -301,9 +352,29 @@ class RenderByAttrTool(ToolInstance):
         self.color_surfaces.setEnabled("surfaces" in color_targets)
         self._new_attr()
 
+    def _radius_marker_add_del(self, marker=None):
+        if marker:
+            marker.radius = 1.0
+
     def _render_marker_moved(self, move_info):
         if move_info == "end":
             self._update_palettes()
+
+    def _render_mode_changed(self, tab_index):
+        render_type = self.render_type_widget.tabText(tab_index)
+        self.render_histogram.activate(self.render_markers[render_type])
+        render_radii = render_type == self.RENDER_RADII
+        self.render_histogram.color_button = not render_radii
+        for rv_widget in self.radius_value_widgets:
+            rv_widget.setHidden(not render_radii)
+
+    def _render_sel_marker_cb(self, prev_markers, prev_marker, cur_markers, cur_marker):
+        if cur_markers != self.render_radius_markers:
+            return
+        if cur_marker:
+            self.radius_value_entry.setText("%g" % cur_marker.radius)
+        else:
+            self.radius_value_entry.clear()
 
     def _reverse_colors(self):
         if len(self.render_color_markers) < 2:
@@ -343,6 +414,8 @@ class RenderByAttrTool(ToolInstance):
                 # number of bins based on histogram pixel width...
                 self.render_histogram.data_source = (min_val, max_val, lambda num_bins:
                     numpy.histogram(values, bins=num_bins, range=(min_val, max_val), density=False)[0])
+        self.radii_options.set_option_shown(self.radii_affect_nv, any_None)
+        self.radii_options.set_option_shown(self.radii_nv_radius, any_None)
 
     def _update_palettes(self):
         if type(self.render_histogram.data_source) == str:

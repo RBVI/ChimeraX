@@ -49,11 +49,22 @@ class RenderAttrInfo(metaclass=abc.ABCMeta):
     def render(self, session, attr_name, models, method, parameters, selected_only):
         """Render the given models based on attr_name as requested.
 
-        The only current method is 'color', for which 'parameters' is a two-tuple of a set of
-        targets to color (of those legal from the Provider declaration) and a sequence of value-RGBA
-        pairs (RGBA channels in 0-1 range) for the color to use at that value.  One of the values may
-        be None, in which case None values should receive that color.  If 'selected_only' is True, then
-        the coloring should only be applied to selected instances.
+        'parameters' is a two-tuple, the first value of which is specific to the rendering method
+        (see below) and the second of which a sequence of attribute value/rendering value pairs that
+        serve as waypoints for interpolating the rendering.  One of the attribute values may be None,
+        in which case missing or None values should receive that rendering value.  For the 'color'
+        method the rendering values are RGBA (RGBA channels in 0-1 range).  For the 'radius' method,
+        the value is an atomic radius value.
+
+        The method=specific first parameter is:
+
+        'color': a set of targets to color (of those legal from the Provider declaration).
+
+        'radius': a string, either 'sphere', 'ball', or 'unchanged', indicating how the affected atoms
+            should be depicted.
+
+        For both methods, if 'selected_only' is True, then the rendering should only be applied to
+        selected instances.
 
         This method should carry out the rendering using a command if possible.
         """
