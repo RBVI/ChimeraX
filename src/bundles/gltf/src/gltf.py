@@ -234,7 +234,8 @@ def meshes_as_models(session, meshes, material_colors, material_textures,
             else:
                 na = None	# No computed normals for mesh or dots.
             if 'COLOR_0' in pa:
-                vc = ba[pa['COLOR_0']]
+                lin_vc = ba[pa['COLOR_0']]
+                vc = _linear_to_srgb_vertex_colors(lin_vc)
             else:
                 vc = None
             tc = ba[pa['TEXCOORD_0']] if 'TEXCOORD_0' in pa else None
@@ -349,7 +350,9 @@ def material_colors_and_textures(materials, textures, images):
     for material in materials:
         pbr = material.get('pbrMetallicRoughness')
         if pbr and 'baseColorFactor' in pbr:
-            color = rgba_to_rgba8(pbr['baseColorFactor'])
+            lin_color = pbr['baseColorFactor']
+            rgba = _linear_to_srgba_color(lin_color)
+            color = rgba_to_rgba8(rgba)
         else:
             color = (255,255,255,255)
         colors.append(color)
@@ -405,7 +408,7 @@ def _create_texture(png_bytes):
 # -----------------------------------------------------------------------------
 #
 def colors_to_uint8(vc):
-    from numpy import empty, uint8, float32
+    from numpy import empty, uint8, uint16, float32
     nc,ni = len(vc), vc.shape[1]
     if vc.dtype == uint8:
         if ni == 3:
@@ -420,7 +423,7 @@ def colors_to_uint8(vc):
         if ni == 3:
             c[:,3] = 255
     else:
-        raise glTFError('glTF colors, only handle float32 and uint8, got %s' % str(vc.dtype))
+        raise glTFError('glTF colors, only handle float32, uint8 and uint16, got %s' % str(vc.dtype))
 
     return c
 
@@ -861,13 +864,14 @@ class Mesh:
         if vc is not None:
             if not mat._preserve_transparency:
                 vc = vc[:,:3]
-            if mat._float_vertex_colors:
-                vc = vc.astype(float32)
-                vc /= 255
             if self._prune_vertex_colors:
                 single_vertex_color = _single_vertex_color(vc)
             if single_vertex_color is None:
-                ci = b.add_array(vc, normalized = not mat._float_vertex_colors, target=b.GLTF_ARRAY_BUFFER)
+                if mat._float_vertex_colors:
+                    vc = vc.astype(float32)
+                    vc /= 255
+                lin_vc = _srgb_to_linear_vertex_colors(vc)
+                ci = b.add_array(lin_vc, normalized = not mat._float_vertex_colors, target=b.GLTF_ARRAY_BUFFER)
         tci = b.add_array(tc) if tc is not None else None
         ne = len(ta)
         etype = uint16 if self._short_vertex_indices else uint32
@@ -884,7 +888,72 @@ def _single_vertex_color(vertex_colors):
         if (vertex_colors == color).all():
             return tuple(color)
     return None
-    
+
+# -----------------------------------------------------------------------------
+#
+def _srgb_to_linear_vertex_colors(vertex_colors):
+    '''
+    Input can be uint8 or float32 and can be rgb or rgba.
+    For float input produce float output.  For uint8 input produce uint16 output.
+    '''
+    from numpy import float32, uint8, uint16, where, empty
+    t = vertex_colors.dtype
+    if t == float32:
+        vc = vertex_colors
+    elif t == uint8:
+        vc = vertex_colors.astype(float32)
+        vc /= 255
+    else:
+        raise ValueError('Converting sRGB vertex colors to linear color space ' +
+                         f'requires uint8 or float32 numpy array, got {t}')
+    srgb = vc[:,:3]
+    gamma = ((srgb + 0.055) / 1.055)**2.4
+    scale = srgb / 12.92
+    lin_vc = where(srgb > 0.04045, gamma, scale)
+    if vertex_colors.shape[1] == 4:
+        # Copy alpha value
+        c = empty(vc.shape, float32)
+        c[:,:3] = lin_vc
+        c[:,3] = vc[:,3]
+        lin_vc = c
+    if t == uint8:
+        lin_vc *= 65535
+        lin_vc = lin_vc.astype(uint16)
+    return lin_vc
+
+# -----------------------------------------------------------------------------
+#
+def _linear_to_srgb_vertex_colors(vertex_colors):
+    '''
+    Input can be uint8, uint16 or float32 and can be rgb or rgba.  Produces uint8 output.
+    '''
+    from numpy import float32, uint8, uint16, where, empty
+    t = vertex_colors.dtype
+    if t == float32:
+        vc = vertex_colors
+    elif t == uint16:
+        vc = vertex_colors.astype(float32)
+        vc /= 65535
+    elif t == uint8:
+        vc = vertex_colors.astype(float32)
+        vc /= 255
+    else:
+        raise ValueError('Converting linear vertex colors to sRGB color space ' +
+                         f'requires uint16 or float32 numpy array, got {t}')
+    lin = vc[:,:3]
+    gamma = 1.055 * lin**(1/2.4) - 0.055
+    scale = 12.92 * lin 
+    srgb = where(lin > 0.0031308, gamma, scale)
+    if vc.shape[1] == 4:
+        # Copy alpha value
+        c = empty(vertex_colors.shape, float32)
+        c[:,:3] = srgb
+        c[:,3] = vc[:,3]
+        srgb = c
+    srgb *= 255
+    srgb8 = srgb.astype(uint8)
+    return srgb8
+
 # -----------------------------------------------------------------------------
 #
 def _mesh_style(triangle_array):
@@ -1180,7 +1249,8 @@ class Material:
     def specification(self):
         from chimerax.core.colors import rgba8_to_rgba
         color = rgba8_to_rgba(self._base_color8)
-        pbr = {'baseColorFactor': color,
+        linear_color = _srgba_to_linear_color(color)
+        pbr = {'baseColorFactor': linear_color,
                'metallicFactor': self._metallic_factor,
                'roughnessFactor': self._roughness_factor,
                }
@@ -1193,6 +1263,22 @@ class Material:
             spec['doubleSided'] = True
         return spec
 
+# -----------------------------------------------------------------------------
+#
+def _srgba_to_linear_color(color):
+    linear = tuple((((r + 0.055) / 1.055)**2.4
+                    if r > 0.04045 else (r/12.92))
+                   for r in color[:3]) + (color[3],)
+    return linear
+
+# -----------------------------------------------------------------------------
+#
+def _linear_to_srgba_color(color):
+    srgba = tuple(((1.055 * (pow(r, (1.0 / 2.4))) - 0.055)
+                   if r > 0.0031308 else (12.92 * r))
+                  for r in color[:3]) + (color[3],)
+    return srgba
+    
 # -----------------------------------------------------------------------------
 #
 class Textures:

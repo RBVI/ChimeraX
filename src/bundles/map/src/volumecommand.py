@@ -39,6 +39,7 @@ def register_volume_command(logger):
                ('voxel_limit_for_open', FloatArg),
                ('show_plane', BoolArg),
                ('voxel_limit_for_plane', FloatArg),
+               ('initial_colors', ListOf(ColorArg)),
         ]
 
     from .volume import RenderingOptions
@@ -188,6 +189,7 @@ def volume(session,
            voxel_limit_for_open = None,
            show_plane = None,
            voxel_limit_for_plane = None,
+           initial_colors = None,
 # Rendering options.
            show_outline_box = None,
            outline_box_rgb = None,
@@ -381,11 +383,7 @@ def volume(session,
             loc[opt] = value
 
     # Adjust global settings.
-    gopt = ('data_cache_size', 'show_on_open', 'voxel_limit_for_open',
-            'show_plane', 'voxel_limit_for_plane')
-    if volumes is None:
-        gopt += ('pickable',)
-    gsettings = dict((n,loc[n]) for n in gopt if not loc[n] is None)
+    gsettings = global_settings(loc, include_pickable = (volumes is None))
     if gsettings:
         apply_global_settings(session, gsettings)
 
@@ -455,6 +453,20 @@ def _render_settings(options):
         bc = options['backing_color']
         rsettings['backing_color'] = (None if bc == 'none' else tuple(bc.uint8x4()))
     return rsettings
+
+
+# -----------------------------------------------------------------------------
+#
+def global_settings(kw, include_pickable = False):
+    gopt = ('data_cache_size', 'show_on_open', 'voxel_limit_for_open',
+            'show_plane', 'voxel_limit_for_plane', 'initial_colors')
+    if include_pickable:
+        gopt += ('pickable',)
+    gsettings = dict((n,kw[n]) for n in gopt if n in kw and kw[n] is not None)
+    if 'initial_colors' in gsettings:
+        rgba_list = tuple(tuple(color.rgba) for color in gsettings['initial_colors'])
+        gsettings['initial_colors'] = rgba_list
+    return gsettings
 
 # -----------------------------------------------------------------------------
 #
@@ -825,6 +837,7 @@ def volume_default_values(session,
            voxel_limit_for_open = None,
            show_plane = None,
            voxel_limit_for_plane = None,
+           initial_colors = None,
 # Rendering options.
            show_outline_box = None,
            outline_box_rgb = None,
@@ -870,10 +883,8 @@ def volume_default_values(session,
            ):
     '''Report or set default volume values.'''
 
-    gopt = ('data_cache_size', 'show_on_open', 'voxel_limit_for_open',
-            'show_plane', 'voxel_limit_for_plane')
     loc = locals()
-    gsettings = dict((n,loc[n]) for n in gopt if not loc[n] is None)
+    gsettings = global_settings(loc)
     if gsettings:
         apply_global_settings(session, gsettings)
     

@@ -98,6 +98,84 @@ class CreateSegmentation3DMouseMode(MouseMode):
             , 1
         )
 
+class EraseSegmentation3DMouseMode(MouseMode):
+    """Use the segmentation sphere to erase regions of data in 3D."""
+    name = 'erase segmentations'
+    icon_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'icons', 'create_segmentation.png')
+    def __init__(self, session):
+        # We cannot check for the existence or lack thereof of the Segmentation Tool
+        # here. When mouse modes are being registered, the session has not yet instantiated
+        # whatever goes in its '.tools' attribute.
+        MouseMode.__init__(self, session)
+        self.segmentation_tool = None
+
+    def enable(self):
+        self.segmentation_tool = self._find_segmentation_tool()
+
+    def _find_segmentation_tool(self):
+        for tool in self.session.tools:
+            if isinstance(tool, SegmentationTool):
+                return tool
+        return None
+
+    def mouse_down(self, event):
+        MouseMode.mouse_down(self, event)
+        if self.segmentation_tool is None:
+            self.segmentation_tool = self._find_segmentation_tool()
+        if self.segmentation_tool is None:
+            return
+        self.segmentation_tool.set_segmentation_step(2)
+        self.segmentation_tool.setSphereRegionToValue(
+            self.segmentation_tool.segmentation_sphere.scene_position.origin()
+            , self.segmentation_tool.segmentation_sphere.radius
+            , 0
+        )
+
+    def wheel(self, event):
+        d = event.wheel_value()
+        if d > 0:
+            self.segmentation_tool.segmentation_sphere.radius += 1
+        elif d < 0:
+            self.segmentation_tool.segmentation_sphere.radius -= 1
+
+    def mouse_drag(self, event):
+        if self.segmentation_tool is None:
+            self.segmentation_tool = self._find_segmentation_tool()
+        if self.segmentation_tool is None:
+            return
+        dx, dy = self.mouse_motion(event)
+        #settings = self.settings
+        ## Compute motion in scene coords of sphere center.
+        c = self.segmentation_tool.segmentation_sphere.scene_position.origin()
+        v = self.session.main_view
+        s = v.pixel_size(c)
+        shift = (s*dx, -s*dy, 0)
+        dxyz = v.camera.position.transform_vector(shift)
+        if event.shift_down():
+            shift = (s*dx, -s*dy, 0)
+        else:
+            shift = (s*dx, -s*dy, 0)
+        self.segmentation_tool.move_sphere(dxyz)
+        self.segmentation_tool.setSphereRegionToValue(
+            self.segmentation_tool.segmentation_sphere.scene_position.origin()
+            , self.segmentation_tool.segmentation_sphere.radius
+            , 0
+        )
+
+    def mouse_up(self, event):
+        MouseMode.mouse_up(self, event)
+        self.segmentation_tool.set_segmentation_step(1)
+
+    def vr_motion(self, event):
+        c = self.segmentation_tool.segmentation_sphere.scene_position.origin()
+        delta_xyz = event.motion*c - c
+        self.segmentation_tool.move_sphere(delta_xyz)
+        self.segmentation_tool.setSphereRegionToValue(
+            self.segmentation_tool.segmentation_sphere.scene_position.origin()
+            , self.segmentation_tool.segmentation_sphere.radius
+            , 0
+        )
+
 
 class Move3DSegmentationSphereMouseMode(MouseMode):
     name = 'move segmentation cursor'

@@ -1533,21 +1533,20 @@ class NewerVersionQuery(Task):
 
     def run(self, service_name, params, blocking=False):
         self.result = self.api.check_for_updates(**params, async_req=not blocking)
-
-    def on_finish(self):
-        # If async_req is True, then need to call self.result.get()
         try:
-            versions = self.result.get()
+            self.versions = self.result.get()
         except Exception:
             # Ignore problems getting results.  Might be a network error or
             # a server error.  It doesn't matter, just let ChimeraX run.
-            return
-        if not versions:
+            self.versions = None
+
+    def on_finish(self):
+        if self.versions is None:
             return
 
         # don't bother user about releases they've choosen to ignore
         from ..core_settings import settings
-        versions = [v for v in versions if v[0] not in settings.ignore_update]
+        versions = [v for v in self.versions if v[0] not in settings.ignore_update]
         if not versions:
             return
 

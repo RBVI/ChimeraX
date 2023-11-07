@@ -196,8 +196,32 @@ class XR:
     def _create_swapchains(self):
         '''Make render textures'''
         from OpenGL import GL
-        # Only the SRGB format gives colors similar to screen.
-        # All other formats openxr treats as linear intensity, appears bright.
+        #
+        # OpenXR requires linear color space read from its swapchain
+        # textures.  That means either an OpenGL SRGB texture is used
+        # that automaically converts from internal SRGB to linear when
+        # sampled.  Or a non-SRGB texture is used and the texture values
+        # must be in linear color space.  Since ChimeraX never uses
+        # linear color space we need to use an SRGB texture.  And
+        # it appears GL_FRAMEBUFFER_SRGB is disabled so writing to
+        # this texture is not doing any conversion.
+        #
+        # This leaves the problem that when we render the desktop
+        # mirror image using the SRGB texture it converts to linear
+        # automatically and that gives the wrong colors.  How do I
+        # fix this?  There is an obscure SKIP_DECODE opengl texture
+        # parameter but that might break the OpenXR rendering.
+        # Another choice is to convert linear to sRGB in our fragment
+        # shader when sampling the SRGB texture to draw the desktop
+        # mirror framebuffer.  We would need a special fragment shader
+        # option to enable that encoding.
+        #
+        # Currently the SRGB format gives VR colors similar to screen
+        # when not in VR, but the mirror shows darker colors.  With
+        # non-SRGB formats the VR shows brighter paler colors while
+        # the mirror shows correct colors.  Results are the same whether
+        # using the SteamVR or Oculus OpenXR runtimes.
+        #
         color_formats = [GL.GL_SRGB8_ALPHA8]
         color_formats.append(GL.GL_RGBA16F)  # Works on SteamVR with Vive Pro (881A)
         # Supported openxr color formats on Oculus Quest 2. 8058, 881B, 8C3A, 8C43

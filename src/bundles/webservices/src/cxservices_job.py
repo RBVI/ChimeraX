@@ -62,8 +62,6 @@ class CxServicesJob(Job):
     outputs : List[str]
     next_poll : time
     """
-    # Ticket #6187, set urllib3 not to log messages to the general ChimeraX log
-    logging.getLogger("urllib3").setLevel(100)
 
     def __init__(self, *args, **kw) -> None:
         """Initialize CxServicesJob instance.
@@ -150,7 +148,7 @@ class CxServicesJob(Job):
             self.next_poll = int(result.next_poll)
             self.thread_safe_log("Webservices job id: %s" % self.job_id)
             super().run()
-    
+
     def _relaunch(self):
         """Relaunch the background process. Used to restore the job."""
         if self.state not in [

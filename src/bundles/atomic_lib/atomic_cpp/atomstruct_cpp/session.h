@@ -28,11 +28,11 @@
 #define atomstruct_session
 
 // DON'T FORGET TO UPDATE Structure::copy() AS WELL!!
-// ALSO: bump maxSessionVersion in atomic's bundle_info.xml
+// ALSO: bump maxSessionVersion in atomic's bundle_info.xml and STRUCTURE_STATE_VERSION in structure.py
 //
 // Each class's SESSION_NUM... methods yield the number of those types that don't vary on
 // a per-instance basis and are directly saved/restored by that class and not by a contained
 // class such as Rgba.
-#define CURRENT_SESSION_VERSION 18
+#define CURRENT_SESSION_VERSION 19
 
 #endif  // atomstruct_session
