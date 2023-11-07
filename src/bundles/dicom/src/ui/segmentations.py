@@ -302,9 +302,9 @@ class SegmentationToolControlsDialog(QDialog):
         self.mouse_control_2d_dropdown_container = QWidget()
         self.mouse_control_2d_dropdown_container_layout = QVBoxLayout()
         self.mouse_control_2d_dropdown_container.setLayout(self.mouse_control_2d_dropdown_container_layout)
-        windows_spacings = [98, 12, 12, 12]
+        windows_spacings = [50, 12, 12, 12]
         mac_spacings = [50, 12, 12, 12]
-        linux_spacings = [98, 12, 12, 12]
+        linux_spacings = [52, 14, 18, 14]
         if sys.platform == "win32":
             spacings = windows_spacings
         elif sys.platform == "darwin":
@@ -363,9 +363,9 @@ class SegmentationToolControlsDialog(QDialog):
         self.middle_click_3d_label = QLabel("(+shift) " + str(MouseAction.MOVE_SPHERE))
         self.scroll_3d_label = QLabel("(+shift) " + str(MouseAction.RESIZE_SPHERE))
         self.left_click_3d_label = QLabel('n/a')
-        windows_spacings = [50, 2, 6, 16]
+        windows_spacings = [50, 12, 20, 26]
         mac_spacings = [50, 12, 20, 24]
-        linux_spacings = [50, 2, 6, 16]
+        linux_spacings = [52, 14, 22, 26]
         if sys.platform == "win32":
             spacings = windows_spacings
         elif sys.platform == "darwin":
@@ -407,9 +407,9 @@ class SegmentationToolControlsDialog(QDialog):
         self.grip_label = QLabel(str(HandAction.MOVE_CURSOR))
         self.a_button_label = QLabel(str(HandAction.ERASE_FROM_SEGMENTATION))
         self.b_button_label = QLabel("n/a")
-        windows_spacings = [88, 46, 10, 18, 72, 36]
+        windows_spacings = [90, 50, 16, 20, 80, 40]
         mac_spacings = [90, 50, 16, 20, 80, 40]
-        linux_spacings = [88, 46, 10, 18, 72, 36]
+        linux_spacings = [92, 52, 18, 22, 82, 42]
         if sys.platform == "win32":
             spacings = windows_spacings
         elif sys.platform == "darwin":
