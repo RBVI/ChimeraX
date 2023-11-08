@@ -245,6 +245,8 @@ class PlaneViewer(QWindow):
 
         self.slider.sliderMoved.connect(self._onSliderMoved)
         self.slider_moved = False
+        self.scale = 1 # set this to a temporary valid value before the draw
+                       # loop otherwise we get a traceback
 
         self.widget.setMinimumSize(QSize(20, 20))
 
