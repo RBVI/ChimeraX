@@ -504,13 +504,13 @@ class ArrowModel(Model):
             rgba8 = tuple(a.color)
         return rgba8
 
-    def _get_model_color(self):
+    def _get_overall_color(self):
         return self.arrow_color
-    def _set_model_color(self, color):
+    def _set_overall_color(self, color):
         a = self.arrow
         a.color = color
         a.update_drawing()
-    model_color = property(_get_model_color, _set_model_color)
+    overall_color = property(_get_overall_color, _set_overall_color)
 
     def _arrow_params(self, width, height):
         scale_factor = min(width, height)

@@ -424,7 +424,7 @@ class Volume(Model):
 
   # ---------------------------------------------------------------------------
   #
-  def _get_model_color(self):
+  def _get_overall_color(self):
     from chimerax.core.colors import rgba_to_rgba8
     if self.surface_shown:
       surfs = self.surfaces
@@ -440,10 +440,10 @@ class Volume(Model):
     if drgba:
       return rgba_to_rgba8(drgba)
     return None
-  def _set_model_color(self, color):
+  def _set_overall_color(self, color):
     from chimerax.core.colors import rgba8_to_rgba
     self.set_color(rgba8_to_rgba(color))
-  model_color = property(_get_model_color, _set_model_color)
+  overall_color = property(_get_overall_color, _set_overall_color)
 
   # ---------------------------------------------------------------------------
   #
@@ -1930,7 +1930,7 @@ class VolumeImage(Image3d):
 
   # ---------------------------------------------------------------------------
   #
-  def _get_model_color(self):
+  def _get_overall_color(self):
     '''Return average color.'''
     v = self._volume
     colors = v.image_colors
@@ -1940,14 +1940,14 @@ class VolumeImage(Image3d):
     else:
       c = array([int(r*255) for r in mean(colors, axis=0)], uint8)
     return c
-  def _set_model_color(self, color):
+  def _set_overall_color(self, color):
     v = self._volume
     rgba = [[r/255 for r in color]] * len(v.image_levels)
     if rgba != v.image_colors:
       v.image_colors = rgba
       self._update_colormap()
       v.call_change_callbacks('colors changed')
-  model_color = property(_get_model_color, _set_model_color)
+  overall_color = property(_get_overall_color, _set_overall_color)
 
   # ---------------------------------------------------------------------------
   #
@@ -4009,7 +4009,7 @@ def save_map(session, path, format_name, models = None, region = None, step = (1
         grids = []
         for v in vlist:
           g = v.grid_data(region, step, mask_zone)
-          color = v.model_color
+          color = v.overall_color
           if color is not None:
             g.rgba = tuple(r/255 for r in color)	# Set default map color to current color
           grids.append(g)

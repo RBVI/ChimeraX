@@ -245,6 +245,8 @@ class PlaneViewer(QWindow):
 
         self.slider.sliderMoved.connect(self._onSliderMoved)
         self.slider_moved = False
+        self.scale = 1 # set this to a temporary valid value before the draw
+                       # loop otherwise we get a traceback
 
         self.widget.setMinimumSize(QSize(20, 20))
 
@@ -621,7 +623,7 @@ class PlaneViewer(QWindow):
         elif modifier == Qt.KeyboardModifier.NoModifier:
             self.field_width_offset += 1 * y_dir
             self.resize3DSegmentationCursor()
-        self.view.camera.redraw_needed = True
+        self._redraw()
 
     def mousePercentOffsetsFromEdges(self, x, y):
         top, bottom, left, right = self.camera_space_drawing_bounds()
@@ -829,7 +831,8 @@ class PlaneViewer(QWindow):
         v = self.view.drawing
         if self.view.drawing is not self.placeholder_drawing:
             self._remove_axis_from_volume_viewer(volume_viewer, v)
-
+            v.delete()
+            del v
         v = self.model_menu.value.copy()
         self.model_menu.value.expand_single_plane()
         self.model_menu.value.set_display_style('surface')
@@ -890,9 +893,8 @@ class PlaneViewer(QWindow):
 
     def _remove_axis_from_volume_viewer(self, volume_viewer, volume):
         hptable = volume_viewer.thresholds_panel.histogram_table
-        for v in tuple([volume]):
-            if v in hptable:
-                volume_viewer.thresholds_panel.close_histogram_pane(hptable[v])
+        if volume in hptable:
+            volume_viewer.thresholds_panel.close_histogram_pane(hptable[volume])
 
     def _add_axis_to_volume_viewer(self, volume_viewer, volume):
         v = volume

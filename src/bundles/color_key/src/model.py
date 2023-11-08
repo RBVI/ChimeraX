@@ -320,11 +320,11 @@ class ColorKeyModel(Model):
         self.triggers.activate_trigger("key changed", "rgbas_and_labels")
 
     @property
-    def model_color(self):
+    def overall_color(self):
         return False
 
-    @model_color.setter
-    def model_color(self, val):
+    @overall_color.setter
+    def overall_color(self, val):
         pass
 
     @property
