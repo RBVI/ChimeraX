@@ -635,8 +635,6 @@ class SegmentationTool(ToolInstance):
             else:
                 if self.settings.start_vr_automatically:
                     self._start_vr()
-        if self.session.ui.main_window.view_layout == "orthoplanes":
-            self.session.ui.main_window.main_view.register_segmentation_tool(self)
 
         # Do the initial population of the segmentation list
         for model in self.session.models:
