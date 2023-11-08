@@ -181,16 +181,16 @@ class PseudobondGroup(PseudobondGroupData, Model):
 
     # since we're a Model, we already have a 'session' attr, so don't need property
 
-    def _get_model_color(self):
+    def _get_overall_color(self):
         pbonds = self.pseudobonds
         from chimerax.core.colors import most_common_color
         shown = pbonds.filter(pbonds.displays)
         if shown:
             return most_common_color(shown.colors)
         return self.color
-    def _set_model_color(self, color):
+    def _set_overall_color(self, color):
         self.pseudobonds.colors = color
-    model_color = property(_get_model_color, _set_model_color)
+    overall_color = property(_get_overall_color, _set_overall_color)
 
     def _update_graphics_if_needed(self, *_):
         gc = self._graphics_changed

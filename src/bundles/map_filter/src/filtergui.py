@@ -244,7 +244,7 @@ class MapFilterPanel(ToolInstance):
     last_color = None
     if vlast:
       args.extend(('model', '#' + vlast.id_string))
-      last_color = vlast.model_color
+      last_color = vlast.overall_color
       self.session.models.close([vlast])
       self._last_filter_map = None
     return last_color
@@ -265,7 +265,7 @@ class MapFilterPanel(ToolInstance):
   def _preserve_color(self, vfiltered, last_color):
     if last_color is not None:
       vfiltered.update_drawings()
-      vfiltered.model_color = last_color
+      vfiltered.overall_color = last_color
     
   # ---------------------------------------------------------------------------
   #

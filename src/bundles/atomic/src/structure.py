@@ -297,7 +297,7 @@ class Structure(Model, StructureData):
         StructureData.set_color(self, rgba)
         Model.set_color(self, rgba)
 
-    def _get_model_color(self):
+    def _get_overall_color(self):
         residues = self.residues
         ribbon_displays = residues.ribbon_displays
         from chimerax.core.colors import most_common_color
@@ -311,14 +311,14 @@ class Structure(Model, StructureData):
             most_common_color(atoms.colors)
         return self.color
 
-    def _set_model_color(self, color):
-        Model.model_color.fset(self, color)
+    def _set_overall_color(self, color):
+        Model.overall_color.fset(self, color)
         self.atoms.colors = color
         residues = self.residues
         residues.ribbon_colors = color
         residues.ring_colors = color
 
-    model_color = property(_get_model_color, _set_model_color)
+    overall_color = property(_get_overall_color, _set_overall_color)
 
     def _get_spline_normals(self):
         return self._use_spline_normals

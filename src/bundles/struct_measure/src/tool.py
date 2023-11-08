@@ -384,7 +384,7 @@ class StructMeasureTool(ToolInstance):
             return len(components1) < len(components2)
         self.apc_table.add_column("ID", "id_string", data_set="rename {item.atomspec} id #{value}",
             validator=verify_id, sort_func=id_cmp)
-        self.apc_table.add_column("Color", "model_color", format=ItemTable.COL_FORMAT_TRANSPARENT_COLOR,
+        self.apc_table.add_column("Color", "overall_color", format=ItemTable.COL_FORMAT_TRANSPARENT_COLOR,
             data_set="color {item.atomspec} {value}", title_display=False)
         self.apc_table.add_column("Shown", "display", format=ItemTable.COL_FORMAT_BOOLEAN, icon="shown")
         def run_sel_cmd(item, value, ses=self.session):
@@ -566,7 +566,7 @@ class StructMeasureTool(ToolInstance):
     def _add_centroid_triggers(self, models):
         for m in models:
             if isinstance(m, CentroidModel):
-                # color can change w/o model_color changing
+                # color can change w/o overall_color changing
                 m.triggers.add_handler("changes", lambda *args, m=m, update=self.apc_table.update_cell:
                     update("Color", m))
 

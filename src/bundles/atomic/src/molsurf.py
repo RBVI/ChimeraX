@@ -398,16 +398,16 @@ class MolecularSurface(Surface):
             self.display = False
             self.triangle_mask = None
 
-    def _get_model_color(self):
+    def _get_overall_color(self):
         vc = self.vertex_colors
         from chimerax.core.colors import most_common_color
         return self.color if vc is None else most_common_color(vc)
-    def _set_model_color(self, color):
+    def _set_overall_color(self, color):
         self.color = color
         self.vertex_colors = None
         self._atom_patch_colors = None
         self._atom_patch_color_mask = None
-    model_color = property(_get_model_color, _set_model_color)
+    overall_color = property(_get_overall_color, _set_overall_color)
 
     def _average_color(self):
         vc = self.vertex_colors
@@ -532,7 +532,7 @@ class MolecularSurface(Surface):
         c8 = self.color if color is None else color
         if opacity is not None:
             c8 = (c8[0], c8[1], c8[2], opacity)
-        self.model_color = c8
+        self.overall_color = c8
         self._clear_atom_patch_colors()
 
     # Handle undo of color changes

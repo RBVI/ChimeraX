@@ -1936,8 +1936,8 @@ class SeqBlock:
                 color = numpy.sum(colors, axis=0) / len(colors)
             else:
                 struct = structures.pop()
-                if struct.model_color is not None:
-                    color = struct.model_color
+                if struct.overall_color is not None:
+                    color = struct.overall_color
                 else:
                     colors = struct.atoms.colors
                     color = numpy.sum(colors, axis=0) / len(colors)
