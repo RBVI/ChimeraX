@@ -92,7 +92,8 @@ def run_prediction(sequences,
       stop_at_score=100.0,
       feature_dict_callback=plot_msa,
       prediction_callback=prediction_callback,
-      dpi=dpi
+      dpi=dpi,
+      user_agent='ChimeraX chimerax-programmers@cgl.ucsf.edu'
     )
 
     print('Downloading structure predictions to directory Downloads/ChimeraX/AlphaFold')
