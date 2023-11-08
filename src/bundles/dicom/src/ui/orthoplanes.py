@@ -623,7 +623,7 @@ class PlaneViewer(QWindow):
         elif modifier == Qt.KeyboardModifier.NoModifier:
             self.field_width_offset += 1 * y_dir
             self.resize3DSegmentationCursor()
-        self.view.camera.redraw_needed = True
+        self._redraw()
 
     def mousePercentOffsetsFromEdges(self, x, y):
         top, bottom, left, right = self.camera_space_drawing_bounds()
