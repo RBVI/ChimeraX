@@ -831,7 +831,8 @@ class PlaneViewer(QWindow):
         v = self.view.drawing
         if self.view.drawing is not self.placeholder_drawing:
             self._remove_axis_from_volume_viewer(volume_viewer, v)
-
+            v.delete()
+            del v
         v = self.model_menu.value.copy()
         self.model_menu.value.expand_single_plane()
         self.model_menu.value.set_display_style('surface')
@@ -892,9 +893,8 @@ class PlaneViewer(QWindow):
 
     def _remove_axis_from_volume_viewer(self, volume_viewer, volume):
         hptable = volume_viewer.thresholds_panel.histogram_table
-        for v in tuple([volume]):
-            if v in hptable:
-                volume_viewer.thresholds_panel.close_histogram_pane(hptable[v])
+        if volume in hptable:
+            volume_viewer.thresholds_panel.close_histogram_pane(hptable[volume])
 
     def _add_axis_to_volume_viewer(self, volume_viewer, volume):
         v = volume
