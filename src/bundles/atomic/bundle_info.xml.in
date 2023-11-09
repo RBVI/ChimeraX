@@ -1,5 +1,5 @@
 <!-- Edit bundle_info.xml.in, not bundle_info.xml; then run make_selectors.py  -->
-<BundleInfo name="ChimeraX-Atomic" version="1.50"
+<BundleInfo name="ChimeraX-Atomic" version="1.51"
             package="chimerax.atomic"
             purePython="false"
             customInit="true"
@@ -127,6 +127,8 @@
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
     <ChimeraXClassifier>Command :: log chains :: General :: show chain info in log</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: combine :: Structure Editing :: copy or combine structure models</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: pseudobond :: Structure Editing :: create a pseudobond</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: pbond :: Structure Editing :: alias of pseudobond</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>
