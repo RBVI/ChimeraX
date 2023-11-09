@@ -363,16 +363,16 @@ class ObjectLabels(Model):
         
         Model.delete(self)
 
-    def _get_model_color(self):
+    def _get_overall_color(self):
         from chimerax.core.colors import most_common_color
         lcolors = [ld.color for ld in self._labels]
         c = most_common_color(lcolors) if lcolors else None
         return c
-    def _set_model_color(self, color):
+    def _set_overall_color(self, color):
         for ld in self._labels:
             ld.color = color
         self.update_labels()
-    model_color = property(_get_model_color, _set_model_color)
+    overall_color = property(_get_overall_color, _set_overall_color)
 
     def labels(self, objects = None):
         if objects is None:

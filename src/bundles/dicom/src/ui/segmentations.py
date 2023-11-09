@@ -63,14 +63,14 @@ class SegmentationListItem(QListWidgetItem):
 
 # Use these enums to populate the dropdowns so that the order is consistent
 class ViewMode(IntEnum):
-    FOUR_UP = 0
+    TWO_BY_TWO = 0
     ORTHOPLANES_OVER_3D = 1
     ORTHOPLANES_BESIDE_3D = 2
     DEFAULT_DESKTOP = 3
     DEFAULT_VR = 4
 
     def __str__(self):
-        if self.name == "FOUR_UP":
+        if self.name == "TWO_BY_TWO":
             return "2 x 2 (desktop)"
         elif self.name == "ORTHOPLANES_OVER_3D":
             return "3D over slices (desktop)"
@@ -623,7 +623,7 @@ class SegmentationTool(ToolInstance):
         if not self.session.ui.main_window.view_layout == "orthoplanes":
             # TODO: if session.ui.vr_active...
             # else: ...
-            if self.settings.default_view == ViewMode.FOUR_UP:
+            if self.settings.default_view == ViewMode.TWO_BY_TWO:
                 run(self.session, "dicom view fourup")
             elif self.settings.default_view == ViewMode.ORTHOPLANES_OVER_3D:
                 run(self.session, "dicom view overunder")
@@ -635,8 +635,6 @@ class SegmentationTool(ToolInstance):
             else:
                 if self.settings.start_vr_automatically:
                     self._start_vr()
-        if self.session.ui.main_window.view_layout == "orthoplanes":
-            self.session.ui.main_window.main_view.register_segmentation_tool(self)
 
         # Do the initial population of the segmentation list
         for model in self.session.models:
@@ -924,8 +922,7 @@ class SegmentationTool(ToolInstance):
         self.active_seg.set_step(step)
 
     def _on_view_changed(self):
-        need_to_register = False
-        if self.view_dropdown.currentIndex() == ViewMode.FOUR_UP:
+        if self.view_dropdown.currentIndex() == ViewMode.TWO_BY_TWO:
             if self.is_vr:
                 self.is_vr = False
                 run(self.session, "vr off")
@@ -999,7 +996,7 @@ class SegmentationTool(ToolInstance):
         elif layout == "overunder":
             self.view_dropdown.setCurrentIndex(ViewMode.ORTHOPLANES_OVER_3D)
         else:
-            self.view_dropdown.setCurrentIndex(ViewMode.FOUR_UP)
+            self.view_dropdown.setCurrentIndex(ViewMode.TWO_BY_TWO)
 
     def _on_show_guidelines_checkbox_changed(self):
         if self.session.ui.main_window.view_layout == "orthoplanes":

@@ -342,7 +342,7 @@ class ModelPanel(ToolInstance):
         event.Skip()
 
     def _model_color(self, model):
-        return model.model_color
+        return model.overall_color
 
     def _process_models(self):
         models = self.session.models.list()

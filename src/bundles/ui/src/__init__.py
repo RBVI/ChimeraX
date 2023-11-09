@@ -17,7 +17,7 @@ ui: ChimeraX user interface
 """
 
 from .htmltool import HtmlToolInstance
-from .font import shrink_font
+from .font import shrink_font, set_line_edit_width
 from .gui import MainToolWindow, initialize_qt, menu_capitalize
 
 from chimerax.core.toolshed import BundleAPI

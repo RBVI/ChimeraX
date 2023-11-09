@@ -620,11 +620,11 @@ class LabelModel(Model):
         return rgba8
 
     @property
-    def model_color(self):
+    def overall_color(self):
         return self.label_color
 
-    @model_color.setter
-    def model_color(self, color):
+    @overall_color.setter
+    def overall_color(self, color):
         label = self.label
         label.color = color
         label.update_drawing()

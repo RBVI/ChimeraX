@@ -320,11 +320,11 @@ class ColorKeyModel(Model):
         self.triggers.activate_trigger("key changed", "rgbas_and_labels")
 
     @property
-    def model_color(self):
+    def overall_color(self):
         return False
 
-    @model_color.setter
-    def model_color(self, val):
+    @overall_color.setter
+    def overall_color(self, val):
         pass
 
     @property
@@ -780,7 +780,11 @@ class ColorKeyModel(Model):
                         proportional = False
             finally:
                 if restore_locale:
-                    locale.setlocale(locale.LC_NUMERIC, local_numeric)
+                    try:
+                        locale.setlocale(locale.LC_NUMERIC, local_numeric)
+                    except locale.Error:
+                        # I know, seems ridiculous, yet ticket #10105
+                        pass
         if not proportional:
             values = range(len(texts))
         if self._color_treatment == self.CT_BLENDED:

@@ -261,18 +261,22 @@ class Model(State, Drawing):
 
     # Drawing._set_scene_position calls _set_positions, so don't need to override
 
-    def _get_model_color(self):
+    def _get_overall_color(self):
         return self.color if self.vertex_colors is None else None
 
-    def _set_model_color(self, color):
+    def _set_overall_color(self, color):
         self.color = color
         self.vertex_colors = None
         self.session.triggers.activate_trigger(MODEL_COLOR_CHANGED, self)
-    model_color = property(_get_model_color, _set_model_color)
+    overall_color = model_color = property(_get_overall_color, _set_overall_color)
     '''
-    Getting the model color may give the dominant color.
-    Setting the model color will set the model to that color.
+    Getting the overall color may give the dominant color.
+    It also might return None (many colors but no dominant color)
+        or False (model does not support [external] coloring, e.g. color key).
+    Setting the overall color will set the model to that color.
     Color values are rgba uint8 arrays.
+    The supported attribute name is 'overall_color'.
+    The 'model_color' attribute is deprecated and only retained for backwards compatibility.
     '''
 
     # Handle undo of color changes
