@@ -91,10 +91,55 @@ def combine_cmd(session, structures, *, close=False, model_id=None, name=None):
     session.models.add([combination])
     return combination
 
+from chimerax.core.colors import BuiltinColors
+def pseudobond_cmd(session, atoms, *, color=BuiltinColors["slate gray"], coordsets=False, dashes=6,
+        global_=False, name="custom", radius=0.075, reveal=False, show_dist=False):
+
+    if len(atoms) != 2:
+        raise UserError("Must specify exactly 2 atoms to form pseudobond between; you specified %d"
+            % len(atoms))
+    a1, a2 = atoms
+
+    if global_ or a1.structure != a2.structure:
+        if coordsets:
+            raise UserError("Cannot create per-coordset pseudobonds for global pseudobond groups")
+        pbg = session.pb_manager.get_group(name, create=True)
+        session.models.add([pbg])
+    else:
+        try:
+            pbg = a1.structure.pseudobond_group(name,
+                create_type=("per coordset" if coordsets else "normal"))
+        except TypeError:
+            raise UserError("Pseudobond group '%s' already exists as a %sper-coordset group"
+                % (name, ("non-" if coordsets else "")))
+    pbg.dashes = dashes
+    pb = pbg.new_pseudobond(a1, a2)
+    pb.color = color.uint8x4()
+    pb.radius = radius
+    if reveal:
+        for end in atoms:
+            if end.display:
+                continue
+            res_atoms = end.residue.atoms
+            if end.is_side_chain:
+                res_atoms.filter(res_atoms.is_side_chains == True).displays = True
+            elif end.is_backbone():
+                res_atoms.filter(res_atoms.is_backbones() == True).displays = True
+            else:
+                res_atoms.displays = True
+    dist_monitor = session.pb_dist_monitor
+    if show_dist:
+        if pbg not in dist_monitor.monitored_groups:
+            dist_monitor.add_group(pbg)
+    else:
+        if pbg in dist_monitor.monitored_groups:
+            dist_monitor.remove_group(pbg)
+
+
 def register_command(logger):
-    from chimerax.core.commands import CmdDesc, register, Or, EmptyArg, StringArg, BoolArg, ModelIdArg, \
-        NoneArg
-    from .args import AtomicStructuresArg
+    from chimerax.core.commands import CmdDesc, register, create_alias, Or, EmptyArg, StringArg, BoolArg, \
+        ModelIdArg, NoneArg, NoArg, ColorArg, NonNegativeIntArg, PositiveFloatArg
+    from .args import AtomicStructuresArg, AtomsArg
 
     chains_desc = CmdDesc(
                         optional = [('structures', Or(AtomicStructuresArg, NoneArg))],
@@ -111,3 +156,19 @@ def register_command(logger):
         ],
         synopsis = 'Copy/combine structure models')
     register('combine', combine_desc, combine_cmd, logger=logger)
+
+    pseudobond_desc = CmdDesc(
+        required=[('atoms', AtomsArg)],
+        keyword=[
+            ('color', ColorArg),
+            ('coordsets', BoolArg),
+            ('dashes', NonNegativeIntArg),
+            ('global_', NoArg),
+            ('name', StringArg),
+            ('radius', PositiveFloatArg),
+            ('reveal', BoolArg),
+            ('show_dist', BoolArg),
+        ],
+        synopsis = 'Create pseudobond')
+    register('pseudobond', pseudobond_desc, pseudobond_cmd, logger=logger)
+    create_alias('pbond', "%s $*" % 'pseudobond', logger=logger, url="help:user/commands/pseudobond.html")
