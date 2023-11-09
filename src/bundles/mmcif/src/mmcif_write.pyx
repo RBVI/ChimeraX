@@ -251,17 +251,28 @@ def _mmcif_chain_id(i):
 
 def _chain_id_ordinal(chain_id):
     value = 0
-    for char in chain_id:
-        ch = ord(char)
-        if ord('A') <= ch <= ord('Z'):
-            v = ch - ord('A')
-        elif ord('a') <= ch <= ord('z'):
-            v = ch - ord('a') + 26
-        elif ord('0') <= ch <= ord('9'):
-            v = ch - ord('0') + 52
-        else:
-            raise ValueError(f"not a legal chain id {chain_id}, only a-z, A-Z, 0-9 allowed")
-        value = value * 62 + v
+    if chain_id.isalnum():
+        # invert _mmcif_chain_id algorithm
+        ord_A = ord('A')
+        ord_Z = ord('Z')
+        ord_a = ord('a')
+        ord_z = ord('z')
+        ord_0 = ord('0')
+        ord_9 = ord('9')
+        for char in chain_id:
+            ch = ord(char)
+            if ord_A <= ch <= ord_Z:
+                v = ch - ord_A
+            elif ord_a <= ch <= ord_z:
+                v = ch - ord_a + 26
+            elif ord_0 <= ch <= ord_9:
+                v = ch - ord_0 + 52
+            else:
+                raise ValueError(f"not a legal chain id {chain_id}, only a-z, A-Z, 0-9 allowed")
+            value = value * 62 + v
+    else:
+        for char in chain_id:
+            value = value * 62 + ord(char)
     return value
 
 
@@ -428,7 +439,9 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
     last_asym_id = 0
 
     def allocate_asym_id(want_id):
+        # asym ids must be identifiers
         nonlocal existing_mmcif_chain_ids, used_mmcif_chain_ids, last_asym_id
+        want_id = ''.join(want_id.split())  # remove whitespace
         if want_id and want_id not in used_mmcif_chain_ids:
             used_mmcif_chain_ids.add(want_id)
             return want_id
