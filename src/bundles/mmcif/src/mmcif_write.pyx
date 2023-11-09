@@ -442,7 +442,9 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
         # asym ids must be identifiers
         nonlocal existing_mmcif_chain_ids, used_mmcif_chain_ids, last_asym_id
         want_id = ''.join(want_id.split())  # remove whitespace
-        if want_id and want_id not in used_mmcif_chain_ids:
+        if not want_id:
+            want_id = '.'
+        if want_id not in used_mmcif_chain_ids:
             used_mmcif_chain_ids.add(want_id)
             return want_id
         while True:
