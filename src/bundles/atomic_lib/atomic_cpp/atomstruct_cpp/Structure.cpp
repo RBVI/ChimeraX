@@ -933,6 +933,7 @@ Structure::_form_chain_check(Atom* a1, Atom* a2, Bond* b)
         } else {
             // incorporate start_r into other_r's chain
             auto other_chain = other_r->chain();
+            other_chain->set_from_seqres(false);
             auto other_index = other_chain->res_map().at(other_r);
             if (other_index == 0 || other_chain->residues()[other_index-1] != nullptr) {
                 if (other_index == 0)
@@ -955,6 +956,7 @@ Structure::_form_chain_check(Atom* a1, Atom* a2, Bond* b)
         if (other_r->chain() == nullptr) {
             // incorporate other_r into start_r's chain
             auto start_chain = start_r->chain();
+            start_chain->set_from_seqres(false);
             auto start_index = start_chain->res_map().at(start_r);
             if (start_index == start_chain->size() - 1
             || start_chain->residues()[start_index+1] != nullptr) {
@@ -977,6 +979,7 @@ Structure::_form_chain_check(Atom* a1, Atom* a2, Bond* b)
             // merge other_r's chain into start_r's chain
             // and demote other_r's chain to a plain sequence
             *start_r->chain() += *other_r->chain();
+            start_r->chain()->set_from_seqres(false);
         } else if (!is_pb) {
             // check if there were missing residues at that sequence position and eliminate any
             auto chain = start_r->chain();

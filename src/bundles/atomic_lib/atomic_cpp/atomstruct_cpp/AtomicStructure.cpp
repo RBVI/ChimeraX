@@ -494,13 +494,16 @@ AtomicStructure::_make_chains() const
                 continue;
             auto& res_map = r1->chain()->res_map();
             if (std::abs((int)(res_map.at(r1) - res_map.at(r2))) < 2) {
+                Real cutoff = r1->polymer_type() == PT_AMINO ?
+                    Residue::TRACE_PROTEIN_DISTSQ_CUTOFF : Residue::TRACE_NUCLEIC_DISTSQ_CUTOFF;
                 if (r1->chain()->from_seqres()) {
-                    // Okay, willing to trust that these are truly consecutive residues...
-                    pb->set_shown_when_atoms_hidden(false);
+                    // Sometimes SEQRES only contain the existing residues despite
+                    // truely missing residues, so do some additional checking
+                    if (pb->sqlength() <= 4 * cutoff)
+                        // Okay, willing to trust that these are truly consecutive residues...
+                        pb->set_shown_when_atoms_hidden(false);
                 } else {
                     // need to check more closely
-                    Real cutoff = r1->polymer_type() == PT_AMINO ?
-                        Residue::TRACE_PROTEIN_DISTSQ_CUTOFF : Residue::TRACE_NUCLEIC_DISTSQ_CUTOFF;
                     if (std::abs(r2->number() - r1->number()) < 2 && pb->sqlength() <= cutoff)
                         pb->set_shown_when_atoms_hidden(false);
                 }
