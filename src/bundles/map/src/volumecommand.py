@@ -464,7 +464,9 @@ def global_settings(kw, include_pickable = False):
         gopt += ('pickable',)
     gsettings = dict((n,kw[n]) for n in gopt if n in kw and kw[n] is not None)
     if 'initial_colors' in gsettings:
-        rgba_list = tuple(tuple(color.rgba) for color in gsettings['initial_colors'])
+        # ChimeraX settings does not save a tuple of numpy.float32, so convert to Python float.
+        rgba_list = tuple(tuple(float(r) for r in color.rgba)
+                          for color in gsettings['initial_colors'])
         gsettings['initial_colors'] = rgba_list
     return gsettings
 
