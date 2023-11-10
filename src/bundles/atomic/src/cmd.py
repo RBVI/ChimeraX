@@ -92,7 +92,7 @@ def combine_cmd(session, structures, *, close=False, model_id=None, name=None):
     return combination
 
 from chimerax.core.colors import BuiltinColors
-def pseudobond_cmd(session, atoms, *, color=BuiltinColors["slate gray"], coordsets=False, dashes=6,
+def pbond_cmd(session, atoms, *, color=BuiltinColors["slate gray"], current_coordset_only=False, dashes=6,
         global_=False, name="custom", radius=0.075, reveal=False, show_dist=False):
 
     if len(atoms) != 2:
@@ -101,17 +101,17 @@ def pseudobond_cmd(session, atoms, *, color=BuiltinColors["slate gray"], coordse
     a1, a2 = atoms
 
     if global_ or a1.structure != a2.structure:
-        if coordsets:
+        if current_coordset_only:
             raise UserError("Cannot create per-coordset pseudobonds for global pseudobond groups")
         pbg = session.pb_manager.get_group(name, create=True)
         session.models.add([pbg])
     else:
         try:
             pbg = a1.structure.pseudobond_group(name,
-                create_type=("per coordset" if coordsets else "normal"))
+                create_type=("per coordset" if current_coordset_only else "normal"))
         except TypeError:
             raise UserError("Pseudobond group '%s' already exists as a %sper-coordset group"
-                % (name, ("non-" if coordsets else "")))
+                % (name, ("non-" if current_coordset_only else "")))
     pbg.dashes = dashes
     pb = pbg.new_pseudobond(a1, a2)
     pb.color = color.uint8x4()
@@ -157,11 +157,11 @@ def register_command(logger):
         synopsis = 'Copy/combine structure models')
     register('combine', combine_desc, combine_cmd, logger=logger)
 
-    pseudobond_desc = CmdDesc(
+    pbond_desc = CmdDesc(
         required=[('atoms', AtomsArg)],
         keyword=[
             ('color', ColorArg),
-            ('coordsets', BoolArg),
+            ('current_coordset_only', BoolArg),
             ('dashes', NonNegativeIntArg),
             ('global_', NoArg),
             ('name', StringArg),
@@ -170,5 +170,4 @@ def register_command(logger):
             ('show_dist', BoolArg),
         ],
         synopsis = 'Create pseudobond')
-    register('pseudobond', pseudobond_desc, pseudobond_cmd, logger=logger)
-    create_alias('pbond', "%s $*" % 'pseudobond', logger=logger, url="help:user/commands/pseudobond.html")
+    register('pbond', pbond_desc, pbond_cmd, logger=logger)
