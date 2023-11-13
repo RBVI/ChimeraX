@@ -685,7 +685,7 @@ PyObject *get_polymer_spline(PyObject *, PyObject *args, PyObject *keywds)
         Residue* r = res_array[i];
         for (auto atom: r->atoms())
             atom->set_in_ribbon(false);
-        Atom *ca = r->find_atom("CA");
+	Atom *ca = (r->polymer_type() == atomstruct::PT_AMINO ? r->find_atom("CA") : NULL);
         if (ca != NULL) {
             // Case 1: amino acid
             centers.push_back(ca);
@@ -724,7 +724,7 @@ PyObject *get_polymer_spline(PyObject *, PyObject *args, PyObject *keywds)
             }
             residue_update_hide(r, ca);
         }
-        else {
+        else if (r->polymer_type() == atomstruct::PT_NUCLEIC) {
             prev_c = NULL;
             // Look for nucleotide
             Atom *a = r->find_atom("C5'");
@@ -749,6 +749,11 @@ PyObject *get_polymer_spline(PyObject *, PyObject *args, PyObject *keywds)
             }
             residue_update_hide(r, anchor);
         }
+	else {
+	  // Not amino acid and not nucleic acid.
+	  r->set_ribbon_display(false);
+	  residue_update_hide(r, NULL);
+	}
     }
 
     // Create Python return value: tuple of (atoms, control points, guide points)
