@@ -84,9 +84,22 @@ class CreateSegmentation3DMouseMode(MouseMode):
             , 1
         )
 
+    def vr_press(self, event):
+        if self.segmentation_tool is None:
+            self.segmentation_tool = self._find_segmentation_tool()
+        if self.segmentation_tool is None:
+            return
+        self.segmentation_tool.set_segmentation_step(2)
+
+    def vr_release(self, event):
+        MouseMode.mouse_up(self, event)
+        if self.segmentation_tool:
+            self.segmentation_tool.set_segmentation_step(1)
+
     def mouse_up(self, event):
         MouseMode.mouse_up(self, event)
-        self.segmentation_tool.set_segmentation_step(1)
+        if self.segmentation_tool:
+            self.segmentation_tool.set_segmentation_step(1)
 
     def vr_motion(self, event):
         c = self.segmentation_tool.segmentation_sphere.scene_position.origin()
@@ -164,7 +177,20 @@ class EraseSegmentation3DMouseMode(MouseMode):
 
     def mouse_up(self, event):
         MouseMode.mouse_up(self, event)
-        self.segmentation_tool.set_segmentation_step(1)
+        if self.segmentation_tool:
+            self.segmentation_tool.set_segmentation_step(1)
+
+    def vr_press(self, event):
+        if self.segmentation_tool is None:
+            self.segmentation_tool = self._find_segmentation_tool()
+        if self.segmentation_tool is None:
+            return
+        self.segmentation_tool.set_segmentation_step(2)
+
+    def vr_release(self, event):
+        MouseMode.mouse_up(self, event)
+        if self.segmentation_tool:
+            self.segmentation_tool.set_segmentation_step(1)
 
     def vr_motion(self, event):
         c = self.segmentation_tool.segmentation_sphere.scene_position.origin()
