@@ -379,8 +379,8 @@ class ConfigFile:
                 str_value = self.PROPERTY_INFO[name].convert_to_string(
                     self._session, value)
             except ValueError:
-                raise UserError("Illegal %s '%s' attribute value (%s), leaving attribute unchanged"
-                    % (self._tool_name, name, repr(value)))
+                raise UserError("Changing saved setting '%s' for tool '%s' to value (%s) that could not be converted to a string, leaving setting unchanged."
+                    % (name, self._tool_name, repr(value)))
             self._config['DEFAULT'][name] = str_value
         if call_save:
             ConfigFile.save(self)
