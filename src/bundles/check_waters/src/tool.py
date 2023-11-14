@@ -303,6 +303,8 @@ class CheckWaterViewer(ToolInstance):
             live_data = [d for d in cur_data if not d.deleted]
             if len(live_data) < len(cur_data):
                 self.res_table.data = live_data
+            if self.check_waters:
+                self.check_waters = [cw for cw in self.check_waters if not cw.deleted]
         for group in self.hbond_groups.values():
             if group.deleted:
                 self.delete()
