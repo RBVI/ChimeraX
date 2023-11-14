@@ -10,6 +10,13 @@ endif
 
 FFMPEG_PREBUILT = ffmpeg-$(FFMPEG_VERSION)-$(OS).exe
 
+ifeq ($(OS),Darwin)
+ifeq ($(MACOS_ARCH),arm64)
+FFMPEG_VERSION = 6.0
+FFMPEG_PREBUILT = ffmpeg-$(FFMPEG_VERSION)-$(OS)-$(MACOS_ARCH).exe
+endif
+endif
+
 # The following variables are from compiling from source code.
 # We no longer do that unless we want to update the source libraries.
 
