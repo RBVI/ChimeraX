@@ -523,6 +523,7 @@ class SegmentationTool(ToolInstance):
             # This will run over all models which may not have DICOM data...
             try:
                 if hasattr(m.data, "dicom_data"):
+                    ok_to_list &= bool(m.data.dicom_data) # SEGs have none
                     ok_to_list &= not m.data.dicom_data.dicom_series.modality == "SEG"
                     ok_to_list &= not m.data.reference_data
             except AttributeError:
