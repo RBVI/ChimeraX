@@ -403,10 +403,10 @@ class SegmentationToolControlsDialog(QDialog):
         self.vr_outer_layout.addStretch(1)
         self.thumbstick_label = QLabel(str(HandAction.RESIZE_CURSOR))
         self.menu_button_label = QLabel("n/a")
-        self.trigger_label = QLabel(str(HandAction.ADD_TO_SEGMENTATION))
+        self.trigger_label = QLabel("n/a")
         self.grip_label = QLabel(str(HandAction.MOVE_CURSOR))
-        self.a_button_label = QLabel(str(HandAction.ERASE_FROM_SEGMENTATION))
-        self.b_button_label = QLabel("n/a")
+        self.a_button_label = QLabel(str(HandAction.ADD_TO_SEGMENTATION))
+        self.b_button_label = QLabel(str(HandAction.ERASE_FROM_SEGMENTATION))
         windows_spacings = [90, 50, 16, 20, 80, 40]
         mac_spacings = [90, 50, 16, 20, 80, 40]
         linux_spacings = [92, 52, 18, 22, 82, 42]
@@ -741,8 +741,8 @@ class SegmentationTool(ToolInstance):
             # TODO
             vr_camera = openxr_camera
             vr_button = openxr_button
-        run(self.session, f'vr button trigger \'create segmentations\' hand { str(self.settings.vr_handedness).lower() }')
-        run(self.session, f'vr button a \'erase segmentations\' hand { str(self.settings.vr_handedness).lower() }')
+        run(self.session, f'vr button b \'erase segmentations\' hand { str(self.settings.vr_handedness).lower() }')
+        run(self.session, f'vr button a \'create segmentations\' hand { str(self.settings.vr_handedness).lower() }')
         run(self.session, f'vr button thumbstick \'resize segmentation cursor\' hand { str(self.settings.vr_handedness).lower() }')
         run(self.session, f'vr button grip \'move segmentation cursor\' hand { str(self.settings.vr_handedness).lower() }')
 
