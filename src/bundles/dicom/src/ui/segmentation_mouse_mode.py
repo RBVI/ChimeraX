@@ -270,6 +270,23 @@ class Resize3DSegmentationSphereMouseMode(MouseMode):
             self.segmentation_tool.segmentation_sphere.radius -= 1
 
     def vr_motion(self, event):
+        if self.segmentation_tool is None:
+            self.segmentation_tool = self._find_segmentation_tool()
+        if self.segmentation_tool is None:
+            return
         c = self.segmentation_tool.segmentation_sphere.scene_position.origin()
         delta_xyz = event.motion*c - c
         self.segmentation_tool.move_sphere(delta_xyz)
+
+    def vr_thumbstick(self, event):
+        # Any positive Y reading indicates pushing up, getting bigger
+        # Any negative Y reading indicates pushing down, getting smaller
+        if self.segmentation_tool is None:
+            self.segmentation_tool = self._find_segmentation_tool()
+        if self.segmentation_tool is None:
+            return
+        d = event.y
+        if d > 0:
+            self.segmentation_tool.segmentation_sphere.radius += 1
+        elif d < 0:
+            self.segmentation_tool.segmentation_sphere.radius -= 1
