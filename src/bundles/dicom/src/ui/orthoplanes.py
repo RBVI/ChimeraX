@@ -403,6 +403,11 @@ class PlaneViewer(QWindow):
             # TODO: Turn on when overlay calculations are correct
             # self.view.background_color = self.main_view.background_color
             self.scale = mvwin.opengl_context.pixel_scale()
+            # We can rely on add_segmentation to set this value except when we're transitioning
+            # from the 3d views back to the 2d view. In that case, we have to do it somewhere
+            # TODO: Idenfity someplace we can do this _once_ and move it out of the render loop
+            for segmentation in self.segmentation_overlays.values():
+                segmentation.slice = self.pos
             # TODO: If the user selects 'surface' then 'orthoplanes' in the volume viewer we should
             # override the default plane locations somehow
             if self.slider_moved:
