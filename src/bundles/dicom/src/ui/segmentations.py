@@ -922,6 +922,7 @@ class SegmentationTool(ToolInstance):
         self.active_seg.set_step(step)
 
     def _on_view_changed(self):
+        need_to_register = False
         if self.view_dropdown.currentIndex() == ViewMode.TWO_BY_TWO:
             if self.is_vr:
                 self.is_vr = False
