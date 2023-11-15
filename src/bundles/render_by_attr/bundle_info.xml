@@ -26,7 +26,7 @@
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>Tool :: Render By Attribute :: Structure Analysis, Depiction :: depict attribute values on structures</ChimeraXClassifier>
+    <ChimeraXClassifier>Tool :: Render by Attribute :: Structure Analysis, Depiction :: depict attribute values on structures</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>
