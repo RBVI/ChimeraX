@@ -446,12 +446,14 @@ class PlaneViewer(QWindow):
 
     def add_segmentation(self, segmentation):
         self.segmentation_overlays[segmentation] = SegmentationOverlay(segmentation.name + "_overlay", segmentation, self.axis)
-        self.view.add_overlay(self.segmentation_overlays[segmentation])
+        self.view.add_segmentation_overlay(self.segmentation_overlays[segmentation])
         self.segmentation_overlays[segmentation].slice = self.pos
+        self._redraw()
 
     def remove_segmentation(self, segmentation):
-        self.view.remove_overlays([self.segmentation_overlays[segmentation]])
+        self.view.remove_segmentation_overlay(self.segmentation_overlays[segmentation])
         del self.segmentation_overlays[segmentation]
+        self._redraw()
 
     def addDrawing(self, drawing):
         self.drawings.append(drawing)
