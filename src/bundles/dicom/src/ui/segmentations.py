@@ -865,11 +865,8 @@ class SegmentationTool(ToolInstance):
         new_seg.set_parameters(surface_levels=[0.501])
         new_seg.set_step(1)
         new_seg.set_transparency(int((self.settings.default_segmentation_opacity / 100) * 255))
-
         num_items = self.segmentation_list.count()
         self.segmentation_list.setCurrentItem(self.segmentation_list.item(num_items - 1))
-        if self.session.ui.main_window.view_layout == "orthoplanes":
-            self.session.ui.main_window.main_view.add_segmentation(new_seg)
 
     def removeSegment(self, segments = None):
         # We don't need to listen to the REMOVE_MODEL trigger because we're going
