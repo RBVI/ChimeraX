@@ -1,0 +1,36 @@
+<BundleInfo name="ChimeraX-vrml" version="1.0"
+	    package="chimerax.vrml"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>Write basic VRML output for 3D color printing</Synopsis>
+  <Description>Write vertex colored VRML output for 3D color printing.</Description>
+
+  <Categories>
+    <Category name="Generic 3D objects"/>
+  </Categories>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version="~=1.0"/>
+    <Dependency name="ChimeraX-Geometry" version="~=1.0"/>
+    <Dependency name="ChimeraX-DataFormats" version="~=1.0"/>
+  </Dependencies>
+
+  <Providers manager="data formats">
+    <Provider name="VRML" category="Generic 3D objects" suffixes=".wrl,.vrml"
+		synopsis="VRML" nicknames="vrml" reference_url="https://en.wikipedia.org/wiki/VRML" />
+  </Providers>
+
+  <Providers manager="save command">
+    <Provider name="VRML" />
+  </Providers>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+  </Classifiers>
+
+</BundleInfo>

@@ -46,7 +46,7 @@ REST_SUBDIRS = add_charge addh alignment_algs alignment_headers \
 	  smooth_lines spacenavigator std_commands \
 	  stl storm struct_measure struts surface swapaa swap_res \
 	  tape_measure task_manager test toolbar topography to_quest tug ui uniprot \
-		unit_cell viewdockx viperdb vive volume_menu vtk wavefront_obj \
+	  unit_cell viewdockx viperdb vive volume_menu vrml vtk wavefront_obj \
 	  webcam webservices zone
 
 ifeq ($(OS),Linux)
