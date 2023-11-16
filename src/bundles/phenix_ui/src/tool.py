@@ -437,7 +437,7 @@ class LaunchFitLoopsTool(ToolInstance):
         layout.setSpacing(1)
 
         centering_widget = QWidget()
-        layout.addWidget(centering_widget, alignment=Qt.AlignCenter, stretch=1)
+        layout.addWidget(centering_widget, alignment=Qt.AlignCenter)
         data_layout = QHBoxLayout()
         data_layout.setSpacing(1)
         centering_widget.setLayout(data_layout)
@@ -453,7 +453,6 @@ class LaunchFitLoopsTool(ToolInstance):
         self.map_menu = ModelMenuButton(session, class_filter=Volume)
         data_layout.addWidget(self.map_menu, alignment=Qt.AlignLeft)
         data_layout.setStretch(data_layout.count(), 1)
-        layout.setStretch(layout.count(), 1)
 
         self.tabs = QTabWidget()
         for tab_name in self.TAB_NAMES:
@@ -461,6 +460,7 @@ class LaunchFitLoopsTool(ToolInstance):
             self.tabs.addTab(tab_widget, tab_name)
         layout.addWidget(self.tabs, alignment=Qt.AlignCenter)
         self.tabs.setCurrentIndex(self.TAB_NAMES.index(self.GAPS_TAB))
+        layout.setStretch(layout.count(), 1)
 
         from Qt.QtWidgets import QDialogButtonBox as qbbox
         self.bbox = bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
@@ -546,7 +546,16 @@ class LaunchFitLoopsTool(ToolInstance):
         self.fg_gap_layout = QVBoxLayout()
         scrolled.setLayout(self.fg_gap_layout)
         fg_layout.addWidget(self.fg_gap_area, alignment=Qt.AlignCenter)
+        fg_layout.setStretch(fg_layout.count(), 1)
         self.fg_gap_area.setHidden(True)
+        self.fg_unk_gaps_disclaimer = disclaimer = QLabel(
+            "Structure has gaps involving UNK residues."
+            "  They have been omitted from above list."
+            "  See Log for more info.")
+        disclaimer.setAlignment(Qt.AlignCenter)
+        disclaimer.setWordWrap(True)
+        disclaimer.setHidden(True)
+        fg_layout.addWidget(disclaimer)
         self.fg_select_area = QWidget()
         select_layout = QHBoxLayout()
         select_layout.setContentsMargins(0,0,0,0)
@@ -571,13 +580,25 @@ class LaunchFitLoopsTool(ToolInstance):
         except KeyError:
             return []
         gaps = []
+        unk_gaps = []
         for pb in pbs:
             a1, a2 = pb.atoms
             r1, r2 = (a1.residue, a2.residue) if a1 < a2 else (a2.residue, a1.residue)
             if r1 == r2:
                 continue
             if r1.polymer_type == r1.PT_AMINO:
-                gaps.append((r1, r2))
+                if r1.name == "UNK" or r2.name == "UNK":
+                    unk_gaps.append((r1, r2))
+                else:
+                    gaps.append((r1, r2))
+        self.fg_unk_gaps_disclaimer.setHidden(not unk_gaps)
+        if unk_gaps:
+            self.session.logger.info("Phenix loop fitting cannot handle gaps involving UNK residues"
+                " and therefore the following gaps have not been included in the dialog's table of gaps:")
+            unk_gaps.sort()
+            self.session.logger.info('<ul>%s</ul>\n' % ('\n'.join(
+                ['<li><a href="cxcmd:view %s%s">%s&rarr;%s</a></li>' % (r1.atomspec, r2.atomspec, r1, r2)
+                for r1, r2 in unk_gaps])), is_html=True)
         gaps.sort()
         return gaps
 
@@ -621,6 +642,7 @@ class LaunchFitLoopsTool(ToolInstance):
             self.fg_message.setText("No structure chosen")
             self.fg_gap_area.setHidden(True)
             self.fg_message.setHidden(False)
+            self.fg_unk_gaps_disclaimer.setHidden(True)
         self.fg_select_area.setHidden(not show_sel_widgets)
 
 class VerifyCenterDialog(QDialog):
