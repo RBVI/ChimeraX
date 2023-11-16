@@ -62,7 +62,8 @@ appropriate suffix will be added to <i>filename</i>.
 </p><p>
 <a name="models"></a>
 Sessions, images, and scenes (most formats) include all contents, but 
-atomic coordinate, <a href="#map">map</a>, <a href="#gltf">GLTF</a>, and VRML
+atomic coordinate, <a href="#map">map</a>, <a href="#gltf">GLTF</a>, and 
+<a href="#vrml">VRML</a>
 saving can be limited to specific models with the <b>models</b> option.
 The <b>models</b> keyword can be omitted if
 <a href="atomspec.html#hierarchy"><i>model-spec</i></a>
@@ -1060,9 +1061,9 @@ target="_blank">Embedding a 3D scene in a web page</a>
 </p>
 <blockquote>
 <a name="center"></a>
-<b>center</b>&nbsp;&nbsp;<i>x,y,z</i>&nbsp;|&nbsp;<b>true</b>&nbsp;|&nbsp;false
+<b>center</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;|&nbsp;<i>x,y,z</i>
 <br>
-The <b>center</b> option applies to GLTF and VRML formats.
+The <b>center</b> option applies to GLTF and <a href="#vrml">VRML</a> formats.
 It allows placing the center of the scene bounding box
 at a specific position in the output file coordinates:
 <ul>
@@ -1135,8 +1136,8 @@ created with <a href="sym.html"><b>sym</b></a> regardless of this option.
 <a name="backfaceCulling"></a>
 <b>backfaceCulling</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
 <br>
-The <b>backfaceCulling</b> option applies to GLTF and VRML formats.
-It indicates whether the file 
+The <b>backfaceCulling</b> option applies to GLTF and
+<a href="#vrml">VRML</a> formats. It indicates whether the file 
 should specify culling the backfaces of surfaces for faster rendering. 
 Setting this option to <b>false</b> allows viewing surfaces from the inside.
 </blockquote>
