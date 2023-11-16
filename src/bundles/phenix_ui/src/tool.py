@@ -750,6 +750,11 @@ def _run_emplace_local_command(session, structure, maps, resolution, center, sho
         resolution, *center, BoolArg.unparse(show_sharpened_map))
     run(session, cmd)
 
+class FitLoopsResultsSettings(Settings):
+    AUTO_SAVE = {
+        'last_advised': None
+    }
+
 class FitLoopsResultsViewer(ToolInstance):
 
     #help = "help:user/tools/waterplacement.html#waterlist"
@@ -836,6 +841,18 @@ class FitLoopsResultsViewer(ToolInstance):
         table.selection_changed.connect(self._new_selection)
         if len(table.data) == 1:
             table.selected = table.data
+        else:
+            if not hasattr(self.__class__, 'settings'):
+                self.__class__.settings = FitLoopsResultsSettings(self.session, "fit loops results")
+            last = self.settings.last_advised
+            from time import time
+            now = self.settings.last_advised = time()
+            if last is None or now - last >= 777700: # about 3 months
+                from Qt.QtWidgets import QMessageBox
+                msg = QMessageBox()
+                msg.setWindowTitle("Table Selection")
+                msg.setText("Select a row in the results table to focus in on that part of the structure")
+                msg.exec()
         return table
 
     def _models_removed_cb(self, trig_name, trig_data):
