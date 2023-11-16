@@ -403,10 +403,10 @@ class SegmentationToolControlsDialog(QDialog):
         self.vr_outer_layout.addStretch(1)
         self.thumbstick_label = QLabel(str(HandAction.RESIZE_CURSOR))
         self.menu_button_label = QLabel("n/a")
-        self.trigger_label = QLabel(str(HandAction.ADD_TO_SEGMENTATION))
+        self.trigger_label = QLabel("n/a")
         self.grip_label = QLabel(str(HandAction.MOVE_CURSOR))
-        self.a_button_label = QLabel(str(HandAction.ERASE_FROM_SEGMENTATION))
-        self.b_button_label = QLabel("n/a")
+        self.a_button_label = QLabel(str(HandAction.ADD_TO_SEGMENTATION))
+        self.b_button_label = QLabel(str(HandAction.ERASE_FROM_SEGMENTATION))
         windows_spacings = [90, 50, 16, 20, 80, 40]
         mac_spacings = [90, 50, 16, 20, 80, 40]
         linux_spacings = [92, 52, 18, 22, 82, 42]
@@ -523,6 +523,7 @@ class SegmentationTool(ToolInstance):
             # This will run over all models which may not have DICOM data...
             try:
                 if hasattr(m.data, "dicom_data"):
+                    ok_to_list &= bool(m.data.dicom_data) # SEGs have none
                     ok_to_list &= not m.data.dicom_data.dicom_series.modality == "SEG"
                     ok_to_list &= not m.data.reference_data
             except AttributeError:
@@ -619,10 +620,14 @@ class SegmentationTool(ToolInstance):
         self.threshold_min = 0
 
         self.model_added_handler = self.session.triggers.add_handler(ADD_MODELS, self._on_model_added_to_session)
+
+        # Keep track of the last layout used so we know whether to add new segmentation
+        # overlays to views when the layout changes
+        self.previous_layout = None
+        self.current_layout = self.settings.default_view
+
         # TODO: VR started trigger
         if not self.session.ui.main_window.view_layout == "orthoplanes":
-            # TODO: if session.ui.vr_active...
-            # else: ...
             if self.settings.default_view == ViewMode.TWO_BY_TWO:
                 run(self.session, "dicom view fourup")
             elif self.settings.default_view == ViewMode.ORTHOPLANES_OVER_3D:
@@ -741,8 +746,8 @@ class SegmentationTool(ToolInstance):
             # TODO
             vr_camera = openxr_camera
             vr_button = openxr_button
-        run(self.session, f'vr button trigger \'create segmentations\' hand { str(self.settings.vr_handedness).lower() }')
-        run(self.session, f'vr button a \'erase segmentations\' hand { str(self.settings.vr_handedness).lower() }')
+        run(self.session, f'vr button b \'erase segmentations\' hand { str(self.settings.vr_handedness).lower() }')
+        run(self.session, f'vr button a \'create segmentations\' hand { str(self.settings.vr_handedness).lower() }')
         run(self.session, f'vr button thumbstick \'resize segmentation cursor\' hand { str(self.settings.vr_handedness).lower() }')
         run(self.session, f'vr button grip \'move segmentation cursor\' hand { str(self.settings.vr_handedness).lower() }')
 
@@ -864,11 +869,8 @@ class SegmentationTool(ToolInstance):
         new_seg.set_parameters(surface_levels=[0.501])
         new_seg.set_step(1)
         new_seg.set_transparency(int((self.settings.default_segmentation_opacity / 100) * 255))
-
         num_items = self.segmentation_list.count()
         self.segmentation_list.setCurrentItem(self.segmentation_list.item(num_items - 1))
-        if self.session.ui.main_window.view_layout == "orthoplanes":
-            self.session.ui.main_window.main_view.add_segmentation(new_seg)
 
     def removeSegment(self, segments = None):
         # We don't need to listen to the REMOVE_MODEL trigger because we're going
@@ -922,6 +924,8 @@ class SegmentationTool(ToolInstance):
         self.active_seg.set_step(step)
 
     def _on_view_changed(self):
+        self.previous_layout = self.current_layout
+        self.current_layout = self.view_dropdown.currentIndex()
         need_to_register = False
         if self.view_dropdown.currentIndex() == ViewMode.TWO_BY_TWO:
             if self.is_vr:
@@ -983,8 +987,9 @@ class SegmentationTool(ToolInstance):
                 self.session.ui.main_window.main_view.register_segmentation_tool(self)
                 if self.guidelines_checkbox.isChecked():
                     self.session.ui.main_window.main_view.toggle_guidelines()
-            for i in range(self.segmentation_list.count()):
-                self.session.ui.main_window.main_view.add_segmentation(self.segmentation_list.item(i).segmentation)
+            if self.previous_layout not in {ViewMode.ORTHOPLANES_BESIDE_3D, ViewMode.ORTHOPLANES_OVER_3D, ViewMode.TWO_BY_TWO}:
+                for i in range(self.segmentation_list.count()):
+                    self.session.ui.main_window.main_view.add_segmentation(self.segmentation_list.item(i).segmentation)
 
     def set_view_dropdown(self, layout):
         if layout == "default":
