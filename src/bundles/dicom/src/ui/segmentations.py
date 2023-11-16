@@ -33,6 +33,8 @@ from chimerax.core.models import Surface, ADD_MODELS, REMOVE_MODELS
 from chimerax.core.tools import ToolInstance
 from chimerax.core.settings import Settings
 
+from chimerax.geometry import Place, translation
+
 from chimerax.map import Volume, VolumeSurface, VolumeImage
 from chimerax.map.volume import open_grids
 
@@ -813,6 +815,8 @@ class SegmentationTool(ToolInstance):
             "Segmentation Sphere"
             , self.session
         )
+        if self.reference_model:
+            self.segmentation_sphere.position = Place(origin = self.reference_model.bounds().center())
 
     def _destroy_3d_segmentation_sphere(self) -> None:
         if self.segmentation_sphere:
@@ -1028,7 +1032,6 @@ class SegmentationTool(ToolInstance):
     def move_sphere(self, delta_xyz):
         sm = self.segmentation_sphere
         dxyz = sm.scene_position.inverse().transform_vector(delta_xyz)	# Transform to sphere local coords.
-        from chimerax.geometry import translation
         sm.position = sm.position * translation(dxyz)
 
     def setSphereRegionToValue(self, origin, radius, value=1):
