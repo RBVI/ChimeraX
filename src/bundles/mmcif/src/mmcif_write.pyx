@@ -947,15 +947,21 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
                         beg_res, end_res = ss_strands[strand]
                         sheet_range_entry(sheet_id, j, beg_res, end_res)
                         strand_map[strand] = (sheet_id, j)
+                bad_dssp = False
                 ss_parallel = ss_data["strands_parallel"]
                 for (first, second) in ss_parallel:
+                    if first not in strand_map or second not in strand_map:
+                        bad_dssp = True
+                        continue
                     parallel = 'parallel' if ss_parallel[(first, second)] else 'anti-parallel'
                     st1 = strand_map[first]
                     st2 = strand_map[second]
                     if st1[0] != st2[0]:
-                        print("old strand order:", st1, st2)
+                        bad_dssp = True
                         continue
                     sheet_order_entry(st1[0], st1[1], st2[1], parallel)
+                if bad_dssp:
+                    session.logger.warning("Bad sheet data.  Please use Help / Report a Bug with this structure.")
 
     struct_conf_data[:] = flattened(struct_conf_data)
     struct_conf.print(file, fixed_width=fixed_width)
