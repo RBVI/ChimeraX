@@ -620,10 +620,14 @@ class SegmentationTool(ToolInstance):
         self.threshold_min = 0
 
         self.model_added_handler = self.session.triggers.add_handler(ADD_MODELS, self._on_model_added_to_session)
+
+        # Keep track of the last layout used so we know whether to add new segmentation
+        # overlays to views when the layout changes
+        self.previous_layout = None
+        self.current_layout = self.settings.default_view
+
         # TODO: VR started trigger
         if not self.session.ui.main_window.view_layout == "orthoplanes":
-            # TODO: if session.ui.vr_active...
-            # else: ...
             if self.settings.default_view == ViewMode.TWO_BY_TWO:
                 run(self.session, "dicom view fourup")
             elif self.settings.default_view == ViewMode.ORTHOPLANES_OVER_3D:
@@ -920,6 +924,8 @@ class SegmentationTool(ToolInstance):
         self.active_seg.set_step(step)
 
     def _on_view_changed(self):
+        self.previous_layout = self.current_layout
+        self.current_layout = self.view_dropdown.currentIndex()
         need_to_register = False
         if self.view_dropdown.currentIndex() == ViewMode.TWO_BY_TWO:
             if self.is_vr:
@@ -981,8 +987,9 @@ class SegmentationTool(ToolInstance):
                 self.session.ui.main_window.main_view.register_segmentation_tool(self)
                 if self.guidelines_checkbox.isChecked():
                     self.session.ui.main_window.main_view.toggle_guidelines()
-            for i in range(self.segmentation_list.count()):
-                self.session.ui.main_window.main_view.add_segmentation(self.segmentation_list.item(i).segmentation)
+            if self.previous_layout not in {ViewMode.ORTHOPLANES_BESIDE_3D, ViewMode.ORTHOPLANES_OVER_3D, ViewMode.TWO_BY_TWO}:
+                for i in range(self.segmentation_list.count()):
+                    self.session.ui.main_window.main_view.add_segmentation(self.segmentation_list.item(i).segmentation)
 
     def set_view_dropdown(self, layout):
         if layout == "default":
