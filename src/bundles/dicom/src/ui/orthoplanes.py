@@ -534,6 +534,7 @@ class PlaneViewer(QWindow):
     def setGuidelineVisibility(self, visibility: bool):
         self.horizontal_slice_overlay.display = visibility
         self.vertical_slice_overlay.display = visibility
+        self.render()
 
     def enableSegmentationOverlays(self):
         self.segmentation_cursor_overlay.display = True
