@@ -67,9 +67,18 @@ class Conservation(DynamicHeaderSequence):
         matrix_names = list(matrices(self.alignment.session).keys())
         matrix_names.append("identity")
         matrix_names.sort(key=matrix_name_key_func)
+        from chimerax.ui.options import EnumOption, SymbolicEnumOption, IntOption, FloatOption
         class Al2coMatrixOption(EnumOption):
             values = matrix_names
-        from chimerax.ui.options import IntOption, FloatOption
+        class Al2coFrequencyOption(SymbolicEnumOption):
+            labels = ["unweighted", "modified Henikoff & Henikoff", "independent counts"]
+            values = list(range(len(labels)))
+        class Al2coConservationOption(SymbolicEnumOption):
+            labels = ["entropy-based", "variance-based", "sum of pairs"]
+            values = list(range(len(labels)))
+        class Al2coTransformOption(SymbolicEnumOption):
+            labels = ["none", "normalization", "adjustment"]
+            values = list(range(len(labels)))
         al2co_option_data = [
             ("frequency estimation method", 'al2co_freq', Al2coFrequencyOption, {},
                 "Method to estimate position-specific amino acid frequencies"),
@@ -146,6 +155,9 @@ class Conservation(DynamicHeaderSequence):
         return 1
 
     def option_data(self):
+        from chimerax.ui.options import EnumOption
+        class ConservationStyleOption(EnumOption):
+            values = Conservation.styles
         return super().option_data() + [ ("style", 'style', ConservationStyleOption, {}, None) ]
 
     def position_color(self, pos):
@@ -339,19 +351,3 @@ class Conservation(DynamicHeaderSequence):
             elif attr_name == "al2co_cons":
                 self.al2co_sop_options_widget.setHidden(new_val != 2)
         self.reevaluate()
-
-from chimerax.ui.options import EnumOption, SymbolicEnumOption
-class ConservationStyleOption(EnumOption):
-    values = Conservation.styles
-
-class Al2coFrequencyOption(SymbolicEnumOption):
-    labels = ["unweighted", "modified Henikoff & Henikoff", "independent counts"]
-    values = list(range(len(labels)))
-
-class Al2coConservationOption(SymbolicEnumOption):
-    labels = ["entropy-based", "variance-based", "sum of pairs"]
-    values = list(range(len(labels)))
-
-class Al2coTransformOption(SymbolicEnumOption):
-    labels = ["none", "normalization", "adjustment"]
-    values = list(range(len(labels)))
