@@ -290,7 +290,7 @@ class ToQuest(ToolInstance):
         filename = self._scene_filename
         filename_bytes = bytes(filename, 'utf-8')
         from chimerax.gltf import write_gltf
-        contents = write_gltf(self.session)
+        contents = write_gltf(self.session, center=False)
         data = (bytes(send_prefix, 'utf-8')
                 + len(filename_bytes).to_bytes(4, 'little') + filename_bytes
                 + len(contents).to_bytes(4, 'little') + contents)
