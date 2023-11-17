@@ -591,15 +591,16 @@ class ModellerWebJob(CxServicesJob):
                     logger.info("<br><b>Modeller run output</b>", is_html=True)
                     logger.info(stdout)
                     logger.error("No output models from Modeller; see log for Modeller text output.")
-            def get_pdb_model(fname):
-                from io import StringIO
-                try:
-                    pdb_text = self.get_file(fname)
-                except KeyError:
-                    raise RuntimeError("Could not find Modeller out PDB %s on server" % fname)
-                from chimerax.pdb import open_pdb
-                return open_pdb(self.session, StringIO(pdb_text), fname)[0][0]
-            self.caller.process_ok_models(model_info, get_pdb_model)
+            else:
+                def get_pdb_model(fname):
+                    from io import StringIO
+                    try:
+                        pdb_text = self.get_file(fname)
+                    except KeyError:
+                        raise RuntimeError("Could not find Modeller out PDB %s on server" % fname)
+                    from chimerax.pdb import open_pdb
+                    return open_pdb(self.session, StringIO(pdb_text), fname)[0][0]
+                self.caller.process_ok_models(model_info, get_pdb_model)
         self.caller = None
 
 class ModellerLocal(RunModeller):
