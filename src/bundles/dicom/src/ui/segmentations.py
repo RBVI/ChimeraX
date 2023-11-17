@@ -750,6 +750,7 @@ class SegmentationTool(ToolInstance):
             vr_button = openxr_button
         run(self.session, f'vr button b \'erase segmentations\' hand { str(self.settings.vr_handedness).lower() }')
         run(self.session, f'vr button a \'create segmentations\' hand { str(self.settings.vr_handedness).lower() }')
+        run(self.session, f'vr button x \'toggle segmentation visibility\' hand left')
         run(self.session, f'vr button thumbstick \'resize segmentation cursor\' hand { str(self.settings.vr_handedness).lower() }')
         run(self.session, f'vr button grip \'move segmentation cursor\' hand { str(self.settings.vr_handedness).lower() }')
 
@@ -761,6 +762,8 @@ class SegmentationTool(ToolInstance):
             run(self.session, f'vr button thumbstick {self.old_hand_modes["thumbstick"]}')
             run(self.session, f'vr button grip {self.old_hand_modes["grip"]}')
             run(self.session, f'vr button a {self.old_hand_modes["a"]}')
+            run(self.session, f'vr button b {self.old_hand_modes["b"]}')
+            run(self.session, f'vr button x {self.old_hand_modes["x"]}')
         self.hand_modes_changed = False
 
     def _start_vr(self):
@@ -913,6 +916,12 @@ class SegmentationTool(ToolInstance):
             self.active_seg.active = True
         if self.session.ui.main_window.view_layout == "orthoplanes":
             self.session.ui.main_window.main_view.redraw_all()
+
+    def hide_active_segmentation(self):
+        self.active_seg.display = False
+
+    def show_active_segmentation(self):
+        self.active_seg.display = True
 
     def _on_active_segmentation_changed(self, new, prev):
         if new:
