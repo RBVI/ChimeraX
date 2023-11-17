@@ -28,8 +28,14 @@ class _DICOMBundle(BundleAPI):
         """Register file formats, commands, and database fetch."""
         add_map_format(session, DICOMMapFormat())
         if session.ui.is_gui:
-            from .ui.segmentation_mouse_mode import CreateSegmentation3DMouseMode, EraseSegmentation3DMouseMode, Move3DSegmentationSphereMouseMode, Resize3DSegmentationSphereMouseMode
-            for mode in [CreateSegmentation3DMouseMode, EraseSegmentation3DMouseMode, Move3DSegmentationSphereMouseMode, Resize3DSegmentationSphereMouseMode]:
+            from .ui.segmentation_mouse_mode import (
+                CreateSegmentation3DMouseMode, EraseSegmentation3DMouseMode, Move3DSegmentationSphereMouseMode
+                , Resize3DSegmentationSphereMouseMode, Toggle3DSegmentationVisibilityMouseMode
+            )
+            for mode in [
+                CreateSegmentation3DMouseMode, EraseSegmentation3DMouseMode, Move3DSegmentationSphereMouseMode
+                , Resize3DSegmentationSphereMouseMode, Toggle3DSegmentationVisibilityMouseMode
+            ]:
                 session.ui.mouse_modes.add_mode(mode(session))
 
     @staticmethod
