@@ -930,12 +930,12 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
         with best_m.suppress_ss_change_notifications():
             from chimerax.dssp import compute_ss
             ss_data = compute_ss(best_m, return_values=True)
-            # helix_info = ss_data["helix_info"]
-            # if helix_info:
-            #     for (beg_res, end_res), htype in helix_info:
-            #         # Helix type is always HELX_P in current PDB entries
-            #         helix_count += 1
-            #         struct_conf_entry('HELX%d' % helix_count, "HELX_P", beg_res, end_res)
+            helix_info = ss_data["helix_info"]
+            if helix_count == 0 and helix_info:
+                for (beg_res, end_res), htype in helix_info:
+                    # Helix type is always HELX_P in current PDB entries
+                    helix_count += 1
+                    struct_conf_entry('HELX%d' % helix_count, "HELX_P", beg_res, end_res)
             ss_sheets = ss_data["sheets"]
             if ss_sheets:
                 from pprintpp import pprint  # DEBUG
