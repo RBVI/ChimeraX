@@ -49,7 +49,7 @@ from .colorgeom import color_radial, color_cylindrical, color_height
 from .colorvol import color_sample, color_electrostatic, color_gradient, color_surfaces_by_map_value
 from .combine import combine_geometry, combine_geometry_vnt, combine_geometry_vntc
 from .combine import combine_geometry_xvnt, combine_geometry_vtp
-from .combine import combine_geometry_xvntctp, combine_geometry_vte
+from .combine import combine_geometry_xvntctp, combine_geometry_vtc, combine_geometry_vte
 from .surfacecmds import surface, surface_show_patches, surface_hide_patches
 from .sop import surface_zone
 
