@@ -87,7 +87,7 @@ def angle(session, objects, degrees=None, *, move="small"):
     all_simples = simples + list(atoms)
     if degrees is None:
         # report value
-        arg_error_msg = "Must specify exactly 3 atoms/centroids or two measurable objects" \
+        arg_error_msg = "Must specify 3 or 4 atoms/centroids or two measurable objects" \
             " (e.g. axes/planes)"
         if complexes:
             if len(complexes) != 2:
@@ -99,19 +99,23 @@ def angle(session, objects, degrees=None, *, move="small"):
                 raise LimitationError("Don't know how to measure angle between %s and %s" % tuple(complexes))
             participants = complexes
         else:
-            if len(all_simples) != 3:
-                raise UserError(arg_error_msg)
-            if len(atoms) == 3:
+            if len(atoms) in (3,4) and len(simples) == 0:
                 participants = atoms
-            else:
+            elif len(all_simples) in (3,4):
                 # Have to order the non-atoms correctly among the atoms
                 model_order = { m:i for i, m in enumerate(objects.models) }
                 from chimerax.atomic import Atom
                 all_simples.sort(key=lambda s, atoms=atoms, mo=model_order:
                     (mo[s.structure], atoms.index(s)) if isinstance(s, Atom) else (mo[s], 0))
                 participants = all_simple
+            else:
+                raise UserError(arg_error_msg)
+            points = tuple(x.scene_coord for x in participants)
             from chimerax import geometry
-            angle = geometry.angle(*(x.scene_coord for x in participants))
+            if len(points) == 3:
+                angle = geometry.angle(points[0]-points[1], points[2]-points[1])
+            elif len(points) == 4:
+                angle = geometry.angle(points[1]-points[0], points[3]-points[2])
         from chimerax.core.commands import commas
         session.logger.info("Angle between %s: %.3f" % (commas([str(p) for p in participants],
             conjunction="and"), angle))
