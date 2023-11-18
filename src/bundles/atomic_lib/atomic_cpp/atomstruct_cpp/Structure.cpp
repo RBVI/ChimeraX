@@ -891,7 +891,7 @@ Structure::_form_chain_check(Atom* a1, Atom* a2, Bond* b)
     if (_copying_or_restoring)
         return;
     // If initial construction is over (i.e. Python instance exists) and _make_chains()
-    // has been called (i.e. _chain_made is true), then need to check if new bond
+    // has been called (i.e. _chains_made is true), then need to check if new bond
     // or missing-structure pseudobond creates a chain or coalesces chain fragments
     if (!_chains_made)
         return;
@@ -1063,10 +1063,12 @@ Structure::delete_bond(Bond *b)
     if (i == _bonds.end())
         throw std::invalid_argument("delete_bond called for Bond not in Structure");
     auto db = DestructionBatcher(this);
-    // for backbone bonds, create missing-structure pseudobonds
+    // Once chains have been made, for backbone bonds create missing-structure pseudobonds.
+    // Prior to chains being made, bond deletions that should result in missing structure
+    // will have to create those pseudobonds "by hand".
     // if the criteria for adding the pseudobond is changed, the code in pdb_lib/connect_cpp/connect.cpp
     // in find_missing_structure_bonds for deleting bonds will have to be changed
-    if (b->is_backbone()) {
+    if (_chains_made && b->is_backbone()) {
         auto pbg = _pb_mgr.get_group(PBG_MISSING_STRUCTURE, AS_PBManager::GRP_NORMAL);
         pbg->new_pseudobond(b->atoms()[0], b->atoms()[1]);
     }
