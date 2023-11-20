@@ -298,9 +298,9 @@ class Resize3DSegmentationSphereMouseMode(MouseMode):
             return
         d = event.wheel_value()
         if d > 0:
-            self.segmentation_tool.segmentation_sphere.radius += 1
+            self.segmentation_tool.segmentation_sphere.radius += 0.25
         elif d < 0:
-            self.segmentation_tool.segmentation_sphere.radius -= 1
+            self.segmentation_tool.segmentation_sphere.radius -= 0.25
 
     def vr_motion(self, event):
         if self.segmentation_tool is None:
@@ -320,6 +320,6 @@ class Resize3DSegmentationSphereMouseMode(MouseMode):
             return
         d = event.y
         if d > 0:
-            self.segmentation_tool.segmentation_sphere.radius += 1
+            self.segmentation_tool.segmentation_sphere.radius += 0.25
         elif d < 0:
-            self.segmentation_tool.segmentation_sphere.radius -= 1
+            self.segmentation_tool.segmentation_sphere.radius -= 0.25
