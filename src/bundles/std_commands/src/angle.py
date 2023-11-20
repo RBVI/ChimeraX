@@ -81,7 +81,9 @@ def angle(session, objects, degrees=None, *, move="small"):
     Report/set angle between three atoms or two objects.
     '''
     from chimerax.core.errors import UserError, LimitationError
-    simples = [m for m in objects.models if isinstance(m, SimpleMeasurable)]
+    from chimerax.atomic import Atom, Structure
+    simples = [m for m in objects.models
+        if isinstance(m, SimpleMeasurable) and not isinstance(m, Structure)]
     complexes = [m for m in objects.models if isinstance(m, ComplexMeasurable)]
     atoms = objects.atoms
     all_simples = simples + list(atoms)
@@ -104,7 +106,6 @@ def angle(session, objects, degrees=None, *, move="small"):
             elif len(all_simples) in (3,4):
                 # Have to order the non-atoms correctly among the atoms
                 model_order = { m:i for i, m in enumerate(objects.models) }
-                from chimerax.atomic import Atom
                 all_simples.sort(key=lambda s, atoms=atoms, mo=model_order:
                     (mo[s.structure], atoms.index(s)) if isinstance(s, Atom) else (mo[s], 0))
                 participants = all_simple
