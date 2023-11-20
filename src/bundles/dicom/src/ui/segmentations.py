@@ -622,6 +622,7 @@ class SegmentationTool(ToolInstance):
         self.threshold_min = 0
 
         self.model_added_handler = self.session.triggers.add_handler(ADD_MODELS, self._on_model_added_to_session)
+        self.model_closed_handler = self.session.triggers.add_handler(REMOVE_MODELS, self._on_model_removed_from_session)
 
         # Keep track of the last layout used so we know whether to add new segmentation
         # overlays to views when the layout changes
@@ -686,8 +687,25 @@ class SegmentationTool(ToolInstance):
                     if self.session.ui.main_window.view_layout == "orthoplanes":
                         self.session.ui.main_window.main_view.add_segmentation(model)
 
+    def _on_model_removed_from_session(self, *args):
+        # If this model is a DICOM segmentation, add it to the list of segmentations
+        _, model_list = args
+        if model_list:
+            for model in model_list:
+                for row in range(self.segmentation_list.count()):
+                    item = self.segmentation_list.item(row)
+                    if item.segmentation == model:
+                        seg_item = self.segmentation_list.takeItem(row)
+                        segments = [seg_item.segmentation]
+                        seg_item.segmentation = None
+                        del seg_item
+                        if self.session.ui.main_window.view_layout == "orthoplanes":
+                            self.session.ui.main_window.main_view.remove_segmentation(model)
+                        break
+
     def delete(self):
         self.session.triggers.remove_handler(self.model_added_handler)
+        self.session.triggers.remove_handler(self.model_removed_handler)
         # TODO: Restore old mouse modes if necessary
         if self.session.ui.main_window.view_layout == "orthoplanes":
             self.session.ui.main_window.main_view.clear_segmentation_tool()
