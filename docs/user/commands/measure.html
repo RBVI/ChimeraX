@@ -496,6 +496,7 @@ the new model will be a submodel of <i>surf-model</i>.
 &nbsp;<i>model1</i>&nbsp; <b>toModel</b> &nbsp;<i>model2</i>&nbsp;
 [&nbsp;<b>coordinateSystem</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
 [&nbsp;<b>showAxis</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>axisType</b>&nbsp;&nbsp;<b>markers</b>&nbsp;|&nbsp;object&nbsp;]
 [&nbsp;<b>showSlabs</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>length</b>&nbsp;&nbsp;<i>d</i>&nbsp;]
 [&nbsp;<b>radius</b>&nbsp;&nbsp;<i>r</i>&nbsp;]
@@ -534,13 +535,18 @@ is recommended instead.
 The transformation is expressed in the coordinate system of <i>model2</i>
 unless specified otherwise with the <b>coordinateSystem</b> option.
 If <b>showAxis</b> is <b>true</b> (default), a
-<a href="../markers.html">marker model</a> showing the axis as a rod
+model showing the axis as a rod
 will be created, with the specified <b>length</b>
 (default the largest dimension of the bounding box of the displayed part
 of <i>model2</i>), <b>radius</b> (default 2.5% of the length), and <b>color</b>
 (default <b>#d2d264</b> <table border cellpadding="4" cellspacing="0"
 style="display:inline-block; vertical-align:middle"><tr>
 <td bgcolor="#d2d264" width="10px" title="#d2d264"></td></tr></table>).
+The <b>axisType</b> option specifies whether the axis should be created as a
+<a href="../markers.html">marker model</a> (default) or as an
+<a href="../tools/axesplanes.html#define-axes">axis</a> object
+(such as could be used to <a href="view.html#initial">reorient the view</a>
+or in various <a href="../measurements.html">measurements</a>).
 If <b>showSlabs</b> is <b>true</b> (default <b>false</b>), two rectangular
 slabs showing the rotation axis and angle and the shift will be created
 as surface models, with the specified <b>length</b>
@@ -750,5 +756,5 @@ has the same axes and moments as the measured surface.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-October 2022</address>
+November 2023</address>
 </body></html>
