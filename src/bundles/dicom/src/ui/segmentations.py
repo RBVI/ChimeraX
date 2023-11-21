@@ -709,7 +709,7 @@ class SegmentationTool(ToolInstance):
 
     def delete(self):
         self.session.triggers.remove_handler(self.model_added_handler)
-        self.session.triggers.remove_handler(self.model_removed_handler)
+        self.session.triggers.remove_handler(self.model_closed_handler)
         # TODO: Restore old mouse modes if necessary
         if self.session.ui.main_window.view_layout == "orthoplanes":
             self.session.ui.main_window.main_view.clear_segmentation_tool()
