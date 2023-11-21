@@ -622,6 +622,7 @@ class SegmentationTool(ToolInstance):
         self.threshold_min = 0
 
         self.model_added_handler = self.session.triggers.add_handler(ADD_MODELS, self._on_model_added_to_session)
+        self.model_closed_handler = self.session.triggers.add_handler(REMOVE_MODELS, self._on_model_removed_from_session)
 
         # Keep track of the last layout used so we know whether to add new segmentation
         # overlays to views when the layout changes
@@ -686,8 +687,25 @@ class SegmentationTool(ToolInstance):
                     if self.session.ui.main_window.view_layout == "orthoplanes":
                         self.session.ui.main_window.main_view.add_segmentation(model)
 
+    def _on_model_removed_from_session(self, *args):
+        # If this model is a DICOM segmentation, add it to the list of segmentations
+        _, model_list = args
+        if model_list:
+            for model in model_list:
+                for row in range(self.segmentation_list.count()):
+                    item = self.segmentation_list.item(row)
+                    if item.segmentation == model:
+                        seg_item = self.segmentation_list.takeItem(row)
+                        segments = [seg_item.segmentation]
+                        seg_item.segmentation = None
+                        del seg_item
+                        if self.session.ui.main_window.view_layout == "orthoplanes":
+                            self.session.ui.main_window.main_view.remove_segmentation(model)
+                        break
+
     def delete(self):
         self.session.triggers.remove_handler(self.model_added_handler)
+        self.session.triggers.remove_handler(self.model_removed_handler)
         # TODO: Restore old mouse modes if necessary
         if self.session.ui.main_window.view_layout == "orthoplanes":
             self.session.ui.main_window.main_view.clear_segmentation_tool()
@@ -750,6 +768,7 @@ class SegmentationTool(ToolInstance):
             vr_button = openxr_button
         run(self.session, f'vr button b \'erase segmentations\' hand { str(self.settings.vr_handedness).lower() }')
         run(self.session, f'vr button a \'create segmentations\' hand { str(self.settings.vr_handedness).lower() }')
+        run(self.session, f'vr button x \'toggle segmentation visibility\' hand left')
         run(self.session, f'vr button thumbstick \'resize segmentation cursor\' hand { str(self.settings.vr_handedness).lower() }')
         run(self.session, f'vr button grip \'move segmentation cursor\' hand { str(self.settings.vr_handedness).lower() }')
 
@@ -761,6 +780,8 @@ class SegmentationTool(ToolInstance):
             run(self.session, f'vr button thumbstick {self.old_hand_modes["thumbstick"]}')
             run(self.session, f'vr button grip {self.old_hand_modes["grip"]}')
             run(self.session, f'vr button a {self.old_hand_modes["a"]}')
+            run(self.session, f'vr button b {self.old_hand_modes["b"]}')
+            run(self.session, f'vr button x {self.old_hand_modes["x"]}')
         self.hand_modes_changed = False
 
     def _start_vr(self):
@@ -913,6 +934,12 @@ class SegmentationTool(ToolInstance):
             self.active_seg.active = True
         if self.session.ui.main_window.view_layout == "orthoplanes":
             self.session.ui.main_window.main_view.redraw_all()
+
+    def hide_active_segmentation(self):
+        self.active_seg.display = False
+
+    def show_active_segmentation(self):
+        self.active_seg.display = True
 
     def _on_active_segmentation_changed(self, new, prev):
         if new:

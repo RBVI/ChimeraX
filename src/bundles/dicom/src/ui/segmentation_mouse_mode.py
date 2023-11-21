@@ -240,6 +240,39 @@ class Move3DSegmentationSphereMouseMode(MouseMode):
         delta_xyz = event.motion*c - c
         self.segmentation_tool.move_sphere(delta_xyz)
 
+class Toggle3DSegmentationVisibilityMouseMode(MouseMode):
+    name = 'toggle segmentation visibility'
+    #icon_path = 
+
+    def __init__(self, session):
+        MouseMode.__init__(self, session)
+        self.segmentaiton_tool = None
+     
+    def enable(self):
+        self.segmentation_tool = self._find_segmentation_tool()
+
+    def _find_segmentation_tool(self):
+        for tool in self.session.tools:
+            if isinstance(tool, SegmentationTool):
+                return tool
+        return None
+    
+    def vr_press(self, event):
+        if self.segmentation_tool is None:
+            self.segmentation_tool = self._find_segmentation_tool()
+        if self.segmentation_tool is None:
+            return
+        self.segmentation_tool.hide_active_segmentation()
+ 
+ 
+    def vr_release(self, event):
+        if self.segmentation_tool is None:
+            self.segmentation_tool = self._find_segmentation_tool()
+        if self.segmentation_tool is None:
+            return
+        self.segmentation_tool.show_active_segmentation()
+ 
+       
 
 class Resize3DSegmentationSphereMouseMode(MouseMode):
     name = 'resize segmentation cursor'
@@ -265,9 +298,9 @@ class Resize3DSegmentationSphereMouseMode(MouseMode):
             return
         d = event.wheel_value()
         if d > 0:
-            self.segmentation_tool.segmentation_sphere.radius += 1
+            self.segmentation_tool.segmentation_sphere.radius += 0.25
         elif d < 0:
-            self.segmentation_tool.segmentation_sphere.radius -= 1
+            self.segmentation_tool.segmentation_sphere.radius -= 0.25
 
     def vr_motion(self, event):
         if self.segmentation_tool is None:
@@ -287,6 +320,6 @@ class Resize3DSegmentationSphereMouseMode(MouseMode):
             return
         d = event.y
         if d > 0:
-            self.segmentation_tool.segmentation_sphere.radius += 1
+            self.segmentation_tool.segmentation_sphere.radius += 0.25
         elif d < 0:
-            self.segmentation_tool.segmentation_sphere.radius -= 1
+            self.segmentation_tool.segmentation_sphere.radius -= 0.25
