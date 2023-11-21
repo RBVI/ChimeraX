@@ -840,7 +840,7 @@ class PlaneViewer(QWindow):
                 volume_viewer = tool
         v = self.view.drawing
         if self.view.drawing is not self.placeholder_drawing:
-            self._remove_axis_from_volume_viewer(volume_viewer, v)
+            self._remove_axis_from_volume_viewer(volume_viewer, v.parent)
             v.delete()
             del v
         v = self.model_menu.value.copy()

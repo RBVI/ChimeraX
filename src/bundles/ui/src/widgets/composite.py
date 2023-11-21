@@ -32,7 +32,7 @@ def button_row(parent, name_and_callback_list,
         l = QLabel(label, f)
         layout.addWidget(l)
 #    l.setStyleSheet('QLabel { background-color: pink;}')
-    
+
     buttons = []
     for name, callback in name_and_callback_list:
         b = QPushButton(name, f)
@@ -195,7 +195,7 @@ class NumberEntry:
     @property
     def widget(self):
         return self._line_edit
-                
+
 class IntegerEntry(NumberEntry):
     pass
 
@@ -282,7 +282,7 @@ class CollapsiblePanel(QWidget):
             b.setChecked(False)
             b.clicked.connect(self.toggle_panel_display)
         self.toggle_button = b
-        
+
 #        c.setStyleSheet("QFrame { background-color: white; border: none; }")
         c.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         # start out collapsed
@@ -301,7 +301,7 @@ class CollapsiblePanel(QWidget):
     @property
     def shown(self):
         return self.content_area.maximumHeight() > 0
-    
+
     def toggle_panel_display(self, checked = None):
         if checked is None:
             checked = not self.shown
@@ -370,11 +370,11 @@ class ModelMenu:
         class_filter = None if model_types is None else tuple(model_types)
         filter_func = (lambda model: True) if model_filter is None else model_filter
         from chimerax.ui.widgets import ModelMenuButton
-        sm = ModelMenuButton(session, autoselect = autoselect, class_filter = class_filter,
+        sm = ModelMenuButton(session, class_filter = class_filter,
                              filter_func = filter_func,
                              special_items = special_items, parent = f, **kwargs)
         self._menu = sm
-        
+
         mlist = [m for m in session.models.list(type = class_filter) if filter_func(m)]
         mdisp = [m for m in mlist if m.visible]
         if mdisp:
