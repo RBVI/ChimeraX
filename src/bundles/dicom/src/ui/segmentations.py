@@ -33,6 +33,8 @@ from chimerax.core.models import Surface, ADD_MODELS, REMOVE_MODELS
 from chimerax.core.tools import ToolInstance
 from chimerax.core.settings import Settings
 
+from chimerax.geometry import Place, translation
+
 from chimerax.map import Volume, VolumeSurface, VolumeImage
 from chimerax.map.volume import open_grids
 
@@ -403,10 +405,10 @@ class SegmentationToolControlsDialog(QDialog):
         self.vr_outer_layout.addStretch(1)
         self.thumbstick_label = QLabel(str(HandAction.RESIZE_CURSOR))
         self.menu_button_label = QLabel("n/a")
-        self.trigger_label = QLabel(str(HandAction.ADD_TO_SEGMENTATION))
+        self.trigger_label = QLabel("n/a")
         self.grip_label = QLabel(str(HandAction.MOVE_CURSOR))
-        self.a_button_label = QLabel(str(HandAction.ERASE_FROM_SEGMENTATION))
-        self.b_button_label = QLabel("n/a")
+        self.a_button_label = QLabel(str(HandAction.ADD_TO_SEGMENTATION))
+        self.b_button_label = QLabel(str(HandAction.ERASE_FROM_SEGMENTATION))
         windows_spacings = [90, 50, 16, 20, 80, 40]
         mac_spacings = [90, 50, 16, 20, 80, 40]
         linux_spacings = [92, 52, 18, 22, 82, 42]
@@ -523,6 +525,7 @@ class SegmentationTool(ToolInstance):
             # This will run over all models which may not have DICOM data...
             try:
                 if hasattr(m.data, "dicom_data"):
+                    ok_to_list &= bool(m.data.dicom_data) # SEGs have none
                     ok_to_list &= not m.data.dicom_data.dicom_series.modality == "SEG"
                     ok_to_list &= not m.data.reference_data
             except AttributeError:
@@ -611,7 +614,6 @@ class SegmentationTool(ToolInstance):
         self.tool_window.manage('side')
         self.segmentation_cursors = {}
         self.segmentation_sphere = None
-        self._create_2d_segmentation_pucks()
         self.segmentations = {}
         self.current_segmentation = None
         self.reference_model = None
@@ -619,20 +621,30 @@ class SegmentationTool(ToolInstance):
         self.threshold_min = 0
 
         self.model_added_handler = self.session.triggers.add_handler(ADD_MODELS, self._on_model_added_to_session)
+        self.model_closed_handler = self.session.triggers.add_handler(REMOVE_MODELS, self._on_model_removed_from_session)
+
+        # Keep track of the last layout used so we know whether to add new segmentation
+        # overlays to views when the layout changes
+        self.previous_layout = None
+        self.current_layout = self.settings.default_view
+
         # TODO: VR started trigger
         if not self.session.ui.main_window.view_layout == "orthoplanes":
-            # TODO: if session.ui.vr_active...
-            # else: ...
             if self.settings.default_view == ViewMode.TWO_BY_TWO:
+                self._create_2d_segmentation_pucks()
                 run(self.session, "dicom view fourup")
             elif self.settings.default_view == ViewMode.ORTHOPLANES_OVER_3D:
+                self._create_2d_segmentation_pucks()
                 run(self.session, "dicom view overunder")
             elif self.settings.default_view == ViewMode.ORTHOPLANES_BESIDE_3D:
+                self._create_2d_segmentation_pucks()
                 run(self.session, "dicom view sidebyside")
             elif self.settings.default_view == ViewMode.DEFAULT_DESKTOP:
+                self._create_3d_segmentation_sphere()
                 if self.settings.set_mouse_modes_automatically:
                     self._set_3d_mouse_modes()
             else:
+                self._create_3d_segmentation_sphere()
                 if self.settings.start_vr_automatically:
                     self._start_vr()
 
@@ -679,8 +691,25 @@ class SegmentationTool(ToolInstance):
                     if self.session.ui.main_window.view_layout == "orthoplanes":
                         self.session.ui.main_window.main_view.add_segmentation(model)
 
+    def _on_model_removed_from_session(self, *args):
+        # If this model is a DICOM segmentation, add it to the list of segmentations
+        _, model_list = args
+        if model_list:
+            for model in model_list:
+                for row in range(self.segmentation_list.count()):
+                    item = self.segmentation_list.item(row)
+                    if item.segmentation == model:
+                        seg_item = self.segmentation_list.takeItem(row)
+                        segments = [seg_item.segmentation]
+                        seg_item.segmentation = None
+                        del seg_item
+                        if self.session.ui.main_window.view_layout == "orthoplanes":
+                            self.session.ui.main_window.main_view.remove_segmentation(model)
+                        break
+
     def delete(self):
         self.session.triggers.remove_handler(self.model_added_handler)
+        self.session.triggers.remove_handler(self.model_removed_handler)
         # TODO: Restore old mouse modes if necessary
         if self.session.ui.main_window.view_layout == "orthoplanes":
             self.session.ui.main_window.main_view.clear_segmentation_tool()
@@ -741,8 +770,9 @@ class SegmentationTool(ToolInstance):
             # TODO
             vr_camera = openxr_camera
             vr_button = openxr_button
-        run(self.session, f'vr button trigger \'create segmentations\' hand { str(self.settings.vr_handedness).lower() }')
-        run(self.session, f'vr button a \'erase segmentations\' hand { str(self.settings.vr_handedness).lower() }')
+        run(self.session, f'vr button b \'erase segmentations\' hand { str(self.settings.vr_handedness).lower() }')
+        run(self.session, f'vr button a \'create segmentations\' hand { str(self.settings.vr_handedness).lower() }')
+        run(self.session, f'vr button x \'toggle segmentation visibility\' hand left')
         run(self.session, f'vr button thumbstick \'resize segmentation cursor\' hand { str(self.settings.vr_handedness).lower() }')
         run(self.session, f'vr button grip \'move segmentation cursor\' hand { str(self.settings.vr_handedness).lower() }')
 
@@ -754,6 +784,8 @@ class SegmentationTool(ToolInstance):
             run(self.session, f'vr button thumbstick {self.old_hand_modes["thumbstick"]}')
             run(self.session, f'vr button grip {self.old_hand_modes["grip"]}')
             run(self.session, f'vr button a {self.old_hand_modes["a"]}')
+            run(self.session, f'vr button b {self.old_hand_modes["b"]}')
+            run(self.session, f'vr button x {self.old_hand_modes["x"]}')
         self.hand_modes_changed = False
 
     def _start_vr(self):
@@ -808,6 +840,8 @@ class SegmentationTool(ToolInstance):
             "Segmentation Sphere"
             , self.session
         )
+        if self.reference_model:
+            self.segmentation_sphere.position = Place(origin = self.reference_model.bounds().center())
 
     def _destroy_3d_segmentation_sphere(self) -> None:
         if self.segmentation_sphere:
@@ -864,11 +898,8 @@ class SegmentationTool(ToolInstance):
         new_seg.set_parameters(surface_levels=[0.501])
         new_seg.set_step(1)
         new_seg.set_transparency(int((self.settings.default_segmentation_opacity / 100) * 255))
-
         num_items = self.segmentation_list.count()
         self.segmentation_list.setCurrentItem(self.segmentation_list.item(num_items - 1))
-        if self.session.ui.main_window.view_layout == "orthoplanes":
-            self.session.ui.main_window.main_view.add_segmentation(new_seg)
 
     def removeSegment(self, segments = None):
         # We don't need to listen to the REMOVE_MODEL trigger because we're going
@@ -908,6 +939,12 @@ class SegmentationTool(ToolInstance):
         if self.session.ui.main_window.view_layout == "orthoplanes":
             self.session.ui.main_window.main_view.redraw_all()
 
+    def hide_active_segmentation(self):
+        self.active_seg.display = False
+
+    def show_active_segmentation(self):
+        self.active_seg.display = True
+
     def _on_active_segmentation_changed(self, new, prev):
         if new:
             self.edit_seg_metadata_button.setEnabled(True)
@@ -922,6 +959,9 @@ class SegmentationTool(ToolInstance):
         self.active_seg.set_step(step)
 
     def _on_view_changed(self):
+        self.previous_layout = self.current_layout
+        self.current_layout = self.view_dropdown.currentIndex()
+        need_to_register = False
         if self.view_dropdown.currentIndex() == ViewMode.TWO_BY_TWO:
             if self.is_vr:
                 self.is_vr = False
@@ -982,8 +1022,9 @@ class SegmentationTool(ToolInstance):
                 self.session.ui.main_window.main_view.register_segmentation_tool(self)
                 if self.guidelines_checkbox.isChecked():
                     self.session.ui.main_window.main_view.toggle_guidelines()
-            for i in range(self.segmentation_list.count()):
-                self.session.ui.main_window.main_view.add_segmentation(self.segmentation_list.item(i).segmentation)
+            if self.previous_layout not in {ViewMode.ORTHOPLANES_BESIDE_3D, ViewMode.ORTHOPLANES_OVER_3D, ViewMode.TWO_BY_TWO}:
+                for i in range(self.segmentation_list.count()):
+                    self.session.ui.main_window.main_view.add_segmentation(self.segmentation_list.item(i).segmentation)
 
     def set_view_dropdown(self, layout):
         if layout == "default":
@@ -1022,7 +1063,6 @@ class SegmentationTool(ToolInstance):
     def move_sphere(self, delta_xyz):
         sm = self.segmentation_sphere
         dxyz = sm.scene_position.inverse().transform_vector(delta_xyz)	# Transform to sphere local coords.
-        from chimerax.geometry import translation
         sm.position = sm.position * translation(dxyz)
 
     def setSphereRegionToValue(self, origin, radius, value=1):

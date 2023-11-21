@@ -190,6 +190,7 @@ class PlaneViewer(QWindow):
             # This will run over all models which may not have DICOM data...
             try:
                 if hasattr(m.data, "dicom_data"):
+                    ok_to_list &= bool(m.data.dicom_data) # SEGs have none
                     ok_to_list &= not m.data.dicom_data.dicom_series.modality == "SEG"
                     ok_to_list &= not m.data.reference_data
             except AttributeError:
@@ -198,6 +199,7 @@ class PlaneViewer(QWindow):
 
         self.model_menu = ModelMenu(
             self.session, parent, label = 'Model',
+            autoselect = "first",
             model_types = [Volume, Surface],
             model_filter = _not_volume_surface_or_segmentation,
             model_chosen_cb = self._surfaceChosen
@@ -270,8 +272,6 @@ class PlaneViewer(QWindow):
         self.context_menu = None
         self.context_menu_coords = None
         self.mouse_moved_during_right_click = False
-        #if self.view.drawing is placeholder_drawing:
-        #    self._surfaceChosen()
 
     @property
     def segmentation_tool(self):
@@ -397,11 +397,18 @@ class PlaneViewer(QWindow):
             return
         mvwin = self.view.render.use_shared_context(self)
         try:
-            # TODO: Set the clip planes for the camera to be very far away. Some DICOMs are huge
-            # and require large zoom-outs to get them into view
-            # TODO: Turn on when overlay calculations are correct
-            # self.view.background_color = self.main_view.background_color
+            #self.view.background_color = self.main_view.background_color
             self.scale = mvwin.opengl_context.pixel_scale()
+            # We can rely on add_segmentation to set this value except when we're transitioning
+            # from the 3d views back to the 2d view. In that case, we have to do it somewhere
+            # TODO: Idenfity someplace we can do this _once_ and move it out of the render loop
+            for segmentation in self.segmentation_overlays.values():
+                segmentation.slice = self.pos
+            # Again, this should be done in the same place as the above function, but for the
+            # next release it's fine. 
+            # TODO: Idenfity someplace we can do this _once_ and move it out of the render loop
+            if self.segmentation_tool:
+                self.segmentation_tool.setCursorOffsetFromOrigin(self.axis, self.mvSegmentationCursorOffsetFromOrigin()) #self.pos * self.view.drawing.parent.data.step[self.axis]
             # TODO: If the user selects 'surface' then 'orthoplanes' in the volume viewer we should
             # override the default plane locations somehow
             if self.slider_moved:
@@ -445,12 +452,14 @@ class PlaneViewer(QWindow):
 
     def add_segmentation(self, segmentation):
         self.segmentation_overlays[segmentation] = SegmentationOverlay(segmentation.name + "_overlay", segmentation, self.axis)
-        self.view.add_overlay(self.segmentation_overlays[segmentation])
+        self.view.add_segmentation_overlay(self.segmentation_overlays[segmentation])
         self.segmentation_overlays[segmentation].slice = self.pos
+        self._redraw()
 
     def remove_segmentation(self, segmentation):
-        self.view.remove_overlays([self.segmentation_overlays[segmentation]])
+        self.view.remove_segmentation_overlay(self.segmentation_overlays[segmentation])
         del self.segmentation_overlays[segmentation]
+        self._redraw()
 
     def addDrawing(self, drawing):
         self.drawings.append(drawing)
@@ -524,6 +533,7 @@ class PlaneViewer(QWindow):
     def setGuidelineVisibility(self, visibility: bool):
         self.horizontal_slice_overlay.display = visibility
         self.vertical_slice_overlay.display = visibility
+        self.render()
 
     def enableSegmentationOverlays(self):
         self.segmentation_cursor_overlay.display = True
@@ -830,7 +840,7 @@ class PlaneViewer(QWindow):
                 volume_viewer = tool
         v = self.view.drawing
         if self.view.drawing is not self.placeholder_drawing:
-            self._remove_axis_from_volume_viewer(volume_viewer, v)
+            self._remove_axis_from_volume_viewer(volume_viewer, v.parent)
             v.delete()
             del v
         v = self.model_menu.value.copy()

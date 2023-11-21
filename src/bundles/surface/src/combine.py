@@ -135,6 +135,21 @@ def combine_geometry_xvntctp(geom):
 
 # -----------------------------------------------------------------------------
 #
+def combine_geometry_vtc(geoms):
+    from numpy import concatenate
+    cva = concatenate([va for va,ta,ca in geoms])
+    cta = concatenate([ta for va,ta,ca in geoms])
+    cca = concatenate([ca for va,ta,ca in geoms])
+    voffset = 0
+    toffset = 0
+    for va,ta,ca in geoms:
+        cta[toffset:toffset+len(ta)] += voffset
+        voffset += len(va)
+        toffset += len(ta)
+    return cva,cta,cca
+
+# -----------------------------------------------------------------------------
+#
 def combine_geometry_vte(geom):
     nv = nt = 0
     for va, ta, ema in geom:

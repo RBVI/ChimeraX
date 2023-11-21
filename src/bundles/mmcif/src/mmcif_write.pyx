@@ -269,10 +269,10 @@ def _chain_id_ordinal(chain_id):
                 v = ch - ord_0 + 52
             else:
                 raise ValueError(f"not a legal chain id {chain_id}, only a-z, A-Z, 0-9 allowed")
-            value = value * 62 + v
+            value = value * 64 + v + 1
     else:
         for char in chain_id:
-            value = value * 62 + ord(char)
+            value = value * 64 + ord(char)
     return value
 
 
@@ -930,15 +930,22 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
         with best_m.suppress_ss_change_notifications():
             from chimerax.dssp import compute_ss
             ss_data = compute_ss(best_m, return_values=True)
-            # helix_info = ss_data["helix_info"]
-            # if helix_info:
-            #     for (beg_res, end_res), htype in helix_info:
-            #         # Helix type is always HELX_P in current PDB entries
-            #         helix_count += 1
-            #         struct_conf_entry('HELX%d' % helix_count, "HELX_P", beg_res, end_res)
+            helix_info = ss_data["helix_info"]
+            if helix_count == 0 and helix_info:
+                for (beg_res, end_res), htype in helix_info:
+                    # Helix type is always HELX_P in current PDB entries
+                    helix_count += 1
+                    struct_conf_entry('HELX%d' % helix_count, "HELX_P", beg_res, end_res)
             ss_sheets = ss_data["sheets"]
             if ss_sheets:
+                from pprintpp import pprint  # DEBUG
+                with open('debug.py', 'wt') as f:  # DEBUG
+                    print('ss_sheets = ', file=f)  # DEBUG
+                    pprint(ss_sheets, stream=f)  # DEBUG
                 ss_strands = ss_data["strands"]
+                with open('debug.py', 'at') as f:  # DEBUG
+                    print('ss_strands = ', file=f)  # DEBUG
+                    pprint(ss_strands, stream=f)  # DEBUG
                 strand_map = {}
                 for i, strands in enumerate(ss_sheets, start=1):
                     sheet_id = f'S{i}'
@@ -947,15 +954,24 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
                         beg_res, end_res = ss_strands[strand]
                         sheet_range_entry(sheet_id, j, beg_res, end_res)
                         strand_map[strand] = (sheet_id, j)
+                bad_dssp = False
                 ss_parallel = ss_data["strands_parallel"]
+                with open('debug.py', 'at') as f:  # DEBUG
+                    print('ss_parallel = ', file=f)  # DEBUG
+                    pprint(ss_parallel, stream=f)  # DEBUG
                 for (first, second) in ss_parallel:
+                    if first not in strand_map or second not in strand_map:
+                        bad_dssp = True
+                        continue
                     parallel = 'parallel' if ss_parallel[(first, second)] else 'anti-parallel'
                     st1 = strand_map[first]
                     st2 = strand_map[second]
                     if st1[0] != st2[0]:
-                        print("old strand order:", st1, st2)
+                        bad_dssp = True
                         continue
                     sheet_order_entry(st1[0], st1[1], st2[1], parallel)
+                if bad_dssp:
+                    session.logger.warning("Bad sheet data.  Please use Help / Report a Bug with this structure.")
 
     struct_conf_data[:] = flattened(struct_conf_data)
     struct_conf.print(file, fixed_width=fixed_width)

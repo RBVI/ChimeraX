@@ -59,8 +59,8 @@ class CentroidModel(Structure, SimpleMeasurable):
 
 from . import centroid
 
-def cmd_centroid(session, atoms=None, *, mass_weighting=False, name="centroid", color=None, radius=2.0,
-        show_tool=True):
+def cmd_centroid(session, atoms=None, *, id=None, mass_weighting=False, name="centroid", color=None,
+        radius=2.0, show_tool=True):
     """Wrapper to be called by command line.
 
        Use chimerax.centroids.centroid for other programming applications.
@@ -109,6 +109,10 @@ def cmd_centroid(session, atoms=None, *, mass_weighting=False, name="centroid", 
     else:
         structures[0].add([s])
 
+    if id is not None:
+        from chimerax.std_commands.rename import rename
+        rename(session, [s], id=id)
+
     session.logger.info("Centroid '%s' placed at %s" % (name, xyz))
     if show_tool and session.ui.is_gui and not session.in_script:
         from chimerax.core.commands import run
@@ -117,10 +121,10 @@ def cmd_centroid(session, atoms=None, *, mass_weighting=False, name="centroid", 
 
 def register_command(command_name, logger):
     from chimerax.core.commands import CmdDesc, register, BoolArg, ColorArg, Or, StringArg, EmptyArg, \
-        FloatArg
+        FloatArg, ModelIdArg
     from chimerax.atomic import AtomsArg
     desc = CmdDesc(required=[('atoms', Or(AtomsArg,EmptyArg))],
-        keyword = [('mass_weighting', BoolArg), ('name', StringArg), ('color', ColorArg),
+        keyword = [('id', ModelIdArg), ('mass_weighting', BoolArg), ('name', StringArg), ('color', ColorArg),
             ('radius', FloatArg), ('show_tool', BoolArg)],
         synopsis = 'Show centroid'
     )

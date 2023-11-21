@@ -25,17 +25,19 @@ class="clRight" title="User Guide Index"/></a>
 
 <h3><a href="../index.html#tools">Tool</a>: Render by Attribute</h3>
 <p>
-<b>Render by Attribute</b> colors atomic models and molecular surfaces
-to show the values of a numerical <a href="../attributes.html">attribute</a>
-such as atomic <b>bfactor</b> or residue <b>area</b>.
-<b>Render by Attribute</b> is the graphical interface to the command
-<a href="../commands/color.html#byattribute"><b>color by attribute</b></a>.
+<b>Render by Attribute</b> can show the values of a numerical 
+<a href="../attributes.html">attribute</a> (built-in or user-defined)
+with colors or atomic radii.
+<b>Render by Attribute</b> is the graphical interface to the commands
+<a href="../commands/color.html#byattribute"><b>color byattribute</b></a>
+and <a href="../commands/size.html#byattribute"><b>size byattribute</b></a>.
 See also: 
 <a href="surfacecolor.html"><b>Surface Color</b></a>,
 <a href="colorkey.html"><b>Color Key</b></a>, the <b>color bfactor</b> icon
 <a href="moldisplay.html" title="Molecule Display Toolbar...">
 <img class="icon" border=1 src="shortcut-icons/bfactor.png"></a>
-in the <a href="moldisplay.html"><b>Molecule Display Toolbar</b></a>
+in the <a href="moldisplay.html"><b>Molecule Display Toolbar</b></a>,
+<a href="../measurements.html">measurements</a>
 </p><p>
 The <b>Render by Attribute</b> dialog can be opened from the
 <b>Depiction</b> or <b>Structure Analysis</b> section of the <b>Tools</b> menu
@@ -44,7 +46,11 @@ and manipulated like other panels (<a href="../window.html#panels">more...</a>).
 <blockquote><b>
 <a href="#choosemodel">Choosing Model and Attribute</a>
 <br>
-<a href="#histogram">Histogram and Colors</a>
+<a href="#histogram">Histogram of Attribute Values</a>
+<br>
+<a href="#colors">Colors</a>
+<br>
+<a href="#radii">Radii</a>
 </b></blockquote>
 
 <a name="choosemodel"></a>
@@ -114,15 +120,17 @@ mapped to colors with this tool.
 <p class="nav">
 [<a href="#top">back to top: Render by Attribute</a>]
 </p>
-<h3>Histogram and Colors</h3>
+<h3>Histogram of Attribute Values</h3>
 <p>
 Choosing an attribute as described above shows a histogram of its
 values in the <a href="#choosemodel">chosen</a> models.
 </p><p>
 Each <b><i>threshold</i></b> or
 vertical bar on the histogram has a <b>Value</b>
-(position on the histogram) and a <b>Color</b>.
-Together, the thresholds specify how colors map to values.
+(position on the histogram). It also has an associated
+<b>Color</b> (if the <b>Colors</b> tab is chosen) or <b>Atom radius</b>
+(if the <b>Radii</b> tab is chosen).
+Together, the thresholds specify how the colors or radii should map to values.
 Clicking on a threshold shows its <b>Value</b> in black.
 Clicking elsewhere within the histogram shows the <b>Value</b>
 (X-coordinate) of the mouseclick in gray.
@@ -131,17 +139,29 @@ and then pressing Enter (return) or by dragging it horizontally
 with the left mouse button. 
 Thresholds can be added by Shift-clicking on the histogram, 
 whereas Shift-clicking an existing threshold deletes it.
-<a name="threshold-settings"></a>
-The <b>Value</b> and <b>Color</b> settings apply to the threshold 
-most recently moved or clicked:
-<ul>
-<li>A threshold can also be moved by entering a new <b>Value</b>.
-<li>Clicking the <b>Color</b> square (color well) 
-opens the system color editor for choosing a color interactively.
-</ul>
+</p><p>
+<b>Restrict to selection</b> limits rendering by attribute to the current
+<a href="../selection.html">selection</a>.
+</p><p>
+Clicking <b>Apply</b> performs the rendering without closing the dialog,
+whereas <b>OK</b> performs the rendering and dismisses the dialog.
+<b>Close</b> simply dismisses the dialog, and <b>Help</b> shows this page 
+in the <a href="helpviewer.html"><b>Help Viewer</b></a>.
+</p>
+
+<a name="colors"></a>
+<p class="nav">
+[<a href="#top">back to top: Render by Attribute</a>]
+</p>
+<h3>Colors</h3>
 <p>
+The <b>Value</b> and <b>Color</b>
+settings apply to the <a href="#histogram">threshold</a>
+ most recently moved or clicked.
+Clicking a color well opens the system color editor 
+for choosing a color interactively.
 Coloring can be applied to <b>atoms</b>, <b>cartoons</b>, and/or
-molecular <b>surfaces</b>.
+molecular <b>surfaces</b>. 
 </p>
 <ul>
 <li><b>Color missing values with</b> (a color well, default
@@ -149,7 +169,7 @@ molecular <b>surfaces</b>.
 style="display:inline-block; vertical-align:middle"><tr>
 <td bgcolor="#808080" width="10px" title="blue"></td></tr></table>)
 allows coloring atoms, residues, or models that have
-<a name="novalue">no value</a> assigned for the chosen attribute.
+no value assigned for the chosen attribute.
 For example, nucleic acid residues do not have peptide backbone
 <b>phi</b> angles. If the option is turned off (unchecked), any
 no-value atoms, <i>etc.</i> will retain their current colors.
@@ -158,7 +178,7 @@ no-value atoms, <i>etc.</i> will retain their current colors.
 the number of thresholds or their positions.
 The desired number of thresholds should be present before the palette
 is chosen; individual colors can be changed afterwards with the system 
-color editor, as described <a href="#threshold-settings">above</a>.
+color editor.
 Many <a href="../commands/palettes.html">built-in palettes</a> are available.
 Only the ones with the same number of colors as the current number of
 thresholds will be listed; for example, the <b>rainbow</b> palette will
@@ -174,18 +194,49 @@ without changing the number of thresholds or their positions.
 with the current colors and values; a color key can then be 
 <a href="colorkey.html#adjust">drawn interactively</a> 
 in the graphics window using the settings in that tool.
-<br><br>
-<li><b>Restrict to selection</b> limits coloring to the current
-<a href="../selection.html">selection</a>.
 </ul>
-<p>
-Clicking <b>Apply</b> performs the coloring without closing the dialog,
-whereas <b>OK</b> performs the coloring and dismisses the dialog.
-<b>Close</b> simply dismisses the dialog, and <b>Help</b> shows this page 
-in the <a href="helpviewer.html"><b>Help Viewer</b></a>.
+
+<a name="radii"></a>
+<p class="nav">
+[<a href="#top">back to top: Render by Attribute</a>]
 </p>
+<h3>Radii</h3>
+<p>
+The <b>Value</b> and <b>Atom radius</b>
+settings apply to the <a href="#histogram">threshold</a>
+most recently moved or clicked.
+Rendering will change the <a href="../radii.html">VDW radii</a> of the atoms.
+If needed, default VDW radii can be restored with the 
+<a href="../commands/size.html"><b>size</b></a> command.
+</p>
+<ul>
+<li><b>Atom style</b>
+  <ul>
+  <li><b>sphere</b> (default)
+  &ndash; display radius same as <a href="../radii.html">VDW radius</a>,
+  directly reflecting the user-specified sizes
+  <li><b>ball</b> 
+  &ndash; <a href="../radii.html">VDW radius</a> multiplied by the
+  <a href="../commands/size.html">ball scale factor</a> (usually 0.3)
+  <li><b>unchanged</b> 
+  &ndash; retain the pre-existing style of each atom
+  (stick, ball, or sphere); note stick size is unaffected by VDW radii
+  </ul>
+<br>
+<li><b>Affect no-value atoms</b>
+&ndash; whether to use the <b>No-value radius</b> (below)
+for atoms, residues, or 
+atomic models that have no value assigned for the chosen attribute.
+For example, nucleic acid residues do not have peptide backbone
+<b>phi</b> angles. If the option is turned off (unchecked), any
+no-value atoms, <i>etc.</i> will retain their current VDW radii.
+<br><br>
+<li><b>No-value radius</b>
+&ndash; VDW radius to assign to no-value atoms when the 
+<b>Affect no-value atoms</b> option (above) is used
+</ul>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-March 2023</address>
+November 2023</address>
 </body></html>

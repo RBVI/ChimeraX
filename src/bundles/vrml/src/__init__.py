@@ -1,4 +1,4 @@
-# vim: set expandtab ts=4 sw=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
 # Copyright 2022 Regents of the University of California. All rights reserved.
@@ -21,28 +21,39 @@
 # This notice must be embedded in or attached to all copies, including partial
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
-__version__ = "3.4.2"
-
-import os
-
-def get_bin() -> str:
-    return os.path.join(os.path.dirname(__file__), "bin")
-
-from .header_sequence import HeaderSequence, FixedHeaderSequence, DynamicHeaderSequence, \
-    DynamicStructureHeaderSequence
 
 from chimerax.core.toolshed import BundleAPI
 
-class _AlignmentHdrsAPI(BundleAPI):
+class _VRMLBundle(BundleAPI):
 
-    @classmethod
-    def get_class(cls, class_name):
-        import importlib
-        hdr_mod = importlib.import_module(".%s" % class_name.lower(), cls.__module__)
-        return getattr(hdr_mod, class_name)
+    @staticmethod
+    def get_class(class_name):
+        # 'get_class' is called by session code to get class saved in a session
+        if class_name == 'VRMLModel':
+            from . import vrml
+            return vrml.VRMLModel
+        return None
 
-    @classmethod
-    def run_provider(cls, session, name, mgr, **kw):
-        return cls.get_class(name)
+    @staticmethod
+    def run_provider(session, name, mgr):
+        if mgr == session.save_command:
+            from chimerax.save_command import SaverInfo
+            class Info(SaverInfo):
+                def save(self, session, path, models=None, **kw):
+                    from . import vrml
+                    vrml.write_vrml(session, path, models, **kw)
 
-bundle_api = _AlignmentHdrsAPI()
+                @property
+                def save_args(self):
+                    from chimerax.core.commands import BoolArg, ModelsArg, FloatArg
+                    return {
+                        'center': BoolArg,
+                        'size': FloatArg,
+                        'models': ModelsArg,
+                        'backface_culling': BoolArg,
+                    }
+                    
+        return Info()
+
+
+bundle_api = _VRMLBundle()

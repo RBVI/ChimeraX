@@ -25,7 +25,7 @@
 # -----------------------------------------------------------------------------
 #
 def measure_rotation(session, model, to_model,
-                     show_axis = True, show_slabs = False,
+                     show_axis = True, show_slabs = False, axis_type = "markers",
                      color = (210, 210, 100, 255), color2 = (100, 149, 237, 255),
                      radius = None, length = None, width = None, thickness = None,
                      coordinate_system = None):
@@ -49,7 +49,7 @@ def measure_rotation(session, model, to_model,
     log.status('Rotation angle %.2f degrees' % ra)
 
     if show_axis:
-        _show_axis(session, tf, color, length, radius, to_model)
+        _show_axis(session, tf, color, length, radius, to_model, axis_type)
 
     if show_slabs:
         b = to_model.bounds()
@@ -64,7 +64,7 @@ def measure_rotation(session, model, to_model,
 
 # -----------------------------------------------------------------------------
 #
-def _show_axis(session, tf, color, length, radius, coordinate_system):
+def _show_axis(session, tf, color, length, radius, coordinate_system, axis_type):
 
     axis, axis_point, angle, axis_shift = tf.axis_center_angle_shift()
     if angle < 0.1:
@@ -83,20 +83,24 @@ def _show_axis(session, tf, color, length, radius, coordinate_system):
     ap1 = axis_center - hl*axis
     ap2 = axis_center + hl*axis
 
-    from chimerax.markers import MarkerSet, create_link
-
-    mset = MarkerSet(session, 'rotation axis')
-    mset.scene_position = coordinate_system.scene_position
-
     r = 0.025 * axis_length if radius is None else radius
-    m1 = mset.create_marker(ap1, color, r)
-    m2 = mset.create_marker(ap2, color, r)
-    b = create_link(m1, m2, color, r)
-    b.halfbond = True
 
-    session.models.add([mset])
+    if axis_type == "markers":
+        from chimerax.markers import MarkerSet, create_link
+
+        model = mset = MarkerSet(session, 'rotation axis')
+        mset.scene_position = coordinate_system.scene_position
+
+        m1 = mset.create_marker(ap1, color, r)
+        m2 = mset.create_marker(ap2, color, r)
+        b = create_link(m1, m2, color, r)
+        b.halfbond = True
+    else:
+        from chimerax.axes_planes import AxisModel
+        model = AxisModel(session, 'rotation axis', axis_center, axis, hl, r, color)
+    session.models.add([model])
     
-    return mset
+    return model
 
 # -----------------------------------------------------------------------------
 #
@@ -186,7 +190,7 @@ def _box_geometry(corners):
 # -----------------------------------------------------------------------------
 #
 def register_command(logger):
-    from chimerax.core.commands import CmdDesc, register, ModelArg, BoolArg, Color8Arg, FloatArg
+    from chimerax.core.commands import CmdDesc, register, ModelArg, BoolArg, Color8Arg, FloatArg, EnumOf
     desc = CmdDesc(
         required = [('model', ModelArg)],
         keyword = [('to_model', ModelArg),
@@ -198,7 +202,8 @@ def register_command(logger):
                    ('radius', FloatArg),
                    ('width', FloatArg),
                    ('thickness', FloatArg),
-                   ('coordinate_system', ModelArg)],
+                   ('coordinate_system', ModelArg),
+                   ('axis_type', EnumOf(["markers", "object"]))],
         required_arguments = ['to_model'],
         synopsis = 'measure rotation of one model relative to another')
     register('measure rotation', desc, measure_rotation, logger=logger)
