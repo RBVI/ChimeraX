@@ -614,7 +614,6 @@ class SegmentationTool(ToolInstance):
         self.tool_window.manage('side')
         self.segmentation_cursors = {}
         self.segmentation_sphere = None
-        self._create_2d_segmentation_pucks()
         self.segmentations = {}
         self.current_segmentation = None
         self.reference_model = None
@@ -632,15 +631,20 @@ class SegmentationTool(ToolInstance):
         # TODO: VR started trigger
         if not self.session.ui.main_window.view_layout == "orthoplanes":
             if self.settings.default_view == ViewMode.TWO_BY_TWO:
+                self._create_2d_segmentation_pucks()
                 run(self.session, "dicom view fourup")
             elif self.settings.default_view == ViewMode.ORTHOPLANES_OVER_3D:
+                self._create_2d_segmentation_pucks()
                 run(self.session, "dicom view overunder")
             elif self.settings.default_view == ViewMode.ORTHOPLANES_BESIDE_3D:
+                self._create_2d_segmentation_pucks()
                 run(self.session, "dicom view sidebyside")
             elif self.settings.default_view == ViewMode.DEFAULT_DESKTOP:
+                self._create_3d_segmentation_sphere()
                 if self.settings.set_mouse_modes_automatically:
                     self._set_3d_mouse_modes()
             else:
+                self._create_3d_segmentation_sphere()
                 if self.settings.start_vr_automatically:
                     self._start_vr()
 
@@ -705,7 +709,7 @@ class SegmentationTool(ToolInstance):
 
     def delete(self):
         self.session.triggers.remove_handler(self.model_added_handler)
-        self.session.triggers.remove_handler(self.model_removed_handler)
+        self.session.triggers.remove_handler(self.model_closed_handler)
         # TODO: Restore old mouse modes if necessary
         if self.session.ui.main_window.view_layout == "orthoplanes":
             self.session.ui.main_window.main_view.clear_segmentation_tool()
