@@ -720,6 +720,12 @@ class DicomData:
                             , files[0].frame_positions[-1]
                             , self.files[0].mask_length
                         )
+                    else:
+                        z_axis = self._z_spacing_from_files(
+                            files[0].frame_positions[0]
+                            , files[0].frame_positions[-1]
+                            , int(len(files[0].frame_positions) / self.num_times)
+                        )
                 else:
                     z_axis = self._z_spacing_from_files(
                         files[0].frame_positions[0]
