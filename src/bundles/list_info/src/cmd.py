@@ -187,13 +187,14 @@ def info_chains(session, atoms=None, attribute="chain_id", *, return_json=False,
         from chimerax.core.commands import atomspec
         atoms = atomspec.everything(session)
     results = atoms.evaluate(session)
-    chains = []
-    for m in results.models:
-        try:
-            chains.extend(m.chains)
-        except AttributeError:
-            # No chains, no problem
-            pass
+    chains = results.atoms.unique_residues.unique_chains
+    #chains = []
+    #for m in results.models:
+    #    try:
+    #        chains.extend(m.chains)
+    #    except AttributeError:
+    #        # No chains, no problem
+    #        pass
     return report_chains(session.logger, chains, attribute, return_json=return_json, save_file=save_file)
 info_chains_desc = CmdDesc(required=[("atoms", Or(AtomSpecArg, EmptyArg))],
                            keyword=[("attribute", StringArg), ('save_file', SaveFileNameArg)],
