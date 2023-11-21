@@ -429,7 +429,8 @@ class LaunchFitLoopsTool(ToolInstance):
         #if not hasattr(self.__class__, 'settings'):
         #    self.__class__.settings = LaunchEmplaceLocalSettings(session, "launch emplace local")
 
-        from Qt.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel, QWidget, QTabWidget
+        from Qt.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel, QWidget, QSpinBox, QListWidget
+        from Qt.QtWidgets import QGridLayout
         from Qt.QtCore import Qt
         layout = QVBoxLayout()
         parent.setLayout(layout)
@@ -454,13 +455,32 @@ class LaunchFitLoopsTool(ToolInstance):
         data_layout.addWidget(self.map_menu, alignment=Qt.AlignLeft)
         data_layout.setStretch(data_layout.count(), 1)
 
-        self.tabs = QTabWidget()
-        for tab_name in self.TAB_NAMES:
-            tab_widget = getattr(self, '_' + tab_name.lower().replace(' ', '_') + '_widget')()
-            self.tabs.addTab(tab_widget, tab_name)
-        layout.addWidget(self.tabs, alignment=Qt.AlignCenter)
-        self.tabs.setCurrentIndex(self.TAB_NAMES.index(self.GAPS_TAB))
+        targeting_layout = QHBoxLayout()
+        layout.addLayout(targeting_layout)
         layout.setStretch(layout.count(), 1)
+        self.no_structure_message = "Select a structure from the menu above"
+        self.target_label = QLabel(self.no_structure_message)
+        self.target_label.setAlignment(Qt.AlignCenter)
+        self.target_label.setWordWrap(True)
+        targeting_layout.addWidget(self.target_label)
+        self.target_area = QWidget()
+        target_layout = QVBoxLayout()
+        self.target_area.setLayout(target_layout)
+        targeting_layout.addWidget(self.target_area)
+        self.target_list = QListWidget()
+        self.target_list.setHidden(True)
+        target_layout.addWidget(self.target_list, alignment=Qt.AlignCenter)
+        target_layout.setStretch(target_layout.count(), 1)
+        padding_layout = QGridLayout()
+        padding_layout.setSpacing(1)
+        target_layout.addLayout(padding_layout)
+        padding_layout.addWidget(QLabel("Also select "), 0, 0, alignment=Qt.AlignRight)
+        self.padding_widget = QSpinBox()
+        self.padding_widget.setValue(1)
+        padding_layout.addWidget(self.padding_widget, 0, 1, alignment=Qt.AlignLeft)
+        padding_layout.addWidget(QLabel(" residue(s) on each side of gap"), 1, 0, 1, 2,
+            alignment=Qt.AlignLeft)
+        self.target_area.setHidden(True)
 
         from Qt.QtWidgets import QDialogButtonBox as qbbox
         self.bbox = bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
@@ -527,53 +547,6 @@ class LaunchFitLoopsTool(ToolInstance):
         if not apply:
             self.display(False)
 
-    def _fill_gaps_widget(self):
-        from Qt.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel, QWidget, QPushButton, QScrollArea
-        from Qt.QtCore import Qt
-        fg_area = QWidget()
-        fg_layout = QVBoxLayout()
-        fg_layout.setSpacing(1)
-        fg_layout.setContentsMargins(0,0,0,0)
-        fg_area.setLayout(fg_layout)
-        self.fg_message = QLabel("No structure chosen")
-        fg_layout.addWidget(self.fg_message, alignment=Qt.AlignCenter)
-        self.fg_gap_widget_info = []
-        self.fg_gap_area = QScrollArea()
-        scrolled = QWidget()
-        self.fg_gap_area.setWidget(scrolled)
-        self.fg_gap_area.setWidgetResizable(True)
-        self.fg_gap_area.setAlignment(Qt.AlignCenter)
-        self.fg_gap_layout = QVBoxLayout()
-        scrolled.setLayout(self.fg_gap_layout)
-        fg_layout.addWidget(self.fg_gap_area, alignment=Qt.AlignCenter)
-        fg_layout.setStretch(fg_layout.count(), 1)
-        self.fg_gap_area.setHidden(True)
-        self.fg_unk_gaps_disclaimer = disclaimer = QLabel(
-            "Structure has gaps involving UNK residues."
-            "  They have been omitted from above list."
-            "  See Log for more info.")
-        disclaimer.setAlignment(Qt.AlignCenter)
-        disclaimer.setWordWrap(True)
-        disclaimer.setHidden(True)
-        fg_layout.addWidget(disclaimer)
-        self.fg_select_area = QWidget()
-        select_layout = QHBoxLayout()
-        select_layout.setContentsMargins(0,0,0,0)
-        select_layout.setSpacing(1)
-        self.fg_select_area.setLayout(select_layout)
-        fg_layout.addWidget(self.fg_select_area, alignment=Qt.AlignCenter)
-        sel_but = QPushButton("Select")
-        sel_but.clicked.connect(lambda *args, f=self._sel_cb: f(True))
-        select_layout.addWidget(sel_but)
-        select_layout.addWidget(QLabel("/"))
-        desel_but = QPushButton("Deselect")
-        desel_but.clicked.connect(lambda *args, f=self._sel_cb: f(False))
-        select_layout.addWidget(desel_but)
-        select_layout.addWidget(QLabel(" all above"))
-        self.fg_select_area.setHidden(True)
-
-        return fg_area
-
     def _find_gaps(self, structure):
         try:
             pbs = structure.pbg_map[structure.PBG_MISSING_STRUCTURE].pseudobonds
@@ -602,27 +575,12 @@ class LaunchFitLoopsTool(ToolInstance):
         gaps.sort()
         return gaps
 
-    def _remodel_widget(self):
-        from Qt.QtWidgets import QLabel
-        from Qt.QtCore import Qt
-        label = QLabel("Select residues in main graphics window that you wish to remodel")
-        label.setWordWrap(True)
-        label.setAlignment(Qt.AlignCenter)
-        return label
-
-    def _sel_cb(self, sel):
-        for r1, r2, cb in self.fg_gap_widget_info:
-            cb.setChecked(sel)
-
     def _structure_changed(self):
         structure = self.structure_menu.value
-        for r1, r2, widget in self.fg_gap_widget_info:
-            self.fg_gap_layout.removeWidget(widget)
-        self.fg_gap_widget_info.clear()
-        show_sel_widgets = False
         if structure:
             gap_info = self._find_gaps(structure)
             if gap_info:
+                """
                 from Qt.QtWidgets import QCheckBox
                 from Qt.QtCore import Qt
                 for r1, r2 in gap_info:
@@ -634,16 +592,14 @@ class LaunchFitLoopsTool(ToolInstance):
                 self.fg_message.setHidden(True)
                 self.fg_gap_area.setHidden(False)
                 show_sel_widgets = len(gap_info) > 1
+                """
+                self.target_area.setHidden(False)
             else:
-                self.fg_message.setText(f"{structure} has no missing-structure gaps in amino-acid chains")
-                self.fg_gap_area.setHidden(True)
-                self.fg_message.setHidden(False)
+                self.target_label.setText(f"{structure} has no missing-structure gaps in amino-acid chains")
+                self.target_area.setHidden(True)
         else:
-            self.fg_message.setText("No structure chosen")
-            self.fg_gap_area.setHidden(True)
-            self.fg_message.setHidden(False)
-            self.fg_unk_gaps_disclaimer.setHidden(True)
-        self.fg_select_area.setHidden(not show_sel_widgets)
+            self.target_label.setText(self.no_structure_message)
+            self.target_area.setHidden(True)
 
 class VerifyCenterDialog(QDialog):
     def __init__(self, session, structure, maps, resolution, initial_center, opaque_maps,
