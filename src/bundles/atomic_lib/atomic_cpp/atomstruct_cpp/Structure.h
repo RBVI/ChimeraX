@@ -248,6 +248,7 @@ public:
         bool consider_missing_structure) const;
     const Bonds&  bonds() const { return _bonds; }
     const Chains&  chains() const { if (!_chains_made) _make_chains(); return *_chains; }
+    bool  chains_made() const { return _chains_made; }
     void  change_chain_ids(const std::vector<StructureSeq*>, const std::vector<ChainID>,
         bool /*non-polymeric*/=true);
     ChangeTracker*  change_tracker() { return _change_tracker; }

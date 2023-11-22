@@ -54,6 +54,10 @@ class CreateSegmentation3DMouseMode(MouseMode):
         )
 
     def wheel(self, event):
+        if self.segmentation_tool is None:
+            self.segmentation_tool = self._find_segmentation_tool()
+        if self.segmentation_tool is None:
+            return
         d = event.wheel_value()
         if d > 0:
             self.segmentation_tool.segmentation_sphere.radius += 1
@@ -93,15 +97,25 @@ class CreateSegmentation3DMouseMode(MouseMode):
 
     def vr_release(self, event):
         MouseMode.mouse_up(self, event)
-        if self.segmentation_tool:
-            self.segmentation_tool.set_segmentation_step(1)
+        if self.segmentation_tool is None:
+            self.segmentation_tool = self._find_segmentation_tool()
+        if self.segmentation_tool is None:
+            return
+        self.segmentation_tool.set_segmentation_step(1)
 
     def mouse_up(self, event):
         MouseMode.mouse_up(self, event)
-        if self.segmentation_tool:
-            self.segmentation_tool.set_segmentation_step(1)
+        if self.segmentation_tool is None:
+            self.segmentation_tool = self._find_segmentation_tool()
+        if self.segmentation_tool is None:
+            return
+        self.segmentation_tool.set_segmentation_step(1)
 
     def vr_motion(self, event):
+        if self.segmentation_tool is None:
+            self.segmentation_tool = self._find_segmentation_tool()
+        if self.segmentation_tool is None:
+            return
         c = self.segmentation_tool.segmentation_sphere.scene_position.origin()
         delta_xyz = event.motion*c - c
         self.segmentation_tool.move_sphere(delta_xyz)
@@ -145,6 +159,10 @@ class EraseSegmentation3DMouseMode(MouseMode):
         )
 
     def wheel(self, event):
+        if self.segmentation_tool is None:
+            self.segmentation_tool = self._find_segmentation_tool()
+        if self.segmentation_tool is None:
+            return
         d = event.wheel_value()
         if d > 0:
             self.segmentation_tool.segmentation_sphere.radius += 1
@@ -177,8 +195,11 @@ class EraseSegmentation3DMouseMode(MouseMode):
 
     def mouse_up(self, event):
         MouseMode.mouse_up(self, event)
-        if self.segmentation_tool:
-            self.segmentation_tool.set_segmentation_step(1)
+        if self.segmentation_tool is None:
+            self.segmentation_tool = self._find_segmentation_tool()
+        if self.segmentation_tool is None:
+            return
+        self.segmentation_tool.set_segmentation_step(1)
 
     def vr_press(self, event):
         if self.segmentation_tool is None:
@@ -189,10 +210,21 @@ class EraseSegmentation3DMouseMode(MouseMode):
 
     def vr_release(self, event):
         MouseMode.mouse_up(self, event)
-        if self.segmentation_tool:
-            self.segmentation_tool.set_segmentation_step(1)
+        # Any positive Y reading indicates pushing up, getting bigger
+        # Any negative Y reading indicates pushing down, getting smaller
+        if self.segmentation_tool is None:
+            self.segmentation_tool = self._find_segmentation_tool()
+        if self.segmentation_tool is None:
+            return
+        self.segmentation_tool.set_segmentation_step(1)
 
     def vr_motion(self, event):
+        # Any positive Y reading indicates pushing up, getting bigger
+        # Any negative Y reading indicates pushing down, getting smaller
+        if self.segmentation_tool is None:
+            self.segmentation_tool = self._find_segmentation_tool()
+        if self.segmentation_tool is None:
+            return
         c = self.segmentation_tool.segmentation_sphere.scene_position.origin()
         delta_xyz = event.motion*c - c
         self.segmentation_tool.move_sphere(delta_xyz)
@@ -236,18 +268,24 @@ class Move3DSegmentationSphereMouseMode(MouseMode):
         self.segmentation_tool.move_sphere(dxyz)
 
     def vr_motion(self, event):
+        # Any positive Y reading indicates pushing up, getting bigger
+        # Any negative Y reading indicates pushing down, getting smaller
+        if self.segmentation_tool is None:
+            self.segmentation_tool = self._find_segmentation_tool()
+        if self.segmentation_tool is None:
+            return
         c = self.segmentation_tool.segmentation_sphere.scene_position.origin()
         delta_xyz = event.motion*c - c
         self.segmentation_tool.move_sphere(delta_xyz)
 
 class Toggle3DSegmentationVisibilityMouseMode(MouseMode):
     name = 'toggle segmentation visibility'
-    #icon_path = 
+    #icon_path =
 
     def __init__(self, session):
         MouseMode.__init__(self, session)
         self.segmentaiton_tool = None
-     
+
     def enable(self):
         self.segmentation_tool = self._find_segmentation_tool()
 
@@ -256,23 +294,23 @@ class Toggle3DSegmentationVisibilityMouseMode(MouseMode):
             if isinstance(tool, SegmentationTool):
                 return tool
         return None
-    
+
     def vr_press(self, event):
         if self.segmentation_tool is None:
             self.segmentation_tool = self._find_segmentation_tool()
         if self.segmentation_tool is None:
             return
         self.segmentation_tool.hide_active_segmentation()
- 
- 
+
+
     def vr_release(self, event):
         if self.segmentation_tool is None:
             self.segmentation_tool = self._find_segmentation_tool()
         if self.segmentation_tool is None:
             return
         self.segmentation_tool.show_active_segmentation()
- 
-       
+
+
 
 class Resize3DSegmentationSphereMouseMode(MouseMode):
     name = 'resize segmentation cursor'
@@ -298,9 +336,9 @@ class Resize3DSegmentationSphereMouseMode(MouseMode):
             return
         d = event.wheel_value()
         if d > 0:
-            self.segmentation_tool.segmentation_sphere.radius += 1
+            self.segmentation_tool.segmentation_sphere.radius += 0.25
         elif d < 0:
-            self.segmentation_tool.segmentation_sphere.radius -= 1
+            self.segmentation_tool.segmentation_sphere.radius -= 0.25
 
     def vr_motion(self, event):
         if self.segmentation_tool is None:
@@ -320,6 +358,6 @@ class Resize3DSegmentationSphereMouseMode(MouseMode):
             return
         d = event.y
         if d > 0:
-            self.segmentation_tool.segmentation_sphere.radius += 1
+            self.segmentation_tool.segmentation_sphere.radius += 0.25
         elif d < 0:
-            self.segmentation_tool.segmentation_sphere.radius -= 1
+            self.segmentation_tool.segmentation_sphere.radius -= 0.25
