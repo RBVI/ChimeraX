@@ -462,13 +462,15 @@ class LaunchFitLoopsTool(ToolInstance):
         self.target_label = QLabel(self.no_structure_message)
         self.target_label.setAlignment(Qt.AlignCenter)
         self.target_label.setWordWrap(True)
+        from chimerax.ui import shrink_font
+        shrink_font(self.target_label, 0.9)
         targeting_layout.addWidget(self.target_label)
         self.target_area = QWidget()
         target_layout = QVBoxLayout()
         self.target_area.setLayout(target_layout)
         targeting_layout.addWidget(self.target_area)
         self.target_list = QListWidget()
-        self.target_list.setHidden(True)
+        self.target_list.currentRowChanged.connect(self._new_target)
         target_layout.addWidget(self.target_list, alignment=Qt.AlignCenter)
         target_layout.setStretch(target_layout.count(), 1)
         padding_layout = QGridLayout()
@@ -477,9 +479,11 @@ class LaunchFitLoopsTool(ToolInstance):
         padding_layout.addWidget(QLabel("Also select "), 0, 0, alignment=Qt.AlignRight)
         self.padding_widget = QSpinBox()
         self.padding_widget.setValue(1)
-        padding_layout.addWidget(self.padding_widget, 0, 1, alignment=Qt.AlignLeft)
-        padding_layout.addWidget(QLabel(" residue(s) on each side of gap"), 1, 0, 1, 2,
-            alignment=Qt.AlignLeft)
+        self.padding_widget.valueChanged.connect(self._padding_changed)
+        padding_layout.addWidget(self.padding_widget, 0, 1)
+        self.residue_label = QLabel(" residue")
+        padding_layout.addWidget(self.residue_label, 0, 2, alignment=Qt.AlignLeft)
+        padding_layout.addWidget(QLabel("on each side of gap"), 1, 0, 1, 3, alignment=Qt.AlignCenter)
         self.target_area.setHidden(True)
 
         from Qt.QtWidgets import QDialogButtonBox as qbbox
@@ -498,14 +502,12 @@ class LaunchFitLoopsTool(ToolInstance):
 
     def launch_fit_loops(self, apply=False):
         structure = self.structure_menu.value
-        gap_filling = self.tabs.currentIndex() == self.TAB_NAMES.index(self.GAPS_TAB)
         if not structure:
-            raise UserError("Must specify a structure to %s"
-                % ("fill gaps in" if gap_filling else "remodel"))
+            raise UserError("Must specify a structure to model/remodel")
         map = self.map_menu.value
         if not map:
-            raise UserError("Must specify a volume/map to guide %s"
-                % ("gap filling" if gap_filling else "remodeling"))
+            raise UserError("Must specify a volume/map to guide remodeling")
+        #TODO: how to specify only a gap to command?
         from chimerax.atomic import concise_residue_spec
         from chimerax.core.commands import run
         if gap_filling:
@@ -551,7 +553,7 @@ class LaunchFitLoopsTool(ToolInstance):
         try:
             pbs = structure.pbg_map[structure.PBG_MISSING_STRUCTURE].pseudobonds
         except KeyError:
-            return []
+            return [], []
         gaps = []
         unk_gaps = []
         for pb in pbs:
@@ -561,42 +563,83 @@ class LaunchFitLoopsTool(ToolInstance):
                 continue
             if r1.polymer_type == r1.PT_AMINO:
                 if r1.name == "UNK" or r2.name == "UNK":
-                    unk_gaps.append((r1, r2))
+                    unk_gaps.append((r1, r2, pb))
                 else:
-                    gaps.append((r1, r2))
-        self.fg_unk_gaps_disclaimer.setHidden(not unk_gaps)
-        if unk_gaps:
-            self.session.logger.info("Phenix loop fitting cannot handle gaps involving UNK residues"
-                " and therefore the following gaps have not been included in the dialog's table of gaps:")
-            unk_gaps.sort()
-            self.session.logger.info('<ul>%s</ul>\n' % ('\n'.join(
-                ['<li><a href="cxcmd:view %s%s">%s&rarr;%s</a></li>' % (r1.atomspec, r2.atomspec, r1, r2)
-                for r1, r2 in unk_gaps])), is_html=True)
+                    gaps.append((r1, r2, pb))
         gaps.sort()
-        return gaps
+        unk_gaps.sort()
+        return gaps, unk_gaps
+
+    def _new_target(self, row):
+        if row < 0:
+            return
+        r1, r2, pb = self.current_gap_info[row]
+        pad = self.padding_widget.value()
+        from chimerax.core.commands import run
+        if pad > 0:
+            index1 = r1.chain.residues.index(r1)
+            index2 = r2.chain.residues.index(r2)
+            bound1 = 0
+            bound2 = len(r2.chain) - 1
+            target_residues = []
+            for offset in range(pad):
+                for base_index, res_list, dir, bound in [(index1, r1.chain.residues, -1, bound1),
+                        (index2, r2.chain.residues, 1, bound2)]:
+                    index = base_index + dir * offset
+                    if dir < 0:
+                        if index < bound:
+                            continue
+                    elif index > bound:
+                        continue
+                    r = res_list[index]
+                    if r:
+                        target_residues.append(r)
+            from chimerax.atomic import concise_residue_spec
+            run(self.session, "select " + concise_residue_spec(self.session, target_residues))
+            run(self.session, "view sel")
+        else:
+            # There is no command to select _just_ a pseudbond, so if the padding is zero...
+            self.session.selection.clear()
+            pb.selected = True
+            a1, a2 = pb.atoms
+            run(self.session, "view " + a1.atomspec + a2.atomspec)
+
+    def _padding_changed(self, padding):
+        self.residue_label.setText(" residue" if padding == 1 else " residues")
+        self._new_target(self.target_list.currentRow())
 
     def _structure_changed(self):
         structure = self.structure_menu.value
         if structure:
-            gap_info = self._find_gaps(structure)
+            gap_info, unk_gaps = self._find_gaps(structure)
+            if unk_gaps:
+                self.session.logger.info("Phenix loop fitting cannot handle gaps involving UNK residues and"
+                    " therefore the following gaps have not been included in the dialog's list of gaps:")
+                self.session.logger.info('<ul>%s</ul>\n' % ('\n'.join(
+                    ['<li><a href="cxcmd:view %s%s">%s&rarr;%s</a></li>' % (r1.atomspec, r2.atomspec, r1, r2)
+                    for r1, r2, pb in unk_gaps])), is_html=True)
             if gap_info:
-                """
-                from Qt.QtWidgets import QCheckBox
-                from Qt.QtCore import Qt
-                for r1, r2 in gap_info:
-                    cb = QCheckBox(f"Chain {r1.chain_id}, {r1.number+1}-{r2.number-1}")
-                    cb.setChecked(True)
-                    self.fg_gap_layout.addWidget(cb, alignment=Qt.AlignLeft)
-                    self.fg_gap_widget_info.append((r1, r2, cb))
-                #self.fg_gap_area.widget().resize()
-                self.fg_message.setHidden(True)
-                self.fg_gap_area.setHidden(False)
-                show_sel_widgets = len(gap_info) > 1
-                """
+                msg = f"Select the parts of {structure} you want to model/remodel, including" \
+                    " missing-structure pseudobonds if filling the corresponding gap is desired." \
+                    "  For convenience, choosing a gap from the list on the right will select the" \
+                    " corresponding part of the structure and focus the view on it."
+                self.current_gap_info = gap_info
+                self.target_list.clear()
+                for r1, r2, pb in gap_info:
+                    self.target_list.addItem(f"Chain {r1.chain_id}, {r1.number+1}-{r2.number-1}")
+                if unk_gaps:
+                    msg += f"  {structure} also has missing-structure gaps involving UNK residues, which" \
+                        " Phenix loop fitting cannot handle (see Log for more info)."
                 self.target_area.setHidden(False)
             else:
-                self.target_label.setText(f"{structure} has no missing-structure gaps in amino-acid chains")
+                if unk_gaps:
+                    msg = f"{structure} only has missing-structure gaps involving UNK residues, which" \
+                        " Phenix loop fitting cannot handle (see Log for more info).  You could remodel" \
+                        " other residues by selecting them."
+                else:
+                    msg = f"Select residues you wish to remodel."
                 self.target_area.setHidden(True)
+            self.target_label.setText(msg)
         else:
             self.target_label.setText(self.no_structure_message)
             self.target_area.setHidden(True)
