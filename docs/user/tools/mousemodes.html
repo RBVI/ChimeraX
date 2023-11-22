@@ -241,7 +241,9 @@ both rotates and translates the slab</td>
 <td align="center" class="text">
 show <a href="volumeviewer.html">volume data</a> outline box
 and adjust region size by dragging any face;
-see also <a href="../commands/volume.html"><b>volume</b></a></td>
+see also <a href="../commands/volume.html"><b>volume</b></a>
+and <a href="#vr">differences in VR</a>
+</td>
 </tr><tr>
 <td align="center">
 <a name="tape"></a>
@@ -543,9 +545,18 @@ them only upon a 45&deg; change in viewing angle rather than continuously
 <li><b>rotate slab</b> 
 both rotates and translates the volume-data slice in
 <a href="../commands/volume.html#tiltedslab"><b>tilted slab</b></a> image mode
+<li>in <b>crop</b> mode, only the direction of pointing 
+(not the pointer tip coordinates) controls which box face to drag. 
+Pointing at the outside of a volume face will move that face, whereas 
+pointing away from that face will move the opposing parallel face.
+In other words, the hand-controller moves the 
+box face with normal vector opposite to the direction of pointing.
+This allows dragging any face of the box in VR
+without having to rotate the box or move around it.
+By contrast, in desktop mode, the closest face under the cursor is dragged.
 </ul>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-September 2023</address>
+November 2023</address>
 </body></html>
