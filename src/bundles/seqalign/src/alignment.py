@@ -157,19 +157,22 @@ class Alignment(State):
                 header.shown = header.settings.initially_shown and header.relevant
             self._set_residue_attributes()
 
-    def add_fixed_header(self, name, contents, *, shown=True, identifier=None):
+    def add_fixed_header(self, name, contents, *, shown=True, identifier=None, base_class=None):
         if len(contents) != len(self._seqs[0]):
             raise ValueError(f"Fixed header '{name}' is not the same length as alignment")
         from chimerax.alignment_headers import FixedHeaderSequence
+        if base_class is None:
+            base_class = FixedHeaderSequence
         if identifier is None:
             from chimerax.core.attributes import string_to_attr
             identifier = string_to_attr(name, prefix=FixedHeaderSequence.ATTR_PREFIX)
-        class FixedHeaderWithIdent(FixedHeaderSequence):
+        class FixedHeaderWithIdent(base_class):
             ident = identifier
         header = FixedHeaderWithIdent(self, name, contents)
         self._headers.append(header)
         self._headers.sort(key=lambda hdr: hdr.name.casefold())
         header.shown = shown
+        return header
 
     def add_observer(self, observer):
         """Called by objects that care about alignment changes that are not themselves viewer
