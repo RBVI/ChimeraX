@@ -48,10 +48,13 @@ class RegionMouseMode(MouseMode):
 
         ro = v.rendering_options
         if ro.image_mode == 'tilted slab':
-            cpos = v.session.main_view.camera.position
-            sx,sy,sz = cpos.inverse().transform_vector(ro.tilted_slab_axis)  # Slab axis in camera coords
-            self._slab_side = 0 if sz <= 0 else 1
+            saxis = v.scene_position * ro.tilted_slab_axis # Slab axis in scene coords
+            from chimerax.geometry import inner_product
+            dir = inner_product(saxis, line[1] - line[0])
+            self._slab_side = 0 if dir >= 0 else 1
             self._pixel_size = ps = self.session.main_view.pixel_size(v.scene_position * v.center())
+            cpos = v.session.main_view.camera.position
+            sx,sy,sz = cpos.inverse().transform_vector(saxis)  # Slab axis in camera coords
             from math import sqrt
             sn = sqrt(sx*sx + sy*sy)
             self._slab_dir = (ps*sx/sn, ps*sy/sn) if sn > 0 else (0,1)
