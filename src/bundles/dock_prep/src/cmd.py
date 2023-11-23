@@ -86,6 +86,8 @@ def dock_prep_steps(session, memorization, memorize_name, *, from_tool=False, **
     kw_dict = {}
     dp_step_needed = False
     for param, default in defaults.items():
+        if param == "write_mol2" and not from_tool:
+            continue
         val = kw.get(param, default)
         if val:
             dp_step_needed = True
