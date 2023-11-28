@@ -9,6 +9,7 @@ sdk: org.freedesktop.Sdk
 add-extensions:
   org.freedesktop.Platform.ffmpeg-full:
     version: '22.08'
+    directory: 'lib/ffmpeg'
 
 command: ChimeraX
 
