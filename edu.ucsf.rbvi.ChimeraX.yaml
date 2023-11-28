@@ -4,7 +4,7 @@
 #
 id: edu.ucsf.rbvi.ChimeraX
 runtime: org.freedesktop.Platform
-runtime-version: 22.08
+runtime-version: '22.08'
 sdk: org.freedesktop.Sdk
 command: ChimeraX
 
