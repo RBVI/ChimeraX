@@ -1,8 +1,15 @@
+# ChimeraX flatpak description
+#
 # vim:set expandtab shiftwidth=2:
+#
 id: edu.ucsf.rbvi.ChimeraX
 runtime: org.freedesktop.Platform
 runtime-version: '22.08'
 sdk: org.freedesktop.Sdk
+add-extensions:
+  org.freedesktop.Platform.ffmpeg-full:
+    version: '22.08'
+
 command: ChimeraX
 
 build-options:
