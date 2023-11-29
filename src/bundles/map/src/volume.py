@@ -3383,7 +3383,8 @@ def data_cache(session):
 # Open and display a map using Volume Viewer.
 #
 def volume_from_grid_data(grid_data, session, style = 'auto',
-                          open_model = True, model_id = None, show_dialog = True):
+                          open_model = True, model_id = None, show_dialog = True,
+                          allow_reseting_color_sequence = True):
   '''
   Supported API.
   Create a new :class:`.Volume` model from a :class:`~.data.GridData` instance and set its initial
@@ -3437,7 +3438,7 @@ def volume_from_grid_data(grid_data, session, style = 'auto',
     v._style_when_shown = style
 
   if grid_data.rgba is None:
-    if not any_volume_open(session):
+    if allow_reseting_color_sequence and not any_volume_open(session):
       _reset_color_sequence(session)
     set_initial_volume_color(v, session)
 
@@ -3634,7 +3635,6 @@ def open_grids(session, grids, name, **kw):
       for g in grids:
         g.initial_surface_level = level
 
-    print ('open kw', kw)
     if kw.get('polar_values', False) or kw.get('difference', False):
       for g in grids:
         g.polar_values = True
@@ -3676,7 +3676,9 @@ def open_grids(session, grids, name, **kw):
       vkw = {'show_dialog': False}
       if hasattr(d, 'initial_style') and d.initial_style in ('surface', 'mesh', 'image'):
         vkw['style'] = d.initial_style
-      v = volume_from_grid_data(d, session, open_model = False, **vkw)
+      v = volume_from_grid_data(d, session, open_model = False,
+                                allow_reseting_color_sequence = (len(maps)==0),
+                                **vkw)
       maps.append(v)
       if not show_data:
         v.display = False
