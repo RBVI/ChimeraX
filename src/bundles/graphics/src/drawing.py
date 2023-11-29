@@ -1720,9 +1720,6 @@ class _DrawShape:
         self.element_buffer = None
         self.instance_buffers = []
 
-    def __del__(self):
-        self.delete()
-
     def delete(self):
 
         self._masked_edges = None
