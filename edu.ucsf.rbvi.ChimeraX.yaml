@@ -1,4 +1,7 @@
+# ChimeraX flatpak description
+#
 # vim:set expandtab shiftwidth=2:
+#
 id: edu.ucsf.rbvi.ChimeraX
 runtime: org.freedesktop.Platform
 runtime-version: '22.08'
