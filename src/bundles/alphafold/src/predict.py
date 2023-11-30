@@ -114,6 +114,9 @@ class AlphaFoldRun(ToolInstance):
             # If we don't save the timer in a variable it is deleted and never fires.
 
     def _run(self):
+        from Qt import qt_object_is_deleted
+        if qt_object_is_deleted(self._browser):
+            return	# User closed the window before the _run() method was called.
         self._set_colab_sequence()
         self._run_colab()
         self.session.logger.info('Running AlphaFold prediction')
