@@ -149,6 +149,8 @@ recipient: residues
 	::amber_name="HIE"@hd1	HIP
 	::amber_name="HIE"@dd1	HIP
 	::amber_name="HIE"@td1	HIP
+# truncated histidines won't get an assignment from the above, try to assign as HID
+	:HIS & ~::amber_name & ::polymer_type=1	HID
 
 # di-sulfide CYS
 
