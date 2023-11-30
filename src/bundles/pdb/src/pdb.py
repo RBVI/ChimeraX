@@ -101,12 +101,13 @@ def open_pdb(session, stream, file_name=None, *, auto_style=True, coordsets=Fals
         from chimerax.atomic.structure import Structure as StructureClass
     models = [StructureClass(session, name=file_name, c_pointer=p, auto_style=auto_style, log_info=log_info)
         for p in pointers]
-    from numpy import isnan
+    from numpy import isfinite
     for m in models:
-        if isnan(m.atoms.coords).any():
+        if not isfinite(m.atoms.coords).all():
             for dm in models:
                 dm.delete()
-            raise UserError("Some X/Y/Z coordinate values in the '%s' PDB file are not numbers" % file_name)
+            raise UserError(
+                "Some X/Y/Z coordinate values in the '%s' PDB file are not finite numbers" % file_name)
 
     if max_models is not None:
         for m in models[max_models:]:
