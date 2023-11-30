@@ -49,7 +49,7 @@ def move(session, axis, distance=None, frames=None, coordinate_system=None,
             with session.undo.block():
                 d = distance if undo is None else -distance
                 move(session, axis=axis, distance=d, frames=None,
-                     coordinate_system=coordinate_system, models=models)
+                     coordinate_system=coordinate_system, models=models, atoms=atoms)
         multiframe_motion("move", move_step, frames, session)
         return
 
