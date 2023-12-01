@@ -383,7 +383,7 @@ class PlaneViewer(QWindow):
             # stroke of utter genius over at Qt/Apple, instead of having positive
             # values zoom in and negative values zoom out, we have 1 as the boundary instead.
             self.field_width_offset -= TRACKPAD_ZOOM_SPEED * np.sign(pinch - 1) # offsets[self.axis] += (-dy * psize) * 3 * self.axis.positive_direction
-            #self.resize3DSegmentationCursor()
+            self.resize3DSegmentationCursor()
         if three_finger_trans:
             psize = self.view.pixel_size()
             dx = TRACKPAD_PAN_SPEED * three_finger_trans[0] * psize
@@ -907,7 +907,7 @@ class PlaneViewer(QWindow):
                 dy = y - self.last_mouse_position[1]
             self.last_mouse_position = [x, y]
             self.field_width_offset += RIGHT_CLICK_ZOOM_SPEED * np.sign(dy) # offsets[self.axis] += (-dy * psize) * 3 * self.axis.positive_direction
-            #self.resize3DSegmentationCursor()
+            self.resize3DSegmentationCursor()
             self.view.camera.redraw_needed = True
         # Truck & Pedestal
         if b & Qt.MouseButton.MiddleButton:
