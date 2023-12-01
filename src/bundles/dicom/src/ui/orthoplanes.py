@@ -22,12 +22,14 @@
 # We would no longer have to move the camera in and out when the current slice changes
 # We could display more than one model's orthoplane at a time, say if a physician wanted
 #     to compare two different CT scans.
-import numpy as np
+import sys
 from math import sqrt
+
+import numpy as np
 
 from Qt import qt_object_is_deleted
 from Qt.QtCore import Qt, QEvent, QSize
-from Qt.QtGui import QContextMenuEvent, QWindow, QSurface
+from Qt.QtGui import QContextMenuEvent, QWindow, QSurface, QInputDevice
 from Qt.QtWidgets import QVBoxLayout, QHBoxLayout, QWidget, QSlider, QLabel
 from Qt.QtCore import QTimer, QPoint
 
@@ -39,6 +41,7 @@ from chimerax.map import Volume, VolumeSurface, VolumeImage
 from chimerax.map.volume import show_planes
 from chimerax.map.volume_viewer import VolumeViewer, Histogram_Pane
 from chimerax.map.volumecommand import apply_volume_options
+from chimerax.mouse_modes.trackpad import MultitouchEvent, Touch
 from chimerax.ui.widgets import ModelMenu
 
 from ..graphics import (
@@ -48,6 +51,11 @@ from ..graphics import (
 )
 from ..types import Direction, Axis
 from .label import Label
+
+TRACKPAD_ZOOM_SPEED: int = 7
+TRACKPAD_PAN_SPEED: int = 100
+WHEEL_ZOOM_SPEED: int = 10
+RIGHT_CLICK_ZOOM_SPEED: int = 5
 
 class LevelLabel(QLabel):
     def __init__(self, graphics_window):
@@ -168,6 +176,29 @@ class PlaneViewer(QWindow):
         self.view.initialize_rendering(session.main_view.render.opengl_context)
         self.view.camera = OrthoCamera()
         self.field_width_offset = 0
+        # Taken from the Mouse Modes code. It's unknown at this point whether there is a
+        # real point to refactoring the mouse modes code to work with more than one graphics
+        # window, since as far as I can tell this is the first ChimeraX package to ever add
+        # another one (or three in this case).
+        self._recent_touches = []
+        self._last_touch_locations = {}
+        self._modifier_keys = []
+        from chimerax.mouse_modes.settings import settings as mouse_mode_settings
+        # TODO There's really not an API to get the current setting?
+        self.trackpad_speed = mouse_mode_settings._cur_settings["trackpad_sensitivity"]
+        # macOS trackpad units are in points (1/72 inch).
+        cm_tpu = 72/2.54		# Convert centimeters to trackpad units.
+        self._full_rotation_distance = 6 * cm_tpu		# trackpad units
+        self._full_width_translation_distance = 6 * cm_tpu      # trackpad units
+        self._zoom_scaling = 3		# zoom (z translation) faster than xy translation.
+        self._twist_scaling = mouse_mode_settings._cur_settings["trackpad_twist_speed"]	# twist faster than finger rotation
+        self._wheel_click_pixels = 5
+
+        if sys.platform == "darwin":
+            from chimerax.core import _mac_util
+            nsview_pointer = int(self.winId())
+            _mac_util.enable_multitouch(nsview_pointer)
+            self.widget.touchEvent = self.touchEvent
 
         camera = self.view.camera
         camera.position = Place(origin = (0,0,0), axes = self.axes)
@@ -273,6 +304,132 @@ class PlaneViewer(QWindow):
         self.context_menu_coords = None
         self.mouse_moved_during_right_click = False
 
+    def _collapse_touch_events(self):
+        # Taken from the Mouse Modes code. It's unknown at this point whether there is a
+        # real point to refactoring the mouse modes code to work with more than one graphics
+        # window, since as far as I can tell this is the first ChimeraX package to ever add
+        # another one (or three in this case).
+        touches = self._recent_touches
+        if touches:
+            event = self._process_touches(touches)
+            self._recent_touches = []
+            self._touchEvent(event)
+
+    def _process_touches(self, touches):
+        # Taken from the Mouse Modes code. It's unknown at this point whether there is a
+        # real point to refactoring the mouse modes code to work with more than one graphics
+        # window, since as far as I can tell this is the first ChimeraX package to ever add
+        # another one (or three in this case).
+        min_pinch = 0.1
+        pinch = twist = scroll = None
+        two_swipe = None
+        three_swipe = None
+        four_swipe = None
+        n = len(touches)
+        speed = self.trackpad_speed
+        position = (sum(t.x for t in touches) / n, sum(t.y for t in touches)/n)
+        moves = [t.move(self._last_touch_locations) for t in touches]
+        dx = sum(x for x, y in moves) / n
+        dy = sum(y for x, y in moves) / n
+
+        if n == 2:
+            (dx0, dy0), (dx1, dy1) = moves[0], moves[1]
+            from math import atan2, pi
+            l0, l1 = sqrt(dx0 * dx0 + dy0 * dy0), sqrt(dx1 * dx1 + dy1 * dy1)
+            d12 = dx0 * dx1 + dy0 * dy1
+            if l0 >= min_pinch and l1 >= min_pinch and d12 < -0.7 * l0 * l1:
+                # Finger moving in opposite directions: pinch/twist
+                (x0, y0), (x1, y1) = [(t.x, t.y) for t in touches[:2]]
+                sx, sy = x1 - x0, y1 - y0
+                sn = sqrt(sx * sx + sy * sy)
+                sd0, sd1 = sx * dx0 + sy * dy0, sx * dx1 + sy * dy1
+                if abs(sd0) > 0.5 * sn * l0 and abs(sd1) > 0.5 * sn * l1:
+                    # pinch
+                    zf = 1 + speed * self._zoom_scaling * (l0 + l1) / self._full_width_translation_distance
+                    if sd1 < 0:
+                        zf = 1 / zf
+                    pinch = zf
+                else:
+                    # twist
+                    rot = atan2(-sy * dx1 + sx * dy1, sn * sn) + atan2(sy * dx0 - sx * dy0, sn * sn)
+                    a = -speed * self._twist_scaling * rot * 180 / pi
+                    twist = a
+            else:
+                two_swipe = tuple([d / self._full_width_translation_distance for d in (dx, dy)])
+                scroll = speed * dy / self._wheel_click_pixels
+        elif n == 3:
+            three_swipe = tuple([d / self._full_width_translation_distance for d in (dx, dy)])
+        elif n == 4:
+            four_swipe = tuple([d / self._full_width_translation_distance for d in (dx, dy)])
+
+        return MultitouchEvent(
+            modifiers=self._modifier_keys,
+            position=position, wheel_value=scroll, two_finger_trans=two_swipe, two_finger_scale=pinch,
+            two_finger_twist=twist, three_finger_trans=three_swipe,
+            four_finger_trans=four_swipe
+        )
+
+    def _touchEvent(self, event):
+        self.level_label.hide()
+        three_finger_trans = event.three_finger_trans
+        two_finger_trans = event.two_finger_trans
+        four_finger_trans = event.four_finger_trans
+        pinch = event.two_finger_scale
+        twist = event.two_finger_twist
+        if pinch:
+        # Zoom / Dolly
+            # In std_modes.py, 1 is subtracted from two_finger_scale to determine
+            # whether the gesture is intended to zoom in or out. So I guess by some
+            # stroke of utter genius over at Qt/Apple, instead of having positive
+            # values zoom in and negative values zoom out, we have 1 as the boundary instead.
+            self.field_width_offset -= TRACKPAD_ZOOM_SPEED * np.sign(pinch - 1) # offsets[self.axis] += (-dy * psize) * 3 * self.axis.positive_direction
+            #self.resize3DSegmentationCursor()
+        if three_finger_trans:
+            psize = self.view.pixel_size()
+            dx = TRACKPAD_PAN_SPEED * three_finger_trans[0] * psize
+            dy = TRACKPAD_PAN_SPEED * three_finger_trans[1] * psize
+            x, y, z = self.camera_offsets
+            if self.axis == Axis.AXIAL:
+                self.camera_offsets = [x - dx, y + dy, z]
+            if self.axis == Axis.CORONAL:
+                self.camera_offsets = [x + dx, y, z - dy]
+            if self.axis == Axis.SAGITTAL:
+                self.camera_offsets = [x, y + dx, z - dy]
+        # Truck & Pedestal
+        #if b & Qt.MouseButton.MiddleButton:
+            #p_size = self.view.pixel_size()
+            #if not self.last_mouse_position:
+            #    dx = 0
+            #    dy = 0
+            #else:
+            #    dx = (x - self.last_mouse_position[0]) * p_size
+            #    dy = (y - self.last_mouse_position[1]) * p_size
+            #self.last_mouse_position = [x, y]
+            #x, y, z = self.camera_offsets
+            #if self.axis == Axis.AXIAL:
+            #    self.camera_offsets = [x - dx, y + dy, z]
+            #if self.axis == Axis.CORONAL:
+            #    self.camera_offsets = [x + dx, y, z - dy]
+            #if self.axis == Axis.SAGITTAL:
+            #    self.camera_offsets = [x, y + dx, z - dy]
+        # Don't need to redraw at the end because we're in the render loop
+        # but maybe we can do this if we get a TouchCancel or TouchEnd event?
+        self.render()
+
+    def touchEvent(self, event):
+        # Get the touch events from Qt, then add them to our list so we can
+        # collapse them into a single event in the render loop
+        event_type = event.type()
+        if event_type == QEvent.Type.TouchBegin:
+            self.recent_touches = []
+            self._last_touch_locations.clear()
+        elif event_type == QEvent.Type.TouchUpdate:
+            self._recent_touches = [Touch(t) for t in event.points()]
+            self._collapse_touch_events()
+        elif event_type == QEvent.Type.TouchEnd or event_type == QEvent.Type.TouchCancel:
+            self.recent_touches = []
+            self._last_touch_locations.clear()
+
     @property
     def segmentation_tool(self):
         return self._segmentation_tool
@@ -281,7 +438,10 @@ class PlaneViewer(QWindow):
     def segmentation_tool(self, tool):
         self._segmentation_tool = tool
         if tool is not None:
-            if self.model_menu.value != self._segmentation_tool.model_menu.value or self.view.drawing is self.placeholder_drawing:
+            if (
+                self.model_menu.value != self._segmentation_tool.model_menu.value
+                or self.view.drawing is self.placeholder_drawing
+            ):
                 self.model_menu.value = self._segmentation_tool.model_menu.value
             self._segmentation_tool.segmentation_cursors[self.axis].radius = self.segmentation_cursor_overlay.radius
             # TODO:
@@ -405,7 +565,7 @@ class PlaneViewer(QWindow):
             for segmentation in self.segmentation_overlays.values():
                 segmentation.slice = self.pos
             # Again, this should be done in the same place as the above function, but for the
-            # next release it's fine. 
+            # next release it's fine.
             # TODO: Idenfity someplace we can do this _once_ and move it out of the render loop
             if self.segmentation_tool:
                 self.segmentation_tool.setCursorOffsetFromOrigin(self.axis, self.mvSegmentationCursorOffsetFromOrigin()) #self.pos * self.view.drawing.parent.data.step[self.axis]
@@ -624,16 +784,20 @@ class PlaneViewer(QWindow):
             self.segmentation_tool.segmentation_cursors[self.axis].radius = self.segmentation_cursor_overlay.radius * psize / self.scale
 
     def wheelEvent(self, event):
-        modifier = event.modifiers()
-        delta = event.angleDelta()
-        x_dir, y_dir = np.sign(delta.x()), np.sign(delta.y())
-        if modifier == Qt.KeyboardModifier.ShiftModifier:
-            self.segmentation_cursor_overlay.radius += 1 * (x_dir | y_dir)
-            self.resize3DSegmentationCursor()
-        elif modifier == Qt.KeyboardModifier.NoModifier:
-            self.field_width_offset += 1 * y_dir
-            self.resize3DSegmentationCursor()
-        self._redraw()
+        # As we note in the trackpad code, macOS generates wheel and touch events
+        # so we need to differentiate them...
+        d = event.pointingDevice()
+        if d.type() == QInputDevice.DeviceType.Mouse or d.capabilities() & QInputDevice.Capability.Scroll:
+            modifier = event.modifiers()
+            delta = event.angleDelta()
+            x_dir, y_dir = np.sign(delta.x()), np.sign(delta.y())
+            if modifier == Qt.KeyboardModifier.ShiftModifier:
+                self.segmentation_cursor_overlay.radius += 1 * (x_dir | y_dir)
+                self.resize3DSegmentationCursor()
+            elif modifier == Qt.KeyboardModifier.NoModifier:
+                self.field_width_offset += WHEEL_ZOOM_SPEED * y_dir
+                self.resize3DSegmentationCursor()
+            self._redraw()
 
     def mousePercentOffsetsFromEdges(self, x, y):
         top, bottom, left, right = self.camera_space_drawing_bounds()
@@ -742,7 +906,7 @@ class PlaneViewer(QWindow):
             else:
                 dy = y - self.last_mouse_position[1]
             self.last_mouse_position = [x, y]
-            self.field_width_offset += 1 * np.sign(dy) # offsets[self.axis] += (-dy * psize) * 3 * self.axis.positive_direction
+            self.field_width_offset += RIGHT_CLICK_ZOOM_SPEED * np.sign(dy) # offsets[self.axis] += (-dy * psize) * 3 * self.axis.positive_direction
             #self.resize3DSegmentationCursor()
             self.view.camera.redraw_needed = True
         # Truck & Pedestal
@@ -1133,12 +1297,12 @@ class SegmentationVolumePanel(Histogram_Pane):
             if m:
                 markers.delete_marker(m)
                 self.dialog.redisplay_needed_cb()
-    
+
     def set_threshold_parameters_from_gui(self, show = False, log = True):
         v = self.volume
         if v is None:
           return
-    
+
         # Update surface levels and colors
         surf_levels_changed = surf_colors_changed = False
         markers = self.surface_thresholds.markers
@@ -1156,29 +1320,27 @@ class SegmentationVolumePanel(Histogram_Pane):
                     s.rgba = color
                     s.vertex_colors = None
                     surf_colors_changed = True
-    
+
         # Delete surfaces when marker has been deleted.
         msurfs = set(m.volume_surface for m in markers)
         dsurfs = [s for s in v.surfaces if s not in msurfs]
         if dsurfs:
             v.remove_surfaces(dsurfs)
             surf_levels_changed = surf_colors_changed = True
-    
+
         image_levels_changed = image_colors_changed = False
         markers = self.image_thresholds.markers
         ilevels = [m.xy for m in markers]
         if ilevels != v.image_levels:
             v.image_levels = ilevels
             image_levels_changed = True
-    
+
         icolors = [m.rgba for m in markers]
         from numpy import array_equal
         if not array_equal(icolors, v.image_colors):
             v.image_colors = icolors
             image_colors_changed = True
-    
-    
+
+
         if show and v.shown():
             v.show()
-        
-        
