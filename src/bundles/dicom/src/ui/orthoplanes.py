@@ -41,6 +41,7 @@ from chimerax.map import Volume, VolumeSurface, VolumeImage
 from chimerax.map.volume import show_planes
 from chimerax.map.volume_viewer import VolumeViewer, Histogram_Pane
 from chimerax.map.volumecommand import apply_volume_options
+from chimerax.mouse_modes.mousemodes import decode_modifier_bits
 from chimerax.mouse_modes.trackpad import MultitouchEvent, Touch
 from chimerax.ui.widgets import ModelMenu
 
@@ -56,6 +57,11 @@ TRACKPAD_ZOOM_SPEED: int = 7
 TRACKPAD_PAN_SPEED: int = 100
 WHEEL_ZOOM_SPEED: int = 10
 RIGHT_CLICK_ZOOM_SPEED: int = 5
+
+if sys.platform == 'darwin':
+    SYSTEM_KEY = Qt.KeyboardModifier.ControlModifier
+else:
+    SYSTEM_KEY = Qt.KeyboardModifier.MetaModifier
 
 class LevelLabel(QLabel):
     def __init__(self, graphics_window):
@@ -395,31 +401,15 @@ class PlaneViewer(QWindow):
                 self.camera_offsets = [x + dx, y, z - dy]
             if self.axis == Axis.SAGITTAL:
                 self.camera_offsets = [x, y + dx, z - dy]
-        # Truck & Pedestal
-        #if b & Qt.MouseButton.MiddleButton:
-            #p_size = self.view.pixel_size()
-            #if not self.last_mouse_position:
-            #    dx = 0
-            #    dy = 0
-            #else:
-            #    dx = (x - self.last_mouse_position[0]) * p_size
-            #    dy = (y - self.last_mouse_position[1]) * p_size
-            #self.last_mouse_position = [x, y]
-            #x, y, z = self.camera_offsets
-            #if self.axis == Axis.AXIAL:
-            #    self.camera_offsets = [x - dx, y + dy, z]
-            #if self.axis == Axis.CORONAL:
-            #    self.camera_offsets = [x + dx, y, z - dy]
-            #if self.axis == Axis.SAGITTAL:
-            #    self.camera_offsets = [x, y + dx, z - dy]
-        # Don't need to redraw at the end because we're in the render loop
-        # but maybe we can do this if we get a TouchCancel or TouchEnd event?
         self.render()
 
     def touchEvent(self, event):
         # Get the touch events from Qt, then add them to our list so we can
         # collapse them into a single event in the render loop
         event_type = event.type()
+        # No touch events have modifiers in Qt
+        mb = self.session.ui.queryKeyboardModifiers()
+        self._modifier_keys = decode_modifier_bits(mb)
         if event_type == QEvent.Type.TouchBegin:
             self.recent_touches = []
             self._last_touch_locations.clear()
@@ -721,6 +711,7 @@ class PlaneViewer(QWindow):
 
     def mousePressEvent(self, event):  # noqa
         b = event.button() | event.buttons()
+        modifier = event.modifiers()
         if self.context_menu:
             if not qt_object_is_deleted(self.context_menu):
                 self.context_menu.close()
@@ -733,9 +724,13 @@ class PlaneViewer(QWindow):
             if self.segmentation_tool and self.segmentation_cursor_overlay.display:
                 self.segmentation_cursor_overlay.display = False
         if b & Qt.MouseButton.LeftButton:
-            if self.segmentation_tool:
-                x, y = event.position().x(), event.position().y()
-                self.moveSegmentationPuck(x, y, record_seg = True)
+            if modifier & Qt.KeyboardModifier.AltModifier or modifier & SYSTEM_KEY:
+                if self.segmentation_tool:
+                    self.segmentation_cursor_overlay.display = False
+            else:
+                if self.segmentation_tool:
+                    x, y = event.position().x(), event.position().y()
+                    self.moveSegmentationPuck(x, y, record_seg = True)
         self._redraw()
 
     def mouseReleaseEvent(self, event): # noqa
@@ -885,19 +880,48 @@ class PlaneViewer(QWindow):
     def mouseMoveEvent(self, event):  # noqa
         self.level_label.hide()
         b = event.button() | event.buttons()
+        modifiers = event.modifiers()
         # Level or segment
         pos = event.position()
         x, y = pos.x(), pos.y()
         self.mouse_x = x
         self.mouse_y = y
-        if b == Qt.MouseButton.NoButton or b == Qt.MouseButton.LeftButton:
+        if b == Qt.MouseButton.NoButton:
             self.segmentation_cursor_overlay.center = (self.scale * x, self.scale * (self.view.window_size[1] - y), 0)
             self.segmentation_cursor_overlay.update()
-            if self.segmentation_tool:
-                self.moveSegmentationPuck(x, y, record_seg = (b == Qt.MouseButton.LeftButton))
-            self.view.camera.redraw_needed = True
             self.mouse_move_timer.start();
-
+        if b == Qt.MouseButton.LeftButton:
+            if modifiers & Qt.KeyboardModifier.AltModifier:
+                # Move as if the middle button were pressed
+                p_size = self.view.pixel_size()
+                if not self.last_mouse_position:
+                    dx = 0
+                    dy = 0
+                else:
+                    dx = (x - self.last_mouse_position[0]) * p_size
+                    dy = (y - self.last_mouse_position[1]) * p_size
+                self.last_mouse_position = [x, y]
+                x, y, z = self.camera_offsets
+                if self.axis == Axis.AXIAL:
+                    self.camera_offsets = [x - dx, y + dy, z]
+                if self.axis == Axis.CORONAL:
+                    self.camera_offsets = [x + dx, y, z - dy]
+                if self.axis == Axis.SAGITTAL:
+                    self.camera_offsets = [x, y + dx, z - dy]
+            elif modifiers & SYSTEM_KEY:
+                self.mouse_moved_during_right_click = True
+                if not self.last_mouse_position:
+                    dy = 0
+                else:
+                    dy = y - self.last_mouse_position[1]
+                self.last_mouse_position = [x, y]
+                self.field_width_offset += RIGHT_CLICK_ZOOM_SPEED * np.sign(dy) # offsets[self.axis] += (-dy * psize) * 3 * self.axis.positive_direction
+                self.resize3DSegmentationCursor()
+            else:
+                self.segmentation_cursor_overlay.center = (self.scale * x, self.scale * (self.view.window_size[1] - y), 0)
+                self.segmentation_cursor_overlay.update()
+                if self.segmentation_tool:
+                    self.moveSegmentationPuck(x, y, record_seg = True)
         # Zoom / Dolly
         if b & Qt.MouseButton.RightButton:
             self.mouse_moved_during_right_click = True
@@ -908,7 +932,6 @@ class PlaneViewer(QWindow):
             self.last_mouse_position = [x, y]
             self.field_width_offset += RIGHT_CLICK_ZOOM_SPEED * np.sign(dy) # offsets[self.axis] += (-dy * psize) * 3 * self.axis.positive_direction
             self.resize3DSegmentationCursor()
-            self.view.camera.redraw_needed = True
         # Truck & Pedestal
         if b & Qt.MouseButton.MiddleButton:
             p_size = self.view.pixel_size()
