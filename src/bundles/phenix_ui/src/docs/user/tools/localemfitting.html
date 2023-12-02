@@ -34,7 +34,8 @@ The command implementation is
 <a href="../commands/phenix.html#emplaceLocal"><b>phenix emplaceLocal</b></a>.
 See also:
 <a href="fitmap.html"><b>Fit in Map</b></a>,
-<a href="waterplacement.html"><b>Water Placement</b></a>
+<a href="waterplacement.html"><b>Water Placement</b></a>,
+<a href="#symmetry">adding symmetry copies after fitting</a>
 </p><p>
 Limiting the search space to a local region of the map (subvolume)
 can improve the signal-to-noise ratio and lead to success in cases 
@@ -156,7 +157,42 @@ whereas <b>Help</b> shows this page
 in the <a href="helpviewer.html"><b>Help Viewer</b></a>.
 </p>
 
+<a name="symmetry"></a>
+<p class="nav">
+[<a href="#top">back to top: Local EM Fitting</a>]
+</p>
+<h3>Adding Symmetry Copies After Fitting</h3>
+<p>
+<b>Local EM Fitting</b> does not use the symmetry of the map. 
+In some cases, a symmetric multimer of the atomic structure can be
+built after <b>Local EM Fitting</b> is used to place a monomer.
+This is a two-step process:
+</p>
+<ol>
+<li><a href="../commands/measure.html#symmetry"><b>measure symmetry</b></a>
+to detect the symmetry of the map; this only works for certain symmetries
+in standard coordinate systems
+(<a href="../commands/measure.html#symmetry">details...</a>)
+<li><a href="../commands/sym.html#symmetry"><b>sym</b></a> to apply the detected
+map symmetry to the atomic model
+</ol>
+<p>
+For example, if the map is model #1 and the fitted monomer model #2:
+</p>
+<blockquote>
+<b><a href="../commands/measure.html#symmetry">measure symmetry</a> #1</b>
+<br>
+<b><a href="../commands/sym.html#symmetry">sym</a> #2 symmetry #1
+copies true</b>
+</blockquote>
+<p>
+Other than whether the symmetry of the map is correctly discerned, another
+potential pitfall is that this process does not consider steric clashes
+between the symmetrically placed atomic copies. Thus, further refinements
+may be required to generate a realistic model.
+</p>
+
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-July 2023</address>
+December 2023</address>
 </body></html>
