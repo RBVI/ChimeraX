@@ -2486,6 +2486,19 @@ class _Qt:
             mw.addDockWidget(side, self.dock_widget)
             if placement is None or allowed_areas == Qt.DockWidgetArea.NoDockWidgetArea:
                 self.dock_widget.setFloating(True)
+                if self.dock_widget.screen():
+                    def ensure_onscreen(dwindow=self.dock_widget):
+                        sz = dwindow.screen().size()
+                        wg = dwindow.geometry()
+                        tl = wg.topLeft()
+                        br = wg.bottomRight()
+                        if tl.x() < 0 or br.x() > sz.width() or tl.y() < 0 or br.y() > sz.height():
+                            mx = max((sz.width() - (br.x() - tl.x())) // 2, 0)
+                            my = max((sz.height() - (br.y() - tl.y())) // 2, 0)
+                            dwindow.move(mx, my)
+                    from Qt.QtCore import QTimer
+                    QTimer.singleShot(0, ensure_onscreen)
+
         if geometry is not None:
             self.dock_widget.setGeometry(geometry)
         self.dock_widget.setAllowedAreas(allowed_areas)

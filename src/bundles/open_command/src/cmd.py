@@ -213,7 +213,7 @@ def provider_open(session, names, format=None, from_database=None, ignore_cache=
                         models, status = collated_open(session, None, [data], data_format, _add_models,
                             log_errors, opener_info.open, (session, data,
                             name or model_name_from_path(fi.file_name)), provider_kw)
-                    except UnicodeDecodeError:
+                    except UnicodeError:
                         if not provider_info.want_path and data_format.encoding == "utf-8":
                             # try utf-16/32 (see #8746)
                             for encoding in ['utf-16', 'utf-32']:
@@ -223,7 +223,7 @@ def provider_open(session, names, format=None, from_database=None, ignore_cache=
                                     models, status = collated_open(session, None, [data], data_format,
                                         _add_models, log_errors, opener_info.open, (session, data,
                                         name or model_name_from_path(fi.file_name)), provider_kw)
-                                except UnicodeDecodeError:
+                                except UnicodeError:
                                     continue
                                 break
                             else:
