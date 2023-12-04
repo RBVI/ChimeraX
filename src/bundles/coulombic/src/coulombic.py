@@ -173,7 +173,7 @@ def check_residues(residues):
             name_to_atom[aname] = a
         existing_names = set(name_to_atom.keys())
         needed_names = set(res_data.keys())
-        if "OXT" in needed_names and "OXT" not in existing_names and not chain.from_seqres:
+        if "OXT" in needed_names and "OXT" not in existing_names and not chain.full_sequence_known:
             needed_names.remove("OXT")
         missing_atoms.extend([(r, n) for n in needed_names - existing_names])
         extra_atoms.extend([name_to_atom[n] for n in (existing_names - needed_names)])

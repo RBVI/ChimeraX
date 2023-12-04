@@ -135,7 +135,7 @@ def align(session, ref, match, matrix_name, algorithm, gap_open, gap_extend, dss
     # will keep them apart.  Try to detect this situation and work around
     # by snipping off sequence ends.
     sr_disjoint = False
-    if ref.from_seqres and match.from_seqres:
+    if ref.full_sequence_known and match.full_sequence_known:
         struct_match = 0
         for i in range(len(gapped_ref)):
             uri = gapped_ref.gapped_to_ungapped(i)
