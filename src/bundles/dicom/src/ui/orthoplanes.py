@@ -899,6 +899,9 @@ class PlaneViewer(QWindow):
         if b == Qt.MouseButton.NoButton:
             self.segmentation_cursor_overlay.center = (self.scale * x, self.scale * (self.view.window_size[1] - y), 0)
             self.segmentation_cursor_overlay.update()
+            if self.segmentation_tool:
+                self.moveSegmentationPuck(x, y, record_seg = False)
+
             self.mouse_move_timer.start();
         if b == Qt.MouseButton.LeftButton:
             if modifiers & Qt.KeyboardModifier.AltModifier:
