@@ -41,6 +41,7 @@ from chimerax.map.volume import open_grids
 from chimerax.ui import MainToolWindow
 from chimerax.ui.font import shrink_font
 from chimerax.ui.open_save import SaveDialog
+from chimerax.ui.options import SettingsPanel, BooleanOption, SymbolicEnumOption, IntOption
 from chimerax.ui.widgets import ModelMenu
 from chimerax.ui.icons import get_qt_icon
 
@@ -160,14 +161,17 @@ class _SegmentationToolSettings(Settings):
         , 'vr_handedness': Handedness.RIGHT
     }
 
+_seg_tool_settings = None
+
 class SegmentationToolControlsDialog(QDialog):
     right_hand_image = QImage(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "icons", "right_controller.png"))
     # left_hand_image = QImage(os.path.join(os.path.dirname(os.path.abspath(__file__)), "right_controller.png"))
     mouse_image = QImage(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "icons", "mouse.png"))
 
-    def __init__(self, parent, settings):
+    def __init__(self, parent):
         super().__init__(parent)
-        self.cx_settings = settings
+        global _seg_tool_settings
+        self.cx_settings = _seg_tool_settings
         self.setWindowTitle("Segmentation Tool Settings")
         self.setLayout(QVBoxLayout())
         self.tab_widget = QTabWidget(self)
@@ -176,112 +180,72 @@ class SegmentationToolControlsDialog(QDialog):
         self._add_mouse_2d_tab()
         self._add_mouse_3d_tab()
         self._add_vr_tab()
-        self.button_widget = QDialogButtonBox(
-            QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Reset | QDialogButtonBox.StandardButton.RestoreDefaults
-            , self
-        )
-        self.button_widget.accepted.connect(self._on_accept)
-        self.button_widget.button(QDialogButtonBox.StandardButton.Reset).clicked.connect(self._on_reset)
-        self.button_widget.button(QDialogButtonBox.StandardButton.RestoreDefaults).clicked.connect(self._on_restore_defaults)
-        self.layout().addWidget(self.button_widget)
-
-    def _on_accept(self):
-        self.cx_settings.start_vr_automatically = self.start_vr_checkbox.isChecked()
-        self.cx_settings.set_mouse_modes_automatically = self.set_mouse_modes_checkbox.isChecked()
-        self.cx_settings.set_hand_modes_automatically = self.set_hand_modes_checkbox.isChecked()
-        self.cx_settings.default_file_format = self.file_format_dropdown.currentIndex()
-        self.cx_settings.default_view = self.default_view_dropdown.currentIndex()
-        self.cx_settings.default_segmentation_opacity = self.default_opacity_spinbox.value()
-        self.cx_settings.save()
-
-    def _on_reset(self):
-        self.default_view_dropdown.setCurrentIndex(self.cx_settings.default_view)
-        self.file_format_dropdown.setCurrentIndex(self.cx_settings.default_file_format)
-        self.default_opacity_spinbox.setValue(self.cx_settings.default_segmentation_opacity)
-        self.set_mouse_modes_checkbox.setChecked(self.cx_settings.set_mouse_modes_automatically)
-        self.set_hand_modes_checkbox.setChecked(self.cx_settings.set_hand_modes_automatically)
-        self.start_vr_checkbox.setChecked(self.cx_settings.start_vr_automatically)
-
-    def _on_restore_defaults(self):
-        for key, value in DEFAULT_SETTINGS.items():
-            setattr(self.cx_settings, key, value)
-        self.cx_settings.save()
-        self.default_view_dropdown.setCurrentIndex(self.cx_settings.default_view)
-        self.file_format_dropdown.setCurrentIndex(self.cx_settings.default_file_format)
-        self.default_opacity_spinbox.setValue(self.cx_settings.default_segmentation_opacity)
-        self.set_mouse_modes_checkbox.setChecked(self.cx_settings.set_mouse_modes_automatically)
-        self.set_hand_modes_checkbox.setChecked(self.cx_settings.set_hand_modes_automatically)
-        self.start_vr_checkbox.setChecked(self.cx_settings.start_vr_automatically)
 
     def _add_settings_tab(self):
         self.settings_container = QWidget(self)
         self.settings_container.setLayout(QVBoxLayout())
-        self.start_vr_checkbox = QCheckBox("Start VR when the VR layout is chosen")
-        self.start_vr_checkbox.setChecked(self.cx_settings.start_vr_automatically)
-        self.set_mouse_modes_checkbox = QCheckBox("Set 3D mouse modes when the desktop 3D-only layout is chosen")
-        self.set_mouse_modes_checkbox.setChecked(self.cx_settings.set_mouse_modes_automatically)
-        self.set_hand_modes_checkbox = QCheckBox("Set VR controller modes when the VR layout is chosen")
-        self.set_hand_modes_checkbox.setChecked(self.cx_settings.set_hand_modes_automatically)
-        self.default_view_dropdown_container = QWidget(self.settings_container)
-        self.default_view_dropdown_layout = QHBoxLayout()
-        self.default_view_dropdown_container.setLayout(self.default_view_dropdown_layout)
-        self.default_view_dropdown_layout.setContentsMargins(0, 0, 0, 0)
-        self.default_view_dropdown_layout.setSpacing(0)
-        self.default_view_dropdown_label = QLabel("Default layout:")
-        self.default_view_dropdown = QComboBox(self)
-        for view in ViewMode:
-            self.default_view_dropdown.addItem(str(view))
-        self.default_view_dropdown.setCurrentIndex(self.cx_settings.default_view)
-        self.default_view_dropdown_layout.addWidget(self.default_view_dropdown_label)
-        self.default_view_dropdown_layout.addSpacing(8)
-        self.default_view_dropdown_layout.addWidget(self.default_view_dropdown)
-        self.default_view_dropdown_layout.addStretch()
-
-        self.file_format_dropdown_container = QWidget(self.settings_container)
-        self.file_format_dropdown_layout = QHBoxLayout()
-        self.file_format_dropdown_container.setLayout(self.file_format_dropdown_layout)
-        self.file_format_dropdown_layout.setContentsMargins(0, 0, 0, 0)
-        self.file_format_dropdown_layout.setSpacing(0)
-        self.file_format_dropdown_label = QLabel("Format for saving segmentations:")
-        self.file_format_dropdown = QComboBox(self)
-        for format in ImageFormat:
-            self.file_format_dropdown.addItem(str(format))
-        self.file_format_dropdown.setCurrentIndex(self.cx_settings.default_file_format)
-        self.file_format_dropdown_layout.addWidget(self.file_format_dropdown_label)
-        self.file_format_dropdown_layout.addSpacing(8)
-        self.file_format_dropdown_layout.addWidget(self.file_format_dropdown)
-        self.file_format_dropdown_layout.addStretch()
-
-        self.default_opacity_spinbox_container = QWidget(self.settings_container)
-        self.default_opacity_spinbox_layout = QHBoxLayout()
-        self.default_opacity_spinbox_container.setLayout(self.default_opacity_spinbox_layout)
-        self.default_opacity_spinbox_layout.setContentsMargins(0, 0, 0, 0)
-        self.default_opacity_spinbox_layout.setSpacing(0)
-        self.default_opacity_spinbox_label = QLabel("Segmentation opacity:")
-        self.default_opacity_spinbox = QSpinBox(self.settings_container)
-        self.default_opacity_spinbox.setRange(0, 100)
-        self.default_opacity_spinbox.setSuffix("%")
-        self.default_opacity_spinbox.setValue(self.cx_settings.default_segmentation_opacity)
-        self.default_opacity_spinbox_layout.addWidget(self.default_opacity_spinbox_label)
-        self.default_opacity_spinbox_layout.addSpacing(8)
-        self.default_opacity_spinbox_layout.addWidget(self.default_opacity_spinbox)
-        self.default_opacity_spinbox_layout.addStretch()
-
-        self.settings_container.layout().addWidget(self.default_view_dropdown_container)
-        self.settings_container.layout().addWidget(self.set_mouse_modes_checkbox)
-        self.set_mouse_modes_checkbox.setToolTip("Replaced mouse modes will be restored when the tool closes or the view is changed.")
-        self.settings_container.layout().addWidget(self.start_vr_checkbox)
-        self.settings_container.layout().addWidget(self.set_hand_modes_checkbox)
-        self.set_hand_modes_checkbox.setToolTip("Replaced hand modes will be restored when the tool closes.")
-        self.settings_container.layout().addWidget(self.default_opacity_spinbox_container)
-        self.settings_container.layout().addSpacing(-2)
-        self.settings_container.layout().addWidget(self.file_format_dropdown_container)
-        self.dicom_format_explanatory_text = QLabel("DICOM metadata will be lost if NIfTI or NRRD format is used.")
-        self.dicom_format_explanatory_text.setWordWrap(True)
-        shrink_font(self.dicom_format_explanatory_text, 0.9)
-        self.settings_container.layout().addSpacing(-10)
-        self.settings_container.layout().addWidget(self.dicom_format_explanatory_text)
-        self.settings_container.layout().addStretch()
+        self.panel = SettingsPanel()
+        self.panel.add_option(
+            SymbolicEnumOption(
+                name = "Default layout"
+                , default = ViewMode.TWO_BY_TWO
+                , attr_name = "default_view"
+                , settings = self.cx_settings
+                , callback = None
+                , labels = [str(mode) for mode in ViewMode]
+                , values = [mode.value for mode in ViewMode]
+            )
+        )
+        self.panel.add_option(
+            BooleanOption(
+                name = "Set 3D mouse modes when the desktop 3D-only layout is chosen"
+                , default = False
+                , attr_name = "set_mouse_modes_automatically"
+                , settings = self.cx_settings
+                , callback = None
+            )
+        )
+        self.panel.add_option(
+            BooleanOption(
+                name = "Start VR when the VR layout is chosen"
+                , default = False
+                , attr_name = "start_vr_automatically"
+                , settings = self.cx_settings
+                , callback = None
+            )
+        )
+        self.panel.add_option(
+            BooleanOption(
+                name = "Set VR controller modes when the VR layout is chosen"
+                , attr_name = "set_hand_modes_automatically"
+                , settings = self.cx_settings
+                , callback = None
+                , default = False
+            )
+        )
+        self.panel.add_option(
+            IntOption(
+                "Segmentation opacity"
+                , default = 80
+                , settings = self.cx_settings
+                , min = 0
+                , max = 100
+                , callback = None
+                , attr_name = "default_segmentation_opacity"
+            )
+        )
+        self.panel.add_option(
+            SymbolicEnumOption(
+                name = "Format for saving segmentations"
+                , default = ImageFormat.DICOM
+                , settings = self.cx_settings
+                , callback = None
+                , labels= [str(format) for format in ImageFormat]
+                , values = [format.value for format in ImageFormat]
+                , attr_name = "default_file_format"
+            )
+        )
+        self.settings_container.layout().addWidget(self.panel)
         self.tab_widget.addTab(self.settings_container, "General")
 
     def _add_mouse_2d_tab(self):
@@ -445,9 +409,11 @@ class SegmentationTool(ToolInstance):
     def _construct_ui(self):
         # Construct the GUI
         self.tool_window = MainToolWindow(self)
-        self.settings = _SegmentationToolSettings(self.session, "Segmentation Tool")
+        global _seg_tool_settings
+        _seg_tool_settings = _SegmentationToolSettings(self.session, "Segmentation Tool")
+        self.settings = _seg_tool_settings
         self.parent = self.tool_window.ui_area
-        self.controls_dialog = SegmentationToolControlsDialog(self.parent, self.settings)
+        self.controls_dialog = SegmentationToolControlsDialog(self.parent)
         self.main_layout = QVBoxLayout()
         self.active_seg: Volume | None = None
 
