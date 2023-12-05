@@ -35,6 +35,8 @@ from Qt.QtCore import QTimer, QPoint
 
 from chimerax.core.commands import log_equivalent_command
 from chimerax.core.models import Surface
+from chimerax.core.tools import ADD_TOOL_INSTANCE
+
 from chimerax.geometry import Place, translation
 from chimerax.graphics import Drawing
 from chimerax.map import Volume, VolumeSurface, VolumeImage
@@ -44,6 +46,7 @@ from chimerax.map.volumecommand import apply_volume_options
 from chimerax.mouse_modes.mousemodes import decode_modifier_bits
 from chimerax.mouse_modes.trackpad import MultitouchEvent, Touch
 from chimerax.ui.widgets import ModelMenu
+
 
 from ..graphics import (
     OrthoplaneView, OrthoCamera
@@ -264,6 +267,12 @@ class PlaneViewer(QWindow):
         self.mouse_move_timer.setInterval(500);
         self.mouse_move_timer.setSingleShot(True);
         self.mouse_move_timer.timeout.connect(self.mouseStoppedMoving)
+
+        self.volume_viewer_opened_timer = QTimer()
+        self.volume_viewer_opened_timer.setInterval(500);
+        self.volume_viewer_opened_timer.setSingleShot(True);
+        self.volume_viewer_opened_timer.timeout.connect(self._on_volume_viewer_opened)
+
         self.mouse_x = 0
         self.mouse_y = 0
         # Used to move the camera when slices are moved
@@ -309,6 +318,24 @@ class PlaneViewer(QWindow):
         self.context_menu = None
         self.context_menu_coords = None
         self.mouse_moved_during_right_click = False
+
+        self.tool_instance_added_handler = session.triggers.add_handler(
+            ADD_TOOL_INSTANCE, self._tool_instance_added_cb
+        )
+
+    def _tool_instance_added_cb(self, _, tools):
+        for tool in tools:
+            if type(tool) is VolumeViewer:
+                self.volume_viewer_opened_timer.start()
+
+    def _on_volume_viewer_opened(self):
+        volume_viewer = None
+        for tool in self.session.tools:
+            if type(tool) == VolumeViewer:
+                volume_viewer = tool
+                break
+        if volume_viewer:
+            self._add_axis_to_volume_viewer(volume_viewer, self.view.drawing.parent)
 
     def _collapse_touch_events(self):
         # Taken from the Mouse Modes code. It's unknown at this point whether there is a
