@@ -1136,9 +1136,10 @@ class PlaneViewer(QWindow):
         self.label.update_drawing()
 
     def _remove_axis_from_volume_viewer(self, volume_viewer, volume):
-        hptable = volume_viewer.thresholds_panel.histogram_table
-        if volume in hptable:
-            volume_viewer.thresholds_panel.close_histogram_pane(hptable[volume])
+        if volume_viewer:
+            hptable = volume_viewer.thresholds_panel.histogram_table
+            if volume in hptable:
+                volume_viewer.thresholds_panel.close_histogram_pane(hptable[volume])
 
     def _add_axis_to_volume_viewer(self, volume_viewer, volume):
         v = volume
