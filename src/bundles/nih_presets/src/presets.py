@@ -204,6 +204,7 @@ def print_prep(session=None, *, pb_radius=0.4, ion_size_increase=0.0, bond_sides
                     "rename ##name=%s '%s'" % (os.path.basename(pb_file.name), p3ms_pbg_name)
                 ]
             cmds.append("hide %s models" % ms_pbg.atomspec)
+            print("; halfbond = true", file=pb_file)
             for pb in ms_pbg.pseudobonds:
                 a1, a2 = pb.atoms
                 ca1 = a1.residue.find_atom("CA") or a1
