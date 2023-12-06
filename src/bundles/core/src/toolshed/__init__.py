@@ -292,7 +292,7 @@ class Toolshed:
     """
 
     def __init__(self, logger, rebuild_cache=False, check_remote=False,
-                 remote_url=None, check_available=True, session=None, safe_mode = False):
+                 remote_url=None, check_available=True, session=None):
         """Initialize Toolshed instance.
 
         Parameters
@@ -315,7 +315,7 @@ class Toolshed:
             self.remote_url = _DefaultRemoteURL
         else:
             self.remote_url = remote_url
-        self._safe_mode = safe_mode
+        self._safe_mode = None
         self._repo_locator = None
         self._installed_bundle_info = None
         self._available_bundle_info = None
@@ -373,8 +373,7 @@ class Toolshed:
         if (check_available and self._available_bundle_info is not None and
                                 self._available_bundle_info.toolshed_url != self.remote_url):
             self._available_bundle_info = None
-        if not self._safe_mode:
-            self.reload(logger, check_remote=check_remote, rebuild_cache=rebuild_cache, _session=session)
+        self.reload(logger, check_remote=check_remote, rebuild_cache=rebuild_cache, _session=session)
         from datetime import datetime
         from ..core_settings import settings
         now = datetime.now()
