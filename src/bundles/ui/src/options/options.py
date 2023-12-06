@@ -14,7 +14,11 @@
 from abc import ABCMeta, abstractmethod
 
 class Option(metaclass=ABCMeta):
-    """Supported API. Base class (and common API) for all options"""
+    """Supported API. Base class (and common API) for all options
+
+    Set 'default' to None if you want values in a settings menu to survive
+    closing a tool. 
+    """
 
     multiple_value = "-- multiple --"
     read_only = False

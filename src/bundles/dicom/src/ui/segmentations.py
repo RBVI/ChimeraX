@@ -122,25 +122,6 @@ class Handedness(IntEnum):
     def __str__(self):
         return self.name.title()
 
-DEFAULT_SETTINGS = {
-    'start_vr_automatically': False
-    , 'set_mouse_modes_automatically': False
-    , 'set_hand_modes_automatically': False
-    , 'default_view': 0 # 4 x 4
-    , 'default_file_format': 0 # DICOM
-    , 'default_segmentation_opacity': 80 # %
-    , 'mouse_3d_right_click': MouseAction.ADD_TO_SEGMENTATION
-    , 'mouse_3d_middle_click': MouseAction.MOVE_SPHERE
-    , 'mouse_3d_scroll': MouseAction.RESIZE_SPHERE
-    , 'mouse_3d_left_click': MouseAction.NONE
-    , 'vr_thumbstick': HandAction.RESIZE_CURSOR
-    , 'vr_trigger': HandAction.ADD_TO_SEGMENTATION
-    , 'vr_grip': HandAction.MOVE_CURSOR
-    , 'vr_a_button': HandAction.ERASE_FROM_SEGMENTATION
-    , 'vr_b_button': HandAction.NONE
-    , 'vr_handedness': Handedness.RIGHT
-}
-
 class _SegmentationToolSettings(Settings):
     EXPLICIT_SAVE = {
         'start_vr_automatically': False
@@ -163,15 +144,21 @@ class _SegmentationToolSettings(Settings):
 
 _seg_tool_settings = None
 
+def get_settings(session):
+    global _seg_tool_settings
+    if _seg_tool_settings is None:
+        _seg_tool_settings = _SegmentationToolSettings(session, "Segmentation Tool")
+    return _seg_tool_settings
+        
+
 class SegmentationToolControlsDialog(QDialog):
     right_hand_image = QImage(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "icons", "right_controller.png"))
     # left_hand_image = QImage(os.path.join(os.path.dirname(os.path.abspath(__file__)), "right_controller.png"))
     mouse_image = QImage(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "icons", "mouse.png"))
 
-    def __init__(self, parent):
+    def __init__(self, parent, session):
         super().__init__(parent)
-        global _seg_tool_settings
-        self.cx_settings = _seg_tool_settings
+        self.session = session
         self.setWindowTitle("Segmentation Tool Settings")
         self.setLayout(QVBoxLayout())
         self.tab_widget = QTabWidget(self)
@@ -182,15 +169,16 @@ class SegmentationToolControlsDialog(QDialog):
         self._add_vr_tab()
 
     def _add_settings_tab(self):
+        settings = get_settings(self.session)
         self.settings_container = QWidget(self)
         self.settings_container.setLayout(QVBoxLayout())
         self.panel = SettingsPanel()
         self.panel.add_option(
             SymbolicEnumOption(
                 name = "Default layout"
-                , default = ViewMode.TWO_BY_TWO
+                , default = None
                 , attr_name = "default_view"
-                , settings = self.cx_settings
+                , settings = settings
                 , callback = None
                 , labels = [str(mode) for mode in ViewMode]
                 , values = [mode.value for mode in ViewMode]
@@ -199,18 +187,18 @@ class SegmentationToolControlsDialog(QDialog):
         self.panel.add_option(
             BooleanOption(
                 name = "Set 3D mouse modes when the desktop 3D-only layout is chosen"
-                , default = False
+                , default = None
                 , attr_name = "set_mouse_modes_automatically"
-                , settings = self.cx_settings
+                , settings = settings
                 , callback = None
             )
         )
         self.panel.add_option(
             BooleanOption(
                 name = "Start VR when the VR layout is chosen"
-                , default = False
+                , default = None
                 , attr_name = "start_vr_automatically"
-                , settings = self.cx_settings
+                , settings = settings
                 , callback = None
             )
         )
@@ -218,16 +206,16 @@ class SegmentationToolControlsDialog(QDialog):
             BooleanOption(
                 name = "Set VR controller modes when the VR layout is chosen"
                 , attr_name = "set_hand_modes_automatically"
-                , settings = self.cx_settings
+                , settings = settings
                 , callback = None
-                , default = False
+                , default = None
             )
         )
         self.panel.add_option(
             IntOption(
                 "Segmentation opacity"
-                , default = 80
-                , settings = self.cx_settings
+                , default = None
+                , settings = settings
                 , min = 0
                 , max = 100
                 , callback = None
@@ -237,8 +225,8 @@ class SegmentationToolControlsDialog(QDialog):
         self.panel.add_option(
             SymbolicEnumOption(
                 name = "Format for saving segmentations"
-                , default = ImageFormat.DICOM
-                , settings = self.cx_settings
+                , default = None
+                , settings = settings
                 , callback = None
                 , labels= [str(format) for format in ImageFormat]
                 , values = [format.value for format in ImageFormat]
@@ -393,7 +381,6 @@ class SegmentationToolControlsDialog(QDialog):
         self.control_label_container_layout.addStretch()
         self.tab_widget.addTab(self.vr_outer_widget, "VR Controller")
 
-
 class SegmentationTool(ToolInstance):
     # TODO: Sphere cursor for 2D, extend to VR
 
@@ -409,11 +396,9 @@ class SegmentationTool(ToolInstance):
     def _construct_ui(self):
         # Construct the GUI
         self.tool_window = MainToolWindow(self)
-        global _seg_tool_settings
-        _seg_tool_settings = _SegmentationToolSettings(self.session, "Segmentation Tool")
-        self.settings = _seg_tool_settings
+        self.settings = get_settings(self.session)
         self.parent = self.tool_window.ui_area
-        self.controls_dialog = SegmentationToolControlsDialog(self.parent)
+        self.controls_dialog = SegmentationToolControlsDialog(self.parent, self.session)
         self.main_layout = QVBoxLayout()
         self.active_seg: Volume | None = None
 
