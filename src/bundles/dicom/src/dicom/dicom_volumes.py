@@ -195,6 +195,13 @@ class DICOMVolume(Volume):
         new_seg_model = open_dicom_grids(self.session, [new_grid], name = "new segmentation")[0]
         self.session.models.add(new_seg_model)
         return new_seg_model[0]
+    
+    def take_snapshot(self, session, flags):
+        return super().take_snapshot(session, flags)
+
+    @staticmethod
+    def restore_snapshot(session, data):
+        return Volume.restore_snapshot(session, data)
 
 def dicom_volume_from_grid_data(grid_data, session, style = 'auto',
                           open_model = True, model_id = None, show_dialog = True):
