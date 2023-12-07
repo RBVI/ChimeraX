@@ -68,7 +68,16 @@ class DICOM:
         self.paths = paths
         self.find_dicom_files(self.paths)
         self.merge_patients_by_id()
-        return self.open()[0]
+        dicom_grids = []
+        derived = []
+        sgrids = {}
+        for patient in self.patients.values():
+            for study in patient:
+                for series in study:
+                    for dicom_data in series.dicom_data:
+                        if dicom_data.image_series:
+                            dicom_grids.append(dicom_data._to_grids(derived, sgrids))
+        return dicom_grids
 
     def find_dicom_files(
         self, paths, search_directories: bool = True, search_subdirectories: bool = True,
