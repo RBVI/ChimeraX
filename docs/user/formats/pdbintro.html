@@ -792,6 +792,9 @@ PQR format is rather loosely defined and varies according to which
 program is producing or using the file. For example, 
 <a href="https://www.poissonboltzmann.org/" target="_blank">APBS</a>
 requires only that all fields be whitespace-delimited.
+<a href="https://www.poissonboltzmann.org" target="_blank">PDB2PQR</a>
+is a program for structure cleanup, charge/radius assignment,
+and PQR file generation. 
 </p><p>
 If an ATOM or HETATM record being read by ChimeraX is not in PDB format,
 ChimeraX next tries to read it as PQR format.  In that case,
@@ -804,9 +807,12 @@ The radius values are assigned as the atom
 <a href="../attributes.html">attribute</a> named <b>radius</b>.
 <!-- <b>charge</b> and --> 
 </p><p>
-<a href="https://www.poissonboltzmann.org" target="_blank">PDB2PQR</a>
-is a program for structure cleanup, charge/radius assignment,
-and PQR file generation. 
+ChimeraX can also write PQR files; see 
+<a href="../commands/save.html#pdb"><b>save</b></a> with <b>pqr true</b>.
+ChimeraX automatically assigns <a href="../radii.html">atomic radii</a> 
+if not read from PQR input and can also assign partial charges
+with the <a href="../tools/addcharges.html"><b>Add Charges</b></a> tool
+or <a href="../commands/addcharge.html"><b>addcharge</b></a> command.
 </p>
 
 <hr>
