@@ -92,6 +92,7 @@ class TaskState(StrEnum):
     TERMINATED = "terminated"   # Termination requested
     FINISHED = "finished"       # Finished
     # Webservices states
+    QUEUED = "queued"
     STARTED = "started"
     FAILED = "failed"
     DELETED = "deleted"

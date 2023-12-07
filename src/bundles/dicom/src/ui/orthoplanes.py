@@ -35,6 +35,8 @@ from Qt.QtCore import QTimer, QPoint
 
 from chimerax.core.commands import log_equivalent_command
 from chimerax.core.models import Surface
+from chimerax.core.tools import ADD_TOOL_INSTANCE
+
 from chimerax.geometry import Place, translation
 from chimerax.graphics import Drawing
 from chimerax.map import Volume, VolumeSurface, VolumeImage
@@ -44,6 +46,7 @@ from chimerax.map.volumecommand import apply_volume_options
 from chimerax.mouse_modes.mousemodes import decode_modifier_bits
 from chimerax.mouse_modes.trackpad import MultitouchEvent, Touch
 from chimerax.ui.widgets import ModelMenu
+
 
 from ..graphics import (
     OrthoplaneView, OrthoCamera
@@ -264,6 +267,12 @@ class PlaneViewer(QWindow):
         self.mouse_move_timer.setInterval(500);
         self.mouse_move_timer.setSingleShot(True);
         self.mouse_move_timer.timeout.connect(self.mouseStoppedMoving)
+
+        self.volume_viewer_opened_timer = QTimer()
+        self.volume_viewer_opened_timer.setInterval(500);
+        self.volume_viewer_opened_timer.setSingleShot(True);
+        self.volume_viewer_opened_timer.timeout.connect(self._on_volume_viewer_opened)
+
         self.mouse_x = 0
         self.mouse_y = 0
         # Used to move the camera when slices are moved
@@ -309,6 +318,24 @@ class PlaneViewer(QWindow):
         self.context_menu = None
         self.context_menu_coords = None
         self.mouse_moved_during_right_click = False
+
+        self.tool_instance_added_handler = session.triggers.add_handler(
+            ADD_TOOL_INSTANCE, self._tool_instance_added_cb
+        )
+
+    def _tool_instance_added_cb(self, _, tools):
+        for tool in tools:
+            if type(tool) is VolumeViewer:
+                self.volume_viewer_opened_timer.start()
+
+    def _on_volume_viewer_opened(self):
+        volume_viewer = None
+        for tool in self.session.tools:
+            if type(tool) == VolumeViewer:
+                volume_viewer = tool
+                break
+        if volume_viewer:
+            self._add_axis_to_volume_viewer(volume_viewer, self.view.drawing.parent)
 
     def _collapse_touch_events(self):
         # Taken from the Mouse Modes code. It's unknown at this point whether there is a
@@ -382,6 +409,11 @@ class PlaneViewer(QWindow):
         four_finger_trans = event.four_finger_trans
         pinch = event.two_finger_scale
         twist = event.two_finger_twist
+        if two_finger_trans:
+            if "shift" in self._modifier_keys:
+                dx, dy = two_finger_trans
+                self.segmentation_cursor_overlay.radius += 1 * np.sign(dy)
+                self.resize3DSegmentationCursor()
         if pinch:
         # Zoom / Dolly
             # In std_modes.py, 1 is subtracted from two_finger_scale to determine
@@ -448,6 +480,8 @@ class PlaneViewer(QWindow):
         return self.drawingOrigin()[self.axis] + (dir * self.pos * self.drawingVolumeStep()[self.axis])
 
     def _onSliderMoved(self):
+        if self.view.drawing is self.placeholder_drawing:
+            return
         if self.axis == Axis.CORONAL:
             self.old_pos = -self.pos
             self.pos = -self.slider.sliderPosition()
@@ -547,44 +581,45 @@ class PlaneViewer(QWindow):
             return
         mvwin = self.view.render.use_shared_context(self)
         try:
-            #self.view.background_color = self.main_view.background_color
-            self.scale = mvwin.opengl_context.pixel_scale()
-            # We can rely on add_segmentation to set this value except when we're transitioning
-            # from the 3d views back to the 2d view. In that case, we have to do it somewhere
-            # TODO: Idenfity someplace we can do this _once_ and move it out of the render loop
-            for segmentation in self.segmentation_overlays.values():
-                segmentation.slice = self.pos
-            # Again, this should be done in the same place as the above function, but for the
-            # next release it's fine.
-            # TODO: Idenfity someplace we can do this _once_ and move it out of the render loop
-            if self.segmentation_tool:
-                self.segmentation_tool.setCursorOffsetFromOrigin(self.axis, self.mvSegmentationCursorOffsetFromOrigin()) #self.pos * self.view.drawing.parent.data.step[self.axis]
-            # TODO: If the user selects 'surface' then 'orthoplanes' in the volume viewer we should
-            # override the default plane locations somehow
-            if self.slider_moved:
-                for d in self.drawings:
-                    show_planes(self.drawingParentVolume(d), self.axis, self._plane_indices[self.axis])
-                    self.drawingParentVolume(d).update_drawings()
-                self.slider_moved = False
-            model_center_offsets = self.drawingBounds().center()
-            model_sizes = self.drawingBounds().size()
-            initial_needed_fov = model_sizes[self.axis.vertical] / height * width
-            margin = 24
-            self.view.camera.field_width = initial_needed_fov + margin + self.field_width_offset
-            self.calculateSliceOverlays()
-            # The camera and the model can't share the same origin, so back it off a little bit
-            camera_offsets = [0, 0, 0]
-            camera_offsets[self.axis] = 20 * self.axis.positive_direction
-            self.origin = self.drawingPosition().origin() + model_center_offsets - self.camera_offsets + camera_offsets
-            camera = self.view.camera
-            camera.position = Place(axes=self.axes, origin=self.origin)
-            self.segmentation_cursor_overlay.update()
-            self.horizontal_slice_overlay.update()
-            self.vertical_slice_overlay.update()
+            if self.view.drawing is not self.placeholder_drawing:
+                #self.view.background_color = self.main_view.background_color
+                self.scale = mvwin.opengl_context.pixel_scale()
+                # We can rely on add_segmentation to set this value except when we're transitioning
+                # from the 3d views back to the 2d view. In that case, we have to do it somewhere
+                # TODO: Idenfity someplace we can do this _once_ and move it out of the render loop
+                for segmentation in self.segmentation_overlays.values():
+                    segmentation.slice = self.pos
+                # Again, this should be done in the same place as the above function, but for the
+                # next release it's fine.
+                # TODO: Idenfity someplace we can do this _once_ and move it out of the render loop
+                if self.segmentation_tool:
+                    self.segmentation_tool.setCursorOffsetFromOrigin(self.axis, self.mvSegmentationCursorOffsetFromOrigin()) #self.pos * self.view.drawing.parent.data.step[self.axis]
+                # TODO: If the user selects 'surface' then 'orthoplanes' in the volume viewer we should
+                # override the default plane locations somehow
+                if self.slider_moved:
+                    for d in self.drawings:
+                        show_planes(self.drawingParentVolume(d), self.axis, self._plane_indices[self.axis])
+                        self.drawingParentVolume(d).update_drawings()
+                    self.slider_moved = False
+                model_center_offsets = self.drawingBounds().center()
+                model_sizes = self.drawingBounds().size()
+                initial_needed_fov = model_sizes[self.axis.vertical] / height * width
+                margin = 24
+                self.view.camera.field_width = initial_needed_fov + margin + self.field_width_offset
+                self.calculateSliceOverlays()
+                # The camera and the model can't share the same origin, so back it off a little bit
+                camera_offsets = [0, 0, 0]
+                camera_offsets[self.axis] = 20 * self.axis.positive_direction
+                self.origin = self.drawingPosition().origin() + model_center_offsets - self.camera_offsets + camera_offsets
+                camera = self.view.camera
+                camera.position = Place(axes=self.axes, origin=self.origin)
+                self.segmentation_cursor_overlay.update()
+                self.horizontal_slice_overlay.update()
+                self.vertical_slice_overlay.update()
 
             self.view.prepare_scene_for_drawing()
             self.view._draw_scene(self.view.camera, [self.view.drawing])
-            self.view.finalize_draw()
+            self.view.finalize_draw(should_draw_overlays = (self.view.drawing is not self.placeholder_drawing))
         except Exception as e: # noqa
             # This line is here so you can set a breakpoint on it and figure out what's going wrong
             # because ChimeraX's interface will not tell you.
@@ -860,6 +895,8 @@ class PlaneViewer(QWindow):
 
     def mouseStoppedMoving(self):
         # TODO: Look at the pixel under the mouse and report what the level is
+        if self.view.drawing is self.placeholder_drawing:
+            return
         rel_top, rel_bottom, rel_left, rel_right = self.mousePercentOffsetsFromEdges(self.mouse_x, self.mouse_y)
         if any([rel_top < 0, rel_bottom < 0, rel_left < 0, rel_right < 0]) or any([rel_top > 1, rel_bottom > 1, rel_left > 1, rel_right > 1]):
             return
@@ -889,6 +926,9 @@ class PlaneViewer(QWindow):
         if b == Qt.MouseButton.NoButton:
             self.segmentation_cursor_overlay.center = (self.scale * x, self.scale * (self.view.window_size[1] - y), 0)
             self.segmentation_cursor_overlay.update()
+            if self.segmentation_tool:
+                self.moveSegmentationPuck(x, y, record_seg = False)
+
             self.mouse_move_timer.start();
         if b == Qt.MouseButton.LeftButton:
             if modifiers & Qt.KeyboardModifier.AltModifier:
@@ -1030,58 +1070,65 @@ class PlaneViewer(QWindow):
             self._remove_axis_from_volume_viewer(volume_viewer, v.parent)
             v.delete()
             del v
-        v = self.model_menu.value.copy()
-        self.model_menu.value.expand_single_plane()
-        self.model_menu.value.set_display_style('surface')
-        self.model_menu.value._drawings_need_update()
-        max_x, max_y, max_z = self.model_menu.value.region[1]
-        middle = tuple((imin + imax) // 2 for imin, imax in zip(self.model_menu.value.region[0], self.model_menu.value.region[1]))
-        new_drawing = None
-        apply_volume_options(
-            v
-            , doptions = {
-                'region': (v.region[0], v.region[1])
-                , 'planes': self.axis.cartesian
-            }
-            , roptions = {}
-            , image_mode_off = False
-            , session = self.session
-        )
-        v.set_display_style('image')
-        v.name =  str(self.axis) + " orthoplane " + str(self.model_menu.value.name)
-        v.update_drawings()
-        v.allow_style_changes = False
-        # Add our new volume to the volume menu with our custom widget
-        self._add_axis_to_volume_viewer(volume_viewer, v)
+        if self.model_menu.value is None:
+            self.view.drawing = self.placeholder_drawing
+            self.slider.setMinimum(0)
+            self.slider.setMaximum(2)
+            self.slider.setValue(1)
+            self.pos = 1
+        else:
+            v = self.model_menu.value.copy()
+            self.model_menu.value.expand_single_plane()
+            self.model_menu.value.set_display_style('surface')
+            self.model_menu.value._drawings_need_update()
+            max_x, max_y, max_z = self.model_menu.value.region[1]
+            middle = tuple((imin + imax) // 2 for imin, imax in zip(self.model_menu.value.region[0], self.model_menu.value.region[1]))
+            new_drawing = None
+            apply_volume_options(
+                v
+                , doptions = {
+                    'region': (v.region[0], v.region[1])
+                    , 'planes': self.axis.cartesian
+                }
+                , roptions = {}
+                , image_mode_off = False
+                , session = self.session
+            )
+            v.set_display_style('image')
+            v.name =  str(self.axis) + " orthoplane " + str(self.model_menu.value.name)
+            v.update_drawings()
+            v.allow_style_changes = False
+            # Add our new volume to the volume menu with our custom widget
+            self._add_axis_to_volume_viewer(volume_viewer, v)
 
-        self.main_view.camera.redraw_needed = True
-        for d in v._child_drawings:
-            if type(d) == VolumeImage:
-                new_drawing = d
-        #self.manager.update_drawing(self.model_menu.value)
-        if new_drawing is not None:
-            # Set the view's root drawing, and our ground truth drawing, to the new one
-            self.view.drawing = new_drawing
-            for drawing in self.drawings:
-                self.removeDrawing(drawing)
-            if new_drawing not in self.drawings:
-                self.addDrawing(new_drawing)
-                new_drawing.display = True
-            self.set_label_text(new_drawing.parent.name)
-            self.manager.update_dimensions([max_x, max_y, max_z])
-            orthoplane_positions = max_x // 2, max_y // 2, max_z // 2
-            self._plane_indices = list(orthoplane_positions)
-            if self.axis == Axis.AXIAL:
-                self.slider.setMaximum(max_z)
-            if self.axis == Axis.CORONAL:
-                self.slider.setRange(-max_y, 0)
-            if self.axis == Axis.SAGITTAL:
-                self.slider.setMaximum(max_x)
-            self.slider.setValue(orthoplane_positions[self.axis] * self.axis.positive_direction)
-            self.slider_moved = True
-            self.pos = orthoplane_positions[self.axis]
-            self._plane_indices[self.axis] = self.pos
-            self.manager.update_location(self)
+            self.main_view.camera.redraw_needed = True
+            for d in v._child_drawings:
+                if type(d) == VolumeImage:
+                    new_drawing = d
+            #self.manager.update_drawing(self.model_menu.value)
+            if new_drawing is not None:
+                # Set the view's root drawing, and our ground truth drawing, to the new one
+                self.view.drawing = new_drawing
+                for drawing in self.drawings:
+                    self.removeDrawing(drawing)
+                if new_drawing not in self.drawings:
+                    self.addDrawing(new_drawing)
+                    new_drawing.display = True
+                self.set_label_text(new_drawing.parent.name)
+                self.manager.update_dimensions([max_x, max_y, max_z])
+                orthoplane_positions = max_x // 2, max_y // 2, max_z // 2
+                self._plane_indices = list(orthoplane_positions)
+                if self.axis == Axis.AXIAL:
+                    self.slider.setMaximum(max_z)
+                if self.axis == Axis.CORONAL:
+                    self.slider.setRange(-max_y, 0)
+                if self.axis == Axis.SAGITTAL:
+                    self.slider.setMaximum(max_x)
+                self.slider.setValue(orthoplane_positions[self.axis] * self.axis.positive_direction)
+                self.slider_moved = True
+                self.pos = orthoplane_positions[self.axis]
+                self._plane_indices[self.axis] = self.pos
+                self.manager.update_location(self)
         self.render()
 
     def set_label_text(self, text):
@@ -1089,9 +1136,10 @@ class PlaneViewer(QWindow):
         self.label.update_drawing()
 
     def _remove_axis_from_volume_viewer(self, volume_viewer, volume):
-        hptable = volume_viewer.thresholds_panel.histogram_table
-        if volume in hptable:
-            volume_viewer.thresholds_panel.close_histogram_pane(hptable[volume])
+        if volume_viewer:
+            hptable = volume_viewer.thresholds_panel.histogram_table
+            if volume in hptable:
+                volume_viewer.thresholds_panel.close_histogram_pane(hptable[volume])
 
     def _add_axis_to_volume_viewer(self, volume_viewer, volume):
         v = volume

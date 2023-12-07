@@ -234,7 +234,7 @@ def phenix_fit_loops(session, residues, in_map, *, block=None, phenix_location=N
             if sequence_file is None:
                 with open(seqf_path, "w") as f:
                     for chain in structure.chains:
-                        if not chain.from_seqres:
+                        if not chain.full_sequence_known:
                             raise NoSeqInfoError("Structure file does not contain complete sequence"
                                 f" information.  Please provide that information via the '{seq_keyword}'"
                                 " keyword argument.")

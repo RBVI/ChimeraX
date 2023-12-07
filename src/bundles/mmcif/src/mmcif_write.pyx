@@ -372,7 +372,7 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
         chars = c.characters
         if chars in seq_entities:
             eid, _1to3, chains = seq_entities[chars]
-            if _1to3 is not None or not c.from_seqres:
+            if _1to3 is not None or not c.full_sequence_known:
                 chains.append(c)
                 continue
             # fallthrough when sequence wasn't authoratative, but is now
@@ -385,7 +385,7 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
         names = set(c.existing_residues.names)
         nstd = 'yes' if names.difference(_standard_residues) else 'no'
         # _1to3 is reverse map to handle missing residues
-        if not best_guess and not c.from_seqres:
+        if not best_guess and not c.full_sequence_known:
             skipped_sequence_info = True
             _1to3 = None
         else:
@@ -415,7 +415,6 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
     for chars, (eid, _1to3, chains) in seq_entities.items():
         if _1to3 is None:
             continue
-        chains = [c for c in chains if c.from_seqres]
         pdbx_poly_tmp[eid] = []
         for seq_id, ch, residues in zip(range(1, sys.maxsize), chars, zip(*(c.residues for c in chains))):
             label_seq_id = str(seq_id)

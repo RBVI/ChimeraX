@@ -83,7 +83,11 @@ def cmd_addcharge_nonstd(session, residues, res_name, net_charge, *,
         raise UserError(f"No specified residues are named '{res_name}'")
 
     check_hydrogens(session, residues)
-    add_nonstandard_res_charges(session, residues, net_charge, method=method, status=session.logger.status)
+    try:
+        add_nonstandard_res_charges(session, residues, net_charge, method=method,
+            status=session.logger.status)
+    except ChargeError as e:
+        raise UserError(str(e))
 
 def check_hydrogens(session, residues):
     atoms = residues.atoms

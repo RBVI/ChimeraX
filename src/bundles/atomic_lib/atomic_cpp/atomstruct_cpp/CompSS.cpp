@@ -764,6 +764,7 @@ fill_in_ss_info(KsdsspParams& params)
 					}
 					sheets.erase(sn);
 				}
+				sheets[sheet_num] = sheet;
 			}
 			// else: ladder within same sheet, no need to do anything
 		} else {
