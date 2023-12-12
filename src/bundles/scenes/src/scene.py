@@ -33,10 +33,10 @@ class Scene(State):
             self.model_data = {}
             for model in session.models:
                 # If derived class does not implement restore_scene, use Model class
-                if hasattr(model.__class__, "restore_scene"):
-                    self.model_data[model] = model.take_snapshot(session, State.SCENE)
-                else:
+                if model.__class__.restore_scene == Model.restore_scene:
                     self.model_data[model] = Model.take_snapshot(model, session, State.SCENE)
+                else:
+                    self.model_data[model] = model.take_snapshot(session, State.SCENE)
         else:
             self.model_data = session_data['model_data']
         # need to save view data and lighting data
