@@ -58,7 +58,7 @@ def register(session, name, email, organization=None,
     from .nag import check_registration
     expiration = check_registration()
     if expiration is not None:
-        session.logger.info("Your copy of Chimera is already registered "
+        session.logger.info("Your copy of ChimeraX is already registered "
                             "through %s." % expiration.strftime("%x"))
     # Normalize input
     name = name.strip()
