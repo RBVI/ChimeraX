@@ -176,7 +176,7 @@ class LaunchEmplaceLocalTool(ToolInstance):
             self.__class__.settings = LaunchEmplaceLocalSettings(session, "launch emplace local")
 
         from Qt.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel, QWidget, QPushButton, QMenu, QLineEdit
-        from Qt.QtWidgets import QCheckBox, QGridLayout
+        from Qt.QtWidgets import QCheckBox, QGridLayout, QGroupBox
         from Qt.QtGui import QDoubleValidator
         from Qt.QtCore import Qt
         layout = QVBoxLayout()
@@ -305,6 +305,10 @@ class LaunchEmplaceLocalTool(ToolInstance):
             "calculation completes.  Even if not checked, the map will be opened (but hidden)."
         )
         layout.addWidget(self.show_sharpened_map_checkbox, alignment=Qt.AlignCenter)
+        layout.addSpacing(10)
+        self.symmetry_checkbox = QCheckBox("After fitting, add symmetry copies"
+            " automatically if map symmetry is detected")
+        layout.addWidget(self.symmetry_checkbox, alignment=Qt.AlignCenter)
         layout.addStretch(1)
 
         from Qt.QtWidgets import QDialogButtonBox as qbbox
