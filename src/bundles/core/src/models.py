@@ -53,7 +53,8 @@ MODELS_STATE_VERSION = 1
 from .state import State
 from chimerax.graphics import Drawing, Pick, PickedTriangle
 class Model(State, Drawing):
-    """A Model is a :class:`.Drawing` together with an id number
+    """
+    A Model is a :class:`.Drawing` together with an id number
     that allows it to be referenced in a typed command.
 
     Model subclasses can be saved in session files.
