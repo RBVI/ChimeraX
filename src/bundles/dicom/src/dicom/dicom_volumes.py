@@ -12,6 +12,7 @@ from chimerax.map.volume import (
 from ..types import Axis
 
 from . import modality
+from chimerax.core.models import Model
 from .dicom_models import DicomGrid
 
 class DICOMVolume(Volume):
@@ -201,7 +202,18 @@ class DICOMVolume(Volume):
 
     @staticmethod
     def restore_snapshot(session, data):
-        return Volume.restore_snapshot(session, data)
+        grid_data = data['grid data state'].grid_data
+        if grid_data is None:
+            return
+        dv = DICOMVolume(session, grid_data)
+        Model.set_state_from_snapshot(dv, session, data['model state'])
+        dv._style_when_shown = None
+        from chimerax.map.session import set_map_state
+        from chimerax.map.volume import show_volume_dialog
+        set_map_state(data['volume state'], dv)
+        dv._drawings_need_update()
+        show_volume_dialog(session)
+        return dv
 
 def dicom_volume_from_grid_data(grid_data, session, style = 'auto',
                           open_model = True, model_id = None, show_dialog = True):
