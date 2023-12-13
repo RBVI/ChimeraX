@@ -30,7 +30,14 @@ finish-args:
   - --filesystem=xdg-config/ChimeraX:create
   - --filesystem=xdg-data/ChimeraX:create
   - --filesystem=xdg-download/ChimeraX:create
+  # want "Spin Movie" icon to be able to save to Desktop
+  - --filesystem=xdg-desktop
+  # Add --filesystem=home so Flatseal can turn it off
+  - --filesystem=home
   # want to be able to open files in current directory
+  # -- this makes the previous filesystem entries redundent
+  #    unless this permission is turned off.  An limited
+  #    alternative would be --filesystem=home
   - --filesystem=host
 
 modules:
@@ -41,7 +48,8 @@ modules:
         url: ssh://git@github.com/RBVI/ChimeraX.git
         branch: develop
     build-commands:
-      - make -j -f Makefile.flatpak install
+      # ffmpeg fails to compile with -j
+      - make -f Makefile.flatpak install
 
   # libQt6Network.so.6 from the Qt Group needs
   # libgssapi_krb5.so.2, but is not in runtime environment
