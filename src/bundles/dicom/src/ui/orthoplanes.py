@@ -410,10 +410,12 @@ class PlaneViewer(QWindow):
         pinch = event.two_finger_scale
         twist = event.two_finger_twist
         if two_finger_trans:
+            dx, dy = two_finger_trans
             if "shift" in self._modifier_keys:
-                dx, dy = two_finger_trans
                 self.segmentation_cursor_overlay.radius += 1 * np.sign(dy)
-                self.resize3DSegmentationCursor()
+            else:
+                self.field_width_offset -= WHEEL_ZOOM_SPEED * np.sign(dy)
+            self.resize3DSegmentationCursor()
         if pinch:
         # Zoom / Dolly
             # In std_modes.py, 1 is subtracted from two_finger_scale to determine
