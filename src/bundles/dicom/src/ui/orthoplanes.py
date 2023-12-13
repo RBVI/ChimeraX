@@ -825,7 +825,7 @@ class PlaneViewer(QWindow):
                 self.segmentation_cursor_overlay.radius += 1 * (x_dir | y_dir)
                 self.resize3DSegmentationCursor()
             elif modifier == Qt.KeyboardModifier.NoModifier:
-                self.field_width_offset += WHEEL_ZOOM_SPEED * y_dir
+                self.field_width_offset -= WHEEL_ZOOM_SPEED * y_dir
                 self.resize3DSegmentationCursor()
             self._redraw()
 
