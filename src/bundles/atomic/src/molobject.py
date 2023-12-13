@@ -1099,6 +1099,9 @@ class StructureSeq(Sequence):
     '''Supported API. :class:`.Residues` collection containing the residues of this sequence with existing structure, in order. Read only.'''
     from_seqres = c_property('sseq_from_seqres', npy_bool, doc = "Was the full sequence "
         " determined from SEQRES (or equivalent) records in the input file")
+    '''"from_seqres" deprecated; use "full_sequence_known" instead.'''
+    full_sequence_known = c_property('sseq_from_seqres', npy_bool, doc = "Is the full polymer sequence "
+        " known (even if the structure is incomplete).")
     num_existing_residues = c_property('sseq_num_existing_residues', size_t, read_only = True)
     '''Supported API. Number of residues in this sequence with existing structure. Read only.'''
     num_residues = c_property('sseq_num_residues', size_t, read_only = True)
@@ -1257,7 +1260,6 @@ class StructureSeq(Sequence):
                     updated_chars.append(cur_char)
             if some_changed:
                 self.bulk_set(self.residues, ''.join(updated_chars), fire_triggers=False)
-                self.from_seqres = False
                 self._fire_trigger('characters changed', self)
 
     def _cpp_seq_demotion(self):

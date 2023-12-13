@@ -431,14 +431,7 @@ class Logger(StatusLogger):
 
         exception_value = ei[1]
 
-        if isinstance(exception_value, KeyboardInterrupt):
-            self.session.ui.quit()
-
-        if isinstance(exception_value, NotABug):
-            self.error("%s%s" % (preface, exception_value))
-        elif isinstance(exception_value, CancelOperation):
-            pass  # Cancelled operations are not reported
-        else:
+        def fmt_tb(ei=ei, error_description=error_description):
             from html import escape
             if error_description:
                 tb_msg = escape(error_description)
@@ -452,6 +445,22 @@ class Logger(StatusLogger):
                     num_spaces = len(line) - len(text)
                     tmp.append('&nbsp;' * num_spaces + escape(text))
                 tb_msg = "<br>\n".join(tmp)
+            return tb_msg
+
+        if isinstance(exception_value, KeyboardInterrupt):
+            self.session.ui.quit()
+
+        if isinstance(exception_value, NotABug):
+            self.error("%s%s" % (preface, exception_value))
+        elif isinstance(exception_value, CancelOperation):
+            pass  # Cancelled operations are not reported
+        elif isinstance(exception_value, OSError) and exception_value.errno == 28:
+            # out of disk space
+            tb_msg = fmt_tb()
+            self.info(tb_msg, is_html=True)
+            self.error("Out of disk space")
+        else:
+            tb_msg = fmt_tb()
             if self.session.silent:
                 self.error(tb_msg, is_html=True)
                 return

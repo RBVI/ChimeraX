@@ -252,7 +252,7 @@ class AddNonstandardChargesTool(ToolInstance):
         self.tool_window.manage(None)
 
     def add_charges(self):
-        from .charge import add_nonstandard_res_charges
+        from .charge import add_nonstandard_res_charges, ChargeError
         self.tool_window.shown = False
         self.session.ui.processEvents()
         method = self.method_option.value
@@ -260,7 +260,11 @@ class AddNonstandardChargesTool(ToolInstance):
             residues = [r for r in residues if not r.deleted]
             if residues:
                 charge = int(self.charge_widgets[text].text())
-                add_nonstandard_res_charges(self.session, residues, charge, method=method)
+                try:
+                    add_nonstandard_res_charges(self.session, residues, charge, method=method)
+                except ChargeError as e:
+                    from chimerax.core.errors import NonChimeraXError
+                    raise NonChimeraXError(e)
         self.delete()
         if self.dock_prep_info is not None:
             self.main_params['method'] = method
