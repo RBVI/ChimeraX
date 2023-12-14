@@ -972,7 +972,7 @@ class Drawing:
         '''
         The bounds of all displayed parts of a drawing and its children and all descendants, including
         instance positions, in scene coordinates.  Drawings with an attribute skip_bounds = True
-        are not included.
+        are not included.  The bounds are in the scene coordinate system.
         '''
 
         # Get child drawing bounds

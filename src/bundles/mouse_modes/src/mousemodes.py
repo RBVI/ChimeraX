@@ -758,11 +758,12 @@ class MouseEvent:
         return 0
 
 def mod_key_info(key_function):
-    """Qt swaps control/meta on Mac, so centralize that knowledge here.
+    '''
+    Qt swaps control/meta on Mac, so centralize that knowledge here.
     The possible "key_functions" are: alt, control, command, and shift
 
     Returns the Qt modifier bit (e.g. Qt.KeyboardModifier.AltModifier) and name of the actual key
-    """
+    '''
     from Qt.QtCore import Qt
     mod = Qt.KeyboardModifier
     import sys
