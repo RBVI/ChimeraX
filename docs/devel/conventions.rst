@@ -32,6 +32,7 @@ them up automatically.
 Editor Defaults
 ---------------
 .. From <http://wiki.python.org/moin/Vim>:
+
 All python files should have the following modeline at the top: ::
 
     # vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4:
