@@ -103,6 +103,11 @@ def _button_panels(session):
 
 # ------------------------------------------------------------------------------
 #
+def _forget_button_panel(session, button_panel):
+    session._button_panels = [bp for bp in _button_panels(session) if bp is not button_panel]
+
+# ------------------------------------------------------------------------------
+#
 from chimerax.core.tools import ToolInstance
 
 class ButtonPanel(ToolInstance):
@@ -120,6 +125,7 @@ class ButtonPanel(ToolInstance):
         from chimerax.ui import MainToolWindow
         tw = MainToolWindow(self)
         self.tool_window = tw
+        tw.cleanup = lambda self=self: _forget_button_panel(self.session, self)
         from Qt.QtWidgets import QGridLayout
         self._layout = layout = QGridLayout()
         layout.setContentsMargins(0,0,0,0)
