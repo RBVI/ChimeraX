@@ -15,7 +15,7 @@ build-flatpak:
 
 clean:
 	rm -f ${APPNAME}.metainfo.xml ${APPNAME}.desktop
-	rm -rf ${BUILD_DIR}
+	rm -rf ${BUILD_DIR} .flatpak-builder
 
 install:
 	# this is called indirectly by flatpak-builder via yaml/json manifest
@@ -42,6 +42,9 @@ run:
 
 explore:
 	flatpak run --command=sh ${APPNAME}
+
+explore-dev:
+	flatpak run -d --command=sh ${APPNAME}
 
 explore-sdk:
 	flatpak run $(shell grep ^sdk ${APPNAME}.yaml | cut -d ' ' -s -f 2)
