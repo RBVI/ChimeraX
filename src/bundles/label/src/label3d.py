@@ -882,7 +882,7 @@ class ResidueLabel(ObjectLabel):
                  size=size, height=height, font=font)
     def default_text(self):
         r = self.residue
-        return '%s %d' % (r.name, r.number)
+        return '%s %d%s' % (r.name, r.number, r.insertion_code)
     def location(self, scene_position = None):
         r = self.residue
         return None if r.deleted else r.center
