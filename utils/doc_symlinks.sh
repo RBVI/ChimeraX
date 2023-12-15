@@ -11,13 +11,13 @@ declare BUNDLE_DEV_DOC_FOLDERS
 declare BUNDLE_USR_DOC_FOLDERS
 while IFS=$'\n' read -r line; do 
 	BUNDLE_SRC_FOLDERS+=("$line")
-done < <(find src/bundles -type d -maxdepth 3 -name "src" | sort)
+done < <(find src/bundles -maxdepth 3 -type d -name "src" | sort)
 while IFS=$'\n' read -r line; do 
 	BUNDLE_DEV_DOC_FOLDERS+=("$line")
-done < <(find src/bundles/**/docs -type d -maxdepth 3 -name "devel" | sort)
+done < <(find src/bundles/**/docs -maxdepth 3 -type d -name "devel" | sort)
 while IFS=$'\n' read -r line; do 
 	BUNDLE_DEV_DOC_FOLDERS+=("$line")
-done < <(find src/bundles/**/docs -type d -maxdepth 3 -name "user" | sort)
+done < <(find src/bundles/**/docs -maxdepth 3 -type d -name "user" | sort)
 
 PREFIX="devel"
 if [[ $DEV_DOCS_IN_ROOT ]]; then
