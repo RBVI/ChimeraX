@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Try not to run by hand.
-ROOT=$(realpath $(dirname $(dirname -- $0)))
+ROOT=$(readlink -f $(dirname $(dirname -- $0)))
 
 cd ${ROOT}
 
