@@ -54,7 +54,7 @@ class SceneManager(StateManager):
         self.scenes[scene_name] = Scene(self.session)
 
     def _remove_models_cb(self, trig_name, models):
-        for scene in self.scenes.values:
+        for scene in self.scenes.values():
             scene.models_removed(models)
 
     # session methods
