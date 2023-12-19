@@ -142,6 +142,37 @@ the calculation should be shown or hidden; either way, it can be shown/hidden
 later using any of the usual methods 
 (<a href="../commands/show.html"><b>show/hide</b></a> commands,
 <a href="modelpanel.html"><b>Model Panel</b></a> checkbox, <i>etc.</i>)
+<li><a name="symmetry"></a>
+<b>After fitting, add symmetry copies automatically if map symmetry
+is detected</b>
+&ndash; after fitting the atomic structure, whether to try to discern
+map symmetry, and if symmetry is identified, add copies of the structure
+accordingly. This is equivalent to using commands:
+<ul>
+<li><a href="../commands/measure.html#symmetry"><b>measure symmetry</b></a>
+to detect symmetry from the map; this only works for certain symmetries 
+in standard coordinate systems
+(<a href="../commands/measure.html#symmetry">details...</a>)
+<li><a href="../commands/sym.html#symmetry"><b>sym</b></a> to add copies 
+of the structure according to the detected symmetry of the map
+<!--
+For example, if the map is model #1 and the fitted monomer model #2:
+<blockquote>
+<b><a href="../commands/measure.html#symmetry">measure symmetry</a> #1</b>
+<br>
+<b><a href="../commands/sym.html#symmetry">sym</a> #2 symmetry #1
+copies true</b>
+</blockquote>
+-->
+<li><a href="../commands/combine.html"><b>combine</b></a> to merge the copies
+into a single model
+</ul>
+<p>
+<b>Local EM Fitting</b> does not use the map symmetry (if any) for fitting.
+The symmetry is simply used to add copies of the fitted structure afterward,
+without consideration of steric clashes. Thus, further
+refinements may be required to generate a realistic model.
+</p>
 </ul>
 <p>
 If the <b>Interactively verify...</b> option mentioned above is not used,
@@ -155,41 +186,6 @@ the calculation will be opened as a new model.
 <b>Close</b> dismisses the dialog without starting the calculation,
 whereas <b>Help</b> shows this page
 in the <a href="helpviewer.html"><b>Help Viewer</b></a>.
-</p>
-
-<a name="symmetry"></a>
-<p class="nav">
-[<a href="#top">back to top: Local EM Fitting</a>]
-</p>
-<h3>Adding Symmetry Copies After Fitting</h3>
-<p>
-<b>Local EM Fitting</b> does not use the symmetry of the map. 
-In some cases, a symmetric multimer of the atomic structure can be
-built after <b>Local EM Fitting</b> is used to place a monomer.
-This is a two-step process:
-</p>
-<ol>
-<li><a href="../commands/measure.html#symmetry"><b>measure symmetry</b></a>
-to detect the symmetry of the map; this only works for certain symmetries
-in standard coordinate systems
-(<a href="../commands/measure.html#symmetry">details...</a>)
-<li><a href="../commands/sym.html#symmetry"><b>sym</b></a> to apply the detected
-map symmetry to the atomic model
-</ol>
-<p>
-For example, if the map is model #1 and the fitted monomer model #2:
-</p>
-<blockquote>
-<b><a href="../commands/measure.html#symmetry">measure symmetry</a> #1</b>
-<br>
-<b><a href="../commands/sym.html#symmetry">sym</a> #2 symmetry #1
-copies true</b>
-</blockquote>
-<p>
-Other than whether the symmetry of the map is correctly discerned, another
-potential pitfall is that this process does not consider steric clashes
-between the symmetrically placed atomic copies. Thus, further refinements
-may be required to generate a realistic model.
 </p>
 
 <hr>
