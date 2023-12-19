@@ -2,14 +2,25 @@
 
 /*
  * === UCSF ChimeraX Copyright ===
- * Copyright 2016 Regents of the University of California.
- * All rights reserved.  This software provided pursuant to a
- * license agreement containing restrictions on its disclosure,
- * duplication and use.  For details see:
- * http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
- * This notice must be embedded in or attached to all copies,
- * including partial copies, of the software or any revisions
- * or derivations thereof.
+ * Copyright 2022 Regents of the University of California. All rights reserved.
+ * The ChimeraX application is provided pursuant to the ChimeraX license
+ * agreement, which covers academic and commercial uses. For more details, see
+ * <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+ *
+ * This particular file is part of the ChimeraX library. You can also
+ * redistribute and/or modify it under the terms of the GNU Lesser General
+ * Public License version 2.1 as published by the Free Software Foundation.
+ * For more details, see
+ * <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+ *
+ * THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+ * LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+ * VERSION 2.1
+ *
+ * This notice must be embedded in or attached to all copies, including partial
+ * copies, of the software or any revisions or derivations thereof.
  * === UCSF ChimeraX Copyright ===
  */
 
@@ -104,17 +115,30 @@ static void natural_cubic_spline(float *path, int64_t n, int64_t dim,
 // -----------------------------------------------------------------------------
 // Ax = y, y is modified and equals x on return.
 // A is tridiagonal with ones on subdiagonal except 0 on last row
-// ones on superdiagonal except 0 on last row
+// ones on superdiagonal except 0 on first row
 // and diagonal is 4 except for first and last row which are 1.
+//
+// | 1 0 0          |
+// | 1 4 1 0        |
+// | 0 1 4 1 0      |
+// |  0 1 4 1 0     |
+// |        .       | x = y
+// |      0 1 4 1 0 |
+// |        0 1 4 1 |
+// |            0 1 |
 //
 static void solve_tridiagonal(double *y, int64_t n, double *temp)
 {
+  // First eliminate subdiagonal and make dialog all 1.
+  // temp[i] becomes the superdiagonal, and y[i] the new y.
   temp[0] = 0.0;
   for (int64_t i = 1 ; i < n-1 ; ++i)
     {
       temp[i] = 1.0 / (4.0 - temp[i-1]);
       y[i] = (y[i] - y[i-1]) * temp[i];
     }
+  // Then eliminate the superdialogonal, leaving just diagonal all 1.
+  // Now y is the sought solution x.
   for (int64_t i = n-2 ; i >= 0 ; --i)
     y[i] -= temp[i] * y[i+1];
 }

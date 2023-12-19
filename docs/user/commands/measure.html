@@ -44,10 +44,12 @@ surface blob
 &ndash; calculate <a href="surface.html#surfdefs">solvent-accessible surface</a>
 area buried between two sets of atoms
 <li><a href="#center"><b>center</b></a>
-&ndash; calculate center of mass of map and/or atoms
+&ndash; calculate center of mass of map, atoms, and/or surface
 <li><a href="#convexity"><b>convexity</b></a>
 &ndash; calculate convexity at each surface vertex,
 color the surface accordingly
+<li><a href="#correlation"><b>correlation</b></a>
+&ndash; report map-map correlation
 <li><a href="#inertia"><b>inertia</b></a>
 &ndash; calculate inertia ellipsoid
 <li><a href="#length"><b>length</b></a>
@@ -203,10 +205,16 @@ See also: <a href="interfaces.html"><b>interfaces</b></a>
 [&nbsp;<b>modelId</b>&nbsp;&nbsp;<i>model-number</i>&nbsp;]
 [&nbsp;<b>name</b>&nbsp;&nbsp;<i>model-name</i>&nbsp;]
 <blockquote>
-Calculate the center of mass of each density map and/or set of atoms in 
-<a href="atomspec.html"><i>spec</i></a>.
-Map centers are reported in grid indices,
-atomic centers of mass in the atomic coordinate system.
+Calculate the center of mass of each density map,
+surface (other than a map surface), and/or
+set of atoms in <a href="atomspec.html"><i>spec</i></a>.
+The centers of mass are reported in 
+<a href="view.html#scenecoords">scene coordinates</a>,
+and map centers also in grid indices.
+The approach for surfaces is analogous to that for atoms, except that 
+the points in space are the vertices of the triangulated surface.
+Each vertex is weighted by &frac13; of the sum of the areas of all 
+attached triangles. This treats the surface as a thin shell.
 The <b>level</b> option indicates using only map regions
 above <i>contour-level</i>.
 If <b>mark</b> is <b>true</b>, a <a href="../markers.html">marker</a> 
@@ -221,8 +229,7 @@ The marker model is opened as number <i>model-number</i>
 (default based on the contents of <a href="atomspec.html"><i>spec</i></a>).
 Atomic mass-weighting is always used, but the related command
 <a href="define.html#centroid"><b>define centroid</b></a>
-allows calculating the center of geometry (not mass-weighted)
-of a set of atoms.
+allows calculating the non-mass-weighted center of a set of atoms.
 See also: <a href="cofr"><b>cofr</b></a>
 </blockquote>
 
@@ -285,6 +292,62 @@ See also:
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
+<a name="correlation"><b>measure correlation</b></a>
+&nbsp;<a href="atomspec.html#hierarchy"><i>volume-spec1</i></a>&nbsp; 
+<b>inMap</b> 
+&nbsp;<a href="atomspec.html#hierarchy"><i>volume-spec2</i></a>&nbsp;
+[&nbsp;<b>envelope</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+<blockquote>
+Calculate the correlation between two 
+<a href="../tools/volumeviewer.html">volume data</a> sets (maps) in two ways:
+  <blockquote>
+<a name="corrzero"></a>
+<table cellspacing="0" cellpadding="0">
+<tr><td></td><td valign="bottom">
+&lt;<b>u</b>,<b>v</b>&gt;
+</td></tr>
+<tr><td><i>correlation</i> =&nbsp;&nbsp;</td>
+<td height="1"><hr></td></tr>
+<tr><td></td><td valign="top">
+&nbsp;|<b>u</b>||<b>v</b>|
+</td></tr>
+</table>
+  </blockquote>
+  <blockquote>
+<table cellspacing="0" cellpadding="0">
+<tr><td></td><td valign="bottom">
+&lt;<b>u</b>&ndash;<b>u</b><sub>ave</sub>,<b>v</b>&ndash;<b>v</b><sub>ave</sub>&gt;
+</td></tr>
+<tr><td><i>correlation about mean</i> =&nbsp;&nbsp;</td>
+<td height="1"><hr></td></tr>
+<tr><td></td><td valign="top">
+&nbsp;|<b>u</b>&ndash;<b>u</b><sub>ave</sub>||<b>v</b>&ndash;<b>v</b><sub>ave</sub>|
+</td></tr>
+</table>
+  </blockquote>
+where vector <b>u</b> contains the values of the first map
+(<a href="atomspec.html#hierarchy"><i>volume-spec1</i></a>)
+and <b>u</b><sub>ave</sub> is a vector with all components equal to the
+average of the components of <b>u</b>. Vectors <b>v</b> and
+<b>v</b><sub>ave</sub> are defined analogously for the second map
+(<a href="atomspec.html#hierarchy"><i>volume-spec2</i></a>),
+except that the values are sampled at the grid point 
+locations of the first map using trilinear interpolation.
+If <b>envelope</b> is <b>true</b> (default),
+the calculation will include only the grid points in the first map
+with values above its lowest contour level in
+<a href="../tools/volumeviewer.html"><b>Volume Viewer</b></a>.
+Otherwise, all nonzero-valued grid points will be included.
+<p>
+See also:
+<a href="volume.html"><b>volume</b></a>,
+<a href="molmap.html"><b>molmap</b></a>,
+<a href="fitmap.html"><b>fitmap</b></a>,
+<a href="../tools/fitsegments.html"><b>Fit to Segments</b></a>
+</p>
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
 <a name="inertia"><b>measure inertia</b></a>
 &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
 [&nbsp;<b>perChain</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
@@ -331,7 +394,9 @@ representation of an atomic structure is with
 See also:
 <a href="define.html"><b>define</b></a>,
 <a href="shape.html#ellipsoid"><b>shape ellipsoid</b></a>,
-<a href="open.html#object">3D object formats</a>
+<a href="open.html#object">3D object formats</a>,
+<a href="https://rbvi.github.io/chimerax-recipes/convex_hull/convex_hull.html"
+target="_blank">convex hull recipe</a>
 </p>
 </blockquote>
 
@@ -492,7 +557,9 @@ style="display:inline-block; vertical-align:middle"><tr>
 title="cornflower blue"></td></tr></table>, respectively).
 </p><p>
 See also:
-<a href="fitmap.html"><b>fitmap</b></a>
+<a href="fitmap.html"><b>fitmap</b></a>,
+<a href="view.html#matrix"><b>view matrix</b></a>,
+<a href="../formats/positions.html">ChimeraX positions files</a>
 </p>
 </blockquote>
 
@@ -667,9 +734,9 @@ rotation axis. Before this formula is applied, the center of mass
 position is subtracted from the atom coordinates,
 so that the measured quantity is the inertia about the center of mass.
 The approach for surfaces is analogous, where atoms are replaced
-by vertices of the triangulated surface, and the &ldquo;mass&rdquo;
-of each vertex is &frac13; of the area of the attached triangle.
-This treats the surface as a thin shell.
+by vertices of the triangulated surface. 
+Each vertex is weighted by &frac13; of the sum of the areas of all 
+attached triangles. This treats the surface as a thin shell.
 The &ldquo;inertia ellipsoid&rdquo; shown by ChimeraX is not the same
 as the one defined in physics. Instead, it is the ellipsoid that has
 the same inertia as the measured object:
@@ -683,5 +750,5 @@ has the same axes and moments as the measured surface.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-September 2021</address>
+October 2022</address>
 </body></html>

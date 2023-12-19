@@ -17,7 +17,8 @@ ChimeraX-specific schemes.  It is built on top of :py:class:`HtmlView`,
 which provides scheme support.
 """
 
-from Qt.QtWebEngineWidgets import QWebEngineView, QWebEnginePage, QWebEngineProfile
+from Qt.QtWebEngineCore import QWebEnginePage, QWebEngineProfile
+from Qt.QtWebEngineWidgets import QWebEngineView
 from Qt.QtWebEngineCore import QWebEngineUrlRequestInterceptor
 from Qt.QtWebEngineCore import QWebEngineUrlSchemeHandler
 
@@ -183,24 +184,10 @@ class HtmlView(QWebEngineView):
         page = _LoggingPage(self._profile, self, log_errors=log_errors)
         self.setPage(page)
         s = page.settings()
-        s.setAttribute(s.LocalStorageEnabled, True)
+        # s.setAttribute(s.WebAttribute.LocalStorageEnabled, True)  # now the default
+        s.setAttribute(s.WebAttribute.LocalContentCanAccessRemoteUrls, True)  # get help viewer to work
+        s.setDefaultTextEncoding("UTF-8")
         self.setAcceptDrops(False)
-        # as of Qt 5.6.0, the keyboard shortcut for copying text
-        # from the QWebEngineView did nothing on Mac, the below
-        # gets it to work
-        import sys
-        if sys.platform == "darwin":
-            from Qt.QtGui import QKeySequence
-            from Qt.QtWidgets import QShortcut
-            from Qt.QtCore import Qt
-            self.copy_sc = QShortcut(QKeySequence.Copy, self)
-            self.copy_sc.setContext(Qt.WidgetWithChildrenShortcut)
-            if self._tool_window:
-                self.copy_sc.activated.connect(
-                    lambda app=self._tool_window.session.ui:
-                    app.clipboard().setText(self.selectedText()))
-            else:
-                self.copy_sc.activated.connect(lambda: self.page().triggerAction(self.page().Copy))
 
         if self.require_native_window:
             # This is to work around ChimeraX bug #2537 where the entire
@@ -318,7 +305,7 @@ class _LoggingPage(QWebEnginePage):
         import os.path
         filename = os.path.basename(sourceId)
         print("JS console(%s:%d:%s): %s" % (filename, lineNumber,
-                                            self.Levels[level], msg))
+                                            self.Levels[level.value], msg))
 
 
 class _RequestInterceptor(QWebEngineUrlRequestInterceptor):
@@ -464,7 +451,7 @@ def chimerax_intercept(request_info, *args, session=None, view=None):
                 if prev_dir:
                     os.chdir(prev_dir)
         from Qt.QtCore import QUrl
-        no_formatting = QUrl.FormattingOptions(QUrl.None_)
+        no_formatting = QUrl.UrlFormattingOption.None_
         session.ui.thread_safe(defer, session, qurl.url(no_formatting), from_dir)
         return
 

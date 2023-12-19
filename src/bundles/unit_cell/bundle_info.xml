@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-UnitCell" version="1.0"
+<BundleInfo name="ChimeraX-UnitCell" version="1.0.1"
 	    package="chimerax.unit_cell"
   	    minSessionVersion="1" maxSessionVersion="1">
 

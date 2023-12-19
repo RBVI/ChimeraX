@@ -14,11 +14,17 @@ endif
 install:
 	env HOME=`pwd` $(MAKE) install UBUNTU_DIST=$(UBUNTU)
 
+install-rbvi:
+	env HOME=`pwd` $(MAKE) install-rbvi UBUNTU_DIST=$(UBUNTU)
+
 package: ubuntu
 	$(PYTHON_EXE) mkubuntu.py $(UBUNTU)
 
 daily-package: ubuntu
 	$(PYTHON_EXE) mkubuntu.py $(UBUNTU) daily
+
+techpreview-package: ubuntu
+	$(PYTHON_EXE) mkubuntu.py $(UBUNTU) techpreview
 
 candidate-package: ubuntu
 	$(PYTHON_EXE) mkubuntu.py $(UBUNTU) candidate

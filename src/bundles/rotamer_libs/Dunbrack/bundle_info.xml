@@ -19,11 +19,12 @@
 
   <Dependencies>
     <Dependency name="ChimeraX-Core" version=">=0.9"/>
-    <Dependency name="ChimeraX-RotamerLibMgr" version=">=2.0"/>
+    <Dependency name="ChimeraX-RotamerLibMgr" version=">=4.0"/>
   </Dependencies>
 
   <Providers>
-    <Provider name="Dunbrack" manager="rotamers"/>
+    <Provider name="Dunbrack" manager="rotamers"
+		description="Dunbrack 2010 backbone-dependent rotamer library -- 5% stepdown"/>
   </Providers>
 
   <Classifiers>

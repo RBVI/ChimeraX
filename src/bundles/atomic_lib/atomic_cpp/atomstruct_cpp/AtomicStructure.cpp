@@ -2,14 +2,25 @@
 
 /*
  * === UCSF ChimeraX Copyright ===
- * Copyright 2016 Regents of the University of California.
- * All rights reserved.  This software provided pursuant to a
- * license agreement containing restrictions on its disclosure,
- * duplication and use.  For details see:
- * http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
- * This notice must be embedded in or attached to all copies,
- * including partial copies, of the software or any revisions
- * or derivations thereof.
+ * Copyright 2022 Regents of the University of California. All rights reserved.
+ * The ChimeraX application is provided pursuant to the ChimeraX license
+ * agreement, which covers academic and commercial uses. For more details, see
+ * <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+ *
+ * This particular file is part of the ChimeraX library. You can also
+ * redistribute and/or modify it under the terms of the GNU Lesser General
+ * Public License version 2.1 as published by the Free Software Foundation.
+ * For more details, see
+ * <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+ *
+ * THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+ * LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+ * VERSION 2.1
+ *
+ * This notice must be embedded in or attached to all copies, including partial
+ * copies, of the software or any revisions or derivations thereof.
  * === UCSF ChimeraX Copyright ===
  */
 
@@ -283,15 +294,17 @@ AtomicStructure::normalize_ss_ids()
 }
 
 void
-AtomicStructure::make_chains() const
+AtomicStructure::_make_chains() const
 {
-    if (_chains != nullptr) {
-        for (auto c: *_chains)
-            delete c;
-        delete _chains;
+    std::set<ChainID> pre_existing;
+    if (_chains == nullptr) {
+        _chains = new Chains();
+    } else {
+        for (auto chain: *_chains)
+            pre_existing.insert(chain->chain_id());
     }
+    _chains_made = true; // prevent resursion
 
-    _chains = new Chains();
     auto polys = polymers();
 
     // In an ideal world there would be a one-to-one correspondence between
@@ -310,6 +323,8 @@ AtomicStructure::make_chains() const
     for (auto key_polys: id_to_polys) {
         auto id_type = key_polys.first;
         auto chain_id = id_type.first;
+        if (pre_existing.find(chain_id) != pre_existing.end())
+            continue;
         auto pt_type = id_type.second;
         auto& chain_polys = key_polys.second;
         std::vector<Residue*> res_list;
@@ -486,7 +501,7 @@ AtomicStructure::make_chains() const
                     // need to check more closely
                     Real cutoff = r1->polymer_type() == PT_AMINO ?
                         Residue::TRACE_PROTEIN_DISTSQ_CUTOFF : Residue::TRACE_NUCLEIC_DISTSQ_CUTOFF;
-                    if (pb->sqlength() <= cutoff)
+                    if (std::abs(r2->number() - r1->number()) < 2 && pb->sqlength() <= cutoff)
                         pb->set_shown_when_atoms_hidden(false);
                 }
             }

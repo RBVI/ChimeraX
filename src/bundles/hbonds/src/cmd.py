@@ -1,14 +1,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 from .hbond import rec_dist_slop, rec_angle_slop, find_hbonds, find_coordset_hbonds
@@ -23,7 +34,7 @@ def cmd_hbonds(session, atoms, intra_model=True, inter_model=True, relax=True,
     reveal=False, naming_style=None, log=False, cache_DA=None,
     color=AtomicStructure.default_hbond_color, slop_color=BuiltinColors["dark orange"],
     show_dist=False, intra_res=True, intra_mol=True, dashes=None,
-    salt_only=False, name="hydrogen bonds", coordsets=True, select=False):
+    salt_only=False, name="hydrogen bonds", coordsets=True, select=False, update_group=False):
 
     """Wrapper to be called by command line.
 
@@ -210,14 +221,21 @@ def cmd_hbonds(session, atoms, intra_model=True, inter_model=True, relax=True,
             for s, hbs in per_structure.items()]
 
     for grp_hbonds, pbg in hb_info:
-        if not retain_current:
+        if retain_current or update_group:
+            if dashes is not None:
+                pbg.dashes = dashes
+            if update_group:
+                atom_set = set(atoms)
+                for pb in pbg.pseudobonds[:]:
+                    for a in pb.atoms:
+                        if a in atom_set:
+                            pbg.delete_pseudobond(pb)
+                            break
+        else:
             pbg.clear()
             pbg.color = bond_color.uint8x4()
             pbg.radius = radius
             pbg.dashes = dashes if dashes is not None else AtomicStructure.default_hbond_dashes
-        else:
-            if dashes is not None:
-                pbg.dashes = dashes
         if not doing_coordsets:
             grp_hbonds = [grp_hbonds]
 
@@ -476,14 +494,14 @@ def register_command(command_name, logger):
             keyword = [('make_pseudobonds', BoolArg), ('radius', FloatArg), ('color', ColorArg),
                 ('show_dist', BoolArg),
                 ('restrict', Or(EnumOf(('cross', 'both', 'any')), AtomsArg)),
-                ('inter_submodel', BoolArg), ('inter_model', BoolArg),
-                ('intra_model', BoolArg), ('intra_mol', BoolArg), ('intra_res', BoolArg),
-                ('cache_DA', BoolArg), ('relax', BoolArg), ('dist_slop', FloatArg),
-                ('angle_slop', FloatArg), ('two_colors', BoolArg), ('slop_color', ColorArg),
-                ('reveal', BoolArg), ('retain_current', BoolArg), ('save_file', SaveFileNameArg),
-                ('log', BoolArg), ('naming_style', EnumOf(('simple', 'command', 'serial'))),
-                ('batch', BoolArg), ('dashes', NonNegativeIntArg), ('salt_only', BoolArg),
-                ('name', StringArg), ('coordsets', BoolArg), ('select', BoolArg)],
+                ('inter_submodel', BoolArg), ('inter_model', BoolArg), ('intra_model', BoolArg),
+                ('intra_mol', BoolArg), ('intra_res', BoolArg), ('cache_DA', BoolArg),
+                ('relax', BoolArg), ('dist_slop', FloatArg), ('angle_slop', FloatArg),
+                ('two_colors', BoolArg), ('slop_color', ColorArg), ('reveal', BoolArg),
+                ('retain_current', BoolArg), ('save_file', SaveFileNameArg), ('log', BoolArg),
+                ('naming_style', EnumOf(('simple', 'command', 'serial'))), ('batch', BoolArg),
+                ('dashes', NonNegativeIntArg), ('salt_only', BoolArg), ('name', StringArg),
+                ('coordsets', BoolArg), ('select', BoolArg), ('update_group', BoolArg)],
             synopsis = 'Find hydrogen bonds'
         )
         register('hbonds', desc, cmd_hbonds, logger=logger)

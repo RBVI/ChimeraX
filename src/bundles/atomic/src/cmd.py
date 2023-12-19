@@ -1,14 +1,25 @@
 # vim: set expandtab ts=4 sw=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.core.errors import UserError
@@ -23,8 +34,8 @@ def log_chains(session, structures=None):
 def combine_cmd(session, structures, *, close=False, model_id=None, name=None):
 
     if structures is None:
-        from chimerax.atomic import Structure
-        structures = [m for m in session.models if isinstance(m, Structure)]
+        from chimerax.atomic import AtomicStructure
+        structures = [m for m in session.models if isinstance(m, AtomicStructure)]
     else:
         structures = list(structures)
     if not structures:
@@ -57,8 +68,24 @@ def combine_cmd(session, structures, *, close=False, model_id=None, name=None):
         combination.combine(s, chain_id_mapping, structures[0].scene_position)
     combination.position = structures[0].scene_position
     if close:
-        session.models.close(structures)
-        pass
+        # also close empty parent models
+        closures = set(structures)
+        parents = set([m.parent for m in closures if m.parent is not None])
+        while True:
+            new_parents = set()
+            for parent in parents:
+                children = set(parent.child_models())
+                if children <= closures:
+                    if parent.parent is not None: # don't try to close root model!
+                        new_parents.add(parent.parent)
+                        closures -= children
+                        closures.add(parent)
+            if new_parents:
+                parents = new_parents
+                new_parents.clear()
+            else:
+                break
+        session.models.close(list(closures))
     if model_id is not None:
         combination.id = model_id
     session.models.add([combination])
@@ -67,7 +94,7 @@ def combine_cmd(session, structures, *, close=False, model_id=None, name=None):
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register, Or, EmptyArg, StringArg, BoolArg, ModelIdArg, \
         NoneArg
-    from .args import StructuresArg, AtomicStructuresArg
+    from .args import AtomicStructuresArg
 
     chains_desc = CmdDesc(
                         optional = [('structures', Or(AtomicStructuresArg, NoneArg))],
@@ -76,7 +103,7 @@ def register_command(logger):
     register('log chains', chains_desc, log_chains, logger=logger)
 
     combine_desc = CmdDesc(
-        required=[('structures', Or(StructuresArg,EmptyArg))],
+        required=[('structures', Or(AtomicStructuresArg,EmptyArg))],
         keyword=[
             ('close', BoolArg),
             ('model_id', ModelIdArg),

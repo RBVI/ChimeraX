@@ -41,8 +41,8 @@ class MouseModePanel(ToolInstance):
         self.buttons = self.create_toolbar(parent)
         
     def create_toolbar(self, parent):
-        from Qt.QtWidgets import QAction, QToolBar, QActionGroup
-        from Qt.QtGui import QIcon
+        from Qt.QtWidgets import QToolBar, QActionGroup
+        from Qt.QtGui import QIcon, QAction
         from Qt.QtCore import Qt, QSize
         tb = QToolBar(self.display_name, parent)
         tb.setStyleSheet('QToolBar{spacing:0px;}\n'
@@ -82,7 +82,8 @@ class MouseModePanel(ToolInstance):
         tw.manage(placement="side")
 
     def create_panel_buttons(self, parent):
-        from Qt.QtWidgets import QAction, QFrame, QGridLayout, QToolButton, QActionGroup
+        from Qt.QtWidgets import QFrame, QGridLayout, QToolButton, QActionGroup
+        from Qt.QtGui import QAction
         from Qt.QtCore import Qt, QSize
         tb = QFrame(parent)
         layout = QGridLayout(tb)

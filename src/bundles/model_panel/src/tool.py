@@ -12,7 +12,9 @@
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.core.tools import ToolInstance
-
+from chimerax.core.errors import UserError
+from chimerax.core.commands import run, concise_model_spec
+from chimerax.core.settings import Settings
 
 class ModelPanel(ToolInstance):
 
@@ -28,6 +30,9 @@ class ModelPanel(ToolInstance):
         from time import time
         now = self.settings.last_use = time()
         short_titles = last != None and now - last < 777700 # about 3 months
+        if not short_titles:
+            session.logger.status("You can double click a model's Name or ID in the model panel"
+                " to edit those fields", log=True, color="forest green")
 
         from chimerax.ui import MainToolWindow
         self.tool_window = tw = MainToolWindow(self, close_destroys=False)
@@ -45,8 +50,7 @@ class ModelPanel(ToolInstance):
                     width = self.header().length()
                 return QSize(width, 200)
         self.tree = SizedTreeWidget()
-        self.tree.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        self.tree.keyPressEvent = session.ui.forward_keystroke
+        self.tree.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self.tree.expanded.connect(self._ensure_id_width)
         layout = QHBoxLayout()
         layout.setContentsMargins(0,0,0,0)
@@ -69,6 +73,7 @@ class ModelPanel(ToolInstance):
         self.tree.setUniformRowHeights(True)
         self.tree.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.tree.itemChanged.connect(self._tree_change_cb)
+        self.tree.itemDoubleClicked.connect(self._item_double_clicked)
         scrolled_button_area = QScrollArea()
         layout.addWidget(scrolled_button_area)
         button_area = QWidget()
@@ -89,10 +94,12 @@ class ModelPanel(ToolInstance):
         self.countdown = 1
         self.self_initiated = False
         from chimerax.core.models import ADD_MODELS, REMOVE_MODELS, \
-            MODEL_DISPLAY_CHANGED, MODEL_ID_CHANGED, MODEL_NAME_CHANGED
+            MODEL_COLOR_CHANGED, MODEL_DISPLAY_CHANGED, MODEL_ID_CHANGED, MODEL_NAME_CHANGED
         from chimerax.core.selection import SELECTION_CHANGED
         session.triggers.add_handler(SELECTION_CHANGED,
             lambda *args: self._initiate_fill_tree(*args, countdown=3))
+        session.triggers.add_handler(MODEL_COLOR_CHANGED,
+            lambda *args: self._initiate_fill_tree(*args, simple_change=True, countdown=(0,3)))
         session.triggers.add_handler(MODEL_DISPLAY_CHANGED,
             lambda *args: self._initiate_fill_tree(*args, simple_change=True, countdown=(0,3)))
         session.triggers.add_handler(ADD_MODELS,
@@ -185,6 +192,9 @@ class ModelPanel(ToolInstance):
         if self.countdown > 0:
             return
 
+        # cell editing could have disabled key forwarding
+        # (to block the Return key getting to the command line)
+        self.tree.keyPressEvent = self.session.ui.forward_keystroke
         self.tree.blockSignals(True) # particularly itemChanged
         if self.check_model_list or always_rebuild:
             update = self._process_models() and not always_rebuild
@@ -194,6 +204,7 @@ class ModelPanel(ToolInstance):
         if not update:
             expanded_models = { i._model : i.isExpanded()
                                 for i in self._items if hasattr(i, '_model')}
+            scroll_position = self.tree.verticalScrollBar().sliderPosition()
             self.tree.clear()
             self._items = []
         all_selected_models = self.session.selection.models(all_selected=True)
@@ -205,6 +216,8 @@ class ModelPanel(ToolInstance):
         for model in self.models:
             model_id, model_id_string, bg_color, display, name, selected, part_selected = \
                 self._get_info(model, all_selected_models, part_selected_models)
+            if model_id is None:
+                continue
             len_id = len(model_id)
             if update:
                 if len_id == len(item_stack):
@@ -219,6 +232,7 @@ class ModelPanel(ToolInstance):
             else:
                 parent = item_stack[0] if len(item_stack) == 1 else item_stack[len_id-1]
                 item = QTreeWidgetItem(parent)
+                item.setFlags(item.flags() | Qt.ItemFlag.ItemIsEditable)
                 item._model = model
                 item_stack[len_id:] = [item]
                 self._items.append(item)
@@ -234,10 +248,8 @@ class ModelPanel(ToolInstance):
                             target_string = " models"
                         from chimerax.core.commands import run
                         from chimerax.core.colors import color_name
-                        c_name = color_name(rgba)
-                        need_transparency = (not c_name[0] == '#') or len(c_name) == 7
-                        cmd = "color #%s %s%s%s" % (m.id_string, color_name(rgba), target_string,
-                            " transparency 0" if need_transparency else "")
+                        cmd = "color #%s %s%s" % (m.id_string,
+                            color_name(rgba, always_include_hex_alpha=True), target_string)
                         run(ses, cmd, log=False)
                         but.delayed_cmd_text = cmd
                     but.color_changed.connect(set_model_color)
@@ -247,6 +259,8 @@ class ModelPanel(ToolInstance):
                     but.color_pause.connect(log_delayed_cmd)
                     but.set_color(bg_color)
                     self.tree.setItemWidget(item, self.COLOR_COLUMN, but)
+            if len(name) > 30:
+                item.setToolTip(self.NAME_COLUMN, name)
                 
                     
                 
@@ -262,13 +276,13 @@ class ModelPanel(ToolInstance):
                     but.set_color(bg_color)
             item.setBackground(self.COLOR_COLUMN, bg)
             if display is not None:
-                item.setCheckState(self.SHOWN_COLUMN, Qt.Checked if display else Qt.Unchecked)
+                item.setCheckState(self.SHOWN_COLUMN, Qt.CheckState.Checked if display else Qt.CheckState.Unchecked)
             if selected:
-                item.setCheckState(self.SELECT_COLUMN, Qt.Checked)
+                item.setCheckState(self.SELECT_COLUMN, Qt.CheckState.Checked)
             elif part_selected:
-                item.setCheckState(self.SELECT_COLUMN, Qt.PartiallyChecked)
+                item.setCheckState(self.SELECT_COLUMN, Qt.CheckState.PartiallyChecked)
             else:
-                item.setCheckState(self.SELECT_COLUMN, Qt.Unchecked)
+                item.setCheckState(self.SELECT_COLUMN, Qt.CheckState.Unchecked)
             item.setText(self.NAME_COLUMN, name)
             if not update:
                 # Expand new top-level displayed models, or if previously expanded
@@ -281,10 +295,14 @@ class ModelPanel(ToolInstance):
                 expand = expanded_models.get(model, expand_default)
                 if expand:
                     self.tree.expandItem(item)
+        if not update:
+            self.tree.verticalScrollBar().setSliderPosition(scroll_position)
         for i in range(1,self.tree.columnCount()):
             self.tree.resizeColumnToContents(i)
         self.tree.blockSignals(False)
         self.simply_changed_models = set()
+        name_width = self.tree.sizeHintForColumn(self.NAME_COLUMN)
+        self.tree.setColumnWidth(self.NAME_COLUMN, min(max(200, name_width), 400))
 
         self._frame_drawn_handler = None
         from chimerax.core.triggerset import DEREGISTER
@@ -306,6 +324,14 @@ class ModelPanel(ToolInstance):
             # Toggle sort order.
             self._sort_breadth_first = not self._sort_breadth_first
             self._fill_tree()
+
+    def _item_double_clicked(self, item, column):
+        if column == self.NAME_COLUMN or column == self.ID_COLUMN:
+            # prevent the Return key from reaching the command line
+            self.tree.keyPressEvent = lambda event: event.setAccepted(True)
+            self.tree.editItem(item, column)
+            # too lazy to do the delegation rewrite to catch the editing
+            # finishing when the editing ends with no change
 
     def _label_click(self, event):
         if event.Col == self.ID_COLUMN:
@@ -331,21 +357,39 @@ class ModelPanel(ToolInstance):
         model = self.models[self._items.index(item)]
         if column == self.SHOWN_COLUMN:
             self.self_initiated = True
-            command_name = "show" if item.checkState(self.SHOWN_COLUMN) == Qt.Checked else "hide"
+            command_name = "show" if item.checkState(self.SHOWN_COLUMN) == Qt.CheckState.Checked else "hide"
             run(self.session, "%s #%s%s models" % (command_name,
                 "!" if len(model.all_models()) > 1 else "", model.id_string))
         elif column == self.SELECT_COLUMN:
             self.self_initiated = True
-            prefix = "" if item.checkState(self.SELECT_COLUMN) == Qt.Checked else "~"
-            run(self.session, prefix + "select #" + model.id_string)
+            mode = "add" if item.checkState(self.SELECT_COLUMN) == Qt.CheckState.Checked else "subtract"
+            run(self.session, "select " + mode +  " #" + model.id_string)
+        elif column == self.ID_COLUMN:
+            id_text = item.text(self.ID_COLUMN)
+            try:
+                ids = [int(x) for x in id_text.split('.')]
+            except Exception:
+                self._initiate_fill_tree()
+                raise UserError("ID must be one or more integers separated by '.' characters")
+            self.self_initiated = True
+            run(self.session, "rename %s id #%s" % (item._model.atomspec, id_text))
+        elif column == self.NAME_COLUMN:
+            new_name = item.text(self.NAME_COLUMN)
+            if not new_name or new_name.isspace():
+                from chimerax.ui.ask import ask
+                if ask(self.session, "Really use blank model name?", default="no") == "no":
+                    self._initiate_fill_tree()
+                    return
+            self.self_initiated = True
+            from chimerax.core.commands import StringArg
+            run(self.session, "rename %s %s" % (item._model.atomspec, StringArg.unparse(new_name)))
 
-from chimerax.core.settings import Settings
+
 class ModelPanelSettings(Settings):
     AUTO_SAVE = {
         'last_use': None
     }
 
-from chimerax.core.commands import run, concise_model_spec
 def close(models, session):
     # ask for confirmation if multiple top-level models being closed without explicitly selecting them
     if len([m for m in models if '.' not in m.id_string]) > 1 and not _mp.tree.selectedItems():
@@ -366,20 +410,10 @@ def hide(models, session):
     run(session, "hide %s target m" % concise_model_spec(session, models))
 
 def info(models, session):
-    from chimerax.atomic import AtomicStructure
-    structures = [m for m in models if isinstance(m, AtomicStructure)]
-    if not structures:
-        from chimerax.core.errors import UserError
-        raise UserError("No atomic structure models chosen")
-    spec = concise_model_spec(session, structures, allow_empty_spec=False, relevant_types=AtomicStructure)
-    from chimerax.atomic.structure import assembly_html_table
-    for s in structures:
-        if assembly_html_table(s):
-            base_cmd = "sym %s; " % spec
-            break
-    else:
-        base_cmd = ""
-    run(session, base_cmd + "log metadata %s; log chains %s" % (spec, spec))
+    if not models:
+        raise UserError("No selection made")
+    for m in models:
+        m.show_info()
 
 _mp = None
 def model_panel(session, tool_name):

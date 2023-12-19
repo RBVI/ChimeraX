@@ -5,7 +5,7 @@
 # All rights reserved.  This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
 # duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
 # This notice must be embedded in or attached to all copies,
 # including partial copies, of the software or any revisions
 # or derivations thereof.
@@ -13,7 +13,7 @@
 
 BUG_HOST = "www.rbvi.ucsf.edu"
 BUG_SELECTOR = "/chimerax/cgi-bin/chimerax_bug_report.py"
-BUG_URL = "http://" + BUG_HOST + BUG_SELECTOR
+BUG_URL = "https://" + BUG_HOST + BUG_SELECTOR
 
 # -----------------------------------------------------------------------------
 # User interface for bug reporter.
@@ -70,14 +70,15 @@ class BugReporter(ToolInstance):
         row += 1
         
         cnl = QLabel('Contact Name:')
-        cnl.setAlignment(Qt.AlignRight|Qt.AlignVCenter)
+        align_right = Qt.AlignRight|Qt.AlignVCenter
+        cnl.setAlignment(align_right)
         layout.addWidget(cnl, row, 1)
         self.contact_name = cn = QLineEdit(self.settings.contact_name)
         layout.addWidget(cn, row, 2)
         row += 1
 
         eml = QLabel('Email Address:')
-        eml.setAlignment(Qt.AlignRight|Qt.AlignVCenter)
+        eml.setAlignment(align_right)
         layout.addWidget(eml, row, 1)
         self.email_address = em = QLineEdit(self.settings.email_address)
         layout.addWidget(em, row, 2)
@@ -98,7 +99,7 @@ class BugReporter(ToolInstance):
                 return QSize(1,1)
 
         dl = QLabel('Description:')
-        dl.setAlignment(Qt.AlignRight|Qt.AlignVCenter)
+        dl.setAlignment(align_right)
         layout.addWidget(dl, row, 1)
         self.description = d = TextEdit('', 3)
         d.setText('<font color=blue>(Describe the actions that caused this problem to occur here)</font>')
@@ -106,26 +107,23 @@ class BugReporter(ToolInstance):
         row += 1
 
         gil = QLabel('Gathered Information:')
-        gil.setAlignment(Qt.AlignRight|Qt.AlignVCenter)
+        gil.setAlignment(align_right)
         layout.addWidget(gil, row, 1)
         self.gathered_info = gi = TextEdit('', 3)
-        import sys
-        info = self.opengl_info()
-        if sys.platform == 'win32':
-            info += _win32_info()
-        elif sys.platform == 'linux':
-            info += _linux_info()
-        elif sys.platform == 'darwin':
-            info += _darwin_info()
-        info += f"Locale: {locale.getdefaultlocale()}\n"
+        info = opengl_info(self._ses)
+        import platform
+        info += f"\n\nPython: {platform.python_version()}\n"
+        my_locale = [x for x in locale.getdefaultlocale() if x is not None]
+        info += f"Locale: {'.'.join(my_locale)}\n"
         info += _qt_info(session)
+        info += system_summary()
         info += _package_info()
         gi.setText(info)
         layout.addWidget(gi, row, 2)
         row += 1
 
         fal = QLabel('File Attachment:')
-        fal.setAlignment(Qt.AlignRight|Qt.AlignVCenter)
+        fal.setAlignment(align_right)
         layout.addWidget(fal, row, 1)
         fb = QWidget()
         layout.addWidget(fb, row, 2)
@@ -141,7 +139,7 @@ class BugReporter(ToolInstance):
         row += 1
         
         pl = QLabel('Platform:')
-        pl.setAlignment(Qt.AlignRight|Qt.AlignVCenter)
+        pl.setAlignment(align_right)
         layout.addWidget(pl, row, 1)
         from platform import platform
         self.platform = p = QLineEdit(platform())
@@ -150,7 +148,7 @@ class BugReporter(ToolInstance):
         row += 1
         
         vl = QLabel('ChimeraX Version:')
-        vl.setAlignment(Qt.AlignRight|Qt.AlignVCenter)
+        vl.setAlignment(align_right)
         layout.addWidget(vl, row, 1)
         self.version = v = QLineEdit(self.chimerax_version())
         v.setReadOnly(True)
@@ -165,7 +163,8 @@ class BugReporter(ToolInstance):
         ilc.setChecked(True)
         ilayout.addWidget(ilc)
         ill = QLabel('Include log contents in bug report')
-        ill.setAlignment(Qt.AlignLeft|Qt.AlignVCenter)
+        align_left = Qt.AlignLeft|Qt.AlignVCenter
+        ill.setAlignment(align_left)
         ilayout.addWidget(ill)
         ilayout.addStretch(1)
         row += 1
@@ -233,6 +232,8 @@ class BugReporter(ToolInstance):
 
         # Add attachment to form data.
         file_list = self.read_attachment(entry_values['filename'])
+        if file_list is None:
+            return	# Attachment file not found.
         fields = [(k, None, v) for k,v in my_attrs.items()]
         fields.extend(file_list)
 
@@ -311,7 +312,7 @@ class BugReporter(ToolInstance):
         
         oops = ("<font color=red><h3>Error while submitting feedback.</h3></font>"
                 + detail +
-                "<p>An error occured when trying to submit your feedback."
+                "<p>An error occurred when trying to submit your feedback."
                 "  No information was received by the Computer Graphics Lab."
                 "  This could be due to network problems, but more likely,"
                 " there is a problem with Computer Graphics Lab's server."
@@ -330,19 +331,6 @@ class BugReporter(ToolInstance):
         path,type = QFileDialog.getOpenFileName()
         if path:
             self.attachment.setText(path)
-
-    def opengl_info(self):
-        r = self._ses.main_view.render
-        try:
-            r.make_current()
-            lines = ['OpenGL version: ' + r.opengl_version(),
-                     'OpenGL renderer: ' + r.opengl_renderer(),
-                     'OpenGL vendor: ' + r.opengl_vendor()]
-            r.done_current()
-        except Exception:
-            lines = ['OpenGL version: unknown',
-                     'Could not make opengl context current']
-        return '\n'.join(lines)
 
     def chimerax_version(self):
         from chimerax.core.buildinfo import version, date
@@ -604,6 +592,30 @@ OS_LANGUAGES = {
     58380: "fr-015",
 }
 
+def opengl_info(session):
+    r = session.main_view.render
+    try:
+        r.make_current()
+        lines = ['OpenGL version: ' + r.opengl_version(),
+                 'OpenGL renderer: ' + r.opengl_renderer(),
+                 'OpenGL vendor: ' + r.opengl_vendor()]
+        r.done_current()
+    except Exception:
+        lines = ['OpenGL version: unknown',
+                 'Could not make opengl context current']
+    return '\n'.join(lines)
+
+def system_summary():
+    from sys import platform
+    if platform == 'win32':
+        info = _win32_info()
+    elif platform == 'linux':
+        info = _linux_info()
+    elif platform == 'darwin':
+        info = _darwin_info()
+    else:
+        info = ''
+    return info
 
 def _win32_info():
     try:
@@ -629,6 +641,7 @@ OSLanguage: {lang}
 
 
 def _linux_info():
+    import os
     import distro
     import platform
     import subprocess
@@ -724,12 +737,19 @@ def _linux_info():
     except Exception:
         product = "unknown"
 
+    newline = "\n"
+    displays = [f"{k}={v}" for k, v in os.environ.items() if k.endswith("DISPLAY")]
     info = f"""
+XDG_SESSION_TYPE={os.environ.get("XDG_SESSION_TYPE", "")}
+DESKTOP_SESSION={os.environ.get("DESKTOP_SESSION", "")}
+XDG_SESSION_DESKTOP={os.environ.get("XDG_SESSION_DESKTOP", "")}
+XDG_CURRENT_DESKTOP={os.environ.get("XDG_CURRENT_DESKTOP", "")}
+{newline.join(displays)}
 Manufacturer: {vendor}
 Model: {product}
 OS: {' '.join(distro.linux_distribution())}
 Architecture: {' '.join(platform.architecture())}
-Virutal Machine: {virtual_machine}
+Virtual Machine: {virtual_machine}
 CPU: {count} {model_name}
 Cache Size: {cache_size}
 Memory:
@@ -766,7 +786,11 @@ def _qt_info(session):
     if not session.ui.is_gui:
         return ""
     import Qt
-    return Qt.version + '\n'
+    return (
+        f"Qt version: {Qt.version}\n"
+        f"Qt runtime version: {Qt.QtCore.qVersion()}\n"
+        f"Qt platform: {session.ui.platformName()}\n"
+    )
 
 
 def _package_info():
@@ -774,7 +798,7 @@ def _package_info():
     dists = list(pkg_resources.WorkingSet())
     dists.sort(key=lambda d: d.project_name.casefold())
 
-    info = "Installed Packages:"
+    info = "\nInstalled Packages:"
     for d in dists:
         name = d.project_name
         if d.has_version():

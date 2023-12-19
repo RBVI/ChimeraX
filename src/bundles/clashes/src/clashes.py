@@ -1,14 +1,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 from .settings import defaults
@@ -20,6 +31,7 @@ def find_clashes(session, test_atoms,
         clash_threshold=defaults["clash_threshold"],
         distance_only=None,
         hbond_allowance=defaults["clash_hbond_allowance"],
+        ignore_hidden_models=False,
         inter_model=True,
         inter_submodel=False,
         intra_model=True,
@@ -48,6 +60,8 @@ def find_clashes(session, test_atoms,
        Atom pairs are eliminated from consideration if they are less than
        or equal to 'bond_separation' bonds apart.
 
+       Clashes involving hidden models ('visible' attr is False) are ignored
+       if 'ignore_hidden_models' is True.
        Intra-residue clashes are ignored unless intra_res is True.
        Intra-model clashes are ignored unless intra_model is True.
        Intra-molecule (covalently connected fragment) clashes are ignored
@@ -102,6 +116,9 @@ def find_clashes(session, test_atoms,
         search_atoms = restrict
     else:
         search_atoms = test_atoms
+    if ignore_hidden_models:
+        test_atoms = test_atoms.filter(test_atoms.structures.visibles == True)
+        search_atoms = search_atoms.filter(search_atoms.structures.visibles == True)
 
     if res_separation is not None:
         chain_pos = {}

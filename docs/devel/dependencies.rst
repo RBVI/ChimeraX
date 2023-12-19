@@ -61,7 +61,6 @@ Packages from PyPi Python package manager
 * scipy - math/science library used to compute helix tubes
 * six -	compatibility module for Python 2 and 3, used by numpy/matplotlib and more
 * sortedcontainers - use sorted dictionary SortedDict for color and command managers
-* suds-jurko - SOAP library, used for Opal web services
 * tables - read HDF5 files, usually volume data
 * tifffile - read TIFF image stacks for 3D light microscopy, high performance, 16-bit format support
 * tinyarray - efficient small C arrays, used for atom coordinates, numpy is much less efficient

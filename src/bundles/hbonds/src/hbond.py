@@ -1,14 +1,25 @@
 # vim: set expandtab ts=4 sw=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 verbose = False
@@ -687,8 +698,7 @@ def find_hbonds(session, structures, *, inter_model=True, intra_model=True, dono
                         return "other %s" % a.element.name
                     return "%2d" % (i+1)
                 descript = "geometry class 1: %s\n\ngeometry class 2: %s" % (repr(grp1), repr(grp2))
-                from chimerax.core.logger import report_exception
-                report_exception(error_description=
+                session.logger.report_exception(error_description=
     """At least one atom was classified into more than one acceptor or donor
     geometry class.  This indicates a problem in the
     donr/acceptor classification mechanism and we would appreciate it if you
@@ -808,6 +818,9 @@ def _find_acceptors(structure, a_params, limited_acceptors, generic_acc_info):
                     bonded_geom = type_info[atom.neighbors[0].idatm_type].geometry
                 except KeyError:
                     bonded_geom = single
+                except IndexError:
+                    # no neighbors
+                    continue
                 acc_func, args = acc_info[bonded_geom]
             elif isinstance(acc_info, list):
                 try:

@@ -197,8 +197,20 @@ class GridDataState(State):
 
   # State save/restore in ChimeraX
   def take_snapshot(self, session, flags):
-    data = state_from_grid_data(self.grid_data, session_path = session.session_file_path,
-                                include_maps = self._include_maps)
+    try:
+      data = state_from_grid_data(self.grid_data, session_path = session.session_file_path,
+                                  include_maps = self._include_maps)
+    except MemoryError as mem_error:
+      from .volume import Volume
+      saved_maps = [v for v in session.models.list(type = Volume)
+                    if self._include_maps or not v.data.path]
+      map_sizes = [v.data.voxel_count() * v.data.value_type.itemsize for v in saved_maps]
+      map_gbytes = sum(map_sizes) / (1024 ** 3)
+      map_names = '\n'.join('#%s   "%s"  (%d MB)' % (v.id_string, v.name, size / (1024*1024))
+                            for v,size in zip(saved_maps, map_sizes))
+      msg = 'Ran out of memory trying to save a session including %d maps (%.1f Gbytes).\n\nTo save the session you will either have to save the maps to separate files (then only the path to the file is included in the session) or close some of the maps.\n\n%s' % (len(saved_maps), map_gbytes, map_names)
+      from chimerax.core.errors import UserError
+      raise UserError(msg) from mem_error
     return data
 
   @staticmethod
@@ -306,14 +318,27 @@ def state_from_grid_data(data, session_path = None, include_maps = False):
   if not dt.path or include_maps:
     s['size'] = dt.size
     s['value_type'] = str(dt.value_type)
-    compress_maps = False  # No advantage.  Ticket #4002
+    compress_maps = False  # No advantage since session is compressed.  Ticket #4002
+    bytes = dt.matrix().tobytes()
+
+    MAX_MSGPACK_OBJECT_SIZE = 2**32-1
+    if len(bytes) > MAX_MSGPACK_OBJECT_SIZE:
+      from chimerax.core.errors import UserError
+      raise UserError('ChimeraX session files cannot include maps over 4 Gbytes in size.\n\n' +
+                      'You tried to save map "%s"' % dt.name +
+                      ', size %d,%d,%d' % tuple(dt.size) +
+                      ', type %s.  ' % str(dt.value_type) +
+                      'Instead save the map in a map file (e.g. *.mrc, *.cmap) ' +
+                      'then save the session file and it will reference the ' +
+                      'map file instead of including the map data in the session file.')
+      
     if compress_maps:
       from gzip import compress
       s['array_compression'] = 'gzip'
-      s['array'] = compress(dt.matrix().tobytes())
+      s['array'] = compress(bytes)
     else:
       s['array_compression'] = 'none'
-      s['array'] = dt.matrix().tobytes()
+      s['array'] = bytes
     save_position = True
   else:
     save_position = False

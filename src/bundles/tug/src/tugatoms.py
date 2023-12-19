@@ -1,14 +1,25 @@
 # vim: set expandtab ts=4 sw=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 # Mouse mode to drag atoms and update structure with OpenMM molecular dynamics.
@@ -62,6 +73,7 @@ class TugAtomsMode(MouseMode):
         self._tugger = None
         self._tugging = False
         self._tug_handler = None
+        self._tug_atom = None
         self._last_frame_number = None
         self._puller = None
         self._arrow_model = None
@@ -86,7 +98,9 @@ class TugAtomsMode(MouseMode):
                 except ForceFieldError as e:
                     self.session.logger.warning(str(e))
                     return
-            st.tug_atom(a)
+            self._tug_atom = a
+            from chimerax.atomic import Atoms
+            st.tug_atoms(Atoms([a]))
             self._tugging = True
 
     def mouse_drag(self, event):
@@ -116,15 +130,13 @@ class TugAtomsMode(MouseMode):
             return	# Make sure we draw a frame before doing another MD calculation
         self._last_frame_number = v.frame_number
 
-        a = self._tugger.atom
-        atom_xyz, offset = self._puller.pull_direction(a)
+        a = self._tug_atom
+        atom_xyz, target_xyz = self._puller.pull_to_point(a)
 
-        from time import time
-        t0 = time()
-        self._tugger.tug_displacement(offset)
-        t1 = time()
-        atom_xyz, offset = self._puller.pull_direction(a)
-        self._draw_arrow(atom_xyz+offset, atom_xyz)
+        self._tugger.tug_to_positions(target_xyz.reshape((1,3)))
+
+        atom_xyz, target_xyz = self._puller.pull_to_point(a)
+        self._draw_arrow(target_xyz, atom_xyz)
 
     def _continue_tugging(self, *_):
         self._log('In continue_tugging')
@@ -173,27 +185,32 @@ class Puller2D:
         self.x = x
         self.y = y
         
-    def pull_direction(self, atom):
+    def pull_to_point(self, atom):
         v = atom.structure.session.main_view
         x0,x1 = v.clip_plane_points(self.x, self.y)
         axyz = atom.scene_coord
         # Project atom onto view ray to get displacement.
         dir = x1 - x0
-        da = axyz - x0
         from chimerax.geometry import inner_product
-        offset = da - (inner_product(da, dir)/inner_product(dir,dir)) * dir
-        return axyz, -offset
+        pxyz = x0 + (inner_product(axyz - x0, dir)/inner_product(dir,dir)) * dir
+        return axyz, pxyz
 
 class Puller3D:
     def __init__(self, xyz):
         self.xyz = xyz
         
-    def pull_direction(self, atom):
+    def pull_to_point(self, atom):
         axyz = atom.scene_coord
-        return axyz, self.xyz - axyz
+        return axyz, self.xyz
 
 class StructureTugger:
-    def __init__(self, structure):
+    '''
+    Run a molecular dynamics simulation or minimization with OpenMM
+    on a structure while pulling on some atoms.
+    '''
+    def __init__(self, structure, force_constant = 10000.0,
+                 cutoff = 10.0, temperature = 100.0,
+                 steps = 50, tolerance = 0.001):
         self._log = Logger('structuretugger.log' if write_logs else None)
         self.structure = structure
         self._minimized = False
@@ -204,9 +221,6 @@ class StructureTugger:
         satoms.sort(key = lambda a: (a.residue.chain_id, a.residue.number))
         from chimerax.atomic import Atoms
         self.atoms = Atoms(satoms)
-
-        # Atom being tugged
-        self.atom = None
 
         initialize_openmm()
         
@@ -222,15 +236,13 @@ class StructureTugger:
         # OpenMM simulation parameters
         global openmm_forcefield_parameters
         self._forcefields = openmm_forcefield_parameters
-        self._sim_steps = 50		# Simulation steps between mouse position updates
-        self._force_constant = 10000
+        self._sim_steps = steps		# Simulation steps between mouse position updates
+        self._force_constant = force_constant
+        self._nonbonded_cutoff = cutoff
         from openmm import unit
-        #self._temperature = 300*unit.kelvin
-        self._temperature = 100*unit.kelvin
-        #self._constraint_tolerance = 0.00001
-        #self._time_step = 2.0*unit.femtoseconds
-        self._integrator_tolerance = 0.001
-        self._constraint_tolerance = 0.001
+        self._temperature = temperature * unit.kelvin
+        self._integrator_tolerance = tolerance
+        self._constraint_tolerance = tolerance
         self._friction = 1.0/unit.picoseconds	# Coupling to heat bath
         self._platform_name = 'CPU'
         #self._platform_name = 'OpenCL' # Works on Mac
@@ -239,9 +251,9 @@ class StructureTugger:
         
         
         # OpenMM particle data
-        self._particle_number = None		# Integer index of tugged atom
-        self._particle_positions = None		# Numpy array, Angstroms
-        self._particle_force_index = {}
+        self._tugged_particle_numbers = None	# Integer indices of tugged atoms, numpy array
+        self._particle_positions = None		# Positions for all atoms, numpy array, Angstroms
+        self._particle_force_index = {}		# Maps particle number to force index for tugged atoms
         self._particle_masses = None		# Original particle masses
 
         self._create_openmm_system()
@@ -250,26 +262,34 @@ class StructureTugger:
         return (structure is self.structure and
                 structure.atoms == self._structure_atoms)
     
-    def tug_atom(self, atom):
-        self._log('In tug_atom')
+    def tug_atoms(self, atoms):
+        self._log('In tug_atoms')
 
         # OpenMM does not allow removing a force from a system.
         # So when the atom changes we either have to make a new system or add
         # the new atom to the existing force and set the force constant to zero
         # for the previous atom. Use the latter approach.
-        self.atom = atom
-        p = self.atoms.index(atom)
-        pp = self._particle_number
+        new_p = self.atoms.indices(atoms)
+        last_p = self._tugged_particle_numbers
+        self._tugged_particle_numbers = new_p
         f = self._force
         pfi = self._particle_force_index
-        if pp is not None and pp != p and pp in pfi:
-            f.setParticleParameters(pfi[pp], pp, (0,))	# Reset force to 0 for previous particle
-        self._particle_number = p
         k = self._force_constant
-        if p in pfi:
-            f.setParticleParameters(pfi[p], p, (k,))
-        else:
-            pfi[p] = f.addParticle(p, (k,))
+        x0 = y0 = z0 = 0
+
+        # Reset force to 0 for last tugged particles that are no longer tugged.
+        if last_p is not None:
+            np = set(new_p)
+            for lp in last_p:
+                if lp not in np and lp in pfi:
+                    f.setParticleParameters(pfi[lp], lp, (0,x0,y0,z0))
+
+        # Set force parameters or add force term for this particle
+        for p in new_p:
+            if p in pfi:
+                f.setParticleParameters(pfi[p], p, (k,x0,y0,z0))
+            else:
+                pfi[p] = f.addParticle(p, (k,x0,y0,z0))
 
         # If a particle is added to a force an existing simulation using
         # that force does not get updated. So we create a new simulation each
@@ -298,20 +318,27 @@ class StructureTugger:
         magnitudes =numpy.sqrt(forcesx*forcesx + forcesy*forcesy + forcesz*forcesz)
         return max(magnitudes)
 
-        
-    def tug_displacement(self, d):
-        self._log('In tug_displacement')
-        self._set_tug_position(d)
+    def tug_to_positions(self, xyz):
+        '''xyz is in scene coordinates, one position for each tugged particle.'''
+        self._log('In tug_to_positions')
+        if len(xyz) != len(self._tugged_particle_numbers):
+            raise ValueError('tug_to_positions: wrong number of tug points %d, expected %d'
+                             % (len(xyz), len(self._tugged_particle_numbers)))
+        self._set_tug_positions(xyz)
         if not self._minimized:
             self._minimize()
         self._simulate()
 
-    def _set_tug_position(self, d):
-        pxyz = 0.1*self._particle_positions[self._particle_number]	# Nanometers
-        txyz = pxyz + 0.1*d		# displacement d is in Angstroms, convert to nanometers
-        c = self._simulation.context
-        for p,v in zip(('x0','y0','z0'), txyz):
-            c.setParameter(p,v)
+    def _set_tug_positions(self, xyz):
+        '''xyz is in scene coordinates, one position for each tugged particle.'''
+        txyz = self.structure.scene_position.inverse() * xyz        
+        txyz *= 0.1	# convert position in Angstroms to nanometers
+        f = self._force
+        k = self._force_constant
+        for (x0,y0,z0), p in zip(txyz, self._tugged_particle_numbers):
+            fi = self._particle_force_index[p]
+            f.setParticleParameters(fi, p, (k,x0,y0,z0))
+        f.updateParametersInContext(self._simulation.context)
 
     def _simulate(self, steps = None):
 # Minimization generates "Exception. Particle coordinate is nan" errors rather frequently, 1 in 10 minimizations.
@@ -405,6 +432,8 @@ class StructureTugger:
 
         from openmm import app
         forcefield = app.ForceField(*self._forcefields)
+
+        self._add_ligands_to_forcefield(self.structure.residues, forcefield)
 #        self._add_hydrogens(pdb, forcefield)
 
         self._system = system = self._create_system(forcefield)
@@ -422,10 +451,60 @@ class StructureTugger:
         # Setup pulling force
         e = 'k*((x-x0)^2+(y-y0)^2+(z-z0)^2)'
         self._force = force = mm.CustomExternalForce(e)
-        force.addPerParticleParameter('k')
-        for p in ('x0', 'y0', 'z0'):
-            force.addGlobalParameter(p, 0.0)
+        for name in ('k', 'x0', 'y0', 'z0'):
+            force.addPerParticleParameter(name)
         system.addForce(force)
+
+    def _add_ligands_to_forcefield(self, residues, forcefield):
+        param_dir = self._ligand_parameters_directory()
+        if param_dir is None:
+            return     # TugLigands toolshed bundle not installed
+        
+        known_ligands = set(forcefield._templates.keys())
+        known_ligands.add('HIS')	# Seems OpenMM handles this specially.
+        from numpy import unique
+        rnames = [rname for rname in unique(residues.names) if rname not in known_ligands]
+        if len(rnames) == 0:
+            return
+
+        # Load GAFF atom types needed by Moriarty and Case ligand parameterizations.
+        if not hasattr(self, '_gaff_types_added'):
+            # Moriarty and Case parameterization uses GAFF atom types.
+            from os import path
+            gaff_types = path.join(param_dir, 'gaff2.xml')
+            forcefield.loadFile(gaff_types)
+            
+        # Try getting ligand parameters from Moriarty and Case parameterization of all PDB ligands.
+        rnames_not_found = []
+        from os import path
+        mc_ligand_zip = path.join(param_dir, 'moriarty_and_case_ligands.zip')
+        from zipfile import ZipFile
+        with ZipFile(mc_ligand_zip) as zf:
+            for rname in rnames:
+                try:
+                    with zf.open(rname+'.xml') as xml_file:
+                        forcefield.loadFile(xml_file)
+                except KeyError:
+                    rnames_not_found.append(rname)
+
+        # Warn about ligands without parameters
+        log = residues[0].structure.session.logger
+        if rnames_not_found:
+            log.warning('Could not find OpenMM parameters for %d residues %s in %s'
+                        % (len(rnames_not_found), ', '.join(rnames_not_found), mc_ligand_zip))
+
+        # Note ligands with parameters.
+        rnames_found = [rname for rname in rnames if rname not in rnames_not_found]
+        if rnames_found:
+            log.info('Using OpenMM parameters from Moriarty and Case for %d residues %s'
+                     % (len(rnames_found), ', '.join(rnames_found)))
+
+    def _ligand_parameters_directory(self):
+        try:
+            from chimerax import tug_ligands
+        except ImportError:
+            return None
+        return tug_ligands.parameters_directory
 
     def _system_from_prmtop(self, prmtop_path, impcrd_path):
         # load in Amber input files
@@ -456,7 +535,7 @@ class StructureTugger:
         
         # prepare system and integrator
         system = prmtop.createSystem(nonbondedMethod=app.CutoffNonPeriodic,
-                                     nonbondedCutoff=1.0*unit.nanometers,
+                                     nonbondedCutoff=self._nonbonded_cutoff*unit.angstrom,
                                      constraints=app.HBonds,
                                      rigidWater=True,
                                      ewaldErrorTolerance=0.0005
@@ -482,7 +561,7 @@ class StructureTugger:
         try:
             system = forcefield.createSystem(self._topology, 
                                              nonbondedMethod=app.CutoffNonPeriodic,
-                                             nonbondedCutoff=1.0*unit.nanometers,
+                                             nonbondedCutoff=self._nonbonded_cutoff*unit.angstrom,
                                              constraints=app.HBonds,
                                              rigidWater=True,
                                              ignoreExternalBonds=False)
@@ -496,7 +575,7 @@ class StructureTugger:
         try:
             system = forcefield.createSystem(self._topology, 
                                              nonbondedMethod=app.CutoffNonPeriodic,
-                                             nonbondedCutoff=1.0*unit.nanometers,
+                                             nonbondedCutoff=self._nonbonded_cutoff*unit.angstrom,
                                              constraints=app.HBonds,
                                              rigidWater=True,
                                              ignoreExternalBonds=True)

@@ -1,14 +1,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 def graphics(session, bg_color=None, background_color=None):
@@ -74,6 +85,7 @@ def graphics_rate(session, report_frame_rate = None,
 def graphics_quality(session, quality = None, subdivision = None,
                      atom_triangles = None, bond_triangles = None,
                      total_atom_triangles = None, total_bond_triangles = None,
+                     bond_sides = None, pseudobond_sides = None,
                      ribbon_divisions = None, ribbon_sides = None, color_depth = None):
     '''
     Set graphics quality parameters.
@@ -90,7 +102,7 @@ def graphics_quality(session, quality = None, subdivision = None,
         Number of triangles for drawing an atom sphere, minimum 4.
         If 0, then automatically compute number of triangles.
     bond_triangles : integer or "default"
-        Number of triangles for drawing an atom sphere, minimum 12.
+        Number of triangles for drawing a bond cylinder, minimum 12.
         If 0, then automatically compute number of triangles.
     total_atom_triangles : integer
         Target number of triangles for all shown atoms when automatically
@@ -98,6 +110,10 @@ def graphics_quality(session, quality = None, subdivision = None,
     total_bond_triangles : integer
         Target number of triangles for all shown bonds when automatically
         triangles per bond.
+    bond_sides : integer
+        Number of sides for a bond cylinder, minimum 3.
+    pseudobond_sides : integer
+        Number of sides for a pseudobond cylinder, minimum 3.
     ribbon_divisions : integer or "default"
         Number of segments to use for one residue of a ribbon, minimum 2.
         If default then automatically determine value (20 for less than 20,000 residues).
@@ -128,14 +144,27 @@ def graphics_quality(session, quality = None, subdivision = None,
             raise UserError('Minimum number of bond triangles is 12')
         lod.bond_fixed_triangles = None if bond_triangles in ('default', 0) else bond_triangles
         change = True
+    if bond_sides is not None:
+        if isinstance(bond_sides, int) and bond_sides != 0 and bond_sides < 3:
+            raise UserError('Minimum number of bond sides is 3')
+        lod.bond_fixed_triangles = None if bond_sides in ('default', 0) else 4*bond_sides
+        change = True
     if total_atom_triangles is not None:
         lod.total_atom_triangles = total_atom_triangles
         change = True
     if total_bond_triangles is not None:
         lod.total_bond_triangles = total_bond_triangles
         change = True
+    if pseudobond_sides is not None:
+        if pseudobond_sides < 3:
+            raise UserError('Minimum number of pseudobond sides is 3')
+        lod.pseudobond_sides = pseudobond_sides
+        from chimerax.atomic import all_pseudobond_groups
+        for pbg in all_pseudobond_groups(session):
+            pbg.update_cylinder_sides()
+        change = True
     if ribbon_divisions is not None:
-        if isinstance(ribbon_divisions, int) and ribbon_divisions < 2:
+        if isinstance(ribbon_divisions, int) and ribbon_divisions != 0 and ribbon_divisions < 2:
             raise UserError('Minimum number of ribbon divisions is 2')
         div = None if ribbon_divisions in (0, 'default') else ribbon_divisions
         gu.set_ribbon_divisions(div)
@@ -161,8 +190,8 @@ def graphics_quality(session, quality = None, subdivision = None,
         gu.update_level_of_detail()
     else:
         na = gu.num_atoms_shown
-        msg = ('Quality %.3g, atom triangles %d, bond triangles %d' %
-               (lod.quality, lod.atom_sphere_triangles(na), lod.bond_cylinder_triangles(na)))
+        msg = ('Quality %.3g, atom triangles %d, bond triangles %d, pseudobond sides %d' %
+               (lod.quality, lod.atom_sphere_triangles(na), lod.bond_cylinder_triangles(na), lod.pseudobond_sides))
         div = [lod.ribbon_divisions(s.num_ribbon_residues) for s in gu.structures]
         if div:
             dmin, dmax = min(div), max(div)
@@ -277,6 +306,8 @@ def register_command(logger):
                  ('bond_triangles', IntOrDefaultArg),
                  ('total_atom_triangles', IntArg),
                  ('total_bond_triangles', IntArg),
+                 ('bond_sides', IntOrDefaultArg),
+                 ('pseudobond_sides', IntArg),
                  ('ribbon_divisions', IntOrDefaultArg),
                  ('ribbon_sides', IntArg),
                  ('color_depth', IntArg),

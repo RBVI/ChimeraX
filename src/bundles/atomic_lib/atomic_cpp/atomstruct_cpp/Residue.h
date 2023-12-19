@@ -2,14 +2,25 @@
 
 /*
  * === UCSF ChimeraX Copyright ===
- * Copyright 2016 Regents of the University of California.
- * All rights reserved.  This software provided pursuant to a
- * license agreement containing restrictions on its disclosure,
- * duplication and use.  For details see:
- * http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
- * This notice must be embedded in or attached to all copies,
- * including partial copies, of the software or any revisions
- * or derivations thereof.
+ * Copyright 2022 Regents of the University of California. All rights reserved.
+ * The ChimeraX application is provided pursuant to the ChimeraX license
+ * agreement, which covers academic and commercial uses. For more details, see
+ * <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+ *
+ * This particular file is part of the ChimeraX library. You can also
+ * redistribute and/or modify it under the terms of the GNU Lesser General
+ * Public License version 2.1 as published by the Free Software Foundation.
+ * For more details, see
+ * <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+ *
+ * THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+ * LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+ * VERSION 2.1
+ *
+ * This notice must be embedded in or attached to all copies, including partial
+ * copies, of the software or any revisions or derivations thereof.
  * === UCSF ChimeraX Copyright ===
  */
 
@@ -27,6 +38,7 @@
 #include "imex.h"
 #include "polymer.h"
 #include "Real.h"
+#include "res_numbering.h"
 #include "Rgba.h"
 #include "session.h"
 #include "string_types.h"
@@ -73,6 +85,7 @@ private:
     ChainID  _mmcif_chain_id;
     ResName  _name;
     int  _number;
+    int  _numberings[NUM_RES_NUMBERINGS];
     float  _ribbon_adjust;
     bool  _ribbon_display;
     bool  _ribbon_hide_backbone;
@@ -84,7 +97,7 @@ private:
     bool  _rings_are_thin;
     Rgba  _ring_rgba;
 public:
-    void  add_atom(Atom*);
+    void  add_atom(Atom*, bool copying_structure=false);
     const Atoms&  atoms() const { return _atoms; }
     AtomsMap  atoms_map() const;
     std::vector<Bond*>  bonds_between(const Residue* other_res, bool just_first=false) const;
@@ -132,12 +145,8 @@ public:
     void  set_ss_id(int ssid);
     void  set_ss_type(SSType sst);
     void  set_mmcif_chain_id(const ChainID &cid) { _mmcif_chain_id = cid; }
-    void  set_number(int number) {
-        if (number != _number) {
-            _number = number;
-            change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_NUMBER);
-        }
-    }
+    void  set_number(int number);
+    void  set_number(ResNumbering rn, int number) { _numberings[rn] = number; }
     static void  set_templates_dir(const std::string&);
     static void  set_user_templates_dir(const std::string&);
     int  ss_id() const;
@@ -408,9 +417,11 @@ Residue::set_ss_id(int ss_id)
 {
     if (ss_id == _ss_id)
         return;
-    change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_SS_ID);
+    if (_structure->ss_change_notify()) {
+        change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_SS_ID);
+        _structure->set_gc_ribbon();
+    }
     _ss_id = ss_id;
-    _structure->set_gc_ribbon();
 }
 
 inline void
@@ -418,10 +429,12 @@ Residue::set_ss_type(SSType sst)
 {
     if (sst == _ss_type)
         return;
-    _structure->set_ss_assigned(true);
-    change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_SS_TYPE);
+    if (_structure->ss_change_notify()) {
+        _structure->set_ss_assigned(true);
+        change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_SS_TYPE);
+        _structure->set_gc_ribbon();
+    }
     _ss_type = sst;
-    _structure->set_gc_ribbon();
 }
 
 }  // namespace atomstruct

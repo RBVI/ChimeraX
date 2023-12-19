@@ -123,14 +123,10 @@ sortedcontainers
 	provides SortedDict
 sphinxcontrib-blockdiag
 	Block diagrams for sphinx, needed for documentation ???
-suds-jurko
-	SOAP library, needed for web services
 webcolors
 	used by blockdiag
 wheel
 	wheel distribution format, needed for toolshed
-wrappy3/
-	Python C++ wrapping, used by readcif
 xdg-utils/
 	Required to build mesa, off-screen rendering and for linux installation
 xml2/

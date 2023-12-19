@@ -14,6 +14,8 @@
 from enum import Enum
 from chimerax.core.tools import ToolInstance
 
+OUT_OF_DATE = "possible out of date bundles"
+
 
 class DialogType(Enum):
     ALL_AVAILABLE = 0
@@ -69,7 +71,10 @@ class UpdateTool(ToolInstance):
         choice_layout.addWidget(self.choice)
         for dt in DialogType:
             self.choice.addItem(dt.name.replace('_', ' ').title(), dt)
-        self.choice.setCurrentIndex(self.choice.findData(dialog_type))
+        if dialog_type == OUT_OF_DATE:
+            self.choice.setCurrentIndex(self.choice.findData(DialogType.UPDATES_ONLY))
+        else:
+            self.choice.setCurrentIndex(self.choice.findData(dialog_type))
         self.choice.currentIndexChanged.connect(self.new_choice)
         choice_layout.addStretch()
         from chimerax.ui.core_settings_ui import UpdateIntervalOption
@@ -118,6 +123,9 @@ class UpdateTool(ToolInstance):
         buttons_layout.addWidget(button)
 
         self._fill_updates()
+        if dialog_type == OUT_OF_DATE and self.updates.topLevelItemCount() == 0:
+            del self
+            return
         self.tool_window.fill_context_menu = self.fill_context_menu
         self.tool_window.manage(placement=None)
 
@@ -139,7 +147,7 @@ class UpdateTool(ToolInstance):
         self.install_button.setEnabled(False)
 
     def fill_context_menu(self, menu, x, y):
-        from Qt.QtWidgets import QAction
+        from Qt.QtGui import QAction
         settings_action = QAction("Settings...", menu)
         settings_action.triggered.connect(lambda arg: self.show_settings())
         menu.addAction(settings_action)
@@ -151,8 +159,7 @@ class UpdateTool(ToolInstance):
         from Qt.QtCore import Qt
         from Qt.QtWidgets import QTreeWidgetItem, QComboBox
         from packaging.version import Version
-        # TODO: make _compatible a non-private API
-        from chimerax.help_viewer.tool import _compatible as compatible
+        from chimerax.help_viewer.tool import incompatible_reason
         session = self.session
         toolshed = session.toolshed
         self.actions = []
@@ -163,8 +170,10 @@ class UpdateTool(ToolInstance):
         installed_version = ""
         for available in info:
             release_file = getattr(available, 'release_file', None)
-            if release_file is not None and not compatible(release_file):
-                continue
+            if release_file is not None:
+                reason = incompatible_reason(release_file)
+                if reason is not None:
+                    continue
             if last_bundle_name is None or available.name != last_bundle_name:
                 last_bundle_name = available.name
                 installed_bi = toolshed.find_bundle(last_bundle_name, session.logger)

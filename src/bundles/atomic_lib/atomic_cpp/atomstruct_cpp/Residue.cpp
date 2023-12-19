@@ -2,18 +2,30 @@
 
 /*
  * === UCSF ChimeraX Copyright ===
- * Copyright 2016 Regents of the University of California.
- * All rights reserved.  This software provided pursuant to a
- * license agreement containing restrictions on its disclosure,
- * duplication and use.  For details see:
- * http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
- * This notice must be embedded in or attached to all copies,
- * including partial copies, of the software or any revisions
- * or derivations thereof.
+ * Copyright 2022 Regents of the University of California. All rights reserved.
+ * The ChimeraX application is provided pursuant to the ChimeraX license
+ * agreement, which covers academic and commercial uses. For more details, see
+ * <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+ *
+ * This particular file is part of the ChimeraX library. You can also
+ * redistribute and/or modify it under the terms of the GNU Lesser General
+ * Public License version 2.1 as published by the Free Software Foundation.
+ * For more details, see
+ * <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+ *
+ * THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+ * LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+ * VERSION 2.1
+ *
+ * This notice must be embedded in or attached to all copies, including partial
+ * copies, of the software or any revisions or derivations thereof.
  * === UCSF ChimeraX Copyright ===
  */
 
 #include <algorithm>
+#include <cctype>  // for islower
 #include <set>
 #include <sstream>
 #include <utility>  // for pair
@@ -62,12 +74,21 @@ std::set<ResName> Residue::std_solvent_names = std_water_names;
 std::map<ResName, std::map<AtomName, char>>  Residue::ideal_chirality;
 
 Residue::Residue(Structure *as, const ResName& name, const ChainID& chain, int num, char insert):
-    _alt_loc(' '), _chain(nullptr), _chain_id(chain), _insertion_code(insert),
-    _mmcif_chain_id(chain), _name(name), _number(num),
-    _ribbon_adjust(-1.0), _ribbon_display(false), _ribbon_hide_backbone(true),
-    _ribbon_rgba({160,160,0,255}), _ss_id(-1), _ss_type(SS_COIL), _structure(as),
-    _ring_display(false), _rings_are_thin(false)
+    _alt_loc(' '), _chain(nullptr), _chain_id(chain), _insertion_code(insert), _mmcif_chain_id(chain),
+    _name(name), _number(num), _ribbon_adjust(-1.0), _ribbon_display(false), _ribbon_hide_backbone(true),
+    _ribbon_rgba({160,160,0,255}), _ss_id(-1), _ss_type(SS_COIL), _structure(as), _ring_display(false),
+    _rings_are_thin(false)
 {
+    if (!as->lower_case_chains) {
+        for (auto c: _chain_id) {
+            if (std::islower(c)) {
+                as->lower_case_chains = true;
+                break;
+            }
+        }
+    }
+    for (int i = 0; i < NUM_RES_NUMBERINGS; ++i)
+        _numberings[i] = num;
     change_tracker()->add_created(_structure, this);
 }
 
@@ -80,10 +101,12 @@ Residue::~Residue() {
 }
 
 void
-Residue::add_atom(Atom* a)
+Residue::add_atom(Atom* a, bool copying_structure)
 {
     a->_residue = this;
     _atoms.push_back(a);
+    if (copying_structure)
+        return;
 
     // if this is the first atom of a residue being introduced into a chain gap,
     // possibly adjust missing-structure pseudobonds; try to do this work only if
@@ -460,7 +483,24 @@ Residue::set_chain_id(ChainID chain_id)
         if (_chain != nullptr)
             throw std::logic_error("Cannot set polymeric chain ID directly from Residue; must use Chain");
         _chain_id = chain_id;
+        if (!structure()->lower_case_chains) {
+            for (auto c: chain_id) {
+                if (std::islower(c)) {
+                    structure()->lower_case_chains = true;
+                    break;
+                }
+            }
+        }
         change_tracker()->add_modified(_structure, this, ChangeTracker::REASON_CHAIN_ID);
+    }
+}
+
+void
+Residue::set_number(int number) {
+    if (number != _number) {
+        _number = number;
+        _numberings[structure()->res_numbering()] = number;
+        change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_NUMBER);
     }
 }
 
@@ -501,20 +541,35 @@ std::vector<Atom*>
 Residue::template_assign(void (Atom::*assign_func)(const char*),
     const char* app, const char* template_dir, const char* extension) const
 {
-    // Returns atoms that received assignments.  Can throw these exceptions:
+    // Returns atoms that did not receive assignments.  Can throw these exceptions:
     //   TA_TemplateSyntax:  template syntax error
     //   TA_NoTemplate:  no template found
     //   std::logic_error:  internal logic error
     using tmpl::TemplateCache;
     TemplateCache* tc = TemplateCache::template_cache();
-    TemplateCache::AtomMap* am = tc->res_template(name(),
+    auto lookup_name = name();
+    if (lookup_name == "UNK") {
+        // treat as GLY if backbone atoms present
+        bool treat_as_gly = true;
+        for (auto bb_name: aa_min_backbone_names) {
+            if (find_atom(bb_name) == nullptr) {
+                treat_as_gly = false;
+                break;
+            }
+        }
+        if (treat_as_gly)
+            lookup_name = "GLY";
+    }
+    TemplateCache::AtomMap* am = tc->res_template(lookup_name,
             app, template_dir, extension);
 
-    std::vector<Atom*> assigned;
+    std::vector<Atom*> unassigned;
     for (auto a: _atoms) {
         auto ami = am->find(a->name());
-        if (ami == am->end())
+        if (ami == am->end()) {
+            unassigned.push_back(a);
             continue;
+        }
 
         auto& norm_type = ami->second.first;
         auto ct = ami->second.second;
@@ -538,7 +593,6 @@ Residue::template_assign(void (Atom::*assign_func)(const char*),
                         cond_assigned = true;
                         if (ci.result != "-") {
                             (a->*assign_func)(ci.result);
-                            assigned.push_back(a);
                         }
                     }
                 } else if (ci.op == "?") {
@@ -547,7 +601,6 @@ Residue::template_assign(void (Atom::*assign_func)(const char*),
                         cond_assigned = true;
                         if (ci.result != "-") {
                             (a->*assign_func)(ci.result);
-                            assigned.push_back(a);
                         }
                     }
                 } else {
@@ -564,10 +617,11 @@ Residue::template_assign(void (Atom::*assign_func)(const char*),
         // assign normal type
         if (norm_type != "-") {
             (a->*assign_func)(norm_type);
-            assigned.push_back(a);
+        } else {
+            unassigned.push_back(a);
         }
     }
-    return assigned;
+    return unassigned;
 }
 
 }  // namespace atomstruct

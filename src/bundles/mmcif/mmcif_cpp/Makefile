@@ -17,7 +17,7 @@ APP_PKG_DIR = $(APP_PYSITEDIR)/chimerax/core/atomic
 ARRAYS_DIR = $(APP_PYSITEDIR)/chimerax/arrays
 
 HDRS = mmcif.h _mmcif.h
-SRCS = mmcif.cpp template.cpp _mmcif.cpp
+SRCS = mmcif.cpp template.cpp corecif.cpp _mmcif.cpp
 OBJS = $(SRCS:.cpp=.$(OBJ_EXT))
 PYMOD_NAME = _mmcif
 

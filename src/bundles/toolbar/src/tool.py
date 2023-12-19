@@ -115,7 +115,7 @@ class ToolbarTool(ToolInstance):
     def fill_context_menu(self, menu, x, y):
         # avoid having actions destroyed when this routine returns
         # by stowing a reference in the menu itself
-        from Qt.QtWidgets import QAction
+        from Qt.QtGui import QAction
         button_labels = QAction("Show button labels", menu)
         button_labels.setCheckable(True)
         button_labels.setChecked(_settings.show_button_labels)
@@ -245,6 +245,9 @@ class ToolbarTool(ToolInstance):
     def set_enabled(self, enabled, tab_title, section_title, button_title):
         self.ttb.set_enabled(enabled, tab_title, section_title, button_title)
 
+    def show_group_button(self, tab_title, section_title, button_title):
+        self.ttb.show_group_button(tab_title, section_title, button_title)
+
 
 def _home_layout(session, home_tab):
     # interact through buttons in home tab
@@ -351,8 +354,8 @@ def _layout(d, what):
 
 
 # tree item data roles:
-LINK_ROLE = Qt.UserRole
-ITEM_TYPE_ROLE = Qt.UserRole + 1
+LINK_ROLE = Qt.ItemDataRole.UserRole
+ITEM_TYPE_ROLE = Qt.ItemDataRole.UserRole + 1
 # tree item types:
 TAB_TYPE = 1
 SECTION_TYPE = 2
@@ -360,12 +363,12 @@ BUTTON_TYPE = 3
 GROUP_TYPE = 4
 # tree item flags:
 BUTTON_FLAGS = (
-    Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsEditable
-    | Qt.ItemNeverHasChildren | Qt.ItemIsDragEnabled
+    Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEditable
+    | Qt.ItemFlag.ItemNeverHasChildren | Qt.ItemFlag.ItemIsDragEnabled
 )
 SECTION_FLAGS = (
-    Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsEditable
-    | Qt.ItemIsUserCheckable | Qt.ItemIsDragEnabled
+    Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEditable
+    | Qt.ItemFlag.ItemIsUserCheckable | Qt.ItemFlag.ItemIsDragEnabled
 )
 
 
@@ -436,7 +439,7 @@ class _HomeTab(QTreeWidget):
         result = super().dropEvent(event)
         if copy_subtree:
             # find where it was copied to
-            new_section = self.itemAt(event.pos())
+            new_section = self.itemAt(event.position().toPoint())
             if new_section is None:
                 # assume dropped below bottom
                 new_section = self.topLevelItem(self.topLevelItemCount() - 1)
@@ -472,7 +475,7 @@ class _HomeTab(QTreeWidget):
             if original_type == SECTION_TYPE:
                 self.expandItem(original)
         else:
-            new_button = self.itemAt(event.pos())
+            new_button = self.itemAt(event.position().toPoint())
             new_button.setFlags(BUTTON_FLAGS)
         self.childDraggedAndDropped.emit()
         return result
@@ -674,7 +677,7 @@ class ToolbarSettingsTool:
             elif item_type == SECTION_TYPE:
                 name = item.text(0)
                 cur_section = []
-                if item.checkState(0):
+                if item.checkState(0) != Qt.Unchecked:
                     home_tab.append(((name, True), cur_section))
                 else:
                     home_tab.append((name, cur_section))

@@ -150,7 +150,7 @@ class MarkedHistogram(QWidget):
 
         # Create the add/delete marker help
         if show_marker_help and layout != 'below':
-            self._marker_help = QLabel("Ctrl-click on histogram to add or delete thresholds")
+            self._marker_help = QLabel("Shift-click on histogram to add or delete thresholds")
             self._marker_help.setAlignment(Qt.AlignCenter)
             overall_layout.addWidget(self._marker_help)
         else:
@@ -170,19 +170,19 @@ class MarkedHistogram(QWidget):
         self._data_widgets = QStackedWidget()
         data_frame_layout.addWidget(self._data_widgets)
 
-        # Crate the histogram widget
+        # Create the histogram widget
         self._hist_scene = QGraphicsScene()
         self._hist_bars = self._hist_scene.createItemGroup([])
         self._hist_view = QGraphicsView(self._hist_scene)
         self._hist_view.resizeEvent = self._redraw
         self._hist_scene.mousePressEvent = lambda event: self._add_or_delete_marker_cb(event) \
-            if event.modifiers() & mod_key_info("control")[0] else self._select_marker_cb(event)
+            if event.modifiers() & mod_key_info("shift")[0] else self._select_marker_cb(event)
         self._hist_scene.mouseMoveEvent = lambda event: self._move_marker_cb(event) \
-            if self._drag_marker else super().mouseMoveEvent(event)
+            if self._drag_marker else self._hist_scene.__class__.mouseMoveEvent(self._hist_scene, event)
         self._hist_scene.mouseReleaseEvent = self._button_up_cb
         self._redraw_timer = QTimer()
         self._redraw_timer.timeout.connect(self._redraw_cb)
-        self._redraw_timer.start(1000 * redraw_delay)
+        self._redraw_timer.start(int(1000 * redraw_delay + 0.5))
         self._redraw_timer.stop()
         self._data_widgets.addWidget(self._hist_view)
 
@@ -200,11 +200,11 @@ class MarkedHistogram(QWidget):
             min_max_layout = QHBoxLayout()
             if min_label:
                 self._min_label = QLabel()
-                min_max_layout.addWidget(self._min_label, alignment=Qt.AlignLeft & Qt.AlignTop)
+                min_max_layout.addWidget(self._min_label, alignment=Qt.AlignLeft | Qt.AlignTop)
 
             if max_label:
                 self._max_label = QLabel()
-                min_max_layout.addWidget(self._max_label, alignment=Qt.AlignRight & Qt.AlignTop)
+                min_max_layout.addWidget(self._max_label, alignment=Qt.AlignRight | Qt.AlignTop)
             overall_layout.addLayout(min_max_layout)
         else:
             self._range_label = QLabel()
@@ -419,7 +419,7 @@ class MarkedHistogram(QWidget):
         fm = ve.fontMetrics()
         tm = ve.textMargins()
         cm = ve.contentsMargins()
-        w = vw*fm.width('w') + tm.left() + tm.right() + cm.left() + cm.right() + 8
+        w = vw*fm.averageCharWidth() + tm.left() + tm.right() + cm.left() + cm.right() + 8
         ve.setMaximumWidth(w)
 
     def _abs2rel(self, abs_xy):
@@ -483,6 +483,10 @@ class MarkedHistogram(QWidget):
                 return
             self._active_markers.remove(marker)
             self._set_sel_marker(None)
+            if self._drag_marker == marker:
+                self._drag_marker = None
+                if self._active_markers.move_callback:
+                    self._active_markers.move_callback('end')
 
     def _button_up_cb(self, event=None):
         if self._drag_marker:
@@ -617,7 +621,13 @@ class MarkedHistogram(QWidget):
         view = self._hist_view
         scene = self._hist_scene
         hist_size = view.viewport().size()
-        self._hist_width, self._hist_height = hist_width, hist_height = hist_size.width(), hist_size.height()
+        if self._active_markers is not None:
+            # allow space for markers on ends
+            dx = self._active_markers.box_radius
+        else:
+            dx = 0
+        self._hist_width, self._hist_height = hist_width, hist_height = \
+            hist_size.width() - 2*dx, hist_size.height()
         self._min_val, self._max_val, self._bins = ds
         filled_range = self._max_val - self._min_val
         empty_ranges = [0, 0]
@@ -627,20 +637,29 @@ class MarkedHistogram(QWidget):
         if self._draw_max != None:
             empty_ranges[1] = self._draw_max - self._max_val
             self._max_val = self._draw_max
+        def handle_list(left, bins, right):
+            # can't '+' a list to a numpy array (#9328)...
+            bins = list(bins)
+            if left:
+                bins = left + bins
+            if right:
+                bins = bins + right
+            import numpy
+            return numpy.array(bins)
         if callable(self._bins):
             if empty_ranges[0] or empty_ranges[1]:
                 full_range = filled_range + empty_ranges[0] + empty_ranges[1]
                 filled_bins = self._bins(int(hist_width * filled_range / full_range))
                 left = [0] * int(hist_width * empty_ranges[0] / full_range)
                 right = [0] * (hist_width - len(filled_bins) - len(left))
-                self._bins = left + filled_bins + right
+                self._bins = handle_list(left, filled_bins, right)
             else:
                 self._bins = self._bins(hist_width)
         elif empty_ranges[0] or empty_ranges[1]:
             full_range = filled_range + empty_ranges[0] + empty_ranges[1]
             left = [0] * int(len(self._bins) * empty_ranges[0] / full_range)
             right = [0] * int(len(self._bins) * empty_ranges[1] / full_range)
-            self._bins = left + self._bins + right
+            self._bins = handle_list(left, self._bins, right)
         if self._min_label:
             self._min_label.setText(self._str_val(self._min_val))
         if self._max_label:
@@ -770,7 +789,7 @@ class HistogramMarkers:
        to that function.
 
        Contained HistogramMarker instances can be accessed as if
-       HistogramMarker were a sequence.  The instances are always kept
+       HistogramMarkers were a sequence.  The instances are always kept
        sorted ascending in X, so sequence order can change with any
        method that adds markers (e.g. a marker added with 'append'
        may not wind up at the end of the sequence).  Methods that create
@@ -789,9 +808,19 @@ class HistogramMarkers:
 
        Options are:
 
+        add_del_callback == function to call when one or more markers
+            are added or deleted.  The function is called with no
+            arguments.
+            default: None
+
         box_radius -- the radius in pixels of boxes drawn when the
             marker_type is 'box'
             default: 2
+
+        color_change_callback == function to call when a marker's color
+            is changed.  The function is called with the marker as an
+            argument.
+            default: None
 
         connect -- [init option] whether markers should be
             connected left-to-right with lines.  Typically
@@ -814,7 +843,7 @@ class HistogramMarkers:
             MarkedHistogram.add_markers()] the MarkedHistogram
             instance
 
-        marker_type -- [init option] the type of markers to use, 
+        marker_type -- [init option] the type of markers to use,
             either 'line' (vertical bars) or 'box' (squares).
             default: line
 
@@ -824,11 +853,10 @@ class HistogramMarkers:
             programmatically.
             default: None
 
-        move_callback -- [init option] function to call when the user
-            moves a marker.  The function receives a value of
-            'start' at the beginning of a move and 'end' at the
-            end.  During the move the value is the marker being
-            moved.
+        move_callback -- function to call when the user moves a marker.
+            The function receives a value of 'start' at the beginning
+            of a move and 'end' at the end.  During the move the value
+            is the marker being moved.
             default: None
 
         new_color -- the default color assigned to newly-created
@@ -836,11 +864,14 @@ class HistogramMarkers:
             default: yellow
     """
 
-    def __init__(self, *args, box_radius=2, connect=False, connect_color='yellow', coord_type='absolute',
-            histogram=None, marker_type='line', max_marks=None, min_marks=None, move_callback=None,
-            new_color='yellow', **kw):
+    def __init__(self, *args, add_del_callback=None, box_radius=2, color_change_callback=None,
+            connect=False, connect_color='yellow', coord_type='absolute', histogram=None,
+            marker_type='line', max_marks=None, min_marks=None, move_callback=None, new_color='yellow',
+            **kw):
 
+        self._add_del_callback = add_del_callback
         self._box_radius = box_radius
+        self._color_change_callback = color_change_callback
         self._connect = connect
         self._connect_color = connect_color
         self._coord_type = coord_type
@@ -868,7 +899,17 @@ class HistogramMarkers:
         marker = self._marker_func(val)
         self._markers.append(marker)
         self._update_plot()
+        if self._add_del_callback:
+            self._add_del_callback()
         return marker
+
+    @property
+    def add_del_callback(self):
+        return self._add_del_callback
+
+    @add_del_callback.setter
+    def add_del_callback(self, add_del_callback):
+        self._add_del_callback = add_del_callback
 
     @property
     def box_radius(self):
@@ -880,6 +921,14 @@ class HistogramMarkers:
             return
         self._box_radius = box_radius
         self._new_box_radius()
+
+    @property
+    def color_change_callback(self):
+        return self._color_change_callback
+
+    @color_change_callback.setter
+    def color_change_callback(self, color_change_callback):
+        self._color_change_callback = color_change_callback
 
     @property
     def connect(self):
@@ -903,6 +952,8 @@ class HistogramMarkers:
     def __delitem__(self, i):
         del self._markers[i]
         self._update_plot()
+        if self._add_del_callback:
+            self._add_del_callback()
 
     def destroy(self):
         self._unplot_markers()
@@ -911,6 +962,8 @@ class HistogramMarkers:
         markers = [self._marker_func(v) for v in vals]
         self._markers.extend(markers)
         self._update_plot()
+        if self._add_del_callback:
+            self._add_del_callback()
         return markers
 
     def __getitem__(self, i):
@@ -927,6 +980,8 @@ class HistogramMarkers:
         marker = self._marker_func(val)
         self._markers.insert(i, marker)
         self._update_plot()
+        if self._add_del_callback:
+            self._add_del_callback()
         return marker
 
     def __iter__(self):
@@ -959,6 +1014,10 @@ class HistogramMarkers:
     def move_callback(self):
         return self._move_callback
 
+    @move_callback.setter
+    def move_callback(self, move_callback):
+        self._move_callback = move_callback
+
     @property
     def new_color(self):
         return self._new_color
@@ -981,6 +1040,8 @@ class HistogramMarkers:
             self._sel_marker = None
         self._unplot_markers(marker)
         self._update_plot()
+        if self._add_del_callback:
+            self._add_del_callback()
 
     @property
     def shown(self):
@@ -1210,3 +1271,5 @@ class HistogramMarker:
         histo = self.markers.histogram
         if histo.current_marker_info()[-1] == self:
             histo._color_button.color = self.rgba
+        if self.markers.color_change_callback:
+            self.markers.color_change_callback(self)

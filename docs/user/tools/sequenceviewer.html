@@ -47,7 +47,10 @@ To <a href="../findseq.html">find and select</a>
 a specified sequence or sequence pattern, use
 <a href="../menu.html#selectseq"><b>Select... Sequence</b></a> in the menu
 or the <a href="../commands/select.html#new"><b>select</b></a> command.
-See also: <a href="../commands/matchmaker.html"><b>matchmaker</b></a>,
+See also:
+<a href="../commands/sequence.html"><b>sequence</b></a>,
+<a href="modeller.html"><b>Modeller Comparative</b></a>,
+<a href="modelloops.html"><b>Model Loops</b></a>,
 <a href="https://www.rbvi.ucsf.edu/chimerax/data/conservation-coloring/conservation-coloring.html"
 target="_blank">Coloring by Sequence Conservation</a>
 </p><p>
@@ -72,6 +75,10 @@ can also be <a href="../commands/open.html#local">opened</a>
 from <a href="../commands/open.html#sequence">files</a>
 or <a href="../commands/open.html#fetch">fetched</a>
 from <a href="https://www.uniprot.org/" target="_blank">UniProt</a>.
+Other tools or commands may generate new sequence alignments
+(<i>e.g.</i>, <a href="blastprotein.html#results"><b>Blast Protein</b> 
+results</a>, <a href="matchmaker.html"><b>Matchmaker</b></a>,
+<a href="../commands/sequence.html#align">sequence realignment</a>).
 </p><p>
 Multiple <b>Sequence Viewer</b> windows can be shown at the same time, 
 and they can be manipulated like other panels in ChimeraX 
@@ -82,6 +89,7 @@ and they can be manipulated like other panels in ChimeraX
 <a href="#context">Context Menu</a>
 <br><a href="#headers">Headers</a>
 <br><a href="#regions">Regions</a>
+<br>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#regionbrowser">Region Browser</a>
 <br>&nbsp;&nbsp;&nbsp;&nbsp;<a href="#uniprot">UniProt Sequence Features</a>
 <br><a href="#association">Sequence-Structure Association</a>
 <br><a href="#settings">Settings</a>
@@ -109,31 +117,101 @@ with choices including:
   to create <a href="#regions">regions</a> and color 
   <a href="#association">associated</a> structure to match
   </ul>
+<li><b>Edit</b>
+  <ul>
+  <li><a name="copy"></a><b>Copy Sequence...</b>
+copy a sequence into the system text buffer so that it
+can be pasted into another application window. Copying options:
+  <ul>
+  <li><b>Copy</b> [<i>sequence name</i>] <b>to system paste buffer</b>
+  <li><b>Remove gaps from copy</b> (default <b>on</b>) 
+&ndash; exclude gap characters
+(typically present when the sequence is part of a multiple alignment)
+<li><b>Restrict copy to <a href="#active">active region</a></b>
+(default <b>off</b>) &ndash; only include residues that are within the
+<a href="#active">active region</a></b>,
+even if they form disjoint segments
+  </ul>
+  <li><b>Realign Sequences with Clustal Omega</b>
+(<a href="../commands/sequence.html#clustal">details...</a>)
+    <ul>
+    <li><b>in new window</b>
+    <li><b>in this window</b> &ndash; replace existing alignment
+    </ul>
+  <li><b>Realign Sequences with MUSCLE</b>
+(<a href="../commands/sequence.html#muscle">details...</a>)
+    <ul>
+    <li><b>in new window</b>
+    <li><b>in this window</b> &ndash; replace existing alignment
+    </ul>
+  </ul>
 <li><b>Structure</b>
   <ul>
   <li><b>Associations...</b> show dialog for controlling 
   <a href="#association">sequence-structure association</a>
+  <li><b>View</b> [ <i>residue</i> ]
+&ndash; focus the view on the structure residue 
+<a href="#association">associated</a> with the clicked sequence position
   </ul>
 <li><b>Headers</b> 
 &ndash; which <a href="#headers">headers</a> are shown currently
   <ul>
   <li><b>Consensus</b>
   <li><b>Conservation</b> 
-  <li><b>RMSD</b> (<b>C&alpha;</b> or <b>backbone</b> as per
-   the <a href="#settings-headers"><b>Headers</b> settings</a>)
+  <li><b>RMSD</b> &ndash; either single atom per residue (<b>C&alpha;</b>
+  for peptides, <b>C4'</b> for nucleic acids) or <b>backbone</b> as per the 
+  <a href="#settings-headers"><b>Headers</b> settings</a>
   <li><b>Save</b> &nbsp;<font size="-1" color="dimgray">&#9654;</font>
   [choice of available headers]
   &ndash; save header information to file
   </ul>
+<li><b>Numberings</b>
+&ndash; which sequence numberings to display, if any
+  <ul>
+  <li><b>Overall</b> 
+&ndash; whether to show alignment numbering across the top 
+at positions 1, 11, 21, <i>etc.</i>;
+starts at 1 and includes gaps unless a reference sequence has been designated
+  <li><b>Reference Sequence</b> 
+&ndash; use the individual numbering of one of the sequences:
+    <ul>
+    <li>[<i>list of sequences in alignment</i>]
+    </ul>
+...as the overall numbering instead of the default; 
+when the reference sequence has a gap character at a position 
+where a number is to be shown (1, 11, 21, <i>etc.</i>), 
+how that position falls relative to the reference is shown in parentheses.
+For example, &ldquo;(<1)&rdquo; would be shown for alignment positions 
+before the reference's first residue, and &ldquo;(43/44)&rdquo; 
+for positions that fall between residues 43 and 44 of the reference.
+  <li><b>Left Sequence</b> 
+&ndash; whether to show individual sequence numberings on the left
+  <li><b>Right Sequence</b> 
+&ndash; whether to show individual sequence numberings on the right
+  </ul>
 <li><b>Tools</b>
   <ul>
   <li><b>Modeller Comparative Modeling...</b> 
-start <a href="modeller.html"><b>Modeller Comparative Modeling</b></a>
-(requires a structure to be <a href="#association">associated</a> 
-with any sequence in the alignment, for use as a template in modeling)
-  <li><b>Blast Protein...</b> 
-run <a href="blastprotein.html"><b>Blast Protein</b></a>
-with default parameters on the specified sequence
+start <a href="modeller.html"><b>Modeller Comparative</b></a>
+(requires a structure to be <a href="#association">associated</a> with any
+sequence in the alignment, for use as a template for comparative modeling)
+  <li><b>Model Loops...</b> 
+start <a href="modelloops.html"><b>Model Loops</b></a>
+to build missing segments or generate additional conformations of
+existing segments (requires the structure of interest to be 
+<a href="#association">associated</a> with a sequence)
+  <li><b>Blast Protein</b> &nbsp;<font size="-1" color="dimgray">&#9654;</font>
+[if multiple alignment, choice of sequence name]
+&ndash; start <a href="blastprotein.html"><b>Blast Protein</b></a>
+with the specified sequence as the query
+<li>[if multiple alignment] <b>Percent Identity...</b>
+calculate pairwise percent identities,
+the number of identical columns between two sequences as a percentage 
+of the specified denominator: length of the shorter sequence
+(default), or the length of the longer sequence, or the number of columns 
+where neither sequence has a gap.
+Results are given in the <a href="log.html"><b>Log</b></a>. See also:
+<a href="../commands/sequence.html#identity"><b>sequence identity</b></a>
   </ul>
 <li><b>Sequence Features...</b> for sequences
 <a href="../commands/open.html#fetch">fetched</a> from
@@ -159,19 +237,25 @@ can be controlled in the
 Headers for a specific window can be shown, hidden, or saved to a file 
 with the <a href="#context"><b>Sequence Viewer</b> context menu</a> or the
 <a href="../commands/sequence.html#header"><b>sequence header</b></a> command.
+Numbering can also be controlled using the
+<a href="#context"><b>Sequence Viewer</b> context menu</a>.
 </p><p>
 Per-column header values are assigned as 
 <a href="../attributes.html">attributes</a> of the structure residues
 <a href="#association">associated</a> with sequences in the alignment.
-The attributes are named &ldquo;seq_<i>name</i>,&ldquo; where <i>name</i>
-is the name of the header, for example,
+The numerical attributes (those from headers displayed as histograms)
+are named &ldquo;seq_<i>name</i>,&ldquo;
+where <i>name</i> is the name of the header, for example,
 <a href="../attributes.html#residue">seq_conservation</a> or
 <a href="../attributes.html#residue">seq_rmsd</a>.
 The structures can be
-<a href="../commands/color.html#byattribute">colored by attribute</a>,
-as in the tutorial:
+<a href="../commands/color.html#byattribute">colored</a>
+to show the values of such numerical attributes, as in the tutorial:
 <a href="https://www.rbvi.ucsf.edu/chimerax/data/conservation-coloring/conservation-coloring.html"
 target="_blank">Coloring by Sequence Conservation</a>.
+See also the video
+<a href="https://youtu.be/XaTpB-UIxnU" target="_blank">Coloring Aligned
+Proteins by C&alpha; RMSD</a>.
 </p>
 
 <a name="regions"></a>
@@ -192,10 +276,16 @@ Regions can also be created manually by dragging within the sequence window.
 Manually created regions are shown in
 <font style="background:rgb(233,218,198);padding:1px 3px">this&nbsp;color</font>
 (default, see <a href="#settings-regions"><b>Regions</b> settings</a>).
+The display and colors of existing regions can be controlled with the
+<a href="#regionbrowser"><b>Region Browser</b></a>.
 </p><p>
 <a name="active"></a>
-The <b><i>active region</i></b> is the region most recently clicked or created
-by dragging, and is indicated with a dashed outline.
+The <b><i>active region</i></b> is the region most recently clicked,
+created by dragging, or designated as
+<b>A</b>ctive in the <a href="#regionbrowser"><b>Region Browser</b></a>.
+The active region is indicated with a dashed outline, 
+and the corresponding parts of any <a href="#association">associated</a> 
+structures are <a href="../selection.html">selected</a>.
 <b>Shift</b>-dragging with the left mouse button <i>adds to</i> 
 the active region, whereas <b>Ctrl</b>-dragging <i>creates</i> a new region
 and makes it the active region. (On Mac, command key replaces Ctrl.)
@@ -203,11 +293,104 @@ Backspace/delete deletes the active region. Clicking the active region
 deactivates it, and clicking a different region deactivates the
 former active region and makes the new region active.
 A region with no interior color is only responsive to clicks on its borders.
-<!--
 Where regions <a href="#overlap">overlap</a>,
 only the highest is responsive to clicks.
--->
 </p>
+
+<table class="clRight">
+<tr><td><img class="outline" src="regionbrowser.png"
+alt="apoe_human regions" width="350px"></td></tr>
+</table>
+<a name="regionbrowser"></a>
+<p><a href="#regions" class="nounder"><b>&larr;</b></a>
+<b>Region Browser</b>
+</p><p>
+The <b>Region Browser</b></a> can be opened by choosing 
+<b>Annotations... Regions...</b> from the <a href="#context">context menu</a>.
+</p><p>
+Regions applicable to the <b>entire alignment</b> or to any of the
+individual sequences in the alignment can be listed using the pulldown menu
+near the top of the dialog. Regions applicable to the entire alignment
+include the <b>ChimeraX selection</b> and any hand-drawn regions,
+even if they only enclose parts of a single sequence.
+Regions applicable to an individual sequence include
+<a href="#uniprot">UniProt sequence features</a>
+and regions created by <a href="#association">structure association</a>.
+<!--
+If <a href="#uniprot">UniProt sequence features</a> have been added,
+checkboxes under <b>Data source</b> allow including/excluding specific sets
+of regions from the listing.
+-->
+</p><p>
+<b>Region Browser</b> columns:
+<ul>
+<li><b>A</b>ctive &ndash; whether the region is the
+<a href="#active">active region</a>
+<li><b>S</b>hown &ndash; whether the region is shown
+in the sequence window (however, it could
+still be obscured by <a href="#overlap">overlapping</a> regions)
+<li><b>B</b>order &ndash; whether the region border color is shown
+<li>region border color
+(a color well; click to change the color interactively)
+<li><b>I</b>nterio &ndash; whether the region interior color is shown
+<li>region interior color
+(a color well; click to change the color interactively)
+<li><b>Name</b> &ndash; region name
+<li><b>RMSD</b> (entire-alignment regions only) 
+&ndash; region overall RMSD, if applicable, calculated 
+using <a href="matchmaker.html#matchatom">one point per residue</a>.
+An overall RMSD is calculated
+for each region in which a block encloses at least one column
+<a href="#association">associated</a> with at least two structure residues.
+All pairwise within-column distances are included in the calculation of the
+overall RMSD, and all distances are weighted equally (columns may not be
+weighted equally, as they may be associated with differing numbers of
+structure residues).
+<li><b>Start</b> (individual-sequence regions only)
+&ndash; position in alignment numbering of the first residue in the region 
+<li><b>End</b> (individual-sequence regions only)
+&ndash; position in alignment numbering of the last residue in the region 
+</ul>
+<a name="chosenregions">
+Clicking a row in the <b>Region Browser</b> highlights the line
+and <b><i>chooses</i></b> the region</a>.
+More than one region can be chosen at a time, and checkbox settings
+specify whether <b>Choosing in table</b>
+shows all chosen regions, hides other regions, and/or makes the last chosen
+region the <a href="#active">active region</a>.
+</p><p>
+If <b>Include gaps</b> is turned off (unchecked),
+the <a href="#chosenregions">chosen region(s)</a> will be drawn
+to enclose only residues, not gap positions.
+Although a given region may then appear as disjoint blocks,
+it will still be a single region.
+</p><p>
+<a name="overlap">
+Since regions may overlap, a region can be considered higher or
+lower than another.</a> When the mouse focus is in the
+sequence window, the <b>up arrow</b> and
+<b>down arrow</b> keys can be used to raise and lower the
+<a href="#active">active region</a>, respectively,
+and pressing the <b>Delete</b> key will delete the
+<a href="#active">active region</a>. Alternatively,
+<b>Region Browser</b> buttons can be used to act on the
+<a href="#chosenregions">chosen region(s)</a>:
+<ul>
+<li><b>Raise</b> &ndash; place region on top (in front) of any overlapping
+regions in the sequence window and move it
+to the top of the list in the <b>Region Browser</b>
+<li><b>Lower</b> &ndash; place region below (behind) any overlapping regions
+regions in the sequence window and move it
+to the bottom of the list in the <b>Region Browser</b>
+<li><b>Duplicate</b> &ndash; create a copy of the region with a new name
+<li><b>Rename</b> &ndash; change region name
+<li><b>Delete</b> &ndash; remove region; the <b>ChimeraX selection</b> region
+cannot be deleted, but can contain zero residues
+<li><b>Info</b> &ndash; report region contents in the
+<a href="log.html"><b>Log</b></a>, in terms of alignment numbering,
+individual-sequence numbering,
+and residue numbers within any associated structures
+</ul>
 
 <table class="clRight">
 <tr><td><img class="outline" src="uniprot-features.png"
@@ -222,8 +405,9 @@ Sequences <a href="../commands/open.html#fetch">fetched</a> from
 several annotations. These &ldquo;sequence features&rdquo; are automatically
 assigned as <a href="#regions">regions</a> in the sequence window.
 The features are hidden by default, but a dialog for browsing and 
-displaying them appears when the sequence is first opened. This dialog
-can be reshown at any time by choosing <b>Sequence Features...</b>
+displaying them appears when the sequence is first opened. 
+This dialog can be reshown at any time by choosing
+<b>Annotations... Sequence Features...</b>
 from the <a href="#context">context menu</a>.
 </p><p>
 Choosing a feature type on the left side of the dialog shows the regions
@@ -241,8 +425,10 @@ Ontology</a> and/or sequence variant entries in
 The border and interior colors of the currently shown feature region(s)
 can be changed by clicking the color wells and using the system color editor,
 and checkboxes allow leaving either the border or the interior uncolored.
+Region colors can also be changed using the
+<a href="#regionbrowser"><b>Region Browser</b></a>.
 The initially assigned colors may vary between different instances 
-of opening the same data.
+of opening the same data. 
 </p><p>
 If a structure is <a href="#association">associated</a> with the sequence, 
 the corresponding structure residues are listed in the lower right area 
@@ -300,11 +486,16 @@ Associations can be controlled manually (forced or removed):
 </p>
 <ul>
 <li>with the
-<a href="../commands/sequence.html"><b>sequence</b></a> command
+<a href="../commands/sequence.html#associate"><b>sequence</b></a> command
 <li>by choosing <b>Associations...</b> from the 
 <a href="#context">context menu</a>.
-The resulting dialog lists structure chains and allows changing 
-the association of each to none, best-matching, or a specific sequence.
+The resulting dialog allows associating specified structure chains 
+with specified sequences, or their best-matching sequences 
+determined automatically, or no sequences (dissociation).
+One or more structure chains can be <b><i>chosen</i></b> (highlighted)
+in the list by clicking and dragging with the left mouse button;
+<b>Ctrl</b>-click (or <b>command</b>-click if using a Mac)
+toggles whether a row is chosen.
 </ul>
 <p>
 In the sequence window, <a href="#regions">regions</a> may be created to show
@@ -530,8 +721,10 @@ PAM-150, PAM-250, SDM] &ndash; which residue similarity matrix to use
   <li><b>Show initially</b> (initial default <b>off</b>)
   <li><b>Atoms used for RMSD</b>
     <ul>
-    <li><b>C&alpha;</b> (initial default)
-    <li><b>backbone</b>
+    <li><b>C&alpha;/C4'</b> (initial default) 
+     &ndash; C&alpha; for peptides, C4' for nucleic acids
+    <li><b>backbone</b> &ndash; peptide N, CA, C, O 
+    or nucleic acid phosphoribosyl backbone, not including any hydrogens
     </ul>
   </ul>
 <p>
@@ -632,5 +825,5 @@ style="display:inline-block; vertical-align:middle"><tr>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-August 2021</address>
+October 2023</address>
 </body></html>

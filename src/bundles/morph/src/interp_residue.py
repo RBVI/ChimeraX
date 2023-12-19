@@ -31,7 +31,7 @@ def interpolate_dihedrals(indices, coords0, coords1, f, coord_set):
         array are used.
         """
         for i in range(0, len(indices), 4):
-                i0,i1,i2,i3 = indices[i,i+4]
+                i0,i1,i2,i3 = indices[i:i+4]
                 interpolate_dihedral(i0, i1, i2, i3, coords0, coords1, f, coord_set)
 
 # C++ optimized versions for interpolating.

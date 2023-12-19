@@ -41,9 +41,20 @@ Overview of ChimeraX features for working with
 <br><a href="#data">Sample Data</a>
 </b></blockquote>
 <p>
-Development of these features supported in part by the 
+Development of these features is supported in part by the 
 <a href="https://www.niaid.nih.gov/" target="_blank">NIAID</a>.
-See also: <a href="tutorials/dicom-vr.html">DICOM in VR tutorial</a>,
+ChimeraX can also read the
+<a href="https://nifti.nimh.nih.gov/" target="_blank">NIfTI</a> (.nii) and 
+<a href="https://teem.sourceforge.net/nrrd/" target="_blank">NRRD</a> (.nrrd)
+formats often used for medical images.
+See also: 
+<a href="tools/downloaddicom.html"><b>Download DICOM</b></a>,
+<a href="tools/dicombrowser.html"><b>DICOM Browser</b></a>,
+<a href="tools/dicommetadata.html"><b>DICOM Metadata</b></a>,
+<a href="tools/segmentations.html"><b>Segmentations</b></a>,
+<a href="tools/volumeviewer.html"><b>Volume Viewer</b></a>,
+<a href="commands/dicom.html"><b>dicom</b></a>,
+<a href="tutorials/dicom-vr.html">DICOM in VR tutorial</a>,
 <a href="https://www.rbvi.ucsf.edu/chimerax/dicom/index.html"
 target="_blank">ChimeraX for Medical Image Analysis</a>
 </p>
@@ -632,27 +643,36 @@ target="_blank">RIDER Lung CT</a> collection
 (see <a href="https://pubs.rsna.org/doi/full/10.1148/radiol.2522081593"
 target="_blank">publication</a>)
 -->
-from the <a href="https://www.cancerimagingarchive.net/" 
-target="_blank">Cancer Imaging Archive</a>:
+from <a href="https://www.cancerimagingarchive.net/" 
+target="_blank">The Cancer Imaging Archive</a> (TCIA):
 </p>
 <blockquote>
+The Cancer Imaging Archive (TCIA):
+Maintaining and Operating a Public Information Repository.
 Clark K, Vendt B, Smith K, <i>et al.</i>
-The Cancer Imaging Archive (TCIA): 
-Maintaining and Operating a Public Information Repository. 
-Journal of Digital Imaging. 2013; 26(6): 1045-1057. 
-doi: 10.1007/s10278-013-9622-7.
+<i>Journal of Digital Imaging.</i> 2013;26(6):1045-1057.
+<p>
+Evaluating variability in tumor measurements from same-day repeat CT scans of patients with non-small cell lung cancer.
+Zhao B, James LP, Moskowitz CS, Guo P, Ginsberg MS, Lefkowitz RA, Qin Y, Riely GJ, Kris MG, Schwartz LH.
+<i>Radiology.</i> 2009 Jul;252(1):263-72.
+<p>
+Zhao B, Schwartz LH, Kris, MG. (2015).
+Data From RIDER Lung CT. The Cancer Imaging Archive.
+doi: 10.7937/K9/TCIA.2015.U1X8A5NR
 </blockquote>
 <p>
 The data have been <a href="https://wiki.cancerimagingarchive.net/display/Public/De-identification+Knowledge+Base" target="_blank">anonymized</a>
 and are <a href="https://wiki.cancerimagingarchive.net/display/Public/Data+Usage+Policies+and+Restrictions" target="_blank">freely available</a>.
 The folder should be unzipped and the files opened in ChimeraX
 as described <a href="#opening">above</a>.
-Although this tutorial does not include clinical analysis,
-a significant feature of the scan is a tumor in the right lung.
+A significant feature of this scan is a tumor in the right lung.
 <!-- within volume #1.1.1.1 region 105,310,139,210,413,188 -->
+</p><p>
+Note that the <a href="tools/downloaddicom.html"><b>Download DICOM</b></a> tool 
+makes it easy to browse and download TCIA datasets from within ChimeraX.
 </p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-February 2020</address>
+July 2023</address>
 </body></html>

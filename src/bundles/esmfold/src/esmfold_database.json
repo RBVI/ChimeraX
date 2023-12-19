@@ -1,0 +1,8 @@
+{
+    "structure_url": "https://api.esmatlas.com/fetchPredictedStructure/{mgnify_id}",
+    "pae_url": "https://api.esmatlas.com/fetchConfidencePrediction/{mgnify_id}",
+    "database_version": "0",
+    "update_interval": 86400.0,
+    "update_url": "https://www.rbvi.ucsf.edu/chimerax/data/status/esmfold_database.json",
+    "comment": "This file fetched by ChimeraX to determine the current version of the ESMFold database.  It is used by ChimeraX builds newer than November 21, 2022."
+}

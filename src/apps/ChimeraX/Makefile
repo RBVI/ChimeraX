@@ -20,10 +20,10 @@ endif
 STRIP	=
 BINMODE	= 755
 
-PY_MAIN = $(APP_NAME)_main.py
-
 ICONS	= ChimeraX-icon.svg ChimeraX-icon512.png
 ifeq ($(OS),Linux)
+# ffmpeg might be in $(bindir)
+export PATH:=$(bindir):$(PATH)
 LINUX_ICONS = ChimeraX-icon128.png ChimeraX-icon64.png ChimeraX-icon32.png ChimeraX-icon16.png
 ICONS	+= $(LINUX_ICONS)
 endif
@@ -70,23 +70,30 @@ ifdef DEBUG
 	fi
 endif
 
-install-others: $(PY_MAIN) $(ICONS)
-	$(RSYNC) $(PY_MAIN) $(PYSITEDIR)
+install-others: $(ICONS)
 	$(RSYNC) $(ICONS) $(datadir)
 	if [ -d "$(app_prefix)" ]; then \
-		$(RSYNC) $(PY_MAIN) $(APP_PYSITEDIR); \
 		$(RSYNC) $(ICONS) $(app_datadir); \
 	fi
 else
-install: $(PROG) $(PY_MAIN) $(ICONS) $(APP_NAME).1
+install: $(PROG) $(ICONS) $(APP_NAME).1
 	$(RSYNC) $(PROG) $(bindir)
-	$(RSYNC) $(PY_MAIN) $(PYSITEDIR)
 	$(RSYNC) $(ICONS) $(datadir)
 	if [ -d "$(app_prefix)" ]; then \
 		$(RSYNC) $(PROG) $(app_bindir); \
-		$(RSYNC) $(PY_MAIN) $(APP_PYSITEDIR); \
+	fi
+ifndef FLATPAK_APPNAME
+	if [ -d "$(app_prefix)" ]; then \
 		$(RSYNC) $(ICONS) $(app_datadir); \
 	fi
+else
+	icon_dir=/app/share/icons/hicolor ; \
+	mkdir -p $$icon_dir ; \
+	install -Dm644 ChimeraX-icon.svg $$icon_dir/scalable/apps/${FLATPAK_APPNAME}.svg ; \
+	for res in 16 32 64 128 512; do \
+		install -Dm644 ChimeraX-icon$$res.png $$icon_dir/$${res}x$${res}/apps/${FLATPAK_APPNAME}.png ; \
+	done
+endif
 	mkdir -p $(datadir)/man/man1
 	$(RSYNC) $(APP_NAME).1 $(datadir)/man/man1
 	-if [ -d "$(app_prefix)" ]; then \
@@ -97,16 +104,13 @@ ifeq ($(OS),Darwin)
 	# Must use hard link for code signing to work
 	-if [ -d "$(app_prefix)" ]; then \
 		ln -nf $(app_bindir)/$(PROG) $(app_prefix)/MacOS/$(APP_NAME); \
-		$(RSYNC) Info.plist $(app_prefix)/Info.plist; \
-		$(RSYNC) chimerax-icon.icns $(app_prefix)/Resources/chimerax-icon.icns; \
 	fi
 
-reinstall-plist:
-	rm Info.plist
-# use Chimera executable in this pass so that we pick up registered formats (and 'session' is available)
-#	$(MAKE) Info.plist
+install-plist: mkinfo.py chimerax-icon.icns
+	# use Chimera executable in this pass so that we pick up registered formats (and 'session' is available)
 	$(wildcard $(TOP)/ChimeraX*.app)/Contents/bin/ChimeraX --nogui --script "mkinfo.py $(APP_NAME)" --exit || (rm Info.plist ; exit 1)
 	$(RSYNC) Info.plist $(app_prefix)/Info.plist
+	$(RSYNC) chimerax-icon.icns $(app_prefix)/Resources/chimerax-icon.icns
 endif
 endif
 
@@ -122,12 +126,6 @@ endif
 
 pylint:
 	$(PYLINT) *.py
-
-run:
-	$(PYTHON_EXE) $(PY_MAIN)
-
-run-nogui:
-	$(PYTHON_EXE) $(PY_MAIN) --nogui
 
 # 64-bit Linux dies in exception handling if we don't link with the C++ compiler
 $(PROG): $(OBJS)
@@ -146,16 +144,6 @@ endif
 
 ChimeraX-icon512.png: ChimeraX-icon.svg
 	inkscape --export-png=ChimeraX-icon512.png --export-width=512 --export-background-opacity=0 --without-gui ChimeraX-icon.svg
-
-
-ifeq ($(OS),Darwin)
-install: Info.plist
-Info.plist: chimerax-icon.icns
-endif
-
-Info.plist: mkinfo.py
-#	$(bindir)/$(PROG) --nogui mkinfo.py $(APP_NAME) || (rm Info.plist ; exit 1)
-	$(APP_PYTHON_EXE) mkinfo.py $(APP_NAME) || (rm Info.plist ; exit 1)
 
 chimerax-icon.icns:	ChimeraX-icon512.png
 	-mkdir chimerax-icon.iconset
@@ -176,16 +164,16 @@ install: $(LINUX_ICONS)
 endif
 
 ChimeraX-icon128.png:
-	convert ChimeraX-icon512.png -geometry 128x128 ChimeraX-icon128.png
+	ffmpeg -loglevel warning -i ChimeraX-icon512.png -vf scale=128:128 ChimeraX-icon128.png
 
 ChimeraX-icon64.png:
-	convert ChimeraX-icon512.png -geometry 64x64 ChimeraX-icon64.png
+	ffmpeg -loglevel warning -i ChimeraX-icon512.png -vf scale=64:64 ChimeraX-icon64.png
 
 ChimeraX-icon32.png:
-	convert ChimeraX-icon512.png -geometry 32x32 ChimeraX-icon32.png
+	ffmpeg -loglevel warning -i ChimeraX-icon512.png -vf scale=32:32 ChimeraX-icon32.png
 
 ChimeraX-icon16.png:
-	convert ChimeraX-icon512.png -geometry 16x16 ChimeraX-icon16.png
+	ffmpeg -loglevel warning -i ChimeraX-icon512.png -vf scale=16:16 ChimeraX-icon16.png
 
 #
 # For Windows
@@ -193,10 +181,10 @@ ChimeraX-icon16.png:
 
 ifdef WIN32
 
-YEAR = $(shell $(PYTHON_EXE) geticoninfo.py -y)
-VER = $(shell $(PYTHON_EXE) geticoninfo.py -v)
-PRODVER = $(shell $(PYTHON_EXE) geticoninfo.py -p)
-RELEASE =  $(shell $(PYTHON_EXE) geticoninfo.py -r)
+YEAR = $(shell $(APP_PYTHON_EXE) geticoninfo.py -y)
+VER = $(shell $(APP_PYTHON_EXE) geticoninfo.py -v)
+PRODVER = $(shell $(APP_PYTHON_EXE) geticoninfo.py -p)
+RELEASE =  $(shell $(APP_PYTHON_EXE) geticoninfo.py -r)
 ifeq ($(RELEASE),prerelease)
 FLAGS = VS_FF_PRERELEASE
 else

@@ -1,14 +1,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 def register_selectors(logger):
@@ -26,6 +37,7 @@ def register_selectors(logger):
         reg(e.name, lambda ses, models, results, sym=e.name: _element_selector(sym, models, results), logger, desc="%s (element)" % e.name)
     reg("backbone", _backbone_selector, logger, desc="backbone atoms")
     reg("mainchain", _backbone_selector, logger, desc="backbone atoms")
+    reg("min-backbone", _min_backbone_selector, logger, desc="minimal backbone atoms")
     reg("protein", lambda s, m, r: _polymer_selector(m, r, True), logger, desc="proteins")
     reg("nucleic", lambda s, m, r: _polymer_selector(m, r, False), logger, desc="nucleic acids")
     reg("nucleic-acid", lambda s, m, r: _polymer_selector(m, r, False), logger, desc="nuecleic acids")
@@ -72,6 +84,18 @@ def _backbone_selector(session, models, results):
                 _add_missing_structure(results, pbs, pbg)
         results.add_atoms(backbone, bonds=True)
 
+def _min_backbone_selector(session, models, results):
+    from chimerax.atomic import Structure, structure_atoms, Atom
+    atoms = structure_atoms([m for m in models if isinstance(m, Structure)])
+    backbone = atoms.filter(atoms.is_backbones(Atom.BBE_MIN))
+    if backbone:
+        for s, struct_backbone in backbone.by_structure:
+            results.add_model(s)
+            pbs, pbg = _get_missing_structure(s, struct_backbone)
+            if pbs:
+                _add_missing_structure(results, pbs, pbg)
+        results.add_atoms(backbone, bonds=True)
+
 def _sel_residues(session, models, results):
     from chimerax.atomic import selected_atoms
     results.add_atoms(selected_atoms(session).residues.unique().atoms)
@@ -107,10 +131,11 @@ def _structure_category_selector(cat, models, results):
 def _get_missing_structure(struct, atoms):
     pbg = struct.pseudobond_group("missing structure", create_type=None)
     pbs = []
+    ptr_set = set(atoms.pointers)
     if pbg:
         for pb in pbg.pseudobonds:
             a1, a2 = pb.atoms
-            if a1 in atoms and a2 in atoms:
+            if a1.cpp_pointer in ptr_set and a2.cpp_pointer in ptr_set:
                 pbs.append(pb)
     return pbs, pbg
 
@@ -207,7 +232,7 @@ def add_select_menu_items(session):
     parent_menus = ["Che&mistry", "&IDATM Type"]
     idatm_menu = mw.add_select_submenu(parent_menus[:-1], parent_menus[-1])
     idatm_menu.triggered.connect(lambda act, mw=mw: mw.select_by_mode(act.text()))
-    from Qt.QtWidgets import QAction
+    from Qt.QtGui import QAction
     from . import Atom
     for idatm in Atom.idatm_info_map.keys():
         idatm_menu.addAction(QAction(idatm, mw))
@@ -261,7 +286,7 @@ def _update_select_chains_menu(session):
         if len(description) < 110:
             return False, description
         return True, description[:50] + "..." + description[-50:]
-    from Qt.QtWidgets import QAction
+    from Qt.QtGui import QAction
     for chain_key in chain_keys:
         chains = chain_info[chain_key]
         if len(chains) > 1:
@@ -329,7 +354,7 @@ def _update_select_residues_menu(session):
     nucleic = set()
     from . import Sequence
     for r in structures.residues:
-        if Sequence.rname3to1(r.name) == 'X':
+        if r.polymer_type == r.PT_NONE or Sequence.rname3to1(r.name) == 'X':
             nonstandard.add(r.name)
         elif Sequence.amino3to1(r.name) == 'X':
             nucleic.add(r.name)

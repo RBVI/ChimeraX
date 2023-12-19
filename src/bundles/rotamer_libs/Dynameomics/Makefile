@@ -1,2 +1,2 @@
+TOP = ../../../..
 include ../../Makefile.bundle
-TOP := ../$(TOP)

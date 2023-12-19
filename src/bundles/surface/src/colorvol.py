@@ -1,14 +1,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 _color_map_args_doc = '''
@@ -24,7 +35,7 @@ _color_map_args_doc = '''
     offset : float
       Displacement distance along surface normals for sampling map when using map option.  Default 0.
     transparency : float
-      Percent transparency to use.  If not specified current transparency is preserved.
+      Percent transparency to use.  If not specified then palette transparency values are used.
     update : bool
       Whether to automatically update the surface coloring when the surface shape changes.
 '''
@@ -228,8 +239,6 @@ class VolumeColor(State):
         if self.transparency is not None:
             opacity = min(255, max(0, int(2.56 * (100 - self.transparency))))
             rgba8[:,3] = opacity
-        else:
-            rgba8[:,3] = self.surface.color[3]
 
         return rgba8
         
@@ -408,7 +417,7 @@ class VolumeColor(State):
             session.logger.warning('Could not restore coloring on surface because surface does not exist.')
             return None
         vol = data['volume']
-        if surf is None:
+        if vol is None:
             session.logger.warning('Could not restore coloring on surface %s because volume does not exist.'
                                    % surf.name)
             return None
@@ -456,7 +465,7 @@ def _inside_values(values, outside):
     if len(outside) == n:
         return ()
 
-    from numpy import zeros, int, array, put, subtract, nonzero, take
+    from numpy import zeros, array, put, subtract, nonzero, take
     m = zeros(n, int)
     one = array(1, int)
     put(m, outside, one)

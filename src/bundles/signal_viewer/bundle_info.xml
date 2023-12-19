@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-SignalViewer" version="1.0"
+<BundleInfo name="ChimeraX-SignalViewer" version="1.0.1"
 	    package="chimerax.signal_viewer"
   	    minSessionVersion="1" maxSessionVersion="1">
 

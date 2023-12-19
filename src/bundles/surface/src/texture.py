@@ -51,9 +51,17 @@ def color_image(session, surfaces, file = None, coords = None, write_colors = No
         so the true image colors are shown.  If modulate is true then the single color
         and vertex color are left unchanged.
     '''
+
+    if len(surfaces) == 0:
+        from chimerax.core.errors import UserError
+        raise UserError('color image: No surface models were specified')
     
     rgba = None if file is None or file == 'none' else image_file_as_rgba(file)
     dlist = drawings(surfaces)
+
+    if len(dlist) == 0:
+        from chimerax.core.errors import UserError
+        raise UserError('color image: Only empty surfaces were specified')
 
     if coords == 'vertexcolors':
         crgba = _set_vertex_color_texture_coordinates(session, dlist)

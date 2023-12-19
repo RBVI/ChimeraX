@@ -1,6 +1,6 @@
 ..  vim: set expandtab shiftwidth=4 softtabstop=4:
 
-.. 
+..
     === UCSF ChimeraX Copyright ===
     Copyright 2016 Regents of the University of California.
     All rights reserved.  This software provided pursuant to a
@@ -15,23 +15,45 @@
 Obtaining Code
 ==============
 
+Full Code from GitHub
+---------------------
+The ChimeraX repository is hosted `on GitHub <https://www.github.com/RBVI/ChimeraX>`_. To get
+the full codebase: ::
+
+    # If you have SSH access
+    git clone git@github.com:RBVI/ChimeraX.git
+    # If not
+    git clone https://github.com/RBVI/ChimeraX.git
+
+Alternatively, you can make a clone of the repo to your GitHub account and add the RBVI repo as
+an upstream repository. ::
+
+    # If you have SSH access
+    git remote add upstream git@github.com:RBVI/ChimeraX.git
+    # If not
+    git remote add upstream https://github.com/RBVI/ChimeraX.git
+
+From there you can issue pull requests for the RBVI ChimeraX repository.
+
+Code from the ChimeraX Distribution
+-----------------------------------
 Most of ChimeraX is written in Python and that code is included in the ChimeraX distribution::
 
-	Windows: ChimeraX/bin/Lib/site-packages/chimerax
-	macOS: ChimeraX.app/Contents/lib/python3.x/site-packages/chimerax
-	Linux: chimerax/lib/python3.x/site-packages/chimerax
+    Windows: ChimeraX/bin/Lib/site-packages/chimerax
+    macOS: ChimeraX.app/Contents/lib/python3.x/site-packages/chimerax
+    Linux: chimerax/lib/python3.x/site-packages/chimerax
 
-The '3.x' in the latter two lines depends on the exact version of Python 3 being used by your version of ChimeraX.  ChimeraX 1.0 and 1.1 use 3.7.  ChimeraX 1.2 uses 3.8.  Later ChimeraX versions may use even later versions of Python 3.
+The '3.x' in the latter two lines depends on the exact version of Python 3 being used by your
+version of ChimeraX, but is not less than 3.7. Typing, for example, ``chimerax/lib/python3.<TAB>``
+should cause your shell to auto-complete the path for you.
 
 Small modifications to the code can be tested by simply editing the Python code and restarting ChimeraX.
 
-Git Repository
---------------
+There is documentation for how to use a ChimeraX distribution to develop bundles elsewhere on this
+website.
 
-The Python and C++ ChimeraX source code is available at the `ChimeraX GitHub repository <https://github.com/RBVI/ChimeraX/>`_.
-
-How to use Git
---------------
+Git Cheat Sheet
+---------------
 Here are a minimal set of commands to get started using git:
 
     #. Git associates a user name and email address with all check-ins.
@@ -49,8 +71,8 @@ Here are a minimal set of commands to get started using git:
 
     #. Use the develop branch (the master branch is only used for releases)::
 
-	git switch develop
-	 
+        git switch develop
+
     #. To update repository to latest version::
 
         git pull

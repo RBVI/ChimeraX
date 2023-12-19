@@ -1,14 +1,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 # -----------------------------------------------------------------------------
@@ -59,11 +70,15 @@ def coordset(session, structures, index_range, hold_steady = None,
 
   if index_range is None:
     index_range = (1,None,None)
+  immediate = (index_range[1] == index_range[0] and index_range[2] is None)
   for m in structures:
     s,e,step = absolute_index_range(index_range, m)
     hold = hold_steady.intersect(m.atoms) if hold_steady else None
     csp = CoordinateSetPlayer(m, s, e, step, hold, pause_frames, loop, bounce, compute_ss)
     csp.start()
+    if immediate:
+      # For just one frame execute immediately so scripts don't need wait command.
+      csp.next_frame()
 
 # -----------------------------------------------------------------------------
 #
@@ -83,7 +98,8 @@ def coordset_stop(session, structures = None):
 # -----------------------------------------------------------------------------
 #
 def coordset_slider(session, structures, hold_steady = None,
-                    pause_frames = 1, loop = 1, compute_ss = False):
+                    pause_frames = 1, loop = 1, compute_ss = False,
+                    movie_framerate = 25.0):
   '''Show a slider that controls which coordinate set is shown.
 
   Parameters
@@ -98,6 +114,8 @@ def coordset_slider(session, structures, hold_steady = None,
     This is to slow down playback.  Default 1.
   compute_ss : bool
     Whether to recompute secondary structure using dssp for every new frame.  Default false.
+  movie_framerate : float
+    The playback speed for a recorded movie. Default 25 frames/sec.
   '''
 
   if len(structures) == 0:
@@ -108,13 +126,14 @@ def coordset_slider(session, structures, hold_steady = None,
     hold = hold_steady.intersect(m.atoms) if hold_steady else None
     from .coordset_gui import CoordinateSetSlider
     CoordinateSetSlider(session, m, steady_atoms = hold,
-                        pause_frames = pause_frames, compute_ss = compute_ss)
+                        pause_frames = pause_frames, compute_ss = compute_ss,
+                        movie_framerate = movie_framerate)
 
 # -----------------------------------------------------------------------------
 #
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register, ListOf
-    from chimerax.core.commands import IntArg, BoolArg, Or, EmptyArg
+    from chimerax.core.commands import IntArg, BoolArg, FloatArg, Or, EmptyArg
     from chimerax.atomic import AtomsArg, StructuresArg
     desc = CmdDesc(
         required = [('structures', StructuresArg),
@@ -136,7 +155,8 @@ def register_command(logger):
         required = [('structures', StructuresArg)],
         keyword = [('hold_steady', AtomsArg),
                    ('pause_frames', IntArg),
-                   ('compute_ss', BoolArg)],
+                   ('compute_ss', BoolArg),
+                   ('movie_framerate', FloatArg)],
         synopsis = 'show slider for coordinate sets')
     register('coordset slider', desc, coordset_slider, logger=logger)
 
@@ -248,6 +268,10 @@ class CoordinateSetPlayer:
     self.inext = None
 
   def frame_cb(self, tname, tdata):
+
+    self.next_frame()
+
+  def next_frame(self):
 
     m = self.structure
     if m.deleted:

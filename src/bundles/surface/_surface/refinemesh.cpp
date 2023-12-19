@@ -1,13 +1,24 @@
 /*
  * === UCSF ChimeraX Copyright ===
- * Copyright 2016 Regents of the University of California.
- * All rights reserved.  This software provided pursuant to a
- * license agreement containing restrictions on its disclosure,
- * duplication and use.  For details see:
- * http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
- * This notice must be embedded in or attached to all copies,
- * including partial copies, of the software or any revisions
- * or derivations thereof.
+ * Copyright 2022 Regents of the University of California. All rights reserved.
+ * The ChimeraX application is provided pursuant to the ChimeraX license
+ * agreement, which covers academic and commercial uses. For more details, see
+ * <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+ *
+ * This particular file is part of the ChimeraX library. You can also
+ * redistribute and/or modify it under the terms of the GNU Lesser General
+ * Public License version 2.1 as published by the Free Software Foundation.
+ * For more details, see
+ * <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+ *
+ * THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+ * LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+ * VERSION 2.1
+ *
+ * This notice must be embedded in or attached to all copies, including partial
+ * copies, of the software or any revisions or derivations thereof.
  * === UCSF ChimeraX Copyright ===
  */
 
@@ -347,7 +358,7 @@ static void split_long_edges(Varray &varray, Tarray &tarray,
   Real bin_size = .7*sqrt(elength2);
   Triangle_Side_List edges_to_check;
   internal_edges(tn, tarray, edges_to_check);
-  int sc = 0;
+  //  int sc = 0;
   while (edges_to_check.size() > 0)
     {
       Triangle_Side_List new_edges;
@@ -369,7 +380,7 @@ static void split_long_edges(Varray &varray, Tarray &tarray,
 		{
 		  split_points.insert(bin);
 		  split_edge(ts, varray, tarray, tn, new_edges);
-		  sc += 1;
+		  //		  sc += 1;
 		}
 	    }
 	}
@@ -557,7 +568,7 @@ static void swap_edges(Varray &varray, Tarray &tarray, Triangle_Neighbors &tn)
 {
   Triangle_Side_List edges_to_check;
   internal_edges(tn, tarray, edges_to_check);
-  int sc = 0;
+  //  int sc = 0;
   while (edges_to_check.size() > 0)
     {
       Triangle_Side_List check_again;
@@ -575,8 +586,8 @@ static void swap_edges(Varray &varray, Tarray &tarray, Triangle_Neighbors &tn)
 	  Vertex_Index c1 = third_vertex_index(ts1, tarray);
 	  Real clen2 = distance2(varray[c1], varray[c0]);
 	  if (clen2 < elen2)
-	    if (swap_edge(ts, varray, tarray, tn, &check_again))
-	      sc += 1;
+	    swap_edge(ts, varray, tarray, tn, &check_again);
+          //	      sc += 1;
 	}
       edges_to_check = check_again;
     }

@@ -19,9 +19,9 @@ class Match:
     def __init__(self, name, match_id, desc, score, evalue,
                  q_start, q_end, q_seq, h_seq, sequence = None):
         self.name = name
-        self.match = match_id
+        self._match = match_id
         self.description = desc.strip()
-        self.score = score
+        self._score = score
         self.evalue = evalue
         self.q_start = q_start - 1  # switch to 0-base indexing
         self.q_end = q_end - 1      # switch to 0-base indexing
@@ -34,12 +34,30 @@ class Match:
         else:
             self.sequence = sequence
 
+    @property
+    def match(self):
+        return self._match
+
+    @property
+    def score(self):
+        return self._score
+
+    def __eq__(self, other):
+        return (
+            (isinstance(other, Match))
+            and (self.score == other.score)
+            and (self.match == other.match)
+        )
+
+    def __hash__(self):
+        return hash((self.score, self.match))
+
     def __repr__(self):
         return "<Match %s (match=%s)>" % (self.name, self.match)
 
     def print_sequence(self, f, prefix, per_line=60):
         for i in range(0, len(self.sequence), per_line):
-            f.write("%s%s\n" % (prefix, self.sequence[i:i+per_line]))
+            f.write("%s%s\n" % (prefix, self.sequence[i:i + per_line]))
 
     def match_sequence_gaps(self, gap_count):
         seq = []

@@ -24,37 +24,9 @@ or derivations thereof.
 class="clRight" title="User Guide Index"/></a>
 
 <h3><a href="../index.html#commands">Command</a>: sym</h3>
-<h3 class="usage"><a href="usageconventions.html">Usage</a>:
-<br><b>sym</b>
-&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
-</h3>
-<h3 class="usage"><a href="usageconventions.html">Usage</a>:
-<br><b>sym</b>
-&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
-&nbsp;&nbsp;<b>assembly</b>&nbsp;&nbsp;<i>identifier</i>&nbsp;
-&nbsp;<a href="#copies"><i>copy-options</i></a>
-</h3>
-<h3 class="usage"><a href="usageconventions.html">Usage</a>:
-<br><b>sym</b> 
-&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
-&nbsp;&nbsp;<a href="#symmetry"><i>sym-type</i></a>&nbsp;
-[&nbsp;<a href="#axis"><b>axis</b></a>&nbsp;&nbsp;<a href="pointspec.html#vector"><i>vector-spec</i></a>&nbsp;]
-[&nbsp;<a href="#center"><b>center</b></a>&nbsp;&nbsp;<a href="pointspec.html#point"><i>point-spec</i></a>&nbsp;]
-[&nbsp;<a href="#coordinateSystem"><b>coordinateSystem</b></a>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
-[&nbsp;<a href="#contact"><b>contact</b></a>&nbsp;&nbsp;<i>contact-dist</i>&nbsp;]
-[&nbsp;<a href="#range"><b>range</b></a>&nbsp;&nbsp;<i>range-dist</i>&nbsp;]
-&nbsp;<a href="#copies"><i>copy-options</i></a>
-</h3>
-<h3 class="usage"><a href="usageconventions.html">Usage</a>:
-<br><b>sym clear</b>
-&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
-</h3>
 
 <p>
 The <b>sym</b> command generates symmetry copies of an atomic model.
-The command <b>sym clear</b> removes all
-<a href="#copies">graphical clones</a> from the specified model(s),
-but not any copies that were opened as full atomic models. 
 See also:
 <a href="open.html"><b>open</b></a>,
 <a href="close.html"><b>close</b></a>,
@@ -72,6 +44,16 @@ See also:
 <br><a href="#symmetry">User-Specified Symmetry</a>
 <br><a href="#copies">Copy Representation Options</a>
 </b></blockquote>
+
+<p>
+The command <b>sym clear</b> removes all
+<a href="#copies">graphical clones</a> from the specified model(s),
+but not any copies that were opened as full atomic models:
+</p>
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>sym clear</b> &nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
+</blockquote>
 
 <a name="assembly"></a>
 <p class="nav">
@@ -131,6 +113,7 @@ is specified with the <i>identifier</i> mentioned above.
 [&nbsp;<a href="#coordinateSystem"><b>coordinateSystem</b></a>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
 [&nbsp;<a href="#contact"><b>contact</b></a>&nbsp;&nbsp;<i>contact-dist</i>&nbsp;]
 [&nbsp;<a href="#range"><b>range</b></a>&nbsp;&nbsp;<i>range-dist</i>&nbsp;]
+[&nbsp;<a href="#addMmcifAssembly"><b>addMmcifAssembly</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 &nbsp;<a href="#copies"><i>copy-options</i></a>
 </blockquote>
 <p>
@@ -272,6 +255,21 @@ the <b>range</b> option removes copies with centers farther than
 <i>range-dist</i> from the center of the original model.
 A model's center is defined as the center of the bounding box of
 all of its atoms, regardless of whether they are displayed.
+</p><p>
+<a name="addMmcifAssembly"></a>
+The <b>addMmcifAssembly</b> option (default <b>false</b>)
+specifies whether to add the 
+user-defined assembly to the structure metadata so that it will be included
+when the structure is <a href="save.html#mmcif">saved as mmCIF</a>.
+The new assembly will be named <b>author defined assembly</b> and will be added
+without removing any previously existing assemblies for that structure.
+Subsequently opening the saved mmCIF file will allow recreating the assembly
+as described <a href="#assembly">above</a>. The information is added to the
+model on which the <b>sym</b> command was run, and to a new model
+if created with graphical clones (<a href="#copies"><b>newModel true</b></a>
+and <a href="#copies"><b>copies false</b></a>), 
+but not to any copies added as full atomic models with 
+<a href="#copies"><b>copies true</b></a>.
 </p>
 
 <a name="copies"></a>
@@ -364,5 +362,5 @@ but uses more memory.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-March 2021</address>
+September 2022</address>
 </body></html>

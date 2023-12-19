@@ -87,7 +87,7 @@ attributes are:
 - ``package``: the name of the Python package where ChimeraX
   can find the code for this bundle, and
 - ``minSessionVersion`` and ``maxSessionVersion``: the minimum
-  and maximum sessionf file versions that the bundle supports.
+  and maximum session file versions that the bundle supports.
 
 The next few tags supply information about who wrote the bundle,
 where to find more information on the web, as well as short
@@ -302,3 +302,4 @@ What's Next
 - :doc:`tutorial_save_format`
 - :doc:`tutorial_fetch`
 - :doc:`tutorial_selector`
+- :doc:`tutorial_presets`

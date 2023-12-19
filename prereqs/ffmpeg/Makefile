@@ -6,9 +6,20 @@ FFMPEG_VERSION = 3.2.4
 
 ifneq ($(OS),Linux)
 USE_PREBUILT = 1
+FFMPEG_PREBUILT = ffmpeg-$(FFMPEG_VERSION)-$(OS).exe
 endif
 
-FFMPEG_PREBUILT = ffmpeg-$(FFMPEG_VERSION)-$(OS).exe
+ifdef FLATPAK_DIST
+FFMPEG_VERSION = 6.1
+endif
+
+ifeq ($(OS),Darwin)
+ifeq ($(MACOS_ARCH),arm64)
+# Got this binary from https://github.com/eugeneware/ffmpeg-static/releases
+FFMPEG_VERSION = 6.0
+FFMPEG_PREBUILT = ffmpeg-$(FFMPEG_VERSION)-$(OS)-$(MACOS_ARCH).exe
+endif
+endif
 
 # The following variables are from compiling from source code.
 # We no longer do that unless we want to update the source libraries.
@@ -20,11 +31,19 @@ FFMPEG_DISTRIB = ffmpeg-$(FFMPEG_VERSION)-win64-static.zip
 FFMPEG_SOURCE = $(tmpdir)/ffmpeg-$(FFMPEG_VERSION)-win64-static
 FFMPEG_EXE = $(FFMPEG_SOURCE)/bin/ffmpeg.exe
 else
+ifdef FLATPAK_DIST
+FFMPEG_DISTRIB = ffmpeg-$(FFMPEG_VERSION).tar.xz
+else
 FFMPEG_DISTRIB = ffmpeg-$(FFMPEG_VERSION).tar.bz2
+endif
 FFMPEG_SOURCE = $(tmpdir)/ffmpeg-$(FFMPEG_VERSION)
 FFMPEG_EXE = $(FFMPEG_SOURCE)/ffmpeg
 
+ifdef FLATPAK_DIST
+LIBX264_VERSION = stable
+else
 LIBX264_VERSION = 20170123-90a61ec
+endif
 LIBX264_DISTRIB = x264-$(LIBX264_VERSION).tar.xz
 LIBX264_SOURCE = $(tmpdir)/x264-$(LIBX264_VERSION)
 LIBX264 = $(libdir)/libx264.a
@@ -39,8 +58,14 @@ LIBTHEORA_DISTRIB = libtheora-$(LIBTHEORA_VERSION).tar.xz
 LIBTHEORA_SOURCE = $(tmpdir)/libtheora-$(LIBTHEORA_VERSION)
 LIBTHEORA = $(libdir)/libtheora.a
 
+ifdef FLATPAK_DIST
+LIBVPX_VERSION = 1.13.1
+LIBVPX_DISTRIB = libvpx-$(LIBVPX_VERSION).tar.gz
+else
 LIBVPX_VERSION = 1.6.1
 LIBVPX_DISTRIB = libvpx-$(LIBVPX_VERSION).tar.xz
+endif
+
 LIBVPX_SOURCE = $(tmpdir)/libvpx-$(LIBVPX_VERSION)
 LIBVPX = $(libdir)/libvpx.a
 
@@ -55,7 +80,6 @@ FFMPEG_OPTS	=  --prefix=$(build_prefix) \
 			--disable-doc \
 			--disable-devices \
 			--disable-ffplay \
-			--disable-ffserver \
 			--disable-ffprobe \
 			--enable-libtheora \
 			--enable-libvpx \
@@ -65,6 +89,10 @@ FFMPEG_OPTS	=  --prefix=$(build_prefix) \
 			--extra-cflags="-I$(includedir)" \
 			--extra-ldflags="$(LDFLAGS) -L$(libdir)" \
 			--extra-libs="-ldl"
+ifndef FLATPAK_DIST
+# ffmpeg 3.4 or earlier
+FFMPEG_OPTS	+= --disable-ffserver
+endif
 endif
 
 
@@ -122,7 +150,7 @@ $(FFMPEG_EXE): $(FFMPEG_SOURCE) video_codecs
 	cd $(FFMPEG_SOURCE); ./configure $(FFMPEG_OPTS) ; $(MAKE)
 
 $(FFMPEG_SOURCE): $(FFMPEG_DISTRIB)
-	tar jxf $(FFMPEG_DISTRIB) -C $(tmpdir)
+	tar -xf $(FFMPEG_DISTRIB) -C $(tmpdir)
 
 $(FFMPEG_DISTRIB):
 	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/ffmpeg/$(FFMPEG_DISTRIB)

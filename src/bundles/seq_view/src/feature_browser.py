@@ -1,14 +1,25 @@
 # vim: set expandtab ts=4 sw=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 from Qt.QtWidgets import QVBoxLayout, QListWidget, QLabel, QGridLayout, QListWidgetItem, QWidget
@@ -50,7 +61,8 @@ class FeatureBrowser:
                 used_colors.append(color)
                 for feature in features:
                     self.feature_region[feature] = sv.new_region(ftype, outline=color, shown=False,
-                        read_only=True, assoc_with=seq, fill=[(x+1)/2 for x in color],
+                        read_only=True, sequence=seq, fill=[(x+1)/2 for x in color],
+                        source=self.data_source,
                         blocks=[(seq, seq, start-1, end-1) for start, end in feature.positions])
             self._selection = None
         else:
@@ -58,7 +70,7 @@ class FeatureBrowser:
             ftypes = list(self.feature_map.keys())
             ftypes.sort()
             category_chooser.addItems(ftypes)
-            self.feature_region = { feat: sv.region_browser.regions[reg_index]
+            self.feature_region = { feat: sv.region_manager.regions[reg_index]
                 for feat, reg_index in state['feature_region'].items() }
             self._selection = state['selection']
             if self._selection:
@@ -81,22 +93,12 @@ class FeatureBrowser:
         wells_layout.setContentsMargins(0,0,0,0)
         wells_layout.setSpacing(0)
         self.wells_widgets = {}
-        class TwoThreeStateCheckBox(QCheckBox):
-            def nextCheckState(self):
-                # it seems that just returning the next check state is insuffient, you also have
-                # to explicitly set it (_and_ return it)
-                if self.checkState() == Qt.Checked:
-                    self.setCheckState(Qt.Unchecked)
-                    return Qt.Unchecked
-                self.setCheckState(Qt.Checked)
-                return Qt.Checked
-        from chimerax.ui.widgets import MultiColorButton
+        from chimerax.ui.widgets import MultiColorButton, TwoThreeStateCheckBox
         for label_text, attr_name in [("Region colors: border", "border_rgba"),
                 ("interior", "interior_rgba")]:
             label = QLabel(label_text)
             wells_layout.addWidget(label, alignment=Qt.AlignLeft)
             check_box = TwoThreeStateCheckBox()
-            check_box.setTristate(True)
             check_box.setAttribute(Qt.WA_LayoutUsesWidgetRect)
             check_box.clicked.connect(lambda *args, part=attr_name: self._show_region_color(part))
             wells_layout.addWidget(check_box, alignment=Qt.AlignRight | Qt.AlignVCenter)
@@ -145,7 +147,7 @@ class FeatureBrowser:
         return {
             'shown': self.tool_window.shown,
             'feature_chooser': self.feature_chooser.state(),
-            'feature_region': { feat: self.sv.region_browser.regions.index(reg)
+            'feature_region': { feat: self.sv.region_manager.regions.index(reg)
                 for feat, reg in self.feature_region.items() },
             'feature_map': self.feature_map,
             'selection': self._selection
@@ -203,13 +205,13 @@ class FeatureBrowser:
             run(self.sv.session, "~sel")
         # have to wait 1 otherwise selection will show _after_ we clear it...
         run(self.sv.session, "wait 1", log=False)
-        sel_region = self.sv.region_browser.get_region("ChimeraX selection")
+        sel_region = self.sv.region_manager.get_region("ChimeraX selection")
         sel_region.clear()
 
     def _sel_spec(self):
         residues=[]
         for region in self.selected_regions:
-            residues.extend(self.sv.region_browser.region_residues(region))
+            residues.extend(self.sv.region_manager.region_residues(region))
         from chimerax.atomic import concise_residue_spec
         return concise_residue_spec(self.sv.session, residues)
 

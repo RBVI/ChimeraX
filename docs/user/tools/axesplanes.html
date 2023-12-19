@@ -1,0 +1,427 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Tool: Axes/Planes/Centroids</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#tools">Tool</a>: Axes/Planes/Centroids</h3>
+<p>
+<b>Axes/Planes/Centroids</b> allows defining axis, plane, and centroid
+objects from sets of atoms and/or <a href="../markers.html">markers</a>
+and using them for measurements.
+Axis and plane objects are created as cylindrical surface models
+and centroid objects as <a href="../markers.html">markers</a>
+in the coordinate system of the lowest-numbered model
+involved in their calculation. They are listed in the 
+<a href="#objectlist"><b>Axes/Planes/Centroids</b> table</a>
+as well as in the <a href="modelpanel.html"><b>Model Panel</b></a>.
+</p><p>
+Axis, plane, and centroid objects can also be created with the command
+<a href="../commands/define.html"><b>define</b></a>, and they are saved in
+<a href="../commands/save.html#session">sessions</a>.
+See also:
+<a href="../commands/distance.html"><b>distance</b></a>,
+<a href="../commands/angle.html"><b>angle</b></a>,
+<a href="../commands/view.html#initial">reorienting the view</a>,
+<a href="../measurements.html">measurements</a>
+</p><p>
+<b>Axes/Planes/Centroids</b> is tabbed together with the
+<a href="distances.html"><b>Distances</b></a> and
+<a href="angles.html"><b>Angles/Torsions</b></a> tools
+into a <b>Structure Measurements</b> window.
+It can be opened from the <b>Structure Analysis</b> 
+section of the <b>Tools</b> menu and manipulated like other panels
+(<a href="../window.html#panels">more...</a>).
+</p>
+<blockquote><b>
+<a href="#define-axes">Define axes...</a>
+<br>
+<a href="#define-plane">Define plane...</a>
+<br>
+<a href="#define-centroid">Define centroid...</a>
+<br>
+<a href="#objectlist">Table of Objects</a>
+</b></blockquote>
+<p>
+<a name="define-axes"></a>
+<p class="nav">
+[<a href="#top">back to top: Axes/Planes/Centroids</a>]
+</p>
+<h3>Axes</h3>
+<p>
+Clicking <b>Define axes...</b> opens a dialog for defining axis objects
+(the equivalent command is
+<a href="../commands/define.html#axis"><b>define axis</b></a>).
+Eigenvectors/values are calculated from the coordinates of each set of
+atoms/centroids after subtracting the position of their collective centroid.
+Each axis is anchored at the corresponding collective centroid
+and aligned with the principal (largest) eigenvector of the corresponding
+coordinates. There are four main choices of how to define axes, each with
+associated <b>Axis Parameters</b>:
+</p>
+<ul>
+<li><b>Each helix in structure</b>
+&ndash; define an axis for each peptide/protein helix in the atomic model(s)
+chosen in the list of <b>Structures</b>. Peptide/protein helix assignments
+are taken from the input structure file or generated with
+<a href="../commands/dssp.html"><b>dssp</b></a>.
+Only the backbone atoms N, CA, C are used to define the axes.
+Sometimes two helices are adjacent in sequence (not separated by any
+other residues), and the integer-valued 
+<a href="../attributes.html#residue">residue attribute</a>
+<b>ss_id</b> is used to distinguish them.
+Although such cases are detected automatically,
+<b>ss_id</b> can also be set manually with
+<a href="../commands/setattr.html"><b>setattr</b></a>.
+ <ul>
+ <li><b>Color</b> 
+   <ul>
+   <li><b>atom-based</b> (default)
+   &ndash; the most prevalent color among the atoms used to define the axis,
+   if at least 30% share that color, otherwise <b>#909090</b>
+   <table border cellpadding="4" cellspacing="0"
+   style="display:inline-block; vertical-align:middle"><tr>
+   <td bgcolor="#909090" width="10px" title="#909090"></td></tr></table>
+   <li>a color well (click to change)
+    </ul>
+ <li><b>Name</b> <b>[&nbsp;<i>model-name</i>&nbsp;]</b>
+ <li><b>Radius method 
+   <ul>
+   <li>Average atom-axis distance</b> (default)
+ &ndash; average distance between the axis and the atoms used to define it
+   <li><b>Fixed value</b>
+      <ul>
+      <li><b>Radius</b> (default <b>2.0</b> &Aring;)
+      </ul>
+   </ul>
+ <li><b>Length method</b>
+   <ul>
+   <li><b>Enclose atom/point projections</b> (default)
+&ndash; the minimum needed to span the projections of the atoms 
+used to define the axis
+      <ul>
+      <li><b>Length padding</b> (default <b>0.0</b> &Aring;) 
+      &ndash; additional length on each end
+      </ul>
+   <li><b>Fixed value</b>
+      <ul>
+      <li><b>Length</b> (default <b>10.0</b> &Aring;)
+      </ul>
+   </ul>
+  </ul>
+<br>
+<li><b>Selected atoms/centroids</b>
+&ndash; define a single axis using all
+<a href="../selection.html">selected</a> atoms
+(including centroids or other <a href="../markers.html">markers</a>)
+ <ul>
+ <li><b>Color</b> 
+   <ul>
+   <li><b>atom-based</b> (default)
+   &ndash; the most prevalent color among the atoms used to define the axis,
+   if at least 30% share that color, otherwise <b>#909090</b>
+   <table border cellpadding="4" cellspacing="0"
+   style="display:inline-block; vertical-align:middle"><tr>
+   <td bgcolor="#909090" width="10px" title="#909090"></td></tr></table>
+   <li>a color well (click to change)
+    </ul>
+ <li><b>Name</b> <b>[&nbsp;<i>model-name</i>&nbsp;]</b>
+ <li><b>Radius method 
+   <ul>
+   <li>Average atom-axis distance</b> (default)
+ &ndash; average distance between the axis and the (three or more)
+ atoms used to define it; for axes defined by two atoms,
+ half of the smaller atom's radius
+   <li><b>Fixed value</b>
+      <ul>
+      <li><b>Radius</b> (default <b>2.0</b> &Aring;)
+      </ul>
+   </ul>
+ <li><b>Length method</b>
+   <ul>
+   <li><b>Enclose atom/point projections</b> (default)
+&ndash; the minimum needed to span the projections of the atoms 
+used to define the axis
+      <ul>
+      <li><b>Length padding</b> (default <b>0.0</b> &Aring;) 
+      &ndash; additional length on each end
+      </ul>
+   <li><b>Fixed value</b>
+      <ul>
+      <li><b>Length</b> (default <b>10.0</b> &Aring;)
+      </ul>
+   </ul>
+ <li><a name="mass"><b>Mass weighting</b></a>
+ (default <b>off</b>)
+ &ndash; calculate major inertial axis with mass weighting;
+ requires the <a href="../selection.html">selection</a> to contain either
+ only &ldquo;real&rdquo; atoms or only 
+ <a href="../markers.html">markers</a> (which could include centroid objects).
+ The radius of a marker (&Aring;) is used as its &ldquo;mass&rdquo; (daltons).
+  </ul>
+<br>
+<li><b>Plane normals</b>
+&ndash; define a normal (perpendicular) axis for each plane chosen in the list
+of <b>Planes</b>
+ <ul>
+ <li><b>Color</b> 
+   <ul>
+   <li><b>plane color</b> (default)
+   <li>a color well (click to change)
+    </ul>
+ <li><b>Name</b> <b>[&nbsp;<i>model-name</i>&nbsp;]</b>
+ <li><b>Radius method 
+   <ul>
+   <li>5% of plane radius</b> (default)
+   <li><b>Fixed value</b>
+      <ul>
+      <li><b>Radius</b> (default <b>2.0</b> &Aring;)
+      </ul>
+   </ul>
+ <li><b>Length method</b>
+   <ul>
+   <li><b>Equal to plane radius</b> (default)
+      <ul>
+      <li><b>Length padding</b> (default <b>0.0</b> &Aring;) 
+      &ndash; additional length on each end
+      </ul>
+   <li><b>Fixed value</b>
+      <ul>
+      <li><b>Length</b> (default <b>10.0</b> &Aring;)
+      </ul>
+   </ul>
+  </ul>
+<br>
+<li><b>Two points</b>
+&ndash; between two points given as X, Y, and Z in
+<a href="../commands/view.html#scenecoords">scene coordinates</a>.
+ <ul>
+ <li><b>Color</b> &ndash; a color well (click to change)
+ <li><b>Name</b> <b>[&nbsp;<i>model-name</i>&nbsp;]</b>
+ <li><b>Radius</b> (default <b>2.0</b> &Aring;)
+ <li><b>Length method</b>
+   <ul>
+   <li><b>Enclose atom/point projections</b> (default)
+&ndash; span the two points
+      <ul>
+      <li><b>Length padding</b> (default <b>0.0</b> &Aring;) 
+      &ndash; additional length on each end
+      </ul>
+   <li><b>Fixed value</b>
+      <ul>
+      <li><b>Length</b> (default <b>10.0</b> &Aring;)
+      </ul>
+   </ul>
+  </ul>
+</ul>
+<p>
+Only one color-well color, fixed radius, and fixed length can be given
+at a time,
+but axes with different values can be created in successive uses of the tool.
+Clicking <b>Apply</b> (or <b>OK</b>, which also closes the dialog) 
+calculates the axes, adds them to the <a href="#objectlist">table</a>,
+and generates the corresponding objects.
+Axis parameters are reported in the <a href="log.html"><b>Log</b></a>.
+</p><p>
+<a name="define-plane"></a>
+<p class="nav">
+[<a href="#top">back to top: Axes/Planes/Centroids</a>]
+</p>
+<h3>Planes</h3>
+<p>
+Clicking <b>Define plane...</b> opens a dialog for defining a plane
+based on the <a href="../selection.html">selected</a> atoms
+(the equivalent command is
+<a href="../commands/define.html#plane"><b>define plane</b></a>).
+Eigenvectors/values are calculated from the atomic coordinates after
+subtracting the position of their non-mass-weighted centroid.
+The plane is anchored at the centroid and aligned with the two largest
+eigenvectors (the third-largest eigenvector is normal to the plane).
+</p>
+<ul>
+ <li><b>Plane name [&nbsp;<i>name</i>&nbsp;]</b>
+ <li><b>Color</b> 
+   <ul>
+   <li><b>atom-based</b> (default)
+   &ndash; the most prevalent color among the atoms used to define the plane,
+   if at least 30% share that color, otherwise <b>#909090</b>
+   <table border cellpadding="4" cellspacing="0"
+   style="display:inline-block; vertical-align:middle"><tr>
+   <td bgcolor="#909090" width="10px" title="#909090"></td></tr></table>
+   <li>a color well (click to change)
+    </ul>
+<li><b>Radius method</b>
+   <ul>
+   <li>Enclose atom projections</b> (default) 
+ &ndash; span the projections of the atoms used to define the plane
+      <ul>
+      <li><b>Extra radius (padding)</b> (default <b>0.0</b> &Aring;) 
+      </ul>
+   <li><b>Fixed value</b>
+      <ul>
+      <li><b>Radius</b> (default <b>10.0</b> &Aring;)
+      </ul>
+   </ul>
+<li><b>Disk thickness</b> (default <b>0.10</b> &Aring;)
+</ul>
+Clicking <b>Apply</b> (or <b>OK</b>, which also closes the
+dialog) calculates the plane, adds it to the <a href="#objectlist">table</a>,
+and generates the corresponding object.
+Plane parameters are reported in the <a href="log.html"><b>Log</b></a>.
+</p><p>
+<a name="define-centroid"></a>
+<p class="nav">
+[<a href="#top">back to top: Axes/Planes/Centroids</a>]
+</p>
+<h3>Centroids</h3>
+<p>
+Clicking <b>Define centroid...</b> opens a dialog for defining a centroid
+based on the <a href="../selection.html">selected</a> atoms
+(the equivalent command is
+<a href="../commands/define.html#centroid"><b>define centroid</b></a>).
+</p>
+<ul>
+<li><b>Centroid name [&nbsp;<i>name</i>&nbsp;]</b></b>
+ <li><b>Color</b> 
+   <ul>
+   <li><b>atom-based</b> (default)
+   &ndash; the most prevalent color among the atoms used to define the centroid,
+   if at least 30% share that color, otherwise <b>#909090</b>
+   <table border cellpadding="4" cellspacing="0"
+   style="display:inline-block; vertical-align:middle"><tr>
+   <td bgcolor="#909090" width="10px" title="#909090"></td></tr></table>
+   <li>a color well (click to change)
+    </ul>
+<li><b>Radius</b> (default <b>2.0</b> &Aring;)
+<li><b>Mass weighting</b> (default <b>off</b>)
+&ndash; whether to use mass weighting, <i>i.e.</i>, to define the centroid
+as the center of mass rather than center of geometry.
+The radius of a marker (&Aring;) is used as its &ldquo;mass&rdquo; (daltons).
+</ul>
+Clicking <b>Apply</b> (or <b>OK</b>, which also closes the dialog)
+calculates a centroid, adds it to the <a href="#objectlist">table</a>,
+and generates the corresponding object.
+Centroid coordinates are reported in the <a href="log.html"><b>Log</b></a>.
+</p>
+<p>
+<a name="objectlist"></a>
+<p class="nav">
+[<a href="#top">back to top: Axes/Planes/Centroids</a>]
+</p>
+<h3>Axes/Planes/Centroids Table of Objects</h3>
+<p>
+The table of objects includes the following columns, many the same as in the
+<a href="modelpanel.html"><b>Model Panel</b></a>:
+</p>
+<table border="1" align="right" cellpadding="0" cellspacing="0"
+style="margin:8px 8px 8px 8px">
+<tr><td><a href="objectlist.png"><img src="objectlist.png" width="360px"
+alt="Axes/Planes/Centroids table" title="click for larger..."></a></td></tr>
+</table>
+<ul>
+<li><b>Name</b> &ndash; model name; doubleclick to edit
+<li><b>ID</b> &ndash; model number; doubleclick to edit
+<li>a color well; click to change color interactively
+<li><img class="iconbar" src="ui-icons/shown.png"
+title="eye icon" alt="eye icon">
+&ndash; <a href="../commands/show.html">show/hide</a> checkbox
+<li><img class="iconbar" src="ui-icons/select.png"
+title="hand icon" alt="hand icon">
+&ndash; <a href="../selection.html">selection</a> checkbox
+<li><b>Length</b> 
+<li><b>Radius</b>
+</ul>
+<p>
+Clicking a column header sorts the table by that column.
+</p><p>
+<a name="chosen"></a>
+One or more objects can be <b><i>chosen</i></b> from the list
+by clicking and dragging with the left mouse button;
+<b>Ctrl</b>-click (or <b>command</b>-click if using a Mac)
+toggles whether an object  is chosen.
+Chosen lines are highlighted in the dialog.
+</p><p>
+Clicking <b>Delete</b> removes the chosen objects.
+</p><p>
+Choosing any two objects reports their applicable geometric relationships
+below the table and in the <a href="log.html"><b>Log</b></a>.
+For angle measurements, axes and planes are treated as infinite.
+For distance measurements, axes are treated as finite line segments, while
+planes are treated as infinite.
+</p><p>
+<b>Report distance</b> measures distances between the chosen objects
+and <a href="../selection.html">selected</a> atoms;
+the minimum, maximum, and mean distances to each chosen object are
+reported in the <a href="log.html"><b>Log</b></a>.
+</p><p>
+<b>Center and align</b> is available when a single axis or plane object
+is chosen. It centers and aligns the chosen axis, or centers the chosen plane
+and aligns its normal vector, along the specified direction
+in <a href="../commands/view.html#screencoords">screen coordinates</a>:
+<ul>
+<li><b>X</b> &ndash; horizontal in the plane of the screen
+<li><b>Y</b> &ndash; vertical in the plane of the screen
+<li><b>Z</b> &ndash; perpendicular to the screen, along the line of sight
+</ul>
+There is no control over which end of the axis or normal vector
+goes in the positive direction, but
+the view can be flipped 180&deg; with a command, for example, if the axis is
+model #1.2.3:
+<blockquote>
+<b><a href="../commands/turn.html">turn</a> y 180 center #1.2.3</b>
+</blockquote>
+<p>
+Clicking <b>Save Info...</b> writes all axis/plane/centroid information 
+to a file, regardless of which objects are chosen in the table.
+For each object, the information includes model name, model ID, and 
+<i>untransformed</i> center coordinates
+(<i>x<sub>c</sub>,y<sub>c</sub>,z<sub>c</sub></i>).
+Axis information also includes length and direction (orientation)
+expressed as a unit vector (<i>x<sub>u</sub>,y<sub>u</sub>,z<sub>u</sub></i>).
+Axis endpoint coordinates (<i>x<sub>1</sub>,y<sub>1</sub>,z<sub>1</sub></i>)
+(<i>x<sub>2</sub>,y<sub>2</sub>,z<sub>2</sub></i>)
+can be generated as follows:
+</p>
+<table align="center" width="80%">
+<tr><td align="left">
+<i>x<sub>1</sub></i>&nbsp;=&nbsp;<i>x<sub>c</sub></i>&nbsp;&ndash;&nbsp;0.5(<i>length</i>)(<i>x<sub>u</sub></i>)
+<br>
+<i>y<sub>1</sub></i>&nbsp;=&nbsp;<i>y<sub>c</sub></i>&nbsp;&ndash;&nbsp;0.5(<i>length</i>)(<i>y<sub>u</sub></i>)
+<br>
+<i>z<sub>1</sub></i>&nbsp;=&nbsp;<i>z<sub>c</sub></i>&nbsp;&ndash;&nbsp;0.5(<i>length</i>)(<i>z<sub>u</sub></i>)
+</td><td align="left">
+<i>x<sub>2</sub></i>&nbsp;=&nbsp;<i>x<sub>c</sub></i>&nbsp;+&nbsp;0.5(<i>length</i>)(<i>x<sub>u</sub></i>)
+<br>
+<i>y<sub>2</sub></i>&nbsp;=&nbsp;<i>y<sub>c</sub></i>&nbsp;+&nbsp;0.5(<i>length</i>)(<i>y<sub>u</sub></i>)
+<br>
+<i>z<sub>2</sub></i>&nbsp;=&nbsp;<i>z<sub>c</sub></i>&nbsp;+&nbsp;0.5(<i>length</i>)(<i>z<sub>u</sub></i>)
+</td></tr>
+</table>
+<p>
+Plane information also includes radius
+and orientation expressed as a normal unit vector.
+</p>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+August 2022</address>
+</body></html>

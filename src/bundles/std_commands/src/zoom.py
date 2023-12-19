@@ -1,14 +1,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 def zoom(session, factor=None, frames=None, pixel_size=None):
@@ -38,18 +49,18 @@ def zoom(session, factor=None, frames=None, pixel_size=None):
         log.status(msg)
         log.info(msg)
         return
-    c = v.camera
     if frames is None or frames <= 0:
-        zoom_camera(c, cofr, factor)
+        _zoom_camera(v, cofr, factor)
     else:
         import math
         ff = math.pow(factor, 1/frames)
-        def zoom_cb(session, frame, c=c, p=cofr, f=ff):
-            zoom_camera(c,p,f)
+        def zoom_cb(session, frame, v=v, p=cofr, f=ff):
+            _zoom_camera(v,p,f)
         from chimerax.core.commands import motion
         motion.CallForNFrames(zoom_cb, frames, session)
 
-def zoom_camera(c, point, factor):
+def _zoom_camera(view, point, factor):
+    c = view.camera
     if hasattr(c, 'field_width'):
         # Orthographic camera
         c.field_width /= factor
@@ -59,16 +70,25 @@ def zoom_camera(c, point, factor):
         p = c.position
         from chimerax.geometry import inner_product, translation
         delta_z = inner_product(p.origin() - point, v)
-        zmove = (delta_z*(1-factor)/factor) * v
+        zdist = (delta_z*(1-factor)/factor)
+        zmove = zdist * v
         c.position = translation(zmove) * p
+        _move_near_far_clip_planes(view, zdist)
     c.redraw_needed = True
 
+def _move_near_far_clip_planes(view, zdist):
+    for pname in ('near', 'far'):
+        plane = view.clip_planes.find_plane(pname)
+        if plane:
+            print ('moved plane', pname, zdist, view.camera.view_direction())
+            plane.plane_point -= zdist * view.camera.view_direction()
+    
 def register_command(logger):
-    from chimerax.core.commands import CmdDesc, register, FloatArg, PositiveIntArg
+    from chimerax.core.commands import CmdDesc, register, PositiveFloatArg, PositiveIntArg
     desc = CmdDesc(
-        optional=[('factor', FloatArg),
+        optional=[('factor', PositiveFloatArg),
                   ('frames', PositiveIntArg)],
-        keyword=[('pixel_size', FloatArg)],
+        keyword=[('pixel_size', PositiveFloatArg)],
         synopsis='zoom models'
     )
     register('zoom', desc, zoom, logger=logger)

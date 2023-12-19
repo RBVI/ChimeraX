@@ -26,7 +26,14 @@ class ItemsGenerator:
 
         super().__init__(**kw)
 
+    @property
+    def all_values(self):
+        values = list(self.value_map.keys())
+        values.sort(key=self.key_func)
+        return values
+
     def destroy(self):
+        self.list_func = self.filter_func = self.key_func = self.item_text_func = None
         try:
             self.item_map.clear()
             self.value_map.clear()
@@ -115,6 +122,7 @@ class ItemListWidget(ItemsGenerator, ItemsUpdater, QListWidget):
     def destroy(self):
         ItemsGenerator.destroy(self)
         ItemsUpdater.destroy(self)
+        self.itemSelectionChanged.disconnect()
         QListWidget.destroy(self)
 
     @property
@@ -145,7 +153,7 @@ class ItemListWidget(ItemsGenerator, ItemsUpdater, QListWidget):
             self.blockSignals(False)
         if delayed:
             # allow all widgets to get to correct values before emitting signal
-            _when_all_updated(self.itemSelectionChanged.emit)
+            _when_all_updated(self, self.itemSelectionChanged.emit)
         else:
             self.itemSelectionChanged.emit()
 
@@ -188,31 +196,33 @@ class ItemListWidget(ItemsGenerator, ItemsUpdater, QListWidget):
                     else:
                         filtered_sel = item_names[-1:]
  
-        preblocked = self.signalsBlocked()
-        if not preblocked:
-            self.blockSignals(True)
-        self.clear()
-        self.addItems(item_names)
-        if self.selectionMode() == self.SingleSelection:
-            if filtered_sel:
-                next_value = self.item_map[filtered_sel[0]]
+        # avoid gratuitous updates, which screw up using up/down arrows in the list
+        if item_names != [self.item(i).text() for i in range(self.count())]:
+            preblocked = self.signalsBlocked()
+            if not preblocked:
+                self.blockSignals(True)
+            self.clear()
+            self.addItems(item_names)
+            if self.selectionMode() == self.SingleSelection:
+                if filtered_sel:
+                    next_value = self.item_map[filtered_sel[0]]
+                else:
+                    next_value = None
             else:
-                next_value = None
-        else:
-            next_value = [self.item_map[fs] for fs in filtered_sel]
-        if prev_value == next_value:
-            self._select_value(next_value)
-            if not preblocked:
-                self.blockSignals(False)
-        else:
-            if not preblocked:
-                self.blockSignals(False)
-            self.set_value(next_value, delayed=True)
-            # if items were deleted, then the current selection could be empty when the previous
-            # one was not, but the test in the value setter will think the value is unchanged
-            # and not emit the changed signal, so check for that here
-            if len(sel) > 0 and not next_value:
-                _when_all_updated(self.itemSelectionChanged.emit)
+                next_value = [self.item_map[fs] for fs in filtered_sel]
+            if prev_value == next_value:
+                self._select_value(next_value)
+                if not preblocked:
+                    self.blockSignals(False)
+            else:
+                if not preblocked:
+                    self.blockSignals(False)
+                self.set_value(next_value, delayed=True)
+                # if items were deleted, then the current selection could be empty when the previous
+                # one was not, but the test in the value setter will think the value is unchanged
+                # and not emit the changed signal, so check for that here
+                if len(sel) > 0 and not next_value:
+                    _when_all_updated(self, self.itemSelectionChanged.emit)
         if del_recursion:
             delattr(self, '_recursion')
 
@@ -244,33 +254,36 @@ def _process_model_kw(session, list_func=None, key_func=None, class_filter=None,
     return kw
 
 class ModelListWidget(ItemListWidget):
-    """Maintain a list of models
+    """
+    Maintain a list of models
 
-       Keep list up to date as models are opened and closed while keeping the selected item(s) the same
+    Keep list up to date as models are opened and closed while keeping the selected item(s) the same
 
-       'autoselect' controls what happens when nothing would be selected.  The possible values (which
-       are class variables) are:
-           - AUTOSELECT_ALL: all items are selected
-           - AUTOSELECT_SINGLE: if there is only one item in the list, it will be selected
-           - AUTOSELECT_NONE: select nothing
-           - AUTOSELECT_FIRST: the first item in the list will be selected
-           - AUTOSELECT_FIRST_DISPLAYED: select the first item whose 'display' attribute is True; if there
-                is none, the the first item
-           - AUTOSELECT_LAST, AUTOSELECT_LAST_DISPLAYED: analogous to the _FIRST_ values, except the last
-                item instead of the first.
-       The default is AUTOSELECT_ALL.
+    'autoselect' controls what happens when nothing would be selected.  The possible values (which
+    are class variables) are:
 
-       'selection_mode' controls how items are selected in the list widget.  Possible values are:
-       'single', 'extended', and 'multi' (default 'extended') which correspond to QAbstractItemView::
-       Single/Extended/MultiSelection respectively as per:
-       https://doc.qt.io/qt-5/qabstractitemview.html#SelectionMode-enum
+        - AUTOSELECT_ALL: all items are selected
+        - AUTOSELECT_SINGLE: if there is only one item in the list, it will be selected
+        - AUTOSELECT_NONE: select nothing
+        - AUTOSELECT_FIRST: the first item in the list will be selected
+        - AUTOSELECT_FIRST_DISPLAYED: select the first item whose 'display' attribute is True; if there
+          is none, then the first item
+        - AUTOSELECT_LAST, AUTOSELECT_LAST_DISPLAYED: analogous to the _FIRST_ values, except the last
+          item instead of the first.
 
-       'balloon_help' is the balloon help to provide with the list (if any); if none provided then
-       some generic help for  the 'extended' selection mode is provided if applicable
+    The default is AUTOSELECT_ALL.
 
-       Do not access or set the value of this widget in trigger handlers that also update the widget.
-       For generic models, those triggers are in session.triggers and are named ADD_MODELS, REMOVE_MODELS,
-       MODEL_ID_CHANGED and MODEL_NAME_CHANGED
+    'selection_mode' controls how items are selected in the list widget.  Possible values are:
+    'single', 'extended', and 'multi' (default 'extended') which correspond to QAbstractItemView::
+    Single/Extended/MultiSelection respectively as per:
+    https://doc.qt.io/qt-5/qabstractitemview.html#SelectionMode-enum
+
+    'balloon_help' is the balloon help to provide with the list (if any); if none provided then
+    some generic help for  the 'extended' selection mode is provided if applicable
+
+    Do not access or set the value of this widget in trigger handlers that also update the widget.
+    For generic models, those triggers are in session.triggers and are named ADD_MODELS, REMOVE_MODELS,
+    MODEL_ID_CHANGED and MODEL_NAME_CHANGED
     """
     def __init__(self, session, **kw):
         super().__init__(**_process_model_kw(session, **kw))
@@ -364,7 +377,7 @@ class ItemMenuButton(ItemsGenerator, ItemsUpdater, MenuButton):
         if not self.signalsBlocked():
             if delayed:
                 # allow all widgets to get to correct values before emitting signal...
-                _when_all_updated(self.value_changed.emit)
+                _when_all_updated(self, self.value_changed.emit)
             else:
                 self.value_changed.emit()
 
@@ -442,40 +455,50 @@ class ItemMenuButton(ItemsGenerator, ItemsUpdater, MenuButton):
                 self.value_changed.emit()
 
 class ModelMenuButton(ItemMenuButton):
-    """Maintain a popup menu of models
+    """
+    Maintain a popup menu of models
 
-       Keep menu up to date as models are opened and closed while keeping the selected item(s) the same
+    Keep menu up to date as models are opened and closed while keeping the selected item(s) the same
 
-       'special_items' is a list of special additional menu items whose str() reprs will be added to the
-       menu.
+    'special_items' is a list of special additional menu items whose str() reprs will be added to the
+    menu.
 
-       'autoselect' controls what happens when nothing would be selected.  The possible values (which
-       are class variables) are:
-           - AUTOSELECT_SINGLE: if there is only one item in the menu, it will be selected
-           - AUTOSELECT_NONE: select nothing
-           - AUTOSELECT_FIRST: the first item in the menu will be selected
-           - AUTOSELECT_FIRST_DISPLAYED: select the first item whose 'display' attribute is True; if there
-                is none, the the first item
-           - AUTOSELECT_LAST, AUTOSELECT_LAST_DISPLAYED: analogous to the _FIRST_ values, except the last
-                item instead of the first.
-       Special items are ignored for purposes of autoselection. The default is AUTOSELECT_SINGLE.
+    'autoselect' controls what happens when nothing would be selected.  The possible values (which
+    are class variables) are:
 
-       'no_value_button_text' is the text shown on the menu button when no item is selected for whatever
-       reason.  In such cases, self.value will be None.
+        - AUTOSELECT_SINGLE: if there is only one item in the menu, it will be selected
+        - AUTOSELECT_NONE: select nothing
+        - AUTOSELECT_FIRST: the first item in the menu will be selected
+        - AUTOSELECT_FIRST_DISPLAYED: select the first item whose 'display' attribute is True; if there
+          is none, the the first item
+        - AUTOSELECT_LAST, AUTOSELECT_LAST_DISPLAYED: analogous to the _FIRST_ values, except the last
+          item instead of the first.
 
-       If 'no_value_menu_text' is not None, then there will be an additional entry in the menu with that
-       text, and choosing that menu item is treated as setting self.value to None.
+    Special items are ignored for purposes of autoselection. The default is AUTOSELECT_SINGLE.
 
-       'balloon_help' is the balloon help to provide with the list (if any).
+    'no_value_button_text' is the text shown on the menu button when no item is selected for whatever
+    reason.  In such cases, self.value will be None.
 
-       Do not access or set the value of this widget in trigger handlers that also update the widget.
-       For generic models, those triggers are in session.triggers and are named ADD_MODELS, REMOVE_MODELS,
-       MODEL_ID_CHANGED and MODEL_NAME_CHANGED
+    If 'no_value_menu_text' is not None, then there will be an additional entry in the menu with that
+    text, and choosing that menu item is treated as setting self.value to None.
+
+    'balloon_help' is the balloon help to provide with the list (if any).
+
+    Do not access or set the value of this widget in trigger handlers that also update the widget.
+    For generic models, those triggers are in session.triggers and are named ADD_MODELS, REMOVE_MODELS,
+    MODEL_ID_CHANGED and MODEL_NAME_CHANGED
     """
     def __init__(self, session, *, no_value_button_text="No model chosen", **kw):
         kw['no_value_button_text'] = no_value_button_text
         super().__init__(**_process_model_kw(session, **kw))
 
-def _when_all_updated(func):
+def _when_all_updated(widget, func):
+    def check_and_execute(*, widget=widget, func=func):
+        try:
+            alive = hasattr(widget, 'value_changed')
+        except RuntimeError:
+            pass
+        else:
+            func()
     from Qt.QtCore import QTimer
-    QTimer.singleShot(0, func)
+    QTimer.singleShot(0, check_and_execute)

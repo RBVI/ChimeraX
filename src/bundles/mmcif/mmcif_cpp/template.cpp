@@ -2,14 +2,25 @@
 
 /*
  * === UCSF ChimeraX Copyright ===
- * Copyright 2016 Regents of the University of California.
- * All rights reserved.  This software provided pursuant to a
- * license agreement containing restrictions on its disclosure,
- * duplication and use.  For details see:
- * http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
- * This notice must be embedded in or attached to all copies,
- * including partial copies, of the software or any revisions
- * or derivations thereof.
+ * Copyright 2022 Regents of the University of California. All rights reserved.
+ * The ChimeraX application is provided pursuant to the ChimeraX license
+ * agreement, which covers academic and commercial uses. For more details, see
+ * <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+ *
+ * This particular file is part of the ChimeraX library. You can also
+ * redistribute and/or modify it under the terms of the GNU Lesser General
+ * Public License version 2.1 as published by the Free Software Foundation.
+ * For more details, see
+ * <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+ *
+ * THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+ * LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+ * VERSION 2.1
+ *
+ * This notice must be embedded in or attached to all copies, including partial
+ * copies, of the software or any revisions or derivations thereof.
  * === UCSF ChimeraX Copyright ===
  */
 
@@ -59,6 +70,8 @@ namespace mmcif {
 
 using atomstruct::AtomName;
 using atomstruct::ResName;
+
+typedef vector<string> StringVector;
 
 // Symbolic names for readcif arguments
 static const bool Required = true;  // column is required
@@ -128,6 +141,7 @@ struct ExtractTemplate: public readcif::CIFFile
     void parse_chem_comp();
     void parse_chem_comp_atom();
     void parse_chem_comp_bond();
+    void parse_generic_residue_category();
 
     vector<tmpl::Residue*> all_residues;
     tmpl::Residue* residue;         // current residue
@@ -153,6 +167,14 @@ ExtractTemplate::ExtractTemplate(): residue(nullptr)
         [this] () {
             parse_chem_comp_bond();
         }, { "chem_comp", "chem_comp_atom" });
+    register_category("pdbx_chem_comp_descriptor",
+        [this] () {
+            parse_generic_residue_category();
+        }, { "chem_comp" });
+    register_category("pdbx_chem_comp_identifier",
+        [this] () {
+            parse_generic_residue_category();
+        }, { "chem_comp" });
 }
 
 ExtractTemplate::~ExtractTemplate()
@@ -441,6 +463,23 @@ ExtractTemplate::parse_chem_comp_bond()
             continue;
         templates->new_bond(a1, a2);
     }
+}
+
+void
+ExtractTemplate::parse_generic_residue_category()
+{
+    const string& category = this->category();
+    const StringVector& colnames = this->colnames();
+    string category_ci = category;
+    for (auto& c: category_ci)
+        c = tolower(c);
+    StringVector colinfo;
+    colinfo.reserve(colnames.size() + 1);
+    colinfo.push_back(category);
+    colinfo.insert(colinfo.end(), colnames.begin(), colnames.end());
+    StringVector data = parse_whole_category();
+    residue->metadata[category_ci] = colinfo;
+    residue->metadata[category_ci + " data"].swap(data);
 }
 
 void

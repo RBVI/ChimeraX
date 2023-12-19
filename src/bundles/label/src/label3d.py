@@ -1,14 +1,25 @@
 # vim: set expandtab ts=4 sw=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 
@@ -266,7 +277,7 @@ def register_label_command(logger):
     otype = EnumOf(('atoms','residues','pseudobonds','bonds'))
     desc = CmdDesc(required = [('objects', Or(ObjectsArg, EmptyArg))],
                    optional = [('object_type', otype)],
-                   keyword = [('text', Or(DefArg, StringArg)),
+                   keyword = [('text', Or(EnumOf(['default'],abbreviations=False), StringArg)),
                               ('offset', Or(DefArg, Float3Arg)),
                               ('color', Or(EnumOf(['default', 'auto']), Color8Arg)),
                               ('bg_color', Or(NoneArg, Color8Arg)),
@@ -323,7 +334,7 @@ class ObjectLabels(Model):
         self.use_lighting = False
         Model.set_color(self, (255,255,255,255))	# Do not modulate texture colors
 
-        self._texture_width = 2048			# Pixels.
+        self._texture_width = 4096			# Pixels.
         self._texture_needs_update = True		# Has text, color, size, font changed.
         self._positions_need_update = True		# Has label position changed relative to atom?
         self._visibility_needs_update = True		# Does an atom hide require a label to hide?
@@ -365,7 +376,7 @@ class ObjectLabels(Model):
 
     def labels(self, objects = None):
         if objects is None:
-            self._labels
+            return self._labels
         ol = self._object_label
         return [ol[o] for o in objects if o in ol]
     
@@ -560,6 +571,9 @@ class ObjectLabels(Model):
                 hr = h
             positions.append((x,y,w,h))
             x += w
+            if w > tw:
+                msg = f'Label width {w} exceeds maximum {tw} and will be clipped'
+                self.session.logger.warning(msg)
         th = y + hr	# Teture height in pixels
 
         # Create single image with packed label images
@@ -567,7 +581,7 @@ class ObjectLabels(Model):
         trgba = empty((th, tw, 4), uint8)
         for (x,y,w,h),rgba in zip(positions, images):
             h,w = rgba.shape[:2]
-            trgba[y:y+h,x:x+w,:] = rgba
+            trgba[y:y+h,x:x+w,:] = rgba[:,:tw,:]
 
         # Create texture coordinates for each label.
         tclist = []
@@ -738,7 +752,10 @@ class ObjectLabel:
                 final_text = base_text.format(self.object)
             except AttributeError:
                 # don't label objects missing the requested attribute(s)
+                # and treat them as having no label assigned rather than
+                # one with a missing attribute
                 final_text = ""
+                self._text = None
             except Exception:
                 final_text = base_text
         else:
@@ -770,8 +787,11 @@ class ObjectLabel:
             bg = self.background
             if bg is None:
                 bg = [255*r for r in self.view.background_color]
-            light_bg = (sum(bg[:3]) > 1.5*255)
-            rgba8 = (0,0,0,255) if light_bg else (255,255,255,255)
+            from chimerax.core.colors import contrast_with
+            if contrast_with([c/255 for c in bg[:3]])[0] == 0.0:
+                rgba8 = (0, 0, 0, 255)
+            else:
+                rgba8 = (255, 255, 255, 255)
         else:
             rgba8 = c
         return rgba8
@@ -918,18 +938,18 @@ def picked_3d_label(session, win_x, win_y):
     if xyz1 is None or xyz2 is None:
         return None
     pick = None
-    from chimerax.graphics import PickedTriangle
+    from chimerax.core.models import PickedModel
     for m in session.models.list(type = ObjectLabels):
         mtf = m.parent.scene_position.inverse()
         mxyz1, mxyz2 =  mtf*xyz1, mtf*xyz2
         p = m.first_intercept(mxyz1, mxyz2)
-        if isinstance(p, PickedTriangle) and (pick is None or p.distance < pick.distance):
+        if isinstance(p, PickedModel) and (pick is None or p.distance < pick.distance):
             pick = p
 
     if pick:
         # Return ObjectLabel instance
         lmodel = pick.drawing()
-        lobject = lmodel.picked_label(pick.triangle_number)
+        lobject = lmodel.picked_label(pick.picked_triangle.triangle_number)
         if lobject:
             lobject._label_model = lmodel
             return lobject

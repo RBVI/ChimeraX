@@ -2,14 +2,25 @@
 
 /*
  * === UCSF ChimeraX Copyright ===
- * Copyright 2016 Regents of the University of California.
- * All rights reserved.  This software provided pursuant to a
- * license agreement containing restrictions on its disclosure,
- * duplication and use.  For details see:
- * http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
- * This notice must be embedded in or attached to all copies,
- * including partial copies, of the software or any revisions
- * or derivations thereof.
+ * Copyright 2022 Regents of the University of California. All rights reserved.
+ * The ChimeraX application is provided pursuant to the ChimeraX license
+ * agreement, which covers academic and commercial uses. For more details, see
+ * <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+ *
+ * This particular file is part of the ChimeraX library. You can also
+ * redistribute and/or modify it under the terms of the GNU Lesser General
+ * Public License version 2.1 as published by the Free Software Foundation.
+ * For more details, see
+ * <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+ *
+ * THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+ * LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+ * VERSION 2.1
+ *
+ * This notice must be embedded in or attached to all copies, including partial
+ * copies, of the software or any revisions or derivations thereof.
  * === UCSF ChimeraX Copyright ===
  */
 
@@ -493,6 +504,7 @@ PyObject *atom_spline_positions(PyObject *, PyObject *args, PyObject *keywds)
 static std::map<std::string, float> _tether_positions = {
    // Amino acid
    {"N", -1/3.},
+   {"H", -1/3.},
    {"CA", 0.},
    {"C",    1/3.},
    {"OXT",  1/3.},
@@ -673,7 +685,7 @@ PyObject *get_polymer_spline(PyObject *, PyObject *args, PyObject *keywds)
         Residue* r = res_array[i];
         for (auto atom: r->atoms())
             atom->set_in_ribbon(false);
-        Atom *ca = r->find_atom("CA");
+	Atom *ca = (r->polymer_type() == atomstruct::PT_AMINO ? r->find_atom("CA") : NULL);
         if (ca != NULL) {
             // Case 1: amino acid
             centers.push_back(ca);
@@ -712,7 +724,7 @@ PyObject *get_polymer_spline(PyObject *, PyObject *args, PyObject *keywds)
             }
             residue_update_hide(r, ca);
         }
-        else {
+        else if (r->polymer_type() == atomstruct::PT_NUCLEIC) {
             prev_c = NULL;
             // Look for nucleotide
             Atom *a = r->find_atom("C5'");
@@ -737,6 +749,11 @@ PyObject *get_polymer_spline(PyObject *, PyObject *args, PyObject *keywds)
             }
             residue_update_hide(r, anchor);
         }
+	else {
+	  // Not amino acid and not nucleic acid.
+	  r->set_ribbon_display(false);
+	  residue_update_hide(r, NULL);
+	}
     }
 
     // Create Python return value: tuple of (atoms, control points, guide points)

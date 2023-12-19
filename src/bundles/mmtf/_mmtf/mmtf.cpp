@@ -2,14 +2,25 @@
 
 /*
  * === UCSF ChimeraX Copyright ===
- * Copyright 2017 Regents of the University of California.
- * All rights reserved.  This software provided pursuant to a
- * license agreement containing restrictions on its disclosure,
- * duplication and use.  For details see:
- * http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
- * This notice must be embedded in or attached to all copies,
- * including partial copies, of the software or any revisions
- * or derivations thereof.
+ * Copyright 2022 Regents of the University of California. All rights reserved.
+ * The ChimeraX application is provided pursuant to the ChimeraX license
+ * agreement, which covers academic and commercial uses. For more details, see
+ * <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+ *
+ * This particular file is part of the ChimeraX library. You can also
+ * redistribute and/or modify it under the terms of the GNU Lesser General
+ * Public License version 2.1 as published by the Free Software Foundation.
+ * For more details, see
+ * <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+ *
+ * THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+ * LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+ * VERSION 2.1
+ *
+ * This notice must be embedded in or attached to all copies, including partial
+ * copies, of the software or any revisions or derivations thereof.
  * === UCSF ChimeraX Copyright ===
  */
 
@@ -148,6 +159,7 @@ extract_data(const mmtf::StructureData& data, PyObject* _logger, bool coordset)
         auto m = new AtomicStructure(_logger);
         models.push_back(m);
         // traverse chains
+        map<string, string> chain_descriptions;
         const size_t model_chain_count = data.chainsPerModel[model_index];
         for (size_t _model_chain = 0; _model_chain < model_chain_count; ++_model_chain) {
             chain_index += 1;
@@ -167,8 +179,10 @@ extract_data(const mmtf::StructureData& data, PyObject* _logger, bool coordset)
                 logger::warning(_logger, "Missing entity information for chain ", chain_id);
             }
             vector<Residue*> residues;
-            if (is_polymer && has_sequence_index_list)
+            if (is_polymer && has_sequence_index_list) {
                 residues.reserve(entity.sequence.size());
+                chain_descriptions[chain_name] = data.entityList[entity_index].description;
+            }
 
             // traverse groups
             const char* last_ss = nullptr;
@@ -348,6 +362,12 @@ extract_data(const mmtf::StructureData& data, PyObject* _logger, bool coordset)
                 m->input_seq_source = "MMTF sequence";
             }
         }
+        auto& chains = m->chains();
+        for (auto& chain: chains) {
+            auto& chain_id = chain->res_map().begin()->first->chain_id();
+            chain->set_description(chain_descriptions[chain_id]);
+        }
+
     }
 
     if (has_bond_atom_list) {

@@ -1,14 +1,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 """
@@ -107,12 +118,20 @@ class DataFormat(State):
         True if the format is opened/saved as a directory.  This is the only case where
         'suffixes' can be empty.
 
+    ..attribute:: default_for
+
+        The suffixes that this format should be considered the default for.  Should only be
+        specified if it expected that there will be other lesser-known formats using the same
+        file suffix (in which case opening those other formats would require the 'format' keyword).
+        If multiple formats support the same file suffix and none of the formats declare themselves
+        as 'default_for' that suffix, then the user will be queried for what format to use.
+
     """
     attr_names = ['name', 'category', 'suffixes', 'nicknames', 'mime_types', 'reference_url', 'insecure',
-        'encoding', 'synopsis', 'allow_directory']
+        'encoding', 'synopsis', 'allow_directory', 'default_for']
 
     def __init__(self, format_name, category, suffixes, nicknames, mime_types,
-            reference_url, insecure, encoding, synopsis, allow_directory):
+            reference_url, insecure, encoding, synopsis, allow_directory, default_for):
         self.name = format_name
         self.category = category
         self.suffixes = suffixes
@@ -122,13 +141,16 @@ class DataFormat(State):
         self.encoding = encoding
         self.synopsis = synopsis if synopsis else format_name
         self.allow_directory = allow_directory
+        self.default_for = default_for
 
-        if reference_url:
+        if reference_url and reference_url != "None":
             # sanitize URL
             from urllib import parse
             r = list(parse.urlsplit(reference_url))
             r[1:5] = [parse.quote(p) for p in r[1:5]]
             reference_url = parse.urlunsplit(r)
+        else:
+            reference_url = None
         self.reference_url = reference_url
 
     def take_snapshot(self, session, flags):
@@ -136,5 +158,6 @@ class DataFormat(State):
 
     @classmethod
     def restore_snapshot(class_obj, session, data):
-        return class_obj(*[data[attr_name] for attr_name in class_obj.attr_names])
+        # 'default_for' may not exist in old sessions...
+        return class_obj(*[data.get(attr_name, []) for attr_name in class_obj.attr_names])
 

@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-Smiles" version="2.1"
+<BundleInfo name="ChimeraX-Smiles" version="2.1.2"
 	    package="chimerax.smiles"
   	    minSessionVersion="1" maxSessionVersion="1">
 
@@ -32,7 +32,7 @@
   </Providers>
 
   <Providers manager="open command">
-    <Provider name="smiles" type="fetch" format_name="SMILES"/>
+    <Provider name="smiles" type="fetch" format_name="SMILES" synopsis="SMILES" example_ids="c1ccccc1"/>
   </Providers>
 
   <Classifiers>

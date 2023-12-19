@@ -1,14 +1,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 def material(session, preset = None, reflectivity = None,
@@ -23,9 +34,10 @@ def material(session, preset = None, reflectivity = None,
     Parameters
     ----------
     preset : string
-      Can be "default", "shiny" or "dull".  Default sets all material
+      Can be "default", "shiny", "dull", or "chimera".  Default sets all material
       properties to there default values.  Shiny sets specular reflectivity to 1.
-      Dull sets specular reflectivity to 0.
+      Dull sets specular reflectivity to 0.  Chimera sets specular reflectivity
+      and exponent to try to emulate UCSF Chimera.
     reflectivity : float
       Fraction of directional light reflected diffusely (reflected equally in
       all directions). Initial value 0.8.
@@ -72,6 +84,9 @@ def material(session, preset = None, reflectivity = None,
         m.specular_reflectivity = 1
     elif preset == 'dull':
         m.specular_reflectivity = 0
+    elif preset == 'chimera':
+        m.specular_reflectivity = 1
+        m.specular_exponent = 6
 
     if not reflectivity is None:
         m.diffuse_reflectivity = reflectivity
@@ -91,7 +106,7 @@ def material(session, preset = None, reflectivity = None,
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, EnumOf, FloatArg, BoolArg, register
     _material_desc = CmdDesc(
-        optional = [('preset', EnumOf(('default', 'shiny', 'dull')))],
+        optional = [('preset', EnumOf(('default', 'shiny', 'dull', 'chimera')))],
         keyword = [
             ('reflectivity', FloatArg),
             ('specular_reflectivity', FloatArg),

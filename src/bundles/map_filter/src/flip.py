@@ -85,19 +85,19 @@ def flip_in_place(m, axes):
 
     if 'z' in axes:
         n = m.shape[0]
-        for k in range(n/2-1):
+        for k in range(n//2-1):
             p = m[k,:,:].copy()
             m[k,:,:] = m[n-1-k,:,:]
             m[n-1-k,:,:] = p
     if 'y' in axes:
         n = m.shape[1]
-        for k in range(n/2-1):
+        for k in range(n//2-1):
             p = m[:,k,:].copy()
             m[:,k,:] = m[:,n-1-k,:]
             m[:,n-1-k,:] = p
     if 'x' in axes:
         n = m.shape[2]
-        for k in range(n/2-1):
+        for k in range(n//2-1):
             p = m[:,:,k].copy()
             m[:,:,k] = m[:,:,n-1-k]
             m[:,:,n-1-k] = p

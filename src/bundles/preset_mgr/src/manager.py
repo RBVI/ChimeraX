@@ -1,14 +1,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.core.toolshed import ProviderManager
@@ -67,6 +78,15 @@ class PresetsManager(ProviderManager):
         self.triggers.activate_trigger("presets changed", self)
 
     def execute(self, preset):
+        """Presets should call this method to execute their preset so that appropriate information
+        about the preset can be logged.  The 'preset' argument is either a command string or a
+        callable Python function that takes no arguments.
+
+        A command string can have embedded ';' characters to separate commands.  It can also
+        have embedded newlines to separate commands, in which case the newline-separated commands
+        will be executed with separate calls to chimera.core.commands.run(), whereas ';' separated
+        commands will use a single run() call.
+        """
         if callable(preset):
             preset()
             self.session.logger.info("Preset implemented in Python; no expansion to individual ChimeraX"
@@ -119,6 +139,7 @@ class PresetsManager(ProviderManager):
         import os.path
         if not os.path.exists(settings.folder):
             self.session.logger.warning("Custom presets folder '%s' does not exist" % settings.folder)
+            return
         presets_added = False
         preset_info, subfolders = self._gather_presets(settings.folder)
         if preset_info:

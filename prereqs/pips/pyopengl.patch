@@ -1,0 +1,11 @@
+--- OpenGL/platform/ctypesloader.py.orig	2023-06-09 15:51:22
++++ OpenGL/platform/ctypesloader.py	2023-06-09 15:53:15
+@@ -77,6 +77,8 @@
+     fullName = None
+     try:
+         fullName = util.find_library( name )
++        if sys.platform == "darwin":
++            fullName = '/System/Library/Frameworks/OpenGL.framework/OpenGL'
+         if fullName is not None:
+             name = fullName
+         elif os.path.isfile( os.path.join( DLL_DIRECTORY, name + '.dll' )):

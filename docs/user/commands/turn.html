@@ -106,7 +106,39 @@ use the <a href="wait.html"><b>wait</b></a> command.
 To halt an ongoing <b>turn</b>, use <a href="stop.html"><b>stop</b></a>.
 </p>
 
+<a name="independent-rotation"></a>
+<p class="nav">
+[<a href="#top">back to top: turn</a>]
+</p>
+<h3>Scripting Independent Rotation</h3>
+<p>
+To <a href="usageconventions.html#cxc-files">script</a>
+side-by-side rotations of multiple models about their own centers,
+a separate <b>roll</b> or <b>turn</b> command should be used for each model.
+The rotations will occur simultaneously as long as there are no intervening
+<a href="wait.html"><b>wait</b></a> commands. After the rotation commands,
+there should be a single <a href="wait.html"><b>wait</b></a> command with
+at least as many frames as the complete rotation.
+For example, to make a movie with a 360&deg; rotation of two models about
+the Y (vertical) axis and their own centers in 1&deg; increments:
+</p>
+<blockquote>
+<b>movie record</b>
+<br>
+<b>turn y 1 360 model #1 center #1</b>
+<br>
+<b>turn y 1 360 model #2 center #2</b>
+<br>
+<b>wait 360</b>
+<br>
+<b>movie encode side-by-side-spin.mp4</b>
+</blockquote>
+<p>
+See also: <a href="ui.html#independent">interactive independent rotation</a>
+(mouse mode)
+</p>
+
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-August 2020</address>
+July 2022</address>
 </body></html> 

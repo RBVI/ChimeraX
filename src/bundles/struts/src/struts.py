@@ -1,14 +1,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 #
@@ -94,7 +105,8 @@ def register_struts_command(logger):
     register('struts', desc, struts, logger=logger)
 
     desc = CmdDesc(optional = [('atoms', AtomsArg)],
-                   synopsis = 'Delete bonds created with the struts command')
+        keyword = [('reset_ribbon', BoolArg)],
+        synopsis = 'Delete bonds created with the struts command')
     register('struts delete', desc, struts_delete, logger=logger)
     create_alias('~struts', 'struts delete $*')
 
@@ -232,7 +244,6 @@ def thick_ribbon(atoms):
     sw,sh = 1.5,.75
     abw,abh,atw,ath = 2.5,.75,.75,.75
     nw,nh = 2.5,1.5
-    dw,dh = .75,.75
     mols = atoms.unique_structures
     for m in mols:
         xsm = m.ribbon_xs_mgr
@@ -243,7 +254,23 @@ def thick_ribbon(atoms):
         xsm.set_sheet_arrow_scale(abw,abh,atw,ath)
         xsm.set_nucleic_scale(nw, nh)
 
-def struts_delete(session, atoms = None):
+def thin_ribbon(atoms):
+    tw,th = .2,.2
+    hw,hh = 1.0,0.2
+    sw,sh = 1.0,.2
+    abw,abh,atw,ath = 2.0,0.2,0.2,0.2
+    nw,nh = 0.2,1.0
+    mols = atoms.unique_structures
+    for m in mols:
+        xsm = m.ribbon_xs_mgr
+        xsm.set_helix_scale(hw,hh)
+        xsm.set_helix_arrow_scale(abw,abh,atw,ath)
+        xsm.set_coil_scale(tw,th)
+        xsm.set_sheet_scale(sw,sh)
+        xsm.set_sheet_arrow_scale(abw,abh,atw,ath)
+        xsm.set_nucleic_scale(nw, nh)
+
+def struts_delete(session, atoms = None, reset_ribbon = True):
     '''
     Delete struts between the specified atoms.
     '''
@@ -267,6 +294,11 @@ def struts_delete(session, atoms = None):
                     sclose.append(s)
         if sclose:
             session.models.close(sclose)
+    if reset_ribbon:
+        if atoms is None:
+            from chimerax.atomic import all_atoms
+            atoms = all_atoms(session)
+        thin_ribbon(atoms)
 
 def strut_models(session, model_id = None):
     from chimerax import atomic 

@@ -2,14 +2,25 @@
 
 /*
  * === UCSF ChimeraX Copyright ===
- * Copyright 2016 Regents of the University of California.
- * All rights reserved.  This software provided pursuant to a
- * license agreement containing restrictions on its disclosure,
- * duplication and use.  For details see:
- * http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
- * This notice must be embedded in or attached to all copies,
- * including partial copies, of the software or any revisions
- * or derivations thereof.
+ * Copyright 2022 Regents of the University of California. All rights reserved.
+ * The ChimeraX application is provided pursuant to the ChimeraX license
+ * agreement, which covers academic and commercial uses. For more details, see
+ * <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+ *
+ * This particular file is part of the ChimeraX library. You can also
+ * redistribute and/or modify it under the terms of the GNU Lesser General
+ * Public License version 2.1 as published by the Free Software Foundation.
+ * For more details, see
+ * <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+ *
+ * THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+ * LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+ * VERSION 2.1
+ *
+ * This notice must be embedded in or attached to all copies, including partial
+ * copies, of the software or any revisions or derivations thereof.
  * === UCSF ChimeraX Copyright ===
  */
 
@@ -33,6 +44,7 @@
 #include "PBManager.h"
 #include "polymer.h"
 #include "Real.h"
+#include "res_numbering.h"
 #include "Rgba.h"
 #include "Ring.h"
 #include "session.h"
@@ -128,13 +140,18 @@ protected:
     bool  _active_coord_set_change_notify = true;
     CoordSet *  _active_coord_set;
     mutable bool  _alt_loc_change_notify = true;
+    mutable bool  _ss_change_notify = true;
+    bool  _atom_types_notify = true;
     Atoms  _atoms;
     float  _ball_scale = 0.25;
     Bonds  _bonds;
     mutable Chains*  _chains;
+    mutable bool  _chains_made = false;
     ChangeTracker*  _change_tracker;
     CoordSets  _coord_sets;
+    bool  _copying_or_restoring = false;
     bool  _display = true;
+    bool  _idatm_failed = false;
     bool  _idatm_valid;
     InputSeqInfo  _input_seq_info;
     PyObject*  _logger;
@@ -144,6 +161,8 @@ protected:
     PositionMatrix  _position;
     mutable bool  _recompute_rings;
     Residues  _residues;
+    ResNumbering  _res_numbering = RN_AUTHOR;
+    std::vector<bool>  _res_numbering_valid = { true, false, false };
     int _ribbon_display_count = 0;
     RibbonOrientation _ribbon_orientation = RIBBON_ORIENT_PEPTIDE;
     RibbonMode  _ribbon_mode_helix = RIBBON_MODE_DEFAULT;
@@ -168,6 +187,7 @@ protected:
     virtual void  _compute_atom_types() {}
     void  _compute_idatm_types() { _idatm_valid = true; _compute_atom_types(); }
     virtual void  _compute_structure_cats() const {}
+    void _coord_set_insert(CoordSets &coord_sets, CoordSet* cs, int index);
     void  _copy(Structure* s, PositionMatrix coord_adjust = nullptr,
         std::map<ChainID, ChainID>* chain_id_map = nullptr) const;
     void  _delete_atom(Atom* a);
@@ -184,6 +204,7 @@ protected:
             std::set<Atom*>& left_missing_structure_atoms,
             std::set<Atom*>& right_missing_structure_atoms,
             const std::set<Atom*>* deleted_atoms = nullptr) const;
+    virtual void  _make_chains() const;
     Bond*  _new_bond(Atom* a1, Atom* a2, bool bond_only);
     Chain*  _new_chain(const ChainID& chain_id, PolymerType pt = PT_NONE) const {
         auto chain = new Chain(chain_id, const_cast<Structure*>(this), pt);
@@ -202,7 +223,8 @@ protected:
         return version < 5 ? 1 : (version < 13 ? 3: 15);
     }
     static int  SESSION_NUM_INTS(int version=CURRENT_SESSION_VERSION) {
-        return version == 1 ? 9 : (version < 5 ? 10 : (version < 12 ? 16 : (version < 16 ? 17 : 18)));
+        return version == 1 ? 9 : (version < 5 ? 10 : (version < 12 ? 16 : (version < 16 ? 17 :
+            (version < 19 ? 18 : 20))));
     }
     static int  SESSION_NUM_MISC(int version=CURRENT_SESSION_VERSION) {
         return version > 7 ? 3 : 4;
@@ -217,6 +239,7 @@ public:
     bool  active_coord_set_change_notify() const { return _active_coord_set_change_notify; }
     CoordSet*  active_coord_set() const { return _active_coord_set; };
     bool  alt_loc_change_notify() const { return _alt_loc_change_notify; }
+    bool  ss_change_notify() const { return _ss_change_notify; }
     bool  asterisks_translated;
     const Atoms&  atoms() const { return _atoms; }
     float  ball_scale() const { return _ball_scale; }
@@ -224,7 +247,8 @@ public:
     void  bonded_groups(std::vector<std::vector<Atom*>>* groups,
         bool consider_missing_structure) const;
     const Bonds&  bonds() const { return _bonds; }
-    const Chains&  chains() const { if (_chains == nullptr) make_chains(); return *_chains; }
+    const Chains&  chains() const { if (!_chains_made) _make_chains(); return *_chains; }
+    bool  chains_made() const { return _chains_made; }
     void  change_chain_ids(const std::vector<StructureSeq*>, const std::vector<ChainID>,
         bool /*non-polymeric*/=true);
     ChangeTracker*  change_tracker() { return _change_tracker; }
@@ -250,13 +274,13 @@ public:
     Residue*  find_residue(const ChainID& chain_id, int pos, char insert) const;
     Residue*  find_residue(const ChainID& chain_id, int pos, char insert,
         ResName& name) const;
+    bool  idatm_failed() { ready_idatm_types(); return _idatm_failed; }
     bool  idatm_valid() const { return _idatm_valid; }
     const InputSeqInfo&  input_seq_info() const { return _input_seq_info; }
     std::string  input_seq_source;
     bool  is_traj;
     PyObject*  logger() const { return _logger; }
     bool  lower_case_chains;
-    virtual void  make_chains() const;
     std::map<std::string, std::vector<std::string>> metadata;
     Atom*  new_atom(const char* name, const Element& e);
     Bond*  new_bond(Atom* a1, Atom* a2) { return _new_bond(a1, a2, false); }
@@ -264,7 +288,7 @@ public:
     CoordSet*  new_coord_set(int index);
     CoordSet*  new_coord_set(int index, int size);
     Residue*  new_residue(const ResName& name, const ChainID& chain,
-        int pos, char insert, Residue *neighbor=NULL, bool after=true);
+        int pos, char insert=' ', Residue *neighbor=NULL, bool after=true);
     std::set<ResName>  nonstd_res_names() const;
     virtual void  normalize_ss_ids() {}
     size_t  num_atoms() const { return atoms().size(); }
@@ -291,6 +315,8 @@ public:
     void  ready_idatm_types() { if (!_idatm_valid) _compute_idatm_types(); }
     void  renumber_residues(const std::vector<Residue*>& res_list, int start);
     void  reorder_residues(const Residues&); 
+    ResNumbering  res_numbering() const { return _res_numbering; }
+    bool  res_numbering_valid(ResNumbering rn) const { return _res_numbering_valid[rn]; }
     const Residues&  residues() const { return _residues; }
     const Rings&  rings(bool cross_residues = false,
         unsigned int all_size_threshold = 0,
@@ -309,6 +335,7 @@ public:
     void  set_active_coord_set_change_notify(bool cn) { _active_coord_set_change_notify = cn; }
     void  set_active_coord_set(CoordSet *cs);
     void  set_alt_loc_change_notify(bool cn) const { _alt_loc_change_notify = cn; }
+    void  set_ss_change_notify(bool cn) const { _ss_change_notify = cn; }
     void  set_ball_scale(float bs) {
         if (bs == _ball_scale) return;
         set_gc_shape(); _ball_scale = bs;
@@ -325,6 +352,8 @@ public:
         const std::vector<Residue*>* correspondences = nullptr, PolymerType pt = PT_NONE,
         bool one_letter_names = false);
     void  set_position_matrix(double* pos);
+    void  set_res_numbering(ResNumbering rn);
+    void  set_res_numbering_valid(ResNumbering rn, bool valid) { _res_numbering_valid[rn] = valid; }
     void  set_ss_assigned(bool sa) { _ss_assigned = sa; }
     bool  ss_assigned() const { return _ss_assigned; }
     bool  ss_ids_normalized;

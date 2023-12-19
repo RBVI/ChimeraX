@@ -1,42 +1,34 @@
 # vim: set expandtab ts=4 sw=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
+from ._pyarrays import get_lib, get_include, load_libarrays
 
-from chimerax.core.toolshed import BundleAPI
+__all__ = ["get_lib", "get_include", "load_libarrays"]
 
-class _ArraysAPI(BundleAPI):
-    pass
-
-bundle_api = _ArraysAPI()
-
-_libarrays = None
-def load_libarrays():
-    '''
-    Load the libarrays C++ dynamic library.
-    This allows other C modules that link against libarrays to find it
-    without setting search paths like RPATH since it will be part of
-    the process once loaded and the runtime linker will find it.
-    Matching libraries that are part of the process are used on
-    macOS, Windows, Linux.
-    '''
-    global _libarrays
-    if _libarrays is None:
-        add_library_search_path()
-        from . import _arrays
-        _libarrays = True
-
-def add_library_search_path():
-    import sys
-    if sys.platform.startswith('win'):
-        from os import path, add_dll_directory
-        libdir = path.join(path.dirname(__file__), 'lib')
-        add_dll_directory(libdir)
+# try:
+#     from chimerax import running_as_application
+# except ImportError:
+#     running_as_application = False
+# if running_as_application:
+from ._pyarrays import bundle_api
+__all__.append("bundle_api")

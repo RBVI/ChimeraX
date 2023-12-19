@@ -26,7 +26,8 @@ from chimerax.core.errors import UserError as MovieError
 class Movie:
 
     def __init__(self, img_fmt=None, img_dir=None, input_pattern=None,
-                 size=None, supersample=0, limit = None, verbose = False, session = None):
+                 size=None, supersample=0, transparent_background=False,
+                 limit = None, verbose = False, session = None):
 
         self.session = session
         self.verbose = verbose
@@ -51,6 +52,7 @@ class Movie:
         if size and supersample == 0:
             supersample = 1
         self.supersample = supersample
+        self.transparent_background = transparent_background
         self.limit = limit
 
         self.newFrameHandle = None
@@ -165,10 +167,12 @@ class Movie:
         width, height = (None,None) if self.size is None else self.size
 
         v = self.session.main_view
-        rgba = v.image_rgba(width, height, supersample = self.supersample)
+        rgba = v.image_rgba(width, height, supersample = self.supersample,
+                            transparent_background = self.transparent_background)
+        color_components = 4 if self.transparent_background else 3
         from PIL import Image
         # Flip y-axis since PIL image has row 0 at top, opengl has row 0 at bottom.
-        i = Image.fromarray(rgba[::-1, :, :3])
+        i = Image.fromarray(rgba[::-1, :, :color_components])
         i.save(save_path, self.img_fmt)
         v.movie_image_rgba = rgba	# Used by crossfade command
 

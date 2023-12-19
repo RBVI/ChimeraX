@@ -25,14 +25,14 @@ class="clRight" title="User Guide Index"/></a>
 
 <h3><a href="../index.html#commands">Command</a>: blastprotein</h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
-<br><b>blastprotein</b> 
-(&nbsp;<a href="atomspec.html#hierarchy"><i>chain-spec</i></a>&nbsp;|&nbsp;<a href="seqspec.html"><i>sequence-spec</i></a>&nbsp;)
-[&nbsp;<b>database</b>&nbsp;&nbsp;<b>pdb</b>&nbsp;|&nbsp;nr&nbsp;]
+<br><b>blastprotein</b> &nbsp;<i>sequence</i>&nbsp;
+[&nbsp;<b>database</b>&nbsp;&nbsp;<i>sequence-database</i>&nbsp;]
+[&nbsp;<a href="alphafold.html#version"><b>version</b></a>&nbsp;&nbsp;1&nbsp;|&nbsp;2&nbsp;|&nbsp;<b>3</b>&nbsp;]
 [&nbsp;<b>matrix</b>&nbsp;&nbsp;<i>similarity-matrix</i>&nbsp;]
 [&nbsp;<b>cutoff</b>&nbsp;&nbsp;<i>evalue</i>&nbsp;]
 [&nbsp;<b>maxSeqs</b>&nbsp;&nbsp;<i>M</i>&nbsp;]
 [&nbsp;<b>log</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
-[&nbsp;<b>toolId</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
+[&nbsp;<b>name</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
 </h3>
 <p>
 The <b>blastprotein</b> command runs a protein sequence similarity search
@@ -44,17 +44,24 @@ It is the command implementation of the
 <a href="../tools/blastprotein.html"><b>Blast Protein</b></a> tool.
 One use is to search with a target sequence of unknown structure
 to find templates for <a href="modeller.html">comparative modeling</a>.
-See also: <a href="alphafold.html#search"><b>alphafold search</b></a>
+See also: <a href="alphafold.html#search"><b>alphafold search</b></a>,
+<a href="esmfold.html#search"><b>esmfold search</b></a>
 </p><p>
-The query sequence can be taken from a protein structure or a sequence 
-alignment open in ChimeraX: 
-<ul>
-<li>&nbsp;<a href="atomspec.html#hierarchy"><i>chain-spec</i></a>
-<br>&ndash; OR &ndash;
-<li>&nbsp;<a href="seqspec.html"><i>sequence-spec</i></a>
-</ul>
+The query <i>sequence</i> can be given as any of the following:
+</p>
+  <ul>
+  <li>a <a href="atomspec.html#hierarchy"><i>chain-spec</i></a>
+  corresponding to a single chain in an atomic structure open in ChimeraX
+  <li>the <a href="seqspec.html"><i>sequence-spec</i></a> of a sequence
+  in the <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>
+  <li>a <a href="https://www.uniprot.org/help/entry_name"
+  target="_blank">UniProt name</a> or 
+  <a href="https://www.uniprot.org/help/accession_numbers"
+  target="_blank">accession number</a>
+  <li>plain text pasted directly into the command line
+  </ul>
 <p>
-The protein sequence <b>database</b> to search can be:
+The protein <i>sequence-database</i> to search can be:
 </p>
 <ul>
 <li><b>pdb</b> (default) 
@@ -73,6 +80,21 @@ is much larger than <b>pdb</b> alone and takes much longer to search
 &ndash; artificial-intelligence-predicted structures in the
 <a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold Database</a>
 (<a href="alphafold.html">more...</a>)
+  <ul>
+  <li>the <b>version</b> option applies only to the <b>alphafold</b> database
+(<a href="alphafold.html#version">details...</a>)
+  </ul>
+<li><b>esmfold</b> &ndash; artificial-intelligence-predicted structures in the
+<a href="https://esmatlas.com/about#about_this_website" target="_blank">ESM
+Metagenomic Atlas</a> (<a href="esmfold.html">more...</a>)
+<li><b>uniref100</b> &ndash;
+<a href="https://www.uniprot.org/help/uniref"
+target="_blank">UniProt Reference Cluster</a> at 100% identity
+(identical sequences and subfragments collapsed into a single entry)
+   <li><b>uniref90</b> &ndash; based on <b>uniref100</b>, but omitting
+sequences shorter than 11 residues and clustering at 90% identity
+   <li><b>uniref50</b> &ndash; based on <b>uniref100</b>, but omitting
+sequences shorter than 11 residues and clustering at 50% identity
 </ul>
 <p>
 The <b>matrix</b> option indicates which amino acid <i>similarity-matrix</i> 
@@ -111,7 +133,9 @@ and if a structure chain was used as the query,
 automatically superimposes the hit and query structures with
 <a href="../commands/matchmaker.html"><b>matchmaker</b></a>.
 AlphaFold-predicted structures are
-<a href="alphafold.html#colorConfidence">colored by confidence value</a>.
+<a href="alphafold.html#colorConfidence">colored by confidence 0-100</a>.
+ESMFold-predicted structures are
+<a href="esmfold.html#colorConfidence">colored by confidence 0-1</a>.
 <!-- CHECK THIS 
 Double-clicking rows for sequence-only hits shows the
 corresponding web pages in the <a href="https://www.ncbi.nlm.nih.gov/protein"
@@ -126,14 +150,13 @@ sequence alignment</a> with the query.
 The <b>log</b> option indicates whether to also list the results in the
 <a href="../tools/log.html"><b>Log</b></a> (default <b>false</b>).
 </p><p>
-The <b>toolId</b> option allows supplying an integer identifier for 
-a specific instance of the 
-<a href="../tools/blastprotein.html"><b>Blast Protein</b></a> tool,
-allowing multiple panels for different searches to be shown simultaneously. 
-If only one set of results is shown at a time, this option is not needed.
+The <b>name</b> option allows supplying a name for a specific set of
+<a href="../tools/blastprotein.html"><b>Blast Protein</b></a> results,
+which may be useful when several sets of results are shown at the same time. 
+The name appears in the title bar of the results panel.
 </p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-September 2021</address>
+April 2023</address>
 </body></html>

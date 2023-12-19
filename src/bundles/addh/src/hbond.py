@@ -1,14 +1,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.atomic.bond_geom import tetrahedral, planar, linear, single, bond_positions
@@ -81,7 +92,7 @@ def add_hydrogens(session, atom_list, *args):
         if atom.num_explicit_bonds >= substs:
             if atom.element.number == 7 and num_bonds == 3 and geom == planar:
                 for ring in atom.rings():
-                    if aromatic(ring):
+                    if ring.aromatic:
                         if ring in aro_N_rings:
                             aro_N_rings[ring].append(atom)
                         else:
@@ -121,8 +132,7 @@ def add_hydrogens(session, atom_list, *args):
                 aro_N_ring = None
                 if atom.element.number == 7:
                     for ring in atom.rings():
-                        # ring.aromatic can result in computing IDATM types, so check aromaticity "by hand"
-                        if aromatic(ring):
+                        if ring.aromatic:
                             aro_N_ring = ring
                             break
                 if aro_N_ring:
@@ -670,7 +680,7 @@ def add_hydrogens(session, atom_list, *args):
                     protonate.append(pos)
             # ... and the "roomiest" remaining positions.
             needed = hyds_to_position - len(protonate)
-            if needed:
+            if needed and remaining:
                 rooms = roomiest(remaining, a, _room_dist, bonding_info)
                 protonate.extend(rooms[:needed])
             altloc_hpos_info.append((alt_loc, a.occupancy, protonate))
@@ -1450,10 +1460,3 @@ def _do_prune(hbond, pruned, rel_bond, processed, pruned_by):
                     print("pruned hbond (tet check)", [str(a) for a in rel])
                 processed.add(rel)
                 pruned_by.setdefault(hbond, []).append(rel)
-
-def aromatic(ring):
-    # need this since ring.aromatic can cause IDATM type computation, which in turn can wipe out ring lists
-    for ring_atom in ring.atoms:
-        if idatm_type[ring_atom] == 'Car':
-            return True
-    return False

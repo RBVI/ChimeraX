@@ -1,14 +1,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 def select(session, objects=None, residues=False, minimum_length=None, maximum_length=None,
@@ -183,6 +194,15 @@ def report_selection(session):
 def modify_selection(objects, mode, undo_state, full_residues = False):
     select = (mode == 'add')
     atoms, bonds, pbonds, models = _atoms_bonds_models(objects, full_residues = full_residues)
+    if mode == 'subtract' and atoms:
+        # don't leave partially selected bonds/pseudobonds
+        from chimerax.atomic import concatenate, all_pseudobonds
+        bonds = concatenate([bonds, atoms.bonds], remove_duplicates=True)
+        session = atoms.structures[0].session
+        all_pbs = all_pseudobonds(session)
+        a1, a2 = all_pbs.atoms
+        pbonds = concatenate([pbonds, all_pbs.filter(a1.mask(atoms) | a2.mask(atoms))],
+            remove_duplicates=True)
     undo_state.add(atoms, "selected", atoms.selected, select)
     undo_state.add(bonds, "selected", bonds.selected, select)
     undo_state.add(pbonds, "selected", pbonds.selected, select)

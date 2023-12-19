@@ -242,10 +242,11 @@ SteamVR's menu entry to display mirror window.
 The <b>center</b> option (default <b>true</b>)
 centers and scales models in the room.
 <p><p>
+<a name="clickRange"></a>
 The <b>clickRange</b> option sets the depth range for
 picking objects with the hand-controller cones, where <i>r</i>
-(default <b>5.0</b>) is the maximum distance from the tip of the cone 
-to the object in scene distance units, typically &Aring;.
+is the maximum distance from the tip of the cone to the object, 
+in units of meters in the room (default <b>0.10</b>).
 Limiting the range prevents accidentally picking far-away objects.
 </p><p>
 <a name="vrgui"></a>
@@ -679,6 +680,7 @@ was started, not to the <a href="../tools/log.html"><b>Log</b></a>.
 [&nbsp;<b>depthOffset</b>&nbsp;&nbsp;<i>offset</i>&nbsp;]
 [&nbsp;<b>verbose</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>quilt</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>saveQuiltImage</b>&nbsp;&nbsp;<i>png-file</i>&nbsp;]
 [&nbsp;<b>deviceNumber</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
 <blockquote>
 The command <b>lookingglass</b> (same as <b>device lookingglass</b>)
@@ -691,6 +693,7 @@ This device uses 45 images spanned by the horizontal <b>viewAngle</b>
 (default <b>40</b>&deg;). 
 Each image is rendered with the specified <b>fieldOfView</b> 
 (default <b>22</b>&deg; recommended by the device manufacturer).
+See also: <a href="camera.html"><b>camera</b></a>
 </p><p>
 The <b>depthOffset</b> (default <b>0.0</b> &Aring;)
 is the position of the center of the bounding box of displayed models
@@ -705,15 +708,21 @@ the <a href="ui.html#mousemode"><b>mousemode</b></a> command.
 The <b>verbose</b> option (default <b>false</b>) 
 gives technical device parameters in the
 <a href="../tools/log.html"><b>Log</b></a>.
+</p><p>
 The <b>quilt</b> option (default <b>false</b>) shows the 45 images as
-tiled in a separate window and is used for debugging.
-The <b>deviceNumber</b> option (not yet working) designates a
+tiled in a separate window and is used for debugging, 
+whereas the <b>saveQuiltImage</b> option allows saving a PNG image
+of pixel size 4096 by 4096 with 9 rows and 5 columns. 
+The <i>png-file</i> may be specified as a file pathname,
+enclosed in quotation marks if it includes spaces,
+or the word <a href="usageconventions.html#browse"><b>browse</b></a>
+to specify it interactively in a file browser window.
+</p><p>
+The <b>deviceNumber</b> option (not tested) designates a
 specific Looking Glass device when more than one is connected.
-See also:
-<a href="camera.html"><b>camera</b></a>
 </p>
 </blockquote>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-September 2021</address>
+October 2023</address>
 </body></html>

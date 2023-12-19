@@ -234,3 +234,4 @@ What's Next
 - :doc:`tutorial_save_format` (next topic)
 - :doc:`tutorial_fetch`
 - :doc:`tutorial_selector`
+- :doc:`tutorial_presets`

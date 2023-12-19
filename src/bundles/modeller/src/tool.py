@@ -30,19 +30,19 @@ class ModellerLauncher(ToolInstance):
         self.settings = settings = get_settings(session, tool_name)
         self.help = "help:user/tools/modeller.html" if hasattr(settings, "multichain") \
             else "help:user/tools/modelloops.html"
-        common_settings = get_settings(session, "license")
-        from Qt.QtWidgets import QListWidget, QFormLayout, QAbstractItemView, QGroupBox, QVBoxLayout
+        self.common_settings = common_settings = get_settings(session, "license")
+        from Qt.QtWidgets import QFormLayout, QAbstractItemView, QGroupBox, QVBoxLayout
         from Qt.QtWidgets import QDialogButtonBox as qbbox
         from Qt.QtCore import Qt
         interface_layout = QVBoxLayout()
-        interface_layout.setContentsMargins(0,0,0,0)
+        interface_layout.setContentsMargins(0, 0, 0, 0)
         interface_layout.setSpacing(0)
         parent.setLayout(interface_layout)
         alignments_area = QGroupBox("Sequence alignments")
         interface_layout.addWidget(alignments_area)
         interface_layout.setStretchFactor(alignments_area, 1)
         alignments_layout = QVBoxLayout()
-        alignments_layout.setContentsMargins(0,0,0,0)
+        alignments_layout.setContentsMargins(0, 0, 0, 0)
         alignments_area.setLayout(alignments_layout)
         self.alignment_list = AlignmentListWidget(session)
         self.alignment_list.setSelectionMode(QAbstractItemView.ExtendedSelection)
@@ -59,69 +59,37 @@ class ModellerLauncher(ToolInstance):
         self._update_sequence_menus(session.alignments.alignments)
         options_area = QGroupBox("Options")
         options_layout = QVBoxLayout()
-        options_layout.setContentsMargins(0,0,0,0)
+        options_layout.setContentsMargins(0, 0, 0, 0)
         options_area.setLayout(options_layout)
         interface_layout.addWidget(options_area)
         interface_layout.setStretchFactor(options_area, 2)
         from chimerax.ui.options import CategorizedSettingsPanel, BooleanOption, IntOption, PasswordOption,\
-            OutputFolderOption, SymbolicEnumOption, EnumOption
+            OutputFolderOption, SymbolicEnumOption, EnumOption, InputFileOption
         panel = CategorizedSettingsPanel(category_sorting=False, option_sorting=False, buttons=False)
         options_layout.addWidget(panel)
         if hasattr(settings, "multichain"):
-            panel.add_option("Basic", BooleanOption("Make multichain model from multichain template",
-                settings.multichain, None, balloon=
-                "If false, all chains (templates) associated with an alignment will be used in\n"
-                "combination to model the target sequence of that alignment, i.e. a monomer will be\n"
-                "generated from the alignment.  If true, the target sequence will be modeled from each\n"
-                "template, i.e. a multimer will be generated from the alignment (assuming multiple chains\n"
-                "are associated).", attr_name="multichain", settings=settings))
+            panel.add_option(
+                "Basic"
+                , BooleanOption(
+                    "Make multichain model from multichain template",
+                    settings.multichain, None, balloon=
+                    "If false, all chains (templates) associated with an alignment will be used in\n"
+                    "combination to model the target sequence of that alignment, i.e. a monomer will be\n"
+                    "generated from the alignment.  If true, the target sequence will be modeled from each\n"
+                    "template, i.e. a multimer will be generated from the alignment (assuming multiple chains\n"
+                    "are associated).", attr_name="multichain", settings=settings
+                )
+            )
         max_models = 1000
-        panel.add_option("Basic", IntOption("Number of models", settings.num_models, None,
-            attr_name="num_models", settings=settings, min=1, max=max_models, balloon=
-            "Number of model structures to generate.  Must be no more than %d.\n"
-            "Warning: please consider the calculation time" % max_models))
-        class ExecutionTypeOption(SymbolicEnumOption):
-            values = (False, True)
-            labels = ("web service", "local machine")
-        panel.add_option("Basic", ExecutionTypeOption("Computation location",
-            common_settings.local_execution, self.show_execution_options, attr_name="local_execution",
-            settings=common_settings, balloon="Run computation using RBVI web service or on the local"
-            " machine"))
-        self.web_container, web_options = panel.add_option_group("Basic",
-            group_label="Web execution parameters")
-        layout = QVBoxLayout()
-        self.web_container.setLayout(layout)
-        layout.addWidget(web_options, alignment=Qt.AlignLeft)
-        key = "" if common_settings.license_key is None else common_settings.license_key
-        password_opt = PasswordOption('<a href="https://www.salilab.org/modeller/registration.html">Modeller'
-            ' license key</a>', key, None, attr_name="license_key", settings=common_settings, balloon=
-            "Your Modeller license key.  You can obtain a license key by registering at the Modeller web"
-            " site")
-        password_opt.widget.setMinimumWidth(120)
-        web_options.add_option(password_opt)
-        self.local_container, local_options = panel.add_option_group("Basic",
-            group_label="Local execution parameters")
-        layout = QVBoxLayout()
-        self.local_container.setLayout(layout)
-        layout.addWidget(local_options, alignment=Qt.AlignLeft)
-        #TODO
-        panel.add_option("Advanced", BooleanOption(
-            "Use fast/approximate mode",
-            settings.fast, None, attr_name="fast", settings=settings, balloon=
-            "If enabled, use a fast approximate method to generate models.\n"
-            "Typically used to get a rough idea what the models will look like or\n"
-            "to check that the alignment is reasonable."))
-        if hasattr(settings, "het_preserve"):
-            panel.add_option("Advanced", BooleanOption("Include non-water HETATM residues from template",
-                settings.het_preserve, None, attr_name="het_preserve", settings=settings, balloon=
-                "If enabled, all non-water HETATM residues in the template\n"
-                "structure(s) will be transferred into the generated models."))
-        if hasattr(settings, "hydrogens"):
-            panel.add_option("Advanced", BooleanOption("Build models with hydrogens",
-                settings.hydrogens, None, attr_name="hydrogens", settings=settings, balloon=
-                "If enabled, the generated models will include hydrogen atoms.\n"
-                "Otherwise, only heavy atom coordinates will be built.\n"
-                "Increases computation time by approximately a factor of 4."))
+        panel.add_option(
+            "Basic"
+            , IntOption(
+                "Number of models", settings.num_models, None,
+                attr_name="num_models", settings=settings, min=1, max=max_models, balloon=
+                "Number of model structures to generate.  Must be no more than %d.\n"
+                "Warning: please consider the calculation time" % max_models
+            )
+        )
         if hasattr(settings, "region"):
             from .loops import ALL_MISSING, INTERNAL_MISSING
             class RegionOption(SymbolicEnumOption):
@@ -131,37 +99,140 @@ class ModellerLauncher(ToolInstance):
                     "internal missing structure",
                     "active sequence-viewer region"
                 )
-            panel.add_option("Basic", RegionOption("Model", settings.region, None, attr_name="region",
-                settings=settings, balloon="Parts of the structure(s) to remodel/refine"))
+            panel.add_option(
+                "Basic"
+                , RegionOption(
+                    "Model", settings.region, None, attr_name="region",
+                    settings=settings, balloon="Parts of the structure(s) to remodel/refine"
+                )
+            )
         if hasattr(settings, "adjacent_flexible"):
-            panel.add_option("Basic", IntOption("Adjacent flexible residues", settings.adjacent_flexible,
-                None, attr_name="adjacent_flexible", settings=settings, min=0, max=100, balloon= 
-                "Number of residues adjacent to explicitly modeled region to also treat as flexible\n"
-                "(i.e. remodel as needed)."))
+            panel.add_option(
+                "Basic"
+                , IntOption(
+                    "Adjacent flexible residues", settings.adjacent_flexible,
+                    None, attr_name="adjacent_flexible", settings=settings, min=0, max=100,
+                    balloon="Number of residues adjacent to explicitly modeled region to also treat as flexible\n"
+                    "(i.e. remodel as needed)."
+                )
+            )
+        class ExecutionTypeOption(SymbolicEnumOption):
+            values = (False, True)
+            labels = ("web service", "local machine")
+        execution_option = ExecutionTypeOption(
+            "Computation location", common_settings.local_execution,
+            self.show_execution_options, attr_name="local_execution", settings=common_settings,
+            balloon="Run computation using RBVI web service or on the local machine"
+        )
+        panel.add_option("Basic", execution_option)
+        self.web_container, web_options = panel.add_option_group(
+            "Basic", group_label="Web execution parameters"
+        )
+        layout = QVBoxLayout()
+        self.web_container.setLayout(layout)
+        layout.addWidget(web_options, alignment=Qt.AlignLeft)
+        key = "" if common_settings.license_key is None else common_settings.license_key
+        password_opt = PasswordOption(
+            '<a href="https://www.salilab.org/modeller/registration.html">Modeller'
+            ' license key</a>', key, None, attr_name="license_key", settings=common_settings, balloon=
+            "Your Modeller license key.  You can obtain a license key by registering at the Modeller web"
+            " site"
+        )
+        password_opt.widget.setMinimumWidth(120)
+        web_options.add_option(password_opt)
+        self.local_container, local_options = panel.add_option_group(
+            "Basic", group_label="Local execution parameters"
+        )
+        layout = QVBoxLayout()
+        self.local_container.setLayout(layout)
+        layout.addWidget(local_options, alignment=Qt.AlignLeft)
+        import sys
+        if sys.platform == 'win32':
+            balloon_add = ".\nThe executable is typically located within a subfolder of the 'lib'\nfolder of your Modeller installation."
+        else:
+            balloon_add = ""
+        local_options.add_option(
+            InputFileOption(
+                "Executable location", common_settings.executable_path,
+                None, attr_name="executable_path", settings=common_settings, balloon="Full path to Modeller"
+                " executable" + balloon_add
+            )
+        )
+        self.show_execution_options(execution_option)
+        panel.add_option(
+            "Advanced"
+            , BooleanOption(
+                "Use fast/approximate mode",
+                settings.fast, None, attr_name="fast", settings=settings, balloon=
+                "If enabled, use a fast approximate method to generate models.\n"
+                "Typically used to get a rough idea what the models will look like or\n"
+                "to check that the alignment is reasonable."
+            )
+        )
+        if hasattr(settings, "het_preserve"):
+            panel.add_option(
+                "Advanced"
+                , BooleanOption(
+                    "Include non-water HETATM residues from template",
+                    settings.het_preserve, None, attr_name="het_preserve", settings=settings, balloon=
+                    "If enabled, all non-water HETATM residues in the template\n"
+                    "structure(s) will be transferred into the generated models."
+                )
+            )
+        if hasattr(settings, "hydrogens"):
+            panel.add_option(
+                "Advanced"
+                , BooleanOption(
+                    "Build models with hydrogens",
+                    settings.hydrogens, None, attr_name="hydrogens", settings=settings, balloon=
+                    "If enabled, the generated models will include hydrogen atoms.\n"
+                    "Otherwise, only heavy atom coordinates will be built.\n"
+                    "Increases computation time by approximately a factor of 4."
+                )
+            )
         if hasattr(settings, "protocol"):
             from .loops import protocols
             class ProtocolOption(EnumOption):
                 values = protocols
-            panel.add_option("Advanced", ProtocolOption("Protocol", settings.protocol, None,
-                attr_name="protocol", settings=settings,
-                balloon="Protocol to use to compute modeling"))
-        panel.add_option("Advanced", OutputFolderOption("Temporary folder location (optional)",
-            settings.temp_path, None, attr_name="temp_path", settings=settings, balloon=
-            "Specify a folder for temporary files.  If not specified,\n"
-            "a location will be generated automatically."))
+            panel.add_option(
+                "Advanced"
+                , ProtocolOption(
+                    "Protocol", settings.protocol, None,
+                    attr_name="protocol", settings=settings,
+                    balloon="Protocol to use to compute modeling"
+                )
+            )
+        panel.add_option(
+            "Advanced"
+            , OutputFolderOption(
+                "Temporary folder location (optional)",
+                settings.temp_path, None, attr_name="temp_path", settings=settings, balloon=
+                "Specify a folder for temporary files.  If not specified,\n"
+                "a location will be generated automatically."
+            )
+        )
         if hasattr(settings, "water_preserve"):
-            panel.add_option("Advanced", BooleanOption("Include water molecules from template",
-                settings.water_preserve, None, attr_name="water_preserve", settings=settings, balloon=
-                "If enabled, all water molecules in the template\n"
-                "structure(s) will be included in the generated models."))
+            panel.add_option(
+                "Advanced"
+                , BooleanOption(
+                    "Include water molecules from template",
+                    settings.water_preserve, None, attr_name="water_preserve", settings=settings, balloon=
+                    "If enabled, all water molecules in the template\n"
+                    "structure(s) will be included in the generated models."
+                )
+            )
         from Qt.QtCore import Qt
         from chimerax.ui.widgets import Citation
-        interface_layout.addWidget(Citation(session,
-            "A. Sali and T.L. Blundell.\n"
-            "Comparative protein modelling by satisfaction of spatial restraints.\n"
-            "J. Mol. Biol. 234, 779-815, 1993.",
-            prefix="Publications using Modeller results should cite:", pubmed_id=18428767),
-            alignment=Qt.AlignCenter)
+        interface_layout.addWidget(
+            Citation(
+                session,
+                "A. Sali and T.L. Blundell.\n"
+                "Comparative protein modelling by satisfaction of spatial restraints.\n"
+                "J. Mol. Biol. 234, 779-815, 1993.",
+                prefix="Publications using Modeller results should cite:", pubmed_id=18428767
+            ),
+            alignment=Qt.AlignCenter
+        )
         bbox = qbbox(qbbox.Ok | qbbox.Cancel | qbbox.Help)
         bbox.accepted.connect(self.launch_modeller)
         bbox.rejected.connect(self.delete)
@@ -169,13 +240,21 @@ class ModellerLauncher(ToolInstance):
         bbox.helpRequested.connect(lambda *, run=run, ses=session: run(ses, "help " + self.help))
         interface_layout.addWidget(bbox)
         self.tool_window.manage(None)
+        # following hack needed because something in the main window raises it above this tool,
+        # seemingly only when launched from viewer context menu instead of main menu
+        from Qt.QtCore import QTimer
+        def cb(*args, tw=self.tool_window):
+            # since this is such a hack, not yet adding direct access raise() from ToolWindow
+            tw._dock_widget.raise_()
+        def cb2(*args, cb=cb):
+            QTimer.singleShot(0, cb)
+        QTimer.singleShot(0, cb2)
 
     def delete(self):
         ToolInstance.delete(self)
 
     def launch_modeller(self):
         from chimerax.core.commands import run, FileNameArg, StringArg
-        from chimerax.atomic import UniqueChainsArg
         from chimerax.core.errors import UserError
         alignments = self.alignment_list.value
         if not alignments:
@@ -186,7 +265,7 @@ class ModellerLauncher(ToolInstance):
             seq = seq_menu.value
             if not seq:
                 raise UserError("No target sequence chosen for alignment %s" % aln.ident)
-            aln_seq_arg = "%s:%d" % (aln.ident, aln.seqs.index(seq)+1)
+            aln_seq_arg = "%s:%d" % (aln.ident, aln.seqs.index(seq) + 1)
             if hasattr(self.settings, "region"):
                 from .loops import ALL_MISSING, INTERNAL_MISSING
                 if self.settings.region in (ALL_MISSING, INTERNAL_MISSING):
@@ -205,20 +284,20 @@ class ModellerLauncher(ToolInstance):
                     seq_index = aln.seqs.index(seq)
                     if aln.seqs.index(line1) > seq_index or aln.seqs.index(line2) < seq_index:
                         raise UserError("Active region for alignment %s does not include target sequence"
-                            % aln)
+                                        % aln)
                     sub_ranges = []
                     for l1, l2, start, end in active_region.blocks:
                         if start == end:
-                            sub_ranges.append(str(start+1))
+                            sub_ranges.append(str(start + 1))
                         else:
-                            sub_ranges.append("%d-%d" % (start+1, end+1))
+                            sub_ranges.append("%d-%d" % (start + 1, end + 1))
                     reg_arg = ','.join(sub_ranges)
                 aln_seq_arg += ':' + reg_arg
             aln_seq_args.append(StringArg.unparse(aln_seq_arg))
         if hasattr(self.settings, "region"):
             sub_cmd = "refine"
             specific_args = "adjacentFlexible %d protocol %s" % (self.settings.adjacent_flexible,
-                StringArg.unparse(self.settings.protocol))
+                                                                 StringArg.unparse(self.settings.protocol))
         else:
             sub_cmd = "comparative"
             specific_args = "multichain %s hetPreserve %s hydrogens %s waterPreserve %s" % (
@@ -226,13 +305,24 @@ class ModellerLauncher(ToolInstance):
                 repr(self.settings.het_preserve).lower(),
                 repr(self.settings.hydrogens).lower(),
                 repr(self.settings.water_preserve).lower())
-        run(self.session, ("modeller %s %s numModels %d fast %s " % (sub_cmd,  " ".join(aln_seq_args),
-            self.settings.num_models, repr(self.settings.fast).lower()) + specific_args + (" tempPath %s"
-            % FileNameArg.unparse(self.settings.temp_path) if self.settings.temp_path else "")))
+        if self.common_settings.local_execution:
+            specific_args += " executableLocation %s" % StringArg.unparse(
+                self.common_settings.executable_path)
+        run(
+            self.session
+            , ("modeller %s %s numModels %d fast %s " % (sub_cmd, " ".join(aln_seq_args),
+               self.settings.num_models, repr(self.settings.fast).lower()) + specific_args + (" directory %s"
+               % FileNameArg.unparse(self.settings.temp_path) if self.settings.temp_path else ""))
+        )
         self.delete()
 
     def show_execution_options(self, opt):
-        pass
+        if opt.value:
+            self.local_container.show()
+            self.web_container.hide()
+        else:
+            self.web_container.show()
+            self.local_container.hide()
 
     def _list_selection_cb(self):
         layout = self.targets_layout
@@ -288,9 +378,9 @@ class ModellerResultsViewer(ToolInstance):
         self.tool_window.fill_context_menu = self.fill_context_menu
         parent = self.tool_window.ui_area
 
-        from Qt.QtWidgets import QTableWidget, QVBoxLayout, QAbstractItemView, QWidget, QPushButton
+        from Qt.QtWidgets import QTableWidget, QVBoxLayout, QAbstractItemView
         layout = QVBoxLayout()
-        layout.setContentsMargins(0,0,0,0)
+        layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
         parent.setLayout(layout)
         self.table = QTableWidget()
@@ -321,7 +411,7 @@ class ModellerResultsViewer(ToolInstance):
             concise_model_spec(self.session, self.models), str(refresh).lower()))
 
     def fill_context_menu(self, menu, x, y):
-        from Qt.QtWidgets import QAction
+        from Qt.QtGui import QAction
         if self.scores_fetched:
             refresh_action = QAction("Refresh Scores", menu)
             refresh_action.triggered.connect(lambda arg: self.fetch_additional_scores(refresh=True))
@@ -364,17 +454,21 @@ class ModellerResultsViewer(ToolInstance):
 
     def _fill_table(self, *args):
         self.table.clear()
-        self.table.setColumnCount(len(self.attr_names)+1)
-        self.table.setHorizontalHeaderLabels(["Model"] + [attr_name[9:].replace('_', ' ')
-            for attr_name in self.attr_names])
+        self.table.setColumnCount(len(self.attr_names) + 1)
+        self.table.setHorizontalHeaderLabels(
+            ["Model"] + [attr_name[9:].replace('_', ' ') for attr_name in self.attr_names]
+        )
         self.table.setRowCount(len(self.models))
         from Qt.QtWidgets import QTableWidgetItem
         for row, m in enumerate(self.models):
             item = QTableWidgetItem('#' + m.id_string)
             self.table.setItem(row, 0, item)
             for c, attr_name in enumerate(self.attr_names):
-                self.table.setItem(row, c+1, QTableWidgetItem("%g" % getattr(m, attr_name)
-                    if hasattr(m, attr_name) else ""))
+                self.table.setItem(
+                    row
+                    , c + 1
+                    , QTableWidgetItem("%g" % getattr(m, attr_name) if hasattr(m, attr_name) else "")
+                )
         for i in range(self.table.columnCount()):
             self.table.resizeColumnToContents(i)
 

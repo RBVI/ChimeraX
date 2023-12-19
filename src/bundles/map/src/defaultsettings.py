@@ -1,14 +1,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 # -----------------------------------------------------------------------------
@@ -17,36 +28,13 @@
 # This should probably be unified with session saving, but is currently
 # completely separate.
 #
-    
-# ---------------------------------------------------------------------------
+
+# -----------------------------------------------------------------------------
 #
-class VolumeDefaultSettings:
+from chimerax.core.settings import Settings
 
-  def __init__(self):
-
-    options = self.factory_defaults()
-#    from chimera import preferences
-#    self.saved_prefs = preferences.addCategory('Volume Viewer',
-#                                               preferences.HiddenCategory,
-#                                               optDict = options)
-    self.current_prefs = options.copy()
-    self.change_callbacks = []
-
-    #
-    # Fix values from old preferences files (<= 1.2154) which were written
-    # as strings instead of floats.
-    #
-    cp = self.current_prefs
-    for name in ('box_padding', 'data_cache_size', 'voxel_limit',
-                 'voxel_limit_for_open'):
-      if name in cp and type(cp[name]) is str:
-        cp[name] = float(cp[name])
-    
-  # ---------------------------------------------------------------------------
-  #
-  def factory_defaults(self):
-
-    defaults = {
+class _VolumeSettings(Settings):
+    EXPLICIT_SAVE = {
         'max_histograms': 1000,
         'use_initial_colors': True,
         'initial_colors': ((.7,.7,.7,1),
@@ -114,18 +102,38 @@ class VolumeDefaultSettings:
         'image_mode': 'full region',
         'backing_color': None,
     }
+    
+# ---------------------------------------------------------------------------
+#
+class VolumeDefaultSettings:
 
-    try:
-      import psutil
-      m = psutil.virtual_memory()
-      msize = m.total
-    except Exception:
-      msize = 2**32
-    csize = msize//2
-    csize_mb = csize/(2**20)
-    defaults['data_cache_size'] = csize_mb
+  def __init__(self, session):
 
-    return defaults
+    self._settings = _VolumeSettings(session, 'volume')
+    self.change_callbacks = []
+
+  # ---------------------------------------------------------------------------
+  #
+  def __getitem__(self, key):
+
+    if key == 'data_cache_size':
+      return self.data_cache_size()	# Compute default value if none is saved.
+    return getattr(self._settings, key)
+
+  # ---------------------------------------------------------------------------
+  #
+  def data_cache_size(self):
+    csize_mb = self._settings.data_cache_size
+    if csize_mb is None:
+        try:
+          import psutil
+          m = psutil.virtual_memory()
+          msize = m.total
+        except Exception:
+          msize = 2**32
+        csize = msize//2
+        csize_mb = csize/(2**20)
+    return csize_mb
 
   # ---------------------------------------------------------------------------
   #
@@ -172,34 +180,24 @@ class VolumeDefaultSettings:
 
   # ---------------------------------------------------------------------------
   #
-  def __getitem__(self, key):
-
-    return self.current_prefs[key]
-
-  # ---------------------------------------------------------------------------
-  #
   def set_gui_to_defaults(self, dialog, data_settings = True,
                           global_settings = True, panel_settings = True):
 
     d = dialog
-    p = self.current_prefs
+    s = self._settings
 
     global_settings = False
     if global_settings:
       srp = d.subregion_panel
-      srp.selectable_subregions.set(p['selectable_subregions'],
-                                    invoke_callbacks = 0)
-      srp.subregion_button.set(p['subregion_button'],
-                               invoke_callbacks = 0)
-      srp.auto_show_subregion.set(p['auto_show_subregion'],
-                                  invoke_callbacks = 0)
+      srp.selectable_subregions.set(s.selectable_subregions, invoke_callbacks = 0)
+      srp.subregion_button.set(s.subregion_button, invoke_callbacks = 0)
+      srp.auto_show_subregion.set(s.auto_show_subregion, invoke_callbacks = 0)
       
       zp = d.zone_panel
-      zp.zone_radius.set_value(number_string(p['zone_radius']),
-                               invoke_callbacks = 0)
+      zp.zone_radius.set_value(number_string(s.zone_radius), invoke_callbacks = 0)
 
       abp = d.atom_box_panel
-      abp.box_padding.set(number_string(p['box_padding']), invoke_callbacks = 0)
+      abp.box_padding.set(number_string(s.box_padding), invoke_callbacks = 0)
 
       dop = d.display_options_panel
       dop.set_gui_state(p)
@@ -217,8 +215,8 @@ class VolumeDefaultSettings:
       sop.set_gui_from_rendering_options(ro_defaults)
 
     if panel_settings:
-#      d.update_default_panels(p['shown_panels'])
-      d.show_panels(p['shown_panels'])
+#      d.update_default_panels(s.shown_panels)
+      d.show_panels(s.shown_panels)
 
   # ---------------------------------------------------------------------------
   #
@@ -226,10 +224,10 @@ class VolumeDefaultSettings:
     
     from .volume import RenderingOptions
     ro = RenderingOptions()
-    p = self.current_prefs
+    s = self._settings
     
     for attr in self.rendering_option_names():
-      setattr(ro, attr, p[attr])
+      setattr(ro, attr, getattr(s, attr))
 
     return ro
 
@@ -239,7 +237,7 @@ class VolumeDefaultSettings:
                             global_settings = True, panel_settings = True):
 
     d = dialog
-    p = self.current_prefs
+    p = self._settings
     s = {}
 
     if data_settings:
@@ -254,16 +252,16 @@ class VolumeDefaultSettings:
       s['auto_show_subregion'] = srp.auto_show_subregion.get()
 
       zp = d.zone_panel
-      s['zone_radius'] = float_value(zp.zone_radius.value(), p['zone_radius'])
+      s['zone_radius'] = float_value(zp.zone_radius.value(), p.zone_radius)
 
       abp = d.atom_box_panel
-      s['box_padding'] = float_value(abp.box_padding.get(), p['box_padding'])
+      s['box_padding'] = float_value(abp.box_padding.get(), p.box_padding)
 
       dop = d.display_options_panel
       dop.get_gui_state(s)
 
     if panel_settings:
-      s['shown_panels'] = [p.name for p in dialog.shown_panels()]
+      s['shown_panels'] = [panel.name for panel in dialog.shown_panels()]
 
     self.update(s)
     
@@ -271,7 +269,7 @@ class VolumeDefaultSettings:
   #
   def set(self, key, value):
 
-    self.current_prefs[key] = value
+    setattr(self._settings, key, value)
 
   # ---------------------------------------------------------------------------
   #
@@ -298,38 +296,18 @@ class VolumeDefaultSettings:
 
   # ---------------------------------------------------------------------------
   #
-  def save_to_preferences_file(self, data_settings = True,
-                               global_settings = True, panel_settings = True):
+  def save_to_preferences_file(self):
 
-    keys = []
-    if data_settings:
-      keys.extend(self.rendering_option_names())
-    if global_settings:
-      keys.extend(['selectable_subregions', 'subregion_button', 'zone_radius',
-                   'box_padding', 'max_histograms',
-                   'use_initial_colors', 'initial_colors',
-                   'immediate_update', 'show_on_open', 'voxel_limit_for_open',
-                   'show_plane', 'voxel_limit_for_plane',
-                   'voxel_limit_for_plane', 'limit_voxel_count', 'voxel_limit',
-                   'data_cache_size', 'data_cache_size',
-                   'auto_show_subregion', 'adjust_camera'])
-    if panel_settings:
-      keys.extend(['shown_panels'])
-
-    s = self.saved_prefs
-    p = self.current_prefs
-    for key in keys:
-      s.set(key, p[key], saveToFile = False)
-    s.saveToFile()
+    self._settings.save()
 
   # ---------------------------------------------------------------------------
   #
-  def restore_factory_defaults(self, dialog):
+  def restore_factory_defaults(self, dialog = None):
 
-    options = self.factory_defaults()
-    self.current_prefs = options.copy()
-    self.saved_prefs.load(options.copy())
-    self.set_gui_to_defaults(dialog)
+    for key, value in self._settings.EXPLICIT_SAVE.items():
+      self.set(key, value)
+    if dialog is not None:
+      self.set_gui_to_defaults(dialog)
     
 # ---------------------------------------------------------------------------
 # Represent float values that are integers without a decimal point.

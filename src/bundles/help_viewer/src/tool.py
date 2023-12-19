@@ -22,7 +22,10 @@ from chimerax.ui.widgets.htmlview import (
     ChimeraXHtmlView, chimerax_intercept,
     create_chimerax_profile
 )
-from Qt.QtWebEngineCore import QWebEngineUrlSchemeHandler
+from Qt.QtWebEngineCore import (
+        QWebEngineUrlSchemeHandler, QWebEnginePage,
+        QWebEngineDownloadRequest
+)
 
 _singleton = None
 _sys_tags = None
@@ -54,7 +57,6 @@ class _HelpWebView(ChimeraXHtmlView):
 
     def createWindow(self, win_type):  # noqa
         # win_type is window, tab, dialog, backgroundtab
-        from Qt.QtWebEngineWidgets import QWebEnginePage
         background = win_type == QWebEnginePage.WebBrowserBackgroundTab
         return self.help_tool.create_tab(background=background)
 
@@ -64,11 +66,10 @@ class _HelpWebView(ChimeraXHtmlView):
 
     def contextMenuEvent(self, event):
         # inpsired by qwebengine simplebrowser example
-        from Qt.QtWebEngineWidgets import QWebEnginePage
         from Qt.QtCore import Qt
         page = self.page()
         # keep reference to menu, so it doesn't get deleted before being shown
-        self._context_menu = menu = page.createStandardContextMenu()
+        self._context_menu = menu = self.createStandardContextMenu()
         menu.setAttribute(Qt.WA_DeleteOnClose, True)
         action = page.action(QWebEnginePage.OpenLinkInThisWindow)
         actions = iter(menu.actions())
@@ -102,27 +103,27 @@ class HelpUI(ToolInstance):
         parent = self.tool_window.ui_area
 
         # UI content code
-        from Qt.QtWidgets import QToolBar, QVBoxLayout, QAction, QLineEdit, QTabWidget, QShortcut, QStatusBar, QProgressBar
-        from Qt.QtGui import QIcon
+        from Qt.QtWidgets import QToolBar, QVBoxLayout, QLineEdit, QTabWidget, QShortcut, QStatusBar, QProgressBar
+        from Qt.QtGui import QIcon, QAction, QKeySequence
         from Qt.QtCore import Qt
         shortcuts = (
-            (Qt.CTRL + Qt.Key_0, self.page_reset_zoom),
-            (Qt.CTRL + Qt.Key_T, lambda: self.create_tab(empty=True)),
-            (Qt.CTRL + Qt.Key_W, self.close_current_tab),
-            (Qt.CTRL + Qt.Key_Tab, lambda: self.cycle_tab(1)),
-            (Qt.CTRL + Qt.SHIFT + Qt.Key_Tab, lambda: self.cycle_tab(-1)),
-            (Qt.CTRL + Qt.Key_1, lambda: self.tab_n(0)),
-            (Qt.CTRL + Qt.Key_2, lambda: self.tab_n(1)),
-            (Qt.CTRL + Qt.Key_3, lambda: self.tab_n(2)),
-            (Qt.CTRL + Qt.Key_4, lambda: self.tab_n(3)),
-            (Qt.CTRL + Qt.Key_5, lambda: self.tab_n(4)),
-            (Qt.CTRL + Qt.Key_6, lambda: self.tab_n(5)),
-            (Qt.CTRL + Qt.Key_7, lambda: self.tab_n(6)),
-            (Qt.CTRL + Qt.Key_8, lambda: self.tab_n(7)),
-            (Qt.CTRL + Qt.Key_9, lambda: self.tab_n(-1)),
+            (Qt.CTRL | Qt.Key_0, self.page_reset_zoom),
+            (Qt.CTRL | Qt.Key_T, lambda: self.create_tab(empty=True)),
+            (Qt.CTRL | Qt.Key_W, self.close_current_tab),
+            (Qt.CTRL | Qt.Key_Tab, lambda: self.cycle_tab(1)),
+            (Qt.CTRL | Qt.SHIFT | Qt.Key_Tab, lambda: self.cycle_tab(-1)),
+            (Qt.CTRL | Qt.Key_1, lambda: self.tab_n(0)),
+            (Qt.CTRL | Qt.Key_2, lambda: self.tab_n(1)),
+            (Qt.CTRL | Qt.Key_3, lambda: self.tab_n(2)),
+            (Qt.CTRL | Qt.Key_4, lambda: self.tab_n(3)),
+            (Qt.CTRL | Qt.Key_5, lambda: self.tab_n(4)),
+            (Qt.CTRL | Qt.Key_6, lambda: self.tab_n(5)),
+            (Qt.CTRL | Qt.Key_7, lambda: self.tab_n(6)),
+            (Qt.CTRL | Qt.Key_8, lambda: self.tab_n(7)),
+            (Qt.CTRL | Qt.Key_9, lambda: self.tab_n(-1)),
         )
         for shortcut, callback in shortcuts:
-            sc = QShortcut(shortcut, parent)
+            sc = QShortcut(QKeySequence(shortcut), parent)
             sc.activated.connect(callback)
         self.toolbar = tb = QToolBar()
         # tb.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
@@ -143,9 +144,9 @@ class HelpUI(ToolInstance):
             ("new_tab", "New Tab", "New Tab", lambda: self.create_tab(empty=True),
                 Qt.Key_Reload, True),
             ("zoom_in", "Zoom in", "Zoom in", self.page_zoom_in,
-                [Qt.CTRL + Qt.Key_Plus, Qt.Key_ZoomIn, Qt.CTRL + Qt.Key_Equal], True),
+                [Qt.CTRL | Qt.Key_Plus, Qt.Key_ZoomIn, Qt.CTRL | Qt.Key_Equal], True),
             ("zoom_out", "Zoom out", "Zoom out", self.page_zoom_out,
-                [Qt.CTRL + Qt.Key_Minus, Qt.Key_ZoomOut], True),
+                [Qt.CTRL | Qt.Key_Minus, Qt.Key_ZoomOut], True),
             ("home", "Home", "Home page", self.page_home,
                 Qt.Key_HomePage, True),
             (None, None, None, None, None, None),
@@ -183,7 +184,17 @@ class HelpUI(ToolInstance):
         self.search_terms.returnPressed.connect(self.page_search)
         tb.addWidget(self.search_terms)
 
-        self.tabs = QTabWidget(parent)
+        class SizedTabs(QTabWidget):
+            allow_smaller = False
+            def minimumSizeHint(self):
+                from Qt.QtCore import QSize, QTimer
+                if not self.allow_smaller:
+                    QTimer.singleShot(10, lambda *args, s=self: setattr(s, 'allow_smaller', True))
+                if self.allow_smaller:
+                    return super().minimumSizeHint()
+                return QSize(840, 800)
+
+        self.tabs = SizedTabs(parent)
         self.tabs.setTabsClosable(True)
         self.tabs.setUsesScrollButtons(True)
         self.tabs.setTabBarAutoHide(True)
@@ -275,7 +286,7 @@ class HelpUI(ToolInstance):
 
             def reject(self):
                 from Qt.QtNetwork import QAuthenticator
-                import sip
+                from pyqt import sip
                 sip.assign(auth, QAuthenticator())
                 return super().reject()
 
@@ -285,7 +296,7 @@ class HelpUI(ToolInstance):
                 return super().accept()
 
         p = PasswordDialog(requestUrl, auth)
-        p.exec_()
+        p.exec()
 
     def intercept(self, request_info, *args):
         # check for help:user and generate the index page if need be
@@ -356,28 +367,37 @@ class HelpUI(ToolInstance):
             item.setDownloadDirectory(dirname)
             item.setDownloadFileName(filename)
         # print("HelpUI.download_requested accept", file_path)
-        item.downloadProgress.connect(self.download_progress)
-        item.finished.connect(lambda *args, **kw: self.download_finished(*args, **kw, item=item, is_wheel=is_wheel))
+        item.totalBytesChanged.connect(lambda: self.change_total_bytes(item=item))
+        item.receivedBytesChanged.connect(lambda: self.change_received_bytes(item=item))
+        item.isFinishedChanged.connect(lambda *args, **kw: self.download_finished(*args, **kw, item=item, is_wheel=is_wheel))
         item.accept()
 
-    def download_progress(self, bytes_received, bytes_total):
+    def download_progress(self, bytes_received=None, bytes_total=None):
         self.progress_bar.setVisible(True)
-        self.progress_bar.setMaximum(bytes_total)
-        self.progress_bar.setValue(bytes_received)
+        if bytes_total is not None:
+            self.progress_bar.setMaximum(bytes_total)
+        if bytes_received is not None:
+            self.progress_bar.setValue(bytes_received)
         self.progress_bar.update()
 
+    def change_total_bytes(self, item):
+        self.download_progress(bytes_total=item.totalBytes())
+
+    def change_received_bytes(self, item):
+        self.download_progress(bytes_received=item.receivedBytes())
+
     def download_finished(self, *args, item=None, is_wheel=False, **kw):
-        # print("HelpUI.download_finished", args, kw)
-        item.finished.disconnect()
-        item.downloadProgress.disconnect()
+        item.totalBytesChanged.disconnect()
+        item.receivedBytesChanged.disconnect()
+        item.isFinishedChanged.disconnect()
         self.progress_bar.setVisible(False)
         state = item.state()
-        if state == item.DownloadCompleted:
+        if state == QWebEngineDownloadRequest.DownloadCompleted:
             self.status("Download finished")
-        elif state == item.DownloadCancelled:
+        elif state == QWebEngineDownloadRequest.DownloadCancelled:
             self.status("Download cancelled")
             return
-        elif state == item.DownloadInterrupted:
+        elif state == QWebEngineDownloadRequest.DownloadInterrupted:
             self.status(f"Download interrupted: {item.interrupteReasonString()}")
             return
         else:
@@ -596,7 +616,10 @@ class HelpUI(ToolInstance):
 def _installable(wh, logger):
     # check if installable to give better error message than
     #       downstream use of pip.
-    if not _compatible(wh.filename, logger):
+    reason = incompatible_reason(wh.filename)
+    if reason is not None:
+        if logger:
+            logger.warning(reason)
         return False
     import chimerax.core
     core_bundle = chimerax.core.BUNDLE_NAME + ' '
@@ -615,7 +638,11 @@ def _installable(wh, logger):
     return True
 
 
-def _compatible(filename, logger=None):
+def incompatible_reason(filename):
+    """Return reason why wheel filename is incompatible.
+
+    Returns None if compatible.
+    """
     # using wheel filename check if compatible with running ChimeraX
     from wheel_filename import parse_wheel_filename
     global _sys_tags, _sys_info
@@ -635,17 +662,15 @@ def _compatible(filename, logger=None):
     for t in supported_tags(winfo):
         for s in _sys_tags:
             if t == (s.interpreter, s.abi, s.platform):
-                return True
-    if logger:
-        if _sys_info[2].isdisjoint(winfo.platform_tags):
-            logger.warning("bundle is for different platform")
-        elif _sys_info[0].isdisjoint(winfo.python_tags):
-            logger.warning("bundle is for different version of Python")
-        elif _sys_info[1].isdisjoint(winfo.abi_tags):
-            logger.warning("bundle uses incompatible Python ABI")
-        else:
-            logger.warning("bundle is incompatible")
-    return False
+                return None
+    if _sys_info[2].isdisjoint(winfo.platform_tags):
+        return "not compatible: wrong platform"
+    elif _sys_info[0].isdisjoint(winfo.python_tags):
+        return "not compatible: wrong version of Python"
+    elif _sys_info[1].isdisjoint(winfo.abi_tags):
+        return "not compatible: Python ABI mismatch"
+    else:
+        return "not compatible"
 
 
 def _install_or_upgrade(filename, session):
@@ -677,14 +702,14 @@ class _InstallableSchemeHandler(QWebEngineUrlSchemeHandler):
         from Qt.QtCore import QBuffer
         wheel_name = request.requestUrl().path()
         try:
-            compatible = _compatible(wheel_name)
+            reason = incompatible_reason(wheel_name)
         except Exception:
-            compatible = False
+            reason = "not compatible"
         reply = QBuffer(parent=self)
         request.destroyed.connect(reply.deleteLater)
         reply.open(QBuffer.WriteOnly)
-        if not compatible:
-            reply.write(b"Not compatible")
+        if reason is not None:
+            reply.write(reason.encode('utf-8'))
         else:
             reply.write(_install_or_upgrade(wheel_name, self.session))
         reply.close()

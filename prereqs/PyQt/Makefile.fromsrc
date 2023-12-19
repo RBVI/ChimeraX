@@ -9,12 +9,12 @@ SUBDIRS = qt sip
 include $(TOP)/mk/subdir.make
 
 PYQT_LICENSE = commercial
-REMOTE_DIR = plato.cgl.ucsf.edu:/usr/local/src/PyQt5
+REMOTE_DIR = plato.cgl.ucsf.edu:/usr/local/src/PyQt6
 
 # VERSION is overriden by Makefile
-VERSION = 5.13
+VERSION = 6.2
 QT_MINOR_VERSION = 2
-PYQT_MINOR_VERSION = 1
+PYQT_MINOR_VERSION = 2
 PYQTWE_MINOR_VERSION = 1
 QT_VERSION = $(VERSION).$(QT_MINOR_VERSION)
 ifeq (,$(PYQT_MINOR_VERSION))
@@ -28,8 +28,8 @@ else
 PYQTWE_VERSION = $(VERSION).$(PYQTWE_MINOR_VERSION)
 endif
 
-PYQT_DISTRIBUTION = PyQt5_$(PYQT_LICENSE)-$(PYQT_VERSION).tar.gz
-PYQT_SOURCE = $(tmpdir)/PyQt5_$(PYQT_LICENSE)-$(PYQT_VERSION)
+PYQT_DISTRIBUTION = PyQt6_$(PYQT_LICENSE)-$(PYQT_VERSION).tar.gz
+PYQT_SOURCE = $(tmpdir)/PyQt6_$(PYQT_LICENSE)-$(PYQT_VERSION)
 PYQTWE_DISTRIBUTION = PyQtWebEngine_$(PYQT_LICENSE)-$(PYQTWE_VERSION).tar.gz
 PYQTWE_SOURCE = $(tmpdir)/PyQtWebEngine_$(PYQT_LICENSE)-$(PYQTWE_VERSION)
 
@@ -56,7 +56,7 @@ install: $(PYQT_SOURCE) $(PYQTWE_SOURCE)
 	cd $(PYQTWE_SOURCE) && $(PYTHON_EXE) configure.py $(CONFIG_ARGS) && $(MAKE) && $(MAKE) install
 
 app-install:
-	$(RSYNC) $(PYSITEDIR)/PyQt5 $(APP_PYSITEDIR)
+	$(RSYNC) $(PYSITEDIR)/PyQt6 $(APP_PYSITEDIR)
 	# TODO: web engine
 
 distribution: $(PYQT_DISTRIBUTION) $(PYQTWE_DISTRIBUTION)

@@ -23,6 +23,7 @@ def register_movie_command(logger):
                    ('format', EnumOf(ifmts)),
                    ('size', Int2Arg),
                    ('supersample', IntArg),
+                   ('transparent_background', BoolArg),
                    ('limit', IntArg)],
         synopsis = 'Start saving frames of a movie to image files')
     register('movie record', record_desc, movie_record, logger=logger)
@@ -74,7 +75,8 @@ def register_movie_command(logger):
 
 from .movie import RESET_CLEAR
 def movie_record(session, directory = None, pattern = None, format = None,
-                 size = None, supersample = 1, limit = 90000):
+                 size = None, supersample = 1, transparent_background = False,
+                 limit = 90000):
     '''Start recording a movie.
 
     Parameters
@@ -93,6 +95,11 @@ def movie_record(session, directory = None, pattern = None, format = None,
       Width and height in pixels of movie.
     supersample : int
       Amount of supersampling when saving individual image frames.
+    transparent_background : bool
+      Whether to save images with transparent background.  Default false.
+      Only the PNG image format supports this.  None of the movie encoding formats
+      support transparent background so this option is only useful to get the
+      individual PNG image frames.
     limit : int
       Maximum number of frames to save.  This is a safe guard so that the entire computer disk storage
       is not filled with images if a movie recording is never stopped.
@@ -122,15 +129,25 @@ def movie_record(session, directory = None, pattern = None, format = None,
     if not supersample is None and supersample < 0:
         raise CommandError('Supersample must be a positive integer')
 
+    if transparent_background:
+        session.logger.info('Movie recording will save image frames with transparent background '
+                            'but none of the encoded movie formats handle transparency, so only '
+                            'this option is only useful to get the individual frame images.')
+        if format != 'PNG':
+            raise CommandError('Transparent background is only supported with PNG format '
+                               'images.  Use movie record option "format png".')
+
     movie = getattr(session, 'movie', None)
     if movie is None:
         from .movie import Movie
-        movie = Movie(format, directory, pattern, size, supersample, limit, False, session)
+        movie = Movie(format, directory, pattern, size, supersample, transparent_background,
+                      limit, False, session)
         session.movie = movie
     elif movie.is_recording():
         raise CommandError("Already recording a movie")
     else:
         movie.supersample = supersample
+        movie.transparent_background = transparent_background
         movie.limit = limit
 
     movie.start_recording()
@@ -220,7 +237,8 @@ def encode_op(session, output=None, format=None, quality=None, qscale=None, bitr
         quality = formats.default_quality
     if quality:
         qopt = f['ffmpeg_quality']
-        qual = (qopt['option_name'], qopt[quality])
+        if qopt is not None:
+            qual = (qopt['option_name'], qopt[quality])
     elif qscale:
         qual = ('-qscale:v', qscale)
     elif bitrate:

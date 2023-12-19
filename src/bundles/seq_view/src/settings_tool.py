@@ -1,14 +1,25 @@
 # vim: set expandtab ts=4 sw=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 class SettingsTool:
@@ -72,18 +83,18 @@ class SettingsTool:
             self.sv.seq_canvas._reformat()
         elif category == REGIONS:
             if opt.attr_name == "show_sel":
-                self.sv.region_browser._show_sel_cb()
+                self.sv.region_manager._show_sel_cb()
                 return
             if opt.attr_name.startswith('new_region'):
                 return
             if opt.attr_name.startswith('sel'):
-                sel_region = self.sv.region_browser.get_region("ChimeraX selection")
+                sel_region = self.sv.region_manager.get_region("ChimeraX selection")
                 regions = [sel_region] if sel_region else []
             else:
                 name_part = self.sv.ERROR_REGION_STRING \
                     if opt.attr_name.startswith("error_region") else self.sv.GAP_REGION_STRING
                 regions = []
-                for region in self.sv.region_browser.regions:
+                for region in self.sv.region_manager.regions:
                     if region.name and (region.name.startswith(name_part) or
                             region.name.startswith("partial " + name_part)):
                         regions.append(region)

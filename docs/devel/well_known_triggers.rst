@@ -20,7 +20,7 @@ Well Known Triggers
 Bundles may wish to be able to react when various events occur, such as models being closed,
 or a structure chain being deleted.  Bundles can arrange for relevant code to execute by 
 registering with the "trigger" that is fired when such an event occurs.  The mechanism for
-registering with a trigger is described in :doc:`core/triggerset`.  This document describes
+registering with a trigger is described in :doc:`modules/core/triggerset`.  This document describes
 the names and locations of important triggers that a developer might want to register for.
 
 Quick Overview
@@ -61,7 +61,7 @@ The triggerset is :code:`session.triggers`.  The most useful available trigger n
 :code:`chimerax.core.selection.SELECTION_CHANGED`
     The current selection has changed.  The trigger data is :code:`None`.
     The selection state of various atomic data types can be fetched by functions in the
-    :doc:`chimerax.atomic <bundles/atomic/src/atomic>` module
+    :doc:`chimerax.atomic <modules/atomic/atomic>` module
     (*e.g.* :code:`selected_residues(session)`)
     or more generically via methods of :code:`session.selection`.
 
@@ -230,7 +230,7 @@ To get changes in attribute values reported in :code:`Changes` objects, call
 Core Triggers
 =============
 
-:doc:`Settings <core/settings>` objects each have a triggerset that fires a "setting changed" trigger
+:doc:`Settings <modules/core/settings>` objects each have a triggerset that fires a "setting changed" trigger
 whenever a setting is changed.  The associated data is a three-tuple of (setting name, old value,
 new value).  The core settings object (:code:`chimerax.core.core_settings.settings`) has one setting of
 general interest: "background_color", whose value is a :py:class:`chimerax.core.colors.Color`, whose

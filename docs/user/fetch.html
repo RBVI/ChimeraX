@@ -1,0 +1,143 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Fetch by ID</title>
+</head><body>
+
+<a name="top"></a>
+<a href="index.html">
+<img width="60px" src="ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h2>Fetch by ID</h3>
+
+<p>
+Choosing <a href="menu.html#file"><b>File... Fetch by ID</b></a>
+from the menu opens a graphical interface for fetching atomic structures,
+density maps, and protein sequences directly into ChimeraX from online sources. 
+This interface includes common fetch types and uses default options.
+Additional fetch types and/or different options
+(such as to <a href="commands/open.html#maxAssemblies">limit the number of 
+biological assemblies</a> obtained) can be accessed with the
+<a href="commands/open.html#fetch"><b>open</b></a> command.
+See also: 
+<a href="tools/downloaddicom.html"><b>Download DICOM</b></a>,
+<a href="tools/buildstructure.html"><b>Build Structure</b></a>,
+<a href="tools/volumeviewer.html"><b>Volume Viewer</b></a>,
+<a href="tools/sequenceviewer.html"><b>Sequence Viewer</b></a>,
+<a href="preferences.html#webaccess"><b>Web Access</b> preferences</a>
+</p><p>
+Clicking the desired fetch type highlights it and shows an entry field
+for the appropriate identifier. Hitting return (Enter)
+or clicking the <b>Fetch</b> button opens the specified data in ChimeraX.
+The fetch type most recently used is remembered in
+<a href="preferences.html#other">preferences</a> and 
+automatically chosen the next time <b>Fetch by ID</b> is shown.
+<b>Close</b> simply dismisses the dialog, whereas <b>Help</b> opens this
+page in the <a href="tools/helpviewer.html"><b>Help Viewer</b></a>.
+</p><p>
+<b>Ignore cached fetches</b> indicates whether to fetch the data
+from the source regardless of whether it is already present in the local cache.
+If the data is not yet cached or the option to ignore the cache is turned on,
+the file will be fetched anew from the source and cached.
+Web-fetched data are stored locally in <b>~/Downloads/ChimeraX/</b> 
+(where ~ indicates a user's home directory), with subdirectories
+<b>PDB</b>, <b>EMDB</b>, <i>etc.</i>
+</p><p>
+Fetch types:
+<p>
+<ul>
+<li><b>AlphaFold</b> 
+&ndash; from the <a href="https://alphafold.ebi.ac.uk/"
+target="_blank">AlphaFold Database</a>,
+theoretical protein structure modeled by
+<a href="https://www.nature.com/articles/s41586-021-03819-2"
+target="_blank">AlphaFold</a> and specified by
+<a href="https://www.uniprot.org/" target="_blank">UniProt</a> name
+or accession number (<a href="commands/alphafold.html#fetch">details...</a>)
+<li><b>EDS (2Fo-Fc)</b>
+&ndash; from the <a href="https://www.ebi.ac.uk/pdbe/" target="_blank">PDBe</a>
+Electron Density Server (EDS), (2Fo-Fc) electron density map 
+for a PDB entry (not available for all PDB entries)
+<li><b>EDS (Fo-Fc)</b>
+&ndash; from the <a href="https://www.ebi.ac.uk/pdbe/" target="_blank">PDBe</a>
+Electron Density Server (EDS), (Fo-Fc) electron density difference map 
+for a PDB entry (not available for all PDB entries)
+<li><b>EMDB</b>
+&ndash; electron density map from the <a href="https://www.ebi.ac.uk/emdb/"
+target="_blank">Electron Microscopy Data Bank (EMDB)</a>
+<li><b>EMDB & fit PDBs</b>
+&ndash; electron density map from the <a href="https://www.ebi.ac.uk/emdb/" 
+target="_blank">Electron Microscopy Data Bank (EMDB)</a>
+and corresponding fit PDBs (if given in the EMDB map metadata) from the
+<a href="https://www.rcsb.org/" target="_blank">Protein Data Bank</a> 
+<li><b>ESMFold</b>
+&ndash; from the <a href="https://esmatlas.com/about#about_this_website"
+target="_blank">ESM Metagenomic Atlas</a>,
+theoretical protein structure modeled by
+<a href="https://pubmed.ncbi.nlm.nih.gov/36927031/" target="_blank">ESMFold</a>
+(Evolutionary Scale Modeling) and specified by MGnify identifier
+(<a href="commands/esmfold.html#fetch">details...</a>)
+<li><b>IUPAC</b>
+&ndash; modeled atomic coordinates specified by IUPAC name,
+first translated from IUPAC to
+a <a href="https://www.daylight.com/dayhtml/doc/theory/theory.smiles.html"
+target="_blank">SMILES</a> string using the
+<a href="https://opsin.ch.cam.ac.uk/index.html" target="_blank">OPSIN
+web service</a> provided by the <a href="https://www-cmi.ch.cam.ac.uk/"
+target="_blank">Centre for Molecular Informatics</a>
+at the University of Cambridge, followed by the process below for SMILES
+<li><b>PDB</b>
+&ndash; atomic coordinates from the 
+<a href="https://www.rcsb.org/" target="_blank">Protein Data Bank</a> 
+specified by PDB identifier
+<li><b>PDB (biounit)</b>
+&ndash; from the <a href="https://www.ebi.ac.uk/pdbe/" target="_blank">PDBe</a>,
+atomic coordinates for biological assembly or assemblies 
+specified by PDB identifier
+<li><b>PDB Chemical Component</b>
+&ndash; from the <a href="https://www.wwpdb.org/data/ccd"
+target="_blank">PDB Chemical Component Dictionary (CCD)</a>,
+idealized structure of PDB chemical component
+specified by CCD ID (residue name)
+<li><b>PubChem</b>
+&ndash; from <a href="https://pubchemdocs.ncbi.nlm.nih.gov/pubchem3d"
+target="_blank">PubChem3D</a>,
+modeled atomic coordinates specified by
+<a href="https://pubchem.ncbi.nlm.nih.gov/" target="_blank">PubChem</a>
+compound identifier (CID), available for most but not all entries 
+in PubChem Compound; partial charges are assigned as the atom
+<a href="attributes.html">attribute</a> named <b>charge</b>
+<li><b>SMILES</b>
+&ndash; modeled atomic coordinates specified by
+<a href="https://www.daylight.com/dayhtml/doc/theory/theory.smiles.html"
+target="_blank">SMILES</a> string, generated using the
+<a href="https://cactus.nci.nih.gov/translate/" target="_blank">SMILES
+translator</a> provided by the
+<a href="https://cactus.nci.nih.gov/" target="_blank">National Cancer Institute
+CADD group</a>
+<li><b>UniProt</b>
+&ndash; from <a href="https://www.uniprot.org" target="_blank">UniProt</a>, 
+protein sequence (along with its associated 
+<a href="tools/sequenceviewer.html#uniprot">sequence features</a>)
+specified by UniProt name or accession number
+</ul>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+October 2023</address>
+</body></html>

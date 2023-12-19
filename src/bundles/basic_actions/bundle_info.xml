@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-BasicActions" version="1.1"
+<BundleInfo name="ChimeraX-BasicActions" version="1.1.2"
             package="chimerax.basic_actions" customInit="true"
             minSessionVersion="1" maxSessionVersion="1">
 

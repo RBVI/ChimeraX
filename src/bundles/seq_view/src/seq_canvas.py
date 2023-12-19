@@ -1,17 +1,29 @@
 # vim: set expandtab ts=4 sw=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 from .settings import SINGLE_PREFIX, ALIGNMENT_PREFIX
+from chimerax.atomic import Sequence
 
 """TODO
 from Consensus import Consensus
@@ -52,7 +64,7 @@ class SeqCanvas:
     viewMargin = 2
     """
     def __init__(self, parent, sv, alignment):
-        from Qt.QtWidgets import QGraphicsView, QGraphicsScene, QHBoxLayout
+        from Qt.QtWidgets import QGraphicsView, QGraphicsScene, QHBoxLayout, QShortcut
         from Qt.QtCore import Qt
         self.label_scene = QGraphicsScene()
         """
@@ -85,6 +97,12 @@ class SeqCanvas:
         label_vsb = self.label_view.verticalScrollBar()
         main_vsb.valueChanged.connect(label_vsb.setValue)
         label_vsb.valueChanged.connect(main_vsb.setValue)
+        # The below turns out to be too annoying because when trying to copy text from the log,
+        # we grab the shortcut and show the sequence-copy dialog
+        #from Qt.QtGui import QKeySequence
+        #self._copy_shortcut = QShortcut(QKeySequence.StandardKey.Copy, parent)
+        #import sys
+        #self._copy_shortcut.activated.connect(lambda *args: self.sv.show_copy_sequence_dialog())
         """TODO
         self.labelCanvas = Tkinter.Canvas(parent, bg="#E4E4E4")
         self._vdivider = Tkinter.Frame(parent, bd=2, relief='raised')
@@ -156,7 +174,7 @@ class SeqCanvas:
         # On Windows the maxWidth() of Helvetica is 39(!), whereas the width of 'W' is 14.
         # So, I have no idea what that 39-wide character is, but I don't care -- just use
         # the width of 'W' as the maximum width instead.
-        font_width, font_height = self.font_metrics.width('W'), self.font_metrics.height()
+        font_width, font_height = self.font_metrics.horizontalAdvance('W'), self.font_metrics.height()
         self.label_view.setMinimumHeight(font_height)
         self.main_view.setMinimumHeight(font_height)
         # pad font a little...
@@ -221,6 +239,8 @@ class SeqCanvas:
         self._seqRenamedHandler = self.sv.triggers.addHandler(
                 SEQ_RENAMED, lambda *args: self._reformat(), None)
         """
+        from chimerax.atomic import get_triggers
+        self._handlers = [get_triggers().add_handler('changes', self._changes_cb)]
 
     """TODO
     def activeNode(self):
@@ -230,7 +250,7 @@ class SeqCanvas:
     def _actually_resize(self):
         self._resize_timer.stop()
         self._reformat()
-        self.main_scene.setSceneRect(self.main_scene.itemsBoundingRect())
+        self._update_scene_rects()
 
 
     """TODO
@@ -246,7 +266,7 @@ class SeqCanvas:
             seq.color_func = cf
             if cf != self._cfBlack:
                 self.recolor(seq)
-        
+
     def addSeqs(self, seqs):
         #TODO: need to see if adding sequences changes wrap_okay;
         # if it doesn't, does it change line_width (due to numberings
@@ -259,21 +279,21 @@ class SeqCanvas:
                     self.sv.status(self.seqInfoText(s)),
                 '<Double-Button>': lambda e, s=seq: self.sv._editSeqName(s)
             }
-        self.sv.region_browser._preAddLines(seqs)
+        self.sv.region_manager._preAddLines(seqs)
         self.lead_block.addSeqs(seqs)
-        self.sv.region_browser.redraw_regions()
+        self.sv.region_manager.redraw_regions()
 
     def adjustScrolling(self):
         self._resizescrollregion()
         self._recomputeScrollers()
-        
+
     def _arrowCB(self, event):
         if event.state & 4 != 4:
             if event.keysym == "Up":
-                self.sv.region_browser.raiseRegion(
+                self.sv.region_manager.raiseRegion(
                         self.sv.currentRegion())
             elif event.keysym == "Down":
-                self.sv.region_browser.lowerRegion(
+                self.sv.region_manager.lowerRegion(
                         self.sv.currentRegion())
             else:
                 self.sv.status(
@@ -392,7 +412,7 @@ class SeqCanvas:
             left, right = gapPos, end-2-motion
         else:
             left, right = end+2-motion, gapPos
-            
+
         self._editRefresh(seqs, left, right, region=region,
             lastBlock=[line1, line2, pos1+motion, pos2+motion])
         self._checkPoint(offset=offset, left=left, right=right)
@@ -467,6 +487,23 @@ class SeqCanvas:
         self._recomputeScrollers(e.width, e.height)
 
     """
+    def _changes_cb(self, trig_name, changes):
+        reasons = changes.residue_reasons()
+        if 'number changed' in reasons or 'insertion_code changed' in reasons:
+            modified = changes.modified_residues()
+            structures = set(modified.unique_structures)
+            for aseq in self.alignment.seqs:
+                needs_update = False
+                for chain in aseq.match_maps.keys():
+                    if chain.structure in structures:
+                        needs_update = True
+                        break
+                if needs_update:
+                    starts = set([chain.numbering_start for chain in aseq.match_maps.keys()])
+                    starts.discard(None)
+                    if len(starts) == 1:
+                        aseq.numbering_start = starts.pop()
+                        self.refresh(aseq, update_attrs=False)
 
     @property
     def consensus_capitalize_threshold(self):
@@ -551,6 +588,9 @@ class SeqCanvas:
 
     def destroy(self):
         self._resize_timer.stop()
+        for handler in self._handlers:
+            handler.remove()
+        self._handlers.clear()
     """
         chimera.triggers.deleteHandler('Molecule', self._trigID)
         from MAViewer import ADDDEL_SEQS, SEQ_RENAMED
@@ -565,7 +605,7 @@ class SeqCanvas:
             self.sv.triggers.deleteHandler(MOD_ASSOC,
                         self._residueHandlers[1])
         self.lead_block.destroy()
-        
+
     def _editHdrCB(self):
         left, right = self._editBounds
         self._editBounds = None
@@ -609,7 +649,7 @@ class SeqCanvas:
                             updateAttrs=False)
         if region:
             region.updateLastBlock(lastBlock)
-        self.sv.region_browser.redraw_regions(just_gapping=True)
+        self.sv.region_manager.redraw_regions(just_gapping=True)
         if not self._editBounds:
             if self._delayedAttrsHandler:
                 self.mainCanvas.after_cancel(
@@ -632,19 +672,21 @@ class SeqCanvas:
             blocks = base_num_blocks + (base_num_blocks != len(self.alignment.seqs[0]) / line_width)
             extent = (blocks - 1) * line_width
             for seq in self.lines:
-                if getattr(seq, 'numbering_start', None) == None:
+                numbering_start = line_numbering_start(seq)
+                if numbering_start is None:
                     continue
                 offset = len([c for c in seq[:extent] if c.isalpha() or c == '?'])
-                lwidth = max(lwidth, self.font_metrics.width(
-                    "%d " % (seq.numbering_start + offset)))
+                lwidth = max(lwidth, self.font_metrics.horizontalAdvance(
+                    "%d " % (numbering_start + offset)))
             lwidth += 3
         if self.show_numberings[1]:
             for seq in self.lines:
-                if getattr(seq, 'numbering_start', None) == None:
+                numbering_start = line_numbering_start(seq)
+                if numbering_start is None:
                     continue
                 offset = len(seq.ungapped())
-                rwidth = max(rwidth, self.font_metrics.width(
-                    "  %d" % (seq.numbering_start + offset)))
+                rwidth = max(rwidth, self.font_metrics.horizontalAdvance(
+                    "  %d" % (numbering_start + offset)))
         return [lwidth, rwidth]
 
     """
@@ -654,9 +696,9 @@ class SeqCanvas:
 
     def hide_header(self, header):
         self.lead_block.hide_header(header)
-        self.sv.region_browser.redraw_regions()
-        self.main_scene.setSceneRect(self.main_scene.itemsBoundingRect())
-        
+        self.sv.region_manager.redraw_regions()
+        self._update_scene_rects()
+
     def layout_alignment(self):
         """
         from chimerax.alignment_headers import registered_headers, DynamicStructureHeaderSequence
@@ -719,7 +761,7 @@ class SeqCanvas:
         self.label_width = _find_label_width(self.alignment.seqs + initial_headers,
             self.sv.settings, self.font_metrics, self.emphasis_font_metrics, SeqBlock.label_pad)
 
-        self.show_ruler = self.sv.settings.alignment_show_ruler_at_startup and len(self.alignment.seqs) > 1
+        self._show_ruler = self.sv.settings.alignment_show_ruler_at_startup and len(self.alignment.seqs) > 1
         self.line_width = self.line_width_from_settings()
         self.numbering_widths = self.find_numbering_widths(self.line_width)
         """TODO
@@ -744,6 +786,7 @@ class SeqCanvas:
             lambda *args, **kw: self.sv.status(secondary=True, *args, **kw),
             self.show_ruler, None, self.show_numberings, self.sv.settings,
             self.label_width, self.font_pixels, self.numbering_widths, self.letter_gaps())
+        self._update_scene_rects()
 
     def letter_gaps(self):
         column_sep_attr_name = "column_separation"
@@ -816,7 +859,7 @@ class SeqCanvas:
                     % (fontsize, fontname), blankAfter=0)
         self.lead_block.fontChange(self.font)
         self.refreshTree()
-        self.sv.region_browser.redraw_regions()
+        self.sv.region_manager.redraw_regions()
         self.sv.status("Font changed")
 
     def _newWrap(self):
@@ -857,9 +900,9 @@ class SeqCanvas:
                 return
         self.mainCanvas.yview_moveto(float(numBlocks - 1) / numBlocks)
         self.labelCanvas.yview_moveto(float(numBlocks - 1) / numBlocks)
-    
+
     def realign(self, seqs, handleRegions=True):
-        rb = self.sv.region_browser
+        rb = self.sv.region_manager
         if handleRegions:
             # do what we can; move single-seq regions that begin and end
             # over non-gap characters, delete others
@@ -987,6 +1030,7 @@ class SeqCanvas:
             lambda *args, **kw: self.sv.status(secondary=True, *args, **kw),
             self.show_ruler, None, self.show_numberings, self.sv.settings,
             self.label_width, self.font_pixels, self.numbering_widths, self.letter_gaps())
+        self._update_scene_rects()
         """TODO
         if self.tree:
             if self.treeShown:
@@ -995,9 +1039,10 @@ class SeqCanvas:
             else:
                 self.lead_block.treeNodeMap = {'active': activeNode }
         """
-        self.sv.region_browser.redraw_regions(cull_empty=cull_empty)
+        self.sv.region_manager.redraw_regions(cull_empty=cull_empty)
         self.main_scene.update()
         self.label_scene.update()
+        self._update_scene_rects()
         """TODO
         if len(self.alignment.seqs) != len(self._checkPoints[0]):
             self._checkPoint(fromScratch=True)
@@ -1008,6 +1053,14 @@ class SeqCanvas:
 
     def alignment_notification(self, note_name, note_data):
         if hasattr(self, 'lead_block'):
+            if note_name == self.alignment.NOTE_REF_SEQ:
+                self.lead_block.rerule()
+            elif note_name == self.alignment.NOTE_SEQ_CONTENTS:
+                self.refresh(note_data)
+            elif note_name == self.alignment.NOTE_REALIGNMENT:
+                # headers are notified before us, so they should be "ready to go"
+                self.sv.region_manager.clear_regions()
+                self._reformat()
             if note_name not in (self.alignment.NOTE_HDR_SHOWN, self.alignment.NOTE_HDR_VALUES,
                     self.alignment.NOTE_HDR_NAME):
                 return
@@ -1139,8 +1192,61 @@ class SeqCanvas:
         self.sv.status(msg)
     """
 
+    def show_header(self, header):
+        self.lead_block.show_header(header)
+        self.sv.region_manager.redraw_regions()
+        self._update_scene_rects()
+
+    @property
+    def show_left_numbering(self):
+        return self.show_numberings[0]
+
+    @show_left_numbering.setter
+    def show_left_numbering(self, show):
+        if self.show_numberings[0] == show:
+            return
+        self.show_numberings[0] = show
+        new_widths = self.find_numbering_widths(self.line_width)
+        if show:
+            self.numbering_widths[:] = new_widths
+        self.lead_block.show_left_numbering(show)
+        if not show:
+            self.numbering_widths[:] = new_widths
+        self.sv.region_manager.redraw_regions()
+        self._update_scene_rects()
+
+    @property
+    def show_right_numbering(self):
+        return self.show_numberings[1]
+
+    @show_right_numbering.setter
+    def show_right_numbering(self, show):
+        if self.show_numberings[1] == show:
+            return
+        self.show_numberings[1] = show
+        new_widths = self.find_numbering_widths(self.line_width)
+        if show:
+            self.numbering_widths[:] = new_widths
+        self.lead_block.show_right_numbering(show)
+        if not show:
+            self.numbering_widths[:] = new_widths
+        self._update_scene_rects()
+
+    @property
+    def show_ruler(self):
+        return self._show_ruler
+
+    @show_ruler.setter
+    def show_ruler(self, show_ruler):
+        if show_ruler == self._show_ruler:
+            return
+        self._show_ruler = show_ruler
+        self.lead_block.set_ruler_display(show_ruler)
+        self.sv.region_manager.redraw_regions()
+        self._update_scene_rects()
+
     def state(self):
-        '''Used to save header state, now done by alignment'''
+        '''This used to save header state, now done by alignment'''
         return {}
 
     """TODO
@@ -1163,7 +1269,7 @@ class SeqCanvas:
                                 *blocks[0])[0]
         cx = (minx + maxx) / 2
         cy = (miny + maxy) / 2
-        
+
         x1, y1, x2, y2 = map(int,
             self.mainCanvas.cget('scrollregion').split())
         totalWidth = float(x2 - x1 + 1)
@@ -1187,7 +1293,7 @@ class SeqCanvas:
         minx, miny, maxx, maxy = self.bbox_list(seq, seq, 0, 0)[0]
         viewHeight = float(self.mainCanvas.cget('height'))
         cy = (miny + maxy) / 2
-        
+
         x1, y1, x2, y2 = map(int,
             self.mainCanvas.cget('scrollregion').split())
         totalHeight = float(y2 - y1 + 1)
@@ -1249,33 +1355,6 @@ class SeqCanvas:
             if seq.color_func != cf:
                 seq.color_func = cf
                 self.recolor(seq)
-
-    def setLeftNumberingDisplay(self, showNumbering):
-        if self.showNumberings[0] == showNumbering:
-            return
-        self.showNumberings[0] = showNumbering
-        self.lead_block.setLeftNumberingDisplay(showNumbering)
-        self.sv.region_browser.redraw_regions()
-        self._resizescrollregion()
-        self._recomputeScrollers()
-
-    def setRightNumberingDisplay(self, showNumbering):
-        if self.showNumberings[1] == showNumbering:
-            return
-        self.showNumberings[1] = showNumbering
-        self.lead_block.setRightNumberingDisplay(showNumbering)
-        self._resizescrollregion()
-        if showNumbering:
-            self._recomputeScrollers(xShowAt=1.0)
-        else:
-            self._recomputeScrollers()
-
-    def setRulerDisplay(self, show_ruler):
-        if show_ruler == self.show_ruler:
-            return
-        self.show_ruler = show_ruler
-        self.lead_block.setRulerDisplay(show_ruler)
-        self.sv.region_browser.redraw_regions(cull_empty=not show_ruler)
 
     def _cfBlack(self, line, offset):
         return 'black'
@@ -1347,11 +1426,6 @@ class SeqCanvas:
     def wrap_okay(self):
         return _wrap_okay(len(self.alignment.seqs), self.sv.settings)
 
-    def show_header(self, header):
-        self.lead_block.show_header(header)
-        self.sv.region_browser.redraw_regions()
-        self.main_scene.setSceneRect(self.main_scene.itemsBoundingRect())
-
     """TODO
     def showNodes(self, show):
         if show == self.nodesShown:
@@ -1409,7 +1483,7 @@ class SeqCanvas:
                 self.label_view.show()
                 #self._vdivider.show()
         return label_scene
-            
+
     """
     def _undoRedo(self, undo):
         # up/down == redo/undo
@@ -1446,6 +1520,14 @@ class SeqCanvas:
         self._editRefresh(self.alignment.seqs, left, right)
         """
 
+    def _update_scene_rects(self):
+        self.main_scene.setSceneRect(self.main_scene.itemsBoundingRect())
+        if self.label_scene != self.main_scene:
+            # For scrolling to work right, ensure that vertical
+            # size of label_scene is the same as main_scene
+            lbr = self.label_scene.itemsBoundingRect()
+            mr = self.main_scene.sceneRect()
+            self.label_scene.setSceneRect(lbr.x(), mr.y(), lbr.width(), mr.height())
 
 class SeqBlock:
     from Qt.QtCore import Qt
@@ -1496,7 +1578,7 @@ class SeqBlock:
             self.block_gap = 3
         self.show_ruler = show_ruler
         self.tree_balloon = tree_balloon
-        self.show_numberings = show_numberings[:]
+        self.show_numberings = show_numberings
         self.seq_offset = seq_offset
         self.line_width = line_width
         self.label_width = label_width
@@ -1557,16 +1639,10 @@ class SeqBlock:
 
         if seq_offset + line_width >= len(alignment.seqs[0]):
             self.next_block = None
-            if not prev_block and label_scene != main_scene:
-                # For scrolling to work right, ensure that vertical
-                # size of label_scene is the same as main_scene
-                mr = main_scene.sceneRect()
-                lr = label_scene.sceneRect()
-                label_scene.setSceneRect(lr.x(), mr.y(), lr.width(), mr.height())
         else:
-            self.next_block = SeqBlock(label_scene, main_scene, self, self.font,
-                self.emphasis_font, self.font_metrics, self.emphasis_font_metrics, seq_offset + line_width,
-                headers, alignment, line_width, label_bindings, status_func, show_ruler, tree_balloon,
+            self.next_block = SeqBlock(label_scene, main_scene, self, self.font, self.emphasis_font,
+                self.font_metrics, self.emphasis_font_metrics, seq_offset + line_width, headers, alignment,
+                line_width, label_bindings, status_func, show_ruler, tree_balloon,
                 show_numberings, settings, label_width, font_pixels, numbering_widths, letter_gaps)
 
     """TODO
@@ -1637,9 +1713,9 @@ class SeqBlock:
         label_text = self.label_texts[aseq]
         name = _seq_name(aseq, self.settings)
         from Qt.QtGui import QFontMetrics
-        first_width = QFontMetrics(label_text.font()).width(name)
+        first_width = QFontMetrics(label_text.font()).horizontalAdvance(name)
         label_text.setFont(self._label_font(aseq))
-        diff = QFontMetrics(label_text.font()).width(name) - first_width
+        diff = QFontMetrics(label_text.font()).horizontalAdvance(name) - first_width
         if diff:
             label_text.moveBy(-diff, 0.0)
         label_text.setToolTip(self._label_tip(aseq))
@@ -1673,7 +1749,7 @@ class SeqBlock:
         """
         if self.next_block:
             self.next_block.assoc_mod(aseq)
-        
+
     def base_layout_info(self):
         half_x = self.font_pixels[0] / 2
         left_rect_off = 0 - half_x
@@ -1797,16 +1873,22 @@ class SeqBlock:
         reasons = changes.atom_reasons()
         if "color changed" not in reasons:
             return
-        # for performance reasons, changes.modified_atoms() returns nothing for color changes,
-        # so just redo all label colors
-        for aseq in self.alignment.seqs:
-            assoc_structures = set([chain.structure for chain in aseq.match_maps.keys()])
-            if not assoc_structures or len(assoc_structures) > 1:
-                continue
-            block = self
-            while block is not None:
-                block._colorize_label(aseq)
-                block = block.next_block
+        # allow alignment to update itself, so check on 'changes done' trigger
+        def update_swatches(*args, self=self):
+            # for performance reasons, changes.modified_atoms() returns nothing for color changes,
+            # so just redo all label colors
+            for aseq in self.alignment.seqs:
+                assoc_structures = set([chain.structure for chain in aseq.match_maps.keys()])
+                if not assoc_structures or len(assoc_structures) > 1:
+                    continue
+                block = self
+                while block is not None:
+                    block._colorize_label(aseq)
+                    block = block.next_block
+            from chimerax.core.triggerset import DEREGISTER
+            return DEREGISTER
+        from chimerax.atomic import get_triggers
+        get_triggers().add_handler('changes done', update_swatches)
 
     def _color_func(self, line):
             if hasattr(line, 'position_color'):
@@ -1861,7 +1943,7 @@ class SeqBlock:
                     color = numpy.sum(colors, axis=0) / len(colors)
             from Qt.QtCore import Qt
             from Qt.QtGui import QPen, QBrush
-            brush = QBrush(QColor(*color), Qt.SolidPattern)
+            brush = QBrush(QColor(*color.astype(int)), Qt.SolidPattern)
             if 255 == color[0] == color[1] == color[2]:
                 pen = QPen(QColor(216, 216, 216))
             else:
@@ -1883,7 +1965,7 @@ class SeqBlock:
         else:
             count = len([c for c in line[:self.seq_offset
                 + self.line_width] if c.isalpha()] or c == '?') - 1
-        return line.numbering_start + count
+        return line_numbering_start(line) + count
 
     """TODO
     def dehighlightName(self):
@@ -2112,7 +2194,6 @@ class SeqBlock:
         return self.font
 
     def _label_tip(self, line):
-        from chimerax.atomic import Sequence
         if not isinstance(line, Sequence):
             return ""
         basic_text = "%s (#%d of %d; %d non-gap residues)" % (line.name,
@@ -2141,8 +2222,40 @@ class SeqBlock:
         y = self.top_y + self.font_pixels[1] + self.letter_gaps[1]
 
         end = min(self.seq_offset + self.line_width, len(self.alignment.seqs[0]))
+        ref_seq = self.alignment.reference_seq
         for chunk_start in range(self.seq_offset, end, 10):
-            text = self.main_scene.addSimpleText("%d" % (chunk_start+1), font=self.font)
+            if ref_seq is None:
+                ruler_text = "%d" % (chunk_start+1)
+            else:
+                index = ref_seq.gapped_to_ungapped(chunk_start)
+                if index is None:
+                    # in a gap in the reference sequence
+                    for i in range(chunk_start-1, -1, -1):
+                        left_index = ref_seq.gapped_to_ungapped(i)
+                        if left_index is not None:
+                            break
+                    else:
+                        left_index = None
+
+                    for i in range(chunk_start+1, len(ref_seq.ungapped())):
+                        right_index = ref_seq.gapped_to_ungapped(i)
+                        if right_index is not None:
+                            break
+                    else:
+                        right_index = None
+
+                    if left_index is None:
+                        if right_index is None:
+                            ruler_text = "N/A"
+                        else:
+                            ruler_text = ("(<%d)" % (right_index+1))
+                    elif right_index is None:
+                        ruler_text = "(>%d)" % (left_index+1)
+                    else:
+                        ruler_text = "(%d/%d)" % (left_index+1, right_index+1)
+                else:
+                    ruler_text = "%d" % (index+1)
+            text = self.main_scene.addSimpleText(ruler_text, font=self.font)
             # anchor='s': subtract the height and half the width
             rect = text.sceneBoundingRect()
             text.setPos(x - rect.width()/2, y - rect.height())
@@ -2208,7 +2321,7 @@ class SeqBlock:
             self.bottom_y += self.font_pixels[1] + self.letter_gaps[1]
 
         numberings = [None, None]
-        if line.numbering_start != None:
+        if line_numbering_start(line) is not None:
             for numbering in range(2):
                 if self.show_numberings[numbering]:
                     numberings[numbering] = self._make_numbering(line, numbering)
@@ -2270,7 +2383,9 @@ class SeqBlock:
     """
 
     def _left_seqs_edge(self):
-        return self.label_width + self.letter_gaps[0] + self.numbering_widths[0]
+        if self.label_scene == self.main_scene:
+            return self.label_width + self.letter_gaps[0] + self.numbering_widths[0]
+        return 0
 
     def make_item(self, line, offset, x, y, half_x, left_rect_off, right_rect_off, color_func):
         if hasattr(line, 'depiction_val'):
@@ -2563,12 +2678,12 @@ class SeqBlock:
                         right_rect_off, color_func)
             if res_status:
                 self._assoc_res_bind(line_items[i], seq, self.seq_offset + i)
-        if self.show_numberings[0] and seq.numbering_start != None and my_left == 0:
+        if self.show_numberings[0] and line_numbering_start(seq) is not None and my_left == 0:
             item = self.numbering_texts[seq][0]
             item.hide()
             self.main_scene.removeItem(item)
             self.numbering_texts[seq][0] = self._make_numbering(seq,0)
-        if self.show_numberings[1] and seq.numbering_start != None \
+        if self.show_numberings[1] and line_numbering_start(seq) is not None \
                     and my_right == self.line_width - 1:
             item = self.numbering_texts[seq][1]
             item.hide()
@@ -2593,6 +2708,11 @@ class SeqBlock:
         self.label_texts[line].setText(line.name)
         if self.next_block:
             self.next_block.replace_label(line)
+
+    def rerule(self):
+        self.layout_ruler(rerule=True)
+        if self.next_block:
+            self.next_block.rerule()
 
     def row_index(self, y, bound=None):
         '''Given a relative y, return the row index'''
@@ -2630,84 +2750,62 @@ class SeqBlock:
         # on letter
         return row
 
-    """TODO
-    def setLeftNumberingDisplay(self, showNumbering):
-        if showNumbering == self.show_numberings[0]:
-            return
-        self.show_numberings[0] = showNumbering
-        numberedLines = [l for l in self.lines if getattr(l,
-                    'numbering_start', None) != None]
-        if showNumbering:
-            if not self.prev_block:
-                self.numbering_widths[:] = \
-                    self.find_numbering_widths(self.line_width)
+    def show_left_numbering(self, show_numbering):
+        if show_numbering:
             delta = self.numbering_widths[0]
             for ruler_text in self.ruler_texts:
-                self.main_scene.move(ruler_text, delta, 0)
-            for line in numberedLines:
-                self.numbering_texts[line][0] = \
-                        self._make_numbering(line, 0)
+                ruler_text.moveBy(delta, 0)
+            numbered_lines = [l for l in self.lines if line_numbering_start(l) is not None]
+            for line in numbered_lines:
+                self.numbering_texts[line][0] = self._make_numbering(line, 0)
             self._move_lines(self.lines, 0, delta, 0)
         else:
             delta = 0 - self.numbering_widths[0]
             for ruler_text in self.ruler_texts:
-                self.main_scene.move(ruler_text, delta, 0)
+                ruler_text.moveBy(delta, 0)
             for texts in self.numbering_texts.values():
                 if not texts[0]:
                     continue
-                self.main_scene.delete(texts[0])
+                self.main_scene.removeItem(texts[0])
                 texts[0] = None
             self._move_lines(self.lines, 0, delta, 0)
-            if not self.next_block:
-                self.numbering_widths[0] = 0
         if self.next_block:
-            self.next_block.setLeftNumberingDisplay(showNumbering)
+            self.next_block.show_left_numbering(show_numbering)
 
-    def setRightNumberingDisplay(self, showNumbering):
-        if showNumbering == self.show_numberings[1]:
-            return
-        self.show_numberings[1] = showNumbering
-        if showNumbering:
-            if not self.prev_block:
-                self.numbering_widths[:] = \
-                    self.find_numbering_widths(self.line_width)
-            numberedLines = [l for l in self.lines if getattr(l,
-                    'numbering_start', None) != None]
-            for line in numberedLines:
-                self.numbering_texts[line][1] = \
-                        self._make_numbering(line, 1)
+    def show_right_numbering(self, show_numbering):
+        if show_numbering:
+            numbered_lines = [l for l in self.lines if line_numbering_start(l) is not None]
+            for line in numbered_lines:
+                self.numbering_texts[line][1] = self._make_numbering(line, 1)
         else:
             for texts in self.numbering_texts.values():
                 if not texts[1]:
                     continue
-                self.main_scene.delete(texts[1])
+                self.main_scene.removeItem(texts[1])
                 texts[1] = None
-            if not self.next_block:
-                self.numbering_widths[1] = 0
         if self.next_block:
-            self.next_block.setRightNumberingDisplay(showNumbering)
+            self.next_block.show_right_numbering(show_numbering)
 
-    def setRulerDisplay(self, show_ruler, pushDown=0):
+    def set_ruler_display(self, show_ruler, push_down=0):
         if show_ruler == self.show_ruler:
             return
         self.show_ruler = show_ruler
-        self.top_y += pushDown
-        self.bottom_y += pushDown
+        self.top_y += push_down
+        self.bottom_y += push_down
         pull = self.font_pixels[1] + self.letter_gaps[1]
         if show_ruler:
-            pushDown += pull
+            push_down += pull
             self.layout_ruler()
         else:
             for text in self.ruler_texts:
-                self.main_scene.delete(text)
-            pushDown -= pull
+                self.main_scene.removeItem(text)
+            push_down -= pull
             self.bottom_ruler_y = self.top_y
             self.bottom_y -= pull
-        self._move_lines(self.lines, 0, 0, pushDown)
-        self._move_tree(pushDown)
+        self._move_lines(self.lines, 0, 0, push_down)
+        self._move_tree(push_down)
         if self.next_block:
-            self.next_block.setRulerDisplay(show_ruler, pushDown=pushDown)
-    """
+            self.next_block.set_ruler_display(show_ruler, push_down=push_down)
 
     def show_header(self, header, push_down=0):
         self.top_y += push_down
@@ -2764,9 +2862,8 @@ class SeqBlock:
                                 nodesShown)
 
     def updateNumberings(self):
-        numberedLines = [l for l in self.lines if getattr(l,
-                    'numbering_start', None) != None]
-        for line in numberedLines:
+        numbered_lines = [l for l in self.lines if line_numberingStart(l) is not None]
+        for line in numbered_lines:
             for i in range(2):
                 nt = self.numbering_texts[line][i]
                 if not nt:
@@ -2778,7 +2875,7 @@ class SeqBlock:
             self.next_block.updateNumberings()
 """
 
-def _ellipsis_name(name, ellipsis_threshold):
+def ellipsis_name(name, ellipsis_threshold):
     if len(name) > ellipsis_threshold:
         half = int(ellipsis_threshold/2)
         return name[0:half-1] + "..." + name[len(name)-half:]
@@ -2788,18 +2885,24 @@ def _find_label_width(lines, settings, font_metrics, emphasis_font_metrics, labe
     label_width = 0
     for seq in lines:
         name = _seq_name(seq, settings)
-        label_width = max(label_width, font_metrics.width(name))
-        label_width = max(label_width, emphasis_font_metrics.width(name))
+        label_width = max(label_width, font_metrics.horizontalAdvance(name))
+        label_width = max(label_width, emphasis_font_metrics.horizontalAdvance(name))
     label_width += label_pad
     return label_width
 
 def _seq_name(seq, settings):
     """TODO
-    return _ellipsis_name(seq.name, prefs[SEQ_NAME_ELLIPSIS])
+    return ellipsis_name(seq.name, prefs[SEQ_NAME_ELLIPSIS])
     """
-    return _ellipsis_name(seq.name, 30)
+    return ellipsis_name(seq.name, 30)
 
 def _wrap_okay(num_seqs, settings):
     if num_seqs == 1:
         return getattr(settings, SINGLE_PREFIX + 'wrap')
     return num_seqs <= getattr(settings, ALIGNMENT_PREFIX + 'wrap_threshold')
+
+def line_numbering_start(line):
+    start = getattr(line, 'numbering_start', None)
+    if start is None and isinstance(line, Sequence):
+        start = 1
+    return start

@@ -10,6 +10,7 @@
 # including partial copies, of the software or any revisions
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
+__version__ = "2.1.2"
 
 from chimerax.core.toolshed import BundleAPI
 
@@ -31,20 +32,23 @@ class _MyAPI(BundleAPI):
             'BlastProteinTool': BlastProteinTool
             , 'BlastProteinResults': BlastProteinResults
             , 'ToolUI': BlastProteinResults
+            , 'BlastProteinJob': BlastProteinJob
         }
         return class_names.get(class_name, None)
 
     @staticmethod
     def start_tool(session, bi, ti):
-        return BlastProteinTool(session, ti.name)
+        return BlastProteinTool(session)
 
     @staticmethod
     def register_command(bi, ci, logger):
         command_name = ci.name
         if command_name == "blastpdb":
             from chimerax.core.commands import create_alias
-            create_alias(command_name, "blastprotein $*", logger=logger,
-                    url="help:user/commands/blastprotein.html")
+            create_alias(
+                command_name, "blastprotein $*", logger=logger,
+                url="help:user/commands/blastprotein.html"
+            )
             return
         from . import cmd
         function_name = command_name.replace(' ', '_')

@@ -1,14 +1,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 def read_positions(session, stream, name, models=None, match_names=False, child_models=False):
@@ -24,7 +35,7 @@ def read_positions(session, stream, name, models=None, match_names=False, child_
         models = _exclude_child_models(models)
     
     lines = stream.readlines()
-    places = _parse_places(lines)
+    places = _parse_places(lines, stream.name)
     if len(places) == 0:
         raise UserError('No positions specified in positions file %s.' % stream.name)
 
@@ -55,16 +66,18 @@ def read_positions(session, stream, name, models=None, match_names=False, child_
     
 # ----------------------------------------------------------------------------------
 #
-def _parse_places(lines):  
+def _parse_places(lines, filename):
     places = []
     from chimerax.core.errors import UserError
     for line_num, line in enumerate(lines):
         if line.startswith('#'):
-            continue
+            continue	# Comment line
         fields = line.split(',')
+        if len(fields) == 1 and line.strip() == '':
+            continue	# Allow blank lines
         if len(fields) < 13:
             raise UserError('Expected 13 fields in line %d of file %s, got %d:\n"%s"'
-                            % (line_num+1, stream.name, len(fields), line))
+                            % (line_num+1, filename, len(fields), line))
         name = fields[0].strip()
         try:
             mvalues = [float(x) for x in fields[1:]]

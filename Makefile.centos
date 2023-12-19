@@ -1,7 +1,9 @@
 # should be run in directory with source snapshot with singularity
 #
 # For example:
-# 	singularity exec centos-7.img make -f Makefile.centos daily-package CENTOS=7
+# 	singularity exec centos-7.img make -f Makefile.centos daily-package
+#
+# Assume ". /opt/rh/devtoolset-9/enable" has been done already on CentOS 7
 #
 TOP = .
 TOP := $(shell (cd "$(TOP)"; pwd))
@@ -12,14 +14,19 @@ CENTOS = $(shell . /etc/os-release && echo $$VERSION_ID)
 endif
 
 install: centos
-	# assume ". /opt/rh/devtoolset-3/enable" has been done already
 	env HOME=`pwd` $(MAKE) install CENTOS_DIST=$(CENTOS)
+
+install-rbvi: centos
+	env HOME=`pwd` $(MAKE) install-rbvi CENTOS_DIST=$(CENTOS)
 
 package: centos
 	env HOME=`pwd` $(PYTHON_EXE) mkcentos.py $(CENTOS)
 
 daily-package: centos
 	env HOME=`pwd` $(PYTHON_EXE) mkcentos.py $(CENTOS) daily
+
+techpreview-package: centos
+	env HOME=`pwd` $(PYTHON_EXE) mkcentos.py $(CENTOS) techpreview
 
 candidate-package: centos
 	env HOME=`pwd` $(PYTHON_EXE) mkcentos.py $(CENTOS) candidate

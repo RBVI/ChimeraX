@@ -1,14 +1,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 _model = None
@@ -45,7 +56,7 @@ class ColorKeyModel(Model):
     numeric_label_spacings = (NLS_EQUAL, NLS_PROPORTIONAL)
 
     LC_FRACT = 4/5
-
+    DEFAULT_SIZE = (0.25, 0.05)
 
     def __init__(self, session):
         super().__init__("Color key", session)
@@ -62,7 +73,7 @@ class ColorKeyModel(Model):
         self.triggers.add_trigger("key closed")
 
         self._position = (0.7, 0.08)
-        self._size = (0.25, 0.05)
+        self._size = self.DEFAULT_SIZE
         self._rgbas_and_labels = [((0,0,1,1), "min"), ((1,1,1,1), ""), ((1,0,0,1), "max")]
         self._numeric_label_spacing = self.NLS_PROPORTIONAL
         self._color_treatment = self.CT_BLENDED
@@ -226,7 +237,6 @@ class ColorKeyModel(Model):
 
     @property
     def label_offset(self):
-        # None means contrast with background
         return self._label_offset
 
     @label_offset.setter
@@ -491,8 +501,14 @@ class ColorKeyModel(Model):
 
         rgbas = [(int(255*r + 0.5), int(255*g + 0.5), int(255*b + 0.5), int(255*a + 0.5))
             for r,g,b,a in rgbas]
+
         if layout == "vertical":
             rgbas = list(reversed(rgbas))
+            label_positions = list(reversed(label_positions))
+            labels = list(reversed(labels))
+            first_index, last_index = -1, 0
+        else:
+            first_index, last_index = 0, -1
 
         if border:
             for i in range(2):
@@ -509,8 +525,7 @@ class ColorKeyModel(Model):
         from Qt.QtGui import QImage, QPainter, QColor, QBrush, QPen, QLinearGradient, QFontMetrics, QFont
         from Qt.QtCore import Qt, QRectF, QPointF
 
-        font = QFont(self.font, self.font_size * self._texture_pixel_scale,
-            (QFont.Bold if self.bold else QFont.Normal), self.italic)
+        font = QFont(self.font, int(self.font_size * self._texture_pixel_scale), (QFont.Bold if self.bold else QFont.Normal), self.italic)
         fm = QFontMetrics(font)
         top_label_y_offset = font_height = fm.ascent()
         font_descender = fm.descent()
@@ -519,15 +534,15 @@ class ColorKeyModel(Model):
         #
         # fm.boundingRect(label) basically returns a fixed height for all labels (and a large negative y)
         # so just use the font size instead
-        if labels[0]:
+        if labels[first_index]:
             # may need extra room to left or bottom for first label
-            bounds = fm.boundingRect(labels[0])
+            bounds = fm.boundingRect(labels[first_index])
             xywh = bounds.getRect()
             # Qt seemingly will not return the actual height of a text string; estimate all lower case
             # to be LC_FRACT height
-            label_height = (font_height * self.LC_FRACT) if labels[0].islower() else font_height
+            label_height = (font_height * self.LC_FRACT) if labels[first_index].islower() else font_height
             label_size = label_height if layout == "vertical" else xywh[long_index+2]
-            extra = max(label_size / 2 - label_positions[0] - border, 0)
+            extra = max(label_size / 2 - label_positions[first_index] - border, 0)
             (end_offset if layout == "vertical" else start_offset)[long_index] += extra
             pixels[long_index] += extra
 
@@ -574,19 +589,19 @@ class ColorKeyModel(Model):
         pixels[1] += font_descender
         end_offset[1] += font_descender
 
-        if labels[-1]:
+        if labels[last_index]:
             # may need extra room to right or top for last label
-            bounds = fm.boundingRect(labels[-1])
+            bounds = fm.boundingRect(labels[last_index])
             xywh = bounds.getRect()
             # Qt seemingly will not return the actual height of a text string; estimate all lower case
             # to be LC_FRACT height
-            label_height = (font_height * self.LC_FRACT) if labels[-1].islower() else font_height
+            label_height = (font_height * self.LC_FRACT) if labels[last_index].islower() else font_height
             label_size = label_height if layout == "vertical" else xywh[long_index+2]
-            extra = max(label_size / 2 - (rect_pixels[long_index] - label_positions[-1]) - border, 0)
+            extra = max(label_size / 2 - (rect_pixels[long_index] - label_positions[last_index]) - border, 0)
             (start_offset if layout == "vertical" else end_offset)[long_index] += extra
             pixels[long_index] += extra
 
-        image = QImage(max(pixels[0], 1), max(pixels[1], 1), QImage.Format_ARGB32)
+        image = QImage(max(int(pixels[0]), 1), max(int(pixels[1]), 1), QImage.Format_ARGB32)
         image.fill(QColor(0,0,0,0))    # Set background transparent
 
         from chimerax.core.colors import contrast_with_background
@@ -612,16 +627,21 @@ class ColorKeyModel(Model):
             if self._color_treatment == self.CT_BLENDED:
                 edge1, edge2 = start_offset[1-long_index], pixels[1-long_index] - end_offset[1-long_index]
                 for i in range(len(rect_positions)-1):
-                    start = start_offset[long_index] + rect_positions[i]
-                    stop = start_offset[long_index] + rect_positions[i+1]
+                    start = rect_positions[i]
+                    stop = rect_positions[i+1]
                     if layout == "vertical":
+                        offset = end_offset[long_index]
+                        start, stop = pixels[1] - stop - offset, pixels[1] - start - offset
                         x1, y1, x2, y2 = edge1, start, edge2, stop
                         gradient = QLinearGradient(0, start, 0, stop)
+                        i1, i2 = len(rgbas)-i-2, len(rgbas)-i-1
                     else:
-                        x1, y1, x2, y2 = start, edge1, stop, edge2
-                        gradient = QLinearGradient(start, 0, stop, 0)
-                    gradient.setColorAt(0, QColor(*rgbas[i]))
-                    gradient.setColorAt(1, QColor(*rgbas[i+1]))
+                        offset = start_offset[long_index]
+                        x1, y1, x2, y2 = start + offset, edge1, stop + offset, edge2
+                        gradient = QLinearGradient(x1, 0, x2, 0)
+                        i1, i2 = i, i+1
+                    gradient.setColorAt(0, QColor(*rgbas[i1]))
+                    gradient.setColorAt(1, QColor(*rgbas[i2]))
                     p.setBrush(QBrush(gradient))
                     p.setPen(QPen(QBrush(gradient), 0))
                     p.drawRect(QRectF(QPointF(x1, y1), QPointF(x2, y2)))
@@ -649,16 +669,20 @@ class ColorKeyModel(Model):
                 """
             else:
                 for i in range(len(rect_positions)-1):
-                    brush = QBrush(QColor(*rgbas[i]))
-                    p.setBrush(brush)
                     if layout == "vertical":
-                        x1, y1 = 0, rect_positions[i]
-                        x2, y2 = rect_pixels[0], rect_positions[i+1]
+                        x1, y1 = 0, pixels[1] - rect_positions[i]
+                        x2, y2 = rect_pixels[0], pixels[1] - rect_positions[i+1]
+                        y_offset = - end_offset[1]
+                        rgba_index = len(rgbas) - i - 1
                     else:
                         x1, y1 = rect_positions[i], 0
                         x2, y2 = rect_positions[i+1], rect_pixels[1]
-                    p.drawRect(QRectF(QPointF(x1 + start_offset[0], y1 + start_offset[1]),
-                        QPointF(x2 + start_offset[0], y2 + start_offset[1])))
+                        y_offset = start_offset[1]
+                        rgba_index = i
+                    brush = QBrush(QColor(*rgbas[rgba_index]))
+                    p.setBrush(brush)
+                    p.drawRect(QRectF(QPointF(x1 + start_offset[0], y1 + y_offset),
+                        QPointF(x2 + start_offset[0], y2 + y_offset)))
             p.setFont(font)
             label_rgba = contrast_with_background(self.session) \
                 if self._label_rgba is None else self._label_rgba
@@ -694,7 +718,7 @@ class ColorKeyModel(Model):
                     else:
                         y = pixels[1] - font_descender
                     x = start_offset[0] + pos - (rect.width() - rect.x())/2
-                p.drawText(x, y, label)
+                p.drawText(int(x), int(y), label)
 
                 if tick_length:
                     tick_thickness = self._tick_thickness
@@ -756,7 +780,11 @@ class ColorKeyModel(Model):
                         proportional = False
             finally:
                 if restore_locale:
-                    locale.setlocale(locale.LC_NUMERIC, local_numeric)
+                    try:
+                        locale.setlocale(locale.LC_NUMERIC, local_numeric)
+                    except locale.Error:
+                        # I know, seems ridiculous, yet ticket #10105
+                        pass
         if not proportional:
             values = range(len(texts))
         if self._color_treatment == self.CT_BLENDED:

@@ -19,11 +19,12 @@
 
   <Dependencies>
     <Dependency name="ChimeraX-Core" version=">=0.9"/>
-    <Dependency name="ChimeraX-RotamerLibMgr" version=">=2.0"/>
+    <Dependency name="ChimeraX-RotamerLibMgr" version=">=4.0"/>
   </Dependencies>
 
   <Providers>
-    <Provider name="Dynameomics" manager="rotamers"/>
+    <Provider name="Dynameomics" manager="rotamers"
+		description="Dynameomics backbone-independent rotamer library -- March '12"/>
   </Providers>
 
   <Classifiers>

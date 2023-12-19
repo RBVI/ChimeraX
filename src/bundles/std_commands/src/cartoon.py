@@ -1,14 +1,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.atomic.ribbon import XSectionManager
@@ -593,7 +604,7 @@ class EvenIntArg(Annotation):
 #
 def register_command(logger):
     from chimerax.core.commands import register, Or, CmdDesc
-    from chimerax.core.commands import Bounded, FloatArg, EnumOf, BoolArg, IntArg, TupleOf, NoArg
+    from chimerax.core.commands import Bounded, FloatArg, PositiveFloatArg, EnumOf, BoolArg, IntArg, TupleOf, NoArg
     from chimerax.atomic import AtomsArg, AtomicStructuresArg
     desc = CmdDesc(optional=[("atoms", AtomsArg)],
                    keyword=[("smooth", Or(Bounded(FloatArg, 0.0, 1.0),
@@ -615,20 +626,20 @@ def register_command(logger):
     register("cartoon tether", desc, cartoon_tether, logger=logger)
 
     desc = CmdDesc(optional=[("atoms", AtomsArg)],
-                   keyword=[("width", FloatArg),
-                            ("thickness", FloatArg),
+                   keyword=[("width", PositiveFloatArg),
+                            ("thickness", PositiveFloatArg),
                             ("arrows", BoolArg),
                             ("arrows_helix", BoolArg),
                             ("arrow_scale", Bounded(FloatArg, 1.0, 5.0)),
                             ("xsection", EnumOf(_XSectionMap.keys())),
                             ("sides", Bounded(EvenIntArg, 3, 24)),
                             ("divisions", Bounded(IntArg, 2, 40)),
-                            ("bar_scale", FloatArg),
+                            ("bar_scale", PositiveFloatArg),
                             ("bar_sides", Bounded(EvenIntArg, 3, 24)),
                             ("ss_ends", EnumOf(["default", "short", "long"])),
                             ("mode_helix", EnumOf(list(_ModeHelixMap.keys()))),
                             ("mode_strand", EnumOf(list(_ModeStrandMap.keys()))),
-                            ("radius", Or(FloatArg, EnumOf(["auto"]))),
+                            ("radius", Or(PositiveFloatArg, EnumOf(["auto"]))),
                             ("spline_normals", BoolArg),
                             ],
                    hidden=["ss_ends", "mode_strand", "spline_normals"],

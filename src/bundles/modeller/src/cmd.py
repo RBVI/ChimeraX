@@ -1,29 +1,43 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 def sequence_model(session, targets, *, block=None, multichain=True, custom_script=None,
-    dist_restraints=None, executable_location=None, fast=False, het_preserve=False,
-    hydrogens=False, license_key=None, num_models=5, temp_path=None, thorough_opt=False,
-    water_preserve=False):
+                   dist_restraints=None, executable_location=None, fast=False, het_preserve=False,
+                   hydrogens=False, license_key=None, num_models=5, temp_path=None, thorough_opt=False,
+                   water_preserve=False, directory=None):
     '''
     Command to generate a comparative model of one or more chains
     '''
+    # Command keyword was tempPath, now directory...
+    if temp_path is None and directory is not None:
+        temp_path = directory
     from chimerax.core.errors import UserError
     seen = set()
     for alignment, seq in targets:
         if alignment in seen:
             raise UserError("Only one target sequence per alignment allowed;"
-                " multiple targets chosen in alignment %s" % alignment)
+                            " multiple targets chosen in alignment %s" % alignment)
         seen.add(alignment)
     if block is None:
         block = session.in_script or not session.ui.is_gui
@@ -32,18 +46,21 @@ def sequence_model(session, targets, *, block=None, multichain=True, custom_scri
     from . import comparative, common
     try:
         comparative.model(session, targets, block=block, multichain=multichain,
-            custom_script=custom_script, dist_restraints=dist_restraints,
-            executable_location=executable_location, fast=fast, het_preserve=het_preserve,
-            hydrogens=hydrogens, license_key=license_key, num_models=num_models,
-            temp_path=temp_path, thorough_opt=thorough_opt, water_preserve=water_preserve)
+                          custom_script=custom_script, dist_restraints=dist_restraints,
+                          executable_location=executable_location, fast=fast, het_preserve=het_preserve,
+                          hydrogens=hydrogens, license_key=license_key, num_models=num_models,
+                          temp_path=temp_path, thorough_opt=thorough_opt, water_preserve=water_preserve)
     except common.ModelingError as e:
         raise UserError(e)
 
 def model_loops(session, targets, *, adjacent_flexible=1, block=None, chains=None, executable_location=None,
-    fast=False, license_key=None, num_models=5, protocol=None, temp_path=None):
+                fast=False, license_key=None, num_models=5, protocol=None, temp_path=None, directory=None):
     '''
     Command to model loops or refine structure regions
     '''
+    # Command keyword was tempPath, now directory...
+    if temp_path is None and directory is not None:
+        temp_path = directory
     from chimerax.core.errors import UserError
     if block is None:
         block = session.in_script or not session.ui.is_gui
@@ -63,7 +80,7 @@ def model_loops(session, targets, *, adjacent_flexible=1, block=None, chains=Non
                     seq = aseq
                 elif sseq.structure != structure or aseq != seq:
                     raise UserError("Must specify 'targets' value when there are multiple structures"
-                        " or sequences that could be modeled")
+                                    " or sequences that could be modeled")
                 sseqs.append(sseq)
                 target_alignment = alignment
         if structure is None:
@@ -107,7 +124,7 @@ def model_loops(session, targets, *, adjacent_flexible=1, block=None, chains=Non
                         end = i
                 else:
                     if start is not None:
-                        indices.append((start, end+1))
+                        indices.append((start, end + 1))
                         start = None
             if start is not None:
                 indices.append((start, len(seq)))
@@ -119,8 +136,8 @@ def model_loops(session, targets, *, adjacent_flexible=1, block=None, chains=Non
     from . import loops, common
     try:
         loops.model(session, targets, adjacent_flexible=adjacent_flexible, block=block, chains=chains,
-            executable_location=executable_location, fast=fast, license_key=license_key,
-            num_models=num_models, protocol=protocol, temp_path=temp_path)
+                    executable_location=executable_location, fast=fast, license_key=license_key,
+                    num_models=num_models, protocol=protocol, temp_path=temp_path)
     except common.ModelingError as e:
         raise UserError(e)
 
@@ -136,18 +153,20 @@ def score_models(session, structures, *, block=None, license_key=None, refresh=F
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register, create_alias, RepeatOf, BoolArg, PasswordArg
     from chimerax.core.commands import IntArg, OpenFileNameArg, OpenFolderNameArg, NonNegativeIntArg, EnumOf
-    from chimerax.core.commands import Or, EmptyArg
+    # from chimerax.core.commands import Or, EmptyArg
     from chimerax.seqalign import AlignSeqPairArg, SeqRegionArg
     from chimerax.atomic import AtomicStructuresArg, UniqueChainsArg
     desc = CmdDesc(
         required = [('targets', RepeatOf(AlignSeqPairArg))],
-        keyword = [('block', BoolArg), ('multichain', BoolArg),
-            #('custom_script', OpenFileNameArg), ('dist_restraints', OpenFileNameArg),
-            #('executable_location', OpenFileNameArg),
+        keyword = [
+            ('block', BoolArg), ('multichain', BoolArg),
+            # ('custom_script', OpenFileNameArg), ('dist_restraints', OpenFileNameArg),
+            ('executable_location', OpenFileNameArg),
             ('fast', BoolArg), ('het_preserve', BoolArg), ('hydrogens', BoolArg),
             ('license_key', PasswordArg), ('num_models', IntArg),
             ('temp_path', OpenFolderNameArg),
-            #('thorough_opt', BoolArg),
+            ('directory', OpenFolderNameArg),
+            # ('thorough_opt', BoolArg),
             ('water_preserve', BoolArg)
         ],
         synopsis = 'Use Modeller to generate comparative model'
@@ -160,19 +179,21 @@ def register_command(logger):
     from .loops import protocols
     desc = CmdDesc(
         required = [('targets', RepeatOf(LoopsRegionArg))],
-        keyword = [('adjacent_flexible', NonNegativeIntArg), ('block', BoolArg),
+        keyword = [
+            ('adjacent_flexible', NonNegativeIntArg), ('block', BoolArg),
             ('chains', UniqueChainsArg),
-            #('executable_location', OpenFileNameArg),
+            ('executable_location', OpenFileNameArg),
             ('fast', BoolArg), ('license_key', PasswordArg), ('num_models', IntArg),
             ('protocol', EnumOf(protocols)),
             ('temp_path', OpenFolderNameArg),
+            ('directory', OpenFolderNameArg),
         ],
         synopsis = 'Use Modeller to model loops or refine structure'
     )
     register('modeller loops', desc, model_loops, logger=logger)
     create_alias('modeller refine', "modeller loops $*", logger=logger
-        #, url="help:user/commands/matchmaker.html"
-        )
+                 # , url="help:user/commands/matchmaker.html"
+                 )
 
     desc = CmdDesc(
         required = [('structures', AtomicStructuresArg)],

@@ -1,14 +1,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 '''
@@ -29,17 +40,42 @@ class View:
         self._render = None
         self._opengl_initialized = False
 
+        self.set_default_parameters()
+
+        # Graphics overlays, used for example for crossfade
+        self._overlays = []
+
+        # Redrawing
+        self.frame_number = 1
+        self.redraw_needed = True
+        self._time_graphics = False
+        self.update_lighting = True
+
+        self._drawing_manager = dm = _RedrawNeeded()
+        if trigger_set:
+            self.drawing.set_redraw_callback(dm)
+
+    def set_default_parameters(self):
         # Lights and material properties
         from .opengl import Lighting, Material, Silhouette
-        self._lighting = Lighting()
-        self._material = Material()
+        self.lighting = Lighting()
+        self.material = Material()
+        if hasattr(self, '_silhouette'):
+            self._silhouette.delete()
         self._silhouette = Silhouette()
 
         # Red, green, blue, opacity, 0-1 range.
         self._background_rgba = (0, 0, 0, 0)
         self._highlight_color = (0, 1, 0, 1)
         self._highlight_width = 1	# pixels
-        
+
+        # Set silhouette and highlight thickness for retina displays
+        r = self._render
+        if r and r.opengl_context:
+            pscale = r.opengl_context.pixel_scale()
+            self.silhouette.thickness = pscale
+            self.highlight_thickness = pscale
+
         # Create camera
         from .camera import MonoCamera
         self._camera = MonoCamera()
@@ -52,24 +88,11 @@ class View:
         self._near_far_pad = 0.01		# Extra near-far clip plane spacing.
         self._min_near_fraction = 0.001		# Minimum near distance, fraction of depth
 
-        # Graphics overlays, used for example for crossfade
-        self._overlays = []
-
         # Center of rotation
         from numpy import array, float32
         self._center_of_rotation = array((0, 0, 0), float32)
         self._update_center_of_rotation = False
         self._center_of_rotation_method = 'front center'
-
-        # Redrawing
-        self.frame_number = 1
-        self.redraw_needed = True
-        self._time_graphics = False
-        self.update_lighting = True
-
-        self._drawing_manager = dm = _RedrawNeeded()
-        if trigger_set:
-            self.drawing.set_redraw_callback(dm)
 
     def delete(self):
         r = self._render
@@ -305,6 +328,9 @@ class View:
     def draw_xor_rectangle(self, x1, y1, x2, y2, color):
         if not self._use_opengl():
             return	# OpenGL not available
+        if not self.render.front_buffer_valid:
+            self.draw(check_for_changes = False)
+            self._use_opengl()
         d = getattr(self, '_rectangle_drawing', None)
         from .drawing import draw_xor_rectangle
         self._rectangle_drawing = draw_xor_rectangle(self._render, x1, y1, x2, y2, color, d)
@@ -312,6 +338,9 @@ class View:
     @property
     def shape_changed(self):
         return self._drawing_manager.shape_changed
+
+    def clear_drawing_changes(self):
+        return self._drawing_manager.clear_changes()
 
     def get_background_color(self):
         return self._background_rgba
@@ -1000,14 +1029,17 @@ class View:
         r = rotation(axis, angle, center)
         self.move(r, drawings)
 
-    def translate(self, shift, drawings=None):
+    def translate(self, shift, drawings=None, move_near_far_clip_planes = False):
         '''Move camera to simulate a translation of drawings.  Translation
         is in scene coordinates.'''
         if shift[0] == 0 and shift[1] == 0 and shift[2] == 0:
             return
         if self._center_of_rotation_method in ('front center', 'center of view'):
             self._update_center_of_rotation = True
-        self._shift_near_far_clip_planes(shift)
+        if not move_near_far_clip_planes:
+            # Near and far clip planes are fixed to camera.
+            # Move them so they stay fixed relative to models.
+            self._shift_near_far_clip_planes(shift)
         from chimerax.geometry import translation
         t = translation(shift)
         self.move(t, drawings)
@@ -1074,7 +1106,7 @@ class _RedrawNeeded:
     def __init__(self):
         self.redraw_needed = False
         self.shape_changed = True
-        self.shape_changed_drawings = set()
+        self.shadow_shape_change = False
         self.transparency_changed = False
         self.cached_drawing_bounds = None
         self.cached_any_part_highlighted = None
@@ -1083,7 +1115,8 @@ class _RedrawNeeded:
         self.redraw_needed = True
         if shape_changed:
             self.shape_changed = True
-            self.shape_changed_drawings.add(drawing)
+            if drawing.casts_shadows:
+                self.shadow_shape_change = True
             if not getattr(drawing, 'skip_bounds', False):
                 self.cached_drawing_bounds = None
         if transparency_changed:
@@ -1094,13 +1127,10 @@ class _RedrawNeeded:
     def shadows_changed(self):
         if self.transparency_changed:
             return True
-        for d in self.shape_changed_drawings:
-            if d.casts_shadows:
-                return True
-        return False
+        return self.shadow_shape_change
 
     def clear_changes(self):
         self.redraw_needed = False
         self.shape_changed = False
-        self.shape_changed_drawings.clear()
+        self.shadow_shape_change = False
         self.transparency_changed = False

@@ -18,33 +18,7 @@ from Qt.QtGui import QDoubleValidator, QIntValidator, QPalette, QPainter
 from Qt.QtCore import Qt
 from chimerax.ui.options import SymbolicEnumOption, OptionsPanel
 from chimerax.core.errors import UserError
-import abc
-
-class StartStructureProvider(metaclass=abc.ABCMeta):
-    def __init__(self, session):
-        self.session = session
-
-    @abc.abstractmethod
-    def command_string(self, widget):
-        # Return the command (sub)string corresponding to the settings in the widget.
-        # Can return None if the provider doesn't directly add atoms [e.g. links to another tool].
-        # If 'new_model_only' was "true" in the Provider tag, then the returned string should be
-        # the _entire_ command for opening the model.
-        # Otherwise it should be the argument substring of your 'build start' provider's subcommand
-        pass
-
-    def execute_command(self, structure, args):
-        # Execute this providers subcommand into the given structure and with the given args.
-        # This method will not be called if 'new_model_only' was "true" in the Provider tag
-        # (i.e. command_string() returns a full command) or if 'indirect' was "true" in the
-        # Provider tag (i.e. provider doesn't directly add atoms)
-        raise NotImplementedError("Start-structure provider failed to implement 'execute_command'")
-
-    @abc.abstractmethod
-    def fill_parameters_widget(self, widget):
-        # populate the given widget with controls for specifying the arg values for this providers
-        # command
-        pass
+from .provider_api import StartStructureProvider
 
 def get_provider(session, name, mgr):
     from .fragment_manager import FragmentManager
@@ -198,7 +172,7 @@ class FragmentProvider(StartStructureProvider):
         layout.addWidget(but)
 
         gscene = QGraphicsScene()
-        gscene.setBackgroundBrush(widget.palette().brush(QPalette.Background))
+        gscene.setBackgroundBrush(widget.palette().brush(QPalette.Window))
         gview = QGraphicsView(gscene)
         gview.setRenderHint(QPainter.Antialiasing, True)
         layout.addWidget(gview)
@@ -477,7 +451,7 @@ class PeptideParamDialog(QDialog):
 
     @property
     def rot_lib(self):
-        return self.rot_lib_button.text()
+        return self.rot_lib_button.lib_name
 
     def _seed_phi_psi(self, option):
         phi, psi = option.value
@@ -536,11 +510,17 @@ def shim_place_fragment(session, fragment_name, position=None, res_name="UNL"):
 def shim_place_nucleic_acid(session, sequence, **kw):
     from .start import place_nucleic_acid, NucleicError
     try:
-        chains = place_nucleic_acid(_structure, sequence, **kw)
+        ret_val = place_nucleic_acid(_structure, sequence, **kw)
     except NucleicError as e:
         raise UserError(str(e))
-    show_sticks_and_elements(chains.existing_residues.atoms)
-    return chains
+    if len(sequence) > 1:
+        # Chains returned
+        atoms = ret_val.existing_residues.atoms
+    else:
+        # Residues returned
+        atoms = ret_val.atoms
+    show_sticks_and_elements(atoms)
+    return ret_val
 
 def shim_place_peptide(session, sequence, phi_psis, **kw):
     set_styles = _structure.num_atoms != 0

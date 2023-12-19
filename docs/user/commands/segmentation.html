@@ -79,6 +79,9 @@ specific neuron, as shown in the examples <a href="#surfaces">below</a>.
 [&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
 [&nbsp;<b>region</b>&nbsp;&nbsp;all&nbsp;|&nbsp;<i>name</i>&nbsp;|&nbsp;<i>i1,j1,k1,i2,j2,k2</i>&nbsp;]
 [&nbsp;<b>step</b>&nbsp;&nbsp;<i>N</i>&nbsp;|&nbsp;<i>Nx,Ny,Nz</i>&nbsp;]
+[&nbsp;<b>smooth</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>smoothingFactor</b>&nbsp;&nbsp;<i>f</i>&nbsp;]
+[&nbsp;<b>smoothingIterations</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
 </blockquote>
 <p>
 Create one or more surface models enclosing segmentation regions defined in 
@@ -145,7 +148,18 @@ along each axis, <i>etc.</i>. Step values must be integers.
 If a single integer is supplied, it is used in all three directions; 
 if three integers are supplied (separated by commas but not spaces),
 they are used in the X, Y, and Z directions, respectively.
+</p><p>
+The <b>smooth</b> option indicates whether to smooth the surface (default
+<b>false</b>). It works by moving each vertex a fraction
+of the way (default <b>smoothingFactor 1.0</b>) toward the average position 
+of the vertices connected to it by triangle edges, and cycling over
+vertices a specified number of times (default <b>smoothingIterations
+10</b>). Each vertex is moved once per iteration.
+Example:
 </p>
+<blockquote><b>
+<span class="nowrap">seg surf #1 smooth true smoothingIterations 3 smoothingFactor 0.5</span>
+</b></blockquote>
 
 <a name="colors"></a>
 <p class="nav">
@@ -192,5 +206,5 @@ as described <a href="#surfaces">above</a>.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-October 2020</address>
+October 2022</address>
 </body></html>

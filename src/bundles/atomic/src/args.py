@@ -1,14 +1,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 # -----------------------------------------------------------------------------
@@ -146,7 +157,7 @@ class SequencesArg(Annotation):
     a UniProt accession id (K9Z9J3, 6 or 10 characters, always has numbers),
     a UniProt name (MYOM1_HUMAN, always has underscore, X_Y where X and Y are at most
     5 alphanumeric characters), or a sequence (MVLSPADKTN....).
-    Returns a list of Sequence objects or Sequence subclass objects such as Chains.
+    Returns a list of Sequence objects or or objects derived from Sequence such as Chain.
     '''
     name = 'sequences'
     
@@ -154,22 +165,34 @@ class SequencesArg(Annotation):
     def parse(cls, text, session):
         if is_atom_spec(text, session):
             return UniqueChainsArg.parse(text, session)
-        elif is_uniprot_id(text):
-            value, used, rest = UniProtSequenceArg.parse(text, session)
-            return [value], used, rest
-        else:
-            for argtype in (AlignmentSequenceArg, RawSequenceArg):
-                try:
-                    value, used, rest = argtype.parse(text, session)
-                    return [value], used, rest
-                except Exception:
-                    continue
-        if len(text) == 0:
-              raise AnnotationError('Sequences argument is empty.')
+
+        if not text:
+            raise AnnotationError("Expected %s" % cls.name)
         from chimerax.core.commands import next_token
-        token, text, rest = next_token(text)
-        raise AnnotationError('Sequences argument "%s" is not a chain specifier, ' % token +
-                              'alignment id, UniProt id, or sequence characters')
+        token, used, rest = next_token(text)
+        if len(text) == 0:
+            raise AnnotationError('Sequences argument is empty.')
+
+        seqs = []
+        for seq_text in token.split(','):
+            seq = _parse_sequence(seq_text, session)
+            if seq is None:
+                raise AnnotationError('Sequences argument "%s" is not a chain specifier, ' % seq_text +
+                                      'alignment id, UniProt id, or sequence characters')
+            seqs.append(seq)
+
+        return seqs, used, rest
+
+def _parse_sequence(seq_text, session):
+    from chimerax.seqalign import SeqArg
+    for arg_type in (ChainArg, UniProtSequenceArg, SeqArg, RawSequenceArg):
+        try:
+            seq, sused, srest = arg_type.parse(seq_text, session)
+            if len(srest) == 0:
+                return seq
+        except Exception:
+            pass
+    return None
 
 class SequenceArg(Annotation):
     name = 'sequence'
@@ -188,44 +211,15 @@ def is_atom_spec(text, session):
     except AnnotationError:
         return False
     return True
-
-def is_uniprot_id(text):
-    # Name and accession format described here.
-    # https://www.uniprot.org/help/accession_numbers
-    # https://www.uniprot.org/help/entry_name
-    if len(text) == 0:
-        return False
-    from chimerax.core.commands import next_token
-    id, text, rest = next_token(text)
-    if '_' in id:
-        fields = id.split('_')
-        f1,f2 = fields
-        if (f1.isalnum() and len(f1) <= 6 or len(f1) == 10 and
-            f2.isalnum() and len(f2) <= 5):
-            return True
-    elif (len(id) >= 6 and id.isalnum() and
-          id[0].isalpha() and id[1].isdigit() and id[5].isdigit()):
-        if len(id) == 6:
-            return True
-        elif len(id) == 10 and id[6].isalpha() and id[9].isdigit():
-            return True
-    return False
                 
-class AlignmentSequenceArg(Annotation):
-    name = 'alignment sequence'
-    
-    @classmethod
-    def parse(cls, text, session):
-        from chimerax.seqalign import AlignSeqPairArg
-        (alignment, seq), used, rest = AlignSeqPairArg.parse(text, session)
-        return seq, used, rest
-
 class UniProtSequenceArg(Annotation):
     name = 'UniProt sequence'
     
     @classmethod
     def parse(cls, text, session):
         uid, used, rest = StringArg.parse(text, session)
+        if not is_uniprot_id(uid):
+            raise AnnotationError('Invalid UniProt identifier "%s"' % uid)
         if '_' in uid:
             uname = uid
             from chimerax.uniprot import map_uniprot_ident
@@ -248,9 +242,49 @@ class UniProtSequenceArg(Annotation):
         if uname is not None:
             seq.uniprot_name = uname
         return seq, used, rest
+                
+class UniProtIdArg(Annotation):
+    name = 'UniProt id'
+    
+    @classmethod
+    def parse(cls, text, session):
+        uid, used, rest = StringArg.parse(text, session)
+        if not is_uniprot_id(uid):
+            raise AnnotationError('Invalid UniProt identifier "%s"' % uid)
+        if '_' in uid:
+            from chimerax.uniprot import map_uniprot_ident
+            try:
+                uid = map_uniprot_ident(uid, return_value = 'entry')
+            except Exception:
+                raise AnnotationError('UniProt name "%s" must be 1-5 characters followed by an underscore followed by 1-5 characters' % uid)
+        if len(uid) not in (6, 10):
+            raise AnnotationError('UniProt id "%s" must be 6 or 10 characters' % uid)
+        return uid.upper(), used, rest
+
+def is_uniprot_id(text):
+    # Name and accession format described here.
+    # https://www.uniprot.org/help/accession_numbers
+    # https://www.uniprot.org/help/entry_name
+    if len(text) == 0:
+        return False
+    from chimerax.core.commands import next_token
+    id, text, rest = next_token(text)
+    if '_' in id:
+        fields = id.split('_')
+        f1,f2 = fields
+        if (f1.isalnum() and len(f1) <= 6 or len(f1) == 10 and
+            f2.isalnum() and len(f2) <= 5):
+            return True
+    elif (len(id) >= 6 and id.isalnum() and
+          id[0].isalpha() and id[1].isdigit() and id[5].isdigit()):
+        if len(id) == 6:
+            return True
+        elif len(id) == 10 and id[6].isalpha() and id[9].isdigit():
+            return True
+    return False
 
 class RawSequenceArg(Annotation):
-    name = 'raw sequence'
+    name = 'sequence string'
     
     @classmethod
     def parse(cls, text, session):
@@ -298,6 +332,24 @@ class AtomicStructuresArg(AtomSpecArg):
         if aspec.outermost_inversion:
             mols = fully_selected(session, aspec, mols)
         return AtomicStructures(mols), text, rest
+
+
+class AtomicStructureArg(AtomSpecArg):
+    """Parse command atomic structure specifier"""
+    name = "an atomic structure specifier"
+
+    @classmethod
+    def parse(cls, text, session):
+        aspec, text, rest = super().parse(text, session)
+        models = aspec.evaluate(session).models
+        from . import AtomicStructure
+        mols = [m for m in models if isinstance(m, AtomicStructure)]
+        if aspec.outermost_inversion:
+            mols = fully_selected(session, aspec, mols)
+        if len(mols) != 1:
+            raise AnnotationError('must specify 1 atomic structure, got %d for "%s"'
+                                  % (len(mols), text))
+        return mols[0], text, rest
 
 
 class PseudobondGroupsArg(AtomSpecArg):
@@ -635,10 +687,15 @@ def concise_residue_spec(session, residues):
             chain_id_index_map[cid] = i
         specs = {}
         for struct, chain_id, chain_residues in struct_residues.by_chain:
-            sort_residues = list(chain_residues)
-            sort_residues.sort(key=lambda res: (res.number, res.insertion_code))
-            specs.setdefault(':' + _form_range(sort_residues, res_index_map, lambda r:
-                r.string(omit_structure=True, style="command", residue_only=True)[1:]), []).append(chain_id)
+            # if chain_residues is all the residues with that chain ID, don't need a residue spec
+            if len(struct.residues[struct.residues.chain_ids == chain_id]) == len(chain_residues):
+                spec = ""
+            else:
+                sort_residues = list(chain_residues)
+                sort_residues.sort(key=lambda res: (res.number, res.insertion_code))
+                spec = ':' + _form_range(sort_residues, res_index_map, lambda r:
+                    r.string(omit_structure=True, style="command", residue_only=True)[1:])
+            specs.setdefault(spec, []).append(chain_id)
 
         if full_spec:
             full_spec += ' '

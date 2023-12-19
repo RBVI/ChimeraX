@@ -28,7 +28,8 @@ class AtomProximityTool(ToolInstance):
         layout.setContentsMargins(0,0,0,0)
         layout.setSpacing(0)
         parent.setLayout(layout)
-        self.gui = gui_class(self.session, has_apply_button=True)
+        self.gui = gui_class(self.session, has_apply_button=True, ignore_hidden_models=True,
+            show_ignore_hidden_models=True)
         layout.addWidget(self.gui)
 
         from Qt.QtWidgets import QDialogButtonBox as qbbox

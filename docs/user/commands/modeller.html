@@ -64,7 +64,8 @@ The <b>modeller</b> command runs
 <a href="https://www.salilab.org/modeller/" target="_blank">Modeller</a>
 on a web service hosted by the
 <a href="https://www.cgl.ucsf.edu/Overview/index.html" target="_blank">UCSF
-RBVI</a>. 
+RBVI</a>, or using a local installation specified with
+<a href="#executableLocation"><b>executableLocation</b></a>.
 </p>
 <ul>
 <li><b>modeller comparative</b> performs comparative or
@@ -77,7 +78,8 @@ refined by generating additional possible conformations
 (<a href="#loops-details">details...</a>).
 </ul>
 <p>
-A Modeller <a href="../tools/modeller.html#key">license key</a>
+For running the web service,
+a Modeller <a href="../tools/modeller.html#key">license key</a>
 must be specified with the <a href="#licenseKey"><b>licenseKey</b></a> 
 command option or entered in the
 <a href="../tools/modeller.html"><b>Modeller Comparative</b></a>
@@ -95,6 +97,13 @@ Comparative protein modelling by satisfaction of spatial restraints.</a>
 &Scaron;ali A, Blundell TL.
 <i>J Mol Biol.</i> 1993 Dec 5;234(3):779-815.
 </blockquote>
+<p>
+See also: 
+<a href="alphafold.html"><b>alphafold</b></a>,
+<a href="esmfold.html"><b>esmfold</b></a>,
+<a href="swapaa.html"><b>swapaa</b></a>,
+<a href="build.html"><b>build</b></a>
+</p>
 
 <a name="comparative-details"></a>
 <p class="nav">
@@ -206,6 +215,14 @@ The target sequence can be taken from the structure metadata
 or <a href="open.html#fetch">fetched</a>
 from <a href="https://www.uniprot.org" target="_blank">UniProt</a>,
 or opened from a <a href="open.html#sequence">file</a>.
+<!--
+The sequence can be different from the sequence of the structure as long
+as they are similar enough to associate properly;
+however, the types shown in the
+<a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>
+will be used for the segment that is filled in or refined, as well as any
+<a href="#adjacentFlexible">adjacent positions designated as flexible</a>.
+-->
 The sequence must be the same as the sequence of the structure, except that
 differences are permitted within the segments to be filled in or refined,
 as well as any
@@ -313,17 +330,27 @@ any subsequent commands, default true when the
 <a href="../options.html#nogui">nogui mode</a>, otherwise false.
 </blockquote>
 <blockquote>
-<a name="tempPath"></a>
-<b>tempPath</b>&nbsp;&nbsp;<i>tempdir</i>
+<a name="directory"></a>
+<b>directory</b>&nbsp;&nbsp;<i>inputs-directory</i>
 <br>
 Specify a location for automatically generated input files, where 
-<i>tempdir</i> is either the pathname of an existing directory (folder),
-or the word <a href="usageconventions.html#browse"><b>browse</b></a>
+<i>inputs-directory</i> is either the pathname of an existing directory
+(folder), or the word <a href="usageconventions.html#browse"><b>browse</b></a>
 to specify it interactively in a file browser window.
 If this option is not used, the files will be placed in a
 temporary system directory that will be removed when no longer needed.
 This option allows users to retain the input files for examination or
 other purposes.
+</blockquote>
+<blockquote>
+<a name="executableLocation"></a>
+<b>executableLocation</b>&nbsp;&nbsp;<i>executable</i>
+<br>
+Specify running a local installation of Modeller instead of the RBVI-hosted
+web service, where <i>executable</i> is either the pathname of the executable
+or the word <a href="usageconventions.html#browse"><b>browse</b></a>
+to specify it interactively in a file browser window. 
+The local installation must be version 10 or newer.
 </blockquote>
 </blockquote>
 
@@ -394,8 +421,8 @@ structure chains are associated with the same sequence).
 <b>protocol</b>&nbsp;&nbsp;<b>standard</b>&nbsp;|&nbsp;DOPE&nbsp;|&nbsp;DOPE-HR
 <br>
 Which loop-modeling protocol to use:
-<b>standard</b> (default) or
-Discrete Optimized Protein Energy score (DOPE, see
+<b>standard</b> (default, evaluate conformations by the sum of all restraints)
+or Discrete Optimized Protein Energy score (DOPE, see
 <a href="https://www.ncbi.nlm.nih.gov/pubmed/17075131" target="_blank">Shen
 and Sali</a>, <i>Protein Sci</i> <b>15</b>:2507 (2006)) with Lennard-Jones
 potential and GB/SA implicit solvent interaction.  The DOPE protocol
@@ -427,5 +454,5 @@ after making modifications that are expected to improve the scores.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-October 2021</address>
+December 2022</address>
 </body></html>

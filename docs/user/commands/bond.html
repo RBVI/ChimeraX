@@ -57,8 +57,12 @@ See also: <a href="build.html"><b>build</b></a>,
 <a href="../pseudobonds.html">pseudobonds</a>,
 <a href="../measurements.html">measurements</a>
 </p><p>
-For bond addition, all pairwise combinations of the specified atoms 
-that are within reasonable bonding distance can be bonded 
+A bond can only be added between atoms that are in the same atomic model;
+if they are in separate models, a single 
+<a href="combine.html">combined</a> model needs to be created first.
+For bond addition between atoms in the same model, 
+all pairwise combinations of the specified atoms that are 
+within reasonable bonding distance can be bonded 
 (<b>reasonable true</b>, default), or all pairwise combinations
 bonded regardless of distance (<b>reasonable false</b>).
 Deletion will include all bonds between the specified atoms, or the bonds 
@@ -76,5 +80,5 @@ side of the bond (default <b>small</b>, the side with fewer atoms).
 </p>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-September 2021</address>
+February 2022</address>
 </body></html>

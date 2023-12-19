@@ -1,14 +1,25 @@
 # vim: set expandtab ts=4 sw=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 auto_color_strings = ['default', 'auto']
@@ -40,6 +51,11 @@ def key_cmd(session, colors_and_labels=None, *, pos=None, size=None, font_size=N
         key.pos = pos
     if size is not None:
         key.size = size
+    else:
+        # prevent "key" command from apparently doing nothing [#4902]
+        x, y = key.size
+        if x == 0 or y == 0:
+            key.size = key.DEFAULT_SIZE
     if font_size is not None:
         key.font_size = font_size
     if bold is not None:
@@ -84,7 +100,7 @@ def key_cmd(session, colors_and_labels=None, *, pos=None, size=None, font_size=N
             session.logger.warning("Key is partially or completely offscreen")
     if colors_and_labels is not None:
         key.rgbas_and_labels = rgbas_and_labels
-    if show_tool and session.ui.is_gui and not session.in_script:
+    if show_tool and session.ui.is_gui:
         from chimerax.core.commands import run
         run(session,"ui tool show 'Color Key'", log=False)
     return key
@@ -94,28 +110,6 @@ def key_delete_cmd(session):
     key = get_model(session, create=False)
     if key is not None:
         key.delete()
-
-def palette_equal(p1, p2):
-    if len(p1) != len(p2):
-        return False
-    tolerance = 1 / 512
-    def len4(c):
-        if len(c) == 4:
-            return c
-        else:
-            return [x for x in c] + [1.0]
-    for c1, c2 in zip(p1, p2):
-        for v1, v2 in zip(len4(c1), len4(c2)):
-            if abs(v1 - v2) > tolerance:
-                return False
-    return True
-
-def palette_name(rgbas):
-    from chimerax.core.colors import BuiltinColormaps
-    for name, cm in BuiltinColormaps.items():
-        if palette_equal(cm.colors, rgbas):
-            return name
-    return None
 
 def _precision_values(values, precision):
     if precision is None:
@@ -154,7 +148,7 @@ def _precision_values(values, precision):
 def show_key(session, color_map, *, show_tool=True, precision=3):
     """If precision is None, use full precision"""
     from chimerax.core.commands import run, StringArg
-    from chimerax.core.colors import color_name, rgba_to_rgba8
+    from chimerax.core.colors import color_name, rgba_to_rgba8, palette_name
     palette = palette_name(color_map.colors)
     v_fmt, values = _precision_values(color_map.data_values, precision)
     if palette is None:
@@ -219,11 +213,17 @@ class PaletteLabelsArg(Annotation):
         num_labels = len(cmap.colors)
         for i in range(num_labels):
             if not rest.lstrip():
+                if len(vals) == 1:
+                    vals.extend([''] * len(cmap.colors))
+                    return vals, final_text, rest
                 raise AnnotationError("Need at least %d labels to match palette" % num_labels)
             label_token, text, rest = next_token(rest.lstrip(), session)
-            final_text += ' ' + text
             if not label_token.startswith(':'):
+                if len(vals) == 1:
+                    vals.extend([''] * len(cmap.colors))
+                    return vals, final_text, text + ' ' + rest
                 raise AnnotationError("Each label must be prefixed with ':'")
+            final_text += ' ' + text
             vals.append(label_token[1:])
         return vals, final_text, rest
 

@@ -27,7 +27,7 @@ def _write_3d_tiff(grid_data, path):
     xstep, ystep, zstep = grid_data.step
     from tifffile import imwrite
     imwrite(path, array_zcyx, imagej=True, resolution=(1/xstep, 1/ystep),
-            photometric='minisblack', metadata={'spacing': zstep, 'axes': 'ZYX'})
+            photometric='minisblack', metadata={'spacing': zstep, 'axes': 'ZCYX'})
 
 def _write_2d_tiffs(grid_data, path):
     array = grid_data.matrix()

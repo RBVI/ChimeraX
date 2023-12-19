@@ -1,19 +1,31 @@
 # vim: set expandtab ts=4 sw=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 # -------------------------------------------------------------------------
 #
-def volume_erase(session, volumes, center, radius, coordinate_system = None, outside = False):
+def volume_erase(session, volumes, center, radius, coordinate_system = None,
+                 outside = False, value = 0):
     '''Erase a volume inside or outside a sphere.'''
     ev = []
     cscene = center.scene_coordinates(coordinate_system)
@@ -22,41 +34,40 @@ def volume_erase(session, volumes, center, radius, coordinate_system = None, out
         v = volume.writable_copy()
         ev.append(v)
         if outside:
-            _zero_data_outside_sphere(v.data, cvol, radius)
+            _set_data_outside_sphere(v.data, cvol, radius, value)
         else:
-            _zero_data_in_sphere(v.data, cvol, radius)
+            _set_data_in_sphere(v.data, cvol, radius, value)
     return ev[0] if len(ev) == 1 else ev
 
 # -----------------------------------------------------------------------------
 #
-def _zero_data_in_sphere(grid_data, center, radius):
+def _set_data_in_sphere(grid_data, center, radius, value = 0):
 
     # Optimization: Mask only subregion containing sphere.
     ijk_min, ijk_max = _sphere_grid_bounds(grid_data, center, radius)
-    from chimerax.map_data import GridSubregion, zone_masked_grid_data
+    from chimerax.map_data import GridSubregion, zone_mask
     subgrid = GridSubregion(grid_data, ijk_min, ijk_max)
 
-    mg = zone_masked_grid_data(subgrid, [center], radius)
+    mask = zone_mask(subgrid, [center], radius)
 
     dmatrix = subgrid.full_matrix()
-    mdmatrix = mg.full_matrix()
 
-    from numpy import subtract
-    subtract(dmatrix, mdmatrix, dmatrix)
+    from numpy import putmask
+    putmask(dmatrix, mask, value)
 
     grid_data.values_changed()
 
 # -----------------------------------------------------------------------------
 #
-def _zero_data_outside_sphere(grid_data, center, radius):
+def _set_data_outside_sphere(grid_data, center, radius, value = 0):
 
-    from chimerax.map_data import zone_masked_grid_data
-    mg = zone_masked_grid_data(grid_data, [center], radius)
+    from chimerax.map_data import zone_mask
+    mask = zone_mask(grid_data, [center], radius, invert_mask = True)
 
     dmatrix = grid_data.full_matrix()
-    mdmatrix = mg.full_matrix()
 
-    dmatrix[:,:,:] = mdmatrix[:,:,:]
+    from numpy import putmask
+    putmask(dmatrix, mask, value)
 
     grid_data.values_changed()
 
@@ -83,6 +94,7 @@ def register_volume_erase_command(logger):
                    ('radius', FloatArg),
                    ('coordinate_system', CoordSysArg),
                    ('outside', BoolArg),
+                   ('value', FloatArg),
         ],
         required_arguments = ['center', 'radius'],
         synopsis = 'Set map values to zero inside a sphere'
@@ -375,13 +387,13 @@ class MapEraserSettings(ToolInstance):
         
 # -------------------------------------------------------------------------
 #
-from chimerax.core.models import Model
-class SphereModel(Model):
+from chimerax.core.models import Surface
+class SphereModel(Surface):
     SESSION_SAVE = False
     
     def __init__(self, name, session, color, center, radius):
         self._num_triangles = 1000
-        Model.__init__(self, name, session)
+        Surface.__init__(self, name, session)
         from chimerax.surface import sphere_geometry2
         va, na, ta = sphere_geometry2(self._num_triangles)
         self._unit_vertices = va

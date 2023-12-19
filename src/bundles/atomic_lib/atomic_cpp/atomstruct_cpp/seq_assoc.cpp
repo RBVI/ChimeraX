@@ -2,14 +2,25 @@
 
 /*
  * === UCSF ChimeraX Copyright ===
- * Copyright 2016 Regents of the University of California.
- * All rights reserved.  This software provided pursuant to a
- * license agreement containing restrictions on its disclosure,
- * duplication and use.  For details see:
- * http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
- * This notice must be embedded in or attached to all copies,
- * including partial copies, of the software or any revisions
- * or derivations thereof.
+ * Copyright 2022 Regents of the University of California. All rights reserved.
+ * The ChimeraX application is provided pursuant to the ChimeraX license
+ * agreement, which covers academic and commercial uses. For more details, see
+ * <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+ *
+ * This particular file is part of the ChimeraX library. You can also
+ * redistribute and/or modify it under the terms of the GNU Lesser General
+ * Public License version 2.1 as published by the Free Software Foundation.
+ * For more details, see
+ * <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+ *
+ * THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+ * LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+ * VERSION 2.1
+ *
+ * This notice must be embedded in or attached to all copies, including partial
+ * copies, of the software or any revisions or derivations thereof.
  * === UCSF ChimeraX Copyright ===
  */
 
@@ -345,11 +356,14 @@ constrained_match(const Sequence::Contents& aseq, const StructureSeq& mseq,
         throw std::logic_error("Internal match problem: #segments != #offsets");
     AssocRetvals ret;
     unsigned int res_offset = 0;
+    auto num_mseq_res = mseq.residues().size();
     for (unsigned int si = 0; si < ap.segments.size(); ++si) {
         int offset = offsets[si];
         const Sequence::Contents& segment = ap.segments[si];
         for (unsigned int i = 0; i < segment.size(); ++i) {
             Residue* r = mseq.residues()[res_offset+i];
+            if (res_offset+i >= num_mseq_res)
+                break;
             if (r != nullptr) {
                 ret.match_map[r] = offset+i;
                 ret.match_map[offset+i] = r;
@@ -420,6 +434,7 @@ gapped_match(const Sequence::Contents& aseq, const StructureSeq& mseq,
 
     AssocRetvals ret;
     ret.num_errors = tot_errs;
+    auto num_mseq_res = mseq.residues().size();
     int mseq_index = 0;
     for (int i = 0; i < best_offset + (int)aseq.size(); ++i) {
         if (i >= (int)gapped.size())
@@ -435,6 +450,8 @@ gapped_match(const Sequence::Contents& aseq, const StructureSeq& mseq,
             }
         }
         ++mseq_index;
+        if (mseq_index >= num_mseq_res)
+            break;
     }
     return ret;
 }
@@ -462,6 +479,8 @@ try_assoc(const Sequence& align_seq, const StructureSeq& mseq,
     } catch (SA_AssocFailure&) {
         assoc_failure = true;
     }
+    retvals.match_map.aseq = &align_seq;
+    retvals.match_map.mseq = &mseq;
 
     if (!assoc_failure && retvals.num_errors == 0)
         return retvals;
