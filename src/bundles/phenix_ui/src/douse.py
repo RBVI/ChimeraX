@@ -98,10 +98,9 @@ def douse_needs_resolution(session, phenix_location=None):
         import subprocess
         p = subprocess.run(". " + env_path + " ; " + version_path, capture_output=True, shell=True)
         if p.returncode != 0:
-            cmd = " ".join(args)
             out, err = p.stdout.decode("utf-8"), p.stderr.decode("utf-8")
             msg = (f'phenix.version exited with error code {p.returncode}\n\n' +
-                   f'Command: {cmd}\n\n' +
+                   f'Command: {version_path}\n\n' +
                    f'stdout:\n{out}\n\n' +
                    f'stderr:\n{err}')
             from chimerax.core.errors import UserError

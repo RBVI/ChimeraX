@@ -1,10 +1,7 @@
-# ChimeraX flatpak description
-#
 # vim:set expandtab shiftwidth=2:
-#
 id: edu.ucsf.rbvi.ChimeraX
 runtime: org.freedesktop.Platform
-runtime-version: '22.08'
+runtime-version: 'RUNTIME_VER'
 sdk: org.freedesktop.Sdk
 command: ChimeraX
 
@@ -49,19 +46,19 @@ modules:
     sources:
       - type: git
         url: ssh://git@github.com/RBVI/ChimeraX.git
-        branch: develop
+        branch: BRANCH
     build-commands:
       # ffmpeg fails to compile with -j
       - make -f Makefile.flatpak install
 
   # libQt6Network.so.6 from the Qt Group needs
-  # libgssapi_krb5.so.2, but is not in runtime environment
+  # libgssapi_krb5.so.2, but is not in flatpak runtime environment
   - name: krb5
     buildsystem: simple
     sources:
     - type: archive
-      url: http://web.mit.edu/kerberos/dist/krb5/1.20/krb5-1.20.1.tar.gz
-      sha256: 704aed49b19eb5a7178b34b2873620ec299db08752d6a8574f95d41879ab8851
+      url: http://web.mit.edu/kerberos/dist/krb5/1.20/krb5-1.20.2.tar.gz
+      sha256: 7d8d687d42aed350c2525cb69a4fc3aa791694da6761dccc1c42c2ee7796b5dd
     build-commands:
       - cd src && ./configure
       - make -j -C src/util

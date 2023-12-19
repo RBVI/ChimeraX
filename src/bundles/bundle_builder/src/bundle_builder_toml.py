@@ -54,7 +54,10 @@ import re
 import shutil
 import sys
 import sysconfig
-import tomli
+if sys.version_info < (3,11,0):
+    import tomli as tomllib
+else:
+    import tomllib
 import traceback
 import unicodedata
 import warnings
@@ -131,7 +134,7 @@ class _SpecifierWarning(UserWarning):
 
 def read_toml(file):
     with open(file, 'r') as f:
-        return tomli.loads(f.read())
+        return tomllib.loads(f.read())
 
 
 class Bundle:
