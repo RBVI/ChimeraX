@@ -31,7 +31,8 @@ class RestoreError(RuntimeError):
 
 
 class State:
-    """Session state API for classes that support saving session state
+    """
+    Session state API for classes that support saving session state
 
     Session state consists only of "simple" types, i.e.,
     those that are supported by the :py:mod:`.serialize` module
@@ -50,7 +51,8 @@ class State:
     ALL = SCENE | SESSION | INCLUDE_MAPS
 
     def take_snapshot(self, session, flags):
-        """Return snapshot of current state of instance.
+        """
+        Return snapshot of current state of instance.
 
         The semantics of the data is unknown to the caller.
         Returns None if should be skipped.

@@ -53,7 +53,8 @@ MODELS_STATE_VERSION = 1
 from .state import State
 from chimerax.graphics import Drawing, Pick, PickedTriangle
 class Model(State, Drawing):
-    """A Model is a :class:`.Drawing` together with an id number
+    """
+    A Model is a :class:`.Drawing` together with an id number
     that allows it to be referenced in a typed command.
 
     Model subclasses can be saved in session files.
@@ -271,7 +272,7 @@ class Model(State, Drawing):
     overall_color = model_color = property(_get_overall_color, _set_overall_color)
     '''
     Getting the overall color may give the dominant color.
-    It also might return None (many colors but no dominant color)
+    It also might return None (many colors but no dominant color)\
         or False (model does not support [external] coloring, e.g. color key).
     Setting the overall color will set the model to that color.
     Color values are rgba uint8 arrays.

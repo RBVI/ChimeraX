@@ -125,11 +125,24 @@ class Patient(Model):
 
     def __iter__(self):
         return iter(self.studies)
+    
+    def take_snapshot(self, session, flags):
+        data = super().take_snapshot(session, flags)
+        data['patient_id'] = self.pid
+        return data
 
+    @classmethod
+    def restore_snapshot(cls, session, data):
+        pid = data.get('patient_id', None)
+        new_patient = cls(session, pid)
+        Model.set_state_from_snapshot(new_patient, session, data)
+        return new_patient
 
 class Study(Model):
     """A set of DICOM files that have the same Study Instance UID"""
     def __init__(self, session, uid, patient: Patient):
+        if type(uid) is str:
+            uid = pydicom.uid.UID(uid)
         self.uid = uid
         self.session = session
         self.patient = patient
@@ -243,6 +256,18 @@ class Study(Model):
 
     def __iter__(self):
         return iter(self.series)
+
+    def take_snapshot(self, session, flags):
+        data = super().take_snapshot(session, flags)
+        data['study_id'] = str(self.uid)
+        return data
+
+    @classmethod
+    def restore_snapshot(cls, session, data):
+        pid = data.get('study_id', None)
+        new_study = cls(session, pid, data['parent'])
+        Model.set_state_from_snapshot(new_study, session, data)
+        return new_study
 
 
 class Series:

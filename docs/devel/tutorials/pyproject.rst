@@ -88,7 +88,7 @@ the source tree, respectively. ::
 The general syntax is ``"target/directory" = ["list", "of", "source", "files"]``.
 
 Platform-Specific Extra Files
-----------------------------
+-----------------------------
 You may choose to optionally include some extra files on certain platforms only. In this
 case put them in a table such as: ::
 

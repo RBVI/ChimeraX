@@ -55,7 +55,8 @@ def combine_cmd(session, structures, *, close=False, model_id=None, name=None):
         chain_id_mapping = {}
         chain_ids = sorted(s.residues.unique_chain_ids)
         for chain_id in chain_ids:
-            if chain_id in seen_ids:
+            # blank chain IDs don't "play nice" when combined; always remap them
+            if chain_id in seen_ids or chain_id.isspace():
                 from chimerax.atomic import next_chain_id
                 new_id = next_chain_id(chain_id)
                 while new_id in seen_ids or new_id in chain_ids:
@@ -66,7 +67,20 @@ def combine_cmd(session, structures, *, close=False, model_id=None, name=None):
             else:
                 seen_ids.add(chain_id)
         combination.combine(s, chain_id_mapping, structures[0].scene_position)
+    # eliminate blanks IDs coming from structure 0
+    chain_ids = set(combination.residues.unique_chain_ids)
+    for chain_id in chain_ids:
+        if chain_id.isspace():
+            from chimerax.atomic import next_chain_id
+            new_id = next_chain_id(chain_id)
+            while new_id in chain_ids:
+                new_id = next_chain_id(new_id)
+            session.logger.info("Remapping chain ID '%s' in %s to '%s'" % (chain_id, structures[0], new_id))
+            residues = combination.residues
+            residues[residues.chain_ids == chain_id].chain_ids = new_id
+
     combination.position = structures[0].scene_position
+
     if close:
         # also close empty parent models
         closures = set(structures)
