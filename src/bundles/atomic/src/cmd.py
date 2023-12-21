@@ -55,7 +55,8 @@ def combine_cmd(session, structures, *, close=False, model_id=None, name=None):
         chain_id_mapping = {}
         chain_ids = sorted(s.residues.unique_chain_ids)
         for chain_id in chain_ids:
-            if chain_id in seen_ids:
+            # blank chain IDs don't "play nice" when combined; always remap them
+            if chain_id in seen_ids or chain_id.isspace():
                 from chimerax.atomic import next_chain_id
                 new_id = next_chain_id(chain_id)
                 while new_id in seen_ids or new_id in chain_ids:
@@ -66,7 +67,20 @@ def combine_cmd(session, structures, *, close=False, model_id=None, name=None):
             else:
                 seen_ids.add(chain_id)
         combination.combine(s, chain_id_mapping, structures[0].scene_position)
+    # eliminate blanks IDs coming from structure 0
+    chain_ids = set(combination.residues.unique_chain_ids)
+    for chain_id in chain_ids:
+        if chain_id.isspace():
+            from chimerax.atomic import next_chain_id
+            new_id = next_chain_id(chain_id)
+            while new_id in chain_ids:
+                new_id = next_chain_id(new_id)
+            session.logger.info("Remapping chain ID '%s' in %s to '%s'" % (chain_id, structures[0], new_id))
+            residues = combination.residues
+            residues[residues.chain_ids == chain_id].chain_ids = new_id
+
     combination.position = structures[0].scene_position
+
     if close:
         # also close empty parent models
         closures = set(structures)
@@ -135,6 +149,28 @@ def pbond_cmd(session, atoms, *, color=BuiltinColors["slate gray"], current_coor
         if pbg in dist_monitor.monitored_groups:
             dist_monitor.remove_group(pbg)
 
+def xpbond_cmd(session, atoms, *, global_=False, name="custom"):
+    if len(atoms) != 2:
+        raise UserError("Must specify exactly 2 atoms to delete pseudobond between; you specified %d"
+            % len(atoms))
+    a1, a2 = atoms
+
+    if global_ or a1.structure != a2.structure:
+        pbg = session.pb_manager.get_group(name, create=False)
+        if not pbg:
+            raise UserError("Cannot find global psudobond group named '%s'" % name)
+    else:
+        pbg = a1.structure.pseudobond_group(name, create_type=None)
+        if not pbg:
+            raise UserError("Cannot find psudobond group named '%s' for structure %s" % (name, a1.structure))
+    for pb in pbg.pseudobonds:
+        if a1 in pb.atoms and a2 in pb.atoms:
+            pbg.delete_pseudobond(pb)
+            if pbg.num_pseudobonds == 0:
+                session.models.close([pbg])
+            break
+    else:
+        raise UserError("No pseudobond between %s and %s found for %s" % (a1, a2, pbg))
 
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register, create_alias, Or, EmptyArg, StringArg, BoolArg, \
@@ -171,3 +207,15 @@ def register_command(logger):
         ],
         synopsis = 'Create pseudobond')
     register('pbond', pbond_desc, pbond_cmd, logger=logger)
+
+    # Not allowed to reuse CmdDesc instances, so...
+    xpbond_kw = {
+        'required': [('atoms', AtomsArg)],
+        'keyword': [
+            ('global_', NoArg),
+            ('name', StringArg),
+        ],
+        'synopsis': 'Delete pseudobond'
+    }
+    register('pbond delete', CmdDesc(**xpbond_kw), xpbond_cmd, logger=logger)
+    register('~pbond', CmdDesc(**xpbond_kw), xpbond_cmd, logger=logger)

@@ -27,7 +27,7 @@ from chimerax.add_charge import ChargeMethodArg
 
 def cmd_coulombic(session, atoms, *, surfaces=None, his_scheme=None, offset=1.4, gspacing=None,
         gpadding=None, map=None, palette=None, range=None, dist_dep=True, dielectric=4.0,
-        charge_method=ChargeMethodArg.default_value, key=False):
+        charge_method=ChargeMethodArg.default_value, key=False, reassign_charges=False):
     session.logger.status("Computing Coulombic potential%s" % (" map" if map else ""))
     if palette is None:
         from chimerax.core.colors import BuiltinColormaps
@@ -81,6 +81,9 @@ def cmd_coulombic(session, atoms, *, surfaces=None, his_scheme=None, offset=1.4,
     needs_assignment = set()
     for surf_atoms, shown_atoms, srf in atoms_per_surf:
         for r in surf_atoms.unique_residues:
+            if reassign_charges:
+                needs_assignment.add(r)
+                continue
             if getattr(r, '_coulombic_his_scheme', his_scheme) != his_scheme:
                 # should only be set on HIS residues
                 needs_assignment.add(r)
@@ -229,6 +232,7 @@ def register_command(logger):
             ('dielectric', FloatArg),
             ('charge_method', ChargeMethodArg),
             ('key', BoolArg),
+            ('reassign_charges', BoolArg),
         ],
         synopsis = 'Color surfaces by coulombic potential'
     )

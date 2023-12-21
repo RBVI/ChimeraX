@@ -44,7 +44,7 @@ Version 3 of the protocol supports instances of the following types:
     and :py:class:`~collections.deque`;
     :py:mod:`datetime`'s :py:class:`~datetime.datetime`,
     :py:class:`~datetime.timezone`; and :py:class:`~datetime.timedelta`;
-    :pillow:`PIL.Image.Image`;
+    :external+pillow:py:class:`PIL.Image.Image`;
     tinyarray, :py:class:`~tinyarray.ndarray_int`, :py:class:`~tinyarray.ndarray_float`, :py:class:`~tinyarray.ndarray_complex`
 
 """
