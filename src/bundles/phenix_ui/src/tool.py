@@ -393,11 +393,13 @@ class LaunchEmplaceLocalTool(ToolInstance):
             raise AssertionError("Unknown centering method")
         self.settings.search_center = method
         self.settings.show_sharpened_map = ssm = self.show_sharpened_map_checkbox.isChecked()
+        apply_symmetry = self.symmetry_checkbox.isChecked()
         if self.verify_center_checkbox.isChecked():
             self.settings.opaque_maps = self.opaque_maps_checkbox.isChecked()
-            VerifyCenterDialog(self.session, structure, maps, res, center, self.settings.opaque_maps, ssm)
+            VerifyCenterDialog(self.session, structure, maps, res, center, self.settings.opaque_maps, ssm,
+                apply_symmetry)
         else:
-            _run_emplace_local_command(self.session, structure, maps, res, center, ssm)
+            _run_emplace_local_command(self.session, structure, maps, res, center, ssm, apply_symmetry)
         if not apply:
             self.display(False)
 
@@ -650,7 +652,7 @@ class LaunchFitLoopsTool(ToolInstance):
 
 class VerifyCenterDialog(QDialog):
     def __init__(self, session, structure, maps, resolution, initial_center, opaque_maps,
-            show_sharpened_map):
+            show_sharpened_map, apply_symmetry):
         super().__init__()
         self.session = session
         self.structure = structure
@@ -658,6 +660,7 @@ class VerifyCenterDialog(QDialog):
         self.resolution = resolution
         self.opaque_maps = opaque_maps
         self.show_sharpened_map = show_sharpened_map
+        self.apply_symmetry = apply_symmetry
 
         # adjusted_center used to compensate for map origin, but improvements to emplace_local
         # have made that adjustment unnecessary
@@ -730,7 +733,7 @@ class VerifyCenterDialog(QDialog):
                     m.rgba = tuple(rgba)
         center = self.marker.scene_coord
         _run_emplace_local_command(self.session, self.structure, self.maps, self.resolution, center,
-            self.show_sharpened_map)
+            self.show_sharpened_map, self.apply_symmetry)
 
     def _check_still_valid(self, trig_name, removed_models):
         for rm in removed_models:
@@ -745,12 +748,14 @@ class LaunchEmplaceLocalSettings(Settings):
         'show_sharpened_map': False
     }
 
-def _run_emplace_local_command(session, structure, maps, resolution, center, show_sharpened_map):
-    from chimerax.core.commands import run, concise_model_spec, BoolArg
+def _run_emplace_local_command(session, structure, maps, resolution, center, show_sharpened_map,
+        apply_symmetry):
+    from chimerax.core.commands import run, concise_model_spec, BoolArg, StringArg
     from chimerax.map import Volume
-    cmd = "phenix emplaceLocal %s mapData %s resolution %g center %g,%g,%g showSharpenedMap %s" % (
+    cmd = "phenix emplaceLocal %s mapData %s resolution %g center %g,%g,%g showSharpenedMap %s" \
+        " applySymmetry %s" % (
         structure.atomspec, concise_model_spec(session, maps, relevant_types=Volume, allow_empty_spec=False),
-        resolution, *center, BoolArg.unparse(show_sharpened_map))
+        resolution, *center, BoolArg.unparse(show_sharpened_map), BoolArg.unparse(apply_symmetry))
     run(session, cmd)
 
 class FitLoopsResultsSettings(Settings):
