@@ -792,8 +792,8 @@ fill_in_ss_info(KsdsspParams& params)
 
 	// provide (anti-)parallel strand info
     for (auto l: params.ladders) {
-		auto strand1 = res_to_strand[l.start[0]];
-		auto strand2 = res_to_strand[l.start[1]];
+		auto strand1 = strand_to_output_index[res_to_strand[l.start[0]]];
+		auto strand2 = strand_to_output_index[res_to_strand[l.start[1]]];
 		params.ss_info->strands_parallel[std::pair<int, int>(strand1, strand2)] = l.type == DSSP_PARA;
 		params.ss_info->strands_parallel[std::pair<int, int>(strand2, strand1)] = l.type == DSSP_PARA;
     }
