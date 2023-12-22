@@ -73,7 +73,7 @@ target="_blank">ChimeraX for Medical Image Analysis</a>
 <p class="nav">
 [<a href="#top">back to top: Segmentations</a>]
 </p>
-<h3>Dialog Settings</h3>
+<h3>Dialog</h3>
 <p>
 Starting the <b>Segmentations</b> tool automatically sets the view layout
 according to the tool's <a href="#settings-general"><b>General</b> settings</a>.
@@ -156,13 +156,10 @@ this page in the <a href="helpviewer.html"><b>Help Viewer</b></a>.
 </p>
 <h3>Segmentations Settings (Preferences)</h3>
 <p>
-<!--
-Choosing <b>Settings...</b> from the
-<a href="#context"><b>Segmentations</b> context menu</a>
--->
-Clicking the &ldquo;gear&rdquo; icon near the top right corner of
-the <b>Segmentations</b> tool shows its settings in a separate window, 
-with sections:
+Choosing <b>Settings...</b> from the <b>Segmentations</b>
+<a href="../window.html#context-menu">context menu</a> or clicking the 
+&ldquo;gear&rdquo; icon near the top right corner of the <b>Segmentations</b>
+dialog shows its settings in a separate window, with sections:
 </p>
 <ul>
 <li><a href="#settings-general"><b>General</b></a>
@@ -201,26 +198,8 @@ when the tool is started:
   <li><b>3D only (desktop)</b>
   <li><b>3D only (VR)</b>
  </ul>
-<li><b>Set 3D mouse modes when the desktop 3D-only layout is chosen</b>
-&ndash; whether to assign mouse buttons automatically according to the
-<a href="#settings-mouse3d"><b>Mouse (3D)</b> settings</a>
-when the desktop 3D-only <a href="#layout">layout</a> is chosen 
-(returning to prior assignments when a different <a href="#layout">layout</a>
-is chosen or the tool is closed)
-<li><b>Start VR when the VR layout is chosen</b>
-&ndash; whether to start <a href="../vr.html">virtual reality</a> mode
-automatically when the VR <a href="#layout">layout</a> is chosen 
-<li><b>Set VR controller modes when the VR layout is chosen</b>
-&ndash; whether to assign the <b><i>right</i></b>
-hand-controller buttons automatically
-according to the <a href="#settings-vr"><b>VR Controller</b> settings</a>
-when the VR <a href="#layout">layout</a> is chosen 
-(returning to prior assignments when the tool is closed)
-<li><b>Segmentation opacity</b> (initial default <b>80</b>%)
-&ndash; opacity of segmentation surfaces; transparency = 100% &ndash; opacity
 <li><b>Format for saving segmentations</b> 
 &ndash; file format produced by clicking <b>Save</b> in the tool dialog:
-<!-- <a href="#top"><b>Segmentations</b></a> dialog -->
   <ul>
   <li><a href="../dicom/dicom.html"><b>DICOM</b></a> (initial default)
   with SEG modality
@@ -228,58 +207,52 @@ when the VR <a href="#layout">layout</a> is chosen
   <li><a href="https://teem.sourceforge.net/nrrd/" 
   target="_blank"><b>NRRD</b></a>
   </ul>
-Formats other than DICOM will not include metadata read from
-the original DICOM file, if any.
+Formats other than DICOM will not include metadata (if any) read from
+the original DICOM file.
+<br>
+<li><b>Segmentation opacity</b> (initial default <b>80</b>%)
+&ndash; opacity of segmentation surfaces; transparency = 100% &ndash; opacity
+<li><b>Set 3D mouse modes when the desktop 3D-only layout is chosen</b>
+&ndash; whether to assign mouse buttons automatically according to the
+<a href="#settings-mouse3d"><b>Mouse (3D)</b> settings</a>
+when the desktop 3D-only <a href="#layout">layout</a> is chosen 
+(returning to prior assignments when a different <a href="#layout">layout</a>
+is chosen or the tool is closed)
+<li><b>Set VR controller modes when the VR layout is chosen</b>
+&ndash; whether to assign the <b><i>right</i></b>
+hand-controller buttons automatically
+according to the <a href="#settings-vr"><b>VR Controller</b> settings</a>
+when the VR <a href="#layout">layout</a> is chosen 
+(returning to prior assignments when the tool is closed)
+<li><b>Start VR when the VR layout is chosen</b>
+&ndash; whether to start <a href="../vr.html">virtual reality</a> mode
+automatically when the VR <a href="#layout">layout</a> is chosen 
 </ul>
 
 <a name="settings-mouse2d"></a>
 <p><a href="#settings" class="nounder"><b>&larr;</b></a>
 <b>Mouse (2D Slices)</b> 
 &ndash; mouse assignments in the axial, coronal, and sagittal slice views.
-<font color="brown">Current limitations</font>: not adjustable, 
-and only the left-mouse assignment works with trackpad.
 </p>
 
 <a name="settings-mouse3d"></a>
 <p><a href="#settings" class="nounder"><b>&larr;</b></a>
 <b>Mouse (3D)</b> 
 &ndash; mouse assignments in the desktop 3D view
-when <a href="#settings-general"><b>Set 3D mouse modes...</b></a> is on
+when the <a href="#settings-general"><b>General</b></a> option to
+<b>Set 3D mouse modes...</b> is on
 and the desktop 3D-only <a href="#layout">layout</a> is chosen.
-<font color="brown">Current limitation</font>: does not work with trackpad.
 </p>
-Assignments can be made to each of the following,
-<ul>
-<li>right mouse
-<li>middle mouse + Shift
-<li>scrolling + Shift
-<li>left mouse
-</ul>
-...with available functions:
-<ul>
-<li>none
-<li>add to segmentation
-<li>move sphere
-<li>resize sphere
-</ul>
 
 <a name="settings-vr"></a>
 <p><a href="#settings" class="nounder"><b>&larr;</b></a>
 <b>VR Controller</b> 
 &ndash; assignments to the <b><i>right</i></b> hand controller
-when <a href="#settings-general"><b>Set VR controller modes...</b></a> is on
+when the <a href="#settings-general"><b>General</b></a> option to
+<b>Set VR controller modes...</b> is on
 and the VR 3D-only <a href="#layout">layout</a> is chosen.
-Available functions:
-<ul>
-<li>none
-<li>resize cursor
-<li>move cursor
-<li>add to segmentation
-<li>erase from segmentation
-</ul>
-
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-November 2023</address>
+December 2023</address>
 </body></html>

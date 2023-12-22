@@ -415,7 +415,6 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
     for chars, (eid, _1to3, chains) in seq_entities.items():
         if _1to3 is None:
             continue
-        chains = [c for c in chains if c.from_seqres]
         pdbx_poly_tmp[eid] = []
         for seq_id, ch, residues in zip(range(1, sys.maxsize), chars, zip(*(c.residues for c in chains))):
             label_seq_id = str(seq_id)
@@ -938,14 +937,7 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
                     struct_conf_entry('HELX%d' % helix_count, "HELX_P", beg_res, end_res)
             ss_sheets = ss_data["sheets"]
             if ss_sheets:
-                from pprintpp import pprint  # DEBUG
-                with open('debug.py', 'wt') as f:  # DEBUG
-                    print('ss_sheets = ', file=f)  # DEBUG
-                    pprint(ss_sheets, stream=f)  # DEBUG
                 ss_strands = ss_data["strands"]
-                with open('debug.py', 'at') as f:  # DEBUG
-                    print('ss_strands = ', file=f)  # DEBUG
-                    pprint(ss_strands, stream=f)  # DEBUG
                 strand_map = {}
                 for i, strands in enumerate(ss_sheets, start=1):
                     sheet_id = f'S{i}'
@@ -956,9 +948,6 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
                         strand_map[strand] = (sheet_id, j)
                 bad_dssp = False
                 ss_parallel = ss_data["strands_parallel"]
-                with open('debug.py', 'at') as f:  # DEBUG
-                    print('ss_parallel = ', file=f)  # DEBUG
-                    pprint(ss_parallel, stream=f)  # DEBUG
                 for (first, second) in ss_parallel:
                     if first not in strand_map or second not in strand_map:
                         bad_dssp = True

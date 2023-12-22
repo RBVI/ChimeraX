@@ -40,7 +40,7 @@ Mouse modes
 .. _option_widgets:
 
 Widgets that interoperate with Settings
-++++++++++++++++++++++++++++++++++++
++++++++++++++++++++++++++++++++++++++++
 .. automodule:: chimerax.ui.options.containers
     :members:
     :exclude-members: sizeHint
@@ -52,6 +52,7 @@ Widgets that interoperate with Settings
     :show-inheritance:
 
 .. _python_data_tables:
+
 Table widget for Python objects
 +++++++++++++++++++++++++++++++
 .. automodule:: chimerax.ui.widgets.item_table

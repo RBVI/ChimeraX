@@ -423,7 +423,8 @@ def move_step(move_table, session):
         tf = base_model.position * rxf
         b = m.bounds()
         if b:
-            c = .5 * (b.xyz_min + b.xyz_max)
+            cscene = .5 * (b.xyz_min + b.xyz_max)
+            c = m.scene_position.inverse() * cscene	# Center in model coordinates
             m.position = m.position.interpolate(tf, c, 1.0/frames)
             if frames <= 1:
                 del mt[m]

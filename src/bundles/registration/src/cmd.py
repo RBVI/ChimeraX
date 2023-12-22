@@ -58,7 +58,7 @@ def register(session, name, email, organization=None,
     from .nag import check_registration
     expiration = check_registration()
     if expiration is not None:
-        session.logger.info("Your copy of Chimera is already registered "
+        session.logger.info("Your copy of ChimeraX is already registered "
                             "through %s." % expiration.strftime("%x"))
     # Normalize input
     name = name.strip()
@@ -172,10 +172,10 @@ def _subscribe(session, label, url, name, email):
         with urlopen(url, urlencode(params).encode()) as f:
             text = f.read()
             del text
-        session.logger.info("%s is subscribed to the ChimeraX %s list" %
+        session.logger.info("%s has been invited to the ChimeraX %s list" %
                             (email, label))
     except URLError as e:
-        session.logger.warning("Failed to subscribed %s to the ChimeraX "
+        session.logger.warning("Failed to invite %s to the ChimeraX "
                                "%s list: %s" % (email, label, str(e)))
 
 
