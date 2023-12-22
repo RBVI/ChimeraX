@@ -12,6 +12,8 @@ DISTRIBUTION = openmm-8.0.0-mac-py311h68ae2cc_1_apple.tar.bz2
 else
 DISTRIBUTION = openmm-8.0.0-mac-py311hf4819f2_1_apple.tar.bz2
 endif
+# Tristan Croll provided these optional Mac Metal libraries used with OpenMM platform HIP
+MAC_METAL_PLUGIN = openmm-8.0.0-mac-metal.tar.bz2
 endif
 ifeq ($(OS),Linux)
 PLATFORM = linux
@@ -59,7 +61,7 @@ ifeq ($(OS),Windows)
 	cd $(app_shlibdir); mv OpenMM*.lib libs/
 endif
 
-$(SOURCE): $(DISTRIBUTION)
+$(SOURCE): $(DISTRIBUTION) $(MAC_METAL_PLUGIN)
 	-mkdir $(SOURCE)
 	tar xf $(DISTRIBUTION) -C $(SOURCE)
 ifneq (,$(PATCHES))
@@ -74,12 +76,20 @@ ifeq ($(OS),Windows)
 	cd $(SOURCE)/Library/lib ; \
 	  chmod a+x *dll *.lib plugins/*.dll plugins/*.lib
 endif
+ifeq ($(OS),Darwin)
+	tar xf $(MAC_METAL_PLUGIN) -C $(SOURCE)/lib/plugins
+endif
 
 $(DISTRIBUTION):
 	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/openmm/$(DISTRIBUTION)
 
+ifeq ($(OS),Darwin)
+$(MAC_METAL_PLUGIN):
+	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/openmm/$(MAC_METAL_PLUGIN)
+endif
+
 upload_new_version:
-	$(RSYNC) $(DISTRIBUTION) $(PREREQS_UPLOAD)/openmm
+	$(RSYNC) $(DISTRIBUTION) $(MAC_METAL_PLUGIN) $(PREREQS_UPLOAD)/openmm
 
 clean:
 	rm -rf $(SOURCE) $(DISTRIBUTION)
