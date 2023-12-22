@@ -421,6 +421,8 @@ class MainWindow(QMainWindow, PlainTextLog):
             width, height = main_screen_geom.width()*wf, main_screen_geom.height()*hf
         elif sizing_scheme == "fixed":
             width, height = size_data
+        else:
+            width, height = 800, 600
         max_size = 8192		# Avoid Qt 6.4 crash on large resize, bug #10012
         if width > max_size:
             width = max_size
