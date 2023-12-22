@@ -309,10 +309,13 @@ def place_peptide(structure, sequence, phi_psis, *, position=None, rot_lib=None,
         if r3[-1] == 'X':
             raise PeptideError("Peptide sequence cannot contain ambiguity codes (i.e. '%s')" % c)
 
-    if len(sequence) != len(phi_psis):
-        raise PeptideError("Number of phi/psis not equal to sequence length")
-
     session = structure.session
+
+    if len(sequence) < len(phi_psis):
+        raise PeptideError("More phi/psis specified than sequence length")
+    elif len(sequence) > len(phi_psis):
+        session.logger.info("Fewer phi/psis than sequence length; reusing last phi/psi to fill out")
+        phi_psis += [phi_psis[-1]] * (len(sequence) - len(phi_psis))
 
     open_models = session.models[:]
     need_focus = _need_focus(structure)
