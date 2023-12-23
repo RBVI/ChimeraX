@@ -513,45 +513,38 @@ class LaunchFitLoopsTool(ToolInstance):
         map = self.map_menu.value
         if not map:
             raise UserError("Must specify a volume/map to guide remodeling")
-        #TODO: how to specify only a gap to command?
-        from chimerax.atomic import concise_residue_spec
+        from chimerax.atomic import concise_residue_spec, Residue
         from chimerax.core.commands import run
-        if gap_filling:
-            gap_residues = []
-            all_checked = True
-            for r1, r2, cb in self.fg_gap_widget_info:
-                if cb.isChecked() and not r1.deleted and not r2.deleted:
-                    gap_residues.extend([r1, r2])
-                else:
-                    all_checked = False
-            if gap_residues:
-                if all_checked:
-                    spec = structure.atomspec
-                else:
-                    spec = concise_residue_spec(self.session, gap_residues)
-                run(self.session, "phenix fitLoops %s in %s" % (spec, map.atomspec))
-        else:
-            from chimerax.atomic import selected_residues
-            residues = selected_residues(self.session)
-            if not residues:
-                run(self.session, "help help:user/selection.html")
-                raise UserError("No residues selected.  Showing help page for selecting residues.")
-            from chimerax.atomic import Residue
-            chain_residues = residues.filter(residues.polymer_types == Residue.PT_AMINO)
-            if not chain_residues:
-                raise UserError("No amino-acid residues selected")
-            chains = chain_residues.unique_chains
-            if len(chains) > 1:
-                raise UserError("Selected residues must be in the same chain")
-            chain = chains[0]
-            res_mapping = {}
-            for i, r in enumerate(chain.residues):
-                res_mapping[r] = i
-            indices = set([res_mapping[r] for r in chain_residues])
-            if max(indices) - min(indices) != len(chain_residues) - 1:
-                raise UserError("Selected residues must be consecutive")
-            run(self.session, "phenix fitLoops %s in %s"
-                % (concise_residue_spec(self.session, chain_residues), map.atomspec))
+        # generate commands for selected pseudobonds (without both endpoint atoms selected)
+        # and then command for selected residues.  Execute them all simultaneously.
+        commands = []
+        try:
+            pbs = structure.pbg_map[structure.PBG_MISSING_STRUCTURE].pseudobonds
+        except KeyError:
+            pbs = []
+        for pb in pbs:
+            if not pb.selected:
+                continue
+            a1, a2 = pb.atoms
+            if a1.selected and a2.selected:
+                continue
+            r1, r2 = a1.residue, a2.residue
+            if r1 == r2:
+                continue
+            commands.append("phenix fitLoops %s%s in %s gapOnly true"
+                % (r1.atomspec, r2.atomspec, map.atomspec))
+
+        sel_residues = structure.atoms[structure.atoms.selecteds == True].unique_residues
+        sel_residues = sel_residues.filter(sel_residues.polymer_types == Residue.PT_AMINO)
+        if sel_residues:
+            commands.append("phenix fitLoops %s in %s"
+                % (concise_residue_spec(self.session, sel_residues), map.atomspec))
+
+        if not commands:
+            raise UserError("No selected amino-acid residues or missing-structure pseudobonds in %s"
+                % structure)
+
+        run(self.session, " ; ".join(commands))
         if not apply:
             self.display(False)
 
@@ -841,7 +834,7 @@ class FitLoopsResultsViewer(ToolInstance):
         table.add_column("End", "end_residue")
         table.add_column("Success", "successful")
         table.add_column("CC", "cc", format="%.3f", balloon="Correlation coefficient with map")
-        table.add_column("Gap Sequence", "gap_sequence")
+        table.add_column("Sequence", "gap_sequence")
         table.data = [FLInfo(info, self.model)
             for info in self.fit_info if info['segment_number'] is not None]
         table.launch(select_mode=table.SelectionMode.SingleSelection)
