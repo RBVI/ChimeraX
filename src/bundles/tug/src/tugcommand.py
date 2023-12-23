@@ -24,7 +24,7 @@
 
 def tug(session, atoms, to_atoms, force_constant=1000, cutoff=10,
         temperature=100, error_tolerance = 0.001,
-        steps=50, frames=50, finish=False):
+        steps=50, frames=50, finish=False, platform=None):
     '''
     Run molecular dynamics on a structure tugging some atoms.
     This is a command version of the tug atom mouse mode.
@@ -47,6 +47,8 @@ def tug(session, atoms, to_atoms, force_constant=1000, cutoff=10,
         How many time steps to take each graphics frame.
     frames : integer
         How many graphics frames to tug for.
+    platform : string
+        Name of OpenMM compute platform: CPU or OpenCL or CUDA or HIP.
     '''
     us = atoms.unique_structures
     if len(us) > 1:
@@ -61,7 +63,8 @@ def tug(session, atoms, to_atoms, force_constant=1000, cutoff=10,
     try:
         tugger = StructureTugger(us[0], force_constant = force_constant,
                                  cutoff = cutoff, temperature = temperature,
-                                 tolerance = error_tolerance, steps = steps)
+                                 tolerance = error_tolerance, steps = steps,
+                                 platform = platform)
     except ForceFieldError as e:
         # Structure could not be parameterized.
         from chimerax.core.errors import UserError
@@ -83,7 +86,7 @@ def tug(session, atoms, to_atoms, force_constant=1000, cutoff=10,
     return tugger
     
 def register_tug_command(logger):
-    from chimerax.core.commands import register, CmdDesc, CenterArg, FloatArg, IntArg, BoolArg
+    from chimerax.core.commands import register, CmdDesc, CenterArg, FloatArg, IntArg, BoolArg, StringArg
     from chimerax.atomic import AtomsArg
     desc = CmdDesc(required = [('atoms', AtomsArg)],
                    keyword = [('to_atoms', AtomsArg),
@@ -93,7 +96,8 @@ def register_tug_command(logger):
                               ('error_tolerance', FloatArg),
                               ('steps', IntArg),
                               ('frames', IntArg),
-                              ('finish', BoolArg)],
+                              ('finish', BoolArg),
+                              ('platform', StringArg)],
                    required_arguments = ['to_atoms'],
                    synopsis='Tug atoms while running molecular dynamics')
     register('tug', desc, tug, logger=logger)
