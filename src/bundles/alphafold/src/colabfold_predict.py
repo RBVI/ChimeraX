@@ -246,6 +246,8 @@ pip install --upgrade dm-haiku
 sed -i 's/weights = jax.nn.softmax(logits)/logits=jnp.clip(logits,-1e8,1e8);weights=jax.nn.softmax(logits)/g' /usr/local/lib/python{python_version}/dist-packages/alphafold/model/modules.py
 #pip uninstall jax jaxlib -y
 #pip install "jax[cuda]==0.3.25" -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
+# Biopython 1.82 removes SCOPData required by AlphaFold.
+pip install biopython==1.81
 touch COLABFOLD_READY
 '''
     run_shell_commands(cmds, 'install_colabfold.sh', install_log)
