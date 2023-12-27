@@ -649,7 +649,7 @@ class MarkedHistogram(QWidget):
         if callable(self._bins):
             if empty_ranges[0] or empty_ranges[1]:
                 full_range = filled_range + empty_ranges[0] + empty_ranges[1]
-                filled_bins = self._bins(int(hist_width * filled_range / full_range))
+                filled_bins = self._bins(max(1, round(hist_width * filled_range / full_range)))
                 left = [0] * int(hist_width * empty_ranges[0] / full_range)
                 right = [0] * (hist_width - len(filled_bins) - len(left))
                 self._bins = handle_list(left, filled_bins, right)
