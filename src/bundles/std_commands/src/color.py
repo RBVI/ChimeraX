@@ -526,6 +526,7 @@ def _set_sequential_residue(session, objects, cmap, opacity, target, undo_state)
                  for chain in res.unique_chains]
     import numpy
     from chimerax.core.colors import Color
+    from chimerax.atomic import Residues
     for chain, residues in chain_res:
         colors = cmap.interpolated_rgba8(numpy.linspace(0.0, 1.0, len(residues)))
         for color, r in zip(colors, residues):
@@ -538,6 +539,8 @@ def _set_sequential_residue(session, objects, cmap, opacity, target, undo_state)
                 rgba[3] = r.ribbon_color[3] if opac is None else opac
                 undo_state.add(r, "ribbon_color", r.ribbon_color, rgba)
                 r.ribbon_color = rgba
+            if target is None or 'f' in target:
+                _set_ring_colors(Residues([r]), c, opac, None, undo_state)
         if 's' in target:
             _color_surfaces_at_residues(residues, colors, opacity=opac,
                                         undo_state = undo_state)
