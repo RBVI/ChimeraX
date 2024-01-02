@@ -99,7 +99,7 @@ class RenderByAttrTool(ToolInstance):
             move_callback=self._render_marker_moved,
             color_change_callback=lambda mrk, cb=self._update_palettes: cb())
         self.render_color_markers.extend([((0.0, 0.0), "blue"), ((0.5, 0.0), "white"), ((1.0, 0.0), "red")])
-        self.render_color_markers.add_del_callback = self._update_palettes
+        self.render_color_markers.add_del_callback = lambda mrk=None, cb=self._update_palettes: cb()
         self.render_markers[self.RENDER_COLORS] = self.render_color_markers
         self.render_radius_markers = rh.add_markers(new_color='slate gray', activate=False,
             coord_type='relative', add_del_callback=self._radius_marker_add_del)
