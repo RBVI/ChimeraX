@@ -144,14 +144,18 @@ For <b>peptide</b>, the required arguments are <i>model-info</i> and the
 <i>sequence</i> as a string of single-letter amino acid codes 
 (upper- or lowercase)
 and a list of comma-separated pairs of <i>&phi;,&psi;</i> values,
-one pair for each residue, in the same order as in the sequence.
+up to one pair for each residue, in the same order as in the sequence.
 Even though the terminal residues lack either <i>&phi;</i> or <i>&psi;</i>,
-a pair of values is required for each residue. 
+a pair of values is required for each residue; 
+if fewer <i>&phi;,&psi;</i> pairs are entered, however,
+the values from the last-entered pair will be used multiple times as needed.
 The &ldquo;extra&rdquo; values for the terminal residues will be ignored.
 Example:
 </p>
 <blockquote>
-<b>build start peptide "custom built" ADKLL -57,-47 -57,-47 -57,-47 -57,-47 -57,-47 rotLib Dunbrack</b>
+<b>build start peptide "custom helix" ADKLLNIH -57,-47 rotLib Dunbrack</b>
+<br>
+<b>build start pep ext5 SVQLH -137,145 -150,148 -153,146 -116,157 -123,156</b>
 </blockquote>
 <p>
 For <b>nucleic</b>, the required arguments are <i>model-info</i> and the 
@@ -354,5 +358,5 @@ The results can be reversed by simply repeating the command.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-February 2023</address>
+December 2023</address>
 </body></html>

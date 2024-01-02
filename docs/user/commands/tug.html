@@ -34,6 +34,7 @@ class="clRight" title="User Guide Index"/></a>
 [&nbsp;<b>forceConstant</b>&nbsp;&nbsp;<i>c</i>&nbsp;]
 [&nbsp;<b>temperature</b>&nbsp;&nbsp;<i>T</i>&nbsp;]
 [&nbsp;<b>cutoff</b>&nbsp;&nbsp;<i>d</i>&nbsp;]
+[&nbsp;<b>platform</b>&nbsp;&nbsp;<i>compute-platform</i>&nbsp;]
 [&nbsp;<b>finish</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]</h3>
 <p>
 The <b>tug</b> command pulls the <a href="atomspec.html"><i>tugatoms</i></a>
@@ -64,6 +65,19 @@ a <b>forceConstant</b> of <b>1000</b> N/m for pulling atoms
 to their target locations, <b>temperature</b> <b>100</b> K, and a
 nonbonded-interaction <b>cutoff</b> distance of <b>10.0</b> &Aring;.
 </p><p>
+The <b>platform</b> option specifies which <i>compute-platform</i>
+should run the OpenMM calculation,
+with possibilities depending on the user's specific system:
+</p>
+<ul>
+<li>CPU &ndash; available on all systems
+<li>CUDA &ndash; only available on Windows or Linux systems 
+with an Nvidia graphics driver and CUDA installed
+<li>HIP &ndash; Mac Metal
+<li>OpenCL &ndash; available on Mac,
+available on some Windows or Linux systems
+</ul>
+<p>
 If <b>finish</b> is <b>true</b>, the command does not return until 
 all <i>M</i> frames are drawn; this is for use in scripts that require 
 the MD to be finished before continuing. By default (<b>finish false</b>),
@@ -86,5 +100,5 @@ See also:
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-March 2022</address>
+December 2023</address>
 </body></html>

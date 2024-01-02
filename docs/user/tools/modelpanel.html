@@ -68,6 +68,8 @@ title="hand icon" alt="hand icon">
 &ndash; <a href="../selection.html">selection</a> checkbox
 (a checkbox containing &ldquo;<b>&ndash;</b>&rdquo; means 
 that the model is partially selected)
+<li><b>Skip</b> (if enabled as described <a href="#next">below</a>)
+&ndash; exclude model from <a href="#next">next/previous</a> actions
 </ul>
 <p>
 Disclosure triangles allow collapsing/expanding the hierarchy when multiple
@@ -85,8 +87,10 @@ or if none are highlighted, all entries:
 </p>
 <ul>
 <li><b>Close</b> &ndash; <a href="../commands/close.html">close</a> model(s)
-<li><b>Hide</b> &ndash; <a href="../commands/show.html">hide</a> model(s)
-<li><b>Show</b> &ndash; <a href="../commands/show.html">show</a> model(s)
+<li><b>Hide</b> &ndash; <a href="../commands/show.html">hide</a> model(s);
+see also <a href="#next">next/previous</a>
+<li><b>Show</b> &ndash; <a href="../commands/show.html">show</a> model(s);
+see also <a href="#next">next/previous</a>
 <li><b>View</b> &ndash; <a href="../commands/view.html#initial">focus 
 the view</a> on model(s) and turn off clipping
 <li><b>Info</b> &ndash; for atomic structures,
@@ -97,11 +101,27 @@ show the <a href="dicombrowser.html"><b>DICOM Browser</b></a>
 (if patient or study model) or 
 <a href="dicommetadata.html"><b>DICOM Metadata</b></a>
 (if series model)
+<li><b>Next</b> (if enabled as described <a href="#next">below</a>)
+<li><b>Previous</b> (if enabled as described <a href="#next">below</a>)
 </ul>
 <p>
 The corresponding commands are shown in the <a href="log.html"><b>Log</b></a>.
 </p>
+
+<a name="next"></a>
+<p class="nav">
+[<a href="#top">back to top: Model Panel</a>]
+</p>
+<h3>Adding Next/Previous Buttons</h3>
+<p>
+The <b>Model Panel</b> <a href="../window.html#context-menu">context menu</a>
+includes an option to <b>Show Sequential Display Controls</b>.
+Checking this option will add <b>Next</b> and <b>Previous</b> action
+buttons for rapidly flipping the display through the list of models
+(showing each model in turn while hiding others),
+as well as a <b>Skip</b> column to allow excluding a model from these actions.
+</p>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-October 2022</address>
+January 2024</address>
 </body></html>
