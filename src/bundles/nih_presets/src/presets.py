@@ -222,7 +222,7 @@ def print_prep(session=None, *, pb_radius=0.4, ion_size_increase=0.0, bond_sides
 
 def rainbow_cmd(structure, target_atoms=False):
     color_arg = " chains palette " + palette(structure.num_chains)
-    return "rainbow %s@ca,c4'%s target rs%s" % (structure.atomspec, color_arg, ("a" if target_atoms else ""))
+    return "rainbow %s@ca,c4'%s target rfs%s" % (structure.atomspec, color_arg, ("a" if target_atoms else ""))
 
 def run_preset(session, name, mgr):
     if name == "ribbon by secondary structure":
@@ -239,10 +239,10 @@ def run_preset(session, name, mgr):
             rainbow_cmd(s) for s in all_atomic_structures(session)
         ] + print_ribbon + print_prep(session, pb_radius=None)
     elif name == "ribbon rainbow":
-        cmd = undo_printable + base_setup + base_macro_model + base_ribbon + [ "rainbow @CA target r" ]
+        cmd = undo_printable + base_setup + base_macro_model + base_ribbon + [ "rainbow @ca,c4' target rf" ]
     elif name == "ribbon rainbow (printable)":
         cmd = base_setup + base_macro_model + base_ribbon + [
-            "rainbow @CA"
+            "rainbow @ca,c4'"
         ] + print_ribbon + print_prep(session, pb_radius=None)
     elif name == "ribbon by polymer (printable)":
         cmd = base_setup + base_macro_model + base_ribbon + print_ribbon + [
