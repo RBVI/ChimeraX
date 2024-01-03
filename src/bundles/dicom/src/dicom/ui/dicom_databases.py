@@ -117,6 +117,16 @@ class DICOMDatabases(ToolInstance):
         self.database_entries_layout.addWidget(self.database_entries)
         self.database_entries_layout.addWidget(self.database_entries_control_widget)
         self.database_entries_layout.addWidget(self.control_container)
+
+        self.status_container = QWidget()
+        self.status_container.setVisible(False)
+        self.status_layout = QHBoxLayout()
+        self.status_label = QLabel("")
+        self.status_layout.addStretch()
+        self.status_layout.addWidget(self.status_label)
+        self.status_container.setLayout(self.status_layout)
+        self.database_entries_layout.addWidget(self.status_container)
+
         self.database_entries_layout.setContentsMargins(0, 0, 0, 0)
         self.control_layout.setContentsMargins(0, 0, 0, 0)
         self.main_layout.setContentsMargins(4,4,4,4)
@@ -267,10 +277,11 @@ class DICOMDatabases(ToolInstance):
         self._allocate_thread_and_worker(Action.LOAD_COLLECTIONS)
         self.worker.collections_ready.connect(self._on_collection_entries_returned_from_worker)
         self.worker.collection_fetched.connect(self._on_collection_fetched)
+        self.status_container.setVisible(True)
         self.thread.start()
 
     def _on_collection_fetched(self, curr, total):
-        self.refine_dataset_button.setText(f"Loading collection {curr}/{total}")
+        self.status_label.setText(f"Loading collection {curr}/{total}")
 
     def _on_collection_entries_returned_from_worker(self, entries):
         self.database_entries.data = [
@@ -284,7 +295,7 @@ class DICOMDatabases(ToolInstance):
             ) for x in entries
         ]
         self.database_entries.sortByColumn(0, Qt.SortOrder.AscendingOrder)
-        self.refine_dataset_button.setText("Drill Down to Studies")
+        self.status_container.setVisible(False)
         self.refine_dataset_button.setEnabled(True)
 
     def delete(self):
@@ -300,10 +311,12 @@ class DICOMDatabases(ToolInstance):
         super().delete()
 
     def _on_main_table_double_clicked(self, items):
-        self._allocate_thread_and_worker(Action.LOAD_STUDIES)
-        self.worker.studies_ready.connect(self._on_studies_returned_from_worker)
-        self.worker.requested_studies = items
-        self.thread.start()
+        if self.refine_dataset_button.isEnabled():
+            self.refine_dataset_button.setEnabled(False)
+            self._allocate_thread_and_worker(Action.LOAD_STUDIES)
+            self.worker.studies_ready.connect(self._on_studies_returned_from_worker)
+            self.worker.requested_studies = items
+            self.thread.start()
 
     def _on_studies_returned_from_worker(self, entries):
         self.study_entries.data = [
@@ -321,6 +334,7 @@ class DICOMDatabases(ToolInstance):
         ]
         self.study_entries.sortByColumn(0, Qt.SortOrder.AscendingOrder)
         self.interface_stack.setCurrentIndex(1)
+        self.refine_dataset_button.setEnabled(True)
 
     def _on_back_to_search_button_clicked(self):
         self.interface_stack.setCurrentIndex(0)
@@ -329,10 +343,12 @@ class DICOMDatabases(ToolInstance):
         self.interface_stack.setCurrentIndex(1)
 
     def _on_study_table_double_clicked(self, items):
-        self._allocate_thread_and_worker(Action.LOAD_SERIES)
-        self.worker.series_ready.connect(self._on_series_returned_from_worker)
-        self.worker.requested_series = items
-        self.thread.start()
+        if self.refine_study_button.isEnabled():
+            self.refine_study_button.setEnabled(False)
+            self._allocate_thread_and_worker(Action.LOAD_SERIES)
+            self.worker.series_ready.connect(self._on_series_returned_from_worker)
+            self.worker.requested_series = items
+            self.thread.start()
 
     def _on_series_returned_from_worker(self, entries):
         self.series_entries.data = [
@@ -351,6 +367,7 @@ class DICOMDatabases(ToolInstance):
         ]
         self.series_entries.sortByColumn(0, Qt.SortOrder.AscendingOrder)
         self.interface_stack.setCurrentIndex(2)
+        self.refine_study_button.setEnabled(True)
 
     def _on_drill_down_clicked(self):
         self._on_study_table_double_clicked(self.study_entries.selected)

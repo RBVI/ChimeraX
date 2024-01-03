@@ -1,14 +1,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 CP_SPECIFIC_SPECIFIC = "ss"
@@ -124,7 +135,7 @@ def align(session, ref, match, matrix_name, algorithm, gap_open, gap_extend, dss
     # will keep them apart.  Try to detect this situation and work around
     # by snipping off sequence ends.
     sr_disjoint = False
-    if ref.from_seqres and match.from_seqres:
+    if ref.full_sequence_known and match.full_sequence_known:
         struct_match = 0
         for i in range(len(gapped_ref)):
             uri = gapped_ref.gapped_to_ungapped(i)
@@ -309,9 +320,10 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
                                     " chain.\n")
 
             for match, ref in match_chains.items():
+                matrix_name = final_matrix_name[match]
                 match, ref = [check_domain_matching([ch], dr)[0] for ch, dr in
                     ((match, md_res), (ref, rd_res))]
-                score, s1, s2 = align(session, ref, match, final_matrix_name[match], alg,
+                score, s1, s2 = align(session, ref, match, matrix_name, alg,
                             gap_open, gap_extend, dssp_cache, **align_kw)
                 pairings.setdefault(s2.structure, []).append((score, s1, s2))
 

@@ -1,14 +1,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.core import toolshed
@@ -19,7 +30,7 @@ from chimerax.graphics import Drawing, Pick
 
 # If STRUCTURE_STATE_VERSION changes, then bump the bundle's
 # (maximum) session version number.
-STRUCTURE_STATE_VERSION = 1
+STRUCTURE_STATE_VERSION = 3
 
 # Auto-styling tunables
 MULTI_SHADOW_THRESHOLD = 300_000  # reduce amount of shadow rays if more than threshold atoms
@@ -286,7 +297,7 @@ class Structure(Model, StructureData):
         StructureData.set_color(self, rgba)
         Model.set_color(self, rgba)
 
-    def _get_model_color(self):
+    def _get_overall_color(self):
         residues = self.residues
         ribbon_displays = residues.ribbon_displays
         from chimerax.core.colors import most_common_color
@@ -300,14 +311,14 @@ class Structure(Model, StructureData):
             most_common_color(atoms.colors)
         return self.color
 
-    def _set_model_color(self, color):
-        Model.model_color.fset(self, color)
+    def _set_overall_color(self, color):
+        Model.overall_color.fset(self, color)
         self.atoms.colors = color
         residues = self.residues
         residues.ribbon_colors = color
         residues.ring_colors = color
 
-    model_color = property(_get_model_color, _set_model_color)
+    overall_color = property(_get_overall_color, _set_overall_color)
 
     def _get_spline_normals(self):
         return self._use_spline_normals
@@ -1362,6 +1373,15 @@ class AtomicStructure(Structure):
             solvent_atoms.draw_modes = Atom.BALL_STYLE
             solvent_atoms.colors = element_colors(solvent_atoms.element_numbers)
         else:
+            residues = self.residues
+            nseq = len(residues.unique_sequences[0])
+            if nseq > 2:
+                # More than one sequence (sequence 0 is for non-polymers)
+                from .colors import polymer_colors
+                rcolors = polymer_colors(residues)[0]
+                acolors = polymer_colors(atoms.residues)[0]
+                residues.ribbon_colors = residues.ring_colors = rcolors
+                atoms.colors = acolors
             # since this is now available as a preset, allow for possibly a smaller number of atoms
             lighting = {'preset': 'soft'}
             if self.num_atoms >= MULTI_SHADOW_THRESHOLD:
@@ -1804,13 +1824,15 @@ def uniprot_chain_descriptions(uids, chains):
 
     # Make a link for each Uniprot id and list sequence ranges
     descrips = []
-    ucmd = '<a title="Show annotations" href="cxcmd:open %s from uniprot">%s</a>'
+    ucmd = '<a title="Show annotations" href="cxcmd:open %s from uniprot associate %s">%s</a>'
     cspec = f'#{chains[0].structure.id_string}/{",".join(sorted(chain_ids))}'
     scmd = f'<a title="Select sequence" href="cxcmd:select {cspec}:%d-%d">%d-%d</a>'
     for ruids in uranges.values():
         uid = ruids[0]
         utext = uid.uniprot_name if uid.uniprot_name else uid.uniprot_id
-        descrip = ucmd % (uid.uniprot_id, utext)
+        # ensure chain specifier alway includes model ID
+        descrip = ucmd % (uid.uniprot_id, chains[0].structure.atomspec + '/' + ','.join(
+            [c.chain_id for c in chains]), utext)
         seq_ranges = set(tuple(uid.chain_sequence_range)
                          for uid in ruids if uid.chain_sequence_range)
         if seq_ranges:
@@ -1957,6 +1979,9 @@ class LevelOfDetail(State):
         self.bond_fixed_triangles = None	# If not None use fixed number of triangles
         self._cylinder_geometries = {}	# Map ntri to (va,na,ta)
 
+        # Number of cylinder sides for pseudobonds
+        self._pseudobond_sides = 10
+        
         # Number of bands between two residues along the length of a ribbon.
         self._ribbon_min_divisions = 2
         self._ribbon_max_divisions = 20
@@ -1979,6 +2004,12 @@ class LevelOfDetail(State):
         self._bond_max_total_triangles = ntri
     total_bond_triangles = property(_get_total_bond_triangles, _set_total_bond_triangles)
 
+    def _get_pseudobond_sides(self):
+        return self._pseudobond_sides
+    def _set_pseudobond_sides(self, sides):
+        self._pseudobond_sides = sides
+    pseudobond_sides = property(_get_pseudobond_sides, _set_pseudobond_sides)
+    
     @staticmethod
     def restore_snapshot(session, data):
         lod = LevelOfDetail()
@@ -2032,7 +2063,9 @@ class LevelOfDetail(State):
         ntri = self.bond_cylinder_triangles(nbonds)
         ta = drawing.triangles
         if ta is None or len(ta) != ntri//2:
-            # Update instanced sphere triangulation
+            # Update instanced cylinder triangulation.
+            # Since halfbond mode makes two cylinders per bond we use ntri/2
+            # per cylinder, or ntri/4 cylinder sides.
             w = len(ta) if ta is not None else 0
             va, na, ta = self.cylinder_geometry(div = ntri//4)
             drawing.set_geometry(va, na, ta)

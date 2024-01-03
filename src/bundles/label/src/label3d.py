@@ -1,14 +1,25 @@
 # vim: set expandtab ts=4 sw=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 
@@ -266,7 +277,7 @@ def register_label_command(logger):
     otype = EnumOf(('atoms','residues','pseudobonds','bonds'))
     desc = CmdDesc(required = [('objects', Or(ObjectsArg, EmptyArg))],
                    optional = [('object_type', otype)],
-                   keyword = [('text', Or(DefArg, StringArg)),
+                   keyword = [('text', Or(EnumOf(['default'],abbreviations=False), StringArg)),
                               ('offset', Or(DefArg, Float3Arg)),
                               ('color', Or(EnumOf(['default', 'auto']), Color8Arg)),
                               ('bg_color', Or(NoneArg, Color8Arg)),
@@ -352,16 +363,16 @@ class ObjectLabels(Model):
         
         Model.delete(self)
 
-    def _get_model_color(self):
+    def _get_overall_color(self):
         from chimerax.core.colors import most_common_color
         lcolors = [ld.color for ld in self._labels]
         c = most_common_color(lcolors) if lcolors else None
         return c
-    def _set_model_color(self, color):
+    def _set_overall_color(self, color):
         for ld in self._labels:
             ld.color = color
         self.update_labels()
-    model_color = property(_get_model_color, _set_model_color)
+    overall_color = property(_get_overall_color, _set_overall_color)
 
     def labels(self, objects = None):
         if objects is None:
@@ -871,7 +882,7 @@ class ResidueLabel(ObjectLabel):
                  size=size, height=height, font=font)
     def default_text(self):
         r = self.residue
-        return '%s %d' % (r.name, r.number)
+        return '%s %d%s' % (r.name, r.number, r.insertion_code)
     def location(self, scene_position = None):
         r = self.residue
         return None if r.deleted else r.center

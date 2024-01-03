@@ -87,13 +87,18 @@
     <Provider name="TOM toolbox EM density map" want_path="true" batch="true" />
     <Provider name="UHBD grid, binary" want_path="true" batch="true" />
 
-    <Provider name="eds" type="fetch" format_name="CCP4 density map"/>
-    <Provider name="edsdiff" type="fetch" format_name="CCP4 density map"/>
-    <Provider name="emdb" type="fetch" format_name="CCP4 density map"/>
-    <Provider name="emdb_europe" type="fetch" format_name="CCP4 density map"/>
-    <Provider name="emdb_us" type="fetch" format_name="CCP4 density map"/>
-    <Provider name="emdb_japan" type="fetch" format_name="CCP4 density map"/>
-    <Provider name="emdb_china" type="fetch" format_name="CCP4 density map"/>
+    <Provider name="eds" type="fetch" format_name="CCP4 density map"
+		synopsis="EDS (2Fo-Fc)" example_ids="1a0m" />
+    <Provider name="edsdiff" type="fetch" format_name="CCP4 density map"
+		synopsis="EDS (Fo-Fc)" example_ids="1a0m" />
+    <Provider name="emdb" type="fetch" format_name="CCP4 density map" group_multiple_models="false"
+		synopsis="EMDB" example_ids="5625" />
+    <Provider name="emdb_europe" type="fetch" format_name="CCP4 density map" group_multiple_models="false"/>
+    <Provider name="emdb_us" type="fetch" format_name="CCP4 density map" group_multiple_models="false"/>
+    <Provider name="emdb_japan" type="fetch" format_name="CCP4 density map" group_multiple_models="false"/>
+    <Provider name="emdb_china" type="fetch" format_name="CCP4 density map" group_multiple_models="false"/>
+    <Provider name="emdb_fits" type="fetch" format_name="CCP4 density map" group_multiple_models="false"
+		synopsis="EMDB &amp; fit PDBs" example_ids="1048" />
   </Providers>
 
   <Providers manager="save command">

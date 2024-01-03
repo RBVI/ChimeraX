@@ -1360,7 +1360,7 @@ CIFFile::parse_row(ParseValues& pv)
 	return true;
 }
 
-StringVector&
+StringVector
 CIFFile::parse_whole_category()
 {
 	if (current_category.empty())
@@ -1377,8 +1377,7 @@ CIFFile::parse_whole_category()
 		return values;
 	}
 
-	//values.reserve(current_colnames.size());
-	values.reserve(4000000);
+	values.reserve(current_colnames.size());
 	while (current_token == T_VALUE) {
 		//values.push_back(current_value());
 		values.emplace_back(current_value_start,

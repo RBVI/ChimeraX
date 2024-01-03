@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-NIHPresets" version="1.1.9" package="chimerax.nih_presets"
+<BundleInfo name="ChimeraX-NIHPresets" version="1.1.17" package="chimerax.nih_presets"
             minSessionVersion="1" maxSessionVersion="1">
 
   <!-- Additional information about bundle source -->
@@ -38,6 +38,11 @@
     <Provider category="NIH3D" name="surface hydrophobicity"/>
     <Provider category="NIH3D" name="surface by chain"/>
     <Provider category="NIH3D" name="surface by polymer"/>
+    <Provider category="NIH3D" name="surface monochrome (printable)"/>
+    <Provider category="NIH3D" name="surface coulombic (printable)"/>
+    <Provider category="NIH3D" name="surface hydrophobicity (printable)"/>
+    <Provider category="NIH3D" name="surface by chain (printable)"/>
+    <Provider category="NIH3D" name="surface by polymer (printable)"/>
     <Provider category="NIH3D" name="surface blob by chain"/>
     <Provider category="NIH3D" name="surface blob by polymer"/>
     <Provider category="NIH3D" name="sticks"/>

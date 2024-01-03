@@ -54,6 +54,8 @@ the <a href="tools/cli.html"><b>Command Line</b></a>
   <ul>
   <li><b>Open...</b> a subset of <a href="commands/open.html"><b>open</b></a>
   command functionality
+  <li><b>Fetch by ID...</b> show the <a href="fetch.html"><b>Fetch by ID</b></a>
+  graphical interface to fetch data from online sources
   <li><b>Open DICOM Folder...</b> open all files of the specified format
   (currently <a href="dicom/dicom.html">DICOM</a> only)
   in the specified directory and its subdirectories
@@ -144,8 +146,22 @@ use <a href="selectcontacts.html"><b>Select Contacts</b></a>
 to select atomic or chain-chain contacts based on specified criteria
 (<a href="selectcontacts.html">details...</a>)
   <li><b>Clear</b> &ndash; deselect any existing selection
-  <li><b>Invert</b> &ndash; select all items that are currently unselected,
+  <li><b>Invert</b> 
+    <ul>
+    <li><b>Selected Models</b> 
+&ndash; within model(s) that contain a selection,
+select items that are currently unselected and
+deselect items that are currently selected
+<!-- 
+<a href="commands/select.html"><b>select</b></a> <b>~sel & ##selected</b>
+-->
+    <li><b>All Models</b> 
+&ndash; select all items that are currently unselected and
 deselect all items that are currently selected
+<!--
+<a href="commands/select.html"><b>select</b></a> <b>~sel</b>
+-->
+    </ul>
   <li><b>All</b> &ndash; select all models and their parts 
   <li><b>Broaden</b> &ndash; expand the current selection up a
 level in the <a href="selection.html#cascade">selection cascade</a> 
@@ -365,8 +381,8 @@ Examples:
     </ul>
   <li><b>Set Label Height</b>
   </ul>
-  <li><b>View</b>
-&ndash; see also <a href="commands/view.html"><b>view</b></a>
+  <li><b>Focus</b>
+&ndash; see also <a href="commands/view.html#initial"><b>view</b></a>
   <li><b>Set Pivot</b>
 &ndash; see also <a href="commands/cofr.html"><b>cofr</b></a>
 <li><b>Inspect</b>
@@ -523,5 +539,5 @@ target="_blank"><b>Tutorials</b></a>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-February 2023</address>
+October 2023</address>
 </body></html> 

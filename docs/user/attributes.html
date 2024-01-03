@@ -189,7 +189,7 @@ assigned by running <a href="commands/addcharge.html"><b>addcharge</b></a></td>
 is the solvent-accessible surface area of the residue 
 calculated with <a href="commands/measure.html#sasa"><b>measure sasa</b></a></td>
 </tr><tr>
-<td align=center><b>chain_id=</b><i>ID</i></td>
+<td align=center><b>chain_id==</b><i>ID</i></td>
 <td class="text"><i>ID</i> is the chain identifier of the residue;
 see also <a href="#chain">chain attributes</a></td>
 </tr><tr>
@@ -301,20 +301,24 @@ and reported in the <a href="tools/log.html"><b>Log</b></a></td>
 <a href="commands/info.html#chains"><b>info chains</b></a>,
 <a href="modelinfo.html">model information</a>)</td></tr>
 </tr><tr>
-<td width="150px" align=center><b>chain_id=</b><i>ID</i></td>
+<td width="150px" align=center><b>chain_id==</b><i>ID</i></td>
 <td class="text"><i>ID</i> is the chain identifier of the polymer
 (whereas the <a href="#residue">residue attribute</a> <b>chain_id</b>
 also applies to nonpolymeric residues)</td>
 </tr><tr>
+<td width="150px" align=center><b>characters=</b><i>sequence</i></td>
+<td class="text"><i>sequence</i> is the entire sequence of the polymer
+chain, in one-letter residue codes</td>
+</tr><tr>
 <td width="150px" align=center><b>polymer_type=</b><i>type</i></td>
 <td class="text"><i>type</i> is 1 for protein, 2 for nucleic acid</td>
 </tr><tr>
-<td width="150px" align=center><b>identity=</b>"<i><a href="commands/atomspec.html">atom-spec</a></i>"</td>
+<td width="150px" align=center><b>identity==</b>"<i><a href="commands/atomspec.html">atom-spec</a></i>"</td>
 <td class="text">the <i><a href="commands/atomspec.html">atom-spec</a></i>
 is any atom specification string (surrounding quotation marks required)
 and will be taken to indicate the biopolymer chains containing those atoms. 
 The attribute means that a chain has the same sequence as 
-any of the specified chains. For example, <b>//identity="#1/A,B"</b> 
+any of the specified chains. For example, <b>//identity=="#1/A,B"</b> 
 would specify all chains with sequences the same as either chain A or chain B 
 in model 1.
 Chain sequences are determined from PDB SEQRES records or the mmCIF equivalent,
@@ -366,10 +370,14 @@ see <a href="hierarchy.html">display hierarchy</a></td>
 available for biopolymer structures with the relevant metadata, typically
 from the <a href="https://www.wwpdb.org" target="_blank">wwPDB</a>
 </td>
+</tr><tr>
+<td align=center><b>selected</b></td>
+<td class="text">whether any atom(s) and/or bond(s) within the model are
+<a href="selection.html">selected</a></td>
 </tr>
 </table>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-April 2023</address>
+November 2023</address>
 </body></html>

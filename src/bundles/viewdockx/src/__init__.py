@@ -46,7 +46,7 @@ class _MyAPI(BundleAPI):
     def run_provider(session, name, mgr, **kw):
         from chimerax.open_command import OpenerInfo
         class ViewDockOpenerInfo(OpenerInfo):
-            def open(self, session, data, file_name, *, _name=name, **kw):
+            def open(self, session, data, file_name, *, _name=name, show_tool=True, **kw):
                 if _name == "AutoDock PDBQT":
                     from .pdbqt import open_pdbqt
                     opener = open_pdbqt
@@ -59,7 +59,29 @@ class _MyAPI(BundleAPI):
                 else: # ZDOCK
                     from .io import open_zdock
                     opener = open_zdock
-                return opener(session, data, file_name, True, True)
+                # the below code is also in the Maestro bundle
+                models, status = opener(session, data, file_name, True, True)
+                all_models = sum([m.all_models() for m in models], start=[])
+                if show_tool and session.ui.is_gui and len(all_models) > 1:
+                    for m in all_models:
+                        if hasattr(m, 'viewdockx_data'):
+                            show_dock = True
+                            break
+                    else:
+                        show_dock = False
+                    if show_dock:
+                        from Qt.QtCore import QTimer
+                        from chimerax.core.commands import run, concise_model_spec
+                        QTimer.singleShot(0,
+                            lambda *args, run=run, ses=session, spec=concise_model_spec, models=models:
+                                run(ses, "viewdockx %s" % spec(ses, models)))
+                return models, status
+
+            @property
+            def open_args(self):
+                from chimerax.core.commands import BoolArg
+                return { 'show_tool': BoolArg }
+
         return ViewDockOpenerInfo()
 
 

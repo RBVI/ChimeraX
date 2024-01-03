@@ -23,7 +23,7 @@ class Slider(ToolInstance):
         ToolInstance.__init__(self, session, tool_name)
 
         self.value_range = value_range
-        self.loop = loop
+        self._loop = loop
         self.pause_frames = pause_frames
         self.pause_when_recording = pause_when_recording
         self._pause_count = 0
@@ -34,11 +34,13 @@ class Slider(ToolInstance):
         self._play_handler = None
         self.recording = False
         self._block_update = False
+        self._loop_once = False
 
         self.display_name = title	# Text shown on panel title-bar
 
         from chimerax.ui import MainToolWindow
         tw = MainToolWindow(self)
+        tw.fill_context_menu = self.fill_context_menu
         self.tool_window = tw
         parent = tw.ui_area
 
@@ -54,6 +56,7 @@ class Slider(ToolInstance):
         self.value_box = vb = QSpinBox()
         vb.setRange(value_range[0], value_range[1])
         vb.valueChanged.connect(self.value_changed_cb)
+        vb.setWrapping(loop)
         layout.addWidget(vb)
         self.slider = sl = QSlider(Qt.Horizontal)
         sl.setRange(value_range[0], value_range[1])
@@ -120,19 +123,21 @@ class Slider(ToolInstance):
         if self.recording:
             return
         if self._play_handler:
-            self.set_button_icon(play=True)
             self.stop()
         else:
-            self.set_button_icon(play=False)
             self.play()
 
     def play(self):
         if self._play_handler is None:
+            self.set_button_icon(play=False)
             t = self.session.triggers
             self._play_handler = t.add_handler('new frame', self.next_value_cb)
+            v = self._last_shown_value
+            self._loop_once = (not self.loop) and v is not None and v >= self.value_range[1]
 
     def stop(self):
         if self._play_handler:
+            self.set_button_icon(play=True)
             t = self.session.triggers
             t.remove_handler(self._play_handler)
             self._play_handler = None
@@ -151,9 +156,10 @@ class Slider(ToolInstance):
                 return
         v = self._last_shown_value
         if v is None or v >= self.value_range[1]:
-            if self.recording or not self.loop:
+            if self.recording or (not self.loop and not self._loop_once):
                 self.stop()
                 return
+            self._loop_once = False
             v = self.value_range[0]
         else:
             v += 1
@@ -195,13 +201,32 @@ class Slider(ToolInstance):
             run(ses, 'movie encode ~/Desktop/%s framerate %.1f'
                 % (self.movie_filename, self.movie_framerate))
 
-    # Override ToolInstance method
+    @property
+    def loop(self):
+        return self._loop
+
+    @loop.setter
+    def loop(self, loop):
+        if loop != self._loop:
+            self._loop = loop
+            self.value_box.setWrapping(loop)
+
+    # Override ToolInstance methods
     def delete(self):
         t = self.session.triggers
         if self._play_handler:
             t.remove_handler(self._play_handler)
             self._play_handler = None
         super().delete()
+
+    def fill_context_menu(self, menu, x, y):
+        from Qt.QtGui import QAction
+        action = QAction("Loop Playback", menu)
+        action.setCheckable(True)
+        action.setChecked(self.loop)
+        action.triggered.connect(lambda*, self=self, action=action:
+            setattr(self, 'loop', action.isChecked()))
+        menu.addAction(action)
 
     
 # -----------------------------------------------------------------------------

@@ -1,14 +1,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.atomic import Structure
@@ -48,8 +59,8 @@ class CentroidModel(Structure, SimpleMeasurable):
 
 from . import centroid
 
-def cmd_centroid(session, atoms=None, *, mass_weighting=False, name="centroid", color=None, radius=2.0,
-        show_tool=True):
+def cmd_centroid(session, atoms=None, *, id=None, mass_weighting=False, name="centroid", color=None,
+        radius=2.0, show_tool=True):
     """Wrapper to be called by command line.
 
        Use chimerax.centroids.centroid for other programming applications.
@@ -98,6 +109,10 @@ def cmd_centroid(session, atoms=None, *, mass_weighting=False, name="centroid", 
     else:
         structures[0].add([s])
 
+    if id is not None:
+        from chimerax.std_commands.rename import rename
+        rename(session, [s], id=id)
+
     session.logger.info("Centroid '%s' placed at %s" % (name, xyz))
     if show_tool and session.ui.is_gui and not session.in_script:
         from chimerax.core.commands import run
@@ -106,10 +121,10 @@ def cmd_centroid(session, atoms=None, *, mass_weighting=False, name="centroid", 
 
 def register_command(command_name, logger):
     from chimerax.core.commands import CmdDesc, register, BoolArg, ColorArg, Or, StringArg, EmptyArg, \
-        FloatArg
+        FloatArg, ModelIdArg
     from chimerax.atomic import AtomsArg
     desc = CmdDesc(required=[('atoms', Or(AtomsArg,EmptyArg))],
-        keyword = [('mass_weighting', BoolArg), ('name', StringArg), ('color', ColorArg),
+        keyword = [('id', ModelIdArg), ('mass_weighting', BoolArg), ('name', StringArg), ('color', ColorArg),
             ('radius', FloatArg), ('show_tool', BoolArg)],
         synopsis = 'Show centroid'
     )

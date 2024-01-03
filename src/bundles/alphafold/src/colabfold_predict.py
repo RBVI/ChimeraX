@@ -92,7 +92,8 @@ def run_prediction(sequences,
       stop_at_score=100.0,
       feature_dict_callback=plot_msa,
       prediction_callback=prediction_callback,
-      dpi=dpi
+      dpi=dpi,
+      user_agent='ChimeraX chimerax-programmers@cgl.ucsf.edu'
     )
 
     print('Downloading structure predictions to directory Downloads/ChimeraX/AlphaFold')
@@ -168,7 +169,7 @@ def download_results(energy_minimize):
   !cp -p *_scores_rank_001_*.json best_model_pae.json
 
   # Make a zip file of the predictions
-  !zip -q -r results.zip query.fasta *.csv *.json *.a3m *.pdb cite.bibtex *.png
+  !zip -q -r results.zip query.fasta *.csv *.json *.a3m *.pdb cite.bibtex *.png *log.txt
 
   # Download predictions.
   from google.colab import files
@@ -237,10 +238,16 @@ def install(use_amber = False, use_templates = False, install_log = 'install_log
     cmds = f'''
 set -e
 # We have to use "--no-warn-conflicts" because colab already has a lot preinstalled with requirements different to ours
-pip install --no-warn-conflicts "colabfold[alphafold-minus-jax] @ git+https://github.com/sokrypton/ColabFold@dc9fc3d03379d23784e796f4c7fd31d173bafaa2"
-# high risk high gain
-pip uninstall jaxlib -y
-pip install "jax[cuda11_cudnn805]==0.3.24" jaxlib==0.3.24+cuda11.cudnn805 -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
+pip install --no-warn-conflicts "colabfold[alphafold-minus-jax] @ git+https://github.com/sokrypton/ColabFold@29395e7dee2c2895eaf585ef6b6cde932fd95e72"
+# We use the Google Colab system jaxlib since it needs to be compatible with CUDA.
+# Haiku works with jax and we need an updated version to work with jax newer than 0.3.25
+pip install --upgrade dm-haiku
+# patch for jax > 0.3.25
+sed -i 's/weights = jax.nn.softmax(logits)/logits=jnp.clip(logits,-1e8,1e8);weights=jax.nn.softmax(logits)/g' /usr/local/lib/python{python_version}/dist-packages/alphafold/model/modules.py
+#pip uninstall jax jaxlib -y
+#pip install "jax[cuda]==0.3.25" -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
+# Biopython 1.82 removes SCOPData required by AlphaFold.
+pip install biopython==1.81
 touch COLABFOLD_READY
 '''
     run_shell_commands(cmds, 'install_colabfold.sh', install_log)
@@ -262,6 +269,8 @@ touch CONDA_READY
     cmds = f'''  
 # setup template search
 set -e
+# Avoid updating conda since it can break openmm install. ChimeraX bug #9265.
+conda config --set auto_update_conda false
 conda install -y -q -c conda-forge -c bioconda kalign2=2.04 hhsuite=3.3.0 python={python_version} 2>&1 1>/dev/null
 touch HH_READY
 '''

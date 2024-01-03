@@ -21,7 +21,7 @@ from .cli import ListOf, SetOf, TupleOf, Or, RepeatOf
 from .cli import Annotation, AnnotationError, next_token
 from .cli import quote_if_necessary, quote_path_if_necessary, unescape, make_converter, as_parser
 from .cli import NoArg, NoneArg, BoolArg, StringArg, EmptyArg, EnumOf, DynamicEnum
-from .cli import IntArg, Int2Arg, Int3Arg, NonNegativeIntArg, PositiveIntArg
+from .cli import IntArg, Int2Arg, Int3Arg, IntsArg, NonNegativeIntArg, PositiveIntArg
 from .cli import FloatArg, Float2Arg, Float3Arg, FloatsArg, NonNegativeFloatArg, PositiveFloatArg
 from .cli import FloatOrDeltaArg
 from .cli import AxisArg, Axis, CenterArg, Center, CoordSysArg, PlaceArg, Bounded

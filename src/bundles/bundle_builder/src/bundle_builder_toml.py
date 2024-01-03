@@ -1,14 +1,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2022 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 """
@@ -34,6 +45,7 @@ import glob
 import importlib
 import itertools
 import os
+import platform
 import distutils.ccompiler
 import distutils.sysconfig
 import distutils.log
@@ -42,7 +54,10 @@ import re
 import shutil
 import sys
 import sysconfig
-import tomli
+if sys.version_info < (3,11,0):
+    import tomli as tomllib
+else:
+    import tomllib
 import traceback
 import unicodedata
 import warnings
@@ -119,7 +134,7 @@ class _SpecifierWarning(UserWarning):
 
 def read_toml(file):
     with open(file, 'r') as f:
-        return tomli.loads(f.read())
+        return tomllib.loads(f.read())
 
 
 class Bundle:
@@ -1277,7 +1292,15 @@ class _CExecutable(_CompiledCode):
         if sys.platform == "darwin":
             extra_link_args.extend(["-Wl,-rpath,@loader_path"])
             if 'universal2' in sysconfig.get_platform():
-                extra_link_args.extend(["-arch", "arm64", "-arch", "x86_64"])
+                # Don't try to compile ARM binaries on versions of macOS that aren't
+                # compatible with Xcode >= 12, the first version that had universal2
+                # support, even though universal2 Python can run on macOS as old as
+                # 10.9
+                mac_ver = platform.mac_ver()[0].split('.')
+                mac_ver_major = int(mac_ver[0])
+                mac_ver_minor = int(mac_ver[1])
+                if (mac_ver_major == 10 and mac_ver_minor > 14) or mac_ver_major > 10:
+                    extra_link_args.extend(["-arch", "arm64", "-arch", "x86_64"])
         elif sys.platform == "win32":
             # Remove .exe suffix because it will be added
             if self.name.endswith(".exe"):

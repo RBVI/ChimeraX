@@ -133,7 +133,7 @@ can be used multiple times in the same command
 <a href="#top" class="nounder">&bull;</a>
 <b>phenix emplaceLocal</b>
 &nbsp;<a href="atomspec.html#hierarchy"><i>atomic-model</i></a>&nbsp;
-<b>halfMaps</b>&nbsp;&nbsp;<a href="atomspec.html#othermodels"><i>map-models</i></a>&nbsp;
+<b>mapData</b>&nbsp;&nbsp;<a href="atomspec.html#othermodels"><i>map-model(s)</i></a>&nbsp;
 <b>center</b>&nbsp;&nbsp;<a href="pointspec.html#point"><i>point-spec</i></a>&nbsp;
 [&nbsp;<b>resolution</b>&nbsp;&nbsp;<i>r</i>&nbsp;]
 [&nbsp;<b>verbose</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
@@ -142,16 +142,22 @@ can be used multiple times in the same command
 &nbsp;<a href="#advanced"><i>advanced-options</i></a>
 <blockquote>
 <p>
-Run the <a href="https://phenix-online.org" target="_blank">Phenix</a> 
-program <i>voyager.emplace_local</i> (included in the Phenix nightly build)
+Run the <a href="https://phenix-online.org" target="_blank">Phenix</a> program
+<a href="https://phenix-online.org/documentation/reference/emplace_local.html"
+target="_blank"><i>voyager.emplace_local</i></a>
+(included in the Phenix nightly build)
 to fit an atomic structure within a local region of cryo-EM density.
 The graphical interface to this command is
 <a href="../tools/localemfitting.html"><b>Local EM Fitting</b></a>.
 </p><p>
-The atomic model to fit and the experimental &ldquo;half maps&rdquo;
+The method evaluates signal and noise using either two &ldquo;half maps&rdquo;
+that cover the same spatial region but are each generated from half of the
+experimental data, or a single full map, although results will not be as 
+reliable as when half maps are used.
+The atomic model to fit and the map(s) to use
 should be already open and specified as the
 <a href="atomspec.html#hierarchy"><i>atomic-model</i></a> and
-<a href="atomspec.html#othermodels"><i>map-models</i></a>, respectively.
+<a href="atomspec.html#othermodels"><i>map-model(s)</i></a>, respectively.
 Additional arguments:
 </p>
 <ul>
@@ -162,15 +168,17 @@ an <a href="atomspec.html"><i>atom-spec</i></a>, or any of the other
 standard <a href="pointspec.html#vector">point specifications</a>.
 The size of the search space is based on the size of the structure 
 and cannot be adjusted.
-<li><b>resolution</b>
-&ndash; map resolution (default <b>0.0</b> &Aring;);
-a suitable nonzero value for the map resolution should be specified
-by the user, if possible. Otherwise, a nonzero value will be estimated 
-and used in the calculation.
+<li><b>resolution</b> &ndash; approximate resolution of the map within 
+the search space. If a full map is used, a positive value must be supplied. 
+If half maps are used, the <b>resolution</b>&nbsp;<i>r</i>
+is optional, and if it is omitted, the value will be estimated 
+from the half maps.
 </ul>
 <p>
 The remaining options are as described above for
-<a href="#douse"><b>phenix douse</b></a>.
+<a href="#douse"><b>phenix douse</b></a>. See also: 
+<a href="../tools/localemfitting.html#symmetry">adding symmetry copies
+after fitting</a>
 </p>
 </blockquote>
 
@@ -191,5 +199,5 @@ in the <a href="../tools/log.html"><b>Log</b></a>.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-February 2023</address>
+December 2023</address>
 </body></html>

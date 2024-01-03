@@ -1,14 +1,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2020 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 """
 ChimeraX Toolshed Utilities
@@ -20,7 +31,7 @@ for ease of updating outside of the core release cycle.
 Everything in here is considered private.
 """
 
-__version__ = "1.2.2"
+__version__ = "1.2.4"
 
 from chimerax.core.toolshed import (
     TOOLSHED_BUNDLE_INSTALLED, TOOLSHED_BUNDLE_UNINSTALLED,
@@ -135,7 +146,8 @@ def _import_package(toolshed, package_name, logger, install=None, session=None):
             best_bi = bi
             best_version = parse_version(bi.version)
         elif best_bi.name != bi.name:
-            raise ImportError("%r matches multiple bundles %s, %s" % (package_name, best_bi.name, bi.name))
+            raise ImportError("%r matches multiple bundles %s, %s" % (
+                package_name, best_bi.name, bi.name))
         else:
             v = parse_version(bi.version)
             if v > best_version:
@@ -146,7 +158,8 @@ def _import_package(toolshed, package_name, logger, install=None, session=None):
     return _install_module(best_bi, logger, install, session)
 
 
-def _install_bundle(toolshed, bundles, logger, *, per_user=True, reinstall=False, session=None, no_deps=False):
+def _install_bundle(toolshed, bundles, logger, *, per_user=True, reinstall=False, session=None,
+                    no_deps=False):
     """Install the bundle(s) either by retrieving them from the remote toolshed
     or by from a local wheel.
 
@@ -173,10 +186,11 @@ def _install_bundle(toolshed, bundles, logger, *, per_user=True, reinstall=False
     A :py:const:`TOOLSHED_BUNDLE_INSTALLED` trigger is fired after installation.
     """
     _debug("install_bundle", bundles)
+    import os
+
     # Make sure that our install location is on chimerax module.__path__
     # so that newly installed modules may be found
     import importlib
-    import os.path
     import re
     if per_user is None:
         per_user = True
@@ -247,11 +261,12 @@ def _install_bundle(toolshed, bundles, logger, *, per_user=True, reinstall=False
         logger.error("You do not have permission to install %s for %s" %
                      (bundle_name, who))
         return
-    installed = re.findall(r"^\s*Successfully installed.*$", results, re.M)
-    if installed:
-        logger.info('\n'.join(installed))
-    else:
-        logger.info('No bundles were installed')
+    # `result` is empty giving -qq, depend on toolshed.reload to report installation
+    # installed = re.findall(r"^\s*Successfully installed.*$", results, re.M)
+    # if installed:
+    #    logger.info('\n'.join(installed))
+    # else:
+    #     logger.info('No bundles were installed')
     toolshed.set_install_timestamp(per_user)
     changes = toolshed.reload(logger, rebuild_cache=True, report=True)
 
@@ -484,7 +499,7 @@ def _pip_install(toolshed, bundles, logger, per_user=True, reinstall=False, no_d
     # output as string.  If there was an error, raise RuntimeError
     # with stderr as parameter.
     command = [
-        "install", "--extra-index-url", toolshed.remote_url + "/pypi/",
+        "install", "-qq", "--extra-index-url", toolshed.remote_url + "/pypi/",
         "--upgrade-strategy", "only-if-needed", "--no-warn-script-location",
         # "--only-binary", ":all:"   # msgpack-python is not binary
     ]
@@ -505,7 +520,8 @@ def _pip_install(toolshed, bundles, logger, per_user=True, reinstall=False, no_d
                 bundle = f"{bundle.name}=={bundle.version}"
             command.append(bundle)
     try:
-        results = _run_logged_pip(command, logger)
+        from chimerax.core.python_utils import run_logged_pip
+        results = run_logged_pip(command, logger)
     except (RuntimeError, PermissionError) as e:
         from chimerax.core.errors import UserError
         raise UserError(str(e))
@@ -518,86 +534,8 @@ def _pip_uninstall(bundles, logger):
     # was an error, raise RuntimeError with stderr as parameter.
     command = ["uninstall", "--yes"]
     command.extend(bundle.name for bundle in bundles)
-    return _run_logged_pip(command, logger)
-
-
-_pip_ignore_warnings = [
-    "You are using pip version",
-    "You should consider upgrading",
-]
-
-
-def _pip_has_warnings(content):
-    for line in content.splitlines():
-        if not line:
-            continue
-        for ignore in _pip_ignore_warnings:
-            if ignore in line:
-                break
-        else:
-            return True
-    return False
-
-
-def _run_pip(command):
-    # Also used by the ChimeraX main program.
-    # Note: Can not use Python executable until standard
-    # library's site.py is altered to set the user site
-    # directory to its ChimeraX application location.
-    import subprocess
-    import sys
-    # prog = python_executable()
-    # pip_cmd = [prog] + subprocess._args_from_interpreter() + ["-m", "pip"]
-    pip_cmd = [sys.executable, "-m", "pip"]
-    cp = subprocess.run(pip_cmd + command,
-                        stdout=subprocess.PIPE,
-                        stderr=subprocess.PIPE)
-    return cp
-
-
-def _run_logged_pip(command, logger):
-    import sys
-    _debug("_run_logged_pip command:", command)
-    cp = _run_pip(command)
-    if cp.returncode != 0:
-        output = cp.stdout.decode("utf-8", "backslashreplace")
-        error = cp.stderr.decode("utf-8", "backslashreplace")
-        _debug("_run_logged_pip return code:", cp.returncode, file=sys.__stderr__)
-        _debug("_run_logged_pip output:", output, file=sys.__stderr__)
-        _debug("_run_logged_pip error:", error, file=sys.__stderr__)
-        s = output + error
-        if "PermissionError" in s:
-            raise PermissionError(s)
-        else:
-            raise RuntimeError(s)
-    result = cp.stdout.decode("utf-8", "backslashreplace")
-    err = cp.stderr.decode("utf-8", "backslashreplace")
-    _debug("_run_logged_pip stdout:", result)
-    _debug("_run_logged_pip stderr:", err)
-    if logger and _pip_has_warnings(err):
-        logger.warning("Errors may have occurred when running pip:")
-        logger.warning("pip standard error:\n---\n%s---" % err)
-        logger.warning("pip standard output:\n---\n%s---" % result)
-    return result
-
-
-def python_executable():
-    import sys
-    from os.path import dirname, join
-    chimerax = sys.executable
-    if sys.platform.startswith('win'):
-        bin_dir = dirname(chimerax)
-        return join(bin_dir, 'python.exe')
-    if sys.platform.startswith('linux'):
-        bin_dir = dirname(chimerax)
-        v = sys.version_info
-        return join(bin_dir, f'python{v.major}.{v.minor}')
-    if sys.platform == 'darwin':
-        bin_dir = join(dirname(dirname(chimerax)), 'bin')
-        return join(bin_dir, f'python{v.major}.{v.minor}')
-    # fallback to the ChimeraX executable (should never happen)
-    # which can act like the python executable
-    return chimerax
+    from chimerax.core.python_utils import run_logged_pip
+    return run_logged_pip(command, logger)
 
 
 def _remove_scripts():

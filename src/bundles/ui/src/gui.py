@@ -296,6 +296,13 @@ class UI(QApplication):
             from chimerax.core.commands import run
             run(self.session, 'select down')
             return
+        elif k in (Qt.Key.Key_Right, Qt.Key.Key_Left):
+            from chimerax.core.commands import run
+            if event.modifiers() & Qt.ShiftModifier:
+                run(self.session, 'select ~sel')
+            else:
+                run(self.session, 'select ~sel & ##selected')
+            return
         if self._keystroke_sinks:
             self._keystroke_sinks[-1].forwarded_keystroke(event)
             # accepting the event prevents both the main Ui and tools from forwarding the same keystrokes
@@ -414,6 +421,13 @@ class MainWindow(QMainWindow, PlainTextLog):
             width, height = main_screen_geom.width()*wf, main_screen_geom.height()*hf
         elif sizing_scheme == "fixed":
             width, height = size_data
+        else:
+            width, height = 800, 600
+        max_size = 8192		# Avoid Qt 6.4 crash on large resize, bug #10012
+        if width > max_size:
+            width = max_size
+        if height > max_size:
+            height = max_size
         if sizing_scheme not in ["full screen", "maximized"]:
             self.resize(int(width + 0.5), int(height + 0.5))
         # going into full screen / maximized causes events to happen, so delay until we're more
@@ -548,6 +562,8 @@ class MainWindow(QMainWindow, PlainTextLog):
             self.graphicsArea().show()
 
     def restore_default_main_view(self):
+        if hasattr(self.main_view, "clean_up"):
+            self.main_view.clean_up()
         self.main_view = self._backup_main_view
         self.view_layout = "default"
 
@@ -1087,6 +1103,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         self.tools_menu = mb.addMenu("&Tools")
         self.tools_menu.setToolTipsVisible(True)
         self.update_tools_menu(session)
+        self.tools_menu.aboutToShow.connect(self._update_running_tools)
 
         self._settings_ui_widget = None
         self._accumulated_settings_options = []
@@ -1466,7 +1483,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         action.triggered.connect(self.show_set_label_height_dialog)
 
         # misc...
-        action = QAction("View", self)
+        action = QAction("Focus", self)
         actions_menu.addAction(action)
         action.triggered.connect(lambda *, run=run, ses=self.session:
             run(ses, "view" + ("" if ses.selection.empty() else " sel")))
@@ -1556,10 +1573,21 @@ class MainWindow(QMainWindow, PlainTextLog):
         select_menu.addAction(sel_contacts_action)
         sel_contacts_action.triggered.connect(self.show_select_contacts_dialog)
         from chimerax.core.commands import run
-        for menu_label, cmd_args in [("&Clear", "clear"), ("&Invert", "~sel"), ("&All", ""),
-                ("&Broaden", "up"), ("&Narrow", "down")]:
+        submenus = {}
+        for menu_label, cmd_args in [("&Clear", "clear"),
+                (("Invert", "&Selected Models"), "~sel & ##selected"), (("Invert", "A&ll Models"), "~sel"),
+                ("&All", ""), ("&Broaden", "up"), ("&Narrow", "down")]:
+            if isinstance(menu_label, tuple):
+                submenu_name, menu_label = menu_label
+                try:
+                    target_menu = submenus[submenu_name]
+                except KeyError:
+                    from Qt.QtWidgets import QMenu
+                    target_menu = submenus[submenu_name] = select_menu.addMenu(submenu_name)
+            else:
+                target_menu = select_menu
             action = QAction(menu_label, self)
-            select_menu.addAction(action)
+            target_menu.addAction(action)
             action.triggered.connect(lambda *, run=run, ses=self.session, cmd="sel " + cmd_args:
                 run(ses, cmd))
 
@@ -1657,8 +1685,8 @@ class MainWindow(QMainWindow, PlainTextLog):
         self._checkbutton_tools = {}
         from Qt.QtWidgets import QMenu
         from Qt.QtGui import QAction
-        tools_menu = QMenu("&Tools", self.menuBar())
-        tools_menu.setToolTipsVisible(True)
+        tools_menu = self.tools_menu
+        tools_menu.clear()
         categories = {}
         self._tools_cache = set()
         for bi in session.toolshed.bundle_info(session.logger):
@@ -1701,12 +1729,6 @@ class MainWindow(QMainWindow, PlainTextLog):
         tools_menu.addAction(more_tools)
         # running tools will go below this...
         self._tools_menu_separator = tools_menu.addSection("Running Tools")
-        tools_menu.aboutToShow.connect(self._update_running_tools)
-        mb = self.menuBar()
-        old_action = self.tools_menu.menuAction()
-        mb.insertMenu(old_action, tools_menu)
-        mb.removeAction(old_action)
-        self.tools_menu = tools_menu
 
     def _update_running_tools(self, *args):
         # clear out old running tools
@@ -2458,11 +2480,27 @@ class _Qt:
         self.ui_area.updateGeometry()
         mw = self.main_window
         if isinstance(placement, ToolWindow):
+            mw.addDockWidget(mw.dockWidgetArea(placement._dock_widget), self.dock_widget)
             mw.tabifyDockWidget(placement._dock_widget, self.dock_widget)
+            from Qt.QtCore import QTimer
+            QTimer.singleShot(0, self.dock_widget.raise_)
         else:
             mw.addDockWidget(side, self.dock_widget)
             if placement is None or allowed_areas == Qt.DockWidgetArea.NoDockWidgetArea:
                 self.dock_widget.setFloating(True)
+                if self.dock_widget.screen():
+                    def ensure_onscreen(dwindow=self.dock_widget):
+                        sz = dwindow.screen().size()
+                        wg = dwindow.geometry()
+                        tl = wg.topLeft()
+                        br = wg.bottomRight()
+                        if tl.x() < 0 or br.x() > sz.width() or tl.y() < 0 or br.y() > sz.height():
+                            mx = max((sz.width() - (br.x() - tl.x())) // 2, 0)
+                            my = max((sz.height() - (br.y() - tl.y())) // 2, 0)
+                            dwindow.move(mx, my)
+                    from Qt.QtCore import QTimer
+                    QTimer.singleShot(0, ensure_onscreen)
+
         if geometry is not None:
             self.dock_widget.setGeometry(geometry)
         self.dock_widget.setAllowedAreas(allowed_areas)

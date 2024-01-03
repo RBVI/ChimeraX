@@ -1,14 +1,25 @@
 # vim: set expandtab ts=4 sw=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 '''
@@ -511,7 +522,8 @@ class MouseModes:
 
     def _cursor_position(self):
         from Qt.QtGui import QCursor
-        p = self.graphics_window.mapFromGlobal(QCursor.pos())
+        gp = QCursor.pos()
+        p = self.graphics_window.mapFromGlobal(gp)
         return p.x(), p.y()
 
     def _mouse_buttons_down(self):
@@ -528,16 +540,20 @@ class MouseModes:
             lm = self._last_mode
             if lm is not None and hasattr(lm, 'mouse_up'):
                 # Another button was pressed so release current mouse mode.
-                lm.mouse_up(MouseEvent(event, modifiers=modifiers))
+                try:
+                    lm.mouse_up(MouseEvent(event, modifiers=modifiers))
+                except Exception as e:
+                    self.session.logger.warning(f'Mouse release error: {str(e)}')
             self._last_mode = m
             self.session.ui.dismiss_context_menu()	# Work around Qt 6.4 bug.
         else:
             m = self._last_mode	     # Stay with same mode until button up even if modifier keys change.
+            if action == 'mouse_up':
+                self._last_mode = None
+
         if m and hasattr(m, action):
             f = getattr(m, action)
             f(MouseEvent(event, modifiers=modifiers))
-        if action == 'mouse_up':
-            self._last_mode = None
 
     def _event_type(self, event):
         modifiers = key_modifiers(event)
@@ -674,6 +690,18 @@ class MouseEvent:
             return bool(self._event.modifiers() & Qt.KeyboardModifier.ShiftModifier)
         return False
 
+    def ctrl_down(self):
+        '''
+        Supported API.
+        Does the mouse event have the shift key down.
+        '''
+        if self._modifiers is not None:
+            return 'control' in self._modifiers
+        if self._event is not None:
+            from Qt.QtCore import Qt
+            return bool(self._event.modifiers() & Qt.KeyboardModifier.CtrlModifier)
+        return False
+
     def alt_down(self):
         '''
         Supported API.
@@ -734,11 +762,12 @@ class MouseEvent:
         return 0
 
 def mod_key_info(key_function):
-    """Qt swaps control/meta on Mac, so centralize that knowledge here.
+    '''
+    Qt swaps control/meta on Mac, so centralize that knowledge here.
     The possible "key_functions" are: alt, control, command, and shift
 
     Returns the Qt modifier bit (e.g. Qt.KeyboardModifier.AltModifier) and name of the actual key
-    """
+    '''
     from Qt.QtCore import Qt
     mod = Qt.KeyboardModifier
     import sys

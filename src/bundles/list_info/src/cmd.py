@@ -1,17 +1,29 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.core.commands import CmdDesc, EmptyArg, EnumOf, Or, StringArg, AtomSpecArg, ModelsArg, ListOf, BoolArg, SaveFileNameArg
+from chimerax.atomic import AtomsArg, ResiduesArg
 from .util import report_models, report_chains, report_polymers, report_residues
 from .util import report_residues, report_atoms, report_attr, report_distmat, output
 
@@ -175,13 +187,14 @@ def info_chains(session, atoms=None, attribute="chain_id", *, return_json=False,
         from chimerax.core.commands import atomspec
         atoms = atomspec.everything(session)
     results = atoms.evaluate(session)
-    chains = []
-    for m in results.models:
-        try:
-            chains.extend(m.chains)
-        except AttributeError:
-            # No chains, no problem
-            pass
+    chains = results.atoms.unique_residues.unique_chains
+    #chains = []
+    #for m in results.models:
+    #    try:
+    #        chains.extend(m.chains)
+    #    except AttributeError:
+    #        # No chains, no problem
+    #        pass
     return report_chains(session.logger, chains, attribute, return_json=return_json, save_file=save_file)
 info_chains_desc = CmdDesc(required=[("atoms", Or(AtomSpecArg, EmptyArg))],
                            keyword=[("attribute", StringArg), ('save_file', SaveFileNameArg)],
@@ -330,6 +343,23 @@ info_atomattr_desc = CmdDesc(
                     keyword=[('save_file', SaveFileNameArg)],
                     synopsis="Report atom attribute information")
 
+def info_atomcolor(session, atoms, *, return_json=False, save_file=None):
+    '''
+    If 'return_json' is True, the returned JSON will be a list of atom attribute names.
+    '''
+    from chimerax.core.colors import hex_color
+    acolors = [(a.string(style='command', omit_structure=False), hex_color(a.color)) for a in atoms]
+    for i, (aname,acolor) in enumerate(acolors):
+        output(session.logger, save_file, f'{aname} color {acolor}', append=(i>0))
+    if return_json:
+        from chimerax.core.commands import JSONResult, ArrayJSONEncoder
+        import json
+        return JSONResult(ArrayJSONEncoder().encode(dict(acolors)), None)
+info_atomcolor_desc = CmdDesc(
+                    required=[("atoms", AtomsArg)],
+                    keyword=[('save_file', SaveFileNameArg)],
+                    synopsis="Report atom colors")
+
 def info_bondattr(session, *, return_json=False, save_file=None):
     '''
     If 'return_json' is True, the returned JSON will be a list of bond attribute names.
@@ -364,6 +394,22 @@ info_resattr_desc = CmdDesc(
                     keyword=[('save_file', SaveFileNameArg)],
                     synopsis="Report residue attribute information")
 
+def info_rescolor(session, residues, *, return_json=False, save_file=None):
+    '''
+    If 'return_json' is True, the returned JSON will be a list of atom attribute names.
+    '''
+    from chimerax.core.colors import hex_color
+    rcolors = [(r.string(style='command', omit_structure=False), hex_color(r.ribbon_color)) for r in residues]
+    for i, (rname,rcolor) in enumerate(rcolors):
+        output(session.logger, save_file, f'{rname} color {rcolor}', append=(i>0))
+    if return_json:
+        from chimerax.core.commands import JSONResult, ArrayJSONEncoder
+        import json
+        return JSONResult(ArrayJSONEncoder().encode(dict(rcolors)), None)
+info_rescolor_desc = CmdDesc(
+                    required=[("residues", ResiduesArg)],
+                    keyword=[('save_file', SaveFileNameArg)],
+                    synopsis="Report atom colors")
 
 def info_distmat(session, atoms, *, return_json=False, save_file=None):
     '''

@@ -9,7 +9,7 @@ LANG	= en_US.UTF-8
 
 # tcia_utils.patch: Fix needless import of x86_64 zmq on macOS, see Trac#8638
 # Remove if tcia_utils removes those imports
-PATCHES = tcia_utils.patch tcia_utils_metadata.patch
+PATCHES = tcia_utils.patch tcia_utils_metadata.patch pyopengl.patch pyopenxr.patch
 PYTABLES_DYLIBS = libblosc.1.dylib libhdf5.200.dylib libsnappy.1.dylib \
 				  libc++.1.dylib libcrypto.3.dylib libssl.3.dylib
 
@@ -26,15 +26,12 @@ GRAKO_WHEEL = grako-3.16.5-py2.py3-none-any.whl
 GRAKO_PREREQ = $(PREREQS_ARCHIVE)/grako/$(GRAKO_WHEEL)
 ifeq ($(OS),Windows)
 TINYARRAY_WHEEL = tinyarray-1.2.4-cp311-cp311-win_amd64.whl
-PYOPENGL_ACCELERATE_WHEEL = PyOpenGL_accelerate-3.1.6-cp311-cp311-win_amd64.whl
 else
 ifeq ($(OS),Linux)
 TINYARRAY_WHEEL = tinyarray-1.2.4-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
-PYOPENGL_ACCELERATE_WHEEL = PyOpenGL_accelerate-3.1.6-cp311-cp311-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_28_x86_64.whl
 else
 ifeq ($(OS),Darwin)
 TINYARRAY_WHEEL = tinyarray-1.2.4-cp311-cp311-macosx_10_9_universal2.whl
-PYOPENGL_ACCELERATE_WHEEL = PyOpenGL_accelerate-3.1.6-cp311-cp311-macosx_10_9_universal2.whl
 ifeq ($(OSARCH),DarwinArm64)
 PYTABLES_WHEEL = $(PREREQS_ARCHIVE)/pytables/tables-3.8.0-cp311-cp311-macosx_11_0_arm64.whl
 else
@@ -46,10 +43,9 @@ endif
 endif
 
 TINYARRAY_PREREQ = $(PREREQS_ARCHIVE)/tinyarray/$(TINYARRAY_WHEEL)
-PYOPENGL_ACCELERATE_PREREQ = $(PREREQS_ARCHIVE)/pyopengl/$(PYOPENGL_ACCELERATE_WHEEL)
 
-PLATO_PREREQS = $(TINYARRAY_PREREQ) $(PYOPENGL_ACCELERATE_PREREQ)
-PLATO_WHEELS = $(TINYARRAY_WHEEL) $(PYOPENGL_ACCELERATE_WHEEL)
+PLATO_PREREQS = $(TINYARRAY_PREREQ)
+PLATO_WHEELS = $(TINYARRAY_WHEEL)
 
 ifeq ($(OS),Windows)
 else
@@ -98,6 +94,7 @@ endif
 		$(FETCH_PREREQ) $$prereq; \
 	done
 	$(APP_PIP_INSTALL) -r app_pyopengl_requirements.txt
+	$(APP_PIP_INSTALL) --no-dependencies -r app_pyopenxr_requirements.txt
 	$(APP_PIP_INSTALL) $(PLATO_WHEELS)
 	-for p in $(PATCHES); do \
 		patch --ignore-whitespace -d $(APP_PYSITEDIR) -N -p0 < $$p ; \
@@ -145,7 +142,6 @@ outdated:
 	@echo "  MarkupSafe (pulled in by Jinja2)"
 	@echo "  parso (pulled in by line-profiler via jedi)"
 	@echo "  pip, wheel, setuptools versions are set in ../python/Makefile"
-	@echo "  PyOpenGL 3.1.6, no source distribution for accelerate"
 	@echo "  pyzmq (pulled in by ipykernel via jupyter-client)"
 	@echo "  snowballstemmer (pulled in by Sphinx)"
 	@echo "  tornado (pulled in by ipykernel)"

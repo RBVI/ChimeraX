@@ -56,6 +56,19 @@ Volume data can be opened with the command
 <a href="open.html"><b>open</b></a> (which automatically starts 
 <a href="../tools/volumeviewer.html"><b>Volume Viewer</b></a>)
 and saved to a file with <a href="save.html"><b>save</b></a>.
+By default, a data set will be displayed automatically if it does not exceed
+a certain size, and the initial display may be as an isosurface or as a
+single plane (<a href="#sampling">details...</a>).
+Many settings for newly opened data, including the size limits
+controlling these behaviors, can be customized with the
+<a href="#defaultvalues"><b>volume defaultvalues</b></a> command.
+</p><p>
+The initial contour level of an isosurface is set to enclose 1% of grid points,
+except for maps opened by <a href="open.html#fetch">EMDB fetch</a>,
+which will be shown at the depositor-recommended contour level, if any. 
+For single-plane display, the middle plane along Z is shown initially with a 
+linear ramp in grayscale from the 10th (black) to 99th (white) percentile
+of values. 
 </p><p>
 Data set statistics, isosurface-enclosed volumes, and map-map correlation
 values can be reported with <a href="measure.html"><b>measure</b></a>.
@@ -87,6 +100,11 @@ See also:
 <b>vol channels #2-8</b>
 <br>
 <b>vol settings #1</b>
+<br>
+<b><a href="#defaultvalues">vol defaultvalues</a>
+limitVoxelCount false saveSettings true</b>
+<br>
+<b><a href="#defaultvalues">vol default</a> reset true</b>
 </blockquote>
 <p>
 <a name="channels"></a>
@@ -157,6 +175,7 @@ here grouped into categories:
 <img class="icon" border=1 src="../tools/shortcut-icons/brain.png"></a>
 <a href="../tools/medicalimage.html" title="Medical Image Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/initialcurve.png"></a>
+<br><a href="#defaultvalues">Setting Defaults for New Maps</a>
 <br><a href="#vop">Volume Operations (Map Editing)</a>
 <a href="../tools/mousemodes.html" title="Right Mouse Toolbar...">
 <img class="icon" border=1 src="../tools/mouse-icons/eraser.png"></a>
@@ -167,6 +186,7 @@ here grouped into categories:
 <a href="../tools/densitymaps.html" title="Map Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/volzone.png"></a>
 </b></blockquote>
+
 
 <a name="general"></a>
 <p class="nav">
@@ -277,7 +297,8 @@ See also: <a href="#dispsurf">surface and mesh display options</a>,
   Same as <a href="#level"><b>level</b></a>, except with <i>threshold-level</i>
   specified in units of root-mean-square (RMS) deviations from zero
   or standard deviations (SD) from the mean, respectively, 
-  calculated for the <a href="#dimensions">current display region</a>
+  calculated for the 
+  current <a href="../tools/volumeviewer.html#region">display region</a>
   and <a href="#sampling">step size</a>.
   See also: <a href="#scale"><b>volume scale</b></a>,
 <a href="measure.html#mapstats"><b>measure mapstats</b></a>
@@ -289,7 +310,8 @@ See also: <a href="#dispsurf">surface and mesh display options</a>,
   <br>Assign <a href="#level">threshold</a> color.
 Can be given multiple times in the same command if multiple 
 <a href="#level">threshold levels</a> are also specified.
-See also: <a href="colortables.html#autocolors">initial colors</a>
+To specify initial colors for maps that have not yet been opened,
+see the <a href="#initialColors"><b>initialColors</b></a> option.
 </blockquote>
 Multiple <a href="#level">level</a> and <a href="#color">color</a>
 specifications can be included in a single command.
@@ -307,6 +329,22 @@ but they do not need to be interleaved;
 only the ordering of each type of specification (levels or colors)
 is significant. If multiple colors are specified for multiple pre-existing
 levels, they are paired in order of increasing level value.
+<blockquote>
+  <a href="#top" class="nounder">&bull;</a>
+  <a name="initialColors"></a>
+  <b>initialColors</b> &nbsp;<i>color-list</i>
+  <br>
+Specify initial colors for subsequently opened maps as a list of
+<a href="colornames.html">color specifications</a> separated by commas only.
+Applies to the current session only, but can be used with
+<a href="#defaultvalues"><b>volume defaultvalues</b></a>
+to customize future sessions, for example:
+  <blockquote>
+ <b>volume defaultvalues initialColors salmon,lime,#ff805c save true</b>
+ </blockquote>
+The factory defaults are <img src="mapcolors.png">.
+See also: <a href="colortables.html#map">initial colors</a>
+</blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
   <a name="brightness"><b>brightness</b> &nbsp;<i>value</i></a>&nbsp;
@@ -402,7 +440,7 @@ the setting applies to whichever style is currently shown.
   <a href="#top" class="nounder">&bull;</a>
   <a name="outline"><b>showOutlineBox</b> &nbsp;true | <b>false</b></a>
   <br>Outline the bounding box of the 
-  <a href="#dimensions">current display region</a>.
+  current <a href="../tools/volumeviewer.html#region">display region</a>.
   <a href="../tools/densitymaps.html" title="Map Toolbar...">
   <img class="icon" border=1 src="../tools/shortcut-icons/outlinebox.png"></a>
 </blockquote>
@@ -747,7 +785,8 @@ the <b>crop volume</b> <a href="ui.html#mousemode">mouse mode</a>
   exceed <i>end</i>. 
   The indices refer to the first displayed plane along the axis.
   If only the axis is given, a single plane at the center of the 
-  <a href="#dimensions">current region</a> will be shown.
+  current <a href="../tools/volumeviewer.html#region">display region</a>
+  will be shown.
   If no <i>end</i> is supplied, only a single slab will be shown.  
   The default <i>increment</i> and <i>depth</i> are both <b>1</b>.
   Only planes that are multiples of the <a href="#sampling">step size</a>
@@ -788,13 +827,13 @@ and data value in a pop-up balloon.
   <a name="orthoplanes"><b>orthoplanes</b></a>
   &nbsp;xyz&nbsp;|&nbsp;xy&nbsp;|&nbsp;yz&nbsp;|&nbsp;xz&nbsp;|&nbsp;off
   [&nbsp;<b>positionPlanes</b>&nbsp;&nbsp;<i>i,j,k</i>&nbsp;]
-  <br>Display planes perpendicular to the X, Y, and/or Z data axes
-  within the <a href="#dimensions">current region</a>.
+  <br>Display planes perpendicular to the X, Y, and/or Z data axes within the
+  current <a href="../tools/volumeviewer.html#region">display region</a>.
   If only a single plane is shown beforehand, it will be
   <a href="#expandSinglePlane">expanded</a> to define the region.
   The <b>positionPlanes</b> option specifies plane locations along the axes 
   by integer grid indices (default <b>0,0,0</b> or the lowest indices in the
-  <a href="#dimensions">current region</a>).
+  current <a href="../tools/volumeviewer.html#region">display region</a>).
   Orthogonal planes automatically use the 
   <b>image</b> <a href="#style">display style</a>,
   opaque <a href="#dispsolid">color mode</a>, 
@@ -812,8 +851,8 @@ and data value in a pop-up balloon.
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
   <a name="boxfaces"><b>boxFaces</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false</a>
-  <br>Display orthogonal planes as the six box faces of the
-  <a href="#dimensions">current region</a>.
+  <br>Show data values on the six box faces of the
+  current <a href="../tools/volumeviewer.html#region">display region</a>.
   If only a single plane is shown beforehand, it will be
   <a href="#expandSinglePlane">expanded</a> to define the region.
   Box-face planes automatically use the
@@ -959,7 +998,7 @@ See also: <a href="material.html"><b>material</b></a>
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <a name="capfaces"><b>capFaces</b> &nbsp;<b>true</b> | false</a>
+  <a name="capFaces"><b>capFaces</b> &nbsp;<b>true</b> | false</a>
   <br>Cover the faces of the volume data box where high values would be exposed.
 </blockquote>
 
@@ -981,16 +1020,17 @@ See also: <a href="material.html"><b>material</b></a>
 <br>
 The <i>mode</i> can be any of the following:
 <ul>
-<li><b>full region</b> &ndash; <a href="#dimensions">full region</a>
 <li><b>orthoplanes</b> &ndash; <a href="#orthoplanes">orthoplanes</a>
 <a href="../tools/densitymaps.html" title="Map Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/orthoplanes.png"></a>
-<li><b>box faces</b> &ndash; <a href="#boxfaces">box faces</a>
+<li><b>box faces</b> &ndash; <a href="#boxfaces">box faces</a> of the 
+current <a href="../tools/volumeviewer.html#region">display region</a>
 <li><a name="tiltedslab"><b>tilted slab</b></a>
 &ndash; a slab of the data 
 <a href="../tools/densitymaps.html" title="Map Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/slab.png"></a>
-at any angle relative to the data axes, with additional options:
+at any angle relative to the data axes
+(can also be enabled with <b>tiltedSlab true</b>), with additional options:
   <ul>
   <li><b>tiltedSlabAxis</b> 
   &nbsp;<a href="pointspec.html#vector"><i>vector-spec</i></a> &ndash;
@@ -1002,6 +1042,9 @@ and the axis vector: <i>d</i> = (<i>p</i>,<i>axis</i>)
   slab thickness in number of planes
   <li><b>tiltedSlabSpacing</b> <i>s</i> &ndash; plane spacing in &Aring;
   </ul>
+<li><b>full region</b> &ndash; return to showing the full contents of the 
+current <a href="../tools/volumeviewer.html#region">display region</a>
+after showing orthoplanes, box faces, or a tilted slab
 </ul>
 Typically, the graphical interface would be used rather than commands:
 <a href="../tools/densitymaps.html"><b>Map</b></a> icons or
@@ -1024,9 +1067,11 @@ In <a href="../vr.html">virtual reality</a>, the <b>rotate slab</b> mode
 <img class="icon" border=1 src="../tools/mouse-icons/rotateslab.png"></a>
 can both rotate the tilted slab and translate it along its axis.
 The initial tilted slab is perpendicular to the line of sight, 
-with center at the center of the <a href="#dimensions">current region</a>,
-thickness set to 1/5 of the planes in the 
-<a href="#dimensions">current region</a> along X, Y, or Z (whichever is least),
+with center at the center of the
+current <a href="../tools/volumeviewer.html#region">display region</a>,
+thickness set to 1/5 of the planes in the
+current <a href="../tools/volumeviewer.html#region">display region</a>
+along X, Y, or Z (whichever is least),
 and spacing equal to the smallest of the X, Y, or Z spacing of the data grid.
 </blockquote>
 <blockquote>
@@ -1333,6 +1378,94 @@ see <a href="#appearance">above</a>) can be redefined, but
 &ldquo;forgetting&rdquo; their custom definitions with <b>nameForget</b>
 will revert to their built-in definitions.
 </blockquote>
+
+<a name="defaultvalues"></a>
+<p class="nav">
+[<a href="#top">back to top: volume</a>]
+</p>
+<h3>Setting Defaults for New Maps</h3>
+
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>volume defaultvalues</b> 
+[&nbsp;<b>saveSettings</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>reset</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+&nbsp;<i>map-options</i>
+</blockquote>
+<p>
+The <b>volume defaultvalues</b> commmand allows users to set default options
+for subsequently opened maps. Maps that are already open, if any, will
+not be affected. The defaults apply only within the current ChimeraX
+session unless <b>saveSettings true</b> is used to save them as user
+<a href="../preferences.html#other">preferences</a>.
+Using <b>reset true</b> returns all of the relevant settings
+to their factory defaults.
+Giving <b>volume defaultvalues</b> without arguments
+reports the current set of user defaults in the 
+<a href="../tools/log.html"><b>Log</b></a>.
+See also:
+<a href="../tools/volumeviewer.html#initial-display">initial map display</a>
+</p><p>
+The possible <i>map-options</i> are numerous and described in 
+detail in their respective sections:
+</p>
+<ul>
+<li><a href="#general"><b>General Display Options</b></a>:
+ <ul>
+ <li>initialColors
+ <li>showOutlineBox
+ <li>OutlineBoxRgb
+ </ul>
+<li><a href="#sampling"><b>Sampling and Size Options</b></a>
+ <ul>
+ <li>limitVoxelCount
+ <li>voxelLimit
+ <li>showOnOpen
+ <li>voxelLimitForOpen
+ <li>showPlane
+ <li>voxelLimitForPlane
+ <li>dataCacheSize
+ </ul>
+<li><a href="#planes"><b>Planes</b></a>
+ <ul>
+ <li>positionPlanes
+ </ul>
+<li><a href="#dispsurf"><b>Surface and Mesh Display</b></a>
+(all options in section)
+ <ul>
+ <li>surfaceSmoothing
+ <li>smoothingIterations
+ <li>smoothingFactor
+ <li>subdivideSurface
+ <li>subdivisionLevels
+ <li>smoothLines
+ <li>squareMesh
+ <li>dimTransparency
+ <li>meshLighting
+ <li>twoSidedLighting
+ <li>flipNormals
+ <li>capFaces
+ </ul>
+<li><a href="#dispsolid"><b>Image Display</b></a>
+ <ul>
+ <li>backingColor
+ <li>colorMode
+ <li>projectionMode
+ <li>planeSpacing
+ <li>dimTransparentVoxels
+ <li>colormapExtendRight
+ <li>colormapExtendLeft
+ <li>colormapOnGpu
+ <li>colormapSize
+ <li>fullRegionOnGpu
+ <li>blendOnGpu
+ <li>maximumIntensityProjection
+ <li>btCorrection
+ <li>minimalTextureMemory
+ <li>linearInterpolation
+ <li>tiltedSlabAxis, tiltedSlabOffset, tiltedSlabPlaneCount, tiltedSlabSpacing
+ </ul>
+</ul>
 
 <a name="vop"></a>
 <p class="nav">
@@ -2011,9 +2144,19 @@ to include the whole morph, place the slider at the far left
 before clicking the record button.
 </p><p>
 The morph is created as a new map (volume) model. However, if the
-<a href="#vop-options"><b>modelId</b></a> of an existing morph map is given,
-the existing morph will be used instead of a new one being calculated.
-</p><p>
+<a href="#vop-options"><b>modelId</b></a> of an existing map is given,
+the existing map model will be reused instead of a new one being added.
+In other words, to &ldquo;replay&rdquo; a morph without losing its coloring,
+zoning, or transparency settings: 
+</p>
+<ol>
+<li>use <b>volume morph</b> an initial time to create the morph model
+<li>apply coloring, zoning, <i>etc.</i> as desired to that model
+<li>use <b>volume morph</b> again, but this time specifying the
+<a href="#vop-options"><b>modelId</b></a> of the existing model so that
+its properties will be retained during playback
+</ol>
+<p>
 See also:
 <a href="vseries.html"><b>vseries</b></a>,
 <a href="morph.html"><b>morph</b></a>,
@@ -2494,8 +2637,8 @@ If <b>newMap</b> is <b>false</b> (default),
 limit the surface display to a zone within <b>range</b> <i>r</i> 
 (default <b>3.0</b> &Aring;) of any atom in 
 <a href="atomspec.html"><i>atom-spec</i></a> and restrict the
-<a href="#dimensions">current display region</a> of the map
-to the box containing the zoned surface. The corresponding
+current <a href="../tools/volumeviewer.html#region">display region</a>
+of the map to the box containing the zoned surface. The corresponding
 <a href="../tools/densitymaps.html"><b>Map</b></a> icon
 <img class="icon" border=1 src="../tools/shortcut-icons/volzone.png">
 uses a <b>range</b> value six times the grid spacing of the map.
@@ -2683,5 +2826,5 @@ the original volume, if any.
 </p>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-June 2023</address>
+November 2023</address>
 </body></html>

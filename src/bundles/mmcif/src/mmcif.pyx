@@ -3,14 +3,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 """
@@ -42,6 +53,7 @@ _additional_categories = (
     "citation_author",
     "citation_editor",
     "database_2",	# EMDB map reference
+    "pdbx_database_related",    # EMDB map reference (also, sigh, e.g. 4udv)
     "exptl",
     "refine",
     "reflns",
@@ -220,17 +232,25 @@ def _get_formatted_metadata(model, session, *, verbose=False):
                 'host_org_species', 'pdbx_host_org_ncbi_taxonomy_id'])
 
     # EMDB map
-    database_2 = get_mmcif_tables_from_metadata(model, ["database_2"], metadata=metadata)[0]
-    if database_2:
-        for id, code in database_2.fields(['database_id', 'database_code']):
-            if id == 'EMDB' and code.startswith('EMD-'):
-                entry_id = escape(code[4:])
-                emdb_link = '<a href="https://www.ebi.ac.uk/emdb/EMD-%s">EMDB %s</a>' % (entry_id, entry_id)
-                emdb_load = '<a href="cxcmd:open %s from emdb">open map</a>' % entry_id
-                html += '  <tr>\n'
-                html += '   <th>CryoEM Map</th>\n'
-                html += '   <td>%s &mdash; %s</td>\n' % (emdb_link, emdb_load)
-                html += '  </tr>\n'
+    for table_name, field_names in [
+            ('database_2', ['database_id', 'database_code']),
+            ('pdbx_database_related', ['db_name', 'db_id'])]:
+        db_info = get_mmcif_tables_from_metadata(model, [table_name], metadata=metadata)[0]
+        if db_info:
+            for id, code in db_info.fields(field_names):
+                if id == 'EMDB' and code.startswith('EMD-'):
+                    entry_id = escape(code[4:])
+                    emdb_link = '<a href="https://www.ebi.ac.uk/emdb/EMD-%s">EMDB %s</a>' % (
+                        entry_id, entry_id)
+                    emdb_load = '<a href="cxcmd:open %s from emdb">open map</a>' % entry_id
+                    html += '  <tr>\n'
+                    html += '   <th>CryoEM Map</th>\n'
+                    html += '   <td>%s &mdash; %s</td>\n' % (emdb_link, emdb_load)
+                    html += '  </tr>\n'
+                    break
+            else:
+                continue
+            break
 
     # experimental method; resolution
     method = experimental_method(model, metadata=metadata)

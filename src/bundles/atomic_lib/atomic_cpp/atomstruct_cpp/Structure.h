@@ -2,14 +2,25 @@
 
 /*
  * === UCSF ChimeraX Copyright ===
- * Copyright 2016 Regents of the University of California.
- * All rights reserved.  This software provided pursuant to a
- * license agreement containing restrictions on its disclosure,
- * duplication and use.  For details see:
- * http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
- * This notice must be embedded in or attached to all copies,
- * including partial copies, of the software or any revisions
- * or derivations thereof.
+ * Copyright 2022 Regents of the University of California. All rights reserved.
+ * The ChimeraX application is provided pursuant to the ChimeraX license
+ * agreement, which covers academic and commercial uses. For more details, see
+ * <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+ *
+ * This particular file is part of the ChimeraX library. You can also
+ * redistribute and/or modify it under the terms of the GNU Lesser General
+ * Public License version 2.1 as published by the Free Software Foundation.
+ * For more details, see
+ * <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+ *
+ * THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+ * LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+ * VERSION 2.1
+ *
+ * This notice must be embedded in or attached to all copies, including partial
+ * copies, of the software or any revisions or derivations thereof.
  * === UCSF ChimeraX Copyright ===
  */
 
@@ -135,9 +146,12 @@ protected:
     float  _ball_scale = 0.25;
     Bonds  _bonds;
     mutable Chains*  _chains;
+    mutable bool  _chains_made = false;
     ChangeTracker*  _change_tracker;
     CoordSets  _coord_sets;
+    bool  _copying_or_restoring = false;
     bool  _display = true;
+    bool  _idatm_failed = false;
     bool  _idatm_valid;
     InputSeqInfo  _input_seq_info;
     PyObject*  _logger;
@@ -190,6 +204,7 @@ protected:
             std::set<Atom*>& left_missing_structure_atoms,
             std::set<Atom*>& right_missing_structure_atoms,
             const std::set<Atom*>* deleted_atoms = nullptr) const;
+    virtual void  _make_chains() const;
     Bond*  _new_bond(Atom* a1, Atom* a2, bool bond_only);
     Chain*  _new_chain(const ChainID& chain_id, PolymerType pt = PT_NONE) const {
         auto chain = new Chain(chain_id, const_cast<Structure*>(this), pt);
@@ -208,7 +223,8 @@ protected:
         return version < 5 ? 1 : (version < 13 ? 3: 15);
     }
     static int  SESSION_NUM_INTS(int version=CURRENT_SESSION_VERSION) {
-        return version == 1 ? 9 : (version < 5 ? 10 : (version < 12 ? 16 : (version < 16 ? 17 : 18)));
+        return version == 1 ? 9 : (version < 5 ? 10 : (version < 12 ? 16 : (version < 16 ? 17 :
+            (version < 19 ? 18 : 20))));
     }
     static int  SESSION_NUM_MISC(int version=CURRENT_SESSION_VERSION) {
         return version > 7 ? 3 : 4;
@@ -231,7 +247,8 @@ public:
     void  bonded_groups(std::vector<std::vector<Atom*>>* groups,
         bool consider_missing_structure) const;
     const Bonds&  bonds() const { return _bonds; }
-    const Chains&  chains() const { if (_chains == nullptr) make_chains(); return *_chains; }
+    const Chains&  chains() const { if (!_chains_made) _make_chains(); return *_chains; }
+    bool  chains_made() const { return _chains_made; }
     void  change_chain_ids(const std::vector<StructureSeq*>, const std::vector<ChainID>,
         bool /*non-polymeric*/=true);
     ChangeTracker*  change_tracker() { return _change_tracker; }
@@ -257,13 +274,13 @@ public:
     Residue*  find_residue(const ChainID& chain_id, int pos, char insert) const;
     Residue*  find_residue(const ChainID& chain_id, int pos, char insert,
         ResName& name) const;
+    bool  idatm_failed() { ready_idatm_types(); return _idatm_failed; }
     bool  idatm_valid() const { return _idatm_valid; }
     const InputSeqInfo&  input_seq_info() const { return _input_seq_info; }
     std::string  input_seq_source;
     bool  is_traj;
     PyObject*  logger() const { return _logger; }
     bool  lower_case_chains;
-    virtual void  make_chains() const;
     std::map<std::string, std::vector<std::string>> metadata;
     Atom*  new_atom(const char* name, const Element& e);
     Bond*  new_bond(Atom* a1, Atom* a2) { return _new_bond(a1, a2, false); }

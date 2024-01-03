@@ -150,7 +150,7 @@ def biological_unit_matrices(molecule):
 def metadata_type(molecule):
 
     mdata = molecule.metadata
-    if 'REMARK' in mdata:
+    if 'REMARK' in mdata or 'CRYST1' in mdata:
         mtype = 'pdb'
     elif getattr(molecule, 'is_mmcif', False) or has_mmcif_tables(mdata):
         mtype = 'mmcif'

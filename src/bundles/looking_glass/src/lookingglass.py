@@ -1,14 +1,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 # -----------------------------------------------------------------------------
@@ -16,7 +27,7 @@
 #
 def lookingglass(session, enable = None, device_number = 0,
                  view_angle = None, field_of_view = None, depth_offset = None,
-                 verbose = False, quilt = False):
+                 verbose = False, quilt = False, save_quilt_image = None):
     '''
     Render to LookingGlass holographic display.
     '''
@@ -43,6 +54,9 @@ def lookingglass(session, enable = None, device_number = 0,
                 lg_camera.field_of_view = field_of_view
             if depth_offset is not None:
                 lg_camera.depth_offset = depth_offset
+        if save_quilt_image:
+            lg_window.looking_glass_camera._save_quilt_image_path = save_quilt_image
+            session.main_view.redraw_needed = True
                 
     elif not enable and lg_window:
         lg_window.delete()
@@ -51,7 +65,7 @@ def lookingglass(session, enable = None, device_number = 0,
 # -----------------------------------------------------------------------------
 #
 def register_lookingglass_command(logger):
-    from chimerax.core.commands import register, create_alias, CmdDesc, BoolArg, IntArg, FloatArg
+    from chimerax.core.commands import register, create_alias, CmdDesc, BoolArg, IntArg, FloatArg, SaveFileNameArg
     desc = CmdDesc(optional = [('enable', BoolArg)],
                    keyword = [('device_number', IntArg),
                               ('view_angle', FloatArg),
@@ -59,6 +73,7 @@ def register_lookingglass_command(logger):
                               ('depth_offset', FloatArg),
                               ('verbose', BoolArg),
                               ('quilt', BoolArg),
+                              ('save_quilt_image', SaveFileNameArg),
                    ],
                    synopsis = 'Render to LookingGlass holographic display.',
                    url = 'help:user/commands/device.html#lookingglass')
@@ -102,6 +117,7 @@ class LookingGlassCamera(Camera):
         self._framebuffer = None		# For rendering into quilt texture
         self._texture_drawing = None		# For rendering quilt to window
         self._show_quilt = False
+        self._save_quilt_image_path = None
 
     def delete(self):
         self._hpc.hpc_CloseApp()
@@ -234,8 +250,19 @@ class LookingGlassCamera(Camera):
             render.draw_background()
     
     def combine_rendered_camera_views(self, render):
+        self._save_quilt_image(render)
         render.pop_framebuffer()
         self._draw_quilt(render)
+
+    def _save_quilt_image(self, render):
+        if self._save_quilt_image_path is None:
+            return
+        qw, qh = self._quilt_size
+        rgba = render.frame_buffer_image(qw, qh)
+        path = self._save_quilt_image_path
+        self._save_quilt_image_path = None
+        from PIL import Image
+        Image.fromarray(rgba[::-1]).save(path, 'PNG')
 
     def _quilt_framebuffer(self, render):
         fb = self._framebuffer

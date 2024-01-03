@@ -133,13 +133,18 @@ class DICOMBrowserTool(ToolInstance):
         self.patient_table.launch()
         self.study_table.launch()
         self.series_table.launch()
-        session.triggers.add_handler(
+        self.model_added_handler = session.triggers.add_handler(
             ADD_MODELS, lambda *args: self._add_patient(*args)
         )
-        session.triggers.add_handler(
+        self.model_removed_handler = session.triggers.add_handler(
             REMOVE_MODELS, lambda *args: self._remove_patient(*args)
         )
         self.tool_window.manage()
+
+    def delete(self):
+        self.session.triggers.remove_handler(self.model_added_handler)
+        self.session.triggers.remove_handler(self.model_removed_handler)
+        super().delete()
 
     def fill_context_menu(self, menu, x, y):
         table = self._hovered_table(x, y)

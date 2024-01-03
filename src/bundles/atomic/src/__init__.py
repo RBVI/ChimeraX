@@ -1,14 +1,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 import os
 
@@ -161,33 +172,57 @@ class _AtomicBundleAPI(BundleAPI):
                                 spec += " & sel"
                             else:
                                 spec = "sel"
-                    targets, spectrum = params
-                    letters = ""
-                    for target in targets:
-                        if target == "atoms":
-                            letters += "ab"
-                        elif target == "cartoons":
-                            letters += "c"
-                        elif target == "surfaces":
-                            letters += "s"
-                    from chimerax.core.colors import color_name
-                    no_val_string = ""
-                    palette_vals = []
-                    for val, rgba in spectrum:
-                        cname = color_name([int(v*255 + 0.5) for v in rgba])
-                        if val is None:
-                            no_val_string = " noValueColor %s" % StringArg.unparse(cname)
+                    if method == "color":
+                        targets, spectrum = params
+                        letters = ""
+                        for target in targets:
+                            if target == "atoms":
+                                letters += "ab"
+                            elif target == "cartoons":
+                                letters += "c"
+                            elif target == "surfaces":
+                                letters += "s"
+                        from chimerax.core.colors import color_name
+                        no_val_string = ""
+                        palette_vals = []
+                        for val, rgba in spectrum:
+                            cname = color_name([int(v*255 + 0.5) for v in rgba])
+                            if val is None:
+                                no_val_string = " noValueColor %s" % StringArg.unparse(cname)
+                            else:
+                                palette_vals.append((val,cname))
+                        if palette_vals:
+                            if len(palette_vals) == 1:
+                                palette_vals.append(palette_vals[0])
+                            palette_string = "palette %s" % StringArg.unparse(":".join(["%g,%s" % (v,c)
+                                for v, c in palette_vals]))
                         else:
-                            palette_vals.append((val,cname))
-                    if palette_vals:
-                        if len(palette_vals) == 1:
-                            palette_vals.append(palette_vals[0])
-                        palette_string = "palette %s" % StringArg.unparse(":".join(["%g,%s" % (v,c)
-                            for v, c in palette_vals]))
-                    else:
-                        palette_string = ""
-                    run(session, "color byattr %s:%s %s target %s %s%s" % (prefix, attr_name, spec, letters,
-                        palette_string, no_val_string))
+                            palette_string = ""
+                        run(session, "color byattr %s:%s %s target %s %s%s" % (prefix, attr_name, spec,
+                            letters, palette_string, no_val_string))
+                    elif method == "radius":
+                        atom_style, way_points = params
+                        # Chimera doesn't hide ribbons or show atoms, so...
+                        #if atom_style != "unchanged":
+                        #    run(session, "~cartoon %s ; show %s" % (spec, spec))
+                        no_val_string = ""
+                        wp_vals = []
+                        for attr_val, radius in way_points:
+                            if attr_val is None:
+                                no_val_string = " noValueRadius %g" % radius
+                            else:
+                                wp_vals.append((attr_val, radius))
+                        if wp_vals:
+                            wp_string = " ".join(["%g:%g" % (av,rad) for av, rad in wp_vals])
+                        else:
+                            wp_string = ""
+                        from chimerax.std_commands.size import AtomRadiiStyleArg
+                        if atom_style == AtomRadiiStyleArg.default:
+                            style_arg = ""
+                        else:
+                            style_arg = " style %s" % atom_style
+                        run(session, "size byattr %s:%s %s %s%s%s" % (prefix, attr_name, spec, wp_string,
+                            no_val_string, style_arg))
                 def values(self, attr_name, models):
                     if self._class_obj == Atom:
                         collections = [m.atoms for m in models]

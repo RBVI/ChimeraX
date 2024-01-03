@@ -91,12 +91,10 @@ see <a href="commands/graphics.html#selection"><b>set selection</b></a>)
   <li>with various other commands and tools
   </ul>
 <a name="cascade"></a>
-<li>can be broadened with 
-the up arrow key (when the mouse focus is in the graphics window),
+<li>can be broadened with the <a href="#arrows">up arrow key</a>,
 the <a href="menu.html#select"><b>Select</b> menu</a>,
 or the command <a href="commands/select.html#modify"><b>select up</b></a>,
-and subsequently narrowed with the down arrow key
-(when the mouse focus is in the graphics window),
+and subsequently narrowed with the <a href="#arrows">down arrow key</a>,
 the <a href="menu.html#select"><b>Select</b> menu</a>,
 or <a href="commands/select.html#modify"><b>select down</b></a>,
 within the <b><i>selection cascades</i></b>:
@@ -114,6 +112,8 @@ within the <b><i>selection cascades</i></b>:
   <li><a href="pseudobonds.html">pseudobond</a> &harr; 
   pseudobond model &harr; model hierarchy
   </ul>
+<li>can be inverted with the <a href="#arrows">right/left arrow keys</a>
+or the <a href="menu.html#select"><b>Select</b> menu</a>
 </ul>
 <p>
 Selecting a standard (atom-associated)
@@ -137,6 +137,25 @@ can be selected with the mouse if the surface is transparent
 If the mouseclick is on a surface region that does not overlie another 
 selectable object, however, the surface model will be selected.
 </p>
+
+<a name="arrows"></a>
+<p class="nav">
+[<a href="#top">back to top: Selection</a>]
+</p>
+<h3>Arrow-Key Shortcuts</h3></a>
+<p>
+When the mouse focus is in the graphics window,
+arrow-key shortcuts adjust the selection:
+<ul>
+<li><b>up arrow</b>
+&ndash; <a href="#cascade">broaden</a> the selection
+<li><b>down arrow</b>
+&ndash; <a href="#cascade">narrow</a> the selection
+<li><b>right arrow</b> or <b>left arrow</b>
+&ndash; invert the selection within selected models
+<li><b>Shift-right arrow</b> or <b>Shift-left arrow</b>
+&ndash; invert the selection within all models
+</ul>
 
 <a name="context"></a>
 <p class="nav">
@@ -192,5 +211,5 @@ such as defining the scope of action when an icon is clicked.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-April 2023</address>
+June 2023</address>
 </body></html>

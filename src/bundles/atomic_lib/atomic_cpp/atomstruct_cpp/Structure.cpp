@@ -2,14 +2,25 @@
 
 /*
  * === UCSF ChimeraX Copyright ===
- * Copyright 2016 Regents of the University of California.
- * All rights reserved.  This software provided pursuant to a
- * license agreement containing restrictions on its disclosure,
- * duplication and use.  For details see:
- * http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
- * This notice must be embedded in or attached to all copies,
- * including partial copies, of the software or any revisions
- * or derivations thereof.
+ * Copyright 2022 Regents of the University of California. All rights reserved.
+ * The ChimeraX application is provided pursuant to the ChimeraX license
+ * agreement, which covers academic and commercial uses. For more details, see
+ * <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+ *
+ * This particular file is part of the ChimeraX library. You can also
+ * redistribute and/or modify it under the terms of the GNU Lesser General
+ * Public License version 2.1 as published by the Free Software Foundation.
+ * For more details, see
+ * <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+ *
+ * THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+ * LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+ * VERSION 2.1
+ *
+ * This notice must be embedded in or attached to all copies, including partial
+ * copies, of the software or any revisions or derivations thereof.
  * === UCSF ChimeraX Copyright ===
  */
 
@@ -333,6 +344,7 @@ void Structure::_copy(Structure* s, PositionMatrix coord_adjust,
 {
     // if chain_id_map is not nullptr, then we are combining this structure into existing
     // structure s
+    s->_copying_or_restoring = true;
     for (auto h = metadata.begin() ; h != metadata.end() ; ++h)
         s->metadata[h->first] = h->second;
     s->pdb_version = pdb_version;
@@ -351,9 +363,12 @@ void Structure::_copy(Structure* s, PositionMatrix coord_adjust,
         for (int i = 0; i < 3; ++i)
             for (int j = 0; j < 4; ++j)
                 s->_position[i][j] = _position[i][j];
+        s->_chains_made = _chains_made;
+        s->_idatm_failed = _idatm_failed;
     } else {
         if (s->ss_assigned())
             s->set_ss_assigned(ss_assigned());
+        s->_idatm_failed |= _idatm_failed;
     }
 
     if (chain_id_map == nullptr) {
@@ -539,6 +554,7 @@ void Structure::_copy(Structure* s, PositionMatrix coord_adjust,
             }
         }
     }
+    s->_copying_or_restoring = false;
 }
 
 void
@@ -872,10 +888,12 @@ Structure::_delete_atoms(const std::set<Atom*>& atoms, bool verify)
 void
 Structure::_form_chain_check(Atom* a1, Atom* a2, Bond* b)
 {
-    // If initial construction is over (i.e. Python instance exists) and make_chains()
-    // has been called (i.e. _chains is not null), then need to check if new bond
+    if (_copying_or_restoring)
+        return;
+    // If initial construction is over (i.e. Python instance exists) and _make_chains()
+    // has been called (i.e. _chains_made is true), then need to check if new bond
     // or missing-structure pseudobond creates a chain or coalesces chain fragments
-    if (_chains == nullptr)
+    if (!_chains_made)
         return;
     auto inst = py_instance(false);
     Py_DECREF(inst);
@@ -915,6 +933,7 @@ Structure::_form_chain_check(Atom* a1, Atom* a2, Bond* b)
         } else {
             // incorporate start_r into other_r's chain
             auto other_chain = other_r->chain();
+            other_chain->set_from_seqres(false);
             auto other_index = other_chain->res_map().at(other_r);
             if (other_index == 0 || other_chain->residues()[other_index-1] != nullptr) {
                 if (other_index == 0)
@@ -937,6 +956,7 @@ Structure::_form_chain_check(Atom* a1, Atom* a2, Bond* b)
         if (other_r->chain() == nullptr) {
             // incorporate other_r into start_r's chain
             auto start_chain = start_r->chain();
+            start_chain->set_from_seqres(false);
             auto start_index = start_chain->res_map().at(start_r);
             if (start_index == start_chain->size() - 1
             || start_chain->residues()[start_index+1] != nullptr) {
@@ -959,6 +979,7 @@ Structure::_form_chain_check(Atom* a1, Atom* a2, Bond* b)
             // merge other_r's chain into start_r's chain
             // and demote other_r's chain to a plain sequence
             *start_r->chain() += *other_r->chain();
+            start_r->chain()->set_from_seqres(false);
         } else if (!is_pb) {
             // check if there were missing residues at that sequence position and eliminate any
             auto chain = start_r->chain();
@@ -1045,10 +1066,12 @@ Structure::delete_bond(Bond *b)
     if (i == _bonds.end())
         throw std::invalid_argument("delete_bond called for Bond not in Structure");
     auto db = DestructionBatcher(this);
-    // for backbone bonds, create missing-structure pseudobonds
+    // Once chains have been made, for backbone bonds create missing-structure pseudobonds.
+    // Prior to chains being made, bond deletions that should result in missing structure
+    // will have to create those pseudobonds "by hand".
     // if the criteria for adding the pseudobond is changed, the code in pdb_lib/connect_cpp/connect.cpp
     // in find_missing_structure_bonds for deleting bonds will have to be changed
-    if (b->is_backbone()) {
+    if (_chains_made && b->is_backbone()) {
         auto pbg = _pb_mgr.get_group(PBG_MISSING_STRUCTURE, AS_PBManager::GRP_NORMAL);
         pbg->new_pseudobond(b->atoms()[0], b->atoms()[1]);
     }
@@ -1123,16 +1146,11 @@ Structure::find_residue(const ChainID& chain_id, int num, char insert, ResName& 
 }
 
 void
-Structure::make_chains() const
+Structure::_make_chains() const
 {
-    // since Graphs don't have sequences, they don't have chains
-    if (_chains != nullptr) {
-        for (auto c: *_chains)
-            delete c;
-        delete _chains;
-    }
-
+    // since non-atomic Structures don't have sequences, they don't have chains
     _chains = new Chains();
+    _chains_made = true;
 }
 
 Atom *
@@ -1478,6 +1496,8 @@ Structure::session_info(PyObject* ints, PyObject* floats, PyObject* misc) const
     *int_array++ = _ribbon_mode_strand;
     *int_array++ = ss_ids_normalized;
     *int_array++ = _ring_display_count;
+    *int_array++ = _idatm_failed;
+    *int_array++ = _chains_made;
     // pb manager version number remembered later
     if (PyList_Append(ints, npy_array) < 0)
         throw std::runtime_error("Couldn't append to int list");
@@ -1741,6 +1761,7 @@ void
 Structure::session_restore(int version, PyObject* ints, PyObject* floats, PyObject* misc)
 {
     // restore the stuff saved by session_info()
+    _copying_or_restoring = true;
 
     if (version > CURRENT_SESSION_VERSION)
         throw std::invalid_argument("Don't know how to restore new session data; update your"
@@ -1792,6 +1813,10 @@ Structure::session_restore(int version, PyObject* ints, PyObject* floats, PyObje
         ss_ids_normalized = *int_array++;
     if (version >= 16)
         _ring_display_count = *int_array++;
+    if (version >= 19) {
+        _idatm_failed = *int_array++;
+        _chains_made = *int_array++;
+    }
     auto pb_manager_version = *int_array++;
     // if more added, change the array dimension check above
 
@@ -2027,6 +2052,7 @@ Structure::session_restore(int version, PyObject* ints, PyObject* floats, PyObje
                 chain->set_description(chain_descriptions[i++]);
         }
     }
+    _copying_or_restoring = false;
 }
 
 void

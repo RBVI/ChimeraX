@@ -32,7 +32,7 @@ def button_row(parent, name_and_callback_list,
         l = QLabel(label, f)
         layout.addWidget(l)
 #    l.setStyleSheet('QLabel { background-color: pink;}')
-    
+
     buttons = []
     for name, callback in name_and_callback_list:
         b = QPushButton(name, f)
@@ -195,7 +195,7 @@ class NumberEntry:
     @property
     def widget(self):
         return self._line_edit
-                
+
 class IntegerEntry(NumberEntry):
     pass
 
@@ -282,7 +282,7 @@ class CollapsiblePanel(QWidget):
             b.setChecked(False)
             b.clicked.connect(self.toggle_panel_display)
         self.toggle_button = b
-        
+
 #        c.setStyleSheet("QFrame { background-color: white; border: none; }")
         c.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         # start out collapsed
@@ -301,7 +301,7 @@ class CollapsiblePanel(QWidget):
     @property
     def shown(self):
         return self.content_area.maximumHeight() > 0
-    
+
     def toggle_panel_display(self, checked = None):
         if checked is None:
             checked = not self.shown
@@ -348,10 +348,14 @@ def _dock_widget_parent(widget):
     return _dock_widget_parent(p)
 
 class ModelMenu:
-    '''Menu of session models prefixed with a text label.'''
+    '''Menu of session models prefixed with a text label.
+    Non-specified keyword arguments (**kwargs) are passed down to ModelMenuButton
+    '''
+
     def __init__(self, session, parent, label = None,
                  model_types = None, model_filter = None,
-                 model_chosen_cb = None, special_items = []):
+                 model_chosen_cb = None, special_items = [],
+                 **kwargs):
 
         from Qt.QtWidgets import QFrame, QHBoxLayout, QLabel
         self.frame = f = QFrame(parent)
@@ -368,9 +372,9 @@ class ModelMenu:
         from chimerax.ui.widgets import ModelMenuButton
         sm = ModelMenuButton(session, class_filter = class_filter,
                              filter_func = filter_func,
-                             special_items = special_items, parent = f)
+                             special_items = special_items, parent = f, **kwargs)
         self._menu = sm
-        
+
         mlist = [m for m in session.models.list(type = class_filter) if filter_func(m)]
         mdisp = [m for m in mlist if m.visible]
         if mdisp:

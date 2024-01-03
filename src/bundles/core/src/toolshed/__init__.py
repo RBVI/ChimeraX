@@ -1,14 +1,25 @@
 # vim: set expandtab ts=4 sw=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 """
@@ -1478,6 +1489,9 @@ class NewerVersionQuery(Task):
     # asynchonously check for newer version of ChimeraX
 
     SERVICE_NAME = "chimerax/newer"
+    # This is the default for Task, but just so there's
+    # no ambiguity...
+    SESSION_SAVE = False
 
     def __init__(self, session):
         super().__init__(session)
@@ -1519,21 +1533,20 @@ class NewerVersionQuery(Task):
 
     def run(self, service_name, params, blocking=False):
         self.result = self.api.check_for_updates(**params, async_req=not blocking)
-
-    def on_finish(self):
-        # If async_req is True, then need to call self.result.get()
         try:
-            versions = self.result.get()
+            self.versions = self.result.get()
         except Exception:
             # Ignore problems getting results.  Might be a network error or
             # a server error.  It doesn't matter, just let ChimeraX run.
-            return
-        if not versions:
+            self.versions = None
+
+    def on_finish(self):
+        if self.versions is None:
             return
 
         # don't bother user about releases they've choosen to ignore
         from ..core_settings import settings
-        versions = [v for v in versions if v[0] not in settings.ignore_update]
+        versions = [v for v in self.versions if v[0] not in settings.ignore_update]
         if not versions:
             return
 
@@ -1650,3 +1663,10 @@ class NewerVersionQuery(Task):
         d = NewerDialog(self.session.ui.main_window)
         self.newer_dialog = d
         d.show()
+
+    def take_snapshot(self, session, flags) -> dict[any, any]:
+        return {}
+
+    @classmethod
+    def restore_snapshot(cls, session, data):
+        return cls(session)

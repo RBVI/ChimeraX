@@ -1,14 +1,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 """
@@ -354,7 +365,7 @@ class MolecularSurface(Surface):
             return None
         shown_vertices = atom_mask[v2a]
         t = self.triangles
-        from numpy import logical_and, empty, bool
+        from numpy import logical_and, empty
         shown_triangles = empty((len(t),), bool)
         logical_and(shown_vertices[t[:,0]], shown_vertices[t[:,1]], shown_triangles)
         logical_and(shown_triangles, shown_vertices[t[:,2]], shown_triangles)
@@ -387,16 +398,16 @@ class MolecularSurface(Surface):
             self.display = False
             self.triangle_mask = None
 
-    def _get_model_color(self):
+    def _get_overall_color(self):
         vc = self.vertex_colors
         from chimerax.core.colors import most_common_color
         return self.color if vc is None else most_common_color(vc)
-    def _set_model_color(self, color):
+    def _set_overall_color(self, color):
         self.color = color
         self.vertex_colors = None
         self._atom_patch_colors = None
         self._atom_patch_color_mask = None
-    model_color = property(_get_model_color, _set_model_color)
+    overall_color = property(_get_overall_color, _set_overall_color)
 
     def _average_color(self):
         vc = self.vertex_colors
@@ -476,7 +487,7 @@ class MolecularSurface(Surface):
 
     def _remember_atom_patch_colors(self, atom_colors):
         self._atom_patch_colors = atom_colors
-        from numpy import ones, bool
+        from numpy import ones
         self._atom_patch_color_mask = ones((len(atom_colors),), bool)
 
     def _update_atom_patch_colors(self, atoms, color, per_atom_colors, vertex_colors):
@@ -496,7 +507,7 @@ class MolecularSurface(Surface):
         apc = self._atom_patch_colors
         if apc is None or len(apc) != len(self.atoms):
             na = len(self.atoms)
-            from numpy import empty, uint8, bool
+            from numpy import empty, uint8
             self._atom_patch_colors = c = empty((na,4), uint8)
             c[ai] = acolors
             self._atom_patch_color_mask = ai
@@ -521,7 +532,7 @@ class MolecularSurface(Surface):
         c8 = self.color if color is None else color
         if opacity is not None:
             c8 = (c8[0], c8[1], c8[2], opacity)
-        self.model_color = c8
+        self.overall_color = c8
         self._clear_atom_patch_colors()
 
     # Handle undo of color changes

@@ -3,14 +3,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 
@@ -1473,7 +1484,7 @@ cdef class CyResidue:
         "Ribbon color RGBA length 4 sequence/array. Values in range 0-255"
         if self._deleted: raise RuntimeError("Residue already deleted")
         color = self.cpp_res.ribbon_color()
-        return array([color.r, color.g, color.b, color.a])
+        return (color.r, color.g, color.b, color.a)
 
     @ribbon_color.setter
     @cython.boundscheck(False)  # turn off bounds checking
@@ -1500,7 +1511,7 @@ cdef class CyResidue:
         "Ring color RGBA length 4 sequence/array. Values in range 0-255"
         if self._deleted: raise RuntimeError("Residue already deleted")
         color = self.cpp_res.ring_color()
-        return array([color.r, color.g, color.b, color.a])
+        return (color.r, color.g, color.b, color.a)
 
     @ring_color.setter
     @cython.boundscheck(False)  # turn off bounds checking
@@ -1714,7 +1725,7 @@ cdef class CyResidue:
         "Supported API.  Remove the atom from this residue."
         self.cpp_res.remove_atom(atom.cpp_atom)
 
-    def string(self, *, residue_only=False, omit_structure=None, style=None, minimal=False):
+    def string(self, *, residue_only=False, omit_structure=None, style=None, minimal=False, omit_chain=None):
         '''Supported API.  Get text representation of Residue
            If 'omit_structure' is None, the structure will be omitted only if exactly one structure is open
         '''
@@ -1728,10 +1739,11 @@ cdef class CyResidue:
             res_str = ":" + str(self.number) + ic
         if residue_only:
             return res_str
-        if minimal:
-            omit_chain = len(set(self.structure.residues.chain_ids)) ==  1
-        else:
-            omit_chain = False
+        if omit_chain is None:
+            if minimal:
+                omit_chain = len(set(self.structure.residues.chain_ids)) ==  1
+            else:
+                omit_chain = False
         if omit_chain:
             chain_str = ""
         else:

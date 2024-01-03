@@ -1,14 +1,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.dist_monitor import SimpleMeasurable, ComplexMeasurable
@@ -70,13 +81,15 @@ def angle(session, objects, degrees=None, *, move="small"):
     Report/set angle between three atoms or two objects.
     '''
     from chimerax.core.errors import UserError, LimitationError
-    simples = [m for m in objects.models if isinstance(m, SimpleMeasurable)]
+    from chimerax.atomic import Atom, Structure
+    simples = [m for m in objects.models
+        if isinstance(m, SimpleMeasurable) and not isinstance(m, Structure)]
     complexes = [m for m in objects.models if isinstance(m, ComplexMeasurable)]
     atoms = objects.atoms
     all_simples = simples + list(atoms)
     if degrees is None:
         # report value
-        arg_error_msg = "Must specify exactly 3 atoms/centroids or two measurable objects" \
+        arg_error_msg = "Must specify 3 or 4 atoms/centroids or two measurable objects" \
             " (e.g. axes/planes)"
         if complexes:
             if len(complexes) != 2:
@@ -88,19 +101,22 @@ def angle(session, objects, degrees=None, *, move="small"):
                 raise LimitationError("Don't know how to measure angle between %s and %s" % tuple(complexes))
             participants = complexes
         else:
-            if len(all_simples) != 3:
-                raise UserError(arg_error_msg)
-            if len(atoms) == 3:
+            if len(atoms) in (3,4) and len(simples) == 0:
                 participants = atoms
-            else:
+            elif len(all_simples) in (3,4):
                 # Have to order the non-atoms correctly among the atoms
                 model_order = { m:i for i, m in enumerate(objects.models) }
-                from chimerax.atomic import Atom
                 all_simples.sort(key=lambda s, atoms=atoms, mo=model_order:
                     (mo[s.structure], atoms.index(s)) if isinstance(s, Atom) else (mo[s], 0))
                 participants = all_simple
+            else:
+                raise UserError(arg_error_msg)
+            points = tuple(x.scene_coord for x in participants)
             from chimerax import geometry
-            angle = geometry.angle(*(x.scene_coord for x in participants))
+            if len(points) == 3:
+                angle = geometry.angle(points[0]-points[1], points[2]-points[1])
+            elif len(points) == 4:
+                angle = geometry.angle(points[1]-points[0], points[3]-points[2])
         from chimerax.core.commands import commas
         session.logger.info("Angle between %s: %.3f" % (commas([str(p) for p in participants],
             conjunction="and"), angle))

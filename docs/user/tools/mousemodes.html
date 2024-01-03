@@ -81,7 +81,9 @@ Z-rotate with cursor in periphery, except if wheel, Y-rotate only;
 see also <a href="../commands/turn.html"><b>turn</b></a>,
 <a href="../commands/roll.html"><b>roll</b></a>,
 <a href="../commands/tile.html"><b>tile</b></a>;
-<br>assigned button + <b>Shift</b> switches to <b>translate</b> instead</td>
+<br>assigned button + <b>Shift</b> switches to <b>translate</b> instead;
+<br>assigned button + <b>Ctrl</b> (in that order) switches to Z-rotation 
+instead (or Z-translation, if <b>Shift</b> is also pressed)</td>
 </tr><tr>
 <td align="center"><img src="mouse-icons/translate.png" width="35px"></td>
 <td align="center"><b>translate</b><br>(middle, right)</td>
@@ -89,7 +91,9 @@ see also <a href="../commands/turn.html"><b>turn</b></a>,
 (<a href="../commands/view.html#screencoords">screen coordinates</a>),
 except if wheel, Z-translate;
 see also <a href="../commands/move.html"><b>move</b></a>;
-<br>assigned button + <b>Shift</b> switches to <b>rotate</b> instead</td>
+<br>assigned button + <b>Shift</b> switches to <b>rotate</b> instead;
+<br>assigned button + <b>Ctrl</b> (in that order) switches to Z-translation 
+instead (or Z-rotation, if <b>Shift</b> is also pressed)</td>
 </tr><tr>
 <td align="center"><a name="zoom"></a>
 <img src="mouse-icons/zoom.png" width="35px"></td>
@@ -104,27 +108,35 @@ see also <a href="../commands/zoom.html"><b>zoom</b></a>
 <td align="center"><b>translate selected models</b></td>
 <td align="center" class="text">translate models with any part 
 <a href="../selection.html">selected</a>, or if no selection, all models;
-<br>assigned button + <b>Shift</b> switches to
-<b>rotate selected models</b> instead</td>
+<br>assigned button + <b>Shift</b> switches to <b>rotate selected models</b>
+instead;
+<br>assigned button + <b>Ctrl</b> (in that order) switches to Z-translation 
+instead (or Z-rotation, if <b>Shift</b> is also pressed)</td>
 </tr><tr>
 <td align="center"><img src="mouse-icons/rotate_h2o.png" width="35px"></td>
 <td align="center"><b>rotate selected models</b></td>
 <td align="center" class="text">rotate models with any part 
 <a href="../selection.html">selected</a>, or if no selection, all models;
-<br>assigned button + <b>Shift</b> switches to
-<b>translate selected models</b> instead</td>
+<br>assigned button + <b>Shift</b> switches to <b>translate selected models</b>
+instead;
+<br>assigned button + <b>Ctrl</b> (in that order) switches to Z-rotation 
+instead (or Z-translation, if <b>Shift</b> is also pressed)</td>
 </tr><tr>
 <td align="center"><img src="mouse-icons/move_picked_model.png" width="35px"></td>
 <td align="center"><b>move picked model</b></td>
 <td align="center" class="text">translate the model under the mouseclick;
-<br>assigned button + <b>Shift</b> switches to rotation instead</td>
+<br>assigned button + <b>Shift</b> switches to rotation instead;
+<br>assigned button + <b>Ctrl</b> (in that order) switches to Z-translation 
+instead (or Z-rotation, if <b>Shift</b> is also pressed)</td>
 </tr><tr>
 <td align="center"><img src="mouse-icons/move_atoms.png" width="35px"></td>
 <td align="center"><b>translate selected atoms</b></td>
 <td align="center" class="text">translate any
 <a href="../selection.html">selected</a> atoms, or if no selection, all models;
-<br>assigned button + <b>Shift</b> switches to
-<b>rotate selected atoms</b> instead</td>
+<br>assigned button + <b>Shift</b> switches to <b>rotate selected atoms</b>
+instead;
+<br>assigned button + <b>Ctrl</b> (in that order) switches to Z-translation 
+instead (or Z-rotation, if <b>Shift</b> is also pressed)</td>
 </tr><tr>
 <td align="center"><img src="mouse-icons/pivot.png" width="35px"></td>
 <td align="center"><b>pivot</b></td>
@@ -229,7 +241,9 @@ both rotates and translates the slab</td>
 <td align="center" class="text">
 show <a href="volumeviewer.html">volume data</a> outline box
 and adjust region size by dragging any face;
-see also <a href="../commands/volume.html"><b>volume</b></a></td>
+see also <a href="../commands/volume.html"><b>volume</b></a>
+and <a href="#vr">differences in VR</a>
+</td>
 </tr><tr>
 <td align="center">
 <a name="tape"></a>
@@ -302,7 +316,8 @@ dragging horizontally the full width of the graphics window (or in
 <td align="center"><b>tug</b></td>
 <td align="center" class="text">drag atoms and apply OpenMM dynamics
 while button is held down (<a href="#openmm">details...</a>);
-original coordinates not retained</td>
+original coordinates not retained;
+see also <a href="../commands/tug.html"><b>tug</b></a></td>
 </tr><tr>
 <td align="center"><img src="mouse-icons/minimize.png" width="35px"></td>
 <td align="center"><b>minimize</b></td>
@@ -531,9 +546,18 @@ them only upon a 45&deg; change in viewing angle rather than continuously
 <li><b>rotate slab</b> 
 both rotates and translates the volume-data slice in
 <a href="../commands/volume.html#tiltedslab"><b>tilted slab</b></a> image mode
+<li>in <b>crop</b> mode, only the direction of pointing 
+(not the pointer tip coordinates) controls which box face to drag. 
+Pointing at the outside of a volume face will move that face, whereas 
+pointing away from that face will move the opposing parallel face.
+In other words, the hand-controller moves the 
+box face with normal vector opposite to the direction of pointing.
+This allows dragging any face of the box in VR
+without having to rotate the box or move around it.
+By contrast, in desktop mode, the closest face under the cursor is dragged.
 </ul>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-April 2023</address>
+December 2023</address>
 </body></html>

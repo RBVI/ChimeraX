@@ -2,14 +2,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016-2020 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 import sys
@@ -18,14 +29,15 @@ import os
 # (because subprocess imports selectors, and we have a selectors too).
 del sys.path[0]
 
-git_info = ["git", "show", "--summary", "--date=iso"]
+git_info = ["git", "show", "--summary", "--date=iso", "--pretty=fuller"]
 '''
-commit 245c04b9b45ec91a2772fc9d7c89d5ea0cb857af
-Merge: e9b4c21 1889ee2
-Author: Tom Goddard <goddard@sonic.net>
-Date:   2016-01-11 19:04:43 -0800
+commit 3f139c4ae58e2393bfea57ce1ff22c010f6c28bf (HEAD -> develop, origin/develop)
+Author:     Zach Pearson <zjp@cgl.ucsf.edu>
+AuthorDate: 2023-07-03 11:17:54 -0700
+Commit:     Zach Pearson <zjp@cgl.ucsf.edu>
+CommitDate: 2023-07-03 11:17:54 -0700
 
-    Merge branch 'develop' of plato.cgl.ucsf.edu:/usr/local/projects/chimerax/git/chimerax into develop
+    Hide the seg brush overlay if we're zooming in/out or moving the slice
 
 
 '''
@@ -43,7 +55,7 @@ def _extract(file, branch=None):
         if line.startswith('commit'):
             commit = line.split()[-1]
             continue
-        if line.startswith('Date:'):
+        if line.startswith('CommitDate:'):
             tokens = line.split()
             # 2012-01-31 16:49:23 -0800
             # convert to UTC
@@ -154,7 +166,6 @@ def main():
         copyright = extract_copyright()
         write_buildinfo(version, branch, commit, daytime, copyright)
     raise SystemExit(0)
-
 
 if __name__ == '__main__':
     main()

@@ -1,14 +1,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 # -----------------------------------------------------------------------------
@@ -142,7 +153,7 @@ class OpenPredictedAlignedError(ToolInstance):
     #
     def _choose_pae_file(self):
         s = self._structure_menu.value
-        if s and hasattr(s, 'filename'):
+        if s and hasattr(s, 'filename') and s.filename is not None:
             from os import path
             dir = path.split(s.filename)[0]
         elif self._pae_file.text():
@@ -249,6 +260,11 @@ class OpenPredictedAlignedError(ToolInstance):
 #	7qfc_efb9b_unrelaxed_rank_1_model_4.pdb
 #	7qfc_efb9b_unrelaxed_rank_1_model_4_scores.json
 #
+# Colabfold 1.5.0
+#
+#	af182_unrelaxed_rank_001_alphafold2_multimer_v3_model_1_seed_000.pdb
+#	af182_scores_rank_001_alphafold2_multimer_v3_model_1_seed_000.json
+#
 # AlphaFold database files
 #
 #	AF-P01445-F1-model_v2.cif
@@ -271,10 +287,15 @@ def _matching_pae_file(structure_path):
         return None
     if len(pfiles) == 1:
         return join(dir, pfiles[0])
-    
-    mfile = _longest_matching_prefix(filename, pfiles, min_length = 6)
+
+    from os.path import splitext
+    min_length = min(6, len(splitext(filename)[0]))
+    mfile = _longest_matching_prefix(filename, pfiles, min_length = min_length)
+    if mfile is None and '_unrelaxed_' in filename:
+        mfile = _longest_matching_prefix(filename.replace('_unrelaxed_', '_scores_'),
+                                         pfiles, min_length = min_length)
     if mfile is None:
-        mfile = _longest_matching_suffix(filename, pfiles, min_length = 6)
+        mfile = _longest_matching_suffix(filename, pfiles, min_length = min_length)
     if mfile is None:
         return None
     return join(dir, mfile)
@@ -894,6 +915,10 @@ class AlphaFoldPAE:
         m = self.structure
         if m is None:
             return
+
+        if m.num_residues != self.matrix_size:
+            from chimerax.core.errors import UserError
+            raise UserError(f'The structure {m} has {m.num_residues} residues which does not equal the PAE matrix size {self.matrix_size}, so domains cannot be colored')
 
         self.set_default_domain_clustering(cluster_max_pae, cluster_clumping,
                                            cluster_min_size)

@@ -10,6 +10,7 @@
 # including partial copies, of the software or any revisions
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
+from typing import Dict
 from urllib3.exceptions import MaxRetryError
 
 from chimerax.core.tasks import JobError
@@ -21,6 +22,7 @@ from .utils import BlastParams, make_instance_name
 class BlastProteinJob(CxServicesJob):
     inet_error = "Could not start BLAST job. Please check your internet connection and try again."
     service_name = "blast"
+    SESSION_SAVE = True
 
     def __init__(self, session, seq, atomspec, **kw):
         super().__init__(session)
@@ -51,11 +53,6 @@ class BlastProteinJob(CxServicesJob):
         except (ValueError, KeyError, AttributeError):
             self.model_name = None
 
-        try:
-            self.start(self.service_name, self.params)
-        except MaxRetryError:
-            session.logger.warning(self.inet_error)
-
     def setup(self, seq, atomspec, database: str = "pdb", cutoff: float = 1.0e-3,
               matrix: str = "BLOSUM62", max_seqs: int = 100, log = None,
               version = None, tool_inst_name = None, sequence_name = None):
@@ -76,6 +73,12 @@ class BlastProteinJob(CxServicesJob):
         self.log = log
         self.tool_inst_name = tool_inst_name
 
+    def start(self):
+        try:
+            super().start(self.service_name, self.params)
+        except MaxRetryError:
+            self.session.logger.warning(self.inet_error)
+
     def _seq_to_fasta(self, seq, title):
         data = ["> %s\n" % title]
         block_size = 60
@@ -93,13 +96,16 @@ class BlastProteinJob(CxServicesJob):
         logger = self.session.logger
         logger.status("BlastProtein finished.")
         if self.session.ui.is_gui:
-            from .ui import BlastProteinResults
-            BlastProteinResults.from_job(
+            if self.exited_normally():
+                from .ui import BlastProteinResults
+                BlastProteinResults.from_job(
                     session = self.session
                     , tool_name = self.tool_inst_name
                     , params=self._params()
                     , job=self
-            )
+                )
+            else:
+                self.session.logger.error("BLAST job failed")
         else:
             if self.exited_normally():
                 results = self.get_results()
@@ -109,6 +115,39 @@ class BlastProteinJob(CxServicesJob):
 
     def __str__(self):
         return "BlastProtein Job, ID %s" % self.id
+
+    @classmethod
+    def from_snapshot(cls, session, data):
+        params = data['params']
+        atomspec = data['atomspec']
+        seq = params['input_seq']
+        database = params['db']
+        cutoff = params['evalue']
+        matrix = params['matrix']
+        maxSeqs = params['blimit']
+        version = params['version']
+        tmp = cls(session, seq, atomspec
+                  , database=database, cutoff=cutoff, matrix=matrix
+                  , max_seqs = maxSeqs, version = version, log = None
+                  , tool_inst_name = data.get('tool_inst_name', None))
+        tmp.start_time = data['start_time']
+        tmp.end_time = data['end_time']
+        tmp.id = data['id']
+        tmp.job_id = data['job_id']
+        tmp.state = data['state']
+        tmp.restore()
+        return tmp
+
+    def take_snapshot(self, session, flags) -> Dict:
+        data = super().take_snapshot(session, flags)
+        data['params'] = self.params
+        data['atomspec'] = self.atomspec
+        data['tool_inst_name'] = self.tool_inst_name
+        return data
+
+    @staticmethod
+    def restore_snapshot(session, data) -> 'CxServicesJob':
+        return BlastProteinJob.from_snapshot(session, data)
 
 
 def parse_blast_results_nogui(session, params, sequence, results, log=None):

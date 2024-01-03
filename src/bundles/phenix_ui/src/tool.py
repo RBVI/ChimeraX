@@ -158,24 +158,25 @@ class LaunchDouseTool(ToolInstance):
         self.delete()
 
 class LaunchEmplaceLocalTool(ToolInstance):
-    help = "help:user/tools/loaclemfitting.html"
+    help = "help:user/tools/localemfitting.html"
 
     CENTER_MODEL = "center of model..."
+    CENTER_SELECTION = "center of selection"
     CENTER_VIEW = "center of view"
     CENTER_XYZ = "specified xyz position..."
-    CENTERING_METHODS = [CENTER_MODEL, CENTER_VIEW, CENTER_XYZ]
+    CENTERING_METHODS = [CENTER_MODEL, CENTER_SELECTION, CENTER_VIEW, CENTER_XYZ]
 
     def __init__(self, session, tool_name):
         super().__init__(session, tool_name)
         from chimerax.ui import MainToolWindow
-        self.tool_window = tw = MainToolWindow(self)
+        self.tool_window = tw = MainToolWindow(self, close_destroys=False)
         parent = tw.ui_area
 
         if not hasattr(self.__class__, 'settings'):
             self.__class__.settings = LaunchEmplaceLocalSettings(session, "launch emplace local")
 
         from Qt.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel, QWidget, QPushButton, QMenu, QLineEdit
-        from Qt.QtWidgets import QCheckBox
+        from Qt.QtWidgets import QCheckBox, QGridLayout, QGroupBox
         from Qt.QtGui import QDoubleValidator
         from Qt.QtCore import Qt
         layout = QVBoxLayout()
@@ -185,15 +186,34 @@ class LaunchEmplaceLocalTool(ToolInstance):
 
         centering_widget = QWidget()
         layout.addWidget(centering_widget, alignment=Qt.AlignCenter, stretch=1)
-        structure_layout = QHBoxLayout()
+        structure_layout = QGridLayout()
         structure_layout.setSpacing(1)
         centering_widget.setLayout(structure_layout)
-        structure_layout.addWidget(QLabel("Fit "), alignment=Qt.AlignRight)
+        structure_layout.addWidget(QLabel("Fit "), 0, 0, alignment=Qt.AlignRight)
         from chimerax.atomic.widgets import AtomicStructureMenuButton
         self.structure_menu = AtomicStructureMenuButton(session)
-        structure_layout.addWidget(self.structure_menu)
-        structure_layout.addWidget(QLabel(" using half maps "))
+        structure_layout.addWidget(self.structure_menu, 0, 1)
+        structure_layout.addWidget(QLabel(" using "), 0, 2)
+        self.HALF_MAPS, self.FULL_MAP = self.menu_items = ["half maps", "full map"]
+        self.mt_explanations = {
+            self.HALF_MAPS: "Using half maps is recommended if available.  If local resolution is not specified (i.e. is zero) then it will be estimated from the half maps.",
+            self.FULL_MAP: "Using only the full map is less reliable than using half maps, so use half maps if available.  If using a full map, then specifying a (non-zero) resolution is mandatory."
+        }
+        assert len(self.menu_items) == len(self.mt_explanations)
+        self.map_type_mb = QPushButton(self.HALF_MAPS)
+        structure_layout.addWidget(self.map_type_mb, 0, 3)
+        mt_menu = QMenu(self.map_type_mb)
+        mt_menu.triggered.connect(self._map_type_changed)
+        for item in self.menu_items:
+            mt_menu.addAction(item)
+        self.map_type_mb.setMenu(mt_menu)
         from chimerax.ui.widgets import ModelListWidget, ModelMenuButton
+        ex_lab = self.mt_explanation_label = QLabel(self.mt_explanations[self.HALF_MAPS])
+        ex_lab.setWordWrap(True)
+        ex_lab.setAlignment(Qt.AlignCenter)
+        from chimerax.ui import shrink_font
+        shrink_font(ex_lab, fraction=0.85)
+        structure_layout.addWidget(ex_lab, 1, 0, 1, 4)
         class ShortMLWidget(ModelListWidget):
             def sizeHint(self):
                 hint = super().sizeHint()
@@ -201,14 +221,17 @@ class LaunchEmplaceLocalTool(ToolInstance):
                 return hint
         from chimerax.map import Volume
         self.half_map_list = ShortMLWidget(session, class_filter=Volume)
-        structure_layout.addWidget(self.half_map_list, alignment=Qt.AlignLeft, stretch=1)
+        structure_layout.addWidget(self.half_map_list, 0, 4, 2, 1, alignment=Qt.AlignLeft)
+        structure_layout.setRowStretch(1, 1)
+        structure_layout.setColumnStretch(4, 1)
 
         from chimerax.ui.options import OptionsPanel, FloatOption
         res_options = OptionsPanel(scrolled=False, contents_margins=(0,0,0,0))
         layout.addWidget(res_options, alignment=Qt.AlignCenter)
-        self.res_option = FloatOption("Map resolution:", None, None, min=0.0, decimal_places=2,
-            step=0.1, max=99.99, balloon="Full map resolution.  If unknown, providing a value"
-            " of zero will cause an estimated resolution to be used.")
+        self.res_option = FloatOption("Local map resolution:", None, None, min=0.0, decimal_places=2,
+            step=0.1, max=99.99, balloon="Map resolution in the search region.\n"
+            "If unknown, and using half maps, providing a value of zero will cause an estimated\n"
+            "resolution to be used.  For full maps, providing the resolution is mandatory.")
         res_options.add_option(self.res_option)
 
         centering_widget = QWidget()
@@ -226,8 +249,11 @@ class LaunchEmplaceLocalTool(ToolInstance):
 %s — The center of a particular model, frequently the map, or the structure to be fitted once
     it has been approximately positioned.
 
+%s - The center of the bounding box enclosing currently selected objects.
+
 %s — A specific X/Y/Z position, given in angstroms relative to the origin of the map.
-        ''' % (self.CENTER_VIEW.rstrip('.'), self.CENTER_MODEL.rstrip('.'), self.CENTER_XYZ.rstrip('.'))
+        ''' % (self.CENTER_VIEW.rstrip('.'), self.CENTER_MODEL.rstrip('.'),
+            self.CENTER_SELECTION.rstrip('.'), self.CENTER_XYZ.rstrip('.'))
         centering_label = QLabel("Center search at")
         centering_label.setToolTip(centering_tip)
         centering_layout.addWidget(centering_label, alignment=Qt.AlignRight)
@@ -270,11 +296,25 @@ class LaunchEmplaceLocalTool(ToolInstance):
         self.verify_center_checkbox.clicked.connect(lambda checked, b=self.opaque_maps_checkbox:
             b.setHidden(not checked))
         layout.addWidget(self.opaque_maps_checkbox, alignment=Qt.AlignCenter)
+        self.show_sharpened_map_checkbox = QCheckBox("Show locally sharpened map computed by Phenix")
+        self.show_sharpened_map_checkbox.setChecked(self.settings.show_sharpened_map)
+        self.show_sharpened_map_checkbox.setToolTip(
+            "Phenix.emplace_local computes a sharpened map for the region being searched.\n"
+            "This sharpened map is what is actually used for the fitting.  This checkbox\n"
+            "controls whether the sharpened map is initially shown in ChimeraX once the\n"
+            "calculation completes.  Even if not checked, the map will be opened (but hidden)."
+        )
+        layout.addWidget(self.show_sharpened_map_checkbox, alignment=Qt.AlignCenter)
+        layout.addSpacing(10)
+        self.symmetry_checkbox = QCheckBox("After fitting, add symmetry copies"
+            " automatically if map symmetry is detected")
+        layout.addWidget(self.symmetry_checkbox, alignment=Qt.AlignCenter)
         layout.addStretch(1)
 
         from Qt.QtWidgets import QDialogButtonBox as qbbox
-        self.bbox = bbox = qbbox(qbbox.Ok | qbbox.Close | qbbox.Help)
+        self.bbox = bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
         bbox.accepted.connect(self.launch_emplace_local)
+        bbox.button(qbbox.Apply).clicked.connect(lambda *args: self.launch_emplace_local(apply=True))
         bbox.rejected.connect(self.delete)
         if self.help:
             from chimerax.core.commands import run
@@ -285,14 +325,21 @@ class LaunchEmplaceLocalTool(ToolInstance):
 
         tw.manage(placement=None)
 
-    def launch_emplace_local(self):
+    def launch_emplace_local(self, apply=False):
         structure = self.structure_menu.value
         if not structure:
             raise UserError("Must specify a structure to fit")
+        map_type = self.map_type_mb.text()
         maps = self.half_map_list.value
-        if len(maps) != 2:
-            raise UserError("Must specify exactly two half maps for fitting")
         res = self.res_option.value
+        if map_type == self.HALF_MAPS:
+            if len(maps) != 2:
+                raise UserError("Must specify exactly two half maps for fitting")
+        else:
+            if len(maps) != 1:
+                raise UserError("Must specify exactly one full map for fitting")
+            if res == 0.0:
+                raise UserError("Must specify a resolution value for the full map")
         method = self.centering_button.text()
         if method == self.CENTER_XYZ:
             center = [float(widget.text()) for widget in self.xyz_widgets]
@@ -303,12 +350,10 @@ class LaunchEmplaceLocalTool(ToolInstance):
             bnds = centering_model.bounds()
             if bnds is None:
                 raise UserError("No part of model for specifying search center is displayed")
-            center =[]
-            for o, xyz in zip(maps[0].data.origin, bnds.center()):
-                center.append(xyz - o)
+            center = bnds.center()
         elif method == self.CENTER_VIEW:
             # If pivot point shown or using fixed center of rotation, use that.
-            # Otherwise, midpoint where center ow window intersects front and back of halfmap bounding box.
+            # Otherwise, midpoint where center of window intersects front and back of halfmap bounding box.
             view_center = None
             mv = self.session.main_view
             for d in mv.drawing.child_drawings():
@@ -330,18 +375,37 @@ class LaunchEmplaceLocalTool(ToolInstance):
                     view_center = view_box(self.session, view_map)
                 except ViewBoxError as e:
                     raise UserError(str(e))
-            center =[]
-            for o, xyz in zip(maps[0].data.origin, view_center):
-                center.append(xyz - o)
+            center = view_center
+        elif method == self.CENTER_SELECTION:
+            if self.session.selection.empty():
+                raise UserError("Nothing selected")
+            from chimerax.atomic import selected_atoms
+            sel_atoms = selected_atoms(self.session)
+            from chimerax.geometry import point_bounds, union_bounds
+            atom_bbox = point_bounds(sel_atoms.scene_coords)
+            atom_models = set(sel_atoms.unique_structures)
+            bbox = union_bounds([atom_bbox]
+                + [m.bounds() for m in self.session.selection.models() if m not in atom_models])
+            if bbox is None:
+                raise UserError("No bounding box for selected items")
+            center = bbox.center()
         else:
             raise AssertionError("Unknown centering method")
         self.settings.search_center = method
+        self.settings.show_sharpened_map = ssm = self.show_sharpened_map_checkbox.isChecked()
+        apply_symmetry = self.symmetry_checkbox.isChecked()
         if self.verify_center_checkbox.isChecked():
             self.settings.opaque_maps = self.opaque_maps_checkbox.isChecked()
-            VerifyCenterDialog(self.session, structure, maps, res, center, self.settings.opaque_maps)
+            VerifyCenterDialog(self.session, structure, maps, res, center, self.settings.opaque_maps, ssm,
+                apply_symmetry)
         else:
-            _run_emplace_local_command(self.session, structure, maps, res, center)
-        self.delete()
+            _run_emplace_local_command(self.session, structure, maps, res, center, ssm, apply_symmetry)
+        if not apply:
+            self.display(False)
+
+    def _map_type_changed(self, action):
+        self.map_type_mb.setText(action.text())
+        self.mt_explanation_label.setText(self.mt_explanations[action.text()])
 
     def _set_centering_method(self, method=None):
         if method is None:
@@ -356,16 +420,244 @@ class LaunchEmplaceLocalTool(ToolInstance):
         elif method == self.CENTER_MODEL:
             self.model_menu.setHidden(False)
 
+class LaunchFitLoopsTool(ToolInstance):
+    #help = "help:user/tools/localemfitting.html"
+    #NOTES: 1oed (all failures), 3j5p
+
+    GAPS_TAB, REMODEL_TAB = TAB_NAMES = ("Fill Gaps", "Remodel")
+
+    def __init__(self, session, tool_name):
+        super().__init__(session, tool_name)
+        from chimerax.ui import MainToolWindow
+        self.tool_window = tw = MainToolWindow(self, close_destroys=False)
+        parent = tw.ui_area
+
+        #if not hasattr(self.__class__, 'settings'):
+        #    self.__class__.settings = LaunchEmplaceLocalSettings(session, "launch emplace local")
+
+        from Qt.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel, QWidget, QSpinBox, QListWidget
+        from Qt.QtWidgets import QGridLayout
+        from Qt.QtCore import Qt
+        layout = QVBoxLayout()
+        parent.setLayout(layout)
+        #layout.setContentsMargins(0,0,0,0)
+        layout.setSpacing(1)
+
+        centering_widget = QWidget()
+        layout.addWidget(centering_widget, alignment=Qt.AlignCenter)
+        data_layout = QHBoxLayout()
+        data_layout.setSpacing(1)
+        centering_widget.setLayout(data_layout)
+        data_layout.addWidget(QLabel("Structure: "), alignment=Qt.AlignRight)
+        from chimerax.atomic.widgets import AtomicStructureMenuButton
+        self.structure_menu = AtomicStructureMenuButton(session)
+        self.structure_menu.value_changed.connect(self._structure_changed)
+        data_layout.addWidget(self.structure_menu, alignment=Qt.AlignLeft)
+        data_layout.setStretch(data_layout.count(), 1)
+        data_layout.addWidget(QLabel("  Map: "), alignment=Qt.AlignRight)
+        from chimerax.ui.widgets import ModelMenuButton
+        from chimerax.map import Volume
+        self.map_menu = ModelMenuButton(session, class_filter=Volume)
+        data_layout.addWidget(self.map_menu, alignment=Qt.AlignLeft)
+        data_layout.setStretch(data_layout.count(), 1)
+
+        targeting_layout = QHBoxLayout()
+        layout.addLayout(targeting_layout)
+        layout.setStretch(layout.count(), 1)
+        self.no_structure_message = "Select a structure from the menu above"
+        self.target_label = QLabel(self.no_structure_message)
+        self.target_label.setAlignment(Qt.AlignCenter)
+        self.target_label.setWordWrap(True)
+        from chimerax.ui import shrink_font
+        shrink_font(self.target_label, 0.9)
+        targeting_layout.addWidget(self.target_label)
+        self.target_area = QWidget()
+        target_layout = QVBoxLayout()
+        self.target_area.setLayout(target_layout)
+        targeting_layout.addWidget(self.target_area)
+        self.target_list = QListWidget()
+        self.target_list.currentRowChanged.connect(self._new_target)
+        target_layout.addWidget(self.target_list, alignment=Qt.AlignCenter)
+        target_layout.setStretch(target_layout.count(), 1)
+        padding_layout = QGridLayout()
+        padding_layout.setSpacing(1)
+        target_layout.addLayout(padding_layout)
+        padding_layout.addWidget(QLabel("Also select "), 0, 0, alignment=Qt.AlignRight)
+        self.padding_widget = QSpinBox()
+        self.padding_widget.setValue(1)
+        self.padding_widget.valueChanged.connect(self._padding_changed)
+        padding_layout.addWidget(self.padding_widget, 0, 1)
+        self.residue_label = QLabel(" residue")
+        padding_layout.addWidget(self.residue_label, 0, 2, alignment=Qt.AlignLeft)
+        padding_layout.addWidget(QLabel("on each side of gap"), 1, 0, 1, 3, alignment=Qt.AlignCenter)
+        self.target_area.setHidden(True)
+
+        from Qt.QtWidgets import QDialogButtonBox as qbbox
+        self.bbox = bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
+        bbox.accepted.connect(self.launch_fit_loops)
+        bbox.button(qbbox.Apply).clicked.connect(lambda *args: self.launch_fit_loops(apply=True))
+        bbox.rejected.connect(self.delete)
+        if self.help:
+            from chimerax.core.commands import run
+            bbox.helpRequested.connect(lambda *, run=run, ses=session: run(ses, "help " + self.help))
+        else:
+            bbox.button(qbbox.Help).setEnabled(False)
+        layout.addWidget(bbox)
+
+        tw.manage(placement=None)
+
+    def launch_fit_loops(self, apply=False):
+        structure = self.structure_menu.value
+        if not structure:
+            raise UserError("Must specify a structure to model/remodel")
+        map = self.map_menu.value
+        if not map:
+            raise UserError("Must specify a volume/map to guide remodeling")
+        from chimerax.atomic import concise_residue_spec, Residue
+        from chimerax.core.commands import run
+        # generate commands for selected pseudobonds (without both endpoint atoms selected)
+        # and then command for selected residues.  Execute them all simultaneously.
+        commands = []
+        try:
+            pbs = structure.pbg_map[structure.PBG_MISSING_STRUCTURE].pseudobonds
+        except KeyError:
+            pbs = []
+        for pb in pbs:
+            if not pb.selected:
+                continue
+            a1, a2 = pb.atoms
+            if a1.selected and a2.selected:
+                continue
+            r1, r2 = a1.residue, a2.residue
+            if r1 == r2:
+                continue
+            commands.append("phenix fitLoops %s%s in %s gapOnly true"
+                % (r1.atomspec, r2.atomspec, map.atomspec))
+
+        sel_residues = structure.atoms[structure.atoms.selecteds == True].unique_residues
+        sel_residues = sel_residues.filter(sel_residues.polymer_types == Residue.PT_AMINO)
+        if sel_residues:
+            commands.append("phenix fitLoops %s in %s"
+                % (concise_residue_spec(self.session, sel_residues), map.atomspec))
+
+        if not commands:
+            raise UserError("No selected amino-acid residues or missing-structure pseudobonds in %s"
+                % structure)
+
+        run(self.session, " ; ".join(commands))
+        if not apply:
+            self.display(False)
+
+    def _find_gaps(self, structure):
+        try:
+            pbs = structure.pbg_map[structure.PBG_MISSING_STRUCTURE].pseudobonds
+        except KeyError:
+            return [], []
+        gaps = []
+        unk_gaps = []
+        for pb in pbs:
+            a1, a2 = pb.atoms
+            r1, r2 = (a1.residue, a2.residue) if a1 < a2 else (a2.residue, a1.residue)
+            if r1 == r2:
+                continue
+            if r1.polymer_type == r1.PT_AMINO:
+                if r1.name == "UNK" or r2.name == "UNK":
+                    unk_gaps.append((r1, r2, pb))
+                else:
+                    gaps.append((r1, r2, pb))
+        gaps.sort()
+        unk_gaps.sort()
+        return gaps, unk_gaps
+
+    def _new_target(self, row):
+        if row < 0:
+            return
+        r1, r2, pb = self.current_gap_info[row]
+        pad = self.padding_widget.value()
+        from chimerax.core.commands import run
+        if pad > 0:
+            index1 = r1.chain.residues.index(r1)
+            index2 = r2.chain.residues.index(r2)
+            bound1 = 0
+            bound2 = len(r2.chain) - 1
+            target_residues = []
+            for offset in range(pad):
+                for base_index, res_list, dir, bound in [(index1, r1.chain.residues, -1, bound1),
+                        (index2, r2.chain.residues, 1, bound2)]:
+                    index = base_index + dir * offset
+                    if dir < 0:
+                        if index < bound:
+                            continue
+                    elif index > bound:
+                        continue
+                    r = res_list[index]
+                    if r:
+                        target_residues.append(r)
+            from chimerax.atomic import concise_residue_spec
+            run(self.session, "select " + concise_residue_spec(self.session, target_residues))
+            run(self.session, "view sel")
+        else:
+            # There is no command to select _just_ a pseudbond, so if the padding is zero...
+            self.session.selection.clear()
+            pb.selected = True
+            a1, a2 = pb.atoms
+            run(self.session, "view " + a1.atomspec + a2.atomspec)
+
+    def _padding_changed(self, padding):
+        self.residue_label.setText(" residue" if padding == 1 else " residues")
+        self._new_target(self.target_list.currentRow())
+
+    def _structure_changed(self):
+        structure = self.structure_menu.value
+        if structure:
+            gap_info, unk_gaps = self._find_gaps(structure)
+            if unk_gaps:
+                self.session.logger.info("Phenix loop fitting cannot handle gaps involving UNK residues and"
+                    " therefore the following gaps have not been included in the dialog's list of gaps:")
+                self.session.logger.info('<ul>%s</ul>\n' % ('\n'.join(
+                    ['<li><a href="cxcmd:view %s%s">%s&rarr;%s</a></li>' % (r1.atomspec, r2.atomspec, r1, r2)
+                    for r1, r2, pb in unk_gaps])), is_html=True)
+            if gap_info:
+                msg = f"Select the parts of {structure} you want to model/remodel, including" \
+                    " missing-structure pseudobonds if filling the corresponding gap is desired." \
+                    "  For convenience, choosing a gap from the list on the right will select the" \
+                    " corresponding part of the structure and focus the view on it."
+                self.current_gap_info = gap_info
+                self.target_list.clear()
+                for r1, r2, pb in gap_info:
+                    self.target_list.addItem(f"Chain {r1.chain_id}, {r1.number+1}-{r2.number-1}")
+                if unk_gaps:
+                    msg += f"  {structure} also has missing-structure gaps involving UNK residues, which" \
+                        " Phenix loop fitting cannot handle (see Log for more info)."
+                self.target_area.setHidden(False)
+            else:
+                if unk_gaps:
+                    msg = f"{structure} only has missing-structure gaps involving UNK residues, which" \
+                        " Phenix loop fitting cannot handle (see Log for more info).  You could remodel" \
+                        " other residues by selecting them."
+                else:
+                    msg = f"Select residues you wish to remodel."
+                self.target_area.setHidden(True)
+            self.target_label.setText(msg)
+        else:
+            self.target_label.setText(self.no_structure_message)
+            self.target_area.setHidden(True)
+
 class VerifyCenterDialog(QDialog):
-    def __init__(self, session, structure, maps, resolution, initial_center, opaque_maps):
+    def __init__(self, session, structure, maps, resolution, initial_center, opaque_maps,
+            show_sharpened_map, apply_symmetry):
         super().__init__()
         self.session = session
         self.structure = structure
         self.maps = maps
         self.resolution = resolution
         self.opaque_maps = opaque_maps
+        self.show_sharpened_map = show_sharpened_map
+        self.apply_symmetry = apply_symmetry
 
-        adjusted_center = [ic+o for ic,o in zip(initial_center, maps[0].data.origin)]
+        # adjusted_center used to compensate for map origin, but improvements to emplace_local
+        # have made that adjustment unnecessary
+        adjusted_center = initial_center
         marker_set_id = session.models.next_id()[0]
         from chimerax.core.commands import run
         self.marker = run(session, "marker #%d position %g,%g,%g radius %g color 100,65,0,50"
@@ -433,8 +725,8 @@ class VerifyCenterDialog(QDialog):
                     rgba[-1] = alpha
                     m.rgba = tuple(rgba)
         center = self.marker.scene_coord
-        _run_emplace_local_command(self.session, self.structure, self.maps, self.resolution,
-            [c-o for c, o in zip(center, self.maps[0].data.origin)])
+        _run_emplace_local_command(self.session, self.structure, self.maps, self.resolution, center,
+            self.show_sharpened_map, self.apply_symmetry)
 
     def _check_still_valid(self, trig_name, removed_models):
         for rm in removed_models:
@@ -445,13 +737,142 @@ class VerifyCenterDialog(QDialog):
 class LaunchEmplaceLocalSettings(Settings):
     AUTO_SAVE = {
         'search_center': LaunchEmplaceLocalTool.CENTER_MODEL,
-        'opaque_maps': True
+        'opaque_maps': True,
+        'show_sharpened_map': False
     }
 
-def _run_emplace_local_command(session, structure, maps, resolution, center):
-    from chimerax.core.commands import run, concise_model_spec
+def _run_emplace_local_command(session, structure, maps, resolution, center, show_sharpened_map,
+        apply_symmetry):
+    from chimerax.core.commands import run, concise_model_spec, BoolArg, StringArg
     from chimerax.map import Volume
-    cmd = "phenix emplaceLocal %s halfMaps %s resolution %g center %g,%g,%g" % (structure.atomspec,
-        concise_model_spec(session, maps, relevant_types=Volume, allow_empty_spec=False),
-        resolution, *center)
+    cmd = "phenix emplaceLocal %s mapData %s resolution %g center %g,%g,%g showSharpenedMap %s" \
+        " applySymmetry %s" % (
+        structure.atomspec, concise_model_spec(session, maps, relevant_types=Volume, allow_empty_spec=False),
+        resolution, *center, BoolArg.unparse(show_sharpened_map), BoolArg.unparse(apply_symmetry))
     run(session, cmd)
+
+class FitLoopsResultsSettings(Settings):
+    AUTO_SAVE = {
+        'last_advised': None
+    }
+
+class FitLoopsResultsViewer(ToolInstance):
+
+    #help = "help:user/tools/waterplacement.html#waterlist"
+
+    def __init__(self, session, model=None, fit_info=None, map=None):
+        # if 'model' is None, we are being restored from a session and _finalize_init() will be called later
+        super().__init__(session, "Fit Loops Results")
+        if model is None:
+            return
+        self._finalize_init(model, fit_info, map)
+
+    def _finalize_init(self, model, fit_info, map, *, session_info=None):
+        self.model = model
+        self.fit_info = fit_info
+        self.map = map
+
+        from chimerax.core.models import REMOVE_MODELS
+        from chimerax.atomic import get_triggers
+        self.handlers = [
+            self.session.triggers.add_handler(REMOVE_MODELS, self._models_removed_cb),
+        ]
+
+        # change any sphere representations into stick
+        if not session_info:
+            check_atoms = self.model.atoms
+            check_spheres = check_atoms.filter(check_atoms.draw_modes == check_atoms.SPHERE_STYLE)
+            check_spheres.draw_modes = check_atoms.STICK_STYLE
+
+        from chimerax.ui import MainToolWindow
+        self.tool_window = tw = MainToolWindow(self, close_destroys=False)
+        parent = tw.ui_area
+
+        from Qt.QtWidgets import QHBoxLayout, QButtonGroup, QVBoxLayout, QRadioButton, QCheckBox
+        from Qt.QtWidgets import QPushButton, QLabel, QToolButton, QGridLayout
+        layout = QVBoxLayout()
+        layout.setContentsMargins(2,2,2,2)
+        layout.setSpacing(0)
+        parent.setLayout(layout)
+
+        self.table = self._build_table()
+        layout.addWidget(self.table, stretch=1)
+
+        self.tool_window.manage('side')
+
+    def delete(self):
+        for handler in self.handlers:
+            handler.remove()
+        self.model = self.map = None
+        super().delete()
+
+    def _build_table(self):
+        class FLInfo:
+            def __init__(self, info, model):
+                for k, v in info.items():
+                    setattr(self, k, v)
+                if self.successful:
+                    self.successful = "\N{CHECK MARK}"
+                    res_offset = 0
+                else:
+                    self.cc = None
+                    self.successful = ""
+                    res_offset = 1
+                residues = []
+                for chain in model.chains:
+                    if chain.chain_id == self.chain_id:
+                        for r in chain.existing_residues:
+                            if r.number >= self.start_residue - res_offset \
+                            and r.number <= self.end_residue + res_offset:
+                                residues.append(r)
+                from chimerax.atomic import Residues
+                self.residues = Residues(residues)
+        from chimerax.ui.widgets import ItemTable
+        table = ItemTable()
+        chain_col = table.add_column("Chain", "chain_id")
+        table.add_column("Start", "start_residue")
+        table.add_column("End", "end_residue")
+        table.add_column("Success", "successful")
+        table.add_column("CC", "cc", format="%.3f", balloon="Correlation coefficient with map")
+        table.add_column("Sequence", "gap_sequence")
+        table.data = [FLInfo(info, self.model)
+            for info in self.fit_info if info['segment_number'] is not None]
+        table.launch(select_mode=table.SelectionMode.SingleSelection)
+        table.sort_by(chain_col, table.SORT_ASCENDING)
+        table.selection_changed.connect(self._new_selection)
+        if len(table.data) == 1:
+            table.selected = table.data
+        else:
+            if not hasattr(self.__class__, 'settings'):
+                self.__class__.settings = FitLoopsResultsSettings(self.session, "fit loops results")
+            last = self.settings.last_advised
+            from time import time
+            now = self.settings.last_advised = time()
+            if last is None or now - last >= 777700: # about 3 months
+                from Qt.QtWidgets import QMessageBox
+                msg = QMessageBox()
+                msg.setWindowTitle("Table Selection")
+                msg.setText("Select a row in the results table to focus in on that part of the structure")
+                msg.exec()
+        return table
+
+    def _models_removed_cb(self, trig_name, trig_data):
+        if self.model in trig_data:
+            self.delete()
+
+    def _new_selection(self, selected, unselected):
+        if selected:
+            residues = selected[0].residues
+            if residues:
+                from chimerax.core.commands import run
+                from chimerax.atomic import concise_residue_spec
+                # display things if necessary
+                if not residues.ribbon_displays.any() and not residues.atoms.displays.any():
+                    if self.model.residues.ribbon_displays.any():
+                        run(self.session, "cartoon %s" % spec)
+                    else:
+                        run(self.session, "display %s" % spec)
+                spec = concise_residue_spec(self.session, residues)
+                run(self.session, "sel %s; view sel" % spec)
+            else:
+                self.session.logger.status("No residues to view for this row")

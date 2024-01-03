@@ -1,21 +1,36 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 """
 utils: Generically useful stuff that doesn't fit elsewhere
 ==========================================================
 """
+import os
+import subprocess
 import sys
+
+from contextlib import contextmanager
 
 
 # Based on Mike C. Fletcher's BasicTypes library
@@ -210,3 +225,29 @@ def round_off(val, significant_digits):
         return val
     from math import log10, floor
     return round(val, significant_digits - 1 - int(floor(log10(abs(val)))))
+
+def make_link(target, source) -> None:
+    """An OS-agnostic way to make a symbolic link that does not require permissions
+    on Windows to use."""
+    if sys.platform == "win32":
+        subprocess.run('mklink /J "%s" "%s"' % (source, target), shell = True)
+    else:
+        os.symlink(target, source)
+
+def chimerax_binary_directory():
+    """Find the ChimeraX.app/Contents/bin directory."""
+    using_chimerax = "chimerax" in os.path.realpath(sys.executable).split(os.sep)[-1].lower()
+    if using_chimerax or sys.platform != "darwin":
+        return os.path.dirname(os.path.realpath(sys.executable))
+    # /path/to/ChimeraX.app/Contents/Library/Frameworks/Python.Framework/Versions/3.11/bin/python3.11
+    # So we need to trim off everything after 'Contents' and add 'bin'
+    return os.sep.join([*os.path.realpath(sys.executable).split(os.sep)[:-7], "bin"])
+
+@contextmanager
+def chimerax_bin_dir_first_in_path():
+    """Put ChimeraX's bin directory first on the PATH. This is useful to override some library's call to
+    a system binary, ensuring the system finds the binary shipped with ChimeraX first."""
+    oldpath = os.environ['PATH']
+    os.environ['PATH'] = ":".join([chimerax_binary_directory(), oldpath])
+    yield
+    os.environ['PATH'] = oldpath or ''

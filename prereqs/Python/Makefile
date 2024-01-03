@@ -111,7 +111,9 @@ ifeq ($(OS),Windows)
 
 else ifdef USE_MAC_FRAMEWORKS
 	rm -rf $(frameworkdir)/Python.framework
-	tar xf $(DISTRIBUTION) -C $(frameworkdir)
+	# essex2 complains about pax headers having a newer format, so 
+	# force this line's error to go away
+	tar xf $(DISTRIBUTION) -C $(frameworkdir) || true 
 
 	# Link framework bin, lib, and include files to app directories
 	-cd $(bindir) ; ln -s $(REL_PYTHON_FRAMEWORK)/bin/python* $(REL_PYTHON_FRAMEWORK)/bin/pip* .

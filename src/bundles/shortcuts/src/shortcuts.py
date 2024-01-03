@@ -1,14 +1,25 @@
 # vim: set expandtab ts=4 sw=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 def register_shortcuts(keyboard_shortcuts):
@@ -158,6 +169,7 @@ def standard_shortcuts(session):
         ('st', run_on_atoms('style %s stick'), 'Display atoms in stick style', molcat, sesarg, mlmenu, sep),
 
         ('rb', run_on_atoms('show %s cartoon'), 'Display ribbon', molcat, sesarg, mlmenu),
+        ('ri', select_residue_interval, 'Select residue interval', molcat, sesarg, mlmenu),
         ('hr', run_on_atoms('hide %s cartoon'), 'Undisplay ribbon', molcat, sesarg, mlmenu),
 #        ('r+', fatter_ribbons, 'Thicker ribbons', molcat, molarg, mlmenu),
 #        ('r-', thinner_ribbons, 'Thinner ribbons', molcat, molarg, mlmenu, sep),
@@ -246,7 +258,7 @@ def standard_shortcuts(session):
 
         # Help
 #        ('mn', show_manual, 'Show manual', gcat, sesarg, hmenu),
-#        ('ks', list_keyboard_shortcuts, 'List keyboard shortcuts', gcat, sesarg, hmenu),
+        ('Ls', list_keyboard_shortcuts, 'List keyboard shortcuts', gcat, sesarg, hmenu),
         ]
 
 #    from ..molecule.blastpdb import blast_shortcuts
@@ -1030,6 +1042,19 @@ def molecule_bonds(m, session):
         log.info(msg)
         if missing:
             log.info('Missing %d templates: %s' % (len(missing), ', '.join(missing)))
+          
+def select_residue_interval(session):
+    specs = []
+    from chimerax.atomic import selected_residues
+    for struct, cid, res in selected_residues(session).by_chain:
+        if len(res) >= 2:
+            rnum = res.numbers
+            rmin, rmax = rnum.min(), rnum.max()
+            specs.append(f'#{struct.id_string}/{cid}:{rmin}-{rmax}')
+    if specs:
+        cmd = 'select ' + ' '.join(specs)
+        from chimerax.core.commands import run
+        run(session, cmd)
 
 def show_sequence(atoms):
     chains = atoms.residues.unique_chains
@@ -1047,12 +1072,8 @@ def show_sequence(atoms):
         run(session, 'sequence chain %s' % seq_chain_spec, log = False)
 
 def list_keyboard_shortcuts(session):
-    m = session.main_window
-    if m.showing_text() and m.text_id == 'keyboard shortcuts':
-        m.show_graphics()
-    else:
-        t = shortcut_descriptions(session.keyboard_shortcuts, html = True)
-        m.show_text(t, html = True, id = "keyboard shortcuts")
+    t = shortcut_descriptions(session.keyboard_shortcuts, html = True)
+    session.logger.info(t, is_html = True)
 
 def shortcut_descriptions(ks, html = False):
   ksc = {}
@@ -1223,7 +1244,7 @@ def undisplay_half_model(m):
             if (mp[0]*c)[2] > 0:
                 m.display = False
         else:
-            from numpy import array, bool
+            from numpy import array
             pmask = array([(pl*c)[2] <= 0 for pl in mp], bool)
             m.display_positions = pmask
             print('uh', m.name, pmask.sum())
@@ -1249,12 +1270,24 @@ def minimize_crosslinks(atoms, session):
     from chimerax.core.crosslinks import crosslink
     crosslink(session, minimize = atoms.unique_structures, frames = 30)
 
+def snapshot(session, directory = None):
+    save_image(session, directory)
+    if directory is not None:
+        from .settings import settings
+        settings(session).snapshot_directory = directory
+
 def save_image(session, directory = None, basename = 'image', suffix = '.png'):
+    if directory is None:
+        from .settings import settings
+        directory = settings(session).snapshot_directory
     path = unused_file_name(directory, basename, suffix)
     cmd = 'save %s supersample 3' % path
     run(session, cmd)
 
 def save_spin_movie(session, directory = None, basename = 'movie', suffix = '.mp4'):
+    if directory is None:
+        from .settings import settings
+        directory = settings(session).snapshot_directory
     cmd = ('movie record ; turn y 2 180 ; wait 180 ; movie encode %s'
            % unused_file_name(directory, basename, suffix))
     run(session, cmd)
@@ -1269,6 +1302,8 @@ def unused_file_name(directory, basename, suffix):
         directory = default_save_directory()
     from os import path, listdir
     dir = path.expanduser(directory)
+    if not path.isdir(dir):
+        directory = dir = default_save_directory()
     from os import listdir
     try:
         files = listdir(dir)
@@ -1326,6 +1361,12 @@ def register_shortcut_command(logger):
     desc = CmdDesc(optional = [('shortcut', StringArg)],
                    synopsis = 'Run keyboard a shortcut')
     register('ks', desc, ks, logger=logger)
+
+def register_snapshot_command(logger):
+    from chimerax.core.commands import CmdDesc, SaveFolderNameArg, register
+    desc = CmdDesc(keyword = [('directory', SaveFolderNameArg)],
+                   synopsis = 'Save an image')
+    register('snapshot', desc, snapshot, logger=logger)
 
 def run_provider(session, name):
     # run shortcut chosen via bundle provider interface

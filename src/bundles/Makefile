@@ -30,7 +30,8 @@ REST_SUBDIRS = add_charge addh alignment_algs alignment_headers \
 	  emdb_sff esmfold file_history function_key \
 	  geometry gltf graphics \
 	  hbonds help_viewer hkcage ihm image_formats imod \
-	  interfaces items_inspection io label list_info log looking_glass maestro \
+	  interfaces items_inspection io label iupac \
+	  list_info log looking_glass maestro \
 	  map map_data map_eraser map_filter map_fit map_series \
 	  markers mask match_maker mcopy md_crds \
 	  medical_toolbar meeting mlp model_series \
@@ -44,8 +45,8 @@ REST_SUBDIRS = add_charge addh alignment_algs alignment_headers \
 	  shell shortcuts show_sequences sideview sim_matrices smiles \
 	  smooth_lines spacenavigator std_commands \
 	  stl storm struct_measure struts surface swapaa swap_res \
-	  tape_measure test toolbar topography to_quest tug ui uniprot unit_cell \
-	  viewdockx viperdb vive volume_menu vtk wavefront_obj \
+	  tape_measure task_manager test toolbar topography to_quest tug ui uniprot \
+	  unit_cell viewdockx viperdb vive volume_menu vrml vtk wavefront_obj \
 	  webcam webservices zone
 
 ifeq ($(OS),Linux)

@@ -2,14 +2,25 @@
 
 /*
  * === UCSF ChimeraX Copyright ===
- * Copyright 2016 Regents of the University of California.
- * All rights reserved.  This software provided pursuant to a
- * license agreement containing restrictions on its disclosure,
- * duplication and use.  For details see:
- * http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
- * This notice must be embedded in or attached to all copies,
- * including partial copies, of the software or any revisions
- * or derivations thereof.
+ * Copyright 2022 Regents of the University of California. All rights reserved.
+ * The ChimeraX application is provided pursuant to the ChimeraX license
+ * agreement, which covers academic and commercial uses. For more details, see
+ * <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+ *
+ * This particular file is part of the ChimeraX library. You can also
+ * redistribute and/or modify it under the terms of the GNU Lesser General
+ * Public License version 2.1 as published by the Free Software Foundation.
+ * For more details, see
+ * <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+ *
+ * THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+ * LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+ * VERSION 2.1
+ *
+ * This notice must be embedded in or attached to all copies, including partial
+ * copies, of the software or any revisions or derivations thereof.
  * === UCSF ChimeraX Copyright ===
  */
 #define PY_SSIZE_T_CLEAN
@@ -514,7 +525,7 @@ ExtractMolecule::find_template_residue(const ResName& name, bool start, bool sto
     if (tr == nullptr) {
         // skipped warning if already given for this molecule
         logger::warning(_logger,
-            "Unable to fetch template for '", name, "': might have incorrect bonds");
+            "Unable to fetch template for '", name, "': will connect using distance criteria");
         missing_residue_templates.insert(name);
     }
     return tr;
@@ -902,7 +913,7 @@ ExtractMolecule::finished_parse()
         }
 
         if (found_missing_poly_seq && !no_polymer && model_num == first_model_num)
-            logger::warning(_logger, "Missing or incomplete entity_poly_seq table.  Inferred polymer connectivity.");
+            logger::warning(_logger, "Missing or incomplete <a='https://mmcif.wwpdb.org/dictionaries/mmcif_std.dic/Categories/entity_poly_seq.html'>sequence information</a>.  Inferred polymer connectivity.", true);
         if (has_metal)
             pdb_connect::find_and_add_metal_coordination_bonds(mol);
         if (found_missing_poly_seq)
@@ -1018,7 +1029,7 @@ ExtractMolecule::parse_generic_category()
     colinfo.push_back(category);
     colinfo.insert(colinfo.end(), colnames.begin(), colnames.end());
     generic_tables[category_ci] = colinfo;
-    StringVector& data = parse_whole_category();
+    StringVector data = parse_whole_category();
     generic_tables[category_ci + " data"].swap(data);
 }
 
@@ -1304,12 +1315,14 @@ ExtractMolecule::parse_atom_site()
         pv.emplace_back(get_column("label_asym_id", Required),
             [&] (const char* start, const char* end) {
                 chain_id = ChainID(start, end - start);
+                if (chain_id.size() == 1 && (*start == '.' || *start == '?'))
+                    chain_id = ChainID(" ");
             });
         pv.emplace_back(get_column("auth_asym_id"),
             [&] (const char* start, const char* end) {
                 auth_chain_id = ChainID(start, end - start);
                 if (auth_chain_id.size() == 1 && (*start == '.' || *start == '?'))
-                    auth_chain_id.clear();
+                    auth_chain_id = ChainID(" ");
             });
         pv.emplace_back(get_column("pdbx_PDB_ins_code"),
             [&] (const char* start, const char* end) {
@@ -1726,6 +1739,8 @@ ExtractMolecule::parse_struct_conn()
         pv.emplace_back(get_column(P1 ASYM_ID, Required),
             [&] (const char* start, const char* end) {
                 chain_id1 = ChainID(start, end - start);
+                if (chain_id1.size() == 1 && (*start == '.' || *start == '?'))
+                    chain_id1 = ChainID(" ");
             });
         pv.emplace_back(get_column(P1 SEQ_ID, Required),
             [&] (const char* start) {
@@ -1766,6 +1781,8 @@ ExtractMolecule::parse_struct_conn()
         pv.emplace_back(get_column(P2 ASYM_ID, Required),
             [&] (const char* start, const char* end) {
                 chain_id2 = ChainID(start, end - start);
+                if (chain_id2.size() == 1 && (*start == '.' || *start == '?'))
+                    chain_id2 = ChainID(" ");
             });
         pv.emplace_back(get_column(P2 SEQ_ID, Required),
             [&] (const char* start) {
@@ -1969,6 +1986,8 @@ ExtractMolecule::parse_struct_conf()
         pv.emplace_back(get_column(BEG ASYM_ID, Required),
             [&] (const char* start, const char* end) {
                 chain_id1 = ChainID(start, end - start);
+                if (chain_id1.size() == 1 && (*start == '.' || *start == '?'))
+                    chain_id1 = ChainID(" ");
             });
         pv.emplace_back(get_column(BEG COMP_ID, Required),
             [&] (const char* start, const char* end) {
@@ -1982,6 +2001,8 @@ ExtractMolecule::parse_struct_conf()
         pv.emplace_back(get_column(END ASYM_ID, Required),
             [&] (const char* start, const char* end) {
                 chain_id2 = ChainID(start, end - start);
+                if (chain_id2.size() == 1 && (*start == '.' || *start == '?'))
+                    chain_id2 = ChainID(" ");
             });
         pv.emplace_back(get_column(END COMP_ID, Required),
             [&] (const char* start, const char* end) {
@@ -2141,6 +2162,8 @@ ExtractMolecule::parse_struct_sheet_range()
         pv.emplace_back(get_column(BEG ASYM_ID, Required),
             [&] (const char* start, const char* end) {
                 chain_id1 = ChainID(start, end - start);
+                if (chain_id1.size() == 1 && (*start == '.' || *start == '?'))
+                    chain_id1 = ChainID(" ");
             });
         pv.emplace_back(get_column(BEG COMP_ID, Required),
             [&] (const char* start, const char* end) {
@@ -2154,6 +2177,8 @@ ExtractMolecule::parse_struct_sheet_range()
         pv.emplace_back(get_column(END ASYM_ID, Required),
             [&] (const char* start, const char* end) {
                 chain_id2 = ChainID(start, end - start);
+                if (chain_id2.size() == 1 && (*start == '.' || *start == '?'))
+                    chain_id2 = ChainID(" ");
             });
         pv.emplace_back(get_column(END COMP_ID, Required),
             [&] (const char* start, const char* end) {
@@ -2355,6 +2380,8 @@ ExtractMolecule::parse_pdbx_struct_sheet_hbond()
         pv.emplace_back(get_column(RANGE1 ASYM_ID, Required),
             [&] (const char* start, const char* end) {
                 chain_id1 = ChainID(start, end - start);
+                if (chain_id1.size() == 1 && (*start == '.' || *start == '?'))
+                    chain_id1 = ChainID(" ");
             });
         pv.emplace_back(get_column(RANGE1 SEQ_ID, Required),
             [&] (const char* start) {
@@ -2371,6 +2398,8 @@ ExtractMolecule::parse_pdbx_struct_sheet_hbond()
         pv.emplace_back(get_column(RANGE2 ASYM_ID, Required),
             [&] (const char* start, const char* end) {
                 chain_id2 = ChainID(start, end - start);
+                if (chain_id2.size() == 1 && (*start == '.' || *start == '?'))
+                    chain_id2 = ChainID(" ");
             });
         pv.emplace_back(get_column(RANGE2 SEQ_ID, Required),
             [&] (const char* start) {

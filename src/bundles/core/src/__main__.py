@@ -113,6 +113,7 @@ class Opts:
         self.get_available_bundles = True
         self.safe_mode = False
         self.toolshed = None
+        self.disable_qt = False
 
 
 def _parse_python_args(argv, usage):
@@ -270,6 +271,8 @@ def _parse_chimerax_args(argv, arguments, usage):
             opts.version += 1
         elif opt == "--toolshed":
             opts.toolshed = optarg
+        elif opt == "--disable-qt":
+            opts.disable_qt = True
         else:
             print("Unknown option: ", opt)
             opts.help = True
@@ -317,6 +320,7 @@ def parse_arguments(argv):
         "--version",
         "--qtscalefactor <factor>",
         "--toolshed preview|<url>",
+        "--disable-qt",
     ]
     if sys.platform.startswith("win"):
         arguments += ["--console", "--noconsole"]
@@ -408,6 +412,15 @@ def init(argv, event_loop=True):
     if not opts.devel:
         import warnings
         warnings.filterwarnings("ignore", category=DeprecationWarning)
+    if not opts.gui and opts.disable_qt:
+        # Disable importing Qt in nogui mode to catch imports that
+        # would affect that would break ChimeraX pypi library
+        sys.modules['qtpy'] = None
+        sys.modules['Qt'] = None
+        sys.modules['PyQt5'] = None
+        sys.modules['PyQt6'] = None
+        sys.modules['PySide6'] = None
+        sys.modules['PySide2'] = None
 
     # install line_profile decorator, and install it before
     # initialize_ssl_cert_dir() in case the line profiling is in the
@@ -518,7 +531,7 @@ def init(argv, event_loop=True):
     # app_dirs_unversioned is primarily for caching data files that will
     # open in any version
     # app_dirs_unversioned.user_* directories are parents of those in app_dirs
-    chimerax.app_dirs_unversioned = adu = appdirs.AppDirs(app_name, appauthor=app_author)
+    chimerax.app_dirs_unversioned = appdirs.AppDirs(app_name, appauthor=app_author)
 
     # update "site" user variables to use ChimeraX instead of Python paths
     # NB: USER_SITE is used by both pip and the toolshed, so
@@ -526,11 +539,19 @@ def init(argv, event_loop=True):
     # will go in the right place.
     import site
     if not is_root:
-        site.USER_BASE = adu.user_data_dir
-        site.USER_SITE = os.path.join(ad.user_data_dir, "site-packages")
+        site.USER_BASE = ad.user_data_dir
+        lib = "lib"
+        python = "python"
+        if sys.platform == "win32":
+            lib = ""
+            python = f"Python{sys.version_info.major}{sys.version_info.minor}"
+        if sys.platform == "linux":
+            python = f"python{sys.version_info.major}.{sys.version_info.minor}"
+        site.USER_SITE = os.path.join(site.USER_BASE, lib, python, "site-packages")
     else:
         import sysconfig
         site.USER_SITE = sysconfig.get_paths()['platlib']
+    site.ENABLE_USER_SITE = True
 
     # Find the location of "share" directory so that we can inform
     # the C++ layer.  Assume it's a sibling of the directory that
@@ -784,21 +805,21 @@ def init(argv, event_loop=True):
     if opts.module or opts.run_path:
         import runpy
         import warnings
-        sys.argv = ['argv0'] + args
         exit = SystemExit(os.EX_OK)
-        with warnings.catch_warnings():
+        from chimerax.core.python_utils import chimerax_environment
+        with warnings.catch_warnings(), chimerax_environment():
             warnings.filterwarnings("ignore", category=BytesWarning)
             global_dict = {
                 'session': sess
             }
             try:
                 if opts.module:
-                    sys.argv[0] = opts.module
+                    sys.argv = [opts.module] + args
                     runpy.run_module(opts.module, init_globals=global_dict,
                                      run_name='__main__', alter_sys=True)
                 else:
-                    sys.argv[0] = opts.run_path
-                    runpy.run_path(opts.run_path)
+                    sys.argv = args
+                    runpy.run_path(opts.run_path, run_name='__main__')
             except SystemExit as e:
                 exit = e
         if opts.module == 'pip' and exit.code == os.EX_OK:
@@ -879,12 +900,16 @@ def init(argv, event_loop=True):
         sess.ui.open_pending_files(ignore_files=(args if bad_drop_events else []))
 
     # By this point the GUI module will have redirected stdout if it's going to
-    if bool(os.getenv("DEBUG")):
+    if opts.debug:
         logging.basicConfig(
-            level = logging.INFO
-            , format = "%(levelname)s:%(message)s"
-            , handlers = [logging.StreamHandler(sys.stdout)]
+            level=logging.INFO,
+            format="%(levelname)s:%(message)s",
+            handlers=[logging.StreamHandler(sys.stdout)]
         )
+    else:
+        # Ticket #6187, set urllib3 not to log to the general ChimeraX log
+        #      It's just very verbose on failure.
+        logging.getLogger('urllib3').setLevel(100)
 
     # Allow the event_loop to be disabled, so we can be embedded in
     # another application

@@ -26,7 +26,11 @@ Replacements = [
     (r"\.ui\.cmd\b", ".ui"),
     (r"\.ui\.font\b", ".ui"),
     (r"\.ui\.mousemodes\b", ".ui"),
-    (r"\.ui\.widgets.htmlview\b", ".ui.widgets"),
+    (r"\.ui\.widgets\.htmlview\b", ".ui.widgets"),
+    (r"\.ui\.widgets\.item_chooser\b", ".ui.widgets"),
+    (r"\.ui\.widgets\.item_table\b", ".ui.widgets"),
+    (r"\.ui\.options\.options\b", ".ui.options"),
+    (r"\.ui\.options\.containers\b", ".ui.options"),
 
     # hide chimerax.atomic submodules
     (r"\.atomic\.molobject\b", ".atomic"),

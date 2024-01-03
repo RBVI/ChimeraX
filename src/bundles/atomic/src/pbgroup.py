@@ -1,14 +1,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 from .molobject import PseudobondGroupData
@@ -170,16 +181,16 @@ class PseudobondGroup(PseudobondGroupData, Model):
 
     # since we're a Model, we already have a 'session' attr, so don't need property
 
-    def _get_model_color(self):
+    def _get_overall_color(self):
         pbonds = self.pseudobonds
         from chimerax.core.colors import most_common_color
         shown = pbonds.filter(pbonds.displays)
         if shown:
             return most_common_color(shown.colors)
         return self.color
-    def _set_model_color(self, color):
+    def _set_overall_color(self, color):
         self.pseudobonds.colors = color
-    model_color = property(_get_model_color, _set_model_color)
+    overall_color = property(_get_overall_color, _set_overall_color)
 
     def _update_graphics_if_needed(self, *_):
         gc = self._graphics_changed
@@ -194,12 +205,10 @@ class PseudobondGroup(PseudobondGroupData, Model):
         d = self._pbond_drawing
         if d is None:
             from .structure import BondsDrawing, PickedPseudobond, PickedPseudobonds
-            d = self._pbond_drawing = BondsDrawing(
-                'pbonds', PickedPseudobond, PickedPseudobonds)
+            d = self._pbond_drawing = BondsDrawing('pbonds', PickedPseudobond, PickedPseudobonds)
+            self.update_cylinder_sides()
             self.add_drawing(d)
             d._visible_atoms = None
-            va, na, ta = _pseudobond_geometry(self._dashes//2)
-            d.set_geometry(va, na, ta)
             changes = self._ALL_CHANGE
         elif self.num_pseudobonds == 0:
             self.remove_drawing(d)
@@ -227,6 +236,19 @@ class PseudobondGroup(PseudobondGroupData, Model):
             from . import structure as s
             d.highlighted_positions = s._selected_bond_cylinders(pbonds)
 
+    def update_cylinder_sides(self):
+        d = self._pbond_drawing
+        if d is None:
+            return False
+        sides = self._cylinder_sides
+        if sides == getattr(d, '_current_cylinder_sides', None):
+            return False
+        va, na, ta = _pseudobond_geometry(self._dashes//2, sides)
+        d.set_geometry(va, na, ta)
+        d._current_cylinder_sides = sides
+        self._graphics_changed |= self._SHAPE_CHANGE
+        return True
+
     def _update_positions(self, pbonds, bond_atoms):
         ba1, ba2 = bond_atoms
         if self._global_group:
@@ -248,6 +270,11 @@ class PseudobondGroup(PseudobondGroupData, Model):
                     logical_and(dpb, ~hs, dpb)
         return pbonds[dpb]
 
+    @property
+    def _cylinder_sides(self):
+        from .structure import level_of_detail
+        return level_of_detail(self.session).pseudobond_sides
+    
     def first_intercept(self, mxyz1, mxyz2, exclude=None):
         if not self.display or (exclude and exclude(self)):
             return None
@@ -395,12 +422,12 @@ def hidden_structures(structures):
     vis = set(s for s in us if s.visible)
     if len(vis) == len(us):
         return None
-    from numpy import array, bool
+    from numpy import array
     hs = array([(s not in vis) for s in structures], bool)
     return hs
 
 # -----------------------------------------------------------------------------
 #
-def _pseudobond_geometry(segments = 9):
+def _pseudobond_geometry(segments = 9, sides = 10):
     from chimerax import surface
-    return surface.dashed_cylinder_geometry(segments, height = 0.5)
+    return surface.dashed_cylinder_geometry(segments, height = 0.5, nc = sides)

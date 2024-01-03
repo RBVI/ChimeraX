@@ -2,14 +2,25 @@
 
 /*
  * === UCSF ChimeraX Copyright ===
- * Copyright 2016 Regents of the University of California.
- * All rights reserved.  This software provided pursuant to a
- * license agreement containing restrictions on its disclosure,
- * duplication and use.  For details see:
- * http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
- * This notice must be embedded in or attached to all copies,
- * including partial copies, of the software or any revisions
- * or derivations thereof.
+ * Copyright 2022 Regents of the University of California. All rights reserved.
+ * The ChimeraX application is provided pursuant to the ChimeraX license
+ * agreement, which covers academic and commercial uses. For more details, see
+ * <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+ *
+ * This particular file is part of the ChimeraX library. You can also
+ * redistribute and/or modify it under the terms of the GNU Lesser General
+ * Public License version 2.1 as published by the Free Software Foundation.
+ * For more details, see
+ * <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+ *
+ * THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+ * LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+ * VERSION 2.1
+ *
+ * This notice must be embedded in or attached to all copies, including partial
+ * copies, of the software or any revisions or derivations thereof.
  * === UCSF ChimeraX Copyright ===
  */
 
@@ -519,6 +530,7 @@ clock_t t0 = clock();
             ~SuspendNotification() { as->_atom_types_notify = true; }
     };
     SuspendNotification suspender(this);
+    _idatm_failed = false;
 
     const Atom::IdatmInfoMap& info_map = Atom::get_idatm_info_map();
 #ifdef TIME_PASSES
@@ -1376,6 +1388,7 @@ t0 = t1;
             logger::warning(_logger, "Cannot find consistent set of bond"
                 " orders for ring system containing atom ", a->name(),
                 " in residue ", a->residue()->str());
+            _idatm_failed = true;
             continue;
         }
 
@@ -1592,8 +1605,28 @@ t0 = t1;
                     }
                     if (bond_sum == 2)
                         a->set_computed_idatm_type("Npl");
-                    else
-                        a->set_computed_idatm_type("N2");
+                    else {
+                        bool N2_okay = true;
+                        Bond* car_b = nullptr;
+                        Bond* c2_b = nullptr;
+                        for (auto b: a->bonds()) {
+                            // if double-bonded to Car and single-bonded to C2, then we are in a
+                            // non-aromatic ring and that double bond assignment is wrong;
+                            auto nb = b->other_atom(a);
+                            if ((*best_assignment)[b] == 2) {
+                                if (nb->idatm_type() == "Car")
+                                    car_b = b;
+                                else
+                                    break;
+                            } else if (nb->idatm_type() == "C2")
+                                c2_b = b;
+                            else
+                                break;
+                        }
+                        if (car_b != nullptr && c2_b != nullptr)
+                            N2_okay = false;
+                        a->set_computed_idatm_type(N2_okay ? "N2" : "Npl");
+                    }
                     ring_assigned_Ns.insert(a);
                 }
             }

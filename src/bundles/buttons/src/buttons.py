@@ -1,14 +1,25 @@
 # vim: set expandtab ts=4 sw=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 def buttonpanel(session, title, add = None, command = None, row = None, column = None,
@@ -92,6 +103,11 @@ def _button_panels(session):
 
 # ------------------------------------------------------------------------------
 #
+def _forget_button_panel(session, button_panel):
+    session._button_panels = [bp for bp in _button_panels(session) if bp is not button_panel]
+
+# ------------------------------------------------------------------------------
+#
 from chimerax.core.tools import ToolInstance
 
 class ButtonPanel(ToolInstance):
@@ -109,6 +125,7 @@ class ButtonPanel(ToolInstance):
         from chimerax.ui import MainToolWindow
         tw = MainToolWindow(self)
         self.tool_window = tw
+        tw.cleanup = lambda self=self: _forget_button_panel(self.session, self)
         from Qt.QtWidgets import QGridLayout
         self._layout = layout = QGridLayout()
         layout.setContentsMargins(0,0,0,0)

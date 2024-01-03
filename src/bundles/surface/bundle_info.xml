@@ -51,11 +51,11 @@
   <Providers manager="data formats">
     <Provider name="COLLADA" category="Generic 3D objects"
 		reference_url="https://www.khronos.org/collada"
-		suffixes=".dae" encoding="utf-8" />
+		suffixes=".dae" />
   </Providers>
 
   <Providers manager="open command">
-    <Provider name="collada" want_path="true" />
+    <Provider name="collada" />
   </Providers>
 
   <Classifiers>

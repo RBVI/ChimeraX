@@ -1,14 +1,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.atomic import Residue
@@ -84,9 +95,9 @@ def determine_termini(session, structs):
     for s in structs:
         sr_res = set()
         for chain in s.chains:
-            if chain.from_seqres:
+            if chain.full_sequence_known:
                 sr_res.update(chain.residues)
-                rn, rc, fn, fc, f5p, f3p = termini_from_seqres(chain)
+                rn, rc, fn, fc, f5p, f3p = termini_from_full_sequence(chain)
                 logger.info("Termini for %s determined from SEQRES records" % chain.full_name)
             else:
                 rn, rc, fn, fc, f5p, f3p = guess_termini(chain)
@@ -121,7 +132,7 @@ def determine_termini(session, structs):
 
     return real_N, real_C, fake_N, fake_C, fake_5p, fake_3p
 
-def termini_from_seqres(chain):
+def termini_from_full_sequence(chain):
     real_N = []
     real_C = []
     fake_N = []

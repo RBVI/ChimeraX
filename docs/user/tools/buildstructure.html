@@ -76,7 +76,9 @@ build outward step-by-step from an existing structure
 <p>
 The <b>Start Structure</b> section of <a href="#top"><b>Build Structure</b></a> 
 adds new atoms or molecules independent of any pre-existing atoms.
-See also: <a href="../commands/open.html#fetch"><b>open</b></a>
+See also: 
+<a href="../fetch.html"><b>Fetch by ID</b></a>,
+<a href="../commands/open.html#fetch"><b>open</b></a>
 </p><p>
 Options to <b>Add</b>:
 <ul>
@@ -98,10 +100,26 @@ adds the atom(s) with the specified <b>Residue name</b>, in either
 <a name="startmodel">an existing molecule model</a>
 or a <b>new model</b> with a specified name.
 </p>
+<li><b>CCD ID</b> 
+&ndash; idealized structure of a chemical component 
+from the <a href="https://www.wwpdb.org/data/ccd"
+target="_blank">PDB Chemical Component Dictionary (CCD)</a>,
+specified by ID (residue name) 
+<br><br>
 <li><b>fragment</b> 
 &ndash; the specified fragment, placed in the center of view.
 Several planar ring systems are available; a small diagram of the
-chosen fragment is displayed.
+chosen fragment is displayed in the dialog.
+<br><br>
+<li><b>IUPAC name</b> 
+&ndash; compound specified by IUPAC name; first the name is translated to
+a <a href="https://www.daylight.com/dayhtml/doc/theory/theory.smiles.html"
+target="_blank">SMILES</a> string using the
+<a href="https://opsin.ch.cam.ac.uk/index.html" target="_blank">OPSIN
+web service</a> provided by the <a href="https://www-cmi.ch.cam.ac.uk/" 
+target="_blank">Centre for Molecular Informatics</a> 
+at the University of Cambridge, and then the process
+described <a href="#smiles">below</a> for SMILES is used.
 <br><br>
 <li><b>nucleic double helix</b> 
 &ndash; a DNA, RNA, or DNA/RNA double helix specified by the sequence 
@@ -191,20 +209,14 @@ may be necessary to <a href="../commands/addh.html">add</a> or
 <a href="#deletion">delete</a> hydrogens
 to generate the desired protonation state.
 <br><br>
+<a name="smiles"></a>
 <li><b>SMILES string</b> &ndash; a 3D structure for the specified
 <a href="https://www.daylight.com/dayhtml/doc/theory/theory.smiles.html"
 target="_blank">SMILES</a> string. The structure is generated using the
 <a href="https://cactus.nci.nih.gov/translate/" target="_blank">SMILES
 translator</a> provided by the
 <a href="https://cactus.nci.nih.gov/" target="_blank">National Cancer Institute
-CADD group</a>, or if that does not produce a structure, the
-<i>smi23d</i> web service provided by the
-cheminformatics group at Indiana University.
-The <i>smi23d</i> service deploys the same procedure
-as described for <b>Pub3D</b> in
-<a href="https://www.biomedcentral.com/1471-2105/8/487"
-target="_blank">Willighagen <i>et al.</i></a>, <i>BMC Bioinformatics</i>
-<b>8</b>:487 (2007).
+CADD group</a>.
 Hydrogens are included, although it
 may be necessary to <a href="../commands/addh.html">add</a> or
 <a href="#deletion">delete</a> hydrogens
@@ -589,5 +601,5 @@ states from heavy atom coordinates.</a> Meng EC, Lewis RA.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-May 2023</address>
+October 2023</address>
 </body></html>

@@ -1,14 +1,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 """
@@ -42,7 +53,8 @@ MODELS_STATE_VERSION = 1
 from .state import State
 from chimerax.graphics import Drawing, Pick, PickedTriangle
 class Model(State, Drawing):
-    """A Model is a :class:`.Drawing` together with an id number
+    """
+    A Model is a :class:`.Drawing` together with an id number
     that allows it to be referenced in a typed command.
 
     Model subclasses can be saved in session files.
@@ -250,18 +262,22 @@ class Model(State, Drawing):
 
     # Drawing._set_scene_position calls _set_positions, so don't need to override
 
-    def _get_model_color(self):
+    def _get_overall_color(self):
         return self.color if self.vertex_colors is None else None
 
-    def _set_model_color(self, color):
+    def _set_overall_color(self, color):
         self.color = color
         self.vertex_colors = None
         self.session.triggers.activate_trigger(MODEL_COLOR_CHANGED, self)
-    model_color = property(_get_model_color, _set_model_color)
+    overall_color = model_color = property(_get_overall_color, _set_overall_color)
     '''
-    Getting the model color may give the dominant color.
-    Setting the model color will set the model to that color.
+    Getting the overall color may give the dominant color.
+    It also might return None (many colors but no dominant color)\
+        or False (model does not support [external] coloring, e.g. color key).
+    Setting the overall color will set the model to that color.
     Color values are rgba uint8 arrays.
+    The supported attribute name is 'overall_color'.
+    The 'model_color' attribute is deprecated and only retained for backwards compatibility.
     '''
 
     # Handle undo of color changes
@@ -614,13 +630,28 @@ class Models(StateManager):
     def restore_snapshot(session, data):
         mdict = data['models']
         session.triggers.activate_trigger(RESTORED_MODEL_TABLE, mdict)
-        m = session.models
+        sm = session.models
+        if session.restore_options['combine']:
+            existing_ids = set([m.id for m in sm])
+            requested_ids = set(mdict.keys())
+            if existing_ids.isdisjoint(requested_ids):
+                id_offset = 0
+            else:
+                id_offset = max([id[0] for id in existing_ids])
+        else:
+            id_offset = 0
         for id, model in mdict.items():
             if model:        # model can be None if it could not be restored, eg Volume w/o map file
-                if model.parent is None and not m.have_id(id):
-                    m.add([model], _from_session=True)
+                if id_offset and model.parent is None:
+                    for am in model.all_models():
+                        am.id = (am.id[0] + id_offset,) + am.id[1:]
+                    test_id = model.id
+                else:
+                    test_id = id
+                if model.parent is None and not sm.have_id(test_id):
+                    sm.add([model], _from_session=True)
         session.triggers.activate_trigger(RESTORED_MODELS, session)
-        return m
+        return sm
 
     def reset_state(self, session):
         self.close([m for m in self.list() if not m.SESSION_ENDURING])
@@ -711,6 +742,8 @@ class Models(StateManager):
                 if model.id is None:
                     # Assign a new model id.
                     model.id = self.next_id(parent = p, minimum_id = minimum_id)
+                else:
+                    self._reset_next_id(parent = p)
                 self._models[model.id] = model
 
                 # Add child models
@@ -883,6 +916,11 @@ class Models(StateManager):
         id = parent.id + (nid,)
         return id
 
+    def _reset_next_id(self, parent=None):
+        if parent is None:
+            parent = self.scene_root_model
+        parent._next_unused_id = None
+        
     def add_group(self, models, name=None, id=None, parent=None):
         if name is None:
             names = set([m.name for m in models])

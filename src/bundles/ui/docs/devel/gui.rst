@@ -23,28 +23,24 @@ gui: Main ChimeraX graphical user interface
     :members:
     :exclude-members: closeEvent, customEvent, dragEnterEvent, dropEvent, keyPressEvent, moveEvent, resizeEvent, event, quit
 
-.. automodule:: chimerax.ui.htmltool
+Widgets for choosing models, etc.
++++++++++++++++++++++++++++++++++
+.. automodule:: chimerax.ui.widgets.item_chooser
     :show-inheritance:
     :members:
 
-.. automodule:: chimerax.ui.widgets.htmlview
-    :show-inheritance:
-    :members:
-
-.. automodule:: chimerax.ui.font
-    :show-inheritance:
-    :members:
-
-.. automodule:: chimerax.ui.cmd
-    :show-inheritance:
-    :members:
-
+Mouse modes
++++++++++++
 .. automodule:: chimerax.mouse_modes.mousemodes
     :members:
     :exclude-members: MouseBinding
     :special-members: __init__
     :show-inheritance:
 
+.. _option_widgets:
+
+Widgets that interoperate with Settings
++++++++++++++++++++++++++++++++++++++++
 .. automodule:: chimerax.ui.options.containers
     :members:
     :exclude-members: sizeHint
@@ -54,3 +50,35 @@ gui: Main ChimeraX graphical user interface
     :members:
     :exclude-members: Signal
     :show-inheritance:
+
+.. _python_data_tables:
+
+Table widget for Python objects
++++++++++++++++++++++++++++++++
+.. automodule:: chimerax.ui.widgets.item_table
+    :members:
+    :exclude-members: Signal
+    :show-inheritance:
+
+
+HTML-based tools/widgets
+++++++++++++++++++++++++
+.. automodule:: chimerax.ui.htmltool
+    :show-inheritance:
+    :members:
+
+.. automodule:: chimerax.ui.widgets.htmlview
+    :show-inheritance:
+    :members:
+
+Font-size convenience function
+++++++++++++++++++++++++++++++
+.. automodule:: chimerax.ui.font
+    :show-inheritance:
+    :members:
+
+The 'ui' command
+++++++++++++++++
+.. automodule:: chimerax.ui.cmd
+    :show-inheritance:
+    :members:

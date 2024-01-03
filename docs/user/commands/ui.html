@@ -228,7 +228,7 @@ two commands rather than one would be needed to assign functions to
 <b>control right</b> and <b>alt wheel</b>:
 </p>
 <blockquote>
-<b>mousemode control right 'rotate selected models'</b>
+<b>mousemode control right 'move label'</b>
 <br>
 <b>mousemode alt wheel contour</b>
 </blockquote>
@@ -238,7 +238,16 @@ Given without arguments, the <b>mousemode</b> command reports the current
 assignments in the <a href="../tools/log.html"><b>Log</b></a>. 
 The analogous command for <a href="../vr.html">virtual reality</a> 
 hand controllers is <a href="device.html#vr-button"><b>vr button</b></a>.
-</p><p>
+</p>
+<blockquote style="background-color:#f0f0f0; border:solid black 1px; padding:5px">
+<a name="mac-issue"></a>
+<font size="+2"><b>*</b></font>
+On a Mac, Ctrl-right click is not usable because the Qt windowing toolkit
+always reports Ctrl-left click as Ctrl-right click, making the two
+impossible to distinguish. ChimeraX interprets both as Ctrl-left click,
+which by default is used for <a href="../selection.html">selection</a>.
+</blockquote>
+<p>
 The right-mouse assignment can also be changed by clicking an icon in the
 <a href="../tools/mousemodes.html"><b>Right Mouse</b></a> tab of the
 <a href="../tools/toolbar.html"><b>Toolbar</b></a>.
@@ -274,7 +283,7 @@ Summary of mouse and trackpad default assignments:
 </tr><tr>
 <td align="center" rowspan="2"><b>translate</b>
 <br><img src="../tools/mouse-icons/translate.png" class="icon3"></td>
-<td>middle mouse button</td>
+<td>middle mouse button, right mouse button</td>
 </tr><tr>
 <td class="text">
 Mac: trackpad + <b>Alt</b>, 3-finger drag if
@@ -285,7 +294,8 @@ Windows: trackpad + <b>Ctrl-Alt</b>
 </tr><tr>
 <td colspan="2" align="center">
 + <b>Shift</b> switches from <b>rotate</b> to <b>translate</b>
-and <i>vice versa</i></td>
+and <i>vice versa</i> (<a href="#functions">details...</a>)
+</td>
 </tr><tr>
 <td align="center" rowspan="2"><b>zoom</b>
 <br><img src="../tools/mouse-icons/zoom.png" class="icon3"></td>
@@ -359,14 +369,18 @@ with cursor in central part of window,
 Z-rotate with cursor in periphery, except if wheel, Y-rotate only;
 see also <a href="turn.html"><b>turn</b></a>,
 <a href="roll.html"><b>roll</b></a>, <a href="tile.html"><b>tile</b></a>;
-<br>assigned button + <b>Shift</b> switches to <b>translate</b> instead</td>
+<br>assigned button + <b>Shift</b> switches to <b>translate</b> instead;
+<br>assigned button + <b>Ctrl</b> (in that order) switches to Z-rotation instead
+(or Z-translation, if <b>Shift</b> is also pressed)</td>
 <td align="center"><img src="../tools/mouse-icons/rotate.png" width="35px"></td>
 </tr><tr>
 <td align="center"><b>translate</b><br>(middle, right)</td>
 <td align="center" class="text">XY-translate
 (<a href="view.html#screencoords">screen coordinates</a>),
 except if wheel, Z-translate; see also <a href="move.html"><b>move</b></a>;
-<br>assigned button + <b>Shift</b> switches to <b>rotate</b> instead</td>
+<br>assigned button + <b>Shift</b> switches to <b>rotate</b> instead;
+<br>assigned button + <b>Ctrl</b> (in that order) switches to Z-translation
+instead (or Z-rotation, if <b>Shift</b> is also pressed)</td>
 <td align="center"><img src="../tools/mouse-icons/translate.png" width="35px"></td>
 </tr><tr>
 <td align="center"><a name="zoom"></a><b>zoom</b><br>(wheel)</td>
@@ -391,34 +405,44 @@ atomic-model chain description (if available) in
 <td align="center"><b>translate selected models</b></td>
 <td align="center" class="text">translate models with any part 
 <a href="../selection.html">selected</a>, or if no selection, all models;
-<br>assigned button + <b>Shift</b> switches to 
-<b>rotate selected models</b> instead</td>
+<br>assigned button + <b>Shift</b> switches to <b>rotate selected models</b>
+instead;
+<br>assigned button + <b>Ctrl</b> (in that order) switches to Z-translation
+instead (or Z-rotation, if <b>Shift</b> is also pressed)</td>
 <td align="center"><img src="../tools/mouse-icons/move_h2o.png" width="35px"></td>
 </tr><tr>
 <td align="center"><b>rotate selected models</b></td>
 <td align="center" class="text">rotate models with any part
 <a href="../selection.html">selected</a>, or if no selection, all models;
-<br>assigned button + <b>Shift</b> switches to 
-<b>translate selected models</b> instead</td>
+<br>assigned button + <b>Shift</b> switches to <b>translate selected models</b>
+instead;
+<br>assigned button + <b>Ctrl</b> (in that order) switches to Z-rotation
+instead (or Z-translation, if <b>Shift</b> is also pressed)</td>
 <td align="center"><img src="../tools/mouse-icons/rotate_h2o.png" width="35px"></td>
 </tr><tr>
 <td align="center"><b>move picked model</b></td>
 <td align="center" class="text">translate the model under the mouseclick;
-<br>assigned button + <b>Shift</b> switches to rotation instead</td>
+<br>assigned button + <b>Shift</b> switches to rotation instead;
+<br>assigned button + <b>Ctrl</b> (in that order) switches to Z-translation
+instead (or Z-rotation, if <b>Shift</b> is also pressed)</td>
 <td align="center"><img src="../tools/mouse-icons/move_picked_model.png" width="35px"></td>
 </tr><tr>
 <td align="center"><b>translate selected atoms</b></td>
 <td align="center" class="text">translate any
 <a href="../selection.html">selected</a> atoms, or if no selection, all models;
-<br>assigned button + <b>Shift</b> switches to 
-<b>rotate selected atoms</b> instead</td>
+<br>assigned button + <b>Shift</b> switches to <b>rotate selected atoms</b>
+instead;
+<br>assigned button + <b>Ctrl</b> (in that order) switches to Z-translation
+instead (or Z-rotation, if <b>Shift</b> is also pressed)</td>
 <td align="center"><img src="../tools/mouse-icons/move_atoms.png" width="35px"></td>
 </tr><tr>
 <td align="center"><b>rotate selected atoms</b></td>
 <td align="center" class="text">rotate any
 <a href="../selection.html">selected</a> atoms, or if no selection, all models;
-<br>assigned button + <b>Shift</b> switches to 
-<b>translate selected atoms</b> instead</td>
+<br>assigned button + <b>Shift</b> switches to <b>translate selected atoms</b>
+instead;
+<br>assigned button + <b>Ctrl</b> (in that order) switches to Z-rotation
+instead (or Z-translation, if <b>Shift</b> is also pressed)</td>
 <td align="center"><img src="../tools/mouse-icons/rotate_atoms.png" width="35px"></td>
 </tr><tr>
 <td align="center"><b>translate xy selected models</b></td>
@@ -459,6 +483,23 @@ see also
 bond, ribbon segment, or surface point;
 see also <a href="cofr.html"><b>cofr</b></a></td>
 <td align="center"><img src="../tools/mouse-icons/pivot.png" width="35px"></td>
+</tr><tr>
+<td align="center"><b>center</b></td>
+<td align="center" class="text">set center of view (animated over 10 frames)
+and center of rotation to clicked atom, bond, ribbon segment, or surface point;
+see also <a href="view.html"><b>view</b></a>,
+<a href="cofr.html"><b>cofr</b></a></td>
+<td align="center"></td>
+</tr><tr>
+<td align="center"><b>center or translate</b></td>
+<td align="center" class="text">set center of view (animated over 10 frames)
+and center of rotation to clicked atom, bond, ribbon segment, or surface point;
+if click-drag (&ge; 5 pixels in X or Y), instead translate the whole scene
+as in the <a href="#functions"><b>translate</b> mode</a>;
+see also <a href="view.html"><b>view</b></a>,
+<a href="cofr.html"><b>cofr</b></a>,
+<a href="move.html"><b>move</b></a></td>
+<td align="center"></td>
 </tr><tr>
 <td align="center"><b>distance</b></td>
 <td align="center" class="text"><a name="distance"></a>
@@ -553,7 +594,9 @@ both rotates and translates the slab</td>
 <td align="center" class="text">
 show <a href="../tools/volumeviewer.html">volume data</a> outline box
 and adjust region size by dragging any face;
-see also <a href="volume.html"><b>volume</b></a></td>
+see also <a href="volume.html"><b>volume</b></a>
+and <a href="../tools/mousemodes.html#vr">differences in VR</a>
+</td>
 <td align="center"><img src="../tools/mouse-icons/crop.png" width="35px"></td>
 </tr><tr>
 <td align="center"><b>tape measure</b></td>
@@ -624,7 +667,8 @@ dragging horizontally the full width of the graphics window (or in
 <td align="center" class="text">drag atoms and apply OpenMM dynamics
 while button is held down
 (<a href="../tools/mousemodes.html#openmm">details...</a>);
-original coordinates not retained</td>
+original coordinates not retained;
+see also <a href="tug.html"><b>tug</b></a></td>
 <td align="center"><img src="../tools/mouse-icons/tug.png" width="35px"></td>
 </tr><tr>
 <td align="center"><b>minimize</b></td>
@@ -819,5 +863,5 @@ by using the <a href="#mousemode"><b>mousemode</b></a> command.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-April 2023</address>
+December 2023</address>
 </body></html>

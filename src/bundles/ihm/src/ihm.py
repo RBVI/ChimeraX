@@ -1,14 +1,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 import os.path
@@ -277,7 +288,7 @@ class IHMModel(Model):
                 a_group = Model(name, self.session)
                 a_group.add(am)
                 smg.append(a_group)
-                a_group.color = am[0].model_color	# Group color is first model color
+                a_group.color = am[0].overall_color	# Group color is first model color
             sm_group.add(smg)
             self.add([sm_group])
 
@@ -1291,14 +1302,14 @@ class CrossLinkModel(Model):
                 pbg.display = display
     display = property(_get_display, _set_display)
 
-    def _get_model_color(self):
+    def _get_overall_color(self):
         return self.color
-    def _set_model_color(self, color):
+    def _set_overall_color(self, color):
         self.color = color
         for pbg in self._pseudobond_groups:
             if not pbg.deleted:
-                pbg.model_color = color
-    model_color = property(_get_model_color, _set_model_color)
+                pbg.overall_color = color
+    overall_color = property(_get_overall_color, _set_overall_color)
 
 # -----------------------------------------------------------------------------
 #

@@ -23,8 +23,8 @@ from chimerax.ui.widgets.htmlview import (
     create_chimerax_profile
 )
 from Qt.QtWebEngineCore import (
-        QWebEngineUrlSchemeHandler, QWebEnginePage
-        , QWebEngineDownloadRequest
+        QWebEngineUrlSchemeHandler, QWebEnginePage,
+        QWebEngineDownloadRequest
 )
 
 _singleton = None
@@ -184,7 +184,17 @@ class HelpUI(ToolInstance):
         self.search_terms.returnPressed.connect(self.page_search)
         tb.addWidget(self.search_terms)
 
-        self.tabs = QTabWidget(parent)
+        class SizedTabs(QTabWidget):
+            allow_smaller = False
+            def minimumSizeHint(self):
+                from Qt.QtCore import QSize, QTimer
+                if not self.allow_smaller:
+                    QTimer.singleShot(10, lambda *args, s=self: setattr(s, 'allow_smaller', True))
+                if self.allow_smaller:
+                    return super().minimumSizeHint()
+                return QSize(840, 800)
+
+        self.tabs = SizedTabs(parent)
         self.tabs.setTabsClosable(True)
         self.tabs.setUsesScrollButtons(True)
         self.tabs.setTabBarAutoHide(True)
@@ -276,7 +286,7 @@ class HelpUI(ToolInstance):
 
             def reject(self):
                 from Qt.QtNetwork import QAuthenticator
-                import sip
+                from pyqt import sip
                 sip.assign(auth, QAuthenticator())
                 return super().reject()
 
@@ -362,7 +372,7 @@ class HelpUI(ToolInstance):
         item.isFinishedChanged.connect(lambda *args, **kw: self.download_finished(*args, **kw, item=item, is_wheel=is_wheel))
         item.accept()
 
-    def download_progress(self, bytes_received = None, bytes_total = None):
+    def download_progress(self, bytes_received=None, bytes_total=None):
         self.progress_bar.setVisible(True)
         if bytes_total is not None:
             self.progress_bar.setMaximum(bytes_total)
@@ -371,10 +381,10 @@ class HelpUI(ToolInstance):
         self.progress_bar.update()
 
     def change_total_bytes(self, item):
-        self.download_progress(bytes_total = item.totalBytes())
+        self.download_progress(bytes_total=item.totalBytes())
 
     def change_received_bytes(self, item):
-        self.download_progress(bytes_received = item.receivedBytes())
+        self.download_progress(bytes_received=item.receivedBytes())
 
     def download_finished(self, *args, item=None, is_wheel=False, **kw):
         item.totalBytesChanged.disconnect()
@@ -606,7 +616,10 @@ class HelpUI(ToolInstance):
 def _installable(wh, logger):
     # check if installable to give better error message than
     #       downstream use of pip.
-    if not _compatible(wh.filename, logger):
+    reason = incompatible_reason(wh.filename)
+    if reason is not None:
+        if logger:
+            logger.warning(reason)
         return False
     import chimerax.core
     core_bundle = chimerax.core.BUNDLE_NAME + ' '
@@ -625,7 +638,11 @@ def _installable(wh, logger):
     return True
 
 
-def _compatible(filename, logger=None):
+def incompatible_reason(filename):
+    """Return reason why wheel filename is incompatible.
+
+    Returns None if compatible.
+    """
     # using wheel filename check if compatible with running ChimeraX
     from wheel_filename import parse_wheel_filename
     global _sys_tags, _sys_info
@@ -645,17 +662,15 @@ def _compatible(filename, logger=None):
     for t in supported_tags(winfo):
         for s in _sys_tags:
             if t == (s.interpreter, s.abi, s.platform):
-                return True
-    if logger:
-        if _sys_info[2].isdisjoint(winfo.platform_tags):
-            logger.warning("bundle is for different platform")
-        elif _sys_info[0].isdisjoint(winfo.python_tags):
-            logger.warning("bundle is for different version of Python")
-        elif _sys_info[1].isdisjoint(winfo.abi_tags):
-            logger.warning("bundle uses incompatible Python ABI")
-        else:
-            logger.warning("bundle is incompatible")
-    return False
+                return None
+    if _sys_info[2].isdisjoint(winfo.platform_tags):
+        return "not compatible: wrong platform"
+    elif _sys_info[0].isdisjoint(winfo.python_tags):
+        return "not compatible: wrong version of Python"
+    elif _sys_info[1].isdisjoint(winfo.abi_tags):
+        return "not compatible: Python ABI mismatch"
+    else:
+        return "not compatible"
 
 
 def _install_or_upgrade(filename, session):
@@ -687,14 +702,14 @@ class _InstallableSchemeHandler(QWebEngineUrlSchemeHandler):
         from Qt.QtCore import QBuffer
         wheel_name = request.requestUrl().path()
         try:
-            compatible = _compatible(wheel_name)
+            reason = incompatible_reason(wheel_name)
         except Exception:
-            compatible = False
+            reason = "not compatible"
         reply = QBuffer(parent=self)
         request.destroyed.connect(reply.deleteLater)
         reply.open(QBuffer.WriteOnly)
-        if not compatible:
-            reply.write(b"Not compatible")
+        if reason is not None:
+            reply.write(reason.encode('utf-8'))
         else:
             reply.write(_install_or_upgrade(wheel_name, self.session))
         reply.close()

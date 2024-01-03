@@ -1,14 +1,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 clustal_strong_groups = ["STA", "NEQK", "NHQK", "NDEQ", "QHRK", "MILV", "MILF", "HY", "FYW"]
@@ -38,6 +49,7 @@ class Alignment(State):
     NOTE_REF_SEQ       = "reference seq changed"
     NOTE_SEQ_CONTENTS  = "seq contents changed"  # Not fired if NOTE_REALIGNMENT applicable
     NOTE_REALIGNMENT   = "sequences realigned"  # preempts NOTE_SEQ_CONTENTS
+    NOTE_RMSD_UPDATE   = "rmsd change"  # RMSD value changed, or chains relevant to RMSD may have changed
 
     # associated note_data for the above is None except for:
     #   NOTE_ADD_ASSOC: list of new matchmaps
@@ -88,7 +100,10 @@ class Alignment(State):
         self._observer_notification_suspended = 0
         self._ob_note_suspended_data = []
         self._modified_mmaps = []
+        self._mmap_handler = None
         self._reference_seq = None
+        self._rmsd_chains = None
+        self._rmsd_handler = None
         self.associations = {}
         # need to be able to look up chain obj even after demotion to Sequence
         self._sseq_to_chain = {}
@@ -142,19 +157,22 @@ class Alignment(State):
                 header.shown = header.settings.initially_shown and header.relevant
             self._set_residue_attributes()
 
-    def add_fixed_header(self, name, contents, *, shown=True, identifier=None):
+    def add_fixed_header(self, name, contents, *, shown=True, identifier=None, base_class=None):
         if len(contents) != len(self._seqs[0]):
             raise ValueError(f"Fixed header '{name}' is not the same length as alignment")
         from chimerax.alignment_headers import FixedHeaderSequence
+        if base_class is None:
+            base_class = FixedHeaderSequence
         if identifier is None:
             from chimerax.core.attributes import string_to_attr
             identifier = string_to_attr(name, prefix=FixedHeaderSequence.ATTR_PREFIX)
-        class FixedHeaderWithIdent(FixedHeaderSequence):
+        class FixedHeaderWithIdent(base_class):
             ident = identifier
         header = FixedHeaderWithIdent(self, name, contents)
         self._headers.append(header)
         self._headers.sort(key=lambda hdr: hdr.name.casefold())
         header.shown = shown
+        return header
 
     def add_observer(self, observer):
         """Called by objects that care about alignment changes that are not themselves viewer
@@ -633,6 +651,53 @@ class Alignment(State):
                 self._notify_observers(cur_note, cur_data, viewer_criteria=viewer_criteria)
             self._ob_note_suspended_data = []
 
+    @property
+    def rmsd_chains(self):
+        prev_rmsd_chains = self._rmsd_chains
+        if self._rmsd_chains is None:
+            by_struct = {}
+            for chain in self.associations:
+                by_struct.setdefault(chain.structure, []).append(chain)
+            chain_lists = list(by_struct.values())
+            if len(chain_lists) < 2:
+                self._rmsd_chains = []
+            else:
+                chain_lists.sort(key=lambda x: len(x))
+                cl1, cl2 = chain_lists[:2]
+                lowest = None
+                for c1 in cl1:
+                    for c2 in cl2:
+                        rmsd = self._eval_rmsd([c1, c2])
+                        if rmsd is None:
+                            continue
+                        if lowest is None or rmsd < lowest:
+                            lowest = rmsd
+                            best_chains = [c1, c2]
+                if lowest is None:
+                    best_chains = [cl1[0], cl2[0]]
+                for cl in chain_lists[2:]:
+                    lowest = None
+                    for c in cl:
+                        rmsd = self._eval_rmsd(best_chains + [c])
+                        if rmsd is None:
+                            continue
+                        if lowest is None or rmsd < lowest:
+                            lowest = rmsd
+                            best_chain = c
+                    if lowest is None:
+                        best_chains.append(cl[0])
+                    else:
+                        best_chains.append(best_chain)
+                self._rmsd_chains = best_chains
+        if prev_rmsd_chains:
+            if not self._rmsd_chains:
+                self._rmsd_handler.remove()
+                self._rmsd_handler = None
+        elif self._rmsd_chains:
+            from chimerax.atomic import get_triggers
+            self._rmsd_handler = get_triggers().add_handler('changes', self._rmsd_atomic_cb)
+        return self._rmsd_chains
+
     def save(self, output, format_name="fasta"):
         import importlib
         mod = importlib.import_module(".io.save%s" % format_name.upper(),
@@ -668,8 +733,9 @@ class Alignment(State):
         for aseq in aseqs:
             aseq.match_maps.clear()
         self.associations.clear()
-        if self._assoc_handler:
-            self._assoc_handler.remove()
+        for handler in [self._assoc_handler, self._mmap_handler, self._rmsd_handler]:
+            if handler:
+                handler.remove()
         for handler in self._seq_handlers:
             handler.remove()
 
@@ -688,14 +754,60 @@ class Alignment(State):
                 % (viewer_keyword, self.ident))
         self._notify_observers(self.NOTE_COMMAND, subcommand_text, viewer_criteria=viewer_keyword)
 
+    def _eval_rmsd(self, chains):
+        chain_types = set([c.polymer_type for c in chains])
+        if len(chain_types) > 1:
+            return None
+        ct = chain_types.pop()
+        from chimerax.atomic import Residue
+        if ct == Residue.PT_NONE:
+            return None
+        pa_name = { Residue.PT_AMINO: "CA", Residue.PT_NUCLEIC: "C4'" }[ct]
+        total = 0.0
+        n = 0
+        from chimerax.geometry import distance_squared
+        for coords in self._gather_coords(chains, pa_name):
+            for i, crd1 in enumerate(coords):
+                for crd2 in coords[i+1:]:
+                    total += distance_squared(crd1, crd2)
+            n += (len(coords) * (len(coords)-1)) // 2
+        if n == 0:
+            return None
+        from math import sqrt
+        return sqrt(total / n)
+
+    def _gather_coords(self, chains, pa_name):
+        coord_lists = []
+        seqs = [self.associations[chain] for chain in chains]
+        match_maps = [self.associations[chain].match_maps[chain] for chain in chains]
+        for pos in range(len(self.seqs[0])):
+            crd_list = []
+            for seq, mmap in zip(seqs, match_maps):
+                ungapped = seq.gapped_to_ungapped(pos)
+                if ungapped is None:
+                    continue
+                try:
+                    r = mmap[ungapped]
+                except KeyError:
+                    continue
+                if r:
+                    pa = r.find_atom(pa_name)
+                    if pa:
+                        crd_list.append(pa.scene_coord)
+            if len(crd_list) > 1:
+                coord_lists.append(crd_list)
+        return coord_lists
+
     def _mmap_mod_cb(self, trig_name, match_map):
         if len(match_map) == 0:
             self.disassociate(self._sseq_to_chain[match_map.struct_seq], demotion=True)
             del self._sseq_to_chain[match_map.struct_seq]
         else:
             if not self._modified_mmaps:
-                from chimerax.atomic import get_triggers
-                get_triggers().add_handler("changes done", self._atomic_changes_done)
+                if self._mmap_handler is None:
+                    from chimerax.atomic import get_triggers
+                    self._mmap_handler = get_triggers().add_handler(
+                        "changes done", self._atomic_changes_done)
             self._modified_mmaps.append(match_map)
 
     def _notify_observers(self, note_name, note_data, *, viewer_criteria=None):
@@ -711,8 +823,16 @@ class Alignment(State):
             recipient.alignment_notification(note_name, note_data)
             if note_name in [self.NOTE_ADD_ASSOC, self.NOTE_DEL_ASSOC]:
                 recipient.alignment_notification(self.NOTE_MOD_ASSOC, (note_name, note_data))
+                self._notify_rmsd_change()
             elif note_name in [self.NOTE_ADD_SEQS, self.NOTE_DEL_SEQS]:
                 recipient.alignment_notification(self.NOTE_ADD_DEL_SEQS, (note_name, note_data))
+
+    def _notify_rmsd_change(self):
+        if self._rmsd_chains is None:
+            # no one currently interested in RMSD
+            return
+        self._rmsd_chains = None # force recomputation of relevant chains
+        self._notify_observers(self.NOTE_RMSD_UPDATE, None)
 
     @staticmethod
     def restore_snapshot(session, data):
@@ -752,6 +872,17 @@ class Alignment(State):
                     session.logger.warning("Could not find alignment header class %s" % class_name)
         aln._session_restore = False
         return aln
+
+    def _rmsd_atomic_cb(self, trig_name, changes):
+        if not self._rmsd_chains:
+            # not currently relevant to anyone
+            return
+        if 'scene_coord changed' not in changes.structure_reasons():
+            return
+        for chain in self.associations:
+            if chain.structure in changes.modified_structures():
+                self._notify_rmsd_change()
+                break
 
     def _seq_characters_changed_cb(self, trig_name, seq):
         if not getattr(self, '_realigning', False):

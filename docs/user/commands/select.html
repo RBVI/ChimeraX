@@ -40,6 +40,7 @@ For click-to-select, see <a href="ui.html#mousemode"><b>mousemode</b></a>
 <a href="../tools/mousemodes.html" title="Right Mouse Toolbar...">
 <img class="icon" border=1 src="../tools/mouse-icons/select.png"></a>.
 See also:
+<a href="../selection.html#arrows">arrow-key shortcuts</a>,
 <a href="../selection.html#sel-vs-spec">selection vs. specification</a>,
 <a href="info.html#selection"><b>info selection</b></a>,
 the <a href="../menu.html#select"><b>Select</b> menu</a>,
@@ -115,12 +116,19 @@ with the current selection; the <b>residues</b> option promotes any specified
 atoms to whole residues before the operation is performed
 <li>navigate <b>up</b> or back <b>down</b> the
 <a href="../selection.html#cascade">selection cascade</a>
-(same as using the up and down arrow keys)
+(same as using the <a href="../selection.html#arrows">up/down arrow keys</a>)
 <li><b>clear</b> the selection
 </ul>
 The <b>~select</b> command can be used to deselect specified items
 (like <b>select subtract</b>) or with a blank specification
-to deselect everything (like <b>select clear</b>).
+to deselect everything (like <b>select clear</b>). The selection can be
+inverted with <b>select ~sel</b>
+(in <a href="atomspec.html">command-line specification</a>,
+the symbol <b>~</b> indicates <a href="atomspec.html#combinations">negation</a>
+and the word <a href="atomspec.html#builtin"><b>sel</b></a>
+indicates the current selection; to invert the selection within 
+only the models containing a selection, the command would be
+<b>select ~sel & ##selected</b> instead).
 </p>
 
 <a name="zone"></a>
@@ -188,5 +196,5 @@ non-atomic model types.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-April 2023</address>
+June 2023</address>
 </body></html>

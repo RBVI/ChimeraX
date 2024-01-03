@@ -1,6 +1,15 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
-def open_pdbqt(session, path, file_name, auto_style, atomic):
+def open_pdbqt(*args):
+    encodings = ['utf-8', 'utf-16', 'utf-32']
+    for encoding in encodings:
+        try:
+           return  _open_pdbqt(*args, encoding)
+        except UnicodeDecodeError:
+            if encoding == encodings[-1]:
+                raise
+
+def _open_pdbqt(session, path, file_name, auto_style, atomic, encoding):
     from chimerax.io import open_input, open_output
     from tempfile import TemporaryDirectory
     # clean up columns that foul up PDB reader
@@ -8,8 +17,8 @@ def open_pdbqt(session, path, file_name, auto_style, atomic):
         import os
         prefix = os.path.splitext(os.path.basename(path))[0]
         cleaned_file = os.path.join(d, prefix + ".pdb")
-        with open_output(cleaned_file, 'utf-8') as out:
-            with open_input(path, 'utf-8') as f:
+        with open_output(cleaned_file, encoding) as out:
+            with open_input(path, encoding) as f:
                 for line in f:
                     line = line[:-1]
                     if line.startswith("ATOM "):

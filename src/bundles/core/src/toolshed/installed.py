@@ -1,14 +1,25 @@
 # vim: set expandtab ts=4 sw=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 
@@ -610,14 +621,21 @@ def _get_installed_packages(d, logger):
                                    "bundle %r" % d.project_name)
                     return []
                 # MAPPING = {'chimerax.XXXX': '/Some/path/to/a/folder'}
-                source_directory = line.split(':')[1].split('}')[0].strip().strip("'")
-                module_prefix = line.split(':')[0].split('{')[1].strip("'")
+                # json.loads rejects single quotes, so not only do we need to filter the string
+                # for just the dictionary, we need to replace the quotes too
+                # This was really close to being an exec, but this is a lot safer 
+                import json
+                module_map = json.loads(line.split('=')[1].replace('\'', '"'))
+                source_directory = list(module_map.values())[0]
+                module_prefix = list(module_map.keys())[0]
                 # We're going to replace 'src' with 'chimerax.xxxx' like we do to
                 # construct package arguments in Bundle Builder, so we need to filter
                 # out the beginnings of all the absolute paths we're about to get from
                 # os.walk
-                path_to_package = os.path.dirname(source_directory) + '/'
+                path_to_package = os.path.dirname(source_directory)
                 for dir_, _, files in os.walk(source_directory):
+                    if dir_.endswith('__pycache__'):
+                        continue
                     if "__init__.py"  in files:
                         packages.append(_directory_to_package(dir_, path_to_package, module_prefix))
                 return packages
@@ -633,6 +651,7 @@ def _get_installed_packages(d, logger):
     return packages
 
 def _directory_to_package(directory, base_directory, bundle_name) -> tuple:
-    bundle = bundle_name.replace('.', '/')
-    package = directory.replace(base_directory, "").replace("src", bundle)
-    return tuple(package.split('/'))
+    import os
+    bundle = bundle_name.replace('.', os.sep)
+    package = directory.replace(base_directory + os.sep, "").replace("src", bundle)
+    return tuple(package.split(os.sep))

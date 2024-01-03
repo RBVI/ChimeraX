@@ -1,14 +1,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 def ses_surface_geometry(xyz, radii, probe_radius = 1.4, grid_spacing = 0.5, sas = False):
@@ -80,22 +91,22 @@ def ses_surface_geometry(xyz, radii, probe_radius = 1.4, grid_spacing = 0.5, sas
     xyz_to_ijk_tf.inverse().transform_points(ses_va, in_place = True)
 
     # Delete connected components more than 1.5 probe radius from atom spheres.
-    kvi = []
-    kti = []
     from ._surface import connected_pieces
     vtilist = connected_pieces(ses_ta)
-    for vi,ti in vtilist:
-        v0 = ses_va[vi[0],:]
-        d = xyz - v0
-        d2 = (d*d).sum(axis = 1)
-        adist = (sqrt(d2) - radii).min()
-        if adist < 1.5*probe_radius:
-            kvi.append(vi)
-            kti.append(ti)
-    from .split import reduce_geometry
+    from numpy import array, float32, sqrt
+    vc0 = array([ses_va[vi[0],:] for vi,ti in vtilist], float32)
+    rmax = radii.max()
+    from chimerax.geometry import find_closest_points
+    i1, i2, n1 = find_closest_points(vc0, xyz, 1.5*probe_radius + rmax)
+    dxyz = xyz[n1] - vc0[i1]
+    adist = sqrt((dxyz*dxyz).sum(axis=1)) - radii[n1] 
+    ikeep = i1[adist < 1.5*probe_radius]
+    kvi = [vtilist[i][0] for i in ikeep]
+    kti = [vtilist[i][1] for i in ikeep]
     from numpy import concatenate
     keepv = concatenate(kvi) if kvi else []
     keept = concatenate(kti) if kti else []
+    from .split import reduce_geometry
     va,na,ta = reduce_geometry(ses_va, ses_na, ses_ta, keepv, keept)
-                               
+
     return va, na, ta
