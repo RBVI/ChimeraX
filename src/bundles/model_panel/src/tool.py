@@ -139,8 +139,9 @@ class ModelPanel(ToolInstance):
 
     def fill_context_menu(self, menu, x, y):
         from Qt.QtGui import QAction
-        action = QAction("%s Sequential Display Controls"
-            % ("Hide" if self.showing_sequence_controls else "Show"), menu)
+        action = QAction("Show Sequential Display Controls", menu)
+        action.setCheckable(True)
+        action.setChecked(self.showing_sequence_controls)
         action.triggered.connect(lambda *args, s=self:
             setattr(s, 'showing_sequence_controls', not s.showing_sequence_controls))
         menu.addAction(action)
@@ -159,10 +160,13 @@ class ModelPanel(ToolInstance):
         if show == self._showing_sequence_controls:
             return
         self._showing_sequence_controls = show
+        from Qt.QtCore import Qt
         if show:
             self.tree.showColumn(self.SKIP_COLUMN)
+            self.tree.keyPressEvent = self._seq_key_press
         else:
             self.tree.hideColumn(self.SKIP_COLUMN)
+            self.tree.keyPressEvent = self.session.ui.forward_keystroke
         for button in self._seq_buttons:
             button.setHidden(not show)
 
@@ -179,7 +183,7 @@ class ModelPanel(ToolInstance):
             simple_change=False, countdown=1):
         # in order to allow models to be drawn as quickly as possible,
         # delay the update of the tree until the 'new frame' trigger fires
-        # a time of times ('countdown' -- if a tuple then it varies based on
+        # a number of times ('countdown' -- if a tuple then it varies based on
         # the number of models, from (lowest, highest)).  However, if no models
         # are open, we update immediately because Rapid Access will come up and
         # 'new frame' may not fire for awhile.
@@ -227,7 +231,8 @@ class ModelPanel(ToolInstance):
 
         # cell editing could have disabled key forwarding
         # (to block the Return key getting to the command line)
-        self.tree.keyPressEvent = self.session.ui.forward_keystroke
+        self.tree.keyPressEvent = self._seq_key_press \
+            if self.showing_sequence_controls else self.session.ui.forward_keystroke
         self.tree.blockSignals(True) # particularly itemChanged
         if self.check_model_list or always_rebuild:
             update = self._process_models() and not always_rebuild
@@ -406,6 +411,15 @@ class ModelPanel(ToolInstance):
         update = True if hasattr(self, 'models') and final_models == self.models else False
         self.models = final_models
         return update
+
+    def _seq_key_press(self, event):
+        from Qt.QtCore import Qt
+        if event.key() == Qt.Key_Up:
+            self._previous_model()
+        elif event.key() == Qt.Key_Down:
+            self._next_model()
+        else:
+            self.session.ui.forward_keystroke(event)
 
     def _show_next_model(self, direction):
         cur_shown = [m for m in self.models
