@@ -105,6 +105,9 @@ class GridCanvas:
         self.main_view.show()
         self.layout_alignment()
 
+    def destroy(self):
+        pass
+
     def hide_header(self, header):
         raise NotImplementedError("hide_header")
         self.lead_block.hide_header(header)
@@ -228,8 +231,6 @@ class GridCanvas:
         self._update_scene_rects()
 
     def _update_scene_rects(self):
-        #NOTE: scrolling doesn't work right for sequence viewer either if not wrapped, docked,
-        # and labels don't need horizontal scrollbar
         # have to play with setViewportMargins to get correct scrolling...
         #self.main_view.setViewportMargins(0, 0, 0, -20)
         mbr = self.main_scene.itemsBoundingRect()
