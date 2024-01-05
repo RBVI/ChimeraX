@@ -422,8 +422,11 @@ class ModelPanel(ToolInstance):
             self.session.ui.forward_keystroke(event)
 
     def _show_next_model(self, direction):
+        if self._frame_drawn_handler is not None:
+            # self.models is not up to date, typically happens when arrow key held down
+            return
         cur_shown = [m for m in self.models
-            if m.display and m in self.skip_models and not self.skip_models[m]]
+            if m in self.skip_models and not self.skip_models[m] and m.display]
         if len(cur_shown) > 1:
             hide(cur_shown[1:], self.session)
             return
