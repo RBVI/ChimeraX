@@ -36,7 +36,6 @@ class ModelPanel(ToolInstance):
 
         from chimerax.ui import MainToolWindow
         self.tool_window = tw = MainToolWindow(self, close_destroys=False)
-        self._showing_sequence_controls = False
         tw.fill_context_menu = self.fill_context_menu
         parent = tw.ui_area
         from Qt.QtWidgets import QTreeWidget, QHBoxLayout, QVBoxLayout, QAbstractItemView, \
@@ -153,13 +152,13 @@ class ModelPanel(ToolInstance):
 
     @property
     def showing_sequence_controls(self):
-        return self._showing_sequence_controls
+        return self.settings.show_sequential_controls
 
     @showing_sequence_controls.setter
     def showing_sequence_controls(self, show):
-        if show == self._showing_sequence_controls:
+        if show == self.settings.show_sequential_controls:
             return
-        self._showing_sequence_controls = show
+        self.settings.show_sequential_controls = show
         from Qt.QtCore import Qt
         if show:
             self.tree.showColumn(self.SKIP_COLUMN)
@@ -422,8 +421,11 @@ class ModelPanel(ToolInstance):
             self.session.ui.forward_keystroke(event)
 
     def _show_next_model(self, direction):
+        if self._frame_drawn_handler is not None:
+            # self.models is not up to date, typically happens when arrow key held down
+            return
         cur_shown = [m for m in self.models
-            if m.display and m in self.skip_models and not self.skip_models[m]]
+            if m in self.skip_models and not self.skip_models[m] and m.display]
         if len(cur_shown) > 1:
             hide(cur_shown[1:], self.session)
             return
@@ -493,7 +495,8 @@ class ModelPanel(ToolInstance):
 
 class ModelPanelSettings(Settings):
     AUTO_SAVE = {
-        'last_use': None
+        'last_use': None,
+        'show_sequential_controls': False
     }
 
 def close(models, session):
