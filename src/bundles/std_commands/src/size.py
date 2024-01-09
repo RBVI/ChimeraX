@@ -25,7 +25,7 @@
 from chimerax.core.errors import UserError
 
 def size(session, objects=None, atom_radius=None,
-          stick_radius=None, pseudobond_radius=None, ball_scale=None):
+          stick_radius=None, pseudobond_radius=None, ball_scale=None, verbose=True):
     '''Set the sizes of atom and bonds.
 
     Parameters
@@ -143,7 +143,7 @@ def size(session, objects=None, atom_radius=None,
                 s.ball_scale = amount
         what.append('%d ball scales' % len(mols))
 
-    if what:
+    if verbose and what:
         msg = 'Changed %s' % ', '.join(what)
         log = session.logger
         log.status(msg)

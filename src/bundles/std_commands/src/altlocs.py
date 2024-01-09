@@ -152,8 +152,10 @@ class _AltlocStateManager(StateManager):
         self.session = session
         self.base_residue = base_residue
         self.alt_locs = { l: self._build_alt_loc(l) for l in base_residue.alt_locs }
-        self.group = session.models.add_group(self.alt_locs.values(), name="%s alternate locations"
-            % base_residue.string(omit_structure=True), parent=base_residue.structure)
+        self.group = session.models.add_group(
+            [self.alt_locs[letter] for letter in sorted(self.alt_locs.keys())],
+            name="%s alternate locations" % base_residue.string(omit_structure=True),
+            parent=base_residue.structure)
         #TODO
         from chimerax.atomic import get_triggers
         self.handler = get_triggers().add_handler('changes', self._changes_cb)
@@ -163,15 +165,20 @@ class _AltlocStateManager(StateManager):
         self.triggers.add_trigger('self destroyed')
 
     def _build_alt_loc(self, alt_loc):
-        from chimerax.atomic import AtomicStructure
+        from chimerax.atomic import AtomicStructure, Atom
         s = AtomicStructure(self.session, name=alt_loc, auto_style=False, log_info=False)
         br = self.base_residue
         r = s.new_residue(br.name, br.chain_id, br.number, insert=br.insertion_code)
         from chimerax.atomic.struct_edit import add_atom
         atom_map = {}
         for old_a in br.atoms:
-            new_a = add_atom(old_a.name, old_a.element, r, old_a.coord, alt_loc=alt_loc)
+            use_alt_loc = alt_loc in old_a.alt_locs
+            coord = old_a.get_alt_loc_coord(alt_loc) if use_alt_loc else old_a.coord
+            new_a = add_atom(old_a.name, old_a.element, r, coord, alt_loc=alt_loc)
+            new_a.draw_mode = Atom.STICK_STYLE
             atom_map[old_a] = new_a
+            if not old_a.is_side_chain and not use_alt_loc:
+                new_a.display = False
         handled_bonds = set()
         for old_a in br.atoms:
             for old_b in old_a.bonds:
@@ -181,13 +188,14 @@ class _AltlocStateManager(StateManager):
                     new2 = atom_map[a2]
                 except KeyError:
                     continue
-                s.new_bond(new1, new2)
+                if new2 not in new1.neighbors:
+                    s.new_bond(new1, new2)
         from chimerax.core.objects import Objects
         alt_loc_objects = Objects(atoms=s.atoms, bonds=s.bonds)
         from chimerax.std_commands.color import color
-        color(session, alt_loc_objects, color="byelement")
+        color(self.session, alt_loc_objects, color="byelement")
         from chimerax.std_commands.size import size
-        size(session, alt_loc_objects, stick_radius=0.1)
+        size(self.session, alt_loc_objects, stick_radius=0.1, verbose=False)
         return s
 
     #TODO
@@ -245,7 +253,7 @@ def _get_alt_loc_residues(session, residues, locs):
             if found:
                 r_info.append((r, found))
     else:
-        r_info = [(r, r.alt_locs) for r in residues
+        r_info = [(r, r.alt_locs) for r in residues]
     return r_info
 
 def _gather_existing_mgrs(session, residues):
@@ -256,8 +264,12 @@ def _gather_existing_mgrs(session, residues):
             mgr_info[mgr.base_residue] = mgr
     return mgr_info
 
-def altlocs_show(session, residues, *, locs=None):
+def altlocs_show(session, residues=None, *, locs=True):
     ''' Command to display non-current altlocs '''
+
+    if residues is None:
+        from chimerax.atomic import all_residues
+        residues = all_residues(session)
 
     r_info = _get_alt_loc_residues(session, residues, locs)
     if not r_info:
@@ -275,19 +287,20 @@ def altlocs_show(session, residues, *, locs=None):
     # create needed managers:
     for r, r_locs in r_info:
         if r in mgr_info:
-            if locs is None:
+            if locs is True:
                 mgr_info[r].show()
             continue
         mgr_info[r] = _AltlocStateManager(session, r)
 
-    if locs is not None:
+    if locs is not True:
         for mgr in mgr_info.values():
             mgr.show(locs)
 
     return list(mgr_info.values())
 
 def register_command(logger):
-    from chimerax.core.commands import register, CmdDesc, AnnotationError, StringArg, Or, CharacterArg
+    from chimerax.core.commands import register, CmdDesc, AnnotationError, StringArg, Or, CharacterArg, \
+        BoolArg, ListOf
     from chimerax.atomic import ResiduesArg
 
     desc = CmdDesc(required=[('alt_loc', CharacterArg)],
@@ -302,3 +315,8 @@ def register_command(logger):
     desc = CmdDesc(optional = [('residues', ResiduesArg)],
         synopsis='list alternate atom locations')
     register('altlocs list', desc, altlocs_list, logger=logger)
+
+    desc = CmdDesc(optional = [('residues', ResiduesArg)],
+        keyword=[('locs', Or(ListOf(CharacterArg), BoolArg))],
+        synopsis='show/hide alternate atom locations')
+    register('altlocs show', desc, altlocs_show, logger=logger)
