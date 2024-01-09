@@ -43,7 +43,6 @@ class RMSD(DynamicStructureHeaderSequence):
         from chimerax.atomic import get_triggers
         self.handlers = [
             self.settings.triggers.add_handler('setting changed', self._setting_changed_cb),
-            get_triggers().add_handler('changes', self._atomic_changes_cb)
         ]
         self._polymer_type = None
         self._set_name()
@@ -173,14 +172,6 @@ class RMSD(DynamicStructureHeaderSequence):
             if len(coords) > 1:
                 coord_lists.append(coords)
         return coord_lists
-
-    def _atomic_changes_cb(self, trig_name, changes):
-        if 'scene_coord changed' not in changes.structure_reasons():
-            return
-        for chain in self.alignment.associations:
-            if chain.structure in changes.modified_structures():
-                self.reevaluate()
-                break
 
     def _set_name(self):
         if self.atoms == principal_atom:
