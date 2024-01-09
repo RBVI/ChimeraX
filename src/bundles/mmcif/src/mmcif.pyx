@@ -54,6 +54,7 @@ _additional_categories = (
     "citation_editor",
     "database_2",	# EMDB map reference
     "pdbx_database_related",    # EMDB map reference (also, sigh, e.g. 4udv)
+    "pdbx_database_status",	# Specifies if NMR restraints available
     "exptl",
     "refine",
     "reflns",
@@ -259,6 +260,24 @@ def _get_formatted_metadata(model, session, *, verbose=False):
         html += '   <th>Experimental method</th>\n'
         html += '   <td>%s</td>\n' % process_chem_name(method, sentences=True)
         html += '  </tr>\n'
+
+    if method == 'SOLUTION NMR':
+        db_info = get_mmcif_tables_from_metadata(model, ['pdbx_database_status'], metadata=metadata)[0]
+        if db_info:
+            have_nmr, entry_id = db_info.fields(['status_code_nmr_data', 'entry_id'],
+                                                allow_missing_fields = True)[0]
+            if have_nmr == 'REL' and len(entry_id) == 4:
+                eid = _nmr_ensemble_id(model)
+                cmd = f'open {entry_id} from pdb_nmr structure #{eid}'
+                show_hide = (f'Satisfied constraints <a href="cxcmd:show #{eid} & satisfied">show</a> ' +
+                             f'or <a href="cxcmd:hide #{eid} & satisfied">hide</a>. ' +
+			     f'Long constraints <a href="cxcmd:show #{eid} & long">show</a> ' +
+                             f'or <a href="cxcmd:hide #{eid} & long">hide</a>.')
+                html += '  <tr>\n'
+                html += '   <th>NMR constraints</th>\n'
+                html += f'   <td><a href="cxcmd:{cmd}">Open {entry_id} restraints</a>. {show_hide}</td>\n'
+                html += '  </tr>\n'
+
     res = resolution(model, metadata=metadata)
     if res is not None:
         html += '  <tr>\n'
@@ -293,6 +312,15 @@ def _get_formatted_metadata(model, session, *, verbose=False):
 
     return html
 
+def _nmr_ensemble_id(model):
+    'Determine if this model is one of an ensemble of models for applying NMR constraints.'
+    if len(model.id) < 2:
+      return model.id_string
+    # Check if every sibling model has the same name.  Not great.
+    mnames = set(m.name for m in model.parent.child_models())
+    if len(mnames) == 1:
+      return model.parent.id_string
+    return model.id_string
 
 def experimental_method(model, metadata=None):
     experiment = get_mmcif_tables_from_metadata(model, ["exptl"], metadata=metadata)[0]
