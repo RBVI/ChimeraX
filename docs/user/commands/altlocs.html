@@ -35,12 +35,17 @@ Most of the command capabilities are also available in the
 <a href="../tools/altlocexplorer.html"><b>Altloc Explorer</b></a> 
 graphical interface.
 </p><p>
-ChimeraX uses only one of the alternate locations at a time for display
-and for any calculations. For each contiguous (through-bond) set of atoms
+Within a given atomic model,
+ChimeraX uses only one of the alternate locations at a time for display and
+for any calculations. For each contiguous (through-bond) set of atoms
 with alternate locations, the location used initially is that with
 the highest average atomic occupancy, then as a tie-breaker, the lowest
 average atomic B-factor, and if a  tie-breaker is still needed, 
 by alphabetical order of the alternate location ID.
+</p><p>
+The <b>altlocs</b> command controls which alternate location is used 
+within a given model. It also allows viewing multiple alternate locations
+simultaneously by opening them as separate submodels.
 </p><p>
 See also:
 <a href="swapaa.html"><b>swapaa</b></a>,
@@ -56,6 +61,8 @@ See also:
 &ndash; specify which alternate location to use
 <li><a href="#clean"><b>altlocs clean</b></a>
 &ndash; delete all but the currently used alternate location
+<li><a href="#show"><b>altlocs show/hide</b></a>
+&ndash; view multiple alternate locations at the same time
 </ul>
 
 <a href="#top" class="nounder">&bull;</a>
@@ -109,7 +116,32 @@ and remove their alternate location IDs. Examples:
 The last example deletes all unused alternate locations.
 </blockquote>
 
+<a href="#top" class="nounder">&bull;</a>
+<a name="show"></a>
+<a name="hide"></a>
+<b>altlocs show</b> 
+&nbsp;<a href="atomspec.html"><i>residue-spec</i></a>&nbsp;
+[&nbsp;<b>locs</b>&nbsp;&nbsp;<i>altloc-ID-list</i></a>&nbsp;]
+<br>
+<a href="#top" class="nounder">&bull;</a>
+<b>altlocs hide</b> 
+&nbsp;<a href="atomspec.html"><i>residue-spec</i></a>&nbsp;
+[&nbsp;<b>locs</b>&nbsp;&nbsp;<i>altloc-ID-list</i></a>&nbsp;]
+<blockquote>
+The <b>altlocs show</b> command allows viewing multiple alternate locations 
+at the same time. A separate submodel is generated for each alternate location
+of each <a href="atomspec.html">specified</a> residue that has alternate 
+locations. All alternate locations are shown unless limited with the
+<b>loc</b> option, where <i>altloc-ID-list</i> is a series of
+altloc identifiers separated by commas only. As per the usual ChimeraX
+convention, a blank residue specification specifies all residues. 
+The <b>altlocs hide</b> command has the same options as <b>altlocs show</b>
+and simply allows hiding one or more of the alternate-location submodels.
+<b>Altlocs show</b> and <b>altlocs hide</b> do not affect the original
+atomic model, only the additional alternate-location submodels.
+</blockquote>
+
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-December 2022</address>
+January 2024</address>
 </body></html>

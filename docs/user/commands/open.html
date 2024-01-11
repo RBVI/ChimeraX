@@ -252,6 +252,16 @@ to connect with <a href="../pseudobonds.html">pseudobonds</a>,
 but see also <a href="commands/pbond.html"><b>pbond</b></a>
 </td>
 </tr><tr>
+<td align="center">
+<a href="https://link.springer.com/article/10.1007/s10858-018-0220-3"
+target="_blank">PDB NMR-STAR</a></td>
+<td align="center"><b>nmrstr</b></td>
+<td align="center">.str
+<br><a href="#compressed">+&nbsp;compressed</td>
+<td align="center" class="text">nuclear magnetic resonance (NMR) 
+distance restraints; will be displayed on atomic model(s) specified
+with the <a href="#nmrstar"><b>structures</b></a> option</td>
+</tr><tr>
 <td colspan=4 align="center" style="background-color:#eaeaea">
 <a name="trajectory"></a>
 <a href="#formats" class="nounder"><b>&larr;</b></a>
@@ -1604,6 +1614,75 @@ before clicking the record button.
 See also: <a href="coordset.html#slider"><b>coordset slider</b></a>
 </blockquote>
 
+<a name="nmrstar"></a>
+<p class="nav">
+[<a href="#top">back to top: open</a>]
+</p>
+<h3>NMR-STAR Options</h3>
+<p>
+<a href="https://link.springer.com/article/10.1007/s10858-018-0220-3"
+target="_blank">NMR-STAR</a> files contain distance restraints
+that will be shown as <a href="../pseudobonds.html">pseudobonds</a>
+between atoms. These files can be <a href="#fetch">fetched</a> from the
+PDB for certain structures determined by nuclear magnetic resonance (NMR),
+or obtained directly from the PDB website using the Download option
+&ldquo;Combined NMR data (NMR-STAR) (.gz).&rdquo;
+</p>
+<blockquote>
+<b>structures</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
+<br>
+Specifies the atomic model(s) on which to draw 
+<a href="../pseudobonds.html">pseudobonds</a> representing restraints
+read from an NMR-STAR file. If no atomic model(s) are specified when the
+NMR-STAR file is opened, the number of restraints will be reported but 
+not displayed.
+</blockquote>
+<blockquote>
+<b>type</b>&nbsp;&nbsp;<i>type-name</i>
+<br>
+A single NMR-STAR may contain multiple types of restraints, where each
+type has a name such as &ldquo;NOE&rdquo; or &ldquo;hydrogen bond.&rdquo;
+By default, each type will be opened as a separate
+<a href="../pseudobonds.html">pseudobond group</a> with the type included
+in the model name.
+The <b>type</b> option can be used to limit the input to a specific type.
+If not specified, all types of restraints are read and each type is placed
+in a separate <a href="../pseudobonds.html">pseudobond group</a>.
+</blockquote>
+<p>
+Examples:
+</p>
+<blockquote>
+<b>open 8r4w</b>
+<br>
+<b>open 8r4w from pdb_nmr structures #1 type NOE</b>
+<br>
+<br><b>open ~/Downloads/8r4w_nmr-data.str structures #1</b>
+</blockquote>
+<p>
+Each restraint has a maximum distance. If the distance in a structure is
+within the maximum, it is classified satisfied 
+(<a href="atomspec.html#builtin">command-line specifier</a> for the
+corresponding <a href="../pseudobonds.html">pseudobonds</a> is
+<b>satisfied</b>), otherwise it is long
+(<a href="atomspec.html#builtin">command-line specifier</a> <b>long</b>).
+<!--
+<b>nmr-satisfied</b>), otherwise it is long 
+(<a href="atomspec.html#builtin">command-line specifier</a> <b>nmr-long</b>).
+-->
+Examples of using these in commands:
+<blockquote>
+<b>hide satisfied</b>
+<br>
+<b>show satisfied</b>
+<br>
+<b>hide long</b>
+</blockquote>
+<p>
+NMR-STAR restraints and their maxima are saved in
+<a href="save.html#session">sessions</a>.
+</p>
+
 <a name="url"></a>
 <p class="nav">
 [<a href="#top">back to top: open</a>]
@@ -1763,6 +1842,16 @@ target="_blank">PDB Chemical Component Dictionary (CCD)</a>
 <td align="center">idealized structure of PDB chemical component 
 specified by CCD ID (residue name)</td>
 <td align="center"><b>ccd</b></td>
+</tr><tr>
+<td align="center">
+<a href="https://link.springer.com/article/10.1007/s10858-018-0220-3"
+target="_blank">PDB NMR-STAR</a>
+</td>
+<td align="center"><b>pdb_nmr</b></td>
+<td align="center" class="text">nuclear magnetic resonance (NMR) 
+distance restraints; will be displayed on atomic model(s) specified
+with the <a href="#nmrstar"><b>structures</b></a> option</td>
+<td align="center"><b>nmrstr</b></td>
 </tr><tr>
 <td align="center" rowspan="2">
 <a href="https://www.ebi.ac.uk/pdbe/" target="_blank">PDBe</a>
@@ -2173,5 +2262,5 @@ only arrays with the specified <i>name</i>. Example:
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-October 2023</address>
+January 2024</address>
 </body></html>
