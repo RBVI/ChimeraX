@@ -339,6 +339,12 @@ class View:
     def shape_changed(self):
         return self._drawing_manager.shape_changed
 
+    @property
+    def recalculate_clip_caps(self):
+        return self._drawing_manager.recalculate_clip_caps
+    def recalculated_clip_caps(self):
+        self._drawing_manager.recalculate_clip_caps = False
+
     def clear_drawing_changes(self):
         return self._drawing_manager.clear_changes()
 
@@ -1110,11 +1116,13 @@ class _RedrawNeeded:
         self.transparency_changed = False
         self.cached_drawing_bounds = None
         self.cached_any_part_highlighted = None
+        self.recalculate_clip_caps = False		# Set if shape changes
 
     def __call__(self, drawing, shape_changed=False, highlight_changed=False, transparency_changed=False):
         self.redraw_needed = True
         if shape_changed:
             self.shape_changed = True
+            self.recalculate_clip_caps = True
             if drawing.casts_shadows:
                 self.shadow_shape_change = True
             if not getattr(drawing, 'skip_bounds', False):

@@ -20,7 +20,7 @@ def update_clip_caps(view):
     #  in chimerax bug #2751.  Need a reliable mechanism to detect clipping changes.
     update = (cp.changed or
               (planes and
-               (view.shape_changed or
+               (view.recalculate_clip_caps or
                 (view.camera.redraw_needed and cp.have_camera_plane()))))
     # TODO: Update caps only on specific drawings whose shape changed.
     if update:
@@ -29,6 +29,7 @@ def update_clip_caps(view):
                                offset = settings.clipping_cap_offset,
                                subdivision = settings.clipping_cap_subdivision,
                                cap_meshes = settings.clipping_cap_on_mesh)
+        view.recalculated_clip_caps()
 
 def show_surface_clip_caps(planes, drawings, offset = 0.01, subdivision = 0.0, cap_meshes = False):
     for p in planes:

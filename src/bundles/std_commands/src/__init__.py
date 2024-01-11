@@ -41,6 +41,9 @@ class StdCommandsAPI(BundleAPI):
         if class_name in ['CoordinateSetSlider']:
             from . import coordset_gui
             return getattr(coordset_gui, class_name)
+        if class_name in ['_StructureAltlocManager']:
+            from . import altlocs
+            return getattr(altlocs, class_name)
 
     @staticmethod
     def register_command(command_name, logger):
