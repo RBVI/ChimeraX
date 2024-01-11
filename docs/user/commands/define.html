@@ -37,9 +37,13 @@ atomic coordinates:
 &ndash; disk-shaped surface models
 </ul>
 <p>
-These objects can be used in
+The objects are listed in the
+<a href="../tools/axesplanes.html"><b>Axes/Planes/Centroids</b></a> tool
+(which can also be used to define them) and can be used in
 <a href="distance.html"><b>distance</b></a> 
 and <a href="angle.html"><b>angle</b></a> measurements.
+An axis or plane object can also be used to
+<a href="view.html#initial">orient the view</a>.
 See also: 
 <a href="measure.html#inertia"><b>measure inertia</b></a>,
 <a href="shape.html"><b>shape</b></a>,
@@ -177,6 +181,19 @@ style="display:inline-block; vertical-align:middle"><tr>
 <td bgcolor="#909090" width="10px" title="#909090"></td></tr></table>).
 </blockquote>
 <blockquote>
+<b>id</b> &nbsp;<i>model-id</i>
+<br>
+Model identifier (model number, as shown in the
+<a href="../tools/modelpanel.html"><b>Model Panel</b></a>)
+to use for the object, if possible.
+If the same command generates multiple models or the <i>model-id</i>
+is already &ldquo;taken,&rdquo; submodel numbers will be used.
+If <i>model-id</i> is not specified, the object will be made a submodel
+of the atomic model used to define it, or if defined from atoms 
+in multiple models, assigned the lowest available top-level number.
+See also: <a href="rename.html"><b>rename</b></a>
+</blockquote>
+<blockquote>
 <b>radius</b> &nbsp;<i>r</i>
 <br>
 Object radius in &Aring;. Defaults:
@@ -217,9 +234,19 @@ with submodels <b>helix N</b> (or <b>chain ID helix N</b>),
 in turn containing submodels
 <b>primary</b>, <b>secondary</b>, <b>tertiary</b> as appropriate
 </ul>
+See also: <a href="rename.html"><b>rename</b></a>
+</blockquote>
+<blockquote>
+<a name="showTool"></a>
+<b>showTool</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
+<br>
+Whether to show the 
+<a href="../tools/axesplanes.html"><b>Axes/Planes/Centroids</b></a> tool,
+which lists the objects and allows modifying (name, color, <i>etc.</i>),
+deleting, or using them for measurements.
 </blockquote>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-November 2021</address>
+November 2023</address>
 </body></html>

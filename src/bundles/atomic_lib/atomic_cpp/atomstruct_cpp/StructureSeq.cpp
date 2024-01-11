@@ -2,14 +2,25 @@
 
 /*
  * === UCSF ChimeraX Copyright ===
- * Copyright 2016 Regents of the University of California.
- * All rights reserved.  This software provided pursuant to a
- * license agreement containing restrictions on its disclosure,
- * duplication and use.  For details see:
- * http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
- * This notice must be embedded in or attached to all copies,
- * including partial copies, of the software or any revisions
- * or derivations thereof.
+ * Copyright 2022 Regents of the University of California. All rights reserved.
+ * The ChimeraX application is provided pursuant to the ChimeraX license
+ * agreement, which covers academic and commercial uses. For more details, see
+ * <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+ *
+ * This particular file is part of the ChimeraX library. You can also
+ * redistribute and/or modify it under the terms of the GNU Lesser General
+ * Public License version 2.1 as published by the Free Software Foundation.
+ * For more details, see
+ * <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+ *
+ * THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+ * LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+ * VERSION 2.1
+ *
+ * This notice must be embedded in or attached to all copies, including partial
+ * copies, of the software or any revisions or derivations thereof.
  * === UCSF ChimeraX Copyright ===
  */
 
@@ -32,7 +43,7 @@ namespace atomstruct {
 
 StructureSeq::StructureSeq(const ChainID& chain_id, Structure* s, PolymerType pt):
     Sequence(std::string("chain ") + (chain_id == " " ? "(blank)" : chain_id.c_str())),
-    _chain_id(chain_id), _from_seqres(false), _polymer_type(pt), _structure(s)
+    _chain_id(chain_id), _from_seqres(false), _is_chain(false), _polymer_type(pt), _structure(s)
 {
     if (!s->lower_case_chains) {
         for (auto c: chain_id) {
@@ -104,7 +115,18 @@ StructureSeq::demote_to_sequence()
         _structure->change_tracker()->add_deleted(_structure, dynamic_cast<Chain*>(this));
     }
     _structure = nullptr;
-    Py_XDECREF(py_call_method("_cpp_demotion"));
+    Py_XDECREF(py_call_method("_cpp_seq_demotion"));
+    // let normal deletion processes clean up; don't explicitly delete here
+}
+
+void
+StructureSeq::demote_to_structure_sequence()
+{
+    if (is_chain()) {
+        _structure->change_tracker()->add_deleted(_structure, dynamic_cast<Chain*>(this));
+    }
+    _is_chain = false;
+    Py_XDECREF(py_call_method("_cpp_structure_seq_demotion"));
     // let normal deletion processes clean up; don't explicitly delete here
 }
 
@@ -160,7 +182,7 @@ StructureSeq::operator+=(StructureSeq& addition)
     }
     if (ischain) {
         _structure->remove_chain(dynamic_cast<Chain*>(&addition));
-        addition.demote_to_sequence();
+        addition.demote_to_structure_sequence();
         _structure->change_tracker()->add_modified(_structure, dynamic_cast<Chain*>(this),
             ChangeTracker::REASON_SEQUENCE, ChangeTracker::REASON_RESIDUES);
     }
@@ -305,9 +327,10 @@ StructureSeq::session_restore(int version, int** ints, float** floats)
     _from_seqres = int_ptr[0];
     auto res_map_size = int_ptr[1];
     auto residues_size = int_ptr[2];
-    if (version >= 10) {
+    if (version >= 10)
         _polymer_type = static_cast<PolymerType>(int_ptr[3]);
-    }
+    if (version >= 17)
+        _is_chain = int_ptr[4];
     int_ptr += SESSION_NUM_INTS(version);
 
     auto& residues = _structure->residues();
@@ -343,6 +366,7 @@ StructureSeq::session_save(int** ints, float** floats) const
     int_ptr[1] = _res_map.size();
     int_ptr[2] = _residues.size();
     int_ptr[3] = (int)_polymer_type;
+    int_ptr[4] = _is_chain;
     int_ptr += SESSION_NUM_INTS();
 
     auto& ses_res = *_structure->session_save_residues;

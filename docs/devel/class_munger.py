@@ -26,7 +26,11 @@ Replacements = [
     (r"\.ui\.cmd\b", ".ui"),
     (r"\.ui\.font\b", ".ui"),
     (r"\.ui\.mousemodes\b", ".ui"),
-    (r"\.ui\.widgets.htmlview\b", ".ui.widgets"),
+    (r"\.ui\.widgets\.htmlview\b", ".ui.widgets"),
+    (r"\.ui\.widgets\.item_chooser\b", ".ui.widgets"),
+    (r"\.ui\.widgets\.item_table\b", ".ui.widgets"),
+    (r"\.ui\.options\.options\b", ".ui.options"),
+    (r"\.ui\.options\.containers\b", ".ui.options"),
 
     # hide chimerax.atomic submodules
     (r"\.atomic\.molobject\b", ".atomic"),
@@ -91,8 +95,9 @@ class DoctreeNodeVisitor(GenericNodeVisitor):
         # for old, new in Replacements:
         #     text = text.replace(old, new)
         if text != orig_text:
+            rawsource = str(node).replace('\x00', '\\')
             from docutils.nodes import Text
-            node.parent.replace(node, Text(text, node.rawsource))
+            node.parent.replace(node, Text(text, rawsource))
 
     def default_visit(self, node):
         return

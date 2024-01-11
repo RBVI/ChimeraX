@@ -27,9 +27,10 @@ class InstanceGenerator:
     def __next__(self):
         return next(InstanceGenerator._instance_iterator)
 
+_instance_generator = InstanceGenerator()
 
 def make_instance_name(prefix="bp"):
-    return "".join([prefix, str(next(InstanceGenerator()))])
+    return "".join([prefix, str(next(_instance_generator))])
 
 
 class BlastParams(NamedTuple):

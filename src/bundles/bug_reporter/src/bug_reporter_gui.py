@@ -5,7 +5,7 @@
 # All rights reserved.  This software provided pursuant to a
 # license agreement containing restrictions on its disclosure,
 # duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
 # This notice must be embedded in or attached to all copies,
 # including partial copies, of the software or any revisions
 # or derivations thereof.
@@ -13,7 +13,7 @@
 
 BUG_HOST = "www.rbvi.ucsf.edu"
 BUG_SELECTOR = "/chimerax/cgi-bin/chimerax_bug_report.py"
-BUG_URL = "http://" + BUG_HOST + BUG_SELECTOR
+BUG_URL = "https://" + BUG_HOST + BUG_SELECTOR
 
 # -----------------------------------------------------------------------------
 # User interface for bug reporter.
@@ -110,17 +110,13 @@ class BugReporter(ToolInstance):
         gil.setAlignment(align_right)
         layout.addWidget(gil, row, 1)
         self.gathered_info = gi = TextEdit('', 3)
-        import sys
-        info = self.opengl_info()
+        info = opengl_info(self._ses)
+        import platform
+        info += f"\n\nPython: {platform.python_version()}\n"
         my_locale = [x for x in locale.getdefaultlocale() if x is not None]
-        info += f"\n\nLocale: {'.'.join(my_locale)}\n"
+        info += f"Locale: {'.'.join(my_locale)}\n"
         info += _qt_info(session)
-        if sys.platform == 'win32':
-            info += _win32_info()
-        elif sys.platform == 'linux':
-            info += _linux_info()
-        elif sys.platform == 'darwin':
-            info += _darwin_info()
+        info += system_summary()
         info += _package_info()
         gi.setText(info)
         layout.addWidget(gi, row, 2)
@@ -236,6 +232,8 @@ class BugReporter(ToolInstance):
 
         # Add attachment to form data.
         file_list = self.read_attachment(entry_values['filename'])
+        if file_list is None:
+            return	# Attachment file not found.
         fields = [(k, None, v) for k,v in my_attrs.items()]
         fields.extend(file_list)
 
@@ -314,7 +312,7 @@ class BugReporter(ToolInstance):
         
         oops = ("<font color=red><h3>Error while submitting feedback.</h3></font>"
                 + detail +
-                "<p>An error occured when trying to submit your feedback."
+                "<p>An error occurred when trying to submit your feedback."
                 "  No information was received by the Computer Graphics Lab."
                 "  This could be due to network problems, but more likely,"
                 " there is a problem with Computer Graphics Lab's server."
@@ -333,19 +331,6 @@ class BugReporter(ToolInstance):
         path,type = QFileDialog.getOpenFileName()
         if path:
             self.attachment.setText(path)
-
-    def opengl_info(self):
-        r = self._ses.main_view.render
-        try:
-            r.make_current()
-            lines = ['OpenGL version: ' + r.opengl_version(),
-                     'OpenGL renderer: ' + r.opengl_renderer(),
-                     'OpenGL vendor: ' + r.opengl_vendor()]
-            r.done_current()
-        except Exception:
-            lines = ['OpenGL version: unknown',
-                     'Could not make opengl context current']
-        return '\n'.join(lines)
 
     def chimerax_version(self):
         from chimerax.core.buildinfo import version, date
@@ -607,6 +592,30 @@ OS_LANGUAGES = {
     58380: "fr-015",
 }
 
+def opengl_info(session):
+    r = session.main_view.render
+    try:
+        r.make_current()
+        lines = ['OpenGL version: ' + r.opengl_version(),
+                 'OpenGL renderer: ' + r.opengl_renderer(),
+                 'OpenGL vendor: ' + r.opengl_vendor()]
+        r.done_current()
+    except Exception:
+        lines = ['OpenGL version: unknown',
+                 'Could not make opengl context current']
+    return '\n'.join(lines)
+
+def system_summary():
+    from sys import platform
+    if platform == 'win32':
+        info = _win32_info()
+    elif platform == 'linux':
+        info = _linux_info()
+    elif platform == 'darwin':
+        info = _darwin_info()
+    else:
+        info = ''
+    return info
 
 def _win32_info():
     try:
@@ -779,6 +788,7 @@ def _qt_info(session):
     import Qt
     return (
         f"Qt version: {Qt.version}\n"
+        f"Qt runtime version: {Qt.QtCore.qVersion()}\n"
         f"Qt platform: {session.ui.platformName()}\n"
     )
 

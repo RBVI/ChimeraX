@@ -3,22 +3,29 @@ TOP	= ../..
 include $(TOP)/mk/config.make
 
 # Using OpenMM builds from https://anaconda.org/conda-forge/openmm/files
-
-VERSION = 7.6.0
+VERSION = 8.0.0
 
 ifeq ($(OS),Darwin)
 PLATFORM = mac
-DISTRIBUTION = openmm-7.6.0-mac-py39h17f8b25_0_apple.tar.bz2
+ifeq ($(MACOS_ARCH),arm64)
+DISTRIBUTION = openmm-8.0.0-mac-py311h68ae2cc_1_apple.tar.bz2
+else
+DISTRIBUTION = openmm-8.0.0-mac-py311hf4819f2_1_apple.tar.bz2
+endif
+# Tristan Croll provided these optional Mac Metal libraries used with OpenMM platform HIP
+MAC_METAL_PLUGIN = openmm-8.0.0-mac-metal.tar.bz2
 endif
 ifeq ($(OS),Linux)
 PLATFORM = linux
 # The Linux distribution comes from Tristan Croll
-# compiled with the same compiler as ChimeraX.
-DISTRIBUTION = openmm-7.6.0-linux-py39_cuda112_1.tar.bz2
+# compiled Oct 31, 2022 with the same compiler as ChimeraX.
+# Using CUDA 11.2
+DISTRIBUTION = openmm-8.0.0-linux-py311_cuda112.tar.bz2
 endif
 ifeq ($(OS),Windows)
 PLATFORM = windows
-DISTRIBUTION = openmm-7.6.0-win-cuda11.2-py39h6dc0912_0.tar.bz2
+# Using CUDA 11.2
+DISTRIBUTION = openmm-8.0.0-win-py311h9957787_1.tar.bz2
 endif
 
 SOURCE = $(tmpdir)/OpenMM-$(VERSION)-$(PLATFORM)
@@ -54,7 +61,7 @@ ifeq ($(OS),Windows)
 	cd $(app_shlibdir); mv OpenMM*.lib libs/
 endif
 
-$(SOURCE): $(DISTRIBUTION)
+$(SOURCE): $(DISTRIBUTION) $(MAC_METAL_PLUGIN)
 	-mkdir $(SOURCE)
 	tar xf $(DISTRIBUTION) -C $(SOURCE)
 ifneq (,$(PATCHES))
@@ -69,12 +76,20 @@ ifeq ($(OS),Windows)
 	cd $(SOURCE)/Library/lib ; \
 	  chmod a+x *dll *.lib plugins/*.dll plugins/*.lib
 endif
+ifeq ($(OS),Darwin)
+	tar xf $(MAC_METAL_PLUGIN) -C $(SOURCE)/lib/plugins
+endif
 
 $(DISTRIBUTION):
 	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/openmm/$(DISTRIBUTION)
 
+ifeq ($(OS),Darwin)
+$(MAC_METAL_PLUGIN):
+	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/openmm/$(MAC_METAL_PLUGIN)
+endif
+
 upload_new_version:
-	$(RSYNC) $(DISTRIBUTION) $(PREREQS_UPLOAD)/openmm
+	$(RSYNC) $(DISTRIBUTION) $(MAC_METAL_PLUGIN) $(PREREQS_UPLOAD)/openmm
 
 clean:
-	rm -rf $(SOURCE)
+	rm -rf $(SOURCE) $(DISTRIBUTION)

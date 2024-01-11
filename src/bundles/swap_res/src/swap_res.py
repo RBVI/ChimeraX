@@ -1,14 +1,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.core.errors import LimitationError, UserError
@@ -44,7 +55,7 @@ def swap_aa(session, residues, res_type, *, bfactor=None, clash_hbond_allowance=
                     raise LimitationError("%s rotamer library does not support %s" %(rot_lib, r_type))
                 except NoResidueRotamersError:
                     if log:
-                        session.logger.info("Swapping %s to %s\n" % (res, r_type))
+                        session.logger.info("Swapping %s to %s" % (res, r_type))
                     try:
                         template_swap_res(res, r_type, bfactor=bfactor)
                     except TemplateSwapError as e:
@@ -184,6 +195,14 @@ def swap_aa(session, residues, res_type, *, bfactor=None, clash_hbond_allowance=
     for rot in destroy_list:
         rot.delete()
 
+def swap_na(session, residues, res_type, *, bfactor=None, preserve=False):
+    """backend implementation of "swapna" command."""
+    for res in residues:
+        try:
+            template_swap_res(res, res_type, bfactor=bfactor, preserve=preserve)
+        except TemplateSwapError as e:
+            raise UserError(str(e))
+
 def get_rotamers(session, res, phi=None, psi=None, cis=False, res_type=None, rot_lib="Dunbrack", log=False):
     """Takes a Residue instance and optionally phi/psi angles (if different from the Residue), residue
        type (e.g. "TYR"), and/or rotamer library name.  Returns a list of AtomicStructure instances (sublass of
@@ -222,10 +241,11 @@ def get_rotamers(session, res, phi=None, psi=None, cis=False, res_type=None, rot
                 al_info = ""
             session.logger.info("%s%s: phi %s, psi %s %s" % (res, al_info, _info(phi), _info(psi),
                 "cis" if cis else "trans"))
-    session.logger.status("Retrieving rotamers from %s library" % rot_lib.display_name)
+    ui_name = session.rotamers.ui_name(rot_lib.name)
+    session.logger.status("Retrieving rotamers from %s library" % ui_name)
     res_template_func = rot_lib.res_template_func
     params = rot_lib.rotamer_params(res_type, phi, psi, cis=cis)
-    session.logger.status("Rotamers retrieved from %s library" % rot_lib.display_name)
+    session.logger.status("Rotamers retrieved from %s library" % ui_name)
 
     mapped_res_type = rot_lib.res_name_mapping.get(res_type, res_type)
     template = rot_lib.res_template_func(mapped_res_type)
@@ -530,10 +550,12 @@ def get_res_info(res):
             raise BackboneError(errmsg)
     return (list(fixed), final_bud, start, end)
 
+name_correction = { 'O1P': 'OP1', 'O2P': 'OP2' }
+
 def form_dihedral(res_bud, real1, tmpl_res, a, b, pos=None, dihed=None):
     from chimerax.atomic.struct_edit import add_atom, add_dihedral_atom
     res = res_bud.residue
-    if pos:
+    if pos is not None:
         return add_atom(a.name, a.element, res, pos, info_from=real1)
     # use neighbors of res_bud rather than real1 to avoid clashes with
     # other res_bud neighbors in case bond to real1 neighbor freely rotates
@@ -547,7 +569,8 @@ def form_dihedral(res_bud, real1, tmpl_res, a, b, pos=None, dihed=None):
         real2 = res.find_atom("O4'")
     else:
         real2 = inres[0]
-    xyz0, xyz1, xyz2 = [tmpl_res.find_atom(a.name).coord for a in (res_bud, real1, real2)]
+    xyz0, xyz1, xyz2 = [tmpl_res.find_atom(name_correction.get(a.name, a.name)).coord
+        for a in (res_bud, real1, real2)]
 
     xyz = a.coord
     blen = b.length

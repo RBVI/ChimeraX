@@ -10,6 +10,7 @@
 # including partial copies, of the software or any revisions
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
+__version__ = "2.1.2"
 
 from chimerax.core.toolshed import BundleAPI
 
@@ -31,6 +32,7 @@ class _MyAPI(BundleAPI):
             'BlastProteinTool': BlastProteinTool
             , 'BlastProteinResults': BlastProteinResults
             , 'ToolUI': BlastProteinResults
+            , 'BlastProteinJob': BlastProteinJob
         }
         return class_names.get(class_name, None)
 

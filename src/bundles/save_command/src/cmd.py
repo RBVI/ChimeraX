@@ -1,14 +1,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.core.commands import CmdDesc, register, Command, SaveFileNameArg, RestOfLine, next_token, \
@@ -35,7 +46,7 @@ def cmd_save(session, file_name, rest_of_line, *, log=True):
     try:
         from .manager import NoSaverError, SaverNotInstalledError
         mgr = session.save_command
-        data_format = file_format(session, file_name, format_name)
+        data_format = file_format(session, file_name, format_name, True, False)
         try:
             provider_args = mgr.save_args(data_format)
         except SaverNotInstalledError as e:
@@ -76,14 +87,15 @@ def cmd_save(session, file_name, rest_of_line, *, log=True):
 
 def provider_save(session, file_name, format=None, **provider_kw):
     mgr = session.save_command
-    data_format = file_format(session, file_name, format)
+    data_format = file_format(session, file_name, format, False, True)
     provider_info = mgr.provider_info(data_format)
     path = _get_path(file_name, provider_info.compression_okay)
 
     # TODO: The following line does a graphics update so that if the save command is
     # exporting data in a script (e.g. scene export) the graphics is up to date.  Does
     # not seem like the ideal solution to put this update here.
-    session.update_loop.update_graphics_now()
+    if data_format.category == "Generic 3D objects":
+        session.update_loop.update_graphics_now()
     try:
         saver_info = provider_info.bundle_info.run_provider(session, provider_info.format_name, mgr)
         saver_info.save(session, path, **provider_kw)
@@ -118,7 +130,7 @@ def _get_path(file_name, compression_okay):
                 " '%s' implies compression" % file_name)
     return expanded
 
-def file_format(session, file_name, format_name):
+def file_format(session, file_name, format_name, clear_before, clear_after):
     if format_name:
         try:
             return session.data_formats[format_name]
@@ -127,7 +139,8 @@ def file_format(session, file_name, format_name):
 
     from chimerax.data_formats import NoFormatError
     try:
-        return session.data_formats.save_format_from_file_name(file_name)
+        return session.data_formats.save_format_from_file_name(file_name, clear_cache_before=clear_before,
+            cache_user_responses=True, clear_cache_after=clear_after)
     except NoFormatError as e:
         raise UserError(str(e))
 

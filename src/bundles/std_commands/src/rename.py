@@ -1,14 +1,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 def rename(session, models, name = None, id = None):
@@ -30,6 +41,7 @@ def rename(session, models, name = None, id = None):
             m.name = name
 
     if id is not None and models:
+        _prevent_overlay_rename(models, id)
         nname = 'group' if name is None else name
         change_model_id(session, models, id, new_name = nname)
 
@@ -77,7 +89,27 @@ def _find_model(session, id, create = False, new_name = 'group'):
         p = None
 
     return p
-    
+
+def _prevent_overlay_rename(models, id):
+    overlays = [m for m in models if not _is_scene_model(m)]
+    if overlays:
+        oids = ', '.join(str(m) for m in overlays)
+        from chimerax.core.errors import UserError
+        raise UserError('Cannot change id of 2D overlay models (%s)' % oids)
+    if models:
+        session = models[0].session
+        if [m for m in session.models.list(model_id = id[:1]) if not _is_scene_model(m)]:
+            did = '.'.join(str(i) for i in id)
+            from chimerax.core.errors import UserError
+            raise UserError('Cannot place models under an overlay models (#%s)' % did)
+
+def _is_scene_model(model):
+    if model is None:
+        return False
+    if model is model.session.models.scene_root_model:
+        return True
+    return _is_scene_model(model.parent)
+
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register, TopModelsArg, StringArg, ModelIdArg
     desc = CmdDesc(required=[('models', TopModelsArg)],

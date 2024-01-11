@@ -35,7 +35,9 @@ See also:
 <a href="modelloops.html"><b>Model Loops</b></a>,
 <a href="rotamers.html"><b>Rotamers</b></a>,
 <a href="buildstructure.html"><b>Build Structure</b></a>,
-<a href="alphafold.html"><b>AlphaFold</b></a>
+<a href="alphafold.html"><b>AlphaFold</b></a>,
+<a href="taskmanager.html"><b>Task Manager</b></a>,
+<a href="../commands/esmfold.html"><b>esmfold</b></a>
 </p><p>
 Comparative modeling (sometimes called &ldquo;homology modeling&rdquo;)
 generates theoretical models of a protein using one or more known related 
@@ -87,11 +89,13 @@ sequence to <a href="sequenceviewer.html#association">associate</a> with it
 (see an
 <a href="https://www.rbvi.ucsf.edu/chimerax/features.html#multichain-modeller"
 target="_blank">example</a>).
+Otherwise, it can be used as a query to search the PDB for possible template 
+structures using <a href="blastprotein.html"><b>Blast Protein</b></a>
+(which can be started from the 
+<a href="sequenceviewer.html#context"><b>Sequence Viewer</b> context menu</a>).
 Alternatively, a multiple sequence alignment of the target and template(s)
-can be opened from a <a href="../commands/open.html#sequence">file</a>,
-if available, or obtained by using the
-<a href="../commands/blastprotein.html"><b>blastprotein</b></a>
-command to search for templates with the target sequence as a query.
+can simply be opened from a <a href="../commands/open.html#sequence">file</a>,
+if available.
 </td></tr></table>
 </blockquote>
 <blockquote>
@@ -131,11 +135,10 @@ target="_blank">Modeller licensing</a>.
 <p>
 The <b>Modeller Comparative</b> tool
 can be opened from the <b>Sequence</b> or <b>Structure Prediction</b>
-section of the <b>Tools</b> menu and manipulated like other panels
-(<a href="../window.html#panels">more...</a>).
-It is also implemented as the 
-<a href="../commands/modeller.html#comparative"><b>modeller comparative</b></a>
-command.
+section of the <b>Tools</b> menu and can be manipulated like other panels
+(<a href="../window.html#panels">more...</a>). 
+It can also be started from the
+<a href="sequenceviewer.html#context"><b>Sequence Viewer</b> context menu</a>.
 </p><p>
 One sequence alignment per target should be chosen (highlighted) 
 in the top section of the dialog. Immediately below, for each chosen alignment,
@@ -229,10 +232,10 @@ refinement) with <a href="../commands/matchmaker.html"><b>matchmaker</b></a>.
 Scores for the models are shown in a <b>Modeller Results</b> panel:
 </p>
 <ul>
-<li><b>Model</b> - model ID number
+<li><b>Model</b> &ndash; model ID number
 <li>
 <a href="https://modbase.compbio.ucsf.edu/modbase-cgi/display.cgi?type=help&server=modbase#model_score"
-target="_blank"><b>GA341</b></a> -
+target="_blank"><b>GA341</b></a> &ndash;
 model score derived from statistical potentials
 (see
 <a href="https://www.ncbi.nlm.nih.gov/pubmed/11790853" target="_blank">Melo
@@ -307,5 +310,5 @@ after making modifications that are expected to improve the scores.
 </p>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-November 2021</address>
+September 2023</address>
 </body></html>

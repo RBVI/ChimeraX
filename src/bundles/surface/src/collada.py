@@ -9,11 +9,18 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def read_collada_surfaces(session, path, name = None, color = (200,200,200,255), **kw):
+def read_collada_surfaces(session, path_or_stream, name = None, color = (200,200,200,255), **kw):
     '''Open a collada file.'''
 
     from collada import Collada
-    c = Collada(path)
+    if hasattr(path_or_stream, 'read'):
+        stream = path_or_stream
+        path = stream.name
+        c = Collada(stream)
+    else:
+        path = path_or_stream
+        c = Collada(path)
+
     if name is None:
         from os.path import basename
         name = basename(path)
@@ -100,6 +107,7 @@ def geometry_node_surfaces(primitives, place, color, materials, colors, session)
         name = '%d' % (len(splist) + 1)
         from chimerax.core.models import Surface
         sp = Surface(name, session)
+        sp.SESSION_SAVE_DRAWING = True	# Save triangles in .cxs session files
         sp.set_geometry(v, vn, t)
         sp.color_list = [c]
         sp.position_list = [place]

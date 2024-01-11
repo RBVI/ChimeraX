@@ -35,16 +35,24 @@ In general, a <b><i>point-spec</i></b> can be:
 </p>
 <ul>
 <li><i>x,y,z</i> (three values separated by commas only) 
-&ndash; an arbitrary point,
-interpreted in <a href="view.html#scenecoords">scene coordinates</a>
-unless a different <b>coordinateSystem</b> is given
-<li>an <a href="atomspec.html"><i>atom-spec</i></a> 
-&ndash; the center of the bounding box of the specified items
+&ndash; an arbitrary point
+<li>a <a href="atomspec.html"><i>specification</i></a> 
+of atoms, residues, and/or models open in ChimeraX
+&ndash; the center of the bounding box of the specified items.
+A map's bounding box encloses its contour surface (if the map is in the
+<b>surface</b> or <b>mesh</b> <a href="volume.html#style">display style</a>)
+or its entire grid (when the <b>image</b> or &ldquo;volume&rdquo;
+<a href="volume.html#style">display style</a> is used).
 <li><b>cofr</b>
 &ndash; the current <a href="cofr.html">center of rotation</a>
 <li><b>camera</b>
 &ndash; the viewer position
 </ul>
+<p>
+The default <b>coordinateSystem</b> for interpreting point specifications
+varies by command, and could be that of a specific data model or the
+<a href="view.html#scenecoords">scene coordinates</a>.
+</p>
 <a name="vector"></a>
 <p>
 In general, a <b><i>vector-spec</i></b> can be:
@@ -82,5 +90,5 @@ See also:
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-November 2021</address>
+March 2022</address>
 </body></html>

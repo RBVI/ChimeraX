@@ -58,6 +58,7 @@ The buried SASA is calculated as described for
 and results are reported in the <a href="../tools/log.html"><b>Log</b></a>.
 </p><p>
 See also:
+<a href="../selectcontacts.html"><b>Select Contacts</b></a>,
 <a href="clashes.html"><b>clashes</b>/<b>contacts</b></a>,
 <a href="crystalcontacts.html"><b>crystalcontacts</b></a>,
 <a href="measure.html#buriedarea"><b>measure buriedarea</b></a>,
@@ -169,6 +170,12 @@ geometric centers of the two sets of
 (including repulsion to prevent node overlaps in the diagram)
 <li><b>Orient Structure to Match Layout</b>
 &ndash; rotate the structure to an orientation similar to the 2D diagram
+<li><a name="saveplot"></a><b>Save Plot As...</b>
+save the plot window contents as PNG, PDF, or SVG,
+using parameters of the matplotlib 
+<a href="https://matplotlib.org/stable/api/figure_api.html#matplotlib.figure.Figure.savefig" target="_blank">Figure.save_fig() method</a>:
+resolution 300 dpi (if PNG or PDF) and border padding 0.1 inch. Currently,
+there is no command for saving the plot and no way to change these parameters.
 </ul>
 <p>
 <a name="nodemenu"></a>
@@ -202,6 +209,8 @@ of the corresponding chain
 &ndash; move chains apart to separate the interfaces
 <li><b>Unexplode Neighbors of [<i>chain</i>]</b>
 &ndash; move chains back together
+<li><a name="saveplot"></a><b>Save Plot As...</b>
+as <a href="#saveplot">above</a>
 </ul>
 <p>
 <a name="edgemenu"></a>
@@ -258,6 +267,8 @@ of <i>chain2</i>
 &ndash; move chains apart to separate the interfaces
 <li><b>Unexplode [<i>chain1</i>] and [<i>chain2</i>]</b>
 &ndash; move chains back together
+<li><a name="saveplot"></a><b>Save Plot As...</b>
+as <a href="#saveplot">above</a>
 </ul>
 
 <a name="residue-plot"></a>
@@ -296,9 +307,11 @@ light gray; orient view to face the second chain, shown as spheres
 <li><b>Select Residue</b> (in residue context menu)
 &ndash; <a href="../selection.html">select</a> 
 the corresponding residue in the structure
+<li><a name="saveplot"></a><b>Save Plot As...</b>
+as <a href="#saveplot">above</a>
 </ul>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-September 2021</address>
+May 2022</address>
 </body></html>

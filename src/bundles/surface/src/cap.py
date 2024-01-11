@@ -20,7 +20,7 @@ def update_clip_caps(view):
     #  in chimerax bug #2751.  Need a reliable mechanism to detect clipping changes.
     update = (cp.changed or
               (planes and
-               (view.shape_changed or
+               (view.recalculate_clip_caps or
                 (view.camera.redraw_needed and cp.have_camera_plane()))))
     # TODO: Update caps only on specific drawings whose shape changed.
     if update:
@@ -29,6 +29,7 @@ def update_clip_caps(view):
                                offset = settings.clipping_cap_offset,
                                subdivision = settings.clipping_cap_subdivision,
                                cap_meshes = settings.clipping_cap_on_mesh)
+        view.recalculated_clip_caps()
 
 def show_surface_clip_caps(planes, drawings, offset = 0.01, subdivision = 0.0, cap_meshes = False):
     for p in planes:
@@ -179,7 +180,6 @@ def set_cap_drawing_geometry(drawing, plane_name, varray, narray, tarray):
         if np == 1:
             cm = _new_cap(d, plane_name)
         else:
-            
             cm = _new_cap(d, plane_name, parent = _parent_above_instances(d))
             cm.pickable = False	  # Don't want pick of one cap to pick all instance caps.
 
@@ -201,7 +201,7 @@ def _new_cap(drawing, plane_name, parent = None):
         parent.add([c])
     else:
         # Cap is on a Drawing that is not a Model
-        c = ClipCapDrawing(cap_name)
+        c = ClipCapDrawing(plane_name, drawing)
         c.name = cap_name
         parent.add_drawing(c)
     
@@ -240,7 +240,10 @@ class ClipCap(Surface):
 
     @staticmethod
     def restore_snapshot(session, data):
-        c = ClipCap(data['clip_plane_name'], data['clip_cap_owner'])
+        drawing = data['clip_cap_owner']
+        if drawing is None:
+            return None	# Volume surface was not restored, so cannot restore cap.
+        c = ClipCap(data['clip_plane_name'], drawing)
         Surface.set_state_from_snapshot(c, session, data['model state'])
         return c
 

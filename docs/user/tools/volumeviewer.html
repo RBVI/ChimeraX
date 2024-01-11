@@ -54,6 +54,7 @@ See also:
 <a href="segment.html"><b>Segment Map</b></a>,
 <a href="fitsegments.html"><b>Fit to Segments</b></a>,
 <a href="maperaser.html"><b>Map Eraser</b></a>,
+<a href="mapfilter.html"><b>Map Filter</b></a>,
 <a href="measureblobs.html"><b>Measure and Color Blobs</b></a>,
 <a href="measurevolume.html"><b>Measure Volume and Area</b></a>,
 <a href="mapstats.html"><b>Map Statistics</b></a>,
@@ -64,6 +65,7 @@ See also:
 <a href="../commands/show.html"><b>show</b></a>,
 <a href="../commands/color.html"><b>color</b></a>,
 <a href="../commands/transparency.html"><b>transparency</b></a>,
+<a href="../commands/topography.html"><b>topography</b></a>,
 <a href="../commands/vseries.html"><b>vseries</b></a>,
 <a href="../commands/molmap.html"><b>molmap</b></a>,
 <a href="../commands/surface.html#sop"><b>surface</b> operations</a>,
@@ -76,17 +78,27 @@ from the <b>Volume Data</b> section of the <b>Tools</b> menu.
 The <b>Volume Viewer</b> window can be manipulated
 like other panels in ChimeraX (<a href="../window.html#panels">more...</a>).
 </p><p>
-By default, a data set will be displayed automatically if it does not
-exceed a certain size
-(<a href="../commands/volume.html"><b>volume</b></a> command option
-<a href="../commands/volume.html#dispopen"><b>showOnOpen</b></a>), 
-although it may be subsampled
-(<a href="../commands/volume.html"><b>volume</b></a> command option
-<a href="../commands/volume.html#autostep"><b>limitVoxelCount</b></a>).
+<a name="initial-display"></a>
+By default, a data set will be displayed automatically if it does not exceed
+a certain size, and the initial display may be as an isosurface or as a 
+single plane (<a href="../commands/volume.html#sampling">details...</a>).
+Many settings for newly opened data, including the size limits 
+controlling these behaviors, can be customized with the
+<a href="../commands/volume.html#defaultvalues"><b>volume defaultvalues</b></a>
+command.
+The <a href="../commands/volume.html#settings"><b>volume settings</b></a>
+command reports current display settings and other volume model properties
+in the <a href="log.html"><b>Log</b></a>.
+</p><p>
+The initial contour level of an isosurface is set to enclose 1% of grid points,
+except for maps opened by <a href="../commands/open.html#fetch">EMDB fetch</a>,
+which will be shown at the depositor-recommended contour level, if any.
+For single-plane display, the middle plane along Z is shown initially with a
+linear ramp in grayscale from the 10th (black) to 99th (white) percentile 
+of values. 
 </p><p>
 A histogram of values with moveable <a href="#threshold">thresholds</a>
-(contour levels) is shown for each data set.
-Above the histogram are:
+(contour levels) is shown for each data set. Above the histogram are:
 </p>
 <ul>
 <li>the model name 
@@ -143,7 +155,8 @@ is set to <b>move planes</b>
     <img class="icon" border=1 src="mouse-icons/moveplanes.png"></a>
   <li><b>box</b>
 &ndash; image style,
- <a href="../commands/volume.html#boxfaces">orthoplanes as six box faces</a>;
+<a href="../commands/volume.html#boxfaces">box faces</a>
+of the current <a href="#region">display region</a>;
 the right-button <a href="../commands/ui.html#mousemode">mouse mode</a>
 is set to <b>crop volume</b> 
 <a href="mousemodes.html" title="Mouse Modes for Right Button...">
@@ -206,8 +219,6 @@ or by dragging in the graphics window with the
 or <b>windowing</b> <a href="mousemodes.html#multiwindowing" 
 title="Mouse Modes for Right Button...">
 <img class="icon" border=1 src="mouse-icons/windowing.png"></a>.
-The <a href="../commands/volume.html#settings"><b>volume settings</b></a>
-command reports the current threshold levels.
 </p>
 <blockquote>
 For the <b>surface</b> or <b>mesh</b> style:<br>
@@ -310,5 +321,5 @@ target="_blank">ChimeraX light microscopy highlight</a>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-June 2021</address>
+January 2024</address>
 </body></html>

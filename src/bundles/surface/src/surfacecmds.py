@@ -1,14 +1,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 # -------------------------------------------------------------------------------------
@@ -68,7 +79,7 @@ def surface(session, atoms = None, enclose = None, include = None,
                                ' not both, ignoring probeRadius')
         
     from chimerax.atomic.molsurf import MolecularSurface, remove_solvent_ligands_ions
-    from chimerax.atomic.molsurf import surface_rgba, update_color, surfaces_overlapping_atoms
+    from chimerax.atomic.molsurf import surface_initial_color, update_color, surfaces_overlapping_atoms
 
     if replace:
         all_surfs = dict((s.atoms.hash(), s) for s in session.models.list(type = MolecularSurface))
@@ -114,7 +125,7 @@ def surface(session, atoms = None, enclose = None, include = None,
             if s is None:
                 stype = 'SES' if resolution is None else 'Gaussian'
                 name = '%s_%s %s surface' % (m.name, chain_id, stype)
-                rgba = surface_rgba(color, transparency, chain_id)
+                rgba = surface_initial_color(color, transparency, enclose_atoms)
                 s = MolecularSurface(session, enclose_atoms, show_atoms,
                                      probe, grid, resolution, level,
                                      name, rgba, visible_patches, sharp)
@@ -135,7 +146,7 @@ def surface(session, atoms = None, enclose = None, include = None,
             mols = enclose.unique_structures
             parent = mols[0] if len(mols) == 1 else None
             name = 'Surface %s' % enclose.spec
-            rgba = surface_rgba(color, transparency)
+            rgba = surface_initial_color(color, transparency, enclose_atoms)
             s = MolecularSurface(session, enclose_atoms, show_atoms,
                                  probe, grid, resolution, level,
                                  name, rgba, visible_patches, sharp)

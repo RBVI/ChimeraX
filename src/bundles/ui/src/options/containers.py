@@ -61,6 +61,7 @@ class OptionsPanel(QWidget):
             self._form.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.ExpandingFieldsGrow)
             self._form.setVerticalSpacing(1)
         # None of the below seem to have an effect on the Mac...
+        # As per the setLabelAlignment docs, can only adjust horizontal alignment
         #self._form.setLabelAlignment(Qt.AlignRight | Qt.AlignVCenter)
         #self._form.setFormAlignment(Qt.AlignLeft | Qt.AlignVCenter)
         # if we wanted to force the form contents to upper left...
@@ -80,7 +81,8 @@ class OptionsPanel(QWidget):
             insert_row = len(self._options)
         else:
             if self._sorting is True:
-                test = lambda o1, o2: o1.name < o2.name
+                convolve = lambda name: [c if c.isalnum() else ' ' for c in name]
+                test = lambda o1, o2, convolve=convolve: convolve(o1.name) < convolve(o2.name)
             else:
                 test = lambda o1, o2: self._sorting(o1) < self._sorting(o2)
             for insert_row in range(len(self._options)):
@@ -97,6 +99,8 @@ class OptionsPanel(QWidget):
             label_widget.setOpenExternalLinks(True)
             if option.balloon:
                 label_widget.setToolTip(option.balloon)
+                if hasattr(option.widget, 'setToolTip'):
+                    option.widget.setToolTip(option.balloon)
 
     def add_option_group(self, group_label=None, checked=None, group_alignment=None, **kw):
         if group_label is None:
@@ -116,12 +120,23 @@ class OptionsPanel(QWidget):
     def change_label_for_option(self, option, new_label):
         self._form.labelForField(option.widget).setText(new_label)
 
+    def hide_option(self, option):
+        return self.set_option_shown(option, False)
+
     def options(self):
         all_options = self._options[:]
         for grp in self._option_groups:
             # an option group can have further subgroups, so call options()
             all_options.extend(grp.options())
         return all_options
+
+    def set_option_shown(self, option, shown, *, _missing_okay=False):
+        if isinstance(self._form, _MultiColumnFormLayout):
+            return self._form.set_option_shown(option, shown, _missing_okay)
+        return _form_set_shown(self._form, option, shown, missing_okay=_missing_okay)
+
+    def show_option(self, option):
+        return self.set_option_shown(option, True)
 
     def sizeHint(self):
         from Qt.QtCore import QSize
@@ -186,6 +201,9 @@ class CategorizedOptionsPanel(QTabWidget):
     def current_category(self):
         return self.tabText(self.currentIndex())
 
+    def hide_option(self, option):
+        return self.set_option_shown(option, False)
+
     def set_current_category(self, category):
         category = category.casefold()
         for index in range(self.count()):
@@ -195,8 +213,20 @@ class CategorizedOptionsPanel(QTabWidget):
         else:
             raise ValueError("category not found")
 
+    def set_option_shown(self, option, shown):
+        for panel in self._category_to_panel.values():
+            if panel.set_option_shown(option, shown, _missing_okay=True):
+                return
+        raise ValueError("'%s' option not found in container" % option.name)
+
+    def show_option(self, option):
+        return self.set_option_shown(option, True)
+
     def options(self, category):
         return self._category_to_panel[category].options()
+
+    def show_option(self, option, *, missing_okay=False):
+        return self.set_option_shown(option, True, missing_okay=missing_okay)
 
 class SettingsPanelBase(QWidget):
     def __init__(self, parent, option_sorting, multicategory,
@@ -252,8 +282,17 @@ class SettingsPanelBase(QWidget):
 
         self.setLayout(layout)
 
+    def hide_option(self, option):
+        return self.set_option_shown(option, False)
+
+    def set_option_shown(self, option, shown):
+        self.options_panel.set_option_shown(option, shown)
+
     def show_category(self, category):
         self.options_panel.set_current_category(category)
+
+    def show_option(self, option):
+        return self.set_option_shown(option, True)
 
     def _get_actionable_options(self):
         if self.multicategory:
@@ -377,6 +416,14 @@ class _MultiColumnFormLayout(QHBoxLayout):
             setattr(self, qform_attr,
                 lambda *args, qf_attr=qform_attr, **kw: call_subattr(qf_attr, *args, **kw))
 
+    def set_option_shown(self, option, shown, missing_okay):
+        for qform in self._layouts:
+            if _form_set_shown(qform, option, True, shown, missing_okay=missing_okay):
+                return True
+        if not missing_okay:
+            raise ValueError("'%s' option not found in container" % option.name)
+        return False
+
     def insertRow(self, insert_row, name, widget):
         num_widgets = sum([layout.rowCount() for layout in self._layouts]) + 1
         min_per_col = int(num_widgets / len(self._layouts))
@@ -440,3 +487,12 @@ class _MultiColumnFormLayout(QHBoxLayout):
         xfer_label, xfer_widget = row_contents.labelItem.widget(), row_contents.fieldItem.widget()
         next_layout.insertRow(0, xfer_label, xfer_widget)
 
+def _form_set_shown(form, option, shown, *, missing_okay=False):
+    index = form.indexOf(option.widget)
+    if index == -1:
+        if not missing_okay:
+            raise ValueError("'%s' option not in container" % option.name)
+        return False
+    form.itemAt(index-1).widget().setHidden(not shown)
+    option.widget.setHidden(not shown)
+    return True

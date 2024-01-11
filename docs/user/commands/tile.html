@@ -43,6 +43,15 @@ class="clRight" title="User Guide Index"/></a>
 The <b>tile</b> command spreads models out into a plane (XY grid arrangement), 
 keeping their current orientations, and assigns the left mouse button
 to <a href="ui.html#independent">independent rotation</a>.
+If independent rotation gets turned off (<i>e.g.</i>, when tiled
+models are restored from a <a href="save.html#session">session</a>),
+it can be reactivated with command:
+</p>
+<blockquote><b>
+<a href="ui.html#mousemode">mousemode</a> left
+"<a href="ui.html#independent">rotate independent</a>"
+</b></blockquote>
+<p>
 The command <b>tile off</b> or <b>~tile</b> puts the models back together
 and assigns the left mouse button to standard (collective)
 <a href="ui.html#functions">rotation</a>.
@@ -52,7 +61,8 @@ See also:
 <a href="view.html"><b>view</b></a>,
 <a href="matchmaker.html"><b>matchmaker</b></a>,
 <a href="align.html"><b>align</b></a>,
-<a href="volume.html#tile"><b>volume tile</b></a>
+<a href="volume.html#tile"><b>volume tile</b></a>,
+<a href="turn.html#independent-rotation">scripting independent rotation</a>
 </p><p>
 Models that are not displayed will be ignored.
 The <b>columns</b> keyword specifies arranging the models 
@@ -71,5 +81,5 @@ like using the <a href="view.html"><b>view</b></a> command without arguments.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-January 2022</address>
+November 2022</address>
 </body></html>

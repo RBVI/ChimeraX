@@ -11,9 +11,11 @@ import chimerax
 blacklist = set([
     "chimerax.add_charge.process_lib",  # creates data.py
     "chimerax.alignment_algs.libalign_algs",  # non-importable dynamic lib
-    "chimerax.alphafold.alphafold_predict_colab",  # IPython notebook with syntax magic
+    "chimerax.alphafold.alphafold_predict_colab",    # IPython notebook with syntax magic
     "chimerax.alphafold.alphafold21_predict_colab",  # IPython notebook with syntax magic
-    "chimerax.alphafold.fix_seq_titles",
+    "chimerax.alphafold.alphafold22_predict_colab",  # IPython notebook with syntax magic
+    "chimerax.alphafold.colabfold_predict",          # IPython notebook with syntax magic
+    "chimerax.alphafold.fix_seq_titles",	# Alphafold database processing script.
     "chimerax.atomic.libmolc",  # non-importable dynamic lib
     "chimerax.atomic.md_crds.dcd.MDToolsMarch97.md_tests",  # test code
     "chimerax.build_structure.process",  # processes Chimera fragment files
@@ -36,7 +38,8 @@ blacklist = set([
     "chimerax.segger.segloop_dialog",
     "chimerax.structcomp",  # ChimeraX command script
     "chimerax.surface.geodesic", # development script
-    "chimerax.webcam.webcam",	# Needs to fix for Qt 6 missing QAbstractVideoSurface
+    "chimerax.webcam.camera",		# Uses QVideoSink only in Qt6
+    "chimerax.webcam.camera_qt5",	# Uses QAbstractVideoSurface only in Qt5
 ])
 
 failed = 0

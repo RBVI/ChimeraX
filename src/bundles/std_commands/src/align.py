@@ -1,14 +1,25 @@
 # vim: set expandtab ts=4 sw=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.core.errors import UserError
@@ -134,7 +145,7 @@ def align_atoms(patoms, pto_atoms, xyz_to, cutoff_distance,
             ' (across all %d pairs: %.3f)' % (np, rmsd, len(patoms), full_rmsd)
 
     if report_matrix and log:
-        log.info(matrix_text(tf, atoms, to_atoms))
+        log.info(matrix_text(tf, atoms.structures[0]))
 
     if log:
         log.status(msg, log=True)
@@ -262,9 +273,8 @@ def sequence_alignment_pairing(atoms, to_atoms, seq_name):
     pa, pra = atoms.subset(ai), to_atoms.subset(rai)
     return pa, pra
 
-def matrix_text(tf, atoms, to_atoms):
+def matrix_text(tf, m):
 
-    m = atoms.structures[0]
     mp = m.position
     mtf = mp.inverse() * tf * mp
     msg = ('Alignment matrix in structure %s coordinates\n%s' % (m.name, mtf.description()))

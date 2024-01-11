@@ -1,18 +1,34 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
+import os
+import re
+
+from xml.dom.minidom import parse
+
 from chimerax.core.tasks import Job
 from chimerax.core.session import State
-from chimerax.webservices.opal_job import OpalJob
+from chimerax.webservices.cxservices_job import CxServicesJob
 
 class ModelingError(ValueError):
     pass
@@ -333,6 +349,35 @@ def _process_dist_restraints(filename):
     # concatenate and return output code:
     return headcode + maincode
 
+class ModellerXMLConfig:
+    def __init__(self, xmlFilename):
+        self.__doc = parse(xmlFilename)
+
+    def __getitem__(self, key):
+        el = self.__doc.getElementsByTagName(key)
+        values = []
+        if len(el) == 0:
+            # make it downgrade compatiable
+            if key == "loopRefin":
+                return "0"
+            else:
+                raise KeyError(key)
+            values = [ self.extractText(e) for e in el ]
+        if len(values) == 1:
+            return values[0]
+        else:
+            return values
+
+    def extractText(self, node):
+        from xml.dom.minidom import Node
+        textTypes = (Node.TEXT_NODE, Node.CDATA_SECTION_NODE)
+        text = []
+        for n in node.childNodes:
+            if n.nodeType in textTypes:
+                text.append(n.data)
+            else:
+                text.append(self.extractText(n))
+        return ''.join(text)
 
 class RunModeller(State):
 
@@ -407,6 +452,8 @@ class RunModeller(State):
 
         reset_alignments = []
         for alignment, target_seq in self.targets:
+            # allow chain lists, etc., to update before sending notifications [#10410]
+            alignment.suspend_notify_observers()
             alignment.associate(models, seq=target_seq)
             if alignment.auto_associate:
                 alignment.auto_associate = False
@@ -414,6 +461,8 @@ class RunModeller(State):
         self.session.models.add_group(models, name=self.target_seq_name + " models")
         for alignment in reset_alignments:
             alignment.auto_associate = True
+        for alignment, target_seq in self.targets:
+            alignment.resume_notify_observers()
 
         if self.session.ui.is_gui:
             from .tool import ModellerResultsViewer
@@ -440,90 +489,122 @@ class RunModeller(State):
 
 class ModellerWebService(RunModeller):
 
-    def __init__(self, session, match_chains, num_models, target_seq_name, input_file_map, config_name,
-                 targets, **kw):
+    def __init__(self, session, match_chains, num_models, target_seq_name, input_file_map, parameters,
+                 temp_dir, targets, **kw):
 
         super().__init__(session, match_chains, num_models, target_seq_name, targets, **kw)
+        # pass temp_dir down to
+        # ModellerWebJob, where it will be deleted after
+        # the job finishes
+        self.temp_dir = temp_dir
         self.input_file_map = input_file_map
-        self.config_name = config_name
-
+        self.params = parameters
         self.job = None
 
     def run(self, *, block=False):
-        self.job = ModellerWebJob(self.session, self, self.config_name, self.input_file_map, block)
+        self.job = ModellerWebJob(self.session, self, self.params, self.input_file_map, self.temp_dir, block)
 
     def take_snapshot(self, session, flags):
         """For session/scene saving"""
         return {
+            'version': '2',
             'base data': super().take_snapshot(session, flags),
             'input_file_map': self.input_file_map,
-            'config_name': self.config_name,
+            'params': self.params
         }
 
     @staticmethod
     def restore_snapshot(session, data):
-        inst = ModellerWebService(session, None, None, None, data['input_file_map'], data['config_name'],
-                                  None, None)
+        version = data.get('version', 1)
+        if version == 1:
+            # Load the data from the version 1 XML file into the new format
+            config_name = data['config_name']
+            config = ModellerXMLConfig(config_name)
+            params = {
+                "key": config["key"]
+                , "version": config["version"]
+                , "numModels": config["numModel"]
+                , "hetAtom": bool(config["hetAtom"])
+                , "water": bool(config["water"])
+                , "allHydrogen": bool(config["allHydrogen"])
+                , "veryFast": bool(config["veryFast"])
+                , "loopInfo": eval(config["loopInfo"])
+            }
+            data['params'] = params
+        inst = ModellerWebService(session, None, None, None, data['input_file_map']
+                                  , data['params'], None, None)
         inst.set_state_from_snapshot(data['base data'])
 
-
-class ModellerWebJob(OpalJob):
-
-    OPAL_SERVICE = "Modeller9v8Service"
+class ModellerWebJob(CxServicesJob):
     SESSION_SAVE = True
+    service_name = "modeller"
 
-    def __init__(self, session, caller, command, input_file_map, block):
+    def __init__(self, session, caller, params, input_file_map, temp_dir, block):
         super().__init__(session)
         self.caller = caller
-        self.start(self.OPAL_SERVICE, command, input_file_map=input_file_map, blocking=block)
+        self.params = params
+        if temp_dir:
+            # Save the tempdir from src/loops or src/comparative, since we need it to
+            # stay alive long enough to upload the files to the backend. The superclass
+            # will delete it after uploading files.
+            self.temp_dir = temp_dir
+        # Coerce the existing input_file_map into the format that CxServicesJob
+        # expects. In the future, perhaps only list the filenames.
+        self.processed_input_file_map = []
+        for entry in input_file_map:
+            # Take the full path to the file, except ModellerScriptConfig.xml
+            if os.path.basename(entry[2]) == "ModellerScriptConfig.xml":
+                continue
+            self.processed_input_file_map.append(entry[2])
+        self.start(self.service_name, self.params, self.processed_input_file_map, blocking=block)
 
     def monitor(self):
-        super().monitor()
-        stdout = self.get_file("stdout.txt")
-        num_done = stdout.count('# Heavy relative violation of each residue is written to:')
-        num_done = max(stdout.count('>> Normalized DOPE z score') - 1, 0)
-        status = self.session.logger.status
-        tsafe = self.session.ui.thread_safe
+        super().monitor(poll_freq_override=5)
+        files = self.get_all_filenames(refresh=True).keys()
+        generated_model_pattern = re.compile('.*\.B.*\.pdb') # aka *.B*.pdb
+        num_done = len([name for name in files if generated_model_pattern.match(name)])
         if not num_done:
-            tsafe(status, "No models generated yet")
+            self.thread_safe_status("Modeller Webservice: No models generated yet")
         else:
-            tsafe(status, "%d of %d models generated" % (num_done, self.caller.num_models))
-
-    def next_check(self):
-        return 15
+            self.thread_safe_status("Modeller Webservice: %d of %d models generated" % (num_done, self.caller.num_models))
 
     def on_finish(self):
+        # Clean up the temporary directory
+        if hasattr(self, 'temp_dir'):
+            delattr(self, 'temp_dir')
         logger = self.session.logger
-        logger.info("Modeller job ID %s finished" % self.job_id)
+        logger.info("Modeller job (ID %s) finished" % self.job_id)
         if not self.exited_normally():
             err = self.get_file("stderr.txt")
             if err:
-                raise RuntimeError("Modeller failure; standard error:\n" + err)
+                logger.error("Modeller failure; standard error:\n" + err)
             else:
-                raise RuntimeError("Modeller failure with no error output")
-        try:
-            model_info = self.get_file("ok_models.dat")
-        except KeyError:
+                logger.error("Modeller failure with no error output")
+        else:
             try:
-                stdout = self.get_file("stdout.txt")
-                stderr = self.get_file("stderr.txt")
+                model_info = self.get_file("ok_models.dat")
             except KeyError:
-                raise RuntimeError("No output from Modeller")
-            logger.info("<br><b>Modeller error output</b>", is_html=True)
-            logger.info(stderr)
-            logger.info("<br><b>Modeller run output</b>", is_html=True)
-            logger.info(stdout)
-            from chimerax.core.errors import NonChimeraError
-            raise NonChimeraError("No output models from Modeller; see log for Modeller text output.")
-        def get_pdb_model(fname):
-            from io import StringIO
-            try:
-                pdb_text = self.get_file(fname)
-            except KeyError:
-                raise RuntimeError("Could not find Modeller out PDB %s on server" % fname)
-            from chimerax.pdb import open_pdb
-            return open_pdb(self.session, StringIO(pdb_text), fname)[0][0]
-        self.caller.process_ok_models(model_info, get_pdb_model)
+                try:
+                    stdout = self.get_file("stdout.txt")
+                    stderr = self.get_file("stderr.txt")
+                except KeyError:
+                    logger.error("No output from Modeller")
+                else:
+                    logger.info("<br><b>Modeller error output</b>", is_html=True)
+                    logger.info(stderr)
+                    logger.info("<br><b>Modeller run output</b>", is_html=True)
+                    logger.info(stdout)
+                    logger.error("No output models from Modeller; see log for Modeller text output.")
+            else:
+                def get_pdb_model(fname):
+                    from io import StringIO
+                    try:
+                        pdb_text = self.get_file(fname)
+                    except KeyError:
+                        raise RuntimeError("Could not find Modeller out PDB %s on server" % fname)
+                    from chimerax.pdb import open_pdb
+                    return open_pdb(self.session, StringIO(pdb_text), fname)[0][0]
+                self.caller.process_ok_models(model_info, get_pdb_model)
         self.caller = None
 
 class ModellerLocal(RunModeller):
@@ -573,7 +654,7 @@ class ModellerLocalJob(Job):
             raise ValueError("%s does not exist" % file_name)
         return open(path).read()
 
-    def launch(self, executable_location, script_name, **kw):
+    def run(self, executable_location, script_name, **kw):
         from chimerax.core.errors import UserError
         import os, sys
         cmd = [executable_location, os.path.join(self.caller.temp_dir, script_name)]
@@ -641,9 +722,11 @@ class ModellerLocalJob(Job):
                 self._running = False
                 os.chdir(old_dir)
                 tsafe(logger.status, "MODELLER finished")
+            tsafe(self.process_results)
         import threading
         thread = threading.Thread(target=threaded_run, daemon=True)
         thread.start()
+        super().run()
 
     def monitor(self):
         import os
@@ -674,6 +757,9 @@ class ModellerLocalJob(Job):
         return 15
 
     def on_finish(self):
+        pass
+
+    def process_results(self):
         logger = self.session.logger
         try:
             model_info = self.get_file("ok_models.dat")

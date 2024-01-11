@@ -63,7 +63,7 @@ class ColorButton(QPushButton):
     color_changed = Signal(ndarray)
     color_pause = Signal(ndarray)
 
-    def __init__(self, *args, max_size=None, has_alpha_channel=False, pause_delay=None, **kw):
+    def __init__(self, *args, max_size=None, has_alpha_channel=False, pause_delay=None):
         super().__init__(*args)
         if max_size is not None:
             self.setMaximumSize(*max_size)
@@ -81,9 +81,10 @@ class ColorButton(QPushButton):
     def set_color(self, color):
         rgba = color_to_numpy_rgba8(color)
         if (rgba == self._color).all():
-            return
+            return False
         self.setStyleSheet('background-color: %s' % hex_color_name(color))
         self._color = rgba
+        return True
 
     color = property(get_color, set_color)
 
@@ -125,14 +126,13 @@ class ColorButton(QPushButton):
 
     def _color_changed_cb(self, color):
         try:
-            self.set_color(color)
+            if self.set_color(color):
+                self.color_changed.emit(self._color)
+                self._set_pause_timer()
         except RuntimeError:
             # C++ has been destroyed (don't seem to get a destroyed() signal)
             global _color_callback
             _color_callback = None
-        else:
-            self.color_changed.emit(self._color)
-            self._set_pause_timer()
 
     def _set_pause_timer(self):
         delay = self._pause_delay
@@ -142,10 +142,13 @@ class ColorButton(QPushButton):
         if t is not None:
             t.stop()
         from Qt.QtCore import QTimer
-        self._pause_timer = t = QTimer()
+        self._pause_timer = t = QTimer(self)
         t.setSingleShot(True)
-        t.timeout.connect(lambda *, p=self.color_pause, c=self._color: p.emit(c))
+        t.timeout.connect(self._emit_color_pause)
         t.start(int(1000*self._pause_delay))
+
+    def _emit_color_pause(self):
+        self.color_pause.emit(self._color)
 
 def color_to_numpy_rgba8(color):
     if isinstance(color, QColor):
@@ -191,9 +194,8 @@ class MultiColorButton(ColorButton):
                     icon_file = test_icon
             if os.sep != '/':
                 icon_file = '/'.join(icon_file.split(os.sep))
-            self.setStyleSheet("background-image: url(%s);" % icon_file)
-        else:
-            ColorButton.set_color(self, color)
+            return self.setStyleSheet("background-image: url(%s);" % icon_file)
+        return ColorButton.set_color(self, color)
 
     color = property(ColorButton.get_color, set_color)
 

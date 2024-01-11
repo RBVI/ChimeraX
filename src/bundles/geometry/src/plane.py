@@ -1,14 +1,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 import numpy
@@ -76,6 +87,18 @@ class Plane(State):
         a = (s2 * n1n2dot - s1 * n2normsqr) / divisor
         b = (s1 * n1n2dot - s2 * n1normsqr) / divisor
         return a * self._normal + b * plane._normal, v
+
+    plane_intersection = intersection
+
+    def line_intersection(self, origin, direction, *, epsilon=1e-6):
+        # Cribbed from https://rosettacode.org/wiki/Find_the_intersection_of_a_line_with_a_plane
+        n_dot_d = self.normal.dot(direction)
+        if abs(n_dot_d) < epsilon:
+            raise PlaneNoIntersectionError("Line does not intersect plane or lies in plane")
+
+        w = origin - self.origin
+        si = -self.normal.dot(w) / n_dot_d
+        return w + si * direction + self.origin
 
     def nearest(self, pt):
         return pt - self._normal * self.distance(pt)

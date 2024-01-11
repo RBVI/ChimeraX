@@ -1,14 +1,25 @@
 # vim: set expandtab ts=4 sw=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.ui.options import Option
@@ -24,6 +35,8 @@ class AtomPairRestrictOption(Option):
             "with exactly one %s selected" % atom_word,
             "with both %s selected" % plural_of(atom_word)
         )
+        if args[-1] != None:
+            raise AssertionError(self.__class__.__name + " does not support callbacks")
         super().__init__(*args, **kw)
 
     def get_value(self):
@@ -80,7 +93,7 @@ class AtomPairRestrictOption(Option):
             self.value = self.restrict_kw_vals[self.fixed_kw_menu_texts.index(label)]
         else:
             self.value = self.__line_edit.text()
-        self.make_callback()
+        # No callback, because user may need to fill in atom spec field first
 
 class StructureOption(Option):
     def __init__(self, session, *args, **kw):

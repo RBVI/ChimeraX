@@ -1,14 +1,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 # -----------------------------------------------------------------------------
@@ -318,7 +329,8 @@ def _parse_integers(ids_string):
 #
 def segmentation_surfaces(session, segmentations,
                           where = None, each = None, region = 'all', step = None,
-                          color = None):
+                          color = None, smooth = False, smoothing_iterations = 10,
+                          smoothing_factor = 1.0):
 
     if len(segmentations) == 0:
         from chimerax.core.errors import UserError
@@ -331,7 +343,9 @@ def segmentation_surfaces(session, segmentations,
     for seg in segmentations:
         sstep = _voxel_limit_step(seg, region) if step is None else step
         segsurfs = calculate_segmentation_surfaces(seg, where=where, each=each,
-                                                   region=region, step=sstep, color=color)
+                                                   region=region, step=sstep, color=color,
+                                                   smooth=smooth, smoothing_iterations=smoothing_iterations,
+                                                   smoothing_factor=smoothing_factor)
         surfaces.extend(segsurfs)
 
         nsurf = len(segsurfs)
@@ -349,7 +363,9 @@ def segmentation_surfaces(session, segmentations,
 # -----------------------------------------------------------------------------
 #
 def calculate_segmentation_surfaces(seg, where = None, each = None,
-                                    region = 'all', step = None, color = None):
+                                    region = 'all', step = None, color = None,
+                                    smooth = False, smoothing_iterations = 10,
+                                    smoothing_factor = 1.0):
     # Warn if number of surfaces is large.
     if where is None and each is None:
         max_seg_id = _maximum_segment_id(seg)
@@ -373,6 +389,11 @@ def calculate_segmentation_surfaces(seg, where = None, each = None,
         tf.transform_points(va, in_place = True)
         from chimerax.surface import calculate_vertex_normals
         na = calculate_vertex_normals(va, ta)
+        if smooth:
+            sf, si = smoothing_factor, smoothing_iterations
+            from chimerax.surface import smooth_vertex_positions
+            smooth_vertex_positions(va, ta, sf, si)
+            smooth_vertex_positions(na, ta, sf, si)
         geom.append((region_id, va, na, ta))
 
     # Determine surface coloring.
@@ -505,7 +526,8 @@ def _attribute_values(seg, attribute_name):
 # -----------------------------------------------------------------------------
 #
 def register_segmentation_command(logger):
-    from chimerax.core.commands import CmdDesc, register, IntArg, BoolArg, StringArg, SurfacesArg, ColorArg, RepeatOf
+    from chimerax.core.commands import CmdDesc, register, IntArg, BoolArg, FloatArg, StringArg
+    from chimerax.core.commands import SurfacesArg, ColorArg, RepeatOf
     from chimerax.map import MapsArg, MapArg, MapRegionArg, MapStepArg
 
     desc = CmdDesc(
@@ -527,7 +549,10 @@ def register_segmentation_command(logger):
                    ('each', StringArg),
                    ('region', MapRegionArg),
                    ('step', MapStepArg),
-                   ('color', ColorArg),],
+                   ('color', ColorArg),
+                   ('smooth', BoolArg),
+                   ('smoothing_iterations', IntArg),
+                   ('smoothing_factor', FloatArg)],
         synopsis = 'Create surfaces for a segmentation regions.'
     )
     register('segmentation surfaces', desc, segmentation_surfaces, logger=logger)

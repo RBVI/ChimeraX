@@ -54,7 +54,7 @@ For greater performance, it is possible to include
 `C and C++ extensions`_ because ChimeraX is based
 on CPython.  However, developers are responsible
 for supplying a compatible compilation environment,
-e.g., installing Visual Studio 2015 on Microsoft Windows.
+e.g., installing Visual Studio 2019 on Microsoft Windows.
 
 .. _pro-tip:
 

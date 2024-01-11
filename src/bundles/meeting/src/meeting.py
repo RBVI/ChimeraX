@@ -158,21 +158,6 @@ def meeting_start(session, meeting_name = None,
     # Log meeting info
     addresses, cport = ([tunnel.host], tunnel.remote_port) if tunnel else hub.listening_addresses_and_port()
     _report_start(addresses, cport, meeting_name, session.logger)
-    _report_protocol(session.logger)
-
-# -----------------------------------------------------------------------------
-#
-def _report_protocol(log):
-    msg = '''
-<p style="color:blue">
-The ChimeraX meeting command message protocol was changed December 9, 2020
-in order to reduce the network bandwidth (4 - 10 times reduction), and to
-block participants that do not provide the meeting name for better security.
-All participants must use ChimeraX newer than December 9, 2020, or all must
-use an older version because the old protocol is not compatible with the new one.
-</p>
-'''
-    log.info(msg, is_html = True)
 
 # -----------------------------------------------------------------------------
 #
@@ -881,7 +866,10 @@ class MeetingParticipant:
     def _encode_session(self):
         from io import BytesIO
         stream = BytesIO()
+        from chimerax.vive import xr
+        xr.save_camera_in_session(self._session, False)
         self._session.save(stream, version=3, include_maps=True)
+        xr.save_camera_in_session(self._session, True)
         from lz4.frame import compress
         sbytes = compress(stream.getbuffer())
         return sbytes
@@ -896,7 +884,8 @@ class MeetingParticipant:
         from io import BytesIO
         stream = BytesIO(sbytes)
         restore_camera = (ses.main_view.camera.name != 'vr')
-        ses.restore(stream, resize_window = False, restore_camera = restore_camera,
+        ses.restore(stream, resize_window = False,
+                    restore_camera = restore_camera,
                     clear_log = False)
         self._received_scene = True
 
@@ -1279,8 +1268,8 @@ class MessageStream:
         self._last_status_time = None
         self._message_bytes_read = 0
         self.status_message_size = 0
-        
-        socket.error.connect(self._socket_error)
+
+        socket.errorOccurred.connect(self._socket_error)
         socket.disconnected.connect(self._socket_disconnected)
 
         # Register callback called when data available to read on socket.
@@ -1588,7 +1577,7 @@ class MouseTracking(PointerModels):
         c = self._session.main_view.camera
         axis = c.position.transform_vector((-0.707, 0.707, 0))
         msg = {'name': self._participant._name,
-               'color': tuple(self._participant._color),
+               'color': tuple(int(r) for r in self._participant._color),
                'mouse': (tuple(xyz), tuple(axis)),
                }
 
@@ -1806,6 +1795,10 @@ class VRTracking(PointerModels):
                 h._meeting_button_modes = last_mode = {}
             hm = []
             for button, mode in h.button_modes.items():
+                if isinstance(button, str):
+                    button = self._button_name_to_index(button)
+                    if button is None:
+                        continue
                 if mode != last_mode.get(button):
                     last_mode[button] = mode
                     hm.append((button, mode.name))
@@ -1813,6 +1806,19 @@ class VRTracking(PointerModels):
             bu.append(hm)
         return bu if update else None
 
+    def _button_name_to_index(self, name):
+        # Convert OpenXR button name to SteamVR button index
+        # for compatibility.
+        n2i = {
+            'trigger': 33,
+            'touchpad': 32,
+            'thumbstick': 32,
+            'grip': 2,
+            'menu': 1,
+            'A': 7,
+        }
+        return n2i.get(name, None)
+    
     def _gui_updates(self, vr_camera):
         msg = {}
         c = vr_camera
@@ -1974,6 +1980,9 @@ class VRHeadModel(Model):
 
         # Avoid head disappearing when models are zoomed small.
         self.allow_depth_cue = False
+
+        # Don't allow clip planes to hide head models.
+        self.allow_clipping = False
         
         r = size / 2
         from chimerax.surface import box_geometry
@@ -2027,6 +2036,7 @@ class VRGUIModel(Model):
         self.pickable = False
         self.skip_bounds = True		# Panels should not effect view all command.
         self.allow_depth_cue = False	# Avoid panels fading out far from models.
+        self.allow_clipping = False	# Don't let panels get clipped
 
     def update_panel(self, panel_changes):
         name = panel_changes['name']
@@ -2076,8 +2086,8 @@ class VRGUIPanel(Drawing):
 
 def _vr_camera(session):
     c = session.main_view.camera
-    from chimerax.vive.vr import SteamVRCamera
-    return c if isinstance(c, SteamVRCamera) else None
+    from chimerax.vive import vr, xr
+    return c if isinstance(c, (vr.SteamVRCamera, xr.OpenXRCamera)) else None
 
 def _place_matrix(p, encoding = 'float32 matrix'):
     '''Encode Place as bytes for sending over socket.'''
@@ -2107,12 +2117,12 @@ def _encode_vr_room_position(p):
     Shift resolution is 0.5 mm with range  +/- 16 meters.
     Rotation resolution is 0.005 degree (= 180 / 32000).
     '''
-    from numpy import empty, int16, clip
-    v = empty((6,), int16)
+    from numpy import empty, float64, int16, clip
+    v = empty((6,), float64)
     clip(2000*p.origin(), -32768, 32767, out = v[3:6])
     axis, angle = p.rotation_axis_and_angle()
     v[0:3] = (32000 * angle/180) * axis
-    bytes = v.tobytes()
+    bytes = v.astype(int16).tobytes()
     return bytes
 
 def _decode_vr_room_position(bytes):

@@ -1,14 +1,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.atomic import Atom, Atoms
@@ -234,7 +245,7 @@ def write_mol2(session, file_name, *, models=None, atoms=None, status=None, anch
         if hasattr(structures[-1], 'substructure_names'):
             substructure_names = structures[-1].substructure_names
             delattr(structures[-1], 'substructure_names')
-        sort_key_func = lambda a: (a.structure.id,) + serial_sort(a)
+        sort_key_func = lambda a: (a.structure.id,) + serial_sort_key(a)
 
     # write out structures
     for struct in structures:
@@ -313,6 +324,18 @@ def write_mol2(session, file_name, *, models=None, atoms=None, status=None, anch
         res_indices = {}
         for i, r in enumerate(residues):
             res_indices[r] = i+1
+        # only output Mol2 type based on mol2_type attribute if _all_ the heavy atoms
+        # have that attribute, and the type corresponds to the current element [#9604]
+        for a in atoms:
+            if hasattr(a, 'mol2_type'):
+                if not a.mol2_type.startswith(a.element.name):
+                    types_valid = False
+                    break
+            elif a.element.number > 1:
+                types_valid = False
+                break
+        else:
+            types_valid = True
         for i, atom in enumerate(atoms):
             # atom ID, starting from 1
             print("%7d" % (i+1), end=" ", file=f)
@@ -337,7 +360,7 @@ def write_mol2(session, file_name, *, models=None, atoms=None, status=None, anch
                         raise
                     raise gaff_fail_error("%s has no Amber/GAFF type assigned.\n"
                         "Use the AddCharge tool to assign Amber/GAFF types." % atom)
-            elif hasattr(atom, 'mol2_type'):
+            elif hasattr(atom, 'mol2_type') and types_valid:
                 atom_type = atom.mol2_type
             elif atom in amide_Ns:
                 atom_type = "N.am"
@@ -474,6 +497,18 @@ def write_mol2(session, file_name, *, models=None, atoms=None, status=None, anch
         print("%s" % SUBSTR_HEADER, file=f)
 
         for i, res in enumerate(residues):
+            # ID of the root atom of the residue
+            chain_atom = res.principal_atom
+            if chain_atom is None or chain_atom not in atom_indices:
+                # if writing out a selection, not all residue atoms
+                # might be in atom_indices...
+                for chain_atom in res.atoms:
+                    if chain_atom in atom_indices:
+                        break
+                else:
+                    # no atoms of this residue being written to file
+                    continue
+
             # residue id field
             print("%6d" % (i+1), end=" ", file=f)
 
@@ -486,14 +521,6 @@ def write_mol2(session, file_name, *, models=None, atoms=None, status=None, anch
                 rname = "%3s" % res.name
             print(rname, end=" ", file=f)
 
-            # ID of the root atom of the residue
-            chain_atom = res.principal_atom
-            if chain_atom is None:
-                # if writing out a selection, not all residue atoms
-                # might be in atom_indices...
-                for chain_atom in res.atoms:
-                    if chain_atom in atom_indices:
-                        break
             print("%5d" % atom_indices[chain_atom], end=" ", file=f)
 
 

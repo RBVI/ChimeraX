@@ -19,7 +19,7 @@ Architecture
 ------------
 
 There are modules with the core data structures for each
-native data type: :doc:`molecular data <bundles/atomic/src/atomic>`,
+native data type: :doc:`molecular data <modules/atomic/atomic>`,
 sequence data, and volume data.
 
 New data formats are registered with the "data formats" manager,
@@ -33,7 +33,7 @@ Bundles may want to be able to react to various kinds of events, such as new mod
 being opened, or the graphics window background coloring changing.  When such events
 occur, a "trigger" will be fired, and functions that have been registered with the
 trigger will be executed and given data related to the trigger.  The nuts and bolts of
-how to register for a trigger is described in :doc:`core/triggerset`.  Information
+how to register for a trigger is described in :doc:`modules/core/triggerset`.  Information
 about where widely-used triggers can be found, their names, and what data they provide
 can be found in :doc:`well_known_triggers`.
 
@@ -43,17 +43,17 @@ Modules
 .. toctree::
     :maxdepth: 1
 
-    core/commands/commands.rst
+    modules/core/commands/commands.rst
 
-    core/data_events.rst
+    modules/core/data_events.rst
 
-    core/objects.rst
+    modules/core/objects.rst
 
-    core/session.rst
+    modules/core/session.rst
 
-    core/triggerset.rst
+    modules/core/triggerset.rst
 
-    core/scripting.rst
+    modules/core/scripting.rst
 
 Structure-related Modules
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -61,9 +61,9 @@ Structure-related Modules
 .. toctree::
     :maxdepth: 2
 
-    bundles/mmcif/src/mmcif.rst
+    modules/mmcif/mmcif.rst
 
-    bundles/atomic/src/pdbio.rst
+    modules/atomic/pdbio.rst
 
 Graphics-related Modules
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -71,16 +71,16 @@ Graphics-related Modules
 .. toctree::
     :maxdepth: 2
 
-    bundles/geometry/src/geometry.rst
+    modules/geometry/geometry.rst
 
-    bundles/graphics/src/graphics.rst
+    modules/graphics/graphics.rst
 
 C++ helper Modules
 ~~~~~~~~~~~~~~~~~~
 
 .. seealso::
 
-    :doc:`Readcif <bundles/mmcif/mmcif_cpp/readcif_cpp/docs/api>`
+    :doc:`Readcif <cpp/mmcif/readcif/api>`
         C++ library for reading mmCIF files.
 
 Builtin Data formats

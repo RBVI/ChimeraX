@@ -1,14 +1,25 @@
 # vim: set expandtab ts=4 sw=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 class MultitouchTrackpad:
@@ -114,11 +125,7 @@ class MultitouchTrackpad:
             # time consuming computatation.  It appears Qt does not collapse the events.
             # So event processing can get tens of seconds behind.  To reduce this problem
             # we only handle the most recent touch update per redraw.
-            from Qt import using_qt5, using_qt6
-            if using_qt5:
-                self._recent_touches = [Touch(t) for t in event.touchPoints()]
-            elif using_qt6:
-                self._recent_touches = [Touch(t) for t in event.points()]
+            self._recent_touches = [Touch(t) for t in event.points()]
         elif t == QEvent.Type.TouchEnd or t == QEvent.Type.TouchCancel or t == QEvent.Type.TouchBegin:
             # Sometimes we don't get a TouchEnd macOS gesture like 3-finger swipe up
             # for mission control took over half-way through a gesture.  So also
@@ -134,6 +141,7 @@ class MultitouchTrackpad:
             self._mouse_mode_mgr._dispatch_touch_event(event)
 
     def _process_touches(self, touches):
+        min_pinch = 0.1
         pinch = twist = scroll = None
         two_swipe = None
         three_swipe = None
@@ -150,19 +158,23 @@ class MultitouchTrackpad:
             from math import sqrt, exp, atan2, pi
             l0,l1 = sqrt(dx0*dx0 + dy0*dy0),sqrt(dx1*dx1 + dy1*dy1)
             d12 = dx0*dx1+dy0*dy1
-            if d12 < 0:
+            if l0 >= min_pinch and l1 >= min_pinch and d12 < -0.7*l0*l1:
                 # Finger moving in opposite directions: pinch/twist
                 (x0,y0),(x1,y1) = [(t.x,t.y) for t in touches[:2]]
                 sx,sy = x1-x0,y1-y0
                 sn = sqrt(sx*sx + sy*sy)
                 sd0,sd1 = sx*dx0 + sy*dy0, sx*dx1 + sy*dy1
-                zf = 1 + speed * self._zoom_scaling * (l0+l1) / self._full_width_translation_distance
-                if sd1 < 0:
-                    zf = 1/zf
-                pinch = zf
-                rot = atan2(-sy*dx1+sx*dy1,sn*sn) + atan2(sy*dx0-sx*dy0,sn*sn)
-                a = -speed * self._twist_scaling * rot * 180 / pi
-                twist = a
+                if abs(sd0) > 0.5*sn*l0 and abs(sd1) > 0.5*sn*l1:
+                    # pinch
+                    zf = 1 + speed * self._zoom_scaling * (l0+l1) / self._full_width_translation_distance
+                    if sd1 < 0:
+                        zf = 1/zf
+                    pinch = zf
+                else:
+                    # twist
+                    rot = atan2(-sy*dx1+sx*dy1,sn*sn) + atan2(sy*dx0-sx*dy0,sn*sn)
+                    a = -speed * self._twist_scaling * rot * 180 / pi
+                    twist = a
             else:
                 two_swipe = tuple([d/self._full_width_translation_distance for d in (dx, dy)])
                 scroll = speed * dy / self._wheel_click_pixels
@@ -210,34 +222,19 @@ class MultitouchTrackpad:
         macOS generates mouse wheel events in response to a two-finger drag on trackpad.
         We discard those if we have multitouch trackpad support enabled so that 2-finger
         drag should be rotation.  But we don't want to discard wheel events that come
-        from a non-trackpad device.  Unfortunately macOS and Qt5 provides no way to distinguish
-        magic mouse scroll from a trackpad scroll, both are reported as synthesized events
-        and there is no source device id available.  If there are any trackpad devices and
-        multitouch is enabled then the magic mouse wheel events are thrown away.  This
-        is ChimeraX bug #1474.  We used to instead see if we recently received a touch event
-        and in that case throw away any wheel event.  Unfortunately on macOS we sometimes
-        don't get touch events after clicking in the Log or other windows and then moving
-        back to the graphics window, until the second multitouch drag is done.
-        '''
+        from a non-trackpad device.  ChimeraX ticket #1474 and #9534'''
         if self._touch_handler is None:
             return False	# Multi-touch disabled
 
-        from Qt import using_qt5, using_qt6
-        if using_qt5:
-            from Qt.QtCore import Qt
-            using_mouse = (event.source() == Qt.MouseEventNotSynthesized)
-        elif using_qt6:
-            from Qt.QtGui import QPointingDevice
-            using_mouse = (event.pointingDevice() == QPointingDevice.PointerType.Generic)
-        if using_mouse:
+        d = event.pointingDevice()
+        if d.type() == d.DeviceType.Mouse:
             return False	# Event is from a real mouse.
 
-        if using_qt5:
-            from Qt.QtGui import QTouchDevice
-            touch_devices = QTouchDevice.devices()
-        elif using_qt6:
-            from Qt.QtGui import QInputDevice
-            touch_devices = [d for d in QInputDevice.devices() if d.type() == d.DeviceType.TouchPad]
+        if d.capabilities() & d.Capability.Scroll:
+            return False	# Magic mouse and generic mouse has Scroll but Magic Trackpad does not
+        
+        from Qt.QtGui import QInputDevice
+        touch_devices = [d for d in QInputDevice.devices() if d.type() == d.DeviceType.TouchPad]
         if len(touch_devices) == 0:
             return False	# No trackpad devices
 
@@ -249,11 +246,7 @@ class Touch:
         self.id = t.id()
         # Touch positions in macOS correspond to physical trackpad distances in points (= 1/72 inch).
         # There is an offset in Qt 5.9 which is the current pointer window position x,y (in pixels).
-        from Qt import using_qt5, using_qt6        
-        if using_qt5:
-            p = t.pos()
-        elif using_qt6:
-            p = t.position()
+        p = t.position()
         self.x = p.x()
         self.y = p.y()
 

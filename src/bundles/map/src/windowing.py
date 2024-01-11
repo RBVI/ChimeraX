@@ -110,6 +110,11 @@ class WindowingMouseMode(MouseMode):
             else:
                 translate_levels(self._maps, vert_shift)
         self._dragged += max(abs(horz_shift), abs(vert_shift))
+
+        # Update brighness curve on histogram immediately.
+        ui = c.user_interface
+        if ui.shown():
+            ui.redraw_ui(delay = False)
         
     def vr_release(self, event):
         # Virtual reality hand controller button release.

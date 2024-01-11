@@ -1,14 +1,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.core.toolshed import ProviderManager
@@ -116,3 +127,36 @@ def get_manager():
     if _manager is None:
         _manager = SeqFeatureManager()
     return _manager
+
+from enum import Enum
+class IdentityDenominator(Enum):
+    SHORTER = "shorter"
+    LONGER = "longer"
+    IN_COMMON = "nongap"
+IdentityDenominator.SHORTER.description = "shorter sequence length"
+IdentityDenominator.LONGER.description = "longer sequence length"
+IdentityDenominator.IN_COMMON.description = "non-gap columns in common"
+IdentityDenominator.default = IdentityDenominator.SHORTER
+
+def percent_identity(seq1, seq2, *, denominator=IdentityDenominator.default):
+    if len(seq1) != len(seq2):
+        raise ValueError("Sequence %s is not the same length as sequence %s (%d vs. %d)" % (seq1.name,
+            seq2.name, len(seq1), len(seq2)))
+
+    matches = in_common = 0
+
+    for c1, c2 in zip(seq1.characters, seq2.characters):
+        if not (c1.isalnum() and c2.isalnum()):
+            continue
+        in_common += 1
+        if c1.lower() == c2.lower():
+            matches += 1
+    try:
+        if denominator == IdentityDenominator.SHORTER:
+            return matches * 100.0 / min(len(seq1.ungapped()), len(seq2.ungapped()))
+        if denominator == IdentityDenominator.LONGER:
+            return matches * 100.0 / max(len(seq1.ungapped()), len(seq2.ungapped()))
+        return matches * 100.0 / in_common
+    except ZeroDivisionError:
+        return 0.0
+

@@ -54,6 +54,8 @@ the <a href="tools/cli.html"><b>Command Line</b></a>
   <ul>
   <li><b>Open...</b> a subset of <a href="commands/open.html"><b>open</b></a>
   command functionality
+  <li><b>Fetch by ID...</b> show the <a href="fetch.html"><b>Fetch by ID</b></a>
+  graphical interface to fetch data from online sources
   <li><b>Open DICOM Folder...</b> open all files of the specified format
   (currently <a href="dicom/dicom.html">DICOM</a> only)
   in the specified directory and its subdirectories
@@ -126,17 +128,40 @@ Startup from the system command line uses the current shell directory instead.
   <b>Sequence...</b> <a href="findseq.html">find and select</a>
   a specified amino acid or nucleotide sequence or sequence pattern
   <li><a name="selectzone"></a>
-  <b>Zone...</b> select <b>atoms</b> or <b>residues</b>
-within and/or beyond a specified distance from the currently selected atoms.
-If both the within (&lt;) and beyond (&gt;) options are checked, 
+  <b>Zone...</b> 
+select <b>atoms</b> or <b>residues</b>
+within (&lt;) and/or beyond (&gt;) a specified distance from the 
+currently selected atoms. There is also an option to 
+<b>deselect current selection</b>, which affects the results when
+selecting within only. If both the within and beyond options are checked, 
 both criteria must be met; for example, the atoms or residues must fall within 
 12 &Aring; of but farther away than 8 &Aring; from the current selection.
 <b>OK</b> performs the selection and closes the dialog, whereas
 <b>Apply</b> performs the selection without closing the dialog.
-See also: <a href="commands/atomspec.html#zones">zone atom specification</a>
+See also: 
+<a href="commands/select.html#zone"><b>select zone</b></a>,
+<a href="commands/atomspec.html#zones">zone atom specification</a>
+  <li><a name="selectcontacts"></a> <b>Contacts...</b> 
+use <a href="selectcontacts.html"><b>Select Contacts</b></a>
+to select atomic or chain-chain contacts based on specified criteria
+(<a href="selectcontacts.html">details...</a>)
   <li><b>Clear</b> &ndash; deselect any existing selection
-  <li><b>Invert</b> &ndash; select all items that are currently unselected,
+  <li><b>Invert</b> 
+    <ul>
+    <li><b>Selected Models</b> 
+&ndash; within model(s) that contain a selection,
+select items that are currently unselected and
+deselect items that are currently selected
+<!-- 
+<a href="commands/select.html"><b>select</b></a> <b>~sel & ##selected</b>
+-->
+    <li><b>All Models</b> 
+&ndash; select all items that are currently unselected and
 deselect all items that are currently selected
+<!--
+<a href="commands/select.html"><b>select</b></a> <b>~sel</b>
+-->
+    </ul>
   <li><b>All</b> &ndash; select all models and their parts 
   <li><b>Broaden</b> &ndash; expand the current selection up a
 level in the <a href="selection.html#cascade">selection cascade</a> 
@@ -300,6 +325,7 @@ whereas the styles above apply to entire models only
   (for example, background only or cartoons only)
   </ul>
 <br>
+<a name="actlabel"></a>
 <li><b>Label</b>
 &ndash; see also <a href="commands/label.html"><b>label</b></a>
   <ul>
@@ -323,12 +349,21 @@ Examples:
    </ul>
   <li><b>Residues</b>
     <ul>
-    <li><b>Name</b>
-    <li><b>Specifier</b></a> &ndash; chain ID and number
-    <li><b>Name Combo</b> &ndash; chain ID, name, and number
+    <li><b>Name</b> &ndash; for example, <b>TRP</b>
+    <li><b>Specifier</b></a> &ndash; chain ID and residue number
+    (<b>/A:183</b>)
+    <li><b>Name and Number</b> &ndash; residue name and number
+    (<b>TRP 183</b>)
+    <li><b>Chain, Name, Number</b> &ndash; chain ID, residue name, and number
+    (<b>/A TRP 183</b>)
     <li><b>1-Letter Code</b> &ndash; 1-letter code for standard
-    amino acid and nucleic acid residues, name for other residues
-    <li><b>1-Letter Code Combo</b> &ndash; as above plus chain ID and number
+    amino acid and nucleic acid residues (<i>e.g.</i>, <b>W</b>), 
+    full name for other residues (<i>e.g.</i>, <b>HOH</b>)
+    <li><b>Code and Number</b>
+    &ndash; as above plus residue number (<b>W 183</b>)
+    <li><b>Chain, Code, Number</b> 
+    &ndash; chain ID, 1-letter code, and residue number
+    (<b>/A W 183</b>)
     <li><b>Custom Text</b>
 &ndash; arbitrary text and/or values of
 <a href="attributes.html">attributes</a>, as described for the
@@ -346,8 +381,8 @@ Examples:
     </ul>
   <li><b>Set Label Height</b>
   </ul>
-  <li><b>View</b>
-&ndash; see also <a href="commands/view.html"><b>view</b></a>
+  <li><b>Focus</b>
+&ndash; see also <a href="commands/view.html#initial"><b>view</b></a>
   <li><b>Set Pivot</b>
 &ndash; see also <a href="commands/cofr.html"><b>cofr</b></a>
 <li><b>Inspect</b>
@@ -504,5 +539,5 @@ target="_blank"><b>Tutorials</b></a>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-January 2022</address>
+October 2023</address>
 </body></html> 

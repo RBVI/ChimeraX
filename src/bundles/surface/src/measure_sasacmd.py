@@ -1,14 +1,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 def measure_sasa(session, atoms = None, probe_radius = 1.4, sum = None,
@@ -40,16 +51,19 @@ def measure_sasa(session, atoms = None, probe_radius = 1.4, sum = None,
             
     # Report results
     area = areas.sum()
-    msg = 'Solvent accessible area for %s = %.5g' % (atoms.spec, area)
+    aname = f'{atoms.spec} ({len(atoms)} atoms)' if hasattr(atoms, 'spec') else f'{len(atoms)} atoms'
+    msg = 'Solvent accessible area for %s = %.5g' % (aname, area)
     log = session.logger
     log.info(msg)
     if sum is not None:
         a = areas[atoms.mask(sum)]
-        area = a.sum()
-        msg = ('Solvent accessible area for %s (%d atoms) of %s = %.5g'
-               % (sum.spec, len(a), atoms.spec, area))
+        sarea = a.sum()
+        sname = f'{sum.spec} ({len(sum)} atoms)' if hasattr(sum, 'spec') else f'{len(sum)} atoms'
+        msg = ('Solvent accessible area for %s of %s = %.5g' % (sname, aname, sarea))
         log.info(msg)
     log.status(msg)
+
+    return area if sum is None else (area, sarea)
 
 def set_area_attributes(atoms, areas):
     for a, area in zip(atoms, areas):

@@ -14,7 +14,11 @@
 from abc import ABCMeta, abstractmethod
 
 class Option(metaclass=ABCMeta):
-    """Supported API. Base class (and common API) for all options"""
+    """Supported API. Base class (and common API) for all options
+
+    Set 'default' to None if you want values in a settings menu to survive
+    closing a tool. 
+    """
 
     multiple_value = "-- multiple --"
     read_only = False
@@ -30,10 +34,7 @@ class Option(metaclass=ABCMeta):
         if attr_name:
             self.attr_name = attr_name
         elif not hasattr(self, 'attr_name'):
-            if self.name:
-                self.attr_name = self.name
-            else:
-                self.attr_name = None
+            self.attr_name = None
 
         if settings is None:
             self.settings_handler = self.settings = None
@@ -45,10 +46,20 @@ class Option(metaclass=ABCMeta):
             # reference to settings for now; if that proves problematic then revisit.
             self.settings = settings
             from weakref import proxy
-            self.settings_handler = self.settings.triggers.add_handler('setting changed',
-                lambda trig_name, data, *, pself=proxy(self):
-                data[0] == pself.attr_name and (setattr(pself, "value", pself.get_attribute())
-                or (self._callback and self._callback(self))))
+            def proxy_handler(trig_name, data, *, pself=proxy(self)):
+                # In case some bad code is holding onto the Python side of a dead tool,
+                # ignore AttributeErrors.
+                # Also, if the last error occurred in a tool, sys.last_traceback can be holding
+                # reference to the tool, so ignore RuntimeErrors too [#8554]
+                try:
+                    if data[0] == pself.attr_name:
+                        setattr(pself, "value", pself.get_attribute())
+                        if pself._callback:
+                            pself._callback(pself)
+                except (AttributeError, RuntimeError):
+                    from chimerax.core.triggerset import DEREGISTER
+                    return DEREGISTER
+            self.settings_handler = self.settings.triggers.add_handler('setting changed', proxy_handler)
         self.auto_set_attr = auto_set_attr
 
         if default is None and attr_name and settings:
@@ -176,7 +187,8 @@ class Option(metaclass=ABCMeta):
         pass
 
     # no "shown" property because the option is in a QFormLayout and there is no way to hide a row,
-    # not to mention that hiding our widget doesn't hide the corresponding label
+    # without access to the form.  Use the hide/show_option methods or set_option_shown method
+    # of the container widget.
 
     # In Python 3.7, abstract properties where the getter/setter funcs have the same name don't
     # work as expected in derived classes; use old-style property definition
@@ -382,21 +394,21 @@ class EnumBase(Option):
                     self.make_callback()
     remake_buttons = remake_menu
 
-    def _make_widget(self, *, as_radio_buttons=False, display_value=None, **kw):
-        from Qt.QtWidgets import QPushButton, QMenu, QWidget, QButtonGroup, QVBoxLayout
+    def _make_widget(self, *, as_radio_buttons=False, horizontal_radio_buttons=False, display_value=None,
+            **kw):
+        from Qt.QtWidgets import QPushButton, QMenu, QWidget, QButtonGroup, QVBoxLayout, QHBoxLayout
         self.__as_radio_buttons = as_radio_buttons
         if as_radio_buttons:
             self.widget = QWidget()
-            layout = QVBoxLayout()
+            if horizontal_radio_buttons:
+                layout = QHBoxLayout()
+            else:
+                layout = QVBoxLayout()
             self.widget.setLayout(layout)
             self.__button_group = QButtonGroup()
             self.remake_buttons()
             self.__button_group.button(self.values.index(self.default)).setChecked(True)
-            from Qt import using_pyqt6
-            if using_pyqt6:
-                self.__button_group.idClicked.connect(self.make_callback)
-            else:
-                self.__button_group.buttonClicked[int].connect(self.make_callback)
+            self.__button_group.idClicked.connect(self.make_callback)
         else:
             if display_value is not None:
                 button_label = display_value
@@ -549,8 +561,7 @@ class FontOption(EnumOption):
     def __init__(self, *args, **kw):
         if self.values is None:
             from Qt.QtGui import QFontDatabase
-            from Qt import using_qt5
-            fdb = QFontDatabase() if using_qt5 else QFontDatabase
+            fdb = QFontDatabase
             self.values = sorted(list(fdb.families()))
             super().__init__(*args, **kw)
 
@@ -929,24 +940,15 @@ class StringsOption(Option):
     def set_multiple(self):
         self.widget.setText(self.multiple_value)
 
-    def _make_widget(self, initial_text_width="10em", initial_text_height="4em", **kw):
-        """initial_text_width/height should be a string holding a "stylesheet-friendly"
-           value, (e.g. '10em' or '7ch') or None"""
+    def _make_widget(self, **kw):
+        """Specifying initial width/height seems less necessary since QTextEdit inherits from
+           QScrollArea, and specifying such values via a stylesheet produces weird scrolling
+           behavior [#9823].  If needed in the future, could perhaps be provided by defining
+           a sizeHint() for an inline QTextEdit subclass."""
         from Qt.QtWidgets import QTextEdit
         self.widget = QTextEdit(**kw)
         self.widget.setAcceptRichText(False)
         self.widget.setLineWrapMode(QTextEdit.LineWrapMode.NoWrap)
-        sheet_info = ""
-        if initial_text_width:
-            sheet_info = "width: %s" % initial_text_width
-        else:
-            sheet_info = ""
-        if initial_text_height:
-            if sheet_info:
-                sheet_info += "; "
-            sheet_info += "height: %s" % initial_text_height
-        if sheet_info:
-            self.widget.setStyleSheet("* { " + sheet_info + " }")
 
 class HostPortOption(StringIntOption):
     """Supported API. Option for a host name or address and a TCP port number (as a 2-tuple)"""
@@ -1025,6 +1027,9 @@ def _make_float_widget(min, max, step, decimal_places, *, as_slider=False, conti
             return self.specialValueText() != ""
 
         def stepBy(self, *args, **kw):
+            if self.special_value_shown():
+                from chimerax.core.errors import LimitationError
+                raise LimitationError("Cannot increment value")
             super().stepBy(*args, **kw)
             self.editingFinished.emit()
 
@@ -1057,6 +1062,9 @@ def _make_int_spinbox(min, max, **kw):
             return super().eventFilter(source, event)
 
         def stepBy(self, *args, **kw):
+            if self.specialValueText() != "":
+                from chimerax.core.errors import LimitationError
+                raise LimitationError("Cannot increment value")
             super().stepBy(*args, **kw)
             self.editingFinished.emit()
 

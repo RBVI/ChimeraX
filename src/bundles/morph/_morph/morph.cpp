@@ -1,13 +1,24 @@
 /*
  * === UCSF ChimeraX Copyright ===
- * Copyright 2016 Regents of the University of California.
- * All rights reserved.  This software provided pursuant to a
- * license agreement containing restrictions on its disclosure,
- * duplication and use.  For details see:
- * http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
- * This notice must be embedded in or attached to all copies,
- * including partial copies, of the software or any revisions
- * or derivations thereof.
+ * Copyright 2022 Regents of the University of California. All rights reserved.
+ * The ChimeraX application is provided pursuant to the ChimeraX license
+ * agreement, which covers academic and commercial uses. For more details, see
+ * <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+ *
+ * This particular file is part of the ChimeraX library. You can also
+ * redistribute and/or modify it under the terms of the GNU Lesser General
+ * Public License version 2.1 as published by the Free Software Foundation.
+ * For more details, see
+ * <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+ *
+ * THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+ * LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+ * VERSION 2.1
+ *
+ * This notice must be embedded in or attached to all copies, including partial
+ * copies, of the software or any revisions or derivations thereof.
  * === UCSF ChimeraX Copyright ===
  */
 
@@ -81,9 +92,10 @@ static double angle(double *p0, double *p1, double *p2)
   double acc = inner_product(v0, v1);
   double d0 = norm(v0);
   double d1 = norm(v1);
-  if (d0 <= 0 || d1 <= 0)
+  double d01 = d0 * d1;
+  if (d0 <= 0 || d1 <= 0 || d01 <= 0)
     return 0;
-  acc /= (d0 * d1);
+  acc /= d01;
   if (acc > 1)
     acc = 1;
   else if (acc < -1)
@@ -96,9 +108,10 @@ static double angle(double *v0, double *v1)
   double acc = inner_product(v0, v1);
   double d0 = norm(v0);
   double d1 = norm(v1);
-  if (d0 <= 0 || d1 <= 0)
+  double d01 = d0 * d1;
+  if (d0 <= 0 || d1 <= 0 || d01 <= 0)
     return 0;
-  acc /= (d0 * d1);
+  acc /= d01;
   if (acc > 1)
     acc = 1;
   else if (acc < -1)

@@ -1,14 +1,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 from .util import complete_terminal_carboxylate, determine_termini, determine_naming_schemas, \
@@ -18,8 +29,12 @@ from chimerax.atomic.struct_edit import add_atom
 from chimerax.atomic.colors import element_color
 from chimerax.atomic.bond_geom import linear
 
-def cmd_addh(session, structures, *, hbond=True, in_isolation=True, metal_dist=3.95, template=False,
-    use_his_name=True, use_glu_name=True, use_asp_name=True, use_lys_name=True, use_cys_name=True):
+metal_dist_default = 3.95
+
+# functions in .dock_prep may need updating if cmd_addh() call signature changes
+def cmd_addh(session, structures, *, hbond=True, in_isolation=True, metal_dist=metal_dist_default,
+    template=False, use_his_name=True, use_glu_name=True, use_asp_name=True, use_lys_name=True,
+    use_cys_name=True):
 
     if structures is None:
         from chimerax.atomic import AtomicStructure
@@ -124,7 +139,7 @@ def simple_add_hydrogens(session, structures, *, unknowns_info={}, in_isolation=
         return
     from .simple import add_hydrogens
     atoms, type_info_for_atom, naming_schemas, idatm_type, hydrogen_totals, his_Ns, \
-        coordinations, fake_N, fake_C, fake_5p = \
+        coordinations, fake_N, fake_C, fake_5p, fake_3p = \
         _prep_add(session, structures, unknowns_info, template, **prot_schemes)
     _make_shared_data(session, structures, in_isolation)
     from chimerax.atomic import Atom
@@ -144,7 +159,7 @@ def simple_add_hydrogens(session, structures, *, unknowns_info={}, in_isolation=
         add_hydrogens(atom, bonding_info, (naming_schemas[atom.residue],
             naming_schemas[atom.structure]), hydrogen_totals[atom],
             idatm_type, invert, coordinations.get(atom, []))
-    post_add(session, fake_N, fake_C, fake_5p)
+    post_add(session, fake_N, fake_C, fake_5p, fake_3p)
     _delete_shared_data()
 
 def hbond_add_hydrogens(session, structures, *, unknowns_info={}, in_isolation=False,
@@ -163,12 +178,12 @@ def hbond_add_hydrogens(session, structures, *, unknowns_info={}, in_isolation=F
         return
     from .hbond import add_hydrogens
     atoms, type_info_for_atom, naming_schemas, idatm_type, hydrogen_totals, his_Ns, \
-        coordinations, fake_N, fake_C, fake_5p = \
+        coordinations, fake_N, fake_C, fake_5p, fake_3p = \
         _prep_add(session, structures, unknowns_info, template, **prot_schemes)
     _make_shared_data(session, structures, in_isolation)
     add_hydrogens(session, atoms, type_info_for_atom, naming_schemas, hydrogen_totals,
         idatm_type, his_Ns, coordinations, in_isolation)
-    post_add(session, fake_N, fake_C, fake_5p)
+    post_add(session, fake_N, fake_C, fake_5p, fake_3p)
     _delete_shared_data()
 
 class IdatmTypeInfo:
@@ -183,7 +198,7 @@ for element_num in range(1, Element.NUM_SUPPORTED_ELEMENTS):
         type_info[e.name] = IdatmTypeInfo(idatm.single, 0)
 type_info.update(idatm.type_info)
 
-def post_add(session, fake_n, fake_c, fake_5p):
+def post_add(session, fake_n, fake_c, fake_5p, fake_3p):
     # Add alt locs to parent atoms that wouldn't otherwise need them so that their
     # alt loc hydrogens can merge into the proper "alt loc pool".  Do it now instead
     # of "at the time" so that unneeded alt locs don't spread from the parent atom.
@@ -268,6 +283,15 @@ def post_add(session, fake_n, fake_c, fake_5p):
         for nb in o5p.neighbors:
             if nb.element.number == 1:
                 session.logger.info("%s is not terminus, removing H atom from O5'" % str(f5p))
+                nb.structure.delete_atom(nb)
+
+    for f3p in fake_3p:
+        o3p = f3p.find_atom("O3'")
+        if not o3p:
+            continue
+        for nb in o3p.neighbors:
+            if nb.element.number == 1:
+                session.logger.info("%s is not terminus, removing H atom from O3'" % str(f3p))
                 nb.structure.delete_atom(nb)
 
 def _acid_check(r, protonation, res_types, atom_names):
@@ -429,7 +453,7 @@ def _prep_add(session, structures, unknowns_info, template, need_all=False, **pr
     # and add a single "HN" back on, using same dihedral as preceding residue;
     # delete extra hydrogen of "fake" C termini after protonation
     logger = session.logger
-    real_N, real_C, fake_N, fake_C, fake_5p = determine_termini(session, structures)
+    real_N, real_C, fake_N, fake_C, fake_5p, fake_3p = determine_termini(session, structures)
     logger.info("Chain-initial residues that are actual N"
         " termini: %s" % ", ".join([str(r) for r in real_N]))
     logger.info("Chain-initial residues that are not actual N"
@@ -525,13 +549,14 @@ def _prep_add(session, structures, unknowns_info, template, need_all=False, **pr
                 # heavy atoms, skip it instead of incorrectly protonating
                 # (or possibly throwing an error if e.g. it's planar)
                 # also
-                # UNK/N residues will be missing some or all of their side-chain atoms, so
+                # UNK/N/DN residues will be missing some or all of their side-chain atoms, so
                 # skip atoms that would otherwise be incorrectly protonated due to their
                 # missing neighbors
                 truncated = \
                         atom.is_missing_heavy_template_neighbors(no_template_okay=True) \
                     or \
-                        (atom.residue.name in ["UNK", "N"] and atom.residue.polymer_type != Residue.PT_NONE
+                        (atom.residue.name in ["UNK", "N", "DN"] \
+                        and atom.residue.polymer_type != Residue.PT_NONE \
                         and unk_atom_truncated(atom)) \
                     or \
                         (atom.residue.polymer_type == Residue.PT_NUCLEIC and atom.name == "P"
@@ -704,7 +729,7 @@ def _prep_add(session, structures, unknowns_info, template, need_all=False, **pr
                 sg.idatm_type = it
 
     return atoms, type_info_for_atom, naming_schemas, idatm_type, \
-            hydrogen_totals, his_Ns, coordinations, fake_N, fake_C, fake_5p
+            hydrogen_totals, his_Ns, coordinations, fake_N, fake_C, fake_5p, fake_3p
 
 def find_nearest(pos, atom, exclude, check_dist, avoid_metal_info=None):
     nearby = search_tree.search(pos, check_dist)
@@ -836,8 +861,8 @@ def metal_clash(metal_pos, pos, parent_pos, parent_atom, parent_type_info):
         # non-sp1 carbons, et al, can't coordinate metals
         return False
     from chimerax.geometry import distance, angle
-    if distance(metal_pos, pos) > 2.7:
-        # "_metal_dist" is 2.7 + putative S-H bond length of 1.25;
+    if distance(metal_pos, pos) > _metal_dist - 1.25:
+        # default "_metal_dist" is 2.7 + putative S-H bond length of 1.25;
         # see nitrogen stripping in CYS 77 and 120 in 3r24
         return False
     # 135.0 is not strict enough (see :1004.a in 1nyr)
@@ -855,7 +880,7 @@ def unk_atom_truncated(atom):
                 return num_heavy_nbs < 3
             elif atom.name == "O2'":
                 return num_heavy_nbs < 1
-        return num_heavy_nbs < 2
+        return num_heavy_nbs < 2 and atom.name not in ["N2", "N4", "N6", "O2", "O4", "O6"]
     return False
 
 def vdw_radius(atom):

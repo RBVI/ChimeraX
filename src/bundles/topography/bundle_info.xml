@@ -1,0 +1,28 @@
+<BundleInfo name="ChimeraX-Topography" version="1.0"
+	    package="chimerax.topography"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>Show a topographic surface for a 2D image</Synopsis>
+  <Description>Show a topographic surface for a 2D image.</Description>
+
+  <Categories>
+    <Category name="Volume Data"/>
+  </Categories>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version="~=1.0"/>
+    <Dependency name="ChimeraX-Map" version="~=1.0"/>
+    <Dependency name="ChimeraX-Surface" version="~=1.0"/>
+  </Dependencies>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    <ChimeraXClassifier>Command :: topography :: Volume Data :: Show topographic surface</ChimeraXClassifier>
+  </Classifiers>
+
+</BundleInfo>

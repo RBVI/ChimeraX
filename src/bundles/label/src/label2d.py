@@ -1,14 +1,25 @@
 # vim: set expandtab ts=4 sw=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 
@@ -288,8 +299,7 @@ def label_listfonts(session):
         from chimerax.core.errors import LimitationError
         raise LimitationError("Unable to do list fonts without being able to render images")
     from Qt.QtGui import QFontDatabase
-    fdb = QFontDatabase()
-    fnames = list(fdb.families())
+    fnames = list(QFontDatabase.families())
     fnames.sort()
     session.logger.info('%d fonts available:\n%s' % (len(fnames), '\n'.join(fnames)))
 
@@ -571,6 +581,7 @@ class LabelModel(Model):
         self._texture_size = None	# Label image size in render pixels
         self._texture_pixel_scale = 1	# Converts label.size from logical pixels to render pixels
         self._aspect = 1		# Scale y label positioning for image saving at non-screen aspect ratio
+        self._last_placement = None	# Last location for scalebar, used for updating
         self.needs_update = True
 
     def delete(self):
@@ -578,7 +589,8 @@ class LabelModel(Model):
         self.label.delete()
         
     def draw(self, renderer, draw_pass):
-        self._update_graphics(renderer)
+        if self._update_graphics(renderer):
+            self.session.main_view.clear_drawing_changes()  # Avoid redrawing every frame.
         Model.draw(self, renderer, draw_pass)
 
     def _update_graphics(self, renderer):
@@ -617,8 +629,13 @@ class LabelModel(Model):
             self._update_label_image()
         elif win_size_changed:
             self._position_label_image()
-        elif self.label.is_scalebar:
+        elif self.label.is_scalebar and self._placement != self._last_placement:
             self._position_label_image()
+            self._last_placement = self._placement
+        else:
+            return False
+
+        return True
 
     def _update_label_image(self):
         l = self.label
@@ -685,19 +702,22 @@ class LabelModel(Model):
                 bg = [255*r for r in l.session.main_view.background_color]
             else:
                 bg = l.background
-            light_bg = (sum(bg[:3]) > 1.5*255)
-            rgba8 = (0,0,0,255) if light_bg else (255,255,255,255)
+            from chimerax.core.colors import contrast_with
+            if contrast_with([c/255 for c in bg[:3]])[0] == 0.0:
+                rgba8 = (0, 0, 0, 255)
+            else:
+                rgba8 = (255, 255, 255, 255)
         else:
             rgba8 = tuple(l.color)
         return rgba8
 
-    def _get_model_color(self):
+    def _get_overall_color(self):
         return self.label_color
-    def _set_model_color(self, color):
+    def _set_overall_color(self, color):
         l = self.label
         l.color = color
         l.update_drawing()
-    model_color = property(_get_model_color, _set_model_color)
+    overall_color = property(_get_overall_color, _set_overall_color)
 
     def x3d_needs(self, x3d_scene):
         from .. import x3d

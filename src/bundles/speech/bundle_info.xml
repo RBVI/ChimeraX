@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-SpeechRecognition" version="1.0"
+<BundleInfo name="ChimeraX-SpeechRecognition" version="1.0.1"
 	    package="chimerax.speech"
   	    minSessionVersion="1" maxSessionVersion="1">
 

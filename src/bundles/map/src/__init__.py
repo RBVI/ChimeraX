@@ -1,14 +1,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 # -----------------------------------------------------------------------------
@@ -29,7 +40,7 @@ from .volume import VolumeSurface, VolumeImage
 # Map contouring and distance maps.
 #
 # Make sure _map can runtime link shared library libarrays.
-from chimerax import arrays ; arrays.load_libarrays()
+import chimerax.arrays
 
 from ._map import contour_surface, sphere_surface_distance
 from ._map import interpolate_colormap, set_outside_volume_colors
@@ -140,7 +151,7 @@ class _MapBundle(BundleAPI):
                     def fetch(self, session, ident, format_name, ignore_cache,
                             fetcher=fetcher, **kw):
                         return fetcher(session, ident, ignore_cache=ignore_cache, **kw)
-            elif name in ['emdb', 'emdb_europe', 'emdb_us', 'emdb_japan', 'emdb_china']:
+            elif name in ['emdb', 'emdb_europe', 'emdb_us', 'emdb_japan', 'emdb_china', 'emdb_fits']:
                 from . import emdb_fetch
                 fetcher = {
                     'emdb': emdb_fetch.fetch_emdb,
@@ -148,6 +159,7 @@ class _MapBundle(BundleAPI):
                     'emdb_us': emdb_fetch.fetch_emdb_us,
                     'emdb_japan': emdb_fetch.fetch_emdb_japan,
                     'emdb_china': emdb_fetch.fetch_emdb_china,
+                    'emdb_fits': emdb_fetch.fetch_emdb_fits,
                 }[name]
                 from chimerax.open_command import FetcherInfo
                 class Info(FetcherInfo):
@@ -156,9 +168,10 @@ class _MapBundle(BundleAPI):
                         return fetcher(session, ident, ignore_cache=ignore_cache, **kw)
                     @property
                     def fetch_args(self):
-                        from chimerax.core.commands import EnumOf
+                        from chimerax.core.commands import EnumOf, BoolArg
                         return {
                             'transfer_method': EnumOf(['ftp', 'https']),
+                            'fits': BoolArg,
                         }
             else:
                 from chimerax.open_command import OpenerInfo
@@ -176,6 +189,7 @@ class _MapBundle(BundleAPI):
                             'channel': IntArg,
                             'verbose': BoolArg,
                             'vseries': BoolArg,
+                            'difference': BoolArg,
                         }
         else:
             from chimerax.save_command import SaverInfo
@@ -209,10 +223,12 @@ class _MapBundle(BundleAPI):
                             'compress_level': IntArg,
                             'subsamples': RepeatOf(Int1or3Arg),
                         })
+                    if _name == "MRC density map":
+                        args.update({'value_type': EnumOf(('int8', 'int16', 'uint16','float16', 'float32'))})
                     return args
 
                 def save_args_widget(self, session):
-                    from chimerax.save_command import SaveModelOptionWidget
+                    from chimerax.save_command.widgets import SaveModelOptionWidget
                     return SaveModelOptionWidget(session, 'Map', Volume)
 
                 def save_args_string_from_widget(self, widget):

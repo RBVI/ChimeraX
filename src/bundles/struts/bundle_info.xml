@@ -22,7 +22,7 @@
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
     <ChimeraXClassifier>Command :: struts :: Molecular structure :: provide struts for 3D printing</ChimeraXClassifier>
-	<ChimeraXClassifier>Command :: ~struts :: Molecular structure :: remove 3D printing struts </ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: ~struts :: Molecular structure :: remove 3D printing struts </ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

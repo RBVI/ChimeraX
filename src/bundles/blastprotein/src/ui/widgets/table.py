@@ -34,8 +34,6 @@ class BlastResultsRow:
 
 
 class BlastResultsTable(ItemTable):
-    get_selection = Signal(list)
-
     def __init__(self, control_widget: Union[QMenu, QWidget], default_cols, settings: 'BlastProteinResultsSettings', parent = Optional[QWidget]):
         super().__init__(
             column_control_info=(
@@ -48,10 +46,6 @@ class BlastResultsTable(ItemTable):
                 , True         # Whether to show global buttons
             )
             , parent=parent)
-        self.doubleClicked.connect(self.doubleclicked)
-
-    def doubleclicked(self, _) -> list:
-        self.get_selection.emit(self.selected)
 
     def resizeColumns(self, max_size: int = 0):
         for col in self._columns:

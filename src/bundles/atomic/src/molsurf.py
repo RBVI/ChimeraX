@@ -1,14 +1,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 """
@@ -144,7 +155,10 @@ class MolecularSurface(Surface):
             self.triangle_mask = self._calc_triangle_mask()
 
     def _clear_shape(self):
-        self.set_geometry(None, None, None)
+        from numpy import empty, float32, int32
+        va = na = empty((0,3),float32)
+        ta = empty((0,3),int32) 
+        self.set_geometry(va, na, ta)
         self.color = self._average_color()
         self.vertex_colors = None
         self._vertex_to_atom = None
@@ -218,7 +232,7 @@ class MolecularSurface(Surface):
     
     def calculate_surface_geometry(self):
         '''Recalculate the surface if parameters have been changed.'''
-        if not self.vertices is None:
+        if self.vertices is not None and len(self.vertices) > 0:
             return              # Geometry already computed
 
         atoms = self.atoms
@@ -302,9 +316,14 @@ class MolecularSurface(Surface):
             v2a[i1] = nearest1
             self._vertex_to_atom = v2a
             self._vertex_to_atom_count = len(self.atoms)
-        elif self._vertex_to_atom is not None and len(self.atoms) < self._vertex_to_atom_count:
-            # Atoms deleted
-            self._vertex_to_atom = None
+        elif self._vertex_to_atom is not None:
+            if len(self.atoms) < self._vertex_to_atom_count:
+                # Atoms deleted
+                self._vertex_to_atom = None
+            elif len(self._vertex_to_atom) != len(self.vertices):
+                # Some other code like color zone with sharp_edges = True
+                # changed the surface geometery.
+                self._vertex_to_atom = None
         return self._vertex_to_atom
 
     def _vertices_for_atoms(self, atoms):
@@ -346,7 +365,7 @@ class MolecularSurface(Surface):
             return None
         shown_vertices = atom_mask[v2a]
         t = self.triangles
-        from numpy import logical_and, empty, bool
+        from numpy import logical_and, empty
         shown_triangles = empty((len(t),), bool)
         logical_and(shown_vertices[t[:,0]], shown_vertices[t[:,1]], shown_triangles)
         logical_and(shown_triangles, shown_vertices[t[:,2]], shown_triangles)
@@ -379,16 +398,16 @@ class MolecularSurface(Surface):
             self.display = False
             self.triangle_mask = None
 
-    def _get_model_color(self):
+    def _get_overall_color(self):
         vc = self.vertex_colors
         from chimerax.core.colors import most_common_color
         return self.color if vc is None else most_common_color(vc)
-    def _set_model_color(self, color):
+    def _set_overall_color(self, color):
         self.color = color
         self.vertex_colors = None
         self._atom_patch_colors = None
         self._atom_patch_color_mask = None
-    model_color = property(_get_model_color, _set_model_color)
+    overall_color = property(_get_overall_color, _set_overall_color)
 
     def _average_color(self):
         vc = self.vertex_colors
@@ -468,7 +487,7 @@ class MolecularSurface(Surface):
 
     def _remember_atom_patch_colors(self, atom_colors):
         self._atom_patch_colors = atom_colors
-        from numpy import ones, bool
+        from numpy import ones
         self._atom_patch_color_mask = ones((len(atom_colors),), bool)
 
     def _update_atom_patch_colors(self, atoms, color, per_atom_colors, vertex_colors):
@@ -488,7 +507,7 @@ class MolecularSurface(Surface):
         apc = self._atom_patch_colors
         if apc is None or len(apc) != len(self.atoms):
             na = len(self.atoms)
-            from numpy import empty, uint8, bool
+            from numpy import empty, uint8
             self._atom_patch_colors = c = empty((na,4), uint8)
             c[ai] = acolors
             self._atom_patch_color_mask = ai
@@ -513,7 +532,7 @@ class MolecularSurface(Surface):
         c8 = self.color if color is None else color
         if opacity is not None:
             c8 = (c8[0], c8[1], c8[2], opacity)
-        self.model_color = c8
+        self.overall_color = c8
         self._clear_atom_patch_colors()
 
     # Handle undo of color changes
@@ -543,25 +562,30 @@ class MolecularSurface(Surface):
         v = self.triangles[t,0]
         v2a = self.vertex_to_atom_map()
         if v2a is None:
-            pa = p
+            from chimerax.core.models import PickedModel
+            pa = PickedModel(self, p.distance)
         else:
             a = v2a[v]
             atom = self.atoms[a]
             from .structure import PickedAtom
             pa = PickedAtom(atom, p.distance)
-            if isinstance(p, PickedTriangle):
-                pa.triangle_pick = p	# Used by for reporting surface color value
+        if isinstance(p, PickedTriangle):
+            pa.triangle_pick = p	# Used by for reporting surface color value
         return pa
 
     def set_selected(self, sel, *, fire_trigger=True):
         self.atoms.selected = sel
         self.update_selection(fire_trigger=fire_trigger)
+        if not self.has_atom_patches():
+            Surface.set_selected(self, sel, fire_trigger=fire_trigger)
     selected = property(Surface.selected.fget, set_selected)
 
     def update_selection(self, *, fire_trigger=True):
         asel = self.atoms.selected
         tmask = self._atom_triangle_mask(asel)
         if tmask is None:
+            if not self.has_atom_patches():
+                return
             sel_val = False
         else:
             sel_val = (tmask.sum() > 0)
@@ -618,6 +642,20 @@ def surface_rgba(color, transparency, chain_id = None):
         else:
             from .colors import chain_rgba8
             rgba8 = chain_rgba8(chain_id)
+    else:
+        rgba8 = color.uint8x4()
+    if not transparency is None:
+        opacity = int(255*(100.0-transparency)/100.0)
+        rgba8[3] = opacity
+    return rgba8
+
+def surface_initial_color(color, transparency, atoms = None):
+    if color is None:
+        if atoms is None:
+            from numpy import array, uint8
+            rgba8 = array((180,180,180,255), uint8)
+        else:
+            rgba8 = atoms.average_ribbon_color
     else:
         rgba8 = color.uint8x4()
     if not transparency is None:

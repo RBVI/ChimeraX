@@ -12,7 +12,10 @@
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.core.tools import ToolInstance
-
+from chimerax.core.errors import UserError
+class NoTargetError(UserError):
+    def __init__(self):
+        super().__init__("No target buttons for the coloring action are checked")
 
 class ColorActions(ToolInstance):
 
@@ -114,12 +117,13 @@ class ColorActions(ToolInstance):
             but = QPushButton("By " + label)
             if tooltip:
                 but.setToolTip(tooltip)
-            but.clicked.connect(lambda *, run=run, ses=self.session, arg=arg: run(ses,
-                "color " + ("" if ses.selection.empty() else "sel ") + "by" + arg))
+            but.clicked.connect(lambda *, run=run, ses=self.session, get_target=self._target_arg, arg=arg:
+                run(ses, "color " + ("" if ses.selection.empty() else "sel ") + "by" + arg + get_target()))
             grp_layout.addWidget(but)
         but = QPushButton("From Editor")
         but.setToolTip("Bring up a color editor to choose the color")
-        but.clicked.connect(self.session.ui.main_window.color_by_editor)
+        but.clicked.connect(lambda *, f=self.session.ui.main_window.color_by_editor,
+            get_target=self._target_arg: f(cmd_arg_func=get_target))
         grp_layout.addWidget(but)
 
         actions_layout.addStretch(1)
@@ -191,7 +195,7 @@ class ColorActions(ToolInstance):
 
         from Qt.QtWidgets import QDialogButtonBox as qbbox
         bbox = qbbox(qbbox.Close | qbbox.Help)
-        bbox.rejected.connect(self.delete)
+        bbox.rejected.connect(lambda: self.display(False))
         if self.help:
             bbox.helpRequested.connect(lambda *, run=run, ses=self.session: run(ses, "help " + self.help))
         else:
@@ -214,17 +218,14 @@ class ColorActions(ToolInstance):
             button.setChecked(False)
 
     def _color(self, color_name):
-        from chimerax.core.errors import UserError
         from chimerax.core.commands import run
-        target = ""
-        for but, targ_char in self.target_button_info:
-            if but.isChecked():
-                target += targ_char
         commands = []
-        if target:
+        try:
             commands.append("color "
                 + ("" if self.session.selection.empty() else "sel ") + color_name
-                + ("" if target == "acspf" else " target " + target))
+                + self._target_arg())
+        except NoTargetError:
+            pass
 
         for but, cmd in self.global_button_info:
             if but.isChecked():
@@ -233,7 +234,7 @@ class ColorActions(ToolInstance):
         if commands:
             run(self.session, " ; ".join(commands))
         else:
-            raise UserError("No target buttons for the coloring action are checked")
+            raise NoTargetError()
 
     def _rgba_key(self, rgba):
         brightness = rgba[0] + rgba[1] + rgba[2]
@@ -255,6 +256,15 @@ class ColorActions(ToolInstance):
         if reddish and not greenish and bluish:
             return (5, -rgba[0]+rgba[1]-rgba[2])
         return (6, rgba)
+
+    def _target_arg(self):
+        target = ""
+        for but, targ_char in self.target_button_info:
+            if but.isChecked():
+                target += targ_char
+        if not target:
+            raise NoTargetError()
+        return "" if target == "acspf" else " target " + target
 
     def _toggle_all_colors(self, *args):
         if self.all_colors_check_box.isChecked():

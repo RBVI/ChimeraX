@@ -1,14 +1,25 @@
 # vim: set expandtab ts=4 sw=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 # ------------------------------------------------------------------------------
@@ -111,6 +122,39 @@ class Plot(ToolInstance):
         e = MouseEvent('context menu', self.canvas, pr*x, pr*(h-y))
         return e
 
+    def save_plot_as(self):
+        fmts = [self.session.data_formats[fmt_name] for fmt_name in ('Portable Network Graphics',
+                                                                     'Scalable Vector Graphics',
+                                                                     'Portable Document Format')]
+        parent = self.tool_window.ui_area
+        from chimerax.ui.open_save import SaveDialog
+        save_dialog = SaveDialog(self.session, parent, "Save Plot", data_formats=fmts)
+        if not save_dialog.exec():
+            return
+        filename = save_dialog.selectedFiles()[0]
+        if not filename:
+            from chimerax.core.errors import UserError
+            raise UserError("No file specified for saving plot")
+        format = {'PDF document (*.pdf)':'pdf',
+                  'SVG image (*.svg)':'svg',
+                  'PNG image (*.png)':'png'}[save_dialog.selectedNameFilter()]
+        from os.path import splitext
+        if splitext(filename)[1] == '':
+            filename += '.' + format
+        self.save_plot(filename, format = format)
+
+    def save_plot(self, path, dpi = 300, pad_inches = 0.1, format = None):
+        self.figure.savefig(path, dpi = dpi, pad_inches = pad_inches, format = format)
+
+    def add_menu_entry(self, menu, text, callback, *args):
+        '''Add menu item to context menu'''
+        widget = self.tool_window.ui_area
+        from Qt.QtGui import QAction
+        a = QAction(text, widget)
+        #a.setStatusTip("Info about this menu entry")
+        a.triggered.connect(lambda *, cb=callback, args=args: cb(*args))
+        menu.addAction(a)
+
 # ------------------------------------------------------------------------------
 #
 class Graph(Plot):
@@ -159,11 +203,7 @@ class Graph(Plot):
     def _make_graph(self):
         import networkx as nx
         # Keep graph nodes in order so we can reproduce the same layout.
-        from collections import OrderedDict
-        class OrderedGraph(nx.Graph):
-            node_dict_factory = OrderedDict
-            adjlist_dict_factory = OrderedDict
-        G = nx.OrderedGraph()
+        G = nx.Graph()
         G.add_nodes_from(self.nodes)
         edges = self.edges
         if edges:
@@ -408,17 +448,8 @@ class Graph(Plot):
         self.fill_context_menu(menu, item)
 
     def fill_context_menu(self, menu, item):
-        pass
-
-    def add_menu_entry(self, menu, text, callback, *args):
-        '''Add menu item to context menu'''
-        widget = self.tool_window.ui_area
-        from Qt.QtGui import QAction
-        a = QAction(text, widget)
-        #a.setStatusTip("Info about this menu entry")
-        a.triggered.connect(lambda *, cb=callback, args=args: cb(*args))
-        menu.addAction(a)
-
+        self.add_menu_entry(menu, 'Save Plot As...', self.save_plot_as)
+        
 # ------------------------------------------------------------------------------
 #
 class Node:

@@ -34,6 +34,7 @@ Built-in coloring schemes are shown below. See also:
 </p>
 <ul class="none">
 <li><a href="#autocolors"><b>Coloring by Model or Chain (Initial Colors)</b></a>
+<li><a href="#map"><b>Initial Map Colors</b></a>
 <li><a href="#residue"><b>Coloring by Residue Type</b></a>
 <li><a href="#element"><b>Element Colors</b></a>
 </ul>
@@ -77,8 +78,9 @@ shown in <b>medium purple</b> <table border cellpadding="4" cellspacing="0"
 style="display:inline-block; vertical-align:middle"><tr>
 <td bgcolor=mediumpurple width="10px" title="medium purple"></td></tr></table>.
 </p><p>
-Per-chain <a href="surface.html">molecular surface</a> models are
-initially colored by chain ID, for example:
+Coloring by chain (as with the 
+<a href="color.html#simple"><b>color</b></a> command <b>bychain</b> scheme)
+is based on chain ID, for example:
 </p>
 <!-- see src/core/colors.py -->
 <table border cellspacing="0" cellpadding="4" 
@@ -160,16 +162,22 @@ align="center">&nbsp;0&nbsp;</td>
 </tr>
 </table>
 <p>
-This is also the <a href="color.html#simple"><b>color</b></a> command
-<b>bychain</b> scheme.
-Unique colors are generated automatically for other chain IDs
-(for example, those with two characters). 
+Unique colors are generated automatically for other chain IDs,
+such as those with two characters.
 See also the <a href="color.html#simple"><b>color</b></a> command
 <a href="color.html#bypolymer"><b>bypolymer</b></a> coloring.
-</p><p>
-Similarly, there are default initial colors for
-<a href="../tools/volumeviewer.html">volume data</a> sets:
-<img src="mapcolors.png">
+</p>
+
+<a name="map"></a>
+<h3><a href="#top" class="nounder">&larr;</a>
+Initial Map Colors</h3>
+<p>
+Initial colors for <a href="../tools/volumeviewer.html">volume data</a>
+(density maps, <i>etc.</i>) can be customized from the factory defaults of
+<img src="mapcolors.png"> with the
+<a href="volume.html#initialColors"><b>initialColors</b></a> option of 
+<a href="volume.html"><b>volume</b></a> and
+<a href="volume.html#defaultvalues"><b>volume defaultvalues</b></a>.
 </p>
 
 <a name="residue"></a>
@@ -430,5 +438,5 @@ hexadecimal <a href="colornames.html">color code</a>.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-September 2021</address>
+November 2023</address>
 </body></html>

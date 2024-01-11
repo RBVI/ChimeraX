@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-Map" version="1.1"
+<BundleInfo name="ChimeraX-Map" version="1.1.4"
 	    package="chimerax.map"
 	    customInit="true" minSessionVersion="1" maxSessionVersion="1">
 
@@ -78,8 +78,7 @@
     <Provider name="IMOD map" want_path="true" batch="true" />
     <Provider name="MacMolPlt grid" want_path="true" batch="true" />
     <Provider name="MRC density map" want_path="true" batch="true" />
-	<!-- Amber trajectories use .nc suffix... -->
-    <Provider name="NetCDF map" want_path="true" batch="true" is_default="false" />
+    <Provider name="NetCDF map" want_path="true" batch="true" />
     <Provider name="Priism microscope image" want_path="true" batch="true" />
     <Provider name="PROFEC free energy grid" want_path="true" batch="true" />
     <Provider name="Purdue image format" want_path="true" batch="true" />
@@ -88,19 +87,25 @@
     <Provider name="TOM toolbox EM density map" want_path="true" batch="true" />
     <Provider name="UHBD grid, binary" want_path="true" batch="true" />
 
-    <Provider name="eds" type="fetch" format_name="CCP4 density map"/>
-    <Provider name="edsdiff" type="fetch" format_name="CCP4 density map"/>
-    <Provider name="emdb" type="fetch" format_name="CCP4 density map"/>
-    <Provider name="emdb_europe" type="fetch" format_name="CCP4 density map"/>
-    <Provider name="emdb_us" type="fetch" format_name="CCP4 density map"/>
-    <Provider name="emdb_japan" type="fetch" format_name="CCP4 density map"/>
-    <Provider name="emdb_china" type="fetch" format_name="CCP4 density map"/>
+    <Provider name="eds" type="fetch" format_name="CCP4 density map"
+		synopsis="EDS (2Fo-Fc)" example_ids="1a0m" />
+    <Provider name="edsdiff" type="fetch" format_name="CCP4 density map"
+		synopsis="EDS (Fo-Fc)" example_ids="1a0m" />
+    <Provider name="emdb" type="fetch" format_name="CCP4 density map" group_multiple_models="false"
+		synopsis="EMDB" example_ids="5625" />
+    <Provider name="emdb_europe" type="fetch" format_name="CCP4 density map" group_multiple_models="false"/>
+    <Provider name="emdb_us" type="fetch" format_name="CCP4 density map" group_multiple_models="false"/>
+    <Provider name="emdb_japan" type="fetch" format_name="CCP4 density map" group_multiple_models="false"/>
+    <Provider name="emdb_china" type="fetch" format_name="CCP4 density map" group_multiple_models="false"/>
+    <Provider name="emdb_fits" type="fetch" format_name="CCP4 density map" group_multiple_models="false"
+		synopsis="EMDB &amp; fit PDBs" example_ids="1048" />
   </Providers>
 
   <Providers manager="save command">
     <Provider name="BRIX density map" />
+    <Provider name="CCP4 density map" />
     <Provider name="Chimera map" />
-    <Provider name="ImageJ TIFF map" is_default="false" />
+    <Provider name="ImageJ TIFF map" />
     <Provider name="IMAGIC density map" />
     <Provider name="MRC density map" />
   </Providers>
@@ -110,7 +115,6 @@
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
     
     <ChimeraXClassifier>Command :: volume :: Volume data :: control volume data display</ChimeraXClassifier>
-    <ChimeraXClassifier>Command :: vop :: Volume data :: filter volume data</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: molmap :: Volume data :: create density map for molecule</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: measure mapstats :: Volume data :: report map statistics</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: measure mapvalues :: Volume data :: Intepolate map at atom positions</ChimeraXClassifier>

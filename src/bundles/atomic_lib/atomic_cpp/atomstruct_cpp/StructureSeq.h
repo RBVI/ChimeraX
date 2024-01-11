@@ -2,14 +2,25 @@
 
 /*
  * === UCSF ChimeraX Copyright ===
- * Copyright 2016 Regents of the University of California.
- * All rights reserved.  This software provided pursuant to a
- * license agreement containing restrictions on its disclosure,
- * duplication and use.  For details see:
- * http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
- * This notice must be embedded in or attached to all copies,
- * including partial copies, of the software or any revisions
- * or derivations thereof.
+ * Copyright 2022 Regents of the University of California. All rights reserved.
+ * The ChimeraX application is provided pursuant to the ChimeraX license
+ * agreement, which covers academic and commercial uses. For more details, see
+ * <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+ *
+ * This particular file is part of the ChimeraX library. You can also
+ * redistribute and/or modify it under the terms of the GNU Lesser General
+ * Public License version 2.1 as published by the Free Software Foundation.
+ * For more details, see
+ * <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+ *
+ * THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+ * LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+ * VERSION 2.1
+ *
+ * This notice must be embedded in or attached to all copies, including partial
+ * copies, of the software or any revisions or derivations thereof.
  * === UCSF ChimeraX Copyright ===
  */
 
@@ -50,17 +61,19 @@ protected:
     ChainID  _chain_id;
     std::string  _description;
     bool  _from_seqres;
+    bool  _is_chain;
     PolymerType  _polymer_type;
     ResMap  _res_map;
     Residues  _residues;
     Structure*  _structure;
 
     static int  SESSION_NUM_INTS(int version=CURRENT_SESSION_VERSION) {
-        return version < 10 ? 3 : 4;
+        return version < 10 ? 3 : (version < 18 ? 4 : 5);
     }
     static int  SESSION_NUM_FLOATS(int /*version*/=CURRENT_SESSION_VERSION) { return 0; }
 
     void  demote_to_sequence();
+    void  demote_to_structure_sequence();
     bool  no_structure_left() const {
         for (auto r: _residues) {
             if (r != nullptr)

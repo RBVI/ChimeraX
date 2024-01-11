@@ -1,3 +1,16 @@
+# vim: set expandtab ts=4 sw=4:
+
+# === UCSF ChimeraX Copyright ===
+# Copyright 2016 Regents of the University of California.
+# All rights reserved.  This software provided pursuant to a
+# license agreement containing restrictions on its disclosure,
+# duplication and use.  For details see:
+# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# This notice must be embedded in or attached to all copies,
+# including partial copies, of the software or any revisions
+# or derivations thereof.
+# === UCSF ChimeraX Copyright ===
+
 """
 This Qt shim module allows using PyQt5 or PySide2 Python bindings to the Qt C++ library.
 It allows easily switching between these two almost equivalent bindings without changing
@@ -44,6 +57,9 @@ except ImportError:
         using_pyside2 = True
         using_qt5 = True
 
+import enum
+qt_enum_as_int = lambda val: val if isinstance(val, int) else val.value
+
 if using_pyqt6:
     from PyQt6.QtCore import PYQT_VERSION_STR as PYQT6_VERSION
     from PyQt6.QtCore import QT_VERSION_STR as QT_VERSION
@@ -56,6 +72,8 @@ if using_pyqt6:
 
     def qt_image_bytes(qimage):
         return qimage.bits().asstring(qimage.sizeInBytes())
+
+    qt_enum_from_int = lambda enum_class, val: val if isinstance(val, enum.Enum) else enum_class(val)
 
 if using_pyqt5:
     from PyQt5.QtCore import PYQT_VERSION_STR as PYQT5_VERSION
@@ -70,6 +88,9 @@ if using_pyqt5:
     def qt_image_bytes(qimage):
         return qimage.bits().asstring(qimage.byteCount())
 
+    # PyQt5 wants ints, not enums
+    qt_enum_from_int = lambda enum_class, val: val.value if isinstance(val, enum.Enum) else val
+
 if using_pyside2:
     from PySide2 import __version__ as PYSIDE2_VERSION
     from PySide2.QtCore import __version__ as QT_VERSION
@@ -83,9 +104,13 @@ if using_pyside2:
     def qt_image_bytes(qimage):
         return qimage.bits().tobytes()
 
+    # PySide2 wants ints, not enums
+    qt_enum_from_int = lambda enum_class, val: val.value if isinstance(val, enum.Enum) else val
+
 def qt_have_web_engine():
     try:
         from . import QtWebEngineWidgets
     except Exception:
         return False
     return True
+

@@ -5,5 +5,5 @@
 # warns "Unable to load numpy_formathandler accelerator from OpenGL_accelerate".
 # ChimeraX bug #3760.
 #
-PyOpenGL==3.1.5
-PyOpenGL-accelerate==3.1.5
+PyOpenGL==3.1.7
+PyOpenGL-accelerate==3.1.7

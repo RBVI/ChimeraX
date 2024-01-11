@@ -14,6 +14,9 @@
     or derivations thereof.
     === UCSF ChimeraX Copyright ===
 
+.. role:: raw-html(raw)
+    :format: html
+
 .. _Bundle Information XML Tags:
 
 Bundle Information XML Tags
@@ -440,7 +443,7 @@ of ``mac``.
     - **name**: name of manager.  If **autostart** is true (see below), the bundle
       must implement the ``init_manager`` method.  The two positional arguments to
       ``init_manager`` are the session instance and the manager name.
-    - **uiOnly**: set to ``true`` if manager should only be created
+    - **guiOnly**: set to ``true`` if manager should only be created
       when the graphical user interface is being used; omit otherwise
     - **autostart**: If true, the manager is started during Chimera startup.
       Defaults to true.
@@ -708,6 +711,9 @@ These are the possible `Provider`_ attributes:
     *encoding*
         If the format is textual, the encoding for that text.  Binary formats should
         omit this attribute.  The most common encoding for text formats is "utf-8".
+        If the encoding is declared as "utf-8" and a file reader for the format throws
+        `UnicodeDecodeError <https://wiki.python.org/moin/UnicodeDecodeError>`_, then
+        utf-16 and utf-32 will also be tried.
 
     .. _nicknames:
 
@@ -743,6 +749,20 @@ These are the possible `Provider`_ attributes:
         command.  Specifying *allow_directory* as "true" does not preclude also possibly
         opening this format from individual files (in which case *suffixes* would matter).
         The default is "false".
+
+    .. _default_for:
+
+    *default_for*
+        Declares that this format should be considered the default when opening files with
+        the given suffix(es).  Therefore has to be the same as or a subset of the *suffixes*
+        attribute.  This attribute is not normally specified because the file opening/saving machinery
+        will query the user when there is more than one format that corresponds to a particular
+        file suffix, and allow the user to designate a format as the default.  It is typically
+        used as a convenience when it seems likely that a large majority of users will intend
+        to open/save one specific format despite there being multiple possibilities.  For
+        instance, the main PDB open/save bundle declares PDB format as default for .pdb (but not
+        .ent, *etc.*) despite SwissDock and ZDOCK formats also using the .pdb suffix.  Users
+        having SwissDock/ZDOCK PDB files would have to use the ``format`` open/save keyword.
 
     *insecure*
         If opening this format's data could cause arbitrary code to execute, then *insecure*
@@ -806,21 +826,27 @@ The other possible `Provider`_ attributes are:
         *want_path*\="true", you don't have to explicitly specify that).
 
     *is_default*
-        If your data format has suffixes that are the same as another format's suffixes, *is_default*
+        **Obsolete.**  Use `default_for`_ instead.
+        :raw-html:`<font color="lightgray">` If your data format has suffixes that are the same as another format's suffixes, *is_default*
         will determine which format will be used when the open command's ``format`` keyword is omitted.
         *is_default* defaults to "true", so therefore typically lesser known/used formats supply this
-        attribute with a value of "false".
+        attribute with a value of "false". :raw-html:`</font>`
 
     *pregrouped_structures*
         If a provider returns multiple models, the open command will automatically group them
-        so that the entire set of models can be referenced with one model number (the individual
-        models can be referenced with submodel numbers).  The provider *could* pre-group them in
-        order to give the group a name other the default (which is based on the file name; the user can
-        still override that with the ``name`` keyword of the open command).  In the specific case
-        where the provider is pre-grouping atomic structures, it should specify *pregrouped_structures*
-        as "true" so the the open command's return value can be the actual list of structures rather
-        than a grouping model.  This greatly simplifies scripts trying to handle return values
-        from various kinds of structure-opening commands.
+        (see ``group_multiple_models`` attribute, next) so that the entire set of models can be referenced
+        with one model number (the individual models can be referenced with submodel numbers).
+        The provider *could* pre-group them in order to give the group a name other the default
+        (which is based on the file name; the user can still override that with the ``name`` keyword
+        of the open command).  In the specific case where the provider is pre-grouping atomic structures,
+        it should specify *pregrouped_structures* as "true" so the the open command's return value can be
+        the actual list of structures rather than a grouping model.  This greatly simplifies scripts trying
+        to handle return values from various kinds of structure-opening commands.
+
+    *group_multiple_models*
+        By default, if a provider returns multiple models they will be grouped for ease of reference
+        in commands.  If it is desired that the returned models each be separate top-level models,
+        specify a value of "false" for this attribute.
 
     *type*
         If you are providing information about opening a file rather than fetching from a
@@ -901,14 +927,15 @@ The other possible `Provider`_ attributes are:
             be bad to compress it again (likely slower with no space savings).
 
     *is_default*
-        If your data format has suffixes that are the same as another format's suffixes, *is_default*
+        **Obsolete.**  Use `default_for`_ instead.
+        :raw-html:`<font color="lightgray">` If your data format has suffixes that are the same as another format's suffixes, *is_default*
         will determine which format will be used when the save command's ``format`` keyword is omitted.
         *is_default* defaults to "true", so therefore typically lesser known/used formats supply this
         attribute with a value of "false".  For example, ChimeraX can save both image TIFF files and
         `ImageJ TIFF stacks <https://imagej.net/TIFF>`_, which both use the suffixes .tif and .tiff.
         The ImageJ TIFF stack uses ``is_default="false"`` so that the command ``save image.tif``
         produces the more commonly desired image file.  To get an ImageJ stack, the user would have
-        to add ``format imagej`` to the save command.
+        to add ``format imagej`` to the save command :raw-html:`</font>`.
 
 For example::
 
@@ -983,15 +1010,17 @@ The other possible `Provider`_ attributes are:
 
 - **Frequently-Used** Attributes
 
-    *example_ids*
-        A list of one or more valid example identifiers for your database.  For use in
-        graphical user interfaces.
-
     *synopsis*
         The description of the fetcher used by user-interface widgets that list fetchers
-        (like the Fetch By ID dialog in Chimera), so typically somewhat more verbose than *name*.
-        The first word should be capitalized unless that word is mixed case (*e.g.* mmCIF).
-        Defaults to a capitalized *name* followed by the *format_name* in parentheses.
+        (such as the Fetch By ID dialog), so typically somewhat more verbose than *name*.
+        Words should be capitalized unless that word is mixed case (*e.g.* mmCIF).
+        Omitting *synopsis* means that the fetcher will not be listed in user-interface widgets.
+        The ';' character can be used to separate lines of a multi-line description.
+
+    *example_ids*
+        A list of one or more valid example identifiers for your database.  For use in
+        graphical user interfaces (see *synopsis* attribute).
+        The ';' character can be used to separate multiple example IDs.
 
 - **Infrequently-Used** Attributes
 
@@ -1003,14 +1032,19 @@ The other possible `Provider`_ attributes are:
 
     *pregrouped_structures*
         If a provider returns multiple models, the open command will automatically group them
-        so that the entire set of models can be referenced with one model number (the individual
-        models can be referenced with submodel numbers).  The provider *could* pre-group them in
-        order to give the group a name other the default (which is based on the database entry ID;
-        the user can still override that with the ``name`` keyword of the open command).
-        In the specific case where the provider is pre-grouping atomic structures, it should specify
-        *pregrouped_structures* as "true" so the the open command's return value can be the actual list
-        of structures rather than a grouping model.  This greatly simplifies scripts trying to handle
-        return values from various kinds of structure-opening commands.
+        (see ``group_multiple_models`` attribute, next) so that the entire set of models can be referenced
+        with one model number (the individual models can be referenced with submodel numbers).
+        The provider *could* pre-group them in order to give the group a name other the default
+        (which is based on the database entry ID; the user can still override that with the ``name``
+        keyword of the open command).  In the specific case where the provider is pre-grouping atomic
+        structures, it should specify *pregrouped_structures* as "true" so the the open command's
+        return value can be the actual list of structures rather than a grouping model.  This greatly
+        simplifies scripts trying to handle return values from various kinds of structure-opening commands.
+
+    *group_multiple_models*
+        By default, if a provider returns multiple models they will be grouped for ease of reference
+        in commands.  If it is desired that the returned models each be separate top-level models,
+        specify a value of "false" for this attribute.
 
 For example::
 

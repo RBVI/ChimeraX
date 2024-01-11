@@ -58,8 +58,11 @@ with some ChimeraX sample code and modify it appropriately.
 Bundle Sample Code
 ------------------
 
-To build a bundle from the `sample code
-<https://www.cgl.ucsf.edu/chimerax/cgi-bin/bundle_sample.zip>`_,
+To build a bundle from the sample code (`XML configuration
+<https://www.github.com/RBVI/ChimeraX-Bundle-Template>`_
+/ `TOML configuration
+<https://www.github.com/RBVI/ChimeraX-Bundle-Template-TOML>`_
+),
 you can either use the ``make`` program, or the
 ChimeraX application if you do not have ``make``.
 On Linux and macOS, ``make`` is available as part of the
@@ -152,11 +155,13 @@ All other contents of the bundle should be in ``src``.
     under a ``src/docs`` folder.  Inside that folder
     documentation intended for developers should be in
     a ``devel`` subfolder and documentation for users
-    in a ``users`` subfolder.  Specifically, documentation
-    for commands should be under ``users/commands`` as
+    in a ``user`` subfolder.  Specifically, documentation
+    for commands should be under ``user/commands`` as
     described :ref:`here <command help>`,
-    and documentation for tools under ``users/tools`` as
-    described :ref:`here <help>`.
+    and documentation for tools under ``user/tools`` as
+    described :ref:`here <help>`.  The ``docs`` directory
+    also needs to be added to the list of data files in
+    **bundle_info.xml**.
 
 
 *Building and testing the Sample Bundle using ``ChimeraX``*
@@ -288,3 +293,10 @@ Bundle Information XML Tags
 ChimeraX bundle information is stored in **bundle_info.xml**.
 Details of supported XML tags are found in
 :doc:`tutorials/bundle_info`.
+
+Using ``pyproject.toml`` for Bundles
+------------------------------------
+
+ChimeraX bundle information can optionally be stored in **pyproject.toml**.
+Details of that file are found in
+:doc:`tutorials/pyproject`

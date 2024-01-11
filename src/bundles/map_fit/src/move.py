@@ -89,8 +89,13 @@ def restore_position(pstate, angle_tolerance = 1e-5, shift_tolerance = 1e-5):
     atoms, xyz = atom_positions
     from numpy import array_equal
     if not array_equal(atoms.coords, xyz):
-        changed = True
-        atoms.coords = xyz
+        if len(atoms) == len(xyz):
+            changed = True
+            atoms.coords = xyz
+        else:
+            # Atoms have been deleted, cannot undo positions.
+            pass
+
     return changed
 
 # -----------------------------------------------------------------------------

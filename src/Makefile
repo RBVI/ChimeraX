@@ -14,18 +14,13 @@
 
 TOP = ..
 NO_SUBDIR_ALL = 1
-
+-include $(TOP)/.makerc
 include $(TOP)/mk/config.make
 
-SUBDIRS	+= core bundles apps examples
+SUBDIRS	+= bundles apps examples
 
 # All needed subdirectories must be set by now.
 include $(TOP)/mk/subdir.make
 
-all:
-
-mainapp-install: core.install
-	$(MAKE) -C apps/$(APP_NAME) install
-
-bundles.install: core.install mainapp-install
-apps.install: bundles.install core.install
+# Ensure bundles installs first even on parallel builds
+apps.install: bundles.install

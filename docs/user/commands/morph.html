@@ -51,6 +51,18 @@ target="_blank">2019</a>]
 [<a href="https://www.rbvi.ucsf.edu/chimerax/tutorials.html#movies-volume"
 target="_blank">2017</a>]
 </p><p>
+The method is based on that used by the
+<a href="http://www2.molmovdb.org/wiki/info/index.php/Morph_Server"
+target="_blank">Yale Morph Server</a>:
+</p>
+<blockquote>
+<a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC102811/" target="_blank">
+The morph server: a standardized system for analyzing and visualizing 
+macromolecular motions in a database framework.</a>
+Krebs WG, Gerstein M.
+<i>Nucleic Acids Res.</i> 2000 Apr 15;<b>28</b>(8):1665-75.
+</blockquote>
+<p>
 Before morphing, the atomic models should be superimposed
 (such as with <a href="matchmaker.html"><b>matchmaker</b></a>).
 In the <b>morph</b> command, the models should be specified in the order
@@ -130,8 +142,15 @@ and/or the <a href="#slider">slider</a> can be used to replay the trajectory.
 The <b>slider</b> option (default <b>true</b>) shows a graphical interface
 for trajectory playback.
 The slider can be dragged or a frame number entered directly.
-The interface also includes a play/pause button and another
-(marked with a red dot) for recording a movie. See also:
+The interface also includes a play/pause button, a
+&nbsp;<img style="height:16px; margin: 1px -1px; vertical-align:top"
+src="../tools/ui-icons/snail.png">&nbsp; value to increase for slower playback,
+and a button for recording a movie
+(<img class="iconbar" src="../tools/ui-icons/record.png">).
+The movie will start at the current slider position, so
+to include the whole morph, place the slider at the far left
+before clicking the record button.
+See also:
 <a href="coordset.html#slider"><b>coordset slider</b></a>
 </p>
 
@@ -361,5 +380,5 @@ all of the atoms will be interpolated in Cartesian space.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-August 2021</address>
+February 2023</address>
 </body></html>

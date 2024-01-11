@@ -4,12 +4,12 @@
 
 # Make sure virtual machine has a GPU
 def check_for_gpu():
-    import jax
-    devtype = jax.local_devices()[0].platform
-    if devtype == 'gpu':
+    import os
+    have_gpu = (int(os.environ.get('COLAB_GPU',1)) > 0)
+    if have_gpu:
         print ('Have Colab GPU runtime')
     else:
-        raise RuntimeError('Require Colab GPU runtime, got %s.\n' % devtype +
+        raise RuntimeError('Require Colab GPU runtime.\n' +
                            'Change GPU with Colab menu\n' +
                            'Runtime -> Change Runtime Type -> Hardware accelerator -> GPU.')
 
@@ -42,9 +42,11 @@ git clone --branch {alphafold_version} {alphafold_git_repo} alphafold
 # resulting in error no module jax.experimental.compilation_cache.  The chex
 # package brings in jax 0.2.19 and jaxlib 0.1.70 but then jax is uninstalled
 # and replaced with 0.2.14 but jaxlib is not reverted to an older version.
+# Also need to get jaxlib from google rather than pypi to have cuda support.
 pip3 install -r ./alphafold/requirements.txt
 # Update jax
-pip3 install jax==0.2.19 jaxlib==0.1.70
+pip3 install --upgrade jaxlib==0.1.70+cuda111 -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
+pip3 install jax==0.2.19
 pip3 install --no-dependencies ./alphafold
 #pip3 install ./alphafold
 

@@ -77,6 +77,12 @@ class SaveOptionsWidget(QFrame):
             "Whether to try to write polymer sequence information"
             " when it was missing from the input file")
 
+        self.computed_sheets = QCheckBox('Computed sheets')
+        options_layout.addWidget(self.computed_sheets, alignment=Qt.AlignLeft)
+        self.computed_sheets.setToolTip(
+            "Workaround ChimeraX not retaining sheet information from opened files"
+            " and save computed sheet and strand information")
+
         self.simple_rel_models = len(self.structure_list.value) < 2
         if self.simple_rel_models:
             self.rel_models = QCheckBox('Use untransformed coordinates')
@@ -121,6 +127,10 @@ class SaveOptionsWidget(QFrame):
             if cmd:
                 cmd += ' '
             cmd += "bestGuess true"
+        if self.computed_sheets.isChecked():
+            if cmd:
+                cmd += ' '
+            cmd += "computeSheets true"
         if self.rel_models.isChecked():
             if cmd:
                 cmd += ' '

@@ -1,18 +1,31 @@
 # vim: set expandtab ts=4 sw=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def interfaces(session, atoms = None, probe_radius = 1.4, area_cutoff = 300,
-               interface_residue_area_cutoff = 15):
+from . import chain_area_default, residue_area_default
+
+def interfaces(session, atoms = None, probe_radius = 1.4, area_cutoff = chain_area_default,
+               interface_residue_area_cutoff = residue_area_default):
     '''
     Compute buried solvent accessible surface areas between chains
     and show a 2-dimensional network graph depicting the contacts.
@@ -42,19 +55,21 @@ def interfaces(session, atoms = None, probe_radius = 1.4, area_cutoff = 300,
     log.info(msg)
     log.status(msg)
 
+    plot = None
     if len(ba) == 0:
         pass
     elif session.ui.is_gui:
         from . import tool
-        tool.ContactPlot(session, sg, ba, interface_residue_area_cutoff)
+        plot = tool.ContactPlot(session, sg, ba, interface_residue_area_cutoff)
     else:
         log.warning("unable to show graph without GUI")
 
+    return plot
 
 def interfaces_select(session, atoms = None, contacting = None,
                       both_sides = False,
-                      probe_radius = 1.4, area_cutoff = 300,
-                      interface_residue_area_cutoff = 15):
+                      probe_radius = 1.4, area_cutoff = chain_area_default,
+                      interface_residue_area_cutoff = residue_area_default):
     '''
     Select residues from one chain in contact with residues from
     another chain using buried solvent accessible surface areas to

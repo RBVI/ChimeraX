@@ -1,14 +1,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 # ensure C++ shared libs are linkable by us
@@ -21,6 +32,9 @@ from .mmcif import (  # noqa
     TableMissingFieldsError, CIFTable,
     find_template_residue, load_mmCIF_templates,
     add_citation, add_software,
+)
+from .corecif import (  # noqa
+    open_corecif, fetch_cod, fetch_pcod,
 )
 
 from chimerax.core.toolshed import BundleAPI
@@ -59,6 +73,25 @@ class _mmCIFioAPI(BundleAPI):
                     def fetch(self, session, ident, format_name, ignore_cache,
                               fetcher=mmcif.fetch_ccd, **kw):
                         return fetcher(session, ident, ignore_cache=ignore_cache, **kw)
+            elif name == "Small Molecule CIF":
+                from chimerax.open_command import OpenerInfo
+                from . import corecif
+
+                class Info(OpenerInfo):
+                    def open(self, session, data, file_name, **kw):
+                        return corecif.open_corecif(session, data, file_name, **kw)
+            elif name in ("cod", "pcod"):
+                from chimerax.open_command import FetcherInfo
+                from . import corecif
+                fetcher = {
+                    "cod": corecif.fetch_cod,
+                    "pcod": corecif.fetch_pcod,
+                }[name]
+
+                class Info(FetcherInfo):
+                    def fetch(self, session, ident, format_name, ignore_cache,
+                              fetcher=fetcher, **kw):
+                        return fetcher(session, ident, ignore_cache=ignore_cache, **kw)
             else:
                 from chimerax.open_command import FetcherInfo
                 from . import mmcif
@@ -93,12 +126,14 @@ class _mmCIFioAPI(BundleAPI):
                 def save_args(self):
                     from chimerax.core.commands import BoolArg, ModelsArg, ModelArg
                     return {
+                        'all_coordsets': BoolArg,
                         'displayed_only': BoolArg,
                         'models': ModelsArg,
                         'rel_model': ModelArg,
                         'selected_only': BoolArg,
                         'fixed_width': BoolArg,
                         'best_guess': BoolArg,
+                        'computed_sheets': BoolArg,
                     }
 
                 def save_args_widget(self, session):

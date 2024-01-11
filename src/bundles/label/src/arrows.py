@@ -1,17 +1,28 @@
 # vim: set expandtab ts=4 sw=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from chimerax.core.errors import UserError
+from chimerax.core.errors import UserError, LimitationError
 
 def arrow(session, arrows=None, *, start=None, end=None, color=None, weight=None,
         visibility=None, head_style=None, frames=None):
@@ -36,6 +47,9 @@ def arrow(session, arrows=None, *, start=None, end=None, color=None, weight=None
             for arg in ('start', 'end'):
                 if arg in cmd_kw:
                     del cmd_kw[arg]
+            if abs(start[0] - end[0]) > 1 or abs(start[1] - end[1]) > 1:
+                raise LimitationError("To avoid excessive memory use, arrow lengths are limited to the"
+                    " size of the ChimeraX graphics window")
             return arrow_create(session, start, end, **cmd_kw)
     if not arrows:
         raise UserError("No 2D arrows in session")
@@ -208,14 +222,15 @@ def arrow_under_window_position(session, win_x, win_y):
         return None, None
     best = None
     for arr in lm.all_arrows:
-        for x, y, part in [(arr.start[0], arr.start[1], "start"), (arr.end[0], arr.end[1], "end")]:
-            dist2 = (x-fx)*(x-fx) + (y-fy)*(y-fy)
-            if dist2 > 0.0025:  # 0.05 squared
-                continue
-            if best is None or dist2 < best:
-                best = dist2
-                best_arr = arr
-                best_part = part
+        if arr.drawing.display and arr.drawing.parents_displayed:
+            for x, y, part in [(arr.start[0], arr.start[1], "start"), (arr.end[0], arr.end[1], "end")]:
+                dist2 = (x-fx)*(x-fx) + (y-fy)*(y-fy)
+                if dist2 > 0.0025:  # 0.05 squared
+                    continue
+                if best is None or dist2 < best:
+                    best = dist2
+                    best_arr = arr
+                    best_part = part
     if best is None:
         return None, None
     return best_arr, best_part
@@ -307,6 +322,9 @@ class Arrows(Model):
         return tuple(self._named_arrows.keys())
 
     def delete_arrow(self, arrow):
+        if arrow not in self._arrows:
+            # in a script, it's possible for the model-removed trigger and a delete command to both call this
+            return
         if arrow.name:
             del self._named_arrows[arrow.name]
         self._arrows.remove(arrow)
@@ -322,7 +340,7 @@ class Arrows(Model):
 
     def _models_removed(self, trig_name, models):
         for m in models:
-            if isinstance(m, ArrowModel) and m in self._arrows:
+            if isinstance(m, ArrowModel) and m.arrow in self._arrows:
                 self.delete_arrow(m.arrow)
 
     SESSION_SAVE = True
@@ -389,9 +407,9 @@ class Arrow:
         self.weight = weight
         self.start = start
         self.end = end
-        self.visibility = visibility
         self.head_style = head_style
         self.drawing = d = ArrowModel(session, self)
+        self.visibility = d.display = visibility
         lb = session_arrows(session, create = True)
         lb.add_arrow(self)
 
@@ -486,13 +504,13 @@ class ArrowModel(Model):
             rgba8 = tuple(a.color)
         return rgba8
 
-    def _get_model_color(self):
+    def _get_overall_color(self):
         return self.arrow_color
-    def _set_model_color(self, color):
+    def _set_overall_color(self, color):
         a = self.arrow
         a.color = color
         a.update_drawing()
-    model_color = property(_get_model_color, _set_model_color)
+    overall_color = property(_get_overall_color, _set_overall_color)
 
     def _arrow_params(self, width, height):
         scale_factor = min(width, height)

@@ -1,21 +1,33 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.core.commands import Annotation, AnnotationError
+from chimerax.core.errors import UserError
 
 
 def view(session, objects=None, frames=None, clip=True, cofr=True,
-         orient=False, zalign=None, pad=0.05, need_undo=True):
+         orient=False, zalign=None, in_front_of=None, pad=0.05, need_undo=True):
     '''
     Move camera so the displayed models fill the graphics window.
     Also camera and model positions can be saved and restored.
@@ -35,9 +47,15 @@ def view(session, objects=None, frames=None, clip=True, cofr=True,
       Specifying the orient keyword moves the camera view point to
       look down the scene z axis with the x-axis horizontal and y-axis
       vertical.
-    zalign : Atoms
+    zalign : Objects
       Rotate view point so two specified atoms are aligned along the view
       axis with the first atom in front.  Exactly two atoms must be specified.
+      Alternatively an AxisModel or a PlaneModel can be specified, in which
+      case the axis or plane normal will be aligned.
+    in_front_of : Atoms
+      Used only with zalign option.  If specified the geometric center of the
+      zalign atoms and the geometric center of the in_front_of atoms are aligned
+      perpendicular to the screen.
     pad : float
       When making objects fit in window use a window size reduced by this fraction.
       Default value is 0.05.  Pad is ignored when restoring named views.
@@ -54,7 +72,7 @@ def view(session, objects=None, frames=None, clip=True, cofr=True,
         if orient:
             v.initial_camera_view(set_pivot = cofr)
         if zalign:
-            _z_align_view(session.main_view.camera, zalign)
+            _z_align_view(session.main_view.camera, zalign, in_front_of)
         if objects is None:
             v.view_all(pad = pad)
             if cofr:
@@ -74,14 +92,12 @@ def view(session, objects=None, frames=None, clip=True, cofr=True,
 
 def view_objects(objects, v, clip, cofr, pad):
     if objects.empty():
-        from chimerax.core.errors import UserError
         raise UserError('No objects specified.')
     disp = objects.displayed()
     # Use atoms but not whole molecular surfaces. Ticket #5663
     disp = _remove_molecular_surfaces(disp)
     b = disp.bounds()
     if b is None:
-        from chimerax.core.errors import UserError
         raise UserError('No displayed objects specified.')
     v.view_all(b, pad = pad)
     c, r = b.center(), b.radius()
@@ -121,16 +137,44 @@ def _remove_molecular_surfaces(objects):
             o.add_model_instances(m, minst)
     return o
     
-def _z_align_view(camera, atoms):
+def _z_align_view(camera, objects, in_front_of = None):
     '''
-    Rotate camera so two atoms are along view direction, first atom in front.
-    Rotation is about midpoint between the two atoms.
+    Rotate camera so axis/plane/two atoms is/are along view direction (if atoms, first atom in front).
+    Rotation is about midpoint between the two atoms, or center of axis/plane.
     '''
-    if len(atoms) != 2:
-        from chimerax.core.errors import UserError
-        raise UserError('view: Must specify two atoms with zalign option, got %d'
-                        % len(atoms))
-    xyz_front, xyz_back = atoms.scene_coords
+    align_pts = None
+    from chimerax.dist_monitor import ComplexMeasurable
+    for m in objects.models:
+        if isinstance(m, ComplexMeasurable):
+            try:
+                m_align_pts = m.alignment_points
+            except NotImplemented:
+                continue
+            if align_pts is None:
+                align_pts = m_align_pts
+            else:
+                raise UserError("Specify only one axis or plane to 'zalign'")
+
+    atoms = objects.atoms
+    if atoms:
+        if align_pts:
+            raise UserError("Must specify one axis or plane or two atoms for 'zalign'; you specified"
+                            " both an axis/plane and atoms")
+        if in_front_of is not None:
+            if len(atoms) == 0:
+                raise UserError('view: zAlign option specified no atoms')
+            if len(in_front_of) == 0:
+                raise UserError('view: inFrontOf option specified no atoms')
+            align_pts = atoms.scene_coords.mean(axis = 0), in_front_of.scene_coords.mean(axis = 0)
+        elif len(atoms) == 2:
+            align_pts = atoms.scene_coords
+        else:
+            raise UserError('view: Must specify two atoms with zalign option, got %d' % len(atoms))
+
+    if align_pts is None:
+        raise UserError("Must specify one axis or plane or two atoms for 'zalign' option")
+
+    xyz_front, xyz_back = align_pts
     new_view_direction = xyz_back - xyz_front
     center = 0.5*(xyz_front + xyz_back) - camera.position.origin()
     from chimerax.geometry import vector_rotation, translation
@@ -152,7 +196,6 @@ def view_name(session, name):
                 'list', 'matrix', 'orient', 'zalign', 'pad', 'position')
     matches = [r for r in reserved if r.startswith(name)]
     if matches:
-        from chimerax.core.errors import UserError
         raise UserError('view name "%s" conflicts with "%s" view option.\n' % (name, matches[0]) +
                         'Names cannot be option names or their abbreviations:\n %s'
                         % ', '.join('"%s"' % n for n in reserved))
@@ -380,11 +423,11 @@ def _interpolate_clip_planes(v1, v2, f, view):
     p1 = {p.name: p for p in v1.clip_planes}
     p2 = {p.name: p for p in v2.clip_planes}
     pv = {p.name: p for p in view.clip_planes.planes()}
-    from numpy import array_equal
+    from chimerax.geometry import angle
     for name in p1:
         if name in p2 and name in pv:
             p1n, p2n, pvn = p1[name], p2[name], pv[name]
-            if array_equal(p1n.normal, p2n.normal):
+            if angle(p1n.normal, p2n.normal) < 0.01:  # degrees
                 pvn.normal = p1n.normal
                 pvn.plane_point = (1 - f) * p1n.plane_point + f * p2n.plane_point
                 # TODO: Update pv._last_distance
@@ -498,13 +541,13 @@ def view_matrix(session, camera=None, models=None, coordinate_system=None):
 
 def report_positions(session):
     c = session.main_view.camera
-    lines = ['camera position: %s' % _position_string(c.position)]
+    lines = ['view matrix camera %s' % _position_string(c.position)]
 
     # List models belonging to the scene, excluding overlay models
     # that don't use the position matrix such as 2D labels and color keys.
     mlist = session.models.scene_root_model.all_models()[1:]
     if mlist:
-        lines.append('model positions: %s\n' % model_positions_string(mlist))
+        lines.append('view matrix models %s\n' % model_positions_string(mlist))
     session.logger.info('\n'.join(lines))
 
 def model_positions_string(models):
@@ -530,18 +573,17 @@ def view_position(session, models, same_as_models):
     '''
     if len(same_as_models) == 1:
         tm = same_as_models[0]
-        p = tm.position
+        p = tm.positions
         for m in models:
             if m is not tm:
-                m.position = p
+                m.positions = p
     elif len(models) != len(same_as_models):
-        from chimerax.core.errors import UserError
         raise UserError('Must specify equal numbers of models to align, got %d and %d'
                         % (len(models), len(same_as_models)))
     else:
-        tp = [tm.position for tm in same_as_models]
+        tp = [tm.positions for tm in same_as_models]
         for m,p in zip(models, tp):
-                m.position = p
+                m.positions = p
 
 from chimerax.core.commands import Annotation, AnnotationError
 class ModelPlacesArg(Annotation):
@@ -561,6 +603,10 @@ class ModelPlacesArg(Annotation):
             if len(tm) == 0:
                 raise AnnotationError('No models specified by "%s"' % fields[0])
             p = PlaceArg.parse_place(fields[1:13])
+            try:
+                p.inverse()
+            except:
+                raise AnnotationError('matrix %s is not invertible' % token)
             for m in tm:
                 mp.append((m,p))
             fields = fields[13:]
@@ -609,7 +655,8 @@ def register_command(logger):
         keyword=[('clip', BoolArg),
                  ('cofr', BoolArg),
                  ('orient', NoArg),
-                 ('zalign', AtomsArg),
+                 ('zalign', ObjectsArg),
+                 ('in_front_of', AtomsArg),
                  ('pad', FloatArg)],
         synopsis='adjust camera so everything is visible')
     register('view', desc, view, logger=logger)

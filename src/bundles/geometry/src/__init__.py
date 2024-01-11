@@ -1,22 +1,32 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 # Load libarrays shared library needed by _geometry and
 # other C++ modules to parse numpy arrays.  This code loads
 # the library into the ChimeraX process so it does not need
 # to be on the runtime loader search path.
-from chimerax.arrays import load_libarrays
-load_libarrays()
+import chimerax.arrays
 
 from .place import Place, Places, identity
 from .place import rotation, quaternion_rotation, vector_rotation, translation, scale, z_align
@@ -24,7 +34,7 @@ from .place import product, orthonormal_frame, interpolate_rotation, transform_p
 from .place import multiply_transforms
 from .vector import interpolate_points, inner_product, normalize_vector, normalize_vectors, ray_segment
 from .vector import planes_as_4_vectors, distance, cross_product, cross_products, norm, distance_squared
-from .vector import angle, dihedral, dihedral_point
+from .vector import angle, dihedral, dihedral_point, length
 from .vector import clip_segment
 from .matrix import linear_combination, project_to_axis
 from .bounds import sphere_bounds, union_bounds, Bounds, point_bounds
@@ -50,7 +60,7 @@ from .icosahedron import coordinate_system_names as icosahedral_orientations
 from .icosahedron import coordinate_system_transform as icosahedral_coordinate_system_transform
 from .spline import arc_lengths
 from .adaptive_tree import AdaptiveTree
-from .plane import Plane
+from .plane import Plane, PlaneNoIntersectionError
 
 from chimerax.core.toolshed import BundleAPI
 class _GeometryBundleAPI(BundleAPI):

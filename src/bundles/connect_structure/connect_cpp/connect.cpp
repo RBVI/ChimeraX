@@ -2,14 +2,25 @@
 
 /*
  * === UCSF ChimeraX Copyright ===
- * Copyright 2016 Regents of the University of California.
- * All rights reserved.  This software provided pursuant to a
- * license agreement containing restrictions on its disclosure,
- * duplication and use.  For details see:
- * http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
- * This notice must be embedded in or attached to all copies,
- * including partial copies, of the software or any revisions
- * or derivations thereof.
+ * Copyright 2022 Regents of the University of California. All rights reserved.
+ * The ChimeraX application is provided pursuant to the ChimeraX license
+ * agreement, which covers academic and commercial uses. For more details, see
+ * <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+ *
+ * This particular file is part of the ChimeraX library. You can also
+ * redistribute and/or modify it under the terms of the GNU Lesser General
+ * Public License version 2.1 as published by the Free Software Foundation.
+ * For more details, see
+ * <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+ *
+ * THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+ * LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+ * VERSION 2.1
+ *
+ * This notice must be embedded in or attached to all copies, including partial
+ * copies, of the software or any revisions or derivations thereof.
  * === UCSF ChimeraX Copyright ===
  */
 
@@ -18,13 +29,13 @@
 #include <list>
 #include <set>
 
-#include <atomsearch/search.h>
 #include <atomstruct/Atom.h>
 #include <atomstruct/AtomicStructure.h>
 #include <atomstruct/Coord.h>
 #include <atomstruct/PBGroup.h>
 #include <atomstruct/polymer.h>
 #include <atomstruct/Residue.h>
+#include <atomstruct/search.h>
 #include <atomstruct/Sequence.h>
 #include <atomstruct/string_types.h>
 
@@ -48,7 +59,7 @@ connect_structure(AtomicStructure* s, float bond_len_tolerance, float metal_coor
 	// correct in multiple coordinate sets
 	const float search_dist = std::max((float)(3.0 + bond_len_tolerance), metal_coord_dist);
 	float search_val = search_dist + bond_len_tolerance;
-	atomsearch_search::AtomSearchTree  tree(s->atoms(), false, search_val);
+	AtomSearchTree  tree(s->atoms(), false, search_val);
 	std::list<std::pair<float,std::pair<Atom*,Atom*>>> possible_bonds;
 	std::set<Atom*> processed;
 	bool check_prebonded = s->bonds().size() > 0;

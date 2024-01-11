@@ -45,8 +45,8 @@ def vr(session, enable = None, room_position = None, mirror = None,
       is started.  If vr is turned off and the on it remembers the previous model position unless
       this options is specified.
     click_range : float
-      How far away hand controller tip can be when clicking an atom in scene units
-      (Angstroms).  Default 5.
+      How far away hand controller tip can be when clicking an atom or object in room units
+      (meters).  Default 0.10.
     near_clip_distance : float
       Parts of the scene closer than this distance (meters) to the eye are not shown.
       Default 0.10.
@@ -94,6 +94,7 @@ def vr(session, enable = None, room_position = None, mirror = None,
     if mirror:
         if not wait_for_vsync(session, False):
             session.logger.warning('Graphics on desktop display may cause VR to flicker.')
+    if c is not None and mirror is not None:
         c.mirror = mirror
 
     if gui is not None:
@@ -540,6 +541,9 @@ class SteamVRCamera(Camera, StateManager):
         # Exit cleanly
         self._app_quit_handler = t.add_handler('app quit', self._app_quit)
 
+        # Notify other tools that VR has started
+        self._session.triggers.activate_trigger('vr started', self)
+
     @property
     def active(self):
         return self is self._session.main_view.camera
@@ -741,6 +745,9 @@ class SteamVRCamera(Camera, StateManager):
         self._compositor = None
         self._delete_framebuffers()
 
+        # Notify other tools that VR has stopped
+        self._session.triggers.activate_trigger('vr stopped', self)
+
         self._session.main_view.redraw_needed = True
     
     def _app_quit(self, tname, tdata):
@@ -920,12 +927,13 @@ class SteamVRCamera(Camera, StateManager):
     def projection_matrix(self, near_far_clip, view_num, window_size):
         '''The 4 by 4 OpenGL projection matrix for rendering the scene.'''
         if view_num == 2:
-            # TODO: Want to use near_far_clip in meters in room
-            #  rather than actual scene bounds because scene bounds
-            #  don't include hand controllers, vr user interface panels
-            #  and multi-person head models so those get clipped in
-            #  the room camera view if the data model bounds are too small.
-            p = self._room_camera.projection_matrix(near_far_clip, view_num, window_size)
+            # Use near_far_clip in meters in room rather than actual scene bounds
+            # because scene bounds don't include hand controllers, vr user interface panels
+            # and multi-person head models so those get clipped in the room camera view
+            # if the data model bounds are too small.
+            ss = self.scene_scale
+            nf = (self._z_near/ss, self._z_far/ss) if ss > 0 else near_far_clip
+            p = self._room_camera.projection_matrix(nf, view_num, window_size)
             return p
         elif view_num == 0:
             p = self._projection_left
@@ -1131,12 +1139,22 @@ class SteamVRCamera(Camera, StateManager):
     @classmethod
     def restore_snapshot(cls, session, data):
         """Create object using snapshot data."""
-        c = vr_camera(session)
+        try:
+            c = vr_camera(session)
+        except Exception as e:
+            # Probably failed to import openvr on Mac ARM.  Bug #9431
+            session.logger.info(str(e))
+            return None
+            
+        if not session.restore_options.get('restore camera'):
+            return c
+        
         c.room_to_scene = data['room_to_scene']
         for hc, ba in zip(c._hand_controllers, data['button_assignments']):
             hc.button_assignments = ba
         if data['active']:
-            # Try to start VR if it was active when session saved.
+            # Try to start VR if it was active when session saved
+            # and we are not already using a VR camera.
             def start_vr(trigger_name, session):
                 try:
                     vr(session, enable = True)
@@ -1344,6 +1362,9 @@ class RoomCameraModel(Model):
         # Avoid camera disappearing when far from models
         self.allow_depth_cue = False
 
+        # Avoid clip planes hiding the camera screen.
+        self.allow_clipping = False
+
         self.color = (255,255,255,255)	# Don't modulate texture colors.
         self.use_lighting = False
         self.texture = texture
@@ -1430,7 +1451,7 @@ class UserInterface:
         self._camera = camera
         self._session = session
 
-        self._mouse_mode_click_range = 5 # In scene units (Angstroms).
+        self._mouse_mode_click_range = 0.10 # In room units (meters).
         self._update_later = 0		# Redraw panel after this many frames
         self._update_delay = 10		# After click on panel, update after this number of frames
         self._ui_model = None
@@ -2297,8 +2318,10 @@ class Panel:
             et = QEvent.MouseMove
             button =  Qt.NoButton
             buttons = Qt.LeftButton
+        from Qt.QtCore import QPoint, QPointF
+        screen_pos = QPointF(w.mapToGlobal(QPoint(int(pos.x()), int(pos.y()))))
         from Qt.QtGui import QMouseEvent
-        me = QMouseEvent(et, pos, button, buttons, Qt.NoModifier)
+        me = QMouseEvent(et, pos, screen_pos, button, buttons, Qt.NoModifier)
         self._ui._session.ui.postEvent(w, me)
         return w
 
@@ -2313,7 +2336,7 @@ class Panel:
         pwp = QPoint(int(x), int(y))
         w = pw.childAt(pwp)	# Works even if widget is covered.
         if w is None:
-            return pw, pwp
+            return pw, QPointF(x,y)
         gp = pw.mapToGlobal(pwp)
         # Using w = ui.widgetAt(gp) does not work if the widget is covered by another app.
         wpos = QPointF(w.mapFromGlobal(gp)) if w else None
@@ -2359,8 +2382,11 @@ class Panel:
             return window_xy[1] < 0
         w, pos = self.clicked_widget(window_xy)
         from Qt.QtWidgets import QMenuBar, QDockWidget
-        if isinstance(w, QMenuBar) and w.actionAt(pos) is None:
-            return True
+        if isinstance(w, QMenuBar):
+            from Qt.QtCore import QPoint
+            ipos = QPoint(int(pos.x()),int(pos.y()))
+            if w.actionAt(ipos) is None:
+                return True
         from chimerax.ui.widgets.tabbedtoolbar import TabbedToolbar
         return isinstance(w, (QDockWidget, TabbedToolbar))
                            
@@ -2423,6 +2449,7 @@ class PanelDrawing(Drawing):
         self.casts_shadows = False
         self.skip_bounds = True		# Panels should not effect view all command.
         self.allow_depth_cue = False	# Avoid panels fading out far from models.
+        self.allow_clipping = False	# Avoid clip planes hiding panels
 
     def draw(self, renderer, draw_pass):
         if not self._hide_panel():
@@ -2839,6 +2866,9 @@ class HandModel(Model):
         
         # Avoid hand disappearing when behind models, especially in multiperson VR.
         self.allow_depth_cue = False
+
+        # Don't let clip planes hide hand models.
+        self.allow_clipping = False
         
         # Draw controller as a cone.
         self._create_model_geometry(length, radius, color)
@@ -3117,7 +3147,7 @@ class HandEvent:
         '''Scene coordinates point.'''
         return self.position.origin()
     def picking_segment(self):
-        '''Range is given in scene units.'''
+        '''Segment is in scene coordinates.'''
         p = self.hand_controller.position
         xyz1 = p * (0,0,0)
         xyz2 = p * (0,0,-self._picking_range)

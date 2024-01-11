@@ -165,7 +165,7 @@ class Log(ToolInstance, HtmlLog):
 
             def acceptNavigationRequest(self, qurl, nav_type, is_main_frame):
                 if qurl.scheme() in ('http', 'https'):
-                    session = self.view().session
+                    session = self.session
                     def show_url(url):
                         from chimerax.help_viewer import show_url
                         show_url(session, url)
@@ -180,6 +180,7 @@ class Log(ToolInstance, HtmlLog):
                 profile = create_chimerax_profile(parent, interceptor=self.link_intercept)
                 super().__init__(session, parent, size_hint=(575, 500), tool_window=log.tool_window, profile=profile)
                 page = MyPage(self._profile, self)
+                page.session = self.session
                 self.setPage(page)
                 s = page.settings()
                 s.setAttribute(s.WebAttribute.LocalStorageEnabled, True)
@@ -245,6 +246,23 @@ class Log(ToolInstance, HtmlLog):
     def cm_set_cmd_links(self, checked):
         self.settings.exec_cmd_links = checked
         self._show()
+
+    def show_error_message(self, msg, bug = False):
+        ed = self.error_dialog
+        if bug:
+            ed.report_bug_button.show()
+        else:
+            ed.report_bug_button.hide()
+        from sys import platform
+        if platform == 'darwin':
+            # To show the Report Bug button we need a non-native dialog on Mac.
+            # ChimeraX bug #9392
+            from Qt.QtCore import Qt
+            self.session.ui.setAttribute(Qt.AA_DontUseNativeDialogs)
+            ed.showMessage(msg)
+            self.session.ui.setAttribute(Qt.AA_DontUseNativeDialogs, False)
+        else:
+            ed.showMessage(msg)
 
     def _add_report_bug_button(self):
         '''
@@ -319,12 +337,8 @@ class Log(ToolInstance, HtmlLog):
                         link, search_text = text_plus.split('</a>', 1)
                         dlg_msg += link
                     dlg_msg += search_text
-                if level == self.LEVEL_BUG:
-                    f = lambda dlg=self.error_dialog, msg=dlg_msg: (dlg.report_bug_button.show(),
-                        dlg.showMessage(msg))
-                else:
-                    f = lambda dlg=self.error_dialog, msg=dlg_msg: (dlg.report_bug_button.hide(),
-                        dlg.showMessage(msg))
+                bug = (level == self.LEVEL_BUG)
+                f = lambda self=self, msg=dlg_msg: self.show_error_message(msg, bug=bug)
                 self.session.ui.thread_safe(f)
             if not is_html:
                 from html import escape
@@ -501,7 +515,8 @@ class Log(ToolInstance, HtmlLog):
         from chimerax.ui.html import disclosure
         prev_ses_html = disclosure('%s<p>&mdash;&mdash;&mdash; End of log from %s &mdash;&mdash;&mdash;</p>'
             % (contents, date), summary= 'Log from %s' % date, background_color="#ebf5fb")
-        if self.settings.session_restore_clears and session.restore_options['clear log']:
+        if (self.settings.session_restore_clears and session.restore_options['clear log']
+                and not session.restore_options['combine']):
             def clear_log_unless_error(trig_name, session, *, self=self, prev_ses_html=prev_ses_html):
                 if session.restore_options['error encountered']:
                     # if the session did't restore successfully, don't clear the log

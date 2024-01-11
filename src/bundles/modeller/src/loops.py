@@ -1,14 +1,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 ALL_MISSING = "all-missing"
@@ -132,7 +143,6 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
                     seq_chars = seq.characters
                     modeled = set()
                     # 'chain_indices' are into the *sequence*
-                    mmap = seq.match_maps[chain]
                     for start, end in chain_indices[r.chain]:
                         modeled.update(range(start, end + 1))
                     for seq_i in range(len(seq_chars)):
@@ -158,11 +168,11 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
             mmap = seq.match_maps[chain]
             for start, end in chain_indices[chain]:
                 start = max(start - adjacent_flexible, 0)
-                while start > 0 and start not in mmap:
+                while start > 0 and start-1 not in mmap:
                     start -= 1
                 seq_len = len(seq)
                 end = min(end + adjacent_flexible, seq_len - 1)
-                while end < seq_len - 1 and end not in mmap:
+                while end < seq_len - 1 and end+1 not in mmap:
                     end += 1
                 offset = target_offsets[chain]
                 # for residue indexing, unmodeled residues (target == '-') don't count...
@@ -173,10 +183,21 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
         loop_mod_prefix = {"standard": "", "DOPE": "dope_", "DOPE-HR": "dopehr_", None: ""}[protocol]
 
         from .common import write_modeller_scripts, get_license_key
-        script_path, config_path, temp_dir = write_modeller_scripts(get_license_key(session, license_key),
+        _license_key = get_license_key(session, license_key)
+        script_path, config_path, temp_dir = write_modeller_scripts(_license_key,
                                                                     num_models, True, True, False, fast,
                                                                     (loop_mod_prefix, loop_data), None,
                                                                     temp_path, False, None)
+        config_as_json = {
+            "key": _license_key
+            , "version": 2
+            , "numModels": num_models
+            , "hetAtom": True
+            , "water": True
+            , "allHydrogen": False
+            , "veryFast": fast
+            , "loopInfo": (loop_mod_prefix, loop_data)
+        }
         input_file_map = []
 
         # form the sequences to be written out as a PIR
@@ -232,7 +253,7 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
             from .common import ModellerWebService
             job_runner = ModellerWebService(session, match_chains, num_models,
                                             pir_target.name, input_file_map,
-                                            config_name, [t[:2] for t in targets],
+                                            config_as_json, temp_dir, [t[:2] for t in targets],
                                             res_numberings=renumberings)
         else:
             from .common import ModellerLocal

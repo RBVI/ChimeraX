@@ -1,14 +1,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 # -----------------------------------------------------------------------------
@@ -184,16 +195,22 @@ def cylinder_geometry(radius, height, nz, nc, caps):
     if not caps:
         return varray, tarray
 
-    vc = varray.shape[0]
-    varray.resize((vc+2*nc+2,3))
+
     # Duplicate end circle vertices so they can have different normals.
+    #
+    # NOTE: resize does not zero out the array on resize! It's fine
+    # here, we fill in the array. But we must make sure not to allow
+    # trash values through in future refactors.
+    from numpy import resize
+    vc = varray.shape[0]
+    varray = resize(varray, (vc+2*nc+2,3))
     varray[vc,:] = (0,0,-0.5*height)
     varray[vc+1:vc+1+nc,:] = varray[:nc,:]
     varray[vc+nc+1,:] = (0,0,0.5*height)
     varray[vc+nc+2:,:] = varray[(nz-1)*nc:nz*nc,:]
 
     tc = tarray.shape[0]
-    tarray.resize((tc+2*nc,3))
+    tarray = resize(tarray, (tc+2*nc,3))
     for i in range(nc):
         tarray[tc+i,:] = (vc,vc+1+(i+1)%nc,vc+1+i)
         tarray[tc+nc+i,:] = (vc+nc+1,vc+nc+2+i,vc+nc+2+(i+1)%nc)

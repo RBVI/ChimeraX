@@ -1,14 +1,25 @@
 # vim: set expandtab ts=4 sw=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 # -----------------------------------------------------------------------------
@@ -18,10 +29,10 @@ from chimerax.core.settings import Settings
 class _AlphaFoldDatabaseSettings(Settings):
     EXPLICIT_SAVE = {
         'database_url': 'https://alphafold.ebi.ac.uk/files/AF-{uniprot_id}-F1-model_v{version}.cif',
-        'database_version': '2',
+        'database_version': '4',
         'last_update_time': 0.0,	# seconds since 1970 epoch
         'update_interval': 86400.0,	# seconds
-        'update_url': 'https://www.rbvi.ucsf.edu/chimerax/data/status/alphafold_database.json',
+        'update_url': 'https://www.rbvi.ucsf.edu/chimerax/data/status/alphafold_database3.json',
     }
 
 # -----------------------------------------------------------------------------
@@ -33,6 +44,27 @@ def alphafold_model_url(session, uniprot_id, database_version = None):
         database_version = settings.database_version
     url = url_template.format(uniprot_id = uniprot_id, version = database_version)
     return url
+
+# -----------------------------------------------------------------------------
+#
+def alphafold_pae_url(session, uniprot_id, database_version = None):
+    model_url = alphafold_model_url(session, uniprot_id, database_version)
+    url = model_url.replace('model', 'predicted_aligned_error').replace('.cif', '.json')
+    return url
+
+# -----------------------------------------------------------------------------
+#
+def uniprot_id_from_filename(filename):
+    fields = filename.split('-')
+    if len(fields) >= 4 and fields[0] == 'AF' and fields[2] == 'F1' and fields[3].startswith('model'):
+        return fields[1]
+    return None
+
+# -----------------------------------------------------------------------------
+#
+def default_database_version(session):
+    settings = _alphafold_database_settings(session)
+    return settings.database_version
 
 # -----------------------------------------------------------------------------
 #

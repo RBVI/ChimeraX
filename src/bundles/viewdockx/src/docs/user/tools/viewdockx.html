@@ -32,16 +32,17 @@ poses of the same compound) to view them individually in the context
 of a binding site. Results can be sorted, rated, and saved,
 and scores or other numerical descriptors can be plotted.
 See also: 
-<a href="../commands/open.html#atomic"><b>open formats</b></a>,
-<a href="../commands/hbonds.html"><b>hbonds</b></a>,
-<a href="../commands/clashes.html"><b>clashes</b></a>,
 an <a href="../formats/dock4.mol2">example file</a> of compounds docked to 
 H-ras (the protein part of PDB entry
 <a href="http://www.rcsb.org/pdb/explore/explore.do?structureId=121p"
-target="_blank">121p</a>)
+target="_blank">121p</a>),
+<a href="hbonds.html"><b>H-Bonds</b></a>,
+<a href="clashes.html"><b>Clashes/Contacts</b></a>,
+<a href="dockprep.html"><b>Dock Prep</b></a>
 </p><p>
 <a name="formats"></a>
-Formats:
+Possible <a href="../commands/open.html#atomic">formats</a>
+of docking results:
 </p>
 <ul>
 <li>Mol2 (.mol2) from
@@ -56,23 +57,28 @@ href="https://www.ccdc.cam.ac.uk/solutions/csd-discovery/components/gold/"
 target="_blank">GOLD</a>
   </ul>
 <li><a href="http://vina.scripps.edu/" target="_blank">AutoDock Vina</a> PDBQT
-(.pdbqt)
+(.pdbqt) (Protein Data Bank with partial charge Q and atom type T format)
 <li><a href="https://www.schrodinger.com/glide" target="_blank">Glide</a>
 Maestro (.mae, .maegz) 
-<!--
-&ndash; requires installing the
-<a href="https://cxtoolshed.rbvi.ucsf.edu/apps/chimeraxmaestro"
-target="_blank"><b>Maestro</b> bundle</a> from the 
-<a href="https://cxtoolshed.rbvi.ucsf.edu/" 
-target="_blank">ChimeraX Toolshed</a> (menu: <b>Tools... More Tools...</b>)
--->
+&ndash; to be recognized as docking results, the file must contain the
+<b>r_i_docking_score</b> descriptor; other Maestro files
+(those not produced by Glide) may not contain this descriptor
+<li><a href="http://www.swissdock.ch/" target="_blank">SwissDock</a>
+modified PDB format (<a href="../commands/open.html#local"><b>open</b></a>
+with <a href="../commands/open.html#file-table"><b>format swissdock</b></a>;
+the ligand and receptor files can be opened in either order, and with 
+two commands or a single command)
 </ul>
 <p>
-After one or more files of
-<a href="../commands/open.html#atomic">docking results</a> have been
-opened, a table listing the different compounds or poses
-can be shown by starting <b>ViewDockX</b> from the <b>Tools</b> menu
-or by using the command:
+By default
+(<a href="../commands/open.html#local"><b>open</b></a> command with
+<a href="../commands/open.html#showTool"><b>showTool true</b></a>),
+opening a file that contains multiple docked ligands or ligand poses 
+will automatically start the <b>ViewDockX</b> interface. 
+Alternatively, one or more such files can be opened with
+<a href="../commands/open.html#showTool"><b>showTool false</b></a>,
+and subsequently the <b>ViewDockX</b> tool 
+started from the <b>Tools</b> menu or by using the command:
 </p>
 <blockquote>
 <a href="../commands/viewdockx.html"><b>viewdockx</b></a>
@@ -218,5 +224,5 @@ in the graphics window and hides the others.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-January 2021</address>
+August 2023</address>
 </body></html>

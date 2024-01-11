@@ -1,18 +1,29 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 def camera(session, type=None, field_of_view=None,
-           eye_separation=None, pixel_eye_separation=None,
+           eye_separation=None, pixel_eye_separation=None, convergence=None,
            cube_pixels=1024):
     '''Change camera parameters.
 
@@ -61,6 +72,10 @@ def camera(session, type=None, field_of_view=None,
         elif type == 'ortho':
             w = view.camera.view_width(view.center_of_rotation)
             camera = graphics.OrthographicCamera(w)
+        elif type == 'crosseye':
+            camera = graphics.SplitStereoCamera(swap_eyes = True, convergence = 10, eye_separation_scene = 50)
+        elif type == 'walleye':
+            camera = graphics.SplitStereoCamera(convergence = -5)
         elif type == '360':
             camera = graphics.Mono360Camera(cube_face_size = cube_pixels)
         elif type == 'dome':
@@ -104,7 +119,11 @@ def camera(session, type=None, field_of_view=None,
         b = view.drawing_bounds()
         if b:
             cam.set_focus_depth(b.center(), view.window_size[0])
-
+    if convergence is not None:
+        has_arg = True
+        cam.convergence = convergence
+        cam.redraw_needed = True
+        
     if not has_arg:
         lines = [
             'Camera parameters:',
@@ -120,6 +139,8 @@ def camera(session, type=None, field_of_view=None,
             lines.append('    eye separation in scene: %.5g' % cam.eye_separation_scene)
         if hasattr(cam, 'eye_separation_pixels'):
             lines.append('    eye separation in screen pixels: %.5g' % cam.eye_separation_pixels)
+        if hasattr(cam, 'convergence'):
+            lines.append('    convergence (degrees): %.5g' % cam.convergence)
         session.logger.info('\n'.join(lines))
 
         fields = ['%s camera' % cam.name]
@@ -130,12 +151,13 @@ def camera(session, type=None, field_of_view=None,
 
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register, FloatArg, EnumOf, IntArg
-    types = EnumOf(('mono', 'ortho', '360', 'dome', '360tb', '360sbs', 'stereo', 'sbs', 'tb'))
+    types = EnumOf(('mono', 'ortho', 'crosseye', 'walleye', '360', 'dome', '360tb', '360sbs', 'stereo', 'sbs', 'tb'))
     desc = CmdDesc(
         optional = [('type', types)],
         keyword = [('field_of_view', FloatArg),
                    ('eye_separation', FloatArg),
                    ('pixel_eye_separation', FloatArg),
+                   ('convergence', FloatArg),
                    ('cube_pixels', IntArg)],
         synopsis='adjust camera parameters'
     )

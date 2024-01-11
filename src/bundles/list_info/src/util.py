@@ -1,14 +1,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 # ==============================================================================
@@ -54,14 +65,16 @@ def spec(o):
         except AttributeError:
             return ""
 
-def report_models(logger, models, attr, *, return_json=False):
+def report_models(logger, models, attr, *, return_json=False, save_file=None):
+    msgs = []
     for m in models:
         try:
             value = attr_string(m, attr)
         except AttributeError:
             value = "[undefined]"
-        logger.info("model id %s type %s %s %s" % (spec(m), type(m).__name__,
+        msgs.append("model id %s type %s %s %s" % (spec(m), type(m).__name__,
                                                    attr, value))
+    output(logger, save_file, "\n".join(msgs))
     if return_json:
         model_infos = []
         for model in models:
@@ -82,13 +95,15 @@ def report_models(logger, models, attr, *, return_json=False):
         import json
         return JSONResult(ArrayJSONEncoder().encode(model_infos), None)
 
-def report_chains(logger, chains, attr, *, return_json=False):
+def report_chains(logger, chains, attr, *, return_json=False, save_file=None):
+    msgs = []
     for c in chains:
         try:
             value = attr_string(c, attr)
         except AttributeError:
             continue
-        logger.info("chain id %s %s %s" % (spec(c), attr, value))
+        msgs.append("chain id %s %s %s" % (spec(c), attr, value))
+    output(logger, save_file, "\n".join(msgs))
     if return_json:
         from chimerax.atomic import Residue
         chain_infos = []
@@ -112,11 +127,13 @@ def report_chains(logger, chains, attr, *, return_json=False):
         import json
         return JSONResult(ArrayJSONEncoder().encode(chain_infos), None)
 
-def report_polymers(logger, polymers, *, return_json=False):
+def report_polymers(logger, polymers, *, return_json=False, save_file=None):
+    msgs = []
     for p in polymers:
         if len(p) < 2:
             continue
-        logger.info("physical chain %s %s" % (spec(p[0]), spec(p[-1])))
+        msgs.append("physical chain %s %s" % (spec(p[0]), spec(p[-1])))
+    output(logger, save_file, "\n".join(msgs))
     if return_json:
         polymer_infos = []
         for polymer in polymers:
@@ -127,7 +144,8 @@ def report_polymers(logger, polymers, *, return_json=False):
         import json
         return JSONResult(ArrayJSONEncoder().encode(polymer_infos), None)
 
-def report_residues(logger, residues, attr, *, return_json=False):
+def report_residues(logger, residues, attr, *, return_json=False, save_file=None):
+    msgs = []
     for r in residues:
         try:
             value = attr_string(r, attr)
@@ -140,7 +158,8 @@ def report_residues(logger, residues, attr, *, return_json=False):
             pass
         else:
             info += " index %s" % index
-        logger.info(info)
+        msgs.append(info)
+    output(logger, save_file, "\n".join(msgs))
     if return_json:
         residue_infos = []
         for r in residues:
@@ -160,14 +179,16 @@ def report_residues(logger, residues, attr, *, return_json=False):
         import json
         return JSONResult(ArrayJSONEncoder().encode(residue_infos), None)
 
-def report_atoms(logger, atoms, attr, *, return_json=False):
+def report_atoms(logger, atoms, attr, *, return_json=False, save_file=None):
+    msgs = []
     for a in atoms:
         try:
             value = attr_string(a, attr)
         except AttributeError:
             pass
         else:
-            logger.info("atom id %s %s %s" % (spec(a), attr, value))
+            msgs.append("atom id %s %s %s" % (spec(a), attr, value))
+    output(logger, save_file, "\n".join(msgs))
     if return_json:
         atom_infos = []
         for a in atoms:
@@ -187,10 +208,10 @@ def report_atoms(logger, atoms, attr, *, return_json=False):
         import json
         return JSONResult(ArrayJSONEncoder().encode(atom_infos), None)
 
-def report_attr(logger, prefix, attr):
-    logger.info("%sattr %s" % (prefix, attr))
+def report_attr(logger, prefix, attr, *, save_file=None, append=False):
+    output(logger, save_file, "%sattr %s" % (prefix, attr), append=append)
 
-def report_distmat(logger, atoms, distmat):
+def report_distmat(logger, atoms, distmat, *, save_file=None):
     num_atoms = len(atoms)
     msgs = []
     for i in range(num_atoms):
@@ -201,7 +222,15 @@ def report_distmat(logger, atoms, distmat):
             dmi = num_atoms*i - i*(i+1)//2 + j - 1 - i
             msgs.append("distmat %s %s %s" % (spec(atoms[i]), spec(atoms[j]),
                                               distmat[dmi]))
-    logger.info('\n'.join(msgs))
+    output(logger, save_file, '\n'.join(msgs))
+
+def output(logger, file_name, msg, *, append=False):
+    if file_name:
+        from chimerax.io import open_output
+        with open_output(file_name, 'utf-8', append=append) as outf:
+            outf.write(msg + ('' if msg.endswith('\n') else '\n'))
+    else:
+        logger.info(msg)
 
 def model_info(m, *, info_dict=None):
     '''If 'info_dict' is True, put JSON-able values into the given dictionary'''
@@ -345,8 +374,8 @@ class RESTTransaction(Task):
 
     def on_finish(self):
         # in main thread
-        from chimerax.core.tasks import TERMINATED
-        if self.state == TERMINATED:
+        from chimerax.core.tasks import TaskState
+        if self.state == TaskState.TERMINATED:
             logger = self.session.logger
             try:
                 Notifier.Destroy(self.notifier)

@@ -1,23 +1,38 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 
 # -----------------------------------------------------------------------------
-# Panel for hiding surface dust
+# Panel for searching AlphaFold or ESMFold databases or predicting structure
+# from sequence.
 #
 from chimerax.core.tools import ToolInstance
-class AlphaFoldGUI(ToolInstance):
-
+class PredictedStructureGUI(ToolInstance):
+    method = 'AlphaFold'
+    command = 'alphafold'
+    can_use_structure_templates = True
+    can_minimize = True
     help = 'help:user/tools/alphafold.html'
 
     def __init__(self, session, tool_name):
@@ -33,11 +48,11 @@ class AlphaFoldGUI(ToolInstance):
         layout = vertical_layout(parent, margins = (5,0,0,0))
 
         heading = ('<html>'
-                   'AlphaFold database and structure prediction'
+                   f'{self.method} database and structure prediction'
                    '<ul style="margin-top: 5;">'
                    '<li><b>Fetch</b> - Open the database structure with the most similar sequence.'
-                   '<li><b>Search</b> - Find similar sequences in the AlphaFold database using BLAST.'
-                   '<li><b>Predict</b> - Compute a new structure using AlphaFold on Google servers.'
+                   f'<li><b>Search</b> - Find similar sequences in the {self.method} database using BLAST.'
+                   f'<li><b>Predict</b> - Compute a new structure using {self.method} on Google servers.'
                    '<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'
                    'For complexes enter sequences separated by commas.'
                    '</ul></html>')
@@ -54,16 +69,14 @@ class AlphaFoldGUI(ToolInstance):
         from Qt.QtWidgets import QTextEdit
         self._sequence_entry = se = QTextEdit(parent)
         layout.addWidget(se)
-
-        # Prokaryote option for prediction
-        from chimerax.ui.widgets import EntriesRow
-        pr = EntriesRow(parent, False, 'Is prokaryote? Used for predicting complexes.')
-        self._prokaryote = pr.values[0]
-        layout.addWidget(pr.frame)
         
         # Search, Fetch, and Predict buttons
         bf = self._create_action_buttons(parent)
         layout.addWidget(bf)
+
+        # Options panel
+        options = self._create_options_gui(parent)
+        layout.addWidget(options)
 
         layout.addStretch(1)    # Extra space at end
 
@@ -74,9 +87,9 @@ class AlphaFoldGUI(ToolInstance):
     # ---------------------------------------------------------------------------
     #
     @classmethod
-    def get_singleton(self, session, create=True):
+    def get_singleton(cls, session, create=True):
         from chimerax.core import tools
-        return tools.get_singleton(session, AlphaFoldGUI, 'AlphaFold', create=create)
+        return tools.get_singleton(session, cls, cls.method, create=create)
     
     # ---------------------------------------------------------------------------
     #
@@ -173,9 +186,11 @@ class AlphaFoldGUI(ToolInstance):
                        [('Fetch', self._fetch),
                         ('Search', self._search),
                         ('Predict', self._predict),
+                        ('Options', self._show_or_hide_options),
                         ('Coloring', self._coloring),
+                        ('Error plot', self._error_plot),
                         ('Help', self._show_help)],
-                       spacing = 10)
+                       spacing = 5)
         return f
 
     # ---------------------------------------------------------------------------
@@ -189,30 +204,109 @@ class AlphaFoldGUI(ToolInstance):
     def _search(self):
         self._run_command('search')
     def _fetch(self):
-        self._run_command('match')
+        options = '' if self._trim.enabled else 'trim false'
+        self._run_command('match', options = options)
     def _predict(self):
-        options = 'prokaryote true' if self._prokaryote.enabled else ''
-        self._run_command('predict', options = options)
+        options = []
+        dir = self._results_directory.value
+        from .predict import default_results_directory
+        if dir != default_results_directory:
+            options.append(f'directory {dir}')
+        if self.can_minimize and self._energy_minimize.enabled:
+            options.append('minimize true')
+        if self.can_use_structure_templates and self._use_templates.enabled:
+            options.append('templates true')
+        self._run_command('predict', options = ' '.join(options))
     def _coloring(self):
+        self.show_coloring_gui()
+    def _error_plot(self):
+        self.show_error_plot()
+
+    # ---------------------------------------------------------------------------
+    #
+    def show_coloring_gui(self):
         from . import colorgui
         colorgui.show_alphafold_coloring_panel(self.session)
+
+    # ---------------------------------------------------------------------------
+    #
+    def show_error_plot(self):
+        from . import pae
+        pae.show_alphafold_error_plot_panel(self.session)
+        
+    # ---------------------------------------------------------------------------
+    #
+    def _create_options_gui(self, parent):
+        from chimerax.ui.widgets import CollapsiblePanel
+        self._options_panel = p = CollapsiblePanel(parent, title = None)
+        f = p.content_area
+
+        from chimerax.ui.widgets import EntriesRow
+
+        # Results directory
+        rd = EntriesRow(f, 'Results directory', '', ('Browse', self._choose_results_directory))
+        self._results_directory = dir = rd.values[0]
+        dir.pixel_width = 350
+        dir.value = self.default_results_directory()
+        
+        # Use PDB structure templates option for prediction
+        if self.can_use_structure_templates:
+            ut = EntriesRow(f, False, 'Use PDB templates when predicting structures')
+            self._use_templates = ut.values[0]
+
+        # Energy minimization option for prediction
+        if self.can_minimize:
+            em = EntriesRow(f, False, 'Energy-minimize predicted structures')
+            self._energy_minimize = em.values[0]
+
+        # Trim residues option for fetch
+        tr = EntriesRow(f, True, 'Trim fetched structure to the aligned structure sequence')
+        self._trim = tr.values[0]
+
+        return p
+
+    # ---------------------------------------------------------------------------
+    #
+    def default_results_directory(self):
+        from . import predict
+        return predict.default_results_directory
+
+    # ---------------------------------------------------------------------------
+    #
+    def _show_or_hide_options(self):
+        self._options_panel.toggle_panel_display()
+        
+    # ---------------------------------------------------------------------------
+    #
+    def _choose_results_directory(self):
+        dir = _existing_directory(self._results_directory.value)
+        if not dir:
+            from .predict import default_results_directory
+            dir = _existing_directory(default_results_directory)
+        parent = self.tool_window.ui_area
+        from Qt.QtWidgets import QFileDialog
+        path, ftype  = QFileDialog.getSaveFileName(parent,
+                                                   caption = f'{self.method} prediction results directory',
+                                                   directory = dir,
+                                                   options = QFileDialog.Option.ShowDirsOnly)
+        if path:
+            self._results_directory.value = path
         
     # ---------------------------------------------------------------------------
     #
     def _run_command(self, action, options = ''):
         seq = self._sequence_specifier(action)
         if seq is None:
-            self.warn('No sequence chosen for AlphaFold %s' % action)
+            self.warn(f'No sequence chosen for {self.method} {action}')
             return
 
         if action in ('search',):
             nseq = self._sequence_count(seq)
             if nseq > 1:
-                self.warn('AlphaFold %s requires a single sequence, got %d sequences'
-                          % (action, nseq))
+                self.warn(f'{self.method} {action} requires a single sequence, got {nseq} sequences')
                 return
             
-        cmd = 'alphafold %s %s' % (action, seq)
+        cmd = f'{self.command} {action} {seq}'
         if options:
             cmd += ' ' + options
 
@@ -240,9 +334,24 @@ class AlphaFoldGUI(ToolInstance):
 
 # -----------------------------------------------------------------------------
 #
+def _existing_directory(directory):
+    from os.path import expanduser, isdir, dirname
+    dir = expanduser(directory)
+    if dir == '' or isdir(dir):
+        return directory
+    return _existing_directory(dirname(dir))
+
+# -----------------------------------------------------------------------------
+#
 def _remove_whitespace(string):
     from string import whitespace
     return string.translate(str.maketrans('', '', whitespace))
+
+# -----------------------------------------------------------------------------
+# Panel for searching AlphaFold database or predicting structure from sequence.
+#
+class AlphaFoldGUI(PredictedStructureGUI):
+    pass
 
 # -----------------------------------------------------------------------------
 #

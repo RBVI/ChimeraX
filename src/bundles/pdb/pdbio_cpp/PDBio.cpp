@@ -2,14 +2,25 @@
 
 /*
  * === UCSF ChimeraX Copyright ===
- * Copyright 2016 Regents of the University of California.
- * All rights reserved.  This software provided pursuant to a
- * license agreement containing restrictions on its disclosure,
- * duplication and use.  For details see:
- * http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
- * This notice must be embedded in or attached to all copies,
- * including partial copies, of the software or any revisions
- * or derivations thereof.
+ * Copyright 2022 Regents of the University of California. All rights reserved.
+ * The ChimeraX application is provided pursuant to the ChimeraX license
+ * agreement, which covers academic and commercial uses. For more details, see
+ * <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+ *
+ * This particular file is part of the ChimeraX library. You can also
+ * redistribute and/or modify it under the terms of the GNU Lesser General
+ * Public License version 2.1 as published by the Free Software Foundation.
+ * For more details, see
+ * <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+ *
+ * THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+ * LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+ * VERSION 2.1
+ *
+ * This notice must be embedded in or attached to all copies, including partial
+ * copies, of the software or any revisions or derivations thereof.
  * === UCSF ChimeraX Copyright ===
  */
 
@@ -258,7 +269,7 @@ compile_links_ssbonds(const Structure* s, std::vector<std::string>& links, std::
     if (ssbond_recs != s->metadata.end()) {
         for (auto rec: ssbond_recs->second) {
             if (rec.length() >= 72 && rec.substr(59, 6) != rec.substr(66, 6)) {
-                char buffer[4];
+                char buffer[5];
                 std::sprintf(buffer, "%4d", ssbond_serial++);
                 ssbonds.push_back(rec.substr(0, 7) + std::string(buffer) + rec.substr(10, std::string::npos));
             }
@@ -419,9 +430,20 @@ push_seqres(Chain *chain, size_t start_index, int record_num, std::vector<std::s
 static void
 compile_seqres(const Structure* s, std::vector<std::string>& seqres)
 {
+    std::set<ChainID> incomplete_chains;
+    auto pbg = s->pb_mgr().get_group(Structure::PBG_MISSING_STRUCTURE);
+    if (pbg != nullptr) {
+        for (auto pb: pbg->pseudobonds()) {
+            incomplete_chains.insert(pb->atoms()[0]->residue()->chain_id());
+        }
+    }
     for (auto chain: s->chains()) {
         int record_num = 1;
         for (size_t i = 0; i < chain->characters().size(); i += 13) {
+                // only output SEQRES for chains where we believe we know the complete polymer sequence
+                if (!chain->from_seqres()
+                && incomplete_chains.find(chain->chain_id()) != incomplete_chains.end())
+                    continue;
                 push_seqres(chain, i, record_num++, seqres);
         }
     }
@@ -760,7 +782,8 @@ start_t = end_t;
 
             AtomName aname;
             ResName rname;
-            auto cid = segid_chains ? ChainID(record.atom.seg_id) : ChainID({record.atom.res.chain_id});
+            auto cid = segid_chains ? ChainID(record.atom.seg_id[0] == '\0' ? " " : record.atom.seg_id)
+                : ChainID({record.atom.res.chain_id});
             if (islower(record.atom.res.i_code))
                 record.atom.res.i_code = toupper(record.atom.res.i_code);
             int seq_num = record.atom.res.seq_num;
@@ -1055,7 +1078,10 @@ start_t = end_t;
         }
 
         case PDB::SEQRES: {
-            auto chain_id = ChainID(record.seqres.chain_id);
+            auto cid_ptr = record.seqres.chain_id;
+            if (*cid_ptr == ' ')
+                cid_ptr++;
+            auto chain_id = ChainID(cid_ptr);
             if (chain_id != seqres_cur_chain) {
                 seqres_cur_chain = chain_id;
                 seqres_cur_count = 0;
@@ -1821,8 +1847,12 @@ write_coord_set(StreamDispatcher& os, const Structure* s, const CoordSet* cs,
                 continue;
             std::string aname = s->asterisks_translated ?
                 primes_to_asterisks(a->name().c_str()) : a->name().c_str();
+            if (aname.size() > 4 && !*warned_atom_name_length) {
+                *warned_atom_name_length = true;
+                logger::warning(py_logger, "Atom names longer than 4 characters; truncating");
+            }
             if (strlen(a->element().name()) > 1) {
-                strcpy(*rec_name, aname.c_str());
+                strncpy(*rec_name, aname.c_str(), 4);
             } else {
                 bool element_compares;
                 if (strncmp(a->element().name(), a->name().c_str(), 1) == 0) {
@@ -1837,14 +1867,10 @@ write_coord_set(StreamDispatcher& os, const Structure* s, const CoordSet* cs,
                     strcpy(*rec_name, " ");
                     strcat(*rec_name, aname.c_str());
                 } else {
-                    strcpy(*rec_name, aname.c_str());
+                    strncpy(*rec_name, aname.c_str(), 4);
                 }
             }
-            if (aname.size() > 4 && !*warned_atom_name_length) {
-                *warned_atom_name_length = true;
-                logger::warning(py_logger, "Atom names longer than 4 characters; truncating");
-
-            }
+            (*rec_name)[4] = '\0';
             set_res_name_and_chain_id(r, res->name, &res->chain_id,
                 py_logger, warned_res_name_length, warned_chain_id_length);
             auto seq_num = r->number();
@@ -1972,6 +1998,21 @@ write_coord_set(StreamDispatcher& os, const Structure* s, const CoordSet* cs,
         }
         prev_res = r;
         prev_standard = standard;
+    }
+    if (prev_res != nullptr && prev_standard && some_output) {
+        // Output a final TER if the last residue was in a chain
+        p_ter.ter.serial = ++serial;
+        set_res_name_and_chain_id(prev_res, p_ter.ter.res.name, &p_ter.ter.res.chain_id);
+        int seq_num = prev_res->number();
+        char i_code = prev_res->insertion_code();
+        if (seq_num > 9999) {
+            // usurp the insertion code...
+            i_code = '0' + (seq_num % 10);
+            seq_num = seq_num / 10;
+        }
+        p_ter.ter.res.seq_num = seq_num;
+        p_ter.ter.res.i_code = i_code;
+        os << p_ter << "\n";
     }
 }
 

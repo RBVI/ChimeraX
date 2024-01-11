@@ -101,8 +101,10 @@ in terse (default) or verbose fashion.
 [&nbsp;<b>bondTriangles</b>&nbsp;&nbsp;<i>N<sub>b</sub></i>&nbsp;|&nbsp;<b>default</b>&nbsp;]
 [&nbsp;<b>totalAtomTriangles</b>&nbsp;&nbsp;<i>max<sub>a</sub></i>&nbsp;]
 [&nbsp;<b>totalBondTriangles</b>&nbsp;&nbsp;<i>max<sub>b</sub></i>&nbsp;]
+[&nbsp;<b>bondSides</b>&nbsp;&nbsp;<i>sides</i>&nbsp;|&nbsp;<b>default</b>&nbsp;]
+[&nbsp;<b>pseudobondSides</b>&nbsp;&nbsp;<i>pbsides</i>&nbsp;]
+[&nbsp;<b>ribbonSides</b>&nbsp;&nbsp;<i>ribsides</i>&nbsp;]
 [&nbsp;<b>ribbonDivisions</b>&nbsp;&nbsp;<i>divisions</i>&nbsp;|&nbsp;<b>default</b>&nbsp;]
-[&nbsp;<b>ribbonSides</b>&nbsp;&nbsp;<i>sides</i>&nbsp;]
 [&nbsp;<b>colorDepth</b>&nbsp;&nbsp;8&nbsp;|&nbsp;16&nbsp;]
 <blockquote>
 Control triangulation fineness and bits per color. 
@@ -135,20 +137,29 @@ does not exceed the limit.
 The <i>quality</i> can also be controlled with the command
 <a href="set.html#subdivision"><b>set subdivision</b></a>.
 </p><p>
-Fixed values can be specified with the individual options:
+Fixed integer values can be specified with the individual options:
 </p>
 <ul>
 <li><b>atomTriangles</b> <i>N<sub>a</sub></i> &ndash; triangles per atom
 (minimum 4; specifying 0 or <b>default</b> returns to automatic adjustment)
 <li><b>bondTriangles</b> <i>N<sub>b</sub></i> &ndash; triangles per bond
 (minimum 12; specifying 0 or <b>default</b> returns to automatic adjustment)
-<li><b>ribbonDivisions</b> <i>N<sub>d</sub></i> &ndash; divisions per residue 
-lengthwise along the cartoon (initial default <b>20</b>, minimum 2;
-specifying <b>default</b> returns to automatic adjustment)
-<li><b>ribbonSides</b> <i>N<sub>s</sub></i>
+<li><b>bondSides</b> <i>sides</i>
+&ndash; number of sides used to approximate a smooth cylinder for stick bonds;
+equivalent to specifying <b>bondTriangles</b>,
+except that <i>sides</i> = &#188;<i>N<sub>b</sub></i> 
+(minimum 3; specifying 0 or <b>default</b> returns to automatic adjustment)
+<li><b>pseudobondSides</b> <i>pbsides</i>
+&ndash; number of sides used to approximate a smooth cylinder for
+<a href="../pseudobonds.html">pseudobonds</a>
+(initial default <b>10</b>, minimum 3; not automatically adjusted)
+<li><b>ribbonSides</b> <i>ribsides</i>
 &ndash; number of sides used to approximate an oval or round 
-cartoon cross-section (initial default <b>12</b>, minimum 4; not adjusted
-automatically)
+cartoon cross-section (initial default <b>12</b>, minimum 4;
+not automatically adjusted)
+<li><b>ribbonDivisions</b> <i>divisions</i> &ndash; divisions per residue
+lengthwise along the cartoon (initial default <b>20</b>, minimum 2;
+specifying 0 or <b>default</b> returns to automatic adjustment)
 </ul>
 <p>
 Specifying a <i>quality</i> value returns to the automatic adjustment 
@@ -156,8 +167,8 @@ of atom triangles, bond triangles, and ribbon divisions.
 Fixed values can be specified subsequently, or even in the same command.
 </p><p>
 Given without options, <b>graphics quality</b> reports the current settings
-for quality, atom triangles, bond triangles, and ribbon divisions
-in the <a href="../tools/log.html"><b>Log</b></a>.
+for quality, atom triangles, bond triangles, pseudobond sides,
+and ribbon divisions in the <a href="../tools/log.html"><b>Log</b></a>.
 Total numbers of triangles per model 
 can be reported with <a href="#triangles"><b>graphics triangles</b></a>.
 The number of ribbon sides and divisions can also be set or reported with
@@ -250,13 +261,16 @@ Additional options:
 <table border cellpadding="4" cellspacing="0"
 style="display:inline-block; vertical-align:middle"><tr>
 <td bgcolor=black width="10px" title="lime"></td></tr></table>)
-<li><b>width</b> in pixels (initial default is the system display scaling factor,
+<li><b>width</b> in pixels
+(initial default is the system display scaling factor,
 typically <b>1</b>, but <b>2</b> on high-DPI displays such as Apple Retina)
 <li><b>depthJump</b> &ndash; change in depth needed to trigger 
 drawing silhouettes, expressed as a fraction of the distance between the
 <a href="clip.html">near and far clipping planes</a>
-(initial default <b>0.03</b>, but changed to <b>0.01</b> by the
-<a href="lighting.html#preset"><b>flat</b> lighting preset</a>)
+(initial default <b>0.03</b>; changed to <b>0.01</b> by the
+<a href="lighting.html#preset"><b>flat</b> lighting preset</a>,
+restored to <b>0.03</b> by the other 
+<a href="lighting.html#preset">lighting presets</a>)
 </ul>
 Given without options, <b>graphics silhouettes</b> reports the 
 current settings in the <a href="../tools/log.html"><b>Log</b></a>.
@@ -276,5 +290,5 @@ Triangulation fineness can be controlled with
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-April 2020</address>
+September 2023</address>
 </body></html>

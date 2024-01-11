@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-Meeting" version="1.0"
+<BundleInfo name="ChimeraX-Meeting" version="1.0.1"
 	    package="chimerax.meeting"
   	    minSessionVersion="1" maxSessionVersion="1">
 

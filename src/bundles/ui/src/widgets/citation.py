@@ -40,7 +40,10 @@ class Citation(QFrame):
         self.setLayout(layout)
 
         if prefix is not None:
-            layout.addWidget(QLabel(prefix), 0, 0, Qt.AlignRight)
+            prefix_label = QLabel(prefix)
+            # center multi-line prefixes
+            prefix_label.setAlignment(Qt.AlignCenter)
+            layout.addWidget(prefix_label, 0, 0, 1, 2, Qt.AlignCenter)
 
         cite_label = QLabel(cite)
         cite_label.setFont(QFont("Times", 12))

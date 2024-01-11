@@ -257,7 +257,7 @@ class BasicActionsTool(HtmlToolInstance):
             event_loop.quit()
         self.html_view.runJavaScript(js, add)
         while self.html_state not in data:
-            event_loop.exec_()
+            event_loop.exec()
 
     def _set_html_state(self):
         if self._html_state:

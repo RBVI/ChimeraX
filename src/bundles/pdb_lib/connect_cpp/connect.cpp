@@ -2,14 +2,25 @@
 
 /*
  * === UCSF ChimeraX Copyright ===
- * Copyright 2016 Regents of the University of California.
- * All rights reserved.  This software provided pursuant to a
- * license agreement containing restrictions on its disclosure,
- * duplication and use.  For details see:
- * http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
- * This notice must be embedded in or attached to all copies,
- * including partial copies, of the software or any revisions
- * or derivations thereof.
+ * Copyright 2022 Regents of the University of California. All rights reserved.
+ * The ChimeraX application is provided pursuant to the ChimeraX license
+ * agreement, which covers academic and commercial uses. For more details, see
+ * <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+ *
+ * This particular file is part of the ChimeraX library. You can also
+ * redistribute and/or modify it under the terms of the GNU Lesser General
+ * Public License version 2.1 as published by the Free Software Foundation.
+ * For more details, see
+ * <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+ *
+ * THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+ * LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+ * VERSION 2.1
+ *
+ * This notice must be embedded in or attached to all copies, including partial
+ * copies, of the software or any revisions or derivations thereof.
  * === UCSF ChimeraX Copyright ===
  */
 
@@ -403,7 +414,7 @@ find_missing_structure_bonds(Structure *as)
             // 3.0625 == 1.75 squared
             // (allows ASP 223.A OD2 <-> PLP 409.A N1 bond in 1aam
             // and SER 233.A OG <-> NDP 300.A O1X bond in 1a80
-            // to not be classified as missing seqments)
+            // to not be classified as missing segments)
             long_bonds.push_back(b);
         else {
             // if either end is CA/P in standard residue, then it has to be missing structure
@@ -417,10 +428,10 @@ find_missing_structure_bonds(Structure *as)
     if (long_bonds.size() > 0) {
         auto pbg = as->pb_mgr().get_group(as->PBG_MISSING_STRUCTURE, AS_PBManager::GRP_NORMAL);
         for (auto lb: long_bonds) {
-            // the new "smart" missing-structure code will automatically make the pseudobond across
-            // the gap when the bond is deleted _if_ it identifies it as a backbone bond, so no need
-            // to explictly make a (duplicate) one in that case
-            if (!lb->is_backbone())
+            // once chains have been made, the new "smart" missing-structure code will automatically
+            // make the pseudobond across the gap when the bond is deleted _if_ it identifies it as a
+            // backbone bond, so no need to explictly make a (duplicate) one in that case
+            if (!as->chains_made() || !lb->is_backbone())
                 pbg->new_pseudobond(lb->atoms());
             as->delete_bond(lb);
         }

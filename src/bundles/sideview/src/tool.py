@@ -107,6 +107,7 @@ class SideViewCanvas(QWindow):
         self.applique.delete()
         self.applique = None
         self.setParent(None)
+        QWindow.destroy(self)
 
     def _redraw(self, *_):
         self.render()
@@ -202,7 +203,10 @@ class SideViewCanvas(QWindow):
             loc = self.locations
             loc.bottom = .05 * height
             loc.top = .95 * height
-            ratio = tan(0.5 * fov)
+            if ortho:
+                ratio = 0.5 * main_camera.field_width * (wh/ww) / far
+            else:
+                ratio = tan(0.5 * fov)
             if self.moving:
                 eye = self.view.win_coord(main_pos.origin())
                 eye[2] = 0
@@ -233,13 +237,13 @@ class SideViewCanvas(QWindow):
                 camera.field_width = far * width / f
 
             vc = array([[255, 0, 0, 255]] * 12, dtype=uint8)
+            vc[0:8,:] = [255, 255, 0, 255]
             if self.moving == self.ON_EYE:
-                vc[0] = vc[1] = vc[2] = vc[3] = [255, 255, 0, 255]
+                vc[0] = vc[1] = vc[2] = vc[3] = [0, 255, 0, 255]
             elif self.moving == self.ON_NEAR:
-                vc[4] = vc[5] = [255, 255, 0, 255]
+                vc[4] = vc[5] = [0, 255, 0, 255]
             elif self.moving == self.ON_FAR:
-                vc[6] = vc[7] = [255, 255, 0, 255]
-            self.applique.vertex_colors = vc
+                vc[6] = vc[7] = [0, 255, 0, 255]
             es = self.EyeSize
             old_vertices = self.applique.vertices
             v = array([
@@ -251,18 +255,25 @@ class SideViewCanvas(QWindow):
                 (0, 0, 0), (0, 0, 0),
             ], dtype=float32)
             if ortho:
-                v[8] = (loc.near, loc.far_top, 0)
-                v[9] = (loc.near, loc.far_bottom, 0)
+                fh = main_camera.field_width * wh / ww
+                oh = fh * (loc.far - loc.eye[0]) / far
+                ft, fb = 0.5*height + 0.5*oh, 0.5*height - 0.5*oh
+                v[8] = (loc.near, ft, 0)
+                v[9] = (loc.near, fb, 0)
             else:
                 v[8] = loc.eye
                 v[9] = loc.eye
-            if self.moving and old_vertices is not None:
+            if self.moving and old_vertices is not None and not ortho:
                 ps = self.view.render.pixel_scale()
                 v[10] = old_vertices[10] / ps
                 v[11] = old_vertices[11] / ps
             else:
-                v[10] = (loc.far, loc.far_top, 0)
-                v[11] = (loc.far, loc.far_bottom, 0)
+                if ortho:
+                    v[10] = (loc.far, ft, 0)
+                    v[11] = (loc.far, fb, 0)
+                else:
+                    v[10] = (loc.far, loc.far_top, 0)
+                    v[11] = (loc.far, loc.far_bottom, 0)
             ps = self.view.render.pixel_scale()
             v *= ps
             t = array([
@@ -273,6 +284,7 @@ class SideViewCanvas(QWindow):
                 [9, 11],   # right plane
             ], dtype=int32)
             self.applique.set_geometry(v, None, t)
+            self.applique.vertex_colors = vc
             self.view.draw()
             # if has_string_marker:
             #     text = b"End SideView"
@@ -372,6 +384,7 @@ class SideViewCanvas(QWindow):
 
 class SideViewUI(ToolInstance):
 
+    SESSION_ENDURING = True
     help = "help:user/tools/sideview.html"
 
     def __init__(self, session, tool_name):
@@ -406,6 +419,8 @@ class SideViewUI(ToolInstance):
         self.clip_far.clicked.connect(self.on_far)
 
         button_layout = QHBoxLayout()
+        button_layout.setContentsMargins(10,0,0,0)
+        button_layout.setSpacing(10)
         button_layout.addWidget(clip, alignment=Qt.AlignCenter)
         button_layout.addWidget(self.clip_near)
         button_layout.addWidget(self.clip_far)
@@ -418,6 +433,8 @@ class SideViewUI(ToolInstance):
                 return QSize(200, 200)
 
         layout = QVBoxLayout()
+        layout.setContentsMargins(0,0,0,0)
+        layout.setSpacing(0)
         ga = graphics_area(parent)
         ga.addWidget(self.opengl_canvas.widget)
         layout.addWidget(ga, 1)

@@ -1,14 +1,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 
@@ -23,9 +34,9 @@ RegistrationFile = "registration"
 UsageFile = "preregistration"
 TimeFormat = "%a %b %d %H:%M:%S %Y"
 GracePeriod = 14
-NagMessage = """You have used ChimeraX %d times over %d days.  Please register your copy by using the Registration tool or the "register" command.
+NagMessage = """You have used ChimeraX %d times over %d days.  Please register your copy by using the Registration tool or the "register" command."""
 
-Registration is optional and free.  Registration helps us document the impact of ChimeraX on the scientific community. The information you supply will only be used for reporting summary statistics; no individual data will be released.
+NagInfo = """Registration is optional and free.  Registration helps us document the impact of ChimeraX on the scientific community. The information you supply will only be used for reporting summary statistics; no individual data will be released.
 """
 
 _registration_lock = threading.Lock()
@@ -218,7 +229,7 @@ def _ask_to_register(session, times_used, days_used, wait_for_main_window=True):
         return
     from chimerax.ui.ask import ask
     answer = ask(session, NagMessage % (times_used, days_used),
-                 buttons=["Dismiss", "Register"])
+                 buttons=["Dismiss", "Register"], info=NagInfo)
     if answer == "Register":
         from chimerax.core.commands import run
         run(session, 'ui tool show Registration')
@@ -237,7 +248,13 @@ def _get_usage():
                     continue
                 key, value = [s.strip() for s in line.split(':', 1)]
                 if key == "date":
-                    usage["dates"].append(_strptime(value))
+                    try:
+                        date = _strptime(value)
+                    except ValueError:
+                        # protect against corrupted files
+                        from datetime import datetime
+                        date = datetime(1, 1, 1)
+                    usage["dates"].append(date)
                 elif key == "count":
                     usage["count"] = int(value)
     except IOError:

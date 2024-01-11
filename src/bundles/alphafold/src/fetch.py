@@ -1,14 +1,25 @@
 # vim: set expandtab ts=4 sw=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 # -----------------------------------------------------------------------------
@@ -18,8 +29,8 @@
 #	https://alphafold.ebi.ac.uk/files/AF-P29474-F1-model_v1.cif
 #
 def alphafold_fetch(session, uniprot_id, color_confidence=True,
-                    align_to=None, trim=True, ignore_cache=False,
-                    add_to_session=True, version=None, **kw):
+                    align_to=None, trim=True, pae=False, ignore_cache=False,
+                    add_to_session=True, version=None, in_file_history=True, **kw):
 
     uniprot_name = uniprot_id if '_' in uniprot_id else None
     uniprot_id = _parse_uniprot_id(uniprot_id)
@@ -33,9 +44,14 @@ def alphafold_fetch(session, uniprot_id, color_confidence=True,
 
     model_name = 'AlphaFold %s' % (uniprot_name or uniprot_id)
     models, status = session.open_command.open_data(filename, format = 'mmCIF',
-                                                    name = model_name, **kw)
-    from .match import _set_alphafold_model_attributes
-    _set_alphafold_model_attributes(models, uniprot_id, uniprot_name)
+                                                    name = model_name,
+                                                    in_file_history = in_file_history,
+                                                    **kw)
+
+    from .search import DatabaseEntryId
+    db_id = DatabaseEntryId(uniprot_id, name = uniprot_name, version=version)
+    from .match import _set_model_database_info
+    _set_model_database_info(models, db_id)
 
     if color_confidence:
         for s in models:
@@ -50,6 +66,10 @@ def alphafold_fetch(session, uniprot_id, color_confidence=True,
         
     if add_to_session:
         session.models.add(models)
+
+    if pae:
+        from .pae import alphafold_pae
+        alphafold_pae(session, structure = models[0], uniprot_id = uniprot_id, version = version)
         
     return models, status
 
@@ -66,13 +86,11 @@ def _parse_uniprot_id(uniprot_id):
                         % uniprot_id)
     return uniprot_id.upper()
 
-def _color_by_confidence(structure):
-    from chimerax.core.colors import Colormap, BuiltinColors
-    colors = [BuiltinColors[name] for name in ('red', 'orange', 'yellow', 'cornflowerblue', 'blue')]
-    palette = Colormap((0, 50, 70, 90, 100), colors)
+def _color_by_confidence(structure, palette_name = 'alphafold'):
+    from chimerax.core.colors import BuiltinColormaps
     from chimerax.std_commands.color import color_by_attr
-    color_by_attr(structure.session, 'bfactor', atoms = structure.atoms, palette = palette,
-                  log_info = False)
+    color_by_attr(structure.session, 'bfactor', atoms = structure.atoms,
+                  palette = BuiltinColormaps[palette_name], log_info = False)
 
 def _align_and_trim(models, align_to_chain, trim):
     from . import match
@@ -84,13 +102,13 @@ def _align_and_trim(models, align_to_chain, trim):
             if seq_range:
                 match._trim_sequence(alphafold_model, seq_range)
 
-def _log_chain_info(models, align_to_name):
+def _log_chain_info(models, align_to_name, prediction_method = None):
     for m in models:
         def _show_chain_table(session, m=m):
             from chimerax.atomic import AtomicStructure
             AtomicStructure.added_to_session(m, session)
-            from .match import _log_alphafold_chain_table
-            _log_alphafold_chain_table([m], align_to_name)
+            from .match import _log_chain_table
+            _log_chain_table([m], align_to_name, prediction_method=prediction_method)
         m.added_to_session = _show_chain_table
         m._log_info = False   # Don't show standard chain table
 
@@ -102,6 +120,7 @@ def register_alphafold_fetch_command(logger):
         keyword = [('color_confidence', BoolArg),
                    ('align_to', ChainArg),
                    ('trim', BoolArg),
+                   ('pae', BoolArg),
                    ('ignore_cache', BoolArg),
                    ('version', IntArg)],
         synopsis = 'Fetch AlphaFold database models for a UniProt identifier'

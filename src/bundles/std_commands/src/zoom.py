@@ -1,14 +1,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 def zoom(session, factor=None, frames=None, pixel_size=None):
@@ -73,11 +84,11 @@ def _move_near_far_clip_planes(view, zdist):
             plane.plane_point -= zdist * view.camera.view_direction()
     
 def register_command(logger):
-    from chimerax.core.commands import CmdDesc, register, FloatArg, PositiveIntArg
+    from chimerax.core.commands import CmdDesc, register, PositiveFloatArg, PositiveIntArg
     desc = CmdDesc(
-        optional=[('factor', FloatArg),
+        optional=[('factor', PositiveFloatArg),
                   ('frames', PositiveIntArg)],
-        keyword=[('pixel_size', FloatArg)],
+        keyword=[('pixel_size', PositiveFloatArg)],
         synopsis='zoom models'
     )
     register('zoom', desc, zoom, logger=logger)

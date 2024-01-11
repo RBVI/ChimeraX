@@ -67,7 +67,7 @@ The files in the ``tut_cmd`` folder are:
     - ``src`` - source code to Python package for bundle
         - ``__init__.py`` - package initializer and interface to ChimeraX
         - ``cmd.py`` - source code to implement two ``tutorial`` commands
-        - ``docs/users/commands/tutorial.html`` - help file for the
+        - ``docs/user/commands/tutorial.html`` - help file for the
           ``tutorial`` commands
 
 The file contents are shown below.

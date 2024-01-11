@@ -110,7 +110,8 @@ def place_nucleic_acid(structure, sequence, *, form='B', type="dna", position=No
 
     The chains will be given the first two empty chain IDs.
 
-    Returns a Chains collection containing the two chains.
+    Returns a Chains collection containing the two chains, unless the sequence is only one character
+    in which cases a Residues collection of the two residues is returned.
     """
 
     if not sequence:
@@ -192,7 +193,7 @@ def place_nucleic_acid(structure, sequence, *, form='B', type="dna", position=No
         type2 = complement[let]
         if type != "rna":
             type1 = "D" + type1
-        if type == "DNA":
+        if type == "dna":
             type2 = "D" + type2
         r1 = structure.new_residue(type1, chain_id1, i+1)
         r2 = structure.new_residue(type2, chain_id2, len(sequence)-i)
@@ -249,9 +250,14 @@ def place_nucleic_acid(structure, sequence, *, form='B', type="dna", position=No
             res.name = "U"
 
     # reposition center to 'position'
-    from chimerax.atomic import Chains
-    chains = Chains([residues1[0].chain, residues2[0].chain])
-    atoms = chains.existing_residues.atoms
+    if len(sequence) > 1:
+        from chimerax.atomic import Chains
+        ret_val = chains = Chains([residues1[0].chain, residues2[0].chain])
+        atoms = chains.existing_residues.atoms
+    else:
+        from chimerax.atomic import Residues
+        ret_val = residues = Residues([residues1[0], residues2[0]])
+        atoms = residues.atoms
     coords = atoms.coords
     center = coords.mean(0)
     correction = position - center
@@ -260,7 +266,7 @@ def place_nucleic_acid(structure, sequence, *, form='B', type="dna", position=No
     if need_focus:
         from chimerax.core.commands import run
         run(session, "view", log=False)
-    return chains
+    return ret_val
 
 class PeptideError(ValueError):
     pass
@@ -303,10 +309,13 @@ def place_peptide(structure, sequence, phi_psis, *, position=None, rot_lib=None,
         if r3[-1] == 'X':
             raise PeptideError("Peptide sequence cannot contain ambiguity codes (i.e. '%s')" % c)
 
-    if len(sequence) != len(phi_psis):
-        raise PeptideError("Number of phi/psis not equal to sequence length")
-
     session = structure.session
+
+    if len(sequence) < len(phi_psis):
+        raise PeptideError("More phi/psis specified than sequence length")
+    elif len(sequence) > len(phi_psis):
+        session.logger.info("Fewer phi/psis than sequence length; reusing last phi/psi to fill out")
+        phi_psis += [phi_psis[-1]] * (len(sequence) - len(phi_psis))
 
     open_models = session.models[:]
     need_focus = _need_focus(structure)

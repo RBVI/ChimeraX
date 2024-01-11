@@ -1,0 +1,55 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ChimeraX-ToolshedUtils"
+license = { text = "License :: Free for non-commercial use" }
+authors= [{name = "UCSF RBVI", email="chimerax@cgl.ucsf.edu"}]
+description="Toolshed bundle utilities"
+dependencies = [
+    "wheel_filename~=1.2",
+]
+classifiers=[
+	# From https://pypi.python.org/pypi?%3Aaction=list_classifiers
+    # and our own ChimeraX classifiers.
+    "Development Status :: 5 - Stable",
+    "Environment :: MacOS X :: Aqua",
+    "Environment :: Win32 (MS Windows)",
+    "Environment :: X11 Applications",
+    "Framework :: ChimeraX",
+    "Intended Audience :: Science/Research",
+    "License :: Free for non-commercial use",
+    "Operating System :: MacOS :: MacOS X",
+    "Operating System :: Microsoft :: Windows :: Windows 10",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Visualization",
+    "Topic :: Scientific/Engineering :: Chemistry",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+    "ChimeraX :: Bundle :: Utilities :: 1,1 :: chimerax.toolshed_utils ::  :: true",
+    "ChimeraX :: Tool :: Updates :: Utilities :: install/update ChimeraX bundles from the Toolshed (web repository)",
+]
+requires-python = ">=3.7"
+dynamic = ["version"]
+ 
+[project.urls]
+Home="https://www.rbvi.ucsf.edu/chimerax/"
+
+[project.readme]
+content-type = "text"
+text = """Utilties for installing, uninstalling, and updating bundles
+from the ChimeraX Toolshed"""
+
+[tool.setuptools]
+packages=[
+	"chimerax.toolshed_utils"
+	, "chimerax.toolshed_utils.docs.user.tools"
+]
+
+[tool.setuptools.package-dir]
+"chimerax.toolshed_utils" = "src" 
+"chimerax.toolshed_utils.docs.user.tools" = "src/docs/user/tools"
+
+[tool.setuptools.dynamic]
+version = { attr = "src.__version__" }

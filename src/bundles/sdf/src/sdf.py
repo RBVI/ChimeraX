@@ -1,14 +1,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 """
@@ -266,22 +277,33 @@ def read_data_line(s, state, reading_data, line, atoms, data, indexed_charges, d
                         indexed_charges = True
                     data.append((index, charge))
         else:
-            if not indexed_charges and len(atoms) != len(data):
-                raise UserError("Number of charges (%d) in %s data not equal to number of atoms"
-                    " (%d)" % (len(data), orig_data_name, len(atoms)))
-            if indexed_charges:
-                for a in atoms:
-                    # charge defaults to 0.0, so don't need to set non-indexed
-                    for index, charge in data:
-                        atoms[index].charge = charge
-            else:
-                indices = list(atoms.keys())
-                indices.sort
-                for a, charge in zip([atoms[i] for i in indices], data):
-                    a.charge = charge
-            if "mmff94" in data_name:
-                s.charge_model = "MMFF94"
             reading_data = None
+            # single value of '0' indicates that charges are not being provided
+            if not (len(data) == 1 and len(atoms) != 1 and data[0] == 0.0):
+                if indexed_charges:
+                    charges_valid = max([datum[0] for datum in data]) < len(atoms)
+                    if not charges_valid:
+                        warning = "Charge data index values in %s greater than number of atoms (%d);" \
+                            " ignoring charges" % (orig_data_name, len(atoms))
+                else:
+                    charges_valid = len(atoms) == len(data)
+                    if not charges_valid:
+                        warning = "Number of charges (%d) in %s data not equal to number of atoms (%d);" \
+                            " ignoring charges" % (len(data), orig_data_name, len(atoms))
+                if charges_valid:
+                    if indexed_charges:
+                        for a in atoms:
+                            a.charge = 0.0
+                        for index, charge in data:
+                            atoms[index].charge = charge
+                    else:
+                        indices = list(atoms.keys())
+                        for a, charge in zip([atoms[i] for i in indices], data):
+                            a.charge = charge
+                    if "mmff94" in data_name:
+                        s.charge_model = "MMFF94"
+                else:
+                    s.session.logger.warning(warning)
     elif reading_data == "cid":
         data_item = line.strip()
         if data_item:

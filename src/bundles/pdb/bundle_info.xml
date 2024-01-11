@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-PDB" version="2.6.6"
+<BundleInfo name="ChimeraX-PDB" version="2.7.3"
 	    package="chimerax.pdb" purePython="false"
   	    minSessionVersion="1" maxSessionVersion="1">
 
@@ -30,7 +30,7 @@
     <Dependency name="ChimeraX-Core" version="~=1.0"/>
     <Dependency name="ChimeraX-Arrays" build="true" version="~=1.0"/>
     <Dependency name="ChimeraX-Atomic" version="~=1.0"/>
-    <Dependency name="ChimeraX-AtomicLibrary" build="true" version="~=6.0"/>
+    <Dependency name="ChimeraX-AtomicLibrary" build="true" version="~=12.0"/>
     <Dependency name="ChimeraX-DataFormats" version="~=1.0"/>
     <Dependency name="ChimeraX-IO" version="~=1.0.1"/>
     <Dependency name="ChimeraX-OpenCommand" version="~=1.0"/>
@@ -39,7 +39,7 @@
   </Dependencies>
 
   <Providers manager="data formats">
-    <Provider name="PDB" category="Molecular structure" suffixes=".pdb,.pdb1,.ent,.pqr"
+    <Provider name="PDB" category="Molecular structure" suffixes=".pdb,.pdb1,.ent,.pqr" default_for=".pdb"
         mime_types="chemical/x-pdb,chemical/x-spdbv" encoding="utf-8"
 		reference_url="http://www.wwpdb.org/documentation/file-format" />
   </Providers>

@@ -1,14 +1,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 def register_selectors(logger):
@@ -19,6 +30,7 @@ def register_selectors(logger):
     reg("sel", _sel_selector, logger, desc="selected atoms")
     reg("all", _all_selector, logger, desc="everything")
     reg("pbonds", _pbonds_selector, logger, desc="pseudobonds")
+    reg("pbondatoms", _pbondatoms_selector, logger, desc="pseudobond atoms")
     reg("hbonds", _hbonds_selector, logger, desc="hydrogen bonds")
     reg("hbondatoms", _hbondatoms_selector, logger, desc="hydrogen bond atoms")
 
@@ -71,6 +83,15 @@ def _pbonds_selector(session, models, results):
     results.add_pseudobonds(pbonds)
     for m in pbonds.unique_groups:
         results.add_model(m)
+
+def _pbondatoms_selector(session, models, results):
+    from chimerax.atomic import all_pseudobonds, concatenate
+    pbonds = all_pseudobonds(session)
+    if len(pbonds) > 0:
+        atoms = concatenate(pbonds.atoms)
+        results.add_atoms(atoms)
+        for m in atoms.unique_structures:
+            results.add_model(m)
 
 def _hbonds_selector(session, models, results):
     from chimerax.atomic import Pseudobonds, PseudobondGroup, concatenate

@@ -2,14 +2,25 @@
 
 /*
  * === UCSF ChimeraX Copyright ===
- * Copyright 2016 Regents of the University of California.
- * All rights reserved.  This software provided pursuant to a
- * license agreement containing restrictions on its disclosure,
- * duplication and use.  For details see:
- * http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
- * This notice must be embedded in or attached to all copies,
- * including partial copies, of the software or any revisions
- * or derivations thereof.
+ * Copyright 2022 Regents of the University of California. All rights reserved.
+ * The ChimeraX application is provided pursuant to the ChimeraX license
+ * agreement, which covers academic and commercial uses. For more details, see
+ * <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+ *
+ * This particular file is part of the ChimeraX library. You can also
+ * redistribute and/or modify it under the terms of the GNU Lesser General
+ * Public License version 2.1 as published by the Free Software Foundation.
+ * For more details, see
+ * <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+ *
+ * THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+ * EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+ * LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+ * VERSION 2.1
+ *
+ * This notice must be embedded in or attached to all copies, including partial
+ * copies, of the software or any revisions or derivations thereof.
  * === UCSF ChimeraX Copyright ===
  */
 
@@ -90,10 +101,12 @@ Residue::~Residue() {
 }
 
 void
-Residue::add_atom(Atom* a)
+Residue::add_atom(Atom* a, bool copying_structure)
 {
     a->_residue = this;
     _atoms.push_back(a);
+    if (copying_structure)
+        return;
 
     // if this is the first atom of a residue being introduced into a chain gap,
     // possibly adjust missing-structure pseudobonds; try to do this work only if
@@ -534,7 +547,20 @@ Residue::template_assign(void (Atom::*assign_func)(const char*),
     //   std::logic_error:  internal logic error
     using tmpl::TemplateCache;
     TemplateCache* tc = TemplateCache::template_cache();
-    TemplateCache::AtomMap* am = tc->res_template(name(),
+    auto lookup_name = name();
+    if (lookup_name == "UNK") {
+        // treat as GLY if backbone atoms present
+        bool treat_as_gly = true;
+        for (auto bb_name: aa_min_backbone_names) {
+            if (find_atom(bb_name) == nullptr) {
+                treat_as_gly = false;
+                break;
+            }
+        }
+        if (treat_as_gly)
+            lookup_name = "GLY";
+    }
+    TemplateCache::AtomMap* am = tc->res_template(lookup_name,
             app, template_dir, extension);
 
     std::vector<Atom*> unassigned;

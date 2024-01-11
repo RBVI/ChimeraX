@@ -115,8 +115,13 @@ class HistoryWindow(ChimeraXHtmlView):
             from Qt.QtWidgets import QMenu
             cm = self.context_menu = QMenu(self)
             cm.addAction("Remove deleted files", self.remove_missing_files)
+            cm.addAction("Clear file history", self.clear_file_history)
         cm.popup(event.globalPos())
 
     def remove_missing_files(self):
         from chimerax.core.filehistory import file_history
         file_history(self.session).remove_missing_files()
+
+    def clear_file_history(self):
+        from chimerax.core.filehistory import file_history
+        file_history(self.session).clear_file_history()

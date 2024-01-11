@@ -1,0 +1,99 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: changechains</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#commands">Command</a>: changechains</h3>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>changechains</b>
+&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
+<i>new-ID</i>
+</h3>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>changechains</b>
+&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
+&nbsp;<i>current-ID-list</i> &nbsp;<i>new-ID-list</i>
+</h3>
+<a name="glycosylation"></a>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>changechains glycosylations</b>
+&nbsp;<a href="atomspec.html#hierarchy"><i>chain-spec</i></a>&nbsp;
+</h3>
+<p>
+The command <b>changechains</b> changes the chain identifiers (IDs) of
+residues containing the specified atoms. 
+The corresponding tool is <a href="../tools/changechains.html"><b>Change
+Chain IDs</b></a>.
+See also: 
+<a href="renumber.html"><b>renumber</b></a>,
+<a href="rename.html"><b>rename</b></a>,
+<a href="build.html"><b>build</b></a>,
+<a href="combine.html"><b>combine</b></a>,
+<a href="save.html#pdb"><b>save</b></a>
+</p><p>
+Either a single desired chain ID can be given, or
+a comma-separated list of current IDs followed by a comma-separated list
+of the desired IDs. 
+</p><p>
+If lists are used, they must contain equal numbers of IDs, 
+which will be paired in the order given. Ranges of IDs cannot be given.
+Within the set of specified atoms, occurrences of the Nth chain ID in the 
+first list will be changed to the Nth ID in the second list.
+The same ID may appear in both lists; the first list is only evaluated before 
+the changes are made.
+</p><p>
+Capitalization of the IDs is important and will be used exactly as entered.
+</p><p>
+The command <b>changechains glycosylations</b> will look for HET chains
+(typically glycosylations)
+that are covalently bonded to the specified (non-HET) biopolymer chains
+and change their IDs as needed to match the corresponding bonded chain. 
+As per the usual convention, a blank specification means &ldquo;all.&rdquo;
+</p><p>
+For example, PDB entry <a href="https://www.rcsb.org/structure/6OEJ"
+target="_blank">6oej</a> has glycosylation chain D on protein chain H 
+and glycosylation chain E on protein chain B. The other glycosylations 
+in the structure are single-residue and already have the same chain IDs as 
+their attached proteins (A and G). The following would change D to H
+and E to B in 6oej, making all glycosylations in the structure have
+the same chain IDs as their attached proteins:
+</p>
+<blockquote>
+<b>
+<!-- another example 5v8m is too complicated -->
+<a href="open.html#fetch">open</a> 6oej
+<br>
+<a href="preset.html">preset</a> licorice
+<br>
+<a href="label.html">label</a> ~(protein&nbsp;|&nbsp;solvent) attribute chain_id height 3
+<br>
+<a href="view.html#initial">view</a> /D,E
+<br>
+changechain glyco 
+</b>
+</blockquote>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+October 2023</address>
+</body></html>

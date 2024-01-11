@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-Hbonds" version="2.1.2" package="chimerax.hbonds"
+<BundleInfo name="ChimeraX-Hbonds" version="2.4" package="chimerax.hbonds"
   	    minSessionVersion="1" maxSessionVersion="1">
 
   <!-- Additional information about bundle source -->

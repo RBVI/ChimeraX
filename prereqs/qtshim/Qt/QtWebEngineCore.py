@@ -2,6 +2,10 @@ from . import using_pyqt6, using_pyqt5, using_pyside2
 
 if using_pyqt6:
     from PyQt6.QtWebEngineCore import *
+    from .promote_enums import promote_enums
+    from PyQt6 import QtWebEngineCore
+    promote_enums(QtWebEngineCore)
+    del QtWebEngineCore
 
 elif using_pyqt5:
     from PyQt5.QtWebEngineCore import *

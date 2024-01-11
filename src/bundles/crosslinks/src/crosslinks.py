@@ -1,14 +1,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 def crosslinks(session, pbonds, color = None, radius = None, dashes = None):
@@ -63,7 +74,8 @@ def crosslinks_network(session, pbonds):
     cnodes, edges = chains_and_edges(pbonds)
     CrosslinksPlot(session, cnodes, edges)
 
-def crosslinks_histogram(session, pbonds, coordsets = None):
+def crosslinks_histogram(session, pbonds, coordsets = None, bins = 50,
+                         max_length = None, min_length = None, height = None):
     '''
     Show histogram of crosslink lengths.
 
@@ -83,13 +95,16 @@ def crosslinks_histogram(session, pbonds, coordsets = None):
     if coordsets:
         if len(pbonds) == 1:
             from .lengths import EnsemblePlot
-            EnsemblePlot(session, pbonds[0], coordsets)
+            plot = EnsemblePlot(session, pbonds[0], coordsets,
+                                bins=bins, max_length=max_length, min_length=min_length, height=height)
         else:
             from chimerax.core.errors import UserError        
             raise UserError('Plotting coordset lengths requires exactly one crosslink, got %d.' % len(pbonds))
     else:
         from .lengths import LengthsPlot
-        LengthsPlot(session, pbonds)
+        plot = LengthsPlot(session, pbonds,
+                           bins=bins, max_length=max_length, min_length=min_length, height=height)
+    return plot
 
 def crosslinks_minimize(session, pbonds, move_models = None, iterations = 10, frames = None):
     '''
@@ -213,7 +228,11 @@ def register_command(logger):
     register('crosslinks network', desc, crosslinks_network, logger=logger)
 
     desc = CmdDesc(required = [('pbonds', PseudobondsArg)],
-                   keyword = [('coordsets', StructureArg)],
+                   keyword = [('coordsets', StructureArg),
+                              ('bins', IntArg),
+                              ('max_length', FloatArg),
+                              ('min_length', FloatArg),
+                              ('height', FloatArg)],
                    synopsis = 'Show histogram of crosslink lengths')
     register('crosslinks histogram', desc, crosslinks_histogram, logger=logger)
 

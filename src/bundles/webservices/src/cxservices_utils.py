@@ -14,6 +14,15 @@ def get_status(job_id):
         raise JobMonitorError(str(e))
     return status
 
+def get_results(job_id):
+    api = default_api.DefaultApi()
+    try:
+        content = api.get_results(job_id)
+    except ApiException:
+        return None
+    else:
+        return content
+
 def job_exited_normally(job_id):
     """Return whether background process terminated normally.
 

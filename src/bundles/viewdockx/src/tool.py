@@ -1,6 +1,7 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 from io import StringIO
 from chimerax.ui import HtmlToolInstance
+from chimerax.core.errors import UserError
 
 
 class _BaseTool(HtmlToolInstance):
@@ -51,7 +52,6 @@ class _BaseTool(HtmlToolInstance):
                           if hasattr(s, "viewdockx_data") and s.viewdockx_data]
 
         if not structures:
-            from chimerax.core.errors import UserError
             raise UserError("No suitable models found for ViewDockX")
         self.structures = structures
         t = session.triggers
@@ -142,15 +142,14 @@ class _BaseTool(HtmlToolInstance):
                     numeric_list.append(None)
                 else:
                     try:
-                        numeric_list.append(int(datum))
+                        if int(datum) == datum:
+                            numeric_list.append(int(datum))
+                        else:
+                            numeric_list.append(float(datum))
                         num_numeric += 1
                     except ValueError:
-                        try:
-                            numeric_list.append(float(datum))
-                            num_numeric += 1
-                        except ValueError:
-                            numeric_list.append(None)
-                            num_text += 1
+                        numeric_list.append(None)
+                        num_text += 1
                 text_list.append(datum)
             if num_numeric > num_text:
                 numeric_data[category] = numeric_list
@@ -311,7 +310,7 @@ class _BaseTool(HtmlToolInstance):
             event_loop.quit()
         self.html_view.runJavaScript(js, add)
         while self.html_state not in data:
-            event_loop.exec_()
+            event_loop.exec()
 
     def _set_html_state(self):
         if self._html_state:
@@ -483,6 +482,8 @@ class TableTool(_BaseTool):
                 print("\n\n", end='', file=outf)
 
     def _cb_prune(self, query):
+        if 'stars' not in query:
+            raise UserError("Must select a number of stars next to the 'Close' button")
         stars = int(query["stars"][0])
         structures = [s for s in self.structures
                       if int(s.viewdockx_data[self.category_rating]) <= stars]

@@ -4,7 +4,7 @@ def open_mae(session, path, file_name, auto_style, atomic):
     import os.path
     extension = os.path.splitext(path)[1]
     if extension == ".mae":
-        with open(path) as stream:
+        with open(path, encoding="utf-8") as stream:
             p = MaestroParser(session, stream, file_name, auto_style, atomic)
     elif extension == ".maegz":
         import gzip
@@ -114,7 +114,7 @@ class MaestroParser:
             try:
                 r = residue_map[res_key]
             except KeyError:
-                res_name = attrs.get("s_m_pdb_residue_name", "UNK")
+                res_name = attrs.get("s_m_pdb_residue_name", "UNK").strip()
                 r = s.new_residue(res_name, chain_id, res_seq, insert_code)
                 residue_map[res_key] = r
             rgb = attrs.get("s_m_ribbon_color_rgb", None)
@@ -123,9 +123,9 @@ class MaestroParser:
 
             # Get atom data and create
             try:
-                name = attrs["s_m_pdb_atom_name"]
+                name = attrs["s_m_pdb_atom_name"].strip()
             except KeyError:
-                name = attrs.get("s_m_atom_name", "")
+                name = attrs.get("s_m_atom_name", "").strip()
             name = name.strip()
             atomic_number = attrs.get("i_m_atomic_number", 6)
             if atomic_number < 1:

@@ -254,14 +254,14 @@ def translation_step(points, point_weights, center, data_array,
     g = gradient_direction(points, point_weights, data_array,
                            xyz_to_ijk_transform, metric,
                            syminv = syminv, values = values, gradients = gradients)
-    from numpy import array, float, dot as matrix_multiply
+    from numpy import array, float64, dot as matrix_multiply
     gijk = matrix_multiply(xyz_to_ijk_transform.matrix[:,:3], g)
     from chimerax.geometry import norm, place
     n = norm(gijk)
     if n > 0:
         delta = g * (ijk_step_size / n)
     else:
-        delta = array((0,0,0), float)
+        delta = array((0,0,0), float64)
 
     delta_tf = place.translation(delta)
 

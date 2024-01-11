@@ -1,14 +1,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 # -----------------------------------------------------------------------------
@@ -41,6 +52,9 @@ def split(session, structures = None, chains = None, ligands = False, connected 
     if chains is None and not ligands and not connected and atoms is None:
         chains = True
 
+    if atoms:
+        check_for_overlapping_atoms(atoms)
+        
     slist = []
     olist = []
     log = session.logger
@@ -270,6 +284,31 @@ def atom_bonds(atoms):
     blist = bt.keys()
     return blist
 
+# -----------------------------------------------------------------------------
+#
+def check_for_overlapping_atoms(atom_subsets):
+    if atom_subsets is None or len(atom_subsets) < 2:
+        return
+    from chimerax.atomic import concatenate
+    atoms = concatenate(atom_subsets, remove_duplicates = True)
+    na = sum(len(a) for a in atom_subsets)
+    if len(atoms) == na:
+        return
+
+    from chimerax.core.errors import UserError
+    have_spec = [a for a in atom_subsets if isinstance(getattr(a, 'spec', None), str)]
+    if len(have_spec) < len(atom_subsets):
+        raise UserError('The split command requires non-overlapping atoms, '
+                        '%d atoms are overlapping' % (na - len(atoms)))
+
+    olap = []
+    for i,a in enumerate(atom_subsets):
+        for a2 in atom_subsets[i+1:]:
+            ia = a.intersect(a2)
+            if len(ia) > 0:
+                olap.append(f'"{a.spec}" and "{a2.spec}" have {len(ia)} atoms in common')
+    raise UserError('The split command requires non-overlapping atoms, ' + ', '.join(olap))
+        
 # -----------------------------------------------------------------------------
 #
 def register_command(logger):

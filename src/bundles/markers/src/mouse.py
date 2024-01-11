@@ -1,14 +1,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 # -----------------------------------------------------------------------------
@@ -141,7 +152,7 @@ class MarkerMouseMode(MouseMode):
     def picked_marker_or_link(self, event, select = False):
         xyz1, xyz2 = self._view_line(event)
         view = self.session.main_view
-        pick = view.picked_object_on_segment(xyz1, xyz2)
+        pick = view.picked_object_on_segment(xyz1, xyz2, exclude = _exclude_transparent_surfaces)
         m = l = None
         from chimerax.atomic import PickedAtom, PickedBond
         from .markers import MarkerSet
@@ -264,6 +275,18 @@ class MarkerMouseMode(MouseMode):
     def vr_release(self, event):
         # Virtual reality hand controller button release.
         self.mouse_up()
+
+def _exclude_transparent_surfaces(drawing):
+    if not drawing.pickable:
+        return True
+    from chimerax.core.models import Surface
+    if isinstance(drawing, Surface):
+        if drawing.display_style != drawing.Solid:
+            return True
+        any_opaque, any_transparent = drawing._transparency()
+        if any_transparent:
+            return True
+    return False
 
 # -----------------------------------------------------------------------------
 #

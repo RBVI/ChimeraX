@@ -1,14 +1,25 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
-# Copyright 2016 Regents of the University of California.
-# All rights reserved.  This software provided pursuant to a
-# license agreement containing restrictions on its disclosure,
-# duplication and use.  For details see:
-# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
-# This notice must be embedded in or attached to all copies,
-# including partial copies, of the software or any revisions
-# or derivations thereof.
+# Copyright 2022 Regents of the University of California. All rights reserved.
+# The ChimeraX application is provided pursuant to the ChimeraX license
+# agreement, which covers academic and commercial uses. For more details, see
+# <http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html>
+#
+# This particular file is part of the ChimeraX library. You can also
+# redistribute and/or modify it under the terms of the GNU Lesser General
+# Public License version 2.1 as published by the Free Software Foundation.
+# For more details, see
+# <https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
+#
+# THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
+# EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+# OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. ADDITIONAL LIABILITY
+# LIMITATIONS ARE DESCRIBED IN THE GNU LESSER GENERAL PUBLIC LICENSE
+# VERSION 2.1
+#
+# This notice must be embedded in or attached to all copies, including partial
+# copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
 def marker(session, marker_set, position, radius = 0.5, color = (255,255,0,255),
@@ -174,7 +185,7 @@ def markers_from_mesh(session, surfaces, edge_radius = 1, color = None, markers 
 
     if mset.id is None:
         session.models.add([mset])
-        
+
     return mset
 
 def _masked_edges(surface):
@@ -190,15 +201,14 @@ def _masked_edges(surface):
     em0 = em1 = em2 = True
     for t, (v0,v1,v2) in enumerate(surface.triangles):
         if tmask is None or tmask[t]:
-            if emask is not None:
-                em = emask[t]
-                em0,em1,em2 = em & 0x1, em & 0x2, em & 0x4
-                if em & 0x1 and (v1,v0) not in edges:
-                    edges.add((v0,v1))
-                if em & 0x2 and (v2,v1) not in edges:
-                    edges.add((v1,v2))
-                if em & 0x4 and (v0,v2) not in edges:
-                    edges.add((v2,v0))
+            em = 0x7 if emask is None else emask[t]
+            em0,em1,em2 = em & 0x1, em & 0x2, em & 0x4
+            if em & 0x1 and (v1,v0) not in edges:
+                edges.add((v0,v1))
+            if em & 0x2 and (v2,v1) not in edges:
+                edges.add((v1,v2))
+            if em & 0x4 and (v0,v2) not in edges:
+                edges.add((v2,v0))
     return edges
 
 def _surface_name(surface):
