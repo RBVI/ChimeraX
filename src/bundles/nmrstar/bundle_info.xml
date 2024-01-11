@@ -1,0 +1,41 @@
+<BundleInfo name="ChimeraX-NMRSTAR" version="1.0.1"
+	    package="chimerax.nmrstar"
+  	    customInit="true" minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>Read NMR distance restraints from NMR-STAR files</Synopsis>
+  <Description>Read NMR distance restraints from NMR-STAR files.</Description>
+
+  <Categories>
+    <Category name="Generic 3D objects"/>
+  </Categories>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version="~=1.0"/>
+    <Dependency name="ChimeraX-Atomic" version="~=1.0"/>
+    <Dependency name="ChimeraX-DataFormats" version="~=1.0"/>
+    <Dependency name="ChimeraX-OpenCommand" version="~=1.0"/>
+    <Dependency name="pynmrstar" version="~=3.0"/>
+  </Dependencies>
+
+  <Providers manager="data formats">
+    <Provider name="NMRSTAR" synopsis="NMR-STAR distance restraints" category="Generic 3D objects"
+		suffixes=".str" nicknames="nmrstr"
+		reference_url="https://link.springer.com/article/10.1007/s10858-018-0220-3" />
+  </Providers>
+
+  <Providers manager="open command">
+    <Provider name="NMRSTAR" want_path="true" />
+    <Provider name="pdb_nmr" type="fetch" format_name="NMRSTAR"
+		synopsis="NMR constraints" example_ids="8bfg" />
+  </Providers>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+  </Classifiers>
+
+</BundleInfo>
