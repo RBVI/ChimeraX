@@ -34,9 +34,13 @@ class _MDCrdsBundleAPI(BundleAPI):
             from chimerax.open_command import OpenerInfo
             if name == "psf":
                 class MDInfo(OpenerInfo):
-                    def open(self, session, data, file_name, **kw):
+                    def open(self, session, data, file_name, *, slider=True, **kw):
                         from .read_psf import read_psf
-                        return read_psf(session, data, file_name, **kw)
+                        models, status = read_psf(session, data, file_name, **kw)
+                        if slider and session.ui.is_gui:
+                            from chimerax.std_commands.coordset import coordset_slider
+                            coordset_slider(session, models)
+                        return models, status
                     @property
                     def open_args(self):
                         from chimerax.core.commands import BoolArg, OpenFileNameArg, PositiveIntArg
