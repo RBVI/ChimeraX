@@ -119,22 +119,20 @@ The last example deletes all unused alternate locations.
 <a href="#top" class="nounder">&bull;</a>
 <a name="show"></a>
 <a name="hide"></a>
-<b>altlocs show</b> 
+<b>altlocs show</b> [&nbsp;<i>altloc-ID-list</i></a>&nbsp;]
 &nbsp;<a href="atomspec.html"><i>residue-spec</i></a>&nbsp;
-[&nbsp;<b>locs</b>&nbsp;&nbsp;<i>altloc-ID-list</i></a>&nbsp;]
 <br>
 <a href="#top" class="nounder">&bull;</a>
-<b>altlocs hide</b> 
-&nbsp;<a href="atomspec.html"><i>residue-spec</i></a>&nbsp;
-[&nbsp;<b>locs</b>&nbsp;&nbsp;<i>altloc-ID-list</i></a>&nbsp;]
+<b>altlocs hide</b> [&nbsp;<i>altloc-ID-list</i></a>&nbsp;]
+&nbsp;<a href="atomspec.html"><i>residue-spec</i></a>
 <blockquote>
 The <b>altlocs show</b> command allows viewing multiple alternate locations 
 at the same time. A separate submodel is generated for each alternate location
 of each <a href="atomspec.html">specified</a> residue that has alternate 
-locations. All alternate locations are shown unless limited with the
-<b>loc</b> option, where <i>altloc-ID-list</i> is a series of
-altloc identifiers separated by commas only. As per the usual ChimeraX
-convention, a blank residue specification specifies all residues. 
+locations. All alternate locations are included unless limited to a subset
+with <i>altloc-ID-list</i>, a series of altloc identifiers 
+separated by commas only. As per the usual ChimeraX convention,
+a blank residue specification indicates all residues. 
 The <b>altlocs hide</b> command has the same options as <b>altlocs show</b>
 and simply allows hiding one or more of the alternate-location submodels.
 <b>Altlocs show</b> and <b>altlocs hide</b> do not affect the original
