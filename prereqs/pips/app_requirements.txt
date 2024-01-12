@@ -36,7 +36,7 @@ openvr==1.23.701
 # as per Tristan's request in ticket #3055
 ParmEd==3.4.3
 pep517==0.13.0
-Pillow==10.0.1
+Pillow==10.2.0
 pkginfo==1.9.6
 psutil==5.9.5
 pycollada==0.7.2
