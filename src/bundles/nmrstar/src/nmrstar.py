@@ -53,7 +53,10 @@ def read_nmr_star(session, path, name,
                  for cid1, rnum1, rname1, atom1, cid2, rnum2, rname2, atom2, dist_min, dist_max in clist]
         constraint_sets.append((constraint_type, clist))
 
-    if structures is not None:
+    if structures is None:
+        structures = _structures_with_constraint_atoms(session, constraint_sets)
+
+    if structures:
         _save_distance_limits_in_session(session)
         for structure in structures:
             for ctype, clist in constraint_sets:
@@ -66,7 +69,7 @@ def read_nmr_star(session, path, name,
     descrip = ', '.join([f'{len(constraint_sets)} constraint lists']
                         + [f'{len(clist)} {ctype}' for ctype, clist in constraint_sets])
     from os.path import basename
-    msg = f'Read NMR-STAR {basename(path)}, {descrip}'
+    msg = f'Read NMR-STAR {basename(path)}, {descrip} applied to {len(structures)} structures'
     
     return [], msg	# Don't return models since they are already added to session
 
@@ -84,14 +87,19 @@ def _make_constraint_pseudobonds(structure, ctype, clist, color, radius, long_co
     g = structure.pseudobond_group(gname)
 
     atom_table = {(a.residue.chain_id, a.residue.number, a.name):a for a in structure.atoms}
-    missing = []
+    missing = set()
+    mcount = 0
     for cid1, rnum1, rname1, atom1, cid2, rnum2, rname2, atom2, dist_min, dist_max in clist:
         a1 = atom_table.get((cid1, rnum1, atom1))
         if a1 is None:
-            missing.append((cid1, rnum1, atom1))
+            missing.add((cid1, rnum1, atom1))
+            mcount += 1
+            continue
         a2 = atom_table.get((cid2, rnum2, atom2))
         if a2 is None:
-            missing.append((cid2, rnum2, atom2))
+            missing.add((cid2, rnum2, atom2))
+            mcount += 1
+            continue
         b = g.new_pseudobond(a1, a2)
         if b.length > dist_max:
             b.color = long_color
@@ -103,11 +111,36 @@ def _make_constraint_pseudobonds(structure, ctype, clist, color, radius, long_co
         b.nmr_max_distance = dist_max
 
     if missing:
+        matoms = ','.join(f'/{cid}:{rnum}@{aname}' for cid, rnum, aname in sorted(missing))
         log = structure.session.logger
-        matoms = ','.join(f'/{cid}:{rnum}@{aname}' for cid, rnum, aname in missing)
-        log.warning('Missing atoms for {len(missing)} constraints: {matoms}')
+        log.warning(f'Missing {len(missing)} atoms in {mcount} of {len(clist)} {ctype} constraints: {matoms}')
 
     return g
+
+# -----------------------------------------------------------------------------
+#
+def _structures_with_constraint_atoms(session, constraint_sets):
+    atom_ids = set()
+    for ctype, clist in constraint_sets:
+        for cid1, rnum1, rname1, atom1, cid2, rnum2, rname2, atom2, dist_min, dist_max in clist:
+            atom_ids.add((cid1, rnum1, rname1, atom1))
+            atom_ids.add((cid2, rnum2, rname2, atom2))
+
+    from chimerax.atomic import all_atomic_structures
+    structures = [m for m in all_atomic_structures(session) if _have_atoms(m.atoms, atom_ids)]
+    return structures
+
+# -----------------------------------------------------------------------------
+#
+def _have_atoms(atoms, atom_ids):
+    have_ids = set()
+    for a in atoms:
+        r = a.residue
+        have_ids.add((r.chain_id, r.number, r.name, a.name))
+    for aid in atom_ids:
+        if aid not in have_ids:
+            return False
+    return True
 
 # -----------------------------------------------------------------------------
 #
