@@ -27,8 +27,8 @@
 def _register_distance_constraint_selectors(logger):
     'Add selector for satisfied and long constraints for easy hiding.'
     from chimerax.core.commands import register_selector
-    register_selector("satisfied", _satisfied_constraint_selector, logger, desc='satisfied NMR distance restraints')
-    register_selector("long", _long_constraint_selector, logger, desc='long NMR distance restraints')
+    register_selector("nmr-satisfied", _satisfied_constraint_selector, logger, desc='satisfied NMR distance restraints')
+    register_selector("nmr-long", _long_constraint_selector, logger, desc='long NMR distance restraints')
 
 # -----------------------------------------------------------------------------
 #
