@@ -17,7 +17,7 @@
     <Dependency name="ChimeraX-Core" version="~=1.0"/>
     <Dependency name="ChimeraX-Geometry" version="~=1.0"/>
     <Dependency name="ChimeraX-MapData" version="~=2.0"/>
-    <Dependency name="sfftk-rw" version="~=0.7.2"/>
+    <Dependency name="sfftk-rw" version="~=0.8.1"/>
   </Dependencies>
 
   <Providers manager="data formats">
