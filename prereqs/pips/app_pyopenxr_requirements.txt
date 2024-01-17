@@ -6,7 +6,13 @@
 #
 #    https://github.com/cmbruns/pyopenxr/blob/main/setup.cfg
 #
-# We do not support VR on ubuntu.
+# We do not support VR on ubuntu.  I made a pyopenxr ticket about this
+#
+#    https://github.com/cmbruns/pyopenxr/issues/106
+#
+
+# Must update pyopenxr.patch when version number is changed.
 pyopenxr==1.0.3301
-# PyOpenXR 1.0.2801 requires glfw
+
+# PyOpenXR 1.0.3301 requires glfw
 glfw
