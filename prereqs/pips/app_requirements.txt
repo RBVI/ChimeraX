@@ -14,8 +14,8 @@ Cython==0.29.33
 filelock==3.9.0
 # grako==3.16.5 # See the Makefile; need patched Grako for 3.11
 html2text==2020.1.16
-ihm==0.38
-imagecodecs==2023.9.18
+ihm==0.43
+imagecodecs==2024.1.1
 ipykernel==6.23.2
 # if ipython updated, make sure autocompletion still works (e.g. "mi<tab>" becomes min) and if not then
 # try a newer version of jedi
@@ -25,21 +25,21 @@ jedi==0.18.2
 jupyter-client==8.2.0
 line_profiler==4.0.2
 lxml==4.9.2
-lz4==4.3.2
-matplotlib==3.7.2
-msgpack==1.0.4
+lz4==4.3.3
+matplotlib==3.8.2
+msgpack==1.0.7
 nibabel == 5.0.1
-netCDF4==1.6.2
-networkx==3.1
-numpy==1.25.1
-openvr==1.23.701
+netCDF4==1.6.5
+networkx==3.2.1
+numpy==1.26.3
+openvr==1.26.701
 # as per Tristan's request in ticket #3055
 ParmEd==3.4.3
 pep517==0.13.0
 Pillow==10.2.0
 pkginfo==1.9.6
-psutil==5.9.5
-pycollada==0.7.2
+psutil==5.9.7
+pycollada==0.8
 pydicom==2.3.0
 pynrrd==1.0.0
 tcia_utils==1.5.1
@@ -50,13 +50,13 @@ python-dateutil==2.8.2
 #PySide2==5.15.2
 qtconsole==5.4.3
 requests==2.31.0
-scipy==1.11.1
+scipy==1.11.4
 six==1.16.0
 sortedcontainers==2.4.0
 # Used by the DICOM bundle for a double-ended QSlider
 superqt==0.5.0
-tables==3.8.0 ; platform_machine != 'arm64'
-tifffile==2023.7.18
+tables==3.9.2 ; platform_machine != 'arm64'
+tifffile==2023.12.9
 # tinyarray==1.2.4 # 3.11 requires getting this from Plato
 webcolors==1.12
 wheel-filename==1.4.1
