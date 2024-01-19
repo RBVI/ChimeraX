@@ -2,95 +2,96 @@ from typing import Type
 
 modality_dict = {
     # Code: Full Name, Retired, Has Image Data
-    'AR': ('Autorefraction', False, True),
-    'AS': ('Angioscopy', True, True),
-    'ASMT': ('Content Assessment Results', False, True),
-    'AU': ('Audio ECG', False, True),
-    'BDUS': ('Bone Densitometry (Ultrasound)', False, True),
-    'BI': ('Biomagnetic Imaging', False, True),
-    'BMD': ('Bone Densitometry (X-Ray)', False, True),
-    'CD': ('Color Flow Doppler', True, True),
-    'CF': ('Cinefluorography', True, True),
-    'CP': ('Culposcopy', True, True),
-    'CR': ('Computed Radiography', False, True),
-    'CS': ('Cytoscopy', True, True),
-    'CT': ('Computed Tomography', False, True),
-    'CTPROTOCOL': ('CT Protocol Performed', False, True),
-    'DD': ('Duplex Doppler', True, True),
-    'DF': ('Digital fluoroscopy', True, True),
-    'DG': ('Diaphanography', False, True),
-    'DM': ('Digital Microscopy', True, True),
-    'DOC': ('Document', False, False),
-    'DS': ('Digital Subtraction Angiography', True, True),
-    'DX': ('Digital Radiography', False, True),
-    'EC': ('Echocardiography', True, True),
-    'ECG': ('Electrocardiography', False, True),
-    'EPS': ('Cardiac Electrophysiology', False, True),
-    'ES': ('Endoscopy', False, True),
-    'FA': ('Fluorescein angiography', True, True),
-    'FID': ('Fiducials', False, False),
-    'FS': ('Fundoscopy', True, True),
-    'GM': ('General Microscopy', False, True),
-    'HC': ('Hard Copy', False, True),
-    'HD': ('Hemodynamic Waveform', False, True),
-    'IO': ('Intraoral Radiography', False, True),
-    'IOL': ('Intraocular Lens Data', False, True),
-    'IVOCT': ('Intravascular Optical Coherence Tomography', False, True),
-    'IVUS': ('Intravascular Ultrasound', False, True),
-    'KER': ('Keratometry', False, True),
-    'KO': ('Key Object Selection', False, False),
-    'LEN': ('Lensometry', False, True),
-    'LP': ('Laparoscopy', True, True),
-    'LS': ('Laser Surface Scan', False, True),
-    'MA': ('Magnetic resonance angiography', True, True),
-    'MG': ('Mammography', False, True),
-    'MR': ('Magnetic Resonance', False, True),
-    'M3D': ('Model for 3D Manufacturing', False, True),
-    'MS': ('Magnetic resonance spectroscopy', True, True),
-    'NM': ('Nuclear Medicine', False, True),
-    'OAM': ('Ophthalmic Axial Measurements', False, True),
-    'OCT': ('Optical Coherence Tomography (non-Ophthalmic)', False, True),
-    'OP': ('Ophthalmic Photography', False, True),
-    'OPM': ('Ophthalmic Mapping', False, True),
-    'OPR': ('Ophthalmic Refraction', True, True),
-    'OPT': ('Ophthalmic Tomography', False, True),
-    'OPTSBV': ('Ophthalmic Tomography B-Scan Volume Analysis', False, True),
-    'OPTENF': ('Ophthalmic Tomography En Face Image', False, True),
-    'OPV': ('Ophthalmic Visual Field', False, True),
-    'OSS': ('Optical Surface Scan', False, True),
-    'OT': ('Other', False, True),
-    'PLAN': ('Plan', False, False),
-    'PR': ('Presentation State', False, False),
-    'PT': ('Positron Emission Tomography', False, True),
-    'PX': ('Panoramic X-Ray', False, True),
-    'REG': ('Registration', False, False),
-    'RESP': ('Respiratory Waveform', False, True),
-    'RF': ('Radio Fluoroscopy', False, True),
-    'RG': ('Radiographic Imaging', False, True),
-    'RTDOSE': ('Radiotherapy Dose', False, True),
-    'RTIMAGE': ('Radiotherapy Image', False, True),
-    'RTINTENT': ('Radiotherapy Intent', False, False),
-    'RTPLAN': ('Radiotherapy Plan', False, True),
-    'RTRAD': ('Radiotherapy Radiation', False, True),
-    'RTRECORD': ('Radiotherapy Record', False, True),
-    'RTSEGANN': ('Radiotherapy Segment Annotation', False, True),
-    'RTSTRUCT': ('Radiotherapy Structure Set', False, True),
-    'RWV': ('Real World Value Map', False, False),
-    'SEG': ('Segmentation', False, True),
-    'SM': ('Slide Microscopy', False, True),
-    'SMR': ('Stereometric Relationship', False, True),
-    'SR': ('Structured Report', False, False),
-    'SRF': ('Subjective Refraction', False, True),
-    'ST': ('Single Photon Emission Computed Tomography (SPECT)', True, True),
-    'STAIN': ('Automated Slide Stainer', False, True),
-    'TEXTUREMAP': ('Texture Mapping', False, True),
-    'TG': ('Thermography', False, True),
-    'US': ('Ultrasound', False, True),
-    'VA': ('Visual Acuity', False, True),
-    'VF': ('Videofluorography', True, True),
-    'XA': ('X-Ray Angiography', False, True),
-    'XC': ('External Camera Photography', False, True),
+    "AR": ("Autorefraction", False, True),
+    "AS": ("Angioscopy", True, True),
+    "ASMT": ("Content Assessment Results", False, True),
+    "AU": ("Audio ECG", False, True),
+    "BDUS": ("Bone Densitometry (Ultrasound)", False, True),
+    "BI": ("Biomagnetic Imaging", False, True),
+    "BMD": ("Bone Densitometry (X-Ray)", False, True),
+    "CD": ("Color Flow Doppler", True, True),
+    "CF": ("Cinefluorography", True, True),
+    "CP": ("Culposcopy", True, True),
+    "CR": ("Computed Radiography", False, True),
+    "CS": ("Cytoscopy", True, True),
+    "CT": ("Computed Tomography", False, True),
+    "CTPROTOCOL": ("CT Protocol Performed", False, True),
+    "DD": ("Duplex Doppler", True, True),
+    "DF": ("Digital fluoroscopy", True, True),
+    "DG": ("Diaphanography", False, True),
+    "DM": ("Digital Microscopy", True, True),
+    "DOC": ("Document", False, False),
+    "DS": ("Digital Subtraction Angiography", True, True),
+    "DX": ("Digital Radiography", False, True),
+    "EC": ("Echocardiography", True, True),
+    "ECG": ("Electrocardiography", False, True),
+    "EPS": ("Cardiac Electrophysiology", False, True),
+    "ES": ("Endoscopy", False, True),
+    "FA": ("Fluorescein angiography", True, True),
+    "FID": ("Fiducials", False, False),
+    "FS": ("Fundoscopy", True, True),
+    "GM": ("General Microscopy", False, True),
+    "HC": ("Hard Copy", False, True),
+    "HD": ("Hemodynamic Waveform", False, True),
+    "IO": ("Intraoral Radiography", False, True),
+    "IOL": ("Intraocular Lens Data", False, True),
+    "IVOCT": ("Intravascular Optical Coherence Tomography", False, True),
+    "IVUS": ("Intravascular Ultrasound", False, True),
+    "KER": ("Keratometry", False, True),
+    "KO": ("Key Object Selection", False, False),
+    "LEN": ("Lensometry", False, True),
+    "LP": ("Laparoscopy", True, True),
+    "LS": ("Laser Surface Scan", False, True),
+    "MA": ("Magnetic resonance angiography", True, True),
+    "MG": ("Mammography", False, True),
+    "MR": ("Magnetic Resonance", False, True),
+    "M3D": ("Model for 3D Manufacturing", False, True),
+    "MS": ("Magnetic resonance spectroscopy", True, True),
+    "NM": ("Nuclear Medicine", False, True),
+    "OAM": ("Ophthalmic Axial Measurements", False, True),
+    "OCT": ("Optical Coherence Tomography (non-Ophthalmic)", False, True),
+    "OP": ("Ophthalmic Photography", False, True),
+    "OPM": ("Ophthalmic Mapping", False, True),
+    "OPR": ("Ophthalmic Refraction", True, True),
+    "OPT": ("Ophthalmic Tomography", False, True),
+    "OPTSBV": ("Ophthalmic Tomography B-Scan Volume Analysis", False, True),
+    "OPTENF": ("Ophthalmic Tomography En Face Image", False, True),
+    "OPV": ("Ophthalmic Visual Field", False, True),
+    "OSS": ("Optical Surface Scan", False, True),
+    "OT": ("Other", False, True),
+    "PLAN": ("Plan", False, False),
+    "PR": ("Presentation State", False, False),
+    "PT": ("Positron Emission Tomography", False, True),
+    "PX": ("Panoramic X-Ray", False, True),
+    "REG": ("Registration", False, False),
+    "RESP": ("Respiratory Waveform", False, True),
+    "RF": ("Radio Fluoroscopy", False, True),
+    "RG": ("Radiographic Imaging", False, True),
+    "RTDOSE": ("Radiotherapy Dose", False, True),
+    "RTIMAGE": ("Radiotherapy Image", False, True),
+    "RTINTENT": ("Radiotherapy Intent", False, False),
+    "RTPLAN": ("Radiotherapy Plan", False, True),
+    "RTRAD": ("Radiotherapy Radiation", False, True),
+    "RTRECORD": ("Radiotherapy Record", False, True),
+    "RTSEGANN": ("Radiotherapy Segment Annotation", False, True),
+    "RTSTRUCT": ("Radiotherapy Structure Set", False, True),
+    "RWV": ("Real World Value Map", False, False),
+    "SEG": ("Segmentation", False, True),
+    "SM": ("Slide Microscopy", False, True),
+    "SMR": ("Stereometric Relationship", False, True),
+    "SR": ("Structured Report", False, False),
+    "SRF": ("Subjective Refraction", False, True),
+    "ST": ("Single Photon Emission Computed Tomography (SPECT)", True, True),
+    "STAIN": ("Automated Slide Stainer", False, True),
+    "TEXTUREMAP": ("Texture Mapping", False, True),
+    "TG": ("Thermography", False, True),
+    "US": ("Ultrasound", False, True),
+    "VA": ("Visual Acuity", False, True),
+    "VF": ("Videofluorography", True, True),
+    "XA": ("X-Ray Angiography", False, True),
+    "XC": ("External Camera Photography", False, True),
 }
+
 
 class Modality(str):
     def __new__(cls: Type["Modality"], val: str) -> "Modality":
@@ -107,6 +108,7 @@ class Modality(str):
     @property
     def contains_image_data(self) -> bool:
         return modality_dict[self][2]
+
 
 Autorefraction = Modality("AR")
 ContentAssessmentResults = Modality("ASMT")
@@ -165,7 +167,7 @@ RadiotherapyRadiation = Modality("RTRAD")
 RadiotherapyRecord = Modality("RTRECORD")
 RadiotherapySegmentAnnotation = Modality("RTSEGANN")
 RadiotherapyStructureSet = Modality("RTSTRUCT")
-RealWorldValue = Modality('RWV')
+RealWorldValue = Modality("RWV")
 Segmentation = Modality("SEG")
 SlideMicroscopy = Modality("SM")
 StereometricRelationship = Modality("SMR")
@@ -186,19 +188,19 @@ ExternalCameraPhotography = Modality("XC")
 # NM incorporates ST
 
 # Retired
-Angioscopy = Modality('AS')
+Angioscopy = Modality("AS")
 ColorFlowDoppler = Modality("CD")
-Cinefluorography = Modality('CF')
-Culposcopy = Modality('CP')
-Cytoscopy = Modality('CS')
+Cinefluorography = Modality("CF")
+Culposcopy = Modality("CP")
+Cytoscopy = Modality("CS")
 DuplexDoppler = Modality("DD")
-DigitalFluoroscopy = Modality('DF')
-DigitalMicroscopy = Modality('DM')
-DigitalSubtractionAngiography = Modality('DS')
-Echocardiography = Modality('EC')
-FluoresceinAngiography = Modality('FA')
-Fundoscopy = Modality('FS')
-Laparoscopy = Modality('LP')
+DigitalFluoroscopy = Modality("DF")
+DigitalMicroscopy = Modality("DM")
+DigitalSubtractionAngiography = Modality("DS")
+Echocardiography = Modality("EC")
+FluoresceinAngiography = Modality("FA")
+Fundoscopy = Modality("FS")
+Laparoscopy = Modality("LP")
 MagneticResonanceAngiography = Modality("MA")
 MagneticResonanceSpectroscopy = Modality("MS")
 OphthalmicRefraction = Modality("OPR")

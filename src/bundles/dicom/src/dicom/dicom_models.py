@@ -1,9 +1,7 @@
 import datetime
 import io
 
-from numpy import (
-    array, zeros, concatenate, empty, float32, int32, uint8
-)
+from numpy import array, zeros, concatenate, empty, float32, int32, uint8
 import pydicom.uid
 
 from pydicom.dataset import FileMetaDataset, Dataset
@@ -18,6 +16,7 @@ from chimerax.map_data.readarray import allocate_array
 
 from .. import __version__ as dicom_bundle_version
 from ..types import Segmentation
+
 
 class DicomContours(Model):
     def __init__(self, session, data, name):
@@ -36,31 +35,34 @@ class DicomContours(Model):
         if len(data) > 1:
             raise ValueError(
                 'DICOM series has %d files, can only handle one file for "RT Structure Set Storage", '
-                'file %s' % (len(series.paths), path)
+                "file %s" % (len(series.paths), path)
             )
 
         Model.__init__(self, name, session)
 
         el = self.dicom_elements(
-            self.dicom_series
-            , {
-                'StructureSetROISequence': {
-                    'ROINumber': int
-                    , 'ROIName': str
-                }
-                , 'ROIContourSequence': {
-                    'ROIDisplayColor': rgb_255
-                    , 'ContourSequence': {
-                        'ContourGeometricType':  str
-                        , 'NumberOfContourPoints': int
-                        , 'ContourData': xyz_list
-                    }
-                }
-            }
+            self.dicom_series,
+            {
+                "StructureSetROISequence": {"ROINumber": int, "ROIName": str},
+                "ROIContourSequence": {
+                    "ROIDisplayColor": rgb_255,
+                    "ContourSequence": {
+                        "ContourGeometricType": str,
+                        "NumberOfContourPoints": int,
+                        "ContourData": xyz_list,
+                    },
+                },
+            },
         )
         regions = []
-        for rs, rcs in zip(el['StructureSetROISequence'], el['ROIContourSequence']):
-            r = ROIContourModel(session, rs['ROIName'], rs['ROINumber'], rcs['ROIDisplayColor'], rcs['ContourSequence'])
+        for rs, rcs in zip(el["StructureSetROISequence"], el["ROIContourSequence"]):
+            r = ROIContourModel(
+                session,
+                rs["ROIName"],
+                rs["ROINumber"],
+                rcs["ROIDisplayColor"],
+                rcs["ContourSequence"],
+            )
             regions.append(r)
 
         self.add(regions)
@@ -70,7 +72,7 @@ class DicomContours(Model):
         for name, v in fields.items():
             d = data.get(name)
             if d is None:
-                raise ValueError('Did not find %s' % name)
+                raise ValueError("Did not find %s" % name)
             if isinstance(v, dict):
                 values[name] = [self.dicom_elements(e, v) for e in d]
             else:
@@ -94,12 +96,12 @@ class ROIContourModel(Surface):
         triangles = []
         nv = 0
         for ci in contour_info:
-            ctype = ci['ContourGeometricType']
-            if ctype != 'CLOSED_PLANAR':
+            ctype = ci["ContourGeometricType"]
+            if ctype != "CLOSED_PLANAR":
                 # TODO: handle other contour types
                 continue
-            np = ci['NumberOfContourPoints']  # noqa unused var
-            pts = ci['ContourData']
+            np = ci["NumberOfContourPoints"]  # noqa unused var
+            pts = ci["ContourData"]
             points.append(pts)
             n = len(pts)
             tri = empty((n, 2), int32)
@@ -116,38 +118,53 @@ class ROIContourModel(Surface):
 
 class DicomGrid(GridData):
     initial_rendering_options = {
-        'projection_mode':    '3d',
-        'colormap_on_gpu':    True,
-        'full_region_on_gpu': True
+        "projection_mode": "3d",
+        "colormap_on_gpu": True,
+        "full_region_on_gpu": True,
     }
 
     def __init__(
-        self, dicom_data = None, size = None, value_type = None
-        , origin = None, step = None, rotation = None, paths = None
-        , name = None, time=None, channel=None
+        self,
+        dicom_data=None,
+        size=None,
+        value_type=None,
+        origin=None,
+        step=None,
+        rotation=None,
+        paths=None,
+        name=None,
+        time=None,
+        channel=None,
     ):
         self.dicom_data = dicom_data
         self.reference_data = None
         GridData.__init__(
-            self, size, value_type,
-            origin, step, rotation=rotation,
-            path=paths, name=name,
-            file_type='dicom', time=time, channel=channel
+            self,
+            size,
+            value_type,
+            origin,
+            step,
+            rotation=rotation,
+            path=paths,
+            name=name,
+            file_type="dicom",
+            time=time,
+            channel=channel,
         )
-        #if d.files_are_3d:
+        # if d.files_are_3d:
         #    # For fast access of multiple planes this reading method avoids
         #    # opening same dicom file many times to read planes.  50x faster in tests.
-        #self.read_matrix = self.dicom_read_matrix
-        #else:
+        # self.read_matrix = self.dicom_read_matrix
+        # else:
         #    # For better caching if we read the whole plane, this method caches the
         #    # whole plane even if only part of the plane is needed.
         self.read_xy_plane = self.dicom_read_xy_plane
-        self.multichannel = (channel is not None)
+        self.multichannel = channel is not None
         self.initial_plane_display = True
         self.pixel_array = None
         if dicom_data:
             s = dicom_data.dicom_series
-            if s.bits_allocated == 1 or s.dicom_class == 'Segmentation Storage':
+            if s.bits_allocated == 1 or s.dicom_class == "Segmentation Storage":
                 self.binary = True  # Use initial thresholds for binary segmentation
                 self.initial_plane_display = False
                 self.initial_image_thresholds = [(0.5, 0), (1.5, 1)]
@@ -165,18 +182,18 @@ class DicomGrid(GridData):
         self.series_number = None
 
     @classmethod
-    def from_series(cls, dicom_series, time = None, channel = None):
+    def from_series(cls, dicom_series, time=None, channel=None):
         g = DicomGrid(
-            dicom_series
-            , dicom_series.data_size
-            , dicom_series.value_type
-            , dicom_series.data_origin
-            , dicom_series.data_step
-            , dicom_series.data_rotation
-            , dicom_series.paths
-            , dicom_series.name
-            , time = time
-            , channel = channel
+            dicom_series,
+            dicom_series.data_size,
+            dicom_series.value_type,
+            dicom_series.data_origin,
+            dicom_series.data_step,
+            dicom_series.data_rotation,
+            dicom_series.paths,
+            dicom_series.name,
+            time=time,
+            channel=channel,
         )
         return g
 
@@ -205,35 +222,42 @@ class DicomGrid(GridData):
         m = allocate_array(ijk_size, self.value_type, ijk_step, progress)
         c = self.channel if self.multichannel else None
         self.dicom_data.read_matrix(
-            ijk_origin, ijk_size, ijk_step,
-            self.time, c, m, progress
-            )
+            ijk_origin, ijk_size, ijk_step, self.time, c, m, progress
+        )
         return m
 
     def read_matrix(self, ijk_origin, ijk_size, ijk_step, progress=None):
         if self.pixel_array is None:
             if self.dicom_data:
-                m = allocate_array(self.size, self.value_type, (1,1,1), progress)
+                m = allocate_array(self.size, self.value_type, (1, 1, 1), progress)
                 c = self.channel if self.multichannel else None
                 self.dicom_data.read_matrix(
-                    (0,0,0), self.dicom_data.data_size, (1,1,1),
-                    self.time, c, m, progress
+                    (0, 0, 0),
+                    self.dicom_data.data_size,
+                    (1, 1, 1),
+                    self.time,
+                    c,
+                    m,
+                    progress,
                 )
                 self.pixel_array = m
             else:
                 self.pixel_array = zeros(self.size[::-1], dtype=uint8)
         return self.pixel_array[
-            ijk_origin[2]:ijk_origin[2]+ijk_size[2]:ijk_step[2]
-            , ijk_origin[1]:ijk_origin[1]+ijk_size[1]:ijk_step[1]
-            , ijk_origin[0]:ijk_origin[0]+ijk_size[0]:ijk_step[0]
+            ijk_origin[2] : ijk_origin[2] + ijk_size[2] : ijk_step[2],
+            ijk_origin[1] : ijk_origin[1] + ijk_size[1] : ijk_step[1],
+            ijk_origin[0] : ijk_origin[0] + ijk_size[0] : ijk_step[0],
         ]
 
     @requires_gui
     def show_info(self):
         from .ui import DICOMMetadata
-        return DICOMMetadata.from_series(self.dicom_data.dicom_series.session, self.dicom_data.dicom_series)
 
-    def save(self, filename = None) -> None:
+        return DICOMMetadata.from_series(
+            self.dicom_data.dicom_series.session, self.dicom_data.dicom_series
+        )
+
+    def save(self, filename=None) -> None:
         # I anticipate there will be many edge cases to deal with when this is released in the wild.
         # As written, we assume that a unified seg file full of SourceImageSequence tags is the
         # canonical segmentation format. That could change!
@@ -254,15 +278,15 @@ class DicomGrid(GridData):
 
         sample_file = self.reference_data.dicom_data.sample_file
         dt = datetime.datetime.now()
-        date = dt.strftime('%Y%m%d')
-        time = dt.strftime('%H%M%S.%f')
+        date = dt.strftime("%Y%m%d")
+        time = dt.strftime("%H%M%S.%f")
         pixel_spacing = list(self.reference_data.dicom_data.pixel_spacing()[:2])
 
         header = FileMetaDataset()
         ds = Dataset()
 
         header.FileMetaInformationGroupLength = 182
-        header.FileMetaInformationVersion = b'\x00\x01'
+        header.FileMetaInformationVersion = b"\x00\x01"
         header.MediaStorageSOPClassUID = pydicom.uid.SegmentationStorage
         header.MediaStorageSOPInstanceUID = pydicom.uid.generate_uid()
         # I think the Implementation Class UID is just the underlying library that pydicom uses,
@@ -282,7 +306,9 @@ class DicomGrid(GridData):
             header.TransferSyntaxUID = pydicom.uid.ExplicitVRBigEndian
         elif not sample_file.is_little_endian and sample_file.is_implicit_VR:
             # This is not a valid transfer syntax
-            raise ValueError("Cannot save DICOM SEG file with big endian implicit VR transfer syntax")
+            raise ValueError(
+                "Cannot save DICOM SEG file with big endian implicit VR transfer syntax"
+            )
         # endregion
 
         # *deep sigh* You might hope that these categories have disjoint information
@@ -307,7 +333,7 @@ class DicomGrid(GridData):
         ds.AccessionNumber = ""
         ds.ReferringPhysicianName = self.referring_pysician or ""
         ds.StudyInstanceUID = sample_file.get("StudyInstanceUID", "")
-        ds.StudyID = "" # TODO: Who assigns these? Do we? Does the user? Required, Empty if Unknown
+        ds.StudyID = ""  # TODO: Who assigns these? Do we? Does the user? Required, Empty if Unknown
         # endregion
 
         # region General Series
@@ -315,8 +341,8 @@ class DicomGrid(GridData):
         ds.SeriesTime = sample_file.get("SeriesTime", "")
         ds.Modality = "SEG"
         ds.BodyPartExamined = sample_file.get("BodyPartExamined", "")
-        ds.SeriesInstanceUID = pydicom.uid.generate_uid() # TODO Make sure this is OK?
-        ds.SeriesNumber = self.series_number or '1000'
+        ds.SeriesInstanceUID = pydicom.uid.generate_uid()  # TODO Make sure this is OK?
+        ds.SeriesNumber = self.series_number or "1000"
         # endregion
 
         # region Segmentation Series
@@ -326,7 +352,9 @@ class DicomGrid(GridData):
 
         # region Frame of Reference
         ds.FrameOfReferenceUID = sample_file.get("FrameOfReferenceUID", "")
-        ds.PositionReferenceIndicator = sample_file.get("PositionReferenceIndicator", "")
+        ds.PositionReferenceIndicator = sample_file.get(
+            "PositionReferenceIndicator", ""
+        )
         # endregion
 
         # region General Equipment
@@ -359,7 +387,9 @@ class DicomGrid(GridData):
         shared_functional_groups.PlaneOrientationSequence = plane_orientation_sequence
 
         plane_orientation = Dataset()
-        plane_orientation.ImageOrientationPatient = sample_file.ImageOrientationPatient or [1, 0, 0, 0, 1, 0]
+        plane_orientation.ImageOrientationPatient = (
+            sample_file.ImageOrientationPatient or [1, 0, 0, 0, 1, 0]
+        )
         plane_orientation_sequence.append(plane_orientation)
 
         derivation_image = Dataset()
@@ -368,8 +398,10 @@ class DicomGrid(GridData):
         for index, frame in enumerate(self.pixel_array):
             source_image = Dataset()
             source_image.ReferencedSOPClassUID = sample_file.SOPClassUID
-            source_image.ReferenceSOPInstanceUID = self.reference_data.dicom_data.files[index].SOPInstanceUID
-            source_image.ReferencedFrameNumber = '1'
+            source_image.ReferenceSOPInstanceUID = self.reference_data.dicom_data.files[
+                index
+            ].SOPInstanceUID
+            source_image.ReferencedFrameNumber = "1"
 
             purpose_of_ref_code_sequence = Sequence()
             source_image.PurposeOfReferenceCodeSequence = purpose_of_ref_code_sequence
@@ -377,7 +409,9 @@ class DicomGrid(GridData):
             purpose_of_ref_code = Dataset()
             purpose_of_ref_code.CodeValue = "121322"
             purpose_of_ref_code.CodingSchemeDesignator = "DCM"
-            purpose_of_ref_code.CodeMeaning = "Source image for image processing operation"
+            purpose_of_ref_code.CodeMeaning = (
+                "Source image for image processing operation"
+            )
 
             purpose_of_ref_code_sequence.append(purpose_of_ref_code)
             source_image_sequence.append(source_image)
@@ -393,8 +427,8 @@ class DicomGrid(GridData):
         ds.BitsStored = 1
         ds.HighBit = 0
         ds.PixelRepresentation = 0
-        ds.LossyImageCompression = '00'
-        ds.SegmentationType = 'BINARY'
+        ds.LossyImageCompression = "00"
+        ds.SegmentationType = "BINARY"
         # endregion
 
         # region Segmentation Image
@@ -440,11 +474,11 @@ class DicomGrid(GridData):
         # segmented_property_type_code_sequence.append(segmented_property_type_code1)
         # segment_sequence.append(segment1)
 
-
-
         segment = Dataset()
         segmented_property_category_code_sequence = Sequence()
-        segment.SegmentedPropertyCategoryCodeSequence = segmented_property_category_code_sequence
+        segment.SegmentedPropertyCategoryCodeSequence = (
+            segmented_property_category_code_sequence
+        )
 
         segmented_property_category_code = Dataset()
         segmented_property_category_code.CodeValue = "T-D0050"
@@ -468,7 +502,9 @@ class DicomGrid(GridData):
         pixel_measures_sequence.append(pixel_measures)
 
         segment_identification_sequence = Sequence()
-        shared_functional_groups.SegmentIdentificationSequence = segment_identification_sequence
+        shared_functional_groups.SegmentIdentificationSequence = (
+            segment_identification_sequence
+        )
 
         segment_identification = Dataset()
         segment_identification.ReferencedSegmentNumber = 1
@@ -486,7 +522,7 @@ class DicomGrid(GridData):
             per_frame_functional_groups.FrameContentSequence = frame_content_sequence
 
             frame_content = Dataset()
-            frame_content.StackID = '1'
+            frame_content.StackID = "1"
             frame_content.InStackPositionNumber = index + 1
             frame_content.DimensionIndexValues = [1, index + 1]
             frame_content_sequence.append(frame_content)
@@ -495,10 +531,11 @@ class DicomGrid(GridData):
             per_frame_functional_groups.PlanePositionSequence = plane_position_sequence
 
             plane_position = Dataset()
-            plane_position.ImagePositionPatient = self.reference_data.dicom_data.files[index].get("ImagePositionPatient", "")
+            plane_position.ImagePositionPatient = self.reference_data.dicom_data.files[
+                index
+            ].get("ImagePositionPatient", "")
             plane_position_sequence.append(plane_position)
             per_frame_functional_groups_sequence.append(per_frame_functional_groups)
-
 
         # endregion
 
@@ -506,22 +543,28 @@ class DicomGrid(GridData):
         dimension_organization_sequence = Sequence()
         ds.DimensionOrganizationSequence = dimension_organization_sequence
         dimension_organization = Dataset()
-        dimension_organization.DimensionOrganizationUID = pydicom.uid.generate_uid() # TODO: This OK?
+        dimension_organization.DimensionOrganizationUID = (
+            pydicom.uid.generate_uid()
+        )  # TODO: This OK?
         dimension_organization_sequence.append(dimension_organization)
         dimension_index_sequence = Sequence()
         ds.DimensionIndexSequence = dimension_index_sequence
         # Dimension Index Sequence: Dimension Index 1
         dimension_index1 = Dataset()
-        dimension_index1.DimensionOrganizationUID = '1.2.276.0.7230010.3.1.3.0.8180.1415310847.593768'
-        #dimension_index1.DimensionIndexPointer = (0020, 9056)
-        #dimension_index1.FunctionalGroupPointer = (0020, 9111)
+        dimension_index1.DimensionOrganizationUID = (
+            "1.2.276.0.7230010.3.1.3.0.8180.1415310847.593768"
+        )
+        # dimension_index1.DimensionIndexPointer = (0020, 9056)
+        # dimension_index1.FunctionalGroupPointer = (0020, 9111)
         dimension_index_sequence.append(dimension_index1)
 
         # Dimension Index Sequence: Dimension Index 2
         dimension_index2 = Dataset()
-        dimension_index2.DimensionOrganizationUID = '1.2.276.0.7230010.3.1.3.0.8180.1415310847.593768'
-        #dimension_index2.DimensionIndexPointer = (0020, 9057)
-        #dimension_index2.FunctionalGroupPointer = (0020, 9111)
+        dimension_index2.DimensionOrganizationUID = (
+            "1.2.276.0.7230010.3.1.3.0.8180.1415310847.593768"
+        )
+        # dimension_index2.DimensionIndexPointer = (0020, 9057)
+        # dimension_index2.FunctionalGroupPointer = (0020, 9111)
         dimension_index_sequence.append(dimension_index2)
         # endregion
 
@@ -539,19 +582,27 @@ class DicomGrid(GridData):
         for index, _ in enumerate(self.pixel_array):
             referenced_file = self.reference_data.dicom_data.files[index]
             referenced_instance = Dataset()
-            referenced_instance.ReferencedSOPClassUID = referenced_file.get("SOPClassUID", "")
-            referenced_instance.ReferencedSOPInstanceUID = referenced_file.get("SOPInstanceUID", "")
+            referenced_instance.ReferencedSOPClassUID = referenced_file.get(
+                "SOPClassUID", ""
+            )
+            referenced_instance.ReferencedSOPInstanceUID = referenced_file.get(
+                "SOPInstanceUID", ""
+            )
             referenced_instance_sequence.append(referenced_instance)
 
         referenced_series.SeriesInstanceUID = sample_file.get("SeriesInstanceUID", "")
         referenced_series_sequence.append(referenced_series)
 
         studies_containing_other_referenced_instances_sequence = Sequence()
-        ds.StudiesContainingOtherReferencedInstancesSequence = studies_containing_other_referenced_instances_sequence
+        ds.StudiesContainingOtherReferencedInstancesSequence = (
+            studies_containing_other_referenced_instances_sequence
+        )
 
         studies_containing_other_referenced_instances = Dataset()
         referenced_series_sequence = Sequence()
-        studies_containing_other_referenced_instances.ReferencedSeriesSequence = referenced_series_sequence
+        studies_containing_other_referenced_instances.ReferencedSeriesSequence = (
+            referenced_series_sequence
+        )
         referenced_series = Dataset()
         referenced_instance_sequence = Sequence()
         referenced_series.ReferenceInstanceSequence = referenced_instance_sequence
@@ -559,15 +610,23 @@ class DicomGrid(GridData):
         for index, _ in enumerate(self.pixel_array):
             referenced_file = self.reference_data.dicom_data.files[index]
             referenced_instance = Dataset()
-            referenced_instance.ReferencedSOPClassUID = referenced_file.get("SOPClassUID", "")
-            referenced_instance.ReferencedSOPInstanceUID = referenced_file.get("SOPInstanceUID", "")
+            referenced_instance.ReferencedSOPClassUID = referenced_file.get(
+                "SOPClassUID", ""
+            )
+            referenced_instance.ReferencedSOPInstanceUID = referenced_file.get(
+                "SOPInstanceUID", ""
+            )
             referenced_instance_sequence.append(referenced_instance)
 
         referenced_series.SeriesInstanceUID = sample_file.get("SeriesInstanceUID", "")
         referenced_series_sequence.append(referenced_series)
 
-        studies_containing_other_referenced_instances.StudyInstanceUID = sample_file.get("StudyInstanceUID", "")
-        studies_containing_other_referenced_instances_sequence.append(studies_containing_other_referenced_instances)
+        studies_containing_other_referenced_instances.StudyInstanceUID = (
+            sample_file.get("StudyInstanceUID", "")
+        )
+        studies_containing_other_referenced_instances_sequence.append(
+            studies_containing_other_referenced_instances
+        )
 
         # endregion
 
@@ -576,7 +635,6 @@ class DicomGrid(GridData):
         # ds.InstanceCreatorUID = ??
         # ds.SOPInstanceUID = ??
         # endregion
-
 
         # For each frame of our segmentation, we need to associate it with some file in the reference
         # dataset, setting ReferencedSOPClassUID and ReferencedSOPInstanceUID. We derive these from the
@@ -587,9 +645,9 @@ class DicomGrid(GridData):
         # we need to add a ReferencedSeriesSequence to StudiesContainingOtherReferencedInstancesSequence
         # where we set the StudyInstanceUID attribute of ...
 
-
         # TODO Ensure this is correct
         from pydicom.pixel_data_handlers.util import pack_bits
+
         ds.PixelData = pack_bits(self.pixel_array)
         ds.file_meta = header
         ds.save_as(filename, write_like_original=False)

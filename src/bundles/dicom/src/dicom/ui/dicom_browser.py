@@ -12,14 +12,21 @@
 from itertools import chain
 from typing import Optional
 from Qt.QtWidgets import (
-    QVBoxLayout, QHBoxLayout, QHeaderView
-    , QWidget, QLabel, QAbstractItemView
-    , QPushButton, QAction
+    QVBoxLayout,
+    QHBoxLayout,
+    QHeaderView,
+    QWidget,
+    QLabel,
+    QAbstractItemView,
+    QPushButton,
+    QAction,
 )
 
 from chimerax.core.models import (
-    ADD_MODELS, REMOVE_MODELS
-    , MODEL_ID_CHANGED, MODEL_NAME_CHANGED
+    ADD_MODELS,
+    REMOVE_MODELS,
+    MODEL_ID_CHANGED,
+    MODEL_NAME_CHANGED,
 )
 
 from chimerax.core.tools import ToolInstance
@@ -47,16 +54,17 @@ finally:
         # We're either in some other application or being used as a library.
         # Default to passed in sessions and the Python logging module
         import logging
+
         _session = None
         _logger = logging.getLogger()
         _logger.status = _logger.info
 
-class DICOMBrowserTool(ToolInstance):
 
+class DICOMBrowserTool(ToolInstance):
     help = "help:user/tools/dicombrowser.html"
     patients = []
 
-    def __init__(self, session = None, name = "DICOM Browser"):
+    def __init__(self, session=None, name="DICOM Browser"):
         """Bring up a tool to explore DICOM models open in the session."""
         session = session or _session
         super().__init__(session, name)
@@ -78,9 +86,11 @@ class DICOMBrowserTool(ToolInstance):
         self.load_buttons_widget = QWidget(self.parent)
         self.load_button_container = QHBoxLayout()
         self.load_button_container.addWidget(self.buttons_label)
-        self.load_button_container.insertStretch(0,2)
+        self.load_button_container.insertStretch(0, 2)
 
-        self.load_md_button = QPushButton("Show Metadata", parent=self.load_buttons_widget)
+        self.load_md_button = QPushButton(
+            "Show Metadata", parent=self.load_buttons_widget
+        )
         self.load_button_container.addWidget(self.load_md_button)
         self.load_md_button.clicked.connect(lambda: self.load_metadata_from_button())
 
@@ -103,8 +113,12 @@ class DICOMBrowserTool(ToolInstance):
 
         # Set the selected patient to whichever happens to be first
         self.patient_table.data = self.patients
-        self.study_table.data = list(chain.from_iterable([x.studies for x in chain(list(self.patients))]))
-        self.series_table.data = list(chain.from_iterable([x.series for x in self.study_table.data]))
+        self.study_table.data = list(
+            chain.from_iterable([x.studies for x in chain(list(self.patients))])
+        )
+        self.series_table.data = list(
+            chain.from_iterable([x.series for x in self.study_table.data])
+        )
 
         self._set_table_columns()
 
@@ -150,7 +164,9 @@ class DICOMBrowserTool(ToolInstance):
         table = self._hovered_table(x, y)
         if table:
             load_metadata_action = QAction("Load Metadata from Chosen Entries", menu)
-            load_metadata_action.triggered.connect(lambda: self.load_metadata_from_right_click(table.selected))
+            load_metadata_action.triggered.connect(
+                lambda: self.load_metadata_from_right_click(table.selected)
+            )
             menu.addAction(load_metadata_action)
 
     def _hovered_table(self, x, y) -> Optional[QWidget]:
@@ -185,8 +201,12 @@ class DICOMBrowserTool(ToolInstance):
         self.study_table.data = []
         self.series_table.data = []
         self.patient_table.data = self.patients
-        self.study_table.data = list(chain.from_iterable([x.studies for x in chain(list(self.patients))]))
-        self.series_table.data = list(chain.from_iterable([x.series for x in self.study_table.data]))
+        self.study_table.data = list(
+            chain.from_iterable([x.studies for x in chain(list(self.patients))])
+        )
+        self.series_table.data = list(
+            chain.from_iterable([x.series for x in self.study_table.data])
+        )
 
     def load_metadata_from_right_click(self, data):
         # Data will always be a uniform list of Patients, Studies, or Series
@@ -222,14 +242,20 @@ class DICOMBrowserTool(ToolInstance):
         selections = self.patient_table.selected
         if not selections:
             return
-        self.study_table.data = list(chain.from_iterable([x.studies for x in selections]))
-        self.series_table.data = list(chain.from_iterable([x.series for x in self.study_table.data]))
+        self.study_table.data = list(
+            chain.from_iterable([x.studies for x in selections])
+        )
+        self.series_table.data = list(
+            chain.from_iterable([x.series for x in self.study_table.data])
+        )
 
     def on_study_highlighted(self, *args, **kwargs):
         selections = self.study_table.selected
         if not selections:
             return
-        self.series_table.data = list(chain.from_iterable([x.series for x in selections]))
+        self.series_table.data = list(
+            chain.from_iterable([x.series for x in selections])
+        )
 
     def _set_table_columns(self):
         if not self.patient_table:
@@ -241,7 +267,9 @@ class DICOMBrowserTool(ToolInstance):
 
         self.patient_table.add_column("Patient Name", lambda x: x.patient_name)
         self.patient_table.add_column("Patient ID", lambda x: x.pid)
-        self.patient_table.add_column("Birth Date", lambda x: _format_date(x.birth_date_as_datetime))
+        self.patient_table.add_column(
+            "Birth Date", lambda x: _format_date(x.birth_date_as_datetime)
+        )
         self.patient_table.add_column("Sex", lambda x: x.patient_sex)
         self.patient_table.add_column("Studies", lambda x: len(x.studies))
         self.patient_table.add_column("Most Recent Study", lambda x: len(x.studies))
@@ -253,7 +281,10 @@ class DICOMBrowserTool(ToolInstance):
         self.series_table.add_column("Description", lambda x: x.description)
         self.series_table.add_column("Modality", lambda x: x.modality)
         self.series_table.add_column("Size", lambda x: x.size)
-        self.series_table.add_column("Count", lambda x:  sum(len(y.files) for y in x.dicom_data))
+        self.series_table.add_column(
+            "Count", lambda x: sum(len(y.files) for y in x.dicom_data)
+        )
+
 
 def _format_date(date):
     if date:

@@ -1,15 +1,22 @@
 from chimerax.graphics import View
 from chimerax.graphics.drawing import (
-    Drawing, draw_depth, draw_opaque, draw_transparent, draw_highlight_outline, draw_on_top
-    , draw_overlays
+    Drawing,
+    draw_depth,
+    draw_opaque,
+    draw_transparent,
+    draw_highlight_outline,
+    draw_on_top,
+    draw_overlays,
 )
 from chimerax.graphics import gllist
+
 
 class OrthoplaneView(View):
     """OrthoplaneView splits the draw() method of view in two, which gives us more fine-grained
     control over how draw() and _draw_scene() works."""
-    def __init__(self, drawing, axis, *, window_size = (256, 256), trigger_set = None):
-        super().__init__(drawing, window_size = window_size, trigger_set = trigger_set)
+
+    def __init__(self, drawing, axis, *, window_size=(256, 256), trigger_set=None):
+        super().__init__(drawing, window_size=window_size, trigger_set=trigger_set)
         self.segmentation_overlays = []
         self.cursor_overlays = []
         self.guideline_overlays = []
@@ -35,7 +42,7 @@ class OrthoplaneView(View):
     def remove_segmentation_overlay(self, overlay):
         self.segmentation_overlays.remove(overlay)
 
-    def prepare_scene_for_drawing(self, camera = None, check_for_changes = True):
+    def prepare_scene_for_drawing(self, camera=None, check_for_changes=True):
         if not self._use_opengl():
             return
 
@@ -54,7 +61,7 @@ class OrthoplaneView(View):
             self.update_lighting = False
         self._render.activate_lighting()
 
-    def finalize_draw(self, camera = None, swap_buffers = True, should_draw_overlays = True):
+    def finalize_draw(self, camera=None, swap_buffers=True, should_draw_overlays=True):
         if camera is None:
             camera = self.camera
         camera.combine_rendered_camera_views(self._render)
@@ -62,13 +69,26 @@ class OrthoplaneView(View):
         # We want to draw the overlays in a specific order: segmentations first, then the guidelines, then the cursor
         #
         if self._overlays and should_draw_overlays:
-            odrawings = sum([o.all_drawings(displayed_only = True) for o in self._overlays], [])
+            odrawings = sum(
+                [o.all_drawings(displayed_only=True) for o in self._overlays], []
+            )
             draw_overlays(odrawings, self._render)
-            odrawings = sum([o.all_drawings(displayed_only = True) for o in self.segmentation_overlays], [])
+            odrawings = sum(
+                [
+                    o.all_drawings(displayed_only=True)
+                    for o in self.segmentation_overlays
+                ],
+                [],
+            )
             draw_overlays(odrawings, self._render)
-            odrawings = sum([o.all_drawings(displayed_only = True) for o in self.guideline_overlays], [])
+            odrawings = sum(
+                [o.all_drawings(displayed_only=True) for o in self.guideline_overlays],
+                [],
+            )
             draw_overlays(odrawings, self._render)
-            odrawings = sum([o.all_drawings(displayed_only = True) for o in self.cursor_overlays], [])
+            odrawings = sum(
+                [o.all_drawings(displayed_only=True) for o in self.cursor_overlays], []
+            )
             draw_overlays(odrawings, self._render)
 
         if swap_buffers:
@@ -81,21 +101,34 @@ class OrthoplaneView(View):
         if drawings is None:
             drawings = [self.drawing]
         self.clip_planes.enable_clip_plane_graphics(self._render, camera.position)
-        (opaque_drawings, transparent_drawings, highlight_drawings, on_top_drawings) = self._drawings_by_pass(drawings)
-        no_drawings = (len(opaque_drawings) == 0
-                       and len(transparent_drawings) == 0
-                       and len(highlight_drawings) == 0
-                       and len(on_top_drawings) == 0)
+        (
+            opaque_drawings,
+            transparent_drawings,
+            highlight_drawings,
+            on_top_drawings,
+        ) = self._drawings_by_pass(drawings)
+        no_drawings = (
+            len(opaque_drawings) == 0
+            and len(transparent_drawings) == 0
+            and len(highlight_drawings) == 0
+            and len(on_top_drawings) == 0
+        )
 
         offscreen = self._render.offscreen if self._render.offscreen.enabled else None
         if highlight_drawings and self._render.outline.offscreen_outline_needed:
             offscreen = self._render.offscreen
-        if offscreen and self._render.current_framebuffer() is not self._render.default_framebuffer():
+        if (
+            offscreen
+            and self._render.current_framebuffer()
+            is not self._render.default_framebuffer()
+        ):
             offscreen = None  # Already using an offscreen framebuffer
 
         silhouette = self.silhouette
 
-        shadow, multishadow = self._compute_shadowmaps(opaque_drawings, transparent_drawings, camera)
+        shadow, multishadow = self._compute_shadowmaps(
+            opaque_drawings, transparent_drawings, camera
+        )
 
         for vnum in range(camera.number_of_views()):
             camera.set_render_target(vnum, self._render)
@@ -112,7 +145,7 @@ class OrthoplaneView(View):
                 cp = gllist.ViewMatrixFunc(self, vnum)
             else:
                 cp = camera.get_position(vnum)
-            self._view_matrix = vm = cp.inverse(is_orthonormal = True)
+            self._view_matrix = vm = cp.inverse(is_orthonormal=True)
             self._render.set_view_matrix(vm)
             if shadow:
                 self._render.shadow.set_shadow_view(cp)
@@ -141,7 +174,7 @@ class OrthoplaneView(View):
                     pd._update_coloring()
                     d._planes_2d._draw_geometry(self._render)
             if highlight_drawings:
-                self._render.outline.set_outline_mask()       # copy depth to outline framebuffer
+                self._render.outline.set_outline_mask()  # copy depth to outline framebuffer
             if transparent_drawings:
                 if silhouette.enabled:
                     # Draw opaque object silhouettes behind transparent surfaces
@@ -153,8 +186,12 @@ class OrthoplaneView(View):
             if silhouette.enabled:
                 silhouette.finish_silhouette_drawing(self._render)
             if highlight_drawings:
-                draw_highlight_outline(self._render, highlight_drawings, color = self._highlight_color,
-                                       pixel_width = self._highlight_width)
+                draw_highlight_outline(
+                    self._render,
+                    highlight_drawings,
+                    color=self._highlight_color,
+                    pixel_width=self._highlight_width,
+                )
             if on_top_drawings:
                 draw_on_top(self._render, on_top_drawings)
             if offscreen:

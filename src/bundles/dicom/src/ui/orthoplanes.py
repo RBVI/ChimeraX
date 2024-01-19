@@ -49,9 +49,12 @@ from chimerax.ui.widgets import ModelMenu
 
 
 from ..graphics import (
-    OrthoplaneView, OrthoCamera
-    , SegmentationOverlay, SegmentationCursorOverlay, SegmentationCursorOnOtherAxisOverlay
-    , OrthoplaneLocationOverlay
+    OrthoplaneView,
+    OrthoCamera,
+    SegmentationOverlay,
+    SegmentationCursorOverlay,
+    SegmentationCursorOnOtherAxisOverlay,
+    OrthoplaneLocationOverlay,
 )
 from ..types import Direction, Axis
 from .label import Label
@@ -61,10 +64,11 @@ TRACKPAD_PAN_SPEED: int = 100
 WHEEL_ZOOM_SPEED: int = 10
 RIGHT_CLICK_ZOOM_SPEED: int = 5
 
-if sys.platform == 'darwin':
+if sys.platform == "darwin":
     SYSTEM_KEY = Qt.KeyboardModifier.ControlModifier
 else:
     SYSTEM_KEY = Qt.KeyboardModifier.MetaModifier
+
 
 class LevelLabel(QLabel):
     def __init__(self, graphics_window):
@@ -74,8 +78,9 @@ class LevelLabel(QLabel):
 
     def show_text(self, text, x, y):
         self.setText(text)
-        self.move(self.graphics_window.mapToGlobal(QPoint(int(x)+10, int(y))))
+        self.move(self.graphics_window.mapToGlobal(QPoint(int(x) + 10, int(y))))
         self.show()
+
 
 class PlaneViewerManager:
     # TODO: If the drawings in the orthoplane viewers are not the same as the drawings in the
@@ -129,7 +134,9 @@ class PlaneViewerManager:
     def toggle_guidelines(self):
         layout = self.session.ui.main_window.main_view.view_layout()
         if self.axes[Axis.AXIAL].guidelines_visible:
-            log_equivalent_command(self.session, f"dicom view {layout} guidelines false")
+            log_equivalent_command(
+                self.session, f"dicom view {layout} guidelines false"
+            )
         else:
             log_equivalent_command(self.session, f"dicom view {layout} guidelines true")
         for viewer in self.axes.values():
@@ -164,8 +171,9 @@ class PlaneViewerManager:
         for viewer in self.axes.values():
             viewer.render()
 
+
 class PlaneViewer(QWindow):
-    def __init__(self, parent, manager, session, axis = Axis.AXIAL):
+    def __init__(self, parent, manager, session, axis=Axis.AXIAL):
         QWindow.__init__(self)
         self.parent = parent
         self.manager = manager
@@ -181,7 +189,9 @@ class PlaneViewer(QWindow):
         self.level_label = LevelLabel(self.widget)
         self.setSurfaceType(QSurface.SurfaceType.OpenGLSurface)
         self.placeholder_drawing = Drawing("placeholder")
-        self.view = OrthoplaneView(self.placeholder_drawing, window_size = (0, 0), axis = self.axis)
+        self.view = OrthoplaneView(
+            self.placeholder_drawing, window_size=(0, 0), axis=self.axis
+        )
         self.view.initialize_rendering(session.main_view.render.opengl_context)
         self.view.camera = OrthoCamera()
         self.field_width_offset = 0
@@ -193,24 +203,28 @@ class PlaneViewer(QWindow):
         self._last_touch_locations = {}
         self._modifier_keys = []
         from chimerax.mouse_modes.settings import settings as mouse_mode_settings
+
         # TODO There's really not an API to get the current setting?
         self.trackpad_speed = mouse_mode_settings._cur_settings["trackpad_sensitivity"]
         # macOS trackpad units are in points (1/72 inch).
-        cm_tpu = 72/2.54		# Convert centimeters to trackpad units.
-        self._full_rotation_distance = 6 * cm_tpu		# trackpad units
-        self._full_width_translation_distance = 6 * cm_tpu      # trackpad units
-        self._zoom_scaling = 3		# zoom (z translation) faster than xy translation.
-        self._twist_scaling = mouse_mode_settings._cur_settings["trackpad_twist_speed"]	# twist faster than finger rotation
+        cm_tpu = 72 / 2.54  # Convert centimeters to trackpad units.
+        self._full_rotation_distance = 6 * cm_tpu  # trackpad units
+        self._full_width_translation_distance = 6 * cm_tpu  # trackpad units
+        self._zoom_scaling = 3  # zoom (z translation) faster than xy translation.
+        self._twist_scaling = mouse_mode_settings._cur_settings[
+            "trackpad_twist_speed"
+        ]  # twist faster than finger rotation
         self._wheel_click_pixels = 5
 
         if sys.platform == "darwin":
             from chimerax.core import _mac_util
+
             nsview_pointer = int(self.winId())
             _mac_util.enable_multitouch(nsview_pointer)
             self.widget.touchEvent = self.touchEvent
 
         camera = self.view.camera
-        camera.position = Place(origin = (0,0,0), axes = self.axes)
+        camera.position = Place(origin=(0, 0, 0), axes=self.axes)
 
         # TODO: Set to main_view background color and update it in render loop
         self.view.background_color = (0, 0, 0, 255)
@@ -223,14 +237,16 @@ class PlaneViewer(QWindow):
         self.drawings = []
         self.current_segmentation_cursor_overlays = []
 
-        self.label = Label(self.session, self.view, str(axis), str(axis), size=16, xpos=0, ypos=0)
+        self.label = Label(
+            self.session, self.view, str(axis), str(axis), size=16, xpos=0, ypos=0
+        )
 
         def _not_volume_surface_or_segmentation(m):
             ok_to_list = not isinstance(m, VolumeSurface)
             # This will run over all models which may not have DICOM data...
             try:
                 if hasattr(m.data, "dicom_data"):
-                    ok_to_list &= bool(m.data.dicom_data) # SEGs have none
+                    ok_to_list &= bool(m.data.dicom_data)  # SEGs have none
                     ok_to_list &= not m.data.dicom_data.dicom_series.modality == "SEG"
                     ok_to_list &= not m.data.reference_data
             except AttributeError:
@@ -238,19 +254,35 @@ class PlaneViewer(QWindow):
             return ok_to_list
 
         self.model_menu = ModelMenu(
-            self.session, parent, label = 'Model',
-            autoselect = "first",
-            model_types = [Volume, Surface],
-            model_filter = _not_volume_surface_or_segmentation,
-            model_chosen_cb = self._surfaceChosen
+            self.session,
+            parent,
+            label="Model",
+            autoselect="first",
+            model_types=[Volume, Surface],
+            model_filter=_not_volume_surface_or_segmentation,
+            model_chosen_cb=self._surfaceChosen,
         )
 
         # TODO: Create these on demand when the segmentation tool gets registered
-        self.segmentation_cursor_overlay = SegmentationCursorOverlay("seg_overlay", radius=20, thickness=3)
-        self.horizontal_slice_overlay = OrthoplaneLocationOverlay("horiz_overlay", slice=10, direction=Direction.HORIZONTAL)
-        self.vertical_slice_overlay = OrthoplaneLocationOverlay("vertical_overlay", slice=11)
-        self.segmentation_cursor_other_axis_horizontal_overlay = SegmentationCursorOnOtherAxisOverlay("seg_cursor_other_axis_horizontal", direction=Direction.HORIZONTAL)
-        self.segmentation_cursor_other_axis_vertical_overlay = SegmentationCursorOnOtherAxisOverlay("seg_cursor_other_axis_vertical", direction=Direction.VERTICAL)
+        self.segmentation_cursor_overlay = SegmentationCursorOverlay(
+            "seg_overlay", radius=20, thickness=3
+        )
+        self.horizontal_slice_overlay = OrthoplaneLocationOverlay(
+            "horiz_overlay", slice=10, direction=Direction.HORIZONTAL
+        )
+        self.vertical_slice_overlay = OrthoplaneLocationOverlay(
+            "vertical_overlay", slice=11
+        )
+        self.segmentation_cursor_other_axis_horizontal_overlay = (
+            SegmentationCursorOnOtherAxisOverlay(
+                "seg_cursor_other_axis_horizontal", direction=Direction.HORIZONTAL
+            )
+        )
+        self.segmentation_cursor_other_axis_vertical_overlay = (
+            SegmentationCursorOnOtherAxisOverlay(
+                "seg_cursor_other_axis_vertical", direction=Direction.VERTICAL
+            )
+        )
         self.horizontal_slice_overlay.display = False
         self.vertical_slice_overlay.display = False
         self.segmentation_cursor_other_axis_horizontal_overlay.display = False
@@ -259,18 +291,22 @@ class PlaneViewer(QWindow):
         self.view.add_cursor_overlay(self.segmentation_cursor_overlay)
         self.view.add_guideline_overlay(self.horizontal_slice_overlay)
         self.view.add_guideline_overlay(self.vertical_slice_overlay)
-        self.view.add_guideline_overlay(self.segmentation_cursor_other_axis_horizontal_overlay)
-        self.view.add_guideline_overlay(self.segmentation_cursor_other_axis_vertical_overlay)
+        self.view.add_guideline_overlay(
+            self.segmentation_cursor_other_axis_horizontal_overlay
+        )
+        self.view.add_guideline_overlay(
+            self.segmentation_cursor_other_axis_vertical_overlay
+        )
         self.segmentation_overlays: dict[Volume, SegmentationOverlay] = {}
 
         self.mouse_move_timer = QTimer()
-        self.mouse_move_timer.setInterval(500);
-        self.mouse_move_timer.setSingleShot(True);
+        self.mouse_move_timer.setInterval(500)
+        self.mouse_move_timer.setSingleShot(True)
         self.mouse_move_timer.timeout.connect(self.mouseStoppedMoving)
 
         self.volume_viewer_opened_timer = QTimer()
-        self.volume_viewer_opened_timer.setInterval(500);
-        self.volume_viewer_opened_timer.setSingleShot(True);
+        self.volume_viewer_opened_timer.setInterval(500)
+        self.volume_viewer_opened_timer.setSingleShot(True)
         self.volume_viewer_opened_timer.timeout.connect(self._on_volume_viewer_opened)
 
         self.mouse_x = 0
@@ -293,8 +329,8 @@ class PlaneViewer(QWindow):
 
         self.slider.sliderMoved.connect(self._onSliderMoved)
         self.slider_moved = False
-        self.scale = 1 # set this to a temporary valid value before the draw
-                       # loop otherwise we get a traceback
+        self.scale = 1  # set this to a temporary valid value before the draw
+        # loop otherwise we get a traceback
 
         self.widget.setMinimumSize(QSize(20, 20))
 
@@ -360,7 +396,7 @@ class PlaneViewer(QWindow):
         four_swipe = None
         n = len(touches)
         speed = self.trackpad_speed
-        position = (sum(t.x for t in touches) / n, sum(t.y for t in touches)/n)
+        position = (sum(t.x for t in touches) / n, sum(t.y for t in touches) / n)
         moves = [t.move(self._last_touch_locations) for t in touches]
         dx = sum(x for x, y in moves) / n
         dy = sum(y for x, y in moves) / n
@@ -368,6 +404,7 @@ class PlaneViewer(QWindow):
         if n == 2:
             (dx0, dy0), (dx1, dy1) = moves[0], moves[1]
             from math import atan2, pi
+
             l0, l1 = sqrt(dx0 * dx0 + dy0 * dy0), sqrt(dx1 * dx1 + dy1 * dy1)
             d12 = dx0 * dx1 + dy0 * dy1
             if l0 >= min_pinch and l1 >= min_pinch and d12 < -0.7 * l0 * l1:
@@ -378,28 +415,46 @@ class PlaneViewer(QWindow):
                 sd0, sd1 = sx * dx0 + sy * dy0, sx * dx1 + sy * dy1
                 if abs(sd0) > 0.5 * sn * l0 and abs(sd1) > 0.5 * sn * l1:
                     # pinch
-                    zf = 1 + speed * self._zoom_scaling * (l0 + l1) / self._full_width_translation_distance
+                    zf = (
+                        1
+                        + speed
+                        * self._zoom_scaling
+                        * (l0 + l1)
+                        / self._full_width_translation_distance
+                    )
                     if sd1 < 0:
                         zf = 1 / zf
                     pinch = zf
                 else:
                     # twist
-                    rot = atan2(-sy * dx1 + sx * dy1, sn * sn) + atan2(sy * dx0 - sx * dy0, sn * sn)
+                    rot = atan2(-sy * dx1 + sx * dy1, sn * sn) + atan2(
+                        sy * dx0 - sx * dy0, sn * sn
+                    )
                     a = -speed * self._twist_scaling * rot * 180 / pi
                     twist = a
             else:
-                two_swipe = tuple([d / self._full_width_translation_distance for d in (dx, dy)])
+                two_swipe = tuple(
+                    [d / self._full_width_translation_distance for d in (dx, dy)]
+                )
                 scroll = speed * dy / self._wheel_click_pixels
         elif n == 3:
-            three_swipe = tuple([d / self._full_width_translation_distance for d in (dx, dy)])
+            three_swipe = tuple(
+                [d / self._full_width_translation_distance for d in (dx, dy)]
+            )
         elif n == 4:
-            four_swipe = tuple([d / self._full_width_translation_distance for d in (dx, dy)])
+            four_swipe = tuple(
+                [d / self._full_width_translation_distance for d in (dx, dy)]
+            )
 
         return MultitouchEvent(
             modifiers=self._modifier_keys,
-            position=position, wheel_value=scroll, two_finger_trans=two_swipe, two_finger_scale=pinch,
-            two_finger_twist=twist, three_finger_trans=three_swipe,
-            four_finger_trans=four_swipe
+            position=position,
+            wheel_value=scroll,
+            two_finger_trans=two_swipe,
+            two_finger_scale=pinch,
+            two_finger_twist=twist,
+            three_finger_trans=three_swipe,
+            four_finger_trans=four_swipe,
         )
 
     def _touchEvent(self, event):
@@ -417,12 +472,14 @@ class PlaneViewer(QWindow):
                 self.field_width_offset -= WHEEL_ZOOM_SPEED * np.sign(dy)
             self.resize3DSegmentationCursor()
         if pinch:
-        # Zoom / Dolly
+            # Zoom / Dolly
             # In std_modes.py, 1 is subtracted from two_finger_scale to determine
             # whether the gesture is intended to zoom in or out. So I guess by some
             # stroke of utter genius over at Qt/Apple, instead of having positive
             # values zoom in and negative values zoom out, we have 1 as the boundary instead.
-            self.field_width_offset -= TRACKPAD_ZOOM_SPEED * np.sign(pinch - 1) # offsets[self.axis] += (-dy * psize) * 3 * self.axis.positive_direction
+            self.field_width_offset -= TRACKPAD_ZOOM_SPEED * np.sign(
+                pinch - 1
+            )  # offsets[self.axis] += (-dy * psize) * 3 * self.axis.positive_direction
             self.resize3DSegmentationCursor()
         if three_finger_trans:
             psize = self.view.pixel_size()
@@ -450,7 +507,9 @@ class PlaneViewer(QWindow):
         elif event_type == QEvent.Type.TouchUpdate:
             self._recent_touches = [Touch(t) for t in event.points()]
             self._collapse_touch_events()
-        elif event_type == QEvent.Type.TouchEnd or event_type == QEvent.Type.TouchCancel:
+        elif (
+            event_type == QEvent.Type.TouchEnd or event_type == QEvent.Type.TouchCancel
+        ):
             self.recent_touches = []
             self._last_touch_locations.clear()
 
@@ -467,7 +526,9 @@ class PlaneViewer(QWindow):
                 or self.view.drawing is self.placeholder_drawing
             ):
                 self.model_menu.value = self._segmentation_tool.model_menu.value
-            self._segmentation_tool.segmentation_cursors[self.axis].radius = self.segmentation_cursor_overlay.radius
+            self._segmentation_tool.segmentation_cursors[
+                self.axis
+            ].radius = self.segmentation_cursor_overlay.radius
             # TODO:
             # Set the segmentation pucks' locations based on the current slice location
             # self._segmentation_tool.segmentation_cursors[self.axis].
@@ -479,7 +540,9 @@ class PlaneViewer(QWindow):
     def mvSegmentationCursorOffsetFromOrigin(self):
         origin = self.drawingOrigin()
         dir = -np.sign(origin[self.axis])
-        return self.drawingOrigin()[self.axis] + (dir * self.pos * self.drawingVolumeStep()[self.axis])
+        return self.drawingOrigin()[self.axis] + (
+            dir * self.pos * self.drawingVolumeStep()[self.axis]
+        )
 
     def _onSliderMoved(self):
         if self.view.drawing is self.placeholder_drawing:
@@ -499,10 +562,12 @@ class PlaneViewer(QWindow):
             # TODO: DICOM, NRRD, and NIfTI need mutually compatible methods
             if not self.view.drawing.parent.data.inferior_to_superior:
                 diff = -diff
-        #self.camera_offsets[self.axis] -= diff * self.drawingVolumeStep()[self.axis]
+        # self.camera_offsets[self.axis] -= diff * self.drawingVolumeStep()[self.axis]
         # TODO: Set the segmentation drawing's position to coincide with the new slice
         if self.segmentation_tool:
-            self.segmentation_tool.setCursorOffsetFromOrigin(self.axis, self.mvSegmentationCursorOffsetFromOrigin()) #self.pos * self.view.drawing.parent.data.step[self.axis]
+            self.segmentation_tool.setCursorOffsetFromOrigin(
+                self.axis, self.mvSegmentationCursorOffsetFromOrigin()
+            )  # self.pos * self.view.drawing.parent.data.step[self.axis]
         self._plane_indices[self.axis] = self.pos
         if self.segmentation_tool:
             for segmentation in self.segmentation_overlays.values():
@@ -538,11 +603,11 @@ class PlaneViewer(QWindow):
         self.view.drawing.parent.update_drawings()
         self.render()
 
-    #region drawing info
+    # region drawing info
     def drawingOrigin(self):
         return self.drawingParentVolume().data.origin
 
-    def drawingParentVolume(self, drawing = None):
+    def drawingParentVolume(self, drawing=None):
         if drawing:
             return drawing.parent
         return self.view.drawing.parent
@@ -551,11 +616,16 @@ class PlaneViewer(QWindow):
         return self.drawingParentVolume().data.step
 
     def drawingPosition(self):
-        return self.view.drawing.position # _child_drawings[0]._child_drawings[0].position
+        return (
+            self.view.drawing.position
+        )  # _child_drawings[0]._child_drawings[0].position
 
     def drawingBounds(self):
-        return self.view.drawing.bounds() # _child_drawings[0]._child_drawings[0].bounds()
-    #endregion
+        return (
+            self.view.drawing.bounds()
+        )  # _child_drawings[0]._child_drawings[0].bounds()
+
+    # endregion
 
     def exposeEvent(self, event):
         if self.isExposed() and not self.session.update_loop.blocked():
@@ -576,15 +646,19 @@ class PlaneViewer(QWindow):
         ww, wh = self.main_view.window_size
         width, height = self.view.window_size
         if (
-                ww <= 0 or wh <= 0 or width <= 0 or height <= 0
-                # below: temporary workaround for #2162
-                or self.view is None or self.view.render is None
+            ww <= 0
+            or wh <= 0
+            or width <= 0
+            or height <= 0
+            # below: temporary workaround for #2162
+            or self.view is None
+            or self.view.render is None
         ):
             return
         mvwin = self.view.render.use_shared_context(self)
         try:
             if self.view.drawing is not self.placeholder_drawing:
-                #self.view.background_color = self.main_view.background_color
+                # self.view.background_color = self.main_view.background_color
                 self.scale = mvwin.opengl_context.pixel_scale()
                 # We can rely on add_segmentation to set this value except when we're transitioning
                 # from the 3d views back to the 2d view. In that case, we have to do it somewhere
@@ -595,24 +669,37 @@ class PlaneViewer(QWindow):
                 # next release it's fine.
                 # TODO: Idenfity someplace we can do this _once_ and move it out of the render loop
                 if self.segmentation_tool:
-                    self.segmentation_tool.setCursorOffsetFromOrigin(self.axis, self.mvSegmentationCursorOffsetFromOrigin()) #self.pos * self.view.drawing.parent.data.step[self.axis]
+                    self.segmentation_tool.setCursorOffsetFromOrigin(
+                        self.axis, self.mvSegmentationCursorOffsetFromOrigin()
+                    )  # self.pos * self.view.drawing.parent.data.step[self.axis]
                 # TODO: If the user selects 'surface' then 'orthoplanes' in the volume viewer we should
                 # override the default plane locations somehow
                 if self.slider_moved:
                     for d in self.drawings:
-                        show_planes(self.drawingParentVolume(d), self.axis, self._plane_indices[self.axis])
+                        show_planes(
+                            self.drawingParentVolume(d),
+                            self.axis,
+                            self._plane_indices[self.axis],
+                        )
                         self.drawingParentVolume(d).update_drawings()
                     self.slider_moved = False
                 model_center_offsets = self.drawingBounds().center()
                 model_sizes = self.drawingBounds().size()
                 initial_needed_fov = model_sizes[self.axis.vertical] / height * width
                 margin = 24
-                self.view.camera.field_width = initial_needed_fov + margin + self.field_width_offset
+                self.view.camera.field_width = (
+                    initial_needed_fov + margin + self.field_width_offset
+                )
                 self.calculateSliceOverlays()
                 # The camera and the model can't share the same origin, so back it off a little bit
                 camera_offsets = [0, 0, 0]
                 camera_offsets[self.axis] = 20 * self.axis.positive_direction
-                self.origin = self.drawingPosition().origin() + model_center_offsets - self.camera_offsets + camera_offsets
+                self.origin = (
+                    self.drawingPosition().origin()
+                    + model_center_offsets
+                    - self.camera_offsets
+                    + camera_offsets
+                )
                 camera = self.view.camera
                 camera.position = Place(axes=self.axes, origin=self.origin)
                 self.segmentation_cursor_overlay.update()
@@ -621,8 +708,10 @@ class PlaneViewer(QWindow):
 
             self.view.prepare_scene_for_drawing()
             self.view._draw_scene(self.view.camera, [self.view.drawing])
-            self.view.finalize_draw(should_draw_overlays = (self.view.drawing is not self.placeholder_drawing))
-        except Exception as e: # noqa
+            self.view.finalize_draw(
+                should_draw_overlays=(self.view.drawing is not self.placeholder_drawing)
+            )
+        except Exception as e:  # noqa
             # This line is here so you can set a breakpoint on it and figure out what's going wrong
             # because ChimeraX's interface will not tell you.
             pass
@@ -633,12 +722,16 @@ class PlaneViewer(QWindow):
 
     def toggle_guidelines(self):
         if self.segmentation_tool:
-            self.segmentation_tool.setGuidelineCheckboxValue(not self.guidelines_visible)
+            self.segmentation_tool.setGuidelineCheckboxValue(
+                not self.guidelines_visible
+            )
         else:
             self.manager.toggle_guidelines()
 
     def add_segmentation(self, segmentation):
-        self.segmentation_overlays[segmentation] = SegmentationOverlay(segmentation.name + "_overlay", segmentation, self.axis)
+        self.segmentation_overlays[segmentation] = SegmentationOverlay(
+            segmentation.name + "_overlay", segmentation, self.axis
+        )
         self.view.add_segmentation_overlay(self.segmentation_overlays[segmentation])
         self.segmentation_overlays[segmentation].slice = self.pos
         self._redraw()
@@ -661,35 +754,83 @@ class PlaneViewer(QWindow):
         axis_sizes = (size / psize)[::-1]
         x_offset, y_offset = self.cameraSpaceDrawingOffsets()
         if self.axis == Axis.SAGITTAL:
-            self.horizontal_slice_overlay.bottom = 0.5 * self.scale * ((width + x_offset) - axis_sizes[Axis.CORONAL])
-            self.horizontal_slice_overlay.top =    0.5 * self.scale * ((width + x_offset) + axis_sizes[Axis.CORONAL])
-            self.horizontal_slice_overlay.offset = 0.5 * self.scale * ((height + y_offset) - axis_sizes[Axis.SAGITTAL])
-            self.horizontal_slice_overlay.tick_thickness = axis_sizes[Axis.SAGITTAL] / (self.dimensions[Axis.AXIAL] / self.scale)
+            self.horizontal_slice_overlay.bottom = (
+                0.5 * self.scale * ((width + x_offset) - axis_sizes[Axis.CORONAL])
+            )
+            self.horizontal_slice_overlay.top = (
+                0.5 * self.scale * ((width + x_offset) + axis_sizes[Axis.CORONAL])
+            )
+            self.horizontal_slice_overlay.offset = (
+                0.5 * self.scale * ((height + y_offset) - axis_sizes[Axis.SAGITTAL])
+            )
+            self.horizontal_slice_overlay.tick_thickness = axis_sizes[Axis.SAGITTAL] / (
+                self.dimensions[Axis.AXIAL] / self.scale
+            )
 
-            self.vertical_slice_overlay.bottom = 0.5 * self.scale * ((height + y_offset) - axis_sizes[Axis.SAGITTAL])
-            self.vertical_slice_overlay.top =    0.5 * self.scale * ((height + y_offset) + axis_sizes[Axis.SAGITTAL])
-            self.vertical_slice_overlay.offset = 0.5 * self.scale * ((width + x_offset) - axis_sizes[Axis.CORONAL])
-            self.vertical_slice_overlay.tick_thickness = axis_sizes[Axis.CORONAL] / (self.dimensions[Axis.SAGITTAL] / self.scale)
+            self.vertical_slice_overlay.bottom = (
+                0.5 * self.scale * ((height + y_offset) - axis_sizes[Axis.SAGITTAL])
+            )
+            self.vertical_slice_overlay.top = (
+                0.5 * self.scale * ((height + y_offset) + axis_sizes[Axis.SAGITTAL])
+            )
+            self.vertical_slice_overlay.offset = (
+                0.5 * self.scale * ((width + x_offset) - axis_sizes[Axis.CORONAL])
+            )
+            self.vertical_slice_overlay.tick_thickness = axis_sizes[Axis.CORONAL] / (
+                self.dimensions[Axis.SAGITTAL] / self.scale
+            )
         elif self.axis == Axis.CORONAL:
-            self.horizontal_slice_overlay.bottom = 0.5 * self.scale * ((width + x_offset) - axis_sizes[Axis.AXIAL])
-            self.horizontal_slice_overlay.top =    0.5 * self.scale * ((width + x_offset) + axis_sizes[Axis.AXIAL])
-            self.horizontal_slice_overlay.offset = 0.5 * self.scale * ((height + y_offset) - axis_sizes[Axis.SAGITTAL])
-            self.horizontal_slice_overlay.tick_thickness = axis_sizes[Axis.SAGITTAL] / (self.dimensions[Axis.AXIAL] / self.scale)
+            self.horizontal_slice_overlay.bottom = (
+                0.5 * self.scale * ((width + x_offset) - axis_sizes[Axis.AXIAL])
+            )
+            self.horizontal_slice_overlay.top = (
+                0.5 * self.scale * ((width + x_offset) + axis_sizes[Axis.AXIAL])
+            )
+            self.horizontal_slice_overlay.offset = (
+                0.5 * self.scale * ((height + y_offset) - axis_sizes[Axis.SAGITTAL])
+            )
+            self.horizontal_slice_overlay.tick_thickness = axis_sizes[Axis.SAGITTAL] / (
+                self.dimensions[Axis.AXIAL] / self.scale
+            )
 
-            self.vertical_slice_overlay.bottom = 0.5 * self.scale * ((height + y_offset) - axis_sizes[Axis.SAGITTAL])
-            self.vertical_slice_overlay.top =    0.5 * self.scale * ((height + y_offset) + axis_sizes[Axis.SAGITTAL])
-            self.vertical_slice_overlay.offset = 0.5 * self.scale * ((width + x_offset) - axis_sizes[Axis.AXIAL])
-            self.vertical_slice_overlay.tick_thickness = axis_sizes[Axis.AXIAL] / (self.dimensions[Axis.SAGITTAL] / self.scale)
+            self.vertical_slice_overlay.bottom = (
+                0.5 * self.scale * ((height + y_offset) - axis_sizes[Axis.SAGITTAL])
+            )
+            self.vertical_slice_overlay.top = (
+                0.5 * self.scale * ((height + y_offset) + axis_sizes[Axis.SAGITTAL])
+            )
+            self.vertical_slice_overlay.offset = (
+                0.5 * self.scale * ((width + x_offset) - axis_sizes[Axis.AXIAL])
+            )
+            self.vertical_slice_overlay.tick_thickness = axis_sizes[Axis.AXIAL] / (
+                self.dimensions[Axis.SAGITTAL] / self.scale
+            )
         else:
-            self.horizontal_slice_overlay.bottom = 0.5 * self.scale * ((width - x_offset) - axis_sizes[Axis.AXIAL])
-            self.horizontal_slice_overlay.top =    0.5 * self.scale * ((width - x_offset) + axis_sizes[Axis.AXIAL])
-            self.horizontal_slice_overlay.offset = 0.5 * self.scale * ((height - y_offset) + axis_sizes[Axis.AXIAL])
-            self.horizontal_slice_overlay.tick_thickness = axis_sizes[Axis.AXIAL] / (self.dimensions[Axis.CORONAL] / self.scale)
+            self.horizontal_slice_overlay.bottom = (
+                0.5 * self.scale * ((width - x_offset) - axis_sizes[Axis.AXIAL])
+            )
+            self.horizontal_slice_overlay.top = (
+                0.5 * self.scale * ((width - x_offset) + axis_sizes[Axis.AXIAL])
+            )
+            self.horizontal_slice_overlay.offset = (
+                0.5 * self.scale * ((height - y_offset) + axis_sizes[Axis.AXIAL])
+            )
+            self.horizontal_slice_overlay.tick_thickness = axis_sizes[Axis.AXIAL] / (
+                self.dimensions[Axis.CORONAL] / self.scale
+            )
 
-            self.vertical_slice_overlay.bottom = 0.5 * self.scale * ((height - y_offset) - axis_sizes[Axis.CORONAL])
-            self.vertical_slice_overlay.top =    0.5 * self.scale * ((height - y_offset) + axis_sizes[Axis.CORONAL])
-            self.vertical_slice_overlay.offset = 0.5 * self.scale * ((width - x_offset) + axis_sizes[Axis.CORONAL])
-            self.vertical_slice_overlay.tick_thickness = axis_sizes[Axis.CORONAL] / (self.dimensions[Axis.SAGITTAL] / self.scale)
+            self.vertical_slice_overlay.bottom = (
+                0.5 * self.scale * ((height - y_offset) - axis_sizes[Axis.CORONAL])
+            )
+            self.vertical_slice_overlay.top = (
+                0.5 * self.scale * ((height - y_offset) + axis_sizes[Axis.CORONAL])
+            )
+            self.vertical_slice_overlay.offset = (
+                0.5 * self.scale * ((width - x_offset) + axis_sizes[Axis.CORONAL])
+            )
+            self.vertical_slice_overlay.tick_thickness = axis_sizes[Axis.CORONAL] / (
+                self.dimensions[Axis.SAGITTAL] / self.scale
+            )
         # Update the segmentation overlays
         for overlay in self.segmentation_overlays.values():
             overlay.y_min = self.vertical_slice_overlay.bottom
@@ -699,10 +840,10 @@ class PlaneViewer(QWindow):
 
     def camera_space_drawing_bounds(self):
         top, bottom, left, right = (
-            self.vertical_slice_overlay.top
-            , self.vertical_slice_overlay.bottom
-            , self.horizontal_slice_overlay.bottom
-            , self.horizontal_slice_overlay.top
+            self.vertical_slice_overlay.top,
+            self.vertical_slice_overlay.bottom,
+            self.horizontal_slice_overlay.bottom,
+            self.horizontal_slice_overlay.top,
         )
         return top, bottom, left, right
 
@@ -767,22 +908,29 @@ class PlaneViewer(QWindow):
             else:
                 if self.segmentation_tool:
                     x, y = event.position().x(), event.position().y()
-                    self.moveSegmentationPuck(x, y, record_seg = True)
+                    self.moveSegmentationPuck(x, y, record_seg=True)
         self._redraw()
 
-    def mouseReleaseEvent(self, event): # noqa
+    def mouseReleaseEvent(self, event):  # noqa
         b = event.button() | event.buttons()
         modifier = event.modifiers()
-        self.segmentation_cursor_overlay.center = (self.scale * event.position().x(), self.scale * (self.view.window_size[1] - event.position().y()), 0)
+        self.segmentation_cursor_overlay.center = (
+            self.scale * event.position().x(),
+            self.scale * (self.view.window_size[1] - event.position().y()),
+            0,
+        )
         self.segmentation_cursor_overlay.update()
         if b & Qt.MouseButton.RightButton:
             if self.shouldOpenContextMenu():
                 from Qt.QtWidgets import QMenu, QAction
+
                 if not self.context_menu:
                     self.context_menu = QMenu(parent=self.parent)
                     toggle_guidelines_action = QAction("Toggle Guidelines")
                     self.context_menu.addAction(toggle_guidelines_action)
-                    toggle_guidelines_action.triggered.connect(lambda: self.toggle_guidelines())
+                    toggle_guidelines_action.triggered.connect(
+                        lambda: self.toggle_guidelines()
+                    )
                     self.context_menu.aboutToHide.connect(self.enterEvent)
                 self.context_menu.exec(self.context_menu_coords)
                 self.mouse_moved_during_right_click = False
@@ -790,10 +938,16 @@ class PlaneViewer(QWindow):
         if b & Qt.MouseButton.LeftButton:
             if self.segmentation_tool:
                 if modifier == Qt.KeyboardModifier.ShiftModifier:
-                    self.segmentation_tool.removeMarkersFromSegment(self.axis, self.pos, self.current_segmentation_cursor_overlays)
+                    self.segmentation_tool.removeMarkersFromSegment(
+                        self.axis, self.pos, self.current_segmentation_cursor_overlays
+                    )
                 else:
-                    self.segmentation_tool.addMarkersToSegment(self.axis, self.pos, self.current_segmentation_cursor_overlays)
-                self.view.remove_cursor_overlays(self.current_segmentation_cursor_overlays)
+                    self.segmentation_tool.addMarkersToSegment(
+                        self.axis, self.pos, self.current_segmentation_cursor_overlays
+                    )
+                self.view.remove_cursor_overlays(
+                    self.current_segmentation_cursor_overlays
+                )
                 self.current_segmentation_cursor_overlays = []
                 active_seg = self.segmentation_tool.active_seg
                 self.manager.update_segmentation_overlay_for_segmentation(active_seg)
@@ -813,13 +967,18 @@ class PlaneViewer(QWindow):
             radius = self.segmentation_cursor_overlay.radius
             rel_size = (radius / width) * psize
             needed_rad = (rel_size / psize) * ww
-            self.segmentation_tool.segmentation_cursors[self.axis].radius = self.segmentation_cursor_overlay.radius * psize / self.scale
+            self.segmentation_tool.segmentation_cursors[self.axis].radius = (
+                self.segmentation_cursor_overlay.radius * psize / self.scale
+            )
 
     def wheelEvent(self, event):
         # As we note in the trackpad code, macOS generates wheel and touch events
         # so we need to differentiate them...
         d = event.pointingDevice()
-        if d.type() == QInputDevice.DeviceType.Mouse or d.capabilities() & QInputDevice.Capability.Scroll:
+        if (
+            d.type() == QInputDevice.DeviceType.Mouse
+            or d.capabilities() & QInputDevice.Capability.Scroll
+        ):
             modifier = event.modifiers()
             delta = event.angleDelta()
             x_dir, y_dir = np.sign(delta.x()), np.sign(delta.y())
@@ -833,11 +992,18 @@ class PlaneViewer(QWindow):
 
     def mousePercentOffsetsFromEdges(self, x, y):
         top, bottom, left, right = self.camera_space_drawing_bounds()
-        percent_offset_from_bottom = (((self.scale * (self.view.window_size[1] - y)) - bottom) / (top - bottom))
+        percent_offset_from_bottom = (
+            (self.scale * (self.view.window_size[1] - y)) - bottom
+        ) / (top - bottom)
         percent_offset_from_top = 1 - percent_offset_from_bottom
-        percent_offset_from_left = (((self.scale * x) - left) / (right - left))
+        percent_offset_from_left = ((self.scale * x) - left) / (right - left)
         percent_offset_from_right = 1 - percent_offset_from_left
-        return percent_offset_from_top, percent_offset_from_bottom, percent_offset_from_left, percent_offset_from_right
+        return (
+            percent_offset_from_top,
+            percent_offset_from_bottom,
+            percent_offset_from_left,
+            percent_offset_from_right,
+        )
 
     def cameraSpaceDrawingOffsets(self):
         psize = self.view.pixel_size()
@@ -856,7 +1022,8 @@ class PlaneViewer(QWindow):
     def recordSegment(self, x, y):
         thisSegment = SegmentationCursorOverlay(
             "seg_overlay_" + str(len(self.current_segmentation_cursor_overlays)),
-            radius=self.segmentation_cursor_overlay.radius, thickness=3
+            radius=self.segmentation_cursor_overlay.radius,
+            thickness=3,
         )
         thisSegment.drawing_center = [x, y]
         thisSegment.center = self.segmentation_cursor_overlay.center
@@ -866,12 +1033,17 @@ class PlaneViewer(QWindow):
 
     def moveSegmentationPuck(self, x, y, record_seg):
         top, bottom, left, right = self.camera_space_drawing_bounds()
-        rel_top, rel_bottom, rel_left, rel_right = self.mousePercentOffsetsFromEdges(x, y)
+        rel_top, rel_bottom, rel_left, rel_right = self.mousePercentOffsetsFromEdges(
+            x, y
+        )
         x_offset, y_offset = self.cameraSpaceDrawingOffsets()
         # TODO Why did I have to add the y-offset here but not the x-offset?
         if self.axis == Axis.AXIAL:
             y_offset = -y_offset
-        if left <= self.scale * x <= right and bottom <= (self.scale * (y + y_offset)) <= top:
+        if (
+            left <= self.scale * x <= right
+            and bottom <= (self.scale * (y + y_offset)) <= top
+        ):
             old_origin = self.segmentation_tool.segmentation_cursors[self.axis].origin
             drawing_origin = self.drawingOrigin()
             origin = old_origin
@@ -899,21 +1071,31 @@ class PlaneViewer(QWindow):
         # TODO: Look at the pixel under the mouse and report what the level is
         if self.view.drawing is self.placeholder_drawing:
             return
-        rel_top, rel_bottom, rel_left, rel_right = self.mousePercentOffsetsFromEdges(self.mouse_x, self.mouse_y)
-        if any([rel_top < 0, rel_bottom < 0, rel_left < 0, rel_right < 0]) or any([rel_top > 1, rel_bottom > 1, rel_left > 1, rel_right > 1]):
+        rel_top, rel_bottom, rel_left, rel_right = self.mousePercentOffsetsFromEdges(
+            self.mouse_x, self.mouse_y
+        )
+        if any([rel_top < 0, rel_bottom < 0, rel_left < 0, rel_right < 0]) or any(
+            [rel_top > 1, rel_bottom > 1, rel_left > 1, rel_right > 1]
+        ):
             return
         if self.axis == Axis.AXIAL:
             absolute_offset_left = rel_right * self.dimensions[0]
             absolute_offset_bottom = rel_top * self.dimensions[1]
-            level = self.drawingParentVolume().data.matrix()[self.pos, int(absolute_offset_bottom), int(absolute_offset_left)]
+            level = self.drawingParentVolume().data.matrix()[
+                self.pos, int(absolute_offset_bottom), int(absolute_offset_left)
+            ]
         elif self.axis == Axis.CORONAL:
             absolute_offset_left = rel_left * self.dimensions[0]
             absolute_offset_bottom = rel_bottom * self.dimensions[2]
-            level = self.drawingParentVolume().data.matrix()[int(absolute_offset_bottom), self.pos, int(absolute_offset_left)]
+            level = self.drawingParentVolume().data.matrix()[
+                int(absolute_offset_bottom), self.pos, int(absolute_offset_left)
+            ]
         else:  # self.axis == Axis.SAGITTAL:
             absolute_offset_left = rel_left * self.dimensions[1]
             absolute_offset_bottom = rel_bottom * self.dimensions[2]
-            level = self.drawingParentVolume().data.matrix()[int(absolute_offset_bottom), int(absolute_offset_left), self.pos]
+            level = self.drawingParentVolume().data.matrix()[
+                int(absolute_offset_bottom), int(absolute_offset_left), self.pos
+            ]
         self.level_label.show_text("Level: " + str(level), self.mouse_x, self.mouse_y)
 
     def mouseMoveEvent(self, event):  # noqa
@@ -926,12 +1108,16 @@ class PlaneViewer(QWindow):
         self.mouse_x = x
         self.mouse_y = y
         if b == Qt.MouseButton.NoButton:
-            self.segmentation_cursor_overlay.center = (self.scale * x, self.scale * (self.view.window_size[1] - y), 0)
+            self.segmentation_cursor_overlay.center = (
+                self.scale * x,
+                self.scale * (self.view.window_size[1] - y),
+                0,
+            )
             self.segmentation_cursor_overlay.update()
             if self.segmentation_tool:
-                self.moveSegmentationPuck(x, y, record_seg = False)
+                self.moveSegmentationPuck(x, y, record_seg=False)
 
-            self.mouse_move_timer.start();
+            self.mouse_move_timer.start()
         if b == Qt.MouseButton.LeftButton:
             if modifiers & Qt.KeyboardModifier.AltModifier:
                 # Move as if the middle button were pressed
@@ -957,13 +1143,19 @@ class PlaneViewer(QWindow):
                 else:
                     dy = y - self.last_mouse_position[1]
                 self.last_mouse_position = [x, y]
-                self.field_width_offset += RIGHT_CLICK_ZOOM_SPEED * np.sign(dy) # offsets[self.axis] += (-dy * psize) * 3 * self.axis.positive_direction
+                self.field_width_offset += RIGHT_CLICK_ZOOM_SPEED * np.sign(
+                    dy
+                )  # offsets[self.axis] += (-dy * psize) * 3 * self.axis.positive_direction
                 self.resize3DSegmentationCursor()
             else:
-                self.segmentation_cursor_overlay.center = (self.scale * x, self.scale * (self.view.window_size[1] - y), 0)
+                self.segmentation_cursor_overlay.center = (
+                    self.scale * x,
+                    self.scale * (self.view.window_size[1] - y),
+                    0,
+                )
                 self.segmentation_cursor_overlay.update()
                 if self.segmentation_tool:
-                    self.moveSegmentationPuck(x, y, record_seg = True)
+                    self.moveSegmentationPuck(x, y, record_seg=True)
         # Zoom / Dolly
         if b & Qt.MouseButton.RightButton:
             self.mouse_moved_during_right_click = True
@@ -972,7 +1164,9 @@ class PlaneViewer(QWindow):
             else:
                 dy = y - self.last_mouse_position[1]
             self.last_mouse_position = [x, y]
-            self.field_width_offset += RIGHT_CLICK_ZOOM_SPEED * np.sign(dy) # offsets[self.axis] += (-dy * psize) * 3 * self.axis.positive_direction
+            self.field_width_offset += RIGHT_CLICK_ZOOM_SPEED * np.sign(
+                dy
+            )  # offsets[self.axis] += (-dy * psize) * 3 * self.axis.positive_direction
             self.resize3DSegmentationCursor()
         # Truck & Pedestal
         if b & Qt.MouseButton.MiddleButton:
@@ -1002,13 +1196,17 @@ class PlaneViewer(QWindow):
         if key == Qt.Key.Key_Right or key == Qt.Key.Key_D:
             event.accept()
             self.slider.setSliderDown(True)
-            self.slider.setSliderPosition(self.pos * self.axis.positive_direction + diff)
+            self.slider.setSliderPosition(
+                self.pos * self.axis.positive_direction + diff
+            )
             self.slider.setSliderDown(False)
             return
         if key == Qt.Key.Key_Left or key == Qt.Key.Key_A:
             event.accept()
             self.slider.setSliderDown(True)
-            self.slider.setSliderPosition(self.pos * self.axis.positive_direction - diff)
+            self.slider.setSliderPosition(
+                self.pos * self.axis.positive_direction - diff
+            )
             self.slider.setSliderDown(False)
             return
         else:
@@ -1017,7 +1215,7 @@ class PlaneViewer(QWindow):
     def update_dimensions(self, dimensions):
         self.dimensions = dimensions
 
-    #region index getters and setters
+    # region index getters and setters
     @property
     def axial_index(self):
         return self._plane_indices[Axis.AXIAL]
@@ -1056,7 +1254,8 @@ class PlaneViewer(QWindow):
             self.vertical_slice_overlay.slice = -index
         if self.axis == Axis.CORONAL:
             self.vertical_slice_overlay.slice = index
-    #endregion
+
+    # endregion
 
     def _surfaceChosen(self, *args):
         # TODO: Create a copy of the parent study just for rendering in the orthoplane windows?
@@ -1081,23 +1280,28 @@ class PlaneViewer(QWindow):
         else:
             v = self.model_menu.value.copy()
             self.model_menu.value.expand_single_plane()
-            self.model_menu.value.set_display_style('surface')
+            self.model_menu.value.set_display_style("surface")
             self.model_menu.value._drawings_need_update()
             max_x, max_y, max_z = self.model_menu.value.region[1]
-            middle = tuple((imin + imax) // 2 for imin, imax in zip(self.model_menu.value.region[0], self.model_menu.value.region[1]))
+            middle = tuple(
+                (imin + imax) // 2
+                for imin, imax in zip(
+                    self.model_menu.value.region[0], self.model_menu.value.region[1]
+                )
+            )
             new_drawing = None
             apply_volume_options(
-                v
-                , doptions = {
-                    'region': (v.region[0], v.region[1])
-                    , 'planes': self.axis.cartesian
-                }
-                , roptions = {}
-                , image_mode_off = False
-                , session = self.session
+                v,
+                doptions={
+                    "region": (v.region[0], v.region[1]),
+                    "planes": self.axis.cartesian,
+                },
+                roptions={},
+                image_mode_off=False,
+                session=self.session,
             )
-            v.set_display_style('image')
-            v.name =  str(self.axis) + " orthoplane " + str(self.model_menu.value.name)
+            v.set_display_style("image")
+            v.name = str(self.axis) + " orthoplane " + str(self.model_menu.value.name)
             v.update_drawings()
             v.allow_style_changes = False
             # Add our new volume to the volume menu with our custom widget
@@ -1107,7 +1311,7 @@ class PlaneViewer(QWindow):
             for d in v._child_drawings:
                 if type(d) == VolumeImage:
                     new_drawing = d
-            #self.manager.update_drawing(self.model_menu.value)
+            # self.manager.update_drawing(self.model_menu.value)
             if new_drawing is not None:
                 # Set the view's root drawing, and our ground truth drawing, to the new one
                 self.view.drawing = new_drawing
@@ -1126,7 +1330,9 @@ class PlaneViewer(QWindow):
                     self.slider.setRange(-max_y, 0)
                 if self.axis == Axis.SAGITTAL:
                     self.slider.setMaximum(max_x)
-                self.slider.setValue(orthoplane_positions[self.axis] * self.axis.positive_direction)
+                self.slider.setValue(
+                    orthoplane_positions[self.axis] * self.axis.positive_direction
+                )
                 self.slider_moved = True
                 self.pos = orthoplane_positions[self.axis]
                 self._plane_indices[self.axis] = self.pos
@@ -1148,31 +1354,36 @@ class PlaneViewer(QWindow):
         tp = volume_viewer.thresholds_panel
         hptable = tp.histogram_table
         if v in hptable:
-          return
+            return
 
-        if hasattr(v, 'series'):
-            same_series = [vp for vp in hptable.keys()
-                           if vp is not None and hasattr(vp, 'series') and vp.series == v.series]
+        if hasattr(v, "series"):
+            same_series = [
+                vp
+                for vp in hptable.keys()
+                if vp is not None and hasattr(vp, "series") and vp.series == v.series
+            ]
         else:
             same_series = []
 
         if same_series:
-          # Replace entry with same id number, for volume series
-          vs = same_series[0]
-          hp = hptable[vs]
-          del hptable[vs]
+            # Replace entry with same id number, for volume series
+            vs = same_series[0]
+            hp = hptable[vs]
+            del hptable[vs]
         elif None in hptable:
-          hp = hptable[None]                # Reuse unused histogram
-          del hptable[None]
+            hp = hptable[None]  # Reuse unused histogram
+            del hptable[None]
         elif len(hptable) >= tp.maximum_histograms():
-          hp = tp.active_order[-1]        # Reuse least recently active histogram
-          del hptable[hp.volume]
+            hp = tp.active_order[-1]  # Reuse least recently active histogram
+            del hptable[hp.volume]
         else:
-          # Make new histogram
-          hp = SegmentationVolumePanel(self, tp.dialog, tp.histograms_frame, tp.histogram_height)
-          hl = tp.histograms_layout
-          hl.insertWidget(hl.count()-1, hp.frame)
-          tp.histogram_panes.append(hp)
+            # Make new histogram
+            hp = SegmentationVolumePanel(
+                self, tp.dialog, tp.histograms_frame, tp.histogram_height
+            )
+            hl = tp.histograms_layout
+            hl.insertWidget(hl.count() - 1, hp.frame)
+            tp.histogram_panes.append(hp)
 
         hp.set_data_region(v)
         hptable[v] = hp
@@ -1180,12 +1391,12 @@ class PlaneViewer(QWindow):
         tp._allow_panel_height_increase = True
 
 
-
 class SegmentationVolumePanel(Histogram_Pane):
     """When a volume is added to a session it typically spawns the Volume Viewer, which
     gets populated with a panel allowing the user to control how the volume is rendered,
     which plane is shown if it's a plane, etc. This class is a wrapper around that panel
     that disables certain features."""
+
     def __init__(self, plane_viewer, dialog, parent, histogram_height):
         self.plane_viewer = plane_viewer
         self.dialog = dialog
@@ -1197,13 +1408,22 @@ class SegmentationVolumePanel(Histogram_Pane):
         self._log_moved_marker = False
         self.update_timer = None
 
-        from Qt.QtWidgets import QVBoxLayout, QHBoxLayout, QFrame, QLabel, QPushButton, QMenu, QLineEdit, QSizePolicy
+        from Qt.QtWidgets import (
+            QVBoxLayout,
+            QHBoxLayout,
+            QFrame,
+            QLabel,
+            QPushButton,
+            QMenu,
+            QLineEdit,
+            QSizePolicy,
+        )
         from Qt.QtCore import Qt, QSize
 
         self.frame = f = QFrame(parent)
         f.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
         self._layout = flayout = QVBoxLayout(f)
-        flayout.setContentsMargins(0,0,0,0)
+        flayout.setContentsMargins(0, 0, 0, 0)
         flayout.setSpacing(0)
 
         # Put volume name on separate line.
@@ -1214,31 +1434,33 @@ class SegmentationVolumePanel(Histogram_Pane):
         # Create frame for step, color, level controls.
         df = QFrame(f)
         df.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
-#        df.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Minimum)
+        #        df.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Minimum)
         flayout.addWidget(df)
         layout = QHBoxLayout(df)
-        layout.setContentsMargins(0,0,0,0)
+        layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(10)
 
         # Display / hide map button
         self.shown = sh = QPushButton(df)
-        sh.setAttribute(Qt.WA_LayoutUsesWidgetRect) # Avoid extra padding on Mac
-        sh.setMaximumSize(20,20)
+        sh.setAttribute(Qt.WA_LayoutUsesWidgetRect)  # Avoid extra padding on Mac
+        sh.setMaximumSize(20, 20)
         sh.setCheckable(True)
         sh.setFlat(True)
-        sh.setStyleSheet('QPushButton {background-color: transparent;}')
+        sh.setStyleSheet("QPushButton {background-color: transparent;}")
         from chimerax.ui.icons import get_qt_icon
-        sh_icon = get_qt_icon('shown')
+
+        sh_icon = get_qt_icon("shown")
         sh.setIcon(sh_icon)
-        sh.setIconSize(QSize(20,20))
+        sh.setIconSize(QSize(20, 20))
         sh.clicked.connect(self.show_cb)
         layout.addWidget(sh)
-        sh.setToolTip('Display or undisplay data')
+        sh.setToolTip("Display or undisplay data")
         self.shown_handlers = []
 
         # Color button
         from chimerax.ui.widgets import ColorButton
-        cl = ColorButton(df, max_size = (16,16), has_alpha_channel = True, pause_delay = 1.0)
+
+        cl = ColorButton(df, max_size=(16, 16), has_alpha_channel=True, pause_delay=1.0)
         self._color_button = cl
         cl.color_changed.connect(self._color_chosen)
         cl.color_pause.connect(self._log_color_command)
@@ -1253,37 +1475,38 @@ class SegmentationVolumePanel(Histogram_Pane):
         sz.mousePressEvent = self.select_data_cb
 
         # Subsampling step menu
-        sl = QLabel('step', df)
+        sl = QLabel("step", df)
         layout.addWidget(sl)
         import sys
-        if sys.platform == 'darwin':
+
+        if sys.platform == "darwin":
             # Setting padding cam make layout more compact on macOS 10.15 but makes clicking
             # on menu button down arrow do nothing.  So use default style on Mac.
             menu_button_style = None
         else:
             # Reduce button width and height on Windows and Linux
-            menu_button_style = 'padding-left: 6px; padding-right: 6px; padding-top: 3px; padding-bottom: 3px'
-        layout.addSpacing(-8)	# Put step menu closer to step label.
+            menu_button_style = "padding-left: 6px; padding-right: 6px; padding-top: 3px; padding-bottom: 3px"
+        layout.addSpacing(-8)  # Put step menu closer to step label.
         self.data_step = dsm = QPushButton(df)
         if menu_button_style:
             dsm.setStyleSheet(menu_button_style)
         sm = QMenu(df)
-        for step in (1,2,4,8,16):
-            sm.addAction('%d' % step, lambda s=step: self.data_step_cb(s))
+        for step in (1, 2, 4, 8, 16):
+            sm.addAction("%d" % step, lambda s=step: self.data_step_cb(s))
         dsm.setMenu(sm)
         layout.addWidget(dsm)
 
         # Threshold level entry
-        lh = QLabel('Level', df)
+        lh = QLabel("Level", df)
         layout.addWidget(lh)
-        layout.addSpacing(-5)	# Reduce padding to following entry field
+        layout.addSpacing(-5)  # Reduce padding to following entry field
 
-        self.threshold = le = QLineEdit('', df)
+        self.threshold = le = QLineEdit("", df)
         le.setMaximumWidth(40)
         le.returnPressed.connect(self.threshold_entry_enter_cb)
         layout.addWidget(le)
 
-        self.data_range = rn = QLabel('? - ?', df)
+        self.data_range = rn = QLabel("? - ?", df)
         layout.addWidget(rn)
 
         # Display style menu
@@ -1291,7 +1514,16 @@ class SegmentationVolumePanel(Histogram_Pane):
         if menu_button_style:
             stm.setStyleSheet(menu_button_style)
         sm = QMenu(df)
-        for style in ('surface', 'mesh', 'volume', 'maximum', 'plane', 'orthoplanes', 'box', 'tilted slab'):
+        for style in (
+            "surface",
+            "mesh",
+            "volume",
+            "maximum",
+            "plane",
+            "orthoplanes",
+            "box",
+            "tilted slab",
+        ):
             sm.addAction(style, lambda s=style: self.display_style_changed_cb(s))
         stm.setMenu(sm)
         layout.addWidget(stm)
@@ -1302,19 +1534,20 @@ class SegmentationVolumePanel(Histogram_Pane):
 
         # Close map button
         cb = QPushButton(df)
-        cb.setAttribute(Qt.WA_LayoutUsesWidgetRect) # Avoid extra padding on Mac
-        cb.setMaximumSize(20,20)
+        cb.setAttribute(Qt.WA_LayoutUsesWidgetRect)  # Avoid extra padding on Mac
+        cb.setMaximumSize(20, 20)
         cb.setFlat(True)
         layout.addWidget(cb)
         from chimerax.ui.icons import get_qt_icon
-        cb_icon = get_qt_icon('minus')
+
+        cb_icon = get_qt_icon("minus")
         cb.setIcon(cb_icon)
-        cb.setIconSize(QSize(20,20))
+        cb.setIconSize(QSize(20, 20))
         cb.clicked.connect(self.close_map_cb)
-        cb.setToolTip('Close data set')
+        cb.setToolTip("Close data set")
 
         # Add histogram below row of controls
-        h = self.make_histogram(f, histogram_height, new_marker_color = (1,1,1,1))
+        h = self.make_histogram(f, histogram_height, new_marker_color=(1, 1, 1, 1))
         flayout.addWidget(h)
         h.contextMenuEvent = self.show_context_menu
 
@@ -1322,35 +1555,35 @@ class SegmentationVolumePanel(Histogram_Pane):
         self._planes_slider_shown = False
         self._planes_slider_frame = None
 
-    def show_plane_slider(self, show, axis = 2):
+    def show_plane_slider(self, show, axis=2):
         pass
 
     def data_step_cb(self, step):
-        self.data_step.setText('%d' % step)
+        self.data_step.setText("%d" % step)
 
         v = self.volume
         if v is None or v.region is None:
-          return
+            return
 
         ijk_step = [step]
         if len(ijk_step) == 1:
-          ijk_step = ijk_step * 3
+            ijk_step = ijk_step * 3
 
         if tuple(ijk_step) == tuple(v.region[2]):
-          return
+            return
 
-        v.new_region(ijk_step = ijk_step, adjust_step = False)
+        v.new_region(ijk_step=ijk_step, adjust_step=False)
         for vc in v.other_channels():
-            vc.new_region(ijk_step = ijk_step, adjust_step = False)
+            vc.new_region(ijk_step=ijk_step, adjust_step=False)
 
         d = self.dialog
         if v != d.active_volume:
-          d.display_volume_info(v)
+            d.display_volume_info(v)
         self.plane_viewer.update_and_rerender()
 
     def moved_marker_cb(self, marker):
         self._log_moved_marker = False
-        self.select_data_cb()	# Causes redisplay using GUI settings
+        self.select_data_cb()  # Causes redisplay using GUI settings
         self.set_threshold_and_color_widgets()
         # Redraw graphics before more mouse drag events occur.
         self.plane_viewer.update_and_rerender()
@@ -1371,17 +1604,17 @@ class SegmentationVolumePanel(Histogram_Pane):
                 markers.delete_marker(m)
                 self.dialog.redisplay_needed_cb()
 
-    def set_threshold_parameters_from_gui(self, show = False, log = True):
+    def set_threshold_parameters_from_gui(self, show=False, log=True):
         v = self.volume
         if v is None:
-          return
+            return
 
         # Update surface levels and colors
         surf_levels_changed = surf_colors_changed = False
         markers = self.surface_thresholds.markers
         for m in markers:
             level, color = m.xy[0], m.rgba
-            if not hasattr(m, 'volume_surface') or m.volume_surface.deleted:
+            if not hasattr(m, "volume_surface") or m.volume_surface.deleted:
                 m.volume_surface = v.add_surface(level, color)
                 surf_levels_changed = surf_colors_changed = True
             else:
@@ -1410,10 +1643,10 @@ class SegmentationVolumePanel(Histogram_Pane):
 
         icolors = [m.rgba for m in markers]
         from numpy import array_equal
+
         if not array_equal(icolors, v.image_colors):
             v.image_colors = icolors
             image_colors_changed = True
-
 
         if show and v.shown():
             v.show()

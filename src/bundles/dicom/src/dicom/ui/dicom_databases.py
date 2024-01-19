@@ -13,10 +13,18 @@ from enum import Enum
 
 from Qt.QtCore import QThread, QObject, Signal, Slot, Qt
 from Qt.QtWidgets import (
-    QVBoxLayout, QHBoxLayout, QHeaderView
-    , QWidget, QLabel, QDialog, QDialogButtonBox
-    , QPushButton, QAction, QComboBox
-    , QStackedWidget, QSizePolicy
+    QVBoxLayout,
+    QHBoxLayout,
+    QHeaderView,
+    QWidget,
+    QLabel,
+    QDialog,
+    QDialogButtonBox,
+    QPushButton,
+    QAction,
+    QComboBox,
+    QStackedWidget,
+    QSizePolicy,
 )
 
 from chimerax.core.tools import ToolInstance
@@ -29,22 +37,22 @@ from chimerax.ui.options import BooleanOption
 from ..databases import TCIADatabase
 from .widgets import DICOMTable
 
+
 class Action(Enum):
     LOAD_COLLECTIONS = 1
     LOAD_STUDIES = 2
     LOAD_SERIES = 3
 
+
 class DICOMDatabasesSettings(Settings):
-    AUTO_SAVE = {
-        "user_accepted_tcia_tos": False
-    }
+    AUTO_SAVE = {"user_accepted_tcia_tos": False}
+
 
 class DICOMDatabases(ToolInstance):
-
     help = "help:user/tools/downloaddicom.html"
     SESSION_ENDURING = True
 
-    def __init__(self, session = None, name = "Download DICOM"):
+    def __init__(self, session=None, name="Download DICOM"):
         """Bring up a tool to explore DICOM models open in the session."""
         super().__init__(session, name)
         self.settings = DICOMDatabasesSettings(self.session, "dicom databases")
@@ -61,7 +69,10 @@ class DICOMDatabases(ToolInstance):
             self.accept_tos_dialog.setLayout(self.tos_box_layout)
             self.tos.setTextFormat(Qt.TextFormat.RichText)
             self.tos.setWordWrap(True)
-            self.tos.setTextInteractionFlags(Qt.TextInteractionFlag.LinksAccessibleByMouse | Qt.TextInteractionFlag.LinksAccessibleByKeyboard)
+            self.tos.setTextInteractionFlags(
+                Qt.TextInteractionFlag.LinksAccessibleByMouse
+                | Qt.TextInteractionFlag.LinksAccessibleByKeyboard
+            )
             self.data_usage_dialog_bbox.accepted.connect(self._construct_ui)
             self.data_usage_dialog_bbox.accepted.connect(self.accept_tos_dialog.close)
             self.data_usage_dialog_bbox.accepted.connect(self._on_accept_tos)
@@ -113,7 +124,9 @@ class DICOMDatabases(ToolInstance):
         self.control_layout.addWidget(self.load_webpage_button)
         self.control_layout.addWidget(self.refine_dataset_button)
         self.database_entries_control_widget.setVisible(False)
-        self.database_entries = DICOMTable(self.database_entries_control_widget, None, self.database_entries_container)
+        self.database_entries = DICOMTable(
+            self.database_entries_control_widget, None, self.database_entries_container
+        )
         self.database_entries_layout.addWidget(self.database_entries)
         self.database_entries_layout.addWidget(self.database_entries_control_widget)
         self.database_entries_layout.addWidget(self.control_container)
@@ -129,7 +142,7 @@ class DICOMDatabases(ToolInstance):
 
         self.database_entries_layout.setContentsMargins(0, 0, 0, 0)
         self.control_layout.setContentsMargins(0, 0, 0, 0)
-        self.main_layout.setContentsMargins(4,4,4,4)
+        self.main_layout.setContentsMargins(4, 4, 4, 4)
         self.main_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         self.database_entries_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         self.control_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
@@ -137,12 +150,24 @@ class DICOMDatabases(ToolInstance):
         self.control_layout.setSpacing(0)
         self.main_layout.setSpacing(0)
 
-        self.database_entries.add_column("Dataset", lambda x: x.collection, show_tooltips = True)
-        self.database_entries.add_column("Number of Patients", lambda x: x.count, show_tooltips = True)
-        self.database_entries.add_column("Body Parts", lambda x: x.body_parts, show_tooltips = True)
-        self.database_entries.add_column("Species", lambda x: x.species, show_tooltips = True)
-        self.database_entries.add_column("Modalities", lambda x: x.modalities, show_tooltips = True)
-        self.database_entries.selection_changed.connect(self._on_main_table_selections_changed)
+        self.database_entries.add_column(
+            "Dataset", lambda x: x.collection, show_tooltips=True
+        )
+        self.database_entries.add_column(
+            "Number of Patients", lambda x: x.count, show_tooltips=True
+        )
+        self.database_entries.add_column(
+            "Body Parts", lambda x: x.body_parts, show_tooltips=True
+        )
+        self.database_entries.add_column(
+            "Species", lambda x: x.species, show_tooltips=True
+        )
+        self.database_entries.add_column(
+            "Modalities", lambda x: x.modalities, show_tooltips=True
+        )
+        self.database_entries.selection_changed.connect(
+            self._on_main_table_selections_changed
+        )
 
         self.interface_stack.addWidget(self.database_entries_container)
 
@@ -151,7 +176,9 @@ class DICOMDatabases(ToolInstance):
         # self.available_dbs.addItem("Choose a Database")
         self.available_dbs.addItem("TCIA")
         self.database_entries.launch()
-        self.interface_stack.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
+        self.interface_stack.setSizePolicy(
+            QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred
+        )
         self.database_entries.get_selection.connect(self._on_main_table_double_clicked)
 
         self.study_entries_container = QWidget(self.interface_stack)
@@ -162,15 +189,31 @@ class DICOMDatabases(ToolInstance):
 
         self.study_entries_control_widget = QWidget(self.study_entries_container)
         self.study_entries_control_widget.setVisible(False)
-        self.study_entries = DICOMTable(self.study_entries_control_widget, None, self.study_entries_container)
-        self.study_entries.add_column("Collection", lambda x: x.collection, show_tooltips = True)
-        self.study_entries.add_column("Study Instance UID", lambda x: x.suid, show_tooltips = True)
-        self.study_entries.add_column("Date", lambda x: x.date, show_tooltips = True)
-        self.study_entries.add_column("Description", lambda x: x.desc, show_tooltips = True)
-        self.study_entries.add_column("Patient ID", lambda x: x.patientId, show_tooltips = True)
-        self.study_entries.add_column("Patient Sex", lambda x: x.patientSex, show_tooltips = True)
-        self.study_entries.add_column("Patient Name", lambda x: x.patientName, show_tooltips = True)
-        self.study_entries.add_column("Series Count", lambda x: x.scount, show_tooltips = True)
+        self.study_entries = DICOMTable(
+            self.study_entries_control_widget, None, self.study_entries_container
+        )
+        self.study_entries.add_column(
+            "Collection", lambda x: x.collection, show_tooltips=True
+        )
+        self.study_entries.add_column(
+            "Study Instance UID", lambda x: x.suid, show_tooltips=True
+        )
+        self.study_entries.add_column("Date", lambda x: x.date, show_tooltips=True)
+        self.study_entries.add_column(
+            "Description", lambda x: x.desc, show_tooltips=True
+        )
+        self.study_entries.add_column(
+            "Patient ID", lambda x: x.patientId, show_tooltips=True
+        )
+        self.study_entries.add_column(
+            "Patient Sex", lambda x: x.patientSex, show_tooltips=True
+        )
+        self.study_entries.add_column(
+            "Patient Name", lambda x: x.patientName, show_tooltips=True
+        )
+        self.study_entries.add_column(
+            "Series Count", lambda x: x.scount, show_tooltips=True
+        )
         self.study_entries_layout.addWidget(self.study_entries)
         self.study_view_control_container = QWidget(self.study_entries_container)
         self.study_view_control_layout = QHBoxLayout(self.study_view_control_container)
@@ -181,7 +224,9 @@ class DICOMDatabases(ToolInstance):
         self.study_entries_layout.addWidget(self.study_view_control_container)
         self.study_entries.get_selection.connect(self._on_study_table_double_clicked)
         self.study_entries.launch()
-        self.back_to_search_button.clicked.connect(lambda: self._on_back_to_search_button_clicked())
+        self.back_to_search_button.clicked.connect(
+            lambda: self._on_back_to_search_button_clicked()
+        )
         self.interface_stack.addWidget(self.study_entries_container)
 
         self.series_entries_container = QWidget(self.interface_stack)
@@ -193,20 +238,42 @@ class DICOMDatabases(ToolInstance):
 
         self.series_entries_control_widget = QWidget(self.series_entries_container)
         self.series_entries_control_widget.setVisible(False)
-        self.series_entries = DICOMTable(self.series_entries_control_widget, None, self.series_entries_container)
-        self.series_entries.add_column("Study Instance UID", lambda x: x.studyUid, show_tooltips = True)
-        self.series_entries.add_column("Series Instance UID", lambda x: x.seriesUid, show_tooltips = True)
-        self.series_entries.add_column("Modality", lambda x: x.modality, show_tooltips = True)
-        self.series_entries.add_column("Protocol Name", lambda x: x.protocolName, show_tooltips = True)
-        self.series_entries.add_column("Series Description", lambda x: x.seriesDescription, show_tooltips = True)
-        self.series_entries.add_column("Body Part Examined", lambda x: x.bodyPart, show_tooltips = True)
-        self.series_entries.add_column("Patient ID", lambda x: x.patientID, show_tooltips = True)
-        self.series_entries.add_column("Series Number", lambda x: x.seriesNumber, show_tooltips = True)
-        self.series_entries.add_column("Image Count", lambda x: x.imageCount, show_tooltips = True)
+        self.series_entries = DICOMTable(
+            self.series_entries_control_widget, None, self.series_entries_container
+        )
+        self.series_entries.add_column(
+            "Study Instance UID", lambda x: x.studyUid, show_tooltips=True
+        )
+        self.series_entries.add_column(
+            "Series Instance UID", lambda x: x.seriesUid, show_tooltips=True
+        )
+        self.series_entries.add_column(
+            "Modality", lambda x: x.modality, show_tooltips=True
+        )
+        self.series_entries.add_column(
+            "Protocol Name", lambda x: x.protocolName, show_tooltips=True
+        )
+        self.series_entries.add_column(
+            "Series Description", lambda x: x.seriesDescription, show_tooltips=True
+        )
+        self.series_entries.add_column(
+            "Body Part Examined", lambda x: x.bodyPart, show_tooltips=True
+        )
+        self.series_entries.add_column(
+            "Patient ID", lambda x: x.patientID, show_tooltips=True
+        )
+        self.series_entries.add_column(
+            "Series Number", lambda x: x.seriesNumber, show_tooltips=True
+        )
+        self.series_entries.add_column(
+            "Image Count", lambda x: x.imageCount, show_tooltips=True
+        )
         self.series_entries_layout.addWidget(self.series_entries)
 
         self.series_view_control_container = QWidget(self.series_entries_container)
-        self.series_view_control_layout = QHBoxLayout(self.series_view_control_container)
+        self.series_view_control_layout = QHBoxLayout(
+            self.series_view_control_container
+        )
         self.series_view_control_layout.addWidget(self.back_to_beginning_button)
         self.series_view_control_layout.addWidget(self.back_to_studies_button)
         self.series_view_control_layout.addStretch()
@@ -215,8 +282,12 @@ class DICOMDatabases(ToolInstance):
         self.series_entries_layout.addWidget(self.series_view_control_container)
         self.series_entries.get_selection.connect(self._on_series_table_double_clicked)
         self.series_entries.launch()
-        self.back_to_studies_button.clicked.connect(lambda: self._on_back_to_studies_button_clicked())
-        self.back_to_beginning_button.clicked.connect(lambda: self._on_back_to_search_button_clicked())
+        self.back_to_studies_button.clicked.connect(
+            lambda: self._on_back_to_studies_button_clicked()
+        )
+        self.back_to_beginning_button.clicked.connect(
+            lambda: self._on_back_to_search_button_clicked()
+        )
         self.interface_stack.addWidget(self.series_entries_container)
 
         self.study_entries_layout.setContentsMargins(0, 0, 0, 0)
@@ -225,12 +296,14 @@ class DICOMDatabases(ToolInstance):
         self.series_view_control_layout.setContentsMargins(0, 0, 0, 0)
 
         self.load_webpage_button.clicked.connect(lambda: self._on_open_tcia_webpage())
-        self.refine_dataset_button.clicked.connect(lambda: self._on_drill_down_dataset_clicked())
+        self.refine_dataset_button.clicked.connect(
+            lambda: self._on_drill_down_dataset_clicked()
+        )
         self.refine_study_button.clicked.connect(lambda: self._on_drill_down_clicked())
         self.open_button.clicked.connect(lambda: self._on_open_button_clicked())
         self.parent.setLayout(self.main_layout)
         self.tool_window.fill_context_menu = self._fill_context_menu
-        self.tool_window.manage('side')
+        self.tool_window.manage("side")
 
         # TODO: When there's more than one database available remove this call
         self._on_database_changed()
@@ -239,7 +312,9 @@ class DICOMDatabases(ToolInstance):
         table = self._hovered_table(x, y)
         if table:
             load_database_action = QAction("Load Webpage for Chosen Entries", menu)
-            load_database_action.triggered.connect(lambda: self._on_open_tcia_webpage(self.database_entries.selected))
+            load_database_action.triggered.connect(
+                lambda: self._on_open_tcia_webpage(self.database_entries.selected)
+            )
             menu.addAction(load_database_action)
 
     def _hovered_table(self, x, y):
@@ -252,7 +327,7 @@ class DICOMDatabases(ToolInstance):
             return widget.parent()
         return None
 
-    def _on_open_tcia_webpage(self, selections = None):
+    def _on_open_tcia_webpage(self, selections=None):
         if not selections:
             selections = self.database_entries.selected
         for selection in selections:
@@ -266,7 +341,9 @@ class DICOMDatabases(ToolInstance):
 
     def _allocate_thread_and_worker(self, action: Action):
         self.thread = QThread()
-        self.worker = DatabaseWorker(self.session, self.available_dbs.currentText(), action)
+        self.worker = DatabaseWorker(
+            self.session, self.available_dbs.currentText(), action
+        )
         self.worker.moveToThread(self.thread)
         self.thread.started.connect(self.worker.run)
         self.thread.finished.connect(self.thread.deleteLater)
@@ -275,7 +352,9 @@ class DICOMDatabases(ToolInstance):
 
     def _on_database_changed(self):
         self._allocate_thread_and_worker(Action.LOAD_COLLECTIONS)
-        self.worker.collections_ready.connect(self._on_collection_entries_returned_from_worker)
+        self.worker.collections_ready.connect(
+            self._on_collection_entries_returned_from_worker
+        )
         self.worker.collection_fetched.connect(self._on_collection_fetched)
         self.status_container.setVisible(True)
         self.thread.start()
@@ -286,13 +365,14 @@ class DICOMDatabases(ToolInstance):
     def _on_collection_entries_returned_from_worker(self, entries):
         self.database_entries.data = [
             MainTableEntry(
-                x['name']
-                , x['patients']
-                , x['body_parts']
-                , x['species']
-                , x['modalities']
-                , x['url']
-            ) for x in entries
+                x["name"],
+                x["patients"],
+                x["body_parts"],
+                x["species"],
+                x["modalities"],
+                x["url"],
+            )
+            for x in entries
         ]
         self.database_entries.sortByColumn(0, Qt.SortOrder.AscendingOrder)
         self.status_container.setVisible(False)
@@ -307,7 +387,7 @@ class DICOMDatabases(ToolInstance):
             if self.thread is not None and self.thread.isRunning():
                 self.thread.exit()
         except RuntimeError:
-            pass # The underlying C++ object has already been deleted by DeleteLater
+            pass  # The underlying C++ object has already been deleted by DeleteLater
         super().delete()
 
     def _on_main_table_double_clicked(self, items):
@@ -321,14 +401,14 @@ class DICOMDatabases(ToolInstance):
     def _on_studies_returned_from_worker(self, entries):
         self.study_entries.data = [
             StudyTableEntry(
-                  x.get('StudyInstanceUID', None)
-                , x.get('StudyDate', None)
-                , x.get('StudyDescription', None)
-                , x.get('PatientID', None)
-                , x.get('PatientName', None)
-                , x.get('PatientSex', None)
-                , x.get('SeriesCount', None)
-                , x.get('Collection', None)
+                x.get("StudyInstanceUID", None),
+                x.get("StudyDate", None),
+                x.get("StudyDescription", None),
+                x.get("PatientID", None),
+                x.get("PatientName", None),
+                x.get("PatientSex", None),
+                x.get("SeriesCount", None),
+                x.get("Collection", None),
             )
             for x in entries
         ]
@@ -353,15 +433,15 @@ class DICOMDatabases(ToolInstance):
     def _on_series_returned_from_worker(self, entries):
         self.series_entries.data = [
             SeriesTableEntry(
-                x.get('StudyInstanceUID', None)
-                , x.get('SeriesInstanceUID', None)
-                , x.get('Modality', None)
-                , x.get('ProtocolName', None)
-                , x.get('SeriesDescription', None)
-                , x.get('BodyPartExamined', None)
-                , x.get('SeriesNumber', None)
-                , x.get('PatientID', None)
-                , x.get('ImageCount', None)
+                x.get("StudyInstanceUID", None),
+                x.get("SeriesInstanceUID", None),
+                x.get("Modality", None),
+                x.get("ProtocolName", None),
+                x.get("SeriesDescription", None),
+                x.get("BodyPartExamined", None),
+                x.get("SeriesNumber", None),
+                x.get("PatientID", None),
+                x.get("ImageCount", None),
             )
             for x in entries
         ]
@@ -384,10 +464,30 @@ class DICOMDatabases(ToolInstance):
 
 
 class SeriesTableEntry:
-    __slots__ = ["studyUid", "seriesUid", "modality", "protocolName", "seriesDescription", "bodyPart", "seriesNumber", "patientID",
-                 "imageCount"]
+    __slots__ = [
+        "studyUid",
+        "seriesUid",
+        "modality",
+        "protocolName",
+        "seriesDescription",
+        "bodyPart",
+        "seriesNumber",
+        "patientID",
+        "imageCount",
+    ]
 
-    def __init__(self, studyUid, serUid, modality, protocolName, seriesDescription, bodyPart, seriesNumber, patientID, imageCount):
+    def __init__(
+        self,
+        studyUid,
+        serUid,
+        modality,
+        protocolName,
+        seriesDescription,
+        bodyPart,
+        seriesNumber,
+        patientID,
+        imageCount,
+    ):
         self.studyUid = studyUid
         self.seriesUid = serUid
         self.modality = modality
@@ -400,8 +500,20 @@ class SeriesTableEntry:
 
 
 class StudyTableEntry:
-    __slots__ = ["suid", "date", "desc", "patientId", "patientName", "patientSex", "scount", "collection"]
-    def __init__(self, suid, date, desc, patientId, patientName, patientSex, scount, collection):
+    __slots__ = [
+        "suid",
+        "date",
+        "desc",
+        "patientId",
+        "patientName",
+        "patientSex",
+        "scount",
+        "collection",
+    ]
+
+    def __init__(
+        self, suid, date, desc, patientId, patientName, patientSex, scount, collection
+    ):
         self.suid = suid
         self.date = date
         self.desc = desc
@@ -422,6 +534,7 @@ class MainTableEntry:
         self.modalities = ", ".join(modalities)
         self.species = ", ".join(species)
         self.url = url
+
 
 class DatabaseWorker(QObject):
     collections_ready = Signal(list)
@@ -450,14 +563,18 @@ class DatabaseWorker(QObject):
 
     def _fetch_collections(self):
         entries = None
-        self.session.ui.thread_safe(self.session.logger.status, f"Loading collections from {self.database}")
+        self.session.ui.thread_safe(
+            self.session.logger.status, f"Loading collections from {self.database}"
+        )
         if self.database == "TCIA":
             entries = TCIADatabase.get_collections(self)
         self.collections_ready.emit(entries)
 
     def _fetch_studies(self):
         entries = []
-        self.session.ui.thread_safe(self.session.logger.status, "Loading requested studies...")
+        self.session.ui.thread_safe(
+            self.session.logger.status, "Loading requested studies..."
+        )
         if self.database == "TCIA":
             for study in self.requested_studies:
                 entries.extend(TCIADatabase.get_study(collection=study.collection))
@@ -465,7 +582,9 @@ class DatabaseWorker(QObject):
 
     def _fetch_series(self):
         entries = []
-        self.session.ui.thread_safe(self.session.logger.status, "Loading requested series...")
+        self.session.ui.thread_safe(
+            self.session.logger.status, "Loading requested series..."
+        )
         if self.database == "TCIA":
             for series in self.requested_series:
                 entries.extend(TCIADatabase.get_series(studyUid=series.suid))

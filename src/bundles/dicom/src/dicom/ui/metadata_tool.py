@@ -14,9 +14,14 @@ from Qt.QtCore import Qt
 from Qt.QtGui import QAction
 
 from Qt.QtWidgets import (
-    QVBoxLayout, QHBoxLayout, QSlider
-    , QSpinBox, QWidget, QLabel
-    , QAbstractItemView, QSizePolicy
+    QVBoxLayout,
+    QHBoxLayout,
+    QSlider,
+    QSpinBox,
+    QWidget,
+    QLabel,
+    QAbstractItemView,
+    QSizePolicy,
 )
 
 from chimerax.core.tools import ToolInstance
@@ -26,7 +31,9 @@ from pydicom.multival import MultiValue
 
 from .widgets import DICOMTable
 
-dicom_template_url: str = "http://dicomlookup.com/lookup.asp?sw=Tnumber&q=%s" # noqa they don't have https
+dicom_template_url: str = (
+    "http://dicomlookup.com/lookup.asp?sw=Tnumber&q=%s"  # noqa they don't have https
+)
 
 try:
     # We are inside GUI ChimeraX
@@ -52,7 +59,7 @@ class MetadataRow:
 
     # Save on memory by suppressing the internal class dictionary.
     # Only allocate these slots.
-    __slots__ = ['_internal_dict']
+    __slots__ = ["_internal_dict"]
 
     def __init__(self, row: dict):
         self._internal_dict = row
@@ -62,10 +69,9 @@ class MetadataRow:
 
 
 class DICOMMetadata(ToolInstance):
-
     help = "help:user/tools/dicommetadata.html"
 
-    def __init__(self, session = None, name = "DICOM Metadata"):
+    def __init__(self, session=None, name="DICOM Metadata"):
         """Bring up a tool to view fine-grained metadata in DICOM files.
         session: A ChimeraX session
         dicom_file: The data structure returned by pydicom.dcmread()
@@ -100,7 +106,9 @@ class DICOMMetadata(ToolInstance):
         self.file_path_label = QLabel(parent=self.parent)
         self.file_path_label.setMargin(6)
         self.file_path_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.file_path_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        self.file_path_label.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred
+        )
         self.file_path_label.setText("File path: %s" % self.files[0].path)
 
         self.file_slider.valueChanged[int].connect(self.on_file_changed_slider)
@@ -176,7 +184,7 @@ class DICOMMetadata(ToolInstance):
     def _on_file_changed(self, value: int) -> None:
         file = self.files[value - 1]
         self.table.data = [MetadataRow(item) for item in iter(file)]
-        self.file_path_label.setText(f'File path: {str(file.path)}')
+        self.file_path_label.setText(f"File path: {str(file.path)}")
 
     def on_file_changed_slider(self, value: int) -> None:
         self._on_file_changed(value)
@@ -200,6 +208,7 @@ class DICOMMetadata(ToolInstance):
     def open_dicom_webpage(self, selection):
         url = dicom_template_url % str(selection[0].tag).replace(" ", "")
         show_url(self.session, url)
+
 
 def _format_multivalue(element):
     if type(element.value) is MultiValue:

@@ -9,13 +9,24 @@
 # including partial copies, of the software or any revisions
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
-from numpy import array, zeros, float32, uint8, int32, where, expand_dims, array_equal, rot90
+from numpy import (
+    array,
+    zeros,
+    float32,
+    uint8,
+    int32,
+    where,
+    expand_dims,
+    array_equal,
+    rot90,
+)
 
 from chimerax.map import VolumeSurface
 from chimerax.graphics import Drawing
 from chimerax.graphics.drawing import rgba_drawing, position_rgba_drawing
 from chimerax.graphics.camera import ortho
 from ..types import Direction, Axis
+
 
 class SegmentationCursorOverlay(Drawing):
     def __init__(self, name, radius, thickness):
@@ -30,6 +41,7 @@ class SegmentationCursorOverlay(Drawing):
 
     def draw(self, renderer, draw_pass):
         from chimerax.graphics.opengl import GL
+
         if not self.max_point_size:
             self.max_point_size = GL.glGetIntegerv(GL.GL_POINT_SIZE_RANGE)[1]
         GL.glPointSize(min(self.max_point_size, self.thickness))
@@ -39,8 +51,7 @@ class SegmentationCursorOverlay(Drawing):
         r.set_projection_matrix(projection)
         Drawing.draw(self, renderer, draw_pass)
         r.set_projection_matrix(
-            ((1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0),
-             (0, 0, 0, 1))
+            ((1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0), (0, 0, 0, 1))
         )
         GL.glPointSize(1)
 
@@ -81,7 +92,17 @@ class SegmentationCursorOverlay(Drawing):
     def _geometry(self):
         # Bresenham's Algorithm
         def mirror_points_8(x, y):
-            return [(x, y), (y, x), (-x, y), (-y, x), (x, -y), (y, -x), (-x, -y), (-y, -x)]
+            return [
+                (x, y),
+                (y, x),
+                (-x, y),
+                (-y, x),
+                (x, -y),
+                (y, -x),
+                (-x, -y),
+                (-y, -x),
+            ]
+
         x = 0
         y = self.radius
         d = 1 - y
@@ -107,10 +128,12 @@ class SegmentationCursorOverlay(Drawing):
         vc = array([[255, 0, 0, 255]] * len(v), dtype=uint8)
         return vc, fv, None, t
 
+
 class SegmentationCursorOnOtherAxisOverlay(Drawing):
     """This is the chord formed by the intersection of the segmentation cursor overlay and the
     guideline overlay for some other axis."""
-    def __init__(self, name, direction = Direction.VERTICAL):
+
+    def __init__(self, name, direction=Direction.VERTICAL):
         super().__init__(name)
         self.display_style = Drawing.Mesh
         self.use_lighting = False
@@ -128,8 +151,7 @@ class SegmentationCursorOnOtherAxisOverlay(Drawing):
         r.set_projection_matrix(projection)
         Drawing.draw(self, renderer, draw_pass)
         r.set_projection_matrix(
-            ((1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0),
-             (0, 0, 0, 1))
+            ((1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0), (0, 0, 0, 1))
         )
 
     def update(self):
@@ -138,25 +160,39 @@ class SegmentationCursorOnOtherAxisOverlay(Drawing):
         self.vertex_colors = vc
 
     def _geometry(self):
-        bottom = max(self.bottom, self.center_on_drawing - self.length/2)
-        top = min(self.top, self.center_on_drawing + self.length/2)
+        bottom = max(self.bottom, self.center_on_drawing - self.length / 2)
+        top = min(self.top, self.center_on_drawing + self.length / 2)
         if self.direction == Direction.VERTICAL:
-            v = [[self.offset-1, bottom, 0], [self.offset-1, top, 0], [self.offset, top, 0], [self.offset, bottom, 0], [self.offset+1, bottom, 0], [self.offset+1, top, 0]]
-            t = [[0, 1], [1,2], [2,3], [3,4], [4,5], [5,0]]
+            v = [
+                [self.offset - 1, bottom, 0],
+                [self.offset - 1, top, 0],
+                [self.offset, top, 0],
+                [self.offset, bottom, 0],
+                [self.offset + 1, bottom, 0],
+                [self.offset + 1, top, 0],
+            ]
+            t = [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 0]]
             v = array(v, dtype=float32)
             t = array(t, dtype=int32)
             c = array([[255, 0, 0, 255]] * len(v), dtype=uint8)
         else:
-            v = [[bottom, self.offset, 0], [top, self.offset, 0], [top ,self.offset + 1,0], [bottom,self.offset+1,0]]
+            v = [
+                [bottom, self.offset, 0],
+                [top, self.offset, 0],
+                [top, self.offset + 1, 0],
+                [bottom, self.offset + 1, 0],
+            ]
             t = [[0, 1], [1, 2], [2, 3], [3, 0]]
             v = array(v, dtype=float32)
             t = array(t, dtype=int32)
             c = array([[255, 0, 0, 255]] * len(v), dtype=uint8)
         return c, v, None, t
 
+
 class OrthoplaneLocationOverlay(Drawing):
     """For any axis, this draws a line at the locations of the other two axes' slices."""
-    def __init__(self, name, slice, direction = Direction.VERTICAL):
+
+    def __init__(self, name, slice, direction=Direction.VERTICAL):
         super().__init__(name)
         self.display_style = Drawing.Mesh
         self.use_lighting = False
@@ -173,9 +209,9 @@ class OrthoplaneLocationOverlay(Drawing):
         projection = ortho(0, ww, 0, wh, -1, 1)
         r.set_projection_matrix(projection)
         Drawing.draw(self, renderer, draw_pass)
-        r.set_projection_matrix((
-            (1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0), (0, 0, 0, 1)
-        ))
+        r.set_projection_matrix(
+            ((1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0), (0, 0, 0, 1))
+        )
 
     def screen_space_offset(self):
         return self.slice * self.tick_thickness + self.offset
@@ -196,22 +232,36 @@ class OrthoplaneLocationOverlay(Drawing):
     def _geometry(self):
         if self.direction == Direction.VERTICAL:
             ofs = (self.slice * self.tick_thickness) + self.offset
-            v = [[ofs-1, self.bottom, 0], [ofs-1, self.top, 0], [ofs, self.top, 0], [ofs, self.bottom, 0], [ofs+1, self.bottom, 0], [ofs+1, self.top, 0]]
-            t = [[0, 1], [1,2], [2,3], [3,4], [4,5], [5,0]]
+            v = [
+                [ofs - 1, self.bottom, 0],
+                [ofs - 1, self.top, 0],
+                [ofs, self.top, 0],
+                [ofs, self.bottom, 0],
+                [ofs + 1, self.bottom, 0],
+                [ofs + 1, self.top, 0],
+            ]
+            t = [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 0]]
             v = array(v, dtype=float32)
             t = array(t, dtype=int32)
             c = array([[255, 0, 0, 255]] * len(v), dtype=uint8)
         else:
             ofs = (self.slice * self.tick_thickness) + self.offset
-            v = [[self.bottom, ofs, 0], [self.top, ofs, 0], [self.top ,ofs + 1,0], [self.bottom,ofs+1,0]]
+            v = [
+                [self.bottom, ofs, 0],
+                [self.top, ofs, 0],
+                [self.top, ofs + 1, 0],
+                [self.bottom, ofs + 1, 0],
+            ]
             t = [[0, 1], [1, 2], [2, 3], [3, 0]]
             v = array(v, dtype=float32)
             t = array(t, dtype=int32)
             c = array([[255, 0, 0, 255]] * len(v), dtype=uint8)
         return c, v, None, t
 
+
 class SegmentationOverlay(Drawing):
     """This highlights the region of the current slice that is segmented."""
+
     def __init__(self, name, segmentation, axis) -> None:
         super().__init__(name)
         self.display_style = Drawing.Solid
@@ -232,17 +282,17 @@ class SegmentationOverlay(Drawing):
         self._y_min = 0
         self._y_max = 0
 
-    def all_drawings(self, displayed_only = False):
+    def all_drawings(self, displayed_only=False):
         # Iteratively check parents to see if they are displayed. If any parent model is hidden,
         # return an empty list.
         if not self.segmentation_surface.parent.active:
             return []
-        dlist = super().all_drawings(displayed_only = displayed_only)
+        dlist = super().all_drawings(displayed_only=displayed_only)
         parent = self.segmentation_surface
         while parent:
             if not parent.display:
                 return []
-            parent = getattr(parent, 'parent', None)
+            parent = getattr(parent, "parent", None)
         return dlist
 
     @property
@@ -304,8 +354,7 @@ class SegmentationOverlay(Drawing):
         r.set_projection_matrix(projection)
         Drawing.draw(self, renderer, draw_pass)
         r.set_projection_matrix(
-            ((1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0),
-             (0, 0, 0, 1))
+            ((1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0), (0, 0, 0, 1))
         )
 
     def _update_graphics(self, renderer):
@@ -338,7 +387,7 @@ class SegmentationOverlay(Drawing):
             tx, ty = slice_data.shape
             # The volume itself for some reason does not take on the color of its
             # VolumeImage/VolumeSurface
-            zero = zeros((tx,ty,4), dtype=uint8)
+            zero = zeros((tx, ty, 4), dtype=uint8)
             expanded_slice_data = expand_dims(slice_data, -1)
             rgba = where(expanded_slice_data == 0, zero, self._color)
             ih, iw = rgba.shape[:2]
@@ -346,10 +395,10 @@ class SegmentationOverlay(Drawing):
             self._texture_size = (iw, ih)
             x, y = self.x_min, self.y_min
             w, h = self.x_max - x, self.y_max - y
-            rgba_drawing(self, rgba, (x, y), (w,h), opaque = False)
+            rgba_drawing(self, rgba, (x, y), (w, h), opaque=False)
             # TODO: The origin needs to be set to the bottom left corner of the
             # texture, not the bottom left corner of the window.
             # TODO: The width and height need to be set to the width and height
             # of the texture, not the width and height of the window.
-            position_rgba_drawing(self, (x,y), (w,h))
+            position_rgba_drawing(self, (x, y), (w, h))
             self.needs_update = False

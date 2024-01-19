@@ -1,4 +1,3 @@
-
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 # === UCSF ChimeraX Copyright ===
 # Copyright 2022 Regents of the University of California.
@@ -18,20 +17,24 @@ from chimerax.core.models import Model
 from chimerax.graphics import Drawing
 from chimerax.geometry import Place
 
+
 class SegmentationDisk(Model):
     SESSION_ENDURING = True
     SESSION_SAVE = False
-    def __init__(self, session, axis, radius = 10, height = 10, divisions = 50):
+
+    def __init__(self, session, axis, radius=10, height=10, divisions=50):
         super().__init__(" ".join([str(axis), "segmentation cursor"]), session)
         self.display_style = Drawing.Solid
         self.use_lighting = True
         self.axis = axis
         self._radius = radius
-        self._height = height # set to the slice thickness of whatever DICOM is being observed
+        self._height = (
+            height  # set to the slice thickness of whatever DICOM is being observed
+        )
         self._divisions = divisions
         self.color = [255, 85, 0, 255]
         self._slice = 1
-        self.position = Place(axes = axis.transform, origin = [0,0,0])
+        self.position = Place(axes=axis.transform, origin=[0, 0, 0])
         self.update_geometry()
 
     @property
@@ -61,13 +64,13 @@ class SegmentationDisk(Model):
         self._divisions = divisions
         self.update_geometry()
 
-#    @property
-#    def slice(self):
-#        return self._slice
-#
-#    @slice.setter
-#    def slice(self, slice):
-#        self._slice = slice
+    #    @property
+    #    def slice(self):
+    #        return self._slice
+    #
+    #    @slice.setter
+    #    def slice(self, slice):
+    #        self._slice = slice
 
     @property
     def origin(self):
@@ -75,10 +78,10 @@ class SegmentationDisk(Model):
 
     @origin.setter
     def origin(self, origin):
-        self.position = Place(axes = self.axis.transform, origin = origin)
+        self.position = Place(axes=self.axis.transform, origin=origin)
 
     def update_geometry(self):
         nz, nc = _cylinder_divisions(self.radius, self.height, self.divisions)
-        varray, tarray = cylinder_geometry(self.radius, self.height, nz, nc, caps = True)
+        varray, tarray = cylinder_geometry(self.radius, self.height, nz, nc, caps=True)
         narray = calculate_vertex_normals(varray, tarray)
         self.set_geometry(varray, narray, tarray)

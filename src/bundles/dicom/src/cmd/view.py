@@ -12,9 +12,14 @@ from ..ui.segmentations import SegmentationTool
 
 medical_types = [DicomGrid, NiftiGrid, NRRDGrid]
 
-def dicom_view(session, layout: str = None, guidelines: bool = None, force = False) -> None:
+
+def dicom_view(
+    session, layout: str = None, guidelines: bool = None, force=False
+) -> None:
     # TODO: Enable for NIfTI and NRRD as well
-    open_volumes = [v for v in session.models if type(v) is Volume or type(v) is DICOMVolume]
+    open_volumes = [
+        v for v in session.models if type(v) is Volume or type(v) is DICOMVolume
+    ]
     medical_volumes = [m for m in open_volumes if type(m.data) in medical_types]
     st = None
     for tool in session.tools:
@@ -46,24 +51,25 @@ def dicom_view(session, layout: str = None, guidelines: bool = None, force = Fal
 
 
 dicom_view_desc = CmdDesc(
-    required = [("layout", EnumOf(["default", *views]))],
-    keyword = [
-        ("guidelines", BoolArg)
-    ]
-    , optional = [("force", BoolArg)],
-    synopsis = "Set the view window to a grid of orthoplanes or back to the default"
+    required=[("layout", EnumOf(["default", *views]))],
+    keyword=[("guidelines", BoolArg)],
+    optional=[("force", BoolArg)],
+    synopsis="Set the view window to a grid of orthoplanes or back to the default",
 )
+
 
 def _check_rapid_access(*args):
     try:
         # This trigger fires many times, and on the last firing there is no model
         # we can pull the session out of, so we just have to catch the error here
         session = args[1][0].session
-        any_open_models = any(type(v) == DICOMVolume or type(v) == Volume for v in session.models)
+        any_open_models = any(
+            type(v) == DICOMVolume or type(v) == Volume for v in session.models
+        )
         if session.ui.is_gui:
             if not any_open_models:
                 if session.ui.main_window.view_layout != "default":
-                   session.ui.main_window.restore_default_main_view()
+                    session.ui.main_window.restore_default_main_view()
                 st = None
                 for tool in session.tools:
                     if type(tool) == SegmentationTool:
@@ -73,6 +79,7 @@ def _check_rapid_access(*args):
                     st.delete()
     except IndexError:
         pass
+
 
 def register_view_cmds(logger):
     register("dicom view", dicom_view_desc, dicom_view, logger=logger)

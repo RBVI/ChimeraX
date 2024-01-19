@@ -17,7 +17,7 @@ from collections import defaultdict
 from typing import Any, Dict, TypeVar, Union
 
 try:
-    import gdcm # noqa import used elsewhere
+    import gdcm  # noqa import used elsewhere
 except ModuleNotFoundError:
     _has_gdcm = False
 else:
@@ -35,6 +35,7 @@ from .dicom_hierarchy import Patient, SeriesFile
 
 Path = TypeVar("Path", os.PathLike, str, bytes, None)
 
+
 class DICOM:
     # TODO: Make a singleton
     def __init__(self, data: Union[Path, list[Path]], *, session: Session):
@@ -50,7 +51,7 @@ class DICOM:
 
     @classmethod
     def from_paths(cls, session, path: Union[Path, list[Path]]):
-        return cls(path, session = session)
+        return cls(path, session=session)
 
     def open(self):
         for patient in list(self.patients.values()):
@@ -80,7 +81,10 @@ class DICOM:
         return dicom_grids
 
     def find_dicom_files(
-        self, paths, search_directories: bool = True, search_subdirectories: bool = True,
+        self,
+        paths,
+        search_directories: bool = True,
+        search_subdirectories: bool = True,
     ) -> None:
         """Look through directories to find dicom files and group the ones
         that belong to the same study and image series.  Also determine the order
@@ -106,10 +110,14 @@ class DICOM:
         # Python Image Library cannot read 16-bit lossless jpeg.
         keep = []
         for f in files:
-            if (f.file_meta.TransferSyntaxUID == pydicom.uid.JPEGLosslessSV1
-                and f.get('BitsAllocated') == 16):
-                warning = 'Could not read DICOM %s because Python Image Library cannot read 16-bit lossless jpeg ' \
-                          'images. This functionality can be enabled by installing python-gdcm'
+            if (
+                f.file_meta.TransferSyntaxUID == pydicom.uid.JPEGLosslessSV1
+                and f.get("BitsAllocated") == 16
+            ):
+                warning = (
+                    "Could not read DICOM %s because Python Image Library cannot read 16-bit lossless jpeg "
+                    "images. This functionality can be enabled by installing python-gdcm"
+                )
                 self.session.logger.warning(warning % f.filename)
             else:
                 keep.append(f)
@@ -119,22 +127,27 @@ class DICOM:
         dfiles = []
         for root, dirs, files in os.walk(path):
             for f in files:
-                if f in ('.DS_Store', 'Thumbs.db', 'desktop.ini', 'LICENSE') or any(f.startswith(s) for s in ['._']):
+                if f in (".DS_Store", "Thumbs.db", "desktop.ini", "LICENSE") or any(
+                    f.startswith(s) for s in ["._"]
+                ):
                     continue
                 try:
                     dfiles.append(SeriesFile(dcmread(os.path.join(root, f))))
                 except InvalidDicomError:
-                    self.session.logger.info('Pydicom could not read invalid or non-DICOM file %s; skipping.' % f)
+                    self.session.logger.info(
+                        "Pydicom could not read invalid or non-DICOM file %s; skipping."
+                        % f
+                    )
         for d in dirs:
             dfiles.extend(self._find_dicom_files_in_directory_recursively(d))
         return dfiles
 
-    def dicom_patients(self, files) -> list['Patient']:
+    def dicom_patients(self, files) -> list["Patient"]:
         """Group DICOM files into series"""
         series = defaultdict(list)
         patients = []
         for f in files:
-            if hasattr(f, 'PatientID'):
+            if hasattr(f, "PatientID"):
                 series[f.PatientID].append(f)
             else:
                 series["Unknown Patient"].append(f)
@@ -153,7 +166,9 @@ class DICOM:
                 ref_patient = patient_list[0]
                 starting_index = 1
             else:
-                self.session.logger.warning("Merged incoming unique studies with existing patient with same ID")
+                self.session.logger.warning(
+                    "Merged incoming unique studies with existing patient with same ID"
+                )
             for patient in patient_list[starting_index:]:
                 ref_patient.merge_and_delete_other(patient)
             self.patients[ref_patient.pid] = ref_patient
@@ -178,8 +193,13 @@ class DICOM:
 class DICOMMapFormat(MapFileFormat, DICOM):
     def __init__(self):
         MapFileFormat.__init__(
-            self, 'DICOM image', 'dicom', ['dicom'], ['dcm'],
-            batch=True, allow_directory=True
+            self,
+            "DICOM image",
+            "dicom",
+            ["dicom"],
+            ["dcm"],
+            batch=True,
+            allow_directory=True,
         )
 
     @property

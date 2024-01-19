@@ -1,16 +1,20 @@
-from chimerax.core.commands import StringArg, CmdDesc, register, BoolArg
-from chimerax.core.models import REMOVE_MODELS
-from chimerax.map import Volume
 from chimerax.nifti import NiftiGrid
 from chimerax.nrrd import NRRDGrid
 from ..dicom import DicomGrid
 from .orthoplanes import PlaneViewer, PlaneViewerManager, Axis
 import PyQt6.sip
 from Qt.QtCore import Qt
-from Qt.QtWidgets import QWidget, QGridLayout, QHBoxLayout, QVBoxLayout, QSplitter, QSizePolicy
+from Qt.QtWidgets import (
+    QWidget,
+    QGridLayout,
+    QHBoxLayout,
+    QVBoxLayout,
+    QSplitter,
+)
 
 medical_types = [DicomGrid, NiftiGrid, NRRDGrid]
 views = ["fourup", "sidebyside", "overunder"]
+
 
 class FourPanelView(QWidget):
     def __init__(self, session, layout: str = "fourup"):
@@ -19,9 +23,15 @@ class FourPanelView(QWidget):
         self.session = session
         self._graphics_area = session.ui.main_window.graphicsArea()
         self._orthoplane_manager = PlaneViewerManager(session)
-        self._axial_orthoplane = PlaneViewer(self, self._orthoplane_manager, session, Axis.AXIAL)
-        self._coronal_orthoplane = PlaneViewer(self, self._orthoplane_manager, session, Axis.CORONAL)
-        self._sagittal_orthoplane = PlaneViewer(self, self._orthoplane_manager, session, Axis.SAGITTAL)
+        self._axial_orthoplane = PlaneViewer(
+            self, self._orthoplane_manager, session, Axis.AXIAL
+        )
+        self._coronal_orthoplane = PlaneViewer(
+            self, self._orthoplane_manager, session, Axis.CORONAL
+        )
+        self._sagittal_orthoplane = PlaneViewer(
+            self, self._orthoplane_manager, session, Axis.SAGITTAL
+        )
 
         if self._view_layout == "sidebyside":
             self._construct_side_by_side()
@@ -151,7 +161,7 @@ class FourPanelView(QWidget):
         self._main_layout.addWidget(self._main_widget)
         self._main_widget.addWidget(self.session.ui.main_window.graphicsArea())
         self._main_widget.addWidget(self._viewContainerWidget)
-        self._main_widget.setSizes([1000,300])
+        self._main_widget.setSizes([1000, 300])
 
         self.setLayout(self._main_layout)
 
@@ -175,11 +185,15 @@ class FourPanelView(QWidget):
         self._main_layout.addWidget(self._main_widget)
         self._main_widget.addWidget(self.session.ui.main_window.graphicsArea())
         self._main_widget.addWidget(self._viewContainerWidget)
-        self._main_widget.setSizes([100,2])
+        self._main_widget.setSizes([100, 2])
         self.setLayout(self._main_layout)
 
     def clean_up(self) -> None:
-        for orthoplane in [self._axial_orthoplane, self._coronal_orthoplane, self._sagittal_orthoplane]:
+        for orthoplane in [
+            self._axial_orthoplane,
+            self._coronal_orthoplane,
+            self._sagittal_orthoplane,
+        ]:
             orthoplane.close()
         if self._view_layout == "fourup":
             self._clean_fourup()

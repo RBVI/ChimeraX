@@ -13,6 +13,7 @@
 from chimerax.geometry import Place
 from chimerax.graphics import Camera
 
+
 class OrthoCamera(Camera):
     """A limited camera for the Side View without field_of_view"""
 
@@ -40,6 +41,7 @@ class OrthoCamera(Camera):
         h = w * aspect
         left, right, bot, top = -0.5 * w, 0.5 * w, -0.5 * h, 0.5 * h
         from chimerax.graphics.camera import ortho
+
         pm = ortho(left, right, bot, top, near, far)
         return pm
 

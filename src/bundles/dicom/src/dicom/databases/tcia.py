@@ -27,16 +27,12 @@ from ..dicom import DICOM
 
 _nbia_base_url = "https://services.cancerimagingarchive.net/nbia-api/services/v1/"
 
-logging.getLogger('tcia_utils').setLevel(100)
+logging.getLogger("tcia_utils").setLevel(100)
 
-NPEXSpecies = {
-    "337915000": "Human"
-    , "447612001": "Mouse"
-    , "448771007": "Dog"
-}
+NPEXSpecies = {"337915000": "Human", "447612001": "Mouse", "448771007": "Dog"}
+
 
 class TCIADatabase:
-
     data_usage_disclaimer = """\
 The data presented in the Download DICOM tool is provided by The Cancer Imaging Archive (TCIA), an effort funded
 by the National Cancer Institute's Cancer Imaging Program. When using these datasets it is up to you to abide by
@@ -54,9 +50,11 @@ can find the information you need.
 Please read the usage policy. If you agree to it and to abide by the citation and data usage policies of each collection
 you use, hit 'OK' to close this dialog and continue. If you do not agree, please hit 'Cancel'.
 """
+
     @staticmethod
-    def get_collections(worker = None):
-        from chimerax import app_dirs # noqa
+    def get_collections(worker=None):
+        from chimerax import app_dirs  # noqa
+
         tcia_cache_dir = os.path.join(app_dirs.user_cache_dir, "dicom")
         if not os.path.exists(tcia_cache_dir):
             Path(tcia_cache_dir).mkdir(parents=True, exist_ok=True)
@@ -68,7 +66,7 @@ you use, hit 'OK' to close this dialog and continue. If you do not agree, please
             time = os.path.getmtime(collections_cache_file)
             last_mod_date = datetime.datetime.fromtimestamp(time).strftime("%Y/%m/%d")
             today = datetime.datetime.now().strftime("%Y/%m/%d")
-            last_mod_date_is_today = (last_mod_date == today)
+            last_mod_date_is_today = last_mod_date == today
             if not last_mod_date_is_today:
                 new_collections = nbia.getUpdatedSeries(last_mod_date)
                 if new_collections and not last_mod_date_is_today:
@@ -77,7 +75,10 @@ you use, hit 'OK' to close this dialog and continue. If you do not agree, please
             with open(collections_cache_file, "r") as f:
                 collections_dict = json.loads(f.read())
             if worker:
-                worker.session.ui.thread_safe(worker.session.logger.status, f"Loaded TCIA collections using cached data")
+                worker.session.ui.thread_safe(
+                    worker.session.logger.status,
+                    f"Loaded TCIA collections using cached data",
+                )
         else:
             collections = nbia.getCollections()
             collection_descs = nbia.getCollectionDescriptions()
@@ -85,39 +86,45 @@ you use, hit 'OK' to close this dialog and continue. If you do not agree, please
             uris = defaultdict(str)
             collections_dict = defaultdict(dict)
             for entry in collection_descs:
-                uris[entry['collectionName']] = entry['descriptionURI']
+                uris[entry["collectionName"]] = entry["descriptionURI"]
             for entry in collections:
-                name = entry['Collection']
-                collections_dict[name] = {
-                    'name': name
-                    , 'url': uris.get(name, '')
-                }
+                name = entry["Collection"]
+                collections_dict[name] = {"name": name, "url": uris.get(name, "")}
             # Now get modalities, species, etc
             num_collections = len(collections)
             failed_to_fetch = False
             for index, collection in enumerate(collections_dict):
                 if worker:
-                    worker.collection_fetched.emit(index+1, num_collections)
-                data = nbia.getSimpleSearchWithModalityAndBodyPartPaged(collections=[collection])
+                    worker.collection_fetched.emit(index + 1, num_collections)
+                data = nbia.getSimpleSearchWithModalityAndBodyPartPaged(
+                    collections=[collection]
+                )
                 if data:
                     try:
-                        collections_dict[collection]['patients'] = data['totalPatients']
-                        collections_dict[collection]['body_parts'] = [string.capwords(x['value']) for x in data['bodyParts']]
-                        collections_dict[collection]['modalities'] = [m['value'] for m in data['modalities']]
+                        collections_dict[collection]["patients"] = data["totalPatients"]
+                        collections_dict[collection]["body_parts"] = [
+                            string.capwords(x["value"]) for x in data["bodyParts"]
+                        ]
+                        collections_dict[collection]["modalities"] = [
+                            m["value"] for m in data["modalities"]
+                        ]
                         species_list = []
-                        if data.get('species', []) is not None:
-                            for species in data.get('species', []):
-                                id = species['value']
+                        if data.get("species", []) is not None:
+                            for species in data.get("species", []):
+                                id = species["value"]
                                 species_list.append(NPEXSpecies.get(id, id))
-                        collections_dict[collection]['species'] = species_list
+                        collections_dict[collection]["species"] = species_list
                     except KeyError:
                         failed_to_fetch = True
                 else:
                     failed_to_fetch = True
             if failed_to_fetch and worker:
-                worker.session.ui.thread_safe(worker.session.logger.warning, "Failed to fetch some collections' metadata; won't cache these results.")
+                worker.session.ui.thread_safe(
+                    worker.session.logger.warning,
+                    "Failed to fetch some collections' metadata; won't cache these results.",
+                )
             else:
-                with open(collections_cache_file, 'w') as f:
+                with open(collections_cache_file, "w") as f:
                     f.write(json.dumps(collections_dict))
         return collections_dict.values()
 
@@ -138,8 +145,7 @@ you use, hit 'OK' to close this dialog and continue. If you do not agree, please
         os.chdir(download_dir)
         # Unfortunately the return type of this function is a Pandas dataframe, but we can
         # predict where tcia_utils will put the images
-        final_download_dir = os.path.join(
-            download_dir, "tciaDownload", studyUID)
+        final_download_dir = os.path.join(download_dir, "tciaDownload", studyUID)
         nbia.downloadSeries([{"SeriesInstanceUID": studyUID}])
         os.chdir(old_cwd)
         status_message = ""
