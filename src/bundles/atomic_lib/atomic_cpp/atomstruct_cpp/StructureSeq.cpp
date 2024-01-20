@@ -459,28 +459,6 @@ StructureSeq::set_from_seqres(bool fs)
 {
     if (fs == _from_seqres)
         return;
-    if (_from_seqres) {
-        // changing from true to false;
-        // eliminate seqres parts of sequence...
-        if (std::find(_residues.begin(), _residues.end(), nullptr)
-        != _residues.end()) {
-            // there actually are seqres portions
-            _res_map.clear();
-            StructureSeq::Residues new_residues;
-            Sequence::Contents new_contents;
-            auto ri = _residues.begin();
-            int i = 0;
-            for (auto si = begin(); si != end(); ++si, ++ri) {
-                if (*ri == nullptr)
-                    continue;
-                _res_map[*ri] = ++i;
-                new_residues.push_back(*ri);
-                new_contents.push_back(*si);
-            }
-            _residues.swap(new_residues);
-            swap(new_contents);
-        }
-    }
     _from_seqres = fs;
     if (is_chain())
         _structure->change_tracker()->add_modified(_structure, dynamic_cast<Chain*>(this),
