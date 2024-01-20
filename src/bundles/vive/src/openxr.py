@@ -179,9 +179,7 @@ class XR:
 
         min_ver = graphics_requirements.min_api_version_supported
         max_ver = graphics_requirements.max_api_version_supported
-        min_opengl_version = '%d.%d' % (min_ver >> 48, (min_ver >> 32) & 0xffff)
-        max_opengl_version = '%d.%d' % (max_ver >> 48, (max_ver >> 32) & 0xffff)
-        debug (f'OpenXR requires OpenGL version min {min_opengl_version}, max {max_opengl_version}')
+        debug (f'OpenXR requires OpenGL version min {min_ver}, max {max_ver}')
 
     def _create_projection_layer(self):
         '''Set projection mode'''

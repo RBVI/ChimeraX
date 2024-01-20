@@ -218,8 +218,12 @@ def _install_bundle(toolshed, bundles, logger, *, per_user=True, reinstall=False
             name = basename.split('-')[0]
             old_bundle = toolshed.find_bundle(name, logger, installed=True)
             bundle_name = bundle
-            from wheel_filename import parse_wheel_filename
-            bundle_version = parse_wheel_filename(bundle).version
+            from wheel_filename import parse_wheel_filename, InvalidFilenameError
+            try:
+                bundle_version = parse_wheel_filename(bundle).version
+            except InvalidFilenameError as err:
+                from chimerax.core.errors import UserError
+                raise UserError(f"{err}: must follow PEP 427 conventions")
         elif isinstance(bundle, BundleInfo):
             # If "bundle" is not a string, it must be a Bundle instance.
             old_bundle = toolshed.find_bundle(bundle.name, logger, installed=True)
