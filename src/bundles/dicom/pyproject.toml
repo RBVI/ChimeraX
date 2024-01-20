@@ -84,6 +84,10 @@ name = "tcia"
 format-name = "dicom"
 is-default = false
 
+[[chimerax.data-format."DICOM medical imaging".save]]
+compression-okay = false
+is-default = true
+
 [chimerax.tool."DICOM Browser"]
 category = "Medical Imaging"
 description = "View the metadata of a patient's DICOM files"

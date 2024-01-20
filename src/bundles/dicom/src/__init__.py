@@ -14,7 +14,7 @@ __version__ = "1.2"
 from chimerax.core.toolshed import BundleAPI
 from chimerax.map import add_map_format
 from chimerax.core.tools import get_singleton
-from .dicom import DICOMMapFormat, DicomOpener, fetchers, Patient, Study
+from .dicom import DICOMMapFormat, DicomOpener, DicomSaver, fetchers, Patient, Study
 from .dicom.dicom_volumes import DICOMVolume
 
 
@@ -80,10 +80,14 @@ class _DICOMBundle(BundleAPI):
     @staticmethod
     def run_provider(session, name, mgr, **kw):
         # return runners['name']
-        if name == "DICOM medical imaging":
-            return DicomOpener()
-        else:
-            return fetchers[name]()
+        if mgr == session.open_command:
+            if name == "DICOM medical imaging":
+                return DicomOpener()
+            else:
+                return fetchers[name]()
+        elif mgr == session.save_command:
+            if name == "DICOM medical imaging":
+                return DicomSaver()
 
 
 bundle_api = _DICOMBundle()
