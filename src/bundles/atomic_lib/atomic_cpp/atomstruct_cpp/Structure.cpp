@@ -933,13 +933,13 @@ Structure::_form_chain_check(Atom* a1, Atom* a2, Bond* b)
         } else {
             // incorporate start_r into other_r's chain
             auto other_chain = other_r->chain();
-            other_chain->set_from_seqres(false);
             auto other_index = other_chain->res_map().at(other_r);
             if (other_index == 0 || other_chain->residues()[other_index-1] != nullptr) {
                 if (other_index == 0)
                     other_chain->push_front(start_r);
                 else
                     other_chain->insert(other_r, start_r);
+                other_chain->set_from_seqres(false);
             } else {
                 other_chain->_residues[other_index-1] = start_r;
                 other_chain->_res_map[start_r] = other_index-1;
@@ -949,6 +949,7 @@ Structure::_form_chain_check(Atom* a1, Atom* a2, Bond* b)
                 auto new_char = Sequence::rname3to1(start_r->name());
                 if (old_char != new_char) {
                     other_chain->at(other_index-1) = new_char;
+                    other_chain->set_from_seqres(false);
                 }
             }
         }
@@ -956,7 +957,6 @@ Structure::_form_chain_check(Atom* a1, Atom* a2, Bond* b)
         if (other_r->chain() == nullptr) {
             // incorporate other_r into start_r's chain
             auto start_chain = start_r->chain();
-            start_chain->set_from_seqres(false);
             auto start_index = start_chain->res_map().at(start_r);
             if (start_index == start_chain->size() - 1
             || start_chain->residues()[start_index+1] != nullptr) {
@@ -964,6 +964,7 @@ Structure::_form_chain_check(Atom* a1, Atom* a2, Bond* b)
                     start_chain->push_back(other_r);
                 else
                     start_chain->insert(start_chain->residues()[start_index+1], other_r);
+                start_chain->set_from_seqres(false);
             } else {
                 start_chain->_residues[start_index+1] = other_r;
                 start_chain->_res_map[other_r] = start_index+1;
@@ -973,6 +974,7 @@ Structure::_form_chain_check(Atom* a1, Atom* a2, Bond* b)
                 auto new_char = Sequence::rname3to1(other_r->name());
                 if (old_char != new_char) {
                     start_chain->at(start_index+1) = new_char;
+                    start_chain->set_from_seqres(false);
                 }
             }
         } else if (start_r->chain() != other_r->chain()) {
