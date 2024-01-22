@@ -1830,12 +1830,13 @@ def next_token(text, convert=False):
         if not m:
             raise AnnotationError("incomplete quoted text")
         end = m.end('string')
-        token = m.group('string')[1:-1]
+        token = text[1:end - 1]
     elif text[0] == "'":
         m = _single_quote.match(text)
         if not m:
             raise AnnotationError("incomplete quoted text")
-        token = m.group('string')[1:-1]
+        end = m.end('string')
+        token = text[1:end - 1]
     elif text[0] == ';':
         return ';', ';', text[1:]
     else:
