@@ -507,6 +507,8 @@ clock_t start_t = clock();
     const Real p7nn2nh = 1.3337;
     const Real p7on2nh = 1.3485;
 
+    const Real p9o2n2 = 1.295 * 1.295;
+
 #ifdef TIME_PASSES
 clock_t t0 = clock();
 #endif
@@ -2003,8 +2005,9 @@ t0 = t1;
 #endif
 
     // "pass 9":  another non-IDATM pass and analogous to pass 8:
-    //  change O3 bonded only to non-Npl sp2 atom not in turn bonded
-    //  to non-Npl sp2 to O2.
+    //  change O3 bonded only to sp2 atom not in turn bonded
+    //  to non-Npl sp2 to O2, unless the bonded atom is Npl, in
+    //  which case check the bond distance and also change to N2+ if short.
     for (auto a: untyped_atoms) {
 
         auto idatm_type = a->idatm_type();
@@ -2047,8 +2050,15 @@ t0 = t1;
                 }
             }
         }
-        if (!remote_sp2)
-            a->set_computed_idatm_type("O2");
+        if (!remote_sp2) {
+            if (bondee_type == "Npl") {
+                if (bondee->coord().sqdistance(a->coord()) < p9o2n2) {
+                    a->set_computed_idatm_type("O2");
+                    bondee->set_computed_idatm_type("N2+");
+                }
+            } else
+                a->set_computed_idatm_type("O2");
+        }
     }
 #ifdef TIME_PASSES
 t1 = clock();
