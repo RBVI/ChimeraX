@@ -147,7 +147,8 @@ class UI(QApplication):
         def cx_qt_msg_handler(msg_type, msg_log_context, msg_string,
                               log_fatal_error = self._log_qt_fatal_error):
             if (msg_string.startswith('delivering touch release to same window')
-                or msg_string.startswith('skipping QEventPoint')):
+                or msg_string.startswith('skipping QEventPoint')
+                or msg_string.startswith('doh set to')):
                 return	# Supress Qt 6.2 warnings
             if 'QWindowsWindow::setDarkBorderToWindow' in msg_string:
                 return  # Supress Qt 6.4 warning, ChimeraX ticket #8541

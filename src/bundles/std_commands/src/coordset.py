@@ -122,9 +122,11 @@ def coordset_slider(session, structures, hold_steady = None,
     from chimerax.core.errors import UserError
     raise UserError('No structures specified')
 
+  from .coordset_gui import CoordinateSetSlider
+  CoordinateSetSlider.remove_coordset_sliders(structures)
+  
   for m in structures:
     hold = hold_steady.intersect(m.atoms) if hold_steady else None
-    from .coordset_gui import CoordinateSetSlider
     CoordinateSetSlider(session, m, steady_atoms = hold,
                         pause_frames = pause_frames, compute_ss = compute_ss,
                         movie_framerate = movie_framerate)
