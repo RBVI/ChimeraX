@@ -1975,7 +1975,7 @@ t0 = t1;
                 if (!remote_sp2) {
                     int hvys = heavys[a];
                     if (hvys >= 1)
-                        a->set_computed_idatm_type(hvys > 2 ? "Npl" : "N2");
+                        a->set_computed_idatm_type(a->bonds().size() > 2 ? "Npl" : "N2");
                     else
                         a->set_computed_idatm_type("N3+");
                     break;
