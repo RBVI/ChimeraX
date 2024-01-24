@@ -1,11 +1,13 @@
 from enum import IntEnum
-from typing import Protocol
+
 
 class Direction(IntEnum):
     """Used by the SliceOverlay class to control whether to draw
     horizontally or vertically"""
+
     HORIZONTAL = 0
     VERTICAL = 1
+
 
 class Axis(IntEnum):
     AXIAL = 2
@@ -34,20 +36,14 @@ class Axis(IntEnum):
             return 0
         else:
             return 2
-        
+
     @property
     def horizontal(self):
         if self.value == 2:
             return 1
         else:
             return 0
-        
+
     @property
     def cartesian(self):
         return ["x", "y", "z"][self.value]
-
-
-class Segmentation(Protocol):
-    def save(filename) -> None:
-        raise NotImplementedError
-

@@ -39,7 +39,7 @@ from chimerax.core.tools import ADD_TOOL_INSTANCE
 
 from chimerax.geometry import Place, translation
 from chimerax.graphics import Drawing
-from chimerax.map import Volume, VolumeSurface, VolumeImage
+from chimerax.map import Volume, VolumeSurface, VolumeImage, Segmentation
 from chimerax.map.volume import show_planes
 from chimerax.map.volume_viewer import VolumeViewer, Histogram_Pane
 from chimerax.map.volumecommand import apply_volume_options
@@ -243,6 +243,7 @@ class PlaneViewer(QWindow):
 
         def _not_volume_surface_or_segmentation(m):
             ok_to_list = not isinstance(m, VolumeSurface)
+            ok_to_list &= not isinstance(m, VolumeImage)
             # This will run over all models which may not have DICOM data...
             try:
                 if hasattr(m.data, "dicom_data"):
@@ -251,6 +252,7 @@ class PlaneViewer(QWindow):
                     ok_to_list &= not m.data.reference_data
             except AttributeError:
                 pass
+            ok_to_list &= not isinstance(m, Segmentation)
             return ok_to_list
 
         self.model_menu = ModelMenu(
@@ -556,12 +558,12 @@ class PlaneViewer(QWindow):
             self.pos = self.slider.sliderPosition()
             diff = self.pos - self.old_pos
         self.slider_moved = True
-        if self.axis == Axis.AXIAL:
-            # TODO: Convert this object to use the Volume and not the VolumeImage?
-            # TODO: Add an API to Volume and Grid to get underlying data?
-            # TODO: DICOM, NRRD, and NIfTI need mutually compatible methods
-            if not self.view.drawing.parent.data.inferior_to_superior:
-                diff = -diff
+        # if self.axis == Axis.AXIAL:
+        # TODO: Convert this object to use the Volume and not the VolumeImage?
+        # TODO: Add an API to Volume and Grid to get underlying data?
+        # TODO: DICOM, NRRD, and NIfTI need mutually compatible methods
+        #    if not self.view.drawing.parent.data.inferior_to_superior:
+        #        diff = -diff
         # self.camera_offsets[self.axis] -= diff * self.drawingVolumeStep()[self.axis]
         # TODO: Set the segmentation drawing's position to coincide with the new slice
         if self.segmentation_tool:
@@ -1278,7 +1280,7 @@ class PlaneViewer(QWindow):
             self.slider.setValue(1)
             self.pos = 1
         else:
-            v = self.model_menu.value.copy()
+            v = self.model_menu.value.copy(open_model=False)
             self.model_menu.value.expand_single_plane()
             self.model_menu.value.set_display_style("surface")
             self.model_menu.value._drawings_need_update()
@@ -1555,7 +1557,7 @@ class SegmentationVolumePanel(Histogram_Pane):
         self._planes_slider_shown = False
         self._planes_slider_frame = None
 
-    def show_plane_slider(self, show, axis=2):
+    def show_plane_slider(self, show, axis=2):  # noqa
         pass
 
     def data_step_cb(self, step):

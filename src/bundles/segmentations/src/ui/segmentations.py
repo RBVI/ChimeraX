@@ -43,11 +43,9 @@ from chimerax.core.settings import Settings
 
 from chimerax.geometry import Place, translation
 
-from chimerax.map import Volume, VolumeSurface, VolumeImage
-from chimerax.map.volume import open_grids
+from chimerax.map import Volume, VolumeSurface, VolumeImage, Segmentation
 
 from chimerax.ui import MainToolWindow
-from chimerax.ui.font import shrink_font
 from chimerax.ui.open_save import SaveDialog
 from chimerax.ui.options import (
     SettingsPanel,
@@ -70,6 +68,7 @@ from ..graphics.cylinder import SegmentationDisk
 from ..graphics.sphere import SegmentationSphere
 from ..dicom import modality
 from ..dicom.dicom_volumes import DICOMVolume
+from ..dicom.dicom_segmentations import PlanePuckSegmentation, SphericalSegmentation
 
 
 class SegmentationListItem(QListWidgetItem):
@@ -556,7 +555,9 @@ class SegmentationTool(ToolInstance):
         self.view_dropdown_layout.setSpacing(0)
 
         def _not_volume_surface_or_segmentation(m):
-            ok_to_list = isinstance(m, DICOMVolume)
+            ok_to_list = isinstance(m, Volume)
+            ok_to_list &= not isinstance(m, VolumeSurface)
+            ok_to_list &= not isinstance(m, Segmentation)
             # This will run over all models which may not have DICOM data...
             try:
                 if hasattr(m.data, "dicom_data"):
@@ -743,7 +744,9 @@ class SegmentationTool(ToolInstance):
         _, model_list = args
         if model_list:
             for model in model_list:
-                if type(model) is DICOMVolume and model.is_segmentation():
+                if (type(model) is DICOMVolume and model.is_segmentation()) or type(
+                    model
+                ) is Segmentation:
                     self.segmentation_list.addItem(
                         SegmentationListItem(
                             parent=self.segmentation_list, segmentation=model
@@ -1001,12 +1004,11 @@ class SegmentationTool(ToolInstance):
             center_x, center_y = marker.drawing_center
             radius = self.segmentation_cursors[axis].radius
             positions.append((center_x, center_y, radius))
+        segmentation_strategy = PlanePuckSegmentation(axis, slice, positions, value)
         if self.intensity_range_checkbox.isChecked() and value != 0:
-            self.active_seg.set_2d_segment_data(
-                axis, slice, positions, value, self.threshold_min, self.threshold_max
-            )
-        else:
-            self.active_seg.set_2d_segment_data(axis, slice, positions, value)
+            segmentation_strategy.min_threshold = self.threshold_min
+            segmentation_strategy.max_threshold = self.threshold_max
+        self.active_seg.segment(segmentation_strategy)
 
     def addMarkersToSegment(self, axis, slice, markers):
         self.setMarkerRegionsToValue(axis, slice, markers, 1)
@@ -1015,7 +1017,7 @@ class SegmentationTool(ToolInstance):
         self.setMarkerRegionsToValue(axis, slice, markers, 0)
 
     def addSegment(self):
-        # When the DICOMVolume creates its segmentation model, it will trigger a
+        # When the DICOMVolume creates its segmentation model, it will trigger an
         # ADD_MODEL event that we listen to above. Concerns are separated here so
         # that segmentations from files still show up in the menu.
         self.num_segmentations_created += 1
@@ -1025,6 +1027,7 @@ class SegmentationTool(ToolInstance):
         new_seg.set_transparency(
             int((self.settings.default_segmentation_opacity / 100) * 255)
         )
+        self.session.models.add([new_seg])
         num_items = self.segmentation_list.count()
         self.segmentation_list.setCurrentItem(
             self.segmentation_list.item(num_items - 1)
@@ -1033,7 +1036,7 @@ class SegmentationTool(ToolInstance):
     def removeSegment(self, segments=None):
         # We don't need to listen to the REMOVE_MODEL trigger because we're going
         # to be the ones triggering it, here.
-        if type(segments) is bool:
+        if isinstance(segments, bool):
             # We got here from clicking the button...
             segments = None
         if segments is None:
@@ -1207,12 +1210,12 @@ class SegmentationTool(ToolInstance):
     def setSphereRegionToValue(self, origin, radius, value=1):
         if not self.active_seg:
             self.addSegment()
+        segmentation_strategy = SphericalSegmentation(origin, radius, value)
         if self.intensity_range_checkbox.isChecked() and value != 0:
-            self.active_seg.set_sphere_data(
-                origin, radius, value, self.threshold_min, self.threshold_max
-            )
+            segmentation_strategy.min_threshold = self.threshold_min
+            segmentation_strategy.max_threshold = self.threshold_max
         else:
-            self.active_seg.set_sphere_data(origin, radius, value)
+            self.active_seg.segment(segmentation_strategy)
 
     def addSphereToSegment(self, origin, radius):
         self.setSphereRegionToValue(origin, radius, 1)

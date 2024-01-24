@@ -41,7 +41,7 @@ classifiers = ["Development Status :: 2 - Pre-Alpha"]
 "src/icons" = ["*.png"]
 
 [chimerax.initializations.manager]
-bundles = ["ChimeraX-MedicalToolbar", "ChimeraX-MouseModes"]
+bundles = ["ChimeraX-MedicalToolbar"]
 
 # Don't delete just in case we do want to display these modes in the toolbar
 # [chimerax.provider."create segmentations"]
@@ -95,18 +95,6 @@ description = "View the metadata of a patient's DICOM files"
 [chimerax.tool."Download DICOM"]
 category = "Medical Imaging"
 description = "View the contents of public DICOM datasets from within ChimeraX"
-
-[chimerax.tool."Segmentations"]
-category = "Medical Imaging"
-description = "Interactively segment medical images"
-
-[chimerax.command."dicom view"]
-category = "Medical Imaging"
-description = "See medical images in a 4-panel viewer"
-
-[chimerax.command."dicom segmentations"]
-category = "Medical Imaging"
-description = "Create or destory segmentations"
 
 # TL;DR Do not modify monailabel.py to register this command
 # ----

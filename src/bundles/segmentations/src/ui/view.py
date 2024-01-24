@@ -1,6 +1,3 @@
-from chimerax.nifti import NiftiGrid
-from chimerax.nrrd import NRRDGrid
-from ..dicom import DicomGrid
 from .orthoplanes import PlaneViewer, PlaneViewerManager, Axis
 import PyQt6.sip
 from Qt.QtCore import Qt
@@ -12,7 +9,6 @@ from Qt.QtWidgets import (
     QSplitter,
 )
 
-medical_types = [DicomGrid, NiftiGrid, NRRDGrid]
 views = ["fourup", "sidebyside", "overunder"]
 
 
