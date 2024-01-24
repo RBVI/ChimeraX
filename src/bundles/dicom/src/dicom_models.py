@@ -1,20 +1,10 @@
-import datetime
-
 from numpy import array, zeros, concatenate, empty, float32, int32, uint8
-import pydicom.uid
 
-from pydicom.dataset import FileMetaDataset, Dataset
-from pydicom.sequence import Sequence
-
-from chimerax.core import version as chimerax_version
 from chimerax.core.decorators import requires_gui
 from chimerax.core.models import Model, Surface
 
 from chimerax.map_data import GridData
 from chimerax.map_data.readarray import allocate_array
-
-from .. import __version__ as dicom_bundle_version
-from ..types import Segmentation
 
 
 class DicomContours(Model):
@@ -136,7 +126,6 @@ class DicomGrid(GridData):
         channel=None,
     ):
         self.dicom_data = dicom_data
-        self.reference_data = None
         GridData.__init__(
             self,
             size,

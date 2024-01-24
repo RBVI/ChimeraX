@@ -1,17 +1,22 @@
 import datetime
 
 import pydicom.uid
+from pydicom import dcmread
+from pydicom.errors import InvalidDicomError
+
+from pathlib import Path
 
 from pydicom.dataset import FileMetaDataset, Dataset
 from pydicom.sequence import Sequence
 
 from chimerax.core import version as chimerax_version
 
-from .. import __version__ as dicom_bundle_version
+from . import __version__ as dicom_bundle_version
 from .dicom_models import DicomGrid
 
 from chimerax.save_command import SaverInfo
-from chimerax.map import Volume, Segmentation
+from chimerax.map import Volume
+from chimerax.segmentations import Segmentation
 
 
 class DicomSaver(SaverInfo):
@@ -40,24 +45,32 @@ class DicomSaver(SaverInfo):
         # Error out early if standard-required attributes are missing
         # We only care about Volumes and Segmentations; we can derive everything else from those
 
-        volumes = []
         segmentations = []
+        # TODO: UserError
         for model in list(models):
-            if isinstance(model, Volume) and isinstance(model.data, DicomGrid):
-                volumes.append(model)
-            elif isinstance(model, Segmentation):
+            if isinstance(model, Segmentation):
                 segmentations.append(model)
 
-        if not volumes and not segmentations:
-            raise ValueError("No volumes or segmentations to save")
-
-        for volume in volumes:
-            if not volume.data:
-                raise ValueError("Volume has no data")
+        if not segmentations:
+            raise ValueError("No segmentations to save")
 
         for segmentation in segmentations:
             if not segmentation.data:
                 raise ValueError("Segmentation has no data")
+
+        # Look at the files that we read in to make the GridData to see if they were DICOM
+        # files themselves
+        sample_file = volumes[0].data.path[0]
+        data_was_dicom = False
+        try:
+            dcmread(sample_file)
+            data_was_dicom = True
+        except InvalidDicomError:
+            data_was_dicom = False
+
+        if data_was_dicom:
+            ...
+        data_was_dicom = sample_file.suffix == ".dcm"
 
         sample_file = self.reference_data.dicom_data.sample_file
         dt = datetime.datetime.now()
@@ -90,7 +103,7 @@ class DicomSaver(SaverInfo):
         elif not sample_file.is_little_endian and sample_file.is_implicit_VR:
             # This is not a valid transfer syntax
             raise ValueError(
-                "Cannot save DICOM SEG file with big endian implicit VR transfer syntax"
+                "Cannot save DICOM file with big endian implicit VR transfer syntax"
             )
         # endregion
 

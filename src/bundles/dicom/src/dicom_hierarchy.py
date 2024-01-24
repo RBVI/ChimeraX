@@ -12,14 +12,13 @@
 # === UCSF ChimeraX Copyright ===
 import datetime
 import math
-import os
 
 from collections import defaultdict
 from functools import cached_property
 
 import pydicom.uid
 
-from numpy import cross, dot, float32, uint8, int8, uint16, int16
+from numpy import cross, float32, uint8, int8, uint16, int16
 
 from pydicom import dcmread
 from typing import Optional
@@ -29,10 +28,12 @@ from chimerax.core.models import Model
 from chimerax.core.tools import get_singleton
 from chimerax.core.session import Session
 
+from chimerax.map.volume import open_grids
+from chimerax.segmentations import open_grids_as_segmentation
 
 from .errors import MismatchedUIDError, UnrenderableSeriesError
 from .dicom_models import DicomContours, DicomGrid
-from .dicom_volumes import open_dicom_grids
+from . import modality
 
 
 class Patient(Model):
@@ -206,10 +207,12 @@ class Study(Model):
         if self.series:
             derived = []
             sgrids = {}
+            all_opened_models = []
             for s in self.series:
                 try:
                     if s.uid not in self._drawn_series:
-                        models = s.to_models(derived, sgrids)
+                        models = s.to_models(all_opened_models, derived, sgrids)
+                        all_opened_models.extend(models)
                         self.add(models)
                         self._drawn_series.add(s.uid)
                 except UnrenderableSeriesError as e:
@@ -302,10 +305,10 @@ class Series:
             else:
                 self.dicom_data.append(DicomData(self.session, self, file_list))
 
-    def to_models(self, derived, sgrids):
+    def to_models(self, open_models, derived, sgrids):
         models = []
         for data in self.dicom_data:
-            grids = data.to_models(derived, sgrids)
+            grids = data.to_models(open_models, derived, sgrids)
             models.extend(grids)
         return models
 
@@ -610,12 +613,30 @@ class DicomData:
         #        g.show_on_open = False
         return grids
 
-    def to_models(self, derived, sgrids):
+    def to_models(self, open_models, derived, sgrids):
         if self.contour_series:
             return [DicomContours(self.session, s, self.name) for s in self.files]
         elif self.image_series:
             grids = self._to_grids(derived, sgrids)
-            return open_dicom_grids(self.session, grids, name=self.name)[0]
+            originals, segs = [], []
+            for grid in grids:
+                if grid.dicom_data.modality == modality.Segmentation:
+                    segs.append(grid)
+                else:
+                    originals.append(grid)
+            models = []
+            # TODO: Look thorugh open_models for segmentations' source volumes
+            if originals:
+                models.extend(open_grids(self.session, originals, name=self.name)[0])
+            if segs:
+                models.extend(
+                    open_grids_as_segmentation(self.session, segs, name=self.name)[0]
+                )
+            for model in models:
+                for omodel in open_models:
+                    if model.data.reference_data is omodel.data:
+                        model.reference_data = omodel
+            return models
         else:
             raise UnrenderableSeriesError(
                 "No model created for Series #%s from patient %s because "

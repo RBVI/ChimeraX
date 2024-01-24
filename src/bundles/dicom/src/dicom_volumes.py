@@ -16,7 +16,7 @@ from chimerax.map.volume import (
     Volume,
 )
 
-from ..types import Axis
+from .types import Axis
 
 from . import modality
 from chimerax.core.models import Model
