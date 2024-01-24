@@ -1942,7 +1942,7 @@ t0 = t1;
     }
 
     // order typing by easiest-figure-out (1 sp2 bonded) to hardest (3)
-    // good test cases:  1CY in 3UM8; WRA in 1J3I
+    // good test cases:  1CY in 3UM8; WRA in 1J3I, pubchem:3077812
     for (unsigned int i = 1; i < 4; ++i) {
         for(auto a_sp2s: bonded_sp2s) {
             const std::vector<Atom *> &sp2s = a_sp2s.second;
@@ -1974,11 +1974,8 @@ t0 = t1;
                 }
                 if (!remote_sp2) {
                     int hvys = heavys[a];
-                    if (hvys > 1)
+                    if (hvys >= 1)
                         a->set_computed_idatm_type(hvys > 2 ? "Npl" : "N2");
-                    else if (hvys == 1)
-                        a->set_computed_idatm_type(is_N3plus_okay(
-                            a->neighbors()) ? "N3+" : "N3");
                     else
                         a->set_computed_idatm_type("N3+");
                     break;
