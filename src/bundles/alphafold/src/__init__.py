@@ -64,6 +64,9 @@ class _AlphaFoldBundle(BundleAPI):
         elif command_name == 'alphafold msa':
             from . import msa
             msa.register_alphafold_msa_command(logger)
+        elif command_name == 'alphafold dimers':
+            from . import dimers
+            dimers.register_alphafold_dimers_command(logger)
 
     @staticmethod
     def run_provider(session, name, mgr):

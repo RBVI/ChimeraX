@@ -14,7 +14,7 @@
   </Categories>
 
   <Dependencies>
-    <Dependency name="ChimeraX-Core" version="~=1.0"/>
+    <Dependency name="ChimeraX-Core" version="&gt;=1.6, &lt;2.0"/>
     <Dependency name="ChimeraX-Atomic" version="~=1.0"/>
     <Dependency name="ChimeraX-DataFormats" version="~=1.0"/>
     <Dependency name="ChimeraX-OpenCommand" version="~=1.0"/>
@@ -23,7 +23,7 @@
 
   <Providers manager="data formats">
     <Provider name="NMRSTAR" synopsis="NMR-STAR distance restraints" category="Generic 3D objects"
-		suffixes=".str" nicknames="nmrstr"
+		suffixes=".str" nicknames="nmrstar"
 		reference_url="https://link.springer.com/article/10.1007/s10858-018-0220-3" />
   </Providers>
 

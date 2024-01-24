@@ -1,11 +1,11 @@
-*** pyopenxr-1.0.2801.dist-info/METADATA.orig	Sat Aug 26 10:40:52 2023
---- pyopenxr-1.0.2801.dist-info/METADATA	Sat Aug 26 10:42:56 2023
+*** pyopenxr-1.0.3301.dist-info/METADATA.orig	Sat Aug 26 10:40:52 2023
+--- pyopenxr-1.0.3301.dist-info/METADATA	Sat Aug 26 10:42:56 2023
 ***************
 *** 22,28 ****
   License-File: LICENSE
   Requires-Dist: glfw
   Requires-Dist: numpy
-! Requires-Dist: PyOpenGL (==3.1.6)
+! Requires-Dist: PyOpenGL ==3.1.6
   Requires-Dist: setuptools
   Provides-Extra: generate
   Requires-Dist: clang ; extra == 'generate'

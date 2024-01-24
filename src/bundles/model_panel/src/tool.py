@@ -428,11 +428,13 @@ class ModelPanel(ToolInstance):
             if m in self.skip_models and not self.skip_models[m] and m.display]
         if len(cur_shown) > 1:
             hide(cur_shown[1:], self.session)
+            self.session.logger.status("Showing %s" % cur_shown[0])
             return
         if not cur_shown:
             for m in self.models:
                 if m in self.skip_models and not self.skip_models[m]:
                     show([m], self.session)
+                    self.session.logger.status("Showing %s" % m)
                     break
             else:
                 self.session.logger.warn("No models in display sequence")
@@ -450,6 +452,7 @@ class ModelPanel(ToolInstance):
                 continue
             show([next_m], self.session)
             hide([m], self.session)
+            self.session.logger.status("Showing %s" % next_m)
             break
 
     def _shown_changed(self, shown):

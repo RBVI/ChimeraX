@@ -114,6 +114,8 @@ class OpenManager(ProviderManager):
                 raise ValueError("Database-fetch provider '%s' in bundle %s specified"
                     " unknown data format '%s'" % (ui_name, bundle_name, format_name))
             if name in self._fetchers and format_name in self._fetchers[name]:
+                if not bundle_info.installed:
+                    return
                 logger.warning("Replacing fetcher for '%s' and format %s from %s bundle"
                     " with that from %s bundle" % (ui_name, format_name,
                     _readable_bundle_name(self._fetchers[name][format_name].bundle_info),
