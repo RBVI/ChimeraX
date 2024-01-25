@@ -39,6 +39,8 @@ FLIB_NAMES_FILE = $(tmpdir)/mac_flib_names
 endif
 endif
 
+CMAKE = /usr/local/bin/cmake
+
 DISTRIBUTION = AmberTools$(VERSION).tar.bz2
 SOURCE = $(tmpdir)/AmberTools$(VERSION)
 AMBERHOME = $(SOURCE)/amber$(SRC_VERSION)_src
@@ -107,7 +109,7 @@ endif
 else
 install: $(SOURCE)
 	-mkdir $(CMAKE_BUILD_DIR) $(CMAKE_INSTALL_DIR)
-	cd $(CMAKE_BUILD_DIR) && cmake $(AMBERHOME) -DCMAKE_INSTALL_PREFIX=$(CMAKE_INSTALL_DIR) -DCOMPILER=CLANG -DDOWNLOAD_MINICONDA=FALSE -DBUILD_PYTHON=FALSE
+	cd $(CMAKE_BUILD_DIR) && $(CMAKE) $(AMBERHOME) -DCMAKE_INSTALL_PREFIX=$(CMAKE_INSTALL_DIR) -DCOMPILER=CLANG -DDOWNLOAD_MINICONDA=FALSE -DBUILD_PYTHON=FALSE
 	cd $(CMAKE_TOOL_SRC)/netcdf-4.6.1 && $(MAKE) install
 	cd $(CMAKE_TOOL_SRC)/netcdf-fortran-4.4.4 && $(MAKE) install
 	cd $(CMAKE_TOOL_SRC)/arpack && $(MAKE) install
