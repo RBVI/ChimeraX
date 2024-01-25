@@ -930,6 +930,7 @@ Structure::_form_chain_check(Atom* a1, Atom* a2, Bond* b)
             auto chain = _new_chain(start_r->chain_id(), Sequence::rname_polymer_type(start_r->name()));
             chain->push_back(start_r);
             chain->push_back(other_r);
+            _ensure_overall_sequential(chain);
         } else {
             // incorporate start_r into other_r's chain
             auto other_chain = other_r->chain();
@@ -952,6 +953,7 @@ Structure::_form_chain_check(Atom* a1, Atom* a2, Bond* b)
                     other_chain->set_from_seqres(false);
                 }
             }
+            _ensure_overall_sequential(other_chain);
         }
     } else {
         if (other_r->chain() == nullptr) {
@@ -977,11 +979,13 @@ Structure::_form_chain_check(Atom* a1, Atom* a2, Bond* b)
                     start_chain->set_from_seqres(false);
                 }
             }
+            _ensure_overall_sequential(start_chain);
         } else if (start_r->chain() != other_r->chain()) {
             // merge other_r's chain into start_r's chain
             // and demote other_r's chain to a plain sequence
             *start_r->chain() += *other_r->chain();
             start_r->chain()->set_from_seqres(false);
+            _ensure_overall_sequential(start_r->chain());
         } else if (!is_pb) {
             // check if there were missing residues at that sequence position and eliminate any
             auto chain = start_r->chain();
@@ -1110,6 +1114,35 @@ Structure::delete_residue(Residue* r)
         return;
     }
     _delete_residue(r);
+}
+void
+Structure::_ensure_overall_sequential(Chain* chain)
+{
+    // a chain has been formed or added to;
+    // ensure that it's residues are sequential in the main residue list
+    Residue* first_res = nullptr;
+    for (auto r: chain->residues()) {
+        if (r != nullptr) {
+            first_res = r;
+            break;
+        }
+    }
+    if (first_res == nullptr)
+        return;
+    Residues replacement_residues;
+    for (auto r: residues()) {
+        if (r->chain() == chain) {
+            if (r == first_res) {
+                for (auto chain_r: chain->residues()) {
+                    if (r != nullptr)
+                        replacement_residues.push_back(chain_r);
+                }
+            }
+        } else {
+            replacement_residues.push_back(r);
+        }
+    }
+    _residues.swap(replacement_residues);
 }
 
 CoordSet *
