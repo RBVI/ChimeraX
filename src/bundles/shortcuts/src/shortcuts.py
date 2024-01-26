@@ -424,7 +424,7 @@ def register_selectors(logger):
     register_selector("selAtoms", _sel_atoms_selector, logger)
     register_selector("selMaps", _sel_maps_selector, logger, atomic=False)
     register_selector("selModels", _sel_models_selector, logger, atomic=False)
-    register_selector("lastOpened", _sel_last_opened_selector, logger)
+    register_selector("last-opened", _sel_last_opened_selector, logger)
 
 # Selected atoms, or if none selected then all atoms.
 def _sel_atoms_selector(session, models, results):
