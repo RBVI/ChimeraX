@@ -193,6 +193,7 @@ protected:
     void  _delete_atom(Atom* a);
     void  _delete_atoms(const std::set<Atom*>& atoms, bool verify=false);
     void  _delete_residue(Residue* r);
+    void  _ensure_overall_sequential(Chain*);
     void  _fast_calculate_rings(std::set<const Residue *>* ignore) const;
     bool  _fast_ring_calc_available(bool cross_residue,
             unsigned int all_size_threshold,

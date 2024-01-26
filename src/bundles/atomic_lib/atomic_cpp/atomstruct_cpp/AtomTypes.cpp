@@ -507,6 +507,8 @@ clock_t start_t = clock();
     const Real p7nn2nh = 1.3337;
     const Real p7on2nh = 1.3485;
 
+    const Real p9o2n2 = 1.295 * 1.295;
+
 #ifdef TIME_PASSES
 clock_t t0 = clock();
 #endif
@@ -1940,7 +1942,7 @@ t0 = t1;
     }
 
     // order typing by easiest-figure-out (1 sp2 bonded) to hardest (3)
-    // good test cases:  1CY in 3UM8; WRA in 1J3I
+    // good test cases:  1CY in 3UM8; WRA in 1J3I, pubchem:3077812
     for (unsigned int i = 1; i < 4; ++i) {
         for(auto a_sp2s: bonded_sp2s) {
             const std::vector<Atom *> &sp2s = a_sp2s.second;
@@ -1972,11 +1974,8 @@ t0 = t1;
                 }
                 if (!remote_sp2) {
                     int hvys = heavys[a];
-                    if (hvys > 1)
-                        a->set_computed_idatm_type(hvys > 2 ? "Npl" : "N2");
-                    else if (hvys == 1)
-                        a->set_computed_idatm_type(is_N3plus_okay(
-                            a->neighbors()) ? "N3+" : "N3");
+                    if (hvys >= 1)
+                        a->set_computed_idatm_type(a->bonds().size() > 2 ? "Npl" : "N2");
                     else
                         a->set_computed_idatm_type("N3+");
                     break;
@@ -2003,8 +2002,9 @@ t0 = t1;
 #endif
 
     // "pass 9":  another non-IDATM pass and analogous to pass 8:
-    //  change O3 bonded only to non-Npl sp2 atom not in turn bonded
-    //  to non-Npl sp2 to O2.
+    //  change O3 bonded only to sp2 atom not in turn bonded
+    //  to non-Npl sp2 to O2, unless the bonded atom is Npl, in
+    //  which case check the bond distance and also change to N2+ if short.
     for (auto a: untyped_atoms) {
 
         auto idatm_type = a->idatm_type();
@@ -2047,8 +2047,15 @@ t0 = t1;
                 }
             }
         }
-        if (!remote_sp2)
-            a->set_computed_idatm_type("O2");
+        if (!remote_sp2) {
+            if (bondee_type == "Npl") {
+                if (bondee->coord().sqdistance(a->coord()) < p9o2n2) {
+                    a->set_computed_idatm_type("O2");
+                    bondee->set_computed_idatm_type("N2+");
+                }
+            } else
+                a->set_computed_idatm_type("O2");
+        }
     }
 #ifdef TIME_PASSES
 t1 = clock();

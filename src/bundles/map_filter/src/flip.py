@@ -28,6 +28,16 @@ class FlipGrid(GridData):
         settings = d.settings(name = '%s %s flip' % (d.name, axes))
         GridData.__init__(self, file_type = d.file_type, **settings)
         self.data_cache = None      # Caching done by underlying grid.
+
+    # ---------------------------------------------------------------------------
+    #
+    def matrix(self, ijk_origin = (0,0,0), ijk_size = None,
+               ijk_step = (1,1,1), progress = None, from_cache_only = False):
+        origin = self.flipped_origin(ijk_origin, ijk_size)
+        m = self.data.matrix(origin, ijk_size, ijk_step, progress=progress,
+                             from_cache_only=from_cache_only)
+        mf = flip_matrix(m, self.axes)
+        return mf
         
     # -------------------------------------------------------------------------
     #

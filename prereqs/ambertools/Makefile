@@ -4,12 +4,23 @@ include $(TOP)/mk/config.make
 
 # Using AmberTools distribution from https://ambermd.org
 
+ifeq ($(OS),Darwin)
+VERSION = 23
+SRC_VERSION = 22
+else
 VERSION = 20
+SRC_VERSION = 20
+endif
 
 # to upload new binary versions, set USE_PREBUILT to false and UPLOAD_PREBUILT to true;
 # once all platforms have been successfully built, set USE_PREBUILT to true and UPLOAD_PREBUILT to false
+ifeq ($(OS),Darwin)
+USE_PREBUILT=false
+UPLOAD_PREBUILT=true
+else
 USE_PREBUILT=true
 UPLOAD_PREBUILT=false
+endif
 ifeq ($(OS),Linux)
 SUPPORTED_DISTROS := Ubuntu CentOS Debian Rocky Freedesktop
 # CentOS uses "CentOS Linux", hence the second awk in the following line
@@ -28,11 +39,17 @@ FLIB_NAMES_FILE = $(tmpdir)/mac_flib_names
 endif
 endif
 
+CMAKE = /usr/local/bin/cmake
+
 DISTRIBUTION = AmberTools$(VERSION).tar.bz2
 SOURCE = $(tmpdir)/AmberTools$(VERSION)
-AMBERHOME = $(SOURCE)/amber$(VERSION)_src
+AMBERHOME = $(SOURCE)/amber$(SRC_VERSION)_src
+CMAKE_BUILD_DIR = $(SOURCE)/amber$(SRC_VERSION)_build
+CMAKE_INSTALL_DIR = $(SOURCE)/amber$(SRC_VERSION)_install
+CMAKE_TOOL_SRC = $(CMAKE_BUILD_DIR)/AmberTools/src
 TOOL_SRC = $(AMBERHOME)/AmberTools/src
-AMBERBIN_SRC = $(AMBERHOME)/bin
+AMBERBIN_SRC = $(CMAKE_INSTALL_DIR)/bin
+AMBERLIB_SRC = $(CMAKE_INSTALL_DIR)/lib
 AMBERBIN_DST_HOME = $(app_bindir)/amber$(VERSION)
 AMBERBIN_DST = $(AMBERBIN_DST_HOME)/bin
 AMBERDAT_SRC = $(AMBERHOME)/dat
@@ -91,26 +108,31 @@ endif
 
 else
 install: $(SOURCE)
-	cd $(AMBERHOME) && env $(ENV_OPTS) AMBERHOME='$(AMBERHOME)' ./configure --no-updates -noX11 -nofftw3 --skip-python $(CONFIG_ARGS)
-	cd $(TOOL_SRC)/c9x-complex && env AMBERHOME='$(AMBERHOME)' $(MAKE) all
-	cd $(TOOL_SRC)/cifparse && env AMBERHOME='$(AMBERHOME)' $(MAKE) install
-	cd $(TOOL_SRC)/sqm && env AMBERHOME='$(AMBERHOME)' $(MAKE) FREEFORMAT_FLAG= install
-	cd $(TOOL_SRC)/antechamber && env AMBERHOME='$(AMBERHOME)' $(MAKE) install
+	-mkdir $(CMAKE_BUILD_DIR) $(CMAKE_INSTALL_DIR)
+	cd $(CMAKE_BUILD_DIR) && env PATH=$(PATH):/usr/local/bin $(CMAKE) $(AMBERHOME) -DCMAKE_INSTALL_PREFIX=$(CMAKE_INSTALL_DIR) -DCOMPILER=CLANG -DDOWNLOAD_MINICONDA=FALSE -DBUILD_PYTHON=FALSE
+	cd $(CMAKE_TOOL_SRC)/netcdf-4.6.1 && $(MAKE) install
+	cd $(CMAKE_TOOL_SRC)/netcdf-fortran-4.4.4 && $(MAKE) install
+	cd $(CMAKE_TOOL_SRC)/arpack && $(MAKE) install
+	cd $(CMAKE_TOOL_SRC)/sff && $(MAKE) install
+	cd $(CMAKE_TOOL_SRC)/cifparse && $(MAKE) install
+	cd $(CMAKE_TOOL_SRC)/sqm && $(MAKE) install
+	cd $(CMAKE_TOOL_SRC)/antechamber && $(MAKE) install
 
 app-install: install
 	-mkdir -p $(AMBERBIN_DST) $(AMBERDAT_ANTECHAMBER_DST) $(AMBERDAT_PARM_DST)
-	# Excluded files are because they reference netcdf and we do not need them
-	$(RSYNC) $(AMBERBIN_SRC)/* --exclude nccopy --exclude ncdump --exclude ncgen --exclude ncgen3 --exclude to_be_dispatched $(AMBERBIN_DST)
+	$(RSYNC) $(AMBERBIN_SRC)/* --exclude wrapped_progs $(AMBERBIN_DST)
 	# Some executables live directly in bin, but many are shell scripts whose
-	# executables are in the "to_be_dispatched" subdir; overwrite those...
-	$(RSYNC) $(AMBERBIN_SRC)/to_be_dispatched/* --exclude nccopy --exclude ncdump --exclude ncgen --exclude ncgen3 $(AMBERBIN_DST)
+	# executables are in the "wrapped_progs" subdir; overwrite those...
+	$(RSYNC) $(AMBERBIN_SRC)/wrapped_progs/* $(AMBERBIN_DST)
+	$(RSYNC) $(AMBERDAT_ANTECHAMBER_SRC)/* $(AMBERDAT_ANTECHAMBER_DST)
+	$(RSYNC) $(AMBERDAT_PARM_SRC)/gaff2.dat $(AMBERDAT_PARM_DST)
+	$(RSYNC) $(AMBERLIB_SRC)/*.$(SHLIB_EXT) $(app_libdir)
 ifeq ($(OS),Windows)
 	$(RSYNC) /usr/bin/cygwin1.dll /usr/bin/cyggcc_s-seh*.dll /usr/bin/cyggfortran*.dll /usr/bin/cygquadmath*.dll /usr/bin/cygreadline*.dll /usr/bin/cygintl*.dll /usr/bin/cygncursesw*.dll /usr/bin/cygiconv*.dll /bin/sh.exe $(AMBERBIN_DST)
 endif
-	$(RSYNC) $(AMBERDAT_ANTECHAMBER_SRC)/* $(AMBERDAT_ANTECHAMBER_DST)
-	$(RSYNC) $(AMBERDAT_PARM_SRC)/gaff2.dat $(AMBERDAT_PARM_DST)
-	#$(RSYNC) heme-iron.frcmod $(AMBERDAT_PARM_DST)
 ifeq ($(OS),Darwin)
+	install_name_tool -rpath @loader_path/../../lib @loader_path/../../../lib $(AMBERBIN_DST)/antechamber
+	install_name_tool -rpath @loader_path/../lib @loader_path/../../../lib $(AMBERBIN_DST)/sqm
 	# copy the shared libraries needed by the fortran executables and fix up their paths
 	cat /dev/null > $(FLIB_NAMES_FILE)
 	cd $(AMBERBIN_DST) && for i in sqm; do \
@@ -147,12 +169,12 @@ ifneq (,$(PATCHES))
 		(cd $(AMBERHOME) && patch -f -p0) < $$p ; \
 	done
 endif
-# BUILD_TYPE is empty for local builds, otherwise one of daily, candidate, production
-ifeq ($(BUILD_TYPE),daily)
-	-cd $(AMBERHOME) && env AMBERHOME='$(AMBERHOME)' ./update_amber --update
-else
-	cd $(AMBERHOME) && env AMBERHOME='$(SOURCE)' ./update_amber --update
-endif
+## BUILD_TYPE is empty for local builds, otherwise one of daily, candidate, production
+#ifeq ($(BUILD_TYPE),daily)
+#	-cd $(AMBERHOME) && env AMBERHOME='$(AMBERHOME)' ./update_amber --update
+#else
+#	cd $(AMBERHOME) && env AMBERHOME='$(SOURCE)' ./update_amber --update
+#endif
 endif
 
 $(DISTRIBUTION):

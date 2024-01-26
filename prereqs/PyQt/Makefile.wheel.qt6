@@ -26,7 +26,8 @@ PYQTWE_VERSION = $(BASE_VERSION).$(PYQTWE_MINOR_VERSION)
 endif
 SIP_VERSION = 13.6.0
 
-PYTHON_TAGS = cp38
+#PYTHON_TAGS = cp38
+PYTHON_TAGS = cp37
 WE_PYTHON_TAGS = cp37
 WHEEL_ABI = abi3
 
@@ -36,8 +37,10 @@ WHEEL_PLATFORM = macosx_10_14_universal2
 WE_WHEEL_PLATFORM = $(WHEEL_PLATFORM)
 else ifeq ($(OS),Linux)
 BIN_PLATFORM = linux
-#WHEEL_PLATFORM = manylinux1_x86_64   # For Qt version < 6.5
-WHEEL_PLATFORM = manylinux_2_28_x86_64
+# For Qt version < 6.5
+WHEEL_PLATFORM = manylinux1_x86_64
+# For Qt version >= 6.5
+#WHEEL_PLATFORM = manylinux_2_28_x86_64
 WE_WHEEL_PLATFORM = $(WHEEL_PLATFORM)
 else ifeq ($(OS),Windows)
 BIN_PLATFORM = win.exe
