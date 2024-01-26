@@ -1134,7 +1134,7 @@ Structure::_ensure_overall_sequential(Chain* chain)
         if (r->chain() == chain) {
             if (r == first_res) {
                 for (auto chain_r: chain->residues()) {
-                    if (r != nullptr)
+                    if (chain_r != nullptr)
                         replacement_residues.push_back(chain_r);
                 }
             }
