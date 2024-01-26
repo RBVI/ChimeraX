@@ -170,6 +170,7 @@
     <ChimeraXClassifier>Selector :: selAtoms :: Selected atoms, or if none selected then all atoms.</ChimeraXClassifier>
     <ChimeraXClassifier>Selector :: selMaps :: Selected maps, or if none selected then displayed maps. :: false</ChimeraXClassifier>
     <ChimeraXClassifier>Selector :: selModels :: Selected models, or if none selected then all models. :: false</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: lastOpened :: Last opened top level model including its atoms.</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>
