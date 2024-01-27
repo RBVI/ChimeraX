@@ -184,6 +184,7 @@ protected:
     void  add_atom(Atom* a) { _atoms.emplace_back(a); set_gc_shape(); set_gc_adddel(); }
     void  _calculate_rings(bool cross_residue, unsigned int all_size_threshold,
             std::set<const Residue *>* ignore) const;
+    bool  _combine_chains(Residue*, Residue*);
     virtual void  _compute_atom_types() {}
     void  _compute_idatm_types() { _idatm_valid = true; _compute_atom_types(); }
     virtual void  _compute_structure_cats() const {}
