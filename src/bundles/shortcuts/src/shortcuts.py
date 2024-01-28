@@ -424,6 +424,7 @@ def register_selectors(logger):
     register_selector("selAtoms", _sel_atoms_selector, logger)
     register_selector("selMaps", _sel_maps_selector, logger, atomic=False)
     register_selector("selModels", _sel_models_selector, logger, atomic=False)
+    register_selector("last-opened", _sel_last_opened_selector, logger)
 
 # Selected atoms, or if none selected then all atoms.
 def _sel_atoms_selector(session, models, results):
@@ -442,6 +443,16 @@ def _sel_maps_selector(session, models, results):
 def _sel_models_selector(session, models, results):
     for m in shortcut_models(session):
         results.add_model(m)
+
+# Last opened top level model and its atoms if atomic.
+def _sel_last_opened_selector(session, models, results):
+    top_models = session.models.scene_root_model.child_models()
+    if top_models:
+        last = top_models[-1]
+        results.add_model(last)
+        from chimerax.atomic import Structure
+        if isinstance(last, Structure):
+            results.add_atoms(last.atoms)
 
 def shortcut_models(session, mclass = None, undisplayed = True, at_least = None):
     sel = session.selection.models()

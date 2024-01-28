@@ -319,6 +319,56 @@ Structure::change_chain_ids(const std::vector<StructureSeq*> changing_chains,
                 r->set_chain_id(id_remapping[r->chain_id()]);
 }
 
+bool
+Structure::_combine_chains(Residue* left, Residue* right)
+// try to smartly combine chains; return whether a smart combination was accomplished
+{
+    bool combined = false;
+
+    // first, if the sequences are identical and the residue don't overlap, just combine
+    auto left_chain = left->chain();
+    auto right_chain = right->chain();
+    auto seq_size = left_chain->size();
+    if (right_chain->size() == seq_size) {
+        bool combinable = true;
+        auto& left_chars = left_chain->characters();
+        auto& right_chars = right_chain->characters();
+        auto& left_residues = left_chain->residues();
+        auto& right_residues = right_chain->residues();
+        for (decltype(seq_size) i = 0; i < seq_size; ++i) {
+            if (left_chars[i] != right_chars[i]) {
+                combinable = false;
+                break;
+            }
+            auto left_res = left_residues[i];
+            auto right_res = right_residues[i];
+            if (left_res != nullptr && right_res != nullptr) {
+                combinable = false;
+                break;
+            }
+        }
+        if (combinable) {
+            bool is_chain = left_chain->is_chain();
+            for (decltype(seq_size) i = 0; i < seq_size; ++i) {
+                auto right_res = right_residues[i];
+                if (right_res != nullptr) {
+                    left_chain->_residues[i] = right_res;
+                    left_chain->_res_map[right_res] = i;
+                    right_res->set_chain(left_chain);
+                }
+            }
+            combined = true;
+        }
+    }
+    if (combined) {
+        change_tracker()->add_modified(this, left_chain, ChangeTracker::REASON_RESIDUES);
+        left_chain->set_from_seqres(left_chain->from_seqres() || right_chain->from_seqres());
+        remove_chain(right_chain);
+        right_chain->demote_to_structure_sequence();
+    }
+    return combined;
+}
+
 static void
 _copy_pseudobonds(Proxy_PBGroup* pbgc, const Proxy_PBGroup::Pseudobonds& pbs,
     std::map<Atom*, Atom*>& amap, CoordSet* cs = nullptr)
@@ -983,8 +1033,10 @@ Structure::_form_chain_check(Atom* a1, Atom* a2, Bond* b)
         } else if (start_r->chain() != other_r->chain()) {
             // merge other_r's chain into start_r's chain
             // and demote other_r's chain to a plain sequence
-            *start_r->chain() += *other_r->chain();
-            start_r->chain()->set_from_seqres(false);
+            if (!_combine_chains(start_r, other_r)) {
+                *start_r->chain() += *other_r->chain();
+                start_r->chain()->set_from_seqres(false);
+            }
             _ensure_overall_sequential(start_r->chain());
         } else if (!is_pb) {
             // check if there were missing residues at that sequence position and eliminate any
@@ -1115,6 +1167,7 @@ Structure::delete_residue(Residue* r)
     }
     _delete_residue(r);
 }
+
 void
 Structure::_ensure_overall_sequential(Chain* chain)
 {
@@ -1134,7 +1187,7 @@ Structure::_ensure_overall_sequential(Chain* chain)
         if (r->chain() == chain) {
             if (r == first_res) {
                 for (auto chain_r: chain->residues()) {
-                    if (r != nullptr)
+                    if (chain_r != nullptr)
                         replacement_residues.push_back(chain_r);
                 }
             }
