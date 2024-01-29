@@ -20,7 +20,6 @@ from chimerax.map.volume import open_grids
 from chimerax.map_data import GridData
 from chimerax.image_formats.open_image import ImageSurface
 from chimerax.dicom.coordinates import get_coordinate_system
-from chimerax.dicom.types import Segmentation
 
 
 class NRRD:
@@ -171,42 +170,3 @@ class NRRDGrid(GridData):
         self, ijk_origin=(0, 0, 0), ijk_size=None, ijk_step=(1, 1, 1), progress=None
     ):
         return self.nrrd_data.image[:: ijk_step[0], :: ijk_step[1], :: ijk_step[2]]
-
-    def pixel_spacing(self) -> tuple[float, float, float]:
-        return self.nrrd_data.pixel_spacing
-
-    def inferior_to_superior(self) -> bool:
-        return False
-
-    def segment(self, number) -> "NRRDSegmentation":
-        return NRRDSegmentation(self.nrrd_data, number)
-
-
-class NRRDSegmentation(GridData, Segmentation):
-    def __init__(self, nrrd, time=None, channel=None, number=0):
-        self.nrrd_data = nrrd
-        GridData.__init__(
-            self,
-            nrrd.shape,
-            nrrd.data_type,
-            origin=nrrd.origin,
-            rotation=nrrd.rotation,
-            name="segmentation %d" % number,
-            step=nrrd.pixel_spacing,
-            file_type="nrrd",
-        )
-        self.segment_array = np.zeros(nrrd.shape, dtype=np.uint8)
-
-    def read_matrix(
-        self, ijk_origin=(0, 0, 0), ijk_size=None, ijk_step=(1, 1, 1), progress=None
-    ):
-        return self.segment_array[:: ijk_step[0], :: ijk_step[1], :: ijk_step[2]]
-
-    def pixel_spacing(self) -> tuple[float, float, float]:
-        return self.reference_data.pixel_spacing
-
-    def inferior_to_superior(self) -> bool:
-        return False
-
-    def save(filename) -> None:
-        pass
