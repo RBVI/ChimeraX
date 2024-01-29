@@ -13,7 +13,7 @@
 __version__ = "1.2"
 from chimerax.core.toolshed import BundleAPI
 
-from .segmentation import Segmentation
+from .segmentation import Segmentation, open_grids_as_segmentation
 
 
 class _DICOMBundle(BundleAPI):

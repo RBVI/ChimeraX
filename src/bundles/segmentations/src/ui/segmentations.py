@@ -41,9 +41,11 @@ from chimerax.core.models import Surface, ADD_MODELS, REMOVE_MODELS
 from chimerax.core.tools import ToolInstance
 from chimerax.core.settings import Settings
 
+from chimerax.dicom import modality, DICOMVolume
+
 from chimerax.geometry import Place, translation
 
-from chimerax.map import Volume, VolumeSurface, VolumeImage, Segmentation
+from chimerax.map import Volume, VolumeSurface, VolumeImage
 
 from chimerax.ui import MainToolWindow
 from chimerax.ui.open_save import SaveDialog
@@ -66,9 +68,8 @@ from chimerax.vive.xr import OpenXRCamera
 from ..ui.orthoplanes import Axis
 from ..graphics.cylinder import SegmentationDisk
 from ..graphics.sphere import SegmentationSphere
-from ..dicom import modality
-from ..dicom.dicom_volumes import DICOMVolume
-from ..dicom.dicom_segmentations import PlanePuckSegmentation, SphericalSegmentation
+from ..dicom_segmentations import PlanePuckSegmentation, SphericalSegmentation
+from ..segmentation import Segmentation, segment_volume
 
 
 class SegmentationListItem(QListWidgetItem):
@@ -686,13 +687,13 @@ class SegmentationTool(ToolInstance):
         if not self.session.ui.main_window.view_layout == "orthoplanes":
             if self.settings.default_view == ViewMode.TWO_BY_TWO:
                 self._create_2d_segmentation_pucks()
-                run(self.session, "dicom view fourup")
+                run(self.session, "ui view fourup")
             elif self.settings.default_view == ViewMode.ORTHOPLANES_OVER_3D:
                 self._create_2d_segmentation_pucks()
-                run(self.session, "dicom view overunder")
+                run(self.session, "ui view overunder")
             elif self.settings.default_view == ViewMode.ORTHOPLANES_BESIDE_3D:
                 self._create_2d_segmentation_pucks()
-                run(self.session, "dicom view sidebyside")
+                run(self.session, "ui view sidebyside")
             elif self.settings.default_view == ViewMode.DEFAULT_DESKTOP:
                 self._create_3d_segmentation_sphere()
                 if self.settings.set_mouse_modes_automatically:
@@ -1020,8 +1021,9 @@ class SegmentationTool(ToolInstance):
         # When the DICOMVolume creates its segmentation model, it will trigger an
         # ADD_MODEL event that we listen to above. Concerns are separated here so
         # that segmentations from files still show up in the menu.
+        # TODO: We want to track the number of segmentations created per open model
         self.num_segmentations_created += 1
-        new_seg = self.reference_model.segment(number=self.num_segmentations_created)
+        new_seg = segment_volume(self.reference_model, self.num_segmentations_created)
         new_seg.set_parameters(surface_levels=[0.501])
         new_seg.set_step(1)
         new_seg.set_transparency(
@@ -1105,7 +1107,7 @@ class SegmentationTool(ToolInstance):
                 self._destroy_3d_segmentation_sphere()
             if not self.segmentation_cursors:
                 self._create_2d_segmentation_pucks()
-            run(self.session, "dicom view fourup")
+            run(self.session, "ui view fourup")
             need_to_register = True
         elif self.view_dropdown.currentIndex() == ViewMode.ORTHOPLANES_OVER_3D:
             if self.is_vr:
@@ -1116,7 +1118,7 @@ class SegmentationTool(ToolInstance):
                 self._destroy_3d_segmentation_sphere()
             if not self.segmentation_cursors:
                 self._create_2d_segmentation_pucks()
-            run(self.session, "dicom view overunder")
+            run(self.session, "ui view overunder")
             need_to_register = True
         elif self.view_dropdown.currentIndex() == ViewMode.ORTHOPLANES_BESIDE_3D:
             if self.is_vr:
@@ -1127,14 +1129,14 @@ class SegmentationTool(ToolInstance):
                 self._destroy_3d_segmentation_sphere()
             if not self.segmentation_cursors:
                 self._create_2d_segmentation_pucks()
-            run(self.session, "dicom view sidebyside")
+            run(self.session, "ui view sidebyside")
             need_to_register = True
         else:
             if self.view_dropdown.currentIndex() == ViewMode.DEFAULT_VR:
                 self.is_vr = True
             else:
                 self.is_vr = False
-            run(self.session, "dicom view default")
+            run(self.session, "ui view default")
             if self.segmentation_cursors:
                 self._destroy_2d_segmentation_pucks()
             if not self.segmentation_sphere:
@@ -1214,8 +1216,7 @@ class SegmentationTool(ToolInstance):
         if self.intensity_range_checkbox.isChecked() and value != 0:
             segmentation_strategy.min_threshold = self.threshold_min
             segmentation_strategy.max_threshold = self.threshold_max
-        else:
-            self.active_seg.segment(segmentation_strategy)
+        self.active_seg.segment(segmentation_strategy)
 
     def addSphereToSegment(self, origin, radius):
         self.setSphereRegionToValue(origin, radius, 1)

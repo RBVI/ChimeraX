@@ -234,20 +234,7 @@ class SphericalSegmentation(SegmentationStrategy):
         self.max_threshold = max_threshold
 
     def execute(self, grid, reference_grid):
-        for position in self.positions:
-            center_x, center_y, radius = position
-            self._set_data_in_puck(
-                grid,
-                reference_grid,
-                self.axis,
-                slice,
-                round(center_x),
-                round(center_y),
-                radius,
-                self.value,
-                self.min_threshold,
-                self.max_threshold,
-            )
+        self._set_sphere_data(grid, reference_grid)
 
     def _set_sphere_data(self, grid, reference_grid) -> None:
         # Optimization: Mask only subregion containing sphere.
@@ -284,7 +271,7 @@ class SphericalSegmentation(SegmentationStrategy):
         ijk_min = [max(int(floor(c - s)), 0) for c, s in zip(ijk_center, ijk_size)]
         ijk_max = [
             min(int(ceil(c + s)), m - 1)
-            for c, s, m in zip(ijk_center, ijk_size, grid.data.size)
+            for c, s, m in zip(ijk_center, ijk_size, grid.size)
         ]
         return ijk_min, ijk_max
 

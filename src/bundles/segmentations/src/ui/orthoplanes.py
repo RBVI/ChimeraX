@@ -39,13 +39,15 @@ from chimerax.core.tools import ADD_TOOL_INSTANCE
 
 from chimerax.geometry import Place, translation
 from chimerax.graphics import Drawing
-from chimerax.map import Volume, VolumeSurface, VolumeImage, Segmentation
+from chimerax.map import Volume, VolumeSurface, VolumeImage
 from chimerax.map.volume import show_planes
 from chimerax.map.volume_viewer import VolumeViewer, Histogram_Pane
 from chimerax.map.volumecommand import apply_volume_options
 from chimerax.mouse_modes.mousemodes import decode_modifier_bits
 from chimerax.mouse_modes.trackpad import MultitouchEvent, Touch
 from chimerax.ui.widgets import ModelMenu
+
+from ..segmentation import Segmentation, copy_volume_for_auxiliary_display
 
 
 from ..graphics import (
@@ -134,11 +136,9 @@ class PlaneViewerManager:
     def toggle_guidelines(self):
         layout = self.session.ui.main_window.main_view.view_layout()
         if self.axes[Axis.AXIAL].guidelines_visible:
-            log_equivalent_command(
-                self.session, f"dicom view {layout} guidelines false"
-            )
+            log_equivalent_command(self.session, f"ui view {layout} guidelines false")
         else:
-            log_equivalent_command(self.session, f"dicom view {layout} guidelines true")
+            log_equivalent_command(self.session, f"ui view {layout} guidelines true")
         for viewer in self.axes.values():
             viewer.setGuidelineVisibility(not viewer.guidelines_visible)
 
@@ -618,14 +618,10 @@ class PlaneViewer(QWindow):
         return self.drawingParentVolume().data.step
 
     def drawingPosition(self):
-        return (
-            self.view.drawing.position
-        )  # _child_drawings[0]._child_drawings[0].position
+        return self.view.drawing.position
 
     def drawingBounds(self):
-        return (
-            self.view.drawing.bounds()
-        )  # _child_drawings[0]._child_drawings[0].bounds()
+        return self.view.drawing.bounds()
 
     # endregion
 
@@ -1280,7 +1276,7 @@ class PlaneViewer(QWindow):
             self.slider.setValue(1)
             self.pos = 1
         else:
-            v = self.model_menu.value.copy(open_model=False)
+            v = copy_volume_for_auxiliary_display(self.model_menu.value)
             self.model_menu.value.expand_single_plane()
             self.model_menu.value.set_display_style("surface")
             self.model_menu.value._drawings_need_update()

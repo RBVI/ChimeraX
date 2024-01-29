@@ -14,6 +14,7 @@ from chimerax.map.volume import (
     set_initial_volume_color,
     set_initial_region_and_style,
     data_already_opened,
+    volume_from_grid_data,
     _reset_color_sequence,
 )
 from chimerax.save_command import SaverInfo
@@ -52,7 +53,7 @@ class Segmentation(Volume):
 
     def take_snapshot(self, session, flags):
         data = super().take_snapshot(session, flags)
-        data["reference_data"] = self.reference_data
+        data["reference_volume"] = self.reference_volume
         data["active"] = self.active
         return data
 
@@ -64,6 +65,8 @@ class Segmentation(Volume):
         dv = Segmentation(session, grid_data)
         Model.set_state_from_snapshot(dv, session, data["model state"])
         dv._style_when_shown = None
+        dv.reference_volume = data["reference_volume"]
+        dv.active = data["active"]
         from chimerax.map.session import set_map_state
         from chimerax.map.volume import show_volume_dialog
 
@@ -71,6 +74,43 @@ class Segmentation(Volume):
         dv._drawings_need_update()
         show_volume_dialog(session)
         return dv
+
+
+def segment_volume(volume, number: int) -> Segmentation:
+    """Segment the Volume and return an object of type Segmentation. The caller is responsible
+    for adding the segmentation to the session."""
+    from chimerax.map_data.arraygrid import ArrayGridData
+    from numpy import zeros
+
+    new_grid_array = zeros(volume.data.size[::-1])
+    new_grid = ArrayGridData(
+        array=new_grid_array,
+        origin=volume.data.origin,
+        step=volume.data.step,
+        cell_angles=volume.data.cell_angles,
+        rotation=volume.data.rotation,
+        symmetries=volume.data.symmetries,
+        name="segmentation of %s (#%d)" % (volume.name, number),
+    )
+    new_grid.initial_plane_display = False
+    new_seg_model = open_grids_as_segmentation(
+        volume.session, [new_grid], name="new segmentation"
+    )[0][0]
+    new_seg_model.reference_volume = volume
+    return new_seg_model
+
+
+# Volume.copy could accomplish this if the open_model parameter was hoisted from
+# volume_from_grid_data
+def copy_volume_for_auxiliary_display(volume):
+    """Copies a volume but does not add it to the session so that the volume can
+    be displayed in views other than the 3D view and those views can take control
+    of its presentation."""
+    v = volume_from_grid_data(
+        volume.data, volume.session, style=None, show_dialog=False, open_model=False
+    )
+    v.copy_settings_from(volume)
+    return v
 
 
 # TODO: Maybe unncessary?
