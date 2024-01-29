@@ -101,44 +101,4 @@ class NiftiGrid(GridData):
         #    array *= self.nifti_data.slope
         # if self.nifti_data.intercept != 0:
         #    array += self.nifti_data.intercept
-
-    def pixel_spacing(self) -> tuple[float, float, float]:
-        return self.nifti_data.scale
-    
-    def inferior_to_superior(self) -> bool:
-        return False
-
-    def segment(self, number) -> 'NiftiSegmentation':
-        return NiftiSegmentation(self.nifti_data, number = number)
-
-class NiftiSegmentation(GridData, Segmentation):
-    def __init__(self, nifti, time = None, channel = None, number = 1):
-        self.reference_data = nifti
-        GridData.__init__(
-            self, nifti.data_size, nifti.data_type
-            , nifti.center, rotation=nifti.data_rotation, step = nifti.scale
-            # , path = ???
-            , name = "segmentation %d" % number
-            , file_type = 'nifti' #, time, channel ???
-        )
-        self.segment_array = zeros(self.reference_data.data_size[::-1], dtype=uint8)
-        #self.initial_plane_display = True
-
-    def pixel_spacing(self) -> tuple[float, float, float]:
-        return self.reference_data.scale
- 
-    def inferior_to_superior(self) -> bool:
-        return False
-
-    def read_matrix(self, ijk_origin = (0,0,0), ijk_size = None,
-                  ijk_step = (1,1,1), progress = None):
-        array = self.segment_array[::ijk_step[0], ::ijk_step[1], ::ijk_step[2]]
-        return array
-        #if self.nifti_data.slope != 1:
-        #    array *= self.nifti_data.slope
-        #if self.nifti_data.intercept != 0:
-        #    array += self.nifti_data.intercept
-        #return array
-
-    def save(filename):
-        pass
+        # return array
