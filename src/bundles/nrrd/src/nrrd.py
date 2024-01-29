@@ -1,5 +1,6 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 import chimerax.core.session
+
 #  === UCSF ChimeraX Copyright ===
 #  Copyright 2023 Regents of the University of California.
 #  All rights reserved.  This software provided pursuant to a
@@ -21,6 +22,7 @@ from chimerax.image_formats.open_image import ImageSurface
 from chimerax.dicom.coordinates import get_coordinate_system
 from chimerax.dicom.types import Segmentation
 
+
 class NRRD:
     def __init__(self, session, data):
         self.session = session
@@ -32,7 +34,7 @@ class NRRD:
             # What this means in English is that the data is in x-y-z order and
             # we needed it in z-y-x order.
             # See https://pynrrd.readthedocs.io/en/stable/background/how-to-use.html
-            img, hdr = nrrd.read(path, index_order='C')
+            img, hdr = nrrd.read(path, index_order="C")
             self.nrrds.append(NRRDData(self.session, hdr, img, path))
 
     @classmethod
@@ -43,7 +45,11 @@ class NRRD:
         models, message = [], ""
         for nrd in self.nrrds:
             if len(nrd.shape) == 2:
-                models.append(ImageSurface(self.session, nrd.name, nrd.image, nrd.shape[0], nrd.shape[1]))
+                models.append(
+                    ImageSurface(
+                        self.session, nrd.name, nrd.image, nrd.shape[0], nrd.shape[1]
+                    )
+                )
             else:
                 grids = []
                 for nrd in self.nrrds:
@@ -54,9 +60,11 @@ class NRRD:
                     message += msg
         return models, message
 
+
 class NRRDData:
     """A wrapper over nrrd."""
-    def __init__(self, session: Session, header, data: np.ndarray, path = None):
+
+    def __init__(self, session: Session, header, data: np.ndarray, path=None):
         self.session = session
         self._path = path
         self._raw_header = header
@@ -93,7 +101,7 @@ class NRRDData:
     @property
     def shape(self):
         # _raw_data.shape and _raw_header.sizes should be the same data
-        return self._raw_header['sizes']
+        return self._raw_header["sizes"]
 
     @property
     def data_type(self):
@@ -101,7 +109,7 @@ class NRRDData:
 
     @property
     def origin(self):
-        return self._raw_header.get("space origin", (0,0,0))
+        return self._raw_header.get("space origin", (0, 0, 0))
 
     @property
     def rotation(self):
@@ -119,19 +127,15 @@ class NRRDData:
     def pixel_spacing(self):
         if not self._spacings:
             x, y, z = self.coordinate_system.space_ordering
-            if 'spacings' in self._raw_header:
-                spacing_vector = self._raw_header['spacings']
+            if "spacings" in self._raw_header:
+                spacing_vector = self._raw_header["spacings"]
+                spacings = [spacing_vector[x], spacing_vector[y], spacing_vector[z]]
+            elif "space directions" in self._raw_header:
+                space_and_direction_matrix = self._raw_header["space directions"]
                 spacings = [
-                    spacing_vector[x]
-                    , spacing_vector[y]
-                    , spacing_vector[z]
-                ]
-            elif 'space directions' in self._raw_header:
-                space_and_direction_matrix = self._raw_header['space directions']
-                spacings = [
-                    space_and_direction_matrix[x][x]
-                    , space_and_direction_matrix[y][y]
-                    , space_and_direction_matrix[z][z]
+                    space_and_direction_matrix[x][x],
+                    space_and_direction_matrix[y][y],
+                    space_and_direction_matrix[z][z],
                 ]
             else:
                 spacings = [1] * self.dimension
@@ -141,7 +145,7 @@ class NRRDData:
     @property
     def coordinate_system(self):
         if not self._coordinate_system:
-            space = self._raw_header.get('space', None)
+            space = self._raw_header.get("space", None)
             if space:
                 self._coordinate_system = get_coordinate_system(space)
             else:
@@ -151,46 +155,56 @@ class NRRDData:
 
 
 class NRRDGrid(GridData):
-    def __init__(self, nrrd, time = None, channel = None):
+    def __init__(self, nrrd, time=None, channel=None):
         self.nrrd_data = nrrd
         GridData.__init__(
-            self, nrrd.shape, nrrd.data_type, origin = nrrd.origin
-            , rotation = nrrd.rotation
-            , step = nrrd.pixel_spacing, file_type = 'nrrd'
+            self,
+            nrrd.shape,
+            nrrd.data_type,
+            origin=nrrd.origin,
+            rotation=nrrd.rotation,
+            step=nrrd.pixel_spacing,
+            file_type="nrrd",
         )
 
-    def read_matrix(self, ijk_origin = (0,0,0), ijk_size = None,
-                  ijk_step = (1,1,1), progress = None):
-        return self.nrrd_data.image[::ijk_step[0], ::ijk_step[1], ::ijk_step[2]]
+    def read_matrix(
+        self, ijk_origin=(0, 0, 0), ijk_size=None, ijk_step=(1, 1, 1), progress=None
+    ):
+        return self.nrrd_data.image[:: ijk_step[0], :: ijk_step[1], :: ijk_step[2]]
 
     def pixel_spacing(self) -> tuple[float, float, float]:
         return self.nrrd_data.pixel_spacing
- 
+
     def inferior_to_superior(self) -> bool:
         return False
-    
-    def segment(self, number) -> 'NRRDSegmentation':
+
+    def segment(self, number) -> "NRRDSegmentation":
         return NRRDSegmentation(self.nrrd_data, number)
 
 
 class NRRDSegmentation(GridData, Segmentation):
-    def __init__(self, nrrd, time = None, channel = None, number = 0):
+    def __init__(self, nrrd, time=None, channel=None, number=0):
         self.nrrd_data = nrrd
         GridData.__init__(
-            self, nrrd.shape, nrrd.data_type, origin = nrrd.origin
-            , rotation = nrrd.rotation
-            , name = "segmentation %d" % number
-            , step = nrrd.pixel_spacing, file_type = 'nrrd'
+            self,
+            nrrd.shape,
+            nrrd.data_type,
+            origin=nrrd.origin,
+            rotation=nrrd.rotation,
+            name="segmentation %d" % number,
+            step=nrrd.pixel_spacing,
+            file_type="nrrd",
         )
-        self.segment_array = np.zeros(nrrd.shape, dtype = np.uint8)
+        self.segment_array = np.zeros(nrrd.shape, dtype=np.uint8)
 
-    def read_matrix(self, ijk_origin = (0,0,0), ijk_size = None,
-                  ijk_step = (1,1,1), progress = None):
-        return self.segment_array[::ijk_step[0], ::ijk_step[1], ::ijk_step[2]]
-    
+    def read_matrix(
+        self, ijk_origin=(0, 0, 0), ijk_size=None, ijk_step=(1, 1, 1), progress=None
+    ):
+        return self.segment_array[:: ijk_step[0], :: ijk_step[1], :: ijk_step[2]]
+
     def pixel_spacing(self) -> tuple[float, float, float]:
         return self.reference_data.pixel_spacing
-    
+
     def inferior_to_superior(self) -> bool:
         return False
 
