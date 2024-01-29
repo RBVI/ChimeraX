@@ -955,6 +955,10 @@ class SegmentationTool(ToolInstance):
         }
         for cursor in self.segmentation_cursors.values():
             cursor.display = initial_display
+            # The active segmentation will always have the same spacing as whatever
+            # is currently the reference model, so we can set the height to that
+            if self.active_seg:
+                cursor.height = self.active_seg.data.plane_spacings()[cursor.axis]
         self.session.models.add(self.segmentation_cursors.values())
 
     def _destroy_2d_segmentation_pucks(self) -> None:
