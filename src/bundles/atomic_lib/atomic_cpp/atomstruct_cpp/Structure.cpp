@@ -348,7 +348,6 @@ Structure::_combine_chains(Residue* left, Residue* right)
             }
         }
         if (combinable) {
-            bool is_chain = left_chain->is_chain();
             for (decltype(seq_size) i = 0; i < seq_size; ++i) {
                 auto right_res = right_residues[i];
                 if (right_res != nullptr) {
@@ -358,6 +357,67 @@ Structure::_combine_chains(Residue* left, Residue* right)
                 }
             }
             combined = true;
+        }
+    }
+    if (!combined) {
+        auto bb_names = left->polymer_type() == PT_AMINO ?
+            Residue::aa_min_backbone_names : Residue::na_min_backbone_names;
+        if (left_chain->from_seqres() && !right_chain->from_seqres()) {
+            // try to fit left residues into right sequence given spacing implied by numbering
+            // (or zero if directly connected); result goes into left chain though
+            bool combinable = true;
+            int seq_dist = right->number() - left->number();
+            for (auto b: left->bonds_between(right)) {
+                if (bb_names.find(b->atoms()[0]->name()) != bb_names.end()
+                && bb_names.find(b->atoms()[1]->name()) != bb_names.end()) {
+                    seq_dist = 1;
+                    break;
+                }
+            }
+std::cerr << "seq dist: " << seq_dist << "\n";
+            if (seq_dist > 0) {
+                // does the left match up with gaps on the right, and does the sequence match?
+                auto& left_chars = left_chain->characters();
+                auto& right_chars = right_chain->characters();
+                auto& left_residues = left_chain->residues();
+                auto& right_residues = right_chain->residues();
+                auto left_size = left_chain->size();
+                auto right_size = right_chain->size();
+                auto left_index = left_chain->res_map().at(left);
+                auto right_index = right_chain->res_map().at(right);
+                long left_to_right_offset = right_index - left_index - seq_dist;
+                for (decltype(left_size) i = 0; i < left_size; ++i) {
+                    auto lr = left_residues[i];
+                    if (lr == nullptr)
+                        continue;
+                    auto right_index = left_to_right_offset + i;
+                    // off left edge of right sequence?
+                    if (right_index < 0) {
+                        combinable = false;
+                        break;
+                    }
+                    // off right edge of right sequence?
+                    if (right_index >= right_size) {
+                        combinable = false;
+                        break;
+                    }
+                    if (right_residues[right_index] != nullptr) {
+                        combinable = false;
+                        break;
+                    }
+                    if (right_chars[right_index] != left_chars[i]) {
+                        combinable = false;
+                        break;
+                    }
+                }
+std::cerr << (combinable ? "" : "not ") << "combinable\n";
+            } else
+                combinable = false;
+std::cerr << "use right sequence\n";
+        } else if (!left_chain->from_seqres() && right_chain->from_seqres()) {
+            // try to fit right residues into left sequence given spacing implied by numbering
+            // (or zero if directly connected); result goes into left chain
+std::cerr << "use left sequence\n";
         }
     }
     if (combined) {
@@ -953,18 +1013,80 @@ Structure::_form_chain_check(Atom* a1, Atom* a2, Bond* b)
     Residue* other_r;
     bool is_pb = (b == nullptr);
     if (is_pb) {
-        // missing structure pseudobond; need to pass through residue list to determine
-        // relative ordering of the residues
-        for (auto r: residues()) {
-            if (r == a1->residue()) {
-                start_r = a1->residue();
-                other_r = a2->residue();
-                break;
+        // missing structure pseudobond;
+        // try to determine start vs. other based on backbone atoms if possible
+        bool found_ordering = false;
+        PolymerType polymer_type = PT_NONE;
+        auto chain1 = a1->residue()->chain();
+        auto chain2 = a2->residue()->chain();
+        auto pt1 = chain1 == nullptr ? PT_NONE : chain1->polymer_type();
+        auto pt2 = chain2 == nullptr ? PT_NONE : chain2->polymer_type();
+        if (pt1 == PT_NONE) {
+            polymer_type = pt2;
+        } else {
+            if (pt2 == PT_NONE || pt1 == pt2)
+                polymer_type = pt1;
+            else
+                polymer_type = PT_NONE;
+        }
+        if (polymer_type != PT_NONE) {
+            auto bb_names = polymer_type == PT_AMINO ?
+                Residue::aa_min_ordered_backbone_names : Residue::na_min_ordered_backbone_names;
+            Atom *first = nullptr;
+            Atom *last = nullptr;
+            auto r = a1->residue();
+            for (auto bb_name: bb_names) {
+                auto a = r->find_atom(bb_name);
+                if (a != nullptr) {
+                    if (first == nullptr)
+                        first = a;
+                    last = a;
+                }
             }
-            if (r == a2->residue()) {
-                start_r = a2->residue();
-                other_r = a1->residue();
-                break;
+            bool a1_first = a1 == first;
+            bool a1_last = a1 == last;
+            if (a1_first || a1_last) {
+                first = last = nullptr;
+                r = a2->residue();
+                for (auto bb_name: bb_names) {
+                    auto a = r->find_atom(bb_name);
+                    if (a != nullptr) {
+                        if (first == nullptr)
+                            first = a;
+                        last = a;
+                    }
+                }
+                bool a2_first = a2 == first;
+                bool a2_last = a2 == last;
+                if (a2_first || a2_last) {
+                    // chain traces will have all first/lasts true, so can't determine anything
+                    if (!(a1_first && a1_last && a2_first && a2_last))
+                        // first means the first backbone atom, so its residue should be second
+                        if (a1_first && a2_last) {
+                            start_r = a2->residue();
+                            other_r = a1->residue();
+                            found_ordering = true;
+                        } else if (a1_last && a2_first) {
+                            start_r = a1->residue();
+                            other_r = a2->residue();
+                            found_ordering = true;
+                        }
+                }
+            }
+        }
+        if (!found_ordering) {
+            // pass through residue list to determine relative ordering of the residues
+            for (auto r: residues()) {
+                if (r == a1->residue()) {
+                    start_r = a1->residue();
+                    other_r = a2->residue();
+                    break;
+                }
+                if (r == a2->residue()) {
+                    start_r = a2->residue();
+                    other_r = a1->residue();
+                    break;
+                }
             }
         }
     } else {
