@@ -55,6 +55,8 @@ def label(session, objects = None, object_type = None, text = None,
       Text height in scene units.  Or if "fixed" use fixed pixel height on screen.  Initial value 0.7.
     default_height : float
       Default height value if not specified.  Initial value 0.7.
+    default_model_height : float
+      Default height value for model labels.  Initial value 10.0.
     font : string or "default"
       Font name.  This must be a true type font installed on Mac in /Library/Fonts
       and is the name of the font file without the ".ttf" suffix.  Default "Arial".
