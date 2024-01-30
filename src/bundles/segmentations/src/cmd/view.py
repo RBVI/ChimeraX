@@ -8,6 +8,10 @@ from ..ui.view import views, FourPanelView
 from ..ui.segmentations import SegmentationTool
 
 
+def any_open_volumes(session) -> bool:
+    return any(isinstance(v, Volume) for v in session.models)
+
+
 def view_layout(
     session, layout: str = None, guidelines: bool = None, force=False
 ) -> None:
@@ -50,11 +54,8 @@ def _check_rapid_access(*args):
         # This trigger fires many times, and on the last firing there is no model
         # we can pull the session out of, so we just have to catch the error here
         session = args[1][0].session
-        any_open_models = any(
-            type(v) == DICOMVolume or type(v) == Volume for v in session.models
-        )
         if session.ui.is_gui:
-            if not any_open_models:
+            if not any_open_volumes(session):
                 if session.ui.main_window.view_layout != "default":
                     session.ui.main_window.restore_default_main_view()
                 st = None
