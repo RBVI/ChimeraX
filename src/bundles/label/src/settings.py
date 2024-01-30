@@ -40,6 +40,11 @@ def register_settings_options(session):
             FloatOption,
             'label defaultHeight %s',
             'Set default 3d label height'),
+        'model_label_height': (
+            '3D model label height (\u212B)',
+            FloatOption,
+            'label defaultModelHeight %s',
+            'Set default 3d model label height'),
     }
     for setting, setting_info in settings_info.items():
         opt_name, opt_class, updater, balloon = setting_info
