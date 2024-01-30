@@ -27,7 +27,8 @@
 #
 def label(session, objects = None, object_type = None, text = None,
           offset = None, color = None, bg_color = None, attribute = None,
-          size = None, height = None, default_height = None, font = None, on_top = None):
+          size = None, height = None, default_height = None, default_model_height = None,
+          font = None, on_top = None):
     '''Create atom labels. The belong to a child model named "labels" of the structure.
 
     Parameters
@@ -35,7 +36,7 @@ def label(session, objects = None, object_type = None, text = None,
     objects : Objects or None
       Create labels on specified atoms, residues, pseudobonds, or bonds.
       If None then adjust settings of all existing labels.
-    object_type : 'atoms', 'residues', 'pseudobonds', 'bonds'
+    object_type : 'atoms', 'residues', 'pseudobonds', 'bonds', 'models'
       What type of object to label.
     text : string or "default"
       Displayed text of the label.
@@ -63,11 +64,14 @@ def label(session, objects = None, object_type = None, text = None,
     '''
     if object_type is None:
         if objects is None:
-            otypes = ['atoms', 'residues', 'pseudobonds', 'bonds']
-        elif len(objects.atoms) == 0:
+            otypes = ['atoms', 'residues', 'pseudobonds', 'bonds', 'models']
+        elif objects.num_atoms > 0:
+            otypes = ['residues']
+        elif objects.num_pseudobonds > 0:
             otypes = ['pseudobonds']
         else:
-            otypes = ['residues']
+            otypes = ['models']
+
     else:
         otypes = [object_type]
 
@@ -114,6 +118,9 @@ def label(session, objects = None, object_type = None, text = None,
     if default_height is not None:
         from .settings import settings as prefs
         prefs.label_height = default_height
+    if default_model_height is not None:
+        from .settings import settings as prefs
+        prefs.model_label_height = default_model_height
     if font == 'default':
         settings['font'] = 'Arial'
     elif font is not None:
@@ -139,7 +146,7 @@ def label(session, objects = None, object_type = None, text = None,
             lm = labels_model(m, create = True)
             lm.add_labels(mobjects, object_class, view, settings, on_top)
             lcount += len(mobjects)
-    if objects is None and lcount == 0 and default_height is None:
+    if objects is None and lcount == 0 and default_height is None and default_model_height is None:
         raise UserError('Label command requires an atom specifier to create labels.')
 
 # -----------------------------------------------------------------------------
@@ -174,11 +181,11 @@ def label_delete(session, objects = None, object_type = None):
     ----------
     objects : Objects or None
       Delete labels for specified atoms, residues, pseudobonds or bonds.  If None delete all labels.
-    object_type : 'atoms', 'residues', 'pseudobonds', 'bonds'
+    object_type : 'atoms', 'residues', 'pseudobonds', 'bonds', 'models'
       What type of object label to delete.
     '''
     if object_type is None:
-        otypes = ['atoms', 'residues', 'pseudobonds', 'bonds']
+        otypes = ['atoms', 'residues', 'pseudobonds', 'bonds', 'models']
     else:
         otypes = [object_type]
 
@@ -206,6 +213,8 @@ def label_object_class(object_type):
         object_class = PseudobondLabel
     elif object_type == 'bonds':
         object_class = BondLabel
+    elif object_type == 'models':
+        object_class = ModelLabel
     else:
         object_class = None
     return object_class
@@ -225,7 +234,32 @@ def objects_by_model(objects, object_type):
     elif object_type == 'bonds':
         bonds = objects.bonds
         model_objects = bonds.by_structure
+    elif object_type == 'models':
+        models = objects.models
+        top_models = _remove_child_models(models)
+        label_models = _grouping_model_children(top_models)
+        model_objects = [(m,[m]) for m in label_models]
     return model_objects
+
+# -----------------------------------------------------------------------------
+#
+def _remove_child_models(models):
+    s = set(models)
+    for m in models:
+        for c in m.child_models():
+            s.discard(c)
+    return tuple(m for m in models if m in s)
+
+# -----------------------------------------------------------------------------
+#
+def _grouping_model_children(models):
+    if len(models) == 1:
+        # If we have one grouping model then tile the child models.
+        m = models[0]
+        from chimerax.core.models import Model
+        if m.empty_drawing() and type(m) is Model and len(m.child_models()) > 1:
+            models = m.child_models()
+    return models
 
 # -----------------------------------------------------------------------------
 #
@@ -236,7 +270,7 @@ def labeled_objects_by_model(session, otype):
 
 # -----------------------------------------------------------------------------
 #
-def label_objects(objects, object_types = ['atoms', 'residues', 'pseudobonds', 'bonds']):
+def label_objects(objects, object_types = ['atoms', 'residues', 'pseudobonds', 'bonds', 'models']):
     lobjects = []
     lmodels = set()
     for otype in object_types:
@@ -274,7 +308,7 @@ def register_label_command(logger):
     from chimerax.core.commands import CmdDesc, register, create_alias, ObjectsArg, StringArg, FloatArg
     from chimerax.core.commands import Float3Arg, Color8Arg, IntArg, BoolArg, EnumOf, Or, EmptyArg
 
-    otype = EnumOf(('atoms','residues','pseudobonds','bonds'))
+    otype = EnumOf(('atoms','residues','pseudobonds','bonds','models'))
     desc = CmdDesc(required = [('objects', Or(ObjectsArg, EmptyArg))],
                    optional = [('object_type', otype)],
                    keyword = [('text', Or(EnumOf(['default'],abbreviations=False), StringArg)),
@@ -284,6 +318,7 @@ def register_label_command(logger):
                               ('size', Or(DefArg, IntArg)),
                               ('height', Or(EnumOf(['fixed']), FloatArg)),
                               ('default_height', FloatArg),
+                              ('default_model_height', FloatArg),
                               ('font', StringArg),
                               ('attribute', StringArg),
                               ('on_top', BoolArg)],
@@ -309,6 +344,7 @@ class ObjectLabels(Model):
 
     pickable = False		# Don't allow mouse selection of labels
     casts_shadows = False
+    skip_bounds = True		# Prevent labels changing center of model bounding box during independent rotation.
     
     def __init__(self, session):
         Model.__init__(self, 'labels', session)
@@ -691,6 +727,8 @@ def label_class(object):
         return PseudobondLabel
     elif isinstance(object, Bond):
         return BondLabel
+    elif isinstance(object, Model):
+        return ModelLabel
     return None
 
 # -----------------------------------------------------------------------------
@@ -718,6 +756,10 @@ class ObjectLabel:
         if height == 'default':
             from .settings import settings
             height = settings.label_height
+        elif height == 'model default':
+            from .settings import settings
+            height = settings.model_label_height
+            
         self.height = height	# None or height in world coords.  If None used fixed screen size.
         self._pixel_size = (100,10)	# Size of label in pixels, derived from size attribute
 
@@ -930,6 +972,44 @@ class BondLabel(EdgeLabel):
 #
 class PseudobondLabel(EdgeLabel):
     pass
+    
+# -----------------------------------------------------------------------------
+#
+class ModelLabel(ObjectLabel):
+    def __init__(self, object, view, offset = None, text = None,
+                 color = None, background = None, attribute = None,
+                 size = 48, height = 'model default', font = 'Arial'):
+        self.model = object
+        self._location_initialized = False
+        self._location = (0,0,0)
+        self._default_offset = (0,0,0)
+        ObjectLabel.__init__(self, object, view, offset=offset, text=text,
+                 color=color, background=background, attribute=attribute,
+                 size=size, height=height, font=font)
+    def default_text(self):
+        return self.model.name
+    def default_offset(self):
+        self._compute_center_and_offset()
+        return self._default_offset
+    def location(self, scene_position = None):
+        self._compute_center_and_offset()
+        return self._location
+    def _compute_center_and_offset(self):
+        if self._location_initialized:
+            return
+        m = self.model
+        if m.deleted:
+            return
+        b = m.bounds()
+        if b is None:
+            return
+        self._location = tuple(m.scene_position.inverse() * b.center())
+        self._location_initialized = True
+        r = 0.5*b.size().max()
+        self._default_offset = (-0.25*r, -r, 0)
+    def visible(self):
+        m = self.model
+        return (not m.deleted) and m.visible
 
 # -----------------------------------------------------------------------------
 #
