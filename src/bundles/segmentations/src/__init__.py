@@ -10,13 +10,13 @@
 # including partial copies, of the software or any revisions
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
-__version__ = "1.2"
+__version__ = "1.0"
 from chimerax.core.toolshed import BundleAPI
 
 from .segmentation import Segmentation, open_grids_as_segmentation
 
 
-class _DICOMBundle(BundleAPI):
+class _SegmentationsBundle(BundleAPI):
     api_version = 1
 
     @staticmethod
@@ -43,6 +43,7 @@ class _DICOMBundle(BundleAPI):
     def get_class(class_name):
         class_names = {
             "Segmentation": Segmentation,
+            "SegmentationJob": SegmentationJob,
         }
         return class_names.get(class_name, None)
 
@@ -65,4 +66,4 @@ class _DICOMBundle(BundleAPI):
             #    register_seg_cmds(logger)
 
 
-bundle_api = _DICOMBundle()
+bundle_api = _SegmentationsBundle()
