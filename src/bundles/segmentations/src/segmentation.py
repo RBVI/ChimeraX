@@ -43,6 +43,10 @@ class Segmentation(Volume):
         v.copy_settings_from(self)
         return v
 
+    # TODO: Should probably be upstream in Volume
+    def set_step(self, step):
+        self.new_region(ijk_step=[step, step, step], adjust_step=False)
+
     def segment(self, strategy: SegmentationStrategy):
         strategy.execute(self.data, self.reference_volume.data)
         self.data.values_changed()
