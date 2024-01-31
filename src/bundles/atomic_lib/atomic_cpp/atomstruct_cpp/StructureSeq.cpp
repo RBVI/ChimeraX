@@ -169,7 +169,7 @@ StructureSeq::insert(Residue* follower, Residue* r)
 StructureSeq&
 StructureSeq::operator+=(StructureSeq& addition)
 {
-    Sequence::operator+=(*this);
+    Sequence::operator+=(addition);
     auto offset = _residues.size();
     _residues.insert(_residues.end(), addition._residues.begin(), addition._residues.end());
     bool ischain = is_chain();
