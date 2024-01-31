@@ -2,7 +2,7 @@ from typing import Optional
 
 import numpy as np
 
-from chimerax.map.segmentation import SegmentationStrategy
+from .segmentation import SegmentationStrategy
 
 from chimerax.dicom.types import Axis
 
