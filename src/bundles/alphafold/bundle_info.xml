@@ -33,6 +33,7 @@
     <ChimeraXClassifier>Command :: alphafold pae :: Structure Prediction :: Show AlphaFold predicted aligned error as heatmap</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: alphafold contacts :: Structure Prediction :: Show AlphaFold contact pseudobond colored by predicted aligned error</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: alphafold dimers :: Structure Prediction :: Run all-against-all AlphaFold dimer predictions and analyze results</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: alphafold interfaces :: Structure Prediction :: Evaluate AlphaFold PAE scores at dimer interfaces</ChimeraXClassifier>
     <!--
     <ChimeraXClassifier>Command :: alphafold covariation :: Structure Prediction :: Show frequency of residue pairs in AlphaFold sequence alignment</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: alphafold msa :: Structure Prediction :: Show number of each combination of chains in AlphaFold sequence alignment</ChimeraXClassifier>
