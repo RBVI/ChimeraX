@@ -1,0 +1,56 @@
+[build-system]
+requires = ["setuptools", "ChimeraX-BundleBuilder"]
+build-backend = "chimerax.bundle_builder.cx_pep517"
+
+[project]
+name = "ChimeraX-Segmentations"
+license = { text = "Free for non-commercial use" }
+authors= [{name = "UCSF RBVI", email="chimerax@cgl.ucsf.edu"}]
+description = "Segment any volume data"
+dependencies = [
+	"ChimeraX-Core ~=1.0"
+	, "ChimeraX-DataFormats ~=1.0"
+	, "ChimeraX-Geometry ~= 1.0"
+	, "ChimeraX-MapData ~= 2.0"
+	, "ChimeraX-OpenCommand ~= 1.0"
+  , "ChimeraX-UI >= 1.33"
+]
+dynamic = ["classifiers", "requires-python", "version"]
+
+[project.optional-dependencies]
+losslessjpeg = ["python-gdcm"]
+
+[project.readme]
+content-type = "text"
+text = "Segment any volume data"
+
+[project.urls]
+Home = "https://www.rbvi.ucsf.edu/chimerax/"
+
+[tool.setuptools.dynamic]
+version = { attr = "src.__version__" }
+
+[chimerax]
+custom-init = true
+min-session-version = 1
+max-session-version = 1
+categories = ["Volume Data"]
+classifiers = ["Development Status :: 2 - Pre-Alpha"]
+
+#[chimerax.extra-files]
+#"src/icons" = ["*.png"]
+
+[chimerax.initializations.manager]
+bundles = ["ChimeraX-MouseModes", "ChimeraX-UI"]
+
+[chimerax.tool."Segmentations"]
+category = "Volume Data"
+description = "Interactively segment volumes"
+
+[chimerax.command."ui view"]
+category = "General"
+description = "See medical images in a 4-panel viewer"
+
+#[chimerax.command.segmentations]
+#category = "Volume Data"
+#description = "Create, edit, or destory segmentations"

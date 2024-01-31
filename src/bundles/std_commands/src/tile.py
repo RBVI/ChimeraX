@@ -39,6 +39,7 @@ def tile(session, models=None, columns=None, spacing_factor=1.3,
             commands.append("view")
         if independent_rotation:
             commands.append('mouse left "rotate independent" ; light simple')
+            _set_trackpad_rotation_mode(session, 'rotate independent')
             session.triggers.add_handler('remove models', rotate_normal(models))
         from chimerax.core.commands import run
         run(session, "; ".join(commands), log=False)
@@ -50,6 +51,14 @@ def tile(session, models=None, columns=None, spacing_factor=1.3,
 
     session.logger.info("%d model%s tiled" %
                         (len(models), "s" if len(models) != 1 else ""))
+
+def _set_trackpad_rotation_mode(session, mode_name):
+    # Mode names: "rotate" or "rotate independent"
+    mm = session.ui.mouse_modes
+    mmap = {m.name:m for m in mm.modes}
+    mode = mmap[mode_name]
+    mm.bind_mouse_mode(trackpad_action = 'two finger swipe', mode = mode)
+    mm.bind_mouse_mode(trackpad_action = 'twist', mode = mode)
 
 class rotate_normal:
     '''
@@ -71,6 +80,7 @@ class rotate_normal:
         if mode and mode.name == 'rotate independent':
             from chimerax.core.commands import run
             run(s, 'mouse left rotate', log = False)
+            _set_trackpad_rotation_mode(s, 'rotate')
 
         return 'delete handler'
     
@@ -105,12 +115,14 @@ class UndoMouseMode(UndoAction):
     def undo(self):
         from chimerax.core.commands import run
         run(self._session, 'mouse %s "%s"' % (self._button, self._undo_mode), log = False)
+        _set_trackpad_rotation_mode(self._session, self._undo_mode)
         if self._extra_undo:
             self._extra_undo.undo()
 
     def redo(self):
         from chimerax.core.commands import run
         run(self._session, 'mouse %s "%s"' % (self._button, self._redo_mode), log = False)
+        _set_trackpad_rotation_mode(self._session, self._redo_mode)
         if self._extra_undo:
             self._extra_undo.redo()
 
@@ -127,6 +139,7 @@ def untile(session, models=None, view_all=True):
     if mm and mm.name == 'rotate independent':
         from chimerax.core.commands import run
         run(session, 'mouse left rotate', log=False)
+        _set_trackpad_rotation_mode(session, 'rotate')
 
 
 def register_command(logger):
