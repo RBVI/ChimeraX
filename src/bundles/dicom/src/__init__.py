@@ -14,70 +14,50 @@ __version__ = "1.2"
 from chimerax.core.toolshed import BundleAPI
 from chimerax.map import add_map_format
 from chimerax.core.tools import get_singleton
-from .dicom import (
-    DICOMMapFormat, DicomOpener, fetchers,
-    Patient, Study
-)
-from .dicom.dicom_volumes import DICOMVolume
+from .dicom import DICOMMapFormat
+from .dicom_volumes import DICOMVolume
+from .dicom_opener import DicomOpener
+from .dicom_saver import DicomSaver
+from .dicom_fetcher import fetchers
+from .dicom_hierarchy import Patient, Study
+from .dicom_models import DicomGrid
+
 
 class _DICOMBundle(BundleAPI):
     api_version = 1
 
     @staticmethod
-    def initialize(session, bundle_info):
+    def initialize(session, _):
         """Register file formats, commands, and database fetch."""
         add_map_format(session, DICOMMapFormat())
-        if session.ui.is_gui:
-            from .ui.segmentation_mouse_mode import (
-                CreateSegmentation3DMouseMode, EraseSegmentation3DMouseMode, Move3DSegmentationSphereMouseMode
-                , Resize3DSegmentationSphereMouseMode, Toggle3DSegmentationVisibilityMouseMode
-            )
-            for mode in [
-                CreateSegmentation3DMouseMode, EraseSegmentation3DMouseMode, Move3DSegmentationSphereMouseMode
-                , Resize3DSegmentationSphereMouseMode, Toggle3DSegmentationVisibilityMouseMode
-            ]:
-                session.ui.mouse_modes.add_mode(mode(session))
 
     @staticmethod
     def get_class(class_name):
-        class_names = {
-            'Patient': Patient
-            , 'Study': Study
-            , 'DICOMVolume': DICOMVolume
-        }
+        class_names = {"Patient": Patient, "Study": Study, "DICOMVolume": DICOMVolume}
         return class_names.get(class_name, None)
 
     @staticmethod
-    def start_tool(session, bi, ti):
+    def start_tool(session, _, ti):
         if ti.name == "DICOM Browser":
             from .dicom.ui import DICOMBrowserTool
+
             return get_singleton(session, DICOMBrowserTool, "DICOM Browser")
-        elif ti.name == "Segmentations":
-            from .ui.segmentations import SegmentationTool
-            return SegmentationTool(session)
         else:
             from .dicom.ui import DICOMDatabases
-            return DICOMDatabases(session)
 
-    @staticmethod
-    def register_command(bi, ci, logger):
-        if ci.name == "dicom view":
-            from .cmd.view import register_view_cmds
-            register_view_cmds(logger)
-        elif ci.name == "dicom segmentations":
-            from .cmd.segmentations import register_seg_cmds
-            register_seg_cmds(logger)
-        #elif ci.name == "monailabel":
-        #    from .monailabel import register_cmds
-        #    register_cmds(logger)
+            return DICOMDatabases(session)
 
     @staticmethod
     def run_provider(session, name, mgr, **kw):
         # return runners['name']
-        if name == "DICOM medical imaging":
-            return DicomOpener()
-        else:
-            return fetchers[name]()
+        if mgr == session.open_command:
+            if name == "DICOM medical imaging":
+                return DicomOpener()
+            else:
+                return fetchers[name]()
+        elif mgr == session.save_command:
+            if name == "DICOM medical imaging":
+                return DicomSaver()
 
 
 bundle_api = _DICOMBundle()

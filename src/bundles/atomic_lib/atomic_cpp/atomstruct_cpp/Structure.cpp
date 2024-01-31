@@ -319,11 +319,11 @@ Structure::change_chain_ids(const std::vector<StructureSeq*> changing_chains,
                 r->set_chain_id(id_remapping[r->chain_id()]);
 }
 
-bool
+Chain*
 Structure::_combine_chains(Residue* left, Residue* right)
-// try to smartly combine chains; return whether a smart combination was accomplished
+// try to smartly combine chains; return chain that was combined into, or nullptr if no combination
 {
-    bool combined = false;
+    Chain* combined = nullptr;
 
     // first, if the sequences are identical and the residue don't overlap, just combine
     auto left_chain = left->chain();
@@ -348,7 +348,6 @@ Structure::_combine_chains(Residue* left, Residue* right)
             }
         }
         if (combinable) {
-            bool is_chain = left_chain->is_chain();
             for (decltype(seq_size) i = 0; i < seq_size; ++i) {
                 auto right_res = right_residues[i];
                 if (right_res != nullptr) {
@@ -357,14 +356,95 @@ Structure::_combine_chains(Residue* left, Residue* right)
                     right_res->set_chain(left_chain);
                 }
             }
-            combined = true;
+            combined = left_chain;
         }
     }
-    if (combined) {
-        change_tracker()->add_modified(this, left_chain, ChangeTracker::REASON_RESIDUES);
-        left_chain->set_from_seqres(left_chain->from_seqres() || right_chain->from_seqres());
-        remove_chain(right_chain);
-        right_chain->demote_to_structure_sequence();
+    if (combined == nullptr) {
+        auto bb_names = left->polymer_type() == PT_AMINO ?
+            Residue::aa_min_backbone_names : Residue::na_min_backbone_names;
+        // exactly one of the chains has complete sequence...
+        if (left_chain->from_seqres() != right_chain->from_seqres()) {
+            // try to fit incomplete-sequence residues into complete sequence
+            // given spacing implied by numbering (or zero if directly connected)
+            int seq_dist = right->number() - left->number();
+            for (auto b: left->bonds_between(right)) {
+                if (bb_names.find(b->atoms()[0]->name()) != bb_names.end()
+                && bb_names.find(b->atoms()[1]->name()) != bb_names.end()) {
+                    seq_dist = 1;
+                    break;
+                }
+            }
+            if (seq_dist > 0) {
+                // does the incomplete match up with gaps in the complete, and does the sequence match?
+                bool combinable = true;
+                Residue* incomplete_r;
+                Residue* complete_r;
+                int seq_offset;
+                if (left_chain->from_seqres()) {
+                    complete_r = left;
+                    incomplete_r = right;
+                    seq_offset = seq_dist;
+                } else {
+                    complete_r = right;
+                    incomplete_r = left;
+                    seq_offset = 0 - seq_dist;
+                }
+                auto complete_chain = complete_r->chain();
+                auto incomplete_chain = incomplete_r->chain();
+                int i2c_offset = incomplete_chain->res_map().at(incomplete_r)
+                    - complete_chain->res_map().at(complete_r) - seq_offset; 
+                auto incomplete_size = incomplete_chain->size();
+                auto& incomplete_residues = incomplete_chain->residues();
+                auto& incomplete_chars = incomplete_chain->characters();
+                auto complete_size = complete_chain->size();
+                auto& complete_residues = complete_chain->residues();
+                auto& complete_chars = complete_chain->characters();
+                for (decltype(incomplete_size) ii = 0; ii < incomplete_size; ++ii) {
+                    auto ir = incomplete_residues[ii];
+                    if (ir == nullptr)
+                        continue;
+                    auto ci = ii + i2c_offset;
+                    // off left edge of complete sequence?
+                    if (ci < 0) {
+                        combinable = false;
+                        break;
+                    }
+                    // off right edge of complete sequence?
+                    if (ci >= complete_size) {
+                        combinable = false;
+                        break;
+                    }
+                    if (complete_residues[ci] != nullptr) {
+                        combinable = false;
+                        break;
+                    }
+                    if (complete_chars[ci] != incomplete_chars[ii]) {
+                        combinable = false;
+                        break;
+                    }
+                }
+
+                if (combinable) {
+                    for (decltype(incomplete_size) ii = 0; ii < incomplete_size; ++ii) {
+                        auto ir = incomplete_residues[ii];
+                        if (ir == nullptr)
+                            continue;
+                        auto ci = ii + i2c_offset;
+                        complete_chain->_residues[ci] = ir;
+                        complete_chain->_res_map[ir] = ci;
+                        ir->set_chain(complete_chain);
+                    }
+                    combined = complete_chain;
+                }
+            }
+        }
+    }
+    if (combined != nullptr) {
+        change_tracker()->add_modified(this, combined, ChangeTracker::REASON_RESIDUES);
+        combined->set_from_seqres(combined->from_seqres() || combined->from_seqres());
+        auto non_combined = combined == left_chain ? right_chain : left_chain;
+        remove_chain(non_combined);
+        non_combined->demote_to_structure_sequence();
     }
     return combined;
 }
@@ -953,18 +1033,80 @@ Structure::_form_chain_check(Atom* a1, Atom* a2, Bond* b)
     Residue* other_r;
     bool is_pb = (b == nullptr);
     if (is_pb) {
-        // missing structure pseudobond; need to pass through residue list to determine
-        // relative ordering of the residues
-        for (auto r: residues()) {
-            if (r == a1->residue()) {
-                start_r = a1->residue();
-                other_r = a2->residue();
-                break;
+        // missing structure pseudobond;
+        // try to determine start vs. other based on backbone atoms if possible
+        bool found_ordering = false;
+        PolymerType polymer_type = PT_NONE;
+        auto chain1 = a1->residue()->chain();
+        auto chain2 = a2->residue()->chain();
+        auto pt1 = chain1 == nullptr ? PT_NONE : chain1->polymer_type();
+        auto pt2 = chain2 == nullptr ? PT_NONE : chain2->polymer_type();
+        if (pt1 == PT_NONE) {
+            polymer_type = pt2;
+        } else {
+            if (pt2 == PT_NONE || pt1 == pt2)
+                polymer_type = pt1;
+            else
+                polymer_type = PT_NONE;
+        }
+        if (polymer_type != PT_NONE) {
+            auto bb_names = polymer_type == PT_AMINO ?
+                Residue::aa_min_ordered_backbone_names : Residue::na_min_ordered_backbone_names;
+            Atom *first = nullptr;
+            Atom *last = nullptr;
+            auto r = a1->residue();
+            for (auto bb_name: bb_names) {
+                auto a = r->find_atom(bb_name);
+                if (a != nullptr) {
+                    if (first == nullptr)
+                        first = a;
+                    last = a;
+                }
             }
-            if (r == a2->residue()) {
-                start_r = a2->residue();
-                other_r = a1->residue();
-                break;
+            bool a1_first = a1 == first;
+            bool a1_last = a1 == last;
+            if (a1_first || a1_last) {
+                first = last = nullptr;
+                r = a2->residue();
+                for (auto bb_name: bb_names) {
+                    auto a = r->find_atom(bb_name);
+                    if (a != nullptr) {
+                        if (first == nullptr)
+                            first = a;
+                        last = a;
+                    }
+                }
+                bool a2_first = a2 == first;
+                bool a2_last = a2 == last;
+                if (a2_first || a2_last) {
+                    // chain traces will have all first/lasts true, so can't determine anything
+                    if (!(a1_first && a1_last && a2_first && a2_last))
+                        // first means the first backbone atom, so its residue should be second
+                        if (a1_first && a2_last) {
+                            start_r = a2->residue();
+                            other_r = a1->residue();
+                            found_ordering = true;
+                        } else if (a1_last && a2_first) {
+                            start_r = a1->residue();
+                            other_r = a2->residue();
+                            found_ordering = true;
+                        }
+                }
+            }
+        }
+        if (!found_ordering) {
+            // pass through residue list to determine relative ordering of the residues
+            for (auto r: residues()) {
+                if (r == a1->residue()) {
+                    start_r = a1->residue();
+                    other_r = a2->residue();
+                    break;
+                }
+                if (r == a2->residue()) {
+                    start_r = a2->residue();
+                    other_r = a1->residue();
+                    break;
+                }
             }
         }
     } else {
@@ -1033,11 +1175,13 @@ Structure::_form_chain_check(Atom* a1, Atom* a2, Bond* b)
         } else if (start_r->chain() != other_r->chain()) {
             // merge other_r's chain into start_r's chain
             // and demote other_r's chain to a plain sequence
-            if (!_combine_chains(start_r, other_r)) {
+            auto combined_chain = _combine_chains(start_r, other_r);
+            if (combined_chain == nullptr) {
                 *start_r->chain() += *other_r->chain();
                 start_r->chain()->set_from_seqres(false);
+                combined_chain = start_r->chain();
             }
-            _ensure_overall_sequential(start_r->chain());
+            _ensure_overall_sequential(combined_chain);
         } else if (!is_pb) {
             // check if there were missing residues at that sequence position and eliminate any
             auto chain = start_r->chain();
