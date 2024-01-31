@@ -319,11 +319,11 @@ Structure::change_chain_ids(const std::vector<StructureSeq*> changing_chains,
                 r->set_chain_id(id_remapping[r->chain_id()]);
 }
 
-bool
+Chain*
 Structure::_combine_chains(Residue* left, Residue* right)
-// try to smartly combine chains; return whether a smart combination was accomplished
+// try to smartly combine chains; return chain that was combined into, or nullptr if no combination
 {
-    bool combined = false;
+    Chain* combined = nullptr;
 
     // first, if the sequences are identical and the residue don't overlap, just combine
     auto left_chain = left->chain();
@@ -356,16 +356,16 @@ Structure::_combine_chains(Residue* left, Residue* right)
                     right_res->set_chain(left_chain);
                 }
             }
-            combined = true;
+            combined = left_chain;
         }
     }
-    if (!combined) {
+    if (combined == nullptr) {
         auto bb_names = left->polymer_type() == PT_AMINO ?
             Residue::aa_min_backbone_names : Residue::na_min_backbone_names;
-        if (left_chain->from_seqres() && !right_chain->from_seqres()) {
-            // try to fit left residues into right sequence given spacing implied by numbering
-            // (or zero if directly connected); result goes into left chain though
-            bool combinable = true;
+        // exactly one of the chains has complete sequence...
+        if (left_chain->from_seqres() != right_chain->from_seqres()) {
+            // try to fit incomplete-sequence residues into complete sequence
+            // given spacing implied by numbering (or zero if directly connected)
             int seq_dist = right->number() - left->number();
             for (auto b: left->bonds_between(right)) {
                 if (bb_names.find(b->atoms()[0]->name()) != bb_names.end()
@@ -374,57 +374,77 @@ Structure::_combine_chains(Residue* left, Residue* right)
                     break;
                 }
             }
-std::cerr << "seq dist: " << seq_dist << "\n";
             if (seq_dist > 0) {
-                // does the left match up with gaps on the right, and does the sequence match?
-                auto& left_chars = left_chain->characters();
-                auto& right_chars = right_chain->characters();
-                auto& left_residues = left_chain->residues();
-                auto& right_residues = right_chain->residues();
-                auto left_size = left_chain->size();
-                auto right_size = right_chain->size();
-                auto left_index = left_chain->res_map().at(left);
-                auto right_index = right_chain->res_map().at(right);
-                long left_to_right_offset = right_index - left_index - seq_dist;
-                for (decltype(left_size) i = 0; i < left_size; ++i) {
-                    auto lr = left_residues[i];
-                    if (lr == nullptr)
+                // does the incomplete match up with gaps in the complete, and does the sequence match?
+                bool combinable = true;
+                Residue* incomplete_r;
+                Residue* complete_r;
+                int seq_offset;
+                if (left_chain->from_seqres()) {
+                    complete_r = left;
+                    incomplete_r = right;
+                    seq_offset = seq_dist;
+                } else {
+                    complete_r = right;
+                    incomplete_r = left;
+                    seq_offset = 0 - seq_dist;
+                }
+                auto complete_chain = complete_r->chain();
+                auto incomplete_chain = incomplete_r->chain();
+                int i2c_offset = incomplete_chain->res_map().at(incomplete_r)
+                    - complete_chain->res_map().at(complete_r) - seq_offset; 
+                auto incomplete_size = incomplete_chain->size();
+                auto& incomplete_residues = incomplete_chain->residues();
+                auto& incomplete_chars = incomplete_chain->characters();
+                auto complete_size = complete_chain->size();
+                auto& complete_residues = complete_chain->residues();
+                auto& complete_chars = complete_chain->characters();
+                for (decltype(incomplete_size) ii = 0; ii < incomplete_size; ++ii) {
+                    auto ir = incomplete_residues[ii];
+                    if (ir == nullptr)
                         continue;
-                    auto right_index = left_to_right_offset + i;
-                    // off left edge of right sequence?
-                    if (right_index < 0) {
+                    auto ci = ii + i2c_offset;
+                    // off left edge of complete sequence?
+                    if (ci < 0) {
                         combinable = false;
                         break;
                     }
-                    // off right edge of right sequence?
-                    if (right_index >= right_size) {
+                    // off right edge of complete sequence?
+                    if (ci >= complete_size) {
                         combinable = false;
                         break;
                     }
-                    if (right_residues[right_index] != nullptr) {
+                    if (complete_residues[ci] != nullptr) {
                         combinable = false;
                         break;
                     }
-                    if (right_chars[right_index] != left_chars[i]) {
+                    if (complete_chars[ci] != incomplete_chars[ii]) {
                         combinable = false;
                         break;
                     }
                 }
-std::cerr << (combinable ? "" : "not ") << "combinable\n";
-            } else
-                combinable = false;
-std::cerr << "use right sequence\n";
-        } else if (!left_chain->from_seqres() && right_chain->from_seqres()) {
-            // try to fit right residues into left sequence given spacing implied by numbering
-            // (or zero if directly connected); result goes into left chain
-std::cerr << "use left sequence\n";
+
+                if (combinable) {
+                    for (decltype(incomplete_size) ii = 0; ii < incomplete_size; ++ii) {
+                        auto ir = incomplete_residues[ii];
+                        if (ir == nullptr)
+                            continue;
+                        auto ci = ii + i2c_offset;
+                        complete_chain->_residues[ci] = ir;
+                        complete_chain->_res_map[ir] = ci;
+                        ir->set_chain(complete_chain);
+                    }
+                    combined = complete_chain;
+                }
+            }
         }
     }
-    if (combined) {
-        change_tracker()->add_modified(this, left_chain, ChangeTracker::REASON_RESIDUES);
-        left_chain->set_from_seqres(left_chain->from_seqres() || right_chain->from_seqres());
-        remove_chain(right_chain);
-        right_chain->demote_to_structure_sequence();
+    if (combined != nullptr) {
+        change_tracker()->add_modified(this, combined, ChangeTracker::REASON_RESIDUES);
+        combined->set_from_seqres(combined->from_seqres() || combined->from_seqres());
+        auto non_combined = combined == left_chain ? right_chain : left_chain;
+        remove_chain(non_combined);
+        non_combined->demote_to_structure_sequence();
     }
     return combined;
 }
@@ -1155,11 +1175,13 @@ Structure::_form_chain_check(Atom* a1, Atom* a2, Bond* b)
         } else if (start_r->chain() != other_r->chain()) {
             // merge other_r's chain into start_r's chain
             // and demote other_r's chain to a plain sequence
-            if (!_combine_chains(start_r, other_r)) {
+            auto combined_chain = _combine_chains(start_r, other_r);
+            if (combined_chain == nullptr) {
                 *start_r->chain() += *other_r->chain();
                 start_r->chain()->set_from_seqres(false);
+                combined_chain = start_r->chain();
             }
-            _ensure_overall_sequential(start_r->chain());
+            _ensure_overall_sequential(combined_chain);
         } else if (!is_pb) {
             // check if there were missing residues at that sequence position and eliminate any
             auto chain = start_r->chain();
