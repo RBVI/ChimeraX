@@ -519,7 +519,7 @@ class RegionManager:
                     single_seq_regions.update(regions)
             for region in self.regions[:]:
                 if region not in single_seq_regions:
-                    self.delete_regions(region)
+                    self.delete_region(region)
 
     def copy_region(self, region, name=None, **kw):
         if not region:
