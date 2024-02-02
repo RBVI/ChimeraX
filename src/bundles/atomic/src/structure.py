@@ -1281,6 +1281,7 @@ class AtomicStructure(Structure):
                 self._report_res_info(session)
             self._report_assemblies(session)
             self._report_model_info(session)
+            self._report_altloc_info(session)
 
     def apply_auto_styling(self, set_lighting = False, style=None):
         explicit_style = style is not None
@@ -1738,6 +1739,13 @@ class AtomicStructure(Structure):
         html = assembly_html_table(self)
         if html:
             session.logger.info(html, is_html=True)
+
+    def _report_altloc_info(self, session):
+        atoms = self.atoms
+        num_al_atoms = len(atoms.filter(atoms.num_alt_locs > 0))
+        if num_al_atoms == 0:
+            return
+        session.logger.info('%d atoms have alternate locations.  Control/examine alternate locations with the <a href="user/commands/altlocs.html">altlocs</a> command or <a href="cxcmd:ui tool show \'Altloc Explorer\'">Altloc Explorer</a> tool.' % num_al_atoms, is_html=True)
 
     def show_info(self):
         from chimerax.core.commands import run, concise_model_spec
