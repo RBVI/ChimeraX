@@ -24,15 +24,12 @@
 
 # -----------------------------------------------------------------------------
 #
-def alphafold_dimers(session, sequences, with_sequences = None, complex = None,
+def alphafold_dimers(session, sequences, with_sequences = None,
                      homodimers = True, max_length = None, recycles = 3,
-                     networks = (1,2,3,4,5), gpu = None, output_fasta = None,
-                     directory = None, run = True):
+                     models = (1,2,3,4,5), output_fasta = None):
     '''
-    Run predictions of all combinations of dimers for a given set of sequences
-    using localcolabfold (https://github.com/YoshitakaMo/localcolabfold) installed on the same computer.
-    Analyze the resulting predictions to protein-protein interactions which AlphaFold gives
-    high confidence.  Visualize those interfaces.
+    Create dimer sequence file to run predictions of all combinations for a given set of sequences
+    using localcolabfold (https://github.com/YoshitakaMo/localcolabfold).
     '''
     from chimerax.core.errors import UserError
     if len(sequences) == 0:
@@ -46,15 +43,17 @@ def alphafold_dimers(session, sequences, with_sequences = None, complex = None,
     all_seq_pairs = _sequence_pairs(seqs, with_seqs, homodimers)
     seq_pairs, long_pairs = _filter_by_length(all_seq_pairs, max_length)
 
-    msg = _prediction_info(seqs, with_seqs, seq_pairs, long_pairs, recycles, networks)
+    msg = _prediction_info(seqs, with_seqs, seq_pairs, long_pairs, recycles, models)
     session.logger.info(msg)
 
     if output_fasta:
         write_dimers_fasta(output_fasta, seq_pairs)
+        cmd = colabfold_batch_command(output_fasta, recycles, models)
+        session.logger.info(f'Prediction command: {cmd}')
         
 # -----------------------------------------------------------------------------
 #
-def run_predictions(fasta_path, recycles, networks, gpu, directory):
+def run_predictions(fasta_path, recycles, models, directory):
     '''
     To start a subprocess which will continue to run even if ChimeraX exits use
        p = subprocess.Popen(cmd, start_new_session=True)
@@ -63,6 +62,24 @@ def run_predictions(fasta_path, recycles, networks, gpu, directory):
        p = subprocess.Popen(cmd, start_new_session=True, env=env)
     '''
     from subprocess import Popen
+
+# -----------------------------------------------------------------------------
+#
+def colabfold_batch_command(fasta_path, recycles, models):
+    options = []
+    # colabfold_batch uses 20 recycles with early termination by default for multimers
+    # but 3 recycles for monomers.  So always set the recycles option.
+    options.append(f'--num-recycle {recycles}')
+    if models != (1,2,3,4,5):
+        modnums = ','.join(str(m) for m in models)
+        options.append(f'--model-order {modnums}')
+
+    from chimerax.core.commands import quote_path_if_necessary
+    quoted_fasta_path = quote_path_if_necessary(fasta_path)
+    output_directory = '.'
+    opts = ' '.join(options)
+    cmd = f'colabfold_batch {opts} {quoted_fasta_path} {output_directory}'
+    return cmd
 
 # -----------------------------------------------------------------------------
 #
@@ -132,11 +149,11 @@ def _sequence_pair_lengths(seq_pairs):
 
 # -----------------------------------------------------------------------------
 #
-def _estimated_runtime(sequence_length, recycles = 3, networks = 5):
+def _estimated_runtime(sequence_length, recycles = 3, num_models = 5):
     '''Seconds for Nvidia 3090 GPU'''
-    t = (sequence_length/29)**2	# For 3 recycles and 5 networks, 1 model each network
+    t = (sequence_length/29)**2	# For 3 recycles and 5 models, 1 prediction for each model
     t *= (recycles+1) / 4
-    t *= networks / 5
+    t *= num_models / 5
     return t
 
 # -----------------------------------------------------------------------------
@@ -155,34 +172,36 @@ def _seconds_to_day_hour_minute(seconds, precision = 0.04):
 
 # -----------------------------------------------------------------------------
 #
-def _prediction_info(seqs, with_seqs, seq_pairs, long_pairs, recycles, networks):
+def _prediction_info(seqs, with_seqs, seq_pairs, long_pairs, recycles, models):
     pair_lengths = _sequence_pair_lengths(seq_pairs)
-    rt = sum([_estimated_runtime(slen, recycles, len(networks)) for slen in pair_lengths])
+    rt = sum([_estimated_runtime(slen, recycles, len(models)) for slen in pair_lengths])
     rt_string = _seconds_to_day_hour_minute(rt)
 
     pmin_length, pmax_length = min(pair_lengths), max(pair_lengths)
-    msg = f'Predicting {len(seq_pairs)} dimers with lengths {pmin_length}-{pmax_length}'
-    msg += f',\nestimated run time {rt_string} using Nvidia 3090 GPU'
+    msg = f'{len(seq_pairs)} dimers with lengths {pmin_length}-{pmax_length}.'
+    msg += f'\nEstimated prediction time {rt_string} using Nvidia 3090 GPU.'
     if long_pairs:
         long_lengths = _sequence_pair_lengths(long_pairs)
         lmin_length, lmax_length = min(long_lengths), max(long_lengths)
-        msg += f',\nomitting {len(long_pairs)} dimers with long sequence lengths {lmin_length}-{lmax_length}'
+        msg += f'\nOmitted {len(long_pairs)} dimers with long sequence lengths {lmin_length}-{lmax_length}'
     mdescrip = _monomers_description(seqs, with_seqs)
-    msg += f',\n{mdescrip}'
+    msg += f'\n{mdescrip}'
     return msg
 
 # -----------------------------------------------------------------------------
 #
-def _monomers_description(seqs, with_seqs):
-    seq_lengths = [len(seq) for name, seq in seqs]
+def _monomers_description(seqs, with_seqs = None):
+    sequences = sorted(seqs)
+    seq_lengths = [len(seq) for name, seq in sequences]
     smin_length, smax_length = min(seq_lengths), max(seq_lengths)
-    seq_names = ", ".join(f'{name} ({len(seq)})' for name, seq in seqs)
-    msg = f'dimers from {len(seqs)} monomer sequences with lengths {smin_length}-{smax_length}'
+    seq_names = ", ".join(f'{name} ({len(seq)})' for name, seq in sequences)
+    msg = f'{len(seqs)} monomer sequences with lengths {smin_length}-{smax_length}:'
     if with_seqs is not None:
-        wseq_lengths = [len(seq) for name, seq in with_seqs]
+        with_sequences = sorted(with_seqs)
+        wseq_lengths = [len(seq) for name, seq in with_sequences]
         wmin_length, wmax_length = min(wseq_lengths), max(wseq_lengths)
         msg += f' with {len(with_seqs)} sequences, lengths {wmin_length}-{wmax_length}'
-        seq_names += " and " + ", ".join(f'{name} ({len(seq)})' for name, seq in with_seqs)
+        seq_names += " and " + ", ".join(f'{name} ({len(seq)})' for name, seq in with_sequences)
     msg += f'\n{seq_names}'
     return msg
 
@@ -262,27 +281,97 @@ def _chain_sequence_name(chain):
 
 # -----------------------------------------------------------------------------
 #
-def dimers_command_description():
+def alphafold_monomers(session, sequences = None, max_length = None, recycles = 3, models = (1,2,3,4,5), open = '.'):
+    '''
+    Estimate time for predicting a set of monomers using
+    localcolabfold (https://github.com/YoshitakaMo/localcolabfold).
+    '''
+    if sequences is None:
+        alphafold_open_monomers(session, open)
+        return
+    
+    from chimerax.core.errors import UserError
+    if len(sequences) == 0:
+        raise UserError('No sequences specified')
+
+    useqs = _unique_sequences(sequences)
+    seqs = [(name,seq) for name,seq in useqs if len(seq) <= max_length] if max_length else useqs
+
+    rt = sum([_estimated_runtime(len(seq), recycles, len(models)) for name,seq in seqs])
+    rt_string = _seconds_to_day_hour_minute(rt)
+    msg = f'Estimated prediction time {rt_string} using Nvidia 3090 GPU.'
+
+    sdescrip = _monomers_description(seqs)
+    msg += f'\n{sdescrip}'
+
+    if len(seqs) < len(useqs):
+        lseqs = [(name,seq) for name,seq in useqs if len(seq) > max_length]
+        ldescrip = _monomers_description(lseqs)
+        msg += f'\nOmitted {ldescrip}'
+
+    cmd = colabfold_batch_command('sequences.fasta', recycles, models)
+    msg += f'\nPrediction command: {cmd}'
+
+    session.logger.info(msg)
+    
+# -----------------------------------------------------------------------------
+#
+def alphafold_open_monomers(session, directory = '.'):
+    file_pattern = '*rank_001*.pdb'
+    if directory != '.':
+        from os.path import join
+        file_pattern = join(directory, file_pattern)
+
+    from chimerax.core.commands import run
+    models = run(session, f'open {file_pattern} logInfo false')
+
+    if len(models) == 0:
+        return models
+
+    # Rename models to short name
+    for m in models:
+        i = m.name.find('_unrelaxed')
+        if i >= 0:
+            m.name = m.name[:i]
+
+    from chimerax.core.commands import concise_model_spec
+    mspec = concise_model_spec(session, models, allow_empty_spec = False)
+    run(session, f'label {mspec} models')
+    run(session, f'tile {mspec}')
+    run(session, f'color bfactor {mspec} palette alphafold')
+
+    return models
+    
+# -----------------------------------------------------------------------------
+#
+def register_alphafold_monomers_command(logger):
+    from chimerax.core.commands import CmdDesc, register, IntArg, IntsArg, OpenFolderNameArg
+    desc = CmdDesc(
+        optional = [('sequences', NamedSeqsArg)],
+        keyword = [('max_length', IntArg),
+                   ('recycles', IntArg),
+                   ('models', IntsArg),
+                   ('open', OpenFolderNameArg),
+                   ],
+        synopsis = 'Estimate runtime for monomer AlphaFold predictions using colabfold_batch'
+    )
+    from chimerax.core.commands import register
+    register('alphafold monomers', desc, alphafold_monomers, logger=logger)
+
+# -----------------------------------------------------------------------------
+#
+def register_alphafold_dimers_command(logger):
     from chimerax.core.commands import CmdDesc, register, IntArg, IntsArg, BoolArg, SaveFileNameArg
     desc = CmdDesc(
         required = [('sequences', NamedSeqsArg)],
         keyword = [('with_sequences', NamedSeqsArg),
-                   ('complex', NamedSeqsArg),
                    ('homodimers', BoolArg),
                    ('max_length', IntArg),
                    ('recycles', IntArg),
-                   ('networks', IntsArg),
+                   ('models', IntsArg),
                    ('output_fasta', SaveFileNameArg),
-                   ('gpu', IntArg),
-                   ('run', BoolArg),
                    ],
-        synopsis = 'Run AlphaFold predictions for all dimers for a set of sequences using colabfold_batch installed on the local computer'
+        synopsis = 'Setup AlphaFold predictions for all dimers for a set of sequences using colabfold_batch'
     )
-    return desc
-    
-# -----------------------------------------------------------------------------
-#
-def register_alphafold_dimers_command(logger):
-    desc = dimers_command_description()
     from chimerax.core.commands import register
     register('alphafold dimers', desc, alphafold_dimers, logger=logger)

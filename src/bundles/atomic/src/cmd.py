@@ -33,7 +33,6 @@ def log_chains(session, structures=None):
 
 def combine_cmd(session, structures, *, close=False, model_id=None, name=None, retain_ids=False):
 
-    import sys
     if structures is None:
         from chimerax.atomic import AtomicStructure
         structures = [m for m in session.models if isinstance(m, AtomicStructure)]
@@ -63,9 +62,7 @@ def combine_cmd(session, structures, *, close=False, model_id=None, name=None, r
                 if polymer_type.setdefault(chain.chain_id, chain.polymer_type) != chain.polymer_type:
                     raise UserError("Cannot combine chains with different polymer types (chain %s)" %
                         chain.chain_id)
-    print("copy", structures[0], file=sys.__stderr__)
     combination = structures[0].copy(name)
-    print("copied", structures[0], file=sys.__stderr__)
 
     # Compute needed remapping of chain IDs
     seen_ids = set(combination.residues.unique_chain_ids)
@@ -85,9 +82,7 @@ def combine_cmd(session, structures, *, close=False, model_id=None, name=None, r
                     seen_ids.add(new_id)
                 else:
                     seen_ids.add(chain_id)
-        print("combining with", s, file=sys.__stderr__)
         combination.combine(s, chain_id_mapping, structures[0].scene_position)
-        print("combined with", s, file=sys.__stderr__)
 
     if retain_ids:
         # combine same-ID chains
@@ -131,21 +126,14 @@ def combine_cmd(session, structures, *, close=False, model_id=None, name=None, r
                     right_atom = right_start.atoms[0]
                 if missing or right_start.number - left_end.number > 1:
                     pbg = combination.pseudobond_group(combination.PBG_MISSING_STRUCTURE)
-                    print("pseudobonding", left_atom, right_atom, file=sys.__stderr__)
                     pbg.new_pseudobond(left_atom, right_atom)
-                    print("pseudobonded", left_atom, right_atom, file=sys.__stderr__)
                 else:
-                    print("bonding", left_atom, right_atom, file=sys.__stderr__)
                     combination.new_bond(left_atom, right_atom)
-                    print("bonded", left_atom, right_atom, file=sys.__stderr__)
                 left_end = right_end
 
-    print("eliminating blank IDs", file=sys.__stderr__)
     # eliminate blanks IDs coming from structure 0
     chain_ids = set(combination.residues.unique_chain_ids)
-    print("collated", file=sys.__stderr__)
     for chain_id in chain_ids:
-        print("chain ID:", chain_id, file=sys.__stderr__)
         if chain_id.isspace():
             from chimerax.atomic import next_chain_id
             new_id = next_chain_id(chain_id)
@@ -154,13 +142,9 @@ def combine_cmd(session, structures, *, close=False, model_id=None, name=None, r
             session.logger.info("Remapping chain ID '%s' in %s to '%s'" % (chain_id, structures[0], new_id))
             residues = combination.residues
             residues[residues.chain_ids == chain_id].chain_ids = new_id
-    print("eliminated blank IDs", file=sys.__stderr__)
 
-    print("setting scene position", file=sys.__stderr__)
     combination.position = structures[0].scene_position
-    print("set scene position", file=sys.__stderr__)
 
-    print("closing models", file=sys.__stderr__)
     if close:
         # also close empty parent models
         closures = set(structures)
@@ -180,12 +164,9 @@ def combine_cmd(session, structures, *, close=False, model_id=None, name=None, r
             else:
                 break
         session.models.close(list(closures))
-    print("clsoed models", file=sys.__stderr__)
     if model_id is not None:
         combination.id = model_id
-    print("adding to session", file=sys.__stderr__)
     session.models.add([combination])
-    print("added to session", file=sys.__stderr__)
     return combination
 
 from chimerax.core.colors import BuiltinColors
