@@ -3,19 +3,22 @@ requires = ["setuptools", "ChimeraX-BundleBuilder"]
 build-backend = "chimerax.bundle_builder.cx_pep517"
 
 [project]
-name = "ChimeraX-Voice"
+name = "ChimeraX-SpeechRecognition"
 license = { text = "Free for non-commercial use" }
 authors= [{name = "UCSF RBVI", email="chimerax@cgl.ucsf.edu"}]
-description = "Control ChimeraX with speech-to-text commands"
+description = "Control ChimeraX verbally"
 dependencies = [
 	"ChimeraX-Core ~=1.0"
+	, "ChimeraX-UI ~=1.0"
+	, "PyAudio ~=0.2.11"
+	, "SpeechRecognition ~=1.3.0"
 ]
 dynamic = ["classifiers", "requires-python", "version"]
 
 [project.readme]
 content-type = "text"
-text = "Control ChimeraX with speech-to-text commands"
-
+text = """Enable users to run some commands via microphone input."""
+	
 [project.urls]
 Home = "https://www.rbvi.ucsf.edu/chimerax/"
 
@@ -25,9 +28,18 @@ version = { attr = "src.__version__" }
 [chimerax]
 min-session-version = 1
 max-session-version = 1
-categories = ["General"]
+categories = ["I/O"]
 classifiers = ["Development Status :: 2 - Pre-Alpha"]
+module-name-override = "speech"
 
-[chimerax.tool."Voice Control"]
+[chimerax.tool."Voice Commands"]
 category = "General"
-description = "Control ChimeraX with speech-to-text commands"
+description = "Control ChimeraX verbally"
+
+[chimerax.command.speech]
+category = "General"
+description = "Turn speech recognition on or off"
+
+[chimerax.command."speech alias"]
+category = "General"
+description = "Show or add alternatives to speech command word"

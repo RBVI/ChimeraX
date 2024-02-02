@@ -13,16 +13,14 @@
 import os
 
 from Qt.QtGui import QIcon
-from Qt.QtWidgets import (
-    QVBoxLayout, QLabel, QPushButton
-    , QLineEdit
-)
+from Qt.QtWidgets import QVBoxLayout, QLabel, QPushButton, QLineEdit
 
 from chimerax.core.commands import run
 from chimerax.core.tools import ToolInstance
 from chimerax.ui.gui import MainToolWindow
 
 from .speech import SpeechDecoder, SpeechRecorder
+
 
 class VoiceCommandTool(ToolInstance):
 
@@ -43,9 +41,15 @@ class VoiceCommandTool(ToolInstance):
 
         self.command_label = QLabel("Command:")
         self.command_text_box = QLineEdit(parent)
-        self.start_recording_icon = QIcon(os.path.join(os.path.dirname(__file__), "resources", "red_circle.png"))
-        self.stop_recording_icon = QIcon(os.path.join(os.path.dirname(__file__), "resources", "red_square.png"))
-        self.record_button = QPushButton(parent, text = "Record Command", icon = self.start_recording_icon)
+        self.start_recording_icon = QIcon(
+            os.path.join(os.path.dirname(__file__), "resources", "red_circle.png")
+        )
+        self.stop_recording_icon = QIcon(
+            os.path.join(os.path.dirname(__file__), "resources", "red_square.png")
+        )
+        self.record_button = QPushButton(
+            parent, text="Record Command", icon=self.start_recording_icon
+        )
         self.confirm_button = QPushButton("Confirm Command")
 
         layout.addWidget(self.command_label)
@@ -72,8 +76,8 @@ class VoiceCommandTool(ToolInstance):
         self.record_button.clicked.disconnect(self.stop_recording)
         self.record_button.clicked.connect(self.record_command)
         self.recorder.close()
-        decoder = SpeechDecoder(self.recorder.get_frames())
-        result = decoder.decode()
+        decoder = SpeechDecoder()
+        result = decoder.decode_frames(self.recorder.get_frames())
         self.command_text_box.setText(result.getText())
 
     def execute_command(self):
@@ -83,4 +87,3 @@ class VoiceCommandTool(ToolInstance):
 
     def insert_command(self, command):
         self.command_text_box.setText(command)
-
