@@ -1745,7 +1745,7 @@ class AtomicStructure(Structure):
         num_al_atoms = len(atoms.filter(atoms.num_alt_locs > 0))
         if num_al_atoms == 0:
             return
-        session.logger.info('%d atoms have alternate locations.  Control/examine alternate locations with the <a href="user/commands/altlocs.html">altlocs</a> command or <a href="cxcmd:ui tool show \'Altloc Explorer\'">Altloc Explorer</a> tool.' % num_al_atoms, is_html=True)
+        session.logger.info('%d atoms have alternate locations.  Control/examine alternate locations with <b><a href="cxcmd:help help:user/tools/altlocexplorer.html">Altloc Explorer</a></b> [<a href="cxcmd:ui tool show \'Altloc Explorer\'">start&nbsp;tool...</a>] or the <b><a href="cxcmd:help altlocs">altlocs</a></b> command.' % num_al_atoms, is_html=True)
 
     def show_info(self):
         from chimerax.core.commands import run, concise_model_spec
