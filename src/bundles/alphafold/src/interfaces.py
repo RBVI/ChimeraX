@@ -49,7 +49,7 @@ reassemble the pieces using monomer predictions of those large proteins.
 def alphafold_interfaces(session, directory, distance = 4, max_pae = 5, min_conf_pairs = 10,
                          open = False, results_file = 'interfaces.csv', short_names = True):
     '''
-    Evaluate AlphaFold predicted aligned error scores at chain interfaces for
+    Evaluate AlphaFold predicted aligned error scores at dimer interfaces for
     several predictions produced by the alphafold dimers command.  Make a table
     of results for the confident interfaces with links to load and show interfaces.
     '''
