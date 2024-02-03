@@ -3020,7 +3020,7 @@ class SelContactsDialog(QDialog):
                 d = self.distance_spinbox.value()
                 spec = "(%s & ::polymer_type>0 ) & ((%s & ::polymer_type>0 ) :<%g)" % (
                     chain_spec1, chain_spec2, d)
-                if self.what_sel_button.text() == "both":
+                if self.what_sel_button.text().startswith("both"):
                     spec = "(%s) | ((%s & ::polymer_type>0 ) & ((%s & ::polymer_type>0 ) :<%g))" % (
                         spec, chain_spec2, chain_spec1, d)
                 cmd = "sel " + spec

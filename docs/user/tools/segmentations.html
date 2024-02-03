@@ -36,16 +36,13 @@ axial slices segmented</font>
 </table>
 
 <h3><a href="../index.html#tools">Tool</a>: Segmentations</h3>
-
 <p>
-The <b>Segmentations</b> tool allows interactively segmenting 
-medical image data plane by plane, where <b><i>medical image</i></b>
-refers to <a href="volumeviewer.html">volume data</a> opened from the
-<a href="../dicom/dicom.html">DICOM</a>,
-<a href="https://nifti.nimh.nih.gov/" target="_blank">NIfTI</a> (.nii), and/or
-<a href="https://teem.sourceforge.net/nrrd/" target="_blank">NRRD</a> (.nrrd)
-formats. Segmentations are additional volume models displayed as surfaces that
-delineate regions of arbitrary shape within the image dataset;
+The <b>Segmentations</b> tool allows interactive manual segmentation
+of medical images and other <a href="volumeviewer.html">volume data</a>
+plane by plane.
+Segmentations are additional volume models displayed as surfaces that
+delineate regions of arbitrary shape within the image dataset; 
+for medical images,
 they typically represent anatomic structures or lesions such as tumors.
 Multiple segmentation models can be defined from the same image dataset.
 </p><p>
@@ -53,10 +50,8 @@ For semiautomated segmentation of cryo-electron microscopy density maps,
 see the <a href="segment.html"><b>Segment Map</b></a> tool instead.
 </p><p>
 The <b>Segmentations</b> tool can be started
-from the <b>Medical Imaging</b> section of the <b>Tools</b> menu
+from the <b>Volume Data</b> section of the <b>Tools</b> menu
 (<a href="../window.html#panels">more...</a>). 
-Several of its options are implemented as the 
-<a href="../commands/dicom.html"><b>dicom</b></a> command. 
 See also:
 <a href="downloaddicom.html"><b>Download DICOM</b></a>,
 <a href="volumeviewer.html"><b>Volume Viewer</b></a>,
@@ -77,6 +72,7 @@ target="_blank">ChimeraX for Medical Image Analysis</a>
 <p>
 Starting the <b>Segmentations</b> tool automatically sets the view layout
 according to the tool's <a href="#settings-general"><b>General</b> settings</a>.
+See also: <a href="../commands/ui.html#view"><b>ui view</b></a>
 </p><p>
 <a name="layout"></a>
 The <b>View layout</b> can be switched among:
@@ -258,5 +254,5 @@ and the VR 3D-only <a href="#layout">layout</a> is chosen.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-January 2024</address>
+February 2024</address>
 </body></html>

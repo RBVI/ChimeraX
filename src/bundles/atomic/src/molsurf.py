@@ -401,7 +401,7 @@ class MolecularSurface(Surface):
     def _get_overall_color(self):
         vc = self.vertex_colors
         from chimerax.core.colors import most_common_color
-        return self.color if vc is None else most_common_color(vc)
+        return self.color if vc is None or len(vc) == 0 else most_common_color(vc)
     def _set_overall_color(self, color):
         self.color = color
         self.vertex_colors = None

@@ -25,14 +25,18 @@
 from chimerax.core.errors import UserError
 
 default_criteria = "dchp"
-def swap_aa(session, residues, res_type, *, angle_slop=None, bfactor=None, criteria=default_criteria,
+def swap_aa(session, residues, res_types, *, angle_slop=None, bfactor=None, criteria=default_criteria,
     density=None, dist_slop=None, hbond_allowance=None, ignore_other_models=True, rot_lib=None, log=True,
     preserve=None, relax=True, retain=False, score_method="num", overlap_cutoff=None):
     ''' Command to swap amino acid side chains '''
 
     residues = _check_residues(residues)
 
-    _check_num_residues(session, residues)
+    # for backwards compatibility...
+    if type(res_types) == str:
+        res_types = [res_types]
+
+    _check_num_residues(session, residues, res_types)
 
     if type(criteria) == str:
         for c in criteria:
@@ -48,13 +52,21 @@ def swap_aa(session, residues, res_type, *, angle_slop=None, bfactor=None, crite
         session.logger.info("Using %s library" % rot_lib)
 
     from . import swap_res
-    swap_res.swap_aa(session, residues, res_type, bfactor=bfactor, clash_hbond_allowance=hbond_allowance,
-        clash_score_method=score_method, clash_overlap_cutoff=overlap_cutoff,
-        criteria=criteria, density=density, hbond_angle_slop=angle_slop,
-        hbond_dist_slop=dist_slop, ignore_other_models=ignore_other_models, rot_lib=rot_lib, log=log,
-        preserve=preserve, hbond_relax=relax, retain=retain)
+    kw =  { 'bfactor': bfactor, 'clash_hbond_allowance': hbond_allowance,
+        'clash_score_method': score_method, 'clash_overlap_cutoff': overlap_cutoff, 'criteria': criteria,
+        'density': density, 'hbond_angle_slop': angle_slop, 'hbond_dist_slop': dist_slop,
+        'ignore_other_models': ignore_other_models, 'rot_lib': rot_lib, 'log': log, 'preserve': preserve,
+        'hbond_relax': relax, 'retain': retain }
+    if len(res_types) == 1:
+        swap_res.swap_aa(session, residues, res_types[0], **kw)
+    else:
+        if len(residues) != len(res_types):
+            raise UserError("Number of residues (%d) does not match number of residue types (%d)"
+                % (len(residues), len(res_types)))
+        for res, res_type in zip(residues, res_types):
+            swap_res.swap_aa(session, [res], res_type, **kw)
 
-def swap_na(session, residues, res_type, *, preserve=False, bfactor=None):
+def swap_na(session, residues, res_types, *, preserve=False, bfactor=None):
     # Can't swap P-only residues anyway, so just test for C4'
     if len(residues) == 0:
         raise UserError("No residues specified for swapping")
@@ -64,10 +76,22 @@ def swap_na(session, residues, res_type, *, preserve=False, bfactor=None):
     if len(nuc_residues) == 0:
         raise UserError("No nucleic acid residues specified for swapping")
 
-    _check_num_residues(session, nuc_residues)
+    # for backwards compatibility...
+    if type(res_types) == str:
+        res_types = [res_types]
 
+    _check_num_residues(session, nuc_residues, res_types)
+
+    kw = { 'bfactor': bfactor, 'preserve': preserve }
     from . import swap_res
-    swap_res.swap_na(session, nuc_residues, res_type, bfactor=bfactor, preserve=preserve)
+    if len(res_types) == 1:
+        swap_res.swap_na(session, nuc_residues, res_types[0], **kw)
+    else:
+        if len(nuc_residues) != len(res_types):
+            raise UserError("Number of residues (%d) does not match number of residue types (%d)"
+                % (len(nuc_residues), len(res_types)))
+        for res, res_type in zip(nuc_residues, res_types):
+            swap_res.swap_na(session, [res], res_type, **kw)
 
 from chimerax.core.state import StateManager
 class _RotamerStateManager(StateManager):
@@ -178,8 +202,8 @@ def _check_residues(residues):
         raise UserError("No amino acid residues specified for swapping")
     return residues
 
-def _check_num_residues(session, residues):
-    if len(residues) > 2 and session.ui.is_gui and not session.in_script:
+def _check_num_residues(session, residues, res_types):
+    if len(residues) > 2 and len(res_types) < 2 and session.ui.is_gui and not session.in_script:
         from chimerax.ui.ask import ask
         if ask(session, "Really swap side chains for %d residues?" % len(residues),
                 title="Confirm Swap") == "no":
@@ -188,11 +212,11 @@ def _check_num_residues(session, residues):
 
 def register_command(command_name, logger):
     from chimerax.core.commands import CmdDesc, register, StringArg, BoolArg, NonNegativeIntArg, Or
-    from chimerax.core.commands import NonNegativeFloatArg, DynamicEnum, ListOf, FloatArg, EnumOf
+    from chimerax.core.commands import NonNegativeFloatArg, DynamicEnum, ListOf, FloatArg, EnumOf, ListOf
     from chimerax.atomic import ResiduesArg
     from chimerax.map import MapArg
     desc = CmdDesc(
-        required = [('residues', ResiduesArg), ('res_type', StringArg)],
+        required = [('residues', ResiduesArg), ('res_types', ListOf(StringArg))],
         keyword = [
             ('angle_slop', FloatArg),
             ('bfactor', FloatArg),
@@ -224,7 +248,7 @@ def register_command(command_name, logger):
     register("swapaa interactive", desc, rotamers, logger=logger)
 
     desc = CmdDesc(
-        required = [('residues', ResiduesArg), ('res_type', StringArg)],
+        required = [('residues', ResiduesArg), ('res_types', ListOf(StringArg))],
         keyword = [
             ('bfactor', FloatArg),
             ('preserve', BoolArg),

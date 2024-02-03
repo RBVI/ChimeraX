@@ -7,11 +7,11 @@
 # TODO: Deprecate conda version when pip gets arm64 ports
 #
 appdirs==1.4.4
-beautifulsoup4==4.11.2
-build==0.10.0
+beautifulsoup4==4.12.3
+build==1.0.3
 colorama==0.4.6
-Cython==0.29.33
-filelock==3.9.0
+Cython==3.0.8
+filelock==3.13.1
 # grako==3.16.5 # See the Makefile; need patched Grako for 3.11
 html2text==2020.1.16
 ihm==0.43
@@ -23,8 +23,8 @@ ipython==8.14.0
 # the version of jedi that works with ipython
 jedi==0.18.2
 jupyter-client==8.2.0
-line_profiler==4.0.2
-lxml==4.9.2
+line_profiler==4.1.2
+lxml==5.1.0
 lz4==4.3.3
 matplotlib==3.8.2
 msgpack==1.0.7
@@ -35,10 +35,10 @@ numpy==1.26.3
 openvr==1.26.701
 # as per Tristan's request in ticket #3055
 ParmEd==3.4.3
-pep517==0.13.0
+pep517==0.13.1
 Pillow==10.2.0
 pkginfo==1.9.6
-psutil==5.9.7
+psutil==5.9.8
 pycollada==0.8
 pydicom==2.3.0
 pynrrd==1.0.0
@@ -54,33 +54,33 @@ scipy==1.11.4
 six==1.16.0
 sortedcontainers==2.4.0
 # Used by the DICOM bundle for a double-ended QSlider
-superqt==0.5.0
+superqt==0.6.1
 tables==3.9.2 ; platform_machine != 'arm64'
 tifffile==2023.12.9
 # tinyarray==1.2.4 # 3.11 requires getting this from Plato
-webcolors==1.12
+webcolors==1.13
 wheel-filename==1.4.1
 #
 # Documentation
 #
 blockdiag==3.0.0
-docutils==0.19
+docutils==0.20.1
 Jinja2==3.1.3
-Pygments==2.16.1
-Sphinx==6.1.3
+Pygments==2.17.2
+Sphinx==7.2.6
 sphinxcontrib-blockdiag==3.0.0
-sphinx_autodoc_typehints==1.22
+sphinx_autodoc_typehints==1.25.3
 #
 # Windows
 #
-pywin32==305; sys_platform == 'win32'
+pywin32==306; sys_platform == 'win32'
 WMI==1.5.1; sys_platform == 'win32'
-comtypes==1.1.14; sys_platform == 'win32'
+comtypes==1.2.1; sys_platform == 'win32'
 #
 # Linux
 #
-distro==1.7.0; sys_platform == 'linux'
+distro==1.9.0; sys_platform == 'linux'
 #
 # Indirect dependencies listed here to pin the version number
 #
-traitlets==5.9.0
+traitlets==5.14.1
