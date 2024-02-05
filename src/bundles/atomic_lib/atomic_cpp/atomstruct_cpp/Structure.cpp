@@ -1029,6 +1029,7 @@ Structure::_form_chain_check(Atom* a1, Atom* a2, Bond* b)
     Py_DECREF(inst);
     if (inst == Py_None)
         return;
+std::cerr << "form chain check: " << a1->str() << " " << a2->str() << "\n";
     Residue* start_r;
     Residue* other_r;
     bool is_pb = (b == nullptr);
@@ -1116,6 +1117,8 @@ Structure::_form_chain_check(Atom* a1, Atom* a2, Bond* b)
         start_r = start_a->residue();
         other_r = b->other_atom(start_a)->residue();
     }
+std::cerr << "  fcc: start: " << start_r->str() << " (" << (start_r->chain() == nullptr ? "not " : "") << "in chain)\n";
+std::cerr << "  fcc: other: " << other_r->str() << " (" << (other_r->chain() == nullptr ? "not " : "") << "in chain)\n";
     if (start_r->chain() == nullptr) {
         if (other_r->chain() == nullptr) {
             // form a new chain based on start residue's chain ID
