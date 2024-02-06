@@ -97,7 +97,7 @@ private:
     bool  _rings_are_thin;
     Rgba  _ring_rgba;
 public:
-    void  add_atom(Atom*, bool copying_structure=false);
+    void  add_atom(Atom*, bool copying_or_restoring=false);
     const Atoms&  atoms() const { return _atoms; }
     AtomsMap  atoms_map() const;
     std::vector<Bond*>  bonds_between(const Residue* other_res, bool just_first=false) const;

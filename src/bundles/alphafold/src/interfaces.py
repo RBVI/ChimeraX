@@ -55,6 +55,8 @@ def alphafold_interfaces(session, directory, distance = 4, max_pae = 5, min_conf
     '''
     iclist = interface_confidence(session, directory, distance = distance, max_pae = max_pae,
                                   results_file = results_file)
+    if short_names:
+        use_short_sequence_names(iclist)
     giclist = group_by_sequences(iclist)
     ciclist = [ic for ic in iclist if ic.num_confident_pairs >= min_conf_pairs]
     gciclist = group_by_sequences(ciclist)
@@ -64,7 +66,7 @@ def alphafold_interfaces(session, directory, distance = 4, max_pae = 5, min_conf
     session.logger.info(msg)
 
     if gciclist:
-        html = interface_table(gciclist, directory, distance, max_pae, min_conf_pairs, short_names)
+        html = interface_table(gciclist, directory, distance, max_pae, min_conf_pairs)
         session.logger.info(html, is_html = True)
 
     if open:
@@ -87,14 +89,13 @@ def interface_confidence(session, directory, distance = 4, max_pae = 5, results_
 
     iclist = []
     for fi, file in enumerate(pdb_files):
-        sname = sequences_name_from_file_name(file)
-        session.logger.status(f'Evaluating {sname} ({fi+1} of {len(pdb_files)})')
         from os.path import join
         pdb_path = join(directory, file)
         pae_file = file.replace('unrelaxed', 'scores').replace('.pdb','.json')
         pae_path = join(directory, pae_file)
         dc = dimer_confidence(session, pdb_path, pae_path)
         iclist.append(dc)
+        session.logger.status(f'Evaluating {dc.sequence_names} ({fi+1} of {len(pdb_files)})')
 
     if results_file is not None:
         _write_interfaces(results_path, iclist)
@@ -149,6 +150,7 @@ class InterfaceConfidence:
     def __init__(self, pdb_path, pae_path, n1, n2, ni1, ni2, npair, nconf, r1nums, r2nums,
                  distance, max_pae):
         self.pdb_path = pdb_path
+        self.sequence_names = sequences_name_from_file_name(pdb_path)
         self.pae_path = pae_path
         self.distance = distance
         self.max_pae = max_pae
@@ -191,6 +193,15 @@ class InterfaceConfidence:
         ic = InterfaceConfidence(pdb_path, pae_path, n1, n2, ni1, ni2, npair, nconf, r1nums, r2nums,
                                  distance, max_pae)
         return ic
+    
+# -----------------------------------------------------------------------------
+#
+def sequences_name_from_file_name(file):
+    from os.path import basename
+    file = basename(file)
+    i = file.find('_unrelaxed')
+    seqs_name = file[:i] if i >= 0 else file
+    return seqs_name
 
 # -----------------------------------------------------------------------------
 #
@@ -212,18 +223,14 @@ def _read_interfaces(results_path):
 
 # -----------------------------------------------------------------------------
 #
-def interface_table(giclist, directory, distance, max_pae, min_conf_pairs, short_names):
+def interface_table(giclist, directory, distance, max_pae, min_conf_pairs):
 
-    pdb_paths = [gic[0].pdb_path for gic in giclist]
-    short = short_file_names(pdb_paths) if short_names else None
     lines = ['<table border=1 cellpadding=2 cellspacing=0>',
              '<th>Sequences<th>Models<th>Confident pairs<th>#Res1<th> #Res2']
     open_cmds = []
     for gic in giclist:
         ic = gic[0]
-        seqs_name = sequences_name_from_file_name(ic.pdb_path)
-        if short:
-            seqs_name = short.get(seqs_name, seqs_name)
+        seqs_name = ic.sequence_names
         quoted_pdb_path = '\\"' + ic.pdb_path + '\\"' if ' ' in ic.pdb_path else ic.pdb_path
         quoted_pae_path = '\\"' + ic.pae_path + '\\"' if ' ' in ic.pae_path else ic.pae_path
         res1 =  ','.join(str(i) for i in ic.interface_residue_numbers1)
@@ -263,25 +270,16 @@ def interface_table(giclist, directory, distance, max_pae, min_conf_pairs, short
     lines.append(f'<a href="cxcmd:{hide_cmd}">Hide</a> or <a href="cxcmd:{show_cmd}">show</a> disordered loops (pLLDT &lt;= 50).')
     msg = '\n'.join(lines)
     return msg
-    
-# -----------------------------------------------------------------------------
-#
-def sequences_name_from_file_name(file):
-    from os.path import basename
-    file = basename(file)
-    i = file.find('_unrelaxed')
-    seqs_name = file[:i] if i >= 0 else file
-    return seqs_name
 
 # -----------------------------------------------------------------------------
 #
-def short_file_names(pdb_paths):
+def short_sequence_names(long_sequence_names):
     '''
     Return map of sequence pair name to shorter sequence names which
     are single components separated by "_" in the original sequence names
     that uniquely name a sequence
     '''
-    seq_pairs = [sequences_name_from_file_name(path) for path in pdb_paths]
+    seq_pairs = long_sequence_names
     seq_names = set()
     for seq_pair in seq_pairs:
         seqs = seq_pair.split('.')
@@ -301,6 +299,15 @@ def short_file_names(pdb_paths):
         if len(seqs) == 2:
             seq_pair_map[seq_pair] = ' '.join(seqmap.get(seq, seq) for seq in seqs)
     return seq_pair_map
+
+# -----------------------------------------------------------------------------
+#
+def use_short_sequence_names(iclist):
+    seq_names = [ic.sequence_names for ic in iclist]
+    short = short_sequence_names(seq_names)
+    for ic in iclist:
+        if ic.sequence_names in short:
+            ic.sequence_names = short[ic.sequence_names]
 
 # -----------------------------------------------------------------------------
 #
@@ -325,7 +332,7 @@ def contacting_residue_pairs(res1, res2, distance):
 def group_by_sequences(iclist):
     smap = {}
     for ic in iclist:
-        seq_names = sequences_name_from_file_name(ic.pdb_path)
+        seq_names = ic.sequence_names
         if seq_names in smap:
             smap[seq_names].append(ic)
         else:
