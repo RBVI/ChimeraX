@@ -247,7 +247,9 @@ class UI(QApplication):
     def open_pending_files(self, ignore_files = ()):
         # Note about ignore_files:  macOS 10.12 generates QFileOpenEvent for arguments specified
         # on the command-line, but our code also opens those files, so ignore files we already processed.
-        self._bad_drop_events = set(ignore_files)
+        # _bad_drop_events needs to be a list instead of a set in case the same file is opened multiple
+        # times on the command line.
+        self._bad_drop_events = list(ignore_files)
         for bad_drop in getattr(self, '_seen_bad_drops', []):
             self._bad_drop_events.discard(bad_drop)
         for path in self._files_to_open:
