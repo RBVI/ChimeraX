@@ -162,10 +162,14 @@ class _RotamerStateManager(StateManager):
                 self.triggers.activate_trigger('self destroyed', self)
                 self.destroy()
 
-def rotamers(session, residues, res_type, *, rot_lib=None, log=True):
+def rotamers(session, residues, res_types, *, rot_lib=None, log=True):
     ''' Command to display possible side-chain rotamers '''
 
     residues = _check_residues(residues)
+
+    # for backwards compatibility...
+    if type(res_types) == str:
+        res_types = [res_types]
 
     if rot_lib is None:
         rot_lib = session.rotamers.default_command_library_name
@@ -174,7 +178,7 @@ def rotamers(session, residues, res_type, *, rot_lib=None, log=True):
     from . import swap_res
     from chimerax.atomic import AtomicStructures
     from chimerax.core.objects import Objects
-    for r in residues:
+    for r, res_type in zip(residues, res_types):
         if res_type == "same":
             r_type = r.name
         else:
@@ -238,7 +242,7 @@ def register_command(command_name, logger):
     register("swapaa", desc, swap_aa, logger=logger)
 
     desc = CmdDesc(
-        required = [('residues', ResiduesArg), ('res_type', StringArg)],
+        required = [('residues', ResiduesArg), ('res_types', ListOf(StringArg))],
         keyword = [
             ('rot_lib', DynamicEnum(logger.session.rotamers.library_names)),
             ('log', BoolArg),
