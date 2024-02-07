@@ -430,6 +430,8 @@ class LaunchFitLoopsTool(ToolInstance):
 
     GAPS_TAB, REMODEL_TAB = TAB_NAMES = ("Fill Gaps", "Remodel")
 
+    ADVISORY_RES_LIMIT = 10
+
     def __init__(self, session, tool_name):
         super().__init__(session, tool_name)
         from chimerax.ui import MainToolWindow
@@ -470,7 +472,15 @@ class LaunchFitLoopsTool(ToolInstance):
         layout.setStretch(layout.count(), 1)
         self.no_structure_message = "Select a structure from the menu above"
         self.target_label = QLabel(self.no_structure_message)
-        self.target_label.setAlignment(Qt.AlignCenter)
+        self.model_structure_message = "Select the parts of %s you want to model/remodel, including" \
+            " missing-structure pseudobonds if filling the corresponding gap is desired." \
+            "  For convenience, choosing a gap from the list on the right will select the" \
+            " corresponding part of the structure and focus the view on it."
+        self.many_residues_message = "The fit_loops program does not perform well when" \
+            " modeling %d consecutive residues or more, so modeling" \
+            " the currently selected residues (%%d consecutive residues in chain %%s) is not recommended." \
+            % self.ADVISORY_RES_LIMIT
+        self.target_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
         self.target_label.setWordWrap(True)
         from chimerax.ui import shrink_font
         shrink_font(self.target_label, 0.9)
@@ -508,7 +518,14 @@ class LaunchFitLoopsTool(ToolInstance):
             bbox.button(qbbox.Help).setEnabled(False)
         layout.addWidget(bbox)
 
+        from chimerax.core.selection import SELECTION_CHANGED
+        self.handler = session.triggers.add_handler(SELECTION_CHANGED, self._sel_changed)
+
         tw.manage(placement=None)
+
+    def delete(self):
+        self.handler.remove()
+        super().delete()
 
     def launch_fit_loops(self, apply=False):
         structure = self.structure_menu.value
@@ -601,7 +618,7 @@ class LaunchFitLoopsTool(ToolInstance):
             run(self.session, "select " + concise_residue_spec(self.session, target_residues))
             run(self.session, "view sel")
         else:
-            # There is no command to select _just_ a pseudbond, so if the padding is zero...
+            # There is no command to select _just_ a pseudobond, so if the padding is zero...
             self.session.selection.clear()
             pb.selected = True
             a1, a2 = pb.atoms
@@ -610,6 +627,53 @@ class LaunchFitLoopsTool(ToolInstance):
     def _padding_changed(self, padding):
         self.residue_label.setText(" residue" if padding == 1 else " residues")
         self._new_target(self.target_list.currentRow())
+
+    def _sel_changed(self, trig_name, data):
+        structure = self.structure_menu.value
+        if structure:
+            # check if selection >= ADVISORY_RES_LIMIT consecutive chain residues
+            from chimerax.atomic import Structure, selected_residues, selected_pseudobonds
+            sel_res = set(selected_residues(self.session))
+            for chain in structure.chains:
+                num_sel = 0
+                prev_existing_res = None
+                gap_len = 0
+                for r in chain.residues:
+                    if r:
+                        if gap_len > 0:
+                            # Is there a selected missing-structure pseudobond between the existing residues?
+                            end_points = set([r, prev_existing_res])
+                            for pb in selected_pseudobonds(self.session):
+                                if pb.group.name != Structure.PBG_MISSING_STRUCTURE:
+                                    continue
+                                if pb.atoms[0].residue in end_points and pb.atoms[1].residue in end_points:
+                                    num_sel += gap_len
+                                    break
+                            else:
+                                if num_sel >= self.ADVISORY_RES_LIMIT:
+                                    break
+                                num_sel = 0
+                            gap_len = 0
+                        if r in sel_res:
+                            num_sel += 1
+                        else:
+                            if num_sel >= self.ADVISORY_RES_LIMIT:
+                                break
+                            num_sel = 0
+                        prev_existing_res = r
+                    else:
+                        if prev_existing_res:
+                            gap_len += 1
+                if num_sel >= self.ADVISORY_RES_LIMIT:
+                    self.target_label.setText(self.many_residues_message % (num_sel, chain.chain_id))
+                    self.target_label.setStyleSheet("QLabel { color : red }")
+                    break
+            else:
+                self.target_label.setText(self.model_structure_message % structure)
+                self.target_label.setStyleSheet("QLabel { color : black }")
+        else:
+            self.target_label.setText(self.no_structure_message)
+            self.target_label.setStyleSheet("QLabel { color : black }")
 
     def _structure_changed(self):
         structure = self.structure_menu.value
@@ -622,10 +686,7 @@ class LaunchFitLoopsTool(ToolInstance):
                     ['<li><a href="cxcmd:view %s%s">%s&rarr;%s</a></li>' % (r1.atomspec, r2.atomspec, r1, r2)
                     for r1, r2, pb in unk_gaps])), is_html=True)
             if gap_info:
-                msg = f"Select the parts of {structure} you want to model/remodel, including" \
-                    " missing-structure pseudobonds if filling the corresponding gap is desired." \
-                    "  For convenience, choosing a gap from the list on the right will select the" \
-                    " corresponding part of the structure and focus the view on it."
+                msg = self.model_structure_message % structure
                 self.current_gap_info = gap_info
                 self.target_list.clear()
                 for r1, r2, pb in gap_info:
