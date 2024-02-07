@@ -3,61 +3,55 @@ import os
 from chimerax.speech.speech import SpeechDecoder
 
 
+def sample_path(filename):
+    return os.path.join(os.path.dirname(__file__), "data", filename)
+
+
 @pytest.mark.parametrize(
     ("audio_path", "audio_content"),
     [
         (
-            os.path.join(
-                os.path.dirname(__file__), "data", "assign right click to select.m4a"
-            ),
+            sample_path("assign right click to select.m4a"),
             "assign right click to select",
         ),
         (
-            os.path.join(os.path.dirname(__file__), "data", "color by bfactor.m4a"),
+            sample_path("color by bfactor.m4a"),
             "color by b factor",
         ),
         (
-            os.path.join(os.path.dirname(__file__), "data", "color bypolymer.m4a"),
+            sample_path("color bypolymer.m4a"),
             "color by polymer",
         ),
         (
-            os.path.join(
-                os.path.dirname(__file__),
-                "data",
-                "display #1 in ball and stick style.m4a",
-            ),
+            sample_path("display #1 in ball and stick style.m4a"),
             "display number one in ball and stick style",
         ),
         (
-            os.path.join(os.path.dirname(__file__), "data", "hbonds reveal true.m4a"),
+            sample_path("hbonds reveal true.m4a"),
             "h bonds reveal true",
         ),
         (
-            os.path.join(
-                os.path.dirname(__file__), "data", "make the background white.m4a"
-            ),
+            sample_path("make the background white.m4a"),
             "make the background white",
         ),
         (
-            os.path.join(os.path.dirname(__file__), "data", "open 5y5s.m4a"),
+            sample_path("open 5y5s.m4a"),
             "open 5y5s",
         ),
         (
-            os.path.join(os.path.dirname(__file__), "data", "set bgColor black.m4a"),
+            sample_path("set bgColor black.m4a"),
             "set bg color black",
         ),
         (
-            os.path.join(os.path.dirname(__file__), "data", "show hydrogen bonds.m4a"),
+            sample_path("show hydrogen bonds.m4a"),
             "show hydrogen bonds",
         ),
         (
-            os.path.join(os.path.dirname(__file__), "data", "style ball.m4a"),
+            sample_path("style ball.m4a"),
             "style ball",
         ),
         (
-            os.path.join(
-                os.path.dirname(__file__), "data", "ui mousemode right zoom.m4a"
-            ),
+            sample_path("ui mousemode right zoom.m4a"),
             "ui mouse mode right zoom",
         ),
     ],
