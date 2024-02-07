@@ -20,6 +20,7 @@ from chimerax.core.tools import ToolInstance
 from chimerax.ui.gui import MainToolWindow
 
 from .speech import SpeechDecoder, SpeechRecorder
+from .parser import CommandParser
 
 
 class VoiceCommandTool(ToolInstance):
@@ -50,14 +51,20 @@ class VoiceCommandTool(ToolInstance):
         self.record_button = QPushButton(
             parent, text="Record Command", icon=self.start_recording_icon
         )
+        # TODO: This button is a DEBUG button and should be removed in the final version
+        #       its purpose is to let us see the source text before parsing it into a
+        #       ChimeraX command, or to let us type in phrases to test the parser
+        self.refine_button = QPushButton("Refine Command")
         self.confirm_button = QPushButton("Confirm Command")
 
         layout.addWidget(self.command_label)
         layout.addWidget(self.command_text_box)
         layout.addWidget(self.record_button)
+        layout.addWidget(self.refine_button)
         layout.addWidget(self.confirm_button)
 
         self.record_button.clicked.connect(self.record_command)
+        self.refine_button.clicked.connect(self.refine_command)
         self.confirm_button.clicked.connect(self.execute_command)
 
         self.tool_window.manage()
@@ -79,6 +86,11 @@ class VoiceCommandTool(ToolInstance):
         decoder = SpeechDecoder()
         result = decoder.decode_frames(self.recorder.get_frames())
         self.command_text_box.setText(result.getText())
+
+    def refine_command(self):
+        p = CommandParser()
+        command = p.parse(self.command_text_box.text())
+        self.command_text_box.setText(command)
 
     def execute_command(self):
         command = self.command_text_box.text()
