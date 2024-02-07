@@ -210,7 +210,7 @@ class LaunchEmplaceLocalTool(ToolInstance):
         from chimerax.ui.widgets import ModelListWidget, ModelMenuButton
         ex_lab = self.mt_explanation_label = QLabel(self.mt_explanations[self.HALF_MAPS])
         ex_lab.setWordWrap(True)
-        ex_lab.setAlignment(Qt.AlignCenter)
+        ex_lab.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
         from chimerax.ui import shrink_font
         shrink_font(ex_lab, fraction=0.85)
         structure_layout.addWidget(ex_lab, 1, 0, 1, 4)
@@ -284,9 +284,14 @@ class LaunchEmplaceLocalTool(ToolInstance):
         centering_layout.addWidget(self.xyz_area)
         self._set_centering_method()
 
+        checkbox_area = QWidget()
+        layout.addWidget(checkbox_area, alignment=Qt.AlignCenter)
+        checkbox_layout = QVBoxLayout()
+        checkbox_layout.setContentsMargins(0,0,0,0)
+        checkbox_area.setLayout(checkbox_layout)
         self.verify_center_checkbox = QCheckBox("Interactively verify/adjust center before searching")
         self.verify_center_checkbox.setChecked(True)
-        layout.addWidget(self.verify_center_checkbox, alignment=Qt.AlignCenter)
+        checkbox_layout.addWidget(self.verify_center_checkbox, alignment=Qt.AlignLeft)
         self.opaque_maps_checkbox = QCheckBox("Make maps opaque while verifying center")
         self.opaque_maps_checkbox.setToolTip(
             "ChimeraX cannot show multiple transparent objects correctly, so make maps opaque\n"
@@ -295,7 +300,7 @@ class LaunchEmplaceLocalTool(ToolInstance):
         self.opaque_maps_checkbox.setChecked(self.settings.opaque_maps)
         self.verify_center_checkbox.clicked.connect(lambda checked, b=self.opaque_maps_checkbox:
             b.setHidden(not checked))
-        layout.addWidget(self.opaque_maps_checkbox, alignment=Qt.AlignCenter)
+        checkbox_layout.addWidget(self.opaque_maps_checkbox, alignment=Qt.AlignLeft)
         self.show_sharpened_map_checkbox = QCheckBox("Show locally sharpened map computed by Phenix")
         self.show_sharpened_map_checkbox.setChecked(self.settings.show_sharpened_map)
         self.show_sharpened_map_checkbox.setToolTip(
@@ -304,12 +309,11 @@ class LaunchEmplaceLocalTool(ToolInstance):
             "controls whether the sharpened map is initially shown in ChimeraX once the\n"
             "calculation completes.  Even if not checked, the map will be opened (but hidden)."
         )
-        layout.addWidget(self.show_sharpened_map_checkbox, alignment=Qt.AlignCenter)
-        layout.addSpacing(10)
+        checkbox_layout.addWidget(self.show_sharpened_map_checkbox, alignment=Qt.AlignLeft)
         self.symmetry_checkbox = QCheckBox("After fitting, add symmetry copies"
             " automatically if map symmetry is detected")
-        layout.addWidget(self.symmetry_checkbox, alignment=Qt.AlignCenter)
-        layout.addStretch(1)
+        checkbox_layout.addWidget(self.symmetry_checkbox, alignment=Qt.AlignLeft)
+        layout.addSpacing(10)
 
         from Qt.QtWidgets import QDialogButtonBox as qbbox
         self.bbox = bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
