@@ -14,13 +14,13 @@ __version__ = "1.2"
 from chimerax.core.toolshed import BundleAPI
 from chimerax.map import add_map_format
 from chimerax.core.tools import get_singleton
-from .dicom import DICOMMapFormat
-from .dicom_volumes import DICOMVolume
-from .dicom_opener import DicomOpener
-from .dicom_saver import DicomSaver
-from .dicom_fetcher import fetchers
-from .dicom_hierarchy import Patient, Study
-from .dicom_models import DicomGrid
+from chimerax.dicom.dicom import DICOMMapFormat
+from chimerax.dicom.dicom_volumes import DICOMVolume
+from chimerax.dicom.dicom_opener import DicomOpener
+from chimerax.dicom.dicom_saver import DicomSaver
+from chimerax.dicom.dicom_fetcher import fetchers
+from chimerax.dicom.dicom_hierarchy import Patient, Study
+from chimerax.dicom.dicom_models import DicomGrid
 
 
 class _DICOMBundle(BundleAPI):
@@ -39,11 +39,11 @@ class _DICOMBundle(BundleAPI):
     @staticmethod
     def start_tool(session, _, ti):
         if ti.name == "DICOM Browser":
-            from .dicom.ui import DICOMBrowserTool
+            from chimerax.dicom.ui import DICOMBrowserTool
 
             return get_singleton(session, DICOMBrowserTool, "DICOM Browser")
         else:
-            from .dicom.ui import DICOMDatabases
+            from chimerax.dicom.ui import DICOMDatabases
 
             return DICOMDatabases(session)
 
