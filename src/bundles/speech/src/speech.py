@@ -1,244 +1,115 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
+#  === UCSF ChimeraX Copyright ===
+#  Copyright 2024 Regents of the University of California.
+#  All rights reserved.  This software provided pursuant to a
+#  license agreement containing restrictions on its disclosure,
+#  duplication and use.  For details see:
+#  https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+#  This notice must be embedded in or attached to all copies,
+#  including partial copies, of the software or any revisions
+#  or derivations thereof.
+#  === UCSF ChimeraX Copyright ===
+import atexit
+import os
+import threading
+import tempfile
+import warnings
+import wave
 
-import re
-_re_nopunct = re.compile(r'[^a-zA-Z0-9 ]')
+# We don't really care that Numba has a problem with how whisper is using it.
+with warnings.catch_warnings():
+    warnings.simplefilter("ignore")
+    import whisper
+import pyaudio
 
+import numpy as np
 
-class Speech:
+TOKENS_TO_SUPPRESS = [13]  # periods
 
-    def __init__(self, session):
-        self.session = session
-        if not session.ui.is_gui:
-            from chimerax.core.errors import UserError
-            raise UserError("Speech recognition only works in GUI mode")
-        import speech_recognition as sr
-        import threading
-        self.recognizer = sr.Recognizer()
-        try:
-            self.microphone = sr.Microphone()
-        except OSError as e:
-            from chimerax.core.errors import UserError
-            raise UserError("Accessing microphone: %s" % str(e))
-        self.terminate = None
-        self.word_info = None
-
-    def is_active(self):
-        return self.terminate is not None
-
-    def state(self):
-        return "off" if self.terminate is None else "on"
-
-    def activate(self):
-        if self.terminate is not None:
-            from chimerax.core.errors import UserError
-            raise UserError("speech recognition is already active")
-        if self.word_info is None:
-            self.word_info = self._scan_menubar()
-        r = self.recognizer
-        r.energy_threshold = 4000
-        s = self.microphone
-        with s as source:
-            r.adjust_for_ambient_noise(source)
-        self.terminate = r.listen_in_background(s, self._transcribe)
-
-    def deactivate(self):
-        if self.terminate is None:
-            from chimerax.core.errors import UserError
-            raise UserError("speech recognition is already inactive")
-        self.terminate()
-        self.terminate = None
-
-    def show_alternatives(self, alternative):
-        alts = self.word_info.show_alternatives(alternative)
-        log = self.session.logger.info
-        if len(alts) == 0:
-            log("There are no alternatives for \"%s\"" % alternative)
-        else:
-            log("The alternatives for \"%s\" %s: %s" %
-                (alternative, "is" if len(alts) == 1 else "are",
-                 ", ".join(["\"%s\"" % s for s in alts])))
-
-    def add_alternative(self, alternative, original):
-        count = self.word_info.add_alternative(alternative, original)
-        log = self.session.logger.info
-        log("\"%s\" added in %d place%s" % (alternative, count,
-                                            "" if count == 1 else "s"))
-
-    def _scan_menubar(self):
-        from Qt.QtWidgets import QMenu, QToolButton
-        mw = self.session.ui.main_window
-        mb = mw.menuBar()
-        word_info = WordInfo(self.session)
-        for child in mb.children():
-            if isinstance(child, QMenu):
-                self._scan_menu(child, word_info)
-            elif isinstance(child, QToolButton):
-                pass
-            else:
-                print("Unexpected menubar entry", child)
-        word_info.add_singular()
-        # word_info.dump()
-        return word_info
-
-    def _words(self, s):
-        words = _re_nopunct.sub(' ', s.lower().replace('&', '')).split()
-        # print("converted", repr(s), "to", words)
-        return words
-
-    def _scan_menu(self, menu, parent_info):
-        from Qt.QtWidgets import QMenu
-        from Qt.QtGui import QAction
-        words = self._words(menu.title())
-        name = ' '.join(words)
-        # print("menu", name)
-        info = parent_info.add_followed_by(words)
-        for child in menu.actions():
-            if isinstance(child, QAction):
-                self._scan_action(child, info)
-            else:
-                print("--unexpected menu entry", child)
-
-    def _scan_action(self, action, info):
-        if action.isSeparator():
-            return
-        words = self._words(action.text())
-        name = ' '.join(words)
-        menu = action.menu()
-        if menu is not None:
-            # print("--submenu", name)
-            self._scan_menu(menu, info)
-        elif not action.isEnabled():
-            # print("--disabled", name)
-            pass
-        # elif action.isCheckable():
-        #     # print("--checkbox", name)
-        #     self._add_action_info(info, words, action)
-        else:
-            # print("--item", name)
-            sub_info = info.add_followed_by(words)
-            sub_info.set_action(action)
-
-    def _transcribe(self, recognizer, audio):
-        import speech_recognition as sr
-        try:
-            transcription = recognizer.recognize_google(audio)
-            # transcription = recognizer.recognize_sphinx(audio)
-        except sr.RequestError:
-            self._log("speech error: API unavailable")
-        except sr.UnknownValueError:
-            self._log("speech error: cannot recognize speech")
-        else:
-            self._log("speech: %s" % transcription)
-            self.word_info.execute(transcription.lower())
-
-    def _log(self, msg):
-        self.session.ui.thread_safe(self.session.logger.info, msg)
+CHUNK_SIZE = 1024
+CHANNELS = 2
+RATE = 44100
 
 
-class WordInfo:
+# Adapted from code from Vispy's example directory. While Vispy is (at this time, July 2023)
+# licensed under the BSD license, their license states that all code in their example directory
+# is public domain. Thanks, Vispy!
+# See https://github.com/vispy/vispy/blob/main/examples/demo/scene/oscilloscope.py
+class SpeechRecorder:
+    def __init__(self, rate=RATE, chunksize=CHUNK_SIZE):
+        self.rate = rate
+        self.chunksize = chunksize
+        self.p = pyaudio.PyAudio()
+        self.stream = self.p.open(
+            format=pyaudio.paInt16,
+            channels=1,
+            rate=self.rate,
+            input=True,
+            frames_per_buffer=self.chunksize,
+            stream_callback=self.new_frame,
+        )
+        self.lock = threading.Lock()
+        self.stop = False
+        self.frames = []
+        atexit.register(self.close)
 
-    def __init__(self, session):
-        self.session = session      # XXX: Should be weakref
-        self.followed_by = {}
-        self.callback = None
+    def new_frame(self, data, frame_count, time_info, status):
+        data = np.fromstring(data, "int16")
+        with self.lock:
+            self.frames.append(data)
+            if self.stop:
+                return None, pyaudio.paComplete
+        return None, pyaudio.paContinue
 
-    def add_followed_by(self, words):
-        if not words:
-            return self
-        try:
-            word = self.followed_by[words[0]]
-        except KeyError:
-            word = self.followed_by[words[0]] = WordInfo(self.session)
-        return word.add_followed_by(words[1:])
+    def get_frames(self):
+        with self.lock:
+            frames = self.frames
+            self.frames = []
+            return frames
 
-    def add_singular(self):
-        # Should use stemming, but this is cheaper
-        add = {}
-        for word, info in self.followed_by.items():
-            if word[-1] == 's':
-                singular = word[:-1]
-                if singular not in self.followed_by:
-                    add[singular] = word
-            info.add_singular()
-        for singular, plural in add.items():
-            self.followed_by[singular] = self.followed_by[plural]
+    def record(self):
+        self.stream.start_stream()
 
-    def show_alternatives(self, alternative):
-        originals = set()
-        try:
-            alt_info = self.followed_by[alternative]
-        except KeyError:
-            pass
-        else:
-            for word, info in self.followed_by.items():
-                if info is alt_info and word != alternative:
-                    originals.add(word)
-        for info in self.followed_by.values():
-            originals.update(info.show_alternatives(alternative))
-        return originals
+    def close(self):
+        with self.lock:
+            self.stop = True
+        self.stream.close()
+        self.p.terminate()
 
-    def add_alternative(self, alternative, original):
-        count = 0
-        try:
-            orig_info = self.followed_by[original]
-        except KeyError:
-            pass
-        else:
-            try:
-                alt_info = self.followed_by[alternative]
-            except KeyError:
-                self.followed_by[alternative] = orig_info
-                count += 1
-            else:
-                if alt_info is not orig_info:
-                    # This function is probably called from the main
-                    # thread so just raise the exception instead of
-                    # printing an error message
-                    from chimerax.core.errors import UserError
-                    raise UserError("\"%s\" is already in use" % alternative)
-        for info in self.followed_by.values():
-            count += info.add_alternative(alternative, original)
-        return count
 
-    def set_callback(self, cb):
-        self.callback = cb
+class SpeechResult:
+    def __init__(self, result):
+        self.text = result["text"]
+        self.segments = result["segments"]
 
-    def set_action(self, action):
-        def f(action=action):
-            action.activate(action.Trigger)
-        self.callback = f
+    def getText(self):
+        return self.text.strip().strip(".").lower()
 
-    def dump(self, depth=0):
-        if self.callback:
-            print("-" * depth, "LEAF")
-        for word, info in self.followed_by.items():
-            print("-" * depth, word)
-            info.dump(depth=depth+1)
+    def getSegments(self):
+        return self.segments
 
-    def execute(self, cmd):
-        words = cmd.split()
-        self._execute_words(words, cmd)
 
-    def _execute_words(self, words, full_cmd):
-        if not words:
-            if self.callback:
-                self.session.ui.thread_safe(self.callback)
-            elif len(self.followed_by) == 1:
-                for info in self.followed_by.values():
-                    info._execute_words(words, full_cmd)
-            else:
-                self._warning("No action associated with %r" % full_cmd)
-            return
-        try:
-            info = self.followed_by[words[0]]
-        except KeyError:
-            self._warning("No command associated with %r" % full_cmd)
-        else:
-            info._execute_words(words[1:], full_cmd)
+class SpeechDecoder:
+    def decode_frames(self, frames) -> SpeechResult:
+        f = tempfile.NamedTemporaryFile(suffix=".wav")
+        with wave.open(f, "wb") as wav:
+            wav.setnchannels(CHANNELS)
+            wav.setframerate(RATE)
+            wav.setsampwidth(pyaudio.get_sample_size(pyaudio.paInt16))
+            wav.setnframes(len(frames))
+            for frame in frames:
+                wav.writeframesraw(frame.tobytes())
+        result = self.decode_file(f.name)
+        del f
+        return result
 
-    def _warning(self, msg):
-        self.session.ui.thread_safe(self.session.logger.warning, msg)
-
-    def _error(self, msg):
-        self.session.ui.thread_safe(self.session.logger.error, msg)
+    def decode_file(self, file) -> SpeechResult:
+        # We have no way of knowing whether a CPU supports F16 or F32, and since
+        # whisper seems to have no problem picking on its own, it doesn't really
+        # need to bother our users by telling them now does it
+        model = whisper.load_model("base.en")
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            result = model.transcribe(file, suppress_tokens=TOKENS_TO_SUPPRESS)
+        return SpeechResult(result)
