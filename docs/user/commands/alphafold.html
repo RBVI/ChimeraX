@@ -582,6 +582,13 @@ for further analysis (<a href="#structmatch">details...</a>).
 <a name="caveats"></a>
 <h4>Caveats</h4>
 <ul>
+<li><b>Results may be lost if the local computer goes to sleep</b>.
+Google intends Colab to be for interactive use. Even if the Colab job completes,
+the results may fail to download to the local computer if it has gone to
+sleep. It is recommended to turn off the option to enter sleep mode 
+(meant to conserve power after some amount of idle time)
+before running a prediction.
+<br><br>
 <li>The process includes
 installing various software packages on a virtual machine, 
 searching sequence databases, generating a multiple sequence alignment,
@@ -919,5 +926,5 @@ numbers of the residues that they connect:
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-July 2023</address>
+February 2024</address>
 </body></html>

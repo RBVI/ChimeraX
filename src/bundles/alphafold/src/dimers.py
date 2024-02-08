@@ -91,6 +91,15 @@ def write_dimers_fasta(output_fasta, seq_pairs):
                       seq2])
     with open(output_fasta, 'w') as f:
         f.write('\n'.join(lines))
+
+# -----------------------------------------------------------------------------
+#
+def write_monomers_fasta(output_fasta, named_seqs):
+    lines = []
+    for name, seq in named_seqs:
+        lines.extend([f'>{name}', seq])
+    with open(output_fasta, 'w') as f:
+        f.write('\n'.join(lines))
         
 # -----------------------------------------------------------------------------
 #
@@ -277,11 +286,12 @@ def _chain_sequence_name(chain):
             elif uid.uniprot_id:
                 return uid.uniprot_id
     # return chain.description
-    return f'{chain.structure.name} {chain.chain_id}'
+    return f'{chain.structure.name}_{chain.chain_id}'
 
 # -----------------------------------------------------------------------------
 #
-def alphafold_monomers(session, sequences = None, max_length = None, recycles = 3, models = (1,2,3,4,5), open = '.'):
+def alphafold_monomers(session, sequences = None, max_length = None, recycles = 3,
+                       models = (1,2,3,4,5), output_fasta = None, open = '.'):
     '''
     Estimate time for predicting a set of monomers using
     localcolabfold (https://github.com/YoshitakaMo/localcolabfold).
@@ -309,11 +319,15 @@ def alphafold_monomers(session, sequences = None, max_length = None, recycles = 
         ldescrip = _monomers_description(lseqs)
         msg += f'\nOmitted {ldescrip}'
 
-    cmd = colabfold_batch_command('sequences.fasta', recycles, models)
+    seq_path = 'sequences.fasta' if output_fasta is None else output_fasta
+    cmd = colabfold_batch_command(seq_path, recycles, models)
     msg += f'\nPrediction command: {cmd}'
 
     session.logger.info(msg)
-    
+
+    if output_fasta:
+        write_monomers_fasta(output_fasta, seqs)
+        
 # -----------------------------------------------------------------------------
 #
 def alphafold_open_monomers(session, directory = '.'):
@@ -345,12 +359,13 @@ def alphafold_open_monomers(session, directory = '.'):
 # -----------------------------------------------------------------------------
 #
 def register_alphafold_monomers_command(logger):
-    from chimerax.core.commands import CmdDesc, register, IntArg, IntsArg, OpenFolderNameArg
+    from chimerax.core.commands import CmdDesc, register, IntArg, IntsArg, SaveFileNameArg, OpenFolderNameArg
     desc = CmdDesc(
         optional = [('sequences', NamedSeqsArg)],
         keyword = [('max_length', IntArg),
                    ('recycles', IntArg),
                    ('models', IntsArg),
+                   ('output_fasta', SaveFileNameArg),
                    ('open', OpenFolderNameArg),
                    ],
         synopsis = 'Estimate runtime for monomer AlphaFold predictions using colabfold_batch'
