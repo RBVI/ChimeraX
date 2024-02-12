@@ -349,8 +349,7 @@ def seqalign_refseq(session, ref_seq_info):
 
 MUSCLE = "MUSCLE"
 CLUSTAL_OMEGA = "Clustal Omega"
-alignment_program_name_args = { 'muscle': MUSCLE, 'omega': CLUSTAL_OMEGA, 'clustal': CLUSTAL_OMEGA,
-    'clustalOmega': CLUSTAL_OMEGA }
+alignment_program_name_args = { 'muscle': MUSCLE, 'omega': CLUSTAL_OMEGA, 'clustalOmega': CLUSTAL_OMEGA }
 def seqalign_align(session, seq_source, *, program=CLUSTAL_OMEGA, replace=False):
     from .alignment import Alignment
     if isinstance(seq_source, Alignment):
