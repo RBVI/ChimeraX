@@ -156,7 +156,7 @@ class Slider(ToolInstance):
                 return
         v = self._last_shown_value
         if v is None or v >= self.value_range[1]:
-            if self.recording or (not self.loop and not self._loop_once):
+            if (self.recording and v is not None) or (not self.loop and not self._loop_once):
                 self.stop()
                 return
             self._loop_once = False
