@@ -39,7 +39,7 @@ def esmfold_fetch(session, mgnify_id, color_confidence=True,
     
     from chimerax.core.fetch import fetch_file
     filename = fetch_file(session, url, 'ESM Metagenomics Atlas %s' % mgnify_id,
-                          file_name, 'ESMFold',
+                          file_name, 'ESMFold', check_certificates = False,
                           ignore_cache=ignore_cache, error_status = False)
 
     model_name = 'ESMFold %s' % mgnify_id
