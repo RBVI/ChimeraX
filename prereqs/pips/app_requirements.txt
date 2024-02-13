@@ -31,7 +31,7 @@ msgpack==1.0.7
 nibabel == 5.0.1
 netCDF4==1.6.5
 networkx==3.2.1
-numpy==1.26.3
+numpy==1.26.4
 openvr==1.26.701
 # as per Tristan's request in ticket #3055
 ParmEd==4.2.2
@@ -50,13 +50,13 @@ python-dateutil==2.8.2
 #PySide2==5.15.2
 qtconsole==5.5.1
 requests==2.31.0
-scipy==1.11.4
+scipy==1.12.0
 six==1.16.0
 sortedcontainers==2.4.0
 # Used by the DICOM bundle for a double-ended QSlider
 superqt==0.6.1
 tables==3.9.2 ; platform_machine != 'arm64'
-tifffile==2023.12.9
+tifffile==2024.1.30
 # tinyarray==1.2.4 # 3.11 requires getting this from Plato
 webcolors==1.13
 wheel-filename==1.4.1
