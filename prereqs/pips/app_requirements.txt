@@ -34,7 +34,7 @@ networkx==3.2.1
 numpy==1.26.3
 openvr==1.26.701
 # as per Tristan's request in ticket #3055
-ParmEd==3.4.3
+ParmEd==4.2.2
 pep517==0.13.1
 Pillow==10.2.0
 pkginfo==1.9.6
