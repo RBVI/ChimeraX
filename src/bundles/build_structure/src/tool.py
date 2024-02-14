@@ -777,7 +777,7 @@ class BuildStructureTool(ToolInstance):
         self.jo_sel_atoms = sel_atoms = selected_atoms(self.session)
         from .mod import check_join_bond_atoms
         sel_valid, msg = check_join_bond_atoms(sel_atoms, for_tool=True)
-        text = "Determined from elements of bonded atoms"
+        text = "Estimated from elements of bonded atoms"
         if sel_valid:
             from chimerax.atomic import Element
             a1, a2 = sel_atoms
@@ -1098,7 +1098,7 @@ class BuildStructureTool(ToolInstance):
         other_instructions.setWordWrap(True)
         ogroup_layout.addWidget(other_instructions)
         obl_group = QGroupBox("Bond length")
-        ogroup_layout.addWidget(obl_group)
+        ogroup_layout.addWidget(obl_group, alignment=Qt.AlignCenter)
         obl_group_layout = QVBoxLayout()
         obl_group_layout.setContentsMargins(0,0,0,0)
         obl_group_layout.setSpacing(0)
@@ -1121,7 +1121,7 @@ class BuildStructureTool(ToolInstance):
         self.jo_dihed_group = odh_group = QGroupBox("Set dihedral")
         odh_group.setCheckable(True)
         odh_group.setChecked(False)
-        ogroup_layout.addWidget(odh_group)
+        ogroup_layout.addWidget(odh_group, alignment=Qt.AlignCenter)
         odh_group_layout = QVBoxLayout()
         odh_group_layout.setContentsMargins(0,0,0,0)
         odh_group_layout.setSpacing(0)
@@ -1160,6 +1160,8 @@ class BuildStructureTool(ToolInstance):
         angle_text.setKeyboardTracking(False) # don't get a signal for _every_ keystroke
         angle_text.setSuffix("\N{DEGREE SIGN}")
         dihed_layout.addWidget(angle_text, alignment=Qt.AlignLeft, stretch=1)
+        from chimerax.ui import shrink_font
+        shrink_font(odh_group, 1.0)
         odh_group_layout.addLayout(dihed_layout)
         side_layout = QHBoxLayout()
         side_layout.setContentsMargins(0,0,0,0)
@@ -1174,7 +1176,6 @@ class BuildStructureTool(ToolInstance):
         side_layout.addWidget(QLabel(" model"), alignment=Qt.AlignLeft, stretch=1)
         other_disclaimer = QLabel("Selected atoms must be in different models and bonded to at most"
             " one atom each", alignment=Qt.AlignCenter)
-        from chimerax.ui import shrink_font
         shrink_font(other_disclaimer)
         ogroup_layout.addWidget(other_disclaimer)
         self.jo_status_message = QLabel()
