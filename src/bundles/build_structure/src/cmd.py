@@ -55,6 +55,81 @@ def cmd_invert(session, atoms):
     except InvertChiralityError as e:
         raise UserError(str(e))
 
+def cmd_join_bond(session, atoms, *, length=None, move="small", dihedral=None, dihedral_atoms=None):
+    from .mod import bind, check_join_bond_atoms
+    okay, message = check_join_bond_atoms(atoms)
+    if not okay:
+        raise UserError(message)
+
+    if length is None:
+        from chimerax.atomic import Element
+        length = Element.bond_length(atoms[0].neighbors[0].element, atoms[1].neighbors[0].element)
+
+    if move == "small":
+        move = atoms[0].structure \
+            if atoms[0].structure.num_atoms < atoms[1].structure.num_atoms else atoms[1].structure
+    elif move == "large":
+        move = atoms[0].structure \
+            if atoms[0].structure.num_atoms > atoms[1].structure.num_atoms else atoms[1].structure
+    else:
+        if move not in [atoms[0].structure, atoms[1].structure]:
+            raise UserError("'move' structure not one of the structures being bonded!")
+
+    if dihedral is None:
+        if dihedral_atoms is not None:
+            raise UserError("Specified 'dihedralAtoms' but not 'dihedral'!")
+    else:
+        if dihedral_atoms is None:
+            dihedral_atoms = []
+            for a in atoms:
+                neighbor = a.neighbors[0]
+                if neighbor.num_bonds == 1:
+                    raise UserError(
+                        "%s has no other bonded atoms, so do not specify 'dihedral' argument" % a)
+                if neighbor.num_bonds > 2:
+                    raise UserError(
+                        "%s has multiple other bonded atoms, so must specify 'dihedralAtoms' argument" % a)
+                for nnb in neighbor.neighbors:
+                    if nnb != a:
+                        dihedral_atoms.append(nnb)
+                        break
+        else:
+            if len(dihedral_atoms) != 2:
+                raise UserError("Must specify exactly two dihedral atoms; you specified %d"
+                    % len(dihedral_atoms))
+            dihed_msg = "The dihedral atoms must be already bonded to the newly bonded atoms" \
+                " (one on each end)"
+            if dihedral_atoms[0].structure == dihedral_atoms[1].structure:
+                raise UserError(dihed_msg)
+            # get the dihdral atoms in the same order as atoms
+            candidates = []
+            for a in atoms:
+                for nb in a.neighbors:
+                    for nnb in nb.neighbors:
+                        if nnb == a:
+                            continue
+                        if nnb in dihedral_atoms:
+                            candidates.append(nnb)
+                            break
+                    else:
+                        raise UserError("'dihedralAtoms' does not incude any of the atoms bonded to %s" % nb)
+            dihedral_atoms = candidates
+
+    # second atom arg to bind() gets moved, so...
+    if move == atoms[1].structure:
+        a1, a2 = atoms
+        if dihedral_atoms:
+            d1, d2 = dihedral_atoms
+    else:
+        a2, a1 = atoms
+        if dihedral_atoms:
+            d2, d1 = dihedral_atoms
+    if dihedral is None:
+        dihed_info = None
+    else:
+        dihed_info = [((d1, a1, a2, d2), dihedral)]
+    return bind(a1, a2, length, dihed_info, renumber=move, log_chain_remapping=True)
+
 def cmd_join_peptide(session, atoms, *, length=1.33, omega=180.0, phi=None, move="small"):
     # identify C-terminal carbon
     cs = atoms.filter(atoms.elements.names == "C")
@@ -177,6 +252,15 @@ def register_command(command_name, logger):
         synopsis = 'join models through peptide bond'
     )
     register('build join peptide', desc, cmd_join_peptide, logger=logger)
+
+    desc = CmdDesc(
+        required=[('atoms', AtomsArg)],
+        keyword = [('length', PositiveFloatArg),
+            ('dihedral', FloatArg), ('dihedral_atoms', AtomsArg),
+            ('move', Or(StructureArg, EnumOf(("large", "small"))))],
+        synopsis = 'join models through arbitrary bond'
+    )
+    register('build join bond', desc, cmd_join_bond, logger=logger)
 
     desc = CmdDesc(
         required=[('atom', AtomArg), ('element', ElementArg), ('num_bonds', IntArg)],
