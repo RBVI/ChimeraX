@@ -391,6 +391,23 @@ def cn_peptide_bond(c, n, moving, length, dihedral, phi=None, *, log_chain_remap
         add_atom("H", "H", n.residue, pos, bonded_to=n)
     return (c,n)
 
+def check_join_bond_atoms(atoms, *, for_tool=False):
+    if len(atoms) != 2:
+        msg = "Select two atoms (%d selected)" \
+            if for_tool else "Must specify exactly two atoms, you specified %d"
+        return False, msg % len(atoms)
+
+    if atoms[0].structure == atoms[1].structure:
+        return False, "Select atoms in different structures" \
+            if for_tool else "You must specify atoms in different structures"
+
+    for a in atoms:
+        if a.num_bonds != 1:
+            return False, "Each %s atom must be bonded to exactly one other atom; %s is bonded to %d" \
+                % (("selected" if for_tool else "specified"), a, a.num_bonds)
+
+    return True, None
+
 def bind(a1, a2, length, dihed_info, *, renumber=None, log_chain_remapping=False):
     """Make bond between two models.
 
@@ -401,8 +418,8 @@ def bind(a1, a2, length, dihed_info, *, renumber=None, log_chain_remapping=False
        final structure, a1/a2 will be eliminated and their bond partners will be bonded together.
 
        a2 and atoms in its model will be moved to form the bond.  'length' is the bond length.
-       'dihed_info' is a two-tuple of a sequence of four atoms and a dihedral angle that the
-       four atoms should form.  dihed_info can be None if insufficent atoms.
+       'dihed_info' is a sequence of two-tuples: a sequence of four atoms and a dihedral angle that the
+       four atoms should form.  dihed_info can be None.
 
        If renumbering of the combined chain should be done, then 'renumber' should be a1 or a2 to
        indicate which side gets renumbered.
@@ -438,19 +455,20 @@ def bind(a1, a2, length, dihed_info, *, renumber=None, log_chain_remapping=False
     b2.structure.position = translation(dv) * b2.structure.position
 
     # then dihedral (omega/phi for peptide)
-    for atoms, dihed_val in dihed_info:
-        p1, p2, p3, p4 = [a.scene_coord for a in atoms]
-        if atoms[3].structure != s2:
-            p1, p2, p3, p4 = p4, p3, p2, p1
-        axis = p3 - p2
-        if sum([v * v for v in axis]):
-            cur_dihed = dihedral(p1, p2, p3, p4)
-            delta = dihed_val - cur_dihed
-            b2.structure.position = rotation(axis, delta, center=p3) * b2.structure.position
-            if atoms[2].structure == s2:
-                p1, p2, p3, p4 = [a.scene_coord for a in atoms]
-            else:
-                p4, p3, p2, p1 = [a.scene_coord for a in atoms]
+    if dihed_info is not None:
+        for atoms, dihed_val in dihed_info:
+            p1, p2, p3, p4 = [a.scene_coord for a in atoms]
+            if atoms[3].structure != s2:
+                p1, p2, p3, p4 = p4, p3, p2, p1
+            axis = p3 - p2
+            if sum([v * v for v in axis]):
+                cur_dihed = dihedral(p1, p2, p3, p4)
+                delta = dihed_val - cur_dihed
+                b2.structure.position = rotation(axis, delta, center=p3) * b2.structure.position
+                if atoms[2].structure == s2:
+                    p1, p2, p3, p4 = [a.scene_coord for a in atoms]
+                else:
+                    p4, p3, p2, p1 = [a.scene_coord for a in atoms]
 
     # delete a1/a2
     s1.delete_atom(a1)
@@ -461,7 +479,7 @@ def bind(a1, a2, length, dihed_info, *, renumber=None, log_chain_remapping=False
     chain_id_mapping = {}
     chain_ids = sorted(s2.residues.unique_chain_ids)
     for chain_id in chain_ids:
-        if chain_id == b2.residue.chain_id:
+        if chain_id == b2.residue.chain_id and b1.is_backbone(b1.BBE_MIN) and b2.is_backbone(b2.BBE_MIN):
             # get b1's chain ID
             chain_id_mapping[chain_id] = b1.residue.chain_id
         elif chain_id in seen_ids:

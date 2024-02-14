@@ -156,7 +156,7 @@ class Slider(ToolInstance):
                 return
         v = self._last_shown_value
         if v is None or v >= self.value_range[1]:
-            if self.recording or (not self.loop and not self._loop_once):
+            if (self.recording and v is not None) or (not self.loop and not self._loop_once):
                 self.stop()
                 return
             self._loop_once = False
@@ -198,8 +198,10 @@ class Slider(ToolInstance):
             self.set_button_icon(record=True)
             self.recording = False
             self.stop()
-            run(ses, 'movie encode ~/Desktop/%s framerate %.1f'
-                % (self.movie_filename, self.movie_framerate))
+            path = _movie_file(self.movie_filename)
+            from chimerax.core.commands import quote_path_if_necessary
+            run(ses, f'movie encode %s framerate %.1f'
+                % (quote_path_if_necessary(path), self.movie_framerate))
 
     @property
     def loop(self):
@@ -227,8 +229,17 @@ class Slider(ToolInstance):
         action.triggered.connect(lambda*, self=self, action=action:
             setattr(self, 'loop', action.isChecked()))
         menu.addAction(action)
-
-    
+        
+# -----------------------------------------------------------------------------
+#
+def _movie_file(filename):
+    from chimerax.shortcuts.shortcuts import default_save_directory, unused_file_name
+    dir = default_save_directory()
+    import os.path
+    base, suffix = os.path.splitext(filename)
+    path = unused_file_name(dir, base, suffix)
+    return path
+        
 # -----------------------------------------------------------------------------
 #
 class LogSlider:

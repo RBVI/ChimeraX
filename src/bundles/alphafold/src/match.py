@@ -124,7 +124,7 @@ def _fetch_by_sequence(session, sequences, color_confidence = True, trim = True,
     if missing_uids and log:
         missing_names = ', '.join('%s (%s)' % (uid, _sequences_description(seqs))
                                   for uid,seqs in missing_uids.items())
-        db_name = seg_uids[0][1].database
+        db_name = seq_uids[0][1].database
         log.warning('Sequence search found %d %s id%s'
                     % (len(missing_uids), db_name, _plural(missing_uids)) +
                     ' that do not have %s database models: %s' % (db_name, missing_names))

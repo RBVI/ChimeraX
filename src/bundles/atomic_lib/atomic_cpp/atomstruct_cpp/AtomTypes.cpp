@@ -851,8 +851,22 @@ t0 = t1;
                     a->set_computed_idatm_type("N3");
                     redo[a] = 2;
                 } else {
-                    a->set_computed_idatm_type(
-                      ang < angle12val ?  "Npl" : "N1+");
+                    if (ang < angle12val) {
+                        bool set_N2 = false;
+                        if (a->bonds().size() == 2) {
+                            for (auto bondee: a->neighbors()) {
+                                const Element &bondee_element = bondee->element();
+                                Real sqlen = bondee->coord().sqdistance(a->coord());
+                                if ((sqlen <= p4n2c && bondee_element == Element::C)
+                                || (sqlen <= p4n2n && bondee_element == Element::N)) {
+                                    set_N2 = true;
+                                    break;
+                                }
+                            }
+                        }
+                        a->set_computed_idatm_type(set_N2 ? "N2" : "Npl");
+                    } else
+                        a->set_computed_idatm_type("N1+");
                 }
             } else if (element == Element::O) {
                 a->set_computed_idatm_type("O3");
@@ -1228,7 +1242,7 @@ t0 = t1;
                     }
                     continue;
                 }
-                if (n->element() == Element::N) {
+                if (n->element() == Element::N && n->idatm_type() == "Npl") {
                     // aniline can be planar
                     connected[nb] = SINGLE;
                     continue;

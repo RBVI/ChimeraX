@@ -310,6 +310,13 @@ for further analysis
 Please note the following caveats of running a prediction:
 </p>
 <ul>
+<li><b>Results may be lost if the local computer goes to sleep</b>.
+Google intends Colab to be for interactive use. Even if the Colab job completes,
+the results may fail to download to the local computer if it has gone to
+sleep. It is recommended to turn off the option to enter sleep mode
+(meant to conserve power after some amount of idle time)
+before running a prediction.
+<br><br>
 <li>The process includes
 installing various software packages on a virtual machine,
 searching sequence databases, generating a multiple sequence alignment,
@@ -354,6 +361,8 @@ as well as hiding, showing, and
 in which color gradations show (for each pairwise combination of residues)
 the expected error in position of one residue when the
 true and predicted structures are aligned based on the other residue.
+</p><p>
+See also: <a href="../commands/alphafold.html#batch">batch predictions</a>
 </p>
 
 <a name="coloring"></a>
@@ -673,5 +682,5 @@ Error (&Aring;)</b>&rdquo;) would need to be created separately with
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-May 2023</address>
+February 2024</address>
 </body></html>

@@ -17,9 +17,6 @@ dependencies = [
 ]
 dynamic = ["classifiers", "requires-python", "version"]
 
-[project.optional-dependencies]
-losslessjpeg = ["python-gdcm"]
-
 [project.readme]
 content-type = "text"
 text = "Segment any volume data"
@@ -37,8 +34,8 @@ max-session-version = 1
 categories = ["Volume Data"]
 classifiers = ["Development Status :: 2 - Pre-Alpha"]
 
-#[chimerax.extra-files]
-#"src/icons" = ["*.png"]
+[chimerax.extra-files]
+"src/icons" = ["*.png"]
 
 [chimerax.initializations.manager]
 bundles = ["ChimeraX-MouseModes", "ChimeraX-UI"]
@@ -54,3 +51,28 @@ description = "See medical images in a 4-panel viewer"
 #[chimerax.command.segmentations]
 #category = "Volume Data"
 #description = "Create, edit, or destory segmentations"
+
+# Don't delete just in case we do want to display these modes in the toolbar
+# [chimerax.provider."create segmentations"]
+# manager = "toolbar"
+# tab = "Medical Image"
+# section = "Mouse Mode"
+# mouse-mode = "create segmentations"
+# display-name = "Segment"
+# description = "Create a segmentation with the mouse"
+#
+# [chimerax.provider."move segmentation cursor"]
+# manager = "toolbar"
+# tab = "Medical Image"
+# section = "Mouse Mode"
+# mouse-mode = "move segmentation cursor"
+# display-name = "Move Segment Cursor"
+# description = "Move the segmentation cursor without adding to the segmentation"
+#
+# [chimerax.provider."resize segmentation cursor"]
+# manager = "toolbar"
+# tab = "Medical Image"
+# section = "Mouse Mode"
+# mouse-mode = "resize segmentation cursor"
+# display-name = "Resize Segment Cursor"
+# description = "Resize the segmentation cursor"
