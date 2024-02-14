@@ -479,7 +479,8 @@ def bind(a1, a2, length, dihed_info, *, renumber=None, log_chain_remapping=False
     chain_id_mapping = {}
     chain_ids = sorted(s2.residues.unique_chain_ids)
     for chain_id in chain_ids:
-        if chain_id == b2.residue.chain_id and b1.is_backbone(b1.BBE_MIN) and b2.is_backbone(b2.BBE_MIN):
+        if chain_id == b2.residue.chain_id and b1.is_backbone(b1.BBE_MIN) and b2.is_backbone(b2.BBE_MIN) \
+                and b1.residue.polymer_type == b2.residue.polymer_type:
             # get b1's chain ID
             chain_id_mapping[chain_id] = b1.residue.chain_id
         elif chain_id in seen_ids:
