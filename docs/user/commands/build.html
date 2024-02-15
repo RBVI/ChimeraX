@@ -325,7 +325,13 @@ exactly one atom from each model; these two atoms will be deleted and
 replaced with the new bond. 
 Each of the <a href="atomspec.html"><i>replace-atoms</i></a>
 must be bonded to only one other atom, and it is these two other atoms that
-will form the new bond. If no <b>length</b> is supplied, it will be estimated 
+will form the new bond. Usually these atoms to be replaced are
+hydrogens, so it may be useful to add hydrogens beforehand,
+to whole models with <a href="addh.html"><b>addh</b></a> or
+in a more local fashion with the
+<a href="../tools/buildstructure.html#modify"><b>Modify Structure</b></a> 
+section of <a href="../tools/buildstructure.html"><b>Build Structure</b></a>.
+If no <b>length</b> is supplied, it will be estimated 
 from the covalent bond radii of the elements of the atoms.
 The dihedral angle around the new bond is defined by 
 the newly bonded atoms (atom2, atom3) and their flanking bonds 
