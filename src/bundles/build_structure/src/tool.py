@@ -15,9 +15,9 @@ from chimerax.core.tools import ToolInstance
 from chimerax.core.errors import UserError
 from chimerax.core.commands import run
 from Qt.QtWidgets import QVBoxLayout, QPushButton, QMenu, QStackedWidget, QWidget, QLabel, QFrame
-from Qt.QtWidgets import QGridLayout, QRadioButton, QHBoxLayout, QLineEdit, QCheckBox, QGroupBox
+from Qt.QtWidgets import QGridLayout, QRadioButton, QHBoxLayout, QLineEdit, QCheckBox, QGroupBox, QTabWidget
 from Qt.QtWidgets import QButtonGroup, QAbstractButton, QStyle, QToolButton, QDoubleSpinBox, QDial
-from Qt.QtGui import QAction
+from Qt.QtGui import QAction, QDoubleValidator
 from Qt.QtCore import Qt
 
 class BuildStructureTool(ToolInstance):
@@ -708,33 +708,135 @@ class BuildStructureTool(ToolInstance):
         self.category_areas.setCurrentWidget(self.category_widgets[action.text()])
         self.category_button.setText(action.text())
 
-    def _jm_apply_cb(self):
-        from chimerax.atomic import selected_atoms
-        if not selected_atoms(self.session):
-            raise UserError("No atoms selected")
-        length = self.jp_bond_len_opt.value
-        omega = self.jp_omega_opt.value
-        phi = self.jp_phi_opt.value
-        side = self.jp_side_button.text()
-        if side.endswith("smaller"):
-            side = side[:-2]
-        elif side.endswith("larger"):
-            side = side[:-1]
-        elif side.startswith("selected"):
-            side = side[9]
-        from .mod import BindError
-        try:
-            run(self.session, "build join peptide sel length %g omega %g phi %g move %s"
-                % (length, omega, phi, side))
-        except BindError as e:
-            raise UserError(e)
-
     def _invert_swap_cb(self):
         from chimerax.atomic import selected_atoms
         sel_atoms = selected_atoms(self.session)
         if len(sel_atoms) not in [1,2]:
             raise UserError("You must select 1 or 2 atoms; you selected %d" % len(sel_atoms))
         run(self.session, "build invert sel")
+
+    def _jm_apply_cb(self):
+        from chimerax.atomic import selected_atoms
+        if not selected_atoms(self.session):
+            raise UserError("No atoms selected")
+        if "peptide" in self.jm_tabs.tabText(self.jm_tabs.currentIndex()).lower():
+            length = self.jp_bond_len_opt.value
+            omega = self.jp_omega_opt.value
+            phi = self.jp_phi_opt.value
+            side = self.jp_side_button.text()
+            if side.endswith("smaller"):
+                side = side[:-2]
+            elif side.endswith("larger"):
+                side = side[:-1]
+            elif side.startswith("selected"):
+                side = side[9]
+            cmd = "build join peptide sel length %g omega %g phi %g move %s" % (length, omega, phi, side)
+            self.settings.join_starting_tab = "peptide"
+        else:
+            cmd = "build join bond sel"
+            if self.jo_bl_explicit_button.isChecked():
+                le = self.obl_explicit_edit
+                if not le.hasAcceptableInput():
+                    raise UserError("Provided bond-length value is not valid")
+                len_text = le.text().strip()
+                self.settings.join_explicit_length = len_text
+                cmd += " length " + len_text
+            if self.jo_dihed_group.isChecked():
+                if not self.jo_dihed_atoms_area.isHidden():
+                    dihed_atoms = []
+                    for a, but in zip(self.jo_sel_atoms, [self.jo_dihed1_button, self.jo_dihed2_button]):
+                        but_text = but.text()
+                        for nb in a.neighbors:
+                            for nnb in nb.neighbors:
+                                if nnb.string(relative_to=nb) == but_text:
+                                    dihed_atoms.append(nnb)
+                                    break
+                            else:
+                                continue
+                            break
+                    assert(len(dihed_atoms) == 2)
+                    cmd += " dihedralAtoms " + ''.join([da.atomspec for da in dihed_atoms])
+                    cmd += " dihedral %g" % self.jo_dihed.value()
+            side = self.jo_side_button.text()
+            for tool_side, cmd_side in [("smaller", "small"), ("larger", "large")]:
+                if side == tool_side:
+                    side = cmd_side
+                    break
+            if side != "small":
+                cmd += " move " + side
+
+            self.settings.join_starting_tab = "other"
+        from .mod import BindError
+        try:
+            run(self.session, cmd)
+        except BindError as e:
+            raise UserError(e)
+
+    def _jm_sel_changed(self, *args):
+        from chimerax.atomic import selected_atoms
+        self.jo_sel_atoms = sel_atoms = selected_atoms(self.session)
+        from .mod import check_join_bond_atoms
+        sel_valid, msg = check_join_bond_atoms(sel_atoms, for_tool=True)
+        text = "Estimated from elements of bonded atoms"
+        if sel_valid:
+            from chimerax.atomic import Element
+            a1, a2 = sel_atoms
+            text += " (%.2f)" % Element.bond_length(a1.neighbors[0].element, a2.neighbors[0].element)
+            self.jo_status_message.hide()
+            side_but = self.jo_side_button
+            prev_text = side_but.text()
+            menu = side_but.menu()
+            menu.clear()
+            new_text = None
+            for side in ["smaller", "larger"] + [a.structure.atomspec for a in sel_atoms]:
+                menu.addAction(side)
+                if not new_text or prev_text == side:
+                    new_text = side
+            side_but.setText(new_text)
+        else:
+            text += " (selection not valid)"
+            self.jo_status_message.setText(msg)
+            self.jo_status_message.show()
+            if not self.jo_side_button.text():
+                self.jo_side_button.setText("smaller")
+        self._jm_update_dihed(sel_atoms, sel_valid)
+        self.jo_bl_element_button.setText(text)
+
+    def _jm_update_dihed(self, atoms, valid):
+        if valid:
+            neighbors = []
+            for a in atoms:
+                neighbor = a.neighbors[0]
+                if neighbor.num_bonds == 1:
+                    self.jo_dihed_status.setText(
+                        "Dihedral not applicable because %s has no other bonded atoms" % a)
+                    self.jo_dihed_atoms_area.hide()
+                    self.jo_dihed_status.show()
+                    return
+                neighbors.append(neighbor)
+            for text, nb in [(self.jo_dihed1_text, neighbors[0]), (self.jo_dihed2_text, neighbors[1])]:
+                text.setText(nb.structure.atomspec + " " + nb.string(omit_structure=True))
+            for a, nb, but in [(atoms[0], neighbors[0], self.jo_dihed1_button),
+                    (atoms[1], neighbors[1], self.jo_dihed2_button)]:
+                prev_text = but.text()
+                menu = but.menu()
+                menu.clear()
+                new_text = None
+                for nnb in nb.neighbors:
+                    if nnb == a:
+                        continue
+                    nnb_text = nnb.string(relative_to=nb)
+                    menu.addAction(nnb_text)
+                    if not new_text or prev_text == nnb_text:
+                        new_text = nnb_text
+                but.setText(new_text)
+
+            self.jo_dihed_status.hide()
+            self.jo_dihed_atoms_area.show()
+        else:
+            self.jo_dihed_status.setText("(selection not valid)")
+            self.jo_dihed_atoms_area.hide()
+            self.jo_dihed_status.show()
 
     def _layout_adjust_bonds(self, parent):
         layout = QVBoxLayout()
@@ -943,30 +1045,32 @@ class BuildStructureTool(ToolInstance):
         layout.setSpacing(0)
         parent.setLayout(layout)
 
-        self.peptide_group = QGroupBox("Peptide Parameters")
-        layout.addWidget(self.peptide_group, alignment=Qt.AlignHCenter|Qt.AlignTop)
-        group_layout = QVBoxLayout()
-        group_layout.setContentsMargins(0,0,0,0)
-        group_layout.setSpacing(0)
-        self.peptide_group.setLayout(group_layout)
+        self.jm_tabs = QTabWidget()
+        layout.addWidget(self.jm_tabs)
+        
+        peptide_group = QWidget()
+        pgroup_layout = QVBoxLayout()
+        pgroup_layout.setContentsMargins(0,0,0,0)
+        pgroup_layout.setSpacing(0)
+        peptide_group.setLayout(pgroup_layout)
 
         peptide_instructions = QLabel("Form bond between selected C-terminal carbon and N-terminal nitrogen"
             " as follows:", alignment=Qt.AlignCenter)
         peptide_instructions.setWordWrap(True)
-        group_layout.addWidget(peptide_instructions)
+        pgroup_layout.addWidget(peptide_instructions)
         from chimerax.ui.options import OptionsPanel, FloatOption
-        panel = OptionsPanel(scrolled=False, sorting=False)
-        group_layout.addWidget(panel, alignment=Qt.AlignCenter)
+        ppanel = OptionsPanel(scrolled=False, sorting=False)
+        pgroup_layout.addWidget(ppanel, alignment=Qt.AlignCenter)
         self.jp_bond_len_opt = FloatOption("C-N length:", 1.33, None, min="positive", decimal_places=3)
-        panel.add_option(self.jp_bond_len_opt)
+        ppanel.add_option(self.jp_bond_len_opt)
         self.jp_omega_opt = FloatOption("C\N{GREEK SMALL LETTER ALPHA}-C-N-C\N{GREEK SMALL LETTER ALPHA}"
             " dihedral (\N{GREEK SMALL LETTER OMEGA} angle):", 180.0, None, decimal_places=1)
-        panel.add_option(self.jp_omega_opt)
+        ppanel.add_option(self.jp_omega_opt)
         self.jp_phi_opt = FloatOption("C-N-C\N{GREEK SMALL LETTER ALPHA}-C"
             " dihedral (\N{GREEK SMALL LETTER PHI} angle):", -120.0, None, decimal_places=1)
-        panel.add_option(self.jp_phi_opt)
+        ppanel.add_option(self.jp_phi_opt)
         side_layout = QHBoxLayout()
-        group_layout.addLayout(side_layout)
+        pgroup_layout.addLayout(side_layout)
         side_layout.addWidget(QLabel("Move atoms in ", alignment=Qt.AlignRight|Qt.AlignVCenter))
         self.jp_side_button = QPushButton("smaller")
         side_layout.addWidget(self.jp_side_button)
@@ -980,11 +1084,117 @@ class BuildStructureTool(ToolInstance):
             alignment=Qt.AlignCenter)
         from chimerax.ui import shrink_font
         shrink_font(peptide_disclaimer)
-        group_layout.addWidget(peptide_disclaimer)
+        pgroup_layout.addWidget(peptide_disclaimer)
+        self.jm_tabs.addTab(peptide_group, "Peptide Bond")
+
+        other_group = QWidget()
+        ogroup_layout = QVBoxLayout()
+        ogroup_layout.setContentsMargins(0,0,0,0)
+        ogroup_layout.setSpacing(0)
+        other_group.setLayout(ogroup_layout)
+
+        other_instructions = QLabel("Delete selected atoms and add bond as follows:",
+            alignment=Qt.AlignCenter)
+        other_instructions.setWordWrap(True)
+        ogroup_layout.addWidget(other_instructions)
+        obl_group = QGroupBox("Bond length")
+        ogroup_layout.addWidget(obl_group, alignment=Qt.AlignCenter)
+        obl_group_layout = QVBoxLayout()
+        obl_group_layout.setContentsMargins(0,0,0,0)
+        obl_group_layout.setSpacing(0)
+        obl_group.setLayout(obl_group_layout)
+        self.jo_bl_element_button = ebut = QRadioButton("")
+        ebut.setChecked(True)
+        obl_group_layout.addWidget(ebut, alignment=Qt.AlignLeft)
+        explicit_len_layout = QHBoxLayout()
+        explicit_len_layout.setContentsMargins(0,0,0,0)
+        explicit_len_layout.setSpacing(0)
+        obl_group_layout.addLayout(explicit_len_layout)
+        self.jo_bl_explicit_button = xbut = QRadioButton("")
+        explicit_len_layout.addWidget(xbut, alignment=Qt.AlignLeft)
+        self.obl_explicit_edit = ble = QLineEdit(self.settings.join_explicit_length)
+        valid = QDoubleValidator()
+        valid.setBottom(0.0000001)
+        ble.setValidator(valid)
+        explicit_len_layout.addWidget(ble, alignment=Qt.AlignLeft)
+        explicit_len_layout.addStretch(1)
+        self.jo_dihed_group = odh_group = QGroupBox("Set dihedral")
+        odh_group.setCheckable(True)
+        odh_group.setChecked(False)
+        ogroup_layout.addWidget(odh_group, alignment=Qt.AlignCenter)
+        odh_group_layout = QVBoxLayout()
+        odh_group_layout.setContentsMargins(0,0,0,0)
+        odh_group_layout.setSpacing(0)
+        odh_group.setLayout(odh_group_layout)
+        self.jo_dihed_status = QLabel()
+        odh_group_layout.addWidget(self.jo_dihed_status, alignment=Qt.AlignCenter)
+        self.jo_dihed_atoms_area = QWidget()
+        dihed_atoms_layout = QHBoxLayout()
+        self.jo_dihed_atoms_area.setLayout(dihed_atoms_layout)
+        odh_group_layout.addWidget(self.jo_dihed_atoms_area)
+        self.jo_dihed1_button = but1 = QPushButton()
+        menu1 = QMenu(but1)
+        menu1.triggered.connect(lambda action, *, but=but1: but.setText(action.text()))
+        self.jo_dihed1_button.setMenu(menu1)
+        dihed_atoms_layout.addWidget(self.jo_dihed1_button, alignment=Qt.AlignRight, stretch=1)
+        self.jo_dihed1_text = QLabel()
+        dihed_atoms_layout.addWidget(self.jo_dihed1_text, alignment=Qt.AlignCenter)
+        dihed_atoms_layout.addWidget(QLabel("\N{ANTICLOCKWISE OPEN CIRCLE ARROW}"), alignment=Qt.AlignCenter)
+        self.jo_dihed2_text = QLabel()
+        dihed_atoms_layout.addWidget(self.jo_dihed2_text, alignment=Qt.AlignCenter)
+        self.jo_dihed2_button = but2 = QPushButton()
+        menu2 = QMenu(but2)
+        menu2.triggered.connect(lambda action, *, but=but2: but.setText(action.text()))
+        self.jo_dihed2_button.setMenu(menu2)
+        dihed_atoms_layout.addWidget(self.jo_dihed2_button, alignment=Qt.AlignLeft, stretch=1)
+        dihed_layout = QHBoxLayout()
+        dihed_layout.setContentsMargins(0,0,0,0)
+        dihed_layout.setSpacing(0)
+        dihed_layout.addWidget(QLabel("Dihedral"), alignment=Qt.AlignRight, stretch=1)
+        self.jo_dihed = angle_text = QDoubleSpinBox()
+        angle_text.setDecimals(1)
+        angle_text.setRange(-180.0, 180.0)
+        angle_text.setSingleStep(1.0)
+        angle_text.setWrapping(True)
+        angle_text.setAlignment(Qt.AlignRight)
+        angle_text.setKeyboardTracking(False) # don't get a signal for _every_ keystroke
+        angle_text.setSuffix("\N{DEGREE SIGN}")
+        dihed_layout.addWidget(angle_text, alignment=Qt.AlignLeft, stretch=1)
+        from chimerax.ui import shrink_font
+        shrink_font(odh_group, 1.0)
+        odh_group_layout.addLayout(dihed_layout)
+        side_layout = QHBoxLayout()
+        side_layout.setContentsMargins(0,0,0,0)
+        side_layout.setSpacing(0)
+        ogroup_layout.addLayout(side_layout)
+        side_layout.addWidget(QLabel("Move atoms in "), alignment=Qt.AlignRight, stretch=1)
+        self.jo_side_button = QPushButton()
+        side_layout.addWidget(self.jo_side_button)
+        side_menu = QMenu(self.jo_side_button)
+        side_menu.triggered.connect(lambda act, but=self.jo_side_button: but.setText(act.text()))
+        self.jo_side_button.setMenu(side_menu)
+        side_layout.addWidget(QLabel(" model"), alignment=Qt.AlignLeft, stretch=1)
+        other_disclaimer = QLabel("Selected atoms must be in different models and bonded to at most"
+            " one atom each", alignment=Qt.AlignCenter)
+        shrink_font(other_disclaimer)
+        ogroup_layout.addWidget(other_disclaimer)
+        self.jo_status_message = QLabel()
+        self.jo_status_message.setStyleSheet("QLabel { color : darkorchid }")
+        ogroup_layout.addWidget(self.jo_status_message, alignment=Qt.AlignCenter)
+        self.jm_tabs.addTab(other_group, "Other Bond")
+
+        self.jm_tabs.setCurrentWidget(peptide_group
+            if self.settings.join_starting_tab == "peptide" else other_group)
 
         apply_button = QPushButton("Apply")
         apply_button.clicked.connect(lambda checked: self._jm_apply_cb())
         layout.addWidget(apply_button, alignment=Qt.AlignHCenter|Qt.AlignTop)
+        layout.addStretch(1)
+
+        from chimerax.core.selection import SELECTION_CHANGED
+        self.handlers['join models'] = [
+            self.session.triggers.add_handler(SELECTION_CHANGED, self._jm_sel_changed)]
+        self._jm_sel_changed()
 
     def _layout_modify_structure(self, parent):
         layout = QVBoxLayout()
@@ -1365,4 +1575,6 @@ from chimerax.core.settings import Settings
 class BuildStructureSettings(Settings):
     AUTO_SAVE = {
         "confirm_close": True,
+        "join_starting_tab": "peptide",
+        "join_explicit_length": "1.4",
     }
