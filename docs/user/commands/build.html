@@ -24,35 +24,6 @@ or derivations thereof.
 class="clRight" title="User Guide Index"/></a>
 
 <h3><a href="../index.html#commands">Command</a>: build</h3>
-<!--
-<h3 class="usage"><a href="usageconventions.html">Usage</a>:
-<br><b>build start</b>
-&nbsp;<a href="atomspec.html"><i>atom</i></a>&nbsp;
-[&nbsp;<a href="atomspec.html"><i>model</i></a>&nbsp;|&nbsp;<i>new-model-name</i>&nbsp;]
-[&nbsp;<b>resName</b>&nbsp;&nbsp;<i>resname</i>&nbsp;]
-[&nbsp;<b>select</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
-</h3>
-<h3 class="usage"><a href="usageconventions.html">Usage</a>:
-<br><b>build modify</b>
-&nbsp;<a href="atomspec.html"><i>atom</i></a>&nbsp;
-&nbsp;<i>element</i>&nbsp;
-&nbsp;<i>numBonds</i>&nbsp;
-[&nbsp;<b>geometry</b>&nbsp;&nbsp;ion&nbsp;|&nbsp;single&nbsp;|&nbsp;linear&nbsp;|&nbsp;trigonal&nbsp;|&nbsp;tetrahedral&nbsp;]
-[&nbsp;<b>connectBack</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
-[&nbsp;<b>colorByElement</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
-[&nbsp;<b>name</b>&nbsp;&nbsp;<i>name</i>&nbsp;]
-[&nbsp;<b>newRes</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
-[&nbsp;<b>resName</b>&nbsp;&nbsp;<i>resname</i>&nbsp;]
-</h3>
-<h3 class="usage"><a href="usageconventions.html">Usage</a>:
-<br><b>build join peptide</b>
-&nbsp;<a href="atomspec.html"><i>atoms</i></a>&nbsp;
-[&nbsp;<b>length</b>&nbsp;&nbsp;<i>bond-length</i>&nbsp;]
-[&nbsp;<b>omega</b>&nbsp;&nbsp;<i>&omega;</i>&nbsp;]
-[&nbsp;<b>phi</b>&nbsp;&nbsp;<i>&phi;</i>&nbsp;]
-[&nbsp;<b>move</b>&nbsp;&nbsp;large&nbsp;|&nbsp;<b>small</b>&nbsp;|&nbsp;C&nbsp;|&nbsp;N&nbsp;]
-</h3>
--->
 <p>
 Subcommands of <b>build</b> correspond to sections of
 the <a href="../tools/buildstructure.html"><b>Build Structure</b></a> tool:
@@ -63,8 +34,7 @@ the <a href="../tools/buildstructure.html"><b>Build Structure</b></a> tool:
 <li><a href="#modify"><b>build modify</b></a>
 &ndash; change an existing atomic structure
 <li><a href="#join"><b>build join</b></a>
-&ndash; add a covalent bond (currently <b>peptide</b> only)
-between two atomic models to form a single model
+&ndash; add a covalent bond between two atomic models to form a single model
 <li><a href="#invert"><b>build invert</b></a>
 &ndash; swap substituents, potentially changing chirality
 </ul>
@@ -282,24 +252,36 @@ If <b>newRes</b> is <b>true</b>:
 <a href="#top" class="nounder">&bull;</a>
 <a name="join"></a>
 <b>build join</b> <b>peptide</b>
-&nbsp;<a href="atomspec.html"><i>atoms</i></a>&nbsp;
+&nbsp;<a href="atomspec.html"><i>bond-atoms</i></a>&nbsp;
 [&nbsp;<b>length</b>&nbsp;&nbsp;<i>bond-length</i>&nbsp;]
 [&nbsp;<b>phi</b>&nbsp;&nbsp;<i>&phi;</i>&nbsp;]
 [&nbsp;<b>omega</b>&nbsp;&nbsp;<i>&omega;</i>&nbsp;]
 [&nbsp;<b>move</b>&nbsp;&nbsp;large&nbsp;|&nbsp;<b>small</b>&nbsp;|&nbsp;C&nbsp;|&nbsp;N&nbsp;]
+<br>
+<a href="#top" class="nounder">&bull;</a>
+<b>build join</b> <b>bond</b>
+&nbsp;<a href="atomspec.html"><i>replace-atoms</i></a>&nbsp;
+[&nbsp;<b>length</b>&nbsp;&nbsp;<i>bond-length</i>&nbsp;]
+[&nbsp;<b>dihedral</b>&nbsp;&nbsp;<i>dihedral-angle</i>
+[&nbsp;<b>dihedralAtoms</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>atom1-atom4</i></a>&nbsp;]]
+[&nbsp;<b>move</b>&nbsp;&nbsp;large&nbsp;|&nbsp;<b>small</b>&nbsp;|&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
 <blockquote>
+<p>
 The <b>build join</b> command forms a covalent bond of the specified
 geometry between two atomic models, combining the two models into one.
 The atoms of one model are repositioned and incorporated into the other model; 
-the original model will no longer exist. Thus, it may be a good idea
-to <a href="save.html#session">save a session</a> beforehand, since
+the original model specified as the one to <b>move</b> will no longer exist.
+Thus, it may be a good idea to 
+<a href="save.html#session">save a session</a> beforehand, since
 the join (along with other building actions) cannot be undone.
 The related command <a href="combine.html"><b>combine</b></a> also combines
 atomic models, but without forming a bond or changing the relative positions 
 of the atoms.
 </p><p>
-Currently, only a <b>peptide</b> bond
-can be formed, where <a href="atomspec.html"><i>atoms</i></a> must include
+For <b>build join peptide</b>:
+</p>
+ <blockquote>
+The <a href="atomspec.html"><i>bond-atoms</i></a> must include
 exactly one peptide C-terminal carbon atom C <b>&ndash;<i>OR</i>&ndash;</b>
 N-terminal nitrogen atom N (not both) from one model, and from a second 
 model, exactly one of whichever of those two atoms is not in the first.
@@ -310,9 +292,8 @@ these atoms will be replaced as appropriate by the new peptide bond.
 The default <b>length</b> for the new C-N bond is <b>1.330</b> &Aring; 
 and the default <b>omega</b> angle (C&alpha;-C-N-C&alpha; dihedral) 
 is <b>180.0</b>&deg;. There is no default for the <b>phi</b> angle
-(C-N-C&alpha;-C dihedral). The model to <b>move</b> is repositioned 
-and its atoms placed in the other model, using the chain ID from the 
-other model. Options for which model to <b>move</b>:
+(C-N-C&alpha;-C dihedral).
+Options for which model to <b>move</b>:
 <ul>
 <li><b>large</b>
 &ndash; the one with the greater number of  atoms
@@ -323,12 +304,69 @@ other model. Options for which model to <b>move</b>:
 <li><b>N</b> (default if the two models have equal numbers of atoms)
 &ndash; the one containing the N atom to be bonded
 </ul>
-</blockquote>
+The residues from the moving model will be assigned the same chain ID
+as the rest of the chain in the nonmoving model, although their numbers
+may be shifted by a constant amount to avoid duplicate residue numbers
+within a chain.
+If the moving model includes additional chains, the other chain IDs
+will also be changed as needed to avoid duplicate chain IDs within 
+a model (as described for <a href="combine.html"><b>combine</b></a>).
 <p>
 The values of <b>omega</b> and <b>phi</b> (along with other peptide
-torsion angles) are <a href="../attributes.html">attributes</a> 
+torsion angles) are <a href="../attributes.html#residue">attributes</a> 
 of the amino acid residue containing the newly bonded N.
+ </blockquote>
+<p>
+For <b>build join bond</b> (the more general case):
 </p>
+ <blockquote>
+The <a href="atomspec.html"><i>replace-atoms</i></a> must include
+exactly one atom from each model; these two atoms will be deleted and 
+replaced with the new bond. 
+Each of the <a href="atomspec.html"><i>replace-atoms</i></a>
+must be bonded to only one other atom, and it is these two other atoms that
+will form the new bond. Usually these atoms to be replaced are
+hydrogens, so it may be useful to add hydrogens beforehand,
+to whole models with <a href="addh.html"><b>addh</b></a> or
+in a more local fashion with the
+<a href="../tools/buildstructure.html#modify"><b>Modify Structure</b></a> 
+section of <a href="../tools/buildstructure.html"><b>Build Structure</b></a>.
+If no <b>length</b> is supplied, it will be estimated 
+from the covalent bond radii of the elements of the atoms.
+The dihedral angle around the new bond is defined by 
+the newly bonded atoms (atom2, atom3) and their flanking bonds 
+(atom1-atom2, atom3-atom4). If the <b>dihedral</b> angle is specified, 
+unless atom1 and atom4 are unambiguous (the only possibilities), 
+the <b>dihedralAtoms</b> option is required to specify them.
+If no <b>dihedral</b> angle is given, the two models are simply
+aligned along the vectors of the two bonds to be replaced, and there is no
+attempt to rotate them to form a chemically reasonable dihedral angle.
+Example: 
+<blockquote>
+<b>build join bond #1:29@oxt #2:1@h2 length 1.32 dihedral 180 dihedralAtoms #1:29@ca #2:1@ca</b>
+</blockquote>
+<p>
+Options for which model to <b>move</b>:
+<ul>
+<li><b>large</b>
+&ndash; the one with the greater number of  atoms
+<li><b>small</b> (default)
+&ndash; the one with fewer atoms
+<li><a href="atomspec.html#hierarchy"><i>model-spec</i></a>
+&ndash; the specified model
+</ul>
+If the new bond is between
+<a href="atomspec.html#builtin"><b>min-backbone</b></a> atoms
+(both peptide or both nucleic),
+the residues from the moving model will be assigned the same chain ID
+as the rest of the chain in the nonmoving model, although their numbers
+may be shifted by a constant amount to avoid duplicate residue numbers
+within a chain.
+If the moving model includes additional chains, the other chain IDs
+will also be changed as needed to avoid duplicate chain IDs within 
+a model (as described for <a href="combine.html"><b>combine</b></a>).
+ </blockquote>
+</blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
 <a name="invert"></a>

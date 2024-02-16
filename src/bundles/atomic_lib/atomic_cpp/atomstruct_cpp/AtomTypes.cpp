@@ -1075,6 +1075,91 @@ std::cerr << "pass 4 took " << (t1 - t0) / (float)CLOCKS_PER_SEC << " seconds\n"
 t0 = t1;
 #endif
 
+    // "pass 4.25" (used to be pass 7):  a non-IDATM pass:  split off
+    //  heavy-atom-valence-2 Npls that have no hydrogens as type N2.
+    //  Discrimination criteria is the average bond length of the two 
+    //  heavy-atom bonds (shorter implies more double-bond character,
+    //  thereby no hydrogen).  Moved from pass 7 because typing as N2
+    //  early help ring bond determination (e.g. pubchem:825048)
+    for (auto a: untyped_atoms) {
+
+        if (a->idatm_type() != "Npl")
+            continue;
+        
+        if (heavys[a] != 2)
+            continue;
+
+        if (a->neighbors().size() > 2)
+            continue;
+
+        Real threshold = 1.0;
+        Real harm_len = 1.0;
+        Atom *recipient = NULL;
+        Real bratio = 1.0;
+        for (auto bondee: a->neighbors()) {
+            Real criteria;
+            if (bondee->element() == Element::C) {
+                criteria = p7cn2nh;
+            } else if (bondee->element() == Element::N) {
+                criteria = p7nn2nh;
+            } else if (bondee->element() == Element::O) {
+                if (bondee->neighbors().size() > 1)
+                    continue;
+                criteria = p7on2nh;
+            } else {
+                continue;
+            }
+            threshold *= criteria;
+            Real len = bondee->coord().distance(a->coord());
+            harm_len *= len;
+            if (len > criteria)
+                continue;
+            Real ratio = len / criteria;
+            if (ratio > bratio)
+                continue;
+            if (bondee->element() == Element::N && bondee->bonds().size() > 2)
+                continue;
+            if (bondee->idatm_type() == "Car")
+                continue;
+
+            bool double_okay = true;
+            for (auto grand_bondee: bondee->neighbors()) {
+                if (grand_bondee == a)
+                    continue;
+                auto gb_type = grand_bondee->idatm_type();
+
+                Atom::IdatmInfoMap::const_iterator i = info_map.find(gb_type);
+                if (i == info_map.end())
+                    continue;
+                int geom = (*i).second.geometry;
+                if (geom > 1 && geom < 4 && heavys[grand_bondee] == 1) {
+                        double_okay = false;
+                        break;
+                }
+            }
+            if (!double_okay)
+                continue;
+            recipient = bondee;
+            bratio = ratio;
+        }
+
+        if (harm_len < threshold && recipient != NULL) {
+            a->set_computed_idatm_type("N2");
+            if (recipient->element() == Element::C) {
+                recipient->set_computed_idatm_type("C2");
+            } else if (recipient->element() == Element::N) {
+                recipient->set_computed_idatm_type("N2");
+            } else if (recipient->element() == Element::O) {
+                recipient->set_computed_idatm_type("O2");
+            }
+        }
+    }
+#ifdef TIME_PASSES
+t1 = clock();
+std::cerr << "pass 4.25 took " << (t1 - t0) / (float)CLOCKS_PER_SEC << " seconds\n";
+t0 = t1;
+#endif
+
     // "pass 4.5":  this pass is not in the IDATM paper but is a suggested
     //    improvement mentioned on page 897 of the paper:  find aromatic
     //    ring types.  The method is to:
@@ -1812,92 +1897,7 @@ std::cerr << "pass 6 took " << (t1 - t0) / (float)CLOCKS_PER_SEC << " seconds\n"
 t0 = t1;
 #endif
 
-    // "pass 7":  a non-IDATM pass:  split off heavy-atom-valence-2
-    //  Npls that have no hydrogens as type N2.
-    //  Discrimination criteria is the average bond length of the two 
-    //  heavy-atom bonds (shorter implies more double-bond character,
-    //  thereby no hydrogen).
-    for (auto a: untyped_atoms) {
-
-        if (a->idatm_type() != "Npl")
-            continue;
-        
-        if (heavys[a] != 2)
-            continue;
-
-        if (ring_assigned_Ns.find(a) != ring_assigned_Ns.end())
-            continue;
-        
-        if (a->neighbors().size() > 2)
-            continue;
-
-        Real threshold = 1.0;
-        Real harm_len = 1.0;
-        Atom *recipient = NULL;
-        Real bratio = 1.0;
-        for (auto bondee: a->neighbors()) {
-            Real criteria;
-            if (bondee->element() == Element::C) {
-                criteria = p7cn2nh;
-            } else if (bondee->element() == Element::N) {
-                criteria = p7nn2nh;
-            } else if (bondee->element() == Element::O) {
-                if (bondee->neighbors().size() > 1)
-                    continue;
-                criteria = p7on2nh;
-            } else {
-                continue;
-            }
-            threshold *= criteria;
-            Real len = bondee->coord().distance(a->coord());
-            harm_len *= len;
-            if (len > criteria)
-                continue;
-            Real ratio = len / criteria;
-            if (ratio > bratio)
-                continue;
-            if (bondee->element() == Element::N && bondee->bonds().size() > 2)
-                continue;
-            if (bondee->idatm_type() == "Car")
-                continue;
-
-            bool double_okay = true;
-            for (auto grand_bondee: bondee->neighbors()) {
-                if (grand_bondee == a)
-                    continue;
-                auto gb_type = grand_bondee->idatm_type();
-
-                Atom::IdatmInfoMap::const_iterator i = info_map.find(gb_type);
-                if (i == info_map.end())
-                    continue;
-                int geom = (*i).second.geometry;
-                if (geom > 1 && geom < 4 && heavys[grand_bondee] == 1) {
-                        double_okay = false;
-                        break;
-                }
-            }
-            if (!double_okay)
-                continue;
-            recipient = bondee;
-            bratio = ratio;
-        }
-
-        if (harm_len < threshold && recipient != NULL) {
-            a->set_computed_idatm_type("N2");
-            if (recipient->element() == Element::C) {
-                recipient->set_computed_idatm_type("C2");
-            } else if (recipient->element() == Element::N) {
-                recipient->set_computed_idatm_type("N2");
-            } else if (recipient->element() == Element::O) {
-                recipient->set_computed_idatm_type("O2");
-            }
-        }
-    }
-#ifdef TIME_PASSES
-t1 = clock();
-std::cerr << "pass 7 took " << (t1 - t0) / (float)CLOCKS_PER_SEC << " seconds\n";
-t0 = t1;
-#endif
+    // pass 4.25 used be here as pass 7
 
     // "pass 8":  another non-IDATM: change planar nitrogens bonded only
     //  SP3 atoms to N3 or N3+.  Change Npls/N3s bonded to sp2 atoms that
