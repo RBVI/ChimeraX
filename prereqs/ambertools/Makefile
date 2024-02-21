@@ -4,13 +4,13 @@ include $(TOP)/mk/config.make
 
 # Using AmberTools distribution from https://ambermd.org
 
-#ifeq ($(OS),Darwin)
-#VERSION = 23
-#SRC_VERSION = 22
-#else
+ifeq ($(OS),Darwin)
+VERSION = 23
+SRC_VERSION = 22
+else
 VERSION = 20
 SRC_VERSION = 20
-#endif
+endif
 
 # to upload new binary versions, set USE_PREBUILT to false and UPLOAD_PREBUILT to true;
 # once all platforms have been successfully built, set USE_PREBUILT to true and UPLOAD_PREBUILT to false
