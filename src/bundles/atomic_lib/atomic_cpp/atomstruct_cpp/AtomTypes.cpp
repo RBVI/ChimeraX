@@ -900,6 +900,18 @@ t0 = t1;
             if ((sqlen <= p3c1c1 && bondee_type == "C1")
             || (sqlen <= p3n1c1 && bondee->element() == Element::N)) {
                 a->set_computed_idatm_type("C1");
+            } else if (bondee_type == "N1+") {
+                // N1+ can only be set at this point if valence 2,
+                // so can assume exactly one other neighbor
+                for (auto gnb: bondee->neighbors()) {
+                    if (gnb == a)
+                        continue;
+                    auto gtype = gnb->idatm_type();
+                    if (gtype == "H" || gtype == "C3" || gtype == "D")
+                        a->set_computed_idatm_type("C1");
+                    else
+                        a->set_computed_idatm_type("C3");
+                }
             } else if (sqlen <= p3c2c &&
               bondee->element() == Element::C) {
                 a->set_computed_idatm_type("C2");
@@ -1239,6 +1251,7 @@ t0 = t1;
     std::vector<std::set<Atom*> > fused_atoms;
     std::vector<std::vector<const Ring*> > component_rings;
     std::set<Atom *> ring_assigned_Ns;
+    std::set<Atom *> planar_ring_atoms;
     for (auto r: planar_rings) {
         if (seen_rings.find(r) != seen_rings.end())
             continue;
@@ -1272,6 +1285,7 @@ t0 = t1;
         fused_bonds.push_back(system_bonds);
         fused_atoms.push_back(system_atoms);
         component_rings.push_back(system_rings);
+        planar_ring_atoms.insert(system_atoms.begin(), system_atoms.end());
     }
         
     for (unsigned int i = 0; i < fused_bonds.size(); ++i) {
@@ -1382,11 +1396,30 @@ t0 = t1;
                     connected[nb] = DOUBLE;
             }
         }
+        std::vector<Bond *> inter_ring_bonds;
+        for (auto b_order: connected) {
+            auto b = b_order.first;
+            if (planar_ring_atoms.find(b->atoms()[0]) != planar_ring_atoms.end()
+            && planar_ring_atoms.find(b->atoms()[1]) != planar_ring_atoms.end()
+            && b_order.second == AMBIGUOUS)
+                inter_ring_bonds.push_back(b);
+        }
         std::map<Bond*, int> cur_assign;
         std::vector<std::map<Bond*, int>> assignments;
         std::vector<std::vector<Atom*>> assigned_uncertains;
         std::map<Atom*, Bond*> uncertain2bond;
-        make_assignments(bonds, connected, cur_assign, &assignments);
+        if (inter_ring_bonds.size() > 0) {
+            // while a bond directly connecting planar rings is theoretically ambiguous,
+            // it is highly likely to be single, so try such assignments first.
+            // For example, helps with pubchem:121225808 with hydrogens removed
+            for (auto b: inter_ring_bonds)
+                connected[b] = SINGLE;
+            make_assignments(bonds, connected, cur_assign, &assignments);
+            for (auto b: inter_ring_bonds)
+                connected[b] = AMBIGUOUS;
+        }
+        if (assignments.size() == 0)
+            make_assignments(bonds, connected, cur_assign, &assignments);
         if (assignments.size() == 0)
             // try a charged ring
             make_assignments(bonds, connected, cur_assign, &assignments, true);
@@ -1684,8 +1717,6 @@ t0 = t1;
                             longest_N = a;
                             best_val = val;
                         }
-                        // avoid retyping in pass 7
-                        redo[a] = -7;
                     }
                     longest_N->set_computed_idatm_type("Npl");
                     protonatable_Ns.erase(longest_N);

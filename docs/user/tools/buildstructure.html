@@ -461,7 +461,10 @@ or changing the relative positions of the atoms.
 </p><p>
 The atoms to be bonded must first be <a href="../selection.html">selected</a>.
 </p><p>
-Currently only a peptide bond can be formed. The selection must include
+For <b>Peptide Bond</b>:
+</p>
+<blockquote>
+The selection must include
 exactly one peptide C-terminal carbon atom C <b>&ndash;<i>OR</i>&ndash;</b>
 N-terminal nitrogen atom N (not both) from one model, and from a second
 model, exactly one of whichever of those two atoms is not in the first.
@@ -470,7 +473,6 @@ These C and N atoms each must be bonded to only one carbon
 however, it may also be bonded to hydrogen and/or OXT, and if so,
 these atoms will be replaced as appropriate by the new peptide bond.
 The peptide bond will be added with the specified parameters:
-</p>
   <ul>
   <li><b>C-N length</b> (default <b>1.330</b> &Aring;)
   <li><b>C&alpha;-C-N-C&alpha; dihedral (&omega; angle)</b>
@@ -483,11 +485,53 @@ The peptide bond will be added with the specified parameters:
    (default <b>smaller</b>, falling back to <b>selected N atom</b>
    if the two models contain the same numbers of atoms)
   </ul>
+The values of <b>&omega;</b> (<b>omega</b>), <b>&phi;</b> (<b>phi</b>), and
+other peptide torsion angles are 
+<a href="../attributes.html#residue">attributes</a>
+of the amino acid residue containing the newly bonded N.
+</blockquote>
+For <b>Other Bond</b> (the more general case):
+<blockquote>
+The selection must include exactly one atom from each model; 
+these two atoms will be deleted and replaced with the new bond.
+Each of the selected atoms must be bonded to only one other atom, 
+and it is these two other atoms that will form the new bond.
+Usually these atoms to be replaced are
+hydrogens, so it may be useful to add hydrogens beforehand,
+to whole models with <a href="addhydrogens.html"><b>Add Hydrogens</b></a> or
+in a more local fashion with the
+<a href="#modify"><b>Modify Structure</b></a> section of
+<a href="#top"><b>Build Structure</b></a>.
+  <ul>
+  <li><b>Bond length</b> 
+&ndash; length for the new bond in &Aring;, either entered directly
+or estimated from the covalent radii of the elements of the atoms to be bonded
+  <li><b>Set dihedral</b> 
+&ndash; allow specifying a <b>Dihedral</b> angle.
+This angle is defined by the newly bonded atoms (atom2, atom3) 
+and their flanking bonds (atom1-atom2, atom3-atom4). 
+If <b>Set dihedral</b> is used, the specifiers of atom2 and atom3 are 
+shown in the dialog and pulldown menus on either side allow specifying 
+which atoms to use as atom1 and atom4. If <b>Set dihedral</b> is not used,
+the two models will simply be aligned along the vectors of the two bonds 
+to be replaced, with no attempt to rotate them to form a chemically 
+reasonable dihedral angle.
+  <li><b>Move atoms in [&nbsp;smaller / larger / <i>#N</i>&nbsp;] model</b>
+   &ndash; which of the two models to reposition when forming the bond
+   (default <b>smaller</b>)
+</blockquote>
 <p>
 Clicking <b>Apply</b> performs the join.
-The values of <b>&omega;</b> (<b>omega</b>), <b>&phi;</b> (<b>phi</b>), and
-other peptide torsion angles are <a href="../attributes.html">attributes</a>
-of the amino acid residue containing the newly bonded N.
+If the new bond is between
+<a href="../commands/atomspec.html#builtin"><b>min-backbone</b></a> atoms
+(both peptide or both nucleic),
+the residues from the moving model will be assigned the same chain ID
+as the rest of the chain in the nonmoving model, although their numbers
+may be shifted by a constant amount to avoid duplicate residue numbers
+within a chain.
+If the moving model includes additional chains, the other chain IDs
+will also be changed as needed to avoid duplicate chain IDs within a model 
+(as described for <a href="../commands/combine.html"><b>combine</b></a>).
 </p>
 
 <p class="nav">
