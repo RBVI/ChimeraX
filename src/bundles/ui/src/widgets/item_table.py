@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from Qt.QtWidgets import QWidget, QCheckBox, QTableView, QMenu, QAbstractItemView
+from Qt.QtWidgets import QWidget, QCheckBox, QTableView, QMenu, QAbstractItemView, QFileDialog
 from Qt.QtGui import QAction
 from Qt.QtCore import QAbstractTableModel, Qt, QModelIndex, Signal, QSortFilterProxyModel, QSize, QTimer
 # Qt has no QVariant; None can be used in place of an invalid QVariant
@@ -681,6 +681,53 @@ class ItemTable(QTableView):
         top_left = self._table_model.index(0, self._columns.index(column))
         bottom_right = self._table_model.index(len(self._data)-1, self._columns.index(column))
         self._table_model.dataChanged.emit(top_left, bottom_right, changes)
+
+    def write_values(self, file=None, *, separator=None):
+        all_separators = ['\t', ',']
+        if separator is None:
+            separators = all_separators
+        else:
+            separators = [separator]
+        if file is None:
+            class SepInfo:
+                def __init__(self, sep):
+                    if sep not in all_separators:
+                        raise ValueError("Unsupported separator: %s" % repr(separator))
+                    self.sep = sep
+                    self.text = "comma" if sep == ',' else "tab"
+                    self.suffix = ".csv" if sep == ',' else ".tsv"
+                    self.filter =  "%s-separated value (*%s)" % (self.text.capitalize(), self.suffix)
+            separator = '.'
+            filter_suffix = ".csv"
+            title_adjective = "CSV"
+            filter_adjective = "Comma-separated"
+            sep_infos = [SepInfo(sep) for sep in separators]
+            sep_infos.sort(key=lambda si: si.text)
+            filter_to_sep = { si.filter: si.sep for si in sep_infos }
+            kw = {
+                'parent': self,
+                'caption': "Save %s-Separated File" % " or ".join(
+                    [si.text.capitalize() for si in sep_infos]),
+                'filter': ";;".join([si.filter for si in sep_infos])
+            }
+            file, filter = QFileDialog.getSaveFileName(**kw)
+            if not file:
+                return
+            separator = filter_to_sep[filter]
+        from chimerax.io import open_output
+        with open_output(file, encoding="utf-8") as f:
+            print(separator.join(self.column_names), file=f)
+            def printable(col, datum):
+                dval = col.display_value(datum)
+                if isinstance(dval, str):
+                    return dval
+                try:
+                    return str(col.value(datum))
+                except Exception:
+                    return ""
+            for datum in self.sorted_data:
+                print(separator.join([printable(col, datum) for col in self.columns]),
+                    file=f)
 
     def _add_column_control_entry(self, col):
         action = QAction(col.title)
