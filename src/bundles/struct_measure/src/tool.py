@@ -68,7 +68,7 @@ class StructMeasureTool(ToolInstance):
         if not self.tab_widget.tabText(self.tab_widget.currentIndex()).startswith("Axes"):
             return
         from Qt.QtGui import QAction
-        act = QAction("Save TSV or CSV File...", parent=menu)
+        act = QAction("Save CSV or TSV File...", parent=menu)
         act.triggered.connect(lambda *args, tab=self.apc_table: tab.write_values())
         menu.addAction(act)
 
