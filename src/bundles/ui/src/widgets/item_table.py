@@ -706,8 +706,8 @@ class ItemTable(QTableView):
             filter_to_sep = { si.filter: si.sep for si in sep_infos }
             kw = {
                 'parent': self,
-                'caption': "Save %s-Separated File" % " or ".join(
-                    [si.text.capitalize() for si in sep_infos]),
+                'caption': "Save %sSeparated File" % " or ".join(
+                    [si.text.capitalize() + '-' for si in sep_infos]),
                 'filter': ";;".join([si.filter for si in sep_infos])
             }
             file, filter = QFileDialog.getSaveFileName(**kw)
