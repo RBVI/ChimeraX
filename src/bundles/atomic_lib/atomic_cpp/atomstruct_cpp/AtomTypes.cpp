@@ -900,6 +900,18 @@ t0 = t1;
             if ((sqlen <= p3c1c1 && bondee_type == "C1")
             || (sqlen <= p3n1c1 && bondee->element() == Element::N)) {
                 a->set_computed_idatm_type("C1");
+            } else if (bondee_type == "N1+") {
+                // N1+ can only be set at this point if valence 2,
+                // so can assume exactly one other neighbor
+                for (auto gnb: bondee->neighbors()) {
+                    if (gnb == a)
+                        continue;
+                    auto gtype = gnb->idatm_type();
+                    if (gtype == "H" || gtype == "C3" || gtype == "D")
+                        a->set_computed_idatm_type("C1");
+                    else
+                        a->set_computed_idatm_type("C3");
+                }
             } else if (sqlen <= p3c2c &&
               bondee->element() == Element::C) {
                 a->set_computed_idatm_type("C2");
