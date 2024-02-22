@@ -259,7 +259,7 @@ class CheckWaterViewer(ToolInstance):
 
     def fill_context_menu(self, menu, x, y):
         from Qt.QtGui import QAction
-        act = QAction("Save TSV or CSV File...", parent=menu)
+        act = QAction("Save CSV or TSV File...", parent=menu)
         act.triggered.connect(lambda *args, tab=self.res_table: tab.write_values())
         menu.addAction(act)
 
