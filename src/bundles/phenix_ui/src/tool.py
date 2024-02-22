@@ -431,6 +431,7 @@ class LaunchFitLoopsTool(ToolInstance):
     GAPS_TAB, REMODEL_TAB = TAB_NAMES = ("Fill Gaps", "Remodel")
 
     ADVISORY_RES_LIMIT = 10
+    HARD_RES_LIMIT = 20
 
     def __init__(self, session, tool_name):
         super().__init__(session, tool_name)
@@ -453,6 +454,7 @@ class LaunchFitLoopsTool(ToolInstance):
         layout.addWidget(centering_widget, alignment=Qt.AlignCenter)
         data_layout = QHBoxLayout()
         data_layout.setSpacing(1)
+        data_layout.setContentsMargins(0,0,0,0)
         centering_widget.setLayout(data_layout)
         data_layout.addWidget(QLabel("Structure: "), alignment=Qt.AlignRight)
         from chimerax.atomic.widgets import AtomicStructureMenuButton
@@ -464,12 +466,12 @@ class LaunchFitLoopsTool(ToolInstance):
         from chimerax.ui.widgets import ModelMenuButton
         from chimerax.map import Volume
         self.map_menu = ModelMenuButton(session, class_filter=Volume)
-        data_layout.addWidget(self.map_menu, alignment=Qt.AlignLeft)
-        data_layout.setStretch(data_layout.count(), 1)
+        data_layout.addWidget(self.map_menu, alignment=Qt.AlignLeft, stretch=1)
 
         targeting_layout = QHBoxLayout()
-        layout.addLayout(targeting_layout)
-        layout.setStretch(layout.count(), 1)
+        targeting_layout.setSpacing(1)
+        targeting_layout.setContentsMargins(0,0,0,0)
+        layout.addLayout(targeting_layout, stretch=1)
         self.no_structure_message = "Select a structure from the menu above"
         self.target_label = QLabel(self.no_structure_message)
         self.model_structure_message = "Select the parts of %s you want to model/remodel, including" \
@@ -480,6 +482,10 @@ class LaunchFitLoopsTool(ToolInstance):
             " modeling %d consecutive residues or more, so modeling" \
             " the currently selected residues (%%d consecutive residues in chain %%s) is not recommended." \
             % self.ADVISORY_RES_LIMIT
+        self.too_many_residues_message = "The fit_loops program cannot properly model" \
+            " %d consecutive residues or more, so modeling" \
+            " the currently selected residues (%%d consecutive residues in chain %%s) is not possible." \
+            % self.HARD_RES_LIMIT
         self.target_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
         self.target_label.setWordWrap(True)
         from chimerax.ui import shrink_font
@@ -488,11 +494,11 @@ class LaunchFitLoopsTool(ToolInstance):
         self.target_area = QWidget()
         target_layout = QVBoxLayout()
         self.target_area.setLayout(target_layout)
+        target_layout.addWidget(QLabel("Gaps"), alignment=Qt.AlignHCenter|Qt.AlignBottom)
         targeting_layout.addWidget(self.target_area)
         self.target_list = QListWidget()
         self.target_list.currentRowChanged.connect(self._new_target)
-        target_layout.addWidget(self.target_list, alignment=Qt.AlignCenter)
-        target_layout.setStretch(target_layout.count(), 1)
+        target_layout.addWidget(self.target_list, alignment=Qt.AlignHCenter|Qt.AlignTop, stretch=1)
         padding_layout = QGridLayout()
         padding_layout.setSpacing(1)
         target_layout.addLayout(padding_layout)
@@ -630,6 +636,9 @@ class LaunchFitLoopsTool(ToolInstance):
 
     def _sel_changed(self, trig_name, data):
         structure = self.structure_menu.value
+        for but in self.bbox.buttons():
+            if but.text() in ["OK", "Apply"]:
+                but.setEnabled(True)
         if structure:
             # check if selection >= ADVISORY_RES_LIMIT consecutive chain residues
             from chimerax.atomic import Structure, selected_residues, selected_pseudobonds
@@ -664,6 +673,13 @@ class LaunchFitLoopsTool(ToolInstance):
                     else:
                         if prev_existing_res:
                             gap_len += 1
+                if num_sel >= self.HARD_RES_LIMIT:
+                    self.target_label.setText(self.too_many_residues_message % (num_sel, chain.chain_id))
+                    self.target_label.setStyleSheet("QLabel { color : red }")
+                    for but in self.bbox.buttons():
+                        if but.text() in ["OK", "Apply"]:
+                            but.setEnabled(False)
+                    break
                 if num_sel >= self.ADVISORY_RES_LIMIT:
                     self.target_label.setText(self.many_residues_message % (num_sel, chain.chain_id))
                     self.target_label.setStyleSheet("QLabel { color : red }")
