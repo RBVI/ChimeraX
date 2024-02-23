@@ -81,13 +81,13 @@ CONFIG_ARGS = clang
 endif
 
 ifeq ($(wildcard /usr/local/gfortran/*),)
-FLIBDIR = /usr/local/gfortran/lib
-else
 ifeq ($(wildcard /usr/local/opt/gcc/lib/gcc/current/*),)
-FLIBDIR = /usr/local/opt/gcc/lib/gcc/current
-else
 FLIBDIR = /usr/local/lib
+else
+FLIBDIR = /usr/local/opt/gcc/lib/gcc/current
 endif
+else
+FLIBDIR = /usr/local/gfortran/lib
 endif
 
 ifeq ($(USE_PREBUILT),true)
