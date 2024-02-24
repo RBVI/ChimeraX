@@ -82,7 +82,11 @@ endif
 
 ifeq ($(wildcard /usr/local/gfortran/*),)
 ifeq ($(wildcard /usr/local/opt/gcc/lib/gcc/current/*),)
+ifeq ($(wildcard /opt/homebrew/opt/gcc/lib/gcc/current/*),)
 FLIBDIR = /usr/local/lib
+else
+FLIBDIR = /opt/homebrew/opt/gcc/lib/gcc/current
+endif
 else
 FLIBDIR = /usr/local/opt/gcc/lib/gcc/current
 endif
