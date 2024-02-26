@@ -249,7 +249,8 @@ in the format read by <a href="open.html#defattr"><b>open</b></a>;
 <td align="center">.pir, .ali</td>
 <td align="center">PIR (NBRF)</td>
 </tr><tr>
-<td align="center" valign="top" rowspan="6">&nbsp;<br>&nbsp;3D&nbsp;objects</td>
+<td align="center" valign="top" rowspan="6">&nbsp;<br>&nbsp;3D&nbsp;objects
+<br>(unclipped, see <a href="#export">details...</a>)</td>
 <td align="center"><b>gltf</b></td>
 <td align="center">.glb</td>
 <td align="center" class="text"><a href="https://www.khronos.org/gltf"
@@ -1032,6 +1033,19 @@ Example:
 <b>save example.pir alignment 1.A</b>
 </blockquote> 
 
+<a name="export"></a>
+<p class="nav">
+[<a href="#top">back to top: save</a>]
+</p>
+<h3>3D Objects Not Clipped</h3>
+<p>
+Note that <a href="clip.html">clipping</a> only hides part of the scene
+but does not remove it. Files saved in 3D object formats
+(<b>gltf, stl, obj, x3d, vrml, vtk</b>)
+will include the entire models regardless of which parts 
+(if any) are hidden by clipping.
+</p>
+
 <a name="gltf"></a>
 <p class="nav">
 [<a href="#top">back to top: save</a>]
@@ -1197,5 +1211,5 @@ that the scene is opaque.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-November 2023</address>
+February 2024</address>
 </body></html>
