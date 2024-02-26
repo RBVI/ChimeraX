@@ -1071,7 +1071,8 @@ will include the entire models regardless of which parts
 </blockquote>
 <p>
 Several options apply only to saving <a href="https://www.khronos.org/gltf" 
-target="_blank">GL Transmission Format</a> (.glb). See also:
+target="_blank">GL Transmission Format</a> (.glb). 
+The models are <a href="#export">not clipped</a>. See also:
 <a href="https://www.rbvi.ucsf.edu/chimerax/data/texture-may2021/export_3d.html"
 target="_blank">Exporting atomic models with colors to GLTF or OBJ</a>,
 <a href="https://www.rbvi.ucsf.edu/chimerax/data/gltf-viewer-may2023/"
@@ -1193,6 +1194,7 @@ Write the specified roughness factor <i>f<sub>r</sub></i>
 </blockquote>
 <p>
 The VRML output is very basic and intended specifically for 3D printing.
+The models are <a href="#export">not clipped</a>.
 Everything in the scene is output as a single shape, a VRML IndexedFaceSet,
 which is a set of triangles. Primitives such as exact spheres or cylinders 
 are not exported. The number of triangles used for atoms and bonds in 
