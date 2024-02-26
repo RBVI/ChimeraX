@@ -2504,9 +2504,13 @@ class _Qt:
                     from Qt.QtCore import QTimer
                     QTimer.singleShot(0, ensure_onscreen)
 
-        if geometry is not None:
-            self.dock_widget.setGeometry(geometry)
         self.dock_widget.setAllowedAreas(allowed_areas)
+        if geometry is not None:
+            if self.dock_widget.isFloating():
+                self.dock_widget.setGeometry(geometry)
+            else:
+                mw.resizeDocks([self.dock_widget], [geometry.height()], Qt.Vertical)
+                mw.resizeDocks([self.dock_widget], [geometry.width()], Qt.Horizontal)
 
         if fixed_size:
             # Always set vertical size to what sizeHint() asks for.
@@ -2652,15 +2656,17 @@ def _remember_tool_pos(ui, tool_instance, widget):
             mw.status('To save tabbed positions, use "Save Tool Position" on each tab', "blue", False)
         else:
             tab_info = []
+    geom = widget.geometry()
+    geom_info = (geom.x(), geom.y(), geom.width(), geom.height())
     if widget.isFloating():
         side = None
-        geom = widget.geometry()
-        geom_info = (geom.x(), geom.y(), geom.width(), geom.height())
+        #geom = widget.geometry()
+        #geom_info = (geom.x(), geom.y(), geom.width(), geom.height())
     else:
         # unlike PyQt, PySide needs cast to int
         from Qt import qt_enum_as_int
         side = qt_enum_as_int(get_side(widget))
-        geom_info = None
+        #geom_info = None
     version = 3
     mem_location[tool_instance.tool_name] = {
         'version': version,
