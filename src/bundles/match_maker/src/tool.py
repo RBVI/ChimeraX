@@ -188,6 +188,7 @@ class MatchMakerTool(ToolInstance):
 
     def run_matchmaker(self, apply=False):
         from chimerax.core.commands import StringArg, BoolArg, FloatArg, DynamicEnum, NoneArg
+        from chimerax.core.commands import concise_model_spec
         from .settings import defaults, get_settings
         settings = get_settings(self.session)
         chain_pairing = self.chain_pairing_option.value
@@ -205,7 +206,6 @@ class MatchMakerTool(ToolInstance):
         if chain_pairing == CP_SPECIFIC_SPECIFIC:
             match_spec = "".join([mchain.atomspec for rchain, mchain in match_value])
         else:
-            from chimerax.core.commands import concise_model_spec
             match_spec = concise_model_spec(self.session, match_value)
         if not match_spec:
             raise UserError("No match structure/chain(s) chosen")
