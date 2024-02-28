@@ -1058,7 +1058,7 @@ class StructureSeq(Sequence):
                 args = (ctypes.c_char_p, ctypes.c_void_p, ctypes.c_int), ret = ctypes.c_void_p)(
                     chain_id.encode('utf-8'), structure._c_pointer, polymer_type)
         super().__init__(sseq_pointer)
-        self.triggers.add_trigger('delete')
+        self.triggers.add_trigger('downgrade')
         self.triggers.add_trigger('characters changed')
         self.triggers.add_trigger('residues changed')
         from weakref import ref
@@ -1247,6 +1247,15 @@ class StructureSeq(Sequence):
         return data
 
     def _changes_cb(self, trig_name, changes):
+        if self.structure == None:
+            # doing this directly from C++ layer causes crashes in garbage collection [#14506]
+            # so do it in 'changes' callback instead
+            numbering_start = self.numbering_start
+            self._fire_trigger('downgrade', Sequence)
+            self.changes_handler.remove()
+            self.numbering_start = numbering_start
+            return
+
         if "name changed" in changes.residue_reasons():
             updated_chars = []
             some_changed = False
@@ -1262,17 +1271,9 @@ class StructureSeq(Sequence):
                 self.bulk_set(self.residues, ''.join(updated_chars), fire_triggers=False)
                 self._fire_trigger('characters changed', self)
 
-    def _cpp_seq_demotion(self):
-        # called from C++ layer when this should be demoted to Sequence
-        numbering_start = self.numbering_start
-        self._fire_trigger('delete', self)
-        self.changes_handler.remove()
-        self.__class__ = Sequence
-        self.numbering_start = numbering_start
-
     def _cpp_structure_seq_demotion(self):
         # called from C++ layer when a Chain should be demoted to a StructureSeq
-        self.__class__ = StructureSeq
+        self._fire_trigger('downgrade', StructureSeq)
 
     def _cpp_modified(self):
         # called from C++ layer when the residue list changes

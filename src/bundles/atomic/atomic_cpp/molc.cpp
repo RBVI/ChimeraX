@@ -3481,8 +3481,14 @@ extern "C" EXPORT void sseq_structure(void *chains, size_t n, pyobject_t *molp)
 {
     StructureSeq **c = static_cast<StructureSeq **>(chains);
     try {
-        for (size_t i = 0; i < n; ++i)
-          molp[i] = c[i]->structure()->py_instance(true);
+        for (size_t i = 0; i < n; ++i) {
+          auto s = c[i]->structure();
+          if (s == nullptr) {
+              molp[i] = Py_None;
+              Py_INCREF(Py_None);
+          } else
+              molp[i] = c[i]->structure()->py_instance(true);
+        }
     } catch (...) {
         molc_error();
     }
