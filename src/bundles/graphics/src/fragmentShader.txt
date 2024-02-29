@@ -1,4 +1,5 @@
 #version 330 core
+// vim: set ft=glsl:
 
 /*
  * === UCSF ChimeraX Copyright ===
@@ -228,31 +229,31 @@ void main (void)
 #endif
 
 #ifdef USE_TEXTURE_2D
-#ifdef USE_COLORMAP
+  #ifdef USE_COLORMAP
   float tvalue = (texture(tex2d, tex_coord_2d).r - colormap_range.x) * colormap_range.y;
   vec4 fcolor = texture(colormap, tvalue) * color;
-#else
+  #else
   vec4 fcolor = texture(tex2d, tex_coord_2d) * color;
-#endif
+  #endif
 #else
-#ifdef USE_TEXTURE_3D
-#ifdef USE_COLORMAP
+  #ifdef USE_TEXTURE_3D
+    #ifdef USE_COLORMAP
   float tvalue = (texture(tex3d, tex_coord_3d).r - colormap_range.x) * colormap_range.y;
   vec4 fcolor = texture(colormap, tvalue) * color;
-#else
+    #else
   vec4 fcolor = texture(tex3d, tex_coord_3d) * color;
-#endif
-#else
-#ifdef USE_TEXTURE_CUBEMAP
+    #endif
+  #else
+    #ifdef USE_TEXTURE_CUBEMAP
   vec4 fcolor = texture(texcube, tex_coord_cubemap) * color;
-#else
-#ifdef USE_ALL_WHITE
+    #else
+      #ifdef USE_ALL_WHITE
   vec4 fcolor = vec4(1,1,1,1);
-#else
+      #else
   vec4 fcolor = color;
-#endif
-#endif
-#endif
+      #endif
+    #endif
+  #endif
 #endif
 
 #ifdef USE_TRANSPARENT_ONLY
