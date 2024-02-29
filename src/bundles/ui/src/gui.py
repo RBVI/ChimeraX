@@ -29,6 +29,7 @@ in a thread-safe manner.  The UI instance is accessed as session.ui.
 from Qt.QtWidgets import QApplication
 from chimerax.core.logger import PlainTextLog
 import sys
+from contextlib import contextmanager
 
 def initialize_qt():
     initialize_qt_plugins_location()
@@ -93,6 +94,7 @@ class UI(QApplication):
         self.main_window = None
         self.already_quit = False
         self._fatal_error_log_file = None
+        self._force_float_count = 0
         self.session = session
 
         from .settings import UI_Settings
@@ -277,6 +279,14 @@ class UI(QApplication):
             return
         self.exec()
         self.session.logger.clear()
+
+    @contextmanager
+    def force_float_tools(self):
+        self._force_float_count += 1
+        try:
+            yield
+        finally:
+            self._force_float_count -= 1
 
     def forward_keystroke(self, event):
         """forward keystroke from graphics window to most recent
@@ -2143,6 +2153,9 @@ class ToolWindow(StatusLogger):
                 geometry = QRect(*geom_info)
         resize_docked = False
         place_floating = placement is None or (isinstance(placement, ToolWindow) and placement.floating)
+        if not place_floating and ui._force_float_count > 0:
+            place_floating = True
+            placement = None
         if not place_floating and placement in ('side', 'left', 'right'):
             # if the tool's sizeHint indicates that the graphics window would be forced to shrink by more
             # than 50% to accomodate; resize docked widget instead
