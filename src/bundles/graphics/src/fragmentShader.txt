@@ -1,4 +1,5 @@
 #version 330 core
+// vim: set ft=glsl:
 
 /*
  * === UCSF ChimeraX Copyright ===
