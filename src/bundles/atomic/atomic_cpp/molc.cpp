@@ -4650,6 +4650,18 @@ extern "C" EXPORT void set_structure_ribbon_show_spine(void *mols, size_t n, npy
     error_wrap_array_set(m, n, &Structure::set_ribbon_show_spine, ribbon_show_spine);
 }
 
+extern "C" EXPORT void structure_worm_ribbon(void *mols, size_t n, npy_bool *worm_ribbon)
+{
+    Structure **m = static_cast<Structure **>(mols);
+    error_wrap_array_get(m, n, &Structure::worm_ribbon, worm_ribbon);
+}
+
+extern "C" EXPORT void set_structure_worm_ribbon(void *mols, size_t n, npy_bool *worm_ribbon)
+{
+    Structure **m = static_cast<Structure **>(mols);
+    error_wrap_array_set(m, n, &Structure::set_worm_ribbon, worm_ribbon);
+}
+
 extern "C" EXPORT void set_structure_ss_assigned(void *structures, size_t n, npy_bool *ss_assigned)
 {
     Structure **s = static_cast<Structure **>(structures);

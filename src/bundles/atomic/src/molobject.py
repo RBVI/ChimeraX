@@ -1605,14 +1605,13 @@ class StructureData:
     '''Ribbon mode showing secondary structure as an arc (tube or plank).'''
     RIBBON_MODE_WRAP = 2
     '''Ribbon mode showing helix as ribbon wrapped around tube.'''
-    RIBBON_MODE_WORM = 3
-    '''Ribbon mode showing 'worm' depiction.'''
     ring_display_count = c_property('structure_ring_display_count', int32, read_only = True,
         doc = "Return number of residues with ring display set. Integer.")
-
     ss_assigned = c_property('structure_ss_assigned', npy_bool, doc =
         "Has secondary structure been assigned, either by data in original structure file "
         "or by some algorithm (e.g. dssp command)")
+    worm_ribbon = c_property('structure_worm_ribbon', npy_bool,
+        doc = "Show ribbon as a 'worm'. Boolean.")
 
     from contextlib import contextmanager
     @contextmanager
