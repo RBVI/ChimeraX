@@ -132,7 +132,8 @@ public:
                              RIBBON_ORIENT_PEPTIDE = 4 };
     enum RibbonMode { RIBBON_MODE_DEFAULT = 0,
                       RIBBON_MODE_ARC = 1,
-                      RIBBON_MODE_WRAP = 2 };
+                      RIBBON_MODE_WRAP = 2,
+                      RIBBON_MODE_WORM = 3 };
     enum TetherShape { RIBBON_TETHER_CONE = 0,
                        RIBBON_TETHER_REVERSE_CONE = 1,
                        RIBBON_TETHER_CYLINDER = 2 };

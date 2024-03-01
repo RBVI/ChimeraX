@@ -1590,6 +1590,17 @@ cdef class CyResidue:
 
     water_res_names = set(["HOH", "WAT", "H2O", "D2O", "TIP3"])
 
+    @property
+    def worm_radius(self):
+        "Radius of 'worm' ribbon depiction."
+        if self._deleted: raise RuntimeError("Residue already deleted")
+        return self.cpp_res.worm_radius()
+
+    @worm_radius.setter
+    def worm_radius(self, ra):
+        if self._deleted: raise RuntimeError("Residue already deleted")
+        self.cpp_res.set_worm_radius(ra)
+
 
     # instance methods...
 

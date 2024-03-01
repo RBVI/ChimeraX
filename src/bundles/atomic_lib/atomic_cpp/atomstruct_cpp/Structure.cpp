@@ -539,6 +539,7 @@ void Structure::_copy(Structure* s, PositionMatrix coord_adjust,
         cr->_alt_loc = r->_alt_loc;
         cr->_ribbon_hide_backbone = r->_ribbon_hide_backbone;
         cr->_ribbon_adjust = r->_ribbon_adjust;
+        cr->_worm_radius = r->_worm_radius;
         rmap[r] = cr;
     }
     std::map<CoordSet*, CoordSet*> cs_map;
