@@ -1746,7 +1746,7 @@ std::cerr << "read_one breakdown:  pre-loop " << cum_preloop_t/(float)CLOCKS_PER
 // for sorting atoms by coord index (input order)...
 namespace {
 
-struct less_Atom: public std::binary_function<Atom*, Atom*, bool> {
+struct less_Atom: public std::function<bool(Atom*, Atom*)> {
     bool operator()(const Atom* a1, const Atom* a2) {
         return a1->coord_index() < a2->coord_index();
     }
