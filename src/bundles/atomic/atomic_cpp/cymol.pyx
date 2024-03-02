@@ -1816,7 +1816,11 @@ cdef class CyResidue:
             return None
 
 def _set_angle(session, torsion_atom2, bond, new_angle, cur_angle, attr_name, **kw):
-    br = session.bond_rotations.new_rotation(bond, **kw)
+    try:
+        br = session.bond_rotations.new_rotation(bond, **kw)
+    except session.bond_rotations.BondRotationError:
+        # Errors in angle setters are ignored
+        return
     br.angle += new_angle - cur_angle
     res = bond.atoms[0].residue
     res.structure.change_tracker.add_modified(res, attr_name + " changed")
