@@ -377,7 +377,10 @@ class BuildStructureTool(ToolInstance):
             arg = ""
         from chimerax.core.commands import run
         for b in self._initial_bond_lengths.keys():
-            run(self.session, ("bond length %s %g" + arg) % (b.atomspec, opt.value))
+            # Though _initial_bond_lengths is a weak-key dictionary, other code may be
+            # holding references to a dead bond, so verify it's alive before using it
+            if not b.deleted:
+                run(self.session, ("bond length %s %g" + arg) % (b.atomspec, opt.value))
 
     def _ab_sel_changed(self, *args):
         seen = set()
