@@ -31,11 +31,11 @@ from tinyarray import array, zeros
 from cython.operator import dereference
 from ctypes import c_void_p, byref
 cimport cython
-from libc.stdint cimport uintptr_t
 
-from libc.stdint import size_t
-# relying on the fact that stdint.pxd defines size_t as uintptr_t
-ctypedef size_t ptr_type
+IF UNAME_SYSNAME == "Windows":
+    ctypedef long long ptr_type
+ELSE:
+    ctypedef long ptr_type
 
 cdef const char * _translate_struct_cat(cydecl.StructCat cat):
     if cat == cydecl.StructCat.Main:
