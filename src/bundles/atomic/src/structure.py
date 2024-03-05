@@ -30,7 +30,7 @@ from chimerax.graphics import Drawing, Pick
 
 # If STRUCTURE_STATE_VERSION changes, then bump the bundle's
 # (maximum) session version number.
-STRUCTURE_STATE_VERSION = 3
+STRUCTURE_STATE_VERSION = 5
 
 # Auto-styling tunables
 MULTI_SHADOW_THRESHOLD = 300_000  # reduce amount of shadow rays if more than threshold atoms

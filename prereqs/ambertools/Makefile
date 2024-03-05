@@ -14,13 +14,13 @@ SRC_VERSION = 20
 
 # to upload new binary versions, set USE_PREBUILT to false and UPLOAD_PREBUILT to true;
 # once all platforms have been successfully built, set USE_PREBUILT to true and UPLOAD_PREBUILT to false
-ifeq ($(OS),Darwin)
-USE_PREBUILT=false
-UPLOAD_PREBUILT=true
-else
+#ifeq ($(OS),Darwin)
+#USE_PREBUILT=false
+#UPLOAD_PREBUILT=true
+#else
 USE_PREBUILT=true
 UPLOAD_PREBUILT=false
-endif
+#endif
 ifeq ($(OS),Linux)
 SUPPORTED_DISTROS := Ubuntu CentOS Debian Rocky Freedesktop
 # CentOS uses "CentOS Linux", hence the second awk in the following line
@@ -82,7 +82,11 @@ endif
 
 ifeq ($(wildcard /usr/local/gfortran/*),)
 ifeq ($(wildcard /usr/local/opt/gcc/lib/gcc/current/*),)
+ifeq ($(wildcard /opt/homebrew/opt/gcc/lib/gcc/current/*),)
 FLIBDIR = /usr/local/lib
+else
+FLIBDIR = /opt/homebrew/opt/gcc/lib/gcc/current
+endif
 else
 FLIBDIR = /usr/local/opt/gcc/lib/gcc/current
 endif
