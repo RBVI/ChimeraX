@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-StdCommands" version="1.15"
+<BundleInfo name="ChimeraX-StdCommands" version="1.16"
 	    package="chimerax.std_commands" customInit="true"
   	    minSessionVersion="1" maxSessionVersion="1">
 
@@ -139,6 +139,8 @@
     <ChimeraXClassifier>Command :: wait :: Movie Making :: wait a given amount of frames before executing the next command</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: windowsize :: General Controls :: set the size of the 3D window</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: wobble :: General Controls :: move models in figure 8 motion</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: worm :: General Controls :: turn on/off worm depiction</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: ~worm :: General Controls :: turn off worm depiction</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: select zone :: General Controls :: select (parts of) models within a 3D zone</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: zoom :: Viewing Controls :: zoom in/out</ChimeraXClassifier>
   </Classifiers>

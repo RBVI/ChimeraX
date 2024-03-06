@@ -308,7 +308,9 @@ def _rad_lookup(val, way_points):
             return left_rad + ((val - left_val) / (right_val - left_val)) * (right_rad - left_rad)
     return right_rad
 # -----------------------------------------------------------------------------
-#
+# 
+
+# also used by cartoon byattribute
 class AttrRadiusPairArg(Annotation):
     name = "attr-value:radius pair"
 
@@ -354,6 +356,7 @@ def register_command(logger):
 
     # size atoms by attribute
     from chimerax.atomic import AtomsArg
+    from .size import AttrRadiusPairArg
     desc = CmdDesc(required=[('attr_name', StringArg),
                             ('atoms', Or(AtomsArg, EmptyArg))],
                    optional=[('way_points', RepeatOf(AttrRadiusPairArg))],

@@ -627,7 +627,7 @@ def cartoon_by_attr(session, attr_name, residues=None, way_points=None, *, no_va
                 # might have Nones
                 needs_none_processing = True
         if not needs_none_processing:
-            aradii = value_radii(way_points, attr_vals)
+            wradii = value_radii(way_points, attr_vals)
     if needs_none_processing:
         if attr_vals is None:
             attr_vals = [getattr(o, attr_name, None) for o in attr_objs]
@@ -649,7 +649,7 @@ def cartoon_by_attr(session, attr_name, residues=None, way_points=None, *, no_va
             else:
                 non_none_radii = None
                 session.logger.warning("All '%s' values are None" % attr_name)
-            aradii = none_possible_radii(atoms.radii, attr_vals, non_none_radii, no_value_radius)
+            wradii = none_possible_radii(atoms.radii, attr_vals, non_none_radii, no_value_radius)
             # for later min/max message...
             attr_vals = non_none_attr_vals
         else:
@@ -657,19 +657,17 @@ def cartoon_by_attr(session, attr_name, residues=None, way_points=None, *, no_va
                 res_average = { r: sum([getattr(a, attr_name)
                     for a in r.atoms])/r.num_atoms for r in residues }
                 attr_vals = [res_average[r] for r in residues]
-            aradii = value_radii(way_points, attr_vals)
-    #TODO
-    if style != "unchanged":
-        draw_mode = Atom.BALL_STYLE if style == "ball" else Atom.SPHERE_STYLE
-        undo_state.add(atoms, "draw_modes", atoms.draw_modes, draw_mode)
-        atoms.draw_modes = draw_mode
-    undo_state.add(atoms, "radii", atoms.radii, aradii)
+            wradii = value_radii(way_points, attr_vals)
+    structures = residues.unique_structures
+    undo_state.add(structures, "worm_ribbons", structures.worm_ribbons, True)
+    structures.worm_ribbons = True
+    undo_state.add(residues, "worm_radii", residues.worm_radii, wradii)
     session.undo.register(undo_state)
-    atoms.radii = aradii
+    residues.worm_radii = wradii
     if len(attr_vals):
-        range_msg = 'atom %s range' if average is None else 'residue average %s range'
-        msg = '%d atoms, %s %.3g to %.3g' % (
-            len(atoms), (range_msg % attr_name), min(attr_vals), max(attr_vals))
+        range_msg = 'residue average %s range'
+        msg = '%d residues, residue %s range %.3g to %.3g' % (
+            len(residues), attr_name, min(attr_vals), max(attr_vals))
         session.logger.status(msg, log=True)
 
 
@@ -692,6 +690,12 @@ def uncartoon(session, atoms=None):
     residues.ribbon_displays = False
     session.undo.register(undo_state)
 
+def show_worm(session, structures=None, show=True):
+    if structures is None:
+        from chimerax.atomic import all_atomic_structures
+        structures = all_atomic_structures(session)
+    structures.worm_ribbons = show
+
 # -----------------------------------------------------------------------------
 #
 class EvenIntArg(Annotation):
@@ -712,9 +716,9 @@ class EvenIntArg(Annotation):
 # -----------------------------------------------------------------------------
 #
 def register_command(logger):
-    from chimerax.core.commands import register, Or, CmdDesc
-    from chimerax.core.commands import Bounded, FloatArg, PositiveFloatArg, EnumOf, BoolArg, IntArg, TupleOf, NoArg
-    from chimerax.atomic import AtomsArg, AtomicStructuresArg
+    from chimerax.core.commands import register, Or, CmdDesc, TupleOf, NoArg, StringArg, EmptyArg, RepeatOf
+    from chimerax.core.commands import Bounded, FloatArg, PositiveFloatArg, EnumOf, BoolArg, IntArg
+    from chimerax.atomic import AtomsArg, AtomicStructuresArg, ResiduesArg
     desc = CmdDesc(optional=[("atoms", AtomsArg)],
                    keyword=[("smooth", Or(Bounded(FloatArg, 0.0, 1.0),
                                           EnumOf(["default"]))),
@@ -760,3 +764,18 @@ def register_command(logger):
     register("cartoon hide", desc, uncartoon, logger=logger)
     from chimerax.core.commands import create_alias
     create_alias("~cartoon", "cartoon hide $*", logger=logger)
+
+    # size worms by attribute
+    from .size import AttrRadiusPairArg
+    desc = CmdDesc(required=[('attr_name', StringArg),
+                            ('residues', Or(ResiduesArg, EmptyArg))],
+                   optional=[('way_points', RepeatOf(AttrRadiusPairArg))],
+                   keyword=[('no_value_radius', PositiveFloatArg)],
+                   synopsis="size worms by attribute value")
+    register('cartoon byattribute', desc, cartoon_by_attr, logger=logger)
+
+    # show/hide worms
+    desc = CmdDesc(optional=[('structures', Or(AtomicStructuresArg, EmptyArg)), ('show', BoolArg)],
+                   synopsis="show/hide worms")
+    register('worm', desc, show_worm, logger=logger)
+    create_alias("~worm", "worm $* off", logger=logger)

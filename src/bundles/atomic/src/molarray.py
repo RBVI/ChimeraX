@@ -451,6 +451,8 @@ class StructureDatas(Collection):
     Whether secondary structure has been assigned, either from data in the
     original structure file, or from an algorithm (e.g. dssp command)
     ''')
+    worm_ribbons = cvec_property('structure_worm_ribbon', npy_bool,
+        doc="Whether cartoons will be depicted as worms")
 
     # Graphics changed flags used by rendering code.  Private.
     _graphics_changeds = cvec_property('structure_graphics_change', int32)
