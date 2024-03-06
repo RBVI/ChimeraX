@@ -564,6 +564,107 @@ def cartoon_style(session, atoms=None, width=None, thickness=None, arrows=None, 
     session.undo.register(undo_state)
 
 
+def cartoon_by_attr(session, attr_name, residues=None, way_points=None, *, no_value_radius=None,
+          undo_name="cartoon byattribute"):
+    '''
+    Show cartoon worm sized by attribute value using (attr-val, radius) way points.  Attr-val can be
+    'max' or 'min' to represent the maximum or minimum of that attribute value for the residues.
+
+    attr_name : string (actual Python attribute name optionally prefixed by 'a:'/'r:'/'m:'
+      for atom/residue/model attribute. If no prefix, then the Atom/Residue/Structure classes
+      will be searched for the attribute (in that order).
+    residues : Residues
+    '''
+    from .defattr import parse_attribute_name
+    attr_name, class_obj = parse_attribute_name(session, attr_name, allowable_types=[int, float])
+
+    if residues is None:
+        from chimerax.atomic import all_residues
+        residues = all_residues(session)
+
+    if len(residues) == 0:
+        session.logger.warning('No residues specified')
+        return
+
+    if way_points is None:
+        way_points = [('min', 0.25), ('max', 2.0)]
+    elif len(way_points) < 2:
+        raise UserError("Must specify at least 2 attr-val:radius pairs (or no pairs)")
+
+    from chimerax.core.undo import UndoState
+    undo_state = UndoState(undo_name)
+
+    from chimerax.atomic import Atom, Residue
+    if class_obj == Atom:
+        attr_objs = residues.atoms
+    elif class_obj == Residue:
+        attr_objs = residues
+    else:
+        attr_objs = residues.structures
+    from chimerax.core.commands import plural_of
+    attr_names = plural_of(attr_name)
+    needs_none_processing = True
+    attr_vals = None
+    from .size import value_radii, none_possible_radii
+    if hasattr(attr_objs, attr_names):
+        # attribute found in Collection; try to maximize efficiency
+        needs_none_processing = False
+        if class_obj == Atom:
+            res_average = { r: getattr(r.atoms, attr_names).mean() for r in residues }
+            attr_vals = [res_average[r] for r in residues]
+        else:
+            import numpy
+            attr_vals = getattr(attr_objs, attr_names)
+            if not isinstance(attr_vals, numpy.ndarray):
+                # might have Nones
+                needs_none_processing = True
+        if not needs_none_processing:
+            aradii = value_radii(way_points, attr_vals)
+    if needs_none_processing:
+        if attr_vals is None:
+            attr_vals = [getattr(o, attr_name, None) for o in attr_objs]
+        has_none = None in attr_vals
+        if has_none:
+            if class_obj == Atom:
+                res_average = {}
+                for r in residues:
+                    vals = []
+                    for a in r.atoms:
+                        val = getattr(a, attr_name, None)
+                        if val is not None:
+                            vals.append(val)
+                    res_average[r] = sum(vals)/len(vals) if vals else None
+                attr_vals = [res_average[r] for r in residues]
+            non_none_attr_vals = [v for v in attr_vals if v is not None]
+            if non_none_attr_vals:
+                non_none_radii = value_radii(way_points, non_none_attr_vals)
+            else:
+                non_none_radii = None
+                session.logger.warning("All '%s' values are None" % attr_name)
+            aradii = none_possible_radii(atoms.radii, attr_vals, non_none_radii, no_value_radius)
+            # for later min/max message...
+            attr_vals = non_none_attr_vals
+        else:
+            if class_obj == Atom:
+                res_average = { r: sum([getattr(a, attr_name)
+                    for a in r.atoms])/r.num_atoms for r in residues }
+                attr_vals = [res_average[r] for r in residues]
+            aradii = value_radii(way_points, attr_vals)
+    #TODO
+    if style != "unchanged":
+        draw_mode = Atom.BALL_STYLE if style == "ball" else Atom.SPHERE_STYLE
+        undo_state.add(atoms, "draw_modes", atoms.draw_modes, draw_mode)
+        atoms.draw_modes = draw_mode
+    undo_state.add(atoms, "radii", atoms.radii, aradii)
+    session.undo.register(undo_state)
+    atoms.radii = aradii
+    if len(attr_vals):
+        range_msg = 'atom %s range' if average is None else 'residue average %s range'
+        msg = '%d atoms, %s %.3g to %.3g' % (
+            len(atoms), (range_msg % attr_name), min(attr_vals), max(attr_vals))
+        session.logger.status(msg, log=True)
+
+
 def uncartoon(session, atoms=None):
     '''Undisplay ribbons for specified residues.
 
