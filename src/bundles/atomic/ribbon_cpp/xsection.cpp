@@ -136,10 +136,10 @@ class RibbonXSection {
 private:
     void _generate_normals();
     Mesh* _extrude_smooth(const float* centers, const float* tangents,
-			  const float* normals, int num_pts,
+			  const float* normals, const float* radial_scale, int num_pts,
 			  bool cap_front, bool cap_back, int offset) const;
     Mesh* _extrude_faceted(const float* centers, const float* tangents,
-			   const float* normals, int num_pts,
+			   const float* normals, const float* radial_scale, int num_pts,
 			   bool cap_front, bool cap_back, int offset) const;
     void _normalize_normals(FArray& v) const;
     void _tessellate();
@@ -162,7 +162,7 @@ public:
     virtual ~RibbonXSection();
 
     Mesh* extrude(const float* centers, const float* tangents,
-		  const float* normals, int num_pts,
+		  const float* normals, const float* radial_scale, int num_pts,
 		  bool cap_front, bool cap_back, int vertex_offset = 0) const;
     RibbonXSection* scale(float x_scale, float y_scale) const;
     RibbonXSection* arrow(float x1_scale, float y1_scale, float x2_scale, float y2_scale) const;
@@ -269,14 +269,14 @@ RibbonXSection::~RibbonXSection()
 
 Mesh*
 RibbonXSection::extrude(const float* centers, const float* tangents,
-                        const float* normals, int num_pts,
+                        const float* normals, const float* radial_scale, int num_pts,
                         bool cap_front, bool cap_back, int vertex_offset) const
 {
     if (is_faceted)
-        return _extrude_faceted(centers, tangents, normals, num_pts,
+        return _extrude_faceted(centers, tangents, normals, radial_scale, num_pts,
                                 cap_front, cap_back, vertex_offset);
     else
-        return _extrude_smooth(centers, tangents, normals, num_pts,
+        return _extrude_smooth(centers, tangents, normals, radial_scale, num_pts,
                                cap_front, cap_back, vertex_offset);
 }
 
@@ -436,7 +436,7 @@ RibbonXSection::_generate_normals()
 
 Mesh*
 RibbonXSection::_extrude_smooth(const float* centers, const float* tangents,
-                                const float* normals, int num_pts,
+                                const float* normals, const float* radial_scale, int num_pts,
                                 bool cap_front, bool cap_back, int offset) const
 {
 // std::cerr << "extrude_smooth " << xs_coords2.dimension() << "\n";
@@ -511,8 +511,9 @@ RibbonXSection::_extrude_smooth(const float* centers, const float* tangents,
             float* binormal = binormals + i * 3;
             float* vap = va_data + vindex * 3;
             float* nap = na_data + vindex * 3;
+	    float r = (radial_scale ? radial_scale[i] : 1.0);
             for (int k = 0; k != 3; ++k) {
-                vap[k] = center[k] + cn * normal[k] + cb * binormal[k];
+                vap[k] = center[k] + r * cn * normal[k] + r * cb * binormal[k];
                 // XXX: These normals are not quite right for an arrow because
                 // they should be slanted proportionally to the arrow angle.
                 // However, to compute them correctly , we would need to compute
@@ -605,7 +606,7 @@ RibbonXSection::_extrude_smooth(const float* centers, const float* tangents,
 
 Mesh*
 RibbonXSection::_extrude_faceted(const float* centers, const float* tangents,
-                                 const float* normals, int num_pts,
+                                 const float* normals, const float* radial_scale, int num_pts,
                                  bool cap_front, bool cap_back, int offset) const
 {
 // std::cerr << "extrude_faceted " << xs_coords2.dimension() << "\n";
@@ -686,9 +687,10 @@ RibbonXSection::_extrude_faceted(const float* centers, const float* tangents,
             float* nap = na_data + vindex * 3;
             float* vap2 = va_data + (vindex + num_pts_per_spline) * 3;
             float* nap2 = na_data + (vindex + num_pts_per_spline) * 3;
+	    float r = (radial_scale ? radial_scale[i] : 1.0);
             // Insert the vertex twice into the arrow, once with each normal
             for (int k = 0; k != 3; ++k) {
-                vap[k] = vap2[k] = center[k] + cn * normal[k] + cb * binormal[k];
+                vap[k] = vap2[k] = center[k] + r * cn * normal[k] + r * cb * binormal[k];
                 nap[k] = np1[0] * normal[k] + np1[1] * binormal[k];
                 nap2[k] = np2[0] * normal[k] + np2[1] * binormal[k];
             }
@@ -876,29 +878,33 @@ extern "C" PyObject *
 rxsection_extrude(PyObject *, PyObject *args, PyObject *keywds)
 {
   RibbonXSection *xs;
-  FArray centers, tangents, normals;
+  FArray centers, tangents, normals, radial_scale;
   int cap_front, cap_back;
   Geometry *geom;
   const char *kwlist[] = {"xsection", "centers", "tangents", "normals", "cap_front",
-			  "cap_back", "geometry", NULL};
-  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&O&O&O&ppO&"),
+			  "cap_back", "geometry", "radial_scale", NULL};
+  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&O&O&O&ppO&|O&"),
 				   (char **)kwlist,
 				   parse_rxsection_pointer, &xs,
 				   parse_float_n3_array, &centers,
 				   parse_float_n3_array, &tangents,
 				   parse_float_n3_array, &normals,
 				   &cap_front, &cap_back,
-				   parse_geometry_pointer, &geom))
+				   parse_geometry_pointer, &geom,
+				   parse_float_n_array, &radial_scale))
     return NULL;
 
-  if (!centers.is_contiguous() || !tangents.is_contiguous() || !normals.is_contiguous())
+  if (!centers.is_contiguous() || !tangents.is_contiguous() || !normals.is_contiguous() ||
+      !radial_scale.is_contiguous())
     {
       PyErr_SetString(PyExc_TypeError,
-		      "rxsection_extrude(): Centers, tangents and normals arrays must be contiguous");
+		      "rxsection_extrude(): Centers, tangents, normals and radial_scale arrays must be contiguous");
       return NULL;
     }
   
-  Mesh *m = xs->extrude(centers.values(), tangents.values(), normals.values(), centers.size(0),
+  const float *r = (radial_scale.dimension() == 1 ? radial_scale.values() : NULL);
+
+  Mesh *m = xs->extrude(centers.values(), tangents.values(), normals.values(), r, centers.size(0),
 			cap_front, cap_back);
   geom->add_mesh(m);
 
@@ -1056,6 +1062,7 @@ geometry_arrays(PyObject *, PyObject *args, PyObject *keywds)
 //  and have extrude() put results directly into it.
 //  Maybe Ribbon spline coords, tangents, normals could use recycled numpy arrays.
 static void ribbon_extrusions(const float *coords, const float *tangents, const float *normals,
+			      const float *radial_scale,
 			      int num_coords, const int *ranges, int num_ranges, int num_res,
 			      const RibbonXSections &xs_front, const RibbonXSections &xs_back,
 			      Geometry &geometry)
@@ -1084,7 +1091,8 @@ static void ribbon_extrusions(const float *coords, const float *tangents, const 
 	  int e = s + nlp + 1;
 	  int num_pts = e-s;
 	  const float *front_c = coords + 3*s, *front_t = tangents + 3*s, *front_n = normals + 3*s;
-	  Mesh *mleft = xs_front[i]->extrude(front_c, front_t, front_n, num_pts, capped, mid_cap);
+	  const float *front_r = (radial_scale ? radial_scale + s : NULL);
+	  Mesh *mleft = xs_front[i]->extrude(front_c, front_t, front_n, front_r, num_pts, capped, mid_cap);
 	  geometry.add_mesh(mleft);
 	  
 	  // Right half
@@ -1093,7 +1101,8 @@ static void ribbon_extrusions(const float *coords, const float *tangents, const 
 	  e = (i < num_res-1 ? s + nrp + 1 : s + nrp);
 	  num_pts = e-s;
 	  const float *back_c = coords + 3*s, *back_t = tangents + 3*s, *back_n = normals + 3*s;
-	  Mesh *mright = xs_back[i]->extrude(back_c, back_t, back_n, num_pts, mid_cap, next_cap);
+	  const float *back_r = (radial_scale ? radial_scale + s : NULL);
+	  Mesh *mright = xs_back[i]->extrude(back_c, back_t, back_n, back_r, num_pts, mid_cap, next_cap);
 	  geometry.add_mesh(mright);
 	  
 	  capped = next_cap;
@@ -1130,14 +1139,14 @@ extern "C" int parse_rxsection_array(PyObject *arg, void *xsvector)
 extern "C" PyObject *
 ribbon_extrusions(PyObject *, PyObject *args, PyObject *keywds)
 {
-  FArray centers, tangents, normals;
+  FArray centers, tangents, normals, radial_scale;
   IArray ranges;
   int num_res;
   RibbonXSections xs_front, xs_back;
   Geometry *g;
   const char *kwlist[] = {"centers", "tangents", "normals", "ranges", "num_res",
-			  "xs_front", "xs_back", "geometry", NULL};
-  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&O&O&O&iO&O&O&"),
+			  "xs_front", "xs_back", "geometry", "radial_scale", NULL};
+  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&O&O&O&iO&O&O&|O&"),
 				   (char **)kwlist,
 				   parse_float_n3_array, &centers,
 				   parse_float_n3_array, &tangents,
@@ -1146,14 +1155,15 @@ ribbon_extrusions(PyObject *, PyObject *args, PyObject *keywds)
 				   &num_res,
 				   parse_rxsection_array, &xs_front,
 				   parse_rxsection_array, &xs_back,
-				   parse_geometry_pointer, &g))
+				   parse_geometry_pointer, &g,
+				   parse_float_n_array, &radial_scale))
     return NULL;
 
   if (!centers.is_contiguous() || !tangents.is_contiguous() || !normals.is_contiguous() ||
-      !ranges.is_contiguous())
+      !ranges.is_contiguous() || !radial_scale.is_contiguous())
     {
       PyErr_SetString(PyExc_TypeError,
-		      "ribbon_extrusions(): Centers, tangents, normals and ranges arrays must be contiguous");
+		      "ribbon_extrusions(): Centers, tangents, normals, radial_scale and ranges arrays must be contiguous");
       return NULL;
     }
   if (normals.size(0) != centers.size(0) || tangents.size(0) != centers.size(0))
@@ -1164,8 +1174,15 @@ ribbon_extrusions(PyObject *, PyObject *args, PyObject *keywds)
 		   normals.size_string().c_str());
       return NULL;
     }
-
-  ribbon_extrusions(centers.values(), tangents.values(), normals.values(), centers.size(0),
+  if (radial_scale.dimension() == 1 && radial_scale.size(0) != centers.size(0))
+    {
+      PyErr_Format(PyExc_TypeError,
+		   "ribbon_extrusions(): Centers (%s) and radial_scale (%s) must have same size",
+		   centers.size_string().c_str(), radial_scale.size_string().c_str());
+      return NULL;
+    }
+  const float *r = (radial_scale.dimension() == 1 ? radial_scale.values() : NULL);
+  ribbon_extrusions(centers.values(), tangents.values(), normals.values(), r, centers.size(0),
 		    ranges.values(), ranges.size(0), num_res, xs_front, xs_back, *g);
   
   return python_none();

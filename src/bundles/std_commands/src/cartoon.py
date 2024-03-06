@@ -169,7 +169,7 @@ def cartoon_style(session, atoms=None, width=None, thickness=None, arrows=None, 
                   arrow_scale=None, xsection=None, sides=None,
                   bar_scale=None, bar_sides=None, ss_ends=None,
                   mode_helix=None, mode_strand=None, radius=None,
-                  divisions=None, spline_normals=None):
+                  divisions=None, spline_normals=None, worm=None):
     '''Set cartoon style options for secondary structures in specified structures.
 
     Parameters
@@ -208,6 +208,9 @@ def cartoon_style(session, atoms=None, width=None, thickness=None, arrows=None, 
         Same argument values are mode_helix.
     radius: floating point number
         Radius of helices as cylinders
+    worm : boolean
+        Whether to show worm style where ribbon has round cross-section (same as coil)
+        with radii varying according to the residue worm_radius attribute.
     '''
     if atoms is None:
         from chimerax.atomic import all_residues, all_structures
@@ -270,6 +273,7 @@ def cartoon_style(session, atoms=None, width=None, thickness=None, arrows=None, 
             print(indent, "barbell parameters:",
                   "sides=%d" % param["sides"],
                   "scale=%.2g" % param["ratio"])
+            print(indent, "worm=%s" % m.worm_ribbon)
         return
     is_helix = residues.is_helix
     is_strand = residues.is_strand
@@ -561,6 +565,10 @@ def cartoon_style(session, atoms=None, width=None, thickness=None, arrows=None, 
         for m in structures:
             undo_state.add(m, "spline_normals", m.spline_normals, spline_normals)
             m.spline_normals = spline_normals
+    if worm is not None:
+        for m in structures:
+            undo_state.add(m, "worm_ribbon", m.worm_ribbon, worm)
+            m.worm_ribbon = worm
     session.undo.register(undo_state)
 
 
@@ -641,6 +649,7 @@ def register_command(logger):
                             ("mode_strand", EnumOf(list(_ModeStrandMap.keys()))),
                             ("radius", Or(PositiveFloatArg, EnumOf(["auto"]))),
                             ("spline_normals", BoolArg),
+                            ("worm", BoolArg),
                             ],
                    hidden=["ss_ends", "mode_strand", "spline_normals"],
                    synopsis='set cartoon style for secondary structures in specified models')
