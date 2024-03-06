@@ -47,7 +47,7 @@ def swap_aa(session, residues, res_types, *, angle_slop=None, bfactor=None, crit
         from chimerax.atomic import Sequence
         for let in rem_seq:
             try:
-                res_types.append(Sequence.protein1to3[let])
+                res_types.append(Sequence.protein1to3[let.upper()])
             except KeyError:
                 raise UserError("Unknown amino acid code letter: %s" % let)
     _check_num_residues(session, residues, res_types)
