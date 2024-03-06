@@ -3372,6 +3372,18 @@ extern "C" EXPORT void set_residue_thin_rings(void *residues, size_t n, npy_bool
     error_wrap_array_set(r, n, &Residue::set_thin_rings, thin_rings);
 }
 
+extern "C" EXPORT void residue_worm_radius(void *residues, size_t n, float32_t *radii)
+{
+    Residue **r = static_cast<Residue **>(residues);
+    error_wrap_array_get(r, n, &Residue::worm_radius, radii);
+}
+
+extern "C" EXPORT void set_residue_worm_radius(void *residues, size_t n, float32_t *radii)
+{
+    Residue **r = static_cast<Residue **>(residues);
+    error_wrap_array_set(r, n, &Residue::set_worm_radius, radii);
+}
+
 
 // -------------------------------------------------------------------------
 // structure sequence functions

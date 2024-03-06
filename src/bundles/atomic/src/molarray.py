@@ -1274,6 +1274,7 @@ class Residues(Collection):
     '''Returns a numpy integer array of secondary structure types (one of: Residue.SS_COIL, Residue.SS_HELIX, Residue.SS_STRAND [or SS_SHEET])''')
     structures = cvec_property('residue_structure', pyobject, astype = AtomicStructures, read_only = True, doc =
     '''Returns :class:`.StructureDatas` collection containing structures for each residue.''')
+    worm_radii = cvec_property('residue_worm_radius', float32)
 
     def delete(self):
         '''Delete the C++ Residue objects'''
