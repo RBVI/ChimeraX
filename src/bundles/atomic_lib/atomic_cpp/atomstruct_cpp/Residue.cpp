@@ -77,7 +77,7 @@ Residue::Residue(Structure *as, const ResName& name, const ChainID& chain, int n
     _alt_loc(' '), _chain(nullptr), _chain_id(chain), _insertion_code(insert), _mmcif_chain_id(chain),
     _name(name), _number(num), _ribbon_adjust(-1.0), _ribbon_display(false), _ribbon_hide_backbone(true),
     _ribbon_rgba({160,160,0,255}), _ss_id(-1), _ss_type(SS_COIL), _structure(as), _ring_display(false),
-    _rings_are_thin(false)
+    _rings_are_thin(false), _worm_radius(1.0)
 {
     if (!as->lower_case_chains) {
         for (auto c: _chain_id) {
@@ -501,6 +501,7 @@ Residue::session_restore(int version, int** ints, float** floats)
     int_ptr += SESSION_NUM_INTS(version);
 
     _ribbon_adjust = float_ptr[0];
+    _worm_radius = float_ptr[1];
     float_ptr += SESSION_NUM_FLOATS(version);
 
     auto& atoms = structure()->atoms();
@@ -530,6 +531,7 @@ Residue::session_save(int** ints, float** floats) const
     int_ptr += SESSION_NUM_INTS();
 
     float_ptr[0] = _ribbon_adjust;
+    float_ptr[1] = _worm_radius;
     float_ptr += SESSION_NUM_FLOATS();
 
     auto& atom_map = *structure()->session_save_atoms;

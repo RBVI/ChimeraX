@@ -46,7 +46,7 @@ def python_instances_of_class(inst_class, *, open_only=True):
         return instances
     def open_structure(s):
         return s.session is not None and s.session.models.have_model(s)
-    if issubclass(inst_class, PseudobondGroupData):
+    if issubclass(inst_class, (PseudobondGroupData, StructureSeq)):
         filt = lambda x: (not x.structure) or open_structure(x.structure)
     elif hasattr(inst_class, 'structure'):
         filt = lambda x: open_structure(x.structure)
@@ -625,6 +625,7 @@ class Residue(CyResidue, State):
         ('chi1', (float, None)), ('chi2', (float, None)), ('chi3', (float, None)), ('chi4', (float, None)),
         ('is_helix', (bool,)), ('is_strand', (bool,)), ('name', (str,)), ('num_atoms', (int,)),
         ('number', (int,)), ('omega', (float, None)), ('phi', (float, None)), ('psi', (float, None)),
+        ('worm_radius', (float,)),
     ]
 
     # possibly long-term hack for interoperation with ctypes;
@@ -1058,7 +1059,7 @@ class StructureSeq(Sequence):
                 args = (ctypes.c_char_p, ctypes.c_void_p, ctypes.c_int), ret = ctypes.c_void_p)(
                     chain_id.encode('utf-8'), structure._c_pointer, polymer_type)
         super().__init__(sseq_pointer)
-        self.triggers.add_trigger('delete')
+        self.triggers.add_trigger('downgrade')
         self.triggers.add_trigger('characters changed')
         self.triggers.add_trigger('residues changed')
         from weakref import ref
@@ -1247,6 +1248,15 @@ class StructureSeq(Sequence):
         return data
 
     def _changes_cb(self, trig_name, changes):
+        if self.structure == None:
+            # doing this directly from C++ layer causes crashes in garbage collection [#14506]
+            # so do it in 'changes' callback instead
+            numbering_start = self.numbering_start
+            self._fire_trigger('downgrade', Sequence)
+            self.changes_handler.remove()
+            self.numbering_start = numbering_start
+            return
+
         if "name changed" in changes.residue_reasons():
             updated_chars = []
             some_changed = False
@@ -1262,17 +1272,9 @@ class StructureSeq(Sequence):
                 self.bulk_set(self.residues, ''.join(updated_chars), fire_triggers=False)
                 self._fire_trigger('characters changed', self)
 
-    def _cpp_seq_demotion(self):
-        # called from C++ layer when this should be demoted to Sequence
-        numbering_start = self.numbering_start
-        self._fire_trigger('delete', self)
-        self.changes_handler.remove()
-        self.__class__ = Sequence
-        self.numbering_start = numbering_start
-
     def _cpp_structure_seq_demotion(self):
         # called from C++ layer when a Chain should be demoted to a StructureSeq
-        self.__class__ = StructureSeq
+        self._fire_trigger('downgrade', StructureSeq)
 
     def _cpp_modified(self):
         # called from C++ layer when the residue list changes
@@ -1606,10 +1608,11 @@ class StructureData:
     '''Ribbon mode showing helix as ribbon wrapped around tube.'''
     ring_display_count = c_property('structure_ring_display_count', int32, read_only = True,
         doc = "Return number of residues with ring display set. Integer.")
-
     ss_assigned = c_property('structure_ss_assigned', npy_bool, doc =
         "Has secondary structure been assigned, either by data in original structure file "
         "or by some algorithm (e.g. dssp command)")
+    worm_ribbon = c_property('structure_worm_ribbon', npy_bool,
+        doc = "Show ribbon as a 'worm'. Boolean.")
 
     from contextlib import contextmanager
     @contextmanager

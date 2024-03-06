@@ -103,9 +103,9 @@ def env_file_name():
 def verify_phenix_installation(phenix_location):
     from os.path import isdir, exists
     if not exists(phenix_location):
-        return "does not exist" % phenix_location
+        return "does not exist"
     if not isdir(phenix_location):
-        return "is not a %s" % (phenix_location, dir_or_folder)
+        return "is not a %s" % dir_or_folder
     return None
 
 phenix_loc_details = """The value you give to 'phenix location' needs to be the full path to
