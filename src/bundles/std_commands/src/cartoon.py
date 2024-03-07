@@ -169,7 +169,7 @@ def cartoon_style(session, atoms=None, width=None, thickness=None, arrows=None, 
                   arrow_scale=None, xsection=None, sides=None,
                   bar_scale=None, bar_sides=None, ss_ends=None,
                   mode_helix=None, mode_strand=None, radius=None,
-                  divisions=None, spline_normals=None, worm=None):
+                  divisions=None, spline_normals=None):
     '''Set cartoon style options for secondary structures in specified structures.
 
     Parameters
@@ -208,9 +208,6 @@ def cartoon_style(session, atoms=None, width=None, thickness=None, arrows=None, 
         Same argument values are mode_helix.
     radius: floating point number
         Radius of helices as cylinders
-    worm : boolean
-        Whether to show worm style where ribbon has round cross-section (same as coil)
-        with radii varying according to the residue worm_radius attribute.
     '''
     if atoms is None:
         from chimerax.atomic import all_residues, all_structures
@@ -565,10 +562,6 @@ def cartoon_style(session, atoms=None, width=None, thickness=None, arrows=None, 
         for m in structures:
             undo_state.add(m, "spline_normals", m.spline_normals, spline_normals)
             m.spline_normals = spline_normals
-    if worm is not None:
-        for m in structures:
-            undo_state.add(m, "worm_ribbon", m.worm_ribbon, worm)
-            m.worm_ribbon = worm
     session.undo.register(undo_state)
 
 
@@ -690,11 +683,17 @@ def uncartoon(session, atoms=None):
     residues.ribbon_displays = False
     session.undo.register(undo_state)
 
-def show_worm(session, structures=None, show=True):
+def show_worm(session, structures=None):
     if structures is None:
         from chimerax.atomic import all_atomic_structures
         structures = all_atomic_structures(session)
-    structures.worm_ribbons = show
+    structures.worm_ribbons = True
+
+def hide_worm(session, structures=None):
+    if structures is None:
+        from chimerax.atomic import all_atomic_structures
+        structures = all_atomic_structures(session)
+    structures.worm_ribbons = False
 
 # -----------------------------------------------------------------------------
 #
@@ -775,7 +774,11 @@ def register_command(logger):
     register('cartoon byattribute', desc, cartoon_by_attr, logger=logger)
 
     # show/hide worms
-    desc = CmdDesc(optional=[('structures', Or(AtomicStructuresArg, EmptyArg)), ('show', BoolArg)],
-                   synopsis="show/hide worms")
-    register('worm', desc, show_worm, logger=logger)
-    create_alias("~worm", "worm $* off", logger=logger)
+    desc = CmdDesc(optional=[('structures', Or(AtomicStructuresArg, EmptyArg))],
+                   synopsis="show worms")
+    register('cartoon byattribute on', desc, show_worm, logger=logger)
+    create_alias("worm", "cartoon byattribute on $*", logger=logger)
+    desc = CmdDesc(optional=[('structures', Or(AtomicStructuresArg, EmptyArg))],
+                   synopsis="hide worms")
+    register('cartoon byattribute off', desc, hide_worm, logger=logger)
+    create_alias("~worm", "cartoon byattribute off $*", logger=logger)
