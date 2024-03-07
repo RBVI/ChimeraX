@@ -642,7 +642,7 @@ def cartoon_by_attr(session, attr_name, residues=None, way_points=None, *, no_va
             else:
                 non_none_radii = None
                 session.logger.warning("All '%s' values are None" % attr_name)
-            wradii = none_possible_radii(atoms.radii, attr_vals, non_none_radii, no_value_radius)
+            wradii = none_possible_radii(residues.worm_radii, attr_vals, non_none_radii, no_value_radius)
             # for later min/max message...
             attr_vals = non_none_attr_vals
         else:
@@ -777,7 +777,7 @@ def register_command(logger):
     desc = CmdDesc(optional=[('structures', Or(AtomicStructuresArg, EmptyArg))],
                    synopsis="show worms")
     register('cartoon byattribute on', desc, show_worm, logger=logger)
-    create_alias("worm", "cartoon byattribute on $*", logger=logger)
+    create_alias("worm", "cartoon byattribute $*", logger=logger)
     desc = CmdDesc(optional=[('structures', Or(AtomicStructuresArg, EmptyArg))],
                    synopsis="hide worms")
     register('cartoon byattribute off', desc, hide_worm, logger=logger)
