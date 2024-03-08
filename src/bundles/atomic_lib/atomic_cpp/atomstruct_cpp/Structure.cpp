@@ -62,8 +62,8 @@ Structure::Structure(PyObject* logger):
     _change_tracker(DiscardingChangeTracker::discarding_change_tracker()),
     _idatm_valid(false), _logger(logger), _pb_mgr(this), _polymers_computed(false),
     _recompute_rings(true), _ss_assigned(false), _structure_cats_dirty(true),
-    asterisks_translated(false), is_traj(false), lower_case_chains(false),
-    pdb_version(0), ss_ids_normalized(false), _worm_ribbon(false)
+    _worm_ribbon(false), asterisks_translated(false), is_traj(false),
+    lower_case_chains(false), pdb_version(0), ss_ids_normalized(false)
 {
     for (int i=0; i<3; ++i) {
         for (int j=0; j<4; ++j) {
@@ -1083,7 +1083,7 @@ Structure::_form_chain_check(Atom* a1, Atom* a2, Bond* b)
                 bool a2_last = a2 == last;
                 if (a2_first || a2_last) {
                     // chain traces will have all first/lasts true, so can't determine anything
-                    if (!(a1_first && a1_last && a2_first && a2_last))
+                    if (!(a1_first && a1_last && a2_first && a2_last)) {
                         // first means the first backbone atom, so its residue should be second
                         if (a1_first && a2_last) {
                             start_r = a2->residue();
@@ -1094,6 +1094,7 @@ Structure::_form_chain_check(Atom* a1, Atom* a2, Bond* b)
                             other_r = a2->residue();
                             found_ordering = true;
                         }
+                    }
                 }
             }
         }

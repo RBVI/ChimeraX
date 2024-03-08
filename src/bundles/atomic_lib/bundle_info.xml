@@ -79,6 +79,7 @@
     <SourceFile>atomic_cpp/atomstruct_cpp/seq_assoc.cpp</SourceFile>
     <IncludeDir>src/include</IncludeDir>
     <LibraryDir>src/lib</LibraryDir>
+	<CompileArgument platform="mac">-Wno-unreachable-code-loop-increment</CompileArgument>
     <LinkArgument platform="linux">-Wl,-rpath,$ORIGIN</LinkArgument>
     <LinkArgument platform="linux">-Wl,-rpath,$ORIGIN/../../../../..</LinkArgument>
     <Library>pyinstance</Library>
