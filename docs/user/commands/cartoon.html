@@ -314,7 +314,10 @@ the circumference of a <a href="#hmode">tube</a>, with higher numbers
 corresponding to finer subdivisions (initial default <b>12</b>).
 Shading is used to give a smooth, rounded appearance despite
 this approximation of the shape.
-See also: <a href="graphics.html#quality"><b>graphics quality</b></a>
+See also: 
+<a href="#byattribute"><b>cartoon byattribute</b></a>
+(<a href="#worm"><b>worm</b></a>),
+<a href="graphics.html#quality"><b>graphics quality</b></a>
   </blockquote><blockquote>
 <b>arrows</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false
 <br>Whether to show arrowheads at the 
@@ -438,7 +441,7 @@ Tethers can be hidden using <b>opacity 0</b>.
 <a href="usageconventions.html"><b>Usage</b></a>:
 (&nbsp;<b>cartoon byattribute</b>&nbsp;|&nbsp;<b>worm</b>&nbsp;)
 &nbsp;<a href="../attributes.html#attrnames"><i>attribute-name</i></a>&nbsp;
-&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
+&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;
 [&nbsp;<i>values-and-radii</i>&nbsp;]
 [&nbsp;<b>noValueRadius</b>&nbsp;&nbsp;<i>radius</i></a>&nbsp;]
 [&nbsp;<b>sides</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
@@ -468,6 +471,36 @@ See also:
 <a href="color.html#byattribute"><b>color byattribute</b></a>,
 <a href="size.html#byattribute"><b>size byattribute</b></a>
 </p><p>
+The <i>values and radii</i> specification can be given as two or more
+space-separated pairs of the form:
+</p>
+<blockquote>
+<i>value</i></a>:<i>radius</i>
+</blockquote>
+<p>
+...where <i>value</i> can be <b>min</b> or <b>max</b> as well as
+a numerical value of the attribute. The default mapping is:
+</p>
+<blockquote>
+<b>min:0.25 max:2.0</b>
+</blockquote>
+<p>
+The min and max are determined from the residues within the specified model 
+or models (&ldquo;all&rdquo; if the specification is blank,
+as per the usual convention) and that can be represented by a cartoon,
+namely peptide and nucleotide chains.
+</p><p>
+The <b>noValueRadius</b> option indicates what radius to use for residues 
+without an assignment (or within residues or atomic models without an 
+assignment) for the specified attribute (default <b>0.1</b> &Aring;).
+</p><p>
+The <b>sides</b> option sets the number of facets <i>N</i> around the 
+circumference of the worm, with higher values giving a more smoothly
+rounded shape. The default for worms is <b>24</b> (the current maximum).
+This parameter can also be adjusted with
+<a href="cartoon.html#style"><b>cartoon style</b></a>
+and <a href="graphics.html#quality"><b>graphics quality</b></a>.
+</p><p>
 Once generated, the worm radii are remembered separately from the other 
 cartoon parameters, and it is possible to toggle back and forth between 
 the previous non-worm cartoon and a previously defined worm display. 
@@ -494,36 +527,6 @@ As with other cartoon displays, the command
 hides worm for the specified residues.
 The general <a href="show.html"><b>hide</b></a> and 
 <a href="show.html"><b>show</b></a> commands can also be used.
-</p><p>
-The <i>values and radii</i> specification can be given as two or more
-space-separated pairs of the form:
-</p>
-<blockquote>
-<i>value</i></a>:<i>radius</i>
-</blockquote>
-<p>
-...where <i>value</i> can be <b>min</b> or <b>max</b> as well as
-a numerical value of the attribute. The default mapping is:
-</p>
-<blockquote>
-<b>min:0.25 max:2.0</b>
-</blockquote>
-<p>
-The min and max are determined from the set of residues both
-included in the specification (all residues if the specification is blank,
-as per the usual convention) and that can be represented by a ribbon,
-namely peptide and nucleotide chains.
-</p><p>
-The <b>noValueRadius</b> option indicates what radius to use for residues 
-without an assignment (or within residues or atomic models without an 
-assignment) for the specified attribute (default <b>0.1</b> &Aring;).
-</p><p>
-The <b>sides</b> option sets the number of facets <i>N</i> around the 
-circumference of the worm, with higher values giving a more smoothly
-rounded shape. The default for worms is <b>24</b> (the current maximum).
-This parameter can also be adjusted with
-<a href="cartoon.html#style"><b>cartoon style</b></a>
-and <a href="graphics.html#quality"><b>graphics quality</b></a>.
 </p>
 
 <hr>
