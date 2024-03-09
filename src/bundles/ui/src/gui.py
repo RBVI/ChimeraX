@@ -29,6 +29,7 @@ in a thread-safe manner.  The UI instance is accessed as session.ui.
 from Qt.QtWidgets import QApplication
 from chimerax.core.logger import PlainTextLog
 import sys
+from contextlib import contextmanager
 
 def initialize_qt():
     initialize_qt_plugins_location()
@@ -93,6 +94,7 @@ class UI(QApplication):
         self.main_window = None
         self.already_quit = False
         self._fatal_error_log_file = None
+        self._force_float_count = 0
         self.session = session
 
         from .settings import UI_Settings
@@ -278,6 +280,14 @@ class UI(QApplication):
         self.exec()
         self.session.logger.clear()
 
+    @contextmanager
+    def force_float_tools(self):
+        self._force_float_count += 1
+        try:
+            yield
+        finally:
+            self._force_float_count -= 1
+
     def forward_keystroke(self, event):
         """forward keystroke from graphics window to most recent
            caller of 'register_for_keystrokes'
@@ -426,13 +436,8 @@ class MainWindow(QMainWindow, PlainTextLog):
             width, height = size_data
         else:
             width, height = 800, 600
-        max_size = 8192		# Avoid Qt 6.4 crash on large resize, bug #10012
-        if width > max_size:
-            width = max_size
-        if height > max_size:
-            height = max_size
         if sizing_scheme not in ["full screen", "maximized"]:
-            self.resize(int(width + 0.5), int(height + 0.5))
+            req_width, req_height = self.sane_resize(ui, width, height)
         # going into full screen / maximized causes events to happen, so delay until we're more
         # fully initialized
 
@@ -539,6 +544,46 @@ class MainWindow(QMainWindow, PlainTextLog):
             self.showMaximized()
         else:
             self.show()
+            # Ensure that the window fits into the virtual screen geometry
+            #
+            # First determine size of window decorations
+            fgeom = self.frameGeometry()
+            geom = self.geometry()
+            xdec = fgeom.width() - geom.width()
+            ydec = fgeom.height() - geom.height()
+            vg = self.screen().virtualGeometry()
+            # detemine if it fits, and resize if needed
+            need_resize = False
+            resize_w = geom.size().width()
+            resize_h = geom.size().height()
+            if fgeom.width() > vg.width() or resize_w > req_width:
+                need_resize = True
+                resize_w = min(req_width, round(0.9 * (vg.width() - xdec)))
+            if fgeom.height() > vg.height() or resize_h > req_height:
+                need_resize = True
+                resize_h = min(req_height, round(0.9 * (vg.height() - ydec)))
+            if need_resize:
+                self.resize(resize_w, resize_h)
+            
+            # Then ensure the corners are onscreen
+            fgeom = self.frameGeometry() # above resize may have changed it
+            geom = self.geometry()
+            if fgeom.x() < vg.x():
+                self.move(vg.x() + xdec, geom.y())
+            elif fgeom.x() + fgeom.width() > vg.x() + vg.width():
+                self.move(vg.x() + vg.width() - fgeom.width(), geom.y())
+            geom = self.geometry()
+            if fgeom.y() < vg.y():
+                self.move(geom.x(), fgeom.y() + ydec)
+            elif fgeom.y() + fgeom.height() > vg.y() + vg.height():
+                self.move(vg.y() + vg.height() - fgeom.height(), geom.x())
+
+    def sane_resize(self, ui, width, height):
+        vg = ui.primaryScreen().availableVirtualGeometry()
+        width = round(min(width, 8192, vg.width()))
+        height = round(min(height, 8192, vg.height()))
+        self.resize(width, height)
+        return width, height
 
     @property
     def main_view(self):
@@ -2143,6 +2188,9 @@ class ToolWindow(StatusLogger):
                 geometry = QRect(*geom_info)
         resize_docked = False
         place_floating = placement is None or (isinstance(placement, ToolWindow) and placement.floating)
+        if not place_floating and ui._force_float_count > 0:
+            place_floating = True
+            placement = None
         if not place_floating and placement in ('side', 'left', 'right'):
             # if the tool's sizeHint indicates that the graphics window would be forced to shrink by more
             # than 50% to accomodate; resize docked widget instead

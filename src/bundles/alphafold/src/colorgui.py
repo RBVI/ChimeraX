@@ -215,7 +215,7 @@ def _is_alphafold_model(m):
     if getattr(m, 'alphafold', False):
         return True
 
-    if 'AlphaFold' in m.name:
+    if 'alphafold' in m.name.lower():
         return True
 
     from chimerax.mmcif import get_mmcif_tables_from_metadata

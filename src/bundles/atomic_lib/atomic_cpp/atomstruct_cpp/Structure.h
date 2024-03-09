@@ -179,6 +179,7 @@ protected:
     mutable std::set<const Residue *>*  _rings_last_ignore;
     bool  _ss_assigned;
     mutable bool  _structure_cats_dirty;
+    bool  _worm_ribbon;
 
     void  add_bond(Bond* b) { _bonds.emplace_back(b); set_gc_shape(); set_gc_adddel(); }
     void  add_atom(Atom* a) { _atoms.emplace_back(a); set_gc_shape(); set_gc_adddel(); }
@@ -226,7 +227,7 @@ protected:
     }
     static int  SESSION_NUM_INTS(int version=CURRENT_SESSION_VERSION) {
         return version == 1 ? 9 : (version < 5 ? 10 : (version < 12 ? 16 : (version < 16 ? 17 :
-            (version < 19 ? 18 : 20))));
+            (version < 19 ? 18 : (version < 21 ? 20 : 21)))));
     }
     static int  SESSION_NUM_MISC(int version=CURRENT_SESSION_VERSION) {
         return version > 7 ? 3 : 4;
@@ -386,6 +387,9 @@ public:
     void  set_ribbon_orientation(RibbonOrientation o);
     void  set_ribbon_mode_helix(RibbonMode m);
     void  set_ribbon_mode_strand(RibbonMode m);
+    void  set_worm_ribbon(bool wr);
+    bool  worm_ribbon() const { return _worm_ribbon; }
+
 
     // filled ring stuff
     int  ring_display_count() const { return _ring_display_count; }
@@ -465,6 +469,15 @@ Structure::set_ribbon_mode_strand(RibbonMode m) {
     change_tracker()->add_modified(this, this, ChangeTracker::REASON_RIBBON_MODE);
     set_gc_ribbon();
     _ribbon_mode_strand = m;
+}
+
+inline void
+Structure::set_worm_ribbon(bool wr) {
+    if (wr == _worm_ribbon)
+        return;
+    change_tracker()->add_modified(this, this, ChangeTracker::REASON_WORM_RIBBON);
+    set_gc_ribbon();
+    _worm_ribbon = wr;
 }
 
 } //  namespace atomstruct

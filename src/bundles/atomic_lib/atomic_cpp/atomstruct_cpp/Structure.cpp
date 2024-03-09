@@ -60,10 +60,9 @@ const char*  Structure::PBG_HYDROGEN_BONDS = "hydrogen bonds";
 Structure::Structure(PyObject* logger):
     _active_coord_set(nullptr), _chains(nullptr),
     _change_tracker(DiscardingChangeTracker::discarding_change_tracker()),
-    _idatm_valid(false), _logger(logger),
-    _pb_mgr(this), _polymers_computed(false), _recompute_rings(true),
-    _ss_assigned(false), _structure_cats_dirty(true),
-    asterisks_translated(false), is_traj(false),
+    _idatm_valid(false), _logger(logger), _pb_mgr(this), _polymers_computed(false),
+    _recompute_rings(true), _ss_assigned(false), _structure_cats_dirty(true),
+    _worm_ribbon(false), asterisks_translated(false), is_traj(false),
     lower_case_chains(false), pdb_version(0), ss_ids_normalized(false)
 {
     for (int i=0; i<3; ++i) {
@@ -490,6 +489,7 @@ void Structure::_copy(Structure* s, PositionMatrix coord_adjust,
         s->set_ribbon_orientation(ribbon_orientation());
         s->set_ribbon_mode_helix(ribbon_mode_helix());
         s->set_ribbon_mode_strand(ribbon_mode_strand());
+        s->set_worm_ribbon(worm_ribbon());
         for (int i = 0; i < 3; ++i)
             for (int j = 0; j < 4; ++j)
                 s->_position[i][j] = _position[i][j];
@@ -499,6 +499,8 @@ void Structure::_copy(Structure* s, PositionMatrix coord_adjust,
         if (s->ss_assigned())
             s->set_ss_assigned(ss_assigned());
         s->_idatm_failed |= _idatm_failed;
+        if (s->_chains_made && s->_chains->size() == 0)
+            s->set_worm_ribbon(worm_ribbon());
     }
 
     if (chain_id_map == nullptr) {
@@ -539,6 +541,7 @@ void Structure::_copy(Structure* s, PositionMatrix coord_adjust,
         cr->_alt_loc = r->_alt_loc;
         cr->_ribbon_hide_backbone = r->_ribbon_hide_backbone;
         cr->_ribbon_adjust = r->_ribbon_adjust;
+        cr->_worm_radius = r->_worm_radius;
         rmap[r] = cr;
     }
     std::map<CoordSet*, CoordSet*> cs_map;
@@ -1080,7 +1083,7 @@ Structure::_form_chain_check(Atom* a1, Atom* a2, Bond* b)
                 bool a2_last = a2 == last;
                 if (a2_first || a2_last) {
                     // chain traces will have all first/lasts true, so can't determine anything
-                    if (!(a1_first && a1_last && a2_first && a2_last))
+                    if (!(a1_first && a1_last && a2_first && a2_last)) {
                         // first means the first backbone atom, so its residue should be second
                         if (a1_first && a2_last) {
                             start_r = a2->residue();
@@ -1091,6 +1094,7 @@ Structure::_form_chain_check(Atom* a1, Atom* a2, Bond* b)
                             other_r = a2->residue();
                             found_ordering = true;
                         }
+                    }
                 }
             }
         }
@@ -1730,6 +1734,7 @@ Structure::session_info(PyObject* ints, PyObject* floats, PyObject* misc) const
     *int_array++ = _ring_display_count;
     *int_array++ = _idatm_failed;
     *int_array++ = _chains_made;
+    *int_array++ = _worm_ribbon;
     // pb manager version number remembered later
     if (PyList_Append(ints, npy_array) < 0)
         throw std::runtime_error("Couldn't append to int list");
@@ -2049,6 +2054,8 @@ Structure::session_restore(int version, PyObject* ints, PyObject* floats, PyObje
         _idatm_failed = *int_array++;
         _chains_made = *int_array++;
     }
+    if (version >= 21)
+        _worm_ribbon = *int_array++;
     auto pb_manager_version = *int_array++;
     // if more added, change the array dimension check above
 

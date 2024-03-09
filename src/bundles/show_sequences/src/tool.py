@@ -59,28 +59,19 @@ class Sequences(ToolInstance):
     def show_seqs(self):
         groups = self.chain_list.grouped_value
         if groups:
-            reset_autofloat = False
             num_chains = sum([len(chains) for chains in groups])
             if num_chains > 5:
                 from chimerax.ui.ask import ask
                 if ask(self.session, f"Really show {num_chains} sequences?",
                         title="Comfirm show sequences") == "no":
                     return
-                if not self.session.ui.settings.auto_float_tools:
-                    reset_autofloat = True
-                    self.session.ui.settings.auto_float_tools = True
-                    # making tool autofloat also makes it undockable, so that needs to be reset too
-                    undockable = self.session.ui.settings.undockable[:]
+                context = self.session.ui.force_float_tools
+            else:
+                from contextlib import nullcontext as context
             from chimerax.core.commands import run
-            try:
+            with context():
                 for chains in groups:
                     run(self.session, "seq chain %s" % " ".join([chain.atomspec for chain in chains]))
-            finally:
-                if reset_autofloat:
-                    self.session.ui.settings.auto_float_tools = False
-                    if self.session.ui.settings.undockable != undockable:
-                        # sequences weren't previously undockable...
-                        self.session.ui.settings.undockable = undockable
 
     def _grouping_change(self, grouping):
         self.settings.grouping = grouping

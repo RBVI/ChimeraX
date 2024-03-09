@@ -36,6 +36,20 @@ def swap_aa(session, residues, res_types, *, angle_slop=None, bfactor=None, crit
     if type(res_types) == str:
         res_types = [res_types]
 
+    if len(res_types) == 1 and res_types[0].startswith("seq:"):
+        rem = res_types[0][4:]
+        if not rem:
+            raise UserError("No sequence letters after 'seq:'")
+        rem_seq = [x for x in rem if x.isprintable()]
+        if not rem_seq:
+            raise UserError("Only non-printable/invisible characters after 'seq:'")
+        res_types = []
+        from chimerax.atomic import Sequence
+        for let in rem_seq:
+            try:
+                res_types.append(Sequence.protein1to3[let.upper()])
+            except KeyError:
+                raise UserError("Unknown amino acid code letter: %s" % let)
     _check_num_residues(session, residues, res_types)
 
     if type(criteria) == str:

@@ -115,7 +115,12 @@ StructureSeq::demote_to_sequence()
         _structure->change_tracker()->add_deleted(_structure, dynamic_cast<Chain*>(this));
     }
     _structure = nullptr;
-    Py_XDECREF(py_call_method("_cpp_seq_demotion"));
+    // Since this demotion frequently happens as garbage collection is running,
+    // doing the call back into the Python layer below is a recipe for crashing,
+    // so instead the Python StructureSeq looks to see if the 'structure' attribute
+    // is None at check-for-changes
+    //Py_XDECREF(py_call_method("_cpp_seq_demotion"));
+
     // let normal deletion processes clean up; don't explicitly delete here
 }
 
@@ -127,6 +132,7 @@ StructureSeq::demote_to_structure_sequence()
     }
     _is_chain = false;
     Py_XDECREF(py_call_method("_cpp_structure_seq_demotion"));
+    
     // let normal deletion processes clean up; don't explicitly delete here
 }
 

@@ -3373,6 +3373,18 @@ extern "C" EXPORT void set_residue_thin_rings(void *residues, size_t n, npy_bool
     error_wrap_array_set(r, n, &Residue::set_thin_rings, thin_rings);
 }
 
+extern "C" EXPORT void residue_worm_radius(void *residues, size_t n, float32_t *radii)
+{
+    Residue **r = static_cast<Residue **>(residues);
+    error_wrap_array_get(r, n, &Residue::worm_radius, radii);
+}
+
+extern "C" EXPORT void set_residue_worm_radius(void *residues, size_t n, float32_t *radii)
+{
+    Residue **r = static_cast<Residue **>(residues);
+    error_wrap_array_set(r, n, &Residue::set_worm_radius, radii);
+}
+
 
 // -------------------------------------------------------------------------
 // structure sequence functions
@@ -3482,8 +3494,14 @@ extern "C" EXPORT void sseq_structure(void *chains, size_t n, pyobject_t *molp)
 {
     StructureSeq **c = static_cast<StructureSeq **>(chains);
     try {
-        for (size_t i = 0; i < n; ++i)
-          molp[i] = c[i]->structure()->py_instance(true);
+        for (size_t i = 0; i < n; ++i) {
+          auto s = c[i]->structure();
+          if (s == nullptr) {
+              molp[i] = Py_None;
+              Py_INCREF(Py_None);
+          } else
+              molp[i] = c[i]->structure()->py_instance(true);
+        }
     } catch (...) {
         molc_error();
     }
@@ -4643,6 +4661,18 @@ extern "C" EXPORT void set_structure_ribbon_show_spine(void *mols, size_t n, npy
 {
     Structure **m = static_cast<Structure **>(mols);
     error_wrap_array_set(m, n, &Structure::set_ribbon_show_spine, ribbon_show_spine);
+}
+
+extern "C" EXPORT void structure_worm_ribbon(void *mols, size_t n, npy_bool *worm_ribbon)
+{
+    Structure **m = static_cast<Structure **>(mols);
+    error_wrap_array_get(m, n, &Structure::worm_ribbon, worm_ribbon);
+}
+
+extern "C" EXPORT void set_structure_worm_ribbon(void *mols, size_t n, npy_bool *worm_ribbon)
+{
+    Structure **m = static_cast<Structure **>(mols);
+    error_wrap_array_set(m, n, &Structure::set_worm_ribbon, worm_ribbon);
 }
 
 extern "C" EXPORT void set_structure_ss_assigned(void *structures, size_t n, npy_bool *ss_assigned)
