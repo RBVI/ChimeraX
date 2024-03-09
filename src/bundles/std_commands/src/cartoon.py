@@ -566,11 +566,11 @@ def cartoon_style(session, atoms=None, width=None, thickness=None, arrows=None, 
     session.undo.register(undo_state)
 
 
-def cartoon_by_attr(session, attr_name, residues=None, way_points=None, *, no_value_radius=None,
+def cartoon_by_attr(session, attr_name, structures=None, way_points=None, *, no_value_radius=0.1,
           sides=24, undo_name="cartoon byattribute"):
     '''
     Show cartoon worm sized by attribute value using (attr-val, radius) way points.  Attr-val can be
-    'max' or 'min' to represent the maximum or minimum of that attribute value for the residues.
+    'max' or 'min' to represent the maximum or minimum of that attribute value for the polymeric residues.
 
     attr_name : string (actual Python attribute name optionally prefixed by 'a:'/'r:'/'m:'
       for atom/residue/model attribute. If no prefix, then the Atom/Residue/Structure classes
@@ -581,12 +581,16 @@ def cartoon_by_attr(session, attr_name, residues=None, way_points=None, *, no_va
     from .defattr import parse_attribute_name
     attr_name, class_obj = parse_attribute_name(session, attr_name, allowable_types=[int, float])
 
-    if residues is None:
+    if structures is None:
         from chimerax.atomic import all_residues
         residues = all_residues(session)
+    else:
+        residues = structures.residues
+
+    residues = residues.filter(residues.polymer_types > 0)
 
     if len(residues) == 0:
-        session.logger.warning('No residues specified')
+        session.logger.warning('No structures with polymeric residues specified')
         return
 
     if way_points is None:
@@ -770,7 +774,7 @@ def register_command(logger):
     # size worms by attribute
     from .size import AttrRadiusPairArg
     desc = CmdDesc(required=[('attr_name', StringArg),
-                            ('residues', Or(ResiduesArg, EmptyArg))],
+                            ('structures', Or(AtomicStructuresArg, EmptyArg))],
                    optional=[('way_points', RepeatOf(AttrRadiusPairArg))],
                    keyword=[('no_value_radius', PositiveFloatArg),
                             ("sides", Bounded(IntArg, 3, 24))],
