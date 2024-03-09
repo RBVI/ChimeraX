@@ -451,7 +451,7 @@ Tethers can be hidden using <b>opacity 0</b>.
 <b>~worm</b>
 </blockquote>
 <p>
-A worm is a specialized cartoon in which the radius varies to
+A <b><i>worm</i></b> is a specialized cartoon in which the radius varies to
 show the values of a numerical <a href="../attributes.html">attribute</a>.
 Attribute values are mapped to worm radius on a per-residue basis,
 and only biopolymer chains can be shown as worms.
@@ -509,10 +509,14 @@ a numerical value of the attribute. The default mapping is:
 <b>min:0.25 max:2.0</b>
 </blockquote>
 <p>
-Residues without an assignment (or within residues or atomic models
-without an assignment) for the specified attribute
-will be left unchanged unless a radius is specified
-with the <b>noValueRadius</b> option.
+The min and max are determined from the set of residues both
+included in the specification (all residues if the specification is blank,
+as per the usual convention) and that can be represented by a ribbon,
+namely peptide and nucleotide chains.
+</p><p>
+The <b>noValueRadius</b> option indicates what radius to use for residues 
+without an assignment (or within residues or atomic models without an 
+assignment) for the specified attribute (default <b>0.1</b> &Aring;).
 </p><p>
 The <b>sides</b> option sets the number of facets <i>N</i> around the 
 circumference of the worm, with higher values giving a more smoothly
