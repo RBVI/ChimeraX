@@ -492,6 +492,67 @@ def fetch_mmcif_pdbj(session, pdb_id, **kw):
     return fetch_mmcif(session, pdb_id, fetch_source="pdbj", **kw)
 
 
+def fetch_pdb_redo(session, pdb_id, ignore_cache=False, with_map=False, **kw):
+    """Get mmCIF file from PDB-REDO repository"""
+    if not _initialized:
+        _initialize(session)
+
+    if len(pdb_id) not in (4,8):
+        raise UserError('PDB identifiers are either 4 or 8 characters long, got "%s"' % pdb_id)
+
+    if with_map:
+        from chimerax.open_command import NoOpenerError
+        try:
+            fmt = session.data_formats.open_format_from_suffix(".mtz")
+        except NoOpenerError:
+            raise UserError("Don't know how to open .mtz map files")
+        bundle_info = session.open_command.provider_info(fmt).bundle_info
+        if not bundle_info.installed:
+            # Issuing the log message immediately here causes it to appear in the table
+            # that summarizes file-opening messages, and we'd like to avoid that
+            from chimerax.core import toolshed
+            ts = toolshed.get_toolshed()
+            msg = '<a href="%s">Install the %s bundle</a> from the Toolshed.' % (
+                ts.bundle_url(bundle_info.name), bundle_info.short_name)
+            if session.ui.is_gui:
+                from Qt.QtCore import QTimer
+                QTimer.singleShot(0, lambda *args, session=session, msg=msg:
+                    session.logger.info(msg, is_html=True))
+            else:
+                session.logger.info(msg, is_html=True)
+            raise UserError("You need to install the %s bundle to open PDB-REDO MTZ-format map files."
+                "  See the log for details." % bundle_info.short_name)
+
+    import os
+    pdb_id = pdb_id.lower()
+    if len(pdb_id) == 8 and pdb_id.startswith("0000"):
+        # avoid two differently named but identical entries in the cache...
+        pdb_id = pdb_id[4:]
+    entry = pdb_id if len(pdb_id) == 4 else "pdb_" + pdb_id
+    base_url = "https://pdb-redo.eu/db/%s/%s_final" % (entry, entry)
+    pdb_name = "%s.cif" % pdb_id
+    from chimerax.core.fetch import fetch_file
+    filename = fetch_file(session, base_url + ".cif", 'mmCIF %s' % pdb_id, pdb_name,
+                          "PDB-REDO", ignore_cache=ignore_cache)
+    # double check that a mmCIF file was downloaded instead of an
+    # HTML error message saying the ID does not exist
+    with open(filename, 'r') as f:
+        line = f.readline()
+        if not line.startswith(('data_', '#')):
+            f.close()
+            import os
+            os.remove(filename)
+            raise UserError("Invalid PDB-REDO identifier")
+
+    session.logger.status("Opening PDB-REDO %s" % (pdb_id,))
+    models, status = session.open_command.open_data(filename, format='mmcif', name=pdb_id, **kw)
+    if with_map:
+        map_models, map_status = session.open_command.open_data(base_url + ".mtz")
+        models.extend(map_models)
+        status += "  " + map_status
+    return models, status
+
+
 def _get_template(session, name):
     """Get Chemical Component Dictionary (CCD) entry"""
     from chimerax.core.fetch import fetch_file
