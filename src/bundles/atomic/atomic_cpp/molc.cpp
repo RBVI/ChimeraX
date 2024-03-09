@@ -58,7 +58,7 @@
 #include <string>
 #include <vector>
 #include <cmath>
-#inlcude <climits>	// Use INT_MAX
+#include <climits>	// Use INT_MAX
 
 #ifndef M_PI
 // not defined on Windows
