@@ -25,6 +25,7 @@ class RenderByAttrTool(ToolInstance):
 
     RENDER_COLORS = "Colors"
     RENDER_RADII = "Radii"
+    RENDER_WORMS = "Worms"
 
     def __init__(self, session, tool_name):
         ToolInstance.__init__(self, session, tool_name)
@@ -95,21 +96,17 @@ class RenderByAttrTool(ToolInstance):
             select_callback=self._render_sel_marker_cb)
         render_tab_layout.addWidget(rh)
         self.render_markers = {}
+        self.render_type_widgets = {}
+        self.render_type_widget = QTabWidget()
+        self.render_type_widget.setTabBarAutoHide(True)
+        render_tab_layout.addWidget(self.render_type_widget)
+
         self.render_color_markers = rh.add_markers(activate=True, coord_type='relative',
             move_callback=self._render_marker_moved,
             color_change_callback=lambda mrk, cb=self._update_palettes: cb())
         self.render_color_markers.extend([((0.0, 0.0), "blue"), ((0.5, 0.0), "white"), ((1.0, 0.0), "red")])
         self.render_color_markers.add_del_callback = lambda mrk=None, cb=self._update_palettes: cb()
         self.render_markers[self.RENDER_COLORS] = self.render_color_markers
-        self.render_radius_markers = rh.add_markers(new_color='slate gray', activate=False,
-            coord_type='relative', add_del_callback=self._radius_marker_add_del)
-        for pos, radius in [(0.0, 1.0), (1.0, 4.0)]:
-            self.render_radius_markers.append(((pos, 0.0), None)).radius = radius
-        self.render_markers[self.RENDER_RADII] = self.render_radius_markers
-        self.render_type_widget = QTabWidget()
-        self.render_type_widget.setTabBarAutoHide(True)
-        render_tab_layout.addWidget(self.render_type_widget)
-
         color_render_tab = QWidget()
         color_render_tab_layout = crt_layout = QVBoxLayout()
         crt_layout.setSpacing(1)
@@ -161,8 +158,14 @@ class RenderByAttrTool(ToolInstance):
         key_layout.addWidget(QLabel(" corresponding color key"), alignment=Qt.AlignLeft)
         key_layout.addStretch(1)
         crt_layout.addLayout(key_layout)
+        self.render_type_widgets[self.RENDER_COLORS] = []
         self.render_type_widget.addTab(color_render_tab, self.RENDER_COLORS)
 
+        self.render_radius_markers = rh.add_markers(new_color='slate gray', activate=False,
+            coord_type='relative', add_del_callback=self._radius_marker_add_del)
+        for pos, radius in [(0.0, 1.0), (1.0, 4.0)]:
+            self.render_radius_markers.append(((pos, 0.0), None)).radius = radius
+        self.render_markers[self.RENDER_RADII] = self.render_radius_markers
         from chimerax.ui.options import OptionsPanel, EnumOption, BooleanOption, FloatOption
         radii_render_tab = self.radii_options = OptionsPanel(sorting=False, scrolled=False,
             contents_margins=(0,0,0,0))
@@ -174,12 +177,6 @@ class RenderByAttrTool(ToolInstance):
         self.radii_options.add_option(self.radii_affect_nv)
         self.radii_nv_radius = FloatOption("No-value radius", 0.5, None, min="positive")
         self.radii_options.add_option(self.radii_nv_radius)
-        #self.radius_value_area = QWidget()
-        #self.radius_value_area.setHidden(True)
-        #rva_layout = QHBoxLayout()
-        #rva_layout.setContentsMargins(0,0,0,0)
-        #self.radius_value_area.setLayout(rva_layout)
-        #rva_layout.addWidget(QLabel("Atom radius"), alignment=Qt.AlignRight)
         radius_label = QLabel("Atom radius")
         rh.add_custom_widget(radius_label, left_side=False, alignment=Qt.AlignRight)
         self.radius_value_entry = QLineEdit()
@@ -188,17 +185,36 @@ class RenderByAttrTool(ToolInstance):
         self.radius_value_entry.setValidator(validator)
         from chimerax.ui import set_line_edit_width
         set_line_edit_width(self.radius_value_entry, 5)
-        #rva_layout.addWidget(self.radius_value_entry, alignment=Qt.AlignLeft)
         rh.add_custom_widget(self.radius_value_entry, left_side=False, alignment=Qt.AlignLeft)
-        #rh.add_custom_widget(self.radius_value_area, left_side=False)
-        self.radius_value_widgets = [radius_label, self.radius_value_entry]
-        for rv_widget in self.radius_value_widgets:
-            rv_widget.setHidden(True)
+        rv_widgets = [radius_label, self.radius_value_entry]
+        self.render_type_widgets[self.RENDER_RADII] = rv_widgets
         self.render_type_widget.addTab(radii_render_tab, self.RENDER_RADII)
 
-        self.sel_restrict = QCheckBox("Restrict to selection")
+        self.render_worm_markers = rh.add_markers(new_color='slate gray', activate=False,
+            coord_type='relative', add_del_callback=self._worms_marker_add_del)
+        for pos, radius in [(0.0, 0.25), (1.0, 2.0)]:
+            self.render_worm_markers.append(((pos, 0.0), None)).radius = radius
+        self.render_markers[self.RENDER_WORMS] = self.render_worm_markers
+        worms_render_tab = self.worms_options = OptionsPanel(sorting=False, scrolled=False,
+            contents_margins=(0,0,0,0))
+        self.worm_nv_radius = FloatOption("No-value radius", 0.1, None, min="positive")
+        self.worms_options.add_option(self.worm_nv_radius)
+        worm_label = QLabel("Worm radius")
+        rh.add_custom_widget(worm_label, left_side=False, alignment=Qt.AlignRight)
+        self.worm_value_entry = QLineEdit()
+        validator = QDoubleValidator()
+        validator.setBottom(0.0001)
+        self.worm_value_entry.setValidator(validator)
+        from chimerax.ui import set_line_edit_width
+        set_line_edit_width(self.worm_value_entry, 5)
+        rh.add_custom_widget(self.worm_value_entry, left_side=False, alignment=Qt.AlignLeft)
+        self.render_type_widgets[self.RENDER_WORMS] = [worm_label, self.worm_value_entry]
+        self.render_type_widget.addTab(worms_render_tab, self.RENDER_WORMS)
+
+        self.sel_restrict = QCheckBox()
         self.sel_restrict.setChecked(False)
         render_tab_layout.addWidget(self.sel_restrict, alignment=Qt.AlignCenter)
+        self._render_mode_changed(self.render_type_widget.currentIndex())
         self.mode_widget.addTab(render_tab, "Render")
 
         # wait until tab contents are completely filled before connecting this
@@ -264,8 +280,13 @@ class RenderByAttrTool(ToolInstance):
             if not vals:
                 raise UserError("No radius values specified")
             params = (self.radii_style_option.value, vals)
+        elif method == "worm":
+            if not vals:
+                raise UserError("No radius values specified")
+            vals.append((None, self.worm_nv_radius.value))
+            params = vals
         else:
-            raise NotImplemented("Don't know how to get parameters for '%s' method" % method)
+            raise NotImplementedError("Don't know how to get parameters for '%s' method" % tab_text)
         self._cur_attr_info().render(self.session, attr_name, models, method, params,
             self.sel_restrict.isChecked())
         if not apply:
@@ -363,18 +384,22 @@ class RenderByAttrTool(ToolInstance):
     def _render_mode_changed(self, tab_index):
         render_type = self.render_type_widget.tabText(tab_index)
         self.render_histogram.activate(self.render_markers[render_type])
-        render_radii = render_type == self.RENDER_RADII
-        self.render_histogram.color_button = not render_radii
-        for rv_widget in self.radius_value_widgets:
-            rv_widget.setHidden(not render_radii)
+        self.render_histogram.color_button = render_type == self.RENDER_COLORS
+        self.sel_restrict.setText("Restrict to selection"
+            if render_type != self.RENDER_WORMS else "Restrict to selected models")
+        for category, widgets in self.render_type_widgets.items():
+            for widget in widgets:
+                widget.setHidden(category != render_type)
 
     def _render_sel_marker_cb(self, prev_markers, prev_marker, cur_markers, cur_marker):
-        if cur_markers != self.render_radius_markers:
+        if cur_markers == self.render_color_markers:
             return
+        value_entry = self.radius_value_entry \
+            if cur_markers == self.render_radius_markers else self.worm_value_entry
         if cur_marker:
-            self.radius_value_entry.setText("%g" % cur_marker.radius)
+            value_entry.setText("%g" % cur_marker.radius)
         else:
-            self.radius_value_entry.clear()
+            value_entry.clear()
 
     def _reverse_colors(self):
         if len(self.render_color_markers) < 2:
@@ -444,4 +469,8 @@ class RenderByAttrTool(ToolInstance):
             menu.addAction(ui_name)
         if not self.target_menu_button.text() and ui_names:
             self._new_target(ui_names[0])
+
+    def _worms_marker_add_del(self, marker=None):
+        if marker:
+            marker.radius = 0.25
 

@@ -202,27 +202,18 @@ class _AtomicBundleAPI(BundleAPI):
                             letters, palette_string, no_val_string))
                     elif method == "radius":
                         atom_style, way_points = params
-                        # Chimera doesn't hide ribbons or show atoms, so...
-                        #if atom_style != "unchanged":
-                        #    run(session, "~cartoon %s ; show %s" % (spec, spec))
-                        no_val_string = ""
-                        wp_vals = []
-                        for attr_val, radius in way_points:
-                            if attr_val is None:
-                                no_val_string = " noValueRadius %g" % radius
-                            else:
-                                wp_vals.append((attr_val, radius))
-                        if wp_vals:
-                            wp_string = " ".join(["%g:%g" % (av,rad) for av, rad in wp_vals])
-                        else:
-                            wp_string = ""
+                        wp_string = self._way_point_string(way_points)
                         from chimerax.std_commands.size import AtomRadiiStyleArg
                         if atom_style == AtomRadiiStyleArg.default:
                             style_arg = ""
                         else:
                             style_arg = " style %s" % atom_style
-                        run(session, "size byattr %s:%s %s %s%s%s" % (prefix, attr_name, spec, wp_string,
-                            no_val_string, style_arg))
+                        run(session, "size byattr %s:%s %s%s%s" % (prefix, attr_name, spec, wp_string,
+                            style_arg))
+                    elif method == "worm":
+                        wp_string = self._way_point_string(params)
+                        run(session, "cartoon byattr %s:%s %s%s" % (prefix, attr_name, spec, wp_string))
+
                 def values(self, attr_name, models):
                     if self._class_obj == Atom:
                         collections = [m.atoms for m in models]
@@ -242,6 +233,20 @@ class _AtomicBundleAPI(BundleAPI):
                         all_vals = numpy.array(all_vals)
                     non_none_vals = all_vals[all_vals != None]
                     return non_none_vals, len(non_none_vals) < len(all_vals)
+
+                def _way_point_string(self, way_points):
+                    no_val_string = ""
+                    wp_vals = []
+                    for attr_val, radius in way_points:
+                        if attr_val is None:
+                            no_val_string = " noValueRadius %g" % radius
+                        else:
+                            wp_vals.append((attr_val, radius))
+                    if wp_vals:
+                        wp_string = ' ' + " ".join(["%g:%g" % (av,rad) for av, rad in wp_vals])
+                    else:
+                        wp_string = ""
+                    return "%s%s"% (wp_string, no_val_string)
             return Info(session)
 
     @staticmethod

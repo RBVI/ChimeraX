@@ -848,17 +848,19 @@ class Volume(Model):
                                         max_bisections = 30, rank_method = False):
 
     cell_volume = self.data.voxel_volume()
+    ijk_min, ijk_max, ijk_step = self.region
 
     if rank_method:
       ms = self.matrix_value_statistics()
-      nx, ny, nz = self.data.size
+      nx, ny, nz = [imax-imin+1 for imin,imax in zip(ijk_min, ijk_max)]
       box_volume = cell_volume * nx * ny * nz
       r = 1.0 - (volume / box_volume)
       level = ms.rank_data_value(r)
       return level
 
-    gvolume = volume / cell_volume
-    matrix = self.full_matrix()
+    from math import prod
+    gvolume = volume / (cell_volume * prod(ijk_step))
+    matrix = self.matrix()
     from chimerax.map_data import surface_level_enclosing_volume
     try:
       level = surface_level_enclosing_volume(matrix, gvolume, tolerance, max_bisections)
