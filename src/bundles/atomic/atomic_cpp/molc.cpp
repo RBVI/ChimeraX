@@ -58,6 +58,7 @@
 #include <string>
 #include <vector>
 #include <cmath>
+#include <climits>	// Use INT_MAX
 
 #ifndef M_PI
 // not defined on Windows
@@ -5783,8 +5784,10 @@ extern "C" EXPORT void *pointer_table_create(void *pointer_array, size_t n)
     void **pa = static_cast<void **>(pointer_array);
     PointerTable *t = new PointerTable;
     try {
-      for (int i = n-1; i >= 0; --i)
-	(*t)[pa[i]] = i;
+      if (n > INT_MAX)
+	throw std::range_error("pointer_table_create: array size exceeds maximum integer size");
+      for (size_t i = 0; i < n; ++i)
+	(*t)[pa[i]] = (int)i;
     } catch (...) {
         molc_error();
     }

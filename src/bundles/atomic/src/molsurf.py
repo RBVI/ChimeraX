@@ -99,8 +99,8 @@ class MolecularSurface(Surface):
         self.resolution = resolution    # Only used for Gaussian surface
         self.level = level		# Contour level for Gaussian surface, atomic number units
         self.color = color
-        self._atom_patch_colors = None
-        self._atom_patch_color_mask = None
+        self._atom_patch_colors = None	# Remember atom patch color to recolor when surface recomputed
+        self._atom_patch_color_mask = None  # Which atom patches were colored
         self.visible_patches = visible_patches
         self.sharp_boundaries = sharp_boundaries
         self._joined_triangles = None
@@ -451,6 +451,7 @@ class MolecularSurface(Surface):
             else:
                 atom_colors, vertex_colors = self._per_atom_colors(atoms, per_atom_colors,
                                                                    opacity=opacity)
+                # Here we are using opacity from per_atom_colors
                 self.vertex_colors = vertex_colors
                 self._remember_atom_patch_colors(atom_colors)
         else:
@@ -462,6 +463,7 @@ class MolecularSurface(Surface):
                 vcolors[v,:3] = vertex_colors[v,:3]
             else:
                 atom_colors, vc = self._per_atom_colors(atoms, per_atom_colors)
+                # Here we are not using opacity from per_atom_colors
                 vcolors[v,:3] = vc[v,:3]
             if opacity is not None:
                 vcolors[v,3] = opacity
