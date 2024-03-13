@@ -160,6 +160,11 @@ class _AtomicBundleAPI(BundleAPI):
                 @property
                 def class_object(self):
                     return self._class_obj
+                def deworm_applicable(self, models):
+                    for m in models:
+                        if getattr(m, 'worm_ribbon', False):
+                            return True
+                    return False
                 def model_filter(self, model):
                     return isinstance(model, Structure)
                 def render(self, session, attr_name, models, method, params, sel_only):
@@ -211,8 +216,12 @@ class _AtomicBundleAPI(BundleAPI):
                         run(session, "size byattr %s:%s %s%s%s" % (prefix, attr_name, spec, wp_string,
                             style_arg))
                     elif method == "worm":
-                        wp_string = self._way_point_string(params)
-                        run(session, "cartoon byattr %s:%s %s%s" % (prefix, attr_name, spec, wp_string))
+                        show_worms, way_points = params
+                        if show_worms:
+                            wp_string = self._way_point_string(way_points)
+                            run(session, "cartoon byattr %s:%s %s%s" % (prefix, attr_name, spec, wp_string))
+                        else:
+                            run(session, "~worm %s" % spec)
 
                 def values(self, attr_name, models):
                     if self._class_obj == Atom:

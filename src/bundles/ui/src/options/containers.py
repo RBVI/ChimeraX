@@ -130,6 +130,11 @@ class OptionsPanel(QWidget):
             all_options.extend(grp.options())
         return all_options
 
+    def set_option_enabled(self, option, enabled, *, _missing_okay=False):
+        if isinstance(self._form, _MultiColumnFormLayout):
+            return self._form.set_option_enabled(option, enabled, _missing_okay)
+        return _form_set_enabled(self._form, option, enabled, missing_okay=_missing_okay)
+
     def set_option_shown(self, option, shown, *, _missing_okay=False):
         if isinstance(self._form, _MultiColumnFormLayout):
             return self._form.set_option_shown(option, shown, _missing_okay)
@@ -213,6 +218,12 @@ class CategorizedOptionsPanel(QTabWidget):
         else:
             raise ValueError("category not found")
 
+    def set_option_enabled(self, option, enabled):
+        for panel in self._category_to_panel.values():
+            if panel.set_option_enabled(option, enabled, _missing_okay=True):
+                return
+        raise ValueError("'%s' option not found in container" % option.name)
+
     def set_option_shown(self, option, shown):
         for panel in self._category_to_panel.values():
             if panel.set_option_shown(option, shown, _missing_okay=True):
@@ -284,6 +295,9 @@ class SettingsPanelBase(QWidget):
 
     def hide_option(self, option):
         return self.set_option_shown(option, False)
+
+    def set_option_enabled(self, option, enabled):
+        self.options_panel.set_option_enabled(option, enabled)
 
     def set_option_shown(self, option, shown):
         self.options_panel.set_option_shown(option, shown)
@@ -416,6 +430,14 @@ class _MultiColumnFormLayout(QHBoxLayout):
             setattr(self, qform_attr,
                 lambda *args, qf_attr=qform_attr, **kw: call_subattr(qf_attr, *args, **kw))
 
+    def set_option_enabled(self, option, enabled, missing_okay):
+        for qform in self._layouts:
+            if _form_set_enabled(qform, option, True, enabled, missing_okay=missing_okay):
+                return True
+        if not missing_okay:
+            raise ValueError("'%s' option not found in container" % option.name)
+        return False
+
     def set_option_shown(self, option, shown, missing_okay):
         for qform in self._layouts:
             if _form_set_shown(qform, option, True, shown, missing_okay=missing_okay):
@@ -486,6 +508,16 @@ class _MultiColumnFormLayout(QHBoxLayout):
         row_contents = col_layout.takeRow(col_layout.rowCount()-1)
         xfer_label, xfer_widget = row_contents.labelItem.widget(), row_contents.fieldItem.widget()
         next_layout.insertRow(0, xfer_label, xfer_widget)
+
+def _form_set_enabled(form, option, shown, *, missing_okay=False):
+    index = form.indexOf(option.widget)
+    if index == -1:
+        if not missing_okay:
+            raise ValueError("'%s' option not in container" % option.name)
+        return False
+    form.itemAt(index-1).widget().setEnabled(not shown)
+    option.widget.setEnabled(not shown)
+    return True
 
 def _form_set_shown(form, option, shown, *, missing_okay=False):
     index = form.indexOf(option.widget)
