@@ -830,7 +830,7 @@ class _AttrTest:
 
     def __str__(self):
         if self.no is not None:
-            return '~' + self.name
+            return '^' + self.name
         elif self.value is None:
             return self.name
         else:
@@ -856,7 +856,14 @@ class _AttrTest:
     def attr_matcher(self):
         import operator
         attr_name = self.name
-        if self.value is None:
+        if self.no is not None:
+            def matcher(obj):
+                try:
+                    v = getattr(obj, attr_name)
+                except AttributeError:
+                    return True
+                return v is None
+        elif self.value is None:
             def matcher(obj):
                 try:
                     v = getattr(obj, attr_name)
