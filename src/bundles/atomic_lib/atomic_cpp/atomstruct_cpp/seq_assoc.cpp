@@ -434,7 +434,7 @@ gapped_match(const Sequence::Contents& aseq, const StructureSeq& mseq,
 
     AssocRetvals ret;
     ret.num_errors = tot_errs;
-    auto num_mseq_res = mseq.residues().size();
+    int num_mseq_res = mseq.residues().size();
     int mseq_index = 0;
     for (int i = 0; i < best_offset + (int)aseq.size(); ++i) {
         if (i >= (int)gapped.size())

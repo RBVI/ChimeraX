@@ -58,6 +58,7 @@
 #include <string>
 #include <vector>
 #include <cmath>
+#include <climits>	// Use INT_MAX
 
 #ifndef M_PI
 // not defined on Windows
@@ -3372,6 +3373,18 @@ extern "C" EXPORT void set_residue_thin_rings(void *residues, size_t n, npy_bool
     error_wrap_array_set(r, n, &Residue::set_thin_rings, thin_rings);
 }
 
+extern "C" EXPORT void residue_worm_radius(void *residues, size_t n, float32_t *radii)
+{
+    Residue **r = static_cast<Residue **>(residues);
+    error_wrap_array_get(r, n, &Residue::worm_radius, radii);
+}
+
+extern "C" EXPORT void set_residue_worm_radius(void *residues, size_t n, float32_t *radii)
+{
+    Residue **r = static_cast<Residue **>(residues);
+    error_wrap_array_set(r, n, &Residue::set_worm_radius, radii);
+}
+
 
 // -------------------------------------------------------------------------
 // structure sequence functions
@@ -5771,8 +5784,10 @@ extern "C" EXPORT void *pointer_table_create(void *pointer_array, size_t n)
     void **pa = static_cast<void **>(pointer_array);
     PointerTable *t = new PointerTable;
     try {
-      for (int i = n-1; i >= 0; --i)
-	(*t)[pa[i]] = i;
+      if (n > INT_MAX)
+	throw std::range_error("pointer_table_create: array size exceeds maximum integer size");
+      for (size_t i = 0; i < n; ++i)
+	(*t)[pa[i]] = (int)i;
     } catch (...) {
         molc_error();
     }

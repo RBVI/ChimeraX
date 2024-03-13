@@ -625,6 +625,7 @@ class Residue(CyResidue, State):
         ('chi1', (float, None)), ('chi2', (float, None)), ('chi3', (float, None)), ('chi4', (float, None)),
         ('is_helix', (bool,)), ('is_strand', (bool,)), ('name', (str,)), ('num_atoms', (int,)),
         ('number', (int,)), ('omega', (float, None)), ('phi', (float, None)), ('psi', (float, None)),
+        ('worm_radius', (float,)),
     ]
 
     # possibly long-term hack for interoperation with ctypes;

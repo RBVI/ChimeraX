@@ -34,6 +34,10 @@ class RenderAttrInfo(metaclass=abc.ABCMeta):
         """Return the class object (which must offer the core attribute-registration API)"""
         pass
 
+    def deworm_applicable(self, models):
+        """Best effort answer to whether worms are depicted on the given models"""
+        return False
+
     def hide_attr(self, attr_name, rendering):
         """Return True if attr_name should not be shown by the Render/Select tab of the tool
           (respectively rendering True/False).
@@ -56,12 +60,15 @@ class RenderAttrInfo(metaclass=abc.ABCMeta):
         method the rendering values are RGBA (RGBA channels in 0-1 range).  For the 'radius' method,
         the value is an atomic radius value.
 
-        The method=specific first parameter is:
+        The method-specific first parameter is:
 
         'color': a set of targets to color (of those legal from the Provider declaration).
 
         'radius': a string, either 'sphere', 'ball', or 'unchanged', indicating how the affected atoms
             should be depicted.
+
+        'worm': a boolean saying whether to show (True) or stop showing (False) worms.  If False, then
+            attr_name will be None and the sequence of waypoints will be empty.
 
         For both methods, if 'selected_only' is True, then the rendering should only be applied to
         selected instances.

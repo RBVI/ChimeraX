@@ -61,7 +61,8 @@ class StdCommandsAPI(BundleAPI):
             'lighting model': 'lighting',
             'quit': 'exit',
             'redo': 'undo',
-            'select zone': 'zonesel'
+            'select zone': 'zonesel',
+            'worm': 'cartoon'
         }
         if tilde:
             name_remapping['show'] = name_remapping['display'] = 'hide'

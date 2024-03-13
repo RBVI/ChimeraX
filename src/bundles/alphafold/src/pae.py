@@ -83,6 +83,7 @@ class OpenPredictedAlignedError(ToolInstance):
         amod = [m for m in session.models.list(type = AtomicStructure) if self.is_predicted_model(m)]
         if amod:
             self._structure_menu.value = amod[-1]
+            self._guess_pae_file_or_database_id()
 
         tw.manage(placement=None)	# Start floating
 

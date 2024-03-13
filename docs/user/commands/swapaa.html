@@ -27,7 +27,8 @@ class="clRight" title="User Guide Index"/></a>
 
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>swapaa</b> 
-&nbsp;<a href="atomspec.html"><i>residue-spec</i></a>&nbsp; <i>new-type-list</i>
+&nbsp;<a href="atomspec.html"><i>residue-spec</i></a>&nbsp; 
+(&nbsp;<a href="#3letter"><i>new-type-list</i></a>&nbsp;|&nbsp;<a href="#1letter"><b>seq</b>:<i>one-letter-codes</i></a>&nbsp;)
 [&nbsp;<a href="#rotLib"><b>rotLib</b></a>&nbsp;&nbsp;<i>rotamer-library</i>&nbsp;]
 [&nbsp;<a href="#criteria"><b>criteria</b></a>&nbsp;&nbsp;<i>method</i>&nbsp;|&nbsp;<i>N</i>&nbsp;]
 &nbsp;<a href="#options"><i>other-options</i></a>
@@ -89,11 +90,13 @@ The <b>swapaa</b> <a href="ui.html#mousemode">mouse mode</a>
 uses this &ldquo;quick and dirty&rdquo; method.
 </p><p>
 One or more protein residues to change can be
-<a href="atomspec.html">specified</a> in a single command,
-and <i>new-type-list</i> can be either of the following:
-</p>
+<a href="atomspec.html">specified</a> in a single command.
+Amino acid residues can be specified with 3-letter codes or with 1-letter codes.
 <ul>
-<li>a single three-letter code for any of the 20 standard amino acids, 
+<a name="3letter"></a>
+<li>3-letter: <i>new-type-list</i> can be either of the following:
+  <ul>
+  <li>a single 3-letter code for any of the 20 standard amino acids, 
 (capitalized or not) to use for all specified residues.
 Examples:
 <blockquote>
@@ -101,24 +104,35 @@ Examples:
 <br>
 <b>swapaa /A:3-5,12 lys</b>
 </blockquote>
-<li>a list of such codes separated by commas only, with exactly as many
+  <li>a list of such codes separated by commas only, with exactly as many
 codes as the number of specified residues; the residues will be replaced
 with the types according to the order in which both were specified.
 Example:
 <blockquote>
 <b>swapaa /A:3-5,12 leu,leu,tyr,his</b>
 </blockquote>
-</ul>
+  </ul>
 <p>
 Except for <b>swapaa mousemode</b>, <i>new-type-list</i> may also be given as:
 </p>
-<ul>
-<li>the word <b>same</b> to keep the existing type(s)
-<li>as detailed below, depending on the <a href="#rotLib">rotamer library</a>,
-any of certain nonstandard names to indicate the oxidation or protonation state 
-for which conformational data were collected. However, the resulting
-rotamers do not include hydrogens and will be given the corresponding
-standard residue name if incorporated into a structure.
+  <ul>
+  <li>the word <b>same</b> to keep the existing type(s)
+  <li>as detailed below, depending on the <a href="#rotLib">rotamer library</a>,
+any of certain nonstandard 3-letter names to indicate the oxidation or 
+protonation state for which conformational data were collected.
+However, the resulting rotamers do not include hydrogens and will be given
+the corresponding standard residue name if incorporated into a structure.
+  </ul>
+<br>
+<a name="1letter"></a>
+<li>Alternatively, the keyword <b>seq:</b> indicates a string of 1-letter codes.
+As above, either a single code or the same number of codes as 
+residues to swap should be given. Examples:
+<blockquote>
+<b>swapaa /A:3-5,12 seq:K</b>
+<br>
+<b>swapaa /A:3-5,12 seq:LLYH</b>
+</blockquote>
 </ul>
 <p>
 The main <b>swapaa</b> command uses
