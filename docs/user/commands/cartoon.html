@@ -463,10 +463,8 @@ the average value over all atoms in a residue is used for that residue.
 Several attributes are present automatically, but others can be
 defined by the user arbitrarily or created by various ChimeraX tools and
 commands (<a href="../attributes.html">details...</a>).
-<!--
 The graphical interface to <b>cartoon byattribute</b> is
 <a href="../tools/render.html"><b>Render by Attribute</b></a>.
--->
 See also: 
 <a href="color.html#byattribute"><b>color byattribute</b></a>,
 <a href="size.html#byattribute"><b>size byattribute</b></a>
@@ -491,7 +489,7 @@ as per the usual convention) and that can be represented by a cartoon,
 namely peptide and nucleotide chains.
 </p><p>
 The <b>noValueRadius</b> option indicates what radius to use for residues 
-without an assignment (or within atomic models without an 
+without an assignment (or within atomic structures without an 
 assignment) for the specified attribute (default <b>0.1</b> &Aring;).
 </p><p>
 The <b>sides</b> option sets the number of facets <i>N</i> around the 
@@ -502,7 +500,9 @@ This parameter can also be adjusted with
 and <a href="graphics.html#quality"><b>graphics quality</b></a>.
 </p><p>
 Once generated, the worm radii are remembered separately from the other 
-cartoon parameters, and it is possible to toggle back and forth between 
+cartoon parameters (as a residue
+<a href="../attributes.html">attribute</a> named <b>worm_radius</b>),
+and it is possible to toggle back and forth between 
 the previous non-worm cartoon and a previously defined worm display. 
 This can be done with
 <b>worm off</b> (equivalent to <b>~worm</b> or <b>cartoon byattribute off</b>)

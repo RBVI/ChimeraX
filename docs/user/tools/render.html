@@ -27,10 +27,13 @@ class="clRight" title="User Guide Index"/></a>
 <p>
 <b>Render by Attribute</b> can show the values of a numerical 
 <a href="../attributes.html">attribute</a> (built-in or user-defined)
-with colors or atomic radii.
+with colors, atomic radii, or worms, where a 
+<b><i>worm</i></b> is a specialized cartoon in which the radius varies to
+show the values of a numerical <a href="../attributes.html">attribute</a>.
 <b>Render by Attribute</b> is the graphical interface to the commands
-<a href="../commands/color.html#byattribute"><b>color byattribute</b></a>
-and <a href="../commands/size.html#byattribute"><b>size byattribute</b></a>.
+<a href="../commands/color.html#byattribute"><b>color byattribute</b></a>,
+<a href="../commands/size.html#byattribute"><b>size byattribute</b></a>, and
+<a href="../commands/cartoon.html#byattribute"><b>cartoon byattribute</b></a>.
 See also: 
 <a href="surfacecolor.html"><b>Surface Color</b></a>,
 <a href="colorkey.html"><b>Color Key</b></a>, the <b>color bfactor</b> icon
@@ -51,6 +54,8 @@ and manipulated like other panels (<a href="../window.html#panels">more...</a>).
 <a href="#colors">Colors</a>
 <br>
 <a href="#radii">Radii</a>
+<br>
+<a href="#worms">Worms</a>
 </b></blockquote>
 
 <a name="choosemodel"></a>
@@ -128,8 +133,9 @@ values in the <a href="#choosemodel">chosen</a> models.
 Each <b><i>threshold</i></b> or
 vertical bar on the histogram has a <b>Value</b>
 (position on the histogram). It also has an associated
-<b>Color</b> (if the <b>Colors</b> tab is chosen) or <b>Atom radius</b>
-(if the <b>Radii</b> tab is chosen).
+<b>Color</b> (if the <b>Colors</b> tab is chosen), <b>Atom radius</b>
+(if the <b>Radii</b> tab is chosen), or <b>Worm radius</b> (if the
+<b>Worms</b> tab is chosen).
 Together, the thresholds specify how the colors or radii should map to values.
 Clicking on a threshold shows its <b>Value</b> in black.
 Clicking elsewhere within the histogram shows the <b>Value</b>
@@ -236,7 +242,38 @@ no-value atoms, <i>etc.</i> will retain their current VDW radii.
 <b>Affect no-value atoms</b> option (above) is used
 </ul>
 
+<a name="worms"></a>
+<p class="nav">
+[<a href="#top">back to top: Render by Attribute</a>]
+</p>
+<h3>Worms</h3>
+<p>
+The <b>Value</b> and <b>Worm radius</b>
+settings apply to the <a href="#histogram">threshold</a>
+most recently moved or clicked.
+Attribute values are mapped to worm radius on a per-residue basis,
+and only biopolymer chains can be shown as worms.
+If an <a href="../attributes.html#atom">atom attribute</a> is given,
+the average value over all atoms in a residue is used for that residue.
+</p>
+<ul>
+<li><b>No-value radius</b>
+&ndash; worm radius to use for biopolymer residues that have no value
+assigned for the chosen attribute
+</ul>
+<p>
+Once generated, the worm radii are remembered separately from the other
+cartoon parameters as a residue
+<a href="../attributes.html">attribute</a> named <b>worm_radius</b>.
+Clicking <b>Deworm</b> returns to the previous non-worm cartoon.
+The command
+<a href="../commands/cartoon.html#byattribute"><b>cartoon byattribute</b></a>
+(<a href="../commands/cartoon.html#worm"><b>worm</b></a>)
+can also be used to toggle back and forth between the previous non-worm 
+cartoon and a previously defined worm display.
+</p>
+
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-November 2023</address>
+March 2024</address>
 </body></html>
