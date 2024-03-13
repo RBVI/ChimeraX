@@ -195,10 +195,23 @@ class RenderByAttrTool(ToolInstance):
         for pos, radius in [(0.0, 0.25), (1.0, 2.0)]:
             self.render_worm_markers.append(((pos, 0.0), None)).radius = radius
         self.render_markers[self.RENDER_WORMS] = self.render_worm_markers
-        worms_render_tab = self.worms_options = OptionsPanel(sorting=False, scrolled=False,
-            contents_margins=(0,0,0,0))
+        worms_render_tab = QWidget()
+        worms_render_tab_layout = wrt_layout = QVBoxLayout()
+        worms_render_tab.setLayout(wrt_layout)
+        self.worms_options = OptionsPanel(sorting=False, scrolled=False, contents_margins=(0,0,0,0))
+        wrt_layout.addWidget(self.worms_options, alignment=Qt.AlignCenter)
         self.worm_nv_radius = FloatOption("No-value radius", 0.1, None, min="positive")
         self.worms_options.add_option(self.worm_nv_radius)
+        self.deworm_button = deworm_button = QPushButton("Deworm")
+        def deworm_cb(*args, self=self):
+            models = self.model_list.value
+            if not models:
+                raise UserError("No models chosen for deworming")
+            self._cur_attr_info().render(self.session, None, models, "worm", (False, []),
+                self.sel_restrict.isChecked())
+            self.deworm_button.setEnabled(False)
+        deworm_button.clicked.connect(deworm_cb)
+        wrt_layout.addWidget(deworm_button, alignment=Qt.AlignHCenter|Qt.AlignBottom, stretch=1)
         worm_label = QLabel("Worm radius")
         rh.add_custom_widget(worm_label, left_side=False, alignment=Qt.AlignRight)
         self.worm_value_entry = QLineEdit()
@@ -213,6 +226,7 @@ class RenderByAttrTool(ToolInstance):
 
         self.sel_restrict = QCheckBox()
         self.sel_restrict.setChecked(False)
+        self.sel_restrict.toggled.connect(lambda *args, self=self: self._update_deworm_button())
         render_tab_layout.addWidget(self.sel_restrict, alignment=Qt.AlignCenter)
         self._render_mode_changed(self.render_type_widget.currentIndex())
         self.mode_widget.addTab(render_tab, "Render")
@@ -275,7 +289,7 @@ class RenderByAttrTool(ToolInstance):
                 raise UserError("No coloring values specified")
             params = (targets, vals)
         elif method == "radius":
-            if not self.radii_affect_nv.widget.isHidden() and self.radii_affect_nv.value:
+            if self.radii_affect_nv.widget.isEnabled() and self.radii_affect_nv.value:
                 vals.append((None, self.radii_nv_radius.value))
             if not vals:
                 raise UserError("No radius values specified")
@@ -283,14 +297,17 @@ class RenderByAttrTool(ToolInstance):
         elif method == "worm":
             if not vals:
                 raise UserError("No radius values specified")
-            vals.append((None, self.worm_nv_radius.value))
-            params = vals
+            if self.worm_nv_radius.widget.isEnabled():
+                vals.append((None, self.worm_nv_radius.value))
+            params = (True, vals)
         else:
             raise NotImplementedError("Don't know how to get parameters for '%s' method" % tab_text)
         self._cur_attr_info().render(self.session, attr_name, models, method, params,
             self.sel_restrict.isChecked())
         if not apply:
             self.delete()
+        elif method == "worm":
+            self._update_deworm_button()
 
     def _attr_names_of_type(self, *types):
         attr_info = self._cur_attr_info()
@@ -332,6 +349,7 @@ class RenderByAttrTool(ToolInstance):
                 self._update_histogram(attr_info)
         else:
             self._new_attr()
+        self._update_deworm_button()
 
     def _new_attr(self, attr_name_info=None):
         enabled = True
@@ -421,6 +439,17 @@ class RenderByAttrTool(ToolInstance):
         for attr_name in attr_names:
             menu.addAction(attr_name)
 
+    def _update_deworm_button(self):
+        models = self.model_list.value
+        if models and self.sel_restrict.isChecked():
+            sel_models = set(self.session.selection.models())
+            models = [m for m in models if m in sel_models]
+        if models:
+            enable = self._cur_attr_info().deworm_applicable(models)
+        else:
+            enable = False
+        self.deworm_button.setEnabled(enable)
+
     def _update_histogram(self, attr_name):
         attr_info = self._cur_attr_info()
         values, any_None = attr_info.values(attr_name, self.model_list.value)
@@ -439,8 +468,9 @@ class RenderByAttrTool(ToolInstance):
                 # number of bins based on histogram pixel width...
                 self.render_histogram.data_source = (min_val, max_val, lambda num_bins:
                     numpy.histogram(values, bins=num_bins, range=(min_val, max_val), density=False)[0])
-        self.radii_options.set_option_shown(self.radii_affect_nv, any_None)
-        self.radii_options.set_option_shown(self.radii_nv_radius, any_None)
+        self.radii_options.set_option_enabled(self.radii_affect_nv, not any_None)
+        self.radii_options.set_option_enabled(self.radii_nv_radius, not any_None)
+        self.worms_options.set_option_enabled(self.worm_nv_radius, not any_None)
 
     def _update_palettes(self):
         if type(self.render_histogram.data_source) == str:
