@@ -2759,7 +2759,7 @@ class RenderingOptions:
     Whether image rendering blends images on gpu instead of cpu.
   projection_mode : 'auto'
     Determines what slices are used for image rendering.
-  projection_modes : ('auto', '2d-xyz', '2d-x', '2d-y', '2d-z', '3d')
+  projection_modes : ('auto', '2d-xyz', '2d-x', '2d-y', '2d-z', '3d', 'vr')
     Allowed projection modes.  Read only.
   plane_spacing : 'min'
     Spacing of slices for image style rendering. Values "min", "max", "mean" use
@@ -2793,6 +2793,9 @@ class RenderingOptions:
   two_sided_lighting : True
     Whether the interior of surfaces and meshes have directional lighting.
     Not implemented, always uses two-sided.
+  use_volume_raycasting : False
+    Use slow raycasting for volume rendering instead of fast texture mapping. Not recommended for VR.
+    Implies 'vr' projection mode, full region on GPU, color mapping on GPU, and lighting.
   flip_normals : False
     Whether negative map values have surface normals flipped.  Not implemented.
     This only has an effect when two sided lighting is false, and that mode is not implemented.
@@ -2859,8 +2862,8 @@ class RenderingOptions:
     self.colormap_extend_left = False
     self.colormap_extend_right = True
     self.blend_on_gpu = False	      # image rendering blend images on gpu instead of cpu
-    self.projection_modes = ('auto', '2d-xyz', '2d-x', '2d-y', '2d-z', '3d')
-    self.projection_mode = 'auto'           # auto, 2d-xyz, 2d-x, 2d-y, 2d-z, 3d
+    self.projection_modes = ('auto', '2d-xyz', '2d-x', '2d-y', '2d-z', '3d', 'vr')
+    self.projection_mode = 'auto'           # auto, 2d-xyz, 2d-x, 2d-y, 2d-z, 3d, vr
     self.plane_spacing = 'min'		    # "min", "max", "mean" or distance value
     self.full_region_on_gpu = False	    # for image rendering for fast cropping
     self.bt_correction = False              # brightness and transparency
@@ -2873,6 +2876,7 @@ class RenderingOptions:
     self.smooth_lines = False
     self.mesh_lighting = True
     self.two_sided_lighting = True
+    self.use_volume_raycasting = False
     self.flip_normals = False
     self.subdivide_surface = False
     self.subdivision_levels = 1

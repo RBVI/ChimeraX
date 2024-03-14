@@ -129,241 +129,403 @@ void main (void)
 */
 
 #if defined(USE_LIGHTING) || defined(USE_DEPTH_CUE)
-in vec3 v;
+  in vec3 v;
 #endif
 
 #ifdef USE_LIGHTING
 
-layout(std140) uniform lighting_block 
-{
-  vec3 key_light_direction;
-  vec3 key_light_diffuse_color;
-  vec3 key_light_specular_color;
-  float key_light_specular_exponent;
-  vec3 fill_light_direction;
-  vec3 fill_light_diffuse_color;
-  vec3 ambient_color;
-};
+  layout(std140) uniform lighting_block 
+  {
+    vec3 key_light_direction;
+    vec3 key_light_diffuse_color;
+    vec3 key_light_specular_color;
+    float key_light_specular_exponent;
+    vec3 fill_light_direction;
+    vec3 fill_light_diffuse_color;
+    vec3 ambient_color;
+  };
 
-#ifdef USE_LIGHTING_NORMALS
-in vec3 N;
-#endif
+  #ifdef USE_LIGHTING_NORMALS
+    in vec3 N;
+  #endif
 
-#ifdef USE_STEREO_360
-in vec3 vshadow;
-#endif
+  #ifdef USE_STEREO_360
+    in vec3 vshadow;
+  #endif
 
-#ifdef USE_SHADOW
-in vec3 shadow_tex_coord;
-uniform sampler2DShadow shadow_map;
-#endif
+  #ifdef USE_SHADOW
+    in vec3 shadow_tex_coord;
+    uniform sampler2DShadow shadow_map;
+  #endif
 
-#ifdef USE_MULTISHADOW
-// in vec3 vscene;
-// in vec3 nscene;
-uniform sampler2DShadow multishadow_map;
-layout(std140) uniform shadow_matrix_block 
-{
-  mat4 shadow_transforms[MAX_SHADOWS];
-};
-uniform	int shadow_count;
-uniform float shadow_depth;
-#endif
+  #ifdef USE_MULTISHADOW
+    // in vec3 vscene;
+    // in vec3 nscene;
+    uniform sampler2DShadow multishadow_map;
+    layout(std140) uniform shadow_matrix_block 
+    {
+      mat4 shadow_transforms[MAX_SHADOWS];
+    };
+    uniform	int shadow_count;
+    uniform float shadow_depth;
+  #endif
 
 #endif  // end USE_LIGHTING
 
 #ifdef USE_DEPTH_CUE
-uniform vec3 depth_cue_color;
-uniform vec2 depth_cue_range;	// start and end camera z values
+  uniform vec3 depth_cue_color;
+  uniform vec2 depth_cue_range;	// start and end camera z values
 #endif
 
 #ifdef USE_VERTEX_COLORS
-in vec4 color;
+  in vec4 color;
 #else
-uniform vec4 color;
+  uniform vec4 color;
 #endif
 
 #ifdef USE_TEXTURE_2D
-in vec2 tex_coord_2d;
-uniform sampler2D tex2d;
+  in vec2 tex_coord_2d;
+  uniform sampler2D tex2d;
 #endif
 
 #ifdef USE_TEXTURE_3D
-in vec3 tex_coord_3d;
-uniform sampler3D tex3d;
+  in vec3 tex_coord_3d;
+  uniform sampler3D tex3d;
+#endif
+
+#ifdef USE_VOLUME_RAYCASTING
+  uniform vec3 step_size;
+  uniform vec3 camera_pos;
+  uniform float camera_fov;
+  uniform vec2 window_size;
+  uniform mat4 view_matrix;
+  uniform mat4 model_matrix;
+  uniform vec3 bbox_min;
+  uniform vec3 bbox_max;
 #endif
 
 #ifdef USE_COLORMAP
-uniform vec2 colormap_range;		// offset and scale
-uniform sampler1D colormap;
+  uniform vec2 colormap_range;		// offset and scale
+  uniform sampler1D colormap;
 #endif
 
 #ifdef USE_DEPTH_TEXTURE
-uniform vec2 tex_depth_projection;	// near, far/(far-near)
-uniform vec3 tex_depth_scale;		// tex coord xscale, yscale and value zscale
-uniform sampler2D tex_depth_2d;
+  uniform vec2 tex_depth_projection;	// near, far/(far-near)
+  uniform vec3 tex_depth_scale;		// tex coord xscale, yscale and value zscale
+  uniform sampler2D tex_depth_2d;
 #endif
 
 #ifdef USE_TEXTURE_CUBEMAP
-in vec3 tex_coord_cubemap;
-uniform samplerCube texcube;
+  in vec3 tex_coord_cubemap;
+  uniform samplerCube texcube;
 #endif
 
 #ifdef USE_TEXTURE_3D_AMBIENT
-in vec3 ambient_tex_coord;
-uniform sampler3D tex3d;
+  in vec3 ambient_tex_coord;
+  uniform sampler3D tex3d;
 #endif
 
 out vec4 frag_color;
 
+#ifdef USE_VOLUME_RAYCASTING
+  vec3 normal_for_texcoord(sampler3D tex, vec3 tex_coord) {
+    vec3 x_step = vec3(step_size.x, 0, 0);
+    vec3 y_step = vec3(0, step_size.y, 0);
+    vec3 z_step = vec3(0, 0, step_size.z);
+    float dx = texture(tex, tex_coord + x_step).r - texture(tex, tex_coord - x_step).r;
+    float dy = texture(tex, tex_coord + y_step).r - texture(tex, tex_coord - y_step).r;
+    float dz = texture(tex, tex_coord + z_step).r - texture(tex, tex_coord - z_step).r;
+    float ix = pow(dx / 2, 2);
+    float iy = pow(dy / 2, 2);
+    float iz = pow(dz / 2, 2);
+    return vec3(ix, iy, iz);
+  }
+
+  vec3 gradient_for_texcoord(sampler3D tex, vec3 tex_coord) {
+    return vec3(0);
+  }
+
+  //void ray_volume_intersection(Ray ray, out float in_coordinate, out float out_coordinate) {
+  //  vec3 direction_inv = 1.0 / ray.direction;
+  //  vec3 t_top = direction_inv * (tex_max - ray.origin);
+  //  vec3 t_bottom = direction_inv * (tex_min - ray.origin);
+  //  vec3 t_min = min(t_top, t_bottom);
+  //  vec3 t_max = min(t_top, t_bottom);
+  //  vec2 t = max(t_min.xx, t_min.yz);
+  //  in_coordinate = max(0.0, max(t.x, t.y));
+  //  t = min(t_min.xx, t_min.yz);
+  //  out_coordinate = min(t.x, t.y);
+  //}
+#endif
+
 void main (void)
 {
-#ifdef USE_DEPTH_TEXTURE
-  // Adjust depth of each fragment in rendering a texture.
-  float xscale = tex_depth_scale.x, yscale = tex_depth_scale.y, dscale = tex_depth_scale.z;
-  float zt = texture(tex_depth_2d, vec2(0.5+xscale*(tex_coord_2d.x-0.5), 0.5+yscale*(tex_coord_2d.y-0.5))).x;
-  zt = (zt == 0 ? 1 : zt);  // Depth 0 means unknown depth, change to maximum depth
-  float znear = tex_depth_projection.x, fdfmn = tex_depth_projection.y;
-  float zs = max(znear, zt*dscale);
-  gl_FragDepth = min(.99999, fdfmn * (zs - znear) / zs);
-#endif
-
-#ifdef USE_TEXTURE_2D
-  #ifdef USE_COLORMAP
-  float tvalue = (texture(tex2d, tex_coord_2d).r - colormap_range.x) * colormap_range.y;
-  vec4 fcolor = texture(colormap, tvalue) * color;
-  #else
-  vec4 fcolor = texture(tex2d, tex_coord_2d) * color;
-  #endif
-#else
-  #ifdef USE_TEXTURE_3D
+#ifdef USE_VOLUME_RAYCASTING
+  const vec3 tex_min = vec3(0.0, 0.0, 0.0);
+  const vec3 tex_max = vec3(1.0, 1.0, 1.0);
+  #ifdef USE_TEXTURE_2D
     #ifdef USE_COLORMAP
-  float tvalue = (texture(tex3d, tex_coord_3d).r - colormap_range.x) * colormap_range.y;
-  vec4 fcolor = texture(colormap, tvalue) * color;
+      float tvalue = (texture(tex2d, tex_coord_2d).r - colormap_range.x) * colormap_range.y;
+      vec4 fcolor = texture(colormap, tvalue) * color;
     #else
-  vec4 fcolor = texture(tex3d, tex_coord_3d) * color;
+      vec4 fcolor = texture(tex2d, tex_coord_2d) * color;
     #endif
   #else
-    #ifdef USE_TEXTURE_CUBEMAP
-  vec4 fcolor = texture(texcube, tex_coord_cubemap) * color;
-    #else
-      #ifdef USE_ALL_WHITE
-  vec4 fcolor = vec4(1,1,1,1);
+    #ifdef USE_TEXTURE_3D
+      #ifdef USE_VOLUME_RAYCASTING
+      // Accumulate color and opacity along the ray.
+      #endif
+      #ifdef USE_COLORMAP
+        float tvalue = (texture(tex3d, tex_coord_3d).r - colormap_range.x) * colormap_range.y;
+        vec4 fcolor = texture(colormap, tvalue) * color;
       #else
-  vec4 fcolor = color;
+        vec4 fcolor = texture(tex3d, tex_coord_3d) * color;
       #endif
     #endif
   #endif
-#endif
+  #ifdef USE_LIGHTING
+  
+  #ifdef USE_LIGHTING_NORMALS
+    // Unit normal, with two-sided lighting.
+    vec3 N1 = normalize(N) * (gl_FrontFacing ? 1.0 : -1.0);
+    // vec3 N1 = normalize(N);  // single-sided lighting
+  
+    // Unit vector from camera to surface point.
+    vec3 v1 = normalize(v);
+  
+    float key_factor = max(-dot(N1,key_light_direction),0.0);
+    float fill_factor = max(-dot(N1,fill_light_direction),0.0);
+    vec3 R = normalize(reflect(key_light_direction,N1)); 
+    float specular_factor = pow(max(-dot(R,v1),0.0), key_light_specular_exponent);
+  #else
+    float key_factor = 1;
+    float fill_factor = 1;
+    float specular_factor = 0;
+  #endif
 
-#ifdef USE_TRANSPARENT_ONLY
-  if (fcolor.a >= 0.99)
-    discard;
-#endif
+  #ifdef USE_SHADOW
+    float shadow = texture(shadow_map, shadow_tex_coord);
+  #else
+    float shadow = 1;
+  #endif
+ 
+    // diffuse color, radiated equally in all directions,
+    //   strength based on incoming light direction and surface normal.
+    vec3 Idiff = fcolor.rgb * (key_light_diffuse_color * key_factor * shadow
+                               + fill_light_diffuse_color * fill_factor);
+  
+    // specular color, reflection of incoming light towards the camera.
+    vec3 Ispec = key_light_specular_color * specular_factor * shadow;
+  
+ 
+    // ambient color, uniform intensity light from all surfaces.
+    vec3 Iamb = fcolor.rgb * ambient_color;
+  
+    // total color
+    vec3 Ifrag = Iamb + Idiff + Ispec;
+ 
+  #else  // not USE_LIGHTING
+  
+    vec3 Ifrag = fcolor.rgb;
+  
+  #endif // end USE_LIGHTING
+  // float bbox_bottom = min(min(bbox_min.x, bbox_min.y), bbox_min.z);
+  // float bbox_top = max(max(bbox_max.x, bbox_max.y), bbox_max.z);
+  float aspect_ratio = window_size.x / window_size.y;
+  float focal_length = 1.0 / tan((3.14159 / 180) * camera_fov / 2.0);
+  vec3 ray_origin = camera_pos;
+  vec3 ray_direction
+  vec3 ssize = step_size;
+  ray_direction.xy = 2.0 * gl_FragCoord.xy / window_size - 1.0;
+  ray_direction.xy *= aspect_ratio;
+  ray_direction.z = -focal_length;
+  ray_direction = (vec4(ray_direction, 0.0) * view_matrix).xyz;
 
-#ifdef USE_OPAQUE_ONLY
-  if (fcolor.a < .99)
-    discard;
-#endif
+  vec3 direction_inv = 1.0 / ray_direction;
+  vec3 t_bottom = direction_inv * (bbox_min - ray_origin);
+  vec3 t_top = direction_inv * (bbox_max - ray_origin);
 
-#ifdef USE_ALPHA_DEPTH
-  gl_FragDepth = 0.99999 * fcolor.a; // Depth 1 is clipped.
-#endif
+  vec3 t_min = min(t_top, t_bottom);
+  vec3 t_max = max(t_top, t_bottom);
 
-#ifdef USE_LIGHTING
+  float t_0 = max(t_min.x, max(t_min.y, t_min.z));
+  float t_1 = min(t_max.x, min(t_max.y, t_max.z));
 
-#ifdef USE_LIGHTING_NORMALS
-  // Unit normal, with two-sided lighting.
-  vec3 N1 = normalize(N) * (gl_FrontFacing ? 1.0 : -1.0);
-  // vec3 N1 = normalize(N);  // single-sided lighting
+  vec3 ray_start = (ray_origin + ray_direction * t_0 - bbox_min) / (bbox_max - bbox_min);
+  vec3 ray_stop = (ray_origin + ray_direction * t_1 - bbox_min) /  (bbox_max - bbox_min);
 
-  // Unit vector from camera to surface point.
-  vec3 v1 = normalize(v);
-
-  float key_factor = max(-dot(N1,key_light_direction),0.0);
-  float fill_factor = max(-dot(N1,fill_light_direction),0.0);
-  vec3 R = normalize(reflect(key_light_direction,N1)); 
-  float specular_factor = pow(max(-dot(R,v1),0.0), key_light_specular_exponent);
-#else
-  float key_factor = 1;
-  float fill_factor = 1;
-  float specular_factor = 0;
-#endif
-
-#ifdef USE_SHADOW
-  float shadow = texture(shadow_map, shadow_tex_coord);
-#else
-  float shadow = 1;
-#endif
-
-  // diffuse color, radiated equally in all directions,
-  //   strength based on incoming light direction and surface normal.
-  vec3 Idiff = fcolor.rgb * (key_light_diffuse_color * key_factor * shadow
-                             + fill_light_diffuse_color * fill_factor);
-
-  // specular color, reflection of incoming light towards the camera.
-  vec3 Ispec = key_light_specular_color * specular_factor * shadow;
-
-#ifdef USE_MULTISHADOW
-
-  float mshadow = 0;
-  for (int i = 0 ; i < shadow_count ; ++i)
-    {
-      mat4 stf = shadow_transforms[i];
-      #ifdef USE_STEREO_360
-        vec3 shadow_tex_coord = (stf*vec4(vshadow,1)).stp;
-      #else
-        vec3 shadow_tex_coord = (stf*vec4(v,1)).stp;
-        // vec3 shadow_tex_coord = (stf*vec4(vscene,1)).stp;
-      #endif
-      #ifdef USE_LIGHTING_NORMALS
-        vec3 light_direction = shadow_depth * vec3(stf[0][2], stf[1][2], stf[2][2]);
-        float diffuse = max(-dot(N1,light_direction),0.0);
-	// float diffuse = max(-dot(nscene,light_direction),0.0);
-      #else
-        float diffuse = 0.25;
-      #endif
-      mshadow += diffuse * texture(multishadow_map, shadow_tex_coord);
+  vec3 ray = ray_stop - ray_start;
+  float ray_length = length(ray);
+  vec3 step_vector = step_size * ray / ray_length;
+  float step_length = length(step_vector);
+  vec3 position = ray_start;
+  #ifdef USE_DEPTH_CUE
+    float d = -v.z;	// Distance from eye to fragment.
+    float dim = (depth_cue_range.y - d) / (depth_cue_range.y - depth_cue_range.x);
+    Ifrag = mix(depth_cue_color, Ifrag, clamp(dim,0.0,1.0));
+  #endif
+  //// Raymarch through the volume
+  frag_color = vec4(0, 0, 0, 0);
+  float maximum_intensity = 0.0;
+  while(ray_length > 0 && frag_color.a < 1.0) {
+    float tvalue = (texture(tex3d, position)).r; //- colormap_range.x) * colormap_range.y;
+    if (tvalue > maximum_intensity) {
+      maximum_intensity = tvalue;
     }
-  mshadow /= 0.25*shadow_count;
-  vec3 Iamb = fcolor.rgb * ambient_color * mshadow;
-
+    //vec4 fcolor = texture(colormap, tvalue) * color;
+    //frag_color.rgb = fcolor.a * fcolor.rgb + (1 - fcolor.a) * frag_color.a * frag_color.rgb;
+    ray_length -= step_length;
+    position += step_vector;
+  }
+  frag_color = vec4(1, 1, 1, maximum_intensity);
+}
 #else
-
-  // ambient color, uniform intensity light from all surfaces.
-  vec3 Iamb = fcolor.rgb * ambient_color;
-
-#endif
-
-  // total color
-  vec3 Ifrag = Iamb + Idiff + Ispec;
-
-#ifdef USE_TEXTURE_3D_AMBIENT
-  Ifrag *= texture(tex3d, ambient_tex_coord).r;
-#endif
-
-#else  // not USE_LIGHTING
-
-  vec3 Ifrag = fcolor.rgb;
-
-#endif // end USE_LIGHTING
-
-#ifdef USE_DEPTH_CUE
-  float d = -v.z;	// Distance from eye to fragment.
-  float dim = (depth_cue_range.y - d) / (depth_cue_range.y - depth_cue_range.x);
-  Ifrag = mix(depth_cue_color, Ifrag, clamp(dim,0.0,1.0));
-#endif
-
-  // transparency
-  float a = fcolor.a;
-#ifdef USE_LIGHTING
-#ifdef USE_LIGHTING_NORMALS
-  a = (a >= 1 ? 1.0 : 1.0 - pow(max(1.0-a,0.0), 1.0/max(abs(dot(v1,N1)),0.01)));
-#endif
-#endif
-
+  #ifdef USE_DEPTH_TEXTURE
+    // Adjust depth of each fragment in rendering a texture.
+    float xscale = tex_depth_scale.x, yscale = tex_depth_scale.y, dscale = tex_depth_scale.z;
+    float zt = texture(tex_depth_2d, vec2(0.5+xscale*(tex_coord_2d.x-0.5), 0.5+yscale*(tex_coord_2d.y-0.5))).x;
+    zt = (zt == 0 ? 1 : zt);  // Depth 0 means unknown depth, change to maximum depth
+    float znear = tex_depth_projection.x, fdfmn = tex_depth_projection.y;
+    float zs = max(znear, zt*dscale);
+    gl_FragDepth = min(.99999, fdfmn * (zs - znear) / zs);
+  #endif
+  
+  #ifdef USE_TEXTURE_2D
+    #ifdef USE_COLORMAP
+      float tvalue = (texture(tex2d, tex_coord_2d).r - colormap_range.x) * colormap_range.y;
+      vec4 fcolor = texture(colormap, tvalue) * color;
+    #else
+      vec4 fcolor = texture(tex2d, tex_coord_2d) * color;
+    #endif
+  #else
+    #ifdef USE_TEXTURE_3D
+      #ifdef USE_COLORMAP
+        float tvalue = (texture(tex3d, tex_coord_3d).r - colormap_range.x) * colormap_range.y;
+        vec4 fcolor = texture(colormap, tvalue) * color;
+      #else
+        vec4 fcolor = texture(tex3d, tex_coord_3d) * color;
+      #endif
+    #else
+      #ifdef USE_TEXTURE_CUBEMAP
+        vec4 fcolor = texture(texcube, tex_coord_cubemap) * color;
+      #else
+        #ifdef USE_ALL_WHITE
+          vec4 fcolor = vec4(1,1,1,1);
+        #else
+          vec4 fcolor = color;
+        #endif
+      #endif
+    #endif
+  #endif
+  
+  #ifdef USE_TRANSPARENT_ONLY
+    if (fcolor.a >= 0.99)
+      discard;
+  #endif
+  
+  #ifdef USE_OPAQUE_ONLY
+    if (fcolor.a < .99)
+      discard;
+  #endif
+  
+  #ifdef USE_ALPHA_DEPTH
+    gl_FragDepth = 0.99999 * fcolor.a; // Depth 1 is clipped.
+  #endif
+  
+  #ifdef USE_LIGHTING
+  
+  #ifdef USE_LIGHTING_NORMALS
+    // Unit normal, with two-sided lighting.
+    vec3 N1 = normalize(N) * (gl_FrontFacing ? 1.0 : -1.0);
+    // vec3 N1 = normalize(N);  // single-sided lighting
+  
+    // Unit vector from camera to surface point.
+    vec3 v1 = normalize(v);
+  
+    float key_factor = max(-dot(N1,key_light_direction),0.0);
+    float fill_factor = max(-dot(N1,fill_light_direction),0.0);
+    vec3 R = normalize(reflect(key_light_direction,N1)); 
+    float specular_factor = pow(max(-dot(R,v1),0.0), key_light_specular_exponent);
+  #else
+    float key_factor = 1;
+    float fill_factor = 1;
+    float specular_factor = 0;
+  #endif
+  
+  #ifdef USE_SHADOW
+    float shadow = texture(shadow_map, shadow_tex_coord);
+  #else
+    float shadow = 1;
+  #endif
+  
+    // diffuse color, radiated equally in all directions,
+    //   strength based on incoming light direction and surface normal.
+    vec3 Idiff = fcolor.rgb * (key_light_diffuse_color * key_factor * shadow
+                               + fill_light_diffuse_color * fill_factor);
+  
+    // specular color, reflection of incoming light towards the camera.
+    vec3 Ispec = key_light_specular_color * specular_factor * shadow;
+  
+  #ifdef USE_MULTISHADOW
+  
+    float mshadow = 0;
+    for (int i = 0 ; i < shadow_count ; ++i)
+      {
+        mat4 stf = shadow_transforms[i];
+        #ifdef USE_STEREO_360
+          vec3 shadow_tex_coord = (stf*vec4(vshadow,1)).stp;
+        #else
+          vec3 shadow_tex_coord = (stf*vec4(v,1)).stp;
+          // vec3 shadow_tex_coord = (stf*vec4(vscene,1)).stp;
+        #endif
+        #ifdef USE_LIGHTING_NORMALS
+          vec3 light_direction = shadow_depth * vec3(stf[0][2], stf[1][2], stf[2][2]);
+          float diffuse = max(-dot(N1,light_direction),0.0);
+  	      // float diffuse = max(-dot(nscene,light_direction),0.0);
+        #else
+          float diffuse = 0.25;
+        #endif
+        mshadow += diffuse * texture(multishadow_map, shadow_tex_coord);
+      }
+    mshadow /= 0.25*shadow_count;
+    vec3 Iamb = fcolor.rgb * ambient_color * mshadow;
+  
+  #else
+  
+    // ambient color, uniform intensity light from all surfaces.
+    vec3 Iamb = fcolor.rgb * ambient_color;
+  
+  #endif
+  
+    // total color
+    vec3 Ifrag = Iamb + Idiff + Ispec;
+  
+  #ifdef USE_TEXTURE_3D_AMBIENT
+    Ifrag *= texture(tex3d, ambient_tex_coord).r;
+  #endif
+  
+  #else  // not USE_LIGHTING
+  
+    vec3 Ifrag = fcolor.rgb;
+  
+  #endif // end USE_LIGHTING
+  
+  #ifdef USE_DEPTH_CUE
+    float d = -v.z;	// Distance from eye to fragment.
+    float dim = (depth_cue_range.y - d) / (depth_cue_range.y - depth_cue_range.x);
+    Ifrag = mix(depth_cue_color, Ifrag, clamp(dim,0.0,1.0));
+  #endif
+  
+    // transparency
+    float a = fcolor.a;
+  #ifdef USE_LIGHTING
+    #ifdef USE_LIGHTING_NORMALS
+      a = (a >= 1 ? 1.0 : 1.0 - pow(max(1.0-a,0.0), 1.0/max(abs(dot(v1,N1)),0.01)));
+    #endif
+  #endif
+  
   // final color
   frag_color = vec4(Ifrag, a);
 }
-
+#endif
 #endif

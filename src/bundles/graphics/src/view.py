@@ -22,21 +22,25 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-'''
+"""
 View
 ====
-'''
+"""
+
+from chimerax.graphics.camera import MonoCamera
+
 
 class View:
-    '''
+    """
     A View is the graphics windows that shows 3-dimensional drawings.
     It manages the camera and renders the drawing when needed.
-    '''
-    def __init__(self, drawing, *, window_size = (256,256), trigger_set = None):
+    """
+
+    def __init__(self, drawing, *, window_size=(256, 256), trigger_set=None):
 
         self.triggers = trigger_set
         self.drawing = drawing
-        self.window_size = window_size		# pixels
+        self.window_size = window_size  # pixels
         self._render = None
         self._opengl_initialized = False
 
@@ -58,16 +62,17 @@ class View:
     def set_default_parameters(self):
         # Lights and material properties
         from .opengl import Lighting, Material, Silhouette
+
         self.lighting = Lighting()
         self.material = Material()
-        if hasattr(self, '_silhouette'):
+        if hasattr(self, "_silhouette"):
             self._silhouette.delete()
         self._silhouette = Silhouette()
 
         # Red, green, blue, opacity, 0-1 range.
         self._background_rgba = (0, 0, 0, 0)
         self._highlight_color = (0, 1, 0, 1)
-        self._highlight_width = 1	# pixels
+        self._highlight_width = 1  # pixels
 
         # Set silhouette and highlight thickness for retina displays
         r = self._render
@@ -78,21 +83,25 @@ class View:
 
         # Create camera
         from .camera import MonoCamera
+
         self._camera = MonoCamera()
         from chimerax.geometry import Place
-        self._view_matrix = Place()		# Temporary used during rendering
+
+        self._view_matrix = Place()  # Temporary used during rendering
 
         # Clip planes
         from .clipping import ClipPlanes
+
         self.clip_planes = ClipPlanes()
-        self._near_far_pad = 0.01		# Extra near-far clip plane spacing.
-        self._min_near_fraction = 0.001		# Minimum near distance, fraction of depth
+        self._near_far_pad = 0.01  # Extra near-far clip plane spacing.
+        self._min_near_fraction = 0.001  # Minimum near distance, fraction of depth
 
         # Center of rotation
         from numpy import array, float32
+
         self._center_of_rotation = array((0, 0, 0), float32)
         self._update_center_of_rotation = False
-        self._center_of_rotation_method = 'front center'
+        self._center_of_rotation_method = "front center"
 
     def delete(self):
         r = self._render
@@ -103,11 +112,12 @@ class View:
     @property
     def render(self):
         return self._render
-    
+
     def initialize_rendering(self, opengl_context):
         r = self._render
         if r is None:
             from .opengl import Render
+
             self._render = r = Render(opengl_context)
             r.lighting = self._lighting
             r.material = self._material
@@ -135,7 +145,7 @@ class View:
         if self._opengl_initialized:
             return
         self._opengl_initialized = True
-        
+
         r = self._render
         r.check_opengl_version()
         r.set_background_color(self.background_color)
@@ -145,29 +155,33 @@ class View:
 
     def _get_camera(self):
         return self._camera
+
     def _set_camera(self, camera):
         c = self._camera
         c.clear_special_render_modes(self._render)
         self._camera = camera
         camera.set_special_render_modes(self._render)
         self.redraw_needed = True
-    camera = property(_get_camera, _set_camera)
-    '''The Camera controlling the vantage shown in the graphics window.'''
 
-    def draw(self, camera = None, drawings = None,
-             check_for_changes = True, swap_buffers = True):
-        '''
+    camera = property(_get_camera, _set_camera)
+    """The Camera controlling the vantage shown in the graphics window."""
+
+    def draw(
+        self, camera=None, drawings=None, check_for_changes=True, swap_buffers=True
+    ):
+        """
         Draw the scene.
-        '''
+        """
         if not self._use_opengl():
-            return	# OpenGL not available
+            return  # OpenGL not available
 
         # OpenGL call list code is experimental study for running opengl in separate thread.
         use_calllist = False
         from . import gllist
+
         if use_calllist and gllist.replay_opengl(self, drawings, camera, swap_buffers):
             return
-        
+
         if check_for_changes:
             self.check_for_drawing_change()
 
@@ -177,7 +191,7 @@ class View:
         r = self._render
         r.set_frame_number(self.frame_number)
         r.set_background_color(self.background_color)
-        r.update_viewport()	# Need this when window resized.
+        r.update_viewport()  # Need this when window resized.
 
         if self.update_lighting:
             self.update_lighting = False
@@ -190,13 +204,16 @@ class View:
         camera.combine_rendered_camera_views(r)
 
         if self._overlays:
-            odrawings = sum([o.all_drawings(displayed_only = True) for o in self._overlays], [])
+            odrawings = sum(
+                [o.all_drawings(displayed_only=True) for o in self._overlays], []
+            )
             from .drawing import draw_overlays
+
             draw_overlays(odrawings, r)
 
         if use_calllist:
             gllist.call_opengl_list(self, trace=True)
-        
+
         if swap_buffers:
             if camera.do_swap_buffers():
                 r.swap_buffers()
@@ -207,25 +224,39 @@ class View:
 
         r = self._render
         self.clip_planes.enable_clip_plane_graphics(r, camera.position)
+        if isinstance(self.camera, MonoCamera):
+            r._set_camera_params(camera.position.origin(), camera.field_of_view)
         mdraw = [self.drawing] if drawings is None else drawings
-        (opaque_drawings, transparent_drawings,
-         highlight_drawings, on_top_drawings) = self._drawings_by_pass(mdraw)
-        no_drawings = (len(opaque_drawings) == 0 and
-                       len(transparent_drawings) == 0 and
-                       len(highlight_drawings) == 0 and
-                       len(on_top_drawings) == 0)
+        (opaque_drawings, transparent_drawings, highlight_drawings, on_top_drawings) = (
+            self._drawings_by_pass(mdraw)
+        )
+        no_drawings = (
+            len(opaque_drawings) == 0
+            and len(transparent_drawings) == 0
+            and len(highlight_drawings) == 0
+            and len(on_top_drawings) == 0
+        )
 
         offscreen = r.offscreen if r.offscreen.enabled else None
         if highlight_drawings and r.outline.offscreen_outline_needed:
             offscreen = r.offscreen
         if offscreen and r.current_framebuffer() is not r.default_framebuffer():
             offscreen = None  # Already using an offscreen framebuffer
-            
+
         silhouette = self.silhouette
 
-        shadow, multishadow = self._compute_shadowmaps(opaque_drawings, transparent_drawings, camera)
-            
-        from .drawing import draw_depth, draw_opaque, draw_transparent, draw_highlight_outline, draw_on_top
+        shadow, multishadow = self._compute_shadowmaps(
+            opaque_drawings, transparent_drawings, camera
+        )
+
+        from .drawing import (
+            draw_depth,
+            draw_opaque,
+            draw_transparent,
+            draw_highlight_outline,
+            draw_on_top,
+        )
+
         for vnum in range(camera.number_of_views()):
             camera.set_render_target(vnum, r)
             if no_drawings:
@@ -239,10 +270,11 @@ class View:
             self._update_projection(camera, vnum)
             if r.recording_opengl:
                 from . import gllist
+
                 cp = gllist.ViewMatrixFunc(self, vnum)
             else:
                 cp = camera.get_position(vnum)
-            self._view_matrix = vm = cp.inverse(is_orthonormal = True)
+            self._view_matrix = vm = cp.inverse(is_orthonormal=True)
             r.set_view_matrix(vm)
             if shadow:
                 r.shadow.set_shadow_view(cp)
@@ -257,7 +289,7 @@ class View:
             if opaque_drawings:
                 draw_opaque(r, opaque_drawings)
             if highlight_drawings:
-                r.outline.set_outline_mask()       # copy depth to outline framebuffer
+                r.outline.set_outline_mask()  # copy depth to outline framebuffer
             if transparent_drawings:
                 if silhouette.enabled:
                     # Draw opaque object silhouettes behind transparent surfaces
@@ -269,47 +301,57 @@ class View:
             if silhouette.enabled:
                 silhouette.finish_silhouette_drawing(r)
             if highlight_drawings:
-                draw_highlight_outline(r, highlight_drawings, color = self._highlight_color,
-                                       pixel_width = self._highlight_width)
+                draw_highlight_outline(
+                    r,
+                    highlight_drawings,
+                    color=self._highlight_color,
+                    pixel_width=self._highlight_width,
+                )
             if on_top_drawings:
                 draw_on_top(r, on_top_drawings)
             if offscreen:
                 offscreen.finish(r)
 
-                
     def _drawings_by_pass(self, drawings):
         pass_drawings = {}
         for d in drawings:
             d.drawings_for_each_pass(pass_drawings)
         from .drawing import Drawing
-        passes = (Drawing.OPAQUE_DRAW_PASS,
-                  Drawing.TRANSPARENT_DRAW_PASS,
-                  Drawing.HIGHLIGHT_DRAW_PASS,
-                  Drawing.LAST_DRAW_PASS)
+
+        passes = (
+            Drawing.OPAQUE_DRAW_PASS,
+            Drawing.TRANSPARENT_DRAW_PASS,
+            Drawing.HIGHLIGHT_DRAW_PASS,
+            Drawing.LAST_DRAW_PASS,
+        )
         return [pass_drawings.get(draw_pass, []) for draw_pass in passes]
 
     def check_for_drawing_change(self):
         trig = self.triggers
         if trig:
-            trig.activate_trigger('graphics update', self)
+            trig.activate_trigger("graphics update", self)
 
         c = self.camera
         cp = self.clip_planes
         dm = self._drawing_manager
         draw = self.redraw_needed or c.redraw_needed or cp.changed or dm.redraw_needed
-        self._cam_only_change = c.redraw_needed and not (self.redraw_needed or cp.changed or dm.redraw_needed or self.update_lighting)
+        self._cam_only_change = c.redraw_needed and not (
+            self.redraw_needed or cp.changed or dm.redraw_needed or self.update_lighting
+        )
         if not draw:
             return False
 
         if dm.shape_changed:
             if trig:
-                trig.activate_trigger('shape changed', self)	# Used for updating pseudobond graphics
+                trig.activate_trigger(
+                    "shape changed", self
+                )  # Used for updating pseudobond graphics
 
         corm = self.center_of_rotation_method
-        if corm == 'front center':
+        if corm == "front center":
             if dm.shape_changed or cp.changed:
                 self._update_center_of_rotation = True
-        elif corm == 'center of view' and cp.changed:
+        elif corm == "center of view" and cp.changed:
             self._update_center_of_rotation = True
 
         if dm.shadows_changed() or cp.changed:
@@ -327,13 +369,16 @@ class View:
 
     def draw_xor_rectangle(self, x1, y1, x2, y2, color):
         if not self._use_opengl():
-            return	# OpenGL not available
+            return  # OpenGL not available
         if not self.render.front_buffer_valid:
-            self.draw(check_for_changes = False)
+            self.draw(check_for_changes=False)
             self._use_opengl()
-        d = getattr(self, '_rectangle_drawing', None)
+        d = getattr(self, "_rectangle_drawing", None)
         from .drawing import draw_xor_rectangle
-        self._rectangle_drawing = draw_xor_rectangle(self._render, x1, y1, x2, y2, color, d)
+
+        self._rectangle_drawing = draw_xor_rectangle(
+            self._render, x1, y1, x2, y2, color, d
+        )
 
     @property
     def shape_changed(self):
@@ -342,6 +387,7 @@ class View:
     @property
     def recalculate_clip_caps(self):
         return self._drawing_manager.recalculate_clip_caps
+
     def recalculated_clip_caps(self):
         self._drawing_manager.recalculate_clip_caps = False
 
@@ -353,8 +399,9 @@ class View:
 
     def set_background_color(self, rgba):
         import numpy
+
         color = numpy.array(rgba, dtype=numpy.float32)
-        color[3] = 0	# For transparent background images.
+        color[3] = 0  # For transparent background images.
         lp = self._lighting
         if tuple(lp.depth_cue_color) == tuple(self._background_rgba[:3]):
             # Make depth cue color follow background color if they are the same.
@@ -365,25 +412,31 @@ class View:
         if self.triggers:
             from chimerax.core.core_settings import settings
             from chimerax.core.colors import Color
+
             settings.background_color = Color(rgba=color)
+
     background_color = property(get_background_color, set_background_color)
-    '''Background color as R, G, B, A values in 0-1 range.'''
+    """Background color as R, G, B, A values in 0-1 range."""
 
     def _get_highlight_color(self):
         return self._highlight_color
+
     def _set_highlight_color(self, rgba):
         self._highlight_color = rgba
         self.redraw_needed = True
+
     highlight_color = property(_get_highlight_color, _set_highlight_color)
-    '''Highlight outline color as R, G, B, A values in 0-1 range.'''
+    """Highlight outline color as R, G, B, A values in 0-1 range."""
 
     def _get_highlight_thickness(self):
         return self._highlight_width
+
     def _set_highlight_thickness(self, thickness):
         self._highlight_width = thickness
         self.redraw_needed = True
+
     highlight_thickness = property(_get_highlight_thickness, _set_highlight_thickness)
-    '''Highlight outline thickness in pixels.'''
+    """Highlight outline thickness in pixels."""
 
     def _get_lighting(self):
         return self._lighting
@@ -397,7 +450,7 @@ class View:
         self.redraw_needed = True
 
     lighting = property(_get_lighting, _set_lighting)
-    '''Lighting parameters.'''
+    """Lighting parameters."""
 
     def _get_material(self):
         return self._material
@@ -411,29 +464,29 @@ class View:
         self.redraw_needed = True
 
     material = property(_get_material, _set_material)
-    '''Material reflectivity parameters.'''
+    """Material reflectivity parameters."""
 
     @property
     def silhouette(self):
-        '''Silhouette parameters.'''
+        """Silhouette parameters."""
         return self._silhouette
 
     def add_overlay(self, overlay):
-        '''
+        """
         Overlays are Drawings rendered after the normal scene is shown.
         They are used for effects such as motion blur or cross fade that
         blend the current rendered scene with a previous rendered scene.
-        '''
+        """
         overlay.set_redraw_callback(self._drawing_manager)
         self._overlays.append(overlay)
         self.redraw_needed = True
 
     def overlays(self):
-        '''The current list of overlay Drawings.'''
+        """The current list of overlay Drawings."""
         return self._overlays
 
-    def remove_overlays(self, overlays=None, delete = True):
-        '''Remove the specified overlay Drawings.'''
+    def remove_overlays(self, overlays=None, delete=True):
+        """Remove the specified overlay Drawings."""
         if overlays is None:
             overlays = self._overlays
         if delete:
@@ -443,39 +496,65 @@ class View:
         self._overlays = [o for o in self._overlays if o not in oset]
         self.redraw_needed = True
 
-    def image(self, width=None, height=None, supersample=None,
-              transparent_background=False, camera=None, drawings=None):
-        '''Capture an image of the current scene. A PIL image is returned.'''
+    def image(
+        self,
+        width=None,
+        height=None,
+        supersample=None,
+        transparent_background=False,
+        camera=None,
+        drawings=None,
+    ):
+        """Capture an image of the current scene. A PIL image is returned."""
 
-        rgba = self.image_rgba(width=width, height=height, supersample=supersample,
-                               transparent_background=transparent_background,
-                               camera=camera, drawings=drawings)
+        rgba = self.image_rgba(
+            width=width,
+            height=height,
+            supersample=supersample,
+            transparent_background=transparent_background,
+            camera=camera,
+            drawings=drawings,
+        )
         ncomp = 4 if transparent_background else 3
         from PIL import Image
+
         # Flip y-axis since PIL image has row 0 at top,
         # opengl has row 0 at bottom.
         pi = Image.fromarray(rgba[::-1, :, :ncomp])
         return pi
 
-    def image_rgba(self, width=None, height=None, supersample=None,
-                   transparent_background=False, camera=None, drawings=None):
-        '''
+    def image_rgba(
+        self,
+        width=None,
+        height=None,
+        supersample=None,
+        transparent_background=False,
+        camera=None,
+        drawings=None,
+    ):
+        """
         Capture an image of the current scene.
         A numpy uint8 rgba array is returned.
-        '''
+        """
 
         if not self._use_opengl():
-            return	# OpenGL not available
+            return  # OpenGL not available
 
         w, h = self._window_size_matching_aspect(width, height)
 
         # TODO: For recording videos would be useful not to recreate framebuffer on every frame.
         from .opengl import Framebuffer
-        fb = Framebuffer('image capture', self.render.opengl_context, w, h,
-                         alpha = transparent_background)
+
+        fb = Framebuffer(
+            "image capture",
+            self.render.opengl_context,
+            w,
+            h,
+            alpha=transparent_background,
+        )
         if not fb.activate():
             fb.delete()
-            return None         # Image size exceeds framebuffer limits
+            return None  # Image size exceeds framebuffer limits
 
         r = self._render
         r.push_framebuffer(fb)
@@ -483,9 +562,10 @@ class View:
         if camera is None:
             if drawings:
                 from .camera import camera_framing_drawings
+
                 c = camera_framing_drawings(drawings)
                 if c is None:
-                    c = self.camera	# Drawings not showing anything, any camera will do
+                    c = self.camera  # Drawings not showing anything, any camera will do
             else:
                 c = self.camera
         else:
@@ -495,12 +575,13 @@ class View:
         # to adjust sizes of rendered objects with sizes in pixels to preserve
         # the on-screen sizes.  This is used for 2d label sizing.
         r.image_save = True
-            
+
         if supersample is None:
-            self.draw(c, drawings, swap_buffers = False)
+            self.draw(c, drawings, swap_buffers=False)
             rgba = r.frame_buffer_image(w, h)
         else:
             from numpy import zeros, float32, uint8
+
             srgba = zeros((h, w, 4), float32)
             n = supersample
             s = 1.0 / n
@@ -508,7 +589,7 @@ class View:
             for i in range(n):
                 for j in range(n):
                     c.set_fixed_pixel_shift((s0 + i * s, s0 + j * s))
-                    self.draw(c, drawings, swap_buffers = False)
+                    self.draw(c, drawings, swap_buffers=False)
                     srgba += r.frame_buffer_image(w, h)
             c.set_fixed_pixel_shift((0, 0))
             srgba /= n * n
@@ -517,27 +598,27 @@ class View:
         r.pop_framebuffer()
         fb.delete()
 
-        delattr(r, 'image_save')
+        delattr(r, "image_save")
 
         return rgba
 
     def frame_buffer_rgba(self):
-        '''
+        """
         Return a numpy array of R, G, B, A values of the currently
         rendered scene.  This is used for blending effects such as motion
         blur and cross fades.
-        '''
+        """
         r = self._render
         w, h = r.render_size()
-        rgba = self._render.frame_buffer_image(w, h, front_buffer = True)
+        rgba = self._render.frame_buffer_image(w, h, front_buffer=True)
         return rgba
 
     def resize(self, width, height):
-        '''
+        """
         This is called when the graphics window was resized by the
         user and causes the OpenGL rendering to use the specified new
         window size.
-        '''
+        """
         new_size = (width, height)
         if self.window_size == new_size:
             return
@@ -549,7 +630,7 @@ class View:
 
     def _window_size_matching_aspect(self, width, height):
         w, h = width, height
-        vw, vh = self.render.render_size()	# Match display resolution on retina screens
+        vw, vh = self.render.render_size()  # Match display resolution on retina screens
         if w is not None and h is not None:
             return (w, h)
         elif w is not None:
@@ -560,65 +641,70 @@ class View:
             return ((vw * h) // vh, h)
         return (vw, vh)
 
-    def report_framerate(self, report_rate, monitor_period=1.0, _minimum_render_time=None):
-        '''
+    def report_framerate(
+        self, report_rate, monitor_period=1.0, _minimum_render_time=None
+    ):
+        """
         Report a status message giving the current rendering rate in
         frames per second.  This is computed without the vertical sync
         which normally limits the frame rate to typically 60 frames
         per second.  The minimum drawing time used over a one second
         interval is used. The report_rate function is called with
         the frame rate in frames per second.
-        '''
+        """
         if _minimum_render_time is None:
             self._framerate_callback = report_rate
             from time import time
+
             self._time_graphics = time() + monitor_period
             self.minimum_render_time = None
             self.render_start_time = None
             self.redraw_needed = True
         else:
             self._time_graphics = 0
-            self._framerate_callback(1.0/_minimum_render_time)
+            self._framerate_callback(1.0 / _minimum_render_time)
 
     def _start_timing(self):
         if self._time_graphics:
             self.finish_rendering()
             from time import time
+
             self.render_start_time = time()
 
     def _finish_timing(self):
         if self._time_graphics:
             self.finish_rendering()
             from time import time
+
             t = time()
             rt = t - self.render_start_time
             mint = self.minimum_render_time
             if mint is None or rt < mint:
                 self.minimum_render_time = mint = rt
             if t > self._time_graphics:
-                self.report_framerate(None, _minimum_render_time = mint)
+                self.report_framerate(None, _minimum_render_time=mint)
             else:
                 self.redraw_needed = True
 
     def finish_rendering(self):
-        '''
+        """
         Force the graphics pipeline to complete all requested drawing.
         This can slow down rendering but is used by display devices
         such as Oculus Rift goggles to reduce latency time between head
         tracking and graphics update.
-        '''
+        """
         self._render.finish_rendering()
 
     def _compute_shadowmaps(self, opaque_drawings, transparent_drawings, camera):
-        '''
+        """
         Compute shadow map textures for specified drawings.
         Does not include child drawings.
-        '''
+        """
         r = self._render
         lp = r.lighting
         if not lp.shadows and lp.multishadow == 0:
             return False, False
-        
+
         shadow_drawings = opaque_drawings
         mp = r.material
         if mp.transparent_cast_shadows:
@@ -631,16 +717,16 @@ class View:
 
         multishadow_enabled = r.multishadow.use_multishadow_map(shadow_drawings)
         r.enable_shader_multishadows(multishadow_enabled)
-        
+
         return shadow_enabled, multishadow_enabled
 
     def max_multishadow(self):
         if not self._use_opengl():
-            return 0	# OpenGL not available
+            return 0  # OpenGL not available
         return self._render.multishadow.max_multishadows()
 
     def drawing_bounds(self, clip=False, cached_only=False, allow_drawing_changes=True):
-        '''Return bounds of drawing, displayed part only.'''
+        """Return bounds of drawing, displayed part only."""
         dm = self._drawing_manager
         if cached_only:
             return dm.cached_drawing_bounds
@@ -663,11 +749,12 @@ class View:
                 # or even bounds centered on the visible objects.  But handling
                 # clip planes in bounds computations within models is more complex.
                 from chimerax.geometry import clip_bounds
+
                 b = clip_bounds(b, [(p.plane_point, p.normal) for p in planes])
         return b
 
     def _any_drawing_highlighted(self, drawings=None):
-        '''Is anything highlighted.'''
+        """Is anything highlighted."""
         if drawings is None:
             dm = self._drawing_manager
             s = dm.cached_any_part_highlighted
@@ -680,32 +767,33 @@ class View:
                     return True
             return False
 
-    def initial_camera_view(self, pad = 0.05, set_pivot = True):
-        '''Set the camera position to show all displayed drawings,
-        looking down the z axis.'''
+    def initial_camera_view(self, pad=0.05, set_pivot=True):
+        """Set the camera position to show all displayed drawings,
+        looking down the z axis."""
         b = self.drawing_bounds()
         if b is None:
             return
         c = self.camera
         from chimerax.geometry import identity
+
         c.position = identity()
-        c.view_all(b, window_size = self.window_size, pad = pad)
+        c.view_all(b, window_size=self.window_size, pad=pad)
         if set_pivot:
             self._center_of_rotation = cr = b.center()
             self._update_center_of_rotation = True
 
-    def view_all(self, bounds = None, pad = 0):
-        '''Adjust the camera to show all displayed drawings using the
+    def view_all(self, bounds=None, pad=0):
+        """Adjust the camera to show all displayed drawings using the
         current view direction.  If bounds is given then view is adjusted
         to show those bounds instead of the current drawing bounds.
         If pad is specified the fit is to a window size reduced by this fraction.
-        '''
+        """
         if bounds is None:
             bounds = self.drawing_bounds()
             if bounds is None:
                 return
-        self.camera.view_all(bounds, window_size = self.window_size, pad = pad)
-        if self._center_of_rotation_method in ('front center', 'center of view'):
+        self.camera.view_all(bounds, window_size=self.window_size, pad=pad)
+        if self._center_of_rotation_method in ("front center", "center of view"):
             self._update_center_of_rotation = True
 
     def _get_cofr(self):
@@ -715,47 +803,54 @@ class View:
             if not cofr is None:
                 self._center_of_rotation = cofr
         return self._center_of_rotation
+
     def _set_cofr(self, cofr):
         from numpy import array, float32
-        cofr_np = array(cofr, float32)	# TODO: temporary session save fix to handle tinyarray
+
+        cofr_np = array(
+            cofr, float32
+        )  # TODO: temporary session save fix to handle tinyarray
         self._center_of_rotation = cofr_np
-        self._center_of_rotation_method = 'fixed'
+        self._center_of_rotation_method = "fixed"
         self._update_center_of_rotation = False
+
     center_of_rotation = property(_get_cofr, _set_cofr)
 
     def _get_cofr_method(self):
         return self._center_of_rotation_method
+
     def _set_cofr_method(self, method):
         self._center_of_rotation_method = method
         self._update_center_of_rotation = True
+
     center_of_rotation_method = property(_get_cofr_method, _set_cofr_method)
 
     def _compute_center_of_rotation(self):
-        '''
+        """
         Compute the center of rotation of displayed drawings.
         Use bounding box center if zoomed out, or the front center
         point if zoomed in.
-        '''
+        """
         m = self._center_of_rotation_method
-        if m == 'front center':
+        if m == "front center":
             p = self._front_center_cofr()
-        elif m == 'fixed':
+        elif m == "fixed":
             p = self._center_of_rotation
-        elif m == 'center of view':
+        elif m == "center of view":
             p = self._center_of_view_cofr()
         return p
 
     def _center_of_view_cofr(self):
-        '''
+        """
         Keep the center of rotation in the middle of the view at a depth
         midway between near and far clip planes.  If only the near plane
         or only the far plane is enabled use center on that plane.  If neither
         near nor far planes are enabled then the depth is such that the
         previous rotation point and new rotation point are in the same plane
         perpendicular to the new view direction.
-        '''
+        """
         p = self.clip_planes
-        np, fp = p.find_plane('near'), p.find_plane('far')
+        np, fp = p.find_plane("near"), p.find_plane("far")
         if np and fp:
             cr = 0.5 * (np.plane_point + fp.plane_point)
         elif np:
@@ -776,28 +871,29 @@ class View:
         vd = self.camera.view_direction()
         hyp = point - cam_pos
         from chimerax.geometry import inner_product, norm
+
         distance = inner_product(hyp, vd)
-        cr = cam_pos + distance*vd
+        cr = cam_pos + distance * vd
         old_cofr = self._center_of_rotation
         if norm(cr - old_cofr) < 1e-6 * distance:
-                # Avoid jitter if camera has not moved
-                cr = old_cofr
+            # Avoid jitter if camera has not moved
+            cr = old_cofr
         return cr
 
     def set_rotation_depth(self, point):
-        '''
+        """
         Set center of rotation in middle of window at depth matching the
         depth along camera axis of the specified point.
-        '''
+        """
         self._center_of_rotation = self._center_point_matching_depth(point)
-        
+
     def _front_center_cofr(self):
-        '''
+        """
         Compute the center of rotation of displayed drawings.
         Use bounding box center if zoomed out, or the front center
         point if zoomed in.
-        '''
-        b = self.drawing_bounds(allow_drawing_changes = False)
+        """
+        b = self.drawing_bounds(allow_drawing_changes=False)
         if b is None:
             return
         vw = self.camera.view_width(b.center())
@@ -806,7 +902,7 @@ class View:
             cr = b.center()
         else:
             # Use front center point for zoomed in views
-            cr = self._front_center_point()	# Can be None
+            cr = self._front_center_point()  # Can be None
             if cr is None:
                 # No objects in center of view, so keep the depth the same
                 # but move center to keep it in the center of view.
@@ -815,108 +911,146 @@ class View:
 
     def _front_center_point(self):
         w, h = self.window_size
-        p = self.picked_object(0.5 * w, 0.5 * h, max_transparent_layers = 0, exclude=View.unpickable)
+        p = self.picked_object(
+            0.5 * w, 0.5 * h, max_transparent_layers=0, exclude=View.unpickable
+        )
         return p.position if p else None
 
     unpickable = lambda drawing: not drawing.pickable
 
-    def picked_object(self, win_x, win_y, exclude=unpickable, beyond=None,
-                      max_transparent_layers=3):
-        '''
+    def picked_object(
+        self, win_x, win_y, exclude=unpickable, beyond=None, max_transparent_layers=3
+    ):
+        """
         Return a Pick object for the frontmost object below the given
         screen window position (specified in pixels).  This Pick object will
         have an attribute position giving the point where the intercept occurs.
         This is used when hovering the mouse over an object (e.g. an atom)
         to get a description of that object.  Beyond is minimum distance
         as fraction from front to rear clip plane.
-        '''
+        """
         xyz1, xyz2 = self.clip_plane_points(win_x, win_y)
         if xyz1 is None or xyz2 is None:
             p = None
         else:
-            p = self.picked_object_on_segment(xyz1, xyz2, exclude = exclude, beyond = beyond,
-                                              max_transparent_layers = max_transparent_layers)
+            p = self.picked_object_on_segment(
+                xyz1,
+                xyz2,
+                exclude=exclude,
+                beyond=beyond,
+                max_transparent_layers=max_transparent_layers,
+            )
 
         # If scene clipping and some models disable clipping, try picking those.
-        if self.clip_planes.have_scene_plane() and not self.drawing.all_allow_clipping():
-            ucxyz1, ucxyz2 = self.clip_plane_points(win_x, win_y, include_scene_clipping = False)
+        if (
+            self.clip_planes.have_scene_plane()
+            and not self.drawing.all_allow_clipping()
+        ):
+            ucxyz1, ucxyz2 = self.clip_plane_points(
+                win_x, win_y, include_scene_clipping=False
+            )
             if ucxyz1 is not None and ucxyz2 is not None:
+
                 def exclude_clipped(d, exclude=exclude):
                     return exclude(d) or d.allow_clipping
-                ucp = self.picked_object_on_segment(ucxyz1, ucxyz2,
-                                                    max_transparent_layers = max_transparent_layers,
-                                                    exclude = exclude_clipped)
+
+                ucp = self.picked_object_on_segment(
+                    ucxyz1,
+                    ucxyz2,
+                    max_transparent_layers=max_transparent_layers,
+                    exclude=exclude_clipped,
+                )
                 if ucp:
                     from chimerax.geometry import distance
-                    if p is None or ucp.distance * distance(ucxyz1, ucxyz2) < distance(ucxyz1, xyz1):
+
+                    if p is None or ucp.distance * distance(ucxyz1, ucxyz2) < distance(
+                        ucxyz1, xyz1
+                    ):
                         p = ucp
-            
+
         return p
 
-    def picked_object_on_segment(self, xyz1, xyz2, exclude=unpickable, beyond=None,
-                                 max_transparent_layers=3):
-        '''
+    def picked_object_on_segment(
+        self, xyz1, xyz2, exclude=unpickable, beyond=None, max_transparent_layers=3
+    ):
+        """
         Return a Pick object for the first object along line segment from xyz1
         to xyz2 in specified in scene coordinates. This Pick object will
         have an attribute position giving the point where the intercept occurs.
         Beyond is minimum distance as fraction (0-1) along the segment.
-        '''
-    
+        """
+
         if beyond is not None:
             fb = beyond + 1e-5
-            xyz1 = (1-fb)*xyz1 + fb*xyz2
+            xyz1 = (1 - fb) * xyz1 + fb * xyz2
 
         p = self.drawing.first_intercept(xyz1, xyz2, exclude=exclude)
         if p is None:
             return None
-        
+
         if max_transparent_layers > 0:
-            if getattr(p, 'pick_through', False) and p.distance is not None:
-                p2 = self.picked_object_on_segment(xyz1, xyz2, exclude=exclude, beyond=p.distance,
-                                                   max_transparent_layers = max_transparent_layers-1)
+            if getattr(p, "pick_through", False) and p.distance is not None:
+                p2 = self.picked_object_on_segment(
+                    xyz1,
+                    xyz2,
+                    exclude=exclude,
+                    beyond=p.distance,
+                    max_transparent_layers=max_transparent_layers - 1,
+                )
                 if p2:
                     p = p2
-            
+
         f = p.distance
         p.position = (1.0 - f) * xyz1 + f * xyz2
 
         if beyond:
             # Correct distance fraction to refer to clip planes.
-            p.distance = fb + f*(1-fb)
-            
+            p.distance = fb + f * (1 - fb)
+
         return p
 
     def rectangle_pick(self, win_x1, win_y1, win_x2, win_y2, exclude=unpickable):
-        '''
+        """
         Return a Pick object for the objects in the rectangle having
         corners at the given screen window position (specified in pixels).
-        '''
+        """
         # Compute planes bounding view through rectangle.
-        planes = self.camera.rectangle_bounding_planes((win_x1, win_y1), (win_x2, win_y2),
-                                                       self.window_size)
+        planes = self.camera.rectangle_bounding_planes(
+            (win_x1, win_y1), (win_x2, win_y2), self.window_size
+        )
         if len(planes) == 0:
-            return []	# Camera does not support computation of bounding planes.
+            return []  # Camera does not support computation of bounding planes.
 
         # Use clip planes.
         cplanes = self.clip_planes.planes()
         if cplanes:
             from numpy import concatenate, array, float32
-            all_planes = concatenate((planes, array([cp.opengl_vec4() for cp in cplanes], float32)))
+
+            all_planes = concatenate(
+                (planes, array([cp.opengl_vec4() for cp in cplanes], float32))
+            )
         else:
             all_planes = planes
 
         # If scene clipping and some models disable clipping, try picking those.
-        if self.clip_planes.have_scene_plane() and not self.drawing.all_allow_clipping():
+        if (
+            self.clip_planes.have_scene_plane()
+            and not self.drawing.all_allow_clipping()
+        ):
+
             def exclude_unclipped(d, exclude=exclude):
                 return exclude(d) or not d.allow_clipping
+
             cpicks = self.drawing.planes_pick(all_planes, exclude=exclude_unclipped)
+
             def exclude_clipped(d, exclude=exclude):
                 return exclude(d) or d.allow_clipping
+
             upicks = self.drawing.planes_pick(planes, exclude=exclude_clipped)
             picks = cpicks + upicks
         else:
             picks = self.drawing.planes_pick(all_planes, exclude=exclude)
-            
+
         return picks
 
     def _update_projection(self, camera, view_num):
@@ -928,31 +1062,33 @@ class View:
 
         if r.recording_opengl:
             from .gllist import ProjectionCalc
-            nfp = ProjectionCalc(self, view_num, (ww,wh))
+
+            nfp = ProjectionCalc(self, view_num, (ww, wh))
             near_far, pm = nfp.near_far, nfp.projection_matrix
-            n,f = near_far()
-            pnf = 1 if camera.name == 'orthographic' else (n / f)
+            n, f = near_far()
+            pnf = 1 if camera.name == "orthographic" else (n / f)
         else:
             near_far = self.near_far_distances(camera, view_num)
             # TODO: Different camera views need to use same near/far if they are part of
             # a cube map, otherwise depth cue dimming is not continuous across cube faces.
             pm = camera.projection_matrix(near_far, view_num, (ww, wh))
-            pnf = 1 if camera.name == 'orthographic' else (near_far[0] / near_far[1])
+            pnf = 1 if camera.name == "orthographic" else (near_far[0] / near_far[1])
 
         self.silhouette.perspective_near_far_ratio = pnf
 
         r.set_projection_matrix(pm)
-        r.set_near_far_clip(near_far)	# Used by depth cue
+        r.set_near_far_clip(near_far)  # Used by depth cue
 
-    def near_far_distances(self, camera, view_num, include_clipping = True):
-        '''Near and far scene bounds as distances from camera.'''
+    def near_far_distances(self, camera, view_num, include_clipping=True):
+        """Near and far scene bounds as distances from camera."""
         cp = camera.get_position(view_num).origin()
         vd = camera.view_direction(view_num)
         near, far = self._near_far_bounds(cp, vd)
         if include_clipping:
             p = self.clip_planes
-            np, fp = p.find_plane('near'), p.find_plane('far')
+            np, fp = p.find_plane("near"), p.find_plane("far")
             from chimerax.geometry import inner_product
+
             if np:
                 near = max(near, inner_product(vd, (np.plane_point - cp)))
             if fp:
@@ -961,13 +1097,16 @@ class View:
         return cnear, cfar
 
     def _near_far_bounds(self, camera_pos, view_dir):
-        b = self.drawing_bounds(allow_drawing_changes = False)
+        b = self.drawing_bounds(allow_drawing_changes=False)
         if b is None:
             return self._min_near_fraction, 1  # Nothing shown
         from chimerax.geometry import inner_product
-        d = inner_product(b.center() - camera_pos, view_dir)         # camera to center of drawings
+
+        d = inner_product(
+            b.center() - camera_pos, view_dir
+        )  # camera to center of drawings
         r = (1 + self._near_far_pad) * b.radius()
-        return (d-r, d+r)
+        return (d - r, d + r)
 
     def _clamp_near_far(self, near, far):
         # Clamp near clip > 0.
@@ -977,27 +1116,36 @@ class View:
             far = 2 * near
         return (near, far)
 
-    def clip_plane_points(self, window_x, window_y, camera=None, view_num=None,
-                          include_scene_clipping = True):
-        '''
+    def clip_plane_points(
+        self,
+        window_x,
+        window_y,
+        camera=None,
+        view_num=None,
+        include_scene_clipping=True,
+    ):
+        """
         Return two scene points at the near and far clip planes at
         the specified window pixel position.  The points are in scene
-        coordinates.  '''
+        coordinates."""
         c = camera if camera else self.camera
-        origin, direction = c.ray(window_x, window_y, self.window_size)	# Scene coords
+        origin, direction = c.ray(window_x, window_y, self.window_size)  # Scene coords
         if origin is None:
             return (None, None)
 
-        near, far = self.near_far_distances(c, view_num, include_clipping = False)
-        cplanes = [(origin + near*direction, direction), 
-                   (origin + far*direction, -direction)]
+        near, far = self.near_far_distances(c, view_num, include_clipping=False)
+        cplanes = [
+            (origin + near * direction, direction),
+            (origin + far * direction, -direction),
+        ]
         if include_scene_clipping:
             cplanes.extend((p.plane_point, p.normal) for p in self.clip_planes.planes())
         from chimerax.geometry import ray_segment
+
         f0, f1 = ray_segment(origin, direction, cplanes)
         if f1 is None or f0 > f1:
             return (None, None)
-        scene_pts = (origin + f0*direction, origin + f1*direction)
+        scene_pts = (origin + f0 * direction, origin + f1 * direction)
         return scene_pts
 
     def win_coord(self, pt, camera=None, view_num=None):
@@ -1008,23 +1156,24 @@ class View:
         pm = c.projection_matrix(near_far, view_num, self.window_size)
         inv_position = c.position.inverse().opengl_matrix()
         from numpy import array, float32, concatenate
+
         xpt = concatenate((pt, [1])) @ inv_position @ pm
         width, height = self.window_size
-        win_pt = array([
-            (xpt[0] + 1) * width / 2,
-            (xpt[1] + 1) * height / 2,
-            (xpt[2] + 1) / 2
-        ], dtype=float32)
+        win_pt = array(
+            [(xpt[0] + 1) * width / 2, (xpt[1] + 1) * height / 2, (xpt[2] + 1) / 2],
+            dtype=float32,
+        )
         return win_pt
 
     def rotate(self, axis, angle, drawings=None):
-        '''
+        """
         Move camera to simulate a rotation of drawings about current
         rotation center.  Axis is in scene coordinates and angle is
         in degrees.
-        '''
+        """
         if drawings:
             from chimerax.geometry import bounds
+
             b = bounds.union_bounds(d.bounds() for d in drawings)
             if b is None:
                 return
@@ -1032,41 +1181,44 @@ class View:
         else:
             center = self.center_of_rotation
         from chimerax.geometry import rotation
+
         r = rotation(axis, angle, center)
         self.move(r, drawings)
 
-    def translate(self, shift, drawings=None, move_near_far_clip_planes = False):
-        '''Move camera to simulate a translation of drawings.  Translation
-        is in scene coordinates.'''
+    def translate(self, shift, drawings=None, move_near_far_clip_planes=False):
+        """Move camera to simulate a translation of drawings.  Translation
+        is in scene coordinates."""
         if shift[0] == 0 and shift[1] == 0 and shift[2] == 0:
             return
-        if self._center_of_rotation_method in ('front center', 'center of view'):
+        if self._center_of_rotation_method in ("front center", "center of view"):
             self._update_center_of_rotation = True
         if not move_near_far_clip_planes:
             # Near and far clip planes are fixed to camera.
             # Move them so they stay fixed relative to models.
             self._shift_near_far_clip_planes(shift)
         from chimerax.geometry import translation
+
         t = translation(shift)
         self.move(t, drawings)
 
     def _shift_near_far_clip_planes(self, shift):
         p = self.clip_planes
-        np, fp = p.find_plane('near'), p.find_plane('far')
+        np, fp = p.find_plane("near"), p.find_plane("far")
         if np or fp:
             vd = self.camera.view_direction()
             from chimerax.geometry import inner_product
-            plane_shift = inner_product(shift,vd)*vd
+
+            plane_shift = inner_product(shift, vd) * vd
             if np:
                 np.plane_point += plane_shift
             if fp:
                 fp.plane_point += plane_shift
-        
+
     def move(self, tf, drawings=None):
-        '''
+        """
         Move camera to simulate a motion of drawings.
         Transform is in scene coordinates.
-        '''
+        """
         if drawings is None:
             c = self.camera
             c.position = tf.inverse() * c.position
@@ -1080,32 +1232,35 @@ class View:
             # Don't recompute center of rotation as that can be slow.
             p = self._center_of_rotation
             if p is None:
-                p = self.center_of_rotation	# Compute center of rotation
+                p = self.center_of_rotation  # Compute center of rotation
         return self.camera.view_width(p) / self.window_size[0]
 
     def stereo_scaling(self, delta_z):
-        '''
+        """
         If in stereo camera mode change eye separation so that
         when models moved towards camera by delta_z, their center
         of bounding box appears to stay at the same depth, giving
         the appearance that the models were simply scaled in size.
         Another way to understand this is the models are scaled
         when measured as a multiple of stereo eye separation.
-        '''
+        """
         c = self.camera
-        if not hasattr(c, 'eye_separation_scene'):
+        if not hasattr(c, "eye_separation_scene"):
             return
         b = self.drawing_bounds()
         if b is None:
             return
         from chimerax.geometry import distance
+
         d = distance(b.center(), c.position.origin())
-        if d == 0 and delta_z > 0.5*d:
+        if d == 0 and delta_z > 0.5 * d:
             return
         f = 1 - delta_z / d
         from math import exp
+
         c.eye_separation_scene *= f
         c.redraw_needed = True
+
 
 class _RedrawNeeded:
 
@@ -1116,16 +1271,22 @@ class _RedrawNeeded:
         self.transparency_changed = False
         self.cached_drawing_bounds = None
         self.cached_any_part_highlighted = None
-        self.recalculate_clip_caps = False		# Set if shape changes
+        self.recalculate_clip_caps = False  # Set if shape changes
 
-    def __call__(self, drawing, shape_changed=False, highlight_changed=False, transparency_changed=False):
+    def __call__(
+        self,
+        drawing,
+        shape_changed=False,
+        highlight_changed=False,
+        transparency_changed=False,
+    ):
         self.redraw_needed = True
         if shape_changed:
             self.shape_changed = True
             self.recalculate_clip_caps = True
             if drawing.casts_shadows:
                 self.shadow_shape_change = True
-            if not getattr(drawing, 'skip_bounds', False):
+            if not getattr(drawing, "skip_bounds", False):
                 self.cached_drawing_bounds = None
         if transparency_changed:
             self.transparency_changed = True
