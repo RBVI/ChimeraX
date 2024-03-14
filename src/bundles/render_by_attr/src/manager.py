@@ -80,7 +80,7 @@ class RenderAttrInfo(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def values(self, attr_name, models):
         """Get the values of the given attribute in the given models.  Returns a two-tuple,
-        the first component of which is a sequence of the non-None values, and the second is
+        the first component of which is a sequence of all the non-None values, and the second is
         a boolean indicating if there were any None values.
         """
         pass
@@ -136,6 +136,15 @@ class RenderByAttrManager(ProviderManager):
 
     def ui_name(self, provider_name):
         return self._ui_names[provider_name]
+
+    def show_select_tool(self):
+        from .tool import RenderByAttrTool as tool_class
+        for tool in self.session.tools:
+            if isinstance(tool, tool_class):
+                break
+        else:
+            tool = tool_class(self.session, "Render by Attribute")
+        tool.show_tab("Select")
 
 _manager = None
 def get_manager(session):
