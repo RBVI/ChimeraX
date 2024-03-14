@@ -29,6 +29,7 @@ class RenderByAttrTool(ToolInstance):
 
     def __init__(self, session, tool_name):
         ToolInstance.__init__(self, session, tool_name)
+        self.display_name = "Render/Select by Attribute"
         from chimerax.ui import MainToolWindow
         self.tool_window = tw = MainToolWindow(self, statusbar=True)
         parent = tw.ui_area
@@ -45,31 +46,17 @@ class RenderByAttrTool(ToolInstance):
         target_layout.setSpacing(3)
         overall_layout.addLayout(target_layout)
 
-        attribute_layout = QVBoxLayout()
-        attribute_layout.setSpacing(0)
         target_menu_widget = QWidget()
         target_menu_layout = QHBoxLayout()
         target_menu_layout.setSpacing(2)
         target_menu_widget.setLayout(target_menu_layout)
-        attribute_layout.addWidget(target_menu_widget, alignment=Qt.AlignBottom, stretch=1)
+        target_layout.addWidget(target_menu_widget, alignment=Qt.AlignCenter)
         target_menu_layout.addWidget(QLabel("Attributes of"), alignment=Qt.AlignRight)
         self.target_menu_button = QPushButton()
         menu = QMenu()
         menu.triggered.connect(self._new_target)
         self.target_menu_button.setMenu(menu)
         target_menu_layout.addWidget(self.target_menu_button, alignment=Qt.AlignLeft)
-        attr_menu_widget = QWidget()
-        attr_menu_layout = QHBoxLayout()
-        attr_menu_layout.setSpacing(2)
-        attr_menu_widget.setLayout(attr_menu_layout)
-        attribute_layout.addWidget(attr_menu_widget, alignment=Qt.AlignTop, stretch=1)
-        attr_menu_layout.addWidget(QLabel("Attribute:"), alignment=Qt.AlignRight)
-        self.attr_menu_button = QPushButton()
-        menu = QMenu()
-        menu.triggered.connect(self._new_attr)
-        menu.aboutToShow.connect(self._update_attr_menu)
-        self.attr_menu_button.setMenu(menu)
-        attr_menu_layout.addWidget(self.attr_menu_button, alignment=Qt.AlignLeft)
         model_list_layout = QVBoxLayout()
         model_list_layout.addWidget(QLabel("Models"), alignment=Qt.AlignBottom)
         from chimerax.ui.widgets import ModelListWidget, MarkedHistogram, PaletteChooser
@@ -82,7 +69,6 @@ class RenderByAttrTool(ToolInstance):
         self.model_list = SmallerModelListWidget(session, filter_func=self._filter_model)
         self.model_list.value_changed.connect(self._models_changed)
         model_list_layout.addWidget(self.model_list, alignment=Qt.AlignTop)
-        target_layout.addLayout(attribute_layout)
         target_layout.addLayout(model_list_layout)
 
         self.mode_widget = QTabWidget()
@@ -92,6 +78,20 @@ class RenderByAttrTool(ToolInstance):
         render_tab_layout = QVBoxLayout()
         render_tab.setLayout(render_tab_layout)
         render_tab_layout.setSpacing(1)
+        render_tab_layout.setContentsMargins(0,0,0,0)
+        attr_menu_widget = QWidget()
+        attr_menu_layout = QHBoxLayout()
+        attr_menu_layout.setSpacing(2)
+        attr_menu_layout.setContentsMargins(0,0,0,0)
+        attr_menu_widget.setLayout(attr_menu_layout)
+        render_tab_layout.addWidget(attr_menu_widget, alignment=Qt.AlignCenter)
+        attr_menu_layout.addWidget(QLabel("Attribute:"), alignment=Qt.AlignRight)
+        self.render_attr_menu_button = QPushButton()
+        menu = QMenu()
+        menu.triggered.connect(self._new_render_attr)
+        menu.aboutToShow.connect(self._update_render_attr_menu)
+        self.render_attr_menu_button.setMenu(menu)
+        attr_menu_layout.addWidget(self.render_attr_menu_button, alignment=Qt.AlignLeft)
         self.render_histogram = rh = MarkedHistogram(min_label=True, max_label=True, status_line=tw.status,
             select_callback=self._render_sel_marker_cb)
         render_tab_layout.addWidget(rh)
@@ -235,14 +235,16 @@ class RenderByAttrTool(ToolInstance):
         self.render_type_widget.currentChanged.connect(self._render_mode_changed)
 
         sel_tab = QWidget()
-        sel_layout = QVBoxLayout()
-        sel_tab.setLayout(sel_layout)
-        sel_layout.addWidget(QLabel("This tab not yet implemented.\nUse 'select' command instead.",
+        sel_tab_layout = QVBoxLayout()
+        sel_tab_layout.setSpacing(1)
+        sel_tab_layout.setContentsMargins(0,0,0,0)
+        sel_tab.setLayout(sel_tab_layout)
+        sel_tab_layout.addWidget(QLabel("This tab not yet implemented.\nUse 'select' command instead.",
             alignment=Qt.AlignCenter))
         self.mode_widget.addTab(sel_tab, "Select")
 
         self._update_target_menu()
-        self._new_attr()
+        self._new_render_attr()
 
         from Qt.QtWidgets import QDialogButtonBox as qbbox
         bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
@@ -262,7 +264,7 @@ class RenderByAttrTool(ToolInstance):
         models = self.model_list.value
         if not models:
             raise UserError("No models chosen for rendering")
-        attr_name = self.attr_menu_button.text()
+        attr_name = self.render_attr_menu_button.text()
         if attr_name == self.NO_ATTR_TEXT:
             raise UserError("No attribute chosen for rendering")
         tabs = self.render_type_widget
@@ -309,6 +311,12 @@ class RenderByAttrTool(ToolInstance):
         elif method == "worm":
             self._update_deworm_button()
 
+    def show_tab(self, tab_name):
+        for index in range(self.mode_widget.count()):
+            if self.mode_widget.tabText(index) == tab_name:
+                self.mode_widget.setCurrentIndex(index)
+                break
+
     def _attr_names_of_type(self, *types):
         attr_info = self._cur_attr_info()
         from chimerax.core.attributes import MANAGER_NAME
@@ -343,15 +351,16 @@ class RenderByAttrTool(ToolInstance):
             return False
 
     def _models_changed(self):
-        if self.model_list.value and self.attr_menu_button.isEnabled():
-            attr_info = self.attr_menu_button.text()
+        #TODO: Select tab
+        if self.model_list.value and self.render_attr_menu_button.isEnabled():
+            attr_info = self.render_attr_menu_button.text()
             if attr_info != self.NO_ATTR_TEXT:
                 self._update_histogram(attr_info)
         else:
-            self._new_attr()
+            self._new_render_attr()
         self._update_deworm_button()
 
-    def _new_attr(self, attr_name_info=None):
+    def _new_render_attr(self, attr_name_info=None):
         enabled = True
         if attr_name_info is None:
             if not self.model_list.value:
@@ -364,14 +373,14 @@ class RenderByAttrTool(ToolInstance):
                 attr_name = attr_name_info
             else:
                 attr_name = attr_name_info.text()
-        if attr_name != self.attr_menu_button.text():
-            self.attr_menu_button.setText(attr_name)
+        if attr_name != self.render_attr_menu_button.text():
+            self.render_attr_menu_button.setText(attr_name)
             if attr_name_info is None:
                 self.render_histogram.data_source = "Choose attribute to show histogram"
             else:
                 self._update_histogram(attr_name)
             self._update_palettes()
-        self.attr_menu_button.setEnabled(enabled)
+        self.render_attr_menu_button.setEnabled(enabled)
 
     def _new_classes(self):
         self._update_target_menu()
@@ -389,7 +398,8 @@ class RenderByAttrTool(ToolInstance):
         self.color_atoms.setEnabled("atoms" in color_targets)
         self.color_cartoons.setEnabled("cartoons" in color_targets)
         self.color_surfaces.setEnabled("surfaces" in color_targets)
-        self._new_attr()
+        #TODO: Select
+        self._new_render_attr()
 
     def _radius_marker_add_del(self, marker=None):
         if marker:
@@ -431,8 +441,8 @@ class RenderByAttrTool(ToolInstance):
         self.render_color_markers.color_change_callback = cb
         self._update_palettes()
 
-    def _update_attr_menu(self):
-        menu = self.attr_menu_button.menu()
+    def _update_render_attr_menu(self):
+        menu = self.render_attr_menu_button.menu()
         menu.clear()
         attr_names = self._attr_names_of_type(int, float)
         attr_names.sort()
