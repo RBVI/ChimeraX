@@ -501,6 +501,9 @@ class Render:
         # Camera origin, y, and xshift for SHADER_STEREO_360 mode
         self._stereo_360_params = ((0,0,0),(0,1,0),0)
 
+        self._mono_camera_origin = (0, 0, 0)
+        self._mono_camera_fov = 60
+
         # OpenGL texture size limit
         self._max_3d_texture_size = None
 
@@ -692,7 +695,7 @@ class Render:
         SHADER_SHIFT_AND_SCALE, SHADER_INSTANCING, SHADER_TEXTURE_OUTLINE,
         SHADER_DEPTH_OUTLINE, SHADER_VERTEX_COLORS,
         SHADER_TRANSPARENT_ONLY, SHADER_OPAQUE_ONLY, SHADER_STEREO_360
-        SHADER_CLIP_PLANES, SHADER_ALL_WHITE
+        SHADER_CLIP_PLANES, SHADER_ALL_WHITE, SHADER_VOLUME_RAYCASTING
         '''
         options |= self.enable_capabilities
         options &= ~self.disable_capabilities
@@ -740,6 +743,9 @@ class Render:
             self._set_depth_texture_shader_variables(shader)
         if self.SHADER_TEXTURE_CUBEMAP & c:
             shader.set_integer("texcube", 0)
+        if self.SHADER_VOLUME_RAYCASTING & c:
+            self._set_camera_params()
+            self._set_window_params()
         if not self.SHADER_VERTEX_COLORS & c:
             self.set_model_color()
         if self.SHADER_FRAME_NUMBER & c:
@@ -864,10 +870,13 @@ class Render:
                 if cmm:
                     p.set_matrix('model_matrix', cmm.opengl_matrix())
                     self.set_clip_parameters()
-            if self.SHADER_STEREO_360 & p.capabilities:
+            if (
+                self.SHADER_STEREO_360 & p.capabilities
+                or self.SHADER_VOLUME_RAYCASTING & p.capabilities
+            ):
                 cmm = self.current_model_matrix
                 cvm = self.current_view_matrix
-                if cmm:
+                if cmm and not self.SHADER_VOLUME_RAYCASTING & p.capabilities:
                     p.set_matrix('model_matrix', cmm.opengl_matrix())
                 if cvm:
                     p.set_matrix('view_matrix', cvm.opengl_matrix())
@@ -1402,7 +1411,52 @@ class Render:
     def finish_rendering(self):
         GL.glFinish()
 
-    def set_stereo_360_params(self, camera_origin = None, camera_y = None, x_shift = None):
+    def _set_camera_params(self, camera_origin=None, camera_fov=None):
+        if camera_origin is None:
+            camera_origin = self._mono_camera_origin
+            camera_fov = self._mono_camera_fov
+        else:
+            self._mono_camera_origin = camera_origin
+            self._mono_camera_fov = camera_fov
+        p = self.current_shader_program
+        if p is not None and p.capabilities & self.SHADER_VOLUME_RAYCASTING:
+            import math
+
+            p.set_vector3("camera_pos", tuple(camera_origin))
+            p.set_float("camera_fov", camera_fov)
+            p.set_rgba("background_color", self._last_background_color)
+            # p.set_float("focal_length", 1.0 / math.tan(math.radians(camera_fov / 2)))
+
+    def _set_window_params(self) -> None:
+        p = self.current_shader_program
+        if p is not None and p.capabilities & self.SHADER_VOLUME_RAYCASTING:
+            pscale = self.pixel_scale()
+            width = self.opengl_context.window.width() * pscale
+            height = self.opengl_context.window.height() * pscale
+            p.set_vector2("window_size", (width, height))
+            # p.set_float("aspect_ratio", (width / height))
+
+    def set_volume_parameters(
+        self,
+        step: tuple[int, int, int],
+        full_region_min: tuple[int, int, int],
+        full_region_max: tuple[int, int, int],
+    ) -> None:
+        p = self.current_shader_program
+        if p is not None and p.capabilities & self.SHADER_VOLUME_RAYCASTING:
+            p.set_vector3("step_size", step)
+            p.set_vector3("full_region_min", full_region_min)
+            p.set_vector3("full_region_max", full_region_max)
+
+    def set_bounding_box_planes(
+        self, max_corner: tuple[int, int, int], min_corner: tuple[int, int, int]
+    ) -> None:
+        p = self.current_shader_program
+        if p is not None and p.capabilities & self.SHADER_VOLUME_RAYCASTING:
+            p.set_vector3("bbox_min", min_corner)
+            p.set_vector3("bbox_max", max_corner)
+
+    def set_stereo_360_params(self, camera_origin=None, camera_y=None, x_shift=None):
         '''
         Shifts scene vertices to effectively make left/right eye camera positions face the
         vertex being rendered.
@@ -2074,6 +2128,7 @@ shader_options = (
     'SHADER_NO_CLIP_PLANES',
     'SHADER_ALPHA_DEPTH',
     'SHADER_ALL_WHITE',
+    'SHADER_VOLUME_RAYCASTING',
 )
 for i, sopt in enumerate(shader_options):
     setattr(Render, sopt, 1 << i)
