@@ -38,12 +38,19 @@ void main(void)
 
 #else
 
-#if defined(USE_CLIP_PLANES) || defined(USE_STEREO_360)
+#if defined(USE_CLIP_PLANES) || defined(USE_STEREO_360) || defined(USE_VOLUME_RAYCASTING)
 uniform mat4 model_matrix; // Map model coordinates to scene coordinates
 #endif
 
-#if defined(USE_STEREO_360)
+#if defined(USE_STEREO_360) || defined(USE_VOLUME_RAYCASTING)
 uniform mat4 view_matrix; // Map scene coordinates to camera coordinates
+#endif
+
+#if defined(USE_VOLUME_RAYCASTING)
+uniform vec3 step_size;
+uniform vec3 camera_pos;
+uniform float camera_fov;
+uniform vec2 window_size;
 #endif
 
 uniform mat4 model_view_matrix; // Map model coordinates to camera coordinates

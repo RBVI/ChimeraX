@@ -64,6 +64,7 @@ class Image3d(Model):
         self._c_mode = self._auto_color_mode()  # Explicit mode, cannot be "auto".
         self._mod_rgba = self._luminance_color()  # For luminance color modes.
         self._p_mode = self._auto_projection_mode()  # Explicit mode, not "auto"
+        # self._last_projection_mode = self._p_mode
         self._planes_2d_multiaxis = [
             None,
             None,
@@ -71,6 +72,8 @@ class Image3d(Model):
         ]  # For x, y, z axis projection mode
         self._planes_2d = None  # For ortho and box mode display
         self._planes_3d = None  # Texture3dPlanes instance for 3d projection mode
+        # Like Texture3dPlanes, but uses different shader options that facilitate volume ray casting
+        self._volume_raycast_drawing = None
 
         self._backing_drawing = None  # For drawing black background behind image
 
@@ -100,9 +103,12 @@ class Image3d(Model):
         self._region = _step_aligned_region(region)
 
         if self._rendering_options.full_region_on_gpu and same_step:
-            self._update_planes_for_new_region()
+            if self._rendering_options.use_volume_raycasting:
+                self._update_raycasting_region()
+            else:
+                self._update_planes_for_new_region()
         else:
-            self._remove_planes()
+            self._remove_all_drawings()
             if not same_step:
                 self._need_color_update()
 
@@ -114,9 +120,13 @@ class Image3d(Model):
     # ---------------------------------------------------------------------------
     #
     def _update_planes_for_new_region(self):
-        for d in self._planes_drawings:
+        for d in self._drawings:
             d._update_region = True
             d.redraw_needed()
+
+    def _update_raycasting_region(self):
+        self._volume_raycast_drawing._update_region = True
+        self._volume_raycast_drawing.redraw_needed()
 
     # ---------------------------------------------------------------------------
     #
@@ -132,10 +142,10 @@ class Image3d(Model):
         cmode = self._auto_color_mode()
         if cmode != self._c_mode:
             self._c_mode = cmode
-            self._remove_planes()  # Have to change opaque_texture attribute of planes.
+            self._remove_all_drawings()  # Have to change opaque_texture attribute of planes.
         self._mod_rgba = self._luminance_color()
         mc = self._modulation_color
-        for d in self._planes_drawings:
+        for d in self._drawings:
             d._update_colors = True
             d.color = mc
         self.redraw_needed()
@@ -146,7 +156,7 @@ class Image3d(Model):
     # ---------------------------------------------------------------------------
     #
     def map_values_changed(self):
-        self._remove_planes()
+        self._remove_all_drawings()
 
     # ---------------------------------------------------------------------------
     #
@@ -171,12 +181,13 @@ class Image3d(Model):
             "image_mode",
             "linear_interpolation",
             "backing_color",
+            "use_volume_raycasting",
         ):
             if getattr(rendering_options, attr) != getattr(ro, attr):
                 change = True
                 break
         if change:
-            self._remove_planes()
+            self._remove_all_drawings()
             self._need_color_update()
         if (
             rendering_options.image_mode == "orthoplanes"
@@ -201,8 +212,14 @@ class Image3d(Model):
             or rendering_options.tilted_slab_plane_count != ro.tilted_slab_plane_count
         ):
             self.redraw_needed()  # Update tilted slab
+        if rendering_options.use_volume_raycasting:
+            self._rendering_options.colormap_on_gpu = True
+            self._rendering_options.full_region_on_gpu = True
+            # self._add_volume_raycast_drawing()
+            self.redraw_needed()
 
         # TODO: _p_mode not used.  Why?
+        # self._last_projection_mode = self._p_mode
         self._p_mode = self._auto_projection_mode()
 
         bi = self._blend_image
@@ -223,10 +240,14 @@ class Image3d(Model):
     @property
     def _use_3d_texture(self):
         ro = self._rendering_options
-        return ro.image_mode == "tilted slab" or (
-            self._p_mode == "3d"
-            and not self._single_plane
-            and ro.image_mode not in ("orthoplanes", "box faces")
+        return (
+            ro.image_mode == "tilted slab"
+            or self._p_mode == "vr"
+            or (
+                self._p_mode == "3d"
+                and not self._single_plane
+                and ro.image_mode not in ("orthoplanes", "box faces")
+            )
         )
 
     @property
@@ -625,24 +646,30 @@ class Image3d(Model):
             if smin > 0 and aspect_cutoff * smin <= smid:
                 pm = ("2d-x", "2d-y", "2d-z")[list(s).index(smin)]
             else:
-                pm = "3d"
+                if self._rendering_options.use_volume_raycasting:
+                    pm = "vr"
+                else:
+                    pm = "3d"
         return pm
 
     # ---------------------------------------------------------------------------
     #
     def close_model(self):
-        self._remove_planes()
+        self._remove_all_drawings()
         if not self.deleted and self.parent:
             self.session.models.close([self])
 
     # ---------------------------------------------------------------------------
     #
-    def _update_planes(self, renderer):
+    def _update_view_axis(self, renderer):
         # Create or update the planes.
         view_dir = self._view_direction(renderer)
         if self._use_3d_texture:
             self._remove_2d_texture_planes()
-            pd = self._update_3d_texture_planes(view_dir)
+            if self._p_mode == "vr":
+                pd = self._update_raycasting_view_axis(view_dir)
+            else:
+                pd = self._update_3d_texture_planes(view_dir)
         else:
             self._remove_3d_texture_planes()
             pd = self._update_2d_texture_planes(view_dir)
@@ -709,6 +736,19 @@ class Image3d(Model):
             self.add_drawing(pd)
         return pd
 
+    def _update_raycasting_view_axis(self, view_direction):
+        vrd = self._add_volume_raycast_drawing()
+        vrd.update_view_direction(view_direction, self.scene_position)
+        return vrd
+
+    def _add_volume_raycast_drawing(self):
+        vrd = self._volume_raycast_drawing
+        if vrd is None:
+            vrd = VolumeRaycastDrawing(self)
+            self._volume_raycast_drawing = vrd
+            self.add_drawing(vrd)
+        return vrd
+
     # ---------------------------------------------------------------------------
     #
     @property
@@ -726,13 +766,18 @@ class Image3d(Model):
     # ---------------------------------------------------------------------------
     #
     @property
-    def _planes_drawings(self):
-        drawings = self._planes_2d_multiaxis + [self._planes_3d, self._planes_2d]
+    def _drawings(self):
+        drawings = self._planes_2d_multiaxis + [
+            self._planes_3d,
+            self._planes_2d,
+            self._volume_raycast_drawing,
+        ]
         return [d for d in drawings if d]
 
     # ---------------------------------------------------------------------------
     #
-    def _remove_planes(self):
+    def _remove_all_drawings(self):
+        self._remove_volume_raycast_drawing()
         self._remove_2d_texture_planes()
         self._remove_3d_texture_planes()
         self.redraw_needed()
@@ -757,6 +802,12 @@ class Image3d(Model):
         if pd:
             pd.close()
             self._planes_3d = None
+
+    def _remove_volume_raycast_drawing(self):
+        d = self._volume_raycast_drawing
+        if d:
+            d.close()
+            self._volume_raycast_drawing = None
 
     # ---------------------------------------------------------------------------
     #
@@ -804,13 +855,13 @@ class Image3d(Model):
         ]
 
         pmode = self._p_mode
-        if pmode == "2d-xyz" or pmode == "3d":
+        if pmode in ("2d-xyz", "3d", "vr"):
             view_areas = [inner_product(v, bfn) for bfn in box_face_normals]
             from numpy import argmax, abs
 
             axis = argmax(abs(view_areas))
             rev = view_areas[axis] > 0
-        else:
+        elif pmode in ("2d-x", "2d-y", "2d-z"):
             axis = {"2d-x": 0, "2d-y": 1, "2d-z": 2}.get(pmode, 2)
             rev = inner_product(v, box_face_normals[axis]) > 0
 
@@ -829,7 +880,7 @@ class Image3d(Model):
         b = self._blend_manager
         if b:
             b.remove_image(self)
-        self._remove_planes()
+        self._remove_all_drawings()
         Model.delete(self)
 
         bd = self._backing_drawing
@@ -894,15 +945,15 @@ class Image3d(Model):
         if not dopaq and not dtransp:
             return
 
-        pd = self._update_planes(renderer)
+        drawing = self._update_view_axis(renderer)
 
-        if pd._update_region:
-            pd.update_region()
-            pd._update_region = False
+        if drawing._update_region:
+            drawing.update_region()
+            drawing._update_region = False
 
-        pd._update_coloring()
+        drawing._update_coloring()
 
-        self._draw_planes(renderer, draw_pass, dtransp, pd)
+        self._draw_planes(renderer, draw_pass, dtransp, drawing)
 
     # ---------------------------------------------------------------------------
     #
@@ -1066,11 +1117,215 @@ class Colormap:
         )
 
 
+class VolumeRaycastDrawing(Drawing):
+    def __init__(self, image_render):
+        name = "Image3D Volume Raycast Drawing"
+        Drawing.__init__(self, name)
+        self._update_region = False
+        self._update_colors = True
+        self._axis = None
+        self._image_render = image_render
+        ir = image_render
+        self._corners = _box_corners(ir._region, ir._ijk_to_xyz)  # in volume coords
+        self._vertex_to_texcoord = _xyz_to_texcoord(ir._texture_region, ir._ijk_to_xyz)
+        self.color = ir._modulation_color
+        self.use_lighting = True
+        self.opaque_texture = ir._opaque
+        self._last_view_direction = None
+        self._fill_textures()
+
+    def _update_coloring(self):
+        if not self._update_colors:
+            return
+
+        ir = self._image_render
+        if ir._rendering_options.colormap_on_gpu:
+            self._update_colormap_texture()
+        else:
+            self._fill_textures()
+        self._update_colors = False
+
+    # ---------------------------------------------------------------------------
+    #
+    def _update_colormap_texture(self):
+        ir = self._image_render
+        cmap, cmap_range = ir._color_table(self._axis)
+        t = self.colormap
+        if t is None:
+            from chimerax.graphics import Texture
+
+            self.colormap = Texture(cmap, dimension=1, clamp_to_edge=True)
+        else:
+            t.reload_texture(cmap)
+        self.colormap_range = cmap_range
+
+    def update_region(self):
+        ir = self._image_render
+        self._corners = _box_corners(ir._region, ir._ijk_to_xyz)
+        self._last_view_direction = None
+
+    def update_view_direction(self, view_direction, scene_position):
+        if self._planes_changed(view_direction):
+            axis, start, spacing, count = self._planes_parameters(
+                view_direction, scene_position
+            )
+            self._update_geometry(axis, start, spacing, count, scene_position)
+
+    def _planes_changed(self, view_direction):
+        tvd = tuple(view_direction)
+        if tvd != self._last_view_direction:
+            self._last_view_direction = tvd
+            return True
+        return False
+
+    def _update_geometry(self, axis, start, spacing, count, scene_position):
+        """Axis is in volume coordinates."""
+        va, tc, ta = self._perp_planes_geometry(
+            axis, start, spacing, count, scene_position
+        )
+        self.set_geometry(va, None, ta)
+        self.texture_coordinates = tc
+
+    def _planes_parameters(self, view_direction, scene_position):
+        return self._view_aligned_plane_parameters(view_direction, scene_position)
+
+    def _view_aligned_plane_parameters(self, view_direction, scene_position):
+        if scene_position.is_identity():
+            axis = -view_direction
+        else:
+            axis = -scene_position.transpose().transform_vector(view_direction)
+
+        # Find number of cut planes
+        corners = self._corners
+        from . import offset_range
+
+        omin, omax = offset_range(corners, axis)
+        spacing = self._image_render._plane_spacing()
+        from math import floor, fmod
+
+        n = int(floor((omax - omin) / spacing))
+
+        # Reduce Moire patterns as volume rotated by making a cut plane always intercept box center.
+        omid = 0.5 * (omin + omax)
+        offset = omin + fmod(omid - omin, spacing)
+
+        return axis, offset, spacing, n
+
+    def _perp_planes_geometry(self, axis, start, spacing, count, scene_position):
+        """Axis is in volume coordinates."""
+
+        # Triangulate planes intersecting with volume box
+        from . import box_cuts
+
+        va, ta = box_cuts(self._corners, axis, start, spacing, count)
+        tc = self._vertex_to_texcoord * va
+
+        return va, tc, ta
+
+    def _fill_textures(self):
+        t = self.texture
+        if t is None:
+            self.texture = t = self._texture_3d()
+        if isinstance(self._image_render, BlendedImage):
+            self._fill_texture_blend(t)
+        else:
+            td = self._texture_3d_data()
+            t.reload_texture(td, now=True)
+
+    def _texture_3d(self):
+        # Create texture but do not fill in texture data values.
+        ir = self._image_render
+        lo = ir._rendering_options.linear_interpolation
+        from chimerax.graphics import Texture
+
+        t = Texture(dimension=3, linear_interpolation=lo)
+        if isinstance(ir, BlendedImage):
+            t.initialize_rgba(ir._region_size)
+        return t
+
+    def _texture_3d_data(self):
+        z_axis = 2
+        ir = self._image_render
+        ijk_min, ijk_max, ijk_step = ir._texture_region
+        k0, k1, kstep = ijk_min[z_axis], ijk_max[z_axis], ijk_step[z_axis]
+        k0, k1 = kstep * (k0 // kstep), kstep * (k1 // kstep)
+        p = ir._color_plane(k0, z_axis, color_3d=True)
+        sz = (k1 - k0 + kstep) // kstep
+        from numpy import empty
+
+        td = empty((sz,) + tuple(p.shape), p.dtype)
+        td[0, :] = p
+        for i in range(1, sz):
+            td[i, :] = ir._color_plane(k0 + i * kstep, z_axis, color_3d=True)
+        return td
+
+    def _fill_texture_blend(self, texture):
+        # Blend textures on GPU
+
+        # First make sure all source image textures are up to date.
+        ir = self._image_render
+        for si in ir.images:
+            si._texture_3d_planes()._update_coloring()
+
+        # Blend in each source texture to produce blended texture.
+        b = ir._session.main_view.render.blend
+        b.start_blending(self.texture)
+        for si in ir.images:
+            vap = si._planes_3d
+            modulation_color = [c / 255 for c in si._modulation_color]
+            if si._use_gpu_colormap:
+                b.blend3d(
+                    vap.texture,
+                    modulation_color,
+                    self.texture,
+                    vap.colormap,
+                    vap.colormap_range,
+                )
+            else:
+                b.blend3d(vap.texture, modulation_color, self.texture)
+        b.finish_blending()
+
+    def draw(self, renderer, draw_pass):
+        renderer.enable_capabilities |= renderer.SHADER_VOLUME_RAYCASTING
+        dx, dy, dz = self.parent._plane_spacings()
+        step_size = (dx / 2, dy / 2, dz / 2)
+
+        # Get the full bounds so users can crop the volume to regions of interest
+        full_corners = _box_corners(
+            self.parent.parent.full_region(), self._image_render._ijk_to_xyz
+        )
+        positions = self.get_scene_positions(displayed_only=True)
+        from chimerax.geometry import point_bounds
+
+        full_bounds = point_bounds(full_corners, positions)
+
+        full_region_min = full_bounds.xyz_min
+        full_region_max = full_bounds.xyz_max
+
+        renderer.set_volume_parameters(step_size, full_region_min, full_region_max)
+        max_corner, min_corner = (
+            self.parent.bounds().xyz_max,
+            self.parent.bounds().xyz_min,
+        )
+        renderer.set_bounding_box_planes(max_corner, min_corner)
+        Drawing.draw(self, renderer, draw_pass)
+        renderer.enable_capabilities &= ~renderer.SHADER_VOLUME_RAYCASTING
+
+    def close(self):
+        tex = self.texture
+        if tex:
+            # Drawing may not make opengl context current because it was never drawn
+            # if it just was used for blending. So make sure context is current here.
+            # TODO: Need more general way to assure textures always deleted with context current.
+            r = self._image_render._session.main_view.render
+            r.make_current()
+            tex.delete_texture()
+            self.texture = None
+        self.parent.remove_drawing(self)
+
+
 # ---------------------------------------------------------------------------
 #
-from chimerax.graphics import Drawing
-
-
 class PlanesDrawing(Drawing):
     def __init__(self, name, image_render, axis=None):
         Drawing.__init__(self, name)
@@ -1584,7 +1839,7 @@ class BlendedImage(Image3d):
         ro.colormap_on_gpu = False
 
         #    for ir in images:
-        #      ir._remove_planes()	# Free textures and opengl buffers
+        #      ir._remove_all_drawings()	# Free textures and opengl buffers
 
         self._rgba8_array = None
 

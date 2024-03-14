@@ -92,6 +92,7 @@ def register_volume_command(logger):
         ("subdivide_surface", BoolArg),
         ("subdivision_levels", IntArg),
         ("surface_smoothing", BoolArg),
+        ("use_volume_raycasting", BoolArg),
         ("smoothing_iterations", IntArg),
         ("smoothing_factor", FloatArg),
         ("square_mesh", BoolArg),
@@ -257,6 +258,7 @@ def volume(
     smoothing_factor=None,
     square_mesh=None,
     cap_faces=None,
+    use_volume_raycasting=None,
     box_faces=None,
     orthoplanes=None,
     position_planes=None,
@@ -361,6 +363,8 @@ def volume(
             Makes transparent surfaces dimmer
         dim_transparent_voxels: bool
             For image rendering.
+        use_volume_raycasting: bool
+            Use volume ray casting for image rendering. Implies full_region_on_gpu, colormap_on_gpu, 'vr' projection mode.
         line_thickness: float
         smooth_lines: bool
         mesh_lighting: bool
@@ -539,6 +543,7 @@ def _render_settings(options):
         "subdivision_levels",
         "surface_smoothing",
         "smoothing_iterations",
+        "use_volume_raycasting",
         "smoothing_factor",
         "square_mesh",
         "cap_faces",

@@ -27,6 +27,8 @@ View
 ====
 """
 
+from chimerax.graphics.camera import MonoCamera
+
 
 class View:
     """
@@ -222,6 +224,8 @@ class View:
 
         r = self._render
         self.clip_planes.enable_clip_plane_graphics(r, camera.position)
+        if isinstance(self.camera, MonoCamera):
+            r._set_camera_params(camera.position.origin(), camera.field_of_view)
         mdraw = [self.drawing] if drawings is None else drawings
         (opaque_drawings, transparent_drawings, highlight_drawings, on_top_drawings) = (
             self._drawings_by_pass(mdraw)
