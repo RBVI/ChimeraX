@@ -272,9 +272,6 @@ void main (void)
     #endif
   #else
     #ifdef USE_TEXTURE_3D
-      #ifdef USE_VOLUME_RAYCASTING
-      // Accumulate color and opacity along the ray.
-      #endif
       #ifdef USE_COLORMAP
         float tvalue = (texture(tex3d, tex_coord_3d).r - colormap_range.x) * colormap_range.y;
         vec4 fcolor = texture(colormap, tvalue) * color;
@@ -295,7 +292,7 @@ void main (void)
   
     float key_factor = max(-dot(N1,key_light_direction),0.0);
     float fill_factor = max(-dot(N1,fill_light_direction),0.0);
-    vec3 R = normalize(reflect(key_light_direction,N1)); 
+    vec3 R = normalize(reflect(key_light_direction,N1));
     float specular_factor = pow(max(-dot(R,v1),0.0), key_light_specular_exponent);
   #else
     float key_factor = 1;
@@ -329,15 +326,13 @@ void main (void)
     vec3 Ifrag = fcolor.rgb;
   
   #endif // end USE_LIGHTING
-  // float bbox_bottom = min(min(bbox_min.x, bbox_min.y), bbox_min.z);
-  // float bbox_top = max(max(bbox_max.x, bbox_max.y), bbox_max.z);
   float aspect_ratio = window_size.x / window_size.y;
   float focal_length = 1.0 / tan((3.14159 / 180) * camera_fov / 2.0);
   vec3 ray_origin = camera_pos;
-  vec3 ray_direction
+  vec3 ray_direction;
   vec3 ssize = step_size;
   ray_direction.xy = 2.0 * gl_FragCoord.xy / window_size - 1.0;
-  ray_direction.xy *= aspect_ratio;
+  ray_direction.x *= aspect_ratio;
   ray_direction.z = -focal_length;
   ray_direction = (vec4(ray_direction, 0.0) * view_matrix).xyz;
 
@@ -351,13 +346,15 @@ void main (void)
   float t_0 = max(t_min.x, max(t_min.y, t_min.z));
   float t_1 = min(t_max.x, min(t_max.y, t_max.z));
 
-  vec3 ray_start = (ray_origin + ray_direction * t_0 - bbox_min) / (bbox_max - bbox_min);
+  // Centers the volume in the box
+  vec3 ray_start = (ray_origin + ray_direction * t_0 - bbox_min) /  (bbox_max - bbox_min);
   vec3 ray_stop = (ray_origin + ray_direction * t_1 - bbox_min) /  (bbox_max - bbox_min);
 
   vec3 ray = ray_stop - ray_start;
   float ray_length = length(ray);
-  vec3 step_vector = step_size * ray / ray_length;
-  float step_length = length(step_vector);
+  //float step_length = length(ssize);
+  vec3 step_vector = 0.05 * ray / ray_length;
+  ray_start += step_vector;
   vec3 position = ray_start;
   #ifdef USE_DEPTH_CUE
     float d = -v.z;	// Distance from eye to fragment.
@@ -367,14 +364,14 @@ void main (void)
   //// Raymarch through the volume
   frag_color = vec4(0, 0, 0, 0);
   float maximum_intensity = 0.0;
-  while(ray_length > 0 && frag_color.a < 1.0) {
+  while(ray_length > 0) {
     float tvalue = (texture(tex3d, position)).r; //- colormap_range.x) * colormap_range.y;
     if (tvalue > maximum_intensity) {
       maximum_intensity = tvalue;
     }
     //vec4 fcolor = texture(colormap, tvalue) * color;
     //frag_color.rgb = fcolor.a * fcolor.rgb + (1 - fcolor.a) * frag_color.a * frag_color.rgb;
-    ray_length -= step_length;
+    ray_length -= 0.1;
     position += step_vector;
   }
   frag_color = vec4(1, 1, 1, maximum_intensity);
