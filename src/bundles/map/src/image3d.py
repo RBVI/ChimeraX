@@ -32,7 +32,6 @@ from chimerax.core.models import Model
 
 
 class Image3d(Model):
-
     def __init__(
         self,
         name,
@@ -43,7 +42,6 @@ class Image3d(Model):
         session,
         blend_manager,
     ):
-
         Model.__init__(self, name, session)
 
         self._data = grid_data
@@ -82,7 +80,6 @@ class Image3d(Model):
     # ---------------------------------------------------------------------------
     #
     def message(self, text, large_data_only=True):
-
         if self.message_cb:
             if large_data_only:
                 si, sj, sk = self.size
@@ -305,7 +302,6 @@ class Image3d(Model):
     # ---------------------------------------------------------------------------
     #
     def _color_plane(self, plane, axis, color_3d=False, require_color=False):
-
         m = self._matrix_plane(plane, axis)
         if self._rendering_options.colormap_on_gpu and not require_color:
             return m
@@ -364,7 +360,6 @@ class Image3d(Model):
     # through planes.
     #
     def _color_array(self, ctype, cshape):
-
         if hasattr(self, "_grayscale_color_array"):
             colors = self._grayscale_color_array
             if colors.dtype == ctype and tuple(colors.shape) == cshape:
@@ -526,7 +521,6 @@ class Image3d(Model):
     # ---------------------------------------------------------------------------
     #
     def _colormap_properties(self):
-
         # Color component type
         from numpy import uint8, int8, uint16, int16
 
@@ -575,7 +569,6 @@ class Image3d(Model):
     # Convert rgba colormap to format appropriate for color mode (e.g. la).
     #
     def _rgba_to_colormap(self, colormap):
-
         c = self._colormap_components()
         from numpy import empty
 
@@ -589,7 +582,6 @@ class Image3d(Model):
     # to a format appropriate for color mode.
     #
     def _colormap_components(self):
-
         m = self._c_mode
         if m.startswith("rgba"):
             c = (0, 1, 2, 3)  # RGBA
@@ -606,7 +598,6 @@ class Image3d(Model):
     # ---------------------------------------------------------------------------
     #
     def _auto_color_mode(self):
-
         cm = self._rendering_options.color_mode
         auto = cm.startswith("auto")
         opaque = cm.startswith("opaque")
@@ -638,7 +629,6 @@ class Image3d(Model):
     # ---------------------------------------------------------------------------
     #
     def _luminance_color(self):
-
         if self._c_mode.startswith("l"):
             ltf, rgba = _luminance_transfer_function(self._colormap.transfer_function)
         else:
@@ -648,7 +638,6 @@ class Image3d(Model):
     # ---------------------------------------------------------------------------
     #
     def _auto_projection_mode(self):
-
         pm = self._rendering_options.projection_mode
         if pm == "auto":
             s = [n * sp for n, sp in zip(self._region_size, self._plane_spacings())]
@@ -666,7 +655,6 @@ class Image3d(Model):
     # ---------------------------------------------------------------------------
     #
     def close_model(self):
-
         self._remove_all_drawings()
         if not self.deleted and self.parent:
             self.session.models.close([self])
@@ -970,7 +958,6 @@ class Image3d(Model):
     # ---------------------------------------------------------------------------
     #
     def _draw_planes(self, renderer, draw_pass, dtransp, drawing):
-
         if dtransp:
             self._draw_backing(renderer)
 
@@ -1114,7 +1101,6 @@ class Colormap:
         extend_left=False,
         extend_right=True,
     ):
-
         self.transfer_function = transfer_function
         self.brightness_factor = brightness_factor
         self.transparency_thickness = transparency_thickness
@@ -1304,8 +1290,11 @@ class VolumeRaycastDrawing(Drawing):
         dx, dy, dz = self.parent._plane_spacings()
         step_size = (dx / 2, dy / 2, dz / 2)
         renderer.set_volume_step_size(step_size)
-        max_corner, min_corner = self._corners[0], self._corners[7]
-        renderer.set_bounding_box_corners(max_corner, min_corner)
+        size = self.parent.bounds().size()
+        max_corner = size
+        min_corner = -size
+        # max_corner, min_corner = self._corners[0], self._corners[7]
+        renderer.set_bounding_box_planes(max_corner, min_corner)
         Drawing.draw(self, renderer, draw_pass)
         renderer.enable_capabilities &= ~renderer.SHADER_VOLUME_RAYCASTING
 
@@ -1555,9 +1544,7 @@ class Texture2dPlanes(PlanesDrawing):
 # ---------------------------------------------------------------------------
 #
 class Texture3dPlanes(PlanesDrawing):
-
     def __init__(self, image_render):
-
         name = "Image3D 3d texture planes"
         PlanesDrawing.__init__(self, name, image_render)
 
@@ -1815,9 +1802,7 @@ def _xyz_to_texcoord(ijk_region, ijk_to_xyz):
 # ---------------------------------------------------------------------------
 #
 class BlendedImage(Image3d):
-
     def __init__(self, images):
-
         name = "blend " + ", ".join(ir.name for ir in images)
         i0 = images[0]
         Image3d.__init__(
@@ -2090,7 +2075,6 @@ def blend_manager(session):
 # -----------------------------------------------------------------------------
 #
 def _luminance_transfer_function(tf):
-
     if len(tf) == 0:
         return tf, (1, 1, 1, 1)
 
@@ -2114,7 +2098,6 @@ def _luminance_transfer_function(tf):
 # -----------------------------------------------------------------------------
 #
 def _colinear(vlist, tolerance=0.99):
-
     from numpy import inner
 
     vnz = [v for v in vlist if inner(v, v) > 0]
@@ -2134,7 +2117,6 @@ def _colinear(vlist, tolerance=0.99):
 # -----------------------------------------------------------------------------
 #
 def _value_type_range(numpy_type):
-
     from numpy import uint8, int8, uint16, int16
 
     tsize = {
