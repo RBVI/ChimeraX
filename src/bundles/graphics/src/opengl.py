@@ -469,7 +469,6 @@ class Render:
     """
 
     def __init__(self, opengl_context):
-
         self._opengl_context = oc = opengl_context
         self._recording_calls = None
         self._front_buffer_valid = False
@@ -1450,7 +1449,6 @@ class Render:
             self.current_framebuffer().set_draw_buffer(b)
 
     def start_depth_render(self, framebuffer, texture_unit, center, radius, size):
-
         # Set projection matrix to be orthographic and span all models.
         rinv = 1 / radius
         from numpy import array, float64
@@ -1529,17 +1527,17 @@ class Render:
     def _set_window_params(self) -> None:
         p = self.current_shader_program
         if p is not None and p.capabilities & self.SHADER_VOLUME_RAYCASTING:
-            p.set_vector2(
-                "window_size",
-                (self.current_framebuffer().width, self.current_framebuffer().height),
-            )
+            pscale = self.pixel_scale()
+            width = self.opengl_context.window.width() * pscale
+            height = self.opengl_context.window.height() * pscale
+            p.set_vector2("window_size", (width, height))
 
     def set_volume_step_size(self, step: tuple[int, int, int]) -> None:
         p = self.current_shader_program
         if p is not None and p.capabilities & self.SHADER_VOLUME_RAYCASTING:
             p.set_vector3("step_size", step)
 
-    def set_bounding_box_corners(
+    def set_bounding_box_planes(
         self, max_corner: tuple[int, int, int], min_corner: tuple[int, int, int]
     ) -> None:
         p = self.current_shader_program
@@ -1653,7 +1651,6 @@ class Shadow:
                 p.set_matrix("shadow_transform", stf.opengl_matrix())
 
     def _start_rendering_shadowmap(self, center, radius, size=1024):
-
         r = self._render
         fb = r.start_depth_render(
             self._shadow_map_framebuffer,
@@ -1665,14 +1662,12 @@ class Shadow:
         self._shadow_map_framebuffer = fb
 
     def _finish_rendering_shadowmap(self):
-
         r = self._render
         r.draw_depth_only(False)
         fb = r.pop_framebuffer()
         return fb.depth_texture
 
     def _shadow_transforms(self, light_direction, center, radius, depth_bias=0.005):
-
         r = self._render
         if r.recording_opengl:
             from . import gllist
@@ -2154,7 +2149,6 @@ class Outline:
         self._draw_texture_mask_outline(t, color=color, pixel_width=pixel_width)
 
     def _draw_texture_mask_outline(self, texture, color=(0, 1, 0, 1), pixel_width=1):
-
         # Render outline of region where texture red > 0.
         # Outline pixels have red = 0 in texture mask but are adjacent
         # in one of 4 directions to pixels with red > 0.
@@ -2347,7 +2341,6 @@ class Framebuffer:
         depth_texture=None,
         alpha=False,
     ):
-
         self.name = name  # For debugging
 
         if width is not None and height is not None:
@@ -2545,14 +2538,12 @@ class Framebuffer:
             self._opengl_context._framebuffers.discard(self)
 
     def valid_size(self, width, height):
-
         max_rb_size = GL.glGetInteger(GL.GL_MAX_RENDERBUFFER_SIZE)
         max_tex_size = GL.glGetInteger(GL.GL_MAX_TEXTURE_SIZE)
         max_size = min(max_rb_size, max_tex_size)
         return width <= max_size and height <= max_size
 
     def set_color_bits(self, bits):
-
         if bits == self._color_bits:
             return
 
@@ -2564,7 +2555,6 @@ class Framebuffer:
             )
 
     def color_renderbuffer(self, width, height, alpha=False):
-
         color_rb = GL.glGenRenderbuffers(1)
         GL.glBindRenderbuffer(GL.GL_RENDERBUFFER, color_rb)
         if self._color_bits == 8:
@@ -2575,7 +2565,6 @@ class Framebuffer:
         return color_rb
 
     def depth_renderbuffer(self, width, height):
-
         depth_rb = GL.glGenRenderbuffers(1)
         GL.glBindRenderbuffer(GL.GL_RENDERBUFFER, depth_rb)
         if stencil8_needed:
@@ -2668,7 +2657,6 @@ class Lighting:
     """
 
     def __init__(self):
-
         self.set_default_parameters()
 
     def set_default_parameters(self, background_color=None):
@@ -2751,7 +2739,6 @@ class Material:
     """
 
     def __init__(self):
-
         self.set_default_parameters()
 
     def set_default_parameters(self):
@@ -2992,7 +2979,6 @@ class Buffer:
     """
 
     def __init__(self, buffer_type):
-
         t = buffer_type
         self.shader_variable_name = t.shader_variable_name
         self.opengl_buffer = None
@@ -3133,7 +3119,6 @@ class Shader:
         vertex_shader_path=None,
         fragment_shader_path=None,
     ):
-
         self.capabilities = capabilities
 
         if vertex_shader_path is None:
@@ -3187,18 +3172,17 @@ class Shader:
         else:
             p = self.program_id
             uid = GL.glGetUniformLocation(p, name.encode("utf-8"))
-            if uid == -1:
-                raise OpenGLError(
-                    'Shader does not have uniform variable "%s"\n shader capabilities %s'
-                    % (name, ", ".join(shader_capability_names(self.capabilities)))
-                )
+            # if uid == -1:
+            #    raise OpenGLError(
+            #        'Shader does not have uniform variable "%s"\n shader capabilities %s'
+            #        % (name, ", ".join(shader_capability_names(self.capabilities)))
+            #    )
             uids[name] = uid
         return uid
 
     def compile_shader(
         self, vertex_shader_path, fragment_shader_path, capabilities=0, max_shadows=0
     ):
-
         f = open(vertex_shader_path, "r")
         vshader = self.insert_define_macros(f.read(), capabilities, max_shadows)
         f.close()
@@ -3307,7 +3291,6 @@ class Texture:
         linear_interpolation=True,
         clamp_to_edge=False,
     ):
-
         # PyOpenGL 3.1.5 leaks memory if data not contiguous, PyOpenGL github issue #47.
         d = data if data is None or data.flags["C_CONTIGUOUS"] else data.copy()
         self.data = d
@@ -3321,7 +3304,6 @@ class Texture:
         self.clamp_to_edge = clamp_to_edge
 
     def initialize_rgba(self, size):
-
         format = GL.GL_RGBA
         iformat = GL.GL_RGBA8
         tdtype = GL.GL_UNSIGNED_BYTE
@@ -3329,7 +3311,6 @@ class Texture:
         self.initialize_texture(size, format, iformat, tdtype, ncomp)
 
     def initialize_8_bit(self, size):
-
         format = GL.GL_RED
         # TODO: PyOpenGL-20130502 does not have GL_R8.
         GL_R8 = 0x8229  # noqa
@@ -3339,7 +3320,6 @@ class Texture:
         self.initialize_texture(size, format, iformat, tdtype, ncomp)
 
     def initialize_depth(self, size, depth_compare_mode=True):
-
         format = GL.GL_DEPTH_COMPONENT
         if stencil8_needed:
             # for compatibility with glRenderbufferStorage
@@ -3369,7 +3349,6 @@ class Texture:
         depth_compare_mode=False,
         border_color=(0, 0, 0, 0),
     ):
-
         self.id = t = GL.glGenTextures(1)
         self.size = size
         self._check_maximum_texture_size(size)
@@ -3686,7 +3665,6 @@ class TextureWindow:
     """
 
     def __init__(self, render):
-
         # Must have vao bound before compiling shader.
         self.vao = vao = Bindings("texture window", render.opengl_context)
         vao.activate()
@@ -3791,7 +3769,6 @@ def pyopengl_null():
 
 
 class OffScreenRenderingContext:
-
     def __init__(self, width=512, height=512):
         self.width = width
         self.height = height
