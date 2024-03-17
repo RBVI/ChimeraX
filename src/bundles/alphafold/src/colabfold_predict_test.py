@@ -331,7 +331,7 @@ def setup_receiving_sequences():
     # in March 2024, so this works around that change.  ChimeraX ticket 14477.
     import IPython
     entry_html = '''<panel-input onchange="google.colab.kernel.invokeFunction('set_sequences',[this.value],{})"></panel-input>'''
-    display(IPython.display.HTML(entry_html)
+    display(IPython.display.HTML(entry_html))
     
 # ================================================================================================
 #
