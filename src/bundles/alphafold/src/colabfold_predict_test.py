@@ -321,19 +321,21 @@ def remove_from_list(list, item):
 #
 def read_sequences():
     from google.colab import output
-    value = output.eval_js('document.querySelector("paper-input").value')
+#    value = output.eval_js('document.querySelector("paper-input").value')
+    value = output.eval_js('document.sequences')
     return value
 def create_sequence_entry():
     from IPython.display import display, HTML
-    display(HTML('<paper-input></paper-input>'))
+#    display(HTML('<paper-input></paper-input>'))
+    display(HTML('<paper-input onchange="document.sequences=this.value"></paper-input>'))
 
 # ================================================================================================
 # Predict a structure for a sequence.
 #
 #sequences = 'Paste a sequences separated by commas here'  #@param {type:"string"}
 
-create_sequence_entry()
-'''
+#create_sequence_entry()
+
 sequences = read_sequences()
 
 # Remove options from list of sequences
@@ -343,4 +345,4 @@ use_templates = remove_from_list(seq_list, 'use_pdb_templates')
 remove_from_list(seq_list, 'prokaryote')  # Obsolete "prokaryote" flag
 
 run_prediction(seq_list, use_templates = use_templates, energy_minimize = not dont_minimize)
-'''
+
