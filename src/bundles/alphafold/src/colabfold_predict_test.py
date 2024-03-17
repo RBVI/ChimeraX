@@ -319,30 +319,42 @@ def remove_from_list(list, item):
 
 # ================================================================================================
 #
-def read_sequences():
+def setup_receiving_sequences():
+    def set_sequences(seqs):
+        global sequences
+        sequences = seqs
     from google.colab import output
-#    value = output.eval_js('document.querySelector("paper-input").value')
-    value = output.eval_js('document.sequences')
-    return value
-def create_sequence_entry():
-    from IPython.display import display, HTML
-#    display(HTML('<paper-input></paper-input>'))
-    display(HTML('<paper-input onchange="document.sequences=this.value"></paper-input>'))
+    output.register_callback('set_sequences', set_sequences)
 
+    # Add panel-input entry field to cell output since that is where
+    # ChimeraX puts the sequences.  Google Colab changed the entry field
+    # in March 2024, so this works around that change.  ChimeraX ticket 14477.
+    import IPython
+    entry_html = '''<panel-input onchange="google.colab.kernel.invokeFunction('set_sequences',[this.value],{})"></panel-input>'''
+    display(IPython.display.HTML(entry_html)
+    
+# ================================================================================================
+#
+_first_call = True
+def first_call():
+    global _first_call
+    fc = _first_call
+    _first_call = False
+    return fc
+    
 # ================================================================================================
 # Predict a structure for a sequence.
 #
-#sequences = 'Paste a sequences separated by commas here'  #@param {type:"string"}
+sequences = 'Paste a sequences separated by commas here'  #@param {type:"string"}
 
-#create_sequence_entry()
+if first_call():
+    setup_receiving_sequences()
+else:
+    # Remove options from list of sequences
+    seq_list = [seq.strip() for seq in sequences.split(',')]
+    dont_minimize = remove_from_list(seq_list, 'dont_minimize')		# Energy minimization
+    use_templates = remove_from_list(seq_list, 'use_pdb_templates')
+    remove_from_list(seq_list, 'prokaryote')  # Obsolete "prokaryote" flag
 
-sequences = read_sequences()
-
-# Remove options from list of sequences
-seq_list = [seq.strip() for seq in sequences.split(',')]
-dont_minimize = remove_from_list(seq_list, 'dont_minimize')		# Energy minimization
-use_templates = remove_from_list(seq_list, 'use_pdb_templates')
-remove_from_list(seq_list, 'prokaryote')  # Obsolete "prokaryote" flag
-
-run_prediction(seq_list, use_templates = use_templates, energy_minimize = not dont_minimize)
+    run_prediction(seq_list, use_templates = use_templates, energy_minimize = not dont_minimize)
 
