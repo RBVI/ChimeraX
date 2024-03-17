@@ -335,21 +335,21 @@ def setup_receiving_sequences():
     
 # ================================================================================================
 #
-_first_call = True
 def first_call():
+    if '_first_call' in globals():
+        return False
     global _first_call
-    fc = _first_call
     _first_call = False
-    return fc
+    return True
     
 # ================================================================================================
 # Predict a structure for a sequence.
 #
-sequences = 'Paste a sequences separated by commas here'  #@param {type:"string"}
+#sequences = 'Paste a sequences separated by commas here'  #@param {type:"string"}
 
 if first_call():
     setup_receiving_sequences()
-else:
+elif 'sequences' in globals():
     # Remove options from list of sequences
     seq_list = [seq.strip() for seq in sequences.split(',')]
     dont_minimize = remove_from_list(seq_list, 'dont_minimize')		# Energy minimization
@@ -357,4 +357,5 @@ else:
     remove_from_list(seq_list, 'prokaryote')  # Obsolete "prokaryote" flag
 
     run_prediction(seq_list, use_templates = use_templates, energy_minimize = not dont_minimize)
-
+else:
+    print('No sequences provided')
