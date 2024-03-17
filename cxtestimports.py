@@ -15,6 +15,7 @@ blacklist = set([
     "chimerax.alphafold.alphafold21_predict_colab",  # IPython notebook with syntax magic
     "chimerax.alphafold.alphafold22_predict_colab",  # IPython notebook with syntax magic
     "chimerax.alphafold.colabfold_predict",          # IPython notebook with syntax magic
+    "chimerax.alphafold.colabfold_predict_test",     # IPython notebook with syntax magic
     "chimerax.alphafold.fix_seq_titles",	# Alphafold database processing script.
     "chimerax.atomic.libmolc",  # non-importable dynamic lib
     "chimerax.atomic.md_crds.dcd.MDToolsMarch97.md_tests",  # test code
