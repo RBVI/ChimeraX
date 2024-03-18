@@ -327,12 +327,12 @@ void main (void)
   
   #endif // end USE_LIGHTING
   float aspect_ratio = window_size.x / window_size.y;
-  float focal_length = 1.0 / tan((3.14159 / 180) * camera_fov / 2.0);
+  float focal_length = 1.0 / tan(radians(camera_fov / 2.0));
   vec3 ray_origin = camera_pos;
   vec3 ray_direction;
   vec3 ssize = step_size;
   ray_direction.xy = 2.0 * gl_FragCoord.xy / window_size - 1.0;
-  ray_direction.x *= aspect_ratio;
+  ray_direction.y /= aspect_ratio;
   ray_direction.z = -focal_length;
   ray_direction = (vec4(ray_direction, 0.0) * view_matrix).xyz;
 
@@ -346,6 +346,10 @@ void main (void)
   float t_0 = max(t_min.x, max(t_min.y, t_min.z));
   float t_1 = min(t_max.x, min(t_max.y, t_max.z));
 
+  if (t_0 > t_1) {
+    discard;
+  }
+
   // Centers the volume in the box
   vec3 ray_start = (ray_origin + ray_direction * t_0 - bbox_min) /  (bbox_max - bbox_min);
   vec3 ray_stop = (ray_origin + ray_direction * t_1 - bbox_min) /  (bbox_max - bbox_min);
@@ -353,7 +357,7 @@ void main (void)
   vec3 ray = ray_stop - ray_start;
   float ray_length = length(ray);
   //float step_length = length(ssize);
-  vec3 step_vector = 0.05 * ray / ray_length;
+  vec3 step_vector = 0.01 * ray / ray_length;
   ray_start += step_vector;
   vec3 position = ray_start;
   #ifdef USE_DEPTH_CUE
@@ -371,7 +375,7 @@ void main (void)
     }
     //vec4 fcolor = texture(colormap, tvalue) * color;
     //frag_color.rgb = fcolor.a * fcolor.rgb + (1 - fcolor.a) * frag_color.a * frag_color.rgb;
-    ray_length -= 0.1;
+    ray_length -= 0.01;
     position += step_vector;
   }
   frag_color = vec4(1, 1, 1, maximum_intensity);
