@@ -442,11 +442,12 @@ class LaunchFitLoopsTool(ToolInstance):
         #if not hasattr(self.__class__, 'settings'):
         #    self.__class__.settings = LaunchEmplaceLocalSettings(session, "launch emplace local")
 
-        from Qt.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel, QWidget, QSpinBox, QListWidget
-        from Qt.QtWidgets import QGridLayout
-        from Qt.QtCore import Qt
+        from Qt.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel, QWidget, QSpinBox
+        from Qt.QtWidgets import QGridLayout, QAbstractItemView
+        from Qt.QtCore import Qt, QSize
         layout = QVBoxLayout()
         parent.setLayout(layout)
+        parent.setMinimumSize(0, 400)
         #layout.setContentsMargins(0,0,0,0)
         layout.setSpacing(1)
 
@@ -468,7 +469,7 @@ class LaunchFitLoopsTool(ToolInstance):
         self.map_menu = ModelMenuButton(session, class_filter=Volume)
         data_layout.addWidget(self.map_menu, alignment=Qt.AlignLeft, stretch=1)
 
-        targeting_layout = QHBoxLayout()
+        targeting_layout = QVBoxLayout()
         targeting_layout.setSpacing(1)
         targeting_layout.setContentsMargins(0,0,0,0)
         layout.addLayout(targeting_layout, stretch=1)
@@ -476,7 +477,7 @@ class LaunchFitLoopsTool(ToolInstance):
         self.target_label = QLabel(self.no_structure_message)
         self.model_structure_message = "Select the parts of %s you want to model/remodel, including" \
             " missing-structure pseudobonds if filling the corresponding gap is desired." \
-            "  For convenience, choosing a gap from the list on the right will select the" \
+            "  For convenience, choosing a gap from the list below will select the" \
             " corresponding part of the structure and focus the view on it."
         self.many_residues_message = "The fit_loops program does not perform well when" \
             " modeling %d consecutive residues or more, so modeling" \
@@ -492,24 +493,31 @@ class LaunchFitLoopsTool(ToolInstance):
         shrink_font(self.target_label, 0.9)
         targeting_layout.addWidget(self.target_label)
         self.target_area = QWidget()
+        #self.target_area.setMinimumSize(0, 200)
         target_layout = QVBoxLayout()
         self.target_area.setLayout(target_layout)
         target_layout.addWidget(QLabel("Gaps"), alignment=Qt.AlignHCenter|Qt.AlignBottom)
-        targeting_layout.addWidget(self.target_area)
-        self.target_list = QListWidget()
-        self.target_list.currentRowChanged.connect(self._new_target)
-        target_layout.addWidget(self.target_list, alignment=Qt.AlignHCenter|Qt.AlignTop, stretch=1)
-        padding_layout = QGridLayout()
+        targeting_layout.addWidget(self.target_area, stretch=1)
+        from chimerax.ui.widgets import ItemTable
+        self.target_table = targets = ItemTable(session=session)
+        chain_col = targets.add_column("Chain", "chain_id")
+        targets.add_column("Adjacent Residues", "between")
+        targets.add_column("Gap Length", "length")
+        targets.selection_changed.connect(self._new_target)
+        targets.launch(select_mode=QAbstractItemView.SelectionMode.SingleSelection)
+        targets.sort_by(chain_col, targets.SORT_ASCENDING)
+        target_layout.addWidget(targets, alignment=Qt.AlignHCenter|Qt.AlignTop, stretch=1)
+        padding_layout = QHBoxLayout()
         padding_layout.setSpacing(1)
         target_layout.addLayout(padding_layout)
-        padding_layout.addWidget(QLabel("Also select "), 0, 0, alignment=Qt.AlignRight)
+        padding_layout.addWidget(QLabel("Also select "), alignment=Qt.AlignRight)
         self.padding_widget = QSpinBox()
         self.padding_widget.setValue(1)
+        self.padding_widget.setRange(0, 99)
         self.padding_widget.valueChanged.connect(self._padding_changed)
-        padding_layout.addWidget(self.padding_widget, 0, 1)
-        self.residue_label = QLabel(" residue")
-        padding_layout.addWidget(self.residue_label, 0, 2, alignment=Qt.AlignLeft)
-        padding_layout.addWidget(QLabel("on each side of gap"), 1, 0, 1, 3, alignment=Qt.AlignCenter)
+        padding_layout.addWidget(self.padding_widget)
+        self.residue_label = QLabel(" residue on each side of gap")
+        padding_layout.addWidget(self.residue_label)
         self.target_area.setHidden(True)
 
         from Qt.QtWidgets import QDialogButtonBox as qbbox
@@ -596,10 +604,11 @@ class LaunchFitLoopsTool(ToolInstance):
         unk_gaps.sort()
         return gaps, unk_gaps
 
-    def _new_target(self, row):
-        if row < 0:
+    def _new_target(self, *args):
+        table_data = self.target_table.selected
+        if not table_data:
             return
-        r1, r2, pb = self.current_gap_info[row]
+        r1, r2, pb = table_data[0].gap_info
         pad = self.padding_widget.value()
         from chimerax.core.commands import run
         if pad > 0:
@@ -631,8 +640,10 @@ class LaunchFitLoopsTool(ToolInstance):
             run(self.session, "view " + a1.atomspec + a2.atomspec)
 
     def _padding_changed(self, padding):
-        self.residue_label.setText(" residue" if padding == 1 else " residues")
-        self._new_target(self.target_list.currentRow())
+        prefix = " residue" if padding == 1 else " residues"
+        cur_text = self.residue_label.text()
+        self.residue_label.setText(prefix + cur_text[cur_text[1:].index(' ')+1:])
+        self._new_target(self.target_table.selected)
 
     def _sel_changed(self, trig_name, data):
         structure = self.structure_menu.value
@@ -703,10 +714,21 @@ class LaunchFitLoopsTool(ToolInstance):
                     for r1, r2, pb in unk_gaps])), is_html=True)
             if gap_info:
                 msg = self.model_structure_message % structure
-                self.current_gap_info = gap_info
-                self.target_list.clear()
-                for r1, r2, pb in gap_info:
-                    self.target_list.addItem(f"Chain {r1.chain_id}, {r1.number+1}-{r2.number-1}")
+                self.target_table.data = []
+                class TableDatum:
+                    def __init__(self, gap_info):
+                        self.gap_info = gap_info
+                        r1, r2, pb = gap_info
+                        self.chain_id = r1.chain_id
+                        self.between = "%s \N{LEFT RIGHT ARROW} %s" % (
+                            r1.string(residue_only=True), r2.string(residue_only=True))
+                        i1 = r1.chain.residues.index(r1)
+                        i2 = r1.chain.residues.index(r2)
+                        self.length = i2-i1-1
+                data = [TableDatum(gi) for gi in gap_info]
+                self.target_table.data = data
+                self.target_table.resizeColumnsToContents()
+                self.target_table.resizeRowsToContents()
                 if unk_gaps:
                     msg += f"  {structure} also has missing-structure gaps involving UNK residues, which" \
                         " Phenix loop fitting cannot handle (see Log for more info)."
