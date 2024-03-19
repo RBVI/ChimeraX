@@ -1290,10 +1290,7 @@ class VolumeRaycastDrawing(Drawing):
         dx, dy, dz = self.parent._plane_spacings()
         step_size = (dx / 2, dy / 2, dz / 2)
         renderer.set_volume_step_size(step_size)
-        size = self.parent.bounds().size()
-        max_corner = size
-        min_corner = -size
-        # max_corner, min_corner = self._corners[0], self._corners[7]
+        max_corner, min_corner = self.parent.bounds().xyz_max, self.parent.bounds().xyz_min
         renderer.set_bounding_box_planes(max_corner, min_corner)
         Drawing.draw(self, renderer, draw_pass)
         renderer.enable_capabilities &= ~renderer.SHADER_VOLUME_RAYCASTING
