@@ -493,8 +493,8 @@ class LaunchFitLoopsTool(ToolInstance):
         shrink_font(self.target_label, 0.9)
         targeting_layout.addWidget(self.target_label)
         self.target_area = QWidget()
-        #self.target_area.setMinimumSize(0, 200)
         target_layout = QVBoxLayout()
+        target_layout.setSpacing(2)
         self.target_area.setLayout(target_layout)
         target_layout.addWidget(QLabel("Gaps"), alignment=Qt.AlignHCenter|Qt.AlignBottom)
         targeting_layout.addWidget(self.target_area, stretch=1)
@@ -506,10 +506,12 @@ class LaunchFitLoopsTool(ToolInstance):
         targets.selection_changed.connect(self._new_target)
         targets.launch(select_mode=QAbstractItemView.SelectionMode.SingleSelection)
         targets.sort_by(chain_col, targets.SORT_ASCENDING)
-        target_layout.addWidget(targets, alignment=Qt.AlignHCenter|Qt.AlignTop, stretch=1)
+        target_layout.addWidget(targets, alignment=Qt.AlignCenter)
+        padding_area = QWidget()
         padding_layout = QHBoxLayout()
         padding_layout.setSpacing(1)
-        target_layout.addLayout(padding_layout)
+        padding_area.setLayout(padding_layout)
+        target_layout.addWidget(padding_area, alignment=Qt.AlignHCenter|Qt.AlignTop)
         padding_layout.addWidget(QLabel("Also select "), alignment=Qt.AlignRight)
         self.padding_widget = QSpinBox()
         self.padding_widget.setValue(1)
@@ -518,6 +520,12 @@ class LaunchFitLoopsTool(ToolInstance):
         padding_layout.addWidget(self.padding_widget)
         self.residue_label = QLabel(" residue on each side of gap")
         padding_layout.addWidget(self.residue_label)
+        self.warning_label = QLabel("")
+        self.warning_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        self.warning_label.setWordWrap(True)
+        from chimerax.ui import shrink_font
+        shrink_font(self.warning_label, 0.9)
+        target_layout.addWidget(self.warning_label)
         self.target_area.setHidden(True)
 
         from Qt.QtWidgets import QDialogButtonBox as qbbox
@@ -685,22 +693,21 @@ class LaunchFitLoopsTool(ToolInstance):
                         if prev_existing_res:
                             gap_len += 1
                 if num_sel >= self.HARD_RES_LIMIT:
-                    self.target_label.setText(self.too_many_residues_message % (num_sel, chain.chain_id))
-                    self.target_label.setStyleSheet("QLabel { color : red }")
+                    self.warning_label.setText(self.too_many_residues_message % (num_sel, chain.chain_id))
+                    self.warning_label.setStyleSheet("QLabel { color : red }")
                     for but in self.bbox.buttons():
                         if but.text() in ["OK", "Apply"]:
                             but.setEnabled(False)
                     break
                 if num_sel >= self.ADVISORY_RES_LIMIT:
-                    self.target_label.setText(self.many_residues_message % (num_sel, chain.chain_id))
-                    self.target_label.setStyleSheet("QLabel { color : red }")
+                    self.warning_label.setText(self.many_residues_message % (num_sel, chain.chain_id))
+                    self.warning_label.setStyleSheet("QLabel { color : rgb(219, 118, 0) }")
                     break
             else:
-                self.target_label.setText(self.model_structure_message % structure)
-                self.target_label.setStyleSheet("QLabel { color : black }")
+                self.warning_label.setText("")
+            self.target_label.setText(self.model_structure_message % structure)
         else:
             self.target_label.setText(self.no_structure_message)
-            self.target_label.setStyleSheet("QLabel { color : black }")
 
     def _structure_changed(self):
         structure = self.structure_menu.value
