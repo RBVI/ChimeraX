@@ -1521,8 +1521,10 @@ class Render:
             self._mono_camera_fov = camera_fov
         p = self.current_shader_program
         if p is not None and p.capabilities & self.SHADER_VOLUME_RAYCASTING:
+            import math
             p.set_vector3("camera_pos", tuple(camera_origin))
             p.set_float("camera_fov", camera_fov)
+            p.set_float("focal_length", 1.0 / math.tan(math.radians(camera_fov / 2)))
 
     def _set_window_params(self) -> None:
         p = self.current_shader_program
@@ -1531,6 +1533,7 @@ class Render:
             width = self.opengl_context.window.width() * pscale
             height = self.opengl_context.window.height() * pscale
             p.set_vector2("window_size", (width, height))
+            p.set_float("aspect_ratio", (width / height))
 
     def set_volume_step_size(self, step: tuple[int, int, int]) -> None:
         p = self.current_shader_program
