@@ -461,7 +461,7 @@ CIFFile::error(const string& text, size_t lineno)
 	if (lineno == 0)
 		lineno = this->lineno;
 	std::ostringstream err_msg;
-	err_msg << text << " near line " << lineno;
+	err_msg << text << " on line " << lineno;
 	return std::move(std::runtime_error(err_msg.str()));
 }
 

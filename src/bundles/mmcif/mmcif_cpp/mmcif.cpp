@@ -1163,7 +1163,7 @@ ExtractMolecule::parse_chem_comp_bond()
         if (a1 != a2)
             my_templates->new_bond(a1, a2);
         else
-            logger::info(_logger, "error in chem_comp_bond near line ",
+            logger::info(_logger, "error in chem_comp_bond on line ",
                          line_number(), ": atom can not connect to itself");
     }
 
@@ -1551,7 +1551,7 @@ ExtractMolecule::parse_atom_site()
                         if (!missing_seq_id_warning) {
                             logger::warning(_logger, "Unable to infer polymer connectivity due to "
                                             "unspecified label_seq_id for residue \"",
-                                            residue_name, "\" near line ", line_number());
+                                            residue_name, "\" on line ", line_number());
                            missing_seq_id_warning = true;
                         }
                     } else {
@@ -1564,7 +1564,7 @@ ExtractMolecule::parse_atom_site()
                                 }
                             } else {
                                 logger::warning(_logger, "Unknown polymer entity '", entity_id,
-                                                "' near line ", line_number());
+                                                "' on line ", line_number());
                             }
                             // fake polymer entity to cut down on secondary warnings
                             poly.emplace(entity_id, false);
@@ -1592,7 +1592,7 @@ ExtractMolecule::parse_atom_site()
 
         if (std::isnan(x) || std::isnan(y) || std::isnan(z)) {
             logger::warning(_logger, "Skipping atom \"", atom_name,
-                            "\" near line ", line_number(),
+                            "\" on line ", line_number(),
                             ": missing coordinates");
             continue;
         }
@@ -2033,7 +2033,7 @@ ExtractMolecule::parse_struct_conf()
             continue;
         if (chain_id1 != chain_id2) {
             logger::warning(_logger, "Start and end residues of struct_conf \"", id,
-                          "\" are in different chains near line ", line_number());
+                          "\" are in different chains on line ", line_number());
             continue;
         }
         // Only expect helixes and turns, strands were in mmCIF v. 2,
@@ -2060,14 +2060,14 @@ ExtractMolecule::parse_struct_conf()
         if (ari == all_residues[first_model_num].end()) {
             logger::warning(_logger, "Invalid residue range for struct_conf \"",
                             id, "\": invalid chain \"", chain_id1,
-                            "\", near line ", line_number());
+                            "\", on line ", line_number());
             continue;
         }
         auto cemi = chain_entity_map.find(chain_id1);
         if (cemi == chain_entity_map.end()) {
             logger::warning(_logger, "Invalid residue range for struct_conf \"",
                             id, "\": invalid chain \"", chain_id1,
-                            "\", near line ", line_number());
+                            "\", on line ", line_number());
             continue;
         }
         string entity_id = cemi->second;
@@ -2075,7 +2075,7 @@ ExtractMolecule::parse_struct_conf()
         if (psi == poly.end()) {
             logger::warning(_logger, "Invalid residue range for struct_conf \"",
                             id, "\": invalid entity \"", entity_id,
-                            "\", near line ", line_number());
+                            "\", on line ", line_number());
             continue;
         }
         auto& entity_poly_seq = psi->second.seq;
@@ -2085,7 +2085,7 @@ ExtractMolecule::parse_struct_conf()
         if (end_ps_key < init_ps_key) {
             logger::warning(_logger, "Invalid sheet range for struct_conf \"",
                             id, "\": ends before it starts"
-                            ", near line ", line_number());
+                            ", on line ", line_number());
             continue;
         }
         auto init_ps = entity_poly_seq.lower_bound(init_ps_key);
@@ -2094,7 +2094,7 @@ ExtractMolecule::parse_struct_conf()
         // TODO: || end_ps == entity_poly_seq.end()) {}
             logger::warning(_logger,
                             "Bad residue range for struct_conf \"", id,
-                            "\" near line ", line_number());
+                            "\" on line ", line_number());
             continue;
         }
         for (auto& mi: molecules) {
@@ -2205,7 +2205,7 @@ ExtractMolecule::parse_struct_sheet_range()
         if (chain_id1 != chain_id2) {
             logger::warning(_logger, "Invalid sheet range for struct_sheet_range \"",
                             sheet_id, ' ', id, "\": different chains"
-                            ", near line ", line_number());
+                            ", on line ", line_number());
             continue;
         }
 
@@ -2213,14 +2213,14 @@ ExtractMolecule::parse_struct_sheet_range()
         if (ari == all_residues[first_model_num].end()) {
             logger::warning(_logger, "Invalid sheet range for struct_sheet_range \"",
                             sheet_id, ' ', id, "\": invalid chain \"",
-                            chain_id1, "\", near line ", line_number());
+                            chain_id1, "\", on line ", line_number());
             continue;
         }
         auto cemi = chain_entity_map.find(chain_id1);
         if (cemi == chain_entity_map.end()) {
             logger::warning(_logger, "Invalid sheet range for struct_sheet_range \"",
                             sheet_id, ' ', id, "\": invalid chain \"",
-                            chain_id1, "\", near line ", line_number());
+                            chain_id1, "\", on line ", line_number());
             continue;
         }
         string entity_id = cemi->second;
@@ -2228,7 +2228,7 @@ ExtractMolecule::parse_struct_sheet_range()
         if (psi == poly.end()) {
             logger::warning(_logger, "Invalid sheet range for struct_sheet_range \"",
                             sheet_id, ' ', id, "\": invalid entity \"",
-                            entity_id, "\", near line ", line_number());
+                            entity_id, "\", on line ", line_number());
             continue;
         }
         auto& entity_poly_seq = psi->second.seq;
@@ -2238,7 +2238,7 @@ ExtractMolecule::parse_struct_sheet_range()
         if (end_ps_key < init_ps_key) {
             logger::warning(_logger, "Invalid sheet range for struct_sheet_range \"",
                             sheet_id, ' ', id, "\": ends before it starts"
-                            ", near line ", line_number());
+                            ", on line ", line_number());
             continue;
         }
         auto init_ps = entity_poly_seq.lower_bound(init_ps_key);
@@ -2246,7 +2246,7 @@ ExtractMolecule::parse_struct_sheet_range()
         if (init_ps == entity_poly_seq.end()) {
         // TODO: || end_ps == entity_poly_seq.end())
             logger::warning(_logger, "Invalid sheet range for struct_sheet_range \"",
-                            sheet_id, ' ', id, "\" near line ", line_number());
+                            sheet_id, ' ', id, "\" on line ", line_number());
             continue;
         }
 #ifdef SHEET_HBONDS
@@ -2626,7 +2626,7 @@ ExtractMolecule::parse_entity_poly()
             poly.emplace(entity_id, EntityPoly(nstd_monomer, pt));
         else
             logger::warning(_logger, "Duplicate polymer '", entity_id,
-                            "' near line ", line_number());
+                            "' on line ", line_number());
     }
 }
 
@@ -2667,7 +2667,7 @@ ExtractMolecule::parse_entity_poly_seq()
     while (parse_row(pv)) {
         if (poly.find(entity_id) == poly.end()) {
             logger::warning(_logger, "Unknown polymer entity '", entity_id,
-                            "' near line ", line_number());
+                            "' on line ", line_number());
             // fake polymer entity to cut down on secondary warnings
             poly.emplace(entity_id, false);
         }
