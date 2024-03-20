@@ -236,6 +236,8 @@ def _process_results(session, fit_loops_model, map, shift, structure, start_res_
         orig_atom_map = dict([(a.string(style="simple", omit_structure=True), a) for a in structure.atoms])
         orig_res_map = dict([(r.string(style="simple", omit_structure=True), r) for r in structure.residues])
         fit_res_indices = dict([(r, i) for i, r in enumerate(fit_loops_model.residues)])
+        chain_sequence = dict([(c.chain_id, c.characters) for c in structure.chains])
+        new_residues = []
         new_atoms = []
         from chimerax.atomic.struct_edit import add_atom, add_bond
         for fit_atom in fit_loops_model.atoms:
@@ -258,6 +260,7 @@ def _process_results(session, fit_loops_model, map, shift, structure, start_res_
                         precedes = None
                     orig_res = orig_res_map[r_key] = structure.new_residue(fit_res.name, fit_res.chain_id,
                         fit_res.number, insert=fit_res.insertion_code, precedes=precedes)
+                    new_residues.append(orig_res)
                 orig_atom_map[key] = add_atom(fit_atom.name, fit_atom.element, orig_res, fit_atom.coord,
                     bfactor=fit_atom.bfactor)
                 new_atoms.append((fit_atom, orig_atom_map[key]))
@@ -273,6 +276,34 @@ def _process_results(session, fit_loops_model, map, shift, structure, start_res_
                 bonded_residues.add(onb.residue)
                 if onb not in orig_atom.neighbors:
                     add_bond(orig_atom, onb)
+        # check that sequences did not change
+        for chain in structure.chains:
+            cur_seq = chain.characters
+            prev_seq = chain_sequence[chain.chain_id]
+            if cur_seq != prev_seq:
+                for i1 in range(len(cur_seq)):
+                    if cur_seq[i1] != prev_seq[i1]:
+                        break
+                for i2 in range(len(cur_seq)):
+                    if cur_seq[-(i2+1)] != prev_seq[-(i2+1)]:
+                        break
+                session.logger.info("Sequence of chain %s before fit_loops (differences capitalized):"
+                    % chain.chain_id)
+                session.logger.info("%s%s%s"
+                    % (prev_seq[:i1].lower(), prev_seq[i1:-i2], prev_seq[-i2:].lower()))
+                session.logger.info("Sequence of chain %s after fit_loops (differences capitalized):"
+                    % chain.chain_id)
+                session.logger.info("%s%s%s"
+                    % (cur_seq[:i1].lower(), cur_seq[i1:-i2], cur_seq[-i2:].lower()))
+                for fl_chain in fit_loops_model.chains:
+                    if fl_chain.chain_id == chain.chain_id:
+                        session.logger.info("Raw fit_loops chain %s sequence:" % chain.chain_id)
+                        session.logger.info(fl_chain.characters.lower())
+                        break
+                for r in new_residues:
+                    structure.delete_residue(r)
+                raise AssertionError("Chain sequnce for chain %s changed after fit_loops; undoing changes"
+                    % chain.chain_id)
         # show residues adjacent to the gap as stick
         for nbr in bonded_residues - gap_residues:
             nbr.ribbon_display = False
