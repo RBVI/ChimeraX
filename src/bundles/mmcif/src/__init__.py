@@ -100,6 +100,8 @@ class _mmCIFioAPI(BundleAPI):
                     "pdbe": mmcif.fetch_mmcif_pdbe,
                     "pdbe_updated": mmcif.fetch_mmcif_pdbe_updated,
                     "pdbj": mmcif.fetch_mmcif_pdbj,
+                    "redo": mmcif.fetch_pdb_redo,
+                    "redo+map": lambda *args, f=mmcif.fetch_pdb_redo, **kw: f(*args, with_map=True, **kw),
                 }[name]
 
                 class Info(FetcherInfo):

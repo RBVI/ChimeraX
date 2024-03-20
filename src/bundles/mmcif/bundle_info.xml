@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-mmCIF" version="2.12.2"
+<BundleInfo name="ChimeraX-mmCIF" version="2.13"
 	    package="chimerax.mmcif" purePython="false"
   	    minSessionVersion="1" maxSessionVersion="1">
 
@@ -89,6 +89,8 @@
     <Provider name="Small Molecule CIF" want_path="true" />
     <Provider name="cod" type="fetch" format_name="Crystallography Open Database" />
     <Provider name="pcod" type="fetch" format_name="Predicted Crystallography Open Database" />
+    <Provider name="redo" type="fetch" format_name="mmcif" synopsis="PDB-REDO" example_ids="1CBS" />
+    <!-- <Provider name="redo+map" type="fetch" format_name="mmcif" synopsis="PDB-REDO (with map)" example_ids="1CBS" /> -->
   </Providers>
 
   <Providers manager="save command">
