@@ -238,8 +238,6 @@ def _process_results(session, fit_loops_model, map, shift, structure, start_res_
         fit_res_indices = dict([(r, i) for i, r in enumerate(fit_loops_model.residues)])
         new_atoms = []
         from chimerax.atomic.struct_edit import add_atom, add_bond
-        chain = [c for c in structure.chains if c.chain_id == "A"][0]
-        cur_chars = chain.characters
         for fit_atom in fit_loops_model.atoms:
             key = fit_atom.string(style="simple", omit_structure=True)
             try:
@@ -262,8 +260,6 @@ def _process_results(session, fit_loops_model, map, shift, structure, start_res_
                         fit_res.number, insert=fit_res.insertion_code, precedes=precedes)
                 orig_atom_map[key] = add_atom(fit_atom.name, fit_atom.element, orig_res, fit_atom.coord,
                     bfactor=fit_atom.bfactor)
-                if cur_chars != chain.characters:
-                    cur_chars = chain.characters
                 new_atoms.append((fit_atom, orig_atom_map[key]))
             else:
                 orig_atom.coord = fit_atom.coord
