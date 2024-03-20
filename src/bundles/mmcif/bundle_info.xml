@@ -90,7 +90,7 @@
     <Provider name="cod" type="fetch" format_name="Crystallography Open Database" />
     <Provider name="pcod" type="fetch" format_name="Predicted Crystallography Open Database" />
     <Provider name="redo" type="fetch" format_name="mmcif" synopsis="PDB-REDO" example_ids="1CBS" />
-    <Provider name="redo+map" type="fetch" format_name="mmcif" synopsis="PDB-REDO (with map)" example_ids="1CBS" />
+    <!-- <Provider name="redo+map" type="fetch" format_name="mmcif" synopsis="PDB-REDO (with map)" example_ids="1CBS" /> -->
   </Providers>
 
   <Providers manager="save command">
