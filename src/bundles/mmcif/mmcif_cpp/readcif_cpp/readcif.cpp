@@ -1302,6 +1302,8 @@ CIFFile::parse_row(ParseValues& pv)
 #endif
 		for (; pvi != pve; ++pvi) {
 			current_value_start = start + columns[pvi->column];
+			if (*current_value_start == ' ')
+				throw error("PDBx/mmCIF styling lost");
 			current_value_end = start + columns[pvi->column + 1];
 			if (*current_value_start == '\''
 			|| *current_value_start == '"') {

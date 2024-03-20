@@ -206,12 +206,7 @@ public:
     }
     void  set_ring_display(bool d);
     void  set_thin_rings(bool d);
-    void  set_worm_radius(float r) {
-        if (_worm_radius != r) {
-            _worm_radius = r;
-            change_tracker()->add_modified(_structure, this, ChangeTracker::REASON_WORM_RADIUS);
-        }
-    }
+    void  set_worm_radius(float r);
     float  worm_radius() const { return _worm_radius; }
 };
 
@@ -369,6 +364,15 @@ Residue::set_ribbon_hide_backbone(bool d) {
     change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_RIBBON_HIDE_BACKBONE);
     _structure->set_gc_ribbon();
     _ribbon_hide_backbone = d;
+}
+
+inline void
+Residue::set_worm_radius(float r) {
+    if (r == _worm_radius)
+        return;
+    change_tracker()->add_modified(_structure, this, ChangeTracker::REASON_WORM_RADIUS);
+    _structure->set_gc_ribbon();
+    _worm_radius = r;
 }
 
 inline void
