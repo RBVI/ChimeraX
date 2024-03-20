@@ -783,10 +783,12 @@ def register_command(logger):
 
     # show/hide worms
     desc = CmdDesc(optional=[('structures', Or(AtomicStructuresArg, EmptyArg))],
-                   synopsis="show worms")
+                   synopsis="show worms", url='help:user/commands/cartoon.html#worm')
     register('cartoon byattribute on', desc, show_worm, logger=logger)
-    create_alias("worm", "cartoon byattribute $*", logger=logger)
+    create_alias("worm", "cartoon byattribute $*", logger=logger,
+                   url='help:user/commands/cartoon.html#worm')
     desc = CmdDesc(optional=[('structures', Or(AtomicStructuresArg, EmptyArg))],
-                   synopsis="hide worms")
+                   synopsis="hide worms", url='help:user/commands/cartoon.html#worm')
     register('cartoon byattribute off', desc, hide_worm, logger=logger)
-    create_alias("~worm", "cartoon byattribute off $*", logger=logger)
+    create_alias("~worm", "cartoon byattribute off $*", logger=logger,
+                   url='help:user/commands/cartoon.html#worm')
