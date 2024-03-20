@@ -261,78 +261,13 @@ out vec4 frag_color;
 void main (void)
 {
 #ifdef USE_VOLUME_RAYCASTING
-  const vec3 tex_min = vec3(0.0, 0.0, 0.0);
-  const vec3 tex_max = vec3(1.0, 1.0, 1.0);
-  #ifdef USE_TEXTURE_2D
-    #ifdef USE_COLORMAP
-      float tvalue = (texture(tex2d, tex_coord_2d).r - colormap_range.x) * colormap_range.y;
-      vec4 fcolor = texture(colormap, tvalue) * color;
-    #else
-      vec4 fcolor = texture(tex2d, tex_coord_2d) * color;
-    #endif
-  #else
-    #ifdef USE_TEXTURE_3D
-      #ifdef USE_COLORMAP
-        float tvalue = (texture(tex3d, tex_coord_3d).r - colormap_range.x) * colormap_range.y;
-        vec4 fcolor = texture(colormap, tvalue) * color;
-      #else
-        vec4 fcolor = texture(tex3d, tex_coord_3d) * color;
-      #endif
-    #endif
-  #endif
-  #ifdef USE_LIGHTING
-  
-  #ifdef USE_LIGHTING_NORMALS
-    // Unit normal, with two-sided lighting.
-    vec3 N1 = normalize(N) * (gl_FrontFacing ? 1.0 : -1.0);
-    // vec3 N1 = normalize(N);  // single-sided lighting
-  
-    // Unit vector from camera to surface point.
-    vec3 v1 = normalize(v);
-  
-    float key_factor = max(-dot(N1,key_light_direction),0.0);
-    float fill_factor = max(-dot(N1,fill_light_direction),0.0);
-    vec3 R = normalize(reflect(key_light_direction,N1));
-    float specular_factor = pow(max(-dot(R,v1),0.0), key_light_specular_exponent);
-  #else
-    float key_factor = 1;
-    float fill_factor = 1;
-    float specular_factor = 0;
-  #endif
-
-  #ifdef USE_SHADOW
-    float shadow = texture(shadow_map, shadow_tex_coord);
-  #else
-    float shadow = 1;
-  #endif
- 
-    // diffuse color, radiated equally in all directions,
-    //   strength based on incoming light direction and surface normal.
-    vec3 Idiff = fcolor.rgb * (key_light_diffuse_color * key_factor * shadow
-                               + fill_light_diffuse_color * fill_factor);
-  
-    // specular color, reflection of incoming light towards the camera.
-    vec3 Ispec = key_light_specular_color * specular_factor * shadow;
-  
- 
-    // ambient color, uniform intensity light from all surfaces.
-    vec3 Iamb = fcolor.rgb * ambient_color;
-  
-    // total color
-    vec3 Ifrag = Iamb + Idiff + Ispec;
- 
-  #else  // not USE_LIGHTING
-  
-    vec3 Ifrag = fcolor.rgb;
-  
-  #endif // end USE_LIGHTING
   float aspect_ratio = window_size.x / window_size.y;
   float focal_length = 1.0 / tan(radians(camera_fov / 2.0));
   vec3 ray_origin = camera_pos;
   vec3 ray_direction;
   vec3 ssize = step_size;
   ray_direction.xy = 2.0 * gl_FragCoord.xy / window_size - 1.0;
-  ray_direction.y /= aspect_ratio;
+  ray_direction.x *= aspect_ratio;
   ray_direction.z = -focal_length;
   ray_direction = (vec4(ray_direction, 0.0) * view_matrix).xyz;
 
@@ -357,28 +292,50 @@ void main (void)
   vec3 ray = ray_stop - ray_start;
   float ray_length = length(ray);
   //float step_length = length(ssize);
-  vec3 step_vector = 0.01 * ray / ray_length;
+  float step_length = 0.05; //min(step_size.x, min(step_size.y, step_size.z));
+  vec3 step_vector = step_length * ray / ray_length;
   ray_start += step_vector;
   vec3 position = ray_start;
-  #ifdef USE_DEPTH_CUE
-    float d = -v.z;	// Distance from eye to fragment.
-    float dim = (depth_cue_range.y - d) / (depth_cue_range.y - depth_cue_range.x);
-    Ifrag = mix(depth_cue_color, Ifrag, clamp(dim,0.0,1.0));
-  #endif
   //// Raymarch through the volume
-  frag_color = vec4(0, 0, 0, 0);
-  float maximum_intensity = 0.0;
-  while(ray_length > 0) {
-    float tvalue = (texture(tex3d, position)).r; //- colormap_range.x) * colormap_range.y;
-    if (tvalue > maximum_intensity) {
-      maximum_intensity = tvalue;
-    }
-    //vec4 fcolor = texture(colormap, tvalue) * color;
-    //frag_color.rgb = fcolor.a * fcolor.rgb + (1 - fcolor.a) * frag_color.a * frag_color.rgb;
-    ray_length -= 0.01;
+  //frag_color = vec4(0, 0, 0, 0);
+  //float maximum_intensity = 0.0;
+  //while(ray_length > 0) {
+  //  float tvalue = (texture(tex3d, position)).r; //- colormap_range.x) * colormap_range.y;
+  //  if (tvalue > maximum_intensity) {
+  //    maximum_intensity = tvalue;
+  //  }
+  //  if (maximum_intensity > 0.99) {
+  //    break;
+  //  }
+  //  //vec4 fcolor = texture(colormap, tvalue) * color;
+  //  //frag_color.rgb = fcolor.a * fcolor.rgb + (1 - fcolor.a) * frag_color.a * frag_color.rgb;
+  //  ray_length -= 0.05;
+  //  position += step_vector;
+  //}
+  //frag_color = vec4(1, 1, 1, maximum_intensity);
+  frag_color = vec4(0);
+  while(ray_length > 0 && frag_color.a < 1) {
+    float intensity = (texture(tex3d, position).r - colormap_range.x) * colormap_range.y;
+    vec4 cmap_color = texture(colormap, intensity) * color;
+    vec3 gradientVec = normalize(vec3(
+            texture(tex3d, position + vec3(step_length, 0.0, 0.0)).r - texture(tex3d, position - vec3(step_length, 0.0, 0.0)).r,
+            texture(tex3d, position + vec3(0.0, step_length, 0.0)).r - texture(tex3d, position - vec3(0.0, step_length, 0.0)).r,
+            texture(tex3d, position + vec3(0.0, 0.0, step_length)).r - texture(tex3d, position - vec3(0.0, 0.0, step_length)).r
+        ));
+        
+        float keyDiffuse = max(0.0, dot(gradientVec, key_light_direction));
+        float fillDiffuse = max(0.0, dot(gradientVec, fill_light_direction));
+        
+        vec3 lightColor = keyDiffuse * key_light_diffuse_color + fillDiffuse * fill_light_diffuse_color;
+        cmap_color *= vec4(lightColor,1);
+        
+        // Accumulate color and opacity
+        frag_color.rgb += cmap_color.a * cmap_color.rgb + (1 - cmap_color.a) * frag_color.a * frag_color.rgb;
+        frag_color.a += cmap_color.a + (1 - cmap_color.a) * frag_color.a;
+        
+    ray_length -= step_length;
     position += step_vector;
   }
-  frag_color = vec4(1, 1, 1, maximum_intensity);
 }
 #else
   #ifdef USE_DEPTH_TEXTURE
