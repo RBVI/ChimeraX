@@ -540,7 +540,8 @@ def fetch_pdb_redo(session, pdb_id, ignore_cache=False, format_name="mmcif", **k
                 raise UserError("Invalid PDB-REDO identifier")
 
         session.logger.status("Opening PDB-REDO structure %s" % (pdb_id,))
-        models, status = session.open_command.open_data(filename, format='mmcif', name=pdb_id, **kw)
+        models, status = session.open_command.open_data(filename, format='mmcif', name=pdb_id, 
+            ignore_styling=True, **kw)
     else:
         map_name = "%s.mtz" % pdb_id
         filename = fetch_file(session, base_url + ".mtz", 'MTZ %s' % pdb_id, map_name,
