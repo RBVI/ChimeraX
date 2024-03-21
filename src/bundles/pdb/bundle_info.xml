@@ -49,6 +49,7 @@
     <Provider name="pdb" type="fetch" format_name="pdb" is_default="false" />
     <Provider name="pdbe" type="fetch" format_name="pdb" is_default="false" />
     <Provider name="pdbj" type="fetch" format_name="pdb" is_default="false" />
+    <Provider name="redo" type="fetch" format_name="pdb" is_default="false" />
   </Providers>
 
   <Providers manager="save command">

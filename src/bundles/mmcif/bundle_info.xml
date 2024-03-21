@@ -81,16 +81,16 @@
 
   <Providers manager="open command">
     <Provider name="mmCIF" want_path="true" />
-    <Provider name="pdb" type="fetch" format_name="mmcif" synopsis="PDB" example_ids="2GBP" />
+    <Provider name="pdb" type="fetch" format_name="mmcif" synopsis="PDB" example_ids="2gbp" />
     <Provider name="pdbe" type="fetch" format_name="mmcif" />
     <Provider name="pdbj" type="fetch" format_name="mmcif" />
     <Provider name="ccd" type="fetch" format_name="Chemical Component Dictionary"
-		synopsis="PDB Chemical Component" example_ids="FMN" />
+		synopsis="PDB chemical component" example_ids="FMN" />
     <Provider name="Small Molecule CIF" want_path="true" />
     <Provider name="cod" type="fetch" format_name="Crystallography Open Database" />
     <Provider name="pcod" type="fetch" format_name="Predicted Crystallography Open Database" />
-    <Provider name="redo" type="fetch" format_name="mmcif" synopsis="PDB-REDO" example_ids="1CBS" />
-    <!-- <Provider name="redo+map" type="fetch" format_name="mmcif" synopsis="PDB-REDO (with map)" example_ids="1CBS" /> -->
+    <Provider name="redo" type="fetch" format_name="mmcif" synopsis="PDB-REDO (structure)" example_ids="1cbs" />
+    <!-- <Provider name="redo" type="fetch" format_name="mtz" is_default="false" synopsis="PDB-REDO (map)" example_ids="1cbs" /> -->
   </Providers>
 
   <Providers manager="save command">
