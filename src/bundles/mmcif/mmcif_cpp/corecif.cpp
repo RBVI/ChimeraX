@@ -325,7 +325,7 @@ SmallMolecule::parse_atom_site()
         if (label[0] == '?' || label[label.size() - 1] == '?') {
             // skip disordered atoms that don't have disorder_ tags
             if (!alt_warned) {
-                logger::warning(_logger, "Ignoring alternate atoms locations with ? names near line ", line_number());
+                logger::warning(_logger, "Ignoring alternate atoms locations with ? names on line ", line_number());
                 alt_warned = true;
             }
             continue;
@@ -360,7 +360,7 @@ SmallMolecule::parse_atom_site()
             if (alt_count >= alt_atoms.size()) {
                 if (!too_many) {
                     logger::warning(_logger, "More atoms in disorder assembly ", current_assembly,
-                                    " group ", current_group, " than group ", first_group, " near line ", line_number());
+                                    " group ", current_group, " than group ", first_group, " on line ", line_number());
                     too_many = true;
                 }
                 continue;
@@ -370,7 +370,7 @@ SmallMolecule::parse_atom_site()
             if (a->element() != *elem) {
                 skip_group = true;
                 logger::warning(_logger, "Mismatched alternate atom, skipping rest of disorder assembly ", current_assembly,
-                                " group ", current_group, " near line ", line_number());
+                                " group ", current_group, " on line ", line_number());
                 continue;
             }
             a->set_alt_loc(alt_id, true);

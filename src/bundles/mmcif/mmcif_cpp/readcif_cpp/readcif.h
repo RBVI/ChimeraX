@@ -86,37 +86,37 @@ inline double str_to_float(const char* s)
     long long iv = 0;
     double fv;
     for (; *s; ++s) {
-    char c = *s;
-    switch (c) {
-        default:
-            break;
-        case '0': case '1': case '2': case '3': case '4':
-        case '5': case '6': case '7': case '8': case '9':
-            if (saw_exp) {
-                exp = exp * 10 + (c - '0');
+        char c = *s;
+        switch (c) {
+            default:
+                break;
+            case '0': case '1': case '2': case '3': case '4':
+            case '5': case '6': case '7': case '8': case '9':
+                if (saw_exp) {
+                    exp = exp * 10 + (c - '0');
+                    continue;
+                }
+                saw_digit = true;
+                if (saw_decimal)
+                    decimals -= 1;
+                iv = iv * 10 + (c - '0');
                 continue;
-            }
-            saw_digit = true;
-            if (saw_decimal)
-                decimals -= 1;
-            iv = iv * 10 + (c - '0');
-            continue;
-        case '.':
-            saw_decimal = true;
-            continue;
-        case '-':
-            if (saw_exp)
-                exp_neg = true;
-            else
-                neg = true;
-            continue;
-        case '+':
-            if (saw_exp)
+            case '.':
+                saw_decimal = true;
                 continue;
-            break;
-        case 'E': case 'e':
-            saw_exp = true;
-            continue;
+            case '-':
+                if (saw_exp)
+                    exp_neg = true;
+                else
+                    neg = true;
+                continue;
+            case '+':
+                if (saw_exp)
+                    continue;
+                break;
+            case 'E': case 'e':
+                saw_exp = true;
+                continue;
         }
         break;
     }
