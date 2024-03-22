@@ -34,7 +34,7 @@ class RenderByAttrTool(ToolInstance):
         self.tool_window = tw = MainToolWindow(self, statusbar=True)
         parent = tw.ui_area
         from Qt.QtWidgets import QVBoxLayout, QHBoxLayout, QDialogButtonBox, QPushButton, QMenu, QLabel
-        from Qt.QtWidgets import QTabWidget, QWidget, QCheckBox, QLineEdit
+        from Qt.QtWidgets import QTabWidget, QWidget, QCheckBox, QLineEdit, QStackedWidget
         from Qt.QtGui import QDoubleValidator
         from Qt.QtCore import Qt
         overall_layout = QVBoxLayout()
@@ -257,6 +257,11 @@ class RenderByAttrTool(ToolInstance):
         menu.aboutToShow.connect(self._update_select_attr_menu)
         self.select_attr_menu_button.setMenu(menu)
         attr_menu_layout.addWidget(self.select_attr_menu_button, alignment=Qt.AlignLeft)
+        # value widgets
+        self.select_widgets = QStackedWidget()
+        self.select_widgets.addWidget(QLabel("Choose attribute to show values"))
+        #TODO: more value widgets
+        select_tab_layout.addWidget(self.select_widgets, alignment=Qt.AlignCenter)
 
         select_tab_layout.addWidget(QLabel("This tab not yet fully implemented.\nUse 'select' command instead.", alignment=Qt.AlignCenter))
         self.mode_widget.addTab(select_tab, "Select")
@@ -433,9 +438,9 @@ class RenderByAttrTool(ToolInstance):
                 attr_name = attr_name_info.text()
         if attr_name != self.select_attr_menu_button.text():
             self.select_attr_menu_button.setText(attr_name)
+            if attr_name_info is None:
+                self.select_widgets.setCurrentIndex(0)
             #TODO: may be showing widgets other that a histogram
-            #if attr_name_info is None:
-            #    self.select_histogram.data_source = "Choose attribute to show histogram"
             #else:
             #    self._update_histogram(attr_name)
             #self._update_palettes()
