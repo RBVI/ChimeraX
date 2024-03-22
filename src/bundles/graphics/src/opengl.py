@@ -1535,10 +1535,12 @@ class Render:
             p.set_vector2("window_size", (width, height))
             p.set_float("aspect_ratio", (width / height))
 
-    def set_volume_step_size(self, step: tuple[int, int, int]) -> None:
+    def set_volume_parameters(self, step: tuple[int, int, int], full_region_min: tuple[int, int, int], full_region_max: tuple[int, int, int]) -> None:
         p = self.current_shader_program
         if p is not None and p.capabilities & self.SHADER_VOLUME_RAYCASTING:
             p.set_vector3("step_size", step)
+            p.set_vector3("full_region_min", full_region_min)
+            p.set_vector3("full_region_max", full_region_max)
 
     def set_bounding_box_planes(
         self, max_corner: tuple[int, int, int], min_corner: tuple[int, int, int]

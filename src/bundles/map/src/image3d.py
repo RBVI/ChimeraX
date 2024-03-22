@@ -1289,7 +1289,19 @@ class VolumeRaycastDrawing(Drawing):
         renderer.enable_capabilities |= renderer.SHADER_VOLUME_RAYCASTING
         dx, dy, dz = self.parent._plane_spacings()
         step_size = (dx / 2, dy / 2, dz / 2)
-        renderer.set_volume_step_size(step_size)
+
+        # Get the full bounds so users can crop the volume to regions of interest
+        full_corners = _box_corners(self.parent.parent.full_region(), self._image_render._ijk_to_xyz)
+        positions = self.get_scene_positions(displayed_only=True)
+        from chimerax.geometry import point_bounds
+
+        full_bounds = point_bounds(full_corners, positions)
+
+        full_region_min = full_bounds.xyz_min
+        full_region_max = full_bounds.xyz_max
+
+
+        renderer.set_volume_parameters(step_size, full_region_min, full_region_max)
         max_corner, min_corner = self.parent.bounds().xyz_max, self.parent.bounds().xyz_min
         renderer.set_bounding_box_planes(max_corner, min_corner)
         Drawing.draw(self, renderer, draw_pass)

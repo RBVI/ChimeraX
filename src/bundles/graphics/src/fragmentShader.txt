@@ -202,6 +202,8 @@ void main (void)
   uniform mat4 model_matrix;
   uniform vec3 bbox_min;
   uniform vec3 bbox_max;
+  uniform vec3 full_region_min;
+  uniform vec3 full_region_max;
 #endif
 
 #ifdef USE_COLORMAP
@@ -267,7 +269,7 @@ void main (void)
   vec3 ray_direction;
   vec3 ssize = step_size;
   ray_direction.xy = 2.0 * gl_FragCoord.xy / window_size - 1.0;
-  ray_direction.x *= aspect_ratio;
+  ray_direction.y /= aspect_ratio;
   ray_direction.z = -focal_length;
   ray_direction = (vec4(ray_direction, 0.0) * view_matrix).xyz;
 
@@ -286,13 +288,13 @@ void main (void)
   }
 
   // Centers the volume in the box
-  vec3 ray_start = (ray_origin + ray_direction * t_0 - bbox_min) /  (bbox_max - bbox_min);
-  vec3 ray_stop = (ray_origin + ray_direction * t_1 - bbox_min) /  (bbox_max - bbox_min);
+  vec3 ray_start = (ray_origin + ray_direction * t_0 - full_region_min) /  (full_region_max - full_region_min);
+  vec3 ray_stop = (ray_origin + ray_direction * t_1 - full_region_min) /  (full_region_max - full_region_min);
 
   vec3 ray = ray_stop - ray_start;
   float ray_length = length(ray);
   //float step_length = length(ssize);
-  float step_length = 0.05; //min(step_size.x, min(step_size.y, step_size.z));
+  float step_length = 0.01; //min(step_size.x, min(step_size.y, step_size.z));
   vec3 step_vector = step_length * ray / ray_length;
   ray_start += step_vector;
   vec3 position = ray_start;
