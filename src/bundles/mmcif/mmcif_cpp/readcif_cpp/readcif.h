@@ -1,6 +1,6 @@
 // vi: set expandtab ts=4 sw=4:
 /*
- * Copyright (c) 2014 The Regents of the University of California.
+ * Copyright (c) 2014-2024 The Regents of the University of California.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -199,6 +199,10 @@ public:
     // Set callback function for unregistered categories
     void set_unregistered_callback(ParseCategory callback);
 
+    // Register heuristic (audit_conform) and explicit (audit_syntax)
+    // detection of PDBx/mmCIF sytlized content
+    void register_heuristic_stylized_detection();
+
     // The parsing functions
     void parse_file(const char* filename);  // open file and parse it
     void parse(const char* buffer); // null-terminated whole file
@@ -269,6 +273,14 @@ public:
 
     // return text + " on line #"
     std::runtime_error error(const std::string& text, size_t lineno=0);
+
+    // Heuristic to tell if the CIF file was written in the
+    // PDBx/mmCIF stylized format.
+    void parse_audit_conform();
+
+    // Explicit wasy to tell if the CIF file was written in the
+    // PDBx/mmCIF stylized format.
+    void parse_audit_syntax();
 protected:
     // data_block is called whenever a new data block is found.
     // Defaults to being ignored.
@@ -354,6 +366,7 @@ private:
     size_t      lineno;     // current line number
     const char* pos;        // current position in line/file (index)
     bool        save_values;    // true if T_VALUE values are needed
+    bool        has_audit_syntax;
 };
 
 inline const std::string&

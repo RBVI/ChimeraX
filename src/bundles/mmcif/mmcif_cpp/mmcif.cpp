@@ -216,8 +216,6 @@ struct ExtractMolecule: public readcif::CIFFile
     void connect_polymer_pair(Residue* r0, Residue* r1, bool gap, bool nstd_okay, int model_num);
     void connect_residue_by_template(Residue* r, const tmpl::Residue* tr, int model_num, bool *has_metal);
     const tmpl::Residue* find_template_residue(const ResName& name, bool start = false, bool stop = false);
-    void parse_audit_conform();
-    void parse_audit_syntax();
     void parse_atom_site();
     void parse_atom_site_anisotrop();
     void parse_struct_conn();
@@ -339,15 +337,8 @@ ExtractMolecule::ExtractMolecule(PyObject* logger, const StringVector& generic_c
 {
     empty_residue_templates.insert("UNL");  // Unknown ligand
     empty_residue_templates.insert("UNX");  // Unknown atom or ion
-    register_category("audit_conform",
-        [this] () {
-            parse_audit_conform();
-        });
+    register_heuristic_stylized_detection();   // audit_conform and audit_syntax
     register_category("chimerax_audit_syntax",
-        [this] () {
-            parse_audit_syntax();
-        });
-    register_category("audit_syntax",
         [this] () {
             parse_audit_syntax();
         });
@@ -1178,82 +1169,6 @@ ExtractMolecule::parse_chem_comp_bond()
             tr->link(tr->find_atom("O3'"));
         }
     }
-}
-
-void
-ExtractMolecule::parse_audit_conform()
-{
-    if (ignore_styling)
-        return;
-    // Looking for a way to tell if the mmCIF file was written
-    // in the PDBx/mmCIF stylized format.  The following technique
-    // is not guaranteed to work, but we'll use it for now.
-    string dict_name;
-    float dict_version = 0;
-
-    CIFFile::ParseValues pv;
-    pv.reserve(2);
-    try {
-        pv.emplace_back(get_column("dict_name"),
-            [&dict_name] (const char* start, const char* end) {
-                dict_name = string(start, end - start);
-            });
-        pv.emplace_back(get_column("dict_version"),
-            [&dict_version] (const char* start) {
-                dict_version = strtof(start, NULL);
-            });
-    } catch (std::runtime_error& e) {
-        logger::warning(_logger, "Skipping audit_conform category: ", e.what());
-        return;
-    }
-    parse_row(pv);
-    if (dict_name == "mmcif_pdbx.dic" && dict_version > 4) {
-        set_PDBx_keywords(true);
-        guess_fixed_width_categories = true;
-    }
-    // If dict_name is core_std.dic, then it's a small molecule cif
-    // if dict_name doesn't start with mmcif, the give a warning
-}
-
-void
-ExtractMolecule::parse_audit_syntax()
-{
-    if (ignore_styling)
-        return;
-    // Looking for a way to tell if the mmCIF file was written
-    // in the PDBx/mmCIF stylized format.  The following technique
-    // is not guaranteed to work, but we'll use it for now.
-    bool case_sensitive = false;
-    vector<string> fixed_width;
-    fixed_width.reserve(12);
-
-    CIFFile::ParseValues pv;
-    pv.reserve(2);
-    try {
-        pv.emplace_back(get_column("case_sensitive_flag"),
-            [&] (const char* start) {
-                case_sensitive = *start == 'Y' || *start == 'y';
-            });
-        pv.emplace_back(get_column("fixed_width"),
-            [&] (const char* start, const char* end) {
-                for (const char *cp = start; cp < end; ++cp) {
-                    if (isspace(*cp))
-                        continue;
-                    start = cp;
-                    while (cp < end && !isspace(*cp))
-                        ++cp;
-                    fixed_width.push_back(string(start, cp - start));
-                }
-            });
-    } catch (std::runtime_error& e) {
-        logger::warning(_logger, "Skipping audit_syntax category: ", e.what());
-        return;
-    }
-    parse_row(pv);
-    set_PDBx_keywords(case_sensitive);
-    guess_fixed_width_categories = false;
-    for (auto& category: fixed_width)
-        set_PDBx_fixed_width_columns(category);
 }
 
 void
