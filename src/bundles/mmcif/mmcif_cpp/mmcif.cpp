@@ -337,7 +337,8 @@ ExtractMolecule::ExtractMolecule(PyObject* logger, const StringVector& generic_c
 {
     empty_residue_templates.insert("UNL");  // Unknown ligand
     empty_residue_templates.insert("UNX");  // Unknown atom or ion
-    register_heuristic_stylized_detection();   // audit_conform and audit_syntax
+    if (!ignore_styling)
+        register_heuristic_stylized_detection();   // audit_conform and audit_syntax
     register_category("chimerax_audit_syntax",
         [this] () {
             parse_audit_syntax();
