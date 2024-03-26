@@ -28,7 +28,7 @@
 
   <Providers manager="open command">
     <Provider name="uniprot" type="fetch" format_name="UniProt sequence"
-		synopsis="UniProt" example_ids="P01138;NGF_HUMAN" />
+		synopsis="UniProt" example_ids="p01138;NGF_HUMAN" />
   </Providers>
 
   <Classifiers>

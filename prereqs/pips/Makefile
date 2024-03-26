@@ -7,6 +7,16 @@ include Makefile.pip
 # Force LANG to UTF-8 so that grako will install successfully
 LANG	= en_US.UTF-8
 
+COMMA = ,
+EMPTY =
+SPACE = $(EMPTY) $(EMPTY)
+SOURCE_WHEELS =
+SOURCE_VERSIONS =
+
+# On macOS, only the x86_64 version of Cython is available from pypi.
+# So we install the same version on arm64, but from source.
+CYTHON_VERSION = $(shell grep Cython= app_requirements.txt  | sed -e 's/ ;.*//' -e 's/.*=//')
+
 # tcia_utils.patch: Fix needless import of x86_64 zmq on macOS, see Trac#8638
 # Remove if tcia_utils removes those imports
 PATCHES = tcia_utils.patch tcia_utils_metadata.patch
@@ -55,6 +65,8 @@ ifeq ($(OS),Darwin)
 ifeq ($(OSARCH),DarwinArm64)
 PLATO_PREREQS += $(PYTABLES_PREREQ)
 PLATO_WHEELS += $(PYTABLES_WHEEL)
+SOURCE_WHEELS += Cython
+SOURCE_VERSIONS += Cython==$(CYTHON_VERSION)
 else
 ifeq ($(OSARCH),DarwinIntel64)
 endif
@@ -67,6 +79,9 @@ all:
 
 install:
 	LANG=$(LANG) $(PIP_INSTALL) --no-build-isolation -r build_requirements.txt
+ifneq (,$(SOURCE_WHEELS))
+	LANG=$(LANG) $(PIP_INSTALL) --no-build-isolation --no-binary $(subst $(SPACE),$(COMMA),$(SOURCE_WHEELS)) $(SOURCE_VERSIONS)
+endif
 	$(FETCH_PREREQ) $(GRAKO_PREREQ)
 	$(PIP_INSTALL) $(GRAKO_WHEEL)
 ifeq ($(OS),Darwin)
@@ -85,6 +100,9 @@ upgrade:
 
 app-install:
 	$(APP_PIP_INSTALL) --no-build-isolation -r app_requirements.txt
+ifneq (,$(SOURCE_WHEELS))
+	LANG=$(LANG) $(PIP_INSTALL) --no-build-isolation --no-binary $(SOURCE_WHEELS)
+endif
 	# Will be downloaded from install step
 	$(APP_PIP_INSTALL) $(GRAKO_WHEEL)
 ifdef DEV_DEPENDENCIES

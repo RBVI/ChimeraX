@@ -10,7 +10,7 @@ appdirs==1.4.4
 beautifulsoup4==4.12.3
 build==1.1.1
 colorama==0.4.6
-Cython==3.0.8
+Cython==3.0.9 ; platform_machine != 'arm64'
 filelock==3.13.1
 # grako==3.16.5 # See the Makefile; need patched Grako for 3.11
 html2text==2024.2.26
@@ -26,7 +26,7 @@ jupyter-client==8.6.0
 line_profiler==4.1.2
 lxml==5.1.0
 lz4==4.3.3
-matplotlib==3.8.2
+matplotlib==3.8.3
 msgpack==1.0.8
 nibabel == 5.0.1
 netCDF4==1.6.5
@@ -46,7 +46,7 @@ pyopenxr==1.0.3302
 tcia_utils==1.5.1
 PyOpenGL==3.1.7
 PyOpenGL-accelerate==3.1.7
-python-dateutil==2.8.2
+python-dateutil==2.9.0.post0
 # PyQt handled in prereqs/PyQt
 # sip handled in prereqs/PyQt
 #PySide2==5.15.2

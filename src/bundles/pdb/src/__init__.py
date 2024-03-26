@@ -64,7 +64,8 @@ class _PDBioAPI(BundleAPI):
                 fetcher = {
                     'pdb': pdb.fetch_pdb,
                     'pdbe': pdb.fetch_pdb_pdbe,
-                    'pdbj': pdb.fetch_pdb_pdbj
+                    'pdbj': pdb.fetch_pdb_pdbj,
+                    'redo': pdb.fetch_pdb_redo,
                 }[name]
                 class Info(FetcherInfo):
                     def fetch(self, session, ident, format_name, ignore_cache, fetcher=fetcher, **kw):

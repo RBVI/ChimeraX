@@ -1763,6 +1763,38 @@ t0 = t1;
                 }
             }
         }
+        // now that ring atoms types have been assigned, see if that changes our assessment
+        // of the ambiguous valence-2 carbons
+        for (auto nb_b: ring_neighbors) {
+            auto nb = nb_b.first;
+            if (ambiguous_val2Cs.find(nb) == ambiguous_val2Cs.end())
+                continue;
+            auto ring_a = nb_b.second->other_atom(nb);
+            // see if external bond is definitely single
+            if (ring_a->idatm_type() != "Npl" && ring_a->idatm_type() != "Car")
+                continue;
+            decltype(nb) gnb;
+            for (auto g_nb: nb->neighbors())
+                if (g_nb != ring_a) {
+                    gnb = g_nb;
+                    break;
+                }
+            auto type_ptr = info_map.find(gnb->idatm_type());
+            if (type_ptr == info_map.end())
+                continue;
+            if ((*type_ptr).second.geometry == 4) {
+                // ambiguous atom must be C3
+                nb->set_computed_idatm_type("C3");
+                continue;
+            }
+            for (auto ggnb: gnb->neighbors()) {
+                if (ggnb->idatm_type() == "O2") {
+                    // grand neighbor double-bonded elsewhere, so ambiguous atom is C3
+                    nb->set_computed_idatm_type("C3");
+                    break;
+                }
+            }
+        }
     }
 #ifdef TIME_PASSES
 t1 = clock();
