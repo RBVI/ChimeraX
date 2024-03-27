@@ -1682,6 +1682,170 @@ NMR-STAR constraints and their maxima are saved in
 <a href="save.html#session">sessions</a>.
 </p>
 
+<a name="photo"></a>
+<p class="nav">
+[<a href="#top">back to top: open</a>]
+</p>
+<h3>Photo (Single Image)</h3>
+<p>
+A single image file can be opened as a flat model. Although flat,
+the model exists in 3D and can be rotated and translated like other models.
+Several image types (filename suffixes .png, .tif, <i>etc.</i>) 
+are accepted, but except for .jpg, require specifying 
+<a href="#miscellaneous"><b>format photo</b></a> 
+in the <a href="#local"><b>open</b></a> command. Any of the following 
+options can be used to specify the size of the image within the scene:
+</p>
+<blockquote>
+<a href="#width"><b>width</b></a>&nbsp;&nbsp;<i>w</i>
+<br>
+<a href="#height"><b>height</b></a>&nbsp;&nbsp;<i>h</i>
+<br>
+<a href="#pixelSize"><b>pixelSize</b></a>&nbsp;&nbsp;<i>s</i>
+</blockquote>
+<p>
+Width, height, and pixel size values are specified in physical units of 
+distance (&Aring;). If width or height is given,
+the other is set according to the aspect ratio of the image.
+If both are given and their ratio differs
+from that of the image, the image will be stretched.
+Width and height values override any pixel size specification.
+If no width, height, or pixel size is given,
+a pixel size of <b>1.0</b> will be used.
+Examples:
+<blockquote>
+<b>open ~/Desktop/headshot.png format photo width 5</b>
+<br>
+<b>open figure1.jpg height 30</b>
+</blockquote>
+</p>
+
+<a name="image-wildcards"></a>
+<p class="nav">
+[<a href="#top">back to top: open</a>]
+</p>
+<h3>Image Stack Wildcards</h3>
+<p>
+For <a href="#image-stacks">image stacks</a> only, special wildcards
+{t}, {c}, {z} can be used in the <a href="#top"><b>open</b></a>
+command file pathname to specify the stack collectively.
+These wildcards indicate the parts of the filename with
+time, channel, and Z-indices, respectively. For example,
+to open a stack where each file is a 3D volume
+(each file contains all Z planes for one channel at one timepoint):
+<blockquote>
+open "/Volumes/data/micro/cell8_3 stars/cell8_{c}ch_{t}stack_*msec.tif"
+</blockquote>
+...and the file names look like:
+<blockquote>
+cell8_0ch_0000stack_000000msec.tif
+<br>cell8_0ch_0001stack_001383msec.tif
+<br>cell8_0ch_0002stack_002766msec.tif
+<br>cell8_0ch_0003stack_004149msec.tif
+<br>cell8_1ch_0000stack_000000msec.tif
+<br>cell8_1ch_0001stack_001383msec.tif
+<br>cell8_1ch_0002stack_002766msec.tif
+<br>cell8_1ch_0003stack_004149msec.tif
+<br>[...]
+</blockquote>
+The following example is for files each containing a single Z plane:
+<blockquote>
+open ~/Desktop/latest/r12c09f01p{z}-ch{c}sk{t}fk1fl1.tiff
+</blockquote>
+...where the file names look like:
+<blockquote>
+r12c09f01p01-ch1sk01fk1fl1.tiff
+<br>r12c09f01p01-ch1sk02fk1fl1.tiff
+<br>r12c09f01p01-ch1sk03fk1fl1.tiff
+<br>r12c09f01p01-ch1sk04fk1fl1.tiff
+<br>[...]
+</blockquote>
+See also the <a href="#channel"><b>channel</b></a>
+option of the <a href="#top"><b>open</b></a> command.
+</p>
+
+<a name="compressed"></a>
+<p class="nav">
+[<a href="#top">back to top: open</a>]
+</p>
+<h3>Compressed Files</h3>
+<p>
+Certain <a href="#formats">file types</a> 
+can be read when compressed, as indicated with
+a suffix for the type of compression (.gz, .bz2, or .xz following the 
+usual suffix for the type of file). 
+For example, myfile.pdb.gz is a gzipped PDB file.
+</p><p>
+The file types that can be read by ChimeraX in compressed form
+(as well as uncompressed) are
+ALN, BILD, Collada, compiled Python code, directional FSC,
+FASTA, glTF, HSSP, MMTF, MSF, NIfTI, PDB, Pfam, PIR, pseudobonds, Python code,
+RSF, STL, Stockholm, STORM, VTK PolyData, and Wavefront OBJ.
+</p>
+
+<a name="defattr"></a>
+<p class="nav">
+[<a href="#top">back to top: open</a>]
+</p>
+<h3>Attribute Assignments</h3>
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>open</b> &nbsp;<i>attr-file</i>&nbsp;
+[&nbsp;<a href="#miscellaneous"><b>format&nbsp;&nbsp;defattr</b></a>&nbsp;]
+[&nbsp;<b>models</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;]
+[&nbsp;<b>log</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+</blockquote>
+<p>
+The <b>open</b> command can read and assign
+<a href="../attributes.html">attribute</a> values
+from an <a href="../formats/defattr.html">attribute assignment file</a>.
+It is possible to define new attributes or
+to (re)assign values for existing attributes
+of atoms, residues, and atomic models.
+The <i>attr-file</i> is specified by its pathname, or by the word
+<a href="usageconventions.html#browse"><b>browse</b></a>
+to specify it interactively in a file browser window.
+If the <a href="#models"><b>models</b></a> option is used, assignment
+will consider only the models containing the specified atoms.
+Of course, whether attribute values are actually assigned to those models
+or their parts depends on the contents of the
+<a href="../formats/defattr.html">attribute assignment file</a>.
+The <b>log</b> option indicates whether to report details of the
+assignments to the <a href="../tools/log.html"><b>Log</b></a>.
+</p><p>
+The related command <a href="setattr.html"><b>setattr</b></a>
+assigns attribute values directly, but is less practical for large-scale
+assignment since only a single value can be given per command.
+See also:
+<a href="info.html"><b>info</b></a>,
+<a href="../hydrophobicity.html">amino acid hydrophobicity</a>
+</p>
+
+<a name="generic-hdf"></a>
+<p class="nav">
+[<a href="#top">back to top: open</a>]
+</p>
+<h3>Generic HDF File Reader</h3>
+<p>
+If <a href="#volume">EMAN HDF format</a> is expected, 
+but that file reader fails, a generic HDF file reader is tried instead. 
+This generic reader does not look for any metadata; it simply looks for
+3-dimensional arrays and tries to open them as <a href="../tools/volumeviewer.html">volume models</a> with grid spacing of 1. The following 
+<a href="#local"><b>open</b></a> command option can be used to
+limit which 3D arrays are read:
+</p>
+<blockquote>
+<b>arrayName</b>&nbsp;&nbsp;<i>name</i>
+<br>
+In <a href="https://www.hdfgroup.org/HDF5/" target="_blank">HDF5</a> format,
+each array has a directory path within the file and 
+a <i>name</i> (the last part of the pathname). This option indicates reading
+only arrays with the specified <i>name</i>. Example:
+ <blockquote>
+ <b>open Cam_long_00003.h5 arrayName Data</b>
+ </blockquote>
+</blockquote>
+
 <a name="url"></a>
 <p class="nav">
 [<a href="#top">back to top: open</a>]
@@ -1841,6 +2005,18 @@ target="_blank">PDB Chemical Component Dictionary (CCD)</a>
 <td align="center">idealized structure of PDB chemical component 
 specified by CCD ID (residue name)</td>
 <td align="center"><b>ccd</b></td>
+</tr><tr>
+<td align="center">
+<a href="https://pdb-redo.eu/" target="_blank">PDB-REDO</a>
+</td>
+<td align="center"><b>redo</b></td>
+<td align="center" class="text">
+atomic coordinates 
+<!-- or diffraction data (if MTZ) -->
+specified by PDB identifier</td>
+<td align="center"><b>mmcif</b> (default) or <b>pdb</b>
+<!-- or <b>mtz</b> -->
+</td>
 </tr><tr>
 <td align="center">
 <a href="https://link.springer.com/article/10.1007/s10858-018-0220-3"
@@ -2038,145 +2214,6 @@ Sequence Features</a>)</td>
 <td align="center"><b>uniprot</b></td>
 </tr></table>
 
-<a name="image-wildcards"></a>
-<p class="nav">
-[<a href="#top">back to top: open</a>]
-</p>
-<h3>Image Stack Wildcards</h3>
-<p>
-For <a href="#image-stacks">image stacks</a> only, special wildcards
-{t}, {c}, {z} can be used in the <a href="#top"><b>open</b></a>
-command file pathname to specify the stack collectively.
-These wildcards indicate the parts of the filename with
-time, channel, and Z-indices, respectively. For example,
-to open a stack where each file is a 3D volume
-(each file contains all Z planes for one channel at one timepoint):
-<blockquote>
-open "/Volumes/data/micro/cell8_3 stars/cell8_{c}ch_{t}stack_*msec.tif"
-</blockquote>
-...and the file names look like:
-<blockquote>
-cell8_0ch_0000stack_000000msec.tif
-<br>cell8_0ch_0001stack_001383msec.tif
-<br>cell8_0ch_0002stack_002766msec.tif
-<br>cell8_0ch_0003stack_004149msec.tif
-<br>cell8_1ch_0000stack_000000msec.tif
-<br>cell8_1ch_0001stack_001383msec.tif
-<br>cell8_1ch_0002stack_002766msec.tif
-<br>cell8_1ch_0003stack_004149msec.tif
-<br>[...]
-</blockquote>
-The following example is for files each containing a single Z plane:
-<blockquote>
-open ~/Desktop/latest/r12c09f01p{z}-ch{c}sk{t}fk1fl1.tiff
-</blockquote>
-...where the file names look like:
-<blockquote>
-r12c09f01p01-ch1sk01fk1fl1.tiff
-<br>r12c09f01p01-ch1sk02fk1fl1.tiff
-<br>r12c09f01p01-ch1sk03fk1fl1.tiff
-<br>r12c09f01p01-ch1sk04fk1fl1.tiff
-<br>[...]
-</blockquote>
-See also the <a href="#channel"><b>channel</b></a>
-option of the <a href="#top"><b>open</b></a> command.
-</p>
-
-<a name="compressed"></a>
-<p class="nav">
-[<a href="#top">back to top: open</a>]
-</p>
-<h3>Compressed Files</h3>
-<p>
-Certain <a href="#formats">file types</a> 
-can be read when compressed, as indicated with
-a suffix for the type of compression (.gz, .bz2, or .xz following the 
-usual suffix for the type of file). 
-For example, myfile.pdb.gz is a gzipped PDB file.
-</p><p>
-The file types that can be read by ChimeraX in compressed form
-(as well as uncompressed) are
-ALN, BILD, Collada, compiled Python code, directional FSC,
-FASTA, glTF, HSSP, MMTF, MSF, NIfTI, PDB, Pfam, PIR, pseudobonds, Python code,
-RSF, STL, Stockholm, STORM, VTK PolyData, and Wavefront OBJ.
-</p>
-
-<a name="defattr"></a>
-<p class="nav">
-[<a href="#top">back to top: open</a>]
-</p>
-<h3>Attribute Assignments</h3>
-<blockquote>
-<a href="usageconventions.html"><b>Usage</b></a>:
-<b>open</b> &nbsp;<i>attr-file</i>&nbsp;
-[&nbsp;<a href="#miscellaneous"><b>format&nbsp;&nbsp;defattr</b></a>&nbsp;]
-[&nbsp;<b>models</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;]
-[&nbsp;<b>log</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
-</blockquote>
-<p>
-The <b>open</b> command can read and assign
-<a href="../attributes.html">attribute</a> values
-from an <a href="../formats/defattr.html">attribute assignment file</a>.
-It is possible to define new attributes or
-to (re)assign values for existing attributes
-of atoms, residues, and atomic models.
-The <i>attr-file</i> is specified by its pathname, or by the word
-<a href="usageconventions.html#browse"><b>browse</b></a>
-to specify it interactively in a file browser window.
-If the <a href="#models"><b>models</b></a> option is used, assignment
-will consider only the models containing the specified atoms.
-Of course, whether attribute values are actually assigned to those models
-or their parts depends on the contents of the
-<a href="../formats/defattr.html">attribute assignment file</a>.
-The <b>log</b> option indicates whether to report details of the
-assignments to the <a href="../tools/log.html"><b>Log</b></a>.
-</p><p>
-The related command <a href="setattr.html"><b>setattr</b></a>
-assigns attribute values directly, but is less practical for large-scale
-assignment since only a single value can be given per command.
-See also:
-<a href="info.html"><b>info</b></a>,
-<a href="../hydrophobicity.html">amino acid hydrophobicity</a>
-</p>
-
-<a name="photo"></a>
-<p class="nav">
-[<a href="#top">back to top: open</a>]
-</p>
-<h3>Photo (Single Image)</h3>
-<p>
-A single image file can be opened as a flat model. Although flat,
-the model exists in 3D and can be rotated and translated like other models.
-Several image types (filename suffixes .png, .tif, <i>etc.</i>) 
-are accepted, but except for .jpg, require specifying 
-<a href="#miscellaneous"><b>format photo</b></a> 
-in the <a href="#local"><b>open</b></a> command. Any of the following 
-options can be used to specify the size of the image within the scene:
-</p>
-<blockquote>
-<a href="#width"><b>width</b></a>&nbsp;&nbsp;<i>w</i>
-<br>
-<a href="#height"><b>height</b></a>&nbsp;&nbsp;<i>h</i>
-<br>
-<a href="#pixelSize"><b>pixelSize</b></a>&nbsp;&nbsp;<i>s</i>
-</blockquote>
-<p>
-Width, height, and pixel size values are specified in physical units of 
-distance (&Aring;). If width or height is given,
-the other is set according to the aspect ratio of the image.
-If both are given and their ratio differs
-from that of the image, the image will be stretched.
-Width and height values override any pixel size specification.
-If no width, height, or pixel size is given,
-a pixel size of <b>1.0</b> will be used.
-Examples:
-<blockquote>
-<b>open ~/Desktop/headshot.png format photo width 5</b>
-<br>
-<b>open figure1.jpg height 30</b>
-</blockquote>
-</p>
-
 <a name="clipper"></a>
 <p class="nav">
 [<a href="#top">back to top: open</a>]
@@ -2234,32 +2271,7 @@ Whether to save the current amplitudes and phases for all maps
 generated by Clipper. If <b>false</b>, just save the experimental data.
 </blockquote>
 
-<a name="generic-hdf"></a>
-<p class="nav">
-[<a href="#top">back to top: open</a>]
-</p>
-<h3>Generic HDF File Reader</h3>
-<p>
-If <a href="#volume">EMAN HDF format</a> is expected, 
-but that file reader fails, a generic HDF file reader is tried instead. 
-This generic reader does not look for any metadata; it simply looks for
-3-dimensional arrays and tries to open them as <a href="../tools/volumeviewer.html">volume models</a> with grid spacing of 1. The following 
-<a href="#local"><b>open</b></a> command option can be used to
-limit which 3D arrays are read:
-</p>
-<blockquote>
-<b>arrayName</b>&nbsp;&nbsp;<i>name</i>
-<br>
-In <a href="https://www.hdfgroup.org/HDF5/" target="_blank">HDF5</a> format,
-each array has a directory path within the file and 
-a <i>name</i> (the last part of the pathname). This option indicates reading
-only arrays with the specified <i>name</i>. Example:
- <blockquote>
- <b>open Cam_long_00003.h5 arrayName Data</b>
- </blockquote>
-</blockquote>
-
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-January 2024</address>
+March 2024</address>
 </body></html>

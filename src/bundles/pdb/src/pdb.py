@@ -284,6 +284,30 @@ def fetch_pdb_pdbe(session, pdb_id, **kw):
 def fetch_pdb_pdbj(session, pdb_id, **kw):
     return fetch_pdb(session, pdb_id, fetch_source="pdbj", **kw)
 
+def fetch_pdb_redo(session, pdb_id, ignore_cache=False, **kw):
+    from chimerax.core.errors import UserError
+    if len(pdb_id) not in (4, 8):
+        raise UserError('PDB identifiers are 4 or 8 characters long, got "%s"' % pdb_id)
+
+    from chimerax.mmcif.mmcif import pdb_redo_base_url
+    pdb_id, base_url = pdb_redo_base_url(pdb_id)
+    from chimerax.core.fetch import fetch_file
+    pdb_name = "%s.pdb" % pdb_id
+    filename = fetch_file(session, base_url + ".pdb", 'PDB %s' % pdb_id, pdb_name,
+                          "PDB-REDO", ignore_cache=ignore_cache)
+    # double check that a mmCIF file was downloaded instead of an
+    # HTML error message saying the ID does not exist
+    with open(filename, 'r') as f:
+        line = f.readline()
+        if not line.startswith(('HEADER', 'REMARK', 'ATOM')):
+            f.close()
+            import os
+            os.remove(filename)
+            raise UserError("Invalid PDB-REDO identifier")
+
+    session.logger.status("Opening PDB-REDO structure %s" % (pdb_id,))
+    return session.open_command.open_data(filename, format='pdb', name=pdb_id, **kw)
+
 def collate_records_text(records, multiple_results=False):
     if multiple_results:
         collation = []

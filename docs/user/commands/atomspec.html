@@ -580,6 +580,9 @@ described <a href="#wildcards">above</a> for atom and residue names.
 </tr><tr>
 <td align="center"><b>&lt;=</b></td>
 <td>less than or equal to</td>
+</tr><tr>
+<td align="center"><b>^</b></td>
+<td>(before attribute name) attribute not assigned</td>
 </tr>
 </table>
 
@@ -601,10 +604,6 @@ see <a href="#combinations">combinations</a>:
 </blockquote>
 &ndash; atoms with <a href="altlocs.html">alternate locations</a>
 <blockquote>
-<b>~@@charge</b>
-</blockquote>
-&ndash; atoms not assigned a charge
-<blockquote>
 <b>@ca & @@bfactor>40</b>
 </blockquote>
 &ndash; atoms named CA with B-factor values over 40
@@ -621,29 +620,14 @@ see <a href="#combinations">combinations</a>:
 </blockquote>
 &ndash; non-aromatic carbon atoms
 (see <a href="../atomtypes.html">atom types</a>)
-<!-- label not attr in ChimeraX, and color doesn't work
-<blockquote>
-<b>N & @@draw_mode=0 & @@label</b>
-</blockquote>
-&ndash; nitrogen atoms that are drawn as spheres and labeled
-<blockquote>
-<b>N & (@@draw_mode=0 | @@label)</b>
-</blockquote>
-&ndash; nitrogen atoms that are drawn as spheres and/or labeled
-<blockquote>
-<b>@ca & ~ (@@label | @@color=green | @@color=red)</b>
-</blockquote>
-&ndash; atoms named CA that are not labeled, and are not green or red
-<blockquote>
-<b>~ @@color=yellow | ~ @@color=blue</b>
-</blockquote>
-&ndash; all atoms, because if an atom is yellow it fulfills the criterion of not
-being blue, and <i>vice versa</i>
--->
 <blockquote>
 <b>::num_atoms>=10</b>
 </blockquote>
 &ndash; residues with 10 or more atoms
+<blockquote>
+<b>::^chi3</b>
+</blockquote>
+&ndash; residues without a chi3 angle
 <blockquote>
 <b>//identity="#1/A,B"</b>
 </blockquote>
@@ -785,5 +769,5 @@ of residues with any atom within 4 &Aring; of <a href="#surfcats">ligand</a>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-February 2024</address>
+March 2024</address>
 </body></html> 

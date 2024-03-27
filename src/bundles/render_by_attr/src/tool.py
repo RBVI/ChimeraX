@@ -34,7 +34,7 @@ class RenderByAttrTool(ToolInstance):
         self.tool_window = tw = MainToolWindow(self, statusbar=True)
         parent = tw.ui_area
         from Qt.QtWidgets import QVBoxLayout, QHBoxLayout, QDialogButtonBox, QPushButton, QMenu, QLabel
-        from Qt.QtWidgets import QTabWidget, QWidget, QCheckBox, QLineEdit
+        from Qt.QtWidgets import QTabWidget, QWidget, QCheckBox, QLineEdit, QStackedWidget
         from Qt.QtGui import QDoubleValidator
         from Qt.QtCore import Qt
         overall_layout = QVBoxLayout()
@@ -74,11 +74,13 @@ class RenderByAttrTool(ToolInstance):
         self.mode_widget = QTabWidget()
         overall_layout.addWidget(self.mode_widget)
 
+        # Render tab
         render_tab = QWidget()
         render_tab_layout = QVBoxLayout()
         render_tab.setLayout(render_tab_layout)
         render_tab_layout.setSpacing(1)
         render_tab_layout.setContentsMargins(0,0,0,0)
+        # attribute menu
         attr_menu_widget = QWidget()
         attr_menu_layout = QHBoxLayout()
         attr_menu_layout.setSpacing(2)
@@ -92,6 +94,7 @@ class RenderByAttrTool(ToolInstance):
         menu.aboutToShow.connect(self._update_render_attr_menu)
         self.render_attr_menu_button.setMenu(menu)
         attr_menu_layout.addWidget(self.render_attr_menu_button, alignment=Qt.AlignLeft)
+        # histogram
         self.render_histogram = rh = MarkedHistogram(min_label=True, max_label=True, status_line=tw.status,
             select_callback=self._render_sel_marker_cb)
         render_tab_layout.addWidget(rh)
@@ -234,22 +237,43 @@ class RenderByAttrTool(ToolInstance):
         # wait until tab contents are completely filled before connecting this
         self.render_type_widget.currentChanged.connect(self._render_mode_changed)
 
-        sel_tab = QWidget()
-        sel_tab_layout = QVBoxLayout()
-        sel_tab_layout.setSpacing(1)
-        sel_tab_layout.setContentsMargins(0,0,0,0)
-        sel_tab.setLayout(sel_tab_layout)
-        sel_tab_layout.addWidget(QLabel("This tab not yet implemented.\nUse 'select' command instead.",
-            alignment=Qt.AlignCenter))
-        self.mode_widget.addTab(sel_tab, "Select")
+        # Select tab
+        select_tab = QWidget()
+        select_tab_layout = QVBoxLayout()
+        select_tab_layout.setSpacing(1)
+        select_tab_layout.setContentsMargins(0,0,0,0)
+        select_tab.setLayout(select_tab_layout)
+        # attribute menu
+        attr_menu_widget = QWidget()
+        attr_menu_layout = QHBoxLayout()
+        attr_menu_layout.setSpacing(2)
+        attr_menu_layout.setContentsMargins(0,0,0,0)
+        attr_menu_widget.setLayout(attr_menu_layout)
+        select_tab_layout.addWidget(attr_menu_widget, alignment=Qt.AlignCenter)
+        attr_menu_layout.addWidget(QLabel("Attribute:"), alignment=Qt.AlignRight)
+        self.select_attr_menu_button = QPushButton()
+        menu = QMenu()
+        menu.triggered.connect(self._new_select_attr)
+        menu.aboutToShow.connect(self._update_select_attr_menu)
+        self.select_attr_menu_button.setMenu(menu)
+        attr_menu_layout.addWidget(self.select_attr_menu_button, alignment=Qt.AlignLeft)
+        # value widgets
+        self.select_widgets = QStackedWidget()
+        self.select_widgets.addWidget(QLabel("Choose attribute to show values"))
+        #TODO: more value widgets
+        select_tab_layout.addWidget(self.select_widgets, alignment=Qt.AlignCenter)
+
+        select_tab_layout.addWidget(QLabel("This tab not yet fully implemented.\nUse 'select' command instead.", alignment=Qt.AlignCenter))
+        self.mode_widget.addTab(select_tab, "Select")
 
         self._update_target_menu()
         self._new_render_attr()
+        self._new_select_attr()
 
         from Qt.QtWidgets import QDialogButtonBox as qbbox
         bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
-        bbox.accepted.connect(self.render)
-        bbox.button(qbbox.Apply).clicked.connect(lambda: self.render(apply=True))
+        bbox.accepted.connect(self._dispatch)
+        bbox.button(qbbox.Apply).clicked.connect(lambda: self._dispatch(apply=True))
         bbox.rejected.connect(self.delete)
         if hasattr(self, 'help'):
             from chimerax.core.commands import run
@@ -344,6 +368,13 @@ class RenderByAttrTool(ToolInstance):
         target = self.target_menu_button.text()
         return self._ui_to_info[target]
 
+    def _dispatch(self, apply=False):
+        if self.mode_widget.tabText(self.mode_widget.currentIndex()) == "Render":
+            self.render(apply=apply)
+        else:
+            raise NotImplementedError("'Select' tab not fully implemented yet")
+            self.select(apply=apply)
+
     def _filter_model(self, model):
         try:
             return self._cur_attr_info().model_filter(model)
@@ -351,13 +382,23 @@ class RenderByAttrTool(ToolInstance):
             return False
 
     def _models_changed(self):
-        #TODO: Select tab
-        if self.model_list.value and self.render_attr_menu_button.isEnabled():
-            attr_info = self.render_attr_menu_button.text()
-            if attr_info != self.NO_ATTR_TEXT:
-                self._update_histogram(attr_info)
+        if self.model_list.value:
+            if self.render_attr_menu_button.isEnabled():
+                attr_info = self.render_attr_menu_button.text()
+                if attr_info != self.NO_ATTR_TEXT:
+                    self._update_histogram(attr_info)
+            else:
+                self._new_render_attr()
+            if self.select_attr_menu_button.isEnabled():
+                attr_info = self.select_attr_menu_button.text()
+                #TODO: may need to update other widgets
+                #if attr_info != self.NO_ATTR_TEXT:
+                #    self._update_histogram(attr_info)
+            else:
+                self._new_select_attr()
         else:
             self._new_render_attr()
+            self._new_select_attr()
         self._update_deworm_button()
 
     def _new_render_attr(self, attr_name_info=None):
@@ -382,6 +423,29 @@ class RenderByAttrTool(ToolInstance):
             self._update_palettes()
         self.render_attr_menu_button.setEnabled(enabled)
 
+    def _new_select_attr(self, attr_name_info=None):
+        enabled = True
+        if attr_name_info is None:
+            if not self.model_list.value:
+                attr_name = "no model chosen"
+                enabled = False
+            else:
+                attr_name = self.NO_ATTR_TEXT
+        else:
+            if isinstance(attr_name_info, str):
+                attr_name = attr_name_info
+            else:
+                attr_name = attr_name_info.text()
+        if attr_name != self.select_attr_menu_button.text():
+            self.select_attr_menu_button.setText(attr_name)
+            if attr_name_info is None:
+                self.select_widgets.setCurrentIndex(0)
+            #TODO: may be showing widgets other that a histogram
+            #else:
+            #    self._update_histogram(attr_name)
+            #self._update_palettes()
+        self.select_attr_menu_button.setEnabled(enabled)
+
     def _new_classes(self):
         self._update_target_menu()
 
@@ -398,8 +462,8 @@ class RenderByAttrTool(ToolInstance):
         self.color_atoms.setEnabled("atoms" in color_targets)
         self.color_cartoons.setEnabled("cartoons" in color_targets)
         self.color_surfaces.setEnabled("surfaces" in color_targets)
-        #TODO: Select
         self._new_render_attr()
+        self._new_select_attr()
 
     def _radius_marker_add_del(self, marker=None):
         if marker:
@@ -445,6 +509,14 @@ class RenderByAttrTool(ToolInstance):
         menu = self.render_attr_menu_button.menu()
         menu.clear()
         attr_names = self._attr_names_of_type(int, float)
+        attr_names.sort()
+        for attr_name in attr_names:
+            menu.addAction(attr_name)
+
+    def _update_select_attr_menu(self):
+        menu = self.select_attr_menu_button.menu()
+        menu.clear()
+        attr_names = self._attr_names_of_type(int, float, bool, str)
         attr_names.sort()
         for attr_name in attr_names:
             menu.addAction(attr_name)
