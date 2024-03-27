@@ -101,7 +101,7 @@ upgrade:
 app-install:
 	$(APP_PIP_INSTALL) --no-build-isolation -r app_requirements.txt
 ifneq (,$(SOURCE_WHEELS))
-	LANG=$(LANG) $(PIP_INSTALL) --no-build-isolation --no-binary $(SOURCE_WHEELS)
+	LANG=$(LANG) $(PIP_INSTALL) --no-build-isolation --no-binary $(subst $(SPACE),$(COMMA),$(SOURCE_WHEELS)) $(SOURCE_VERSIONS)
 endif
 	# Will be downloaded from install step
 	$(APP_PIP_INSTALL) $(GRAKO_WHEEL)
